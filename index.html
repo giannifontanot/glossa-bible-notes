@@ -544,6 +544,29 @@
     #cantoCuerpo.rejilla{ grid-template-columns:repeat(auto-fill,minmax(38px,1fr)); gap:4px; }
     .fly-rejilla{ grid-template-columns:repeat(6,32px); gap:4px; }
   }
+
+  /* PANTALLA BAJA. Agrandar la letra tiene un costo que hay que pagar aquí:
+     el panel de Formato pasó de 264px de contenido a 373px, y .rollo está
+     topado en max-height:88%. Mientras la pantalla es alta no pasa nada
+     —en vertical sobran cuatrocientos píxeles— pero en una pantalla baja el
+     tope muerde, y como #ajustes y #etiquetas llevan overflow:visible, lo que
+     sobra no se recorta con barra: se derrama y lo tapa .stage, que sí lleva
+     overflow:hidden. El resultado es que los últimos ajustes y el crédito
+     quedan fuera de la pantalla sin manera de llegar a ellos.
+     Medido a 560x360: 40px de contenido inalcanzable.
+
+     El arreglo va acotado a las pantallas bajas a propósito. En vertical el
+     panel se queda con overflow:visible tal como estaba, porque ahí no hay
+     nada que resolver y no vale la pena cambiarle el comportamiento a la
+     pantalla de siempre para atender un caso de orilla. Y el tope se vuelve
+     desplazable, no más alto: el panel tiene que seguir dejando ver la hoja
+     debajo, que es de lo que trata la burbuja.
+     overscroll-behavior:contain para que llegar al final del panel no
+     empiece a correr la hoja de atrás. */
+  @media (max-width: 560px) and (max-height: 600px){
+    #ajustes, #etiquetas{ overflow-y:auto; overflow-x:visible;
+                          overscroll-behavior:contain; }
+  }
 </style>
 </head>
 <body>
