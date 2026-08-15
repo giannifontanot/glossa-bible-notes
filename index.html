@@ -1023,10 +1023,25 @@ let showMarks = true, fontSize = 15;
 const PAPEL = [[250,247,241], [232,211,172]];
 const TINTA = [[ 36, 31, 26], [ 59, 43, 24]];
 let sepia = 0;
-const mezclar = (a, b, k) =>
-  'rgb(' + a.map((v, i) => Math.round(v + (b[i] - v) * k)).join(',') + ')';
-const colorPapel = () => mezclar(PAPEL[0], PAPEL[1], sepia / 100);
-const colorTinta = () => mezclar(TINTA[0], TINTA[1], sepia / 100);
+const mezclar = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
+const rgb = a => 'rgb(' + a.join(',') + ')';
+const papelRGB = () => mezclar(PAPEL[0], PAPEL[1], sepia / 100);
+const colorPapel = () => rgb(papelRGB());
+const colorTinta = () => rgb(mezclar(TINTA[0], TINTA[1], sepia / 100));
+/* EL REVÉS DE LA HOJA Y EL BONCHE. El pliegue se dibuja en un lienzo, no en
+   el DOM, así que no ve --papel: sus tonos estaban escritos a mano. Con el
+   sepia puesto, arrastrar el filo enseñaba un revés casi blanco girando
+   contra una hoja marrón. Los tres sitios que revisé al poner el sepia eran
+   los del DOM; este es un cuarto, y de otra especie.
+   Se guardan como FACTORES del papel, no como colores: así el revés sigue
+   siendo el mismo papel un punto más apagado —que es lo que lo distingue de
+   la cara— en cualquier punto del riel. Los tres números de cada terna salen
+   de dividir el color viejo entre el papel viejo, de modo que en sepia 0 sale
+   exactamente lo que salía antes: 250x.976=244, y así las nueve. */
+const REVES  = [.976, .968, .946];   /* la cara de atrás, con la tinta detrás */
+const BONCHE = [.956, .939, .905];   /* las hojas del manojo, más apagadas */
+const FONDO  = [.956, .943, .913];   /* el respaldo cuando no hay foto debajo */
+const tono = f => rgb(papelRGB().map((v, i) => Math.round(v * f[i])));
 /* Solo tipos de letra del SISTEMA: la hoja se rasteriza dentro de un SVG
    para poder doblarla, y ahí las fuentes web no cargan. Una fuente que se
    viera bonita en pantalla y distinta en la foto delataría el truco. */
@@ -2794,7 +2809,7 @@ function pintarSolapa(fold, conTinta, anc, alfa){
   const R = reflection(M,ex,ey);
   ctx.transform(R.R11,R.R21,R.R12,R.R22,R.e,R.f);
   pathFrom(flapPoly); ctx.clip();
-  ctx.fillStyle = conTinta ? '#f4efe4' : '#efe8da';
+  ctx.fillStyle = conTinta ? tono(REVES) : tono(BONCHE);
   ctx.fillRect(-2000,-2000,W+4000,H+4000);
   if (conTinta){ ctx.globalAlpha=.30; ctx.drawImage(pageImg,0,0,W,H); ctx.globalAlpha=1; }
   const g = ctx.createLinearGradient(M.x,M.y,anc.x,anc.y);
@@ -2815,7 +2830,7 @@ function drawFold(){
   const fold = computeFold(anchor,F), under = bajoImg;
   const pintaFondo = () => {
     if (under) ctx.drawImage(under,0,0,W,H);
-    else { ctx.fillStyle='#efe9dc'; ctx.fillRect(0,0,W,H); }
+    else { ctx.fillStyle=tono(FONDO); ctx.fillRect(0,0,W,H); }
   };
   /* EL BONCHE: cada hoja arranca de su propio punto del borde, viaja por su
      propia diagonal y sale con su propio retraso. Eso es lo que hace que se
@@ -2843,7 +2858,7 @@ function drawFold(){
   }
   if (fold){
     if (under) ctx.drawImage(under,0,0,W,H);
-    else { ctx.fillStyle='#efe9dc'; ctx.fillRect(0,0,W,H); }
+    else { ctx.fillStyle=tono(FONDO); ctx.fillRect(0,0,W,H); }
     ctx.save(); pathFrom(fold.flapPoly); ctx.clip();
     const sh = ctx.createLinearGradient(fold.M.x,fold.M.y,anchor.x,anchor.y);
     sh.addColorStop(0,'rgba(30,22,10,.34)'); sh.addColorStop(.45,'rgba(30,22,10,.10)'); sh.addColorStop(1,'rgba(30,22,10,0)');
