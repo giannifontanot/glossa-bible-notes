@@ -1,0 +1,242 @@
+{
+ "_que_es": "Glosas de ejemplo para Gloss Bible: seis pares de referencias cruzadas entre Mateo y Apocalipsis. Se cargan con el botón Importar del lector, que FUSIONA con lo que ya tengas.",
+ "formato": "glossa/marcas",
+ "version": 1,
+ "exportado": "2026-08-15T23:00:00.000Z",
+ "versionTexto": "vbl",
+ "totalMarcas": 12,
+ "marcas": [
+  {
+   "id": "eco-mat-1-1",
+   "libro": "MAT",
+   "cap": 1,
+   "vers": 1,
+   "cita": "Hijo de David",
+   "antes": "tro de Jesús el Mesías, ",
+   "despues": ", Hijo de Abraham, comen",
+   "ini": 46,
+   "fin": 59,
+   "versionOrigen": "vbl",
+   "estilo": "fill",
+   "color": "yellow",
+   "nota": "El evangelio abre presentando a Jesús por su linaje. El último libro lo cierra con el mismo título, dicho por él mismo: Ap 22:16.",
+   "etiquetas": [
+    "eco"
+   ],
+   "creada": "2026-08-15"
+  },
+  {
+   "id": "eco-rev-22-16",
+   "libro": "REV",
+   "cap": 22,
+   "vers": 16,
+   "cita": "la raíz y la descendencia de David",
+   "antes": "on las iglesias. Yo soy ",
+   "despues": ", la estrella brillante ",
+   "ini": 106,
+   "fin": 140,
+   "versionOrigen": "vbl",
+   "estilo": "fill",
+   "color": "yellow",
+   "nota": "Aquí se cierra lo que Mt 1:1 abrió. Y añade algo que la genealogía no podía decir: raíz además de descendencia — antes y después de David a la vez.",
+   "etiquetas": [
+    "eco"
+   ],
+   "creada": "2026-08-15"
+  },
+  {
+   "id": "eco-mat-24-30",
+   "libro": "MAT",
+   "cap": 24,
+   "vers": 30,
+   "cita": "viniendo sobre las nubes del cielo",
+   "antes": "erán al Hijo del hombre ",
+   "despues": " con poder y gran gloria",
+   "ini": 134,
+   "fin": 168,
+   "versionOrigen": "vbl",
+   "estilo": "fill",
+   "color": "blue",
+   "nota": "Jesús cita a Daniel para hablar de su venida. Ap 1:7 recoge la misma imagen, casi con las mismas palabras.",
+   "etiquetas": [
+    "eco"
+   ],
+   "creada": "2026-08-15"
+  },
+  {
+   "id": "eco-rev-1-7",
+   "libro": "REV",
+   "cap": 1,
+   "vers": 7,
+   "cita": "viene rodeado de nubes",
+   "antes": "Miren que ",
+   "despues": ", y todos lo verán, incl",
+   "ini": 10,
+   "fin": 32,
+   "versionOrigen": "vbl",
+   "estilo": "fill",
+   "color": "blue",
+   "nota": "El eco de Mt 24:30. Los dos añaden el lamento de los pueblos, así que no es coincidencia de imagen sino cita deliberada.",
+   "etiquetas": [
+    "eco"
+   ],
+   "creada": "2026-08-15"
+  },
+  {
+   "id": "eco-mat-28-18",
+   "libro": "MAT",
+   "cap": 28,
+   "vers": 18,
+   "cita": "Se me ha entregado todo el poder del cielo y de la tierra",
+   "antes": "os estaban y les dijo: “",
+   "despues": ".",
+   "ini": 44,
+   "fin": 101,
+   "versionOrigen": "vbl",
+   "estilo": "fill",
+   "color": "green",
+   "nota": "La autoridad se declara al final del evangelio, antes del encargo. Ap 19:16 la pone por escrito sobre él.",
+   "etiquetas": [
+    "eco"
+   ],
+   "creada": "2026-08-15"
+  },
+  {
+   "id": "eco-rev-19-16",
+   "libro": "REV",
+   "cap": 19,
+   "vers": 16,
+   "cita": "Rey de reyes y Señor de señores",
+   "antes": "staba escrito el nombre ",
+   "despues": ".",
+   "ini": 57,
+   "fin": 88,
+   "versionOrigen": "vbl",
+   "estilo": "fill",
+   "color": "green",
+   "nota": "Lo que en Mt 28:18 era una frase dicha, aquí es un nombre escrito encima.",
+   "etiquetas": [
+    "eco"
+   ],
+   "creada": "2026-08-15"
+  },
+  {
+   "id": "eco-mat-10-32",
+   "libro": "MAT",
+   "cap": 10,
+   "vers": 32,
+   "cita": "declararé mi compromiso con él ante mi Padre",
+   "antes": "iso conmigo, yo también ",
+   "despues": " que está en el cielo.",
+   "ini": 66,
+   "fin": 110,
+   "versionOrigen": "vbl",
+   "estilo": "fill",
+   "color": "orange",
+   "nota": "La promesa. Ap 3:5 la repite ya cumplida, en presencia del Padre y de sus ángeles.",
+   "etiquetas": [
+    "eco"
+   ],
+   "creada": "2026-08-15"
+  },
+  {
+   "id": "eco-rev-3-5",
+   "libro": "REV",
+   "cap": 3,
+   "vers": 5,
+   "cita": "hablaré en favor de ellos en presencia de mi Padre",
+   "antes": "del libro de la vida, y ",
+   "despues": " y de sus ángeles.",
+   "ini": 107,
+   "fin": 157,
+   "versionOrigen": "vbl",
+   "estilo": "fill",
+   "color": "orange",
+   "nota": "El cumplimiento de lo prometido en Mt 10:32. Cambia el tiempo del verbo, no el contenido.",
+   "etiquetas": [
+    "eco"
+   ],
+   "creada": "2026-08-15"
+  },
+  {
+   "id": "eco-mat-5-4",
+   "libro": "MAT",
+   "cap": 5,
+   "vers": 4,
+   "cita": "porque ellos serán consolados",
+   "antes": "tos son los que lloran, ",
+   "despues": ".",
+   "ini": 29,
+   "fin": 58,
+   "versionOrigen": "vbl",
+   "estilo": "fill",
+   "color": "yellow",
+   "nota": "La bienaventuranza deja el consuelo en futuro y no dice cuándo. Ap 21:4 pone la fecha.",
+   "etiquetas": [
+    "eco",
+    "bienaventuranzas"
+   ],
+   "creada": "2026-08-15"
+  },
+  {
+   "id": "eco-rev-21-4",
+   "libro": "REV",
+   "cap": 21,
+   "vers": 4,
+   "cita": "nunca más habrá lamento, llanto, o dolor",
+   "antes": "no volverá a ocurrir. Y ",
+   "despues": ", porque el mundo anteri",
+   "ini": 74,
+   "fin": 114,
+   "versionOrigen": "vbl",
+   "estilo": "fill",
+   "color": "yellow",
+   "nota": "Aquí se cobra la promesa de Mt 5:4. El consuelo no es que dejen de llorar: es que se acaba el motivo.",
+   "etiquetas": [
+    "eco",
+    "bienaventuranzas"
+   ],
+   "creada": "2026-08-15"
+  },
+  {
+   "id": "eco-mat-5-5",
+   "libro": "MAT",
+   "cap": 5,
+   "vers": 5,
+   "cita": "ellos poseerán el mundo entero",
+   "antes": " son bondadosos, porque ",
+   "despues": ".",
+   "ini": 44,
+   "fin": 74,
+   "versionOrigen": "vbl",
+   "estilo": "fill",
+   "color": "green",
+   "nota": "Heredar la tierra suena a metáfora hasta que se lee Ap 21:1, donde hay una tierra nueva que heredar.",
+   "etiquetas": [
+    "eco",
+    "bienaventuranzas"
+   ],
+   "creada": "2026-08-15"
+  },
+  {
+   "id": "eco-rev-21-1",
+   "libro": "REV",
+   "cap": 21,
+   "vers": 1,
+   "cita": "un nuevo cielo y una nueva tierra",
+   "antes": "Entonces vi ",
+   "despues": ". El primer cielo y la p",
+   "ini": 12,
+   "fin": 45,
+   "versionOrigen": "vbl",
+   "estilo": "fill",
+   "color": "green",
+   "nota": "La tierra de Mt 5:5. No la misma restaurada: una nueva.",
+   "etiquetas": [
+    "eco",
+    "bienaventuranzas"
+   ],
+   "creada": "2026-08-15"
+  }
+ ]
+}
