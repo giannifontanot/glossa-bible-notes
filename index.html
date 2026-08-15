@@ -361,6 +361,16 @@
   .rollo select option{ color:#222; }
   .rollo .lbl{ color:#7a6538; opacity:1; font-size:.58rem; }
   .rollo .medida{ color:#3c2f16; min-width:26px; }
+  /* EL RIEL DEL SEPIA. accent-color en vez de repintar el control entero: el
+     nativo ya sabe comportarse con el dedo, con el ratón y con el teclado, y
+     rehacerlo a mano cuesta cien líneas para quedar peor. Solo se le dice de
+     qué color es.
+     El selector lleva [type=range] para ganarle a la regla de arriba —.rollo
+     input, que le pone fondo de papel y relleno—: un riel con fondo y borde
+     de caja de texto se lee como un campo roto, no como un deslizador. */
+  .rollo input[type=range]{ flex:1 1 140px; min-width:90px; accent-color:#b8892b;
+                            background:transparent; border:0; padding:0;
+                            height:24px; margin:0; cursor:pointer; }
   .rollo .sep{ background:rgba(140,116,68,.35); height:15px; }
   .rollo .banda{ background:rgba(184,137,43,.2); border-color:rgba(140,116,68,.45); color:#4a3a1c; }
   .rollo .banda.apagada{ background:rgba(255,253,247,.55); border-color:rgba(140,116,68,.28); }
@@ -657,7 +667,7 @@
 <div class="grupo-simple">
   <div class="ajuste"><span class="lbl">tamaño</span><span class="ctrl">
     <button class="btn" id="fsDown" title="Un punto menos">A−</button>
-    <span class="medida" id="fsAhora">15</span>
+    <select id="fsAhora" title="Elige el tamaño de un tirón"></select>
     <button class="btn" id="fsUp" title="Un punto más">A+</button>
   </span></div>
   <div class="ajuste"><span class="lbl">tipografía</span><span class="ctrl">
@@ -694,6 +704,16 @@
     <button class="btn" data-lay="foot">al pie</button>
   </span></div>
 </div>
+
+<!-- El sepia va a lo ancho porque un deslizador corto no se atina con el
+     pulgar: cuanto más largo el riel, más fino el ajuste con el mismo gesto.
+     Y va ARRIBA de la versión, que es lo último del panel por ser lo que
+     menos se toca. -->
+<div class="ajuste ancho"><span class="lbl">sepia</span><span class="ctrl">
+  <input type="range" id="sepia" min="0" max="100" step="1" value="0"
+         title="Entinta el papel: de blanco de imprenta a papel viejo" />
+  <span class="medida" id="sepiaAhora">0</span>
+</span></div>
 
 <div class="ajuste ancho"><span class="lbl">versión</span><span class="ctrl" id="ctrlVersiones">
   <!-- se arma solo con lo que traiga bibles-included.js -->
@@ -790,7 +810,12 @@ const PAGE_CSS = `
    del SVG no existe, así que hay que repetirla o las cajas con relleno
    miden distinto en la foto. */
 .pg, .pg *{ box-sizing:border-box; }
-.pg{ background:#faf7f1; color:#241f1a;
+/* El papel y la tinta salen de variables porque el sepia los mueve a los dos
+   a la vez: entintar solo el fondo deja la letra negra flotando encima y se
+   ve una foto con filtro, no papel viejo. Los valores de fábrica quedan como
+   respaldo en el var() —si algún día alguien compone una hoja sin pasar por
+   prepararHoja, sale blanca en vez de transparente. */
+.pg{ background:var(--papel,#faf7f1); color:var(--tinta,#241f1a);
      font-family:var(--fam, Georgia, 'Times New Roman', serif);
      padding:22px var(--mx,18px) 18px; height:100%; width:100%; box-sizing:border-box; }
 .pg-inner{ position:relative; display:flex; flex-direction:column; height:100%; box-sizing:border-box; }
@@ -804,7 +829,7 @@ const PAGE_CSS = `
    como el folio de un libro impreso. */
 .pg-version{ position:absolute; bottom:0; left:50%; transform:translateX(-50%);
              z-index:2; font-size:9px; letter-spacing:.14em; text-transform:uppercase;
-             color:#c0ac86; background:#faf7f1; padding:2px 8px 1px;
+             color:#c0ac86; background:var(--papel,#faf7f1); padding:2px 8px 1px;
              white-space:nowrap; cursor:pointer; border-radius:4px 4px 0 0;
              transition:background .34s cubic-bezier(.65,0,.35,1),
                         color .34s cubic-bezier(.65,0,.35,1); }
@@ -823,7 +848,7 @@ const PAGE_CSS = `
                          -webkit-tap-highlight-color:transparent; }
 .pg-cabeza{ position:absolute; top:0; right:0; z-index:2;
             font-size:10.5px; line-height:1.3; letter-spacing:.07em;
-            color:#a98f57; background:#faf7f1; padding:1px 5px 2px 9px;
+            color:#a98f57; background:var(--papel,#faf7f1); padding:1px 5px 2px 9px;
             white-space:nowrap; cursor:pointer; border-radius:0 0 0 4px;
             transition:background .34s cubic-bezier(.65,0,.35,1),
                        color .34s cubic-bezier(.65,0,.35,1); }
@@ -987,6 +1012,21 @@ let etiquetasOcultas = new Set();
 let librosFiltro = new Set();
 let diaFiltro = '';              // '' = todos los días
 let showMarks = true, fontSize = 15;
+/* EL SEPIA. Va de 0 a 100 y mueve papel y tinta juntos, no solo el fondo:
+   entintar el papel y dejar la letra negra encima da una foto con filtro, no
+   una hoja vieja. En papel amarillento la tinta también envejece hacia el
+   marrón, así que las dos puntas se interpolan a la vez.
+   Los extremos están elegidos para que el contraste aguante: el papel más
+   entintado sigue siendo claro y la tinta sigue siendo oscura. No es un tema
+   oscuro disfrazado —para eso haría falta pensar aparte todos los colores de
+   las glosas— sino el mismo papel, más cálido. */
+const PAPEL = [[250,247,241], [232,211,172]];
+const TINTA = [[ 36, 31, 26], [ 59, 43, 24]];
+let sepia = 0;
+const mezclar = (a, b, k) =>
+  'rgb(' + a.map((v, i) => Math.round(v + (b[i] - v) * k)).join(',') + ')';
+const colorPapel = () => mezclar(PAPEL[0], PAPEL[1], sepia / 100);
+const colorTinta = () => mezclar(TINTA[0], TINTA[1], sepia / 100);
 /* Solo tipos de letra del SISTEMA: la hoja se rasteriza dentro de un SVG
    para poder doblarla, y ahí las fuentes web no cargan. Una fuente que se
    viera bonita en pantalla y distinta en la foto delataría el truco. */
@@ -1019,8 +1059,12 @@ let margen = 1;
 /* UNA sola firma con todo lo que afecta al acomodo. Antes había seis
    variables sueltas y dos veces se me olvidó copiar una a la foto; con la
    firma, agregar un ajuste nuevo no puede quedarse a medias. */
+/* El sepia entra en la firma o la foto se queda con el color anterior: la
+   firma es lo único que decide si la foto guardada todavía sirve, y una hoja
+   del color de antes girando sobre la mesa de ahora se nota igual que si
+   cambiara de letra. */
 const estiloFirma = () => [fontSize, columns, fuente, alineacion, guionesOn,
-  interlineado, versoAparte, margen, version, pg.offsetWidth].join('|');
+  interlineado, versoAparte, margen, version, sepia, pg.offsetWidth].join('|');
 /* Lo que va en el CONTENEDOR de la hoja, no en el cuerpo: tipo de letra y
    márgenes. Va aparte porque son propiedades de .pg, y tiene que llamarse
    en los TRES lugares donde se compone una hoja —la real, el mapa de
@@ -1030,6 +1074,11 @@ function prepararHoja(el, w, h){
   if (w != null){ el.style.width = w + 'px'; el.style.height = h + 'px'; }
   el.style.setProperty('--fam', fuente);
   el.style.setProperty('--mx', MARGENES[margen][1] + 'px');
+  /* El sepia entra por aquí justamente porque este es el sitio que ya se
+     llama en los tres lados. La foto del pliegue no pasa por aquí —se arma
+     sola en buildSVG— y allá se repite; es la única copia, y va marcada. */
+  el.style.setProperty('--papel', colorPapel());
+  el.style.setProperty('--tinta', colorTinta());
 }
 function aplicarEstilo(bodyEl){
   const v = bodyEl.style;
@@ -1708,7 +1757,7 @@ function renderPage(){
   startIdx = paginas[paginaActual];
   nextIdx = finDe(paginaActual);
   prepararHoja(pg);
-  $('fsAhora').textContent = fontSize;
+  reflejarTamano();
   $('pgCabeza').textContent = cabezaDe(startIdx);
   $('pgCabeza').title = 'Libros, glosas, formato y respaldo';
   $('pgVersion').textContent = D.versiones[version].abrev || version;
@@ -2534,7 +2583,12 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza){
                         getComputedStyle(pgBody.parentElement).paddingTop + '"' : '';
   return '<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'+
     '<foreignObject x="0" y="0" width="'+w+'" height="'+h+'">'+
+      /* --papel y --tinta van aquí a mano: la foto no pasa por prepararHoja.
+         Si se olvidan, el pliegue enseña una hoja blanca girando sobre una
+         mesa sepia, que es el mismo brinco que ya costó dos comentarios más
+         arriba, pero de color. */
       '<div xmlns="http://www.w3.org/1999/xhtml" xml:lang="es" lang="es" class="pg sin-tinta" style="width:'+w+'px;height:'+h+'px;font-family:'+fuente+';--fam:'+fuente+
+          ';--papel:'+colorPapel()+';--tinta:'+colorTinta()+
           ';--mx:'+(med ? 0 : MARGENES[margen][1])+'px'+'">'+
         '<style>'+PAGE_CSS+'</style><div class="pg-inner"'+estInner+'>'+
         '<div class="pg-version"'+estVer+'>'+esc(D.versiones[version].abrev || version)+'</div>'+
@@ -3986,8 +4040,37 @@ document.querySelectorAll('[data-w]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-w]').forEach(x => x.classList.toggle('active', x===b));
   setTimeout(()=>{ sizeCanvas(); paginasSucias = true; renderPage(); }, 240);
 });
-$('fsUp').onclick   = () => { fontSize = Math.min(26, fontSize+1); paginasSucias = true; renderPage(); };
-$('fsDown').onclick = () => { fontSize = Math.max(10, fontSize-1); paginasSucias = true; renderPage(); };
+/* LOS TAMAÑOS, EN UN SOLO SITIO. El mínimo y el máximo estaban escritos tres
+   veces —en A+, en A− y en la validación de los ajustes— y ahora hacía falta
+   una cuarta para armar la lista. Cuatro copias de un rango es una de más
+   para que alguna se quede corta el día que se mueva. */
+const FS_MIN = 10, FS_MAX = 26;
+const TAMANOS = Array.from({length: FS_MAX - FS_MIN + 1}, (_, i) => FS_MIN + i);
+$('fsAhora').innerHTML = TAMANOS.map(n => '<option value="' + n + '">' + n + '</option>').join('');
+/* A+ y A− se quedan: la lista sirve para ir lejos de un tirón —de 15 a 22 sin
+   siete clics— y los botones para el ajuste fino, que es lo que de verdad se
+   hace cuando estás leyendo y algo no acaba de caer. Cada uno hace bien lo
+   que el otro hace mal, así que no se estorban. */
+function reflejarTamano(){ $('fsAhora').value = String(fontSize); }
+function ponerTamano(n){
+  const v = Math.max(FS_MIN, Math.min(FS_MAX, Math.round(n)));
+  if (v === fontSize){ reflejarTamano(); return; }   // rebota el select si topó
+  fontSize = v; paginasSucias = true; renderPage();
+}
+$('fsUp').onclick    = () => ponerTamano(fontSize + 1);
+$('fsDown').onclick  = () => ponerTamano(fontSize - 1);
+$('fsAhora').onchange = e => ponerTamano(+e.target.value);
+
+/* EL SEPIA. En 'input' y no en 'change' para que el papel se entinte mientras
+   arrastras: elegir un color a ciegas y verlo al soltar es elegir dos veces.
+   No se marca paginasSucias —el color no cambia cuánto texto cabe, así que
+   repaginar sería tirar el trabajo para llegar al mismo sitio— pero la firma
+   sí lleva el sepia, así que la foto del pliegue se rehace sola. */
+$('sepia').oninput = e => {
+  sepia = Math.max(0, Math.min(100, +e.target.value || 0));
+  $('sepiaAhora').textContent = sepia;
+  renderPage();
+};
 $('selFuente').innerHTML = FUENTES.map((f,i) =>
   '<option value="'+i+'" title="'+f[2]+'">'+f[0]+'</option>').join('');
 $('selFuente').title = FUENTES.map(f => f[0] + ': ' + f[2]).join(' · ');
@@ -4167,7 +4250,7 @@ function guardarAjustes(){
   try {
     localStorage.setItem(AJUSTES, JSON.stringify({
       v: 1, fontSize, columns, placement, alineacion,
-      interlineado, versoAparte, margen, anchoHoja, version, showMarks,
+      interlineado, versoAparte, margen, anchoHoja, version, showMarks, sepia,
       fuente: FUENTES.findIndex(f => f[1] === fuente),
       libro: LIBRO, cap: aqui.cap, vers: aqui.vers
     }));
@@ -4180,7 +4263,10 @@ function cargarAjustes(){
   let a = null;
   try { a = JSON.parse(localStorage.getItem(AJUSTES) || 'null'); } catch(e){}
   if (!a || a.v !== 1) return null;
-  if (a.fontSize >= 10 && a.fontSize <= 26) fontSize = a.fontSize;
+  if (a.fontSize >= FS_MIN && a.fontSize <= FS_MAX) fontSize = a.fontSize;
+  /* Number.isFinite y no un simple >=: un null guardado por una version
+     vieja pasaba la comparacion como 0 y dejaba el sepia mudo sin decirlo. */
+  if (Number.isFinite(a.sepia)) sepia = Math.max(0, Math.min(100, a.sepia));
   if (FUENTES[a.fuente]) fuente = FUENTES[a.fuente][1];
   if ([1,2,3].includes(a.columns)) columns = a.columns;
   if (['below','margin','foot'].includes(a.placement)){ placement = a.placement; placementTocado = true; }
@@ -4198,7 +4284,9 @@ function cargarAjustes(){
 /* Un solo lugar que pone los controles a decir lo que el estado dice.
    Sin esto, restaurar ajustes deja botones mintiendo. */
 function reflejarControles(){
-  $('fsAhora').textContent = fontSize;
+  reflejarTamano();
+  $('sepia').value = String(sepia);
+  $('sepiaAhora').textContent = sepia;
   $('selFuente').value = String(Math.max(0, FUENTES.findIndex(f => f[1] === fuente)));
   const marcar = (sel, ok) => document.querySelectorAll(sel).forEach(x => x.classList.toggle('active', ok(x)));
   marcar('[data-cols]', x => +x.dataset.cols === columns);
