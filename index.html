@@ -85,16 +85,48 @@
        ocupar exactamente lo que se ve de él.
        Se centran sobre la columna de texto —a la mitad de --col-texto— y no
        sobre el papel entero, que se sale de la pantalla. */
+    /* line-height escrito en píxeles, no en múltiplo: de aquí sale el alto del
+       titulillo, y de ese alto sale cuánto tiene que bajar el texto. Con un
+       múltiplo el alto depende del redondeo de cada navegador y la cuenta de
+       abajo deja de cuadrar. 17 + 4 + 5 = 26, que es --alto-cabeza. */
     #pg .pg-cabeza, #ghost .pg-cabeza{
         left:calc(var(--col-texto, 340px) / 2); right:auto; width:auto;
-        transform:translateX(-50%); font-size:13px;
+        transform:translateX(-50%); font-size:13px; line-height:17px;
         text-align:center; padding:4px 10px 5px; border-radius:0 0 4px 4px; }
+    /* Mismo trato que el titulillo, y por la misma razón: de este alto sale
+       cuánto tiene que subir el pie del texto. 13 + 3 + 2 = 18. */
     #pg .pg-version, #ghost .pg-version{
         left:calc(var(--col-texto, 340px) / 2); right:auto; width:auto;
         transform:translateX(-50%); text-align:center;
-        font-size:11px; letter-spacing:.16em; padding:3px 10px 2px; }
-    /* el texto baja para que el titulillo respire, en vez de encimársele */
-    #pg .pg-cols, #ghost .pg-cols{ padding-top:15px; }
+        font-size:11px; line-height:13px; letter-spacing:.16em; padding:3px 10px 2px; }
+    /* EL TEXTO BAJA PARA QUE EL TITULILLO RESPIRE. La idea ya estaba; el
+       número estaba mal. El titulillo va posicionado y mide 26px —17 de
+       renglón más 4 y 5 de relleno— pero aquí se bajaba el texto 15px, así
+       que la etiqueta invadía 10.9px del área de texto.
+       No se notaba en la primera columna porque el número de capítulo la
+       empuja hacia abajo con su propio margen. Se notaba en la segunda, que
+       empieza pegada al borde de arriba: ahí la primera línea quedaba tocando
+       el titulillo. Con tres columnas pasa en la segunda y la tercera.
+       La cuenta va en una variable porque el alto del titulillo se decide
+       arriba: si algún día cambia su letra o su relleno, se corrige --alto-
+       cabeza y el texto vuelve a acomodarse solo. */
+    #pg, #ghost{ --alto-cabeza:26px; --alto-version:18px; --aire-cabeza:6px; }
+    #pg .pg-cols, #ghost .pg-cols{
+        padding-top:calc(var(--alto-cabeza) + var(--aire-cabeza)); }
+    /* Y EL MISMO DEFECTO AL PIE, que salió al medir el de arriba. La versión
+       —el "VBL" de abajo— también va posicionada y también se le encimaba el
+       texto: mide 18px y nadie le reservaba ni uno. Ya pasaba antes de tocar
+       nada, pero bajar el texto para despegarlo del titulillo lo empujaba
+       contra este otro, así que arreglar arriba y no abajo habría sido
+       cambiar un choque por otro.
+       El reservado va en .pg-inner y no en .pg-cols porque cuando las glosas
+       están al pie, lo último de la hoja es .pg-foot, no la columna. Y el
+       rótulo no se mueve: está posicionado contra la caja de relleno, así
+       que sigue pegado al borde de abajo mientras el texto se detiene antes.
+       Reservar altura cambia lo que cabe, y de eso ya se encarga paginate:
+       mide contra la caja viva, así que se entera solo. */
+    #pg .pg-inner, #ghost .pg-inner{
+        padding-bottom:calc(var(--alto-version) + var(--aire-cabeza)); }
     .stage{ width:100vw !important; height:100svh; height:100dvh;
             filter:none; transition:none; }
     #pg{ border-radius:0;
@@ -108,12 +140,27 @@
             regresar, como si el papel se hubiera trabado. `contain` dice que
             el desplazamiento se acaba aquí y no se le pasa a nadie. */
          overscroll-behavior-x:contain; overscroll-behavior-y:none;
-         /* touch-action:none, no pan-x: el desplazamiento lo hace EL GUION,
-            para ratón y para dedo igual. Dejar que el navegador también lo
-            hiciera nos costó dos vueltas: los dos empujaban el mismo papel
-            y se atoraba; y al quitarme yo, resultó que el navegador tampoco
-            lo movía. Con un solo responsable no hay a quién culpar. */
-         touch-action:none;
+         /* pan-y, no pan-x: el desplazamiento DE LADO lo hace EL GUION, para
+            ratón y para dedo igual. Dejar que el navegador también lo hiciera
+            nos costó dos vueltas: los dos empujaban el mismo papel y se
+            atoraba; y al quitarme yo, resultó que el navegador tampoco lo
+            movía. Con un solo responsable no hay a quién culpar. pan-y no
+            le devuelve nada de eso: sigue sin poder correr el papel a los
+            lados, y de arriba abajo no hay a dónde correrlo —overflow-y va
+            en hidden—. El guion conserva el mando completo.
+
+            Aquí decía `none`, y `none` cobraba un peaje que no se veía: apaga
+            TODO gesto de fábrica sobre la hoja, y uno de esos gestos es
+            seleccionar texto arrastrando el dedo. En el teléfono no se podía
+            elegir un pasaje para hacerlo glosa —el sistema pintaba sus
+            manijas, pero el navegador no formaba la selección y la página no
+            se enteraba—. El doble toque sí funcionaba, porque esa es otra
+            ruta. Y no bastaba con relajarlo en el versículo: touch-action no
+            se hereda, pero el navegador lo INTERSECTA con el de los
+            ancestros, así que un `none` aquí arriba manda sobre todo lo que
+            vive adentro por más `auto` que diga cada hijo. Se corrige donde
+            estaba puesto, no donde se notaba. */
+         touch-action:pan-y;
          scrollbar-width:none; -ms-overflow-style:none; }
     #pg::-webkit-scrollbar{ width:0; height:0; display:none; }
     /* LOS DOS ANCHOS DE LA HOJA. Aquí estaba el error de proporción: le había
@@ -167,25 +214,8 @@
        tan poco —125px— el imán no ayudaba a llegar a ningún lado y sí se
        sentía como si el papel se resistiera. Correr libre es más honesto. */
 
-    /* TAMAÑOS DE LETRA EN TELÉFONO. Los de escritorio se eligieron para una
-       hoja que se mira a medio metro, en una pantalla grande y con el ratón a
-       la mano. En un teléfono se mira a treinta centímetros, con el pulgar por
-       cursor y muchas veces en movimiento: lo que allá es discreto, aquí es
-       ilegible. Solo se tocan dentro de este bloque, así que el escritorio se
-       queda exactamente como está.
-       Además, un control de menos de 24px de alto no se atina con el pulgar,
-       y varios andaban en 18. */
-    .rollo .lbl, .ajuste > .lbl{ font-size:11px; flex-basis:64px; }
-    .rollo .btn{ font-size:12px; padding:6px 10px; }
-    .pestanas button{ font-size:13px; padding:6px 8px; }
-    .rollo .chip{ font-size:12px; padding:5px 10px; }
-    .tabo{ font-size:11.5px; height:24px; line-height:24px; padding:0 9px; }
-    .num{ font-size:12px; height:24px; line-height:24px; }
-    .grupo-tit{ font-size:9px; padding:4px 0 4px; }
-    .fly-tit{ font-size:11px; }
-    #indice .ix-item{ font-size:12px; }
-    .nota-respaldo, .rollo .cred{ font-size:11px; }
-    .banda select, .banda input, .ajuste select{ font-size:12px; }
+    /* Los TAMAÑOS DE LETRA EN TELÉFONO estaban aquí y no hacían nada. Ver la
+       nota al final de la hoja de estilos, que es donde viven ahora. */
 
     /* Aquí estaba el degradado que insinuaba que el papel seguía hacia la
        derecha. Se fue: servía para enseñar algo que ya se sabe, y a cambio
@@ -515,6 +545,75 @@
   #indice::-webkit-scrollbar{ width:0; height:0; display:none; }
   .ix-vacio{ opacity:.55; padding:6px 5px; display:block;
              font:400 10px/1.5 var(--ui); color:#3d3117; }
+
+  /* ============================================================
+     TAMAÑOS DE LETRA EN TELÉFONO. Los de escritorio se eligieron para una
+     hoja que se mira a medio metro, en una pantalla grande y con el ratón a
+     la mano. En un teléfono se mira a treinta centímetros, con el pulgar por
+     cursor y muchas veces en movimiento: lo que allá es discreto, aquí es
+     ilegible. Solo se tocan dentro de este bloque, así que el escritorio se
+     queda exactamente como está.
+     Además, un control de menos de 24px de alto no se atina con el pulgar,
+     y varios andaban en 18.
+
+     ESTE BLOQUE VA AL FINAL, Y NO ES CAPRICHO. Estaba dentro del @media de
+     arriba, que empieza en la línea 68, o sea ANTES de que se declaren .tabo,
+     .num, .grupo-tit y compañía. A igual especificidad gana la última regla
+     escrita, así que las de escritorio —que vienen después— borraban todo
+     esto y el teléfono se quedaba con la letra de 6.5px. El panel de libros
+     era el peor parado: títulos de grupo en 6.5px y nombres de libro en 9.5px
+     dentro de blancos de 18px de alto.
+     Hay un agravante: varias de esas reglas usan la taquigrafía `font`, que
+     no solo pisa el tamaño, también la interlínea. Por eso aquí se usa
+     `font-size` y `line-height` por separado, y por eso el bloque tiene que
+     ir después. Si algún día se mueve para arriba, vuelve a romperse igual.
+     ============================================================ */
+  @media (max-width: 560px){
+    .rollo .lbl, .ajuste > .lbl{ font-size:11px; flex-basis:64px; }
+    .rollo .btn{ font-size:12px; padding:6px 10px; }
+    .pestanas button{ font-size:13px; padding:6px 8px; }
+    .rollo .chip{ font-size:12px; padding:5px 10px; }
+    .tabo{ font-size:11.5px; height:24px; line-height:24px; padding:0 9px; }
+    .num{ font-size:12px; height:24px; line-height:24px; }
+    .grupo-tit{ font-size:9px; padding:4px 0 4px; }
+    .fly-tit{ font-size:11px; }
+    #indice .ix-item{ font-size:12px; }
+    .nota-respaldo, .rollo .cred{ font-size:11px; }
+    .banda select, .banda input, .ajuste select{ font-size:12px; }
+    /* La cabecera del panel de libros nunca estuvo en la lista, y es lo
+       primero que se lee al abrirlo: el rótulo iba en 7.5px y la flecha de
+       volver era un blanco de 15px, la mitad de lo que alcanza un pulgar. */
+    #cantoCab{ font-size:10px; height:auto; min-height:24px; }
+    #cantoCab .atras{ font-size:15px; width:26px; height:26px; }
+    /* La rejilla de capítulos se dimensiona en celdas de 32px, que era lo
+       justo para un .num de 18px. Con 24px de alto los números quedaban
+       apretados contra el borde. */
+    #cantoCuerpo.rejilla{ grid-template-columns:repeat(auto-fill,minmax(38px,1fr)); gap:4px; }
+    .fly-rejilla{ grid-template-columns:repeat(6,32px); gap:4px; }
+  }
+
+  /* PANTALLA BAJA. Agrandar la letra tiene un costo que hay que pagar aquí:
+     el panel de Formato pasó de 264px de contenido a 373px, y .rollo está
+     topado en max-height:88%. Mientras la pantalla es alta no pasa nada
+     —en vertical sobran cuatrocientos píxeles— pero en una pantalla baja el
+     tope muerde, y como #ajustes y #etiquetas llevan overflow:visible, lo que
+     sobra no se recorta con barra: se derrama y lo tapa .stage, que sí lleva
+     overflow:hidden. El resultado es que los últimos ajustes y el crédito
+     quedan fuera de la pantalla sin manera de llegar a ellos.
+     Medido a 560x360: 40px de contenido inalcanzable.
+
+     El arreglo va acotado a las pantallas bajas a propósito. En vertical el
+     panel se queda con overflow:visible tal como estaba, porque ahí no hay
+     nada que resolver y no vale la pena cambiarle el comportamiento a la
+     pantalla de siempre para atender un caso de orilla. Y el tope se vuelve
+     desplazable, no más alto: el panel tiene que seguir dejando ver la hoja
+     debajo, que es de lo que trata la burbuja.
+     overscroll-behavior:contain para que llegar al final del panel no
+     empiece a correr la hoja de atrás. */
+  @media (max-width: 560px) and (max-height: 600px){
+    #ajustes, #etiquetas{ overflow-y:auto; overflow-x:visible;
+                          overscroll-behavior:contain; }
+  }
 </style>
 </head>
 <body>
@@ -2376,20 +2475,29 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza){
                                hueco:11, orilla:16 } : null;
   const estBody  = med ? 'flex:0 0 '+med.texto+'px;width:'+med.texto+'px;min-width:'+med.texto+
                          'px;padding-left:'+med.orilla+'px;padding-right:'+med.orilla+'px;' : '';
-  const estInner = med ? ' style="width:'+(med.texto+med.hueco+med.glosa)+'px;max-width:none"' : '';
+  const estInner = med ? ' style="width:'+(med.texto+med.hueco+med.glosa)+'px;max-width:none;' +
+                         'padding-bottom:'+getComputedStyle(pgBody.closest('.pg-inner')).paddingBottom+'"' : '';
   /* Los rótulos también: en teléfono van centrados sobre la columna de texto y
-     el cuerpo baja 15px para dejarlos respirar. Eso vive en la hoja de estilos
+     el cuerpo baja para dejarlos respirar. Eso vive en la hoja de estilos
      de la aplicación, dentro de un @media que el SVG no ve —trae su propia
      copia de PAGE_CSS y nada más—. Sin repetirlo aquí, la foto salía con el
-     titulillo en la esquina y el texto 15px más arriba, y al voltear la hoja
-     el texto daba un brinco. */
+     titulillo en la esquina y el texto más arriba, y al voltear la hoja
+     el texto daba un brinco.
+     Cuánto baja el texto ya NO se repite como número: se lee de la hoja viva.
+     Estaba escrito 15px en los dos lados, y cuando se corrigió el de la hoja
+     de estilos este se habría quedado atrás —que es exactamente el brinco que
+     describe el párrafo de arriba, pero al revés. Un número que tiene que
+     coincidir en dos sitios termina no coincidiendo; leerlo de un solo sitio
+     no puede desincronizarse. El titulillo sí conserva su copia porque el
+     SVG no hereda las variables del modo angosto. */
   const estCab  = med ? ' style="left:'+(med.texto/2)+'px;right:auto;width:auto;' +
                         'transform:translateX(-50%);text-align:center;font-size:13px;' +
-                        'padding:4px 10px 5px;border-radius:0 0 4px 4px"' : '';
+                        'line-height:17px;padding:4px 10px 5px;border-radius:0 0 4px 4px"' : '';
   const estVer  = med ? ' style="left:'+(med.texto/2)+'px;right:auto;width:auto;' +
                         'transform:translateX(-50%);text-align:center;' +
-                        'font-size:11px;letter-spacing:.16em;padding:3px 10px 2px"' : '';
-  const estCols = med ? ' style="padding-top:15px"' : '';
+                        'font-size:11px;line-height:13px;letter-spacing:.16em;padding:3px 10px 2px"' : '';
+  const estCols = med ? ' style="padding-top:' +
+                        getComputedStyle(pgBody.parentElement).paddingTop + '"' : '';
   return '<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'+
     '<foreignObject x="0" y="0" width="'+w+'" height="'+h+'">'+
       '<div xmlns="http://www.w3.org/1999/xhtml" xml:lang="es" lang="es" class="pg sin-tinta" style="width:'+w+'px;height:'+h+'px;font-family:'+fuente+';--fam:'+fuente+
