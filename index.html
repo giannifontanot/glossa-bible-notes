@@ -1759,6 +1759,13 @@ const paginaDe = k => {
   return p;
 };
 const finDe = p => (p + 1 < paginas.length ? paginas[p+1] : plano.length);
+/* ¿Hay hoja de ese lado? La pregunta ya se hacía en tres sitios con la cuenta
+   escrita a mano —al apagar el filo, al empezar el pliegue y al pasar la
+   hoja— y la huella necesitaba hacerla una cuarta vez. Con la cuenta suelta,
+   olvidarla es lo natural: es justo lo que pasó, y el síntoma fue una huella
+   prometiendo un giro en un filo donde no hay a dónde ir. */
+const hayHoja = s => s === 'right' ? paginaActual < paginas.length - 1
+                                   : paginaActual > 0;
 /* Libro, capítulo y versículo con los que ARRANCA la hoja */
 const cabezaDe = k => {
   const it = plano[Math.min(Math.max(k,0), plano.length-1)];
@@ -1787,8 +1794,8 @@ function renderPage(){
   curMW = r.mw; curGap = r.gap;
   curMarginHTML = r.marginHTML; curFootHTML = r.footHTML;
   if (HL_API) aplicarHighlights();
-  edgeR.classList.toggle('off', paginaActual >= paginas.length - 1);
-  edgeL.classList.toggle('off', paginaActual <= 0);
+  edgeR.classList.toggle('off', !hayHoja('right'));
+  edgeL.classList.toggle('off', !hayHoja('left'));
   $('btnVolver').style.display = volverA == null ? 'none' : '';
   medirHojaTelefono();
   pintarFiltros(); pintarIndice(); invalidateSnapshot(); updateReadout();
@@ -2887,8 +2894,7 @@ const UMBRAL_ARRASTRE = 6;      // px que hay que moverse para que sea arrastre
 let gestoPendiente = null;
 
 function iniciarPliegue(s, clientY){
-  if (s === 'right' && paginaActual >= paginas.length - 1) return false;
-  if (s === 'left'  && paginaActual <= 0) return false;
+  if (!hayHoja(s)) return false;
   side = s;
   hojasExtra = []; alfaTop = 1;
   bajoImg = (s === 'right' ? nextImg : prevImg);
@@ -2976,7 +2982,13 @@ function ocultarHuella(){
 function bordeAbajo(ev, s){
   if (cantoAbierto){ cerrarCanto(); return; }
   gestoPendiente = { s, x: ev.clientX, y: ev.clientY, t: performance.now() };
-  mostrarHuella(ev, s);
+  /* En el filo de la primera hoja —o de la última— no hay a dónde ir. El filo
+     ya se ve apagado, pero .off es solo pintura: los oyentes siguen ahí y la
+     huella se encendía igual, prometiendo un giro durante los 240ms de la
+     espera para luego apagarse sin que pasara nada. Una señal que dice "voy"
+     donde no se va a ningún lado es peor que no dar señal: enseña a
+     desconfiar de ella en los filos donde sí sirve. */
+  if (hayHoja(s)) mostrarHuella(ev, s);
   (s === 'right' ? edgeR : edgeL).setPointerCapture(ev.pointerId);
 }
 function bordeMueve(ev, s){
