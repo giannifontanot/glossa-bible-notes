@@ -1,0 +1,47 @@
+Antes de correrlo: el archivo ebible-a-glossa.py tiene que estar en la misma carpeta donde vive gloss-bible.html, porque escribe glossa-datos.js ahí mismo y lo sobreescribe. Abre una terminal en esa carpeta (clic derecho → "Abrir en Terminal") y corre:
+
+py ebible-a-glossa.py --libros MRK
+
+Eso baja Marcos completo en las dos versiones de siempre, VBL y RVR1909.
+
+Variantes útiles:
+
+py ebible-a-glossa.py --libros MRK LUK JHN        varios libros de un jalón
+py ebible-a-glossa.py --libros TODOS              los 66 libros
+py ebible-a-glossa.py --libros JHN --versiones vbl rv1909 bes pdt
+py ebible-a-glossa.py --libros MRK --salida prueba.js    sin pisar el bueno
+
+
+Para bajar libros en español e inglés a la vez:
+py ebible-a-glossa.py --libros MRK --versiones vbl rv1909 bsb web
+
+
+Las cuatro versiones que reconoce son vbl (Versión Biblia Libre), rv1909 (Reina Valera 1909, dominio público), bes (Biblia en Español Sencillo) y pdt (Palabra de Dios para ti). Si no dices nada, baja vbl y rv1909.
+
+Los 66 códigos. Van en mayúsculas y son los estándar USFM, no los nombres en español:
+
+Antiguo Testamento		
+GEN Génesis · EXO Éxodo · LEV Levítico	NUM Números · DEU Deuteronomio · JOS Josué	JDG Jueces · RUT Rut · 1SA 1 Samuel
+2SA 2 Samuel · 1KI 1 Reyes · 2KI 2 Reyes	1CH 1 Crónicas · 2CH 2 Crónicas · EZR Esdras	NEH Nehemías · EST Ester · JOB Job
+PSA Salmos · PRO Proverbios · ECC Eclesiastés	SNG Cantares · ISA Isaías · JER Jeremías	LAM Lamentaciones · EZK Ezequiel · DAN Daniel
+HOS Oseas · JOL Joel · AMO Amós	OBA Abdías · JON Jonás · MIC Miqueas	NAM Nahúm · HAB Habacuc · ZEP Sofonías
+HAG Hageo · ZEC Zacarías · MAL Malaquías		
+Nuevo Testamento		
+MAT Mateo · MRK Marcos · LUK Lucas	JHN Juan · ACT Hechos · ROM Romanos	1CO 1 Corintios · 2CO 2 Corintios · GAL Gálatas
+EPH Efesios · PHP Filipenses · COL Colosenses	1TH 1 Tesalonicenses · 2TH 2 Tesalonicenses	1TI 1 Timoteo · 2TI 2 Timoteo · TIT Tito
+PHM Filemón · HEB Hebreos · JAS Santiago	1PE 1 Pedro · 2PE 2 Pedro · 1JN 1 Juan	2JN 2 Juan · 3JN 3 Juan · JUD Judas
+REV Apocalipsis		
+
+Ojo con los que llevan número: es 1SA, no 1 SA ni 1Sa. Y Marcos es MRK, sin la A.
+
+Al terminar debe imprimir cuántos versículos bajó y la línea "texto limpio: sin marcadores, atributos ni números de Strong". Si en vez de eso te lista versículos sospechosos, no uses el archivo y pásamelos.
+
+Dos avisos más: si te marca que dos versiones no coinciden en el número de versículos de algún capítulo, anótalo — ahí es donde el anclaje de glosas entre versiones puede cojear. Y la primera vez se tarda porque descarga los ZIP a .cache-ebible; de ahí en adelante ya no vuelve a bajarlos.
+
+-----------------------------------------------------------------------------------------------------------------
+
+py ebible-a-glossa.py --libros NT           los 27 del Nuevo Testamento
+py ebible-a-glossa.py --libros AT           los 39 del Antiguo
+py ebible-a-glossa.py --libros EVANGELIOS   Mateo, Marcos, Lucas y Juan
+py ebible-a-glossa.py --libros PABLO        las 13 cartas paulinas
+
