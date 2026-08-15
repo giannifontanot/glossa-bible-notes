@@ -263,6 +263,39 @@
      que no hay que explicar. */
   .edge-l{ left:0;  background:linear-gradient(to left,  rgba(201,162,39,0), rgba(201,162,39,.16)); }
   .edge.off{ opacity:.2; cursor:default; }
+
+  /* LA HUELLA EN EL FILO. Tocar el filo no daba señal de nada. Y hay un rato
+     en que no puede darla: el paso de hoja espera 240ms por si viene un
+     segundo clic —el propio código lo llama "el único retardo del sistema"—
+     así que entre que apoyas el dedo y que la hoja arranca hay un hueco en el
+     que el programa ya te entendió y no lo parece. Ese hueco se sentía como
+     un toque que no entró, y la respuesta natural es volver a tocar, que es
+     justo lo que reinicia la espera.
+     Ahora queda la marca del dedo donde lo pusiste. Late despacio mientras
+     dura la espera —eso es el "estoy en ello"— y se apaga en el instante en
+     que la hoja empieza a girar, no antes: apagarla antes devolvería el hueco
+     a otro sitio. No captura clics; es un aviso, no un blanco. */
+  #huella{ position:absolute; z-index:4; width:62px; height:74px;
+           margin-left:-31px; margin-top:-37px; pointer-events:none;
+           opacity:0; transform:scale(1.09);
+           transition:opacity .17s ease, transform .21s cubic-bezier(.3,.8,.4,1); }
+  #huella.viva{ opacity:1; transform:scale(1); }
+  #huella .crestas{ position:absolute; left:0; top:0; }
+  /* El resplandor va DETRÁS de las crestas y respira con ellas. Suave a
+     propósito: un destello fuerte a un centímetro del pulgar estorba más de
+     lo que informa, y aquí el trabajo es avisar, no llamar la atención. */
+  #huella .brillo{ position:absolute; inset:-7px; border-radius:50%;
+                   background:radial-gradient(ellipse at center,
+                              rgba(184,137,43,.30), rgba(184,137,43,.11) 52%,
+                              rgba(184,137,43,0) 73%); }
+  #huella.viva .crestas, #huella.viva .brillo{
+           animation:huellaLate 1.15s cubic-bezier(.45,0,.35,1) infinite; }
+  /* Respira entre .58 y 1: no baja a cero porque una huella que desaparece y
+     vuelve parpadea, y un parpadeo dice "error", no "espera". */
+  @keyframes huellaLate{ 0%,100%{ opacity:.58; } 50%{ opacity:1; } }
+  @media (prefers-reduced-motion: reduce){
+    #huella.viva .crestas, #huella.viva .brillo{ animation:none; opacity:.85; }
+  }
   #ghost{ position:fixed; left:-99999px; top:0; pointer-events:none; }
 
   /* EL CANTO DE LA BIBLIA: las pestañas viven al filo derecho, debajo de
@@ -702,6 +735,7 @@
   <div id="respaldo" class="rollo"></div>
   <div id="canto" class="rollo"><div id="cantoCab"></div><div id="cantoCuerpo"></div></div>
   <canvas id="fx"></canvas>
+  <div id="huella" aria-hidden="true"></div>
   <div class="edge edge-l" id="edgeL" title="Clic: hoja anterior · Arrastra: pliega"></div>
   <div class="edge edge-r" id="edgeR" title="Clic: pasa la hoja · Arrastra: pliega"></div>
   <div id="menu"></div>
@@ -2798,9 +2832,67 @@ function iniciarPliegue(s, clientY){
   if (pageImg) pg.classList.add('hidden');
   return true;
 }
+/* ============================================================
+   LA HUELLA. Se dibuja, no se pinta a mano: unas crestas trazadas siempre
+   iguales serían un sello, y un sello puesto dos veces en el mismo sitio se
+   nota falso. Cada impresión sale de azarDe —el mismo generador que le da
+   forma a las glosas— sembrado con el filo y la altura del toque, así que
+   cambia de un toque a otro y es SIEMPRE la misma para el mismo punto. Es la
+   regla que ya sigue el resto del programa: azar que no cambia bajo los pies.
+   ============================================================ */
+const huella = $('huella');
+function crestasHuella(semilla){
+  const r = azarDe(String(semilla));
+  const cx = 31, cy = 37;
+  let d = '';
+  for (let i = 0; i < 8; i++){
+    const rx = 3.4 + i * 3.25 + r() * 1.1;
+    const ry = 4.2 + i * 3.95 + r() * 1.3;
+    /* Cada cresta ABRE en un ángulo distinto y no cierra: una huella real no
+       son anillos concéntricos, son líneas que empiezan y acaban donde les
+       toca. Cerrarlas daba un tiro al blanco, no un dedo. */
+    const a0 = -Math.PI/2 + (r() - .5) * 1.7;
+    const barrido = Math.PI * (1.30 + r() * .55);
+    /* La ondulación es una sinusoidal con fase propia, no ruido por punto:
+       con ruido cada cresta salía dentada, y una cresta dentada se lee como
+       un trazo mal hecho en vez de como piel. */
+    const fase = r() * 6.283, amp = .020 + r() * .030;
+    let p = '';
+    for (let s = 0; s <= 30; s++){
+      const a = a0 + barrido * (s / 30);
+      const w = 1 + Math.sin(a * 3 + fase) * amp;
+      p += (s ? 'L' : 'M') + (cx + Math.cos(a) * rx * w).toFixed(1) + ' '
+                           + (cy + Math.sin(a) * ry * w).toFixed(1);
+    }
+    d += '<path d="' + p + '" fill="none" stroke="rgba(' + DORADO + ',' +
+         (.52 - i * .04).toFixed(3) + ')" stroke-width="' +
+         (1.45 - i * .09).toFixed(2) + '" stroke-linecap="round"/>';
+  }
+  return d;
+}
+function mostrarHuella(ev, s){
+  const r = stage.getBoundingClientRect();
+  /* A la ALTURA donde tocaste —que es de donde va a girar la hoja, así que la
+     marca y el giro cuentan lo mismo— pero metida hacia adentro: el filo mide
+     24px y una huella centrada ahí saldría partida por el canto. Se ve entera
+     y se sigue leyendo como "tu dedo está en este filo". */
+  const y = Math.min(Math.max(ev.clientY - r.top, 42), r.height - 42);
+  huella.style.left = (s === 'right' ? r.width - 34 : 34) + 'px';
+  huella.style.top  = y + 'px';
+  huella.innerHTML = '<div class="brillo"></div>' +
+    '<svg class="crestas" width="62" height="74" viewBox="0 0 62 74">' +
+    crestasHuella(s + ':' + Math.round(y)) + '</svg>';
+  /* Un cuadro de respiro antes de encender: puesta y encendida en el mismo
+     cuadro, el navegador se salta la transición y la huella aparece de golpe
+     en vez de posarse. */
+  requestAnimationFrame(() => huella.classList.add('viva'));
+}
+function ocultarHuella(){ huella.classList.remove('viva'); }
+
 function bordeAbajo(ev, s){
   if (cantoAbierto){ cerrarCanto(); return; }
   gestoPendiente = { s, x: ev.clientX, y: ev.clientY, t: performance.now() };
+  mostrarHuella(ev, s);
   (s === 'right' ? edgeR : edgeL).setPointerCapture(ev.pointerId);
 }
 function bordeMueve(ev, s){
@@ -2809,6 +2901,10 @@ function bordeMueve(ev, s){
   if (!g || g.s !== s) return;
   if (Math.hypot(ev.clientX - g.x, ev.clientY - g.y) < UMBRAL_ARRASTRE) return;
   gestoPendiente = null;
+  /* Dejó de ser un toque y pasó a ser un arrastre: la huella sobra, porque
+     ahora el papel ya se mueve bajo el dedo y eso avisa mejor que cualquier
+     marca. */
+  ocultarHuella();
   if (!iniciarPliegue(s, g.y)) return;       // no hay hoja de ese lado
   F = clampPg(local(ev)); drawFold(); ev.preventDefault();
 }
@@ -2853,14 +2949,24 @@ function pasarHoja(s, clientY, intento){
   });
 }
 function bordeArriba(ev, s){
-  if (folding){ endFold(); return; }
+  if (folding){ ocultarHuella(); endFold(); return; }
   const g = gestoPendiente; gestoPendiente = null;
-  if (!g || g.s !== s) return;
+  if (!g || g.s !== s){ ocultarHuella(); return; }
   const quieto = Math.hypot(ev.clientX - g.x, ev.clientY - g.y) < UMBRAL_ARRASTRE;
-  if (!quieto || performance.now() - g.t > 600) return;
+  /* Gesto descartado —te moviste demasiado, o te quedaste apoyado más de lo
+     que dura un clic—: la huella se va sin que pase nada, que es exactamente
+     lo que hay que contar. */
+  if (!quieto || performance.now() - g.t > 600){ ocultarHuella(); return; }
   clearTimeout(relojClic);
   const alturaClic = g.y;                    // la hoja gira desde donde tocaste
-  relojClic = setTimeout(() => { relojClic = null; pasarHoja(s, alturaClic); }, ESPERA_DOBLE);
+  /* Y AQUÍ es donde la huella se gana el sueldo: sigue encendida durante los
+     240ms de espera del doble clic, que es el rato en que el programa ya te
+     entendió y todavía no mueve nada. Se apaga en el mismo cuadro en que
+     arranca el giro —ni antes, que devolvería el hueco a otro sitio, ni
+     después, que la dejaría flotando sobre una hoja que ya se fue. */
+  relojClic = setTimeout(() => {
+    relojClic = null; ocultarHuella(); pasarHoja(s, alturaClic);
+  }, ESPERA_DOBLE);
 }
 function endFold(){
   if (!folding) return;
@@ -3109,7 +3215,7 @@ $('pgVersion').addEventListener('click', e => { e.preventDefault(); alternarBurb
   el.addEventListener('pointerdown', e => bordeAbajo(e, s));
   el.addEventListener('pointermove', e => bordeMueve(e, s));
   el.addEventListener('pointerup',   e => bordeArriba(e, s));
-  el.addEventListener('pointercancel', () => { gestoPendiente = null; if (folding) endFold(); });
+  el.addEventListener('pointercancel', () => { gestoPendiente = null; ocultarHuella(); if (folding) endFold(); });
 });
 function animate(turn){
   const from = {...F};
