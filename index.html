@@ -2841,6 +2841,7 @@ function iniciarPliegue(s, clientY){
    regla que ya sigue el resto del programa: azar que no cambia bajo los pies.
    ============================================================ */
 const huella = $('huella');
+let cuadroHuella = 0;
 function crestasHuella(semilla){
   const r = azarDe(String(semilla));
   const cx = 31, cy = 37;
@@ -2884,10 +2885,24 @@ function mostrarHuella(ev, s){
     crestasHuella(s + ':' + Math.round(y)) + '</svg>';
   /* Un cuadro de respiro antes de encender: puesta y encendida en el mismo
      cuadro, el navegador se salta la transición y la huella aparece de golpe
-     en vez de posarse. */
-  requestAnimationFrame(() => huella.classList.add('viva'));
+     en vez de posarse.
+     Ese cuadro hay que poder CANCELARLO, y se paga caro si no. Un gesto que
+     nace y muere dentro del mismo cuadro —un pointercancel inmediato, o un
+     jalón que cruza el umbral de arrastre antes de que pinte nadie— llamaba a
+     ocultarHuella() cuando la clase todavía no estaba puesta: quitarla no
+     hacía nada, y el cuadro pendiente la ponía después. La huella se quedaba
+     encendida y latiendo sobre una hoja quieta, sin gesto que la explicara,
+     hasta el siguiente toque. Guardar el cuadro y cancelarlo cierra esa
+     puerta: encender y apagar pasan a ser la misma cola. */
+  cancelAnimationFrame(cuadroHuella);
+  cuadroHuella = requestAnimationFrame(() => {
+    cuadroHuella = 0; huella.classList.add('viva');
+  });
 }
-function ocultarHuella(){ huella.classList.remove('viva'); }
+function ocultarHuella(){
+  cancelAnimationFrame(cuadroHuella); cuadroHuella = 0;
+  huella.classList.remove('viva');
+}
 
 function bordeAbajo(ev, s){
   if (cantoAbierto){ cerrarCanto(); return; }
