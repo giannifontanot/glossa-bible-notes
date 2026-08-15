@@ -140,12 +140,27 @@
             regresar, como si el papel se hubiera trabado. `contain` dice que
             el desplazamiento se acaba aquí y no se le pasa a nadie. */
          overscroll-behavior-x:contain; overscroll-behavior-y:none;
-         /* touch-action:none, no pan-x: el desplazamiento lo hace EL GUION,
-            para ratón y para dedo igual. Dejar que el navegador también lo
-            hiciera nos costó dos vueltas: los dos empujaban el mismo papel
-            y se atoraba; y al quitarme yo, resultó que el navegador tampoco
-            lo movía. Con un solo responsable no hay a quién culpar. */
-         touch-action:none;
+         /* pan-y, no pan-x: el desplazamiento DE LADO lo hace EL GUION, para
+            ratón y para dedo igual. Dejar que el navegador también lo hiciera
+            nos costó dos vueltas: los dos empujaban el mismo papel y se
+            atoraba; y al quitarme yo, resultó que el navegador tampoco lo
+            movía. Con un solo responsable no hay a quién culpar. pan-y no
+            le devuelve nada de eso: sigue sin poder correr el papel a los
+            lados, y de arriba abajo no hay a dónde correrlo —overflow-y va
+            en hidden—. El guion conserva el mando completo.
+
+            Aquí decía `none`, y `none` cobraba un peaje que no se veía: apaga
+            TODO gesto de fábrica sobre la hoja, y uno de esos gestos es
+            seleccionar texto arrastrando el dedo. En el teléfono no se podía
+            elegir un pasaje para hacerlo glosa —el sistema pintaba sus
+            manijas, pero el navegador no formaba la selección y la página no
+            se enteraba—. El doble toque sí funcionaba, porque esa es otra
+            ruta. Y no bastaba con relajarlo en el versículo: touch-action no
+            se hereda, pero el navegador lo INTERSECTA con el de los
+            ancestros, así que un `none` aquí arriba manda sobre todo lo que
+            vive adentro por más `auto` que diga cada hijo. Se corrige donde
+            estaba puesto, no donde se notaba. */
+         touch-action:pan-y;
          scrollbar-width:none; -ms-overflow-style:none; }
     #pg::-webkit-scrollbar{ width:0; height:0; display:none; }
     /* LOS DOS ANCHOS DE LA HOJA. Aquí estaba el error de proporción: le había
