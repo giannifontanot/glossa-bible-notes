@@ -85,16 +85,48 @@
        ocupar exactamente lo que se ve de él.
        Se centran sobre la columna de texto —a la mitad de --col-texto— y no
        sobre el papel entero, que se sale de la pantalla. */
+    /* line-height escrito en píxeles, no en múltiplo: de aquí sale el alto del
+       titulillo, y de ese alto sale cuánto tiene que bajar el texto. Con un
+       múltiplo el alto depende del redondeo de cada navegador y la cuenta de
+       abajo deja de cuadrar. 17 + 4 + 5 = 26, que es --alto-cabeza. */
     #pg .pg-cabeza, #ghost .pg-cabeza{
         left:calc(var(--col-texto, 340px) / 2); right:auto; width:auto;
-        transform:translateX(-50%); font-size:13px;
+        transform:translateX(-50%); font-size:13px; line-height:17px;
         text-align:center; padding:4px 10px 5px; border-radius:0 0 4px 4px; }
+    /* Mismo trato que el titulillo, y por la misma razón: de este alto sale
+       cuánto tiene que subir el pie del texto. 13 + 3 + 2 = 18. */
     #pg .pg-version, #ghost .pg-version{
         left:calc(var(--col-texto, 340px) / 2); right:auto; width:auto;
         transform:translateX(-50%); text-align:center;
-        font-size:11px; letter-spacing:.16em; padding:3px 10px 2px; }
-    /* el texto baja para que el titulillo respire, en vez de encimársele */
-    #pg .pg-cols, #ghost .pg-cols{ padding-top:15px; }
+        font-size:11px; line-height:13px; letter-spacing:.16em; padding:3px 10px 2px; }
+    /* EL TEXTO BAJA PARA QUE EL TITULILLO RESPIRE. La idea ya estaba; el
+       número estaba mal. El titulillo va posicionado y mide 26px —17 de
+       renglón más 4 y 5 de relleno— pero aquí se bajaba el texto 15px, así
+       que la etiqueta invadía 10.9px del área de texto.
+       No se notaba en la primera columna porque el número de capítulo la
+       empuja hacia abajo con su propio margen. Se notaba en la segunda, que
+       empieza pegada al borde de arriba: ahí la primera línea quedaba tocando
+       el titulillo. Con tres columnas pasa en la segunda y la tercera.
+       La cuenta va en una variable porque el alto del titulillo se decide
+       arriba: si algún día cambia su letra o su relleno, se corrige --alto-
+       cabeza y el texto vuelve a acomodarse solo. */
+    #pg, #ghost{ --alto-cabeza:26px; --alto-version:18px; --aire-cabeza:6px; }
+    #pg .pg-cols, #ghost .pg-cols{
+        padding-top:calc(var(--alto-cabeza) + var(--aire-cabeza)); }
+    /* Y EL MISMO DEFECTO AL PIE, que salió al medir el de arriba. La versión
+       —el "VBL" de abajo— también va posicionada y también se le encimaba el
+       texto: mide 18px y nadie le reservaba ni uno. Ya pasaba antes de tocar
+       nada, pero bajar el texto para despegarlo del titulillo lo empujaba
+       contra este otro, así que arreglar arriba y no abajo habría sido
+       cambiar un choque por otro.
+       El reservado va en .pg-inner y no en .pg-cols porque cuando las glosas
+       están al pie, lo último de la hoja es .pg-foot, no la columna. Y el
+       rótulo no se mueve: está posicionado contra la caja de relleno, así
+       que sigue pegado al borde de abajo mientras el texto se detiene antes.
+       Reservar altura cambia lo que cabe, y de eso ya se encarga paginate:
+       mide contra la caja viva, así que se entera solo. */
+    #pg .pg-inner, #ghost .pg-inner{
+        padding-bottom:calc(var(--alto-version) + var(--aire-cabeza)); }
     .stage{ width:100vw !important; height:100svh; height:100dvh;
             filter:none; transition:none; }
     #pg{ border-radius:0;
@@ -2428,20 +2460,29 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza){
                                hueco:11, orilla:16 } : null;
   const estBody  = med ? 'flex:0 0 '+med.texto+'px;width:'+med.texto+'px;min-width:'+med.texto+
                          'px;padding-left:'+med.orilla+'px;padding-right:'+med.orilla+'px;' : '';
-  const estInner = med ? ' style="width:'+(med.texto+med.hueco+med.glosa)+'px;max-width:none"' : '';
+  const estInner = med ? ' style="width:'+(med.texto+med.hueco+med.glosa)+'px;max-width:none;' +
+                         'padding-bottom:'+getComputedStyle(pgBody.closest('.pg-inner')).paddingBottom+'"' : '';
   /* Los rótulos también: en teléfono van centrados sobre la columna de texto y
-     el cuerpo baja 15px para dejarlos respirar. Eso vive en la hoja de estilos
+     el cuerpo baja para dejarlos respirar. Eso vive en la hoja de estilos
      de la aplicación, dentro de un @media que el SVG no ve —trae su propia
      copia de PAGE_CSS y nada más—. Sin repetirlo aquí, la foto salía con el
-     titulillo en la esquina y el texto 15px más arriba, y al voltear la hoja
-     el texto daba un brinco. */
+     titulillo en la esquina y el texto más arriba, y al voltear la hoja
+     el texto daba un brinco.
+     Cuánto baja el texto ya NO se repite como número: se lee de la hoja viva.
+     Estaba escrito 15px en los dos lados, y cuando se corrigió el de la hoja
+     de estilos este se habría quedado atrás —que es exactamente el brinco que
+     describe el párrafo de arriba, pero al revés. Un número que tiene que
+     coincidir en dos sitios termina no coincidiendo; leerlo de un solo sitio
+     no puede desincronizarse. El titulillo sí conserva su copia porque el
+     SVG no hereda las variables del modo angosto. */
   const estCab  = med ? ' style="left:'+(med.texto/2)+'px;right:auto;width:auto;' +
                         'transform:translateX(-50%);text-align:center;font-size:13px;' +
-                        'padding:4px 10px 5px;border-radius:0 0 4px 4px"' : '';
+                        'line-height:17px;padding:4px 10px 5px;border-radius:0 0 4px 4px"' : '';
   const estVer  = med ? ' style="left:'+(med.texto/2)+'px;right:auto;width:auto;' +
                         'transform:translateX(-50%);text-align:center;' +
-                        'font-size:11px;letter-spacing:.16em;padding:3px 10px 2px"' : '';
-  const estCols = med ? ' style="padding-top:15px"' : '';
+                        'font-size:11px;line-height:13px;letter-spacing:.16em;padding:3px 10px 2px"' : '';
+  const estCols = med ? ' style="padding-top:' +
+                        getComputedStyle(pgBody.parentElement).paddingTop + '"' : '';
   return '<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'+
     '<foreignObject x="0" y="0" width="'+w+'" height="'+h+'">'+
       '<div xmlns="http://www.w3.org/1999/xhtml" xml:lang="es" lang="es" class="pg sin-tinta" style="width:'+w+'px;height:'+h+'px;font-family:'+fuente+';--fam:'+fuente+
