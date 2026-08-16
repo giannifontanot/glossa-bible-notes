@@ -4599,7 +4599,30 @@ function reflejarControles(){
      escribía la variable, la respuesta era siempre 620 y la clase no se
      ponía jamás. Ahora se le pregunta a la escena, que es lo que de verdad
      decide si los dos grupos caben uno al lado del otro. */
-  const angosto = stage.offsetWidth < 560;
+  ajustarAnchoPanel();
+}
+/* Y ESTO TIENE QUE VOLVER A PREGUNTARSE AL CAMBIAR EL TAMAÑO. Vivía dentro de
+   reflejarControles, que solo corre al arrancar, así que la respuesta se
+   quedaba congelada con la que valía al abrir: girar el aparato de vertical a
+   horizontal dejaba el panel en una sola columna aunque ya cupieran dos, y al
+   revés dejaba dos columnas donde ya no caben —justo lo que la clase existe
+   para evitar—.
+   Sale a función aparte y no se llama a reflejarControles entera desde el
+   resize a propósito: aquella repone el estado de TODOS los controles, y en un
+   giro no hay estado que reponer, solo un ancho que volvió a medirse. */
+function ajustarAnchoPanel(){
+  /* Se le pregunta a matchMedia y no se miden píxeles, y esto costó una
+     medición equivocada: dentro del propio manejador de resize,
+     stage.offsetWidth todavía devuelve el ancho de ANTES —el navegador aún no
+     ha rehecho el acomodo— así que la clase se decidía con el tamaño viejo y
+     no se movía nunca. matchMedia contesta con el estado nuevo desde el primer
+     momento, porque no depende de que nada se haya vuelto a acomodar.
+     Y de paso es la MISMA pregunta que hace el CSS: la escena mide 100vw en
+     teléfono y ANCHO_HOJA —620, que nunca es angosto— en pantalla ancha, así
+     que "¿caben dos columnas?" y "¿estamos en modo teléfono?" son la misma
+     pregunta. Compartir el umbral con la hoja de estilos evita que un día
+     digan cosas distintas. */
+  const angosto = enTelefono();
   $('ctrlConfig').classList.toggle('estrecho', angosto);
   $('ctrlEtiquetas').classList.toggle('estrecho', angosto);
 }
@@ -4703,7 +4726,7 @@ if (guardado && guardado.cap){
   const k = plano.findIndex(p => p.cap === guardado.cap && p.vers === guardado.vers);
   if (k >= 0){ paginaActual = paginaDe(k); renderPage(); }
 }
-window.addEventListener('resize', () => { sizeCanvas(); paginasSucias = true; renderPage(); });
+window.addEventListener('resize', () => { sizeCanvas(); ajustarAnchoPanel(); paginasSucias = true; renderPage(); });
 })();
 </script>
 </body>
