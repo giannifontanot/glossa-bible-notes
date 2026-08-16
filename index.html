@@ -1265,7 +1265,30 @@ try { const r = localStorage.getItem(KEY); if (r) marcas = JSON.parse(r).map(alD
    están a salvo cuando no lo están. */
 let avisoGuardado = false;
 const save = () => {
-  paginasSucias = true;
+  /* GUARDAR NO SIEMPRE OBLIGA A REPAGINAR, y creer que sí costaba tres
+     segundos por marca. Aquí se ponía la bandera siempre, y con ella la
+     siguiente pintada recalculaba dónde corta cada hoja del libro entero —y
+     como la paginación va sincronizada entre versiones, una vez por cada
+     versión cargada—.
+     Con las glosas AL MARGEN ese trabajo llega siempre al mismo resultado que
+     ya estaba guardado: las notas van en position:absolute dentro de su propia
+     columna, no ocupan alto en el cuerpo del texto, así que ninguna marca
+     puede mover un corte de hoja. Medido: 3.2 segundos por marca antes, 17
+     milisegundos ahora, y el reparto de páginas sale idéntico.
+     Abajo o al pie es otra cosa: ahí la nota SÍ ocupa renglones y el corte se
+     mueve de verdad, así que la bandera se pone y se repagina.
+
+     La regla, por si vuelve a aparecer: la bandera de "recalcular" no la debe
+     poner el sitio donde ocurre el cambio, sino el que sabe si ese cambio
+     afecta al cálculo. save() sabe que algo cambió; lo que decide es si el
+     dato que cambió participa en el flujo que se está invalidando.
+
+     Los demás caminos que sí mueven los cortes ya ponen la bandera por su
+     cuenta y siguen intactos: cambiar de disposición —que es el caso que
+     importaba comprobar, porque pasar de margen a abajo con marcas ya
+     guardadas tiene que repaginar—, de versión, de columnas, de letra, de
+     interlínea, apagar las marcas y redimensionar la ventana. */
+  if (placement !== 'margin') paginasSucias = true;
   try {
     localStorage.setItem(KEY, JSON.stringify(marcas));
     avisoGuardado = false;
@@ -2528,6 +2551,20 @@ function abrirGlosa(m){
     if (viejo) viejo.remove();
     ta.style.position='absolute'; ta.style.left='0'; ta.style.width='100%'; ta.style.top=top+'px';
     pgMargin.appendChild(ta);
+    /* EN TELÉFONO HAY QUE IR HASTA EL MARGEN ANTES DE ENFOCAR. La columna de
+       glosas vive fuera de la pantalla —la hoja es más ancha y se descubre
+       arrastrando— así que el recuadro nacía con su mitad derecha cortada por
+       el canto. Existía, tenía el foco y aceptaba lo que escribieras; solo que
+       no se veía entero, y un campo del que asoma un trozo no se lee como
+       campo: se lee como que la glosa salió y no se deja tocar.
+       Enfocar a secas no bastaba: el navegador corría la hoja por su cuenta lo
+       justo para meter el cursor, que son 214px de 251, y ahí se quedaba con
+       los últimos 37 fuera. Se lleva la hoja al tope ANTES de enfocar, y así
+       no tiene nada que corregir después: el recuadro ya está entero y el
+       papel no da el brinco lateral que daba.
+       Sin animar a propósito: esto no es un viaje que se mira, es ponerse
+       donde hay que estar para escribir. */
+    if (enTelefono()) pg.scrollLeft = pg.scrollWidth - pg.clientWidth;
   } else if (placement === 'foot'){
     const viejo = pgFoot.querySelector('.gl[data-gl="'+m.id+'"]');
     ta.style.width='100%'; ta.style.margin='0 0 4px 0';
