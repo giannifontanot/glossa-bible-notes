@@ -613,15 +613,29 @@
      hoja, así que el papel puede correrse debajo sin llevárselo.
      El fondo es opaco porque tapa texto: translúcido se leerían las dos cosas
      a la vez y ninguna bien. */
+  /* LA CAJA VA DE PAPEL, NO DE PANEL. La monté con el fondo oscuro de los
+     menús y eso arruinaba lo único que tenía que hacer: el recuadro de dentro
+     se viste con los colores de la glosa —tinte claro y letra oscura, pensados
+     para leerse sobre crema— así que sobre un fondo oscuro quedaba letra
+     oscura sobre fondo oscuro. Se escribía perfectamente y no se veía nada, y
+     eso se reporta, con razón, como "no se puede editar".
+     El color exacto lo pone el guion con colorPapel(), para que siga al sepia
+     igual que la hoja. */
   .gl-movil{ position:fixed; left:8px; right:8px; top:8px; z-index:12;
-             display:flex; gap:8px; align-items:flex-start;
-             background:#2a2118; border:1px solid rgba(201,162,39,.45);
+             display:flex; gap:8px; align-items:stretch;
+             border:1px solid rgba(140,116,68,.6);
              border-radius:10px; padding:8px;
-             box-shadow:0 10px 30px rgba(0,0,0,.5); }
-  .gl-movil textarea{ flex:1 1 auto; min-width:0; font-size:15px !important;
-                      line-height:1.45; padding:9px 10px; }
-  .gl-movil .btn{ flex:0 0 auto; font-size:14px; padding:10px 14px;
-                  align-self:stretch; }
+             box-shadow:0 14px 38px rgba(0,0,0,.45); }
+  /* Sin !important y con la misma medida que el texto: escribir la nota y
+     leerla después tienen que ser el mismo tamaño, o al guardarla cambia de
+     cuerpo y parece otra cosa. */
+  .gl-movil textarea{ flex:1 1 auto; min-width:0; line-height:1.45;
+                      padding:10px 11px; }
+  /* El botón también se viste de papel: el .btn de fábrica es letra clara
+     para fondo oscuro, y aquí el fondo ya no lo es. */
+  .gl-movil .btn{ flex:0 0 auto; padding:10px 16px; align-self:stretch;
+                  color:#4a3a1c; background:rgba(255,253,247,.9);
+                  border:1px solid rgba(140,116,68,.5); }
   .gl-edit{ font-family:'Courier New',monospace; font-size:11px; line-height:1.4;
             border-radius:3px; padding:3px 6px; resize:none; outline:none; display:block;
             background:#fffdf8; }
@@ -1066,7 +1080,12 @@ const PAGE_CSS = `
 .b-blue  { text-decoration:underline 1.6px #2b9fd4; text-underline-offset:3px; }
 .b-orange{ text-decoration:underline 1.6px #e2650c; text-underline-offset:3px; }
 .aprox{ text-decoration:underline dotted 2px #b23a3a; text-underline-offset:4px; }
-.gl{ font-family:'Courier New',monospace; font-size:11px; line-height:1.42;
+/* LA GLOSA SE LEE AL MISMO TAMAÑO QUE EL TEXTO. Estaba clavada en 11px, así
+   que subir la letra de la hoja agrandaba el versículo y dejaba la nota igual
+   de chica: acababas leyendo cómodo el texto y forzando la vista en lo que tú
+   escribiste, que es al revés de lo que quieres. Va con --fs, la misma medida
+   que manda en el cuerpo. */
+.gl{ font-family:'Courier New',monospace; font-size:var(--fs,15px); line-height:1.42;
      border-radius:3px; padding:3px 6px; white-space:pre-wrap; box-sizing:border-box; }
 /* El hueco de giro: la caja se estrecha 4px por lado para que sus esquinas
    tengan a dónde asomarse. Sin esto, .pg-margin las recorta. */
@@ -1245,6 +1264,11 @@ function prepararHoja(el, w, h){
      sola en buildSVG— y allá se repite; es la única copia, y va marcada. */
   el.style.setProperty('--papel', colorPapel());
   el.style.setProperty('--tinta', colorTinta());
+  /* --fs se ponía solo en el cuerpo, y las glosas del margen y del pie son
+     hermanas suyas, no hijas: allí no llegaba. Se pone en la hoja entera, que
+     es el ancestro común de las tres, y así la nota mide lo que mide el texto
+     esté donde esté. */
+  el.style.setProperty('--fs', fontSize + 'px');
 }
 function aplicarEstilo(bodyEl){
   const v = bodyEl.style;
@@ -2613,9 +2637,15 @@ function abrirGlosa(m){
     }
     const caja = document.createElement('div');
     caja.className = 'gl-movil';
+    caja.style.background = colorPapel();
     ta.style.width = '100%';
+    /* La nota se escribe del tamaño con el que se va a leer. Se pone aquí y no
+       en el CSS porque la caja cuelga del cuerpo del documento, fuera de la
+       hoja, así que no hereda su --fs. */
+    ta.style.fontSize = fontSize + 'px';
     const listo = document.createElement('button');
     listo.className = 'btn'; listo.textContent = 'listo';
+    listo.style.fontSize = Math.max(14, fontSize - 2) + 'px';
     listo.addEventListener('click', () => ta.blur());
     caja.appendChild(ta); caja.appendChild(listo);
     document.body.appendChild(caja);
@@ -2916,7 +2946,7 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza){
          mesa sepia, que es el mismo brinco que ya costó dos comentarios más
          arriba, pero de color. */
       '<div xmlns="http://www.w3.org/1999/xhtml" xml:lang="es" lang="es" class="pg sin-tinta" style="width:'+w+'px;height:'+h+'px;font-family:'+fuente+';--fam:'+fuente+
-          ';--papel:'+colorPapel()+';--tinta:'+colorTinta()+
+          ';--papel:'+colorPapel()+';--tinta:'+colorTinta()+';--fs:'+fontSize+'px'+
           ';--mx:'+(med ? 0 : MARGENES[margen][1])+'px'+'">'+
         '<style>'+PAGE_CSS+'</style><div class="pg-inner"'+estInner+'>'+
         '<div class="pg-version"'+estVer+'>'+esc(D.versiones[version].abrev || version)+'</div>'+
