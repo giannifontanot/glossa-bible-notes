@@ -275,26 +275,39 @@
      dura la espera —eso es el "estoy en ello"— y se apaga en el instante en
      que la hoja empieza a girar, no antes: apagarla antes devolvería el hueco
      a otro sitio. No captura clics; es un aviso, no un blanco. */
+  /* APARECE CASI DE INMEDIATO. Estaba en .17s, y una señal que tarda casi dos
+     décimas en llegar no acompaña al dedo: lo alcanza. Con .07s ya está puesta
+     antes de que levantes la vista, y sigue habiendo transición —no salta— que
+     es para lo que se cede el cuadro de antes. La escala entra un pelo después
+     que la opacidad, y eso es lo que da el "se posa" en vez del "se enciende";
+     acortadas las dos, el gesto se conserva y solo se hace rápido. */
   #huella{ position:absolute; z-index:4; width:62px; height:74px;
            margin-left:-31px; margin-top:-37px; pointer-events:none;
-           opacity:0; transform:scale(1.09);
-           transition:opacity .17s ease, transform .21s cubic-bezier(.3,.8,.4,1); }
+           opacity:0; transform:scale(1.07);
+           transition:opacity .07s linear, transform .11s cubic-bezier(.3,.8,.4,1); }
   #huella.viva{ opacity:1; transform:scale(1); }
   #huella .crestas{ position:absolute; left:0; top:0; }
-  /* El resplandor va DETRÁS de las crestas y respira con ellas. Suave a
-     propósito: un destello fuerte a un centímetro del pulgar estorba más de
-     lo que informa, y aquí el trabajo es avisar, no llamar la atención. */
-  #huella .brillo{ position:absolute; inset:-7px; border-radius:50%;
+  /* EL RESPLANDOR. Estaba en .30 de dorado y era casi invisible: sobre papel
+     crema, un dorado translúcido al treinta por ciento se confunde con el
+     propio papel. Sube a .62 en el centro y se estira más lejos, para que la
+     huella traiga su propia mancha de fondo contra la que leerse en vez de
+     depender del contraste de los trazos.
+     El aire de fuera crece con él: un resplandor fuerte cortado en seco por el
+     borde de la caja se ve como un círculo pegado, no como luz. */
+  #huella .brillo{ position:absolute; inset:-12px; border-radius:50%;
                    background:radial-gradient(ellipse at center,
-                              rgba(184,137,43,.30), rgba(184,137,43,.11) 52%,
-                              rgba(184,137,43,0) 73%); }
+                              rgba(184,137,43,.62), rgba(184,137,43,.30) 48%,
+                              rgba(184,137,43,.10) 68%, rgba(184,137,43,0) 82%); }
   #huella.viva .crestas, #huella.viva .brillo{
            animation:huellaLate 1.15s cubic-bezier(.45,0,.35,1) infinite; }
-  /* Respira entre .58 y 1: no baja a cero porque una huella que desaparece y
-     vuelve parpadea, y un parpadeo dice "error", no "espera". */
-  @keyframes huellaLate{ 0%,100%{ opacity:.58; } 50%{ opacity:1; } }
+  /* Respira entre .82 y 1, no entre .58 y 1: el latido tiene que notarse sin
+     que la huella se apague a medio camino. Bajar a .58 le quitaba casi la
+     mitad del color justo en el momento en que hay que verla, y sumado a unos
+     trazos ya pálidos la hacía desaparecer media parte de cada ciclo. No baja
+     a cero por lo de siempre: un parpadeo dice "error", no "espera". */
+  @keyframes huellaLate{ 0%,100%{ opacity:.82; } 50%{ opacity:1; } }
   @media (prefers-reduced-motion: reduce){
-    #huella.viva .crestas, #huella.viva .brillo{ animation:none; opacity:.85; }
+    #huella.viva .crestas, #huella.viva .brillo{ animation:none; opacity:1; }
   }
   #ghost{ position:fixed; left:-99999px; top:0; pointer-events:none; }
 
@@ -2940,9 +2953,18 @@ function crestasHuella(semilla){
       p += (s ? 'L' : 'M') + (cx + Math.cos(a) * rx * w).toFixed(1) + ' '
                            + (cy + Math.sin(a) * ry * w).toFixed(1);
     }
+    /* LOS TRAZOS, MÁS SÓLIDOS Y MÁS GRUESOS. Empezaban en .52 de dorado y
+       bajaban hasta .24 en la cresta de fuera; sobre papel crema eso es casi
+       el papel, y en la práctica solo se veían los dos o tres anillos de
+       dentro. Ahora van de .95 a .60: la de fuera sigue siendo la más tenue
+       —el degradado hacia el borde es lo que hace que se lea como una huella
+       y no como una diana— pero ya ninguna se pierde.
+       El grosor sube en la misma proporción. Con trazos de menos de un píxel
+       el navegador los reparte entre dos filas y los pinta a media tinta, así
+       que adelgazar de más no afinaba: descoloría. Ninguna baja de 1.1. */
     d += '<path d="' + p + '" fill="none" stroke="rgba(' + DORADO + ',' +
-         (.52 - i * .04).toFixed(3) + ')" stroke-width="' +
-         (1.45 - i * .09).toFixed(2) + '" stroke-linecap="round"/>';
+         (.95 - i * .05).toFixed(3) + ')" stroke-width="' +
+         (2.05 - i * .12).toFixed(2) + '" stroke-linecap="round"/>';
   }
   return d;
 }
