@@ -943,9 +943,15 @@
 <script>
 (function(){
 /* Sello de compilación. Sirve para una sola cosa, y es una que ya hizo falta:
-   saber si el archivo que se está probando es el último. En la consola se
-   escribe GLOSS_BUILD y contesta. */
-window.GLOSS_BUILD = '13:56:10';
+   saber si el archivo que se está probando es el último.
+   Llevaba tiempo mintiendo: era una hora suelta escrita a mano que nadie
+   volvió a tocar, así que decía lo mismo en todas las versiones y contestaba
+   que sí a la única pregunta que sabe responder. Ahora lleva fecha, y hay que
+   subirla al cambiar algo que se vaya a probar en otro aparato.
+   Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
+   con las herramientas de desarrollo no sirve para lo que este sirve, que es
+   que alguien con un teléfono en la mano pueda decir qué versión tiene. */
+window.GLOSS_BUILD = '2026-08-16 · editor movil';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2572,7 +2578,14 @@ const TEXTO_HEX = {yellow:'#6d5410', green:'#235c31', blue:'#0f4b6b', orange:'#6
 const TINT = Object.fromEntries(COLORS.map(c =>
   [c, [LINE_HEX[c], 'rgba(' + FILL_RGB[c] + ',' + (FILL_ALFA[c]*.42).toFixed(2) + ')', TEXTO_HEX[c]]]));
 function abrirGlosa(m){
-  renderPage();
+  /* El repintado solo hace falta para los caminos que colocan el recuadro
+     DENTRO de la hoja: necesitan que el margen esté recién armado para saber
+     dónde va. El de teléfono lo cuelga del cuerpo del documento y no mide
+     nada de la hoja, así que aquí solo estorba —y estorba en el peor sitio,
+     entre el dedo y el foco: en un teléfono el teclado solo sube si el foco
+     ocurre dentro del gesto que lo pidió, y cuanto más trabajo se mete en
+     medio, más ocasiones hay de perder ese hilo. */
+  if (!enTelefono()) renderPage();
   const ta = document.createElement('textarea');
   const [bd,bg,fg] = TINT[m.color];
   ta.className='gl-edit'; ta.style.border='1px dashed '+bd; ta.style.background=bg; ta.style.color=fg;
@@ -4728,6 +4741,16 @@ ajustes.appendChild($('cred'));
     'Exportar es la única copia que sobrevive a limpiar el historial, cambiar de ' +
     'computadora o publicar el lector en otro sitio. Importar fusiona, nunca reemplaza.';
   caja.appendChild(nota);
+  /* EL SELLO, A LA VISTA. Existía solo en la consola, y eso lo dejaba inútil
+     justo para lo que sirve: cuando algo no funciona en un teléfono, la
+     primera pregunta es si ese teléfono tiene la versión nueva o una guardada
+     en caché, y esa pregunta la tiene que poder contestar quien sostiene el
+     aparato, sin enchufarlo a nada. */
+  const sello = document.createElement('p');
+  sello.className = 'nota-respaldo';
+  sello.style.opacity = '.6';
+  sello.textContent = 'versión del lector: ' + window.GLOSS_BUILD;
+  caja.appendChild(sello);
 })();
 
 /* ---------- arranque ---------- */
