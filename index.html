@@ -1620,7 +1620,7 @@ function enlazar(texto){
 /* Vínculos de regreso: se derivan, no se escriben. Y cuelgan del
    VERSÍCULO, no de una glosa — porque el versículo citado puede no
    tener glosa propia y el vínculo tiene que vivir en algún lado. */
-let BACK = new Map();
+let BACK = new Map(), firmaBack = '';
 function calcularVinculos(){
   BACK = new Map();
   for (const m of marcas){
@@ -1633,6 +1633,25 @@ function calcularVinculos(){
       BACK.set(k, arr);
     }
   }
+  /* Y AQUÍ SÍ HAY QUE REPAGINAR, aunque las glosas estén al margen. Es el
+     hueco que le faltaba al atajo de save(): la nota vive fuera del cuerpo,
+     de acuerdo, pero el contador de citas que produce —el "‹1" que verseHTML
+     escribe junto al número del versículo citado— vive DENTRO. Es texto en
+     línea: cambia dónde parten los renglones, y cerca del canto de una hoja
+     eso mueve un corte.
+     Así que save() se queda preguntando lo suyo, que es si la nota ocupa alto,
+     y la otra mitad de la pregunta se responde donde se puede responder: aquí,
+     que es el único sitio que sabe si los contadores cambiaron. Se compara una
+     firma del mapa —quién cita a quién, y cuántos de esos se están viendo—
+     porque el contador depende también de los filtros de etiqueta.
+     Corre justo antes de asegurarPaginas, así que la bandera se atiende en la
+     misma pintada. Y sale barato: el mapa solo tiene las notas que citan algo,
+     que son pocas, y crear un subrayado o una nota sin citas no lo mueve.
+     Lo encontró la revisión de Codex; mi comprobación se había quedado en que
+     la glosa no ocupa alto, que era verdad pero no era todo. */
+  const firma = [...BACK.keys()].sort()
+    .map(k => k + '=' + BACK.get(k).filter(visible).length).join('|');
+  if (firma !== firmaBack){ firmaBack = firma; paginasSucias = true; }
 }
 const backDe = (cap, vers) => (BACK.get(LIBRO + ':' + cap + ':' + vers) || []).filter(visible);
 
