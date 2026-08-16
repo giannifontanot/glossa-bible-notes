@@ -88,17 +88,20 @@
     /* line-height escrito en píxeles, no en múltiplo: de aquí sale el alto del
        titulillo, y de ese alto sale cuánto tiene que bajar el texto. Con un
        múltiplo el alto depende del redondeo de cada navegador y la cuenta de
-       abajo deja de cuadrar. 17 + 4 + 5 = 26, que es --alto-cabeza. */
+       abajo deja de cuadrar. 26 + 4 + 5 = 35, que es --alto-cabeza. */
     #pg .pg-cabeza, #ghost .pg-cabeza{
         left:calc(var(--col-texto, 340px) / 2); right:auto; width:auto;
-        transform:translateX(-50%); font-size:13px; line-height:17px;
-        text-align:center; padding:4px 10px 5px; border-radius:0 0 4px 4px; }
+        transform:translateX(-50%); font-size:21px; line-height:26px;
+        text-align:center; padding:4px 13px 5px; border-radius:0 0 5px 5px; }
     /* Mismo trato que el titulillo, y por la misma razón: de este alto sale
-       cuánto tiene que subir el pie del texto. 13 + 3 + 2 = 18. */
+       cuánto tiene que subir el pie del texto. 26 + 3 + 2 = 31.
+       La versión lleva menos espaciado que antes: a 11px las letras sueltas
+       ayudaban a leer una abreviatura en versalitas, pero a 21px separan
+       tanto que "VBL" deja de leerse como una palabra. */
     #pg .pg-version, #ghost .pg-version{
         left:calc(var(--col-texto, 340px) / 2); right:auto; width:auto;
         transform:translateX(-50%); text-align:center;
-        font-size:11px; line-height:13px; letter-spacing:.16em; padding:3px 10px 2px; }
+        font-size:21px; line-height:26px; letter-spacing:.10em; padding:3px 13px 2px; }
     /* EL TEXTO BAJA PARA QUE EL TITULILLO RESPIRE. La idea ya estaba; el
        número estaba mal. El titulillo va posicionado y mide 26px —17 de
        renglón más 4 y 5 de relleno— pero aquí se bajaba el texto 15px, así
@@ -110,7 +113,10 @@
        La cuenta va en una variable porque el alto del titulillo se decide
        arriba: si algún día cambia su letra o su relleno, se corrige --alto-
        cabeza y el texto vuelve a acomodarse solo. */
-    #pg, #ghost{ --alto-cabeza:26px; --alto-version:18px; --aire-cabeza:6px; }
+    /* A 21px los rótulos miden bastante más, así que las dos sumas se rehacen
+       aquí y el texto se aparta solo. Es exactamente para esto que la cuenta
+       vive en variables en vez de estar escrita en el padding. */
+    #pg, #ghost{ --alto-cabeza:35px; --alto-version:31px; --aire-cabeza:6px; }
     #pg .pg-cols, #ghost .pg-cols{
         padding-top:calc(var(--alto-cabeza) + var(--aire-cabeza)); }
     /* Y EL MISMO DEFECTO AL PIE, que salió al medir el de arriba. La versión
@@ -570,6 +576,12 @@
              border:2px solid rgba(255,255,255,.25); }
   #menu .mc[data-on]{ border-color:#fff; }
   #menu .quitar:hover{ background:rgba(210,70,70,.35); }
+  /* Las dos cajas del menú. En escritorio no cambian nada —siguen en fila,
+     como estaban— y son las que le dan al teléfono de dónde agarrar para
+     partirlo en dos renglones. */
+  #menu .mcolores, #menu .macciones{ display:flex; gap:3px; align-items:center; }
+  /* El nombre corto de las columnas no se ve salvo en teléfono. */
+  .corto{ display:none; }
   #menu input{ font-size:.68rem; padding:5px 7px; width:82px; }
   .tagbox{ display:flex; flex-wrap:wrap; gap:3px; align-items:center; max-width:250px; }
   .tagbox .tg{ font-size:.66rem; padding:5px 8px; border:1px solid rgba(255,255,255,.22);
@@ -625,27 +637,79 @@
      ir después. Si algún día se mueve para arriba, vuelve a romperse igual.
      ============================================================ */
   @media (max-width: 560px){
-    .rollo .lbl, .ajuste > .lbl{ font-size:11px; flex-basis:64px; }
-    .rollo .btn{ font-size:12px; padding:6px 10px; }
-    .pestanas button{ font-size:13px; padding:6px 8px; }
-    .rollo .chip{ font-size:12px; padding:5px 10px; }
-    .tabo{ font-size:11.5px; height:24px; line-height:24px; padding:0 9px; }
-    .num{ font-size:12px; height:24px; line-height:24px; }
-    .grupo-tit{ font-size:9px; padding:4px 0 4px; }
-    .fly-tit{ font-size:11px; }
-    #indice .ix-item{ font-size:12px; }
-    .nota-respaldo, .rollo .cred{ font-size:11px; }
-    .banda select, .banda input, .ajuste select{ font-size:12px; }
+    /* SEGUNDA SUBIDA. La primera dejó el panel legible; esta lo deja cómodo.
+       Todo sube junto y en la misma proporción a propósito: si solo creciera
+       la lista de libros, el resto del panel pasaría a verse hundido al lado,
+       y el problema no era el tamaño de una parte sino la escala de todas. */
+    .rollo .lbl, .ajuste > .lbl{ font-size:12.5px; flex-basis:72px; line-height:1.25; }
+    .rollo .btn{ font-size:13.5px; padding:7px 11px; }
+    .pestanas button{ font-size:14.5px; padding:8px 10px; }
+    .rollo .chip{ font-size:13.5px; padding:6px 11px; }
+    /* El alto sube CON la letra, no después. Un renglón de 24px con letra de
+       13 aprieta las mayúsculas contra el borde, y encima deja el blanco de
+       toque igual que antes: se leería mejor y se atinaría igual de mal. */
+    .tabo{ font-size:13px; height:29px; line-height:29px; padding:0 11px; }
+    .num{ font-size:13.5px; height:29px; line-height:29px; }
+    .grupo-tit{ font-size:10.5px; padding:6px 0 4px; }
+    .fly-tit{ font-size:12px; padding:2px 0 5px; }
+    #indice .ix-item{ font-size:13px; }
+    .nota-respaldo, .rollo .cred{ font-size:12px; }
+    .banda select, .banda input, .ajuste select{ font-size:13.5px; padding:5px 7px; }
+    /* Estos cuatro se habían quedado fuera de la lista y por eso se veían
+       hundidos entre los demás: el número del sepia, la banda de etiquetas,
+       el aviso de índice vacío y el botón de volver del salto. */
+    .rollo .medida{ font-size:13px; min-width:30px; }
+    .rollo .banda{ font-size:13px; }
+    .ix-vacio{ font-size:12px; }
+    #btnVolver{ font-size:12.5px; padding:6px 12px; }
+    .gl-edit{ font-size:13px; }
     /* La cabecera del panel de libros nunca estuvo en la lista, y es lo
        primero que se lee al abrirlo: el rótulo iba en 7.5px y la flecha de
        volver era un blanco de 15px, la mitad de lo que alcanza un pulgar. */
-    #cantoCab{ font-size:10px; height:auto; min-height:24px; }
-    #cantoCab .atras{ font-size:15px; width:26px; height:26px; }
-    /* La rejilla de capítulos se dimensiona en celdas de 32px, que era lo
-       justo para un .num de 18px. Con 24px de alto los números quedaban
-       apretados contra el borde. */
-    #cantoCuerpo.rejilla{ grid-template-columns:repeat(auto-fill,minmax(38px,1fr)); gap:4px; }
-    .fly-rejilla{ grid-template-columns:repeat(6,32px); gap:4px; }
+    #cantoCab{ font-size:11.5px; height:auto; min-height:26px; }
+    #cantoCab .atras{ font-size:17px; width:29px; height:29px; }
+    /* Las rejillas siguen al alto de .num, que es de quien dependen: con
+       celdas de 38px y números de 29px volvían a quedar apretados. */
+    #cantoCuerpo.rejilla{ grid-template-columns:repeat(auto-fill,minmax(44px,1fr)); gap:5px; }
+    .fly-rejilla{ grid-template-columns:repeat(6,36px); gap:5px; }
+
+    /* COLUMNAS EN CIFRAS. "una / dos / tres" son tres palabras de distinto
+       largo peleando por el sitio más apretado del panel; 1, 2 y 3 dicen lo
+       mismo, miden igual y se atinan mejor. En pantalla ancha sobra el hueco
+       y las palabras se leen mejor, así que allá se quedan. */
+    .largo{ display:none; }
+    .corto{ display:inline; }
+
+    /* EL MENÚ DE LA MARCA, EN VERTICAL. En una sola fila caben cuatro colores
+       y cuatro acciones, y en un teléfono eso son ocho blancos de menos de un
+       centímetro pegados unos a otros: se falla el que se quiere y se acierta
+       el de al lado, que además borra. En columna cada acción ocupa el ancho
+       entero y ya no hay a quién confundirse.
+       flex-direction y no display:grid, y no es capricho: mostrarMenu escribe
+       display:flex en el atributo style, y contra eso ninguna hoja de estilos
+       puede. Cambiar la dirección sí funciona; cambiar el display, no. */
+    #menu{ flex-direction:column; align-items:stretch; gap:6px; padding:8px;
+           border-radius:12px; white-space:normal; max-width:82vw; }
+    #menu .macciones{ flex-direction:column; align-items:stretch; gap:5px; }
+    #menu button{ font-size:15px; padding:11px 14px; text-align:left; }
+    /* Los colores sí se quedan en fila: son cuatro puntos, se distinguen por
+       el color y no por el nombre, y en columna ocuparían media pantalla. Van
+       arriba porque es lo primero que se elige. */
+    #menu .mcolores{ justify-content:center; gap:10px; padding:2px 0 4px; }
+    #menu .mc{ width:34px; height:34px; border-width:3px; }
+    /* Quitar y copiar son iconos sueltos: centrados se leen como botón, con
+       el texto a la izquierda parecían renglones cortados. */
+    #menu .quitar, #menu button[data-acc="copiar"]{ text-align:center; }
+    #menu input{ font-size:15px; padding:9px 11px; width:auto; flex:1 1 120px; }
+    .tagbox{ max-width:none; gap:6px; }
+    .tagbox .tg{ font-size:13.5px; padding:8px 12px; }
+    .tagbox .vacio{ font-size:13px; }
+
+    /* EL AVISO DE ABAJO. Iba en 10.5px, más pequeño que cualquier otra cosa
+       de la pantalla, y aparece lejos de donde estás mirando. Un aviso que
+       hay que acercarse a leer no avisa. */
+    #readout{ font-size:14px; line-height:1.4; padding:8px 15px; bottom:30px;
+              max-width:90%; border-radius:7px; }
   }
 
   /* PANTALLA BAJA. Agrandar la letra tiene un costo que hay que pagar aquí:
@@ -701,16 +765,21 @@
 </div>
 
 <div class="grupo-triple">
+  <!-- Cada botón lleva sus dos nombres y el CSS enseña el que toca: en el
+       teléfono la cifra, en pantalla ancha la palabra. Se hace así y no desde
+       el guion porque girar el aparato cruza el umbral de los 560px, y con
+       JavaScript habría que acordarse de reescribirlos en cada giro; con dos
+       nombres puestos, el navegador lo resuelve solo y no hay nada que
+       recordar. Los manejadores leen data-cols, nunca el texto. -->
   <div class="ajuste"><span class="lbl">columnas</span><span class="ctrl">
-    <button class="btn" data-cols="1">una</button>
-    <button class="btn active" data-cols="2">dos</button>
-    <button class="btn" data-cols="3">tres</button>
+    <button class="btn" data-cols="1"><span class="largo">una</span><span class="corto">1</span></button>
+    <button class="btn active" data-cols="2"><span class="largo">dos</span><span class="corto">2</span></button>
+    <button class="btn" data-cols="3"><span class="largo">tres</span><span class="corto">3</span></button>
   </span></div>
-  <div class="ajuste"><span class="lbl">hoja</span><span class="ctrl">
-    <button class="btn" data-w="340">celular</button>
-    <button class="btn" data-w="460">tablet</button>
-    <button class="btn active" data-w="620">ancha</button>
-  </span></div>
+  <!-- Aquí vivía "hoja" —celular / tablet / ancha—. Se fue: el ancho ya se
+       ajusta solo a la pantalla, así que era un control que ofrecía decidir
+       algo que no estaba en tus manos. En teléfono la hoja siempre midió
+       100vw por CSS, y el botón no cambiaba nada de lo que se veía. -->
   <div class="ajuste"><span class="lbl">glosa</span><span class="ctrl">
     <button class="btn" data-lay="below">abajo</button>
     <button class="btn active" data-lay="margin">margen</button>
@@ -1180,7 +1249,12 @@ const fx=$('fx'), ctx=fx.getContext('2d'), readout=$('readout');
       clearTimeout(reloj);
       if (!t){ readout.classList.remove('viva'); return; }
       readout.classList.add('viva');
-      reloj = setTimeout(() => readout.classList.remove('viva'), 3000);
+      /* Nueve segundos, no tres. El aviso aparece abajo del todo mientras
+         estás leyendo arriba: para cuando bajas la vista, tres segundos ya se
+         habían consumido en el viaje. Y varios avisos dicen cosas que hay que
+         alcanzar a leer enteras —"por ahora una marca no puede cruzar de
+         versículo"— no solo a notar de reojo. */
+      reloj = setTimeout(() => readout.classList.remove('viva'), 9000);
     }
   });
 })();
@@ -2060,18 +2134,27 @@ function mostrarMenu(html, rect){
 }
 function menuSeleccion(){
   const orden = [ultimaAccion, ...Object.keys(ACC).filter(a => a !== ultimaAccion)];
-  return orden.map((a,i) => '<button class="' + (i?'':'primera') + '" data-acc="' + a + '">' +
+  return '<div class="macciones">' +
+         orden.map((a,i) => '<button class="' + (i?'':'primera') + '" data-acc="' + a + '">' +
          ACC[a].ic + ' ' + ACC[a].t + '</button>').join('') +
-         '<button data-acc="copiar" title="Copiar">⧉</button>';
+         '<button data-acc="copiar" title="Copiar">⧉</button></div>';
 }
 function menuDeMarca(m){
-  return COLORS.map(c => '<button class="mc" data-color="' + c + '" style="background:' +
+  /* Los colores van dentro de su propia caja y las acciones dentro de otra.
+     Antes eran todos hermanos sueltos, y así el menú solo sabía ponerse en
+     una fila: en vertical los colores se habrían apilado uno debajo de otro,
+     que es justo lo que no se quiere. Con las dos cajas, el teléfono los pone
+     en un renglón arriba y las acciones en columna debajo, y el escritorio
+     los sigue viendo en una sola fila. */
+  return '<div class="mcolores">' +
+         COLORS.map(c => '<button class="mc" data-color="' + c + '" style="background:' +
            LINE_HEX[c] + '"' + (m.color===c ? ' data-on="1"' : '') + '></button>').join('') +
+         '</div><div class="macciones">' +
          '<button data-acc="estilo">' + (m.estilo==='fill' ? '▁ Línea' : '▮ Relleno') + '</button>' +
          '<button data-acc="nota">✎ Glosa</button>' +
          '<button data-acc="tags" title="Etiquetas">#' +
            ((m.etiquetas||[]).length ? ' ' + m.etiquetas.length : '') + '</button>' +
-         '<button class="quitar" data-acc="quitar" title="Quitar">✕</button>';
+         '<button class="quitar" data-acc="quitar" title="Quitar">✕</button></div>';
 }
 /* Panel de etiquetas de UNA marca: se prenden y apagan sin cerrar el menú,
    porque casi siempre pones dos o tres de un tirón. */
@@ -2609,11 +2692,11 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza){
      no puede desincronizarse. El titulillo sí conserva su copia porque el
      SVG no hereda las variables del modo angosto. */
   const estCab  = med ? ' style="left:'+(med.texto/2)+'px;right:auto;width:auto;' +
-                        'transform:translateX(-50%);text-align:center;font-size:13px;' +
-                        'line-height:17px;padding:4px 10px 5px;border-radius:0 0 4px 4px"' : '';
+                        'transform:translateX(-50%);text-align:center;font-size:21px;' +
+                        'line-height:26px;padding:4px 13px 5px;border-radius:0 0 5px 5px"' : '';
   const estVer  = med ? ' style="left:'+(med.texto/2)+'px;right:auto;width:auto;' +
                         'transform:translateX(-50%);text-align:center;' +
-                        'font-size:11px;line-height:13px;letter-spacing:.16em;padding:3px 10px 2px"' : '';
+                        'font-size:21px;line-height:26px;letter-spacing:.10em;padding:3px 13px 2px"' : '';
   const estCols = med ? ' style="padding-top:' +
                         getComputedStyle(pgBody.parentElement).paddingTop + '"' : '';
   return '<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'+
@@ -4084,11 +4167,6 @@ document.querySelectorAll('[data-cols]').forEach(b => b.onclick = () => { setCol
 document.querySelectorAll('[data-lay]').forEach(b => b.onclick = () => {
   placementTocado = true; setPlacement(b.dataset.lay); renderPage();
 });
-document.querySelectorAll('[data-w]').forEach(b => b.onclick = () => {
-  stage.style.width = b.dataset.w+'px';
-  document.querySelectorAll('[data-w]').forEach(x => x.classList.toggle('active', x===b));
-  setTimeout(()=>{ sizeCanvas(); paginasSucias = true; renderPage(); }, 240);
-});
 /* LOS TAMAÑOS, EN UN SOLO SITIO. El mínimo y el máximo estaban escritos tres
    veces —en A+, en A− y en la validación de los ajustes— y ahora hacía falta
    una cuarta para armar la lista. Cuatro copias de un rango es una de más
@@ -4292,14 +4370,18 @@ $('indice').addEventListener('click', ev => {
    otra letra o con otras columnas, la referencia no.
    ============================================================ */
 const AJUSTES = 'glossa:ajustes:v1';
-let anchoHoja = 620;
+/* El ancho de la hoja en pantalla ancha. Era un ajuste con tres botones y
+   ahora es una medida fija: en teléfono nunca se usó —.stage lleva 100vw con
+   !important— y en escritorio 620px es el ancho para el que está calibrada la
+   tipografía. Se queda como constante y no viaja a los ajustes guardados. */
+const ANCHO_HOJA = 620;
 
 function guardarAjustes(){
   const aqui = plano[startIdx] || { cap:1, vers:1 };
   try {
     localStorage.setItem(AJUSTES, JSON.stringify({
       v: 1, fontSize, columns, placement, alineacion,
-      interlineado, versoAparte, margen, anchoHoja, version, showMarks, sepia,
+      interlineado, versoAparte, margen, version, showMarks, sepia,
       fuente: FUENTES.findIndex(f => f[1] === fuente),
       libro: LIBRO, cap: aqui.cap, vers: aqui.vers
     }));
@@ -4322,7 +4404,6 @@ function cargarAjustes(){
   if (['left','justify'].includes(a.alineacion)) alineacion = a.alineacion;
   if (a.interlineado > 1 && a.interlineado < 3) interlineado = a.interlineado;
   if (MARGENES[a.margen]) margen = a.margen;
-  if ([340,460,620].includes(a.anchoHoja)) anchoHoja = a.anchoHoja;
   versoAparte = !!a.versoAparte;
   showMarks = a.showMarks !== false;
   if (D.versiones[a.version]) version = a.version;      // antes que el libro:
@@ -4340,7 +4421,6 @@ function reflejarControles(){
   const marcar = (sel, ok) => document.querySelectorAll(sel).forEach(x => x.classList.toggle('active', ok(x)));
   marcar('[data-cols]', x => +x.dataset.cols === columns);
   marcar('[data-lay]',  x => x.dataset.lay === placement);
-  marcar('[data-w]',    x => +x.dataset.w === anchoHoja);
   marcar('[data-ver]',  x => x.dataset.ver === version);
   const poner = (b, txt, on) => { b.textContent = txt; b.classList.toggle('active', on); };
   poner(btnAl, alineacion === 'justify' ? 'justificado' : 'izquierda', alineacion === 'justify');
@@ -4348,8 +4428,15 @@ function reflejarControles(){
   poner(btnV,  versoAparte ? 'aparte' : 'corridos', versoAparte);
   poner(btnM,  MARGENES[margen][0], margen !== 1);
   marksBtn.textContent = 'Marcas: ' + (showMarks ? 'ON' : 'OFF');
-  $('ctrlConfig').classList.toggle('estrecho', anchoHoja < 560);
-  $('ctrlEtiquetas').classList.toggle('estrecho', anchoHoja < 560);
+  /* 'estrecho' pone el panel en una sola columna cuando no hay ancho para
+     dos. Preguntaba por anchoHoja, que era el ajuste de la hoja y no el
+     espacio disponible; y como el manejador de aquellos botones nunca
+     escribía la variable, la respuesta era siempre 620 y la clase no se
+     ponía jamás. Ahora se le pregunta a la escena, que es lo que de verdad
+     decide si los dos grupos caben uno al lado del otro. */
+  const angosto = stage.offsetWidth < 560;
+  $('ctrlConfig').classList.toggle('estrecho', angosto);
+  $('ctrlEtiquetas').classList.toggle('estrecho', angosto);
 }
 
 /* Los controles se MUEVEN al cajón con appendChild, no se recrean: así
@@ -4437,7 +4524,7 @@ ajustes.appendChild($('cred'));
 
 const guardado = cargarAjustes();
 stage.style.transition = 'none';
-stage.style.width = anchoHoja + 'px';
+stage.style.width = ANCHO_HOJA + 'px';
 void stage.offsetWidth;
 stage.style.transition = '';
 reflejarControles();
