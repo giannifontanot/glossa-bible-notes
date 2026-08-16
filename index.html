@@ -606,6 +606,22 @@
   .num:hover{ background:#fffdf6; color:#1d1608; box-shadow:inset 0 0 0 1px rgba(138,100,22,.65); }
   .num.vacio{ color:#a29a85; cursor:default; }
 
+  /* LA CAJA DEL EDITOR EN TELÉFONO. Pegada arriba y a lo ancho: arriba porque
+     es el único sitio al que el teclado no llega, y a lo ancho porque escribir
+     en una columna de 240px con el pulgar es peor que no escribir.
+     position:fixed y no absolute: cuelga del cuerpo del documento, no de la
+     hoja, así que el papel puede correrse debajo sin llevárselo.
+     El fondo es opaco porque tapa texto: translúcido se leerían las dos cosas
+     a la vez y ninguna bien. */
+  .gl-movil{ position:fixed; left:8px; right:8px; top:8px; z-index:12;
+             display:flex; gap:8px; align-items:flex-start;
+             background:#2a2118; border:1px solid rgba(201,162,39,.45);
+             border-radius:10px; padding:8px;
+             box-shadow:0 10px 30px rgba(0,0,0,.5); }
+  .gl-movil textarea{ flex:1 1 auto; min-width:0; font-size:15px !important;
+                      line-height:1.45; padding:9px 10px; }
+  .gl-movil .btn{ flex:0 0 auto; font-size:14px; padding:10px 14px;
+                  align-self:stretch; }
   .gl-edit{ font-family:'Courier New',monospace; font-size:11px; line-height:1.4;
             border-radius:3px; padding:3px 6px; resize:none; outline:none; display:block;
             background:#fffdf8; }
@@ -2561,7 +2577,37 @@ function abrirGlosa(m){
   const [bd,bg,fg] = TINT[m.color];
   ta.className='gl-edit'; ta.style.border='1px dashed '+bd; ta.style.background=bg; ta.style.color=fg;
   ta.rows=3; ta.value=m.nota||''; ta.placeholder='glosa…';
-  if (placement === 'margin'){
+  /* EN TELÉFONO EL EDITOR NO VA DONDE VA LA GLOSA. Iba a la altura de su
+     marca, y eso funciona en una pantalla grande pero no aquí: en cuanto sale
+     el teclado se come la mitad de abajo, así que toda marca de la mitad
+     inferior abría su recuadro justo detrás. Medido a 390x844 con un teclado
+     de los normales: una marca a y=458 abría el editor en 456..519, y el
+     teclado empieza hacia 460.
+     Ese fue el error de la vez pasada: llevar la hoja al tope arregló que se
+     saliera por la derecha, pero el problema de verdad no era horizontal.
+     Ahora el editor se despega de la hoja y se ancla arriba del todo, que es
+     el único sitio de la pantalla donde el teclado no llega nunca, mida lo que
+     mida. Va en el cuerpo del documento y no dentro de la hoja para que
+     arrastrar el papel no se lo lleve, y para que renderPage —que rehace el
+     margen entero— no lo borre a media escritura.
+     Lleva su propio botón de listo porque en un teléfono no siempre hay dónde
+     tocar para quitar el foco: el texto se guarda al perderlo, y sin una
+     salida clara eso se convierte en adivinar. */
+  if (enTelefono()){
+    for (const raiz of [pgMargin, pgFoot, pgBody]){
+      const viejo = raiz.querySelector('.gl[data-gl="'+m.id+'"]');
+      if (viejo) viejo.remove();
+    }
+    const caja = document.createElement('div');
+    caja.className = 'gl-movil';
+    ta.style.width = '100%';
+    const listo = document.createElement('button');
+    listo.className = 'btn'; listo.textContent = 'listo';
+    listo.addEventListener('click', () => ta.blur());
+    caja.appendChild(ta); caja.appendChild(listo);
+    document.body.appendChild(caja);
+    ta.dataset.caja = '1';
+  } else if (placement === 'margin'){
     const viejo = pgMargin.querySelector('.gl[data-gl="'+m.id+'"]');
     const rg = rangoDe(m, pgBody), rects = rg && rg.getClientRects();
     if (!rects || !rects.length) return;
@@ -2570,20 +2616,6 @@ function abrirGlosa(m){
     if (viejo) viejo.remove();
     ta.style.position='absolute'; ta.style.left='0'; ta.style.width='100%'; ta.style.top=top+'px';
     pgMargin.appendChild(ta);
-    /* EN TELÉFONO HAY QUE IR HASTA EL MARGEN ANTES DE ENFOCAR. La columna de
-       glosas vive fuera de la pantalla —la hoja es más ancha y se descubre
-       arrastrando— así que el recuadro nacía con su mitad derecha cortada por
-       el canto. Existía, tenía el foco y aceptaba lo que escribieras; solo que
-       no se veía entero, y un campo del que asoma un trozo no se lee como
-       campo: se lee como que la glosa salió y no se deja tocar.
-       Enfocar a secas no bastaba: el navegador corría la hoja por su cuenta lo
-       justo para meter el cursor, que son 214px de 251, y ahí se quedaba con
-       los últimos 37 fuera. Se lleva la hoja al tope ANTES de enfocar, y así
-       no tiene nada que corregir después: el recuadro ya está entero y el
-       papel no da el brinco lateral que daba.
-       Sin animar a propósito: esto no es un viaje que se mira, es ponerse
-       donde hay que estar para escribir. */
-    if (enTelefono()) pg.scrollLeft = pg.scrollWidth - pg.clientWidth;
   } else if (placement === 'foot'){
     const viejo = pgFoot.querySelector('.gl[data-gl="'+m.id+'"]');
     ta.style.width='100%'; ta.style.margin='0 0 4px 0';
@@ -2603,6 +2635,7 @@ function abrirGlosa(m){
       if (etiquetaActiva && !(m.etiquetas||[]).includes(etiquetaActiva))
         m.etiquetas = (m.etiquetas||[]).concat(etiquetaActiva);
     } else delete m.nota;
+    if (ta.dataset.caja && ta.parentElement) ta.parentElement.remove();
     save(); renderPage();
   });
 }
