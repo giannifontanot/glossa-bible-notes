@@ -4382,9 +4382,9 @@ etiquetas.appendChild($('indice'));
 ajustes.appendChild($('cred'));
 
 /* El panel de Respaldo se arma con los botones que vivían en la barra de
-   abajo. "Borrar todo" se viene con ellos porque pertenece a la misma
-   familia: son las tres cosas que le pasan al archivo de tus glosas, no al
-   texto ni a la página. */
+   abajo: exportar e importar, que son las dos cosas que le pasan al archivo
+   de tus glosas, no al texto ni a la página. ("Borrar todo" estuvo aquí y se
+   fue del programa entero; la razón está más arriba, donde se quitó.) */
 (function armarRespaldo(){
   const caja = document.getElementById('respaldo');
   const fila = document.createElement('div');
@@ -4392,7 +4392,25 @@ ajustes.appendChild($('cred'));
   fila.innerHTML = '<span class="lbl">archivo</span>';
   const ctrl = document.createElement('span');
   ctrl.className = 'ctrl';
-  ['btnExportar', 'btnImportar'].forEach(id => ctrl.appendChild($(id)));
+  /* HAY QUE QUITARLES EL display:none AL TRAERLOS, y no es un detalle: los
+     tres nacen ocultos en el HTML para que no se vean un instante al pie de
+     la página antes de que el guion los mude a su panel. Al mudarlos hay que
+     devolverles la visibilidad, porque ese "none" está escrito en el atributo
+     style y ninguna hoja de estilos le gana.
+     No se hacía, así que el panel de Respaldo enseñaba el rótulo "archivo",
+     un hueco donde debían estar los botones, y debajo una nota explicando
+     cómo usar dos botones que no estaban. Exportar era además la única forma
+     de sacar las glosas de este navegador.
+     El interruptor de marcas, que se muda igual unas líneas más arriba, sí lo
+     hacía —b.style.display = ''—: era la misma cuenta, hecha en un sitio y
+     olvidada en el otro. */
+  ['btnExportar', 'btnImportar'].forEach(id => {
+    const b = $(id);
+    b.style.display = '';
+    ctrl.appendChild(b);
+  });
+  /* El de archivo NO: es el <input type=file> que abre el diálogo del
+     sistema, y se dispara desde el botón de Importar. Ese sí vive oculto. */
   ctrl.appendChild($('archivoImp'));
   fila.appendChild(ctrl);
   caja.appendChild(fila);
