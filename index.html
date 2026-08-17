@@ -316,6 +316,56 @@
   @media (prefers-reduced-motion: reduce){
     #huella.viva .crestas, #huella.viva .brillo{ animation:none; opacity:1; }
   }
+  /* EL DISCO QUE GIRA MIENTRAS SE BUSCA.
+
+     Un salto a otro libro no es barato: hay que rehacer el plano del libro
+     destino, resolver todas las marcas, recalcular referencias y paginarlo
+     entero. En un teléfono eso son segundos en los que la pantalla se queda
+     exactamente como estaba, y una pantalla quieta después de un toque dice
+     "no te oí". La respuesta natural es volver a tocar, y volver a tocar
+     empieza el trabajo otra vez.
+
+     Aquí hay una trampa que este archivo ya conoce: ese cálculo BLOQUEA el
+     hilo principal, así que cualquier señal que dependa del hilo se congela
+     junto con él. Lo dice el comentario de .ref.buscando: una transición de
+     CSS se queda pegada en su primer fotograma. Un giro hecho con
+     requestAnimationFrame se quedaría igual de quieto, y un disco de espera
+     detenido miente peor que no poner nada: dice "colgado".
+
+     Por eso el giro se hace con una animación de `transform` y nada más. Esas
+     las lleva el compositor, que es OTRO hilo, y sigue girando aunque el
+     principal esté ocupado. Comprobado: bloqueando 1500 ms a propósito, dos
+     capturas del disco tomadas antes y después salen distintas. `will-change`
+     no es adorno, es lo que asegura la capa propia que hace posible ese
+     reparto.
+     Sin animar el borde ni el color: eso volvería a pedirle trabajo al hilo
+     bloqueado y perderíamos justo lo que se vino a buscar. */
+  #buscando{ position:absolute; left:50%; top:50%; z-index:9;
+             width:92px; height:92px; margin:-46px 0 0 -46px;
+             pointer-events:none; opacity:0; transition:opacity .16s linear; }
+  #buscando.viva{ opacity:1; }
+  /* El disco tiene que TAPAR el texto de debajo, no teñirlo. Un aro dorado
+     sobre renglones azules se lee como un adorno del texto; sobre papel limpio
+     se lee como una cosa que está encima esperando. La opacidad llega entera
+     hasta más allá del aro y solo se deshilacha en el último tramo, para que
+     el borde del disco no se vea como un círculo pegado. La sombra hace el
+     resto: dice que flota. */
+  #buscando .disco{ position:absolute; inset:0; border-radius:50%;
+                    background:radial-gradient(circle,
+                               rgba(253,251,246,.99) 62%, rgba(253,251,246,.94) 78%,
+                               rgba(253,251,246,0) 93%);
+                    box-shadow:0 4px 15px -5px rgba(72,56,28,.34); }
+  #buscando .aro{ position:absolute; inset:20px; border-radius:50%;
+                  border:5px solid rgba(184,137,43,.22);
+                  border-top-color:#b8892b; border-right-color:#b8892b;
+                  animation:giroBuscando .8s linear infinite;
+                  will-change:transform; }
+  @keyframes giroBuscando{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+  /* Quien pidió menos movimiento no se queda sin aviso: se queda con el aro
+     puesto, entero y quieto, que sigue diciendo "estoy en ello". */
+  @media (prefers-reduced-motion: reduce){
+    #buscando .aro{ animation:none; border-color:#b8892b; opacity:.55; }
+  }
   #ghost{ position:fixed; left:-99999px; top:0; pointer-events:none; }
 
   /* EL CANTO DE LA BIBLIA: las pestañas viven al filo derecho, debajo de
@@ -416,9 +466,42 @@
                     font:400 10px/1.4 var(--ui); color:#5c4a24; letter-spacing:.02em;
                     background:rgba(255,253,247,.5); border-radius:3px 3px 0 0;
                     transition:background .34s cubic-bezier(.65,0,.35,1),
-                               color .34s cubic-bezier(.65,0,.35,1); }
+                               color .34s cubic-bezier(.65,0,.35,1),
+                               box-shadow .26s ease; }
   .pestanas button:hover{ background:#fffdf6; color:#1d1608; }
   .pestanas button.aqui{ background:#b8892b; color:#fff8e4; }
+  /* EL ACUSE DE RECIBO DE LA PESTAÑA. El cambio de color ya decía cuál está
+     abierta, pero eso es el resultado, no el recibo: llega junto con el
+     contenido nuevo, y entre el dedo y el contenido hay 180 ms de salida más
+     lo que tarde en armarse la sección. En ese hueco la pestaña no acusaba
+     nada —el mismo hueco que la huella del filo vino a tapar, en otro sitio—.
+
+     Ahora el borde se enciende en el toque, no en el clic: pointerdown ocurre
+     al apoyar el dedo, click al levantarlo, y esa diferencia es justo la que
+     se está tratando de rellenar.
+
+     Va con box-shadow y no con border, y esto importa: un borde de verdad
+     ocuparía dos píxeles de caja y empujaría el texto de la pestaña al
+     encenderse, que es un tic. La sombra interior ocupa cero.
+
+     El borde se enciende de golpe y LATE mientras dura el trabajo, en vez de
+     dar un destello y apagarse. La diferencia no es de gusto: un destello
+     dice "te oí" y se acabó, y aquí además hay que decir "sigo en ello" —que
+     es lo que se pidió—. Se apaga cuando la sección nueva ya está puesta, así
+     que su duración no la fija el CSS sino el trabajo real.
+     Y si el hilo se traba armando la lista de libros, el latido se queda
+     congelado con el borde ENCENDIDO. Eso, por una vez, es la lectura
+     correcta: quieto y encendido sigue diciendo espera. */
+  .pestanas button.acusa{
+    animation:acusePestana .62s cubic-bezier(.4,0,.6,1) infinite; }
+  @keyframes acusePestana{
+    0%,100%{ box-shadow:inset 0 0 0 2px rgba(201,162,39,.52), 0 0 5px 0 rgba(201,162,39,.14); }
+    50%    { box-shadow:inset 0 0 0 2px rgba(201,162,39,.98), 0 0 11px 0 rgba(201,162,39,.5); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .pestanas button.acusa{ animation:none;
+      box-shadow:inset 0 0 0 2px rgba(201,162,39,.9); }
+  }
   /* CAMBIO DE SECCIÓN. La burbuja ya está abierta, así que volver a bajar la
      cortina sería contar otra vez algo que ya pasó. El papel se queda quieto
      y lo único que se mueve es el contenido, que entra deslizándose desde el
@@ -479,6 +562,31 @@
   .grupo-triple{ display:grid; row-gap:5px; align-content:start; }
   #ctrlConfig .ajuste.ancho{ grid-column:1 / -1; margin-top:4px;
                              padding-top:4px; border-top:1px solid rgba(140,116,68,.3); }
+  /* EL RÓTULO SEÑALA SU AJUSTE. El "VBL" del pie de la hoja abre Formato, y
+     esa relación —cada rótulo es la puerta de lo que nombra— estaba contada
+     en un comentario y en ningún sitio más: al abrirse, el panel enseña diez
+     filas y la versión es la última, abajo del todo, después del sepia. El
+     que tocó "VBL" tiene que barrer el panel entero para encontrar lo que
+     acaba de pedir.
+     Ahora la fila se enciende sola al llegar. Dos pulsos y no uno —uno se
+     confunde con el propio panel entrando— y dorados, que es el color con que
+     este programa dice "esto de aquí". Y el destello va sobre el FONDO, no
+     sobre un borde: hay que decir dónde mirar, no marcar un estado.
+     No se hace scroll hasta ella: el panel cabe entero en la pantalla, así
+     que moverlo sería quitarle al ojo el recorrido que le enseña dónde
+     estaba la fila para la próxima vez. */
+  #filaVersion{ border-radius:5px; }
+  #filaVersion.destello{ animation:destelloVersion 1.25s cubic-bezier(.4,0,.4,1); }
+  @keyframes destelloVersion{
+    0%   { background:rgba(201,162,39,0);   box-shadow:0 0 0 0 rgba(201,162,39,0); }
+    14%  { background:rgba(201,162,39,.46); box-shadow:0 0 0 5px rgba(201,162,39,.30); }
+    38%  { background:rgba(201,162,39,.07); box-shadow:0 0 0 5px rgba(201,162,39,.05); }
+    58%  { background:rgba(201,162,39,.40); box-shadow:0 0 0 5px rgba(201,162,39,.26); }
+    100% { background:rgba(201,162,39,0);   box-shadow:0 0 0 0 rgba(201,162,39,0); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    #filaVersion.destello{ animation:destelloVersion 1.25s steps(1,end); }
+  }
   /* en hoja angosta todo se apila en una sola columna */
   #ctrlConfig.estrecho, #ctrlConfig.estrecho .grupo-simple{ grid-template-columns:1fr; }
 
@@ -676,11 +784,63 @@
     .rollo .btn{ font-size:13.5px; padding:7px 11px; }
     .pestanas button{ font-size:14.5px; padding:8px 10px; }
     .rollo .chip{ font-size:13.5px; padding:6px 11px; }
+
+    /* ============================================================
+       TERCERA SUBIDA, Y ÉSTA NO ES DE TAMAÑO DE LETRA. Las dos anteriores
+       dejaron el panel legible y luego cómodo de leer. Seguía sin ser cómodo
+       de USAR, y el motivo se ve en la medida: los 22 controles de Formato
+       medían 29.5px de alto y quedaban a 3px unos de otros.
+
+       De esos dos números, el que estorba es el segundo. Un blanco de 29px se
+       falla de vez en cuando; un blanco de 29px con el vecino a 3px se falla y
+       ADEMÁS se acierta el de al lado, que es de lo que se quejaba el uso
+       real: no "no le doy", sino "le doy al otro". Un pulgar apoya una elipse
+       de unos 9mm, y a 3px de separación esa elipse toca dos botones a la vez;
+       cuál gana lo decide el centro, o sea el azar.
+
+       Por eso lo que más sube es el HUECO, de 3 a 10px, y sube gratis: es
+       espacio horizontal dentro de un renglón que ya existía, no cuesta ni un
+       píxel de alto de panel. El alto pasa de 29.5 a 40px, que no es el
+       recomendado de 44 y es deliberado: a 44 los diez renglones de Formato
+       crecen 150px y el panel deja de caber en una pantalla baja. 40 con 10 de
+       separación se atina mejor que 44 pegados.
+
+       El alto pide flex, no solo min-height: un <button> con min-height y sin
+       más deja su texto arriba, y un rótulo pegado al techo de su recuadro se
+       ve como un fallo de composición. */
+    .rollo .btn, .rollo .chip{ min-height:40px;
+      display:inline-flex; align-items:center; justify-content:center; }
+    .rollo .banda select, .rollo .banda input,
+    .rollo .ajuste select, .rollo .ajuste input[type="text"]{ min-height:40px; }
+    /* La pestaña sí llega a 44: es una sola fila, es por donde se entra a
+       todo lo demás, y ahora además tiene que alojar el borde del acuse.
+       Y su hueco sube de 3 a 7px: eran los controles más pegados de toda la
+       pantalla, y con el borde encendido a dos píxeles por dentro, tres de
+       separación dejaban los bordes de dos pestañas casi tocándose. */
+    .pestanas button{ min-height:44px; }
+    .pestanas{ gap:7px; }
+    /* El hueco, que es el arreglo de verdad. Va en los dos ejes por si algún
+       renglón se parte: dos botones que caen uno debajo de otro necesitan la
+       misma separación que dos que caen uno al lado del otro. */
+    .ajuste > .ctrl{ gap:10px; }
+    #ctrlConfig, #ctrlEtiquetas, .grupo-simple, .grupo-triple{ row-gap:9px; }
+    #ctrlConfig{ column-gap:14px; }
+    .rollo .banda{ gap:10px; }
     /* El alto sube CON la letra, no después. Un renglón de 24px con letra de
        13 aprieta las mayúsculas contra el borde, y encima deja el blanco de
        toque igual que antes: se leería mejor y se atinaría igual de mal. */
-    .tabo{ font-size:13px; height:29px; line-height:29px; padding:0 11px; }
-    .num{ font-size:13.5px; height:29px; line-height:29px; }
+    /* LOS LIBROS TAMBIÉN. No estaban en la queja —que hablaba de Glosas,
+       Formato y Respaldo— pero salen en la misma medida y salen peor: 66
+       blancos de 29px a 3px unos de otros, y aquí los vecinos están arriba y
+       abajo, que es la dirección en la que el pulgar se equivoca más. Dejarlos
+       como estaban tenía además un costo propio: con los otros tres panales
+       ya en 40px, la lista de libros se vería hundida al lado, que es
+       exactamente lo que se cuidó de evitar la vez pasada al subirlo todo
+       junto. La lista se pone más larga y se corre, que ya sabía hacerlo. */
+    .tabo{ font-size:13px; height:40px; line-height:40px; padding:0 13px; }
+    .rejilla-libros{ gap:7px; }
+    #cantoCuerpo{ gap:7px; }
+    .num{ font-size:13.5px; height:40px; line-height:40px; }
     .grupo-tit{ font-size:10.5px; padding:6px 0 4px; }
     .fly-tit{ font-size:12px; padding:2px 0 5px; }
     #indice .ix-item{ font-size:13px; }
@@ -701,8 +861,13 @@
     #cantoCab .atras{ font-size:17px; width:29px; height:29px; }
     /* Las rejillas siguen al alto de .num, que es de quien dependen: con
        celdas de 38px y números de 29px volvían a quedar apretados. */
-    #cantoCuerpo.rejilla{ grid-template-columns:repeat(auto-fill,minmax(44px,1fr)); gap:5px; }
-    .fly-rejilla{ grid-template-columns:repeat(6,36px); gap:5px; }
+    /* Las rejillas de números siguen al alto de .num, que es de quien
+       dependen. La cascada baja de seis columnas a cinco: a 36px de ancho un
+       número de 40 de alto quedaría más alto que ancho, y un blanco cuadrado
+       se atina mejor que uno estrecho. Cinco de 44 con 7 de hueco caben de
+       sobra en la hoja. */
+    #cantoCuerpo.rejilla{ grid-template-columns:repeat(auto-fill,minmax(46px,1fr)); gap:7px; }
+    .fly-rejilla{ grid-template-columns:repeat(5,44px); gap:7px; }
 
     /* COLUMNAS EN CIFRAS. "una / dos / tres" son tres palabras de distinto
        largo peleando por el sitio más apretado del panel; 1, 2 y 3 dicen lo
@@ -753,17 +918,23 @@
      quedan fuera de la pantalla sin manera de llegar a ellos.
      Medido a 560x360: 40px de contenido inalcanzable.
 
-     El arreglo va acotado a las pantallas bajas a propósito. En vertical el
-     panel se queda con overflow:visible tal como estaba, porque ahí no hay
-     nada que resolver y no vale la pena cambiarle el comportamiento a la
-     pantalla de siempre para atender un caso de orilla. Y el tope se vuelve
-     desplazable, no más alto: el panel tiene que seguir dejando ver la hoja
-     debajo, que es de lo que trata la burbuja.
+     El tope se vuelve desplazable, no más alto: el panel tiene que seguir
+     dejando ver la hoja debajo, que es de lo que trata la burbuja.
      overscroll-behavior:contain para que llegar al final del panel no
-     empiece a correr la hoja de atrás. */
-  @media (max-width: 560px) and (max-height: 600px){
-    #ajustes, #etiquetas{ overflow-y:auto; overflow-x:visible;
-                          overscroll-behavior:contain; }
+     empiece a correr la hoja de atrás.
+
+     YA NO VA ACOTADO A LAS PANTALLAS BAJAS. Lo estuvo, y con razón: mientras
+     el panel medía 476px sobraba sitio en vertical y no había nada que
+     resolver. Agrandar los blancos de toque le suma unos 135px a Formato, y
+     eso lo acerca al tope en pantallas que antes ni se enteraban. Poner la
+     barra donde no hace falta no cuesta nada —si el contenido cabe, no
+     aparece— y no ponerla donde sí hace falta cuesta el último ajuste del
+     panel, que es lo que ya pasó una vez. El caso de orilla dejó de ser de
+     orilla. Va también Respaldo, que se había quedado fuera de la lista sin
+     más motivo que ser el más corto de los tres. */
+  @media (max-width: 560px){
+    #ajustes, #etiquetas, #respaldo{ overflow-y:auto; overflow-x:visible;
+                                     overscroll-behavior:contain; }
   }
 </style>
 </head>
@@ -828,7 +999,9 @@
   <span class="medida" id="sepiaAhora">0</span>
 </span></div>
 
-<div class="ajuste ancho"><span class="lbl">versión</span><span class="ctrl" id="ctrlVersiones">
+<!-- Lleva id propio para que el rótulo de la hoja pueda señalarla al abrir:
+     tocas "VBL" abajo y esta fila da un destello. Ver destellarVersion. -->
+<div class="ajuste ancho" id="filaVersion"><span class="lbl">versión</span><span class="ctrl" id="ctrlVersiones">
   <!-- se arma solo con lo que traiga bibles-included.js -->
 </span></div>
 </div>
@@ -869,6 +1042,11 @@
   <div id="canto" class="rollo"><div id="cantoCab"></div><div id="cantoCuerpo"></div></div>
   <canvas id="fx"></canvas>
   <div id="huella" aria-hidden="true"></div>
+  <!-- role=status para que un lector de pantalla también se entere de que hay
+       algo en marcha: el disco es la versión visible del mismo aviso. -->
+  <div id="buscando" role="status" aria-live="polite" aria-label="buscando">
+    <div class="disco"></div><div class="aro"></div>
+  </div>
   <div class="edge edge-l" id="edgeL" title="Clic: hoja anterior · Arrastra: pliega"></div>
   <div class="edge edge-r" id="edgeR" title="Clic: pasa la hoja · Arrastra: pliega"></div>
   <div id="menu"></div>
@@ -919,7 +1097,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-17 · glosa instantanea';
+window.GLOSS_BUILD = '2026-08-17 · versalitas y acuses';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -946,8 +1124,33 @@ const PAGE_CSS = `
 /* La versión, al pie y al centro: es un dato de la hoja, no de la aplicación,
    así que vive en el papel y sale también en la foto del pliegue. Discreta
    como el folio de un libro impreso. */
+/* LA LETRA DE LOS RÓTULOS. Un titulillo y un folio no son texto de la obra:
+   son aparato del libro, y en un libro impreso se componen aparte, en
+   VERSALITAS —capitales de altura de equis— de una serif clásica. Es la
+   convención de cinco siglos que ya perseguía todo este bloque, y era la única
+   parte que faltaba: hasta ahora heredaban la letra del cuerpo y se veían como
+   un trozo más del versículo puesto de canto.
+   Con font-variant-caps:small-caps la mayúscula inicial conserva su altura y
+   el resto baja: "Mateo" se lee MATEO con la eme un punto más alta. Eso es
+   exactamente lo que se pide —que parezcan todas mayúsculas— sin las dos cosas
+   que arruinan una línea de capitales de verdad: el bloque macizo y la pérdida
+   de la inicial.
+   Y NO con text-transform:uppercase, que era el otro camino. El lienzo del
+   pliegue dibuja cada palabra leyendo el nodo de texto CRUDO: con
+   text-transform mediría "MATEO" en la hoja y pintaría "Mateo" en la foto,
+   estirado hasta el ancho que no le toca. small-caps no toca el nodo, así que
+   ese engaño no puede darse; solo hay que pasarle la variante al lienzo, que
+   es lo que se hace en medirPalabras.
+   La familia va escrita y no heredada a propósito: el cuerpo puede quedar en
+   Verdana o en Segoe, y el rótulo tiene que seguir siendo el rótulo.
+   text-transform se retira porque ya no hace falta y porque, si mañana una
+   abreviatura de versión trajera minúsculas, volvería a romper la foto. */
+.pg-cabeza, .pg-version{
+  font-family:'Palatino Linotype',Palatino,'Book Antiqua','Iowan Old Style',
+              Georgia,'Noto Serif',serif;
+  font-variant-caps:small-caps; font-synthesis:small-caps; }
 .pg-version{ position:absolute; bottom:0; left:50%; transform:translateX(-50%);
-             z-index:2; font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+             z-index:2; font-size:9px; letter-spacing:.14em;
              color:#c0ac86; background:var(--papel,#faf7f1); padding:2px 8px 1px;
              white-space:nowrap; cursor:pointer; border-radius:4px 4px 0 0;
              transition:background .34s cubic-bezier(.65,0,.35,1),
@@ -965,8 +1168,10 @@ const PAGE_CSS = `
    tiene sentido en algo que solo sirve para abrirse. */
 .pg-cabeza, .pg-version{ -webkit-user-select:none; user-select:none;
                          -webkit-tap-highlight-color:transparent; }
+/* Las versalitas piden más tracking que la caja baja: son letras anchas y
+   bajas, y pegadas se empastan. .07em era la separación de un texto normal. */
 .pg-cabeza{ position:absolute; top:0; right:0; z-index:2;
-            font-size:10.5px; line-height:1.3; letter-spacing:.07em;
+            font-size:10.5px; line-height:1.3; letter-spacing:.10em;
             color:#a98f57; background:var(--papel,#faf7f1); padding:1px 5px 2px 9px;
             white-space:nowrap; cursor:pointer; border-radius:0 0 0 4px;
             transition:background .34s cubic-bezier(.65,0,.35,1),
@@ -1039,13 +1244,25 @@ const PAGE_CSS = `
    de chica: acababas leyendo cómodo el texto y forzando la vista en lo que tú
    escribiste, que es al revés de lo que quieres. Va con --fs, la misma medida
    que manda en el cuerpo. */
-.gl{ font-family:'Courier New',monospace; font-size:var(--fs,15px); line-height:1.42;
-     border-radius:3px; padding:3px 6px; white-space:pre-wrap; box-sizing:border-box; }
+/* LA INTERLÍNEA DE LA GLOSA NO ES LA DEL VERSÍCULO, y no tiene por qué serlo.
+   El cuerpo va en 1.62 porque es texto para leer seguido, renglón tras renglón
+   durante minutos, y ahí el aire descansa la vista. La nota es otra cosa: son
+   dos o tres líneas que se leen de un vistazo, en Courier —que ya trae sus
+   letras separadas de fábrica— y dentro de un recuadro que las delimita solo.
+   A 1.42 el aire de más no ayudaba a leerlas; ocupaba margen, que en teléfono
+   es lo único que hay. Baja a 1.28, que sigue siendo más de lo que pide una
+   monoespaciada: a 15px son 2.1px menos por renglón.
+   El RELLENO escrito aquí es solo el de reserva y casi nunca se ve. El de
+   verdad lo pone formaOrganica en el atributo style de cada nota —de ahí sale
+   que el recuadro no sea un rectángulo— y contra un atributo style no puede
+   ninguna hoja de estilos. Ahí se recortó también. */
+.gl{ font-family:'Courier New',monospace; font-size:var(--fs,15px); line-height:1.28;
+     border-radius:3px; padding:2px 6px; white-space:pre-wrap; box-sizing:border-box; }
 /* El hueco de giro: la caja se estrecha 4px por lado para que sus esquinas
    tengan a dónde asomarse. Sin esto, .pg-margin las recorta. */
 .gl-margin{ position:absolute; left:4px; width:calc(100% - 8px); }
-.gl-below { margin:5px 5px 7px 14px; }
-.gl-foot  { margin:0 5px 4px 0; break-inside:avoid; }
+.gl-below { margin:4px 5px 5px 14px; }
+.gl-foot  { margin:0 5px 3px 0; break-inside:avoid; }
 .gl-ref{ font-weight:700; padding-right:5px; }
 .gl-tag{ opacity:.62; font-size:.9em; padding-left:5px; }
 /* LA REFERENCIA QUE SE ESTÁ BUSCANDO. Un salto entre libros no es gratis:
@@ -1700,9 +1917,21 @@ function formaOrganica(m){
   const r = azarDe(m.id);
   const esq = () => (3 + r() * 5.5).toFixed(1) + 'px';          /* esquinas dispares */
   const radio = esq()+' '+esq()+' '+esq()+' '+esq()+' / '+esq()+' '+esq()+' '+esq()+' '+esq();
-  /* +-2px de aire a los lados: poco mas de medio milimetro por lado */
-  const pad = (2.5 + r()*1.4).toFixed(1)+'px '+(5 + r()*3.4).toFixed(1)+'px '+
-              (2.5 + r()*1.4).toFixed(1)+'px '+(5 + r()*3.4).toFixed(1)+'px';
+  /* +-2px de aire a los lados: poco mas de medio milimetro por lado.
+     EL AIRE DE ARRIBA Y ABAJO BAJA, el de los lados no. Y aquí es donde de
+     verdad se decide, no en la regla .gl de la hoja de estilos: este relleno
+     se escribe en el atributo style de cada nota, así que gana siempre. Quien
+     venga a estrechar la glosa y solo toque el CSS no va a mover nada —cuesta
+     una tarde averiguar por qué—.
+     De 2.5–3.9px a 1.6–2.7px arriba y abajo: unos 2px menos por nota, que con
+     la interlínea recortada suman cerca de un renglón por glosa de tres
+     líneas. La variación se queda: el recuadro tiene que seguir sin ser un
+     rectángulo. Y siguen siendo cuatro llamadas a r(), ni una más ni una
+     menos: el azar va sembrado con el id de la marca, así que quitar o añadir
+     una corre toda la serie y cambiaría el grosor, la sombra y el giro de
+     todas las glosas ya escritas. */
+  const pad = (1.6 + r()*1.1).toFixed(1)+'px '+(5 + r()*3.4).toFixed(1)+'px '+
+              (1.6 + r()*1.1).toFixed(1)+'px '+(5 + r()*3.4).toFixed(1)+'px';
   /* Un solo ancho de pluma para toda la glosa: el trazo puede ser mas grueso
      en una nota que en otra —otro dia, otra pluma— pero nunca dentro de la
      misma, que es lo que se veia mal. */
@@ -2767,6 +2996,15 @@ function medirPalabras(hostEl){
     /* El lienzo sí sabe de espaciado entre letras y de variantes numéricas,
        pero hay que pasárselos aparte: no viajan en la abreviatura de font. */
     const esp = est.letterSpacing === 'normal' ? '0px' : est.letterSpacing;
+    /* Y las VERSALITAS son lo mismo: van por su cuenta. Los titulillos se
+       componen con font-variant-caps, y esa propiedad tampoco cabe en la
+       abreviatura de font. Sin pasarla, el lienzo mediría "Mateo 5:12" en
+       capitales de altura de equis —82px— y lo pintaría en caja alta y baja
+       —96px—, así que el ajuste de ancho de más abajo lo aplastaría un quince
+       por ciento para que cupiera. La foto del pliegue enseñaría un titulillo
+       estrujado durante el giro y el bueno al aterrizar: el brinco que este
+       archivo lleva media docena de comentarios evitando. */
+    const vers = est.fontVariantCaps || 'normal';
     const re = /\S+/g;
     let m;
     while ((m = re.exec(n.nodeValue))){
@@ -2779,7 +3017,7 @@ function medirPalabras(hostEl){
       const caja = el.closest('[data-giro]');
       const j = caja ? eje.get(caja) : null;
       salida.push({ t:m[0], x:r.left - host.left, y:r.top - host.top,
-                    w:r.width, h:r.height, f:tipo, c:est.color, e:esp,
+                    w:r.width, h:r.height, f:tipo, c:est.color, e:esp, vc:vers,
                     a: j ? j.a : 0, gx: j ? j.gx : 0, gy: j ? j.gy : 0 });
     }
   }
@@ -2790,10 +3028,17 @@ function pintarPalabras(g, palabras){
   g.textBaseline = 'alphabetic';
   let ultimo = null, subida = 0;
   for (const p of palabras){
-    const clave = p.f + '|' + p.e;
+    const clave = p.f + '|' + p.e + '|' + (p.vc || 'normal');
     if (clave !== ultimo){
       g.font = p.f;
       if ('letterSpacing' in g) g.letterSpacing = p.e;
+      /* Se pregunta antes de ponerla, igual que con el espaciado: un navegador
+         que no la conozca dibuja el titulillo en caja alta y baja, que es
+         exactamente lo que hacía hasta ahora. Se pierde el detalle, no la
+         hoja. Y se REPONE a 'normal' cuando toca, porque el estado del lienzo
+         es pegajoso y si no, la primera palabra en versalitas dejaría en
+         versalitas todo el resto del libro. */
+      if ('fontVariantCaps' in g) g.fontVariantCaps = p.vc || 'normal';
       ultimo = clave;
       const m = g.measureText('Hxg');
       subida = m.fontBoundingBoxAscent || m.actualBoundingBoxAscent || p.h * 0.8;
@@ -2819,6 +3064,7 @@ function pintarPalabras(g, palabras){
     if (p.a) g.restore();
   }
   if ('letterSpacing' in g) g.letterSpacing = '0px';
+  if ('fontVariantCaps' in g) g.fontVariantCaps = 'normal';
 }
 
 function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza){
@@ -3422,6 +3668,14 @@ window.medida = () => ({
    Sale solo cuando de verdad hay papel de sobra, así que en escritorio ancho
    ni se entera. Y no estorba a los clics: hasta que no mueves 4px no se
    considera arrastre, de modo que un toque limpio sigue siendo un toque. */
+/* CERRAR EL CAJÓN DE GLOSAS DE GOLPE. Lo usa el aterrizaje de un salto, que
+   no es un gesto tuyo sobre el papel sino una hoja nueva: no hay nada que
+   acompañar con inercia, solo que la hoja llegue puesta como se empieza a
+   leer. La versión de verdad la instala correrPapel más abajo —ahí vive el
+   reloj de la animación de acomodo, y hay que cancelarlo o seguiría corriendo
+   el papel de la hoja recién llegada—. Ésta de aquí es la que vale mientras
+   tanto, por si alguien salta antes de que aquello se arme. */
+let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
 (function correrPapel(){
   /* EL CAJÓN, CON PALANCA.
 
@@ -3524,6 +3778,15 @@ window.medida = () => ({
      está encima— el navegador anuncia que el puntero salió, y obedecer eso
      cancelaba el arrastre a media carrera. */
   pg.addEventListener('lostpointercapture', soltar);
+  /* Ahora sí, la buena: cancela el acomodo en curso y suelta el arrastre antes
+     de cerrar. Sin cancelar el reloj, la hoja aterrizada heredaría el viaje
+     que traía la anterior y se pondría a correrse sola. */
+  cerrarCajonDeGlosas = () => {
+    cancelAnimationFrame(reloj);
+    activo = false; despegado = false;
+    pg.classList.remove('agarrado');
+    pg.scrollLeft = 0;
+  };
 })();
 
 /* CORRER EL PAPEL CON RATÓN O TRACKPAD.
@@ -3565,7 +3828,40 @@ pg.addEventListener('scroll', () => {
 
 /* Las dos puertas a la burbuja, cada una a su sección. */
 $('pgCabeza').addEventListener('click', e => { e.preventDefault(); alternarBurbuja('libros'); });
-$('pgVersion').addEventListener('click', e => { e.preventDefault(); alternarBurbuja('formato'); });
+/* Y la de abajo, además, señala a dónde fue a parar lo que nombra.
+
+   El destello espera a que el panel esté puesto. Si saliera junto con la
+   entrada, se lo comería la propia animación —la fila viene desplazándose de
+   lado y desvaneciéndose, y un fondo dorado sobre algo que aún está a media
+   opacidad no se ve—. Cuánto esperar depende de por dónde se entró, que no es
+   lo mismo: la cortina de abrir la burbuja tarda 740 ms, y el cambio de
+   sección estando ya abierta son los 180 de salida más otro tanto de que la
+   fila llegue a su sitio. Se pregunta antes de abrir, porque para cuando
+   corra el diferido la bandera ya habrá cambiado.
+
+   Y no se destella si lo que hizo el toque fue CERRAR: ahí no hay ninguna
+   fila que señalar. */
+$('pgVersion').addEventListener('click', e => {
+  e.preventDefault();
+  const estaba = burbujaAbierta(), eraFormato = estaba && seccionViva === 'formato';
+  alternarBurbuja('formato');
+  if (eraFormato) return;                 /* el toque cerró la burbuja */
+  destellarVersion(estaba ? 420 : 780);
+});
+let relojDestelloVersion = null;
+function destellarVersion(espera){
+  clearTimeout(relojDestelloVersion);
+  const fila = $('filaVersion');
+  fila.classList.remove('destello');
+  relojDestelloVersion = setTimeout(() => {
+    /* Se comprueba otra vez: en medio segundo te pudo dar tiempo de cerrar el
+       panel o irte a otra pestaña, y encender una fila escondida solo sirve
+       para que el destello te salte encima la próxima vez que abras. */
+    if (!rFormato.abierto) return;
+    fila.classList.remove('destello'); void fila.offsetWidth;
+    fila.classList.add('destello');
+  }, espera);
+}
 
 [['right', edgeR], ['left', edgeL]].forEach(([s, el]) => {
   el.addEventListener('pointerdown', e => bordeAbajo(e, s));
@@ -3703,6 +3999,17 @@ function animarSalto(destino, alLlegar){
   const aterrizar = () => {
     paginaActual = destino;
     hojasExtra = []; progreso = 0; alfaTop = 1; folding = false; anchor = F = null;
+    /* UNA HOJA NUEVA SE ABRE POR EL TEXTO. El cajón de glosas se queda donde
+       lo dejaste mientras pasas hojas, y eso está bien: es la misma lectura.
+       Un salto no. Vienes de tocar una referencia DENTRO de una glosa —o sea
+       con el cajón abierto y el versículo fuera de la pantalla— y lo que
+       llega es otro pasaje, que es justo lo que no se ve desde ahí. Se
+       aterrizaba en el margen de la hoja nueva, con las notas de un sitio al
+       que no habías ido, y había que arrastrar de vuelta para ver a dónde
+       habías llegado.
+       Va antes de renderPage a propósito: el destello de llegada mide dónde
+       está el versículo, y tiene que medirlo con el papel ya en su sitio. */
+    cerrarCajonDeGlosas();
     renderPage();
     fx.style.display='none'; pg.classList.remove('hidden');
     if (alLlegar) alLlegar();
@@ -3864,12 +4171,65 @@ const SECCIONES = [
 const PANEL = { libros:'canto', glosas:'etiquetas', formato:'ajustes', respaldo:'respaldo' };
 let seccionViva = 'libros', cambiandoSeccion = false, dirSeccion = 1;
 
+/* EL ACUSE TIENE QUE SOBREVIVIR AL CAMBIO DE BARRA. Abrir una sección vuelve
+   a poner la barra de pestañas desde cero —ponerBarra la borra y la rehace,
+   porque la pestaña encendida cambia—, así que el botón que traía el borde
+   encendido deja de existir a los 180 ms. Sin esto, el acuse se cortaba en
+   seco justo cuando entra el contenido: la mitad del gesto.
+   Por eso el estado no vive en el botón sino aquí, en qué sección se pidió, y
+   cada barra recién nacida lo recoge. Se apaga solo, y no por tiempo de
+   animación: por que el trabajo terminó. */
+let acusePendiente = null, relojAcuse = null;
+function apagarAcuse(){
+  acusePendiente = null;
+  document.querySelectorAll('.pestanas button.acusa')
+    .forEach(x => x.classList.remove('acusa'));
+}
+/* Recibe el BOTÓN, no solo la sección, y eso no es comodidad. Las barras de
+   las secciones cerradas no se borran: se quedan dentro de su panel con
+   display:none, así que en el documento hay varias .pestanas a la vez y
+   buscar "la" barra devuelve la del primer panel del HTML —#ajustes—, que
+   casi nunca es la que tocaste. Encendía un botón invisible. El que recibió
+   el toque no hay que adivinarlo. */
+function acusarPestana(sec, boton){
+  acusePendiente = sec;
+  clearTimeout(relojAcuse);
+  document.querySelectorAll('.pestanas button.acusa')
+    .forEach(x => x.classList.remove('acusa'));
+  if (boton) boton.classList.add('acusa');
+  /* La red de seguridad: si por lo que sea nadie viene a apagarlo —tocaste la
+     pestaña que ya estaba abierta, o el panel se cerró por otro camino— el
+     borde no se queda encendido para siempre. */
+  relojAcuse = setTimeout(apagarAcuse, 900);
+}
+
 function barraPestanas(activa){
   const b = document.createElement('div');
   b.className = 'pestanas';
   b.innerHTML = SECCIONES.map(x =>
     '<button data-sec="' + x.id + '"' + (x.id === activa ? ' class="aqui"' : '') +
     '>' + x.rotulo + '</button>').join('');
+  /* El acuse se enciende AL APOYAR EL DEDO, y también cuando tocas la pestaña
+     que ya está abierta: ahí no va a pasar nada más —abrirSeccion no se llama—
+     y sin el borde ese toque parecería no haber entrado. Un recibo que solo
+     llega cuando además ocurre algo no es un recibo. */
+  b.addEventListener('pointerdown', ev => {
+    const t = ev.target.closest('[data-sec]'); if (!t) return;
+    acusarPestana(t.dataset.sec, t);
+  });
+  if (acusePendiente) {
+    const t = b.querySelector('[data-sec="' + acusePendiente + '"]');
+    if (t){
+      t.classList.add('acusa');
+      /* Que exista esta barra nueva ES la señal de que la sección ya está
+         armada: el trabajo terminó. Se le deja un respiro para que el borde
+         se vea también sobre el contenido recién llegado —si se apagara en
+         este mismo cuadro no llegaría a pintarse nunca— y luego se va con su
+         propia transición, sin corte. */
+      clearTimeout(relojAcuse);
+      relojAcuse = setTimeout(apagarAcuse, 200);
+    }
+  }
   b.addEventListener('click', ev => {
     const t = ev.target.closest('[data-sec]'); if (!t) return;
     ev.preventDefault(); ev.stopPropagation();
@@ -4133,6 +4493,40 @@ function hojasEntreLibros(desdeLibro, aLibro, capDestino){
   return Math.max(1, Math.round(caps * porCap));
 }
 
+/* ENSEÑAR EL DISCO Y DEJARLO PINTAR ANTES DE TRABAR EL HILO.
+
+   Poner la clase no lo pinta. El navegador dibuja al final del cuadro, así
+   que si el cálculo del salto arranca en el mismo cuadro en que se pidió el
+   disco, el disco no llega a existir en pantalla: se le añade la clase y se
+   le quita segundos después sin que se haya visto nunca. Es el mismo error
+   que la transición congelada de .ref.buscando, contado desde el otro lado.
+
+   Dos cuadros y no uno, y esto sí es exacto: los avisos de
+   requestAnimationFrame corren ANTES de que se pinte el cuadro que los
+   convocó, así que trabajar dentro del primero bloquea justo la pintada que
+   se estaba esperando. El segundo es el primero que corre con el disco ya en
+   la pantalla. Cuesta unos 32 ms de un viaje que dura cientos, y es lo que
+   compra que el aviso exista. */
+const trasPintar = fn => requestAnimationFrame(() => requestAnimationFrame(fn));
+/* Y un mínimo de permanencia: un salto corto dentro del mismo libro termina
+   casi en el acto, y un disco que aparece y se va en un cuadro es un
+   parpadeo—se lee como un fallo de pintado, no como una espera. */
+const MINIMO_BUSCANDO = 320;
+let t0Buscando = 0, relojBuscando = null;
+function mostrarBuscando(){
+  clearTimeout(relojBuscando); relojBuscando = null;
+  t0Buscando = performance.now();
+  $('buscando').classList.add('viva');
+}
+function quitarBuscando(){
+  const el = $('buscando');
+  if (!el.classList.contains('viva')) return;
+  clearTimeout(relojBuscando);
+  const falta = MINIMO_BUSCANDO - (performance.now() - t0Buscando);
+  if (falta <= 0){ el.classList.remove('viva'); relojBuscando = null; return; }
+  relojBuscando = setTimeout(() => el.classList.remove('viva'), falta);
+}
+
 /* El salto: cierra el panel disolviéndolo, rearma el mapa de hojas del libro
    destino y voltea un bonche hasta la hoja donde vive ese versículo. */
 /* `regreso` es opcional: lo manda quien salta desde una referencia, para que
@@ -4156,7 +4550,8 @@ function saltarA(libro, cap, vers, regreso){
   const iAhora = CANON.findIndex(b => b.id === LIBRO);
   const iAlla  = CANON.findIndex(b => b.id === libro);
   const haciaAtras = mismo ? false : (iAlla >= 0 && iAhora >= 0 && iAlla < iAhora);
-  cerrarCanto(() => {
+  mostrarBuscando();
+  cerrarCanto(() => trasPintar(() => {
     LIBRO = libro;
     volverA = regreso || null; paginasSucias = true;
     rehacerPlano();
@@ -4167,10 +4562,12 @@ function saltarA(libro, cap, vers, regreso){
     const aterrizar = () => {
       hojasExtra = []; progreso = 0; alfaTop = 1; folding = false; anchor = F = null;
       paginaActual = destino;
+      cerrarCajonDeGlosas();              /* misma razón que en animarSalto */
       renderPage();
       fx.style.display = 'none'; pg.classList.remove('hidden');
       destacar(cap, vers, '');
       readout.textContent = nombreDe(libro) + ' ' + cap + ':' + vers;
+      quitarBuscando();
     };
     if (mismo && destino === desdeHoja){ aterrizar(); return; }
     side = (mismo ? destino < desdeHoja : haciaAtras) ? 'left' : 'right';
@@ -4185,9 +4582,14 @@ function saltarA(libro, cap, vers, regreso){
       const salto = mismo ? Math.abs(destino - desdeHoja)
                           : hojasEntreLibros(libroOrigen, libro, cap);
       const b = bonchePara(salto);
+      /* El giro se apaga cuando arrancan las hojas, no cuando llegan. A partir
+         de aquí ya no hay nada que esperar: el bonche volteándose ES la
+         respuesta, y dejar el disco encima taparía el viaje que se pagó por
+         enseñar. */
+      quitarBuscando();
       animarHojas(b.hojas, rnd(b.dur[0], b.dur[1]), aterrizar);
     });
-  }, true);
+  }), true);
 }
 
 /* ============================================================
