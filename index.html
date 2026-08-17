@@ -1572,9 +1572,6 @@
   <div class="ajuste"><span class="lbl">interlínea</span><span class="ctrl">
     <button class="btn" id="btnAire">normal</button>
   </span></div>
-  <div class="ajuste"><span class="lbl">versículos</span><span class="ctrl">
-    <button class="btn" id="btnVerso">corridos</button>
-  </span></div>
 </div>
 
 <div class="grupo-triple">
@@ -1746,7 +1743,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-17 · el trazo marrón';
+window.GLOSS_BUILD = '2026-08-17 · el libro que sigue';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -1888,7 +1885,13 @@ const PAGE_CSS = `
    lienzo no sabe leer esa propiedad, así que en la foto del pliegue el
    número salía con otra forma y otra altura. Entre una cifra elegante y un
    pliegue que no miente, gana el pliegue. */
-.v{ display:var(--vdisp,inline); margin-bottom:var(--vsep,0); }
+/* Los versículos van CORRIDOS, siempre. Hubo un ajuste para ponerlos cada uno
+   en su renglón y se ha quitado: partía el texto en una lista de frases
+   sueltas y una Biblia no es una lista, es prosa —así se leyó durante
+   diecinueve siglos, y los números vinieron después—. Lo que aportaba era
+   encontrar un versículo de un vistazo, y para eso ya está el salto por
+   referencia, que además te lleva. */
+.v{ display:inline; }
 /* Los números no se seleccionan. No es un parche: es lo que son. El número de
    versículo y el de capítulo son aparato, no texto bíblico —los pusieron
    Stephanus y Langton siglos después— y nadie quiere subrayarlos ni citarlos.
@@ -2076,8 +2079,13 @@ let alineacion = 'left';      // 'left' | 'justify'
    y el dibujado por palabra no puede colocarla. Es el precio de que la
    foto coincida siempre. */
 const guionesOn = false;
-let interlineado = 1.62;      // 1.62 normal · 1.95 amplio
-let versoAparte  = false;     // cada versículo en su propio renglón
+/* TRES INTERLÍNEAS, y la de en medio es la de fábrica. La reducida no es un
+   capricho de densidad: en un teléfono, dos puntos menos de aire son un par de
+   versículos más por hoja, y pasar menos hojas para leer un capítulo cambia
+   cómo se lee. 1.38 es lo más apretado que aguanta un texto con números de
+   versículo volados encima sin que los renglones se toquen. */
+const AIRES = [['reducida', 1.38], ['normal', 1.62], ['amplia', 1.95]];
+let interlineado = 1.62;
 /* Los márgenes SÍ son una variable independiente: cambian el ancho del
    texto sin tocar el número de columnas. El "ancho de columna" no lo es
    —ya lo mueven las columnas, el ancho de hoja y el tamaño de letra. */
@@ -2092,7 +2100,7 @@ let margen = 1;
    del color de antes girando sobre la mesa de ahora se nota igual que si
    cambiara de letra. */
 const estiloFirma = () => [fontSize, columns, fuente, alineacion, guionesOn,
-  interlineado, versoAparte, margen, version, sepia, pg.offsetWidth].join('|');
+  interlineado, margen, version, sepia, pg.offsetWidth].join('|');
 /* Lo que va en el CONTENEDOR de la hoja, no en el cuerpo: tipo de letra y
    márgenes. Va aparte porque son propiedades de .pg, y tiene que llamarse
    en los TRES lugares donde se compone una hoja —la real, el mapa de
@@ -2120,8 +2128,6 @@ function aplicarEstilo(bodyEl){
   v.setProperty('--ali', alineacion);
   v.setProperty('--guion', guionesOn ? 'auto' : 'none');
   v.setProperty('--lh', interlineado);
-  v.setProperty('--vdisp', versoAparte ? 'block' : 'inline');
-  v.setProperty('--vsep', versoAparte ? '.42em' : '0');
 }
 const estiloEnLinea = () =>
   'font-size:' + fontSize + 'px;--fs:' + fontSize + 'px' +
@@ -2129,9 +2135,7 @@ const estiloEnLinea = () =>
   ';text-align:' + alineacion + ';--ali:' + alineacion +
   ';hyphens:' + (guionesOn?'auto':'none') + ';-webkit-hyphens:' + (guionesOn?'auto':'none') +
   ';--guion:' + (guionesOn?'auto':'none') +
-  ';line-height:' + interlineado + ';--lh:' + interlineado +
-  ';--vdisp:' + (versoAparte?'block':'inline') +
-  ';--vsep:' + (versoAparte?'.42em':'0');
+  ';line-height:' + interlineado + ';--lh:' + interlineado;
 let columns = 2, placement = 'margin';   // arranca en hoja ancha, dos columnas, glosa al margen
 let placementTocado = false;
 let plano = [], startIdx = 0, nextIdx = 0;
@@ -2867,8 +2871,21 @@ const finDe = p => (p + 1 < paginas.length ? paginas[p+1] : plano.length);
    hoja— y la huella necesitaba hacerla una cuarta vez. Con la cuenta suelta,
    olvidarla es lo natural: es justo lo que pasó, y el síntoma fue una huella
    prometiendo un giro en un filo donde no hay a dónde ir. */
-const hayHoja = s => s === 'right' ? paginaActual < paginas.length - 1
-                                   : paginaActual > 0;
+/* DOS PREGUNTAS QUE ANTES ERAN UNA.
+
+   «¿Queda hoja en este libro?» y «¿hay a dónde ir?» eran la misma cuenta
+   mientras la lectura se acababa con el libro. Ahora no: pasando la última
+   hoja de Mateo empieza Marcos, así que el filo sigue vivo donde el libro se
+   termina. Separarlas es lo que deja que cada cosa diga lo suyo:
+
+   · hojaEnEsteLibro decide el CANTO, la raya del margen. Sigue siendo verdad
+     que aquí se acaba el libro, y esa es justo la información que hace falta
+     cuando el texto de la hoja siguiente ya es otro.
+   · hayHoja decide el FILO y los botones de la vista de lejos. Apagarlos al
+     final de un libro sería mentir: hay a dónde ir. */
+const hojaEnEsteLibro = s => s === 'right' ? paginaActual < paginas.length - 1
+                                           : paginaActual > 0;
+const hayHoja = s => hojaEnEsteLibro(s) || !!libroVecino(s);
 /* Libro, capítulo y versículo con los que ARRANCA la hoja */
 const cabezaDe = k => {
   const it = plano[Math.min(Math.max(k,0), plano.length-1)];
@@ -2953,10 +2970,17 @@ function renderPageCrudo(){
   if (HL_API) aplicarHighlights();
   edgeR.classList.toggle('off', !hayHoja('right'));
   edgeL.classList.toggle('off', !hayHoja('left'));
-  /* El canto se enciende donde ya se apagaba el filo: mismo sitio, misma
-     verdad, contada de una manera que sí se ve. */
-  $('cantoDer').classList.toggle('viva', !hayHoja('right'));
-  $('cantoIzq').classList.toggle('viva', !hayHoja('left'));
+  /* El canto marca el final del LIBRO, no el final de la lectura. Antes eran
+     lo mismo y se preguntaba una sola vez; ahora, pasando la última hoja
+     empieza el libro siguiente, así que el filo sigue encendido y el canto
+     igualmente se pinta: lo que anuncia es que el texto de la hoja de al lado
+     ya es de otro libro, y eso es justo lo que hay que saber antes de pasarla. */
+  $('cantoDer').classList.toggle('viva', !hojaEnEsteLibro('right'));
+  $('cantoIzq').classList.toggle('viva', !hojaEnEsteLibro('left'));
+  /* Y el panel de Libros se entera de que cambiamos de libro. Se repinta solo
+     la marca y no la lista entera: si estás dentro de la cascada de capítulos,
+     rehacer el panel te sacaría de ella. */
+  refrescarLibroActual();
   $('btnVolver').style.display = volverA == null ? 'none' : '';
   medirHojaTelefono();
   pintarFiltros(); pintarIndice(); invalidateSnapshot(); updateReadout();
@@ -4672,7 +4696,9 @@ function pasarHoja(s, clientY, intento){
      insistiendo, no uno nuevo. */
   if (folding || (preparandoPliegue && !intento)) return;
   const destino = paginaActual + (s === 'right' ? 1 : -1);
-  if (destino < 0 || destino >= paginas.length) return;
+  /* Fuera del libro empieza el de al lado. Antes aquí no pasaba nada, y no
+     pasar nada al final de un libro se lee como que el toque no entró. */
+  if (destino < 0 || destino >= paginas.length){ cruzarLibro(s, clientY); return; }
   volverA = null;
   sizeCanvas();
   if (!pageImg || snapStale()){
@@ -5293,8 +5319,11 @@ function cerrarZoom(){
 }
 function refrescarPasos(){
   const b = $('zoomPasos').querySelectorAll('[data-paso]');
-  b[0].disabled = paginaActual <= 0;
-  b[1].disabled = paginaActual >= paginas.length - 1;
+  /* Se apagan cuando no hay a dónde ir, no cuando se acaba el libro: al final
+     de Mateo empieza Marcos, y un botón apagado ahí diría que la lectura se
+     terminó. Solo Génesis por la izquierda y Apocalipsis por la derecha. */
+  b[0].disabled = !hayHoja('left');
+  b[1].disabled = !hayHoja('right');
 }
 $('btnZoom').addEventListener('click', ev => {
   ev.preventDefault(); ev.stopPropagation();
@@ -5314,8 +5343,11 @@ $('zoomPasos').addEventListener('click', ev => {
   ev.preventDefault(); ev.stopPropagation();
   if (folding) return;
   const adelante = +b.dataset.paso > 0;
-  const destino = paginaActual + (adelante ? 1 : -1);
-  if (destino < 0 || destino >= paginas.length) return;
+  /* Sin comprobar el rango aquí. Lo hacía —y se paraba en seco al final del
+     libro— duplicando una decisión que ahora vive entera en pasarHoja, que es
+     quien sabe que después de la última hoja empieza el libro siguiente. Dos
+     sitios respondiendo a la misma pregunta y solo uno actualizado: el filo
+     cruzaba de libro y este botón no. */
   const r = pg.querySelector('.pg-inner').getBoundingClientRect();
   pasarHoja(adelante ? 'right' : 'left', r.top + r.height/2);
 });
@@ -5605,8 +5637,21 @@ function animate(turn){
     drawFold();
     if (k<1) return requestAnimationFrame(step);
     if (turn){
-      paginaActual += (side === 'right' ? 1 : -1);
+      const destino = paginaActual + (side === 'right' ? 1 : -1);
       volverA = null;                       // pasar hojas a mano cancela el regreso
+      /* El dedo también cruza de libro. Y cruza SIN volver a animar: la hoja
+         que se acaba de voltear es la vuelta, y repetirla daría dos giros por
+         un gesto. Lo que queda por hacer es rehacer el libro y aterrizar.
+         La cara de debajo sale en blanco durante ese giro, porque la foto de
+         la primera hoja del libro siguiente no existe hasta que el libro está
+         armado y armarlo a media caricia trabaría el gesto. */
+      if (destino < 0 || destino >= paginas.length){
+        anchor = F = null;
+        if (cruzarLibro(side, null, true)) return;
+        fx.style.display='none'; pg.classList.remove('hidden'); updateReadout();
+        return;
+      }
+      paginaActual = destino;
       renderPage();
     }
     fx.style.display='none'; pg.classList.remove('hidden'); anchor=F=null; updateReadout();
@@ -5799,6 +5844,96 @@ const versiculosDe = (libro, cap) => {
   const caps = capsDe(version, libro);
   return caps && caps[cap] ? caps[cap].length : 0;
 };
+
+/* EL LIBRO DE AL LADO EN EL ORDEN DEL CANON, saltándose los que no están en
+   los datos cargados. Se salta y no se para: si la versión no trae Abdías, el
+   lector no tiene por qué encontrarse un final de libro que no lleva a
+   ninguna parte —para él ese libro sencillamente no existe—.
+   Devuelve null en Génesis hacia atrás y en Apocalipsis hacia adelante, que
+   son los dos únicos sitios donde de verdad se acaba la lectura. */
+/* La marca de «estás aquí» del panel de Libros, al día. Se llama desde
+   renderPage, así que da igual por dónde se haya cambiado de libro —un salto,
+   una referencia, o pasar la última hoja— la lista nunca señala el anterior.
+   Toca las tres clases y no solo 'aqui' porque son excluyentes: dejar 'viva'
+   puesta debajo daría un botón que dice dos cosas. */
+function refrescarLibroActual(){
+  document.querySelectorAll('#canto [data-libro]').forEach(b => {
+    const vivo = hayLibro(b.dataset.libro), aqui = b.dataset.libro === LIBRO;
+    b.classList.toggle('aqui', aqui);
+    b.classList.toggle('viva', !aqui && vivo);
+    b.classList.toggle('muerta', !aqui && !vivo);
+  });
+}
+
+function libroVecino(s){
+  const i = CANON.findIndex(b => b.id === LIBRO);
+  if (i < 0) return null;
+  const paso = s === 'right' ? 1 : -1;
+  for (let j = i + paso; j >= 0 && j < CANON.length; j += paso)
+    if (hayLibro(CANON[j].id)) return CANON[j].id;
+  return null;
+}
+
+/* PASAR DEL FINAL DE UN LIBRO AL PRINCIPIO DEL SIGUIENTE.
+
+   Es una hoja más, y por eso no reutiliza saltarA: un salto es haber ido a
+   buscar algo, y esto es seguir leyendo. Se nota en tres cosas.
+   · Voltea UNA hoja, no un bonche. Entre la última de Mateo y la primera de
+     Marcos hay exactamente una hoja, igual que en el papel.
+   · No apunta en el rastro. Pasar hojas es leer; el rastro guarda a dónde
+     fuiste a propósito, y llenarlo de cruces de libro lo volvería un
+     registro de lectura, que es otra cosa y no sirve para lo mismo.
+   · No destella el versículo de llegada. No preguntaste por ninguno.
+
+   Lo que sí comparte con saltarA es lo caro: rehacer el plano del libro nuevo
+   y repaginarlo. En un teléfono eso son segundos, así que se enciende el
+   disco y el trabajo arranca al cuadro siguiente, para que dé tiempo a
+   pintarlo antes de que el hilo se cierre.
+
+   `sinAnimar` es para cuando el giro ya lo hizo el dedo: ahí el pliegue está
+   terminado y lo único que falta es aterrizar en el libro nuevo. Animar otra
+   vez daría dos vueltas de hoja para un solo gesto. */
+function cruzarLibro(s, clientY, sinAnimar){
+  const destinoLibro = libroVecino(s);
+  if (!destinoLibro) return false;
+  const viejo = pageImg;
+  const y = Number.isFinite(clientY) ? aPapel(0, clientY).y : H/2;
+  const anclaY = Math.min(Math.max(y, 0), H);
+  side = s;
+  preparandoPliegue = true;
+  mostrarBuscando(s === 'right' ? 'pasando al libro siguiente…'
+                                : 'pasando al libro anterior…');
+  trasPintar(() => {
+    LIBRO = destinoLibro;
+    volverA = null;                    /* pasar hojas a mano cancela el regreso */
+    paginasSucias = true;
+    rehacerPlano();
+    resolverTodas(); recalcularRefs(); calcularVinculos();
+    asegurarPaginas();
+    /* Entrando por delante se cae en la primera hoja; volviendo hacia atrás,
+       en la última. Es por dónde se entra al libro, no dónde está su
+       principio. */
+    const destino = s === 'right' ? 0 : Math.max(0, paginas.length - 1);
+    const aterrizar = () => {
+      preparandoPliegue = false;
+      hojasExtra = []; progreso = 0; alfaTop = 1;
+      folding = false; plegandoConDedo = false; anchor = F = null;
+      paginaActual = destino;
+      renderPage();
+      fx.style.display = 'none'; pg.classList.remove('hidden');
+      quitarBuscando();
+      if (zoomActivo) refrescarPasos();
+    };
+    if (sinAnimar){ aterrizar(); return; }
+    fotoDeHoja(destino, img => {
+      if (!viejo || !img){ aterrizar(); return; }
+      pageImg = viejo; bajoImg = img;
+      quitarBuscando();
+      animarHojas(1, rnd(620, 780), aterrizar, anclaY);
+    });
+  });
+  return true;
+}
 
 function pintarCanto(){
   /* Vacía: el rótulo "Libros" ya está en la pestaña, y repetirlo dos renglones
@@ -6815,7 +6950,7 @@ $('sepia').oninput = e => {
 $('selFuente').innerHTML = FUENTES.map((f,i) =>
   '<option value="'+i+'" title="'+f[2]+'">'+f[0]+'</option>').join('');
 $('selFuente').title = FUENTES.map(f => f[0] + ': ' + f[2]).join(' · ');
-const btnAl = $('btnAli'), btnA = $('btnAire'), btnV = $('btnVerso');
+const btnAl = $('btnAli'), btnA = $('btnAire');
 const btnM = $('btnMargen');
 btnM.onclick = () => {
   margen = (margen + 1) % MARGENES.length;
@@ -6833,17 +6968,15 @@ btnAl.onclick = () => {
   btnAl.classList.toggle('active', just);
   paginasSucias = true; renderPage();
 };
+/* Tres estados, así que ya no es un interruptor: da la vuelta a la lista,
+   como el de márgenes. Se marca cuando NO está en la de fábrica, que es la
+   misma regla que sigue aquél. */
 btnA.onclick = () => {
-  interlineado = interlineado > 1.8 ? 1.62 : 1.95;
-  const amplio = interlineado > 1.8;
-  btnA.textContent = amplio ? 'amplio' : 'normal';
-  btnA.classList.toggle('active', amplio);
-  paginasSucias = true; renderPage();
-};
-btnV.onclick = () => {
-  versoAparte = !versoAparte;
-  btnV.textContent = versoAparte ? 'aparte' : 'corridos';
-  btnV.classList.toggle('active', versoAparte);
+  const i = AIRES.findIndex(a => a[1] === interlineado);
+  const sig = AIRES[(i < 0 ? 1 : i + 1) % AIRES.length];
+  interlineado = sig[1];
+  btnA.textContent = sig[0];
+  btnA.classList.toggle('active', interlineado !== AIRES[1][1]);
   paginasSucias = true; renderPage();
 };
 $('selFuente').onchange = e => {
@@ -7002,7 +7135,7 @@ function guardarAjustes(){
   try {
     localStorage.setItem(AJUSTES, JSON.stringify({
       v: 1, fontSize, columns, placement, alineacion,
-      interlineado, versoAparte, margen, version, showMarks, sepia,
+      interlineado, margen, version, showMarks, sepia,
       fuente: FUENTES.findIndex(f => f[1] === fuente),
       libro: LIBRO, cap: aqui.cap, vers: aqui.vers
     }));
@@ -7023,9 +7156,11 @@ function cargarAjustes(){
   if ([1,2,3].includes(a.columns)) columns = a.columns;
   if (['below','margin','foot'].includes(a.placement)){ placement = a.placement; placementTocado = true; }
   if (['left','justify'].includes(a.alineacion)) alineacion = a.alineacion;
-  if (a.interlineado > 1 && a.interlineado < 3) interlineado = a.interlineado;
+  /* Solo una de las tres. Antes se aceptaba cualquier número entre 1 y 3, y
+     con tres estados fijos eso deja el botón mintiendo: un 1.71 guardado por
+     una versión vieja no tiene nombre que enseñar. */
+  if (AIRES.some(x => x[1] === a.interlineado)) interlineado = a.interlineado;
   if (MARGENES[a.margen]) margen = a.margen;
-  versoAparte = !!a.versoAparte;
   showMarks = a.showMarks !== false;
   if (D.versiones[a.version]) version = a.version;      // antes que el libro:
   if (a.libro && hayLibro(a.libro)) LIBRO = a.libro;    // hayLibro depende de version
@@ -7045,8 +7180,8 @@ function reflejarControles(){
   marcar('[data-ver]',  x => x.dataset.ver === version);
   const poner = (b, txt, on) => { b.textContent = txt; b.classList.toggle('active', on); };
   poner(btnAl, alineacion === 'justify' ? 'justificado' : 'izquierda', alineacion === 'justify');
-  poner(btnA,  interlineado > 1.8 ? 'amplio' : 'normal', interlineado > 1.8);
-  poner(btnV,  versoAparte ? 'aparte' : 'corridos', versoAparte);
+  const aire = AIRES.find(a => a[1] === interlineado) || AIRES[1];
+  poner(btnA,  aire[0], interlineado !== AIRES[1][1]);
   poner(btnM,  MARGENES[margen][0], margen !== 1);
   marksBtn.textContent = 'Marcas: ' + (showMarks ? 'ON' : 'OFF');
   /* 'estrecho' pone el panel en una sola columna cuando no hay ancho para
