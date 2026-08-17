@@ -5463,29 +5463,27 @@ $('pgCabeza').addEventListener('click', e => { e.preventDefault(); alternarBurbu
    Las dos etiquetas quedan puestas de la misma manera, cada una con su gesto:
    arriba un toque abre Libros, abajo un toque abre versiones y dos, Libros.
 
-   EL PLAZO ES EL MISMO QUE EL DEL FILO, y se probó a alargarlo.
+   EL PLAZO DEL DOBLE ES MÁS LARGO AQUÍ QUE EN EL FILO, y a propósito.
 
-   El toque simple tiene que esperar por si viene el segundo, y no hay forma de
-   evitarlo compartiendo el mismo blanco: el primer clic de un doble es
-   indistinguible de un clic solo hasta que pasa el plazo. Son los mismos
-   240 ms que ya espera el filo de la hoja para lo mismo, y se reutiliza la
-   constante para que el programa tenga UN tiempo de doble clic y no dos.
+   Compartían los 240 ms del filo, con el argumento de que el programa debía
+   tener un solo tiempo de doble clic. El argumento era bueno y los dos casos
+   no son el mismo. En el filo, el doble clic es un atajo de quien ya conoce
+   la aplicación y da dos golpecitos seguidos sin pensarlo. Aquí es la única
+   forma de llegar a Libros desde el pie: se hace despacio, mirando, y a
+   240 ms el globo de versiones se abría en medio de los dos toques y el
+   segundo caía encima de él.
 
-   Se llegó a subir a 440 para que el doble clic se pudiera hacer despacio, y
-   se dio marcha atrás. El coste caía entero sobre el gesto de todos los días
-   —abrir la lista de versiones, que es lo que se hace una y otra vez— para
-   ganar comodidad en uno que se hace de tarde en tarde, y no compensa: 200 ms
-   de más, cada vez, en lo que más se usa.
-
-   Si el doble clic vuelve a resistirse, el camino no es alargar la espera sino
-   quitarla: abrir el globo en el acto con el primer toque y que el segundo lo
-   cierre y abra Libros. Ahí la ventana del doble pasa a ser la del navegador
-   —medio segundo largo— y el toque simple deja de esperar nada. El precio es
-   otro: el globo asoma un instante antes de irse.
+   440 ms es lo que tarda un doble clic hecho a conciencia. El precio es que
+   abrir las versiones —el gesto de todos los días— tarda ese pelo más, y es
+   un precio real: no se puede abaratar sin renunciar al otro, porque el
+   primer clic de un doble es indistinguible de un clic solo hasta que pasa el
+   plazo. Se paga porque un gesto que no se consigue hacer no vale nada, y
+   440 ms de espera se notan mucho menos que tres intentos.
 
    Cerrar no espera. Si el globo ya está abierto, el toque lo cierra en el
    acto: ahí no hay ambigüedad que resolver —nadie hace doble clic para
    cerrar— y hacerle esperar a un cierre lo vuelve pegajoso. */
+const ESPERA_DOBLE_ROTULO = 440;
 let relojVersion = null;
 $('pgVersion').addEventListener('click', e => {
   e.preventDefault(); e.stopPropagation();
@@ -5499,7 +5497,7 @@ $('pgVersion').addEventListener('click', e => {
      Y va sin esperar el plazo, por lo mismo que el cierre del globo: cerrar no
      es ambiguo. */
   if (burbujaAbierta()){ cerrarTodosLosRollos(); return; }
-  relojVersion = setTimeout(abrirVersiones, ESPERA_DOBLE);
+  relojVersion = setTimeout(abrirVersiones, ESPERA_DOBLE_ROTULO);
 });
 $('pgVersion').addEventListener('dblclick', e => {
   e.preventDefault(); e.stopPropagation();
