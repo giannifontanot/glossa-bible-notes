@@ -3832,7 +3832,34 @@ function drawFold(){
   ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke(); ctx.restore();
   pintarSolapa(fold, true, anchor, alfaTop);
 }
-const local = ev => { const r = pg.getBoundingClientRect(); return {x:ev.clientX-r.left, y:ev.clientY-r.top}; };
+/* DE LA PANTALLA AL PAPEL. Todo el pliegue —el punto de agarre, la línea del
+   doblez, la cuenta de si has jalado bastante para que la hoja pase— vive en
+   coordenadas de PAPEL: de 0 a W, de 0 a H. Un dedo, en cambio, da
+   coordenadas de pantalla. Aquí se traduce, y hay dos cosas que traducir.
+
+   El desplazamiento del cajón, que ya estaba y no se contaba: el lienzo se
+   corre -scrollLeft para acompañar al papel, así que el punto de papel que hay
+   bajo el dedo está scrollLeft más allá. Con el cajón cerrado da igual —vale
+   cero— y por eso no se notaba nunca.
+
+   Y la escala de la vista de lejos, que es la que trajo esto. Al encender los
+   filos en el zoom, el dedo empezó a entregar píxeles de una hoja al 58% y el
+   pliegue a leerlos como si fueran de la hoja entera: el doblez se despegaba
+   del dedo en cuanto te apartabas del centro, y endFold medía un jalón que no
+   habías dado —un arrastre corto pasaba hoja porque contra W*.45 esos píxeles
+   inflados ya bastaban—. Lo encontró la revisión de Codex; mi prueba se había
+   quedado en el TOQUE del filo, que no pasa por aquí, y por eso salía verde.
+
+   La escala se lee de lo que dejó puesto medirZoom en vez de recalcularla:
+   dos sitios haciendo la misma cuenta terminan discrepando, y aquí discrepar
+   significa que el papel no sigue al dedo. */
+function aPapel(clientX, clientY){
+  const r = pg.getBoundingClientRect();
+  const x = clientX - r.left + pg.scrollLeft, y = clientY - r.top;
+  if (!zoomActivo) return { x, y };
+  return { x:(x - zoomFx.x) / zoomK, y:(y - zoomFx.y) / zoomK };
+}
+const local = ev => aPapel(ev.clientX, ev.clientY);
 const clampPg = p => ({ x:Math.min(Math.max(p.x, side==='right'?-W*.3:0), side==='right'?W:W*1.3),
                         y:Math.min(Math.max(p.y,0),H) });
 /* ============================================================
@@ -3850,8 +3877,10 @@ function iniciarPliegue(s, clientY){
   hojasExtra = []; alfaTop = 1;
   bajoImg = (s === 'right' ? nextImg : prevImg);
   if (!pageImg || snapStale()) makeSnapshot();
-  const r = pg.getBoundingClientRect();
-  anchor = { x: s === 'right' ? W : 0, y: Math.min(Math.max(clientY - r.top, 0), H) };
+  /* Por la misma traducción que el arrastre: el agarre nace donde pusiste el
+     dedo, y de lejos ese sitio no es el que dice la pantalla. */
+  anchor = { x: s === 'right' ? W : 0,
+             y: Math.min(Math.max(aPapel(0, clientY).y, 0), H) };
   F = { ...anchor };
   folding = true;
   sizeCanvas(); fx.style.display = 'block';
@@ -3988,12 +4017,11 @@ function pasarHoja(s, clientY, intento){
     return;
   }
   const viejo = pageImg;
-  const r = pg.getBoundingClientRect();
   /* Sin punto de agarre válido, el centro de la hoja. Antes, quien llamara sin
      clientY producía NaN y el doblez se dibujaba en ninguna parte: la hoja
      cambiaba de golpe, sin animación. Un valor que no es número no se debe
      propagar en silencio hasta la geometría. */
-  const y = Number.isFinite(clientY) ? clientY - r.top : H/2;
+  const y = Number.isFinite(clientY) ? aPapel(0, clientY).y : H/2;
   const anclaY = Math.min(Math.max(y, 0), H);
   side = s;
   fotoDeHoja(destino, img => {
@@ -4349,7 +4377,11 @@ pg.addEventListener('scroll', () => {
    Solo escala; no cambia ni un ancho. Por eso lo que se ve de lejos es
    exactamente la hoja a la que se vuelve, con los mismos cortes de renglón.
    ============================================================ */
-let zoomActivo = false;
+/* zoomK y zoomFx son la traducción de pantalla a papel mientras dura la vista
+   de lejos: la escala, y dónde queda la esquina del lienzo. Los deja puestos
+   medirZoom, que es quien los calcula para colocar la hoja, y los lee aPapel
+   para que el dedo y el papel hablen del mismo sitio. */
+let zoomActivo = false, zoomK = 1, zoomFx = { x:0, y:0 };
 /* LA HOJA VA CENTRADA, y eso decide cómo se calcula la escala. Estaba
    arriba, con todo el hueco de una vez debajo: se veía como una hoja pegada al
    techo, no como una hoja puesta sobre la mesa. Centrada, el hueco se reparte
@@ -4395,9 +4427,10 @@ function medirZoom(){
      allí se reste dx y dy sin escalar—, mientras que el lienzo retrata la hoja
      ENTERA, con ese hueco incluido dentro de la foto. Al encogerse, el hueco
      se encoge con ella: aquí se restan k*dx y k*dy. */
+  zoomK = k; zoomFx = { x: px - k*dx, y: py - k*dy };
   fx.style.transformOrigin = 'top left';
-  fx.style.transform = 'translate(' + Math.round(px - k*dx) + 'px,' +
-                       Math.round(py - k*dy) + 'px) scale(' + k.toFixed(4) + ')';
+  fx.style.transform = 'translate(' + Math.round(zoomFx.x) + 'px,' +
+                       Math.round(zoomFx.y) + 'px) scale(' + k.toFixed(4) + ')';
 
   /* Y LOS FILOS SE PONEN SOBRE EL PAPEL. Ocupan todo el alto de la pantalla, y
      de lejos eso invade el hueco —que ahí significa "vuelve"—: el toque se lo
@@ -4429,7 +4462,7 @@ function abrirZoom(){
 }
 function cerrarZoom(){
   if (!zoomActivo) return;
-  zoomActivo = false;
+  zoomActivo = false; zoomK = 1; zoomFx = { x:0, y:0 };
   pg.classList.remove('zoom'); stage.classList.remove('zoom');
   $('btnZoom').classList.remove('abierto');
   pg.style.removeProperty('--zk');
