@@ -460,6 +460,20 @@
   #pg.suavizando #zoomPapel{ transition:transform .46s cubic-bezier(.32,.72,.24,1),
                                         opacity   .46s cubic-bezier(.32,.72,.24,1); }
   #pg.suavizando{ transition:background-color .46s cubic-bezier(.32,.72,.24,1); }
+  /* Y QUIEN PIDIÓ MENOS MOVIMIENTO NO RECIBE ÉSTE. De todo lo que se mueve en
+     este programa, esto es lo más grande: la hoja entera cambiando de tamaño y
+     de sitio durante medio segundo. Es justo la clase de movimiento por la que
+     existe la preferencia —quien la enciende suele hacerlo porque un plano que
+     se le mueve debajo le marea— y sería raro apagar el giro de un disco y
+     dejar puesto esto.
+     Se apaga la transición, no el zoom: la hoja sigue viéndose entera, y
+     llega ahí en un cuadro en vez de en veintiocho, que es como estaba antes.
+     El fundido del papel se va con ella por lo mismo: apagar el movimiento y
+     dejar el resto a medio camino daría una entrada más rara que las dos.
+     Lo levantó la revisión de Codex. */
+  @media (prefers-reduced-motion: reduce){
+    #pg.suavizando, #pg.suavizando .pg-inner, #pg.suavizando #zoomPapel{ transition:none; }
+  }
   /* EL PAPEL DE DEBAJO, Y POR QUÉ HACE FALTA UNO APARTE.
      .pg-inner no es la hoja entera: la hoja lleva 22px de relleno arriba y 18
      abajo —el aire del titulillo y del folio— y eso es .pg, no .pg-inner. Al
@@ -2860,6 +2874,18 @@ const cabezaDe = k => {
    navegador solo pinta al final del cuadro, y aquí todo pasa dentro del mismo.
    ============================================================ */
 function sinZoom(fn){
+  /* EL SUAVIZADO SE CANCELA ANTES DE MIRAR zoomActivo, y el orden es el
+     arreglo. cerrarZoom apaga zoomActivo en su primer renglón, pero la
+     transición de 460 ms sigue corriendo detrás: durante ese rato .pg-inner
+     está a una escala intermedia y zoomActivo ya dice que no hay zoom. Con la
+     comprobación después del return de abajo, esa ventana se iba sin
+     neutralizar nada y lo que se midiera salía encogido —medido: el cuerpo de
+     la hoja da 360 px donde da 412—. Palabras y marcas colocadas con esa
+     medida componen una foto de pliegue que no es la hoja.
+     Aquí arriba cubre las dos ventanas, la de entrar y la de salir, porque
+     pregunta por lo único que de verdad importa: si hay algo moviéndose.
+     Lo levantó la revisión de Codex. */
+  if (pg.classList.contains('suavizando')) finSuave();
   const inner = zoomActivo ? pg.querySelector('.pg-inner') : null;
   if (!inner) return fn();
   /* Si el suavizado del zoom está armado, se CANCELA en vez de esquivarlo.
@@ -2871,7 +2897,6 @@ function sinZoom(fn){
      devuelta—, que es exactamente el caso que anima.
      Perder la transición aquí no cuesta nada: si algo repagina a media
      transición, esa repaginación es la noticia. */
-  if (pg.classList.contains('suavizando')) finSuave();
   inner.style.transform = 'none';
   try { return fn(); }
   finally { inner.style.removeProperty('transform'); }
