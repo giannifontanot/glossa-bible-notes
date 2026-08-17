@@ -373,6 +373,111 @@
   @media (prefers-reduced-motion: reduce){
     #buscando .aro{ animation:none; border-color:#b8892b; opacity:.55; }
   }
+  /* ============================================================
+     EL HISTORIAL DE LO VISTO.
+
+     Un lector de la Biblia salta mucho: una referencia lleva a otra y a la
+     media hora no te acuerdas de por dónde entraste. El botón de volver
+     resuelve UN paso atrás —el último salto— y eso no es un rastro: es un
+     deshacer. Aquí queda el rastro entero.
+
+     Guarda ESCRITURAS y no glosas a propósito. Las glosas ya tienen su lista
+     en el panel de Glosas, ordenada por canon y filtrable; ésta es la otra
+     cosa, la que no estaba: por dónde has ido pasando, en el orden en que
+     pasaste. Por eso va por tiempo y no por canon, y por eso lo más reciente
+     va arriba.
+     ============================================================ */
+  #btnHistorial{ position:absolute; right:8px; bottom:8px; z-index:7;
+                 width:30px; height:30px; padding:0; cursor:pointer;
+                 font:400 17px/1 var(--ui); color:#a98f57;
+                 background:var(--papel,#faf7f1); border:1px solid rgba(140,116,68,.34);
+                 border-radius:50%; -webkit-tap-highlight-color:transparent;
+                 -webkit-user-select:none; user-select:none;
+                 transition:background .3s cubic-bezier(.65,0,.35,1),
+                            color .3s cubic-bezier(.65,0,.35,1),
+                            box-shadow .3s cubic-bezier(.65,0,.35,1); }
+  #btnHistorial:hover{ color:#6d5c33; background:#fffdf6; }
+  #btnHistorial.abierto, #btnHistorial.abierto:hover{
+                 background:#b8892b; color:#fff8e4; border-color:#96701f; }
+  /* Sube desde su esquina, que es de donde lo llamaste. Nada de cortina: la
+     cortina es el gesto de la burbuja de arriba, y dos cosas que aparecen
+     igual se confunden. */
+  #historial{ position:absolute; right:6px; bottom:44px; z-index:8;
+              width:min(340px, calc(100% - 12px)); max-height:62%;
+              display:none; flex-direction:column; overflow-y:auto;
+              overscroll-behavior:contain;
+              background:linear-gradient(to bottom, #f2e9d6, #e7dbbe);
+              border:1px solid rgba(140,116,68,.5); border-radius:6px;
+              box-shadow:0 12px 26px -9px rgba(0,0,0,.55);
+              padding:6px; scrollbar-width:none;
+              opacity:0; transform:translateY(9px) scale(.97);
+              transform-origin:bottom right;
+              transition:opacity .2s ease, transform .28s cubic-bezier(.2,.85,.3,1); }
+  #historial::-webkit-scrollbar{ width:0; height:0; display:none; }
+  #historial.visible{ opacity:1; transform:none; }
+  .hs-tit{ display:block; font:700 10.5px/1 var(--ui); letter-spacing:.14em;
+           text-transform:uppercase; color:#8a7746; padding:3px 3px 6px; }
+  /* LA FILA ES UNA SOLA LÍNEA, Y ESO NO ES DECORACIÓN. Una lista en la que
+     cada renglón mide lo mismo se recorre con el ojo; una en la que cada
+     entrada mide dos o tres líneas hay que leerla. Por eso la referencia va
+     en una columna fija a la izquierda —así los números quedan alineados— y
+     el texto se corta con puntos suspensivos donde deje de caber. */
+  .hs-fila{ display:flex; align-items:baseline; gap:9px; width:100%;
+            border:0; background:rgba(255,253,247,.62); cursor:pointer;
+            text-align:left; padding:9px 9px; border-radius:4px;
+            margin-bottom:5px; min-height:40px;
+            -webkit-tap-highlight-color:transparent;
+            transition:background .28s cubic-bezier(.65,0,.35,1); }
+  .hs-fila:last-child{ margin-bottom:0; }
+  .hs-fila:hover{ background:#fffdf6; }
+  .hs-fila.aqui{ box-shadow:inset 0 0 0 1.5px rgba(184,137,43,.7); }
+  .hs-ref{ flex:0 0 auto; min-width:64px; font:700 13px/1.35 var(--ui);
+           color:#6d5c33; letter-spacing:.02em; white-space:nowrap; }
+  .hs-txt{ flex:1 1 auto; min-width:0; font:400 13px/1.35 var(--ui);
+           color:#4a3a1c; white-space:nowrap; overflow:hidden;
+           text-overflow:ellipsis; }
+  .hs-vacio{ display:block; padding:8px 5px 10px; font:400 12.5px/1.5 var(--ui);
+             color:#6b5936; opacity:.8; }
+
+  /* LA VENTANITA DEL VERSÍCULO. Un paso más, y el paso es el que evita el
+     error caro: desde una línea cortada no se puede saber si es el versículo
+     que buscabas, y un salto equivocado cuesta esperar el viaje y volver.
+     Aquí lo lees entero y decides. Tocar el texto salta; tocar fuera, no. */
+  #versoPleno{ position:absolute; left:50%; top:50%; z-index:10;
+               transform:translate(-50%,-50%) scale(.96);
+               width:min(330px, calc(100% - 26px)); max-height:70%;
+               display:none; flex-direction:column; overflow-y:auto;
+               background:linear-gradient(to bottom, #f7f0dd, #ece0c2);
+               border:1px solid rgba(140,116,68,.55); border-radius:7px;
+               box-shadow:0 16px 34px -10px rgba(0,0,0,.6);
+               padding:13px 14px 11px; scrollbar-width:none;
+               opacity:0; transition:opacity .18s ease,
+                                     transform .26s cubic-bezier(.2,.85,.3,1); }
+  #versoPleno::-webkit-scrollbar{ width:0; height:0; display:none; }
+  #versoPleno.visible{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+  .vp-ref{ display:block; font:700 12px/1.2 var(--ui); letter-spacing:.1em;
+           text-transform:uppercase; color:#8a7746; padding-bottom:8px; }
+  .vp-txt{ display:block; width:100%; text-align:left; border:0; cursor:pointer;
+           background:rgba(255,253,247,.75); border-radius:5px;
+           padding:11px 12px; color:#2f2610;
+           font-family:Georgia,'Times New Roman',serif; font-size:15.5px;
+           line-height:1.55; -webkit-tap-highlight-color:transparent;
+           transition:background .28s cubic-bezier(.65,0,.35,1),
+                      box-shadow .28s cubic-bezier(.65,0,.35,1); }
+  .vp-txt:hover{ background:#fffdf6; box-shadow:0 0 0 1.5px rgba(184,137,43,.55); }
+  .vp-pie{ display:block; padding:7px 2px 0; font:400 11px/1.4 var(--ui);
+           color:#6b5936; opacity:.85; }
+
+  @media (max-width: 560px){
+    #btnHistorial{ width:40px; height:40px; font-size:21px; right:10px; bottom:10px; }
+    #historial{ bottom:56px; right:8px; }
+    .hs-ref{ font-size:14px; min-width:70px; }
+    .hs-txt{ font-size:14px; }
+    .hs-fila{ min-height:44px; padding:10px; }
+    .vp-txt{ font-size:17px; padding:13px 14px; }
+    .hs-vacio, .vp-pie{ font-size:13px; }
+  }
+
   #ghost{ position:fixed; left:-99999px; top:0; pointer-events:none; }
 
   /* EL CANTO DE LA BIBLIA: las pestañas viven al filo derecho, debajo de
@@ -433,6 +538,39 @@
   .rollo .btn.active{ background:#b8892b; border-color:#96701f; color:#fff8e4; }
   .rollo .btn.ghost{ background:rgba(255,253,247,.4); opacity:.85; }
   .rollo .btn:disabled{ opacity:.35; }
+  /* EL ESTADO DE EN MEDIO. Un botón del panel tenía dos caras y ninguna para
+     el rato que hay entre las dos: papel mientras no lo tocas, marrón macizo
+     cuando la opción ya quedó puesta. Entre una y otra hay que repaginar el
+     libro, y eso en un teléfono dura lo suyo: apretabas "abajo" y durante un
+     segundo largo el botón seguía diciendo exactamente lo mismo que antes de
+     apretarlo. Sin saber si entró, se aprieta otra vez.
+     Así que el borde se enciende con el MISMO marrón del botón cumplido —no
+     con otro color, que sería un tercer idioma que aprender— y se apaga cuando
+     el trabajo terminó. Solo el borde: el relleno macizo está reservado para
+     "ya está", y adelantarlo aquí sería mentir a medias.
+     El latido va desparejo a propósito —sube en un quinto del ciclo, baja en
+     dos y descansa el resto— porque un pulso simétrico se lee como máquina.
+     Esto es lo que se pidió y lo que un aro girando haría demasiado alto: la
+     señal vive en el botón que tocaste, no encima de la pantalla.
+     Y si el hilo se traba repaginando, el borde se queda congelado ENCENDIDO,
+     que es justo lo que hay que decir en ese momento. */
+  .rollo .btn.obrando, .rollo .chip.obrando{
+    animation:obrandoBorde 1.05s cubic-bezier(.35,0,.5,1) infinite; }
+  @keyframes obrandoBorde{
+    0%   { border-color:rgba(150,112,31,.42);
+           box-shadow:0 0 0 0 rgba(184,137,43,0); }
+    20%  { border-color:#96701f;
+           box-shadow:0 0 0 1.5px rgba(184,137,43,.58), 0 0 10px 0 rgba(184,137,43,.42); }
+    58%  { border-color:rgba(150,112,31,.5);
+           box-shadow:0 0 0 1px rgba(184,137,43,.15), 0 0 4px 0 rgba(184,137,43,.12); }
+    100% { border-color:rgba(150,112,31,.42);
+           box-shadow:0 0 0 0 rgba(184,137,43,0); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .rollo .btn.obrando, .rollo .chip.obrando{
+      animation:none; border-color:#96701f;
+      box-shadow:0 0 0 1.5px rgba(184,137,43,.55); }
+  }
   .rollo select, .rollo input{ font-size:.63rem; padding:3px 5px; color:#3c2f16;
                background:rgba(255,253,247,.85); border-color:rgba(140,116,68,.42); }
   .rollo select option{ color:#222; }
@@ -575,20 +713,24 @@
      filas y la versión es la última, abajo del todo, después del sepia. El
      que tocó "VBL" tiene que barrer el panel entero para encontrar lo que
      acaba de pedir.
-     Ahora la fila se enciende sola al llegar. Dos pulsos y no uno —uno se
-     confunde con el propio panel entrando— y dorados, que es el color con que
-     este programa dice "esto de aquí". Y el destello va sobre el FONDO, no
-     sobre un borde: hay que decir dónde mirar, no marcar un estado.
+     Ahora la fila se enciende sola al llegar. TRES pulsos, el mismo número que
+     el destello de llegada de un salto: los destellos de este programa cuentan
+     todos hasta tres, y un aviso que late distinto según dónde esté obliga a
+     aprenderse dos ritmos. Dorados, que es el color con que este programa dice
+     "esto de aquí". Y el destello va sobre el FONDO, no sobre un borde: hay
+     que decir dónde mirar, no marcar un estado.
      No se hace scroll hasta ella: el panel cabe entero en la pantalla, así
      que moverlo sería quitarle al ojo el recorrido que le enseña dónde
      estaba la fila para la próxima vez. */
   #filaVersion{ border-radius:5px; }
-  #filaVersion.destello{ animation:destelloVersion 1.25s cubic-bezier(.4,0,.4,1); }
+  #filaVersion.destello{ animation:destelloVersion 1.7s cubic-bezier(.4,0,.4,1); }
   @keyframes destelloVersion{
     0%   { background:rgba(201,162,39,0);   box-shadow:0 0 0 0 rgba(201,162,39,0); }
-    14%  { background:rgba(201,162,39,.46); box-shadow:0 0 0 5px rgba(201,162,39,.30); }
-    38%  { background:rgba(201,162,39,.07); box-shadow:0 0 0 5px rgba(201,162,39,.05); }
-    58%  { background:rgba(201,162,39,.40); box-shadow:0 0 0 5px rgba(201,162,39,.26); }
+    10%  { background:rgba(201,162,39,.46); box-shadow:0 0 0 5px rgba(201,162,39,.30); }
+    27%  { background:rgba(201,162,39,.07); box-shadow:0 0 0 5px rgba(201,162,39,.05); }
+    42%  { background:rgba(201,162,39,.44); box-shadow:0 0 0 5px rgba(201,162,39,.28); }
+    59%  { background:rgba(201,162,39,.07); box-shadow:0 0 0 5px rgba(201,162,39,.05); }
+    74%  { background:rgba(201,162,39,.40); box-shadow:0 0 0 5px rgba(201,162,39,.26); }
     100% { background:rgba(201,162,39,0);   box-shadow:0 0 0 0 rgba(201,162,39,0); }
   }
   @media (prefers-reduced-motion: reduce){
@@ -644,7 +786,7 @@
      no había nada entre el último renglón de libros y el canto del panel. */
   #cantoCuerpo{ flex:1 1 auto; min-height:0; overflow-y:auto; padding-bottom:14px;
                 display:flex; flex-direction:column; gap:4px; }
-  .aire-final{ flex:0 0 auto; height:16px; }
+  .aire-final{ flex:0 0 100%; height:16px; }
   .grupo-tit{ display:block; font:700 6.5px/1 var(--ui); letter-spacing:.14em;
               text-transform:uppercase; color:#8a7746; padding:2px 0 3px; }
   /* Ya no es rejilla de celdas iguales: cada pestaña mide lo que mide su
@@ -747,6 +889,12 @@
      --ancho-glosa— así que cada nota parte sus renglones donde los parte allá
      y las etiquetas caen donde caen allá. Un espejo que cambia el ancho no es
      un espejo: es otra cosa que se le parece. */
+  /* Y LA LETRA, TAMBIÉN LA DE LA HOJA. El ancho ya venía de allá; el tamaño
+     no, y por eso el espejo estaba a medias: una nota escrita para leerse a 19
+     puntos aparecía aquí a 13, en una caja del ancho correcto, así que partía
+     los renglones en otros sitios y ocupaba otro alto. Se veía como otra nota.
+     --fs lo pone el guion desde el tamaño que manda en el libro, y .gl ya sabe
+     leerlo: cambiar la letra en Formato cambia las dos a la vez. */
   #indice{ width:100%; max-height:210px; overflow:auto; margin-top:5px;
            background:#faf7f1; border:1px solid rgba(140,116,68,.34);
            border-radius:4px; padding:9px;
@@ -754,6 +902,7 @@
            justify-content:flex-start; gap:11px 13px; }
   #indice .ix-item{ flex:0 0 auto; width:var(--ancho-glosa, 132px);
                     text-align:left; cursor:pointer;
+                    font-size:var(--fs, 15px); line-height:1.28;
                     transition:box-shadow .34s cubic-bezier(.65,0,.35,1); }
   #indice .ix-item:hover{ box-shadow:0 0 0 2px rgba(184,137,43,.6); }
   #indice::-webkit-scrollbar{ width:0; height:0; display:none; }
@@ -850,7 +999,10 @@
     .num{ font-size:13.5px; height:40px; line-height:40px; }
     .grupo-tit{ font-size:10.5px; padding:6px 0 4px; }
     .fly-tit{ font-size:12px; padding:2px 0 5px; }
-    #indice .ix-item{ font-size:13px; }
+    /* La glosa del índice NO entra en esta lista de tamaños. Aquí estaba
+       clavada en 13px, y eso es exactamente lo que rompía el espejo: la de la
+       hoja crece y se encoge con el ajuste de Formato y ésta se quedaba
+       quieta. Ahora la manda --fs, como a la de la hoja. */
     .nota-respaldo, .rollo .cred{ font-size:12px; }
     .banda select, .banda input, .ajuste select{ font-size:13.5px; padding:5px 7px; }
     /* Estos cuatro se habían quedado fuera de la lista y por eso se veían
@@ -875,6 +1027,48 @@
        sobra en la hoja. */
     #cantoCuerpo.rejilla{ grid-template-columns:repeat(auto-fill,minmax(46px,1fr)); gap:7px; }
     .fly-rejilla{ grid-template-columns:repeat(5,44px); gap:7px; }
+
+    /* ============================================================
+       CADA TESTAMENTO EN SU MITAD, Y SOLO AQUÍ.
+
+       En el teléfono el panel no da para los 66 libros: con los blancos ya en
+       40px, el Antiguo pedía más de lo que hay y el Nuevo quedaba fuera de la
+       pantalla, al final de un desplazamiento largo. Ahora cada uno tiene la
+       mitad del alto y su propio desplazamiento: correr el Antiguo no mueve al
+       Nuevo, porque no comparten caja.
+
+       flex:1 1 0 y NO max-height:50%. Se intentó con el tope y no muerde: el
+       alto de #cantoCuerpo sale de estirarse dentro del rollo, y contra un alto
+       así los porcentajes de los hijos no resuelven —el navegador lo trata como
+       indefinido—. El resultado medido era 56/44, repartido por contenido en
+       vez de por mitades: el Antiguo seguía comiéndose de más. Con la base en
+       cero el contenido deja de opinar y las mitades son mitades.
+
+       Y va dentro del @media a propósito. En pantalla ancha los 66 libros caben
+       enteros en una sola lista, así que partirla en dos le pondría al Antiguo
+       una barra que no necesita y al Nuevo un hueco vacío debajo: sería
+       arreglar donde no hay nada roto. Allá sigue siendo una lista sola.
+       min-height:0 es imprescindible: sin él un hijo flexible no baja nunca de
+       su alto de contenido y las dos mitades vuelven a repartirse por él.
+       ============================================================ */
+    /* Y el panel de libros deja de medir lo que mide su contenido para medir
+       lo que le toca. Sin esto, las mitades se quedan en cero: una caja que se
+       ajusta a su contenido no puede repartir mitades entre hijos que ya no
+       aportan contenido —la base en cero les quita esa voz—, así que el panel
+       se encogía a 21px y se llevaba las dos listas por delante. Con un alto
+       definido, el reparto tiene de dónde salir.
+       Es el mismo 88% que ya era su tope, así que en la práctica solo deja de
+       encogerse cuando hay pocos libros — y libros siempre hay 66. */
+    #canto{ height:88%; }
+    #cantoCuerpo.testamentos{ overflow:hidden; }
+    #cantoCuerpo.testamentos .testamento{ display:flex; flex-direction:column;
+                                          flex:1 1 0; min-height:0; }
+    #cantoCuerpo.testamentos .rejilla-libros{ flex:1 1 auto; min-height:0;
+                                              overflow-y:auto; align-content:flex-start;
+                                              overscroll-behavior:contain;
+                                              scrollbar-width:none; }
+    #cantoCuerpo.testamentos .rejilla-libros::-webkit-scrollbar{
+                                              width:0; height:0; display:none; }
 
     /* COLUMNAS EN CIFRAS. "una / dos / tres" son tres palabras de distinto
        largo peleando por el sitio más apretado del panel; 1, 2 y 3 dicen lo
@@ -1066,6 +1260,15 @@
   <div id="menu"></div>
   <div id="readout"></div>
   <button class="btn" id="btnVolver" style="display:none">↩ volver</button>
+  <!-- LO QUE HAS VISTO. El botón vive en la esquina de abajo a la derecha, que
+       es la única de las cuatro que estaba libre: arriba a la izquierda no hay
+       nada, arriba a la derecha está el titulillo, abajo a la izquierda el
+       botón de volver del salto. Y va discreto a propósito: es una salida que
+       se busca cuando se necesita, no una que tenga que llamar la atención
+       mientras lees. -->
+  <button id="btnHistorial" title="Lo que has visto" aria-label="Lo que has visto">↺</button>
+  <div id="historial" role="dialog" aria-label="Escrituras vistas" aria-modal="false"></div>
+  <div id="versoPleno" role="dialog" aria-label="Versículo completo"></div>
 </div>
 
 <div id="deshacer">Marca borrada <button class="btn" id="btnDeshacer">Deshacer</button></div>
@@ -1111,7 +1314,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-17 · versalitas y acuses';
+window.GLOSS_BUILD = '2026-08-17 · rastro y cajon';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2361,22 +2564,32 @@ function resaltarSuave(rangos){
     for (let i = 0; i < ESCALA.length; i++) CSS.highlights.delete('d' + i);
     if (n !== null) CSS.highlights.set('d' + n, marca);
   };
-  /* DOS RESPIRACIONES, NO UNA NI TRES. Una sola se pierde si estabas mirando
-     otro lado de la hoja; tres ya son un tic. Dos deja verla pasar, confirmar
-     que pasó, y se acaba.
-     Entre las dos NO se apaga: baja hasta el tinte más tenue y vuelve a
+  /* TRES RESPIRACIONES. Aquí decía dos, y decía que tres eran un tic. Lo
+     pedido son tres, y en uso hay una razón que la teoría no vio: llegar de un
+     salto largo no es como encender una marca que ya sabías dónde estaba. El
+     bonche de hojas termina de girar, los ojos aterrizan en cualquier parte de
+     la hoja y para cuando encuentran el sitio ya iba la segunda. Con tres,
+     todavía queda una por ver.
+     Se pagan unos 900 ms más de destello, y ese es el costo real de la
+     decisión: si alguna vez estorba, aquí es donde se baja el número.
+     Entre una y otra NO se apaga: baja hasta el tinte más tenue y vuelve a
      subir. Apagarse del todo y volver a prender es parpadeo, y el parpadeo
-     es lo que se lee como alarma. Bajar y subir es oleaje. */
+     es lo que se lee como alarma. Bajar y subir es oleaje.
+     El QUIETO se acorta un poco con el número de vueltas: tres mesetas del
+     largo de las de antes se harían eternas, y lo que hace falta repetir es el
+     pulso, no la pausa. */
   const guion = [];
   let t = 0;
-  const SUBE = 55, BAJA = 105, QUIETO = 430, ENTRE = 120;
-  for (let vuelta = 0; vuelta < 2; vuelta++){
-    /* la primera sube desde nada; la segunda, desde el tinte que quedó */
+  const VUELTAS = 3;
+  const SUBE = 55, BAJA = 105, QUIETO = 340, ENTRE = 120;
+  for (let vuelta = 0; vuelta < VUELTAS; vuelta++){
+    /* la primera sube desde nada; las demás, desde el tinte que quedó */
     for (let i = (vuelta ? 1 : 0); i < ESCALA.length; i++){ guion.push([i, t]); t += SUBE; }
     t += QUIETO;
-    const hasta = vuelta ? -1 : 0;                    // la última baja hasta apagarse
+    const ultima = vuelta === VUELTAS - 1;
+    const hasta = ultima ? -1 : 0;                    // la última baja hasta apagarse
     for (let i = ESCALA.length - 2; i > hasta; i--){ guion.push([i, t]); t += BAJA; }
-    if (!vuelta) t += ENTRE;                          // un respiro entre las dos
+    if (!ultima) t += ENTRE;                          // un respiro entre una y otra
   }
   guion.push([null, t]);
   for (const [n, cuando] of guion){
@@ -2671,6 +2884,11 @@ function irA(libro, cap, vers, letra){
   const k = plano.findIndex(p => p.cap === cap && p.vers === vers);
   if (k < 0){ readout.textContent = 'referencia fuera de rango: ' + cap + ':' + vers; return; }
   ocultarMenu();
+  /* Al rastro. Va DESPUÉS de las dos comprobaciones de arriba a propósito: una
+     referencia que no lleva a ningún sitio no es un pasaje que hayas visto, y
+     apuntarla dejaría el historial lleno de callejones. También se apunta
+     cuando el versículo ya está en esta hoja: preguntaste por él igual. */
+  apuntarVisto(libro, cap, vers);
   const destino = paginaDe(k);
   if (destino === paginaActual){ destacar(cap, vers, letra); return; }
   volverA = puntoActual();                  // de dónde veníamos, para el botón de regreso
@@ -3733,10 +3951,26 @@ let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
      Los imanes se quedan, y solo hacen lo que hace un imán: si SUELTAS cerca
      de una punta, el cajón termina de acomodarse. Ya no te arrebatan el
      movimiento a media carrera. */
-  const PALANCA = 5;       /* px de papel por cada px de ratón */
-  const DESPEGUE = 6;      /* px de RATÓN que hay que jalar para soltar el cajón */
+  /* LA PALANCA NO ES LA MISMA PARA EL DEDO QUE PARA EL RATÓN, y ahí estaba la
+     otra mitad del "ON/OFF". Con 5 a 1, el cajón entero —251px— se recorre con
+     50px de dedo. Un desliz normal en un teléfono mide entre 100 y 200, así
+     que el papel llegaba al tope en el primer tercio del gesto y los otros dos
+     tercios se gastaban contra el freno: abierto antes de terminar de abrir.
+     No es que faltara animación, es que no quedaba trayecto que animar.
+     Con 1.5 hacen falta 167px de dedo, que es un desliz de verdad, y entonces
+     el papel va DEBAJO del dedo, que es lo que hace que se sienta una cosa y
+     no un interruptor.
+     El ratón conserva los 5 a 1 y por su razón de siempre: ahí no hay desliz
+     nativo del que tirar, y arrastrar 251px con el ratón es un viaje. */
+  const PALANCA_RATON = 5, PALANCA_DEDO = 1.5;
+  const DESPEGUE = 6;      /* px de PUNTERO que hay que jalar para soltar el cajón */
   const IMAN = 45;         /* px de PAPEL: qué tan cerca de una punta atrae */
+  /* Un lanzamiento se termina solo. Medido en px de PAPEL por milisegundo:
+     por debajo de esto fue un arrastre y mandas tú; por encima fue un envión y
+     lo que quisiste fue abrirlo o cerrarlo, no dejarlo a la mitad. */
+  const ENVION = 0.5;
   let activo = false, despegado = false, x0 = 0, s0 = 0, puntero = null, reloj = null;
+  let palanca = PALANCA_RATON, vel = 0, tPrevio = 0, xPrevio = 0;
   const sobraPapel = () => pg.scrollWidth - pg.clientWidth > 4;
   /* El número de capítulo SÍ se puede agarrar. Es un blanco grande —ocupa casi
      un tercio del ancho en la primera hoja de cada capítulo— y nadie lo
@@ -3750,19 +3984,30 @@ let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
   const tope = () => pg.scrollWidth - pg.clientWidth;
   const poner = x => { pg.scrollLeft = Math.min(Math.max(x, 0), tope()); };
 
-  /* CÓMO SE ACOMODA EL CAJÓN. Solo frenado, sin rebote: el rebote se probó y
-     se veía como un tic, no como madera. Lo que sí aporta es la cuarta
-     potencia —frena tarde y fuerte, y ese arrastre final es lo que se lee como
-     peso—: en los últimos 100ms el papel recorre cuatro píxeles de 241. */
-  const DURA_ACOMODO = 430;
+  /* CÓMO SE ACOMODA EL CAJÓN. Sin rebote: se probó y se veía como un tic, no
+     como madera. Pero la curva cambia, y este es el arreglo del "abre como
+     ON/OFF".
+     Estaba en 1-(1-k)^4, que es solo frenado: arranca a toda velocidad y
+     frena. Eso es lo que hace una cosa que EMPUJASTE y sigue por inercia, y
+     está bien cuando de verdad venías empujando. Pero cuando la animación es
+     la que abre el cajón entero, arrancar a toda velocidad no se ve como que
+     algo se pone en marcha: se ve como que ya estaba puesto.
+     Ahora es una cúbica de ida y vuelta —despacio, rápido, despacio—, que es
+     la misma que usa el bonche de hojas para volar. Una cosa con masa tarda en
+     arrancar tanto como tarda en pararse.
+     Y la duración va con la distancia en vez de ser fija: 430ms daban igual
+     para recorrer 20px que para recorrer 250, y en el primer caso se
+     arrastraba y en el segundo iba disparada. */
+  const suaveIda = k => (k < .5 ? 4*k*k*k : 1 - Math.pow(-2*k + 2, 3)/2);
   function irA(meta){
     cancelAnimationFrame(reloj);
     const desde = pg.scrollLeft, tramo = meta - desde;
     if (Math.abs(tramo) < 1){ poner(meta); return; }
+    const dura = Math.min(700, Math.max(240, Math.abs(tramo) * 2.2));
     const t0 = performance.now();
     (function paso(ahora){
-      const k = Math.min(1, (ahora - t0) / DURA_ACOMODO);
-      poner(desde + tramo * (1 - Math.pow(1 - k, 4)));
+      const k = Math.min(1, (ahora - t0) / dura);
+      poner(desde + tramo * suaveIda(k));
       if (k < 1) reloj = requestAnimationFrame(paso);
       else poner(meta);
     })(t0);
@@ -3775,7 +4020,9 @@ let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
     if (!sobraPapel() || !agarrable(ev.target)) return;
     cancelAnimationFrame(reloj);
     activo = true; despegado = false;
+    palanca = ev.pointerType === 'touch' ? PALANCA_DEDO : PALANCA_RATON;
     x0 = ev.clientX; s0 = pg.scrollLeft; puntero = ev.pointerId;
+    vel = 0; xPrevio = ev.clientX; tPrevio = performance.now();
     try { pg.setPointerCapture(puntero); } catch(e){}
     pg.classList.add('agarrado');
   });
@@ -3785,15 +4032,27 @@ let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
     const d = ev.clientX - x0;
     if (!despegado){
       /* Trabado hasta que jalas de verdad. El umbral se mide en píxeles de
-         RATÓN, no de papel: con la palanca puesta, 45px de papel serían menos
-         de cinco de mano y no se sentiría trabado en absoluto. */
+         PUNTERO, no de papel: con la palanca puesta, 45px de papel serían
+         menos de cinco de mano y no se sentiría trabado en absoluto. */
       if (Math.abs(d) < DESPEGUE) return;
       despegado = true;
       /* arranca desde donde está, sin brincar los píxeles del umbral */
       x0 = ev.clientX + (d < 0 ? DESPEGUE : -DESPEGUE);
+      xPrevio = ev.clientX; tPrevio = performance.now();
+    }
+    /* La velocidad se mide del DEDO y no del scrollLeft, y no es un detalle:
+       al llegar al tope el papel deja de moverse aunque el dedo siga volando,
+       así que medirla del papel daría cero justo en el envión más claro que
+       hay. Se suaviza con la anterior porque un solo par de cuadros captura
+       cualquier tirón; la mezcla se queda con la intención y no con el ruido. */
+    const ahora = performance.now(), dt = ahora - tPrevio;
+    if (dt > 0){
+      const v = -(ev.clientX - xPrevio) * palanca / dt;
+      vel = vel * 0.4 + v * 0.6;
+      xPrevio = ev.clientX; tPrevio = ahora;
     }
     ev.preventDefault();
-    poner(s0 - (ev.clientX - x0) * PALANCA);
+    poner(s0 - (ev.clientX - x0) * palanca);
   });
 
   const soltar = ev => {
@@ -3804,14 +4063,20 @@ let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
     pg.classList.remove('agarrado');
     try { pg.releasePointerCapture(puntero); } catch(e){}
     if (!salio) return;
-    /* AQUÍ, y solo aquí, actúan los imanes: al soltar. Si quedaste cerca de una
-       punta, el cajón termina de acomodarse; si quedaste en medio, ahí se
-       queda, porque ahí lo dejaste tú. */
     const t = tope(), x = pg.scrollLeft;
-    /* Se llama SIEMPRE que quedaste en una punta o cerca de ella, aunque ya
-       estés exactamente en el tope: ahí irA() ya no viaja, solo rebota. */
-    if (x <= IMAN) irA(0);
+    /* PRIMERO EL ENVIÓN, DESPUÉS LOS IMANES, y el orden es el que manda.
+       Si soltaste lanzando, el cajón termina el viaje en la dirección que
+       llevaba, esté donde esté: eso es lo que quiere decir un envión y es lo
+       que deja ver la curva entera —arranca despacio, coge vuelo, frena—.
+       Si soltaste sin velocidad, sigue mandando lo de siempre: cerca de una
+       punta se acomoda, en medio se queda donde lo dejaste, porque ahí lo
+       dejaste tú. Eso no se toca: la ayuda no está en decidir por ti.
+       El imán se llama SIEMPRE que quedaste en una punta o cerca de ella,
+       aunque ya estés exactamente en el tope: ahí irA() ya no viaja. */
+    if (Math.abs(vel) > ENVION) irA(vel > 0 ? t : 0);
+    else if (x <= IMAN) irA(0);
     else if (x >= t - IMAN) irA(t);
+    vel = 0;
   };
   pg.addEventListener('pointerup', soltar);
   pg.addEventListener('pointercancel', soltar);
@@ -3866,6 +4131,104 @@ pg.addEventListener('scroll', () => {
   stage.classList.toggle('hasta-el-fondo', alFondo);
   if (folding) fx.style.left = (-pg.scrollLeft) + 'px';
 }, { passive:true });
+
+/* ============================================================
+   EL PANEL DEL RASTRO, Y LA VENTANITA DE LEER ANTES DE SALTAR.
+   ============================================================ */
+let histAbierto = false, plenoAbierto = null;   /* plenoAbierto guarda la referencia */
+
+function pintarHistorial(){
+  const cont = $('historial');
+  if (!historial.length){
+    cont.innerHTML = '<span class="hs-tit">Lo que has visto</span>' +
+      '<span class="hs-vacio">Todavía nada. Aquí van quedando los pasajes a los ' +
+      'que saltas desde el panel de libros o desde una referencia de una glosa.</span>';
+    return;
+  }
+  const aqui = LIBRO + ':' + (plano[paginas[paginaActual]] || {}).cap + ':' +
+               (plano[paginas[paginaActual]] || {}).vers;
+  cont.innerHTML = '<span class="hs-tit">Lo que has visto</span>' + historial.map(h => {
+    /* El texto sale de la VERSIÓN QUE ESTÁ PUESTA, no de la que estaba cuando
+       lo miraste: el historial guarda la referencia, que es lo que no cambia,
+       y el texto se busca al pintarlo. Cambiar de versión en Formato cambia lo
+       que dice esta lista, que es lo correcto —es la misma escritura—. */
+    const t = versoTexto(version, h.cap, h.vers, h.libro);
+    return '<button class="hs-fila' + (claveHist(h) === aqui ? ' aqui' : '') +
+      '" data-hs="' + h.libro + ':' + h.cap + ':' + h.vers + '">' +
+      '<span class="hs-ref">' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '</span>' +
+      '<span class="hs-txt">' + esc(t || '(no está en esta versión)') + '</span></button>';
+  }).join('');
+}
+
+function abrirHistorial(){
+  if (histAbierto) return;
+  cerrarTodosLosRollos();
+  cargarHistorial();            /* por si otra pestaña del navegador lo movió */
+  histAbierto = true;
+  pintarHistorial();
+  const el = $('historial');
+  el.style.display = 'flex';
+  void el.offsetWidth;
+  el.classList.add('visible');
+  $('btnHistorial').classList.add('abierto');
+}
+function cerrarHistorial(){
+  cerrarPleno();
+  if (!histAbierto) return;
+  histAbierto = false;
+  const el = $('historial');
+  el.classList.remove('visible');
+  $('btnHistorial').classList.remove('abierto');
+  setTimeout(() => { if (!histAbierto) el.style.display = 'none'; }, 260);
+}
+function cerrarPleno(){
+  plenoAbierto = null;
+  const el = $('versoPleno');
+  el.classList.remove('visible');
+  setTimeout(() => { if (!plenoAbierto) el.style.display = 'none'; }, 240);
+}
+function abrirPleno(libro, cap, vers){
+  const t = versoTexto(version, cap, vers, libro);
+  plenoAbierto = { libro, cap, vers };
+  const el = $('versoPleno');
+  el.innerHTML = '<span class="vp-ref">' + esc(nombreDe(libro)) + ' ' + cap + ':' + vers + '</span>' +
+    '<button class="vp-txt" data-ir="' + libro + ':' + cap + ':' + vers + '">' +
+      esc(t || 'Este versículo no está en la versión que tienes puesta.') + '</button>' +
+    '<span class="vp-pie">' + (t ? 'Toca el versículo para ir ahí.' : 'Cambia de versión en Formato para leerlo.') + '</span>';
+  el.style.display = 'flex';
+  void el.offsetWidth;
+  el.classList.add('visible');
+}
+
+$('btnHistorial').addEventListener('click', ev => {
+  ev.preventDefault(); ev.stopPropagation();
+  if (histAbierto) cerrarHistorial(); else abrirHistorial();
+});
+$('historial').addEventListener('click', ev => {
+  const f = ev.target.closest('[data-hs]'); if (!f) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const [lib, c, v] = f.dataset.hs.split(':');
+  abrirPleno(lib, +c, +v);
+});
+$('versoPleno').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-ir]'); if (!b) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const [lib, c, v] = b.dataset.ir.split(':');
+  /* Se cierra TODO antes de saltar, y antes por dos razones: el panel tapa
+     justo el texto al que vas, y el disco de buscar sale en el centro de la
+     hoja, que es donde está la ventanita. El salto arranca al cuadro
+     siguiente para que el cierre alcance a empezar. */
+  cerrarHistorial();
+  requestAnimationFrame(() => irA(lib, +c, +v, ''));
+});
+/* Un toque fuera lo cierra, en captura y antes que nadie, igual que la
+   burbuja. La ventanita cuenta como "dentro": si no, tocarla la cerraría
+   antes de que su propio oyente llegara a leer el toque. */
+document.addEventListener('pointerdown', ev => {
+  if (!histAbierto) return;
+  if (ev.target.closest('#historial, #btnHistorial, #versoPleno')) return;
+  cerrarHistorial();
+}, true);
 
 /* Las dos puertas a la burbuja, cada una a su sección. */
 $('pgCabeza').addEventListener('click', e => { e.preventDefault(); alternarBurbuja('libros'); });
@@ -4116,18 +4479,28 @@ function pintarCanto(){
              '" data-libro="' + b.id + '" title="' + b.nombre +
              (vivo ? '' : ' — no está en estos datos') + '">' + b.nombre + '</button>';
     }).join('');
+  /* CADA TESTAMENTO EN SU MITAD. Antes los dos grupos iban seguidos dentro de
+     una sola caja con desplazamiento, y con 39 libros el Antiguo se comía el
+     panel entero: el Nuevo Testamento quedaba abajo del todo, fuera de la
+     vista, y para llegar a Mateo había que recorrer el Antiguo entero. Un
+     índice en el que la mitad del contenido no se ve no es un índice.
+     Ahora cada testamento tiene su propia caja con su propio desplazamiento y
+     no pasa de la mitad del alto. Correr el Antiguo ya no mueve al Nuevo: son
+     dos listas vecinas, no una lista larga. Y el rótulo se queda fijo fuera
+     del desplazamiento, así que siempre se sabe cuál se está mirando.
+     El aire de abajo va como un elemento vacío y no como padding de la caja.
+     Parece rebuscado y no lo es: el relleno final de una caja con
+     desplazamiento se lo comen varios navegadores en cuanto el contenido
+     desborda —justo el caso que aquí es la norma—. Con flex-basis:100% cae en
+     su propio renglón dentro de la rejilla y ocupa alto de verdad. */
   const grupo = (titulo, libros) =>
-    '<div><span class="grupo-tit">' + titulo + '</span>' +
-    '<div class="rejilla-libros">' + celdas(libros) + '</div></div>';
-  /* El aire de abajo va como un elemento vacío y no como padding del
-     contenedor. Parece rebuscado y no lo es: #cantoCuerpo es una caja con
-     desplazamiento, y el relleno final de una caja así se lo comen varios
-     navegadores en cuanto el contenido desborda —justo el caso de la lista
-     completa de 66 libros, que es cuando más falta hace—. Un div vacío ocupa
-     alto de verdad y nadie se lo puede saltar. */
-  $('cantoCuerpo').innerHTML = grupo('Antiguo Testamento', CANON.filter(b => !b.nt)) +
-                               grupo('Nuevo Testamento',  CANON.filter(b => b.nt)) +
-                               '<div class="aire-final"></div>';
+    '<div class="testamento"><span class="grupo-tit">' + titulo + '</span>' +
+    '<div class="rejilla-libros">' + celdas(libros) +
+    '<div class="aire-final"></div></div></div>';
+  const c = $('cantoCuerpo');
+  c.classList.add('testamentos');
+  c.innerHTML = grupo('Antiguo Testamento', CANON.filter(b => !b.nt)) +
+                grupo('Nuevo Testamento',  CANON.filter(b => b.nt));
 }
 
 /* ============================================================
@@ -4392,6 +4765,51 @@ function rolloSimple(el){
 }
 const rFormato = rolloSimple(ajustes), rGlosas = rolloSimple(etiquetas),
       rRespaldo = rolloSimple(document.getElementById('respaldo'));
+
+/* ============================================================
+   "TE OÍ, ESTOY EN ELLO" EN EL BOTÓN QUE TOCASTE.
+
+   Se enciende en pointerdown y NO en click, por lo de siempre: pointerdown es
+   cuando apoyas el dedo y click cuando lo levantas, y el hueco que hay que
+   tapar empieza en el primero. Además así queda pintado ANTES de que corra el
+   manejador, que es lo que importa cuando ese manejador va a trabar el hilo:
+   una clase puesta en el mismo cuadro que el trabajo no se pinta nunca.
+   Se apaga en click, pero dos cuadros después: el manejador ya terminó —los
+   oyentes del contenedor corren tras el del botón— y esos dos cuadros son los
+   que dejan verlo encendido cuando la operación fue instantánea.
+   Con un mínimo de permanencia, porque casi todas lo son y un borde que
+   aparece y se va en un cuadro no es una señal, es un defecto de pintado.
+   Y con una red por si algo se cierra a media faena y el click no llega.
+   ============================================================ */
+const MIN_OBRANDO = 320;
+let obrandoEl = null, t0Obrando = 0, relojObrando = null;
+function apagarObrando(yaMismo){
+  clearTimeout(relojObrando); relojObrando = null;
+  const el = obrandoEl; if (!el) return;
+  const quitar = () => { el.classList.remove('obrando'); if (obrandoEl === el) obrandoEl = null; };
+  const falta = yaMismo ? 0 : MIN_OBRANDO - (performance.now() - t0Obrando);
+  if (falta <= 0){ quitar(); return; }
+  relojObrando = setTimeout(quitar, falta);
+}
+function encenderObrando(el){
+  apagarObrando(true);
+  obrandoEl = el; t0Obrando = performance.now();
+  el.classList.add('obrando');
+  relojObrando = setTimeout(() => apagarObrando(true), 1400);
+}
+for (const el of [ajustes, etiquetas, document.getElementById('respaldo')]){
+  el.addEventListener('pointerdown', ev => {
+    const b = ev.target.closest('.btn, .chip');
+    /* Los deshabilitados no acusan nada: no va a pasar nada, y encender el
+       borde ahí enseñaría a desconfiar de la señal donde sí sirve. */
+    if (!b || b.disabled || !el.contains(b)) return;
+    encenderObrando(b);
+  });
+  el.addEventListener('click', ev => {
+    if (!ev.target.closest('.btn, .chip')) return;
+    trasPintar(() => apagarObrando());
+  });
+}
 /* Los tres se excluyen: comparten el mismo filo y la misma superficie. */
 function cerrarOtrosRollos(menos){
   if (ajustes   !== menos) rFormato.cerrar();
@@ -4577,6 +4995,46 @@ function quitarBuscando(){
   relojBuscando = setTimeout(apagar, falta);
 }
 
+/* ============================================================
+   EL RASTRO DE ESCRITURAS.
+
+   Se apunta en los dos sitios por donde se llega a un pasaje a propósito: el
+   panel de Libros y el clic en una referencia de una glosa. NO se apunta al
+   pasar hojas, y esa es la diferencia entre un rastro y un registro: pasar
+   hojas es seguir leyendo, saltar es haber ido a buscar algo. Un historial
+   que apunta cada hoja se llena de ruido en diez minutos y deja de servir
+   para lo único que sirve, que es reencontrar aquello a lo que fuiste.
+
+   Se guarda en el almacén del navegador porque un rastro que se borra al
+   cerrar la pestaña no es un rastro; es una lista de la sesión. Y va aparte
+   de los ajustes y de las marcas: si algún día se corrompe, se pierde el
+   historial y no las glosas, que es lo que no se puede perder.
+   ============================================================ */
+const HISTORIAL = 'glossa:historial:v1';
+const TOPE_HISTORIAL = 40;
+let historial = [];
+const claveHist = h => h.libro + ':' + h.cap + ':' + h.vers;
+function cargarHistorial(){
+  try {
+    const a = JSON.parse(localStorage.getItem(HISTORIAL) || '[]');
+    if (Array.isArray(a)) historial = a
+      .filter(h => h && typeof h.libro === 'string' && h.cap > 0 && h.vers > 0)
+      .slice(0, TOPE_HISTORIAL);
+  } catch(e){ historial = []; }
+}
+function apuntarVisto(libro, cap, vers){
+  if (!libro || !(cap > 0) || !(vers > 0)) return;
+  /* Volver al mismo sitio no crea una entrada nueva: la sube. Si no, ir y
+     venir entre dos pasajes seis veces llena la lista con dos referencias
+     repetidas y entierra todo lo demás. */
+  const k = libro + ':' + cap + ':' + vers;
+  historial = historial.filter(h => claveHist(h) !== k);
+  historial.unshift({ libro, cap, vers, t: Date.now() });
+  if (historial.length > TOPE_HISTORIAL) historial.length = TOPE_HISTORIAL;
+  try { localStorage.setItem(HISTORIAL, JSON.stringify(historial)); } catch(e){}
+  if (histAbierto) pintarHistorial();
+}
+
 /* El salto: cierra el panel disolviéndolo, rearma el mapa de hojas del libro
    destino y voltea un bonche hasta la hoja donde vive ese versículo. */
 /* `regreso` es opcional: lo manda quien salta desde una referencia, para que
@@ -4618,6 +5076,12 @@ function saltarA(libro, cap, vers, regreso){
       destacar(cap, vers, '');
       readout.textContent = nombreDe(libro) + ' ' + cap + ':' + vers;
       quitarBuscando();
+      /* Al rastro, y aquí al ATERRIZAR y no al pedirlo: un salto entre libros
+         puede quedarse a medias —el libro no está en los datos, la foto no
+         carga— y el historial solo debe contar lo que de verdad llegaste a
+         ver. En irA se apunta antes porque allí ya se comprobó que el destino
+         existe y no hay viaje que pueda fallar. */
+      apuntarVisto(libro, cap, vers);
     };
     if (mismo && destino === desdeHoja){ aterrizar(); return; }
     side = (mismo ? destino < desdeHoja : haciaAtras) ? 'left' : 'right';
@@ -4929,7 +5393,14 @@ function pintarIndice(){
     return;
   }
   const variosLibros = new Set(lista.map(m => m.libro)).size > 1;
-  cont.style.setProperty('--ancho-glosa', MARGIN_W() + 'px');
+  /* Ocho píxeles menos, y no son de adorno: MARGIN_W() es el ancho de la
+     COLUMNA del margen, y la nota que va dentro no lo ocupa entero —.gl-margin
+     se estrecha 4px por lado para que las esquinas del giro tengan a dónde
+     asomarse—. Copiando la columna, la del panel salía 8px más ancha que la de
+     la hoja y partía los renglones un poco más tarde: el espejo casi cuadraba,
+     que en un espejo es no cuadrar. */
+  cont.style.setProperty('--ancho-glosa', Math.max(60, MARGIN_W() - 8) + 'px');
+  cont.style.setProperty('--fs', fontSize + 'px');   /* la letra de la hoja, para que el espejo lo sea */
   cont.innerHTML = lista.map(m => {
     const nb = backDe(m.cap, m.vers).length;
     const letra = (REFS.get(m.id) || '').toString().replace(/^\d+/, '');
@@ -5167,6 +5638,7 @@ ajustes.appendChild($('cred'));
 })();
 
 const guardado = cargarAjustes();
+cargarHistorial();
 stage.style.transition = 'none';
 stage.style.width = ANCHO_HOJA + 'px';
 void stage.offsetWidth;
