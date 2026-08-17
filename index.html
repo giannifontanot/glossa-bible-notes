@@ -235,10 +235,25 @@
      ninguna de nuestras reglas de color ni de tiempo. */
   .btn, .chip, .tabo, .num, .pestanas button, .ix-item, .edge{
     -webkit-tap-highlight-color:transparent; }
-  /* EL AVISO. Antes era un renglón permanente debajo de la hoja, y un renglón
-     que siempre está deja de leerse: se vuelve parte del mueble. Ahora aparece
-     sobre la hoja cuando hay algo que decir y se va solo a los tres segundos.
-     No captura clics, así que nunca estorba lo que hay debajo. */
+  /* EL AVISO, Y CUÁNDO SE PERMITE HABLAR.
+
+     Antes era un renglón permanente debajo de la hoja, y un renglón que
+     siempre está deja de leerse: se vuelve parte del mueble. Ahora aparece
+     sobre la hoja y se va solo. No captura clics, así que nunca estorba.
+
+     Y ahora dice muchas menos cosas, porque se había convertido en lo otro:
+     un cartelito que confirmaba cada acierto. Pasas hoja y aparece «tres
+     hojas»; saltas a un versículo y aparece el versículo al que acabas de
+     saltar; cambias de versión y aparece la versión que se lee en el rótulo
+     de abajo. Todo eso ya lo estaba diciendo la pantalla —esa es la parte que
+     funciona— y repetirlo por escrito no informa: interrumpe.
+
+     La regla es una sola: SE HABLA CUANDO NO PASÓ LO QUE PEDISTE. Una
+     referencia que no existe, un archivo que no se pudo leer, un guardado que
+     falló, un botón que no tenía nada que hacer. Ahí el aviso es lo único que
+     distingue «no hacía falta» de «está roto», y sin él la aplicación se
+     queda muda justo cuando hay algo que explicar. Lo que salió bien se
+     enseña; no se cuenta. */
   #readout{ position:absolute; left:50%; bottom:26px; transform:translate(-50%, 6px);
             z-index:7; max-width:86%; pointer-events:none;
             font:400 10.5px/1.45 var(--ui); color:#f3ead6; text-align:center;
@@ -421,6 +436,44 @@
   #pg.zoom .pg-inner{
       transform:translate(var(--zx,0px), var(--zy,0px)) scale(var(--zk,1));
       transform-origin:top left; background:transparent; }
+  /* ALEJARSE Y ACERCARSE SIN CORTE.
+
+     Las tres cosas que cambian —la escala de la hoja, el papel que llenaba la
+     pantalla y el papel chico de debajo— pasaban de un estado al otro en un
+     solo cuadro. Eso no se lee como alejarse: se lee como que la pantalla se
+     cambió por otra, y el ojo tiene que volver a buscar dónde quedó todo. Con
+     medio segundo de por medio, la misma hoja se va haciendo chica delante de
+     ti y no hay nada que reencontrar; es la razón entera de que exista esta
+     vista, y se estaba perdiendo en el salto.
+
+     Y POR QUÉ NO VIVE EN .pg-inner A SECAS. Mientras estás de lejos, sinZoom
+     le quita el transform y se lo devuelve en cada repaginación, para medir la
+     hoja a tamaño natural. Con la transición puesta siempre, cada una de esas
+     medidas se vería como un temblor: la hoja creciendo y encogiéndose sola al
+     pasar página. Se arma solo mientras dura el gesto —la clase .suavizando,
+     que el guion pone y quita— y así lo que se interpola es exactamente lo que
+     se pidió interpolar.
+
+     La curva frena y no rebota: una hoja de papel apoyándose en la mesa no
+     da un salto al llegar. */
+  #pg.suavizando .pg-inner,
+  #pg.suavizando #zoomPapel{ transition:transform .46s cubic-bezier(.32,.72,.24,1),
+                                        opacity   .46s cubic-bezier(.32,.72,.24,1); }
+  #pg.suavizando{ transition:background-color .46s cubic-bezier(.32,.72,.24,1); }
+  /* Y QUIEN PIDIÓ MENOS MOVIMIENTO NO RECIBE ÉSTE. De todo lo que se mueve en
+     este programa, esto es lo más grande: la hoja entera cambiando de tamaño y
+     de sitio durante medio segundo. Es justo la clase de movimiento por la que
+     existe la preferencia —quien la enciende suele hacerlo porque un plano que
+     se le mueve debajo le marea— y sería raro apagar el giro de un disco y
+     dejar puesto esto.
+     Se apaga la transición, no el zoom: la hoja sigue viéndose entera, y
+     llega ahí en un cuadro en vez de en veintiocho, que es como estaba antes.
+     El fundido del papel se va con ella por lo mismo: apagar el movimiento y
+     dejar el resto a medio camino daría una entrada más rara que las dos.
+     Lo levantó la revisión de Codex. */
+  @media (prefers-reduced-motion: reduce){
+    #pg.suavizando, #pg.suavizando .pg-inner, #pg.suavizando #zoomPapel{ transition:none; }
+  }
   /* EL PAPEL DE DEBAJO, Y POR QUÉ HACE FALTA UNO APARTE.
      .pg-inner no es la hoja entera: la hoja lleva 22px de relleno arriba y 18
      abajo —el aire del titulillo y del folio— y eso es .pg, no .pg-inner. Al
@@ -732,25 +785,43 @@
      mete todo eso hacia adentro. La primera versión llevaba solo las hojas al
      34% y quedó tan discreta que había que buscarla —y una pista que hay que
      buscar no es una pista—. */
-  .pg-canto{ position:absolute; top:0; bottom:0; width:15px; z-index:4;
-             pointer-events:none; opacity:0; transition:opacity .45s ease; }
+  /* EL FIN Y EL PRINCIPIO DEL LIBRO: UN TRAZO DE MARCADOR.
+
+     La primera versión imitaba el canto de un libro —la raya del corte, las
+     hojas apiladas detrás, la sombra—: quince píxeles de dibujo con tres capas
+     de degradado. Era literal y era demasiado. En una hoja que por lo demás
+     solo tiene letra y papel, ese trozo de ilustración se leía como un objeto
+     aparte pegado a la orilla, no como una anotación de la propia hoja.
+
+     Un trazo de marcador dice lo mismo con una sola idea, y encima dice algo
+     que el dibujo no decía: que lo puso alguien. Es la marca que uno haría a
+     mano en el margen para saber por dónde acaba.
+
+     La forma sale de tres decisiones, no de adorno:
+     · el beige de los botones, que es el color con el que este programa
+       señala; nada nuevo que aprender.
+     · las orillas más flojas que el centro, porque un rotulador deja más
+       tinta por donde pasa el corazón de la punta.
+     · las puntas levantadas por la máscara: un trazo hecho de un tirón no
+       empieza ni acaba a escuadra, se despega. Sin eso parecía un filete de
+       maquetación, que es justo lo que no puede parecer —el programa ya usa
+       uno para partir el texto en dos columnas—.
+
+     La mitad de ancho que antes. La anchura la lleva ANCHO_CANTO en medirZoom
+     para colocarlo de lejos: si cambia una, cambia la otra. */
+  .pg-canto{ position:absolute; top:0; bottom:0; width:7px; z-index:4;
+             pointer-events:none; opacity:0; transition:opacity .45s ease;
+             border-radius:4px;
+             background:linear-gradient(to right,
+                 rgba(169,143,87,.58) 0%, rgba(169,143,87,.97) 42%,
+                 rgba(169,143,87,.97) 62%, rgba(169,143,87,.74) 100%);
+             -webkit-mask-image:linear-gradient(to bottom,
+                 rgba(0,0,0,0) 0%, #000 2.5%, #000 97%, rgba(0,0,0,0) 100%);
+                     mask-image:linear-gradient(to bottom,
+                 rgba(0,0,0,0) 0%, #000 2.5%, #000 97%, rgba(0,0,0,0) 100%); }
   .pg-canto.viva{ opacity:1; }
-  .pg-canto-r{ right:0;
-    background:
-      linear-gradient(to left, rgba(120,96,52,.85) 0px, rgba(120,96,52,.85) 2.5px,
-                               rgba(120,96,52,0) 2.5px),
-      repeating-linear-gradient(to left,
-        rgba(138,112,66,0)   3px,  rgba(138,112,66,0)   4.2px,
-        rgba(138,112,66,.55) 4.2px, rgba(138,112,66,.55) 5.2px),
-      linear-gradient(to left, rgba(96,76,40,.20), rgba(96,76,40,0) 100%); }
-  .pg-canto-l{ left:0;
-    background:
-      linear-gradient(to right, rgba(120,96,52,.85) 0px, rgba(120,96,52,.85) 2.5px,
-                                rgba(120,96,52,0) 2.5px),
-      repeating-linear-gradient(to right,
-        rgba(138,112,66,0)   3px,  rgba(138,112,66,0)   4.2px,
-        rgba(138,112,66,.55) 4.2px, rgba(138,112,66,.55) 5.2px),
-      linear-gradient(to right, rgba(96,76,40,.20), rgba(96,76,40,0) 100%); }
+  .pg-canto-r{ right:0; }
+  .pg-canto-l{ left:0; }
 
   #ghost{ position:fixed; left:-99999px; top:0; pointer-events:none; }
 
@@ -1107,6 +1178,22 @@
      medir. */
   .gl-movil{ position:fixed; left:8px; top:8px; width:240px; z-index:12;
              display:block; box-shadow:0 14px 38px rgba(0,0,0,.45); }
+  /* LOS COLORES DE LA GLOSA, MIENTRAS SE ESCRIBE. Van pegados a la caja, no
+     dentro: dentro serían parte de la nota, y la nota es solo lo que escribes.
+     Los puntos son los mismos del menú de la marca —mismo tamaño, mismo modo
+     de decir cuál está puesto— porque son la misma decisión tomada en otro
+     momento, y dos maneras de elegir lo mismo se aprenden dos veces.
+     El fondo oscuro es lo que los separa del papel: cuatro círculos de color
+     sueltos sobre la hoja no se leen como un mando, se leen como suciedad. */
+  .gl-tintas{ position:fixed; z-index:13; display:flex; justify-content:center;
+              gap:14px; padding:7px 10px; border-radius:9px;
+              background:rgba(40,31,14,.90);
+              box-shadow:0 8px 22px rgba(0,0,0,.34); }
+  .gl-tintas .mc{ width:26px; height:26px; padding:0; border-radius:50%;
+                  border:2px solid rgba(253,251,246,.45); cursor:pointer;
+                  -webkit-tap-highlight-color:transparent; }
+  .gl-tintas .mc[data-on]{ border-color:#fff;
+                           box-shadow:0 0 0 3px rgba(255,255,255,.28); }
   /* El papel bajo el tinte NO se pinta desde aquí: lo compone el guion en la
      misma pila de fondo de la caja (ver abrirGlosa). Aquí quedó un intento con
      un pseudoelemento de z-index negativo, y estaba mal: dentro de un contexto
@@ -1640,7 +1727,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-17 · canto del libro';
+window.GLOSS_BUILD = '2026-08-17 · el vuelo apacible';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -1698,7 +1785,18 @@ const PAGE_CSS = `
              white-space:nowrap; cursor:pointer; border-radius:4px 4px 0 0;
              transition:background .34s cubic-bezier(.65,0,.35,1),
                         color .34s cubic-bezier(.65,0,.35,1); }
-.pg-version:hover{ color:#6d5c33; background:#fffdf6; }
+/* EL ROTULO NO SE PONE BLANCO. Tenía un :hover que le pintaba el fondo de
+   #fffdf6, y en un teléfono eso no es un estado que exista: el navegador
+   aplica :hover al tocar y lo DEJA PUESTO hasta que tocas otra cosa. O sea que
+   después de abrir las versiones el rótulo se quedaba blanco, encendido por un
+   gesto que ya había terminado, y no había forma de apagarlo desde dentro.
+   Este rótulo tiene dos estados y no tres: en reposo, y abierto. El aviso de
+   «se puede tocar» con ratón se queda —ahí :hover sí significa lo que dice—
+   pero solo cambia la tinta, no el papel, y solo donde hay puntero de verdad.
+   El blanco se acabó en los dos sitios. */
+@media (hover:hover) and (pointer:fine){
+  .pg-version:hover{ color:#6d5c33; }
+}
 /* Las dos etiquetas de la hoja abren la sección que les corresponde: la de
    arriba dice dónde estás y abre Libros; la de abajo dice en qué versión lees
    y abre Formato, que es donde se cambia. Cada rótulo es la puerta de lo que
@@ -1723,7 +1821,9 @@ const PAGE_CSS = `
    exactamente lo mismo que marca al libro elegido dentro del panel: fondo
    dorado sólido y letra crema, ni una raya. Dos señales distintas para la
    misma idea obligan a aprender dos cosas; una sola no obliga a nada. */
-.pg-cabeza:hover{ color:#6d5c33; background:#fffdf6; }
+@media (hover:hover) and (pointer:fine){
+  .pg-cabeza:hover{ color:#6d5c33; }
+}
 .pg-cabeza.abierta, .pg-cabeza.abierta:hover{ background:#b8892b; color:#fff8e4; }
 /* hyphens:auto queda FUERA a propósito: la partición de palabras depende
    del diccionario del idioma, y ese diccionario no está disponible cuando
@@ -2774,8 +2874,29 @@ const cabezaDe = k => {
    navegador solo pinta al final del cuadro, y aquí todo pasa dentro del mismo.
    ============================================================ */
 function sinZoom(fn){
+  /* EL SUAVIZADO SE CANCELA ANTES DE MIRAR zoomActivo, y el orden es el
+     arreglo. cerrarZoom apaga zoomActivo en su primer renglón, pero la
+     transición de 460 ms sigue corriendo detrás: durante ese rato .pg-inner
+     está a una escala intermedia y zoomActivo ya dice que no hay zoom. Con la
+     comprobación después del return de abajo, esa ventana se iba sin
+     neutralizar nada y lo que se midiera salía encogido —medido: el cuerpo de
+     la hoja da 360 px donde da 412—. Palabras y marcas colocadas con esa
+     medida componen una foto de pliegue que no es la hoja.
+     Aquí arriba cubre las dos ventanas, la de entrar y la de salir, porque
+     pregunta por lo único que de verdad importa: si hay algo moviéndose.
+     Lo levantó la revisión de Codex. */
+  if (pg.classList.contains('suavizando')) finSuave();
   const inner = zoomActivo ? pg.querySelector('.pg-inner') : null;
   if (!inner) return fn();
+  /* Si el suavizado del zoom está armado, se CANCELA en vez de esquivarlo.
+     Quitar y devolver el transform con la transición puesta haría que la
+     medición se viera: la hoja saldría creciendo a tamaño natural y volviendo
+     a encogerse. Y no vale con apagar la clase durante la llamada, porque los
+     estilos se resuelven una sola vez al final de la tarea y lo que el
+     navegador compararía sería el estado final —transform devuelto, clase
+     devuelta—, que es exactamente el caso que anima.
+     Perder la transición aquí no cuesta nada: si algo repagina a media
+     transición, esa repaginación es la noticia. */
   inner.style.transform = 'none';
   try { return fn(); }
   finally { inner.style.removeProperty('transform'); }
@@ -3305,7 +3426,6 @@ function menuVinculos(cap, vers){
        paginación y el latido nunca llega a verse —el aviso existiría en el
        DOM y en la pantalla no aparecería jamás. */
     r.classList.add('buscando');
-    readout.textContent = 'buscando ' + nombreDe(lib) + ' ' + c + ':' + v + '…';
     encender(r, () => {
       try { irA(lib, +c, +v, letra || ''); }
       finally { apagar(r); }
@@ -3429,6 +3549,9 @@ function abrirGlosa(m){
     const anchoGl = Math.max(120, MARGIN_W() - 8);
     caja.style.width = anchoGl + 'px';
     caja.style.right = 'auto';
+    const centrar = () => {
+      caja.style.left = Math.round(Math.max(8, (window.innerWidth - anchoGl) / 2)) + 'px';
+    };
     /* NACE JUNTO A LO QUE SUBRAYASTE, no en la esquina de arriba. Antes se
        plantaba pegada al techo por una razón buena —en un teléfono el teclado
        se come la mitad de abajo y arriba es el único sitio al que no llega
@@ -3462,6 +3585,11 @@ function abrirGlosa(m){
         let t = arriba.top - alto - AIRE;
         if (t + alto > techo) t = techo - alto;
         caja.style.top = Math.round(Math.max(6, t)) + 'px';
+        /* Los colores viajan con la caja: si el teclado la empuja, la fila de
+           tintas tiene que ir detrás o se queda flotando donde ya no hay nada.
+           Se llama por el gancho porque colocarTintas se define más abajo —la
+           caja tiene que existir y estar puesta antes de poder medirla. */
+        if (caja._trasMover) caja._trasMover();
       };
       recolocar();
       const vv = window.visualViewport;
@@ -3480,21 +3608,83 @@ function abrirGlosa(m){
          de la nota compitan con el versículo de debajo. Se pone opaca, salvo
          cuando la caja tapa justo lo que subrayaste: ahí conviene verlo, que
          es de lo que estás hablando. */
-      /* Al canto de la COLUMNA DE TEXTO, no al arranque de lo subrayado. Se
-         probó lo segundo, que suena mejor —la caja donde empieza lo que
-         glosas— y en pantalla queda mal: una marca casi nunca empieza al
-         principio de un renglón, así que la caja aparecía colgada a media
-         línea, en un sitio distinto cada vez. Medido: seleccionando en la
-         primera columna, la caja salía en x=114 sin nada que la justificara.
-         Una glosa vive en una franja fija; su caja también. Al canto de la
-         columna se lee como puesta, y además es donde el ojo vuelve. */
-      const maxIzq = window.innerWidth - anchoGl - 8;
-      const izq = pgBody.getBoundingClientRect().left;
-      caja.style.left = Math.round(Math.min(Math.max(izq, 8), Math.max(8, maxIzq))) + 'px';
+      /* CENTRADA EN LA PANTALLA. Ha estado en tres sitios y este es el que se
+         queda. Primero iba al arranque de lo subrayado, que suena bien y en
+         pantalla queda colgada a media línea, en un sitio distinto cada vez
+         —medido: x=114 sin nada que lo justificara—. Después, al canto de la
+         columna de texto, con el argumento de que una glosa vive en una franja
+         fija; pero la caja no está en la hoja, está flotando encima, y una
+         cosa que flota alineada con el borde de otra se lee torcida.
+         Centrada no compite con nada: es lo único que hay en la pantalla
+         mientras escribes, y el centro es donde el pulgar y la vista ya están.
+         Sigue midiendo lo que medirá la glosa, que era lo importante. */
+      centrar();
       opacar(caja);
     } else {
+      centrar();
       opacar(caja);
     }
+    /* LOS COLORES, ENCIMA DE LA CAJA. El color de una glosa se elegía después,
+       volviendo a tocar la marca para sacar su menú: dos gestos separados por
+       un vuelo entero para decidir algo que ya sabías cuando subrayaste.
+       Aquí está mientras escribes, que es cuando se sabe qué clase de nota es.
+       Van arriba porque abajo está el teclado; si arriba no cabe —la caja ya
+       está pegada al techo— bajan al otro lado, que es el único hueco que
+       queda. Lo decide la medida, no una suposición. */
+    const tintas = document.createElement('div');
+    tintas.className = 'gl-tintas';
+    const pintarTintas = () => {
+      tintas.innerHTML = COLORS.map(c =>
+        '<button class="mc" data-color="' + c + '" style="background:' + LINE_HEX[c] + '"' +
+        (m.color === c ? ' data-on="1"' : '') + '></button>').join('');
+    };
+    pintarTintas();
+    document.body.appendChild(tintas);
+    const colocarTintas = () => {
+      const r = caja.getBoundingClientRect();
+      const h = tintas.offsetHeight || 30, AIRE = 8;
+      const arriba = r.top - h - AIRE;
+      tintas.style.left = Math.round(r.left) + 'px';
+      tintas.style.width = Math.round(r.width) + 'px';
+      tintas.style.top = Math.round(arriba >= 6 ? arriba : r.bottom + AIRE) + 'px';
+    };
+    colocarTintas();
+    caja._trasMover = colocarTintas;
+    /* EL TOQUE NO PUEDE ROBAR EL FOCO. Si el botón se lleva el foco, el
+       textarea lo pierde, y perder el foco es precisamente lo que cierra la
+       glosa y la echa a volar: elegir un color la habría dado por terminada.
+       Se atiende en pointerdown y se corta ahí mismo, antes de que el
+       navegador mueva nada. */
+    tintas.addEventListener('pointerdown', ev => {
+      const b = ev.target.closest && ev.target.closest('[data-color]');
+      if (!b) return;
+      ev.preventDefault(); ev.stopPropagation();
+      m.color = b.dataset.color;
+      /* cssText borra TODO lo que se le puso en línea, incluida la altura que
+         acaba de calcular recolocar. Se guarda y se devuelve: la forma cambia
+         de color, no de sitio. */
+      const dondeEstaba = caja.style.top;
+      caja.className = 'gl gl-movil g-' + m.color;
+      caja.style.cssText = forma.css;
+      caja.style.fontSize = fontSize + 'px';
+      caja.style.setProperty('--papel', colorPapel());
+      caja.style.width = anchoGl + 'px';
+      caja.style.right = 'auto';
+      if (dondeEstaba) caja.style.top = dondeEstaba;
+      centrar();
+      opacar(caja);
+      const t = TINT[m.color];
+      ta.style.color = t[2];
+      pintarTintas();
+      colocarTintas();
+      /* Se repinta el subrayado de la hoja, no la hoja entera: renderPage
+         rehace el cuerpo del texto, y rehacerlo con el teclado abierto y el
+         foco dentro de un textarea es la forma más corta de perder los dos.
+         Al cerrar la glosa ya se repinta todo de todas formas. */
+      save();
+      if (HL_API) aplicarHighlights();
+    });
+    ta._tintas = () => tintas.remove();
     /* SE CIERRA TOCANDO AFUERA, y ya no hay botón que buscar. Un botón "listo"
        obliga a apuntar a un blanco de un centímetro para decir algo que el
        gesto natural —dejar de escribir— ya dice. Se escucha en captura para
@@ -3502,7 +3692,7 @@ function abrirGlosa(m){
        de la caja: ahí estás escribiendo, no terminando.
        El blur hace el resto, que es donde ya vivía el guardado. */
     const afuera = e => {
-      if (e.target.closest && e.target.closest('.gl-movil')) return;
+      if (e.target.closest && e.target.closest('.gl-movil, .gl-tintas')) return;
       document.removeEventListener('pointerdown', afuera, true);
       ta.blur();
     };
@@ -3536,6 +3726,7 @@ function abrirGlosa(m){
   ta.addEventListener('blur', () => {
     if (ta._afuera) document.removeEventListener('pointerdown', ta._afuera, true);
     if (ta._teclado) ta._teclado();
+    if (ta._tintas) ta._tintas();      /* la fila de colores se va con la caja */
     const val = ta.value.trim();
     if (val){
       m.nota = val;
@@ -3592,6 +3783,17 @@ function opacar(caja){
    verdad y no una estimación.
    El de destino se esconde mientras dura el viaje y se destapa al llegar. Sin
    eso se verían las dos a la vez y el viaje parecería una copia. */
+/* CUÁNTO DURA EL VUELO. Empezó en 900 ms y con eso la nota no viajaba: se
+   escapaba. La distancia es casi la hoja entera y el ojo venía de leer, no de
+   vigilar el margen, así que para cuando la encontraba ya había aterrizado y
+   lo único que quedaba era la sensación de que algo se movió.
+   Cinco veces más lento es mucho escrito así, y es lo correcto: lo que se está
+   enseñando no es un cambio de estado —para eso basta un parpadeo— sino a
+   DÓNDE se fue lo que acabas de escribir, y eso hay que poder seguirlo con la
+   vista sin proponérselo. Y no estorba: el vuelo lo lleva el compositor y no
+   bloquea nada, así que mientras dura se puede seguir leyendo, escribiendo o
+   pasando hoja. */
+const VUELO_MS = 4500;
 function volarGlosa(caja, id){
   const destino = document.querySelector('.gl[data-gl="' + id + '"]');
   const a = caja.getBoundingClientRect();
@@ -3604,9 +3806,9 @@ function volarGlosa(caja, id){
   /* EL VUELO PASA POR EN MEDIO DE LA HOJA, y no es adorno.
      En línea recta, el trayecto de la caja a su hueco del margen es corto y
      casi todo por la orilla: la nota sale de cuadro casi antes de que la vista
-     la encuentre. Curvándola por el centro, el mismo medio segundo se gasta
-     donde el ojo ya está mirando, así que se ve el viaje entero y queda claro
-     que la cosa que escribiste es la cosa que se guardó.
+     la encuentre. Curvándola por el centro, el tiempo se gasta donde el ojo ya
+     está mirando, así que se ve el viaje entero y queda claro que la cosa que
+     escribiste es la cosa que se guardó.
      El punto de paso es el centro de la hoja, no el centro del trayecto: se
      toma de #pg y se corrige por el desplazamiento del cajón, para que sea el
      centro de lo que se VE y no el de un papel que puede estar corrido.
@@ -3629,19 +3831,27 @@ function volarGlosa(caja, id){
      con el tamaño final la haría verse como otra cosa distinta a medio camino.
      Un tercio del encogimiento en el primer tramo, el resto al final. */
   const medio = (1 - (1 - escala) * 0.45).toFixed(3);
+  /* NADA DE TIRÓN EN MEDIO. La curva de fuera era cubic-bezier(.4,0,.2,1), la
+     de un botón que se abre: arranca de golpe y frena al final. Encima de las
+     curvas de cada tramo eso se acumulaba, y el resultado era una nota que
+     salía disparada en el medio del trayecto por muy largo que se hiciera el
+     tiempo total —alargarlo solo estiraba las esperas de las puntas—.
+     Fuera va lineal, y la forma la ponen los tramos: el despegue reúne un poco
+     de velocidad, el largo la mantiene pareja, y el último la suelta poco a
+     poco hasta posarse. Ninguno de los tres corre más que los otros. */
   const vuelo = caja.animate([
     { transform:'translate(0px,0px) scale(1)', opacity:1, offset:0 },
     /* el despegue: se levanta un pelo y casi no avanza */
     { transform:'translate(' + Math.round(paso.x*0.10) + 'px,' +
                 Math.round(paso.y*0.10 - 10) + 'px) scale(.98)',
-      opacity:1, offset:.22, easing:'cubic-bezier(.3,0,.5,1)' },
+      opacity:1, offset:.22, easing:'cubic-bezier(.42,0,.68,.6)' },
     /* el centro de la hoja, ya en vuelo */
     { transform:'translate(' + Math.round(paso.x) + 'px,' + Math.round(paso.y) + 'px) scale(' + medio + ')',
-      opacity:.92, offset:.62, easing:'cubic-bezier(.35,0,.35,1)' },
+      opacity:.92, offset:.62, easing:'cubic-bezier(.38,.06,.62,.94)' },
     /* y se posa */
     { transform:'translate(' + Math.round(fin.x) + 'px,' + Math.round(fin.y) + 'px) scale(' + escala + ')',
-      opacity:.45, offset:1 }
-  ], { duration:900, easing:'cubic-bezier(.4,0,.2,1)', fill:'forwards' });
+      opacity:.45, offset:1, easing:'cubic-bezier(.3,.4,.3,1)' }
+  ], { duration:VUELO_MS, easing:'linear', fill:'forwards' });
 
   const aterrizar = () => {
     caja.remove();
@@ -3650,7 +3860,7 @@ function volarGlosa(caja, id){
   vuelo.addEventListener('finish', aterrizar);
   /* Red por si la animación no llega a terminar —pestaña de fondo, o un
      navegador que no la soporte—: la caja no se puede quedar volando. */
-  setTimeout(() => { if (caja.isConnected) aterrizar(); }, 1200);
+  setTimeout(() => { if (caja.isConnected) aterrizar(); }, VUELO_MS + 400);
 }
 
 /* ---------- etiquetas ---------- */
@@ -3756,9 +3966,11 @@ $('btnEtiquetarDia').onclick = () => {
     if (!t.includes(etiquetaActiva)){ m.etiquetas = t.concat(etiquetaActiva); n++; }
   }
   save(); renderPage();
-  readout.textContent = n
-    ? n + ' marca(s) de ' + diaFiltro + ' etiquetadas como «' + etiquetaActiva + '»'
-    : 'todas las de ' + diaFiltro + ' ya tenían esa etiqueta';
+  /* Solo se habla si NO pasó nada: las marcas etiquetadas ya se ven en la
+     hoja, y contarlas encima es narrar lo que el ojo acaba de leer. El caso
+     mudo sí hace falta —tocaste el botón y la pantalla quedó igual— porque
+     ahí lo único que distingue «no hacía falta» de «no funcionó» es decirlo. */
+  if (!n) readout.textContent = 'todas las de ' + diaFiltro + ' ya tenían esa etiqueta';
 };
 $('selActiva').onchange = e => { etiquetaActiva = e.target.value; pintarFiltros(); updateReadout(); };
 $('nuevaEtiqueta').addEventListener('keydown', e => {
@@ -3772,6 +3984,30 @@ $('nuevaEtiqueta').addEventListener('keydown', e => {
 
 /* ---------- fotos y pliegue ---------- */
 let pageImg=null, nextImg=null, prevImg=null, pend=false, folding=false;
+/* folding dice que HAY un pliegue dibujándose; esta otra dice QUIÉN lo lleva.
+   Son dos cosas distintas y confundirlas costaba un fallo: ver endFold. */
+let plegandoConDedo = false;
+/* SOLO UN PLIEGUE MANDA A LA VEZ, y este número dice cuál.
+
+   Cada animación de hoja corre en su propio bucle de cuadros leyendo anchor y
+   F, que son de todos. Al terminar, un bucle los deja en nulo —es su forma de
+   decir «ya no hay pliegue»—; si para entonces había OTRO bucle vivo, el
+   siguiente cuadro de ese otro lee anchor.x de un nulo y tira el programa.
+
+   Y sí hay forma de que haya dos. El botón de pasar hoja se protege con
+   folding, pero folding no se enciende hasta que la foto de la hoja destino
+   está descargada, y descargarla es asíncrono: en ese hueco un segundo toque
+   pasa el guardia limpiamente y arranca su propio viaje. Con toques seguidos
+   en la vista de lejos se reproduce a la primera.
+
+   Cada animación toma un número al empezar; en cada cuadro comprueba que
+   sigue siendo el suyo y, si no lo es, se retira sin tocar nada. La última
+   petición gana, que es lo que espera quien está tocando. */
+let generacionPliegue = 0;
+/* Y esto cierra el hueco por delante: mientras se descarga la foto no se
+   admite otra petición, así que las dos animaciones rara vez llegan a
+   existir. El número de arriba es la red por si llegan igual. */
+let preparandoPliegue = false;
 let snapFirma = null;
 const snapStale = () => (snapFirma !== estiloFirma());
 function invalidateSnapshot(){
@@ -4284,6 +4520,8 @@ function iniciarPliegue(s, clientY){
              y: Math.min(Math.max(aPapel(0, clientY).y, 0), H) };
   F = { ...anchor };
   folding = true;
+  plegandoConDedo = true;                  /* este sí lo lleva un dedo: se puede soltar */
+  ++generacionPliegue;                     /* un dedo manda sobre cualquier animación en curso */
   sizeCanvas(); fx.style.display = 'block';
   if (pageImg) pg.classList.add('hidden');
   return true;
@@ -4407,6 +4645,12 @@ let relojClic = null;
    el gesto se lee como si la hubieras empujado tú desde ahí. Nada de bonche
    —el bonche es para viajes largos, no para la hoja de al lado. */
 function pasarHoja(s, clientY, intento){
+  /* Ni encima de un pliegue vivo ni encima de uno que se está preparando. Lo
+     segundo es el hueco de verdad: quien llama ya mira folding, pero folding
+     no se enciende hasta que la foto de la hoja destino llega. Los reintentos
+     por foto rancia sí pasan —traen intento— porque son este mismo viaje
+     insistiendo, no uno nuevo. */
+  if (folding || (preparandoPliegue && !intento)) return;
   const destino = paginaActual + (s === 'right' ? 1 : -1);
   if (destino < 0 || destino >= paginas.length) return;
   volverA = null;
@@ -4425,11 +4669,13 @@ function pasarHoja(s, clientY, intento){
   const y = Number.isFinite(clientY) ? aPapel(0, clientY).y : H/2;
   const anclaY = Math.min(Math.max(y, 0), H);
   side = s;
+  preparandoPliegue = true;
   fotoDeHoja(destino, img => {
+    preparandoPliegue = false;
     if (!img){ paginaActual = destino; renderPage(); return; }
     pageImg = viejo; bajoImg = img;
     animarHojas(1, rnd(620, 780), () => {
-      hojasExtra = []; progreso = 0; alfaTop = 1; folding = false; anchor = F = null;
+      hojasExtra = []; progreso = 0; alfaTop = 1; folding = false; plegandoConDedo = false; anchor = F = null;
       paginaActual = destino;
       renderPage();
       fx.style.display = 'none'; pg.classList.remove('hidden');
@@ -4456,9 +4702,26 @@ function bordeArriba(ev, s){
     relojClic = null; ocultarHuella(); pasarHoja(s, alturaClic);
   }, ESPERA_DOBLE);
 }
+/* endFold TERMINA EL PLIEGUE QUE LLEVA UN DEDO, y solo ése.
+
+   Está colgado de soltar el filo, y hasta ahora preguntaba únicamente si había
+   un pliegue en marcha. Pero folding también es cierto mientras la máquina
+   voltea un bonche —un salto, el botón de pasar hoja de la vista de lejos—, y
+   ahí no hay dedo que soltar: el toque que llegaba en medio de una animación
+   automática la daba por terminada y lanzaba una SEGUNDA animación encima de
+   la que ya corría, las dos escribiendo F y anchor a la vez.
+   Con la bandera, un toque en el filo mientras el libro se voltea solo no hace
+   nada, que es lo que hay que hacer: ese gesto no empezó nada, así que no
+   puede acabar nada.
+
+   Y el guardia de F y anchor se queda puesto. Ahora mismo no hay camino que
+   llegue aquí sin los dos, pero este es el sitio donde un estado a medio armar
+   se convierte en una excepción que tira el programa entero, y sale más barato
+   no volver a averiguarlo. */
 function endFold(){
-  if (!folding) return;
-  folding = false;
+  if (!folding || !plegandoConDedo) return;
+  if (!anchor || !F){ folding = false; plegandoConDedo = false; return; }
+  folding = false; plegandoConDedo = false;
   animate((side === 'right' ? anchor.x - F.x : F.x - anchor.x) > W*.45);
 }
 /* El índice baja del filo de arriba; los laterales solo pasan hoja. Cada
@@ -4853,7 +5116,7 @@ function medirZoom(){
      No se estrecha con la escala, por lo mismo que los filos: es un aviso, y
      un aviso mide lo que necesita para verse. Lo encontró la revisión de
      Codex. */
-  const ANCHO_CANTO = 15;
+  const ANCHO_CANTO = 7;               /* el mismo width que .pg-canto en el CSS */
   for (const [el, lado] of [[$('cantoIzq'), 'left'], [$('cantoDer'), 'right']]){
     if (!el) continue;
     el.style.top = arriba + 'px';
@@ -4863,6 +5126,30 @@ function medirZoom(){
     el.style.right = 'auto';
   }
 }
+/* EL SUAVIZADO, ARMADO Y DESARMADO A MANO. Ver el CSS de .suavizando para el
+   porqué. Aquí solo queda el cuándo: se pone al empezar el gesto y se quita
+   pasado el tiempo de la curva, con un respiro de más por si el cuadro final
+   se retrasa. Cualquier cosa que necesite medir la hoja mientras tanto lo
+   cancela en vez de esperarlo —una repaginación a media transición importa
+   más que la transición—.
+
+   El papel de debajo se cruza aparte porque display no se interpola: al
+   entrar aparece apagado y sube al cuadro siguiente; al salir se le deja
+   puesto a mano hasta que termine, ya que la clase que lo enseña se va en el
+   primer cuadro. */
+const ZOOM_SUAVE = 460;
+let relojSuave = null;
+function finSuave(){
+  clearTimeout(relojSuave); relojSuave = null;
+  pg.classList.remove('suavizando');
+  const papel = $('zoomPapel');
+  if (papel){ papel.style.removeProperty('opacity'); papel.style.removeProperty('display'); }
+}
+function armarSuave(){
+  clearTimeout(relojSuave);
+  pg.classList.add('suavizando');
+  relojSuave = setTimeout(finSuave, ZOOM_SUAVE + 80);
+}
 function abrirZoom(){
   if (zoomActivo || folding) return;
   cerrarTodosLosRollos(); cerrarHistorial(); ocultarMenu();
@@ -4870,16 +5157,42 @@ function abrirZoom(){
      aparecería de lejos y además ladeada, y al volver seguiría ladeada: dos
      cosas cambiando a la vez cuando solo se pidió una. */
   cerrarCajonDeGlosas();
+  finSuave();
+  const papel = $('zoomPapel');
   zoomActivo = true;
+  /* EL ORDEN DE ESTAS SEIS LÍNEAS ES EL CAMBIO, y costó medirlo para verlo.
+     armarSuave iba al final, después de medirZoom, y de las tres cosas que
+     tenían que interpolarse solo se movía una. El motivo: medirZoom lee
+     offsetWidth de la hoja, y leer una medida obliga al navegador a resolver
+     los estilos AHÍ MISMO. En ese recálculo la clase .zoom ya estaba puesta y
+     .suavizando todavía no, así que el fondo saltó a transparente y el papel
+     de debajo se encendió, los dos sin transición que los amparara; para
+     cuando se armaba, ya no quedaba nada por cambiar.
+     La escala se salvaba de milagro: medirZoom lee ANTES de escribir --zk, así
+     que el transform cambiaba en el segundo recálculo, con la clase ya puesta.
+     Un fallo que se esconde detrás de una cosa que sí funciona.
+     Ahora se arma lo primero y se mide después. */
+  armarSuave();
   pg.classList.add('zoom'); stage.classList.add('zoom');
   $('btnZoom').classList.add('abierto');
+  if (papel) papel.style.opacity = '0';
   medirZoom(); refrescarPasos();
+  /* Y el papel sube con DOS cuadros de espera, no uno: el aviso de un solo
+     requestAnimationFrame llega antes de pintar, así que el cero podría no
+     haberse llegado a calcular nunca y el encendido no tendría de dónde
+     salir. Es el mismo motivo por el que existe trasPintar. */
+  trasPintar(() => { if (papel && zoomActivo) papel.style.opacity = '1'; });
 }
 function cerrarZoom(){
   if (!zoomActivo) return;
+  finSuave();
+  const papel = $('zoomPapel');
+  if (papel){ papel.style.display = 'block'; papel.style.opacity = '1'; }
   zoomActivo = false; zoomK = 1; zoomFx = { x:0, y:0 };
+  armarSuave();
   pg.classList.remove('zoom'); stage.classList.remove('zoom');
   $('btnZoom').classList.remove('abierto');
+  trasPintar(() => { if (papel && !zoomActivo) papel.style.opacity = '0'; });
   pg.style.removeProperty('--zk');
   pg.style.removeProperty('--zx');
   pg.style.removeProperty('--zy');
@@ -5053,10 +5366,17 @@ document.addEventListener('pointerdown', ev => {
 /* Las dos puertas a la burbuja, cada una a su sección. */
 $('pgCabeza').addEventListener('click', e => { e.preventDefault(); alternarBurbuja('libros'); });
 /* Y la de abajo abre la lista de versiones, que es lo que nombra. */
-/* UN TOQUE ABRE LAS VERSIONES, DOS ABREN FORMATO. El rótulo del pie nombra
-   dos cosas a la vez —en qué versión lees, y que eso es un ajuste de la
-   hoja—, así que lleva las dos puertas: la de todos los días delante y la
-   larga detrás.
+/* UN TOQUE ABRE LAS VERSIONES, DOS ABREN LIBROS. El rótulo del pie lleva dos
+   puertas: la de todos los días delante y otra detrás.
+
+   Detrás estaba Formato, por parentesco —la versión se cambia ahí— y era la
+   puerta equivocada. Desde que el toque simple abre la lista de versiones en
+   su globo, ir a Formato a cambiar de versión ya no hace falta: el doble clic
+   llevaba al sitio largo para hacer lo que el corto ya hacía corto. Libros es
+   lo otro que se busca de verdad estando en una hoja, y desde el pie no había
+   forma de llegar sin subir a la esquina de arriba.
+   Las dos etiquetas quedan puestas de la misma manera, cada una con su gesto:
+   arriba un toque abre Libros, abajo un toque abre versiones y dos, Libros.
 
    El toque simple tiene que esperar por si viene el segundo, y no hay forma
    de evitarlo compartiendo el mismo blanco: el primer clic de un doble es
@@ -5079,7 +5399,7 @@ $('pgVersion').addEventListener('dblclick', e => {
   e.preventDefault(); e.stopPropagation();
   clearTimeout(relojVersion);
   cerrarVersiones();
-  alternarBurbuja('formato');
+  alternarBurbuja('libros');
 });
 
 /* ============================================================
@@ -5132,20 +5452,17 @@ $('burbujaVersion').addEventListener('click', ev => {
      trabajo y se vería colgado. El cambio arranca al cuadro siguiente, cuando
      el cierre ya empezó. */
   cerrarVersiones();
-  if (k === version) return;
-  /* trasPintar en vez de un requestAnimationFrame suelto. Y hay que decir qué
-     arregla y qué no, porque la revisión de Codex avisó de que el globo se
-     quedaría congelado encima de la hoja durante toda la repaginación, y eso
-     NO pasaba: cerrarVersiones() corre aquí mismo, dentro de la tarea del
-     clic, así que el navegador pinta al terminarla y el cuadro del cierre sale
-     antes del aviso de rAF. Comprobado con la CPU frenada a la cuarta parte
-     —15255 ms de hilo trabado, sitio de sobra para verlo— y el globo ya no
-     está, con un cuadro y con dos.
-     Se pone igual porque no cuesta nada —un cuadro— y porque hace explícita
-     una garantía que ahora depende de dónde esté puesta la llamada: el día que
-     alguien mueva cerrarVersiones() dentro del diferido, el aviso de Codex
-     pasaría a ser cierto y esto ya estaría cubierto. */
-  trasPintar(() => setVersion(k));
+  /* El diferido que hace falta para que el cierre del globo se pinte —y ahora
+     también el disco de «cambiando de versión»— vive dentro de cambiarVersion,
+     que es de donde tiene que colgar: el retraso no es cosa de este botón sino
+     del trabajo que dispara, y por el camino del panel de Formato hace la
+     misma falta.
+     Nota de lo que NO arregla, porque la revisión de Codex avisó de ello: el
+     globo no se quedaba congelado encima de la hoja durante la repaginación.
+     cerrarVersiones() corre aquí mismo, dentro de la tarea del clic, así que
+     el navegador pinta al terminarla. Comprobado con la CPU frenada a la
+     cuarta parte —15255 ms de hilo trabado, sitio de sobra para verlo—. */
+  cambiarVersion(k);
 });
 /* Un toque fuera lo cierra, en captura, igual que el historial. El propio
    rótulo queda exceptuado: su oyente ya sabe alternar, y cerrarlo aquí lo
@@ -5175,7 +5492,9 @@ function animate(turn){
      el giro se completa de verdad. */
   const to = turn ? {x: side==='right' ? -W*1.06 : W*2.06, y:from.y} : {x:anchor.x, y:anchor.y};
   const dur = turn?420:200, t0 = performance.now();
+  const mio = ++generacionPliegue;
   (function step(now){
+    if (mio !== generacionPliegue) return;    /* misma regla que en animarHojas */
     const k = Math.min(1,(now-t0)/dur), e = turn ? 1-Math.pow(1-k,3) : 1-Math.pow(1-k,2);
     alfaTop = turn ? desvanecer(e) : 1;
     F = {x:from.x+(to.x-from.x)*e, y:from.y+(to.y-from.y)*e};
@@ -5214,12 +5533,23 @@ function pasoAnimado(desde, hacia, dur, hojas, cb){
    filo lo pasa, para que la hoja gire desde donde pusiste el dedo. */
 function animarHojas(hojas, dur, cb, anclaY){
   folding = true;
+  plegandoConDedo = false;                 /* esto lo mueve la máquina, no un dedo */
   pg.classList.add('hidden'); fx.style.display = 'block';
 
   const bordeX = side === 'right' ? W : 0;
   anchor = { x: bordeX,
              y: anclaY == null ? rnd(H*0.20, H*0.80)
                                : Math.min(Math.max(anclaY, H*0.06), H*0.94) };
+  /* F ARRANCA EN EL ANCLA, aquí y no en el primer cuadro. Dejarlo nulo abría
+     una ventana —desde este renglón hasta que corriera el primer rAF— en la
+     que folding ya era cierto y F todavía no existía; un toque en el filo
+     dentro de esa ventana llegaba a endFold y reventaba leyendo F.x. Con
+     toques repetidos y rápidos sobre el filo se reproduce sin dificultad: 14
+     pares de pulsación y suelta dan cinco de esos errores.
+     El arreglo de fondo es la bandera de arriba, pero un estado a medio armar
+     no se deja armado a medias porque alguien más lo tape: F y anchor nacen
+     juntos, que es como se leen en todos los demás sitios. */
+  F = { ...anchor };
 
   /* EL TIRO DIAGONAL. Antes la salida era un punto horizontal con un
      empujoncito vertical fijo: como el recorrido horizontal tiene que ser
@@ -5281,7 +5611,10 @@ function animarHojas(hojas, dur, cb, anclaY){
      Sumando los saltos entre cuadros con un tope, un tirón largo cuenta como
      un cuadro normal: la animación se pausa, no se salta. */
   let t = 0, previo = performance.now();
+  const mio = ++generacionPliegue;
   (function paso(now){
+    if (mio !== generacionPliegue) return;    /* llegó otro pliegue: éste se retira */
+    if (!anchor || !F) return;
     t += Math.min(now - previo, 45);          // 45 ms = tres cuadros a 60 Hz
     previo = now;
     const k = Math.min(1, t/dur);
@@ -5298,7 +5631,7 @@ function animarHojas(hojas, dur, cb, anclaY){
 function animarSalto(destino, alLlegar){
   const aterrizar = () => {
     paginaActual = destino;
-    hojasExtra = []; progreso = 0; alfaTop = 1; folding = false; anchor = F = null;
+    hojasExtra = []; progreso = 0; alfaTop = 1; folding = false; plegandoConDedo = false; anchor = F = null;
     /* UNA HOJA NUEVA SE ABRE POR EL TEXTO. El cajón de glosas se queda donde
        lo dejaste mientras pasas hojas, y eso está bien: es la misma lectura.
        Un salto no. Vienes de tocar una referencia DENTRO de una glosa —o sea
@@ -5322,7 +5655,6 @@ function animarSalto(destino, alLlegar){
      distancia y se topa en siete, porque pasando cierto punto "muchas" ya no
      se distingue de "muchísimas". */
   const b = bonchePara(salto);
-  readout.textContent = salto === 1 ? 'una hoja' : salto + ' hojas';
   pasoAnimado(paginaActual, destino, rnd(b.dur[0], b.dur[1]), b.hojas, aterrizar);
 }
 
@@ -6034,11 +6366,11 @@ let t0Buscando = 0, relojBuscando = null;
    Se escribe siempre, aunque la frase fuera la misma que la vez anterior,
    porque para entonces ya está vacía: cada búsqueda es un cambio de verdad. */
 const dice = t => { const d = $('buscando').querySelector('.dice'); if (d) d.textContent = t; };
-function mostrarBuscando(){
+function mostrarBuscando(frase){
   clearTimeout(relojBuscando); relojBuscando = null;
   t0Buscando = performance.now();
   $('buscando').classList.add('viva');
-  dice('buscando el pasaje…');
+  dice(frase || 'buscando el pasaje…');
 }
 function quitarBuscando(){
   const el = $('buscando');
@@ -6068,7 +6400,6 @@ function quitarBuscando(){
 const HISTORIAL = 'glossa:historial:v1';
 const TOPE_HISTORIAL = 40;
 let historial = [];
-const claveHist = h => h.libro + ':' + h.cap + ':' + h.vers;
 function cargarHistorial(){
   try {
     const a = JSON.parse(localStorage.getItem(HISTORIAL) || '[]');
@@ -6087,11 +6418,16 @@ function apuntarVisto(libro, cap, vers){
      hay transacciones en este almacén, y perseguir el último resquicio pediría
      bloqueos que no valen lo que guardan. Lo encontró Codex. */
   cargarHistorial();
-  /* Volver al mismo sitio no crea una entrada nueva: la sube. Si no, ir y
-     venir entre dos pasajes seis veces llena la lista con dos referencias
-     repetidas y entierra todo lo demás. */
-  const k = libro + ':' + cap + ':' + vers;
-  historial = historial.filter(h => claveHist(h) !== k);
+  /* SE APUNTA TAL CUAL, REPETIDO Y TODO. Antes, volver a un sitio donde ya
+     habías estado no creaba entrada nueva: subía la vieja. La intención era
+     evitar que ir y venir entre dos pasajes seis veces llenara la lista con
+     dos referencias; el efecto era otro, y peor. Esto no es un índice de
+     sitios visitados: es el camino que seguiste, y en un camino las vueltas
+     son parte de lo que pasó. Reordenarlo dejaba una lista que decía dónde
+     habías estado y mentía sobre en qué orden, que es justo lo que se viene
+     a consultar —«¿por dónde llegué hasta aquí?»—.
+     Que se repitan no rompe nada: cada fila lleva su referencia entera y salta
+     a ella, y el tope de cuarenta sigue cortando por lo más viejo. */
   historial.unshift({ libro, cap, vers, t: Date.now() });
   if (historial.length > TOPE_HISTORIAL) historial.length = TOPE_HISTORIAL;
   try { localStorage.setItem(HISTORIAL, JSON.stringify(historial)); } catch(e){}
@@ -6131,13 +6467,12 @@ function saltarA(libro, cap, vers, regreso){
     const k = Math.max(0, plano.findIndex(p => p.cap === cap && p.vers === vers));
     const destino = paginaDe(k);
     const aterrizar = () => {
-      hojasExtra = []; progreso = 0; alfaTop = 1; folding = false; anchor = F = null;
+      hojasExtra = []; progreso = 0; alfaTop = 1; folding = false; plegandoConDedo = false; anchor = F = null;
       paginaActual = destino;
       cerrarCajonDeGlosas();              /* misma razón que en animarSalto */
       renderPage();
       fx.style.display = 'none'; pg.classList.remove('hidden');
       destacar(cap, vers, '');
-      readout.textContent = nombreDe(libro) + ' ' + cap + ':' + vers;
       quitarBuscando();
       /* Al rastro, y aquí al ATERRIZAR y no al pedirlo: un salto entre libros
          puede quedarse a medias —el libro no está en los datos, la foto no
@@ -6198,7 +6533,6 @@ $('btnExportar').onclick = () => {
   a.download = 'gloss-bible-respaldo-' + new Date().toISOString().slice(0,10) + '.json';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
-  readout.textContent = marcas.length + ' marca(s) exportadas · guárdalo fuera del navegador';
 };
 
 $('btnImportar').onclick = () => $('archivoImp').click();
@@ -6232,9 +6566,15 @@ $('archivoImp').onchange = ev => {
       nuevas++;
     }
     save(); renderPage();
-    readout.textContent = nuevas + ' importada(s)' +
-      (repetidas ? ' · ' + repetidas + ' ya estaban' : '') +
-      (malas ? ' · ' + malas + ' ilegibles' : '');
+    /* Lo que entró se ve entrar: la hoja se vuelve a pintar con las glosas
+       nuevas puestas. Lo que NO entró no se ve por ningún lado, y eso sí hay
+       que decirlo: un archivo con veinte notas del que solo aparecen tres se
+       lee como una importación completa a menos que alguien cuente las otras
+       diecisiete. */
+    if (repetidas || malas)
+      readout.textContent = nuevas + ' importada(s)' +
+        (repetidas ? ' · ' + repetidas + ' ya estaban' : '') +
+        (malas ? ' · ' + malas + ' ilegibles' : '');
   };
   lector.readAsText(f);
 };
@@ -6275,12 +6615,44 @@ function setVersion(v){
       if (paginaDe(k) !== paginaActual){ paginaActual = paginaDe(k); renderPage(); }
       const inicio = plano[startIdx];
       const igual = inicio && inicio.cap === donde.cap && inicio.vers === donde.vers;
-      readout.textContent = D.versiones[v].abrev + ' · ' + nombreDe(LIBRO) + ' ' +
-        donde.cap + ':' + donde.vers + (igual ? ' · mismo pasaje' : ' · pasaje aproximado');
+      /* El destello señala el versículo cuando la hoja no arranca en él, que
+         es todo lo que había que contar. El aviso escrito decía además la
+         abreviatura y el pasaje —lo mismo que ya dicen el rótulo de abajo y la
+         hoja— en cada cambio de versión, incluido el caso normal en que no
+         había nada que advertir. */
       if (!igual) destacar(donde.cap, donde.vers, '');
     }
   }
   $('cred').textContent = D.versiones[v].nombre + ' — ' + D.versiones[v].licencia + ' · vía eBible.org';
+}
+/* CAMBIAR DE VERSIÓN ES LO MÁS CARO QUE HACE EL PROGRAMA, y hasta ahora no lo
+   decía. Rehace el plano del libro entero y lo vuelve a paginar: con la CPU
+   frenada a la cuarta parte —un teléfono de los de verdad— eso son quince
+   segundos de hilo trabado. Quince segundos en los que la pantalla se queda
+   exactamente igual, sin responder a nada, después de haber tocado un botón.
+   La lectura obvia es que el toque no entró, así que se toca otra vez.
+
+   Se enciende el mismo disco que ya espera los saltos entre libros, que es la
+   respuesta correcta: no hay barra de progreso posible —el trabajo pasa en una
+   sola tarea que no se puede partir— pero sí hay «estoy en ello», que es lo
+   que faltaba.
+
+   Y el trabajo arranca al CUADRO SIGUIENTE, no aquí mismo. Encender el disco
+   solo cambia el DOM; si a continuación se traba el hilo, el navegador nunca
+   llega a pintarlo y el disco aparecería justo cuando ya sobra. trasPintar
+   cede dos cuadros —uno para calcular los estilos y otro para pintarlos—
+   antes de soltar el trabajo pesado.
+
+   El apagado va en un finally: si la repaginación falla a mitad, lo peor que
+   puede pasar es que se pierda el cambio de versión, no que el disco se quede
+   girando para siempre encima de la hoja. */
+function cambiarVersion(v){
+  if (!v || v === version) return;
+  mostrarBuscando('cambiando de versión…');
+  trasPintar(() => {
+    try { setVersion(v); }
+    finally { quitarBuscando(); }
+  });
 }
 /* los clics de versión se enganchan al armar los botones, más abajo */
 /* El margen es el default mientras la hoja dé el ancho; en celular no cabe
@@ -6697,7 +7069,7 @@ ajustes.appendChild($('cred'));
   cont.innerHTML = Object.entries(D.versiones).map(([k, v]) =>
     '<button class="btn" data-ver="' + k + '" title="' + esc(v.nombre + ' — ' + v.licencia) +
     '">' + esc(v.abrev || k) + '</button>').join('');
-  cont.querySelectorAll('[data-ver]').forEach(b => b.onclick = () => setVersion(b.dataset.ver));
+  cont.querySelectorAll('[data-ver]').forEach(b => b.onclick = () => cambiarVersion(b.dataset.ver));
 })();
 
 const guardado = cargarAjustes();
