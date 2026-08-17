@@ -4253,7 +4253,21 @@ let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
      ahí sin usarse.
      Los números de versículo quedan fuera aunque también sean aparato: son
      chiquitos, y algunos llevan encima el contador de citas, que se toca. */
-  const intocable = t => t.closest && t.closest('.v, .gl, .ref, .vn, button, a, select, input, textarea, .chip');
+  /* LOS DOS RÓTULOS TAMPOCO SON PAPEL. Van en la lista de lo que no se agarra
+     por la misma razón que los botones: son aparato, no hoja. Faltaban, y el
+     defecto solo asomaba con RATÓN en ventana estrecha —medido: con el dedo a
+     390x844 el rótulo abre bien; con el ratón, el mismo sitio, no abre—.
+     La causa es la captura de puntero. Al empezar un posible arrastre, #pg
+     captura el puntero; con el ratón eso redirige también el click de
+     compatibilidad, que acaba llegando a #pg en vez de al rótulo, y el oyente
+     del rótulo no se entera. Con el dedo no pasa, y ahí estaba escondido: en
+     un teléfono nunca se ve, y en escritorio ancho tampoco, porque sin papel
+     de sobra el arrastre ni siquiera arranca. Solo se junta en la ventana
+     estrecha con ratón, que es donde lo encontró la revisión.
+     Se arregla donde se decide qué es agarrable, no en el rótulo, porque el
+     problema no es del rótulo: es de la lista. */
+  const intocable = t => t.closest && t.closest(
+    '.v, .gl, .ref, .vn, button, a, select, input, textarea, .chip, .pg-cabeza, .pg-version');
   const tope = () => pg.scrollWidth - pg.clientWidth;
   const poner = x => { pg.scrollLeft = Math.min(Math.max(x, 0), tope()); };
 
