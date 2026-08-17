@@ -433,6 +433,21 @@
      vino a mirar—.
      ============================================================ */
   #pg.zoom{ background:transparent; cursor:zoom-out; }
+  /* EL ORIGEN DEL TRANSFORM VIVE FUERA DE .zoom, y tiene que vivir fuera.
+
+     Estaba dentro de la regla de abajo, que es lo natural mientras el cambio
+     ocurre en un solo cuadro. Con la transición puesta deja de serlo: al
+     salir, la clase .zoom se va en el primer cuadro y con ella el
+     `transform-origin:top left`, que vuelve al centro DE GOLPE mientras la
+     matriz todavía está interpolando. Los 460 ms siguientes la hoja se escala
+     respecto a su centro en vez de a su esquina, así que crece hacia los
+     cuatro lados a la vez y aterriza dando un tirón para volver a su sitio.
+     Medido: a un 8% del camino, la hoja en x=137 cuando le tocaba x=11.
+     transform-origin no está en la lista de propiedades que se interpolan, ni
+     debería estarlo —lo que hay que arreglar es que cambie—. Aquí arriba no
+     depende de ninguna clase y las dos direcciones usan la misma esquina.
+     Sin transform puesto no hace nada, así que no le cuesta nada a nadie. */
+  #pg .pg-inner{ transform-origin:top left; }
   #pg.zoom .pg-inner{
       transform:translate(var(--zx,0px), var(--zy,0px)) scale(var(--zk,1));
       transform-origin:top left; background:transparent; }
@@ -488,6 +503,7 @@
      sombra de hoja flotando. */
   #zoomPapel{ position:absolute; z-index:0; display:none;
               background:var(--papel,#faf7f1); border-radius:3px;
+              transform-origin:top left;
               box-shadow:0 10px 26px -8px rgba(0,0,0,.5); pointer-events:none; }
   #pg.zoom #zoomPapel{ display:block; }
   /* Los filos NO se apagan de lejos: se recortan al canto de la hoja pequeña
@@ -798,8 +814,11 @@
      mano en el margen para saber por dónde acaba.
 
      La forma sale de tres decisiones, no de adorno:
-     · el beige de los botones, que es el color con el que este programa
-       señala; nada nuevo que aprender.
+     · el marrón con el que el panel de Libros señala el libro en el que
+       estás —#b8892b, el mismo de un botón cumplido y de un rótulo abierto—.
+       Empezó en el beige más pálido de los puntos y a esa densidad no era
+       marrón: en la orilla de una hoja crema se leía gris, y un aviso que hay
+       que buscar no es un aviso.
      · las orillas más flojas que el centro, porque un rotulador deja más
        tinta por donde pasa el corazón de la punta.
      · las puntas levantadas por la máscara: un trazo hecho de un tirón no
@@ -813,8 +832,8 @@
              pointer-events:none; opacity:0; transition:opacity .45s ease;
              border-radius:4px;
              background:linear-gradient(to right,
-                 rgba(169,143,87,.58) 0%, rgba(169,143,87,.97) 42%,
-                 rgba(169,143,87,.97) 62%, rgba(169,143,87,.74) 100%);
+                 rgba(184,137,43,.62) 0%, rgba(184,137,43,1) 42%,
+                 rgba(184,137,43,1) 62%, rgba(184,137,43,.78) 100%);
              -webkit-mask-image:linear-gradient(to bottom,
                  rgba(0,0,0,0) 0%, #000 2.5%, #000 97%, rgba(0,0,0,0) 100%);
                      mask-image:linear-gradient(to bottom,
@@ -1727,7 +1746,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-17 · el vuelo apacible';
+window.GLOSS_BUILD = '2026-08-17 · el trazo marrón';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3803,54 +3822,55 @@ function volarGlosa(caja, id){
   caja.style.transformOrigin = 'top left';
   caja.style.pointerEvents = 'none';
 
-  /* EL VUELO PASA POR EN MEDIO DE LA HOJA, y no es adorno.
-     En línea recta, el trayecto de la caja a su hueco del margen es corto y
-     casi todo por la orilla: la nota sale de cuadro casi antes de que la vista
-     la encuentre. Curvándola por el centro, el tiempo se gasta donde el ojo ya
-     está mirando, así que se ve el viaje entero y queda claro que la cosa que
-     escribiste es la cosa que se guardó.
-     El punto de paso es el centro de la hoja, no el centro del trayecto: se
-     toma de #pg y se corrige por el desplazamiento del cajón, para que sea el
-     centro de lo que se VE y no el de un papel que puede estar corrido.
+  /* DERECHA A SU SITIO, SIN PASAR POR EL CENTRO.
 
-     Y despega antes de volar. Los tres tramos no se reparten el tiempo por
-     igual: el primero es corto en distancia y largo en tiempo —la caja se
-     levanta, casi sin moverse— y los otros dos se comen el trayecto. Eso es lo
-     que hace que parezca que arranca en vez de que ya venía lanzada, que era
-     el defecto de la línea recta con una curva sola.
-     Se usa la API de animaciones y no una transición porque son tres puntos y
-     una transición solo sabe de dos. Y solo mueve transform y opacity, así que
-     la lleva el compositor: si el hilo se traba repaginando a media
+     El vuelo daba un rodeo por el medio de la hoja. La idea era que el ojo
+     viera el viaje entero sin apartarse de donde ya miraba, y tenía sentido
+     cuando el viaje duraba novecientos milisegundos: sin la curva, la nota se
+     iba por la orilla y se perdía. Con cuatro segundos y medio el problema se
+     acabó solo, y lo que quedó del rodeo fue una nota dando un paseo. Un
+     trayecto que no es el camino a ningún sitio se lee como decoración, y a
+     esta velocidad hay tiempo de sobra para leerlo.
+
+     Se quedan las dos cosas que sí hacían falta:
+     · el despegue —tiempo largo, distancia corta— para que arranque en vez de
+       aparecer ya lanzada.
+     · el aterrizaje que frena, para que se pose en vez de chocar.
+
+     Se sigue usando la API de animaciones y no una transición: hay tres puntos
+     y una transición solo sabe de dos. Y solo mueve transform y opacity, así
+     que la lleva el compositor —si el hilo se traba repaginando a media
      escritura, el vuelo no se entrecorta. */
-  const r = pg.getBoundingClientRect();
-  const cx = r.left + (pg.clientWidth / 2), cy = r.top + (pg.clientHeight / 2);
-  const paso = { x: cx - a.left - a.width/2, y: cy - a.top - a.height/2 };
   const fin  = { x: b.left - a.left, y: b.top - a.top };
   const escala = (b.width / a.width).toFixed(3);
-  /* A media curva la caja ya va encogiendo, pero no del todo: llegar al centro
-     con el tamaño final la haría verse como otra cosa distinta a medio camino.
-     Un tercio del encogimiento en el primer tramo, el resto al final. */
-  const medio = (1 - (1 - escala) * 0.45).toFixed(3);
-  /* NADA DE TIRÓN EN MEDIO. La curva de fuera era cubic-bezier(.4,0,.2,1), la
-     de un botón que se abre: arranca de golpe y frena al final. Encima de las
-     curvas de cada tramo eso se acumulaba, y el resultado era una nota que
-     salía disparada en el medio del trayecto por muy largo que se hiciera el
-     tiempo total —alargarlo solo estiraba las esperas de las puntas—.
-     Fuera va lineal, y la forma la ponen los tramos: el despegue reúne un poco
-     de velocidad, el largo la mantiene pareja, y el último la suelta poco a
-     poco hasta posarse. Ninguno de los tres corre más que los otros. */
+  /* Va encogiendo por el camino, no de golpe al final: llegar al primer palmo
+     con el tamaño definitivo la haría verse como otra cosa antes de haberse
+     movido, y encoger solo al aterrizar sería un respingo. */
+  const enCamino = q => (1 - (1 - escala) * q).toFixed(3);
+  const en = q => 'translate(' + Math.round(fin.x*q) + 'px,' +
+                  Math.round(fin.y*q + (q < .5 ? -10 : 0)) + 'px)';
+  /* TRES TRAMOS Y UN CRUCERO EN MEDIO, y el crucero es el que faltaba.
+
+     Con solo despegue y aterrizaje —dos tramos— la curva del segundo tenía que
+     cubrir el 93% del camino ella sola, y por muy suave que se eligiera acababa
+     repartiéndolo mal: medido, 41% del recorrido en el último cuarto del
+     tiempo. O sea una nota que va tomando velocidad según se acerca, que es lo
+     contrario de posarse.
+     Con un tramo recto y llano en medio, cada parte hace una cosa sola: el
+     despegue arranca de cero y toma velocidad, el crucero la mantiene igual, y
+     el aterrizaje la suelta hasta parar. La curva de fuera es lineal para no
+     torcer ninguno de los tres. */
   const vuelo = caja.animate([
-    { transform:'translate(0px,0px) scale(1)', opacity:1, offset:0 },
     /* el despegue: se levanta un pelo y casi no avanza */
-    { transform:'translate(' + Math.round(paso.x*0.10) + 'px,' +
-                Math.round(paso.y*0.10 - 10) + 'px) scale(.98)',
-      opacity:1, offset:.22, easing:'cubic-bezier(.42,0,.68,.6)' },
-    /* el centro de la hoja, ya en vuelo */
-    { transform:'translate(' + Math.round(paso.x) + 'px,' + Math.round(paso.y) + 'px) scale(' + medio + ')',
-      opacity:.92, offset:.62, easing:'cubic-bezier(.38,.06,.62,.94)' },
+    { transform:'translate(0px,0px) scale(1)', opacity:1, offset:0,
+      easing:'cubic-bezier(.42,0,.72,.72)' },
+    { transform: en(.08) + ' scale(' + enCamino(.10) + ')',
+      opacity:1, offset:.18, easing:'linear' },
+    /* el crucero: derecho y a velocidad pareja */
+    { transform: en(.88) + ' scale(' + enCamino(.86) + ')',
+      opacity:.78, offset:.78, easing:'cubic-bezier(.2,.6,.35,1)' },
     /* y se posa */
-    { transform:'translate(' + Math.round(fin.x) + 'px,' + Math.round(fin.y) + 'px) scale(' + escala + ')',
-      opacity:.45, offset:1, easing:'cubic-bezier(.3,.4,.3,1)' }
+    { transform: en(1) + ' scale(' + escala + ')', opacity:.45, offset:1 }
   ], { duration:VUELO_MS, easing:'linear', fill:'forwards' });
 
   const aterrizar = () => {
@@ -5090,6 +5110,17 @@ function medirZoom(){
     papel.style.top    = Math.round(zoomFx.y) + 'px';
     papel.style.width  = Math.round(k*anchoPg) + 'px';
     papel.style.height = Math.round(k*H) + 'px';
+    /* Y AQUÍ SE GUARDA DÓNDE ESTABA ESTE MISMO PAPEL A TAMAÑO NATURAL, que es
+       lo que hace falta para que entrar y salir sean el mismo movimiento al
+       derecho y al revés. Ver abrirZoom para el porqué.
+       Es la transformación que devuelve este rectángulo pequeño al rectángulo
+       grande: se agranda 1/k y se sube a la esquina de #pg. Con la caja
+       maquetada en pequeño y el crecimiento en el transform, la anchura que
+       cuenta para el desplazamiento del papel sigue siendo la chica —hacerlo
+       al revés metería 663px de caja en una ventana de 412 y le cambiaría el
+       tope al cajón—. */
+    papelFuera = 'translate(' + (-Math.round(zoomFx.x)) + 'px,' +
+                 (-Math.round(zoomFx.y)) + 'px) scale(' + (1/k).toFixed(4) + ')';
   }
 
   /* Y LOS FILOS SE PONEN SOBRE EL PAPEL. Ocupan todo el alto de la pantalla, y
@@ -5139,11 +5170,18 @@ function medirZoom(){
    primer cuadro. */
 const ZOOM_SUAVE = 460;
 let relojSuave = null;
+/* La transformación que devuelve el papel chico a la hoja entera. La escribe
+   medirZoom, que es quien conoce la escala y el sitio. */
+let papelFuera = 'none';
 function finSuave(){
   clearTimeout(relojSuave); relojSuave = null;
   pg.classList.remove('suavizando');
   const papel = $('zoomPapel');
-  if (papel){ papel.style.removeProperty('opacity'); papel.style.removeProperty('display'); }
+  if (papel){
+    papel.style.removeProperty('transform');
+    papel.style.removeProperty('transition');   /* por si se quedó apagada al asentar */
+    papel.style.removeProperty('display');
+  }
 }
 function armarSuave(){
   clearTimeout(relojSuave);
@@ -5175,24 +5213,71 @@ function abrirZoom(){
   armarSuave();
   pg.classList.add('zoom'); stage.classList.add('zoom');
   $('btnZoom').classList.add('abierto');
-  if (papel) papel.style.opacity = '0';
   medirZoom(); refrescarPasos();
-  /* Y el papel sube con DOS cuadros de espera, no uno: el aviso de un solo
-     requestAnimationFrame llega antes de pintar, así que el cero podría no
-     haberse llegado a calcular nunca y el encendido no tendría de dónde
-     salir. Es el mismo motivo por el que existe trasPintar. */
-  trasPintar(() => { if (papel && zoomActivo) papel.style.opacity = '1'; });
+  /* EL PAPEL ENCOGE CON LA HOJA, y no aparece ya encogido.
+
+     Antes salía directamente en su tamaño final y se encendía con un fundido,
+     y eso era lo que hacía confuso entrar: durante el primer tercio la letra
+     seguía casi a tamaño natural mientras el papelito ya estaba pequeño en
+     medio de ella, así que el titulillo, el folio y varios renglones quedaban
+     fuera de la hoja, escritos sobre el escritorio. Medido a los 60 ms: el
+     bloque de texto en 591px de ancho y el papel en 388.
+     Al salir no se notaba —el papel grande entra por detrás y tapa el
+     desajuste antes de que se lea— y por eso una dirección parecía correcta y
+     la otra no, siendo la misma cuenta.
+
+     Ahora el papel arranca puesto donde estaba la hoja entera y se recoge con
+     ella. Las dos escalas quedan atadas por construcción: el papel está
+     maquetado en pequeño y crece 1/k, así que su tamaño en pantalla es
+     k·entero·[(1/k)+(1−1/k)p], que es exactamente entero·[1+(k−1)p], la misma
+     que sigue el texto. No pueden separarse aunque la curva cambie.
+     Y no hace falta fundido: al empezar, el papel cubre exactamente lo que
+     cubría el fondo de la hoja, así que el relevo no se ve. */
+  if (papel){
+    /* Y EL PUNTO DE PARTIDA SE ASIENTA CON LA TRANSICIÓN APAGADA.
+
+       Poner el transform grande a secas no servía, y el motivo es el mismo
+       recálculo forzado de siempre: medirZoom lee offsetWidth, y en esa
+       lectura el papel ya estaba visible con transform:none. Así que lo que
+       hacía después era animarse DESDE none HASTA grande, y el aviso diferido
+       lo devolvía a none: el papel salía y volvía, quedándose en la práctica
+       en su tamaño chico todo el rato. Medido: la letra encogiendo de 663 a
+       388 mientras el papel no se movía de 388.
+
+       Se apaga la transición, se pone el tamaño grande, se obliga a resolver
+       —ese void es el que hace el trabajo—, y se vuelve a encender. A partir
+       de ahí el papel está de verdad en grande, y el encoger de la última
+       línea sí tiene de dónde salir.
+       Sin aviso diferido a propósito: la letra empieza a moverse en este mismo
+       cuadro, y dos cuadros de retraso en el papel son justo los dos cuadros
+       en los que más se mueve todo. */
+    papel.style.transition = 'none';
+    papel.style.transform = papelFuera;
+    void papel.offsetWidth;
+    papel.style.removeProperty('transition');
+    papel.style.transform = 'none';
+  }
 }
 function cerrarZoom(){
   if (!zoomActivo) return;
   finSuave();
   const papel = $('zoomPapel');
-  if (papel){ papel.style.display = 'block'; papel.style.opacity = '1'; }
+  /* El papel se queda puesto a mano —la clase que lo enseña se va en el primer
+     cuadro— y crece con la hoja, que es el mismo viaje de abrirZoom al revés.
+     La transformación de destino se lee ANTES de borrar la escala: zoomK y
+     zoomFx se reinician tres renglones más abajo y con ellos se iría la cuenta. */
+  const destino = papelFuera;
+  if (papel) papel.style.display = 'block';
   zoomActivo = false; zoomK = 1; zoomFx = { x:0, y:0 };
   armarSuave();
   pg.classList.remove('zoom'); stage.classList.remove('zoom');
   $('btnZoom').classList.remove('abierto');
-  trasPintar(() => { if (papel && !zoomActivo) papel.style.opacity = '0'; });
+  /* Aquí no hace falta asentar nada: el papel viene de la entrada con su
+     transform ya resuelto en none, así que ese none es el punto de partida y
+     basta con pedirle el destino. Y se pide en este mismo cuadro, no en el
+     tercero: la hoja arranca ya, y dos cuadros de diferencia se ven —la letra
+     saliéndose del papel justo en el tramo en que más corre—. */
+  if (papel) papel.style.transform = destino;
   pg.style.removeProperty('--zk');
   pg.style.removeProperty('--zx');
   pg.style.removeProperty('--zy');
@@ -5378,22 +5463,41 @@ $('pgCabeza').addEventListener('click', e => { e.preventDefault(); alternarBurbu
    Las dos etiquetas quedan puestas de la misma manera, cada una con su gesto:
    arriba un toque abre Libros, abajo un toque abre versiones y dos, Libros.
 
-   El toque simple tiene que esperar por si viene el segundo, y no hay forma
-   de evitarlo compartiendo el mismo blanco: el primer clic de un doble es
-   indistinguible de un clic solo hasta que pasa el plazo. Son los mismos
-   240 ms que ya espera el filo de la hoja para lo mismo, y se reutiliza la
-   constante para que el programa tenga UN tiempo de doble clic y no dos.
+   EL PLAZO DEL DOBLE ES MÁS LARGO AQUÍ QUE EN EL FILO, y a propósito.
+
+   Compartían los 240 ms del filo, con el argumento de que el programa debía
+   tener un solo tiempo de doble clic. El argumento era bueno y los dos casos
+   no son el mismo. En el filo, el doble clic es un atajo de quien ya conoce
+   la aplicación y da dos golpecitos seguidos sin pensarlo. Aquí es la única
+   forma de llegar a Libros desde el pie: se hace despacio, mirando, y a
+   240 ms el globo de versiones se abría en medio de los dos toques y el
+   segundo caía encima de él.
+
+   440 ms es lo que tarda un doble clic hecho a conciencia. El precio es que
+   abrir las versiones —el gesto de todos los días— tarda ese pelo más, y es
+   un precio real: no se puede abaratar sin renunciar al otro, porque el
+   primer clic de un doble es indistinguible de un clic solo hasta que pasa el
+   plazo. Se paga porque un gesto que no se consigue hacer no vale nada, y
+   440 ms de espera se notan mucho menos que tres intentos.
 
    Cerrar no espera. Si el globo ya está abierto, el toque lo cierra en el
    acto: ahí no hay ambigüedad que resolver —nadie hace doble clic para
-   cerrar— y hacerle esperar un cuarto de segundo a un cierre lo vuelve
-   pegajoso. */
+   cerrar— y hacerle esperar a un cierre lo vuelve pegajoso. */
+const ESPERA_DOBLE_ROTULO = 440;
 let relojVersion = null;
 $('pgVersion').addEventListener('click', e => {
   e.preventDefault(); e.stopPropagation();
   clearTimeout(relojVersion);
   if (versionAbierta){ cerrarVersiones(); return; }
-  relojVersion = setTimeout(abrirVersiones, ESPERA_DOBLE);
+  /* CON UN PANEL ABIERTO, EL RÓTULO LO CIERRA Y NADA MÁS. El rótulo vive en la
+     hoja, y con el panel corrido encima la hoja es justo lo que no se ve: el
+     gesto que se está haciendo es «quítame esto de delante», no «enséñame las
+     versiones». Abrir el globo ahí encima apilaba una cosa sobre otra para
+     responder a algo que nadie había pedido.
+     Y va sin esperar el plazo, por lo mismo que el cierre del globo: cerrar no
+     es ambiguo. */
+  if (burbujaAbierta()){ cerrarTodosLosRollos(); return; }
+  relojVersion = setTimeout(abrirVersiones, ESPERA_DOBLE_ROTULO);
 });
 $('pgVersion').addEventListener('dblclick', e => {
   e.preventDefault(); e.stopPropagation();
