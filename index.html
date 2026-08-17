@@ -4296,9 +4296,16 @@ pg.addEventListener('scroll', () => {
    exactamente la hoja a la que se vuelve, con los mismos cortes de renglón.
    ============================================================ */
 let zoomActivo = false;
-/* Cuánto se reserva abajo para el hueco y los botones, y cuánto se deja de
-   aire alrededor del papel. */
-const ZOOM_RESERVA = 96, ZOOM_AIRE = 12;
+/* LA HOJA VA CENTRADA, y eso decide cómo se calcula la escala. Estaba
+   arriba, con todo el hueco de una vez debajo: se veía como una hoja pegada al
+   techo, no como una hoja puesta sobre la mesa. Centrada, el hueco se reparte
+   —arriba y abajo— y la hoja queda donde el ojo la busca.
+   El precio es que el sitio de los botones hay que reservarlo DOS veces, una
+   por lado, porque centrar lo que sobra lo parte por la mitad: reservar solo
+   abajo dejaría la hoja centrada encima de sus propios botones. Por eso la
+   escala se calcula contra H menos dos reservas, y sale una hoja un pelo más
+   chica que la de antes. Es lo que cuesta que esté en su sitio. */
+const ZOOM_RESERVA = 76, ZOOM_AIRE = 12;
 function medirZoom(){
   if (!zoomActivo) return;
   const inner = pg.querySelector('.pg-inner');
@@ -4310,10 +4317,18 @@ function medirZoom(){
      dejaste. */
   const W = pg.clientWidth, H = pg.clientHeight;
   const pw = inner.offsetWidth || W, ph = inner.offsetHeight || H;
-  const k = Math.min((W - ZOOM_AIRE*2) / pw, (H - ZOOM_RESERVA - ZOOM_AIRE) / ph);
+  const k = Math.min((W - ZOOM_AIRE*2) / pw, (H - ZOOM_RESERVA*2) / ph);
+  /* Se descuenta DÓNDE ESTÁ YA la hoja dentro de #pg. Un translate no coloca
+     en un sitio: mueve desde donde estabas, y .pg-inner no empieza pegada al
+     canto —arranca unos 22px más abajo, que es el aire que el titulillo le
+     reserva—. Sin descontarlo, la cuenta salía perfecta y la hoja quedaba esos
+     22px baja: medido 223 de aire arriba contra 180 abajo, cuando tenían que
+     ser 201 y 201. El síntoma es pequeño y engaña, porque la hoja SÍ se movía
+     al centro; solo que al centro de otra cosa. */
+  const dx = inner.offsetLeft || 0, dy = inner.offsetTop || 0;
   pg.style.setProperty('--zk', k.toFixed(4));
-  pg.style.setProperty('--zx', Math.round((W - k*pw) / 2) + 'px');
-  pg.style.setProperty('--zy', ZOOM_AIRE + 'px');
+  pg.style.setProperty('--zx', Math.round((W - k*pw) / 2 - dx) + 'px');
+  pg.style.setProperty('--zy', Math.round((H - k*ph) / 2 - dy) + 'px');
 }
 function abrirZoom(){
   if (zoomActivo || folding) return;
