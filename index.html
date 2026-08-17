@@ -4670,7 +4670,7 @@ $('versoPleno').addEventListener('click', ev => {
      hoja, que es donde está la ventanita. El salto arranca al cuadro
      siguiente para que el cierre alcance a empezar. */
   cerrarHistorial();
-  requestAnimationFrame(() => irA(lib, +c, +v, ''));
+  trasPintar(() => irA(lib, +c, +v, ''));     /* dos cuadros, como arriba */
 });
 /* Un toque fuera lo cierra, en captura y antes que nadie, igual que la
    burbuja. La ventanita cuenta como "dentro": si no, tocarla la cerraría
@@ -4740,7 +4740,19 @@ $('burbujaVersion').addEventListener('click', ev => {
      el cierre ya empezó. */
   cerrarVersiones();
   if (k === version) return;
-  requestAnimationFrame(() => setVersion(k));
+  /* trasPintar en vez de un requestAnimationFrame suelto. Y hay que decir qué
+     arregla y qué no, porque la revisión de Codex avisó de que el globo se
+     quedaría congelado encima de la hoja durante toda la repaginación, y eso
+     NO pasaba: cerrarVersiones() corre aquí mismo, dentro de la tarea del
+     clic, así que el navegador pinta al terminarla y el cuadro del cierre sale
+     antes del aviso de rAF. Comprobado con la CPU frenada a la cuarta parte
+     —15255 ms de hilo trabado, sitio de sobra para verlo— y el globo ya no
+     está, con un cuadro y con dos.
+     Se pone igual porque no cuesta nada —un cuadro— y porque hace explícita
+     una garantía que ahora depende de dónde esté puesta la llamada: el día que
+     alguien mueva cerrarVersiones() dentro del diferido, el aviso de Codex
+     pasaría a ser cierto y esto ya estaría cubierto. */
+  trasPintar(() => setVersion(k));
 });
 /* Un toque fuera lo cierra, en captura, igual que el historial. El propio
    rótulo queda exceptuado: su oyente ya sabe alternar, y cerrarlo aquí lo
@@ -5189,10 +5201,17 @@ function entradaDeSeccion(el){
 function burbujaAbierta(){ return cantoAbierto || rFormato.abierto || rGlosas.abierto || rRespaldo.abierto; }
 /* `cerrando` va en true cuando se llama desde el cierre, porque en ese momento
    la bandera del panel todavía no se ha apagado. */
+/* EL RÓTULO DE ABAJO YA NO ES DE FORMATO. Lo era cuando lo abría, y de eso
+   quedaba esta línea: abrir Formato por la pestaña seguía encendiendo el
+   rótulo del pie, aunque el globo de versiones estuviera cerrado. El pie decía
+   "esto está abierto" señalando algo que no lo estaba, y tocarlo —lo natural
+   viendo un control encendido— abría el globo en vez de cerrar lo que parecía
+   indicar. Ahora el pie lo enciende solo quien es su dueño: abrirVersiones.
+   El titulillo de arriba sí conserva la suya, porque él sí sigue abriendo
+   Libros. Lo encontró la revisión de Codex. */
 function marcarCabeza(cerrando){
-  const c = document.getElementById('pgCabeza'), v = document.getElementById('pgVersion');
+  const c = document.getElementById('pgCabeza');
   if (c) c.classList.toggle('abierta', !cerrando && seccionViva === 'libros');
-  if (v) v.classList.toggle('abierta', !cerrando && seccionViva === 'formato');
 }
 function alternarBurbuja(seccion){
   /* Si ya está abierta pero en otra sección, no cierra: cambia. Cerrar sería
@@ -5300,6 +5319,15 @@ function cerrarOtrosRollos(menos){
   if (etiquetas !== menos) rGlosas.cerrar();
   if (document.getElementById('respaldo') !== menos) rRespaldo.cerrar();
   if (canto     !== menos) cerrarCanto();
+  /* Y los dos globos, que comparten la misma hoja. Se cedían en un solo
+     sentido —abrir un globo cerraba los rollos, pero abrir un rollo dejaba el
+     globo puesto— y dos cosas ocupando el mismo papel a la vez es la misma
+     clase de defecto que el rótulo encendido de más: la pantalla dice dos
+     cosas y solo una es verdad. Aquí, que es por donde pasa todo el que abre
+     un rollo, se cierran los dos. Los que abren un globo llaman a esto ANTES
+     de levantar su bandera, así que no se apagan a sí mismos. */
+  cerrarVersiones();
+  cerrarHistorial();
 }
 function cerrarTodosLosRollos(){ cerrarOtrosRollos(null); }
 
@@ -5927,7 +5955,7 @@ $('indice').addEventListener('click', ev => {
      taparía justo el texto al que acabas de pedir ir. El salto arranca al
      cuadro siguiente para que la disolución alcance a empezar. */
   rGlosas.cerrar(false, true);
-  requestAnimationFrame(() => irA(lib, +c, +v, l || ''));
+  trasPintar(() => irA(lib, +c, +v, l || ''));   /* dos cuadros, como arriba */
 });
 
 /* Y aquí estaba el instructivo largo que salía debajo de la hoja. Se fue con
