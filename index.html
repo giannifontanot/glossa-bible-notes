@@ -228,46 +228,6 @@
        robaba 26px del área de lectura y ensuciaba el canto de la hoja. Una
        ayuda que sigue puesta después de aprendida deja de ser ayuda. */
 
-    /* LAS GLOSAS SE DESCUBREN, NO ESTABAN AHÍ. Con la columna escondida detrás
-       del filo, correr el papel las encontraba ya puestas: el papel se movía y
-       ellas no, y eso las delataba como decorado pegado al fondo. Una nota que
-       está esperando desde antes de que llegues no es una nota, es un cartel.
-
-       Entran con el mismo gesto que el contenido de la burbuja al cambiar de
-       sección —llegan de lado— pero sin el pasarse-y-volver de entraDeLado.
-       Allá el rebote cuenta que tú estabas quieto y algo se movió delante de
-       ti; aquí eres tú quien va hacia ellas, y una nota que se pasa de su sitio
-       mientras tú avanzas no se lee como peso, se lee como que el papel
-       resbaló. El propio cajón ya rechazó el rebote por lo mismo.
-
-       Se anima `translate` y no `transform`, y esa es la única razón por la que
-       esto convive con asentarGiro(): la nota lleva su rotate escrito a mano en
-       el atributo style, y una animación sobre `transform` lo borraría durante
-       todo el recorrido para devolverlo de golpe al final. Como propiedad
-       aparte, el navegador compone las dos —primero traslada, luego gira— y el
-       giro ni se entera.
-
-       Va aquí y no en PAGE_CSS a propósito: PAGE_CSS se inyecta también dentro
-       del SVG del pliegue, que NO ve las reglas del modo angosto. La clase
-       viaja a la foto, pero allí es inerte y las glosas salen visibles. En
-       PAGE_CSS, la foto del pliegue saldría con el margen en blanco. */
-    .gl-margin.en-espera{ opacity:0; }
-    .gl-margin.asoma{ animation:asomaGlosa .46s cubic-bezier(.22,.72,.24,1) both;
-                      animation-delay:var(--asomo-retardo, 0ms); }
-    /* 26px y .46s son los de entraDeLado, tal cual: es el movimiento que se
-       pidió parecer. La curva es la de desenrollar, la cortina del panel al
-       abrirse, que frena tarde y fuerte y llega sin pasarse.
-       Que no rebote no costó buscar otra curva: el rebote de esas dos
-       animaciones nunca estuvo en sus curvas —las tres suben sin pasarse de 1—
-       sino en un fotograma escrito a mano, el scaleY(1.006) al 86% de una y el
-       translateX(-4px) al 82% de la otra. Aquí simplemente no se escribe.
-       La opacidad cierra al 60%: la nota termina de aparecer antes de terminar
-       de llegar. Lo último que hace es asentarse, no encenderse. */
-    @keyframes asomaGlosa{
-      0%   { opacity:0; translate:26px 0; }
-      60%  { opacity:1; }
-      100% { opacity:1; translate:0 0; }
-    }
   }
   #pg{ position:absolute; inset:0; border-radius:3px; overflow:hidden; }
   /* Nada de destellos del sistema sobre los controles del lector: los que
@@ -355,12 +315,6 @@
   @keyframes huellaLate{ 0%,100%{ opacity:.82; } 50%{ opacity:1; } }
   @media (prefers-reduced-motion: reduce){
     #huella.viva .crestas, #huella.viva .brillo{ animation:none; opacity:1; }
-    /* Las glosas del margen no entran: ya están. Se levanta desde el CSS y no
-       desde el guion para que también valga si el ajuste del sistema cambia
-       con la hoja ya puesta. Este bloque va después del @media angosto, así
-       que a igual especificidad gana éste. */
-    .gl-margin.en-espera{ opacity:1; }
-    .gl-margin.asoma{ animation:none; }
   }
   #ghost{ position:fixed; left:-99999px; top:0; pointer-events:none; }
 
@@ -2167,17 +2121,6 @@ function flash(m){
 }
 
 /* ---------- glosas al margen (centrado por grupo) ---------- */
-/* CUÁNDO SE ASOMAN LAS GLOSAS. El umbral se mide en fracción de columna
-   descubierta y no en píxeles recorridos: la columna mide lo que diga
-   --col-glosa y el papel sobra lo que sobre según la pantalla, así que un
-   número fijo de píxeles querría decir una cosa distinta en cada teléfono.
-   Un cuarto de columna cae justo pasado el imán del cajón —45px de papel—, y
-   eso es a propósito: empujar el papel sin querer y soltarlo devuelve el
-   cajón a cero sin haber gastado la entrada. */
-const ASOMO = .24;
-const ASOMO_PASO = 70;   /* ms entre una nota y la siguiente, de arriba abajo */
-let asomoArmado = false, asomoEspera = [], asomoIzq = 0, asomoAncho = 0;
-
 const GAP = 9;   /* aire entre glosas del margen; con el giro actual las esquinas
                     apenas se asoman 0.9px, así que sobra de sobra */
 function colocarMargen(bodyEl, marginEl){
@@ -2217,57 +2160,7 @@ function colocarMargen(bodyEl, marginEl){
       if (t < 0){ c.centro -= t; cambio = true; } else if (b > alto){ c.centro -= (b-alto); cambio = true; }
     }
   }
-  /* El retardo se reparte AQUÍ y no al crear las notas porque los grupos ya
-     vienen ordenados de arriba abajo, mientras que en el DOM están en el orden
-     en que aparecen las marcas. Escalonar por orden del DOM daría un desorden
-     que no se lee como desorden: se lee como error. */
-  let turno = 0; const puestas = [];
-  for (const c of cl){
-    let y = c.centro-c.h/2;
-    for (const it of c.items){
-      it.el.style.top = Math.round(y)+'px'; y += it.h+GAP;
-      it.el.style.setProperty('--asomo-retardo', (turno++ * ASOMO_PASO) + 'ms');
-      puestas.push(it.el);
-    }
-  }
-  armarAsomo(marginEl, puestas);
-}
-
-/* Se arma en cada repintado porque las notas son otras: colocarMargen las
-   vuelve a crear cada vez, así que aquí no hay estado viejo que limpiar y no
-   puede quedarse una glosa escondida de una hoja anterior.
-   Solo en teléfono y solo si de verdad hay papel escondido: en pantalla ancha
-   la columna se ve entera desde el principio y no hay nada que descubrir. Y si
-   al repintar ya estabas mirando la columna, tampoco —no se descubre lo que ya
-   tenías delante—: queda desarmado, y se recarga solo cuando el papel regrese
-   al texto. */
-function armarAsomo(marginEl, els){
-  asomoEspera = []; asomoArmado = false;
-  if (marginEl !== pgMargin || !els.length) return;      /* el molde de medir no cuenta */
-  if (!enTelefono() || pg.scrollWidth - pg.clientWidth <= 4) return;
-  asomoIzq = marginEl.offsetLeft; asomoAncho = marginEl.offsetWidth;
-  asomoEspera = els;
-  if (pg.scrollLeft + pg.clientWidth - asomoIzq >= asomoAncho * ASOMO) return;
-  asomoArmado = true;
-  for (const el of els) el.classList.add('en-espera');
-}
-/* Lo que corre por cuadro mientras arrastras. Cuesta una comparación cuando no
-   hay nada armado y tres lecturas de desplazamiento cuando sí; ninguna obliga
-   a recalcular el acomodo, porque desplazar no lo ensucia.
-   Se descarga UNA vez. Volver a cargarlo pide que la columna se esconda del
-   todo, y ahí no se ve nada, así que reponer las notas no se nota: ir y venir
-   a media carrera con el dedo no las hace parpadear. */
-function vigilarAsomo(){
-  if (!asomoEspera.length) return;
-  const visto = pg.scrollLeft + pg.clientWidth - asomoIzq;
-  if (asomoArmado){
-    if (visto < asomoAncho * ASOMO) return;
-    asomoArmado = false;
-    for (const el of asomoEspera){ el.classList.remove('en-espera'); el.classList.add('asoma'); }
-  } else if (visto <= 0){
-    asomoArmado = true;
-    for (const el of asomoEspera){ el.classList.remove('asoma'); el.classList.add('en-espera'); }
-  }
+  for (const c of cl){ let y = c.centro-c.h/2; for (const it of c.items){ it.el.style.top = Math.round(y)+'px'; y += it.h+GAP; } }
 }
 
 /* ---------- selección y toque ---------- */
@@ -3646,7 +3539,6 @@ pg.addEventListener('scroll', () => {
   const alFondo = pg.scrollLeft >= pg.scrollWidth - pg.clientWidth - 4;
   stage.classList.toggle('hasta-el-fondo', alFondo);
   if (folding) fx.style.left = (-pg.scrollLeft) + 'px';
-  vigilarAsomo();
 }, { passive:true });
 
 /* Las dos puertas a la burbuja, cada una a su sección. */
