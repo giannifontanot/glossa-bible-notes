@@ -361,6 +361,13 @@
                   animation:giroBuscando .8s linear infinite;
                   will-change:transform; }
   @keyframes giroBuscando{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+  /* La frase que lee el lector de pantalla. Se esconde a la vista sin salir
+     del árbol de accesibilidad, que es justo lo que display:none y
+     visibility:hidden no permiten: esos la sacarían de los dos sitios y no
+     se anunciaría. */
+  #buscando .dice{ position:absolute; width:1px; height:1px; margin:-1px;
+                   padding:0; border:0; overflow:hidden; white-space:nowrap;
+                   clip-path:inset(50%); }
   /* Quien pidió menos movimiento no se queda sin aviso: se queda con el aro
      puesto, entero y quieto, que sigue diciendo "estoy en ello". */
   @media (prefers-reduced-motion: reduce){
@@ -1043,9 +1050,16 @@
   <canvas id="fx"></canvas>
   <div id="huella" aria-hidden="true"></div>
   <!-- role=status para que un lector de pantalla también se entere de que hay
-       algo en marcha: el disco es la versión visible del mismo aviso. -->
-  <div id="buscando" role="status" aria-live="polite" aria-label="buscando">
-    <div class="disco"></div><div class="aro"></div>
+       algo en marcha: el disco es la versión visible del mismo aviso.
+       El aviso vive en .dice y NO en un aria-label, porque una región viva
+       anuncia cuando le CAMBIA el contenido, no cuando le cambia la opacidad.
+       Con el rótulo puesto en el atributo, la región decía "buscando" desde
+       que se cargaba la página hasta que se cerraba y no anunciaba nunca
+       nada: el comentario prometía algo que el código no hacía. Ahora
+       mostrarBuscando escribe la frase y quitarBuscando la borra, que es lo
+       que de verdad dispara el anuncio. Lo encontró la revisión de Codex. -->
+  <div id="buscando" role="status" aria-live="polite">
+    <div class="disco"></div><div class="aro"></div><span class="dice"></span>
   </div>
   <div class="edge edge-l" id="edgeL" title="Clic: hoja anterior · Arrastra: pliega"></div>
   <div class="edge edge-r" id="edgeR" title="Clic: pasa la hoja · Arrastra: pliega"></div>
@@ -2996,19 +3010,32 @@ function medirPalabras(hostEl){
     if (!el || el.offsetParent === null && el.closest('#ghost') === null) continue;
     const est = getComputedStyle(el);
     if (est.visibility === 'hidden' || est.display === 'none') continue;
-    const tipo = est.fontStyle + ' ' + est.fontWeight + ' ' + est.fontSize + ' ' + est.fontFamily;
     /* El lienzo sí sabe de espaciado entre letras y de variantes numéricas,
        pero hay que pasárselos aparte: no viajan en la abreviatura de font. */
     const esp = est.letterSpacing === 'normal' ? '0px' : est.letterSpacing;
-    /* Y las VERSALITAS son lo mismo: van por su cuenta. Los titulillos se
-       componen con font-variant-caps, y esa propiedad tampoco cabe en la
-       abreviatura de font. Sin pasarla, el lienzo mediría "Mateo 5:12" en
-       capitales de altura de equis —82px— y lo pintaría en caja alta y baja
-       —96px—, así que el ajuste de ancho de más abajo lo aplastaría un quince
-       por ciento para que cupiera. La foto del pliegue enseñaría un titulillo
-       estrujado durante el giro y el bueno al aterrizar: el brinco que este
-       archivo lleva media docena de comentarios evitando. */
+    /* Y las VERSALITAS, por dos caminos a la vez. Los titulillos se componen
+       con font-variant-caps, y sin pasársela el lienzo mediría "Mateo 5:12" en
+       capitales de altura de equis y lo pintaría en caja alta y baja, así que
+       el ajuste de ancho de más abajo lo aplastaría para que cupiera: un
+       titulillo estrujado durante el giro y el bueno al aterrizar, que es el
+       brinco que este archivo lleva media docena de comentarios evitando.
+
+       DOS CAMINOS Y NO UNO, y esto lo encontró la revisión de Codex. La
+       propiedad ctx.fontVariantCaps es reciente; hay navegadores que entienden
+       font-variant-caps en el CSS —así que la hoja SÍ sale en versalitas— y no
+       conocen la propiedad del lienzo. Ahí preguntar y rendirse dejaba
+       exactamente el defecto que se vino a arreglar, solo que en los
+       navegadores que nadie prueba.
+       Así que la variante viaja también en la ABREVIATURA de font, que admite
+       small-caps desde CSS2 y la entiende todo el mundo. Comprobado que dan lo
+       mismo: 99.58px por la propiedad y 99.58px por la abreviatura.
+       El orden es el que manda CSS —estilo, variante, peso, tamaño, familia—
+       y f0 guarda la misma cadena sin la variante, para lo de abajo. */
     const vers = est.fontVariantCaps || 'normal';
+    const versalitas = (vers === 'small-caps' || vers === 'all-small-caps');
+    const cola = ' ' + est.fontWeight + ' ' + est.fontSize + ' ' + est.fontFamily;
+    const tipo0 = est.fontStyle + cola;
+    const tipo = versalitas ? est.fontStyle + ' small-caps' + cola : tipo0;
     const re = /\S+/g;
     let m;
     while ((m = re.exec(n.nodeValue))){
@@ -3021,7 +3048,8 @@ function medirPalabras(hostEl){
       const caja = el.closest('[data-giro]');
       const j = caja ? eje.get(caja) : null;
       salida.push({ t:m[0], x:r.left - host.left, y:r.top - host.top,
-                    w:r.width, h:r.height, f:tipo, c:est.color, e:esp, vc:vers,
+                    w:r.width, h:r.height, f:tipo, f0:tipo0, px:est.fontSize,
+                    c:est.color, e:esp, vc:vers,
                     a: j ? j.a : 0, gx: j ? j.gx : 0, gy: j ? j.gy : 0 });
     }
   }
@@ -3035,13 +3063,22 @@ function pintarPalabras(g, palabras){
     const clave = p.f + '|' + p.e + '|' + (p.vc || 'normal');
     if (clave !== ultimo){
       g.font = p.f;
+      /* LA RED DEBAJO DE LA ABREVIATURA. Una asignación que el lienzo no
+         entiende no lanza error: se ignora en silencio y ctx.font se queda
+         con la letra ANTERIOR. Comprobado. Así que si algún motor rechazara
+         la variante en la abreviatura, no perderíamos las versalitas de un
+         titulillo: perderíamos la letra de TODAS las palabras que vinieran
+         después, que sale infinitamente peor. Se comprueba que el tamaño
+         pedido esté en lo que quedó puesto, y si no, se repite sin variante.
+         Cuesta una comparación de cadenas por cambio de letra, no por
+         palabra. */
+      if (p.f !== p.f0 && g.font.indexOf(p.px) < 0) g.font = p.f0;
       if ('letterSpacing' in g) g.letterSpacing = p.e;
-      /* Se pregunta antes de ponerla, igual que con el espaciado: un navegador
-         que no la conozca dibuja el titulillo en caja alta y baja, que es
-         exactamente lo que hacía hasta ahora. Se pierde el detalle, no la
-         hoja. Y se REPONE a 'normal' cuando toca, porque el estado del lienzo
-         es pegajoso y si no, la primera palabra en versalitas dejaría en
-         versalitas todo el resto del libro. */
+      /* La propiedad, encima de la abreviatura, para los motores que la
+         tienen: es la única que sabe decir all-small-caps, y va DESPUÉS
+         porque asignar font puede reponerla a normal. Se repone a 'normal'
+         cuando toca, porque el estado del lienzo es pegajoso: si no, la
+         primera palabra en versalitas dejaría en versalitas todo el resto. */
       if ('fontVariantCaps' in g) g.fontVariantCaps = p.vc || 'normal';
       ultimo = clave;
       const m = g.measureText('Hxg');
@@ -4517,18 +4554,27 @@ const trasPintar = fn => requestAnimationFrame(() => requestAnimationFrame(fn));
    parpadeo—se lee como un fallo de pintado, no como una espera. */
 const MINIMO_BUSCANDO = 320;
 let t0Buscando = 0, relojBuscando = null;
+/* El aviso hablado se escribe y se borra, no se enciende y se apaga: una
+   región viva anuncia cuando le cambia el CONTENIDO. Escribir la frase es lo
+   que dispara el anuncio; borrarla no anuncia nada, que es lo correcto —el
+   final del trabajo ya lo cuenta el aviso de abajo con el nombre del pasaje—.
+   Se escribe siempre, aunque la frase fuera la misma que la vez anterior,
+   porque para entonces ya está vacía: cada búsqueda es un cambio de verdad. */
+const dice = t => { const d = $('buscando').querySelector('.dice'); if (d) d.textContent = t; };
 function mostrarBuscando(){
   clearTimeout(relojBuscando); relojBuscando = null;
   t0Buscando = performance.now();
   $('buscando').classList.add('viva');
+  dice('buscando el pasaje…');
 }
 function quitarBuscando(){
   const el = $('buscando');
   if (!el.classList.contains('viva')) return;
   clearTimeout(relojBuscando);
+  const apagar = () => { el.classList.remove('viva'); dice(''); };
   const falta = MINIMO_BUSCANDO - (performance.now() - t0Buscando);
-  if (falta <= 0){ el.classList.remove('viva'); relojBuscando = null; return; }
-  relojBuscando = setTimeout(() => el.classList.remove('viva'), falta);
+  if (falta <= 0){ apagar(); relojBuscando = null; return; }
+  relojBuscando = setTimeout(apagar, falta);
 }
 
 /* El salto: cierra el panel disolviéndolo, rearma el mapa de hojas del libro
