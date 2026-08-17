@@ -1491,14 +1491,18 @@ let avisoGuardado = false;
    de crearla no cambia ni un renglón del cuerpo, y aun así se repaginaba el
    libro entero. Medido con la CPU frenada a la cuarta parte, que es más
    parecido a un teléfono: 15562 ms para llegar exactamente al mismo reparto.
-   La firma lleva el texto de la nota y no solo su presencia, porque dos notas
-   distintas del mismo largo parten los renglones en sitios distintos y pueden
-   mover el corte. Y lleva visible(), porque una nota escondida por el filtro de
-   etiquetas no se pinta y por tanto no ocupa. */
+   La firma lleva el texto de la nota y las etiquetas que se pintan junto a
+   ella, no solo su presencia, porque dos notas distintas del mismo largo —o una
+   etiqueta larga— parten los renglones en sitios distintos y pueden mover el
+   corte. Y lleva visible(), porque una nota escondida por el filtro de etiquetas
+   no se pinta y por tanto no ocupa. */
 function firmaDelCuerpo(){
   if (placement === 'margin') return '';
   let f = '';
-  for (const m of marcas) if (m.nota && visible(m)) f += m.id + '\u0001' + m.nota + '\u0002';
+  for (const m of marcas) if (m.nota && visible(m)){
+    const etiquetas = (m.etiquetas||[]).join('\u0003');
+    f += m.id + '\u0001' + m.nota + '\u0002' + etiquetas + '\u0004';
+  }
   return f;
 }
 let firmaCuerpo = '';
