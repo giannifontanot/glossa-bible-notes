@@ -1054,19 +1054,14 @@
      glosa, pero todavía en la mano. */
   .gl-movil{ position:fixed; left:8px; right:8px; top:8px; z-index:12;
              display:block; box-shadow:0 14px 38px rgba(0,0,0,.45); }
-  /* EL PAPEL VA DEBAJO DEL TINTE, y el orden importa. Una glosa se ve a través
-     a propósito —es papel sobre papel— pero mientras escribes eso hace que las
-     letras de la nota compitan con el versículo que asoma por detrás.
-     No se puede resolver pintando papel en el fondo de la caja: el fondo ya lo
-     ocupa el color de la marca, y sustituirlo perdería de qué color es. Se
-     resuelve con una capa DETRÁS del propio fondo —z-index negativo dentro de
-     la caja, que es su propio contexto de apilado por el position:fixed—, así
-     que queda papel, encima el tinte, encima el texto. El tinte se conserva
-     entero y ya no se ve nada a través.
-     El color del papel se lo pasa el guion en --papel, porque la caja cuelga
-     del cuerpo del documento y ahí no llega la variable de la hoja. */
-  .gl-movil.opaca::before{ content:''; position:absolute; inset:0; z-index:-1;
-                           background:var(--papel,#faf7f1); border-radius:inherit; }
+  /* El papel bajo el tinte NO se pinta desde aquí: lo compone el guion en la
+     misma pila de fondo de la caja (ver abrirGlosa). Aquí quedó un intento con
+     un pseudoelemento de z-index negativo, y estaba mal: dentro de un contexto
+     de apilado, el fondo del propio elemento se pinta PRIMERO y los hijos de
+     z-index negativo van encima. O sea que el papel opaco tapaba el tinte en
+     vez de meterse debajo, y la caja perdía el color de su marca. Lo encontró
+     la revisión de Codex; mi prueba había comprobado que la clase estaba
+     puesta, no de qué color quedaba la caja. */
   /* El textarea desaparece DENTRO de la caja: sin borde, sin fondo, sin
      relleno propio. El recuadro ya lo pone la glosa, y dos recuadros, uno
      dentro de otro, es lo que hacía que aquello se viera como un formulario.
@@ -3377,20 +3372,44 @@ function abrirGlosa(m){
       /* Se mide con la caja ya puesta: su alto depende de cuántos renglones
          quepan a lo ancho de la pantalla, y eso no se sabe hasta pintarla. */
       const alto = caja.offsetHeight || 96;
-      const techoTeclado = window.innerHeight * 0.62;
-      let top = arriba.top - alto - AIRE;
-      if (top < 6) top = 6;                                   /* no se sale por arriba */
-      if (top + alto > techoTeclado) top = Math.max(6, techoTeclado - alto);
-      caja.style.top = Math.round(top) + 'px';
+      /* DÓNDE EMPIEZA EL TECLADO. La primera versión suponía el 62% de la
+         pantalla, y era optimista: este mismo archivo tenía medido un teclado
+         normal empezando hacia y=460 en una pantalla de 844, o sea el 54%. Con
+         el 62 la caja podía llegar a y=523 y quedarse media tapada.
+         Ahora hay dos capas. La estimación prudente —el 52%— coloca la caja
+         antes de que el teclado exista, porque colocar es lo primero que pasa
+         y el foco viene después. Y en cuanto el teclado sube de verdad, la
+         ventana visual encoge y avisa: ahí se recoloca con la medida REAL, que
+         es la única que no es una suposición. Los navegadores que no traen
+         visualViewport se quedan con la estimación, que ya es más prudente que
+         la de antes. Lo levantó la revisión de Codex. */
+      let techo = window.innerHeight * 0.52;
+      const recolocar = () => {
+        let t = arriba.top - alto - AIRE;
+        if (t + alto > techo) t = techo - alto;
+        caja.style.top = Math.round(Math.max(6, t)) + 'px';
+      };
+      recolocar();
+      const vv = window.visualViewport;
+      if (vv){
+        const alTeclado = () => {
+          /* Solo cuando la ventana encoge de verdad: un cambio de barra de
+             direcciones no es un teclado, y recolocar por eso haría bailar la
+             caja mientras escribes. */
+          if (vv.height < window.innerHeight - 80){ techo = vv.height - 8; recolocar(); }
+        };
+        vv.addEventListener('resize', alTeclado);
+        ta._teclado = () => vv.removeEventListener('resize', alTeclado);
+      }
       /* TRASLÚCIDA SOLO SI ESTORBA. Una glosa se ve a través a propósito —es
          papel encima de papel— pero mientras escribes eso hace que las letras
          de la nota compitan con el versículo de debajo. Se pone opaca, salvo
          cuando la caja tapa justo lo que subrayaste: ahí conviene verlo, que
          es de lo que estás hablando. */
       const tapa = top < arriba.bottom && top + alto > arriba.top;
-      caja.classList.toggle('opaca', !tapa);
+      if (!tapa) opacar(caja);
     } else {
-      caja.classList.add('opaca');
+      opacar(caja);
     }
     /* SE CIERRA TOCANDO AFUERA, y ya no hay botón que buscar. Un botón "listo"
        obliga a apuntar a un blanco de un centímetro para decir algo que el
@@ -3432,6 +3451,7 @@ function abrirGlosa(m){
   ta.focus();
   ta.addEventListener('blur', () => {
     if (ta._afuera) document.removeEventListener('pointerdown', ta._afuera, true);
+    if (ta._teclado) ta._teclado();
     const val = ta.value.trim();
     if (val){
       m.nota = val;
@@ -3448,6 +3468,25 @@ function abrirGlosa(m){
        caja se quita sin más: inventarle un destino sería mentir. */
     if (caja) volarGlosa(caja, m.id);
   });
+}
+
+/* PAPEL DEBAJO, TINTE ENCIMA, EN UNA SOLA PILA DE FONDO.
+
+   El color de la marca vive en background-color, puesto por .g-amarillo y sus
+   hermanas, y es translúcido a propósito. Para dejar de ver el versículo por
+   detrás hace falta papel opaco DEBAJO de ese tinte, y ahí está el detalle:
+   un fondo solo tiene un color, y las imágenes de fondo se pintan ENCIMA de
+   él. Así que el papel va de color y el tinte pasa a ser una imagen —un
+   degradado de un solo tono— que se pinta sobre el papel.
+
+   El tinte se lee de la propia caja en vez de escribirlo aquí: son cuatro
+   colores y cada uno con su alfa, y copiarlos sería tener la misma tabla en
+   dos sitios. Lo que ya calculó el navegador es la fuente buena. */
+function opacar(caja){
+  const tinte = getComputedStyle(caja).backgroundColor;
+  caja.style.backgroundColor = colorPapel();
+  if (tinte && tinte !== 'rgba(0, 0, 0, 0)' && tinte !== 'transparent')
+    caja.style.backgroundImage = 'linear-gradient(' + tinte + ',' + tinte + ')';
 }
 
 /* EL VUELO DE LA GLOSA RECIÉN ESCRITA.
@@ -4998,8 +5037,15 @@ $('burbujaVersion').addEventListener('click', ev => {
    rótulo queda exceptuado: su oyente ya sabe alternar, y cerrarlo aquí lo
    volvería a abrir en el mismo gesto. */
 document.addEventListener('pointerdown', ev => {
-  if (!versionAbierta) return;
   if (ev.target.closest('#burbujaVersion, #pgVersion')) return;
+  /* Se cancela también el globo PENDIENTE, no solo el abierto. Durante los
+     240 ms de espera del doble clic la bandera todavía está en falso, así que
+     este oyente no veía nada que cerrar: tocabas el rótulo, te arrepentías y
+     tocabas otra cosa, y un cuarto de segundo después el globo se abría encima
+     de lo que acabaras de hacer. Antes no pasaba porque el globo se abría en
+     el acto y este mismo toque lo cerraba. Lo encontró Codex. */
+  clearTimeout(relojVersion);
+  if (!versionAbierta) return;
   cerrarVersiones();
 }, true);
 
