@@ -4399,6 +4399,7 @@ let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
      La rueda del ratón sí conserva el movimiento fino, más abajo: ahí no hay
      roces accidentales y el ajuste continuo es cómodo. */
   const INTENCION = 34;    /* px de puntero que hay que mover para que cuente */
+  const RUIDO = 10;        /* por debajo de esto el dedo no dice dirección, tiembla */
   let activo = false, x0 = 0, y0 = 0, puntero = null, reloj = null;
   const sobraPapel = () => pg.scrollWidth - pg.clientWidth > 4;
   /* El número de capítulo SÍ se puede agarrar. Es un blanco grande —ocupa casi
@@ -4470,12 +4471,19 @@ let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
 
   pg.addEventListener('pointermove', ev => {
     if (!activo || ev.pointerId !== puntero) return;
-    const dx = ev.clientX - x0;
-    /* Vertical manda. Deslizar hacia abajo es leer, no abrir el cajón: si el
-       dedo va más de lado que hacia abajo, es un gesto horizontal; si no, se
-       abandona y que el desplazamiento normal haga lo suyo. Sin esto, un
-       desliz de lectura un poco torcido abriría las glosas. */
-    if (Math.abs(ev.clientY - y0) > Math.abs(dx)){ activo = false; return; }
+    const dx = ev.clientX - x0, dy = ev.clientY - y0;
+    /* El eje se decide UNA VEZ, y con datos suficientes. Comparando en cada
+       muestra desde el primer píxel, el gesto se rendía con el ruido del dedo:
+       basta un dy de 2 contra un dx de 1 en el primer cuadro —cosa que pasa en
+       casi todos los toques— para que el desliz quedara descartado para
+       siempre y el cajón no abriera nunca por más que siguieras jalando de
+       lado. Por debajo de RUIDO no hay dirección que leer, solo temblor.
+       Lo encontró la revisión de Codex. */
+    if (Math.hypot(dx, dy) < RUIDO) return;
+    /* Ahora sí: vertical manda. Deslizar hacia abajo es leer, no abrir el
+       cajón. Si el gesto va más hacia abajo que de lado, se abandona y que el
+       desplazamiento normal haga lo suyo. */
+    if (Math.abs(dy) > Math.abs(dx)){ activo = false; return; }
     if (Math.abs(dx) < INTENCION) return;
     /* Cruzado el umbral: la decisión está tomada y el gesto termina aquí. El
        cajón sale o entra ENTERO —jalar hacia la izquierda trae las glosas,
@@ -5567,8 +5575,31 @@ canto.addEventListener('click', tocarLibro);
 (function lupaDeLibros(){
   const lupa = $('lupaLibro');
   if (!lupa) return;
-  const UMBRAL = 7;                 /* px de dedo para que deje de ser un toque */
-  let activo = false, movido = false, x0 = 0, y0 = 0, ultimo = null;
+  /* LA LUPA SE GANA CON UNA PAUSA, no con un movimiento.
+
+     La primera versión la disparaba cualquier arrastre de más de 7px, y eso
+     chocaba de frente con lo único que la lista también necesita: poder
+     DESPLAZARSE. Cada testamento es una caja con desplazamiento propio y casi
+     toda su superficie son libros, así que no quedaba por dónde agarrar para
+     correrla: cualquier desliz vertical se leía como lupa, se le llamaba
+     preventDefault y al soltar se abría un libro que nadie había pedido.
+     Y el eje no sirve para separarlos, porque la rejilla envuelve: ir de
+     Génesis a Deuteronomio es moverse hacia abajo, igual que desplazar.
+
+     Lo que sí los separa es el TIEMPO. Un desliz para correr la lista arranca
+     enseguida; un dedo que quiere mirar se posa y espera. Así que la lupa pide
+     que el dedo se quede quieto 200 ms: si se mueve antes, era un
+     desplazamiento y la lupa se retira sin haber estorbado.
+
+     Una vez enganchada se apaga touch-action en la caja, que es lo único que
+     de verdad impide que el navegador se ponga a desplazar a media lupa:
+     preventDefault sobre pointermove ya no sirve si el desplazamiento
+     arrancó, y aquí no habrá arrancado porque el dedo estuvo quieto.
+     Lo encontró la revisión de Codex. */
+  const ESPERA = 200;     /* ms de dedo quieto para que sea lupa */
+  const RUIDO = 10;       /* px que se le perdonan al dedo mientras espera */
+  let armado = false, activo = false, x0 = 0, y0 = 0;
+  let ultimo = null, reloj = null, pid = null, caja = null;
 
   const libroEn = (x, y) => {
     const el = document.elementFromPoint(x, y);
@@ -5595,37 +5626,63 @@ canto.addEventListener('click', tocarLibro);
     lupa.style.top  = Math.round(y - r.top - 12) + 'px';
     lupa.classList.add('viva');
   };
-  const soltar = ev => {
-    if (!activo) return;
-    activo = false;
-    document.removeEventListener('pointermove', mueve, true);
-    document.removeEventListener('pointerup', soltar, true);
-    document.removeEventListener('pointercancel', soltar, true);
+  const limpiar = () => {
+    clearTimeout(reloj); reloj = null;
+    armado = false; activo = false; pid = null;
     lupa.classList.remove('viva');
-    const t = ultimo; marcar(null);
-    if (!movido) return;            /* fue un toque: que lo atienda el click */
-    /* Fue un arrastre: el desenlace es de la lupa, y el click que viene detrás
-       sobra —abriría los capítulos del libro donde EMPEZÓ el dedo, no del que
+    if (caja){ caja.style.removeProperty('touch-action'); caja = null; }
+    document.removeEventListener('pointermove', mueve, true);
+    document.removeEventListener('pointerup', arriba, true);
+    document.removeEventListener('pointercancel', aborta, true);
+  };
+  /* CANCELAR NO ES SOLTAR. Si el navegador se queda con el gesto —porque
+     decidió desplazar, o porque entró otro dedo— llega un pointercancel, y eso
+     NO es "he elegido este libro": es "aquí no ha pasado nada". Antes los dos
+     caminos terminaban en el mismo sitio y una cancelación abría un libro al
+     azar. */
+  function aborta(){ marcar(null); limpiar(); }
+  function arriba(){
+    const t = activo ? ultimo : null;
+    marcar(null);
+    const eraLupa = activo;
+    limpiar();
+    if (!eraLupa) return;          /* fue un toque o un desliz: no es cosa nuestra */
+    /* Fue lupa: el desenlace es suyo, y el click que viene detrás sobra
+       —abriría los capítulos del libro donde EMPEZÓ el dedo, no del que
        elegiste—. Se traga uno solo, y en captura para llegar antes. */
     const tragar = e => { e.stopPropagation(); e.preventDefault(); };
     document.addEventListener('click', tragar, { capture:true, once:true });
     setTimeout(() => document.removeEventListener('click', tragar, true), 350);
-    if (t && ev) abrirCapitulosDe(t);
-  };
-  const mueve = ev => {
-    if (!activo) return;
-    if (!movido && Math.hypot(ev.clientX - x0, ev.clientY - y0) < UMBRAL) return;
-    movido = true;
+    if (t) abrirCapitulosDe(t);
+  }
+  function mueve(ev){
+    if (ev.pointerId !== pid) return;
+    if (!activo){
+      /* Todavía esperando: si el dedo se va, era para desplazar. */
+      if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > RUIDO) limpiar();
+      return;
+    }
     ev.preventDefault();
     poner(libroEn(ev.clientX, ev.clientY), ev.clientX, ev.clientY);
-  };
+  }
+  function engancharse(){
+    if (!armado) return;
+    armado = false; activo = true;
+    /* Se congela el desplazamiento de la lista mientras dura la lupa. */
+    if (caja) caja.style.touchAction = 'none';
+    poner(libroEn(x0, y0), x0, y0);
+  }
   canto.addEventListener('pointerdown', ev => {
     const t = ev.target.closest && ev.target.closest('.tabo');
     if (!t || !ev.target.closest('.rejilla-libros')) return;
-    activo = true; movido = false; x0 = ev.clientX; y0 = ev.clientY;
+    limpiar();
+    armado = true; pid = ev.pointerId;
+    x0 = ev.clientX; y0 = ev.clientY;
+    caja = ev.target.closest('.rejilla-libros');
+    reloj = setTimeout(engancharse, ESPERA);
     document.addEventListener('pointermove', mueve, true);
-    document.addEventListener('pointerup', soltar, true);
-    document.addEventListener('pointercancel', soltar, true);
+    document.addEventListener('pointerup', arriba, true);
+    document.addEventListener('pointercancel', aborta, true);
   });
 })();
 /* El mismo desenlace que un toque, para que la lupa y el click no cuenten dos
