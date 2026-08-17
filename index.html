@@ -432,8 +432,23 @@
   #pg.zoom{ background:transparent; cursor:zoom-out; }
   #pg.zoom .pg-inner{
       transform:translate(var(--zx,0px), var(--zy,0px)) scale(var(--zk,1));
-      transform-origin:top left; background:var(--papel,#faf7f1);
-      border-radius:3px; box-shadow:0 10px 26px -8px rgba(0,0,0,.5); }
+      transform-origin:top left; background:transparent; }
+  /* EL PAPEL DE DEBAJO, Y POR QUÉ HACE FALTA UNO APARTE.
+     .pg-inner no es la hoja entera: la hoja lleva 22px de relleno arriba y 18
+     abajo —el aire del titulillo y del folio— y eso es .pg, no .pg-inner. Al
+     pintar el papel sobre .pg-inner, la hoja de lejos salía sin ese aire.
+     El defecto se veía justo al pasar hoja: la FOTO del pliegue retrata .pg
+     entera, con su relleno, así que en cuanto empezaba el giro aparecían los
+     márgenes que faltaban, y al aterrizar volvían a encogerse. Empezaba
+     estrecha, giraba ancha y terminaba estrecha otra vez.
+     Este respaldo se coloca desde el guion con la medida de .pg —la misma que
+     usa la foto— así que las dos coinciden exactamente y el salto desaparece.
+     Va detrás de todo, y es él quien lleva ahora el canto redondeado y la
+     sombra de hoja flotando. */
+  #zoomPapel{ position:absolute; z-index:0; display:none;
+              background:var(--papel,#faf7f1); border-radius:3px;
+              box-shadow:0 10px 26px -8px rgba(0,0,0,.5); pointer-events:none; }
+  #pg.zoom #zoomPapel{ display:block; }
   /* Los filos NO se apagan de lejos: se recortan al canto de la hoja pequeña
      desde el guion (ver medirZoom), para que el papel se siga pasando con el
      dedo —con su huella y su pliegue— igual que de cerca. Lo único que cambia
@@ -443,17 +458,39 @@
      del zoom, que se queda para poder salir también por donde entraste. */
   .stage.zoom #btnHistorial, .stage.zoom #btnVolver{ display:none !important; }
 
-  #btnZoom{ position:absolute; left:8px; bottom:8px; z-index:7;
-            width:30px; height:30px; padding:0; cursor:pointer;
-            font:400 15px/1 var(--ui); color:#a98f57;
-            background:var(--papel,#faf7f1); border:1px solid rgba(140,116,68,.34);
-            border-radius:50%; -webkit-tap-highlight-color:transparent;
-            -webkit-user-select:none; user-select:none;
-            transition:background .3s cubic-bezier(.65,0,.35,1),
-                       color .3s cubic-bezier(.65,0,.35,1); }
-  #btnZoom:hover{ color:#6d5c33; background:#fffdf6; }
-  #btnZoom.abierto, #btnZoom.abierto:hover{
-            background:#b8892b; color:#fff8e4; border-color:#96701f; }
+  /* LAS DOS ESQUINAS DE ABAJO, EN PUNTOS. Tenían dibujo —un menos dentro de un
+     círculo y una flecha girando— y el dibujo no estaba aportando: a ese
+     tamaño ninguno de los dos se lee como lo que significa, y encima obligaban
+     a mirar dos cosas distintas en dos esquinas para acordarse de cuál era
+     cuál. Lo que de verdad los distingue es DÓNDE están, y eso ya se sabe
+     después de usarlos una vez.
+     Así que se quedan en lo que hacía falta: un punto gordo que dice "aquí hay
+     algo que tocar" y nada más. El blanco de toque no encoge —el círculo va
+     entero, es la tinta la que se retira—. */
+  #btnZoom, #btnHistorial{ position:absolute; bottom:8px; z-index:7;
+            width:34px; height:34px; padding:0; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+            background:transparent; border:0; border-radius:50%;
+            -webkit-tap-highlight-color:transparent;
+            -webkit-user-select:none; user-select:none; }
+  #btnZoom{ left:8px; }
+  #btnHistorial{ right:8px; }
+  #btnZoom::before, #btnHistorial::before{ content:''; display:block;
+            width:11px; height:11px; border-radius:50%;
+            background:#a98f57; opacity:.62;
+            transition:opacity .28s cubic-bezier(.65,0,.35,1),
+                       background .28s cubic-bezier(.65,0,.35,1),
+                       transform .28s cubic-bezier(.3,.8,.4,1); }
+  #btnZoom:hover::before, #btnHistorial:hover::before{ opacity:1; transform:scale(1.18); }
+  #btnZoom:active::before, #btnHistorial:active::before{ transform:scale(.9); }
+  /* Abierto, el punto se pone del marrón macizo del programa: el mismo idioma
+     que un botón cumplido en el panel. */
+  #btnZoom.abierto::before, #btnHistorial.abierto::before{
+            background:#b8892b; opacity:1; transform:scale(1.25); }
+  /* Y de lejos, el botón que abrió el zoom se va: ya no hay nada que abrir, se
+     sale tocando el hueco, y un control encendido que no lleva a ningún sitio
+     solo compite con el papel. */
+  .stage.zoom #btnZoom{ display:none !important; }
   /* El botón de volver del salto sube un piso: la esquina de abajo a la
      izquierda ahora tiene dueño. */
   #btnVolver{ bottom:46px; }
@@ -484,22 +521,30 @@
      fondo que rodea la hoja es el escritorio, que es marrón oscuro. Un punto
      marrón encima se perdía del todo —discreto acabó siendo invisible, que no
      es lo mismo—. En crema se lee sin gritar, que era lo que se pedía. */
-  #zoomPasos button::before{ content:''; display:block;
-                     width:13px; height:13px; border-radius:50%;
-                     background:#efe4c8; opacity:.42;
-                     box-shadow:0 1px 4px rgba(0,0,0,.45);
+  /* AQUÍ SÍ VAN LAS FLECHAS, y no es contradicción con los puntos de la
+     esquina. Aquellos son puertas: se tocan una vez y lo que hacen se aprende
+     de dónde están. Éstos son un PAR, hacen cosas opuestas y se usan seguidos,
+     así que hay que distinguirlos entre sí a cada toque; ahí un dibujo que
+     apunta hacia donde va la hoja se lee sin pensar y dos puntos iguales
+     obligan a acordarse de cuál era cuál cada vez.
+     Redondos, eso sí: la forma de la esquina se conserva. */
+  #zoomPasos button{ color:#efe4c8; font:400 24px/1 var(--ui);
+                     background:rgba(0,0,0,.22); opacity:.62;
+                     text-shadow:0 1px 3px rgba(0,0,0,.5);
                      transition:opacity .26s cubic-bezier(.65,0,.35,1),
+                                background .26s cubic-bezier(.65,0,.35,1),
                                 transform .26s cubic-bezier(.3,.8,.4,1); }
-  #zoomPasos button:hover::before{ opacity:.85; transform:scale(1.16); }
-  #zoomPasos button:active::before{ transform:scale(.92); }
-  #zoomPasos button:disabled{ cursor:default; }
-  #zoomPasos button:disabled::before{ opacity:.13; transform:none; }
+  #zoomPasos button:hover{ opacity:1; background:rgba(0,0,0,.34); transform:scale(1.08); }
+  #zoomPasos button:active{ transform:scale(.94); }
+  #zoomPasos button:disabled{ cursor:default; opacity:.16; transform:none; }
 
   @media (max-width: 560px){
-    #btnZoom{ width:40px; height:40px; font-size:19px; left:10px; bottom:10px; }
+    #btnZoom, #btnHistorial{ width:44px; height:44px; bottom:10px; }
+    #btnZoom{ left:10px; } #btnHistorial{ right:10px; }
+    #btnZoom::before, #btnHistorial::before{ width:13px; height:13px; }
     #btnVolver{ bottom:58px; }
     #zoomPasos{ right:10px; bottom:10px; gap:10px; }
-    #zoomPasos button{ width:52px; height:52px; font-size:22px; }
+    #zoomPasos button{ width:52px; height:52px; font-size:27px; }
   }
 
   /* ============================================================
@@ -577,18 +622,6 @@
      pasaste. Por eso va por tiempo y no por canon, y por eso lo más reciente
      va arriba.
      ============================================================ */
-  #btnHistorial{ position:absolute; right:8px; bottom:8px; z-index:7;
-                 width:30px; height:30px; padding:0; cursor:pointer;
-                 font:400 17px/1 var(--ui); color:#a98f57;
-                 background:var(--papel,#faf7f1); border:1px solid rgba(140,116,68,.34);
-                 border-radius:50%; -webkit-tap-highlight-color:transparent;
-                 -webkit-user-select:none; user-select:none;
-                 transition:background .3s cubic-bezier(.65,0,.35,1),
-                            color .3s cubic-bezier(.65,0,.35,1),
-                            box-shadow .3s cubic-bezier(.65,0,.35,1); }
-  #btnHistorial:hover{ color:#6d5c33; background:#fffdf6; }
-  #btnHistorial.abierto, #btnHistorial.abierto:hover{
-                 background:#b8892b; color:#fff8e4; border-color:#96701f; }
   /* Sube desde su esquina, que es de donde lo llamaste. Nada de cortina: la
      cortina es el gesto de la burbuja de arriba, y dos cosas que aparecen
      igual se confunden. */
@@ -663,7 +696,6 @@
            color:#6b5936; opacity:.85; }
 
   @media (max-width: 560px){
-    #btnHistorial{ width:40px; height:40px; font-size:21px; right:10px; bottom:10px; }
     #historial{ bottom:56px; right:8px; }
     .hs-ref{ font-size:14px; min-width:70px; }
     .hs-txt{ font-size:14px; }
@@ -1011,21 +1043,28 @@
      eso se reporta, con razón, como "no se puede editar".
      El color exacto lo pone el guion con colorPapel(), para que siga al sepia
      igual que la hoja. */
+  /* LA CAJA DE ESCRIBIR ES UNA GLOSA. Hereda .gl —Courier, interlínea, caja de
+     borde— y de .g-color el recuadro y el fondo que le tocan; el relleno y las
+     esquinas dispares se los pone formaOrganica con el MISMO id que tendrá la
+     nota, así que el recuadro donde escribes es el que se va a quedar. Lo
+     único que añade esta regla es dónde se planta y que flote.
+     Arriba del todo y no junto a su marca: en un teléfono el teclado se come
+     la mitad de abajo, y ése es el único sitio al que no llega nunca, mida lo
+     que mida. Cuesta que la nota nazca lejos de donde va a vivir, y eso lo
+     paga el vuelo del final, que enseña el camino.
+     La sombra es lo que la despega del papel mientras se escribe: la misma
+     glosa, pero todavía en la mano. */
   .gl-movil{ position:fixed; left:8px; right:8px; top:8px; z-index:12;
-             display:flex; gap:8px; align-items:stretch;
-             border:1px solid rgba(140,116,68,.6);
-             border-radius:10px; padding:8px;
-             box-shadow:0 14px 38px rgba(0,0,0,.45); }
-  /* Sin !important y con la misma medida que el texto: escribir la nota y
-     leerla después tienen que ser el mismo tamaño, o al guardarla cambia de
-     cuerpo y parece otra cosa. */
-  .gl-movil textarea{ flex:1 1 auto; min-width:0; line-height:1.45;
-                      padding:10px 11px; }
-  /* El botón también se viste de papel: el .btn de fábrica es letra clara
-     para fondo oscuro, y aquí el fondo ya no lo es. */
-  .gl-movil .btn{ flex:0 0 auto; padding:10px 16px; align-self:stretch;
-                  color:#4a3a1c; background:rgba(255,253,247,.9);
-                  border:1px solid rgba(140,116,68,.5); }
+             display:block; box-shadow:0 14px 38px rgba(0,0,0,.45); }
+  /* El textarea desaparece DENTRO de la caja: sin borde, sin fondo, sin
+     relleno propio. El recuadro ya lo pone la glosa, y dos recuadros, uno
+     dentro de otro, es lo que hacía que aquello se viera como un formulario.
+     Hereda la letra, que es la de la nota: escribirla y leerla después son el
+     mismo tamaño, o al guardarla cambia de cuerpo y parece otra cosa. */
+  .gl-movil textarea{ width:100%; display:block; border:0; background:transparent;
+                      padding:0; margin:0; box-shadow:none; resize:none;
+                      outline:none; color:inherit; font:inherit;
+                      line-height:inherit; min-height:4.2em; }
   .gl-edit{ font-family:'Courier New',monospace; font-size:11px; line-height:1.4;
             border-radius:3px; padding:3px 6px; resize:none; outline:none; display:block;
             background:#fffdf8; }
@@ -1172,9 +1211,19 @@
        ya en 40px, la lista de libros se vería hundida al lado, que es
        exactamente lo que se cuidó de evitar la vez pasada al subirlo todo
        junto. La lista se pone más larga y se corre, que ya sabía hacerlo. */
-    .tabo{ font-size:13px; height:40px; line-height:40px; padding:0 13px; }
-    .rejilla-libros{ gap:7px; }
-    #cantoCuerpo{ gap:7px; }
+    /* LOS LIBROS BAJAN DE ALTO. Estaban en 40px porque un blanco de 29 con el
+       vecino a 3 se fallaba, y era verdad; pero el arreglo se pasó de largo:
+       con 40 de alto y 7 de hueco, en la mitad del panel caben 24 libros de 39
+       y el Antiguo Testamento hay que recorrerlo entero para llegar a los
+       profetas. Un índice se usa mirando, no recorriendo.
+       Ahora el renglón mide lo que mide su texto más un respiro —26px—, y lo
+       que compensa la pérdida de precisión no es el tamaño sino la LUPA: se
+       arrastra el dedo por encima y un globo va diciendo qué libro hay debajo,
+       así que se elige mirando el globo y no el hueco entre dos nombres. Un
+       blanco chico con confirmación se atina mejor que uno grande a ciegas. */
+    .tabo{ font-size:13px; height:26px; line-height:26px; padding:0 9px; }
+    .rejilla-libros{ gap:5px; }
+    #cantoCuerpo{ gap:6px; }
     .num{ font-size:13.5px; height:40px; line-height:40px; }
     .grupo-tit{ font-size:10.5px; padding:6px 0 4px; }
     .fly-tit{ font-size:12px; padding:2px 0 5px; }
@@ -1248,6 +1297,23 @@
                                               scrollbar-width:none; }
     #cantoCuerpo.testamentos .rejilla-libros::-webkit-scrollbar{
                                               width:0; height:0; display:none; }
+    /* EL LIBRO QUE HAY DEBAJO DEL DEDO. Con renglones de 26px el dedo tapa el
+       nombre justo cuando hay que leerlo, así que el nombre sale AFUERA: un
+       globo encima del dedo que va cambiando conforme te mueves. Es lo que
+       hace que se pueda apretar el tamaño sin perder la puntería —eliges
+       mirando el globo, no adivinando entre dos nombres—.
+       No captura el puntero a propósito: capturar redirige el click y mata el
+       toque simple, que es la lección que costó los dos rótulos de la hoja. */
+    #lupaLibro{ position:absolute; z-index:11; display:none; pointer-events:none;
+                transform:translate(-50%, -100%);
+                background:#3a2f18; color:#f6eeda; border-radius:7px;
+                padding:7px 13px; white-space:nowrap;
+                font:600 16px/1.2 var(--ui); letter-spacing:.01em;
+                box-shadow:0 8px 20px -6px rgba(0,0,0,.6);
+                opacity:0; transition:opacity .12s linear; }
+    #lupaLibro.viva{ display:block; opacity:1; }
+    #lupaLibro.muerto{ background:#5c4a24; color:#cbbf9f; }
+    .tabo.bajoeldedo{ background:#b8892b; color:#fff8e4; }
 
     /* COLUMNAS EN CIFRAS. "una / dos / tres" son tres palabras de distinto
        largo peleando por el sitio más apretado del panel; 1, 2 y 3 dicen lo
@@ -1402,6 +1468,10 @@
 
 <div class="stage" id="stage">
   <div id="pg" class="pg">
+    <!-- El papel de la vista de lejos. Solo se ve con el zoom puesto, y lo
+         coloca medirZoom con la medida de la hoja entera, relleno incluido,
+         que es la misma que retrata la foto del pliegue. -->
+    <div id="zoomPapel" aria-hidden="true"></div>
     <div class="pg-inner">
       <div class="pg-cabeza" id="pgCabeza"></div>
       <div class="pg-cols">
@@ -1417,7 +1487,9 @@
   <div id="ajustes" class="rollo"></div>
   <div id="etiquetas" class="rollo"></div>
   <div id="respaldo" class="rollo"></div>
-  <div id="canto" class="rollo"><div id="cantoCab"></div><div id="cantoCuerpo"></div></div>
+  <div id="canto" class="rollo"><div id="cantoCab"></div><div id="cantoCuerpo"></div>
+    <!-- La lupa: dice qué libro hay bajo el dedo mientras se arrastra. -->
+    <div id="lupaLibro" aria-hidden="true"></div></div>
   <canvas id="fx"></canvas>
   <div id="huella" aria-hidden="true"></div>
   <!-- role=status para que un lector de pantalla también se entere de que hay
@@ -1458,15 +1530,14 @@
        botón de volver del salto. Y va discreto a propósito: es una salida que
        se busca cuando se necesita, no una que tenga que llamar la atención
        mientras lees. -->
-  <button id="btnZoom" title="Ver la hoja entera" aria-label="Ver la hoja entera">⊖</button>
-  <!-- El punto lo dibuja el CSS con ::before; el botón va vacío a propósito,
-       para que no haya un glifo que el navegador pueda componer a su manera.
-       Lo que dice cada uno vive en aria-label, que es donde tiene que estar. -->
+  <button id="btnZoom" title="Ver la hoja entera" aria-label="Ver la hoja entera"></button>
+  <!-- Los chevrones vuelven: aquí son un par que se usa seguido y hay que
+       distinguirlos entre sí a cada toque, no dos puertas que se aprenden. -->
   <div id="zoomPasos">
-    <button data-paso="-1" title="Hoja anterior" aria-label="Hoja anterior"></button>
-    <button data-paso="1" title="Hoja siguiente" aria-label="Hoja siguiente"></button>
+    <button data-paso="-1" title="Hoja anterior" aria-label="Hoja anterior">‹</button>
+    <button data-paso="1" title="Hoja siguiente" aria-label="Hoja siguiente">›</button>
   </div>
-  <button id="btnHistorial" title="Lo que has visto" aria-label="Lo que has visto">↺</button>
+  <button id="btnHistorial" title="Lo que has visto" aria-label="Lo que has visto"></button>
   <div id="historial" role="dialog" aria-label="Escrituras vistas" aria-modal="false"></div>
   <div id="versoPleno" role="dialog" aria-label="Versículo completo"></div>
   <!-- El rótulo de abajo dice en qué versión lees; tocarlo abre la lista de
@@ -1517,7 +1588,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-17 · globo de version';
+window.GLOSS_BUILD = '2026-08-17 · cajon y lupa';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -1621,7 +1692,17 @@ const PAGE_CSS = `
    flotaría para no gastar líneas; aquí el espacio no es escaso y se lee
    mucho mejor como un descanso entre capítulos.
    break-after evita que quede huérfano al pie de una columna. */
+/* EL NUMERAL VA CON LA LETRA DE LOS RÓTULOS, no con la del texto. Es aparato
+   del libro igual que el titulillo y el folio —no es palabra de la Escritura,
+   es un dispositivo para encontrarla—, y el aparato de un libro impreso se
+   compone aparte del texto. Heredando la del cuerpo, cambiar la tipografía en
+   Formato le cambiaba la cara al numeral: en Verdana se veía un número de
+   formulario en medio de la página. Con la suya propia, el numeral es lo mismo
+   en las seis tipografías, que es lo que se espera de un mueble de la hoja.
+   No lleva versalitas: son cifras, y small-caps no las toca. */
 .cap{ display:block; text-align:center; break-after:avoid;
+      font-family:'Palatino Linotype',Palatino,'Book Antiqua','Iowan Old Style',
+                  Georgia,'Noto Serif',serif;
       font-size:calc(4.2em - (var(--cols,1) - 1) * 0.45em);
       line-height:1; font-weight:400; color:#b0873a;
       letter-spacing:.04em;
@@ -3251,21 +3332,52 @@ function abrirGlosa(m){
       const viejo = raiz.querySelector('.gl[data-gl="'+m.id+'"]');
       if (viejo) viejo.remove();
     }
+    /* LA CAJA ES UNA GLOSA, no un formulario encima de una glosa. Lleva el
+       recuadro de su color, las esquinas dispares que le tocan por su id y la
+       misma Courier del mismo cuerpo, así que lo que escribes ya se ve como lo
+       que va a quedar. Antes era una caja de sistema con un botón "listo"
+       pegado: escribías en una cosa y aparecía otra.
+       La forma sale de formaOrganica con el MISMO id, así que el recuadro que
+       ves mientras escribes es exactamente el que se va a quedar en el margen,
+       hasta en qué esquina redondea más. */
     const caja = document.createElement('div');
-    caja.className = 'gl-movil';
-    caja.style.background = colorPapel();
+    const forma = formaOrganica(m);
+    caja.className = 'gl gl-movil g-' + m.color;
+    caja.style.cssText = forma.css;
+    caja.style.fontSize = fontSize + 'px';
+    /* Se le quitan al textarea el borde y el fondo que abrirGlosa le pone para
+       los otros tres sitios. Allí el textarea ES la glosa y necesita recuadro
+       propio; aquí el recuadro lo pone la caja, y dos marcos uno dentro de
+       otro son justo lo que hacía que esto se viera como un formulario. Van en
+       el atributo style porque en el atributo style se pusieron: contra eso no
+       puede la hoja de estilos. */
+    ta.style.border = '0';
+    ta.style.background = 'transparent';
     ta.style.width = '100%';
     /* La nota se escribe del tamaño con el que se va a leer. Se pone aquí y no
        en el CSS porque la caja cuelga del cuerpo del documento, fuera de la
        hoja, así que no hereda su --fs. */
     ta.style.fontSize = fontSize + 'px';
-    const listo = document.createElement('button');
-    listo.className = 'btn'; listo.textContent = 'listo';
-    listo.style.fontSize = Math.max(14, fontSize - 2) + 'px';
-    listo.addEventListener('click', () => ta.blur());
-    caja.appendChild(ta); caja.appendChild(listo);
+    caja.appendChild(ta);
     document.body.appendChild(caja);
     ta.dataset.caja = '1';
+    /* SE CIERRA TOCANDO AFUERA, y ya no hay botón que buscar. Un botón "listo"
+       obliga a apuntar a un blanco de un centímetro para decir algo que el
+       gesto natural —dejar de escribir— ya dice. Se escucha en captura para
+       llegar antes que cualquier otro oyente, y se ignora lo que caiga dentro
+       de la caja: ahí estás escribiendo, no terminando.
+       El blur hace el resto, que es donde ya vivía el guardado. */
+    const afuera = e => {
+      if (e.target.closest && e.target.closest('.gl-movil')) return;
+      document.removeEventListener('pointerdown', afuera, true);
+      ta.blur();
+    };
+    /* Al cuadro siguiente: el propio toque que abrió la glosa todavía anda
+       propagándose, y engancharlo ahora la cerraría antes de nacer. */
+    requestAnimationFrame(() =>
+      document.addEventListener('pointerdown', afuera, true));
+    ta.dataset.afuera = '1';
+    ta._afuera = afuera;
   } else if (placement === 'margin'){
     const viejo = pgMargin.querySelector('.gl[data-gl="'+m.id+'"]');
     const rg = rangoDe(m, pgBody), rects = rg && rg.getClientRects();
@@ -3288,15 +3400,54 @@ function abrirGlosa(m){
   }
   ta.focus();
   ta.addEventListener('blur', () => {
+    if (ta._afuera) document.removeEventListener('pointerdown', ta._afuera, true);
     const val = ta.value.trim();
     if (val){
       m.nota = val;
       if (etiquetaActiva && !(m.etiquetas||[]).includes(etiquetaActiva))
         m.etiquetas = (m.etiquetas||[]).concat(etiquetaActiva);
     } else delete m.nota;
-    if (ta.dataset.caja && ta.parentElement) ta.parentElement.remove();
+    const caja = ta.dataset.caja ? ta.parentElement : null;
     save(); renderPage();
+    /* Y la caja SE VA VOLANDO A SU SITIO. Sin esto, la nota desaparecía de
+       arriba y aparecía en el margen: dos cosas, no una. Viéndola viajar, lo
+       que escribiste y lo que quedó son el mismo objeto —que es la verdad— y
+       de paso el ojo aprende dónde buscarlo la próxima vez.
+       Si no hay a dónde volar —nota vacía, o la glosa no cabe en esta hoja— la
+       caja se quita sin más: inventarle un destino sería mentir. */
+    if (caja) volarGlosa(caja, m.id);
   });
+}
+
+/* EL VUELO DE LA GLOSA RECIÉN ESCRITA.
+
+   Se mide de dónde sale y a dónde va, y se lleva la caja de una a otra con un
+   transform: la caja no se re-maqueta, se mueve. El destino ya existe cuando
+   esto corre —renderPage lo acaba de pintar— así que su rectángulo es el de
+   verdad y no una estimación.
+   El de destino se esconde mientras dura el viaje y se destapa al llegar. Sin
+   eso se verían las dos a la vez y el viaje parecería una copia. */
+function volarGlosa(caja, id){
+  const destino = document.querySelector('.gl[data-gl="' + id + '"]');
+  const a = caja.getBoundingClientRect();
+  const b = destino && destino.getBoundingClientRect();
+  if (!destino || !b.width || !a.width){ caja.remove(); return; }
+  destino.style.visibility = 'hidden';
+  caja.style.transformOrigin = 'top left';
+  caja.style.pointerEvents = 'none';
+  caja.style.transition = 'transform .5s cubic-bezier(.4,0,.22,1), opacity .5s ease';
+  /* Dos cuadros: uno para que el navegador vea la caja en su sitio de salida
+     —si se le pide el transform en el mismo, no hay desde dónde animar— y el
+     transform en el siguiente. */
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    caja.style.transform = 'translate(' + Math.round(b.left - a.left) + 'px,' +
+      Math.round(b.top - a.top) + 'px) scale(' + (b.width / a.width).toFixed(3) + ')';
+    caja.style.opacity = '.4';
+  }));
+  setTimeout(() => {
+    caja.remove();
+    if (destino.isConnected) destino.style.visibility = '';
+  }, 520);
 }
 
 /* ---------- etiquetas ---------- */
@@ -4224,26 +4375,31 @@ let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
      Los imanes se quedan, y solo hacen lo que hace un imán: si SUELTAS cerca
      de una punta, el cajón termina de acomodarse. Ya no te arrebatan el
      movimiento a media carrera. */
-  /* LA PALANCA NO ES LA MISMA PARA EL DEDO QUE PARA EL RATÓN, y ahí estaba la
-     otra mitad del "ON/OFF". Con 5 a 1, el cajón entero —251px— se recorre con
-     50px de dedo. Un desliz normal en un teléfono mide entre 100 y 200, así
-     que el papel llegaba al tope en el primer tercio del gesto y los otros dos
-     tercios se gastaban contra el freno: abierto antes de terminar de abrir.
-     No es que faltara animación, es que no quedaba trayecto que animar.
-     Con 1.5 hacen falta 167px de dedo, que es un desliz de verdad, y entonces
-     el papel va DEBAJO del dedo, que es lo que hace que se sienta una cosa y
-     no un interruptor.
-     El ratón conserva los 5 a 1 y por su razón de siempre: ahí no hay desliz
-     nativo del que tirar, y arrastrar 251px con el ratón es un viaje. */
-  const PALANCA_RATON = 5, PALANCA_DEDO = 1.5;
-  const DESPEGUE = 6;      /* px de PUNTERO que hay que jalar para soltar el cajón */
-  const IMAN = 45;         /* px de PAPEL: qué tan cerca de una punta atrae */
-  /* Un lanzamiento se termina solo. Medido en px de PAPEL por milisegundo:
-     por debajo de esto fue un arrastre y mandas tú; por encima fue un envión y
-     lo que quisiste fue abrirlo o cerrarlo, no dejarlo a la mitad. */
-  const ENVION = 0.5;
-  let activo = false, despegado = false, x0 = 0, s0 = 0, puntero = null, reloj = null;
-  let palanca = PALANCA_RATON, vel = 0, tPrevio = 0, xPrevio = 0;
+  /* EL CAJÓN SE ABRE COMO UN CAJÓN, Y ESO CAMBIA EL GESTO ENTERO.
+
+     Hasta aquí el papel seguía al dedo: movías un poco y se movía un poco. Eso
+     tiene una virtud —puedes dejarlo a la mitad— y un defecto que en uso pesa
+     mucho más: cualquier roce lo movía. Bastaba un desliz de nada mientras
+     leías para que las glosas asomaran solas, y una hoja que se descoloca sin
+     que se lo pidas es peor que una que cuesta un poco abrir.
+
+     Ahora hacen falta dos cosas y no una. Primero INTENCIÓN: 34px de dedo, que
+     es un gesto que no se hace por accidente y sigue siendo cómodo a
+     propósito. Y en cuanto se cruzan, el cajón se va SOLO hasta el fondo, con
+     la curva de siempre —despacio, rápido, y frenando sin rebotar—. No sigue
+     al dedo el resto del camino, y por eso llega entero: un cajón de verdad se
+     empuja y termina de salir aunque sueltes.
+
+     Lo que se pierde es dejarlo a medias, y se pierde a sabiendas: media
+     columna de glosas no sirve para nada, y esa libertad estaba costando que
+     se abriera sin permiso. Con la decisión tomada aquí, sobran los imanes,
+     sobra la palanca y sobra medir la velocidad del envión: no hay estados
+     intermedios que gobernar.
+
+     La rueda del ratón sí conserva el movimiento fino, más abajo: ahí no hay
+     roces accidentales y el ajuste continuo es cómodo. */
+  const INTENCION = 34;    /* px de puntero que hay que mover para que cuente */
+  let activo = false, x0 = 0, y0 = 0, puntero = null, reloj = null;
   const sobraPapel = () => pg.scrollWidth - pg.clientWidth > 4;
   /* El número de capítulo SÍ se puede agarrar. Es un blanco grande —ocupa casi
      un tercio del ancho en la primera hoja de cada capítulo— y nadie lo
@@ -4272,25 +4428,18 @@ let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
   const poner = x => { pg.scrollLeft = Math.min(Math.max(x, 0), tope()); };
 
   /* CÓMO SE ACOMODA EL CAJÓN. Sin rebote: se probó y se veía como un tic, no
-     como madera. Pero la curva cambia, y este es el arreglo del "abre como
-     ON/OFF".
-     Estaba en 1-(1-k)^4, que es solo frenado: arranca a toda velocidad y
-     frena. Eso es lo que hace una cosa que EMPUJASTE y sigue por inercia, y
-     está bien cuando de verdad venías empujando. Pero cuando la animación es
-     la que abre el cajón entero, arrancar a toda velocidad no se ve como que
-     algo se pone en marcha: se ve como que ya estaba puesto.
-     Ahora es una cúbica de ida y vuelta —despacio, rápido, despacio—, que es
-     la misma que usa el bonche de hojas para volar. Una cosa con masa tarda en
-     arrancar tanto como tarda en pararse.
-     Y la duración va con la distancia en vez de ser fija: 430ms daban igual
-     para recorrer 20px que para recorrer 250, y en el primer caso se
-     arrastraba y en el segundo iba disparada. */
+     como madera. La curva es una cúbica de ida y vuelta —despacio, rápido,
+     despacio—, la misma con la que vuela el bonche de hojas. Una cosa con masa
+     tarda en arrancar tanto como tarda en pararse, y ese arranque es lo que
+     distingue algo que se pone en marcha de algo que ya estaba puesto.
+     La duración va con la distancia: un recorrido fijo daba igual para 20px
+     que para 250, y en el primer caso se arrastraba y en el segundo volaba. */
   const suaveIda = k => (k < .5 ? 4*k*k*k : 1 - Math.pow(-2*k + 2, 3)/2);
   function irA(meta){
     cancelAnimationFrame(reloj);
     const desde = pg.scrollLeft, tramo = meta - desde;
     if (Math.abs(tramo) < 1){ poner(meta); return; }
-    const dura = Math.min(700, Math.max(240, Math.abs(tramo) * 2.2));
+    const dura = Math.min(760, Math.max(300, Math.abs(tramo) * 2.4));
     const t0 = performance.now();
     (function paso(ahora){
       const k = Math.min(1, (ahora - t0) / dura);
@@ -4310,85 +4459,44 @@ let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
     if (zoomActivo) return;
     if (!sobraPapel() || !agarrable(ev.target)) return;
     cancelAnimationFrame(reloj);
-    activo = true; despegado = false;
-    palanca = ev.pointerType === 'touch' ? PALANCA_DEDO : PALANCA_RATON;
-    x0 = ev.clientX; s0 = pg.scrollLeft; puntero = ev.pointerId;
-    vel = 0; xPrevio = ev.clientX; tPrevio = performance.now();
-    try { pg.setPointerCapture(puntero); } catch(e){}
-    pg.classList.add('agarrado');
+    activo = true;
+    x0 = ev.clientX; y0 = ev.clientY; puntero = ev.pointerId;
+    /* NO se captura el puntero. Antes hacía falta para seguir el dedo hasta
+       fuera de la hoja; ahora el gesto se decide en cuanto cruza el umbral y
+       no hay nada que seguir. Y capturar tiene un costo que este archivo ya
+       pagó una vez: redirige el click de compatibilidad al contenedor y mata
+       los toques de lo que haya debajo. */
   });
 
   pg.addEventListener('pointermove', ev => {
     if (!activo || ev.pointerId !== puntero) return;
-    const d = ev.clientX - x0;
-    if (!despegado){
-      /* Trabado hasta que jalas de verdad. El umbral se mide en píxeles de
-         PUNTERO, no de papel: con la palanca puesta, 45px de papel serían
-         menos de cinco de mano y no se sentiría trabado en absoluto. */
-      if (Math.abs(d) < DESPEGUE) return;
-      despegado = true;
-      /* arranca desde donde está, sin brincar los píxeles del umbral */
-      x0 = ev.clientX + (d < 0 ? DESPEGUE : -DESPEGUE);
-      xPrevio = ev.clientX; tPrevio = performance.now();
-    }
-    /* La velocidad se mide del DEDO y no del scrollLeft, y no es un detalle:
-       al llegar al tope el papel deja de moverse aunque el dedo siga volando,
-       así que medirla del papel daría cero justo en el envión más claro que
-       hay. Se suaviza con la anterior porque un solo par de cuadros captura
-       cualquier tirón; la mezcla se queda con la intención y no con el ruido. */
-    const ahora = performance.now(), dt = ahora - tPrevio;
-    if (dt > 0){
-      const v = -(ev.clientX - xPrevio) * palanca / dt;
-      vel = vel * 0.4 + v * 0.6;
-      xPrevio = ev.clientX; tPrevio = ahora;
-    }
+    const dx = ev.clientX - x0;
+    /* Vertical manda. Deslizar hacia abajo es leer, no abrir el cajón: si el
+       dedo va más de lado que hacia abajo, es un gesto horizontal; si no, se
+       abandona y que el desplazamiento normal haga lo suyo. Sin esto, un
+       desliz de lectura un poco torcido abriría las glosas. */
+    if (Math.abs(ev.clientY - y0) > Math.abs(dx)){ activo = false; return; }
+    if (Math.abs(dx) < INTENCION) return;
+    /* Cruzado el umbral: la decisión está tomada y el gesto termina aquí. El
+       cajón sale o entra ENTERO —jalar hacia la izquierda trae las glosas,
+       hacia la derecha devuelve el texto— y el dedo ya no manda nada más. */
+    activo = false;
     ev.preventDefault();
-    poner(s0 - (ev.clientX - x0) * palanca);
+    irA(dx < 0 ? tope() : 0);
   });
 
   const soltar = ev => {
-    if (!activo) return;
     if (ev && ev.pointerId != null && ev.pointerId !== puntero) return;
-    const salio = despegado;
-    activo = false; despegado = false;
-    pg.classList.remove('agarrado');
-    try { pg.releasePointerCapture(puntero); } catch(e){}
-    if (!salio) return;
-    const t = tope(), x = pg.scrollLeft;
-    /* LA VELOCIDAD CADUCA. Si mueves deprisa y luego te quedas quieto con el
-       dedo puesto antes de soltar, no llega ni un pointermove más: el último
-       valor medido sigue ahí, viejo, y al soltar se leía como un envión. El
-       cajón se iba a la punta justo cuando la pausa decía lo contrario —parar
-       antes de soltar es EXACTAMENTE cómo se pide "déjalo aquí"—.
-       Ciento diez milisegundos sin noticias del dedo y la velocidad es cero.
-       Lo encontró la revisión de Codex. */
-    if (performance.now() - tPrevio > 110) vel = 0;
-    /* PRIMERO EL ENVIÓN, DESPUÉS LOS IMANES, y el orden es el que manda.
-       Si soltaste lanzando, el cajón termina el viaje en la dirección que
-       llevaba, esté donde esté: eso es lo que quiere decir un envión y es lo
-       que deja ver la curva entera —arranca despacio, coge vuelo, frena—.
-       Si soltaste sin velocidad, sigue mandando lo de siempre: cerca de una
-       punta se acomoda, en medio se queda donde lo dejaste, porque ahí lo
-       dejaste tú. Eso no se toca: la ayuda no está en decidir por ti.
-       El imán se llama SIEMPRE que quedaste en una punta o cerca de ella,
-       aunque ya estés exactamente en el tope: ahí irA() ya no viaja. */
-    if (Math.abs(vel) > ENVION) irA(vel > 0 ? t : 0);
-    else if (x <= IMAN) irA(0);
-    else if (x >= t - IMAN) irA(t);
-    vel = 0;
+    activo = false;
   };
   pg.addEventListener('pointerup', soltar);
   pg.addEventListener('pointercancel', soltar);
-  /* pointerleave NO se escucha: al cruzar sobre un filo —hermano de #pg que
-     está encima— el navegador anuncia que el puntero salió, y obedecer eso
-     cancelaba el arrastre a media carrera. */
-  pg.addEventListener('lostpointercapture', soltar);
-  /* Ahora sí, la buena: cancela el acomodo en curso y suelta el arrastre antes
-     de cerrar. Sin cancelar el reloj, la hoja aterrizada heredaría el viaje
-     que traía la anterior y se pondría a correrse sola. */
+  /* Cancela el acomodo en curso y suelta el gesto antes de cerrar. Sin
+     cancelar el reloj, la hoja aterrizada heredaría el viaje que traía la
+     anterior y se pondría a correrse sola. */
   cerrarCajonDeGlosas = () => {
     cancelAnimationFrame(reloj);
-    activo = false; despegado = false;
+    activo = false;
     pg.classList.remove('agarrado');
     pg.scrollLeft = 0;
   };
@@ -4492,6 +4600,23 @@ function medirZoom(){
   fx.style.transformOrigin = 'top left';
   fx.style.transform = 'translate(' + Math.round(zoomFx.x) + 'px,' +
                        Math.round(zoomFx.y) + 'px) scale(' + k.toFixed(4) + ')';
+
+  /* EL PAPEL DE DEBAJO, EXACTAMENTE DONDE LO PONE LA FOTO. La hoja no es
+     .pg-inner: es .pg, que lleva 22px de relleno arriba y 18 abajo. La foto
+     del pliegue retrata .pg entera, así que al empezar el giro aparecían esos
+     márgenes y al aterrizar se encogían otra vez —estrecha, ancha, estrecha—.
+     Aquí se coloca un papel con la medida de .pg, con la MISMA cuenta que el
+     lienzo, así que los dos ocupan el mismo rectángulo y el salto desaparece.
+     Se usa el ancho del papel y no el de la ventana, igual que arriba: en
+     teléfono la hoja sobresale de la pantalla y hay que retratarla entera. */
+  const papel = $('zoomPapel');
+  if (papel){
+    const anchoPg = Math.max(pw + dx*2, W);      /* el papel, no la ventana */
+    papel.style.left   = Math.round(zoomFx.x) + 'px';
+    papel.style.top    = Math.round(zoomFx.y) + 'px';
+    papel.style.width  = Math.round(k*anchoPg) + 'px';
+    papel.style.height = Math.round(k*H) + 'px';
+  }
 
   /* Y LOS FILOS SE PONEN SOBRE EL PAPEL. Ocupan todo el alto de la pantalla, y
      de lejos eso invade el hueco —que ahí significa "vuelve"—: el toque se lo
@@ -5419,6 +5544,100 @@ function tocarLibro(ev){
   abrirCapitulos(id, lib.getBoundingClientRect());
 }
 canto.addEventListener('click', tocarLibro);
+
+/* ============================================================
+   LA LUPA DEL PANEL DE LIBROS.
+
+   Con los renglones apretados a 26px, el dedo tapa el nombre justo cuando hay
+   que leerlo. Así que el nombre sale afuera: se apoya el dedo sobre la lista,
+   un globo encima dice qué libro hay debajo, y arrastrando se va cambiando
+   hasta soltar sobre el que se quería. Un blanco chico con confirmación se
+   atina mejor que uno grande a ciegas.
+
+   NO captura el puntero. Capturar redirigiría el click al contenedor y mataría
+   el toque simple —es exactamente lo que dejó muertos los dos rótulos de la
+   hoja con ratón, y no vamos a repetirlo—. Los movimientos se escuchan en el
+   documento mientras dura el gesto y se sueltan al terminar.
+
+   Y solo actúa si el dedo SE MUEVE. Un toque limpio sigue siendo un toque
+   limpio, que lo atiende tocarLibro por la vía de siempre; la lupa se mete en
+   medio únicamente cuando el gesto pasó a ser un arrastre, y entonces sí se
+   queda ella con el desenlace y anula el click que vendría detrás.
+   ============================================================ */
+(function lupaDeLibros(){
+  const lupa = $('lupaLibro');
+  if (!lupa) return;
+  const UMBRAL = 7;                 /* px de dedo para que deje de ser un toque */
+  let activo = false, movido = false, x0 = 0, y0 = 0, ultimo = null;
+
+  const libroEn = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    return el && el.closest ? el.closest('.tabo') : null;
+  };
+  const marcar = t => {
+    if (ultimo === t) return;
+    if (ultimo) ultimo.classList.remove('bajoeldedo');
+    ultimo = t;
+    if (t) t.classList.add('bajoeldedo');
+  };
+  const poner = (t, x, y) => {
+    marcar(t);
+    if (!t){ lupa.classList.remove('viva'); return; }
+    const vivo = hayLibro(t.dataset.libro);
+    lupa.textContent = t.textContent + (vivo ? '' : ' — no está');
+    lupa.classList.toggle('muerto', !vivo);
+    const r = canto.getBoundingClientRect();
+    /* El globo va sobre el dedo y pegado al canto del panel si no cabe: un
+       aviso que se sale de la pantalla no avisa. */
+    const mitad = lupa.offsetWidth / 2 || 60;
+    const cx = Math.min(Math.max(x - r.left, mitad + 4), r.width - mitad - 4);
+    lupa.style.left = Math.round(cx) + 'px';
+    lupa.style.top  = Math.round(y - r.top - 12) + 'px';
+    lupa.classList.add('viva');
+  };
+  const soltar = ev => {
+    if (!activo) return;
+    activo = false;
+    document.removeEventListener('pointermove', mueve, true);
+    document.removeEventListener('pointerup', soltar, true);
+    document.removeEventListener('pointercancel', soltar, true);
+    lupa.classList.remove('viva');
+    const t = ultimo; marcar(null);
+    if (!movido) return;            /* fue un toque: que lo atienda el click */
+    /* Fue un arrastre: el desenlace es de la lupa, y el click que viene detrás
+       sobra —abriría los capítulos del libro donde EMPEZÓ el dedo, no del que
+       elegiste—. Se traga uno solo, y en captura para llegar antes. */
+    const tragar = e => { e.stopPropagation(); e.preventDefault(); };
+    document.addEventListener('click', tragar, { capture:true, once:true });
+    setTimeout(() => document.removeEventListener('click', tragar, true), 350);
+    if (t && ev) abrirCapitulosDe(t);
+  };
+  const mueve = ev => {
+    if (!activo) return;
+    if (!movido && Math.hypot(ev.clientX - x0, ev.clientY - y0) < UMBRAL) return;
+    movido = true;
+    ev.preventDefault();
+    poner(libroEn(ev.clientX, ev.clientY), ev.clientX, ev.clientY);
+  };
+  canto.addEventListener('pointerdown', ev => {
+    const t = ev.target.closest && ev.target.closest('.tabo');
+    if (!t || !ev.target.closest('.rejilla-libros')) return;
+    activo = true; movido = false; x0 = ev.clientX; y0 = ev.clientY;
+    document.addEventListener('pointermove', mueve, true);
+    document.addEventListener('pointerup', soltar, true);
+    document.addEventListener('pointercancel', soltar, true);
+  });
+})();
+/* El mismo desenlace que un toque, para que la lupa y el click no cuenten dos
+   historias distintas de lo que pasa al elegir un libro. */
+function abrirCapitulosDe(lib){
+  const id = lib.dataset.libro;
+  if (!hayLibro(id)){
+    readout.textContent = nombreDe(id) + ' no está en estos datos — genéralo con el convertidor';
+    return;
+  }
+  abrirCapitulos(id, lib.getBoundingClientRect());
+}
 /* Tocar fuera cierra la burbuja. Quedan exentos los sitios que son la burbuja
    o la abren: el propio panel, las cajitas de capítulos y versículos, el menú
    flotante y las dos etiquetas de la hoja —esas ya alternan por su cuenta y si
