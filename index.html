@@ -503,6 +503,67 @@
   }
 
   /* ============================================================
+     LA VERSIÓN, DONDE SE PREGUNTA POR ELLA.
+
+     El rótulo del pie abría el panel de Formato entero, y la versión era su
+     última fila de diez: había que barrer el panel para encontrar justo lo que
+     acababas de pedir. Eso se tapó un tiempo con un destello dorado sobre la
+     fila, que es la clase de arreglo que confiesa el problema en vez de
+     resolverlo —si hay que señalar dónde quedó lo que pediste, es que no
+     quedó donde tenía que quedar—.
+
+     Ahora el rótulo abre la lista de versiones y nada más. La fila sigue en
+     Formato, porque ahí es donde se va cuando se anda cambiando ajustes; lo
+     que cambia es que tocar "VBL" ya no es un rodeo. Y el destello se retira
+     entero: la puerta lleva a la cosa, así que no hay nada que señalar.
+
+     Sale del pie hacia arriba, que es de donde la llamaste, y con la lista
+     completa: aquí sí caben los nombres largos, que es lo que hace falta para
+     elegir entre cuatro traducciones. En el panel siguen siendo abreviaturas
+     porque allí compiten por sitio con otros nueve ajustes.
+     ============================================================ */
+  #burbujaVersion{ position:absolute; left:50%; bottom:40px; z-index:9;
+                   width:min(300px, calc(100% - 24px));
+                   display:none; flex-direction:column; max-height:62%;
+                   overflow-y:auto; overscroll-behavior:contain;
+                   background:linear-gradient(to bottom, #f2e9d6, #e7dbbe);
+                   border:1px solid rgba(140,116,68,.5); border-radius:6px;
+                   box-shadow:0 12px 28px -9px rgba(0,0,0,.55);
+                   padding:6px; scrollbar-width:none;
+                   opacity:0; transform:translate(-50%, 9px) scale(.97);
+                   transform-origin:bottom center;
+                   transition:opacity .2s ease,
+                              transform .28s cubic-bezier(.2,.85,.3,1); }
+  #burbujaVersion::-webkit-scrollbar{ width:0; height:0; display:none; }
+  #burbujaVersion.visible{ opacity:1; transform:translate(-50%, 0) scale(1); }
+  .bv-tit{ display:block; font:700 10.5px/1 var(--ui); letter-spacing:.14em;
+           text-transform:uppercase; color:#8a7746; padding:3px 3px 6px; }
+  .bv-fila{ display:flex; align-items:baseline; gap:9px; width:100%;
+            border:0; background:rgba(255,253,247,.62); cursor:pointer;
+            text-align:left; padding:9px; border-radius:4px; margin-bottom:5px;
+            min-height:40px; -webkit-tap-highlight-color:transparent;
+            transition:background .28s cubic-bezier(.65,0,.35,1),
+                       color .28s cubic-bezier(.65,0,.35,1); }
+  .bv-fila:last-child{ margin-bottom:0; }
+  .bv-fila:hover{ background:#fffdf6; }
+  /* La puesta va en marrón macizo, igual que un botón cumplido en el panel:
+     es el mismo idioma en otro sitio, y así no hay nada nuevo que aprender. */
+  .bv-fila.aqui, .bv-fila.aqui:hover{ background:#b8892b; }
+  .bv-fila.aqui .bv-abrev, .bv-fila.aqui .bv-nombre{ color:#fff8e4; }
+  .bv-abrev{ flex:0 0 auto; min-width:62px; font:700 13px/1.35 var(--ui);
+             color:#6d5c33; letter-spacing:.06em; white-space:nowrap; }
+  .bv-nombre{ flex:1 1 auto; min-width:0; font:400 12.5px/1.35 var(--ui);
+              color:#4a3a1c; overflow:hidden; text-overflow:ellipsis;
+              white-space:nowrap; }
+
+  @media (max-width: 560px){
+    #burbujaVersion{ bottom:52px; }
+    .bv-fila{ min-height:44px; padding:10px; }
+    .bv-abrev{ font-size:14px; min-width:68px; }
+    .bv-nombre{ font-size:13.5px; }
+  }
+
+  /* ============================================================
      EL HISTORIAL DE LO VISTO.
 
      Un lector de la Biblia salta mucho: una referencia lleva a otra y a la
@@ -677,31 +738,45 @@
      libro, y eso en un teléfono dura lo suyo: apretabas "abajo" y durante un
      segundo largo el botón seguía diciendo exactamente lo mismo que antes de
      apretarlo. Sin saber si entró, se aprieta otra vez.
-     Así que el borde se enciende con el MISMO marrón del botón cumplido —no
-     con otro color, que sería un tercer idioma que aprender— y se apaga cuando
-     el trabajo terminó. Solo el borde: el relleno macizo está reservado para
-     "ya está", y adelantarlo aquí sería mentir a medias.
+     Así que se tiñe con el MISMO marrón del botón cumplido —no con otro color,
+     que sería un tercer idioma que aprender— y se apaga cuando el trabajo
+     terminó.
+
+     EL RELLENO TAMBIÉN, y eso corrige la primera versión de esto, que encendía
+     solo el borde. El argumento era que el relleno macizo está reservado para
+     "ya está" y adelantarlo sería mentir a medias. En uso no se sostuvo: un
+     borde de dos píxeles en un botón que YA tiene borde no se ve al vuelo, y
+     la duda seguía siendo la de siempre —"¿lo apreté o no?"—. Un aviso que hay
+     que buscar no es un aviso.
+     Se arregla sin perder la distinción, porque no hacen falta dos colores
+     sino dos DENSIDADES del mismo: el botón cumplido va en marrón opaco
+     (#b8892b); el que está trabajando, en ese marrón a media tinta y latiendo.
+     Se ve de un vistazo que algo pasa, y se sigue distinguiendo de lo que ya
+     pasó.
+
      El latido va desparejo a propósito —sube en un quinto del ciclo, baja en
      dos y descansa el resto— porque un pulso simétrico se lee como máquina.
-     Esto es lo que se pidió y lo que un aro girando haría demasiado alto: la
-     señal vive en el botón que tocaste, no encima de la pantalla.
-     Y si el hilo se traba repaginando, el borde se queda congelado ENCENDIDO,
-     que es justo lo que hay que decir en ese momento. */
+     La señal vive en el botón que tocaste, no encima de la pantalla, que es lo
+     que haría un aro girando y sería demasiado alto para esto.
+     Y si el hilo se traba repaginando, se queda congelado ENCENDIDO, que es
+     justo lo que hay que decir en ese momento. */
   .rollo .btn.obrando, .rollo .chip.obrando{
     animation:obrandoBorde 1.05s cubic-bezier(.35,0,.5,1) infinite; }
   @keyframes obrandoBorde{
-    0%   { border-color:rgba(150,112,31,.42);
+    0%   { background:rgba(184,137,43,.30); border-color:rgba(150,112,31,.5);
            box-shadow:0 0 0 0 rgba(184,137,43,0); }
-    20%  { border-color:#96701f;
+    20%  { background:rgba(184,137,43,.62); border-color:#96701f;
            box-shadow:0 0 0 1.5px rgba(184,137,43,.58), 0 0 10px 0 rgba(184,137,43,.42); }
-    58%  { border-color:rgba(150,112,31,.5);
+    58%  { background:rgba(184,137,43,.34); border-color:rgba(150,112,31,.55);
            box-shadow:0 0 0 1px rgba(184,137,43,.15), 0 0 4px 0 rgba(184,137,43,.12); }
-    100% { border-color:rgba(150,112,31,.42);
+    100% { background:rgba(184,137,43,.30); border-color:rgba(150,112,31,.5);
            box-shadow:0 0 0 0 rgba(184,137,43,0); }
   }
+  /* Quieto se queda a media tinta, que es donde más se distingue de las dos
+     puntas: ni el papel de "sin tocar" ni el macizo de "ya está". */
   @media (prefers-reduced-motion: reduce){
     .rollo .btn.obrando, .rollo .chip.obrando{
-      animation:none; border-color:#96701f;
+      animation:none; background:rgba(184,137,43,.5); border-color:#96701f;
       box-shadow:0 0 0 1.5px rgba(184,137,43,.55); }
   }
   .rollo select, .rollo input{ font-size:.63rem; padding:3px 5px; color:#3c2f16;
@@ -840,35 +915,6 @@
   .grupo-triple{ display:grid; row-gap:5px; align-content:start; }
   #ctrlConfig .ajuste.ancho{ grid-column:1 / -1; margin-top:4px;
                              padding-top:4px; border-top:1px solid rgba(140,116,68,.3); }
-  /* EL RÓTULO SEÑALA SU AJUSTE. El "VBL" del pie de la hoja abre Formato, y
-     esa relación —cada rótulo es la puerta de lo que nombra— estaba contada
-     en un comentario y en ningún sitio más: al abrirse, el panel enseña diez
-     filas y la versión es la última, abajo del todo, después del sepia. El
-     que tocó "VBL" tiene que barrer el panel entero para encontrar lo que
-     acaba de pedir.
-     Ahora la fila se enciende sola al llegar. TRES pulsos, el mismo número que
-     el destello de llegada de un salto: los destellos de este programa cuentan
-     todos hasta tres, y un aviso que late distinto según dónde esté obliga a
-     aprenderse dos ritmos. Dorados, que es el color con que este programa dice
-     "esto de aquí". Y el destello va sobre el FONDO, no sobre un borde: hay
-     que decir dónde mirar, no marcar un estado.
-     No se hace scroll hasta ella: el panel cabe entero en la pantalla, así
-     que moverlo sería quitarle al ojo el recorrido que le enseña dónde
-     estaba la fila para la próxima vez. */
-  #filaVersion{ border-radius:5px; }
-  #filaVersion.destello{ animation:destelloVersion 1.7s cubic-bezier(.4,0,.4,1); }
-  @keyframes destelloVersion{
-    0%   { background:rgba(201,162,39,0);   box-shadow:0 0 0 0 rgba(201,162,39,0); }
-    10%  { background:rgba(201,162,39,.46); box-shadow:0 0 0 5px rgba(201,162,39,.30); }
-    27%  { background:rgba(201,162,39,.07); box-shadow:0 0 0 5px rgba(201,162,39,.05); }
-    42%  { background:rgba(201,162,39,.44); box-shadow:0 0 0 5px rgba(201,162,39,.28); }
-    59%  { background:rgba(201,162,39,.07); box-shadow:0 0 0 5px rgba(201,162,39,.05); }
-    74%  { background:rgba(201,162,39,.40); box-shadow:0 0 0 5px rgba(201,162,39,.26); }
-    100% { background:rgba(201,162,39,0);   box-shadow:0 0 0 0 rgba(201,162,39,0); }
-  }
-  @media (prefers-reduced-motion: reduce){
-    #filaVersion.destello{ animation:destelloVersion 1.25s steps(1,end); }
-  }
   /* en hoja angosta todo se apila en una sola columna */
   #ctrlConfig.estrecho, #ctrlConfig.estrecho .grupo-simple{ grid-template-columns:1fr; }
 
@@ -1333,9 +1379,7 @@
   <span class="medida" id="sepiaAhora">0</span>
 </span></div>
 
-<!-- Lleva id propio para que el rótulo de la hoja pueda señalarla al abrir:
-     tocas "VBL" abajo y esta fila da un destello. Ver destellarVersion. -->
-<div class="ajuste ancho" id="filaVersion"><span class="lbl">versión</span><span class="ctrl" id="ctrlVersiones">
+<div class="ajuste ancho"><span class="lbl">versión</span><span class="ctrl" id="ctrlVersiones">
   <!-- se arma solo con lo que traiga bibles-included.js -->
 </span></div>
 </div>
@@ -1425,6 +1469,9 @@
   <button id="btnHistorial" title="Lo que has visto" aria-label="Lo que has visto">↺</button>
   <div id="historial" role="dialog" aria-label="Escrituras vistas" aria-modal="false"></div>
   <div id="versoPleno" role="dialog" aria-label="Versículo completo"></div>
+  <!-- El rótulo de abajo dice en qué versión lees; tocarlo abre la lista de
+       versiones aquí mismo, sin pasar por el panel. -->
+  <div id="burbujaVersion" role="dialog" aria-label="Versión de la Biblia"></div>
 </div>
 
 <div id="deshacer">Marca borrada <button class="btn" id="btnDeshacer">Deshacer</button></div>
@@ -1470,7 +1517,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-17 · pliegue de lejos';
+window.GLOSS_BUILD = '2026-08-17 · globo de version';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4636,40 +4683,73 @@ document.addEventListener('pointerdown', ev => {
 
 /* Las dos puertas a la burbuja, cada una a su sección. */
 $('pgCabeza').addEventListener('click', e => { e.preventDefault(); alternarBurbuja('libros'); });
-/* Y la de abajo, además, señala a dónde fue a parar lo que nombra.
-
-   El destello espera a que el panel esté puesto. Si saliera junto con la
-   entrada, se lo comería la propia animación —la fila viene desplazándose de
-   lado y desvaneciéndose, y un fondo dorado sobre algo que aún está a media
-   opacidad no se ve—. Cuánto esperar depende de por dónde se entró, que no es
-   lo mismo: la cortina de abrir la burbuja tarda 740 ms, y el cambio de
-   sección estando ya abierta son los 180 de salida más otro tanto de que la
-   fila llegue a su sitio. Se pregunta antes de abrir, porque para cuando
-   corra el diferido la bandera ya habrá cambiado.
-
-   Y no se destella si lo que hizo el toque fue CERRAR: ahí no hay ninguna
-   fila que señalar. */
+/* Y la de abajo abre la lista de versiones, que es lo que nombra. */
 $('pgVersion').addEventListener('click', e => {
-  e.preventDefault();
-  const estaba = burbujaAbierta(), eraFormato = estaba && seccionViva === 'formato';
-  alternarBurbuja('formato');
-  if (eraFormato) return;                 /* el toque cerró la burbuja */
-  destellarVersion(estaba ? 420 : 780);
+  e.preventDefault(); e.stopPropagation();
+  if (versionAbierta) cerrarVersiones(); else abrirVersiones();
 });
-let relojDestelloVersion = null;
-function destellarVersion(espera){
-  clearTimeout(relojDestelloVersion);
-  const fila = $('filaVersion');
-  fila.classList.remove('destello');
-  relojDestelloVersion = setTimeout(() => {
-    /* Se comprueba otra vez: en medio segundo te pudo dar tiempo de cerrar el
-       panel o irte a otra pestaña, y encender una fila escondida solo sirve
-       para que el destello te salte encima la próxima vez que abras. */
-    if (!rFormato.abierto) return;
-    fila.classList.remove('destello'); void fila.offsetWidth;
-    fila.classList.add('destello');
-  }, espera);
+
+/* ============================================================
+   LA LISTA DE VERSIONES, EN SU PROPIO GLOBO.
+
+   Las filas se arman aquí y no se copian del panel a propósito: son la misma
+   lista pero no el mismo botón. En el panel caben abreviaturas porque compiten
+   con otros nueve ajustes; aquí sobra sitio para el nombre entero, que es lo
+   que de verdad hace falta para elegir entre traducciones —"RVR1909" no dice
+   nada que "Reina-Valera 1909" no diga mejor—. Clonar el marcado del panel
+   habría atado las dos formas a la misma decisión para siempre.
+   Lo que sí es común es a dónde van: las dos llaman a setVersion, que es donde
+   vive el cambio de verdad.
+   ============================================================ */
+let versionAbierta = false;
+function pintarVersiones(){
+  $('burbujaVersion').innerHTML = '<span class="bv-tit">Versión</span>' +
+    Object.entries(D.versiones).map(([k, v]) =>
+      '<button class="bv-fila' + (k === version ? ' aqui' : '') + '" data-bv="' + esc(k) + '"' +
+      ' title="' + esc(v.licencia || '') + '">' +
+      '<span class="bv-abrev">' + esc(v.abrev || k) + '</span>' +
+      '<span class="bv-nombre">' + esc(v.nombre || k) + '</span></button>').join('');
 }
+function abrirVersiones(){
+  if (versionAbierta) return;
+  cerrarTodosLosRollos(); cerrarHistorial();
+  versionAbierta = true;
+  pintarVersiones();
+  const el = $('burbujaVersion');
+  el.style.display = 'flex';
+  void el.offsetWidth;
+  el.classList.add('visible');
+  $('pgVersion').classList.add('abierta');
+}
+function cerrarVersiones(){
+  if (!versionAbierta) return;
+  versionAbierta = false;
+  const el = $('burbujaVersion');
+  el.classList.remove('visible');
+  $('pgVersion').classList.remove('abierta');
+  setTimeout(() => { if (!versionAbierta) el.style.display = 'none'; }, 260);
+}
+$('burbujaVersion').addEventListener('click', ev => {
+  const f = ev.target.closest('[data-bv]'); if (!f) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const k = f.dataset.bv;
+  /* Se cierra ANTES de cambiar, y no por cortesía: cambiar de versión rehace
+     el plano y repagina el libro entero, y eso traba el hilo. Con el globo
+     todavía puesto, el cierre no llegaría a pintarse hasta que terminara el
+     trabajo y se vería colgado. El cambio arranca al cuadro siguiente, cuando
+     el cierre ya empezó. */
+  cerrarVersiones();
+  if (k === version) return;
+  requestAnimationFrame(() => setVersion(k));
+});
+/* Un toque fuera lo cierra, en captura, igual que el historial. El propio
+   rótulo queda exceptuado: su oyente ya sabe alternar, y cerrarlo aquí lo
+   volvería a abrir en el mismo gesto. */
+document.addEventListener('pointerdown', ev => {
+  if (!versionAbierta) return;
+  if (ev.target.closest('#burbujaVersion, #pgVersion')) return;
+  cerrarVersiones();
+}, true);
 
 [['right', edgeR], ['left', edgeL]].forEach(([s, el]) => {
   el.addEventListener('pointerdown', e => bordeAbajo(e, s));
