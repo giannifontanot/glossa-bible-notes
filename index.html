@@ -919,7 +919,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-16 · editor movil';
+window.GLOSS_BUILD = '2026-08-17 · glosa instantanea';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -1264,6 +1264,27 @@ try { const r = localStorage.getItem(KEY); if (r) marcas = JSON.parse(r).map(alD
    DECIRLO. Tragarse el error deja al lector creyendo que sus glosas
    están a salvo cuando no lo están. */
 let avisoGuardado = false;
+/* QUÉ DE UNA MARCA PUEDE MOVER UN CORTE DE HOJA. Solo una cosa: que la nota
+   ocupe renglones en el cuerpo del texto. Y eso pide dos condiciones a la vez
+   —que la disposición no sea "al margen", donde la nota va en position:absolute
+   y no estorba, y que la nota TENGA texto, porque verseHTML solo pinta la glosa
+   si hay algo que pintar (m.nota && visible(m))—.
+   La segunda faltaba, y era la que importaba de verdad. Crear una glosa nueva
+   la crea VACÍA: el editor se abre después, para que escribas. Así que el gesto
+   de crearla no cambia ni un renglón del cuerpo, y aun así se repaginaba el
+   libro entero. Medido con la CPU frenada a la cuarta parte, que es más
+   parecido a un teléfono: 15562 ms para llegar exactamente al mismo reparto.
+   La firma lleva el texto de la nota y no solo su presencia, porque dos notas
+   distintas del mismo largo parten los renglones en sitios distintos y pueden
+   mover el corte. Y lleva visible(), porque una nota escondida por el filtro de
+   etiquetas no se pinta y por tanto no ocupa. */
+function firmaDelCuerpo(){
+  if (placement === 'margin') return '';
+  let f = '';
+  for (const m of marcas) if (m.nota && visible(m)) f += m.id + '\u0001' + m.nota + '\u0002';
+  return f;
+}
+let firmaCuerpo = '';
 const save = () => {
   /* GUARDAR NO SIEMPRE OBLIGA A REPAGINAR, y creer que sí costaba tres
      segundos por marca. Aquí se ponía la bandera siempre, y con ella la
@@ -1288,7 +1309,8 @@ const save = () => {
      importaba comprobar, porque pasar de margen a abajo con marcas ya
      guardadas tiene que repaginar—, de versión, de columnas, de letra, de
      interlínea, apagar las marcas y redimensionar la ventana. */
-  if (placement !== 'margin') paginasSucias = true;
+  const firma = firmaDelCuerpo();
+  if (firma !== firmaCuerpo){ firmaCuerpo = firma; paginasSucias = true; }
   try {
     localStorage.setItem(KEY, JSON.stringify(marcas));
     avisoGuardado = false;
@@ -4288,7 +4310,11 @@ function setVersion(v){
    versículo, así que sigue siendo una elección válida. */
 const placementPorOmision = () => (stage.offsetWidth >= 420 ? 'margin' : 'below');
 function setPlacement(p){
-  placement = p; paginasSucias = true;
+  /* Cambiar de disposición cambia lo que la firma significa —al margen no
+     cuenta nada, abajo cuentan todas las notas— así que se vuelve a sembrar.
+     Ya se repagina de todas formas, y esa repaginación es la que deja el
+     reparto acorde con la firma nueva. */
+  placement = p; paginasSucias = true; firmaCuerpo = firmaDelCuerpo();
   document.querySelectorAll('[data-lay]').forEach(x => x.classList.toggle('active', x.dataset.lay===p));
 }
 function setColumns(n){
@@ -4698,6 +4724,12 @@ rehacerPlano();
 sizeCanvas();
 $('cred').textContent = D.versiones[version].nombre + ' — ' + D.versiones[version].licencia + ' · vía eBible.org';
 renderPage();
+/* La firma se siembra con lo que ya hay puesto. Sin esto arranca vacía, así
+   que el PRIMER guardado de la sesión siempre la ve distinta y repagina —y con
+   glosas ya escritas, ese primer guardado es justo el de crear la siguiente—.
+   Va después del primer pintado porque ahí el reparto de páginas ya está
+   hecho: la firma dice "lo de ahora ya está contado". */
+firmaCuerpo = firmaDelCuerpo();
 
 /* Volver a donde te quedaste, por referencia y no por número de hoja */
 if (guardado && guardado.cap){
