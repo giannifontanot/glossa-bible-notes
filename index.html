@@ -344,66 +344,54 @@
              width:92px; height:92px; margin:-46px 0 0 -46px;
              pointer-events:none; opacity:0; transition:opacity .16s linear; }
   #buscando.viva{ opacity:1; }
-  /* El disco tiene que TAPAR el texto de debajo, no teñirlo. Un aro dorado
-     sobre renglones azules se lee como un adorno del texto; sobre papel limpio
-     se lee como una cosa que está encima esperando. La opacidad llega entera
-     hasta más allá del aro y solo se deshilacha en el último tramo, para que
-     el borde del disco no se vea como un círculo pegado. La sombra hace el
-     resto: dice que flota. */
-  #buscando .disco{ position:absolute; inset:0; border-radius:50%;
-                    background:radial-gradient(circle,
-                               rgba(253,251,246,.99) 62%, rgba(253,251,246,.94) 78%,
-                               rgba(253,251,246,0) 93%);
-                    box-shadow:0 4px 15px -5px rgba(72,56,28,.34); }
-  /* EL HALO. Un aro de luz flotando, visto de frente: como el observador lo
-     mira de canto y no desde arriba, el círculo se le aparece aplastado —una
-     elipse—. Eso es todo lo que hay aquí; no hay figura debajo ni la habrá.
-     Por el aro corre una chispa, y detrás de ella una estela que se va
-     apagando, como una estrella fugaz que en vez de cruzar el cielo da vueltas.
+  /* EL BRILLO QUE GIRA. Sin fondo: nada de disco de papel debajo. El disco
+     estaba para que un aro tenue se leyera sobre el texto, y ese era el
+     problema entero —dos cosas pálidas, un aro casi invisible y una mancha
+     clara, que juntas no formaban ninguna figura: se veía un borrón—.
 
-     CÓMO SE HACE UNA ÓRBITA ELÍPTICA CON UN SOLO GIRO, que es el problema de
-     verdad. Recorrer una elipse pide seno y coseno con radios distintos, o
-     una animación por trayectoria, y ninguna de las dos las lleva el
-     compositor: se congelarían con el hilo principal, que es exactamente lo
-     que este disco vino a no hacer.
-     El truco es no curvar la órbita sino APLASTAR EL MUNDO. La chispa gira en
-     círculo perfecto —rotate, que sí es de compositor— y el padre entero va
-     con scaleY(.33). Un círculo aplastado es una elipse, y un giro dentro de
-     algo aplastado es un recorrido elíptico. Sale gratis y sigue corriendo con
-     el hilo trabado, igual que el aro de antes.
-     La chispa se des-aplasta con su propio scaleY para no salir chafada; como
-     el aplastado del padre se aplica DESPUÉS del giro, la compensación no es
-     perfecta en las diagonales y la chispa se estira un poco ahí. No se
-     corrige: estirarse en la dirección del movimiento es lo que hace una luz
-     que va deprisa. */
+     La regla que lo arregla es la contraria a la de antes: si no va a haber
+     fondo, la luz tiene que valerse sola. Así que hay UNA cosa y no tres, y
+     esa cosa es brillante: un cometa gordo, con su núcleo casi blanco, su
+     cuerpo dorado y una estela que se apaga detrás. Se lee sobre el texto
+     porque brilla, no porque tape.
+
+     La trayectoria sigue siendo elíptica —el giro visto de canto—, y se hace
+     como antes, que es la única parte que no había que tocar: girar en círculo
+     dentro de un padre aplastado. Un rotate lo lleva el compositor y sigue
+     corriendo con el hilo principal trabado, que es la razón de ser de este
+     aviso; una animación por trayectoria se congelaría con él. */
   #buscando .halo{ position:absolute; left:50%; top:50%;
-                   width:78px; height:78px; margin:-39px 0 0 -39px;
-                   transform:scaleY(.33); }
-  /* El aro quieto: la circunferencia del halo, tenue, para que la chispa tenga
-     un camino que recorrer en vez de vagar por el aire. */
-  #buscando .halo::before{ content:''; position:absolute; inset:0;
-                   border-radius:50%; border:2.5px solid rgba(184,137,43,.30); }
+                   width:80px; height:80px; margin:-40px 0 0 -40px;
+                   transform:scaleY(.34); }
   #buscando .orbita{ position:absolute; inset:0;
-                     animation:giroBuscando 1.15s linear infinite;
+                     animation:giroBuscando 1.05s linear infinite;
                      will-change:transform; }
   @keyframes giroBuscando{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
-  /* Cada gota de la estela cuelga del mismo giro pero rotada un poco hacia
-     atrás, así que va detrás de la cabeza sin necesitar su propia animación:
-     una sola cosa gira y las seis la siguen. Menos luz y menos cuerpo cuanto
-     más atrás, que es lo que convierte una fila de puntos en una estela. */
+  /* La cabeza del cometa. Gorda y con el centro casi blanco: es lo único que
+     hay en la pantalla diciendo que algo pasa, así que no puede ser tímida.
+     El scaleY la des-aplasta para que no salga chafada por el padre. */
   #buscando .chispa{ position:absolute; left:50%; top:0;
-                     width:13px; height:13px; margin:-6.5px 0 0 -6.5px;
-                     border-radius:50%; transform:scaleY(3.03);
+                     width:26px; height:26px; margin:-13px 0 0 -13px;
+                     border-radius:50%; transform:scaleY(2.94);
                      background:radial-gradient(circle,
-                                #fff8e4 12%, #e8bd52 38%, rgba(201,162,39,.55) 62%,
-                                rgba(201,162,39,0) 78%); }
+                                #fffdf4 10%, #ffeaa8 26%, #e0a92c 46%,
+                                rgba(201,162,39,.42) 66%, rgba(201,162,39,0) 80%); }
+  /* La estela: cada gota cuelga del MISMO giro, rotada un poco más atrás. Una
+     sola animación mueve las siete, y el escalonado de tamaño y luz es lo que
+     convierte una fila de puntos en un rastro que se apaga. */
   #buscando .orbita > i{ position:absolute; inset:0; display:block; }
-  #buscando .orbita > i:nth-child(1){ transform:rotate(-13deg); opacity:.72; }
-  #buscando .orbita > i:nth-child(2){ transform:rotate(-27deg); opacity:.5; }
-  #buscando .orbita > i:nth-child(3){ transform:rotate(-42deg); opacity:.33; }
-  #buscando .orbita > i:nth-child(4){ transform:rotate(-58deg); opacity:.2; }
-  #buscando .orbita > i:nth-child(5){ transform:rotate(-75deg); opacity:.1; }
-  #buscando .orbita > i .chispa{ width:10px; height:10px; margin:-5px 0 0 -5px; }
+  #buscando .orbita > i:nth-child(1){ transform:rotate(-11deg); opacity:.8; }
+  #buscando .orbita > i:nth-child(2){ transform:rotate(-23deg); opacity:.62; }
+  #buscando .orbita > i:nth-child(3){ transform:rotate(-36deg); opacity:.45; }
+  #buscando .orbita > i:nth-child(4){ transform:rotate(-50deg); opacity:.3; }
+  #buscando .orbita > i:nth-child(5){ transform:rotate(-65deg); opacity:.17; }
+  #buscando .orbita > i:nth-child(6){ transform:rotate(-81deg); opacity:.08; }
+  #buscando .orbita > i:nth-child(1) .chispa{ width:23px; height:23px; margin:-11.5px 0 0 -11.5px; }
+  #buscando .orbita > i:nth-child(2) .chispa{ width:20px; height:20px; margin:-10px 0 0 -10px; }
+  #buscando .orbita > i:nth-child(3) .chispa{ width:17px; height:17px; margin:-8.5px 0 0 -8.5px; }
+  #buscando .orbita > i:nth-child(4) .chispa{ width:14px; height:14px; margin:-7px 0 0 -7px; }
+  #buscando .orbita > i:nth-child(5) .chispa{ width:12px; height:12px; margin:-6px 0 0 -6px; }
+  #buscando .orbita > i:nth-child(6) .chispa{ width:10px; height:10px; margin:-5px 0 0 -5px; }
   /* La frase que lee el lector de pantalla. Se esconde a la vista sin salir
      del árbol de accesibilidad, que es justo lo que display:none y
      visibility:hidden no permiten: esos la sacarían de los dos sitios y no
@@ -414,8 +402,9 @@
   /* Quien pidió menos movimiento no se queda sin aviso: se queda con el aro
      puesto, entero y quieto, que sigue diciendo "estoy en ello". */
   @media (prefers-reduced-motion: reduce){
+    /* Quieto, la cabeza del cometa se queda puesta arriba del todo: sigue
+       diciendo "estoy en ello" sin moverse. */
     #buscando .orbita{ animation:none; }
-    #buscando .halo::before{ border-color:rgba(184,137,43,.8); }
   }
   /* ============================================================
      LA HOJA ENTERA, DESDE LEJOS.
@@ -445,10 +434,10 @@
       transform:translate(var(--zx,0px), var(--zy,0px)) scale(var(--zk,1));
       transform-origin:top left; background:var(--papel,#faf7f1);
       border-radius:3px; box-shadow:0 10px 26px -8px rgba(0,0,0,.5); }
-  /* Los filos de pasar hoja se apagan: ocupan todo el alto, así que se
-     comerían el toque en el hueco —que ahora significa "vuelve"— y encima
-     sobran, porque para eso están los dos botones. */
-  #pg.zoom ~ .edge{ display:none; }
+  /* Los filos NO se apagan de lejos: se recortan al canto de la hoja pequeña
+     desde el guion (ver medirZoom), para que el papel se siga pasando con el
+     dedo —con su huella y su pliegue— igual que de cerca. Lo único que cambia
+     es dónde están, no lo que hacen. */
   /* Y las dos esquinas de abajo se quitan de en medio mientras dura: la
      derecha se la quedan los botones de hoja, y la izquierda el propio botón
      del zoom, que se queda para poder salir también por donde entraste. */
@@ -475,16 +464,36 @@
   #zoomPasos{ position:absolute; right:8px; bottom:8px; z-index:7;
               display:none; gap:8px; }
   .stage.zoom #zoomPasos{ display:flex; }
+  /* DOS PUNTOS, NO DOS FLECHAS. Un par de chevrones dentro de recuadros
+     pálidos es mucho aparato para lo que hacen, y encima compiten con el papel
+     justo cuando el papel es lo único que importa: de lejos se está mirando la
+     hoja, no la interfaz. Un punto redondo y gordo dice "toca aquí" sin decir
+     nada más, y a esta distancia una flecha tampoco se leería como flecha.
+     Cuál pasa hacia dónde no lo dice el dibujo: lo dice el sitio. El de la
+     derecha adelanta y el de la izquierda retrocede, que es la convención de
+     cualquier libro y del propio filo de la hoja.
+     Redondos y sin recuadro: el punto ES el botón. El blanco de toque sigue
+     midiendo lo que tiene que medir aunque la tinta sea chica —el círculo va
+     entero, es el color el que se retira—. */
   #zoomPasos button{ width:44px; height:44px; padding:0; cursor:pointer;
-                     font:400 19px/1 var(--ui); color:#5c4a24;
-                     background:rgba(255,253,247,.92);
-                     border:1px solid rgba(140,116,68,.45); border-radius:9px;
+                     display:flex; align-items:center; justify-content:center;
+                     background:transparent; border:0; border-radius:50%;
                      -webkit-tap-highlight-color:transparent;
-                     box-shadow:0 4px 12px -5px rgba(0,0,0,.5);
-                     transition:background .26s cubic-bezier(.65,0,.35,1),
-                                color .26s cubic-bezier(.65,0,.35,1); }
-  #zoomPasos button:hover{ background:#fffdf6; color:#1d1608; }
-  #zoomPasos button:disabled{ opacity:.32; cursor:default; }
+                     transition:opacity .26s cubic-bezier(.65,0,.35,1); }
+  /* El punto va CLARO y no oscuro, y esto lo dijo la captura: de lejos el
+     fondo que rodea la hoja es el escritorio, que es marrón oscuro. Un punto
+     marrón encima se perdía del todo —discreto acabó siendo invisible, que no
+     es lo mismo—. En crema se lee sin gritar, que era lo que se pedía. */
+  #zoomPasos button::before{ content:''; display:block;
+                     width:13px; height:13px; border-radius:50%;
+                     background:#efe4c8; opacity:.42;
+                     box-shadow:0 1px 4px rgba(0,0,0,.45);
+                     transition:opacity .26s cubic-bezier(.65,0,.35,1),
+                                transform .26s cubic-bezier(.3,.8,.4,1); }
+  #zoomPasos button:hover::before{ opacity:.85; transform:scale(1.16); }
+  #zoomPasos button:active::before{ transform:scale(.92); }
+  #zoomPasos button:disabled{ cursor:default; }
+  #zoomPasos button:disabled::before{ opacity:.13; transform:none; }
 
   @media (max-width: 560px){
     #btnZoom{ width:40px; height:40px; font-size:19px; left:10px; bottom:10px; }
@@ -1377,14 +1386,14 @@
        mostrarBuscando escribe la frase y quitarBuscando la borra, que es lo
        que de verdad dispara el anuncio. Lo encontró la revisión de Codex. -->
   <div id="buscando" role="status" aria-live="polite">
-    <div class="disco"></div>
-    <!-- El halo: un aro tenue y, corriendo por él, la chispa con su estela.
-         Las <i> son las gotas de la estela, cada una rotada un poco más atrás
-         que la anterior; cuelgan del mismo giro, así que solo hay una
-         animación en toda la figura. -->
+    <!-- El brillo que gira: la cabeza del cometa y, detrás, su estela. Las <i>
+         son las gotas de la estela, cada una rotada un poco más atrás que la
+         anterior; cuelgan del mismo giro, así que hay UNA animación en toda la
+         figura. Sin fondo: la luz se vale sola. -->
     <div class="halo">
       <div class="orbita">
         <span class="chispa"></span>
+        <i><span class="chispa"></span></i>
         <i><span class="chispa"></span></i>
         <i><span class="chispa"></span></i>
         <i><span class="chispa"></span></i>
@@ -1406,9 +1415,12 @@
        se busca cuando se necesita, no una que tenga que llamar la atención
        mientras lees. -->
   <button id="btnZoom" title="Ver la hoja entera" aria-label="Ver la hoja entera">⊖</button>
+  <!-- El punto lo dibuja el CSS con ::before; el botón va vacío a propósito,
+       para que no haya un glifo que el navegador pueda componer a su manera.
+       Lo que dice cada uno vive en aria-label, que es donde tiene que estar. -->
   <div id="zoomPasos">
-    <button data-paso="-1" title="Hoja anterior" aria-label="Hoja anterior">‹</button>
-    <button data-paso="1" title="Hoja siguiente" aria-label="Hoja siguiente">›</button>
+    <button data-paso="-1" title="Hoja anterior" aria-label="Hoja anterior"></button>
+    <button data-paso="1" title="Hoja siguiente" aria-label="Hoja siguiente"></button>
   </div>
   <button id="btnHistorial" title="Lo que has visto" aria-label="Lo que has visto">↺</button>
   <div id="historial" role="dialog" aria-label="Escrituras vistas" aria-modal="false"></div>
@@ -1458,7 +1470,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-17 · hoja entera y halo';
+window.GLOSS_BUILD = '2026-08-17 · pliegue de lejos';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2564,7 +2576,40 @@ const cabezaDe = k => {
   return it ? nombreDe(LIBRO) + '  ' + it.cap + ':' + it.vers : '';
 };
 
+/* ============================================================
+   MEDIR SIN EL ZOOM PUESTO.
+
+   La vista de lejos escala .pg-inner, y getBoundingClientRect devuelve las
+   coordenadas YA escaladas. Todo lo que mide la hoja para colocar algo —dónde
+   va cada nota del margen, dónde cae cada palabra para la foto del pliegue,
+   qué rectángulos ocupan las marcas— compara esas medidas con altos de
+   maquetación, que NO se escalan. Mezclar las dos escalas descoloca las notas
+   y descompone la foto: por eso pasar hoja de lejos empezó siendo instantáneo.
+
+   La solución no es corregir cada cuenta dividiendo por la escala —serían
+   cinco sitios y el sexto que se olvide—, sino quitar el zoom un instante
+   mientras se mide y devolverlo. Es exactamente lo que ya hace medirPalabras
+   con las glosas torcidas: las endereza para medirlas en limpio y las vuelve a
+   torcer. Nadie ve nada, porque entre lo uno y lo otro no hay repintado: el
+   navegador solo pinta al final del cuadro, y aquí todo pasa dentro del mismo.
+   ============================================================ */
+function sinZoom(fn){
+  const inner = zoomActivo ? pg.querySelector('.pg-inner') : null;
+  if (!inner) return fn();
+  inner.style.transform = 'none';
+  try { return fn(); }
+  finally { inner.style.removeProperty('transform'); }
+}
+
 function renderPage(){
+  const r = sinZoom(renderPageCrudo);
+  /* Los dos puntos de pasar hoja se apagan en las puntas del libro, y quien
+     sabe si estamos en una punta es esto, que corre después de cada cambio de
+     hoja venga de donde venga: del filo, del botón o de un salto. */
+  if (zoomActivo) refrescarPasos();
+  return r;
+}
+function renderPageCrudo(){
   resolverTodas(); recalcularRefs(); calcularVinculos();
   asegurarPaginas();
   paginaActual = Math.max(0, Math.min(paginaActual, paginas.length - 1));
@@ -3571,6 +3616,11 @@ function componer(img, ms, palabras, w, h){
 /* Fotografía CUALQUIER hoja del mapa, no solo las vecinas: un salto
    necesita la foto de su destino aunque esté a cinco hojas. */
 function fotoDeHoja(p, asignar){
+  /* Sin el zoom puesto: aquí dentro se mide la hoja fantasma contra la viva y
+     se retratan las palabras una a una. Ver sinZoom. */
+  return sinZoom(() => fotoDeHojaCrudo(p, asignar));
+}
+function fotoDeHojaCrudo(p, asignar){
   if (p < 0 || p >= paginas.length){ asignar(null); return; }
   /* El ancho del PAPEL, no el de la ventana: en teléfono la hoja sobresale y
      la foto tiene que retratarla entera, glosas incluidas. */
@@ -3588,7 +3638,8 @@ function fotoDeHoja(p, asignar){
   loadSVG(buildSVG(cuerpoHTML(from, hasta), r.marginHTML, r.footHTML, r.mw, r.gap, w, h, cabezaDe(from)),
     img => { asignar(componer(img, ms, palabras, w, h)); if (folding) drawFold(); }, () => asignar(null));
 }
-function makeSnapshot(){
+function makeSnapshot(){ return sinZoom(makeSnapshotCrudo); }
+function makeSnapshotCrudo(){
   /* La hoja de ARRIBA se retrataba con el ancho de la ventana mientras la de
      abajo ya usaba el del papel. Por eso solo la de arriba salía descompuesta:
      eran dos fotos de la misma hoja tomadas con encuadres distintos. Aquí se
@@ -3898,7 +3949,10 @@ function bordeAbajo(ev, s){
      donde no se va a ningún lado es peor que no dar señal: enseña a
      desconfiar de ella en los filos donde sí sirve. */
   if (hayHoja(s)) mostrarHuella(ev, s);
-  (s === 'right' ? edgeR : edgeL).setPointerCapture(ev.pointerId);
+  /* Con su red, igual que la del arrastre del papel: capturar un puntero que
+     ya se soltó lanza, y una excepción aquí abortaría lo que quede del
+     manejador. Pasa poco y cuesta una línea. */
+  try { (s === 'right' ? edgeR : edgeL).setPointerCapture(ev.pointerId); } catch(e){}
 }
 function bordeMueve(ev, s){
   if (folding){ F = clampPg(local(ev)); drawFold(); ev.preventDefault(); return; }
@@ -4326,9 +4380,40 @@ function medirZoom(){
      ser 201 y 201. El síntoma es pequeño y engaña, porque la hoja SÍ se movía
      al centro; solo que al centro de otra cosa. */
   const dx = inner.offsetLeft || 0, dy = inner.offsetTop || 0;
+  const px = (W - k*pw) / 2, py = (H - k*ph) / 2;      /* dónde cae el papel */
   pg.style.setProperty('--zk', k.toFixed(4));
-  pg.style.setProperty('--zx', Math.round((W - k*pw) / 2 - dx) + 'px');
-  pg.style.setProperty('--zy', Math.round((H - k*ph) / 2 - dy) + 'px');
+  pg.style.setProperty('--zx', Math.round(px - dx) + 'px');
+  pg.style.setProperty('--zy', Math.round(py - dy) + 'px');
+
+  /* EL LIENZO DEL PLIEGUE SE ENCOGE IGUAL. El pliegue se dibuja en un lienzo
+     del tamaño natural del papel, y todo lo que lleva dentro —el doblez, la
+     sombra, las palabras— está calculado en ese tamaño. Corregirlo por dentro
+     sería rehacer la geometría entera; escalarlo por fuera es una línea, y así
+     el pliegue de lejos es exactamente el mismo pliegue, más chico.
+     La cuenta no es la misma que la de la hoja, y por eso va aparte: el
+     transform de .pg-inner arranca desde donde .pg-inner YA está —de ahí que
+     allí se reste dx y dy sin escalar—, mientras que el lienzo retrata la hoja
+     ENTERA, con ese hueco incluido dentro de la foto. Al encogerse, el hueco
+     se encoge con ella: aquí se restan k*dx y k*dy. */
+  fx.style.transformOrigin = 'top left';
+  fx.style.transform = 'translate(' + Math.round(px - k*dx) + 'px,' +
+                       Math.round(py - k*dy) + 'px) scale(' + k.toFixed(4) + ')';
+
+  /* Y LOS FILOS SE PONEN SOBRE EL PAPEL. Ocupan todo el alto de la pantalla, y
+     de lejos eso invade el hueco —que ahí significa "vuelve"—: el toque se lo
+     comía el filo y no se salía nunca. Se recortan al canto de la hoja
+     pequeña, y así las dos cosas conviven: el papel se pasa por sus orillas y
+     el hueco sigue siendo la salida.
+     No se estrechan con la escala: un filo mide lo que mide un dedo, no lo que
+     mide el papel. Se quedan en sus 24px. */
+  const alto = Math.round(k*ph), arriba = Math.round(py);
+  for (const [el, lado] of [[edgeL, 'left'], [edgeR, 'right']]){
+    el.style.top = arriba + 'px';
+    el.style.height = alto + 'px';
+    if (lado === 'left') el.style.left = Math.round(px) + 'px';
+    else el.style.left = Math.round(px + k*pw - 24) + 'px';
+    el.style.right = 'auto';
+  }
 }
 function abrirZoom(){
   if (zoomActivo || folding) return;
@@ -4350,6 +4435,14 @@ function cerrarZoom(){
   pg.style.removeProperty('--zk');
   pg.style.removeProperty('--zx');
   pg.style.removeProperty('--zy');
+  fx.style.removeProperty('transform');
+  fx.style.removeProperty('transform-origin');
+  /* Los filos vuelven a la hoja de estilos. Se quitan las propiedades en vez
+     de reescribirlas a mano: los valores buenos ya están en el CSS —incluido
+     el right:0 del derecho, que aquí se había pisado con un left— y copiarlos
+     al guion sería tener la misma medida en dos sitios. */
+  for (const el of [edgeL, edgeR])
+    for (const p of ['top','height','left','right']) el.style.removeProperty(p);
 }
 function refrescarPasos(){
   const b = $('zoomPasos').querySelectorAll('[data-paso]');
@@ -4360,24 +4453,24 @@ $('btnZoom').addEventListener('click', ev => {
   ev.preventDefault(); ev.stopPropagation();
   if (zoomActivo) cerrarZoom(); else abrirZoom();
 });
-/* PASAR HOJA DE LEJOS ES INSTANTÁNEO, y no por prisa. El pliegue se dibuja
-   fotografiando la hoja viva, y esa foto se compone midiendo cada palabra con
-   getBoundingClientRect —que devuelve coordenadas YA escaladas—. Bajo el zoom
-   saldría una foto a media escala pegada sobre una hoja a otra: el giro se
-   vería roto justo donde más se mira.
-   Y además, buscando no estorba: aquí no se está leyendo una hoja, se están
-   descartando diez. El papel volando entre una y otra sería el teatro puesto
-   donde no toca. */
+/* PASAR HOJA DE LEJOS SE VE IGUAL QUE DE CERCA. Aquí estuvo un rato el
+   argumento de que tenía que ser instantáneo —la foto del pliegue se compone
+   midiendo cada palabra, y de lejos esas medidas vienen escaladas—, y era
+   verdad el problema y falsa la conclusión: lo que había que arreglar era la
+   medición, no quitar la animación. Se arregla en sinZoom, midiendo con el
+   zoom apagado un instante, y entonces el pliegue funciona tal cual. La hoja
+   se voltea igual, solo que más chica.
+   Los botones tiran del mismo pasarHoja que el filo, así que el pliegue nace
+   a media altura del papel y no en el aire. */
 $('zoomPasos').addEventListener('click', ev => {
   const b = ev.target.closest('[data-paso]'); if (!b || b.disabled) return;
   ev.preventDefault(); ev.stopPropagation();
-  const destino = paginaActual + (+b.dataset.paso);
+  if (folding) return;
+  const adelante = +b.dataset.paso > 0;
+  const destino = paginaActual + (adelante ? 1 : -1);
   if (destino < 0 || destino >= paginas.length) return;
-  volverA = null;
-  paginaActual = destino;
-  renderPage();
-  medirZoom(); refrescarPasos();
-  readout.textContent = cabezaDe(paginas[paginaActual]);
+  const r = pg.querySelector('.pg-inner').getBoundingClientRect();
+  pasarHoja(adelante ? 'right' : 'left', r.top + r.height/2);
 });
 /* El hueco de alrededor es el botón de salir. Se mira contra el rectángulo
    del papel escalado y no contra #pg, porque #pg ocupa la pantalla entera:
