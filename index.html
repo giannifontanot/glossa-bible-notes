@@ -702,6 +702,56 @@
     .hs-vacio, .vp-pie{ font-size:13px; }
   }
 
+  /* ============================================================
+     EL CANTO DEL LIBRO: DÓNDE SE ACABA EL PAPEL.
+
+     Llegar a la última hoja y que no pase nada al tocar el filo no se lee como
+     "no hay más": se lee como que el toque no entró. El programa ya lo sabía
+     —apaga el filo al 20% de opacidad— pero apagar algo invisible no dice
+     nada, porque el filo tampoco se veía encendido.
+
+     Se propuso una raya gruesa en el margen, y la idea es la buena: un libro
+     de verdad te dice dónde estás por sus cantos, no con un cartel. Lo que
+     cambia aquí es la forma. Una raya sola se lee como un filete de adorno o
+     como un separador de columna —el programa ya usa una para partir el texto
+     en dos—, así que en vez de una raya va el CANTO: unas cuantas líneas finas
+     apretadas, que es lo que se ve de lado en un libro cerrado. Eso no se
+     confunde con nada y no hay que aprenderlo.
+
+     Va en la ORILLA DE LA VENTANA y no en la del papel, y eso lo dijo la
+     primera prueba: en teléfono el papel mide 663px y la ventana 412, así que
+     el canto derecho del papel cae fuera de la pantalla —justo donde no sirve
+     de nada—. Aquí se ve siempre, con el cajón abierto o cerrado.
+     Del lado que se acabó: a la derecha en la última hoja, a la izquierda en
+     la primera.
+
+     Se pinta con un degradado repetido en vez de con elementos: son cinco
+     rayas de un píxel y no merecen cinco divs. */
+  /* Tres capas, que son las tres cosas que se ven en el corte de un libro
+     cerrado: la raya del canto, las hojas apiladas detrás, y la sombra que
+     mete todo eso hacia adentro. La primera versión llevaba solo las hojas al
+     34% y quedó tan discreta que había que buscarla —y una pista que hay que
+     buscar no es una pista—. */
+  .pg-canto{ position:absolute; top:0; bottom:0; width:15px; z-index:4;
+             pointer-events:none; opacity:0; transition:opacity .45s ease; }
+  .pg-canto.viva{ opacity:1; }
+  .pg-canto-r{ right:0;
+    background:
+      linear-gradient(to left, rgba(120,96,52,.85) 0px, rgba(120,96,52,.85) 2.5px,
+                               rgba(120,96,52,0) 2.5px),
+      repeating-linear-gradient(to left,
+        rgba(138,112,66,0)   3px,  rgba(138,112,66,0)   4.2px,
+        rgba(138,112,66,.55) 4.2px, rgba(138,112,66,.55) 5.2px),
+      linear-gradient(to left, rgba(96,76,40,.20), rgba(96,76,40,0) 100%); }
+  .pg-canto-l{ left:0;
+    background:
+      linear-gradient(to right, rgba(120,96,52,.85) 0px, rgba(120,96,52,.85) 2.5px,
+                                rgba(120,96,52,0) 2.5px),
+      repeating-linear-gradient(to right,
+        rgba(138,112,66,0)   3px,  rgba(138,112,66,0)   4.2px,
+        rgba(138,112,66,.55) 4.2px, rgba(138,112,66,.55) 5.2px),
+      linear-gradient(to right, rgba(96,76,40,.20), rgba(96,76,40,0) 100%); }
+
   #ghost{ position:fixed; left:-99999px; top:0; pointer-events:none; }
 
   /* EL CANTO DE LA BIBLIA: las pestañas viven al filo derecho, debajo de
@@ -1052,7 +1102,10 @@
      paga el vuelo del final, que enseña el camino.
      La sombra es lo que la despega del papel mientras se escribe: la misma
      glosa, pero todavía en la mano. */
-  .gl-movil{ position:fixed; left:8px; right:8px; top:8px; z-index:12;
+  /* Sin right: el ancho lo pone el guion, y es el de una glosa del margen. Las
+     medidas de aquí son solo el punto de partida por si algo fallara al
+     medir. */
+  .gl-movil{ position:fixed; left:8px; top:8px; width:240px; z-index:12;
              display:block; box-shadow:0 14px 38px rgba(0,0,0,.45); }
   /* El papel bajo el tinte NO se pinta desde aquí: lo compone el guion en la
      misma pila de fondo de la caja (ver abrirGlosa). Aquí quedó un intento con
@@ -1497,6 +1550,12 @@
     <!-- La lupa: dice qué libro hay bajo el dedo mientras se arrastra. -->
     <div id="lupaLibro" aria-hidden="true"></div></div>
   <canvas id="fx"></canvas>
+  <!-- El canto del libro: se enciende en la primera y en la última hoja. Va en
+       la escena y no en la hoja, porque en teléfono el papel es más ancho que
+       la ventana y su canto derecho cae fuera de la pantalla —justo donde no
+       serviría de nada—. Aquí queda en la orilla de lo que se ve. -->
+  <div class="pg-canto pg-canto-l" id="cantoIzq" aria-hidden="true"></div>
+  <div class="pg-canto pg-canto-r" id="cantoDer" aria-hidden="true"></div>
   <div id="huella" aria-hidden="true"></div>
   <!-- role=status para que un lector de pantalla también se entere de que hay
        algo en marcha: el disco es la versión visible del mismo aviso.
@@ -1581,7 +1640,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-17 · aro y vuelo';
+window.GLOSS_BUILD = '2026-08-17 · canto del libro';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2754,6 +2813,10 @@ function renderPageCrudo(){
   if (HL_API) aplicarHighlights();
   edgeR.classList.toggle('off', !hayHoja('right'));
   edgeL.classList.toggle('off', !hayHoja('left'));
+  /* El canto se enciende donde ya se apagaba el filo: mismo sitio, misma
+     verdad, contada de una manera que sí se ve. */
+  $('cantoDer').classList.toggle('viva', !hayHoja('right'));
+  $('cantoIzq').classList.toggle('viva', !hayHoja('left'));
   $('btnVolver').style.display = volverA == null ? 'none' : '';
   medirHojaTelefono();
   pintarFiltros(); pintarIndice(); invalidateSnapshot(); updateReadout();
@@ -3355,6 +3418,17 @@ function abrirGlosa(m){
     caja.appendChild(ta);
     document.body.appendChild(caja);
     ta.dataset.caja = '1';
+    /* DEL ANCHO QUE TENDRÁ, no del ancho de la pantalla. Iba de canto a canto
+       —left:8, right:8— y eso desmentía todo lo demás: escribías cuatro
+       renglones cortos en una caja de 396px y al soltarla se convertía en ocho
+       renglones largos de 233. La misma medida que usa el espejo del panel de
+       Glosas, y por la misma razón: si el ancho no es el de allá, los
+       renglones parten en otro sitio y no es un anticipo, es otra cosa.
+       Los 8px son el hueco de giro que .gl-margin reserva a cada lado para que
+       las esquinas torcidas tengan a dónde asomarse. */
+    const anchoGl = Math.max(120, MARGIN_W() - 8);
+    caja.style.width = anchoGl + 'px';
+    caja.style.right = 'auto';
     /* NACE JUNTO A LO QUE SUBRAYASTE, no en la esquina de arriba. Antes se
        plantaba pegada al techo por una razón buena —en un teléfono el teclado
        se come la mitad de abajo y arriba es el único sitio al que no llega
@@ -3406,8 +3480,18 @@ function abrirGlosa(m){
          de la nota compitan con el versículo de debajo. Se pone opaca, salvo
          cuando la caja tapa justo lo que subrayaste: ahí conviene verlo, que
          es de lo que estás hablando. */
-      const tapa = top < arriba.bottom && top + alto > arriba.top;
-      if (!tapa) opacar(caja);
+      /* Al canto de la COLUMNA DE TEXTO, no al arranque de lo subrayado. Se
+         probó lo segundo, que suena mejor —la caja donde empieza lo que
+         glosas— y en pantalla queda mal: una marca casi nunca empieza al
+         principio de un renglón, así que la caja aparecía colgada a media
+         línea, en un sitio distinto cada vez. Medido: seleccionando en la
+         primera columna, la caja salía en x=114 sin nada que la justificara.
+         Una glosa vive en una franja fija; su caja también. Al canto de la
+         columna se lee como puesta, y además es donde el ojo vuelve. */
+      const maxIzq = window.innerWidth - anchoGl - 8;
+      const izq = pgBody.getBoundingClientRect().left;
+      caja.style.left = Math.round(Math.min(Math.max(izq, 8), Math.max(8, maxIzq))) + 'px';
+      opacar(caja);
     } else {
       opacar(caja);
     }
@@ -3485,8 +3569,19 @@ function abrirGlosa(m){
 function opacar(caja){
   const tinte = getComputedStyle(caja).backgroundColor;
   caja.style.backgroundColor = colorPapel();
-  if (tinte && tinte !== 'rgba(0, 0, 0, 0)' && tinte !== 'transparent')
-    caja.style.backgroundImage = 'linear-gradient(' + tinte + ',' + tinte + ')';
+  if (!tinte || tinte === 'rgba(0, 0, 0, 0)' || tinte === 'transparent') return;
+  /* EL COLOR TIENE QUE LEERSE. Los tintes de la glosa son bajísimos a
+     propósito —de .07 a .19— porque en la hoja la nota va sobre papel y con su
+     borde al lado, y ahí con una insinuación basta. Mientras ESCRIBES no
+     basta: la caja está flotando sobre el texto, sin nada alrededor que diga
+     de qué marca es, y a .08 el verde y el azul son papel a secas.
+     Así que se sube el alfa a un mínimo legible conservando el matiz. No es
+     inventar un color: es el mismo, con densidad suficiente para que se
+     reconozca cuando no tiene el papel de la hoja detrás para contrastarlo. */
+  const n = tinte.match(/[\d.]+/g) || [];
+  const a = n.length > 3 ? parseFloat(n[3]) : 1;
+  const fuerte = 'rgba(' + n[0] + ',' + n[1] + ',' + n[2] + ',' + Math.max(a, 0.42) + ')';
+  caja.style.backgroundImage = 'linear-gradient(' + fuerte + ',' + fuerte + ')';
 }
 
 /* EL VUELO DE LA GLOSA RECIÉN ESCRITA.
@@ -4749,6 +4844,24 @@ function medirZoom(){
     else el.style.left = Math.round(px + k*pw - 24) + 'px';
     el.style.right = 'auto';
   }
+  /* Y EL CANTO DEL LIBRO CON ELLOS. Va pegado a la orilla de la ventana, que
+     es lo correcto de cerca —ahí la orilla de la ventana ES el canto del
+     papel— y de lejos deja de serlo: la hoja se encoge y se centra, y el canto
+     se quedaba de arriba abajo en el borde de la pantalla, señalando como
+     final del libro un sitio donde ya no hay libro. Se le da la misma
+     geometría que a los filos, que es la del papel pequeño.
+     No se estrecha con la escala, por lo mismo que los filos: es un aviso, y
+     un aviso mide lo que necesita para verse. Lo encontró la revisión de
+     Codex. */
+  const ANCHO_CANTO = 15;
+  for (const [el, lado] of [[$('cantoIzq'), 'left'], [$('cantoDer'), 'right']]){
+    if (!el) continue;
+    el.style.top = arriba + 'px';
+    el.style.bottom = 'auto';
+    el.style.height = alto + 'px';
+    el.style.left = Math.round(lado === 'left' ? px : px + k*pw - ANCHO_CANTO) + 'px';
+    el.style.right = 'auto';
+  }
 }
 function abrirZoom(){
   if (zoomActivo || folding) return;
@@ -4776,8 +4889,9 @@ function cerrarZoom(){
      de reescribirlas a mano: los valores buenos ya están en el CSS —incluido
      el right:0 del derecho, que aquí se había pisado con un left— y copiarlos
      al guion sería tener la misma medida en dos sitios. */
-  for (const el of [edgeL, edgeR])
-    for (const p of ['top','height','left','right']) el.style.removeProperty(p);
+  for (const el of [edgeL, edgeR, $('cantoIzq'), $('cantoDer')])
+    if (el) for (const p of ['top','bottom','height','left','right'])
+      el.style.removeProperty(p);
 }
 function refrescarPasos(){
   const b = $('zoomPasos').querySelectorAll('[data-paso]');
