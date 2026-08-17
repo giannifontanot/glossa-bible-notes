@@ -4844,6 +4844,24 @@ function medirZoom(){
     else el.style.left = Math.round(px + k*pw - 24) + 'px';
     el.style.right = 'auto';
   }
+  /* Y EL CANTO DEL LIBRO CON ELLOS. Va pegado a la orilla de la ventana, que
+     es lo correcto de cerca —ahí la orilla de la ventana ES el canto del
+     papel— y de lejos deja de serlo: la hoja se encoge y se centra, y el canto
+     se quedaba de arriba abajo en el borde de la pantalla, señalando como
+     final del libro un sitio donde ya no hay libro. Se le da la misma
+     geometría que a los filos, que es la del papel pequeño.
+     No se estrecha con la escala, por lo mismo que los filos: es un aviso, y
+     un aviso mide lo que necesita para verse. Lo encontró la revisión de
+     Codex. */
+  const ANCHO_CANTO = 15;
+  for (const [el, lado] of [[$('cantoIzq'), 'left'], [$('cantoDer'), 'right']]){
+    if (!el) continue;
+    el.style.top = arriba + 'px';
+    el.style.bottom = 'auto';
+    el.style.height = alto + 'px';
+    el.style.left = Math.round(lado === 'left' ? px : px + k*pw - ANCHO_CANTO) + 'px';
+    el.style.right = 'auto';
+  }
 }
 function abrirZoom(){
   if (zoomActivo || folding) return;
@@ -4871,8 +4889,9 @@ function cerrarZoom(){
      de reescribirlas a mano: los valores buenos ya están en el CSS —incluido
      el right:0 del derecho, que aquí se había pisado con un left— y copiarlos
      al guion sería tener la misma medida en dos sitios. */
-  for (const el of [edgeL, edgeR])
-    for (const p of ['top','height','left','right']) el.style.removeProperty(p);
+  for (const el of [edgeL, edgeR, $('cantoIzq'), $('cantoDer')])
+    if (el) for (const p of ['top','bottom','height','left','right'])
+      el.style.removeProperty(p);
 }
 function refrescarPasos(){
   const b = $('zoomPasos').querySelectorAll('[data-paso]');
