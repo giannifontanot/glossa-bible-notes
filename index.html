@@ -1743,7 +1743,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-17 · el libro que sigue';
+window.GLOSS_BUILD = '2026-08-18 · paginar lo justo';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2272,25 +2272,60 @@ const versoTexto = (v, cap, vers, libro) => {
   const c = caps[cap]; return c ? (c[vers-1] || '') : '';
 };
 const hayLibro = id => !!D.versiones[version].texto[id];
+/* EL PLANO SE GUARDA, Y ESA ES LA MITAD DEL COSTE DE CAMBIAR DE LIBRO.
+
+   Armar el plano de un libro es recorrer sus capítulos y crear un objeto por
+   versículo: barato de una vez, carísimo repetido. Y se repetía muchísimo. La
+   paginación sincronizada llama a planoDe UNA VEZ POR HOJA Y POR VERSIÓN para
+   poder maquetar cada corte en todas las traducciones a la vez; con Mateo, que
+   son unas sesenta hojas, y cuatro versiones, eso son doscientas cuarenta
+   reconstrucciones del mismo puñado de listas. Encima versionesSincronizables
+   arma otras cinco cada vez que se la pregunta.
+
+   Con la memoria puesta se arma uno por versión y por libro, y ya. Se guarda
+   por libro y se tira entero al cambiar de libro: guardar los sesenta y seis
+   sería quedarse con la Biblia entera duplicada en objetos para no volver a
+   hacer un trabajo que solo se hace al llegar a un libro nuevo. */
+const memoPlano = new Map();
+let libroDelMemo = null;
 function planoDe(v, libro){
-  const salida = [], caps = capsDe(v, libro);
-  if (!caps) return salida;
-  for (const cap of Object.keys(caps).map(Number).sort((a,b)=>a-b))
-    caps[cap].forEach((t, i) => salida.push({ cap, vers: i+1, texto: t }));
+  const cual = libro || LIBRO;
+  if (libroDelMemo !== cual){ memoPlano.clear(); libroDelMemo = cual; }
+  const clave = v + '|' + cual;
+  const guardado = memoPlano.get(clave);
+  if (guardado) return guardado;
+  const salida = [], caps = capsDe(v, cual);
+  if (caps)
+    for (const cap of Object.keys(caps).map(Number).sort((a,b)=>a-b))
+      caps[cap].forEach((t, i) => salida.push({ cap, vers: i+1, texto: t }));
+  memoPlano.set(clave, salida);
   return salida;
 }
-function rehacerPlano(){ plano = planoDe(version); }
+/* El plano vivo se copia del guardado. Tiene que ser una COPIA: la paginación
+   le da la vuelta a `plano` para maquetar en otras versiones y lo devuelve al
+   terminar, pero quien lo reciba puede quedárselo, y una lista compartida que
+   alguien ordene o recorte por su cuenta se llevaría por delante la memoria. */
+function rehacerPlano(){ plano = planoDe(version).slice(); }
 
 /* Versiones que se pueden paginar a la par: solo las que traen el mismo
    libro con la misma cantidad de versículos. Si una tradición numera
    distinto, se queda fuera en vez de descuadrar todo. */
+/* También se guarda: la respuesta no cambia mientras no cambien el libro ni la
+   versión, y comprobarla cuesta recorrer todos los versículos de todas las
+   traducciones. La paginación la preguntaba una vez por tanda; ahora que corta
+   hoja a hoja la preguntaría una vez por hoja. */
+let memoSinc = null, memoSincClave = '';
 function versionesSincronizables(){
-  const base = planoDe(version).length;
-  return Object.keys(D.versiones).filter(v => {
+  const clave = version + '|' + LIBRO;
+  if (memoSinc && memoSincClave === clave) return memoSinc;
+  const base = planoDe(version);
+  memoSinc = Object.keys(D.versiones).filter(v => {
     const p = planoDe(v);
-    return p.length === base &&
-           p.every((x,i) => x.cap === plano[i].cap && x.vers === plano[i].vers);
+    return p.length === base.length &&
+           p.every((x,i) => x.cap === base[i].cap && x.vers === base[i].vers);
   });
+  memoSincClave = clave;
+  return memoSinc;
 }
 
 /* ============================================================
@@ -2822,50 +2857,109 @@ function layoutInto(bodyEl, marginEl, footEl, from, hasta){
    dónde van las glosas, o las glosas mismas si estorban al texto).
    ============================================================ */
 let paginas = [0], paginaActual = 0, paginasSucias = true;
+/* ============================================================
+   LA PAGINACIÓN, CORTE A CORTE Y SOLO HASTA DONDE HAGA FALTA.
+
+   Aquí está TODO el coste de llegar a un libro. Cronometrado con la CPU
+   frenada a la cuarta parte —un teléfono de verdad— llegar a Mateo eran:
+
+     rehacerPlano         0 ms
+     resolverTodas        0 ms
+     recalcularRefs       1 ms
+     calcularVinculos     0 ms
+     asegurarPaginas  11087 ms
+
+   Y no es que paginar sea caro: es que se paginaba el libro ENTERO para
+   enseñar una hoja. Sesenta cortes, cada uno maquetando en las cuatro
+   traducciones, para acabar mirando el primero. Once segundos con la pantalla
+   quieta después de tocar un botón.
+
+   Ahora los cortes se calculan cuando alguien pregunta por ellos. `paginas`
+   deja de ser "todas las hojas del libro" y pasa a ser "las que se han tenido
+   que averiguar"; `paginasCompletas` dice si además resultan ser todas.
+   Entrar a un libro por delante cuesta UN corte en vez de sesenta.
+
+   La regla para el resto del programa es una sola: nadie mira `paginas.length`
+   para saber si existe una hoja. Se pregunta con hayHojaN, que corta lo que
+   falte antes de contestar. Mirar el largo a pelo daría "no hay" para toda
+   hoja que todavía no se haya averiguado, que es justo el error que esta
+   estructura invita a cometer.
+
+   PAGINACIÓN SINCRONIZADA, que es lo que la hace cara y hay que conservar.
+   Cada hoja se corta donde quepa en TODAS las versiones, no solo en la que
+   estás leyendo. Así la hoja 7 contiene los mismos versículos en la VBL y en
+   la RVR1909, y cambiar de versión te deja mirando exactamente el mismo
+   pasaje. El precio: en la versión de texto más corto sobra un poco de
+   espacio al final de la hoja. Se paga con gusto —es lo que hacen las Biblias
+   interlineales impresas—.
+   ============================================================ */
+let paginasCompletas = false;
 function asegurarPaginas(){
   if (!paginasSucias) return;
-  /* El molde se prepara con el ancho del PAPEL y con las mismas columnas que
-     la hoja viva. Si midiera con el ancho de la ventana, contaría con una
-     columna de texto más angosta, el texto le saldría más alto y cortaría las
-     hojas antes de tiempo. */
+  /* Ya no pagina: solo tira lo sabido. Lo que se sabía valía para otro ancho,
+     otra letra u otro libro, y sostenerlo sería peor que no tener nada. */
+  paginas = [0]; paginasCompletas = false; paginasSucias = false;
+}
+/* El molde se prepara en CADA corte y no una vez por tanda. La hoja fantasma
+   la comparten el paginador, la foto del pliegue y la instantánea, y cada uno
+   la deja con sus medidas; con un corte suelto en medio de una foto, el molde
+   sería el de la foto y el corte saldría en otro sitio. Prepararlo cuesta unas
+   propiedades de estilo, contra los ~175 ms que cuesta el corte en sí.
+   Va con el ancho del PAPEL y no el de la ventana: con el de la ventana la
+   columna de texto sale más angosta, el texto más alto, y las hojas se
+   cortarían antes de tiempo. */
+function moldeDeCorte(){
   const med = medirHojaTelefono();
-  const w = med ? (med.texto + med.hueco + med.glosa)
-                : pg.offsetWidth;
-  const h = pg.offsetHeight;
-  prepararHoja(ghost, w, h);
+  const w = med ? (med.texto + med.hueco + med.glosa) : pg.offsetWidth;
+  prepararHoja(ghost, w, pg.offsetHeight);
   if (med) ghost.style.setProperty('--mx', '0px');
-  /* PAGINACIÓN SINCRONIZADA. Cada hoja se corta donde quepa en TODAS las
-     versiones, no solo en la que estás leyendo. Así la hoja 7 contiene los
-     mismos versículos en la VBL y en la RVR1909, y cambiar de versión te
-     deja mirando exactamente el mismo pasaje.
-     El precio: en la versión de texto más corto sobra un poco de espacio al
-     final de la hoja. Lo pago con gusto —es lo mismo que hacen las Biblias
-     interlineales impresas. */
-  const versiones = versionesSincronizables();
+}
+/* Un corte más, a partir del último que se sabe. Devuelve false cuando ya no
+   queda libro por cortar. */
+function unCorteMas(){
+  if (paginasCompletas) return false;
   const original = plano;
-  paginas = [];
-  let i = 0, guard = 0;
-  while (i < original.length && guard++ < 20000){
-    paginas.push(i);
-    let corte = Infinity;
-    for (const v of versiones){
-      plano = (v === version) ? original : planoDe(v);
-      const r = layoutInto(ghostBody, ghostMargin, ghostFoot, i);
-      corte = Math.min(corte, r.next);
-    }
-    plano = original;
-    if (!isFinite(corte) || corte <= i) break;
-    i = corte;
+  const i = paginas[paginas.length - 1];
+  if (!(i < original.length)){ paginasCompletas = true; return false; }
+  moldeDeCorte();
+  let corte = Infinity;
+  for (const v of versionesSincronizables()){
+    plano = (v === version) ? original : planoDe(v);
+    const r = layoutInto(ghostBody, ghostMargin, ghostFoot, i);
+    corte = Math.min(corte, r.next);
   }
-  if (!paginas.length) paginas = [0];
-  paginasSucias = false;
+  plano = original;
+  /* Un corte que no avanza, o que cae fuera, es el final del libro. Que caiga
+     JUSTO en el largo del plano también: significa que la última hoja acaba
+     con el último versículo y no hay una hoja más que empiece en la nada. */
+  if (!isFinite(corte) || corte <= i || corte >= original.length){
+    paginasCompletas = true;
+    return false;
+  }
+  paginas.push(corte);
+  return true;
+}
+/* ¿Existe la hoja p? Corta lo justo para poder contestar. */
+function hayHojaN(p){
+  if (!(p >= 0)) return false;
+  let guard = 0;
+  while (paginas.length <= p && guard++ < 20000)
+    if (!unCorteMas()) break;
+  return p < paginas.length;
+}
+/* Y todas, para lo poco que de verdad las necesita todas: entrar a un libro
+   por el final, y estimar el grosor de un bonche. */
+function todasLasPaginas(){
+  let guard = 0;
+  while (!paginasCompletas && guard++ < 20000) unCorteMas();
+  return paginas.length;
 }
 const paginaDe = k => {
   let p = 0;
-  while (p + 1 < paginas.length && paginas[p+1] <= k) p++;
+  while (hayHojaN(p + 1) && paginas[p+1] <= k) p++;
   return p;
 };
-const finDe = p => (p + 1 < paginas.length ? paginas[p+1] : plano.length);
+const finDe = p => (hayHojaN(p + 1) ? paginas[p+1] : plano.length);
 /* ¿Hay hoja de ese lado? La pregunta ya se hacía en tres sitios con la cuenta
    escrita a mano —al apagar el filo, al empezar el pliegue y al pasar la
    hoja— y la huella necesitaba hacerla una cuarta vez. Con la cuenta suelta,
@@ -2883,7 +2977,7 @@ const finDe = p => (p + 1 < paginas.length ? paginas[p+1] : plano.length);
      cuando el texto de la hoja siguiente ya es otro.
    · hayHoja decide el FILO y los botones de la vista de lejos. Apagarlos al
      final de un libro sería mentir: hay a dónde ir. */
-const hojaEnEsteLibro = s => s === 'right' ? paginaActual < paginas.length - 1
+const hojaEnEsteLibro = s => s === 'right' ? hayHojaN(paginaActual + 1)
                                            : paginaActual > 0;
 const hayHoja = s => hojaEnEsteLibro(s) || !!libroVecino(s);
 /* Libro, capítulo y versículo con los que ARRANCA la hoja */
@@ -2949,7 +3043,12 @@ function renderPage(){
 function renderPageCrudo(){
   resolverTodas(); recalcularRefs(); calcularVinculos();
   asegurarPaginas();
-  paginaActual = Math.max(0, Math.min(paginaActual, paginas.length - 1));
+  /* Se corta hasta la hoja que toca, y solo si no existe se recula. Con el
+     largo a pelo —Math.min(paginaActual, paginas.length-1)— cualquier hoja
+     todavía sin averiguar se leería como inexistente y la lectura saltaría a
+     la primera del libro en cuanto se recargara la página. */
+  if (!hayHojaN(paginaActual)) paginaActual = paginas.length - 1;
+  paginaActual = Math.max(0, paginaActual);
   startIdx = paginas[paginaActual];
   nextIdx = finDe(paginaActual);
   prepararHoja(pg);
@@ -2957,7 +3056,10 @@ function renderPageCrudo(){
   $('pgCabeza').textContent = cabezaDe(startIdx);
   $('pgCabeza').title = 'Libros, glosas, formato y respaldo';
   $('pgVersion').textContent = D.versiones[version].abrev || version;
-  $('pgVersion').title = 'Formato y versión · compilación ' + window.GLOSS_BUILD;
+  /* El aviso dice lo que hacen los dos gestos, no lo que hacían: un toque abre
+     la lista de versiones y dos abren Libros. Decía "Formato y versión" desde
+     antes de que ninguna de las dos cosas fuera cierta. */
+  $('pgVersion').title = 'Versiones · doble clic: Libros · compilación ' + window.GLOSS_BUILD;
   /* La pestaña lleva solo el nombre de la aplicación. Le puse el libro un
      rato —'Gloss Bible · Marcos'— y estorba: el libro y el capítulo ya se
      leen en la esquina de la hoja, y en la pestaña solo hacían ruido. Si
@@ -4302,7 +4404,7 @@ function fotoDeHoja(p, asignar){
   return sinZoom(() => fotoDeHojaCrudo(p, asignar));
 }
 function fotoDeHojaCrudo(p, asignar){
-  if (p < 0 || p >= paginas.length){ asignar(null); return; }
+  if (!hayHojaN(p)){ asignar(null); return; }
   /* El ancho del PAPEL, no el de la ventana: en teléfono la hoja sobresale y
      la foto tiene que retratarla entera, glosas incluidas. */
   const med = medirHojaTelefono();
@@ -4698,7 +4800,7 @@ function pasarHoja(s, clientY, intento){
   const destino = paginaActual + (s === 'right' ? 1 : -1);
   /* Fuera del libro empieza el de al lado. Antes aquí no pasaba nada, y no
      pasar nada al final de un libro se lee como que el toque no entró. */
-  if (destino < 0 || destino >= paginas.length){ cruzarLibro(s, clientY); return; }
+  if (!hayHojaN(destino)){ cruzarLibro(s, clientY); return; }
   volverA = null;
   sizeCanvas();
   if (!pageImg || snapStale()){
@@ -5645,7 +5747,7 @@ function animate(turn){
          La cara de debajo sale en blanco durante ese giro, porque la foto de
          la primera hoja del libro siguiente no existe hasta que el libro está
          armado y armarlo a media caricia trabaría el gesto. */
-      if (destino < 0 || destino >= paginas.length){
+      if (!hayHojaN(destino)){
         anchor = F = null;
         if (cruzarLibro(side, null, true)) return;
         fx.style.display='none'; pg.classList.remove('hidden'); updateReadout();
@@ -5912,8 +6014,13 @@ function cruzarLibro(s, clientY, sinAnimar){
     asegurarPaginas();
     /* Entrando por delante se cae en la primera hoja; volviendo hacia atrás,
        en la última. Es por dónde se entra al libro, no dónde está su
-       principio. */
-    const destino = s === 'right' ? 0 : Math.max(0, paginas.length - 1);
+       principio.
+       Y ahí está la asimetría del coste: entrar por delante cuesta un corte,
+       porque la primera hoja es la primera que se averigua. Entrar por detrás
+       obliga a paginar el libro entero, porque no hay forma de saber cuál es
+       la última sin llegar a ella. No hay atajo honesto: cualquier estimación
+       daría una hoja que no es la última y se notaría al instante. */
+    const destino = s === 'right' ? 0 : Math.max(0, todasLasPaginas() - 1);
     const aterrizar = () => {
       preparandoPliegue = false;
       hojasExtra = []; progreso = 0; alfaTop = 1;
@@ -6561,8 +6668,14 @@ flyVers.addEventListener('click', ev => {
    salto de Mateo a Apocalipsis tiene que verse distinto al de uno de veinte
    hojas, y para eso hay que saber que uno son cientos y el otro decenas. */
 function hojasEntreLibros(desdeLibro, aLibro, capDestino){
-  const porCap = plano.length && paginas.length
-               ? (paginas.length / Math.max(1, plano[plano.length-1].cap)) : 2.2;
+  /* Hojas por capítulo, medidas sobre lo que se haya paginado hasta ahora y no
+     sobre el libro entero: pedir el libro entero aquí, solo para decidir el
+     grosor de un manojo de papel, costaría más que el salto que va a animar.
+     Con menos de dos hojas sabidas no hay de dónde sacar una densidad y se usa
+     la de un libro cualquiera. */
+  const ultima = plano[Math.min(paginas[paginas.length-1], plano.length-1)];
+  const capsVistos = ultima && plano.length ? Math.max(1, ultima.cap - plano[0].cap + 1) : 1;
+  const porCap = paginas.length > 1 ? (paginas.length - 1) / capsVistos : 2.2;
   const i = CANON.findIndex(b => b.id === desdeLibro);
   const j = CANON.findIndex(b => b.id === aLibro);
   if (i < 0 || j < 0) return 999;
