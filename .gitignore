@@ -1,0 +1,4 @@
+node_modules/
+# Las pruebas dejan capturas cuando algo no cuadra: sirven para mirar, no para
+# guardar. Se quedan fuera a propósito.
+pruebas/capturas/
