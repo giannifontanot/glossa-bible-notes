@@ -2933,12 +2933,24 @@ function unCorteMas(){
   if (!(i < original.length)){ paginasCompletas = true; return false; }
   moldeDeCorte();
   let corte = Infinity;
-  for (const v of versionesSincronizables()){
-    plano = (v === version) ? original : planoDe(v);
-    const r = layoutInto(ghostBody, ghostMargin, ghostFoot, i);
-    corte = Math.min(corte, r.next);
-  }
-  plano = original;
+  /* EL PLANO SE DEVUELVE PASE LO QUE PASE.
+
+     Aquí se le da la vuelta a una variable global para maquetar el mismo corte
+     en las otras traducciones, y se devolvía al terminar el bucle. Bastaba con
+     que layoutInto tirara una excepción —una versión con un hueco, un dato
+     raro— para que el plano se quedara apuntando a OTRA traducción. Y lo que
+     sale de ahí es exactamente lo peor: el programa sigue vivo, sin error a la
+     vista, pero contando versículos de un libro que no es el que se lee. El
+     titulillo se queda en blanco en cuanto el índice se sale del plano nuevo.
+     No he conseguido provocarlo, y por eso mismo va con finally: una variable
+     global prestada se devuelve siempre, no solo cuando todo va bien. */
+  try {
+    for (const v of versionesSincronizables()){
+      plano = (v === version) ? original : planoDe(v);
+      const r = layoutInto(ghostBody, ghostMargin, ghostFoot, i);
+      corte = Math.min(corte, r.next);
+    }
+  } finally { plano = original; }
   /* Un corte que no avanza, o que cae fuera, es el final del libro. Que caiga
      JUSTO en el largo del plano también: significa que la última hoja acaba
      con el último versículo y no hay una hoja más que empiece en la nada. */
