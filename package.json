@@ -1,0 +1,12 @@
+{
+  "name": "glossa-bible-notes",
+  "private": true,
+  "description": "Lector de Biblia con glosas al margen. La aplicación es index.html; esto solo existe para poder correr las pruebas.",
+  "scripts": {
+    "test": "node pruebas/correr.js",
+    "postinstall": "echo 'Falta el navegador: npx playwright install chromium'"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}
