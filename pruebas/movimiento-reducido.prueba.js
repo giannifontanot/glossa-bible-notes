@@ -6,7 +6,7 @@
    otros sitios: sería raro apagar el giro de un disco y dejar puesto esto.
    Se apaga la TRANSICIÓN, no el zoom: la hoja sigue viéndose entera y llega
    ahí en un cuadro. */
-const { abrir, cerrar, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
 
 (async () => {
   let sesion;
@@ -35,7 +35,10 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
       vale('e interpolando', r.interpola);
     }
     vale('llega al mismo sitio', r.destino !== 'none', r.destino);
-    if (modo === 'no-preference'){ await sesion.navegador.close(); }
+    /* Se revisan los errores de ESTA sesión antes de tirarla: cerrando a pelo,
+       una excepción que solo ocurriera con la animación puesta se perdía y la
+       prueba terminaba en verde. */
+    if (modo === 'no-preference') await cerrarParcial(sesion, modo);
   }
   await cerrar(sesion);
 })();

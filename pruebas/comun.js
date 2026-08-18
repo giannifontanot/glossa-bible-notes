@@ -54,10 +54,25 @@ function buscarChromium(){
 }
 const EJECUTABLE = buscarChromium();
 
-/* Un teléfono y un escritorio. Casi todo se prueba en el teléfono, porque es
-   donde se lee; el escritorio entra donde el ancho cambia el comportamiento. */
+/* LOS TRES CONTEXTOS, Y POR QUÉ SON TRES Y NO DOS.
+
+   Casi todo se prueba en el teléfono, que es donde se lee. Pero hay un camino
+   del programa —el arrastre del papel— que solo se enciende cuando la hoja es
+   MÁS ANCHA que la ventana: `sobraPapel()` mira si hay desbordamiento. En un
+   escritorio ancho el papel cabe, no hay arrastre, y con él desaparece la
+   captura del puntero. Ahí estuvo escondido meses el fallo de los rótulos: la
+   captura reasigna el clic de compatibilidad al elemento que captura, y eso
+   pasa CON RATÓN y no con dedo. O sea que solo se veía en la esquina de las
+   tres condiciones: ventana estrecha, puntero de ratón, papel desbordado.
+   Por eso hace falta el tercero. Probar el ancho y creer que se cubre el
+   estrecho es lo que dejó esa esquina sin red.
+
+   isMobile y hasTouch van escritos también en los de ratón: las opciones se
+   funden por encima, así que omitirlos dejaba puestos los del teléfono y el
+   "escritorio" seguía teniendo dedo. */
 const TELEFONO = { viewport:{ width:412, height:915 }, isMobile:true, hasTouch:true };
-const ESCRITORIO = { viewport:{ width:1100, height:820 } };
+const ESCRITORIO = { viewport:{ width:1100, height:820 }, isMobile:false, hasTouch:false };
+const ESTRECHO_RATON = { viewport:{ width:390, height:844 }, isMobile:false, hasTouch:false };
 
 let fallos = 0, aciertos = 0;
 const nombre = path.basename(process.argv[1] || 'prueba');
@@ -107,8 +122,20 @@ async function conGlosas(pagina){
   await pagina.waitForTimeout(2600);
 }
 
-/* El cierre: comprueba que no hubo excepciones, resume y decide el código de
-   salida. Sin esto último las pruebas no sirven para nada automático. */
+/* CERRAR UNA SESIÓN INTERMEDIA. Las pruebas que abren varios navegadores
+   —dedo y ratón, movimiento normal y reducido— tienen que revisar los errores
+   de CADA uno. Cerrando a pelo, una excepción que solo ocurriera en el primero
+   se perdía entera y la prueba terminaba en verde. */
+async function cerrarParcial(sesion, comoSeLlama){
+  const { navegador, errores } = sesion;
+  vale('sin errores de JavaScript' + (comoSeLlama ? ' (' + comoSeLlama + ')' : ''),
+       errores.length === 0, errores.length ? errores : 'ninguno');
+  await navegador.close();
+}
+
+/* El cierre final: comprueba que no hubo excepciones, resume y decide el
+   código de salida. Sin esto último las pruebas no sirven para nada
+   automático. */
 async function cerrar(sesion){
   const { navegador, errores } = sesion;
   vale('sin errores de JavaScript', errores.length === 0,
@@ -120,4 +147,5 @@ async function cerrar(sesion){
   process.exitCode = fallos ? 1 : 0;
 }
 
-module.exports = { abrir, cerrar, conGlosas, di, vale, titulo, APP, RAIZ, TELEFONO, ESCRITORIO };
+module.exports = { abrir, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
+                   APP, RAIZ, TELEFONO, ESCRITORIO, ESTRECHO_RATON };

@@ -12,7 +12,8 @@
    · El del pie se quedaba BLANCO. Tenía un :hover con fondo, y en un teléfono
      ese estado no existe: el navegador lo aplica al tocar y lo deja puesto.
      El rótulo tiene dos estados, no tres. */
-const { abrir, cerrar, di, vale, titulo, ESCRITORIO } = require('./comun');
+const { abrir, cerrar, cerrarParcial, di, vale, titulo,
+        ESCRITORIO, ESTRECHO_RATON } = require('./comun');
 
 (async () => {
   const sesion = await abrir();
@@ -73,34 +74,54 @@ const { abrir, cerrar, di, vale, titulo, ESCRITORIO } = require('./comun');
   }));
 
   titulo('y con RATÓN, que es donde estuvo roto');
-  await sesion.navegador.close();
-  const escritorio = await abrir(ESCRITORIO);
-  const q = escritorio.pagina;
-  for (const [id, comprueba] of [['pgCabeza', 'canto'], ['pgVersion', 'burbujaVersion']]){
-    const caja = await q.evaluate(i => {
-      const r = document.getElementById(i).getBoundingClientRect();
-      return { x: Math.round(r.left + r.width/2), y: Math.round(r.top + r.height/2) };
-    }, id);
-    await q.mouse.click(caja.x, caja.y);
-    await q.waitForTimeout(900);
-    const abierto = await q.evaluate(c => {
-      const el = document.getElementById(c);
-      return el.classList.contains('abierto') || el.classList.contains('visible');
-    }, comprueba);
-    vale('#' + id + ' responde al ratón', abierto);
-    await q.evaluate(() => document.body.dispatchEvent(
-      new PointerEvent('pointerdown', { bubbles:true, clientX:20, clientY:300 })));
-    await q.waitForTimeout(700);
-    if (id === 'pgCabeza'){
-      await q.evaluate(() => { const c = document.getElementById('canto');
-        if (c.classList.contains('abierto')) document.getElementById('pgCabeza').click(); });
-      await q.waitForTimeout(800);
-    }
-  }
-  di('con el ratón encima', await q.evaluate(() => ({
-    fondo: getComputedStyle(document.getElementById('pgVersion')).backgroundColor })));
-  vale('el ratón tampoco lo pone blanco', await q.evaluate(() =>
-    getComputedStyle(document.getElementById('pgVersion')).backgroundColor !== 'rgb(255, 253, 246)'));
+  await cerrarParcial(sesion, 'dedo');
 
-  await cerrar(escritorio);
+  /* LOS DOS ANCHOS, y el estrecho es el que importa.
+
+     El fallo vivía en la esquina de tres condiciones: ventana estrecha, puntero
+     de ratón, y papel más ancho que la ventana. Solo entonces se enciende el
+     arrastre, y solo entonces la captura del puntero reasigna el clic al
+     elemento que captura —con ratón sí, con dedo no—, dejando los rótulos
+     mudos. En una ventana ancha el papel cabe, no hay arrastre y no hay
+     captura: el rótulo responde aunque el fallo esté puesto.
+     Probar solo el ancho es lo que dejó esa esquina sin red durante meses. */
+  let ultima;
+  for (const [comoSeLlama, contexto] of [['ratón, ventana estrecha', ESTRECHO_RATON],
+                                         ['ratón, escritorio', ESCRITORIO]]){
+    const s = await abrir(contexto);
+    const q = s.pagina;
+    ultima = s;
+    di(comoSeLlama, await q.evaluate(() => ({
+      anchoVentana: window.innerWidth,
+      sobraPapel: document.getElementById('pg').scrollWidth -
+                  document.getElementById('pg').clientWidth > 4,
+      conDedo: 'ontouchstart' in window })));
+    for (const [id, comprueba] of [['pgCabeza', 'canto'], ['pgVersion', 'burbujaVersion']]){
+      const caja = await q.evaluate(i => {
+        const r = document.getElementById(i).getBoundingClientRect();
+        return { x: Math.round(r.left + r.width/2), y: Math.round(r.top + r.height/2) };
+      }, id);
+      await q.mouse.click(caja.x, caja.y);
+      await q.waitForTimeout(900);
+      const abierto = await q.evaluate(c => {
+        const el = document.getElementById(c);
+        return el.classList.contains('abierto') || el.classList.contains('visible');
+      }, comprueba);
+      vale('#' + id + ' responde · ' + comoSeLlama, abierto);
+      await q.evaluate(() => document.body.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles:true, clientX:20, clientY:300 })));
+      await q.waitForTimeout(700);
+      if (id === 'pgCabeza'){
+        await q.evaluate(() => { const c = document.getElementById('canto');
+          if (c.classList.contains('abierto')) document.getElementById('pgCabeza').click(); });
+        await q.waitForTimeout(800);
+      }
+    }
+    vale('no se pone blanco · ' + comoSeLlama, await q.evaluate(() =>
+      getComputedStyle(document.getElementById('pgVersion')).backgroundColor !== 'rgb(255, 253, 246)'),
+      await q.evaluate(() => getComputedStyle(document.getElementById('pgVersion')).backgroundColor));
+    if (contexto === ESTRECHO_RATON) await cerrarParcial(s, comoSeLlama);
+  }
+
+  await cerrar(ultima);
 })();
