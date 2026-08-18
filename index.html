@@ -1753,7 +1753,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-18 · el libro es la salida';
+window.GLOSS_BUILD = '2026-08-18 · la etiqueta que sí se ve';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2716,7 +2716,22 @@ function asentarGlosas(raiz){
 }
 
 /* ---------- markup ---------- */
-const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+/* LAS COMILLAS TAMBIÉN, porque esto se usa dentro de atributos.
+
+   Escapaba &, < y >, que es lo que hace falta para meter texto entre etiquetas.
+   Pero la mitad de las llamadas lo meten dentro de un ATRIBUTO —data-tag,
+   data-bv, title, value—, y ahí una comilla doble cierra el atributo antes de
+   tiempo. Una etiqueta llamada la "roca" producía esto:
+
+     <option value="la " roca""="">la "roca"</option>
+
+   o sea un valor cortado en «la » y dos atributos inventados. El texto lo pone
+   quien usa la aplicación, así que esto no es una hipótesis: es cuestión de que
+   alguien entrecomille una palabra.
+   En el texto entre etiquetas, &quot; se dibuja como una comilla normal, así
+   que escaparlas siempre no le cuesta nada a los demás usos. */
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                  .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function glossHTML(m, cls, style){
   const tags = (m.etiquetas||[]).length ? '<span class="gl-tag">#' + esc(m.etiquetas.join(' #')) + '</span>' : '';
   const grado = (RES.get(m.id)||{}).grado;
@@ -4096,9 +4111,34 @@ function pintarFiltros(){
   mas.title = 'Sumar a la lista las glosas de otro libro';
   mas.onclick = ev => { ev.stopPropagation(); menuDeLibros(mas.getBoundingClientRect()); };
   cont.appendChild(mas);
+  /* LA ETIQUETA ACTIVA ENTRA EN LA LISTA AUNQUE TODAVÍA NO LA LLEVE NADIE.
+
+     Las opciones salen de las etiquetas EN USO, que es lo correcto para una
+     lista de lo que hay. Pero una etiqueta recién escrita no la lleva ninguna
+     marca todavía —esa es justo su situación—, así que al repintar
+     desaparecía de las opciones y el `sel.value` de abajo no encontraba a qué
+     agarrarse: el desplegable volvía a "— ninguna —".
+
+     Y lo peor no era eso: por dentro etiquetaActiva SEGUÍA puesta, así que la
+     siguiente glosa sí se etiquetaba. O sea que el control decía una cosa y el
+     programa hacía otra, que es la única clase de fallo que no se puede
+     descubrir usando la aplicación —solo desconfiando de ella—. Se escribía
+     "promesas", el desplegable decía "ninguna", y la nota salía etiquetada. */
   const sel = $('selActiva'), previo = etiquetaActiva;
+  /* Y CADA OPCIÓN LLEVA SU value ESCRITO, que no es adorno.
+
+     Sin él, el navegador deduce el valor del texto de la opción, y al
+     deducirlo COLAPSA los espacios seguidos. Una etiqueta como «oración  diaria»
+     —dos espacios, que se escriben sin querer más a menudo de lo que parece—
+     se guardaba con dos en la marca y aparecía con uno en la opción, así que
+     el sel.value de abajo no encontraba a qué agarrarse y el desplegable
+     volvía a "— ninguna —" con la banda encendida: exactamente el mismo
+     desajuste que este cambio venía a arreglar, entrando por otra puerta.
+     Comprobado: sin value, "oración  diaria" da una opción que vale
+     "oración diaria". Lo levantó la revisión de Codex. */
+  const nombres = [...new Set([...mapa.keys(), ...(etiquetaActiva ? [etiquetaActiva] : [])])].sort();
   sel.innerHTML = '<option value="">— ninguna —</option>' +
-    [...mapa.keys()].sort().map(k => '<option>'+esc(k)+'</option>').join('');
+    nombres.map(k => '<option value="'+esc(k)+'">'+esc(k)+'</option>').join('');
   sel.value = previo;
   $('banda').classList.toggle('apagada', !etiquetaActiva);
   pintarDias();
@@ -4140,14 +4180,21 @@ $('btnEtiquetarDia').onclick = () => {
      ahí lo único que distingue «no hacía falta» de «no funcionó» es decirlo. */
   if (!n) readout.textContent = 'todas las de ' + diaFiltro + ' ya tenían esa etiqueta';
 };
-$('selActiva').onchange = e => { etiquetaActiva = e.target.value; pintarFiltros(); updateReadout(); };
+/* Los dos caminos que cambian la etiqueta activa guardan. No basta con que
+   guardarAjustes corra al final de cada renderPage: ninguno de los dos
+   repinta la hoja —no hace falta, solo cambia con qué se etiquetará lo
+   siguiente— así que sin esta llamada el ajuste se perdía en cuanto cerrabas
+   sin tocar nada más. */
+$('selActiva').onchange = e => {
+  etiquetaActiva = e.target.value; pintarFiltros(); updateReadout(); guardarAjustes();
+};
 $('nuevaEtiqueta').addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
   const v = e.target.value.trim(); if (!v) return;
   etiquetaActiva = v; e.target.value = '';
   const sel = $('selActiva');
   if (![...sel.options].some(o => o.value === v)) sel.add(new Option(v, v));
-  sel.value = v; pintarFiltros(); updateReadout();
+  sel.value = v; pintarFiltros(); updateReadout(); guardarAjustes();
 });
 
 /* ---------- fotos y pliegue ---------- */
@@ -7414,7 +7461,16 @@ function guardarAjustes(){
       v: 1, fontSize, columns, placement, alineacion,
       interlineado, margen, version, showMarks, sepia,
       fuente: FUENTES.findIndex(f => f[1] === fuente),
-      libro: LIBRO, cap: aqui.cap, vers: aqui.vers
+      libro: LIBRO, cap: aqui.cap, vers: aqui.vers,
+      /* LA ETIQUETA ACTIVA SE GUARDA, y hay que decir por qué no es obvio.
+         Los demás ajustes son de la hoja —letra, columnas, márgenes—; ésta es
+         de lo que estás haciendo, y se podía defender que muriera al cerrar.
+         Lo que decide es cómo falla cada opción: si NO se guarda, vuelves al
+         día siguiente, sigues glosando el mismo tema, y las notas salen sin
+         etiquetar sin que nada te lo diga. Se descubre semanas después, al
+         filtrar y ver que faltan. La banda encendida al abrir, en cambio, se
+         ve: está ahí, dice qué etiqueta lleva, y apagarla es un gesto. */
+      etiquetaActiva
     }));
   } catch(e){ /* si no se puede, se arranca con lo de fábrica */ }
 }
@@ -7439,6 +7495,12 @@ function cargarAjustes(){
   if (AIRES.some(x => x[1] === a.interlineado)) interlineado = a.interlineado;
   if (MARGENES[a.margen]) margen = a.margen;
   showMarks = a.showMarks !== false;
+  /* Se acepta cualquier texto porque las etiquetas las escribe quien usa la
+     aplicación y no hay lista cerrada que consultar; solo se rechaza lo que no
+     es texto y lo desmedido, que sería un archivo manoseado y no una etiqueta.
+     Vacío vale: significa "ninguna". */
+  if (typeof a.etiquetaActiva === 'string' && a.etiquetaActiva.length <= 120)
+    etiquetaActiva = a.etiquetaActiva;
   if (D.versiones[a.version]) version = a.version;      // antes que el libro:
   if (a.libro && hayLibro(a.libro)) LIBRO = a.libro;    // hayLibro depende de version
   return a;
