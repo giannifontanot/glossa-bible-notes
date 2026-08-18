@@ -2716,7 +2716,22 @@ function asentarGlosas(raiz){
 }
 
 /* ---------- markup ---------- */
-const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+/* LAS COMILLAS TAMBIÉN, porque esto se usa dentro de atributos.
+
+   Escapaba &, < y >, que es lo que hace falta para meter texto entre etiquetas.
+   Pero la mitad de las llamadas lo meten dentro de un ATRIBUTO —data-tag,
+   data-bv, title, value—, y ahí una comilla doble cierra el atributo antes de
+   tiempo. Una etiqueta llamada la "roca" producía esto:
+
+     <option value="la " roca""="">la "roca"</option>
+
+   o sea un valor cortado en «la » y dos atributos inventados. El texto lo pone
+   quien usa la aplicación, así que esto no es una hipótesis: es cuestión de que
+   alguien entrecomille una palabra.
+   En el texto entre etiquetas, &quot; se dibuja como una comilla normal, así
+   que escaparlas siempre no le cuesta nada a los demás usos. */
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                  .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function glossHTML(m, cls, style){
   const tags = (m.etiquetas||[]).length ? '<span class="gl-tag">#' + esc(m.etiquetas.join(' #')) + '</span>' : '';
   const grado = (RES.get(m.id)||{}).grado;
@@ -4110,9 +4125,20 @@ function pintarFiltros(){
      descubrir usando la aplicación —solo desconfiando de ella—. Se escribía
      "promesas", el desplegable decía "ninguna", y la nota salía etiquetada. */
   const sel = $('selActiva'), previo = etiquetaActiva;
+  /* Y CADA OPCIÓN LLEVA SU value ESCRITO, que no es adorno.
+
+     Sin él, el navegador deduce el valor del texto de la opción, y al
+     deducirlo COLAPSA los espacios seguidos. Una etiqueta como «oración  diaria»
+     —dos espacios, que se escriben sin querer más a menudo de lo que parece—
+     se guardaba con dos en la marca y aparecía con uno en la opción, así que
+     el sel.value de abajo no encontraba a qué agarrarse y el desplegable
+     volvía a "— ninguna —" con la banda encendida: exactamente el mismo
+     desajuste que este cambio venía a arreglar, entrando por otra puerta.
+     Comprobado: sin value, "oración  diaria" da una opción que vale
+     "oración diaria". Lo levantó la revisión de Codex. */
   const nombres = [...new Set([...mapa.keys(), ...(etiquetaActiva ? [etiquetaActiva] : [])])].sort();
   sel.innerHTML = '<option value="">— ninguna —</option>' +
-    nombres.map(k => '<option>'+esc(k)+'</option>').join('');
+    nombres.map(k => '<option value="'+esc(k)+'">'+esc(k)+'</option>').join('');
   sel.value = previo;
   $('banda').classList.toggle('apagada', !etiquetaActiva);
   pintarDias();
