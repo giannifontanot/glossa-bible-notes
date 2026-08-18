@@ -427,12 +427,13 @@
      mismos cortes, más chica.
 
      El papel se despega del fondo: #pg deja de ser papel y lo es .pg-inner,
-     así que alrededor aparece el escritorio. Ese hueco es el que se toca para
-     volver, y es también donde viven los dos botones de pasar hoja —abajo a la
-     derecha, fuera del papel, porque encima del papel taparían justo lo que se
-     vino a mirar—.
+     así que alrededor aparece el escritorio. Ese hueco ya NO se toca para
+     volver: salir por el vacío era demasiado fácil por accidente. Se vuelve
+     tocando el libro, que es lo que uno quiere acercar otra vez. Afuera viven
+     los dos botones de pasar hoja —abajo a la derecha, fuera del papel, porque
+     encima del papel taparían justo lo que se vino a mirar—.
      ============================================================ */
-  #pg.zoom{ background:transparent; cursor:zoom-out; }
+  #pg.zoom{ background:transparent; cursor:default; }
   /* EL ORIGEN DEL TRANSFORM VIVE FUERA DE .zoom, y tiene que vivir fuera.
 
      Estaba dentro de la regla de abajo, que es lo natural mientras el cambio
@@ -450,7 +451,7 @@
   #pg .pg-inner{ transform-origin:top left; }
   #pg.zoom .pg-inner{
       transform:translate(var(--zx,0px), var(--zy,0px)) scale(var(--zk,1));
-      transform-origin:top left; background:transparent; }
+      transform-origin:top left; background:transparent; cursor:zoom-in; }
   /* ALEJARSE Y ACERCARSE SIN CORTE.
 
      Las tres cosas que cambian —la escala de la hoja, el papel que llenaba la
@@ -5351,16 +5352,19 @@ $('zoomPasos').addEventListener('click', ev => {
   const r = pg.querySelector('.pg-inner').getBoundingClientRect();
   pasarHoja(adelante ? 'right' : 'left', r.top + r.height/2);
 });
-/* El hueco de alrededor es el botón de salir. Se mira contra el rectángulo
-   del papel escalado y no contra #pg, porque #pg ocupa la pantalla entera:
-   fuera del papel es fuera. */
+/* El LIBRO es el botón de salir. Antes lo era el hueco de alrededor, y eso
+   castigaba el toque impreciso: en la vista de lejos hay mucho escritorio y
+   poco papel, así que era fácil cerrar el zoom sin querer al fallarle al libro
+   o a los botones de pasar hoja. Ahora el vacío no hace nada; tocar el papel
+   significa "acércame otra vez". Se mira contra el rectángulo escalado de
+   .pg-inner y no contra #pg, porque #pg ocupa la pantalla entera. */
 pg.addEventListener('click', ev => {
   if (!zoomActivo) return;
   const inner = pg.querySelector('.pg-inner');
   if (!inner) return;
   const r = inner.getBoundingClientRect();
-  if (ev.clientX >= r.left && ev.clientX <= r.right &&
-      ev.clientY >= r.top  && ev.clientY <= r.bottom) return;
+  if (ev.clientX < r.left || ev.clientX > r.right ||
+      ev.clientY < r.top  || ev.clientY > r.bottom) return;
   cerrarZoom();
 });
 
