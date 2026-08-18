@@ -78,9 +78,13 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
 
   titulo('el panel de Libros se entera');
   di('la marca', await p.evaluate(async () => {
+    /* Se sale del zoom por EL HUECO de debajo del libro. Tocar el libro ya no
+       cierra —de lejos se pasa hoja y se tocan glosas—, y con el zoom puesto
+       el titulillo no responde, así que el panel no llegaba a abrirse y esta
+       comprobación contaba cero libros marcados sin que nada estuviera roto. */
     const r = document.querySelector('#pg .pg-inner').getBoundingClientRect();
     document.getElementById('pg').dispatchEvent(new MouseEvent('click',
-      { bubbles:true, clientX:Math.round(r.left+r.width/2), clientY:Math.round(r.top+r.height/2) }));
+      { bubbles:true, clientX:Math.round(r.left+r.width/2), clientY:Math.round(r.bottom+60) }));
     await new Promise(z => setTimeout(z, 1000));
     document.getElementById('pgCabeza').click();
     await new Promise(z => setTimeout(z, 1000));

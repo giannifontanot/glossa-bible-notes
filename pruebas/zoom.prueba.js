@@ -15,9 +15,18 @@
    · transform-origin vivía dentro de la regla .zoom. Al salir, la clase se va
      en el primer cuadro y el origen saltaba al centro con la matriz todavía
      interpolando: la hoja crecía hacia los cuatro lados y daba un tirón.
-   · Y salir se hace tocando EL LIBRO, no el hueco. De lejos hay mucho
-     escritorio y poco papel, así que salirse por fallarle al libro era
-     demasiado fácil. */
+   · Y salir se hace tocando EL HUECO, no el libro. Esto estuvo al revés una
+     temporada —el miedo era salirse sin querer, porque de lejos hay mucho
+     escritorio y poco papel— hasta que se vio lo que costaba: de lejos el
+     libro SE USA, se pasa hoja por los filos y se tocan las glosas, así que
+     hacerlo botón de salida convertía cada uno de esos toques en una apuesta.
+
+   Y una cosa que esta prueba aprendió de sí misma: EL VIAJE DE SALIDA TIENE
+   QUE COMPROBAR QUE SALIÓ. Al invertir el gesto, el muestreo siguió cantando
+   verde sin que el zoom se cerrara una sola vez: midiendo una pantalla quieta,
+   el desborde es cero y la razón es uno: todo en orden y nada ocurrido. Un
+   veredicto que también se cumple cuando no pasa nada no está comprobando
+   nada. */
 const { abrir, cerrar, di, vale, titulo, ESCRITORIO } = require('./comun');
 
 (async () => {
@@ -39,14 +48,16 @@ const { abrir, cerrar, di, vale, titulo, ESCRITORIO } = require('./comun');
     const reloj = setInterval(() => { const f = foto(); if (f) visto.push(f); }, 30);
     if (dir === 'entrar') document.getElementById('btnZoom').click();
     else {
+      /* por el hueco de debajo del libro, que es la salida */
       const r = pg.querySelector('.pg-inner').getBoundingClientRect();
       pg.dispatchEvent(new MouseEvent('click', { bubbles:true,
-        clientX:Math.round(r.left + r.width/2), clientY:Math.round(r.top + r.height/2) }));
+        clientX:Math.round(r.left + r.width/2), clientY:Math.round(r.bottom + 60) }));
     }
     await new Promise(q => setTimeout(q, 700));
     clearInterval(reloj);
     return { muestras: visto.length,
              desbordeMaximo: Math.max(...visto.map(v => v.desborde)),
+             enZoom: pg.classList.contains('zoom'),
              razones: visto.map(v => +(v.texto / v.papel).toFixed(3)) };
   }, sentido);
 
@@ -56,6 +67,7 @@ const { abrir, cerrar, di, vale, titulo, ESCRITORIO } = require('./comun');
                      razonMin:Math.min(...e.razones), razonMax:Math.max(...e.razones) });
   vale('la letra no sale de su hoja', e.desbordeMaximo === 0, e.desbordeMaximo + ' px');
   vale('texto y papel van atados', Math.min(...e.razones) === 1 && Math.max(...e.razones) === 1);
+  vale('y entró de verdad', e.enZoom);
 
   await p.waitForTimeout(500);
   titulo('saliendo');
@@ -64,24 +76,52 @@ const { abrir, cerrar, di, vale, titulo, ESCRITORIO } = require('./comun');
                      razonMin:Math.min(...s.razones), razonMax:Math.max(...s.razones) });
   vale('la letra no sale de su hoja', s.desbordeMaximo === 0, s.desbordeMaximo + ' px');
   vale('es el mismo viaje al revés', e.desbordeMaximo === s.desbordeMaximo);
+  vale('y salió de verdad', !s.enZoom);
 
-  titulo('la salida es el libro, no el hueco');
-  di('el hueco', await p.evaluate(async () => {
+  titulo('la salida es el hueco, y el libro se queda para leerlo');
+  /* ESTUVO AL REVÉS UNA TEMPORADA, Y POR ESO AQUÍ SE MIRAN LAS DOS MITADES.
+     Que el hueco cierre es la fácil. La que costó el cambio es que el libro NO
+     cierre: de lejos se sigue pasando hoja por los filos y tocando las glosas
+     del margen —es para lo que uno se aleja—, y con el libro haciendo de botón
+     de salida cada uno de esos toques era una apuesta: fallarle al filo por
+     dos píxeles no costaba el toque, costaba la vista.
+     Una prueba que solo comprobara la salida dejaría volver el problema
+     entero sin decir nada. */
+  di('tocando el libro', await p.evaluate(async () => {
     document.getElementById('btnZoom').click();
     await new Promise(z => setTimeout(z, 1200));
     const r = document.querySelector('#pg .pg-inner').getBoundingClientRect();
     document.getElementById('pg').dispatchEvent(new MouseEvent('click',
-      { bubbles:true, clientX:206, clientY:Math.round(r.bottom + 60) }));
+      { bubbles:true, clientX:Math.round(r.left+r.width/2), clientY:Math.round(r.top+r.height/2) }));
     await new Promise(z => setTimeout(z, 700));
     return { sigueEnZoom: document.getElementById('pg').classList.contains('zoom') };
-  }).then(r => { vale('tocar el hueco NO cierra', r.sigueEnZoom); return r; }));
+  }).then(r => { vale('tocar el libro NO cierra', r.sigueEnZoom); return r; }));
+
+  /* Y que de verdad sirva para algo: el filo, recolocado al canto de la hoja
+     chica, tiene que seguir pasando hoja sin salirse del zoom. Se espera de
+     sobra porque el toque en el filo no mide al soltarlo: aguarda su plazo de
+     doble clic y solo entonces pasa. */
+  di('el filo, de lejos', await p.evaluate(async () => {
+    const cab = () => document.getElementById('pgCabeza').textContent.trim();
+    const antes = cab();
+    const e = document.getElementById('edgeR'), r = e.getBoundingClientRect();
+    const op = { bubbles:true, pointerId:31, pointerType:'touch', isPrimary:true,
+                 clientX:Math.round(r.left + r.width/2), clientY:Math.round(r.top + r.height/2) };
+    e.dispatchEvent(new PointerEvent('pointerdown', op));
+    await new Promise(z => setTimeout(z, 70));
+    e.dispatchEvent(new PointerEvent('pointerup', op));
+    await new Promise(z => setTimeout(z, 2200));
+    return { de:antes, a:cab(), paso: cab() !== antes,
+             sigueEnZoom: document.getElementById('pg').classList.contains('zoom') };
+  }).then(r => { vale('el filo pasa hoja sin salir del zoom', r.paso && r.sigueEnZoom); return r; }));
+
   di('los cursores', await p.evaluate(() => ({
     hueco: getComputedStyle(document.getElementById('pg')).cursor,
     papel: getComputedStyle(document.querySelector('#pg .pg-inner')).cursor })));
-  vale('tocar el libro sí cierra', await p.evaluate(async () => {
+  vale('tocar el hueco sí cierra', await p.evaluate(async () => {
     const r = document.querySelector('#pg .pg-inner').getBoundingClientRect();
     document.getElementById('pg').dispatchEvent(new MouseEvent('click',
-      { bubbles:true, clientX:Math.round(r.left+r.width/2), clientY:Math.round(r.top+r.height/2) }));
+      { bubbles:true, clientX:206, clientY:Math.round(r.bottom + 60) }));
     await new Promise(z => setTimeout(z, 900));
     return !document.getElementById('pg').classList.contains('zoom');
   }));
@@ -95,8 +135,9 @@ const { abrir, cerrar, di, vale, titulo, ESCRITORIO } = require('./comun');
     document.getElementById('btnZoom').click();
     await new Promise(z => setTimeout(z, 1200));
     const r = document.querySelector('#pg .pg-inner').getBoundingClientRect();
+    /* por el hueco de debajo, que es por donde se sale */
     document.getElementById('pg').dispatchEvent(new MouseEvent('click',
-      { bubbles:true, clientX:Math.round(r.left+r.width/2), clientY:Math.round(r.top+r.height/2) }));
+      { bubbles:true, clientX:Math.round(r.left+r.width/2), clientY:Math.round(r.bottom+60) }));
     await new Promise(z => setTimeout(z, 40));
     const antes = { suavizando: document.getElementById('pg').classList.contains('suavizando'),
                     ancho: Math.round(document.getElementById('pgBody').getBoundingClientRect().width) };
