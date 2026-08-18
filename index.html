@@ -619,9 +619,18 @@
     /* Más grandes y más separadas: son los únicos controles de la vista de
        lejos y se usan seguidos, uno tras otro, mirando el papel y no el botón.
        Con 52 y 10 de hueco el pulgar rebotaba de uno a otro; con 62 y 18 cada
-       uno tiene su sitio y no hay que apuntar. */
-    #zoomPasos{ right:12px; bottom:12px; gap:20px; }
-    #zoomPasos button{ width:93px; height:93px; font-size:38px; }
+       uno tiene su sitio y no hay que apuntar.
+
+       Y AQUÍ SE PARÓ EL CRECIMIENTO: en 80, no en 93. El cincuenta por ciento
+       que se pidió daba 93, y 93 más 93 más el hueco son 206 px de los 412 que
+       mide la pantalla —la mitad del ancho ocupada por dos botones, en la
+       vista que existe justamente para ver la hoja entera—. Con 80 y 16 siguen
+       siendo casi un tercio más grandes que los de antes, que es de sobra para
+       el pulgar, y le devuelven treinta píxeles al papel.
+       La tinta baja a 34 por la regla de siempre: lo que crece es el blanco de
+       toque, no la mancha. */
+    #zoomPasos{ right:12px; bottom:12px; gap:16px; }
+    #zoomPasos button{ width:80px; height:80px; font-size:34px; }
   }
 
   /* ============================================================
@@ -3965,17 +3974,23 @@ function opacar(caja){
    verdad y no una estimación.
    El de destino se esconde mientras dura el viaje y se destapa al llegar. Sin
    eso se verían las dos a la vez y el viaje parecería una copia. */
-/* CUÁNTO DURA EL VUELO. Empezó en 900 ms y con eso la nota no viajaba: se
-   escapaba. La distancia es casi la hoja entera y el ojo venía de leer, no de
-   vigilar el margen, así que para cuando la encontraba ya había aterrizado y
-   lo único que quedaba era la sensación de que algo se movió.
-   Cinco veces más lento es mucho escrito así, y es lo correcto: lo que se está
-   enseñando no es un cambio de estado —para eso basta un parpadeo— sino a
-   DÓNDE se fue lo que acabas de escribir, y eso hay que poder seguirlo con la
-   vista sin proponérselo. Y no estorba: el vuelo lo lleva el compositor y no
-   bloquea nada, así que mientras dura se puede seguir leyendo, escribiendo o
-   pasando hoja. */
-const VUELO_MS = 4500;
+/* CUÁNTO DURA EL VUELO, y por qué ha ido a parar entre los dos extremos.
+
+   Empezó en 900 ms y con eso la nota no viajaba: se escapaba. La distancia es
+   casi la hoja entera y el ojo venía de leer, no de vigilar el margen, así que
+   para cuando la encontraba ya había aterrizado y lo único que quedaba era la
+   sensación de que algo se movió.
+   Se pasó a 4500 —cinco veces— y ahí se cruzó la otra raya. Lo que se está
+   enseñando es a DÓNDE se fue lo que acabas de escribir, y eso se ve entero
+   mucho antes de cuatro segundos y medio; el resto del tiempo la nota ya no
+   informa de nada y se queda flotando delante de lo que quieres seguir
+   leyendo. Una cosa lenta y otra que se demora no son la misma.
+   2400 es la medida que quedó: el triple de despacio que el arranque, tiempo
+   de sobra para seguirla con la vista sin proponérselo, y termina dentro del
+   rato en que todavía te importa dónde acabó.
+   Sigue sin estorbar en cualquier caso: el vuelo lo lleva el compositor y no
+   bloquea nada, así que mientras dura se puede leer, escribir o pasar hoja. */
+const VUELO_MS = 2400;
 function volarGlosa(caja, id){
   const destino = document.querySelector('.gl[data-gl="' + id + '"]');
   const a = caja.getBoundingClientRect();
@@ -3990,7 +4005,7 @@ function volarGlosa(caja, id){
      El vuelo daba un rodeo por el medio de la hoja. La idea era que el ojo
      viera el viaje entero sin apartarse de donde ya miraba, y tenía sentido
      cuando el viaje duraba novecientos milisegundos: sin la curva, la nota se
-     iba por la orilla y se perdía. Con cuatro segundos y medio el problema se
+     iba por la orilla y se perdía. En cuanto el vuelo se alargó el problema se
      acabó solo, y lo que quedó del rodeo fue una nota dando un paseo. Un
      trayecto que no es el camino a ningún sitio se lee como decoración, y a
      esta velocidad hay tiempo de sobra para leerlo.
