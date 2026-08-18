@@ -1753,7 +1753,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-18 · el libro es la salida';
+window.GLOSS_BUILD = '2026-08-18 · la etiqueta que sí se ve';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4096,9 +4096,23 @@ function pintarFiltros(){
   mas.title = 'Sumar a la lista las glosas de otro libro';
   mas.onclick = ev => { ev.stopPropagation(); menuDeLibros(mas.getBoundingClientRect()); };
   cont.appendChild(mas);
+  /* LA ETIQUETA ACTIVA ENTRA EN LA LISTA AUNQUE TODAVÍA NO LA LLEVE NADIE.
+
+     Las opciones salen de las etiquetas EN USO, que es lo correcto para una
+     lista de lo que hay. Pero una etiqueta recién escrita no la lleva ninguna
+     marca todavía —esa es justo su situación—, así que al repintar
+     desaparecía de las opciones y el `sel.value` de abajo no encontraba a qué
+     agarrarse: el desplegable volvía a "— ninguna —".
+
+     Y lo peor no era eso: por dentro etiquetaActiva SEGUÍA puesta, así que la
+     siguiente glosa sí se etiquetaba. O sea que el control decía una cosa y el
+     programa hacía otra, que es la única clase de fallo que no se puede
+     descubrir usando la aplicación —solo desconfiando de ella—. Se escribía
+     "promesas", el desplegable decía "ninguna", y la nota salía etiquetada. */
   const sel = $('selActiva'), previo = etiquetaActiva;
+  const nombres = [...new Set([...mapa.keys(), ...(etiquetaActiva ? [etiquetaActiva] : [])])].sort();
   sel.innerHTML = '<option value="">— ninguna —</option>' +
-    [...mapa.keys()].sort().map(k => '<option>'+esc(k)+'</option>').join('');
+    nombres.map(k => '<option>'+esc(k)+'</option>').join('');
   sel.value = previo;
   $('banda').classList.toggle('apagada', !etiquetaActiva);
   pintarDias();
