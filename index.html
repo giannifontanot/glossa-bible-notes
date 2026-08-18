@@ -7,9 +7,21 @@
 <style>
   :root{ --desk:#362c20; --desk-2:#4a3c29; --ui:'Segoe UI', system-ui, -apple-system, sans-serif; }
   *{ box-sizing:border-box; }
+  /* EL COLOR SÓLIDO VA ADEMÁS DEL DEGRADADO, y no es repetirse.
+
+     Estaba solo el degradado, o sea solo background-IMAGE: el background-color
+     de la página se quedaba en transparent. En pantalla no se nota —la imagen
+     tapa el hueco entero— pero fuera de la página sí. El navegador del
+     teléfono pinta ahora la franja de los botones del sistema con el color de
+     fondo de la página, y una imagen no le sirve para eso: necesita un color
+     liso. Sin él se queda con su blanco de fábrica, y aparece una franja
+     blanca debajo del libro que no está en ninguna parte del documento —de
+     ahí que no se pudiera encontrar mirando la página—.
+     El escritorio es de este color; ahora también lo dice donde se pregunta. */
   body{ margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center;
         gap:7px; padding:12px 14px 30px; font-family:var(--ui); color:#eee7d8;
-        background:radial-gradient(ellipse at 30% 8%, var(--desk-2), var(--desk) 70%); }
+        background-color:var(--desk);
+        background-image:radial-gradient(ellipse at 30% 8%, var(--desk-2), var(--desk) 70%); }
   h1{ font-size:.9rem; font-weight:600; margin:0; letter-spacing:.03em; }
   .row{ display:flex; gap:5px; flex-wrap:wrap; justify-content:center; align-items:center; }
   .btn{ font:inherit; font-size:.7rem; color:#eee7d8; cursor:pointer; line-height:1;
