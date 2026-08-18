@@ -427,12 +427,13 @@
      mismos cortes, más chica.
 
      El papel se despega del fondo: #pg deja de ser papel y lo es .pg-inner,
-     así que alrededor aparece el escritorio. Ese hueco es el que se toca para
-     volver, y es también donde viven los dos botones de pasar hoja —abajo a la
-     derecha, fuera del papel, porque encima del papel taparían justo lo que se
-     vino a mirar—.
+     así que alrededor aparece el escritorio. Ese hueco ya NO se toca para
+     volver: salir por el vacío era demasiado fácil por accidente. Se vuelve
+     tocando el libro, que es lo que uno quiere acercar otra vez. Afuera viven
+     los dos botones de pasar hoja —abajo a la derecha, fuera del papel, porque
+     encima del papel taparían justo lo que se vino a mirar—.
      ============================================================ */
-  #pg.zoom{ background:transparent; cursor:zoom-out; }
+  #pg.zoom{ background:transparent; cursor:default; }
   /* EL ORIGEN DEL TRANSFORM VIVE FUERA DE .zoom, y tiene que vivir fuera.
 
      Estaba dentro de la regla de abajo, que es lo natural mientras el cambio
@@ -450,7 +451,7 @@
   #pg .pg-inner{ transform-origin:top left; }
   #pg.zoom .pg-inner{
       transform:translate(var(--zx,0px), var(--zy,0px)) scale(var(--zk,1));
-      transform-origin:top left; background:transparent; }
+      transform-origin:top left; background:transparent; cursor:zoom-in; }
   /* ALEJARSE Y ACERCARSE SIN CORTE.
 
      Las tres cosas que cambian —la escala de la hoja, el papel que llenaba la
@@ -569,7 +570,7 @@
      Redondos y sin recuadro: el punto ES el botón. El blanco de toque sigue
      midiendo lo que tiene que medir aunque la tinta sea chica —el círculo va
      entero, es el color el que se retira—. */
-  #zoomPasos button{ width:44px; height:44px; padding:0; cursor:pointer;
+  #zoomPasos button{ width:66px; height:66px; padding:0; cursor:pointer;
                      display:flex; align-items:center; justify-content:center;
                      background:transparent; border:0; border-radius:50%;
                      -webkit-tap-highlight-color:transparent;
@@ -585,8 +586,17 @@
      apunta hacia donde va la hoja se lee sin pensar y dos puntos iguales
      obligan a acordarse de cuál era cuál cada vez.
      Redondos, eso sí: la forma de la esquina se conserva. */
-  #zoomPasos button{ color:#efe4c8; font:400 24px/1 var(--ui);
-                     background:rgba(0,0,0,.22); opacity:.62;
+  /* MÁS GRANDES, PERO NO MÁS PESADOS. Crecen un cincuenta por ciento porque
+     son los únicos controles de la vista de lejos y se usan seguidos, mirando
+     el papel y no el botón. Lo que NO crece a la par es la tinta: escalarlo
+     todo por igual —disco y flecha— da dos manchones oscuros sobre el
+     escritorio, que es justo lo que se vino a mirar por detrás. La flecha sube
+     de 24 a 28 y no a 36, y el disco se aclara de .22 a .15, así que el blanco
+     de toque es medio dedo más grande y el peso en pantalla es el mismo o
+     menos. Es la misma regla que ya siguen los puntos de las esquinas: el
+     círculo va entero, es el color el que se retira. */
+  #zoomPasos button{ color:#efe4c8; font:400 28px/1 var(--ui);
+                     background:rgba(0,0,0,.15); opacity:.62;
                      text-shadow:0 1px 3px rgba(0,0,0,.5);
                      transition:opacity .26s cubic-bezier(.65,0,.35,1),
                                 background .26s cubic-bezier(.65,0,.35,1),
@@ -610,8 +620,8 @@
        lejos y se usan seguidos, uno tras otro, mirando el papel y no el botón.
        Con 52 y 10 de hueco el pulgar rebotaba de uno a otro; con 62 y 18 cada
        uno tiene su sitio y no hay que apuntar. */
-    #zoomPasos{ right:12px; bottom:12px; gap:18px; }
-    #zoomPasos button{ width:62px; height:62px; font-size:32px; }
+    #zoomPasos{ right:12px; bottom:12px; gap:20px; }
+    #zoomPasos button{ width:93px; height:93px; font-size:38px; }
   }
 
   /* ============================================================
@@ -1743,7 +1753,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-18 · paginar lo justo';
+window.GLOSS_BUILD = '2026-08-18 · el libro es la salida';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2923,12 +2933,24 @@ function unCorteMas(){
   if (!(i < original.length)){ paginasCompletas = true; return false; }
   moldeDeCorte();
   let corte = Infinity;
-  for (const v of versionesSincronizables()){
-    plano = (v === version) ? original : planoDe(v);
-    const r = layoutInto(ghostBody, ghostMargin, ghostFoot, i);
-    corte = Math.min(corte, r.next);
-  }
-  plano = original;
+  /* EL PLANO SE DEVUELVE PASE LO QUE PASE.
+
+     Aquí se le da la vuelta a una variable global para maquetar el mismo corte
+     en las otras traducciones, y se devolvía al terminar el bucle. Bastaba con
+     que layoutInto tirara una excepción —una versión con un hueco, un dato
+     raro— para que el plano se quedara apuntando a OTRA traducción. Y lo que
+     sale de ahí es exactamente lo peor: el programa sigue vivo, sin error a la
+     vista, pero contando versículos de un libro que no es el que se lee. El
+     titulillo se queda en blanco en cuanto el índice se sale del plano nuevo.
+     No he conseguido provocarlo, y por eso mismo va con finally: una variable
+     global prestada se devuelve siempre, no solo cuando todo va bien. */
+  try {
+    for (const v of versionesSincronizables()){
+      plano = (v === version) ? original : planoDe(v);
+      const r = layoutInto(ghostBody, ghostMargin, ghostFoot, i);
+      corte = Math.min(corte, r.next);
+    }
+  } finally { plano = original; }
   /* Un corte que no avanza, o que cae fuera, es el final del libro. Que caiga
      JUSTO en el largo del plano también: significa que la última hoja acaba
      con el último versículo y no hay una hoja más que empiece en la nada. */
@@ -4154,6 +4176,13 @@ let generacionPliegue = 0;
    admite otra petición, así que las dos animaciones rara vez llegan a
    existir. El número de arriba es la red por si llegan igual. */
 let preparandoPliegue = false;
+/* El reloj de los reintentos por foto rancia. Vive aparte porque hay que poder
+   cancelarlo desde fuera: ver pasarHoja. */
+let relojReintento = null;
+function soltarReintento(){
+  if (!relojReintento) return;
+  clearTimeout(relojReintento); relojReintento = null; preparandoPliegue = false;
+}
 let snapFirma = null;
 const snapStale = () => (snapFirma !== estiloFirma());
 function invalidateSnapshot(){
@@ -4800,15 +4829,37 @@ function pasarHoja(s, clientY, intento){
   const destino = paginaActual + (s === 'right' ? 1 : -1);
   /* Fuera del libro empieza el de al lado. Antes aquí no pasaba nada, y no
      pasar nada al final de un libro se lee como que el toque no entró. */
-  if (!hayHojaN(destino)){ cruzarLibro(s, clientY); return; }
+  if (!hayHojaN(destino)){ soltarReintento(); cruzarLibro(s, clientY); return; }
   volverA = null;
   sizeCanvas();
   if (!pageImg || snapStale()){
-    if ((intento || 0) > 3){ paginaActual = destino; renderPage(); return; }
+    if ((intento || 0) > 3){ soltarReintento(); paginaActual = destino; renderPage(); return; }
     makeSnapshot();
-    setTimeout(() => pasarHoja(s, clientY, (intento || 0) + 1), 130);
+    /* LA TANDA DE REINTENTOS CUENTA COMO ESTAR PREPARANDO, y su reloj se
+       guarda para poder pararlo.
+
+       Sin lo primero, esta rama se iba dejando preparandoPliegue en falso, así
+       que el paso automático —que pregunta cada 80 ms si el camino está
+       libre— volvía a llamar aquí a los 80 mientras el reintento seguía
+       esperando a los 130. Cada vuelta encadenaba otra tanda: los reintentos
+       traen `intento` y por eso atraviesan el guardia de arriba, que es lo
+       correcto para el viaje que insiste y lo contrario de lo que hace falta
+       contra el que se cuela. En un teléfono lento eso son varias cargas y
+       varias animaciones compitiendo por la misma hoja.
+
+       Sin lo segundo, el reloj no lo veía nadie: detener el automático o
+       cerrar el zoom no podía cancelarlo, y el reintento aterrizaba después,
+       pasando una hoja que ya nadie había pedido.
+       Lo levantó la revisión de Codex. */
+    preparandoPliegue = true;
+    clearTimeout(relojReintento);
+    relojReintento = setTimeout(() => {
+      relojReintento = null;
+      pasarHoja(s, clientY, (intento || 0) + 1);
+    }, 130);
     return;
   }
+  soltarReintento();
   const viejo = pageImg;
   /* Sin punto de agarre válido, el centro de la hoja. Antes, quien llamara sin
      clientY producía NaN y el doblez se dibujaba en ninguna parte: la hoja
@@ -5183,6 +5234,25 @@ let zoomActivo = false, zoomK = 1, zoomFx = { x:0, y:0 };
    escala se calcula contra H menos dos reservas, y sale una hoja un pelo más
    chica que la de antes. Es lo que cuesta que esté en su sitio. */
 const ZOOM_RESERVA = 76, ZOOM_AIRE = 12;
+/* CUÁNTO SE LE GUARDA A LOS BOTONES, MEDIDO Y NO SUPUESTO.
+
+   Los 76 de arriba eran el alto de los botones de antes más su aire, escrito a
+   mano. Al crecer a 93 la cuenta dejó de cuadrar sin que nadie la tocara: el
+   botón llega 105px hacia arriba desde el canto y solo se reservaban 76, así
+   que en cuanto el ALTO manda sobre la escala —una pantalla apaisada, que es
+   media pantalla de teléfono girada— la hoja terminaba por debajo de los
+   botones y estos le tapaban la parte de abajo, robándole además los toques.
+   Medido antes de arreglarlo: 29px de solape a 560x360, 540x320 y 412x300,
+   y 6px a 412x420. En vertical no se veía porque ahí manda el ancho.
+   Ahora se pregunta al propio elemento cuánto ocupa, así que cambiar el CSS de
+   los botones no puede volver a descuadrar esto. El 76 se queda como suelo,
+   para el aire del titulillo cuando los botones no están.
+   Lo levantó la revisión de Codex, con la cifra exacta. */
+function reservaDeZoom(){
+  const c = $('zoomPasos');
+  const alto = c ? c.offsetHeight : 0;
+  return Math.max(ZOOM_RESERVA, alto + ZOOM_AIRE*2);
+}
 function medirZoom(){
   if (!zoomActivo) return;
   const inner = pg.querySelector('.pg-inner');
@@ -5194,7 +5264,7 @@ function medirZoom(){
      dejaste. */
   const W = pg.clientWidth, H = pg.clientHeight;
   const pw = inner.offsetWidth || W, ph = inner.offsetHeight || H;
-  const k = Math.min((W - ZOOM_AIRE*2) / pw, (H - ZOOM_RESERVA*2) / ph);
+  const k = Math.min((W - ZOOM_AIRE*2) / pw, (H - reservaDeZoom()*2) / ph);
   /* Se descuenta DÓNDE ESTÁ YA la hoja dentro de #pg. Un translate no coloca
      en un sitio: mueve desde donde estabas, y .pg-inner no empieza pegada al
      canto —arranca unos 22px más abajo, que es el aire que el titulillo le
@@ -5298,6 +5368,15 @@ function medirZoom(){
    primer cuadro. */
 const ZOOM_SUAVE = 460;
 let relojSuave = null;
+/* El paso automático: hacia dónde va y el reloj que lo mantiene vivo. */
+let dirZoomAuto = null, relojZoomAuto = null;
+function detenerZoomAuto(){
+  clearTimeout(relojZoomAuto); relojZoomAuto = null; dirZoomAuto = null;
+  /* Y la tanda de reintentos que pudiera estar esperando su turno: es el único
+     reloj del paso de hoja que no cuelga de folding, así que parar sin él
+     dejaba una vuelta agendada después de haber parado. */
+  soltarReintento();
+}
 /* La transformación que devuelve el papel chico a la hoja entera. La escribe
    medirZoom, que es quien conoce la escala y el sitio. */
 let papelFuera = 'none';
@@ -5388,6 +5467,7 @@ function abrirZoom(){
 }
 function cerrarZoom(){
   if (!zoomActivo) return;
+  detenerZoomAuto();
   finSuave();
   const papel = $('zoomPapel');
   /* El papel se queda puesto a mano —la clase que lo enseña se va en el primer
@@ -5440,29 +5520,94 @@ $('btnZoom').addEventListener('click', ev => {
    se voltea igual, solo que más chica.
    Los botones tiran del mismo pasarHoja que el filo, así que el pliegue nace
    a media altura del papel y no en el aire. */
+/* Y CON DOBLE CLIC PASAN SOLOS.
+
+   El ritmo no lo pone un reloj de lectura —eso sería otro modo, y habría que
+   elegir a qué velocidad lee uno— sino la única condición que se ve: en cuanto
+   la hoja terminó de pasar, se pide la siguiente. Así el papel no se atropella
+   nunca y la cadencia es la del propio pliegue.
+
+   Se para de tres maneras, y las tres son las que uno intentaría: tocando
+   cualquiera de los dos botones, tocando el libro —que cierra el zoom— o
+   llegándose al final del último libro. Un toque estando en marcha SOLO para;
+   no adelanta además una hoja, porque quien toca para detener no está pidiendo
+   otra vuelta.
+
+   Los 80 ms no son el ritmo: son cada cuánto se vuelve a preguntar si el
+   pliegue ya acabó. Preguntar es barato; el paso lo marca la hoja. */
+const ESPERA_ZOOM_AUTO = 80;
+const ladoDePaso = b => (+b.dataset.paso > 0 ? 'right' : 'left');
+function darPasoZoom(s){
+  if (folding || preparandoPliegue) return false;
+  /* Sin comprobar el rango local. pasarHoja sabe que después de la última hoja
+     puede empezar el libro siguiente; aquí solo se pregunta si hay a dónde ir,
+     que es lo que decide si el automático sigue o se apaga. */
+  if (!hayHoja(s)) return false;
+  const inner = pg.querySelector('.pg-inner');
+  if (!inner) return false;
+  const r = inner.getBoundingClientRect();
+  pasarHoja(s, r.top + r.height/2);
+  return true;
+}
+function seguirZoomAuto(){
+  const s = dirZoomAuto;
+  if (!s || !zoomActivo){ detenerZoomAuto(); return; }
+  if (folding || preparandoPliegue){
+    relojZoomAuto = setTimeout(seguirZoomAuto, ESPERA_ZOOM_AUTO);
+    return;
+  }
+  if (!darPasoZoom(s)){ detenerZoomAuto(); refrescarPasos(); return; }
+  relojZoomAuto = setTimeout(seguirZoomAuto, ESPERA_ZOOM_AUTO);
+}
 $('zoomPasos').addEventListener('click', ev => {
   const b = ev.target.closest('[data-paso]'); if (!b || b.disabled) return;
   ev.preventDefault(); ev.stopPropagation();
-  if (folding) return;
-  const adelante = +b.dataset.paso > 0;
-  /* Sin comprobar el rango aquí. Lo hacía —y se paraba en seco al final del
-     libro— duplicando una decisión que ahora vive entera en pasarHoja, que es
-     quien sabe que después de la última hoja empieza el libro siguiente. Dos
-     sitios respondiendo a la misma pregunta y solo uno actualizado: el filo
-     cruzaba de libro y este botón no. */
-  const r = pg.querySelector('.pg-inner').getBoundingClientRect();
-  pasarHoja(adelante ? 'right' : 'left', r.top + r.height/2);
+  /* En marcha, un toque solo para. */
+  if (dirZoomAuto){ detenerZoomAuto(); return; }
+  darPasoZoom(ladoDePaso(b));
 });
-/* El hueco de alrededor es el botón de salir. Se mira contra el rectángulo
-   del papel escalado y no contra #pg, porque #pg ocupa la pantalla entera:
-   fuera del papel es fuera. */
-pg.addEventListener('click', ev => {
+$('zoomPasos').addEventListener('dblclick', ev => {
+  const b = ev.target.closest('[data-paso]'); if (!b || b.disabled) return;
+  ev.preventDefault(); ev.stopPropagation();
+  detenerZoomAuto();
+  dirZoomAuto = ladoDePaso(b);
+  seguirZoomAuto();
+});
+/* EL LIBRO ES EL BOTÓN DE SALIR, y el oyente NO puede colgar de #pg.
+
+   Lo primero: antes se salía por el hueco de alrededor, y eso castigaba el
+   toque impreciso —en la vista de lejos hay mucho escritorio y poco papel, así
+   que era fácil cerrar el zoom sin querer al fallarle al libro o a los botones
+   de pasar hoja—. Ahora el vacío no hace nada y tocar el papel significa
+   "acércame otra vez".
+
+   Lo segundo, que costó una revisión: MIENTRAS UNA HOJA GIRA, #pg no existe
+   para el dedo. El pliegue lo dibuja el lienzo, y para enseñarlo se apaga la
+   hoja viva con visibility:hidden; el lienzo, por su parte, lleva
+   pointer-events:none. Un elemento invisible no recibe toques, así que durante
+   los 620-780 ms que dura cada vuelta el toque en el centro del papel lo
+   recoge la escena y no llegaba aquí. Comprobado: el elemento bajo el dedo era
+   #stage. Con el paso automático eso deja el "toca el libro para parar" en
+   letra muerta —la hoja está girando casi todo el rato, y solo funcionaba en
+   los huecos entre vuelta y vuelta—.
+   Colgando de la escena, el toque llega igual con la hoja puesta o quitada.
+   Los controles se defienden solos: el toque en un filo o en un botón tiene a
+   ESE elemento por destino, así que la comprobación de abajo lo deja pasar sin
+   tener que enumerarlos.
+
+   Y lo tercero: con algo en marcha, el toque solo PARA. Cerrar el zoom a media
+   vuelta dejaría el lienzo del pliegue a una escala y la hoja a otra, y de
+   todas formas quien toca para detener no está pidiendo además guardar el
+   libro. Parado, el mismo toque cierra. */
+stage.addEventListener('click', ev => {
   if (!zoomActivo) return;
+  if (ev.target !== stage && !ev.target.closest('#pg')) return;
   const inner = pg.querySelector('.pg-inner');
   if (!inner) return;
   const r = inner.getBoundingClientRect();
-  if (ev.clientX >= r.left && ev.clientX <= r.right &&
-      ev.clientY >= r.top  && ev.clientY <= r.bottom) return;
+  if (ev.clientX < r.left || ev.clientX > r.right ||
+      ev.clientY < r.top  || ev.clientY > r.bottom) return;
+  if (dirZoomAuto || folding || preparandoPliegue){ detenerZoomAuto(); return; }
   cerrarZoom();
 });
 
@@ -5583,7 +5728,22 @@ document.addEventListener('pointerdown', ev => {
 }, true);
 
 /* Las dos puertas a la burbuja, cada una a su sección. */
-$('pgCabeza').addEventListener('click', e => { e.preventDefault(); alternarBurbuja('libros'); });
+/* DE LEJOS, LA HOJA ES UNA FOTO Y NO UN TABLERO DE MANDOS.
+
+   Los dos rótulos viven DENTRO del papel, así que con la vista de lejos puesta
+   se encogen al 58% y siguen respondiendo. Dos cosas malas a la vez: a ese
+   tamaño el rótulo mide unos seis píxeles y nadie lo toca a propósito —lo que
+   llega ahí son toques fallidos—, y encima el toque abría el panel Y cerraba
+   el zoom, porque estos manejadores no cortan la propagación y el cierre
+   cuelga de la escena. Dos respuestas a un gesto que no se pidió.
+   De lejos, todo lo que hay sobre el papel significa lo mismo: acércame otra
+   vez. Es una regla sola y no hay que aprenderla.
+   Lo levantó la revisión de Codex. */
+$('pgCabeza').addEventListener('click', e => {
+  e.preventDefault();
+  if (zoomActivo) return;
+  alternarBurbuja('libros');
+});
 /* Y la de abajo abre la lista de versiones, que es lo que nombra. */
 /* UN TOQUE ABRE LAS VERSIONES, DOS ABREN LIBROS. El rótulo del pie lleva dos
    puertas: la de todos los días delante y otra detrás.
@@ -5620,7 +5780,9 @@ $('pgCabeza').addEventListener('click', e => { e.preventDefault(); alternarBurbu
 const ESPERA_DOBLE_ROTULO = 440;
 let relojVersion = null;
 $('pgVersion').addEventListener('click', e => {
-  e.preventDefault(); e.stopPropagation();
+  e.preventDefault();
+  if (zoomActivo) return;            /* ver el comentario del rótulo de arriba */
+  e.stopPropagation();
   clearTimeout(relojVersion);
   if (versionAbierta){ cerrarVersiones(); return; }
   /* CON UN PANEL ABIERTO, EL RÓTULO LO CIERRA Y NADA MÁS. El rótulo vive en la
@@ -5634,7 +5796,9 @@ $('pgVersion').addEventListener('click', e => {
   relojVersion = setTimeout(abrirVersiones, ESPERA_DOBLE_ROTULO);
 });
 $('pgVersion').addEventListener('dblclick', e => {
-  e.preventDefault(); e.stopPropagation();
+  e.preventDefault();
+  if (zoomActivo) return;
+  e.stopPropagation();
   clearTimeout(relojVersion);
   cerrarVersiones();
   alternarBurbuja('libros');
