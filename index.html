@@ -570,7 +570,7 @@
      Redondos y sin recuadro: el punto ES el botón. El blanco de toque sigue
      midiendo lo que tiene que medir aunque la tinta sea chica —el círculo va
      entero, es el color el que se retira—. */
-  #zoomPasos button{ width:44px; height:44px; padding:0; cursor:pointer;
+  #zoomPasos button{ width:66px; height:66px; padding:0; cursor:pointer;
                      display:flex; align-items:center; justify-content:center;
                      background:transparent; border:0; border-radius:50%;
                      -webkit-tap-highlight-color:transparent;
@@ -586,8 +586,17 @@
      apunta hacia donde va la hoja se lee sin pensar y dos puntos iguales
      obligan a acordarse de cuál era cuál cada vez.
      Redondos, eso sí: la forma de la esquina se conserva. */
-  #zoomPasos button{ color:#efe4c8; font:400 24px/1 var(--ui);
-                     background:rgba(0,0,0,.22); opacity:.62;
+  /* MÁS GRANDES, PERO NO MÁS PESADOS. Crecen un cincuenta por ciento porque
+     son los únicos controles de la vista de lejos y se usan seguidos, mirando
+     el papel y no el botón. Lo que NO crece a la par es la tinta: escalarlo
+     todo por igual —disco y flecha— da dos manchones oscuros sobre el
+     escritorio, que es justo lo que se vino a mirar por detrás. La flecha sube
+     de 24 a 28 y no a 36, y el disco se aclara de .22 a .15, así que el blanco
+     de toque es medio dedo más grande y el peso en pantalla es el mismo o
+     menos. Es la misma regla que ya siguen los puntos de las esquinas: el
+     círculo va entero, es el color el que se retira. */
+  #zoomPasos button{ color:#efe4c8; font:400 28px/1 var(--ui);
+                     background:rgba(0,0,0,.15); opacity:.62;
                      text-shadow:0 1px 3px rgba(0,0,0,.5);
                      transition:opacity .26s cubic-bezier(.65,0,.35,1),
                                 background .26s cubic-bezier(.65,0,.35,1),
@@ -611,8 +620,8 @@
        lejos y se usan seguidos, uno tras otro, mirando el papel y no el botón.
        Con 52 y 10 de hueco el pulgar rebotaba de uno a otro; con 62 y 18 cada
        uno tiene su sitio y no hay que apuntar. */
-    #zoomPasos{ right:12px; bottom:12px; gap:18px; }
-    #zoomPasos button{ width:62px; height:62px; font-size:32px; }
+    #zoomPasos{ right:12px; bottom:12px; gap:20px; }
+    #zoomPasos button{ width:93px; height:93px; font-size:38px; }
   }
 
   /* ============================================================
@@ -1744,7 +1753,7 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-18 · paginar lo justo';
+window.GLOSS_BUILD = '2026-08-18 · el libro es la salida';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5299,6 +5308,11 @@ function medirZoom(){
    primer cuadro. */
 const ZOOM_SUAVE = 460;
 let relojSuave = null;
+/* El paso automático: hacia dónde va y el reloj que lo mantiene vivo. */
+let dirZoomAuto = null, relojZoomAuto = null;
+function detenerZoomAuto(){
+  clearTimeout(relojZoomAuto); relojZoomAuto = null; dirZoomAuto = null;
+}
 /* La transformación que devuelve el papel chico a la hoja entera. La escribe
    medirZoom, que es quien conoce la escala y el sitio. */
 let papelFuera = 'none';
@@ -5389,6 +5403,7 @@ function abrirZoom(){
 }
 function cerrarZoom(){
   if (!zoomActivo) return;
+  detenerZoomAuto();
   finSuave();
   const papel = $('zoomPapel');
   /* El papel se queda puesto a mano —la clase que lo enseña se va en el primer
@@ -5441,18 +5456,58 @@ $('btnZoom').addEventListener('click', ev => {
    se voltea igual, solo que más chica.
    Los botones tiran del mismo pasarHoja que el filo, así que el pliegue nace
    a media altura del papel y no en el aire. */
+/* Y CON DOBLE CLIC PASAN SOLOS.
+
+   El ritmo no lo pone un reloj de lectura —eso sería otro modo, y habría que
+   elegir a qué velocidad lee uno— sino la única condición que se ve: en cuanto
+   la hoja terminó de pasar, se pide la siguiente. Así el papel no se atropella
+   nunca y la cadencia es la del propio pliegue.
+
+   Se para de tres maneras, y las tres son las que uno intentaría: tocando
+   cualquiera de los dos botones, tocando el libro —que cierra el zoom— o
+   llegándose al final del último libro. Un toque estando en marcha SOLO para;
+   no adelanta además una hoja, porque quien toca para detener no está pidiendo
+   otra vuelta.
+
+   Los 80 ms no son el ritmo: son cada cuánto se vuelve a preguntar si el
+   pliegue ya acabó. Preguntar es barato; el paso lo marca la hoja. */
+const ESPERA_ZOOM_AUTO = 80;
+const ladoDePaso = b => (+b.dataset.paso > 0 ? 'right' : 'left');
+function darPasoZoom(s){
+  if (folding || preparandoPliegue) return false;
+  /* Sin comprobar el rango local. pasarHoja sabe que después de la última hoja
+     puede empezar el libro siguiente; aquí solo se pregunta si hay a dónde ir,
+     que es lo que decide si el automático sigue o se apaga. */
+  if (!hayHoja(s)) return false;
+  const inner = pg.querySelector('.pg-inner');
+  if (!inner) return false;
+  const r = inner.getBoundingClientRect();
+  pasarHoja(s, r.top + r.height/2);
+  return true;
+}
+function seguirZoomAuto(){
+  const s = dirZoomAuto;
+  if (!s || !zoomActivo){ detenerZoomAuto(); return; }
+  if (folding || preparandoPliegue){
+    relojZoomAuto = setTimeout(seguirZoomAuto, ESPERA_ZOOM_AUTO);
+    return;
+  }
+  if (!darPasoZoom(s)){ detenerZoomAuto(); refrescarPasos(); return; }
+  relojZoomAuto = setTimeout(seguirZoomAuto, ESPERA_ZOOM_AUTO);
+}
 $('zoomPasos').addEventListener('click', ev => {
   const b = ev.target.closest('[data-paso]'); if (!b || b.disabled) return;
   ev.preventDefault(); ev.stopPropagation();
-  if (folding) return;
-  const adelante = +b.dataset.paso > 0;
-  /* Sin comprobar el rango aquí. Lo hacía —y se paraba en seco al final del
-     libro— duplicando una decisión que ahora vive entera en pasarHoja, que es
-     quien sabe que después de la última hoja empieza el libro siguiente. Dos
-     sitios respondiendo a la misma pregunta y solo uno actualizado: el filo
-     cruzaba de libro y este botón no. */
-  const r = pg.querySelector('.pg-inner').getBoundingClientRect();
-  pasarHoja(adelante ? 'right' : 'left', r.top + r.height/2);
+  /* En marcha, un toque solo para. */
+  if (dirZoomAuto){ detenerZoomAuto(); return; }
+  darPasoZoom(ladoDePaso(b));
+});
+$('zoomPasos').addEventListener('dblclick', ev => {
+  const b = ev.target.closest('[data-paso]'); if (!b || b.disabled) return;
+  ev.preventDefault(); ev.stopPropagation();
+  detenerZoomAuto();
+  dirZoomAuto = ladoDePaso(b);
+  seguirZoomAuto();
 });
 /* El LIBRO es el botón de salir. Antes lo era el hueco de alrededor, y eso
    castigaba el toque impreciso: en la vista de lejos hay mucho escritorio y
