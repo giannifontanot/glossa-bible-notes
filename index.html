@@ -4180,14 +4180,21 @@ $('btnEtiquetarDia').onclick = () => {
      ahí lo único que distingue «no hacía falta» de «no funcionó» es decirlo. */
   if (!n) readout.textContent = 'todas las de ' + diaFiltro + ' ya tenían esa etiqueta';
 };
-$('selActiva').onchange = e => { etiquetaActiva = e.target.value; pintarFiltros(); updateReadout(); };
+/* Los dos caminos que cambian la etiqueta activa guardan. No basta con que
+   guardarAjustes corra al final de cada renderPage: ninguno de los dos
+   repinta la hoja —no hace falta, solo cambia con qué se etiquetará lo
+   siguiente— así que sin esta llamada el ajuste se perdía en cuanto cerrabas
+   sin tocar nada más. */
+$('selActiva').onchange = e => {
+  etiquetaActiva = e.target.value; pintarFiltros(); updateReadout(); guardarAjustes();
+};
 $('nuevaEtiqueta').addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
   const v = e.target.value.trim(); if (!v) return;
   etiquetaActiva = v; e.target.value = '';
   const sel = $('selActiva');
   if (![...sel.options].some(o => o.value === v)) sel.add(new Option(v, v));
-  sel.value = v; pintarFiltros(); updateReadout();
+  sel.value = v; pintarFiltros(); updateReadout(); guardarAjustes();
 });
 
 /* ---------- fotos y pliegue ---------- */
@@ -7454,7 +7461,16 @@ function guardarAjustes(){
       v: 1, fontSize, columns, placement, alineacion,
       interlineado, margen, version, showMarks, sepia,
       fuente: FUENTES.findIndex(f => f[1] === fuente),
-      libro: LIBRO, cap: aqui.cap, vers: aqui.vers
+      libro: LIBRO, cap: aqui.cap, vers: aqui.vers,
+      /* LA ETIQUETA ACTIVA SE GUARDA, y hay que decir por qué no es obvio.
+         Los demás ajustes son de la hoja —letra, columnas, márgenes—; ésta es
+         de lo que estás haciendo, y se podía defender que muriera al cerrar.
+         Lo que decide es cómo falla cada opción: si NO se guarda, vuelves al
+         día siguiente, sigues glosando el mismo tema, y las notas salen sin
+         etiquetar sin que nada te lo diga. Se descubre semanas después, al
+         filtrar y ver que faltan. La banda encendida al abrir, en cambio, se
+         ve: está ahí, dice qué etiqueta lleva, y apagarla es un gesto. */
+      etiquetaActiva
     }));
   } catch(e){ /* si no se puede, se arranca con lo de fábrica */ }
 }
@@ -7479,6 +7495,12 @@ function cargarAjustes(){
   if (AIRES.some(x => x[1] === a.interlineado)) interlineado = a.interlineado;
   if (MARGENES[a.margen]) margen = a.margen;
   showMarks = a.showMarks !== false;
+  /* Se acepta cualquier texto porque las etiquetas las escribe quien usa la
+     aplicación y no hay lista cerrada que consultar; solo se rechaza lo que no
+     es texto y lo desmedido, que sería un archivo manoseado y no una etiqueta.
+     Vacío vale: significa "ninguna". */
+  if (typeof a.etiquetaActiva === 'string' && a.etiquetaActiva.length <= 120)
+    etiquetaActiva = a.etiquetaActiva;
   if (D.versiones[a.version]) version = a.version;      // antes que el libro:
   if (a.libro && hayLibro(a.libro)) LIBRO = a.libro;    // hayLibro depende de version
   return a;
