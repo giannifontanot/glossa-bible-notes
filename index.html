@@ -43,6 +43,16 @@
   .banda{ display:flex; align-items:center; gap:8px; font-size:.7rem; padding:5px 12px;
           border-radius:999px; background:rgba(201,162,39,.16);
           border:1px solid rgba(201,162,39,.45); }
+  /* LA CAJA CEDE, EL BOTÓN NO. Al meter el + la banda pasó a medir 331 en una
+     ventana de 412 y se salía 15px: el botón quedaba cortado por la derecha,
+     que para el único control que AVISA de que hay algo que pulsar es la peor
+     manera de estrenarlo. El size=12 de la caja es una preferencia, no una
+     obligación, así que se le deja encoger —min-width:0, que sin él un input
+     no baja de su ancho intrínseco por mucho flex que se le ponga— y los otros
+     dos se quedan enteros. Así vale para cualquier ancho y no para 412. */
+  .banda{ max-width:100%; }
+  .banda #nuevaEtiqueta{ min-width:0; flex:1 1 auto; }
+  .banda #selActiva, .banda #btnCrearEtiqueta{ flex:0 0 auto; }
   .banda.apagada{ background:rgba(255,255,255,.04); border-color:rgba(255,255,255,.12); opacity:.55; }
   .chip{ font-size:.66rem; padding:4px 9px; border-radius:999px; cursor:pointer;
          border:1px solid rgba(255,255,255,.22); background:rgba(255,255,255,.05); }
@@ -1719,7 +1729,9 @@
 <div class="ajuste"><span class="lbl">aplicando</span><span class="ctrl">
   <div class="banda" id="banda">
     <select id="selActiva"><option value="">— ninguna —</option></select>
-    <input id="nuevaEtiqueta" placeholder="nueva etiqueta" size="12" />
+    <input id="nuevaEtiqueta" placeholder="nueva etiqueta" size="12"
+           enterkeyhint="done" autocapitalize="none" autocomplete="off" />
+    <button class="btn ghost" id="btnCrearEtiqueta" title="Crear la etiqueta">+</button>
   </div>
 </span></div>
 
@@ -1859,7 +1871,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '19-AGO-26 08:42';
+window.GLOSS_BUILD = '19-AGO-26 12:29';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3519,7 +3531,9 @@ function menuEtiquetas(m){
       ? lista.map(t => '<button class="tg' + (tiene.has(t)?' on':'') + '" data-tag="' +
           esc(t) + '">' + esc(t) + '</button>').join('')
       : '<span class="vacio">sin etiquetas todavía</span>') +
-    '<input id="tagNueva" placeholder="nueva…" />' +
+    '<input id="tagNueva" placeholder="nueva…" enterkeyhint="done" ' +
+      'autocapitalize="none" autocomplete="off" />' +
+    '<button data-acc="creartag" title="Crear la etiqueta">+</button>' +
     '<button data-acc="listo">Listo</button></div>';
 }
 function avisarBorrado(m){
@@ -3587,6 +3601,9 @@ menu.addEventListener('click', ev => {
   }
   const acc = b.dataset.acc;
   if (acc === 'tags' && menuMarca){ mostrarMenu(menuEtiquetas(menuMarca)); return; }
+  /* El + de la caja. Va antes que 'listo' porque los dos viven en el mismo
+     panel y el orden aquí es el que decide. */
+  if (acc === 'creartag'){ crearTagDeMarca($('tagNueva')); return; }
   if (acc === 'listo'){ ocultarMenu(); return; }
 
   if (pendiente){
@@ -3626,14 +3643,29 @@ document.addEventListener('pointerdown', ev => {
   if (!ev.target.closest('#menu')) ocultarMenu();
 }, true);
 /* etiqueta nueva desde el propio panel */
-menu.addEventListener('keydown', ev => {
-  if (ev.target.id !== 'tagNueva' || ev.key !== 'Enter' || !menuMarca) return;
-  ev.preventDefault();
-  const t = ev.target.value.trim(); if (!t) return;
+/* La misma historia que arriba, en la caja del panel de una marca: aquí Enter
+   tampoco llega en el teléfono. Se vacía la caja ANTES de repintar el menú,
+   porque repintar destruye el input y su salida dispararía otra vez esto con
+   el mismo texto. */
+function crearTagDeMarca(caja){
+  if (!caja || !menuMarca) return;
+  const t = caja.value.trim(); if (!t) return;
+  caja.value = '';
   const actuales = menuMarca.etiquetas || [];
   if (!actuales.includes(t)) menuMarca.etiquetas = actuales.concat(t);
   save(); renderPage();
   mostrarMenu(menuEtiquetas(menuMarca));
+}
+menu.addEventListener('keydown', ev => {
+  if (ev.target.id !== 'tagNueva' || ev.key !== 'Enter') return;
+  ev.preventDefault(); crearTagDeMarca(ev.target);
+});
+menu.addEventListener('beforeinput', ev => {
+  if (ev.target.id !== 'tagNueva' || ev.inputType !== 'insertLineBreak') return;
+  ev.preventDefault(); crearTagDeMarca(ev.target);
+});
+menu.addEventListener('change', ev => {
+  if (ev.target.id === 'tagNueva') crearTagDeMarca(ev.target);
 });
 /* ============================================================
    NAVEGACIÓN POR VÍNCULOS. Saltar apila la hoja de origen, así que
@@ -4300,14 +4332,47 @@ $('btnEtiquetarDia').onclick = () => {
 $('selActiva').onchange = e => {
   etiquetaActiva = e.target.value; pintarFiltros(); updateReadout(); guardarAjustes();
 };
-$('nuevaEtiqueta').addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
-  const v = e.target.value.trim(); if (!v) return;
-  etiquetaActiva = v; e.target.value = '';
+/* CREAR UNA ETIQUETA SIN DEPENDER DE ENTER.
+
+   Estaba colgado solo de keydown con key==='Enter', y eso funciona en un
+   teclado de verdad y falla justo donde se usa el programa. En Android la
+   tecla de una caja suelta —sin <form> alrededor— viene rotulada «Listo» y lo
+   que suele hacer es cerrar el teclado; y mientras el corrector está componien-
+   do, Gboard manda el keydown con key 'Unidentified' y keyCode 229, que no es
+   'Enter' por ningún lado. O sea que la única puerta para crear una etiqueta
+   estaba cerrada en el teléfono, sin decirlo, y lo que uno hace ahí —escribir
+   y tocar fuera para quitar el teclado— tiraba lo escrito en silencio.
+
+   Ahora hay cuatro caminos a la misma puerta y ninguno es imprescindible:
+     · el botón +, que además es lo único que AVISA de que hay algo que pulsar;
+     · tocar fuera (change), que es el gesto natural del teléfono;
+     · beforeinput con insertLineBreak, que es como llega el intro moderno;
+     · y el keydown de siempre, para el teclado de escritorio.
+   No se pisan: el primero que entra vacía la caja, y los demás se encuentran
+   el guardián de abajo con la cadena en blanco.
+
+   Crear de más no cuesta nada, y por eso se puede ser generoso con los
+   disparadores: la lista de etiquetas sale de las que están EN USO en alguna
+   marca, así que una que se cree sin querer y no se le ponga a nada
+   desaparece sola en cuanto elijas otra. */
+function crearEtiqueta(){
+  const caja = $('nuevaEtiqueta');
+  const v = caja.value.trim(); if (!v) return;
+  etiquetaActiva = v; caja.value = '';
   const sel = $('selActiva');
   if (![...sel.options].some(o => o.value === v)) sel.add(new Option(v, v));
   sel.value = v; pintarFiltros(); updateReadout(); guardarAjustes();
+}
+$('nuevaEtiqueta').addEventListener('keydown', e => {
+  if (e.key === 'Enter'){ e.preventDefault(); crearEtiqueta(); }
 });
+$('nuevaEtiqueta').addEventListener('beforeinput', e => {
+  if (e.inputType === 'insertLineBreak'){ e.preventDefault(); crearEtiqueta(); }
+});
+/* change y no blur: solo salta si de verdad escribiste algo, así que entrar y
+   salir de la caja sin tocar nada no dispara nada. */
+$('nuevaEtiqueta').addEventListener('change', crearEtiqueta);
+$('btnCrearEtiqueta').addEventListener('click', crearEtiqueta);
 
 /* ---------- fotos y pliegue ---------- */
 let pageImg=null, nextImg=null, prevImg=null, pend=false, folding=false;

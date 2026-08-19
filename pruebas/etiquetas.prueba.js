@@ -36,6 +36,55 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
     return r;
   }));
 
+  titulo('crear no puede depender de Enter');
+  /* ENTER FUNCIONA EN EL TECLADO DE VERDAD Y FALLA DONDE SE USA ESTO.
+     En Android la tecla de una caja suelta —sin <form> alrededor— viene
+     rotulada «Listo» y lo normal es que solo cierre el teclado; y mientras el
+     corrector compone, Gboard manda el keydown con key 'Unidentified' y
+     keyCode 229, que no es 'Enter' por ningún lado. Colgado solo de ahí, crear
+     una etiqueta era imposible en el teléfono, sin decirlo, y el gesto natural
+     —escribir y tocar fuera para quitar el teclado— tiraba lo escrito.
+     Así que se prueban las cuatro puertas por separado. El keydown de la
+     sección anterior es la de escritorio; éstas son las que lo salvan.
+     Y se comprueba que el + QUEPA EN LA PANTALLA, que es lo primero que se
+     rompió al meterlo: la banda pasó a medir 331 en 412 y el botón salía
+     cortado por la derecha, o sea que el único control que avisa de que hay
+     algo que pulsar se estrenaba a medias. */
+  for (const [nombre, como] of [['gracia', 'el botón +'],
+                                ['fe', 'tocar fuera'],
+                                ['paz', 'el intro del móvil']]){
+    di(como, await p.evaluate(async ([nombre, como]) => {
+      const i = document.getElementById('nuevaEtiqueta'), s = document.getElementById('selActiva');
+      i.focus(); i.value = nombre; i.dispatchEvent(new Event('input', { bubbles:true }));
+      if (como === 'el botón +') document.getElementById('btnCrearEtiqueta').click();
+      /* change es lo que dispara el navegador al salir de una caja que cambió:
+         es «tocar fuera» tal y como llega. */
+      if (como === 'tocar fuera') i.dispatchEvent(new Event('change', { bubbles:true }));
+      if (como === 'el intro del móvil') i.dispatchEvent(new InputEvent('beforeinput',
+        { bubbles:true, cancelable:true, inputType:'insertLineBreak' }));
+      await new Promise(z => setTimeout(z, 600));
+      return { activa: s.value, estaEnLaLista: [...s.options].some(o => o.value === nombre),
+               campoLimpio: i.value === '' };
+    }, [nombre, como]).then(r => {
+      vale('crea y deja activa · ' + como, r.activa === nombre && r.estaEnLaLista, r.activa);
+      vale('y limpia el campo · ' + como, r.campoLimpio);
+      return r;
+    }));
+  }
+  di('el botón + cabe en la pantalla', await p.evaluate(() => {
+    const b = document.getElementById('btnCrearEtiqueta'), r = b.getBoundingClientRect();
+    const banda = document.getElementById('banda').getBoundingClientRect();
+    return { texto:b.textContent.trim(), mide:Math.round(r.width)+'x'+Math.round(r.height),
+             acabaEn:Math.round(r.right), ventana:innerWidth,
+             seSale:Math.max(0, Math.round(r.right - innerWidth)),
+             bandaSeSale:Math.max(0, Math.round(banda.right - innerWidth)) };
+  }).then(r => {
+    vale('no se sale por la derecha', r.seSale === 0 && r.bandaSeSale === 0,
+         'botón ' + r.acabaEn + ' de ' + r.ventana);
+    vale('y es tocable', parseInt(r.mide) >= 30 && parseInt(r.mide.split('x')[1]) >= 30, r.mide);
+    return r;
+  }));
+
   titulo('espacios seguidos y comillas');
   /* Un <option> sin value deduce su valor del texto y COLAPSA los espacios; y
      esc() no escapaba comillas, que se meten dentro de atributos. Las dos
@@ -122,6 +171,66 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
     vale('tocarla la quita', (r.quedan||[]).length === 1, r.apagada + ' → ' + JSON.stringify(r.quedan));
     return r;
   }));
+
+  titulo('la caja del panel de una marca, sin Enter tampoco');
+  /* La misma trampa, en la otra caja donde se pueden crear. Aquí además el
+     panel se repinta al crear, que destruye el input: si la salida de ese
+     input volviera a disparar la creación, se crearía dos veces la misma. Por
+     eso se vacía la caja antes de repintar, y por eso aquí se cuenta. */
+  di('las tres puertas', await p.evaluate(async () => {
+    const menu = document.getElementById('menu');
+    const cuerpo = document.getElementById('pgBody').getBoundingClientRect();
+    let abierto = false;
+    for (const v of document.querySelectorAll('#pgBody .v')){
+      for (const r of v.getClientRects()){
+        for (const f of [.2,.5,.8]){
+          const x = Math.round(r.left + r.width*f), y = Math.round(r.top + r.height/2);
+          if (x < cuerpo.left || x > cuerpo.right) continue;
+          getSelection().removeAllRanges();
+          document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+            { bubbles:true, clientX:x, clientY:y }));
+          await new Promise(z => setTimeout(z, 120));
+          const bt = [...menu.querySelectorAll('button')].find(q => q.dataset.acc === 'tags');
+          if (bt && getComputedStyle(menu).display !== 'none'){
+            bt.click(); await new Promise(z => setTimeout(z, 500)); abierto = true; break;
+          }
+        }
+        if (abierto) break;
+      }
+      if (abierto) break;
+    }
+    if (!abierto) return { sinMarca:true };
+    const cuantas = t => JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
+      .filter(m => (m.etiquetas||[]).includes(t)).length;
+    const out = { hayBoton: !!menu.querySelector('[data-acc="creartag"]'), puertas:{} };
+    for (const [nombre, como] of [['salmo','el botón +'], ['maná','tocar fuera'],
+                                  ['sion','el intro del móvil']]){
+      const i = document.getElementById('tagNueva');
+      if (!i){ out.puertas[como] = 'se cerró el panel'; continue; }
+      i.focus(); i.value = nombre; i.dispatchEvent(new Event('input', { bubbles:true }));
+      if (como === 'el botón +') menu.querySelector('[data-acc="creartag"]').click();
+      if (como === 'tocar fuera') i.dispatchEvent(new Event('change', { bubbles:true }));
+      if (como === 'el intro del móvil') i.dispatchEvent(new InputEvent('beforeinput',
+        { bubbles:true, cancelable:true, inputType:'insertLineBreak' }));
+      await new Promise(z => setTimeout(z, 800));
+      out.puertas[como] = { marcasConEsa: cuantas(nombre), panelAbierto: !!document.getElementById('tagNueva') };
+    }
+    return out;
+  }).then(r => {
+    vale('el panel de la marca tiene su +', !r.sinMarca && r.hayBoton);
+    for (const [como, v] of Object.entries(r.puertas || {})){
+      /* UNA, no dos: si al repintar se volviera a disparar, saldrían dos. */
+      vale('la pone en la marca, una sola vez · ' + como,
+           v && v.marcasConEsa === 1, v && v.marcasConEsa);
+      vale('y el panel se queda abierto · ' + como, v && v.panelAbierto === true);
+    }
+    return r;
+  }));
+  await p.evaluate(async () => {
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, clientX:20, clientY:300 }));
+    await new Promise(z => setTimeout(z, 400));
+  });
+  await alPanel();
 
   titulo('3 · etiquetar un día entero');
   await p.evaluate(() => document.querySelectorAll('#menu button[data-acc="listo"]').forEach(b => b.click()));
