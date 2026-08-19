@@ -1871,7 +1871,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '19-AGO-26 12:29';
+window.GLOSS_BUILD = '19-AGO-26 12:53';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3640,7 +3640,22 @@ menu.addEventListener('click', ev => {
   }
 });
 document.addEventListener('pointerdown', ev => {
-  if (!ev.target.closest('#menu')) ocultarMenu();
+  if (ev.target.closest('#menu')) return;
+  /* LO ESCRITO SE COBRA ANTES DE CERRAR, y el orden es todo el arreglo.
+
+     Este oyente va en fase de CAPTURA, así que corre antes que nada; y
+     ocultarMenu deja menuMarca en null. El change de la caja llega después
+     —el blur es posterior al pointerdown—, o sea que para cuando quería poner
+     la etiqueta ya no había a quién ponérsela, y se perdía sin decir nada:
+     exactamente el fallo que este cambio venía a quitar, escondido un piso más
+     abajo. Comprobado antes de arreglarlo: cero marcas etiquetadas.
+     Tocar fuera con algo escrito no es abandonar, es terminar. Se cobra aquí,
+     mientras la marca todavía existe, y luego ya se cierra.
+     Lo levantó la revisión de Codex; mi prueba no lo veía porque disparaba el
+     change a mano, sin el toque de fuera que es quien impone el orden. */
+  const caja = document.getElementById('tagNueva');
+  if (caja && caja.value.trim() && menuMarca) crearTagDeMarca(caja);
+  ocultarMenu();
 }, true);
 /* etiqueta nueva desde el propio panel */
 /* La misma historia que arriba, en la caja del panel de una marca: aquí Enter
