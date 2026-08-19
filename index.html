@@ -1826,7 +1826,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '19-AGO-26 07:10';
+window.GLOSS_BUILD = '19-AGO-26 08:09';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5156,7 +5156,6 @@ let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
    La versión buena la instala correrPapel, que es donde vive la animación;
    ésta de aquí vale mientras aquello se arma. */
 const topeCajon = () => pg.scrollWidth - pg.clientWidth;
-let llevarCajonA = x => { pg.scrollLeft = x; };
 (function correrPapel(){
   /* EL CAJÓN, CON PALANCA.
 
@@ -5306,9 +5305,6 @@ let llevarCajonA = x => { pg.scrollLeft = x; };
     pg.classList.remove('agarrado');
     pg.scrollLeft = 0;
   };
-  /* La manija de verdad: con el acomodo de siempre, que ya sabe cancelar el
-     viaje anterior y repartir la duración según la distancia. */
-  llevarCajonA = x => { activo = false; irA(Math.min(Math.max(x, 0), tope())); };
 })();
 
 /* CORRER EL PAPEL CON RATÓN O TRACKPAD.
@@ -5508,6 +5504,50 @@ let relojSuave = null;
 let dirZoomAuto = null, relojZoomAuto = null;
 /* Dónde tenías el cajón al alejarte, para poder devolverte ahí. */
 let cajonAlEntrarZoom = 0;
+let relojCajonZoom = null;
+
+/* LA CURVA DE LA HOJA, RESUELTA A MANO.
+
+   El CSS mueve la hoja con cubic-bezier(.32,.72,.24,1) en 460 ms, y el cajón
+   tiene que ir montado en eso mismo. Aquí está el porqué, que se vio usándolo:
+   el cajón usaba antes la curva del arrastre —lenta al arrancar, que es lo
+   correcto para algo que empujas con el dedo— y las dos juntas se leían como
+   dos viajes. Al 32% del tiempo la hoja ya llevaba el 72% del camino y el
+   cajón el 5%: la hoja terminaba de crecer y ENTONCES la ventana se corría.
+   Medido en la primera versión: 0, 1, 2, 5, 12, 23... o sea quieto durante
+   todo el crecimiento.
+   Con la misma curva y el mismo reloj llegan juntos, y un solo toque produce
+   un solo movimiento: la hoja crece ya encuadrada en la columna que pediste.
+   Se busca por bisección el t que da esa x —doce vueltas dejan el error muy
+   por debajo de un píxel— y se devuelve su y. */
+function curvaDeLaHoja(k){
+  const en = (t, a, c) => { const u = 1 - t; return 3*u*u*t*a + 3*u*t*t*c + t*t*t; };
+  let lo = 0, hi = 1, t = k;
+  for (let i = 0; i < 12; i++){
+    t = (lo + hi) / 2;
+    if (en(t, .32, .24) < k) lo = t; else hi = t;
+  }
+  return en(t, .72, 1);
+}
+function acompanarCajon(destino){
+  cancelAnimationFrame(relojCajonZoom);
+  const desde = pg.scrollLeft, tramo = destino - desde;
+  if (Math.abs(tramo) < 1){ pg.scrollLeft = destino; return; }
+  /* Quien pidió menos movimiento no recibe éste tampoco. La hoja llega en un
+     cuadro —así lo deja el CSS— y el cajón tiene que llegar con ella; si no,
+     se quedaría corriéndose solo delante de una hoja ya quieta, que es
+     exactamente el movimiento del que esa preferencia venía a librar. */
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches){
+    pg.scrollLeft = destino; return;
+  }
+  const t0 = performance.now();
+  (function paso(ahora){
+    const k = Math.min(1, (ahora - t0) / ZOOM_SUAVE);
+    pg.scrollLeft = desde + tramo * curvaDeLaHoja(k);
+    if (k < 1) relojCajonZoom = requestAnimationFrame(paso);
+    else pg.scrollLeft = destino;
+  })(t0);
+}
 function detenerZoomAuto(){
   const iba = dirZoomAuto;
   clearTimeout(relojZoomAuto); relojZoomAuto = null; dirZoomAuto = null;
@@ -5542,6 +5582,7 @@ function abrirZoom(){
   /* DE QUÉ CAJÓN VENÍAS. Se apunta antes de cerrarlo, que es la única línea en
      la que todavía se sabe: salir por el hueco significa «devuélveme y ya», y
      ya es esto —donde estabas—, no el principio del papel. */
+  cancelAnimationFrame(relojCajonZoom);
   cajonAlEntrarZoom = pg.scrollLeft;
   /* El cajón se cierra antes de escalar. Si se quedara corrido, la hoja
      aparecería de lejos y además ladeada, y al volver seguiría ladeada: dos
@@ -5644,8 +5685,8 @@ function cerrarZoom(hacia){
      tercero: la hoja arranca ya, y dos cuadros de diferencia se ven —la letra
      saliéndose del papel justo en el tramo en que más corre—. */
   if (papel) papel.style.transform = destino;
-  /* Y el cajón, en el mismo cuadro que la hoja. */
-  if (Math.abs(pg.scrollLeft - destinoCajon) > 1) llevarCajonA(destinoCajon);
+  /* Y el cajón, montado en el mismo reloj y en la misma curva que la hoja. */
+  acompanarCajon(destinoCajon);
   pg.style.removeProperty('--zk');
   pg.style.removeProperty('--zx');
   pg.style.removeProperty('--zy');

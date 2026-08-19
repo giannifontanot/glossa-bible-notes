@@ -35,6 +35,42 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
       vale('e interpolando', r.interpola);
     }
     vale('llega al mismo sitio', r.destino !== 'none', r.destino);
+
+    /* Y EL CAJÓN VA CON LA HOJA, TAMBIÉN AQUÍ.
+       Volver tocando la columna de glosas corre el papel además de agrandar la
+       hoja. Con la transición apagada la hoja llega en un cuadro, así que un
+       cajón que siguiera animándose se quedaría corriéndose solo delante de
+       una hoja ya quieta: el movimiento del que esta preferencia venía a
+       librar, servido a solas y encima más visible. */
+    const cajon = await p.evaluate(async () => {
+      const pg = document.getElementById('pg');
+      if (!pg.classList.contains('zoom')){
+        document.getElementById('btnZoom').click();
+        await new Promise(z => setTimeout(z, 1300));
+      }
+      const tope = pg.scrollWidth - pg.clientWidth;
+      if (tope < 10) return { sinCarrera:true };
+      const m = document.getElementById('pgMargin').getBoundingClientRect();
+      const el = document.elementFromPoint(Math.round(m.left + 10), Math.round(m.bottom - 10));
+      el.dispatchEvent(new MouseEvent('click', { bubbles:true,
+        clientX:Math.round(m.left + 10), clientY:Math.round(m.bottom - 10) }));
+      /* Un cuadro largo después: con la preferencia puesta ya tiene que estar
+         puesto; sin ella tiene que ir todavía por el camino. */
+      await new Promise(z => setTimeout(z, 60));
+      const pronto = pg.scrollLeft;
+      await new Promise(z => setTimeout(z, 900));
+      return { fraccionPronto:+(pronto / tope).toFixed(2), final:pg.scrollLeft, tope };
+    });
+    di('el cajón al volver', cajon);
+    if (!cajon.sinCarrera){
+      if (modo === 'reduce')
+        vale('el cajón llega de una vez', cajon.fraccionPronto === 1, cajon.fraccionPronto);
+      else
+        vale('el cajón viaja', cajon.fraccionPronto > 0 && cajon.fraccionPronto < 1,
+             cajon.fraccionPronto);
+      vale('y acaba en las glosas', cajon.final === cajon.tope,
+           cajon.final + ' de ' + cajon.tope);
+    }
     /* Se revisan los errores de ESTA sesión antes de tirarla: cerrando a pelo,
        una excepción que solo ocurriera con la animación puesta se perdía y la
        prueba terminaba en verde. */
