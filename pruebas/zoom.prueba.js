@@ -27,11 +27,18 @@
    el desborde es cero y la razón es uno: todo en orden y nada ocurrido. Un
    veredicto que también se cumple cuando no pasa nada no está comprobando
    nada. */
-const { abrir, cerrar, di, vale, titulo, ESCRITORIO } = require('./comun');
+const { abrir, cerrar, conGlosas, di, vale, titulo, ESCRITORIO } = require('./comun');
 
 (async () => {
   const sesion = await abrir();
   const p = sesion.pagina;
+  /* CON GLOSAS PUESTAS, y no por adorno: media prueba de esta suite trata de
+     lo que la hoja conserva de lejos, y sin una sola glosa en el margen el
+     caso de «la glosa se queda con el toque» no tiene dónde tocar —se
+     saltaba, y saltarse un caso se lee igual que pasarlo—. De paso el margen
+     queda como está de verdad cuando alguien usa el programa.
+     Lo medido aquí es geometría y color, así que el contenido no lo mueve. */
+  await conGlosas(p);
 
   /* Muestrea un viaje entero, en la dirección que se le pida. */
   const viaje = sentido => p.evaluate(async dir => {
@@ -78,29 +85,161 @@ const { abrir, cerrar, di, vale, titulo, ESCRITORIO } = require('./comun');
   vale('es el mismo viaje al revés', e.desbordeMaximo === s.desbordeMaximo);
   vale('y salió de verdad', !s.enZoom);
 
-  titulo('la salida es el hueco, y el libro se queda para leerlo');
-  /* ESTUVO AL REVÉS UNA TEMPORADA, Y POR ESO AQUÍ SE MIRAN LAS DOS MITADES.
-     Que el hueco cierre es la fácil. La que costó el cambio es que el libro NO
-     cierre: de lejos se sigue pasando hoja por los filos y tocando las glosas
-     del margen —es para lo que uno se aleja—, y con el libro haciendo de botón
-     de salida cada uno de esos toques era una apuesta: fallarle al filo por
-     dos píxeles no costaba el toque, costaba la vista.
-     Una prueba que solo comprobara la salida dejaría volver el problema
-     entero sin decir nada. */
-  di('tocando el libro', await p.evaluate(async () => {
-    document.getElementById('btnZoom').click();
-    await new Promise(z => setTimeout(z, 1200));
-    const r = document.querySelector('#pg .pg-inner').getBoundingClientRect();
-    document.getElementById('pg').dispatchEvent(new MouseEvent('click',
-      { bubbles:true, clientX:Math.round(r.left+r.width/2), clientY:Math.round(r.top+r.height/2) }));
-    await new Promise(z => setTimeout(z, 700));
-    return { sigueEnZoom: document.getElementById('pg').classList.contains('zoom') };
-  }).then(r => { vale('tocar el libro NO cierra', r.sigueEnZoom); return r; }));
+  titulo('las tres puertas de vuelta, y el contenido que no lo es');
+  /* DE LEJOS LA HOJA TIENE DOS ZONAS QUE TAMBIÉN SON PUERTAS, y cada una te
+     devuelve mirando otra cosa: el blanco del margen te deja en el cajón de
+     glosas, el blanco del libro en el texto, y el hueco de fuera te deja donde
+     estabas. La idea es que de lejos ves la hoja entera y eliges a qué
+     acercarte, así que el toque que te devuelve dice además a qué.
 
-  /* Y que de verdad sirva para algo: el filo, recolocado al canto de la hoja
-     chica, tiene que seguir pasando hoja sin salirse del zoom. Se espera de
-     sobra porque el toque en el filo no mide al soltarlo: aguarda su plazo de
-     doble clic y solo entonces pasa. */
+     LA OTRA MITAD, Y ES LA QUE HAY QUE VIGILAR: el contenido no es puerta. De
+     lejos una glosa se sigue abriendo y el texto se sigue seleccionando para
+     resaltar. Si eso se pierde, la hoja de lejos deja de ser una hoja y pasa a
+     ser un botón grande — y no se notaría en ninguna prueba que solo mirase si
+     la vuelta funciona. Por eso aquí hay tantos casos de «no pasa nada» como
+     de «vuelve».
+
+     Los puntos se buscan, no se calculan. Los filos de pasar hoja se recolocan
+     de lejos sobre los cantos de la hoja —24 px a cada lado, y el derecho cae
+     ENCIMA de la columna de glosas—, así que un punto elegido a ojo aterriza
+     en el filo y la prueba mide otra cosa. Pasó al escribirla. */
+  const enZoom = async () => p.evaluate(async () => {
+    const pg = document.getElementById('pg');
+    if (!pg.classList.contains('zoom')){
+      document.getElementById('btnZoom').click();
+      await new Promise(z => setTimeout(z, 1300));
+    }
+  });
+  /* Toca un punto de lejos y cuenta qué pasó. `cajonAntes` es el cajón desde
+     el que se entró al zoom, que es lo que el hueco tiene que devolver. */
+  const tocarDeLejos = (zona, cajonAntes = 0) => p.evaluate(async ([zona, cajonAntes]) => {
+    const pg = document.getElementById('pg');
+    /* se sale, se coloca el cajón y se vuelve a entrar, para que cada caso
+       empiece igual */
+    if (pg.classList.contains('zoom')){
+      const q = pg.querySelector('.pg-inner').getBoundingClientRect();
+      pg.dispatchEvent(new MouseEvent('click',
+        { bubbles:true, clientX:206, clientY:Math.round(q.bottom + 60) }));
+      await new Promise(z => setTimeout(z, 1400));
+    }
+    pg.scrollLeft = cajonAntes;
+    await new Promise(z => setTimeout(z, 150));
+    document.getElementById('btnZoom').click();
+    await new Promise(z => setTimeout(z, 1300));
+
+    const inner = pg.querySelector('.pg-inner').getBoundingClientRect();
+    const m = document.getElementById('pgMargin').getBoundingClientRect();
+    const cuerpo = document.getElementById('pgBody').getBoundingClientRect();
+    const filo = 26;                     /* lo que ocupan los filos, con holgura */
+    let punto = null;
+    if (zona === 'margenVacio')
+      punto = [Math.round(m.left + 10), Math.round(m.bottom - 10)];
+    else if (zona === 'glosa'){
+      const g = document.querySelector('#pgMargin .gl');
+      if (g){ const r = g.getBoundingClientRect();
+              punto = [Math.round(r.left + 12), Math.round(r.top + 10)]; }
+    } else if (zona === 'libroVacio')
+      punto = [Math.round(cuerpo.left + cuerpo.width/2), Math.round(cuerpo.bottom - 8)];
+    else if (zona === 'bordeArriba')
+      punto = [Math.round(inner.left + inner.width/2), Math.round(inner.top + 8)];
+    else if (zona === 'hueco')
+      punto = [206, Math.round(inner.bottom + 60)];
+    else if (zona === 'palabra'){
+      /* el trozo de renglón más ancho que caiga lejos de los dos filos */
+      let mejor = null;
+      for (const v of document.querySelectorAll('#pgBody .v'))
+        for (const r of v.getClientRects())
+          if (r.left > inner.left + filo && r.right < cuerpo.right - 4 &&
+              r.width > 30 && (!mejor || r.width > mejor.width)) mejor = r;
+      if (mejor) punto = [Math.round(mejor.left + mejor.width/2),
+                          Math.round(mejor.top + mejor.height/2)];
+    }
+    if (!punto) return { sinPunto: zona };
+    const quien = document.elementFromPoint(punto[0], punto[1]);
+    (quien || pg).dispatchEvent(new MouseEvent('click',
+      { bubbles:true, clientX:punto[0], clientY:punto[1] }));
+    await new Promise(z => setTimeout(z, 1500));
+    return { punto: punto.join(','),
+             recibio: quien ? (quien.className || quien.id || quien.tagName) : null,
+             sigueLejos: pg.classList.contains('zoom'),
+             cajon: pg.scrollLeft, tope: pg.scrollWidth - pg.clientWidth };
+  }, [zona, cajonAntes]);
+
+  const margen = await tocarDeLejos('margenVacio');
+  di('blanco del margen', margen);
+  vale('vuelve de cerca', !margen.sigueLejos);
+  vale('y deja el cajón en las glosas', margen.cajon === margen.tope,
+       margen.cajon + ' de ' + margen.tope);
+
+  const libro = await tocarDeLejos('libroVacio');
+  di('blanco del libro', libro);
+  vale('vuelve de cerca ·libro', !libro.sigueLejos);
+  vale('y deja el cajón en el texto', libro.cajon === 0, libro.cajon);
+
+  const borde = await tocarDeLejos('bordeArriba');
+  di('borde de arriba de la hoja', borde);
+  vale('el borde también vuelve, por el texto', !borde.sigueLejos && borde.cajon === 0,
+       borde.cajon);
+
+  /* LAS DOS DE «NO PASA NADA», que son las que protegen el uso de la hoja. */
+  const glosa = await tocarDeLejos('glosa');
+  di('encima de una glosa', glosa);
+  vale('la glosa se queda con el toque', glosa.sigueLejos);
+
+  const palabra = await tocarDeLejos('palabra');
+  di('encima de una palabra', palabra);
+  vale('el punto cayó en el texto y no en un filo',
+       /\bv\b/.test(String(palabra.recibio || '')), palabra.recibio);
+  /* Un toque encima de un renglón es casi siempre el dedo apoyado. Cobrarle la
+     vista entera sería el accidente que se quiso evitar. */
+  vale('una palabra suelta no te saca', palabra.sigueLejos);
+
+  /* EL HUECO NO APUNTA A NADA, así que devuelve el cajón en el que entraste.
+     Se prueba desde los dos, porque desde el del libro daría verde aunque el
+     programa lo pusiera siempre en cero. */
+  const huecoLibro = await tocarDeLejos('hueco', 0);
+  di('hueco, entrando del libro', huecoLibro);
+  vale('vuelve al cajón del libro', !huecoLibro.sigueLejos && huecoLibro.cajon === 0,
+       huecoLibro.cajon);
+  const huecoGlosas = await tocarDeLejos('hueco', 251);
+  di('hueco, entrando de las glosas', huecoGlosas);
+  vale('vuelve al cajón de las glosas',
+       !huecoGlosas.sigueLejos && huecoGlosas.cajon === huecoGlosas.tope,
+       huecoGlosas.cajon + ' de ' + huecoGlosas.tope);
+
+  /* Y que el texto se siga pudiendo resaltar de lejos, que es la otra cosa que
+     la hoja tiene que conservar. */
+  await enZoom();
+  di('seleccionar y resaltar, de lejos', await p.evaluate(async () => {
+    const clave = 'glossa:marcas:v1';
+    const cuantas = () => JSON.parse(localStorage.getItem(clave) || '[]').length;
+    const antes = cuantas();
+    const v = document.querySelector('#pgBody .v');
+    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 20){ n = w.currentNode; break; }
+    if (!n) return { sinTexto:true };
+    const rg = document.createRange(); rg.setStart(n, 0); rg.setEnd(n, 14);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rg);
+    const rc = rg.getBoundingClientRect();
+    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+      { bubbles:true, clientX:Math.round(rc.left + 2), clientY:Math.round(rc.top + 2) }));
+    await new Promise(z => setTimeout(z, 500));
+    const menu = document.getElementById('menu');
+    const salio = getComputedStyle(menu).display !== 'none' && menu.textContent.trim().length > 0;
+    const bot = [...menu.querySelectorAll('button')].find(x => /Resaltar/.test(x.textContent));
+    if (bot) bot.click();
+    await new Promise(z => setTimeout(z, 1000));
+    return { salioElMenu:salio, antes, despues:cuantas(),
+             sigueLejos: document.getElementById('pg').classList.contains('zoom') };
+  }).then(r => {
+    vale('sale el menú de lejos', !!r.salioElMenu);
+    vale('y resalta de verdad', r.despues === r.antes + 1, r.antes + ' → ' + r.despues);
+    vale('sin sacarte de la vista', !!r.sigueLejos);
+    return r;
+  }));
+
+  /* El filo, recolocado al canto de la hoja chica, sigue pasando hoja. */
+  await enZoom();
   di('el filo, de lejos', await p.evaluate(async () => {
     const cab = () => document.getElementById('pgCabeza').textContent.trim();
     const antes = cab();
@@ -118,13 +257,17 @@ const { abrir, cerrar, di, vale, titulo, ESCRITORIO } = require('./comun');
   di('los cursores', await p.evaluate(() => ({
     hueco: getComputedStyle(document.getElementById('pg')).cursor,
     papel: getComputedStyle(document.querySelector('#pg .pg-inner')).cursor })));
-  vale('tocar el hueco sí cierra', await p.evaluate(async () => {
-    const r = document.querySelector('#pg .pg-inner').getBoundingClientRect();
-    document.getElementById('pg').dispatchEvent(new MouseEvent('click',
-      { bubbles:true, clientX:206, clientY:Math.round(r.bottom + 60) }));
-    await new Promise(z => setTimeout(z, 900));
-    return !document.getElementById('pg').classList.contains('zoom');
-  }));
+  /* se deja fuera del zoom y con el cajón en el texto para la sección de abajo */
+  await p.evaluate(async () => {
+    const pg = document.getElementById('pg');
+    if (pg.classList.contains('zoom')){
+      const r = pg.querySelector('.pg-inner').getBoundingClientRect();
+      pg.dispatchEvent(new MouseEvent('click',
+        { bubbles:true, clientX:206, clientY:Math.round(r.bottom + 60) }));
+      await new Promise(z => setTimeout(z, 1400));
+    }
+    pg.scrollLeft = 0;
+  });
 
   titulo('el botón dice si el paso automático va solo');
   /* Las dos maneras de pasar hoja se ven igual —hojas que pasan—, así que sin
