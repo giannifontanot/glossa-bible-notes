@@ -1880,7 +1880,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '19-AGO-26 17:07';
+window.GLOSS_BUILD = '19-AGO-26 17:21';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8183,18 +8183,29 @@ const GLOSAS_DE_ESTRENO = [
          'su nombre propio.' },
 ];
 function sembrarGlosasDeEstreno(){
+  /* EL LIBRO VA FIJO, no el que esté abierto. Estas notas hablan de la
+     genealogía de Mateo: en otro libro no dirían nada, y peor, la frase podría
+     encontrarse por casualidad en otro versículo 1:1 y marcar lo que no es. */
+  const libro = D.libros[0] && D.libros[0].id;
+  if (!libro) return;
   const hoy = new Date().toISOString().slice(0,10);
   const nuevas = [];
   for (const e of GLOSAS_DE_ESTRENO){
     let texto = '';
-    try { texto = versoTexto(version, e.cap, e.vers, LIBRO) || ''; } catch(err){ continue; }
-    const ini = texto.indexOf(e.frase);
-    if (ini < 0) continue;                 /* mejor ninguna que una mal puesta */
+    try { texto = versoTexto(version, e.cap, e.vers, libro) || ''; } catch(err){ continue; }
+    /* Sin distinguir mayúsculas: hay versiones que escriben «hijo de David» en
+       minúscula y por lo demás dicen lo mismo. */
+    const ini = texto.toLowerCase().indexOf(e.frase.toLowerCase());
+    /* MEJOR NINGUNA QUE UNA MAL PUESTA. Si el lector abre en otra versión y
+       ahí la frase no está —otra traducción, otras palabras—, esta glosa
+       simplemente no se siembra. Una nota en español sobre un texto en inglés
+       tampoco tendría sentido. */
+    if (ini < 0) continue;
     const fin = ini + e.frase.length;
     nuevas.push({
       id: 'estreno-' + e.cap + '-' + e.vers,
-      libro: LIBRO, cap: e.cap, vers: e.vers,
-      cita: e.frase,
+      libro, cap: e.cap, vers: e.vers,
+      cita: texto.slice(ini, fin),      /* la del texto, con sus mayúsculas */
       antes: texto.slice(Math.max(0, ini-24), ini),
       despues: texto.slice(fin, fin+24),
       ini, fin, versionOrigen: version,
@@ -8207,10 +8218,17 @@ function sembrarGlosasDeEstreno(){
   marcas = nuevas;
   save();
 }
-if (primeraVez) sembrarGlosasDeEstreno();
-
 const guardado = cargarAjustes();
 cargarHistorial();
+/* LA SIEMBRA VA DESPUÉS DE CARGAR LOS AJUSTES, y el orden es todo el asunto.
+   cargarAjustes restaura la versión y el libro guardados; sembrando antes, las
+   glosas se calculaban contra la versión POR DEFECTO y luego el lector abría
+   la suya. Medido con RVR1909 guardado y ninguna marca todavía —alguien que
+   probó el programa y cambió de versión sin llegar a escribir—: las tres se
+   sembraban con citas de VBL y sus anclajes caían en «David, hijo d», « Zara:
+   y Phares en» y «r de Urías: ». O sea el resaltado sobre trozos sin sentido.
+   Lo levantó la revisión de Codex. */
+if (primeraVez) sembrarGlosasDeEstreno();
 stage.style.transition = 'none';
 stage.style.width = ANCHO_HOJA + 'px';
 void stage.offsetWidth;

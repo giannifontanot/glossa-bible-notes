@@ -110,5 +110,51 @@ const ESPERADAS = [
     return r;
   }));
 
+  titulo('con otra versión guardada');
+  /* EL ORDEN CONTRA LOS AJUSTES, que es lo que la revisión levantó.
+     cargarAjustes restaura la versión guardada; sembrando antes de eso, las
+     glosas se calculaban contra la versión por defecto y el lector abría la
+     suya. Medido con RVR1909 y ninguna marca —alguien que probó el programa y
+     cambió de versión sin llegar a escribir—: las tres se sembraban con citas
+     de VBL y los anclajes caían en «David, hijo d», « Zara: y Phares en» y
+     «r de Urías: ». Resaltado sobre trozos sin sentido.
+     Lo que se exige aquí NO es que siembre tres: es que lo que siembre esté
+     BIEN ANCLADO. En una versión donde la frase no existe, cero es la
+     respuesta correcta —una nota en español sobre un texto en inglés tampoco
+     diría nada—, y lo que nunca vale es una marca señalando lo que no es. */
+  for (const [v, minimo] of [['rv1909', 0], ['bsb', 0], ['vbl', 3]]){
+    di('guardado en ' + v, await p.evaluate(async v => {
+      localStorage.removeItem('glossa:marcas:v1');
+      const c = 'glossa:ajustes:v1';
+      const a = JSON.parse(localStorage.getItem(c) || '{}');
+      a.v = 1; a.version = v; localStorage.setItem(c, JSON.stringify(a));
+      location.reload();
+    }, v).then(async () => {
+      await p.waitForTimeout(3200);
+      return p.evaluate(() => {
+        const M = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+        const trozo = m => {
+          const el = document.querySelector('#pgBody .v[data-k="' + (m.vers - 1) + '"]');
+          const t = el ? el.textContent.replace(/^\s*\d+\s*/, '') : null;
+          return t ? t.slice(m.ini, m.fin) : null;
+        };
+        return { version: document.getElementById('pgVersion').textContent.trim(),
+                 sembradas: M.length,
+                 origen: [...new Set(M.map(m => m.versionOrigen))],
+                 malPuestas: M.filter(m => trozo(m) !== m.cita).map(m => m.vers + ':«' + trozo(m) + '»'),
+                 citas: M.map(m => m.cita) };
+      });
+    }).then(r => {
+      /* la única regla dura: ninguna mal anclada, sea cual sea el número */
+      vale('ninguna señala lo que no es · ' + v, r.malPuestas.length === 0,
+           r.malPuestas.length ? r.malPuestas.join(' ') : r.sembradas + ' bien puestas');
+      vale('y salen de la versión abierta · ' + v,
+           r.sembradas === 0 || r.origen.join() === v, r.origen.join() || '(ninguna)');
+      if (minimo) vale('en la versión de casa sí se siembran · ' + v,
+                       r.sembradas === minimo, r.sembradas);
+      return r;
+    }));
+  }
+
   await cerrar(sesion);
 })();
