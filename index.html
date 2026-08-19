@@ -1043,8 +1043,6 @@
                   background:rgba(184,137,43,.12);
                   font:700 14px/1.3 var(--ui); color:#4a3a18;
                   letter-spacing:.05em; }
-  .sello-version small{ display:block; margin-top:4px; font:400 9.5px/1.5 var(--ui);
-                        letter-spacing:0; color:#5c4a24; opacity:.82; }
   .pestanas{ flex:0 0 auto; display:flex; gap:3px; margin:0 0 5px;
              border-bottom:1px solid rgba(140,116,68,.34); padding-bottom:4px; }
   .pestanas button{ flex:1 1 0; border:0; cursor:pointer; padding:3px 6px;
@@ -1462,7 +1460,6 @@
     /* En el teléfono sube igual que el resto: es donde de verdad se consulta,
        porque es el aparato del que uno duda si tiene la versión nueva. */
     .sello-version{ font-size:17px; }
-    .sello-version small{ font-size:11.5px; }
     .banda select, .banda input, .ajuste select{ font-size:13.5px; padding:5px 7px; }
     /* Estos cuatro se habían quedado fuera de la lista y por eso se veían
        hundidos entre los demás: el número del sepia, la banda de etiquetas,
@@ -1809,34 +1806,20 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-/* EL SELLO DE VERSIÓN: CUÁNDO SE TOCÓ ESTO POR ÚLTIMA VEZ.
+/* LA VERSIÓN: LA HORA A LA QUE SE TOCÓ ESTE ARCHIVO.
 
-   Sirve para una pregunta concreta y muy práctica: cuando algo no funciona en
-   un teléfono, lo primero que hay que saber es si ese teléfono está viendo la
-   versión nueva o una guardada en caché. Y la tiene que poder contestar quien
-   sostiene el aparato, sin enchufarlo a nada.
+   Sirve para una pregunta concreta: cuando algo no funciona en un teléfono, lo
+   primero que hay que saber es si ese teléfono tiene la versión nueva o una
+   guardada en caché. Se enseña en el panel de Respaldo, para que la conteste
+   quien sostiene el aparato sin enchufarlo a nada.
 
-   POR QUÉ NO ES SOLO UNA CADENA ESCRITA A MANO. Lo era, y se quedó vieja: el
-   valor anterior decía 2026-08-18 con el título de un cambio de dos rondas
-   antes. Una fecha escrita a mano no avisa de que ha caducado —se queda ahí
-   diciendo lo mismo con toda confianza—, y una etiqueta de versión que miente
-   es peor que no tenerla, porque la pregunta que vino a contestar se contesta
-   mal.
-   Así que la fuente principal es document.lastModified, que describe LOS
-   BYTES QUE ESTE APARATO TIENE DELANTE: por http es la cabecera Last-Modified
-   del archivo servido, y abriéndolo del disco es la fecha del archivo. Una
-   copia guardada en caché lleva su propia fecha, que es exactamente lo que
-   hay que ver.
+   CÓMO SE ACTUALIZA: quien cambia este archivo mira el reloj de Dallas en ese
+   momento y escribe la hora aquí. Nada más. No se calcula: una fecha escrita
+   no puede equivocarse de huso ni de horario de verano, y quien la escribe es
+   justamente el que sabe cuándo está haciendo el cambio.
 
-   Y POR QUÉ ADEMÁS SE GUARDA ESTA CONSTANTE. document.lastModified tiene una
-   trampa: cuando el servidor no manda la cabecera, el navegador no devuelve
-   vacío, devuelve LA HORA ACTUAL. O sea que sin red de seguridad la etiqueta
-   diría "recién hecho" siempre, que es la peor manera de mentir.
-   De ahí las dos comprobaciones de abajo. Ninguna de las dos puede dar una
-   fecha equivocada: como mucho dan la de la constante, que es más antigua
-   pero cierta —el archivo no puede ser anterior al sello que lleva escrito
-   dentro—. */
-window.GLOSS_BUILD = '2026-08-19T10:13:00Z';
+   Formato: DD-MMM-YY HH:MM, hora de Dallas. */
+window.GLOSS_BUILD = '19-AGO-26 05:39';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3179,10 +3162,7 @@ function renderPageCrudo(){
   /* El aviso dice lo que hacen los dos gestos, no lo que hacían: un toque abre
      la lista de versiones y dos abren Libros. Decía "Formato y versión" desde
      antes de que ninguna de las dos cosas fuera cierta. */
-  /* La misma fecha que enseña el panel de Respaldo, no el instante en crudo:
-     si dos sitios dicen la versión, tienen que decirla igual. */
-  $('pgVersion').title = 'Versiones · doble clic: Libros · versión ' +
-                         fechaDallas(instanteDeVersion().fecha);
+  $('pgVersion').title = 'Versiones · doble clic: Libros · versión ' + window.GLOSS_BUILD;
   /* La pestaña lleva solo el nombre de la aplicación. Le puse el libro un
      rato —'Gloss Bible · Marcos'— y estorba: el libro y el capítulo ya se
      leen en la esquina de la hoja, y en la pestaña solo hacían ruido. Si
@@ -5136,7 +5116,6 @@ window.addEventListener('resize', medirHojaTelefono);
 window.estado = () => window.__estado;
 window.medida = () => ({
   compilacion: window.GLOSS_BUILD,
-  version: window.GLOSS_SELLO,      /* lo mismo que enseña el panel de Respaldo */
   enTelefono: enTelefono(),
   ventana: pg.clientWidth,
   papel: pg.scrollWidth,
@@ -7704,45 +7683,6 @@ etiquetas.appendChild($('indice'));
    selector es donde de verdad significa algo. */
 ajustes.appendChild($('cred'));
 
-/* ---------- el sello de versión ---------- */
-const MESES_SELLO = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-const ZONA_SELLO = 'America/Chicago';        /* Dallas */
-
-/* DD-MMM-YY HH:MM EN HORA DE DALLAS, se mire desde donde se mire.
-
-   Va por Intl con la zona escrita y no por getHours(): la hora del aparato es
-   la del sitio donde está el aparato, y aquí hace falta la de allá aunque se
-   abra desde otro huso. Intl se ocupa además del horario de verano, que son
-   cinco horas en agosto y seis en enero; una resta fija se equivocaría media
-   parte del año.
-   hourCycle:'h23' y no hour12:false, que en algunas combinaciones devuelve
-   las doce de la noche como 24:00. */
-function fechaDallas(d){
-  const p = new Intl.DateTimeFormat('en-CA', {
-    timeZone: ZONA_SELLO, year:'2-digit', month:'numeric', day:'2-digit',
-    hour:'2-digit', minute:'2-digit', hourCycle:'h23'
-  }).formatToParts(d).reduce((o, x) => (o[x.type] = x.value, o), {});
-  return p.day + '-' + MESES_SELLO[+p.month - 1] + '-' + p.year + ' ' + p.hour + ':' + p.minute;
-}
-
-/* Cuál de las dos fechas se acaba enseñando. El razonamiento largo está donde
-   se define GLOSS_BUILD; aquí quedan las dos reglas, y lo que importa de ellas
-   es que NINGUNA PUEDE DAR UNA FECHA FALSA: como mucho devuelven la de la
-   constante, más antigua pero cierta. */
-function instanteDeVersion(){
-  const fijo = new Date(window.GLOSS_BUILD);
-  const t = Date.parse(document.lastModified);
-  if (!isFinite(t)) return { fecha: fijo, fuente: 'sello' };
-  /* Anterior al sello que el propio archivo lleva escrito dentro: imposible,
-     así que es basura y se descarta. */
-  if (t < fijo.getTime()) return { fecha: fijo, fuente: 'sello' };
-  /* Pegada a este mismo instante: es el "ahora" que devuelve el navegador
-     cuando no hay cabecera Last-Modified. Y en el caso raro de que sí se
-     acabara de publicar hace un minuto, la constante dice casi lo mismo. */
-  if (Math.abs(t - Date.now()) < 120000) return { fecha: fijo, fuente: 'sello' };
-  return { fecha: new Date(t), fuente: 'archivo' };
-}
-
 /* El panel de Respaldo se arma con los botones que vivían en la barra de
    abajo: exportar e importar, que son las dos cosas que le pasan al archivo
    de tus glosas, no al texto ni a la página. ("Borrar todo" estuvo aquí y se
@@ -7787,21 +7727,10 @@ function instanteDeVersion(){
      primera pregunta es si ese teléfono tiene la versión nueva o una guardada
      en caché, y esa pregunta la tiene que poder contestar quien sostiene el
      aparato, sin enchufarlo a nada. */
-  const v = instanteDeVersion();
-  const cuando = fechaDallas(v.fecha);
   const sello = document.createElement('p');
   sello.className = 'sello-version';
-  sello.textContent = 'VERSIÓN ' + cuando;
-  const pie = document.createElement('small');
-  pie.textContent = 'hora de Dallas · ' + (v.fuente === 'archivo'
-    ? 'fecha del archivo que tiene este aparato'
-    : 'sello de la compilación');
-  sello.appendChild(pie);
+  sello.textContent = 'VERSIÓN ' + window.GLOSS_BUILD;
   caja.appendChild(sello);
-  /* Se deja a mano para el volcado de diagnóstico y para las pruebas, que
-     comprueban que la hora es de allá y no de aquí. */
-  window.GLOSS_SELLO = { texto:'VERSIÓN ' + cuando, instante:v.fecha.toISOString(),
-                         fuente:v.fuente, zona:ZONA_SELLO };
 })();
 
 /* ---------- arranque ---------- */
