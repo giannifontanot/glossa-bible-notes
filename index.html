@@ -1880,7 +1880,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '19-AGO-26 14:18';
+window.GLOSS_BUILD = '19-AGO-26 14:43';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2949,12 +2949,40 @@ const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;')
    palabra lo coloca bien. Un espacio de ancho cero (\u200B) no sirve: no parte
    el nodo y el \s de JavaScript no lo reconoce, o sea que reproduce el fallo.
    Se corta el texto CRUDO y se escapa cada trozo, no al revés: partir una
-   cadena ya escapada puede cortar un &amp; por la mitad. */
+   cadena ya escapada puede cortar un &amp; por la mitad.
+
+   Y OJO CON EL VIAJE AL SVG: la foto del pliegue va como data:image/svg+xml, o
+   sea que la parsea un lector de XML, donde un elemento sin cerrar no es un
+   vacío sino un error fatal —comprobado: con <wbr> el SVG entero dispara
+   onerror y se queda sin foto, así que cualquier hoja con etiqueta larga
+   perdía la animación de pasar página—. Pero cerrarlo AQUÍ no sirve de nada:
+   el SVG no recibe esta cadena, recibe marginEl.innerHTML, y al serializar el
+   DOM el navegador vuelve a escribir <wbr> sin cerrar SIEMPRE. Por eso el
+   cierre se pone en la frontera, en aXML, justo antes de entrar al SVG.
+   Lo levantó la revisión de Codex; el viaje por innerHTML salió al comprobar
+   que su arreglo no bastaba.
+
+   EL CORTE VA POR GRAFEMAS, no por unidades de UTF-16. length y slice cuentan
+   unidades de 16 bits, así que una etiqueta con emoji se puede partir por la
+   mitad de un par suplente; con un <wbr/> metido en medio los dos trozos ya no
+   se recomponen y salen dos rombos de reemplazo. Las etiquetas las escribe el
+   lector y pueden llevar lo que sea. Intl.Segmenter agrupa además los emoji
+   compuestos y las tildes sueltas; Array.from vale de red porque al menos
+   respeta los pares suplentes. */
 const CORTE_ETIQUETA = 11;
+function grafemas(t){
+  try {
+    if (typeof Intl !== 'undefined' && Intl.Segmenter)
+      return [...new Intl.Segmenter('es', { granularity:'grapheme' }).segment(t)].map(g => g.segment);
+  } catch(e){ /* a la red de abajo */ }
+  return Array.from(t);
+}
 function etiquetaHTML(t){
-  if (t.length <= CORTE_ETIQUETA) return esc(t);
+  const g = grafemas(t);
+  if (g.length <= CORTE_ETIQUETA) return esc(t);
   const trozos = [];
-  for (let i = 0; i < t.length; i += CORTE_ETIQUETA) trozos.push(esc(t.slice(i, i + CORTE_ETIQUETA)));
+  for (let i = 0; i < g.length; i += CORTE_ETIQUETA)
+    trozos.push(esc(g.slice(i, i + CORTE_ETIQUETA).join('')));
   return trozos.join('<wbr>');
 }
 /* Una etiqueta por span, no todas en una cadena unida con ' #'. Unidas se leen
@@ -3969,7 +3997,15 @@ function abrirGlosa(m){
     const forma = formaOrganica(m);
     caja.className = 'gl gl-movil g-' + m.color;
     caja.style.cssText = forma.css;
-    caja.style.fontSize = fontSize + 'px';
+    /* SE LE PASA --fs, NO UN font-size YA HECHO. La caja cuelga del cuerpo del
+       documento, fuera de la hoja, así que no hereda el --fs de #pg y hay que
+       dárselo; pero dárselo como font-size en línea pisaba el factor con el que
+       .gl calcula su letra, y entonces se escribía a 15 y se leía a 13,95 al
+       guardar: los renglones partían en otro sitio y la caja cambiaba de alto
+       justo al cerrar el editor, que es lo contrario de lo que esta caja
+       promete. Con --fs, .gl hace su cuenta igual aquí que en el margen.
+       Lo levantó la revisión de Codex. */
+    caja.style.setProperty('--fs', fontSize + 'px');
     caja.style.setProperty('--papel', colorPapel());
     /* Se le quitan al textarea el borde y el fondo que abrirGlosa le pone para
        los otros tres sitios. Allí el textarea ES la glosa y necesita recuadro
@@ -3980,10 +4016,11 @@ function abrirGlosa(m){
     ta.style.border = '0';
     ta.style.background = 'transparent';
     ta.style.width = '100%';
-    /* La nota se escribe del tamaño con el que se va a leer. Se pone aquí y no
-       en el CSS porque la caja cuelga del cuerpo del documento, fuera de la
-       hoja, así que no hereda su --fs. */
-    ta.style.fontSize = fontSize + 'px';
+    /* El textarea no lleva tamaño propio: .gl-movil textarea hereda con
+       font:inherit, así que toma el de la caja —que ya sale del --fs de arriba
+       con el mismo factor que en el margen—. Ponérselo a mano aquí volvía a
+       pisar el factor. */
+    ta.style.removeProperty('font-size');
     caja.appendChild(ta);
     document.body.appendChild(caja);
     ta.dataset.caja = '1';
@@ -4115,7 +4152,7 @@ function abrirGlosa(m){
       const dondeEstaba = caja.style.top;
       caja.className = 'gl gl-movil g-' + m.color;
       caja.style.cssText = forma.css;
-      caja.style.fontSize = fontSize + 'px';
+      caja.style.setProperty('--fs', fontSize + 'px');   /* igual que al nacer */
       caja.style.setProperty('--papel', colorPapel());
       caja.style.width = anchoGl + 'px';
       caja.style.right = 'auto';
@@ -4680,7 +4717,25 @@ function pintarPalabras(g, palabras){
   if ('fontVariantCaps' in g) g.fontVariantCaps = 'normal';
 }
 
+/* DE HTML A XML, que es lo que este SVG es de verdad.
+
+   Los tres trozos llegan de innerHTML, o sea serializados como HTML: ahí los
+   elementos vacíos van SIN cerrar, que es lo correcto en HTML y un error fatal
+   en XML. Y este marcado se mete en un data:image/svg+xml, que lo parsea un
+   lector de XML: un solo <wbr> sin cerrar tira el documento entero, la imagen
+   dispara onerror, la foto se queda en null y pasar hoja pierde la animación.
+   Medido con una etiqueta larga: 0 cuadros de lienzo y 0 tinta, contra 15
+   cuadros y 75.831 píxeles sin ella.
+
+   No basta con escribirlos cerrados donde se generan, porque el viaje por el
+   DOM los vuelve a abrir. La conversión tiene que ocurrir aquí, en la frontera,
+   que es el único punto por el que pasa todo lo que va a ser XML.
+   La lista es la de los vacíos que pueden aparecer en una hoja: wbr lo pone el
+   corte de etiquetas, y los otros tres por si alguna nota o versión los trae. */
+const VACIOS_XML = /<(wbr|br|hr|img)((?:\s[^<>]*?)?)\s*\/?>/gi;
+const aXML = h => String(h || '').replace(VACIOS_XML, (_, t, at) => '<' + t + at + '/>');
 function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza){
+  bodyHTML = aXML(bodyHTML); marginHTML = aXML(marginHTML); footHTML = aXML(footHTML);
   const fs = fontSize+'px', m = mw||'0px', g = gap||'0px';
   /* En teléfono las columnas van escritas a la fuerza también aquí dentro: el
      SVG lleva su propia copia de PAGE_CSS y NO ve las reglas del modo angosto,
