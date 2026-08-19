@@ -1826,7 +1826,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '19-AGO-26 05:39';
+window.GLOSS_BUILD = '19-AGO-26 07:10';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5150,6 +5150,13 @@ window.medida = () => ({
    el papel de la hoja recién llegada—. Ésta de aquí es la que vale mientras
    tanto, por si alguien salta antes de que aquello se arme. */
 let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
+/* HASTA DÓNDE LLEGA EL CAJÓN, y una manija para llevarlo a un sitio concreto.
+   El papel mide más que la ventana en el teléfono —663 contra 412—, así que
+   hay 251 px de carrera: en 0 se ve el texto y en el tope se ven las glosas.
+   La versión buena la instala correrPapel, que es donde vive la animación;
+   ésta de aquí vale mientras aquello se arma. */
+const topeCajon = () => pg.scrollWidth - pg.clientWidth;
+let llevarCajonA = x => { pg.scrollLeft = x; };
 (function correrPapel(){
   /* EL CAJÓN, CON PALANCA.
 
@@ -5299,6 +5306,9 @@ let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
     pg.classList.remove('agarrado');
     pg.scrollLeft = 0;
   };
+  /* La manija de verdad: con el acomodo de siempre, que ya sabe cancelar el
+     viaje anterior y repartir la duración según la distancia. */
+  llevarCajonA = x => { activo = false; irA(Math.min(Math.max(x, 0), tope())); };
 })();
 
 /* CORRER EL PAPEL CON RATÓN O TRACKPAD.
@@ -5496,6 +5506,8 @@ const ZOOM_SUAVE = 460;
 let relojSuave = null;
 /* El paso automático: hacia dónde va y el reloj que lo mantiene vivo. */
 let dirZoomAuto = null, relojZoomAuto = null;
+/* Dónde tenías el cajón al alejarte, para poder devolverte ahí. */
+let cajonAlEntrarZoom = 0;
 function detenerZoomAuto(){
   const iba = dirZoomAuto;
   clearTimeout(relojZoomAuto); relojZoomAuto = null; dirZoomAuto = null;
@@ -5527,6 +5539,10 @@ function armarSuave(){
 function abrirZoom(){
   if (zoomActivo || folding) return;
   cerrarTodosLosRollos(); cerrarHistorial(); ocultarMenu();
+  /* DE QUÉ CAJÓN VENÍAS. Se apunta antes de cerrarlo, que es la única línea en
+     la que todavía se sabe: salir por el hueco significa «devuélveme y ya», y
+     ya es esto —donde estabas—, no el principio del papel. */
+  cajonAlEntrarZoom = pg.scrollLeft;
   /* El cajón se cierra antes de escalar. Si se quedara corrido, la hoja
      aparecería de lejos y además ladeada, y al volver seguiría ladeada: dos
      cosas cambiando a la vez cuando solo se pidió una. */
@@ -5594,9 +5610,22 @@ function abrirZoom(){
     papel.style.transform = 'none';
   }
 }
-function cerrarZoom(){
+/* CERRAR, Y CON QUÉ A LA VISTA.
+
+   `hacia` dice en qué cajón te deja: 'glosas' o 'libro' cuando has tocado una
+   de las dos zonas de la hoja, y nada cuando has salido por el hueco, que te
+   devuelve al que traías.
+
+   El movimiento del cajón arranca a la vez que la hoja crece, no después. Son
+   la misma vuelta: la hoja se agranda y, como ya no cabe entera, la ventana
+   se va corriendo hacia la columna que pediste. Encadenarlos —crecer, parar,
+   correrse— serían dos viajes de un segundo largo para un solo toque. */
+function cerrarZoom(hacia){
   if (!zoomActivo) return;
   detenerZoomAuto();
+  const destinoCajon = hacia === 'glosas' ? topeCajon()
+                     : hacia === 'libro'  ? 0
+                     : cajonAlEntrarZoom;
   finSuave();
   const papel = $('zoomPapel');
   /* El papel se queda puesto a mano —la clase que lo enseña se va en el primer
@@ -5615,6 +5644,8 @@ function cerrarZoom(){
      tercero: la hoja arranca ya, y dos cuadros de diferencia se ven —la letra
      saliéndose del papel justo en el tramo en que más corre—. */
   if (papel) papel.style.transform = destino;
+  /* Y el cajón, en el mismo cuadro que la hoja. */
+  if (Math.abs(pg.scrollLeft - destinoCajon) > 1) llevarCajonA(destinoCajon);
   pg.style.removeProperty('--zk');
   pg.style.removeProperty('--zx');
   pg.style.removeProperty('--zy');
@@ -5711,21 +5742,23 @@ $('zoomPasos').addEventListener('dblclick', ev => {
   refrescarPasos();
   seguirZoomAuto();
 });
-/* EL HUECO ES EL BOTÓN DE SALIR, y el oyente NO puede colgar de #pg.
+/* QUÉ CUENTA COMO CONTENIDO DE LA HOJA. Es la misma familia que ya usa el
+   cajón para decidir qué no se puede agarrar para arrastrar, y por el mismo
+   motivo: son las cosas que tienen algo que hacer con tu dedo. */
+const CONTENIDO_DE_HOJA =
+  '.v, .vn, .cap, .gl, .ref, .chip, a, button, select, input, textarea';
 
-   Lo primero: esto estuvo al revés una temporada. El razonamiento era que en
-   la vista de lejos hay mucho escritorio y poco papel, así que salir por el
-   vacío se disparaba solo al fallarle al libro o a los botones de pasar hoja.
-   Cierto, pero se pasaba por alto lo que cuesta al otro lado: DE LEJOS SE
-   SIGUE USANDO EL LIBRO. Se pasa hoja por los filos —que en el zoom se
-   recolocan al canto de la hoja pequeña, ahí al lado— y se tocan las glosas
-   del margen, que es justamente para lo que uno se aleja: para ver la hoja
-   entera y decidir a dónde ir. Con el libro haciendo de botón de salida, cada
-   uno de esos toques era una apuesta: si le fallas al filo por dos píxeles, no
-   pierdes el toque, pierdes la vista.
-   El hueco no tiene esa otra vida. Ahí un toque de más no cuesta nada, y por
-   eso vuelve a ser la puerta. El accidente que se temía tiene además su propio
-   freno, más abajo: con algo en marcha el toque solo detiene.
+/* EL BLANCO DE LA HOJA ES EL BOTÓN DE VOLVER, y el oyente NO puede colgar de #pg.
+
+   Lo primero: hay TRES puertas, y cada una te devuelve mirando otra cosa.
+     · el blanco de la columna de glosas  -> vuelves con el cajón en glosas
+     · el blanco del libro                -> vuelves con el cajón en el texto
+     · el hueco de fuera de la hoja       -> vuelves al cajón en que estabas
+   Las dos primeras son la idea entera: de lejos ves la hoja completa y eliges
+   a qué acercarte, así que el toque que te devuelve dice además a qué. La
+   tercera es la salida sin puntería, y por eso no cambia nada de sitio.
+   Y ninguna de las tres es el contenido. Eso se decide unas líneas más abajo
+   y es la mitad del asunto: la hoja de lejos se sigue usando.
 
    Lo segundo, que costó una revisión: MIENTRAS UNA HOJA GIRA, #pg no existe
    para el dedo. El pliegue lo dibuja el lienzo, y para enseñarlo se apaga la
@@ -5756,22 +5789,41 @@ stage.addEventListener('click', ev => {
   const inner = pg.querySelector('.pg-inner');
   if (!inner) return;
   if (dirZoomAuto || folding || preparandoPliegue){ detenerZoomAuto(); return; }
-  /* DOS MANERAS DE DECIR "ESTO ES EL LIBRO", Y HACEN FALTA LAS DOS.
 
-     Por el DESTINO: una glosa, un renglón, el titulillo, cualquier cosa que
-     cuelgue de la hoja. Es la que vale mientras la hoja esté puesta, y es la
-     que no se puede sacar de las coordenadas: una glosa del margen se toca
-     donde ella esté, y no todos los toques que le llegan traen un punto
-     dentro del rectángulo de la hoja. Comprobando solo el sitio, tocar una
-     glosa cerraba la vista —justo el toque que se vino a hacer—.
-     Y por el SITIO: mientras una hoja gira, .pg-inner se apaga con
-     visibility:hidden y el destino pasa a ser la escena, así que ahí las
+  /* EL CONTENIDO ES INERTE; EL BLANCO ES LA PUERTA.
+
+     De lejos la hoja no es una miniatura que solo sirva para mirarla: se sigue
+     usando entera. Una glosa se abre, salta a su pasaje y se edita; el texto
+     se selecciona y de ahí salen Resaltar, Línea y Glosa —comprobado, el menú
+     sale igual de lejos que de cerca—. Nada de eso se puede perder por haber
+     convertido la hoja en un botón.
+     Así que lo que se toca decide: si debajo del dedo hay ALGO —una glosa, un
+     versículo, un número, un enlace—, ese algo se queda con el toque y aquí no
+     pasa nada. La vuelta se pide tocando donde no hay nada puesto.
+
+     Y una palabra suelta tampoco vale, aunque no lleve selección detrás. Un
+     toque encima de un renglón es casi siempre el dedo que se apoyó: cobrarle
+     la vista entera por eso sería justo el accidente que se quiso evitar
+     cuando la salida dejó de ser el libro. */
+  const t = ev.target;
+  if (t.closest && t.closest(CONTENIDO_DE_HOJA)) return;
+
+  /* Ya se sabe que el toque cayó en blanco. Ahora, de qué lado.
+     Aquí sí mandan las coordenadas y no el destino, y por dos motivos: el
+     blanco de la hoja está repartido entre varias cajas —el margen, el cuerpo
+     por debajo del último renglón, el borde de arriba y el de abajo— y no
+     merece la pena enumerarlas; y mientras una hoja gira, .pg-inner se apaga
+     con visibility:hidden y el destino pasa a ser la escena, con lo que las
      coordenadas son lo único que queda. */
-  if (ev.target.closest('.pg-inner')) return;
   const r = inner.getBoundingClientRect();
-  if (ev.clientX >= r.left && ev.clientX <= r.right &&
-      ev.clientY >= r.top  && ev.clientY <= r.bottom) return;
-  cerrarZoom();
+  const enLaHoja = ev.clientX >= r.left && ev.clientX <= r.right &&
+                   ev.clientY >= r.top  && ev.clientY <= r.bottom;
+  if (!enLaHoja){ cerrarZoom(); return; }   /* el hueco: como estabas */
+
+  /* La columna de glosas empieza donde empieza pgMargin. Se le pregunta a él
+     y no se calcula: el reparto cambia con el ancho y con los ajustes. */
+  const m = pgMargin.getBoundingClientRect();
+  cerrarZoom(m.width > 4 && ev.clientX >= m.left ? 'glosas' : 'libro');
 });
 
 /* ============================================================
