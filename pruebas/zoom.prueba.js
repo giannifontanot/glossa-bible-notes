@@ -207,6 +207,55 @@ const { abrir, cerrar, conGlosas, di, vale, titulo, ESCRITORIO } = require('./co
        !huecoGlosas.sigueLejos && huecoGlosas.cajon === huecoGlosas.tope,
        huecoGlosas.cajon + ' de ' + huecoGlosas.tope);
 
+  /* UN SOLO MOVIMIENTO, NO DOS ENCADENADOS.
+     La hoja crece con la curva del CSS —cubic-bezier(.32,.72,.24,1) en 460 ms—
+     y el cajón tiene que ir montado en eso. La primera versión lo movía con la
+     curva del arrastre, que arranca despacio a propósito porque está pensada
+     para algo que empujas con el dedo; juntas se leían como dos viajes: al 32%
+     del tiempo la hoja llevaba el 72% del camino y el cajón el 5%, o sea que
+     la hoja terminaba de crecer y ENTONCES la ventana se corría.
+     Así que no se mide el final —ése ya salía bien y no habría dicho nada—,
+     se mide EL CAMINO: cuánto lleva andado cada uno en el mismo instante. */
+  di('la hoja y el cajón, a la par', await p.evaluate(async () => {
+    const pg = document.getElementById('pg');
+    if (!pg.classList.contains('zoom')){
+      document.getElementById('btnZoom').click();
+      await new Promise(z => setTimeout(z, 1300));
+    }
+    const inner = pg.querySelector('.pg-inner');
+    const chica = inner.getBoundingClientRect().width, grande = inner.offsetWidth;
+    const tope = pg.scrollWidth - pg.clientWidth;
+    const m = document.getElementById('pgMargin').getBoundingClientRect();
+    if (tope < 10 || grande - chica < 10) return { sinCarrera:true, tope };
+    const visto = [];
+    const reloj = setInterval(() => {
+      const w = inner.getBoundingClientRect().width;
+      visto.push({ hoja:(w - chica)/(grande - chica), cajon:pg.scrollLeft/tope });
+    }, 25);
+    const el = document.elementFromPoint(Math.round(m.left + 10), Math.round(m.bottom - 10));
+    el.dispatchEvent(new MouseEvent('click', { bubbles:true,
+      clientX:Math.round(m.left + 10), clientY:Math.round(m.bottom - 10) }));
+    await new Promise(z => setTimeout(z, 700));
+    clearInterval(reloj);
+    /* solo el tramo en que algo se mueve; ya parados los dos valen 1 */
+    const camino = visto.filter(v => v.hoja > .02 && v.hoja < .98);
+    return { muestras: visto.length, enCamino: camino.length,
+             desfaseMaximo: camino.length
+               ? +(Math.max(...camino.map(v => Math.abs(v.hoja - v.cajon))) * 100).toFixed(1)
+               : null,
+             cajonFinal: pg.scrollLeft, tope };
+  }).then(r => {
+    /* El margen es ancho porque lo que hay que cazar es enorme: encadenados
+       daban más de sesenta puntos de desfase, y montados el ruido de un cuadro
+       de más o de menos anda por seis. Entre seis y sesenta, veinte. */
+    vale('van montados en la misma curva',
+         r.enCamino > 2 && r.desfaseMaximo !== null && r.desfaseMaximo < 20,
+         r.desfaseMaximo + '% en ' + r.enCamino + ' muestras');
+    vale('y los dos terminan el viaje', r.cajonFinal === r.tope,
+         r.cajonFinal + ' de ' + r.tope);
+    return r;
+  }));
+
   /* Y que el texto se siga pudiendo resaltar de lejos, que es la otra cosa que
      la hoja tiene que conservar. */
   await enZoom();
