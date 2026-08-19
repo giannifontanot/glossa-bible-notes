@@ -1291,7 +1291,7 @@
      eso se reporta, con razón, como "no se puede editar".
      El color exacto lo pone el guion con colorPapel(), para que siga al sepia
      igual que la hoja. */
-  /* LA CAJA DE ESCRIBIR ES UNA GLOSA. Hereda .gl —Courier, interlínea, caja de
+  /* LA CAJA DE ESCRIBIR ES UNA GLOSA. Hereda .gl —letra, interlínea, caja de
      borde— y de .g-color el recuadro y el fondo que le tocan; el relleno y las
      esquinas dispares se los pone formaOrganica con el MISMO id que tendrá la
      nota, así que el recuadro donde escribes es el que se va a quedar. Lo
@@ -1340,7 +1340,11 @@
                       padding:0; margin:0; box-shadow:none; resize:none;
                       outline:none; color:inherit; font:inherit;
                       line-height:inherit; min-height:4.2em; }
-  .gl-edit{ font-family:'Courier New',monospace; font-size:11px; line-height:1.4;
+  /* El textarea del editor lleva la familia de la nota clavada: sin esto se
+     escribiría en una letra y se leería en otra. */
+  .gl-edit{ font-family:'Segoe UI','Avenir Next',-apple-system,'Noto Sans',Roboto,
+                        'Helvetica Neue',Arial,sans-serif;
+            font-size:11px; line-height:1.4;
             border-radius:3px; padding:3px 6px; resize:none; outline:none; display:block;
             background:#fffdf8; }
 
@@ -1395,7 +1399,12 @@
            justify-content:flex-start; gap:11px 13px; }
   #indice .ix-item{ flex:0 0 auto; width:var(--ancho-glosa, 132px);
                     text-align:left; cursor:pointer;
-                    font-size:var(--fs, 15px); line-height:1.28;
+                    /* LA MISMA MÉTRICA QUE .gl, y no es repetirse por gusto:
+                       esta regla es (1,1,0) contra (0,1,0), así que GANA a la
+                       de la hoja. El espejo existe para que la lista parta los
+                       renglones donde los parte el margen; si esto se queda
+                       atrás, el espejo deja de serlo. */
+                    font-size:calc(var(--fs, 15px) * .93); line-height:1.35;
                     transition:box-shadow .34s cubic-bezier(.65,0,.35,1); }
   #indice .ix-item:hover{ box-shadow:0 0 0 2px rgba(184,137,43,.6); }
   #indice::-webkit-scrollbar{ width:0; height:0; display:none; }
@@ -1871,7 +1880,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '19-AGO-26 12:53';
+window.GLOSS_BUILD = '19-AGO-26 14:43';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2050,24 +2059,86 @@ const PAGE_CSS = `
 /* LA INTERLÍNEA DE LA GLOSA NO ES LA DEL VERSÍCULO, y no tiene por qué serlo.
    El cuerpo va en 1.62 porque es texto para leer seguido, renglón tras renglón
    durante minutos, y ahí el aire descansa la vista. La nota es otra cosa: son
-   dos o tres líneas que se leen de un vistazo, en Courier —que ya trae sus
-   letras separadas de fábrica— y dentro de un recuadro que las delimita solo.
+   dos o tres líneas que se leen de un vistazo, dentro de un recuadro que las
+   delimita solo.
    A 1.42 el aire de más no ayudaba a leerlas; ocupaba margen, que en teléfono
-   es lo único que hay. Baja a 1.28, que sigue siendo más de lo que pide una
+   es lo único que hay. Bajó a 1.28, que era más de lo que pedía una
    monoespaciada: a 15px son 2.1px menos por renglón.
    El RELLENO escrito aquí es solo el de reserva y casi nunca se ve. El de
    verdad lo pone formaOrganica en el atributo style de cada nota —de ahí sale
    que el recuadro no sea un rectángulo— y contra un atributo style no puede
    ninguna hoja de estilos. Ahí se recortó también. */
-.gl{ font-family:'Courier New',monospace; font-size:var(--fs,15px); line-height:1.28;
+/* LA LETRA DE LA NOTA: UNA SANS HUMANISTA, NO LA MONOESPACIADA.
+
+   La monoespaciada estaba puesta para que la glosa se leyera como OTRA VOZ, no
+   como más Biblia: una nota a máquina frente al texto impreso. La intención es
+   buena y se conserva; lo que no funcionaba era la ejecución, y falla justo en
+   el aparato donde se lee.
+   'Courier New' no existe en Android. Lo que hay ahí es la monoespaciada del
+   sistema —Roboto Mono, Droid Sans Mono—, que son fuentes DE CÓDIGO: trazo
+   uniforme, x grande, formas cerradas. Eso no se lee como «escrito a máquina»,
+   se lee como salida de terminal. La caída no era una versión pobre de la
+   intención: era la intención contraria.
+
+   Y costaba margen, que es el único recurso escaso de esta columna. Medido en
+   los 216 px útiles: Courier a 15px da 23 caracteres por renglón; esta pila a
+   14 da 33. La misma nota de ejemplo pasó de 6 renglones y 116 px a 4 y 80 px,
+   un 31% menos de margen POR GLOSA, y con más aire entre renglones, no menos.
+
+   No se ve más chica aunque el número baje de 15 a 14: la altura de la x sale
+   igual —8 px medidos en las dos—, que es lo que decide el tamaño aparente.
+   La interlínea SUBE de 1.28 a 1.35, y es al revés de lo que parece: 1.28
+   estaba bien para una Courier de x pequeña y letras ya separadas; una
+   humanista de x grande tiene ascendente más descendente por encima de 1.3, y a
+   1.28 los extremos se rozan. De ahí el aspecto apretado.
+
+   El carácter de «escrito a mano» no lo tiene que dar la fuente: ya lo da
+   formaOrganica, con sus esquinas dispares, su grosor de pluma por nota, una
+   sola dirección de luz y el giro. La caja hace ese trabajo.
+
+   El tamaño va como FACTOR de --fs y nunca clavado: el guion escribe --fs desde
+   el ajuste de letra del libro, y estar clavado en un valor fijo fue justo el
+   defecto que se arregló en su día. Y la pila es de sistema a propósito: una
+   fuente web no cargaría dentro del SVG del pliegue y la caja de la foto
+   saldría de otro alto que la de la hoja viva. */
+.gl{ font-family:'Segoe UI','Avenir Next',-apple-system,'Noto Sans',Roboto,
+                 'Helvetica Neue',Arial,sans-serif;
+     font-size:calc(var(--fs,15px) * .93); line-height:1.35;
      border-radius:3px; padding:2px 6px; white-space:pre-wrap; box-sizing:border-box; }
 /* El hueco de giro: la caja se estrecha 4px por lado para que sus esquinas
    tengan a dónde asomarse. Sin esto, .pg-margin las recorta. */
 .gl-margin{ position:absolute; left:4px; width:calc(100% - 8px); }
 .gl-below { margin:4px 5px 5px 14px; }
 .gl-foot  { margin:0 5px 3px 0; break-inside:avoid; }
-.gl-ref{ font-weight:700; padding-right:5px; }
-.gl-tag{ opacity:.62; font-size:.9em; padding-left:5px; }
+/* EL ANCLA Y LA ETIQUETA SALEN DE LA FAMILIA DE LA NOTA, y eso es el cambio.
+
+   Las tres partes de una glosa —ancla, nota, etiqueta— venían distinguidas solo
+   por PESO y OPACIDAD, que son los dos recursos más débiles que hay: sobre
+   tinte claro la negrita apenas oscurece, y la opacidad no dice «otra clase de
+   cosa», dice «lo mismo pero apagado». De ahí que la etiqueta se leyera como el
+   final de la frase: «Esta es otra glosa. #Interesante».
+   La nota es lo que escribió una mano. El ancla y la etiqueta son APARATO: lo
+   que el programa sabe de esa nota. Se separan por TAMAÑO, PESO y SITIO —.85em
+   en negrita el ancla, .78em a media asta y en su renglón la etiqueta—, que es
+   una escalera que se lee de un vistazo.
+   La familia no se repite aquí: la pone .gl y estos la heredan. Escribirla otra
+   vez sería una copia que puede quedarse atrás el día que .gl cambie. */
+.gl-ref{ font-size:.85em; font-weight:700; padding-right:5px; }
+/* LA ETIQUETA, EN SU RENGLÓN Y A LA DERECHA.
+   Renglón propio porque nada que comparta renglón con la última palabra de la
+   frase deja de leerse como la frase; el tamaño y el color no arreglan
+   gramática, el salto de línea sí. Y a la derecha porque la prosa va en bandera
+   izquierda: lo que queda a ras del filo derecho se lee como sello, no como
+   continuación de la oración. De paso, alineada a la derecha ya no puede
+   desbordarse por la derecha.
+   Sin pastilla: las pastillas de este programa son los chips del filtro, o sea
+   «esto se toca». Un rótulo que se consulta no debe vestirse de control. */
+.gl-tag{ display:block; margin-top:3px; text-align:right; padding-right:2px;
+         font-size:.78em; line-height:1.25; font-weight:500; letter-spacing:.02em; }
+.gl-tag .gl-t{ padding-left:7px; }
+/* El contador de citas del índice era también .gl-tag y no es una etiqueta: con
+   la etiqueta convertida en bloque a la derecha se habría ido de renglón. */
+.gl-cuenta{ font-size:.78em; padding-left:5px; opacity:.55; }
 /* LA REFERENCIA QUE SE ESTÁ BUSCANDO. Un salto entre libros no es gratis:
    hay que rearmar el plano del libro destino y volver a paginarlo entero, y
    con el Nuevo Testamento cargado eso se siente. Antes no pasaba nada en la
@@ -2095,6 +2166,16 @@ const PAGE_CSS = `
 .g-green { border:1px solid #3a8f4f; background:rgba(94,196,110,.08); color:#235c31; }
 .g-blue  { border:1px solid #1d6f9c; background:rgba(86,182,238,.08); color:#0f4b6b; }
 .g-orange{ border:1px solid #9c4708; background:rgba(242,105,20,.07); color:#6e3406; }
+/* LA ETIQUETA SE ACLARA CON UN COLOR, NUNCA CON opacity, y esto arregla además
+   un defecto que ya estaba puesto. medirPalabras se lleva al lienzo el color
+   calculado pero NO la opacidad, así que .gl-tag{opacity:.62} se veía al 62% en
+   la hoja viva y al 100% en la foto del pliegue: la etiqueta cambiaba de tono
+   al voltear la hoja. Un rgba en la propia tinta sí viaja, porque llega dentro
+   del color. */
+.g-yellow .gl-tag{ color:rgba(109, 84,16,.72); }
+.g-green  .gl-tag{ color:rgba( 35, 92,49,.72); }
+.g-blue   .gl-tag{ color:rgba( 15, 75,107,.72); }
+.g-orange .gl-tag{ color:rgba(110, 52, 6,.72); }
 
 /* En la foto el texto va transparente: los glifos los dibuja el lienzo en
    las coordenadas medidas de la hoja real. Va AL FINAL y con !important a
@@ -2850,8 +2931,69 @@ function asentarGlosas(raiz){
    que escaparlas siempre no le cuesta nada a los demás usos. */
 const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;')
                   .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+/* PARTIR UNA ETIQUETA LARGA, Y POR QUÉ CON <wbr> Y NO CON CSS.
+
+   «#Interesante» es un token sin un solo punto de corte, y en la columna del
+   margen —240px en teléfono, pero 104 en la ventana angosta de escritorio— se
+   sale de la caja; .pg-margin la recorta con su overflow:hidden y aparece
+   «#Interesant». Se veía en el teléfono del autor.
+
+   La corrección de manual sería overflow-wrap:anywhere, y AQUÍ ESTÁ PROHIBIDA:
+   medirPalabras toma solo rects[0] de cada palabra, así que una palabra partida
+   pierde su segunda mitad al dibujarse en la foto del pliegue. Es la misma
+   restricción por la que guionesOn está clavado en false, y peor: con guiones
+   el texto se movía, aquí desaparecería media etiqueta al voltear la hoja.
+
+   <wbr> sí vale porque es un ELEMENTO: parte el nodo de texto, así que cada
+   trozo pasa a ser una palabra con su propio rectángulo y el dibujado por
+   palabra lo coloca bien. Un espacio de ancho cero (\u200B) no sirve: no parte
+   el nodo y el \s de JavaScript no lo reconoce, o sea que reproduce el fallo.
+   Se corta el texto CRUDO y se escapa cada trozo, no al revés: partir una
+   cadena ya escapada puede cortar un &amp; por la mitad.
+
+   Y OJO CON EL VIAJE AL SVG: la foto del pliegue va como data:image/svg+xml, o
+   sea que la parsea un lector de XML, donde un elemento sin cerrar no es un
+   vacío sino un error fatal —comprobado: con <wbr> el SVG entero dispara
+   onerror y se queda sin foto, así que cualquier hoja con etiqueta larga
+   perdía la animación de pasar página—. Pero cerrarlo AQUÍ no sirve de nada:
+   el SVG no recibe esta cadena, recibe marginEl.innerHTML, y al serializar el
+   DOM el navegador vuelve a escribir <wbr> sin cerrar SIEMPRE. Por eso el
+   cierre se pone en la frontera, en aXML, justo antes de entrar al SVG.
+   Lo levantó la revisión de Codex; el viaje por innerHTML salió al comprobar
+   que su arreglo no bastaba.
+
+   EL CORTE VA POR GRAFEMAS, no por unidades de UTF-16. length y slice cuentan
+   unidades de 16 bits, así que una etiqueta con emoji se puede partir por la
+   mitad de un par suplente; con un <wbr/> metido en medio los dos trozos ya no
+   se recomponen y salen dos rombos de reemplazo. Las etiquetas las escribe el
+   lector y pueden llevar lo que sea. Intl.Segmenter agrupa además los emoji
+   compuestos y las tildes sueltas; Array.from vale de red porque al menos
+   respeta los pares suplentes. */
+const CORTE_ETIQUETA = 11;
+function grafemas(t){
+  try {
+    if (typeof Intl !== 'undefined' && Intl.Segmenter)
+      return [...new Intl.Segmenter('es', { granularity:'grapheme' }).segment(t)].map(g => g.segment);
+  } catch(e){ /* a la red de abajo */ }
+  return Array.from(t);
+}
+function etiquetaHTML(t){
+  const g = grafemas(t);
+  if (g.length <= CORTE_ETIQUETA) return esc(t);
+  const trozos = [];
+  for (let i = 0; i < g.length; i += CORTE_ETIQUETA)
+    trozos.push(esc(g.slice(i, i + CORTE_ETIQUETA).join('')));
+  return trozos.join('<wbr>');
+}
+/* Una etiqueta por span, no todas en una cadena unida con ' #'. Unidas se leen
+   como una frase; separadas, como una lista. */
+function etiquetasHTML(m){
+  const e = m.etiquetas || [];
+  return e.length ? '<span class="gl-tag">' +
+    e.map(t => '<span class="gl-t">#' + etiquetaHTML(t) + '</span>').join('') + '</span>' : '';
+}
 function glossHTML(m, cls, style){
-  const tags = (m.etiquetas||[]).length ? '<span class="gl-tag">#' + esc(m.etiquetas.join(' #')) + '</span>' : '';
+  const tags = etiquetasHTML(m);
   const grado = (RES.get(m.id)||{}).grado;
   const senal = (grado && grado !== 'exacta' && grado !== 'cita') ? '≈' : '';
   const forma = formaOrganica(m);
@@ -3845,7 +3987,7 @@ function abrirGlosa(m){
     }
     /* LA CAJA ES UNA GLOSA, no un formulario encima de una glosa. Lleva el
        recuadro de su color, las esquinas dispares que le tocan por su id y la
-       misma Courier del mismo cuerpo, así que lo que escribes ya se ve como lo
+       misma letra del mismo cuerpo, así que lo que escribes ya se ve como lo
        que va a quedar. Antes era una caja de sistema con un botón "listo"
        pegado: escribías en una cosa y aparecía otra.
        La forma sale de formaOrganica con el MISMO id, así que el recuadro que
@@ -3855,7 +3997,15 @@ function abrirGlosa(m){
     const forma = formaOrganica(m);
     caja.className = 'gl gl-movil g-' + m.color;
     caja.style.cssText = forma.css;
-    caja.style.fontSize = fontSize + 'px';
+    /* SE LE PASA --fs, NO UN font-size YA HECHO. La caja cuelga del cuerpo del
+       documento, fuera de la hoja, así que no hereda el --fs de #pg y hay que
+       dárselo; pero dárselo como font-size en línea pisaba el factor con el que
+       .gl calcula su letra, y entonces se escribía a 15 y se leía a 13,95 al
+       guardar: los renglones partían en otro sitio y la caja cambiaba de alto
+       justo al cerrar el editor, que es lo contrario de lo que esta caja
+       promete. Con --fs, .gl hace su cuenta igual aquí que en el margen.
+       Lo levantó la revisión de Codex. */
+    caja.style.setProperty('--fs', fontSize + 'px');
     caja.style.setProperty('--papel', colorPapel());
     /* Se le quitan al textarea el borde y el fondo que abrirGlosa le pone para
        los otros tres sitios. Allí el textarea ES la glosa y necesita recuadro
@@ -3866,10 +4016,11 @@ function abrirGlosa(m){
     ta.style.border = '0';
     ta.style.background = 'transparent';
     ta.style.width = '100%';
-    /* La nota se escribe del tamaño con el que se va a leer. Se pone aquí y no
-       en el CSS porque la caja cuelga del cuerpo del documento, fuera de la
-       hoja, así que no hereda su --fs. */
-    ta.style.fontSize = fontSize + 'px';
+    /* El textarea no lleva tamaño propio: .gl-movil textarea hereda con
+       font:inherit, así que toma el de la caja —que ya sale del --fs de arriba
+       con el mismo factor que en el margen—. Ponérselo a mano aquí volvía a
+       pisar el factor. */
+    ta.style.removeProperty('font-size');
     caja.appendChild(ta);
     document.body.appendChild(caja);
     ta.dataset.caja = '1';
@@ -4001,7 +4152,7 @@ function abrirGlosa(m){
       const dondeEstaba = caja.style.top;
       caja.className = 'gl gl-movil g-' + m.color;
       caja.style.cssText = forma.css;
-      caja.style.fontSize = fontSize + 'px';
+      caja.style.setProperty('--fs', fontSize + 'px');   /* igual que al nacer */
       caja.style.setProperty('--papel', colorPapel());
       caja.style.width = anchoGl + 'px';
       caja.style.right = 'auto';
@@ -4566,7 +4717,25 @@ function pintarPalabras(g, palabras){
   if ('fontVariantCaps' in g) g.fontVariantCaps = 'normal';
 }
 
+/* DE HTML A XML, que es lo que este SVG es de verdad.
+
+   Los tres trozos llegan de innerHTML, o sea serializados como HTML: ahí los
+   elementos vacíos van SIN cerrar, que es lo correcto en HTML y un error fatal
+   en XML. Y este marcado se mete en un data:image/svg+xml, que lo parsea un
+   lector de XML: un solo <wbr> sin cerrar tira el documento entero, la imagen
+   dispara onerror, la foto se queda en null y pasar hoja pierde la animación.
+   Medido con una etiqueta larga: 0 cuadros de lienzo y 0 tinta, contra 15
+   cuadros y 75.831 píxeles sin ella.
+
+   No basta con escribirlos cerrados donde se generan, porque el viaje por el
+   DOM los vuelve a abrir. La conversión tiene que ocurrir aquí, en la frontera,
+   que es el único punto por el que pasa todo lo que va a ser XML.
+   La lista es la de los vacíos que pueden aparecer en una hoja: wbr lo pone el
+   corte de etiquetas, y los otros tres por si alguna nota o versión los trae. */
+const VACIOS_XML = /<(wbr|br|hr|img)((?:\s[^<>]*?)?)\s*\/?>/gi;
+const aXML = h => String(h || '').replace(VACIOS_XML, (_, t, at) => '<' + t + at + '/>');
 function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza){
+  bodyHTML = aXML(bodyHTML); marginHTML = aXML(marginHTML); footHTML = aXML(footHTML);
   const fs = fontSize+'px', m = mw||'0px', g = gap||'0px';
   /* En teléfono las columnas van escritas a la fuerza también aquí dentro: el
      SVG lleva su propia copia de PAGE_CSS y NO ve las reglas del modo angosto,
@@ -7730,8 +7899,12 @@ function pintarIndice(){
       m.libro + ':' + m.cap + ':' + m.vers + ':' + letra + '"' +
       ' data-frac="' + forma.frac + '" style="' + forma.css + '">' +
       '<span class="gl-ref">' + esc(ref) + '·</span>' + esc(m.nota) +
-      ((m.etiquetas||[]).length ? '<span class="gl-tag">#' + esc(m.etiquetas.join(' #')) + '</span>' : '') +
-      (nb ? '<span class="gl-tag">‹' + nb + '</span>' : '') + '</button>';
+      /* EL MISMO MARCADO QUE EN LA HOJA. El espejo existe para que la lista
+         parta los renglones donde los parte el margen; construir la etiqueta
+         de otra manera aquí lo descuadra, y un espejo que casi cuadra es un
+         espejo que no cuadra. */
+      etiquetasHTML(m) +
+      (nb ? '<span class="gl-cuenta">‹' + nb + '</span>' : '') + '</button>';
   }).join('');
   asentarGlosas(cont);        /* y el mismo giro, que depende del alto y del ancho */
 }
