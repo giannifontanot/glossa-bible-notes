@@ -1880,7 +1880,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '19-AGO-26 14:43';
+window.GLOSS_BUILD = '19-AGO-26 17:07';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2361,7 +2361,15 @@ let RES = new Map(), REFS = new Map(), TINT_V = new Map();
    pediría .f-red, que ya no existe, y se pintaría sin resaltar ninguno. */
 const RENOMBRES = {red:'orange'};
 const alDia = m => { if (m && RENOMBRES[m.color]) m.color = RENOMBRES[m.color]; return m; };
-try { const r = localStorage.getItem(KEY); if (r) marcas = JSON.parse(r).map(alDia); } catch(e){}
+/* NUNCA existió, que no es lo mismo que estar vacía: si borraste todas tus
+   glosas a propósito, la clave queda en '[]' y hay que respetarlo. Solo se
+   siembran ejemplos cuando esto es una instalación recién estrenada. */
+let primeraVez = false;
+try {
+  const r = localStorage.getItem(KEY);
+  if (r) marcas = JSON.parse(r).map(alDia);
+  else primeraVez = true;
+} catch(e){}
 /* Si el guardado falla —cuota llena, almacenamiento bloqueado— hay que
    DECIRLO. Tragarse el error deja al lector creyendo que sus glosas
    están a salvo cuando no lo están. */
@@ -8143,6 +8151,63 @@ ajustes.appendChild($('cred'));
     '">' + esc(v.abrev || k) + '</button>').join('');
   cont.querySelectorAll('[data-ver]').forEach(b => b.onclick = () => cambiarVersion(b.dataset.ver));
 })();
+
+/* TRES GLOSAS DE ESTRENO, y solo al estrenar.
+
+   Un lector recién abierto no enseña para qué sirve: hoja de Biblia y nada
+   más. Con tres notas puestas se ve de un vistazo qué es una glosa, dónde
+   vive, que llevan color y que se pueden etiquetar.
+
+   SE SIEMBRAN UNA SOLA VEZ, y la condición es «la clave nunca existió», no
+   «no hay marcas». Si algún día borras todas las tuyas, la clave queda en '[]'
+   y estas NO vuelven: reaparecer sería deshacer lo que acabas de hacer.
+   Y se guardan enseguida, así que desde el primer momento son tuyas —se
+   editan, se recolorean y se borran como cualquier otra—.
+
+   El anclaje se CALCULA del texto de verdad, no se escribe a mano. Una marca
+   lleva ini/fin, y un par de números escritos a ojo se descuadran en cuanto
+   cambia una coma: aquí se busca la frase en el versículo y salen solos. Si
+   una frase no aparece —otra versión, otro reparto—, esa glosa simplemente no
+   se siembra en vez de aparecer señalando el sitio equivocado.
+   Van después de cargarAjustes porque necesitan versoTexto, que se define
+   bastante más arriba pero como const: en el sitio donde se leen las marcas
+   todavía no existe. */
+const GLOSAS_DE_ESTRENO = [
+  { cap:1, vers:1, frase:'Hijo de David', color:'yellow',
+    nota:'El título real, de entrada. El último libro lo cierra con el mismo, ' +
+         'dicho por él: Ap 22:16' },
+  { cap:1, vers:3, frase:'su madre fue Tamar', color:'blue',
+    nota:'La genealogía nombra mujeres, y no las que uno esperaría.' },
+  { cap:1, vers:6, frase:'la esposa de Urías', color:'green',
+    nota:'No la nombra: la llama por el marido. Betsabé entra en el linaje sin ' +
+         'su nombre propio.' },
+];
+function sembrarGlosasDeEstreno(){
+  const hoy = new Date().toISOString().slice(0,10);
+  const nuevas = [];
+  for (const e of GLOSAS_DE_ESTRENO){
+    let texto = '';
+    try { texto = versoTexto(version, e.cap, e.vers, LIBRO) || ''; } catch(err){ continue; }
+    const ini = texto.indexOf(e.frase);
+    if (ini < 0) continue;                 /* mejor ninguna que una mal puesta */
+    const fin = ini + e.frase.length;
+    nuevas.push({
+      id: 'estreno-' + e.cap + '-' + e.vers,
+      libro: LIBRO, cap: e.cap, vers: e.vers,
+      cita: e.frase,
+      antes: texto.slice(Math.max(0, ini-24), ini),
+      despues: texto.slice(fin, fin+24),
+      ini, fin, versionOrigen: version,
+      estilo: 'fill', color: e.color,
+      nota: e.nota, etiquetas: ['Interesante'],
+      creada: hoy
+    });
+  }
+  if (!nuevas.length) return;
+  marcas = nuevas;
+  save();
+}
+if (primeraVez) sembrarGlosasDeEstreno();
 
 const guardado = cargarAjustes();
 cargarHistorial();
