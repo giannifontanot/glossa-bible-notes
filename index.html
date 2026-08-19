@@ -631,6 +631,13 @@
                                 transform .26s cubic-bezier(.3,.8,.4,1); }
   #zoomPasos button:hover{ opacity:1; background:rgba(0,0,0,.34); transform:scale(1.08); }
   #zoomPasos button:active{ transform:scale(.94); }
+  /* EL MARRÓN ES EL DE SIEMPRE: el de la pestaña abierta y el del libro en el
+     que estás dentro del panel de Libros. Aquí significa lo mismo que allí
+     —esto es lo que está pasando ahora mismo— y por eso no estrena color.
+     Va después de :hover a propósito: mientras el automático anda, el estado
+     manda sobre el dedo que pase por encima. Y antes de :disabled, que sigue
+     ganando: si se acaba el libro, el botón se apaga aunque venga encendido. */
+  #zoomPasos button.auto{ background:#b8892b; color:#fff8e4; opacity:1; }
   #zoomPasos button:disabled{ cursor:default; opacity:.16; transform:none; }
 
   @media (max-width: 560px){
@@ -5490,7 +5497,10 @@ let relojSuave = null;
 /* El paso automático: hacia dónde va y el reloj que lo mantiene vivo. */
 let dirZoomAuto = null, relojZoomAuto = null;
 function detenerZoomAuto(){
+  const iba = dirZoomAuto;
   clearTimeout(relojZoomAuto); relojZoomAuto = null; dirZoomAuto = null;
+  /* Se apaga la luz aquí y no en cada sitio que para, que son cinco. */
+  if (iba) refrescarPasos();
   /* Y la tanda de reintentos que pudiera estar esperando su turno: es el único
      reloj del paso de hoja que no cuelga de folding, así que parar sin él
      dejaba una vuelta agendada después de haber parado. */
@@ -5625,6 +5635,14 @@ function refrescarPasos(){
      terminó. Solo Génesis por la izquierda y Apocalipsis por la derecha. */
   b[0].disabled = !hayHoja('left');
   b[1].disabled = !hayHoja('right');
+  /* Y EL ENCENDIDO DICE QUE EL PASO AUTOMÁTICO VA SOLO.
+     Sin esto las dos maneras de pasar hoja se ven igual —hojas que pasan— y no
+     hay forma de saber si cada una es tuya o si aquello sigue andando por su
+     cuenta. Se pinta el de la dirección que lleva, así que además dice hacia
+     dónde. Se apaga solo: esto se rehace en cada hoja, y detenerZoomAuto llama
+     aquí al parar. */
+  b[0].classList.toggle('auto', dirZoomAuto === 'left');
+  b[1].classList.toggle('auto', dirZoomAuto === 'right');
 }
 $('btnZoom').addEventListener('click', ev => {
   ev.preventDefault(); ev.stopPropagation();
@@ -5675,7 +5693,7 @@ function seguirZoomAuto(){
     relojZoomAuto = setTimeout(seguirZoomAuto, ESPERA_ZOOM_AUTO);
     return;
   }
-  if (!darPasoZoom(s)){ detenerZoomAuto(); refrescarPasos(); return; }
+  if (!darPasoZoom(s)){ detenerZoomAuto(); return; }
   relojZoomAuto = setTimeout(seguirZoomAuto, ESPERA_ZOOM_AUTO);
 }
 $('zoomPasos').addEventListener('click', ev => {
@@ -5690,6 +5708,7 @@ $('zoomPasos').addEventListener('dblclick', ev => {
   ev.preventDefault(); ev.stopPropagation();
   detenerZoomAuto();
   dirZoomAuto = ladoDePaso(b);
+  refrescarPasos();
   seguirZoomAuto();
 });
 /* EL HUECO ES EL BOTÓN DE SALIR, y el oyente NO puede colgar de #pg.
