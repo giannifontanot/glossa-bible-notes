@@ -631,6 +631,13 @@
                                 transform .26s cubic-bezier(.3,.8,.4,1); }
   #zoomPasos button:hover{ opacity:1; background:rgba(0,0,0,.34); transform:scale(1.08); }
   #zoomPasos button:active{ transform:scale(.94); }
+  /* EL MARRÓN ES EL DE SIEMPRE: el de la pestaña abierta y el del libro en el
+     que estás dentro del panel de Libros. Aquí significa lo mismo que allí
+     —esto es lo que está pasando ahora mismo— y por eso no estrena color.
+     Va después de :hover a propósito: mientras el automático anda, el estado
+     manda sobre el dedo que pase por encima. Y antes de :disabled, que sigue
+     ganando: si se acaba el libro, el botón se apaga aunque venga encendido. */
+  #zoomPasos button.auto{ background:#b8892b; color:#fff8e4; opacity:1; }
   #zoomPasos button:disabled{ cursor:default; opacity:.16; transform:none; }
 
   @media (max-width: 560px){
@@ -1030,6 +1037,19 @@
                 opacity:.8; max-width:60ch; }
   .nota-respaldo{ margin:6px 2px 0; font:400 9.5px/1.5 var(--ui); color:#5c4a24;
                   opacity:.85; max-width:52ch; }
+  /* EL SELLO DE VERSIÓN VA A GRITAR, y es la única cosa de este panel que lo
+     hace. Todo lo demás de aquí se lee una vez y se olvida; esto se viene a
+     buscar, y se viene a buscar con prisa y normalmente con el aparato en la
+     mano y algo que no funciona. Estaba en 9,5 px al 60% de opacidad, o sea
+     puesto para no molestar, que para este dato concreto es lo contrario de
+     lo que hace falta.
+     Recuadro y fondo tenues del mismo marrón del programa: se encuentra de un
+     vistazo sin tener que leer el panel entero. */
+  .sello-version{ margin:13px 2px 3px; padding:9px 11px 8px;
+                  border:1px solid rgba(140,116,68,.42); border-radius:7px;
+                  background:rgba(184,137,43,.12);
+                  font:700 14px/1.3 var(--ui); color:#4a3a18;
+                  letter-spacing:.05em; }
   .pestanas{ flex:0 0 auto; display:flex; gap:3px; margin:0 0 5px;
              border-bottom:1px solid rgba(140,116,68,.34); padding-bottom:4px; }
   .pestanas button{ flex:1 1 0; border:0; cursor:pointer; padding:3px 6px;
@@ -1444,6 +1464,9 @@
        hoja crece y se encoge con el ajuste de Formato y ésta se quedaba
        quieta. Ahora la manda --fs, como a la de la hoja. */
     .nota-respaldo, .rollo .cred{ font-size:12px; }
+    /* En el teléfono sube igual que el resto: es donde de verdad se consulta,
+       porque es el aparato del que uno duda si tiene la versión nueva. */
+    .sello-version{ font-size:17px; }
     .banda select, .banda input, .ajuste select{ font-size:13.5px; padding:5px 7px; }
     /* Estos cuatro se habían quedado fuera de la lista y por eso se veían
        hundidos entre los demás: el número del sepia, la banda de etiquetas,
@@ -1790,7 +1813,20 @@
    Y se lee sin consola, en el panel de Respaldo: un dato que solo se alcanza
    con las herramientas de desarrollo no sirve para lo que este sirve, que es
    que alguien con un teléfono en la mano pueda decir qué versión tiene. */
-window.GLOSS_BUILD = '2026-08-18 · la etiqueta que sí se ve';
+/* LA VERSIÓN: LA HORA A LA QUE SE TOCÓ ESTE ARCHIVO.
+
+   Sirve para una pregunta concreta: cuando algo no funciona en un teléfono, lo
+   primero que hay que saber es si ese teléfono tiene la versión nueva o una
+   guardada en caché. Se enseña en el panel de Respaldo, para que la conteste
+   quien sostiene el aparato sin enchufarlo a nada.
+
+   CÓMO SE ACTUALIZA: quien cambia este archivo mira el reloj de Dallas en ese
+   momento y escribe la hora aquí. Nada más. No se calcula: una fecha escrita
+   no puede equivocarse de huso ni de horario de verano, y quien la escribe es
+   justamente el que sabe cuándo está haciendo el cambio.
+
+   Formato: DD-MMM-YY HH:MM, hora de Dallas. */
+window.GLOSS_BUILD = '19-AGO-26 05:39';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3133,7 +3169,7 @@ function renderPageCrudo(){
   /* El aviso dice lo que hacen los dos gestos, no lo que hacían: un toque abre
      la lista de versiones y dos abren Libros. Decía "Formato y versión" desde
      antes de que ninguna de las dos cosas fuera cierta. */
-  $('pgVersion').title = 'Versiones · doble clic: Libros · compilación ' + window.GLOSS_BUILD;
+  $('pgVersion').title = 'Versiones · doble clic: Libros · versión ' + window.GLOSS_BUILD;
   /* La pestaña lleva solo el nombre de la aplicación. Le puse el libro un
      rato —'Gloss Bible · Marcos'— y estorba: el libro y el capítulo ya se
      leen en la esquina de la hoja, y en la pestaña solo hacían ruido. Si
@@ -5461,7 +5497,10 @@ let relojSuave = null;
 /* El paso automático: hacia dónde va y el reloj que lo mantiene vivo. */
 let dirZoomAuto = null, relojZoomAuto = null;
 function detenerZoomAuto(){
+  const iba = dirZoomAuto;
   clearTimeout(relojZoomAuto); relojZoomAuto = null; dirZoomAuto = null;
+  /* Se apaga la luz aquí y no en cada sitio que para, que son cinco. */
+  if (iba) refrescarPasos();
   /* Y la tanda de reintentos que pudiera estar esperando su turno: es el único
      reloj del paso de hoja que no cuelga de folding, así que parar sin él
      dejaba una vuelta agendada después de haber parado. */
@@ -5596,6 +5635,14 @@ function refrescarPasos(){
      terminó. Solo Génesis por la izquierda y Apocalipsis por la derecha. */
   b[0].disabled = !hayHoja('left');
   b[1].disabled = !hayHoja('right');
+  /* Y EL ENCENDIDO DICE QUE EL PASO AUTOMÁTICO VA SOLO.
+     Sin esto las dos maneras de pasar hoja se ven igual —hojas que pasan— y no
+     hay forma de saber si cada una es tuya o si aquello sigue andando por su
+     cuenta. Se pinta el de la dirección que lleva, así que además dice hacia
+     dónde. Se apaga solo: esto se rehace en cada hoja, y detenerZoomAuto llama
+     aquí al parar. */
+  b[0].classList.toggle('auto', dirZoomAuto === 'left');
+  b[1].classList.toggle('auto', dirZoomAuto === 'right');
 }
 $('btnZoom').addEventListener('click', ev => {
   ev.preventDefault(); ev.stopPropagation();
@@ -5646,7 +5693,7 @@ function seguirZoomAuto(){
     relojZoomAuto = setTimeout(seguirZoomAuto, ESPERA_ZOOM_AUTO);
     return;
   }
-  if (!darPasoZoom(s)){ detenerZoomAuto(); refrescarPasos(); return; }
+  if (!darPasoZoom(s)){ detenerZoomAuto(); return; }
   relojZoomAuto = setTimeout(seguirZoomAuto, ESPERA_ZOOM_AUTO);
 }
 $('zoomPasos').addEventListener('click', ev => {
@@ -5661,6 +5708,7 @@ $('zoomPasos').addEventListener('dblclick', ev => {
   ev.preventDefault(); ev.stopPropagation();
   detenerZoomAuto();
   dirZoomAuto = ladoDePaso(b);
+  refrescarPasos();
   seguirZoomAuto();
 });
 /* EL HUECO ES EL BOTÓN DE SALIR, y el oyente NO puede colgar de #pg.
@@ -7699,9 +7747,8 @@ ajustes.appendChild($('cred'));
      en caché, y esa pregunta la tiene que poder contestar quien sostiene el
      aparato, sin enchufarlo a nada. */
   const sello = document.createElement('p');
-  sello.className = 'nota-respaldo';
-  sello.style.opacity = '.6';
-  sello.textContent = 'versión del lector: ' + window.GLOSS_BUILD;
+  sello.className = 'sello-version';
+  sello.textContent = 'VERSIÓN ' + window.GLOSS_BUILD;
   caja.appendChild(sello);
 })();
 

@@ -126,6 +126,46 @@ const { abrir, cerrar, di, vale, titulo, ESCRITORIO } = require('./comun');
     return !document.getElementById('pg').classList.contains('zoom');
   }));
 
+  titulo('el botón dice si el paso automático va solo');
+  /* Las dos maneras de pasar hoja se ven igual —hojas que pasan—, así que sin
+     una señal no hay forma de saber si aquello sigue andando por su cuenta.
+     Se comprueba el color de verdad, no la clase: una clase puesta que ningún
+     estilo pintara dejaría esto en verde sin que se viera nada. */
+  const MARRON = 'rgb(184, 137, 43)';   /* #b8892b: la pestaña abierta, el libro actual */
+  di('el automático', await p.evaluate(async () => {
+    document.getElementById('btnZoom').click();
+    await new Promise(z => setTimeout(z, 1200));
+    const b = [...document.querySelectorAll('#zoomPasos [data-paso]')];
+    const color = i => getComputedStyle(b[i]).backgroundColor;
+    const enReposo = [color(0), color(1)];
+    b[1].dispatchEvent(new MouseEvent('dblclick', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 300));
+    const enMarcha = [color(0), color(1)];
+    /* un toque para, y con él se tiene que apagar */
+    b[1].dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 700));
+    /* SE DEVUELVE EL ESTADO COMO SE ENCONTRÓ. La sección siguiente entra al
+       zoom con btnZoom, que es un interruptor: dejándolo puesto, aquel clic
+       lo APAGABA y la medición salía a tamaño natural sin que nada estuviera
+       roto. Salir por el hueco, que es la puerta. */
+    const r = document.querySelector('#pg .pg-inner').getBoundingClientRect();
+    document.getElementById('pg').dispatchEvent(new MouseEvent('click',
+      { bubbles:true, clientX:Math.round(r.left + r.width/2),
+        clientY:Math.round(r.bottom + 60) }));
+    await new Promise(z => setTimeout(z, 800));
+    return { enReposo, enMarcha, trasParar: [color(0), color(1)],
+             seQuedaFuera: !document.getElementById('pg').classList.contains('zoom') };
+  }).then(r => {
+    vale('en reposo, ninguno encendido',
+         r.enReposo[0] === r.enReposo[1] && r.enReposo[1] !== MARRON, r.enReposo[1]);
+    vale('con el automático, se pinta el suyo', r.enMarcha[1] === MARRON, r.enMarcha[1]);
+    vale('y solo el suyo', r.enMarcha[0] === r.enReposo[0], r.enMarcha[0]);
+    vale('al parar se apaga', r.trasParar[1] === r.enReposo[1], r.trasParar[1]);
+    vale('y la sección deja el zoom cerrado', r.seQuedaFuera);
+    return r;
+  }));
+  await p.waitForTimeout(400);
+
   titulo('medir a media salida no contamina');
   /* cerrarZoom apaga zoomActivo en su primer renglón, pero la transición sigue
      460 ms: en esa ventana .pg-inner está a escala intermedia. Si sinZoom no
