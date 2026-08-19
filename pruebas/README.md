@@ -43,6 +43,7 @@ diagnóstico. Salen con código distinto de cero si algo falla.
 | `rotulos` | los dos rótulos, con dedo **y con ratón**, y que el del pie no se ponga blanco |
 | `etiquetas` | las cuatro maneras de etiquetar, los nombres raros, y que el control no mienta |
 | `cajon` | que el papel se corra con intención y termine el viaje solo, sin rebote |
+| `version` | el sello del panel de Respaldo: que se vea, que tenga la forma pedida, y —lo que de verdad vigila— que la hora sea la de Dallas y no la del aparato |
 
 ## Tres reglas que costaron caro
 
