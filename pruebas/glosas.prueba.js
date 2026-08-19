@@ -99,7 +99,14 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
     return { dur, curva: an.effect.getTiming().easing, P };
   });
   di('duración', vuelo && vuelo.dur + ' ms, curva ' + vuelo.curva);
-  vale('lento a propósito', vuelo && vuelo.dur >= 4000, vuelo && vuelo.dur + ' ms');
+  /* EL MARGEN ES ANCHO A PROPÓSITO, y no se estrecha aunque hoy valga 2400.
+     Lo que esta prueba tiene que cazar es que alguien devuelva el vuelo a los
+     900 ms del principio —que era una nota escapándose—, no afinar el gusto:
+     entre 1800 y 3600 la cifra exacta se decide mirando el teléfono, no aquí.
+     Una prueba clavada al valor del día falla cada vez que se ajusta algo que
+     iba bien, y eso enseña a cambiar el número sin leer el fallo. */
+  vale('lento a propósito', vuelo && vuelo.dur >= 1800 && vuelo.dur <= 3600,
+       vuelo && vuelo.dur + ' ms');
   if (vuelo){
     const fin = vuelo.P[4], largo = Math.hypot(fin.x, fin.y) || 1;
     /* Sin rodeo: el desvío respecto de la recta salida-llegada. El vuelo pasaba

@@ -7,9 +7,21 @@
 <style>
   :root{ --desk:#362c20; --desk-2:#4a3c29; --ui:'Segoe UI', system-ui, -apple-system, sans-serif; }
   *{ box-sizing:border-box; }
+  /* EL COLOR SÓLIDO VA ADEMÁS DEL DEGRADADO, y no es repetirse.
+
+     Estaba solo el degradado, o sea solo background-IMAGE: el background-color
+     de la página se quedaba en transparent. En pantalla no se nota —la imagen
+     tapa el hueco entero— pero fuera de la página sí. El navegador del
+     teléfono pinta ahora la franja de los botones del sistema con el color de
+     fondo de la página, y una imagen no le sirve para eso: necesita un color
+     liso. Sin él se queda con su blanco de fábrica, y aparece una franja
+     blanca debajo del libro que no está en ninguna parte del documento —de
+     ahí que no se pudiera encontrar mirando la página—.
+     El escritorio es de este color; ahora también lo dice donde se pregunta. */
   body{ margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center;
         gap:7px; padding:12px 14px 30px; font-family:var(--ui); color:#eee7d8;
-        background:radial-gradient(ellipse at 30% 8%, var(--desk-2), var(--desk) 70%); }
+        background-color:var(--desk);
+        background-image:radial-gradient(ellipse at 30% 8%, var(--desk-2), var(--desk) 70%); }
   h1{ font-size:.9rem; font-weight:600; margin:0; letter-spacing:.03em; }
   .row{ display:flex; gap:5px; flex-wrap:wrap; justify-content:center; align-items:center; }
   .btn{ font:inherit; font-size:.7rem; color:#eee7d8; cursor:pointer; line-height:1;
@@ -427,13 +439,29 @@
      mismos cortes, más chica.
 
      El papel se despega del fondo: #pg deja de ser papel y lo es .pg-inner,
-     así que alrededor aparece el escritorio. Ese hueco ya NO se toca para
-     volver: salir por el vacío era demasiado fácil por accidente. Se vuelve
-     tocando el libro, que es lo que uno quiere acercar otra vez. Afuera viven
-     los dos botones de pasar hoja —abajo a la derecha, fuera del papel, porque
-     encima del papel taparían justo lo que se vino a mirar—.
+     así que alrededor aparece el escritorio. POR ESE HUECO SE VUELVE, y el
+     libro no se toca para salir.
+
+     Estuvo al revés un tiempo, por una razón que resultó ser la de menos: en
+     la vista de lejos hay mucho escritorio y poco papel, así que salir por el
+     vacío parecía demasiado fácil por accidente. Lo que enseñó el uso es que
+     el libro NO está libre para servir de botón. De lejos se sigue leyendo:
+     se pasa hoja por los filos y se tocan las glosas del margen, que es
+     justamente para lo que uno se aleja —para ver la hoja entera y elegir a
+     dónde ir—. Un libro que además cierra la vista convierte cada uno de esos
+     toques en una apuesta.
+     El hueco, en cambio, no hace ninguna otra cosa. Ahí un toque de más no
+     cuesta nada, y un toque de menos tampoco: es el sitio donde equivocarse
+     es gratis. Y el accidente que se temía tiene ya su propio freno —con una
+     hoja girando o el paso automático en marcha, el toque solo detiene—.
+     Afuera viven también los dos botones de pasar hoja —abajo a la derecha,
+     fuera del papel, porque encima del papel taparían justo lo que se vino a
+     mirar—, y ésos se defienden por ser ellos el destino del toque.
      ============================================================ */
-  #pg.zoom{ background:transparent; cursor:default; }
+  /* El cursor dice cuál de los dos vuelve: la lupa va en el hueco, no en la
+     hoja. Sobre la hoja se lee, y en el escritorio de alrededor no hay nada
+     más que hacer. */
+  #pg.zoom{ background:transparent; cursor:zoom-in; }
   /* EL ORIGEN DEL TRANSFORM VIVE FUERA DE .zoom, y tiene que vivir fuera.
 
      Estaba dentro de la regla de abajo, que es lo natural mientras el cambio
@@ -451,7 +479,7 @@
   #pg .pg-inner{ transform-origin:top left; }
   #pg.zoom .pg-inner{
       transform:translate(var(--zx,0px), var(--zy,0px)) scale(var(--zk,1));
-      transform-origin:top left; background:transparent; cursor:zoom-in; }
+      transform-origin:top left; background:transparent; cursor:default; }
   /* ALEJARSE Y ACERCARSE SIN CORTE.
 
      Las tres cosas que cambian —la escala de la hoja, el papel que llenaba la
@@ -619,9 +647,18 @@
     /* Más grandes y más separadas: son los únicos controles de la vista de
        lejos y se usan seguidos, uno tras otro, mirando el papel y no el botón.
        Con 52 y 10 de hueco el pulgar rebotaba de uno a otro; con 62 y 18 cada
-       uno tiene su sitio y no hay que apuntar. */
-    #zoomPasos{ right:12px; bottom:12px; gap:20px; }
-    #zoomPasos button{ width:93px; height:93px; font-size:38px; }
+       uno tiene su sitio y no hay que apuntar.
+
+       Y AQUÍ SE PARÓ EL CRECIMIENTO: en 80, no en 93. El cincuenta por ciento
+       que se pidió daba 93, y 93 más 93 más el hueco son 206 px de los 412 que
+       mide la pantalla —la mitad del ancho ocupada por dos botones, en la
+       vista que existe justamente para ver la hoja entera—. Con 80 y 16 siguen
+       siendo casi un tercio más grandes que los de antes, que es de sobra para
+       el pulgar, y le devuelven treinta píxeles al papel.
+       La tinta baja a 34 por la regla de siempre: lo que crece es el blanco de
+       toque, no la mancha. */
+    #zoomPasos{ right:12px; bottom:12px; gap:16px; }
+    #zoomPasos button{ width:80px; height:80px; font-size:34px; }
   }
 
   /* ============================================================
@@ -3965,17 +4002,23 @@ function opacar(caja){
    verdad y no una estimación.
    El de destino se esconde mientras dura el viaje y se destapa al llegar. Sin
    eso se verían las dos a la vez y el viaje parecería una copia. */
-/* CUÁNTO DURA EL VUELO. Empezó en 900 ms y con eso la nota no viajaba: se
-   escapaba. La distancia es casi la hoja entera y el ojo venía de leer, no de
-   vigilar el margen, así que para cuando la encontraba ya había aterrizado y
-   lo único que quedaba era la sensación de que algo se movió.
-   Cinco veces más lento es mucho escrito así, y es lo correcto: lo que se está
-   enseñando no es un cambio de estado —para eso basta un parpadeo— sino a
-   DÓNDE se fue lo que acabas de escribir, y eso hay que poder seguirlo con la
-   vista sin proponérselo. Y no estorba: el vuelo lo lleva el compositor y no
-   bloquea nada, así que mientras dura se puede seguir leyendo, escribiendo o
-   pasando hoja. */
-const VUELO_MS = 4500;
+/* CUÁNTO DURA EL VUELO, y por qué ha ido a parar entre los dos extremos.
+
+   Empezó en 900 ms y con eso la nota no viajaba: se escapaba. La distancia es
+   casi la hoja entera y el ojo venía de leer, no de vigilar el margen, así que
+   para cuando la encontraba ya había aterrizado y lo único que quedaba era la
+   sensación de que algo se movió.
+   Se pasó a 4500 —cinco veces— y ahí se cruzó la otra raya. Lo que se está
+   enseñando es a DÓNDE se fue lo que acabas de escribir, y eso se ve entero
+   mucho antes de cuatro segundos y medio; el resto del tiempo la nota ya no
+   informa de nada y se queda flotando delante de lo que quieres seguir
+   leyendo. Una cosa lenta y otra que se demora no son la misma.
+   2400 es la medida que quedó: el triple de despacio que el arranque, tiempo
+   de sobra para seguirla con la vista sin proponérselo, y termina dentro del
+   rato en que todavía te importa dónde acabó.
+   Sigue sin estorbar en cualquier caso: el vuelo lo lleva el compositor y no
+   bloquea nada, así que mientras dura se puede leer, escribir o pasar hoja. */
+const VUELO_MS = 2400;
 function volarGlosa(caja, id){
   const destino = document.querySelector('.gl[data-gl="' + id + '"]');
   const a = caja.getBoundingClientRect();
@@ -3990,7 +4033,7 @@ function volarGlosa(caja, id){
      El vuelo daba un rodeo por el medio de la hoja. La idea era que el ojo
      viera el viaje entero sin apartarse de donde ya miraba, y tenía sentido
      cuando el viaje duraba novecientos milisegundos: sin la curva, la nota se
-     iba por la orilla y se perdía. Con cuatro segundos y medio el problema se
+     iba por la orilla y se perdía. En cuanto el vuelo se alargó el problema se
      acabó solo, y lo que quedó del rodeo fue una nota dando un paseo. Un
      trayecto que no es el camino a ningún sitio se lee como decoración, y a
      esta velocidad hay tiempo de sobra para leerlo.
@@ -5620,13 +5663,21 @@ $('zoomPasos').addEventListener('dblclick', ev => {
   dirZoomAuto = ladoDePaso(b);
   seguirZoomAuto();
 });
-/* EL LIBRO ES EL BOTÓN DE SALIR, y el oyente NO puede colgar de #pg.
+/* EL HUECO ES EL BOTÓN DE SALIR, y el oyente NO puede colgar de #pg.
 
-   Lo primero: antes se salía por el hueco de alrededor, y eso castigaba el
-   toque impreciso —en la vista de lejos hay mucho escritorio y poco papel, así
-   que era fácil cerrar el zoom sin querer al fallarle al libro o a los botones
-   de pasar hoja—. Ahora el vacío no hace nada y tocar el papel significa
-   "acércame otra vez".
+   Lo primero: esto estuvo al revés una temporada. El razonamiento era que en
+   la vista de lejos hay mucho escritorio y poco papel, así que salir por el
+   vacío se disparaba solo al fallarle al libro o a los botones de pasar hoja.
+   Cierto, pero se pasaba por alto lo que cuesta al otro lado: DE LEJOS SE
+   SIGUE USANDO EL LIBRO. Se pasa hoja por los filos —que en el zoom se
+   recolocan al canto de la hoja pequeña, ahí al lado— y se tocan las glosas
+   del margen, que es justamente para lo que uno se aleja: para ver la hoja
+   entera y decidir a dónde ir. Con el libro haciendo de botón de salida, cada
+   uno de esos toques era una apuesta: si le fallas al filo por dos píxeles, no
+   pierdes el toque, pierdes la vista.
+   El hueco no tiene esa otra vida. Ahí un toque de más no cuesta nada, y por
+   eso vuelve a ser la puerta. El accidente que se temía tiene además su propio
+   freno, más abajo: con algo en marcha el toque solo detiene.
 
    Lo segundo, que costó una revisión: MIENTRAS UNA HOJA GIRA, #pg no existe
    para el dedo. El pliegue lo dibuja el lienzo, y para enseñarlo se apaga la
@@ -5642,19 +5693,36 @@ $('zoomPasos').addEventListener('dblclick', ev => {
    ESE elemento por destino, así que la comprobación de abajo lo deja pasar sin
    tener que enumerarlos.
 
-   Y lo tercero: con algo en marcha, el toque solo PARA. Cerrar el zoom a media
-   vuelta dejaría el lienzo del pliegue a una escala y la hoja a otra, y de
-   todas formas quien toca para detener no está pidiendo además guardar el
-   libro. Parado, el mismo toque cierra. */
+   Y lo tercero: con algo en marcha, el toque solo PARA, lo den donde lo den.
+   Cerrar el zoom a media vuelta dejaría el lienzo del pliegue a una escala y
+   la hoja a otra, y de todas formas quien toca para detener no está pidiendo
+   además guardar el libro. Parado, el toque en el hueco cierra.
+   Por eso esa comprobación va ANTES que la del sitio: mientras pasan hojas
+   solas, el libro es lo que se está mirando y es donde cae el dedo. */
 stage.addEventListener('click', ev => {
   if (!zoomActivo) return;
+  /* Los controles se defienden solos: un toque en un filo, en una glosa o en
+     un botón tiene a ESE elemento por destino, así que sale por aquí sin
+     tener que enumerarlos. Solo siguen los toques al papel pelado y al vacío. */
   if (ev.target !== stage && !ev.target.closest('#pg')) return;
   const inner = pg.querySelector('.pg-inner');
   if (!inner) return;
-  const r = inner.getBoundingClientRect();
-  if (ev.clientX < r.left || ev.clientX > r.right ||
-      ev.clientY < r.top  || ev.clientY > r.bottom) return;
   if (dirZoomAuto || folding || preparandoPliegue){ detenerZoomAuto(); return; }
+  /* DOS MANERAS DE DECIR "ESTO ES EL LIBRO", Y HACEN FALTA LAS DOS.
+
+     Por el DESTINO: una glosa, un renglón, el titulillo, cualquier cosa que
+     cuelgue de la hoja. Es la que vale mientras la hoja esté puesta, y es la
+     que no se puede sacar de las coordenadas: una glosa del margen se toca
+     donde ella esté, y no todos los toques que le llegan traen un punto
+     dentro del rectángulo de la hoja. Comprobando solo el sitio, tocar una
+     glosa cerraba la vista —justo el toque que se vino a hacer—.
+     Y por el SITIO: mientras una hoja gira, .pg-inner se apaga con
+     visibility:hidden y el destino pasa a ser la escena, así que ahí las
+     coordenadas son lo único que queda. */
+  if (ev.target.closest('.pg-inner')) return;
+  const r = inner.getBoundingClientRect();
+  if (ev.clientX >= r.left && ev.clientX <= r.right &&
+      ev.clientY >= r.top  && ev.clientY <= r.bottom) return;
   cerrarZoom();
 });
 

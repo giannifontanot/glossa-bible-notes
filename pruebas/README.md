@@ -36,7 +36,7 @@ diagnóstico. Salen con código distinto de cero si algo falla.
 |---|---|
 | `paginacion` | que el reparto de versículos por hoja no se mueva solo, y que una nota escrita sí empuje el corte |
 | `pliegue` | pasar hoja sin tirar el programa: los dos fallos que lo mataban, más el toque que no llegaba con la hoja en el aire |
-| `zoom` | que entrar y salir sean el mismo viaje —desborde cero de la letra sobre su papel—, la salida por el libro, y que medir a media transición no contamine |
+| `zoom` | que entrar y salir sean el mismo viaje —desborde cero de la letra sobre su papel—, la salida por el hueco y que el libro siga usándose de lejos, y que medir a media transición no contamine |
 | `movimiento-reducido` | que quien pidió menos movimiento no reciba el del zoom |
 | `libros` | cruzar al libro siguiente y volver, el trazo del canto, y que el panel de Libros se entere |
 | `glosas` | la caja de escribir —es una glosa, no un formulario—, sus colores, y el vuelo |
