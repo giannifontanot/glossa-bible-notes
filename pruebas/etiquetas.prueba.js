@@ -36,6 +36,113 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
     return r;
   }));
 
+  titulo('crear no puede depender de Enter');
+  /* ENTER FUNCIONA EN EL TECLADO DE VERDAD Y FALLA DONDE SE USA ESTO.
+     En Android la tecla de una caja suelta —sin <form> alrededor— viene
+     rotulada «Listo» y lo normal es que solo cierre el teclado; y mientras el
+     corrector compone, Gboard manda el keydown con key 'Unidentified' y
+     keyCode 229, que no es 'Enter' por ningún lado. Colgado solo de ahí, crear
+     una etiqueta era imposible en el teléfono, sin decirlo, y el gesto natural
+     —escribir y tocar fuera para quitar el teclado— tiraba lo escrito.
+     Así que se prueban las cuatro puertas por separado. El keydown de la
+     sección anterior es la de escritorio; éstas son las que lo salvan.
+     Y se comprueba que el + QUEPA EN LA PANTALLA, que es lo primero que se
+     rompió al meterlo: la banda pasó a medir 331 en 412 y el botón salía
+     cortado por la derecha, o sea que el único control que avisa de que hay
+     algo que pulsar se estrenaba a medias. */
+  /* REABRIR MIRANDO LO QUE SE VE, no una clase. alPanel sale antes de hacer
+     nada si #etiquetas tiene la clase «abierto», y esa clase se queda puesta
+     después de cerrar el panel tocando el papel: el panel estaba cerrado, la
+     clase decía que no, y el clic siguiente se quedaba esperando a un campo
+     invisible hasta agotar el plazo. Aquí se pregunta por el campo. */
+  const asegurarPanel = async () => {
+    for (let i = 0; i < 4; i++){
+      /* Se le pregunta a Playwright con SU definición de visible, no con una
+         mía: un rectángulo con tamaño no basta —el panel se cierra con
+         transición y durante ese rato todavía mide—, y comprobarlo a mano daba
+         verde justo antes de que el clic se quedara esperando. */
+      try {
+        await p.waitForSelector('#nuevaEtiqueta', { state:'visible', timeout:2500 });
+        return true;
+      } catch(e){ /* cerrado: se abre y se vuelve a mirar */ }
+      await p.evaluate(async () => {
+        const panel = document.getElementById('etiquetas');
+        const puesto = () => getComputedStyle(panel).display !== 'none';
+        if (!puesto()){
+          document.getElementById('pgCabeza').click();
+          await new Promise(z => setTimeout(z, 900));
+        }
+        /* HAY DOS PESTAÑAS «GLOSAS» EN EL DOCUMENTO, no una: el titulillo abre
+           Libros y la fila de pestañas está duplicada. Coger la primera con
+           find() funcionaba al arrancar y dejaba de funcionar después de tocar
+           el papel, porque la que manda pasa a ser la otra. Se prueban todas y
+           se para en cuanto el panel aparece. */
+        for (const t of document.querySelectorAll('.pestanas button')){
+          if (!/glosas/i.test(t.textContent)) continue;
+          t.click();
+          await new Promise(z => setTimeout(z, 500));
+          if (puesto()) return;
+        }
+      });
+    }
+    return false;
+  };
+
+  const comoQuedo = nombre => p.evaluate(nombre => {
+    const i = document.getElementById('nuevaEtiqueta'), s = document.getElementById('selActiva');
+    return { activa: s.value, estaEnLaLista: [...s.options].some(o => o.value === nombre),
+             campoLimpio: i.value === '' };
+  }, nombre);
+
+  /* «TOCAR FUERA» SE TECLEA DE VERDAD, y no es remilgo.
+     Poner .value por guion NO marca el campo como editado, así que el
+     navegador no manda el change al salir: una prueba que dispare el change a
+     mano da verde sin haber comprobado que el navegador lo mandaría. Es el
+     mismo atajo que dejó pasar el fallo del panel de la marca, así que aquí se
+     teclea con el teclado y se toca fuera con el ratón. */
+  await asegurarPanel();
+  await p.click('#nuevaEtiqueta');
+  await p.keyboard.type('fe', { delay:30 });
+  await p.mouse.click(200, 830);
+  await p.waitForTimeout(800);
+  di('tocar fuera', await comoQuedo('fe').then(r => {
+    vale('crea y deja activa · tocar fuera', r.activa === 'fe' && r.estaEnLaLista, r.activa);
+    vale('y limpia el campo · tocar fuera', r.campoLimpio);
+    return r;
+  }));
+
+  for (const [nombre, como] of [['gracia', 'el botón +'],
+                                ['paz', 'el intro del móvil']]){
+    await asegurarPanel();
+    await p.click('#nuevaEtiqueta');
+    await p.keyboard.type(nombre, { delay:30 });
+    await p.evaluate(async como => {
+      const i = document.getElementById('nuevaEtiqueta');
+      if (como === 'el botón +') document.getElementById('btnCrearEtiqueta').click();
+      if (como === 'el intro del móvil') i.dispatchEvent(new InputEvent('beforeinput',
+        { bubbles:true, cancelable:true, inputType:'insertLineBreak' }));
+      await new Promise(z => setTimeout(z, 600));
+    }, como);
+    di(como, await comoQuedo(nombre).then(r => {
+      vale('crea y deja activa · ' + como, r.activa === nombre && r.estaEnLaLista, r.activa);
+      vale('y limpia el campo · ' + como, r.campoLimpio);
+      return r;
+    }));
+  }
+  di('el botón + cabe en la pantalla', await p.evaluate(() => {
+    const b = document.getElementById('btnCrearEtiqueta'), r = b.getBoundingClientRect();
+    const banda = document.getElementById('banda').getBoundingClientRect();
+    return { texto:b.textContent.trim(), mide:Math.round(r.width)+'x'+Math.round(r.height),
+             acabaEn:Math.round(r.right), ventana:innerWidth,
+             seSale:Math.max(0, Math.round(r.right - innerWidth)),
+             bandaSeSale:Math.max(0, Math.round(banda.right - innerWidth)) };
+  }).then(r => {
+    vale('no se sale por la derecha', r.seSale === 0 && r.bandaSeSale === 0,
+         'botón ' + r.acabaEn + ' de ' + r.ventana);
+    vale('y es tocable', parseInt(r.mide) >= 30 && parseInt(r.mide.split('x')[1]) >= 30, r.mide);
+    return r;
+  }));
+
   titulo('espacios seguidos y comillas');
   /* Un <option> sin value deduce su valor del texto y COLAPSA los espacios; y
      esc() no escapaba comillas, que se meten dentro de atributos. Las dos
@@ -122,6 +229,90 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
     vale('tocarla la quita', (r.quedan||[]).length === 1, r.apagada + ' → ' + JSON.stringify(r.quedan));
     return r;
   }));
+
+  titulo('la caja del panel de una marca, sin Enter tampoco');
+  /* La misma trampa, en la otra caja donde se pueden crear.
+
+     Y AQUÍ HAY UNA SEGUNDA, QUE ESTA PRUEBA NO VEÍA. Tocar fuera del menú lo
+     recoge un oyente en fase de CAPTURA que llama a ocultarMenu, y ocultarMenu
+     deja menuMarca en null. El change de la caja llega después —el blur es
+     posterior al pointerdown—, así que para cuando iba a poner la etiqueta ya
+     no había a quién ponérsela y se perdía en silencio: el mismo fallo que
+     este cambio venía a quitar, un piso más abajo.
+     La primera versión de esta prueba lo dejaba pasar porque disparaba el
+     change a mano, sin el toque de fuera que es QUIEN IMPONE EL ORDEN. Por eso
+     ahora cada camino abre su panel y el de «tocar fuera» toca de verdad. Un
+     atajo en el gesto es un atajo en lo que se prueba.
+     Lo levantó la revisión de Codex. */
+  const abrirPanelDeMarca = () => p.evaluate(async () => {
+    const menu = document.getElementById('menu');
+    const cuerpo = document.getElementById('pgBody').getBoundingClientRect();
+    for (const v of document.querySelectorAll('#pgBody .v')){
+      for (const r of v.getClientRects()){
+        for (const f of [.2,.5,.8]){
+          const x = Math.round(r.left + r.width*f), y = Math.round(r.top + r.height/2);
+          if (x < cuerpo.left || x > cuerpo.right) continue;
+          getSelection().removeAllRanges();
+          document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+            { bubbles:true, clientX:x, clientY:y }));
+          await new Promise(z => setTimeout(z, 130));
+          const bt = [...menu.querySelectorAll('button')].find(q => q.dataset.acc === 'tags');
+          if (bt && getComputedStyle(menu).display !== 'none'){
+            bt.click(); await new Promise(z => setTimeout(z, 500));
+            return !!document.getElementById('tagNueva');
+          }
+        }
+      }
+    }
+    return false;
+  });
+
+  di('el panel de la marca se abre', await abrirPanelDeMarca());
+  vale('y trae su botón +', await p.evaluate(() =>
+    !!document.querySelector('#menu [data-acc="creartag"]')));
+
+  for (const [nombre, como] of [['salmo', 'el botón +'],
+                                ['maná', 'tocar fuera de verdad'],
+                                ['sion', 'el intro del móvil']]){
+    di(como, await p.evaluate(async ([nombre, como]) => {
+      const cuantas = t => JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
+        .filter(m => (m.etiquetas||[]).includes(t)).length;
+      const menu = document.getElementById('menu');
+      const i = document.getElementById('tagNueva');
+      if (!i) return { sinCaja:true };
+      i.focus(); i.value = nombre; i.dispatchEvent(new Event('input', { bubbles:true }));
+      if (como === 'el botón +') menu.querySelector('[data-acc="creartag"]').click();
+      if (como === 'el intro del móvil') i.dispatchEvent(new InputEvent('beforeinput',
+        { bubbles:true, cancelable:true, inputType:'insertLineBreak' }));
+      if (como === 'tocar fuera de verdad'){
+        /* el pointerdown primero —lo recoge la captura— y el blur detrás, que
+           es el orden que impone el navegador y el que destapó el fallo */
+        document.body.dispatchEvent(new PointerEvent('pointerdown',
+          { bubbles:true, clientX:200, clientY:830 }));
+        i.blur();
+      }
+      await new Promise(z => setTimeout(z, 1000));
+      return { marcasConEsa: cuantas(nombre),
+               menuCerrado: getComputedStyle(menu).display === 'none' };
+    }, [nombre, como]).then(async r => {
+      /* UNA, no dos ni cero: cero era el fallo del orden, y dos sería que el
+         repintado volviera a disparar la creación con el mismo texto. */
+      vale('la pone en la marca, una sola vez · ' + como,
+           !r.sinCaja && r.marcasConEsa === 1, r.sinCaja ? 'sin caja' : r.marcasConEsa);
+      if (como === 'tocar fuera de verdad')
+        vale('y el menú se cierra igual · ' + como, r.menuCerrado === true);
+      return r;
+    }));
+    /* cada camino empieza con su panel recién abierto: el de tocar fuera lo
+       cierra, y sin esto los siguientes se quedarían sin caja */
+    await p.evaluate(async () => {
+      document.body.dispatchEvent(new PointerEvent('pointerdown',
+        { bubbles:true, clientX:20, clientY:830 }));
+      await new Promise(z => setTimeout(z, 400));
+    });
+    if (nombre !== 'sion') di('   panel reabierto', await abrirPanelDeMarca());
+  }
+  await alPanel();
 
   titulo('3 · etiquetar un día entero');
   await p.evaluate(() => document.querySelectorAll('#menu button[data-acc="listo"]').forEach(b => b.click()));
