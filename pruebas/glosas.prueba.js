@@ -8,7 +8,7 @@
    Y el vuelo enseña a dónde se guardó. Va lento a propósito —4,5 s— porque lo
    que se está contando no es un cambio de estado, para eso basta un parpadeo,
    sino DÓNDE quedó lo que acabas de escribir. */
-const { abrir, cerrar, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
 
 (async () => {
   const sesion = await abrir();
@@ -133,6 +133,134 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
     vale('la caja se recoge', r.cajaFuera && r.tintasFuera);
     vale('ninguna glosa queda escondida', r.ningunaEscondida);
     vale('y la nota quedó guardada', !!r.guardada, r.guardada);
+    return r;
+  }));
+
+  titulo('la glosa al margen: nota, ancla y etiqueta');
+  /* LAS TRES PARTES SE DISTINGUEN POR FAMILIA Y POSICIÓN, no por peso y
+     opacidad. Venían separadas solo por esos dos, que son los recursos más
+     débiles que hay: sobre tinte claro la negrita apenas oscurece y la opacidad
+     no dice «otra clase de cosa», dice «lo mismo pero apagado». De ahí que la
+     etiqueta se leyera como el final de la frase.
+
+     Y aquí van tres comprobaciones que no son de gusto sino de fallo:
+
+     · QUE LA ETIQUETA NO SE SALGA. «#Interesante» es un token sin puntos de
+       corte y en el margen se desbordaba; .pg-margin lo recortaba y aparecía
+       «#Interesant». Se probó en el teléfono del autor.
+     · QUE NO SE ARREGLE CON overflow-wrap. Está prohibido: medirPalabras toma
+       solo rects[0], así que una palabra partida pierde su segunda mitad en la
+       foto del pliegue. La salida es <wbr>, que parte el nodo de texto.
+     · QUE LA ETIQUETA NO USE opacity. La opacidad no viaja al lienzo —solo el
+       color calculado—, así que con opacity la etiqueta se veía al 62% en la
+       hoja y al 100% en la foto: cambiaba de tono al voltear la hoja. */
+  await conGlosas(p);
+  di('las tres partes', await p.evaluate(() => {
+    const g = document.querySelector('#pgMargin .gl');
+    if (!g) return { sinGlosa:true };
+    const fam = e => getComputedStyle(e).fontFamily.split(',')[0].replace(/["']/g,'');
+    const ref = g.querySelector('.gl-ref'), tag = g.querySelector('.gl-tag');
+    const cs = getComputedStyle(g);
+    return { nota:{ familia:fam(g), tam:cs.fontSize, interlinea:cs.lineHeight },
+             ancla: ref ? { familia:fam(ref), tam:getComputedStyle(ref).fontSize } : null,
+             etiqueta: tag ? { familia:fam(tag), tam:getComputedStyle(tag).fontSize,
+                               display:getComputedStyle(tag).display,
+                               alineacion:getComputedStyle(tag).textAlign,
+                               opacidad:+getComputedStyle(tag).opacity,
+                               color:getComputedStyle(tag).color } : null,
+             /* la corrección prohibida, por si alguien la reintroduce */
+             corteDePalabra: cs.overflowWrap + ' / ' + cs.wordBreak };
+  }).then(r => {
+    /* UNA ESCALERA DE TAMAÑOS, que es lo que separa las tres partes ahora que
+       comparten familia. Se comprueba el orden, no las cifras: los valores van
+       en em sobre --fs y cambian con el ajuste de letra del libro. */
+    const t = x => parseFloat(x);
+    vale('el ancla es más chica que la nota',
+         !r.sinGlosa && r.ancla && t(r.ancla.tam) < t(r.nota.tam),
+         r.sinGlosa ? 'sin glosa' : r.nota.tam + ' → ' + (r.ancla||{}).tam);
+    if (r.etiqueta){
+      vale('y la etiqueta más chica que el ancla',
+           t(r.etiqueta.tam) < t(r.ancla.tam),
+           r.ancla.tam + ' → ' + r.etiqueta.tam);
+      vale('va en su propio renglón', r.etiqueta.display === 'block', r.etiqueta.display);
+      vale('y alineada a la derecha', r.etiqueta.alineacion === 'right', r.etiqueta.alineacion);
+      /* opacity no viaja al lienzo; el alfa tiene que ir DENTRO del color */
+      vale('se aclara con color, no con opacity',
+           r.etiqueta.opacidad === 1 && /rgba\(/.test(r.etiqueta.color),
+           'opacity ' + r.etiqueta.opacidad + ' · ' + r.etiqueta.color);
+    }
+    vale('sin overflow-wrap, que rompería la foto del pliegue',
+         r.corteDePalabra === 'normal / normal', r.corteDePalabra);
+    return r;
+  }));
+
+  /* QUE NO SE RECORTE, en el margen estrecho y con la letra al máximo, que es
+     donde se rompía. Se mide contra la caja Y contra la columna. */
+  for (const fs of [15, 26]){
+    di('etiqueta larga, letra ' + fs, await p.evaluate(async fs => {
+      const clave = Object.keys(localStorage).find(k => /ajuste|cfg/i.test(k)) || 'glossa:ajustes:v1';
+      const a = JSON.parse(localStorage.getItem(clave) || '{}');
+      a.fontSize = fs; localStorage.setItem(clave, JSON.stringify(a));
+      const M = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+      if (M[0]) M[0].etiquetas = ['ConsideracionesFinales', 'oración diaria'];
+      localStorage.setItem('glossa:marcas:v1', JSON.stringify(M));
+      location.reload();
+      return true;
+    }, fs).then(async () => {
+      await p.waitForTimeout(2800);
+      return p.evaluate(() => {
+        const g = document.querySelector('#pgMargin .gl');
+        if (!g) return { sinGlosa:true };
+        const r = g.getBoundingClientRect();
+        const col = document.getElementById('pgMargin').getBoundingClientRect();
+        const t = g.querySelector('.gl-tag');
+        return { letra:getComputedStyle(g).fontSize,
+                 etiquetaSeSaleDeLaCaja: t ? Math.max(0, Math.round(t.getBoundingClientRect().right - r.right)) : null,
+                 glosaSeSaleDeLaColumna: Math.max(0, Math.round(r.right - col.right)),
+                 conWbr: !!g.querySelector('.gl-tag wbr') };
+      });
+    }).then(r => {
+      vale('la etiqueta no se sale de la caja · ' + fs,
+           !r.sinGlosa && r.etiquetaSeSaleDeLaCaja === 0, r.etiquetaSeSaleDeLaCaja);
+      vale('ni la glosa de la columna · ' + fs,
+           !r.sinGlosa && r.glosaSeSaleDeLaColumna === 0, r.glosaSeSaleDeLaColumna);
+      vale('y la etiqueta larga lleva su <wbr> · ' + fs, r.conWbr === true);
+      return r;
+    }));
+  }
+
+  /* LA MEDIDA QUE GUARDA LA FOTO DEL PLIEGUE. La caja de la glosa no se dibuja
+     midiendo palabras como el texto: la COMPONE el motor a partir del marcado,
+     así que si la letra se resolviera distinto dentro del SVG que en la hoja
+     viva, el recuadro saldría de otro alto que sus propias letras. Se compone
+     aquí el mismo marcado con la misma hoja de estilos y se comparan los dos
+     altos. Cero es lo único que vale. */
+  di('la caja compone al mismo alto', await p.evaluate(async () => {
+    const vivo = document.querySelector('#pgMargin .gl');
+    if (!vivo) return { sinGlosa:true };
+    const alto = vivo.getBoundingClientRect().height;
+    const css = [...document.querySelectorAll('style')].map(x => x.textContent).join('\n');
+    const inner = document.querySelector('#pg .pg-inner');
+    const f = document.createElement('iframe');
+    f.style.cssText = 'position:absolute;left:-9999px;width:' + inner.offsetWidth +
+                      'px;height:' + inner.offsetHeight + 'px';
+    document.body.appendChild(f);
+    f.contentDocument.open();
+    f.contentDocument.write('<style>' + css + '</style><div id="pg" class="pg" style="--fs:' +
+      getComputedStyle(document.getElementById('pg')).getPropertyValue('--fs') + '">' +
+      inner.outerHTML + '</div>');
+    f.contentDocument.close();
+    await new Promise(z => setTimeout(z, 700));
+    const g2 = f.contentDocument.querySelector('.gl');
+    const r = g2 ? g2.getBoundingClientRect().height : null;
+    const fam = g2 ? getComputedStyle(g2).fontFamily.split(',')[0].replace(/["']/g,'') : null;
+    f.remove();
+    return { enLaHoja:Math.round(alto), alComponer:r === null ? null : Math.round(r),
+             familiaAlComponer:fam };
+  }).then(r => {
+    vale('el mismo alto a los dos lados',
+         !r.sinGlosa && r.alComponer === r.enLaHoja,
+         r.enLaHoja + ' contra ' + r.alComponer);
     return r;
   }));
 
