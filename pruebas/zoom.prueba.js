@@ -318,6 +318,90 @@ const { abrir, cerrar, conGlosas, di, vale, titulo, ESCRITORIO } = require('./co
     pg.scrollLeft = 0;
   });
 
+  titulo('de lejos los rótulos se leen');
+  /* La vista de lejos existe para orientarse, así que el capítulo y la versión
+     son justo lo que hay que poder leer ahí. De lejos la hoja se encoge al
+     58% y ellos con ella, y encima estaban puestos para no molestar: peso
+     normal y una tinta de contraste 2:1 sobre el papel.
+
+     LO QUE ESTA PRUEBA VIGILA DE VERDAD ES QUE LA CAJA NO CREZCA. La letra se
+     agranda recortando el relleno interior, no la caja, y no es un capricho:
+     de --alto-cabeza (35) y --alto-version (31) sale el relleno con el que el
+     texto se aparta de los rótulos. Una caja más alta movería el texto y
+     repaginaría el libro entero, y eso no se vería en una prueba que solo
+     mirase que la letra es más grande. Se comprueban las dos cosas y también
+     que quede hueco entre el rótulo y el texto. */
+  di('los rótulos', await p.evaluate(async () => {
+    const pg = document.getElementById('pg');
+    const lum = c => { const [r,g,b] = c.match(/\d+/g).map(Number).map(v => {
+      v /= 255; return v <= .03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); });
+      return .2126*r + .7152*g + .0722*b; };
+    const papel = lum('250,247,241');
+    const leer = () => {
+      const inner = pg.querySelector('.pg-inner');
+      const esc = inner.getBoundingClientRect().width / inner.offsetWidth;
+      const q = id => { const e = document.getElementById(id), c = getComputedStyle(e);
+        const L = lum(c.color), r = e.getBoundingClientRect();
+        return { efectivo:+(parseFloat(c.fontSize)*esc).toFixed(1), peso:+c.fontWeight,
+                 caja:+r.height.toFixed(1),
+                 contraste:+((Math.max(L,papel)+.05)/(Math.min(L,papel)+.05)).toFixed(2) }; };
+      const cuerpo = document.getElementById('pgBody').getBoundingClientRect();
+      return { escala:+esc.toFixed(3), cabeza:q('pgCabeza'), version:q('pgVersion'),
+               /* negativo = queda hueco; positivo = el rótulo pisa el texto */
+               pisaArriba:+(document.getElementById('pgCabeza').getBoundingClientRect().bottom
+                            - cuerpo.top).toFixed(1),
+               pisaAbajo:+(cuerpo.bottom
+                           - document.getElementById('pgVersion').getBoundingClientRect().top).toFixed(1) };
+    };
+    if (pg.classList.contains('zoom')){
+      const r = pg.querySelector('.pg-inner').getBoundingClientRect();
+      pg.dispatchEvent(new MouseEvent('click',
+        { bubbles:true, clientX:206, clientY:Math.round(r.bottom + 60) }));
+      await new Promise(z => setTimeout(z, 1400));
+    }
+    pg.scrollLeft = 0;
+    const cerca = leer();
+    document.getElementById('btnZoom').click();
+    await new Promise(z => setTimeout(z, 1400));
+    const lejos = leer();
+    return { cerca, lejos };
+  }).then(r => {
+    const { cerca, lejos } = r;
+    vale('de lejos la hoja se encoge', lejos.escala < .8, lejos.escala);
+    /* la caja, al píxel: es de donde sale el relleno del texto */
+    vale('la caja del de arriba no crece', lejos.cabeza.caja <= cerca.cabeza.caja * lejos.escala + .5,
+         lejos.cabeza.caja + ' px');
+    vale('la caja del de abajo no crece', lejos.version.caja <= cerca.version.caja * lejos.escala + .5,
+         lejos.version.caja + ' px');
+    vale('ninguno pisa el texto', lejos.pisaArriba < 0 && lejos.pisaAbajo < 0,
+         lejos.pisaArriba + ' / ' + lejos.pisaAbajo);
+    /* y que de verdad se lean */
+    vale('en negrita los dos', lejos.cabeza.peso >= 700 && lejos.version.peso >= 700,
+         lejos.cabeza.peso + ' / ' + lejos.version.peso);
+    vale('con contraste de sobra', lejos.cabeza.contraste >= 4.5 && lejos.version.contraste >= 4.5,
+         lejos.cabeza.contraste + ' / ' + lejos.version.contraste);
+    vale('y más grandes de lo que quedarían solos',
+         lejos.cabeza.efectivo > cerca.cabeza.efectivo * lejos.escala + 1,
+         lejos.cabeza.efectivo + ' px contra los ' +
+         (cerca.cabeza.efectivo * lejos.escala).toFixed(1) + ' de antes');
+    /* DE CERCA NO SE TOCA NADA: la regla vive dentro de .zoom, y si alguien la
+       sacara de ahí el rótulo se pondría negro y gordo leyendo de cerca. */
+    vale('de cerca siguen como estaban', cerca.cabeza.peso === 400 && cerca.version.peso === 400,
+         cerca.cabeza.peso + ' / ' + cerca.version.peso);
+    return r;
+  }));
+  /* se sale para la sección siguiente */
+  await p.evaluate(async () => {
+    const pg = document.getElementById('pg');
+    if (pg.classList.contains('zoom')){
+      const r = pg.querySelector('.pg-inner').getBoundingClientRect();
+      pg.dispatchEvent(new MouseEvent('click',
+        { bubbles:true, clientX:206, clientY:Math.round(r.bottom + 60) }));
+      await new Promise(z => setTimeout(z, 1400));
+    }
+    pg.scrollLeft = 0;
+  });
+
   titulo('el botón dice si el paso automático va solo');
   /* Las dos maneras de pasar hoja se ven igual —hojas que pasan—, así que sin
      una señal no hay forma de saber si aquello sigue andando por su cuenta.

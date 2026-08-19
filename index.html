@@ -114,6 +114,39 @@
         left:calc(var(--col-texto, 340px) / 2); right:auto; width:auto;
         transform:translateX(-50%); text-align:center;
         font-size:21px; line-height:26px; letter-spacing:.10em; padding:3px 13px 2px; }
+
+    /* DE LEJOS LOS DOS RÓTULOS SE LEEN, que es exactamente para lo que están.
+
+       De lejos la hoja se encoge al 58%, y con ella los rótulos: 21px se
+       quedan en 12,3 reales. Encima están puestos para no molestar —peso
+       normal y una tinta clarísima, #c0ac86 sobre papel #faf7f1, que es
+       contraste 1,9:1— y el resultado es que justo cuando más falta hace saber
+       en qué capítulo y en qué versión estás, es cuando peor se ven. La vista
+       de lejos existe para orientarse; un rótulo ilegible ahí no orienta.
+
+       LA LETRA CRECE SIN QUE CREZCA LA CAJA, y esto es lo que hace que el
+       cambio sea seguro. De --alto-cabeza (35) y --alto-version (31) sale el
+       relleno con el que el texto se aparta de los rótulos, así que tocarlos
+       movería el texto y repaginaría. Aquí la caja se respeta al píxel y lo
+       que se recorta es el relleno interior: 26+4+5 pasa a 30+2+3, y 26+3+2 a
+       29+1+1. Mismo alto, letra de 28 en vez de 21 —16,4 reales de lejos—.
+
+       Y el grueso de la mejora no es el tamaño sino la TINTA: en negrita y en
+       marrón oscuro, que es el color con el que este programa dice las cosas
+       que importan. De cerca no cambia nada: esta regla vive dentro de .zoom.
+
+       El tamaño va con transición porque .suavizando la enciende: sin ella el
+       rótulo pegaría un salto en el primer cuadro mientras la hoja empieza a
+       encogerse despacio. */
+    #pg.zoom .pg-cabeza{
+        font-size:28px; line-height:30px; padding:2px 13px 3px;
+        font-weight:700; color:#5c4a24; }
+    #pg.zoom .pg-version{
+        font-size:28px; line-height:29px; padding:1px 13px 1px;
+        font-weight:700; color:#5c4a24; }
+    #pg.suavizando .pg-cabeza, #pg.suavizando .pg-version{
+        transition:font-size .46s cubic-bezier(.32,.72,.24,1),
+                   color     .46s cubic-bezier(.32,.72,.24,1); }
     /* EL TEXTO BAJA PARA QUE EL TITULILLO RESPIRE. La idea ya estaba; el
        número estaba mal. El titulillo va posicionado y mide 26px —17 de
        renglón más 4 y 5 de relleno— pero aquí se bajaba el texto 15px, así
@@ -1826,7 +1859,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '19-AGO-26 08:09';
+window.GLOSS_BUILD = '19-AGO-26 08:42';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
