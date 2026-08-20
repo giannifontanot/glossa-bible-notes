@@ -82,5 +82,60 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
   di('60 px de ratón', { alSoltar: raton.alSoltar, final: raton.final, tope: raton.tope });
   vale('el ratón también lo abre', raton.final >= raton.tope - 2);
 
+  titulo('la página no se desplaza en vertical');
+  /* NO HAY NADA QUE DESPLAZAR, y sin embargo se podía. El cuerpo iba en
+     min-height:100vh y la escena en height:100dvh, y esas dos NO miden lo
+     mismo en un teléfono: 100vh es la pantalla con la barra del navegador
+     retraída, 100dvh lo que se ve ahora. Con la barra a la vista el cuerpo
+     quedaba más alto que lo visible y sobraban unos 50 px de desplazamiento
+     que no llevan a ninguna parte y que arrastran los botones del pie hacia
+     abajo. Lo encontró el autor en el navegador de DuckDuckGo.
+
+     AQUÍ NO SE PUEDE REPRODUCIR: un navegador de pruebas no tiene barra que se
+     esconda, así que vh y dvh valen lo mismo y el desplazamiento sale cero
+     aunque el defecto esté puesto. Por eso se vigila LA UNIDAD, que es la
+     causa, y no solo el síntoma. Las dos declaraciones tienen que hablar el
+     mismo idioma; si una vuelve a vh, esto canta aunque la pantalla se vea
+     perfecta. */
+  di('las unidades del alto', await p.evaluate(() => {
+    /* Se lee el TEXTO de las hojas, no el CSSOM: el CSSOM se queda solo con
+       la última declaración que entiende, así que la cascada de respaldo
+       —vh, svh, dvh— se pierde y no se puede comprobar que esté completa. */
+    const css = [...document.querySelectorAll('style')].map(x => x.textContent).join('\n');
+    /* el bloque de body y el de .stage del modo teléfono */
+    const bloque = re => { const m = css.match(re); return m ? m[0] : ''; };
+    const delCuerpo = bloque(/\bbody\{[^}]*\}/);
+    const deLaEscena = bloque(/\.stage\{[^}]*height:100[sd]vh[^}]*\}/);
+    const unidades = t => [...t.matchAll(/(?:min-)?height:\s*100(vh|svh|dvh)/g)].map(m => m[1]);
+    return { cuerpo: unidades(delCuerpo), escena: unidades(deLaEscena),
+             textoCuerpo: (delCuerpo.match(/min-height:[^;]*/g) || []).join(' · ') };
+  }).then(r => {
+    const dinamica = u => u.includes('dvh') || u.includes('svh');
+    vale('el cuerpo mide con unidad dinámica', dinamica(r.cuerpo), r.textoCuerpo);
+    vale('la escena también', dinamica(r.escena), r.escena.join(','));
+    /* LA COMPROBACIÓN QUE IMPORTA: la última que gana tiene que ser la misma
+       en los dos. Si el cuerpo vuelve a quedarse en vh, aquí canta aunque la
+       pantalla se vea perfecta en un navegador sin barra retráctil. */
+    vale('y la que gana es la misma en los dos',
+         r.cuerpo.length > 0 && r.escena.length > 0 &&
+         r.cuerpo[r.cuerpo.length-1] === r.escena[r.escena.length-1],
+         (r.cuerpo[r.cuerpo.length-1] || '?') + ' / ' + (r.escena[r.escena.length-1] || '?'));
+    return r;
+  }));
+
+  /* Y el síntoma, en varias ventanas. Aquí siempre sale cero porque no hay
+     barra retráctil, pero cazaría cualquier otra cosa que hiciera crecer el
+     documento —un relleno olvidado, un elemento que se sale por abajo—. */
+  di('lo que sobra por abajo', await p.evaluate(() => ({
+    alto: document.documentElement.scrollHeight,
+    visible: innerHeight,
+    sobra: document.documentElement.scrollHeight - innerHeight,
+    rellenoDelCuerpo: getComputedStyle(document.body).padding
+  })).then(r => {
+    vale('el documento no es más alto que la ventana', r.sobra <= 0,
+         r.alto + ' contra ' + r.visible);
+    return r;
+  }));
+
   await cerrar(sesion);
 })();
