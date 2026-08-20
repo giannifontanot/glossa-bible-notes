@@ -1739,9 +1739,9 @@
      Y va ARRIBA de la versión, que es lo último del panel por ser lo que
      menos se toca. -->
 <div class="ajuste ancho"><span class="lbl">sepia</span><span class="ctrl">
-  <input type="range" id="sepia" min="0" max="100" step="1" value="0"
+  <input type="range" id="sepia" min="0" max="100" step="1" value="75"
          title="Entinta el papel: de blanco de imprenta a papel viejo" />
-  <span class="medida" id="sepiaAhora">0</span>
+  <span class="medida" id="sepiaAhora">75</span>
 </span></div>
 
 <div class="ajuste ancho"><span class="lbl">versión</span><span class="ctrl" id="ctrlVersiones">
@@ -2262,7 +2262,12 @@ let showMarks = true, fontSize = 15;
    las glosas— sino el mismo papel, más cálido. */
 const PAPEL = [[250,247,241], [232,211,172]];
 const TINTA = [[ 36, 31, 26], [ 59, 43, 24]];
-let sepia = 0;
+/* EL SEPIA ARRANCA EN 75, no en cero. Un papel blanco de pantalla es el de un
+   documento, no el de un libro; a 75 el papel queda en un crema cálido y la
+   tinta se va al marrón con él —los dos a la vez, que es lo que distingue una
+   hoja vieja de una foto con filtro—. Es solo el ARRANQUE: quien lo mueva en
+   Formato guarda el suyo y cargarAjustes se lo devuelve, incluido el cero. */
+let sepia = 75;
 const mezclar = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
 const rgb = a => 'rgb(' + a.join(',') + ')';
 const papelRGB = () => mezclar(PAPEL[0], PAPEL[1], sepia / 100);
