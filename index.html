@@ -53,22 +53,6 @@
         border:1px solid rgba(255,255,255,.2); border-radius:7px; padding:5px 8px; }
   select option{ color:#222; }
 
-  /* la etiqueta activa tiene que verse SIEMPRE: un modo invisible contamina
-     semanas de notas sin que te enteres */
-  .banda{ display:flex; align-items:center; gap:8px; font-size:.7rem; padding:5px 12px;
-          border-radius:999px; background:rgba(201,162,39,.16);
-          border:1px solid rgba(201,162,39,.45); }
-  /* LA CAJA CEDE, EL BOTÓN NO. Al meter el + la banda pasó a medir 331 en una
-     ventana de 412 y se salía 15px: el botón quedaba cortado por la derecha,
-     que para el único control que AVISA de que hay algo que pulsar es la peor
-     manera de estrenarlo. El size=12 de la caja es una preferencia, no una
-     obligación, así que se le deja encoger —min-width:0, que sin él un input
-     no baja de su ancho intrínseco por mucho flex que se le ponga— y los otros
-     dos se quedan enteros. Así vale para cualquier ancho y no para 412. */
-  .banda{ max-width:100%; }
-  .banda #nuevaEtiqueta{ min-width:0; flex:1 1 auto; }
-  .banda #selActiva, .banda #btnCrearEtiqueta{ flex:0 0 auto; }
-  .banda.apagada{ background:rgba(255,255,255,.04); border-color:rgba(255,255,255,.12); opacity:.55; }
   .chip{ font-size:.66rem; padding:4px 9px; border-radius:999px; cursor:pointer;
          border:1px solid rgba(255,255,255,.22); background:rgba(255,255,255,.05); }
   .chip.off{ opacity:.34; text-decoration:line-through; }
@@ -1083,8 +1067,6 @@
                             background:transparent; border:0; padding:0;
                             height:24px; margin:0; cursor:pointer; }
   .rollo .sep{ background:rgba(140,116,68,.35); height:15px; }
-  .rollo .banda{ background:rgba(184,137,43,.2); border-color:rgba(140,116,68,.45); color:#4a3a1c; }
-  .rollo .banda.apagada{ background:rgba(255,253,247,.55); border-color:rgba(140,116,68,.28); }
   .rollo .chip{ color:#4a3a1c; background:rgba(255,253,247,.75); border-color:rgba(140,116,68,.42); }
 
   /* Un ajuste por renglón, con el rótulo en una columna fija alineado a la
@@ -1238,7 +1220,6 @@
                   line-height:1.15; white-space:nowrap; }
   .ajuste > .ctrl{ flex:1 1 auto; min-width:0; display:flex; flex-wrap:wrap;
                    gap:4px; align-items:center; }
-  .ajuste .banda{ padding:3px 8px; }
 
   /* Menús en cascada: los capítulos salen al lado del libro que tocaste, y
      los versículos al lado del capítulo. Viven en la escena y no dentro del
@@ -1297,70 +1278,6 @@
   .num:hover{ background:#fffdf6; color:#1d1608; box-shadow:inset 0 0 0 1px rgba(138,100,22,.65); }
   .num.vacio{ color:#a29a85; cursor:default; }
 
-  /* LA CAJA DEL EDITOR EN TELÉFONO. Pegada arriba y a lo ancho: arriba porque
-     es el único sitio al que el teclado no llega, y a lo ancho porque escribir
-     en una columna de 240px con el pulgar es peor que no escribir.
-     position:fixed y no absolute: cuelga del cuerpo del documento, no de la
-     hoja, así que el papel puede correrse debajo sin llevárselo.
-     El fondo es opaco porque tapa texto: translúcido se leerían las dos cosas
-     a la vez y ninguna bien. */
-  /* LA CAJA VA DE PAPEL, NO DE PANEL. La monté con el fondo oscuro de los
-     menús y eso arruinaba lo único que tenía que hacer: el recuadro de dentro
-     se viste con los colores de la glosa —tinte claro y letra oscura, pensados
-     para leerse sobre crema— así que sobre un fondo oscuro quedaba letra
-     oscura sobre fondo oscuro. Se escribía perfectamente y no se veía nada, y
-     eso se reporta, con razón, como "no se puede editar".
-     El color exacto lo pone el guion con colorPapel(), para que siga al sepia
-     igual que la hoja. */
-  /* LA CAJA DE ESCRIBIR ES UNA GLOSA. Hereda .gl —letra, interlínea, caja de
-     borde— y de .g-color el recuadro y el fondo que le tocan; el relleno y las
-     esquinas dispares se los pone formaOrganica con el MISMO id que tendrá la
-     nota, así que el recuadro donde escribes es el que se va a quedar. Lo
-     único que añade esta regla es dónde se planta y que flote.
-     Arriba del todo y no junto a su marca: en un teléfono el teclado se come
-     la mitad de abajo, y ése es el único sitio al que no llega nunca, mida lo
-     que mida. Cuesta que la nota nazca lejos de donde va a vivir, y eso lo
-     paga el vuelo del final, que enseña el camino.
-     La sombra es lo que la despega del papel mientras se escribe: la misma
-     glosa, pero todavía en la mano. */
-  /* Sin right: el ancho lo pone el guion, y es el de una glosa del margen. Las
-     medidas de aquí son solo el punto de partida por si algo fallara al
-     medir. */
-  .gl-movil{ position:fixed; left:8px; top:8px; width:240px; z-index:12;
-             display:block; box-shadow:0 14px 38px rgba(0,0,0,.45); }
-  /* LOS COLORES DE LA GLOSA, MIENTRAS SE ESCRIBE. Van pegados a la caja, no
-     dentro: dentro serían parte de la nota, y la nota es solo lo que escribes.
-     Los puntos son los mismos del menú de la marca —mismo tamaño, mismo modo
-     de decir cuál está puesto— porque son la misma decisión tomada en otro
-     momento, y dos maneras de elegir lo mismo se aprenden dos veces.
-     El fondo oscuro es lo que los separa del papel: cuatro círculos de color
-     sueltos sobre la hoja no se leen como un mando, se leen como suciedad. */
-  .gl-tintas{ position:fixed; z-index:13; display:flex; justify-content:center;
-              gap:14px; padding:7px 10px; border-radius:9px;
-              background:rgba(40,31,14,.90);
-              box-shadow:0 8px 22px rgba(0,0,0,.34); }
-  .gl-tintas .mc{ width:26px; height:26px; padding:0; border-radius:50%;
-                  border:2px solid rgba(253,251,246,.45); cursor:pointer;
-                  -webkit-tap-highlight-color:transparent; }
-  .gl-tintas .mc[data-on]{ border-color:#fff;
-                           box-shadow:0 0 0 3px rgba(255,255,255,.28); }
-  /* El papel bajo el tinte NO se pinta desde aquí: lo compone el guion en la
-     misma pila de fondo de la caja (ver abrirGlosa). Aquí quedó un intento con
-     un pseudoelemento de z-index negativo, y estaba mal: dentro de un contexto
-     de apilado, el fondo del propio elemento se pinta PRIMERO y los hijos de
-     z-index negativo van encima. O sea que el papel opaco tapaba el tinte en
-     vez de meterse debajo, y la caja perdía el color de su marca. Lo encontró
-     la revisión de Codex; mi prueba había comprobado que la clase estaba
-     puesta, no de qué color quedaba la caja. */
-  /* El textarea desaparece DENTRO de la caja: sin borde, sin fondo, sin
-     relleno propio. El recuadro ya lo pone la glosa, y dos recuadros, uno
-     dentro de otro, es lo que hacía que aquello se viera como un formulario.
-     Hereda la letra, que es la de la nota: escribirla y leerla después son el
-     mismo tamaño, o al guardarla cambia de cuerpo y parece otra cosa. */
-  .gl-movil textarea{ width:100%; display:block; border:0; background:transparent;
-                      padding:0; margin:0; box-shadow:none; resize:none;
-                      outline:none; color:inherit; font:inherit;
-                      line-height:inherit; min-height:4.2em; }
   /* El textarea del editor lleva la familia de la nota clavada: sin esto se
      escribiría en una letra y se leería en otra. */
   .gl-edit{ font-family:'Segoe UI','Avenir Next',-apple-system,'Noto Sans',Roboto,
@@ -1369,31 +1286,74 @@
             border-radius:3px; padding:3px 6px; resize:none; outline:none; display:block;
             background:#fffdf8; }
 
-  /* menú contextual: sale junto a lo que tocaste. Nada muta hasta que
-     le apuntas a un botón — un toque perdido solo abre y se cierra. */
-  #menu{ position:absolute; z-index:8; display:none; gap:3px; padding:4px;
+  /* EL PANEL DE LA MARCA. Sale junto a lo que tocaste y es una columna:
+     colores, los dos trazos, la caja de escribir y las etiquetas, de arriba
+     abajo y en ese orden. En fila no cabía —una caja de escribir no es un
+     botón— y partirlo en dos era fingir que sigue siendo un menú.
+     white-space vuelve a normal por lo mismo: aquí dentro hay texto que se
+     parte en renglones, no rótulos de botón. */
+  #menu{ position:absolute; z-index:8; display:none; flex-direction:column;
+         align-items:stretch; gap:6px; padding:6px; width:250px;
          background:#2a2118; border:1px solid rgba(255,255,255,.22);
-         border-radius:9px; box-shadow:0 6px 18px rgba(0,0,0,.5); white-space:nowrap; }
+         border-radius:9px; box-shadow:0 6px 18px rgba(0,0,0,.5); white-space:normal; }
   #menu button{ font:inherit; font-size:.7rem; line-height:1; cursor:pointer; color:#eee7d8;
         background:transparent; border:1px solid transparent; border-radius:6px; padding:6px 9px; }
   #menu button:hover{ background:rgba(255,255,255,.12); }
-  #menu .primera{ background:rgba(201,162,39,.28); border-color:rgba(201,162,39,.6); }
   #menu .mc{ width:20px; height:20px; padding:0; border-radius:50%;
              border:2px solid rgba(255,255,255,.25); }
   #menu .mc[data-on]{ border-color:#fff; }
-  #menu .quitar:hover{ background:rgba(210,70,70,.35); }
-  /* Las dos cajas del menú. En escritorio no cambian nada —siguen en fila,
-     como estaban— y son las que le dan al teléfono de dónde agarrar para
-     partirlo en dos renglones. */
-  #menu .mcolores, #menu .macciones{ display:flex; gap:3px; align-items:center; }
+  #menu .mcolores{ display:flex; gap:8px; align-items:center; justify-content:center;
+                   padding:2px 0 1px; }
+  /* LOS DOS TRAZOS, A MEDIAS EXACTAS. Los dos botones dicen la misma clase de
+     cosa —cómo se dibuja el texto de esta glosa— así que ninguno puede
+     parecer el principal: 1fr y 1fr, y el que está puesto se distingue por el
+     dorado y no por el tamaño. */
+  #menu .mmodos{ display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+  /* Los dos llevan recuadro, puesto o no. Sin él, el que no está elegido no
+     se lee como algo que se pueda tocar —parecía un rótulo al lado de un
+     botón— y la mitad de la decisión quedaba escondida. */
+  #menu .mmodos button{ text-align:center; border-color:rgba(255,255,255,.22); }
+  #menu .mmodos button.on{ background:rgba(201,162,39,.28); border-color:rgba(201,162,39,.75); }
+  /* LA CAJA DE ESCRIBIR, DENTRO DEL PANEL. Ya no flota por su cuenta: nace
+     donde se decide todo lo demás, y por eso no necesita ni sombra ni vuelo
+     de vuelta. El color se lo pone el guion, que es quien sabe de qué marca
+     es; aquí solo va la forma. */
+  #menu .gl-caja{ width:100%; box-sizing:border-box; min-height:4.6em;
+                  border-radius:5px; padding:6px 8px; }
   /* El nombre corto de las columnas no se ve salvo en teléfono. */
   .corto{ display:none; }
   #menu input{ font-size:.68rem; padding:5px 7px; width:82px; }
-  .tagbox{ display:flex; flex-wrap:wrap; gap:3px; align-items:center; max-width:250px; }
+  .tagbox{ display:flex; flex-wrap:wrap; gap:3px; align-items:center; }
   .tagbox .tg{ font-size:.66rem; padding:5px 8px; border:1px solid rgba(255,255,255,.22);
                border-radius:999px; opacity:.5; }
   .tagbox .tg.on{ opacity:1; background:rgba(201,162,39,.3); border-color:rgba(201,162,39,.7); }
+  /* LA ÚLTIMA QUE USASTE, EN NEGRITA. Es lo único que queda de la etiqueta
+     activa, y hace su trabajo sin hacer nada: no se aplica sola, solo se ve.
+     Negrita y no color, porque el color ya significa "puesta en esta marca" y
+     dos cosas distintas dichas de la misma manera no se leen.
+     Va colgada de #menu y no de .tagbox a secas por una cuestión de peso:
+     `#menu button` lleva `font:inherit`, que es la forma corta de escribir
+     también font-weight, y con un id delante gana a cualquier clase. Sin el
+     #menu aquí, la regla existía y la etiqueta salía en redonda. */
+  #menu .tagbox .tg.ultima{ font-weight:700; opacity:.75; }
+  #menu .tagbox .tg.on.ultima{ opacity:1; }
   .tagbox .vacio{ font-size:.65rem; opacity:.45; padding:0 4px; }
+  /* DORMIDA: se ve, y no responde. Sin nota no hay nada que guardar, así que
+     una etiqueta puesta ahora se perdería al cerrar. Apagarla del todo sería
+     esconder que existe; dejarla viva sería dejarte trabajar en balde. */
+  .tagbox.dormida{ opacity:.32; pointer-events:none; }
+  /* El renglón plegado solo existe en el teléfono y con el teclado arriba:
+     ver **cuántas** etiquetas llevas puestas sin gastar media pantalla en
+     enseñarlas. */
+  .tagbox .plegado{ display:none; }
+  .tagbox.plegada{ gap:0; }
+  /* El :not(.plegado) no es adorno: el propio renglón plegado lleva data-acc
+     —es un botón, tocarlo despliega— así que sin la excepción se escondía a sí
+     mismo y la caja quedaba de alto cero. */
+  .tagbox.plegada .tg, .tagbox.plegada input,
+  .tagbox.plegada .vacio, .tagbox.plegada button[data-acc]:not(.plegado){ display:none; }
+  .tagbox.plegada .plegado{ display:block; width:100%; text-align:left;
+                            font-size:.68rem; opacity:.6; }
   #deshacer{ display:none; align-items:center; gap:10px; font-size:.7rem;
              background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.2);
              border-radius:999px; padding:6px 8px 6px 14px; }
@@ -1489,7 +1449,6 @@
        ve como un fallo de composición. */
     .rollo .btn, .rollo .chip{ min-height:40px;
       display:inline-flex; align-items:center; justify-content:center; }
-    .rollo .banda select, .rollo .banda input,
     .rollo .ajuste select, .rollo .ajuste input[type="text"]{ min-height:40px; }
     /* La pestaña sí llega a 44: es una sola fila, es por donde se entra a
        todo lo demás, y ahora además tiene que alojar el borde del acuse.
@@ -1504,7 +1463,6 @@
     .ajuste > .ctrl{ gap:10px; }
     #ctrlConfig, #ctrlEtiquetas, .grupo-simple, .grupo-triple{ row-gap:9px; }
     #ctrlConfig{ column-gap:14px; }
-    .rollo .banda{ gap:10px; }
     /* El alto sube CON la letra, no después. Un renglón de 24px con letra de
        13 aprieta las mayúsculas contra el borde, y encima deja el blanco de
        toque igual que antes: se leería mejor y se atinaría igual de mal. */
@@ -1540,12 +1498,11 @@
     /* En el teléfono sube igual que el resto: es donde de verdad se consulta,
        porque es el aparato del que uno duda si tiene la versión nueva. */
     .sello-version{ font-size:17px; }
-    .banda select, .banda input, .ajuste select{ font-size:13.5px; padding:5px 7px; }
-    /* Estos cuatro se habían quedado fuera de la lista y por eso se veían
-       hundidos entre los demás: el número del sepia, la banda de etiquetas,
-       el aviso de índice vacío y el botón de volver del salto. */
+    .ajuste select{ font-size:13.5px; padding:5px 7px; }
+    /* Estos tres se habían quedado fuera de la lista y por eso se veían
+       hundidos entre los demás: el número del sepia, el aviso de índice
+       vacío y el botón de volver del salto. */
     .rollo .medida{ font-size:13px; min-width:30px; }
-    .rollo .banda{ font-size:13px; }
     .ix-vacio{ font-size:12px; }
     #btnVolver{ font-size:12.5px; padding:6px 12px; }
     .gl-edit{ font-size:13px; }
@@ -1630,30 +1587,25 @@
     .largo{ display:none; }
     .corto{ display:inline; }
 
-    /* EL MENÚ DE LA MARCA, EN VERTICAL. En una sola fila caben cuatro colores
-       y cuatro acciones, y en un teléfono eso son ocho blancos de menos de un
-       centímetro pegados unos a otros: se falla el que se quiere y se acierta
-       el de al lado, que además borra. En columna cada acción ocupa el ancho
-       entero y ya no hay a quién confundirse.
-       flex-direction y no display:grid, y no es capricho: mostrarMenu escribe
-       display:flex en el atributo style, y contra eso ninguna hoja de estilos
-       puede. Cambiar la dirección sí funciona; cambiar el display, no. */
-    #menu{ flex-direction:column; align-items:stretch; gap:6px; padding:8px;
-           border-radius:12px; white-space:normal; max-width:82vw; }
-    #menu .macciones{ flex-direction:column; align-items:stretch; gap:5px; }
+    /* EL PANEL, A TAMAÑO DE DEDO. La columna ya la trae de serie; aquí solo
+       crecen los blancos. Ancho en vw y no en píxeles porque el panel lleva
+       dentro una caja de escribir, y escribir con el pulgar en una columna
+       estrecha es peor que no escribir. */
+    #menu{ gap:7px; padding:9px; border-radius:12px; width:84vw; max-width:360px; }
     #menu button{ font-size:15px; padding:11px 14px; text-align:left; }
-    /* Los colores sí se quedan en fila: son cuatro puntos, se distinguen por
-       el color y no por el nombre, y en columna ocuparían media pantalla. Van
+    /* Los colores se quedan en fila: son cuatro puntos, se distinguen por el
+       color y no por el nombre, y en columna ocuparían media pantalla. Van
        arriba porque es lo primero que se elige. */
-    #menu .mcolores{ justify-content:center; gap:10px; padding:2px 0 4px; }
+    #menu .mcolores{ justify-content:center; gap:12px; padding:2px 0 4px; }
     #menu .mc{ width:34px; height:34px; border-width:3px; }
-    /* Quitar y copiar son iconos sueltos: centrados se leen como botón, con
-       el texto a la izquierda parecían renglones cortados. */
-    #menu .quitar, #menu button[data-acc="copiar"]{ text-align:center; }
+    #menu .mmodos{ gap:6px; }
+    #menu .mmodos button{ padding:11px 8px; }
+    #menu .gl-caja{ font-size:16px; min-height:4.2em; }
     #menu input{ font-size:15px; padding:9px 11px; width:auto; flex:1 1 120px; }
-    .tagbox{ max-width:none; gap:6px; }
+    .tagbox{ gap:6px; }
     .tagbox .tg{ font-size:13.5px; padding:8px 12px; }
     .tagbox .vacio{ font-size:13px; }
+    .tagbox.plegada .plegado{ font-size:13.5px; padding:5px 2px; }
 
     /* EL AVISO DE ABAJO. Iba en 10.5px, más pequeño que cualquier otra cosa
        de la pantalla, y aparece lejos de donde estás mirando. Un aviso que
@@ -1756,18 +1708,8 @@
 </div>
 
 <div id="ctrlEtiquetas">
-<div class="ajuste"><span class="lbl">aplicando</span><span class="ctrl">
-  <div class="banda" id="banda">
-    <select id="selActiva"><option value="">— ninguna —</option></select>
-    <input id="nuevaEtiqueta" placeholder="nueva etiqueta" size="12"
-           enterkeyhint="done" autocapitalize="none" autocomplete="off" />
-    <button class="btn ghost" id="btnCrearEtiqueta" title="Crear la etiqueta">+</button>
-  </div>
-</span></div>
-
 <div class="ajuste"><span class="lbl">día</span><span class="ctrl">
   <select id="selDia"></select>
-  <button class="btn ghost" id="btnEtiquetarDia">etiquetar</button>
 </span></div>
 
 <div class="ajuste ancho"><span class="lbl">ver</span><span class="ctrl" id="filtros"></span></div>
@@ -2274,7 +2216,9 @@ let marcas = [];                 // ver el modelo en crearMarca()
    escrita a mano: si mañana bajas otras cuatro y ninguna se llama 'vbl', el
    lector no debe quedarse pidiendo algo que no existe. */
 let version = Object.keys(D.versiones)[0];
-let etiquetaActiva = '';
+/* La última etiqueta usada se guarda entre sesiones para poder salir en
+   negrita en el panel de la marca. No etiqueta nada por su cuenta: la
+   declara el panel, aquí solo se deja dicho que sobrevive al cierre. */
 let etiquetasOcultas = new Set();
 /* Libros que se están mirando en la lista de glosas. Vacío significa "solo el
    libro abierto", que es el comportamiento de siempre; en cuanto agregas uno,
@@ -2777,7 +2721,7 @@ function crearMarca(cap, vers, ini, fin){
     despues: texto.slice(fin, fin+24),
     ini, fin, versionOrigen: version,
     estilo: 'fill', color: 'yellow',
-    etiquetas: etiquetaActiva ? [etiquetaActiva] : [],
+    etiquetas: [],
     creada: new Date().toISOString().slice(0,10)
   };
 }
@@ -3763,22 +3707,56 @@ function marcaEn(k, off){
     RES.has(m.id) && off >= RES.get(m.id).ini && off < RES.get(m.id).fin);
 }
 /* ============================================================
-   MENÚ CONTEXTUAL. Sin modos: primero señalas, luego dices qué.
-   Un toque nunca muta nada por sí solo — abre opciones y se cierra
-   tocando afuera. La última acción usada queda al frente para que
-   marcar en tanda sea "arrastra y toca el mismo botón de siempre".
+   EL PANEL DE LA MARCA. Uno solo para todo: el que sale al subrayar
+   y el que sale al tocar una marca ya hecha son el mismo panel, con
+   los mismos mandos en el mismo orden y en el mismo sitio. Antes eran
+   dos menús distintos para el mismo objeto, y había que aprenderse los
+   dos.
+
+   TODA MARCA ES UNA GLOSA. Los dos botones no eligen QUÉ clase de cosa
+   estás haciendo —siempre es la misma, una nota con un ancla— sino cómo
+   se dibuja el ancla: el texto al que la nota se agarra va resaltado o
+   va subrayado. De ahí salen las dos consecuencias que ordenan todo lo
+   demás: la caja de escribir está SIEMPRE, y sin texto no hay nada que
+   guardar.
+
+   NADA SE GUARDA HASTA CERRAR. Mientras el panel está abierto, lo que
+   tocas se ve en la hoja pero no llega al almacén: se cobra entero al
+   tocar fuera, y solo si hay texto. Un subrayado hecho por accidente se
+   va sin dejar rastro —que es lo que hacía el menú de antes y no había
+   por qué perder— y una glosa que vacías es una glosa que se borra.
    ============================================================ */
 const menu = $('menu');
-const ACC = { fill:{t:'Resaltar', ic:'▮'}, border:{t:'Línea', ic:'▁'}, nota:{t:'Glosa', ic:'✎'} };
-let pendiente = null, menuMarca = null, ultimaAccion = 'fill';
 let ultimoBorrado = null, tempDeshacer = null;
+/* LA ÚLTIMA ETIQUETA QUE PUSISTE, y nada más que eso. Aquí vivía la
+   "etiqueta activa", que se ponía sola a cada marca nueva: ponerle algo
+   a lo que escribes sin que lo hayas pedido es adivinar, y adivinar en
+   silencio se descubre tarde y de mala manera. Ahora no se aplica a
+   nada; solo sale en negrita en la lista. Es toda la ayuda que hacía
+   falta —la de la tanda de hoy se ve de un vistazo entre veinte y se
+   toca sin buscarla— y no decide nada por ti. */
+let ultimaEtiqueta = '';
+/* LA MARCA QUE SE ESTÁ EDITANDO, y lo poco que hay que recordar para
+   saber qué hacer con ella al cerrar:
+   · nueva      — todavía no existía; si te vas sin escribir, no existió.
+   · teniaNota  — traía nota al abrir. Vaciarla es borrar la marca.
+                  Sin esto, una marca vieja SIN nota —de las de antes de
+                  este cambio— se borraría solo por mirarla, porque su
+                  caja nace vacía y vacía se queda. */
+let borrador = null;
 
 let ultimoRect = null;
-function ocultarMenu(){ menu.style.display='none'; pendiente=null; menuMarca=null; ultimoRect=null; }
 function mostrarMenu(html, rect){
   if (rect) ultimoRect = rect;
   menu.innerHTML = html;
   menu.style.display = 'flex';
+  colocarMenu();
+}
+/* Medir y colocar es su propia función porque ahora hay que rehacerlo
+   sin volver a pintar: cuando sube el teclado la caja de etiquetas se
+   pliega, el panel encoge, y un panel que encoge sin recolocarse se
+   queda flotando donde ya no está lo que señalaba. */
+function colocarMenu(){
   const r = ultimoRect || {left:0,top:0,width:0,height:0,bottom:0};
   const s = stage.getBoundingClientRect(), w = menu.offsetWidth, h = menu.offsetHeight;
   let x = r.left - s.left + r.width/2 - w/2;
@@ -3787,44 +3765,171 @@ function mostrarMenu(html, rect){
   menu.style.left = Math.round(Math.min(Math.max(x, 2), s.width - w - 2)) + 'px';
   menu.style.top  = Math.round(Math.min(Math.max(y, 2), s.height - h - 2)) + 'px';
 }
-function menuSeleccion(){
-  const orden = [ultimaAccion, ...Object.keys(ACC).filter(a => a !== ultimaAccion)];
-  return '<div class="macciones">' +
-         orden.map((a,i) => '<button class="' + (i?'':'primera') + '" data-acc="' + a + '">' +
-         ACC[a].ic + ' ' + ACC[a].t + '</button>').join('') +
-         '<button data-acc="copiar" title="Copiar">⧉</button></div>';
+function ocultarMenu(){
+  if (menu._teclado) menu._teclado();
+  if (borrador) cerrarBorrador();
+  menu.style.display='none'; menu.innerHTML='';
+  ultimoRect=null;
 }
-function menuDeMarca(m){
-  /* Los colores van dentro de su propia caja y las acciones dentro de otra.
-     Antes eran todos hermanos sueltos, y así el menú solo sabía ponerse en
-     una fila: en vertical los colores se habrían apilado uno debajo de otro,
-     que es justo lo que no se quiere. Con las dos cajas, el teléfono los pone
-     en un renglón arriba y las acciones en columna debajo, y el escritorio
-     los sigue viendo en una sola fila. */
+
+/* ---------- lo que se ve ---------- */
+
+function panelHTML(m){
   return '<div class="mcolores">' +
-         COLORS.map(c => '<button class="mc" data-color="' + c + '" style="background:' +
-           LINE_HEX[c] + '"' + (m.color===c ? ' data-on="1"' : '') + '></button>').join('') +
-         '</div><div class="macciones">' +
-         '<button data-acc="estilo">' + (m.estilo==='fill' ? '▁ Línea' : '▮ Relleno') + '</button>' +
-         '<button data-acc="nota">✎ Glosa</button>' +
-         '<button data-acc="tags" title="Etiquetas">#' +
-           ((m.etiquetas||[]).length ? ' ' + m.etiquetas.length : '') + '</button>' +
-         '<button class="quitar" data-acc="quitar" title="Quitar">✕</button></div>';
+      COLORS.map(c => '<button class="mc" data-color="' + c + '" style="background:' +
+        LINE_HEX[c] + '"' + (m.color===c ? ' data-on="1"' : '') + '></button>').join('') +
+    '</div>' +
+    /* Los dos únicos botones que quedan, y dicen lo que hacen: no "esto
+       es un resaltado" sino "el texto de esta glosa va resaltado". */
+    '<div class="mmodos">' +
+      '<button data-modo="fill" class="modo' + (m.estilo!=='border' ? ' on' : '') +
+        '">▮ resaltado</button>' +
+      '<button data-modo="border" class="modo' + (m.estilo==='border' ? ' on' : '') +
+        '">▁ línea</button>' +
+    '</div>' +
+    /* El valor NO va aquí dentro. Un textarea con el texto metido en el
+       HTML obliga a escapar bien lo que escribió una mano, y basta un
+       caso raro para que la nota se corrompa al releerla. Se pone
+       después, por propiedad, donde no hay escape que valga. */
+    '<textarea id="glosaCaja" class="gl-edit gl-caja" rows="3" ' +
+      'placeholder="glosa…" spellcheck="false"></textarea>' +
+    tagboxHTML(m);
 }
-/* Panel de etiquetas de UNA marca: se prenden y apagan sin cerrar el menú,
-   porque casi siempre pones dos o tres de un tirón. */
-function menuEtiquetas(m){
+/* LA CAJA DE ETIQUETAS DUERME HASTA QUE HAYA TEXTO. Sin nota no se
+   guarda nada, así que una etiqueta puesta ahora sería una etiqueta que
+   se pierde al cerrar. Antes de apagarla, eso pasaba de verdad y en
+   silencio. Apagada se ve —para saber que está y que ya llegará— pero
+   no responde. */
+function tagboxHTML(m){
   const tiene = new Set(m.etiquetas || []);
   const lista = [...new Set([...todasEtiquetas().mapa.keys(), ...tiene])].sort();
-  return '<div class="tagbox">' +
+  return '<div class="tagbox' + ((m.nota||'').trim() ? '' : ' dormida') + '">' +
+    '<button class="plegado" data-acc="desplegar"></button>' +
     (lista.length
-      ? lista.map(t => '<button class="tg' + (tiene.has(t)?' on':'') + '" data-tag="' +
-          esc(t) + '">' + esc(t) + '</button>').join('')
+      ? lista.map(t => '<button class="tg' + (tiene.has(t)?' on':'') +
+          (t && t === ultimaEtiqueta ? ' ultima' : '') +
+          '" data-tag="' + esc(t) + '">' + esc(t) + '</button>').join('')
       : '<span class="vacio">sin etiquetas todavía</span>') +
     '<input id="tagNueva" placeholder="nueva…" enterkeyhint="done" ' +
       'autocapitalize="none" autocomplete="off" />' +
     '<button data-acc="creartag" title="Crear la etiqueta">+</button>' +
     '<button data-acc="listo">Listo</button></div>';
+}
+/* LA CAJA DE ESCRIBIR VA DE PAPEL, NO DE PANEL, y esto no es gusto: es la
+   única manera de que se lea. Los colores de una glosa —tinte clarísimo,
+   letra oscura— están calibrados para verse sobre la crema de la hoja. Puestos
+   tal cual sobre el fondo oscuro del panel dan letra oscura sobre fondo
+   oscuro: se escribe perfectamente y no se ve nada, que es como se reporta
+   —con razón— «no se puede editar». Pasó aquí en cuanto la caja se mudó
+   dentro del panel, y ya había pasado antes con la caja flotante.
+
+   Así que debajo del tinte va papel opaco. Y hay un detalle que cuesta
+   descubrir: un fondo solo tiene UN color, y las imágenes de fondo se pintan
+   ENCIMA de él. De modo que el papel va de color y el tinte pasa a ser una
+   imagen —un degradado de un solo tono— que se pinta sobre el papel. Un
+   pseudoelemento por debajo no sirve: dentro de un contexto de apilado el
+   fondo del propio elemento se pinta primero.
+
+   El alfa se sube a un mínimo legible conservando el matiz. Los tintes de la
+   hoja van de .07 a .19 porque allí la nota tiene el papel y su borde al lado
+   y con una insinuación basta; aquí la caja está sobre un panel oscuro y a .08
+   el verde y el azul son papel a secas. No es inventar un color: es el mismo,
+   con densidad suficiente para reconocerse sin la hoja detrás. */
+function vestirCaja(ta, m){
+  const [bd, bg, fg] = TINT[m.color];
+  const n = (bg.match(/[\d.]+/g) || []);
+  const a = n.length > 3 ? parseFloat(n[3]) : 1;
+  const fuerte = 'rgba(' + n[0] + ',' + n[1] + ',' + n[2] + ',' + Math.max(a, 0.42) + ')';
+  ta.style.border = '1px dashed ' + bd;
+  ta.style.backgroundColor = colorPapel();
+  ta.style.backgroundImage = 'linear-gradient(' + fuerte + ',' + fuerte + ')';
+  ta.style.color = fg;
+}
+/* La lista de etiquetas se retoca en su sitio, NUNCA repintando el
+   panel entero. Repintar destruiría el textarea, y con él el foco, el
+   cursor y el teclado del teléfono a media palabra: era justo lo que
+   hacía el menú de antes, y allí no importaba porque no había nada
+   escrito dentro. */
+function refrescarTags(){
+  const caja = menu.querySelector('.tagbox'); if (!caja || !borrador) return;
+  const tiene = new Set(borrador.m.etiquetas || []);
+  caja.querySelectorAll('.tg').forEach(b => {
+    b.classList.toggle('on', tiene.has(b.dataset.tag));
+    b.classList.toggle('ultima', !!ultimaEtiqueta && b.dataset.tag === ultimaEtiqueta);
+  });
+  caja.querySelector('.plegado').textContent =
+    tiene.size ? '# ' + tiene.size : '#';
+}
+/* Dormir o despertar la caja de etiquetas según haya texto o no. */
+function afinarTagbox(){
+  const caja = menu.querySelector('.tagbox'), ta = menu.querySelector('#glosaCaja');
+  if (!caja || !ta) return;
+  caja.classList.toggle('dormida', !ta.value.trim());
+}
+
+/* ---------- abrir y cerrar ---------- */
+
+function abrirPanel(m, nueva, rect){
+  if (borrador) cerrarBorrador();          /* el anterior se cobra antes */
+  borrador = { m, nueva, teniaNota: !!(m.nota||'').trim() };
+  /* La marca provisional entra en la lista para poder VERLA mientras
+     decides —el subrayado bajo el texto es la mitad de la decisión— y
+     sale de ella al cerrar si no llegaste a escribir nada. Lo que no se
+     toca en todo el rato es save(). */
+  if (nueva && !marcas.includes(m)) marcas.push(m);
+  mostrarMenu(panelHTML(m), rect);
+  const ta = menu.querySelector('#glosaCaja');
+  if (ta){
+    ta.value = m.nota || '';
+    vestirCaja(ta, m);
+    /* El foco se pide, no se exige: en un teléfono el teclado solo sube
+       si el foco cae dentro del gesto que lo pidió, y este panel nace en
+       el cuadro siguiente al toque. Si no sube, tocar la caja lo sube, y
+       no se ha perdido nada. */
+    ta.focus();
+  }
+  refrescarTags();
+  if (nueva) renderPage();                 /* pinta el ancla recién nacida */
+  colocarMenu();
+}
+/* LO QUE PASA AL CERRAR, que es lo único que toca el almacén.
+
+   Con texto se guarda, y punto. Sin texto hay tres casos y son tres
+   cosas distintas:
+   · una marca nueva no llegó a existir: se quita de la lista y no se
+     guarda nada. Un subrayado por accidente no deja rastro.
+   · una glosa que TENÍA nota y ahora no: la vaciaste, y vaciar una
+     glosa es borrarla. Se va, y se avisa para poder deshacerlo.
+   · una marca vieja que nunca tuvo nota se queda donde está. Su caja
+     nace vacía sin que nadie la vacíe, y borrarla por eso sería borrar
+     por mirar. */
+function cerrarBorrador(){
+  const b = borrador; borrador = null;
+  const ta = menu.querySelector('#glosaCaja');
+  const nota = ta ? ta.value.trim() : (b.m.nota || '').trim();
+  const m = b.m;
+  if (nota){
+    m.nota = nota;
+    if (b.nueva){
+      /* Las marcas que pisaba la nueva se quitan AHORA y no al abrir el
+         panel: quitarlas antes de saber si esto se guarda dejaría un
+         hueco por el que se cae lo de otro por haber dudado. */
+      const r = RES.get(m.id);
+      if (r) marcas = marcas.filter(x => x === m ||
+        !(x.libro===m.libro && x.cap===m.cap && x.vers===m.vers && RES.has(x.id) &&
+          r.ini < RES.get(x.id).fin && r.fin > RES.get(x.id).ini));
+      if (!marcas.includes(m)) marcas.push(m);
+    }
+    save();
+  } else if (b.nueva){
+    marcas = marcas.filter(x => x !== m);
+  } else if (b.teniaNota){
+    marcas = marcas.filter(x => x !== m);
+    save(); avisarBorrado(m);
+  } else {
+    save();                                /* color o trazo, sin nota: se respeta */
+  }
+  renderPage();
 }
 function avisarBorrado(m){
   ultimoBorrado = m;
@@ -3838,6 +3943,8 @@ $('btnDeshacer').onclick = () => {
   $('deshacer').style.display = 'none'; save(); renderPage();
 };
 
+/* ---------- el gesto que lo abre ---------- */
+
 pgBody.addEventListener('pointerup', ev => {
   if (ev.target.tagName === 'TEXTAREA') return;
   if (ev.target.closest('.gl')) return;   // las glosas de "abajo" viven aquí dentro
@@ -3849,10 +3956,15 @@ pgBody.addEventListener('pointerup', ev => {
       const b = offsetGlobal(sel.focusNode, sel.focusOffset);
       if (a && b && a.k === b.k && a.off !== b.off){
         const it = plano[a.k];
-        menuMarca = null;
-        pendiente = { k:a.k, cap:it.cap, vers:it.vers,
-                      ini:Math.min(a.off,b.off), fin:Math.max(a.off,b.off) };
-        mostrarMenu(menuSeleccion(), sel.getRangeAt(0).getBoundingClientRect());
+        const ini = Math.min(a.off,b.off), fin = Math.max(a.off,b.off);
+        const rect = sel.getRangeAt(0).getBoundingClientRect();
+        /* La selección del navegador se suelta aquí: a partir de ahora
+           lo que enseña dónde estás es el ancla de la marca, y dos
+           subrayados a la vez sobre las mismas palabras se leen como un
+           error. En el teléfono además se lleva los tiradores, que
+           taparían medio panel. */
+        sel.removeAllRanges();
+        abrirPanel(crearMarca(it.cap, it.vers, ini, fin), true, rect);
       } else if (a && b && a.k !== b.k){
         readout.textContent = 'por ahora una marca no puede cruzar de versículo';
         ocultarMenu();
@@ -3862,104 +3974,174 @@ pgBody.addEventListener('pointerup', ev => {
     const p = puntoA(ev.clientX, ev.clientY);
     const m = p && marcaEn(p.k, p.off);
     if (!m){ ocultarMenu(); return; }
-    pendiente = null; menuMarca = m;
     const rg = rangoDe(m, pgBody);
-    mostrarMenu(menuDeMarca(m), rg ? rg.getBoundingClientRect()
+    abrirPanel(m, false, rg ? rg.getBoundingClientRect()
       : { left:ev.clientX, top:ev.clientY, width:0, height:0, bottom:ev.clientY });
   }, 0);
 });
 
+/* ---------- los mandos ---------- */
+
+/* Repintar lo justo. Cambiar de color o de trazo no cambia dónde está
+   nada, así que rehacer la hoja entera es trabajo tirado —y trabajo
+   tirado con el teclado abierto es la manera más corta de que la
+   pantalla dé un salto a media frase. Donde hay API de resaltado basta
+   con volver a pintar los resaltados. */
+function repintarMarcas(){
+  if (HL_API) aplicarHighlights(); else renderPage();
+}
 menu.addEventListener('click', ev => {
   const b = ev.target.closest('button'); if (!b) return;
   ev.preventDefault();
 
-  if (b.dataset.color && menuMarca){
-    menuMarca.color = b.dataset.color; reanclar(menuMarca);
-    save(); ocultarMenu(); renderPage(); return;
-  }
-  /* prender/apagar una etiqueta: el panel se queda abierto */
-  if (b.dataset.tag && menuMarca){
-    const t = b.dataset.tag, actuales = menuMarca.etiquetas || [];
-    menuMarca.etiquetas = actuales.includes(t) ? actuales.filter(x => x !== t) : actuales.concat(t);
-    save(); renderPage();
-    mostrarMenu(menuEtiquetas(menuMarca));
-    return;
-  }
   if (b.dataset.ir){
     const [c, v, l] = b.dataset.ir.split(':');
     irA(LIBRO, +c, +v, l || ''); return;
   }
-  const acc = b.dataset.acc;
-  if (acc === 'tags' && menuMarca){ mostrarMenu(menuEtiquetas(menuMarca)); return; }
-  /* El + de la caja. Va antes que 'listo' porque los dos viven en el mismo
-     panel y el orden aquí es el que decide. */
-  if (acc === 'creartag'){ crearTagDeMarca($('tagNueva')); return; }
-  if (acc === 'listo'){ ocultarMenu(); return; }
+  if (!borrador) return;                   /* el menú de vínculos no tiene más */
+  const m = borrador.m;
 
-  if (pendiente){
-    if (acc === 'copiar'){
-      const t = window.getSelection().toString();
-      if (navigator.clipboard) navigator.clipboard.writeText(t).catch(()=>{});
-      ocultarMenu(); return;
-    }
-    const { cap, vers, ini, fin } = pendiente;
-    marcas = marcas.filter(m => !(m.libro===LIBRO && m.cap===cap && m.vers===vers && RES.has(m.id) &&
-      ini < RES.get(m.id).fin && fin > RES.get(m.id).ini));
-    const nueva = crearMarca(cap, vers, ini, fin);
-    if (acc === 'border') nueva.estilo = 'border';
-    marcas.push(nueva);
-    ultimaAccion = acc;
-    save();
-    window.getSelection().removeAllRanges();
-    ocultarMenu(); renderPage();
-    if (acc === 'nota') abrirGlosa(nueva);
+  if (b.dataset.color){
+    m.color = b.dataset.color; reanclar(m);
+    menu.querySelectorAll('.mc').forEach(x =>
+      x.toggleAttribute('data-on', x.dataset.color === m.color));
+    const ta = menu.querySelector('#glosaCaja'); if (ta) vestirCaja(ta, m);
+    repintarMarcas(); return;
+  }
+  if (b.dataset.modo){
+    m.estilo = b.dataset.modo; reanclar(m);
+    menu.querySelectorAll('.mmodos button').forEach(x =>
+      x.classList.toggle('on', x.dataset.modo === m.estilo));
+    repintarMarcas(); return;
+  }
+  /* prender/apagar una etiqueta: el panel se queda abierto, porque casi
+     siempre pones dos o tres de un tirón */
+  if (b.dataset.tag){
+    if (b.closest('.tagbox').classList.contains('dormida')) return;
+    const t = b.dataset.tag, cur = m.etiquetas || [];
+    const puesta = cur.includes(t);
+    m.etiquetas = puesta ? cur.filter(x => x !== t) : cur.concat(t);
+    if (!puesta) ultimaEtiqueta = t;
+    refrescarTags(); return;
+  }
+  const acc = b.dataset.acc;
+  /* El + de la caja. Va antes que 'listo' porque los dos viven en el
+     mismo panel y el orden aquí es el que decide. */
+  if (acc === 'creartag'){ crearTagDeMarca(menu.querySelector('#tagNueva')); return; }
+  if (acc === 'desplegar'){
+    const ta = menu.querySelector('#glosaCaja'); if (ta) ta.blur();
     return;
   }
-
-  if (menuMarca){
-    const m = menuMarca;
-    if (acc === 'estilo'){
-      m.estilo = m.estilo === 'fill' ? 'border' : 'fill';
-      reanclar(m); save(); ocultarMenu(); renderPage();
-    } else if (acc === 'nota'){
-      ocultarMenu(); abrirGlosa(m);
-    } else if (acc === 'quitar'){
-      marcas = marcas.filter(x => x !== m);
-      save(); avisarBorrado(m); ocultarMenu(); renderPage();
-    }
-  }
+  if (acc === 'listo'){ ocultarMenu(); return; }
 });
+
 document.addEventListener('pointerdown', ev => {
   if (ev.target.closest('#menu')) return;
   /* LO ESCRITO SE COBRA ANTES DE CERRAR, y el orden es todo el arreglo.
 
      Este oyente va en fase de CAPTURA, así que corre antes que nada; y
-     ocultarMenu deja menuMarca en null. El change de la caja llega después
-     —el blur es posterior al pointerdown—, o sea que para cuando quería poner
-     la etiqueta ya no había a quién ponérsela, y se perdía sin decir nada:
-     exactamente el fallo que este cambio venía a quitar, escondido un piso más
-     abajo. Comprobado antes de arreglarlo: cero marcas etiquetadas.
-     Tocar fuera con algo escrito no es abandonar, es terminar. Se cobra aquí,
-     mientras la marca todavía existe, y luego ya se cierra.
-     Lo levantó la revisión de Codex; mi prueba no lo veía porque disparaba el
-     change a mano, sin el toque de fuera que es quien impone el orden. */
+     ocultarMenu deja el borrador en null. El change de la caja llega
+     después —el blur es posterior al pointerdown—, o sea que para cuando
+     quería poner la etiqueta ya no había a quién ponérsela, y se perdía
+     sin decir nada. Tocar fuera con algo escrito no es abandonar, es
+     terminar. Se cobra aquí, mientras la marca todavía existe.
+     Lo levantó la revisión de Codex. */
   const caja = document.getElementById('tagNueva');
-  if (caja && caja.value.trim() && menuMarca) crearTagDeMarca(caja);
+  if (caja && caja.value.trim() && borrador) crearTagDeMarca(caja);
   ocultarMenu();
 }, true);
+
+/* ---------- la caja de escribir ---------- */
+
+/* El texto vive en el textarea hasta que se cierra el panel; lo único
+   que hace falta mientras tanto es despertar o dormir las etiquetas
+   según haya algo escrito. La nota NO se copia a la marca en cada
+   tecla: si se copiara, el panel dejaría de ser un borrador y vaciar la
+   caja sería borrar antes de que hayas terminado de pensarlo. */
+menu.addEventListener('input', ev => {
+  if (ev.target.id !== 'glosaCaja') return;
+  afinarTagbox();
+  colocarMenu();
+});
+/* EN EL TELÉFONO, LAS ETIQUETAS SE APARTAN CUANDO SUBE EL TECLADO. Plegadas
+   a un renglón —"# 2"— el panel sigue cabiendo, y al bajar el teclado se
+   abren otra vez solas. Tocar el renglón plegado suelta el foco, que es la
+   manera corta de bajar el teclado y volver a ver la lista.
+
+   SE PLIEGA POR EL TECLADO Y NO POR EL FOCO, y la diferencia importa: el
+   panel nace con el foco pedido, así que plegar al recibirlo escondía la
+   lista antes de que hubiera nada que estorbara —y en un teléfono donde el
+   teclado no llega a subir, la escondía para siempre—. Lo que aprieta el
+   sitio es el teclado, así que es el teclado quien lo dice. La medida es la
+   misma que usaba la caja de escribir de antes: si la ventana visual encoge
+   más de 80px, eso es un teclado y no la barra de direcciones. */
+function vigilarTeclado(){
+  const vv = window.visualViewport;
+  if (!vv || menu._teclado) return;
+  const mirar = () => {
+    const caja = menu.querySelector('.tagbox'); if (!caja) return;
+    const antes = caja.classList.contains('plegada');
+    caja.classList.toggle('plegada', vv.height < window.innerHeight - 80);
+    if (caja.classList.contains('plegada') !== antes) colocarMenu();
+  };
+  vv.addEventListener('resize', mirar);
+  menu._teclado = () => { vv.removeEventListener('resize', mirar); menu._teclado = null; };
+  mirar();
+}
+menu.addEventListener('focusin', ev => {
+  if (ev.target.id !== 'glosaCaja' || !enTelefono()) return;
+  vigilarTeclado();
+});
+menu.addEventListener('focusout', ev => {
+  if (ev.target.id !== 'glosaCaja') return;
+  if (menu._teclado) menu._teclado();
+  const caja = menu.querySelector('.tagbox');
+  if (caja && caja.classList.contains('plegada')){
+    caja.classList.remove('plegada'); colocarMenu();
+  }
+});
 /* etiqueta nueva desde el propio panel */
-/* La misma historia que arriba, en la caja del panel de una marca: aquí Enter
-   tampoco llega en el teléfono. Se vacía la caja ANTES de repintar el menú,
-   porque repintar destruye el input y su salida dispararía otra vez esto con
-   el mismo texto. */
+/* Enter no llega en el teléfono, así que se escucha por los cuatro
+   caminos por los que puede llegar el mismo gesto. Se vacía la caja
+   ANTES de tocar nada más, porque su salida dispararía otra vez esto
+   con el mismo texto. */
 function crearTagDeMarca(caja){
-  if (!caja || !menuMarca) return;
+  if (!caja || !borrador) return;
+  /* Dormida se comprueba ANTES de vaciar la caja: vaciarla y luego rendirse
+     se llevaría lo escrito sin poner nada, que es el modo de fallar más
+     antipático que tiene una caja de texto. */
+  if (menu.querySelector('.tagbox').classList.contains('dormida')) return;
   const t = caja.value.trim(); if (!t) return;
   caja.value = '';
-  const actuales = menuMarca.etiquetas || [];
-  if (!actuales.includes(t)) menuMarca.etiquetas = actuales.concat(t);
-  save(); renderPage();
-  mostrarMenu(menuEtiquetas(menuMarca));
+  const actuales = borrador.m.etiquetas || [];
+  if (!actuales.includes(t)) borrador.m.etiquetas = actuales.concat(t);
+  ultimaEtiqueta = t;
+  /* Una etiqueta que no estaba en la lista necesita su botón; el resto
+     se arregla retocando los que ya hay. Nunca se repinta el panel: el
+     textarea está justo encima y se lo llevaría por delante.
+
+     SE BUSCA COMPARANDO dataset.tag, NO METIENDO EL NOMBRE EN UN SELECTOR.
+     Aquí había un selector armado a mano escapando solo las comillas, y una
+     etiqueta la escribe una mano: puede llevar lo que sea. Medido en el
+     navegador, con la barra invertida fallaba de las dos maneras posibles:
+     «a\"b» —barra y comilla— tiraba un SyntaxError que abortaba esto DESPUÉS
+     de haber vaciado la caja y apuntado la etiqueta, así que el chip no salía
+     y quedaba una excepción sin recoger; y «promesas\» no tiraba nada pero
+     tampoco encontraba el botón que sí existía, o sea que metía un segundo
+     chip repetido, en silencio, que es la mitad peor.
+     CSS.escape lo arreglaría, pero comparar el valor es más corto y no hay
+     nada que escapar: el nombre nunca se convierte en sintaxis.
+     Lo levantó la revisión de Codex. */
+  const box = menu.querySelector('.tagbox');
+  const yaEsta = [...box.querySelectorAll('.tg')].some(b => b.dataset.tag === t);
+  if (!yaEsta){
+    const vacio = box.querySelector('.vacio'); if (vacio) vacio.remove();
+    const btn = document.createElement('button');
+    btn.className = 'tg'; btn.dataset.tag = t; btn.textContent = t;
+    box.insertBefore(btn, box.querySelector('#tagNueva'));
+  }
+  refrescarTags();
+  colocarMenu();
 }
 menu.addEventListener('keydown', ev => {
   if (ev.target.id !== 'tagNueva' || ev.key !== 'Enter') return;
@@ -4062,7 +4244,11 @@ function menuVinculos(cap, vers){
   if (b){
     ev.preventDefault(); ev.stopPropagation();
     const [c, v] = b.dataset.back.split(':').map(Number);
-    pendiente = null; menuMarca = null;
+    /* Se cierra lo que hubiera antes de poner otra cosa dentro. No es una
+       formalidad: si había un panel abierto, mostrarMenu le arranca del DOM
+       la caja de escribir, y entonces lo escrito no tendría de dónde
+       cobrarse. ocultarMenu lo cobra primero y luego vacía. */
+    ocultarMenu();
     mostrarMenu(menuVinculos(c, v), b.getBoundingClientRect());
   }
 }, true));
@@ -4086,7 +4272,14 @@ function dobleGlosa(ev){
   ev.preventDefault();
   clearTimeout(esperaTap);
   apagarDestello();
-  abrirGlosa(m);
+  /* Se abre el MISMO panel que sale al tocar la marca en el texto, y
+     anclado donde está la marca y no donde está la nota: lo que vas a
+     editar es el pasaje, y el panel tiene que salir junto a él o se
+     pierde de vista qué se está glosando. Si el ancla no cae en esta
+     hoja se cuelga de la propia glosa, que es el único sitio seguro. */
+  const rg = rangoDe(m, pgBody);
+  const d = ev.target.closest('.gl');
+  abrirPanel(m, false, rg ? rg.getBoundingClientRect() : d.getBoundingClientRect());
 }
 [pgMargin, pgFoot, pgBody].forEach(el => {
   el.addEventListener('click', clicGlosa);
@@ -4099,410 +4292,6 @@ function dobleGlosa(ev){
 const TEXTO_HEX = {yellow:'#6d5410', green:'#235c31', blue:'#0f4b6b', orange:'#6e3406'};
 const TINT = Object.fromEntries(COLORS.map(c =>
   [c, [LINE_HEX[c], 'rgba(' + FILL_RGB[c] + ',' + (FILL_ALFA[c]*.42).toFixed(2) + ')', TEXTO_HEX[c]]]));
-function abrirGlosa(m){
-  /* El repintado solo hace falta para los caminos que colocan el recuadro
-     DENTRO de la hoja: necesitan que el margen esté recién armado para saber
-     dónde va. El de teléfono lo cuelga del cuerpo del documento y no mide
-     nada de la hoja, así que aquí solo estorba —y estorba en el peor sitio,
-     entre el dedo y el foco: en un teléfono el teclado solo sube si el foco
-     ocurre dentro del gesto que lo pidió, y cuanto más trabajo se mete en
-     medio, más ocasiones hay de perder ese hilo. */
-  if (!enTelefono()) renderPage();
-  const ta = document.createElement('textarea');
-  const [bd,bg,fg] = TINT[m.color];
-  ta.className='gl-edit'; ta.style.border='1px dashed '+bd; ta.style.background=bg; ta.style.color=fg;
-  ta.rows=3; ta.value=m.nota||''; ta.placeholder='glosa…';
-  /* EN TELÉFONO EL EDITOR NO VA DONDE VA LA GLOSA. Iba a la altura de su
-     marca, y eso funciona en una pantalla grande pero no aquí: en cuanto sale
-     el teclado se come la mitad de abajo, así que toda marca de la mitad
-     inferior abría su recuadro justo detrás. Medido a 390x844 con un teclado
-     de los normales: una marca a y=458 abría el editor en 456..519, y el
-     teclado empieza hacia 460.
-     Ese fue el error de la vez pasada: llevar la hoja al tope arregló que se
-     saliera por la derecha, pero el problema de verdad no era horizontal.
-     Ahora el editor se despega de la hoja y se ancla arriba del todo, que es
-     el único sitio de la pantalla donde el teclado no llega nunca, mida lo que
-     mida. Va en el cuerpo del documento y no dentro de la hoja para que
-     arrastrar el papel no se lo lleve, y para que renderPage —que rehace el
-     margen entero— no lo borre a media escritura.
-     Lleva su propio botón de listo porque en un teléfono no siempre hay dónde
-     tocar para quitar el foco: el texto se guarda al perderlo, y sin una
-     salida clara eso se convierte en adivinar. */
-  if (enTelefono()){
-    for (const raiz of [pgMargin, pgFoot, pgBody]){
-      const viejo = raiz.querySelector('.gl[data-gl="'+m.id+'"]');
-      if (viejo) viejo.remove();
-    }
-    /* LA CAJA ES UNA GLOSA, no un formulario encima de una glosa. Lleva el
-       recuadro de su color, las esquinas dispares que le tocan por su id y la
-       misma letra del mismo cuerpo, así que lo que escribes ya se ve como lo
-       que va a quedar. Antes era una caja de sistema con un botón "listo"
-       pegado: escribías en una cosa y aparecía otra.
-       La forma sale de formaOrganica con el MISMO id, así que el recuadro que
-       ves mientras escribes es exactamente el que se va a quedar en el margen,
-       hasta en qué esquina redondea más. */
-    const caja = document.createElement('div');
-    const forma = formaOrganica(m);
-    caja.className = 'gl gl-movil g-' + m.color;
-    caja.style.cssText = forma.css;
-    /* SE LE PASA --fs, NO UN font-size YA HECHO. La caja cuelga del cuerpo del
-       documento, fuera de la hoja, así que no hereda el --fs de #pg y hay que
-       dárselo; pero dárselo como font-size en línea pisaba el factor con el que
-       .gl calcula su letra, y entonces se escribía a 15 y se leía a 13,95 al
-       guardar: los renglones partían en otro sitio y la caja cambiaba de alto
-       justo al cerrar el editor, que es lo contrario de lo que esta caja
-       promete. Con --fs, .gl hace su cuenta igual aquí que en el margen.
-       Lo levantó la revisión de Codex. */
-    caja.style.setProperty('--fs', fontSize + 'px');
-    caja.style.setProperty('--papel', colorPapel());
-    /* Se le quitan al textarea el borde y el fondo que abrirGlosa le pone para
-       los otros tres sitios. Allí el textarea ES la glosa y necesita recuadro
-       propio; aquí el recuadro lo pone la caja, y dos marcos uno dentro de
-       otro son justo lo que hacía que esto se viera como un formulario. Van en
-       el atributo style porque en el atributo style se pusieron: contra eso no
-       puede la hoja de estilos. */
-    ta.style.border = '0';
-    ta.style.background = 'transparent';
-    ta.style.width = '100%';
-    /* El textarea no lleva tamaño propio: .gl-movil textarea hereda con
-       font:inherit, así que toma el de la caja —que ya sale del --fs de arriba
-       con el mismo factor que en el margen—. Ponérselo a mano aquí volvía a
-       pisar el factor. */
-    ta.style.removeProperty('font-size');
-    caja.appendChild(ta);
-    document.body.appendChild(caja);
-    ta.dataset.caja = '1';
-    /* DEL ANCHO QUE TENDRÁ, no del ancho de la pantalla. Iba de canto a canto
-       —left:8, right:8— y eso desmentía todo lo demás: escribías cuatro
-       renglones cortos en una caja de 396px y al soltarla se convertía en ocho
-       renglones largos de 233. La misma medida que usa el espejo del panel de
-       Glosas, y por la misma razón: si el ancho no es el de allá, los
-       renglones parten en otro sitio y no es un anticipo, es otra cosa.
-       Los 8px son el hueco de giro que .gl-margin reserva a cada lado para que
-       las esquinas torcidas tengan a dónde asomarse. */
-    const anchoGl = Math.max(120, MARGIN_W() - 8);
-    caja.style.width = anchoGl + 'px';
-    caja.style.right = 'auto';
-    const centrar = () => {
-      caja.style.left = Math.round(Math.max(8, (window.innerWidth - anchoGl) / 2)) + 'px';
-    };
-    /* NACE JUNTO A LO QUE SUBRAYASTE, no en la esquina de arriba. Antes se
-       plantaba pegada al techo por una razón buena —en un teléfono el teclado
-       se come la mitad de abajo y arriba es el único sitio al que no llega
-       nunca— pero el precio era que la nota aparecía lejos de su marca y había
-       que buscar con la vista qué se estaba glosando.
-       Ahora se pone JUSTO ENCIMA del principio de la selección, y solo se sube
-       si de verdad no cabe: se calcula el techo del teclado —de las cinco
-       octavas partes de la pantalla hacia abajo, que es lo que ocupa uno
-       normal— y si la caja se metiera ahí, se empuja hacia arriba lo justo.
-       Así que la excepción sigue cubierta sin convertirla en la regla. */
-    const rSel = rangoDe(m, pgBody);
-    const rects = rSel && rSel.getClientRects();
-    if (rects && rects.length){
-      const arriba = rects[0], AIRE = 10;
-      /* Se mide con la caja ya puesta: su alto depende de cuántos renglones
-         quepan a lo ancho de la pantalla, y eso no se sabe hasta pintarla. */
-      const alto = caja.offsetHeight || 96;
-      /* DÓNDE EMPIEZA EL TECLADO. La primera versión suponía el 62% de la
-         pantalla, y era optimista: este mismo archivo tenía medido un teclado
-         normal empezando hacia y=460 en una pantalla de 844, o sea el 54%. Con
-         el 62 la caja podía llegar a y=523 y quedarse media tapada.
-         Ahora hay dos capas. La estimación prudente —el 52%— coloca la caja
-         antes de que el teclado exista, porque colocar es lo primero que pasa
-         y el foco viene después. Y en cuanto el teclado sube de verdad, la
-         ventana visual encoge y avisa: ahí se recoloca con la medida REAL, que
-         es la única que no es una suposición. Los navegadores que no traen
-         visualViewport se quedan con la estimación, que ya es más prudente que
-         la de antes. Lo levantó la revisión de Codex. */
-      let techo = window.innerHeight * 0.52;
-      const recolocar = () => {
-        let t = arriba.top - alto - AIRE;
-        if (t + alto > techo) t = techo - alto;
-        caja.style.top = Math.round(Math.max(6, t)) + 'px';
-        /* Los colores viajan con la caja: si el teclado la empuja, la fila de
-           tintas tiene que ir detrás o se queda flotando donde ya no hay nada.
-           Se llama por el gancho porque colocarTintas se define más abajo —la
-           caja tiene que existir y estar puesta antes de poder medirla. */
-        if (caja._trasMover) caja._trasMover();
-      };
-      recolocar();
-      const vv = window.visualViewport;
-      if (vv){
-        const alTeclado = () => {
-          /* Solo cuando la ventana encoge de verdad: un cambio de barra de
-             direcciones no es un teclado, y recolocar por eso haría bailar la
-             caja mientras escribes. */
-          if (vv.height < window.innerHeight - 80){ techo = vv.height - 8; recolocar(); }
-        };
-        vv.addEventListener('resize', alTeclado);
-        ta._teclado = () => vv.removeEventListener('resize', alTeclado);
-      }
-      /* TRASLÚCIDA SOLO SI ESTORBA. Una glosa se ve a través a propósito —es
-         papel encima de papel— pero mientras escribes eso hace que las letras
-         de la nota compitan con el versículo de debajo. Se pone opaca, salvo
-         cuando la caja tapa justo lo que subrayaste: ahí conviene verlo, que
-         es de lo que estás hablando. */
-      /* CENTRADA EN LA PANTALLA. Ha estado en tres sitios y este es el que se
-         queda. Primero iba al arranque de lo subrayado, que suena bien y en
-         pantalla queda colgada a media línea, en un sitio distinto cada vez
-         —medido: x=114 sin nada que lo justificara—. Después, al canto de la
-         columna de texto, con el argumento de que una glosa vive en una franja
-         fija; pero la caja no está en la hoja, está flotando encima, y una
-         cosa que flota alineada con el borde de otra se lee torcida.
-         Centrada no compite con nada: es lo único que hay en la pantalla
-         mientras escribes, y el centro es donde el pulgar y la vista ya están.
-         Sigue midiendo lo que medirá la glosa, que era lo importante. */
-      centrar();
-      opacar(caja);
-    } else {
-      centrar();
-      opacar(caja);
-    }
-    /* LOS COLORES, ENCIMA DE LA CAJA. El color de una glosa se elegía después,
-       volviendo a tocar la marca para sacar su menú: dos gestos separados por
-       un vuelo entero para decidir algo que ya sabías cuando subrayaste.
-       Aquí está mientras escribes, que es cuando se sabe qué clase de nota es.
-       Van arriba porque abajo está el teclado; si arriba no cabe —la caja ya
-       está pegada al techo— bajan al otro lado, que es el único hueco que
-       queda. Lo decide la medida, no una suposición. */
-    const tintas = document.createElement('div');
-    tintas.className = 'gl-tintas';
-    const pintarTintas = () => {
-      tintas.innerHTML = COLORS.map(c =>
-        '<button class="mc" data-color="' + c + '" style="background:' + LINE_HEX[c] + '"' +
-        (m.color === c ? ' data-on="1"' : '') + '></button>').join('');
-    };
-    pintarTintas();
-    document.body.appendChild(tintas);
-    const colocarTintas = () => {
-      const r = caja.getBoundingClientRect();
-      const h = tintas.offsetHeight || 30, AIRE = 8;
-      const arriba = r.top - h - AIRE;
-      tintas.style.left = Math.round(r.left) + 'px';
-      tintas.style.width = Math.round(r.width) + 'px';
-      tintas.style.top = Math.round(arriba >= 6 ? arriba : r.bottom + AIRE) + 'px';
-    };
-    colocarTintas();
-    caja._trasMover = colocarTintas;
-    /* EL TOQUE NO PUEDE ROBAR EL FOCO. Si el botón se lleva el foco, el
-       textarea lo pierde, y perder el foco es precisamente lo que cierra la
-       glosa y la echa a volar: elegir un color la habría dado por terminada.
-       Se atiende en pointerdown y se corta ahí mismo, antes de que el
-       navegador mueva nada. */
-    tintas.addEventListener('pointerdown', ev => {
-      const b = ev.target.closest && ev.target.closest('[data-color]');
-      if (!b) return;
-      ev.preventDefault(); ev.stopPropagation();
-      m.color = b.dataset.color;
-      /* cssText borra TODO lo que se le puso en línea, incluida la altura que
-         acaba de calcular recolocar. Se guarda y se devuelve: la forma cambia
-         de color, no de sitio. */
-      const dondeEstaba = caja.style.top;
-      caja.className = 'gl gl-movil g-' + m.color;
-      caja.style.cssText = forma.css;
-      caja.style.setProperty('--fs', fontSize + 'px');   /* igual que al nacer */
-      caja.style.setProperty('--papel', colorPapel());
-      caja.style.width = anchoGl + 'px';
-      caja.style.right = 'auto';
-      if (dondeEstaba) caja.style.top = dondeEstaba;
-      centrar();
-      opacar(caja);
-      const t = TINT[m.color];
-      ta.style.color = t[2];
-      pintarTintas();
-      colocarTintas();
-      /* Se repinta el subrayado de la hoja, no la hoja entera: renderPage
-         rehace el cuerpo del texto, y rehacerlo con el teclado abierto y el
-         foco dentro de un textarea es la forma más corta de perder los dos.
-         Al cerrar la glosa ya se repinta todo de todas formas. */
-      save();
-      if (HL_API) aplicarHighlights();
-    });
-    ta._tintas = () => tintas.remove();
-    /* SE CIERRA TOCANDO AFUERA, y ya no hay botón que buscar. Un botón "listo"
-       obliga a apuntar a un blanco de un centímetro para decir algo que el
-       gesto natural —dejar de escribir— ya dice. Se escucha en captura para
-       llegar antes que cualquier otro oyente, y se ignora lo que caiga dentro
-       de la caja: ahí estás escribiendo, no terminando.
-       El blur hace el resto, que es donde ya vivía el guardado. */
-    const afuera = e => {
-      if (e.target.closest && e.target.closest('.gl-movil, .gl-tintas')) return;
-      document.removeEventListener('pointerdown', afuera, true);
-      ta.blur();
-    };
-    /* Al cuadro siguiente: el propio toque que abrió la glosa todavía anda
-       propagándose, y engancharlo ahora la cerraría antes de nacer. */
-    requestAnimationFrame(() =>
-      document.addEventListener('pointerdown', afuera, true));
-    ta.dataset.afuera = '1';
-    ta._afuera = afuera;
-  } else if (placement === 'margin'){
-    const viejo = pgMargin.querySelector('.gl[data-gl="'+m.id+'"]');
-    const rg = rangoDe(m, pgBody), rects = rg && rg.getClientRects();
-    if (!rects || !rects.length) return;
-    const top = viejo ? parseFloat(viejo.style.top)
-              : Math.round(rects[0].top - pgMargin.getBoundingClientRect().top - 2);
-    if (viejo) viejo.remove();
-    ta.style.position='absolute'; ta.style.left='0'; ta.style.width='100%'; ta.style.top=top+'px';
-    pgMargin.appendChild(ta);
-  } else if (placement === 'foot'){
-    const viejo = pgFoot.querySelector('.gl[data-gl="'+m.id+'"]');
-    ta.style.width='100%'; ta.style.margin='0 0 4px 0';
-    if (viejo) viejo.replaceWith(ta); else pgFoot.appendChild(ta);
-  } else {
-    const k = plano.findIndex(p => p.cap===m.cap && p.vers===m.vers);
-    const v = pgBody.querySelector('.v[data-k="'+k+'"]'); if (!v) return;
-    const viejo = pgBody.querySelector('.gl[data-gl="'+m.id+'"]');
-    ta.style.margin='5px 0 7px 14px'; ta.style.width='calc(100% - 14px)';
-    if (viejo) viejo.replaceWith(ta); else v.after(ta);
-  }
-  ta.focus();
-  ta.addEventListener('blur', () => {
-    if (ta._afuera) document.removeEventListener('pointerdown', ta._afuera, true);
-    if (ta._teclado) ta._teclado();
-    if (ta._tintas) ta._tintas();      /* la fila de colores se va con la caja */
-    const val = ta.value.trim();
-    if (val){
-      m.nota = val;
-      if (etiquetaActiva && !(m.etiquetas||[]).includes(etiquetaActiva))
-        m.etiquetas = (m.etiquetas||[]).concat(etiquetaActiva);
-    } else delete m.nota;
-    const caja = ta.dataset.caja ? ta.parentElement : null;
-    save(); renderPage();
-    /* Y la caja SE VA VOLANDO A SU SITIO. Sin esto, la nota desaparecía de
-       arriba y aparecía en el margen: dos cosas, no una. Viéndola viajar, lo
-       que escribiste y lo que quedó son el mismo objeto —que es la verdad— y
-       de paso el ojo aprende dónde buscarlo la próxima vez.
-       Si no hay a dónde volar —nota vacía, o la glosa no cabe en esta hoja— la
-       caja se quita sin más: inventarle un destino sería mentir. */
-    if (caja) volarGlosa(caja, m.id);
-  });
-}
-
-/* PAPEL DEBAJO, TINTE ENCIMA, EN UNA SOLA PILA DE FONDO.
-
-   El color de la marca vive en background-color, puesto por .g-amarillo y sus
-   hermanas, y es translúcido a propósito. Para dejar de ver el versículo por
-   detrás hace falta papel opaco DEBAJO de ese tinte, y ahí está el detalle:
-   un fondo solo tiene un color, y las imágenes de fondo se pintan ENCIMA de
-   él. Así que el papel va de color y el tinte pasa a ser una imagen —un
-   degradado de un solo tono— que se pinta sobre el papel.
-
-   El tinte se lee de la propia caja en vez de escribirlo aquí: son cuatro
-   colores y cada uno con su alfa, y copiarlos sería tener la misma tabla en
-   dos sitios. Lo que ya calculó el navegador es la fuente buena. */
-function opacar(caja){
-  const tinte = getComputedStyle(caja).backgroundColor;
-  caja.style.backgroundColor = colorPapel();
-  if (!tinte || tinte === 'rgba(0, 0, 0, 0)' || tinte === 'transparent') return;
-  /* EL COLOR TIENE QUE LEERSE. Los tintes de la glosa son bajísimos a
-     propósito —de .07 a .19— porque en la hoja la nota va sobre papel y con su
-     borde al lado, y ahí con una insinuación basta. Mientras ESCRIBES no
-     basta: la caja está flotando sobre el texto, sin nada alrededor que diga
-     de qué marca es, y a .08 el verde y el azul son papel a secas.
-     Así que se sube el alfa a un mínimo legible conservando el matiz. No es
-     inventar un color: es el mismo, con densidad suficiente para que se
-     reconozca cuando no tiene el papel de la hoja detrás para contrastarlo. */
-  const n = tinte.match(/[\d.]+/g) || [];
-  const a = n.length > 3 ? parseFloat(n[3]) : 1;
-  const fuerte = 'rgba(' + n[0] + ',' + n[1] + ',' + n[2] + ',' + Math.max(a, 0.42) + ')';
-  caja.style.backgroundImage = 'linear-gradient(' + fuerte + ',' + fuerte + ')';
-}
-
-/* EL VUELO DE LA GLOSA RECIÉN ESCRITA.
-
-   Se mide de dónde sale y a dónde va, y se lleva la caja de una a otra con un
-   transform: la caja no se re-maqueta, se mueve. El destino ya existe cuando
-   esto corre —renderPage lo acaba de pintar— así que su rectángulo es el de
-   verdad y no una estimación.
-   El de destino se esconde mientras dura el viaje y se destapa al llegar. Sin
-   eso se verían las dos a la vez y el viaje parecería una copia. */
-/* CUÁNTO DURA EL VUELO, y por qué ha ido a parar entre los dos extremos.
-
-   Empezó en 900 ms y con eso la nota no viajaba: se escapaba. La distancia es
-   casi la hoja entera y el ojo venía de leer, no de vigilar el margen, así que
-   para cuando la encontraba ya había aterrizado y lo único que quedaba era la
-   sensación de que algo se movió.
-   Se pasó a 4500 —cinco veces— y ahí se cruzó la otra raya. Lo que se está
-   enseñando es a DÓNDE se fue lo que acabas de escribir, y eso se ve entero
-   mucho antes de cuatro segundos y medio; el resto del tiempo la nota ya no
-   informa de nada y se queda flotando delante de lo que quieres seguir
-   leyendo. Una cosa lenta y otra que se demora no son la misma.
-   2400 es la medida que quedó: el triple de despacio que el arranque, tiempo
-   de sobra para seguirla con la vista sin proponérselo, y termina dentro del
-   rato en que todavía te importa dónde acabó.
-   Sigue sin estorbar en cualquier caso: el vuelo lo lleva el compositor y no
-   bloquea nada, así que mientras dura se puede leer, escribir o pasar hoja. */
-const VUELO_MS = 2400;
-function volarGlosa(caja, id){
-  const destino = document.querySelector('.gl[data-gl="' + id + '"]');
-  const a = caja.getBoundingClientRect();
-  const b = destino && destino.getBoundingClientRect();
-  if (!destino || !b.width || !a.width){ caja.remove(); return; }
-  destino.style.visibility = 'hidden';
-  caja.style.transformOrigin = 'top left';
-  caja.style.pointerEvents = 'none';
-
-  /* DERECHA A SU SITIO, SIN PASAR POR EL CENTRO.
-
-     El vuelo daba un rodeo por el medio de la hoja. La idea era que el ojo
-     viera el viaje entero sin apartarse de donde ya miraba, y tenía sentido
-     cuando el viaje duraba novecientos milisegundos: sin la curva, la nota se
-     iba por la orilla y se perdía. En cuanto el vuelo se alargó el problema se
-     acabó solo, y lo que quedó del rodeo fue una nota dando un paseo. Un
-     trayecto que no es el camino a ningún sitio se lee como decoración, y a
-     esta velocidad hay tiempo de sobra para leerlo.
-
-     Se quedan las dos cosas que sí hacían falta:
-     · el despegue —tiempo largo, distancia corta— para que arranque en vez de
-       aparecer ya lanzada.
-     · el aterrizaje que frena, para que se pose en vez de chocar.
-
-     Se sigue usando la API de animaciones y no una transición: hay tres puntos
-     y una transición solo sabe de dos. Y solo mueve transform y opacity, así
-     que la lleva el compositor —si el hilo se traba repaginando a media
-     escritura, el vuelo no se entrecorta. */
-  const fin  = { x: b.left - a.left, y: b.top - a.top };
-  const escala = (b.width / a.width).toFixed(3);
-  /* Va encogiendo por el camino, no de golpe al final: llegar al primer palmo
-     con el tamaño definitivo la haría verse como otra cosa antes de haberse
-     movido, y encoger solo al aterrizar sería un respingo. */
-  const enCamino = q => (1 - (1 - escala) * q).toFixed(3);
-  const en = q => 'translate(' + Math.round(fin.x*q) + 'px,' +
-                  Math.round(fin.y*q + (q < .5 ? -10 : 0)) + 'px)';
-  /* TRES TRAMOS Y UN CRUCERO EN MEDIO, y el crucero es el que faltaba.
-
-     Con solo despegue y aterrizaje —dos tramos— la curva del segundo tenía que
-     cubrir el 93% del camino ella sola, y por muy suave que se eligiera acababa
-     repartiéndolo mal: medido, 41% del recorrido en el último cuarto del
-     tiempo. O sea una nota que va tomando velocidad según se acerca, que es lo
-     contrario de posarse.
-     Con un tramo recto y llano en medio, cada parte hace una cosa sola: el
-     despegue arranca de cero y toma velocidad, el crucero la mantiene igual, y
-     el aterrizaje la suelta hasta parar. La curva de fuera es lineal para no
-     torcer ninguno de los tres. */
-  const vuelo = caja.animate([
-    /* el despegue: se levanta un pelo y casi no avanza */
-    { transform:'translate(0px,0px) scale(1)', opacity:1, offset:0,
-      easing:'cubic-bezier(.42,0,.72,.72)' },
-    { transform: en(.08) + ' scale(' + enCamino(.10) + ')',
-      opacity:1, offset:.18, easing:'linear' },
-    /* el crucero: derecho y a velocidad pareja */
-    { transform: en(.88) + ' scale(' + enCamino(.86) + ')',
-      opacity:.78, offset:.78, easing:'cubic-bezier(.2,.6,.35,1)' },
-    /* y se posa */
-    { transform: en(1) + ' scale(' + escala + ')', opacity:.45, offset:1 }
-  ], { duration:VUELO_MS, easing:'linear', fill:'forwards' });
-
-  const aterrizar = () => {
-    caja.remove();
-    if (destino.isConnected) destino.style.visibility = '';
-  };
-  vuelo.addEventListener('finish', aterrizar);
-  /* Red por si la animación no llega a terminar —pestaña de fondo, o un
-     navegador que no la soporte—: la caja no se puede quedar volando. */
-  setTimeout(() => { if (caja.isConnected) aterrizar(); }, VUELO_MS + 400);
-}
 
 /* ---------- etiquetas ---------- */
 /* Las etiquetas viven en la marca, no en la glosa: así puedes filtrar
@@ -4569,43 +4358,15 @@ function pintarFiltros(){
   mas.title = 'Sumar a la lista las glosas de otro libro';
   mas.onclick = ev => { ev.stopPropagation(); menuDeLibros(mas.getBoundingClientRect()); };
   cont.appendChild(mas);
-  /* LA ETIQUETA ACTIVA ENTRA EN LA LISTA AUNQUE TODAVÍA NO LA LLEVE NADIE.
-
-     Las opciones salen de las etiquetas EN USO, que es lo correcto para una
-     lista de lo que hay. Pero una etiqueta recién escrita no la lleva ninguna
-     marca todavía —esa es justo su situación—, así que al repintar
-     desaparecía de las opciones y el `sel.value` de abajo no encontraba a qué
-     agarrarse: el desplegable volvía a "— ninguna —".
-
-     Y lo peor no era eso: por dentro etiquetaActiva SEGUÍA puesta, así que la
-     siguiente glosa sí se etiquetaba. O sea que el control decía una cosa y el
-     programa hacía otra, que es la única clase de fallo que no se puede
-     descubrir usando la aplicación —solo desconfiando de ella—. Se escribía
-     "promesas", el desplegable decía "ninguna", y la nota salía etiquetada. */
-  const sel = $('selActiva'), previo = etiquetaActiva;
-  /* Y CADA OPCIÓN LLEVA SU value ESCRITO, que no es adorno.
-
-     Sin él, el navegador deduce el valor del texto de la opción, y al
-     deducirlo COLAPSA los espacios seguidos. Una etiqueta como «oración  diaria»
-     —dos espacios, que se escriben sin querer más a menudo de lo que parece—
-     se guardaba con dos en la marca y aparecía con uno en la opción, así que
-     el sel.value de abajo no encontraba a qué agarrarse y el desplegable
-     volvía a "— ninguna —" con la banda encendida: exactamente el mismo
-     desajuste que este cambio venía a arreglar, entrando por otra puerta.
-     Comprobado: sin value, "oración  diaria" da una opción que vale
-     "oración diaria". Lo levantó la revisión de Codex. */
-  const nombres = [...new Set([...mapa.keys(), ...(etiquetaActiva ? [etiquetaActiva] : [])])].sort();
-  sel.innerHTML = '<option value="">— ninguna —</option>' +
-    nombres.map(k => '<option value="'+esc(k)+'">'+esc(k)+'</option>').join('');
-  sel.value = previo;
-  $('banda').classList.toggle('apagada', !etiquetaActiva);
   pintarDias();
 }
 /* ============================================================
    POR DÍA. La fecha se queda como campo, no como etiqueta: si cada
    día fuera un chip, a los seis meses habría ciento ochenta chips
-   revueltos con "estudio". Aquí tiene su propio control, y sirve de
-   rescate para cuando se te olvidó prender la banda.
+   revueltos con "estudio". Aquí tiene su propio control, y filtra y
+   nada más: el botón de etiquetar en tanda todo un día se fue con la
+   etiqueta activa, porque era la misma idea —poner algo a un montón de
+   notas de una vez, sin mirarlas— y esa idea es la que se quitó.
    ============================================================ */
 function pintarDias(){
   const cuenta = new Map();
@@ -4616,78 +4377,8 @@ function pintarDias(){
     [...cuenta.keys()].sort().reverse()
       .map(d => '<option value="'+esc(d)+'">'+esc(d)+' ('+cuenta.get(d)+')</option>').join('');
   sel.value = diaFiltro;
-  const btn = $('btnEtiquetarDia');
-  btn.disabled = !diaFiltro || !etiquetaActiva;
-  btn.textContent = (diaFiltro && etiquetaActiva) ? 'etiquetar «' + etiquetaActiva + '»' : 'etiquetar';
-  btn.title = !etiquetaActiva ? 'Elige primero una etiqueta activa arriba'
-            : (!diaFiltro ? 'Elige primero un día' : '');
 }
 $('selDia').onchange = e => { diaFiltro = e.target.value; renderPage(); };
-$('btnEtiquetarDia').onclick = () => {
-  if (!diaFiltro || !etiquetaActiva) return;
-  let n = 0;
-  for (const m of marcas){
-    if (diaDe(m) !== diaFiltro) continue;
-    const t = m.etiquetas || [];
-    if (!t.includes(etiquetaActiva)){ m.etiquetas = t.concat(etiquetaActiva); n++; }
-  }
-  save(); renderPage();
-  /* Solo se habla si NO pasó nada: las marcas etiquetadas ya se ven en la
-     hoja, y contarlas encima es narrar lo que el ojo acaba de leer. El caso
-     mudo sí hace falta —tocaste el botón y la pantalla quedó igual— porque
-     ahí lo único que distingue «no hacía falta» de «no funcionó» es decirlo. */
-  if (!n) readout.textContent = 'todas las de ' + diaFiltro + ' ya tenían esa etiqueta';
-};
-/* Los dos caminos que cambian la etiqueta activa guardan. No basta con que
-   guardarAjustes corra al final de cada renderPage: ninguno de los dos
-   repinta la hoja —no hace falta, solo cambia con qué se etiquetará lo
-   siguiente— así que sin esta llamada el ajuste se perdía en cuanto cerrabas
-   sin tocar nada más. */
-$('selActiva').onchange = e => {
-  etiquetaActiva = e.target.value; pintarFiltros(); updateReadout(); guardarAjustes();
-};
-/* CREAR UNA ETIQUETA SIN DEPENDER DE ENTER.
-
-   Estaba colgado solo de keydown con key==='Enter', y eso funciona en un
-   teclado de verdad y falla justo donde se usa el programa. En Android la
-   tecla de una caja suelta —sin <form> alrededor— viene rotulada «Listo» y lo
-   que suele hacer es cerrar el teclado; y mientras el corrector está componien-
-   do, Gboard manda el keydown con key 'Unidentified' y keyCode 229, que no es
-   'Enter' por ningún lado. O sea que la única puerta para crear una etiqueta
-   estaba cerrada en el teléfono, sin decirlo, y lo que uno hace ahí —escribir
-   y tocar fuera para quitar el teclado— tiraba lo escrito en silencio.
-
-   Ahora hay cuatro caminos a la misma puerta y ninguno es imprescindible:
-     · el botón +, que además es lo único que AVISA de que hay algo que pulsar;
-     · tocar fuera (change), que es el gesto natural del teléfono;
-     · beforeinput con insertLineBreak, que es como llega el intro moderno;
-     · y el keydown de siempre, para el teclado de escritorio.
-   No se pisan: el primero que entra vacía la caja, y los demás se encuentran
-   el guardián de abajo con la cadena en blanco.
-
-   Crear de más no cuesta nada, y por eso se puede ser generoso con los
-   disparadores: la lista de etiquetas sale de las que están EN USO en alguna
-   marca, así que una que se cree sin querer y no se le ponga a nada
-   desaparece sola en cuanto elijas otra. */
-function crearEtiqueta(){
-  const caja = $('nuevaEtiqueta');
-  const v = caja.value.trim(); if (!v) return;
-  etiquetaActiva = v; caja.value = '';
-  const sel = $('selActiva');
-  if (![...sel.options].some(o => o.value === v)) sel.add(new Option(v, v));
-  sel.value = v; pintarFiltros(); updateReadout(); guardarAjustes();
-}
-$('nuevaEtiqueta').addEventListener('keydown', e => {
-  if (e.key === 'Enter'){ e.preventDefault(); crearEtiqueta(); }
-});
-$('nuevaEtiqueta').addEventListener('beforeinput', e => {
-  if (e.inputType === 'insertLineBreak'){ e.preventDefault(); crearEtiqueta(); }
-});
-/* change y no blur: solo salta si de verdad escribiste algo, así que entrar y
-   salir de la caja sin tocar nada no dispara nada. */
-$('nuevaEtiqueta').addEventListener('change', crearEtiqueta);
-$('btnCrearEtiqueta').addEventListener('click', crearEtiqueta);
-
 /* ---------- fotos y pliegue ---------- */
 let pageImg=null, nextImg=null, prevImg=null, pend=false, folding=false;
 /* folding dice que HAY un pliegue dibujándose; esta otra dice QUIÉN lo lleva.
@@ -8013,8 +7704,7 @@ function updateReadout(){
      consola— y no interrumpe a nadie. */
   window.__estado = nombreDe(LIBRO) + ' ' + pos.cap + ':' + pos.vers + '–' + fin.cap + ':' + fin.vers +
     ' · ' + cpl + ' car/línea' + juicio +
-    ' · ' + D.versiones[version].abrev + ' · ' + resumen +
-    (etiquetaActiva ? ' · etiquetando: ' + etiquetaActiva : '');
+    ' · ' + D.versiones[version].abrev + ' · ' + resumen;
 }
 /* ---------- índice de glosas ---------- */
 /* LA LISTA DE GLOSAS. Cada una se ve como se ve en el margen: mismo tipo de
@@ -8115,15 +7805,15 @@ function guardarAjustes(){
       interlineado, margen, version, showMarks, sepia,
       fuente: FUENTES.findIndex(f => f[1] === fuente),
       libro: LIBRO, cap: aqui.cap, vers: aqui.vers,
-      /* LA ETIQUETA ACTIVA SE GUARDA, y hay que decir por qué no es obvio.
-         Los demás ajustes son de la hoja —letra, columnas, márgenes—; ésta es
-         de lo que estás haciendo, y se podía defender que muriera al cerrar.
-         Lo que decide es cómo falla cada opción: si NO se guarda, vuelves al
-         día siguiente, sigues glosando el mismo tema, y las notas salen sin
-         etiquetar sin que nada te lo diga. Se descubre semanas después, al
-         filtrar y ver que faltan. La banda encendida al abrir, en cambio, se
-         ve: está ahí, dice qué etiqueta lleva, y apagarla es un gesto. */
-      etiquetaActiva
+      /* LA ÚLTIMA ETIQUETA USADA SE GUARDA, y ya no decide nada: solo sale
+         en negrita en el panel de la marca. Aquí vivía la etiqueta activa,
+         que sí decidía —se ponía sola a cada nota— y por eso había que
+         guardarla con cuidado y enseñarla en una banda encendida para que no
+         etiquetara a tus espaldas. Sin nada automático que anunciar, guardarla
+         es solo cortesía: vuelves al día siguiente, sigues con el mismo tema,
+         y la etiqueta de ayer está donde la dejaste, en negrita y a un toque.
+         Si se pierde no se rompe nada; solo hay que buscarla en la lista. */
+      ultimaEtiqueta
     }));
   } catch(e){ /* si no se puede, se arranca con lo de fábrica */ }
 }
@@ -8151,9 +7841,9 @@ function cargarAjustes(){
   /* Se acepta cualquier texto porque las etiquetas las escribe quien usa la
      aplicación y no hay lista cerrada que consultar; solo se rechaza lo que no
      es texto y lo desmedido, que sería un archivo manoseado y no una etiqueta.
-     Vacío vale: significa "ninguna". */
-  if (typeof a.etiquetaActiva === 'string' && a.etiquetaActiva.length <= 120)
-    etiquetaActiva = a.etiquetaActiva;
+     Vacío vale: significa que todavía no has usado ninguna. */
+  if (typeof a.ultimaEtiqueta === 'string' && a.ultimaEtiqueta.length <= 120)
+    ultimaEtiqueta = a.ultimaEtiqueta;
   if (D.versiones[a.version]) version = a.version;      // antes que el libro:
   if (a.libro && hayLibro(a.libro)) LIBRO = a.libro;    // hayLibro depende de version
   return a;

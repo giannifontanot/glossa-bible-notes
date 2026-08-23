@@ -48,10 +48,9 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
     const rc = r.getBoundingClientRect();
     document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
       { bubbles:true, clientX:rc.left+2, clientY:rc.top+2 }));
-    await new Promise(z => setTimeout(z, 400));
-    [...document.querySelectorAll('#menu button')].find(x => /Glosa/.test(x.textContent)).click();
-    await new Promise(z => setTimeout(z, 800));
-    /* se cierra sin escribir nada */
+    await new Promise(z => setTimeout(z, 450));
+    /* se cierra sin escribir nada: el panel trae la caja puesta desde el
+       principio, y sin texto no llega a guardarse ninguna marca */
     document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerdown',
       { bubbles:true, clientX:200, clientY:700 }));
     await new Promise(z => setTimeout(z, 1200));
@@ -71,14 +70,13 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
     const rc = r.getBoundingClientRect();
     document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
       { bubbles:true, clientX:rc.left+2, clientY:rc.top+2 }));
-    await new Promise(z => setTimeout(z, 400));
-    [...document.querySelectorAll('#menu button')].find(x => /Glosa/.test(x.textContent)).click();
-    await new Promise(z => setTimeout(z, 800));
-    const ta = document.querySelector('.gl-movil textarea');
+    await new Promise(z => setTimeout(z, 450));
+    const ta = document.getElementById('glosaCaja');
     ta.value = 'una nota que ocupa alto y empuja el corte de la hoja';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
     document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerdown',
       { bubbles:true, clientX:200, clientY:700 }));
-    await new Promise(z => setTimeout(z, 5600));   /* el vuelo dura 4,5 s */
+    await new Promise(z => setTimeout(z, 1400));
   });
   const escrita = await foto();
   di('tras la nota escrita', escrita);

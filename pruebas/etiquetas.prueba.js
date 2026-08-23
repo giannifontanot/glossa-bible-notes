@@ -1,12 +1,50 @@
-/* LAS ETIQUETAS: LAS CUATRO MANERAS DE PONERLAS, Y EL DESAJUSTE.
+/* LAS ETIQUETAS, DESDE EL PANEL DE LA MARCA.
 
-   El fallo que vivió aquí es el que más miedo da de todos: el control decía
-   una cosa y el programa hacía otra. Escribías una etiqueta nueva, el
-   desplegable volvía a "— ninguna —", y sin embargo la glosa siguiente salía
-   etiquetada. No se descubre usando la aplicación —o crees que no funcionó y
-   lo repites, o ni miras—; solo se ve comparando el control con el almacén.
-   Por eso esta prueba compara siempre las dos cosas. */
+   Ya no hay etiqueta activa. Aquí vivía el fallo que más miedo daba —el
+   desplegable decía "— ninguna —" y la glosa siguiente salía etiquetada
+   igual— y se quitó de raíz quitando lo que lo causaba: nada se pone solo.
+   Lo único que queda de aquello es que la última que usaste sale en NEGRITA,
+   y una negrita no etiqueta a nadie a tus espaldas.
+
+   Lo que sí se conserva entero es la lección de las cuatro puertas: crear una
+   etiqueta no puede depender de Enter. En Android la tecla de una caja suelta
+   viene rotulada «Listo» y lo normal es que solo cierre el teclado; y mientras
+   el corrector compone, Gboard manda el keydown con key 'Unidentified' y
+   keyCode 229, que no es 'Enter' por ningún lado. Colgado solo de ahí, crear
+   una etiqueta era imposible en el teléfono, sin decirlo.
+
+   Y una regla de método que costó cara: «tocar fuera» se toca DE VERDAD. El
+   toque de fuera lo recoge un oyente en fase de captura que cierra el panel,
+   y el change de la caja llega después. Disparar el change a mano da verde
+   sin haber probado el orden que impone el navegador, que es donde vivía el
+   fallo. */
 const { abrir, cerrar, di, vale, titulo } = require('./comun');
+
+/* Abrir el panel sobre un tramo del primer versículo y dejar una nota escrita:
+   sin nota las etiquetas duermen, porque sin nota no se guarda nada y una
+   etiqueta puesta ahí se perdería al cerrar. */
+const ABRIR = `async (desde, hasta, nota) => {
+  const v = document.querySelector('#pgBody .v');
+  const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+  while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
+  if (!n) return false;
+  const r = document.createRange(); r.setStart(n,desde); r.setEnd(n,hasta);
+  getSelection().removeAllRanges(); getSelection().addRange(r);
+  const rc = r.getBoundingClientRect();
+  document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+    { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
+  await new Promise(z => setTimeout(z, 450));
+  const ta = document.getElementById('glosaCaja');
+  if (!ta) return false;
+  ta.value = nota; ta.dispatchEvent(new Event('input', { bubbles:true }));
+  await new Promise(z => setTimeout(z, 120));
+  return !document.querySelector('#menu .tagbox').classList.contains('dormida');
+}`;
+const FUERA = `async () => {
+  document.body.dispatchEvent(new PointerEvent('pointerdown',
+    { bubbles:true, clientX:5, clientY:5 }));
+  await new Promise(z => setTimeout(z, 450));
+}`;
 
 (async () => {
   const sesion = await abrir();
@@ -20,267 +58,49 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
     await new Promise(z => setTimeout(z, 900));
   });
 
-  titulo('crear una etiqueta y dejarla activa');
-  await alPanel();
-  di('escribir + Enter', await p.evaluate(async () => {
-    const i = document.getElementById('nuevaEtiqueta');
-    i.value = 'promesas';
-    i.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
-    await new Promise(z => setTimeout(z, 700));
-    const sel = document.getElementById('selActiva');
-    return { desplegable: sel.value, campoLimpio: i.value === '',
-             banda: !document.getElementById('banda').classList.contains('apagada') };
-  }).then(r => {
-    vale('el desplegable la enseña', r.desplegable === 'promesas', r.desplegable || '(vacío)');
-    vale('la banda se enciende', r.banda);
-    return r;
-  }));
-
-  titulo('crear no puede depender de Enter');
-  /* ENTER FUNCIONA EN EL TECLADO DE VERDAD Y FALLA DONDE SE USA ESTO.
-     En Android la tecla de una caja suelta —sin <form> alrededor— viene
-     rotulada «Listo» y lo normal es que solo cierre el teclado; y mientras el
-     corrector compone, Gboard manda el keydown con key 'Unidentified' y
-     keyCode 229, que no es 'Enter' por ningún lado. Colgado solo de ahí, crear
-     una etiqueta era imposible en el teléfono, sin decirlo, y el gesto natural
-     —escribir y tocar fuera para quitar el teclado— tiraba lo escrito.
-     Así que se prueban las cuatro puertas por separado. El keydown de la
-     sección anterior es la de escritorio; éstas son las que lo salvan.
-     Y se comprueba que el + QUEPA EN LA PANTALLA, que es lo primero que se
-     rompió al meterlo: la banda pasó a medir 331 en 412 y el botón salía
-     cortado por la derecha, o sea que el único control que avisa de que hay
-     algo que pulsar se estrenaba a medias. */
-  /* REABRIR MIRANDO LO QUE SE VE, no una clase. alPanel sale antes de hacer
-     nada si #etiquetas tiene la clase «abierto», y esa clase se queda puesta
-     después de cerrar el panel tocando el papel: el panel estaba cerrado, la
-     clase decía que no, y el clic siguiente se quedaba esperando a un campo
-     invisible hasta agotar el plazo. Aquí se pregunta por el campo. */
-  const asegurarPanel = async () => {
-    for (let i = 0; i < 4; i++){
-      /* Se le pregunta a Playwright con SU definición de visible, no con una
-         mía: un rectángulo con tamaño no basta —el panel se cierra con
-         transición y durante ese rato todavía mide—, y comprobarlo a mano daba
-         verde justo antes de que el clic se quedara esperando. */
-      try {
-        await p.waitForSelector('#nuevaEtiqueta', { state:'visible', timeout:2500 });
-        return true;
-      } catch(e){ /* cerrado: se abre y se vuelve a mirar */ }
-      await p.evaluate(async () => {
-        const panel = document.getElementById('etiquetas');
-        const puesto = () => getComputedStyle(panel).display !== 'none';
-        if (!puesto()){
-          document.getElementById('pgCabeza').click();
-          await new Promise(z => setTimeout(z, 900));
-        }
-        /* HAY DOS PESTAÑAS «GLOSAS» EN EL DOCUMENTO, no una: el titulillo abre
-           Libros y la fila de pestañas está duplicada. Coger la primera con
-           find() funcionaba al arrancar y dejaba de funcionar después de tocar
-           el papel, porque la que manda pasa a ser la otra. Se prueban todas y
-           se para en cuanto el panel aparece. */
-        for (const t of document.querySelectorAll('.pestanas button')){
-          if (!/glosas/i.test(t.textContent)) continue;
-          t.click();
-          await new Promise(z => setTimeout(z, 500));
-          if (puesto()) return;
-        }
-      });
-    }
-    return false;
-  };
-
-  const comoQuedo = nombre => p.evaluate(nombre => {
-    const i = document.getElementById('nuevaEtiqueta'), s = document.getElementById('selActiva');
-    return { activa: s.value, estaEnLaLista: [...s.options].some(o => o.value === nombre),
-             campoLimpio: i.value === '' };
-  }, nombre);
-
-  /* «TOCAR FUERA» SE TECLEA DE VERDAD, y no es remilgo.
-     Poner .value por guion NO marca el campo como editado, así que el
-     navegador no manda el change al salir: una prueba que dispare el change a
-     mano da verde sin haber comprobado que el navegador lo mandaría. Es el
-     mismo atajo que dejó pasar el fallo del panel de la marca, así que aquí se
-     teclea con el teclado y se toca fuera con el ratón. */
-  await asegurarPanel();
-  await p.click('#nuevaEtiqueta');
-  await p.keyboard.type('fe', { delay:30 });
-  await p.mouse.click(200, 830);
-  await p.waitForTimeout(800);
-  di('tocar fuera', await comoQuedo('fe').then(r => {
-    vale('crea y deja activa · tocar fuera', r.activa === 'fe' && r.estaEnLaLista, r.activa);
-    vale('y limpia el campo · tocar fuera', r.campoLimpio);
-    return r;
-  }));
-
-  for (const [nombre, como] of [['gracia', 'el botón +'],
-                                ['paz', 'el intro del móvil']]){
-    await asegurarPanel();
-    await p.click('#nuevaEtiqueta');
-    await p.keyboard.type(nombre, { delay:30 });
-    await p.evaluate(async como => {
-      const i = document.getElementById('nuevaEtiqueta');
-      if (como === 'el botón +') document.getElementById('btnCrearEtiqueta').click();
-      if (como === 'el intro del móvil') i.dispatchEvent(new InputEvent('beforeinput',
-        { bubbles:true, cancelable:true, inputType:'insertLineBreak' }));
-      await new Promise(z => setTimeout(z, 600));
-    }, como);
-    di(como, await comoQuedo(nombre).then(r => {
-      vale('crea y deja activa · ' + como, r.activa === nombre && r.estaEnLaLista, r.activa);
-      vale('y limpia el campo · ' + como, r.campoLimpio);
-      return r;
-    }));
-  }
-  di('el botón + cabe en la pantalla', await p.evaluate(() => {
-    const b = document.getElementById('btnCrearEtiqueta'), r = b.getBoundingClientRect();
-    const banda = document.getElementById('banda').getBoundingClientRect();
-    return { texto:b.textContent.trim(), mide:Math.round(r.width)+'x'+Math.round(r.height),
-             acabaEn:Math.round(r.right), ventana:innerWidth,
-             seSale:Math.max(0, Math.round(r.right - innerWidth)),
-             bandaSeSale:Math.max(0, Math.round(banda.right - innerWidth)) };
-  }).then(r => {
-    vale('no se sale por la derecha', r.seSale === 0 && r.bandaSeSale === 0,
-         'botón ' + r.acabaEn + ' de ' + r.ventana);
-    vale('y es tocable', parseInt(r.mide) >= 30 && parseInt(r.mide.split('x')[1]) >= 30, r.mide);
-    return r;
-  }));
-
-  titulo('espacios seguidos y comillas');
-  /* Un <option> sin value deduce su valor del texto y COLAPSA los espacios; y
-     esc() no escapaba comillas, que se meten dentro de atributos. Las dos
-     cosas devolvían el desplegable a "— ninguna —" con la banda encendida. */
-  for (const raro of ['oración  diaria', 'la "roca"']){
-    const r = await p.evaluate(async v => {
-      const i = document.getElementById('nuevaEtiqueta');
-      i.value = v;
-      i.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
-      await new Promise(z => setTimeout(z, 700));
-      return { puesta: document.getElementById('selActiva').value };
-    }, raro);
-    vale('sobrevive «' + raro + '»', r.puesta === raro, JSON.stringify(r.puesta));
-  }
-  /* se vuelve a dejar la buena */
-  await p.evaluate(async () => {
-    const i = document.getElementById('nuevaEtiqueta');
-    i.value = 'promesas';
-    i.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
-    await new Promise(z => setTimeout(z, 700));
-  });
-
-  titulo('1 · la glosa nueva la hereda');
-  di('creada', await p.evaluate(async () => {
-    document.getElementById('pgCabeza').click();
-    await new Promise(z => setTimeout(z, 900));
+  titulo('las etiquetas duermen mientras no haya nota');
+  di('panel recién abierto', await p.evaluate(async ([abrir, fuera]) => {
     const v = document.querySelector('#pgBody .v');
     const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 20){ n = w.currentNode; break; }
-    const r = document.createRange(); r.setStart(n,0); r.setEnd(n,15);
+    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
+    const r = document.createRange(); r.setStart(n,0); r.setEnd(n,12);
     getSelection().removeAllRanges(); getSelection().addRange(r);
     const rc = r.getBoundingClientRect();
     document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX:rc.left+2, clientY:rc.top+2 }));
-    await new Promise(z => setTimeout(z, 400));
-    [...document.querySelectorAll('#menu button')].find(x => /Glosa/.test(x.textContent)).click();
-    await new Promise(z => setTimeout(z, 800));
-    document.querySelector('.gl-movil textarea').value = 'una nota etiquetada';
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerdown',
-      { bubbles:true, clientX:200, clientY:700 }));
-    await new Promise(z => setTimeout(z, 5600));
-    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]');
-    return { etiquetas: g[g.length-1] && g[g.length-1].etiquetas,
-             enLaHoja: [...document.querySelectorAll('.gl-tag')].map(x => x.textContent) };
-  }).then(r => {
-    vale('la lleva puesta', (r.etiquetas||[]).includes('promesas'), r.etiquetas);
-    vale('y se ve en la hoja', r.enLaHoja.length > 0, r.enLaHoja);
+      { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
+    await new Promise(z => setTimeout(z, 450));
+    const caja = document.querySelector('#menu .tagbox');
+    const dormida = caja.classList.contains('dormida');
+    const puntero = getComputedStyle(caja).pointerEvents;
+    /* se ve, para saber que existe y que ya llegará */
+    const seVe = getComputedStyle(caja).display !== 'none' &&
+                 parseFloat(getComputedStyle(caja).opacity) > 0;
+    await eval('(' + fuera + ')')();
+    return { dormida, puntero, seVe };
+  }, [ABRIR, FUERA]).then(r => {
+    vale('duerme sin nota', r.dormida);
+    vale('y no responde al dedo', r.puntero === 'none', r.puntero);
+    vale('pero se ve', r.seVe);
     return r;
   }));
 
-  titulo('2 · el panel de UNA marca');
-  /* Se llega tocando el TEXTO SUBRAYADO, no la tarjeta de la glosa. */
-  di('poner y quitar', await p.evaluate(async () => {
-    const v = document.querySelector('#pgBody .v');
-    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 20){ n = w.currentNode; break; }
-    const r = document.createRange(); r.setStart(n,3); r.setEnd(n,4);
-    const rc = r.getBoundingClientRect();
-    getSelection().removeAllRanges();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX:Math.round(rc.left+rc.width/2), clientY:Math.round(rc.top+rc.height/2) }));
-    await new Promise(z => setTimeout(z, 600));
-    const bt = [...document.querySelectorAll('#menu button')].find(x => /^#/.test(x.textContent.trim()));
-    if (!bt) return { menu: document.getElementById('menu').textContent.slice(0,60) };
-    bt.click();
-    await new Promise(z => setTimeout(z, 500));
-    /* crear una desde aquí mismo */
-    const i = document.getElementById('tagNueva');
-    i.value = 'reino';
-    i.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
-    await new Promise(z => setTimeout(z, 600));
-    const tras = JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]');
-    const puestas = tras[tras.length-1].etiquetas;
-    /* y apagar una tocándola */
-    const t = [...document.querySelectorAll('#menu .tg')].find(x => x.classList.contains('on'));
-    const apagada = t.textContent;
-    t.click();
-    await new Promise(z => setTimeout(z, 600));
-    const fin = JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]');
-    return { boton: bt.textContent.trim(), puestas, apagada, quedan: fin[fin.length-1].etiquetas };
-  }).then(r => {
-    vale('el botón # abre el panel', !!r.boton, r.boton);
-    vale('crear una desde ahí la pone', (r.puestas||[]).length === 2, r.puestas);
-    vale('tocarla la quita', (r.quedan||[]).length === 1, r.apagada + ' → ' + JSON.stringify(r.quedan));
-    return r;
-  }));
-
-  titulo('la caja del panel de una marca, sin Enter tampoco');
-  /* La misma trampa, en la otra caja donde se pueden crear.
-
-     Y AQUÍ HAY UNA SEGUNDA, QUE ESTA PRUEBA NO VEÍA. Tocar fuera del menú lo
-     recoge un oyente en fase de CAPTURA que llama a ocultarMenu, y ocultarMenu
-     deja menuMarca en null. El change de la caja llega después —el blur es
-     posterior al pointerdown—, así que para cuando iba a poner la etiqueta ya
-     no había a quién ponérsela y se perdía en silencio: el mismo fallo que
-     este cambio venía a quitar, un piso más abajo.
-     La primera versión de esta prueba lo dejaba pasar porque disparaba el
-     change a mano, sin el toque de fuera que es QUIEN IMPONE EL ORDEN. Por eso
-     ahora cada camino abre su panel y el de «tocar fuera» toca de verdad. Un
-     atajo en el gesto es un atajo en lo que se prueba.
-     Lo levantó la revisión de Codex. */
-  const abrirPanelDeMarca = () => p.evaluate(async () => {
-    const menu = document.getElementById('menu');
-    const cuerpo = document.getElementById('pgBody').getBoundingClientRect();
-    for (const v of document.querySelectorAll('#pgBody .v')){
-      for (const r of v.getClientRects()){
-        for (const f of [.2,.5,.8]){
-          const x = Math.round(r.left + r.width*f), y = Math.round(r.top + r.height/2);
-          if (x < cuerpo.left || x > cuerpo.right) continue;
-          getSelection().removeAllRanges();
-          document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-            { bubbles:true, clientX:x, clientY:y }));
-          await new Promise(z => setTimeout(z, 130));
-          const bt = [...menu.querySelectorAll('button')].find(q => q.dataset.acc === 'tags');
-          if (bt && getComputedStyle(menu).display !== 'none'){
-            bt.click(); await new Promise(z => setTimeout(z, 500));
-            return !!document.getElementById('tagNueva');
-          }
-        }
-      }
-    }
-    return false;
-  });
-
-  di('el panel de la marca se abre', await abrirPanelDeMarca());
-  vale('y trae su botón +', await p.evaluate(() =>
-    !!document.querySelector('#menu [data-acc="creartag"]')));
-
-  for (const [nombre, como] of [['salmo', 'el botón +'],
-                                ['maná', 'tocar fuera de verdad'],
-                                ['sion', 'el intro del móvil']]){
-    di(como, await p.evaluate(async ([nombre, como]) => {
-      const cuantas = t => JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
-        .filter(m => (m.etiquetas||[]).includes(t)).length;
+  titulo('las cuatro puertas para crear una etiqueta');
+  /* Cada una abre su propio panel sobre un tramo distinto del versículo: una
+     marca nueva encima de otra se lleva la de debajo, que es el comportamiento
+     de siempre y aquí solo estorbaría. */
+  const puertas = [['salmo', 'el intro de escritorio', 0, 12],
+                   ['reino', 'el botón +', 16, 28],
+                   ['maná',  'el intro del móvil', 32, 44],
+                   ['sion',  'tocar fuera de verdad', 48, 62]];
+  for (const [nombre, como, desde, hasta] of puertas){
+    di(como, await p.evaluate(async ([abrir, fuera, nombre, como, desde, hasta]) => {
+      const despierta = await eval('(' + abrir + ')')(desde, hasta, 'nota de ' + nombre);
+      if (!despierta) return { sinPanel:true };
       const menu = document.getElementById('menu');
       const i = document.getElementById('tagNueva');
-      if (!i) return { sinCaja:true };
       i.focus(); i.value = nombre; i.dispatchEvent(new Event('input', { bubbles:true }));
+      if (como === 'el intro de escritorio')
+        i.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
       if (como === 'el botón +') menu.querySelector('[data-acc="creartag"]').click();
       if (como === 'el intro del móvil') i.dispatchEvent(new InputEvent('beforeinput',
         { bubbles:true, cancelable:true, inputType:'insertLineBreak' }));
@@ -291,77 +111,128 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
           { bubbles:true, clientX:200, clientY:830 }));
         i.blur();
       }
-      await new Promise(z => setTimeout(z, 1000));
-      return { marcasConEsa: cuantas(nombre),
+      await new Promise(z => setTimeout(z, 400));
+      const campoLimpio = !document.getElementById('tagNueva') ||
+                          document.getElementById('tagNueva').value === '';
+      /* los tres primeros caminos siguen con el panel abierto: hay que
+         cerrarlo para que lo escrito llegue al almacén */
+      if (como !== 'tocar fuera de verdad') await eval('(' + fuera + ')')();
+      const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+      return { campoLimpio,
+               marcasConEsa: g.filter(m => (m.etiquetas||[]).includes(nombre)).length,
                menuCerrado: getComputedStyle(menu).display === 'none' };
-    }, [nombre, como]).then(async r => {
-      /* UNA, no dos ni cero: cero era el fallo del orden, y dos sería que el
-         repintado volviera a disparar la creación con el mismo texto. */
+    }, [ABRIR, FUERA, nombre, como, desde, hasta]).then(r => {
+      /* UNA, no dos ni cero: cero era el fallo del orden, y dos sería que
+         algún repintado volviera a disparar la creación con el mismo texto. */
       vale('la pone en la marca, una sola vez · ' + como,
-           !r.sinCaja && r.marcasConEsa === 1, r.sinCaja ? 'sin caja' : r.marcasConEsa);
-      if (como === 'tocar fuera de verdad')
-        vale('y el menú se cierra igual · ' + como, r.menuCerrado === true);
+           !r.sinPanel && r.marcasConEsa === 1, r.sinPanel ? 'sin panel' : r.marcasConEsa);
+      vale('y limpia el campo · ' + como, r.campoLimpio);
+      vale('el panel queda cerrado · ' + como, r.menuCerrado === true);
       return r;
     }));
-    /* cada camino empieza con su panel recién abierto: el de tocar fuera lo
-       cierra, y sin esto los siguientes se quedarían sin caja */
-    await p.evaluate(async () => {
-      document.body.dispatchEvent(new PointerEvent('pointerdown',
-        { bubbles:true, clientX:20, clientY:830 }));
-      await new Promise(z => setTimeout(z, 400));
-    });
-    if (nombre !== 'sion') di('   panel reabierto', await abrirPanelDeMarca());
   }
-  await alPanel();
 
-  titulo('3 · etiquetar un día entero');
-  await p.evaluate(() => document.querySelectorAll('#menu button[data-acc="listo"]').forEach(b => b.click()));
-  await alPanel();
-  di('el botón del día', await p.evaluate(async () => {
-    const s = document.getElementById('selDia'), b = document.getElementById('btnEtiquetarDia');
-    const sinDia = b.disabled;
-    const dia = [...s.options].map(o => o.value).find(v => v);
-    s.value = dia; s.dispatchEvent(new Event('change', { bubbles:true }));
-    await new Promise(z => setTimeout(z, 1000));
-    const dice = b.textContent.trim();
-    b.click();
-    await new Promise(z => setTimeout(z, 1200));
-    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]');
-    return { sinDia, dia, dice, conLaActiva: g.filter(m => (m.etiquetas||[]).includes('promesas')).length };
-  }).then(r => {
-    vale('apagado mientras falta el día', r.sinDia);
-    vale('dice qué etiqueta pondrá', /promesas/.test(r.dice), r.dice);
-    vale('y la pone', r.conLaActiva > 0, r.conLaActiva + ' marca(s)');
+  titulo('nombres raros: comillas, espacios dobles y barras');
+  /* Una etiqueta la escribe una mano y puede llevar lo que sea, así que cada
+     sitio por donde pasa el nombre es un sitio donde puede convertirse en
+     sintaxis. Ha pasado tres veces:
+     · esc() no escapaba comillas, y el nombre va dentro de un atributo;
+     · un <option> sin value colapsa los espacios dobles;
+     · y el chip se buscaba armando un selector con el nombre dentro. Medido:
+       «a\"b» tiraba SyntaxError y abortaba la creación con la caja ya
+       vaciada, y «promesas\» no tiraba nada pero no encontraba el botón que
+       existía, así que metía un chip repetido en silencio.
+     La barra invertida está aquí por eso, y las dos formas de fallar con ella
+     van cada una por su lado. */
+  for (const raro of ['oración  diaria', 'la "roca"', 'fe\\esperanza',
+                      'a\\"b', 'promesas\\']){
+    const r = await p.evaluate(async ([abrir, fuera, raro]) => {
+      const despierta = await eval('(' + abrir + ')')(0, 12, 'nota rara');
+      if (!despierta) return { sinPanel:true };
+      const i = document.getElementById('tagNueva');
+      i.value = raro;
+      i.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+      await new Promise(z => setTimeout(z, 350));
+      /* y se puede volver a tocar: si el nombre no sobrevivió al atributo, el
+         chip existe pero no se encuentra por su data-tag */
+      const chip = document.querySelector('#menu .tg.on');
+      const seEncuentra = !!chip && chip.dataset.tag === raro;
+      /* volver a crearla NO puede sacar un segundo chip: es la mitad
+         silenciosa del fallo del selector */
+      const i2 = document.getElementById('tagNueva');
+      i2.value = raro;
+      i2.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+      await new Promise(z => setTimeout(z, 300));
+      const cuantosChips = [...document.querySelectorAll('#menu .tg')]
+        .filter(b => b.dataset.tag === raro).length;
+      await eval('(' + fuera + ')')();
+      const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+      const mia = g.find(m => (m.etiquetas||[]).includes(raro));
+      return { seEncuentra, cuantosChips, guardada: !!mia,
+               /* ni repetida en la propia marca */
+               vecesEnLaMarca: mia ? mia.etiquetas.filter(x => x === raro).length : 0 };
+    }, [ABRIR, FUERA, raro]);
+    vale('sobrevive «' + raro + '»', !r.sinPanel && r.guardada && r.seEncuentra,
+         JSON.stringify(r));
+    vale('  y no se duplica el chip', r.cuantosChips === 1 && r.vecesEnLaMarca === 1,
+         'chips ' + r.cuantosChips + ' · en la marca ' + r.vecesEnLaMarca);
+  }
+
+  titulo('la última usada sale en negrita');
+  /* Es todo lo que queda de la etiqueta activa: se ve, y no hace nada. */
+  di('al abrir otro panel', await p.evaluate(async ([abrir, fuera]) => {
+    const despierta = await eval('(' + abrir + ')')(16, 30, 'otra nota');
+    if (!despierta) return { sinPanel:true };
+    const negrita = document.querySelector('#menu .tg.ultima');
+    const peso = negrita && getComputedStyle(negrita).fontWeight;
+    /* y NO está puesta: enseñarla no es aplicarla */
+    const puestas = [...document.querySelectorAll('#menu .tg.on')].map(x => x.dataset.tag);
+    await eval('(' + fuera + ')')();
+    return { cual: negrita && negrita.dataset.tag, peso, puestas };
+  }, [ABRIR, FUERA]).then(r => {
+    vale('hay una en negrita', !r.sinPanel && !!r.cual, r.cual);
+    vale('y es negrita de verdad', parseInt(r.peso) >= 700, r.peso);
+    vale('pero no se aplica sola', (r.puestas||[]).length === 0, r.puestas);
     return r;
   }));
 
-  titulo('4 · los chips de «ver» filtran');
-  di('apagar un chip', await p.evaluate(async () => {
-    const antes = document.querySelectorAll('#pgMargin .gl[data-gl], #pgBody .gl[data-gl]').length;
-    const chip = [...document.querySelectorAll('#filtros .chip')].find(c => /reino/.test(c.textContent));
-    if (!chip) return { sinChip:true };
-    chip.click();
-    await new Promise(z => setTimeout(z, 1200));
-    const apagado = document.querySelectorAll('#pgMargin .gl[data-gl], #pgBody .gl[data-gl]').length;
-    chip.click();
-    await new Promise(z => setTimeout(z, 1200));
-    return { antes, apagado,
-             vuelven: document.querySelectorAll('#pgMargin .gl[data-gl], #pgBody .gl[data-gl]').length };
-  }).then(r => {
-    vale('esconde', !r.sinChip && r.apagado < r.antes, r.antes + ' → ' + r.apagado);
-    vale('y devuelve', !r.sinChip && r.vuelven === r.antes, '→ ' + r.vuelven);
-    return r;
-  }));
-
-  titulo('la activa sobrevive a cerrar la aplicación');
+  titulo('sobrevive a cerrar la aplicación');
   await p.reload(); await p.waitForTimeout(2800);
-  di('tras recargar', await p.evaluate(() => ({
-    activa: document.getElementById('selActiva').value,
-    banda: !document.getElementById('banda').classList.contains('apagada'),
-    marcas: JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]').length })).then(r => {
-    vale('la etiqueta activa sigue puesta', r.activa === 'promesas', r.activa || '(vacío)');
-    vale('con su banda encendida', r.banda);
+  di('tras recargar', await p.evaluate(async ([abrir, fuera]) => {
+    const marcas = JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]').length;
+    const despierta = await eval('(' + abrir + ')')(0, 12, 'nota tras recargar');
+    const negrita = document.querySelector('#menu .tg.ultima');
+    const cual = negrita && negrita.dataset.tag;
+    await eval('(' + fuera + ')')();
+    return { marcas, despierta, cual };
+  }, [ABRIR, FUERA]).then(r => {
+    vale('la última usada sigue en negrita', !!r.cual, r.cual || '(ninguna)');
     vale('y las marcas siguen ahí', r.marcas > 0, r.marcas);
+    return r;
+  }));
+
+  titulo('los chips de «ver» filtran');
+  await alPanel();
+  di('apagar un chip', await p.evaluate(async () => {
+    const cuantas = () =>
+      document.querySelectorAll('#pgMargin .gl[data-gl], #pgBody .gl[data-gl]').length;
+    const antes = cuantas();
+    /* El primero que sea de etiqueta: cuál sobreviva depende de qué marcas
+       se pisaron por el camino, y clavar un nombre aquí es escribir una
+       prueba que falla por lo que hicieron las de arriba. */
+    const chip = [...document.querySelectorAll('#filtros .chip')]
+      .find(c => !c.classList.contains('chip-libro') && !c.classList.contains('chip-mas') &&
+                 !/sin etiqueta/.test(c.textContent));
+    if (!chip) return { sinChip:true, chips:[...document.querySelectorAll('#filtros .chip')]
+                                              .map(c => c.textContent.trim()) };
+    chip.click(); await new Promise(z => setTimeout(z, 1200));
+    const apagado = cuantas();
+    chip.click(); await new Promise(z => setTimeout(z, 1200));
+    return { antes, apagado, vuelven: cuantas() };
+  }).then(r => {
+    vale('esconde', !r.sinChip && r.apagado < r.antes,
+         r.sinChip ? JSON.stringify(r.chips) : r.antes + ' → ' + r.apagado);
+    vale('y devuelve', !r.sinChip && r.vuelven === r.antes, '→ ' + r.vuelven);
     return r;
   }));
 
