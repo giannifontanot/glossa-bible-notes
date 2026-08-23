@@ -73,6 +73,73 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo,
     return ok;
   }));
 
+  titulo('los dos siguen al sepia');
+  /* ERAN LO ÚNICO DE LA HOJA QUE NO SE MOVÍA CON EL SEPIA. El papel y la tinta
+     sí; estos dos llevaban un color escrito a mano, así que según entintas el
+     papel se le van acercando. Con los colores de antes el de arriba caía de
+     2.91 a 2.12 de contraste y el del pie de 2.07 a 1.51, y el del pie ya
+     estaba mal con papel BLANCO: el sepia no lo rompió, solo lo destapó.
+
+     Se barre el deslizador de punta a punta y se mide el contraste real —tinta
+     computada contra el fondo computado del propio rótulo—, que es lo que ve
+     el ojo. Los extremos están resueltos hacia atrás desde el contraste que se
+     quiere, así que interpolando lineal se queda clavado en 5.5 y 4.5: por eso
+     el mínimo se exige EN TODO el recorrido y no solo en los extremos, que es
+     donde una curva mal elegida se escondería.
+
+     Y se comprueba que el color de verdad cambie. Sin esto la prueba pasaría
+     con un color fijo lo bastante oscuro, y volveríamos a tener una hoja que
+     se entinta entera menos dos esquinas. */
+  di('el barrido', await p.evaluate(async () => {
+    const lum = c => { const [r,g,b] = c.match(/\d+/g).map(Number).map(v => {
+      v /= 255; return v <= .03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); });
+      return .2126*r + .7152*g + .0722*b; };
+    const mando = document.getElementById('sepia');
+    const antes = mando.value;
+    const q = id => { const c = getComputedStyle(document.getElementById(id));
+      const L = lum(c.color), f = lum(c.backgroundColor);
+      return { tinta:c.color, papel:c.backgroundColor,
+               contraste:+((Math.max(L,f)+.05)/(Math.min(L,f)+.05)).toFixed(2) }; };
+    const paso = [];
+    /* El 2 y el 82 no son cifras redondas al azar: son los dos pasos donde el
+       contraste toca su mínimo, uno por rótulo. Con solo las cifras redondas
+       la peor esquina del recorrido se quedaría entre dos muestras, que es la
+       manera más limpia de tener una prueba en verde y un rótulo flojo. */
+    for (const v of [0, 2, 25, 50, 75, 82, 100]){
+      mando.value = String(v);
+      mando.dispatchEvent(new Event('input', { bubbles:true }));
+      /* 460 y no 260: el rótulo entra al color nuevo con una transición de
+         .34s, y midiendo antes se lee un tono a medio camino. Da la casualidad
+         de que el contraste aguanta también a medio camino —las dos rampas son
+         lineales— pero entonces la prueba estaría midiendo otra cosa que la
+         que dice medir, y el día que la rampa deje de ser lineal callaría. */
+      await new Promise(z => setTimeout(z, 460));
+      paso.push({ sepia:v, cabeza:q('pgCabeza'), version:q('pgVersion') });
+    }
+    mando.value = antes;
+    mando.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 460));
+    return paso;
+  }).then(paso => {
+    const flojo = paso.filter(x => x.cabeza.contraste < 4.5 || x.version.contraste < 4.5);
+    vale('legibles en todo el recorrido', flojo.length === 0,
+         flojo.length ? flojo.map(x => x.sepia + ': ' + x.cabeza.contraste +
+                                       ' / ' + x.version.contraste).join(' · ')
+                      : paso.map(x => x.cabeza.contraste + '/' + x.version.contraste).join('  '));
+    const uno = paso[0], otro = paso[paso.length - 1];
+    vale('el papel se entinta', uno.cabeza.papel !== otro.cabeza.papel,
+         uno.cabeza.papel + ' -> ' + otro.cabeza.papel);
+    vale('y los rótulos con él', uno.cabeza.tinta !== otro.cabeza.tinta &&
+                                 uno.version.tinta !== otro.version.tinta,
+         uno.cabeza.tinta + ' -> ' + otro.cabeza.tinta);
+    /* el de arriba manda sobre el del pie: dónde estás se busca, en qué
+       traducción lees se consulta una vez */
+    vale('el de arriba pesa más que el del pie',
+         paso.every(x => x.cabeza.contraste > x.version.contraste),
+         uno.cabeza.contraste + ' contra ' + uno.version.contraste);
+    return paso;
+  }));
+
   titulo('y con RATÓN, que es donde estuvo roto');
   await cerrarParcial(sesion, 'dedo');
 
