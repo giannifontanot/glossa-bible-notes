@@ -179,28 +179,44 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo,
      antes del arreglo, en un salto de 0 a 100: 4.07 y 3.34 de contraste donde
      tocaban 5.60 y 4.56.
 
-     Por eso esta prueba mira EN EL CERO y no al final. Esperar a que la
-     transición acabe daría verde con el fallo puesto, que es justo lo que le
-     pasa a la foto. Lo levantó la revisión. */
+     SE MIRAN LAS DOS HOJAS, LA VIVA Y EL MOLDE, y la segunda es la que faltaba.
+     La primera versión de esta prueba solo consultaba pgCabeza y pgVersion, y
+     con eso daba verde teniendo el fallo puesto en las hojas VECINAS: sus
+     fotos se miden después, desde #ghost, dentro del mismo setTimeout(0), y
+     ese camino no estaba cubierto. Lo levantó la revisión, y es el mismo fallo
+     dos veces —medir mientras algo se mueve— en dos sitios distintos.
+     (El molde no lleva rótulo de pie, solo titulillo; por eso aquí solo se
+     pregunta por ghostCabeza.)
+
+     Se mira EN EL CERO y no al final. Esperar a que la transición acabe daría
+     verde con el fallo puesto, que es justo lo que le pasa a la foto. */
   di('en el mismo instante en que se pide la foto', await p.evaluate(async () => {
     const mando = document.getElementById('sepia');
     const cab = document.getElementById('pgCabeza'), pie = document.getElementById('pgVersion');
+    const molde = document.getElementById('ghostCabeza');
     const antes = mando.value;
     mando.value = '0'; mando.dispatchEvent(new Event('input', { bubbles:true }));
-    await new Promise(z => setTimeout(z, 600));
+    await new Promise(z => setTimeout(z, 900));
     mando.value = '100'; mando.dispatchEvent(new Event('input', { bubbles:true }));
+    /* Este setTimeout(0) se registra DESPUÉS del de invalidateSnapshot, así que
+       corre justo después de que la foto haya medido las dos hojas. */
     const cero = await new Promise(z => setTimeout(() => z(
-      { cab:getComputedStyle(cab).color, pie:getComputedStyle(pie).color }), 0));
-    await new Promise(z => setTimeout(z, 600));
-    const fin = { cab:getComputedStyle(cab).color, pie:getComputedStyle(pie).color };
+      { cab:getComputedStyle(cab).color, pie:getComputedStyle(pie).color,
+        molde:getComputedStyle(molde).color }), 0));
+    await new Promise(z => setTimeout(z, 900));
+    const fin = { cab:getComputedStyle(cab).color, pie:getComputedStyle(pie).color,
+                  molde:getComputedStyle(molde).color };
     mando.value = antes; mando.dispatchEvent(new Event('input', { bubbles:true }));
-    await new Promise(z => setTimeout(z, 600));
+    await new Promise(z => setTimeout(z, 900));
     return { cero, fin };
   }).then(r => {
     vale('el titulillo ya está teñido', r.cero.cab === r.fin.cab,
          r.cero.cab + ' contra ' + r.fin.cab);
     vale('y el del pie también', r.cero.pie === r.fin.pie,
          r.cero.pie + ' contra ' + r.fin.pie);
+    /* el molde, que es de donde salen las fotos de las hojas vecinas */
+    vale('y el molde, que es lo que se ve al pasar de página',
+         r.cero.molde === r.fin.molde, r.cero.molde + ' contra ' + r.fin.molde);
     return r;
   }));
 

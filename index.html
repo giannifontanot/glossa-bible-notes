@@ -1901,7 +1901,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-AGO-26 07:19';
+window.GLOSS_BUILD = '23-AGO-26 15:52';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2000,6 +2000,22 @@ const PAGE_CSS = `
    ahorrarse un fundido de color. Y no coinciden, porque renderPage entra por
    sinZoom y sinZoom cancela el suavizado en su primer renglón. */
 .sin-fundido .pg-cabeza, .sin-fundido .pg-version{ transition:none; }
+/* Y EL MOLDE NO SE FUNDE NUNCA. #ghost vive en left:-99999px y existe para una
+   sola cosa: que se le midan las palabras. Nadie lo mira, así que una
+   transición ahí no puede mejorar nada y sí puede estropear una medida.
+
+   Estropeaba una. sinFundido cubre la hoja viva mientras se mueve el sepia,
+   pero la foto de las hojas VECINAS se toma después, dentro del setTimeout(0)
+   de invalidateSnapshot: allí fotoDeHojaCrudo llama a prepararHoja(ghost) —que
+   es donde el molde recibe el color nuevo, porque renderPage solo prepara la
+   hoja viva— y mide acto seguido. Con el fundido puesto, medía el color de
+   antes: al pasar de página el titulillo salía con el tono viejo durante el
+   pliegue y saltaba al bueno al aterrizar. Lo levantó la revisión.
+
+   Se arregla aquí y no envolviendo esa llamada porque fotoDeHoja se pide desde
+   varios sitios —vecinas, saltos— y cada sitio nuevo tendría que acordarse.
+   Un molde que no anima nunca no puede olvidarse de no animar. */
+#ghost .pg-cabeza, #ghost .pg-version{ transition:none; }
 /* Sin subrayado en ningún estado. Lo que dice "estoy buscando otra cosa" es
    exactamente lo mismo que marca al libro elegido dentro del panel: fondo
    dorado sólido y letra crema, ni una raya. Dos señales distintas para la
@@ -3451,11 +3467,13 @@ function sinZoom(fn){
    color nuevo sin animar, igual que el papel, y la foto lo encuentra ya
    puesto. El encendido al tocarlos no se entera, que para eso se devuelve. */
 function sinFundido(fn){
-  pg.classList.add('sin-fundido'); ghost.classList.add('sin-fundido');
+  /* Solo la hoja viva: el molde no se funde nunca, y por eso no hace falta
+     acordarse de él aquí. Ver la regla de #ghost en PAGE_CSS. */
+  pg.classList.add('sin-fundido');
   try { return fn(); }
   finally {
     getComputedStyle($('pgCabeza')).color;
-    pg.classList.remove('sin-fundido'); ghost.classList.remove('sin-fundido');
+    pg.classList.remove('sin-fundido');
   }
 }
 
