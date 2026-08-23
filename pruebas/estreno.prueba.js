@@ -110,6 +110,53 @@ const ESPERADAS = [
     return r;
   }));
 
+  titulo('el papel arranca en sepia');
+  /* Un papel blanco de pantalla es el de un documento, no el de un libro. A 75
+     el papel queda crema y la tinta se va al marrón CON él —los dos a la vez,
+     que es lo que distingue una hoja vieja de una foto con filtro—.
+     Lo que se comprueba no es el número sino las dos cosas que pueden
+     romperse: que el deslizador de Formato diga lo mismo que se ve —si el
+     guion y el HTML se desincronizan, el control miente— y que esto sea solo
+     un ARRANQUE, no una imposición: quien guardó el suyo, incluido el cero,
+     tiene que recuperarlo. */
+  di('recién abierto', await p.evaluate(() => ({
+    deslizador: +document.getElementById('sepia').value,
+    rotulo: document.getElementById('sepiaAhora').textContent.trim(),
+    papel: getComputedStyle(document.getElementById('pg')).getPropertyValue('--papel').trim(),
+    tinta: getComputedStyle(document.getElementById('pgBody')).color
+  })).then(r => {
+    vale('el deslizador arranca en 75', r.deslizador === 75, r.deslizador);
+    vale('y el rótulo dice lo mismo', r.rotulo === '75', r.rotulo);
+    /* el papel deja de ser el blanco de sepia 0 (250,247,241) */
+    vale('el papel sale entintado', /237|23\d/.test(r.papel) && r.papel !== 'rgb(250,247,241)', r.papel);
+    /* Y LA TINTA VIAJA CON EL PAPEL. Entintar solo el fondo daría una foto con
+       filtro; el marrón de la letra es lo que hace que parezca papel viejo. */
+    vale('y la tinta se va al marrón con él', r.tinta !== 'rgb(36, 31, 26)', r.tinta);
+    return r;
+  }));
+
+  di('con el cero guardado a propósito', await p.evaluate(async () => {
+    const c = 'glossa:ajustes:v1';
+    const a = JSON.parse(localStorage.getItem(c) || '{}');
+    a.v = 1; a.sepia = 0; localStorage.setItem(c, JSON.stringify(a));
+    location.reload();
+  }).then(async () => {
+    await p.waitForTimeout(2900);
+    return p.evaluate(() => ({
+      deslizador: +document.getElementById('sepia').value,
+      tinta: getComputedStyle(document.getElementById('pgBody')).color }));
+  }).then(r => {
+    vale('el 75 no pisa lo guardado', r.deslizador === 0, r.deslizador);
+    vale('y el papel vuelve a blanco', r.tinta === 'rgb(36, 31, 26)', r.tinta);
+    return r;
+  }));
+  /* se deja el ajuste como estaba para las secciones de abajo */
+  await p.evaluate(async () => {
+    const c = 'glossa:ajustes:v1';
+    const a = JSON.parse(localStorage.getItem(c) || '{}');
+    delete a.sepia; localStorage.setItem(c, JSON.stringify(a));
+  });
+
   titulo('con otra versión guardada');
   /* EL ORDEN CONTRA LOS AJUSTES, que es lo que la revisión levantó.
      cargarAjustes restaura la versión guardada; sembrando antes de eso, las
