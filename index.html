@@ -1901,7 +1901,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-AGO-26 06:57';
+window.GLOSS_BUILD = '23-AGO-26 07:19';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -1991,6 +1991,15 @@ const PAGE_CSS = `
             white-space:nowrap; cursor:pointer; border-radius:0 0 0 4px;
             transition:background .34s cubic-bezier(.65,0,.35,1),
                        color .34s cubic-bezier(.65,0,.35,1); }
+/* EL FUNDIDO SE APAGA MIENTRAS SE MUEVE EL SEPIA. La transición de arriba está
+   puesta para cuando TOCAS el rótulo: se enciende en ámbar y vuelve. Pero el
+   sepia cambia esas dos mismas propiedades, y ahí estorba. Ver sinFundido.
+
+   Va a (0,2,0) a propósito, o sea por debajo de #pg.suavizando: si alguna vez
+   coincidieran, importa más que el zoom no le pegue un brinco al tamaño que
+   ahorrarse un fundido de color. Y no coinciden, porque renderPage entra por
+   sinZoom y sinZoom cancela el suavizado en su primer renglón. */
+.sin-fundido .pg-cabeza, .sin-fundido .pg-version{ transition:none; }
 /* Sin subrayado en ningún estado. Lo que dice "estoy buscando otra cosa" es
    exactamente lo mismo que marca al libro elegido dentro del panel: fondo
    dorado sólido y letra crema, ni una raya. Dos señales distintas para la
@@ -2276,25 +2285,47 @@ const TINTA = [[ 36, 31, 26], [ 59, 43, 24]];
    contraste y el del pie de 2.07 a 1.51. El del pie ya estaba mal con papel
    BLANCO: no era un problema del sepia, el sepia solo lo destapó.
 
-   Los extremos están resueltos hacia atrás, desde el contraste que se quiere:
-   5.5 el titulillo y 4.5 el del pie, en TODO el recorrido. Interpolando lineal
-   entre ellos el contraste se queda casi clavado —5.54-5.65 y 4.52-4.60 en los
-   101 pasos—, porque lo que pierde el papel de luminancia lo gana el rótulo de
-   oscuridad al mismo ritmo. No hace falta otra curva.
+   PRIMERO SE RESOLVIÓ MAL, y la corrección enseña más que el resultado. La
+   primera versión clavaba el contraste WCAG a lo largo del deslizador: 5.5
+   arriba y 4.5 abajo, planos. Pero el ratio de WCAG es un cociente de
+   luminancias, y oscurecer papel y rótulo al mismo ritmo lo deja casi intacto
+   POR CONSTRUCCIÓN. O sea que el número estaba plano porque no podía hacer
+   otra cosa, no porque el contraste de verdad lo estuviera. Medido en APCA,
+   que sí modela lo que ve el ojo, aquellos colores caían de Lc 75.1 a 64.0 el
+   titulillo y de 69.1 a 58.6 el del pie: once puntos de contraste percibido
+   que el número vigilado no veía.
 
-   Los dos van un punto más oscuros de lo que pedía la cuenta, y ese punto no
-   es de adorno: mezclar() redondea a entero, y con los valores exactos el del
-   pie caía a 4.49 en parte del recorrido. Un céntimo por debajo del mínimo
-   sigue siendo por debajo del mínimo, y prefiero el margen a tener que
-   explicar el céntimo.
+   Y HABÍA UN SEGUNDO FALLO, DE MATIZ. En sepia 0 el papel es casi neutro
+   —croma .009 en OKLCH— y la tinta del cuerpo también, .012. Aquellos rótulos
+   iban a .069 y .076: seis veces el croma de la tinta, y catorce grados de
+   matiz más hacia el amarillo. Sobre papel blanco eso no lee como tinta
+   suave, lee como ORO, un adorno o un enlace. Peor: su croma BAJABA según el
+   papel subía el suyo, así que el rótulo era más dorado justo donde el papel
+   era más neutro y menos había con qué disimularlo.
 
-   Y LOS DOS NÚMEROS NO SON IGUALES A PROPÓSITO. La jerarquía de la página es
-   texto > titulillo > pie: el cuerpo va de 15.3 a 9.3, y estos quedan por
-   debajo. El titulillo dice dónde estás y se busca; el del pie dice en qué
-   traducción lees, que se consulta una vez. 4.5 es además el mínimo que pide
-   la norma para texto pequeño, y en escritorio estos miden 9 y 10.5 px. */
-const ROTULO_CAB = [[120, 96, 52], [ 96, 76, 41]];
-const ROTULO_PIE = [[136,109, 59], [111, 89, 48]];
+   Los de ahora tienen la mitad de croma —.033 y .038 en blanco— y crecen con
+   el papel en vez de contra él, hasta .048 y .052 en sepia 100. Siguen siendo
+   cálidos, dejan de ser oro. Ganan además en los dos contrastes a la vez, en
+   todo el recorrido: WCAG 5.59-5.99 y 4.79-5.10, y APCA Lc 75.2-65.5 y
+   70.7-61.4. Interpolar en recta de sRGB basta: comparado con el arco en
+   OKLCH, el peor punto del sistema se separa .0026 de ΔE, un orden de
+   magnitud por debajo de lo perceptible.
+
+   LOS DOS NÚMEROS NO SON IGUALES A PROPÓSITO. La jerarquía de la página es
+   texto > titulillo > pie, y se cumple en los 101 pasos con las dos medidas.
+   El titulillo dice dónde estás y se busca; el del pie dice en qué traducción
+   lees, que se consulta una vez.
+
+   LO QUE ESTO NO ARREGLA, y conviene que quede escrito. El del pie mide 9 px
+   en escritorio, y por debajo de 14-15 px la tabla de APCA no habilita texto
+   de contenido con NINGÚN color: su fallo de fondo es de tamaño, no de tinta.
+   Y en sepia 100 el papel deja el cuerpo del texto en Lc 75.7, justo en el
+   mínimo para texto corrido: ahí ni ennegreciendo la tinta se llega al valor
+   cómodo, porque el techo lo pone el papel. Las dos cosas son decisiones
+   aparte —una repagina, la otra cambia la rampa del sepia entera— y ninguna se
+   toca aquí. */
+const ROTULO_CAB = [[112, 97, 79], [ 91, 72, 45]];
+const ROTULO_PIE = [[124,107, 86], [103, 82, 52]];
 /* EL SEPIA ARRANCA EN 75, no en cero. Un papel blanco de pantalla es el de un
    documento, no el de un libro; a 75 el papel queda en un crema cálido y la
    tinta se va al marrón con él —los dos a la vez, que es lo que distingue una
@@ -3392,6 +3423,40 @@ function sinZoom(fn){
   inner.style.transform = 'none';
   try { return fn(); }
   finally { inner.style.removeProperty('transform'); }
+}
+
+/* SIN FUNDIDO, para el momento en que se mueve el sepia.
+
+   Los dos rótulos de la hoja llevan una transición de .34s en color y en
+   fondo. Está ahí para cuando los tocas —se encienden en ámbar y vuelven—,
+   pero el sepia les cambia esas dos mismas propiedades, y entonces la
+   transición estorba dos veces.
+
+   La que se ve: el resto de la hoja se tiñe de golpe y los dos rótulos se
+   quedan un tercio de segundo con el tono anterior, como dos pegatinas
+   recortadas de otro papel.
+
+   Y LA QUE NO SE VE, QUE ES LA GRAVE. renderPage pide foto nueva del pliegue
+   con un setTimeout de cero, y la foto se arma midiendo el getComputedStyle de
+   cada palabra, rótulos incluidos: el SVG los pinta transparentes —.sin-tinta—
+   y quien les pone color es el lienzo. A los cero milisegundos la transición
+   acaba de empezar, así que se fotografía la tinta VIEJA sobre el papel NUEVO.
+   Medido en un salto de 0 a 100: 4.07 y 3.34 de contraste donde tocaban 5.60 y
+   4.56. Y la foto queda firmada como al día, así que eso no se corrige solo:
+   se queda puesto hasta el siguiente cambio de estilo. Lo levantó la revisión.
+
+   Se apaga la transición, se aplica el cambio, se obliga a resolver el estilo
+   —leer el color es lo que fuerza el recálculo— y se vuelve a encender, todo
+   dentro de la misma tarea. Así no hay cuadro intermedio: el rótulo llega al
+   color nuevo sin animar, igual que el papel, y la foto lo encuentra ya
+   puesto. El encendido al tocarlos no se entera, que para eso se devuelve. */
+function sinFundido(fn){
+  pg.classList.add('sin-fundido'); ghost.classList.add('sin-fundido');
+  try { return fn(); }
+  finally {
+    getComputedStyle($('pgCabeza')).color;
+    pg.classList.remove('sin-fundido'); ghost.classList.remove('sin-fundido');
+  }
 }
 
 function renderPage(){
@@ -4841,6 +4906,12 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza){
          arriba, pero de color. */
       '<div xmlns="http://www.w3.org/1999/xhtml" xml:lang="es" lang="es" class="pg sin-tinta" style="width:'+w+'px;height:'+h+'px;font-family:'+fuente+';--fam:'+fuente+
           ';--papel:'+colorPapel()+';--tinta:'+colorTinta()+
+          /* Estas dos NO pintan nada aquí, y conviene saberlo antes de ir a
+             buscar por qué el titulillo de la foto no cambia: .sin-tinta deja
+             todo el texto del SVG en transparente, y el color de los rótulos
+             lo pone el lienzo con lo que midió en la hoja viva. Van puestas
+             para que la raíz del SVG declare lo mismo que declara una hoja de
+             verdad; el día que algo del recuadro use ese tono, ya está. */
           ';--rot-cab:'+colorRotuloCab()+';--rot-pie:'+colorRotuloPie()+
           ';--fs:'+fontSize+'px'+
           ';--mx:'+(med ? 0 : MARGENES[margen][1])+'px'+'">'+
@@ -7827,7 +7898,9 @@ $('fsAhora').onchange = e => ponerTamano(+e.target.value);
 $('sepia').oninput = e => {
   sepia = Math.max(0, Math.min(100, +e.target.value || 0));
   $('sepiaAhora').textContent = sepia;
-  renderPage();
+  /* Sin fundido: los rótulos tienen que llegar al color nuevo dentro de esta
+     misma tarea, o la foto del pliegue los retrata con el tono de antes. */
+  sinFundido(renderPage);
 };
 $('selFuente').innerHTML = FUENTES.map((f,i) =>
   '<option value="'+i+'" title="'+f[2]+'">'+f[0]+'</option>').join('');
