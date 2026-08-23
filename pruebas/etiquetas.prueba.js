@@ -132,11 +132,20 @@ const FUERA = `async () => {
     }));
   }
 
-  titulo('espacios seguidos y comillas');
-  /* esc() no escapaba comillas y se meten dentro de atributos; y un espacio
-     doble se colapsa en cuanto el nombre viaja por el HTML en vez de por una
-     propiedad. Las dos cosas dejaban la etiqueta sin poder volver a tocarse. */
-  for (const raro of ['oración  diaria', 'la "roca"']){
+  titulo('nombres raros: comillas, espacios dobles y barras');
+  /* Una etiqueta la escribe una mano y puede llevar lo que sea, así que cada
+     sitio por donde pasa el nombre es un sitio donde puede convertirse en
+     sintaxis. Ha pasado tres veces:
+     · esc() no escapaba comillas, y el nombre va dentro de un atributo;
+     · un <option> sin value colapsa los espacios dobles;
+     · y el chip se buscaba armando un selector con el nombre dentro. Medido:
+       «a\"b» tiraba SyntaxError y abortaba la creación con la caja ya
+       vaciada, y «promesas\» no tiraba nada pero no encontraba el botón que
+       existía, así que metía un chip repetido en silencio.
+     La barra invertida está aquí por eso, y las dos formas de fallar con ella
+     van cada una por su lado. */
+  for (const raro of ['oración  diaria', 'la "roca"', 'fe\\esperanza',
+                      'a\\"b', 'promesas\\']){
     const r = await p.evaluate(async ([abrir, fuera, raro]) => {
       const despierta = await eval('(' + abrir + ')')(0, 12, 'nota rara');
       if (!despierta) return { sinPanel:true };
@@ -148,12 +157,25 @@ const FUERA = `async () => {
          chip existe pero no se encuentra por su data-tag */
       const chip = document.querySelector('#menu .tg.on');
       const seEncuentra = !!chip && chip.dataset.tag === raro;
+      /* volver a crearla NO puede sacar un segundo chip: es la mitad
+         silenciosa del fallo del selector */
+      const i2 = document.getElementById('tagNueva');
+      i2.value = raro;
+      i2.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+      await new Promise(z => setTimeout(z, 300));
+      const cuantosChips = [...document.querySelectorAll('#menu .tg')]
+        .filter(b => b.dataset.tag === raro).length;
       await eval('(' + fuera + ')')();
       const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
-      return { seEncuentra, guardada: g.some(m => (m.etiquetas||[]).includes(raro)) };
+      const mia = g.find(m => (m.etiquetas||[]).includes(raro));
+      return { seEncuentra, cuantosChips, guardada: !!mia,
+               /* ni repetida en la propia marca */
+               vecesEnLaMarca: mia ? mia.etiquetas.filter(x => x === raro).length : 0 };
     }, [ABRIR, FUERA, raro]);
     vale('sobrevive «' + raro + '»', !r.sinPanel && r.guardada && r.seEncuentra,
          JSON.stringify(r));
+    vale('  y no se duplica el chip', r.cuantosChips === 1 && r.vecesEnLaMarca === 1,
+         'chips ' + r.cuantosChips + ' · en la marca ' + r.vecesEnLaMarca);
   }
 
   titulo('la última usada sale en negrita');

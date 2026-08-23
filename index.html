@@ -3993,9 +3993,23 @@ function crearTagDeMarca(caja){
   ultimaEtiqueta = t;
   /* Una etiqueta que no estaba en la lista necesita su botón; el resto
      se arregla retocando los que ya hay. Nunca se repinta el panel: el
-     textarea está justo encima y se lo llevaría por delante. */
+     textarea está justo encima y se lo llevaría por delante.
+
+     SE BUSCA COMPARANDO dataset.tag, NO METIENDO EL NOMBRE EN UN SELECTOR.
+     Aquí había un selector armado a mano escapando solo las comillas, y una
+     etiqueta la escribe una mano: puede llevar lo que sea. Medido en el
+     navegador, con la barra invertida fallaba de las dos maneras posibles:
+     «a\"b» —barra y comilla— tiraba un SyntaxError que abortaba esto DESPUÉS
+     de haber vaciado la caja y apuntado la etiqueta, así que el chip no salía
+     y quedaba una excepción sin recoger; y «promesas\» no tiraba nada pero
+     tampoco encontraba el botón que sí existía, o sea que metía un segundo
+     chip repetido, en silencio, que es la mitad peor.
+     CSS.escape lo arreglaría, pero comparar el valor es más corto y no hay
+     nada que escapar: el nombre nunca se convierte en sintaxis.
+     Lo levantó la revisión de Codex. */
   const box = menu.querySelector('.tagbox');
-  if (!box.querySelector('.tg[data-tag="' + t.replace(/"/g,'\\"') + '"]')){
+  const yaEsta = [...box.querySelectorAll('.tg')].some(b => b.dataset.tag === t);
+  if (!yaEsta){
     const vacio = box.querySelector('.vacio'); if (vacio) vacio.remove();
     const btn = document.createElement('button');
     btn.className = 'tg'; btn.dataset.tag = t; btn.textContent = t;
