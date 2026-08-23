@@ -1,138 +1,272 @@
-/* LA CAJA DE ESCRIBIR Y EL VUELO.
+/* EL PANEL DE LA MARCA.
 
-   La caja no es un formulario encima de una glosa: ES una glosa. Lleva su
-   color, su letra y —esto es lo que costó— el ANCHO QUE VA A TENER en el
-   margen. Si el ancho no es el de allá, los renglones parten en otro sitio y
-   lo que ves mientras escribes no es un anticipo: es otra cosa.
+   Toda marca es una glosa: los dos botones no eligen qué clase de cosa
+   estás haciendo, sino cómo se dibuja el texto al que la nota se agarra
+   —resaltado o subrayado—. De ahí las dos reglas que se prueban aquí y que
+   son casi todo el comportamiento:
 
-   Y el vuelo enseña a dónde se guardó. Va lento a propósito —4,5 s— porque lo
-   que se está contando no es un cambio de estado, para eso basta un parpadeo,
-   sino DÓNDE quedó lo que acabas de escribir. */
+   · sin texto no se guarda NADA. Subrayar por accidente y tocar fuera tiene
+     que dejar la hoja exactamente como estaba.
+   · vaciar una glosa que tenía nota es borrarla, y eso avisa para poder
+     deshacerlo.
+
+   Y una tercera que no se ve pero se rompe sola: poner una etiqueta NO puede
+   repintar el panel, porque el panel lleva dentro la caja de escribir y
+   repintarlo se llevaría por delante el foco, el cursor y lo escrito. */
 const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
+
+/* Abrir el panel sobre las primeras letras de un versículo, como lo abre un
+   dedo: se selecciona y se suelta encima. */
+const ABRIR = `async (desde = 0, hasta = 15) => {
+  const v = document.querySelector('#pgBody .v');
+  const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+  while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
+  if (!n) return null;
+  const r = document.createRange(); r.setStart(n,desde); r.setEnd(n,hasta);
+  getSelection().removeAllRanges(); getSelection().addRange(r);
+  const rc = r.getBoundingClientRect();
+  document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+    { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
+  await new Promise(z => setTimeout(z, 400));
+  return true;
+}`;
+/* Tocar fuera: el gesto que cobra lo escrito y cierra. */
+const FUERA = `async () => {
+  document.body.dispatchEvent(new PointerEvent('pointerdown',
+    { bubbles:true, clientX:5, clientY:5 }));
+  await new Promise(z => setTimeout(z, 400));
+}`;
+/* Tocar una marca que YA existe: sin selección y en mitad de sus letras. Es
+   el otro camino que abre el panel, y el único que llega a una marca sin nota
+   —que no pinta nada en el margen y por eso no se puede abrir con dos clics. */
+const TOCAR = `async (desde, hasta) => {
+  const v = document.querySelector('#pgBody .v');
+  const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+  while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
+  if (!n) return false;
+  const r = document.createRange(); r.setStart(n,desde); r.setEnd(n,hasta);
+  const rc = r.getBoundingClientRect();
+  getSelection().removeAllRanges();
+  document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+    { bubbles:true, clientX:Math.round(rc.left + rc.width/2),
+      clientY:Math.round(rc.top + rc.height/2) }));
+  await new Promise(z => setTimeout(z, 400));
+  return true;
+}`;
+const guardadas = () => {
+  try { return JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]'); }
+  catch(e){ return []; }
+};
 
 (async () => {
   const sesion = await abrir();
   const p = sesion.pagina;
 
-  titulo('la caja al nacer');
-  const caja = await p.evaluate(async () => {
-    const v = document.querySelector('#pgBody .v');
-    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 20){ n = w.currentNode; break; }
-    const r = document.createRange(); r.setStart(n,0); r.setEnd(n,15);
-    getSelection().removeAllRanges(); getSelection().addRange(r);
-    const rc = r.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX:rc.left+2, clientY:rc.top+2 }));
-    await new Promise(z => setTimeout(z, 400));
-    [...document.querySelectorAll('#menu button')].find(x => /Glosa/.test(x.textContent)).click();
-    await new Promise(z => setTimeout(z, 800));
-    const c = document.querySelector('.gl-movil'), t = document.querySelector('.gl-tintas');
-    if (!c) return null;
-    const cs = getComputedStyle(c), rc2 = c.getBoundingClientRect();
-    const rt = t && t.getBoundingClientRect();
-    const arriba = rt && rt.bottom <= rc2.top + 1;
-    return { esGlosa: c.classList.contains('gl'),
-             color: [...c.classList].find(x => x.startsWith('g-')),
-             letra: cs.fontFamily.split(',')[0],
-             sinBoton: !c.querySelector('button'),
-             ancho: Math.round(rc2.width),
-             izq: Math.round(rc2.left), der: Math.round(window.innerWidth - rc2.right),
-             tintas: t ? t.querySelectorAll('[data-color]').length : 0,
-             marcada: t ? [...t.querySelectorAll('[data-color]')]
-                          .filter(x => x.hasAttribute('data-on')).map(x => x.dataset.color) : null,
-             tintasDonde: !rt ? null : (arriba ? 'encima' : 'debajo'),
-             tintasSeMontan: rt ? !(rt.bottom <= rc2.top + 1 || rt.top >= rc2.bottom - 1) : null,
-             tintasEnPantalla: rt ? rt.top >= 0 && rt.bottom <= window.innerHeight + 1 : null };
-  });
-  di('medida', caja);
-  vale('la caja salió', !!caja);
-  vale('es una glosa, no un formulario', caja.esGlosa && caja.sinBoton, caja.letra);
-  vale('centrada', Math.abs(caja.izq - caja.der) <= 1, caja.izq + ' / ' + caja.der);
-  vale('con los cuatro colores', caja.tintas === 4, caja.marcada);
-  vale('la fila de colores no se monta', caja.tintasSeMontan === false, caja.tintasDonde);
-  vale('y cabe en la pantalla', caja.tintasEnPantalla);
-
-  titulo('elegir color no cierra la caja');
-  di('tras tocar otro color', await p.evaluate(async () => {
-    const t = document.querySelector('.gl-tintas');
-    const otro = [...t.querySelectorAll('[data-color]')].find(x => !x.hasAttribute('data-on'));
-    const ta = document.querySelector('.gl-movil textarea');
-    ta.value = 'una nota de otro color';
-    const arribaAntes = document.querySelector('.gl-movil').style.top;
-    const r = otro.getBoundingClientRect();
-    /* pointerdown y no click: si el botón se llevara el foco, el textarea lo
-       perdería y perder el foco es lo que cierra la glosa y la echa a volar */
-    otro.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, pointerId:41,
-      pointerType:'touch', isPrimary:true, clientX:r.left+r.width/2, clientY:r.top+r.height/2 }));
-    await new Promise(z => setTimeout(z, 400));
-    const c = document.querySelector('.gl-movil');
-    const rc = c && c.getBoundingClientRect();
-    return { sigueAhi: !!c, pedido: otro.dataset.color,
-             color: c && [...c.classList].find(x => x.startsWith('g-')),
-             texto: c && c.querySelector('textarea').value,
-             noSeMovio: c && c.style.top === arribaAntes,
-             sigueCentrada: rc ? Math.abs(rc.left - (window.innerWidth - rc.right)) <= 1 : null };
-  }).then(r => {
-    vale('la caja sigue abierta', r.sigueAhi);
-    vale('cambió de color', r.color === 'g-' + r.pedido, r.color);
-    vale('sin perder el texto', r.texto === 'una nota de otro color');
-    vale('sin moverse de sitio', r.noSeMovio && r.sigueCentrada);
+  titulo('el panel al nacer');
+  const base = await p.evaluate(
+    () => JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length);
+  di('glosas de bienvenida', base);
+  di('medida', await p.evaluate(async ([abrir, base]) => {
+    await eval('(' + abrir + ')')();
+    const m = document.getElementById('menu');
+    const modos = [...m.querySelectorAll('.mmodos button')];
+    const tags = m.querySelector('.tagbox');
+    return {
+      salio: getComputedStyle(m).display !== 'none',
+      colores: m.querySelectorAll('.mc').length,
+      modos: modos.map(b => b.dataset.modo),
+      encendido: modos.filter(b => b.classList.contains('on')).map(b => b.dataset.modo),
+      hayCaja: !!m.querySelector('#glosaCaja'),
+      cajaVacia: (m.querySelector('#glosaCaja')||{}).value === '',
+      tagsDormidas: !!tags && tags.classList.contains('dormida'),
+      /* nada tocó el almacén todavía: las de la bienvenida y ni una más */
+      crecio: JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length - base
+    };
+  }, [ABRIR, base]).then(r => {
+    vale('el panel salió', r.salio);
+    vale('con los cuatro colores', r.colores === 4);
+    vale('y dos botones, no tres', r.modos.length === 2, r.modos.join(' | '));
+    vale('resaltado viene puesto', r.encendido.join() === 'fill', r.encendido);
+    vale('la caja de escribir está desde el principio', r.hayCaja && r.cajaVacia);
+    vale('las etiquetas duermen sin texto', r.tagsDormidas);
+    vale('y no se ha guardado nada', r.crecio === 0, r.crecio);
     return r;
   }));
 
-  titulo('el vuelo');
-  const vuelo = await p.evaluate(async () => {
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerdown',
-      { bubbles:true, clientX:200, clientY:700 }));
-    await new Promise(z => setTimeout(z, 140));
-    const c = document.querySelector('.gl-movil');
-    if (!c) return null;
-    const an = c.getAnimations()[0];
-    if (!an) return null;
-    const dur = an.effect.getTiming().duration;
-    const donde = f => { an.currentTime = dur*f;
-      const m = new DOMMatrix(getComputedStyle(c).transform);
-      return { x:Math.round(m.m41), y:Math.round(m.m42) }; };
-    const P = [0,.25,.5,.75,1].map(donde);
-    an.currentTime = 140; an.play();
-    return { dur, curva: an.effect.getTiming().easing, P };
+  titulo('escribir despierta las etiquetas');
+  di('tras teclear', await p.evaluate(async () => {
+    const ta = document.getElementById('glosaCaja');
+    ta.value = 'la primera nota';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 120));
+    const tags = document.querySelector('#menu .tagbox');
+    return { dormidas: tags.classList.contains('dormida'),
+             puntero: getComputedStyle(tags).pointerEvents };
+  }).then(r => {
+    vale('se despiertan al haber texto', r.dormidas === false);
+    vale('y vuelven a responder', r.puntero !== 'none', r.puntero);
+    return r;
+  }));
+
+  titulo('poner una etiqueta no se lleva lo escrito');
+  /* El fallo que esta prueba existe para cazar: el menú de antes se repintaba
+     entero al tocar un chip. Con una caja de escribir dentro, repintar es
+     perder el texto a media palabra. */
+  di('tras tocar un chip', await p.evaluate(async () => {
+    const caja = document.querySelector('#menu #tagNueva');
+    caja.value = 'promesas';
+    caja.dispatchEvent(new Event('change', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 150));
+    const ta = document.getElementById('glosaCaja');
+    const antes = ta.value;
+    const chip = document.querySelector('#menu .tg[data-tag="promesas"]');
+    if (!chip) return { habiaChip:false };
+    /* crearla ya la aplica: el primer toque la quita y el segundo la
+       devuelve, que es el vaivén que hay que probar */
+    const alCrearla = chip.classList.contains('on');
+    chip.click(); await new Promise(z => setTimeout(z, 120));
+    const trasUno = document.querySelector('#menu .tg[data-tag="promesas"]').classList.contains('on');
+    document.querySelector('#menu .tg[data-tag="promesas"]').click();
+    await new Promise(z => setTimeout(z, 120));
+    const ahora = document.getElementById('glosaCaja');
+    return { habiaChip:true, alCrearla, trasUno,
+             trasDos: document.querySelector('#menu .tg[data-tag="promesas"]').classList.contains('on'),
+             mismoNodo: ahora === ta, texto: ahora && ahora.value, antes,
+             enNegrita: !!document.querySelector('#menu .tg.ultima') };
+  }).then(r => {
+    vale('la etiqueta nueva salió puesta', r.habiaChip && r.alCrearla);
+    vale('un toque la quita y otro la devuelve',
+         r.trasUno === false && r.trasDos === true, [r.trasUno, r.trasDos]);
+    vale('el textarea es el MISMO nodo', r.mismoNodo);
+    vale('y conserva lo escrito', r.texto === r.antes && !!r.texto, r.texto);
+    vale('la última usada va en negrita', r.enNegrita);
+    return r;
+  }));
+
+  titulo('tocar fuera con texto guarda');
+  di('tras cerrar', await p.evaluate(async ([fuera, base]) => {
+    await eval('(' + fuera + ')')();
+    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    const mia = g.find(x => x.nota === 'la primera nota');
+    return { crecio: g.length - base, nota: mia && mia.nota, etiquetas: mia && mia.etiquetas,
+             estilo: mia && mia.estilo,
+             panelCerrado: getComputedStyle(document.getElementById('menu')).display === 'none' };
+  }, [FUERA, base]).then(r => {
+    vale('quedó una marca más', r.crecio === 1, r.crecio);
+    vale('con su nota', r.nota === 'la primera nota', r.nota);
+    vale('y su etiqueta', (r.etiquetas||[]).join() === 'promesas', r.etiquetas);
+    vale('el panel se cerró', r.panelCerrado);
+    return r;
+  }));
+
+  titulo('sin texto no se guarda nada');
+  /* La regla que sostiene todo lo demás: un subrayado por accidente no puede
+     dejar rastro. Antes de este cambio, tocar "Resaltar" creaba la marca en
+     el acto y no había manera de deshacer el gesto salvo borrándola. */
+  di('abrir y salir sin escribir', await p.evaluate(async ([abrir, fuera]) => {
+    const antes = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length;
+    await eval('(' + abrir + ')')(22, 34);
+    const abierto = getComputedStyle(document.getElementById('menu')).display !== 'none';
+    /* mientras está abierto SÍ se ve el ancla, que es media decisión */
+    const seVe = document.querySelectorAll('#pgBody .v').length > 0;
+    await eval('(' + fuera + ')')();
+    return { antes, abierto, seVe,
+             despues: JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length };
+  }, [ABRIR, FUERA]).then(r => {
+    vale('el panel se abrió', r.abierto);
+    vale('y al salir sin escribir no queda nada', r.despues === r.antes,
+         r.antes + ' → ' + r.despues);
+    return r;
+  }));
+
+  titulo('los dos trazos');
+  di('elegir línea', await p.evaluate(async ([abrir, fuera]) => {
+    await eval('(' + abrir + ')')(40, 54);
+    document.querySelector('#menu .mmodos button[data-modo="border"]').click();
+    await new Promise(z => setTimeout(z, 120));
+    const encendido = [...document.querySelectorAll('#menu .mmodos button')]
+      .filter(b => b.classList.contains('on')).map(b => b.dataset.modo);
+    const ta = document.getElementById('glosaCaja');
+    /* la caja sigue estando: el trazo no la esconde, porque toda marca es
+       una glosa y sin nota no hay nada que guardar */
+    const hayCaja = !!ta;
+    ta.value = 'subrayada'; ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await eval('(' + fuera + ')')();
+    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    const nueva = g.find(x => x.nota === 'subrayada');
+    return { encendido, hayCaja, estilo: nueva && nueva.estilo, cuantas: g.length };
+  }, [ABRIR, FUERA]).then(r => {
+    vale('línea queda encendida y sola', r.encendido.join() === 'border', r.encendido);
+    vale('la caja de escribir no se esconde', r.hayCaja);
+    vale('y se guarda con el trazo elegido', r.estilo === 'border', r.estilo);
+    return r;
+  }));
+
+  titulo('vaciar una glosa la borra');
+  /* La única puerta de salida que tiene una marca, y por eso tiene red:
+     el aviso de deshacer. */
+  di('borrar por vaciado', await p.evaluate(async ([fuera]) => {
+    const g0 = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    const objetivo = g0.find(x => x.nota === 'subrayada');
+    const gl = document.querySelector('#pgMargin .gl[data-gl="' + objetivo.id + '"]') ||
+               document.querySelector('#pgBody .gl[data-gl="' + objetivo.id + '"]');
+    if (!gl) return { sinGlosa:true };
+    gl.dispatchEvent(new MouseEvent('dblclick', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 400));
+    const ta = document.getElementById('glosaCaja');
+    if (!ta) return { sinPanel:true };
+    const traia = ta.value;
+    ta.value = ''; ta.dispatchEvent(new Event('input', { bubbles:true }));
+    const dormidasOtraVez = document.querySelector('#menu .tagbox').classList.contains('dormida');
+    await eval('(' + fuera + ')')();
+    const g1 = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    return { traia, dormidasOtraVez, antes: g0.length, despues: g1.length,
+             sigue: g1.some(x => x.id === objetivo.id),
+             deshacer: getComputedStyle(document.getElementById('deshacer')).display !== 'none' };
+  }, [FUERA]).then(r => {
+    vale('el panel abre con la nota puesta', !r.sinGlosa && !r.sinPanel && r.traia === 'subrayada',
+         r.traia);
+    vale('vaciarla vuelve a dormir las etiquetas', r.dormidasOtraVez);
+    vale('la marca se fue', r.sigue === false, r.antes + ' → ' + r.despues);
+    vale('y avisa para poder deshacerlo', r.deshacer);
+    return r;
+  }));
+
+  titulo('una marca vieja sin nota no se borra por mirarla');
+  /* Las marcas de antes de este cambio pueden no tener nota. Su caja nace
+     vacía sin que nadie la vacíe, así que la regla de arriba —vaciar es
+     borrar— las borraría solo por abrirlas. Se fabrica una quitándole la nota
+     a la que acabamos de guardar, que es exactamente como llegan las viejas. */
+  await p.evaluate(() => {
+    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    const mia = g.find(x => x.nota === 'la primera nota');
+    if (mia){ mia.__vieja = 1; delete mia.nota; }
+    localStorage.setItem('glossa:marcas:v1', JSON.stringify(g));
   });
-  di('duración', vuelo && vuelo.dur + ' ms, curva ' + vuelo.curva);
-  /* EL MARGEN ES ANCHO A PROPÓSITO, y no se estrecha aunque hoy valga 2400.
-     Lo que esta prueba tiene que cazar es que alguien devuelva el vuelo a los
-     900 ms del principio —que era una nota escapándose—, no afinar el gusto:
-     entre 1800 y 3600 la cifra exacta se decide mirando el teléfono, no aquí.
-     Una prueba clavada al valor del día falla cada vez que se ajusta algo que
-     iba bien, y eso enseña a cambiar el número sin leer el fallo. */
-  vale('lento a propósito', vuelo && vuelo.dur >= 1800 && vuelo.dur <= 3600,
-       vuelo && vuelo.dur + ' ms');
-  if (vuelo){
-    const fin = vuelo.P[4], largo = Math.hypot(fin.x, fin.y) || 1;
-    /* Sin rodeo: el desvío respecto de la recta salida-llegada. El vuelo pasaba
-       por el centro de la hoja y se quitó — a esta velocidad, el rodeo se lee
-       como una nota dando un paseo. */
-    const desvio = vuelo.P.map(q => Math.abs(q.x*fin.y - q.y*fin.x) / largo);
-    di('desvío de la recta', desvio.map(d => Math.round(d) + 'px').join(' · '));
-    vale('va derecha a su sitio', Math.max(...desvio) < 24, Math.round(Math.max(...desvio)) + ' px');
-    /* Y el reparto: ningún cuarto se come el camino. Con dos tramos, el último
-       llegaba a llevarse el 41% —una nota acelerando justo al llegar—. */
-    const acum = vuelo.P.map(q => Math.hypot(q.x, q.y) / largo);
-    const tramos = acum.slice(1).map((x,i) => Math.round((x - acum[i])*100));
-    di('camino por cuarto', tramos.map(x => x + '%').join(' · '));
-    vale('sin tirón en ningún cuarto', Math.max(...tramos) <= 40, Math.max(...tramos) + '%');
-  }
-  await p.waitForTimeout(5200);
-  di('al aterrizar', await p.evaluate(() => ({
-    cajaFuera: !document.querySelector('.gl-movil'),
-    tintasFuera: !document.querySelector('.gl-tintas'),
-    ningunaEscondida: [...document.querySelectorAll('.gl')]
-      .every(g => getComputedStyle(g).visibility !== 'hidden'),
-    guardada: (JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]')[0]||{}).nota
-  })).then(r => {
-    vale('la caja se recoge', r.cajaFuera && r.tintasFuera);
-    vale('ninguna glosa queda escondida', r.ningunaEscondida);
-    vale('y la nota quedó guardada', !!r.guardada, r.guardada);
+  await p.reload();
+  await p.waitForTimeout(2600);
+  di('abrirla tocándola y salir', await p.evaluate(async ([tocar, fuera]) => {
+    const antes = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    const vieja = antes.find(x => x.__vieja);
+    if (!vieja) return { sinVieja:true };
+    /* se toca en mitad de sus letras: no pinta glosa en el margen, así que
+       los dos clics no llegan a ella */
+    await eval('(' + tocar + ')')(3, 11);
+    const m = document.getElementById('menu');
+    const abierto = getComputedStyle(m).display !== 'none';
+    const ta = document.getElementById('glosaCaja');
+    const cajaVacia = ta ? ta.value === '' : null;
+    const dormidas = !!m.querySelector('.tagbox.dormida');
+    await eval('(' + fuera + ')')();
+    const despues = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    return { abierto, cajaVacia, dormidas,
+             sigue: despues.some(x => x.id === vieja.id),
+             antes: antes.length, despues: despues.length };
+  }, [TOCAR, FUERA]).then(r => {
+    vale('el panel se abre tocándola', !r.sinVieja && r.abierto);
+    vale('con la caja vacía y las etiquetas dormidas', r.cajaVacia === true && r.dormidas);
+    vale('y sigue estando después de mirarla', r.sigue,
+         r.antes + ' → ' + r.despues);
     return r;
   }));
 
@@ -372,37 +506,28 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
     return r;
   }));
 
-  /* LA CAJA DE ESCRIBIR ES UN ANTICIPO, y solo lo es si la letra coincide. Le
-     llega el tamaño por --fs y no como font-size ya hecho: hecho, pisaba el
-     factor con el que .gl calcula, y se escribía a 15 para leerse a 13,95 —los
-     renglones partían en otro sitio y la caja cambiaba de alto justo al
-     cerrar—. */
+  /* LA CAJA DE ESCRIBIR ES UN ANTICIPO, y solo lo es si la letra coincide con
+     la de la glosa que va a quedar. Ya no vuela desde la esquina de arriba:
+     nace dentro del panel, junto a lo que estás glosando. Lo que no cambió es
+     que escribir y leer después tienen que ser el mismo cuerpo de letra. */
   di('   de vuelta al principio', await alPrincipio(['eco']));
-  di('el editor escribe del tamaño en que se leerá', await p.evaluate(async () => {
-    const v = document.querySelector('#pgBody .v');
-    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 20){ n = w.currentNode; break; }
-    if (!n) return { sinTexto:true };
-    const rg = document.createRange(); rg.setStart(n, 0); rg.setEnd(n, 14);
-    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rg);
-    const rc = rg.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX:Math.round(rc.left + 2), clientY:Math.round(rc.top + 2) }));
-    await new Promise(z => setTimeout(z, 500));
-    const bot = [...document.querySelectorAll('#menu button')].find(x => /Glosa/.test(x.textContent));
-    if (!bot) return { sinBoton:true };
-    bot.click(); await new Promise(z => setTimeout(z, 800));
-    const caja = document.querySelector('.gl-movil');
-    if (!caja) return { sinCaja:true };
+  di('el editor escribe a un tamaño legible', await p.evaluate(async ([abrir]) => {
+    const ok = await eval('(' + abrir + ')')(0, 14);
+    if (!ok) return { sinTexto:true };
+    const ta = document.getElementById('glosaCaja');
+    if (!ta) return { sinCaja:true };
     const enElMargen = document.querySelector('#pgMargin .gl');
-    return { caja: getComputedStyle(caja).fontSize,
-             textarea: getComputedStyle(caja.querySelector('textarea')).fontSize,
-             margen: enElMargen ? getComputedStyle(enElMargen).fontSize : null };
-  }).then(r => {
-    vale('la caja y el margen, del mismo cuerpo',
-         !r.sinCaja && !r.sinTexto && !r.sinBoton && r.caja === r.margen,
-         r.caja + ' contra ' + r.margen);
-    vale('y el textarea con ellos', r.textarea === r.caja, r.textarea);
+    const r = ta.getBoundingClientRect();
+    const panel = document.getElementById('menu').getBoundingClientRect();
+    return { textarea: parseFloat(getComputedStyle(ta).fontSize),
+             margen: enElMargen ? parseFloat(getComputedStyle(enElMargen).fontSize) : null,
+             cabeEnElPanel: r.left >= panel.left - 1 && r.right <= panel.right + 1,
+             enPantalla: panel.top >= 0 && panel.bottom <= window.innerHeight + 1 };
+  }, [ABRIR]).then(r => {
+    vale('la caja escribe a tamaño de dedo', !r.sinCaja && !r.sinTexto && r.textarea >= 15,
+         r.textarea + ' px');
+    vale('y no se sale del panel', r.cabeEnElPanel);
+    vale('que cabe en la pantalla', r.enPantalla);
     return r;
   }));
 

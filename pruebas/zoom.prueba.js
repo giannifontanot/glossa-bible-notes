@@ -275,13 +275,20 @@ const { abrir, cerrar, conGlosas, di, vale, titulo, ESCRITORIO } = require('./co
     await new Promise(z => setTimeout(z, 500));
     const menu = document.getElementById('menu');
     const salio = getComputedStyle(menu).display !== 'none' && menu.textContent.trim().length > 0;
-    const bot = [...menu.querySelectorAll('button')].find(x => /Resaltar/.test(x.textContent));
-    if (bot) bot.click();
+    /* Toda marca es una glosa: se escribe la nota y se toca fuera, que es lo
+       que la guarda. Sin texto no se guardaría nada, y de lejos tampoco. */
+    const ta = document.getElementById('glosaCaja');
+    if (ta){
+      ta.value = 'resaltada de lejos';
+      ta.dispatchEvent(new Event('input', { bubbles:true }));
+      document.body.dispatchEvent(new PointerEvent('pointerdown',
+        { bubbles:true, clientX:5, clientY:5 }));
+    }
     await new Promise(z => setTimeout(z, 1000));
-    return { salioElMenu:salio, antes, despues:cuantas(),
+    return { salioElMenu:salio, habiaCaja:!!ta, antes, despues:cuantas(),
              sigueLejos: document.getElementById('pg').classList.contains('zoom') };
   }).then(r => {
-    vale('sale el menú de lejos', !!r.salioElMenu);
+    vale('sale el panel de lejos', !!r.salioElMenu && r.habiaCaja);
     vale('y resalta de verdad', r.despues === r.antes + 1, r.antes + ' → ' + r.despues);
     vale('sin sacarte de la vista', !!r.sigueLejos);
     return r;
