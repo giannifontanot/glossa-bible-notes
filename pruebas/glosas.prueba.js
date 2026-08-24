@@ -506,28 +506,135 @@ const guardadas = () => {
     return r;
   }));
 
-  /* LA CAJA DE ESCRIBIR ES UN ANTICIPO, y solo lo es si la letra coincide con
-     la de la glosa que va a quedar. Ya no vuela desde la esquina de arriba:
-     nace dentro del panel, junto a lo que estás glosando. Lo que no cambió es
-     que escribir y leer después tienen que ser el mismo cuerpo de letra. */
+  /* EL ANTICIPO ES LA GLOSA, y eso se comprueba MIDIENDO LAS DOS, no leyendo
+     el CSS. Dos cosas tienen que coincidir o esto deja de ser un anticipo: el
+     cuerpo de letra —si no, se escribe a un tamaño y se lee a otro— y el
+     ANCHO, que es el que decide por dónde parten los renglones. Aquí estuvo el
+     fallo viejo: se escribía en una caja de 16px y quedaba una nota de 13.95,
+     así que lo que veías mientras escribías no era lo que iba a quedar. */
   di('   de vuelta al principio', await alPrincipio(['eco']));
-  di('el editor escribe a un tamaño legible', await p.evaluate(async ([abrir]) => {
+  /* Las glosas AL MARGEN: es la única disposición donde la comparación
+     significa algo, porque es la que tiene un ancho de columna que el
+     anticipo debe copiar. */
+  await p.evaluate(async () => {
+    const b = [...document.querySelectorAll('[data-lay]')].find(x => x.dataset.lay === 'margin');
+    if (b) b.click();
+    await new Promise(z => setTimeout(z, 1200));
+  });
+  di('el anticipo mide lo que medirá la glosa', await p.evaluate(async ([abrir, fuera, tocar]) => {
+    /* Primero se deja una glosa puesta, para tener con qué comparar; luego se
+       vuelve a abrir TOCÁNDOLA y se miden las dos a la vez. Comparar contra
+       una glosa cualquiera de la hoja no valdría: hay que comparar el anticipo
+       con la nota EN LA QUE SE CONVIERTE. */
     const ok = await eval('(' + abrir + ')')(0, 14);
     if (!ok) return { sinTexto:true };
+    const ta0 = document.getElementById('glosaCaja');
+    ta0.value = 'para medir contra el margen';
+    ta0.dispatchEvent(new Event('input', { bubbles:true }));
+    await eval('(' + fuera + ')')();
+    await new Promise(z => setTimeout(z, 3300));      /* que aterrice el vuelo */
+    const enElMargen = document.querySelector('#pgMargin .gl[data-gl]');
+    if (!enElMargen) return { sinMargen:true };
+    const rm = enElMargen.getBoundingClientRect();
+    const tamMargen = parseFloat(getComputedStyle(enElMargen).fontSize);
+    await eval('(' + tocar + ')')(3, 11);
+    const vista = document.getElementById('glVista');
     const ta = document.getElementById('glosaCaja');
-    if (!ta) return { sinCaja:true };
-    const enElMargen = document.querySelector('#pgMargin .gl');
-    const r = ta.getBoundingClientRect();
+    if (!vista || !ta) return { sinCaja:true };
     const panel = document.getElementById('menu').getBoundingClientRect();
-    return { textarea: parseFloat(getComputedStyle(ta).fontSize),
-             margen: enElMargen ? parseFloat(getComputedStyle(enElMargen).fontSize) : null,
+    const r = vista.getBoundingClientRect();
+    return { vista: parseFloat(getComputedStyle(vista).fontSize),
+             textarea: parseFloat(getComputedStyle(ta).fontSize),
+             margen: tamMargen,
+             traeLaNota: ta.value,
+             anchoVista: Math.round(r.width),
+             anchoMargen: Math.round(rm.width),
              cabeEnElPanel: r.left >= panel.left - 1 && r.right <= panel.right + 1,
              enPantalla: panel.top >= 0 && panel.bottom <= window.innerHeight + 1 };
-  }, [ABRIR]).then(r => {
-    vale('la caja escribe a tamaño de dedo', !r.sinCaja && !r.sinTexto && r.textarea >= 15,
-         r.textarea + ' px');
-    vale('y no se sale del panel', r.cabeEnElPanel);
+  }, [ABRIR, FUERA, TOCAR]).then(r => {
+    vale('el panel reabre con su nota', !r.sinTexto && !r.sinMargen && !r.sinCaja &&
+         r.traeLaNota === 'para medir contra el margen', r.traeLaNota);
+    vale('el mismo cuerpo que la glosa del margen',
+         r.margen && Math.abs(r.vista - r.margen) < 0.6,
+         r.vista + ' contra ' + r.margen);
+    vale('y el textarea con él', Math.abs(r.textarea - r.vista) < 0.6, r.textarea);
+    /* Unos píxeles de tolerancia: el margen se mide con su hueco de giro y el
+       anticipo lo calcula, así que redondean distinto. */
+    vale('y el mismo ancho, que es lo que parte los renglones',
+         r.anchoMargen && Math.abs(r.anchoVista - r.anchoMargen) <= 3,
+         r.anchoVista + ' contra ' + r.anchoMargen);
+    vale('sin salirse del panel', r.cabeEnElPanel);
     vale('que cabe en la pantalla', r.enPantalla);
+    return r;
+  }));
+
+  titulo('las etiquetas se ven DENTRO de la glosa');
+  /* Se pintan con etiquetasHTML, el mismo que usa la hoja: si aquí saliera
+     otro marcado, el anticipo y la nota dirían cosas distintas. */
+  di('con dos puestas', await p.evaluate(async ([abrir]) => {
+    const vista = document.getElementById('glVista');
+    if (!vista) return { sinPanel:true };
+    const ta = document.getElementById('glosaCaja');
+    ta.value = 'una nota con etiquetas dentro';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    document.querySelector('#menu .mtags').click();
+    await new Promise(z => setTimeout(z, 200));
+    const libres = [...document.querySelectorAll('#menu .taglista .tg')]
+      .filter(b => !b.classList.contains('on'));
+    for (const b of libres.slice(0,2)){ b.click(); await new Promise(z => setTimeout(z, 120)); }
+    const dentro = [...vista.querySelectorAll('.gl-t')].map(x => x.textContent);
+    const tag = vista.querySelector('.gl-tag');
+    const cs = tag && getComputedStyle(tag);
+    return { dentro, alineacion: cs && cs.textAlign, display: cs && cs.display,
+             tam: cs && parseFloat(cs.fontSize),
+             tamNota: parseFloat(getComputedStyle(vista).fontSize) };
+  }, [ABRIR]).then(r => {
+    vale('salen dentro del recuadro', !r.sinPanel && (r.dentro||[]).length === 2, r.dentro);
+    vale('cada una con su almohadilla', (r.dentro||[]).every(t => t.startsWith('#')));
+    vale('en su renglón y a la derecha', r.display === 'block' && r.alineacion === 'right',
+         r.display + ' / ' + r.alineacion);
+    vale('y más chicas que la nota', r.tam < r.tamNota, r.tam + ' contra ' + r.tamNota);
+    return r;
+  }));
+
+  titulo('la glosa vuela a su sitio al guardarse');
+  /* Sin el vuelo la nota desaparece de un lado y aparece en el otro: dos
+     cosas, no una. Con él, lo que escribiste y lo que quedó son el mismo
+     objeto —que es la verdad— y el ojo aprende dónde buscarlo. */
+  di('al cerrar', await p.evaluate(async () => {
+    const calco = () => [...document.body.children].find(e => e.classList &&
+      e.classList.contains('gl-vista') && e.style.position === 'fixed');
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await new Promise(z => setTimeout(z, 150));
+    const c = calco();
+    const an = c && c.getAnimations()[0];
+    return { hayCalco: !!c,
+             /* vuela una GLOSA, no un campo de escribir con el cursor dentro */
+             sinTextarea: c ? !c.querySelector('textarea') : null,
+             conEtiquetas: c ? c.querySelectorAll('.gl-t').length : null,
+             animando: !!an,
+             duracion: an ? an.effect.getTiming().duration : null };
+  }).then(r => {
+    vale('el calco despega', r.hayCalco);
+    vale('y es una glosa, no un formulario', r.sinTextarea === true);
+    vale('con sus etiquetas puestas', r.conEtiquetas === 2, r.conEtiquetas);
+    vale('lento a propósito', r.animando && r.duracion >= 1800 && r.duracion <= 3600,
+         r.duracion + ' ms');
+    return r;
+  }));
+  await p.waitForTimeout(3200);
+  di('al aterrizar', await p.evaluate(() => ({
+    calcoFuera: ![...document.body.children].some(e => e.classList &&
+      e.classList.contains('gl-vista') && e.style.position === 'fixed'),
+    ningunaEscondida: [...document.querySelectorAll('.gl')]
+      .every(g => getComputedStyle(g).visibility !== 'hidden'),
+    guardada: JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]')
+      .some(m => m.nota === 'una nota con etiquetas dentro')
+  })).then(r => {
+    vale('el calco se recoge', r.calcoFuera);
+    vale('ninguna glosa queda escondida', r.ningunaEscondida);
+    vale('y la nota quedó guardada', r.guardada);
     return r;
   }));
 

@@ -72,15 +72,77 @@ const FUERA = `async () => {
     const caja = document.querySelector('#menu .tagbox');
     const dormida = caja.classList.contains('dormida');
     const puntero = getComputedStyle(caja).pointerEvents;
-    /* se ve, para saber que existe y que ya llegará */
-    const seVe = getComputedStyle(caja).display !== 'none' &&
-                 parseFloat(getComputedStyle(caja).opacity) > 0;
+    /* Y NACE CERRADA: lo que la nota lleva puesto se lee dentro de la glosa,
+       así que la lista solo hace falta para cambiarlo. El botón la abre. */
+    const cerrada = !caja.classList.contains('abierta') &&
+                    getComputedStyle(caja).display === 'none';
+    const bot = document.querySelector('#menu .mtags');
+    const rotulo = bot && bot.textContent;
     await eval('(' + fuera + ')')();
-    return { dormida, puntero, seVe };
+    return { dormida, puntero, cerrada, rotulo };
   }, [ABRIR, FUERA]).then(r => {
     vale('duerme sin nota', r.dormida);
     vale('y no responde al dedo', r.puntero === 'none', r.puntero);
-    vale('pero se ve', r.seVe);
+    vale('la lista nace cerrada', r.cerrada);
+    vale('y el botón dice de qué va', /etiquetas/.test(r.rotulo || ''), r.rotulo);
+    return r;
+  }));
+
+  titulo('el botón abre y cierra la lista');
+  di('abrir y volver a cerrar', await p.evaluate(async ([abrir, fuera]) => {
+    const despierta = await eval('(' + abrir + ')')(0, 12, 'nota para la lista');
+    if (!despierta) return { sinPanel:true };
+    const caja = document.querySelector('#menu .tagbox');
+    const bot = document.querySelector('#menu .mtags');
+    const alNacer = getComputedStyle(caja).display;
+    bot.click(); await new Promise(z => setTimeout(z, 200));
+    const abierta = getComputedStyle(caja).display;
+    const rotuloAbierta = bot.textContent;
+    bot.click(); await new Promise(z => setTimeout(z, 200));
+    const cerrada = getComputedStyle(caja).display;
+    await eval('(' + fuera + ')')();
+    return { alNacer, abierta, cerrada, rotuloAbierta };
+  }, [ABRIR, FUERA]).then(r => {
+    vale('cerrada de nacimiento', !r.sinPanel && r.alNacer === 'none', r.alNacer);
+    vale('el botón la abre', r.abierta !== 'none', r.abierta);
+    vale('y la vuelve a cerrar', r.cerrada === 'none', r.cerrada);
+    vale('el rótulo dice que está abierta', /▾/.test(r.rotuloAbierta || ''), r.rotuloAbierta);
+    return r;
+  }));
+
+  titulo('las puestas se apagan en la lista');
+  /* Al revés de como estaban: puestas ya se ven dentro de la glosa, así que
+     aquí lo que importa es lo que TODAVÍA se puede añadir. Y va por color, no
+     por opacidad: la opacidad ya significa «dormida», y una señal que dice dos
+     cosas no dice ninguna. */
+  di('color de puesta contra libre', await p.evaluate(async ([abrir, fuera]) => {
+    const despierta = await eval('(' + abrir + ')')(0, 12, 'nota para apagar');
+    if (!despierta) return { sinPanel:true };
+    document.querySelector('#menu .mtags').click();
+    await new Promise(z => setTimeout(z, 200));
+    const libre = [...document.querySelectorAll('#menu .taglista .tg')]
+      .find(b => !b.classList.contains('on'));
+    if (!libre) return { sinLibre:true };
+    const nombre = libre.dataset.tag;
+    const colorLibre = getComputedStyle(libre).color;
+    const opacidadLibre = getComputedStyle(libre).opacity;
+    libre.click(); await new Promise(z => setTimeout(z, 200));
+    const ahora = [...document.querySelectorAll('#menu .taglista .tg')]
+      .find(b => b.dataset.tag === nombre);
+    const colorPuesta = getComputedStyle(ahora).color;
+    const opacidadPuesta = getComputedStyle(ahora).opacity;
+    /* y sigue en la lista, para poder quitarla tocándola otra vez */
+    ahora.click(); await new Promise(z => setTimeout(z, 200));
+    const trasQuitar = [...document.querySelectorAll('#menu .taglista .tg')]
+      .find(b => b.dataset.tag === nombre).classList.contains('on');
+    await eval('(' + fuera + ')')();
+    return { nombre, colorLibre, colorPuesta, opacidadLibre, opacidadPuesta, trasQuitar };
+  }, [ABRIR, FUERA]).then(r => {
+    vale('ponerla le cambia el color', !r.sinPanel && !r.sinLibre &&
+         r.colorLibre !== r.colorPuesta, r.colorLibre + ' → ' + r.colorPuesta);
+    vale('y no por opacidad, que ya significa otra cosa',
+         r.opacidadLibre === r.opacidadPuesta, r.opacidadPuesta);
+    vale('tocarla otra vez la quita', r.trasQuitar === false);
     return r;
   }));
 
@@ -183,14 +245,17 @@ const FUERA = `async () => {
   di('al abrir otro panel', await p.evaluate(async ([abrir, fuera]) => {
     const despierta = await eval('(' + abrir + ')')(16, 30, 'otra nota');
     if (!despierta) return { sinPanel:true };
-    const marcada = document.querySelector('#menu .tg.ultima');
+    document.querySelector('#menu .mtags').click();
+    await new Promise(z => setTimeout(z, 200));
+    const marcada = document.querySelector('#menu .taglista .tg.ultima');
     const cs = marcada && getComputedStyle(marcada);
-    const trazo = cs && cs.borderStyle;
-    /* y las otras siguen con el trazo corrido: la señal es la DIFERENCIA */
-    const otra = [...document.querySelectorAll('#menu .tg')].find(b => b !== marcada);
-    const trazoOtra = otra && getComputedStyle(otra).borderStyle;
+    const trazo = cs && (cs.textDecorationLine + ' ' + cs.textDecorationStyle).trim();
+    /* y las otras van sin subrayar: la señal es la DIFERENCIA */
+    const otra = [...document.querySelectorAll('#menu .taglista .tg')]
+      .find(b => b !== marcada);
+    const trazoOtra = otra && getComputedStyle(otra).textDecorationLine;
     /* y NO está puesta: enseñarla no es aplicarla */
-    const puestas = [...document.querySelectorAll('#menu .tg.on')].map(x => x.dataset.tag);
+    const puestas = [...document.querySelectorAll('#menu .taglista .tg.on')].map(x => x.dataset.tag);
     await eval('(' + fuera + ')')();
     return { cual: marcada && marcada.dataset.tag, trazo, trazoOtra, puestas };
   }, [ABRIR, FUERA]).then(r => {
@@ -200,7 +265,8 @@ const FUERA = `async () => {
        decía cuál. Ahora el relleno dice si está puesta y el trazo dice si es
        la última: dos canales que no se pisan. */
     vale('se distingue por el trazo, no por el peso',
-         r.trazo === 'dashed' && r.trazoOtra === 'solid',
+         /underline/.test(r.trazo || '') && /dotted/.test(r.trazo || '') &&
+         !/underline/.test(r.trazoOtra || ''),
          r.trazo + ' contra ' + r.trazoOtra);
     vale('pero no se aplica sola', (r.puestas||[]).length === 0, r.puestas);
     return r;
@@ -238,66 +304,65 @@ const FUERA = `async () => {
     return r;
   }));
 
-  titulo('la caja de etiquetas no desperdicia el ancho');
-  /* LAS DOS QUEJAS ERAN LA MISMA. Las pastillas se partían por donde caía
-     cada nombre y dejaban hasta 175 de 326px vacíos en un renglón; y parecían
-     pequeñas porque #menu button —que lleva un id— les pisaba borde, fondo y
-     redondeo, así que una etiqueta PUESTA y una apagada salían idénticas
-     salvo por la opacidad, y a .5 sobre el panel oscuro eso queda en 4.28:1.
-     Esta prueba vigila las dos cosas a la vez, que es como se rompieron. */
-  di('la rejilla', await p.evaluate(async ([abrir, fuera]) => {
-    const despierta = await eval('(' + abrir + ')')(0, 12, 'nota de la rejilla');
+  titulo('la lista es un vocabulario, no una fila de pastillas');
+  /* DE DÓNDE VIENE ESTO. Primero fueron pastillas que se partían por donde
+     caía cada nombre —hasta 175 de 326px vacíos en un renglón—; luego una
+     rejilla de dos columnas, que quitó el hueco pero seguía vistiendo de
+     control algo que se consulta. Ahora es una lista corrida con almohadilla,
+     como el índice de un libro: sin recuadro, cabe al triple de densidad y se
+     recorre con la vista.
+     Se mide la DENSIDAD, no el número de columnas: cuántas entran por renglón
+     depende de los nombres, y clavarlo sería escribir una prueba que falla
+     cuando cambie el vocabulario. */
+  di('la lista', await p.evaluate(async ([abrir, fuera]) => {
+    const despierta = await eval('(' + abrir + ')')(0, 12, 'nota de la lista');
     if (!despierta) return { sinPanel:true };
-    const menu = document.getElementById('menu');
-    const ch = menu.querySelector('.tagchips');
-    const tb = menu.querySelector('.tagbox');
-    const chips = [...ch.querySelectorAll('.tg')];
-    if (chips.length < 2) return { pocas:true, n:chips.length };
-    /* dos columnas: solo dos posiciones distintas de borde izquierdo */
-    const izq = [...new Set(chips.map(c => Math.round(c.getBoundingClientRect().left)))];
-    /* y todas las de una columna miden lo mismo: eso es lo que quita el hueco */
-    const anchos = [...new Set(chips.map(c => Math.round(c.getBoundingClientRect().width)))];
-    const on = chips[0];
-    on.click(); await new Promise(z => setTimeout(z, 150));
-    const cs = e => getComputedStyle(e);
-    const puesta = cs(on), floja = cs(chips.find(c => !c.classList.contains('on')));
+    document.querySelector('#menu .mtags').click();
+    await new Promise(z => setTimeout(z, 200));
+    /* Se siembra el vocabulario aquí mismo: las pruebas de arriba se pisan
+       unas a otras las marcas, y con ellas se van sus etiquetas, así que a
+       estas alturas quedan dos. Crearlas por la caja es además el camino que
+       de verdad usa quien escribe. */
+    for (const t of ['gozo', 'fe', 'paz', 'reino', 'luz', 'camino', 'verdad']){
+      const i = document.getElementById('tagNueva');
+      i.value = t;
+      i.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+      await new Promise(z => setTimeout(z, 90));
+    }
+    const lista = document.querySelector('#menu .taglista');
+    const items = [...lista.querySelectorAll('.tg')];
+    if (items.length < 4) return { pocas:true, n:items.length };
+    const cajaLista = lista.getBoundingClientRect();
+    /* cuántos caben por renglón, agrupando por su borde superior */
+    const filas = new Map();
+    for (const b of items){
+      const t = Math.round(b.getBoundingClientRect().top);
+      filas.set(t, (filas.get(t) || 0) + 1);
+    }
+    const porFila = [...filas.values()];
+    const cs = getComputedStyle(items[0]);
     const r = {
-      columnas: izq.length, anchosDistintos: anchos.length,
-      seSale: Math.round(ch.getBoundingClientRect().right - tb.getBoundingClientRect().right),
-      /* el estado se dice con relleno, no con transparencia */
-      fondoDistinto: puesta.backgroundColor !== floja.backgroundColor,
-      bordeDistinto: puesta.borderColor !== floja.borderColor,
-      opacidadIgual: puesta.opacity === floja.opacity,
-      esPastilla: parseFloat(puesta.borderRadius) > 20,
-      tam: parseFloat(puesta.fontSize)
+      n: items.length,
+      porFila,
+      maxPorFila: Math.max(...porFila),
+      /* sin recuadro: eso es lo que la separa de un control */
+      sinBorde: parseFloat(cs.borderTopWidth) === 0,
+      sinFondo: cs.backgroundColor === 'rgba(0, 0, 0, 0)',
+      conAlmohadilla: items.every(b => b.textContent.startsWith('#')),
+      tam: parseFloat(cs.fontSize),
+      /* y nada se sale del panel por la derecha */
+      seSale: Math.round(cajaLista.right -
+              document.getElementById('menu').getBoundingClientRect().right)
     };
     await eval('(' + fuera + ')')();
     return r;
   }, [ABRIR, FUERA]).then(r => {
-    vale('las pastillas van en dos columnas', r.columnas === 2, r.columnas);
-    vale('y todas del mismo ancho', r.anchosDistintos === 1,
-         r.anchosDistintos + ' ancho(s)');
-    vale('sin salirse del panel', r.seSale === 0, r.seSale + ' px');
-    vale('puesta y apagada se distinguen por relleno y borde',
-         r.fondoDistinto && r.bordeDistinto, [r.fondoDistinto, r.bordeDistinto]);
-    vale('y NO por la opacidad', r.opacidadIgual);
-    vale('la pastilla es una pastilla', r.esPastilla);
-    vale('con letra legible', r.tam >= 16, r.tam + ' px');
-    return r;
-  }));
-
-  titulo('sobrevive a cerrar la aplicación');
-  await p.reload(); await p.waitForTimeout(2800);
-  di('tras recargar', await p.evaluate(async ([abrir, fuera]) => {
-    const marcas = JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]').length;
-    const despierta = await eval('(' + abrir + ')')(0, 12, 'nota tras recargar');
-    const negrita = document.querySelector('#menu .tg.ultima');
-    const cual = negrita && negrita.dataset.tag;
-    await eval('(' + fuera + ')')();
-    return { marcas, despierta, cual };
-  }, [ABRIR, FUERA]).then(r => {
-    vale('la última usada sigue en negrita', !!r.cual, r.cual || '(ninguna)');
-    vale('y las marcas siguen ahí', r.marcas > 0, r.marcas);
+    vale('caben varias por renglón', !r.sinPanel && !r.pocas && r.maxPorFila >= 2,
+         (r.porFila || []).join(' · '));
+    vale('sin recuadro ni relleno', r.sinBorde && r.sinFondo);
+    vale('cada una con su almohadilla', r.conAlmohadilla);
+    vale('y la letra no es pequeña', r.tam >= 15, r.tam + ' px');
+    vale('sin salirse del panel', r.seSale <= 0, r.seSale);
     return r;
   }));
 
