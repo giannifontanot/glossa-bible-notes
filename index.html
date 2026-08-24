@@ -807,8 +807,25 @@
               transition:opacity .2s ease, transform .28s cubic-bezier(.2,.85,.3,1); }
   #historial::-webkit-scrollbar{ width:0; height:0; display:none; }
   #historial.visible{ opacity:1; transform:none; }
-  .hs-tit{ display:block; font:700 10.5px/1 var(--ui); letter-spacing:.14em;
-           text-transform:uppercase; color:#8a7746; padding:3px 3px 6px; }
+  /* El rótulo y el paso atrás comparten renglón: el rótulo no lleva a ningún
+     sitio y estaba ocupando una franja entera él solo. */
+  .hs-tit{ display:flex; align-items:center; font:700 10.5px/1 var(--ui);
+           letter-spacing:.14em; text-transform:uppercase; color:#8a7746;
+           padding:3px 3px 6px; }
+  /* EL PASO ATRÁS. Dice a dónde va además de llevar la flecha: una flecha
+     sola en una lista de escrituras no distingue «atrás por donde vine» de
+     «sube una fila», y la referencia lo desambigua sin gastar un renglón.
+     margin-left:auto lo manda a la derecha del renglón del rótulo, que es lo
+     pedido y además el borde por el que este panel crece. */
+  .hs-atras{ margin-left:auto; display:inline-flex; align-items:center; gap:6px;
+             font:600 10.5px/1 var(--ui); letter-spacing:.06em;
+             color:#6d5a2c; background:rgba(140,116,68,.13);
+             border:1px solid rgba(140,116,68,.4); border-radius:999px;
+             padding:4px 8px 4px 10px; cursor:pointer; }
+  .hs-atras:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
+  .hs-atras:active{ transform:translateY(1px); }
+  .hs-atras-ref{ text-transform:none; letter-spacing:.02em; }
+  .hs-flecha{ font-size:13px; line-height:1; }
   /* LA FILA ES UNA SOLA LÍNEA, Y ESO NO ES DECORACIÓN. Una lista en la que
      cada renglón mide lo mismo se recorre con el ojo; una en la que cada
      entrada mide dos o tres líneas hay que leerla. Por eso la referencia va
@@ -2206,13 +2223,13 @@ const PAGE_CSS = `
    texto y se apaga; éste es un respiro dorado sobre el enlace y sigue hasta
    que la hoja se voltea. Uno dice "voy", el otro dice "aquí es". */
 .ref{ cursor:pointer; border-bottom:1px dotted currentColor; border-radius:2px; }
-/* El dorado sube en rampa, como el naranja de la llegada. El color NO va
-   aquí: lo pinta el guion cuadro por cuadro, porque una transición de CSS no
-   serviría —el cálculo del salto bloquea el hilo y la transición se congela
-   en su primer fotograma, que es el transparente—. Por eso la rampa corre
-   ANTES de arrancar el cálculo, y el salto empieza cuando el dorado ya llegó
-   arriba. Se pagan 260 ms, y a cambio el gesto tiene despegue. */
-.ref.buscando{ border-bottom-style:solid; color:#4a3410; }
+/* La rampa dorada de antes de saltar ya no vive en la referencia: tocarla
+   abre la ventanita de leer, que es instantánea, y el salto lo dispara el
+   texto de esa ventanita. La rampa se fue con él. Lo que sigue valiendo es
+   por qué se pinta cuadro por cuadro desde el guion y no con una transición
+   de CSS: el cálculo del salto bloquea el hilo, y la transición se congelaría
+   en su primer fotograma, que es el transparente. Por eso la rampa corre
+   ANTES de arrancar el cálculo. */
 .ref.muerta{ opacity:.45; border-bottom-style:dashed; cursor:default; }
 .vn.back{ color:#8a7048; font-weight:400; padding-left:3px; cursor:pointer; }
 /* El fondo del recuadro es el mismo tono del resaltado al 42% de su alfa
@@ -4896,6 +4913,38 @@ function crearTagDeMarca(caja){
   refrescarTags();
   colocarMenu();
 }
+/* UNA ESCRITURA DENTRO DE LA CAJA DE ESCRIBIR TAMBIÉN SE ABRE.
+
+   En la hoja las referencias son <span class="ref"> y se tocan; aquí dentro no
+   hay spans que tocar, porque lo que hay es un textarea y un textarea no deja
+   marcar nada por dentro. Pero no hace falta marcarlo: al hacer clic, el
+   navegador ya ha puesto el cursor donde tocaste, así que basta con preguntar
+   en qué carácter cayó y mirar si ese carácter está dentro de una referencia.
+   Las referencias las saca refsDe del mismo texto, que es exactamente lo que
+   hace enlazar() para pintarlas en la hoja: un solo entendimiento de qué es
+   una referencia, en los dos sitios.
+
+   Con dos límites, y los dos son para no quitarle a la caja su oficio:
+   · solo si no hay nada seleccionado. Arrastrar por encima de una referencia
+     sigue siendo seleccionar texto para editarlo.
+   · solo POR DENTRO, no en los filos. Tocando justo antes o justo después el
+     cursor se queda donde lo pusiste, que es como se corrige lo de al lado.
+   · y solo si la referencia existe de verdad en los datos, igual que en la
+     hoja —donde una referencia muerta no salta—. Así una referencia a medio
+     escribir se sigue pudiendo arreglar tocándola por el medio, que es
+     justo cuando más falta hace. */
+menu.addEventListener('click', ev => {
+  const ta = ev.target.closest('#glosaCaja');
+  if (!ta || !borrador) return;
+  if (ta.selectionStart !== ta.selectionEnd) return;
+  const donde = ta.selectionStart;
+  const r = refsDe(ta.value).find(x => donde > x.inicio && donde < x.fin && refExiste(x));
+  if (!r) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const m = borrador.m;
+  abrirPleno(r.libro, r.cap, r.vers, r.letra || '',
+             { libro: m.libro, cap: m.cap, vers: m.vers });
+});
 menu.addEventListener('keydown', ev => {
   if (ev.target.id !== 'tagNueva' || ev.key !== 'Enter') return;
   ev.preventDefault(); crearTagDeMarca(ev.target);
@@ -4917,7 +4966,18 @@ function puntoActual(){
   const p = plano[Math.min(Math.max(paginas[paginaActual]||0,0), plano.length-1)];
   return { libro: LIBRO, hoja: paginaActual, ref: p ? {cap:p.cap, vers:p.vers} : {cap:1, vers:1} };
 }
-function irA(libro, cap, vers, letra){
+/* `opciones` lleva las dos cosas que un salto puede necesitar y no caben en
+   una referencia:
+   · origen — el pasaje DEL QUE se sale, para dejarlo apuntado en el rastro
+     justo debajo del destino. Lo manda quien salta desde una glosa: sin él, el
+     historial contaba a dónde fuiste y se callaba de dónde, que es la mitad
+     que hace falta para volver.
+   · sinApuntar — el salto no es un sitio nuevo del camino sino un paso atrás
+     por el camino que ya hay. Apuntarlo convertiría el botón de atrás en un
+     columpio: apuntar el sitio de atrás lo pondría el primero, y el siguiente
+     «atrás» volvería al de delante. */
+function irA(libro, cap, vers, letra, opciones){
+  const op = opciones || {};
   /* Cruzar a otro libro. Esto estaba prohibido de cuando los datos eran solo
      Marcos: cualquier referencia a otro libro se rechazaba con "ese libro
      todavía no está en estos datos", aunque estuviera. Ahora solo se rechaza
@@ -4932,7 +4992,15 @@ function irA(libro, cap, vers, letra){
       return;
     }
     ocultarMenu();
-    saltarA(libro, cap, vers, puntoActual());
+    /* Al rastro NO se apunta aquí, y esto costó una medida: saltarA ya apunta
+       el destino, pero al ATERRIZAR —a propósito, porque un salto entre libros
+       puede quedarse a medias y el rastro solo debe contar lo que llegaste a
+       ver—. Apuntándolo también aquí, cada salto entre libros dejaba la misma
+       escritura dos veces seguidas; y el paso atrás, que pide no apuntar nada,
+       se apuntaba igual porque quien apuntaba de verdad era saltarA y no se
+       había enterado. Así que lo que viaja es el encargo, y lo cumple el que
+       aterriza. */
+    saltarA(libro, cap, vers, puntoActual(), op);
     return;
   }
   const k = plano.findIndex(p => p.cap === cap && p.vers === vers);
@@ -4942,7 +5010,7 @@ function irA(libro, cap, vers, letra){
      referencia que no lleva a ningún sitio no es un pasaje que hayas visto, y
      apuntarla dejaría el historial lleno de callejones. También se apunta
      cuando el versículo ya está en esta hoja: preguntaste por él igual. */
-  apuntarVisto(libro, cap, vers);
+  if (!op.sinApuntar){ apuntarDeDonde(op.origen); apuntarVisto(libro, cap, vers); }
   const destino = paginaDe(k);
   if (destino === paginaActual){ destacar(cap, vers, letra); return; }
   volverA = puntoActual();                  // de dónde veníamos, para el botón de regreso
@@ -4974,22 +5042,31 @@ function menuVinculos(cap, vers){
       esc(m.nota.slice(0,24)) + (m.nota.length > 24 ? '…' : '') + '</button>').join('') +
     '</div>';
 }
-/* Un clic en una referencia salta; un clic en el contador abre la lista. */
+/* DE QUÉ PASAJE CUELGA ESTA REFERENCIA. Es el «de dónde» que se apunta en el
+   rastro al saltar, y tiene que ser el versículo al que la glosa está atada
+   —no la primera escritura de la hoja, que es lo que sabe puntoActual—: si
+   estás en una hoja con doce versículos y saltas desde la glosa del octavo,
+   volver al primero no es volver. */
+function deQueGlosa(el){
+  const caja = el && el.closest('.gl[data-gl]');
+  const m = caja && marcas.find(x => x.id === caja.dataset.gl);
+  return m ? { libro: m.libro, cap: m.cap, vers: m.vers } : null;
+}
+/* Un clic en una referencia abre la ventanita; uno en el contador, la lista. */
 [pgMargin, pgFoot, pgBody].forEach(el => el.addEventListener('click', ev => {
   const r = ev.target.closest('.ref');
   if (r && !r.classList.contains('muerta')){
     ev.preventDefault(); ev.stopPropagation();
     const [lib, c, v, letra] = r.dataset.ref.split(':');
-    /* Ceder DOS cuadros antes de calcular. Uno solo no basta: el navegador
-       necesita uno para aplicar la clase y calcular estilos, y otro para
-       pintarlos. Si se llama a irA() de corrido, el hilo se bloquea con la
-       paginación y el latido nunca llega a verse —el aviso existiría en el
-       DOM y en la pantalla no aparecería jamás. */
-    r.classList.add('buscando');
-    encender(r, () => {
-      try { irA(lib, +c, +v, letra || ''); }
-      finally { apagar(r); }
-    });
+    /* PRIMERO SE LEE, LUEGO SE SALTA. Antes, tocar una referencia dentro de
+       una glosa te llevaba allí de cabeza: un salto entero —repaginar, voltear
+       el bonche, aterrizar— para averiguar qué decía el versículo, y otro
+       tanto para volver si no era lo que buscabas. La mayoría de las veces la
+       pregunta no es «llévame» sino «qué dice». Ahora sale la misma ventanita
+       del historial, con el texto; y si además quieres ir, tocas el texto.
+       Un solo camino para la misma pregunta, esté la referencia en el rastro o
+       dentro de una glosa. */
+    abrirPleno(lib, +c, +v, letra || '', deQueGlosa(r));
     return;
   }
   if (r){ readout.textContent = 'esa referencia no está en los datos cargados'; return; }
@@ -6773,7 +6850,8 @@ function pintarHistorial(){
     const k = plano.findIndex(p => p.cap === h.cap && p.vers === h.vers);
     return k >= desde && k < hasta;
   };
-  cont.innerHTML = '<span class="hs-tit">Lo que has visto</span>' + historial.map(h => {
+  cont.innerHTML = '<span class="hs-tit">Lo que has visto</span>' + pieAtras() +
+    historial.map(h => {
     /* El texto sale de la VERSIÓN QUE ESTÁ PUESTA, no de la que estaba cuando
        lo miraste: el historial guarda la referencia, que es lo que no cambia,
        y el texto se busca al pintarlo. Cambiar de versión en Formato cambia lo
@@ -6783,7 +6861,34 @@ function pintarHistorial(){
       '" data-hs="' + h.libro + ':' + h.cap + ':' + h.vers + '">' +
       '<span class="hs-ref">' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '</span>' +
       '<span class="hs-txt">' + esc(t || '(no está en esta versión)') + '</span></button>';
-  }).join('');
+    }).join('');
+}
+/* EL PASO ATRÁS, y por qué va arriba y no al pie.
+   Se pidió abajo del todo, y abajo del todo de esta lista está lo más VIEJO
+   que has visto —el rastro se pinta del más nuevo al más viejo—, así que un
+   botón de «atrás» ahí abajo queda pegado justo a lo contrario de lo que hace.
+   Va en el mismo renglón del rótulo, a la derecha, que es donde el ojo ya está
+   cuando abre el panel y es el borde por el que este panel crece. Lo que hace
+   es lo pedido: volver a la escritura que hay detrás de la de ahora, como el
+   atrás del navegador.
+   Sin sitio a donde volver no se pinta: un botón que no lleva a ninguna parte
+   enseña a no fiarse del que sí. */
+function pieAtras(){
+  const h = historial[atrasEn + 1];
+  if (!h) return '';
+  return '<button class="hs-atras" data-atras="1" title="Volver a ' +
+    esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '"' +
+    ' aria-label="Volver a ' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '">' +
+    '<span class="hs-atras-ref">' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers +
+    '</span><span class="hs-flecha" aria-hidden="true">←</span></button>';
+}
+/* Un paso atrás por el rastro, sin apuntarlo. */
+function darUnPasoAtras(){
+  const h = historial[atrasEn + 1];
+  if (!h) return;
+  atrasEn++;
+  cerrarHistorial();
+  trasPintar(() => irA(h.libro, h.cap, h.vers, '', { sinApuntar:true }));
 }
 
 function abrirHistorial(){
@@ -6813,9 +6918,13 @@ function cerrarPleno(){
   el.classList.remove('visible');
   setTimeout(() => { if (!plenoAbierto) el.style.display = 'none'; }, 240);
 }
-function abrirPleno(libro, cap, vers){
+/* `letra` y `origen` no se meten en el data-ir del botón: viajan en
+   plenoAbierto, que es donde ya vive la referencia que la ventanita enseña.
+   Meterlos en el atributo obligaría a inventar un formato para el origen —que
+   son tres campos— dentro de una cadena que ya lleva tres. */
+function abrirPleno(libro, cap, vers, letra, origen){
   const t = versoTexto(version, cap, vers, libro);
-  plenoAbierto = { libro, cap, vers };
+  plenoAbierto = { libro, cap, vers, letra: letra || '', origen: origen || null };
   const el = $('versoPleno');
   /* SIN TEXTO NO HAY BOTÓN. Una referencia guardada puede no existir en la
      versión que tienes puesta ahora —2 Corintios 13:14 está en la VBL y no en
@@ -6840,6 +6949,10 @@ $('btnHistorial').addEventListener('click', ev => {
   if (histAbierto) cerrarHistorial(); else abrirHistorial();
 });
 $('historial').addEventListener('click', ev => {
+  if (ev.target.closest('[data-atras]')){
+    ev.preventDefault(); ev.stopPropagation();
+    darUnPasoAtras(); return;
+  }
   const f = ev.target.closest('[data-hs]'); if (!f) return;
   ev.preventDefault(); ev.stopPropagation();
   const [lib, c, v] = f.dataset.hs.split(':');
@@ -6849,12 +6962,30 @@ $('versoPleno').addEventListener('click', ev => {
   const b = ev.target.closest('[data-ir]'); if (!b) return;
   ev.preventDefault(); ev.stopPropagation();
   const [lib, c, v] = b.dataset.ir.split(':');
+  /* La letra y el origen se leen de plenoAbierto, que es de donde salió esta
+     ventanita. Sin la letra, saltar desde una referencia con glosa —«2:4b»—
+     aterrizaba en el versículo entero en vez de en la glosa concreta. */
+  const p = plenoAbierto || {};
+  const letra = p.letra || '';
+  const origen = p.origen || null;
   /* Se cierra TODO antes de saltar, y antes por dos razones: el panel tapa
      justo el texto al que vas, y el disco de buscar sale en el centro de la
      hoja, que es donde está la ventanita. El salto arranca al cuadro
      siguiente para que el cierre alcance a empezar. */
   cerrarHistorial();
-  trasPintar(() => irA(lib, +c, +v, ''));     /* dos cuadros, como arriba */
+  /* Y el panel de la glosa también, si la ventanita salió de ahí: saltas a
+     otro sitio, así que la edición que abrió esto se da por terminada —lo
+     escrito se cobra, que es lo que hace ocultarMenu—. */
+  if (borrador) ocultarMenu();
+  /* LA RAMPA DORADA SE MUDÓ AQUÍ. Vivía en la referencia de la glosa, porque
+     era la referencia la que saltaba; ahora la referencia solo abre esta
+     ventanita —que es instantánea, y 260 ms de rampa por delante de algo
+     instantáneo son 260 ms de espera—. El salto caro es éste, y es éste el
+     que gana con tener despegue. */
+  encender(b, () => {
+    try { irA(lib, +c, +v, letra, { origen }); }
+    finally { apagar(b); }
+  });
 });
 /* Un toque fuera lo cierra, en captura y antes que nadie, igual que la
    burbuja. La ventanita cuenta como "dentro": si no, tocarla la cerraría
@@ -8073,6 +8204,12 @@ function quitarBuscando(){
 const HISTORIAL = 'glossa:historial:v1';
 const TOPE_HISTORIAL = 40;
 let historial = [];
+/* POR DÓNDE VA EL BOTÓN DE ATRÁS. Cero es «estás en la punta del rastro», y
+   entonces atrás es historial[1]. Cada paso atrás sube la cuenta en vez de
+   apuntar nada, que es lo que lo hace un ATRÁS y no un columpio: apuntando, el
+   sitio de atrás pasaría a ser el primero y el siguiente «atrás» te devolvería
+   a donde acababas de estar. Cualquier salto de verdad la devuelve a cero. */
+let atrasEn = 0;
 function cargarHistorial(){
   try {
     const a = JSON.parse(localStorage.getItem(HISTORIAL) || '[]');
@@ -8080,6 +8217,26 @@ function cargarHistorial(){
       .filter(h => h && typeof h.libro === 'string' && h.cap > 0 && h.vers > 0)
       .slice(0, TOPE_HISTORIAL);
   } catch(e){ historial = []; }
+}
+/* DE DÓNDE SALTASTE, apuntado justo antes del destino para que quede debajo
+   de él en la lista —la lista va del más nuevo al más viejo—.
+
+   Sin esto el rastro contaba a dónde fuiste y se callaba de dónde: abrías el
+   historial después de tres saltos desde tres glosas y tenías tres destinos
+   sueltos, sin el hilo que los unía. Y es justo la mitad que hace falta para
+   volver: «¿desde qué versículo llegué aquí?».
+
+   No se apunta si es lo mismo que ya encabeza la lista. Pasa constantemente
+   —vas a un sitio, y desde ese mismo sitio saltas a otro— y apuntarlo dejaría
+   la referencia repetida dos veces seguidas sin que hubieras ido a ninguna
+   parte entre medias. Que el rastro tenga vueltas es bueno; que tenga ecos,
+   no. */
+function apuntarDeDonde(origen){
+  if (!origen || !origen.libro || !(origen.cap > 0) || !(origen.vers > 0)) return;
+  const arriba = historial[0];
+  if (arriba && arriba.libro === origen.libro &&
+      arriba.cap === origen.cap && arriba.vers === origen.vers) return;
+  apuntarVisto(origen.libro, origen.cap, origen.vers);
 }
 function apuntarVisto(libro, cap, vers){
   if (!libro || !(cap > 0) || !(vers > 0)) return;
@@ -8102,6 +8259,10 @@ function apuntarVisto(libro, cap, vers){
      Que se repitan no rompe nada: cada fila lleva su referencia entera y salta
      a ella, y el tope de cuarenta sigue cortando por lo más viejo. */
   historial.unshift({ libro, cap, vers, t: Date.now() });
+  /* Un sitio nuevo en el camino deja el botón de atrás al principio: desde
+     aquí, «atrás» es el de justo debajo y no donde se hubiera quedado la
+     cuenta de una tanda anterior de pasos atrás. */
+  atrasEn = 0;
   if (historial.length > TOPE_HISTORIAL) historial.length = TOPE_HISTORIAL;
   try { localStorage.setItem(HISTORIAL, JSON.stringify(historial)); } catch(e){}
   if (histAbierto) pintarHistorial();
@@ -8114,7 +8275,8 @@ function apuntarVisto(libro, cap, vers){
    asignarse después de llamar, porque saltarA no termina en el acto —espera a
    que el panel se cierre— y adentro limpia volverA. Asignarlo por fuera se
    perdía en cuanto corría el diferido. */
-function saltarA(libro, cap, vers, regreso){
+function saltarA(libro, cap, vers, regreso, opciones){
+  const op = opciones || {};
   const viejo = pageImg, mismo = libro === LIBRO, desdeHoja = paginaActual;
   /* De qué libro salimos. Hay que guardarlo AQUÍ: dentro del diferido lo
      primero que pasa es LIBRO = libro, así que para cuando se calcula el
@@ -8150,9 +8312,13 @@ function saltarA(libro, cap, vers, regreso){
       /* Al rastro, y aquí al ATERRIZAR y no al pedirlo: un salto entre libros
          puede quedarse a medias —el libro no está en los datos, la foto no
          carga— y el historial solo debe contar lo que de verdad llegaste a
-         ver. En irA se apunta antes porque allí ya se comprobó que el destino
-         existe y no hay viaje que pueda fallar. */
-      apuntarVisto(libro, cap, vers);
+         ver. En irA, dentro del mismo libro, se apunta antes porque allí ya se
+         comprobó que el destino existe y no hay viaje que pueda fallar.
+         El de dónde va primero para que quede DEBAJO del destino: la lista se
+         lee del más nuevo al más viejo. Y sin encargo no hay origen que
+         apuntar, que es el caso de saltar desde el menú de libros: ahí no
+         vienes de una escritura, vienes del índice. */
+      if (!op.sinApuntar){ apuntarDeDonde(op.origen); apuntarVisto(libro, cap, vers); }
     };
     if (mismo && destino === desdeHoja){ aterrizar(); return; }
     side = (mismo ? destino < desdeHoja : haciaAtras) ? 'left' : 'right';
