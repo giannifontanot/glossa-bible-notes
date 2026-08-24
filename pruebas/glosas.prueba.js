@@ -550,6 +550,7 @@ const guardadas = () => {
              anchoVista: Math.round(r.width),
              anchoMargen: Math.round(rm.width),
              cabeEnElPanel: r.left >= panel.left - 1 && r.right <= panel.right + 1,
+             anchoPanel: Math.round(panel.width),
              enPantalla: panel.top >= 0 && panel.bottom <= window.innerHeight + 1 };
   }, [ABRIR, FUERA, TOCAR]).then(r => {
     vale('el panel reabre con su nota', !r.sinTexto && !r.sinMargen && !r.sinCaja &&
@@ -565,6 +566,13 @@ const guardadas = () => {
          r.anchoVista + ' contra ' + r.anchoMargen);
     vale('sin salirse del panel', r.cabeEnElPanel);
     vale('que cabe en la pantalla', r.enPantalla);
+    /* Y EL PANEL MIDE LO QUE MIDE LA GLOSA. Es lo que lo convierte en «esta
+       nota y sus mandos» en vez de en «un panel que además enseña una nota»:
+       los dos filos son los mismos de arriba abajo. Lo que sobra es solo el
+       relleno del panel. */
+    vale('y el panel mide lo que la glosa',
+         r.anchoPanel && r.anchoPanel - r.anchoVista <= 24,
+         r.anchoPanel + ' contra ' + r.anchoVista);
     return r;
   }));
 
@@ -597,13 +605,119 @@ const guardadas = () => {
     return r;
   }));
 
+  titulo('el ancla del anticipo es la de la hoja');
+  /* glossHTML le antepone a cada nota un «1a·» que ocupa sitio en el PRIMER
+     renglón y por tanto decide dónde parte. Sin ella el anticipo acertaba el
+     ancho y erraba el corte, que es la mitad de lo que venía a copiar.
+     Y no basta con que salga: tiene que decir LO MISMO, porque la referencia
+     se gana por ser una de las notas de ese versículo y el anticipo la calcula
+     antes de que la nota exista. */
+  di('ancla y sangría', await p.evaluate(async ([abrir, fuera, tocar]) => {
+    const ok = await eval('(' + abrir + ')')(0, 14);
+    if (!ok) return { sinTexto:true };
+    const ta = document.getElementById('glosaCaja');
+    if (!ta) return { sinTexto:true };
+    const vacia = document.querySelector('#glVista .gl-ref').textContent;
+    ta.value = 'una nota larga para ver dónde parte el primer renglón';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 250));
+    const conTexto = document.querySelector('#glVista .gl-ref').textContent;
+    await eval('(' + fuera + ')')();
+    await new Promise(z => setTimeout(z, 3300));
+    /* SE COMPARAN LAS DOS A LA VEZ, reabriendo la glosa ya guardada. Comparar
+       a través del guardado no valdría: una marca nueva se lleva las que pisa,
+       y llevarse una nota renumera las de ese versículo, así que el anticipo
+       puede anunciar «1b» de buena fe y acabar en «1a» porque la que iba
+       delante desapareció al guardar. Eso es la regla de los solapes haciendo
+       su trabajo, no el ancla equivocándose. Lo que sí tiene que cumplirse
+       siempre es esto: con la glosa abierta, el ancla del anticipo y la de la
+       hoja dicen lo mismo. */
+    const mia = JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]')
+      .find(m => (m.nota||'').startsWith('una nota larga para ver'));
+    if (!mia) return { sinGuardar:true };
+    const enLaHoja = document.querySelector('.gl[data-gl="' + mia.id + '"] .gl-ref');
+    await eval('(' + tocar + ')')(3, 11);
+    const ancla = document.querySelector('#glVista .gl-ref');
+    const ta2 = document.getElementById('glosaCaja');
+    if (!ancla || !ta2) return { sinReabrir:true };
+    const cs = getComputedStyle(ancla), ch = getComputedStyle(enLaHoja);
+    return { vacia, conTexto,
+             anticipo: { texto: ancla.textContent,
+                         sangria: parseFloat(getComputedStyle(ta2).textIndent),
+                         ancho: Math.round(ancla.getBoundingClientRect().width),
+                         tam: cs.fontSize, peso: cs.fontWeight, fuera: cs.position },
+             enLaHoja: { texto: enLaHoja.textContent, tam: ch.fontSize, peso: ch.fontWeight } };
+  }, [ABRIR, FUERA, TOCAR]).then(r => {
+    vale('sin texto todavía no hay referencia', !r.sinTexto && r.vacia === '·', r.vacia);
+    vale('con texto sale la que le toca', /^\d/.test(r.conTexto || ''), r.conTexto);
+    vale('y con la glosa abierta dice lo mismo que la hoja',
+         !r.sinGuardar && !r.sinReabrir && r.anticipo.texto === r.enLaHoja.texto,
+         (r.anticipo||{}).texto + ' contra ' + (r.enLaHoja||{}).texto);
+    vale('del mismo cuerpo y peso',
+         r.enLaHoja && r.anticipo.tam === r.enLaHoja.tam &&
+         r.anticipo.peso === r.enLaHoja.peso,
+         r.anticipo && r.anticipo.tam + ' / ' + r.anticipo.peso);
+    /* Fuera del flujo y con el primer renglón sangrado a su ancho: es la única
+       manera de que un textarea —que no deja fluir texto alrededor de nada—
+       parta el primer renglón donde lo parte la nota de verdad. */
+    vale('sangra el primer renglón a su ancho',
+         r.anticipo && r.anticipo.fuera === 'absolute' &&
+         Math.abs(r.anticipo.sangria - r.anticipo.ancho) <= 1,
+         (r.anticipo||{}).sangria + ' contra ' + (r.anticipo||{}).ancho);
+    return r;
+  }));
+
+  titulo('mirar una glosa no la hace volar');
+  /* El vuelo dice «aquí quedó lo que acabas de escribir». Abrirla, leerla y
+     salir no tiene nada que contar: animarla igual convierte un vistazo en un
+     aviso de guardado, y de paso esconde la nota 2.4 segundos por nada. */
+  di('abrir y salir sin tocar', await p.evaluate(async ([fuera]) => {
+    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]');
+    const mia = g.find(m => (m.nota||'').startsWith('una nota larga para ver'));
+    if (!mia) return { sinGlosa:true };
+    const gl = document.querySelector('.gl[data-gl="' + mia.id + '"]');
+    if (!gl) return { sinGlosa:true };
+    gl.dispatchEvent(new MouseEvent('dblclick', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 450));
+    const traeLaNota = (document.getElementById('glosaCaja')||{}).value;
+    await eval('(' + fuera + ')')();
+    await new Promise(z => setTimeout(z, 250));
+    const calco = [...document.body.children].some(e => e.classList &&
+      e.classList.contains('gl-vista') && e.style.position === 'fixed');
+    /* y la nota sigue entera y a la vista, no escondida por un vuelo fantasma */
+    const sigue = JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]')
+      .some(m => m.id === mia.id && m.nota === mia.nota);
+    const visible = getComputedStyle(
+      document.querySelector('.gl[data-gl="' + mia.id + '"]')).visibility;
+    return { traeLaNota, calco, sigue, visible };
+  }, [FUERA]).then(r => {
+    vale('el panel reabre con su nota', !r.sinGlosa && !!r.traeLaNota);
+    vale('y al salir sin tocar nada no vuela', r.calco === false);
+    vale('la nota queda igual', r.sigue);
+    vale('y visible, no escondida', r.visible === 'visible', r.visible);
+    return r;
+  }));
+
   titulo('la glosa vuela a su sitio al guardarse');
   /* Sin el vuelo la nota desaparece de un lado y aparece en el otro: dos
      cosas, no una. Con él, lo que escribiste y lo que quedó son el mismo
      objeto —que es la verdad— y el ojo aprende dónde buscarlo. */
-  di('al cerrar', await p.evaluate(async () => {
+  di('al cerrar', await p.evaluate(async ([abrir]) => {
     const calco = () => [...document.body.children].find(e => e.classList &&
       e.classList.contains('gl-vista') && e.style.position === 'fixed');
+    /* Su propio panel, con su nota y sus dos etiquetas: encadenarlo al de la
+       prueba anterior lo dejaba a merced de lo que aquélla hiciera al final. */
+    const ok = await eval('(' + abrir + ')')(0, 16);
+    if (!ok) return { sinPanel:true };
+    const ta = document.getElementById('glosaCaja');
+    if (!ta) return { sinPanel:true };
+    ta.value = 'una nota con etiquetas dentro';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    document.querySelector('#menu .mtags').click();
+    await new Promise(z => setTimeout(z, 200));
+    const libres = [...document.querySelectorAll('#menu .taglista .tg')]
+      .filter(b => !b.classList.contains('on'));
+    for (const b of libres.slice(0,2)){ b.click(); await new Promise(z => setTimeout(z, 120)); }
     document.body.dispatchEvent(new PointerEvent('pointerdown',
       { bubbles:true, clientX:5, clientY:5 }));
     await new Promise(z => setTimeout(z, 150));
@@ -615,8 +729,8 @@ const guardadas = () => {
              conEtiquetas: c ? c.querySelectorAll('.gl-t').length : null,
              animando: !!an,
              duracion: an ? an.effect.getTiming().duration : null };
-  }).then(r => {
-    vale('el calco despega', r.hayCalco);
+  }, [ABRIR]).then(r => {
+    vale('el calco despega', !r.sinPanel && r.hayCalco);
     vale('y es una glosa, no un formulario', r.sinTextarea === true);
     vale('con sus etiquetas puestas', r.conEtiquetas === 2, r.conEtiquetas);
     vale('lento a propósito', r.animando && r.duracion >= 1800 && r.duracion <= 3600,

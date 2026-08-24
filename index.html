@@ -1315,7 +1315,15 @@
      el margen y de qué marca es esto.
      Centrado, porque su ancho es el del margen y no el del panel: pegado a un
      lado se leería como un bloque mal alineado en vez de como una nota. */
-  #menu .gl-vista{ align-self:center; max-width:100%; box-sizing:border-box; }
+  /* position:relative para que el ancla, que va en absoluto, se cuelgue de
+     este recuadro y no de la hoja. */
+  #menu .gl-vista{ align-self:center; max-width:100%; box-sizing:border-box;
+                   position:relative; }
+  /* EL ANCLA, EN SU POSICIÓN ESTÁTICA. Sin left ni top: así queda donde la
+     habría puesto el flujo —el principio del contenido— que es exactamente
+     donde la pinta la hoja. Y al salir del flujo deja el sitio libre para que
+     el textarea sangre su primer renglón por debajo de ella. */
+  #menu .gl-vista .gl-ref{ position:absolute; z-index:1; pointer-events:none; }
   /* El textarea DESAPARECE dentro del recuadro: sin borde, sin fondo, sin
      relleno propio. El recuadro ya lo pone la glosa, y dos recuadros —uno
      dentro de otro— es exactamente lo que hacía que aquello se leyera como un
@@ -1351,10 +1359,16 @@
      como etiqueta y el renglón cabe al triple de densidad. */
   #menu .taglista{ display:flex; flex-wrap:wrap; gap:2px 0; align-items:baseline;
                    max-height:34vh; overflow-y:auto; overscroll-behavior:contain; }
+  /* SIN nowrap, y con permiso para partir. El panel mide ahora lo que mide la
+     glosa —unos 233px de contenido— y ahí «feExtraordinaria» no cabe de una
+     pieza: con nowrap se salía por el filo derecho, que es peor que partirse.
+     Partir un nombre por la mitad no es bonito, pero es lo que hace la propia
+     etiqueta cuando se pinta al margen (ver el <wbr> de etiquetaHTML), así que
+     al menos es lo mismo en los dos sitios. */
   #menu .taglista .tg{ font-size:.86rem; font-weight:500; line-height:1.5;
                        padding:2px 9px 2px 0; border:0; border-radius:0;
                        background:transparent; color:#e6dcc4; text-align:left;
-                       white-space:nowrap; }
+                       overflow-wrap:anywhere; min-width:0; }
   /* LAS PUESTAS SE APAGAN, que es al revés de como estaban. Puestas ya se ven
      dentro de la glosa de arriba, así que aquí no queda nada que decidir sobre
      ellas: lo que esta lista ofrece es lo que TODAVÍA se puede añadir. Tocar
@@ -1368,8 +1382,12 @@
      fila entera al cambiar. */
   #menu .taglista .tg.ultima{ text-decoration:underline dotted;
                               text-underline-offset:3px; }
-  #menu .tagctl{ display:flex; gap:5px; align-items:center; }
-  #menu .tagctl input{ flex:1 1 auto; min-width:0; width:auto; }
+  /* Los dos mandos caben en un renglón mientras quepan; si no, el botón baja
+     en vez de salirse. En un panel del ancho de una glosa eso pasa de verdad:
+     la caja pedía 120px de base y el botón otros tantos, y «+ crear» se
+     quedaba cortado por el filo. */
+  #menu .tagctl{ display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+  #menu .tagctl input{ flex:1 1 90px; min-width:0; width:auto; }
   #menu .tagctl .crear{ flex:0 0 auto; border-color:rgba(201,162,39,.55);
                         color:#f0dda6; }
   .tagbox .vacio{ font-size:.65rem; opacity:.45; padding:0 4px; }
@@ -1641,7 +1659,7 @@
     /* Los mandos no son etiquetas: sin esto heredan los 11/14 de #menu button
        y el renglón se come 39px por nada. */
     #menu .tagbox .tagctl input{ font-size:15px; padding:9px 11px; width:auto;
-                                 flex:1 1 120px; min-width:0; }
+                                 flex:1 1 90px; min-width:0; }
     #menu .tagbox .tagctl button[data-acc]{ flex:0 0 auto; text-align:center;
                                             padding:9px 13px; font-size:15px; }
     #menu .mtags{ font-size:14px; padding:7px 6px; }
@@ -2776,10 +2794,30 @@ function reanclar(m){
 }
 
 /* ---------- referencias y tintes ---------- */
+/* LA NOTA QUE CUENTA AHORA MISMO. Mientras el panel está abierto, lo escrito
+   vive en el textarea y no en la marca —nada se guarda hasta cerrar— así que
+   para todo lo que se DERIVA de tener nota, la marca en edición parecía no
+   tenerla. Y la referencia es justo eso: un «12a» se gana por ser una de las
+   notas de ese versículo. Sin esto, el anticipo de una glosa nueva enseñaba un
+   punto suelto donde la hoja iba a poner «1b·», y con él la sangría del primer
+   renglón, que es la que decide dónde parte. */
+function notaViva(m){
+  if (typeof borrador !== 'undefined' && borrador && borrador.m === m){
+    const ta = menu.querySelector('#glosaCaja');
+    if (ta) return ta.value.trim();
+  }
+  return m.nota;
+}
 function recalcularRefs(){
   REFS = new Map(); TINT_V = new Map();
-  const conNota = marcas.filter(m => m.nota && visible(m))
-    .sort((a,b) => a.cap - b.cap || a.vers - b.vers || (RES.get(a.id)||{ini:0}).ini - (RES.get(b.id)||{ini:0}).ini);
+  const conNota = marcas.filter(m => notaViva(m) && visible(m))
+    /* El respaldo NO es {ini:0}: era mandar al principio del versículo a
+       cualquiera que el reanclaje todavía no hubiera medido, y con el anticipo
+       eso se nota —la glosa que estás escribiendo se creía la primera y se
+       anunciaba «1a» para acabar siendo «1b»—. La marca lleva su propio ini
+       desde que nace, así que ése es el respaldo bueno. */
+    .sort((a,b) => a.cap - b.cap || a.vers - b.vers ||
+                   (RES.get(a.id) || a).ini - (RES.get(b.id) || b).ini);
   const cuenta = new Map(), vistos = new Map();
   for (const m of conNota){ const k = m.cap+':'+m.vers; cuenta.set(k, (cuenta.get(k)||0)+1); }
   for (const m of conNota){
@@ -3808,6 +3846,7 @@ function ocultarMenu(){
   if (menu._teclado) menu._teclado();
   if (borrador) cerrarBorrador();
   menu.style.display='none'; menu.innerHTML='';
+  menu.style.width = '';                  /* la lista de vínculos no es una glosa */
   ultimoRect=null;
 }
 
@@ -3828,7 +3867,31 @@ function ocultarMenu(){
 
    Y las etiquetas van DENTRO, pintadas con etiquetasHTML —el mismo HTML que
    usa la hoja—, no con un marcado paralelo que mañana se quede atrás. */
-const anchoVista = () => Math.max(120, MARGIN_W() - 8);
+function anchoVista(){
+  /* SI YA HAY UNA GLOSA PINTADA, SU ANCHO ES EL BUENO: medido, no estimado, y
+     válido para las tres disposiciones sin tener que reproducir la cuenta de
+     cada una. Al margen la nota mide la columna menos su hueco de giro; abajo,
+     la columna de texto menos la sangría; al pie, el ancho del pie. Calcular
+     eso tres veces aquí sería tener la misma medida en dos sitios, y uno se
+     queda atrás —ya pasó con el ancho del margen—. */
+  const puesta = document.querySelector('#pgMargin .gl[data-gl], #pgFoot .gl[data-gl], #pgBody .gl[data-gl]');
+  if (puesta){
+    const w = puesta.getBoundingClientRect().width;
+    if (w > 60) return Math.round(w);
+  }
+  /* Y si la hoja todavía no tiene ninguna, se estima por disposición. Forzar
+     el ancho del margen en las otras dos era partir los renglones donde no se
+     van a partir, que es justo lo que este anticipo venía a arreglar. */
+  if (placement === 'foot'){
+    const w = pgFoot.getBoundingClientRect().width;
+    if (w > 60) return Math.max(120, Math.round(w) - 5);
+  }
+  if (placement === 'below'){
+    const w = pgBody.getBoundingClientRect().width / Math.max(1, columns);
+    if (w > 60) return Math.max(120, Math.round(w) - 19);
+  }
+  return Math.max(120, MARGIN_W() - 8);
+}
 
 function panelHTML(m){
   const forma = formaOrganica(m);
@@ -3848,7 +3911,12 @@ function panelHTML(m){
        HTML obliga a escapar bien lo que escribió una mano, y basta un
        caso raro para que la nota se corrompa al releerla. Se pone
        después, por propiedad, donde no hay escape que valga. */
+    /* EL ANCLA VA TAMBIÉN, y no es un adorno: glossHTML le antepone a cada
+       nota un «12·» que ocupa sitio en el PRIMER RENGLÓN y por tanto decide
+       dónde parte. Sin ella, el anticipo acertaba el ancho y erraba el corte,
+       que es la mitad de lo que se venía a copiar. Lo levantó Codex. */
     '<div class="gl gl-vista g-' + m.color + '" id="glVista" style="' + forma.css + '">' +
+      '<span class="gl-ref"></span>' +
       '<textarea id="glosaCaja" rows="2" placeholder="glosa…" spellcheck="false"></textarea>' +
       '<span class="gl-tags"></span>' +
     '</div>' +
@@ -3930,6 +3998,46 @@ function vestirVista(m){
   caja.style.width = anchoVista() + 'px';
   opacarVista(caja);
 }
+/* EL PANEL MIDE LO QUE MIDE LA GLOSA. Es lo que lo convierte en «esta nota y
+   sus mandos» en vez de en «un panel que además enseña una nota»: la columna
+   de la izquierda y la de la derecha son las mismas arriba y abajo, y el ojo
+   deja de tener que emparejar dos anchos distintos.
+
+   Con box-sizing:border-box —que lo pone el reset de arriba para todo— el
+   width incluye relleno y borde, así que hay que sumarlos: si no, el recuadro
+   de dentro sale más ancho que su hueco y se recorta por el filo.
+
+   Se pone desde el guion y no en la hoja de estilos porque el ancho de una
+   glosa depende de la disposición y del tamaño de letra, y eso solo se sabe
+   aquí. Y se quita al cerrar, porque el mismo #menu lo reusa la lista de
+   «citado desde», que no es una glosa y no tiene por qué medir como una. */
+function anchoPanelComoGlosa(){
+  const cs = getComputedStyle(menu);
+  const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+  const bor = parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+  menu.style.width = Math.round(anchoVista() + pad + bor) + 'px';
+}
+/* EL ANCLA DEL ANTICIPO, con la misma cuenta que glossHTML: la señal de
+   aproximación cuando el anclaje no es exacto, y la referencia que le toca.
+
+   Va colocada en absoluto SIN left ni top, o sea en su posición estática: el
+   principio del contenido, justo donde la pinta la hoja. Y como sale del flujo,
+   el primer renglón del textarea se sangra a mano con su ancho. Es la única
+   manera de que un textarea —que no deja fluir texto alrededor de nada— parta
+   el primer renglón donde lo parte la nota de verdad. */
+function pintarAncla(m){
+  const ancla = menu.querySelector('#glVista .gl-ref'); if (!ancla) return;
+  /* Se recalculan las referencias antes de leer la suya: la de una glosa nueva
+     nace en cuanto hay texto, y depende de cuántas notas lleve ya ese
+     versículo. Sale barato —solo recorre las marcas con nota— y evita repintar
+     la hoja entera para averiguar dos caracteres. */
+  recalcularRefs();
+  const grado = (RES.get(m.id) || {}).grado;
+  const senal = (grado && grado !== 'exacta' && grado !== 'cita') ? '≈' : '';
+  ancla.textContent = senal + (REFS.get(m.id) || '') + '·';
+  const ta = menu.querySelector('#glosaCaja');
+  if (ta) ta.style.textIndent = Math.round(ancla.getBoundingClientRect().width) + 'px';
+}
 /* EL RECUADRO CRECE CON LO ESCRITO, como crece la glosa del margen. Un alto
    fijo delataría el formulario: al margen ninguna nota mide tres renglones
    porque sí, mide lo que ocupa. */
@@ -3955,6 +4063,7 @@ function refrescarTags(){
      sitios, y uno de los dos se quedaría atrás. */
   const dentro = menu.querySelector('.gl-tags');
   if (dentro) dentro.innerHTML = etiquetasHTML(m);
+  pintarAncla(m);
   const bot = menu.querySelector('.mtags');
   if (bot) bot.textContent =
     (caja && caja.classList.contains('abierta') ? '▾ ' : '▸ ') + 'etiquetas' +
@@ -3972,7 +4081,13 @@ function afinarTagbox(){
 
 function abrirPanel(m, nueva, rect){
   if (borrador) cerrarBorrador();          /* el anterior se cobra antes */
-  borrador = { m, nueva, teniaNota: !!(m.nota||'').trim() };
+  /* Lo que traía al abrirse, para saber al cerrar si algo cambió de verdad.
+     Sin esto, mirar una glosa y tocar fuera la hacía volar como si la
+     acabaras de escribir: 2.4 segundos de animación por haberla abierto.
+     Lo levantó Codex. */
+  borrador = { m, nueva, teniaNota: !!(m.nota||'').trim(),
+               notaAntes: (m.nota || '').trim(),
+               tagsAntes: (m.etiquetas || []).join('\u0001') };
   /* La marca provisional entra en la lista para poder VERLA mientras
      decides —el subrayado bajo el texto es la mitad de la decisión— y
      sale de ella al cerrar si no llegaste a escribir nada. Lo que no se
@@ -3990,7 +4105,14 @@ function abrirPanel(m, nueva, rect){
     ta.focus();
   }
   refrescarTags();
-  if (nueva) renderPage();                 /* pinta el ancla recién nacida */
+  if (nueva) renderPage();                 /* pinta la marca recién nacida */
+  /* EL ANCLA SE REPINTA DESPUÉS DE renderPage, y no es redundante: la
+     referencia de una marca nueva —el «12a» que le toca por su sitio en el
+     capítulo— la calcula el repintado, así que antes de él REFS todavía no la
+     tiene y el ancla salía como un punto suelto. Medido: «·» en vez de «1a·»,
+     con la sangría del primer renglón corta en la misma proporción. */
+  pintarAncla(m);
+  anchoPanelComoGlosa();
   colocarMenu();
 }
 /* LO QUE PASA AL CERRAR, que es lo único que toca el almacén.
@@ -4009,10 +4131,16 @@ function cerrarBorrador(){
   const ta = menu.querySelector('#glosaCaja');
   const nota = ta ? ta.value.trim() : (b.m.nota || '').trim();
   const m = b.m;
-  /* Se despega ANTES de repintar: hay que medir de dónde sale mientras el
-     recuadro todavía está en su sitio. El destino se mide después, cuando
+  /* SOLO VUELA LO QUE CAMBIÓ. El vuelo cuenta «aquí quedó lo que acabas de
+     escribir», así que abrir una nota, leerla y salir no tiene nada que
+     contar: animarla igual convierte un vistazo en un aviso de guardado, y de
+     paso esconde la nota de verdad 2.4 segundos por nada.
+     Se despega ANTES de repintar, que es cuando el recuadro todavía está en su
+     sitio y se puede medir de dónde sale. El destino se mide después, cuando
      renderPage ya lo ha pintado. */
-  const viajero = nota ? despegarVista() : null;
+  const cambio = b.nueva || nota !== b.notaAntes ||
+                 (m.etiquetas || []).join('\u0001') !== b.tagsAntes;
+  const viajero = (nota && cambio) ? despegarVista() : null;
   if (nota){
     m.nota = nota;
     if (b.nueva){
@@ -4109,6 +4237,12 @@ function despegarVista(){
    bloquea nada, así que mientras dura se puede leer, escribir o pasar hoja. */
 const VUELO_MS = 2400;
 function volarGlosa(caja, id){
+  /* QUIEN PIDIÓ MENOS MOVIMIENTO NO RECIBE ÉSTE TAMPOCO. El programa apaga sus
+     otras animaciones grandes por esta preferencia, pero lo hace desde el CSS,
+     y una animación creada con Element.animate() no la ve ninguna regla: había
+     que preguntarlo aquí. La nota aparece en su sitio y ya está, que es lo que
+     esa preferencia viene a pedir. Lo levantó Codex. */
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches){ caja.remove(); return; }
   const destino = document.querySelector('.gl[data-gl="' + id + '"]');
   const a = caja.getBoundingClientRect();
   const b = destino && destino.getBoundingClientRect();
@@ -4313,6 +4447,9 @@ document.addEventListener('pointerdown', ev => {
 menu.addEventListener('input', ev => {
   if (ev.target.id !== 'glosaCaja') return;
   afinarTagbox();
+  /* El ancla aparece en cuanto hay texto —antes esa nota no era una nota— y
+     con ella cambia la sangría del primer renglón. */
+  if (borrador) pintarAncla(borrador.m);
   ajustarAlto(ev.target);
   colocarMenu();
 });

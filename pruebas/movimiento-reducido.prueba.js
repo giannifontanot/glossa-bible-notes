@@ -71,6 +71,49 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
       vale('y acaba en las glosas', cajon.final === cajon.tope,
            cajon.final + ' de ' + cajon.tope);
     }
+    /* EL VUELO DE LA GLOSA TAMPOCO. Es la otra animación grande del programa
+       —2.4 segundos de nota cruzando la hoja— y la única que no puede apagar
+       una regla de CSS: la crea Element.animate(), y a eso no llega ninguna
+       media query. Había que preguntarlo desde el guion. Lo levantó Codex. */
+    const vuelo = await p.evaluate(async () => {
+      const v = document.querySelector('#pgBody .v');
+      const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+      while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
+      if (!n) return { sinTexto:true };
+      const r = document.createRange(); r.setStart(n,0); r.setEnd(n,14);
+      getSelection().removeAllRanges(); getSelection().addRange(r);
+      const rc = r.getBoundingClientRect();
+      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+        { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
+      await new Promise(z => setTimeout(z, 550));
+      const ta = document.getElementById('glosaCaja');
+      if (!ta) return { sinPanel:true };
+      ta.value = 'una nota que quizá vuele';
+      ta.dispatchEvent(new Event('input', { bubbles:true }));
+      document.body.dispatchEvent(new PointerEvent('pointerdown',
+        { bubbles:true, clientX:5, clientY:5 }));
+      await new Promise(z => setTimeout(z, 200));
+      const calco = [...document.body.children].find(e => e.classList &&
+        e.classList.contains('gl-vista') && e.style.position === 'fixed');
+      return { hayCalco: !!calco,
+               animando: !!(calco && calco.getAnimations().length),
+               /* y la nota tiene que estar puesta y visible de todos modos */
+               guardada: JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]')
+                 .some(m => m.nota === 'una nota que quizá vuele'),
+               ningunaEscondida: [...document.querySelectorAll('.gl')]
+                 .every(g => getComputedStyle(g).visibility !== 'hidden') };
+    });
+    di('el vuelo de la glosa', vuelo);
+    if (!vuelo.sinTexto && !vuelo.sinPanel){
+      if (modo === 'reduce'){
+        vale('la glosa no vuela', vuelo.hayCalco === false);
+        vale('y aparece puesta en su sitio',
+             vuelo.guardada && vuelo.ningunaEscondida);
+      } else {
+        vale('la glosa vuela', vuelo.hayCalco && vuelo.animando);
+        vale('y queda guardada igual', vuelo.guardada);
+      }
+    }
     /* Se revisan los errores de ESTA sesión antes de tirarla: cerrando a pelo,
        una excepción que solo ocurriera con la animación puesta se perdía y la
        prueba terminaba en verde. */
