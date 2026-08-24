@@ -854,17 +854,31 @@
               transition:opacity .2s ease, transform .28s cubic-bezier(.2,.85,.3,1); }
   #historial::-webkit-scrollbar{ width:0; height:0; display:none; }
   #historial.visible{ opacity:1; transform:none; }
-  /* El rótulo y el paso atrás comparten renglón: el rótulo no lleva a ningún
-     sitio y estaba ocupando una franja entera él solo. */
-  .hs-tit{ display:flex; align-items:center; font:700 10.5px/1 var(--ui);
-           letter-spacing:.14em; text-transform:uppercase; color:#8a7746;
-           padding:3px 3px 6px; }
+  /* EL RÓTULO Y EL PASO ATRÁS, EN UN RENGLÓN DE VERDAD.
+
+     Compartirlo era la intención desde que el botón se subió aquí, y no se
+     cumplía: #historial es una COLUMNA, así que el rótulo y el botón eran dos
+     hijos uno debajo del otro y el margin-left:auto del botón solo lo corría
+     al filo derecho. Quedaban en dos franjas, el rótulo arriba a la izquierda
+     y el botón debajo a la derecha, y de ahí que no casaran.
+
+     Con un renglón propio que los envuelva ya son hermanos en horizontal, y
+     align-items:center los centra el uno con el otro: el botón lleva borde y
+     relleno, así que es más alto que el rótulo, y alinearlos por arriba o por
+     la base dejaría a uno colgando del otro. El hueco de arriba es el mismo
+     de antes —el relleno se muda del rótulo a su renglón, no cambia—. */
+  .hs-cab{ display:flex; align-items:center; gap:8px; padding:3px 3px 6px; }
+  .hs-tit{ font:700 10.5px/1 var(--ui);
+           letter-spacing:.14em; text-transform:uppercase; color:#8a7746; }
   /* EL PASO ATRÁS. Dice a dónde va además de llevar la flecha: una flecha
      sola en una lista de escrituras no distingue «atrás por donde vine» de
      «sube una fila», y la referencia lo desambigua sin gastar un renglón.
      margin-left:auto lo manda a la derecha del renglón del rótulo, que es lo
-     pedido y además el borde por el que este panel crece. */
-  .hs-atras{ margin-left:auto; display:inline-flex; align-items:center; gap:6px;
+     pedido y además el borde por el que este panel crece. Y flex-shrink:0
+     porque su referencia no se parte: antes que encogerse y partir «Lc 2:1»
+     en dos renglones, que se recorte el rótulo, que es texto fijo. */
+  .hs-atras{ margin-left:auto; flex:0 0 auto;
+             display:inline-flex; align-items:center; gap:6px;
              font:600 10.5px/1 var(--ui); letter-spacing:.06em;
              color:#6d5a2c; background:rgba(140,116,68,.13);
              border:1px solid rgba(140,116,68,.4); border-radius:999px;
@@ -1403,6 +1417,27 @@
                             padding:0; margin:0; box-shadow:none; resize:none;
                             outline:none; color:inherit; font:inherit;
                             line-height:inherit; overflow:hidden; min-height:2.7em; }
+  /* EL ECO, CALCADO SOBRE EL TEXTAREA.
+
+     Las mismas medidas de letra y el mismo modo de partir renglones, porque
+     la raya tiene que caer bajo las mismas palabras: cualquier diferencia y
+     el subrayado se va a otra parte del texto.
+
+     La tinta se apaga con -webkit-text-fill-color y NO con color:transparent,
+     y esa es toda la gracia: la raya de .ref es un border-bottom en
+     currentColor, así que apagando el `color` se apagaría también la raya.
+     Con text-fill-color desaparecen las letras y el color sigue ahí para que
+     la raya lo herede. Así el eco no aporta ni un píxel de texto —el que se
+     lee es el del textarea, con su cursor y su selección de verdad— y aporta
+     solo el subrayado.
+
+     Y no recibe toques: el que abre la ventanita es el textarea de debajo,
+     que es quien sabe en qué letra cayó el dedo. */
+  #menu .gl-vista .gl-eco{ position:absolute; z-index:2; pointer-events:none;
+                           font:inherit; line-height:inherit; color:inherit;
+                           -webkit-text-fill-color:transparent;
+                           white-space:pre-wrap; overflow-wrap:break-word;
+                           overflow:hidden; }
   /* Las etiquetas de dentro las pinta etiquetasHTML y las viste .gl-tag, la
      misma regla que en la hoja. Aquí no se les toca nada: si se les tocara,
      esto dejaría de ser un anticipo. */
@@ -4124,6 +4159,12 @@ function panelHTML(m){
        que es la mitad de lo que se venía a copiar. Lo levantó Codex. */
     '<div class="gl gl-vista g-' + m.color + '" id="glVista" style="' + forma.css + '">' +
       '<span class="gl-ref"></span>' +
+      /* EL ECO: el mismo texto, calcado encima y sin tinta, solo para poder
+         subrayar las escrituras. Un textarea no deja pintar nada por dentro
+         —no admite marcado—, así que la raya se dibuja en una copia puesta
+         justo encima. Va aquí, antes del textarea, para que no le quite el
+         sitio a nadie: se coloca por medida, no por flujo. */
+      '<div class="gl-eco" aria-hidden="true"></div>' +
       '<textarea id="glosaCaja" rows="2" placeholder="glosa…" spellcheck="false"></textarea>' +
       '<span class="gl-tags"></span>' +
     '</div>' +
@@ -4380,6 +4421,54 @@ function ajustarAlto(ta){
   const tope = Math.max(80, Math.round(stage.getBoundingClientRect().height * 0.42));
   ta.style.height = Math.min(ta.scrollHeight, tope) + 'px';
   ta.style.overflowY = ta.scrollHeight > tope ? 'auto' : 'hidden';
+  pintarEco();
+}
+/* LAS ESCRITURAS QUE ESCRIBES SE SUBRAYAN MIENTRAS ESCRIBES.
+
+   Tocar una referencia dentro de la caja abre la ventanita con el versículo,
+   pero eso no se veía por ninguna parte: el texto era texto plano y no había
+   manera de saber que aquellas dos palabras respondían. En la hoja una
+   referencia se reconoce por su raya de puntos; aquí no había ninguna, así
+   que la única forma de descubrirlo era tocar por si acaso.
+
+   Un textarea no admite marcado por dentro, o sea que la raya no se le puede
+   poner al texto: se dibuja en una copia calcada encima, sin tinta, que solo
+   aporta el subrayado. Es la técnica de siempre para esto, y toda su
+   dificultad está en que el calco parta los renglones EXACTAMENTE donde los
+   parte el textarea; de ahí que se copien letra, ancho, sangría y desplazamiento
+   en vez de fiarlo a que dos elementos parecidos se comporten igual.
+
+   Se subrayan las mismas que responden al toque, ni una más: las que existen
+   de verdad en los datos. Una referencia a medio escribir no se subraya
+   —todavía no lleva a ningún sitio— y en cuanto queda completa aparece la
+   raya, que es la manera de enterarse de que ya vale. */
+function pintarEco(){
+  const ta = menu.querySelector('#glosaCaja');
+  const eco = menu.querySelector('.gl-eco');
+  if (!ta || !eco) return;
+  /* La sangría del primer renglón es la del ancla, y el textarea la lleva
+     puesta por propiedad: se copia de él y no se recalcula, que dos cuentas
+     del mismo número acaban siempre en dos números. */
+  eco.style.left      = ta.offsetLeft + 'px';
+  eco.style.top       = ta.offsetTop + 'px';
+  eco.style.width     = ta.offsetWidth + 'px';
+  eco.style.height    = ta.offsetHeight + 'px';
+  eco.style.textIndent = ta.style.textIndent || '';
+  const texto = ta.value;
+  const trozos = refsDe(texto).filter(refExiste)
+    .sort((a, b) => a.inicio - b.inicio);
+  let html = '', i = 0;
+  for (const r of trozos){
+    if (r.inicio < i) continue;          /* solapadas: manda la primera */
+    html += esc(texto.slice(i, r.inicio)) +
+            '<span class="ref">' + esc(texto.slice(r.inicio, r.fin)) + '</span>';
+    i = r.fin;
+  }
+  /* El renglón de más al final es del navegador y no un descuido: un texto
+     que acaba en salto de línea deja el último renglón vacío, y sin algo
+     detrás el calco lo pierde y se descuadra a partir de ahí. */
+  eco.innerHTML = html + esc(texto.slice(i)) + '\u200b';
+  eco.scrollTop = ta.scrollTop;
 }
 /* La lista se retoca en su sitio, NUNCA repintando el panel entero. Repintar
    destruiría el textarea, y con él el foco, el cursor y el teclado del teléfono
@@ -4708,6 +4797,17 @@ function despegarVista(){
   if (!r.width || !r.height) return null;
   const clon = vista.cloneNode(true);
   clon.removeAttribute('id');
+  /* EL ECO NO VUELA. Es el calco sin tinta que sirve para subrayar las
+     escrituras mientras escribes, y se sostiene sobre una regla con #menu
+     delante —que es la casa: dentro del panel, las reglas van prefijadas—.
+     Este clon sale del panel y se cuelga del cuerpo del documento, así que
+     esa regla deja de alcanzarle: el eco perdía el `position:absolute`, se
+     volvía un bloque normal, y empujaba al texto de la nota a un renglón
+     nuevo por debajo del ancla. Medido: el primer renglón se plantaba en 6
+     cuando el ancla acaba en 29. Aquí no pinta nada —el calco es una foto—,
+     así que se va. */
+  const eco = clon.querySelector('.gl-eco');
+  if (eco) eco.remove();
   const ta = clon.querySelector('textarea');
   if (ta){
     const texto = document.createElement('span');
@@ -4955,7 +5055,58 @@ menu.addEventListener('click', ev => {
      que hace tocar fuera. Se cierra tocando fuera, como se cerraba ya. */
 });
 
+/* TRAGARSE EL CLIC DE ESTE MISMO TOQUE.
+
+   Un toque suelta tres eventos —pointerdown, pointerup y luego click— y son
+   tres, no uno: cortar el pointerdown no impide que el click llegue a su
+   botón. Sin esto, «el toque de fuera es de la ventanita» se quedaba a medias:
+   la ventanita se cerraba, sí, pero el mismo dedo abría además el historial o
+   el canto de los libros, y quedaban dos paneles puestos a la vez. Lo levantó
+   Codex, y está medido: tocando #btnHistorial con la ventanita encima del
+   panel salían panel Y historial; tocando #pgCabeza, panel Y canto.
+
+   Se come UN clic y se quita solo. Y se quita además por dos caminos, porque
+   un oyente de captura que se queda puesto se come el clic de otro:
+   · al empezar OTRO toque, que ese ya es de quien lo dé;
+   · y por tiempo, para el toque que nunca llega a clic —arrastrar para
+     seleccionar, o desplazar la hoja—. */
+function tragarElClic(){
+  let t;
+  const soltar = () => {
+    document.removeEventListener('click', tragar, true);
+    document.removeEventListener('pointerdown', soltar, true);
+    clearTimeout(t);
+  };
+  const tragar = ev => { ev.stopPropagation(); ev.preventDefault(); soltar(); };
+  document.addEventListener('click', tragar, true);
+  document.addEventListener('pointerdown', soltar, true);
+  t = setTimeout(soltar, 700);
+}
 document.addEventListener('pointerdown', ev => {
+  /* CON LA VENTANITA PUESTA, EL TOQUE DE FUERA ES SUYO Y DE NADIE MÁS.
+
+     Desde la caja de escribir se puede tocar una referencia y leer el
+     versículo sin salir del panel; la ventanita sale por encima. Un toque
+     fuera cerraba las dos cosas de una vez, y eso es perder el panel por
+     haber querido quitar lo que tapaba el panel —lo escrito no se pierde,
+     que cerrar guarda, pero hay que volver a abrirlo para seguir—.
+
+     Así que el toque se lo queda la ventanita ENTERO: cierra lo de arriba y
+     no llega a nadie más, ni al panel de debajo ni al botón que se haya
+     tocado. El siguiente toque ya es normal.
+
+     El historial va aparte y sigue como estaba: si está abierto, la ventanita
+     salió de él y el toque de fuera se los lleva a los dos.
+
+     Va aquí, en el oyente del panel, y no junto al resto del código de la
+     ventanita: los dos son de captura sobre el documento, o sea que manda el
+     que se registró antes, y ese es este. */
+  if (plenoAbierto && !histAbierto && !ev.target.closest('#versoPleno')){
+    cerrarPleno();
+    tragarElClic();
+    ev.stopPropagation();
+    return;
+  }
   if (ev.target.closest('#menu')) return;
   /* LO ESCRITO SE COBRA ANTES DE CERRAR, y el orden es todo el arreglo.
 
@@ -5103,6 +5254,14 @@ menu.addEventListener('click', ev => {
   abrirPleno(r.libro, r.cap, r.vers, r.letra || '',
              { libro: m.libro, cap: m.cap, vers: m.vers });
 });
+/* Con nota larga el textarea se desplaza por dentro, y el calco tiene que
+   desplazarse con él o la raya se queda en el renglón que ya no está. El
+   scroll no burbujea, así que se escucha en captura. */
+menu.addEventListener('scroll', ev => {
+  if (ev.target.id !== 'glosaCaja') return;
+  const eco = menu.querySelector('.gl-eco');
+  if (eco) eco.scrollTop = ev.target.scrollTop;
+}, true);
 menu.addEventListener('keydown', ev => {
   if (ev.target.id !== 'tagNueva' || ev.key !== 'Enter') return;
   ev.preventDefault(); crearTagDeMarca(ev.target);
@@ -7008,7 +7167,8 @@ function pintarHistorial(){
     const k = plano.findIndex(p => p.cap === h.cap && p.vers === h.vers);
     return k >= desde && k < hasta;
   };
-  cont.innerHTML = '<span class="hs-tit">Lo que has visto</span>' + pieAtras() +
+  cont.innerHTML = '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span>' +
+    pieAtras() + '</div>' +
     historial.map(h => {
     /* El texto sale de la VERSIÓN QUE ESTÁ PUESTA, no de la que estaba cuando
        lo miraste: el historial guarda la referencia, que es lo que no cambia,
@@ -7147,11 +7307,22 @@ $('versoPleno').addEventListener('click', ev => {
 });
 /* Un toque fuera lo cierra, en captura y antes que nadie, igual que la
    burbuja. La ventanita cuenta como "dentro": si no, tocarla la cerraría
-   antes de que su propio oyente llegara a leer el toque. */
+   antes de que su propio oyente llegara a leer el toque.
+
+   Y SE PREGUNTA POR LAS DOS, no solo por el historial. La ventanita nació
+   colgada del historial —se abría desde una fila y se iba con él—, así que
+   mirar `histAbierto` bastaba. Desde que la abren también una referencia
+   dentro de una glosa y la caja de escribir del panel, ya no: en esos dos
+   caminos el historial está cerrado, este oyente se rendía en la primera
+   línea, y la ventanita se quedaba puesta. Y no tiene botón de cerrar, así
+   que lo único que quedaba era saltar al versículo o dar a Escape —o sea,
+   irse a otro sitio para poder quedarse—.
+   El historial sigue haciendo lo de siempre: si está abierto, el toque de
+   fuera se los lleva a los dos, que es lo que ya hacía cerrarHistorial. */
 document.addEventListener('pointerdown', ev => {
-  if (!histAbierto) return;
+  if (!histAbierto && !plenoAbierto) return;
   if (ev.target.closest('#historial, #btnHistorial, #versoPleno')) return;
-  cerrarHistorial();
+  if (histAbierto) cerrarHistorial(); else cerrarPleno();
 }, true);
 
 /* Las dos puertas a la burbuja, cada una a su sección. */
