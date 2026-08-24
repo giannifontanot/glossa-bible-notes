@@ -44,6 +44,7 @@ diagnóstico. Salen con código distinto de cero si algo falla.
 | `etiquetas` | las cuatro maneras de etiquetar, los nombres raros, y que el control no mienta |
 | `cajon` | que el papel se corra con intención y termine el viaje solo, sin rebote |
 | `estreno` | las tres glosas que trae un lector recién abierto: que estén, que estén bien ancladas y —lo que de verdad vigila— que NO reaparezcan si las borras |
+| `contraste` | el riel de Formato: que el filtro llegue a la hoja **y al lienzo del pliegue** con el mismo número, que NO llegue al panel de Formato, y que sobreviva a la recarga |
 | `version` | el sello del panel de Respaldo: que se vea, que tenga la forma pedida, y —lo que de verdad vigila— que la hora sea la de Dallas y no la del aparato |
 
 ## Tres reglas que costaron caro
