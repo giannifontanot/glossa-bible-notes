@@ -4879,6 +4879,17 @@ menu.addEventListener('click', ev => {
 
 document.addEventListener('pointerdown', ev => {
   if (ev.target.closest('#menu')) return;
+  /* CON LA VENTANITA PUESTA, EL TOQUE DE FUERA ES SUYO.
+
+     Desde la caja de escribir se puede tocar una referencia y leer el
+     versículo sin salir del panel; la ventanita sale por encima. Un toque
+     fuera cerraba las dos cosas de una vez, y eso es perder el panel por
+     haber querido quitar lo que tapaba el panel —lo escrito no se pierde,
+     que cerrar guarda, pero hay que volver a abrirlo para seguir—.
+     Se cede el toque a la ventanita, que es lo de arriba, y el siguiente ya
+     cierra el panel. Va aquí y no allá porque los dos oyentes son de captura
+     sobre el documento: manda el que se registró antes, y ese es este.  */
+  if (plenoAbierto) return;
   /* LO ESCRITO SE COBRA ANTES DE CERRAR, y el orden es todo el arreglo.
 
      Este oyente va en fase de CAPTURA, así que corre antes que nada; y
@@ -7069,11 +7080,22 @@ $('versoPleno').addEventListener('click', ev => {
 });
 /* Un toque fuera lo cierra, en captura y antes que nadie, igual que la
    burbuja. La ventanita cuenta como "dentro": si no, tocarla la cerraría
-   antes de que su propio oyente llegara a leer el toque. */
+   antes de que su propio oyente llegara a leer el toque.
+
+   Y SE PREGUNTA POR LAS DOS, no solo por el historial. La ventanita nació
+   colgada del historial —se abría desde una fila y se iba con él—, así que
+   mirar `histAbierto` bastaba. Desde que la abren también una referencia
+   dentro de una glosa y la caja de escribir del panel, ya no: en esos dos
+   caminos el historial está cerrado, este oyente se rendía en la primera
+   línea, y la ventanita se quedaba puesta. Y no tiene botón de cerrar, así
+   que lo único que quedaba era saltar al versículo o dar a Escape —o sea,
+   irse a otro sitio para poder quedarse—.
+   El historial sigue haciendo lo de siempre: si está abierto, el toque de
+   fuera se los lleva a los dos, que es lo que ya hacía cerrarHistorial. */
 document.addEventListener('pointerdown', ev => {
-  if (!histAbierto) return;
+  if (!histAbierto && !plenoAbierto) return;
   if (ev.target.closest('#historial, #btnHistorial, #versoPleno')) return;
-  cerrarHistorial();
+  if (histAbierto) cerrarHistorial(); else cerrarPleno();
 }, true);
 
 /* Las dos puertas a la burbuja, cada una a su sección. */

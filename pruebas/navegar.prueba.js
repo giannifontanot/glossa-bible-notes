@@ -156,5 +156,109 @@ const ATERRIZA = 7000;
     return r;
   }));
 
+  titulo('la ventanita se cierra tocando fuera, venga de donde venga');
+  /* NACIÓ COLGADA DEL HISTORIAL y el oyente del toque de fuera se quedó
+     preguntando por el historial. Con las dos puertas nuevas —una referencia
+     dentro de una glosa, y la caja de escribir del panel— el historial está
+     cerrado, el oyente se rendía en la primera línea y la ventanita se quedaba
+     puesta. Y no tiene botón de cerrar: lo único que quedaba era saltar al
+     versículo o dar a Escape, o sea irse a otro sitio para poder quedarse. */
+  di('abierta desde una referencia', await p.evaluate(async () => {
+    const vp = document.getElementById('versoPleno');
+    const hs = document.getElementById('historial');
+    /* EL HISTORIAL, CERRADO Y COMPROBADO. La sección de arriba lo deja
+       abierto para mirar la fila de «estás aquí», y con él abierto el oyente
+       del toque de fuera se dispara por SU camino: la ventanita se cerraría
+       igual y esta comprobación daría verde sin haber probado nada. Medido
+       —quitando el arreglo, con el historial abierto seguía en verde—. */
+    if (hs.classList.contains('visible')){
+      document.getElementById('btnHistorial').click();
+      await new Promise(z => setTimeout(z, 500));
+    }
+    const historialCerrado = !hs.classList.contains('visible');
+    const r = document.querySelector('#pgMargin .ref:not(.muerta), ' +
+                                     '#pgFoot .ref:not(.muerta), #pgBody .ref:not(.muerta)');
+    if (!r) return { sinRef:true, historialCerrado };
+    r.click(); await new Promise(z => setTimeout(z, 400));
+    const antes = vp.classList.contains('visible');
+    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:3, clientY:3 }));
+    await new Promise(z => setTimeout(z, 500));
+    return { historialCerrado, antes, despues: vp.classList.contains('visible') };
+  }).then(r => {
+    vale('el historial está cerrado, que es el caso que falla', r.historialCerrado);
+    vale('sale y se va tocando fuera', !r.sinRef && r.antes && r.despues === false,
+         r.sinRef ? 'no había referencia' : r.antes + ' → ' + r.despues);
+    return r;
+  }));
+
+  /* Y CON EL PANEL DETRÁS, EL TOQUE ES DE LA VENTANITA. Cerrar las dos de una
+     vez es perder el panel por haber querido quitar lo que lo tapaba. Lo
+     escrito no se pierde —cerrar guarda— pero hay que volver a abrirlo para
+     seguir escribiendo, y eso con la referencia recién consultada delante. */
+  di('abierta sobre el panel', await p.evaluate(async () => {
+    const vp = document.getElementById('versoPleno');
+    const vivo = () => getComputedStyle(document.getElementById('menu')).display !== 'none';
+    const v = document.querySelector('#pgBody .v');
+    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
+    if (!n) return { sinTexto:true };
+    const rg = document.createRange(); rg.setStart(n, 10); rg.setEnd(n, 30);
+    getSelection().removeAllRanges(); getSelection().addRange(rg);
+    const rc = rg.getBoundingClientRect();
+    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+      { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
+    await new Promise(z => setTimeout(z, 500));
+    const ta = document.getElementById('glosaCaja'); if (!ta) return { sinPanel:true };
+    ta.value = 'ver Mateo 5:9 aquí';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 150));
+    const i = ta.value.indexOf('Mateo 5:9');
+    ta.selectionStart = ta.selectionEnd = i + 4;
+    ta.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 350));
+    const antes = { pleno: vp.classList.contains('visible'), panel: vivo() };
+    const tocarFuera = async () => {
+      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerdown',
+        { bubbles:true, clientX:3, clientY:3 }));
+      await new Promise(z => setTimeout(z, 800));
+      return { pleno: vp.classList.contains('visible'), panel: vivo() };
+    };
+    return { antes, uno: await tocarFuera(), dos: await tocarFuera() };
+  }).then(r => {
+    const listo = !r.sinTexto && !r.sinPanel;
+    vale('la ventanita sale sobre el panel', listo && r.antes.pleno && r.antes.panel);
+    vale('  el primer toque se lleva la ventanita, no el panel',
+         listo && r.uno.pleno === false && r.uno.panel === true, JSON.stringify(r.uno));
+    vale('  y el segundo ya cierra el panel',
+         listo && r.dos.panel === false, JSON.stringify(r.dos));
+    return r;
+  }));
+
+  /* El historial sigue haciendo lo de siempre: si está abierto, el toque de
+     fuera se los lleva a los dos. Es el camino viejo, y el arreglo no tenía
+     por qué tocarlo. */
+  di('abierta desde el historial', await p.evaluate(async () => {
+    const vp = document.getElementById('versoPleno');
+    const hs = document.getElementById('historial');
+    document.getElementById('btnHistorial').click();
+    await new Promise(z => setTimeout(z, 500));
+    const fila = document.querySelector('#historial .hs-fila');
+    if (!fila) return { sinFila:true };
+    fila.click(); await new Promise(z => setTimeout(z, 450));
+    const antes = { pleno: vp.classList.contains('visible'),
+                    hist: hs.classList.contains('visible') };
+    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:3, clientY:3 }));
+    await new Promise(z => setTimeout(z, 600));
+    return { antes, pleno: vp.classList.contains('visible'),
+             hist: hs.classList.contains('visible') };
+  }).then(r => {
+    vale('el toque de fuera se lleva las dos', !r.sinFila && r.antes.pleno &&
+         r.pleno === false && r.hist === false,
+         r.sinFila ? 'el historial no tenía filas' : JSON.stringify(r));
+    return r;
+  }));
+
   await cerrar(sesion);
 })();
