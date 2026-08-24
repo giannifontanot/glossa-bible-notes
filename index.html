@@ -3875,6 +3875,12 @@ function mostrarMenu(html, rect){
 function guardarMenu(){
   vidaMenu++;
   if (menu._adios){ menu._adios.cancel(); menu._adios = null; }
+  /* El deslizamiento de las etiquetas y su alto de destino se van con el
+     panel. Si no, un panel cerrado a media apertura de la lista dejaría el
+     alto apuntado, y el SIGUIENTE panel —que quizá no tiene ni lista— se
+     colocaría con la medida del anterior. */
+  if (menu._resbalon){ menu._resbalon.cancel(); menu._resbalon = null; }
+  menu._altoFinal = 0;
   menu.style.display = 'none';
   menu.innerHTML = '';
   menu.style.width = '';
@@ -3888,7 +3894,14 @@ function guardarMenu(){
    queda flotando donde ya no está lo que señalaba. */
 function colocarMenu(){
   const r = ultimoRect || {left:0,top:0,width:0,height:0,bottom:0};
-  const s = stage.getBoundingClientRect(), w = menu.offsetWidth, h = menu.offsetHeight;
+  const s = stage.getBoundingClientRect(), w = menu.offsetWidth;
+  /* EL ALTO QUE MANDA ES EL DE DESTINO MIENTRAS SE PLIEGAN LAS ETIQUETAS.
+     Durante el pliegue el panel mide algo que ya no va a medir, y colocarMenu
+     lo llaman de paso otras cosas —escribir en la caja, sin ir más lejos—. Con
+     el alto de ese instante, cada una de esas llamadas plantaría el panel en
+     un sitio distinto del que el deslizamiento tiene por meta, y el panel
+     daría el respingo que este pliegue viene a quitar. */
+  const h = menu._altoFinal || menu.offsetHeight;
   /* EL PANEL DE LA GLOSA VA CENTRADO; el resto, sobre lo que señalaste.
 
      Iba centrado en el pasaje, y con un panel estrecho eso estaba bien: era un
@@ -3900,12 +3913,21 @@ function colocarMenu(){
      el crecimiento, que sigue anclado en las palabras señaladas.
      Solo el de la glosa: la lista de «citado desde» sí es un bocadillo de su
      botón, y esa sí tiene a qué apuntar. */
+  const p = sitioDelMenu(w, h, r, s);
+  menu.style.left = p.x + 'px';
+  menu.style.top  = p.y + 'px';
+}
+/* DÓNDE IRÍA UN PANEL DE ESTE TAMAÑO. Sale de colocarMenu para poder
+   preguntarlo SIN mover nada: el pliegue de las etiquetas necesita saber a
+   dónde va a parar el panel antes de empezar a plegarlas, y con la cuenta
+   metida dentro del que la aplica no había manera de preguntar sin aplicar. */
+function sitioDelMenu(w, h, r, s){
   let x = borrador ? (s.width - w) / 2
                    : r.left - s.left + r.width/2 - w/2;
   let y = r.top - s.top - h - 8;
   if (y < 2) y = r.bottom - s.top + 8;
-  menu.style.left = Math.round(Math.min(Math.max(x, 2), s.width - w - 2)) + 'px';
-  menu.style.top  = Math.round(Math.min(Math.max(y, 2), s.height - h - 2)) + 'px';
+  return { x: Math.round(Math.min(Math.max(x, 2), s.width - w - 2)),
+           y: Math.round(Math.min(Math.max(y, 2), s.height - h - 2)) };
 }
 function ocultarMenu(){
   if (menu._teclado) menu._teclado();
@@ -4346,6 +4368,10 @@ const TAGS_MS = 160;
 function plegarTags(caja, abrir){
   if (!caja) return;
   if (caja._pliegue){ caja._pliegue.cancel(); caja._pliegue = null; }
+  /* El deslizamiento se corta con el doblez que lo trajo: el que cancela ya
+     trae su propia meta, y dos deslizamientos a la vez se pelean por el mismo
+     transform —gana el último, y el panel llega a la meta del otro—. */
+  if (menu._resbalon){ menu._resbalon.cancel(); menu._resbalon = null; }
   caja._destino = abrir;
   /* La clase se pone SIEMPRE antes de medir: cerrada, #menu .tagbox no se
      dibuja y mediría cero, que es justo el dato que hay que averiguar del otro
@@ -4355,6 +4381,7 @@ function plegarTags(caja, abrir){
   const alto = caja.getBoundingClientRect().height;
   const rematar = () => {
     caja._pliegue = null;
+    menu._altoFinal = 0;
     caja.style.height = ''; caja.style.overflow = '';
     caja.classList.toggle('abierta', abrir);
     refrescarTags(); colocarMenu();
@@ -4364,12 +4391,70 @@ function plegarTags(caja, abrir){
   if (matchMedia('(prefers-reduced-motion: reduce)').matches || !alto){
     rematar(); return;
   }
+  /* EL PANEL SE DESLIZA, NO SE TELETRANSPORTA.
+
+     El panel se recolocaba en cada cuadro a partir de su alto de ese
+     instante, y casi siempre eso bastaba: crece hacia arriba, el `top` baja
+     un poco cada cuadro y se ve venir. Pero colocarMenu tiene un escalón —si
+     arriba ya no cabe, el panel se pasa DEBAJO del pasaje— y ese escalón no
+     tiene cuadros intermedios que enseñar. Medido en un teléfono de 412,
+     abriendo la lista sobre el versículo 2 de la hoja: el panel pasaba de
+     top 54 a top 311 de un cuadro para el siguiente. 309px de salto.
+     Y no pasaba siempre, solo con los pasajes que caen a esa altura —«a
+     veces salta», que es exactamente como se ve desde fuera—.
+
+     Ahora la meta se calcula UNA vez, con el alto que el panel va a tener al
+     acabar, se planta ahí desde el primer cuadro, y lo que se anima es la
+     diferencia: el panel arranca dibujado donde estaba y se desliza hasta la
+     meta con la misma curva que dobla la lista. El escalón sigue estando —a
+     veces el panel tiene que cambiarse de lado—, pero ahora el cambio de lado
+     se ve, que es lo único que se le pedía.
+
+     Es la misma técnica del vuelo de la glosa: mover con transform y dejar la
+     posición de verdad ya escrita. Si el hilo se traba, el panel está donde
+     tiene que estar aunque el deslizamiento se pierda. */
+  const desde = menu.getBoundingClientRect();
+  menu._altoFinal = abrir ? menu.offsetHeight : menu.offsetHeight - alto;
+  colocarMenu();
+  const hasta = menu.getBoundingClientRect();
+  const dx = Math.round(desde.left - hasta.left), dy = Math.round(desde.top - hasta.top);
+  /* UN VIAJE LARGO PIDE MÁS TIEMPO. Con los 160ms del doblez, el cambio de
+     lado —250px o más— sale disparado: sigue siendo un salto, solo que con
+     cuadros. El añadido va con la distancia y con tope, y se le da a las DOS
+     animaciones para que el alto y la posición no se separen: si la lista
+     acabara de desplegarse con el panel todavía en camino, se vería el
+     recuadro llegando a su sitio ya lleno, que es peor que las dos cosas por
+     separado.
+
+     El factor sale de medir. Recorriendo los catorce pasajes de una hoja y
+     mirando el cuadro más rápido de cada uno: el cambio de lado pasa de 309px
+     —el salto— a 25, y el crecimiento de siempre, de 24 a 14. El precio es que
+     abrir la lista pasa de 160ms a 258 en el caso corriente y a 520 en el
+     cambio de lado, y se paga: el panel es un objeto grande, y un objeto
+     grande que se coloca en diez cuadros se lee como un respingo aunque no
+     llegue a saltar. */
+  const viaje = Math.round(Math.hypot(dx, dy));
+  const ms = TAGS_MS + Math.round(Math.min(viaje, 300) * 1.2);
+  const curva = abrir ? 'cubic-bezier(.2,.75,.35,1)' : 'cubic-bezier(.65,0,.8,.25)';
+  if (dx || dy){
+    /* CURVA PROPIA PARA EL VIAJE, y no la del doblez. La del doblez arranca
+       casi a toda velocidad —está pensada para que un papel se despliegue de
+       golpe y frene al final—, y aplicada a un recorrido de 250px reparte el
+       movimiento fatal: medido, 33px en el cuadro más rápido contra los 8 de
+       media. Una curva que acelera y frena por igual baja ese pico a 25.
+       Empiezan y acaban a la vez, que es lo que hacía falta; por dentro cada
+       una hace lo suyo. */
+    const res = menu.animate(
+      [{ transform:'translate(' + dx + 'px,' + dy + 'px)' }, { transform:'none' }],
+      { duration: ms, easing: 'cubic-bezier(.4,0,.2,1)' });
+    menu._resbalon = res;
+    res.onfinish = () => { if (menu._resbalon === res) menu._resbalon = null; };
+  }
   caja.style.overflow = 'hidden';
   const an = caja.animate(
     [{ height: (abrir ? 0 : alto) + 'px' },
      { height: (abrir ? alto : 0) + 'px' }],
-    { duration: TAGS_MS,
-      easing: abrir ? 'cubic-bezier(.2,.75,.35,1)' : 'cubic-bezier(.65,0,.8,.25)' });
+    { duration: ms, easing: curva });
   caja._pliegue = an;
   /* El rótulo dice ya lo que va a pasar y no lo que está pasando: mientras se
      cierra la clase sigue puesta —hace falta para que se siga viendo— y leerla
@@ -4377,12 +4462,7 @@ function plegarTags(caja, abrir){
   const bot = menu.querySelector('.mtags');
   if (bot) bot.textContent =
     rotuloTags(abrir, ((borrador && borrador.m.etiquetas) || []).length);
-  let vivo = true;
-  const seguir = () => { if (!vivo) return; colocarMenu(); requestAnimationFrame(seguir); };
-  requestAnimationFrame(seguir);
-  an.onfinish = () => { vivo = false; rematar(); };
-  /* Cancelada: la remata quien la canceló, con su propio destino. */
-  an.oncancel = () => { vivo = false; };
+  an.onfinish = () => rematar();
 }
 /* ¿Está abierta, o va a estarlo? A media animación la clase dice lo que se ve
    y no lo que se ha pedido, y el botón tiene que alternar sobre lo pedido: si
