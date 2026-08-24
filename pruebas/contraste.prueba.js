@@ -189,7 +189,7 @@ async function ponerContraste(pagina, pct){
        cruce.trasSepia.contraste === cruce.trasContraste.contraste,
        cruce.trasSepia.contraste);
   vale('mover el contraste no movió el sepia',
-       cruce.trasContraste.sepia === '75', cruce.trasContraste.sepia);
+       cruce.trasContraste.sepia === '100', cruce.trasContraste.sepia);
   vale('el sepia sigue entintando el papel',
        cruce.trasSepia.papel !== cruce.trasContraste.papel,
        cruce.trasContraste.papel + ' → ' + cruce.trasSepia.papel);
@@ -353,14 +353,16 @@ async function ponerContraste(pagina, pct){
     sepia: document.getElementById('sepiaAhora').textContent,
     pg: getComputedStyle(document.getElementById('pg')).filter }));
   di('con ajustes viejos (v' + viejo + ')', fabrica);
-  vale('se queda en el 100 de fábrica', fabrica.riel === '100' && fabrica.medida === '100%',
+  /* 125, que es el arranque de fábrica: unos ajustes sin el campo abren igual
+     que quien abre por primera vez. */
+  vale('se queda en el 125 de fábrica', fabrica.riel === '125' && fabrica.medida === '125%',
        fabrica.riel + ' / ' + fabrica.medida);
-  /* 75 y no 20: el recorrido de más arriba empieza borrando los ajustes, así
+  /* 100 y no 20: el recorrido de más arriba empieza borrando los ajustes, así
      que el sepia volvió a su valor de fábrica antes de guardarse. Lo que aquí
      se comprueba es que quitarle el contraste al archivo no se lleva por
      delante lo demás. */
-  vale('y el resto del archivo se respetó', fabrica.sepia === '75', fabrica.sepia);
-  vale('sin filtro visible a 100%', factorDe(fabrica.pg) === 1, fabrica.pg);
+  vale('y el resto del archivo se respetó', fabrica.sepia === '100', fabrica.sepia);
+  vale('y el filtro de fábrica es el de 125%', factorDe(fabrica.pg) === 1.25, fabrica.pg);
 
   /* ---------- el texto se sigue pudiendo agarrar ---------- */
   titulo('un filtro no convierte la hoja en una estampa');

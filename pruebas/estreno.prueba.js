@@ -111,22 +111,27 @@ const ESPERADAS = [
   }));
 
   titulo('el papel arranca en sepia');
-  /* Un papel blanco de pantalla es el de un documento, no el de un libro. A 75
-     el papel queda crema y la tinta se va al marrón CON él —los dos a la vez,
-     que es lo que distingue una hoja vieja de una foto con filtro—.
+  /* Un papel blanco de pantalla es el de un documento, no el de un libro. Con
+     el riel arriba el papel queda crema y la tinta se va al marrón CON él —los
+     dos a la vez, que es lo que distingue una hoja vieja de una foto con
+     filtro—.
      Lo que se comprueba no es el número sino las dos cosas que pueden
      romperse: que el deslizador de Formato diga lo mismo que se ve —si el
      guion y el HTML se desincronizan, el control miente— y que esto sea solo
      un ARRANQUE, no una imposición: quien guardó el suyo, incluido el cero,
-     tiene que recuperarlo. */
+     tiene que recuperarlo.
+     EL ARRANQUE ERA 75 Y AHORA ES 100. El número vive en DOS sitios —el
+     `value` del input en el HTML y el `let sepia` del guion— y esta prueba
+     existe justamente porque desincronizarlos no rompe nada visible: el
+     control enseña uno y la hoja usa el otro. */
   di('recién abierto', await p.evaluate(() => ({
     deslizador: +document.getElementById('sepia').value,
     rotulo: document.getElementById('sepiaAhora').textContent.trim(),
     papel: getComputedStyle(document.getElementById('pg')).getPropertyValue('--papel').trim(),
     tinta: getComputedStyle(document.getElementById('pgBody')).color
   })).then(r => {
-    vale('el deslizador arranca en 75', r.deslizador === 75, r.deslizador);
-    vale('y el rótulo dice lo mismo', r.rotulo === '75', r.rotulo);
+    vale('el deslizador arranca en 100', r.deslizador === 100, r.deslizador);
+    vale('y el rótulo dice lo mismo', r.rotulo === '100', r.rotulo);
     /* el papel deja de ser el blanco de sepia 0 (250,247,241) */
     vale('el papel sale entintado', /237|23\d/.test(r.papel) && r.papel !== 'rgb(250,247,241)', r.papel);
     /* Y LA TINTA VIAJA CON EL PAPEL. Entintar solo el fondo daría una foto con
@@ -146,7 +151,7 @@ const ESPERADAS = [
       deslizador: +document.getElementById('sepia').value,
       tinta: getComputedStyle(document.getElementById('pgBody')).color }));
   }).then(r => {
-    vale('el 75 no pisa lo guardado', r.deslizador === 0, r.deslizador);
+    vale('el arranque no pisa lo guardado', r.deslizador === 0, r.deslizador);
     vale('y el papel vuelve a blanco', r.tinta === 'rgb(36, 31, 26)', r.tinta);
     return r;
   }));

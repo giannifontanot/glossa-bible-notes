@@ -1865,9 +1865,9 @@
      Y va ARRIBA de la versión, que es lo último del panel por ser lo que
      menos se toca. -->
 <div class="ajuste ancho"><span class="lbl">sepia</span><span class="ctrl">
-  <input type="range" id="sepia" min="0" max="100" step="1" value="75"
+  <input type="range" id="sepia" min="0" max="100" step="1" value="100"
          title="Entinta el papel: de blanco de imprenta a papel viejo" />
-  <span class="medida" id="sepiaAhora">75</span>
+  <span class="medida" id="sepiaAhora">100</span>
 </span></div>
 
 <!-- EL CONTRASTE, PEGADO AL SEPIA. Son los dos ajustes de tinta y se usan
@@ -1879,10 +1879,10 @@
      eso el riel lleva su propio aria-label, o un lector de pantalla anunciaría
      un deslizador sin nombre. -->
 <div class="ajuste ancho"><span class="lbl">contraste</span><span class="ctrl">
-  <input type="range" id="contraste" min="50" max="200" step="1" value="100"
+  <input type="range" id="contraste" min="50" max="200" step="1" value="125"
          aria-label="contraste"
          title="Despega la letra del papel: de tenue a marcada, sin cambiar el color" />
-  <span class="medida" id="contrasteAhora">100%</span>
+  <span class="medida" id="contrasteAhora">125%</span>
 </span></div>
 
 <div class="ajuste ancho"><span class="lbl">versión</span><span class="ctrl" id="ctrlVersiones">
@@ -2026,7 +2026,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-AGO-26 14:05';
+window.GLOSS_BUILD = '24-AGO-26 17:03';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2469,26 +2469,50 @@ const TINTA = [[ 36, 31, 26], [ 59, 43, 24]];
    toca aquí. */
 const ROTULO_CAB = [[112, 97, 79], [ 91, 72, 45]];
 const ROTULO_PIE = [[124,107, 86], [103, 82, 52]];
-/* EL SEPIA ARRANCA EN 75, no en cero. Un papel blanco de pantalla es el de un
-   documento, no el de un libro; a 75 el papel queda en un crema cálido y la
-   tinta se va al marrón con él —los dos a la vez, que es lo que distingue una
-   hoja vieja de una foto con filtro—. Es solo el ARRANQUE: quien lo mueva en
-   Formato guarda el suyo y cargarAjustes se lo devuelve, incluido el cero. */
-let sepia = 75;
-/* EL CONTRASTE ARRANCA EN 100, que quiere decir "como estaba". Es un ajuste
-   de ACCESIBILIDAD, no de estilo: el papel y la tinta ya están calibrados —de
-   eso trata toda la rampa del sepia de aquí arriba— y quien no lo toque tiene
-   que ver exactamente lo de siempre. Se guarda en por ciento y no en factor
-   porque en por ciento es como se lee y como se enseña en el riel; la división
-   entre cien la hace un solo sitio, aplicarContraste, para que no haya dos
-   versiones del mismo número.
+/* EL SEPIA ARRANCA EN EL TOPE, no en cero. Un papel blanco de pantalla es el
+   de un documento, no el de un libro; con el riel arriba el papel queda en un
+   crema cálido y la tinta se va al marrón con él —los dos a la vez, que es lo
+   que distingue una hoja vieja de una foto con filtro—. Es solo el ARRANQUE:
+   quien lo mueva en Formato guarda el suyo y cargarAjustes se lo devuelve,
+   incluido el cero.
+
+   ESTUVO EN 75 Y AHORA ESTÁ EN 100, que es el extremo de la rampa. Vale la
+   pena dejar escrito lo que eso cuesta, porque está medido unas líneas más
+   arriba y sigue siendo verdad: en sepia 100 el papel deja el cuerpo del
+   texto en Lc 75.7, el mínimo de la tabla de APCA para texto corrido. Ahí el
+   techo lo pone el papel y ennegrecer la tinta no lo levanta.
+   Lo que sí lo levanta es el riel de al lado: el contraste arranca en 125 y
+   separa papel y tinta después de mezclarlos, así que el arranque de fábrica
+   NO es el 75.7 pelado. Los dos números se eligieron juntos y conviene
+   moverlos mirándose: bajar el contraste a 100 con el sepia en el tope
+   devuelve la hoja justo a ese mínimo. */
+let sepia = 100;
+/* EL CONTRASTE ARRANCA EN 125, y no en el 100 que sería "no tocar nada".
+
+   100 es el valor neutro —el filtro no hace nada— y fue el arranque el primer
+   día, con el argumento de que el papel y la tinta ya están calibrados por la
+   rampa del sepia de aquí arriba. El argumento sigue siendo cierto y aun así
+   el arranque cambió: un cuarto más de contraste despega la letra del papel
+   sin volverlo blanco de documento, que es lo que este riel vino a resolver.
+   Quien prefiera el neutro lo tiene a un tirón, y su 100 se guarda como
+   cualquier otro número.
+
+   OJO CON LO QUE ESTO ARRASTRA: este 125 es también el respaldo de
+   cargarAjustes, así que unos ajustes guardados ANTES de que el riel
+   existiera —que no traen el campo— abren en 125 y no en 100. Es a propósito:
+   el arranque es el arranque para todos, y quien ya había elegido un número
+   lo tiene guardado y no pasa por aquí.
+
+   Se guarda en por ciento y no en factor porque en por ciento es como se lee
+   y como se enseña en el riel; la división entre cien la hace un solo sitio,
+   aplicarContraste, para que no haya dos versiones del mismo número.
    50 y 200 son los topes del riel, y se vuelven a comprobar en el manejador y
    al cargar los ajustes: el riel es la puerta normal, no la única.
    NO ENTRA EN estiloFirma. La firma decide si la foto del pliegue sigue
    sirviendo, y esta foto sirve igual: el contraste no se hornea en ella, cae
    encima del lienzo por CSS. Meterlo ahí rehornearía la hoja entera en cada
    paso del riel para llegar al mismo píxel. */
-let contraste = 100;
+let contraste = 125;
 const aplicarContraste = () =>
   document.documentElement.style.setProperty('--contraste', (contraste / 100).toFixed(2));
 const mezclar = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
@@ -8895,7 +8919,7 @@ $('sepia').oninput = e => {
    repagina, sin esta línea el ajuste solo sobreviviría si además pasaras
    hoja. Cuesta lo mismo que ya cuesta mover el sepia. */
 $('contraste').oninput = e => {
-  contraste = Math.max(50, Math.min(200, +e.target.value || 100));
+  contraste = Math.max(50, Math.min(200, +e.target.value || 125));
   $('contrasteAhora').textContent = contraste + '%';
   aplicarContraste();
   guardarAjustes();
@@ -9119,9 +9143,9 @@ function cargarAjustes(){
   if (Number.isFinite(a.sepia)) sepia = Math.max(0, Math.min(100, a.sepia));
   /* Mismo cuidado, y una razón más: los ajustes guardados antes de que este
      riel existiera NO traen contraste, y ahí `a.contraste` es undefined.
-     Number.isFinite lo rechaza y la variable se queda en su 100 de fábrica,
-     que es justo lo que esa gente venía viendo. Por eso el objeto sigue
-     siendo v:1: no se perdió nada ni cambió de forma nada de lo que ya
+     Number.isFinite lo rechaza y la variable se queda en su 125 de fábrica
+     —el mismo arranque que ve quien abre por primera vez—. Por eso el objeto
+     sigue siendo v:1: no se perdió nada ni cambió de forma nada de lo que ya
      estaba, así que subir la versión solo serviría para tirar los ajustes
      buenos de quien actualice. */
   if (Number.isFinite(a.contraste)) contraste = Math.max(50, Math.min(200, a.contraste));
