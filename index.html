@@ -7120,7 +7120,26 @@ function cerrarCanto(alTerminar, disolver){
    puede pasar, siempre acaban así.
 */
 document.addEventListener('keydown', ev => {
-  if (ev.key === 'Escape'){ ocultarCascada(); cerrarTodosLosRollos(); }
+  /* ESCAPE TAMBIÉN CIERRA EL PANEL DE LA MARCA, y esto es lo único que hay
+     que teclear para salir de él.
+
+     El panel se cerraba solo tocando fuera, y tocar fuera es un pointerdown:
+     quien no tiene puntero —teclado solo, control por conmutador— se quedaba
+     dentro sin salida. Y como lo escrito se cobra en cerrarBorrador, no era
+     solo incomodidad: la nota se quedaba sin guardar hasta que alguien tocara
+     el papel con un dedo. Mientras estuvo el botón «Listo» el hueco no se
+     notaba; al quitarlo quedó al descubierto. Lo levantó la revisión de Codex.
+
+     CIERRA GUARDANDO, como tocar fuera, y no descartando como suele hacer un
+     Escape. Aquí no hay nada que cancelar: este panel no tiene camino de
+     abandono —vaciar la caja es como se borra una glosa— así que un Escape
+     que tirara lo escrito inventaría un gesto destructivo que no existe en
+     ningún otro sitio del programa. Salir es terminar, se salga por donde se
+     salga.
+
+     Va ANTES del guardián de «escribiendo» a propósito: el caso que importa
+     es justamente el de estar tecleando dentro de la caja de la glosa. */
+  if (ev.key === 'Escape'){ ocultarCascada(); cerrarTodosLosRollos(); ocultarMenu(); }
   /* Las flechas pasan hoja. Antes había botones y ahora no, así que el teclado
      deja de ser un lujo: sin él, quien no descubra los filos se queda encerrado
      en una hoja. Se ignoran si estás escribiendo en un campo. */

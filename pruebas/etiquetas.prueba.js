@@ -206,6 +206,38 @@ const FUERA = `async () => {
     return r;
   }));
 
+  titulo('se puede cerrar sin puntero');
+  /* Con el botón «Listo» quitado, tocar fuera —un pointerdown— era la única
+     salida, y quien no tiene puntero se quedaba dentro. Peor que incómodo:
+     lo escrito se cobra al cerrar, así que la nota se quedaba sin guardar
+     hasta que alguien tocara el papel con un dedo. Escape cierra GUARDANDO,
+     igual que tocar fuera: este panel no tiene camino de abandono, y un
+     Escape que tirara lo escrito inventaría un gesto destructivo que no
+     existe en ningún otro sitio. Lo levantó la revisión de Codex. */
+  di('Escape desde la caja de la glosa', await p.evaluate(async ([abrir]) => {
+    const despierta = await eval('(' + abrir + ')')(40, 56, 'cerrada con Escape');
+    if (!despierta) return { sinPanel:true };
+    const menu = document.getElementById('menu');
+    /* el foco donde de verdad estaría: dentro de la caja de escribir */
+    document.getElementById('glosaCaja').focus();
+    const enLaCaja = document.activeElement.id === 'glosaCaja';
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await new Promise(z => setTimeout(z, 400));
+    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    return { enLaCaja,
+             cerrado: getComputedStyle(menu).display === 'none',
+             guardada: g.some(m => m.nota === 'cerrada con Escape') };
+  }, [ABRIR]).then(r => {
+    vale('el foco estaba dentro de la caja', !r.sinPanel && r.enLaCaja);
+    vale('Escape cierra el panel', r.cerrado);
+    /* Se pregunta por la NOTA y no por cuántas marcas hay: el tramo elegido
+       pisa a las de las pruebas de arriba, y una marca nueva encima de otra
+       se lleva la de debajo —comportamiento de siempre—, así que la cuenta
+       sube y baja por razones que no tienen que ver con Escape. */
+    vale('y cobra lo escrito, no lo tira', r.guardada);
+    return r;
+  }));
+
   titulo('la caja de etiquetas no desperdicia el ancho');
   /* LAS DOS QUEJAS ERAN LA MISMA. Las pastillas se partían por donde caía
      cada nombre y dejaban hasta 175 de 326px vacíos en un renglón; y parecían
