@@ -1287,8 +1287,13 @@
      botón— y partirlo en dos era fingir que sigue siendo un menú.
      white-space vuelve a normal por lo mismo: aquí dentro hay texto que se
      parte en renglones, no rótulos de botón. */
+  /* max-height y overflow son la red del tope de la caja de escribir: aunque
+     algo crezca más de la cuenta —muchas etiquetas, una pantalla muy baja— el
+     panel nunca pasa del alto de la escena, y lo que sobra se desplaza dentro
+     en vez de quedarse recortado y fuera de alcance. */
   #menu{ position:absolute; z-index:8; display:none; flex-direction:column;
          align-items:stretch; gap:6px; padding:6px; width:250px;
+         max-height:calc(100% - 8px); overflow-y:auto; overscroll-behavior:contain;
          background:#2a2118; border:1px solid rgba(255,255,255,.22);
          border-radius:9px; box-shadow:0 6px 18px rgba(0,0,0,.5); white-space:normal; }
   #menu button{ font:inherit; font-size:.7rem; line-height:1; cursor:pointer; color:#eee7d8;
@@ -3867,6 +3872,17 @@ function ocultarMenu(){
 
    Y las etiquetas van DENTRO, pintadas con etiquetasHTML —el mismo HTML que
    usa la hoja—, no con un marcado paralelo que mañana se quede atrás. */
+/* El ancho de dentro, sin el relleno. getBoundingClientRect() da la caja
+   entera —relleno y borde incluidos— y para saber dónde parten los renglones
+   hace falta el hueco donde de verdad cae el texto. Medido: el cuerpo da 412
+   de caja y 380 de contenido, y esos 32 son justo lo que separaba la cuenta de
+   la nota real. */
+function anchoContenido(el){
+  if (!el) return 0;
+  const cs = getComputedStyle(el);
+  return el.getBoundingClientRect().width -
+         (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+}
 function anchoVista(){
   /* SI YA HAY UNA GLOSA PINTADA, SU ANCHO ES EL BUENO: medido, no estimado, y
      válido para las tres disposiciones sin tener que reproducir la cuenta de
@@ -3883,12 +3899,36 @@ function anchoVista(){
      el ancho del margen en las otras dos era partir los renglones donde no se
      van a partir, que es justo lo que este anticipo venía a arreglar. */
   if (placement === 'foot'){
-    const w = pgFoot.getBoundingClientRect().width;
-    if (w > 60) return Math.max(120, Math.round(w) - 5);
+    /* NO SE MIDE EL PIE, y esto costó una segunda mirada. Cuando la hoja
+       todavía no tiene ninguna nota al pie, .pg-foot:empty lo pone en
+       display:none: medirlo da CERO y la cuenta se caía al ancho del margen,
+       que no tiene nada que ver. O sea que justo la primera nota de la hoja
+       —la única que necesita la estimación, porque las demás ya tienen una
+       hermana pintada que medir— era la que salía mal.
+       Y aun con el pie visible, su ancho tampoco es el de la nota: layoutInto
+       mete las notas en un .foot-in de DOS columnas cuando el texto va a dos.
+       Así que se deriva del hueco DONDE VA A CABER, que es el de su padre: el
+       pie es hermano de .pg-cols y ocupa el ancho entero de la hoja, no el de
+       la columna de texto. Medido en un teléfono de 412: el padre da 663, y
+       (663 − 15 de hueco) / 2 − 5 del margen de .gl-foot = 319, que es
+       exactamente lo que mide la nota una vez puesta.
+       Lo levantó la segunda revisión de Codex. */
+    const fc = columns >= 2 ? 2 : 1;
+    const w = anchoContenido(pgFoot.parentElement);
+    if (w > 60) return Math.max(120, Math.round((w - (fc - 1) * 15) / fc) - 5);
   }
   if (placement === 'below'){
-    const w = pgBody.getBoundingClientRect().width / Math.max(1, columns);
-    if (w > 60) return Math.max(120, Math.round(w) - 19);
+    /* La columna se le PREGUNTA al cuerpo, no se deduce de `columns`: entre las
+       columnas hay un hueco, y repartir el ancho a partes iguales sin descontarlo
+       da de más. Medido en un teléfono de 412 a dos columnas: la cuenta ingenua
+       daba 187 y la nota mide 164. Con el column-gap computado la cuenta sale
+       sola y sigue saliendo el día que ese hueco cambie. Los 19px son la
+       sangría que .gl-below se reserva —14 a la izquierda y 5 a la derecha—. */
+    const cs = getComputedStyle(pgBody);
+    const cc = parseInt(cs.columnCount) || Math.max(1, columns);
+    const cg = parseFloat(cs.columnGap) || 0;
+    const w = anchoContenido(pgBody);
+    if (w > 60) return Math.max(120, Math.round((w - cg * (cc - 1)) / cc) - 19);
   }
   return Math.max(120, MARGIN_W() - 8);
 }
@@ -4081,7 +4121,19 @@ function pintarAncla(m){
 function ajustarAlto(ta){
   if (!ta) return;
   ta.style.height = 'auto';
-  ta.style.height = ta.scrollHeight + 'px';
+  /* CON TOPE. Sin él, una nota larga hacía el panel más alto que la escena, y
+     entonces colocarMenu calculaba un tope NEGATIVO —Math.min(2, negativo)— así
+     que el panel se plantaba con la cabeza fuera; y como .stage recorta, lo que
+     quedaba cortado era justo lo de arriba: los colores y los dos trazos, sin
+     manera de llegar a ellos porque no había nada que desplazar.
+     El tope es una fracción de la escena y no un número fijo: la escena mide
+     470px en pantalla ancha y toda la pantalla en teléfono, así que un valor
+     clavado sobraría en una y ahogaría en la otra. Lo que pase de ahí se
+     desplaza dentro de la propia caja, que para eso es un textarea.
+     Lo levantó la segunda revisión de Codex. */
+  const tope = Math.max(80, Math.round(stage.getBoundingClientRect().height * 0.42));
+  ta.style.height = Math.min(ta.scrollHeight, tope) + 'px';
+  ta.style.overflowY = ta.scrollHeight > tope ? 'auto' : 'hidden';
 }
 /* La lista se retoca en su sitio, NUNCA repintando el panel entero. Repintar
    destruiría el textarea, y con él el foco, el cursor y el teclado del teléfono
@@ -4106,6 +4158,15 @@ function refrescarTags(){
     (caja && caja.classList.contains('abierta') ? '▾ ' : '▸ ') + 'etiquetas' +
     (tiene.size ? ' · ' + tiene.size : '');
   ajustarAlto(menu.querySelector('#glosaCaja'));
+  /* Y SE RECOLOCA, porque esto acaba de cambiar el ALTO del panel: una
+     etiqueta más puede partir el renglón de las etiquetas dentro de la glosa y
+     estirar el recuadro. Un panel puesto encima del pasaje crecía hacia abajo
+     y se le echaba encima; uno puesto debajo crecía más allá del filo de la
+     escena, que recorta. Lo hacían ya los otros dos caminos que cambian el
+     alto —escribir y crear una etiqueta—; a éste se le había olvidado.
+     Va aquí y no en quien llama, para que el que venga mañana a añadir otro
+     camino no tenga que acordarse. Lo levantó la segunda revisión de Codex. */
+  colocarMenu();
 }
 /* Dormir o despertar la lista según haya texto o no: sin nota no se guarda
    nada, así que una etiqueta puesta ahora se perdería al cerrar. */

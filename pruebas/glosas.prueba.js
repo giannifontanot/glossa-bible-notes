@@ -752,5 +752,129 @@ const guardadas = () => {
     return r;
   }));
 
+  titulo('el anticipo acierta el ancho en las tres disposiciones');
+  /* Y CON LA HOJA SIN NINGUNA NOTA, que es el caso que se rompía. Cuando ya hay
+     una glosa pintada, anchoVista mide la suya y acierta siempre; la
+     estimación solo entra en juego para la PRIMERA de la hoja, así que se
+     vacía el almacén para llegar a ella.
+     Al pie era donde peor salía: .pg-foot:empty lo pone en display:none, medirlo
+     daba cero, y la cuenta se caía al ancho del margen. Lo levantó Codex. */
+  for (const lay of ['foot', 'below', 'margin']){
+    await p.evaluate(() => localStorage.setItem('glossa:marcas:v1', '[]'));
+    await p.reload(); await p.waitForTimeout(2600);
+    di('· ' + lay, await p.evaluate(async ([abrir, fuera, lay]) => {
+      const b = [...document.querySelectorAll('[data-lay]')].find(x => x.dataset.lay === lay);
+      if (b) b.click();
+      await new Promise(z => setTimeout(z, 1400));
+      const ok = await eval('(' + abrir + ')')(0, 16);
+      if (!ok) return { sinTexto:true };
+      const vista = document.getElementById('glVista');
+      if (!vista) return { sinPanel:true };
+      const anticipo = Math.round(vista.getBoundingClientRect().width);
+      const ta = document.getElementById('glosaCaja');
+      ta.value = 'la primera nota de esta hoja, con texto de sobra para partir renglón';
+      ta.dispatchEvent(new Event('input', { bubbles:true }));
+      await eval('(' + fuera + ')')();
+      await new Promise(z => setTimeout(z, 3300));
+      const puesta = document.querySelector(
+        '#pgFoot .gl[data-gl], #pgMargin .gl[data-gl], #pgBody .gl[data-gl]');
+      return { anticipo,
+               real: puesta ? Math.round(puesta.getBoundingClientRect().width) : null };
+    }, [ABRIR, FUERA, lay]).then(r => {
+      vale('el anticipo mide lo que medirá · ' + lay,
+           !r.sinTexto && !r.sinPanel && r.real && Math.abs(r.anticipo - r.real) <= 3,
+           r.anticipo + ' contra ' + r.real);
+      return r;
+    }));
+  }
+
+  titulo('una nota larga no se sale de la escena');
+  /* Sin tope, el panel crecía más alto que la escena; colocarMenu calculaba
+     entonces un tope negativo y, como .stage recorta, lo que quedaba fuera era
+     justo lo de arriba —los colores y los dos trazos— sin nada que desplazar
+     para llegar a ellos. Lo levantó Codex. */
+  di('con una nota larguísima', await p.evaluate(async ([abrir, fuera]) => {
+    const ok = await eval('(' + abrir + ')')(0, 16);
+    if (!ok) return { sinTexto:true };
+    const ta = document.getElementById('glosaCaja');
+    if (!ta) return { sinPanel:true };
+    ta.value = ('una nota francamente larga que sigue y sigue sin parar. ').repeat(30);
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 300));
+    const menu = document.getElementById('menu');
+    const st = document.getElementById('stage');
+    const m = menu.getBoundingClientRect(), s = st.getBoundingClientRect();
+    const col = menu.querySelector('.mcolores').getBoundingClientRect();
+    const r = { alto: Math.round(m.height), escena: Math.round(s.height),
+                cabe: m.top >= s.top - 1 && m.bottom <= s.bottom + 1,
+                coloresDentro: col.top >= s.top - 1 && col.bottom <= s.bottom + 1,
+                /* y lo que sobra se puede alcanzar desplazando */
+                desplazable: menu.scrollHeight > menu.clientHeight + 1 ||
+                             ta.scrollHeight > ta.clientHeight + 1 };
+    await eval('(' + fuera + ')')();
+    await new Promise(z => setTimeout(z, 3300));
+    return r;
+  }, [ABRIR, FUERA]).then(r => {
+    vale('el panel no se sale de la escena', !r.sinTexto && !r.sinPanel && r.cabe,
+         r.alto + ' de ' + r.escena);
+    vale('los colores siguen alcanzables', r.coloresDentro);
+    vale('y lo que sobra se desplaza', r.desplazable);
+    return r;
+  }));
+
+  titulo('poner una etiqueta recoloca el panel');
+  /* Una etiqueta más puede partir el renglón de las etiquetas DENTRO de la
+     glosa y estirar el recuadro. Los otros dos caminos que cambian el alto
+     —escribir y crear— ya recolocaban; a éste se le había olvidado, así que un
+     panel puesto encima del pasaje crecía hacia abajo y se le echaba encima.
+     Lo levantó Codex. */
+  di('al alternar etiquetas', await p.evaluate(async ([abrir, fuera]) => {
+    /* Se siembra el vocabulario aquí: la prueba del ancho vacía el almacén tres
+       veces y con las marcas se van sus etiquetas, así que a estas alturas no
+       queda ninguna que alternar. */
+    let ok = await eval('(' + abrir + ')')(0, 16);
+    if (!ok) return { sinTexto:true };
+    let sembrar = document.getElementById('glosaCaja');
+    sembrar.value = 'nota que trae vocabulario';
+    sembrar.dispatchEvent(new Event('input', { bubbles:true }));
+    document.querySelector('#menu .mtags').click();
+    await new Promise(z => setTimeout(z, 200));
+    for (const t of ['gozo','fe','paz','reino','luz','camino']){
+      const i = document.getElementById('tagNueva');
+      i.value = t;
+      i.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+      await new Promise(z => setTimeout(z, 90));
+    }
+    await eval('(' + fuera + ')')();
+    await new Promise(z => setTimeout(z, 3300));
+    /* y ahora, sobre OTRO tramo, esas etiquetas están libres */
+    ok = await eval('(' + abrir + ')')(30, 46);
+    if (!ok) return { sinTexto:true };
+    const ta = document.getElementById('glosaCaja');
+    ta.value = 'corta'; ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 200));
+    document.querySelector('#menu .mtags').click();
+    await new Promise(z => setTimeout(z, 250));
+    const menu = document.getElementById('menu'), st = document.getElementById('stage');
+    const antes = { top: Math.round(menu.getBoundingClientRect().top),
+                    alto: Math.round(menu.getBoundingClientRect().height) };
+    const libres = [...document.querySelectorAll('#menu .taglista .tg')]
+      .filter(b => !b.classList.contains('on'));
+    if (libres.length < 3) return { pocas:true, n:libres.length };
+    for (const b of libres.slice(0,4)){ b.click(); await new Promise(z => setTimeout(z, 130)); }
+    const m = menu.getBoundingClientRect(), s = st.getBoundingClientRect();
+    const r = { antes, alto: Math.round(m.height), top: Math.round(m.top),
+                creció: Math.round(m.height) !== antes.alto,
+                dentro: m.top >= s.top - 1 && m.bottom <= s.bottom + 1 };
+    await eval('(' + fuera + ')')();
+    await new Promise(z => setTimeout(z, 3300));
+    return r;
+  }, [ABRIR, FUERA]).then(r => {
+    vale('el panel cambia de alto al etiquetar', !r.sinTexto && !r.pocas && r.creció,
+         (r.antes||{}).alto + ' → ' + r.alto);
+    vale('y sigue entero dentro de la escena', r.dentro);
+    return r;
+  }));
+
   await cerrar(sesion);
 })();
