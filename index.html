@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Gloss Bible</title>
 <style>
-  :root{ --desk:#362c20; --desk-2:#4a3c29; --ui:'Segoe UI', system-ui, -apple-system, sans-serif; }
+  :root{ --desk:#362c20; --desk-2:#4a3c29; --ui:'Segoe UI', system-ui, -apple-system, sans-serif;
+         /* EL CONTRASTE VIVE EN LA RAÍZ y no en la hoja, porque lo leen dos
+            elementos que no son parientes: la hoja viva y el lienzo del
+            pliegue. Puesto arriba, los dos heredan el mismo número y no hay
+            manera de que uno se quede con el de antes. 1 es "sin tocar". */
+         --contraste:1; }
   *{ box-sizing:border-box; }
   /* EL COLOR SÓLIDO VA ADEMÁS DEL DEGRADADO, y no es repetirse.
 
@@ -330,6 +335,48 @@
      tres caminos al mismo sitio no valen el par de botones encima del papel.
      Además en teléfono competían con el gesto de traer las glosas. */
   #fx{ position:absolute; left:0; top:0; display:none; pointer-events:none; border-radius:3px; }
+  /* EL CONTRASTE, Y POR QUÉ VA EN ESTOS DOS Y EN NINGÚN OTRO SITIO.
+
+     Lo que se pidió aclarar u oscurecer es la LECTURA, no el programa. Y la
+     lectura se enseña en dos superficies que se turnan: #pg mientras la hoja
+     está quieta, #fx mientras se dobla —el pliegue esconde la hoja viva y
+     pinta su foto en el lienzo—. Las dos llevan el mismo número o el filtro
+     se caería justo al empezar a arrastrar y volvería al soltar, que es el
+     salto más visible que puede dar esta pantalla.
+
+     NO VA EN #stage NI EN body, aunque sería una línea menos. #ajustes,
+     #etiquetas, #respaldo, #canto, el menú, el readout y los filos son HIJOS
+     DE #stage: un filtro ahí dentro se los lleva a todos, y con el contraste
+     al máximo el propio panel de Formato —desde el que estás moviendo el
+     riel— cambiaría de color mientras lo usas. Un control no puede teñirse a
+     sí mismo mientras lo mueves.
+
+     Tampoco hizo falta un contenedor nuevo: la hoja ya es un elemento con
+     nombre. Envolverla habría tocado el posicionamiento absoluto, las
+     coordenadas del pliegue y el desplazamiento de las glosas, que es mucho
+     que arriesgar para no ganar nada.
+
+     Lo que queda dentro de #pg viene incluido de regalo, y está bien que así
+     sea: #zoomPapel y .pg-inner son la vista de lejos, o sea la misma hoja
+     más chica. Lo que queda fuera —.pg-canto, la huella, el disco de
+     buscando— no es papel con texto: son señales del programa, y se quedan
+     con sus colores.
+
+     Ninguno de los dos traía filter puesto, así que aquí no hay nada que
+     combinar; el drop-shadow que sí existe vive en .stage, que es el padre, y
+     se compone con éste sin estorbarlo. Si algún día uno de los dos estrena
+     un filtro propio, hay que SUMARLO en la misma declaración, no cambiarla:
+     la segunda propiedad filter gana y la primera desaparece sin avisar. */
+  #pg, #fx{ filter:contrast(var(--contraste,1)); }
+  /* EL NÚMERO SE RESERVA SU SITIO, y esto no es maquetación fina: la .medida
+     y el riel se reparten el mismo renglón, así que cuando el número pasa de
+     "50%" a "100%" el riel se encoge 5 px MIENTRAS LO ESTÁS ARRASTRANDO y la
+     manija se corre debajo del pulgar. Con cuatro caracteres de monospace
+     reservados —que es lo que mide "200%", el más ancho de los tres— el riel
+     mide siempre lo mismo y la manija se queda donde la pusiste. Va en ch y
+     no en px porque en el teléfono esta letra crece a 13 px.
+     Solo a éste: el del sepia se queda exactamente como estaba. */
+  #contrasteAhora{ min-width:4.6ch; }
   /* el lienzo se recorta contra la ventana: puede ser más ancho que ella */
   .stage{ overflow:hidden; }
   #pg.hidden{ visibility:hidden; }
@@ -1788,6 +1835,21 @@
   <span class="medida" id="sepiaAhora">75</span>
 </span></div>
 
+<!-- EL CONTRASTE, PEGADO AL SEPIA. Son los dos ajustes de tinta y se usan
+     seguidos: uno elige el color del papel, el otro cuánto se despega la
+     letra de él. Van a lo ancho por el mismo motivo que aquél —riel largo,
+     pulgar contento— y en este orden porque la versión sigue siendo lo
+     último del panel, que es lo que menos se toca.
+     El rótulo es un <span>, no un <label>, igual que en todo el panel: por
+     eso el riel lleva su propio aria-label, o un lector de pantalla anunciaría
+     un deslizador sin nombre. -->
+<div class="ajuste ancho"><span class="lbl">contraste</span><span class="ctrl">
+  <input type="range" id="contraste" min="50" max="200" step="1" value="100"
+         aria-label="contraste"
+         title="Despega la letra del papel: de tenue a marcada, sin cambiar el color" />
+  <span class="medida" id="contrasteAhora">100%</span>
+</span></div>
+
 <div class="ajuste ancho"><span class="lbl">versión</span><span class="ctrl" id="ctrlVersiones">
   <!-- se arma solo con lo que traiga bibles-included.js -->
 </span></div>
@@ -1929,7 +1991,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-AGO-26 15:52';
+window.GLOSS_BUILD = '24-AGO-26 14:05';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2378,6 +2440,22 @@ const ROTULO_PIE = [[124,107, 86], [103, 82, 52]];
    hoja vieja de una foto con filtro—. Es solo el ARRANQUE: quien lo mueva en
    Formato guarda el suyo y cargarAjustes se lo devuelve, incluido el cero. */
 let sepia = 75;
+/* EL CONTRASTE ARRANCA EN 100, que quiere decir "como estaba". Es un ajuste
+   de ACCESIBILIDAD, no de estilo: el papel y la tinta ya están calibrados —de
+   eso trata toda la rampa del sepia de aquí arriba— y quien no lo toque tiene
+   que ver exactamente lo de siempre. Se guarda en por ciento y no en factor
+   porque en por ciento es como se lee y como se enseña en el riel; la división
+   entre cien la hace un solo sitio, aplicarContraste, para que no haya dos
+   versiones del mismo número.
+   50 y 200 son los topes del riel, y se vuelven a comprobar en el manejador y
+   al cargar los ajustes: el riel es la puerta normal, no la única.
+   NO ENTRA EN estiloFirma. La firma decide si la foto del pliegue sigue
+   sirviendo, y esta foto sirve igual: el contraste no se hornea en ella, cae
+   encima del lienzo por CSS. Meterlo ahí rehornearía la hoja entera en cada
+   paso del riel para llegar al mismo píxel. */
+let contraste = 100;
+const aplicarContraste = () =>
+  document.documentElement.style.setProperty('--contraste', (contraste / 100).toFixed(2));
 const mezclar = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
 const rgb = a => 'rgb(' + a.join(',') + ')';
 const papelRGB = () => mezclar(PAPEL[0], PAPEL[1], sepia / 100);
@@ -8629,6 +8707,28 @@ $('sepia').oninput = e => {
      misma tarea, o la foto del pliegue los retrata con el tono de antes. */
   sinFundido(renderPage);
 };
+/* EL CONTRASTE. También en 'input', y por la misma razón que el sepia: se
+   busca el punto arrastrando, no soltando y volviendo a probar.
+
+   LO QUE NO HACE, que es casi todo. No marca paginasSucias ni repagina: un
+   filtro no cambia el ancho de una letra, así que la hoja parte por el mismo
+   sitio antes y después. No llama a renderPage: no hay nada que recomponer,
+   la variable de CSS repinta las dos superficies sola. Y no invalida la foto
+   del pliegue —el contraste no está DENTRO de ella— así que arrastrar el riel
+   no tira el trabajo de la instantánea.
+   Y no toca el sepia: son dos números aparte, cada uno con su riel y su hueco
+   en los ajustes guardados. Mover uno después del otro deja los dos puestos.
+
+   Se guarda aquí mismo porque este es el único camino: el sepia se persiste de
+   rebote —renderPage llama a guardarAjustes al final— y como éste no
+   repagina, sin esta línea el ajuste solo sobreviviría si además pasaras
+   hoja. Cuesta lo mismo que ya cuesta mover el sepia. */
+$('contraste').oninput = e => {
+  contraste = Math.max(50, Math.min(200, +e.target.value || 100));
+  $('contrasteAhora').textContent = contraste + '%';
+  aplicarContraste();
+  guardarAjustes();
+};
 $('selFuente').innerHTML = FUENTES.map((f,i) =>
   '<option value="'+i+'" title="'+f[2]+'">'+f[0]+'</option>').join('');
 $('selFuente').title = FUENTES.map(f => f[0] + ': ' + f[2]).join(' · ');
@@ -8820,7 +8920,7 @@ function guardarAjustes(){
   try {
     localStorage.setItem(AJUSTES, JSON.stringify({
       v: 1, fontSize, columns, placement, alineacion,
-      interlineado, margen, version, showMarks, sepia,
+      interlineado, margen, version, showMarks, sepia, contraste,
       fuente: FUENTES.findIndex(f => f[1] === fuente),
       libro: LIBRO, cap: aqui.cap, vers: aqui.vers,
       /* LA ÚLTIMA ETIQUETA USADA SE GUARDA, y ya no decide nada: solo sale
@@ -8846,6 +8946,14 @@ function cargarAjustes(){
   /* Number.isFinite y no un simple >=: un null guardado por una version
      vieja pasaba la comparacion como 0 y dejaba el sepia mudo sin decirlo. */
   if (Number.isFinite(a.sepia)) sepia = Math.max(0, Math.min(100, a.sepia));
+  /* Mismo cuidado, y una razón más: los ajustes guardados antes de que este
+     riel existiera NO traen contraste, y ahí `a.contraste` es undefined.
+     Number.isFinite lo rechaza y la variable se queda en su 100 de fábrica,
+     que es justo lo que esa gente venía viendo. Por eso el objeto sigue
+     siendo v:1: no se perdió nada ni cambió de forma nada de lo que ya
+     estaba, así que subir la versión solo serviría para tirar los ajustes
+     buenos de quien actualice. */
+  if (Number.isFinite(a.contraste)) contraste = Math.max(50, Math.min(200, a.contraste));
   if (FUENTES[a.fuente]) fuente = FUENTES[a.fuente][1];
   if ([1,2,3].includes(a.columns)) columns = a.columns;
   if (['below','margin','foot'].includes(a.placement)){ placement = a.placement; placementTocado = true; }
@@ -8873,6 +8981,12 @@ function reflejarControles(){
   reflejarTamano();
   $('sepia').value = String(sepia);
   $('sepiaAhora').textContent = sepia;
+  $('contraste').value = String(contraste);
+  $('contrasteAhora').textContent = contraste + '%';
+  /* Y la variable de CSS se pone AQUÍ, no en el primer renderPage: esto corre
+     antes de que se pinte nada, así que la hoja nace ya con el contraste que
+     dejaste puesto y no hay un cuadro en 100% antes de asentarse. */
+  aplicarContraste();
   $('selFuente').value = String(Math.max(0, FUENTES.findIndex(f => f[1] === fuente)));
   const marcar = (sel, ok) => document.querySelectorAll(sel).forEach(x => x.classList.toggle('active', ok(x)));
   marcar('[data-cols]', x => +x.dataset.cols === columns);
