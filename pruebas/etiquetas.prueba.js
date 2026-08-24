@@ -183,16 +183,74 @@ const FUERA = `async () => {
   di('al abrir otro panel', await p.evaluate(async ([abrir, fuera]) => {
     const despierta = await eval('(' + abrir + ')')(16, 30, 'otra nota');
     if (!despierta) return { sinPanel:true };
-    const negrita = document.querySelector('#menu .tg.ultima');
-    const peso = negrita && getComputedStyle(negrita).fontWeight;
+    const marcada = document.querySelector('#menu .tg.ultima');
+    const cs = marcada && getComputedStyle(marcada);
+    const trazo = cs && cs.borderStyle;
+    /* y las otras siguen con el trazo corrido: la señal es la DIFERENCIA */
+    const otra = [...document.querySelectorAll('#menu .tg')].find(b => b !== marcada);
+    const trazoOtra = otra && getComputedStyle(otra).borderStyle;
     /* y NO está puesta: enseñarla no es aplicarla */
     const puestas = [...document.querySelectorAll('#menu .tg.on')].map(x => x.dataset.tag);
     await eval('(' + fuera + ')')();
-    return { cual: negrita && negrita.dataset.tag, peso, puestas };
+    return { cual: marcada && marcada.dataset.tag, trazo, trazoOtra, puestas };
   }, [ABRIR, FUERA]).then(r => {
-    vale('hay una en negrita', !r.sinPanel && !!r.cual, r.cual);
-    vale('y es negrita de verdad', parseInt(r.peso) >= 700, r.peso);
+    vale('hay una marcada como la última', !r.sinPanel && !!r.cual, r.cual);
+    /* Punteado y no negrita: el peso competía con el oro por decir «ésta es
+       especial», y con la etiqueta puesta y última a la vez no se sabía cuál
+       decía cuál. Ahora el relleno dice si está puesta y el trazo dice si es
+       la última: dos canales que no se pisan. */
+    vale('se distingue por el trazo, no por el peso',
+         r.trazo === 'dashed' && r.trazoOtra === 'solid',
+         r.trazo + ' contra ' + r.trazoOtra);
     vale('pero no se aplica sola', (r.puestas||[]).length === 0, r.puestas);
+    return r;
+  }));
+
+  titulo('la caja de etiquetas no desperdicia el ancho');
+  /* LAS DOS QUEJAS ERAN LA MISMA. Las pastillas se partían por donde caía
+     cada nombre y dejaban hasta 175 de 326px vacíos en un renglón; y parecían
+     pequeñas porque #menu button —que lleva un id— les pisaba borde, fondo y
+     redondeo, así que una etiqueta PUESTA y una apagada salían idénticas
+     salvo por la opacidad, y a .5 sobre el panel oscuro eso queda en 4.28:1.
+     Esta prueba vigila las dos cosas a la vez, que es como se rompieron. */
+  di('la rejilla', await p.evaluate(async ([abrir, fuera]) => {
+    const despierta = await eval('(' + abrir + ')')(0, 12, 'nota de la rejilla');
+    if (!despierta) return { sinPanel:true };
+    const menu = document.getElementById('menu');
+    const ch = menu.querySelector('.tagchips');
+    const tb = menu.querySelector('.tagbox');
+    const chips = [...ch.querySelectorAll('.tg')];
+    if (chips.length < 2) return { pocas:true, n:chips.length };
+    /* dos columnas: solo dos posiciones distintas de borde izquierdo */
+    const izq = [...new Set(chips.map(c => Math.round(c.getBoundingClientRect().left)))];
+    /* y todas las de una columna miden lo mismo: eso es lo que quita el hueco */
+    const anchos = [...new Set(chips.map(c => Math.round(c.getBoundingClientRect().width)))];
+    const on = chips[0];
+    on.click(); await new Promise(z => setTimeout(z, 150));
+    const cs = e => getComputedStyle(e);
+    const puesta = cs(on), floja = cs(chips.find(c => !c.classList.contains('on')));
+    const r = {
+      columnas: izq.length, anchosDistintos: anchos.length,
+      seSale: Math.round(ch.getBoundingClientRect().right - tb.getBoundingClientRect().right),
+      /* el estado se dice con relleno, no con transparencia */
+      fondoDistinto: puesta.backgroundColor !== floja.backgroundColor,
+      bordeDistinto: puesta.borderColor !== floja.borderColor,
+      opacidadIgual: puesta.opacity === floja.opacity,
+      esPastilla: parseFloat(puesta.borderRadius) > 20,
+      tam: parseFloat(puesta.fontSize)
+    };
+    await eval('(' + fuera + ')')();
+    return r;
+  }, [ABRIR, FUERA]).then(r => {
+    vale('las pastillas van en dos columnas', r.columnas === 2, r.columnas);
+    vale('y todas del mismo ancho', r.anchosDistintos === 1,
+         r.anchosDistintos + ' ancho(s)');
+    vale('sin salirse del panel', r.seSale === 0, r.seSale + ' px');
+    vale('puesta y apagada se distinguen por relleno y borde',
+         r.fondoDistinto && r.bordeDistinto, [r.fondoDistinto, r.bordeDistinto]);
+    vale('y NO por la opacidad', r.opacidadIgual);
+    vale('la pastilla es una pastilla', r.esPastilla);
+    vale('con letra legible', r.tam >= 16, r.tam + ' px');
     return r;
   }));
 
