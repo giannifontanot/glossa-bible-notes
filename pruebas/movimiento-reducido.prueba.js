@@ -123,6 +123,53 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
            nacer.acabaQuieto && nacer.opacidad === '1', nacer.opacidad);
     }
 
+    /* EL DESLIZAMIENTO AL ABRIR LAS ETIQUETAS TAMPOCO. Abrir la lista sube el
+       panel, y a veces lo obliga a cambiarse de lado del pasaje entero. Se
+       mueve con Element.animate(), o sea que aquí también hay que preguntar:
+       con la preferencia puesta el panel se planta en su sitio nuevo y ya
+       está, que es lo que esa preferencia viene a pedir. */
+    const pliegue = await p.evaluate(async () => {
+      const menu = document.getElementById('menu');
+      const v = document.querySelectorAll('#pgBody .v')[1] ||
+                document.querySelector('#pgBody .v');
+      const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+      while (w.nextNode()) if (w.currentNode.textContent.trim().length > 40){ n = w.currentNode; break; }
+      if (!n) return { sinTexto:true };
+      const r = document.createRange(); r.setStart(n, 5); r.setEnd(n, 25);
+      getSelection().removeAllRanges(); getSelection().addRange(r);
+      const rc = r.getBoundingClientRect();
+      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+        { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
+      await new Promise(z => setTimeout(z, 500));
+      const ta = document.getElementById('glosaCaja'); if (!ta) return { sinPanel:true };
+      ta.value = 'una nota cualquiera';
+      ta.dispatchEvent(new Event('input', { bubbles:true }));
+      await new Promise(z => setTimeout(z, 200));
+      const bot = menu.querySelector('.mtags'); if (!bot) return { sinBoton:true };
+      bot.click();
+      await new Promise(z => setTimeout(z, 30));
+      /* se pregunta por las animaciones DEL PANEL: la del alto es de la lista,
+         y esa es otro asunto —la apaga la misma preferencia, pero por su
+         cuenta—. */
+      const res = { animando: menu.getAnimations().length > 0 };
+      await new Promise(z => setTimeout(z, 900));
+      res.acabaQuieto = getComputedStyle(menu).transform === 'none';
+      res.listaAbierta = !!menu.querySelector('.tagbox.abierta');
+      document.body.dispatchEvent(new PointerEvent('pointerdown',
+        { bubbles:true, clientX:5, clientY:5 }));
+      await new Promise(z => setTimeout(z, 400));
+      return res;
+    });
+    di('el panel al abrir las etiquetas', pliegue);
+    if (!pliegue.sinTexto && !pliegue.sinPanel && !pliegue.sinBoton){
+      if (modo === 'reduce')
+        vale('el panel no se desliza, se planta', pliegue.animando === false);
+      else
+        vale('el panel se desliza a su sitio nuevo', pliegue.animando === true);
+      vale('en los dos casos la lista queda abierta y el panel quieto',
+           pliegue.listaAbierta && pliegue.acabaQuieto);
+    }
+
     /* EL VUELO DE LA GLOSA TAMPOCO. Es la otra animación grande del programa
        —2.4 segundos de nota cruzando la hoja— y la única que no puede apagar
        una regla de CSS: la crea Element.animate(), y a eso no llega ninguna

@@ -110,6 +110,64 @@ const FUERA = `async () => {
     return r;
   }));
 
+  titulo('y lo hace doblándose, no de un salto');
+  /* Era el gesto más frecuente del panel y también el más brusco: la lista
+     aparecía y desaparecía de un cuadro para otro, y con ella el panel entero
+     cambiaba de alto de golpe. Ahora se dobla como un papel: el alto, de cero
+     a lo que mida, y al revés. */
+  di('el doblez', await p.evaluate(async ([abrir, fuera]) => {
+    const despierta = await eval('(' + abrir + ')')(0, 12, 'nota para el doblez');
+    if (!despierta) return { sinPanel:true };
+    const caja = document.querySelector('#menu .tagbox');
+    const bot = document.querySelector('#menu .mtags');
+    const mitad = (r) => new Promise(z => setTimeout(z, r));
+
+    bot.click(); await mitad(45);
+    const an = caja.getAnimations()[0];
+    const abriendo = { animando: !!an, dur: an ? an.effect.getTiming().duration : null,
+                       alto: caja.getBoundingClientRect().height,
+                       recortada: caja.style.overflow === 'hidden',
+                       rotulo: bot.textContent.trim() };
+    await mitad(300);
+    abriendo.altoFinal = caja.getBoundingClientRect().height;
+    /* y no deja el alto clavado en el estilo, que congelaría la lista al
+       añadir una etiqueta más */
+    abriendo.sinRastro = caja.style.height === '' && caja.style.overflow === '';
+
+    bot.click(); await mitad(45);
+    const cerrando = { animando: !!caja.getAnimations()[0],
+                       aunSeVe: caja.getBoundingClientRect().height > 0,
+                       rotulo: bot.textContent.trim() };
+    await mitad(300);
+    cerrando.alto = caja.getBoundingClientRect().height;
+    cerrando.cerrada = !caja.classList.contains('abierta');
+
+    /* dos toques rápidos: el segundo tiene que alternar sobre lo PEDIDO y no
+       sobre lo que se ve, o abrir y cerrar deprisa la deja abierta */
+    bot.click(); await mitad(50); bot.click(); await mitad(350);
+    const rapido = { cerrada: !caja.classList.contains('abierta'),
+                     alto: caja.getBoundingClientRect().height };
+    await eval('(' + fuera + ')')();
+    return { abriendo, cerrando, rapido };
+  }, [ABRIR, FUERA]).then(r => {
+    if (r.sinPanel) return vale('el doblez', false, 'sin panel');
+    vale('al abrir se dobla, no salta',
+         r.abriendo.animando && r.abriendo.dur === 160 &&
+         r.abriendo.alto > 0 && r.abriendo.alto < r.abriendo.altoFinal,
+         Math.round(r.abriendo.alto) + ' → ' + Math.round(r.abriendo.altoFinal));
+    vale('  recortando, no aplastando', r.abriendo.recortada);
+    vale('  y sin dejar el alto clavado', r.abriendo.sinRastro);
+    vale('al cerrar sigue viéndose mientras se va',
+         r.cerrando.animando && r.cerrando.aunSeVe);
+    vale('  y el rótulo ya dice lo que va a pasar',
+         /▸/.test(r.cerrando.rotulo), r.cerrando.rotulo);
+    vale('  y acaba cerrada del todo',
+         r.cerrando.cerrada && r.cerrando.alto === 0, r.cerrando.alto);
+    vale('dos toques rápidos la dejan cerrada',
+         r.rapido.cerrada && r.rapido.alto === 0, r.rapido.alto);
+    return r;
+  }));
+
   titulo('las puestas se apagan en la lista');
   /* Al revés de como estaban: puestas ya se ven dentro de la glosa, así que
      aquí lo que importa es lo que TODAVÍA se puede añadir. Y va por color, no
@@ -390,6 +448,72 @@ const FUERA = `async () => {
     vale('y devuelve', !r.sinChip && r.vuelven === r.antes, '→ ' + r.vuelven);
     return r;
   }));
+
+  titulo('abrir la lista mueve el panel, no lo teletransporta');
+  /* EL PANEL CUELGA DE UN `top` QUE DEPENDE DE SU PROPIO ALTO, así que abrir
+     la lista lo recoloca. Casi siempre es un empujón corto hacia arriba; pero
+     colocarMenu tiene un escalón —si arriba ya no cabe, el panel se pasa
+     DEBAJO del pasaje— y ese escalón no tiene cuadros que enseñar: el panel
+     aparecía 300px más abajo de un cuadro para el siguiente.
+
+     Se recorre la hoja ENTERA y no un pasaje elegido, porque el salto depende
+     de a qué altura caiga el pasaje: con uno solo, la prueba pasaría o
+     fallaría según qué versículo tocara ese día. Lo que se mide es el paso
+     más largo que da el panel entre dos cuadros seguidos. */
+  const saltos = await p.evaluate(async () => {
+    const menu = document.getElementById('menu');
+    const filas = [];
+    const cuantos = document.querySelectorAll('#pgBody .v').length;
+    for (let k = 0; k < cuantos; k++){
+      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerdown',
+        { bubbles:true, clientX:5, clientY:5 }));
+      await new Promise(z => setTimeout(z, 700));
+      const v = document.querySelectorAll('#pgBody .v')[k]; if (!v) continue;
+      const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let t = null;
+      while (w.nextNode()) if (w.currentNode.textContent.trim().length > 40){ t = w.currentNode; break; }
+      if (!t) continue;
+      const rg = document.createRange(); rg.setStart(t, 5); rg.setEnd(t, 25);
+      getSelection().removeAllRanges(); getSelection().addRange(rg);
+      const rc = rg.getBoundingClientRect();
+      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+        { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
+      await new Promise(z => setTimeout(z, 500));
+      const ta = document.getElementById('glosaCaja'); if (!ta) continue;
+      ta.value = 'una nota cualquiera';
+      ta.dispatchEvent(new Event('input', { bubbles:true }));
+      await new Promise(z => setTimeout(z, 200));
+      const bot = menu.querySelector('.mtags'); if (!bot) continue;
+      const tops = []; let vivo = true;
+      const mirar = () => { if (!vivo) return;
+        tops.push(Math.round(menu.getBoundingClientRect().top));
+        requestAnimationFrame(mirar); };
+      requestAnimationFrame(mirar);
+      bot.click();
+      await new Promise(z => setTimeout(z, 900));
+      vivo = false;
+      let paso = 0;
+      for (let i = 1; i < tops.length; i++) paso = Math.max(paso, Math.abs(tops[i] - tops[i-1]));
+      filas.push({ pasaje:k, paso, recorrido: Math.abs(tops[tops.length-1] - tops[0]) });
+    }
+    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await new Promise(z => setTimeout(z, 700));
+    return filas;
+  });
+  const peor = saltos.reduce((a, b) => b.paso > a.paso ? b : a, { paso:0, recorrido:0 });
+  const masLejos = saltos.reduce((a, b) => b.recorrido > a.recorrido ? b : a, { recorrido:0 });
+  di('el peor cuadro', peor);
+  di('el viaje más largo', masLejos);
+  vale('la hoja da pasajes que probar', saltos.length > 3, saltos.length + ' pasajes');
+  /* El listón está lejos de los 25px que se miden aquí a propósito: en una
+     máquina que suelte cuadros el mismo recorrido sale en pasos más largos,
+     y lo que esta prueba tiene que cazar es el teletransporte —309px—, no una
+     décima de diferencia. */
+  vale('ningún cuadro da un salto', peor.paso < 80, peor.paso + 'px en el peor');
+  /* Y que el caso feo se haya probado de verdad: si ningún pasaje obliga al
+     panel a cambiarse de lado, lo de arriba pasa sin haber mirado nada. */
+  vale('  y alguno cambia de lado', masLejos.recorrido > 150,
+       masLejos.recorrido + 'px de recorrido');
 
   await cerrar(sesion);
 })();

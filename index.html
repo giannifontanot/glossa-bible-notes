@@ -807,8 +807,25 @@
               transition:opacity .2s ease, transform .28s cubic-bezier(.2,.85,.3,1); }
   #historial::-webkit-scrollbar{ width:0; height:0; display:none; }
   #historial.visible{ opacity:1; transform:none; }
-  .hs-tit{ display:block; font:700 10.5px/1 var(--ui); letter-spacing:.14em;
-           text-transform:uppercase; color:#8a7746; padding:3px 3px 6px; }
+  /* El rótulo y el paso atrás comparten renglón: el rótulo no lleva a ningún
+     sitio y estaba ocupando una franja entera él solo. */
+  .hs-tit{ display:flex; align-items:center; font:700 10.5px/1 var(--ui);
+           letter-spacing:.14em; text-transform:uppercase; color:#8a7746;
+           padding:3px 3px 6px; }
+  /* EL PASO ATRÁS. Dice a dónde va además de llevar la flecha: una flecha
+     sola en una lista de escrituras no distingue «atrás por donde vine» de
+     «sube una fila», y la referencia lo desambigua sin gastar un renglón.
+     margin-left:auto lo manda a la derecha del renglón del rótulo, que es lo
+     pedido y además el borde por el que este panel crece. */
+  .hs-atras{ margin-left:auto; display:inline-flex; align-items:center; gap:6px;
+             font:600 10.5px/1 var(--ui); letter-spacing:.06em;
+             color:#6d5a2c; background:rgba(140,116,68,.13);
+             border:1px solid rgba(140,116,68,.4); border-radius:999px;
+             padding:4px 8px 4px 10px; cursor:pointer; }
+  .hs-atras:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
+  .hs-atras:active{ transform:translateY(1px); }
+  .hs-atras-ref{ text-transform:none; letter-spacing:.02em; }
+  .hs-flecha{ font-size:13px; line-height:1; }
   /* LA FILA ES UNA SOLA LÍNEA, Y ESO NO ES DECORACIÓN. Una lista en la que
      cada renglón mide lo mismo se recorre con el ojo; una en la que cada
      entrada mide dos o tres líneas hay que leerla. Por eso la referencia va
@@ -1357,6 +1374,13 @@
   #menu .tagbox{ display:none; }
   #menu .tagbox.abierta{ display:flex; flex-direction:column; align-items:stretch;
                          gap:6px; }
+  /* NI LA LISTA NI LOS MANDOS ENCOGEN. Hace falta para el pliegue: al abrirse y
+     cerrarse se le anima el ALTO a la caja, y un hijo de flex con el encogido
+     de fábrica se aplasta en vez de dejarse recortar —la lista se estrujaría
+     hasta ser un renglón con barra de desplazamiento y volvería a estirarse—.
+     Con flex:0 0 auto el contenido se queda como está y lo que se mueve es la
+     ventana por la que se ve, que es lo que cuenta un papel que se dobla. */
+  #menu .tagbox.abierta > *{ flex: 0 0 auto; }
   /* EL VOCABULARIO, EN RENGLÓN CORRIDO. Eran pastillas en rejilla y no eran lo
      que hacía falta: una pastilla dice «esto es una cosa», y aquí lo que se
      necesita es una lista que se recorra con la vista, como el índice de un
@@ -2199,13 +2223,13 @@ const PAGE_CSS = `
    texto y se apaga; éste es un respiro dorado sobre el enlace y sigue hasta
    que la hoja se voltea. Uno dice "voy", el otro dice "aquí es". */
 .ref{ cursor:pointer; border-bottom:1px dotted currentColor; border-radius:2px; }
-/* El dorado sube en rampa, como el naranja de la llegada. El color NO va
-   aquí: lo pinta el guion cuadro por cuadro, porque una transición de CSS no
-   serviría —el cálculo del salto bloquea el hilo y la transición se congela
-   en su primer fotograma, que es el transparente—. Por eso la rampa corre
-   ANTES de arrancar el cálculo, y el salto empieza cuando el dorado ya llegó
-   arriba. Se pagan 260 ms, y a cambio el gesto tiene despegue. */
-.ref.buscando{ border-bottom-style:solid; color:#4a3410; }
+/* La rampa dorada de antes de saltar ya no vive en la referencia: tocarla
+   abre la ventanita de leer, que es instantánea, y el salto lo dispara el
+   texto de esa ventanita. La rampa se fue con él. Lo que sigue valiendo es
+   por qué se pinta cuadro por cuadro desde el guion y no con una transición
+   de CSS: el cálculo del salto bloquea el hilo, y la transición se congelaría
+   en su primer fotograma, que es el transparente. Por eso la rampa corre
+   ANTES de arrancar el cálculo. */
 .ref.muerta{ opacity:.45; border-bottom-style:dashed; cursor:default; }
 .vn.back{ color:#8a7048; font-weight:400; padding-left:3px; cursor:pointer; }
 /* El fondo del recuadro es el mismo tono del resaltado al 42% de su alfa
@@ -3828,11 +3852,41 @@ let ultimaEtiqueta = '';
 let borrador = null;
 
 let ultimoRect = null;
+/* LA GENERACIÓN DEL PANEL, que hace falta desde que el panel tarda en irse.
+
+   El adiós dura unas décimas, y en esas décimas puede abrirse otro panel
+   —tocar un vínculo cierra el de antes y enseña el suyo en la misma línea—. Sin
+   una cuenta, el temporizador del adiós del primero llegaría tarde y vaciaría
+   el segundo, que ya estaba puesto. Cada vez que el panel se enseña o se
+   recoge, la cuenta sube; el adiós solo limpia si nadie ha vuelto a tocarlo. */
+let vidaMenu = 0;
 function mostrarMenu(html, rect){
+  guardarMenu();                          /* corta un adiós a medias, si lo hay */
   if (rect) ultimoRect = rect;
   menu.innerHTML = html;
   menu.style.display = 'flex';
   colocarMenu();
+}
+/* Recoger el panel de verdad: esto es lo que antes hacía ocultarMenu de una
+   vez, y ahora es el final de los dos caminos —el instantáneo y el del adiós—.
+   Devuelve el panel a su estado de reposo: sin transformación, sin la
+   transparencia del adiós y sin el ancho de glosa, que la lista de vínculos
+   reusa el mismo #menu y no es una glosa. */
+function guardarMenu(){
+  vidaMenu++;
+  if (menu._adios){ menu._adios.cancel(); menu._adios = null; }
+  /* El deslizamiento de las etiquetas y su alto de destino se van con el
+     panel. Si no, un panel cerrado a media apertura de la lista dejaría el
+     alto apuntado, y el SIGUIENTE panel —que quizá no tiene ni lista— se
+     colocaría con la medida del anterior. */
+  if (menu._resbalon){ menu._resbalon.cancel(); menu._resbalon = null; }
+  menu._altoFinal = 0;
+  menu.style.display = 'none';
+  menu.innerHTML = '';
+  menu.style.width = '';
+  menu.style.transform = '';
+  menu.style.opacity = '';
+  menu.style.pointerEvents = '';
 }
 /* Medir y colocar es su propia función porque ahora hay que rehacerlo
    sin volver a pintar: cuando sube el teclado la caja de etiquetas se
@@ -3840,19 +3894,54 @@ function mostrarMenu(html, rect){
    queda flotando donde ya no está lo que señalaba. */
 function colocarMenu(){
   const r = ultimoRect || {left:0,top:0,width:0,height:0,bottom:0};
-  const s = stage.getBoundingClientRect(), w = menu.offsetWidth, h = menu.offsetHeight;
-  let x = r.left - s.left + r.width/2 - w/2;
+  const s = stage.getBoundingClientRect(), w = menu.offsetWidth;
+  /* EL ALTO QUE MANDA ES EL DE DESTINO MIENTRAS SE PLIEGAN LAS ETIQUETAS.
+     Durante el pliegue el panel mide algo que ya no va a medir, y colocarMenu
+     lo llaman de paso otras cosas —escribir en la caja, sin ir más lejos—. Con
+     el alto de ese instante, cada una de esas llamadas plantaría el panel en
+     un sitio distinto del que el deslizamiento tiene por meta, y el panel
+     daría el respingo que este pliegue viene a quitar. */
+  const h = menu._altoFinal || menu.offsetHeight;
+  /* EL PANEL DE LA GLOSA VA CENTRADO; el resto, sobre lo que señalaste.
+
+     Iba centrado en el pasaje, y con un panel estrecho eso estaba bien: era un
+     bocadillo, y un bocadillo apunta. Desde que mide lo que mide la glosa ya
+     no apunta a nada —ocupa media pantalla— y lo único que hacía era saltar de
+     izquierda a derecha según qué palabra hubieras tocado, y pegarse a un filo
+     cuando el pasaje caía en una esquina. Centrado se queda quieto: abras la
+     glosa que abras, aparece en el mismo sitio, y de dónde sale ya lo cuenta
+     el crecimiento, que sigue anclado en las palabras señaladas.
+     Solo el de la glosa: la lista de «citado desde» sí es un bocadillo de su
+     botón, y esa sí tiene a qué apuntar. */
+  const p = sitioDelMenu(w, h, r, s);
+  menu.style.left = p.x + 'px';
+  menu.style.top  = p.y + 'px';
+}
+/* DÓNDE IRÍA UN PANEL DE ESTE TAMAÑO. Sale de colocarMenu para poder
+   preguntarlo SIN mover nada: el pliegue de las etiquetas necesita saber a
+   dónde va a parar el panel antes de empezar a plegarlas, y con la cuenta
+   metida dentro del que la aplica no había manera de preguntar sin aplicar. */
+function sitioDelMenu(w, h, r, s){
+  let x = borrador ? (s.width - w) / 2
+                   : r.left - s.left + r.width/2 - w/2;
   let y = r.top - s.top - h - 8;
   if (y < 2) y = r.bottom - s.top + 8;
-  menu.style.left = Math.round(Math.min(Math.max(x, 2), s.width - w - 2)) + 'px';
-  menu.style.top  = Math.round(Math.min(Math.max(y, 2), s.height - h - 2)) + 'px';
+  return { x: Math.round(Math.min(Math.max(x, 2), s.width - w - 2)),
+           y: Math.round(Math.min(Math.max(y, 2), s.height - h - 2)) };
 }
 function ocultarMenu(){
   if (menu._teclado) menu._teclado();
-  if (borrador) cerrarBorrador();
-  menu.style.display='none'; menu.innerHTML='';
-  menu.style.width = '';                  /* la lista de vínculos no es una glosa */
-  ultimoRect=null;
+  /* El punto del adiós se mide ANTES de cerrar el borrador: cerrarlo repinta
+     la hoja, y lo que hace falta es de dónde salió este panel. Y solo para el
+     panel de la glosa: la lista de vínculos no nació de un pasaje, así que no
+     tiene a dónde recogerse. */
+  const adios = (borrador && menu.style.display !== 'none') ? origenDelPanel() : null;
+  const volo = borrador ? cerrarBorrador() : false;
+  ultimoRect = null;
+  /* Si lo escrito se fue volando a su sitio, no hay nada más que despedir: el
+     vuelo ya cuenta la salida, y encoger el panel además sería contarla dos
+     veces. */
+  if (adios && !volo) morirPanel(adios); else guardarMenu();
 }
 
 /* ---------- lo que se ve ---------- */
@@ -4054,26 +4143,93 @@ function vestirVista(m){
    del final, que sí enseña adónde fue lo escrito— solo evita el salto. Un
    nacimiento lento sería una animación pidiendo que la miren.
 
-   Y SOLO AL NACER. Al cerrarse no hay nada que deshacer: la glosa se va volando
-   a su sitio, que es una salida mucho mejor que encogerse hasta desaparecer.
-   Dos animaciones de despedida serían dos maneras de contar lo mismo. */
-function nacerPanel(){
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  if (!ultimoRect) return;
+   Y AL CERRARSE, DEPENDE DE SI HAY VUELO. Con algo escrito la glosa se va
+   volando a su sitio, y eso ya es una salida: encogerla además sería contar la
+   misma despedida dos veces. Pero cuando no se escribió nada no hay vuelo
+   ninguno, y ahí el panel desaparecía de golpe —abrir era suave y cerrar era
+   un corte—. Para ese caso está morirPanel: el mismo camino, del revés. */
+/* EL PUNTO POR EL QUE EL PANEL CRECE Y POR EL QUE SE RECOGE, que es el mismo:
+   el centro de lo que señalaste, en coordenadas del panel y sin salirse de él.
+   Si lo señalado queda lejos —el panel topa con un filo de la pantalla— el
+   origen se pega al borde más cercano, que sigue apuntando hacia allá.
+   Devuelve null cuando no hay de dónde tirar, y también cuando se ha pedido
+   menos movimiento: así los dos extremos preguntan una sola vez y no pueden
+   contestarse distinto. */
+function origenDelPanel(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+  if (!ultimoRect) return null;
   const m = menu.getBoundingClientRect();
-  if (!m.width || !m.height) return;
-  /* El punto de crecimiento, en coordenadas del panel y sin salirse de él: si
-     lo señalado queda lejos —el panel topa con un filo de la pantalla— el
-     origen se pega al borde más cercano, que sigue apuntando hacia allá. */
+  if (!m.width || !m.height) return null;
   const cx = ultimoRect.left + ultimoRect.width / 2;
   const cy = ultimoRect.top + ultimoRect.height / 2;
   const ox = Math.max(0, Math.min(m.width, cx - m.left));
   const oy = Math.max(0, Math.min(m.height, cy - m.top));
-  menu.style.transformOrigin = Math.round(ox) + 'px ' + Math.round(oy) + 'px';
+  return Math.round(ox) + 'px ' + Math.round(oy) + 'px';
+}
+function nacerPanel(){
+  const origen = origenDelPanel(); if (!origen) return;
+  menu.style.transformOrigin = origen;
   menu.animate([
     { transform:'scale(.82)', opacity:0 },
     { transform:'none', opacity:1 }
   ], { duration:170, easing:'cubic-bezier(.2,.75,.35,1)' });
+}
+/* EL PANEL SE RECOGE POR DONDE SALIÓ.
+
+   Cuando te vas sin escribir nada no hay glosa que volar, y el panel se
+   quitaba de un fotograma para otro. Nacer despacio y desaparecer de golpe es
+   la peor de las dos mitades: el corte llama más la atención que el
+   nacimiento, y encima deja la duda de si se guardó algo.
+
+   Es nacerPanel del revés y con el mismo origen —se recoge hacia el pasaje del
+   que salió—, con dos diferencias a propósito:
+   · 140ms contra 170. Irse puede ser más rápido que llegar: al llegar hay algo
+     nuevo que mirar y al irse ya no, y una salida que se demora es una salida
+     pidiendo que la miren.
+   · la curva al revés. Nacer frena al final para posarse; irse acelera, que es
+     como se va algo que ya no está.
+
+   NO SE CLONA NADA, a diferencia del vuelo. El vuelo dura 2.4 segundos y en
+   ese rato la hoja se repinta, así que necesita un calco suelto que nadie
+   pueda borrarle a media pista. Aquí son catorce centésimas y lo que se anima
+   es el panel mismo, que ya está donde tiene que estar; el precio es que
+   vaciarlo hay que aplazarlo hasta el final, y de eso se encarga la cuenta de
+   vidaMenu.
+
+   La transparencia va con la escala y no sola: encoger sin desvanecer parece
+   que la nota se cae por un desagüe, y desvanecer sin encoger no cuenta a
+   dónde fue. Y se apagan los punteros desde el primer fotograma, que si no un
+   panel ya invisible sigue comiéndose el toque siguiente.
+
+   EL ESTADO FINAL SE ESCRIBE EN EL PANEL, NO SE DEJA EN MANOS DE fill.
+   Sin nada, al acabar la animación el panel vuelve un fotograma a su tamaño
+   entero antes de que le llegue el display:none: un parpadeo justo al final,
+   que es donde más se ve. Lo primero que probé fue fill:'forwards', y trajo un
+   fallo peor —medido, no supuesto—: si el panel se reabre en el instante justo
+   después de terminar el adiós, guardarMenu ya no encuentra animación viva que
+   cortar, el relleno se queda puesto, y el panel nuevo aparece a escala .82 y
+   transparente. Estaba abierto y no se veía.
+   Escribiendo el estado final como estilo en línea ANTES de animar no hace
+   falta relleno ninguno: mientras corre mandan los fotogramas, y cuando
+   termina el panel ya está donde tiene que estar. Y guardarMenu, que devuelve
+   esos dos estilos a su sitio, deja de tener que acertar con el momento. */
+function morirPanel(origen){
+  const g = ++vidaMenu;
+  menu.style.transformOrigin = origen;
+  menu.style.pointerEvents = 'none';
+  menu.style.transform = 'scale(.82)';
+  menu.style.opacity = '0';
+  const a = menu.animate([
+    { transform:'none', opacity:1 },
+    { transform:'scale(.82)', opacity:0 }
+  ], { duration:140, easing:'cubic-bezier(.65,0,.8,.25)' });
+  menu._adios = a;
+  /* onfinish y no la promesa `finished`: cancelar una animación cuya promesa
+     se ha llegado a pedir la rechaza, y una promesa rechazada que nadie mira
+     sale por consola como un error del programa sin que haya pasado nada.
+     Cancelar no dispara onfinish, así que el que se va cancelado no limpia — y
+     está bien, porque a ese lo canceló quien ya estaba limpiando. */
+  a.onfinish = () => { if (g === vidaMenu) guardarMenu(); };
 }
 /* EL PANEL MIDE LO QUE MIDE LA GLOSA. Es lo que lo convierte en «esta nota y
    sus mandos» en vez de en «un panel que además enseña una nota»: la columna
@@ -4167,8 +4323,7 @@ function refrescarTags(){
   pintarAncla(m);
   const bot = menu.querySelector('.mtags');
   if (bot) bot.textContent =
-    (caja && caja.classList.contains('abierta') ? '▾ ' : '▸ ') + 'etiquetas' +
-    (tiene.size ? ' · ' + tiene.size : '');
+    rotuloTags(!!caja && caja.classList.contains('abierta'), tiene.size);
   ajustarAlto(menu.querySelector('#glosaCaja'));
   /* Y SE RECOLOCA, porque esto acaba de cambiar el ALTO del panel: una
      etiqueta más puede partir el renglón de las etiquetas dentro de la glosa y
@@ -4180,6 +4335,141 @@ function refrescarTags(){
      camino no tenga que acordarse. Lo levantó la segunda revisión de Codex. */
   colocarMenu();
 }
+/* El rótulo del botón de las etiquetas, en un solo sitio: lo escriben dos
+   —el repintado y el pliegue— y con la cuenta escrita dos veces una de las dos
+   se queda atrás. */
+const rotuloTags = (abierta, cuantas) =>
+  (abierta ? '▾ ' : '▸ ') + 'etiquetas' + (cuantas ? ' · ' + cuantas : '');
+
+/* ABRIR Y CERRAR LA LISTA, SIN DAR UN SALTO.
+
+   La lista aparecía y desaparecía de un fotograma para otro, y con ella el
+   panel entero cambiaba de alto de golpe: el gesto más frecuente del panel era
+   también el más brusco. Ahora se despliega como se despliega un papel doblado
+   —el alto, de cero a lo que mida, y al revés—, con las mismas dos curvas del
+   resto del programa: al abrir frena para posarse, al cerrar acelera para irse.
+
+   EL ALTO SE MIDE, NO SE ADIVINA. Depende de cuántas etiquetas haya y de
+   cuántos renglones ocupen, así que se pone la lista en su sitio, se mide, y se
+   anima desde cero hasta esa cifra. Animar `height:auto` no vale: lo que
+   interpola la API de animaciones son números, y `auto` no lo es.
+
+   Y SE RECOLOCA EN CADA CUADRO. El panel cuelga de un `top` calculado a partir
+   de su propio alto: puesto encima del pasaje y creciendo sin recolocarse,
+   crece HACIA ABAJO y se echa encima justo de lo que estás mirando. Es la misma
+   razón por la que refrescarTags termina llamando a colocarMenu; la diferencia
+   es que aquí el alto cambia durante nueve o diez cuadros y no una sola vez.
+
+   No se le toca la transparencia, y es a propósito: .tagbox.dormida ya usa
+   opacity para decir «esto no responde todavía», y una animación que la mueva
+   discutiría con esa señal —la lista dormida se abriría hasta opaca del todo
+   para volver a apagarse al acabar—. El doblez solo se ve con el alto. */
+const TAGS_MS = 160;
+function plegarTags(caja, abrir){
+  if (!caja) return;
+  if (caja._pliegue){ caja._pliegue.cancel(); caja._pliegue = null; }
+  /* El deslizamiento se corta con el doblez que lo trajo: el que cancela ya
+     trae su propia meta, y dos deslizamientos a la vez se pelean por el mismo
+     transform —gana el último, y el panel llega a la meta del otro—. */
+  if (menu._resbalon){ menu._resbalon.cancel(); menu._resbalon = null; }
+  caja._destino = abrir;
+  /* La clase se pone SIEMPRE antes de medir: cerrada, #menu .tagbox no se
+     dibuja y mediría cero, que es justo el dato que hay que averiguar del otro
+     lado del pliegue. */
+  caja.classList.add('abierta');
+  caja.style.height = ''; caja.style.overflow = '';
+  const alto = caja.getBoundingClientRect().height;
+  const rematar = () => {
+    caja._pliegue = null;
+    menu._altoFinal = 0;
+    caja.style.height = ''; caja.style.overflow = '';
+    caja.classList.toggle('abierta', abrir);
+    refrescarTags(); colocarMenu();
+  };
+  /* Quien pidió menos movimiento no recibe el doblez: la lista está o no está.
+     Y si no hay nada que doblar —alto cero— tampoco hay animación que valga. */
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !alto){
+    rematar(); return;
+  }
+  /* EL PANEL SE DESLIZA, NO SE TELETRANSPORTA.
+
+     El panel se recolocaba en cada cuadro a partir de su alto de ese
+     instante, y casi siempre eso bastaba: crece hacia arriba, el `top` baja
+     un poco cada cuadro y se ve venir. Pero colocarMenu tiene un escalón —si
+     arriba ya no cabe, el panel se pasa DEBAJO del pasaje— y ese escalón no
+     tiene cuadros intermedios que enseñar. Medido en un teléfono de 412,
+     abriendo la lista sobre el versículo 2 de la hoja: el panel pasaba de
+     top 54 a top 311 de un cuadro para el siguiente. 309px de salto.
+     Y no pasaba siempre, solo con los pasajes que caen a esa altura —«a
+     veces salta», que es exactamente como se ve desde fuera—.
+
+     Ahora la meta se calcula UNA vez, con el alto que el panel va a tener al
+     acabar, se planta ahí desde el primer cuadro, y lo que se anima es la
+     diferencia: el panel arranca dibujado donde estaba y se desliza hasta la
+     meta con la misma curva que dobla la lista. El escalón sigue estando —a
+     veces el panel tiene que cambiarse de lado—, pero ahora el cambio de lado
+     se ve, que es lo único que se le pedía.
+
+     Es la misma técnica del vuelo de la glosa: mover con transform y dejar la
+     posición de verdad ya escrita. Si el hilo se traba, el panel está donde
+     tiene que estar aunque el deslizamiento se pierda. */
+  const desde = menu.getBoundingClientRect();
+  menu._altoFinal = abrir ? menu.offsetHeight : menu.offsetHeight - alto;
+  colocarMenu();
+  const hasta = menu.getBoundingClientRect();
+  const dx = Math.round(desde.left - hasta.left), dy = Math.round(desde.top - hasta.top);
+  /* UN VIAJE LARGO PIDE MÁS TIEMPO. Con los 160ms del doblez, el cambio de
+     lado —250px o más— sale disparado: sigue siendo un salto, solo que con
+     cuadros. El añadido va con la distancia y con tope, y se le da a las DOS
+     animaciones para que el alto y la posición no se separen: si la lista
+     acabara de desplegarse con el panel todavía en camino, se vería el
+     recuadro llegando a su sitio ya lleno, que es peor que las dos cosas por
+     separado.
+
+     El factor sale de medir. Recorriendo los catorce pasajes de una hoja y
+     mirando el cuadro más rápido de cada uno: el cambio de lado pasa de 309px
+     —el salto— a 25, y el crecimiento de siempre, de 24 a 14. El precio es que
+     abrir la lista pasa de 160ms a 258 en el caso corriente y a 520 en el
+     cambio de lado, y se paga: el panel es un objeto grande, y un objeto
+     grande que se coloca en diez cuadros se lee como un respingo aunque no
+     llegue a saltar. */
+  const viaje = Math.round(Math.hypot(dx, dy));
+  const ms = TAGS_MS + Math.round(Math.min(viaje, 300) * 1.2);
+  const curva = abrir ? 'cubic-bezier(.2,.75,.35,1)' : 'cubic-bezier(.65,0,.8,.25)';
+  if (dx || dy){
+    /* CURVA PROPIA PARA EL VIAJE, y no la del doblez. La del doblez arranca
+       casi a toda velocidad —está pensada para que un papel se despliegue de
+       golpe y frene al final—, y aplicada a un recorrido de 250px reparte el
+       movimiento fatal: medido, 33px en el cuadro más rápido contra los 8 de
+       media. Una curva que acelera y frena por igual baja ese pico a 25.
+       Empiezan y acaban a la vez, que es lo que hacía falta; por dentro cada
+       una hace lo suyo. */
+    const res = menu.animate(
+      [{ transform:'translate(' + dx + 'px,' + dy + 'px)' }, { transform:'none' }],
+      { duration: ms, easing: 'cubic-bezier(.4,0,.2,1)' });
+    menu._resbalon = res;
+    res.onfinish = () => { if (menu._resbalon === res) menu._resbalon = null; };
+  }
+  caja.style.overflow = 'hidden';
+  const an = caja.animate(
+    [{ height: (abrir ? 0 : alto) + 'px' },
+     { height: (abrir ? alto : 0) + 'px' }],
+    { duration: ms, easing: curva });
+  caja._pliegue = an;
+  /* El rótulo dice ya lo que va a pasar y no lo que está pasando: mientras se
+     cierra la clase sigue puesta —hace falta para que se siga viendo— y leerla
+     diría «abierta» de una lista que se está yendo. */
+  const bot = menu.querySelector('.mtags');
+  if (bot) bot.textContent =
+    rotuloTags(abrir, ((borrador && borrador.m.etiquetas) || []).length);
+  an.onfinish = () => rematar();
+}
+/* ¿Está abierta, o va a estarlo? A media animación la clase dice lo que se ve
+   y no lo que se ha pedido, y el botón tiene que alternar sobre lo pedido: si
+   no, tocarlo dos veces seguidas y rápido la deja donde estaba. */
+const tagsAbiertas = caja =>
+  !!caja && (caja._pliegue ? !!caja._destino : caja.classList.contains('abierta'));
+
 /* Dormir o despertar la lista según haya texto o no: sin nota no se guarda
    nada, así que una etiqueta puesta ahora se perdería al cerrar. */
 function afinarTagbox(){
@@ -4213,6 +4503,27 @@ function abrirPanel(m, nueva, rect){
        el cuadro siguiente al toque. Si no sube, tocar la caja lo sube, y
        no se ha perdido nada. */
     ta.focus();
+    /* Y el cursor AL FINAL, no en el principio. Al reabrir una glosa escrita,
+       un cursor en la posición cero invita a escribir delante de lo que ya
+       hay; al final es donde se sigue una nota. */
+    try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch(e){ /* da igual */ }
+    /* Y SE VUELVE A PEDIR EN EL SIGUIENTE TURNO. El panel nace en el pointerup,
+       y después de él el navegador todavía fabrica los eventos de ratón de
+       compatibilidad de ese mismo toque —mousedown, mouseup, click—; un
+       mousedown sobre la hoja, que no toma foco, se lo quita a quien lo tenga.
+       Aquí no lo he visto pasar (medido: la caja conserva el foco con un clic
+       de verdad, con dedo y con ratón), pero es barato asegurarlo y el fallo
+       que evita es de los que solo se ven en el navegador de otro.
+       Con dos guardas: que el panel siga siendo este —si te fuiste y abriste
+       otro, esto llega tarde— y que el foco no esté ya dentro del panel, para
+       no arrebatárselo a la caja de etiquetas si fuiste directo a ella. */
+    const mio = ++vidaMenu;
+    setTimeout(() => {
+      if (mio !== vidaMenu) return;
+      if (document.activeElement && document.activeElement.closest('#menu')) return;
+      const viva = menu.querySelector('#glosaCaja');
+      if (viva) viva.focus();
+    }, 0);
   }
   /* EL ANCHO VA ANTES QUE EL ALTO, y el orden no es cosmético: .gl-vista lleva
      max-width:100%, así que mientras el panel conserve su ancho de fábrica el
@@ -4293,6 +4604,9 @@ function cerrarBorrador(){
      cae en esta hoja— volarGlosa quita el calco sin más: inventarle un
      destino sería mentir. */
   if (viajero) volarGlosa(viajero, m.id);
+  /* Se dice si hubo vuelo para que ocultarMenu sepa si además toca despedir el
+     panel encogiéndolo. Con vuelo no: una salida por despedida. */
+  return !!viajero;
 }
 /* Y AL GUARDAR, EL RECUADRO SE VA VOLANDO A SU SITIO.
 
@@ -4555,7 +4869,7 @@ menu.addEventListener('click', ev => {
      falta cuando quieres CAMBIAR algo, y eso no es en cada nota. */
   if (acc === 'vertags'){
     const caja = menu.querySelector('.tagbox');
-    if (caja){ caja.classList.toggle('abierta'); refrescarTags(); colocarMenu(); }
+    if (caja) plegarTags(caja, !tagsAbiertas(caja));
     return;
   }
   /* El «Listo» se fue. Era un blanco más al que apuntar para decir algo que
@@ -4612,9 +4926,12 @@ function vigilarTeclado(){
   if (!vv || menu._teclado) return;
   const mirar = () => {
     const caja = menu.querySelector('.tagbox'); if (!caja) return;
-    if (vv.height < window.innerHeight - 80 && caja.classList.contains('abierta')){
-      caja.classList.remove('abierta'); refrescarTags(); colocarMenu();
-    }
+    /* Se pregunta por el destino y no por la clase: este oyente salta en cada
+       cambio del alto de la ventana, y a media animación de cierre la clase
+       todavía dice «abierta» —volvería a plegar lo que ya se está plegando, y
+       cada salto reiniciaría el doblez desde el principio. */
+    if (vv.height < window.innerHeight - 80 && tagsAbiertas(caja))
+      plegarTags(caja, false);
   };
   vv.addEventListener('resize', mirar);
   menu._teclado = () => { vv.removeEventListener('resize', mirar); menu._teclado = null; };
@@ -4676,6 +4993,38 @@ function crearTagDeMarca(caja){
   refrescarTags();
   colocarMenu();
 }
+/* UNA ESCRITURA DENTRO DE LA CAJA DE ESCRIBIR TAMBIÉN SE ABRE.
+
+   En la hoja las referencias son <span class="ref"> y se tocan; aquí dentro no
+   hay spans que tocar, porque lo que hay es un textarea y un textarea no deja
+   marcar nada por dentro. Pero no hace falta marcarlo: al hacer clic, el
+   navegador ya ha puesto el cursor donde tocaste, así que basta con preguntar
+   en qué carácter cayó y mirar si ese carácter está dentro de una referencia.
+   Las referencias las saca refsDe del mismo texto, que es exactamente lo que
+   hace enlazar() para pintarlas en la hoja: un solo entendimiento de qué es
+   una referencia, en los dos sitios.
+
+   Con dos límites, y los dos son para no quitarle a la caja su oficio:
+   · solo si no hay nada seleccionado. Arrastrar por encima de una referencia
+     sigue siendo seleccionar texto para editarlo.
+   · solo POR DENTRO, no en los filos. Tocando justo antes o justo después el
+     cursor se queda donde lo pusiste, que es como se corrige lo de al lado.
+   · y solo si la referencia existe de verdad en los datos, igual que en la
+     hoja —donde una referencia muerta no salta—. Así una referencia a medio
+     escribir se sigue pudiendo arreglar tocándola por el medio, que es
+     justo cuando más falta hace. */
+menu.addEventListener('click', ev => {
+  const ta = ev.target.closest('#glosaCaja');
+  if (!ta || !borrador) return;
+  if (ta.selectionStart !== ta.selectionEnd) return;
+  const donde = ta.selectionStart;
+  const r = refsDe(ta.value).find(x => donde > x.inicio && donde < x.fin && refExiste(x));
+  if (!r) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const m = borrador.m;
+  abrirPleno(r.libro, r.cap, r.vers, r.letra || '',
+             { libro: m.libro, cap: m.cap, vers: m.vers });
+});
 menu.addEventListener('keydown', ev => {
   if (ev.target.id !== 'tagNueva' || ev.key !== 'Enter') return;
   ev.preventDefault(); crearTagDeMarca(ev.target);
@@ -4697,7 +5046,18 @@ function puntoActual(){
   const p = plano[Math.min(Math.max(paginas[paginaActual]||0,0), plano.length-1)];
   return { libro: LIBRO, hoja: paginaActual, ref: p ? {cap:p.cap, vers:p.vers} : {cap:1, vers:1} };
 }
-function irA(libro, cap, vers, letra){
+/* `opciones` lleva las dos cosas que un salto puede necesitar y no caben en
+   una referencia:
+   · origen — el pasaje DEL QUE se sale, para dejarlo apuntado en el rastro
+     justo debajo del destino. Lo manda quien salta desde una glosa: sin él, el
+     historial contaba a dónde fuiste y se callaba de dónde, que es la mitad
+     que hace falta para volver.
+   · sinApuntar — el salto no es un sitio nuevo del camino sino un paso atrás
+     por el camino que ya hay. Apuntarlo convertiría el botón de atrás en un
+     columpio: apuntar el sitio de atrás lo pondría el primero, y el siguiente
+     «atrás» volvería al de delante. */
+function irA(libro, cap, vers, letra, opciones){
+  const op = opciones || {};
   /* Cruzar a otro libro. Esto estaba prohibido de cuando los datos eran solo
      Marcos: cualquier referencia a otro libro se rechazaba con "ese libro
      todavía no está en estos datos", aunque estuviera. Ahora solo se rechaza
@@ -4712,7 +5072,15 @@ function irA(libro, cap, vers, letra){
       return;
     }
     ocultarMenu();
-    saltarA(libro, cap, vers, puntoActual());
+    /* Al rastro NO se apunta aquí, y esto costó una medida: saltarA ya apunta
+       el destino, pero al ATERRIZAR —a propósito, porque un salto entre libros
+       puede quedarse a medias y el rastro solo debe contar lo que llegaste a
+       ver—. Apuntándolo también aquí, cada salto entre libros dejaba la misma
+       escritura dos veces seguidas; y el paso atrás, que pide no apuntar nada,
+       se apuntaba igual porque quien apuntaba de verdad era saltarA y no se
+       había enterado. Así que lo que viaja es el encargo, y lo cumple el que
+       aterriza. */
+    saltarA(libro, cap, vers, puntoActual(), op);
     return;
   }
   const k = plano.findIndex(p => p.cap === cap && p.vers === vers);
@@ -4722,7 +5090,7 @@ function irA(libro, cap, vers, letra){
      referencia que no lleva a ningún sitio no es un pasaje que hayas visto, y
      apuntarla dejaría el historial lleno de callejones. También se apunta
      cuando el versículo ya está en esta hoja: preguntaste por él igual. */
-  apuntarVisto(libro, cap, vers);
+  if (!op.sinApuntar){ apuntarDeDonde(op.origen); apuntarVisto(libro, cap, vers); }
   const destino = paginaDe(k);
   if (destino === paginaActual){ destacar(cap, vers, letra); return; }
   volverA = puntoActual();                  // de dónde veníamos, para el botón de regreso
@@ -4754,22 +5122,31 @@ function menuVinculos(cap, vers){
       esc(m.nota.slice(0,24)) + (m.nota.length > 24 ? '…' : '') + '</button>').join('') +
     '</div>';
 }
-/* Un clic en una referencia salta; un clic en el contador abre la lista. */
+/* DE QUÉ PASAJE CUELGA ESTA REFERENCIA. Es el «de dónde» que se apunta en el
+   rastro al saltar, y tiene que ser el versículo al que la glosa está atada
+   —no la primera escritura de la hoja, que es lo que sabe puntoActual—: si
+   estás en una hoja con doce versículos y saltas desde la glosa del octavo,
+   volver al primero no es volver. */
+function deQueGlosa(el){
+  const caja = el && el.closest('.gl[data-gl]');
+  const m = caja && marcas.find(x => x.id === caja.dataset.gl);
+  return m ? { libro: m.libro, cap: m.cap, vers: m.vers } : null;
+}
+/* Un clic en una referencia abre la ventanita; uno en el contador, la lista. */
 [pgMargin, pgFoot, pgBody].forEach(el => el.addEventListener('click', ev => {
   const r = ev.target.closest('.ref');
   if (r && !r.classList.contains('muerta')){
     ev.preventDefault(); ev.stopPropagation();
     const [lib, c, v, letra] = r.dataset.ref.split(':');
-    /* Ceder DOS cuadros antes de calcular. Uno solo no basta: el navegador
-       necesita uno para aplicar la clase y calcular estilos, y otro para
-       pintarlos. Si se llama a irA() de corrido, el hilo se bloquea con la
-       paginación y el latido nunca llega a verse —el aviso existiría en el
-       DOM y en la pantalla no aparecería jamás. */
-    r.classList.add('buscando');
-    encender(r, () => {
-      try { irA(lib, +c, +v, letra || ''); }
-      finally { apagar(r); }
-    });
+    /* PRIMERO SE LEE, LUEGO SE SALTA. Antes, tocar una referencia dentro de
+       una glosa te llevaba allí de cabeza: un salto entero —repaginar, voltear
+       el bonche, aterrizar— para averiguar qué decía el versículo, y otro
+       tanto para volver si no era lo que buscabas. La mayoría de las veces la
+       pregunta no es «llévame» sino «qué dice». Ahora sale la misma ventanita
+       del historial, con el texto; y si además quieres ir, tocas el texto.
+       Un solo camino para la misma pregunta, esté la referencia en el rastro o
+       dentro de una glosa. */
+    abrirPleno(lib, +c, +v, letra || '', deQueGlosa(r));
     return;
   }
   if (r){ readout.textContent = 'esa referencia no está en los datos cargados'; return; }
@@ -6553,7 +6930,8 @@ function pintarHistorial(){
     const k = plano.findIndex(p => p.cap === h.cap && p.vers === h.vers);
     return k >= desde && k < hasta;
   };
-  cont.innerHTML = '<span class="hs-tit">Lo que has visto</span>' + historial.map(h => {
+  cont.innerHTML = '<span class="hs-tit">Lo que has visto</span>' + pieAtras() +
+    historial.map(h => {
     /* El texto sale de la VERSIÓN QUE ESTÁ PUESTA, no de la que estaba cuando
        lo miraste: el historial guarda la referencia, que es lo que no cambia,
        y el texto se busca al pintarlo. Cambiar de versión en Formato cambia lo
@@ -6563,7 +6941,34 @@ function pintarHistorial(){
       '" data-hs="' + h.libro + ':' + h.cap + ':' + h.vers + '">' +
       '<span class="hs-ref">' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '</span>' +
       '<span class="hs-txt">' + esc(t || '(no está en esta versión)') + '</span></button>';
-  }).join('');
+    }).join('');
+}
+/* EL PASO ATRÁS, y por qué va arriba y no al pie.
+   Se pidió abajo del todo, y abajo del todo de esta lista está lo más VIEJO
+   que has visto —el rastro se pinta del más nuevo al más viejo—, así que un
+   botón de «atrás» ahí abajo queda pegado justo a lo contrario de lo que hace.
+   Va en el mismo renglón del rótulo, a la derecha, que es donde el ojo ya está
+   cuando abre el panel y es el borde por el que este panel crece. Lo que hace
+   es lo pedido: volver a la escritura que hay detrás de la de ahora, como el
+   atrás del navegador.
+   Sin sitio a donde volver no se pinta: un botón que no lleva a ninguna parte
+   enseña a no fiarse del que sí. */
+function pieAtras(){
+  const h = historial[atrasEn + 1];
+  if (!h) return '';
+  return '<button class="hs-atras" data-atras="1" title="Volver a ' +
+    esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '"' +
+    ' aria-label="Volver a ' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '">' +
+    '<span class="hs-atras-ref">' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers +
+    '</span><span class="hs-flecha" aria-hidden="true">←</span></button>';
+}
+/* Un paso atrás por el rastro, sin apuntarlo. */
+function darUnPasoAtras(){
+  const h = historial[atrasEn + 1];
+  if (!h) return;
+  atrasEn++;
+  cerrarHistorial();
+  trasPintar(() => irA(h.libro, h.cap, h.vers, '', { sinApuntar:true }));
 }
 
 function abrirHistorial(){
@@ -6593,9 +6998,13 @@ function cerrarPleno(){
   el.classList.remove('visible');
   setTimeout(() => { if (!plenoAbierto) el.style.display = 'none'; }, 240);
 }
-function abrirPleno(libro, cap, vers){
+/* `letra` y `origen` no se meten en el data-ir del botón: viajan en
+   plenoAbierto, que es donde ya vive la referencia que la ventanita enseña.
+   Meterlos en el atributo obligaría a inventar un formato para el origen —que
+   son tres campos— dentro de una cadena que ya lleva tres. */
+function abrirPleno(libro, cap, vers, letra, origen){
   const t = versoTexto(version, cap, vers, libro);
-  plenoAbierto = { libro, cap, vers };
+  plenoAbierto = { libro, cap, vers, letra: letra || '', origen: origen || null };
   const el = $('versoPleno');
   /* SIN TEXTO NO HAY BOTÓN. Una referencia guardada puede no existir en la
      versión que tienes puesta ahora —2 Corintios 13:14 está en la VBL y no en
@@ -6620,6 +7029,10 @@ $('btnHistorial').addEventListener('click', ev => {
   if (histAbierto) cerrarHistorial(); else abrirHistorial();
 });
 $('historial').addEventListener('click', ev => {
+  if (ev.target.closest('[data-atras]')){
+    ev.preventDefault(); ev.stopPropagation();
+    darUnPasoAtras(); return;
+  }
   const f = ev.target.closest('[data-hs]'); if (!f) return;
   ev.preventDefault(); ev.stopPropagation();
   const [lib, c, v] = f.dataset.hs.split(':');
@@ -6629,12 +7042,30 @@ $('versoPleno').addEventListener('click', ev => {
   const b = ev.target.closest('[data-ir]'); if (!b) return;
   ev.preventDefault(); ev.stopPropagation();
   const [lib, c, v] = b.dataset.ir.split(':');
+  /* La letra y el origen se leen de plenoAbierto, que es de donde salió esta
+     ventanita. Sin la letra, saltar desde una referencia con glosa —«2:4b»—
+     aterrizaba en el versículo entero en vez de en la glosa concreta. */
+  const p = plenoAbierto || {};
+  const letra = p.letra || '';
+  const origen = p.origen || null;
   /* Se cierra TODO antes de saltar, y antes por dos razones: el panel tapa
      justo el texto al que vas, y el disco de buscar sale en el centro de la
      hoja, que es donde está la ventanita. El salto arranca al cuadro
      siguiente para que el cierre alcance a empezar. */
   cerrarHistorial();
-  trasPintar(() => irA(lib, +c, +v, ''));     /* dos cuadros, como arriba */
+  /* Y el panel de la glosa también, si la ventanita salió de ahí: saltas a
+     otro sitio, así que la edición que abrió esto se da por terminada —lo
+     escrito se cobra, que es lo que hace ocultarMenu—. */
+  if (borrador) ocultarMenu();
+  /* LA RAMPA DORADA SE MUDÓ AQUÍ. Vivía en la referencia de la glosa, porque
+     era la referencia la que saltaba; ahora la referencia solo abre esta
+     ventanita —que es instantánea, y 260 ms de rampa por delante de algo
+     instantáneo son 260 ms de espera—. El salto caro es éste, y es éste el
+     que gana con tener despegue. */
+  encender(b, () => {
+    try { irA(lib, +c, +v, letra, { origen }); }
+    finally { apagar(b); }
+  });
 });
 /* Un toque fuera lo cierra, en captura y antes que nadie, igual que la
    burbuja. La ventanita cuenta como "dentro": si no, tocarla la cerraría
@@ -7853,6 +8284,12 @@ function quitarBuscando(){
 const HISTORIAL = 'glossa:historial:v1';
 const TOPE_HISTORIAL = 40;
 let historial = [];
+/* POR DÓNDE VA EL BOTÓN DE ATRÁS. Cero es «estás en la punta del rastro», y
+   entonces atrás es historial[1]. Cada paso atrás sube la cuenta en vez de
+   apuntar nada, que es lo que lo hace un ATRÁS y no un columpio: apuntando, el
+   sitio de atrás pasaría a ser el primero y el siguiente «atrás» te devolvería
+   a donde acababas de estar. Cualquier salto de verdad la devuelve a cero. */
+let atrasEn = 0;
 function cargarHistorial(){
   try {
     const a = JSON.parse(localStorage.getItem(HISTORIAL) || '[]');
@@ -7860,6 +8297,26 @@ function cargarHistorial(){
       .filter(h => h && typeof h.libro === 'string' && h.cap > 0 && h.vers > 0)
       .slice(0, TOPE_HISTORIAL);
   } catch(e){ historial = []; }
+}
+/* DE DÓNDE SALTASTE, apuntado justo antes del destino para que quede debajo
+   de él en la lista —la lista va del más nuevo al más viejo—.
+
+   Sin esto el rastro contaba a dónde fuiste y se callaba de dónde: abrías el
+   historial después de tres saltos desde tres glosas y tenías tres destinos
+   sueltos, sin el hilo que los unía. Y es justo la mitad que hace falta para
+   volver: «¿desde qué versículo llegué aquí?».
+
+   No se apunta si es lo mismo que ya encabeza la lista. Pasa constantemente
+   —vas a un sitio, y desde ese mismo sitio saltas a otro— y apuntarlo dejaría
+   la referencia repetida dos veces seguidas sin que hubieras ido a ninguna
+   parte entre medias. Que el rastro tenga vueltas es bueno; que tenga ecos,
+   no. */
+function apuntarDeDonde(origen){
+  if (!origen || !origen.libro || !(origen.cap > 0) || !(origen.vers > 0)) return;
+  const arriba = historial[0];
+  if (arriba && arriba.libro === origen.libro &&
+      arriba.cap === origen.cap && arriba.vers === origen.vers) return;
+  apuntarVisto(origen.libro, origen.cap, origen.vers);
 }
 function apuntarVisto(libro, cap, vers){
   if (!libro || !(cap > 0) || !(vers > 0)) return;
@@ -7882,6 +8339,10 @@ function apuntarVisto(libro, cap, vers){
      Que se repitan no rompe nada: cada fila lleva su referencia entera y salta
      a ella, y el tope de cuarenta sigue cortando por lo más viejo. */
   historial.unshift({ libro, cap, vers, t: Date.now() });
+  /* Un sitio nuevo en el camino deja el botón de atrás al principio: desde
+     aquí, «atrás» es el de justo debajo y no donde se hubiera quedado la
+     cuenta de una tanda anterior de pasos atrás. */
+  atrasEn = 0;
   if (historial.length > TOPE_HISTORIAL) historial.length = TOPE_HISTORIAL;
   try { localStorage.setItem(HISTORIAL, JSON.stringify(historial)); } catch(e){}
   if (histAbierto) pintarHistorial();
@@ -7894,7 +8355,8 @@ function apuntarVisto(libro, cap, vers){
    asignarse después de llamar, porque saltarA no termina en el acto —espera a
    que el panel se cierre— y adentro limpia volverA. Asignarlo por fuera se
    perdía en cuanto corría el diferido. */
-function saltarA(libro, cap, vers, regreso){
+function saltarA(libro, cap, vers, regreso, opciones){
+  const op = opciones || {};
   const viejo = pageImg, mismo = libro === LIBRO, desdeHoja = paginaActual;
   /* De qué libro salimos. Hay que guardarlo AQUÍ: dentro del diferido lo
      primero que pasa es LIBRO = libro, así que para cuando se calcula el
@@ -7930,9 +8392,13 @@ function saltarA(libro, cap, vers, regreso){
       /* Al rastro, y aquí al ATERRIZAR y no al pedirlo: un salto entre libros
          puede quedarse a medias —el libro no está en los datos, la foto no
          carga— y el historial solo debe contar lo que de verdad llegaste a
-         ver. En irA se apunta antes porque allí ya se comprobó que el destino
-         existe y no hay viaje que pueda fallar. */
-      apuntarVisto(libro, cap, vers);
+         ver. En irA, dentro del mismo libro, se apunta antes porque allí ya se
+         comprobó que el destino existe y no hay viaje que pueda fallar.
+         El de dónde va primero para que quede DEBAJO del destino: la lista se
+         lee del más nuevo al más viejo. Y sin encargo no hay origen que
+         apuntar, que es el caso de saltar desde el menú de libros: ahí no
+         vienes de una escritura, vienes del índice. */
+      if (!op.sinApuntar){ apuntarDeDonde(op.origen); apuntarVisto(libro, cap, vers); }
     };
     if (mismo && destino === desdeHoja){ aterrizar(); return; }
     side = (mismo ? destino < desdeHoja : haciaAtras) ? 'left' : 'right';
