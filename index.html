@@ -1357,6 +1357,13 @@
   #menu .tagbox{ display:none; }
   #menu .tagbox.abierta{ display:flex; flex-direction:column; align-items:stretch;
                          gap:6px; }
+  /* NI LA LISTA NI LOS MANDOS ENCOGEN. Hace falta para el pliegue: al abrirse y
+     cerrarse se le anima el ALTO a la caja, y un hijo de flex con el encogido
+     de fábrica se aplasta en vez de dejarse recortar —la lista se estrujaría
+     hasta ser un renglón con barra de desplazamiento y volvería a estirarse—.
+     Con flex:0 0 auto el contenido se queda como está y lo que se mueve es la
+     ventana por la que se ve, que es lo que cuenta un papel que se dobla. */
+  #menu .tagbox.abierta > *{ flex: 0 0 auto; }
   /* EL VOCABULARIO, EN RENGLÓN CORRIDO. Eran pastillas en rejilla y no eran lo
      que hacía falta: una pastilla dice «esto es una cosa», y aquí lo que se
      necesita es una lista que se recorra con la vista, como el índice de un
@@ -3828,11 +3835,35 @@ let ultimaEtiqueta = '';
 let borrador = null;
 
 let ultimoRect = null;
+/* LA GENERACIÓN DEL PANEL, que hace falta desde que el panel tarda en irse.
+
+   El adiós dura unas décimas, y en esas décimas puede abrirse otro panel
+   —tocar un vínculo cierra el de antes y enseña el suyo en la misma línea—. Sin
+   una cuenta, el temporizador del adiós del primero llegaría tarde y vaciaría
+   el segundo, que ya estaba puesto. Cada vez que el panel se enseña o se
+   recoge, la cuenta sube; el adiós solo limpia si nadie ha vuelto a tocarlo. */
+let vidaMenu = 0;
 function mostrarMenu(html, rect){
+  guardarMenu();                          /* corta un adiós a medias, si lo hay */
   if (rect) ultimoRect = rect;
   menu.innerHTML = html;
   menu.style.display = 'flex';
   colocarMenu();
+}
+/* Recoger el panel de verdad: esto es lo que antes hacía ocultarMenu de una
+   vez, y ahora es el final de los dos caminos —el instantáneo y el del adiós—.
+   Devuelve el panel a su estado de reposo: sin transformación, sin la
+   transparencia del adiós y sin el ancho de glosa, que la lista de vínculos
+   reusa el mismo #menu y no es una glosa. */
+function guardarMenu(){
+  vidaMenu++;
+  if (menu._adios){ menu._adios.cancel(); menu._adios = null; }
+  menu.style.display = 'none';
+  menu.innerHTML = '';
+  menu.style.width = '';
+  menu.style.transform = '';
+  menu.style.opacity = '';
+  menu.style.pointerEvents = '';
 }
 /* Medir y colocar es su propia función porque ahora hay que rehacerlo
    sin volver a pintar: cuando sube el teclado la caja de etiquetas se
@@ -3841,7 +3872,19 @@ function mostrarMenu(html, rect){
 function colocarMenu(){
   const r = ultimoRect || {left:0,top:0,width:0,height:0,bottom:0};
   const s = stage.getBoundingClientRect(), w = menu.offsetWidth, h = menu.offsetHeight;
-  let x = r.left - s.left + r.width/2 - w/2;
+  /* EL PANEL DE LA GLOSA VA CENTRADO; el resto, sobre lo que señalaste.
+
+     Iba centrado en el pasaje, y con un panel estrecho eso estaba bien: era un
+     bocadillo, y un bocadillo apunta. Desde que mide lo que mide la glosa ya
+     no apunta a nada —ocupa media pantalla— y lo único que hacía era saltar de
+     izquierda a derecha según qué palabra hubieras tocado, y pegarse a un filo
+     cuando el pasaje caía en una esquina. Centrado se queda quieto: abras la
+     glosa que abras, aparece en el mismo sitio, y de dónde sale ya lo cuenta
+     el crecimiento, que sigue anclado en las palabras señaladas.
+     Solo el de la glosa: la lista de «citado desde» sí es un bocadillo de su
+     botón, y esa sí tiene a qué apuntar. */
+  let x = borrador ? (s.width - w) / 2
+                   : r.left - s.left + r.width/2 - w/2;
   let y = r.top - s.top - h - 8;
   if (y < 2) y = r.bottom - s.top + 8;
   menu.style.left = Math.round(Math.min(Math.max(x, 2), s.width - w - 2)) + 'px';
@@ -3849,10 +3892,17 @@ function colocarMenu(){
 }
 function ocultarMenu(){
   if (menu._teclado) menu._teclado();
-  if (borrador) cerrarBorrador();
-  menu.style.display='none'; menu.innerHTML='';
-  menu.style.width = '';                  /* la lista de vínculos no es una glosa */
-  ultimoRect=null;
+  /* El punto del adiós se mide ANTES de cerrar el borrador: cerrarlo repinta
+     la hoja, y lo que hace falta es de dónde salió este panel. Y solo para el
+     panel de la glosa: la lista de vínculos no nació de un pasaje, así que no
+     tiene a dónde recogerse. */
+  const adios = (borrador && menu.style.display !== 'none') ? origenDelPanel() : null;
+  const volo = borrador ? cerrarBorrador() : false;
+  ultimoRect = null;
+  /* Si lo escrito se fue volando a su sitio, no hay nada más que despedir: el
+     vuelo ya cuenta la salida, y encoger el panel además sería contarla dos
+     veces. */
+  if (adios && !volo) morirPanel(adios); else guardarMenu();
 }
 
 /* ---------- lo que se ve ---------- */
@@ -4054,26 +4104,93 @@ function vestirVista(m){
    del final, que sí enseña adónde fue lo escrito— solo evita el salto. Un
    nacimiento lento sería una animación pidiendo que la miren.
 
-   Y SOLO AL NACER. Al cerrarse no hay nada que deshacer: la glosa se va volando
-   a su sitio, que es una salida mucho mejor que encogerse hasta desaparecer.
-   Dos animaciones de despedida serían dos maneras de contar lo mismo. */
-function nacerPanel(){
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  if (!ultimoRect) return;
+   Y AL CERRARSE, DEPENDE DE SI HAY VUELO. Con algo escrito la glosa se va
+   volando a su sitio, y eso ya es una salida: encogerla además sería contar la
+   misma despedida dos veces. Pero cuando no se escribió nada no hay vuelo
+   ninguno, y ahí el panel desaparecía de golpe —abrir era suave y cerrar era
+   un corte—. Para ese caso está morirPanel: el mismo camino, del revés. */
+/* EL PUNTO POR EL QUE EL PANEL CRECE Y POR EL QUE SE RECOGE, que es el mismo:
+   el centro de lo que señalaste, en coordenadas del panel y sin salirse de él.
+   Si lo señalado queda lejos —el panel topa con un filo de la pantalla— el
+   origen se pega al borde más cercano, que sigue apuntando hacia allá.
+   Devuelve null cuando no hay de dónde tirar, y también cuando se ha pedido
+   menos movimiento: así los dos extremos preguntan una sola vez y no pueden
+   contestarse distinto. */
+function origenDelPanel(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+  if (!ultimoRect) return null;
   const m = menu.getBoundingClientRect();
-  if (!m.width || !m.height) return;
-  /* El punto de crecimiento, en coordenadas del panel y sin salirse de él: si
-     lo señalado queda lejos —el panel topa con un filo de la pantalla— el
-     origen se pega al borde más cercano, que sigue apuntando hacia allá. */
+  if (!m.width || !m.height) return null;
   const cx = ultimoRect.left + ultimoRect.width / 2;
   const cy = ultimoRect.top + ultimoRect.height / 2;
   const ox = Math.max(0, Math.min(m.width, cx - m.left));
   const oy = Math.max(0, Math.min(m.height, cy - m.top));
-  menu.style.transformOrigin = Math.round(ox) + 'px ' + Math.round(oy) + 'px';
+  return Math.round(ox) + 'px ' + Math.round(oy) + 'px';
+}
+function nacerPanel(){
+  const origen = origenDelPanel(); if (!origen) return;
+  menu.style.transformOrigin = origen;
   menu.animate([
     { transform:'scale(.82)', opacity:0 },
     { transform:'none', opacity:1 }
   ], { duration:170, easing:'cubic-bezier(.2,.75,.35,1)' });
+}
+/* EL PANEL SE RECOGE POR DONDE SALIÓ.
+
+   Cuando te vas sin escribir nada no hay glosa que volar, y el panel se
+   quitaba de un fotograma para otro. Nacer despacio y desaparecer de golpe es
+   la peor de las dos mitades: el corte llama más la atención que el
+   nacimiento, y encima deja la duda de si se guardó algo.
+
+   Es nacerPanel del revés y con el mismo origen —se recoge hacia el pasaje del
+   que salió—, con dos diferencias a propósito:
+   · 140ms contra 170. Irse puede ser más rápido que llegar: al llegar hay algo
+     nuevo que mirar y al irse ya no, y una salida que se demora es una salida
+     pidiendo que la miren.
+   · la curva al revés. Nacer frena al final para posarse; irse acelera, que es
+     como se va algo que ya no está.
+
+   NO SE CLONA NADA, a diferencia del vuelo. El vuelo dura 2.4 segundos y en
+   ese rato la hoja se repinta, así que necesita un calco suelto que nadie
+   pueda borrarle a media pista. Aquí son catorce centésimas y lo que se anima
+   es el panel mismo, que ya está donde tiene que estar; el precio es que
+   vaciarlo hay que aplazarlo hasta el final, y de eso se encarga la cuenta de
+   vidaMenu.
+
+   La transparencia va con la escala y no sola: encoger sin desvanecer parece
+   que la nota se cae por un desagüe, y desvanecer sin encoger no cuenta a
+   dónde fue. Y se apagan los punteros desde el primer fotograma, que si no un
+   panel ya invisible sigue comiéndose el toque siguiente.
+
+   EL ESTADO FINAL SE ESCRIBE EN EL PANEL, NO SE DEJA EN MANOS DE fill.
+   Sin nada, al acabar la animación el panel vuelve un fotograma a su tamaño
+   entero antes de que le llegue el display:none: un parpadeo justo al final,
+   que es donde más se ve. Lo primero que probé fue fill:'forwards', y trajo un
+   fallo peor —medido, no supuesto—: si el panel se reabre en el instante justo
+   después de terminar el adiós, guardarMenu ya no encuentra animación viva que
+   cortar, el relleno se queda puesto, y el panel nuevo aparece a escala .82 y
+   transparente. Estaba abierto y no se veía.
+   Escribiendo el estado final como estilo en línea ANTES de animar no hace
+   falta relleno ninguno: mientras corre mandan los fotogramas, y cuando
+   termina el panel ya está donde tiene que estar. Y guardarMenu, que devuelve
+   esos dos estilos a su sitio, deja de tener que acertar con el momento. */
+function morirPanel(origen){
+  const g = ++vidaMenu;
+  menu.style.transformOrigin = origen;
+  menu.style.pointerEvents = 'none';
+  menu.style.transform = 'scale(.82)';
+  menu.style.opacity = '0';
+  const a = menu.animate([
+    { transform:'none', opacity:1 },
+    { transform:'scale(.82)', opacity:0 }
+  ], { duration:140, easing:'cubic-bezier(.65,0,.8,.25)' });
+  menu._adios = a;
+  /* onfinish y no la promesa `finished`: cancelar una animación cuya promesa
+     se ha llegado a pedir la rechaza, y una promesa rechazada que nadie mira
+     sale por consola como un error del programa sin que haya pasado nada.
+     Cancelar no dispara onfinish, así que el que se va cancelado no limpia — y
+     está bien, porque a ese lo canceló quien ya estaba limpiando. */
+  a.onfinish = () => { if (g === vidaMenu) guardarMenu(); };
 }
 /* EL PANEL MIDE LO QUE MIDE LA GLOSA. Es lo que lo convierte en «esta nota y
    sus mandos» en vez de en «un panel que además enseña una nota»: la columna
@@ -4167,8 +4284,7 @@ function refrescarTags(){
   pintarAncla(m);
   const bot = menu.querySelector('.mtags');
   if (bot) bot.textContent =
-    (caja && caja.classList.contains('abierta') ? '▾ ' : '▸ ') + 'etiquetas' +
-    (tiene.size ? ' · ' + tiene.size : '');
+    rotuloTags(!!caja && caja.classList.contains('abierta'), tiene.size);
   ajustarAlto(menu.querySelector('#glosaCaja'));
   /* Y SE RECOLOCA, porque esto acaba de cambiar el ALTO del panel: una
      etiqueta más puede partir el renglón de las etiquetas dentro de la glosa y
@@ -4180,6 +4296,83 @@ function refrescarTags(){
      camino no tenga que acordarse. Lo levantó la segunda revisión de Codex. */
   colocarMenu();
 }
+/* El rótulo del botón de las etiquetas, en un solo sitio: lo escriben dos
+   —el repintado y el pliegue— y con la cuenta escrita dos veces una de las dos
+   se queda atrás. */
+const rotuloTags = (abierta, cuantas) =>
+  (abierta ? '▾ ' : '▸ ') + 'etiquetas' + (cuantas ? ' · ' + cuantas : '');
+
+/* ABRIR Y CERRAR LA LISTA, SIN DAR UN SALTO.
+
+   La lista aparecía y desaparecía de un fotograma para otro, y con ella el
+   panel entero cambiaba de alto de golpe: el gesto más frecuente del panel era
+   también el más brusco. Ahora se despliega como se despliega un papel doblado
+   —el alto, de cero a lo que mida, y al revés—, con las mismas dos curvas del
+   resto del programa: al abrir frena para posarse, al cerrar acelera para irse.
+
+   EL ALTO SE MIDE, NO SE ADIVINA. Depende de cuántas etiquetas haya y de
+   cuántos renglones ocupen, así que se pone la lista en su sitio, se mide, y se
+   anima desde cero hasta esa cifra. Animar `height:auto` no vale: lo que
+   interpola la API de animaciones son números, y `auto` no lo es.
+
+   Y SE RECOLOCA EN CADA CUADRO. El panel cuelga de un `top` calculado a partir
+   de su propio alto: puesto encima del pasaje y creciendo sin recolocarse,
+   crece HACIA ABAJO y se echa encima justo de lo que estás mirando. Es la misma
+   razón por la que refrescarTags termina llamando a colocarMenu; la diferencia
+   es que aquí el alto cambia durante nueve o diez cuadros y no una sola vez.
+
+   No se le toca la transparencia, y es a propósito: .tagbox.dormida ya usa
+   opacity para decir «esto no responde todavía», y una animación que la mueva
+   discutiría con esa señal —la lista dormida se abriría hasta opaca del todo
+   para volver a apagarse al acabar—. El doblez solo se ve con el alto. */
+const TAGS_MS = 160;
+function plegarTags(caja, abrir){
+  if (!caja) return;
+  if (caja._pliegue){ caja._pliegue.cancel(); caja._pliegue = null; }
+  caja._destino = abrir;
+  /* La clase se pone SIEMPRE antes de medir: cerrada, #menu .tagbox no se
+     dibuja y mediría cero, que es justo el dato que hay que averiguar del otro
+     lado del pliegue. */
+  caja.classList.add('abierta');
+  caja.style.height = ''; caja.style.overflow = '';
+  const alto = caja.getBoundingClientRect().height;
+  const rematar = () => {
+    caja._pliegue = null;
+    caja.style.height = ''; caja.style.overflow = '';
+    caja.classList.toggle('abierta', abrir);
+    refrescarTags(); colocarMenu();
+  };
+  /* Quien pidió menos movimiento no recibe el doblez: la lista está o no está.
+     Y si no hay nada que doblar —alto cero— tampoco hay animación que valga. */
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !alto){
+    rematar(); return;
+  }
+  caja.style.overflow = 'hidden';
+  const an = caja.animate(
+    [{ height: (abrir ? 0 : alto) + 'px' },
+     { height: (abrir ? alto : 0) + 'px' }],
+    { duration: TAGS_MS,
+      easing: abrir ? 'cubic-bezier(.2,.75,.35,1)' : 'cubic-bezier(.65,0,.8,.25)' });
+  caja._pliegue = an;
+  /* El rótulo dice ya lo que va a pasar y no lo que está pasando: mientras se
+     cierra la clase sigue puesta —hace falta para que se siga viendo— y leerla
+     diría «abierta» de una lista que se está yendo. */
+  const bot = menu.querySelector('.mtags');
+  if (bot) bot.textContent =
+    rotuloTags(abrir, ((borrador && borrador.m.etiquetas) || []).length);
+  let vivo = true;
+  const seguir = () => { if (!vivo) return; colocarMenu(); requestAnimationFrame(seguir); };
+  requestAnimationFrame(seguir);
+  an.onfinish = () => { vivo = false; rematar(); };
+  /* Cancelada: la remata quien la canceló, con su propio destino. */
+  an.oncancel = () => { vivo = false; };
+}
+/* ¿Está abierta, o va a estarlo? A media animación la clase dice lo que se ve
+   y no lo que se ha pedido, y el botón tiene que alternar sobre lo pedido: si
+   no, tocarlo dos veces seguidas y rápido la deja donde estaba. */
+const tagsAbiertas = caja =>
+  !!caja && (caja._pliegue ? !!caja._destino : caja.classList.contains('abierta'));
+
 /* Dormir o despertar la lista según haya texto o no: sin nota no se guarda
    nada, así que una etiqueta puesta ahora se perdería al cerrar. */
 function afinarTagbox(){
@@ -4213,6 +4406,27 @@ function abrirPanel(m, nueva, rect){
        el cuadro siguiente al toque. Si no sube, tocar la caja lo sube, y
        no se ha perdido nada. */
     ta.focus();
+    /* Y el cursor AL FINAL, no en el principio. Al reabrir una glosa escrita,
+       un cursor en la posición cero invita a escribir delante de lo que ya
+       hay; al final es donde se sigue una nota. */
+    try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch(e){ /* da igual */ }
+    /* Y SE VUELVE A PEDIR EN EL SIGUIENTE TURNO. El panel nace en el pointerup,
+       y después de él el navegador todavía fabrica los eventos de ratón de
+       compatibilidad de ese mismo toque —mousedown, mouseup, click—; un
+       mousedown sobre la hoja, que no toma foco, se lo quita a quien lo tenga.
+       Aquí no lo he visto pasar (medido: la caja conserva el foco con un clic
+       de verdad, con dedo y con ratón), pero es barato asegurarlo y el fallo
+       que evita es de los que solo se ven en el navegador de otro.
+       Con dos guardas: que el panel siga siendo este —si te fuiste y abriste
+       otro, esto llega tarde— y que el foco no esté ya dentro del panel, para
+       no arrebatárselo a la caja de etiquetas si fuiste directo a ella. */
+    const mio = ++vidaMenu;
+    setTimeout(() => {
+      if (mio !== vidaMenu) return;
+      if (document.activeElement && document.activeElement.closest('#menu')) return;
+      const viva = menu.querySelector('#glosaCaja');
+      if (viva) viva.focus();
+    }, 0);
   }
   /* EL ANCHO VA ANTES QUE EL ALTO, y el orden no es cosmético: .gl-vista lleva
      max-width:100%, así que mientras el panel conserve su ancho de fábrica el
@@ -4293,6 +4507,9 @@ function cerrarBorrador(){
      cae en esta hoja— volarGlosa quita el calco sin más: inventarle un
      destino sería mentir. */
   if (viajero) volarGlosa(viajero, m.id);
+  /* Se dice si hubo vuelo para que ocultarMenu sepa si además toca despedir el
+     panel encogiéndolo. Con vuelo no: una salida por despedida. */
+  return !!viajero;
 }
 /* Y AL GUARDAR, EL RECUADRO SE VA VOLANDO A SU SITIO.
 
@@ -4555,7 +4772,7 @@ menu.addEventListener('click', ev => {
      falta cuando quieres CAMBIAR algo, y eso no es en cada nota. */
   if (acc === 'vertags'){
     const caja = menu.querySelector('.tagbox');
-    if (caja){ caja.classList.toggle('abierta'); refrescarTags(); colocarMenu(); }
+    if (caja) plegarTags(caja, !tagsAbiertas(caja));
     return;
   }
   /* El «Listo» se fue. Era un blanco más al que apuntar para decir algo que
@@ -4612,9 +4829,12 @@ function vigilarTeclado(){
   if (!vv || menu._teclado) return;
   const mirar = () => {
     const caja = menu.querySelector('.tagbox'); if (!caja) return;
-    if (vv.height < window.innerHeight - 80 && caja.classList.contains('abierta')){
-      caja.classList.remove('abierta'); refrescarTags(); colocarMenu();
-    }
+    /* Se pregunta por el destino y no por la clase: este oyente salta en cada
+       cambio del alto de la ventana, y a media animación de cierre la clase
+       todavía dice «abierta» —volvería a plegar lo que ya se está plegando, y
+       cada salto reiniciaría el doblez desde el principio. */
+    if (vv.height < window.innerHeight - 80 && tagsAbiertas(caja))
+      plegarTags(caja, false);
   };
   vv.addEventListener('resize', mirar);
   menu._teclado = () => { vv.removeEventListener('resize', mirar); menu._teclado = null; };

@@ -110,6 +110,64 @@ const FUERA = `async () => {
     return r;
   }));
 
+  titulo('y lo hace doblándose, no de un salto');
+  /* Era el gesto más frecuente del panel y también el más brusco: la lista
+     aparecía y desaparecía de un cuadro para otro, y con ella el panel entero
+     cambiaba de alto de golpe. Ahora se dobla como un papel: el alto, de cero
+     a lo que mida, y al revés. */
+  di('el doblez', await p.evaluate(async ([abrir, fuera]) => {
+    const despierta = await eval('(' + abrir + ')')(0, 12, 'nota para el doblez');
+    if (!despierta) return { sinPanel:true };
+    const caja = document.querySelector('#menu .tagbox');
+    const bot = document.querySelector('#menu .mtags');
+    const mitad = (r) => new Promise(z => setTimeout(z, r));
+
+    bot.click(); await mitad(45);
+    const an = caja.getAnimations()[0];
+    const abriendo = { animando: !!an, dur: an ? an.effect.getTiming().duration : null,
+                       alto: caja.getBoundingClientRect().height,
+                       recortada: caja.style.overflow === 'hidden',
+                       rotulo: bot.textContent.trim() };
+    await mitad(300);
+    abriendo.altoFinal = caja.getBoundingClientRect().height;
+    /* y no deja el alto clavado en el estilo, que congelaría la lista al
+       añadir una etiqueta más */
+    abriendo.sinRastro = caja.style.height === '' && caja.style.overflow === '';
+
+    bot.click(); await mitad(45);
+    const cerrando = { animando: !!caja.getAnimations()[0],
+                       aunSeVe: caja.getBoundingClientRect().height > 0,
+                       rotulo: bot.textContent.trim() };
+    await mitad(300);
+    cerrando.alto = caja.getBoundingClientRect().height;
+    cerrando.cerrada = !caja.classList.contains('abierta');
+
+    /* dos toques rápidos: el segundo tiene que alternar sobre lo PEDIDO y no
+       sobre lo que se ve, o abrir y cerrar deprisa la deja abierta */
+    bot.click(); await mitad(50); bot.click(); await mitad(350);
+    const rapido = { cerrada: !caja.classList.contains('abierta'),
+                     alto: caja.getBoundingClientRect().height };
+    await eval('(' + fuera + ')')();
+    return { abriendo, cerrando, rapido };
+  }, [ABRIR, FUERA]).then(r => {
+    if (r.sinPanel) return vale('el doblez', false, 'sin panel');
+    vale('al abrir se dobla, no salta',
+         r.abriendo.animando && r.abriendo.dur === 160 &&
+         r.abriendo.alto > 0 && r.abriendo.alto < r.abriendo.altoFinal,
+         Math.round(r.abriendo.alto) + ' → ' + Math.round(r.abriendo.altoFinal));
+    vale('  recortando, no aplastando', r.abriendo.recortada);
+    vale('  y sin dejar el alto clavado', r.abriendo.sinRastro);
+    vale('al cerrar sigue viéndose mientras se va',
+         r.cerrando.animando && r.cerrando.aunSeVe);
+    vale('  y el rótulo ya dice lo que va a pasar',
+         /▸/.test(r.cerrando.rotulo), r.cerrando.rotulo);
+    vale('  y acaba cerrada del todo',
+         r.cerrando.cerrada && r.cerrando.alto === 0, r.cerrando.alto);
+    vale('dos toques rápidos la dejan cerrada',
+         r.rapido.cerrada && r.rapido.alto === 0, r.rapido.alto);
+    return r;
+  }));
+
   titulo('las puestas se apagan en la lista');
   /* Al revés de como estaban: puestas ya se ven dentro de la glosa, así que
      aquí lo que importa es lo que TODAVÍA se puede añadir. Y va por color, no

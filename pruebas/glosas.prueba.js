@@ -679,7 +679,13 @@ const guardadas = () => {
     if (!gl) return { sinGlosa:true };
     gl.dispatchEvent(new MouseEvent('dblclick', { bubbles:true }));
     await new Promise(z => setTimeout(z, 450));
-    const traeLaNota = (document.getElementById('glosaCaja')||{}).value;
+    const caja = document.getElementById('glosaCaja');
+    const traeLaNota = (caja||{}).value;
+    /* Y se puede seguir escribiendo sin tocar nada: el foco dentro, y el
+       cursor al FINAL —en la posición cero invitaría a escribir por delante
+       de lo que ya hay—. */
+    const foco = document.activeElement && document.activeElement.id;
+    const cursor = caja ? caja.selectionStart : null;
     await eval('(' + fuera + ')')();
     await new Promise(z => setTimeout(z, 250));
     const calco = [...document.body.children].some(e => e.classList &&
@@ -689,9 +695,12 @@ const guardadas = () => {
       .some(m => m.id === mia.id && m.nota === mia.nota);
     const visible = getComputedStyle(
       document.querySelector('.gl[data-gl="' + mia.id + '"]')).visibility;
-    return { traeLaNota, calco, sigue, visible };
+    return { traeLaNota, calco, sigue, visible, foco, cursor };
   }, [FUERA]).then(r => {
     vale('el panel reabre con su nota', !r.sinGlosa && !!r.traeLaNota);
+    vale('  con el foco puesto y el cursor al final',
+         r.foco === 'glosaCaja' && r.cursor === (r.traeLaNota||'').length,
+         r.foco + ', cursor ' + r.cursor + ' de ' + (r.traeLaNota||'').length);
     vale('y al salir sin tocar nada no vuela', r.calco === false);
     vale('la nota queda igual', r.sigue);
     vale('y visible, no escondida', r.visible === 'visible', r.visible);
@@ -990,6 +999,143 @@ const guardadas = () => {
          r.anchoPanel + ' contra ' + r.anchoVista);
     return r;
   }));
+
+  titulo('el panel de la glosa va centrado');
+  /* Iba centrado en el pasaje, y con un panel estrecho eso era un bocadillo
+     que apuntaba. Desde que mide lo que mide la glosa ocupa media pantalla y
+     ya no apunta a nada: lo único que hacía era saltar de un lado a otro según
+     qué palabra hubieras tocado, y pegarse a un filo cuando el pasaje caía en
+     una esquina. De dónde sale ya lo cuenta el crecimiento. */
+  di('a la izquierda y a la derecha', await p.evaluate(async ([abrir, fuera]) => {
+    const menu = document.getElementById('menu');
+    const medir = () => {
+      const m = menu.getBoundingClientRect(), e = menu.offsetParent.getBoundingClientRect();
+      return { izq: m.left - e.left, der: e.right - m.right };
+    };
+    /* dos tramos bien separados del renglón: antes uno salía a un lado y el
+       otro al otro, y eso es justo lo que deja de pasar */
+    if (!await eval('(' + abrir + ')')(0, 10)) return { sinTexto:true };
+    const cerca = medir();
+    await eval('(' + fuera + ')')();
+    if (!await eval('(' + abrir + ')')(56, 70)) return { sinTexto:true };
+    const lejos = medir();
+    /* y el foco cae en la caja, con el cursor al final: se puede escribir sin
+       tener que tocar nada más */
+    const ta = document.getElementById('glosaCaja');
+    const foco = document.activeElement && document.activeElement.id;
+    const cursor = ta ? ta.selectionStart : null;
+    await eval('(' + fuera + ')')();
+    return { cerca, lejos, foco, cursor,
+             largo: ta ? ta.value.length : null };
+  }, [ABRIR, FUERA]).then(r => {
+    if (r.sinTexto) return vale('el panel va centrado', false, 'sin texto');
+    vale('centrado tocando al principio del renglón',
+         Math.abs(r.cerca.izq - r.cerca.der) <= 2,
+         Math.round(r.cerca.izq) + ' / ' + Math.round(r.cerca.der));
+    vale('  y en el mismo sitio tocando al final',
+         Math.abs(r.lejos.izq - r.lejos.der) <= 2 &&
+         Math.abs(r.cerca.izq - r.lejos.izq) <= 2,
+         Math.round(r.lejos.izq) + ' / ' + Math.round(r.lejos.der));
+    vale('y el foco nace dentro de la caja', r.foco === 'glosaCaja', r.foco);
+    vale('  con el cursor al final de lo que hubiera',
+         r.cursor === r.largo, r.cursor + ' de ' + r.largo);
+    return r;
+  }));
+
+  titulo('el panel se recoge por donde salió');
+  /* Nacer despacio y desaparecer de golpe es la peor de las dos mitades: el
+     corte llama más la atención que el nacimiento. Cuando no se escribió nada
+     no hay vuelo que cuente la salida, así que el panel se recoge hacia el
+     pasaje del que salió. Con texto NO, que entonces la salida ya la cuenta el
+     vuelo y serían dos despedidas para lo mismo. */
+  di('salir sin escribir', await p.evaluate(async ([abrir]) => {
+    const menu = document.getElementById('menu');
+    if (!await eval('(' + abrir + ')')(50, 66)) return { sinTexto:true };
+    const m = menu.getBoundingClientRect();
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await new Promise(z => setTimeout(z, 40));
+    const an = menu.getAnimations()[0];
+    const org = getComputedStyle(menu).transformOrigin.split(' ').map(parseFloat);
+    const res = {
+      animando: !!an,
+      duracion: an ? an.effect.getTiming().duration : null,
+      /* a media despedida sigue puesto: si ya estuviera en display:none no se
+         estaría viendo nada de lo que se anima */
+      aunPuesto: getComputedStyle(menu).display !== 'none',
+      /* y no se come el toque siguiente mientras se va */
+      sinPunteros: getComputedStyle(menu).pointerEvents === 'none',
+      /* se recoge por donde nació: el origen cae dentro del panel */
+      dentro: org[0] >= -1 && org[0] <= m.width + 1 &&
+              org[1] >= -1 && org[1] <= m.height + 1
+    };
+    await new Promise(z => setTimeout(z, 400));
+    /* y al final se recoge DE VERDAD, que es lo que aplazar el vaciado
+       pone en riesgo: un panel invisible pero puesto sigue estorbando */
+    res.cerrado = getComputedStyle(menu).display === 'none';
+    res.vacio = menu.innerHTML === '';
+    res.sinAncho = menu.style.width === '';
+    res.punterosDevueltos = menu.style.pointerEvents === '';
+    return res;
+  }, [ABRIR]).then(r => {
+    vale('sale sin escribir y se recoge', !r.sinTexto && r.animando &&
+         r.duracion === 140, r.duracion + ' ms');
+    vale('  hacia el pasaje del que salió', r.dentro);
+    vale('  y mientras se va no estorba', r.aunPuesto && r.sinPunteros);
+    vale('acaba recogido del todo', r.cerrado && r.vacio && r.sinAncho &&
+         r.punterosDevueltos,
+         JSON.stringify({ cerrado:r.cerrado, vacio:r.vacio, ancho:r.sinAncho }));
+    return r;
+  }));
+
+  di('salir CON texto no se despide dos veces', await p.evaluate(async ([abrir]) => {
+    const menu = document.getElementById('menu');
+    if (!await eval('(' + abrir + ')')(68, 84)) return { sinTexto:true };
+    const ta = document.getElementById('glosaCaja');
+    if (!ta) return { sinPanel:true };
+    ta.value = 'esta sí se escribe y por eso vuela';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await new Promise(z => setTimeout(z, 40));
+    return { animaciones: menu.getAnimations().length,
+             yaCerrado: getComputedStyle(menu).display === 'none',
+             calcosVolando: [...document.body.children].filter(e =>
+               e.classList && e.classList.contains('gl-vista')).length };
+  }, [ABRIR]).then(r => {
+    vale('con texto el panel no se encoge', !r.sinTexto && !r.sinPanel &&
+         r.animaciones === 0, r.animaciones);
+    vale('  se cierra en seco y vuela el calco',
+         r.yaCerrado && r.calcosVolando === 1, r.calcosVolando + ' calco(s)');
+    return r;
+  }));
+  await p.waitForTimeout(2700);              /* que aterrice antes de seguir */
+
+  /* LA REGRESIÓN QUE COSTÓ ENCONTRAR. Aplazar el vaciado abre una rendija:
+     reabrir el panel en el instante justo en que la despedida termina. Con
+     fill:'forwards' el relleno se quedaba puesto y el panel nuevo salía a
+     escala .82 y transparente —abierto y sin verse—. Se prueba con el reabrir
+     dentro de la despedida, que es donde se coló. */
+  di('reabrir a media despedida', await p.evaluate(async ([abrir]) => {
+    const menu = document.getElementById('menu');
+    if (!await eval('(' + abrir + ')')(50, 66)) return { sinTexto:true };
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await new Promise(z => setTimeout(z, 50));       /* a media despedida */
+    if (!await eval('(' + abrir + ')')(20, 38)) return { sinTexto:true };
+    await new Promise(z => setTimeout(z, 400));      /* pasado el adiós viejo */
+    return { puesto: getComputedStyle(menu).display !== 'none',
+             hayCaja: !!document.getElementById('glosaCaja'),
+             opacidad: getComputedStyle(menu).opacity,
+             transform: getComputedStyle(menu).transform };
+  }, [ABRIR]).then(r => {
+    vale('el panel reabierto sigue puesto', !r.sinTexto && r.puesto && r.hayCaja);
+    vale('  y entero, no fantasma', r.opacidad === '1' && r.transform === 'none',
+         'opacidad ' + r.opacidad + ', transform ' + r.transform);
+    return r;
+  }));
+  await p.evaluate(async (fuera) => { await eval('(' + fuera + ')')(); }, FUERA);
+  await p.waitForTimeout(300);
 
   titulo('en una ventana angosta el panel no se sale por la izquierda');
   /* La columna de glosas del teléfono mide 240px clavados, así que en una
