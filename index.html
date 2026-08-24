@@ -4092,7 +4092,19 @@ function anchoPanelComoGlosa(){
   const cs = getComputedStyle(menu);
   const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
   const bor = parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
-  menu.style.width = Math.round(anchoVista() + pad + bor) + 'px';
+  /* CON TOPE, IGUAL QUE EL ALTO. La columna de glosas del teléfono mide 240px
+     clavados, así que en una ventana más angosta que eso —una pantalla partida,
+     una vista incrustada— el panel salía más ancho que la escena. Y entonces
+     colocarMenu calcula `s.width - w - 2` en negativo: medido a 240 de ancho,
+     el panel pedía 253 y se plantaba en left:-15, con el filo izquierdo y el
+     principio de cada renglón fuera de la pantalla y sin nada que desplazar.
+     Es el mismo fallo que el del alto, por el otro eje; el tope es la misma
+     clase de red. Pasado el tope manda el max-width:100% que .gl-vista ya
+     tenía: el anticipo encoge, que es lo honesto —más ancho que la pantalla no
+     va a poder ser tampoco cuando se guarde—.
+     Lo levantó la cuarta revisión de Codex. */
+  const tope = stage.getBoundingClientRect().width - 4;
+  menu.style.width = Math.round(Math.min(anchoVista() + pad + bor, tope)) + 'px';
 }
 /* EL ANCLA DEL ANTICIPO, con la misma cuenta que glossHTML: la señal de
    aproximación cuando el anclaje no es exacto, y la referencia que le toca.

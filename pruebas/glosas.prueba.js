@@ -13,7 +13,7 @@
    Y una tercera que no se ve pero se rompe sola: poner una etiqueta NO puede
    repintar el panel, porque el panel lleva dentro la caja de escribir y
    repintarlo se llevaría por delante el foco, el cursor y lo escrito. */
-const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, cerrarParcial, conGlosas, di, vale, titulo } = require('./comun');
 
 /* Abrir el panel sobre las primeras letras de un versículo, como lo abre un
    dedo: se selecciona y se suelta encima. */
@@ -990,6 +990,42 @@ const guardadas = () => {
          r.anchoPanel + ' contra ' + r.anchoVista);
     return r;
   }));
+
+  titulo('en una ventana angosta el panel no se sale por la izquierda');
+  /* La columna de glosas del teléfono mide 240px clavados, así que en una
+     ventana más angosta que eso —pantalla partida, vista incrustada— el panel
+     pedía más ancho que la escena y colocarMenu calculaba `s.width - w - 2` en
+     NEGATIVO: el filo izquierdo y el principio de cada renglón se quedaban
+     fuera, sin nada que desplazar. Es el fallo del alto otra vez, por el otro
+     eje. Lo levantó Codex. */
+  for (const ancho of [200, 240, 260]){
+    const chico = await abrir({ viewport:{ width:ancho, height:760 } });
+    di('· ' + ancho + 'px', await chico.pagina.evaluate(async ([abrir]) => {
+      const ok = await eval('(' + abrir + ')')(0, 16);
+      if (!ok) return { sinTexto:true };
+      const menu = document.getElementById('menu');
+      const st = document.getElementById('stage');
+      if (getComputedStyle(menu).display === 'none') return { sinPanel:true };
+      const ta = document.getElementById('glosaCaja');
+      ta.value = 'una nota para ver si el recuadro encoge con el panel';
+      ta.dispatchEvent(new Event('input', { bubbles:true }));
+      await new Promise(z => setTimeout(z, 250));
+      const m = menu.getBoundingClientRect(), s = st.getBoundingClientRect();
+      const v = document.getElementById('glVista').getBoundingClientRect();
+      return { escena: Math.round(s.width), panel: Math.round(m.width),
+               vista: Math.round(v.width),
+               cabe: m.left >= s.left - 1 && m.right <= s.right + 1,
+               /* y el anticipo encoge con él, que es el respaldo honesto */
+               vistaDentro: v.left >= m.left - 1 && v.right <= m.right + 1 };
+    }, [ABRIR]).then(r => {
+      vale('el panel cabe en la escena · ' + ancho,
+           !r.sinTexto && !r.sinPanel && r.cabe,
+           (r.panel || '?') + ' en ' + (r.escena || '?'));
+      vale('  y el anticipo no se le sale', r.vistaDentro, r.vista);
+      return r;
+    }));
+    await cerrarParcial(chico, ancho + 'px');
+  }
 
   await cerrar(sesion);
 })();
