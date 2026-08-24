@@ -1324,9 +1324,75 @@
   .corto{ display:none; }
   #menu input{ font-size:.68rem; padding:5px 7px; width:82px; }
   .tagbox{ display:flex; flex-wrap:wrap; gap:3px; align-items:center; }
-  .tagbox .tg{ font-size:.66rem; padding:5px 8px; border:1px solid rgba(255,255,255,.22);
-               border-radius:999px; opacity:.5; }
-  .tagbox .tg.on{ opacity:1; background:rgba(201,162,39,.3); border-color:rgba(201,162,39,.7); }
+  /* LA CAJA DE LA MARCA VA EN DOS PISOS, y lleva su propia clase porque
+     menuVinculos reusa .tagbox para la lista de «citado desde», y esa sí es
+     una fila corrida. Aquí las pastillas y los mandos no se parten igual:
+     una pastilla es tan ancha como su nombre y los mandos son siempre los
+     mismos tres. Mezclados en un solo flex-wrap, los tres fijos decidían
+     dónde partía la fila de las variables, y de ahí salían los huecos. */
+  /* flex-wrap:nowrap NO es de adorno, y costó medirlo: .tagbox de arriba
+     lleva flex-wrap:wrap, y un contenedor de columna QUE ENVUELVE reparte sus
+     hijos en varias columnas. Con eso, align-items:stretch estira cada hijo al
+     ancho de SU LÍNEA —que la decide el contenido— y no al del padre: la
+     rejilla se plantaba en 334px dentro de un padre de 326 y las pastillas de
+     la derecha salían cortadas por el filo del panel. Se veía en la foto antes
+     que en el número. */
+  .tagbox.marcas{ display:flex; flex-direction:column; align-items:stretch;
+                  flex-wrap:nowrap; gap:5px; }
+  .tagbox.marcas > *{ min-width:0; }
+  /* REJILLA DE DOS COLUMNAS, Y NO UNA FILA QUE SE PARTE SOLA.
+
+     Medido con diez etiquetas en una caja de 326px: las pastillas caían de
+     dos y de tres por renglón y dejaban entre 17 y 175px vacíos —hasta el 54%
+     de un renglón— porque cada una es tan ancha como su nombre y el corte lo
+     decidía el azar de los largos. Con dos columnas iguales el borde
+     izquierdo se puede recorrer con la vista, que es lo que de verdad se hace
+     con una lista de veinte, y no sobra ni un hueco.
+
+     DOS Y NO TRES. Con tres, la celda baja a 105px y seis de los diez nombres
+     de prueba se parten en dos renglones; la caja acaba midiendo lo mismo y
+     se lee peor. Con dos, la celda es de 160px y hasta «feExtraordinaria»
+     —el más largo, 157px— entra de una línea. Es la rejilla más ancha que no
+     cuesta nada. */
+  .tagbox.marcas .tagchips{
+      display:grid; grid-template-columns:1fr 1fr; gap:5px; align-content:start;
+      /* Un tope generoso: las diez de hoy caben enteras y a partir de ahí
+         rueda, así el panel deja de crecer con el vocabulario. */
+      max-height:212px; overflow-y:auto; overscroll-behavior:contain; }
+  .tagbox.marcas .tagchips .vacio{ grid-column:1 / -1; }
+  .tagbox.marcas .tagctl{ display:flex; gap:5px; align-items:center; }
+  /* EL BOTÓN DE CREAR SE VE. Iba sin borde ni fondo, del mismo color que
+     todo lo demás del panel, así que el único control que AVISA de que hay
+     algo que pulsar se estrenaba disfrazado de texto. Lleva el oro de la
+     casa —el mismo de la pastilla puesta— porque es la acción de esta fila,
+     y el borde es lo que lo separa de la caja de al lado. */
+  #menu .tagbox .tagctl .crear{ background:rgba(201,162,39,.22);
+                border:1px solid rgba(201,162,39,.7); color:#f7e7b8;
+                border-radius:999px; white-space:nowrap; font-weight:500; }
+  #menu .tagbox .tagctl .crear:hover{ background:rgba(201,162,39,.34); }
+  /* EL ESTADO SE DICE CON RELLENO Y BORDE, NO CON TRANSPARENCIA.
+
+     Aquí había un fallo que no se veía en el código sino en la pantalla: las
+     reglas de la pastilla —borde, relleno, redondeo— las pisaba #menu button,
+     que lleva un id y gana a cualquier clase. Comprobado en el navegador: una
+     pastilla PUESTA y una apagada salían con el mismo fondo transparente, el
+     mismo borde transparente y el mismo redondeo de 6px. O sea que no eran
+     pastillas, y lo único que distinguía «puesta» de «no puesta» era la
+     opacidad. De ahí las dos quejas a la vez: la letra parecía pequeña porque
+     a opacity .5 sobre el panel oscuro se queda en 4.28:1 —por debajo del
+     mínimo legible— y la caja parecía desperdiciada porque una palabra
+     apagada sin borde no ocupa, flota.
+
+     Ahora el estado va por relleno y color, que son señales de sobra; y la
+     opacidad se reserva ENTERA para «dormida», de modo que apagado signifique
+     siempre una sola cosa: todavía no puedes tocar esto. */
+  #menu .tagbox .tg{ font-size:.68rem; font-weight:500; line-height:1.15;
+               padding:5px 9px; border:1px solid rgba(238,231,216,.42);
+               border-radius:999px; background:transparent; color:#d6cdb8;
+               opacity:1; text-align:left; min-width:0;
+               overflow-wrap:anywhere; }
+  #menu .tagbox .tg.on{ background:rgba(201,162,39,.30);
+               border-color:rgba(201,162,39,.85); color:#f7e7b8; }
   /* LA ÚLTIMA QUE USASTE, EN NEGRITA. Es lo único que queda de la etiqueta
      activa, y hace su trabajo sin hacer nada: no se aplica sola, solo se ve.
      Negrita y no color, porque el color ya significa "puesta en esta marca" y
@@ -1334,9 +1400,16 @@
      Va colgada de #menu y no de .tagbox a secas por una cuestión de peso:
      `#menu button` lleva `font:inherit`, que es la forma corta de escribir
      también font-weight, y con un id delante gana a cualquier clase. Sin el
-     #menu aquí, la regla existía y la etiqueta salía en redonda. */
-  #menu .tagbox .tg.ultima{ font-weight:700; opacity:.75; }
-  #menu .tagbox .tg.on.ultima{ opacity:1; }
+     #menu aquí, la regla existía y la etiqueta salía en redonda.
+
+     Y ya no es negrita, sino borde de puntos. La negrita competía con el oro
+     por decir «ésta es especial»: eran tres señales —peso, color y
+     opacidad— para dos hechos, y con la pastilla puesta y última a la vez no
+     se sabía cuál decía cuál. Ahora son dos canales que no se pisan: el
+     RELLENO dice si está puesta, y el TRAZO dice si es la última que usaste.
+     El punteado se lee como «de paso», compone bien con las dos formas de
+     relleno, y a diferencia del peso no mueve un píxel de la fila. */
+  #menu .tagbox .tg.ultima{ border-style:dashed; }
   .tagbox .vacio{ font-size:.65rem; opacity:.45; padding:0 4px; }
   /* DORMIDA: se ve, y no responde. Sin nota no hay nada que guardar, así que
      una etiqueta puesta ahora se perdería al cerrar. Apagarla del todo sería
@@ -1352,6 +1425,10 @@
      mismo y la caja quedaba de alto cero. */
   .tagbox.plegada .tg, .tagbox.plegada input,
   .tagbox.plegada .vacio, .tagbox.plegada button[data-acc]:not(.plegado){ display:none; }
+  /* Con los dos pisos hay que apagar los PISOS, no solo lo que llevan dentro:
+     vacíos seguirían ocupando su hueco y el tope de altura de la rejilla,
+     así que plegar no plegaría nada. */
+  .tagbox.marcas.plegada .tagchips, .tagbox.marcas.plegada .tagctl{ display:none; }
   .tagbox.plegada .plegado{ display:block; width:100%; text-align:left;
                             font-size:.68rem; opacity:.6; }
   #deshacer{ display:none; align-items:center; gap:10px; font-size:.7rem;
@@ -1603,8 +1680,30 @@
     #menu .gl-caja{ font-size:16px; min-height:4.2em; }
     #menu input{ font-size:15px; padding:9px 11px; width:auto; flex:1 1 120px; }
     .tagbox{ gap:6px; }
+    /* Estas dos siguen valiendo para el .tagbox de menuVinculos, que no lleva
+       la clase «marcas» y sigue siendo una fila corrida. */
     .tagbox .tg{ font-size:13.5px; padding:8px 12px; }
     .tagbox .vacio{ font-size:13px; }
+    .tagbox.marcas{ gap:6px; }
+    .tagbox.marcas .tagchips{ gap:6px; max-height:212px; }
+    .tagbox.marcas .tagctl{ gap:6px; }
+    /* EL #menu DE DELANTE ES LO QUE HACE QUE ESTO SE VEA. `#menu button` le
+       clava a todo botón del panel 15px, 11px 14px y text-align:left, y una
+       clase sola pierde contra un id —da igual que esta regla venga después—.
+       Con el id delante gana, y por eso la pastilla vuelve a ser pastilla.
+       La letra sube a 16 y el relleno baja a 8/12: la palabra crece y la caja
+       encoge, que son las dos mitades de la misma queja. A 16px el nombre más
+       largo mide 157 de los 160 de la celda, así que sigue entrando de una
+       línea; si algún día no entra, overflow-wrap lo parte en dos y la rejilla
+       iguala el alto de la fila sola. */
+    #menu .tagbox .tg{ font-size:16px; padding:8px 12px; }
+    #menu .tagbox .tgchips .vacio{ font-size:13px; }
+    /* Los mandos no son pastillas: sin esto heredan los 11/14 de #menu button
+       y el renglón se come 39px por nada. */
+    #menu .tagbox .tagctl input{ font-size:15px; padding:9px 11px; width:auto;
+                                 flex:1 1 120px; min-width:0; }
+    #menu .tagbox .tagctl button[data-acc]{ flex:0 0 auto; text-align:center;
+                                            padding:9px 13px; font-size:15px; }
     .tagbox.plegada .plegado{ font-size:13.5px; padding:5px 2px; }
 
     /* EL AVISO DE ABAJO. Iba en 10.5px, más pequeño que cualquier otra cosa
@@ -3803,17 +3902,26 @@ function panelHTML(m){
 function tagboxHTML(m){
   const tiene = new Set(m.etiquetas || []);
   const lista = [...new Set([...todasEtiquetas().mapa.keys(), ...tiene])].sort();
-  return '<div class="tagbox' + ((m.nota||'').trim() ? '' : ' dormida') + '">' +
+  return '<div class="tagbox marcas' + ((m.nota||'').trim() ? '' : ' dormida') + '">' +
     '<button class="plegado" data-acc="desplegar"></button>' +
+    '<div class="tagchips">' +
     (lista.length
       ? lista.map(t => '<button class="tg' + (tiene.has(t)?' on':'') +
           (t && t === ultimaEtiqueta ? ' ultima' : '') +
           '" data-tag="' + esc(t) + '">' + esc(t) + '</button>').join('')
       : '<span class="vacio">sin etiquetas todavía</span>') +
+    '</div><div class="tagctl">' +
     '<input id="tagNueva" placeholder="nueva…" enterkeyhint="done" ' +
       'autocapitalize="none" autocomplete="off" />' +
-    '<button data-acc="creartag" title="Crear la etiqueta">+</button>' +
-    '<button data-acc="listo">Listo</button></div>';
+    /* EL + DICE LO QUE HACE. Era un signo suelto de menos de un centímetro
+       al lado de una caja de texto, y un signo no se lee: se adivina. Con la
+       palabra al lado ya no hay nada que adivinar, y de paso el blanco al que
+       hay que apuntar deja de ser un carácter para ser un botón entero.
+       Se queda el + delante porque es lo que se reconoce de lejos; la palabra
+       es lo que lo confirma. */
+    '<button class="crear" data-acc="creartag" ' +
+      'title="Crear la etiqueta">+ crear</button>' +
+    '</div></div>';
 }
 /* LA CAJA DE ESCRIBIR VA DE PAPEL, NO DE PANEL, y esto no es gusto: es la
    única manera de que se lea. Los colores de una glosa —tinte clarísimo,
@@ -4032,7 +4140,9 @@ menu.addEventListener('click', ev => {
     const ta = menu.querySelector('#glosaCaja'); if (ta) ta.blur();
     return;
   }
-  if (acc === 'listo'){ ocultarMenu(); return; }
+  /* El «Listo» se fue. Era un blanco más al que apuntar para decir algo que
+     el gesto natural —dejar de tocar el panel— ya dice, y encima repetía lo
+     que hace tocar fuera. Se cierra tocando fuera, como se cerraba ya. */
 });
 
 document.addEventListener('pointerdown', ev => {
@@ -4138,7 +4248,11 @@ function crearTagDeMarca(caja){
     const vacio = box.querySelector('.vacio'); if (vacio) vacio.remove();
     const btn = document.createElement('button');
     btn.className = 'tg'; btn.dataset.tag = t; btn.textContent = t;
-    box.insertBefore(btn, box.querySelector('#tagNueva'));
+    /* Al final de la rejilla de pastillas. Antes iba «antes del input», y el
+       input ya no vive aquí: insertBefore con un nodo que no es hijo tira
+       NotFoundError, y lo tiraría DESPUÉS de haber vaciado la caja, o sea
+       perdiendo lo escrito. Lo levantó el repaso de la maqueta. */
+    box.querySelector('.tagchips').appendChild(btn);
   }
   refrescarTags();
   colocarMenu();
@@ -7006,7 +7120,26 @@ function cerrarCanto(alTerminar, disolver){
    puede pasar, siempre acaban así.
 */
 document.addEventListener('keydown', ev => {
-  if (ev.key === 'Escape'){ ocultarCascada(); cerrarTodosLosRollos(); }
+  /* ESCAPE TAMBIÉN CIERRA EL PANEL DE LA MARCA, y esto es lo único que hay
+     que teclear para salir de él.
+
+     El panel se cerraba solo tocando fuera, y tocar fuera es un pointerdown:
+     quien no tiene puntero —teclado solo, control por conmutador— se quedaba
+     dentro sin salida. Y como lo escrito se cobra en cerrarBorrador, no era
+     solo incomodidad: la nota se quedaba sin guardar hasta que alguien tocara
+     el papel con un dedo. Mientras estuvo el botón «Listo» el hueco no se
+     notaba; al quitarlo quedó al descubierto. Lo levantó la revisión de Codex.
+
+     CIERRA GUARDANDO, como tocar fuera, y no descartando como suele hacer un
+     Escape. Aquí no hay nada que cancelar: este panel no tiene camino de
+     abandono —vaciar la caja es como se borra una glosa— así que un Escape
+     que tirara lo escrito inventaría un gesto destructivo que no existe en
+     ningún otro sitio del programa. Salir es terminar, se salga por donde se
+     salga.
+
+     Va ANTES del guardián de «escribiendo» a propósito: el caso que importa
+     es justamente el de estar tecleando dentro de la caja de la glosa. */
+  if (ev.key === 'Escape'){ ocultarCascada(); cerrarTodosLosRollos(); ocultarMenu(); }
   /* Las flechas pasan hoja. Antes había botones y ahora no, así que el teclado
      deja de ser un lujo: sin él, quien no descubra los filos se queda encerrado
      en una hoja. Se ignoran si estás escribiendo en un campo. */
