@@ -71,6 +71,58 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
       vale('y acaba en las glosas', cajon.final === cajon.tope,
            cajon.final + ' de ' + cajon.tope);
     }
+    /* EL PANEL NACE CRECIENDO DESDE LO SEÑALADO, y eso también es movimiento.
+       Es corto —170ms, solo para que no dé el salto— pero lo crea
+       Element.animate() igual que el vuelo, así que ninguna regla de CSS puede
+       apagarlo y hay que preguntarlo desde el guion. */
+    const nacer = await p.evaluate(async () => {
+      const v = document.querySelector('#pgBody .v');
+      const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+      while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
+      if (!n) return { sinTexto:true };
+      const r = document.createRange(); r.setStart(n,0); r.setEnd(n,20);
+      getSelection().removeAllRanges(); getSelection().addRange(r);
+      const rc = r.getBoundingClientRect();
+      const centro = { x: rc.left + rc.width/2, y: rc.top + rc.height/2 };
+      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+        { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
+      await new Promise(z => setTimeout(z, 45));
+      const menu = document.getElementById('menu');
+      const an = menu.getAnimations()[0];
+      const m = menu.getBoundingClientRect();
+      const org = getComputedStyle(menu).transformOrigin.split(' ').map(parseFloat);
+      /* El origen se pega al filo más cercano a lo señalado cuando queda fuera
+         del panel, así que lo que se comprueba es que esté DENTRO de la caja y
+         del lado bueno, no que caiga en el punto exacto. */
+      const dentro = org[0] >= -1 && org[0] <= m.width + 1 &&
+                     org[1] >= -1 && org[1] <= m.height + 1;
+      const haciaElPasaje = centro.y <= m.top + 1 ? org[1] <= 1
+                          : centro.y >= m.bottom - 1 ? org[1] >= m.height - 1
+                          : true;
+      const res = { animando: !!an, duracion: an ? an.effect.getTiming().duration : null,
+                    dentro, haciaElPasaje };
+      await new Promise(z => setTimeout(z, 420));
+      res.acabaQuieto = getComputedStyle(menu).transform === 'none';
+      res.opacidad = getComputedStyle(menu).opacity;
+      /* se recoge para no dejar el panel abierto en la prueba siguiente */
+      document.body.dispatchEvent(new PointerEvent('pointerdown',
+        { bubbles:true, clientX:5, clientY:5 }));
+      await new Promise(z => setTimeout(z, 300));
+      return res;
+    });
+    di('el panel al nacer', nacer);
+    if (!nacer.sinTexto){
+      if (modo === 'reduce'){
+        vale('el panel no crece, aparece', nacer.animando === false);
+      } else {
+        vale('el panel crece desde el pasaje', nacer.animando &&
+             nacer.duracion === 170, nacer.duracion + ' ms');
+        vale('y crece desde el lado que le toca', nacer.dentro && nacer.haciaElPasaje);
+      }
+      vale('en los dos casos acaba quieto y entero',
+           nacer.acabaQuieto && nacer.opacidad === '1', nacer.opacidad);
+    }
+
     /* EL VUELO DE LA GLOSA TAMPOCO. Es la otra animación grande del programa
        —2.4 segundos de nota cruzando la hoja— y la única que no puede apagar
        una regla de CSS: la crea Element.animate(), y a eso no llega ninguna

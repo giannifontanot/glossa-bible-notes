@@ -3998,6 +3998,43 @@ function vestirVista(m){
   caja.style.width = anchoVista() + 'px';
   opacarVista(caja);
 }
+/* EL PANEL NACE DE LO QUE SEÑALASTE, no encima de ello.
+
+   Aparecía de golpe, hecho y derecho, y eso lo delata como lo que no queremos
+   que sea: una ventana del programa que se planta delante de la hoja. Creciendo
+   desde el propio pasaje —desde el punto exacto que acabas de subrayar— se lee
+   como que la nota SALE de ahí, que es lo que de verdad pasa.
+
+   El truco está en transform-origin, no en un viaje: se ancla el crecimiento en
+   las palabras señaladas y basta con escalar. Un panel que además se traslada
+   se lee como algo que llega volando de otro sitio, y de dónde viene ya lo dice
+   el sitio donde crece.
+
+   170ms, que es poco a propósito: esto no cuenta nada —a diferencia del vuelo
+   del final, que sí enseña adónde fue lo escrito— solo evita el salto. Un
+   nacimiento lento sería una animación pidiendo que la miren.
+
+   Y SOLO AL NACER. Al cerrarse no hay nada que deshacer: la glosa se va volando
+   a su sitio, que es una salida mucho mejor que encogerse hasta desaparecer.
+   Dos animaciones de despedida serían dos maneras de contar lo mismo. */
+function nacerPanel(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!ultimoRect) return;
+  const m = menu.getBoundingClientRect();
+  if (!m.width || !m.height) return;
+  /* El punto de crecimiento, en coordenadas del panel y sin salirse de él: si
+     lo señalado queda lejos —el panel topa con un filo de la pantalla— el
+     origen se pega al borde más cercano, que sigue apuntando hacia allá. */
+  const cx = ultimoRect.left + ultimoRect.width / 2;
+  const cy = ultimoRect.top + ultimoRect.height / 2;
+  const ox = Math.max(0, Math.min(m.width, cx - m.left));
+  const oy = Math.max(0, Math.min(m.height, cy - m.top));
+  menu.style.transformOrigin = Math.round(ox) + 'px ' + Math.round(oy) + 'px';
+  menu.animate([
+    { transform:'scale(.82)', opacity:0 },
+    { transform:'none', opacity:1 }
+  ], { duration:170, easing:'cubic-bezier(.2,.75,.35,1)' });
+}
 /* EL PANEL MIDE LO QUE MIDE LA GLOSA. Es lo que lo convierte en «esta nota y
    sus mandos» en vez de en «un panel que además enseña una nota»: la columna
    de la izquierda y la de la derecha son las mismas arriba y abajo, y el ojo
@@ -4114,6 +4151,9 @@ function abrirPanel(m, nueva, rect){
   pintarAncla(m);
   anchoPanelComoGlosa();
   colocarMenu();
+  /* Al final del todo: crecer hacia un sitio exige saber dónde acabó el panel,
+     y eso no se sabe hasta haberlo medido y colocado. */
+  nacerPanel();
 }
 /* LO QUE PASA AL CERRAR, que es lo único que toca el almacén.
 
