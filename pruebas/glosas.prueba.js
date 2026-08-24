@@ -876,5 +876,120 @@ const guardadas = () => {
     return r;
   }));
 
+  titulo('el calco se compone como la glosa de la hoja');
+  /* En el editor el ancla va en absoluto y el primer renglón se sangra a mano:
+     es el apaño para que un textarea parta donde parte la nota. Esa sangría
+     vive EN EL TEXTAREA, así que al cambiarlo por su texto se iba con él y el
+     ancla se quedaba encima de las primeras palabras. Copiar la sangría al
+     calco tampoco vale —el ancla va en su posición estática, así que la sangría
+     la corre a ella también—. Sin textarea no hace falta apaño ninguno: ancla y
+     texto son dos hijos en línea, como los compone glossHTML.
+     Se comprueban los TRES a la vez, que es la única manera de ver que dicen lo
+     mismo. Lo levantó Codex. */
+  di('ancla en el editor, el calco y la hoja', await p.evaluate(async ([abrir, fuera]) => {
+    const ok = await eval('(' + abrir + ')')(0, 16);
+    if (!ok) return { sinTexto:true };
+    const ta = document.getElementById('glosaCaja');
+    if (!ta) return { sinPanel:true };
+    ta.value = 'una nota con texto de sobra para que el primer renglón se llene y pase al siguiente';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 250));
+    const vista = document.getElementById('glVista');
+    const vb = vista.getBoundingClientRect();
+    const ae = vista.querySelector('.gl-ref').getBoundingClientRect();
+    const editor = { izq: Math.round(ae.left - vb.left), der: Math.round(ae.right - vb.left) };
+    await eval('(' + fuera + ')')();
+    await new Promise(z => setTimeout(z, 200));
+    const calco = [...document.body.children].find(e => e.classList &&
+      e.classList.contains('gl-vista') && e.style.position === 'fixed');
+    if (!calco) return { sinCalco:true };
+    const cb = calco.getBoundingClientRect();
+    const ancla = calco.querySelector('.gl-ref');
+    const span = [...calco.querySelectorAll('span')]
+      .find(x => !x.classList.contains('gl-ref') && !x.classList.contains('gl-tags'));
+    const a = ancla.getBoundingClientRect();
+    const l1 = span ? span.getClientRects()[0] : null;
+    const r = { editor,
+      calco: { izq: Math.round(a.left - cb.left), der: Math.round(a.right - cb.left),
+               primerRenglon: l1 ? Math.round(l1.left - cb.left) : null },
+      /* el texto no puede empezar por debajo del ancla */
+      sePisan: l1 ? l1.left < a.right - 1 : null };
+    await new Promise(z => setTimeout(z, 3300));
+    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]')
+      .find(m => (m.nota||'').startsWith('una nota con texto de sobra'));
+    const dest = g && document.querySelector('.gl[data-gl="' + g.id + '"]');
+    if (dest){
+      const db = dest.getBoundingClientRect();
+      const ad = dest.querySelector('.gl-ref').getBoundingClientRect();
+      r.hoja = { izq: Math.round(ad.left - db.left), der: Math.round(ad.right - db.left) };
+    }
+    return r;
+  }, [ABRIR, FUERA]).then(r => {
+    vale('el ancla del calco cae donde la del editor',
+         !r.sinTexto && !r.sinCalco && r.calco.izq === r.editor.izq &&
+         r.calco.der === r.editor.der,
+         JSON.stringify(r.calco) + ' contra ' + JSON.stringify(r.editor));
+    /* Un píxel de holgura: son medidas redondeadas del mismo texto al mismo
+       cuerpo, y la referencia puede no ser la misma letra —«1a» contra «1b»—
+       porque guardar una marca nueva se lleva las que pisa y renumera. Lo que
+       se vigila es que el ancla ocupe el mismo sitio, no que dos redondeos
+       coincidan. */
+    vale('y donde la de la hoja', r.hoja && Math.abs(r.calco.izq - r.hoja.izq) <= 1 &&
+         Math.abs(r.calco.der - r.hoja.der) <= 1, JSON.stringify(r.hoja));
+    vale('el texto no se le monta encima', r.sePisan === false,
+         'renglón en ' + (r.calco||{}).primerRenglon + ', ancla acaba en ' + (r.calco||{}).der);
+    return r;
+  }));
+
+  titulo('reabrir una glosa ancha no deja hueco de más');
+  /* .gl-vista lleva max-width:100%, así que mientras el panel conserve su ancho
+     de fábrica el recuadro se queda encogido dentro de él. Midiendo el alto en
+     ese momento se mide el de un texto que parte donde NO va a partir, y al
+     ensanchar el panel después el alto ya está clavado: queda un blanco al pie
+     del recuadro hasta que tocas una tecla. Se ve al pie, que es donde la glosa
+     es más ancha que el panel de fábrica. Lo levantó Codex. */
+  di('al pie, reabriendo', await p.evaluate(async ([abrir, fuera]) => {
+    await p_nada();
+    function p_nada(){ return Promise.resolve(); }
+    const b = [...document.querySelectorAll('[data-lay]')].find(x => x.dataset.lay === 'foot');
+    if (b) b.click();
+    await new Promise(z => setTimeout(z, 1400));
+    const ok = await eval('(' + abrir + ')')(20, 38);
+    if (!ok) return { sinTexto:true };
+    const ta = document.getElementById('glosaCaja');
+    if (!ta) return { sinPanel:true };
+    ta.value = 'una nota al pie con bastante texto para que ocupe más de un renglón y se note el alto';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await eval('(' + fuera + ')')();
+    await new Promise(z => setTimeout(z, 3300));
+    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]')
+      .find(m => (m.nota||'').startsWith('una nota al pie con bastante'));
+    if (!g) return { sinGuardar:true };
+    const gl = document.querySelector('.gl[data-gl="' + g.id + '"]');
+    if (!gl) return { sinGlosa:true };
+    gl.dispatchEvent(new MouseEvent('dblclick', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 600));
+    const t2 = document.getElementById('glosaCaja');
+    if (!t2) return { sinReabrir:true };
+    const alAbrir = Math.round(t2.getBoundingClientRect().height);
+    /* un recálculo como el que haría una tecla: si el alto estaba mal, cambia */
+    t2.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 200));
+    const r = { alAbrir, trasTecla: Math.round(t2.getBoundingClientRect().height),
+                anchoPanel: Math.round(document.getElementById('menu').getBoundingClientRect().width),
+                anchoVista: Math.round(document.getElementById('glVista').getBoundingClientRect().width) };
+    await eval('(' + fuera + ')')();
+    await new Promise(z => setTimeout(z, 3300));
+    return r;
+  }, [ABRIR, FUERA]).then(r => {
+    vale('el alto al abrir ya es el bueno',
+         !r.sinTexto && !r.sinReabrir && r.alAbrir === r.trasTecla,
+         r.alAbrir + ' contra ' + r.trasTecla);
+    vale('y el panel ya nació del ancho de la glosa',
+         r.anchoPanel && r.anchoPanel - r.anchoVista <= 24,
+         r.anchoPanel + ' contra ' + r.anchoVista);
+    return r;
+  }));
+
   await cerrar(sesion);
 })();

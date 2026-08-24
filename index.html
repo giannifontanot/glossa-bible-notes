@@ -4202,6 +4202,16 @@ function abrirPanel(m, nueva, rect){
        no se ha perdido nada. */
     ta.focus();
   }
+  /* EL ANCHO VA ANTES QUE EL ALTO, y el orden no es cosmético: .gl-vista lleva
+     max-width:100%, así que mientras el panel conserve su ancho de fábrica el
+     recuadro se queda encogido dentro de él por mucho que se le pida el ancho
+     de la glosa. Midiendo el alto en ese momento se mide el de un texto que
+     parte donde NO va a partir, y al ensanchar después el panel el texto se
+     recoloca pero el alto ya está clavado: queda un blanco al pie del recuadro
+     y un panel más alto de lo que necesita, hasta que tocas una tecla.
+     Se ve en el pie, que es donde la glosa es más ancha que el panel de
+     fábrica. Lo levantó la tercera revisión de Codex. */
+  anchoPanelComoGlosa();
   refrescarTags();
   if (nueva) renderPage();                 /* pinta la marca recién nacida */
   /* EL ANCLA SE REPINTA DESPUÉS DE renderPage, y no es redundante: la
@@ -4210,7 +4220,9 @@ function abrirPanel(m, nueva, rect){
      tiene y el ancla salía como un punto suelto. Medido: «·» en vez de «1a·»,
      con la sangría del primer renglón corta en la misma proporción. */
   pintarAncla(m);
-  anchoPanelComoGlosa();
+  /* Y el alto otra vez al final: el ancla sangra el primer renglón, y una
+     sangría cambia dónde parte ese renglón y por tanto cuántos hay. */
+  ajustarAlto(menu.querySelector('#glosaCaja'));
   colocarMenu();
   /* Al final del todo: crecer hacia un sitio exige saber dónde acabó el panel,
      y eso no se sabe hasta haberlo medido y colocado. */
@@ -4296,6 +4308,23 @@ function despegarVista(){
   if (ta){
     const texto = document.createElement('span');
     texto.textContent = ta.value;
+    /* EL CALCO SE COMPONE COMO LA GLOSA DE LA HOJA, no como el editor.
+
+       En el editor el ancla va en absoluto y el primer renglón del textarea se
+       sangra a mano: es el apaño para que un textarea —que no deja fluir texto
+       alrededor de nada— parta donde parte la nota. Pero esa sangría vive en el
+       textarea, y al cambiarlo por su texto se iba con él, dejando al ancla
+       encima de las primeras palabras.
+       Copiar la sangría al calco tampoco vale, y se ve midiendo: el ancla va en
+       su posición ESTÁTICA, así que una sangría la corre a ella también —el
+       ancla se iba de 29 a 49— y el calco dejaba de parecerse a su destino.
+       Aquí no hace falta ningún apaño: sin textarea, el ancla y el texto son
+       dos hijos en línea, que es exactamente como los compone glossHTML. Se le
+       devuelve al ancla su sitio en el flujo y se quita la sangría.
+       Lo levantó la tercera revisión de Codex. */
+    const anclaClon = clon.querySelector('.gl-ref');
+    if (anclaClon) anclaClon.style.position = 'static';
+    texto.style.textIndent = '0';
     ta.replaceWith(texto);
   }
   /* Fijo y colgado del cuerpo del documento: así arrastrar el papel no se lo
