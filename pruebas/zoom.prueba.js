@@ -68,12 +68,47 @@ const { abrir, cerrar, conGlosas, di, vale, titulo, ESCRITORIO } = require('./co
              razones: visto.map(v => +(v.texto / v.papel).toFixed(3)) };
   }, sentido);
 
+/* LA HOLGURA SALE DE LA MEDIDA, no de lo que parezca razonable — que es la
+   tercera regla de esta carpeta y ésta la incumplía.
+
+   Pedía la razón EXACTAMENTE 1 en cada una de las 23 muestras de una
+   transición de 460 ms. Y la razón se saca de dos elementos con transiciones
+   SEPARADAS —.pg-inner y #zoomPapel, cada uno con su propia declaración—, así
+   que basta con que a uno se le caiga un cuadro y al otro no para que esa
+   muestra salga distinta. No es que se desaten: es que se leen con un cuadro
+   de diferencia.
+
+   MEDIDO, porque si no esto sería otra cifra inventada. 164 viajes de zoom
+   —recargando en cada uno, que es la condición que la produce— en tres
+   estados: sin filtro, con contrast(1) y con contrast(1.25). Falló 4 veces, y
+   LAS CUATRO CON EL MISMO VALOR: 0.9974. Es un cuadro de retraso sobre una
+   hoja de 411 px, o sea un píxel. No es una deriva: es una cuantía fija que
+   aparece o no aparece.
+
+   Lo que la prueba tiene que cazar está tres órdenes de magnitud más lejos: si
+   los dos dejaran de ir atados, el texto se escalaría a 0.585 mientras el
+   papel se queda en 1. Con el 1% de holgura —cuatro veces el ruido medido—
+   eso se caza igual de bien, y un cuadro perdido ya no canta un fallo que no
+   existe. La cuenta de muestras torcidas se IMPRIME siempre: si algún día son
+   muchas, se ve en el dato aunque el veredicto siga verde.
+
+   Y ojo con lo que NO se tocó: 'la letra no sale de su hoja' —el desborde en
+   cero— no falló ni una vez en esas 164, y ése es el invariante que de verdad
+   importa. Se queda exacto. */
+const HOLGURA = 0.01;
+const atados = r => r.every(x => Math.abs(x - 1) <= HOLGURA);
+const comoVan = r => {
+  const torcidas = r.filter(x => x !== 1);
+  return r.length + ' muestras · ' + torcidas.length + ' con un cuadro de retraso' +
+         (torcidas.length ? ' (peor ' + Math.min(...torcidas) + ')' : '');
+};
+
   titulo('entrando');
   const e = await viaje('entrar');
   di('muestreado', { muestras:e.muestras, desbordeMaximo:e.desbordeMaximo,
                      razonMin:Math.min(...e.razones), razonMax:Math.max(...e.razones) });
   vale('la letra no sale de su hoja', e.desbordeMaximo === 0, e.desbordeMaximo + ' px');
-  vale('texto y papel van atados', Math.min(...e.razones) === 1 && Math.max(...e.razones) === 1);
+  vale('texto y papel van atados', atados(e.razones), comoVan(e.razones));
   vale('y entró de verdad', e.enZoom);
 
   await p.waitForTimeout(500);
@@ -82,6 +117,7 @@ const { abrir, cerrar, conGlosas, di, vale, titulo, ESCRITORIO } = require('./co
   di('muestreado', { muestras:s.muestras, desbordeMaximo:s.desbordeMaximo,
                      razonMin:Math.min(...s.razones), razonMax:Math.max(...s.razones) });
   vale('la letra no sale de su hoja', s.desbordeMaximo === 0, s.desbordeMaximo + ' px');
+  vale('texto y papel van atados al volver', atados(s.razones), comoVan(s.razones));
   vale('es el mismo viaje al revés', e.desbordeMaximo === s.desbordeMaximo);
   vale('y salió de verdad', !s.enZoom);
 
@@ -430,6 +466,18 @@ const { abrir, cerrar, conGlosas, di, vale, titulo, ESCRITORIO } = require('./co
      Se comprueba el color de verdad, no la clase: una clase puesta que ningún
      estilo pintara dejaría esto en verde sin que se viera nada. */
   const MARRON = 'rgb(184, 137, 43)';   /* #b8892b: la pestaña abierta, el libro actual */
+  /* SE COMPARA COMO COLOR, NO COMO CADENA. getComputedStyle devuelve unas
+     veces 'rgb(184, 137, 43)' y otras 'rgba(184, 137, 43, 1)' para el MISMO
+     color: es el mismo píxel escrito de dos maneras, y de cuál te toca decide
+     el navegador. Comparando cadenas eso da dos fallos distintos, y el
+     peligroso es el de arriba —'ninguno encendido' usa !==, así que con el
+     formato largo canta VERDE diciendo que está apagado cuando está pintado—.
+     Un falso verde no se descubre nunca. Se sacan los tres números y se
+     comparan ésos. */
+  const mismoColor = (a, b) => {
+    const n = c => (String(c).match(/[\d.]+/g) || []).slice(0, 3).join(',');
+    return n(a) === n(b);
+  };
   di('el automático', await p.evaluate(async () => {
     document.getElementById('btnZoom').click();
     await new Promise(z => setTimeout(z, 1200));
@@ -455,10 +503,14 @@ const { abrir, cerrar, conGlosas, di, vale, titulo, ESCRITORIO } = require('./co
              seQuedaFuera: !document.getElementById('pg').classList.contains('zoom') };
   }).then(r => {
     vale('en reposo, ninguno encendido',
-         r.enReposo[0] === r.enReposo[1] && r.enReposo[1] !== MARRON, r.enReposo[1]);
-    vale('con el automático, se pinta el suyo', r.enMarcha[1] === MARRON, r.enMarcha[1]);
-    vale('y solo el suyo', r.enMarcha[0] === r.enReposo[0], r.enMarcha[0]);
-    vale('al parar se apaga', r.trasParar[1] === r.enReposo[1], r.trasParar[1]);
+         mismoColor(r.enReposo[0], r.enReposo[1]) && !mismoColor(r.enReposo[1], MARRON),
+         r.enReposo[1]);
+    vale('con el automático, se pinta el suyo', mismoColor(r.enMarcha[1], MARRON), r.enMarcha[1]);
+    /* Los otros dos comparan un color leído EN REPOSO contra uno leído con una
+       animación en marcha, que es justo cuando cambia el formato. Misma
+       trampa, mismo remedio. */
+    vale('y solo el suyo', mismoColor(r.enMarcha[0], r.enReposo[0]), r.enMarcha[0]);
+    vale('al parar se apaga', mismoColor(r.trasParar[1], r.enReposo[1]), r.trasParar[1]);
     vale('y la sección deja el zoom cerrado', r.seQuedaFuera);
     return r;
   }));
