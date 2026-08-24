@@ -393,12 +393,42 @@ const ATERRIZA = 7000;
                historial: document.getElementById('historial').classList.contains('visible'),
                canto: document.getElementById('canto').classList.contains('visible') };
     };
-    return { hist: await tocar('btnHistorial'), canto: await tocar('pgCabeza') };
+    /* Y EL BOTÓN DE DENTRO DEL PROPIO PANEL. Es el camino que se escapaba
+       cuando esto solo tocaba hueco en blanco: un clic en la parte del panel
+       que se sigue viendo —el botón de las etiquetas— quitaba la ventanita y
+       de paso desplegaba la lista, que es media cosa de cada. */
+    const enElPanel = await (async () => {
+      if (!await abrirTodo()) return { sinPleno:true };
+      const abiertas = () => !!document.querySelector('#menu .tagbox.abierta');
+      const b = document.querySelector('#menu .mtags');
+      if (!b) return { sinBoton:true };
+      const r = b.getBoundingClientRect();
+      const x = Math.round(r.left + r.width/2), y = Math.round(r.top + r.height/2);
+      const tocar = async () => {
+        b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, clientX:x, clientY:y }));
+        b.dispatchEvent(new MouseEvent('click', { bubbles:true, clientX:x, clientY:y }));
+        await new Promise(z => setTimeout(z, 900));
+        return { pleno: document.getElementById('versoPleno').classList.contains('visible'),
+                 tags: abiertas(),
+                 panel: getComputedStyle(document.getElementById('menu')).display !== 'none' };
+      };
+      return { uno: await tocar(), dos: await tocar() };
+    })();
+    return { hist: await tocar('btnHistorial'), canto: await tocar('pgCabeza'), enElPanel };
   }).then(r => {
     const bien = x => x && !x.sinPleno && x.pleno === false && x.panel === true &&
                       x.historial === false && x.canto === false;
     vale('el botón del historial no llega a abrirlo', bien(r.hist), JSON.stringify(r.hist));
     vale('  ni el rótulo abre el canto de los libros', bien(r.canto), JSON.stringify(r.canto));
+    const e = r.enElPanel || {};
+    vale('  ni el de las etiquetas, que está dentro del panel',
+         !e.sinPleno && !e.sinBoton && e.uno &&
+         e.uno.pleno === false && e.uno.tags === false && e.uno.panel === true,
+         JSON.stringify(e.uno));
+    /* y el segundo toque sí hace lo suyo: la cesión es de UN toque, no un
+       botón sordo mientras la ventanita haya estado puesta alguna vez */
+    vale('  y al segundo toque las etiquetas se abren',
+         !!e.dos && e.dos.tags === true, JSON.stringify(e.dos));
     return r;
   }));
 
