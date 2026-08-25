@@ -4,6 +4,11 @@ Manejan la aplicación como la maneja un dedo: abren `index.html` en un
 Chromium de verdad, tocan, arrastran y miden lo que queda en pantalla. No hay
 simulacros ni se llaman funciones por dentro.
 
+Lo único que se sustituye alguna vez es una pieza del NAVEGADOR —`new Image()`
+en `filo`, para forzar una foto que falla o que no contesta nunca—. De la
+aplicación no se toca nada: vive entera dentro de una función y desde fuera no
+hay nada suyo que llamar, que es justo lo que obliga a probarla como se usa.
+
 Eso no es purismo. Los fallos que ha tenido este programa **no se ven desde
 dentro**:
 
@@ -13,6 +18,7 @@ dentro**:
 | los rótulos no respondían con ratón | la captura del puntero reasigna el clic *solo* con ratón |
 | la hoja se medía a media transición | había que medir durante los 460 ms del zoom |
 | el toque al libro no llegaba con la hoja en el aire | `#pg` está en `visibility:hidden` mientras gira |
+| el filo dejaba de pasar hoja para siempre | hacía falta que la foto tardara más que los cuatro reintentos |
 
 ## Correr
 
@@ -36,6 +42,7 @@ diagnóstico. Salen con código distinto de cero si algo falla.
 |---|---|
 | `paginacion` | que el reparto de versículos por hoja no se mueva solo, y que una nota escrita sí empuje el corte |
 | `pliegue` | pasar hoja sin tirar el programa: los dos fallos que lo mataban, más el toque que no llegaba con la hoja en el aire |
+| `filo` | que un toque en el borde nunca se quede sin efecto: el respaldo de los reintentos, la foto que falla y la que no contesta |
 | `zoom` | que entrar y salir sean el mismo viaje —desborde cero de la letra sobre su papel—, la salida por el hueco y que el libro siga usándose de lejos, y que medir a media transición no contamine |
 | `movimiento-reducido` | que quien pidió menos movimiento no reciba el del zoom |
 | `libros` | cruzar al libro siguiente y volver, el trazo del canto, y que el panel de Libros se entere |
