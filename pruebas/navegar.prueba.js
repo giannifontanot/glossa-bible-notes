@@ -457,5 +457,139 @@ const ATERRIZA = 7000;
     return r;
   }));
 
+  titulo('saltar desde una glosa de las listas apunta también de dónde');
+  /* Una referencia dentro de una glosa ya apuntaba las dos escrituras. Las
+     LISTAS no: elegir una glosa del índice, o una de las de «citado desde»,
+     es un salto igual de largo y el rastro contaba solo el destino. El paso
+     atrás te devolvía a lo anterior que hubieras saltado —que puede ser de
+     otro rato— en vez de a la hoja que estabas leyendo. */
+  di('desde el índice de glosas', await p.evaluate(async () => {
+    localStorage.setItem('glossa:historial:v1', '[]');
+    const cabeza = document.getElementById('pgCabeza').textContent.trim();
+    document.getElementById('pgCabeza').click();
+    await new Promise(z => setTimeout(z, 700));
+    const t = [...document.querySelectorAll('.pestanas button')]
+      .find(x => x.textContent.trim().toLowerCase().includes('glosa'));
+    if (!t) return { sinPestana:true };
+    t.click();
+    await new Promise(z => setTimeout(z, 1200));
+    const it = [...document.querySelectorAll('#indice .ix-item')];
+    if (!it.length) return { sinItems:true };
+    /* la última de la lista, que es la que más lejos cae de donde estamos */
+    it[it.length - 1].click();
+    await new Promise(z => setTimeout(z, 7000));
+    return { cabeza, rastro: JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]')
+      .map(h => h.libro + ' ' + h.cap + ':' + h.vers) };
+  }).then(r => {
+    vale('el salto apunta dos escrituras', !r.sinItems && !r.sinPestana &&
+         (r.rastro || []).length === 2, JSON.stringify(r.rastro));
+    vale('  y la de debajo es de donde salimos',
+         (r.rastro || []).length === 2 && r.rastro[0] !== r.rastro[1],
+         (r.rastro || []).join('  ←  '));
+    return r;
+  }));
+
+  di('desde «citado desde»', await p.evaluate(async () => {
+    /* Hace falta una glosa que CITE un versículo de esta hoja: el contador de
+       «citado desde» solo sale donde alguien te ha citado. */
+    const ms = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    if (!ms.some(m => m.id === 'citadora-1')){
+      ms.push({ id:'citadora-1', libro:'MAT', cap:1, vers:6, cita:'MAT 1:6',
+                antes:'', despues:'', ini:0, fin:8, versionOrigen:'VBL',
+                estilo:'fill', color:'oro', etiquetas:[], creada:'2026-08-24',
+                nota:'compárese con Mateo 1:1 y su lista' });
+      localStorage.setItem('glossa:marcas:v1', JSON.stringify(ms));
+    }
+    /* Y HAY QUE VOLVER AL PRINCIPIO. La sección de antes nos dejó en Mateo 28,
+       y el contador de esta glosa sale en Mateo 1:1: sin devolver el punto de
+       lectura, aquí no hay contador que tocar y la comprobación se saltaría
+       sola. Se hace en los ajustes, que es de donde el programa lo lee al
+       arrancar, y por eso este trozo va justo antes de recargar. */
+    const aj = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
+    aj.libro = 'MAT'; aj.cap = 1; aj.vers = 1;
+    localStorage.setItem('glossa:ajustes:v1', JSON.stringify(aj));
+    return true;
+  }).then(async () => {
+    await p.reload({ waitUntil:'load' });
+    await p.waitForTimeout(2500);
+    return p.evaluate(async () => {
+      localStorage.setItem('glossa:historial:v1', '[]');
+      const b = document.querySelector('#pgBody .back, #pgMargin .back, #pgFoot .back');
+      if (!b) return { sinContador:true };
+      const desde = b.dataset.back;
+      b.click(); await new Promise(z => setTimeout(z, 700));
+      const it = document.querySelector('#menu [data-ir]');
+      if (!it) return { sinLista:true, desde };
+      const llevaDesde = it.dataset.desde || null;
+      it.click(); await new Promise(z => setTimeout(z, 6000));
+      return { desde, llevaDesde,
+               rastro: JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]')
+                 .map(h => h.libro + ' ' + h.cap + ':' + h.vers) };
+    });
+  }).then(r => {
+    const listo = !r.sinContador && !r.sinLista;
+    /* Que el contador esté ahí es la premisa: sin él no se prueba nada, y sin
+       decirlo el fallo saldría como «no lleva el de dónde», que es otra cosa. */
+    vale('hay un contador de «citado desde» que tocar', !r.sinContador && !r.sinLista,
+         r.sinContador ? 'ninguno en la hoja' : (r.sinLista ? 'lista vacía' : r.desde));
+    vale('la lista lleva de qué versículo salió', listo && r.llevaDesde === r.desde,
+         r.llevaDesde + ' / ' + r.desde);
+    /* Y ese, no el principio de la hoja: la lista se abre desde el contador de
+       UN versículo, así que el salto sale de ahí. */
+    vale('  y el rastro apunta ese mismo', listo && (r.rastro || []).length === 2 &&
+         r.rastro[1].endsWith(' ' + r.desde), JSON.stringify(r.rastro));
+    return r;
+  }));
+
+  titulo('dos escrituras iguales seguidas se ven una sola vez');
+  /* El rastro se guarda tal cual, repetido y todo —es el camino que seguiste—.
+     Lo que sobra es verlo dos veces seguidas, y se dan solas: saltar apunta el
+     de dónde y el a dónde, así que dos saltos encadenados desde el mismo sitio
+     dejan la misma escritura en dos renglones pegados. */
+  di('el rastro resumido', await p.evaluate(async () => {
+    localStorage.setItem('glossa:historial:v1', JSON.stringify([
+      { libro:'MAT', cap:5, vers:9, t:9 }, { libro:'MAT', cap:5, vers:9, t:8 },
+      { libro:'MAT', cap:1, vers:1, t:7 }, { libro:'MAT', cap:1, vers:1, t:6 },
+      { libro:'MAT', cap:1, vers:1, t:5 }, { libro:'LUK', cap:2, vers:1, t:4 },
+      { libro:'MAT', cap:5, vers:9, t:3 }]));
+    const hs = document.getElementById('historial');
+    if (hs.classList.contains('visible')){
+      document.getElementById('btnHistorial').click();
+      await new Promise(z => setTimeout(z, 500));
+    }
+    document.getElementById('btnHistorial').click();
+    await new Promise(z => setTimeout(z, 800));
+    return { guardadas: JSON.parse(localStorage.getItem('glossa:historial:v1')).length,
+             filas: [...document.querySelectorAll('#historial .hs-fila')]
+               .map(f => f.querySelector('.hs-ref').textContent.trim()),
+             atras: (document.querySelector('#historial [data-atras]') || {}).textContent };
+  }).then(r => {
+    vale('siete apuntadas, cuatro renglones', r.guardadas === 7 && r.filas.length === 4,
+         r.guardadas + ' → ' + r.filas.length + ': ' + r.filas.join(' · '));
+    /* Lo guardado NO se toca: reordenarlo o resumirlo al guardar sería mentir
+       sobre en qué orden pasaron las cosas. */
+    vale('  y las siete siguen guardadas', r.guardadas === 7);
+    vale('  sin dos iguales pegadas', r.filas.every((x, i) => i === 0 || x !== r.filas[i-1]),
+         r.filas.join(' · '));
+    /* El paso atrás lee la MISMA lista resumida: si no, diría «atrás a Mt 5:9»
+       estando ya en Mt 5:9, y tocarlo no movería nada. */
+    vale('el paso atrás salta la repetida', /1:1/.test(r.atras || ''), r.atras);
+    return r;
+  }));
+
+  di('y el atrás mueve de verdad', await p.evaluate(async () => {
+    const bo = document.querySelector('#historial [data-atras]');
+    if (!bo) return { sinBoton:true };
+    const rotulo = bo.textContent.trim();
+    bo.click(); await new Promise(z => setTimeout(z, 7000));
+    return { rotulo, cabeza: document.getElementById('pgCabeza').textContent.trim(),
+             guardadas: JSON.parse(localStorage.getItem('glossa:historial:v1')).length };
+  }).then(r => {
+    vale('llega a la escritura que anunciaba', !r.sinBoton && /1:1/.test(r.cabeza || ''),
+         r.rotulo + ' → ' + r.cabeza);
+    vale('  y no apunta el regreso', r.guardadas === 7, r.guardadas);
+    return r;
+  }));
+
   await cerrar(sesion);
 })();

@@ -5010,7 +5010,12 @@ menu.addEventListener('click', ev => {
 
   if (b.dataset.ir){
     const [c, v, l] = b.dataset.ir.split(':');
-    irA(LIBRO, +c, +v, l || ''); return;
+    /* De dónde: el versículo cuyo contador abrió esta lista. Si el botón no lo
+       trae —por venir de otro sitio—, la hoja en la que estás. */
+    const d = (b.dataset.desde || '').split(':');
+    const origen = d.length === 2 && +d[0] > 0 && +d[1] > 0
+      ? { libro: LIBRO, cap: +d[0], vers: +d[1] } : dondeEstoy();
+    irA(LIBRO, +c, +v, l || '', { origen }); return;
   }
   if (!borrador) return;                   /* el menú de vínculos no tiene más */
   const m = borrador.m;
@@ -5352,8 +5357,11 @@ function destacar(cap, vers, letra){
 }
 /* Quién cita este versículo. Nunca "el" regreso: todos, y tú eliges. */
 function menuVinculos(cap, vers){
+  /* El de dónde viaja en el botón: esta lista se abre desde el contador de UN
+     versículo, así que el salto sale de ahí y no del principio de la hoja. */
   return '<div class="tagbox"><span class="vacio">citado desde</span>' +
-    backDe(cap, vers).map(m => '<button data-ir="' + m.cap + ':' + m.vers + ':' +
+    backDe(cap, vers).map(m => '<button data-desde="' + cap + ':' + vers +
+      '" data-ir="' + m.cap + ':' + m.vers + ':' +
       (REFS.get(m.id)||'').replace(/^\d+/,'') + '">' +
       m.cap + ':' + (REFS.get(m.id) || m.vers) + ' · ' +
       esc(m.nota.slice(0,24)) + (m.nota.length > 24 ? '…' : '') + '</button>').join('') +
@@ -5364,6 +5372,16 @@ function menuVinculos(cap, vers){
    —no la primera escritura de la hoja, que es lo que sabe puntoActual—: si
    estás en una hoja con doce versículos y saltas desde la glosa del octavo,
    volver al primero no es volver. */
+/* DÓNDE ESTOY, en la forma que pide el rastro. puntoActual() da la hoja y su
+   referencia para el botón de regreso, que es otra cosa y otra forma; aquí
+   hace falta el {libro, cap, vers} suelto que apunta el rastro.
+   Es el primer versículo de la hoja: saltando desde una lista —el índice de
+   glosas, o la de «citado desde»— no hay un versículo señalado del que salga
+   el salto, y la hoja entera es lo que estabas mirando. */
+function dondeEstoy(){
+  const p = plano[Math.min(Math.max(paginas[paginaActual] || 0, 0), plano.length - 1)];
+  return p ? { libro: LIBRO, cap: p.cap, vers: p.vers } : null;
+}
 function deQueGlosa(el){
   const caja = el && el.closest('.gl[data-gl]');
   const m = caja && marcas.find(x => x.id === caja.dataset.gl);
@@ -7169,7 +7187,7 @@ function pintarHistorial(){
   };
   cont.innerHTML = '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span>' +
     pieAtras() + '</div>' +
-    historial.map(h => {
+    rastroVisible().map(h => {
     /* El texto sale de la VERSIÓN QUE ESTÁ PUESTA, no de la que estaba cuando
        lo miraste: el historial guarda la referencia, que es lo que no cambia,
        y el texto se busca al pintarlo. Cambiar de versión en Formato cambia lo
@@ -7180,6 +7198,30 @@ function pintarHistorial(){
       '<span class="hs-ref">' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '</span>' +
       '<span class="hs-txt">' + esc(t || '(no está en esta versión)') + '</span></button>';
     }).join('');
+}
+/* EL RASTRO SIN REPETICIONES SEGUIDAS.
+
+   El rastro se guarda tal cual, repetido y todo, y eso no cambia: es el camino
+   que seguiste, y reordenarlo o resumirlo al guardar sería mentir sobre en qué
+   orden pasaron las cosas. Lo que sobra es VERLO dos veces seguidas.
+
+   Y se dan solas: saltar apunta el de dónde y el a dónde, así que dos saltos
+   encadenados desde el mismo sitio, o un salto que acaba donde ya estabas,
+   dejan la misma escritura en dos renglones pegados. Dos renglones idénticos
+   uno encima de otro no cuentan nada que no contara uno.
+
+   Se resume al PINTAR y no al guardar, y lo usa también el paso atrás: si la
+   lista se resumiera solo para verla, el botón diría «atrás a Mt 1:1» estando
+   ya en Mt 1:1, y tocarlo no movería nada. Las dos cosas leen la misma lista,
+   así que lo que ves es a donde vas. */
+function rastroVisible(){
+  const out = [];
+  for (const h of historial){
+    const u = out[out.length - 1];
+    if (u && u.libro === h.libro && u.cap === h.cap && u.vers === h.vers) continue;
+    out.push(h);
+  }
+  return out;
 }
 /* EL PASO ATRÁS, y por qué va arriba y no al pie.
    Se pidió abajo del todo, y abajo del todo de esta lista está lo más VIEJO
@@ -7192,7 +7234,7 @@ function pintarHistorial(){
    Sin sitio a donde volver no se pinta: un botón que no lleva a ninguna parte
    enseña a no fiarse del que sí. */
 function pieAtras(){
-  const h = historial[atrasEn + 1];
+  const h = rastroVisible()[atrasEn + 1];
   if (!h) return '';
   return '<button class="hs-atras" data-atras="1" title="Volver a ' +
     esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '"' +
@@ -7202,7 +7244,7 @@ function pieAtras(){
 }
 /* Un paso atrás por el rastro, sin apuntarlo. */
 function darUnPasoAtras(){
-  const h = historial[atrasEn + 1];
+  const h = rastroVisible()[atrasEn + 1];
   if (!h) return;
   atrasEn++;
   cerrarHistorial();
@@ -9063,7 +9105,12 @@ $('indice').addEventListener('click', ev => {
      taparía justo el texto al que acabas de pedir ir. El salto arranca al
      cuadro siguiente para que la disolución alcance a empezar. */
   rGlosas.cerrar(false, true);
-  trasPintar(() => irA(lib, +c, +v, l || ''));   /* dos cuadros, como arriba */
+  /* Y SE APUNTA DE DÓNDE SALTAS. Elegir una glosa del índice es un salto como
+     el de una referencia, y sin el de dónde el rastro contaba el destino
+     suelto: el paso atrás te devolvía a lo anterior que hubieras saltado, que
+     puede ser de otro rato, en vez de a la hoja que estabas leyendo. */
+  const origen = dondeEstoy();
+  trasPintar(() => irA(lib, +c, +v, l || '', { origen }));   /* dos cuadros, como arriba */
 });
 
 /* Y aquí estaba el instructivo largo que salía debajo de la hoja. Se fue con
