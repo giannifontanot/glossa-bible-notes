@@ -148,6 +148,47 @@ const TOQUE = (x, y) => ({ bubbles:true, cancelable:true, pointerId:3,
   vale('y se cierra tocando encima del panel', conPanel.ventanita === false);
   vale('sin apagar el panel de la glosa', conPanel.panelSigue === true);
 
+  /* ---------- y la X tampoco se lleva la glosa ---------- */
+  titulo('la X cierra la ventanita y deja la glosa abierta');
+  /* ES OTRO CAMINO, y por eso va aparte del toque de fuera: el guardián que
+     cierra el panel de la glosa corre en captura sobre CUALQUIER pointerdown
+     que no caiga dentro del panel, y la X está dentro de la ventanita, no del
+     panel. O sea que quitar de en medio lo que TAPA la glosa se llevaba
+     además la glosa. Se lee como que la X cierra las dos cosas, que es justo
+     lo que esta ventanita no debe hacer: se lee un versículo sin salir de lo
+     que estabas escribiendo. */
+  const conLaXyGlosa = await pagina.evaluate(async () => {
+    const menu = document.getElementById('menu');
+    const gl = document.querySelector('#pgMargin .gl, #pgFoot .gl, #pgBody .gl');
+    if (!gl) return { falta:'una glosa en esta hoja' };
+    gl.dispatchEvent(new MouseEvent('dblclick', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 600));
+    const panelAbierto = getComputedStyle(menu).display !== 'none';
+    const ref = document.querySelector('#pgMargin .ref:not(.muerta), ' +
+                                       '#pgFoot .ref:not(.muerta), ' +
+                                       '#pgBody .ref:not(.muerta)');
+    if (!ref) return { panelAbierto, falta:'una referencia' };
+    ref.click();
+    await new Promise(z => setTimeout(z, 400));
+    const vp = document.getElementById('versoPleno');
+    const abierta = vp.classList.contains('visible');
+    const x = vp.querySelector('.vp-x');
+    if (!x) return { panelAbierto, abierta, falta:'la X' };
+    /* con su pointerdown, que es el que dispara al guardián */
+    x.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, cancelable:true, pointerId:7, pointerType:'touch' }));
+    x.click();
+    await new Promise(z => setTimeout(z, 450));
+    return { panelAbierto, abierta, ventanita: vp.classList.contains('visible'),
+             panelSigue: getComputedStyle(menu).display !== 'none' };
+  });
+  di('la X con la glosa detrás', conLaXyGlosa);
+  vale('el panel y la ventanita están puestos',
+       conLaXyGlosa.panelAbierto === true && conLaXyGlosa.abierta === true,
+       conLaXyGlosa.falta || '');
+  vale('la X cierra la ventanita', conLaXyGlosa.ventanita === false);
+  vale('y la glosa se queda abierta', conLaXyGlosa.panelSigue === true);
+
   /* ---------- la X, que es la salida que se ve ---------- */
   titulo('la X cierra la ventanita y deja el rastro donde estaba');
   /* Tocar fuera y Escape ya cerraban, pero las dos hay que saberlas de antes:
@@ -245,11 +286,21 @@ const TOQUE = (x, y) => ({ bubbles:true, cancelable:true, pointerId:3,
     const r = b.getBoundingClientRect();
     const fila = document.querySelector('.hs-fila');
     const rf = fila ? fila.getBoundingClientRect() : null;
+    const f = b.querySelector('.hs-flecha');
     return { alto:Math.round(r.height), ancho:Math.round(r.width),
+             flecha: f && f.tagName, trazo: f && getComputedStyle(f).strokeWidth,
              huecoConLaFila: rf ? Math.round(rf.top - r.bottom) : null };
   });
   di('el paso atrás', elAtras);
   vale('lo hay', !elAtras.falta, elAtras.falta || '');
+  /* LA FLECHA SE DIBUJA. Escrita con el carácter «←» salía de un pelo de
+     trazo —los tipos de interfaz no traen flechas gordas, así que el negrita
+     del botón no la engorda— y al lado de una referencia seminegrita se leía
+     como suciedad. Se comprueba que hay trazo de verdad y no una letra. */
+  vale('la flecha es un trazo y no una letra',
+       (elAtras.flecha || '').toLowerCase() === 'svg', elAtras.flecha || '(nada)');
+  vale('con grosor de letra, no de pelo',
+       parseFloat(elAtras.trazo) >= 2, String(elAtras.trazo));
   vale('mide al menos 34 de alto', elAtras.alto >= 34, String(elAtras.alto));
   vale('y no se solapa con la primera fila',
        elAtras.huecoConLaFila === null || elAtras.huecoConLaFila >= 0,
