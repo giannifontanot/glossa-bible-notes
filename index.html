@@ -953,6 +953,217 @@
   .hs-vacio{ display:block; padding:8px 5px 10px; font:400 12.5px/1.5 var(--ui);
              color:#6b5936; opacity:.8; }
 
+  /* ============================================================
+     EL SEPARADOR DE LECTURA: LA CINTA QUE CUELGA DEL MARGEN.
+
+     Es el objeto que se deja dentro de un libro para volver, y por eso vive
+     DENTRO del papel y no encima de la pantalla: cuelga de la columna de
+     glosas, se corre con la hoja cuando el papel se corre —en el teléfono la
+     hoja es más ancha que la ventana— y la propia columna lo recorta, así que
+     no hay manera de que se salga ni de que empuje la página a lo ancho.
+
+     CORTA A PROPÓSITO. Una cinta larga taparía justo lo que se viene a leer.
+     El ancho es una proporción de la columna —24%, entre 20 y 40px, o sea
+     unos 26px en escritorio y 40 en teléfono— y el alto sale de la proporción
+     y no de un número clavado, así que sigue midiendo lo mismo respecto a su
+     sitio en cualquier pantalla. Con eso ocupa la esquina de arriba a la
+     derecha y deja la columna entera para las glosas.
+
+     La percha no recibe toques: los reciben la cinta y su equis, que son
+     botones de verdad. Importa por dos cosas que ya estaban: el papel se
+     arrastra con el dedo y su lista de "esto no es papel" ya conoce los
+     botones, y las glosas de debajo tienen que poder tocarse por el hueco. */
+  .sep-percha{ position:absolute; top:var(--cinta-arriba,0px); right:4px; z-index:4;
+               width:clamp(16px, 18%, 32px); aspect-ratio:1 / 1.75;
+               pointer-events:none; }
+  /* La tela: un degradado de lado a lado —la cinta no es plana, tiene un
+     doblez— y encima un rayado finísimo que insinúa la trama. La cola en pico
+     se recorta con clip-path, que es lo que la distingue de una pestaña de
+     colores; y por eso la sombra va en filter y no en box-shadow: box-shadow
+     dibuja la caja, no la forma recortada. */
+  .separador{ position:absolute; inset:0; border:0; padding:0; margin:0;
+              cursor:pointer; pointer-events:auto; -webkit-tap-highlight-color:transparent;
+              background:
+                repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px,
+                                                 rgba(0,0,0,.05) 1px 3px),
+                linear-gradient(100deg, var(--tela-osc,#7a1f1f) 0%,
+                                        var(--tela,#9b2a2a) 32%,
+                                        var(--tela,#9b2a2a) 68%,
+                                        var(--tela-osc,#7a1f1f) 100%);
+              clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
+              /* DOS SOMBRAS, y la clara es la que importa. Una cinta puesta en
+                 la esquina de la columna se cruza con la primera glosa cuando
+                 la hay —es lo que hace una cinta de verdad: se echa encima de
+                 lo que haya— y sin nada que las separe, el renglón cortado se
+                 lee como una nota rota. Con un filo de papel a su izquierda,
+                 el texto pasa POR DEBAJO y se entiende que sigue ahí.
+                 Por eso la cinta es estrecha —el 18% de la columna, 26px en
+                 escritorio— y por eso arranca debajo del titulillo: lo que
+                 tapa es lo mínimo que puede tapar algo que cuelga de ahí. */
+              filter:drop-shadow(-1.5px 0 0 rgba(252,247,235,.92))
+                     drop-shadow(0 2px 3px rgba(60,40,15,.42));
+              transition:transform .24s cubic-bezier(.2,.85,.3,1), filter .22s ease; }
+  .separador:hover{ filter:drop-shadow(-1.5px 0 0 rgba(252,247,235,.92))
+                            drop-shadow(0 3px 5px rgba(60,40,15,.5)); }
+  .separador:active{ transform:translateY(1px); }
+  /* El foco no puede ir en outline: el clip-path se lo lleva por delante. */
+  .separador:focus-visible{ outline:none;
+              box-shadow:inset 0 0 0 2px rgba(255,252,240,.92); }
+  .separador.abierta{ transform:translateY(3px);
+              filter:drop-shadow(-1.5px 0 0 rgba(252,247,235,.92))
+                     drop-shadow(0 4px 7px rgba(60,40,15,.55)); }
+  /* Cae desde arriba, y SOLO al ponerla: repetir la caída en cada repintado
+     convertiría un gesto en un tic. */
+  @keyframes sep-cae{ from{ transform:translateY(-105%); } to{ transform:none; } }
+  .separador.cayendo{ animation:sep-cae .42s cubic-bezier(.2,.85,.3,1); }
+  /* La equis vive en la esquina de la cinta y solo mientras el menú está
+     abierto: un botón de borrar siempre visible sobre algo que se toca para
+     otra cosa es una trampa. */
+  .sep-x{ position:absolute; top:2px; right:2px; width:18px; height:18px;
+          display:none; place-items:center; pointer-events:auto;
+          border:0; border-radius:50%; padding:0; cursor:pointer;
+          background:rgba(255,252,240,.9); color:#5a3a12;
+          -webkit-tap-highlight-color:transparent;
+          opacity:0; transform:scale(.7);
+          transition:opacity .18s ease, transform .22s cubic-bezier(.2,.85,.3,1); }
+  .sep-x.viva{ display:grid; }
+  .sep-x.viva.puesta{ opacity:1; transform:none; }
+  .sep-x:hover{ background:#fff; }
+  .sep-x:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
+  .sep-x svg{ display:block; width:9px; height:9px; }
+  /* De lejos la hoja es una foto: la cinta se sigue viendo —dice dónde te
+     quedaste, que es justo lo que se mira de lejos— pero no responde, igual
+     que los dos rótulos. Un toque ahí significa "acércame". */
+  #pg.zoom .separador, #pg.zoom .sep-x{ pointer-events:none; }
+
+  /* EL MENÚ DE LA CINTA, LA OFERTA Y LA CONFIRMACIÓN se visten como el panel
+     del rastro —papel dorado, borde tenue, sombra baja— porque son la misma
+     clase de cosa: hojas pequeñas que salen de un sitio concreto y se van. */
+  #sepMenu{ position:absolute; z-index:9; width:min(280px, calc(100% - 16px));
+            max-height:64%; display:none; flex-direction:column; overflow-y:auto;
+            overscroll-behavior:contain;
+            background:linear-gradient(to bottom, #f2e9d6, #e7dbbe);
+            border:1px solid rgba(140,116,68,.5); border-radius:6px;
+            box-shadow:0 12px 26px -9px rgba(0,0,0,.55);
+            padding:7px; scrollbar-width:none;
+            opacity:0; transform:translateY(-8px) scale(.97);
+            transform-origin:top right;
+            transition:opacity .2s ease, transform .28s cubic-bezier(.2,.85,.3,1); }
+  #sepMenu::-webkit-scrollbar{ width:0; height:0; display:none; }
+  #sepMenu.visible{ opacity:1; transform:none; }
+  .sp-tit{ display:block; font:700 10.5px/1 var(--ui); letter-spacing:.14em;
+           text-transform:uppercase; color:#8a7746; padding:3px 3px 7px; }
+  .sp-telas{ display:flex; gap:7px; padding:0 3px 9px; }
+  .sp-tela{ flex:0 0 auto; width:30px; height:30px; border-radius:50%;
+            border:1px solid rgba(90,70,30,.45); cursor:pointer; padding:0;
+            -webkit-tap-highlight-color:transparent;
+            transition:transform .2s cubic-bezier(.2,.85,.3,1); }
+  .sp-tela:hover{ transform:scale(1.08); }
+  .sp-tela[aria-pressed="true"]{ box-shadow:0 0 0 2px #f2e9d6, 0 0 0 3.5px #6d5a2c; }
+  .sp-tela:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
+  .sp-fila{ display:flex; align-items:center; gap:8px; width:100%;
+            border:0; background:rgba(255,253,247,.62); cursor:pointer;
+            text-align:left; padding:8px 9px; border-radius:4px;
+            margin-bottom:5px; min-height:38px;
+            -webkit-tap-highlight-color:transparent;
+            transition:background .28s cubic-bezier(.65,0,.35,1); }
+  .sp-fila:last-child{ margin-bottom:0; }
+  .sp-fila:hover{ background:#fffdf6; }
+  .sp-fila.aqui{ box-shadow:inset 0 0 0 1.5px rgba(184,137,43,.7); }
+  /* La muestra de color lleva la misma cola en pico que la cinta: quien no
+     distinga los tonos reconoce igual la fila por su referencia y por el
+     nombre del color, que va escrito. El color nunca es el único dato. */
+  .sp-chip{ flex:0 0 auto; width:11px; height:20px;
+            clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
+            border-radius:1px; }
+  .sp-ref{ flex:1 1 auto; min-width:0; font:700 13px/1.3 var(--ui); color:#4a3a1c;
+           white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sp-nota{ flex:0 0 auto; font:400 11px/1.3 var(--ui); color:#7b6838;
+            letter-spacing:.02em; }
+  .sp-vacio{ display:block; padding:6px 5px 8px; font:400 12.5px/1.5 var(--ui);
+             color:#6b5936; opacity:.85; }
+  /* La confirmación de borrado sale DENTRO del mismo menú y no en otra caja
+     flotante: la pregunta es sobre la cinta que estás mirando, y sacarla a
+     otro sitio de la pantalla obliga a buscar a qué se refiere. */
+  .sp-borrar{ margin-top:7px; padding:9px; border-radius:5px;
+              background:rgba(155,42,42,.1); border:1px solid rgba(155,42,42,.35);
+              opacity:0; transform:translateY(-4px);
+              transition:opacity .18s ease, transform .24s cubic-bezier(.2,.85,.3,1); }
+  .sp-borrar.puesta{ opacity:1; transform:none; }
+  .sp-pregunta{ display:block; font:600 12.5px/1.4 var(--ui); color:#5c2323;
+                padding-bottom:8px; }
+  .sp-botones{ display:flex; gap:7px; }
+  .sp-btn{ flex:1 1 auto; min-height:34px; border-radius:999px; cursor:pointer;
+           font:600 12.5px/1 var(--ui); letter-spacing:.04em;
+           -webkit-tap-highlight-color:transparent;
+           border:1px solid rgba(140,116,68,.4); color:#6d5a2c;
+           background:rgba(140,116,68,.13); }
+  .sp-btn:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
+  .sp-btn.si{ border-color:rgba(155,42,42,.5); color:#7d2323;
+              background:rgba(155,42,42,.14); }
+  .sp-btn.si:hover{ background:rgba(155,42,42,.24); color:#5c1a1a; }
+  .sp-btn:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
+
+  /* LA OFERTA. Sale abajo y en el centro, que es la única franja de la escena
+     que no tiene nada encima —los cuatro rincones están ocupados— y sobre
+     todo la que no tapa el texto que se estaba leyendo. No interrumpe: si no
+     se contesta, se va sola y no vuelve a preguntar en esta lectura. */
+  #sepOferta{ position:absolute; left:50%; bottom:54px; z-index:9;
+              display:none; align-items:center; gap:10px;
+              width:max-content; max-width:calc(100% - 24px);
+              background:linear-gradient(to bottom, #f2e9d6, #e7dbbe);
+              border:1px solid rgba(140,116,68,.5); border-radius:999px;
+              box-shadow:0 12px 26px -9px rgba(0,0,0,.5);
+              padding:7px 8px 7px 15px;
+              opacity:0; transform:translateX(-50%) translateY(9px);
+              transition:opacity .22s ease, transform .3s cubic-bezier(.2,.85,.3,1); }
+  #sepOferta.visible{ opacity:1; transform:translateX(-50%); }
+  .so-dice{ font:600 12.5px/1.3 var(--ui); color:#4a3a1c; }
+  .so-btn{ flex:0 0 auto; min-height:32px; min-width:44px; border-radius:999px;
+           cursor:pointer; font:600 12.5px/1 var(--ui); letter-spacing:.04em;
+           padding:8px 14px; -webkit-tap-highlight-color:transparent;
+           border:1px solid rgba(140,116,68,.42); color:#6d5a2c;
+           background:rgba(140,116,68,.14); }
+  .so-btn:hover{ background:rgba(140,116,68,.28); color:#4d3f1d; }
+  .so-btn:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
+  .so-btn.si{ border-color:rgba(184,137,43,.6); background:rgba(184,137,43,.22);
+              color:#5a4413; }
+  .so-btn.si:hover{ background:rgba(184,137,43,.34); }
+  /* El botón del panel del rastro. Va vestido igual que el paso atrás que
+     tiene al lado —son dos acciones del mismo renglón— con su cinta delante
+     para que se reconozca sin leerlo. */
+  /* EL BOTÓN DEL SEPARADOR VA EN SU PROPIO RENGLÓN, y no por gusto: medido,
+     el rótulo del panel y el paso atrás ya ocupan 236 de los 322 px útiles, y
+     «SEPARADOR» no baja de 108 por mucho que se le quite. Metiéndolo en el
+     mismo renglón, o se parte el rótulo o se estruja el botón de atrás —que
+     está donde está por una razón que costó encontrar: ver arriba—.
+     Debajo y pegado al mismo filo derecho queda junto a él, que es lo pedido,
+     y el renglón de arriba se queda exactamente como estaba. */
+  .hs-acciones{ display:flex; justify-content:flex-end; padding:0 3px 7px; }
+  .hs-sep{ flex:0 0 auto; display:inline-flex; align-items:center; gap:6px;
+           min-height:34px; font:600 12px/1 var(--ui); letter-spacing:.06em;
+           text-transform:uppercase;
+           color:#6d5a2c; background:rgba(140,116,68,.13);
+           border:1px solid rgba(140,116,68,.4); border-radius:999px;
+           padding:7px 13px; cursor:pointer;
+           -webkit-tap-highlight-color:transparent; }
+  .hs-sep:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
+  .hs-sep:active{ transform:translateY(1px); }
+  .hs-sep-cinta{ flex:0 0 auto; width:8px; height:14px; background:#9b2a2a;
+                 clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%); }
+
+  /* QUIEN PIDIÓ MENOS MOVIMIENTO NO RECIBE NINGUNO DE ÉSTOS. Aparecer y
+     desaparecer se queda —hace falta para entender que algo salió— pero sin
+     recorrido ni escala: solo el fundido, y la cinta ya no cae. */
+  @media (prefers-reduced-motion: reduce){
+    .separador, .sep-x, #sepMenu, #sepOferta, .sp-borrar, .sp-tela, .sp-fila{
+      transition-duration:.01ms !important; }
+    .separador.cayendo{ animation:none !important; }
+    #sepMenu{ transform:none !important; }
+    #sepOferta{ transform:translateX(-50%) !important; }
+    .sp-borrar{ transform:none !important; }
+  }
+
   /* LA VENTANITA DEL VERSÍCULO. Un paso más, y el paso es el que evita el
      error caro: desde una línea cortada no se puede saber si es el versículo
      que buscabas, y un salto equivocado cuesta esperar el viaje y volver.
@@ -1051,6 +1262,14 @@
     .hs-txt{ font-size:14px; }
     .hs-fila{ min-height:44px; padding:10px; }
     .hs-atras{ min-height:38px; font-size:13px; padding:9px 14px 9px 16px; }
+    .hs-sep{ min-height:38px; font-size:13px; padding:9px 14px; }
+    .sp-ref{ font-size:14px; }
+    .sp-fila{ min-height:44px; padding:10px; }
+    .sp-btn, .so-btn{ min-height:40px; font-size:13.5px; }
+    .so-dice{ font-size:13.5px; }
+    #sepOferta{ bottom:64px; }
+    .sep-x{ width:22px; height:22px; }
+    .sep-x svg{ width:11px; height:11px; }
     .vp-txt{ font-size:17px; padding:13px 14px; }
     .vp-x{ width:34px; height:34px; font-size:19px; }
     .hs-vacio, .vp-pie{ font-size:13px; }
@@ -2084,6 +2303,13 @@
   </div>
   <button id="btnHistorial" title="Lo que has visto" aria-label="Lo que has visto"></button>
   <div id="historial" role="dialog" aria-label="Escrituras vistas" aria-modal="false"></div>
+  <!-- El menú de la cinta y la oferta de ponerla. Viven en la escena y no
+       dentro del papel a propósito: la columna de glosas recorta lo que
+       asoma —que es justo lo que mantiene la cinta dentro de su sitio— y un
+       menú recortado no sirve de nada. La cinta queda a la vista y el menú
+       sale a su lado, anclado a ella. -->
+  <div id="sepMenu" role="dialog" aria-label="Opciones del separador" aria-modal="false"></div>
+  <div id="sepOferta" role="dialog" aria-label="Poner un separador" aria-modal="false"></div>
   <div id="versoPleno" role="dialog" aria-label="Versículo completo"></div>
   <!-- El rótulo de abajo dice en qué versión lees; tocarlo abre la lista de
        versiones aquí mismo, sin pasar por el panel. -->
@@ -2146,7 +2372,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-AGO-26 12:05';
+window.GLOSS_BUILD = '25-AGO-26 13:40';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3857,6 +4083,11 @@ function renderPageCrudo(){
   $('btnVolver').style.display = volverA == null ? 'none' : '';
   medirHojaTelefono();
   pintarFiltros(); pintarIndice(); invalidateSnapshot(); updateReadout();
+  /* La cinta se vuelve a colgar aquí, después del acomodo: layoutInto vacía la
+     columna de glosas cada vez, así que ponerla antes sería ponerla para que
+     se la lleven. Y va DESPUÉS de que la foto se invalide, para que no entre
+     en el retrato del pliegue: la cinta es del lector, no de la hoja. */
+  if (typeof separadorAlPintar === 'function') separadorAlPintar();
   if (typeof guardarAjustes === 'function') guardarAjustes();
 }
 
@@ -7499,10 +7730,26 @@ stage.addEventListener('click', ev => {
    ============================================================ */
 let histAbierto = false, plenoAbierto = null;   /* plenoAbierto guarda la referencia */
 
+/* LA CABECERA DEL PANEL, con el rótulo y las dos acciones del renglón.
+
+   Va aparte y se pinta SIEMPRE —también con el rastro vacío— porque una de
+   esas acciones ya no depende del rastro: poner un separador se puede hacer
+   desde el primer minuto, sin haber saltado a ningún sitio todavía. El paso
+   atrás sigue apareciendo solo cuando hay a dónde volver. */
+function cabezaHistorial(){
+  return '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span>' +
+    pieAtras() + '</div>' +
+    '<div class="hs-acciones">' +
+    '<button class="hs-sep" data-sep-nuevo="1"' +
+      ' title="Dejar un separador en esta hoja"' +
+      ' aria-label="Dejar un separador en esta hoja">' +
+      '<span class="hs-sep-cinta" aria-hidden="true"></span>separador</button>' +
+    '</div>';
+}
 function pintarHistorial(){
   const cont = $('historial');
   if (!historial.length){
-    cont.innerHTML = '<span class="hs-tit">Lo que has visto</span>' +
+    cont.innerHTML = cabezaHistorial() +
       '<span class="hs-vacio">Todavía nada. Aquí van quedando los pasajes a los ' +
       'que saltas desde el panel de libros o desde una referencia de una glosa.</span>';
     return;
@@ -7518,8 +7765,7 @@ function pintarHistorial(){
     const k = plano.findIndex(p => p.cap === h.cap && p.vers === h.vers);
     return k >= desde && k < hasta;
   };
-  cont.innerHTML = '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span>' +
-    pieAtras() + '</div>' +
+  cont.innerHTML = cabezaHistorial() +
     rastroVisible().map(h => {
     /* El texto sale de la VERSIÓN QUE ESTÁ PUESTA, no de la que estaba cuando
        lo miraste: el historial guarda la referencia, que es lo que no cambia,
@@ -7646,6 +7892,22 @@ $('btnHistorial').addEventListener('click', ev => {
   if (histAbierto) cerrarHistorial(); else abrirHistorial();
 });
 $('historial').addEventListener('click', ev => {
+  /* PONER UNA CINTA A MANO. Cierra el panel: acabas de marcar la hoja donde
+     estás y lo que hay que ver es la cinta, no la lista de por dónde has
+     pasado. Y la lectura queda marcada, así que no se te vuelve a preguntar
+     en esta sesión: ya contestaste poniéndola. */
+  if (ev.target.closest('[data-sep-nuevo]')){
+    ev.preventDefault(); ev.stopPropagation();
+    cerrarHistorial();
+    /* Si esta hoja YA tiene cinta, el botón no pone otra encima: abre la suya.
+       Dos cintas en la misma hoja no marcan dos sitios, marcan uno mal. Y de
+       paso es la puerta a la lista desde el panel, sin inventar otro botón. */
+    const ya = sepDeLaHoja();
+    if (ya){ abrirSepMenu(ya.id); return; }
+    crearSeparador();
+    readout.textContent = 'separador puesto';
+    return;
+  }
   if (ev.target.closest('[data-atras]')){
     ev.preventDefault(); ev.stopPropagation();
     darUnPasoAtras(); return;
@@ -8636,7 +8898,13 @@ document.addEventListener('keydown', ev => {
 
      Va ANTES del guardián de «escribiendo» a propósito: el caso que importa
      es justamente el de estar tecleando dentro de la caja de la glosa. */
-  if (ev.key === 'Escape'){ ocultarCascada(); cerrarTodosLosRollos(); ocultarMenu(); }
+  if (ev.key === 'Escape'){ ocultarCascada(); cerrarTodosLosRollos(); ocultarMenu();
+    /* Y lo del separador, que también son cosas de las que hay que poder
+       salir sin puntero: el menú, y la pregunta si está puesta. */
+    if (sepBorrando){ sepBorrando = false; pintarSepMenu(); colocarSepMenu(); }
+    else cerrarSepMenu();
+    if (sepOfertaAbierta){ sepOfrecido = true; cerrarOferta(); }
+  }
   /* Las flechas pasan hoja. Antes había botones y ahora no, así que el teclado
      deja de ser un lujo: sin él, quien no descubra los filos se queda encerrado
      en una hoja. Se ignoran si estás escribiendo en un campo. */
@@ -8994,6 +9262,460 @@ function apuntarVisto(libro, cap, vers){
   try { localStorage.setItem(HISTORIAL, JSON.stringify(historial)); } catch(e){}
   if (histAbierto) pintarHistorial();
 }
+
+/* ============================================================
+   LOS SEPARADORES DE LECTURA.
+
+   El objeto que se deja dentro de un libro para volver. Aquí es una cinta que
+   cuelga del alto de la columna de glosas, y hace lo que hace la de tela: se
+   queda donde dejaste de leer, la mueves contigo mientras sigues leyendo, y
+   sirve para volver.
+
+   TRES COSAS QUE ESTE CÓDIGO NO INVENTA, porque ya estaban:
+   · Dónde está una cinta se guarda como REFERENCIA —libro, capítulo,
+     versículo—, igual que el rastro. Guardar el número de hoja sería guardar
+     algo que cambia solo: basta subir la letra en Formato para que la hoja 12
+     de ayer sea otro texto. La referencia es lo único que no se mueve.
+   · Que una cinta esté en ESTA hoja se pregunta igual que el «estás aquí» del
+     rastro: si su versículo cae en el tramo que reparte la hoja.
+   · Se guarda en su propio cajón del almacén, aparte de las glosas y de los
+     ajustes, por lo mismo que el rastro: si algún día se corrompe, se pierden
+     las cintas y no las glosas.
+
+   Y UNA QUE SÍ ES NUEVA: distinguir leer de hojear. Ver más abajo, en
+   LECTURA_MINIMA.
+   ============================================================ */
+const SEPARADORES = 'glossa:separadores:v1';
+const TOPE_SEPARADORES = 30;
+/* CUÁNTO HAY QUE QUEDARSE EN UNA HOJA PARA QUE CUENTE COMO LEÍDA.
+
+   Una hoja de este libro trae diez o quince versículos, que leídos de verdad
+   son entre cuarenta segundos y minuto y medio. Veinte segundos no certifican
+   que la hayas leído entera —no es lo que se busca— pero sí separan las dos
+   cosas que hay que separar: hojear y leer. Nadie pasa veinte segundos en una
+   hoja por la que solo iba de paso, y quien lee de verdad los pasa siempre.
+
+   Está aquí, con nombre y solo, para poder moverlo: es el único número de
+   toda esta sección que se puede querer ajustar después de usarla un rato. */
+const LECTURA_MINIMA = 20000;
+/* Y CUÁNDO SE ACABA UNA SESIÓN DE LECTURA. Volver veinte minutos después no
+   es seguir leyendo, es volver a empezar: la cuenta de hojas leídas se pone a
+   cero, la cinta activa se suelta —donde esté se queda— y la aplicación puede
+   volver a ofrecer una cinta nueva. Abrir la aplicación también empieza
+   sesión, que es el otro corte natural y sale gratis. */
+const PAUSA_SESION = 20 * 60 * 1000;
+/* Los cuatro colores de tela: oscuros y con la saturación baja, que es lo que
+   pide un papel crema. Cada uno lleva su nombre escrito porque el color no
+   puede ser la única manera de reconocer una cinta. */
+const TELAS = [['carmin', 'carmín', '#9b2a2a', '#7a1f1f'],
+               ['oliva',  'oliva',  '#4d6a35', '#3a5127'],
+               ['indigo', 'índigo', '#2f4a78', '#22375a'],
+               ['ocre',   'ocre',   '#a4761d', '#845c12']];
+const telaDe = c => TELAS.find(t => t[0] === c) || TELAS[0];
+
+let separadores = [];
+/* CUÁL ES LA CINTA ACTIVA vive en memoria y no en el almacén, y no es un
+   olvido: activa quiere decir «la que va siguiendo ESTA lectura», y una
+   lectura no sobrevive a cerrar la aplicación. Lo que sí sobrevive es dónde
+   se quedó, que es lo que se guarda. Al abrir de nuevo no hay ninguna activa
+   hasta que pongas una o vuelvas a una desde la lista. */
+let sepActivo = null;
+/* El estado de la lectura: dónde estamos, desde cuándo, cuántas hojas
+   seguidas se han leído de verdad y si ya se preguntó en esta sesión. */
+let sepHojaAnterior = null, sepLlegadaEn = 0, sepLeidasSeguidas = 0,
+    sepOfrecido = false, sepCayendo = null, sepMenuAbierto = null,
+    sepOfertaAbierta = false, sepRelojOferta = null, sepBorrando = false;
+
+function sepGuardar(){
+  try { localStorage.setItem(SEPARADORES, JSON.stringify(separadores)); } catch(e){}
+}
+/* Cada campo se comprueba antes de aceptarlo: un almacén de otra versión, a
+   medio escribir o manoseado a mano no debe dejar cintas imposibles. Lo que
+   no se entiende se tira; lo que se entiende a medias se completa. */
+function cargarSeparadores(){
+  try {
+    const a = JSON.parse(localStorage.getItem(SEPARADORES) || '[]');
+    separadores = !Array.isArray(a) ? [] : a
+      .filter(x => x && typeof x.id === 'string' && x.id &&
+                   typeof x.libro === 'string' && x.libro && x.cap > 0 && x.vers > 0)
+      .map(x => ({ id: x.id, libro: x.libro, cap: +x.cap, vers: +x.vers,
+                   color: telaDe(x.color)[0],
+                   creado: +x.creado > 0 ? +x.creado : Date.now(),
+                   tocado: +x.tocado > 0 ? +x.tocado : (+x.creado > 0 ? +x.creado : Date.now()) }))
+      .slice(0, TOPE_SEPARADORES);
+  } catch(e){ separadores = []; }
+}
+/* El identificador no puede salir del sitio que ocupa en la lista: la lista
+   se reordena al tocar una cinta y se acorta al borrar otra. */
+function sepNuevoId(){
+  return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+const sepDe = id => separadores.find(x => x.id === id) || null;
+
+/* ¿QUÉ CINTA TOCA PINTAR EN ESTA HOJA? La misma pregunta que el «estás aquí»
+   del rastro. Si hay más de una —se puede: son referencias distintas de la
+   misma hoja— se enseña la más reciente, y la activa gana siempre: es la que
+   se está moviendo contigo. Las demás siguen en la lista del menú, que es
+   donde se ven todas. */
+/* DÓNDE CAE UNA CINTA EN EL LIBRO DE AHORA, con una red.
+
+   El versículo exacto puede no existir: cambiar de versión en Formato cambia
+   la numeración, y hay versiones a las que les faltan versículos enteros. Una
+   cinta cuyo versículo ya no está no puede volverse invisible para siempre
+   —no habría manera de llegar a ella ni de quitarla—, así que se conforma con
+   su capítulo, que es donde la dejaste con un renglón de diferencia. */
+function sepK(x){
+  if (x.libro !== LIBRO) return -1;
+  const k = plano.findIndex(pp => pp.cap === x.cap && pp.vers === x.vers);
+  return k >= 0 ? k : plano.findIndex(pp => pp.cap === x.cap);
+}
+const sepAqui = x => {
+  const k = sepK(x);
+  return k >= 0 && k >= (paginas[paginaActual] || 0) && k < finDe(paginaActual);
+};
+function sepDeLaHoja(){
+  if (!separadores.length) return null;
+  const aqui = separadores.filter(sepAqui);
+  if (!aqui.length) return null;
+  return aqui.find(x => x.id === sepActivo) ||
+         aqui.sort((a, b) => b.tocado - a.tocado)[0];
+}
+/* DÓNDE CUELGA. De la columna de glosas siempre que la columna exista; con
+   las glosas puestas debajo del texto o al pie, esa columna mide cero y no
+   hay de dónde colgar nada, así que la cinta se va a la esquina de arriba de
+   la hoja, que es el mismo sitio en el papel. */
+function sepPercha(){
+  if (pgMargin.offsetWidth > 44) return pgMargin;
+  return pg.querySelector('.pg-inner') || pgMargin;
+}
+/* DE DÓNDE CUELGA EXACTAMENTE, medido y no supuesto.
+
+   Del alto de la columna de glosas, sí, pero por debajo del titulillo: en
+   pantalla ancha la columna empieza justo detrás de él —en teléfono no, ahí
+   .pg-cols ya le reserva sitio— y una cinta puesta a cero tapaba «MATEO 1:1».
+   Se le pregunta a los dos elementos dónde están, que es lo que hace el resto
+   del programa cuando el acomodo depende del ancho y de los ajustes. */
+function sepArriba(anfitrion){
+  const cab = pg.querySelector('.pg-cabeza');
+  if (!cab) return 0;
+  const a = anfitrion.getBoundingClientRect(), c = cab.getBoundingClientRect();
+  if (c.width < 2) return 0;
+  return Math.max(0, Math.round(c.bottom - a.top + 3));
+}
+function pintarSeparador(){
+  const puesta = document.getElementById('sepPercha');
+  if (puesta) puesta.remove();
+  const s = sepDeLaHoja();
+  if (!s){ if (sepMenuAbierto) cerrarSepMenu(); return; }
+  const t = telaDe(s.color);
+  const percha = document.createElement('div');
+  percha.className = 'sep-percha';
+  percha.id = 'sepPercha';
+  const cae = sepCayendo === s.id ? ' cayendo' : '';
+  sepCayendo = null;
+  const abierta = sepMenuAbierto === s.id;
+  percha.innerHTML =
+    '<button class="separador' + cae + (abierta ? ' abierta' : '') + '"' +
+      ' style="--tela:' + t[2] + ';--tela-osc:' + t[3] + '"' +
+      ' data-sep="' + esc(s.id) + '" aria-haspopup="dialog"' +
+      ' aria-expanded="' + (abierta ? 'true' : 'false') + '"' +
+      ' aria-label="Separador ' + t[1] + ' en ' + esc(abrevDe(s.libro)) + ' ' +
+        s.cap + ':' + s.vers + '. Abre sus opciones."></button>' +
+    '<button class="sep-x' + (abierta ? ' viva puesta' : '') + '" data-sep-x="1"' +
+      ' aria-label="Quitar este separador" title="Quitar este separador">' +
+      '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1 L9 9 M9 1 L1 9"' +
+      ' stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>';
+  const anfitrion = sepPercha();
+  percha.style.setProperty('--cinta-arriba', sepArriba(anfitrion) + 'px');
+  anfitrion.appendChild(percha);
+}
+
+/* ---------- poner, mover y quitar ---------- */
+function crearSeparador(){
+  const p = puntoActual();
+  const s = { id: sepNuevoId(), libro: p.libro, cap: p.ref.cap, vers: p.ref.vers,
+              /* El color va rotando: dos cintas seguidas del mismo tono se
+                 confunden en la lista, y elegir uno al azar podía repetirlo. */
+              color: TELAS[separadores.length % TELAS.length][0],
+              creado: Date.now(), tocado: Date.now() };
+  separadores.unshift(s);
+  if (separadores.length > TOPE_SEPARADORES) separadores.length = TOPE_SEPARADORES;
+  sepActivo = s.id;
+  sepOfrecido = true;              /* ya hay cinta en esta lectura: no se pregunta más */
+  sepCayendo = s.id;
+  sepGuardar();
+  pintarSeparador();
+  return s;
+}
+/* La cinta activa sigue al lector hoja a hoja, y solo ella: las demás se
+   quedan donde las dejaron. Mover es mover la referencia, no crear otra. */
+function avanzarSeparador(){
+  const s = sepDe(sepActivo);
+  if (!s) return;
+  const p = puntoActual();
+  if (s.libro === p.libro && s.cap === p.ref.cap && s.vers === p.ref.vers) return;
+  s.libro = p.libro; s.cap = p.ref.cap; s.vers = p.ref.vers; s.tocado = Date.now();
+  sepGuardar();
+}
+function borrarSeparador(id){
+  const i = separadores.findIndex(x => x.id === id);
+  if (i < 0) return;
+  separadores.splice(i, 1);
+  if (sepActivo === id) sepActivo = null;
+  sepGuardar();
+  cerrarSepMenu();
+  pintarSeparador();
+}
+
+/* ---------- ¿está leyendo, o solo pasando hojas? ----------
+
+   La máquina es corta y son tres reglas:
+
+   · Cada llegada a una hoja distinta cierra la medición de la anterior. Si el
+     lector se quedó ahí LECTURA_MINIMA y el movimiento fue el de leer —la
+     hoja de al lado hacia adelante, o el principio del libro siguiente— esa
+     hoja cuenta como leída y la cuenta sube.
+   · Cualquier otra cosa la pone a cero: un salto desde el índice o desde una
+     glosa, un paso atrás, un vistazo de tres segundos. Eso no es leer, y la
+     cuenta no debe sobrevivirlo.
+   · Con dos hojas leídas seguidas, al llegar a la tercera se ofrece la cinta.
+
+   Hay UNA sola medición y vive en dos números —dónde y desde cuándo—, así que
+   no hay temporizadores sueltos que se puedan encimar ni que haga falta
+   cancelar. Todo se resuelve en la llegada. */
+function sepTerminarSesion(){
+  sepLeidasSeguidas = 0;
+  sepOfrecido = false;
+  sepActivo = null;
+}
+function sepLlegada(){
+  const ahora = Date.now();
+  const sitio = { libro: LIBRO, n: paginaActual };
+  const permanencia = sepLlegadaEn ? ahora - sepLlegadaEn : 0;
+  const ant = sepHojaAnterior;
+  const leyendo = !!ant && ((sitio.libro === ant.libro && sitio.n === ant.n + 1) ||
+                            (sitio.libro !== ant.libro && sitio.n === 0));
+  if (sepLlegadaEn && permanencia > PAUSA_SESION) sepTerminarSesion();
+  else if (leyendo && permanencia >= LECTURA_MINIMA) sepLeidasSeguidas++;
+  else sepLeidasSeguidas = 0;
+  sepHojaAnterior = sitio;
+  sepLlegadaEn = ahora;
+  if (leyendo) avanzarSeparador();
+  if (sepLeidasSeguidas >= 2) ofrecerSeparador();
+}
+/* El enganche desde renderPage. Se pinta siempre; la llegada se cuenta solo
+   cuando de verdad cambió la hoja, porque renderPage vuelve a pintar por
+   muchas más razones que pasar de hoja —cambiar la letra, escribir una
+   glosa, mover un filtro— y ninguna de ésas es llegar a ningún sitio. */
+let sepClaveHoja = null;
+function separadorAlPintar(){
+  const p = plano[paginas[paginaActual]] || null;
+  const clave = LIBRO + ' ' + (p ? p.cap + ':' + p.vers : '?');
+  const cambio = clave !== sepClaveHoja;
+  sepClaveHoja = clave;
+  if (cambio && sepMenuAbierto) cerrarSepMenu();
+  if (cambio) sepLlegada();
+  pintarSeparador();
+  if (sepMenuAbierto) colocarSepMenu();
+}
+
+/* ---------- la oferta ---------- */
+function ofrecerSeparador(){
+  if (sepOfrecido || sepOfertaAbierta || sepActivo) return;
+  /* Si ya hay una cinta en esta hoja no hay nada que ofrecer. */
+  if (sepDeLaHoja()) return;
+  /* Y no se interrumpe: ni con una hoja en el aire, ni de lejos, ni con un
+     panel abierto encima. La lectura sigue y se preguntará en la siguiente. */
+  if (folding || preparandoPliegue || zoomActivo || borrador || cantoAbierto) return;
+  const el = $('sepOferta');
+  el.innerHTML = '<span class="so-dice" id="soDice">¿Pongo un separador aquí?</span>' +
+    '<button class="so-btn si" data-sep-si="1">Sí</button>' +
+    '<button class="so-btn" data-sep-no="1">No</button>';
+  el.setAttribute('aria-describedby', 'soDice');
+  el.style.display = 'flex';
+  void el.offsetWidth;
+  el.classList.add('visible');
+  sepOfertaAbierta = true;
+  /* Sin respuesta se va sola, y contar como respondida es lo correcto: quien
+     no contestó ya dijo que no le hacía falta, y volver a preguntar cada dos
+     hojas sería exactamente lo que no se quiere. */
+  clearTimeout(sepRelojOferta);
+  sepRelojOferta = setTimeout(() => { sepOfrecido = true; cerrarOferta(); }, 12000);
+}
+function cerrarOferta(){
+  clearTimeout(sepRelojOferta); sepRelojOferta = null;
+  if (!sepOfertaAbierta) return;
+  sepOfertaAbierta = false;
+  const el = $('sepOferta');
+  el.classList.remove('visible');
+  setTimeout(() => { if (!sepOfertaAbierta) el.style.display = 'none'; }, 260);
+}
+$('sepOferta').addEventListener('click', ev => {
+  const si = ev.target.closest('[data-sep-si]');
+  const no = ev.target.closest('[data-sep-no]');
+  if (!si && !no) return;
+  ev.preventDefault(); ev.stopPropagation();
+  sepOfrecido = true;
+  cerrarOferta();
+  if (si){
+    crearSeparador();
+    readout.textContent = 'separador puesto';
+  }
+});
+
+/* ---------- el menú de la cinta ---------- */
+function abrirSepMenu(id){
+  if (!sepDe(id)) return;
+  cerrarOferta();
+  sepMenuAbierto = id;
+  sepBorrando = false;
+  pintarSepMenu();
+  const el = $('sepMenu');
+  el.style.display = 'flex';
+  colocarSepMenu();
+  void el.offsetWidth;
+  el.classList.add('visible');
+  pintarSeparador();
+  const foco = el.querySelector('.sp-tela');
+  if (foco) foco.focus({ preventScroll:true });
+}
+function cerrarSepMenu(){
+  if (!sepMenuAbierto) return;
+  sepMenuAbierto = null;
+  sepBorrando = false;
+  const el = $('sepMenu');
+  el.classList.remove('visible');
+  setTimeout(() => { if (!sepMenuAbierto) el.style.display = 'none'; }, 280);
+  pintarSeparador();
+}
+function pintarSepMenu(){
+  const s = sepDe(sepMenuAbierto);
+  if (!s) return;
+  const aqui = sepAqui;
+  /* La lista va por lo último que se tocó, que es lo que se busca: la cinta
+     de la lectura de ahora arriba, y las de antes debajo en el orden en que
+     se dejaron. */
+  const lista = separadores.slice().sort((a, b) => b.tocado - a.tocado);
+  $('sepMenu').innerHTML =
+    '<span class="sp-tit">Color de la cinta</span>' +
+    '<div class="sp-telas" role="group" aria-label="Color del separador">' +
+      TELAS.map(t => '<button class="sp-tela" data-sep-color="' + t[0] + '"' +
+        ' style="background:' + t[2] + '" aria-pressed="' + (t[0] === s.color) + '"' +
+        ' aria-label="Cinta ' + t[1] + '" title="' + t[1] + '"></button>').join('') +
+    '</div>' +
+    '<span class="sp-tit">Tus separadores</span>' +
+    (lista.length ? lista.map(x => {
+      const t = telaDe(x.color);
+      return '<button class="sp-fila' + (aqui(x) ? ' aqui' : '') + '"' +
+        ' data-sep-ir="' + esc(x.id) + '"' +
+        ' aria-label="Ir al separador ' + t[1] + ' en ' + esc(nombreDe(x.libro)) + ' ' +
+          x.cap + ':' + x.vers + '">' +
+        '<span class="sp-chip" style="background:' + t[2] + '" aria-hidden="true"></span>' +
+        '<span class="sp-ref">' + esc(nombreDe(x.libro)) + ' ' + x.cap + ':' + x.vers + '</span>' +
+        '<span class="sp-nota">' + (aqui(x) ? 'aquí' : esc(t[1])) + '</span></button>';
+    }).join('') : '<span class="sp-vacio">Todavía ninguno.</span>') +
+    (sepBorrando ?
+      '<div class="sp-borrar" role="group" aria-label="Confirmar borrado">' +
+        '<span class="sp-pregunta">¿Quiere eliminar este separador?</span>' +
+        '<div class="sp-botones">' +
+          '<button class="sp-btn si" data-sep-borrar="' + esc(s.id) + '">Eliminar</button>' +
+          '<button class="sp-btn" data-sep-cancelar="1">Cancelar</button>' +
+        '</div></div>' : '');
+  if (sepBorrando){
+    const caja = $('sepMenu').querySelector('.sp-borrar');
+    void caja.offsetWidth;
+    caja.classList.add('puesta');
+    const b = caja.querySelector('.sp-btn'); if (b) b.focus({ preventScroll:true });
+  }
+}
+/* El menú se cuelga de la cinta —debajo y alineado por su borde derecho— y de
+   ahí no se sale de la escena: si no cabe debajo, sube. Nunca se recorta. */
+function colocarSepMenu(){
+  const el = $('sepMenu');
+  if (el.style.display === 'none') return;
+  const cinta = document.querySelector('.separador');
+  const st = stage.getBoundingClientRect();
+  const w = el.offsetWidth, h = el.offsetHeight;
+  let izq = st.width - w - 8, arr = 44;
+  if (cinta){
+    const r = cinta.getBoundingClientRect();
+    izq = r.right - st.left - w;
+    arr = r.bottom - st.top + 8;
+  }
+  izq = Math.min(Math.max(8, izq), Math.max(8, st.width - w - 8));
+  if (arr + h > st.height - 8) arr = Math.max(8, st.height - h - 8);
+  el.style.left = Math.round(izq) + 'px';
+  el.style.top = Math.round(arr) + 'px';
+}
+/* La cinta y su equis. Van en la escena porque la cinta se rehace en cada
+   repintado: un oyente puesto en el elemento se iría con él. */
+stage.addEventListener('click', ev => {
+  const x = ev.target.closest('[data-sep-x]');
+  if (x){
+    ev.preventDefault(); ev.stopPropagation();
+    if (!sepMenuAbierto) return;
+    sepBorrando = true; pintarSepMenu(); colocarSepMenu();
+    return;
+  }
+  const cinta = ev.target.closest('[data-sep]');
+  if (!cinta) return;
+  /* De lejos la cinta no responde —lo dice el CSS— pero el guardia se repite
+     aquí por si algún día alguien le devuelve los toques. */
+  if (zoomActivo) return;
+  ev.preventDefault(); ev.stopPropagation();
+  if (sepMenuAbierto === cinta.dataset.sep) cerrarSepMenu();
+  else abrirSepMenu(cinta.dataset.sep);
+}, true);
+$('sepMenu').addEventListener('click', ev => {
+  const color = ev.target.closest('[data-sep-color]');
+  if (color){
+    ev.preventDefault(); ev.stopPropagation();
+    const s = sepDe(sepMenuAbierto); if (!s) return;
+    s.color = telaDe(color.dataset.sepColor)[0];
+    s.tocado = Date.now();
+    sepGuardar(); pintarSepMenu(); pintarSeparador();
+    return;
+  }
+  const cancelar = ev.target.closest('[data-sep-cancelar]');
+  if (cancelar){
+    ev.preventDefault(); ev.stopPropagation();
+    sepBorrando = false; pintarSepMenu(); colocarSepMenu();
+    return;
+  }
+  const borrar = ev.target.closest('[data-sep-borrar]');
+  if (borrar){
+    ev.preventDefault(); ev.stopPropagation();
+    borrarSeparador(borrar.dataset.sepBorrar);
+    readout.textContent = 'separador eliminado';
+    return;
+  }
+  const ir = ev.target.closest('[data-sep-ir]');
+  if (!ir) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const s = sepDe(ir.dataset.sepIr); if (!s) return;
+  cerrarSepMenu();
+  /* Volver a una cinta la vuelve la activa, y eso es lo que hace una cinta:
+     abres el libro por donde la dejaste y sigues desde ahí. No se crea otra
+     —duplicarla sería tener dos marcas del mismo sitio— y ninguna de las
+     demás se mueve, tampoco la que estuviera siguiendo otra lectura. */
+  sepActivo = s.id;
+  sepOfrecido = true;
+  sepLeidasSeguidas = 0;
+  /* Se viaja a donde la cinta CAE hoy, no a lo que dice guardado: si el
+     versículo ya no existe en esta versión, su capítulo sí. */
+  const k = sepK(s), r = k >= 0 ? plano[k] : null;
+  trasPintar(() => irA(s.libro, r ? r.cap : s.cap, r ? r.vers : s.vers, ''));
+});
+/* Un toque fuera lo cierra, como los demás paneles. La cinta queda exceptuada
+   —su oyente ya sabe alternar— y también el menú, claro. */
+document.addEventListener('pointerdown', ev => {
+  if (!sepMenuAbierto && !sepOfertaAbierta) return;
+  if (ev.target.closest('#sepMenu, #sepOferta, [data-sep], [data-sep-x]')) return;
+  if (sepMenuAbierto) cerrarSepMenu();
+  /* La oferta NO se cierra con un toque en cualquier sitio: se contesta con
+     sus dos botones o se va sola. Tocar el papel para seguir leyendo no es
+     decir que no. */
+}, true);
 
 /* El salto: cierra el panel disolviéndolo, rearma el mapa de hojas del libro
    destino y voltea un bonche hasta la hoja donde vive ese versículo. */
@@ -9783,6 +10505,7 @@ function sembrarGlosasDeEstreno(){
 }
 const guardado = cargarAjustes();
 cargarHistorial();
+cargarSeparadores();
 /* LA SIEMBRA VA DESPUÉS DE CARGAR LOS AJUSTES, y el orden es todo el asunto.
    cargarAjustes restaura la versión y el libro guardados; sembrando antes, las
    glosas se calculaban contra la versión POR DEFECTO y luego el lector abría

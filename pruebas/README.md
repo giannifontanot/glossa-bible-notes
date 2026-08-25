@@ -19,6 +19,7 @@ dentro**:
 | la hoja se medía a media transición | había que medir durante los 460 ms del zoom |
 | el toque al libro no llegaba con la hoja en el aire | `#pg` está en `visibility:hidden` mientras gira |
 | el filo dejaba de pasar hoja para siempre | hacía falta que la foto tardara más que los cuatro reintentos |
+| la cinta se ofrecía por hojear, no por leer | los segundos de permanencia solo se cuentan con un reloj de verdad |
 
 ## Correr
 
@@ -43,6 +44,7 @@ diagnóstico. Salen con código distinto de cero si algo falla.
 | `paginacion` | que el reparto de versículos por hoja no se mueva solo, y que una nota escrita sí empuje el corte |
 | `pliegue` | pasar hoja sin tirar el programa: los dos fallos que lo mataban, más el toque que no llegaba con la hoja en el aire |
 | `filo` | que un toque en el borde nunca se quede sin efecto: el respaldo de los reintentos, la foto que falla y la que no contesta |
+| `separador` | la cinta de lectura: que hojear no cuente como leer, que la oferta salga una sola vez, que la cinta activa siga al lector sin arrastrar a las viejas, y que lo guardado sobreviva a recargar y a un almacén dañado |
 | `zoom` | que entrar y salir sean el mismo viaje —desborde cero de la letra sobre su papel—, la salida por el hueco y que el libro siga usándose de lejos, y que medir a media transición no contamine |
 | `movimiento-reducido` | que quien pidió menos movimiento no reciba el del zoom |
 | `libros` | cruzar al libro siguiente y volver, el trazo del canto, y que el panel de Libros se entere |
@@ -82,3 +84,8 @@ Conviene saberlo antes de confiar de más:
 - **Nada de lo visual.** Que un color quede feo o un botón ocupe media
   pantalla no lo caza ninguna de estas.
 - **El respaldo y la importación**, apenas.
+
+`separador` tarda dos minutos largos y es a propósito: lo que vigila son los
+veinte segundos de permanencia que separan leer de hojear, y el reloj no se
+falsea. Una prueba que adelanta el reloj no comprueba ese número, comprueba
+que el temporizador se llama.
