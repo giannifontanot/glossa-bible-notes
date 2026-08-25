@@ -944,7 +944,10 @@
                background:linear-gradient(to bottom, #f7f0dd, #ece0c2);
                border:1px solid rgba(140,116,68,.55); border-radius:7px;
                box-shadow:0 16px 34px -10px rgba(0,0,0,.6);
-               padding:13px 14px 11px; scrollbar-width:none;
+               /* Sin relleno arriba: se lo queda el renglón del rótulo, que
+                  va pegajoso y tiene que llegar al filo del papel para tapar
+                  lo que se le pase por debajo. Ver .vp-cab. */
+               padding:0 14px 11px; scrollbar-width:none;
                opacity:0; transition:opacity .18s ease,
                                      transform .26s cubic-bezier(.2,.85,.3,1); }
   #versoPleno::-webkit-scrollbar{ width:0; height:0; display:none; }
@@ -958,8 +961,29 @@
      Corintios 15:58») y se metería por debajo de ella. En un renglón propio
      son hermanos: el rótulo ocupa lo que le toca y la X se queda en su punta
      derecha pase lo que pase. align-items:center porque la X es más alta que
-     el rótulo, y alinearlos por la base la dejaría colgando. */
-  .vp-cab{ display:flex; align-items:center; gap:10px; padding-bottom:8px; }
+     el rótulo, y alinearlos por la base la dejaría colgando.
+
+     Y VA PEGAJOSO, que es la otra mitad. Con un versículo largo —los hay que
+     no caben en el 70% de alto que se le deja a este panel— el que desplaza es
+     #versoPleno, así que un renglón normal se va hacia arriba con el texto: se
+     desplaza dos dedos y la X ya no está, que es justo el defecto que la X
+     venía a arreglar. Lo levantó la revisión de Codex. Pegajoso arriba se
+     queda en su sitio con el texto pasando por debajo.
+
+     Los tres detalles que lo hacen funcionar y no se ven:
+     · el relleno de arriba se muda del panel a este renglón. Los offsets de
+       sticky se miden contra la CAJA DE RELLENO, así que con los 13px puestos
+       en el panel el renglón se quedaría clavado 13px más abajo del filo y por
+       ese hueco asomaría el texto pasando.
+     · los márgenes negativos a los lados, para que su fondo llegue a los dos
+       filos y no deje dos franjas por donde se vea pasar el renglón de debajo.
+     · el fondo OPACO y del tono exacto con el que arranca el degradado del
+       panel. El fondo de un elemento que desplaza no se mueve con su
+       contenido, así que arriba del todo el degradado siempre vale #f7f0dd:
+       el mismo color, o sea que en reposo no se nota que hay dos capas. */
+  .vp-cab{ position:sticky; top:0; z-index:2;
+           display:flex; align-items:center; gap:10px;
+           margin:0 -14px; padding:13px 14px 8px; background:#f7f0dd; }
   .vp-ref{ display:block; flex:1 1 auto; min-width:0;
            font:700 12px/1.2 var(--ui); letter-spacing:.1em;
            text-transform:uppercase; color:#8a7746; }

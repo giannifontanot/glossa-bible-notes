@@ -185,9 +185,29 @@ const TOQUE = (x, y) => ({ bubbles:true, cancelable:true, pointerId:3,
                      deLaDerecha:Math.round(rvp.right - rx.right),
                      deArriba:Math.round(rx.top - rvp.top),
                      pisaElRotulo: rot.right > rx.left + 0.5 };
+    /* Y QUE NO SE VAYA AL DESPLAZAR. Un versículo largo no cabe en el 70% de
+       alto que se le deja a este panel, y entonces el que desplaza es él: un
+       renglón normal se iría hacia arriba con el texto y la X dejaría de estar
+       a los dos dedos de recorrido, que es justo el defecto que la X venía a
+       arreglar. Aquí se fuerza el desplazamiento apretando el alto en vez de
+       buscar un versículo kilométrico: lo que se prueba es la regla de estilo,
+       y con un alto de 90 px cualquier versículo sirve. */
+    vp.style.maxHeight = '90px';
+    await new Promise(z => setTimeout(z, 60));
+    const arriba = () => Math.round(x.getBoundingClientRect().top -
+                                    vp.getBoundingClientRect().top);
+    const sinDesplazar = arriba();
+    const recorrido = vp.scrollHeight - vp.clientHeight;
+    vp.scrollTop = vp.scrollHeight;
+    await new Promise(z => setTimeout(z, 60));
+    const pegajoso = { recorrido, sinDesplazar, desplazado: arriba(),
+                       fondo: getComputedStyle(vp.querySelector('.vp-cab')).backgroundColor };
+    vp.style.maxHeight = '';
+    vp.scrollTop = 0;
+    await new Promise(z => setTimeout(z, 60));
     x.click();
     await new Promise(z => setTimeout(z, 450));
-    return { abiertoAntes, medida, ventanita: vp.classList.contains('visible'),
+    return { abiertoAntes, medida, pegajoso, ventanita: vp.classList.contains('visible'),
              rastro: hs.classList.contains('visible') };
   });
   di('la X', conLaX);
@@ -198,6 +218,13 @@ const TOQUE = (x, y) => ({ bubbles:true, cancelable:true, pointerId:3,
        m.deLaDerecha < 20 && m.deArriba < 20, m.deLaDerecha + ' / ' + m.deArriba);
   vale('con tamaño de dedo', m.alto >= 30 && m.ancho >= 30, m.alto + 'x' + m.ancho);
   vale('sin pisar el rótulo', m.pisaElRotulo === false);
+  const g = conLaX.pegajoso || {};
+  vale('con el texto largo el panel desplaza', g.recorrido > 20, String(g.recorrido));
+  vale('y la X se queda donde estaba',
+       Math.abs(g.desplazado - g.sinDesplazar) <= 1, g.sinDesplazar + ' → ' + g.desplazado);
+  /* Pegajoso sin fondo opaco es peor que no serlo: el texto se ve pasar por
+     debajo del rótulo y la ventanita parece rota. */
+  vale('tapando lo que pasa por debajo', /^rgb\(/.test(String(g.fondo)), String(g.fondo));
   vale('y cierra la ventanita', conLaX.ventanita === false);
   vale('sin llevarse el rastro de debajo', conLaX.rastro === true);
 
