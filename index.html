@@ -2146,7 +2146,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-AGO-26 20:54';
+window.GLOSS_BUILD = '25-AGO-26 12:05';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5736,11 +5736,44 @@ let preparandoPliegue = false;
 /* El reloj de los reintentos por foto rancia. Vive aparte porque hay que poder
    cancelarlo desde fuera: ver pasarHoja. */
 let relojReintento = null;
+/* Y ESTO ES LO QUE DE VERDAD HAY QUE SOLTAR: que la tanda de reintentos tiene
+   pedida la preparación. Mirar el reloj no alcanzaba, y ahí estaba el fallo.
+
+   El callback del reintento se pone en nulo ANTES de volver a llamar a
+   pasarHoja, así que cuando la tanda se agotaba —el respaldo de intento > 3, o
+   toparse con el final del libro a media tanda— soltarReintento encontraba el
+   reloj ya nulo, se iba por la primera línea y dejaba preparandoPliegue
+   encendido sin nadie que lo apagara. Desde ese momento el guardia de pasarHoja
+   rechazaba todos los toques normales del filo: la huella salía y la hoja no se
+   movía, en esa hoja y en todas las demás, hasta recargar.
+
+   Se ve solo en algunas hojas porque solo algunas agotan los cuatro reintentos:
+   hace falta que la foto de la hoja viva no llegue en 520 ms —una hoja pesada
+   en un teléfono lento, o una foto que falla— y eso depende de la hoja.
+
+   Con la bandera, soltar la tanda es soltar la tanda, haya reloj o no. Y sigue
+   sin tocar la preparación que NO es suya: la que pide la foto de la hoja
+   destino se apaga sola en su callback, y detenerZoomAuto —que también llama
+   aquí— no se la puede llevar por delante. */
+let reintentando = false;
 function soltarReintento(){
-  if (!relojReintento) return;
-  clearTimeout(relojReintento); relojReintento = null; preparandoPliegue = false;
+  if (relojReintento){ clearTimeout(relojReintento); relojReintento = null; }
+  if (reintentando){ reintentando = false; preparandoPliegue = false; }
 }
 let snapFirma = null;
+/* LA RONDA DE FOTOS, y por qué hace falta un número.
+
+   makeSnapshot arranca tres cargas —la hoja de arriba y sus dos vecinas— y se
+   vuelve a llamar seguido: cada repintado, cada reintento. Con las cargas
+   tardando lo suyo, dos rondas se pisan, y la vieja siempre llega después.
+   Da igual con qué llegue: una foto vieja puesta encima de la nueva retrata
+   una hoja que ya no es, y un fallo viejo tira una foto nueva que sí servía —y
+   la siguiente vuelta de hoja se va sin animación por una carga que ya no le
+   importaba a nadie—. El plazo de loadSVG hizo esto más fácil de ver, pero
+   pisarse ya se pisaban.
+   Cada ronda toma su número y solo la última escribe. Es la misma regla que
+   generacionPliegue, por la misma razón. Lo levantó la revisión de Codex. */
+let rondaFoto = 0;
 const snapStale = () => (snapFirma !== estiloFirma());
 function invalidateSnapshot(){
   pageImg = nextImg = prevImg = null;
@@ -5960,9 +5993,25 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza){
         '</div><div class="pg-foot">'+footHTML+'</div></div></div>'+
     '</foreignObject></svg>';
 }
+/* LA CARGA SE RESUELVE UNA SOLA VEZ, Y NUNCA SE QUEDA ESPERANDO.
+
+   Quien pide una foto apaga su estado en `ok` o en `fail`; si el navegador no
+   dispara ninguno de los dos —pasa con data: muy grandes— ese estado se queda
+   encendido y el paso de hoja no vuelve a entrar. El plazo no marca el ritmo de
+   nada: una hoja se rasteriza en decenas de milisegundos, así que este reloj
+   solo se cumple cuando la carga ya no va a llegar, y entonces sale por el
+   camino de fallo, que todos los que llaman aquí ya saben atender. */
+const ESPERA_FOTO = 4000;
 function loadSVG(svg, ok, fail){
   const img = new Image();
-  img.onload = () => ok(img); img.onerror = () => fail && fail();
+  let hecho = false;
+  function salir(bien){
+    if (hecho) return;
+    hecho = true; clearTimeout(reloj);
+    if (bien) ok(img); else if (fail) fail();
+  }
+  const reloj = setTimeout(() => salir(false), ESPERA_FOTO);
+  img.onload = () => salir(true); img.onerror = () => salir(false);
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 function cuerpoHTML(a,b){ let s=''; const below = placement==='below';
@@ -6031,7 +6080,15 @@ function fotoDeHojaCrudo(p, asignar){
   const ms = rectsDeMarcas(ghostBody, ghost);
   const palabras = medirPalabras(ghost);
   loadSVG(buildSVG(cuerpoHTML(from, hasta), r.marginHTML, r.footHTML, r.mw, r.gap, w, h, cabezaDe(from)),
-    img => { asignar(componer(img, ms, palabras, w, h)); if (folding) drawFold(); }, () => asignar(null));
+    img => {
+      /* Componer puede reventar —un lienzo enorme no siempre se reserva— y si
+         revienta aquí, `asignar` no se llama nunca y quien esperaba la foto se
+         queda esperando. Una foto que no salió es una foto nula, que es un
+         desenlace que todos los que llaman aquí ya saben atender. */
+      let foto = null;
+      try { foto = componer(img, ms, palabras, w, h); } catch(e){ foto = null; }
+      asignar(foto); if (folding) drawFold();
+    }, () => asignar(null));
 }
 function makeSnapshot(){ return sinZoom(makeSnapshotCrudo); }
 function makeSnapshotCrudo(){
@@ -6040,6 +6097,7 @@ function makeSnapshotCrudo(){
      eran dos fotos de la misma hoja tomadas con encuadres distintos. Aquí se
      mide igual que en fotoDeHoja, y las marcas y las palabras se miden contra
      la hoja viva, que ya trae el acomodo correcto. */
+  const mia = ++rondaFoto;                  /* ver rondaFoto: solo la última escribe */
   const med = medirHojaTelefono();
   const w = med ? (med.texto + med.hueco + med.glosa)
                 : Math.max(pg.scrollWidth, pg.offsetWidth);
@@ -6048,10 +6106,14 @@ function makeSnapshotCrudo(){
   const ms = rectsDeMarcas(pgBody, pg);
   const palabras = medirPalabras(pg);
   loadSVG(buildSVG(cuerpoHTML(startIdx, nextIdx), curMarginHTML, curFootHTML, curMW, curGap, w, h, cabezaDe(startIdx)),
-    img => { pageImg = componer(img, ms, palabras, w, h); if (folding){ pg.classList.add('hidden'); drawFold(); } },
-    () => { pageImg = null; pg.classList.remove('hidden'); });
-  fotoDeHoja(paginaActual + 1, i => { nextImg = i; if (folding && side==='right') bajoImg = i; });
-  fotoDeHoja(paginaActual - 1, i => { prevImg = i; if (folding && side==='left')  bajoImg = i; });
+    img => { if (mia !== rondaFoto) return;
+             pageImg = componer(img, ms, palabras, w, h); if (folding){ pg.classList.add('hidden'); drawFold(); } },
+    () => { if (mia !== rondaFoto) return;
+            pageImg = null; pg.classList.remove('hidden'); });
+  fotoDeHoja(paginaActual + 1, i => { if (mia !== rondaFoto) return;
+                                      nextImg = i; if (folding && side==='right') bajoImg = i; });
+  fotoDeHoja(paginaActual - 1, i => { if (mia !== rondaFoto) return;
+                                      prevImg = i; if (folding && side==='left')  bajoImg = i; });
 }
 
 let W=0, H=0, anchor=null, F=null, side='right', bajoImg=null;
@@ -6408,7 +6470,11 @@ function pasarHoja(s, clientY, intento){
      no se enciende hasta que la foto de la hoja destino llega. Los reintentos
      por foto rancia sí pasan —traen intento— porque son este mismo viaje
      insistiendo, no uno nuevo. */
-  if (folding || (preparandoPliegue && !intento)) return;
+  /* Y si es un REINTENTO el que llega tarde —el dedo arrancó un pliegue
+     mientras la tanda esperaba su vuelta—, ese viaje se acaba aquí y la tanda
+     hay que soltarla: irse sin soltarla dejaba la preparación pedida para
+     siempre, que es el mismo agujero del respaldo por otra puerta. */
+  if (folding || (preparandoPliegue && !intento)){ if (intento) soltarReintento(); return; }
   const destino = paginaActual + (s === 'right' ? 1 : -1);
   /* Fuera del libro empieza el de al lado. Antes aquí no pasaba nada, y no
      pasar nada al final de un libro se lee como que el toque no entró. */
@@ -6435,10 +6501,15 @@ function pasarHoja(s, clientY, intento){
        pasando una hoja que ya nadie había pedido.
        Lo levantó la revisión de Codex. */
     preparandoPliegue = true;
+    reintentando = true;
     clearTimeout(relojReintento);
     relojReintento = setTimeout(() => {
       relojReintento = null;
-      pasarHoja(s, clientY, (intento || 0) + 1);
+      /* Y si la vuelta revienta a medio camino, la tanda se suelta igual: una
+         excepción aquí dentro es otra manera de dejar la preparación encendida
+         sin nadie que la apague. */
+      try { pasarHoja(s, clientY, (intento || 0) + 1); }
+      catch(e){ soltarReintento(); throw e; }
     }, 130);
     return;
   }
@@ -6451,18 +6522,31 @@ function pasarHoja(s, clientY, intento){
   const y = Number.isFinite(clientY) ? aPapel(0, clientY).y : H/2;
   const anclaY = Math.min(Math.max(y, 0), H);
   side = s;
+  const desde = paginaActual;
   preparandoPliegue = true;
-  fotoDeHoja(destino, img => {
-    preparandoPliegue = false;
-    if (!img){ paginaActual = destino; renderPage(); return; }
-    pageImg = viejo; bajoImg = img;
-    animarHojas(1, rnd(620, 780), () => {
-      hojasExtra = []; progreso = 0; alfaTop = 1; folding = false; plegandoConDedo = false; anchor = F = null;
-      paginaActual = destino;
-      renderPage();
-      fx.style.display = 'none'; pg.classList.remove('hidden');
-    }, anclaY);
-  });
+  /* Retratar la hoja destino mide y compone, y eso puede reventar. Si revienta
+     antes de dejar el callback armado, la preparación se queda pedida por un
+     viaje que ya no existe: se suelta aquí y la excepción sigue su camino. */
+  try {
+    fotoDeHoja(destino, img => {
+      preparandoPliegue = false;
+      /* Y ESTE VIAJE PUEDE HABER CADUCADO. La preparación no cierra la puerta a
+         todo: un arrastre del filo empieza su pliegue sin preguntar por ella, y
+         un salto desde un panel tampoco. Si para cuando llega la foto el lector
+         ya se fue —o ya está volteando otra hoja—, la hoja de este viaje no es
+         de nadie: aplicarla sería llevárselo de vuelta a donde no está. Soltar
+         la preparación sí, siempre; mover la hoja solo si sigue siendo suya. */
+      if (paginaActual !== desde || folding) return;
+      if (!img){ paginaActual = destino; renderPage(); return; }
+      pageImg = viejo; bajoImg = img;
+      animarHojas(1, rnd(620, 780), () => {
+        hojasExtra = []; progreso = 0; alfaTop = 1; folding = false; plegandoConDedo = false; anchor = F = null;
+        paginaActual = destino;
+        renderPage();
+        fx.style.display = 'none'; pg.classList.remove('hidden');
+      }, anclaY);
+    });
+  } catch(e){ preparandoPliegue = false; throw e; }
 }
 function bordeArriba(ev, s){
   if (folding){ ocultarHuella(); endFold(); return; }
@@ -8073,7 +8157,7 @@ function cruzarLibro(s, clientY, sinAnimar){
   preparandoPliegue = true;
   mostrarBuscando(s === 'right' ? 'pasando al libro siguiente…'
                                 : 'pasando al libro anterior…');
-  trasPintar(() => {
+  const armar = () => {
     LIBRO = destinoLibro;
     volverA = null;                    /* pasar hojas a mano cancela el regreso */
     paginasSucias = true;
@@ -8106,6 +8190,14 @@ function cruzarLibro(s, clientY, sinAnimar){
       quitarBuscando();
       animarHojas(1, rnd(620, 780), aterrizar, anclaY);
     });
+  };
+  /* Rehacer el plano de un libro entero es lo más caro que hace el programa, y
+     si revienta a mitad, `aterrizar` no llega nunca: la preparación se queda
+     pedida y el disco de "pasando al libro siguiente" tapando la hoja. Ninguna
+     de las dos cosas se puede quedar puesta por una excepción. */
+  trasPintar(() => {
+    try { armar(); }
+    catch(e){ preparandoPliegue = false; quitarBuscando(); throw e; }
   });
   return true;
 }
