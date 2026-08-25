@@ -744,13 +744,23 @@
      de toque es medio dedo más grande y el peso en pantalla es el mismo o
      menos. Es la misma regla que ya siguen los puntos de las esquinas: el
      círculo va entero, es el color el que se retira. */
+  /* Y ENTEROS, NO A MEDIA LUZ. Estaban al 62% de opacidad por discreción, y
+     la discreción se leyó como avería: al lado de un botón deshabilitado de
+     verdad —que es el mismo dibujo al 16%— un botón a medio encender parece
+     otro deshabilitado, solo que menos. Y aquí eso importa más que en ningún
+     otro sitio, porque justamente estos dos SE APAGAN cuando se acaba el
+     libro: si el apagado no se distingue del encendido, la única señal que dan
+     deja de decir nada.
+     Lo discreto se lo sigue quedando la tinta, que es donde tiene que estar:
+     una flecha crema de 28px sobre un disco casi transparente ya es poca cosa
+     en pantalla. Lo que se retira es el color, no el estado. */
   #zoomPasos button{ color:#efe4c8; font:400 28px/1 var(--ui);
-                     background:rgba(0,0,0,.15); opacity:.62;
+                     background:rgba(0,0,0,.15); opacity:1;
                      text-shadow:0 1px 3px rgba(0,0,0,.5);
                      transition:opacity .26s cubic-bezier(.65,0,.35,1),
                                 background .26s cubic-bezier(.65,0,.35,1),
                                 transform .26s cubic-bezier(.3,.8,.4,1); }
-  #zoomPasos button:hover{ opacity:1; background:rgba(0,0,0,.34); transform:scale(1.08); }
+  #zoomPasos button:hover{ background:rgba(0,0,0,.34); transform:scale(1.08); }
   #zoomPasos button:active{ transform:scale(.94); }
   /* MIENTRAS EL DEDO TIRA, EL BOTÓN NO INTERPOLA. El seguimiento se escribe
      cuadro a cuadro en el atributo de estilo, y con la transición puesta cada
@@ -768,7 +778,11 @@
      manda sobre el dedo que pase por encima. Y antes de :disabled, que sigue
      ganando: si se acaba el libro, el botón se apaga aunque venga encendido. */
   #zoomPasos button.auto{ background:#b8892b; color:#fff8e4; opacity:1; }
-  #zoomPasos button:disabled{ cursor:default; opacity:.16; transform:none; }
+  /* El deshabilitado baja a .2 y no a .16: ahora es la ÚNICA diferencia de
+     luz que hay en estos botones —los demás van enteros—, así que ya no tiene
+     que competir con un 62% para leerse como apagado, y en el escritorio
+     oscuro un 16% se acercaba demasiado a no estar. */
+  #zoomPasos button:disabled{ cursor:default; opacity:.2; transform:none; }
 
   @media (max-width: 560px){
     /* En el teléfono el punto se HACE MÁS CHICO, no más grande. Es la única
@@ -930,7 +944,22 @@
   .hs-atras:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
   .hs-atras:active{ transform:translateY(1px); }
   .hs-atras-ref{ text-transform:none; letter-spacing:.02em; }
-  .hs-flecha{ font-size:15px; line-height:1; }
+  /* LA FLECHA SE DIBUJA, NO SE ESCRIBE.
+
+     Era el carácter «←», y salía flaquísima venga de donde venga el botón:
+     los tipos de interfaz dibujan las flechas con un solo trazo de pelo y no
+     traen versión gorda, así que el negrita del botón no las engorda —el
+     navegador la saca de la fuente que tenga a mano, y ninguna la tiene
+     recia—. Al lado de una referencia en 12px seminegrita, un pelo de trazo
+     se lee como suciedad y no como una flecha.
+
+     Con un trazo propio el grosor es una cifra que se elige: 2.2 sobre un
+     lienzo de 16, o sea un trazo del mismo peso que la letra que acompaña.
+     Y hereda el color por currentColor, así que sigue encendiéndose con el
+     botón al pasar por encima sin repetir el color en dos sitios. */
+  .hs-flecha{ flex:0 0 auto; width:15px; height:15px; display:block;
+              fill:none; stroke:currentColor; stroke-width:2.2;
+              stroke-linecap:round; stroke-linejoin:round; }
   /* LA FILA ES UNA SOLA LÍNEA, Y ESO NO ES DECORACIÓN. Una lista en la que
      cada renglón mide lo mismo se recorre con el ojo; una en la que cada
      entrada mide dos o tres líneas hay que leerla. Por eso la referencia va
@@ -1014,22 +1043,30 @@
      esquina de arriba a la derecha es la única salida que se VE, y es donde
      todo el mundo la busca ya.
 
-     Redonda y del mismo dorado apagado del rótulo, no un aspa negra: esta
-     ventanita es papel, y un botón de sistema operativo encima cantaría. El
-     disco se enciende al pasar por encima y se hunde al pulsar, que es lo
-     mismo que hacen los demás botones de la hoja. Y mide 30px de lado —34 en
-     pantalla chica— porque una X de las de 16px no se toca con el pulgar. */
+     LA X SOLA, SIN DISCO NI BORDE. Nació dentro de un botón redondo con su
+     fondo y su filo, y era demasiado: en una ventanita que enseña un versículo
+     para leerlo, el aspa acabó siendo lo primero que se ve, compitiendo con lo
+     único que había que mirar. Un aspa suelta se encuentra igual —ahí arriba a
+     la derecha no hay nada más— y no se pone delante.
+
+     Discreta no es invisible, así que va del dorado del rótulo y no más
+     pálida: se lee como parte del mismo renglón. Se oscurece al pasar por
+     encima y se hunde al pulsar, que es lo mismo que hacen los demás botones
+     de la hoja, y ahí es donde se confirma que sí es un botón.
+
+     Y EL BLANCO DE TOQUE NO ENCOGE con el disco: sigue midiendo 30px de lado
+     —34 en pantalla chica—, que es lo que necesita el pulgar. Es la misma
+     regla que ya siguen los puntos de las esquinas de la hoja: lo que se
+     retira es el color, no el sitio donde se toca. */
   .vp-x{ flex:0 0 auto; display:inline-flex; align-items:center;
-         justify-content:center; width:30px; height:30px; margin:-4px -5px -4px 0;
-         border:1px solid rgba(140,116,68,.4); border-radius:50%;
-         background:rgba(140,116,68,.13); color:#6d5a2c;
-         font:400 17px/1 var(--ui); cursor:pointer;
+         justify-content:center; width:30px; height:30px; margin:-6px -9px -6px 0;
+         border:0; background:transparent; color:#8a7746;
+         font:400 20px/1 var(--ui); cursor:pointer;
          -webkit-tap-highlight-color:transparent;
-         transition:background .28s cubic-bezier(.65,0,.35,1),
-                    color .28s cubic-bezier(.65,0,.35,1),
+         transition:color .28s cubic-bezier(.65,0,.35,1),
                     transform .18s cubic-bezier(.65,0,.35,1); }
-  .vp-x:hover{ background:rgba(140,116,68,.3); color:#4d3f1d; }
-  .vp-x:active{ transform:scale(.9); }
+  .vp-x:hover{ color:#4d3f1d; }
+  .vp-x:active{ transform:scale(.85); }
   .vp-txt{ display:block; width:100%; text-align:left; border:0; cursor:pointer;
            background:rgba(255,253,247,.75); border-radius:5px;
            padding:11px 12px; color:#2f2610;
@@ -1052,7 +1089,7 @@
     .hs-fila{ min-height:44px; padding:10px; }
     .hs-atras{ min-height:38px; font-size:13px; padding:9px 14px 9px 16px; }
     .vp-txt{ font-size:17px; padding:13px 14px; }
-    .vp-x{ width:34px; height:34px; font-size:19px; }
+    .vp-x{ width:34px; height:34px; font-size:22px; }
     .hs-vacio, .vp-pie{ font-size:13px; }
   }
 
@@ -5275,7 +5312,21 @@ document.addEventListener('pointerdown', ev => {
     ev.stopPropagation();
     return;
   }
-  if (ev.target.closest('#menu')) return;
+  /* Y LA VENTANITA CUENTA COMO DENTRO, igual que el panel.
+
+     Este oyente cierra el panel de la glosa con cualquier toque que no caiga
+     dentro de él, y hasta que la ventanita tuvo botones propios eso salía
+     bien: lo único que había dentro era el versículo, y tocarlo es saltar a
+     otro sitio, o sea que cerrar el panel era lo correcto —el propio oyente
+     del salto llama a ocultarMenu—.
+
+     Con la X ya no: tocarla es quitar de en medio lo que TAPA el panel, y el
+     panel se iba con ella. Se leía como que la X cerraba las dos cosas, que es
+     justo lo que la ventanita no debe hacer —se lee un versículo sin salir de
+     lo que estabas escribiendo—. La ventanita se pone aquí al lado del panel:
+     lo que pase dentro de ella es asunto suyo. El salto sigue cerrando el
+     panel porque lo pide él mismo, no porque lo cierre este toque. */
+  if (ev.target.closest('#menu, #versoPleno')) return;
   /* LO ESCRITO SE COBRA ANTES DE CERRAR, y el orden es todo el arreglo.
 
      Este oyente va en fase de CAPTURA, así que corre antes que nada; y
@@ -7566,6 +7617,9 @@ function rastroVisible(){
    atrás del navegador.
    Sin sitio a donde volver no se pinta: un botón que no lleva a ninguna parte
    enseña a no fiarse del que sí. */
+const FLECHA_ATRAS =
+  '<svg class="hs-flecha" viewBox="0 0 16 16" aria-hidden="true" focusable="false">' +
+  '<path d="M13.2 8H3.6M7.4 3.9 3.3 8l4.1 4.1"/></svg>';
 function pieAtras(){
   const h = rastroVisible()[atrasEn + 1];
   if (!h) return '';
@@ -7573,7 +7627,7 @@ function pieAtras(){
     esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '"' +
     ' aria-label="Volver a ' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '">' +
     '<span class="hs-atras-ref">' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers +
-    '</span><span class="hs-flecha" aria-hidden="true">←</span></button>';
+    '</span>' + FLECHA_ATRAS + '</button>';
 }
 /* Un paso atrás por el rastro, sin apuntarlo. */
 function darUnPasoAtras(){
