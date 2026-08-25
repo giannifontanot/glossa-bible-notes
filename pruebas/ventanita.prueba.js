@@ -148,5 +148,112 @@ const TOQUE = (x, y) => ({ bubbles:true, cancelable:true, pointerId:3,
   vale('y se cierra tocando encima del panel', conPanel.ventanita === false);
   vale('sin apagar el panel de la glosa', conPanel.panelSigue === true);
 
+  /* ---------- la X, que es la salida que se ve ---------- */
+  titulo('la X cierra la ventanita y deja el rastro donde estaba');
+  /* Tocar fuera y Escape ya cerraban, pero las dos hay que saberlas de antes:
+     nada en la ventanita las contaba. Lo que se vigila aquí es que la X esté
+     donde se busca —arriba a la derecha—, que sea un blanco de dedo y no un
+     aspa de 16px, y sobre todo que cierre SOLO la ventanita: el rastro desde
+     el que preguntaste se queda, porque lo siguiente que se hace es abrir
+     otra línea. */
+  const conLaX = await pagina.evaluate(async () => {
+    const hs = document.getElementById('historial');
+    /* EL TRAGADOR DEL CLIC PRIMERO. La sección de antes cerró la ventanita
+       tocando fuera, y ese camino deja puesto un guardián de captura que se
+       come el siguiente clic entero —para que quitar la ventanita no toque
+       además el botón que hay debajo—. Se quita solo, pero hasta 700 ms
+       después, y sin esta espera el primer clic de aquí se lo comía él y la
+       sección probaba otra cosa. */
+    await new Promise(z => setTimeout(z, 800));
+    /* Y el rastro se abre solo si no lo está: el botón es un interruptor. */
+    if (!hs.classList.contains('visible')){
+      document.getElementById('btnHistorial').click();
+      await new Promise(z => setTimeout(z, 500));
+    }
+    const abiertoAntes = hs.classList.contains('visible');
+    const linea = document.querySelector('#historial [data-hs]');
+    if (!linea) return { abiertoAntes, falta:'una línea en el rastro' };
+    linea.click();
+    await new Promise(z => setTimeout(z, 400));
+    const vp = document.getElementById('versoPleno');
+    const x = vp.querySelector('.vp-x');
+    if (!x) return { abiertoAntes, falta:'la X de la ventanita' };
+    const rx = x.getBoundingClientRect();
+    const rvp = vp.getBoundingClientRect();
+    const rot = vp.querySelector('.vp-ref').getBoundingClientRect();
+    const medida = { alto:Math.round(rx.height), ancho:Math.round(rx.width),
+                     deLaDerecha:Math.round(rvp.right - rx.right),
+                     deArriba:Math.round(rx.top - rvp.top),
+                     pisaElRotulo: rot.right > rx.left + 0.5 };
+    /* Y QUE NO SE VAYA AL DESPLAZAR. Un versículo largo no cabe en el 70% de
+       alto que se le deja a este panel, y entonces el que desplaza es él: un
+       renglón normal se iría hacia arriba con el texto y la X dejaría de estar
+       a los dos dedos de recorrido, que es justo el defecto que la X venía a
+       arreglar. Aquí se fuerza el desplazamiento apretando el alto en vez de
+       buscar un versículo kilométrico: lo que se prueba es la regla de estilo,
+       y con un alto de 90 px cualquier versículo sirve. */
+    vp.style.maxHeight = '90px';
+    await new Promise(z => setTimeout(z, 60));
+    const arriba = () => Math.round(x.getBoundingClientRect().top -
+                                    vp.getBoundingClientRect().top);
+    const sinDesplazar = arriba();
+    const recorrido = vp.scrollHeight - vp.clientHeight;
+    vp.scrollTop = vp.scrollHeight;
+    await new Promise(z => setTimeout(z, 60));
+    const pegajoso = { recorrido, sinDesplazar, desplazado: arriba(),
+                       fondo: getComputedStyle(vp.querySelector('.vp-cab')).backgroundColor };
+    vp.style.maxHeight = '';
+    vp.scrollTop = 0;
+    await new Promise(z => setTimeout(z, 60));
+    x.click();
+    await new Promise(z => setTimeout(z, 450));
+    return { abiertoAntes, medida, pegajoso, ventanita: vp.classList.contains('visible'),
+             rastro: hs.classList.contains('visible') };
+  });
+  di('la X', conLaX);
+  const m = conLaX.medida || {};
+  vale('el rastro se abre', conLaX.abiertoAntes === true);
+  vale('la ventanita trae su X', !!conLaX.medida, conLaX.falta || '');
+  vale('en la esquina de arriba a la derecha',
+       m.deLaDerecha < 20 && m.deArriba < 20, m.deLaDerecha + ' / ' + m.deArriba);
+  vale('con tamaño de dedo', m.alto >= 30 && m.ancho >= 30, m.alto + 'x' + m.ancho);
+  vale('sin pisar el rótulo', m.pisaElRotulo === false);
+  const g = conLaX.pegajoso || {};
+  vale('con el texto largo el panel desplaza', g.recorrido > 20, String(g.recorrido));
+  vale('y la X se queda donde estaba',
+       Math.abs(g.desplazado - g.sinDesplazar) <= 1, g.sinDesplazar + ' → ' + g.desplazado);
+  /* Pegajoso sin fondo opaco es peor que no serlo: el texto se ve pasar por
+     debajo del rótulo y la ventanita parece rota. */
+  vale('tapando lo que pasa por debajo', /^rgb\(/.test(String(g.fondo)), String(g.fondo));
+  vale('y cierra la ventanita', conLaX.ventanita === false);
+  vale('sin llevarse el rastro de debajo', conLaX.rastro === true);
+
+  /* ---------- el paso atrás del rastro se puede tocar ---------- */
+  titulo('el paso atrás es un blanco de dedo');
+  /* Nació del tamaño del rótulo que tiene al lado —unos 19px de alto— en un
+     panel que se usa con el pulgar y con filas de 40px justo debajo: fallarlo
+     y caer en una fila cuesta un salto a otra escritura, o sea lo contrario
+     de volver. */
+  const elAtras = await pagina.evaluate(async () => {
+    const hs = document.getElementById('historial');
+    if (!hs.classList.contains('visible')){
+      document.getElementById('btnHistorial').click();
+      await new Promise(z => setTimeout(z, 500));
+    }
+    const b = document.querySelector('.hs-atras');
+    if (!b) return { falta:'el paso atrás' };
+    const r = b.getBoundingClientRect();
+    const fila = document.querySelector('.hs-fila');
+    const rf = fila ? fila.getBoundingClientRect() : null;
+    return { alto:Math.round(r.height), ancho:Math.round(r.width),
+             huecoConLaFila: rf ? Math.round(rf.top - r.bottom) : null };
+  });
+  di('el paso atrás', elAtras);
+  vale('lo hay', !elAtras.falta, elAtras.falta || '');
+  vale('mide al menos 34 de alto', elAtras.alto >= 34, String(elAtras.alto));
+  vale('y no se solapa con la primera fila',
+       elAtras.huecoConLaFila === null || elAtras.huecoConLaFila >= 0,
+       String(elAtras.huecoConLaFila));
+
   await cerrar(sesion);
 })();

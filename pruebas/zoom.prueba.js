@@ -484,12 +484,53 @@ const comoVan = r => {
     const b = [...document.querySelectorAll('#zoomPasos [data-paso]')];
     const color = i => getComputedStyle(b[i]).backgroundColor;
     const enReposo = [color(0), color(1)];
-    b[1].dispatchEvent(new MouseEvent('dblclick', { bubbles:true }));
-    await new Promise(z => setTimeout(z, 300));
+    /* EL DESLIZ HACIA ARRIBA es lo que lo arranca, y desde aquí se da como lo
+       daría un dedo: down en el centro del botón, dos move subiendo y up. El
+       primer move se queda corto a propósito —el botón se mueve, pero no
+       arranca—, que es la mitad del gesto: se puede soltar a medias. */
+    const empujar = (b, alto, ancho) => {
+      const r = b.getBoundingClientRect();
+      const x = r.left + r.width/2, y = r.top + r.height/2;
+      const ev = (t, cx, cy) => b.dispatchEvent(new PointerEvent(t,
+        { bubbles:true, cancelable:true, pointerId:9, pointerType:'touch',
+          clientX:cx, clientY:cy }));
+      ev('pointerdown', x, y);
+      ev('pointermove', x, y - Math.min(8, alto));
+      const aMedias = b.style.transform;
+      ev('pointermove', x + (ancho || 0), y - alto);
+      ev('pointerup', x + (ancho || 0), y - alto);
+      return aMedias;
+    };
+    /* UN TOQUE DE VERDAD EMPIEZA POR UN pointerdown, y aquí importa: al soltar
+       el desliz queda puesto un tragador que se come el clic de ese mismo
+       gesto —si no, el clic de levantar el dedo apagaría lo que el desliz
+       acaba de encender—, y se quita en cuanto empieza otro toque. Un
+       MouseEvent('click') a pelo no empieza ningún toque, así que el tragador
+       seguía ahí y se comía también el toque de parar. */
+    const tocar = el => {
+      el.dispatchEvent(new PointerEvent('pointerdown',
+        { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
+      el.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
+    };
+    const aMedias = empujar(b[1], 30, 0);
+    await new Promise(z => setTimeout(z, 400));
     const enMarcha = [color(0), color(1)];
     /* un toque para, y con él se tiene que apagar */
-    b[1].dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    tocar(b[1]);
     await new Promise(z => setTimeout(z, 700));
+    const trasParar = [color(0), color(1)];
+    /* Y UN BARRIDO EN DIAGONAL NO ARRANCA NADA: es como se pasa hoja de toda
+       la vida en un teléfono, y hacerlo pasar por «empújame hacia arriba»
+       pondría el automático en marcha sin haberlo pedido. */
+    empujar(b[1], 30, 40);
+    await new Promise(z => setTimeout(z, 500));
+    const trasDiagonal = [color(0), color(1)];
+    /* Si hubiera arrancado —que es el fallo que esto vigila— se apaga antes de
+       seguir: la sección de después mide, y no se mide con hojas pasando. */
+    if (trasDiagonal[1] !== trasParar[1]){
+      tocar(b[1]);
+      await new Promise(z => setTimeout(z, 700));
+    }
     /* SE DEVUELVE EL ESTADO COMO SE ENCONTRÓ. La sección siguiente entra al
        zoom con btnZoom, que es un interruptor: dejándolo puesto, aquel clic
        lo APAGABA y la medición salía a tamaño natural sin que nada estuviera
@@ -499,7 +540,7 @@ const comoVan = r => {
       { bubbles:true, clientX:Math.round(r.left + r.width/2),
         clientY:Math.round(r.bottom + 60) }));
     await new Promise(z => setTimeout(z, 800));
-    return { enReposo, enMarcha, trasParar: [color(0), color(1)],
+    return { enReposo, aMedias, enMarcha, trasParar, trasDiagonal,
              seQuedaFuera: !document.getElementById('pg').classList.contains('zoom') };
   }).then(r => {
     vale('en reposo, ninguno encendido',
@@ -511,6 +552,11 @@ const comoVan = r => {
        trampa, mismo remedio. */
     vale('y solo el suyo', mismoColor(r.enMarcha[0], r.enReposo[0]), r.enMarcha[0]);
     vale('al parar se apaga', mismoColor(r.trasParar[1], r.enReposo[1]), r.trasParar[1]);
+    vale('a medio desliz el botón sigue al dedo', /translateY\(-\d/.test(r.aMedias || ''),
+         r.aMedias || '(nada)');
+    vale('y a medio desliz no arranca', !mismoColor(r.enReposo[1], MARRON), r.enReposo[1]);
+    vale('un barrido en diagonal no arranca',
+         !mismoColor(r.trasDiagonal[1], MARRON), r.trasDiagonal[1]);
     vale('y la sección deja el zoom cerrado', r.seQuedaFuera);
     return r;
   }));
