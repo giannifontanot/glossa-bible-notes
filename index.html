@@ -717,6 +717,12 @@
                      display:flex; align-items:center; justify-content:center;
                      background:transparent; border:0; border-radius:50%;
                      -webkit-tap-highlight-color:transparent;
+                     /* El desliz hacia arriba es NUESTRO, no del navegador. Sin
+                        esto, empujar el botón hacia arriba con el dedo cuenta
+                        como desplazar la página: el navegador se queda con el
+                        gesto, manda pointercancel a media subida y el
+                        automático no llega a arrancar nunca. */
+                     touch-action:none;
                      transition:opacity .26s cubic-bezier(.65,0,.35,1); }
   /* El punto va CLARO y no oscuro, y esto lo dijo la captura: de lejos el
      fondo que rodea la hoja es el escritorio, que es marrón oscuro. Un punto
@@ -746,6 +752,15 @@
                                 transform .26s cubic-bezier(.3,.8,.4,1); }
   #zoomPasos button:hover{ opacity:1; background:rgba(0,0,0,.34); transform:scale(1.08); }
   #zoomPasos button:active{ transform:scale(.94); }
+  /* MIENTRAS EL DEDO TIRA, EL BOTÓN NO INTERPOLA. El seguimiento se escribe
+     cuadro a cuadro en el atributo de estilo, y con la transición puesta cada
+     cuadro arrancaría una rampa de 260 ms hacia el siguiente: el botón iría
+     un cuarto de segundo por detrás del dedo, que es lo que hace que un gesto
+     se sienta pegajoso. Al soltar se borra el estilo y la rampa vuelve, así
+     que la vuelta a su sitio sí es suave.
+     El :active de arriba también sobra aquí: encoger y subir a la vez son dos
+     transformaciones sobre la misma propiedad, y gana la última escrita. */
+  #zoomPasos button[style*="translateY"]{ transition:none; }
   /* EL MARRÓN ES EL DE SIEMPRE: el de la pestaña abierta y el del libro en el
      que estás dentro del panel de Libros. Aquí significa lo mismo que allí
      —esto es lo que está pasando ahora mismo— y por eso no estrena color.
@@ -897,16 +912,25 @@
      pedido y además el borde por el que este panel crece. Y flex-shrink:0
      porque su referencia no se parte: antes que encogerse y partir «Lc 2:1»
      en dos renglones, que se recorte el rótulo, que es texto fijo. */
+  /* Y ES UN BLANCO QUE SE PUEDA TOCAR. Nació del tamaño del rótulo que tiene
+     al lado —10.5px de letra y 4px de relleno—, o sea unos 19px de alto: la
+     mitad de lo que mide un dedo, en un panel que se usa con el pulgar y con
+     filas de 40px justo debajo. Fallar el botón y caer en una fila cuesta un
+     salto a otra escritura, que es lo contrario de volver. Ahora mide 34px de
+     alto —38 en pantalla chica—, que es el mínimo con el que se acierta, y la
+     letra sube a la de las filas para que no parezca un rótulo. */
   .hs-atras{ margin-left:auto; flex:0 0 auto;
-             display:inline-flex; align-items:center; gap:6px;
-             font:600 10.5px/1 var(--ui); letter-spacing:.06em;
+             display:inline-flex; align-items:center; justify-content:center;
+             gap:7px; min-height:34px;
+             font:600 12px/1 var(--ui); letter-spacing:.06em;
              color:#6d5a2c; background:rgba(140,116,68,.13);
              border:1px solid rgba(140,116,68,.4); border-radius:999px;
-             padding:4px 8px 4px 10px; cursor:pointer; }
+             padding:7px 13px 7px 15px; cursor:pointer;
+             -webkit-tap-highlight-color:transparent; }
   .hs-atras:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
   .hs-atras:active{ transform:translateY(1px); }
   .hs-atras-ref{ text-transform:none; letter-spacing:.02em; }
-  .hs-flecha{ font-size:13px; line-height:1; }
+  .hs-flecha{ font-size:15px; line-height:1; }
   /* LA FILA ES UNA SOLA LÍNEA, Y ESO NO ES DECORACIÓN. Una lista en la que
      cada renglón mide lo mismo se recorre con el ojo; una en la que cada
      entrada mide dos o tres líneas hay que leerla. Por eso la referencia va
@@ -940,13 +964,72 @@
                background:linear-gradient(to bottom, #f7f0dd, #ece0c2);
                border:1px solid rgba(140,116,68,.55); border-radius:7px;
                box-shadow:0 16px 34px -10px rgba(0,0,0,.6);
-               padding:13px 14px 11px; scrollbar-width:none;
+               /* Sin relleno arriba: se lo queda el renglón del rótulo, que
+                  va pegajoso y tiene que llegar al filo del papel para tapar
+                  lo que se le pase por debajo. Ver .vp-cab. */
+               padding:0 14px 11px; scrollbar-width:none;
                opacity:0; transition:opacity .18s ease,
                                      transform .26s cubic-bezier(.2,.85,.3,1); }
   #versoPleno::-webkit-scrollbar{ width:0; height:0; display:none; }
   #versoPleno.visible{ opacity:1; transform:translate(-50%,-50%) scale(1); }
-  .vp-ref{ display:block; font:700 12px/1.2 var(--ui); letter-spacing:.1em;
-           text-transform:uppercase; color:#8a7746; padding-bottom:8px; }
+  /* EL RÓTULO Y LA X, EN UN RENGLÓN.
+
+     La X podría ir suelta y pegada a la esquina con position:absolute, y sería
+     peor: este panel LEE —tiene overflow-y:auto para los versículos largos—,
+     así que una X absoluta se iría hacia arriba con el desplazamiento, y
+     además el rótulo lleva el nombre entero del libro («Primera a los
+     Corintios 15:58») y se metería por debajo de ella. En un renglón propio
+     son hermanos: el rótulo ocupa lo que le toca y la X se queda en su punta
+     derecha pase lo que pase. align-items:center porque la X es más alta que
+     el rótulo, y alinearlos por la base la dejaría colgando.
+
+     Y VA PEGAJOSO, que es la otra mitad. Con un versículo largo —los hay que
+     no caben en el 70% de alto que se le deja a este panel— el que desplaza es
+     #versoPleno, así que un renglón normal se va hacia arriba con el texto: se
+     desplaza dos dedos y la X ya no está, que es justo el defecto que la X
+     venía a arreglar. Lo levantó la revisión de Codex. Pegajoso arriba se
+     queda en su sitio con el texto pasando por debajo.
+
+     Los tres detalles que lo hacen funcionar y no se ven:
+     · el relleno de arriba se muda del panel a este renglón. Los offsets de
+       sticky se miden contra la CAJA DE RELLENO, así que con los 13px puestos
+       en el panel el renglón se quedaría clavado 13px más abajo del filo y por
+       ese hueco asomaría el texto pasando.
+     · los márgenes negativos a los lados, para que su fondo llegue a los dos
+       filos y no deje dos franjas por donde se vea pasar el renglón de debajo.
+     · el fondo OPACO y del tono exacto con el que arranca el degradado del
+       panel. El fondo de un elemento que desplaza no se mueve con su
+       contenido, así que arriba del todo el degradado siempre vale #f7f0dd:
+       el mismo color, o sea que en reposo no se nota que hay dos capas. */
+  .vp-cab{ position:sticky; top:0; z-index:2;
+           display:flex; align-items:center; gap:10px;
+           margin:0 -14px; padding:13px 14px 8px; background:#f7f0dd; }
+  .vp-ref{ display:block; flex:1 1 auto; min-width:0;
+           font:700 12px/1.2 var(--ui); letter-spacing:.1em;
+           text-transform:uppercase; color:#8a7746; }
+  /* LA PUERTA DE SALIDA, DICHA.
+
+     Cerrar ya se podía —tocando fuera, o con Escape—, pero las dos son cosas
+     que hay que saber de antes; nada en la ventanita las contaba. Una X en la
+     esquina de arriba a la derecha es la única salida que se VE, y es donde
+     todo el mundo la busca ya.
+
+     Redonda y del mismo dorado apagado del rótulo, no un aspa negra: esta
+     ventanita es papel, y un botón de sistema operativo encima cantaría. El
+     disco se enciende al pasar por encima y se hunde al pulsar, que es lo
+     mismo que hacen los demás botones de la hoja. Y mide 30px de lado —34 en
+     pantalla chica— porque una X de las de 16px no se toca con el pulgar. */
+  .vp-x{ flex:0 0 auto; display:inline-flex; align-items:center;
+         justify-content:center; width:30px; height:30px; margin:-4px -5px -4px 0;
+         border:1px solid rgba(140,116,68,.4); border-radius:50%;
+         background:rgba(140,116,68,.13); color:#6d5a2c;
+         font:400 17px/1 var(--ui); cursor:pointer;
+         -webkit-tap-highlight-color:transparent;
+         transition:background .28s cubic-bezier(.65,0,.35,1),
+                    color .28s cubic-bezier(.65,0,.35,1),
+                    transform .18s cubic-bezier(.65,0,.35,1); }
+  .vp-x:hover{ background:rgba(140,116,68,.3); color:#4d3f1d; }
+  .vp-x:active{ transform:scale(.9); }
   .vp-txt{ display:block; width:100%; text-align:left; border:0; cursor:pointer;
            background:rgba(255,253,247,.75); border-radius:5px;
            padding:11px 12px; color:#2f2610;
@@ -967,7 +1050,9 @@
     .hs-ref{ font-size:14px; min-width:70px; }
     .hs-txt{ font-size:14px; }
     .hs-fila{ min-height:44px; padding:10px; }
+    .hs-atras{ min-height:38px; font-size:13px; padding:9px 14px 9px 16px; }
     .vp-txt{ font-size:17px; padding:13px 14px; }
+    .vp-x{ width:34px; height:34px; font-size:19px; }
     .hs-vacio, .vp-pie{ font-size:13px; }
   }
 
@@ -1992,8 +2077,10 @@
   <!-- Los chevrones vuelven: aquí son un par que se usa seguido y hay que
        distinguirlos entre sí a cada toque, no dos puertas que se aprenden. -->
   <div id="zoomPasos">
-    <button data-paso="-1" title="Hoja anterior" aria-label="Hoja anterior">‹</button>
-    <button data-paso="1" title="Hoja siguiente" aria-label="Hoja siguiente">›</button>
+    <button data-paso="-1" title="Hoja anterior — empuja hacia arriba para que pasen solas"
+            aria-label="Hoja anterior. Empuja hacia arriba para que pasen solas.">‹</button>
+    <button data-paso="1" title="Hoja siguiente — empuja hacia arriba para que pasen solas"
+            aria-label="Hoja siguiente. Empuja hacia arriba para que pasen solas.">›</button>
   </div>
   <button id="btnHistorial" title="Lo que has visto" aria-label="Lo que has visto"></button>
   <div id="historial" role="dialog" aria-label="Escrituras vistas" aria-modal="false"></div>
@@ -2059,7 +2146,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-AGO-26 19:38';
+window.GLOSS_BUILD = '24-AGO-26 20:54';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7099,7 +7186,26 @@ $('btnZoom').addEventListener('click', ev => {
    se voltea igual, solo que más chica.
    Los botones tiran del mismo pasarHoja que el filo, así que el pliegue nace
    a media altura del papel y no en el aire. */
-/* Y CON DOBLE CLIC PASAN SOLOS.
+/* Y CON UN DESLIZ HACIA ARRIBA PASAN SOLAS.
+
+   Arrancaba con doble clic y el doble clic no se dejaba dar. Tiene su razón, y
+   no es del pulso de nadie: para que el navegador cuente dos toques como uno
+   doble tienen que caer casi en el mismo píxel y dentro de la ventana que él
+   decide; en un botón de 80px que se toca de lejos, mirando el papel y no el
+   dedo, el segundo toque cae dos milímetros más allá y ya son dos toques
+   sueltos —o sea, dos hojas pasadas a mano, que es justo lo que no se pedía—.
+   Y encima el gesto no se ve: nada en la pantalla dice que el botón tenga una
+   segunda cosa dentro.
+
+   El desliz hacia arriba no tiene ventana de tiempo ni de puntería: se empuja
+   el botón hacia arriba y en cuanto el dedo pasa de un tramo corto aquello
+   arranca. El botón se va yendo con el dedo mientras subes, así que el gesto
+   se contesta antes de terminarlo: se ve que algo está pasando y se puede
+   soltar a medias sin que arranque nada. «Empujar hacia arriba para que
+   siga solo» es además lo que ya hacen los deslizadores de todos lados.
+
+   Para se toca y ya está, que es lo que uno intenta: un toque estando en
+   marcha SOLO para.
 
    El ritmo no lo pone un reloj de lectura —eso sería otro modo, y habría que
    elegir a qué velocidad lee uno— sino la única condición que se ve: en cuanto
@@ -7145,14 +7251,81 @@ $('zoomPasos').addEventListener('click', ev => {
   if (dirZoomAuto){ detenerZoomAuto(); return; }
   darPasoZoom(ladoDePaso(b));
 });
-$('zoomPasos').addEventListener('dblclick', ev => {
-  const b = ev.target.closest('[data-paso]'); if (!b || b.disabled) return;
-  ev.preventDefault(); ev.stopPropagation();
+function arrancarZoomAuto(b){
   detenerZoomAuto();
   dirZoomAuto = ladoDePaso(b);
   refrescarPasos();
   seguirZoomAuto();
+}
+/* EL DESLIZ, MEDIDO.
+
+   TIRON es lo que hay que subir para que arranque: 24 px en un botón que mide
+   66 —80 en el teléfono—, o sea un tercio de su alto. Menos lo dispararía el
+   temblor del dedo al posarse, que ronda los diez; más obligaría a salirse del
+   botón, y el gesto dejaría de leerse como empujarlo.
+
+   Y tiene que subir MÁS DE LO QUE SE DESVÍA: sin eso, un dedo que barre en
+   diagonal —que es como se pasa hoja de toda la vida en un teléfono— pondría
+   el automático en marcha sin haberlo pedido. Subir es subir.
+
+   Va con eventos de puntero y no de tacto: el mismo código sirve para el dedo,
+   el ratón y el lápiz, y así el desliz también existe con ratón —que es donde
+   se probó el doble clic y donde también costaba—. */
+const TIRON_ZOOM_AUTO = 24;
+let tiron = null;             /* el desliz en curso */
+/* Lo que se ve mientras subes: el botón acompaña al dedo, la mitad de lo que
+   sube y como mucho el tirón entero. Es freno y es promesa a la vez —cuanto
+   más cerca del tope, más se ha movido— y soltando a medias no pasa nada. */
+function ponerTiron(b, dy){
+  b.style.transform = dy ? 'translateY(' + dy + 'px)' : '';
+}
+$('zoomPasos').addEventListener('pointerdown', ev => {
+  const b = ev.target.closest('[data-paso]'); if (!b || b.disabled) return;
+  /* Un solo desliz a la vez: con dos dedos encima gana el primero. */
+  if (tiron) return;
+  tiron = { id: ev.pointerId, b, x: ev.clientX, y: ev.clientY, vivo: true };
+  /* Con la captura, el dedo puede salirse del botón sin perder el gesto: al
+     subir 24 px desde el borde de arriba ya se está fuera, que es lo normal. */
+  try { b.setPointerCapture(ev.pointerId); } catch(_){}
 });
+$('zoomPasos').addEventListener('pointermove', ev => {
+  if (!tiron || ev.pointerId !== tiron.id || !tiron.vivo) return;
+  const dy = ev.clientY - tiron.y, dx = ev.clientX - tiron.x;
+  if (dy >= 0){ ponerTiron(tiron.b, 0); return; }
+  if (-dy <= Math.abs(dx)) return;          /* eso es un barrido, no un empujón */
+  if (-dy < TIRON_ZOOM_AUTO){ ponerTiron(tiron.b, Math.max(dy / 2, -TIRON_ZOOM_AUTO)); return; }
+  /* Llegó al tope: arranca aquí y no al soltar, para que el gesto se conteste
+     con el dedo todavía puesto. Lo que queda del desliz ya no hace nada. */
+  tiron.vivo = false;
+  tiron.arranco = true;
+  ponerTiron(tiron.b, 0);
+  arrancarZoomAuto(tiron.b);
+});
+/* AL SOLTAR, EL CLIC DEL GESTO SE TIRA A LA BASURA.
+
+   Levantar el dedo manda un clic, y ese clic apagaría lo que el desliz acaba
+   de encender: si cae en el botón lo para la línea de «un toque para», y si
+   cae más arriba —que es lo normal, el dedo terminó fuera del botón— lo para
+   el oyente de la escena, que con algo en marcha para lo den donde lo den.
+
+   Se usa el mismo tragador que ya existía para el toque de fuera de la
+   ventanita, y se llama AQUÍ y no al arrancar: se quita solo a los 700 ms, y
+   entre cruzar el tope y levantar el dedo puede pasar más que eso —basta con
+   quedarse mirando cómo pasan las hojas sin soltar—. Puesto al soltar, la
+   ventana empieza justo antes del clic que hay que tragarse. */
+const soltarTiron = (ev, hubo) => {
+  if (!tiron || (ev && ev.pointerId !== tiron.id)) return;
+  const t = tiron;
+  tiron = null;
+  ponerTiron(t.b, 0);
+  try { t.b.releasePointerCapture(t.id); } catch(_){}
+  if (hubo && t.arranco) tragarElClic();
+};
+$('zoomPasos').addEventListener('pointerup', ev => soltarTiron(ev, true));
+/* Un desliz cancelado —el navegador se quedó con el gesto— no acaba en clic,
+   así que aquí no hay nada que tragarse: hacerlo se comería el toque
+   siguiente, que sí es de alguien. */
+$('zoomPasos').addEventListener('pointercancel', ev => soltarTiron(ev, false));
 /* QUÉ CUENTA COMO CONTENIDO DE LA HOJA. Es la misma familia que ya usa el
    cajón para decidir qué no se puede agarrar para arrastrar, y por el mismo
    motivo: son las cosas que tienen algo que hacer con tu dedo. */
@@ -7372,7 +7545,11 @@ function abrirPleno(libro, cap, vers, letra, origen){
   const cuerpo = t
     ? '<button class="vp-txt" data-ir="' + libro + ':' + cap + ':' + vers + '">' + esc(t) + '</button>'
     : '<div class="vp-txt vp-mudo">Este versículo no está en la versión que tienes puesta.</div>';
-  el.innerHTML = '<span class="vp-ref">' + esc(nombreDe(libro)) + ' ' + cap + ':' + vers + '</span>' +
+  el.innerHTML = '<div class="vp-cab">' +
+      '<span class="vp-ref">' + esc(nombreDe(libro)) + ' ' + cap + ':' + vers + '</span>' +
+      '<button class="vp-x" data-cerrar-pleno="1" title="Cerrar" ' +
+      'aria-label="Cerrar"><span aria-hidden="true">\u00d7</span></button>' +
+    '</div>' +
     cuerpo +
     '<span class="vp-pie">' + (t ? 'Toca el versículo para ir ahí.' : 'Cambia de versión en Formato para leerlo.') + '</span>';
   el.style.display = 'flex';
@@ -7395,6 +7572,16 @@ $('historial').addEventListener('click', ev => {
   abrirPleno(lib, +c, +v);
 });
 $('versoPleno').addEventListener('click', ev => {
+  /* LA X SE LLEVA LA VENTANITA Y NADA MÁS. No cierra el rastro que la abrió
+     ni el panel de la glosa: cerrar lo que estabas mirando por encima no es
+     razón para deshacer el sitio desde el que preguntaste —volver a la lista
+     y abrir otra línea es justo lo siguiente que se hace—. Eso lo distingue
+     del toque de fuera, que sí se lleva a los dos cuando el rastro está
+     abierto, porque ahí el toque cayó fuera de los dos. */
+  if (ev.target.closest('[data-cerrar-pleno]')){
+    ev.preventDefault(); ev.stopPropagation();
+    cerrarPleno(); return;
+  }
   const b = ev.target.closest('[data-ir]'); if (!b) return;
   ev.preventDefault(); ev.stopPropagation();
   const [lib, c, v] = b.dataset.ir.split(':');
@@ -7432,9 +7619,10 @@ $('versoPleno').addEventListener('click', ev => {
    mirar `histAbierto` bastaba. Desde que la abren también una referencia
    dentro de una glosa y la caja de escribir del panel, ya no: en esos dos
    caminos el historial está cerrado, este oyente se rendía en la primera
-   línea, y la ventanita se quedaba puesta. Y no tiene botón de cerrar, así
-   que lo único que quedaba era saltar al versículo o dar a Escape —o sea,
-   irse a otro sitio para poder quedarse—.
+   línea, y la ventanita se quedaba puesta: entonces no llevaba X, así que lo
+   único que quedaba era saltar al versículo o dar a Escape —o sea, irse a
+   otro sitio para poder quedarse—. La X vino después y es la salida que se
+   ve; ésta sigue siendo la que se hace sin mirar.
    El historial sigue haciendo lo de siempre: si está abierto, el toque de
    fuera se los lleva a los dos, que es lo que ya hacía cerrarHistorial. */
 document.addEventListener('pointerdown', ev => {
