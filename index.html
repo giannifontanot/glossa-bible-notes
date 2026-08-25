@@ -1002,8 +1002,19 @@
      botones de verdad. Importa por dos cosas que ya estaban: el papel se
      arrastra con el dedo y su lista de "esto no es papel" ya conoce los
      botones, y las glosas de debajo tienen que poder tocarse por el hueco. */
+  /* ARRANCA EN EL FILO DEL PAPEL, sin hueco por encima. Una cinta de verdad
+     sale del canto de arriba del libro; empezada un poco más abajo se lee como
+     una pegatina puesta en medio de la hoja, y el hueco entre el filo y ella es
+     lo primero que salta a la vista.
+
+     El filo NO es el alto de .pg-inner: la hoja tiene 22px de relleno arriba,
+     así que la caja del contenido empieza ya metida. Por eso --cinta-arriba es
+     un número NEGATIVO —lo mide el guion, que es quien puede preguntar cuánto
+     relleno hay— y por eso la percha cuelga de .pg-inner y no de la columna de
+     glosas: la columna la recorta con su overflow, y lo que asomara por encima
+     se perdería. El ancho sigue saliendo de la columna, medido aparte. */
   .sep-percha{ position:absolute; top:var(--cinta-arriba,0px); right:4px; z-index:4;
-               width:clamp(16px, 18%, 32px); aspect-ratio:1 / 1.75;
+               width:var(--cinta-ancho,28px); aspect-ratio:1 / 1.75;
                pointer-events:none; }
   /* La tela: un degradado de lado a lado —la cinta no es plana, tiene un
      doblez— y encima un rayado finísimo que insinúa la trama. La cola en pico
@@ -2409,7 +2420,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-AGO-26 14:25';
+window.GLOSS_BUILD = '25-AGO-26 18:30';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2493,7 +2504,13 @@ const PAGE_CSS = `
                          -webkit-tap-highlight-color:transparent; }
 /* Las versalitas piden más tracking que la caja baja: son letras anchas y
    bajas, y pegadas se empastan. .07em era la separación de un texto normal. */
-.pg-cabeza{ position:absolute; top:0; right:0; z-index:2;
+/* El hueco de la cinta: cuando hay una colgando de esta hoja, el titulillo se
+   corre a su izquierda en vez de quedarse debajo. Los dos viven en la esquina
+   de arriba a la derecha —en pantalla ancha; en teléfono el titulillo va
+   centrado sobre la columna de texto y esto no le toca nada— y de los dos, el
+   que dice dónde estás es éste. Vale cero cuando no hay cinta, así que en la
+   inmensa mayoría de las hojas la regla no hace nada. */
+.pg-cabeza{ position:absolute; top:0; right:var(--cinta-hueco,0px); z-index:2;
             font-size:10.5px; line-height:1.3; letter-spacing:.10em;
             color:var(--rot-cab,#795f35); background:var(--papel,#faf7f1); padding:1px 5px 2px 9px;
             white-space:nowrap; cursor:pointer; border-radius:0 0 0 4px;
@@ -9479,33 +9496,34 @@ function sepDeLaHoja(){
   return aqui.find(x => x.id === sepActivo) ||
          aqui.sort((a, b) => b.tocado - a.tocado)[0];
 }
-/* DÓNDE CUELGA. De la columna de glosas siempre que la columna exista; con
-   las glosas puestas debajo del texto o al pie, esa columna mide cero y no
-   hay de dónde colgar nada, así que la cinta se va a la esquina de arriba de
-   la hoja, que es el mismo sitio en el papel. */
-function sepPercha(){
-  if (pgMargin.offsetWidth > 44) return pgMargin;
-  return pg.querySelector('.pg-inner') || pgMargin;
-}
-/* DE DÓNDE CUELGA EXACTAMENTE, medido y no supuesto.
+/* CUÁNTO HAY QUE SUBIRLA para que su filo sea el filo del papel, y cuánto
+   tiene que medir de ancho.
 
-   Del alto de la columna de glosas, sí, pero por debajo del titulillo: en
-   pantalla ancha la columna empieza justo detrás de él —en teléfono no, ahí
-   .pg-cols ya le reserva sitio— y una cinta puesta a cero tapaba «MATEO 1:1».
-   Se le pregunta a los dos elementos dónde están, que es lo que hace el resto
-   del programa cuando el acomodo depende del ancho y de los ajustes. */
-function sepArriba(anfitrion){
-  const cab = pg.querySelector('.pg-cabeza');
-  if (!cab) return 0;
-  const a = anfitrion.getBoundingClientRect(), c = cab.getBoundingClientRect();
-  if (c.width < 2) return 0;
-  return Math.max(0, Math.round(c.bottom - a.top + 3));
+   Las dos se miden y no se suponen, porque las dos cambian con los ajustes: el
+   relleno de la hoja lo mueve el ajuste de márgenes y el ancho de la columna
+   depende de la pantalla. Se usan offsetTop y offsetWidth a propósito, que son
+   de acomodo y no de pintura: con la vista de lejos puesta, .pg-inner lleva una
+   escala encima y un getBoundingClientRect devolvería los números encogidos.
+
+   El ancho es una proporción de la COLUMNA aunque la percha ya no cuelgue de
+   ella: es la columna la que le da su sitio, y un porcentaje de CSS mediría
+   ahora contra la hoja entera. Sin columna —las glosas puestas debajo o al
+   pie— se conforma con el mínimo. */
+function sepMedidas(){
+  const inner = pg.querySelector('.pg-inner');
+  const col = pgMargin.offsetWidth;
+  return { arriba: -(inner ? inner.offsetTop : 0),
+           ancho: Math.round(Math.min(32, Math.max(16, (col || 90) * 0.18))) };
 }
 function pintarSeparador(){
   const puesta = document.getElementById('sepPercha');
   if (puesta) puesta.remove();
   const s = sepDeLaHoja();
-  if (!s){ if (sepMenuAbierto) cerrarSepMenu(); return; }
+  if (!s){
+    pg.style.removeProperty('--cinta-hueco');
+    if (sepMenuAbierto) cerrarSepMenu();
+    return;
+  }
   const t = telaDe(s.color);
   const percha = document.createElement('div');
   percha.className = 'sep-percha';
@@ -9524,9 +9542,12 @@ function pintarSeparador(){
       ' aria-label="Quitar este separador" title="Quitar este separador">' +
       '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1 L9 9 M9 1 L1 9"' +
       ' stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>';
-  const anfitrion = sepPercha();
-  percha.style.setProperty('--cinta-arriba', sepArriba(anfitrion) + 'px');
-  anfitrion.appendChild(percha);
+  const m = sepMedidas();
+  percha.style.setProperty('--cinta-arriba', m.arriba + 'px');
+  percha.style.setProperty('--cinta-ancho', m.ancho + 'px');
+  /* Y el titulillo se aparta lo que ocupa la cinta más su aire. */
+  pg.style.setProperty('--cinta-hueco', (m.ancho + 8) + 'px');
+  (pg.querySelector('.pg-inner') || pgMargin).appendChild(percha);
 }
 
 /* ---------- poner, mover y quitar ---------- */

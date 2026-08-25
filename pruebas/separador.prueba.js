@@ -63,14 +63,23 @@ async function andamio(p){
       const c = document.querySelector('.separador');
       if (!c) return null;
       const r = c.getBoundingClientRect();
-      const anfitrion = document.getElementById('sepPercha').parentElement;
-      const m = anfitrion.getBoundingClientRect();
+      const papel = document.getElementById('pg').getBoundingClientRect();
+      const m = document.getElementById('pgMargin').getBoundingClientRect();
+      const cab = document.querySelector('.pg-cabeza').getBoundingClientRect();
       return { id: c.dataset.sep, color: c.style.getPropertyValue('--tela').trim(),
                w: Math.round(r.width), h: Math.round(r.height),
                altoColumna: Math.round(m.height),
+               /* Lo que de verdad hay que vigilar: que arranque EN el filo de
+                  arriba del papel, sin hueco, y que no se salga por abajo ni
+                  por el costado. */
+               desdeArriba: Math.round(r.top - papel.top),
                dentro: r.left >= m.left - 1 && r.right <= m.right + 1 &&
-                       r.top >= m.top - 1 && r.bottom <= m.bottom + 1,
+                       r.top >= papel.top - 1 && r.bottom <= papel.bottom + 1,
                corta: r.height <= m.height * 0.25,
+               /* Y que no se le eche encima al titulillo, que es lo único que
+                  vive en la misma esquina. */
+               tapaElTitulillo: !(r.left >= cab.right - 1 || r.right <= cab.left + 1 ||
+                                  r.top >= cab.bottom - 1 || r.bottom <= cab.top + 1),
                enPantalla: r.left >= -1 && r.right <= window.innerWidth + 1 };
     };
     window.__desborde = () =>
@@ -162,6 +171,9 @@ async function ponerAMano(p){
   vale('pone un separador', mano.guardadas.length === 1, mano.guardadas);
   vale('y sale la cinta', !!mano.cinta);
   vale('cuelga dentro de la columna', mano.cinta && mano.cinta.dentro);
+  vale('ARRANCA EN EL FILO DE ARRIBA', mano.cinta && mano.cinta.desdeArriba === 0,
+       mano.cinta && mano.cinta.desdeArriba + ' px de hueco');
+  vale('sin taparle el titulillo', mano.cinta && !mano.cinta.tapaElTitulillo);
   vale('es corta', mano.cinta && mano.cinta.corta,
        mano.cinta ? mano.cinta.h + ' de ' + mano.cinta.altoColumna + ' px' : '');
   vale('no se sale de la pantalla', mano.cinta && mano.cinta.enPantalla);
@@ -483,19 +495,19 @@ async function ponerAMano(p){
     await window.__toque('[data-sep-nuevo]');
     await window.__pausa(700);
     const cinta = window.__cinta();
-    const c = document.querySelector('.separador').getBoundingClientRect();
-    const cab = document.querySelector('.pg-cabeza').getBoundingClientRect();
     await window.__toque('.separador');
     await window.__pausa(450);
-    return { cinta, menu: window.__menu(), desborde: window.__desborde(),
-             bajoElTitulillo: c.top >= cab.bottom - 1,
-             anchoRelativo: Math.round(c.width) };
+    return { cinta, menu: window.__menu(), desborde: window.__desborde() };
   });
   di('la cinta', esc.cinta);
   vale('cuelga dentro de la columna', esc.cinta && esc.cinta.dentro);
+  vale('y arranca en el filo de arriba', esc.cinta && esc.cinta.desdeArriba === 0,
+       esc.cinta && esc.cinta.desdeArriba + ' px de hueco');
   vale('sigue siendo corta', esc.cinta && esc.cinta.corta,
        esc.cinta && esc.cinta.h + ' de ' + esc.cinta.altoColumna + ' px');
-  vale('no tapa el titulillo', esc.bajoElTitulillo);
+  /* En pantalla ancha los dos viven en la misma esquina: el titulillo se corre
+     a la izquierda de la cinta en vez de quedarse debajo. */
+  vale('el titulillo se aparta', esc.cinta && !esc.cinta.tapaElTitulillo);
   vale('sin desborde horizontal', !esc.desborde);
   vale('el menú cabe entero', esc.menu && esc.menu.dentro, esc.menu);
 
