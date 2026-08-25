@@ -80,6 +80,26 @@ async function andamio(p){
       e.dispatchEvent(new PointerEvent('pointerup', op));
       return huella;
     };
+    /* UN ARRASTRE DEL FILO, que es el otro gesto que vive ahí: empieza su
+       pliegue sin preguntarle a la preparación, así que es la manera honesta
+       de que el lector se vaya de la hoja mientras una foto sigue en el aire.
+       Va torcido a propósito: un dedo real tiembla. */
+    window.__arrastre = async (lado) => {
+      const e = document.getElementById(lado === 'left' ? 'edgeL' : 'edgeR');
+      const r = e.getBoundingClientRect();
+      const id = ++window.__pid, y0 = 420, x0 = r.left + r.width/2;
+      const dir = lado === 'left' ? 1 : -1, tramo = window.innerWidth * 0.92;
+      const op = (x, y) => ({ bubbles:true, pointerId:id, pointerType:'touch',
+                              isPrimary:true, clientX:x, clientY:y });
+      e.dispatchEvent(new PointerEvent('pointerdown', op(x0, y0)));
+      for (let i = 1; i <= 14; i++){
+        const k = i / 14;
+        e.dispatchEvent(new PointerEvent('pointermove',
+          op(x0 + dir*tramo*k + (Math.random()-0.5)*6, y0 + Math.sin(k*5)*7)));
+        await window.__pausa(16);
+      }
+      e.dispatchEvent(new PointerEvent('pointerup', op(x0 + dir*tramo, y0)));
+    };
     window.__hoja = () => window.__estado || '';
     /* Ni lienzo puesto, ni hoja escondida, ni huella flotando: el reposo. */
     window.__reposo = () => ({
@@ -365,6 +385,50 @@ async function pasar(p, lado, espera){
                           '  →  ' + otros.conFilo + ' (filo)');
   vale('el botón de lejos pasa hoja', otros.conBoton !== otros.partida);
   vale('y el filo después de él también', otros.conFilo !== otros.conBoton);
+
+  /* ---------------------------------------------------------------- */
+  titulo('una foto que llega tarde a una hoja que ya nadie mira');
+  /* La preparación no cierra la puerta a todo: el arrastre del filo empieza su
+     pliegue sin preguntarle. Así que se pide una hoja hacia adelante con la
+     foto muda, y mientras esa foto está en el aire se arrastra hacia ATRÁS. Al
+     cumplirse el plazo, la petición vieja se encuentra con que el lector está
+     dos hojas más allá de donde ella creía: lo que no puede hacer es
+     llevárselo de vuelta.
+
+     Va al final a propósito, y empieza dejando el mundo en orden: hace falta
+     que la foto de la hoja viva ESTÉ, porque si no el toque entra por la tanda
+     de reintentos y no llega a pedir la foto del destino, que es la que tiene
+     que quedarse colgada. */
+  const caduca = await p.evaluate(async () => {
+    window.__modoFoto = 'ok';
+    await window.__toque('right');
+    await window.__pausa(2500);
+    const partida = window.__hoja();
+    window.__modoFoto = 'mudo';
+    await window.__toque('right');             // pide la siguiente; la foto se cuelga
+    await window.__pausa(600);                 // 240 de espera y la petición ya salió
+    await window.__arrastre('left');           // y el dedo se va hacia atrás
+    await window.__pausa(1400);
+    const trasArrastre = window.__hoja();
+    await window.__pausa(6000);                // se cumple el plazo de la foto colgada
+    const trasPlazo = window.__hoja(), reposo = window.__reposo();
+    window.__modoFoto = 'ok';
+    await window.__pausa(600);
+    await window.__toque('right');
+    await window.__pausa(2000);
+    return { partida, trasArrastre, trasPlazo, reposo, final: window.__hoja(),
+             reposoFinal: window.__reposo() };
+  });
+  di('el viaje', caduca.partida + '  →  ' + caduca.trasArrastre +
+                 '  →  ' + caduca.trasPlazo);
+  vale('el arrastre se lleva la hoja hacia atrás', caduca.trasArrastre !== caduca.partida,
+       caduca.partida + '  →  ' + caduca.trasArrastre);
+  vale('LA FOTO VIEJA NO MUEVE NADA', caduca.trasPlazo === caduca.trasArrastre,
+       caduca.trasArrastre + '  →  ' + caduca.trasPlazo);
+  vale('y no deja nada puesto', enReposo(caduca.reposo), caduca.reposo);
+  vale('el filo sigue vivo', caduca.final !== caduca.trasPlazo,
+       caduca.trasPlazo + '  →  ' + caduca.final);
+  vale('en reposo', enReposo(caduca.reposoFinal), caduca.reposoFinal);
 
   await cerrarParcial(sesion, 'teléfono');
 

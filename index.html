@@ -2146,7 +2146,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-AGO-26 11:20';
+window.GLOSS_BUILD = '25-AGO-26 12:05';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5761,6 +5761,19 @@ function soltarReintento(){
   if (reintentando){ reintentando = false; preparandoPliegue = false; }
 }
 let snapFirma = null;
+/* LA RONDA DE FOTOS, y por qué hace falta un número.
+
+   makeSnapshot arranca tres cargas —la hoja de arriba y sus dos vecinas— y se
+   vuelve a llamar seguido: cada repintado, cada reintento. Con las cargas
+   tardando lo suyo, dos rondas se pisan, y la vieja siempre llega después.
+   Da igual con qué llegue: una foto vieja puesta encima de la nueva retrata
+   una hoja que ya no es, y un fallo viejo tira una foto nueva que sí servía —y
+   la siguiente vuelta de hoja se va sin animación por una carga que ya no le
+   importaba a nadie—. El plazo de loadSVG hizo esto más fácil de ver, pero
+   pisarse ya se pisaban.
+   Cada ronda toma su número y solo la última escribe. Es la misma regla que
+   generacionPliegue, por la misma razón. Lo levantó la revisión de Codex. */
+let rondaFoto = 0;
 const snapStale = () => (snapFirma !== estiloFirma());
 function invalidateSnapshot(){
   pageImg = nextImg = prevImg = null;
@@ -6084,6 +6097,7 @@ function makeSnapshotCrudo(){
      eran dos fotos de la misma hoja tomadas con encuadres distintos. Aquí se
      mide igual que en fotoDeHoja, y las marcas y las palabras se miden contra
      la hoja viva, que ya trae el acomodo correcto. */
+  const mia = ++rondaFoto;                  /* ver rondaFoto: solo la última escribe */
   const med = medirHojaTelefono();
   const w = med ? (med.texto + med.hueco + med.glosa)
                 : Math.max(pg.scrollWidth, pg.offsetWidth);
@@ -6092,10 +6106,14 @@ function makeSnapshotCrudo(){
   const ms = rectsDeMarcas(pgBody, pg);
   const palabras = medirPalabras(pg);
   loadSVG(buildSVG(cuerpoHTML(startIdx, nextIdx), curMarginHTML, curFootHTML, curMW, curGap, w, h, cabezaDe(startIdx)),
-    img => { pageImg = componer(img, ms, palabras, w, h); if (folding){ pg.classList.add('hidden'); drawFold(); } },
-    () => { pageImg = null; pg.classList.remove('hidden'); });
-  fotoDeHoja(paginaActual + 1, i => { nextImg = i; if (folding && side==='right') bajoImg = i; });
-  fotoDeHoja(paginaActual - 1, i => { prevImg = i; if (folding && side==='left')  bajoImg = i; });
+    img => { if (mia !== rondaFoto) return;
+             pageImg = componer(img, ms, palabras, w, h); if (folding){ pg.classList.add('hidden'); drawFold(); } },
+    () => { if (mia !== rondaFoto) return;
+            pageImg = null; pg.classList.remove('hidden'); });
+  fotoDeHoja(paginaActual + 1, i => { if (mia !== rondaFoto) return;
+                                      nextImg = i; if (folding && side==='right') bajoImg = i; });
+  fotoDeHoja(paginaActual - 1, i => { if (mia !== rondaFoto) return;
+                                      prevImg = i; if (folding && side==='left')  bajoImg = i; });
 }
 
 let W=0, H=0, anchor=null, F=null, side='right', bajoImg=null;
@@ -6504,6 +6522,7 @@ function pasarHoja(s, clientY, intento){
   const y = Number.isFinite(clientY) ? aPapel(0, clientY).y : H/2;
   const anclaY = Math.min(Math.max(y, 0), H);
   side = s;
+  const desde = paginaActual;
   preparandoPliegue = true;
   /* Retratar la hoja destino mide y compone, y eso puede reventar. Si revienta
      antes de dejar el callback armado, la preparación se queda pedida por un
@@ -6511,6 +6530,13 @@ function pasarHoja(s, clientY, intento){
   try {
     fotoDeHoja(destino, img => {
       preparandoPliegue = false;
+      /* Y ESTE VIAJE PUEDE HABER CADUCADO. La preparación no cierra la puerta a
+         todo: un arrastre del filo empieza su pliegue sin preguntar por ella, y
+         un salto desde un panel tampoco. Si para cuando llega la foto el lector
+         ya se fue —o ya está volteando otra hoja—, la hoja de este viaje no es
+         de nadie: aplicarla sería llevárselo de vuelta a donde no está. Soltar
+         la preparación sí, siempre; mover la hoja solo si sigue siendo suya. */
+      if (paginaActual !== desde || folding) return;
       if (!img){ paginaActual = destino; renderPage(); return; }
       pageImg = viejo; bajoImg = img;
       animarHojas(1, rnd(620, 780), () => {
