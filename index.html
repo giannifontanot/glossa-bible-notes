@@ -877,16 +877,25 @@
      pedido y además el borde por el que este panel crece. Y flex-shrink:0
      porque su referencia no se parte: antes que encogerse y partir «Lc 2:1»
      en dos renglones, que se recorte el rótulo, que es texto fijo. */
+  /* Y ES UN BLANCO QUE SE PUEDA TOCAR. Nació del tamaño del rótulo que tiene
+     al lado —10.5px de letra y 4px de relleno—, o sea unos 19px de alto: la
+     mitad de lo que mide un dedo, en un panel que se usa con el pulgar y con
+     filas de 40px justo debajo. Fallar el botón y caer en una fila cuesta un
+     salto a otra escritura, que es lo contrario de volver. Ahora mide 34px de
+     alto —38 en pantalla chica—, que es el mínimo con el que se acierta, y la
+     letra sube a la de las filas para que no parezca un rótulo. */
   .hs-atras{ margin-left:auto; flex:0 0 auto;
-             display:inline-flex; align-items:center; gap:6px;
-             font:600 10.5px/1 var(--ui); letter-spacing:.06em;
+             display:inline-flex; align-items:center; justify-content:center;
+             gap:7px; min-height:34px;
+             font:600 12px/1 var(--ui); letter-spacing:.06em;
              color:#6d5a2c; background:rgba(140,116,68,.13);
              border:1px solid rgba(140,116,68,.4); border-radius:999px;
-             padding:4px 8px 4px 10px; cursor:pointer; }
+             padding:7px 13px 7px 15px; cursor:pointer;
+             -webkit-tap-highlight-color:transparent; }
   .hs-atras:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
   .hs-atras:active{ transform:translateY(1px); }
   .hs-atras-ref{ text-transform:none; letter-spacing:.02em; }
-  .hs-flecha{ font-size:13px; line-height:1; }
+  .hs-flecha{ font-size:15px; line-height:1; }
   /* LA FILA ES UNA SOLA LÍNEA, Y ESO NO ES DECORACIÓN. Una lista en la que
      cada renglón mide lo mismo se recorre con el ojo; una en la que cada
      entrada mide dos o tres líneas hay que leerla. Por eso la referencia va
@@ -925,8 +934,43 @@
                                      transform .26s cubic-bezier(.2,.85,.3,1); }
   #versoPleno::-webkit-scrollbar{ width:0; height:0; display:none; }
   #versoPleno.visible{ opacity:1; transform:translate(-50%,-50%) scale(1); }
-  .vp-ref{ display:block; font:700 12px/1.2 var(--ui); letter-spacing:.1em;
-           text-transform:uppercase; color:#8a7746; padding-bottom:8px; }
+  /* EL RÓTULO Y LA X, EN UN RENGLÓN.
+
+     La X podría ir suelta y pegada a la esquina con position:absolute, y sería
+     peor: este panel LEE —tiene overflow-y:auto para los versículos largos—,
+     así que una X absoluta se iría hacia arriba con el desplazamiento, y
+     además el rótulo lleva el nombre entero del libro («Primera a los
+     Corintios 15:58») y se metería por debajo de ella. En un renglón propio
+     son hermanos: el rótulo ocupa lo que le toca y la X se queda en su punta
+     derecha pase lo que pase. align-items:center porque la X es más alta que
+     el rótulo, y alinearlos por la base la dejaría colgando. */
+  .vp-cab{ display:flex; align-items:center; gap:10px; padding-bottom:8px; }
+  .vp-ref{ display:block; flex:1 1 auto; min-width:0;
+           font:700 12px/1.2 var(--ui); letter-spacing:.1em;
+           text-transform:uppercase; color:#8a7746; }
+  /* LA PUERTA DE SALIDA, DICHA.
+
+     Cerrar ya se podía —tocando fuera, o con Escape—, pero las dos son cosas
+     que hay que saber de antes; nada en la ventanita las contaba. Una X en la
+     esquina de arriba a la derecha es la única salida que se VE, y es donde
+     todo el mundo la busca ya.
+
+     Redonda y del mismo dorado apagado del rótulo, no un aspa negra: esta
+     ventanita es papel, y un botón de sistema operativo encima cantaría. El
+     disco se enciende al pasar por encima y se hunde al pulsar, que es lo
+     mismo que hacen los demás botones de la hoja. Y mide 30px de lado —34 en
+     pantalla chica— porque una X de las de 16px no se toca con el pulgar. */
+  .vp-x{ flex:0 0 auto; display:inline-flex; align-items:center;
+         justify-content:center; width:30px; height:30px; margin:-4px -5px -4px 0;
+         border:1px solid rgba(140,116,68,.4); border-radius:50%;
+         background:rgba(140,116,68,.13); color:#6d5a2c;
+         font:400 17px/1 var(--ui); cursor:pointer;
+         -webkit-tap-highlight-color:transparent;
+         transition:background .28s cubic-bezier(.65,0,.35,1),
+                    color .28s cubic-bezier(.65,0,.35,1),
+                    transform .18s cubic-bezier(.65,0,.35,1); }
+  .vp-x:hover{ background:rgba(140,116,68,.3); color:#4d3f1d; }
+  .vp-x:active{ transform:scale(.9); }
   .vp-txt{ display:block; width:100%; text-align:left; border:0; cursor:pointer;
            background:rgba(255,253,247,.75); border-radius:5px;
            padding:11px 12px; color:#2f2610;
@@ -947,7 +991,9 @@
     .hs-ref{ font-size:14px; min-width:70px; }
     .hs-txt{ font-size:14px; }
     .hs-fila{ min-height:44px; padding:10px; }
+    .hs-atras{ min-height:38px; font-size:13px; padding:9px 14px 9px 16px; }
     .vp-txt{ font-size:17px; padding:13px 14px; }
+    .vp-x{ width:34px; height:34px; font-size:19px; }
     .hs-vacio, .vp-pie{ font-size:13px; }
   }
 
@@ -7320,7 +7366,11 @@ function abrirPleno(libro, cap, vers, letra, origen){
   const cuerpo = t
     ? '<button class="vp-txt" data-ir="' + libro + ':' + cap + ':' + vers + '">' + esc(t) + '</button>'
     : '<div class="vp-txt vp-mudo">Este versículo no está en la versión que tienes puesta.</div>';
-  el.innerHTML = '<span class="vp-ref">' + esc(nombreDe(libro)) + ' ' + cap + ':' + vers + '</span>' +
+  el.innerHTML = '<div class="vp-cab">' +
+      '<span class="vp-ref">' + esc(nombreDe(libro)) + ' ' + cap + ':' + vers + '</span>' +
+      '<button class="vp-x" data-cerrar-pleno="1" title="Cerrar" ' +
+      'aria-label="Cerrar"><span aria-hidden="true">\u00d7</span></button>' +
+    '</div>' +
     cuerpo +
     '<span class="vp-pie">' + (t ? 'Toca el versículo para ir ahí.' : 'Cambia de versión en Formato para leerlo.') + '</span>';
   el.style.display = 'flex';
@@ -7343,6 +7393,16 @@ $('historial').addEventListener('click', ev => {
   abrirPleno(lib, +c, +v);
 });
 $('versoPleno').addEventListener('click', ev => {
+  /* LA X SE LLEVA LA VENTANITA Y NADA MÁS. No cierra el rastro que la abrió
+     ni el panel de la glosa: cerrar lo que estabas mirando por encima no es
+     razón para deshacer el sitio desde el que preguntaste —volver a la lista
+     y abrir otra línea es justo lo siguiente que se hace—. Eso lo distingue
+     del toque de fuera, que sí se lleva a los dos cuando el rastro está
+     abierto, porque ahí el toque cayó fuera de los dos. */
+  if (ev.target.closest('[data-cerrar-pleno]')){
+    ev.preventDefault(); ev.stopPropagation();
+    cerrarPleno(); return;
+  }
   const b = ev.target.closest('[data-ir]'); if (!b) return;
   ev.preventDefault(); ev.stopPropagation();
   const [lib, c, v] = b.dataset.ir.split(':');
@@ -7380,9 +7440,10 @@ $('versoPleno').addEventListener('click', ev => {
    mirar `histAbierto` bastaba. Desde que la abren también una referencia
    dentro de una glosa y la caja de escribir del panel, ya no: en esos dos
    caminos el historial está cerrado, este oyente se rendía en la primera
-   línea, y la ventanita se quedaba puesta. Y no tiene botón de cerrar, así
-   que lo único que quedaba era saltar al versículo o dar a Escape —o sea,
-   irse a otro sitio para poder quedarse—.
+   línea, y la ventanita se quedaba puesta: entonces no llevaba X, así que lo
+   único que quedaba era saltar al versículo o dar a Escape —o sea, irse a
+   otro sitio para poder quedarse—. La X vino después y es la salida que se
+   ve; ésta sigue siendo la que se hace sin mirar.
    El historial sigue haciendo lo de siempre: si está abierto, el toque de
    fuera se los lleva a los dos, que es lo que ya hacía cerrarHistorial. */
 document.addEventListener('pointerdown', ev => {
