@@ -31,6 +31,22 @@ const factorDe = css => {
   const m = /contrast\(([\d.]+)\)/.exec(css);
   return m ? +m[1] : null;
 };
+/* EL BRILLO SE LEE DE LA MISMA CADENA, y por eso se busca aparte en vez de
+   comparar la cadena entera: los dos efectos comparten una sola propiedad
+   filter —tienen que, o el segundo borra al primero— así que lo que hay que
+   comprobar es que CADA UNO esté puesto con su número, no que la cadena diga
+   una cosa concreta. */
+const brilloDe = css => {
+  if (!css || css === 'none') return 1;
+  const m = /brightness\(([\d.]+)\)/.exec(css);
+  return m ? +m[1] : null;
+};
+const ponerRiel = (pagina, id, v) => pagina.evaluate(async ([i, x]) => {
+  const r = document.getElementById(i);
+  r.value = String(x);
+  r.dispatchEvent(new Event('input', { bubbles:true }));
+  await new Promise(z => setTimeout(z, 120));
+}, [id, v]);
 
 /* Mover el riel COMO LO MUEVE UN DEDO: el valor se escribe y se dispara
    'input', que es el evento que el programa escucha. Con 'change' a secas la
@@ -94,8 +110,13 @@ async function ponerContraste(pagina, pct){
                                       .getBoundingClientRect().width) };
   });
   di('la vecindad', sitio.orden);
-  vale('sepia · contraste · versión',
-       JSON.stringify(sitio.orden) === JSON.stringify(['sepia','contraste','versión']),
+  /* El brillo se metió DEBAJO del contraste, así que la versión ya no es su
+     vecina de abajo: sigue siendo lo último del panel, pero ahora hay un riel
+     más entre medias. Lo que esta línea vigila es el orden de los tres de
+     tinta, que es el que importa —sepia, contraste, brillo—; que la versión
+     cierre el panel lo comprueba la sección del brillo. */
+  vale('sepia · contraste · brillo',
+       JSON.stringify(sitio.orden) === JSON.stringify(['sepia','contraste','brillo']),
        sitio.orden);
   vale('con las clases de siempre', sitio.clases === 'ajuste ancho', sitio.clases);
   vale('rótulo en minúsculas', sitio.rotulo === 'contraste', sitio.rotulo);
@@ -392,6 +413,135 @@ async function ponerContraste(pagina, pct){
   vale('nadie apagó user-select', seleccion.seleccionable === true);
   vale('y la hoja sigue recibiendo el dedo', seleccion.recibeElDedo === true);
 
+  /* ---------- el brillo, y que los tres no se pisen ---------- */
+  titulo('el brillo vive en la misma cadena y no borra al contraste');
+  const sitioBrillo = await pagina.evaluate(() => {
+    const r = document.getElementById('brillo');
+    if (!r) return { falta:'el riel' };
+    const filas = [...document.querySelectorAll('#ctrlConfig .ajuste')];
+    const nombre = f => (f.querySelector('.lbl') || {}).textContent;
+    const i = filas.indexOf(r.closest('.ajuste'));
+    return { orden: filas.slice(Math.max(0,i-1), i+2).map(nombre),
+             clases: [...r.closest('.ajuste').classList].join(' '),
+             aria: r.getAttribute('aria-label'),
+             min:r.min, max:r.max, step:r.step, valor:r.value,
+             medida: document.getElementById('brilloAhora').textContent };
+  });
+  di('el brillo', sitioBrillo);
+  vale('va justo debajo del contraste',
+       JSON.stringify(sitioBrillo.orden) === JSON.stringify(['contraste','brillo','versión']),
+       sitioBrillo.orden);
+  vale('con las clases de siempre', sitioBrillo.clases === 'ajuste ancho', sitioBrillo.clases);
+  vale('rango 50–150 de uno en uno y neutro en 100',
+       sitioBrillo.min === '50' && sitioBrillo.max === '150' &&
+       sitioBrillo.step === '1' && sitioBrillo.valor === '100',
+       sitioBrillo.min + '–' + sitioBrillo.max + ' en ' + sitioBrillo.valor);
+  vale('tiene nombre accesible', sitioBrillo.aria === 'brillo', sitioBrillo.aria);
+
+  for (const [pct, factor] of [[50,.5],[100,1],[150,1.5]]){
+    await ponerRiel(pagina, 'brillo', pct);
+    const f = await pagina.evaluate(() => ({
+      pg: getComputedStyle(document.getElementById('pg')).filter,
+      fx: getComputedStyle(document.getElementById('fx')).filter,
+      ajustes: getComputedStyle(document.getElementById('ajustes')).filter,
+      medida: document.getElementById('brilloAhora').textContent }));
+    di(pct + '%', f);
+    vale('la hoja lo recibe · ' + pct + '%', brilloDe(f.pg) === factor, f.pg);
+    vale('y el lienzo el mismo · ' + pct + '%', brilloDe(f.fx) === factor, f.fx);
+    vale('el número dice el % · ' + pct + '%', f.medida === pct + '%', f.medida);
+    vale('FORMATO se queda limpio · ' + pct + '%', brilloDe(f.ajustes) === 1, f.ajustes);
+  }
+
+  /* LOS TOPES, saltándose el riel a propósito. */
+  for (const [pide, queda] of [[10,50],[400,150]]){
+    await ponerRiel(pagina, 'brillo', pide);
+    const m = await pagina.evaluate(() => document.getElementById('brilloAhora').textContent);
+    vale('pedir ' + pide + '% se queda en ' + queda + '%', m === queda + '%', m);
+  }
+
+  /* LOS TRES A LA VEZ, que es el caso que rompería una segunda propiedad
+     filter: el brillo borraría al contraste o al revés. Y el sepia, que no es
+     filtro sino rampa de papel y tinta, tiene que seguir a lo suyo. */
+  titulo('los tres a la vez, en los dos órdenes');
+  const tres = await pagina.evaluate(async () => {
+    const meter = async (id, v) => { const r = document.getElementById(id);
+      r.value = String(v); r.dispatchEvent(new Event('input', { bubbles:true }));
+      await new Promise(z => setTimeout(z, 300)); };
+    const foto = () => ({
+      filtro: getComputedStyle(document.getElementById('pg')).filter,
+      papel:  getComputedStyle(document.getElementById('pg')).backgroundColor,
+      c: document.getElementById('contrasteAhora').textContent,
+      b: document.getElementById('brilloAhora').textContent,
+      s: document.getElementById('sepiaAhora').textContent });
+    await meter('contraste', 150);
+    await meter('brillo', 120);
+    await meter('sepia', 40);
+    const trasTodo = foto();
+    /* y ahora al revés: mover el contraste no puede tirar el brillo */
+    await meter('contraste', 80);
+    const trasContraste = foto();
+    await meter('brillo', 60);
+    const trasBrillo = foto();
+    return { trasTodo, trasContraste, trasBrillo };
+  });
+  di('los tres puestos', tres.trasTodo);
+  di('luego el contraste', tres.trasContraste);
+  di('luego el brillo', tres.trasBrillo);
+  vale('los tres conviven',
+       factorDe(tres.trasTodo.filtro) === 1.5 && brilloDe(tres.trasTodo.filtro) === 1.2 &&
+       tres.trasTodo.s === '40', tres.trasTodo.filtro + ' · sepia ' + tres.trasTodo.s);
+  vale('mover el contraste no borra el brillo',
+       brilloDe(tres.trasContraste.filtro) === 1.2 && factorDe(tres.trasContraste.filtro) === 0.8,
+       tres.trasContraste.filtro);
+  vale('mover el brillo no borra el contraste',
+       factorDe(tres.trasBrillo.filtro) === 0.8 && brilloDe(tres.trasBrillo.filtro) === 0.6,
+       tres.trasBrillo.filtro);
+  vale('y ninguno de los dos movió el sepia',
+       tres.trasContraste.s === '40' && tres.trasBrillo.s === '40', tres.trasBrillo.s);
+  vale('el sepia sigue mandando en el papel, no el filtro',
+       tres.trasBrillo.papel === tres.trasTodo.papel, tres.trasBrillo.papel);
+
+  /* ---------- y sobrevive a la recarga, con el contraste ---------- */
+  titulo('el brillo también vuelve tras recargar');
+  const guardadoB = await pagina.evaluate(() =>
+    JSON.parse(localStorage.getItem('glossa:ajustes:v1') || 'null'));
+  di('lo guardado', { contraste: guardadoB && guardadoB.contraste,
+                      brillo: guardadoB && guardadoB.brillo,
+                      sepia: guardadoB && guardadoB.sepia, v: guardadoB && guardadoB.v });
+  vale('el brillo se guardó', guardadoB && guardadoB.brillo === 60, guardadoB && guardadoB.brillo);
+  await pagina.reload();
+  await pagina.waitForTimeout(2600);
+  const trasB = await pagina.evaluate(() => ({
+    riel: document.getElementById('brillo').value,
+    medida: document.getElementById('brilloAhora').textContent,
+    rielC: document.getElementById('contraste').value,
+    filtro: getComputedStyle(document.getElementById('pg')).filter }));
+  di('tras recargar', trasB);
+  vale('el riel del brillo vuelve en 60', trasB.riel === '60' && trasB.medida === '60%',
+       trasB.riel + ' / ' + trasB.medida);
+  vale('y el contraste con él', trasB.rielC === '80', trasB.rielC);
+  vale('la hoja nace con los dos puestos',
+       brilloDe(trasB.filtro) === 0.6 && factorDe(trasB.filtro) === 0.8, trasB.filtro);
+
+  /* unos ajustes sin brillo se quedan en el neutro */
+  await pagina.evaluate(() => {
+    const c = 'glossa:ajustes:v1';
+    const a = JSON.parse(localStorage.getItem(c));
+    delete a.brillo; localStorage.setItem(c, JSON.stringify(a));
+  });
+  await pagina.reload();
+  await pagina.waitForTimeout(2600);
+  const sinB = await pagina.evaluate(() => ({
+    riel: document.getElementById('brillo').value,
+    medida: document.getElementById('brilloAhora').textContent,
+    rielC: document.getElementById('contraste').value,
+    filtro: getComputedStyle(document.getElementById('pg')).filter }));
+  di('ajustes sin el campo brillo', sinB);
+  vale('el brillo vuelve a su 100 neutro',
+       sinB.riel === '100' && sinB.medida === '100%' && brilloDe(sinB.filtro) === 1,
+       sinB.riel + ' · ' + sinB.filtro);
+  vale('sin llevarse el contraste por delante', sinB.rielC === '80', sinB.rielC);
+
   await cerrarParcial(sesion, 'teléfono');
 
   /* ---------- y en escritorio, donde .stage SÍ trae filtro propio ---------- */
@@ -404,6 +554,8 @@ async function ponerContraste(pagina, pct){
   const esc = await escritorio.pagina.evaluate(async () => {
     const r = document.getElementById('contraste');
     r.value = '200'; r.dispatchEvent(new Event('input', { bubbles:true }));
+    const b = document.getElementById('brillo');
+    b.value = '150'; b.dispatchEvent(new Event('input', { bubbles:true }));
     await new Promise(z => setTimeout(z, 200));
     const f = id => getComputedStyle(document.getElementById(id)).filter;
     return { stage: f('stage'), pg: f('pg'), fx: f('fx'), ajustes: f('ajustes') };
@@ -414,6 +566,9 @@ async function ponerContraste(pagina, pct){
   vale('la hoja sí lo lleva', factorDe(esc.pg) === 2, esc.pg);
   vale('el lienzo también', factorDe(esc.fx) === 2, esc.fx);
   vale('y FORMATO sigue limpio', factorDe(esc.ajustes) === 1, esc.ajustes);
+  vale('el brillo también llega en escritorio',
+       brilloDe(esc.pg) === 1.5 && brilloDe(esc.fx) === 1.5, esc.pg);
+  vale('y no se le pegó a FORMATO', brilloDe(esc.ajustes) === 1, esc.ajustes);
 
   await cerrar(escritorio);
 })();

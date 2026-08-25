@@ -10,7 +10,10 @@
             elementos que no son parientes: la hoja viva y el lienzo del
             pliegue. Puesto arriba, los dos heredan el mismo número y no hay
             manera de que uno se quede con el de antes. 1 es "sin tocar". */
-         --contraste:1; }
+         --contraste:1;
+         /* Y el brillo, por lo mismo y en el mismo sitio: los dos los leen
+            la hoja viva y el lienzo del pliegue, que no son parientes. */
+         --brillo:1; }
   *{ box-sizing:border-box; }
   /* EL COLOR SÓLIDO VA ADEMÁS DEL DEGRADADO, y no es repetirse.
 
@@ -367,7 +370,24 @@
      se compone con éste sin estorbarlo. Si algún día uno de los dos estrena
      un filtro propio, hay que SUMARLO en la misma declaración, no cambiarla:
      la segunda propiedad filter gana y la primera desaparece sin avisar. */
-  #pg, #fx{ filter:contrast(var(--contraste,1)); }
+  /* LOS DOS EFECTOS VAN EN UNA SOLA DECLARACIÓN, y esto es exactamente lo que
+     avisaba el párrafo de arriba: una segunda propiedad filter no se suma a la
+     primera, la SUSTITUYE, y la que perdiera desaparecería sin dar ningún
+     síntoma más que "el riel no hace nada". Brillo y contraste se escriben
+     juntos aquí, cada uno con su variable, y cada riel mueve la suya sin
+     tocar la del otro.
+
+     EL ORDEN IMPORTA, aunque no lo parezca: los filtros se aplican en cadena,
+     de izquierda a derecha. brightness antes que contrast significa "aclara el
+     papel y luego separa la letra de él", que es lo que se espera al subir los
+     dos. Al revés —contrastar y después aclarar— el contraste trabajaría sobre
+     un papel que todavía no ha subido y el resultado se lava.
+
+     EL SEPIA NO ENTRA AQUÍ. No es un filtro: es la rampa que mezcla papel y
+     tinta en --papel y --tinta antes de pintarlos, y por eso entinta los dos a
+     la vez en vez de teñir una foto ya hecha. Meterlo en esta cadena como
+     sepia() sería un tercer efecto encima del suyo, no el mismo. */
+  #pg, #fx{ filter:brightness(var(--brillo,1)) contrast(var(--contraste,1)); }
   /* EL NÚMERO SE RESERVA SU SITIO, y esto no es maquetación fina: la .medida
      y el riel se reparten el mismo renglón, así que cuando el número pasa de
      "50%" a "100%" el riel se encoge 5 px MIENTRAS LO ESTÁS ARRASTRANDO y la
@@ -376,7 +396,7 @@
      mide siempre lo mismo y la manija se queda donde la pusiste. Va en ch y
      no en px porque en el teléfono esta letra crece a 13 px.
      Solo a éste: el del sepia se queda exactamente como estaba. */
-  #contrasteAhora{ min-width:4.6ch; }
+  #contrasteAhora, #brilloAhora{ min-width:4.6ch; }
   /* el lienzo se recorta contra la ventana: puede ser más ancho que ella */
   .stage{ overflow:hidden; }
   #pg.hidden{ visibility:hidden; }
@@ -1885,6 +1905,19 @@
   <span class="medida" id="contrasteAhora">125%</span>
 </span></div>
 
+<!-- EL BRILLO, debajo del contraste y por la misma razón que aquél está debajo
+     del sepia: los tres se usan seguidos y se corrigen entre ellos. Contraste
+     y brillo son además los dos que van por filtro, así que comparten cadena.
+     Arranca en 100, que aquí sí quiere decir "no toques nada": a diferencia
+     del contraste, este riel no compensa nada del papel, sólo sube o baja lo
+     que ya hay. Mismo aria-label por lo mismo: el rótulo es un <span>. -->
+<div class="ajuste ancho"><span class="lbl">brillo</span><span class="ctrl">
+  <input type="range" id="brillo" min="50" max="150" step="1" value="100"
+         aria-label="brillo"
+         title="Sube o baja la luz de la hoja, sin cambiar el color ni la letra" />
+  <span class="medida" id="brilloAhora">100%</span>
+</span></div>
+
 <div class="ajuste ancho"><span class="lbl">versión</span><span class="ctrl" id="ctrlVersiones">
   <!-- se arma solo con lo que traiga bibles-included.js -->
 </span></div>
@@ -2026,7 +2059,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-AGO-26 17:03';
+window.GLOSS_BUILD = '24-AGO-26 19:33';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2505,7 +2538,7 @@ let sepia = 100;
 
    Se guarda en por ciento y no en factor porque en por ciento es como se lee
    y como se enseña en el riel; la división entre cien la hace un solo sitio,
-   aplicarContraste, para que no haya dos versiones del mismo número.
+   aplicarFiltros, para que no haya dos versiones del mismo número.
    50 y 200 son los topes del riel, y se vuelven a comprobar en el manejador y
    al cargar los ajustes: el riel es la puerta normal, no la única.
    NO ENTRA EN estiloFirma. La firma decide si la foto del pliegue sigue
@@ -2513,8 +2546,27 @@ let sepia = 100;
    encima del lienzo por CSS. Meterlo ahí rehornearía la hoja entera en cada
    paso del riel para llegar al mismo píxel. */
 let contraste = 125;
-const aplicarContraste = () =>
-  document.documentElement.style.setProperty('--contraste', (contraste / 100).toFixed(2));
+/* EL BRILLO ARRANCA EN 100, y aquí el 100 sí es el neutro de verdad: el riel
+   no compensa nada, sólo sube o baja la luz de lo que ya está pintado. Quien
+   no lo toque ve exactamente lo de siempre.
+   50 y 150 son los topes, más estrechos que los del contraste a propósito: por
+   debajo de 50 la hoja se apaga hasta dejar de leerse y por encima de 150 el
+   papel se quema y se lleva la letra con él. Se vuelven a comprobar en el
+   manejador y al cargar los ajustes.
+   NO ENTRA EN estiloFirma, por lo mismo que el contraste: no se hornea en la
+   foto del pliegue, cae encima del lienzo por CSS. */
+let brillo = 100;
+/* UNA SOLA FUNCIÓN PARA LOS DOS, y no dos que se pisen. Los dos efectos viven
+   en la MISMA declaración filter del CSS —tienen que, o la segunda borra a la
+   primera— así que aquí se escriben sus dos variables juntas: quien mueva un
+   riel deja la variable del otro intacta, y el navegador recompone la cadena
+   con lo que haya en cada una. Con una función por riel escribiendo cada una
+   su propia propiedad filter, mover uno apagaría al otro. */
+const aplicarFiltros = () => {
+  const v = document.documentElement.style;
+  v.setProperty('--contraste', (contraste / 100).toFixed(2));
+  v.setProperty('--brillo',    (brillo    / 100).toFixed(2));
+};
 const mezclar = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
 const rgb = a => 'rgb(' + a.join(',') + ')';
 const papelRGB = () => mezclar(PAPEL[0], PAPEL[1], sepia / 100);
@@ -8921,7 +8973,17 @@ $('sepia').oninput = e => {
 $('contraste').oninput = e => {
   contraste = Math.max(50, Math.min(200, +e.target.value || 125));
   $('contrasteAhora').textContent = contraste + '%';
-  aplicarContraste();
+  aplicarFiltros();
+  guardarAjustes();
+};
+/* EL BRILLO, calcado del contraste: mismo evento, mismas razones y la misma
+   lista de cosas que NO hace —ni repagina, ni marca páginas sucias, ni rehace
+   la foto del pliegue—. Llama a la misma aplicarFiltros, así que mover este
+   riel deja el contraste donde estaba y al revés. */
+$('brillo').oninput = e => {
+  brillo = Math.max(50, Math.min(150, +e.target.value || 100));
+  $('brilloAhora').textContent = brillo + '%';
+  aplicarFiltros();
   guardarAjustes();
 };
 $('selFuente').innerHTML = FUENTES.map((f,i) =>
@@ -9115,7 +9177,7 @@ function guardarAjustes(){
   try {
     localStorage.setItem(AJUSTES, JSON.stringify({
       v: 1, fontSize, columns, placement, alineacion,
-      interlineado, margen, version, showMarks, sepia, contraste,
+      interlineado, margen, version, showMarks, sepia, contraste, brillo,
       fuente: FUENTES.findIndex(f => f[1] === fuente),
       libro: LIBRO, cap: aqui.cap, vers: aqui.vers,
       /* LA ÚLTIMA ETIQUETA USADA SE GUARDA, y ya no decide nada: solo sale
@@ -9149,6 +9211,10 @@ function cargarAjustes(){
      estaba, así que subir la versión solo serviría para tirar los ajustes
      buenos de quien actualice. */
   if (Number.isFinite(a.contraste)) contraste = Math.max(50, Math.min(200, a.contraste));
+  /* Y el brillo igual: unos ajustes de antes de que este riel existiera no
+     traen el campo, Number.isFinite lo rechaza y se queda en su 100, que es
+     el neutro. El objeto sigue en v:1 por lo mismo que la vez pasada. */
+  if (Number.isFinite(a.brillo)) brillo = Math.max(50, Math.min(150, a.brillo));
   if (FUENTES[a.fuente]) fuente = FUENTES[a.fuente][1];
   if ([1,2,3].includes(a.columns)) columns = a.columns;
   if (['below','margin','foot'].includes(a.placement)){ placement = a.placement; placementTocado = true; }
@@ -9178,10 +9244,13 @@ function reflejarControles(){
   $('sepiaAhora').textContent = sepia;
   $('contraste').value = String(contraste);
   $('contrasteAhora').textContent = contraste + '%';
-  /* Y la variable de CSS se pone AQUÍ, no en el primer renderPage: esto corre
-     antes de que se pinte nada, así que la hoja nace ya con el contraste que
-     dejaste puesto y no hay un cuadro en 100% antes de asentarse. */
-  aplicarContraste();
+  $('brillo').value = String(brillo);
+  $('brilloAhora').textContent = brillo + '%';
+  /* Y las variables de CSS se ponen AQUÍ, no en el primer renderPage: esto
+     corre antes de que se pinte nada, así que la hoja nace ya con el contraste
+     y el brillo que dejaste puestos y no hay un cuadro en 100% antes de
+     asentarse. Las dos de un tirón, que es lo que hace aplicarFiltros. */
+  aplicarFiltros();
   $('selFuente').value = String(Math.max(0, FUENTES.findIndex(f => f[1] === fuente)));
   const marcar = (sel, ok) => document.querySelectorAll(sel).forEach(x => x.classList.toggle('active', ok(x)));
   marcar('[data-cols]', x => +x.dataset.cols === columns);
