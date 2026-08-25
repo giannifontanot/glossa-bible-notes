@@ -562,6 +562,36 @@ const comoVan = r => {
   }));
   await p.waitForTimeout(400);
 
+  titulo('un botón encendido no parece apagado');
+  /* Estaban al 62% de opacidad por discreción, y la discreción se leyó como
+     avería: al lado de uno deshabilitado de verdad, un botón a medio encender
+     parece otro deshabilitado, solo que menos. Y aquí importa más que en
+     ningún otro sitio, porque estos dos SE APAGAN cuando se acaba el libro: si
+     el apagado no se distingue del encendido, la única señal que dan deja de
+     decir nada. Se mide la luz de los dos y se pide que se separen. */
+  di('la luz de los pasos', await p.evaluate(async () => {
+    document.getElementById('btnZoom').click();
+    await new Promise(z => setTimeout(z, 1200));
+    const b = [...document.querySelectorAll('#zoomPasos [data-paso]')];
+    const luz = b.map(x => ({ off: x.disabled, op: +getComputedStyle(x).opacity }));
+    const r = document.querySelector('#pg .pg-inner').getBoundingClientRect();
+    document.getElementById('pg').dispatchEvent(new MouseEvent('click',
+      { bubbles:true, clientX:Math.round(r.left + r.width/2),
+        clientY:Math.round(r.bottom + 60) }));
+    await new Promise(z => setTimeout(z, 800));
+    return luz;
+  }).then(luz => {
+    const vivos = luz.filter(x => !x.off), muertos = luz.filter(x => x.off);
+    vale('hay al menos uno encendido', vivos.length > 0, JSON.stringify(luz));
+    vale('y va a plena luz', vivos.every(x => x.op === 1), JSON.stringify(vivos));
+    /* Si en esta hoja no hay ninguno apagado no se prueba de más: la sección
+       dice lo que puede decir con lo que hay delante. */
+    if (muertos.length) vale('el apagado se separa de sobra',
+      muertos.every(x => x.op <= 0.35), JSON.stringify(muertos));
+    return luz;
+  }));
+  await p.waitForTimeout(400);
+
   titulo('medir a media salida no contamina');
   /* cerrarZoom apaga zoomActivo en su primer renglón, pero la transición sigue
      460 ms: en esa ventana .pg-inner está a escala intermedia. Si sinZoom no
