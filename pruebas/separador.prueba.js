@@ -303,6 +303,41 @@ async function ponerAMano(p){
   vale('no pregunta nada', !deprisa.oferta);
   vale('ni pone cintas solo', deprisa.guardadas === 1, deprisa.guardadas);
 
+  /* ---------------------------------------------------------------- */
+  titulo('un salto no arrastra la cinta activa');
+  /* El paso atrás del panel del rastro es un salto de verdad, y aquí salta a
+     la PRIMERA hoja de otro libro, que es exactamente lo que hace cruzar
+     leyendo. Mirando solo números de hoja, las dos cosas son la misma y la
+     cinta se mudaba sola a un sitio al que nadie llegó leyendo. */
+  await p.evaluate(() => localStorage.setItem('glossa:historial:v1', JSON.stringify([
+    { libro:'MAT', cap:1, vers:1, t:Date.now() },
+    { libro:'MRK', cap:1, vers:1, t:Date.now() - 1 }])));
+  const salto = await p.evaluate(async () => {
+    await window.__toque('#btnHistorial');
+    await window.__pausa(450);
+    await window.__toque('[data-sep-nuevo]');
+    await window.__pausa(800);
+    const antes = window.__guardadas().map(x => x.libro + ' ' + x.cap + ':' + x.vers);
+    await window.__toque('#btnHistorial');
+    await window.__pausa(480);
+    const atras = document.querySelector('[data-atras]');
+    const dice = atras ? atras.textContent.trim() : '(no hay)';
+    await window.__toque(atras);
+    /* Entrar a un libro nuevo obliga a rearmarlo entero: se espera a que
+       llegue, no un rato fijo. */
+    const t0 = performance.now();
+    while (performance.now() - t0 < 25000 && window.__hoja().indexOf('Marcos') !== 0)
+      await window.__pausa(200);
+    await window.__pausa(900);
+    return { antes, dice, hoja: window.__hoja(),
+             despues: window.__guardadas().map(x => x.libro + ' ' + x.cap + ':' + x.vers) };
+  });
+  di('el salto', salto.dice + '  →  ' + salto.hoja);
+  di('las cintas', salto.antes + '  →  ' + salto.despues);
+  vale('el salto llega a otro libro', salto.hoja.indexOf('Marcos') === 0, salto.hoja);
+  vale('y la cinta no se movió', salto.antes.join('|') === salto.despues.join('|'),
+       salto.antes + '  vs  ' + salto.despues);
+
   await cerrarParcial(sesion, 'teléfono');
 
   /* ================================================================
@@ -597,6 +632,98 @@ async function ponerAMano(p){
   di('la cinta perdida', perdida.hoja + ' · ' + JSON.stringify(perdida.cinta));
   vale('cae en su capítulo y se ve', !!perdida.cinta);
   vale('y se puede quitar', perdida.quedan === 0 && !perdida.sigueViva);
+
+  titulo('una cinta perdida EN OTRO LIBRO también se alcanza');
+  /* El respaldo por capítulo lo calculaba quien solo sabe del libro cargado,
+     así que para una cinta de otro libro no llegaba a calcularse nunca: el
+     salto recibía el versículo que ya no existe y lo rechazaba por fuera de
+     rango, dejando la cinta sin manera de alcanzarse ni de quitarse. */
+  await w.evaluate(() => localStorage.setItem('glossa:separadores:v1',
+    JSON.stringify([{ id:'aqui',  libro:'MAT', cap:1, vers:1, color:'ocre',
+                      creado:Date.now(), tocado:Date.now() },
+                    { id:'lejos', libro:'MRK', cap:1, vers:999, color:'oliva',
+                      creado:Date.now()-1, tocado:Date.now()-1 }])));
+  await w.evaluate(a => localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a)),
+                   { v:1, libro:'MAT', cap:1, vers:1 });
+  await w.reload();
+  await w.waitForTimeout(3200);
+  await andamio(w);
+  const otroLibro = await w.evaluate(async () => {
+    await window.__toque('.separador');
+    await window.__pausa(450);
+    const fila = document.querySelector('[data-sep-ir="lejos"]');
+    const dice = fila ? fila.querySelector('.sp-ref').textContent.trim() : '(no está)';
+    if (!fila) return { dice, hoja: window.__hoja() };
+    await window.__toque(fila);
+    const t0 = performance.now();
+    while (performance.now() - t0 < 25000 && window.__hoja().indexOf('Marcos') !== 0)
+      await window.__pausa(200);
+    await window.__pausa(900);
+    return { dice, hoja: window.__hoja(), cinta: !!window.__cinta() };
+  });
+  di('la fila de lejos', otroLibro.dice + '  →  ' + otroLibro.hoja);
+  vale('la lista la enseña igual', otroLibro.dice !== '(no está)', otroLibro.dice);
+  vale('y el salto llega a su capítulo', otroLibro.hoja.indexOf('Marcos') === 0,
+       otroLibro.hoja);
+
+  titulo('otra pestaña abierta no se pierde al guardar');
+  /* De cero: lo de arriba dejó cintas puestas, y aquí lo que se mira es
+     exactamente qué hay en el almacén después de cada escritura. */
+  await w.evaluate(() => localStorage.removeItem('glossa:separadores:v1'));
+  await w.evaluate(a => localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a)),
+                   { v:1, libro:'MAT', cap:1, vers:1 });
+  await w.reload();
+  await w.waitForTimeout(3200);
+  await andamio(w);
+  /* Dos pestañas con la misma aplicación tienen cada una su lista en memoria,
+     la de cuando cargó. Escribir a pelo se lleva por delante lo que la otra
+     puso desde entonces. Aquí la otra pestaña se imita escribiendo en el
+     almacén por detrás, que es exactamente lo que ella haría. */
+  const pestanas = await w.evaluate(async () => {
+    await window.__toque('#btnHistorial');
+    await window.__pausa(450);
+    await window.__toque('[data-sep-nuevo]');
+    await window.__pausa(800);
+    const mia = window.__guardadas()[0];
+    /* La otra pestaña pone la suya, sin que ésta se entere. */
+    const ajena = { id:'deLaOtra', libro:'MAT', cap:2, vers:1, color:'indigo',
+                    creado: Date.now(), tocado: Date.now() };
+    localStorage.setItem('glossa:separadores:v1', JSON.stringify([mia, ajena]));
+    /* Y ahora ésta guarda: cambiar el color de la suya. */
+    await window.__toque('.separador');
+    await window.__pausa(450);
+    const otroColor = [...document.querySelectorAll('[data-sep-color]')]
+      .find(t => t.getAttribute('aria-pressed') !== 'true');
+    await window.__toque(otroColor);
+    await window.__pausa(400);
+    const trasGuardar = window.__guardadas().map(x => x.id);
+    /* Se borra la de aquí. La ajena no se toca. */
+    await window.__toque('[data-sep-x]');
+    await window.__pausa(400);
+    await window.__toque('[data-sep-borrar]');
+    await window.__pausa(600);
+    const trasBorrar = window.__guardadas().map(x => x.id);
+    /* Y si la otra pestaña vuelve a escribir la que aquí se borró, no
+       resucita: esta pestaña se acuerda de haberla quitado. */
+    localStorage.setItem('glossa:separadores:v1', JSON.stringify(
+      [ajena, { ...mia, tocado: Date.now() + 1000 }]));
+    await window.__toque('#btnHistorial');
+    await window.__pausa(450);
+    await window.__toque('[data-sep-nuevo]');
+    await window.__pausa(800);
+    const trasResucitar = window.__guardadas().map(x => x.id);
+    return { mia: mia.id, trasGuardar, trasBorrar, trasResucitar };
+  });
+  di('los identificadores', pestanas);
+  vale('la ajena sobrevive al guardado',
+       pestanas.trasGuardar.includes('deLaOtra') && pestanas.trasGuardar.includes(pestanas.mia),
+       pestanas.trasGuardar);
+  vale('borrar aquí no toca la ajena',
+       pestanas.trasBorrar.length === 1 && pestanas.trasBorrar[0] === 'deLaOtra',
+       pestanas.trasBorrar);
+  vale('y lo borrado no resucita al fundir',
+       !pestanas.trasResucitar.includes(pestanas.mia) &&
+       pestanas.trasResucitar.includes('deLaOtra'), pestanas.trasResucitar);
 
   titulo('los otros caminos siguen andando');
   const otros = await w.evaluate(async () => {

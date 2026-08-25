@@ -2409,7 +2409,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-AGO-26 13:40';
+window.GLOSS_BUILD = '25-AGO-26 14:25';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5781,6 +5781,7 @@ function irA(libro, cap, vers, letra, opciones){
   const destino = paginaDe(k);
   if (destino === paginaActual){ destacar(cap, vers, letra); return; }
   volverA = puntoActual();                  // de dónde veníamos, para el botón de regreso
+  sepSalto = true;                          /* ver sepSalto: esto es saltar */
   animarSalto(destino, () => destacar(cap, vers, letra));
 }
 /* Al llegar, parpadea lo que buscabas: la glosa concreta si la referencia
@@ -9380,24 +9381,53 @@ let sepHojaAnterior = null, sepLlegadaEn = 0, sepLeidasSeguidas = 0,
     sepOfrecido = false, sepCayendo = null, sepMenuAbierto = null,
     sepOfertaAbierta = false, sepRelojOferta = null, sepBorrando = false;
 
-function sepGuardar(){
-  try { localStorage.setItem(SEPARADORES, JSON.stringify(separadores)); } catch(e){}
-}
 /* Cada campo se comprueba antes de aceptarlo: un almacén de otra versión, a
    medio escribir o manoseado a mano no debe dejar cintas imposibles. Lo que
    no se entiende se tira; lo que se entiende a medias se completa. */
-function cargarSeparadores(){
+const sepEntendible = x => x && typeof x.id === 'string' && x.id &&
+                           typeof x.libro === 'string' && x.libro && x.cap > 0 && x.vers > 0;
+function sepSanear(x){
+  return { id: x.id, libro: x.libro, cap: +x.cap, vers: +x.vers,
+           color: telaDe(x.color)[0],
+           creado: +x.creado > 0 ? +x.creado : Date.now(),
+           tocado: +x.tocado > 0 ? +x.tocado : (+x.creado > 0 ? +x.creado : Date.now()) };
+}
+function sepDelAlmacen(){
   try {
     const a = JSON.parse(localStorage.getItem(SEPARADORES) || '[]');
-    separadores = !Array.isArray(a) ? [] : a
-      .filter(x => x && typeof x.id === 'string' && x.id &&
-                   typeof x.libro === 'string' && x.libro && x.cap > 0 && x.vers > 0)
-      .map(x => ({ id: x.id, libro: x.libro, cap: +x.cap, vers: +x.vers,
-                   color: telaDe(x.color)[0],
-                   creado: +x.creado > 0 ? +x.creado : Date.now(),
-                   tocado: +x.tocado > 0 ? +x.tocado : (+x.creado > 0 ? +x.creado : Date.now()) }))
-      .slice(0, TOPE_SEPARADORES);
-  } catch(e){ separadores = []; }
+    return Array.isArray(a) ? a.filter(sepEntendible).map(sepSanear) : [];
+  } catch(e){ return []; }
+}
+function cargarSeparadores(){
+  separadores = sepDelAlmacen().slice(0, TOPE_SEPARADORES);
+}
+/* LO QUE ESTA PESTAÑA QUITÓ, para no resucitarlo al fundir. Sin esta lista,
+   una cinta borrada aquí volvería con la primera fusión: en el almacén sigue
+   estando, y no habría manera de distinguir «la puso la otra pestaña» de «la
+   quité yo». Vive en memoria porque solo hace falta mientras esta pestaña
+   sigue abierta; en la siguiente, el almacén ya no la trae. */
+const sepBorrados = new Set();
+/* SE RELEE Y SE FUNDE ANTES DE ESCRIBIR, igual que el rastro y por lo mismo.
+
+   Con dos pestañas abiertas, la lista que ésta tiene en memoria es la de
+   cuando cargó: si la otra puso una cinta desde entonces, escribir a pelo se
+   la llevaba por delante sin enterarse —y con ella, cambios de color, mudanzas
+   y borrados—. Fundir cuesta un JSON de treinta renglones.
+
+   La regla de quién gana es por cinta y por fecha: la que se tocó más tarde.
+   Y no hay transacciones en este almacén, así que la ventana entre leer y
+   escribir no se cierra del todo; perseguir el último resquicio pediría
+   bloqueos que no valen lo que guardan. Lo levantó la revisión de Codex. */
+function sepGuardar(){
+  for (const x of sepDelAlmacen()){
+    if (sepBorrados.has(x.id)) continue;
+    const mio = separadores.find(y => y.id === x.id);
+    if (!mio) separadores.push(x);
+    else if (x.tocado > mio.tocado) Object.assign(mio, x);
+  }
+  separadores.sort((a, b) => b.tocado - a.tocado);
+  if (separadores.length > TOPE_SEPARADORES) separadores.length = TOPE_SEPARADORES;
+  try { localStorage.setItem(SEPARADORES, JSON.stringify(separadores)); } catch(e){}
 }
 /* El identificador no puede salir del sitio que ocupa en la lista: la lista
    se reordena al tocar una cinta y se acorta al borrar otra. */
@@ -9422,6 +9452,21 @@ function sepK(x){
   if (x.libro !== LIBRO) return -1;
   const k = plano.findIndex(pp => pp.cap === x.cap && pp.vers === x.vers);
   return k >= 0 ? k : plano.findIndex(pp => pp.cap === x.cap);
+}
+/* Y A DÓNDE SE VIAJA, que no es lo mismo. sepK solo sabe del libro que está
+   cargado —es el único que tiene plano— así que para una cinta de otro libro
+   devolvía -1 siempre y el respaldo por capítulo no llegaba a calcularse: irA
+   recibía el versículo que ya no existe, lo rechazaba por fuera de rango, y la
+   cinta se quedaba sin manera de alcanzarse. Fuera de casa se le pregunta al
+   texto, que sí está cargado entero. Lo levantó la revisión de Codex. */
+function sepDestino(x){
+  if (x.libro === LIBRO){
+    const k = sepK(x), r = k >= 0 ? plano[k] : null;
+    return r ? { cap: r.cap, vers: r.vers } : { cap: x.cap, vers: x.vers };
+  }
+  if (versoTexto(version, x.cap, x.vers, x.libro)) return { cap: x.cap, vers: x.vers };
+  if (versoTexto(version, x.cap, 1, x.libro)) return { cap: x.cap, vers: 1 };
+  return { cap: x.cap, vers: x.vers };
 }
 const sepAqui = x => {
   const k = sepK(x);
@@ -9515,6 +9560,7 @@ function borrarSeparador(id){
   const i = separadores.findIndex(x => x.id === id);
   if (i < 0) return;
   separadores.splice(i, 1);
+  sepBorrados.add(id);                    /* para que la fusión no lo resucite */
   if (sepActivo === id) sepActivo = null;
   sepGuardar();
   cerrarSepMenu();
@@ -9537,6 +9583,21 @@ function borrarSeparador(id){
    Hay UNA sola medición y vive en dos números —dónde y desde cuándo—, así que
    no hay temporizadores sueltos que se puedan encimar ni que haga falta
    cancelar. Todo se resuelve en la llegada. */
+/* UN SALTO NO ES PASAR LA HOJA, aunque caiga en la de al lado.
+
+   La cuenta de abajo mira números de hoja, y con eso solo no se distingue
+   «pasé la hoja» de «salté aquí»: saltar al principio de cualquier libro cae
+   en la hoja 0, que es exactamente lo que hace cruzar leyendo, y un salto
+   dentro del mismo libro puede caer en la de al lado. En los dos casos la
+   cinta activa se mudaba sola a un sitio al que el lector no llegó leyendo,
+   que es justo lo que no puede pasar: es su marca, y se le movió sin pedirlo.
+
+   Así que el modo de viajar viaja con el viaje. Lo encienden los dos sitios
+   por los que se salta —saltarA y el salto corto de irA— y lo apaga la
+   llegada, que es quien lo lee. Cruzar de libro leyendo no lo enciende, y por
+   eso sigue contando como lo que es: la hoja siguiente.
+   Lo levantó la revisión de Codex. */
+let sepSalto = false;
 function sepTerminarSesion(){
   sepLeidasSeguidas = 0;
   sepOfrecido = false;
@@ -9547,8 +9608,10 @@ function sepLlegada(){
   const sitio = { libro: LIBRO, n: paginaActual };
   const permanencia = sepLlegadaEn ? ahora - sepLlegadaEn : 0;
   const ant = sepHojaAnterior;
-  const leyendo = !!ant && ((sitio.libro === ant.libro && sitio.n === ant.n + 1) ||
-                            (sitio.libro !== ant.libro && sitio.n === 0));
+  const salto = sepSalto; sepSalto = false;
+  const leyendo = !salto && !!ant &&
+                  ((sitio.libro === ant.libro && sitio.n === ant.n + 1) ||
+                   (sitio.libro !== ant.libro && sitio.n === 0));
   if (sepLlegadaEn && permanencia > PAUSA_SESION) sepTerminarSesion();
   else if (leyendo && permanencia >= LECTURA_MINIMA) sepLeidasSeguidas++;
   else sepLeidasSeguidas = 0;
@@ -9757,8 +9820,8 @@ $('sepMenu').addEventListener('click', ev => {
   sepLeidasSeguidas = 0;
   /* Se viaja a donde la cinta CAE hoy, no a lo que dice guardado: si el
      versículo ya no existe en esta versión, su capítulo sí. */
-  const k = sepK(s), r = k >= 0 ? plano[k] : null;
-  trasPintar(() => irA(s.libro, r ? r.cap : s.cap, r ? r.vers : s.vers, ''));
+  const d = sepDestino(s);
+  trasPintar(() => irA(s.libro, d.cap, d.vers, ''));
 });
 /* Un toque fuera lo cierra, como los demás paneles. La cinta queda exceptuada
    —su oyente ya sabe alternar— y también el menú, claro. */
@@ -9780,6 +9843,7 @@ document.addEventListener('pointerdown', ev => {
    perdía en cuanto corría el diferido. */
 function saltarA(libro, cap, vers, regreso, opciones){
   const op = opciones || {};
+  sepSalto = true;                   /* esto es saltar, no leer: ver sepSalto */
   const viejo = pageImg, mismo = libro === LIBRO, desdeHoja = paginaActual;
   /* De qué libro salimos. Hay que guardarlo AQUÍ: dentro del diferido lo
      primero que pasa es LIBRO = libro, así que para cuando se calcula el
