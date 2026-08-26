@@ -46,6 +46,30 @@
         background-color:var(--desk);
         background-image:radial-gradient(ellipse at 30% 8%, var(--desk-2), var(--desk) 70%); }
   h1{ font-size:.9rem; font-weight:600; margin:0; letter-spacing:.03em; }
+  /* Los controles de Formato/Glosas nacen en el body y el guion los muda a
+     su rollo. Sin esto se ve un instante el panel de Formato al abrir. */
+  body > #ctrlConfig, body > #ctrlEtiquetas{ display:none !important; }
+  /* PORTADA. Cubre la mesa hasta que la primera hoja está lista. */
+  #portada{ position:fixed; inset:0; z-index:200; display:flex;
+            flex-direction:column; align-items:center; justify-content:center;
+            gap:14px; padding:24px;
+            background-color:var(--desk);
+            background-image:
+              radial-gradient(ellipse at 50% 40%, var(--desk-2), var(--desk) 68%);
+            transition:opacity .55s ease, visibility .55s ease;
+            opacity:1; visibility:visible; }
+  #portada.fuera{ opacity:0; visibility:hidden; pointer-events:none; }
+  #portada .portada-marca{
+    font-family:Georgia, 'Palatino Linotype', 'Times New Roman', serif;
+    font-weight:700; font-size:clamp(2.1rem, 9vw, 3.6rem);
+    letter-spacing:.22em; text-transform:uppercase;
+    color:#e8d5a3; text-shadow:0 2px 0 rgba(0,0,0,.35),
+                               0 0 28px rgba(201,162,39,.18);
+    margin:0; line-height:1.15; text-align:center; }
+  #portada .portada-sub{
+    font-family:var(--ui); font-size:clamp(.72rem, 2.4vw, .9rem);
+    letter-spacing:.28em; text-transform:uppercase;
+    color:rgba(238,231,216,.55); margin:0; }
   .row{ display:flex; gap:5px; flex-wrap:wrap; justify-content:center; align-items:center; }
   .btn{ font:inherit; font-size:.7rem; color:#eee7d8; cursor:pointer; line-height:1;
         background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.18);
@@ -1018,6 +1042,12 @@
                left:var(--cinta-izq,0px); z-index:4;
                width:var(--cinta-ancho,56px); aspect-ratio:1 / 1.75;
                pointer-events:none; }
+  /* Zona invisible a la IZQUIERDA de la cinta: el asomo es estrecho y se
+     confunde con el filo de pasar hoja. Unos 50 px más de blanco de toque
+     (solo a la altura de la cinta) hacen que ahí mande el menú, no la huella. */
+  .sep-hit{ position:absolute; right:100%; top:0; width:50px; height:100%;
+            border:0; padding:0; margin:0; background:transparent; cursor:pointer;
+            pointer-events:auto; -webkit-tap-highlight-color:transparent; }
   /* La tela: un degradado de lado a lado —la cinta no es plana, tiene un
      doblez— y encima un rayado finísimo que insinúa la trama. La cola en pico
      se recorta con clip-path, que es lo que la distingue de una pestaña de
@@ -1088,7 +1118,7 @@
   /* De lejos la cinta SE VE y SE TOCA: es justo lo que asoma del margen y
      lo que el lector busca. El filo de pasar hoja le cede el toque (ver
      toqueEnCinta). El resto de la hoja pequeña sigue siendo "acércame". */
-  #pg.zoom .separador, #pg.zoom .sep-x{ pointer-events:auto; }
+  #pg.zoom .separador, #pg.zoom .sep-x, #pg.zoom .sep-hit{ pointer-events:auto; }
 
   /* EL MENÚ DE LA CINTA, LA OFERTA Y LA CONFIRMACIÓN se visten como el panel
      del rastro —papel dorado, borde tenue, sombra baja— porque son la misma
@@ -2218,6 +2248,10 @@
 </head>
 <body>
 
+<div id="portada" role="status" aria-live="polite" aria-label="Biblia Glosa">
+  <p class="portada-marca">Biblia Glosa</p>
+  <p class="portada-sub">Gloss Bible</p>
+</div>
 
 <div id="ctrlConfig">
 
@@ -2452,7 +2486,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '26-AGO-26 11:54';
+window.GLOSS_BUILD = '26-AGO-26 12:52';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -6800,14 +6834,17 @@ function ocultarHuella(){
 /* ¿El toque cae sobre la cinta? De lejos el filo derecho se pone encima del
    papel pequeño y se comía el clic de la cinta: huella + pasar hoja. La cinta
    tiene prioridad: es más pequeña y es lo que el lector está buscando. */
+/* 50 px a la izquierda de la cinta (y un poco de holgura vertical): a esa
+   altura el toque es del menú, no del filo. Más abajo sigue el pasar hoja. */
+const CINTA_HIT_IZQ = 50;
 function toqueEnCinta(ev){
   const cinta = document.querySelector('#sepPercha .separador');
   if (!cinta) return false;
   const r = cinta.getBoundingClientRect();
   if (r.width < 2 || r.height < 2) return false;
-  const pad = 6;
-  return ev.clientX >= r.left - pad && ev.clientX <= r.right + pad &&
-         ev.clientY >= r.top - pad && ev.clientY <= r.bottom + pad;
+  const padY = 8;
+  return ev.clientX >= r.left - CINTA_HIT_IZQ && ev.clientX <= r.right + 6 &&
+         ev.clientY >= r.top - padY && ev.clientY <= r.bottom + padY;
 }
 function abrirCintaPorToque(){
   const cinta = document.querySelector('#sepPercha .separador');
@@ -9774,6 +9811,8 @@ function montarSeparador(s, modo){
   sepCayendo = null;
   const abierta = sepMenuAbierto === s.id;
   percha.innerHTML =
+    '<button type="button" class="sep-hit" data-sep="' + esc(s.id) + '"' +
+      ' tabindex="-1" aria-hidden="true" title="Abrir separador"></button>' +
     '<button class="separador' + cae + entra + (abierta ? ' abierta' : '') + '"' +
       ' style="--tela:' + t[2] + ';--tela-osc:' + t[3] + '"' +
       ' data-sep="' + esc(s.id) + '" aria-haspopup="dialog"' +
@@ -10960,6 +10999,15 @@ function sembrarGlosasDeEstreno(){
   marcas = nuevas;
   save();
 }
+/* La portada se va cuando la primera hoja ya está pintada, con un mínimo
+   de tiempo para que el letrero se lea y no parpadee. */
+function quitarPortada(){
+  const el = document.getElementById('portada');
+  if (!el || el.classList.contains('fuera')) return;
+  el.classList.add('fuera');
+  setTimeout(() => { if (el.parentNode) el.remove(); }, 600);
+}
+const t0Portada = performance.now();
 const guardado = cargarAjustes();
 cargarHistorial();
 cargarSeparadores();
@@ -10981,6 +11029,11 @@ rehacerPlano();
 sizeCanvas();
 $('cred').textContent = D.versiones[version].nombre + ' — ' + D.versiones[version].licencia + ' · vía eBible.org';
 renderPage();
+/* Portada fuera: la hoja ya está. Mínimo ~0.7 s para que el letrero se lea. */
+(function(){
+  const falta = Math.max(0, 700 - (performance.now() - t0Portada));
+  setTimeout(quitarPortada, falta);
+})();
 /* La firma se siembra con lo que ya hay puesto. Sin esto arranca vacía, así
    que el PRIMER guardado de la sesión siempre la ve distinta y repagina —y con
    glosas ya escritas, ese primer guardado es justo el de crear la siguiente—.
