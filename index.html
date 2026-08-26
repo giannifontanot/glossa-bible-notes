@@ -933,7 +933,7 @@
      salto a otra escritura, que es lo contrario de volver. Ahora mide 34px de
      alto —38 en pantalla chica—, que es el mínimo con el que se acierta, y la
      letra sube a la de las filas para que no parezca un rótulo. */
-  .hs-atras{ margin-left:auto; flex:0 0 auto;
+  .hs-atras{ flex:0 0 auto;
              display:inline-flex; align-items:center; justify-content:center;
              gap:7px; min-height:34px;
              font:600 12px/1 var(--ui); letter-spacing:.06em;
@@ -991,12 +991,13 @@
      hoja es más ancha que la ventana— y la propia columna lo recorta, así que
      no hay manera de que se salga ni de que empuje la página a lo ancho.
 
-     CORTA A PROPÓSITO. Una cinta larga taparía justo lo que se viene a leer.
-     El ancho es una proporción de la columna —24%, entre 20 y 40px, o sea
-     unos 26px en escritorio y 40 en teléfono— y el alto sale de la proporción
-     y no de un número clavado, así que sigue midiendo lo mismo respecto a su
-     sitio en cualquier pantalla. Con eso ocupa la esquina de arriba a la
-     derecha y deja la columna entera para las glosas.
+     CORTA A PROPÓSITO, PERO SE VE DESDE EL TEXTO. Cuelga del borde IZQUIERDO
+     de la columna de glosas y asoma 19 px hacia la columna de lectura, para
+     que se note que hay cinta sin tener que abrir el cajón de las glosas.
+     El ancho es el doble de lo que era —36 % de la columna, entre 32 y 64 px—
+     y el alto sale de la misma proporción (aspect-ratio 1 / 1.75), así que
+     también queda al doble. Con eso ocupa la esquina de arriba a la izquierda
+     de las glosas y deja el titulillo, que vive a la derecha, en paz.
 
      La percha no recibe toques: los reciben la cinta y su equis, que son
      botones de verdad. Importa por dos cosas que ya estaban: el papel se
@@ -1013,8 +1014,9 @@
      relleno hay— y por eso la percha cuelga de .pg-inner y no de la columna de
      glosas: la columna la recorta con su overflow, y lo que asomara por encima
      se perdería. El ancho sigue saliendo de la columna, medido aparte. */
-  .sep-percha{ position:absolute; top:var(--cinta-arriba,0px); right:4px; z-index:4;
-               width:var(--cinta-ancho,28px); aspect-ratio:1 / 1.75;
+  .sep-percha{ position:absolute; top:var(--cinta-arriba,0px);
+               left:var(--cinta-izq,0px); z-index:4;
+               width:var(--cinta-ancho,56px); aspect-ratio:1 / 1.75;
                pointer-events:none; }
   /* La tela: un degradado de lado a lado —la cinta no es plana, tiene un
      doblez— y encima un rayado finísimo que insinúa la trama. La cola en pico
@@ -1037,9 +1039,9 @@
                  lo que haya— y sin nada que las separe, el renglón cortado se
                  lee como una nota rota. Con un filo de papel a su izquierda,
                  el texto pasa POR DEBAJO y se entiende que sigue ahí.
-                 Por eso la cinta es estrecha —el 18% de la columna, 26px en
-                 escritorio— y por eso arranca debajo del titulillo: lo que
-                 tapa es lo mínimo que puede tapar algo que cuelga de ahí. */
+                 Por eso asoma 19 px al texto: se ve claro desde la lectura
+                 y aún no tapa el versículo. El titulillo vive a la derecha
+                 y ya no comparte esquina con ella. */
               filter:drop-shadow(-1.5px 0 0 rgba(252,247,235,.92))
                      drop-shadow(0 2px 3px rgba(60,40,15,.42));
               transition:transform .24s cubic-bezier(.2,.85,.3,1), filter .22s ease; }
@@ -1056,6 +1058,18 @@
      convertiría un gesto en un tic. */
   @keyframes sep-cae{ from{ transform:translateY(-105%); } to{ transform:none; } }
   .separador.cayendo{ animation:sep-cae .42s cubic-bezier(.2,.85,.3,1); }
+  /* Entrada al pasar de hoja: más corta y discreta que la caída al ponerla.
+     Se dispara DESPUÉS del pliegue, para no robar la lectura. */
+  @keyframes sep-entra{ from{ opacity:0; transform:translateY(-22%); }
+                        to{ opacity:1; transform:none; } }
+  .separador.entrando{ animation:sep-entra .4s cubic-bezier(.2,.85,.3,1); }
+  /* Salida simétrica: sube un poco y se desvanece, sin arrancar la lectura. */
+  @keyframes sep-sale{ from{ opacity:1; transform:none; }
+                       to{ opacity:0; transform:translateY(-18%); } }
+  .separador.saliendo{ animation:sep-sale .32s cubic-bezier(.55,0,.35,1) forwards;
+                       pointer-events:none; }
+  /* Mientras la hoja aún se pliega, la cinta espera invisible. */
+  .separador.sep-espera{ opacity:0; }
   /* La equis vive en la esquina de la cinta y solo mientras el menú está
      abierto: un botón de borrar siempre visible sobre algo que se toca para
      otra cosa es una trampa. */
@@ -1071,10 +1085,10 @@
   .sep-x:hover{ background:#fff; }
   .sep-x:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
   .sep-x svg{ display:block; width:9px; height:9px; }
-  /* De lejos la hoja es una foto: la cinta se sigue viendo —dice dónde te
-     quedaste, que es justo lo que se mira de lejos— pero no responde, igual
-     que los dos rótulos. Un toque ahí significa "acércame". */
-  #pg.zoom .separador, #pg.zoom .sep-x{ pointer-events:none; }
+  /* De lejos la cinta SE VE y SE TOCA: es justo lo que asoma del margen y
+     lo que el lector busca. El filo de pasar hoja le cede el toque (ver
+     toqueEnCinta). El resto de la hoja pequeña sigue siendo "acércame". */
+  #pg.zoom .separador, #pg.zoom .sep-x{ pointer-events:auto; }
 
   /* EL MENÚ DE LA CINTA, LA OFERTA Y LA CONFIRMACIÓN se visten como el panel
      del rastro —papel dorado, borde tenue, sombra baja— porque son la misma
@@ -1087,7 +1101,7 @@
             box-shadow:0 12px 26px -9px rgba(0,0,0,.55);
             padding:7px; scrollbar-width:none;
             opacity:0; transform:translateY(-8px) scale(.97);
-            transform-origin:top right;
+            transform-origin:top left;
             transition:opacity .2s ease, transform .28s cubic-bezier(.2,.85,.3,1); }
   #sepMenu::-webkit-scrollbar{ width:0; height:0; display:none; }
   #sepMenu.visible{ opacity:1; transform:none; }
@@ -1101,40 +1115,51 @@
   .sp-tela:hover{ transform:scale(1.08); }
   .sp-tela[aria-pressed="true"]{ box-shadow:0 0 0 2px #f2e9d6, 0 0 0 3.5px #6d5a2c; }
   .sp-tela:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
-  .sp-fila{ display:flex; align-items:center; gap:8px; width:100%;
-            border:0; background:rgba(255,253,247,.62); cursor:pointer;
-            text-align:left; padding:8px 9px; border-radius:4px;
-            margin-bottom:5px; min-height:38px;
-            -webkit-tap-highlight-color:transparent;
+  .sp-fila{ display:flex; align-items:center; gap:4px; width:100%;
+            background:rgba(255,253,247,.62); padding:4px 4px 4px 9px;
+            border-radius:4px; margin-bottom:5px; min-height:38px;
             transition:background .28s cubic-bezier(.65,0,.35,1); }
   .sp-fila:last-child{ margin-bottom:0; }
   .sp-fila:hover{ background:#fffdf6; }
   .sp-fila.aqui{ box-shadow:inset 0 0 0 1.5px rgba(184,137,43,.7); }
+  /* Ir al pasaje: ocupa el grueso de la fila. La X de borrar va aparte. */
+  .sp-ir{ flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:8px;
+          border:0; background:transparent; cursor:pointer; text-align:left;
+          padding:6px 4px 6px 0; min-height:38px;
+          -webkit-tap-highlight-color:transparent; }
   /* La muestra de color lleva la misma cola en pico que la cinta: quien no
-     distinga los tonos reconoce igual la fila por su referencia y por el
-     nombre del color, que va escrito. El color nunca es el único dato. */
+     distinga los tonos reconoce igual la fila por su referencia. */
   .sp-chip{ flex:0 0 auto; width:11px; height:20px;
             clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
             border-radius:1px; }
   .sp-ref{ flex:1 1 auto; min-width:0; font:700 13px/1.3 var(--ui); color:#4a3a1c;
            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .sp-nota{ flex:0 0 auto; font:400 11px/1.3 var(--ui); color:#7b6838;
-            letter-spacing:.02em; }
+  /* X por fila: borra ese separador tras el diálogo sí/no. */
+  .sp-fila-x{ flex:0 0 auto; width:36px; height:36px; display:grid; place-items:center;
+              border:0; border-radius:50%; padding:0; cursor:pointer;
+              background:transparent; color:#7b6838;
+              -webkit-tap-highlight-color:transparent;
+              transition:background .18s ease, color .18s ease; }
+  .sp-fila-x:hover{ background:rgba(155,42,42,.14); color:#7d2323; }
+  .sp-fila-x:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
+  .sp-fila-x svg{ display:block; width:12px; height:12px; }
   .sp-vacio{ display:block; padding:6px 5px 8px; font:400 12.5px/1.5 var(--ui);
              color:#6b5936; opacity:.85; }
   /* La confirmación de borrado sale DENTRO del mismo menú y no en otra caja
      flotante: la pregunta es sobre la cinta que estás mirando, y sacarla a
-     otro sitio de la pantalla obliga a buscar a qué se refiere. */
-  .sp-borrar{ margin-top:7px; padding:9px; border-radius:5px;
+     otro sitio de la pantalla obliga a buscar a qué se refiere.
+     Los botones van grandes a propósito: en teléfono el área útil es estrecha
+     y un toque fallido cancela sin querer. */
+  .sp-borrar{ margin-top:10px; padding:14px 12px; border-radius:7px;
               background:rgba(155,42,42,.1); border:1px solid rgba(155,42,42,.35);
               opacity:0; transform:translateY(-4px);
               transition:opacity .18s ease, transform .24s cubic-bezier(.2,.85,.3,1); }
   .sp-borrar.puesta{ opacity:1; transform:none; }
-  .sp-pregunta{ display:block; font:600 12.5px/1.4 var(--ui); color:#5c2323;
-                padding-bottom:8px; }
-  .sp-botones{ display:flex; gap:7px; }
-  .sp-btn{ flex:1 1 auto; min-height:34px; border-radius:999px; cursor:pointer;
-           font:600 12.5px/1 var(--ui); letter-spacing:.04em;
+  .sp-pregunta{ display:block; font:600 14px/1.4 var(--ui); color:#5c2323;
+                padding-bottom:12px; }
+  .sp-botones{ display:flex; gap:10px; }
+  .sp-btn{ flex:1 1 auto; min-height:48px; border-radius:999px; cursor:pointer;
+           font:600 14px/1 var(--ui); letter-spacing:.04em; padding:12px 14px;
            -webkit-tap-highlight-color:transparent;
            border:1px solid rgba(140,116,68,.4); color:#6d5a2c;
            background:rgba(140,116,68,.13); }
@@ -1172,14 +1197,12 @@
   /* El botón del panel del rastro. Va vestido igual que el paso atrás que
      tiene al lado —son dos acciones del mismo renglón— con su cinta delante
      para que se reconozca sin leerlo. */
-  /* EL BOTÓN DEL SEPARADOR VA EN SU PROPIO RENGLÓN, y no por gusto: medido,
-     el rótulo del panel y el paso atrás ya ocupan 236 de los 322 px útiles, y
-     «SEPARADOR» no baja de 108 por mucho que se le quite. Metiéndolo en el
-     mismo renglón, o se parte el rótulo o se estruja el botón de atrás —que
-     está donde está por una razón que costó encontrar: ver arriba—.
-     Debajo y pegado al mismo filo derecho queda junto a él, que es lo pedido,
-     y el renglón de arriba se queda exactamente como estaba. */
-  .hs-acciones{ display:flex; justify-content:flex-end; padding:0 3px 7px; }
+  /* SEPARADOR y el paso atrás comparten renglón, a la derecha, con la misma
+     altura y el mismo estilo de pastilla: se leen como un par de acciones,
+     no como dos piezas sueltas en filas distintas. El título queda solo
+     arriba, sin pelear espacio. */
+  .hs-acciones{ display:flex; align-items:center; justify-content:flex-end;
+                flex-wrap:wrap; gap:8px; padding:0 3px 7px; }
   .hs-sep{ flex:0 0 auto; display:inline-flex; align-items:center; gap:6px;
            min-height:34px; font:600 12px/1 var(--ui); letter-spacing:.06em;
            text-transform:uppercase;
@@ -1198,7 +1221,10 @@
   @media (prefers-reduced-motion: reduce){
     .separador, .sep-x, #sepMenu, #sepOferta, .sp-borrar, .sp-tela, .sp-fila{
       transition-duration:.01ms !important; }
-    .separador.cayendo{ animation:none !important; }
+    .separador.cayendo, .separador.entrando, .separador.saliendo{
+      animation:none !important; }
+    .separador.entrando{ opacity:1; }
+    .separador.saliendo{ opacity:0; }
     #sepMenu{ transform:none !important; }
     #sepOferta{ transform:translateX(-50%) !important; }
     .sp-borrar{ transform:none !important; }
@@ -1312,8 +1338,14 @@
     .hs-atras{ min-height:38px; font-size:13px; padding:9px 14px 9px 16px; }
     .hs-sep{ min-height:38px; font-size:13px; padding:9px 14px; }
     .sp-ref{ font-size:14px; }
-    .sp-fila{ min-height:44px; padding:10px; }
-    .sp-btn, .so-btn{ min-height:40px; font-size:13.5px; }
+    .sp-fila{ min-height:48px; padding:5px 5px 5px 10px; }
+    .sp-ir{ min-height:44px; }
+    .sp-fila-x{ width:42px; height:42px; }
+    .sp-fila-x svg{ width:14px; height:14px; }
+    .sp-borrar{ padding:16px 14px; }
+    .sp-pregunta{ font-size:15px; padding-bottom:14px; }
+    .sp-btn{ min-height:52px; font-size:15px; padding:14px 16px; }
+    .so-btn{ min-height:40px; font-size:13.5px; }
     .so-dice{ font-size:13.5px; }
     #sepOferta{ bottom:64px; }
     .sep-x{ width:22px; height:22px; }
@@ -2420,7 +2452,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-AGO-26 18:30';
+window.GLOSS_BUILD = '26-AGO-26 11:54';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2504,13 +2536,9 @@ const PAGE_CSS = `
                          -webkit-tap-highlight-color:transparent; }
 /* Las versalitas piden más tracking que la caja baja: son letras anchas y
    bajas, y pegadas se empastan. .07em era la separación de un texto normal. */
-/* El hueco de la cinta: cuando hay una colgando de esta hoja, el titulillo se
-   corre a su izquierda en vez de quedarse debajo. Los dos viven en la esquina
-   de arriba a la derecha —en pantalla ancha; en teléfono el titulillo va
-   centrado sobre la columna de texto y esto no le toca nada— y de los dos, el
-   que dice dónde estás es éste. Vale cero cuando no hay cinta, así que en la
-   inmensa mayoría de las hojas la regla no hace nada. */
-.pg-cabeza{ position:absolute; top:0; right:var(--cinta-hueco,0px); z-index:2;
+/* La cinta ya no vive en esta esquina: cuelga del borde izquierdo de las
+   glosas y asoma al texto. El titulillo se queda pegado a la derecha. */
+.pg-cabeza{ position:absolute; top:0; right:0; z-index:2;
             font-size:10.5px; line-height:1.3; letter-spacing:.10em;
             color:var(--rot-cab,#795f35); background:var(--papel,#faf7f1); padding:1px 5px 2px 9px;
             white-space:nowrap; cursor:pointer; border-radius:0 0 0 4px;
@@ -4139,8 +4167,8 @@ function renderPageCrudo(){
   pintarFiltros(); pintarIndice(); invalidateSnapshot(); updateReadout();
   /* La cinta se vuelve a colgar aquí, después del acomodo: layoutInto vacía la
      columna de glosas cada vez, así que ponerla antes sería ponerla para que
-     se la lleven. Y va DESPUÉS de que la foto se invalide, para que no entre
-     en el retrato del pliegue: la cinta es del lector, no de la hoja. */
+     se la lleven. La foto del pliegue SÍ la incluye (htmlCintaFoto): se pinta
+     en el SVG del retrato, no en este nodo vivo. */
   if (typeof separadorAlPintar === 'function') separadorAlPintar();
   if (typeof guardarAjustes === 'function') guardarAjustes();
 }
@@ -5794,9 +5822,24 @@ function irA(libro, cap, vers, letra, opciones){
      referencia que no lleva a ningún sitio no es un pasaje que hayas visto, y
      apuntarla dejaría el historial lleno de callejones. También se apunta
      cuando el versículo ya está en esta hoja: preguntaste por él igual. */
-  if (!op.sinApuntar){ apuntarDeDonde(op.origen); apuntarVisto(libro, cap, vers); }
+  if (!op.sinApuntar){
+    /* Sin origen explícito (menú de cintas, índice…) se apunta de dónde
+       estabas AHORA: si no, el «atrás» del rastro solo veía destinos y
+       saltaba a un sitio viejo de la lista, no a lo que acababa de pasar. */
+    const deAqui = puntoActual();
+    const origen = op.origen || { libro: deAqui.libro, cap: deAqui.ref.cap, vers: deAqui.ref.vers };
+    apuntarDeDonde(origen);
+    apuntarVisto(libro, cap, vers);
+  }
   const destino = paginaDe(k);
-  if (destino === paginaActual){ destacar(cap, vers, letra); return; }
+  if (destino === paginaActual){
+    destacar(cap, vers, letra);
+    /* Mismo destino: no hay pliegue, pero la cinta puede estar oculta
+       (sep-espera de un salto anterior). Hay que enseñarla. */
+    if (typeof pintarSeparador === 'function') pintarSeparador();
+    if (typeof sepTrasPliegue === 'function') sepTrasPliegue();
+    return;
+  }
   volverA = puntoActual();                  // de dónde veníamos, para el botón de regreso
   sepSalto = true;                          /* ver sepSalto: esto es saltar */
   animarSalto(destino, () => destacar(cap, vers, letra));
@@ -6234,7 +6277,32 @@ function pintarPalabras(g, palabras){
    corte de etiquetas, y los otros tres por si alguna nota o versión los trae. */
 const VACIOS_XML = /<(wbr|br|hr|img)((?:\s[^<>]*?)?)\s*\/?>/gi;
 const aXML = h => String(h || '').replace(VACIOS_XML, (_, t, at) => '<' + t + at + '/>');
-function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza){
+/* La cinta también entra en el RETRATO del pliegue: si no, la hoja gira y
+   la marca se queda quieta en el aire, o desaparece a mitad de gesto. Se
+   dibuja con estilos en línea porque el SVG solo trae PAGE_CSS y no ve la
+   hoja de la aplicación. hojaN es el índice de la página retratada. */
+function htmlCintaFoto(hojaN){
+  if (hojaN == null || typeof sepEnPagina !== 'function') return '';
+  const s = sepEnPagina(hojaN);
+  if (!s) return '';
+  const t = (typeof telaDe === 'function' ? telaDe(s.color) : null) ||
+            ['','','#9b2a2a','#7a1f1f'];
+  const m = (typeof sepMedidas === 'function')
+    ? sepMedidas()
+    : { arriba:0, izq:0, ancho:48 };
+  return '<div class="sep-percha" style="position:absolute;z-index:4;pointer-events:none;' +
+    'top:' + m.arriba + 'px;left:' + m.izq + 'px;width:' + m.ancho + 'px;' +
+    'aspect-ratio:1/1.75">' +
+    '<div style="position:absolute;inset:0;border:0;padding:0;margin:0;' +
+      'background:repeating-linear-gradient(90deg,rgba(255,255,255,.07) 0 1px,' +
+        'rgba(0,0,0,.05) 1px 3px),' +
+        'linear-gradient(100deg,' + t[3] + ' 0%,' + t[2] + ' 32%,' +
+        t[2] + ' 68%,' + t[3] + ' 100%);' +
+      'clip-path:polygon(0 0,100% 0,100% 100%,50% 72%,0 100%);' +
+      'filter:drop-shadow(-1.5px 0 0 rgba(252,247,235,.92))' +
+             ' drop-shadow(0 2px 3px rgba(60,40,15,.42))"></div></div>';
+}
+function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza, hojaN){
   bodyHTML = aXML(bodyHTML); marginHTML = aXML(marginHTML); footHTML = aXML(footHTML);
   const fs = fontSize+'px', m = mw||'0px', g = gap||'0px';
   /* En teléfono las columnas van escritas a la fuerza también aquí dentro: el
@@ -6286,6 +6354,7 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza){
           ';--fs:'+fontSize+'px'+
           ';--mx:'+(med ? 0 : MARGENES[margen][1])+'px'+'">'+
         '<style>'+PAGE_CSS+'</style><div class="pg-inner"'+estInner+'>'+
+        htmlCintaFoto(hojaN)+
         '<div class="pg-version"'+estVer+'>'+esc(D.versiones[version].abrev || version)+'</div>'+
         '<div class="pg-cabeza"'+estCab+'>'+esc(cabeza||'')+'</div><div class="pg-cols"'+estCols+'>'+
         '<div class="pg-body" xml:lang="es" lang="es" style="'+estBody+estiloEnLinea()+'">'+bodyHTML+'</div>'+
@@ -6379,7 +6448,7 @@ function fotoDeHojaCrudo(p, asignar){
   ghostCabeza.textContent = cabezaDe(from);
   const ms = rectsDeMarcas(ghostBody, ghost);
   const palabras = medirPalabras(ghost);
-  loadSVG(buildSVG(cuerpoHTML(from, hasta), r.marginHTML, r.footHTML, r.mw, r.gap, w, h, cabezaDe(from)),
+  loadSVG(buildSVG(cuerpoHTML(from, hasta), r.marginHTML, r.footHTML, r.mw, r.gap, w, h, cabezaDe(from), p),
     img => {
       /* Componer puede reventar —un lienzo enorme no siempre se reserva— y si
          revienta aquí, `asignar` no se llama nunca y quien esperaba la foto se
@@ -6405,7 +6474,7 @@ function makeSnapshotCrudo(){
   snapFirma = estiloFirma();
   const ms = rectsDeMarcas(pgBody, pg);
   const palabras = medirPalabras(pg);
-  loadSVG(buildSVG(cuerpoHTML(startIdx, nextIdx), curMarginHTML, curFootHTML, curMW, curGap, w, h, cabezaDe(startIdx)),
+  loadSVG(buildSVG(cuerpoHTML(startIdx, nextIdx), curMarginHTML, curFootHTML, curMW, curGap, w, h, cabezaDe(startIdx), paginaActual),
     img => { if (mia !== rondaFoto) return;
              pageImg = componer(img, ms, palabras, w, h); if (folding){ pg.classList.add('hidden'); drawFold(); } },
     () => { if (mia !== rondaFoto) return;
@@ -6642,6 +6711,7 @@ function iniciarPliegue(s, clientY){
   folding = true;
   plegandoConDedo = true;                  /* este sí lo lleva un dedo: se puede soltar */
   ++generacionPliegue;                     /* un dedo manda sobre cualquier animación en curso */
+  if (typeof sepAlPlegar === 'function') sepAlPlegar();
   sizeCanvas(); fx.style.display = 'block';
   if (pageImg) pg.classList.add('hidden');
   return true;
@@ -6727,8 +6797,37 @@ function ocultarHuella(){
   huella.classList.remove('viva');
 }
 
+/* ¿El toque cae sobre la cinta? De lejos el filo derecho se pone encima del
+   papel pequeño y se comía el clic de la cinta: huella + pasar hoja. La cinta
+   tiene prioridad: es más pequeña y es lo que el lector está buscando. */
+function toqueEnCinta(ev){
+  const cinta = document.querySelector('#sepPercha .separador');
+  if (!cinta) return false;
+  const r = cinta.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return false;
+  const pad = 6;
+  return ev.clientX >= r.left - pad && ev.clientX <= r.right + pad &&
+         ev.clientY >= r.top - pad && ev.clientY <= r.bottom + pad;
+}
+function abrirCintaPorToque(){
+  const cinta = document.querySelector('#sepPercha .separador');
+  if (!cinta) return;
+  const id = cinta.dataset.sep;
+  if (!id) return;
+  if (sepMenuAbierto === id) cerrarSepMenu();
+  else abrirSepMenu(id);
+}
 function bordeAbajo(ev, s){
   if (cantoAbierto){ cerrarCanto(); return; }
+  /* La cinta gana al filo: sin esto, de lejos (y a veces de cerca) el toque
+     en el pedacito de cinta abría la huella y pasaba de hoja. */
+  if (toqueEnCinta(ev)){
+    ev.preventDefault();
+    ev.stopPropagation();
+    gestoPendiente = null;
+    abrirCintaPorToque();
+    return;
+  }
   gestoPendiente = { s, x: ev.clientX, y: ev.clientY, t: performance.now() };
   /* En el filo de la primera hoja —o de la última— no hay a dónde ir. El filo
      ya se ve apagado, pero .off es solo pintura: los oyentes siguen ahí y la
@@ -6844,6 +6943,7 @@ function pasarHoja(s, clientY, intento){
         paginaActual = destino;
         renderPage();
         fx.style.display = 'none'; pg.classList.remove('hidden');
+        if (typeof sepTrasPliegue === 'function') sepTrasPliegue();
       }, anclaY);
     });
   } catch(e){ preparandoPliegue = false; throw e; }
@@ -7806,13 +7906,13 @@ let histAbierto = false, plenoAbierto = null;   /* plenoAbierto guarda la refere
    desde el primer minuto, sin haber saltado a ningún sitio todavía. El paso
    atrás sigue apareciendo solo cuando hay a dónde volver. */
 function cabezaHistorial(){
-  return '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span>' +
-    pieAtras() + '</div>' +
+  return '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span></div>' +
     '<div class="hs-acciones">' +
     '<button class="hs-sep" data-sep-nuevo="1"' +
       ' title="Dejar un separador en esta hoja"' +
       ' aria-label="Dejar un separador en esta hoja">' +
       '<span class="hs-sep-cinta" aria-hidden="true"></span>separador</button>' +
+    pieAtras() +
     '</div>';
 }
 function pintarHistorial(){
@@ -7884,8 +7984,17 @@ function rastroVisible(){
 const FLECHA_ATRAS =
   '<svg class="hs-flecha" viewBox="0 0 16 16" aria-hidden="true" focusable="false">' +
   '<path d="M13.2 8H3.6M7.4 3.9 3.3 8l4.1 4.1"/></svg>';
+/* A dónde lleva «atrás»: primero lo que ACABA de pasar (volverA —de dónde
+   saliste en el último salto), y si no hay, el rastro. No es «recorrer la
+   lista», es deshacer el último viaje. */
+function destinoAtras(){
+  if (volverA && volverA.ref){
+    return { libro: volverA.libro, cap: volverA.ref.cap, vers: volverA.ref.vers };
+  }
+  return rastroVisible()[atrasEn + 1] || null;
+}
 function pieAtras(){
-  const h = rastroVisible()[atrasEn + 1];
+  const h = destinoAtras();
   if (!h) return '';
   return '<button class="hs-atras" data-atras="1" title="Volver a ' +
     esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '"' +
@@ -7893,11 +8002,12 @@ function pieAtras(){
     '<span class="hs-atras-ref">' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers +
     '</span>' + FLECHA_ATRAS + '</button>';
 }
-/* Un paso atrás por el rastro, sin apuntarlo. */
+/* Un paso atrás: deshace el último salto, sin apuntarlo otra vez. */
 function darUnPasoAtras(){
-  const h = rastroVisible()[atrasEn + 1];
+  const h = destinoAtras();
   if (!h) return;
-  atrasEn++;
+  if (volverA) volverA = null;
+  else atrasEn++;
   cerrarHistorial();
   trasPintar(() => irA(h.libro, h.cap, h.vers, '', { sinApuntar:true }));
 }
@@ -7977,7 +8087,6 @@ $('historial').addEventListener('click', ev => {
     const ya = sepDeLaHoja();
     if (ya){ abrirSepMenu(ya.id); return; }
     crearSeparador();
-    readout.textContent = 'separador puesto';
     return;
   }
   if (ev.target.closest('[data-atras]')){
@@ -8243,6 +8352,7 @@ function animate(turn){
       renderPage();
     }
     fx.style.display='none'; pg.classList.remove('hidden'); anchor=F=null; updateReadout();
+    if (typeof sepTrasPliegue === 'function') sepTrasPliegue();
   })(t0);
 }
 
@@ -8271,6 +8381,7 @@ function pasoAnimado(desde, hacia, dur, hojas, cb){
 function animarHojas(hojas, dur, cb, anclaY){
   folding = true;
   plegandoConDedo = false;                 /* esto lo mueve la máquina, no un dedo */
+  if (typeof sepAlPlegar === 'function') sepAlPlegar();
   pg.classList.add('hidden'); fx.style.display = 'block';
 
   const bordeX = side === 'right' ? W : 0;
@@ -8382,6 +8493,7 @@ function animarSalto(destino, alLlegar){
     cerrarCajonDeGlosas();
     renderPage();
     fx.style.display='none'; pg.classList.remove('hidden');
+    if (typeof sepTrasPliegue === 'function') sepTrasPliegue();
     if (alLlegar) alLlegar();
   };
   if (!pageImg || destino === paginaActual){ aterrizar(); return; }
@@ -8514,6 +8626,7 @@ function cruzarLibro(s, clientY, sinAnimar){
       paginaActual = destino;
       renderPage();
       fx.style.display = 'none'; pg.classList.remove('hidden');
+      if (typeof sepTrasPliegue === 'function') sepTrasPliegue();
       quitarBuscando();
       if (zoomActivo) refrescarPasos();
     };
@@ -8973,7 +9086,7 @@ document.addEventListener('keydown', ev => {
   if (ev.key === 'Escape'){ ocultarCascada(); cerrarTodosLosRollos(); ocultarMenu();
     /* Y lo del separador, que también son cosas de las que hay que poder
        salir sin puntero: el menú, y la pregunta si está puesta. */
-    if (sepBorrando){ sepBorrando = false; pintarSepMenu(); colocarSepMenu(); }
+    if (sepBorrando){ sepBorrando = null; pintarSepMenu(); colocarSepMenu(); }
     else cerrarSepMenu();
     if (sepOfertaAbierta){ sepOfrecido = true; cerrarOferta(); }
   }
@@ -9396,7 +9509,7 @@ let sepActivo = null;
    seguidas se han leído de verdad y si ya se preguntó en esta sesión. */
 let sepHojaAnterior = null, sepLlegadaEn = 0, sepLeidasSeguidas = 0,
     sepOfrecido = false, sepCayendo = null, sepMenuAbierto = null,
-    sepOfertaAbierta = false, sepRelojOferta = null, sepBorrando = false;
+    sepOfertaAbierta = false, sepRelojOferta = null, sepBorrando = null;
 
 /* Cada campo se comprueba antes de aceptarlo: un almacén de otra versión, a
    medio escribir o manoseado a mano no debe dejar cintas imposibles. Lo que
@@ -9489,50 +9602,179 @@ const sepAqui = x => {
   const k = sepK(x);
   return k >= 0 && k >= (paginas[paginaActual] || 0) && k < finDe(paginaActual);
 };
-function sepDeLaHoja(){
+function sepEnPagina(n){
   if (!separadores.length) return null;
-  const aqui = separadores.filter(sepAqui);
+  const desde = paginas[n] || 0, hasta = finDe(n);
+  const aqui = separadores.filter(x => {
+    const k = sepK(x);
+    return k >= 0 && k >= desde && k < hasta;
+  });
   if (!aqui.length) return null;
   return aqui.find(x => x.id === sepActivo) ||
-         aqui.sort((a, b) => b.tocado - a.tocado)[0];
+         aqui.slice().sort((a, b) => b.tocado - a.tocado)[0];
 }
-/* CUÁNTO HAY QUE SUBIRLA para que su filo sea el filo del papel, y cuánto
-   tiene que medir de ancho.
+function sepDeLaHoja(){
+  return sepEnPagina(paginaActual);
+}
+/* CUÁNTO HAY QUE SUBIRLA para que su filo sea el filo del papel, cuánto
+   tiene que medir de ancho, y DÓNDE cae a lo ancho.
 
-   Las dos se miden y no se suponen, porque las dos cambian con los ajustes: el
-   relleno de la hoja lo mueve el ajuste de márgenes y el ancho de la columna
-   depende de la pantalla. Se usan offsetTop y offsetWidth a propósito, que son
+   Se miden y no se suponen, porque cambian con los ajustes: el relleno de la
+   hoja lo mueve el ajuste de márgenes y el ancho de la columna depende de la
+   pantalla. Se usan offsetTop / offsetLeft / offsetWidth a propósito, que son
    de acomodo y no de pintura: con la vista de lejos puesta, .pg-inner lleva una
    escala encima y un getBoundingClientRect devolvería los números encogidos.
 
-   El ancho es una proporción de la COLUMNA aunque la percha ya no cuelgue de
-   ella: es la columna la que le da su sitio, y un porcentaje de CSS mediría
-   ahora contra la hoja entera. Sin columna —las glosas puestas debajo o al
-   pie— se conforma con el mínimo. */
+   El ancho es una proporción de la COLUMNA aunque la percha cuelgue de
+   .pg-inner: es la columna la que le da su sitio, y un porcentaje de CSS
+   mediría ahora contra la hoja entera. El doble de lo que era —36 %, entre
+   32 y 64 px— y el alto sale del aspect-ratio. Sin columna —las glosas
+   puestas debajo o al pie— se conforma con el mínimo.
+
+   La percha se clava en el borde IZQUIERDO de la columna menos 19 px, para
+   que se vea un buen trozo desde el texto sin tener que abrir las glosas. */
+const CINTA_ASOMO = 19;
 function sepMedidas(){
   const inner = pg.querySelector('.pg-inner');
   const col = pgMargin.offsetWidth;
+  let izq = 0;
+  if (inner && pgMargin){
+    let n = pgMargin, x = 0;
+    while (n && n !== inner){
+      x += n.offsetLeft;
+      n = n.offsetParent;
+    }
+    izq = x - CINTA_ASOMO;
+  }
   return { arriba: -(inner ? inner.offsetTop : 0),
-           ancho: Math.round(Math.min(32, Math.max(16, (col || 90) * 0.18))) };
+           ancho: Math.round(Math.min(64, Math.max(32, (col || 90) * 0.36))),
+           izq };
 }
-function pintarSeparador(){
-  const puesta = document.getElementById('sepPercha');
-  if (puesta) puesta.remove();
-  const s = sepDeLaHoja();
-  if (!s){
-    pg.style.removeProperty('--cinta-hueco');
-    if (sepMenuAbierto) cerrarSepMenu();
+/* La cinta ACTIVA no se desmonta al pasar hoja: vive en .pg-inner, que
+   sobrevive al pliegue. Remontarla (ocultar → esperar → entrar) era lo que
+   la hacía desaparecer y a veces no volver. Solo se anima al PONERLA, al
+   quitarla, o al llegar a una cinta que ya estaba en esa hoja. */
+let sepRetiroGen = 0;
+function sepSinMovimiento(){
+  return window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+function aplicarMedidasSeparador(percha){
+  const m = sepMedidas();
+  percha.style.setProperty('--cinta-arriba', m.arriba + 'px');
+  percha.style.setProperty('--cinta-ancho', m.ancho + 'px');
+  percha.style.setProperty('--cinta-izq', m.izq + 'px');
+}
+function actualizarSeparador(percha, s){
+  const t = telaDe(s.color);
+  const btn = percha.querySelector('.separador');
+  if (btn){
+    btn.style.setProperty('--tela', t[2]);
+    btn.style.setProperty('--tela-osc', t[3]);
+    btn.dataset.sep = s.id;
+    btn.setAttribute('aria-expanded', sepMenuAbierto === s.id ? 'true' : 'false');
+    btn.classList.toggle('abierta', sepMenuAbierto === s.id);
+  }
+  const x = percha.querySelector('.sep-x');
+  if (x){
+    const abierta = sepMenuAbierto === s.id;
+    x.classList.toggle('viva', abierta);
+    x.classList.toggle('puesta', abierta);
+  }
+  aplicarMedidasSeparador(percha);
+}
+function sepPaginaTapada(){
+  return folding || (pg && pg.classList.contains('hidden'));
+}
+/* Al empezar el pliegue la cinta se va suave —el lector aún ve la hoja vieja
+   un instante—. El nodo se queda, para no remontarla a ciegas. */
+function sepAlPlegar(){
+  const btn = document.querySelector('#sepPercha .separador');
+  if (!btn) return;
+  btn.classList.remove('entrando', 'cayendo');
+  if (sepSinMovimiento()){ btn.classList.add('sep-espera'); return; }
+  if (btn.classList.contains('sep-espera') || btn.classList.contains('saliendo')) return;
+  void btn.offsetWidth;
+  btn.classList.add('saliendo');
+}
+/* Al descubrir la hoja: si venimos de PASAR página (sepQuiereEntrar), la
+   cinta entra suave; si venimos de un SALTO del menú, se enseña al momento
+   —reanimar ahí hacía un flash porque la foto del pliegue ya la traía. */
+function sepTrasPliegue(){
+  const suave = sepQuiereEntrar;
+  sepQuiereEntrar = false;
+  if (sepPaginaTapada()){
+    if (suave) sepQuiereEntrar = true;
+    clearTimeout(sepRelojTras);
+    sepRelojTras = setTimeout(() => {
+      sepRelojTras = null;
+      if (!sepPaginaTapada()) sepTrasPliegue();
+    }, 60);
     return;
   }
+  const puesta = document.getElementById('sepPercha');
+  const s = sepDeLaHoja();
+  if (!s){
+    if (puesta){ sepRetiroGen++; puesta.remove(); }
+    return;
+  }
+  const idPuesta = puesta && puesta.querySelector('[data-sep]')
+    ? puesta.querySelector('[data-sep]').dataset.sep : null;
+  if (puesta && idPuesta === s.id){
+    actualizarSeparador(puesta, s);
+    const btn = puesta.querySelector('.separador');
+    if (!btn || btn.classList.contains('cayendo')) return;
+    const oculta = btn.classList.contains('sep-espera') ||
+                   btn.classList.contains('saliendo');
+    btn.classList.remove('saliendo', 'sep-espera');
+    if (suave && oculta && !sepSinMovimiento()){
+      void btn.offsetWidth;
+      btn.classList.add('entrando');
+    } else {
+      btn.classList.remove('entrando');
+    }
+    return;
+  }
+  montarSeparador(s, suave ? 'entra' : null);
+}
+let sepRelojTras = null;
+function retirarSeparador(el){
+  if (!el) return;
+  const gen = ++sepRetiroGen;
+  const btn = el.querySelector('.separador');
+  const fin = () => {
+    if (gen !== sepRetiroGen) return;
+    if (el.parentNode) el.remove();
+  };
+  if (!btn || sepSinMovimiento() || btn.classList.contains('sep-espera')){
+    fin();
+    return;
+  }
+  if (btn.classList.contains('saliendo')){
+    btn.addEventListener('animationend', fin, { once:true });
+    setTimeout(fin, 400);
+    return;
+  }
+  btn.classList.remove('entrando', 'cayendo', 'sep-espera', 'abierta');
+  void btn.offsetWidth;
+  btn.classList.add('saliendo');
+  btn.addEventListener('animationend', fin, { once:true });
+  setTimeout(fin, 400);
+}
+function montarSeparador(s, modo){
+  sepRetiroGen++;                    /* un retiro pendiente no puede borrar ésta */
+  const vieja = document.getElementById('sepPercha');
+  if (vieja) vieja.remove();
   const t = telaDe(s.color);
   const percha = document.createElement('div');
   percha.className = 'sep-percha';
   percha.id = 'sepPercha';
-  const cae = sepCayendo === s.id ? ' cayendo' : '';
+  const cae = (modo === 'cae' || sepCayendo === s.id) ? ' cayendo' : '';
+  const entra = (!cae && modo === 'entra' && !sepSinMovimiento()) ? ' entrando' : '';
   sepCayendo = null;
   const abierta = sepMenuAbierto === s.id;
   percha.innerHTML =
-    '<button class="separador' + cae + (abierta ? ' abierta' : '') + '"' +
+    '<button class="separador' + cae + entra + (abierta ? ' abierta' : '') + '"' +
       ' style="--tela:' + t[2] + ';--tela-osc:' + t[3] + '"' +
       ' data-sep="' + esc(s.id) + '" aria-haspopup="dialog"' +
       ' aria-expanded="' + (abierta ? 'true' : 'false') + '"' +
@@ -9542,12 +9784,45 @@ function pintarSeparador(){
       ' aria-label="Quitar este separador" title="Quitar este separador">' +
       '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1 L9 9 M9 1 L1 9"' +
       ' stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>';
-  const m = sepMedidas();
-  percha.style.setProperty('--cinta-arriba', m.arriba + 'px');
-  percha.style.setProperty('--cinta-ancho', m.ancho + 'px');
-  /* Y el titulillo se aparta lo que ocupa la cinta más su aire. */
-  pg.style.setProperty('--cinta-hueco', (m.ancho + 8) + 'px');
+  aplicarMedidasSeparador(percha);
   (pg.querySelector('.pg-inner') || pgMargin).appendChild(percha);
+}
+let sepQuiereSalirSuave = false;
+let sepQuiereEntrar = false;
+function pintarSeparador(){
+  const puesta = document.getElementById('sepPercha');
+  const s = sepDeLaHoja();
+  const idPuesta = puesta && puesta.querySelector('[data-sep]')
+    ? puesta.querySelector('[data-sep]').dataset.sep : null;
+  const tapada = sepPaginaTapada();
+  if (!s){
+    if (puesta){
+      /* Hoja tapada por el pliegue: se quita ya, nadie la ve.
+         Hoja a la vista: sale suave (borrar, o una cinta que no sigue). */
+      if (tapada && !sepQuiereSalirSuave){ sepRetiroGen++; puesta.remove(); }
+      else retirarSeparador(puesta);
+    }
+    sepQuiereSalirSuave = false;
+    return;
+  }
+  sepQuiereSalirSuave = false;
+  if (puesta && idPuesta === s.id){
+    if (sepCayendo === s.id){ sepCayendo = null; montarSeparador(s, 'cae'); return; }
+    actualizarSeparador(puesta, s);
+    if (tapada){
+      const btn = puesta.querySelector('.separador');
+      if (btn){ btn.classList.remove('entrando'); btn.classList.add('sep-espera'); }
+    }
+    return;
+  }
+  /* Solo "cae" al ponerla a mano. Al llegar por salto o pliegue no se usa
+     "entra": reanimar provocaba un parpadeo (ya se veía en la foto). */
+  const modo = sepCayendo === s.id ? 'cae' : null;
+  montarSeparador(s, modo);
+  if (tapada && modo !== 'cae'){
+    const btn = document.querySelector('#sepPercha .separador');
+    if (btn) btn.classList.add('sep-espera');
+  }
 }
 
 /* ---------- poner, mover y quitar ---------- */
@@ -9567,8 +9842,9 @@ function crearSeparador(){
   pintarSeparador();
   return s;
 }
-/* La cinta activa sigue al lector hoja a hoja, y solo ella: las demás se
-   quedan donde las dejaron. Mover es mover la referencia, no crear otra. */
+/* La cinta activa sigue al lector hoja a hoja —hacia adelante y hacia
+   atrás—, y solo ella: las demás se quedan donde las dejaron. Mover es
+   mover la referencia, no crear otra. */
 function avanzarSeparador(){
   const s = sepDe(sepActivo);
   if (!s) return;
@@ -9585,6 +9861,7 @@ function borrarSeparador(id){
   if (sepActivo === id) sepActivo = null;
   sepGuardar();
   cerrarSepMenu();
+  sepQuiereSalirSuave = true;
   pintarSeparador();
 }
 
@@ -9630,15 +9907,31 @@ function sepLlegada(){
   const permanencia = sepLlegadaEn ? ahora - sepLlegadaEn : 0;
   const ant = sepHojaAnterior;
   const salto = sepSalto; sepSalto = false;
-  const leyendo = !salto && !!ant &&
+  /* Adelante: hoja siguiente del mismo libro, o primera hoja del libro
+     siguiente al cruzar leyendo. Atrás: hoja anterior del mismo libro.
+     En los dos casos la cinta ACTIVA sigue al lector; un salto (índice,
+     glosa, paso atrás del rastro) no. */
+  const adelante = !salto && !!ant &&
                   ((sitio.libro === ant.libro && sitio.n === ant.n + 1) ||
                    (sitio.libro !== ant.libro && sitio.n === 0));
+  const atras = !salto && !!ant &&
+                sitio.libro === ant.libro && sitio.n === ant.n - 1;
+  const pasandoHoja = adelante || atras;
   if (sepLlegadaEn && permanencia > PAUSA_SESION) sepTerminarSesion();
-  else if (leyendo && permanencia >= LECTURA_MINIMA) sepLeidasSeguidas++;
+  else if (adelante && permanencia >= LECTURA_MINIMA) sepLeidasSeguidas++;
   else sepLeidasSeguidas = 0;
   sepHojaAnterior = sitio;
   sepLlegadaEn = ahora;
-  if (leyendo) avanzarSeparador();
+  if (pasandoHoja){
+    /* Si no hay activa (recarga, sesión nueva) pero la hoja que dejas
+       tenía cinta, ésa es la que el lector está usando: se viene con él. */
+    if (!sepDe(sepActivo) && ant && ant.libro === LIBRO){
+      const huella = sepEnPagina(ant.n);
+      if (huella) sepActivo = huella.id;
+    }
+    avanzarSeparador();
+    sepQuiereEntrar = true;
+  }
   if (sepLeidasSeguidas >= 2) ofrecerSeparador();
 }
 /* El enganche desde renderPage. Se pinta siempre; la llegada se cuenta solo
@@ -9654,6 +9947,9 @@ function separadorAlPintar(){
   if (cambio && sepMenuAbierto) cerrarSepMenu();
   if (cambio) sepLlegada();
   pintarSeparador();
+  /* Tras un salto o un pliegue, la cinta puede quedar en sep-espera: al
+     descubrir la hoja hay que enseñarla. */
+  if (!sepPaginaTapada()) sepTrasPliegue();
   if (sepMenuAbierto) colocarSepMenu();
 }
 
@@ -9697,7 +9993,6 @@ $('sepOferta').addEventListener('click', ev => {
   cerrarOferta();
   if (si){
     crearSeparador();
-    readout.textContent = 'separador puesto';
   }
 });
 
@@ -9706,7 +10001,7 @@ function abrirSepMenu(id){
   if (!sepDe(id)) return;
   cerrarOferta();
   sepMenuAbierto = id;
-  sepBorrando = false;
+  sepBorrando = null;
   pintarSepMenu();
   const el = $('sepMenu');
   el.style.display = 'flex';
@@ -9720,7 +10015,7 @@ function abrirSepMenu(id){
 function cerrarSepMenu(){
   if (!sepMenuAbierto) return;
   sepMenuAbierto = null;
-  sepBorrando = false;
+  sepBorrando = null;
   const el = $('sepMenu');
   el.classList.remove('visible');
   setTimeout(() => { if (!sepMenuAbierto) el.style.display = 'none'; }, 280);
@@ -9732,8 +10027,12 @@ function pintarSepMenu(){
   const aqui = sepAqui;
   /* La lista va por lo último que se tocó, que es lo que se busca: la cinta
      de la lectura de ahora arriba, y las de antes debajo en el orden en que
-     se dejaron. */
+     se dejaron. A la derecha, una X para borrarlo (con confirmación). */
   const lista = separadores.slice().sort((a, b) => b.tocado - a.tocado);
+  const aBorrar = sepBorrando ? sepDe(sepBorrando) : null;
+  const refBorrar = aBorrar
+    ? (esc(nombreDe(aBorrar.libro)) + ' ' + aBorrar.cap + ':' + aBorrar.vers)
+    : '';
   $('sepMenu').innerHTML =
     '<span class="sp-tit">Color de la cinta</span>' +
     '<div class="sp-telas" role="group" aria-label="Color del separador">' +
@@ -9744,19 +10043,26 @@ function pintarSepMenu(){
     '<span class="sp-tit">Tus separadores</span>' +
     (lista.length ? lista.map(x => {
       const t = telaDe(x.color);
-      return '<button class="sp-fila' + (aqui(x) ? ' aqui' : '') + '"' +
-        ' data-sep-ir="' + esc(x.id) + '"' +
-        ' aria-label="Ir al separador ' + t[1] + ' en ' + esc(nombreDe(x.libro)) + ' ' +
-          x.cap + ':' + x.vers + '">' +
-        '<span class="sp-chip" style="background:' + t[2] + '" aria-hidden="true"></span>' +
-        '<span class="sp-ref">' + esc(nombreDe(x.libro)) + ' ' + x.cap + ':' + x.vers + '</span>' +
-        '<span class="sp-nota">' + (aqui(x) ? 'aquí' : esc(t[1])) + '</span></button>';
+      return '<div class="sp-fila' + (aqui(x) ? ' aqui' : '') + '">' +
+        '<button class="sp-ir" data-sep-ir="' + esc(x.id) + '"' +
+          ' aria-label="Ir al separador en ' + esc(nombreDe(x.libro)) + ' ' +
+            x.cap + ':' + x.vers + '">' +
+          '<span class="sp-chip" style="background:' + t[2] + '" aria-hidden="true"></span>' +
+          '<span class="sp-ref">' + esc(nombreDe(x.libro)) + ' ' + x.cap + ':' + x.vers +
+            (aqui(x) ? ' · aquí' : '') + '</span></button>' +
+        '<button type="button" class="sp-fila-x" data-sep-pedir-borrar="' + esc(x.id) + '"' +
+          ' aria-label="Eliminar separador en ' + esc(nombreDe(x.libro)) + ' ' +
+            x.cap + ':' + x.vers + '" title="Eliminar">' +
+          '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1 L9 9 M9 1 L1 9"' +
+          ' stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+        '</button></div>';
     }).join('') : '<span class="sp-vacio">Todavía ninguno.</span>') +
     (sepBorrando ?
       '<div class="sp-borrar" role="group" aria-label="Confirmar borrado">' +
-        '<span class="sp-pregunta">¿Quiere eliminar este separador?</span>' +
+        '<span class="sp-pregunta">¿Eliminar el separador' +
+          (refBorrar ? ' de ' + refBorrar : '') + '?</span>' +
         '<div class="sp-botones">' +
-          '<button class="sp-btn si" data-sep-borrar="' + esc(s.id) + '">Eliminar</button>' +
+          '<button class="sp-btn si" data-sep-borrar="' + esc(sepBorrando) + '">Eliminar</button>' +
           '<button class="sp-btn" data-sep-cancelar="1">Cancelar</button>' +
         '</div></div>' : '');
   if (sepBorrando){
@@ -9792,14 +10098,12 @@ stage.addEventListener('click', ev => {
   if (x){
     ev.preventDefault(); ev.stopPropagation();
     if (!sepMenuAbierto) return;
-    sepBorrando = true; pintarSepMenu(); colocarSepMenu();
+    sepBorrando = sepMenuAbierto; pintarSepMenu(); colocarSepMenu();
     return;
   }
   const cinta = ev.target.closest('[data-sep]');
   if (!cinta) return;
-  /* De lejos la cinta no responde —lo dice el CSS— pero el guardia se repite
-     aquí por si algún día alguien le devuelve los toques. */
-  if (zoomActivo) return;
+  /* De lejos también: la cinta asoma a propósito y es un control, no decoración. */
   ev.preventDefault(); ev.stopPropagation();
   if (sepMenuAbierto === cinta.dataset.sep) cerrarSepMenu();
   else abrirSepMenu(cinta.dataset.sep);
@@ -9814,10 +10118,17 @@ $('sepMenu').addEventListener('click', ev => {
     sepGuardar(); pintarSepMenu(); pintarSeparador();
     return;
   }
+  const pedirBorrar = ev.target.closest('[data-sep-pedir-borrar]');
+  if (pedirBorrar){
+    ev.preventDefault(); ev.stopPropagation();
+    sepBorrando = pedirBorrar.dataset.sepPedirBorrar;
+    pintarSepMenu(); colocarSepMenu();
+    return;
+  }
   const cancelar = ev.target.closest('[data-sep-cancelar]');
   if (cancelar){
     ev.preventDefault(); ev.stopPropagation();
-    sepBorrando = false; pintarSepMenu(); colocarSepMenu();
+    sepBorrando = null; pintarSepMenu(); colocarSepMenu();
     return;
   }
   const borrar = ev.target.closest('[data-sep-borrar]');
@@ -9895,6 +10206,7 @@ function saltarA(libro, cap, vers, regreso, opciones){
       cerrarCajonDeGlosas();              /* misma razón que en animarSalto */
       renderPage();
       fx.style.display = 'none'; pg.classList.remove('hidden');
+      if (typeof sepTrasPliegue === 'function') sepTrasPliegue();
       destacar(cap, vers, '');
       quitarBuscando();
       /* Al rastro, y aquí al ATERRIZAR y no al pedirlo: un salto entre libros
@@ -9906,7 +10218,13 @@ function saltarA(libro, cap, vers, regreso, opciones){
          lee del más nuevo al más viejo. Y sin encargo no hay origen que
          apuntar, que es el caso de saltar desde el menú de libros: ahí no
          vienes de una escritura, vienes del índice. */
-      if (!op.sinApuntar){ apuntarDeDonde(op.origen); apuntarVisto(libro, cap, vers); }
+      if (!op.sinApuntar){
+        const origen = op.origen || (regreso && regreso.ref
+          ? { libro: regreso.libro, cap: regreso.ref.cap, vers: regreso.ref.vers }
+          : null);
+        apuntarDeDonde(origen);
+        apuntarVisto(libro, cap, vers);
+      }
     };
     if (mismo && destino === desdeHoja){ aterrizar(); return; }
     side = (mismo ? destino < desdeHoja : haciaAtras) ? 'left' : 'right';
