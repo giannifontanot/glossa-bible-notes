@@ -2486,7 +2486,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '26-AGO-26 12:52';
+window.GLOSS_BUILD = '26-AGO-26 13:03';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11029,9 +11029,9 @@ rehacerPlano();
 sizeCanvas();
 $('cred').textContent = D.versiones[version].nombre + ' — ' + D.versiones[version].licencia + ' · vía eBible.org';
 renderPage();
-/* Portada fuera: la hoja ya está. Mínimo ~0.7 s para que el letrero se lea. */
+/* Portada fuera: la hoja ya está. Mínimo 3 s para que el letrero se lea. */
 (function(){
-  const falta = Math.max(0, 700 - (performance.now() - t0Portada));
+  const falta = Math.max(0, 3000 - (performance.now() - t0Portada));
   setTimeout(quitarPortada, falta);
 })();
 /* La firma se siembra con lo que ya hay puesto. Sin esto arranca vacía, así
