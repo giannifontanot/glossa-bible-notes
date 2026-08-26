@@ -353,10 +353,9 @@
             opacity:0; transition:opacity .34s cubic-bezier(.65,0,.35,1),
                                   transform .34s cubic-bezier(.65,0,.35,1); }
   #readout.viva{ opacity:1; transform:translate(-50%, 0); }
-  /* Volver del salto: flota en la esquina de la hoja, cerca de donde estabas
-     leyendo, y solo existe cuando hay a dónde volver. */
-  #btnVolver{ position:absolute; left:8px; bottom:8px; z-index:7;
-              font-size:.62rem; padding:3px 9px; }
+  /* El botón «volver» del salto se quitó: el atrás del historial cubre
+     ese camino y el flotante competía con el zoom y el papel. */
+  #btnVolver{ display:none !important; }
   /* Aquí estaban los chevrones de pasar hoja. Se fueron: la hoja se pasa
      arrastrando el filo, con las flechas del teclado o tocando el borde, y
      tres caminos al mismo sitio no valen el par de botones encima del papel.
@@ -1568,6 +1567,13 @@
   .rollo select option{ color:#222; }
   .rollo .lbl{ color:#7a6538; opacity:1; font-size:.58rem; }
   .rollo .medida{ color:#3c2f16; min-width:26px; }
+  /* Fondo transparente de Formato: para ver la hoja mientras se ajusta. */
+  #ajustes.cristal{ background:transparent; box-shadow:none; }
+  #ajustes.cristal::before, #ajustes.cristal::after{ display:none; }
+  .vidrio-fila{ display:flex; justify-content:center; width:100%; margin:2px 0 4px; }
+  .vidrio-btn{ width:100%; min-height:38px; letter-spacing:.12em; font-weight:700;
+               font-size:.72rem !important; }
+  #ajustes.cristal .vidrio-btn{ background:rgba(255,253,247,.88); }
   /* EL RIEL DEL SEPIA. accent-color en vez de repintar el control entero: el
      nativo ya sabe comportarse con el dedo, con el ratón y con el teclado, y
      rehacerlo a mano cuesta cien líneas para quedar peor. Solo se le dice de
@@ -2336,6 +2342,12 @@
   <span class="medida" id="brilloAhora">100%</span>
 </span></div>
 
+<div class="ajuste ancho vidrio-fila">
+  <button type="button" class="btn vidrio-btn" id="btnVidrio"
+          aria-pressed="false"
+          title="Panel transparente para ver la hoja al ajustar">transparente</button>
+</div>
+
 <div class="ajuste ancho"><span class="lbl">versión</span><span class="ctrl" id="ctrlVersiones">
   <!-- se arma solo con lo que traiga bibles-included.js -->
 </span></div>
@@ -2486,7 +2498,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '26-AGO-26 13:03';
+window.GLOSS_BUILD = '26-AGO-26 15:32';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4196,7 +4208,6 @@ function renderPageCrudo(){
      la marca y no la lista entera: si estás dentro de la cascada de capítulos,
      rehacer el panel te sacaría de ella. */
   refrescarLibroActual();
-  $('btnVolver').style.display = volverA == null ? 'none' : '';
   medirHojaTelefono();
   pintarFiltros(); pintarIndice(); invalidateSnapshot(); updateReadout();
   /* La cinta se vuelve a colgar aquí, después del acomodo: layoutInto vacía la
@@ -10526,6 +10537,16 @@ $('brillo').oninput = e => {
   aplicarFiltros();
   guardarAjustes();
 };
+/* ON: el panel de Formato (debajo de LIBROS/GLOSAS/FORMATO/RESPALDO)
+   se hace transparente. OFF: vuelve el fondo sepia. */
+$('btnVidrio').onclick = () => {
+  const el = $('ajustes');
+  const on = !el.classList.contains('cristal');
+  el.classList.toggle('cristal', on);
+  const b = $('btnVidrio');
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  b.classList.toggle('active', on);
+};
 $('selFuente').innerHTML = FUENTES.map((f,i) =>
   '<option value="'+i+'" title="'+f[2]+'">'+f[0]+'</option>').join('');
 $('selFuente').title = FUENTES.map(f => f[0] + ': ' + f[2]).join(' · ');
@@ -10565,18 +10586,6 @@ $('selFuente').onchange = e => {
 };
 /* las flechas pasan la hoja igual que un clic en el filo, agarrando
    por el centro: brincar sin animación era lo que se sentía atropellado */
-$('btnVolver').onclick = () => {
-  if (!volverA) return;
-  const d = volverA; volverA = null;
-  if (d.libro === LIBRO) animarSalto(d.hoja);
-  else {
-    /* Regresar a otro libro: se rearma el plano de aquél y se cae en la misma
-       hoja de la que saliste. Se busca por capítulo y versículo, no por número
-       de hoja, porque la paginación del otro libro pudo cambiar de tamaño. */
-    const p = d.ref;
-    saltarA(d.libro, p.cap, p.vers);
-  }
-};
 $('marksBtn').onclick = () => { showMarks = !showMarks; paginasSucias = true;
   $('marksBtn').textContent = 'Marcas: ' + (showMarks?'ON':'OFF'); renderPage(); };
 /* "Borrar todo" salió del programa. Era un botón de un solo clic, sin
