@@ -69,15 +69,15 @@ async function andamio(p){
       return { id: c.dataset.sep, color: c.style.getPropertyValue('--tela').trim(),
                w: Math.round(r.width), h: Math.round(r.height),
                altoColumna: Math.round(m.height),
-               /* Lo que de verdad hay que vigilar: que arranque EN el filo de
-                  arriba del papel, sin hueco, y que no se salga por abajo ni
-                  por el costado. */
+               /* Arranca EN el filo de arriba, cuelga del borde izquierdo de
+                  la columna y asoma ~19 px al texto para verse desde la lectura. */
                desdeArriba: Math.round(r.top - papel.top),
-               dentro: r.left >= m.left - 1 && r.right <= m.right + 1 &&
+               asomo: Math.round(m.left - r.left),
+               dentro: r.left >= m.left - 23 && r.right <= m.right + 1 &&
                        r.top >= papel.top - 1 && r.bottom <= papel.bottom + 1,
-               corta: r.height <= m.height * 0.25,
-               /* Y que no se le eche encima al titulillo, que es lo único que
-                  vive en la misma esquina. */
+               corta: r.height <= m.height * 0.45,
+               /* El titulillo vive a la derecha; la cinta, a la izquierda de
+                  las glosas. No deben cruzarse. */
                tapaElTitulillo: !(r.left >= cab.right - 1 || r.right <= cab.left + 1 ||
                                   r.top >= cab.bottom - 1 || r.bottom <= cab.top + 1),
                enPantalla: r.left >= -1 && r.right <= window.innerWidth + 1 };
@@ -147,30 +147,31 @@ async function ponerAMano(p){
     await window.__toque('#btnHistorial');
     await window.__pausa(420);
     const b = document.querySelector('[data-sep-nuevo]');
-    /* Va en su propio renglón, pegado al filo derecho y justo debajo del paso
-       atrás: el rótulo y ese botón comparten un renglón que no se toca. */
+    /* SEPARADOR y el paso atrás comparten renglón, alineados a la derecha. */
     const panel = document.getElementById('historial');
-    const atras = panel.querySelector('.hs-atras') || panel.querySelector('.hs-tit');
+    const atras = panel.querySelector('.hs-atras');
+    const acciones = panel.querySelector('.hs-acciones');
     const rb = b ? b.getBoundingClientRect() : null;
-    const ra = atras.getBoundingClientRect();
-    const rp = panel.getBoundingClientRect();
-    const cab = b && b.closest('#historial') &&
-                rb.top >= ra.bottom - 1 && Math.abs(rb.right - (rp.right - 6)) < 16;
+    const ra = atras ? atras.getBoundingClientRect() : null;
+    const mismoRenglon = !!(b && acciones && b.parentElement === acciones &&
+      (!atras || (atras.parentElement === acciones && Math.abs(rb.top - ra.top) < 8)));
     const rotulo = b ? b.textContent.trim() : '';
     await window.__toque(b);
     await window.__pausa(700);
     await window.__abrirCajon();
     return { hubo:!!b, rotulo,
-             enLaCabecera: !!cab,
+             enLaCabecera: !!mismoRenglon,
              guardadas: window.__guardadas(), cinta: window.__cinta(),
              desborde: window.__desborde(), hoja: window.__hoja() };
   });
   di('la cinta', mano.cinta);
-  vale('el botón está en el panel, bajo el paso atrás',
+  vale('el botón está en el panel, con el paso atrás',
        mano.hubo && mano.enLaCabecera, mano.rotulo);
   vale('pone un separador', mano.guardadas.length === 1, mano.guardadas);
   vale('y sale la cinta', !!mano.cinta);
-  vale('cuelga dentro de la columna', mano.cinta && mano.cinta.dentro);
+  vale('cuelga en el borde izquierdo de la columna', mano.cinta && mano.cinta.dentro);
+  vale('asoma ~19 px al texto', mano.cinta && Math.abs(mano.cinta.asomo - 19) <= 3,
+       mano.cinta && mano.cinta.asomo + ' px de asomo');
   vale('ARRANCA EN EL FILO DE ARRIBA', mano.cinta && mano.cinta.desdeArriba === 0,
        mano.cinta && mano.cinta.desdeArriba + ' px de hueco');
   vale('sin taparle el titulillo', mano.cinta && !mano.cinta.tapaElTitulillo);
@@ -295,7 +296,7 @@ async function ponerAMano(p){
   });
   di('la pregunta', borrado.texto);
   vale('la equis sale con el menú', borrado.visibleAntes);
-  vale('pregunta antes de borrar', /eliminar este separador/i.test(borrado.texto));
+  vale('pregunta antes de borrar', /eliminar/i.test(borrado.texto));
   vale('y no borra mientras pregunta', borrado.cuantas === 2);
   vale('cancelar lo deja todo', borrado.trasCancelar.guardadas === 2 &&
        borrado.trasCancelar.cinta && !borrado.trasCancelar.pregunta, borrado.trasCancelar);
@@ -451,30 +452,48 @@ async function ponerAMano(p){
        (queSi.puesta && queSi.puesta.cap + ':' + queSi.puesta.vers) + '  →  ' +
        (queSi.movida && queSi.movida.cap + ':' + queSi.movida.vers));
 
+  titulo('la cinta activa también se viene al ir hacia atrás');
+  /* Al pasar hoja con el filo (adelante o atrás) la activa sigue al lector.
+     Un salto de verdad (índice, glosa, paso atrás del rastro) no. */
+  const haciaAtras = await p2.evaluate(async () => {
+    const id = window.__guardadas()[0] && window.__guardadas()[0].id;
+    const antes = window.__guardadas()[0];
+    await window.__pasar('left');
+    await window.__pausa(400);
+    const despues = window.__guardadas().find(x => x.id === id);
+    return {
+      id, antes: antes && (antes.cap + ':' + antes.vers),
+      despues: despues && (despues.cap + ':' + despues.vers),
+      movida: !!(antes && despues &&
+                 (antes.cap !== despues.cap || antes.vers !== despues.vers))
+    };
+  });
+  di('hacia atrás', haciaAtras.antes + '  →  ' + haciaAtras.despues);
+  vale('al pasar hacia atrás la activa se mueve', haciaAtras.movida,
+       haciaAtras.antes + '  →  ' + haciaAtras.despues);
+
   titulo('la cinta vieja se queda donde la dejaron');
-  /* Se retrocede dos hojas —ir hacia atrás no es seguir leyendo, así que la
-     cinta activa NO se viene— y allí se pone otra a mano. Desde ese momento
-     hay una vieja quieta y una nueva activa, que es el caso que importa. */
+  /* Se pone otra a mano (queda como activa). Al seguir leyendo, solo la
+     nueva se mueve; la anterior se queda en la referencia que tenía. */
   const vieja = await p2.evaluate(async () => {
-    await window.__pasar('left');
-    await window.__pasar('left');
-    const antes = window.__guardadas().map(x => x.id + '@' + x.cap + ':' + x.vers);
+    const quieta = window.__guardadas()[0];
+    const quietaRef = quieta.id + '@' + quieta.cap + ':' + quieta.vers;
     await window.__toque('#btnHistorial');
     await window.__pausa(420);
     await window.__toque('[data-sep-nuevo]');
     await window.__pausa(700);
     const dos = window.__guardadas().length;
-    /* Y ahora se lee hacia adelante: solo la nueva debería moverse. */
+    const antes = window.__guardadas().map(x => x.id + '@' + x.cap + ':' + x.vers);
     for (let i = 0; i < 3; i++) await window.__pasar('right');
     await window.__pausa(400);
     const despues = window.__guardadas().map(x => x.id + '@' + x.cap + ':' + x.vers);
-    return { antes, dos, despues, cuantas: window.__guardadas().length };
+    const quietaSigue = despues.includes(quietaRef);
+    return { antes, dos, despues, cuantas: window.__guardadas().length, quietaRef, quietaSigue };
   });
   di('antes', vieja.antes);
   di('después', vieja.despues);
   vale('hay dos', vieja.dos === 2 && vieja.cuantas === 2, vieja.cuantas);
-  vale('la vieja no se movió', vieja.antes.every(x => vieja.despues.includes(x)),
-       vieja.antes + '  ⊂  ' + vieja.despues);
+  vale('la vieja no se movió', vieja.quietaSigue, vieja.quietaRef);
   vale('y la nueva sí', vieja.despues.length === 2 &&
        vieja.despues.some(x => !vieja.antes.includes(x)));
 
@@ -500,14 +519,16 @@ async function ponerAMano(p){
     return { cinta, menu: window.__menu(), desborde: window.__desborde() };
   });
   di('la cinta', esc.cinta);
-  vale('cuelga dentro de la columna', esc.cinta && esc.cinta.dentro);
+  vale('cuelga en el borde izquierdo de la columna', esc.cinta && esc.cinta.dentro);
+  vale('asoma ~19 px al texto', esc.cinta && Math.abs(esc.cinta.asomo - 19) <= 3,
+       esc.cinta && esc.cinta.asomo + ' px de asomo');
   vale('y arranca en el filo de arriba', esc.cinta && esc.cinta.desdeArriba === 0,
        esc.cinta && esc.cinta.desdeArriba + ' px de hueco');
   vale('sigue siendo corta', esc.cinta && esc.cinta.corta,
        esc.cinta && esc.cinta.h + ' de ' + esc.cinta.altoColumna + ' px');
-  /* En pantalla ancha los dos viven en la misma esquina: el titulillo se corre
-     a la izquierda de la cinta en vez de quedarse debajo. */
-  vale('el titulillo se aparta', esc.cinta && !esc.cinta.tapaElTitulillo);
+  /* La cinta ya no comparte esquina con el titulillo: ella a la izquierda
+     de las glosas, él a la derecha de la hoja. */
+  vale('no tapa el titulillo', esc.cinta && !esc.cinta.tapaElTitulillo);
   vale('sin desborde horizontal', !esc.desborde);
   vale('el menú cabe entero', esc.menu && esc.menu.dentro, esc.menu);
 
@@ -553,24 +574,32 @@ async function ponerAMano(p){
   vale('el foco entra al menú', teclado.dentroDelMenu);
   vale('y Escape lo cierra', teclado.cerro);
 
-  titulo('de lejos la cinta no responde');
+  titulo('de lejos la cinta se ve y se toca');
   const lejos = await w.evaluate(async () => {
     document.getElementById('btnZoom').click();
     await window.__pausa(1300);
     const cinta = document.querySelector('.separador');
-    const inerte = getComputedStyle(cinta).pointerEvents === 'none';
+    const seToca = getComputedStyle(cinta).pointerEvents !== 'none';
     const seVe = cinta.getBoundingClientRect().width > 2;
+    /* Un toque en la cinta abre el menú, no pasa de hoja. */
+    await window.__toque(cinta);
+    await window.__pausa(500);
+    const menu = !!window.__menu();
+    if (menu){
+      document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+      await window.__pausa(300);
+    }
     /* Y se sale del zoom por el hueco de debajo del libro. */
     const r = document.querySelector('#pg .pg-inner').getBoundingClientRect();
     document.getElementById('pg').dispatchEvent(new MouseEvent('click',
       { bubbles:true, clientX:Math.round(r.left+r.width/2), clientY:Math.round(r.bottom+60) }));
     await window.__pausa(1400);
-    return { inerte, seVe, menu: !!window.__menu(),
+    return { seToca, seVe, menu,
              cerca: !document.getElementById('pg').classList.contains('zoom') };
   });
   di('de lejos', lejos);
   vale('se sigue viendo', lejos.seVe);
-  vale('pero no se toca', lejos.inerte && !lejos.menu);
+  vale('y se puede tocar', lejos.seToca && lejos.menu);
   vale('y el hueco sigue cerrando el zoom', lejos.cerca);
 
   titulo('un almacén dañado no rompe nada');
@@ -597,8 +626,7 @@ async function ponerAMano(p){
     await window.__toque('.separador');
     await window.__pausa(450);
     const filas = [...document.querySelectorAll('[data-sep-ir]')]
-      .map(f => f.querySelector('.sp-ref').textContent.trim() + ' · ' +
-                f.querySelector('.sp-nota').textContent.trim());
+      .map(f => f.querySelector('.sp-ref').textContent.trim());
     /* Un toque en un color reescribe el almacén con lo que de verdad quedó. */
     const otra = [...document.querySelectorAll('[data-sep-color]')]
       .find(t => t.getAttribute('aria-pressed') !== 'true');
