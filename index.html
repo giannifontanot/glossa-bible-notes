@@ -88,6 +88,8 @@
   .chip{ font-size:.66rem; padding:4px 9px; border-radius:999px; cursor:pointer;
          border:1px solid rgba(255,255,255,.22); background:rgba(255,255,255,.05); }
   .chip.off{ opacity:.34; text-decoration:line-through; }
+  .rollo .chip.sel{ border-color:#8a6416; border-width:2px;
+                    background:#fff8e4; box-shadow:0 0 0 1px rgba(184,137,43,.45); }
   .chip .n{ opacity:.55; padding-left:5px; }
   /* El chip de libro se distingue del de etiqueta porque se comporta al revés:
      los de etiqueta se apagan, éstos se quitan. Por eso lleva una × y no la
@@ -2010,7 +2012,7 @@
                        de la hoja. El espejo existe para que la lista parta los
                        renglones donde los parte el margen; si esto se queda
                        atrás, el espejo deja de serlo. */
-                    font-size:calc(var(--fs, 15px) * .93); line-height:1.35;
+                    font-size:var(--fs-glosa, calc(var(--fs, 15px) * .93)); line-height:1.35;
                     transition:box-shadow .22s ease, opacity .18s ease,
                                transform .38s cubic-bezier(.2,.85,.3,1); }
   #indice .ix-item:hover{ box-shadow:0 0 0 2px rgba(184,137,43,.55); }
@@ -2317,6 +2319,11 @@
     <select id="fsAhora" title="Elige el tamaño de un tirón"></select>
     <button class="btn" id="fsUp" title="Un punto más">A+</button>
   </span></div>
+  <div class="ajuste"><span class="lbl">glosa</span><span class="ctrl">
+    <button class="btn" id="fsGlosaDown" title="Letra de la glosa, un punto menos">A−</button>
+    <select id="fsGlosaAhora" title="Tamaño de letra de las glosas"></select>
+    <button class="btn" id="fsGlosaUp" title="Letra de la glosa, un punto más">A+</button>
+  </span></div>
   <div class="ajuste"><span class="lbl">tipografía</span><span class="ctrl">
     <select id="selFuente" title="Tipo de letra"></select>
   </span></div>
@@ -2409,10 +2416,10 @@
   <select id="selDia"></select>
   <button type="button" class="btn active" id="btnVerEtiquetas"
           aria-pressed="true"
-          title="Mostrar u ocultar las etiquetas">mostrar</button>
+          title="Mostrar u ocultar las etiquetas">ver</button>
   <button type="button" class="btn" id="btnElegirGlosas"
           aria-pressed="false"
-          title="Elegir varias glosas para cambiarles las etiquetas">elegir</button>
+          title="Elegir varias glosas para cambiarles las etiquetas">cambiar</button>
 </div>
 
 <div class="ajuste ancho" id="filaFiltros"><span class="lbl">ver</span><span class="ctrl" id="filtros"></span></div>
@@ -2559,7 +2566,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-AGO-26 12:17';
+window.GLOSS_BUILD = '28-AGO-26 13:38';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2809,7 +2816,7 @@ const PAGE_CSS = `
    saldría de otro alto que la de la hoja viva. */
 .gl{ font-family:'Segoe UI','Avenir Next',-apple-system,'Noto Sans',Roboto,
                  'Helvetica Neue',Arial,sans-serif;
-     font-size:calc(var(--fs,15px) * .93); line-height:1.35;
+     font-size:var(--fs-glosa, calc(var(--fs,15px) * .93)); line-height:1.35;
      border-radius:3px; padding:2px 6px; white-space:pre-wrap; box-sizing:border-box; }
 /* El hueco de giro: la caja se estrecha 4px por lado para que sus esquinas
    tengan a dónde asomarse. Sin esto, .pg-margin las recorta. */
@@ -2946,14 +2953,15 @@ let version = Object.keys(D.versiones)[0];
 /* La última etiqueta usada se guarda entre sesiones para poder salir en
    negrita en el panel de la marca. No etiqueta nada por su cuenta: la
    declara el panel, aquí solo se deja dicho que sobrevive al cierre. */
-let etiquetasOcultas = new Set();
+let etiquetasOcultas = new Set(); /* ya no filtra: se queda por si algo viejo lo nombra */
+let etiquetasVer = new Set();     /* chips marcadas en VER; vacío = ver todas */
 /* Libros que se están mirando en la lista de glosas. Vacío significa "solo el
    libro abierto", que es el comportamiento de siempre; en cuanto agregas uno,
    la lista deja de ser del libro actual y pasa a ser de los que elegiste.
    Es un filtro de la LISTA, no de la hoja: la hoja siempre muestra su libro. */
 let librosFiltro = new Set();
 let diaFiltro = '';              // '' = todos los días
-let showMarks = true, fontSize = 15;
+let showMarks = true, fontSize = 15, fontSizeGlosa = 14;
 /* EL SEPIA. Va de 0 a 100 y mueve papel y tinta juntos, no solo el fondo:
    entintar el papel y dejar la letra negra encima da una foto con filtro, no
    una hoja vieja. En papel amarillento la tinta también envejece hacia el
@@ -3140,7 +3148,7 @@ let margen = 1;
    firma es lo único que decide si la foto guardada todavía sirve, y una hoja
    del color de antes girando sobre la mesa de ahora se nota igual que si
    cambiara de letra. */
-const estiloFirma = () => [fontSize, columns, fuente, alineacion, guionesOn,
+const estiloFirma = () => [fontSize, fontSizeGlosa, columns, fuente, alineacion, guionesOn,
   interlineado, margen, version, sepia, pg.offsetWidth].join('|');
 /* Lo que va en el CONTENEDOR de la hoja, no en el cuerpo: tipo de letra y
    márgenes. Va aparte porque son propiedades de .pg, y tiene que llamarse
@@ -3163,17 +3171,19 @@ function prepararHoja(el, w, h){
      es el ancestro común de las tres, y así la nota mide lo que mide el texto
      esté donde esté. */
   el.style.setProperty('--fs', fontSize + 'px');
+  el.style.setProperty('--fs-glosa', fontSizeGlosa + 'px');
 }
 function aplicarEstilo(bodyEl){
   const v = bodyEl.style;
   v.setProperty('--fs', fontSize + 'px');
+  v.setProperty('--fs-glosa', fontSizeGlosa + 'px');
   v.setProperty('--cols', columns);
   v.setProperty('--ali', alineacion);
   v.setProperty('--guion', guionesOn ? 'auto' : 'none');
   v.setProperty('--lh', interlineado);
 }
 const estiloEnLinea = () =>
-  'font-size:' + fontSize + 'px;--fs:' + fontSize + 'px' +
+  'font-size:' + fontSize + 'px;--fs:' + fontSize + 'px;--fs-glosa:' + fontSizeGlosa + 'px' +
   ';column-count:' + columns + ';--cols:' + columns +
   ';text-align:' + alineacion + ';--ali:' + alineacion +
   ';hyphens:' + (guionesOn?'auto':'none') + ';-webkit-hyphens:' + (guionesOn?'auto':'none') +
@@ -3485,8 +3495,10 @@ const diaDe = m => m.creada || '(sin fecha)';
    aplica junto con "y además es de alguno de los libros elegidos". */
 const pasaFiltros = m =>
   (!diaFiltro || diaDe(m) === diaFiltro) &&
-  !(m.etiquetas || []).some(t => etiquetasOcultas.has(t)) &&
-  !((m.etiquetas||[]).length === 0 && etiquetasOcultas.has('(sin etiqueta)'));
+  (etiquetasVer.size === 0 ||
+    ((m.etiquetas || []).length === 0
+      ? etiquetasVer.has('(sin etiqueta)')
+      : (m.etiquetas || []).some(t => etiquetasVer.has(t))));
 const visible = m => showMarks && m.libro === LIBRO && pasaFiltros(m);
 /* El libro abierto SIEMPRE está en la lista, y los chips van sumando. Lo tenía
    al revés: en cuanto agregabas un libro, el actual desaparecía y la lista
@@ -4833,6 +4845,7 @@ function vestirVista(m){
      el factor con el que .gl calcula su letra: se escribiría a 15 y se leería a
      13.95, los renglones partirían en otro sitio y el anticipo mentiría. */
   caja.style.setProperty('--fs', fontSize + 'px');
+  caja.style.setProperty('--fs-glosa', fontSizeGlosa + 'px');
   caja.style.setProperty('--papel', colorPapel());
   caja.style.width = anchoVista() + 'px';
   opacarVista(caja);
@@ -6117,19 +6130,30 @@ function pintarFiltros(){
   const { mapa, sin } = todasEtiquetas();
   const add = (nombre, n) => {
     const b = document.createElement('span');
-    b.className = 'chip' + (etiquetasOcultas.has(nombre) ? ' off' : '');
+    b.className = 'chip' + (etiquetasVer.has(nombre) ? ' sel' : '');
     b.innerHTML = esc(nombre) + '<span class="n">' + n + '</span>';
-    b.onclick = () => { etiquetasOcultas.has(nombre) ? etiquetasOcultas.delete(nombre) : etiquetasOcultas.add(nombre); renderPage(); };
+    b.onclick = () => {
+      etiquetasVer.has(nombre) ? etiquetasVer.delete(nombre) : etiquetasVer.add(nombre);
+      guardarAjustes();
+      renderPage();
+    };
     cont.appendChild(b);
   };
   [...mapa.entries()].sort().forEach(([k,v]) => add(k,v));
   if (sin) add('(sin etiqueta)', sin);
 
-  /* LOS CHIPS DE LIBRO. Los de etiqueta se APAGAN al tocarlos —están todos
-     desde el principio y tú vas quitando—; éstos se AGREGAN, porque los libros
-     son 66 y ponerlos todos sería una pared. Por eso el chip "+ libro" no
-     desaparece nunca: sigue ahí para sumar el siguiente. */
-  for (const id of [...librosFiltro].sort((a,b) => CANON.findIndex(x=>x.id===a) - CANON.findIndex(x=>x.id===b))){
+  /* LOS CHIPS DE LIBRO. El abierto va siempre, con borde, para que se vea
+     que la lista ya lo incluye. Los demás se AGREGAN con + libro. */
+  {
+    const n = marcas.filter(m => m.nota && m.libro === LIBRO).length;
+    const b = document.createElement('span');
+    b.className = 'chip chip-libro sel';
+    b.innerHTML = esc(nombreDe(LIBRO)) + '<span class="n">' + n + '</span>';
+    b.title = 'Libro abierto: sus glosas ya están en la lista';
+    cont.appendChild(b);
+  }
+  for (const id of [...librosFiltro].filter(id => id !== LIBRO)
+    .sort((a,b) => CANON.findIndex(x=>x.id===a) - CANON.findIndex(x=>x.id===b))){
     const n = marcas.filter(m => m.nota && m.libro === id).length;
     const b = document.createElement('span');
     b.className = 'chip chip-libro';
@@ -6561,7 +6585,7 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza, hojaN){
              para que la raíz del SVG declare lo mismo que declara una hoja de
              verdad; el día que algo del recuadro use ese tono, ya está. */
           ';--rot-cab:'+colorRotuloCab()+';--rot-pie:'+colorRotuloPie()+
-          ';--fs:'+fontSize+'px'+
+          ';--fs:'+fontSize+'px;--fs-glosa:'+fontSizeGlosa+'px'+
           ';--mx:'+(med ? 0 : MARGENES[margen][1])+'px'+'">'+
         '<style>'+PAGE_CSS+'</style><div class="pg-inner"'+estInner+'>'+
         htmlCintaFoto(hojaN)+
@@ -8322,9 +8346,13 @@ $('versoPleno').addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
     cerrarPleno(); return;
   }
-  const b = ev.target.closest('[data-ir]'); if (!b) return;
   ev.preventDefault(); ev.stopPropagation();
-  const [lib, c, v] = b.dataset.ir.split(':');
+  const b = ev.target.closest('[data-ir]');
+  const p0 = plenoAbierto || {};
+  const lib = b ? b.dataset.ir.split(':')[0] : p0.libro;
+  const c = b ? b.dataset.ir.split(':')[1] : p0.cap;
+  const v = b ? b.dataset.ir.split(':')[2] : p0.vers;
+  if (!lib || !c || !v) return;
   /* La letra y el origen se leen de plenoAbierto, que es de donde salió esta
      ventanita. Sin la letra, saltar desde una referencia con glosa —«2:4b»—
      aterrizaba en el versículo entero en vez de en la glosa concreta. */
@@ -8336,6 +8364,7 @@ $('versoPleno').addEventListener('click', ev => {
      hoja, que es donde está la ventanita. El salto arranca al cuadro
      siguiente para que el cierre alcance a empezar. */
   cerrarHistorial();
+  if (rGlosas && rGlosas.abierto) rGlosas.cerrar(false, true);
   /* Y el panel de la glosa también, si la ventanita salió de ahí: saltas a
      otro sitio, así que la edición que abrió esto se da por terminada —lo
      escrito se cobra, que es lo que hace ocultarMenu—. */
@@ -8345,9 +8374,10 @@ $('versoPleno').addEventListener('click', ev => {
      ventanita —que es instantánea, y 260 ms de rampa por delante de algo
      instantáneo son 260 ms de espera—. El salto caro es éste, y es éste el
      que gana con tener despegue. */
-  encender(b, () => {
+  const foco = b || $('versoPleno');
+  encender(foco, () => {
     try { irA(lib, +c, +v, letra, { origen }); }
-    finally { apagar(b); }
+    finally { apagar(foco); }
   });
 });
 /* Un toque fuera lo cierra, en captura y antes que nadie, igual que la
@@ -10655,15 +10685,30 @@ $('fsAhora').innerHTML = TAMANOS.map(n => '<option value="' + n + '">' + n + '</
    siete clics— y los botones para el ajuste fino, que es lo que de verdad se
    hace cuando estás leyendo y algo no acaba de caer. Cada uno hace bien lo
    que el otro hace mal, así que no se estorban. */
-function reflejarTamano(){ $('fsAhora').value = String(fontSize); }
+function reflejarTamano(){
+  $('fsAhora').value = String(fontSize);
+  const g = $('fsGlosaAhora');
+  if (g) g.value = String(fontSizeGlosa);
+}
 function ponerTamano(n){
   const v = Math.max(FS_MIN, Math.min(FS_MAX, Math.round(n)));
   if (v === fontSize){ reflejarTamano(); return; }   // rebota el select si topó
   fontSize = v; paginasSucias = true; renderPage();
 }
+function ponerTamanoGlosa(n){
+  const v = Math.max(FS_MIN, Math.min(FS_MAX, Math.round(n)));
+  if (v === fontSizeGlosa){ reflejarTamano(); return; }
+  fontSizeGlosa = v;
+  if (placement !== 'margin') paginasSucias = true;
+  renderPage();
+}
 $('fsUp').onclick    = () => ponerTamano(fontSize + 1);
 $('fsDown').onclick  = () => ponerTamano(fontSize - 1);
 $('fsAhora').onchange = e => ponerTamano(+e.target.value);
+$('fsGlosaAhora').innerHTML = TAMANOS.map(n => '<option value="' + n + '">' + n + '</option>').join('');
+$('fsGlosaUp').onclick    = () => ponerTamanoGlosa(fontSizeGlosa + 1);
+$('fsGlosaDown').onclick  = () => ponerTamanoGlosa(fontSizeGlosa - 1);
+$('fsGlosaAhora').onchange = e => ponerTamanoGlosa(+e.target.value);
 
 /* EL SEPIA. En 'input' y no en 'change' para que el papel se entinte mientras
    arrastras: elegir un color a ciegas y verlo al soltar es elegir dos veces.
@@ -10830,7 +10875,7 @@ function pintarIndice(){
     cont.innerHTML = '<span class="ix-vacio">ninguna glosa pasa los filtros de ahorita</span>';
     return;
   }
-  const variosLibros = new Set(lista.map(m => m.libro)).size > 1;
+  const variosLibros = true;
   /* Ocho píxeles menos, y no son de adorno: MARGIN_W() es el ancho de la
      COLUMNA del margen, y la nota que va dentro no lo ocupa entero —.gl-margin
      se estrecha 4px por lado para que las esquinas del giro tengan a dónde
@@ -10838,7 +10883,8 @@ function pintarIndice(){
      la hoja y partía los renglones un poco más tarde: el espejo casi cuadraba,
      que en un espejo es no cuadrar. */
   cont.style.setProperty('--ancho-glosa', Math.max(60, MARGIN_W() - 8) + 'px');
-  cont.style.setProperty('--fs', fontSize + 'px');   /* la letra de la hoja, para que el espejo lo sea */
+  cont.style.setProperty('--fs', fontSize + 'px');
+  cont.style.setProperty('--fs-glosa', fontSizeGlosa + 'px');
   cont.innerHTML = lista.map(m => {
     const nb = backDe(m.cap, m.vers).length;
     const letra = (REFS.get(m.id) || '').toString().replace(/^\d+/, '');
@@ -10887,17 +10933,8 @@ $('indice').addEventListener('click', ev => {
     return;
   }
   const [lib, c, v, l] = b.dataset.ir.split(':');
-  /* El panel se disuelve —no se enrolla— porque elegir una glosa es una orden
-     cumplida, no un arrepentimiento. Y se va ANTES del salto: si se quedara,
-     taparía justo el texto al que acabas de pedir ir. El salto arranca al
-     cuadro siguiente para que la disolución alcance a empezar. */
-  rGlosas.cerrar(false, true);
-  /* Y SE APUNTA DE DÓNDE SALTAS. Elegir una glosa del índice es un salto como
-     el de una referencia, y sin el de dónde el rastro contaba el destino
-     suelto: el paso atrás te devolvía a lo anterior que hubieras saltado, que
-     puede ser de otro rato, en vez de a la hoja que estabas leyendo. */
-  const origen = dondeEstoy();
-  trasPintar(() => irA(lib, +c, +v, l || '', { origen }));   /* dos cuadros, como arriba */
+  /* Primero se lee el versículo; el salto va al tocar la ventanita. */
+  abrirPleno(lib, +c, +v, l || '', dondeEstoy());
 });
 
 /* Reordenar el índice: se jala por el asa de seis puntos, no por la nota.
@@ -11054,7 +11091,7 @@ function guardarAjustes(){
   const aqui = plano[startIdx] || { cap:1, vers:1 };
   try {
     localStorage.setItem(AJUSTES, JSON.stringify({
-      v: 1, fontSize, columns, placement, alineacion,
+      v: 1, fontSize, fontSizeGlosa, columns, placement, alineacion,
       interlineado, margen, version, showMarks, sepia, contraste, brillo,
       fuente: FUENTES.findIndex(f => f[1] === fuente),
       libro: LIBRO, cap: aqui.cap, vers: aqui.vers,
@@ -11066,7 +11103,8 @@ function guardarAjustes(){
          es solo cortesía: vuelves al día siguiente, sigues con el mismo tema,
          y la etiqueta de ayer está donde la dejaste, en negrita y a un toque.
          Si se pierde no se rompe nada; solo hay que buscarla en la lista. */
-      ultimaEtiqueta
+      ultimaEtiqueta,
+      etiquetasVer: [...etiquetasVer]
     }));
   } catch(e){ /* si no se puede, se arranca con lo de fábrica */ }
 }
@@ -11078,6 +11116,7 @@ function cargarAjustes(){
   try { a = JSON.parse(localStorage.getItem(AJUSTES) || 'null'); } catch(e){}
   if (!a || a.v !== 1) return null;
   if (a.fontSize >= FS_MIN && a.fontSize <= FS_MAX) fontSize = a.fontSize;
+  if (a.fontSizeGlosa >= FS_MIN && a.fontSizeGlosa <= FS_MAX) fontSizeGlosa = a.fontSizeGlosa;
   /* Number.isFinite y no un simple >=: un null guardado por una version
      vieja pasaba la comparacion como 0 y dejaba el sepia mudo sin decirlo. */
   if (Number.isFinite(a.sepia)) sepia = Math.max(0, Math.min(100, a.sepia));
@@ -11109,6 +11148,8 @@ function cargarAjustes(){
      Vacío vale: significa que todavía no has usado ninguna. */
   if (typeof a.ultimaEtiqueta === 'string' && a.ultimaEtiqueta.length <= 120)
     ultimaEtiqueta = a.ultimaEtiqueta;
+  if (Array.isArray(a.etiquetasVer))
+    etiquetasVer = new Set(a.etiquetasVer.filter(t => typeof t === 'string' && t.length <= 120));
   if (D.versiones[a.version]) version = a.version;      // antes que el libro:
   if (a.libro && hayLibro(a.libro)) LIBRO = a.libro;    // hayLibro depende de version
   return a;
