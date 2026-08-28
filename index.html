@@ -1615,13 +1615,18 @@
                   font:700 14px/1.3 var(--ui); color:#4a3a18;
                   letter-spacing:.05em; }
   .pestanas{ flex:0 0 auto; display:flex; gap:3px; margin:0 0 5px;
-             border-bottom:1px solid rgba(140,116,68,.34); padding-bottom:4px; }
+             align-items:stretch; border-bottom:1px solid rgba(140,116,68,.34); padding-bottom:4px; }
   .pestanas button{ flex:1 1 0; border:0; cursor:pointer; padding:3px 6px;
                     font:400 10px/1.4 var(--ui); color:#5c4a24; letter-spacing:.02em;
                     background:rgba(255,253,247,.5); border-radius:3px 3px 0 0;
                     transition:background .34s cubic-bezier(.65,0,.35,1),
                                color .34s cubic-bezier(.65,0,.35,1),
                                box-shadow .26s ease; }
+  .pestanas .cerrar-x{ flex:0 0 28px; width:28px; min-width:28px; padding:0;
+                       background:transparent; border-radius:0; color:#2c2416;
+                       font:400 22px/28px Georgia, 'Times New Roman', serif;
+                       letter-spacing:0; opacity:.78; }
+  .pestanas .cerrar-x:hover{ background:transparent; color:#1a140c; opacity:1; }
   .pestanas button:hover{ background:#fffdf6; color:#1d1608; }
   .pestanas button.aqui{ background:#b8892b; color:#fff8e4; }
   /* EL ACUSE DE RECIBO DE LA PESTAÑA. El cambio de color ya decía cuál está
@@ -1727,15 +1732,36 @@
      de separación, por la misma razón que la versión: son una lista que
      crece. Con auto-fit los tres competían por el mismo ancho y una lista
      de ocho etiquetas dejaba a los otros dos estrujados. */
-  #ctrlEtiquetas{ display:grid; width:100%; grid-template-columns:1fr 1fr;
-                  column-gap:16px; row-gap:5px; align-items:start; }
+  #ctrlEtiquetas{ display:grid; width:100%; grid-template-columns:1fr;
+                  row-gap:5px; align-items:start; }
   #ctrlEtiquetas .ajuste.ancho{ grid-column:1 / -1; margin-top:4px;
                                 padding-top:4px; border-top:1px solid rgba(140,116,68,.3); }
-  #ctrlEtiquetas.estrecho{ grid-template-columns:1fr; }
-  /* El botón vive al lado del combo de día y enseña u oculta la tira de
-     chips: con ella cerrada las glosas del índice ganan el alto. */
-  #btnVerEtiquetas{ width:100%; min-height:32px; letter-spacing:.04em; }
+  #ctrlEtiquetas .fila-etiq{ display:flex; align-items:center; gap:6px;
+                             flex-wrap:wrap; grid-column:1 / -1; }
+  #ctrlEtiquetas .fila-etiq > .lbl{ flex:0 0 auto; min-width:54px; }
+  #ctrlEtiquetas .fila-etiq select{ flex:1 1 110px; min-width:0; }
+  #btnVerEtiquetas, #btnElegirGlosas{ width:auto; flex:0 0 auto; min-height:32px;
+                                      padding:0 12px; letter-spacing:.04em; }
   #ctrlEtiquetas.sin-chips #filaFiltros{ display:none; }
+  #indice .ix-item.elegida{
+    border-width:2.6px !important; border-color:#5a3d0e !important;
+    box-shadow:0 0 0 3px rgba(90,61,14,.55), 0 2px 0 #5a3d0e; }
+  #barraGrupo{ display:none; flex-direction:column; align-items:stretch; gap:6px;
+               margin-top:6px; padding:7px 8px; background:rgba(255,253,247,.78);
+               border:1px solid rgba(140,116,68,.34); border-radius:4px; }
+  #etiquetas.eligiendo #barraGrupo{ display:flex; }
+  #barraGrupo .bg-cuenta{ font:600 11px/1.3 var(--ui); color:#5c4a24; }
+  #barraGrupo .tagbox{ display:flex; flex-direction:column; align-items:stretch; gap:6px; }
+  #barraGrupo .taglista{ display:flex; flex-wrap:wrap; gap:2px 8px; max-height:22vh; overflow-y:auto; }
+  #barraGrupo .taglista .tg{ font-size:.82rem; font-weight:500; line-height:1.45;
+                             padding:2px 4px 2px 0; border:0; background:transparent;
+                             color:#4a3a1c; cursor:pointer; }
+  #barraGrupo .taglista .tg.on{ color:#9a8b70; }
+  #barraGrupo .taglista .tg.mix{ color:#6d5c33; text-decoration:underline dotted;
+                                 text-underline-offset:3px; }
+  #barraGrupo .taglista .tg.ultima{ text-decoration:underline dotted; text-underline-offset:3px; }
+  #barraGrupo .tagctl{ display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+  #barraGrupo .tagctl input{ flex:1 1 90px; min-width:0; }
   .ajuste{ display:flex; align-items:center; gap:6px; padding:0; min-width:0; }
   /* nowrap es lo que sostiene la simetría: una etiqueta que parte en dos
      renglones crece de alto y desalinea toda su columna. Con esto, si
@@ -2378,13 +2404,15 @@
 </div>
 
 <div id="ctrlEtiquetas">
-<div class="ajuste"><span class="lbl">día</span><span class="ctrl">
+<div class="ajuste fila-etiq">
+  <span class="lbl">etiquetas</span>
   <select id="selDia"></select>
-</span></div>
-<div class="ajuste">
   <button type="button" class="btn active" id="btnVerEtiquetas"
           aria-pressed="true"
-          title="Mostrar u ocultar las etiquetas">ver etiquetas</button>
+          title="Mostrar u ocultar las etiquetas">mostrar</button>
+  <button type="button" class="btn" id="btnElegirGlosas"
+          aria-pressed="false"
+          title="Elegir varias glosas para cambiarles las etiquetas">elegir</button>
 </div>
 
 <div class="ajuste ancho" id="filaFiltros"><span class="lbl">ver</span><span class="ctrl" id="filtros"></span></div>
@@ -2500,6 +2528,10 @@
 <button class="btn ghost" id="btnImportar" style="display:none">Importar</button>
 <input id="archivoImp" type="file" accept="application/json,.json" style="display:none">
 <div id="indice"></div>
+<div id="barraGrupo">
+  <span class="bg-cuenta" id="cuentaGrupo">0 elegidas</span>
+  <div class="tagbox" id="tagboxGrupo"></div>
+</div>
 <p class="cred" id="cred"></p>
 
 <script src="bibles-included.js"></script>
@@ -2527,7 +2559,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-AGO-26 11:18';
+window.GLOSS_BUILD = '28-AGO-26 12:17';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -6142,6 +6174,92 @@ $('btnVerEtiquetas').onclick = () => {
   b.classList.toggle('active', on);
   b.setAttribute('aria-pressed', on ? 'true' : 'false');
 };
+let eligiendoGlosas = false;
+const glosasElegidas = new Set();
+function marcasElegidas(){
+  return marcas.filter(m => glosasElegidas.has(m.id));
+}
+function pintarBarraGrupo(){
+  const n = glosasElegidas.size;
+  const cuenta = $('cuentaGrupo');
+  if (cuenta) cuenta.textContent = n === 1 ? '1 elegida' : n + ' elegidas';
+  const caja = $('tagboxGrupo');
+  if (!caja) return;
+  const grupo = marcasElegidas();
+  const todas = [...todasEtiquetas().mapa.keys()].sort();
+  const lista = [...new Set([...todas, ...grupo.flatMap(m => m.etiquetas || [])])].sort();
+  const htmlLista = lista.length
+    ? lista.map(t => {
+        const k = grupo.filter(m => (m.etiquetas || []).includes(t)).length;
+        const cls = k === grupo.length && grupo.length ? ' on' :
+                    k > 0 ? ' mix' : '';
+        const ultima = t && t === ultimaEtiqueta ? ' ultima' : '';
+        return '<button type="button" class="tg' + cls + ultima +
+          '" data-tag-grupo="' + esc(t) + '">#' + esc(t) + '</button>';
+      }).join('')
+    : '<span class="vacio">sin etiquetas todavía</span>';
+  caja.innerHTML =
+    '<div class="taglista">' + htmlLista + '</div>' +
+    '<div class="tagctl">' +
+      '<input id="tagNuevaGrupo" placeholder="nueva…" enterkeyhint="done" ' +
+        'autocapitalize="none" autocomplete="off" />' +
+      '<button type="button" class="btn crear" data-acc="creartag-grupo">+ crear</button>' +
+    '</div>';
+}
+function ponerTagGrupo(t){
+  t = (t || '').trim(); if (!t || !glosasElegidas.size) return;
+  for (const m of marcasElegidas()){
+    const cur = m.etiquetas || [];
+    if (!cur.includes(t)) m.etiquetas = cur.concat(t);
+  }
+  ultimaEtiqueta = t;
+  save();
+  pintarFiltros(); pintarIndice(); pintarBarraGrupo();
+  if (typeof renderPage === 'function') renderPage();
+}
+function quitarTagGrupo(t){
+  if (!t || !glosasElegidas.size) return;
+  for (const m of marcasElegidas()){
+    m.etiquetas = (m.etiquetas || []).filter(x => x !== t);
+  }
+  save();
+  pintarFiltros(); pintarIndice(); pintarBarraGrupo();
+  if (typeof renderPage === 'function') renderPage();
+}
+$('btnElegirGlosas').onclick = () => {
+  eligiendoGlosas = !eligiendoGlosas;
+  const b = $('btnElegirGlosas');
+  b.classList.toggle('active', eligiendoGlosas);
+  b.setAttribute('aria-pressed', eligiendoGlosas ? 'true' : 'false');
+  $('etiquetas').classList.toggle('eligiendo', eligiendoGlosas);
+  if (!eligiendoGlosas){
+    glosasElegidas.clear();
+    document.querySelectorAll('#indice .ix-item.elegida')
+      .forEach(el => el.classList.remove('elegida'));
+  }
+  pintarBarraGrupo();
+};
+$('tagboxGrupo').addEventListener('click', ev => {
+  const crear = ev.target.closest('[data-acc="creartag-grupo"]');
+  if (crear){
+    const caja = $('tagNuevaGrupo');
+    ponerTagGrupo(caja && caja.value);
+    if (caja) caja.value = '';
+    return;
+  }
+  const b = ev.target.closest('[data-tag-grupo]'); if (!b) return;
+  const t = b.dataset.tagGrupo;
+  const grupo = marcasElegidas();
+  const todasLaTienen = grupo.length && grupo.every(m => (m.etiquetas || []).includes(t));
+  if (todasLaTienen) quitarTagGrupo(t);
+  else ponerTagGrupo(t);
+});
+$('tagboxGrupo').addEventListener('keydown', ev => {
+  if (ev.key !== 'Enter' || ev.target.id !== 'tagNuevaGrupo') return;
+  ev.preventDefault();
+  ponerTagGrupo(ev.target.value);
+  ev.target.value = '';
+});
 /* ---------- fotos y pliegue ---------- */
 let pageImg=null, nextImg=null, prevImg=null, pend=false, folding=false;
 /* folding dice que HAY un pliegue dibujándose; esta otra dice QUIÉN lo lleva.
@@ -8898,7 +9016,8 @@ function barraPestanas(activa){
   b.className = 'pestanas';
   b.innerHTML = SECCIONES.map(x =>
     '<button data-sec="' + x.id + '"' + (x.id === activa ? ' class="aqui"' : '') +
-    '>' + x.rotulo + '</button>').join('');
+    '>' + x.rotulo + '</button>').join('') +
+    '<button type="button" class="cerrar-x" aria-label="Cerrar el panel">×</button>';
   /* El acuse se enciende AL APOYAR EL DEDO, y también cuando tocas la pestaña
      que ya está abierta: ahí no va a pasar nada más —abrirSeccion no se llama—
      y sin el borde ese toque parecería no haber entrado. Un recibo que solo
@@ -8921,6 +9040,12 @@ function barraPestanas(activa){
     }
   }
   b.addEventListener('click', ev => {
+    const x = ev.target.closest('.cerrar-x');
+    if (x){
+      ev.preventDefault(); ev.stopPropagation();
+      cerrarTodosLosRollos();
+      return;
+    }
     const t = ev.target.closest('[data-sec]'); if (!t) return;
     ev.preventDefault(); ev.stopPropagation();
     if (t.dataset.sec !== activa) abrirSeccion(t.dataset.sec, true);
@@ -10721,7 +10846,8 @@ function pintarIndice(){
     /* la MISMA forma que en el margen: esquinas, aire, pluma y sombra salen
        del id, así que la de la lista y la de la hoja son la misma nota */
     const forma = formaOrganica(m);
-    return '<div class="ix-item gl g-' + m.color + '" data-ir="' +
+    return '<div class="ix-item gl g-' + m.color +
+      (glosasElegidas.has(m.id) ? ' elegida' : '') + '" data-ir="' +
       m.libro + ':' + m.cap + ':' + m.vers + ':' + letra + '"' +
       ' data-gl-id="' + esc(m.id) + '"' +
       ' style="' + forma.css + 'padding-bottom:20px;">' +
@@ -10750,6 +10876,16 @@ menu.addEventListener('click', ev => {
 $('indice').addEventListener('click', ev => {
   if (ev.target.closest('.ix-asa')){ ev.preventDefault(); ev.stopPropagation(); return; }
   const b = ev.target.closest('[data-ir]'); if (!b) return;
+  if (eligiendoGlosas || ev.ctrlKey || ev.metaKey){
+    ev.preventDefault(); ev.stopPropagation();
+    const id = b.dataset.glId;
+    if (!id) return;
+    if (glosasElegidas.has(id)) glosasElegidas.delete(id);
+    else glosasElegidas.add(id);
+    b.classList.toggle('elegida', glosasElegidas.has(id));
+    pintarBarraGrupo();
+    return;
+  }
   const [lib, c, v, l] = b.dataset.ir.split(':');
   /* El panel se disuelve —no se enrolla— porque elegir una glosa es una orden
      cumplida, no un arrepentimiento. Y se va ANTES del salto: si se quedara,
@@ -11063,6 +11199,7 @@ etiquetas.appendChild($('ctrlEtiquetas'));
   $('ctrlEtiquetas').appendChild(fila);
 })();
 etiquetas.appendChild($('indice'));
+etiquetas.appendChild($('barraGrupo'));
 
 /* El crédito de licencia se va al panel de Formato, pegado a la versión que
    nombra. No es adorno legal: la Versión Biblia Libre es CC BY-SA y exige
