@@ -1694,6 +1694,8 @@
   .rollo::-webkit-scrollbar, .fly::-webkit-scrollbar,
   #cantoCuerpo::-webkit-scrollbar{ width:0; height:0; display:none; }
   #ajustes, #etiquetas{ overflow:visible; }
+  /* Glosas abierta: casi toda la hoja, para manejar el índice. */
+  #etiquetas.abierto{ max-height:95%; height:95%; overflow:hidden; }
   /* Rejilla que se acomoda sola. Ahora que los botones ya no repiten el
      nombre de su renglón caben más columnas, y el cajón queda bajito: la
      idea es ver cambiar el texto mientras mueves los controles. */
@@ -1730,6 +1732,10 @@
   #ctrlEtiquetas .ajuste.ancho{ grid-column:1 / -1; margin-top:4px;
                                 padding-top:4px; border-top:1px solid rgba(140,116,68,.3); }
   #ctrlEtiquetas.estrecho{ grid-template-columns:1fr; }
+  /* El botón vive al lado del combo de día y enseña u oculta la tira de
+     chips: con ella cerrada las glosas del índice ganan el alto. */
+  #btnVerEtiquetas{ width:100%; min-height:32px; letter-spacing:.04em; }
+  #ctrlEtiquetas.sin-chips #filaFiltros{ display:none; }
   .ajuste{ display:flex; align-items:center; gap:6px; padding:0; min-width:0; }
   /* nowrap es lo que sostiene la simetría: una etiqueta que parte en dos
      renglones crece de alto y desalinea toda su columna. Con esto, si
@@ -1965,21 +1971,39 @@
      los renglones en otros sitios y ocupaba otro alto. Se veía como otra nota.
      --fs lo pone el guion desde el tamaño que manda en el libro, y .gl ya sabe
      leerlo: cambiar la letra en Formato cambia las dos a la vez. */
-  #indice{ width:100%; max-height:210px; overflow:auto; margin-top:5px;
+  #indice{ width:100%; flex:1 1 auto; min-height:0; max-height:none;
+           overflow:auto; margin-top:5px;
            background:#faf7f1; border:1px solid rgba(140,116,68,.34);
            border-radius:4px; padding:9px;
            display:flex; flex-wrap:wrap; align-items:flex-start;
            justify-content:flex-start; gap:11px 13px; }
   #indice .ix-item{ flex:0 0 auto; width:var(--ancho-glosa, 132px);
-                    text-align:left; cursor:pointer;
+                    text-align:left; cursor:pointer; position:relative;
                     /* LA MISMA MÉTRICA QUE .gl, y no es repetirse por gusto:
                        esta regla es (1,1,0) contra (0,1,0), así que GANA a la
                        de la hoja. El espejo existe para que la lista parta los
                        renglones donde los parte el margen; si esto se queda
                        atrás, el espejo deja de serlo. */
                     font-size:calc(var(--fs, 15px) * .93); line-height:1.35;
-                    transition:box-shadow .34s cubic-bezier(.65,0,.35,1); }
-  #indice .ix-item:hover{ box-shadow:0 0 0 2px rgba(184,137,43,.6); }
+                    transition:box-shadow .22s ease, opacity .18s ease,
+                               transform .38s cubic-bezier(.2,.85,.3,1); }
+  #indice .ix-item:hover{ box-shadow:0 0 0 2px rgba(184,137,43,.55); }
+  #indice .ix-item.sin-salto{ transition:none; }
+  /* Asa en una franja propia, sin tapar el texto. Discreta hasta que
+     pasas por la glosa. */
+  #indice .ix-asa{ position:absolute; left:6px; bottom:3px; z-index:2;
+                   width:12px; height:15px; border:0; padding:1px 0;
+                   display:grid; grid-template-columns:1fr 1fr; gap:2px 3px;
+                   background:transparent; cursor:grab; touch-action:none;
+                   opacity:.28; transition:opacity .16s ease;
+                   -webkit-tap-highlight-color:transparent; }
+  #indice .ix-item:hover .ix-asa, #indice .ix-item.arrastrando .ix-asa{ opacity:.7; }
+  #indice .ix-asa span{ width:2.6px; height:2.6px; border-radius:50%;
+                        background:#5a4a28; display:block; justify-self:center; }
+  #indice .ix-item.arrastrando{ opacity:.88; cursor:grabbing; z-index:5;
+                                pointer-events:none; }
+  #indice .ix-item.arrastrando .ix-asa{ cursor:grabbing; }
+  #indice .ix-item.hueco{ box-shadow:0 0 0 2px rgba(140,116,68,.45); }
   #indice::-webkit-scrollbar{ width:0; height:0; display:none; }
   .ix-vacio{ opacity:.55; padding:6px 5px; display:block;
              font:400 10px/1.5 var(--ui); color:#3d3117; }
@@ -2357,8 +2381,13 @@
 <div class="ajuste"><span class="lbl">día</span><span class="ctrl">
   <select id="selDia"></select>
 </span></div>
+<div class="ajuste">
+  <button type="button" class="btn active" id="btnVerEtiquetas"
+          aria-pressed="true"
+          title="Mostrar u ocultar las etiquetas">ver etiquetas</button>
+</div>
 
-<div class="ajuste ancho"><span class="lbl">ver</span><span class="ctrl" id="filtros"></span></div>
+<div class="ajuste ancho" id="filaFiltros"><span class="lbl">ver</span><span class="ctrl" id="filtros"></span></div>
 </div>
 
 <div class="stage" id="stage">
@@ -2498,7 +2527,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '26-AGO-26 15:32';
+window.GLOSS_BUILD = '28-AGO-26 11:18';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2868,6 +2897,15 @@ const LETTERS = 'abcdefgh';
 
 /* ---------- estado ---------- */
 const KEY = 'glossa:marcas:v1';
+const ORDEN_INDICE = 'glossa:indice-orden:v1';
+let ordenIndice = [];
+try {
+  const o = JSON.parse(localStorage.getItem(ORDEN_INDICE) || '[]');
+  if (Array.isArray(o)) ordenIndice = o.filter(id => typeof id === 'string');
+} catch(e){ ordenIndice = []; }
+function guardarOrdenIndice(){
+  try { localStorage.setItem(ORDEN_INDICE, JSON.stringify(ordenIndice)); } catch(e){}
+}
 let marcas = [];                 // ver el modelo en crearMarca()
 /* La versión que arranca abierta es la primera del archivo de datos, no una
    escrita a mano: si mañana bajas otras cuatro y ninguna se llama 'vbl', el
@@ -6095,6 +6133,15 @@ function pintarDias(){
   sel.value = diaFiltro;
 }
 $('selDia').onchange = e => { diaFiltro = e.target.value; renderPage(); };
+/* Enseña u oculta la tira de chips para dejar el índice de glosas a la vista. */
+$('btnVerEtiquetas').onclick = () => {
+  const caja = $('ctrlEtiquetas');
+  const on = caja.classList.contains('sin-chips');
+  caja.classList.toggle('sin-chips', !on);
+  const b = $('btnVerEtiquetas');
+  b.classList.toggle('active', on);
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+};
 /* ---------- fotos y pliegue ---------- */
 let pageImg=null, nextImg=null, prevImg=null, pend=false, folding=false;
 /* folding dice que HAY un pliegue dibujándose; esta otra dice QUIÉN lo lleva.
@@ -10644,9 +10691,16 @@ function updateReadout(){
 function pintarIndice(){
   const cont = $('indice');
   if (!cont || !rGlosas.abierto) return;      /* solo cuando su panel está a la vista */
-  const lista = marcas.filter(m => m.nota && enLista(m)).sort((a,b) =>
-    CANON.findIndex(x=>x.id===a.libro) - CANON.findIndex(x=>x.id===b.libro) ||
-    a.cap - b.cap || a.vers - b.vers);
+  const lista = marcas.filter(m => m.nota && enLista(m));
+  const peso = new Map(ordenIndice.map((id, i) => [id, i]));
+  lista.sort((a,b) => {
+    const ha = peso.has(a.id), hb = peso.has(b.id);
+    if (ha && hb) return peso.get(a.id) - peso.get(b.id);
+    if (ha) return -1;
+    if (hb) return 1;
+    return CANON.findIndex(x=>x.id===a.libro) - CANON.findIndex(x=>x.id===b.libro) ||
+           a.cap - b.cap || a.vers - b.vers;
+  });
   if (!lista.length){
     cont.innerHTML = '<span class="ix-vacio">ninguna glosa pasa los filtros de ahorita</span>';
     return;
@@ -10667,18 +10721,21 @@ function pintarIndice(){
     /* la MISMA forma que en el margen: esquinas, aire, pluma y sombra salen
        del id, así que la de la lista y la de la hoja son la misma nota */
     const forma = formaOrganica(m);
-    return '<button class="ix-item gl g-' + m.color + '" data-ir="' +
+    return '<div class="ix-item gl g-' + m.color + '" data-ir="' +
       m.libro + ':' + m.cap + ':' + m.vers + ':' + letra + '"' +
-      ' data-frac="' + forma.frac + '" style="' + forma.css + '">' +
+      ' data-gl-id="' + esc(m.id) + '"' +
+      ' style="' + forma.css + 'padding-bottom:20px;">' +
       '<span class="gl-ref">' + esc(ref) + '·</span>' + esc(m.nota) +
       /* EL MISMO MARCADO QUE EN LA HOJA. El espejo existe para que la lista
          parta los renglones donde los parte el margen; construir la etiqueta
          de otra manera aquí lo descuadra, y un espejo que casi cuadra es un
          espejo que no cuadra. */
       etiquetasHTML(m) +
-      (nb ? '<span class="gl-cuenta">‹' + nb + '</span>' : '') + '</button>';
+      (nb ? '<span class="gl-cuenta">‹' + nb + '</span>' : '') +
+      '<button type="button" class="ix-asa" aria-label="Reordenar glosa" title="Arrastra para reordenar">' +
+        '<span></span><span></span><span></span><span></span><span></span><span></span>' +
+      '</button></div>';
   }).join('');
-  asentarGlosas(cont);        /* y el mismo giro, que depende del alto y del ancho */
 }
 /* Los botones "Libros" e "Índice" salieron de la barra de abajo: la burbuja
    de la esquina ya lleva a los dos, y dos puertas al mismo cuarto solo
@@ -10691,6 +10748,7 @@ menu.addEventListener('click', ev => {
 }, true);
 
 $('indice').addEventListener('click', ev => {
+  if (ev.target.closest('.ix-asa')){ ev.preventDefault(); ev.stopPropagation(); return; }
   const b = ev.target.closest('[data-ir]'); if (!b) return;
   const [lib, c, v, l] = b.dataset.ir.split(':');
   /* El panel se disuelve —no se enrolla— porque elegir una glosa es una orden
@@ -10705,6 +10763,136 @@ $('indice').addEventListener('click', ev => {
   const origen = dondeEstoy();
   trasPintar(() => irA(lib, +c, +v, l || '', { origen }));   /* dos cuadros, como arriba */
 });
+
+/* Reordenar el índice: se jala por el asa de seis puntos, no por la nota.
+   El orden se guarda aparte de las marcas, para no tocar el modelo. */
+(function reordenarIndice(){
+  const cont = $('indice');
+  const suave = () => !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let pieza = null, hueco = null, ox = 0, oy = 0, bloqueoHasta = 0, ultimoDest = null;
+  function fotos(){
+    const m = new Map();
+    for (const el of cont.querySelectorAll('.ix-item')){
+      if (el === pieza) continue;
+      m.set(el, el.getBoundingClientRect());
+    }
+    return m;
+  }
+  function cajaEnFlujo(el){
+    const t = el.style.transform;
+    el.style.transform = 'none';
+    const r = el.getBoundingClientRect();
+    el.style.transform = t;
+    return r;
+  }
+  /* El asa se queda bajo el dedo: la tarjeta sigue al cursor. */
+  function pegarAlDedo(ev){
+    if (!pieza) return;
+    const r = cajaEnFlujo(pieza);
+    const dx = ev.clientX - ox - r.left;
+    const dy = ev.clientY - oy - r.top;
+    pieza.style.transition = 'none';
+    pieza.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(1.045)';
+  }
+  /* FLIP: las vecinas se deslizan al hueco con la misma curva de la cinta. */
+  function animarSitios(antes){
+    if (!suave() || !antes) return;
+    for (const el of cont.querySelectorAll('.ix-item')){
+      if (el === pieza) continue;
+      const a = antes.get(el); if (!a) continue;
+      const b = el.getBoundingClientRect();
+      const dx = a.left - b.left, dy = a.top - b.top;
+      if (!dx && !dy) continue;
+      el.classList.add('sin-salto');
+      el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      void el.offsetWidth;
+      el.classList.remove('sin-salto');
+      el.style.transform = '';
+    }
+  }
+  function soltar(){
+    if (!pieza) return;
+    pieza.classList.remove('arrastrando');
+    pieza.style.transform = '';
+    pieza.style.transition = '';
+    if (hueco) hueco.classList.remove('hueco');
+    const vistos = Array.from(cont.querySelectorAll('.ix-item[data-gl-id]'))
+      .map(el => el.dataset.glId).filter(Boolean);
+    const set = new Set(vistos);
+    ordenIndice = vistos.concat(ordenIndice.filter(id => !set.has(id)));
+    guardarOrdenIndice();
+    pieza = null; hueco = null; bloqueoHasta = 0; ultimoDest = null;
+  }
+  function bajoPunto(x, y){
+    const els = [...cont.querySelectorAll('.ix-item')].filter(el => el !== pieza);
+    for (const el of els){
+      const r = el.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return el;
+    }
+    return null;
+  }
+  /* La caja VISIBLE de la que jalas (sigue al dedo), no el puntero:
+     el asa queda abajo y a veces no entra en la de abajo. */
+  function destPorSolape(){
+    if (!pieza) return null;
+    const pr = pieza.getBoundingClientRect();
+    let best = null, bestArea = 0;
+    for (const el of cont.querySelectorAll('.ix-item')){
+      if (el === pieza) continue;
+      const r = el.getBoundingClientRect();
+      const w = Math.max(0, Math.min(pr.right, r.right) - Math.max(pr.left, r.left));
+      const h = Math.max(0, Math.min(pr.bottom, r.bottom) - Math.max(pr.top, r.top));
+      const area = w * h;
+      if (area > bestArea){ bestArea = area; best = el; }
+    }
+    return best;
+  }
+  cont.addEventListener('pointerdown', ev => {
+    const asa = ev.target.closest('.ix-asa');
+    if (!asa || !cont.contains(asa)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    pieza = asa.closest('.ix-item');
+    if (!pieza) return;
+    const r = pieza.getBoundingClientRect();
+    ox = ev.clientX - r.left;
+    oy = ev.clientY - r.top;
+    pieza.classList.add('arrastrando');
+    bloqueoHasta = 0; ultimoDest = null;
+    pegarAlDedo(ev);
+    try { asa.setPointerCapture(ev.pointerId); } catch(e){}
+  });
+  cont.addEventListener('pointermove', ev => {
+    if (!pieza) return;
+    pegarAlDedo(ev);
+    if (performance.now() < bloqueoHasta) return;
+    const dest = destPorSolape() || bajoPunto(ev.clientX, ev.clientY);
+    if (!dest){ ultimoDest = null; return; }
+    if (dest === ultimoDest) return;
+    const r = dest.getBoundingClientRect();
+    const pr = pieza.getBoundingClientRect();
+    const oy = Math.max(0, Math.min(pr.bottom, r.bottom) - Math.max(pr.top, r.top));
+    const oxl = Math.max(0, Math.min(pr.right, r.right) - Math.max(pr.left, r.left));
+    /* 10% de la glosa que jalas, medido por SOLAPE de las cajas. */
+    if (oy < pr.height * 0.1 && oxl < pr.width * 0.1) return;
+    const sigue = !!(pieza.compareDocumentPosition(dest) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const marca = sigue ? dest.nextSibling : dest;
+    if (marca === pieza || pieza.nextSibling === marca) return;
+    if (hueco) hueco.classList.remove('hueco');
+    hueco = dest;
+    dest.classList.add('hueco');
+    const antes = fotos();
+    cont.insertBefore(pieza, marca);
+    animarSitios(antes);
+    pegarAlDedo(ev);
+    /* Espera a que la de abajo termine de deslizarse (~una media glosa)
+       antes de volver a decidir. Si no, entra-sale 20 veces por segundo. */
+    ultimoDest = dest;
+    bloqueoHasta = performance.now() + 360;
+  });
+  cont.addEventListener('pointerup', soltar);
+  cont.addEventListener('pointercancel', soltar);
+})();
 
 /* Y aquí estaba el instructivo largo que salía debajo de la hoja. Se fue con
    los botones que explicaba. Lo que hace falta saber está en los globos de
@@ -10866,9 +11054,12 @@ etiquetas.appendChild($('ctrlEtiquetas'));
   const c = document.createElement('span');
   c.className = 'ctrl';
   const b = $('marksBtn');
-  b.style.display = '';
+  /* Se queda en el árbol, oculto: el interruptor sigue existiendo por si
+     hace falta devolverlo a la interfaz. */
+  b.style.display = 'none';
   c.appendChild(b);
   fila.appendChild(c);
+  fila.style.display = 'none';
   $('ctrlEtiquetas').appendChild(fila);
 })();
 etiquetas.appendChild($('indice'));
