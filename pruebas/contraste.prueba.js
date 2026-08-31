@@ -428,8 +428,13 @@ async function ponerContraste(pagina, pct){
              medida: document.getElementById('brilloAhora').textContent };
   });
   di('el brillo', sitioBrillo);
+  /* Lo que importa es la PAREJA: el brillo pegado debajo del contraste, que
+     es donde se busca. Lo que venga después ya no es asunto de esta prueba
+     —el panel de Formato ha ganado filas desde entonces, y exigir la de
+     abajo hacía cantar fallo a cada fila nueva sin que nada se hubiera
+     roto—, así que se enseña pero no se exige. */
   vale('va justo debajo del contraste',
-       JSON.stringify(sitioBrillo.orden) === JSON.stringify(['contraste','brillo','versión']),
+       sitioBrillo.orden[0] === 'contraste' && sitioBrillo.orden[1] === 'brillo',
        sitioBrillo.orden);
   vale('con las clases de siempre', sitioBrillo.clases === 'ajuste ancho', sitioBrillo.clases);
   vale('rango 50–150 de uno en uno y neutro en 100',

@@ -483,9 +483,16 @@ const guardadas = () => {
                       'px;height:' + inner.offsetHeight + 'px';
     document.body.appendChild(f);
     f.contentDocument.open();
-    f.contentDocument.write('<style>' + css + '</style><div id="pg" class="pg" style="--fs:' +
-      getComputedStyle(document.getElementById('pg')).getPropertyValue('--fs') + '">' +
-      inner.outerHTML + '</div>');
+    /* Las MISMAS variables que declara la raíz del SVG del pliegue. La letra
+       de la glosa se separó de la del texto (--fs-glosa), y componiendo solo
+       con --fs la caja salía del alto que le tocaría a la letra del cuerpo:
+       113 contra 310. Si mañana se separa otra, va aquí. */
+    const cs = getComputedStyle(document.getElementById('pg'));
+    const vars = ['--fs', '--fs-glosa', '--lh', '--ali', '--cols']
+      .map(k => k + ':' + cs.getPropertyValue(k).trim())
+      .filter(x => !x.endsWith(':')).join(';');
+    f.contentDocument.write('<style>' + css + '</style><div id="pg" class="pg" style="' +
+      vars + '">' + inner.outerHTML + '</div>');
     f.contentDocument.close();
     await new Promise(z => setTimeout(z, 700));
     const g2 = f.contentDocument.querySelector('.gl');
