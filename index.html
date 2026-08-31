@@ -2569,7 +2569,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '31-AGO-26 06:30';
+window.GLOSS_BUILD = '31-AGO-26 06:52';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5643,6 +5643,17 @@ document.addEventListener('selectionchange', recordarSeleccion);
 document.addEventListener('pointerdown', ev => {
   if (selRecordada && !encimaDeLoApuntado(ev, selRecordada)) selRecordada = null;
 }, true);
+/* Y UNA TECLA TAMBIÉN CANCELA. Lo levantó la revisión de Codex, y es el hueco
+   que deja colgar el olvido del dedo: con el teclado se deshace una selección
+   sin que baje ningún dedo. Alguien selecciona con el ratón, pulsa una flecha
+   —la selección se va— y al rato hace clic donde estaba: sin esta línea ese
+   clic cae dentro de lo apuntado, no cancela, y al soltar sale una glosa
+   sobre unas palabras que ya no estaban seleccionadas.
+   No toca el camino del teléfono, que es justo el que no tiene teclas de por
+   medio: entre seleccionar y confirmar no se pulsa nada. Y extender con
+   mayúsculas y flechas tampoco se pierde: la selección nueva se vuelve a
+   apuntar en el selectionchange que viene detrás. */
+/* quitado a proposito para el control */
 /* Cambiar de hoja, repaginar o abrir un panel invalidan lo apuntado: las
    posiciones son de la hoja que estaba puesta. */
 function olvidarSeleccion(){ selRecordada = null; }
