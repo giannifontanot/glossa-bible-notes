@@ -1175,7 +1175,18 @@
             clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
             border-radius:1px; }
   .sp-ref{ flex:1 1 auto; min-width:0; font:700 13px/1.3 var(--ui); color:#4a3a1c;
-           white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sp-ref[title]{ cursor:text; }
+  .sp-edit{ flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:6px;
+            padding:4px 4px 4px 0; min-height:38px; }
+  .sp-edit-base, .sp-edit-aqui{ flex:0 0 auto; font:700 13px/1.3 var(--ui);
+                                color:#4a3a1c; white-space:nowrap; }
+  .sp-edit-aqui{ color:#6b5936; }
+  .sp-nombre{ flex:1 1 auto; min-width:72px; height:30px; box-sizing:border-box;
+              border:1px solid rgba(140,116,68,.45); border-radius:999px;
+              background:rgba(255,253,247,.82); color:#4a3a1c;
+              padding:6px 10px; font:600 13px/1 var(--ui); }
+  .sp-nombre:focus{ outline:2px solid rgba(184,137,43,.55); outline-offset:1px; }
   /* X por fila: borra ese separador tras el diálogo sí/no. */
   .sp-fila-x{ flex:0 0 auto; width:36px; height:36px; display:grid; place-items:center;
               border:0; border-radius:50%; padding:0; cursor:pointer;
@@ -1192,23 +1203,27 @@
      otro sitio de la pantalla obliga a buscar a qué se refiere.
      Los botones van grandes a propósito: en teléfono el área útil es estrecha
      y un toque fallido cancela sin querer. */
-  .sp-borrar{ margin-top:10px; padding:14px 12px; border-radius:7px;
-              background:rgba(155,42,42,.1); border:1px solid rgba(155,42,42,.35);
+  .sp-borrar{ position:sticky; top:7px; z-index:2;
+              margin:0 0 8px; padding:12px; border-radius:6px;
+              background:linear-gradient(to bottom, #f2e9d6, #e7dbbe);
+              border:1px solid rgba(140,116,68,.42);
+              box-shadow:0 10px 24px -13px rgba(60,40,15,.8);
               opacity:0; transform:translateY(-4px);
               transition:opacity .18s ease, transform .24s cubic-bezier(.2,.85,.3,1); }
   .sp-borrar.puesta{ opacity:1; transform:none; }
-  .sp-pregunta{ display:block; font:600 14px/1.4 var(--ui); color:#5c2323;
-                padding-bottom:12px; }
-  .sp-botones{ display:flex; gap:10px; }
-  .sp-btn{ flex:1 1 auto; min-height:48px; border-radius:999px; cursor:pointer;
-           font:600 14px/1 var(--ui); letter-spacing:.04em; padding:12px 14px;
+  .sp-pregunta{ display:block; font:600 13px/1.4 var(--ui); color:#4a3a1c;
+                padding-bottom:10px; }
+  .sp-botones{ display:flex; justify-content:flex-end; gap:8px; }
+  .sp-btn{ flex:0 0 auto; min-height:34px; border-radius:999px; cursor:pointer;
+           font:600 12px/1 var(--ui); letter-spacing:.06em; text-transform:uppercase;
+           padding:7px 13px;
            -webkit-tap-highlight-color:transparent;
            border:1px solid rgba(140,116,68,.4); color:#6d5a2c;
            background:rgba(140,116,68,.13); }
   .sp-btn:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
-  .sp-btn.si{ border-color:rgba(155,42,42,.5); color:#7d2323;
-              background:rgba(155,42,42,.14); }
-  .sp-btn.si:hover{ background:rgba(155,42,42,.24); color:#5c1a1a; }
+  .sp-btn.si{ border-color:rgba(155,42,42,.42); color:#7d2323;
+              background:rgba(155,42,42,.1); }
+  .sp-btn.si:hover{ background:rgba(155,42,42,.18); color:#5c1a1a; }
   .sp-btn:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
 
   /* LA OFERTA. Sale abajo y en el centro, que es la única franja de la escena
@@ -1244,18 +1259,27 @@
      no como dos piezas sueltas en filas distintas. El título queda solo
      arriba, sin pelear espacio. */
   .hs-acciones{ display:flex; align-items:center; justify-content:flex-end;
-                flex-wrap:wrap; gap:8px; padding:0 3px 7px; }
+                 flex-wrap:wrap; gap:8px; padding:0 3px 7px; }
+  .hs-pie{ position:sticky; bottom:-6px; z-index:1;
+           display:flex; align-items:flex-start; justify-content:flex-end;
+           min-height:66px; box-sizing:border-box;
+           padding:11px 13px 10px; margin:5px -6px -6px;
+           background:linear-gradient(to bottom, rgba(231,219,190,.86), #e2d4ad 14px, #e7dbbe);
+           border-top:1px solid rgba(140,116,68,.18);
+           border-radius:0 0 5px 5px;
+           box-shadow:0 -15px 24px -18px rgba(74,58,28,.7); }
   .hs-sep{ flex:0 0 auto; display:inline-flex; align-items:center; gap:6px;
-           min-height:34px; font:600 12px/1 var(--ui); letter-spacing:.06em;
-           text-transform:uppercase;
+            min-height:34px; font:600 12px/1 var(--ui); letter-spacing:.06em;
+            text-transform:uppercase;
            color:#6d5a2c; background:rgba(140,116,68,.13);
            border:1px solid rgba(140,116,68,.4); border-radius:999px;
            padding:7px 13px; cursor:pointer;
            -webkit-tap-highlight-color:transparent; }
   .hs-sep:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
   .hs-sep:active{ transform:translateY(1px); }
+  .hs-sep-lista{ box-shadow:0 5px 12px -9px rgba(60,40,15,.75); }
   .hs-sep-cinta{ flex:0 0 auto; width:8px; height:14px; background:#9b2a2a;
-                 clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%); }
+                  clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%); }
 
   /* QUIEN PIDIÓ MENOS MOVIMIENTO NO RECIBE NINGUNO DE ÉSTOS. Aparecer y
      desaparecer se queda —hace falta para entender que algo salió— pero sin
@@ -1384,9 +1408,9 @@
     .sp-ir{ min-height:44px; }
     .sp-fila-x{ width:42px; height:42px; }
     .sp-fila-x svg{ width:14px; height:14px; }
-    .sp-borrar{ padding:16px 14px; }
-    .sp-pregunta{ font-size:15px; padding-bottom:14px; }
-    .sp-btn{ min-height:52px; font-size:15px; padding:14px 16px; }
+    .sp-borrar{ padding:13px 14px; }
+    .sp-pregunta{ font-size:14px; padding-bottom:12px; }
+    .sp-btn{ min-height:40px; font-size:13px; padding:9px 15px; }
     .so-btn{ min-height:40px; font-size:13.5px; }
     .so-dice{ font-size:13.5px; }
     #sepOferta{ bottom:64px; }
@@ -8153,40 +8177,25 @@ $('btnZoom').addEventListener('click', ev => {
 const ESPERA_ZOOM_AUTO = 80;
 const ladoDePaso = b => (+b.dataset.paso > 0 ? 'right' : 'left');
 
-/* EL ACELERADOR, Y POR QUÉ EL PLIEGUE TIENE QUE IRSE.
+/* EL ACELERADOR.
 
-   Con el automático en marcha, correr el botón hacia AFUERA corre las hojas
-   más deprisa. Sirve para una cosa muy concreta que antes no se podía hacer:
-   buscar una hoja de lejos. Con el paso normal, ir de Mateo a Apocalipsis era
-   quedarse mirando un minuto largo.
+   Correr el botón hacia AFUERA arranca el automático y, desde ese mismo gesto,
+   manda la velocidad: cuanto más se aleja del centro, más cortos son los
+   pliegues. No hace falta empujar primero hacia arriba para armar otro modo; el
+   gesto que busca velocidad es el gesto que pone las hojas a pasar.
 
-   Y aquí está lo que costó entender. El ritmo de antes NO lo ponía un reloj:
-   lo ponía el pliegue. El automático pide la hoja siguiente en cuanto la
-   anterior terminó de plegarse, y un pliegue dura 620-780 ms. O sea que
-   acortar la espera no habría hecho nada: ya iba al máximo que da la
-   animación. Para ir de verdad más rápido hay que soltar el pliegue.
-
-   Así que el recorrido tiene dos tramos, y el corte está en SIN_PLIEGUE:
-
-   · Antes del corte se sigue plegando, pero cada vez más corto: de los 700 ms
-     de siempre a 200. La hoja se sigue viendo girar, solo que con prisa. Es el
-     tramo de "voy mirando", donde la animación todavía dice algo.
-   · Pasado el corte no se pliega: se repinta la hoja y a por la siguiente. Es
-     un barrido, y a esa velocidad la animación no es que sobre, es que
-     estorba —lo que se quiere ver es el rótulo cambiando de capítulo, no una
-     hoja girando—. El camino sin animar ya existía y está probado: es el que
-     usa pasarHoja cuando la foto de la hoja no llega.
+   La animación se conserva incluso al tope. Sin pliegue se avanzaba más rápido,
+   pero se perdía la lectura visual de qué estaba pasando. Por eso el máximo ya
+   no intenta llegar al barrido instantáneo: se queda en un pliegue corto, pero
+   todavía visible.
 
    DE RESORTE. Al soltar, el botón vuelve al centro y la velocidad vuelve a la
-   normal; el automático sigue andando. Se eligió así frente a dejar el botón
-   corrido: el barrido rápido es para buscar, y buscar es algo que se hace con
-   el dedo puesto y se suelta al llegar. Dejarlo corrido obligaba a volver a
-   tocar para recuperar el paso normal. */
-const CORRIDA_MAX = 132;      /* px de recorrido lateral hasta el tope */
+   normal; el automático sigue andando. Buscar deprisa se hace con el dedo
+   puesto y se suelta al llegar. */
+const CORRIDA_MAX = 118;      /* px de recorrido lateral hasta el tope visible */
 const CORRIDA_MIN = 56;       /* y lo menos que se le deja, por estrecha que sea */
-const SIN_PLIEGUE = 0.55;     /* de aquí en adelante se deja de plegar */
-const MS_PLIEGUE_CORTO = 200; /* lo más corto que se pliega antes del corte */
-const ESPERA_BARRIDO = [120, 46];   /* ms entre hojas, del corte al tope */
+const CORRIDA_ARRANQUE = 14;  /* temblor permitido antes de arrancar */
+const MS_PLIEGUE_CORTO = 280; /* lo más corto que se pliega al tope */
 
 /* Cuánto dura el pliegue de ESTA hoja. Sin acelerador puesto devuelve lo de
    siempre, jitter incluido: dos pliegues seguidos que duran exactamente lo
@@ -8194,15 +8203,13 @@ const ESPERA_BARRIDO = [120, 46];   /* ms entre hojas, del corte al tope */
 function msPliegueZoom(){
   const base = rnd(620, 780);
   if (!dirZoomAuto || veloZoom <= 0) return base;
-  const t = Math.min(veloZoom / SIN_PLIEGUE, 1);
+  const t = Math.min(veloZoom, 1);
   return Math.round(base + (MS_PLIEGUE_CORTO - base) * t);
 }
-/* Cada cuánto se vuelve a preguntar. Antes del corte manda el pliegue y esto
-   es solo el sondeo de siempre; pasado el corte, esto SÍ es el ritmo. */
+/* Cada cuánto se vuelve a preguntar. El ritmo visible lo marca el pliegue; esto
+   solo mira si la hoja ya terminó. */
 function esperaZoomAuto(){
-  if (veloZoom < SIN_PLIEGUE) return ESPERA_ZOOM_AUTO;
-  const t = (veloZoom - SIN_PLIEGUE) / (1 - SIN_PLIEGUE);
-  return Math.round(ESPERA_BARRIDO[0] + (ESPERA_BARRIDO[1] - ESPERA_BARRIDO[0]) * t);
+  return ESPERA_ZOOM_AUTO;
 }
 function darPasoZoom(s){
   if (folding || preparandoPliegue) return false;
@@ -8210,17 +8217,6 @@ function darPasoZoom(s){
      puede empezar el libro siguiente; aquí solo se pregunta si hay a dónde ir,
      que es lo que decide si el automático sigue o se apaga. */
   if (!hayHoja(s)) return false;
-  /* EL BARRIDO. Sin foto, sin lienzo y sin animación: se cambia de hoja y se
-     repinta. El cruce de libro NO se hace por aquí —eso lo sabe hacer
-     pasarHoja, y es la única parada del barrido que merece verse—, así que
-     cuando la hoja siguiente ya no es de este libro se cae al camino normal. */
-  const siguiente = paginaActual + (s === 'right' ? 1 : -1);
-  if (veloZoom >= SIN_PLIEGUE && hayHojaN(siguiente)){
-    paginaActual = siguiente;
-    renderPage();
-    refrescarPasos();
-    return true;
-  }
   const inner = pg.querySelector('.pg-inner');
   if (!inner) return false;
   const r = inner.getBoundingClientRect();
@@ -8252,14 +8248,12 @@ function arrancarZoomAuto(b){
 }
 /* EL DESLIZ, MEDIDO.
 
-   TIRON es lo que hay que subir para que arranque: 24 px en un botón que mide
-   66 —80 en el teléfono—, o sea un tercio de su alto. Menos lo dispararía el
-   temblor del dedo al posarse, que ronda los diez; más obligaría a salirse del
-   botón, y el gesto dejaría de leerse como empujarlo.
+   CORRIDA_ARRANQUE es lo que hay que alejarse del centro para que arranque:
+   un tramo corto, por encima del temblor de apoyar el dedo, pero sin pedir otro
+   gesto antes del acelerador.
 
-   Y tiene que subir MÁS DE LO QUE SE DESVÍA: sin eso, un dedo que barre en
-   diagonal —que es como se pasa hoja de toda la vida en un teléfono— pondría
-   el automático en marcha sin haberlo pedido. Subir es subir.
+   El tirón hacia arriba se conserva como gesto viejo, pero ya no es la puerta
+   obligatoria. La puerta nueva es lateral: alejar el botón del centro.
 
    Va con eventos de puntero y no de tacto: el mismo código sirve para el dedo,
    el ratón y el lápiz, y así el desliz también existe con ratón —que es donde
@@ -8302,15 +8296,18 @@ function topeAcelerador(t){
   const sitioDedo  = haciaLaDerecha ? window.innerWidth - t.x : t.x;
   return Math.max(CORRIDA_MIN, Math.min(CORRIDA_MAX, sitioBoton, sitioDedo));
 }
-/* CUÁNTO ACELERA ESTE DEDO. Solo cuenta lo que se aleja del centro HACIA SU
+/* CUÁNTO SE ALEJA ESTE DEDO. Solo cuenta lo que se aleja del centro HACIA SU
    LADO: el botón de adelantar acelera yendo a la derecha y el de retroceder
    yendo a la izquierda, que es hacia donde ya va la hoja. Traerlo de vuelta al
    centro devuelve el paso normal, y pasarse al otro lado no lo pone del revés
    —para eso está el otro botón—: se queda en cero. */
+function corridaDelDedo(t, dx){
+  const haciaFuera = ladoDePaso(t.b) === 'right' ? dx : -dx;
+  return Math.max(haciaFuera, 0);
+}
 function ponerAcelerador(t, dx){
   const tope = t.tope || CORRIDA_MAX;
-  const haciaFuera = ladoDePaso(t.b) === 'right' ? dx : -dx;
-  const corrida = Math.min(Math.max(haciaFuera, 0), tope);
+  const corrida = Math.min(corridaDelDedo(t, dx), tope);
   veloZoom = corrida / tope;
   if (corrida > 0) t.corrio = true;
   ponerCorrida(t.b, ladoDePaso(t.b) === 'right' ? corrida : -corrida);
@@ -8336,6 +8333,18 @@ $('zoomPasos').addEventListener('pointermove', ev => {
   if (!tiron || ev.pointerId !== tiron.id) return;
   const dy = ev.clientY - tiron.y, dx = ev.clientX - tiron.x;
   if (tiron.vivo){
+    const salida = corridaDelDedo(tiron, dx);
+    if (salida >= CORRIDA_ARRANQUE){
+      tiron.vivo = false;
+      tiron.arranco = true;
+      tiron.tope = topeAcelerador(tiron);
+      detenerZoomAuto();
+      dirZoomAuto = ladoDePaso(tiron.b);
+      refrescarPasos();
+      ponerAcelerador(tiron, dx);
+      seguirZoomAuto();
+      return;
+    }
     if (dy >= 0){ ponerTiron(tiron.b, 0); return; }
     if (-dy <= Math.abs(dx)) return;        /* eso es un barrido, no un empujón */
     if (-dy < TIRON_ZOOM_AUTO){ ponerTiron(tiron.b, Math.max(dy / 2, -TIRON_ZOOM_AUTO)); return; }
@@ -8516,10 +8525,18 @@ function cabezaHistorial(){
   return '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span>' +
     pieAtras() + '</div>' +
     '<div class="hs-acciones">' +
-    '<button class="hs-sep" data-sep-nuevo="1"' +
+     '<button class="hs-sep" data-sep-nuevo="1"' +
       ' title="Dejar un separador en esta hoja"' +
       ' aria-label="Dejar un separador en esta hoja">' +
       '<span class="hs-sep-cinta" aria-hidden="true"></span>separador</button>' +
+    '</div>';
+}
+function pieSeparadores(){
+  return '<div class="hs-pie">' +
+    '<button class="hs-sep hs-sep-lista" data-sep-lista="1"' +
+      ' title="Ver tus separadores"' +
+      ' aria-label="Ver tus separadores">' +
+      '<span class="hs-sep-cinta" aria-hidden="true"></span>separadores</button>' +
     '</div>';
 }
 function pintarHistorial(){
@@ -8527,7 +8544,8 @@ function pintarHistorial(){
   if (!historial.length){
     cont.innerHTML = cabezaHistorial() +
       '<span class="hs-vacio">Todavía nada. Aquí van quedando los pasajes a los ' +
-      'que saltas desde el panel de libros o desde una referencia de una glosa.</span>';
+      'que saltas desde el panel de libros o desde una referencia de una glosa.</span>' +
+      pieSeparadores();
     return;
   }
   /* "Estás aquí" se pregunta contra la HOJA ENTERA, no contra su primer
@@ -8552,7 +8570,7 @@ function pintarHistorial(){
       '" data-hs="' + h.libro + ':' + h.cap + ':' + h.vers + '">' +
       '<span class="hs-ref">' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '</span>' +
       '<span class="hs-txt">' + esc(t || '(no está en esta versión)') + '</span></button>';
-    }).join('');
+    }).join('') + pieSeparadores();
 }
 /* EL RASTRO SIN REPETICIONES SEGUIDAS.
 
@@ -8681,6 +8699,13 @@ $('btnHistorial').addEventListener('click', ev => {
   if (histAbierto) cerrarHistorial(); else abrirHistorial();
 });
 $('historial').addEventListener('click', ev => {
+  if (ev.target.closest('[data-sep-lista]')){
+    const b = ev.target.closest('[data-sep-lista]');
+    ev.preventDefault(); ev.stopPropagation();
+    cerrarHistorial();
+    abrirSepMenu(null, b);
+    return;
+  }
   /* PONER UNA CINTA A MANO. Cierra el panel: acabas de marcar la hoja donde
      estás y lo que hay que ver es la cinta, no la lista de por dónde has
      pasado. Y la lectura queda marcada, así que no se te vuelve a preguntar
@@ -10200,18 +10225,23 @@ let sepActivo = null;
    seguidas se han leído de verdad y si ya se preguntó en esta sesión. */
 let sepHojaAnterior = null, sepLlegadaEn = 0, sepLeidasSeguidas = 0,
     sepOfrecido = false, sepCayendo = null, sepMenuAbierto = null,
-    sepOfertaAbierta = false, sepRelojOferta = null, sepBorrando = null;
+    sepOfertaAbierta = false, sepRelojOferta = null, sepBorrando = null,
+    sepMenuAncla = null, sepEditando = null, sepClickNombreReloj = null;
 
 /* Cada campo se comprueba antes de aceptarlo: un almacén de otra versión, a
    medio escribir o manoseado a mano no debe dejar cintas imposibles. Lo que
    no se entiende se tira; lo que se entiende a medias se completa. */
 const sepEntendible = x => x && typeof x.id === 'string' && x.id &&
                            typeof x.libro === 'string' && x.libro && x.cap > 0 && x.vers > 0;
+const sepNombreLimpio = x => String(x || '').replace(/\s+/g, ' ').trim().slice(0, 70);
 function sepSanear(x){
-  return { id: x.id, libro: x.libro, cap: +x.cap, vers: +x.vers,
+  const nombre = sepNombreLimpio(x.nombre);
+  const out = { id: x.id, libro: x.libro, cap: +x.cap, vers: +x.vers,
            color: telaDe(x.color)[0],
            creado: +x.creado > 0 ? +x.creado : Date.now(),
            tocado: +x.tocado > 0 ? +x.tocado : (+x.creado > 0 ? +x.creado : Date.now()) };
+  if (nombre) out.nombre = nombre;
+  return out;
 }
 function sepDelAlmacen(){
   try {
@@ -10256,6 +10286,11 @@ function sepNuevoId(){
   return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 const sepDe = id => separadores.find(x => x.id === id) || null;
+const sepRef = (x, corta) => (corta ? abrevDe(x.libro) : nombreDe(x.libro)) + ' ' + x.cap + ':' + x.vers;
+function sepTexto(x){
+  const ref = sepRef(x, !!x.nombre);
+  return ref + (x.nombre ? ' - ' + x.nombre : '') + (sepAqui(x) ? ' - aquí' : '');
+}
 
 /* ¿QUÉ CINTA TOCA PINTAR EN ESTA HOJA? La misma pregunta que el «estás aquí»
    del rastro. Si hay más de una —se puede: son referencias distintas de la
@@ -10690,10 +10725,12 @@ $('sepOferta').addEventListener('click', ev => {
 });
 
 /* ---------- el menú de la cinta ---------- */
-function abrirSepMenu(id){
-  if (!sepDe(id)) return;
+function abrirSepMenu(id, ancla){
+  const s = id ? sepDe(id) : null;
+  if (id && !s) return;
   cerrarOferta();
-  sepMenuAbierto = id;
+  sepMenuAbierto = id || 'lista';
+  sepMenuAncla = ancla ? ancla.getBoundingClientRect() : null;
   sepBorrando = null;
   pintarSepMenu();
   const el = $('sepMenu');
@@ -10707,8 +10744,11 @@ function abrirSepMenu(id){
 }
 function cerrarSepMenu(){
   if (!sepMenuAbierto) return;
+  clearTimeout(sepClickNombreReloj); sepClickNombreReloj = null;
   sepMenuAbierto = null;
+  sepMenuAncla = null;
   sepBorrando = null;
+  sepEditando = null;
   const el = $('sepMenu');
   el.classList.remove('visible');
   setTimeout(() => { if (!sepMenuAbierto) el.style.display = 'none'; }, 280);
@@ -10716,7 +10756,6 @@ function cerrarSepMenu(){
 }
 function pintarSepMenu(){
   const s = sepDe(sepMenuAbierto);
-  if (!s) return;
   const aqui = sepAqui;
   /* La lista va por lo último que se tocó, que es lo que se busca: la cinta
      de la lectura de ahora arriba, y las de antes debajo en el orden en que
@@ -10726,43 +10765,61 @@ function pintarSepMenu(){
   const refBorrar = aBorrar
     ? (esc(nombreDe(aBorrar.libro)) + ' ' + aBorrar.cap + ':' + aBorrar.vers)
     : '';
+  const borrarHtml = sepBorrando ?
+    '<div class="sp-borrar" role="group" aria-label="Confirmar borrado">' +
+      '<span class="sp-pregunta">¿Eliminar el separador' +
+        (refBorrar ? ' de ' + refBorrar : '') + '?</span>' +
+      '<div class="sp-botones">' +
+        '<button class="sp-btn si" data-sep-borrar="' + esc(sepBorrando) + '">Eliminar</button>' +
+        '<button class="sp-btn" data-sep-cancelar="1">Cancelar</button>' +
+      '</div></div>' : '';
   $('sepMenu').innerHTML =
-    '<span class="sp-tit">Color de la cinta</span>' +
-    '<div class="sp-telas" role="group" aria-label="Color del separador">' +
+    (s ? '<span class="sp-tit">Color de la cinta</span>' +
+      '<div class="sp-telas" role="group" aria-label="Color del separador">' +
       TELAS.map(t => '<button class="sp-tela" data-sep-color="' + t[0] + '"' +
         ' style="background:' + t[2] + '" aria-pressed="' + (t[0] === s.color) + '"' +
         ' aria-label="Cinta ' + t[1] + '" title="' + t[1] + '"></button>').join('') +
-    '</div>' +
+      '</div>' : '') +
     '<span class="sp-tit">Tus separadores</span>' +
+    borrarHtml +
     (lista.length ? lista.map(x => {
       const t = telaDe(x.color);
+      const editando = sepEditando === x.id;
+      const texto = sepTexto(x);
       return '<div class="sp-fila' + (aqui(x) ? ' aqui' : '') + '">' +
-        '<button class="sp-ir" data-sep-ir="' + esc(x.id) + '"' +
+        (editando
+          ? '<div class="sp-edit" data-sep-editando="' + esc(x.id) + '">' +
+              '<span class="sp-chip" style="background:' + t[2] + '" aria-hidden="true"></span>' +
+              '<span class="sp-edit-base">' + esc(sepRef(x, true)) + ' -</span>' +
+              '<input class="sp-nombre" data-sep-nombre="' + esc(x.id) + '"' +
+                ' value="' + esc(x.nombre || '') + '" aria-label="Nombre del separador" ' +
+                ' maxlength="70" autocomplete="off" />' +
+              (aqui(x) ? '<span class="sp-edit-aqui">- aquí</span>' : '') +
+            '</div>'
+          : '<button class="sp-ir" data-sep-ir="' + esc(x.id) + '"' +
           ' aria-label="Ir al separador en ' + esc(nombreDe(x.libro)) + ' ' +
             x.cap + ':' + x.vers + '">' +
           '<span class="sp-chip" style="background:' + t[2] + '" aria-hidden="true"></span>' +
-          '<span class="sp-ref">' + esc(nombreDe(x.libro)) + ' ' + x.cap + ':' + x.vers +
-            (aqui(x) ? ' · aquí' : '') + '</span></button>' +
+          '<span class="sp-ref" data-sep-renombrar="' + esc(x.id) + '"' +
+            ' title="Doble clic para nombrar">' + esc(texto) + '</span></button>') +
         '<button type="button" class="sp-fila-x" data-sep-pedir-borrar="' + esc(x.id) + '"' +
           ' aria-label="Eliminar separador en ' + esc(nombreDe(x.libro)) + ' ' +
             x.cap + ':' + x.vers + '" title="Eliminar">' +
           '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1 L9 9 M9 1 L1 9"' +
           ' stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
         '</button></div>';
-    }).join('') : '<span class="sp-vacio">Todavía ninguno.</span>') +
-    (sepBorrando ?
-      '<div class="sp-borrar" role="group" aria-label="Confirmar borrado">' +
-        '<span class="sp-pregunta">¿Eliminar el separador' +
-          (refBorrar ? ' de ' + refBorrar : '') + '?</span>' +
-        '<div class="sp-botones">' +
-          '<button class="sp-btn si" data-sep-borrar="' + esc(sepBorrando) + '">Eliminar</button>' +
-          '<button class="sp-btn" data-sep-cancelar="1">Cancelar</button>' +
-        '</div></div>' : '');
+    }).join('') : '<span class="sp-vacio">Todavía ninguno.</span>');
   if (sepBorrando){
     const caja = $('sepMenu').querySelector('.sp-borrar');
     void caja.offsetWidth;
     caja.classList.add('puesta');
     const b = caja.querySelector('.sp-btn'); if (b) b.focus({ preventScroll:true });
+  } else if (sepEditando){
+    const input = $('sepMenu').querySelector('[data-sep-nombre]');
+    if (input){
+      input.focus({ preventScroll:true });
+      input.select();
+    }
   }
 }
 /* El menú se cuelga de la cinta —debajo y alineado por su borde derecho— y de
@@ -10770,17 +10827,21 @@ function pintarSepMenu(){
 function colocarSepMenu(){
   const el = $('sepMenu');
   if (el.style.display === 'none') return;
-  const cinta = document.querySelector('.separador');
+  const cinta = sepMenuAncla || document.querySelector('.separador');
   const st = stage.getBoundingClientRect();
   const w = el.offsetWidth, h = el.offsetHeight;
   let izq = st.width - w - 8, arr = 44;
   if (cinta){
-    const r = cinta.getBoundingClientRect();
+    const r = typeof cinta.getBoundingClientRect === 'function'
+      ? cinta.getBoundingClientRect()
+      : cinta;
     izq = r.right - st.left - w;
     arr = r.bottom - st.top + 8;
+    if (arr + h > st.height - 8) arr = r.top - st.top - h - 8;
   }
   izq = Math.min(Math.max(8, izq), Math.max(8, st.width - w - 8));
   if (arr + h > st.height - 8) arr = Math.max(8, st.height - h - 8);
+  arr = Math.max(8, arr);
   el.style.left = Math.round(izq) + 'px';
   el.style.top = Math.round(arr) + 'px';
 }
@@ -10801,7 +10862,84 @@ stage.addEventListener('click', ev => {
   if (sepMenuAbierto === cinta.dataset.sep) cerrarSepMenu();
   else abrirSepMenu(cinta.dataset.sep);
 }, true);
+function sepGuardarNombre(id, valor){
+  const s = sepDe(id); if (!s) return;
+  const nombre = sepNombreLimpio(valor);
+  if (nombre) s.nombre = nombre;
+  else delete s.nombre;
+  sepEditando = null;
+  sepGuardar();
+  pintarSepMenu(); colocarSepMenu(); pintarSeparador();
+  readout.textContent = nombre ? 'separador nombrado' : 'nombre del separador borrado';
+}
+function sepEditarNombre(id){
+  if (!sepDe(id)) return;
+  clearTimeout(sepClickNombreReloj); sepClickNombreReloj = null;
+  sepBorrando = null;
+  sepEditando = id;
+  pintarSepMenu(); colocarSepMenu();
+}
+function sepIrA(id){
+  const s = sepDe(id); if (!s) return;
+  cerrarSepMenu();
+  /* Volver a una cinta la vuelve la activa, y eso es lo que hace una cinta:
+     abres el libro por donde la dejaste y sigues desde ahí. No se crea otra
+     —duplicarla sería tener dos marcas del mismo sitio— y ninguna de las
+     demás se mueve, tampoco la que estuviera siguiendo otra lectura. */
+  sepActivo = s.id;
+  sepOfrecido = true;
+  sepLeidasSeguidas = 0;
+  /* Se viaja a donde la cinta CAE hoy, no a lo que dice guardado: si el
+     versículo ya no existe en esta versión, su capítulo sí. */
+  const d = sepDestino(s);
+  trasPintar(() => irA(s.libro, d.cap, d.vers, ''));
+}
+$('sepMenu').addEventListener('dblclick', ev => {
+  const t = ev.target.closest('[data-sep-renombrar]');
+  if (!t) return;
+  ev.preventDefault(); ev.stopPropagation();
+  sepEditarNombre(t.dataset.sepRenombrar);
+});
+$('sepMenu').addEventListener('keydown', ev => {
+  const input = ev.target.closest('[data-sep-nombre]');
+  if (!input) return;
+  if (ev.key === 'Enter'){
+    ev.preventDefault(); ev.stopPropagation();
+    sepGuardarNombre(input.dataset.sepNombre, input.value);
+  } else if (ev.key === 'Escape'){
+    ev.preventDefault(); ev.stopPropagation();
+    sepEditando = null; pintarSepMenu(); colocarSepMenu();
+  }
+});
+$('sepMenu').addEventListener('focusout', ev => {
+  const input = ev.target.closest('[data-sep-nombre]');
+  if (!input || sepEditando !== input.dataset.sepNombre) return;
+  sepGuardarNombre(input.dataset.sepNombre, input.value);
+});
+$('sepMenu').addEventListener('pointerdown', ev => {
+  if (ev.target.closest('[data-sep-nombre]')) ev.stopPropagation();
+}, true);
 $('sepMenu').addEventListener('click', ev => {
+  if (ev.target.closest('[data-sep-nombre]')){
+    ev.preventDefault(); ev.stopPropagation();
+    return;
+  }
+  const renombrar = ev.target.closest('[data-sep-renombrar]');
+  if (renombrar){
+    ev.preventDefault(); ev.stopPropagation();
+    const id = renombrar.dataset.sepRenombrar;
+    clearTimeout(sepClickNombreReloj);
+    if (ev.detail > 1){
+      sepClickNombreReloj = null;
+      sepEditarNombre(id);
+      return;
+    }
+    sepClickNombreReloj = setTimeout(() => {
+      sepClickNombreReloj = null;
+      sepIrA(id);
+    }, 360);
+    return;
+  }
   const color = ev.target.closest('[data-sep-color]');
   if (color){
     ev.preventDefault(); ev.stopPropagation();
@@ -10834,19 +10972,7 @@ $('sepMenu').addEventListener('click', ev => {
   const ir = ev.target.closest('[data-sep-ir]');
   if (!ir) return;
   ev.preventDefault(); ev.stopPropagation();
-  const s = sepDe(ir.dataset.sepIr); if (!s) return;
-  cerrarSepMenu();
-  /* Volver a una cinta la vuelve la activa, y eso es lo que hace una cinta:
-     abres el libro por donde la dejaste y sigues desde ahí. No se crea otra
-     —duplicarla sería tener dos marcas del mismo sitio— y ninguna de las
-     demás se mueve, tampoco la que estuviera siguiendo otra lectura. */
-  sepActivo = s.id;
-  sepOfrecido = true;
-  sepLeidasSeguidas = 0;
-  /* Se viaja a donde la cinta CAE hoy, no a lo que dice guardado: si el
-     versículo ya no existe en esta versión, su capítulo sí. */
-  const d = sepDestino(s);
-  trasPintar(() => irA(s.libro, d.cap, d.vers, ''));
+  sepIrA(ir.dataset.sepIr);
 });
 /* Un toque fuera lo cierra, como los demás paneles. La cinta queda exceptuada
    —su oyente ya sabe alternar— y también el menú, claro. */

@@ -247,11 +247,10 @@ async function ponerAMano(p){
     await window.__toque('.separador');
     await window.__pausa(450);
     const m = window.__menu();
-    /* La referencia lleva pegado el «· aquí» cuando la cinta cae en esta
-       hoja, y la marca de «aquí» vive en el .sp-fila de fuera, no en el
-       botón: el botón es solo el trozo que se toca para ir. */
+    /* Sin nombre propio, la fila enseña solo la referencia: la marca de
+       «aquí» vive en el .sp-fila de fuera, no en el botón. */
     const filas = [...document.querySelectorAll('[data-sep-ir]')]
-      .map(f => f.querySelector('.sp-ref').textContent.trim().split('·')[0].trim());
+      .map(f => f.querySelector('.sp-ref').textContent.trim().replace(/\s+-\s+aquí$/, '').trim());
     /* La fila que NO es la de aquí: la de la otra hoja. */
     const otra = [...document.querySelectorAll('[data-sep-ir]')]
       .find(f => !f.closest('.sp-fila').classList.contains('aqui'));
@@ -285,6 +284,141 @@ async function ponerAMano(p){
   vale('cada uno con su identificador', new Set(tras.guardadas.map(x => x.id)).size === 2);
   vale('y la cinta vuelve a colgar', !!tras.cinta);
 
+  titulo('el historial tiene una puerta a la lista de separadores');
+  const puertaLista = await p.evaluate(async () => {
+    await window.__toque('#btnHistorial');
+    await window.__pausa(420);
+    const panel = document.getElementById('historial');
+    const nuevo = panel.querySelector('[data-sep-nuevo]');
+    const lista = panel.querySelector('[data-sep-lista]');
+    const pie = panel.querySelector('.hs-pie');
+    const rp = panel.getBoundingClientRect();
+    const rn = nuevo ? nuevo.getBoundingClientRect() : null;
+    const rl = lista ? lista.getBoundingClientRect() : null;
+    const rf = pie ? pie.getBoundingClientRect() : null;
+    const csNuevo = nuevo ? getComputedStyle(nuevo) : null;
+    const csLista = lista ? getComputedStyle(lista) : null;
+    const antes = window.__guardadas().length;
+    await window.__toque(lista);
+    await window.__pausa(480);
+    const menu = document.getElementById('sepMenu');
+    return {
+      hay: !!lista,
+      rotulo: lista ? lista.textContent.trim() : '',
+      abajo: !!(rf && rf.bottom >= rp.bottom - 2),
+      derecha: !!(rl && rl.right >= rp.right - 20),
+      franja: !!(rf && rf.left <= rp.left + 1 && rf.right >= rp.right - 1 &&
+        rl && rl.top >= rf.top + 7 && rl.bottom <= rf.bottom - 6),
+      comoNuevo: !!(csNuevo && csLista &&
+        csNuevo.borderRadius === csLista.borderRadius &&
+        csNuevo.backgroundColor === csLista.backgroundColor &&
+        csNuevo.borderTopColor === csLista.borderTopColor),
+      icono: !!(lista && lista.querySelector('.hs-sep-cinta')),
+      arribaSigue: !!(nuevo && rn && rl && rn.top < rl.top),
+      historialCerrado: !panel.classList.contains('visible'),
+      menu: menu.classList.contains('visible'),
+      filas: [...menu.querySelectorAll('[data-sep-ir]')].length,
+      sinColores: !menu.querySelector('.sp-tela'),
+      guardadas: window.__guardadas().length,
+      antes
+    };
+  });
+  di('la puerta de abajo', puertaLista);
+  vale('hay botón abajo a la derecha', puertaLista.hay && puertaLista.abajo && puertaLista.derecha,
+       puertaLista.rotulo);
+  vale('vive dentro de una franja inferior completa', puertaLista.franja);
+  vale('se parece al botón de separador', puertaLista.comoNuevo && puertaLista.icono);
+  vale('queda debajo del botón nuevo', puertaLista.arribaSigue);
+  vale('abre la lista existente', puertaLista.historialCerrado && puertaLista.menu && puertaLista.filas === 2,
+       puertaLista.filas + ' filas');
+  vale('sin crear otro separador', puertaLista.guardadas === puertaLista.antes, puertaLista.guardadas);
+  vale('y no muestra colores si no viene de una cinta', puertaLista.sinColores);
+  await p.evaluate(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(360);
+  });
+
+  titulo('doble clic en el texto permite nombrar un separador');
+  const nombrado = await p.evaluate(async () => {
+    await window.__abrirCajon();
+    await window.__toque('.separador');
+    await window.__pausa(450);
+    const fila = document.querySelector('#sepMenu .sp-fila.aqui [data-sep-renombrar]') ||
+                 document.querySelector('#sepMenu [data-sep-renombrar]');
+    const antes = fila ? fila.textContent.trim() : '';
+    const id = fila ? fila.dataset.sepRenombrar : '';
+    const ordenAntes = [...document.querySelectorAll('#sepMenu [data-sep-ir]')]
+      .map(x => x.dataset.sepIr);
+    if (fila) fila.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true }));
+    await window.__pausa(220);
+    const input = document.querySelector('#sepMenu [data-sep-nombre]');
+    if (input){
+      input.value = ' mi   lectura diaria ';
+      input.dispatchEvent(new InputEvent('input', { bubbles:true, inputType:'insertText',
+        data:'mi lectura diaria' }));
+      input.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true, cancelable:true }));
+    }
+    await window.__pausa(450);
+    const guardada = window.__guardadas().find(x => x.id === id);
+    const texto = [...document.querySelectorAll('#sepMenu [data-sep-renombrar]')]
+      .find(x => x.dataset.sepRenombrar === id);
+    const ordenDespues = [...document.querySelectorAll('#sepMenu [data-sep-ir]')]
+      .map(x => x.dataset.sepIr);
+    const out = {
+      antes, id,
+      huboCampo: !!input,
+      texto: texto ? texto.textContent.trim() : '',
+      nombre: guardada && guardada.nombre,
+      empieza: texto ? /^Mt 1:1/.test(texto.textContent.trim()) : false,
+      aqui: texto ? / - aquí$/.test(texto.textContent.trim()) : false,
+      filas: document.querySelectorAll('#sepMenu [data-sep-ir]').length,
+      ordenAntes, ordenDespues
+    };
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(360);
+    return out;
+  });
+  di('el nombre editado', nombrado);
+  vale('el doble clic abre un campo', nombrado.huboCampo, nombrado.antes);
+  vale('guarda solo el nombre limpio', nombrado.nombre === 'mi lectura diaria', nombrado.nombre);
+  vale('la fila empieza por la posición', nombrado.empieza, nombrado.texto);
+  vale('muestra el nombre entre guiones',
+       nombrado.texto.includes(' - mi lectura diaria'), nombrado.texto);
+  vale('y conserva el aquí al final', nombrado.aqui, nombrado.texto);
+  vale('sin duplicar filas', nombrado.filas === 2, nombrado.filas);
+  vale('renombrar no cambia su posición',
+       JSON.stringify(nombrado.ordenAntes) === JSON.stringify(nombrado.ordenDespues),
+       nombrado.ordenAntes + ' → ' + nombrado.ordenDespues);
+
+  titulo('aquí cuenta aunque el separador no sea el primer versículo de la página');
+  await p.evaluate(() => {
+    const xs = JSON.parse(localStorage.getItem('glossa:separadores:v1') || '[]');
+    const x = xs.find(s => s.nombre === 'mi lectura diaria') || xs[0];
+    x.libro = 'MAT'; x.cap = 1; x.vers = 5;
+    localStorage.setItem('glossa:separadores:v1', JSON.stringify(xs));
+    localStorage.setItem('glossa:ajustes:v1', JSON.stringify({ v:1, libro:'MAT', cap:1, vers:1 }));
+  });
+  await p.reload();
+  await p.waitForTimeout(3200);
+  await andamio(p);
+  const dentroDePagina = await p.evaluate(async () => {
+    await window.__abrirCajon();
+    await window.__toque('.separador');
+    await window.__pausa(450);
+    const fila = document.querySelector('#sepMenu .sp-fila.aqui [data-sep-ir]');
+    const texto = fila ? fila.querySelector('.sp-ref').textContent.trim() : '';
+    const out = { hoja: window.__hoja(), texto, filasAqui: document.querySelectorAll('#sepMenu .sp-fila.aqui').length };
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(360);
+    return out;
+  });
+  di('separador dentro de la página', dentroDePagina);
+  vale('la página empieza antes del separador', /^Mateo 1:1/.test(dentroDePagina.hoja),
+       dentroDePagina.hoja);
+  vale('y aun así su fila dice aquí',
+       /1:5/.test(dentroDePagina.texto) && / - aquí$/.test(dentroDePagina.texto),
+       dentroDePagina.texto);
+
   /* ---------------------------------------------------------------- */
   titulo('borrar pide confirmación');
   const borrado = await p.evaluate(async () => {
@@ -295,7 +429,21 @@ async function ponerAMano(p){
     await window.__toque(equis);
     await window.__pausa(400);
     const pregunta = document.querySelector('.sp-pregunta');
+    const dialogo = pregunta ? pregunta.closest('.sp-borrar') : null;
+    const fila = document.querySelector('#sepMenu .sp-fila');
+    const menu = document.getElementById('sepMenu');
+    const rd = dialogo ? dialogo.getBoundingClientRect() : null;
+    const rf = fila ? fila.getBoundingClientRect() : null;
+    const rm = menu ? menu.getBoundingClientRect() : null;
+    const bSi = document.querySelector('[data-sep-borrar]');
+    const csSi = bSi ? getComputedStyle(bSi) : null;
     const texto = pregunta ? pregunta.textContent.trim() : '';
+    const flotante = !!(rd && rf && rm &&
+      rd.top >= rm.top + 4 && rd.bottom <= rm.bottom - 4 && rd.top < rf.top);
+    const botones = !!(csSi && bSi &&
+      bSi.getBoundingClientRect().height <= 44 &&
+      parseFloat(csSi.borderTopLeftRadius) >= 16 &&
+      csSi.textTransform === 'uppercase');
     const cuantas = window.__guardadas().length;
     /* Cancelar no toca nada. */
     await window.__toque('[data-sep-cancelar]');
@@ -307,13 +455,15 @@ async function ponerAMano(p){
     await window.__pausa(400);
     await window.__toque('[data-sep-borrar]');
     await window.__pausa(600);
-    return { visibleAntes, texto, cuantas, trasCancelar,
+    return { visibleAntes, texto, flotante, botones, cuantas, trasCancelar,
              guardadas: window.__guardadas().length,
              cinta: !!window.__cinta(), menu: !!window.__menu() };
   });
   di('la pregunta', borrado.texto);
   vale('la equis sale con el menú', borrado.visibleAntes);
   vale('pregunta antes de borrar', /eliminar/i.test(borrado.texto));
+  vale('la pregunta flota encima de la lista', borrado.flotante);
+  vale('sus botones usan el estilo de la aplicación', borrado.botones);
   vale('y no borra mientras pregunta', borrado.cuantas === 2);
   vale('cancelar lo deja todo', borrado.trasCancelar.guardadas === 2 &&
        borrado.trasCancelar.cinta && !borrado.trasCancelar.pregunta, borrado.trasCancelar);
