@@ -724,7 +724,15 @@
   /* Los dos de pasar hoja. Van en la escena y NO dentro de #pg, para que el
      escalado no se los lleve por delante: tienen que medir lo que mide un
      dedo aunque la hoja mida la mitad. */
-  #zoomPasos{ position:absolute; right:8px; bottom:8px; z-index:7;
+  /* AL CENTRO, y no en la esquina donde estaban. Dejaron de ser dos puertas
+     que se tocan de vez en cuando para ser un mando que se agarra y se corre a
+     los lados: un mando se pone donde cae el pulgar sin pensar y donde tiene
+     sitio para moverse a los DOS lados por igual. En la esquina derecha, correr
+     el botón hacia afuera se salía de la pantalla a los treinta píxeles.
+     El centro de abajo además deja libres las dos esquinas, que ya tienen
+     dueño: el hueco a la izquierda y el rastro a la derecha. */
+  #zoomPasos{ position:absolute; left:50%; transform:translateX(-50%);
+              bottom:8px; z-index:7;
               display:none; gap:8px; }
   .stage.zoom #zoomPasos{ display:flex; }
   /* DOS PUNTOS, NO DOS FLECHAS. Un par de chevrones dentro de recuadros
@@ -795,7 +803,7 @@
      que la vuelta a su sitio sí es suave.
      El :active de arriba también sobra aquí: encoger y subir a la vez son dos
      transformaciones sobre la misma propiedad, y gana la última escrita. */
-  #zoomPasos button[style*="translateY"]{ transition:none; }
+  #zoomPasos button[style*="translate"]{ transition:none; }
   /* EL MARRÓN ES EL DE SIEMPRE: el de la pestaña abierta y el del libro en el
      que estás dentro del panel de Libros. Aquí significa lo mismo que allí
      —esto es lo que está pasando ahora mismo— y por eso no estrena color.
@@ -833,7 +841,7 @@
        el pulgar, y le devuelven treinta píxeles al papel.
        La tinta baja a 34 por la regla de siempre: lo que crece es el blanco de
        toque, no la mancha. */
-    #zoomPasos{ right:12px; bottom:12px; gap:16px; }
+    #zoomPasos{ bottom:12px; gap:16px; }
     #zoomPasos button{ width:80px; height:80px; font-size:34px; }
   }
 
@@ -2569,7 +2577,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '31-AGO-26 06:52';
+window.GLOSS_BUILD = '31-AGO-26 07:41';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7291,7 +7299,7 @@ function pasarHoja(s, clientY, intento){
       if (paginaActual !== desde || folding) return;
       if (!img){ paginaActual = destino; renderPage(); return; }
       pageImg = viejo; bajoImg = img;
-      animarHojas(1, rnd(620, 780), () => {
+      animarHojas(1, msPliegueZoom(), () => {
         hojasExtra = []; progreso = 0; alfaTop = 1; folding = false; plegandoConDedo = false; anchor = F = null;
         paginaActual = destino;
         renderPage();
@@ -7796,6 +7804,10 @@ const ZOOM_SUAVE = 460;
 let relojSuave = null;
 /* El paso automático: hacia dónde va y el reloj que lo mantiene vivo. */
 let dirZoomAuto = null, relojZoomAuto = null;
+/* 0..1: lo que dice el acelerador. Vive aquí arriba con los demás del
+   automático porque lo leen msPliegueZoom y detenerZoomAuto, que están
+   escritos antes que el acelerador. */
+let veloZoom = 0;
 /* Dónde tenías el cajón al alejarte, para poder devolverte ahí. */
 let cajonAlEntrarZoom = 0;
 let relojCajonZoom = null;
@@ -7845,6 +7857,7 @@ function acompanarCajon(destino){
 function detenerZoomAuto(){
   const iba = dirZoomAuto;
   clearTimeout(relojZoomAuto); relojZoomAuto = null; dirZoomAuto = null;
+  veloZoom = 0;                 /* sin automático no hay acelerador que valga */
   /* Se apaga la luz aquí y no en cada sitio que para, que son cinco. */
   if (iba) refrescarPasos();
   /* Y la tanda de reintentos que pudiera estar esperando su turno: es el único
@@ -8059,12 +8072,74 @@ $('btnZoom').addEventListener('click', ev => {
    pliegue ya acabó. Preguntar es barato; el paso lo marca la hoja. */
 const ESPERA_ZOOM_AUTO = 80;
 const ladoDePaso = b => (+b.dataset.paso > 0 ? 'right' : 'left');
+
+/* EL ACELERADOR, Y POR QUÉ EL PLIEGUE TIENE QUE IRSE.
+
+   Con el automático en marcha, correr el botón hacia AFUERA corre las hojas
+   más deprisa. Sirve para una cosa muy concreta que antes no se podía hacer:
+   buscar una hoja de lejos. Con el paso normal, ir de Mateo a Apocalipsis era
+   quedarse mirando un minuto largo.
+
+   Y aquí está lo que costó entender. El ritmo de antes NO lo ponía un reloj:
+   lo ponía el pliegue. El automático pide la hoja siguiente en cuanto la
+   anterior terminó de plegarse, y un pliegue dura 620-780 ms. O sea que
+   acortar la espera no habría hecho nada: ya iba al máximo que da la
+   animación. Para ir de verdad más rápido hay que soltar el pliegue.
+
+   Así que el recorrido tiene dos tramos, y el corte está en SIN_PLIEGUE:
+
+   · Antes del corte se sigue plegando, pero cada vez más corto: de los 700 ms
+     de siempre a 200. La hoja se sigue viendo girar, solo que con prisa. Es el
+     tramo de "voy mirando", donde la animación todavía dice algo.
+   · Pasado el corte no se pliega: se repinta la hoja y a por la siguiente. Es
+     un barrido, y a esa velocidad la animación no es que sobre, es que
+     estorba —lo que se quiere ver es el rótulo cambiando de capítulo, no una
+     hoja girando—. El camino sin animar ya existía y está probado: es el que
+     usa pasarHoja cuando la foto de la hoja no llega.
+
+   DE RESORTE. Al soltar, el botón vuelve al centro y la velocidad vuelve a la
+   normal; el automático sigue andando. Se eligió así frente a dejar el botón
+   corrido: el barrido rápido es para buscar, y buscar es algo que se hace con
+   el dedo puesto y se suelta al llegar. Dejarlo corrido obligaba a volver a
+   tocar para recuperar el paso normal. */
+const CORRIDA_MAX = 132;      /* px de recorrido lateral hasta el tope */
+const SIN_PLIEGUE = 0.55;     /* de aquí en adelante se deja de plegar */
+const MS_PLIEGUE_CORTO = 200; /* lo más corto que se pliega antes del corte */
+const ESPERA_BARRIDO = [120, 46];   /* ms entre hojas, del corte al tope */
+
+/* Cuánto dura el pliegue de ESTA hoja. Sin acelerador puesto devuelve lo de
+   siempre, jitter incluido: dos pliegues seguidos que duran exactamente lo
+   mismo se ven a máquina. */
+function msPliegueZoom(){
+  const base = rnd(620, 780);
+  if (!dirZoomAuto || veloZoom <= 0) return base;
+  const t = Math.min(veloZoom / SIN_PLIEGUE, 1);
+  return Math.round(base + (MS_PLIEGUE_CORTO - base) * t);
+}
+/* Cada cuánto se vuelve a preguntar. Antes del corte manda el pliegue y esto
+   es solo el sondeo de siempre; pasado el corte, esto SÍ es el ritmo. */
+function esperaZoomAuto(){
+  if (veloZoom < SIN_PLIEGUE) return ESPERA_ZOOM_AUTO;
+  const t = (veloZoom - SIN_PLIEGUE) / (1 - SIN_PLIEGUE);
+  return Math.round(ESPERA_BARRIDO[0] + (ESPERA_BARRIDO[1] - ESPERA_BARRIDO[0]) * t);
+}
 function darPasoZoom(s){
   if (folding || preparandoPliegue) return false;
   /* Sin comprobar el rango local. pasarHoja sabe que después de la última hoja
      puede empezar el libro siguiente; aquí solo se pregunta si hay a dónde ir,
      que es lo que decide si el automático sigue o se apaga. */
   if (!hayHoja(s)) return false;
+  /* EL BARRIDO. Sin foto, sin lienzo y sin animación: se cambia de hoja y se
+     repinta. El cruce de libro NO se hace por aquí —eso lo sabe hacer
+     pasarHoja, y es la única parada del barrido que merece verse—, así que
+     cuando la hoja siguiente ya no es de este libro se cae al camino normal. */
+  const siguiente = paginaActual + (s === 'right' ? 1 : -1);
+  if (veloZoom >= SIN_PLIEGUE && hayHojaN(siguiente)){
+    paginaActual = siguiente;
+    renderPage();
+    refrescarPasos();
+    return true;
+  }
   const inner = pg.querySelector('.pg-inner');
   if (!inner) return false;
   const r = inner.getBoundingClientRect();
@@ -8079,7 +8154,7 @@ function seguirZoomAuto(){
     return;
   }
   if (!darPasoZoom(s)){ detenerZoomAuto(); return; }
-  relojZoomAuto = setTimeout(seguirZoomAuto, ESPERA_ZOOM_AUTO);
+  relojZoomAuto = setTimeout(seguirZoomAuto, esperaZoomAuto());
 }
 $('zoomPasos').addEventListener('click', ev => {
   const b = ev.target.closest('[data-paso]'); if (!b || b.disabled) return;
@@ -8116,27 +8191,65 @@ let tiron = null;             /* el desliz en curso */
 function ponerTiron(b, dy){
   b.style.transform = dy ? 'translateY(' + dy + 'px)' : '';
 }
+/* El botón corrido a un lado. Va en su propio transform y nunca a la vez que
+   el de subir: cuando el desliz arma el automático, el botón vuelve a su sitio
+   vertical y a partir de ahí solo se mueve en horizontal. */
+function ponerCorrida(b, dx){
+  b.style.transform = dx ? 'translateX(' + dx + 'px)' : '';
+}
+/* CUÁNTO ACELERA ESTE DEDO. Solo cuenta lo que se aleja del centro HACIA SU
+   LADO: el botón de adelantar acelera yendo a la derecha y el de retroceder
+   yendo a la izquierda, que es hacia donde ya va la hoja. Traerlo de vuelta al
+   centro devuelve el paso normal, y pasarse al otro lado no lo pone del revés
+   —para eso está el otro botón—: se queda en cero. */
+function ponerAcelerador(t, dx){
+  const haciaFuera = ladoDePaso(t.b) === 'right' ? dx : -dx;
+  const corrida = Math.min(Math.max(haciaFuera, 0), CORRIDA_MAX);
+  veloZoom = corrida / CORRIDA_MAX;
+  if (corrida > 0) t.corrio = true;
+  ponerCorrida(t.b, ladoDePaso(t.b) === 'right' ? corrida : -corrida);
+}
 $('zoomPasos').addEventListener('pointerdown', ev => {
   const b = ev.target.closest('[data-paso]'); if (!b || b.disabled) return;
   /* Un solo desliz a la vez: con dos dedos encima gana el primero. */
   if (tiron) return;
   tiron = { id: ev.pointerId, b, x: ev.clientX, y: ev.clientY, vivo: true };
+  /* YA EN MARCHA Y ES SU BOTÓN: el dedo entra directo al acelerador, sin
+     volver a armar nada. Así se puede soltar tras arrancar, mirar pasar unas
+     hojas, y volver a agarrar el botón para correrlo. Ojo: esto NO cuenta
+     todavía como gesto —un toque a secas sobre el botón en marcha tiene que
+     seguir parando—; lo que decide es si el dedo llega a correrse, y eso lo
+     marca t.corrio. */
+  if (dirZoomAuto === ladoDePaso(b)) tiron.vivo = false;
   /* Con la captura, el dedo puede salirse del botón sin perder el gesto: al
-     subir 24 px desde el borde de arriba ya se está fuera, que es lo normal. */
+     subir 24 px desde el borde de arriba ya se está fuera, que es lo normal.
+     Y corriéndose a los lados se sale mucho más todavía. */
   try { b.setPointerCapture(ev.pointerId); } catch(_){}
 });
 $('zoomPasos').addEventListener('pointermove', ev => {
-  if (!tiron || ev.pointerId !== tiron.id || !tiron.vivo) return;
+  if (!tiron || ev.pointerId !== tiron.id) return;
   const dy = ev.clientY - tiron.y, dx = ev.clientX - tiron.x;
-  if (dy >= 0){ ponerTiron(tiron.b, 0); return; }
-  if (-dy <= Math.abs(dx)) return;          /* eso es un barrido, no un empujón */
-  if (-dy < TIRON_ZOOM_AUTO){ ponerTiron(tiron.b, Math.max(dy / 2, -TIRON_ZOOM_AUTO)); return; }
-  /* Llegó al tope: arranca aquí y no al soltar, para que el gesto se conteste
-     con el dedo todavía puesto. Lo que queda del desliz ya no hace nada. */
-  tiron.vivo = false;
-  tiron.arranco = true;
-  ponerTiron(tiron.b, 0);
-  arrancarZoomAuto(tiron.b);
+  if (tiron.vivo){
+    if (dy >= 0){ ponerTiron(tiron.b, 0); return; }
+    if (-dy <= Math.abs(dx)) return;        /* eso es un barrido, no un empujón */
+    if (-dy < TIRON_ZOOM_AUTO){ ponerTiron(tiron.b, Math.max(dy / 2, -TIRON_ZOOM_AUTO)); return; }
+    /* Llegó al tope: arranca aquí y no al soltar, para que el gesto se conteste
+       con el dedo todavía puesto. */
+    tiron.vivo = false;
+    tiron.arranco = true;
+    ponerTiron(tiron.b, 0);
+    arrancarZoomAuto(tiron.b);
+    /* Y EL ACELERADOR EMPIEZA A CONTAR DESDE AQUÍ, no desde donde bajó el
+       dedo. Un tirón hacia arriba nunca sale recto: trae siempre veinte
+       píxeles de desviación lateral, y contándolos desde el origen el
+       automático arrancaría ya corriendo sin que nadie lo hubiera pedido. */
+    tiron.x = ev.clientX;
+    return;
+  }
+  /* De aquí en adelante el dedo manda la velocidad, y solo si hay automático:
+     el botón parado no acelera nada. */
+  if (dirZoomAuto !== ladoDePaso(tiron.b)) return;
+  ponerAcelerador(tiron, dx);
 });
 /* AL SOLTAR, EL CLIC DEL GESTO SE TIRA A LA BASURA.
 
@@ -8155,8 +8268,16 @@ const soltarTiron = (ev, hubo) => {
   const t = tiron;
   tiron = null;
   ponerTiron(t.b, 0);
+  /* EL ACELERADOR ES DE RESORTE: el botón vuelve al centro y la velocidad a la
+     normal, pero el automático sigue andando. El barrido rápido es para
+     buscar, y buscar se hace con el dedo puesto y se suelta al llegar. */
+  veloZoom = 0;
   try { t.b.releasePointerCapture(t.id); } catch(_){}
-  if (hubo && t.arranco) tragarElClic();
+  /* El clic de levantar el dedo se tira si el gesto hizo algo: arrancar el
+     automático, o correr el acelerador. Los dos apagarían con ese clic lo que
+     acaban de hacer. Un toque a secas —ni arrancó ni se corrió— sí llega, que
+     es como se para. */
+  if (hubo && (t.arranco || t.corrio)) tragarElClic();
 };
 $('zoomPasos').addEventListener('pointerup', ev => soltarTiron(ev, true));
 /* Un desliz cancelado —el navegador se quedó con el gesto— no acaba en clic,
