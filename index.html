@@ -956,7 +956,10 @@
      salto a otra escritura, que es lo contrario de volver. Ahora mide 34px de
      alto —38 en pantalla chica—, que es el mínimo con el que se acierta, y la
      letra sube a la de las filas para que no parezca un rótulo. */
-  .hs-atras{ flex:0 0 auto;
+  /* margin-left:auto lo manda al filo derecho del renglón del rótulo, que es
+     lo pedido y además el borde por el que este panel crece. Se perdió al
+     mudarlo de sitio un rato; sin él quedaba pegado al rótulo. */
+  .hs-atras{ flex:0 0 auto; margin-left:auto;
              display:inline-flex; align-items:center; justify-content:center;
              gap:7px; min-height:34px;
              font:600 12px/1 var(--ui); letter-spacing:.06em;
@@ -2498,7 +2501,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '26-AGO-26 15:32';
+window.GLOSS_BUILD = '31-AGO-26 11:05';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4209,6 +4212,9 @@ function renderPageCrudo(){
      rehacer el panel te sacaría de ella. */
   refrescarLibroActual();
   medirHojaTelefono();
+  /* Lo apuntado de la selección era de la hoja que estaba puesta: sus
+     posiciones ya no dicen nada. Ver selRecordada. */
+  olvidarSeleccion();
   pintarFiltros(); pintarIndice(); invalidateSnapshot(); updateReadout();
   /* La cinta se vuelve a colgar aquí, después del acomodo: layoutInto vacía la
      columna de glosas cada vez, así que ponerla antes sería ponerla para que
@@ -5480,12 +5486,79 @@ $('btnDeshacer').onclick = () => {
 
 /* ---------- el gesto que lo abre ---------- */
 
+/* LA SELECCIÓN SE RECUERDA, PORQUE EN EL TELÉFONO NO ESTÁ CUANDO SE PREGUNTA.
+
+   En escritorio la selección ya existe al soltar el ratón, y el oyente de
+   abajo la lee y abre el panel. En Android no: el sistema termina de armar la
+   selección DESPUÉS del pointerup —es cuando salen los tiradores— así que al
+   preguntar todavía no hay nada y el gesto se va sin hacer nada. El lector
+   entonces hace lo natural, tocar lo que acaba de seleccionar para
+   confirmarlo… y ese toque la deshace antes de que nadie la lea. Medido: tras
+   el toque la selección vale "" y el panel que se abre es el de otra glosa o
+   ninguno. Se seleccionaba, se abría una caja, y no se guardaba nada.
+
+   Así que se apunta la última selección buena que hubo dentro del cuerpo, y
+   cuando el toque llega con la selección ya deshecha se usa esa. Tres
+   guardias para que sea la del lector y no un fantasma:
+   · tiene que estar dentro de #pgBody y caber en UN versículo —lo mismo que
+     ya exigía el camino normal—;
+   · caduca: una selección de hace un minuto no convierte un toque de ahora en
+     una glosa. VIDA_SELECCION;
+   · y el toque tiene que caer ENCIMA de lo seleccionado, con holgura de un
+     dedo. Tocar en otro sitio sigue queriendo decir lo de siempre: nada.
+   Se gasta al usarla, así que dos toques seguidos no crean dos marcas. */
+const VIDA_SELECCION = 12000;
+const HOLGURA_SELECCION = 26;          /* px: el ancho de un dedo, más o menos */
+let selRecordada = null;
+function recordarSeleccion(){
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+  if (!sel.toString().trim()) return;
+  const rg = sel.getRangeAt(0);
+  if (!pgBody.contains(rg.commonAncestorContainer)) return;
+  const a = offsetGlobal(sel.anchorNode, sel.anchorOffset);
+  const b = offsetGlobal(sel.focusNode, sel.focusOffset);
+  if (!a || !b || a.k !== b.k || a.off === b.off) return;
+  const caja = rg.getBoundingClientRect();
+  if (caja.width < 1 && caja.height < 1) return;
+  selRecordada = { k:a.k, ini:Math.min(a.off,b.off), fin:Math.max(a.off,b.off),
+                   caja: { left:caja.left, top:caja.top, right:caja.right,
+                           bottom:caja.bottom, width:caja.width, height:caja.height },
+                   t: Date.now() };
+}
+document.addEventListener('selectionchange', recordarSeleccion);
+/* Cambiar de hoja, repaginar o abrir un panel invalidan lo apuntado: las
+   posiciones son de la hoja que estaba puesta. */
+function olvidarSeleccion(){ selRecordada = null; }
+function seleccionParaEsteToque(ev){
+  const r = selRecordada;
+  if (!r) return null;
+  if (Date.now() - r.t > VIDA_SELECCION){ selRecordada = null; return null; }
+  const c = r.caja, h = HOLGURA_SELECCION;
+  if (ev.clientX < c.left - h || ev.clientX > c.right + h ||
+      ev.clientY < c.top - h  || ev.clientY > c.bottom + h) return null;
+  selRecordada = null;                 /* se gasta: un toque, una marca */
+  return r;
+}
+
 pgBody.addEventListener('pointerup', ev => {
   if (ev.target.tagName === 'TEXTAREA') return;
   if (ev.target.closest('.gl')) return;   // las glosas de "abajo" viven aquí dentro
   setTimeout(() => {
     const sel = window.getSelection();
     const arrastre = sel && !sel.isCollapsed && sel.toString().trim().length > 0;
+    /* La selección ya deshecha, pero el toque cayó sobre la que había: es la
+       misma intención, así que se atiende igual. Ver selRecordada. */
+    if (!arrastre){
+      const r = seleccionParaEsteToque(ev);
+      if (r){
+        const it = plano[r.k];
+        if (it){
+          abrirPanel(crearMarca(it.cap, it.vers, r.ini, r.fin), true, r.caja);
+          return;
+        }
+      }
+    }
     if (arrastre){
       const a = offsetGlobal(sel.anchorNode, sel.anchorOffset);
       const b = offsetGlobal(sel.focusNode, sel.focusOffset);
@@ -5493,6 +5566,7 @@ pgBody.addEventListener('pointerup', ev => {
         const it = plano[a.k];
         const ini = Math.min(a.off,b.off), fin = Math.max(a.off,b.off);
         const rect = sel.getRangeAt(0).getBoundingClientRect();
+        olvidarSeleccion();
         /* La selección del navegador se suelta aquí: a partir de ahora
            lo que enseña dónde estás es el ancla de la marca, y dos
            subrayados a la vez sobre las mismas palabras se leen como un
@@ -7954,13 +8028,19 @@ let histAbierto = false, plenoAbierto = null;   /* plenoAbierto guarda la refere
    desde el primer minuto, sin haber saltado a ningún sitio todavía. El paso
    atrás sigue apareciendo solo cuando hay a dónde volver. */
 function cabezaHistorial(){
-  return '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span></div>' +
+  /* EL RÓTULO Y EL PASO ATRÁS COMPARTEN RENGLÓN, y eso no se toca: está
+     donde está por una razón que costó encontrar —ver .hs-cab más arriba— y
+     hay una prueba que lo vigila. El botón del separador va DEBAJO, en su
+     propio renglón y pegado al mismo filo derecho: medido, los tres no caben
+     en uno solo sin partir el rótulo o estrujar el atrás, y aun forzándolos
+     el navegador los parte igual en dos renglones. */
+  return '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span>' +
+    pieAtras() + '</div>' +
     '<div class="hs-acciones">' +
     '<button class="hs-sep" data-sep-nuevo="1"' +
       ' title="Dejar un separador en esta hoja"' +
       ' aria-label="Dejar un separador en esta hoja">' +
       '<span class="hs-sep-cinta" aria-hidden="true"></span>separador</button>' +
-    pieAtras() +
     '</div>';
 }
 function pintarHistorial(){
@@ -11017,6 +11097,13 @@ function quitarPortada(){
   setTimeout(() => { if (el.parentNode) el.remove(); }, 600);
 }
 const t0Portada = performance.now();
+/* TECHO DURO. Lo de arriba quita la portada cuando la hoja está pintada, pero
+   esa línea vive DESPUÉS de todo el arranque: si algo de en medio tira una
+   excepción, nunca se ejecuta y el lector se queda mirando una tapa que no se
+   va y que además se come los toques. Este plazo se arma antes que nada y no
+   depende de que el arranque termine bien: pase lo que pase, la mesa se
+   destapa. */
+setTimeout(() => { try { quitarPortada(); } catch(e){} }, 6000);
 const guardado = cargarAjustes();
 cargarHistorial();
 cargarSeparadores();
