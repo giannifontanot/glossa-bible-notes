@@ -98,6 +98,23 @@ function vale(rotulo, condicion, detalle){
 
 function titulo(t){ console.log('\n  ' + t); }
 
+/* ESPERAR A QUE LA MESA ESTÉ DESTAPADA, no a que pase un rato. La portada
+   cubre la pantalla entera con pointer-events puestos hasta que la primera
+   hoja está pintada, y tiene además un mínimo de tiempo para que el letrero
+   se lea. Un plazo fijo en las pruebas era una carrera: si la portada tardaba
+   un milisegundo más, el toque de la prueba se lo comía la portada y el fallo
+   salía en cualquier otra parte —la caja que no abre, la marca que no
+   responde— sin decir por qué. Esperamos la señal real: la portada fuera. */
+async function listo(pagina, tope = 12000){
+  try {
+    await pagina.waitForFunction(() => {
+      const p = document.getElementById('portada');
+      return !p || p.classList.contains('fuera');
+    }, null, { timeout: tope });
+  } catch (e) { /* si no se va, que falle la prueba diciendo lo suyo */ }
+  await pagina.waitForTimeout(120);
+}
+
 /* Abre la aplicación y devuelve la página, con los errores de JavaScript ya
    recogidos: que el programa no tire una excepción es parte de cada prueba y
    no algo que haya que acordarse de mirar. */
@@ -106,8 +123,13 @@ async function abrir(opciones = {}){
   const pagina = await navegador.newPage({ ...TELEFONO, ...opciones });
   const errores = [];
   pagina.on('pageerror', e => errores.push(String(e).split('\n')[0]));
+  /* Toda recarga espera también: las pruebas recargan en veinte sitios y
+     ninguna tiene por qué acordarse de la portada. */
+  const recargar = pagina.reload.bind(pagina);
+  pagina.reload = async (...a) => { const r = await recargar(...a); await listo(pagina); return r; };
   await pagina.goto(opciones.url || APP);
   await pagina.waitForTimeout(opciones.espera || 2600);
+  await listo(pagina);
   return { navegador, pagina, errores };
 }
 
@@ -147,5 +169,5 @@ async function cerrar(sesion){
   process.exitCode = fallos ? 1 : 0;
 }
 
-module.exports = { abrir, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
+module.exports = { abrir, listo, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
                    APP, RAIZ, TELEFONO, ESCRITORIO, ESTRECHO_RATON };

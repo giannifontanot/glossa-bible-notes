@@ -462,7 +462,12 @@ const ATERRIZA = 7000;
      LISTAS no: elegir una glosa del índice, o una de las de «citado desde»,
      es un salto igual de largo y el rastro contaba solo el destino. El paso
      atrás te devolvía a lo anterior que hubieras saltado —que puede ser de
-     otro rato— en vez de a la hoja que estabas leyendo. */
+     otro rato— en vez de a la hoja que estabas leyendo.
+
+     El índice ha cambiado de gesto desde entonces: elegir ya no salta, saca
+     la ventanita, y el salto es tocar su texto. La regla que se vigila aquí
+     es la misma —dos escrituras, destino arriba y de dónde debajo—, solo que
+     el camino lleva un toque más. */
   di('desde el índice de glosas', await p.evaluate(async () => {
     localStorage.setItem('glossa:historial:v1', '[]');
     const cabeza = document.getElementById('pgCabeza').textContent.trim();
@@ -477,12 +482,22 @@ const ATERRIZA = 7000;
     if (!it.length) return { sinItems:true };
     /* la última de la lista, que es la que más lejos cae de donde estamos */
     it[it.length - 1].click();
+    await new Promise(z => setTimeout(z, 900));
+    /* PRIMERO SE LEE, LUEGO SE VA. Elegir del índice ya no salta de golpe:
+       saca la ventanita con el versículo, y el salto es tocar su texto —lo
+       mismo que hace una referencia dentro de una glosa—. El rastro se apunta
+       en el salto, así que sin este segundo toque no hay nada que mirar. */
+    const vp = document.querySelector('#versoPleno .vp-txt');
+    if (!vp) return { cabeza, sinVentanita:true,
+                      rastro: JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]')
+                        .map(h => h.libro + ' ' + h.cap + ':' + h.vers) };
+    vp.click();
     await new Promise(z => setTimeout(z, 7000));
     return { cabeza, rastro: JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]')
       .map(h => h.libro + ' ' + h.cap + ':' + h.vers) };
   }).then(r => {
     vale('el salto apunta dos escrituras', !r.sinItems && !r.sinPestana &&
-         (r.rastro || []).length === 2, JSON.stringify(r.rastro));
+         !r.sinVentanita && (r.rastro || []).length === 2, JSON.stringify(r.rastro));
     vale('  y la de debajo es de donde salimos',
          (r.rastro || []).length === 2 && r.rastro[0] !== r.rastro[1],
          (r.rastro || []).join('  ←  '));

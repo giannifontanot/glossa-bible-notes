@@ -62,6 +62,147 @@ const guardadas = () => {
   const sesion = await abrir();
   const p = sesion.pagina;
 
+  /* ================================================================
+     LA SELECCIÓN QUE LLEGA TARDE, que es como llega en el teléfono.
+
+     En escritorio la selección ya existe cuando se suelta el ratón, y el
+     gesto la lee ahí mismo. En Android no: el sistema termina de armarla
+     DESPUÉS del pointerup —es cuando salen los tiradores— así que al
+     preguntar no hay nada y el gesto se va de vacío. El lector hace entonces
+     lo natural, tocar lo que acaba de seleccionar para confirmarlo, y ese
+     toque la deshace antes de que nadie la lea.
+
+     Medido con el código anterior: seleccionabas, tocabas, se abría una caja
+     —la de otra glosa, o ninguna— y lo seleccionado no se guardaba nunca.
+
+     Se prueba en ese orden exacto, con el pointerup ANTES de la selección,
+     porque el orden es el fallo. */
+  titulo('seleccionar en el teléfono: la selección llega tras soltar');
+  const tarde = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const lee = () => { try { return JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]'); }
+                        catch(e){ return []; } };
+    const base = lee().length;
+    const v = document.querySelectorAll('#pgBody .v')[3];
+    const t = [...v.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim().length > 25);
+    if (!t) return { error:'sin versículo largo' };
+    const rg = document.createRange(); rg.setStart(t, 2); rg.setEnd(t, 18);
+    const c = rg.getBoundingClientRect();
+    const x0 = c.left + 2, x1 = c.right - 2, y = c.top + c.height/2, mx = (x0 + x1)/2;
+    const op = (id, x) => ({ bubbles:true, pointerId:id, pointerType:'touch',
+                             isPrimary:true, clientX:x, clientY:y });
+    /* El arrastre suelta SIN selección todavía. */
+    v.dispatchEvent(new PointerEvent('pointerdown', op(70, x0)));
+    v.dispatchEvent(new PointerEvent('pointermove', op(70, x1)));
+    v.dispatchEvent(new PointerEvent('pointerup',   op(70, x1)));
+    await pausa(150);
+    /* Y ahora sí la pone el sistema. */
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rg);
+    const texto = sel.toString();
+    await pausa(300);
+    const trasSoltar = { panel: getComputedStyle(document.getElementById('menu')).display,
+                         guardadas: lee().length };
+    /* El toque de confirmar, encima de lo seleccionado. Y LA SELECCIÓN SE
+       DESHACE EN MEDIO, entre el pointerdown y el pointerup, que es lo que
+       hace el navegador de verdad y lo que rompía el guardado. Un
+       PointerEvent despachado a mano no trae la acción por defecto que la
+       deshace, así que sin esta línea la selección seguiría puesta al
+       preguntar: el programa tomaría el camino de siempre —el del
+       arrastre— y esta prueba pasaría en verde aunque el arreglo no
+       existiera. */
+    const el = document.elementFromPoint(mx, y);
+    el.dispatchEvent(new PointerEvent('pointerdown', op(71, mx)));
+    await pausa(30);
+    getSelection().removeAllRanges();
+    await pausa(60);
+    const deshecha = getSelection().toString();
+    el.dispatchEvent(new PointerEvent('pointerup', op(71, mx)));
+    await pausa(450);
+    const caja = document.getElementById('glosaCaja');
+    const abrio = !!caja;
+    if (caja){
+      caja.value = 'lo que seleccioné';
+      caja.dispatchEvent(new Event('input', { bubbles:true }));
+      await pausa(200);
+      document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+      await pausa(700);
+    }
+    const puesta = lee().find(m => (m.nota||'') === 'lo que seleccioné') || null;
+    return { base, texto, deshecha, trasSoltar, abrio, puesta, guardadas: lee().length };
+  });
+  di('lo seleccionado', tarde.texto);
+  di('la glosa que quedó', tarde.puesta && tarde.puesta.cita);
+  vale('y al tocar ya no había selección', tarde.deshecha === '',
+       '«' + tarde.deshecha + '»');
+  vale('el toque abre la caja', tarde.abrio);
+  vale('y lo escrito se guarda', tarde.guardadas === tarde.base + 1,
+       tarde.base + ' → ' + tarde.guardadas);
+  vale('SOBRE LO QUE SE HABÍA SELECCIONADO',
+       !!tarde.puesta && tarde.puesta.cita === tarde.texto,
+       (tarde.puesta && tarde.puesta.cita) + '  vs  ' + tarde.texto);
+
+  titulo('y un toque lejos de lo seleccionado no inventa nada');
+  /* La otra mitad: la selección recordada solo vale para el toque que cae
+     ENCIMA de ella. Tocar en otro sitio sigue queriendo decir lo de siempre. */
+  const lejos = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const lee = () => { try { return JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]'); }
+                        catch(e){ return []; } };
+    const base = lee().length;
+    const v = document.querySelectorAll('#pgBody .v')[5];
+    const t = [...v.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim().length > 25);
+    const rg = document.createRange(); rg.setStart(t, 2); rg.setEnd(t, 16);
+    const c = rg.getBoundingClientRect();
+    const op = (id, x, y) => ({ bubbles:true, pointerId:id, pointerType:'touch',
+                                isPrimary:true, clientX:x, clientY:y });
+    v.dispatchEvent(new PointerEvent('pointerup', op(80, c.right, c.top + c.height/2)));
+    await pausa(120);
+    getSelection().removeAllRanges(); getSelection().addRange(rg);
+    await pausa(300);
+    /* Un toque muy por debajo: otro versículo, lejos de lo marcado. Y la
+       selección se deshace en medio, como la deshace el navegador: sin eso
+       el programa vería una selección viva y estaría probándose el camino
+       del arrastre, que no es el de aquí. */
+    const otro = document.querySelectorAll('#pgBody .v')[9] ||
+                 document.querySelectorAll('#pgBody .v')[7];
+    const r2 = otro.getBoundingClientRect();
+    const x = Math.round(r2.left + r2.width/2), y = Math.round(r2.top + r2.height/2);
+    const el = document.elementFromPoint(x, y) || otro;
+    el.dispatchEvent(new PointerEvent('pointerdown', op(81, x, y)));
+    await pausa(30);
+    getSelection().removeAllRanges();
+    await pausa(60);
+    el.dispatchEvent(new PointerEvent('pointerup', op(81, x, y)));
+    await pausa(450);
+    const caja = document.getElementById('glosaCaja');
+    if (caja) document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await pausa(500);
+    const trasElLejano = lee().length;
+    /* Y AHORA LA VUELTA: tocar OTRA VEZ, ya encima de lo que se había
+       seleccionado. El toque de antes fue una cancelación —el lector tocó en
+       otro sitio—, así que lo apuntado tiene que estar olvidado. Si
+       sobreviviera, este segundo toque abriría una glosa sobre unas palabras
+       que hace rato dejaron de estar seleccionadas: una marca que nadie
+       pidió. */
+    const c2 = rg.getBoundingClientRect();
+    const vx = Math.round(c2.left + c2.width/2), vy = Math.round(c2.top + c2.height/2);
+    const el2 = document.elementFromPoint(vx, vy) || v;
+    el2.dispatchEvent(new PointerEvent('pointerdown', op(82, vx, vy)));
+    await pausa(30);
+    el2.dispatchEvent(new PointerEvent('pointerup', op(82, vx, vy)));
+    await pausa(450);
+    const caja2 = document.getElementById('glosaCaja');
+    const abrioCaja = !!caja2;
+    if (caja2) document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await pausa(500);
+    return { base, trasElLejano, abrioCaja, guardadas: lee().length };
+  });
+  vale('no se guarda ninguna glosa nueva', lejos.trasElLejano === lejos.base,
+       lejos.base + ' → ' + lejos.trasElLejano);
+  vale('y volver a tocarla ya no la resucita', !lejos.abrioCaja &&
+       lejos.guardadas === lejos.base, lejos.base + ' → ' + lejos.guardadas +
+       (lejos.abrioCaja ? '  (¡abrió la caja!)' : ''));
+
   titulo('el panel al nacer');
   const base = await p.evaluate(
     () => JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length);
@@ -380,9 +521,16 @@ const guardadas = () => {
                       'px;height:' + inner.offsetHeight + 'px';
     document.body.appendChild(f);
     f.contentDocument.open();
-    f.contentDocument.write('<style>' + css + '</style><div id="pg" class="pg" style="--fs:' +
-      getComputedStyle(document.getElementById('pg')).getPropertyValue('--fs') + '">' +
-      inner.outerHTML + '</div>');
+    /* Las MISMAS variables que declara la raíz del SVG del pliegue. La letra
+       de la glosa se separó de la del texto (--fs-glosa), y componiendo solo
+       con --fs la caja salía del alto que le tocaría a la letra del cuerpo:
+       113 contra 310. Si mañana se separa otra, va aquí. */
+    const cs = getComputedStyle(document.getElementById('pg'));
+    const vars = ['--fs', '--fs-glosa', '--lh', '--ali', '--cols']
+      .map(k => k + ':' + cs.getPropertyValue(k).trim())
+      .filter(x => !x.endsWith(':')).join(';');
+    f.contentDocument.write('<style>' + css + '</style><div id="pg" class="pg" style="' +
+      vars + '">' + inner.outerHTML + '</div>');
     f.contentDocument.close();
     await new Promise(z => setTimeout(z, 700));
     const g2 = f.contentDocument.querySelector('.gl');

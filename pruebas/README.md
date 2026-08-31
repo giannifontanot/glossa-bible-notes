@@ -20,6 +20,8 @@ dentro**:
 | el toque al libro no llegaba con la hoja en el aire | `#pg` está en `visibility:hidden` mientras gira |
 | el filo dejaba de pasar hoja para siempre | hacía falta que la foto tardara más que los cuatro reintentos |
 | la cinta se ofrecía por hojear, no por leer | los segundos de permanencia solo se cuentan con un reloj de verdad |
+| la selección se deshacía al confirmarla con un toque | en Android la selección llega DESPUÉS de soltar; solo un dedo de verdad lo hace |
+| la portada se quedaba delante comiéndose los toques | invisible pero puesta: nada falla, simplemente no pasa nada |
 
 ## Correr
 
@@ -32,6 +34,12 @@ npm test -- zoom pliegue         # solo las que contengan eso en el nombre
 
 Si el Chromium está en otro sitio —contenedores que ya lo traen— se le dice
 con `CHROMIUM=/ruta/al/chrome npm test`.
+
+Abrir y recargar esperan a la **señal real de que la mesa está lista** —la
+portada fuera—, no a un plazo fijo. Un plazo fijo era una carrera: si la
+portada tardaba un milisegundo de más, el primer toque de la prueba se lo
+comía ella y el fallo salía en cualquier otro sitio, sin decir por qué. Si una
+prueba abre su propia pestaña, que llame a `listo(pagina)` antes de tocar.
 
 Cada prueba imprime **lo que midió** además del veredicto, a propósito: cuando
 una se rompa dentro de seis meses, la cifra de cuando iba bien es la mitad del
@@ -52,7 +60,7 @@ diagnóstico. Salen con código distinto de cero si algo falla.
 | `rotulos` | los dos rótulos, con dedo **y con ratón**, y que el del pie no se ponga blanco |
 | `etiquetas` | las cuatro maneras de etiquetar, los nombres raros, y que el control no mienta |
 | `cajon` | que el papel se corra con intención y termine el viaje solo, sin rebote |
-| `estreno` | las tres glosas que trae un lector recién abierto: que estén, que estén bien ancladas y —lo que de verdad vigila— que NO reaparezcan si las borras |
+| `estreno` | las tres glosas que trae un lector recién abierto: que estén, que estén bien ancladas y —lo que de verdad vigila— que NO reaparezcan si las borras; y la portada, que tape al abrir y devuelva los toques al irse |
 | `contraste` | el riel de Formato: que el filtro llegue a la hoja **y al lienzo del pliegue** con el mismo número, que NO llegue al panel de Formato, y que sobreviva a la recarga |
 | `ventanita` | la salida de `#versoPleno`: que el toque de fuera la cierre venga del rastro o de una referencia dentro de una glosa, y que cerrarla no apague el panel de la glosa de debajo |
 | `version` | el sello del panel de Respaldo: que se vea, que tenga la forma pedida, y —lo que de verdad vigila— que la hora sea la de Dallas y no la del aparato |
