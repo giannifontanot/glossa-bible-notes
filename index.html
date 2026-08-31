@@ -2500,13 +2500,27 @@
          que es la misma que retrata la foto del pliegue. -->
     <div id="zoomPapel" aria-hidden="true"></div>
     <div class="pg-inner">
-      <div class="pg-cabeza" id="pgCabeza"></div>
+      <!-- LOS DOS RÓTULOS SON BOTONES DE VERDAD PARA QUIEN NO TIENE DEDO.
+           Son <div> por lo que pintan —viven dentro del papel y salen en la
+           foto del pliegue, y un <button> traía consigo estilos de formulario
+           que había que deshacer uno a uno— pero lo que HACEN es abrir un
+           panel, y eso hay que poder decirlo sin puntero. Sin tabindex no
+           entraban en el recorrido del tabulador, y como son la única puerta
+           de la burbuja, quien navega con teclado o con conmutador se quedaba
+           sin Libros, sin Glosas, sin Formato y sin Respaldo: no era que
+           costara llegar, es que no había camino.
+           role y aria-haspopup dicen lo que un <button> habría dicho solo;
+           aria-expanded lo llevan al día abrirVersiones/cerrarVersiones y
+           marcarCabeza, que son quienes saben si el panel está puesto. -->
+      <div class="pg-cabeza" id="pgCabeza" tabindex="0" role="button"
+           aria-haspopup="dialog" aria-expanded="false"></div>
       <div class="pg-cols">
         <div id="pgBody" class="pg-body" lang="es"></div>
         <div id="pgMargin" class="pg-margin"></div>
       </div>
       <div id="pgFoot" class="pg-foot"></div>
-      <div class="pg-version" id="pgVersion"></div>
+      <div class="pg-version" id="pgVersion" tabindex="0" role="button"
+           aria-haspopup="dialog" aria-expanded="false"></div>
     </div>
   </div>
   <div id="flyCaps" class="fly"></div>
@@ -2634,7 +2648,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '31-AGO-26 11:49';
+window.GLOSS_BUILD = '31-AGO-26 12:03';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2686,6 +2700,15 @@ const PAGE_CSS = `
   font-family:'Palatino Linotype',Palatino,'Book Antiqua','Iowan Old Style',
               Georgia,'Noto Serif',serif;
   font-variant-caps:small-caps; font-synthesis:small-caps; }
+/* Y EL FOCO SE VE. Al hacerlos alcanzables con el tabulador aparece la otra
+   mitad del trabajo: un foco invisible es peor que ninguno —se navega a
+   ciegas—. Va con :focus-visible y no con :focus, que es la diferencia entre
+   enseñar el aro a quien lo necesita y pintárselo encima al que acaba de tocar
+   el rótulo con el dedo. El color es el marrón del programa, no el azul del
+   sistema, y el outline-offset lo despega del papel para que se lea sobre el
+   fondo claro del rótulo. */
+.pg-cabeza:focus-visible, .pg-version:focus-visible{
+  outline:2px solid #b8892b; outline-offset:2px; }
 .pg-version{ position:absolute; bottom:0; left:50%; transform:translateX(-50%);
              z-index:2; font-size:9px; letter-spacing:.14em;
              color:var(--rot-pie,#8a6e3c); background:var(--papel,#faf7f1); padding:2px 8px 1px;
@@ -8814,7 +8837,11 @@ $('pgVersion').addEventListener('click', e => {
      Y va sin esperar el plazo, por lo mismo que el cierre del globo: cerrar no
      es ambiguo. */
   if (burbujaAbierta()){ cerrarTodosLosRollos(); return; }
-  relojVersion = setTimeout(abrirVersiones, ESPERA_DOBLE_ROTULO);
+  /* Envuelto a propósito: setTimeout(abrirVersiones, ...) le pasaría a la
+     función lo que el temporizador quiera darle, y ahora abrirVersiones lee su
+     primer argumento. Este camino es el del dedo, así que abre sin mover el
+     foco. */
+  relojVersion = setTimeout(() => abrirVersiones(false), ESPERA_DOBLE_ROTULO);
 });
 $('pgVersion').addEventListener('dblclick', e => {
   e.preventDefault();
@@ -8823,6 +8850,37 @@ $('pgVersion').addEventListener('dblclick', e => {
   clearTimeout(relojVersion);
   cerrarVersiones();
   alternarBurbuja('libros');
+});
+
+/* ENTER Y ESPACIO HACEN LO QUE HACE EL TOQUE, y hacen falta porque estos dos
+   rótulos son <div>: un <button> respondería solo a las dos teclas, un div no
+   responde a ninguna. Con el tabindex puesto y sin esto, el foco llegaría al
+   rótulo y ahí se quedaría, que es la peor versión de las dos —parece que se
+   puede y no se puede—.
+
+   SIN EL PLAZO DEL DOBLE CLIC. Los 440 ms existen para distinguir el primer
+   toque de un doble, y con el teclado no hay tal cosa que distinguir: no
+   existe el "doble Enter". Así que la versión se abre en el acto, y la otra
+   puerta —Libros— no se pierde por ello: la tiene el rótulo de arriba, que
+   con este mismo cambio ya se alcanza con el tabulador.
+
+   El espacio lleva preventDefault sí o sí, incluso con el zoom puesto, porque
+   la tecla desplaza la página por defecto y eso pasaría igualmente. */
+const conTeclas = (el, hacer) => el.addEventListener('keydown', ev => {
+  if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
+  ev.preventDefault();
+  if (zoomActivo) return;              /* ver el comentario del rótulo de arriba */
+  ev.stopPropagation();
+  hacer();
+});
+conTeclas($('pgCabeza'), () => alternarBurbuja('libros'));
+conTeclas($('pgVersion'), () => {
+  clearTimeout(relojVersion);
+  if (versionAbierta){ cerrarVersiones(); return; }
+  /* Con un panel delante el rótulo lo quita y nada más, igual que con el dedo:
+     el gesto es "quítame esto", no "enséñame las versiones". */
+  if (burbujaAbierta()){ cerrarTodosLosRollos(); return; }
+  abrirVersiones(true);
 });
 
 /* ============================================================
@@ -8846,7 +8904,7 @@ function pintarVersiones(){
       '<span class="bv-abrev">' + esc(v.abrev || k) + '</span>' +
       '<span class="bv-nombre">' + esc(v.nombre || k) + '</span></button>').join('');
 }
-function abrirVersiones(){
+function abrirVersiones(conTeclado){
   if (versionAbierta) return;
   cerrarTodosLosRollos(); cerrarHistorial();
   versionAbierta = true;
@@ -8856,13 +8914,39 @@ function abrirVersiones(){
   void el.offsetWidth;
   el.classList.add('visible');
   $('pgVersion').classList.add('abierta');
+  $('pgVersion').setAttribute('aria-expanded', 'true');
+  /* EL FOCO ENTRA EN EL GLOBO, PERO SOLO SI VINO DEL TECLADO. Las filas ya son
+     <button>, así que en cuanto el globo está puesto se recorren solas con el
+     tabulador; lo que faltaba es el salto de entrada, porque el foco se queda
+     en el rótulo y desde ahí el siguiente tabulador se va a otra parte.
+     Y solo con teclado: mover el foco después de un toque abre el teclado del
+     sistema en algunos aparatos y desplaza la hoja para "enseñar" lo que ya se
+     veía. Quien abre con el dedo no ha pedido nada de eso. */
+  if (conTeclado){
+    const fila = el.querySelector('.bv-fila.aqui') || el.querySelector('.bv-fila');
+    if (fila) fila.focus();
+  }
 }
 function cerrarVersiones(){
   if (!versionAbierta) return;
   versionAbierta = false;
   const el = $('burbujaVersion');
+  /* EL FOCO VUELVE AL RÓTULO, y solo si estaba dentro de lo que se cierra. Un
+     globo que se va con el foco puesto dentro lo deja en un elemento oculto, y
+     el navegador lo devuelve al <body>: el siguiente tabulador empieza otra vez
+     desde arriba y se pierde el sitio. Preguntando primero, cerrar el globo por
+     cualquier otro camino —un toque fuera, abrir un panel— no le roba el foco a
+     quien lo tuviera en otra parte. */
+  /* preventScroll porque este rótulo vive DENTRO del papel, y el papel se
+     corre de lado —así se llega a la columna de glosas—. Un focus() a secas le
+     pide al navegador que lo traiga a la vista, y eso devolvería el papel a su
+     sitio: cerrar el globo movería la hoja, que es un efecto que nadie pidió.
+     Dentro del globo sí se deja el desplazamiento: ahí traer la fila a la
+     vista es justo lo que hace falta si la lista no cabe entera. */
+  if (el.contains(document.activeElement)) $('pgVersion').focus({ preventScroll: true });
   el.classList.remove('visible');
   $('pgVersion').classList.remove('abierta');
+  $('pgVersion').setAttribute('aria-expanded', 'false');
   setTimeout(() => { if (!versionAbierta) el.style.display = 'none'; }, 260);
 }
 $('burbujaVersion').addEventListener('click', ev => {
@@ -9493,7 +9577,17 @@ function burbujaAbierta(){ return cantoAbierto || rFormato.abierto || rGlosas.ab
    Libros. Lo encontró la revisión de Codex. */
 function marcarCabeza(cerrando){
   const c = document.getElementById('pgCabeza');
-  if (c) c.classList.toggle('abierta', !cerrando && seccionViva === 'libros');
+  if (!c) return;
+  c.classList.toggle('abierta', !cerrando && seccionViva === 'libros');
+  /* EL ATRIBUTO NO DICE LO MISMO QUE LA CLASE, y por eso se calcula aparte.
+     La clase enciende el rótulo solo cuando lo que se ve es Libros —es el
+     aviso de "esto que abriste es lo mío"—. aria-expanded contesta otra
+     pregunta: si el panel que este rótulo abre está puesto. Cambiar a la
+     pestaña de Formato apaga la clase y NO cierra nada, así que un
+     aria-expanded copiado de la clase diría "cerrado" con el panel delante.
+     Se pone aquí porque marcarCabeza es por donde pasan las cuatro secciones
+     al abrirse y al cerrarse. */
+  c.setAttribute('aria-expanded', !cerrando && burbujaAbierta() ? 'true' : 'false');
 }
 function alternarBurbuja(seccion){
   /* Si ya está abierta pero en otra sección, no cierra: cambia. Cerrar sería
