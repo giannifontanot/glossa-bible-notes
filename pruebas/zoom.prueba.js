@@ -507,10 +507,17 @@ const comoVan = r => {
        acaba de encender—, y se quita en cuanto empieza otro toque. Un
        MouseEvent('click') a pelo no empieza ningún toque, así que el tragador
        seguía ahí y se comía también el toque de parar. */
+    /* Y TERMINA CON pointerup, que un toque de verdad se acaba. Sin él, el
+       desliz se queda abierto y bloquea el siguiente —«un solo desliz a la
+       vez»—: de aquí en adelante ningún gesto arrancaba nada, y las
+       comprobaciones que venían después pasaban en verde sin haber probado
+       nada. Lo destapó la tanda del acelerador. */
     const tocar = el => {
       el.dispatchEvent(new PointerEvent('pointerdown',
         { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
       el.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
+      el.dispatchEvent(new PointerEvent('pointerup',
+        { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
     };
     const aMedias = empujar(b[1], 30, 0);
     await new Promise(z => setTimeout(z, 400));
@@ -561,6 +568,146 @@ const comoVan = r => {
     return r;
   }));
   await p.waitForTimeout(400);
+
+  /* ================================================================
+     EL ACELERADOR: correr el botón a un lado corre las hojas.
+
+     Existe para buscar una hoja de lejos, que con el paso normal era quedarse
+     mirando un minuto largo. Y aquí hay una trampa que conviene tener escrita:
+     el ritmo de antes NO lo ponía un reloj, lo ponía el pliegue —cada hoja
+     esperaba a que la anterior terminara de girar, 620-780 ms—, así que
+     acortar la espera no habría hecho nada. Pasado cierto punto del recorrido
+     se deja de plegar y se repinta, y ESO es lo que da la velocidad.
+
+     Se mide contando hojas: cada repintado rehace #pgBody, así que un
+     observador sobre él es un cuentahojas honrado. Se piden dos ventanas del
+     mismo tiempo —una sin correr el botón y otra al tope— y se exige que la
+     segunda saque MUCHO más. El margen es de 2x y lo medido son 6x: un umbral
+     pegado a la medida canta fallos en cuanto la máquina va cargada. */
+  titulo('el acelerador corre las hojas de verdad');
+  di('hojas en la misma ventana', await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    /* El bloque de arriba se fue dejando el zoom cerrado, que es lo correcto.
+       Aquí se vuelve a entrar, y el último de esta pareja lo cierra otra vez. */
+    document.getElementById('btnZoom').click();
+    await pausa(1200);
+    const b = [...document.querySelectorAll('#zoomPasos [data-paso]')][1];
+    const r = b.getBoundingClientRect();
+    const x = r.left + r.width/2, y = r.top + r.height/2;
+    const ev = (t, ax, ay) => b.dispatchEvent(new PointerEvent(t,
+      { bubbles:true, cancelable:true, pointerId:9, pointerType:'touch',
+        clientX:ax, clientY:ay }));
+    /* Cada renderPage rehace el cuerpo de la hoja: contamos esos. */
+    const contar = async (corrida, ms) => {
+      let n = 0;
+      const obs = new MutationObserver(() => n++);
+      obs.observe(document.getElementById('pgBody'), { childList:true });
+      ev('pointerdown', x, y);
+      ev('pointermove', x, y - 8);
+      ev('pointermove', x, y - 30);            /* arma el automático */
+      if (corrida) ev('pointermove', x + corrida, y - 30);
+      await pausa(ms);
+      ev('pointerup', x + (corrida || 0), y - 30);
+      obs.disconnect();
+      await pausa(500);
+      /* Y se para, que la ventana siguiente empieza limpia. */
+      b.dispatchEvent(new PointerEvent('pointerdown',
+        { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
+      b.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
+      b.dispatchEvent(new PointerEvent('pointerup',
+        { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
+      await pausa(700);
+      return n;
+    };
+    const normal = await contar(0, 2500);
+    const alTope = await contar(200, 2500);
+    return { normal, alTope };
+  }).then(r => {
+    vale('sin correr el botón, pasan hojas', r.normal > 0, r.normal + ' hojas');
+    /* Con la normal en cero esto pasaba solo: 0 >= 0. Se exige que la normal
+       haya pasado hojas, o la comparación no dice nada. */
+    vale('al tope pasan MUCHAS más', r.normal > 0 && r.alTope >= r.normal * 2,
+         r.normal + ' → ' + r.alTope + ' hojas en la misma ventana');
+    return r;
+  }));
+
+  /* La otra mitad del acelerador: es de RESORTE. Al soltar, el botón vuelve al
+     centro y la velocidad a la normal, pero el automático sigue andando —lo
+     que se soltó fue el acelerador, no el motor—. */
+  di('al soltar el acelerador', await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const b = [...document.querySelectorAll('#zoomPasos [data-paso]')][1];
+    const r = b.getBoundingClientRect();
+    const x = r.left + r.width/2, y = r.top + r.height/2;
+    const ev = (t, ax, ay) => b.dispatchEvent(new PointerEvent(t,
+      { bubbles:true, cancelable:true, pointerId:9, pointerType:'touch',
+        clientX:ax, clientY:ay }));
+    ev('pointerdown', x, y);
+    ev('pointermove', x, y - 8);
+    ev('pointermove', x, y - 30);
+    /* El dedo se va hasta el borde de la pantalla: todo lo que se puede pedir. */
+    ev('pointermove', window.innerWidth - 1, y - 30);
+    const corrido = b.style.transform;
+    /* Y EL BOTÓN NO SE PUEDE SALIR DE LA ESCENA, que lleva overflow:hidden. Con
+       un recorrido fijo se salía 39 px en una pantalla de 320, o sea que a la
+       máxima velocidad que se podía poner el botón se veía cortado. */
+    const rb = b.getBoundingClientRect();
+    const st = document.querySelector('.stage').getBoundingClientRect();
+    const seSale = Math.round(Math.max(rb.right - st.right, st.left - rb.left));
+    ev('pointerup', window.innerWidth - 1, y - 30);
+    await pausa(400);
+    const trasSoltar = b.style.transform;
+    const sigue = getComputedStyle(b).backgroundColor;
+    b.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
+    b.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
+    b.dispatchEvent(new PointerEvent('pointerup',
+      { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
+    await pausa(700);
+    const parado = getComputedStyle(b).backgroundColor;
+    /* EL CANDADO: soltar el dedo FUERA del botón no puede dejar el mando
+       muerto. Estos botones se apagan solos al acabarse el libro, y un botón
+       deshabilitado no reparte eventos de puntero: quien deja el dedo puesto
+       mientras el automático llega al final se encontraba el pointerup sin
+       destino, el desliz sin cerrar, y a partir de ahí NINGUNO de los dos
+       volvía a armar nada. Aquí se baja el dedo en el botón y se levanta en la
+       esquina de la pantalla; después se pide otro arranque, que es lo que
+       antes ya no llegaba. */
+    b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, cancelable:true,
+      pointerId:9, pointerType:'touch', clientX:x, clientY:y }));
+    window.dispatchEvent(new PointerEvent('pointerup', { bubbles:true, cancelable:true,
+      pointerId:9, pointerType:'touch', clientX:5, clientY:5 }));
+    await pausa(200);
+    ev('pointerdown', x, y); ev('pointermove', x, y - 8); ev('pointermove', x, y - 30);
+    await pausa(400);
+    const trasSoltarFuera = getComputedStyle(b).backgroundColor;
+    ev('pointerup', x, y - 30);
+    await pausa(200);
+    b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, cancelable:true,
+      pointerId:11, pointerType:'touch' }));
+    b.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
+    b.dispatchEvent(new PointerEvent('pointerup', { bubbles:true, cancelable:true,
+      pointerId:11, pointerType:'touch' }));
+    await pausa(700);
+    /* Y se devuelve el estado como se encontró: la sección siguiente entra al
+       zoom con btnZoom, que es un interruptor. Salir por el hueco. */
+    const rp = document.querySelector('#pg .pg-inner').getBoundingClientRect();
+    document.getElementById('pg').dispatchEvent(new MouseEvent('click',
+      { bubbles:true, clientX:Math.round(rp.left + rp.width/2),
+        clientY:Math.round(rp.bottom + 60) }));
+    await pausa(800);
+    return { corrido, trasSoltar, sigue, parado, seSale, trasSoltarFuera };
+  }).then(r => {
+    vale('el botón se corre con el dedo', /translateX\(\d/.test(r.corrido || ''),
+         r.corrido || '(nada)');
+    vale('  y no se sale de la escena', r.seSale <= 0, r.seSale + 'px');
+    vale('  y al soltar vuelve al centro', !r.trasSoltar, r.trasSoltar || '(sin transform)');
+    vale('  pero el automático sigue', mismoColor(r.sigue, MARRON), r.sigue);
+    vale('  y un toque lo para', !mismoColor(r.parado, MARRON), r.parado);
+    vale('soltar el dedo fuera no deja el mando muerto',
+         mismoColor(r.trasSoltarFuera, MARRON), r.trasSoltarFuera);
+    return r;
+  }));
 
   titulo('un botón encendido no parece apagado');
   /* Estaban al 62% de opacidad por discreción, y la discreción se leyó como
