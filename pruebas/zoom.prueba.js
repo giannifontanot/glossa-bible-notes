@@ -634,9 +634,16 @@ const comoVan = r => {
     ev('pointerdown', x, y);
     ev('pointermove', x, y - 8);
     ev('pointermove', x, y - 30);
-    ev('pointermove', x + 200, y - 30);
+    /* El dedo se va hasta el borde de la pantalla: todo lo que se puede pedir. */
+    ev('pointermove', window.innerWidth - 1, y - 30);
     const corrido = b.style.transform;
-    ev('pointerup', x + 200, y - 30);
+    /* Y EL BOTÓN NO SE PUEDE SALIR DE LA ESCENA, que lleva overflow:hidden. Con
+       un recorrido fijo se salía 39 px en una pantalla de 320, o sea que a la
+       máxima velocidad que se podía poner el botón se veía cortado. */
+    const rb = b.getBoundingClientRect();
+    const st = document.querySelector('.stage').getBoundingClientRect();
+    const seSale = Math.round(Math.max(rb.right - st.right, st.left - rb.left));
+    ev('pointerup', window.innerWidth - 1, y - 30);
     await pausa(400);
     const trasSoltar = b.style.transform;
     const sigue = getComputedStyle(b).backgroundColor;
@@ -652,10 +659,11 @@ const comoVan = r => {
       { bubbles:true, clientX:Math.round(rp.left + rp.width/2),
         clientY:Math.round(rp.bottom + 60) }));
     await pausa(800);
-    return { corrido, trasSoltar, sigue, parado };
+    return { corrido, trasSoltar, sigue, parado, seSale };
   }).then(r => {
     vale('el botón se corre con el dedo', /translateX\(\d/.test(r.corrido || ''),
          r.corrido || '(nada)');
+    vale('  y no se sale de la escena', r.seSale <= 0, r.seSale + 'px');
     vale('  y al soltar vuelve al centro', !r.trasSoltar, r.trasSoltar || '(sin transform)');
     vale('  pero el automático sigue', mismoColor(r.sigue, MARRON), r.sigue);
     vale('  y un toque lo para', !mismoColor(r.parado, MARRON), r.parado);

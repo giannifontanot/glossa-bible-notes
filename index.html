@@ -2577,7 +2577,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '31-AGO-26 07:41';
+window.GLOSS_BUILD = '31-AGO-26 07:51';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8103,6 +8103,7 @@ const ladoDePaso = b => (+b.dataset.paso > 0 ? 'right' : 'left');
    el dedo puesto y se suelta al llegar. Dejarlo corrido obligaba a volver a
    tocar para recuperar el paso normal. */
 const CORRIDA_MAX = 132;      /* px de recorrido lateral hasta el tope */
+const CORRIDA_MIN = 56;       /* y lo menos que se le deja, por estrecha que sea */
 const SIN_PLIEGUE = 0.55;     /* de aquí en adelante se deja de plegar */
 const MS_PLIEGUE_CORTO = 200; /* lo más corto que se pliega antes del corte */
 const ESPERA_BARRIDO = [120, 46];   /* ms entre hojas, del corte al tope */
@@ -8197,15 +8198,40 @@ function ponerTiron(b, dy){
 function ponerCorrida(b, dx){
   b.style.transform = dx ? 'translateX(' + dx + 'px)' : '';
 }
+/* EL RECORRIDO SE MIDE CONTRA LA PANTALLA QUE HAY, no contra un número fijo.
+
+   Con CORRIDA_MAX a pelo, en un teléfono estrecho el tope no se alcanzaba
+   nunca: medido en 320 px de ancho, el dedo solo tiene 111 px hasta el borde
+   —de los 132 que pedía— así que la velocidad se quedaba en el 84% y los 46 ms
+   del barrido más rápido eran inalcanzables. Y peor: el botón se salía 39 px
+   de la escena, que lleva overflow:hidden, o sea que a la máxima velocidad que
+   sí se podía poner el botón se veía cortado por la mitad.
+
+   Así que el tope de ESTE gesto es el menor de tres: lo que pide el diseño, lo
+   que le queda al BOTÓN antes de salirse de la escena, y lo que le queda al
+   DEDO antes del borde de la pantalla. Con eso el tope se alcanza siempre, sea
+   cual sea el ancho, y el botón nunca se recorta. El suelo está para que en un
+   ancho absurdo no acabe siendo un gatillo de pelo. Lo levantó Codex. */
+function topeAcelerador(t){
+  const r = t.b.getBoundingClientRect();
+  const caja = document.querySelector('.stage');
+  const e = caja ? caja.getBoundingClientRect()
+                 : { left: 0, right: window.innerWidth };
+  const haciaLaDerecha = ladoDePaso(t.b) === 'right';
+  const sitioBoton = haciaLaDerecha ? e.right - r.right : r.left - e.left;
+  const sitioDedo  = haciaLaDerecha ? window.innerWidth - t.x : t.x;
+  return Math.max(CORRIDA_MIN, Math.min(CORRIDA_MAX, sitioBoton, sitioDedo));
+}
 /* CUÁNTO ACELERA ESTE DEDO. Solo cuenta lo que se aleja del centro HACIA SU
    LADO: el botón de adelantar acelera yendo a la derecha y el de retroceder
    yendo a la izquierda, que es hacia donde ya va la hoja. Traerlo de vuelta al
    centro devuelve el paso normal, y pasarse al otro lado no lo pone del revés
    —para eso está el otro botón—: se queda en cero. */
 function ponerAcelerador(t, dx){
+  const tope = t.tope || CORRIDA_MAX;
   const haciaFuera = ladoDePaso(t.b) === 'right' ? dx : -dx;
-  const corrida = Math.min(Math.max(haciaFuera, 0), CORRIDA_MAX);
-  veloZoom = corrida / CORRIDA_MAX;
+  const corrida = Math.min(Math.max(haciaFuera, 0), tope);
+  veloZoom = corrida / tope;
   if (corrida > 0) t.corrio = true;
   ponerCorrida(t.b, ladoDePaso(t.b) === 'right' ? corrida : -corrida);
 }
@@ -8220,7 +8246,7 @@ $('zoomPasos').addEventListener('pointerdown', ev => {
      todavía como gesto —un toque a secas sobre el botón en marcha tiene que
      seguir parando—; lo que decide es si el dedo llega a correrse, y eso lo
      marca t.corrio. */
-  if (dirZoomAuto === ladoDePaso(b)) tiron.vivo = false;
+  if (dirZoomAuto === ladoDePaso(b)){ tiron.vivo = false; tiron.tope = topeAcelerador(tiron); }
   /* Con la captura, el dedo puede salirse del botón sin perder el gesto: al
      subir 24 px desde el borde de arriba ya se está fuera, que es lo normal.
      Y corriéndose a los lados se sale mucho más todavía. */
@@ -8244,6 +8270,7 @@ $('zoomPasos').addEventListener('pointermove', ev => {
        píxeles de desviación lateral, y contándolos desde el origen el
        automático arrancaría ya corriendo sin que nadie lo hubiera pedido. */
     tiron.x = ev.clientX;
+    tiron.tope = topeAcelerador(tiron);     /* con la x ya puesta, que la usa */
     return;
   }
   /* De aquí en adelante el dedo manda la velocidad, y solo si hay automático:
