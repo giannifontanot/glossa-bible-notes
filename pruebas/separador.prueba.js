@@ -82,6 +82,20 @@ async function andamio(p){
                                   r.top >= cab.bottom - 1 || r.bottom <= cab.top + 1),
                enPantalla: r.left >= -1 && r.right <= window.innerWidth + 1 };
     };
+    /* El estado de la cinta como objeto del DOM: cuántas hay puestas, si se
+       ve, y si quedó atrapada en alguna de las clases de la animación. Es lo
+       único que distingue «entró bien» de «se quedó esperando». */
+    window.__cintaEstado = () => {
+      const perchas = document.querySelectorAll('#sepPercha, .sep-percha').length;
+      const btn = document.querySelector('#sepPercha .separador');
+      if (!btn) return { perchas, hay:false };
+      const cs = getComputedStyle(btn);
+      return { perchas, hay:true,
+               opacidad: Math.round(parseFloat(cs.opacity) * 100) / 100,
+               esperando: btn.classList.contains('sep-espera'),
+               saliendo: btn.classList.contains('saliendo'),
+               ancho: Math.round(btn.getBoundingClientRect().width) };
+    };
     window.__desborde = () =>
       document.documentElement.scrollWidth > document.documentElement.clientWidth;
     /* Con el cajón abierto se ve la columna de glosas: en teléfono la hoja es
@@ -233,11 +247,14 @@ async function ponerAMano(p){
     await window.__toque('.separador');
     await window.__pausa(450);
     const m = window.__menu();
+    /* La referencia lleva pegado el «· aquí» cuando la cinta cae en esta
+       hoja, y la marca de «aquí» vive en el .sp-fila de fuera, no en el
+       botón: el botón es solo el trozo que se toca para ir. */
     const filas = [...document.querySelectorAll('[data-sep-ir]')]
-      .map(f => f.querySelector('.sp-ref').textContent.trim());
+      .map(f => f.querySelector('.sp-ref').textContent.trim().split('·')[0].trim());
     /* La fila que NO es la de aquí: la de la otra hoja. */
     const otra = [...document.querySelectorAll('[data-sep-ir]')]
-      .find(f => !f.classList.contains('aqui'));
+      .find(f => !f.closest('.sp-fila').classList.contains('aqui'));
     await window.__toque(otra);
     await window.__pausa(3600);
     return { segunda, filas, dos: m ? m.filas : 0,
@@ -315,6 +332,71 @@ async function ponerAMano(p){
   });
   vale('no pregunta nada', !deprisa.oferta);
   vale('ni pone cintas solo', deprisa.guardadas === 1, deprisa.guardadas);
+
+  /* ---------------------------------------------------------------- */
+  titulo('la cinta aguanta el ir y venir de hojas');
+  /* Aquí no hay red y la hubo que poner: la cinta entra y sale con el pliegue
+     —se esconde al plegar, vuelve al descubrir— y eso son cuatro clases y un
+     contador de generación entre animaciones que se solapan, que es la forma
+     exacta de los dos fallos que mataron este programa. Lo que se vigila es
+     que después de cada vuelta haya UNA cinta, visible, y ninguna atrapada en
+     el estado de espera o de salida. */
+  const vaiven = await p.evaluate(async () => {
+    const base = window.__guardadas().length;   /* lo que ya había de antes */
+    await window.__toque('#btnHistorial');
+    await window.__pausa(450);
+    await window.__toque('[data-sep-nuevo]');
+    await window.__pausa(900);
+    const puesta = window.__cintaEstado();
+    const pasos = [];
+    /* Ocho vueltas, y las últimas atropelladas: encimar el pliegue con la
+       entrada de la cinta es justo donde se perdía. */
+    const lados = ['right','right','left','right','left','left','right','right'];
+    for (let i = 0; i < lados.length; i++){
+      await window.__pasar(lados[i]);
+      if (i >= 5) await window.__pausa(120); else await window.__pausa(500);
+      pasos.push(window.__cintaEstado());
+    }
+    await window.__pausa(1600);
+    return { base, puesta, pasos, final: window.__cintaEstado(),
+             guardadas: window.__guardadas().length };
+  });
+  di('al ponerla', vaiven.puesta);
+  di('al final', vaiven.final);
+  vale('la cinta se pone', vaiven.puesta.hay && vaiven.puesta.perchas === 1);
+  vale('sigue puesta en las ocho vueltas',
+       vaiven.pasos.every(x => x.hay), vaiven.pasos.filter(x => !x.hay).length + ' sin cinta');
+  vale('y nunca hay dos', vaiven.pasos.every(x => x.perchas === 1) &&
+       vaiven.final.perchas === 1);
+  vale('no se queda esperando ni saliendo',
+       !vaiven.final.esperando && !vaiven.final.saliendo, vaiven.final);
+  vale('y se ve al terminar', vaiven.final.hay && vaiven.final.opacidad === 1 &&
+       vaiven.final.ancho > 8, vaiven.final.opacidad + ' de opacidad');
+  vale('sin duplicarse en el almacén', vaiven.guardadas === vaiven.base + 1,
+       vaiven.base + ' → ' + vaiven.guardadas);
+
+  titulo('y se va del todo al borrarla');
+  const borradaDelTodo = await p.evaluate(async () => {
+    await window.__abrirCajon();
+    await window.__toque('.separador');
+    await window.__pausa(450);
+    await window.__toque('[data-sep-x]');
+    await window.__pausa(400);
+    await window.__toque('[data-sep-borrar]');
+    await window.__pausa(1200);
+    const tras = window.__cintaEstado();
+    /* Y al pasar hoja no reaparece un nodo huérfano. */
+    await window.__pasar('right');
+    await window.__pausa(700);
+    return { tras, trasPasar: window.__cintaEstado(),
+             guardadas: window.__guardadas().length };
+  });
+  di('tras borrar', borradaDelTodo.tras);
+  vale('no queda cinta', !borradaDelTodo.tras.hay && borradaDelTodo.tras.perchas === 0);
+  vale('ni reaparece al pasar hoja', !borradaDelTodo.trasPasar.hay &&
+       borradaDelTodo.trasPasar.perchas === 0);
+  vale('y el almacén vuelve a lo que había', borradaDelTodo.guardadas === vaiven.base,
+       vaiven.base + ' vs ' + borradaDelTodo.guardadas);
 
   /* ---------------------------------------------------------------- */
   titulo('un salto no arrastra la cinta activa');
@@ -473,15 +555,28 @@ async function ponerAMano(p){
        haciaAtras.antes + '  →  ' + haciaAtras.despues);
 
   titulo('la cinta vieja se queda donde la dejaron');
-  /* Se pone otra a mano (queda como activa). Al seguir leyendo, solo la
-     nueva se mueve; la anterior se queda en la referencia que tenía. */
+  /* Para tener una quieta y una activa hace falta SALTAR, no retroceder: la
+     activa se viene al pasar hoja en los dos sentidos, así que hacia atrás
+     seguiría pegada al lector y el botón abriría su menú en vez de poner
+     otra. Un salto por el rastro sí la deja donde estaba. */
+  /* Dos referencias DISTINTAS: el rastro se pinta sin ecos, así que dos
+     iguales seguidas dejarían el panel sin paso atrás que tocar. */
+  await p2.evaluate(() => localStorage.setItem('glossa:historial:v1', JSON.stringify([
+    { libro:'MAT', cap:5, vers:1, t:Date.now() },
+    { libro:'MAT', cap:1, vers:1, t:Date.now() - 1 }])));
   const vieja = await p2.evaluate(async () => {
     const quieta = window.__guardadas()[0];
     const quietaRef = quieta.id + '@' + quieta.cap + ':' + quieta.vers;
+    /* El paso atrás del rastro: un salto de verdad. */
     await window.__toque('#btnHistorial');
-    await window.__pausa(420);
+    await window.__pausa(450);
+    const atras = document.querySelector('[data-atras]');
+    if (atras){ await window.__toque(atras); await window.__pausa(2600); }
+    /* Y aquí, lejos de la quieta, se pone otra a mano. */
+    await window.__toque('#btnHistorial');
+    await window.__pausa(450);
     await window.__toque('[data-sep-nuevo]');
-    await window.__pausa(700);
+    await window.__pausa(800);
     const dos = window.__guardadas().length;
     const antes = window.__guardadas().map(x => x.id + '@' + x.cap + ':' + x.vers);
     for (let i = 0; i < 3; i++) await window.__pasar('right');

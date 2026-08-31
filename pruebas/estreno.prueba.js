@@ -14,7 +14,8 @@
    unos números escritos a ojo señalan el sitio equivocado en cuanto cambia una
    coma: aquí se exige que el trozo del versículo que va de ini a fin sea
    exactamente la frase que la glosa dice estar citando. */
-const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
+const { abrir, listo, cerrar, cerrarParcial, di, vale, titulo,
+        APP, TELEFONO } = require('./comun');
 
 const ESPERADAS = [
   { vers:1, cita:'Hijo de David',      color:'yellow' },
@@ -206,6 +207,43 @@ const ESPERADAS = [
                        r.sembradas === minimo, r.sembradas);
       return r;
     }));
+  }
+
+  /* LA PORTADA. Tapa la mesa mientras se pinta la primera hoja, y encima
+     tiene un mínimo de tiempo para que el letrero se lea. Mientras está
+     puesta se come TODO lo que toques: es una capa fija a pantalla completa.
+     Esto lo vigila por los dos lados —que tape al principio, y que después
+     se quite del todo y devuelva los toques—, porque cuando se quedó puesta
+     de más el síntoma no se parecía nada a la causa: la caja de la glosa no
+     abría, las marcas no respondían, y todo eso desde una tapa invisible que
+     ya estaba transparente pero seguía delante. */
+  titulo('la portada se pone y se quita');
+  {
+    const p2 = await sesion.navegador.newPage({ ...TELEFONO });
+    const fallos2 = [];
+    p2.on('pageerror', e => fallos2.push(String(e).split('\n')[0]));
+    await p2.goto(APP);
+    const alPrincipio = await p2.evaluate(() => {
+      const e = document.getElementById('portada');
+      return { existe: !!e, tapando: !!e && !e.classList.contains('fuera') };
+    });
+    vale('al abrir está puesta', alPrincipio.existe && alPrincipio.tapando, alPrincipio);
+
+    await listo(p2);
+    const despues = await p2.evaluate(() => {
+      const e = document.getElementById('portada');
+      const fuera = !e || e.classList.contains('fuera');
+      /* el punto de en medio del cuerpo del texto: lo que el lector toca */
+      const c = document.getElementById('pgBody').getBoundingClientRect();
+      const x = Math.round(c.left + c.width / 2), y = Math.round(c.top + c.height / 2);
+      const encima = document.elementFromPoint(x, y);
+      return { fuera, dentroDelCuerpo: !!encima && !!encima.closest('#pgBody'),
+               quienTapa: encima ? (encima.id || encima.className || encima.tagName) : '(nadie)' };
+    });
+    vale('luego se va', despues.fuera, despues.fuera);
+    vale('  y el toque llega al texto', despues.dentroDelCuerpo, despues.quienTapa);
+    vale('  sin errores (portada)', fallos2.length === 0, fallos2.length ? fallos2 : 'ninguno');
+    await p2.close();
   }
 
   await cerrar(sesion);
