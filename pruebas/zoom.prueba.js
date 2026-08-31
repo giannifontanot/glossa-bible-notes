@@ -507,10 +507,17 @@ const comoVan = r => {
        acaba de encender—, y se quita en cuanto empieza otro toque. Un
        MouseEvent('click') a pelo no empieza ningún toque, así que el tragador
        seguía ahí y se comía también el toque de parar. */
+    /* Y TERMINA CON pointerup, que un toque de verdad se acaba. Sin él, el
+       desliz se queda abierto y bloquea el siguiente —«un solo desliz a la
+       vez»—: de aquí en adelante ningún gesto arrancaba nada, y las
+       comprobaciones que venían después pasaban en verde sin haber probado
+       nada. Lo destapó la tanda del acelerador. */
     const tocar = el => {
       el.dispatchEvent(new PointerEvent('pointerdown',
         { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
       el.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
+      el.dispatchEvent(new PointerEvent('pointerup',
+        { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
     };
     const aMedias = empujar(b[1], 30, 0);
     await new Promise(z => setTimeout(z, 400));
@@ -607,6 +614,8 @@ const comoVan = r => {
       b.dispatchEvent(new PointerEvent('pointerdown',
         { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
       b.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
+      b.dispatchEvent(new PointerEvent('pointerup',
+        { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
       await pausa(700);
       return n;
     };
@@ -615,7 +624,9 @@ const comoVan = r => {
     return { normal, alTope };
   }).then(r => {
     vale('sin correr el botón, pasan hojas', r.normal > 0, r.normal + ' hojas');
-    vale('al tope pasan MUCHAS más', r.alTope >= r.normal * 2,
+    /* Con la normal en cero esto pasaba solo: 0 >= 0. Se exige que la normal
+       haya pasado hojas, o la comparación no dice nada. */
+    vale('al tope pasan MUCHAS más', r.normal > 0 && r.alTope >= r.normal * 2,
          r.normal + ' → ' + r.alTope + ' hojas en la misma ventana');
     return r;
   }));
@@ -650,8 +661,34 @@ const comoVan = r => {
     b.dispatchEvent(new PointerEvent('pointerdown',
       { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
     b.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
+    b.dispatchEvent(new PointerEvent('pointerup',
+      { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
     await pausa(700);
     const parado = getComputedStyle(b).backgroundColor;
+    /* EL CANDADO: soltar el dedo FUERA del botón no puede dejar el mando
+       muerto. Estos botones se apagan solos al acabarse el libro, y un botón
+       deshabilitado no reparte eventos de puntero: quien deja el dedo puesto
+       mientras el automático llega al final se encontraba el pointerup sin
+       destino, el desliz sin cerrar, y a partir de ahí NINGUNO de los dos
+       volvía a armar nada. Aquí se baja el dedo en el botón y se levanta en la
+       esquina de la pantalla; después se pide otro arranque, que es lo que
+       antes ya no llegaba. */
+    b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, cancelable:true,
+      pointerId:9, pointerType:'touch', clientX:x, clientY:y }));
+    window.dispatchEvent(new PointerEvent('pointerup', { bubbles:true, cancelable:true,
+      pointerId:9, pointerType:'touch', clientX:5, clientY:5 }));
+    await pausa(200);
+    ev('pointerdown', x, y); ev('pointermove', x, y - 8); ev('pointermove', x, y - 30);
+    await pausa(400);
+    const trasSoltarFuera = getComputedStyle(b).backgroundColor;
+    ev('pointerup', x, y - 30);
+    await pausa(200);
+    b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, cancelable:true,
+      pointerId:11, pointerType:'touch' }));
+    b.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
+    b.dispatchEvent(new PointerEvent('pointerup', { bubbles:true, cancelable:true,
+      pointerId:11, pointerType:'touch' }));
+    await pausa(700);
     /* Y se devuelve el estado como se encontró: la sección siguiente entra al
        zoom con btnZoom, que es un interruptor. Salir por el hueco. */
     const rp = document.querySelector('#pg .pg-inner').getBoundingClientRect();
@@ -659,7 +696,7 @@ const comoVan = r => {
       { bubbles:true, clientX:Math.round(rp.left + rp.width/2),
         clientY:Math.round(rp.bottom + 60) }));
     await pausa(800);
-    return { corrido, trasSoltar, sigue, parado, seSale };
+    return { corrido, trasSoltar, sigue, parado, seSale, trasSoltarFuera };
   }).then(r => {
     vale('el botón se corre con el dedo', /translateX\(\d/.test(r.corrido || ''),
          r.corrido || '(nada)');
@@ -667,6 +704,8 @@ const comoVan = r => {
     vale('  y al soltar vuelve al centro', !r.trasSoltar, r.trasSoltar || '(sin transform)');
     vale('  pero el automático sigue', mismoColor(r.sigue, MARRON), r.sigue);
     vale('  y un toque lo para', !mismoColor(r.parado, MARRON), r.parado);
+    vale('soltar el dedo fuera no deja el mando muerto',
+         mismoColor(r.trasSoltarFuera, MARRON), r.trasSoltarFuera);
     return r;
   }));
 

@@ -2577,7 +2577,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '31-AGO-26 07:51';
+window.GLOSS_BUILD = '31-AGO-26 11:07';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8306,11 +8306,31 @@ const soltarTiron = (ev, hubo) => {
      es como se para. */
   if (hubo && (t.arranco || t.corrio)) tragarElClic();
 };
-$('zoomPasos').addEventListener('pointerup', ev => soltarTiron(ev, true));
+/* EL FINAL DEL GESTO SE ESCUCHA EN LA VENTANA, no en el botón, y esto es un
+   candado de verdad que estaba puesto.
+
+   Colgando de #zoomPasos, un dedo que se levanta en cualquier otro sitio deja
+   el desliz sin cerrar. Y `tiron` abierto bloquea el siguiente —«un solo
+   desliz a la vez: con dos dedos encima gana el primero»—, o sea que a partir
+   de ahí NINGUNO de los dos botones vuelve a armar el automático. Para
+   siempre, hasta recargar.
+
+   No es hipotético: estos botones SE APAGAN solos cuando se acaba el libro, y
+   refrescarPasos corre en cada hoja. Quien deja el dedo puesto mientras el
+   automático llega a Apocalipsis se encuentra el botón deshabilitado debajo
+   del dedo, y un botón deshabilitado no reparte eventos de puntero: el
+   pointerup no llega, el desliz no se cierra, y el mando queda muerto. Es el
+   mismo agujero que el del respaldo —un estado que se pide y no se suelta—
+   por otra puerta.
+
+   En la ventana se cierra siempre, aterrice donde aterrice. soltarTiron ya
+   comprueba que el pointerId sea el suyo, así que escuchar de más no confunde
+   un gesto con otro. */
+window.addEventListener('pointerup', ev => soltarTiron(ev, true));
 /* Un desliz cancelado —el navegador se quedó con el gesto— no acaba en clic,
    así que aquí no hay nada que tragarse: hacerlo se comería el toque
    siguiente, que sí es de alguien. */
-$('zoomPasos').addEventListener('pointercancel', ev => soltarTiron(ev, false));
+window.addEventListener('pointercancel', ev => soltarTiron(ev, false));
 /* QUÉ CUENTA COMO CONTENIDO DE LA HOJA. Es la misma familia que ya usa el
    cajón para decidir qué no se puede agarrar para arrastrar, y por el mismo
    motivo: son las cosas que tienen algo que hacer con tu dedo. */
