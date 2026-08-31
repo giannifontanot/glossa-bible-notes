@@ -102,10 +102,20 @@ const guardadas = () => {
     await pausa(300);
     const trasSoltar = { panel: getComputedStyle(document.getElementById('menu')).display,
                          guardadas: lee().length };
-    /* El toque de confirmar, encima de lo seleccionado. */
+    /* El toque de confirmar, encima de lo seleccionado. Y LA SELECCIÓN SE
+       DESHACE EN MEDIO, entre el pointerdown y el pointerup, que es lo que
+       hace el navegador de verdad y lo que rompía el guardado. Un
+       PointerEvent despachado a mano no trae la acción por defecto que la
+       deshace, así que sin esta línea la selección seguiría puesta al
+       preguntar: el programa tomaría el camino de siempre —el del
+       arrastre— y esta prueba pasaría en verde aunque el arreglo no
+       existiera. */
     const el = document.elementFromPoint(mx, y);
     el.dispatchEvent(new PointerEvent('pointerdown', op(71, mx)));
     await pausa(30);
+    getSelection().removeAllRanges();
+    await pausa(60);
+    const deshecha = getSelection().toString();
     el.dispatchEvent(new PointerEvent('pointerup', op(71, mx)));
     await pausa(450);
     const caja = document.getElementById('glosaCaja');
@@ -118,10 +128,12 @@ const guardadas = () => {
       await pausa(700);
     }
     const puesta = lee().find(m => (m.nota||'') === 'lo que seleccioné') || null;
-    return { base, texto, trasSoltar, abrio, puesta, guardadas: lee().length };
+    return { base, texto, deshecha, trasSoltar, abrio, puesta, guardadas: lee().length };
   });
   di('lo seleccionado', tarde.texto);
   di('la glosa que quedó', tarde.puesta && tarde.puesta.cita);
+  vale('y al tocar ya no había selección', tarde.deshecha === '',
+       '«' + tarde.deshecha + '»');
   vale('el toque abre la caja', tarde.abrio);
   vale('y lo escrito se guarda', tarde.guardadas === tarde.base + 1,
        tarde.base + ' → ' + tarde.guardadas);
@@ -147,7 +159,10 @@ const guardadas = () => {
     await pausa(120);
     getSelection().removeAllRanges(); getSelection().addRange(rg);
     await pausa(300);
-    /* Un toque muy por debajo: otro versículo, lejos de lo marcado. */
+    /* Un toque muy por debajo: otro versículo, lejos de lo marcado. Y la
+       selección se deshace en medio, como la deshace el navegador: sin eso
+       el programa vería una selección viva y estaría probándose el camino
+       del arrastre, que no es el de aquí. */
     const otro = document.querySelectorAll('#pgBody .v')[9] ||
                  document.querySelectorAll('#pgBody .v')[7];
     const r2 = otro.getBoundingClientRect();
@@ -155,15 +170,38 @@ const guardadas = () => {
     const el = document.elementFromPoint(x, y) || otro;
     el.dispatchEvent(new PointerEvent('pointerdown', op(81, x, y)));
     await pausa(30);
+    getSelection().removeAllRanges();
+    await pausa(60);
     el.dispatchEvent(new PointerEvent('pointerup', op(81, x, y)));
     await pausa(450);
     const caja = document.getElementById('glosaCaja');
     if (caja) document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await pausa(500);
-    return { base, guardadas: lee().length };
+    const trasElLejano = lee().length;
+    /* Y AHORA LA VUELTA: tocar OTRA VEZ, ya encima de lo que se había
+       seleccionado. El toque de antes fue una cancelación —el lector tocó en
+       otro sitio—, así que lo apuntado tiene que estar olvidado. Si
+       sobreviviera, este segundo toque abriría una glosa sobre unas palabras
+       que hace rato dejaron de estar seleccionadas: una marca que nadie
+       pidió. */
+    const c2 = rg.getBoundingClientRect();
+    const vx = Math.round(c2.left + c2.width/2), vy = Math.round(c2.top + c2.height/2);
+    const el2 = document.elementFromPoint(vx, vy) || v;
+    el2.dispatchEvent(new PointerEvent('pointerdown', op(82, vx, vy)));
+    await pausa(30);
+    el2.dispatchEvent(new PointerEvent('pointerup', op(82, vx, vy)));
+    await pausa(450);
+    const caja2 = document.getElementById('glosaCaja');
+    const abrioCaja = !!caja2;
+    if (caja2) document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await pausa(500);
+    return { base, trasElLejano, abrioCaja, guardadas: lee().length };
   });
-  vale('no se guarda ninguna glosa nueva', lejos.guardadas === lejos.base,
-       lejos.base + ' → ' + lejos.guardadas);
+  vale('no se guarda ninguna glosa nueva', lejos.trasElLejano === lejos.base,
+       lejos.base + ' → ' + lejos.trasElLejano);
+  vale('y volver a tocarla ya no la resucita', !lejos.abrioCaja &&
+       lejos.guardadas === lejos.base, lejos.base + ' → ' + lejos.guardadas +
+       (lejos.abrioCaja ? '  (¡abrió la caja!)' : ''));
 
   titulo('el panel al nacer');
   const base = await p.evaluate(
