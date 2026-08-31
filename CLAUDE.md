@@ -1,5 +1,9 @@
 # Glossa · notas para quien toque este código
 
+> **Las dos que no se saltan:** subir el sello de la versión en el mismo commit
+> que el cambio, y **avisar antes de correr cualquier prueba** en vez de
+> lanzarla. Las dos están explicadas abajo.
+
 ## SIEMPRE: el sello de la versión
 
 **Cada vez que se cambia el código, se actualiza el sello de compilación.** Es
@@ -46,15 +50,30 @@ Y una cuarta, aprendida con el arreglo de la selección: **un evento despachado
 a mano siempre llega, y el de un teléfono no.** Si un arreglo se apoya en ver
 un `pointerdown`, escribe la prueba que lo manda *sin* él.
 
-Correr:
+### SIEMPRE: avisar antes de correr las pruebas
+
+**No se lanza ninguna prueba sin avisar primero.** Se dice qué hace falta
+correr y por qué, y ahí se para. La decisión de quién las corre es del dueño
+del repo, no de quien escribió el cambio: puede correrlas él, o pasárselas a
+otro LLM que las ejecute y devuelva el resultado de la manera que sea.
+
+Así que el orden es este, sin saltarse pasos:
+
+1. Se termina el cambio y se dice **qué pruebas hacen falta y por qué**, con
+   el comando exacto y a ojo cuánto tardan.
+2. Se **espera**. No se lanza nada mientras tanto.
+3. Llega el resultado —lo corra quien lo corra— y se sigue desde ahí.
+
+El comando:
 
 ```sh
 npm test                    # todas
 npm test -- glosas filo     # solo las que contengan eso en el nombre
 ```
 
-Son lentas (minutos). Si hace falta la pasada completa y no es tuya la máquina
-que la va a correr, di el comando exacto y espera el resultado.
+Son lentas: minutos por suite, y la tanda entera pasa de la hora. Esa es
+justamente la razón de avisar antes en vez de ponerse a correrlas: el tiempo
+de máquina es de quien lo paga.
 
 ## Git
 
