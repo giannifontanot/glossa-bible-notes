@@ -141,6 +141,61 @@ const guardadas = () => {
        !!tarde.puesta && tarde.puesta.cita === tarde.texto,
        (tarde.puesta && tarde.puesta.cita) + '  vs  ' + tarde.texto);
 
+  /* ================================================================
+     EL TOQUE QUE NO TRAE POINTERDOWN, que es el del teléfono de verdad.
+
+     Cuando tocas encima de lo que acabas de seleccionar, el toque se lo queda
+     la capa de la selección —los tiradores, el menú de copiar—: el
+     pointerdown no llega a la hoja, y a la hoja solo le consta que la
+     selección se deshizo y que hubo un soltar. Todo arreglo que se apoye en
+     ver bajar el dedo se cae justo aquí, y no se nota en las pruebas porque
+     un PointerEvent despachado a mano SIEMPRE llega.
+
+     Así que este bloque manda el soltar A SOLAS, sin pointerdown ninguno.
+     Es la prueba que le faltaba al arreglo: si mañana el olvido vuelve a
+     colgarse de ver el gesto entero, esto se pone rojo. */
+  titulo('en el teléfono el toque llega sin pointerdown, y aun así guarda');
+  const sinBajada = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const lee = () => { try { return JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]'); }
+                        catch(e){ return []; } };
+    const base = lee().length;
+    const v = document.querySelectorAll('#pgBody .v')[2];
+    const t = [...v.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim().length > 25);
+    if (!t) return { error:'sin versículo largo' };
+    const rg = document.createRange(); rg.setStart(t, 3); rg.setEnd(t, 19);
+    const c = rg.getBoundingClientRect();
+    const mx = Math.round(c.left + c.width/2), my = Math.round(c.top + c.height/2);
+    /* La selección aparece tarde, como en Android. */
+    getSelection().removeAllRanges(); getSelection().addRange(rg);
+    const texto = getSelection().toString();
+    await pausa(300);
+    /* Y ahora el toque de confirmar: la selección se deshace y SOLO llega el
+       soltar. Ni un pointerdown. */
+    getSelection().removeAllRanges();
+    await pausa(60);
+    const el = document.elementFromPoint(mx, my) || v;
+    el.dispatchEvent(new PointerEvent('pointerup', { bubbles:true, pointerId:90,
+      pointerType:'touch', isPrimary:true, clientX:mx, clientY:my }));
+    await pausa(450);
+    const caja = document.getElementById('glosaCaja');
+    const abrio = !!caja;
+    if (caja){
+      caja.value = 'sin bajada';
+      caja.dispatchEvent(new Event('input', { bubbles:true }));
+      await pausa(200);
+      document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+      await pausa(700);
+    }
+    const puesta = lee().find(m => (m.nota||'') === 'sin bajada') || null;
+    return { base, texto, abrio, puesta, guardadas: lee().length };
+  });
+  di('lo seleccionado', sinBajada.texto);
+  vale('el soltar a solas abre la caja', sinBajada.abrio);
+  vale('y guarda lo que se había seleccionado',
+       !!sinBajada.puesta && sinBajada.puesta.cita === sinBajada.texto,
+       (sinBajada.puesta && sinBajada.puesta.cita) + '  vs  ' + sinBajada.texto);
+
   titulo('y un toque lejos de lo seleccionado no inventa nada');
   /* La otra mitad: la selección recordada solo vale para el toque que cae
      ENCIMA de ella. Tocar en otro sitio sigue queriendo decir lo de siempre. */
