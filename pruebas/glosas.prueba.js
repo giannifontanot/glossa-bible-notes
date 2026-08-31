@@ -13,7 +13,8 @@
    Y una tercera que no se ve pero se rompe sola: poner una etiqueta NO puede
    repintar el panel, porque el panel lleva dentro la caja de escribir y
    repintarlo se llevaría por delante el foco, el cursor y lo escrito. */
-const { abrir, cerrar, cerrarParcial, conGlosas, di, vale, titulo } = require('./comun');
+const { abrir, listo, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
+        APP, TELEFONO } = require('./comun');
 
 /* Abrir el panel sobre las primeras letras de un versículo, como lo abre un
    dedo: se selecciona y se suelta encima. */
@@ -141,6 +142,61 @@ const guardadas = () => {
        !!tarde.puesta && tarde.puesta.cita === tarde.texto,
        (tarde.puesta && tarde.puesta.cita) + '  vs  ' + tarde.texto);
 
+  /* ================================================================
+     EL TOQUE QUE NO TRAE POINTERDOWN, que es el del teléfono de verdad.
+
+     Cuando tocas encima de lo que acabas de seleccionar, el toque se lo queda
+     la capa de la selección —los tiradores, el menú de copiar—: el
+     pointerdown no llega a la hoja, y a la hoja solo le consta que la
+     selección se deshizo y que hubo un soltar. Todo arreglo que se apoye en
+     ver bajar el dedo se cae justo aquí, y no se nota en las pruebas porque
+     un PointerEvent despachado a mano SIEMPRE llega.
+
+     Así que este bloque manda el soltar A SOLAS, sin pointerdown ninguno.
+     Es la prueba que le faltaba al arreglo: si mañana el olvido vuelve a
+     colgarse de ver el gesto entero, esto se pone rojo. */
+  titulo('en el teléfono el toque llega sin pointerdown, y aun así guarda');
+  const sinBajada = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const lee = () => { try { return JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]'); }
+                        catch(e){ return []; } };
+    const base = lee().length;
+    const v = document.querySelectorAll('#pgBody .v')[2];
+    const t = [...v.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim().length > 25);
+    if (!t) return { error:'sin versículo largo' };
+    const rg = document.createRange(); rg.setStart(t, 3); rg.setEnd(t, 19);
+    const c = rg.getBoundingClientRect();
+    const mx = Math.round(c.left + c.width/2), my = Math.round(c.top + c.height/2);
+    /* La selección aparece tarde, como en Android. */
+    getSelection().removeAllRanges(); getSelection().addRange(rg);
+    const texto = getSelection().toString();
+    await pausa(300);
+    /* Y ahora el toque de confirmar: la selección se deshace y SOLO llega el
+       soltar. Ni un pointerdown. */
+    getSelection().removeAllRanges();
+    await pausa(60);
+    const el = document.elementFromPoint(mx, my) || v;
+    el.dispatchEvent(new PointerEvent('pointerup', { bubbles:true, pointerId:90,
+      pointerType:'touch', isPrimary:true, clientX:mx, clientY:my }));
+    await pausa(450);
+    const caja = document.getElementById('glosaCaja');
+    const abrio = !!caja;
+    if (caja){
+      caja.value = 'sin bajada';
+      caja.dispatchEvent(new Event('input', { bubbles:true }));
+      await pausa(200);
+      document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+      await pausa(700);
+    }
+    const puesta = lee().find(m => (m.nota||'') === 'sin bajada') || null;
+    return { base, texto, abrio, puesta, guardadas: lee().length };
+  });
+  di('lo seleccionado', sinBajada.texto);
+  vale('el soltar a solas abre la caja', sinBajada.abrio);
+  vale('y guarda lo que se había seleccionado',
+       !!sinBajada.puesta && sinBajada.puesta.cita === sinBajada.texto,
+       (sinBajada.puesta && sinBajada.puesta.cita) + '  vs  ' + sinBajada.texto);
+
   titulo('y un toque lejos de lo seleccionado no inventa nada');
   /* La otra mitad: la selección recordada solo vale para el toque que cae
      ENCIMA de ella. Tocar en otro sitio sigue queriendo decir lo de siempre. */
@@ -202,6 +258,73 @@ const guardadas = () => {
   vale('y volver a tocarla ya no la resucita', !lejos.abrioCaja &&
        lejos.guardadas === lejos.base, lejos.base + ' → ' + lejos.guardadas +
        (lejos.abrioCaja ? '  (¡abrió la caja!)' : ''));
+
+  /* La otra manera de cancelar: el TECLADO. Se deshace una selección sin que
+     baje ningún dedo —una flecha, Escape, ponerse a escribir— y ahí el olvido
+     por gesto no llega. Sin esto, hacer clic más tarde donde estuvo la
+     selección sacaba una glosa sobre unas palabras que ya nadie tenía
+     marcadas. Lo levantó la revisión de Codex.
+
+     VA EN SU PROPIA PESTAÑA, y no por gusto: escrito sobre la página que
+     traen los bloques de arriba pasaba en verde INCLUSO CON EL FALLO PUESTO
+     —el estado acumulado se comía el gesto— mientras que en una página
+     limpia el fallo salía a la primera. Una prueba que no puede ver el fallo
+     que vigila no vigila nada. */
+  titulo('cancelar con una tecla también lo olvida');
+  {
+    const p3 = await sesion.navegador.newPage({ ...TELEFONO });
+    const fallos3 = [];
+    p3.on('pageerror', e => fallos3.push(String(e).split('\n')[0]));
+    await p3.goto(APP);
+    await listo(p3);
+    const conTecla = await p3.evaluate(async () => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      const lee = () => { try { return JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]'); }
+                          catch(e){ return []; } };
+      const base = lee().length;
+      const vs = [...document.querySelectorAll('#pgBody .v')];
+      let v = null, t = null;
+      for (const cand of vs){
+        const n = [...cand.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim().length > 25);
+        if (n){ v = cand; t = n; break; }
+      }
+      if (!t) return { error:'sin versículo largo' };
+      const rg = document.createRange(); rg.setStart(t, 2); rg.setEnd(t, 17);
+      getSelection().removeAllRanges(); getSelection().addRange(rg);
+      await pausa(300);
+      const seleccionado = getSelection().toString();
+      const c = rg.getBoundingClientRect();
+      const mx = Math.round(c.left + c.width/2), my = Math.round(c.top + c.height/2);
+      const el = document.elementFromPoint(mx, my) || v;
+      const enLaHoja = !!(el && el.closest('#pgBody'));
+      /* Una flecha: la selección se va, y no baja ningún dedo. */
+      document.dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowRight', bubbles:true }));
+      getSelection().removeAllRanges();
+      await pausa(200);
+      /* Y ahora el clic donde estuvo. Cae DENTRO de lo que se había apuntado. */
+      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, pointerId:95,
+        pointerType:'mouse', isPrimary:true, clientX:mx, clientY:my }));
+      await pausa(30);
+      el.dispatchEvent(new PointerEvent('pointerup', { bubbles:true, pointerId:95,
+        pointerType:'mouse', isPrimary:true, clientX:mx, clientY:my }));
+      await pausa(500);
+      const caja = document.getElementById('glosaCaja');
+      const abrio = !!caja;
+      if (caja) document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+      await pausa(600);
+      return { base, seleccionado, enLaHoja, abrio, guardadas: lee().length };
+    });
+    di('lo que se llegó a seleccionar', conTecla.seleccionado);
+    vale('el montaje selecciona y el clic cae en la hoja',
+         !conTecla.error && (conTecla.seleccionado || '').trim().length > 3 &&
+         conTecla.enLaHoja === true,
+         conTecla.error || '«' + conTecla.seleccionado + '»');
+    vale('el clic de después no abre nada', conTecla.abrio === false, conTecla.abrio);
+    vale('  y no se guarda ninguna glosa', conTecla.guardadas === conTecla.base,
+         conTecla.base + ' → ' + conTecla.guardadas);
+    vale('  sin errores (tecla)', fallos3.length === 0, fallos3.length ? fallos3 : 'ninguno');
+    await p3.close();
+  }
 
   titulo('el panel al nacer');
   const base = await p.evaluate(

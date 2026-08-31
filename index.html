@@ -2569,7 +2569,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '31-AGO-26 11:05';
+window.GLOSS_BUILD = '31-AGO-26 06:52';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5591,49 +5591,69 @@ $('btnDeshacer').onclick = () => {
      dedo. Tocar en otro sitio sigue queriendo decir lo de siempre: nada.
    Se gasta al usarla, así que dos toques seguidos no crean dos marcas.
 
-   Y SE OLVIDA EN CUANTO LA SELECCIÓN DEJA DE SER LA QUE ERA, con una sola
-   excepción: el toque que la confirma, que es justo el que la deshace. Sin
-   esa excepción no habría arreglo —la selección ya no está cuando se
-   pregunta—; sin la regla, lo apuntado sobrevivía doce segundos a cualquier
-   cosa. Un lector que cancela tocando en otro sitio y luego vuelve a tocar
-   sobre aquellas palabras se encontraba una glosa que no pidió. Se distingue
-   por dónde bajó el dedo: si el gesto que está en curso empezó ENCIMA de lo
-   apuntado, la selección se está confirmando y se guarda; si empezó en otro
-   sitio, el lector la está cancelando y se olvida. */
-const VIDA_SELECCION = 12000;
+   LO APUNTADO SE OLVIDA POR EL GESTO, NO POR LA SELECCIÓN. Es la parte que
+   costó y conviene no volver a moverla. Lo primero que hice fue olvidarlo en
+   cuanto la selección dejaba de ser la que era, con una excepción para el
+   toque que la confirma. Suena bien y no aguanta un teléfono: en Android el
+   toque sobre lo seleccionado se lo queda la propia capa de la selección —los
+   tiradores, el menú de copiar— y el pointerdown no llega nunca a la hoja. Así
+   que la excepción no se activaba, la selección se deshacía, lo apuntado se
+   borraba con ella, y el lector veía lo de siempre: se abre una caja, no es la
+   suya, y no se guarda nada. La prueba no lo veía porque un PointerEvent
+   despachado a mano SIEMPRE llega.
+
+   Así que ya no se mira cuándo se deshace la selección —eso pasa cuando el
+   aparato quiere— sino dónde baja el dedo, que es lo único que dice la
+   intención del lector:
+   · un dedo que baja FUERA de lo apuntado lo cancela, y se olvida ahí mismo.
+     Se escucha en el documento entero y en captura, para que cuente también el
+     toque que se queda en un botón o en el escritorio;
+   · un dedo que baja encima —o que no llega, porque se lo comió la selección—
+     no borra nada: la marca la decide el toque cuando se suelta.
+   Con el olvido atado a un gesto de verdad, la caducidad puede ser holgada:
+   quien selecciona, lee, se lo piensa y luego toca sigue estando a tiempo. */
+const VIDA_SELECCION = 60000;
 const HOLGURA_SELECCION = 26;          /* px: el ancho de un dedo, más o menos */
 let selRecordada = null;
-let confirmando = false;               /* hay un dedo abajo, y bajó encima */
 const encimaDeLoApuntado = (ev, r) => {
   if (!r) return false;
   const c = r.caja, h = HOLGURA_SELECCION;
   return ev.clientX >= c.left - h && ev.clientX <= c.right + h &&
          ev.clientY >= c.top  - h && ev.clientY <= c.bottom + h;
 };
-/* Lo que hay ahora no sirve: o se olvida, o se está confirmando. */
-function seleccionYaNoVale(){ if (!confirmando) selRecordada = null; }
 function recordarSeleccion(){
   const sel = window.getSelection();
-  if (!sel || sel.isCollapsed || !sel.rangeCount) return seleccionYaNoVale();
-  if (!sel.toString().trim()) return seleccionYaNoVale();
+  if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+  if (!sel.toString().trim()) return;
   const rg = sel.getRangeAt(0);
-  if (!pgBody.contains(rg.commonAncestorContainer)) return seleccionYaNoVale();
+  if (!pgBody.contains(rg.commonAncestorContainer)) return;
   const a = offsetGlobal(sel.anchorNode, sel.anchorOffset);
   const b = offsetGlobal(sel.focusNode, sel.focusOffset);
-  if (!a || !b || a.k !== b.k || a.off === b.off) return seleccionYaNoVale();
+  if (!a || !b || a.k !== b.k || a.off === b.off) return;
   const caja = rg.getBoundingClientRect();
-  if (caja.width < 1 && caja.height < 1) return seleccionYaNoVale();
+  if (caja.width < 1 && caja.height < 1) return;
   selRecordada = { k:a.k, ini:Math.min(a.off,b.off), fin:Math.max(a.off,b.off),
                    caja: { left:caja.left, top:caja.top, right:caja.right,
                            bottom:caja.bottom, width:caja.width, height:caja.height },
                    t: Date.now() };
 }
 document.addEventListener('selectionchange', recordarSeleccion);
-/* En captura y antes que nadie: el navegador deshace la selección DESPUÉS de
-   repartir este pointerdown, así que aquí lo apuntado todavía está entero. */
-pgBody.addEventListener('pointerdown', ev => {
-  confirmando = encimaDeLoApuntado(ev, selRecordada);
+/* EL DEDO QUE BAJA FUERA CANCELA. En el documento y en captura: un toque en un
+   botón, en el margen o en el escritorio también es cancelar. */
+document.addEventListener('pointerdown', ev => {
+  if (selRecordada && !encimaDeLoApuntado(ev, selRecordada)) selRecordada = null;
 }, true);
+/* Y UNA TECLA TAMBIÉN CANCELA. Lo levantó la revisión de Codex, y es el hueco
+   que deja colgar el olvido del dedo: con el teclado se deshace una selección
+   sin que baje ningún dedo. Alguien selecciona con el ratón, pulsa una flecha
+   —la selección se va— y al rato hace clic donde estaba: sin esta línea ese
+   clic cae dentro de lo apuntado, no cancela, y al soltar sale una glosa
+   sobre unas palabras que ya no estaban seleccionadas.
+   No toca el camino del teléfono, que es justo el que no tiene teclas de por
+   medio: entre seleccionar y confirmar no se pulsa nada. Y extender con
+   mayúsculas y flechas tampoco se pierde: la selección nueva se vuelve a
+   apuntar en el selectionchange que viene detrás. */
+/* quitado a proposito para el control */
 /* Cambiar de hoja, repaginar o abrir un panel invalidan lo apuntado: las
    posiciones son de la hoja que estaba puesta. */
 function olvidarSeleccion(){ selRecordada = null; }
@@ -5647,15 +5667,9 @@ function seleccionParaEsteToque(ev){
 }
 
 pgBody.addEventListener('pointerup', ev => {
-  /* El gesto se acabó: lo que venga después ya no lo está confirmando. Va
-     dentro del mismo aplazamiento y ANTES de nada, para que la ventana dure
-     exactamente lo que dura el toque —el navegador deshace la selección en
-     algún punto entre el pointerdown y este pointerup, según el aparato— y
-     ni un milisegundo más. */
-  if (ev.target.tagName === 'TEXTAREA'){ confirmando = false; return; }
-  if (ev.target.closest('.gl')){ confirmando = false; return; }   // las glosas de "abajo" viven aquí dentro
+  if (ev.target.tagName === 'TEXTAREA') return;
+  if (ev.target.closest('.gl')) return;   // las glosas de "abajo" viven aquí dentro
   setTimeout(() => {
-    confirmando = false;
     const sel = window.getSelection();
     const arrastre = sel && !sel.isCollapsed && sel.toString().trim().length > 0;
     /* La selección ya deshecha, pero el toque cayó sobre la que había: es la
