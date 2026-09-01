@@ -2577,7 +2577,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '31-AGO-26 11:07';
+window.GLOSS_BUILD = '31-AGO-26 19:08';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3504,12 +3504,17 @@ const diaDe = m => m.creada || '(sin fecha)';
 /* Los filtros que NO dependen del libro, separados a propósito: la hoja los
    aplica junto con "y además es de este libro", y la lista de glosas los
    aplica junto con "y además es de alguno de los libros elegidos". */
-const pasaFiltros = m =>
-  (!diaFiltro || diaDe(m) === diaFiltro) &&
-  (etiquetasVer.size === 0 ||
+/* Los dos se preguntan también POR SEPARADO —ver destaparLaNueva—, porque
+   cuando un filtro esconde una glosa recién escrita hay que quitar el que la
+   esconde y no los dos: apagar de paso un filtro que no estorbaba sería
+   deshacer algo que el lector sí quería. */
+const pasaDia = m => !diaFiltro || diaDe(m) === diaFiltro;
+const pasaEtiquetas = m =>
+  etiquetasVer.size === 0 ||
     ((m.etiquetas || []).length === 0
       ? etiquetasVer.has('(sin etiqueta)')
-      : (m.etiquetas || []).some(t => etiquetasVer.has(t))));
+      : (m.etiquetas || []).some(t => etiquetasVer.has(t)));
+const pasaFiltros = m => pasaDia(m) && pasaEtiquetas(m);
 const visible = m => showMarks && m.libro === LIBRO && pasaFiltros(m);
 /* El libro abierto SIEMPRE está en la lista, y los chips van sumando. Lo tenía
    al revés: en cuanto agregabas un libro, el actual desaparecía y la lista
@@ -5347,6 +5352,54 @@ function abrirPanel(m, nueva, rect){
    · una marca vieja que nunca tuvo nota se queda donde está. Su caja
      nace vacía sin que nadie la vacíe, y borrarla por eso sería borrar
      por mirar. */
+/* UNA GLOSA RECIÉN ESCRITA NO SE ESCONDE.
+
+   Los filtros de la lista de glosas —los chips de VER y el día— gobiernan las
+   dos cosas por las que se sabe que una nota quedó puesta: visible() pinta el
+   amarillo en la hoja y enLista() la mete en el panel. Y una glosa nueva NACE
+   SIN ETIQUETAS. Así que con cualquier chip marcado pasaba esto: escribes la
+   nota, cierras, y no aparece el amarillo ni sale en la lista. La nota estaba
+   guardada —medido: en el almacén sí, en la hoja no, en la lista tampoco— pero
+   por lo que se ve desde fuera, la aplicación se comió lo que acabas de
+   escribir. Es el defecto que se reportó como «abre y no guarda».
+
+   Y no era un despiste de un rato: etiquetasVer se guarda en los ajustes, o
+   sea que un chip que tocaste hace días sigue puesto al día siguiente y sigue
+   escondiendo cada glosa nueva, sin decir nada. Es la misma trampa que ya está
+   descrita unas líneas más abajo para los chips de libro —«un estado sin
+   salida obvia: la lista vacía… con las tuyas escondidas detrás de un chip que
+   no recuerdas haber puesto»— y aquí se paga más caro, porque ahí sólo
+   desaparecen glosas viejas y aquí desaparece la que estás escribiendo.
+
+   LA REGLA: gana el gesto de ahora. Escribir una glosa es lo más reciente que
+   ha hecho el lector; un filtro es algo que dejó puesto antes. Cuando chocan,
+   el filtro se quita —sólo el que estorba— y se dice en el aviso, para que no
+   sea magia y para que se entere de que lo tenía puesto.
+
+   Las marcas apagadas se tratan igual: escribir una glosa con las marcas en
+   OFF es pedir y esconder la misma cosa en el mismo gesto.
+
+   Se llama al guardar y sólo cuando hay nota: una marca que se va sin texto no
+   tiene nada que enseñar, así que no hay filtro que estorbe. */
+function destaparLaNueva(m){
+  const quitados = [];
+  if (!pasaDia(m)){ diaFiltro = ''; quitados.push('el filtro de día'); }
+  if (!pasaEtiquetas(m)){ etiquetasVer.clear(); quitados.push('el filtro de etiquetas'); }
+  if (!showMarks){
+    showMarks = true;
+    const b = $('marksBtn'); if (b) b.textContent = 'Marcas: ON';
+    paginasSucias = true;                  /* con las marcas puestas los cortes cambian */
+    quitados.push('las marcas apagadas');
+  }
+  if (!quitados.length) return;
+  guardarAjustes();
+  /* Los dos repintados del panel van con red: se puede escribir una glosa sin
+     haber abierto nunca el panel de Glosas, y entonces sus trozos no existen. */
+  try { pintarFiltros(); } catch(e){}
+  try { pintarIndice(); } catch(e){}
+  readout.textContent = 'se quitó ' + quitados.join(' y ') +
+    ': escondía la glosa que acabas de escribir';
+}
 function cerrarBorrador(){
   const b = borrador; borrador = null;
   const ta = menu.querySelector('#glosaCaja');
@@ -5375,6 +5428,9 @@ function cerrarBorrador(){
       if (!marcas.includes(m)) marcas.push(m);
     }
     save();
+    /* ANTES del renderPage del final, que es quien pinta la hoja: quitando los
+       filtros después, la hoja se habría pintado ya con la glosa escondida. */
+    destaparLaNueva(m);
   } else if (b.nueva){
     marcas = marcas.filter(x => x !== m);
   } else if (b.teniaNota){
