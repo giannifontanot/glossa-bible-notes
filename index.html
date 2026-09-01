@@ -1587,6 +1587,57 @@
   .vidrio-btn{ width:100%; min-height:38px; letter-spacing:.12em; font-weight:700;
                font-size:.72rem !important; }
   #ajustes.cristal .vidrio-btn{ background:rgba(255,253,247,.88); }
+  /* CADA CONTROL CON SU PROPIA TABLILLA, Y DEL ANCHO JUSTO.
+
+     Con el panel transparente se ve la hoja —que es de lo que se trata— pero
+     los controles se quedaban sin sitio donde apoyarse: letra sepia clara
+     sobre el texto del libro, y había que adivinar qué decía cada fila. Una
+     tablilla de papel debajo de cada uno los devuelve a ser legibles sin
+     recuperar el panel entero.
+
+     LO IMPORTANTE ES QUE SEAN ESTRECHAS. Una tablilla por fila pero a todo lo
+     ancho no arregla nada: vuelve a tapar la hoja renglón por renglón, que es
+     exactamente lo que se vino a evitar. Por eso lo que hace el trabajo aquí
+     no es el fondo, son las dos líneas que le quitan el estirón:
+
+     · justify-self:start — #ctrlConfig es una rejilla, y un elemento de
+       rejilla se estira a su columna por defecto. Sin esto la tablilla mide
+       la columna entera aunque dentro solo haya la palabra "ver";
+     · flex:0 0 auto en .ctrl y en .lbl — dentro de la fila, el control crecía
+       con flex:1 y la etiqueta tenía 54px fijos. Los dos empujaban la
+       tablilla a lo ancho desde dentro.
+
+     Con las dos, cada tablilla mide lo que miden sus letras y su control, y
+     entre una y otra —y a la derecha de todas— se lee el libro.
+
+     Las tres de los deslizadores salen más anchas que las demás, y no hay
+     manera de evitarlo: un riel corto no se atina con el pulgar, y son justo
+     los que se arrastran mirando la hoja. Se les deja un riel de 150 px, que
+     es cómodo sin llegar al borde. */
+  #ajustes.cristal #ctrlConfig .ajuste{
+    justify-self:start; width:max-content; max-width:100%;
+    padding:3px 9px 4px; border-radius:9px;
+    background:rgba(255,253,247,.9);
+    box-shadow:0 1px 3px rgba(0,0,0,.26); }
+  #ajustes.cristal #ctrlConfig .ajuste > .ctrl{ flex:0 0 auto; }
+  #ajustes.cristal #ctrlConfig .ajuste > .lbl{ flex:0 0 auto; }
+  #ajustes.cristal .rollo input[type=range],
+  #ajustes.cristal input[type=range]{ flex:0 0 150px; }
+  /* La raya que separaba los anchos cruzaría la hoja de lado a lado, y ya no
+     separa nada: con las tablillas sueltas, el hueco entre ellas se ve solo. */
+  #ajustes.cristal #ctrlConfig .ajuste.ancho{
+    border-top:0; margin-top:2px; padding-top:3px; }
+  /* El botón de volver tampoco necesita el ancho entero. Sigue centrado por
+     .vidrio-fila, que es donde se le busca. */
+  #ajustes.cristal .vidrio-btn{ width:auto; padding-left:18px; padding-right:18px; }
+  /* Y EL CRÉDITO, que también es letra suelta sobre la hoja. La atribución de
+     CC BY-SA tiene que poder leerse, y transparente no se leía. Se le deja su
+     tablilla, pero con inline-block para que mida sus renglones y no el panel:
+     un <p> a secas ocupa el ancho entero aunque el texto acabe a la mitad. */
+  #ajustes.cristal .cred{
+    display:inline-block; padding:3px 9px 4px; border-radius:9px;
+    background:rgba(255,253,247,.9);
+    box-shadow:0 1px 3px rgba(0,0,0,.26); }
   /* EL RIEL DEL SEPIA. accent-color en vez de repintar el control entero: el
      nativo ya sabe comportarse con el dedo, con el ratón y con el teclado, y
      rehacerlo a mano cuesta cien líneas para quedar peor. Solo se le dice de
@@ -2416,9 +2467,15 @@
           title="Panel transparente para ver la hoja al ajustar">transparente</button>
 </div>
 
-<div class="ajuste ancho"><span class="lbl">versión</span><span class="ctrl" id="ctrlVersiones">
-  <!-- se arma solo con lo que traiga bibles-included.js -->
-</span></div>
+<!-- AQUÍ VIVÍA LA FILA DE VERSIÓN, y se fue por duplicada. El rótulo del pie
+     de la hoja (#pgVersion) abre el globo #burbujaVersion, que lista las
+     versiones con su abreviatura, su nombre completo y su licencia. Esta fila
+     ofrecía lo mismo con menos —solo la abreviatura— y en el sitio donde peor
+     estorba: es la más ancha del panel, y en modo transparente su tablilla
+     tapaba media hoja justo cuando lo que se quiere es ver la hoja.
+     El crédito de licencia (#cred) NO se va con ella: la Versión Biblia Libre
+     es CC BY-SA y la atribución es obligatoria. Se queda en este panel, que es
+     donde ya estaba. -->
 </div>
 
 <div id="ctrlEtiquetas">
@@ -2443,13 +2500,27 @@
          que es la misma que retrata la foto del pliegue. -->
     <div id="zoomPapel" aria-hidden="true"></div>
     <div class="pg-inner">
-      <div class="pg-cabeza" id="pgCabeza"></div>
+      <!-- LOS DOS RÓTULOS SON BOTONES DE VERDAD PARA QUIEN NO TIENE DEDO.
+           Son <div> por lo que pintan —viven dentro del papel y salen en la
+           foto del pliegue, y un <button> traía consigo estilos de formulario
+           que había que deshacer uno a uno— pero lo que HACEN es abrir un
+           panel, y eso hay que poder decirlo sin puntero. Sin tabindex no
+           entraban en el recorrido del tabulador, y como son la única puerta
+           de la burbuja, quien navega con teclado o con conmutador se quedaba
+           sin Libros, sin Glosas, sin Formato y sin Respaldo: no era que
+           costara llegar, es que no había camino.
+           role y aria-haspopup dicen lo que un <button> habría dicho solo;
+           aria-expanded lo llevan al día abrirVersiones/cerrarVersiones y
+           marcarCabeza, que son quienes saben si el panel está puesto. -->
+      <div class="pg-cabeza" id="pgCabeza" tabindex="0" role="button"
+           aria-haspopup="dialog" aria-expanded="false"></div>
       <div class="pg-cols">
         <div id="pgBody" class="pg-body" lang="es"></div>
         <div id="pgMargin" class="pg-margin"></div>
       </div>
       <div id="pgFoot" class="pg-foot"></div>
-      <div class="pg-version" id="pgVersion"></div>
+      <div class="pg-version" id="pgVersion" tabindex="0" role="button"
+           aria-haspopup="dialog" aria-expanded="false"></div>
     </div>
   </div>
   <div id="flyCaps" class="fly"></div>
@@ -2577,7 +2648,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '31-AGO-26 22:09';
+window.GLOSS_BUILD = '01-SEP-26 04:23';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -2629,6 +2700,15 @@ const PAGE_CSS = `
   font-family:'Palatino Linotype',Palatino,'Book Antiqua','Iowan Old Style',
               Georgia,'Noto Serif',serif;
   font-variant-caps:small-caps; font-synthesis:small-caps; }
+/* Y EL FOCO SE VE. Al hacerlos alcanzables con el tabulador aparece la otra
+   mitad del trabajo: un foco invisible es peor que ninguno —se navega a
+   ciegas—. Va con :focus-visible y no con :focus, que es la diferencia entre
+   enseñar el aro a quien lo necesita y pintárselo encima al que acaba de tocar
+   el rótulo con el dedo. El color es el marrón del programa, no el azul del
+   sistema, y el outline-offset lo despega del papel para que se lea sobre el
+   fondo claro del rótulo. */
+.pg-cabeza:focus-visible, .pg-version:focus-visible{
+  outline:2px solid #b8892b; outline-offset:2px; }
 .pg-version{ position:absolute; bottom:0; left:50%; transform:translateX(-50%);
              z-index:2; font-size:9px; letter-spacing:.14em;
              color:var(--rot-pie,#8a6e3c); background:var(--papel,#faf7f1); padding:2px 8px 1px;
@@ -8813,7 +8893,11 @@ $('pgVersion').addEventListener('click', e => {
      Y va sin esperar el plazo, por lo mismo que el cierre del globo: cerrar no
      es ambiguo. */
   if (burbujaAbierta()){ cerrarTodosLosRollos(); return; }
-  relojVersion = setTimeout(abrirVersiones, ESPERA_DOBLE_ROTULO);
+  /* Envuelto a propósito: setTimeout(abrirVersiones, ...) le pasaría a la
+     función lo que el temporizador quiera darle, y ahora abrirVersiones lee su
+     primer argumento. Este camino es el del dedo, así que abre sin mover el
+     foco. */
+  relojVersion = setTimeout(() => abrirVersiones(false), ESPERA_DOBLE_ROTULO);
 });
 $('pgVersion').addEventListener('dblclick', e => {
   e.preventDefault();
@@ -8822,6 +8906,37 @@ $('pgVersion').addEventListener('dblclick', e => {
   clearTimeout(relojVersion);
   cerrarVersiones();
   alternarBurbuja('libros');
+});
+
+/* ENTER Y ESPACIO HACEN LO QUE HACE EL TOQUE, y hacen falta porque estos dos
+   rótulos son <div>: un <button> respondería solo a las dos teclas, un div no
+   responde a ninguna. Con el tabindex puesto y sin esto, el foco llegaría al
+   rótulo y ahí se quedaría, que es la peor versión de las dos —parece que se
+   puede y no se puede—.
+
+   SIN EL PLAZO DEL DOBLE CLIC. Los 440 ms existen para distinguir el primer
+   toque de un doble, y con el teclado no hay tal cosa que distinguir: no
+   existe el "doble Enter". Así que la versión se abre en el acto, y la otra
+   puerta —Libros— no se pierde por ello: la tiene el rótulo de arriba, que
+   con este mismo cambio ya se alcanza con el tabulador.
+
+   El espacio lleva preventDefault sí o sí, incluso con el zoom puesto, porque
+   la tecla desplaza la página por defecto y eso pasaría igualmente. */
+const conTeclas = (el, hacer) => el.addEventListener('keydown', ev => {
+  if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
+  ev.preventDefault();
+  if (zoomActivo) return;              /* ver el comentario del rótulo de arriba */
+  ev.stopPropagation();
+  hacer();
+});
+conTeclas($('pgCabeza'), () => alternarBurbuja('libros'));
+conTeclas($('pgVersion'), () => {
+  clearTimeout(relojVersion);
+  if (versionAbierta){ cerrarVersiones(); return; }
+  /* Con un panel delante el rótulo lo quita y nada más, igual que con el dedo:
+     el gesto es "quítame esto", no "enséñame las versiones". */
+  if (burbujaAbierta()){ cerrarTodosLosRollos(); return; }
+  abrirVersiones(true);
 });
 
 /* ============================================================
@@ -8845,7 +8960,7 @@ function pintarVersiones(){
       '<span class="bv-abrev">' + esc(v.abrev || k) + '</span>' +
       '<span class="bv-nombre">' + esc(v.nombre || k) + '</span></button>').join('');
 }
-function abrirVersiones(){
+function abrirVersiones(conTeclado){
   if (versionAbierta) return;
   cerrarTodosLosRollos(); cerrarHistorial();
   versionAbierta = true;
@@ -8855,13 +8970,39 @@ function abrirVersiones(){
   void el.offsetWidth;
   el.classList.add('visible');
   $('pgVersion').classList.add('abierta');
+  $('pgVersion').setAttribute('aria-expanded', 'true');
+  /* EL FOCO ENTRA EN EL GLOBO, PERO SOLO SI VINO DEL TECLADO. Las filas ya son
+     <button>, así que en cuanto el globo está puesto se recorren solas con el
+     tabulador; lo que faltaba es el salto de entrada, porque el foco se queda
+     en el rótulo y desde ahí el siguiente tabulador se va a otra parte.
+     Y solo con teclado: mover el foco después de un toque abre el teclado del
+     sistema en algunos aparatos y desplaza la hoja para "enseñar" lo que ya se
+     veía. Quien abre con el dedo no ha pedido nada de eso. */
+  if (conTeclado){
+    const fila = el.querySelector('.bv-fila.aqui') || el.querySelector('.bv-fila');
+    if (fila) fila.focus();
+  }
 }
 function cerrarVersiones(){
   if (!versionAbierta) return;
   versionAbierta = false;
   const el = $('burbujaVersion');
+  /* EL FOCO VUELVE AL RÓTULO, y solo si estaba dentro de lo que se cierra. Un
+     globo que se va con el foco puesto dentro lo deja en un elemento oculto, y
+     el navegador lo devuelve al <body>: el siguiente tabulador empieza otra vez
+     desde arriba y se pierde el sitio. Preguntando primero, cerrar el globo por
+     cualquier otro camino —un toque fuera, abrir un panel— no le roba el foco a
+     quien lo tuviera en otra parte. */
+  /* preventScroll porque este rótulo vive DENTRO del papel, y el papel se
+     corre de lado —así se llega a la columna de glosas—. Un focus() a secas le
+     pide al navegador que lo traiga a la vista, y eso devolvería el papel a su
+     sitio: cerrar el globo movería la hoja, que es un efecto que nadie pidió.
+     Dentro del globo sí se deja el desplazamiento: ahí traer la fila a la
+     vista es justo lo que hace falta si la lista no cabe entera. */
+  if (el.contains(document.activeElement)) $('pgVersion').focus({ preventScroll: true });
   el.classList.remove('visible');
   $('pgVersion').classList.remove('abierta');
+  $('pgVersion').setAttribute('aria-expanded', 'false');
   setTimeout(() => { if (!versionAbierta) el.style.display = 'none'; }, 260);
 }
 $('burbujaVersion').addEventListener('click', ev => {
@@ -9492,7 +9633,17 @@ function burbujaAbierta(){ return cantoAbierto || rFormato.abierto || rGlosas.ab
    Libros. Lo encontró la revisión de Codex. */
 function marcarCabeza(cerrando){
   const c = document.getElementById('pgCabeza');
-  if (c) c.classList.toggle('abierta', !cerrando && seccionViva === 'libros');
+  if (!c) return;
+  c.classList.toggle('abierta', !cerrando && seccionViva === 'libros');
+  /* EL ATRIBUTO NO DICE LO MISMO QUE LA CLASE, y por eso se calcula aparte.
+     La clase enciende el rótulo solo cuando lo que se ve es Libros —es el
+     aviso de "esto que abriste es lo mío"—. aria-expanded contesta otra
+     pregunta: si el panel que este rótulo abre está puesto. Cambiar a la
+     pestaña de Formato apaga la clase y NO cierra nada, así que un
+     aria-expanded copiado de la clase diría "cerrado" con el panel delante.
+     Se pone aquí porque marcarCabeza es por donde pasan las cuatro secciones
+     al abrirse y al cerrarse. */
+  c.setAttribute('aria-expanded', !cerrando && burbujaAbierta() ? 'true' : 'false');
 }
 function alternarBurbuja(seccion){
   /* Si ya está abierta pero en otra sección, no cierra: cambia. Cerrar sería
@@ -10941,7 +11092,6 @@ function setVersion(v){
      hoja 3 de la otra. Estabas en 1:35 y aparecías en 1:40. */
   const donde = plano[startIdx];
   version = v; paginasSucias = true;
-  document.querySelectorAll('[data-ver]').forEach(x => x.classList.toggle('active', x.dataset.ver===v));
   rehacerPlano();
   renderPage();
   if (donde){
@@ -11520,7 +11670,6 @@ function reflejarControles(){
   const marcar = (sel, ok) => document.querySelectorAll(sel).forEach(x => x.classList.toggle('active', ok(x)));
   marcar('[data-cols]', x => +x.dataset.cols === columns);
   marcar('[data-lay]',  x => x.dataset.lay === placement);
-  marcar('[data-ver]',  x => x.dataset.ver === version);
   const poner = (b, txt, on) => { b.textContent = txt; b.classList.toggle('active', on); };
   poner(btnAl, alineacion === 'justify' ? 'justificado' : 'izquierda', alineacion === 'justify');
   const aire = AIRES.find(a => a[1] === interlineado) || AIRES[1];
@@ -11645,17 +11794,10 @@ ajustes.appendChild($('cred'));
 })();
 
 /* ---------- arranque ---------- */
-/* Los botones de versión se arman con lo que venga en bibles-included.js.
-   Estaban escritos a mano en el HTML, así que bajar la BSB y la WEB no las
-   hacía aparecer por ningún lado: el archivo las traía y el lector no las
-   ofrecía. Ahora la lista siempre es la del archivo. */
-(function armarVersiones(){
-  const cont = $('ctrlVersiones');
-  cont.innerHTML = Object.entries(D.versiones).map(([k, v]) =>
-    '<button class="btn" data-ver="' + k + '" title="' + esc(v.nombre + ' — ' + v.licencia) +
-    '">' + esc(v.abrev || k) + '</button>').join('');
-  cont.querySelectorAll('[data-ver]').forEach(b => b.onclick = () => cambiarVersion(b.dataset.ver));
-})();
+/* Aquí se armaban los botones de versión del panel de Formato, leyendo
+   D.versiones. Se fueron con la fila: el globo #burbujaVersion arma su lista
+   del mismo sitio (pintarVersiones), así que bajar una Biblia nueva la sigue
+   haciendo aparecer sola. Lo que se perdió es la copia, no la lista. */
 
 /* TRES GLOSAS DE ESTRENO, y solo al estrenar.
 

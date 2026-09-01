@@ -73,7 +73,7 @@ async function ponerContraste(pagina, pct){
   const pagina = sesion.pagina;
 
   /* ---------- dónde está, y que sea el mismo control que el sepia ---------- */
-  titulo('el control vive entre el sepia y la versión');
+  titulo('el control vive entre el sepia y el brillo');
   /* CON EL PANEL ABIERTO, y no es un detalle: cerrado va en display:none y
      todo lo que se mida ahí sale en cero, incluida la comparación de largos
      entre los dos rieles —que saldría verde por empate a nada—. Se abre como
@@ -110,11 +110,12 @@ async function ponerContraste(pagina, pct){
                                       .getBoundingClientRect().width) };
   });
   di('la vecindad', sitio.orden);
-  /* El brillo se metió DEBAJO del contraste, así que la versión ya no es su
-     vecina de abajo: sigue siendo lo último del panel, pero ahora hay un riel
-     más entre medias. Lo que esta línea vigila es el orden de los tres de
-     tinta, que es el que importa —sepia, contraste, brillo—; que la versión
-     cierre el panel lo comprueba la sección del brillo. */
+  /* Lo que esta línea vigila es el orden de los tres de tinta, que es el que
+     importa: uno elige el color del papel, otro cuánto se despega la letra de
+     él y el tercero la luz, y se corrigen entre ellos.
+     Decía «entre el sepia y la versión» porque la fila de versión cerraba el
+     panel. Ya no existe: el rótulo del pie de la hoja abre el globo de
+     versiones y esa fila era la misma lista otra vez, más ancha. */
   vale('sepia · contraste · brillo',
        JSON.stringify(sitio.orden) === JSON.stringify(['sepia','contraste','brillo']),
        sitio.orden);
@@ -148,6 +149,109 @@ async function ponerContraste(pagina, pct){
   di('el riel a 50, 100 y 200', estable);
   vale('el riel no se encoge con el número',
        estable.c50 === estable.c100 && estable.c100 === estable.c200, estable);
+
+  /* ---------- el panel ya no ofrece versiones ---------- */
+  /* La fila de versión vivía al final de Formato y era una segunda lista de lo
+     mismo: el rótulo del pie de la hoja abre el globo #burbujaVersion, que las
+     enseña con su nombre completo y su licencia. Se fue por duplicada y porque
+     era la fila más ancha del panel, justo la que peor cae con el fondo
+     transparente. Lo que NO se puede ir es el crédito: la Versión Biblia Libre
+     es CC BY-SA y la atribución es obligatoria. */
+  titulo('Formato ya no ofrece versiones, pero el crédito sigue');
+  const sinVersiones = await pagina.evaluate(() => {
+    const cred = document.querySelector('#ajustes .cred');
+    const r = cred ? cred.getBoundingClientRect() : null;
+    return {
+      fila: !!document.getElementById('ctrlVersiones'),
+      botones: document.querySelectorAll('#ajustes [data-ver]').length,
+      rotulos: [...document.querySelectorAll('#ctrlConfig .ajuste .lbl')]
+                 .map(l => l.textContent.trim()),
+      credTexto: cred ? cred.textContent.trim() : null,
+      credSeVe: !!r && r.width > 4 && r.height > 4 &&
+                getComputedStyle(cred).display !== 'none',
+      /* Y el globo del pie sigue siendo el sitio donde SÍ se cambia. */
+      globo: !!document.getElementById('burbujaVersion'),
+      pie: (document.getElementById('pgVersion') || {}).textContent
+    };
+  });
+  di('los rótulos que quedan', sinVersiones.rotulos);
+  vale('no queda la fila de versión', sinVersiones.fila === false);
+  vale('ni un botón de versión suelto', sinVersiones.botones === 0, sinVersiones.botones);
+  vale('ni su rótulo', !sinVersiones.rotulos.includes('versión'), sinVersiones.rotulos);
+  vale('el crédito de licencia sigue a la vista',
+       sinVersiones.credSeVe && /CC BY/.test(sinVersiones.credTexto || ''),
+       sinVersiones.credTexto);
+  vale('y el globo del pie sigue siendo quien las cambia',
+       sinVersiones.globo === true && !!sinVersiones.pie, sinVersiones.pie);
+
+  /* ---------- transparente: una tablilla por control, y estrecha ---------- */
+  /* Con el panel transparente se ve la hoja, que es de lo que se trata, pero
+     los controles se quedaban sin sitio donde apoyarse y había que adivinar
+     qué decía cada fila. Cada uno lleva ahora su tablilla de papel.
+     LO QUE ESTA PRUEBA VIGILA DE VERDAD ES QUE SEAN ESTRECHAS. Una tablilla
+     por fila pero a todo lo ancho no arregla nada: vuelve a tapar la hoja
+     renglón por renglón, que es justo lo que se vino a evitar. Por eso el
+     umbral no es «tiene fondo» sino «mide menos que el panel». */
+  titulo('transparente: cada control con su tablilla, y del ancho justo');
+  const tablillas = await pagina.evaluate(async () => {
+    const panel = document.getElementById('ajustes');
+    /* EL PAPEL DEL PANEL NO ES SU background-color, y por eso no se pregunta
+       por ahí: el color de fondo del panel es transparente en los dos modos
+       —lo que pinta la hoja de papel son sus ::before y ::after— así que una
+       prueba que mirara el color diría que nunca hubo fondo y pasaría en verde
+       sin comprobar nada. Lo que sí cambia es la sombra y esos dos pegotes. */
+    const papel = () => {
+      const cs = getComputedStyle(panel);
+      return { sombra: cs.boxShadow,
+               antes: getComputedStyle(panel, '::before').display };
+    };
+    const opaco = papel();
+    document.getElementById('btnVidrio').click();
+    await new Promise(z => setTimeout(z, 400));
+    const cristal = papel();
+    const ancho = panel.getBoundingClientRect().width;
+    const hueco = c => { const m = /rgba?\(([^)]+)\)/.exec(c);
+                         return !m || +(m[1].split(',')[3] || 1) < 0.05; };
+    const filas = [...document.querySelectorAll('#ctrlConfig .ajuste')].map(f => {
+      const r = f.getBoundingClientRect(), cs = getComputedStyle(f);
+      const hijos = [...f.children].map(h => h.getBoundingClientRect().right);
+      return { que: (f.querySelector('.lbl') || {}).textContent || '(sin rótulo)',
+               pct: Math.round(r.width / ancho * 100),
+               conFondo: !hueco(cs.backgroundColor),
+               redondas: parseFloat(cs.borderRadius) >= 4,
+               /* que la tablilla CUBRA lo que sostiene: un fondo estrecho que
+                  deje el control fuera no lo hace legible, lo parte. */
+               cabe: hijos.length === 0 || Math.max(...hijos) <= r.right + 1 };
+    });
+    return { opaco, cristal, filas };
+  });
+  di('lo que mide cada tablilla', tablillas.filas.map(f => f.que + ' ' + f.pct + '%').join(' · '));
+  di('el papel del panel', tablillas.opaco.sombra.slice(0,40) + ' → ' + tablillas.cristal.sombra);
+  vale('el panel pierde su papel al volverse transparente',
+       tablillas.opaco.sombra !== 'none' && tablillas.cristal.sombra === 'none' &&
+       tablillas.opaco.antes !== 'none' && tablillas.cristal.antes === 'none',
+       JSON.stringify(tablillas.opaco) + ' → ' + JSON.stringify(tablillas.cristal));
+  vale('todas las filas llevan su tablilla',
+       tablillas.filas.every(f => f.conFondo), tablillas.filas.filter(f => !f.conFondo).map(f => f.que));
+  vale('de esquinas redondeadas', tablillas.filas.every(f => f.redondas));
+  vale('y cada una cubre su control',
+       tablillas.filas.every(f => f.cabe), tablillas.filas.filter(f => !f.cabe).map(f => f.que));
+  /* NINGUNA A TODO LO ANCHO. Ésta es la que se pidió y la que se rompe sola si
+     alguien le quita el justify-self o el flex:0 0 auto: con cualquiera de las
+     dos cosas fuera, las filas vuelven a medir la columna entera. */
+  vale('NINGUNA ocupa el ancho del panel',
+       tablillas.filas.every(f => f.pct <= 90),
+       tablillas.filas.filter(f => f.pct > 90).map(f => f.que + ' ' + f.pct + '%'));
+  /* Y la mitad largas es poco: los tres deslizadores no pueden encoger —un
+     riel corto no se atina con el pulgar— pero el resto sí, y si la media se
+     dispara es que algo volvió a estirarse. */
+  vale('y la mayoría son de verdad estrechas',
+       tablillas.filas.filter(f => f.pct <= 70).length >= tablillas.filas.length - 3,
+       tablillas.filas.map(f => f.pct).join(' '));
+  await pagina.evaluate(async () => {
+    document.getElementById('btnVidrio').click();
+    await new Promise(z => setTimeout(z, 300));
+  });
 
   /* ---------- los cuatro valores pedidos ---------- */
   titulo('50, 100, 150 y 200');
