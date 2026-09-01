@@ -2577,7 +2577,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '31-AGO-26 19:08';
+window.GLOSS_BUILD = '31-AGO-26 22:09';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5717,7 +5717,7 @@ document.addEventListener('pointerdown', ev => {
    medio: entre seleccionar y confirmar no se pulsa nada. Y extender con
    mayúsculas y flechas tampoco se pierde: la selección nueva se vuelve a
    apuntar en el selectionchange que viene detrás. */
-/* quitado a proposito para el control */
+document.addEventListener('keydown', () => { selRecordada = null; }, true);
 /* Cambiar de hoja, repaginar o abrir un panel invalidan lo apuntado: las
    posiciones son de la hoja que estaba puesta. */
 function olvidarSeleccion(){ selRecordada = null; }
