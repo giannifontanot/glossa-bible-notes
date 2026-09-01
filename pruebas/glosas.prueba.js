@@ -1444,5 +1444,120 @@ const guardadas = () => {
     await cerrarParcial(chico, ancho + 'px');
   }
 
+  /* ================================================================
+     UNA GLOSA RECIÉN ESCRITA NO SE ESCONDE DETRÁS DE UN FILTRO.
+
+     Es el defecto que se reportó como «abre y no guarda», y no guardaba nada:
+     guardaba y lo escondía, que desde fuera es lo mismo. Los chips de VER del
+     panel de Glosas gobiernan visible() —el amarillo de la hoja— y enLista()
+     —el renglón del panel—, y una glosa nueva NACE SIN ETIQUETAS. Con un chip
+     puesto: escribes la nota, cierras, y no hay amarillo ni renglón. Medido
+     antes del arreglo: en el almacén sí, en la hoja no, en la lista tampoco.
+
+     Y el chip se guarda en los ajustes, así que uno de hace días seguía
+     escondiendo cada glosa nueva sin decir nada.
+
+     ESTA PRUEBA LLEVA SU PROPIO CONTROL, que es lo que la hace valer: primero
+     comprueba que el filtro MUERDE —que con el chip puesto la glosa vieja sin
+     esa etiqueta desaparece de la hoja— y solo entonces escribe la nueva. Sin
+     el control, un chip que no filtrara nada dejaría todo en verde sin haber
+     probado nada.
+
+     La etiqueta de la primera se pone en el almacén y se recarga, como hace
+     conGlosas: eso es estado de partida, no el gesto que se está probando. El
+     resto —marcar el chip, escribir la glosa— va con gestos. */
+  titulo('una glosa nueva no se queda escondida detrás de un filtro');
+  const filtros = await abrir(TELEFONO);
+  const q = filtros.pagina;
+  const alPanelDeGlosas = () => q.evaluate(async () => {
+    if (document.getElementById('etiquetas').classList.contains('abierto')) return;
+    document.getElementById('pgCabeza').click();
+    await new Promise(z => setTimeout(z, 900));
+    const t = [...document.querySelectorAll('.pestanas button')].find(x => /glosas/i.test(x.textContent));
+    if (t) t.click();
+    await new Promise(z => setTimeout(z, 900));
+  });
+  const escribirGlosa = (nota, desde, hasta) => q.evaluate(async ([abrir, nota, d, h]) => {
+    const ok = await eval('(' + abrir + ')')(d, h);
+    if (!ok) return false;
+    const ta = document.getElementById('glosaCaja');
+    if (!ta) return false;
+    ta.value = nota; ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 200));
+    /* Tocar fuera DE VERDAD, que es como se cierra: el oyente que cobra lo
+       escrito va en captura sobre el pointerdown. */
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await new Promise(z => setTimeout(z, 900));
+    return true;
+  }, [ABRIR, nota, desde, hasta]);
+  const retrato = nota => q.evaluate(nota => {
+    const ms = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    const ind = document.getElementById('indice');
+    return {
+      enElAlmacen: ms.some(m => (m.nota || '') === nota),
+      /* el amarillo de la hoja: la nota al margen es una .gl con su texto */
+      enLaHoja: [...document.querySelectorAll('.gl')].some(g => g.textContent.includes(nota)),
+      enLaLista: !!ind && ind.textContent.includes(nota),
+      panelPuesto: document.getElementById('etiquetas').classList.contains('abierto'),
+      chips: [...document.querySelectorAll('#etiquetas .chip.sel')].map(c => c.textContent.trim()),
+      aviso: document.getElementById('readout').textContent || ''
+    };
+  }, nota);
+
+  /* La primera, con su etiqueta puesta desde el almacén. */
+  await escribirGlosa('la vieja etiquetada', 0, 16);
+  await q.evaluate(() => {
+    const ms = JSON.parse(localStorage.getItem('glossa:marcas:v1'));
+    const m = ms.find(x => x.nota === 'la vieja etiquetada');
+    if (m) m.etiquetas = ['estudio'];
+    localStorage.setItem('glossa:marcas:v1', JSON.stringify(ms));
+  });
+  await q.reload();
+
+  /* Y se marca su chip, que es el filtro. */
+  await alPanelDeGlosas();
+  const marcado = await q.evaluate(async () => {
+    /* De estreno hay tres glosas etiquetadas «Interesante»; se mira una de
+       ellas ANTES y DESPUÉS de marcar el chip, que es el control de verdad:
+       comprobar solo el después no distingue «el filtro la escondió» de «esa
+       glosa no caía en esta hoja». */
+    const hay = t => [...document.querySelectorAll('.gl')].some(g => t.test(g.textContent));
+    const antes = hay(/El título real/);
+    const busca = () => [...document.querySelectorAll('#etiquetas .chip')]
+                          .find(b => /estudio/.test(b.textContent));
+    const c = busca();
+    if (!c) return { falta: [...document.querySelectorAll('#etiquetas .chip')].map(b => b.textContent.trim()) };
+    c.click();
+    await new Promise(z => setTimeout(z, 900));
+    /* SE VUELVE A BUSCAR: pintarFiltros rehace los chips en cada repintado, así
+       que el de antes ya no está en el documento y su clase no cuenta nada. */
+    const vivo = busca();
+    return { puesto: !!vivo && vivo.classList.contains('sel'),
+             antes, despues: hay(/El título real/) };
+  });
+  vale('el chip del filtro queda marcado', marcado.puesto === true, marcado.falta || marcado);
+  /* EL CONTROL: si el filtro no muerde, lo de abajo no prueba nada. */
+  vale('CONTROL: sin el chip esa glosa se veía, y con el chip ya no',
+       marcado.antes === true && marcado.despues === false,
+       'antes ' + marcado.antes + ' · después ' + marcado.despues);
+
+  /* Y ahora la glosa nueva, que nace sin etiquetas. */
+  const escribio = await escribirGlosa('la nueva sin etiqueta', 30, 50);
+  vale('se pudo escribir la glosa nueva', escribio === true);
+  const r = await retrato('la nueva sin etiqueta');
+  di('el aviso', r.aviso);
+  di('los chips que quedan', r.chips);
+  vale('se guarda', r.enElAlmacen === true);
+  vale('SE VE EN LA HOJA, que es lo que fallaba', r.enLaHoja === true);
+  vale('el filtro que la escondía se quitó',
+       !r.chips.some(c => /estudio/.test(c)), r.chips);
+  vale('y se dice por qué', /escond/i.test(r.aviso), r.aviso);
+  await alPanelDeGlosas();
+  const enLista = await q.evaluate(() =>
+    (document.getElementById('indice').textContent || '').includes('la nueva sin etiqueta'));
+  vale('y sale en la lista de glosas', enLista === true);
+  await cerrarParcial(filtros, 'filtros');
+
   await cerrar(sesion);
 })();
