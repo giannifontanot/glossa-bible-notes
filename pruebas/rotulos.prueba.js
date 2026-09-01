@@ -220,6 +220,159 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo,
     return r;
   }));
 
+  /* ================================================================
+     Y SIN PUNTERO NINGUNO: TECLADO SOLO.
+
+     Los dos rótulos son <div>, y un div no entra en el recorrido del tabulador
+     ni responde a Enter. Como son la ÚNICA puerta de la burbuja, quien navega
+     con teclado o con conmutador se quedaba sin Libros, sin Glosas, sin
+     Formato y sin Respaldo, y —desde que Formato dejó de tener su propia fila
+     de versiones— sin ninguna forma de cambiar de versión. No era que costara
+     llegar: no había camino. Lo levantó la revisión de Codex.
+
+     Esta prueba lo recorre entero con el teclado y nada más: tabular hasta el
+     rótulo, abrir, elegir otra versión, y comprobar que la versión CAMBIÓ DE
+     VERDAD. Quedarse en «se abrió el globo» dejaría pasar un globo que se abre
+     y del que no se puede salir eligiendo nada, que es medio arreglo.
+     ================================================================ */
+  titulo('sin puntero: los dos rótulos se alcanzan y se abren con el teclado');
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(500);
+  const recorrido = [];
+  for (let i = 0; i < 6; i++){
+    await p.keyboard.press('Tab');
+    recorrido.push(await p.evaluate(() => {
+      const a = document.activeElement;
+      return !a || a === document.body ? 'BODY' : (a.id || a.tagName);
+    }));
+  }
+  di('el recorrido del tabulador', recorrido.join(' → '));
+  vale('el tabulador llega al titulillo', recorrido.includes('pgCabeza'), recorrido);
+  vale('y al rótulo del pie', recorrido.includes('pgVersion'), recorrido);
+
+  /* LAS TECLAS SE MANDAN CON EL TECLADO DE VERDAD, no con dispatchEvent. Es
+     la misma regla que en los gestos y por el mismo motivo: un KeyboardEvent
+     despachado a mano SIEMPRE llega y no trae la acción por defecto, así que
+     una prueba escrita así pasaría en verde aunque el rótulo no fuera
+     alcanzable ni el espacio dejara de desplazar la página. Aquí se pone el
+     foco y se pulsa; lo demás lo pone el navegador. */
+  const foco = () => p.evaluate(() => {
+    const a = document.activeElement;
+    return !a || a === document.body ? 'BODY' : (a.id || a.className || a.tagName);
+  });
+  const leerRotulo = () => p.evaluate(() => {
+    const rot = document.getElementById('pgVersion');
+    const globo = document.getElementById('burbujaVersion');
+    return { ver: rot.textContent.trim(), aria: rot.getAttribute('aria-expanded'),
+             visible: globo.classList.contains('visible'),
+             dentro: globo.contains(document.activeElement),
+             enLaDeAhora: !!(document.activeElement.classList &&
+                             document.activeElement.classList.contains('aqui')),
+             filas: globo.querySelectorAll('.bv-fila').length };
+  });
+
+  await p.evaluate(() => document.getElementById('pgVersion').focus());
+  const antesDeAbrir = await leerRotulo();
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(600);
+  const abierto = await leerRotulo();
+  di('la versión de partida', antesDeAbrir.ver);
+  vale('empieza diciendo que está cerrado', antesDeAbrir.aria === 'false', antesDeAbrir.aria);
+  vale('Enter abre el globo', abierto.visible === true);
+  vale('y lo cuenta con aria-expanded', abierto.aria === 'true', abierto.aria);
+  vale('el foco entra en el globo', abierto.dentro === true);
+  vale('y aterriza en la versión que se está leyendo', abierto.enLaDeAhora === true);
+  vale('con una fila por versión', abierto.filas >= 2, abierto.filas);
+
+  /* Tabular a otra versión y entrar. Sin ratón en ningún paso. */
+  await p.keyboard.press('Tab');
+  const enOtra = await foco();
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(1800);
+  const cambiada = await leerRotulo();
+  di('a dónde saltó el tabulador', enOtra);
+  di('la versión', antesDeAbrir.ver + ' → ' + cambiada.ver);
+  /* LA QUE IMPORTA: que se pueda CAMBIAR de versión sin tocar nada. Quedarse
+     en «se abrió el globo» dejaría pasar un globo que se abre y del que no se
+     puede salir eligiendo nada, que es medio arreglo. */
+  vale('SE CAMBIA DE VERSIÓN SIN PUNTERO',
+       !!cambiada.ver && cambiada.ver !== antesDeAbrir.ver,
+       antesDeAbrir.ver + ' → ' + cambiada.ver);
+  vale('y el globo se cierra al elegir', cambiada.visible === false);
+  vale('y vuelve a decir que está cerrado', cambiada.aria === 'false', cambiada.aria);
+
+  /* Escape cierra y DEVUELVE EL FOCO. Un globo que se va con el foco puesto
+     dentro lo deja en un elemento oculto y el navegador lo manda al <body>: el
+     siguiente tabulador arranca otra vez desde arriba y se pierde el sitio. */
+  await p.evaluate(() => document.getElementById('pgVersion').focus());
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(600);
+  const dentroAntesDeEscape = (await leerRotulo()).dentro;
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(600);
+  const trasEscape = await p.evaluate(() => ({
+    enElRotulo: document.activeElement === document.getElementById('pgVersion'),
+    aria: document.getElementById('pgVersion').getAttribute('aria-expanded'),
+    visible: document.getElementById('burbujaVersion').classList.contains('visible') }));
+  vale('Escape cierra el globo',
+       dentroAntesDeEscape === true && trasEscape.visible === false &&
+       trasEscape.aria === 'false', JSON.stringify(trasEscape));
+  vale('y el foco vuelve al rótulo', trasEscape.enElRotulo === true);
+
+  /* EL ESPACIO TAMBIÉN, y sin llevarse la página por delante: la barra
+     espaciadora desplaza por defecto, y un rótulo que abre el globo Y baja la
+     hoja hace dos cosas cuando se le pidió una. */
+  await p.evaluate(() => { document.getElementById('pgVersion').focus();
+                           window.__desplazo = window.scrollY; });
+  await p.keyboard.press(' ');
+  await p.waitForTimeout(600);
+  const conEspacio = await p.evaluate(() => ({
+    visible: document.getElementById('burbujaVersion').classList.contains('visible'),
+    movio: window.scrollY !== window.__desplazo }));
+  vale('el espacio también abre', conEspacio.visible === true);
+  vale('y no desplaza la página', conEspacio.movio === false);
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(500);
+
+  /* Y EL DE ARRIBA, que es la puerta de los cuatro paneles —Formato incluido,
+     que es donde vivían las versiones—. */
+  await p.evaluate(() => document.getElementById('pgCabeza').focus());
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(1000);
+  const cabeza = await p.evaluate(() => ({
+    canto: getComputedStyle(document.getElementById('canto')).display,
+    aria: document.getElementById('pgCabeza').getAttribute('aria-expanded'),
+    pestanas: [...document.querySelectorAll('.pestanas button')]
+                .map(b => b.textContent.trim().toLowerCase()) }));
+  di('las pestañas que quedan a mano', cabeza.pestanas);
+  vale('Enter en el titulillo abre la burbuja',
+       cabeza.canto !== 'none' && cabeza.aria === 'true',
+       cabeza.canto + ' · ' + cabeza.aria);
+  vale('y desde ahí se llega a Formato',
+       cabeza.pestanas.includes('formato'), cabeza.pestanas);
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(800);
+  vale('Escape la cierra', await p.evaluate(() =>
+       document.getElementById('pgCabeza').getAttribute('aria-expanded')) === 'false');
+
+  /* El aro del foco tiene que VERSE, que si no se navega a ciegas. Y solo con
+     :focus-visible: quien acaba de tocar el rótulo con el dedo no lo quiere
+     pintado encima, que es lo que pasaba con el :hover del que habla la
+     cabecera de este archivo. */
+  const aro = await p.evaluate(() => {
+    const reglas = [...document.styleSheets].flatMap(h => {
+      try { return [...h.cssRules]; } catch(e){ return []; } });
+    const r = reglas.find(x => x.selectorText &&
+                x.selectorText.includes('.pg-version:focus-visible'));
+    return { hayRegla: !!r, dibujo: r ? r.style.outline : null,
+             cabeza: !!(r && r.selectorText.includes('.pg-cabeza:focus-visible')),
+             reposo: getComputedStyle(document.getElementById('pgVersion')).outlineStyle };
+  });
+  vale('hay aro de foco para el teclado', aro.hayRegla === true);
+  vale('para los dos rótulos', aro.cabeza === true, aro.hayRegla ? 'solo el del pie' : '');
+  vale('y dibuja algo', !!aro.dibujo && aro.dibujo !== 'none', aro.dibujo);
+  vale('en reposo no hay aro', aro.reposo === 'none', aro.reposo);
+
   titulo('y con RATÓN, que es donde estuvo roto');
   await cerrarParcial(sesion, 'dedo');
 
