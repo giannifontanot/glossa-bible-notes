@@ -2736,7 +2736,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-SEP-26 12:17';
+window.GLOSS_BUILD = '02-SEP-26 18:00';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8431,33 +8431,48 @@ const ladoDePaso = b => (+b.dataset.paso > 0 ? 'right' : 'left');
    buscar una hoja de lejos. Con el paso normal, ir de Mateo a Apocalipsis era
    quedarse mirando un minuto largo.
 
-   Y aquí está lo que costó entender. El ritmo de antes NO lo ponía un reloj:
-   lo ponía el pliegue. El automático pide la hoja siguiente en cuanto la
-   anterior terminó de plegarse, y un pliegue dura 620-780 ms. O sea que
-   acortar la espera no habría hecho nada: ya iba al máximo que da la
-   animación. Para ir de verdad más rápido hay que soltar el pliegue.
+   Y aquí está lo que costó entender. El ritmo NO lo pone un reloj: lo pone el
+   pliegue. El automático pide la hoja siguiente en cuanto la anterior terminó
+   de plegarse, y un pliegue de los de siempre dura 620-780 ms. O sea que
+   acortar la espera sola no habría hecho nada: ya iba al máximo que da la
+   animación. Lo que acelera es acortar EL PLIEGUE.
 
-   Así que el recorrido tiene dos tramos, y el corte está en SIN_PLIEGUE:
+   TODAS LAS HOJAS SE PLIEGAN, y esto se decidió después de probar lo otro.
 
-   · Antes del corte se sigue plegando, pero cada vez más corto: de los 700 ms
-     de siempre a 200. La hoja se sigue viendo girar, solo que con prisa. Es el
-     tramo de "voy mirando", donde la animación todavía dice algo.
-   · Pasado el corte no se pliega: se repinta la hoja y a por la siguiente. Es
-     un barrido, y a esa velocidad la animación no es que sobre, es que
-     estorba —lo que se quiere ver es el rótulo cambiando de capítulo, no una
-     hoja girando—. El camino sin animar ya existía y está probado: es el que
-     usa pasarHoja cuando la foto de la hoja no llega.
+   Hubo un tramo rápido que no plegaba: pasado cierto punto del recorrido se
+   repintaba la hoja y a por la siguiente. Sobre el papel tenía su razón —a esa
+   velocidad lo que se quiere ver es el rótulo cambiando de capítulo, no una
+   hoja girando— pero usándolo no: lo que se veía era el texto dando saltos, y
+   una hoja que aparece sin haber girado no se lee como una hoja que pasa, se
+   lee como un fallo. La animación no es adorno aquí, es lo que cuenta que
+   estás hojeando. Así que se quitó el tramo sin pliegue y todo el recorrido es
+   ahora el mismo: el pliegue se acorta de los 700 ms de siempre a
+   MS_PLIEGUE_CORTO, y la hoja se ve girar SIEMPRE, solo que con prisa.
+
+   Con el pliegue mandando, lo único que quedaba de más era el sondeo: el
+   automático pregunta cada ESPERA_ZOOM_AUTO si el pliegue ya terminó, y a toda
+   velocidad esos 80 ms se le suman a cada hoja como pura espera. Por eso el
+   sondeo también se acorta con el acelerador —a SONDEO_CORTO—, que no cambia
+   el ritmo de la animación: solo deja de llegar tarde a recogerla.
 
    DE RESORTE. Al soltar, el botón vuelve al centro y la velocidad vuelve a la
    normal; el automático sigue andando. Se eligió así frente a dejar el botón
-   corrido: el barrido rápido es para buscar, y buscar es algo que se hace con
-   el dedo puesto y se suelta al llegar. Dejarlo corrido obligaba a volver a
-   tocar para recuperar el paso normal. */
+   corrido: el paso rápido es para buscar, y buscar es algo que se hace con el
+   dedo puesto y se suelta al llegar. Dejarlo corrido obligaba a volver a tocar
+   para recuperar el paso normal. */
 const CORRIDA_MAX = 132;      /* px de recorrido lateral hasta el tope */
 const CORRIDA_MIN = 56;       /* y lo menos que se le deja, por estrecha que sea */
-const SIN_PLIEGUE = 0.55;     /* de aquí en adelante se deja de plegar */
-const MS_PLIEGUE_CORTO = 200; /* lo más corto que se pliega antes del corte */
-const ESPERA_BARRIDO = [120, 46];   /* ms entre hojas, del corte al tope */
+const CORRIDA_ARRANQUE = 12;  /* px de corrida antes de que esto sea un gesto */
+/* 120 ms, y el número está medido por los dos lados. Por abajo: a 60 Hz son
+   unos ocho cuadros de giro dibujados por hoja —medido: 8.7— y por debajo de
+   cinco deja de leerse como un giro y pasa a ser un destello. Por arriba: de
+   190 a 120 se gana un tercio de velocidad (9 → 12 hojas en la misma ventana),
+   pero de 120 a 90 se gana UNA hoja, porque a partir de ahí lo que manda ya no
+   es el pliegue sino el coste fijo de cada hoja —la foto, el lienzo, el
+   repintado—, que ronda los 200 ms. Bajar más sería acortar la animación sin
+   comprar velocidad. */
+const MS_PLIEGUE_CORTO = 120; /* lo más corto que se pliega, al tope */
+const SONDEO_CORTO = 24;      /* ms entre preguntas, al tope */
 
 /* Cuánto dura el pliegue de ESTA hoja. Sin acelerador puesto devuelve lo de
    siempre, jitter incluido: dos pliegues seguidos que duran exactamente lo
@@ -8465,15 +8480,18 @@ const ESPERA_BARRIDO = [120, 46];   /* ms entre hojas, del corte al tope */
 function msPliegueZoom(){
   const base = rnd(620, 780);
   if (!dirZoomAuto || veloZoom <= 0) return base;
-  const t = Math.min(veloZoom / SIN_PLIEGUE, 1);
+  const t = Math.min(Math.max(veloZoom, 0), 1);
   return Math.round(base + (MS_PLIEGUE_CORTO - base) * t);
 }
-/* Cada cuánto se vuelve a preguntar. Antes del corte manda el pliegue y esto
-   es solo el sondeo de siempre; pasado el corte, esto SÍ es el ritmo. */
+/* Cada cuánto se vuelve a preguntar si el pliegue terminó. Quien manda el
+   ritmo es el pliegue; esto es solo el sondeo, y a toda velocidad sus 80 ms se
+   le sumaban a cada hoja como espera muerta —casi un tercio del ciclo—. Se
+   acorta con el acelerador por eso y solo por eso: no acelera la animación,
+   deja de llegar tarde a recogerla. */
 function esperaZoomAuto(){
-  if (veloZoom < SIN_PLIEGUE) return ESPERA_ZOOM_AUTO;
-  const t = (veloZoom - SIN_PLIEGUE) / (1 - SIN_PLIEGUE);
-  return Math.round(ESPERA_BARRIDO[0] + (ESPERA_BARRIDO[1] - ESPERA_BARRIDO[0]) * t);
+  if (!dirZoomAuto || veloZoom <= 0) return ESPERA_ZOOM_AUTO;
+  const t = Math.min(Math.max(veloZoom, 0), 1);
+  return Math.round(ESPERA_ZOOM_AUTO + (SONDEO_CORTO - ESPERA_ZOOM_AUTO) * t);
 }
 function darPasoZoom(s){
   if (folding || preparandoPliegue) return false;
@@ -8481,17 +8499,10 @@ function darPasoZoom(s){
      puede empezar el libro siguiente; aquí solo se pregunta si hay a dónde ir,
      que es lo que decide si el automático sigue o se apaga. */
   if (!hayHoja(s)) return false;
-  /* EL BARRIDO. Sin foto, sin lienzo y sin animación: se cambia de hoja y se
-     repinta. El cruce de libro NO se hace por aquí —eso lo sabe hacer
-     pasarHoja, y es la única parada del barrido que merece verse—, así que
-     cuando la hoja siguiente ya no es de este libro se cae al camino normal. */
-  const siguiente = paginaActual + (s === 'right' ? 1 : -1);
-  if (veloZoom >= SIN_PLIEGUE && hayHojaN(siguiente)){
-    paginaActual = siguiente;
-    renderPage();
-    refrescarPasos();
-    return true;
-  }
+  /* SIEMPRE POR pasarHoja, o sea siempre con pliegue. Aquí hubo un atajo que
+     repintaba sin animar cuando el acelerador pasaba de cierto punto, y se
+     quitó: ver el comentario de arriba. Una hoja que aparece sin haber girado
+     no se lee como una hoja que pasa. */
   const inner = pg.querySelector('.pg-inner');
   if (!inner) return false;
   const r = inner.getBoundingClientRect();
@@ -8521,31 +8532,33 @@ function arrancarZoomAuto(b){
   refrescarPasos();
   seguirZoomAuto();
 }
-/* EL DESLIZ, MEDIDO.
+/* EL GESTO ES UNO SOLO: CORRER EL BOTÓN A SU LADO.
 
-   TIRON es lo que hay que subir para que arranque: 24 px en un botón que mide
-   66 —80 en el teléfono—, o sea un tercio de su alto. Menos lo dispararía el
-   temblor del dedo al posarse, que ronda los diez; más obligaría a salirse del
-   botón, y el gesto dejaría de leerse como empujarlo.
+   Antes eran dos, en este orden: subir el botón 24 px para armar el
+   automático, y sólo entonces correrlo a un lado para acelerar. Se quitó el
+   primero porque pedía saberlo. Un mando que hay que empujar hacia arriba
+   antes de poder usarlo no lo descubre nadie: el que llega a la vista de lejos
+   ve dos flechas y un papel chico, prueba a arrastrar la flecha hacia donde
+   quiere ir —que es lo obvio— y no pasa nada. El paso rápido existía y estaba
+   escondido detrás de un gesto que había que aprenderse.
 
-   Y tiene que subir MÁS DE LO QUE SE DESVÍA: sin eso, un dedo que barre en
-   diagonal —que es como se pasa hoja de toda la vida en un teléfono— pondría
-   el automático en marcha sin haberlo pedido. Subir es subir.
+   Ahora el mando está listo desde que aparece la vista: se agarra el botón, se
+   tira hacia su lado, y las hojas arrancan y van cada vez más deprisa cuanto
+   más lejos del centro. Un solo gesto que hace las dos cosas —encender y
+   acelerar— y que además dice lo que va a pasar mientras se hace.
+
+   CORRIDA_ARRANQUE es lo único que queda de guarda: 12 px de corrida antes de
+   que esto cuente como gesto. No es un freno, es la frontera con el TOQUE, que
+   sigue significando otra cosa —una hoja suelta con el automático parado, y
+   parar con el automático en marcha—. Doce píxeles es más que el temblor del
+   dedo al posarse, que ronda los diez, y menos que cualquier arrastre hecho a
+   propósito. Un dedo que sube y baja sin irse a los lados tampoco arranca
+   nada: lo que cuenta es lo que se aleja del centro, y eso ahí vale cero.
 
    Va con eventos de puntero y no de tacto: el mismo código sirve para el dedo,
-   el ratón y el lápiz, y así el desliz también existe con ratón —que es donde
-   se probó el doble clic y donde también costaba—. */
-const TIRON_ZOOM_AUTO = 24;
-let tiron = null;             /* el desliz en curso */
-/* Lo que se ve mientras subes: el botón acompaña al dedo, la mitad de lo que
-   sube y como mucho el tirón entero. Es freno y es promesa a la vez —cuanto
-   más cerca del tope, más se ha movido— y soltando a medias no pasa nada. */
-function ponerTiron(b, dy){
-  b.style.transform = dy ? 'translateY(' + dy + 'px)' : '';
-}
-/* El botón corrido a un lado. Va en su propio transform y nunca a la vez que
-   el de subir: cuando el desliz arma el automático, el botón vuelve a su sitio
-   vertical y a partir de ahí solo se mueve en horizontal. */
+   el ratón y el lápiz. */
+let tiron = null;             /* el gesto en curso */
+/* El botón corrido a un lado. */
 function ponerCorrida(b, dx){
   b.style.transform = dx ? 'translateX(' + dx + 'px)' : '';
 }
@@ -8588,45 +8601,35 @@ function ponerAcelerador(t, dx){
 }
 $('zoomPasos').addEventListener('pointerdown', ev => {
   const b = ev.target.closest('[data-paso]'); if (!b || b.disabled) return;
-  /* Un solo desliz a la vez: con dos dedos encima gana el primero. */
+  /* Un solo gesto a la vez: con dos dedos encima gana el primero. */
   if (tiron) return;
-  tiron = { id: ev.pointerId, b, x: ev.clientX, y: ev.clientY, vivo: true };
-  /* YA EN MARCHA Y ES SU BOTÓN: el dedo entra directo al acelerador, sin
-     volver a armar nada. Así se puede soltar tras arrancar, mirar pasar unas
-     hojas, y volver a agarrar el botón para correrlo. Ojo: esto NO cuenta
-     todavía como gesto —un toque a secas sobre el botón en marcha tiene que
-     seguir parando—; lo que decide es si el dedo llega a correrse, y eso lo
-     marca t.corrio. */
-  if (dirZoomAuto === ladoDePaso(b)){ tiron.vivo = false; tiron.tope = topeAcelerador(tiron); }
-  /* Con la captura, el dedo puede salirse del botón sin perder el gesto: al
-     subir 24 px desde el borde de arriba ya se está fuera, que es lo normal.
-     Y corriéndose a los lados se sale mucho más todavía. */
+  /* El tope se mide YA, con el dedo donde se posó: es de donde se cuenta la
+     corrida, y topeAcelerador necesita esa x para saber cuánto le queda al
+     dedo hasta el borde de la pantalla.
+     Esto NO cuenta todavía como gesto —un toque a secas tiene que seguir
+     dando una hoja, o parando si el automático va—; lo que decide es si el
+     dedo llega a correrse, y eso lo marca t.corrio. */
+  tiron = { id: ev.pointerId, b, x: ev.clientX, y: ev.clientY };
+  tiron.tope = topeAcelerador(tiron);
+  /* Con la captura, el dedo puede salirse del botón sin perder el gesto:
+     corriéndose a los lados se sale enseguida. */
   try { b.setPointerCapture(ev.pointerId); } catch(_){}
 });
 $('zoomPasos').addEventListener('pointermove', ev => {
   if (!tiron || ev.pointerId !== tiron.id) return;
-  const dy = ev.clientY - tiron.y, dx = ev.clientX - tiron.x;
-  if (tiron.vivo){
-    if (dy >= 0){ ponerTiron(tiron.b, 0); return; }
-    if (-dy <= Math.abs(dx)) return;        /* eso es un barrido, no un empujón */
-    if (-dy < TIRON_ZOOM_AUTO){ ponerTiron(tiron.b, Math.max(dy / 2, -TIRON_ZOOM_AUTO)); return; }
-    /* Llegó al tope: arranca aquí y no al soltar, para que el gesto se conteste
-       con el dedo todavía puesto. */
-    tiron.vivo = false;
+  const dx = ev.clientX - tiron.x;
+  /* Cuánto se ha alejado del centro HACIA SU LADO. Volver, o irse al lado
+     contrario, no arranca ni acelera: para el otro sentido está el otro botón. */
+  const haciaFuera = ladoDePaso(tiron.b) === 'right' ? dx : -dx;
+  /* ARRANCA AL CORRERSE, con el dedo todavía puesto, para que el gesto se
+     conteste mientras se hace y no al soltar. Si ya iba en su sentido no se
+     rearma: se puede soltar, mirar pasar unas hojas, y volver a agarrar el
+     botón para correrlo otra vez. */
+  if (dirZoomAuto !== ladoDePaso(tiron.b)){
+    if (haciaFuera < CORRIDA_ARRANQUE) return;
     tiron.arranco = true;
-    ponerTiron(tiron.b, 0);
     arrancarZoomAuto(tiron.b);
-    /* Y EL ACELERADOR EMPIEZA A CONTAR DESDE AQUÍ, no desde donde bajó el
-       dedo. Un tirón hacia arriba nunca sale recto: trae siempre veinte
-       píxeles de desviación lateral, y contándolos desde el origen el
-       automático arrancaría ya corriendo sin que nadie lo hubiera pedido. */
-    tiron.x = ev.clientX;
-    tiron.tope = topeAcelerador(tiron);     /* con la x ya puesta, que la usa */
-    return;
   }
-  /* De aquí en adelante el dedo manda la velocidad, y solo si hay automático:
-     el botón parado no acelera nada. */
-  if (dirZoomAuto !== ladoDePaso(tiron.b)) return;
   ponerAcelerador(tiron, dx);
 });
 /* AL SOLTAR, EL CLIC DEL GESTO SE TIRA A LA BASURA.
@@ -8645,7 +8648,7 @@ const soltarTiron = (ev, hubo) => {
   if (!tiron || (ev && ev.pointerId !== tiron.id)) return;
   const t = tiron;
   tiron = null;
-  ponerTiron(t.b, 0);
+  ponerCorrida(t.b, 0);
   /* EL ACELERADOR ES DE RESORTE: el botón vuelve al centro y la velocidad a la
      normal, pero el automático sigue andando. El barrido rápido es para
      buscar, y buscar se hace con el dedo puesto y se suelta al llegar. */
@@ -8661,9 +8664,9 @@ const soltarTiron = (ev, hubo) => {
    candado de verdad que estaba puesto.
 
    Colgando de #zoomPasos, un dedo que se levanta en cualquier otro sitio deja
-   el desliz sin cerrar. Y `tiron` abierto bloquea el siguiente —«un solo
-   desliz a la vez: con dos dedos encima gana el primero»—, o sea que a partir
-   de ahí NINGUNO de los dos botones vuelve a armar el automático. Para
+   el gesto sin cerrar. Y `tiron` abierto bloquea el siguiente —«un solo gesto
+   a la vez: con dos dedos encima gana el primero»—, o sea que a partir de ahí
+   NINGUNO de los dos botones vuelve a arrancar el automático. Para
    siempre, hasta recargar.
 
    No es hipotético: estos botones SE APAGAN solos cuando se acaba el libro, y
