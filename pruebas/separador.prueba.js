@@ -740,6 +740,67 @@ async function ponerAMano(p){
        conOtraPestana.color === 'oliva', conOtraPestana.color);
   vale('y la fila enseña lo que dice el aviso', conOtraPestana.enLaFila === true);
 
+  /* ================================================================
+     CON TECLADO, LA VENTANITA TIENE QUE RECIBIR EL FOCO.
+
+     Desde que tocar una cinta ya no salta sino que abre la ventanita, hay un
+     segundo paso; y el menú que tenía el foco se esconde para dejarla ver. Sin
+     mover el foco a mano, en cuanto el menú se pone en display:none el foco se
+     cae al documento: la ventanita queda abierta y quien navega con teclado no
+     tiene manera de contestarle salvo recorrer la página entera. Lo levantó la
+     revisión de Codex, y se mide como se sufre: DOS INTRO SEGUIDOS, sin tocar
+     nada por medio. Con el fallo puesto, el segundo no lleva a ninguna parte.
+
+     La tecla es de verdad —p.keyboard—, no un KeyboardEvent a mano: lo que se
+     prueba aquí es justamente a quién le llega, y un evento despachado a mano
+     siempre llega. */
+  titulo('con teclado: dos Intro y estás allí');
+  await p.evaluate(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(500);
+  });
+  await abrirLista();
+  const enLaCinta = await p.evaluate(() => {
+    const a = document.activeElement;
+    return { fila: !!(a && a.closest && a.closest('[data-sep-ir]')),
+             cual: a && a.dataset ? (a.dataset.sepIr || '') : '',
+             hoja: window.__hoja() };
+  });
+  di('al abrir la lista', enLaCinta);
+  vale('el foco cae en una cinta', enLaCinta.fila === true, enLaCinta);
+
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(900);
+  const traslaTecla = await p.evaluate(() => {
+    const a = document.activeElement;
+    return { abierta: document.getElementById('versoPleno').classList.contains('visible'),
+             dentro: !!(a && a.closest && a.closest('#versoPleno')),
+             que: a ? (a.className || a.tagName) : 'nada',
+             hoja: window.__hoja() };
+  });
+  di('tras el primer Intro', traslaTecla);
+  vale('se abre la ventanita', traslaTecla.abierta === true, traslaTecla);
+  vale('EL FOCO ENTRA EN LA VENTANITA', traslaTecla.dentro === true, traslaTecla.que);
+  vale('y cae en el versículo, que es lo que se viene a hacer',
+       /vp-txt/.test(traslaTecla.que), traslaTecla.que);
+
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(3800);
+  /* El salto NO se mide por la hoja: las dos cintas de este bloque caen en la
+     misma, así que la hoja de llegada y la de salida serían iguales con el
+     fallo puesto y sin él. Se mide por lo que el salto hace pase lo que pase:
+     cierra la ventanita y cierra el rastro —ver el oyente de #versoPleno—. Con
+     el foco caído al documento, el Intro no llega a nadie y los dos siguen
+     abiertos. */
+  const traslSegundo = await p.evaluate(() => ({
+    pleno: document.getElementById('versoPleno').classList.contains('visible'),
+    rastro: document.getElementById('historial').classList.contains('visible'),
+    hoja: window.__hoja()
+  }));
+  di('tras el segundo Intro', traslSegundo);
+  vale('EL SEGUNDO INTRO SALTA, SIN TOCAR NADA MÁS',
+       traslSegundo.pleno === false && traslSegundo.rastro === false, traslSegundo);
+
   await cerrarParcial(sesion, 'teléfono');
 
   /* ================================================================

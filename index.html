@@ -2736,7 +2736,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-SEP-26 10:23';
+window.GLOSS_BUILD = '02-SEP-26 10:38';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5484,6 +5484,21 @@ function afinarTagbox(){
   if (!caja || !ta) return;
   caja.classList.toggle('dormida', !ta.value.trim());
 }
+/* EL RÓTULO DEL OK DICE LO QUE VA A PASAR, y cambia porque lo que va a pasar
+   cambia. El botón está siempre activo —terminar con la caja vacía es un
+   camino que existe— pero con la caja vacía sobre una glosa que YA tenía nota,
+   terminar la BORRA (ver cerrarBorrador, rama teniaNota). Quien no ve la
+   pantalla oía «terminar y guardar la glosa» justo en el momento en que el
+   botón la destruye. El rótulo se afina en los mismos tres casos que
+   cerrarBorrador reconoce, ni uno más. Lo levantó la revisión de Codex. */
+function rotularOk(){
+  const ok = menu.querySelector('.mok'), ta = menu.querySelector('#glosaCaja');
+  if (!ok || !ta) return;
+  ok.setAttribute('aria-label',
+    ta.value.trim()          ? 'Terminar y guardar la glosa' :
+    (borrador && borrador.teniaNota) ? 'Terminar y borrar la glosa'
+                                     : 'Terminar sin escribir glosa');
+}
 /* ---------- abrir y cerrar ---------- */
 
 /* PINTAR LA MARCA RECIÉN NACIDA NO CUESTA UNA HOJA ENTERA.
@@ -5580,6 +5595,7 @@ function abrirPanel(m, nueva, rect){
      fábrica. Lo levantó la tercera revisión de Codex. */
   anchoPanelComoGlosa();
   refrescarTags();
+  rotularOk();
   if (nueva) pintarMarcaNueva(m);
   /* EL ANCLA SE REPINTA DESPUÉS DE renderPage, y no es redundante: la
      referencia de una marca nueva —el «12a» que le toca por su sitio en el
@@ -6206,6 +6222,7 @@ document.addEventListener('pointerdown', ev => {
 menu.addEventListener('input', ev => {
   if (ev.target.id !== 'glosaCaja') return;
   afinarTagbox();
+  rotularOk();
   /* El ancla aparece en cuanto hay texto —antes esa nota no era una nota— y
      con ella cambia la sangría del primer renglón. */
   if (borrador) pintarAncla(borrador.m);
@@ -11385,6 +11402,21 @@ $('sepMenu').addEventListener('click', ev => {
      de abrirPleno porque solo lo mira el salto: hasta que no se toca el texto
      no ha pasado nada que convierta esta cinta en la activa. */
   if (plenoAbierto) plenoAbierto.sep = s.id;
+  /* Y EL FOCO SE VA CON LA VENTANITA. Aquí y no dentro de abrirPleno: el foco
+     se mueve porque la lista que lo tenía se está escondiendo, y esa es una
+     condición de ESTE camino. Las otras tres puertas de la ventanita —una fila
+     del rastro, una referencia dentro de una glosa, el índice— dejan en pie lo
+     que llevaba el foco, y en la de la glosa robárselo al textarea cortaría lo
+     que se está escribiendo.
+     Antes esto no hacía falta porque tocar la cinta saltaba: la hoja cambiaba
+     entera y no había segundo paso. Ahora lo hay, y sin esto quien llega con
+     el teclado se queda sin foco en cuanto el menú se pone en display:none,
+     con la ventanita abierta y sin manera de contestarle salvo recorrer el
+     documento. Va al versículo, que es lo que se viene a hacer; si no está en
+     esta versión no hay botón, y entonces a la equis. Lo levantó Codex. */
+  const vp = $('versoPleno');
+  const foco = vp.querySelector('button.vp-txt') || vp.querySelector('[data-cerrar-pleno]');
+  if (foco) foco.focus({ preventScroll:true });
 });
 /* Un toque fuera lo cierra, como los demás paneles. La cinta queda exceptuada
    —su oyente ya sabe alternar— y también el menú, claro. */

@@ -486,6 +486,10 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
          sin leerlos, que es de lo que sirve un botón de terminar. */
       okMacizo: ok ? getComputedStyle(ok).backgroundColor : '',
       modoMacizo: modos[0] ? getComputedStyle(modos[0]).backgroundColor : '',
+      /* Lo que el botón PROMETE. Sobre una marca nueva y sin texto no se
+         guarda nada, y decir «guardar» ahí es lo que oía quien no ve la
+         pantalla. */
+      rotuloOk: ok ? ok.getAttribute('aria-label') : '',
       hayCaja: !!m.querySelector('#glosaCaja'),
       cajaVacia: (m.querySelector('#glosaCaja')||{}).value === '',
       tagsDormidas: !!tags && tags.classList.contains('dormida'),
@@ -506,6 +510,8 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     vale('SIN TEXTO EL OK SIGUE ACTIVO', r.okApagado === false, r.okApagado);
     vale('macizo, y los trazos de contorno', r.okMacizo !== r.modoMacizo,
          r.okMacizo + '  vs  ' + r.modoMacizo);
+    vale('y sin texto no promete guardar nada',
+         r.rotuloOk === 'Terminar sin escribir glosa', r.rotuloOk);
     vale('la caja de escribir está desde el principio', r.hayCaja && r.cajaVacia);
     vale('las etiquetas duermen sin texto', r.tagsDormidas);
     vale('y no se ha guardado nada', r.crecio === 0, r.crecio);
@@ -632,6 +638,55 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     vale('con lo escrito', r.nota === 'terminada con el botón', r.nota);
     vale('el panel se cerró', r.cerrado === true);
     vale('y la glosa voló a la hoja', r.enLaHoja === true, r);
+    return r;
+  }));
+
+  /* ================================================================
+     EL RÓTULO DEL OK DICE LO QUE VA A PASAR.
+
+     El botón está siempre activo, y con la caja vacía sobre una glosa que YA
+     tenía nota, terminar la BORRA. Quien no ve la pantalla oía «terminar y
+     guardar la glosa» justo en el momento en que el botón la destruye. Los
+     tres rótulos son los tres casos que cerrarBorrador reconoce, ni uno más.
+     Lo levantó la revisión de Codex. */
+  titulo('el rótulo del OK cambia con lo que va a pasar');
+  di('los tres casos', await p.evaluate(async ([abrir, tocar, fuera]) => {
+    const rotulo = () => {
+      const ok = document.querySelector('#menu .mok');
+      return ok ? ok.getAttribute('aria-label') : null;
+    };
+    const escribir = async (t) => {
+      const ta = document.getElementById('glosaCaja');
+      ta.value = t; ta.dispatchEvent(new Event('input', { bubbles:true }));
+      await new Promise(z => setTimeout(z, 150));
+    };
+    /* Una glosa nueva: vacía no guarda nada, con texto guarda. Sobre
+       «registro de Jesús», que no lo pisa ninguno de los otros bloques. */
+    await eval('(' + abrir + ')')(22, 34);
+    const nuevaVacia = rotulo();
+    await escribir('la del rótulo');
+    const conTexto = rotulo();
+    await eval('(' + fuera + ')')();
+    /* Y ahora la MISMA, reabierta: vaciarla la borra, y el rótulo lo dice. */
+    await eval('(' + tocar + ')')(20, 28);
+    const alReabrir = rotulo();
+    const traia = (document.getElementById('glosaCaja') || {}).value;
+    await escribir('');
+    const vaciada = rotulo();
+    await escribir(traia);            /* se deja como estaba: no se borra */
+    const deVuelta = rotulo();
+    await eval('(' + fuera + ')')();
+    return { nuevaVacia, conTexto, alReabrir, vaciada, deVuelta, traia };
+  }, [ABRIR, TOCAR, FUERA]).then(r => {
+    vale('nueva y vacía: no promete guardar',
+         r.nuevaVacia === 'Terminar sin escribir glosa', r.nuevaVacia);
+    vale('con texto: guardar', r.conTexto === 'Terminar y guardar la glosa', r.conTexto);
+    vale('reabierta con su nota: guardar',
+         r.alReabrir === 'Terminar y guardar la glosa', r.alReabrir);
+    vale('VACIADA, AVISA DE QUE BORRA',
+         r.vaciada === 'Terminar y borrar la glosa', r.vaciada);
+    vale('y al reescribir vuelve a guardar',
+         r.deVuelta === 'Terminar y guardar la glosa', r.deVuelta);
     return r;
   }));
 
