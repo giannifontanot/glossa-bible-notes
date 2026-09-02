@@ -1166,15 +1166,33 @@ async function ponerAMano(p){
     const fila = document.querySelector('[data-sep-ir="lejos"]');
     const dice = fila ? fila.querySelector('.sp-ref').textContent.trim() : '(no está)';
     if (!fila) return { dice, hoja: window.__hoja() };
+    /* DOS PASOS, que es como se alcanza una cinta desde que la fila enseña en
+       vez de llevar: primero la ventanita con el versículo, y el salto al
+       tocar la escritura. Y aquí eso prueba UNA COSA MÁS que antes no se veía:
+       la ventanita ya tiene que enseñar el respaldo por capítulo —Marcos 1:1,
+       no el 999 que no existe—, o sea que el destino se calcula antes de
+       viajar y no a mitad del viaje. */
     await window.__toque(fila);
+    await window.__pausa(700);
+    const ventana = ((document.querySelector('#versoPleno .vp-ref') || {}).textContent || '').trim();
+    const hayTexto = !!document.querySelector('#versoPleno button.vp-txt');
+    const quieto = window.__hoja();
+    await window.__toque('#versoPleno .vp-txt');
     const t0 = performance.now();
     while (performance.now() - t0 < 25000 && window.__hoja().indexOf('Marcos') !== 0)
       await window.__pausa(200);
     await window.__pausa(900);
-    return { dice, hoja: window.__hoja(), cinta: !!window.__cinta() };
+    return { dice, ventana, hayTexto, quieto,
+             hoja: window.__hoja(), cinta: !!window.__cinta() };
   });
-  di('la fila de lejos', otroLibro.dice + '  →  ' + otroLibro.hoja);
+  di('la fila de lejos', otroLibro.dice + '  →  ' + otroLibro.ventana +
+     '  →  ' + otroLibro.hoja);
   vale('la lista la enseña igual', otroLibro.dice !== '(no está)', otroLibro.dice);
+  vale('la ventanita ya trae el respaldo por capítulo',
+       (otroLibro.ventana || '').indexOf('Marcos') === 0 && otroLibro.hayTexto === true,
+       otroLibro.ventana);
+  vale('y mirar todavía no mueve la hoja',
+       (otroLibro.quieto || '').indexOf('Marcos') !== 0, otroLibro.quieto);
   vale('y el salto llega a su capítulo', otroLibro.hoja.indexOf('Marcos') === 0,
        otroLibro.hoja);
 
