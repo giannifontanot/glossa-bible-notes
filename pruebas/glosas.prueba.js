@@ -461,13 +461,31 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   di('medida', await p.evaluate(async ([abrir, base]) => {
     await eval('(' + abrir + ')')();
     const m = document.getElementById('menu');
-    const modos = [...m.querySelectorAll('.mmodos button')];
+    const modos = [...m.querySelectorAll('.mmodos button[data-modo]')];
+    const ok = m.querySelector('.mmodos [data-acc="ok"]');
     const tags = m.querySelector('.tagbox');
+    /* La fila mide: los dos trazos van a medias EXACTAS y el OK toma lo que
+       necesita. Con grid-template-columns:1fr 1fr auto no salía así —1fr es
+       minmax(auto,1fr), o sea que la columna no baja de su contenido y la de
+       la palabra larga se comía a la otra: 88 contra 68—. Por eso se miden. */
+    const anchos = modos.map(b => Math.round(b.getBoundingClientRect().width));
     return {
       salio: getComputedStyle(m).display !== 'none',
       colores: m.querySelectorAll('.mc').length,
       modos: modos.map(b => b.dataset.modo),
       encendido: modos.filter(b => b.classList.contains('on')).map(b => b.dataset.modo),
+      hayOk: !!ok,
+      anchos,
+      anchoOk: ok ? Math.round(ok.getBoundingClientRect().width) : 0,
+      /* SIN TEXTO EL OK SIGUE ACTIVO. Apagarlo sería mentir: sin texto,
+         terminar es lo que borra la glosa, y ése es un camino que existe. */
+      okApagado: ok ? (ok.disabled === true ||
+                       ok.classList.contains('off') ||
+                       getComputedStyle(ok).pointerEvents === 'none') : null,
+      /* El OK es macizo y los trazos van de contorno: se distinguen a un metro
+         sin leerlos, que es de lo que sirve un botón de terminar. */
+      okMacizo: ok ? getComputedStyle(ok).backgroundColor : '',
+      modoMacizo: modos[0] ? getComputedStyle(modos[0]).backgroundColor : '',
       hayCaja: !!m.querySelector('#glosaCaja'),
       cajaVacia: (m.querySelector('#glosaCaja')||{}).value === '',
       tagsDormidas: !!tags && tags.classList.contains('dormida'),
@@ -477,8 +495,17 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   }, [ABRIR, base]).then(r => {
     vale('el panel salió', r.salio);
     vale('con los cuatro colores', r.colores === 4);
-    vale('y dos botones, no tres', r.modos.length === 2, r.modos.join(' | '));
+    vale('y dos trazos, no tres', r.modos.length === 2, r.modos.join(' | '));
     vale('resaltado viene puesto', r.encendido.join() === 'fill', r.encendido);
+    /* ---- el OK, que es la ayuda visual de que aquí se termina ---- */
+    vale('el OK está en la fila', r.hayOk === true);
+    vale('los dos trazos siguen midiendo lo mismo',
+         r.anchos.length === 2 && Math.abs(r.anchos[0] - r.anchos[1]) <= 1, r.anchos);
+    vale('y el OK no es un tercio, es lo justo',
+         r.anchoOk > 0 && r.anchoOk < r.anchos[0], r.anchoOk + '  vs  ' + r.anchos[0]);
+    vale('SIN TEXTO EL OK SIGUE ACTIVO', r.okApagado === false, r.okApagado);
+    vale('macizo, y los trazos de contorno', r.okMacizo !== r.modoMacizo,
+         r.okMacizo + '  vs  ' + r.modoMacizo);
     vale('la caja de escribir está desde el principio', r.hayCaja && r.cajaVacia);
     vale('las etiquetas duermen sin texto', r.tagsDormidas);
     vale('y no se ha guardado nada', r.crecio === 0, r.crecio);
@@ -568,6 +595,108 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     vale('el panel se abrió', r.abierto);
     vale('y al salir sin escribir no queda nada', r.despues === r.antes,
          r.antes + ' → ' + r.despues);
+    return r;
+  }));
+
+  /* ================================================================
+     EL BOTÓN OK.
+
+     No inventa un camino: hace exactamente lo mismo que tocar fuera —cerrar
+     cobrando lo escrito—. Está para que se VEA que ahí se termina; antes la
+     única salida era tocar en cualquier otro sitio, que es un gesto que hay
+     que saberse. Por eso lo que se prueba es que los dos caminos dejan el
+     mismo resultado, no que el botón haga algo suyo.
+     ================================================================ */
+  titulo('el OK guarda y cierra, igual que tocar fuera');
+  di('terminar con OK', await p.evaluate(async ([abrir]) => {
+    const antes = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length;
+    await eval('(' + abrir + ')')(60, 74);
+    const ta = document.getElementById('glosaCaja');
+    ta.value = 'terminada con el botón';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 120));
+    const ok = document.querySelector('#menu .mmodos [data-acc="ok"]');
+    if (!ok) return { error:'no hay OK' };
+    ok.click();
+    await new Promise(z => setTimeout(z, 600));
+    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    const mia = g.find(x => x.nota === 'terminada con el botón');
+    return { crecio: g.length - antes, nota: mia && mia.nota,
+             cerrado: getComputedStyle(document.getElementById('menu')).display === 'none',
+             /* Y la glosa aterriza en la hoja, que es lo que ve el lector:
+                cerrar sin que salga al margen sería guardar a escondidas. */
+             enLaHoja: [...document.querySelectorAll('#pgMargin .gl')]
+                         .some(e => (e.textContent||'').indexOf('terminada con el botón') >= 0) };
+  }, [ABRIR]).then(r => {
+    vale('quedó una marca más', r.crecio === 1, r.error || r.crecio);
+    vale('con lo escrito', r.nota === 'terminada con el botón', r.nota);
+    vale('el panel se cerró', r.cerrado === true);
+    vale('y la glosa voló a la hoja', r.enLaHoja === true, r);
+    return r;
+  }));
+
+  titulo('sin texto, el OK termina y no deja nada');
+  /* La razón de que el OK nunca se apague: sin texto, terminar es BORRAR la
+     glosa, y ése es un camino que existe y hay que poder pedir. Un OK
+     apagado diría que ahí no se puede salir, que es mentira. */
+  di('OK con la caja vacía', await p.evaluate(async ([abrir]) => {
+    const antes = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length;
+    await eval('(' + abrir + ')')(78, 90);
+    const ok = document.querySelector('#menu .mmodos [data-acc="ok"]');
+    const apagado = ok.disabled === true || getComputedStyle(ok).pointerEvents === 'none';
+    ok.click();
+    await new Promise(z => setTimeout(z, 600));
+    return { apagado,
+             despues: JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length,
+             antes,
+             cerrado: getComputedStyle(document.getElementById('menu')).display === 'none' };
+  }, [ABRIR]).then(r => {
+    vale('el OK responde aunque no haya texto', r.apagado === false);
+    vale('cierra el panel', r.cerrado === true);
+    vale('y no deja marca', r.despues === r.antes, r.antes + ' → ' + r.despues);
+    return r;
+  }));
+
+  /* ================================================================
+     ABRIR EL PANEL DE UNA GLOSA NUEVA NO REHACE LA HOJA.
+
+     Abrir el panel de una marca recién nacida llamaba a renderPage(), que
+     rehace el cuerpo del versículo entero para enseñar un resaltado que ya
+     sabe pintar el motor de subrayados. Con muchas glosas puestas eso son
+     cientos de milisegundos entre el dedo y la cajita, y se notaban: la caja
+     tardaba en aparecer justo cuando más atención se le está prestando.
+
+     Se mide por la IDENTIDAD DEL NODO y no por el reloj: si la hoja se
+     rehizo, el elemento del versículo es otro objeto. Un umbral de tiempo en
+     una máquina prestada canta fallos que no existen; esto no. */
+  titulo('abrir una glosa nueva no rehace la hoja');
+  di('el nodo del versículo', await p.evaluate(async ([abrir, fuera]) => {
+    /* Cuántos trozos hay resaltados AHORA MISMO, sumando los de los cuatro
+       colores. Es la manera de ver que el atajo sigue pintando: tiene que
+       crecer en uno, ni cero —no pintó— ni de golpe —rehizo la hoja—. */
+    const trozos = () => {
+      if (window.CSS && CSS.highlights){
+        let n = 0; for (const h of CSS.highlights.values()) n += h.size; return n;
+      }
+      return document.querySelectorAll('#pgBody mark, #pgBody .hl').length;
+    };
+    const antes = trozos();
+    const v0 = document.querySelector('#pgBody .v');
+    const t0 = performance.now();
+    await eval('(' + abrir + ')')(95, 110);
+    const tardo = Math.round(performance.now() - t0);
+    const mismo = document.querySelector('#pgBody .v') === v0;
+    const abierto = getComputedStyle(document.getElementById('menu')).display !== 'none';
+    const crecio = trozos() - antes;
+    await eval('(' + fuera + ')')();
+    return { mismo, crecio, abierto, tardo };
+  }, [ABRIR, FUERA]).then(r => {
+    di('desde el toque hasta la cajita', r.tardo + ' ms');
+    vale('el panel se abrió', r.abierto === true);
+    vale('EL VERSÍCULO NO SE REHIZO', r.mismo === true, r.mismo);
+    /* Y con la hoja intacta el resaltado provisional tiene que verse igual:
+       el atajo no vale si lo que ahorra es justo lo que había que enseñar. */
+    vale('y el resaltado provisional aparece', r.crecio === 1, r.crecio);
     return r;
   }));
 

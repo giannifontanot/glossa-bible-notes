@@ -1970,13 +1970,51 @@
   /* LOS DOS TRAZOS, A MEDIAS EXACTAS. Los dos botones dicen la misma clase de
      cosa —cómo se dibuja el texto de esta glosa— así que ninguno puede
      parecer el principal: 1fr y 1fr, y el que está puesto se distingue por el
-     dorado y no por el tamaño. */
-  #menu .mmodos{ display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+     dorado y no por el tamaño.
+
+     Y EL OK NO ENTRA EN ESE REPARTO: 1fr 1fr auto, no tres tercios. Los dos
+     primeros eligen cómo se dibuja algo y siguen siendo mitades exactas el uno
+     del otro; el tercero no elige, termina. Dándole un tercio parecería un
+     tercer modo, y midiendo lo que mide su palabra se lee por lo que es: la
+     salida, al final de la fila y donde acaba el gesto. */
+  /* minmax(0,1fr) y no 1fr a secas: 1fr es minmax(AUTO,1fr), o sea que cada
+     columna se niega a bajar del ancho de su palabra, y «▮ resaltado» es más
+     larga que «▁ línea». Con 1fr salían 88 y 68 —medido— y la mitad exacta que
+     pide el párrafo de arriba se perdía en cuanto entró un tercer botón en la
+     fila. Con minmax(0,1fr) las dos ceden igual y vuelven a ser mitades. */
+  #menu .mmodos{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;
+                 gap:4px; }
   /* Los dos llevan recuadro, puesto o no. Sin él, el que no está elegido no
      se lee como algo que se pueda tocar —parecía un rótulo al lado de un
      botón— y la mitad de la decisión quedaba escondida. */
-  #menu .mmodos button{ text-align:center; border-color:rgba(255,255,255,.22); }
+  /* El relleno lateral de los modos baja a 4px: lo que tiene que caber es el
+     rótulo, no el aire. Con 9px «▮ resaltado» partía en dos renglones en el
+     panel estrecho —que es el de siempre, porque el panel mide lo que mide la
+     columna de glosas y no lo que mide la pantalla—. */
+  #menu .mmodos button{ text-align:center; border-color:rgba(255,255,255,.22);
+                        padding-left:4px; padding-right:4px; }
+  /* LA MARCA, EN SU PROPIO RENGLÓN Y EN LOS DOS. Puesta en línea, «resaltado»
+     no cabía al lado de la suya y partía sola mientras «línea» se quedaba de
+     un renglón: dos botones gemelos que no se parecían. Partiéndolos a los
+     dos a propósito, la marca se lee como el dibujo de lo que hace el botón y
+     la palabra debajo como su nombre — y deja de depender de cuánto mida el
+     rótulo, que es lo que lo hacía frágil. */
+  #menu .mmodos .mg{ display:block; margin-bottom:3px; line-height:1; }
   #menu .mmodos button.on{ background:rgba(201,162,39,.28); border-color:rgba(201,162,39,.75); }
+  /* EL OK, MACIZO. Los dos modos son de contorno porque son un estado —puesto
+     o no— y éste es una acción, que no tiene estado: se pulsa y se acabó.
+     Macizo, con el mismo dorado del programa, y con la letra oscura por
+     contraste. Es el único botón lleno del panel, así que no compite con
+     nada y se encuentra sin buscarlo.
+     Nunca se apaga, y eso es a propósito: sin texto tampoco es un botón
+     muerto —cerrar sin nota es lo que borra la glosa, y el que quiere
+     deshacer un subrayado por accidente necesita justo esa salida—. */
+  #menu .mmodos .mok{ padding-left:12px; padding-right:12px; font-weight:700;
+                      letter-spacing:.08em; color:#3a2f14;
+                      background:#c9a227; border-color:#c9a227; }
+  #menu .mmodos .mok:hover{ background:#dbb43a; border-color:#dbb43a; }
+  #menu .mmodos .mok:active{ transform:translateY(1px); }
+  #menu .mmodos .mok:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
   /* EL ANTICIPO. Es una .gl de verdad —hereda familia, cuerpo, interlínea y
      el recuadro torcido de su id— y aquí solo se le dice que se plante en el
      panel: ancho y forma se los pone el guion, que es quien sabe cuánto mide
@@ -2353,7 +2391,8 @@
     #menu .mcolores{ justify-content:center; gap:12px; padding:2px 0 4px; }
     #menu .mc{ width:34px; height:34px; border-width:3px; }
     #menu .mmodos{ gap:6px; }
-    #menu .mmodos button{ padding:11px 8px; }
+    #menu .mmodos button{ padding:11px 5px; }
+    #menu .mmodos .mok{ padding-left:14px; padding-right:14px; }
     #menu input{ font-size:15px; padding:9px 11px; width:auto; flex:1 1 120px; }
     .tagbox{ gap:6px; }
     /* Estas dos siguen valiendo para el .tagbox de menuVinculos, que no es la
@@ -2697,7 +2736,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-SEP-26 06:21';
+window.GLOSS_BUILD = '02-SEP-26 10:23';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4938,13 +4977,16 @@ function panelHTML(m){
       COLORS.map(c => '<button class="mc" data-color="' + c + '" style="background:' +
         LINE_HEX[c] + '"' + (m.color===c ? ' data-on="1"' : '') + '></button>').join('') +
     '</div>' +
-    /* Los dos únicos botones que quedan, y dicen lo que hacen: no "esto
-       es un resaltado" sino "el texto de esta glosa va resaltado". */
+    /* Los dos primeros dicen lo que hacen: no "esto es un resaltado" sino "el
+       texto de esta glosa va resaltado". El tercero no es de esa familia —no
+       elige nada, termina— y por eso se ve distinto; ver .mmodos y .mok. */
     '<div class="mmodos">' +
       '<button data-modo="fill" class="modo' + (m.estilo!=='border' ? ' on' : '') +
-        '">▮ resaltado</button>' +
+        '"><span class="mg" aria-hidden="true">▮</span>resaltado</button>' +
       '<button data-modo="border" class="modo' + (m.estilo==='border' ? ' on' : '') +
-        '">▁ línea</button>' +
+        '"><span class="mg" aria-hidden="true">▁</span>línea</button>' +
+      '<button type="button" class="mok" data-acc="ok"' +
+        ' aria-label="Terminar y guardar la glosa">OK</button>' +
     '</div>' +
     /* El valor NO va aquí dentro. Un textarea con el texto metido en el
        HTML obliga a escapar bien lo que escribió una mano, y basta un
@@ -5444,6 +5486,43 @@ function afinarTagbox(){
 }
 /* ---------- abrir y cerrar ---------- */
 
+/* PINTAR LA MARCA RECIÉN NACIDA NO CUESTA UNA HOJA ENTERA.
+
+   Aquí había un renderPage(), y era lo único caro de abrir el panel. Medido
+   con la CPU frenada a la sexta parte —que es lo que se parece a un teléfono—:
+   abrir el panel de una marca que YA existe tarda 50 ms, y el de una recién
+   nacida 390. Con veinte glosas ya son 234 contra 47. Todo eso es el
+   repintado, y lo que se ve entretanto es una caja que tarda en salir después
+   de haber tocado: el gesto parece que no ha entrado.
+
+   Y no hacía falta, por lo mismo que ya está escrito en save() para las glosas
+   al margen y en repintarMarcas() para el color: rehacer la hoja entera es
+   trabajo tirado cuando nada de lo que cambió mueve un corte de hoja. Lo único
+   que esta marca tiene que enseñar es SU RESALTADO —el subrayado bajo el texto
+   es la mitad de la decisión mientras escribes—, y para eso basta con
+   resolverla y volver a pintar los resaltados.
+
+   La nota todavía no existe: nace sin texto, así que no ocupa renglones ni
+   siquiera con las glosas «abajo» o «al pie», que es el único caso en que una
+   nota mueve el reparto. El ancla la pinta pintarAncla unas líneas más abajo,
+   y el reparto se rehace en save() cuando de verdad hay algo que repartir.
+
+   SIN LA API DE RESALTADO no hay atajo: sin ella las marcas son <span>, y
+   meter uno en la hoja es rehacerla. Ahí se sigue repintando, como antes. */
+function pintarMarcaNueva(m){
+  if (!HL_API){ renderPage(); return; }
+  /* Y SE RESUELVE UNA, NO LAS DOSCIENTAS. resolverTodas rehace el mapa entero,
+     y las demás marcas siguen exactamente donde estaban: no ha cambiado ni el
+     texto ni la versión. Resolver sólo la recién nacida deja el mapa al día
+     con el trabajo de una. Los turnos sí se rehacen enteros —son el orden de
+     lectura del capítulo, y una marca nueva puede meterse en medio— pero eso
+     es contar, no buscar cadenas. */
+  const r = resolver(m, version);
+  if (r) RES.set(m.id, r); else RES.delete(m.id);
+  recalcularTurnos();
+  recalcularRefs();         /* su «12a», que pintarAncla necesita ya resuelto */
+  aplicarHighlights();
+}
 function abrirPanel(m, nueva, rect){
   if (borrador) cerrarBorrador();          /* el anterior se cobra antes */
   /* Lo que traía al abrirse, para saber al cerrar si algo cambió de verdad.
@@ -5501,7 +5580,7 @@ function abrirPanel(m, nueva, rect){
      fábrica. Lo levantó la tercera revisión de Codex. */
   anchoPanelComoGlosa();
   refrescarTags();
-  if (nueva) renderPage();                 /* pinta la marca recién nacida */
+  if (nueva) pintarMarcaNueva(m);
   /* EL ANCLA SE REPINTA DESPUÉS DE renderPage, y no es redundante: la
      referencia de una marca nueva —el «12a» que le toca por su sitio en el
      capítulo— la calcula el repintado, así que antes de él REFS todavía no la
@@ -6014,9 +6093,26 @@ menu.addEventListener('click', ev => {
     if (caja) plegarTags(caja, !tagsAbiertas(caja));
     return;
   }
-  /* El «Listo» se fue. Era un blanco más al que apuntar para decir algo que
-     el gesto natural —dejar de tocar el panel— ya dice, y encima repetía lo
-     que hace tocar fuera. Se cierra tocando fuera, como se cerraba ya. */
+  /* Y EL OK VUELVE, que aquí hubo un «Listo» y se quitó. Se quitó con este
+     argumento: es un blanco más al que apuntar para decir algo que el gesto
+     natural —dejar de tocar el panel— ya dice, y encima repite lo que hace
+     tocar fuera. El argumento sigue siendo cierto y aun así estaba mal, porque
+     medía la cosa equivocada: no sobra por repetir, hace falta por DECIR. Sin
+     él, quien abre la caja por primera vez no tiene delante nada que le
+     confirme que lo escrito se guarda, y la duda pesa más que el toque de
+     más. Un botón que repite un gesto que ya existe no es ruido si el gesto
+     que repite no se ve.
+
+     Hace exactamente lo mismo que tocar fuera, y por el mismo camino: llama a
+     ocultarMenu, que cobra lo escrito, lo hace volar a su sitio y guarda. Ni
+     una rama aparte, para que no puedan separarse nunca. Y sin texto NO se
+     apaga: cerrar sin nota es lo que borra la glosa, así que ahí es cuando
+     más falta hace tener una salida a la vista. */
+  if (b.dataset.acc === 'ok'){
+    ev.stopPropagation();
+    ocultarMenu();
+    return;
+  }
 });
 
 /* TRAGARSE EL CLIC DE ESTE MISMO TOQUE.
@@ -8864,14 +8960,23 @@ $('btnHistorial').addEventListener('click', ev => {
   if (histAbierto) cerrarHistorial(); else abrirHistorial();
 });
 $('historial').addEventListener('click', ev => {
-  /* LA LISTA DE CINTAS, desde el pie. Cierra el rastro y abre el menú colgado
-     del propio botón: el menú se cuelga siempre de lo que lo abrió, y aquí lo
-     que lo abrió no es una cinta. */
+  /* LA LISTA DE CINTAS, desde el pie. El menú se cuelga del propio botón: se
+     cuelga siempre de lo que lo abrió, y aquí lo que lo abrió no es una cinta.
+
+     Y EL RASTRO SE QUEDA ABIERTO. Antes se cerraba, y cerrarlo era demasiada
+     carga visual de golpe: la lista de por dónde has pasado desaparecía entera
+     para enseñar la de cintas, cuando las dos contestan la misma pregunta y se
+     miran una detrás de otra. El menú vive por encima del rastro (z-index 9
+     contra 8) y sale pegado al botón, así que se ve dónde nació y basta con
+     cerrarlo para tener el rastro otra vez debajo, tal como estaba.
+
+     Segundo toque en el botón lo cierra: el botón es la puerta, y una puerta
+     que solo abre deja al lector buscando por dónde se sale. */
   const lista = ev.target.closest('[data-sep-lista]');
   if (lista){
     ev.preventDefault(); ev.stopPropagation();
-    cerrarHistorial();
-    abrirSepMenu(null, lista);
+    if (sepMenuAbierto === 'lista') cerrarSepMenu();
+    else abrirSepMenu(null, lista);
     return;
   }
   /* PONER UNA CINTA A MANO. Cierra el panel: acabas de marcar la hoja donde
@@ -8922,6 +9027,17 @@ $('versoPleno').addEventListener('click', ev => {
   const p = plenoAbierto || {};
   const letra = p.letra || '';
   const origen = p.origen || null;
+  /* Si la ventanita salió de una cinta, volver ahí la vuelve la activa, y eso
+     es lo que hace una cinta: abres el libro por donde la dejaste y sigues
+     desde ahí. No se crea otra —duplicarla sería tener dos marcas del mismo
+     sitio— y ninguna de las demás se mueve, tampoco la que estuviera siguiendo
+     otra lectura. Se cobra AQUÍ y no al abrir la ventanita: mirar a dónde
+     llevaba una cinta no es haber vuelto a ella. */
+  if (p.sep && sepDe(p.sep)){
+    sepActivo = p.sep;
+    sepOfrecido = true;
+    sepLeidasSeguidas = 0;
+  }
   /* Se cierra TODO antes de saltar, y antes por dos razones: el panel tapa
      justo el texto al que vas, y el disco de buscar sale en el centro de la
      hoja, que es donde está la ventanita. El salto arranca al cuadro
@@ -8958,9 +9074,14 @@ $('versoPleno').addEventListener('click', ev => {
    ve; ésta sigue siendo la que se hace sin mirar.
    El historial sigue haciendo lo de siempre: si está abierto, el toque de
    fuera se los lleva a los dos, que es lo que ya hacía cerrarHistorial. */
+/* Y EL MENÚ DE CINTAS TAMBIÉN CUENTA COMO "DENTRO", desde que se abre sin
+   cerrar el rastro: sale por encima de él, así que tocar una cinta de la lista
+   es un toque fuera del rastro, y sin esta excepción el rastro se cerraba en el
+   pointerdown —antes de que el click llegara a la fila— y lo que quedaba
+   detrás era el menú solo, colgado de un panel que ya no estaba. */
 document.addEventListener('pointerdown', ev => {
   if (!histAbierto && !plenoAbierto) return;
-  if (ev.target.closest('#historial, #btnHistorial, #versoPleno')) return;
+  if (ev.target.closest('#historial, #btnHistorial, #versoPleno, #sepMenu')) return;
   if (histAbierto) cerrarHistorial(); else cerrarPleno();
 }, true);
 
@@ -11250,23 +11371,29 @@ $('sepMenu').addEventListener('click', ev => {
   ev.preventDefault(); ev.stopPropagation();
   const s = sepDe(ir.dataset.sepIr); if (!s) return;
   cerrarSepMenu();
-  /* Volver a una cinta la vuelve la activa, y eso es lo que hace una cinta:
-     abres el libro por donde la dejaste y sigues desde ahí. No se crea otra
-     —duplicarla sería tener dos marcas del mismo sitio— y ninguna de las
-     demás se mueve, tampoco la que estuviera siguiendo otra lectura. */
-  sepActivo = s.id;
-  sepOfrecido = true;
-  sepLeidasSeguidas = 0;
-  /* Se viaja a donde la cinta CAE hoy, no a lo que dice guardado: si el
+  /* TOCAR UNA CINTA ENSEÑA, NO SALTA. Antes saltaba en el acto, y saltar es la
+     única cosa de este panel que no se puede deshacer sin volver a buscar: la
+     hoja donde estabas se va, y con ella el rastro y la lista. Ahora hace lo
+     mismo que una fila del rastro —abre la ventanita con el versículo— y el
+     salto se pide tocando el texto. Es un paso más, pero es el paso que ya se
+     conoce: leer primero, ir después.
+     Se enseña a donde la cinta CAE hoy, no lo que dice guardado: si el
      versículo ya no existe en esta versión, su capítulo sí. */
   const d = sepDestino(s);
-  trasPintar(() => irA(s.libro, d.cap, d.vers, ''));
+  abrirPleno(s.libro, d.cap, d.vers);
+  /* De qué cinta salió la ventanita. Se cuelga aquí y no viaja como parámetro
+     de abrirPleno porque solo lo mira el salto: hasta que no se toca el texto
+     no ha pasado nada que convierta esta cinta en la activa. */
+  if (plenoAbierto) plenoAbierto.sep = s.id;
 });
 /* Un toque fuera lo cierra, como los demás paneles. La cinta queda exceptuada
    —su oyente ya sabe alternar— y también el menú, claro. */
 document.addEventListener('pointerdown', ev => {
   if (!sepMenuAbierto && !sepOfertaAbierta) return;
-  if (ev.target.closest('#sepMenu, #sepOferta, [data-sep], [data-sep-x]')) return;
+  /* El botón del pie del rastro va exceptuado por lo mismo que la cinta: es su
+     puerta y alterna. Sin esto, el pointerdown lo cerraba y el click de detrás
+     lo volvía a abrir, así que el segundo toque no cerraba nunca. */
+  if (ev.target.closest('#sepMenu, #sepOferta, [data-sep], [data-sep-x], [data-sep-lista]')) return;
   if (sepMenuAbierto) cerrarSepMenu();
   /* La oferta NO se cierra con un toque en cualquier sitio: se contesta con
      sus dos botones o se va sola. Tocar el papel para seguir leyendo no es
