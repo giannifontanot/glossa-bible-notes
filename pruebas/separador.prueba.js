@@ -255,9 +255,27 @@ async function ponerAMano(p){
     /* La fila que NO es la de aquí: la de la otra hoja. */
     const otra = [...document.querySelectorAll('[data-sep-ir]')]
       .find(f => !f.closest('.sp-fila').classList.contains('aqui'));
+    const cual = otra.dataset.sepIr;
     await window.__toque(otra);
+    await window.__pausa(600);
+    /* TOCAR LA FILA YA NO SALTA: enseña el versículo, igual que una fila del
+       rastro. La hoja tiene que seguir siendo la misma en este punto — si
+       saltara, esta medida y la de abajo darían lo mismo y la prueba pasaría
+       en verde con el salto de antes puesto. */
+    const vp = document.getElementById('versoPleno');
+    const ensena = {
+      visible: vp.classList.contains('visible'),
+      menuIdo: !document.getElementById('sepMenu').classList.contains('visible'),
+      ref: ((vp.querySelector('.vp-ref') || {}).textContent || '').trim(),
+      hayBoton: !!vp.querySelector('button.vp-txt'),
+      quieto: window.__hoja()
+    };
+    /* Y AHORA SÍ: el salto se pide tocando la escritura. */
+    await window.__toque('.vp-txt');
     await window.__pausa(3600);
-    return { segunda, filas, dos: m ? m.filas : 0,
+    return { segunda, filas, dos: m ? m.filas : 0, ensena, cual,
+             activa: (window.__cinta() || {}).id,
+             plenoIdo: !document.getElementById('versoPleno').classList.contains('visible'),
              guardadas: window.__guardadas().length, llegada: window.__hoja() };
   });
   di('las filas', lista.filas);
@@ -266,8 +284,21 @@ async function ponerAMano(p){
        lista.dos + ' filas · ' + lista.guardadas + ' guardadas');
   vale('cada una dice libro y capítulo',
        lista.filas.every(f => /^\D+\s\d+:\d+$/.test(f)), lista.filas);
-  vale('tocar una lleva a su hoja', lista.llegada === partida,
+  di('lo que enseña antes de saltar', lista.ensena);
+  vale('tocar una cinta ENSEÑA el versículo, no salta',
+       lista.ensena.visible === true && lista.ensena.quieto === lista.segunda,
+       lista.ensena.quieto + '  vs  ' + lista.segunda);
+  vale('con su referencia y su botón',
+       /^\D+\s\d+:\d+$/.test(lista.ensena.ref) && lista.ensena.hayBoton === true,
+       lista.ensena);
+  vale('y la lista se quita de en medio', lista.ensena.menuIdo === true);
+  vale('tocar la escritura sí lleva a su hoja', lista.llegada === partida,
        lista.llegada + '  vs  ' + partida);
+  /* La cinta se cobra AL SALTAR, no al mirar: la de la llegada es la que se
+     tocó, no la que colgaba antes. */
+  vale('y la cinta de la llegada es la que se tocó', lista.activa === lista.cual,
+       lista.activa + '  vs  ' + lista.cual);
+  vale('la ventanita se va con el salto', lista.plenoIdo === true);
   vale('y no duplica separadores', lista.guardadas === 2);
 
   /* ---------------------------------------------------------------- */
@@ -469,7 +500,18 @@ async function ponerAMano(p){
     const m = document.getElementById('sepMenu');
     const r = m.getBoundingClientRect();
     const st = document.querySelector('.stage').getBoundingClientRect();
+    const h = document.getElementById('historial');
+    const rh = h.getBoundingClientRect();
     return { hay:true, visible: m.classList.contains('visible'),
+             /* EL RASTRO SE QUEDA DETRÁS. Cerrarlo para enseñar la lista era
+                demasiada carga visual de golpe: desaparecía entero lo que se
+                estaba mirando. Y el menú tiene que quedar POR ENCIMA, o
+                quedarse abierto detrás no serviría de nada. */
+             rastro: h.classList.contains('visible') &&
+                     getComputedStyle(h).display !== 'none',
+             menuEncima: +getComputedStyle(m).zIndex > +getComputedStyle(h).zIndex,
+             seSolapan: !(r.right <= rh.left || r.left >= rh.right ||
+                          r.bottom <= rh.top || r.top >= rh.bottom),
              telas: m.querySelectorAll('.sp-tela').length,
              filas: m.querySelectorAll('.sp-fila').length,
              lapices: m.querySelectorAll('[data-sep-renombrar]').length,
@@ -488,6 +530,28 @@ async function ponerAMano(p){
   vale('con las dos cintas y sus dos lápices',
        puerta.filas === 2 && puerta.lapices === 2, puerta);
   vale('y el menú cabe entero en la escena', puerta.cabe === true, puerta);
+  vale('EL RASTRO SE QUEDA ABIERTO DETRÁS', puerta.rastro === true, puerta);
+  vale('y el menú le pasa por encima', puerta.menuEncima === true, puerta);
+
+  /* El botón es la puerta, y una puerta que solo abre deja al lector buscando
+     por dónde se sale: el segundo toque la cierra. Se mide en las dos
+     direcciones —cierra el menú, NO cierra el rastro— porque el fallo que se
+     vigila aquí es justo el de llevárselos a los dos. */
+  const segundoToque = await p.evaluate(async () => {
+    await window.__toque('#historial [data-sep-lista]');
+    await window.__pausa(600);
+    const menu = document.getElementById('sepMenu').classList.contains('visible');
+    const rastro = document.getElementById('historial').classList.contains('visible');
+    /* Y el tercero lo vuelve a abrir, que es lo que hace una puerta. */
+    await window.__toque('#historial [data-sep-lista]');
+    await window.__pausa(600);
+    return { menu, rastro,
+             deVuelta: document.getElementById('sepMenu').classList.contains('visible') };
+  });
+  di('el segundo toque', segundoToque);
+  vale('el segundo toque cierra la lista', segundoToque.menu === false, segundoToque);
+  vale('y deja el rastro donde estaba', segundoToque.rastro === true, segundoToque);
+  vale('el tercero la abre otra vez', segundoToque.deVuelta === true, segundoToque);
 
   titulo('una cinta se nombra, y el nombre no la mueve de sitio');
   const nombrar = await p.evaluate(async () => {
@@ -553,11 +617,18 @@ async function ponerAMano(p){
      medidas en las dos direcciones.
      ================================================================ */
   titulo('escribir un nombre y tocar fuera: se guarda igual');
+  /* Se mira antes de tocar. Los dos botones ALTERNAN, y desde que la lista no
+     cierra el rastro los dos pueden llegar aquí ya abiertos: tocarlos a ciegas
+     cerraría lo que se viene a abrir. */
   const abrirLista = () => p.evaluate(async () => {
-    await window.__toque('#btnHistorial');
-    await window.__pausa(600);
-    await window.__toque('#historial [data-sep-lista]');
-    await window.__pausa(700);
+    if (!document.getElementById('historial').classList.contains('visible')){
+      await window.__toque('#btnHistorial');
+      await window.__pausa(600);
+    }
+    if (!document.getElementById('sepMenu').classList.contains('visible')){
+      await window.__toque('#historial [data-sep-lista]');
+      await window.__pausa(700);
+    }
   });
   await abrirLista();
   /* El toque de fuera lo recoge un oyente de CAPTURA sobre el documento, que
@@ -668,6 +739,76 @@ async function ponerAMano(p){
   vale('pero lo demás de la otra pestaña sí se funde',
        conOtraPestana.color === 'oliva', conOtraPestana.color);
   vale('y la fila enseña lo que dice el aviso', conOtraPestana.enLaFila === true);
+
+  /* ================================================================
+     CON TECLADO, LA VENTANITA TIENE QUE RECIBIR EL FOCO.
+
+     Desde que tocar una cinta ya no salta sino que abre la ventanita, hay un
+     segundo paso; y el menú que tenía el foco se esconde para dejarla ver. Sin
+     mover el foco a mano, en cuanto el menú se pone en display:none el foco se
+     cae al documento: la ventanita queda abierta y quien navega con teclado no
+     tiene manera de contestarle salvo recorrer la página entera. Lo levantó la
+     revisión de Codex, y se mide como se sufre: DOS INTRO SEGUIDOS, sin tocar
+     nada por medio. Con el fallo puesto, el segundo no lleva a ninguna parte.
+
+     La tecla es de verdad —p.keyboard—, no un KeyboardEvent a mano: lo que se
+     prueba aquí es justamente a quién le llega, y un evento despachado a mano
+     siempre llega. */
+  titulo('con teclado: dos Intro y estás allí');
+  await p.evaluate(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(500);
+  });
+  await abrirLista();
+  const enLaCinta = await p.evaluate(() => {
+    const a = document.activeElement;
+    const f = a && a.closest ? a.closest('[data-sep-ir]') : null;
+    return { fila: !!f,
+             cual: a && a.dataset ? (a.dataset.sepIr || '') : '',
+             rotulo: f ? (f.getAttribute('aria-label') || '') : '',
+             hoja: window.__hoja() };
+  });
+  di('al abrir la lista', enLaCinta);
+  vale('el foco cae en una cinta', enLaCinta.fila === true, enLaCinta);
+  /* Y LA FILA SE ANUNCIA POR LO QUE HACE. Decía «Ir al separador…» cuando ya
+     no lleva a ningún sitio: abre la ventanita, y el salto es el paso
+     siguiente. Quien no ve la pantalla pedía una cosa y le pasaba otra, justo
+     en el paso que este PR parte en dos. Lo levantó Codex. */
+  vale('y la fila se anuncia por lo que hace: VER, no ir',
+       /^Ver\b/.test(enLaCinta.rotulo) && /\d+:\d+/.test(enLaCinta.rotulo),
+       enLaCinta.rotulo);
+
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(900);
+  const traslaTecla = await p.evaluate(() => {
+    const a = document.activeElement;
+    return { abierta: document.getElementById('versoPleno').classList.contains('visible'),
+             dentro: !!(a && a.closest && a.closest('#versoPleno')),
+             que: a ? (a.className || a.tagName) : 'nada',
+             hoja: window.__hoja() };
+  });
+  di('tras el primer Intro', traslaTecla);
+  vale('se abre la ventanita', traslaTecla.abierta === true, traslaTecla);
+  vale('EL FOCO ENTRA EN LA VENTANITA', traslaTecla.dentro === true, traslaTecla.que);
+  vale('y cae en el versículo, que es lo que se viene a hacer',
+       /vp-txt/.test(traslaTecla.que), traslaTecla.que);
+
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(3800);
+  /* El salto NO se mide por la hoja: las dos cintas de este bloque caen en la
+     misma, así que la hoja de llegada y la de salida serían iguales con el
+     fallo puesto y sin él. Se mide por lo que el salto hace pase lo que pase:
+     cierra la ventanita y cierra el rastro —ver el oyente de #versoPleno—. Con
+     el foco caído al documento, el Intro no llega a nadie y los dos siguen
+     abiertos. */
+  const traslSegundo = await p.evaluate(() => ({
+    pleno: document.getElementById('versoPleno').classList.contains('visible'),
+    rastro: document.getElementById('historial').classList.contains('visible'),
+    hoja: window.__hoja()
+  }));
+  di('tras el segundo Intro', traslSegundo);
+  vale('EL SEGUNDO INTRO SALTA, SIN TOCAR NADA MÁS',
+       traslSegundo.pleno === false && traslSegundo.rastro === false, traslSegundo);
 
   await cerrarParcial(sesion, 'teléfono');
 
@@ -1025,15 +1166,33 @@ async function ponerAMano(p){
     const fila = document.querySelector('[data-sep-ir="lejos"]');
     const dice = fila ? fila.querySelector('.sp-ref').textContent.trim() : '(no está)';
     if (!fila) return { dice, hoja: window.__hoja() };
+    /* DOS PASOS, que es como se alcanza una cinta desde que la fila enseña en
+       vez de llevar: primero la ventanita con el versículo, y el salto al
+       tocar la escritura. Y aquí eso prueba UNA COSA MÁS que antes no se veía:
+       la ventanita ya tiene que enseñar el respaldo por capítulo —Marcos 1:1,
+       no el 999 que no existe—, o sea que el destino se calcula antes de
+       viajar y no a mitad del viaje. */
     await window.__toque(fila);
+    await window.__pausa(700);
+    const ventana = ((document.querySelector('#versoPleno .vp-ref') || {}).textContent || '').trim();
+    const hayTexto = !!document.querySelector('#versoPleno button.vp-txt');
+    const quieto = window.__hoja();
+    await window.__toque('#versoPleno .vp-txt');
     const t0 = performance.now();
     while (performance.now() - t0 < 25000 && window.__hoja().indexOf('Marcos') !== 0)
       await window.__pausa(200);
     await window.__pausa(900);
-    return { dice, hoja: window.__hoja(), cinta: !!window.__cinta() };
+    return { dice, ventana, hayTexto, quieto,
+             hoja: window.__hoja(), cinta: !!window.__cinta() };
   });
-  di('la fila de lejos', otroLibro.dice + '  →  ' + otroLibro.hoja);
+  di('la fila de lejos', otroLibro.dice + '  →  ' + otroLibro.ventana +
+     '  →  ' + otroLibro.hoja);
   vale('la lista la enseña igual', otroLibro.dice !== '(no está)', otroLibro.dice);
+  vale('la ventanita ya trae el respaldo por capítulo',
+       (otroLibro.ventana || '').indexOf('Marcos') === 0 && otroLibro.hayTexto === true,
+       otroLibro.ventana);
+  vale('y mirar todavía no mueve la hoja',
+       (otroLibro.quieto || '').indexOf('Marcos') !== 0, otroLibro.quieto);
   vale('y el salto llega a su capítulo', otroLibro.hoja.indexOf('Marcos') === 0,
        otroLibro.hoja);
 
