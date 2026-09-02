@@ -2691,7 +2691,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-SEP-26 05:57';
+window.GLOSS_BUILD = '02-SEP-26 06:09';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -10387,12 +10387,29 @@ const sepBorrados = new Set();
    Y no hay transacciones en este almacén, así que la ventana entre leer y
    escribir no se cierra del todo; perseguir el último resquicio pediría
    bloqueos que no valen lo que guardan. Lo levantó la revisión de Codex. */
-function sepGuardar(){
+function sepGuardar(reciente){
   for (const x of sepDelAlmacen()){
     if (sepBorrados.has(x.id)) continue;
     const mio = separadores.find(y => y.id === x.id);
     if (!mio) separadores.push(x);
     else if (x.tocado > mio.tocado) Object.assign(mio, x);
+  }
+  /* LO QUE SE ACABA DE DECIDIR GANA SOBRE LO QUE SE FUNDE, y hace falta decirlo
+     aparte porque la regla de arriba es por FECHA y nombrar no toca la fecha:
+     ponerle nombre a una cinta no es volver a leerla, así que `tocado` se
+     queda como estaba —si no, la lista se reordenaría al nombrar—. El precio
+     es que si otra pestaña movió o recoloreó esa misma cinta después, su
+     registro es más nuevo y el Object.assign de arriba se llevaría por delante
+     el nombre recién escrito: la lista se repintaría sin él mientras el aviso
+     dice «separador nombrado». Se vuelve a poner después de fundir, que es lo
+     que dice la regla de verdad —gana lo último que decidió una persona— sin
+     tocar el orden. Lo levantó la revisión de Codex. */
+  if (reciente){
+    const mio = separadores.find(y => y.id === reciente.id);
+    if (mio){
+      if (reciente.nombre) mio.nombre = reciente.nombre;
+      else delete mio.nombre;
+    }
   }
   separadores.sort((a, b) => b.tocado - a.tocado);
   if (separadores.length > TOPE_SEPARADORES) separadores.length = TOPE_SEPARADORES;
@@ -10876,6 +10893,7 @@ function abrirSepMenu(id, ancla){
 }
 function cerrarSepMenu(){
   if (!sepMenuAbierto) return;
+  sepCobrarNombre();               /* ver sepCobrarNombre: cerrar es terminar */
   sepMenuAbierto = null;
   sepMenuAncla = null;
   sepEditando = null;
@@ -11034,18 +11052,53 @@ stage.addEventListener('click', ev => {
    Vaciar el campo QUITA el nombre, no guarda una cadena vacía: una cinta sin
    nombre es un estado que existe —es como nacen todas— y es la única manera
    de deshacerse de uno puesto por error. */
-function sepGuardarNombre(id, valor){
-  const s = sepDe(id); if (!s) return;
+/* PONER EL NOMBRE Y NADA MÁS: guarda, y no repinta el menú.
+
+   Está partido en dos a propósito. Repintar el menú borra y rehace sus
+   botones, y hay dos momentos en que eso llega demasiado pronto —los dos
+   están abajo—. Quien sí quiere el repintado lo pide con sepGuardarNombre. */
+function sepPonerNombre(id, valor){
+  const s = sepDe(id); if (!s) return null;
   const antes = s.nombre || '';
   const nombre = sepNombreLimpio(valor);
   if (nombre) s.nombre = nombre; else delete s.nombre;
   sepEditando = null;
-  sepGuardar();
-  pintarSepMenu(); colocarSepMenu(); pintarSeparador();
-  /* Sólo se dice algo si algo cambió: abrir el campo, mirarlo y salir no es
-     un cambio, y avisar de él enseñaría a no leer los avisos. */
-  if (nombre !== antes)
-    readout.textContent = nombre ? 'separador nombrado' : 'nombre del separador borrado';
+  /* Se le pasa lo recién decidido para que la fusión no lo pise: ver sepGuardar. */
+  sepGuardar({ id, nombre: nombre || null });
+  pintarSeparador();
+  return { cambio: nombre !== antes, nombre };
+}
+/* Sólo se dice algo si algo cambió: abrir el campo, mirarlo y salir no es un
+   cambio, y avisar de él enseñaría a no leer los avisos. */
+function sepDecirNombre(r){
+  if (r && r.cambio)
+    readout.textContent = r.nombre ? 'separador nombrado' : 'nombre del separador borrado';
+}
+function sepGuardarNombre(id, valor){
+  const r = sepPonerNombre(id, valor);
+  if (!r) return;
+  pintarSepMenu(); colocarSepMenu();
+  sepDecirNombre(r);
+}
+/* LO ESCRITO SE COBRA ANTES DE CERRAR, y el orden es todo el arreglo.
+
+   Un toque fuera lo recoge un oyente de captura sobre el documento, que corre
+   ANTES de que el navegador mueva el foco. Cerrando primero, sepEditando ya
+   valía null cuando llegaba el focusout, su guardia se iba por la primera
+   línea, y lo escrito se perdía sin decir nada: escribías el nombre, tocabas
+   la hoja para seguir leyendo, y la cinta seguía sin nombre.
+
+   Es palabra por palabra el mismo fallo que tuvo el panel de la glosa con las
+   etiquetas —está contado en su oyente— y se arregla igual: se cobra aquí,
+   mientras el campo todavía existe. Al ponerlo en cerrarSepMenu lo cubre por
+   todos los caminos que cierran, no sólo por el toque de fuera: Escape, abrir
+   otro panel, saltar a la cinta, cambiar de hoja. */
+function sepCobrarNombre(){
+  if (!sepEditando) return;
+  const id = sepEditando;
+  const campo = $('sepMenu').querySelector('[data-sep-nombre]');
+  if (!campo || campo.dataset.sepNombre !== id){ sepEditando = null; return; }
+  sepDecirNombre(sepPonerNombre(id, campo.value));
 }
 function sepEditarNombre(id){
   if (!sepDe(id)) return;
@@ -11068,19 +11121,30 @@ $('sepMenu').addEventListener('keydown', ev => {
     sepEditando = null; pintarSepMenu(); colocarSepMenu();
   }
 });
+/* EL FOCO QUE SE VA GUARDA, PERO EL REPINTADO ESPERA AL CLIC.
+
+   Salir del campo es terminar, no abandonar —la misma regla que el panel de la
+   glosa—, así que se guarda. Lo que NO puede hacerse aquí es repintar: el
+   focusout llega antes que el clic del botón que se está tocando, y repintar
+   borra y rehace las filas, así que ese botón deja de existir antes de que su
+   clic aterrice. El toque se perdía y había que darlo dos veces.
+
+   Se veía yendo del campo al lápiz de otra fila, que es lo natural al nombrar
+   varias seguidas; pero le pasa igual al ir a una fila, a su equis o a una
+   tela. Lo intenté primero salvando sólo el caso del lápiz, y era tapar un
+   agujero de tres: lo levantó la revisión de Codex.
+
+   Así que se guarda ya —el dato no espera a nadie— y el repintado se aplaza al
+   turno siguiente, cuando el clic ya se atendió. Si ese clic hizo algo que
+   repinta por su cuenta —abrir otro nombre, ir a la cinta, cerrar el menú— el
+   aplazado se encuentra el trabajo hecho y se aparta. */
 $('sepMenu').addEventListener('focusout', ev => {
   const campo = ev.target.closest('[data-sep-nombre]');
   if (!campo || sepEditando !== campo.dataset.sepNombre) return;
-  /* A DÓNDE IBA EL FOCO, y esto es la parte que se rompe sola si se quita:
-     guardar repinta el menú entero, así que el botón que se estaba tocando
-     deja de existir antes de que llegue su clic. Si el foco iba al lápiz de
-     OTRA fila —cambiar de una a otra de un tirón, que es lo natural— se
-     guarda y se abre esa otra a mano; nadie va a venir a abrirla. */
-  const iba = ev.relatedTarget && ev.relatedTarget.closest
-    ? ev.relatedTarget.closest('[data-sep-renombrar]') : null;
-  const otro = iba && iba.dataset.sepRenombrar;
-  sepGuardarNombre(campo.dataset.sepNombre, campo.value);
-  if (otro && otro !== campo.dataset.sepNombre) sepEditarNombre(otro);
+  sepDecirNombre(sepPonerNombre(campo.dataset.sepNombre, campo.value));
+  setTimeout(() => {
+    if (sepMenuAbierto && !sepEditando){ pintarSepMenu(); colocarSepMenu(); }
+  }, 0);
 });
 $('sepMenu').addEventListener('click', ev => {
   /* Dentro del campo no hay nada que hacer aquí: poner el cursor a media

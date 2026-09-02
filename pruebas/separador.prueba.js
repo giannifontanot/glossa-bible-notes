@@ -544,6 +544,131 @@ async function ponerAMano(p){
   vale('Escape sale sin guardar', deshacer.traEscape === undefined, deshacer.traEscape);
   vale('y cierra el campo', deshacer.campoFuera === true);
 
+  /* ================================================================
+     LO ESCRITO NO SE PIERDE, DIGA EL FOCO LO QUE DIGA.
+
+     Tres maneras de perder un nombre recién escrito, y las tres se pierden en
+     SILENCIO, que es lo que las hace peligrosas: la cinta se queda como
+     estaba y nadie avisa. Las levantó la revisión de Codex y las tres están
+     medidas en las dos direcciones.
+     ================================================================ */
+  titulo('escribir un nombre y tocar fuera: se guarda igual');
+  const abrirLista = () => p.evaluate(async () => {
+    await window.__toque('#btnHistorial');
+    await window.__pausa(600);
+    await window.__toque('#historial [data-sep-lista]');
+    await window.__pausa(700);
+  });
+  await abrirLista();
+  /* El toque de fuera lo recoge un oyente de CAPTURA sobre el documento, que
+     corre antes de que el navegador mueva el foco. Cerrando primero,
+     sepEditando ya valía null cuando llegaba el focusout y lo escrito se iba
+     sin decir nada: escribías el nombre, tocabas la hoja para seguir leyendo,
+     y la cinta seguía sin nombre. Es palabra por palabra el mismo fallo que
+     tuvo el panel de la glosa con las etiquetas.
+     Se manda el pointerdown y DESPUÉS el blur, que es el orden del navegador:
+     al revés, esto pasaría en verde con el fallo puesto. */
+  const tocarFuera = await p.evaluate(async () => {
+    await window.__toque('[data-sep-renombrar="s1"]');
+    await window.__pausa(450);
+    const campo = document.querySelector('[data-sep-nombre="s1"]');
+    if (!campo) return { error:'no salió el campo' };
+    campo.value = 'lo del principio';
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, pointerId:770, pointerType:'touch', isPrimary:true,
+        clientX:200, clientY:300 }));
+    await window.__pausa(60);
+    campo.blur();
+    await window.__pausa(800);
+    return { nombre: (window.__guardadas().find(x => x.id === 's1') || {}).nombre,
+             cerrado: !document.getElementById('sepMenu').classList.contains('visible') };
+  });
+  di('tras tocar fuera', tocarFuera);
+  vale('TOCAR FUERA GUARDA LO ESCRITO', tocarFuera.nombre === 'lo del principio',
+       tocarFuera.error || tocarFuera.nombre);
+  vale('y el menú se cierra igual', tocarFuera.cerrado === true);
+
+  titulo('del campo a otro botón: el toque cuenta a la primera');
+  /* Guardar repintaba el menú entero, y el focusout llega ANTES que el clic
+     del botón que se está tocando: ese botón dejaba de existir antes de que su
+     clic aterrizara, y había que darlo dos veces. Se ve yendo al lápiz de otra
+     fila, pero le pasa igual a la equis y a una tela — por eso se prueban dos
+     destinos distintos y no sólo el que se encontró primero. */
+  await abrirLista();
+  const alOtroLapiz = await p.evaluate(async () => {
+    await window.__toque('[data-sep-renombrar="s1"]');
+    await window.__pausa(450);
+    const campo = document.querySelector('[data-sep-nombre="s1"]');
+    campo.value = 'primero';
+    const otro = document.querySelector('[data-sep-renombrar="s2"]');
+    campo.blur();
+    otro.click();
+    await window.__pausa(700);
+    return { nombre: (window.__guardadas().find(x => x.id === 's1') || {}).nombre,
+             abrio: !!document.querySelector('[data-sep-nombre="s2"]') };
+  });
+  di('al lápiz de otra fila', alOtroLapiz);
+  vale('guarda el primero', alOtroLapiz.nombre === 'primero', alOtroLapiz.nombre);
+  vale('y abre el segundo AL PRIMER TOQUE', alOtroLapiz.abrio === true, alOtroLapiz);
+
+  await p.evaluate(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(500);
+  });
+  await abrirLista();
+  const aLaEquis = await p.evaluate(async () => {
+    await window.__toque('[data-sep-renombrar="s2"]');
+    await window.__pausa(450);
+    const campo = document.querySelector('[data-sep-nombre="s2"]');
+    campo.value = 'segundo';
+    const x = document.querySelector('[data-sep-pedir-borrar="s1"]');
+    campo.blur();
+    x.click();
+    await window.__pausa(700);
+    return { nombre: (window.__guardadas().find(y => y.id === 's2') || {}).nombre,
+             pregunta: !!document.querySelector('.sp-borrar') };
+  });
+  di('a la equis de otra fila', aLaEquis);
+  vale('guarda el nombre', aLaEquis.nombre === 'segundo', aLaEquis.nombre);
+  vale('y la equis pregunta AL PRIMER TOQUE', aLaEquis.pregunta === true, aLaEquis);
+
+  titulo('con otra pestaña por medio, el nombre recién escrito gana');
+  /* Nombrar no toca `tocado` —a propósito: no reordena la lista— así que si
+     otra pestaña movió o recoloreó esa misma cinta después, su registro es más
+     nuevo y la fusión se llevaba por delante el nombre recién escrito: la
+     lista se repintaba sin él mientras el aviso decía «separador nombrado».
+     La otra pestaña se simula escribiendo en el almacén, que es exactamente lo
+     que hace: no hay más canal entre las dos. */
+  await p.evaluate(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(500);
+  });
+  await abrirLista();
+  const conOtraPestana = await p.evaluate(async () => {
+    await window.__toque('[data-sep-renombrar="s1"]');
+    await window.__pausa(450);
+    const campo = document.querySelector('[data-sep-nombre="s1"]');
+    campo.value = 'el mío de ahora';
+    const alm = JSON.parse(localStorage.getItem('glossa:separadores:v1'));
+    const x = alm.find(y => y.id === 's1');
+    x.tocado = Date.now() + 5000; x.color = 'oliva'; x.nombre = 'el de la otra pestaña';
+    localStorage.setItem('glossa:separadores:v1', JSON.stringify(alm));
+    campo.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+    await window.__pausa(800);
+    const g = window.__guardadas().find(y => y.id === 's1') || {};
+    const fila = document.querySelector('[data-sep-ir="s1"]');
+    return { nombre: g.nombre, color: g.color,
+             enLaFila: ((fila && fila.textContent) || '').indexOf('el mío de ahora') >= 0 };
+  });
+  di('con la otra pestaña por medio', conOtraPestana);
+  vale('EL NOMBRE RECIÉN ESCRITO GANA A LA FUSIÓN',
+       conOtraPestana.nombre === 'el mío de ahora', conOtraPestana.nombre);
+  /* Y no se arregla a lo bruto dejando de fundir: lo demás de la otra pestaña
+     tiene que seguir llegando. */
+  vale('pero lo demás de la otra pestaña sí se funde',
+       conOtraPestana.color === 'oliva', conOtraPestana.color);
+  vale('y la fila enseña lo que dice el aviso', conOtraPestana.enLaFila === true);
+
   await cerrarParcial(sesion, 'teléfono');
 
   /* ================================================================
