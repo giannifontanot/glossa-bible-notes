@@ -121,6 +121,54 @@ const comoVan = r => {
   vale('es el mismo viaje al revés', e.desbordeMaximo === s.desbordeMaximo);
   vale('y salió de verdad', !s.enZoom);
 
+  /* ================================================================
+     DE LEJOS, LOS FILOS SE RECORTAN AL PAPEL Y NI UN PÍXEL MÁS.
+
+     Los filos ocupan todo el alto de la pantalla, y de lejos eso invadiría el
+     hueco de alrededor —que ahí significa «vuelve»—, así que medirZoom los
+     recoloca sobre los cantos de la hoja pequeña. El derecho se coloca
+     restando el ancho del filo, y ese ancho estaba ESCRITO A MANO: el día que
+     .edge pasó de 24 a 30px, el filo derecho se quedó 6px pasado la orilla,
+     comiéndose una tira del hueco. Medido, y por eso esto existe.
+
+     Se comprueba con el rectángulo pintado y contra el papel de lejos, no
+     contra la ventana: lo que no puede invadirse es el hueco que hay entre uno
+     y otra. Y los dos filos, que el izquierdo se coloca por otra cuenta.
+     ================================================================ */
+  titulo('de lejos los filos no se salen del papel');
+  await p.evaluate(async () => {
+    const pg = document.getElementById('pg');
+    if (!pg.classList.contains('zoom')){
+      document.getElementById('btnZoom').click();
+      await new Promise(z => setTimeout(z, 1300));
+    }
+  });
+  const filosDeLejos = await p.evaluate(() => {
+    const r = id => document.getElementById(id).getBoundingClientRect();
+    const papel = r('zoomPapel'), der = r('edgeR'), izq = r('edgeL');
+    return { anchoDer: Math.round(der.width), anchoIzq: Math.round(izq.width),
+             /* positivo = se sale */
+             sobraDer: Math.round(der.right - papel.right),
+             sobraIzq: Math.round(papel.left - izq.left),
+             /* y siguen pegados a su canto, no encogidos hacia dentro */
+             pegadoDer: Math.round(papel.right - der.right),
+             pegadoIzq: Math.round(izq.left - papel.left) };
+  });
+  di('los filos contra el papel de lejos', filosDeLejos);
+  vale('el derecho no se sale del papel', filosDeLejos.sobraDer <= 0,
+       filosDeLejos.sobraDer + ' px de más');
+  vale('ni el izquierdo', filosDeLejos.sobraIzq <= 0, filosDeLejos.sobraIzq + ' px de más');
+  /* Y no basta con que no se salgan: encogerlos hacia dentro los dejaría sin
+     tocar el canto, que es justo por donde se pasa la hoja. */
+  vale('y los dos quedan pegados a su canto',
+       filosDeLejos.pegadoDer >= 0 && filosDeLejos.pegadoDer <= 1 &&
+       filosDeLejos.pegadoIzq >= 0 && filosDeLejos.pegadoIzq <= 1,
+       'der ' + filosDeLejos.pegadoDer + ' · izq ' + filosDeLejos.pegadoIzq);
+  /* No se estrechan con la escala: un filo mide lo que mide un dedo. */
+  vale('sin encogerse con la escala',
+       filosDeLejos.anchoDer === 30 && filosDeLejos.anchoIzq === 30,
+       filosDeLejos.anchoDer + ' · ' + filosDeLejos.anchoIzq);
+
   titulo('las tres puertas de vuelta, y el contenido que no lo es');
   /* DE LEJOS LA HOJA TIENE DOS ZONAS QUE TAMBIÉN SON PUERTAS, y cada una te
      devuelve mirando otra cosa: el blanco del margen te deja en el cajón de
@@ -136,7 +184,7 @@ const comoVan = r => {
      de «vuelve».
 
      Los puntos se buscan, no se calculan. Los filos de pasar hoja se recolocan
-     de lejos sobre los cantos de la hoja —24 px a cada lado, y el derecho cae
+     de lejos sobre los cantos de la hoja —lo que midan, y el derecho cae
      ENCIMA de la columna de glosas—, así que un punto elegido a ojo aterriza
      en el filo y la prueba mide otra cosa. Pasó al escribirla. */
   const enZoom = async () => p.evaluate(async () => {

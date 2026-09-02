@@ -2654,7 +2654,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-SEP-26 05:47';
+window.GLOSS_BUILD = '02-SEP-26 06:00';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7949,13 +7949,20 @@ function medirZoom(){
      pequeña, y así las dos cosas conviven: el papel se pasa por sus orillas y
      el hueco sigue siendo la salida.
      No se estrechan con la escala: un filo mide lo que mide un dedo, no lo que
-     mide el papel. Se quedan en sus 24px. */
+     mide el papel. Se quedan en el ancho que les da el CSS.
+
+     Y ESE ANCHO SE MIDE, no se escribe aquí. Estaba escrito —un 24 a mano— y
+     el día que .edge pasó a 30px este sitio se quedó atrás: el filo derecho
+     acababa 6px pasado la orilla del papel, o sea metido en el hueco, que de
+     lejos es justo lo que NO puede comerse porque ahí el toque significa
+     «vuelve». Preguntándole al elemento no puede volver a descuadrarse.
+     Lo levantó la revisión de Codex. */
   const alto = Math.round(k*ph), arriba = Math.round(py);
   for (const [el, lado] of [[edgeL, 'left'], [edgeR, 'right']]){
     el.style.top = arriba + 'px';
     el.style.height = alto + 'px';
     if (lado === 'left') el.style.left = Math.round(px) + 'px';
-    else el.style.left = Math.round(px + k*pw - 24) + 'px';
+    else el.style.left = Math.round(px + k*pw - (el.offsetWidth || 30)) + 'px';
     el.style.right = 'auto';
   }
   /* Y EL CANTO DEL LIBRO CON ELLOS. Va pegado a la orilla de la ventana, que
