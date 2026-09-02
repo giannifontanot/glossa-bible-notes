@@ -762,12 +762,21 @@ async function ponerAMano(p){
   await abrirLista();
   const enLaCinta = await p.evaluate(() => {
     const a = document.activeElement;
-    return { fila: !!(a && a.closest && a.closest('[data-sep-ir]')),
+    const f = a && a.closest ? a.closest('[data-sep-ir]') : null;
+    return { fila: !!f,
              cual: a && a.dataset ? (a.dataset.sepIr || '') : '',
+             rotulo: f ? (f.getAttribute('aria-label') || '') : '',
              hoja: window.__hoja() };
   });
   di('al abrir la lista', enLaCinta);
   vale('el foco cae en una cinta', enLaCinta.fila === true, enLaCinta);
+  /* Y LA FILA SE ANUNCIA POR LO QUE HACE. Decía «Ir al separador…» cuando ya
+     no lleva a ningún sitio: abre la ventanita, y el salto es el paso
+     siguiente. Quien no ve la pantalla pedía una cosa y le pasaba otra, justo
+     en el paso que este PR parte en dos. Lo levantó Codex. */
+  vale('y la fila se anuncia por lo que hace: VER, no ir',
+       /^Ver\b/.test(enLaCinta.rotulo) && /\d+:\d+/.test(enLaCinta.rotulo),
+       enLaCinta.rotulo);
 
   await p.keyboard.press('Enter');
   await p.waitForTimeout(900);

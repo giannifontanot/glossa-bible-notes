@@ -2736,7 +2736,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-SEP-26 10:38';
+window.GLOSS_BUILD = '02-SEP-26 12:01';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11154,8 +11154,13 @@ function pintarSepMenu(){
                 ' enterkeyhint="done" placeholder="nombre…"' +
                 ' aria-label="Nombre del separador en ' + donde + '" />' +
             '</div>'
+          /* EL RÓTULO DICE VER, NO IR, porque la fila ya no lleva: abre la
+             ventanita con el versículo y el salto se pide después, tocando la
+             escritura. Decía «Ir al separador…», y quien no ve la pantalla
+             pedía una cosa y le pasaba otra —justo en el paso que se acaba de
+             partir en dos—. Lo levantó la revisión de Codex. */
           : '<button class="sp-ir" data-sep-ir="' + esc(x.id) + '"' +
-              ' aria-label="Ir al separador en ' + donde + '"' +
+              ' aria-label="Ver el versículo del separador en ' + donde + '"' +
               /* El nombre largo se recorta con puntos suspensivos, así que el
                  texto entero va también en el title: si no, la única manera de
                  leerlo sería abrir el campo de escribirlo. */
@@ -11164,7 +11169,7 @@ function pintarSepMenu(){
               '<span class="sp-ref">' + esc(sepTexto(x)) + '</span></button>' +
             /* EL LÁPIZ, y no un doble clic sobre el nombre. Un doble clic
                obliga a esperar a que pase el plazo antes de atender el toque
-               simple, o sea que IR a la cinta —lo que se hace siempre—
+               simple, o sea que ABRIR la cinta —lo que se hace siempre—
                pagaría un retraso por culpa de nombrarla, que se hace una vez.
                Este archivo ya pagó ese precio en el rótulo del pie y hubo que
                subirlo a 440 ms. Un botón aparte no cuesta nada a nadie, se ve
