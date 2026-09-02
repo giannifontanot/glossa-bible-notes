@@ -433,6 +433,117 @@ async function ponerAMano(p){
   vale('y la cinta no se movió', salto.antes.join('|') === salto.despues.join('|'),
        salto.antes + '  vs  ' + salto.despues);
 
+  /* ================================================================
+     LA PUERTA A LAS CINTAS, Y NOMBRARLAS.
+
+     Hasta ahora la lista sólo se abría tocando la cinta, y la cinta sólo asoma
+     en la hoja donde está: para ver las demás había que acertar a llegar a
+     una. El pie del rastro es la puerta que faltaba.
+
+     Y una cinta se nombra. Lo que hay que vigilar de eso no es que el campo
+     salga —eso se ve— sino las tres reglas que se rompen solas:
+     · nombrar NO mueve la fila de sitio, porque la lista va por lo último que
+       se tocó y ponerle nombre no es volver a leerla;
+     · vaciar el campo QUITA el nombre en vez de guardar una cadena vacía, que
+       es la única manera de deshacer uno puesto por error;
+     · y Escape sale sin tocar nada.
+     ================================================================ */
+  titulo('la lista de cintas se abre desde el pie del rastro');
+  await p.evaluate(() => {
+    const hoy = Date.now();
+    /* Estado de partida, no gesto: dos cintas puestas a mano en el almacén. */
+    localStorage.setItem('glossa:separadores:v1', JSON.stringify([
+      { id:'s1', libro:'MAT', cap:1, vers:1, color:'rojo',  creado:hoy-9000, tocado:hoy-9000 },
+      { id:'s2', libro:'MAT', cap:1, vers:6, color:'azul',  creado:hoy-5000, tocado:hoy-5000 }
+    ]));
+  });
+  await abrirEn(p, 'MAT', 1, 1);
+
+  const puerta = await p.evaluate(async () => {
+    await window.__toque('#btnHistorial');
+    await window.__pausa(600);
+    const b = document.querySelector('#historial [data-sep-lista]');
+    if (!b) return { hay:false };
+    await window.__toque(b);
+    await window.__pausa(700);
+    const m = document.getElementById('sepMenu');
+    const r = m.getBoundingClientRect();
+    const st = document.querySelector('.stage').getBoundingClientRect();
+    return { hay:true, visible: m.classList.contains('visible'),
+             telas: m.querySelectorAll('.sp-tela').length,
+             filas: m.querySelectorAll('.sp-fila').length,
+             lapices: m.querySelectorAll('[data-sep-renombrar]').length,
+             /* Colgado del botón, que vive abajo del todo: si el menú se
+                colocara SIEMPRE debajo de su ancla, aquí no cabría y saldría
+                aplastado contra el borde tapando el propio botón. */
+             cabe: r.top >= st.top - 1 && r.bottom <= st.bottom + 1 &&
+                   r.left >= st.left - 1 && r.right <= st.right + 1 };
+  });
+  di('el menú desde el pie', puerta);
+  vale('el pie del rastro trae el botón', puerta.hay === true);
+  vale('y abre el menú', puerta.visible === true);
+  /* En modo lista no hay «esta cinta» cuyo color cambiar: enseñar la paleta
+     sería ofrecer un mando que no manda nada. */
+  vale('sin paleta de color, que no se vino de una cinta', puerta.telas === 0, puerta.telas);
+  vale('con las dos cintas y sus dos lápices',
+       puerta.filas === 2 && puerta.lapices === 2, puerta);
+  vale('y el menú cabe entero en la escena', puerta.cabe === true, puerta);
+
+  titulo('una cinta se nombra, y el nombre no la mueve de sitio');
+  const nombrar = await p.evaluate(async () => {
+    await window.__toque('[data-sep-renombrar="s2"]');
+    await window.__pausa(450);
+    const campo = document.querySelector('[data-sep-nombre="s2"]');
+    if (!campo) return { error:'no salió el campo' };
+    const enFoco = document.activeElement === campo;
+    /* Con espacios de sobra a propósito: el nombre lo escribe una mano. */
+    campo.value = '  la  genealogía  ';
+    campo.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+    await window.__pausa(700);
+    const g = window.__guardadas().find(x => x.id === 's2');
+    return { enFoco, nombre: g && g.nombre,
+             orden: [...document.querySelectorAll('[data-sep-ir]')].map(b => b.dataset.sepIr),
+             enLaFila: (document.querySelector('[data-sep-ir="s2"]').textContent || '')
+                         .indexOf('genealogía') >= 0 };
+  });
+  di('lo que quedó', nombrar);
+  vale('el lápiz abre el campo con el foco dentro', nombrar.enFoco === true,
+       nombrar.error || '');
+  vale('el nombre se limpia de espacios y se guarda',
+       nombrar.nombre === 'la genealogía', nombrar.nombre);
+  vale('y se lee en la fila', nombrar.enLaFila === true);
+  /* La de arriba sigue siendo la de la lectura de ahora: nombrar no es leer. */
+  vale('NOMBRAR NO LA MUEVE DE SITIO',
+       JSON.stringify(nombrar.orden) === JSON.stringify(['s2','s1']), nombrar.orden);
+
+  titulo('vaciar el nombre lo quita, y Escape no toca nada');
+  const deshacer = await p.evaluate(async () => {
+    await window.__toque('[data-sep-renombrar="s2"]');
+    await window.__pausa(450);
+    const campo = document.querySelector('[data-sep-nombre="s2"]');
+    campo.value = '   ';
+    campo.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+    await window.__pausa(700);
+    const g = window.__guardadas().find(x => x.id === 's2');
+    /* Y ahora Escape sobre la otra. */
+    await window.__toque('[data-sep-renombrar="s1"]');
+    await window.__pausa(450);
+    const c2 = document.querySelector('[data-sep-nombre="s1"]');
+    c2.value = 'esto no se guarda';
+    c2.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(700);
+    const g1 = window.__guardadas().find(x => x.id === 's1');
+    return { vaciada: Object.prototype.hasOwnProperty.call(g || {}, 'nombre'),
+             traEscape: g1 && g1.nombre,
+             campoFuera: !document.querySelector('[data-sep-nombre]') };
+  });
+  /* No basta con que el nombre sea '': la clave no debe quedar en el almacén,
+     o el archivo de quien no nombra ninguna cinta deja de ser el de siempre. */
+  vale('vaciar el campo QUITA la clave, no guarda vacío',
+       deshacer.vaciada === false, deshacer);
+  vale('Escape sale sin guardar', deshacer.traEscape === undefined, deshacer.traEscape);
+  vale('y cierra el campo', deshacer.campoFuera === true);
+
   await cerrarParcial(sesion, 'teléfono');
 
   /* ================================================================

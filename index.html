@@ -1176,15 +1176,35 @@
             border-radius:1px; }
   .sp-ref{ flex:1 1 auto; min-width:0; font:700 13px/1.3 var(--ui); color:#4a3a1c;
            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* EL NOMBRE, EN LA MISMA FILA Y CON LA MISMA LETRA. La referencia se queda
+     delante y encogida a su abreviatura —«Mt 1:1 -»— porque cuando hay nombre
+     el nombre es lo que se busca; el sitio exacto se lee después. Editando, la
+     fila mantiene su alto para que la lista no dé un salto al abrir el campo. */
+  .sp-edit{ flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:6px;
+            padding:4px 4px 4px 0; min-height:38px; }
+  .sp-edit-base, .sp-edit-aqui{ flex:0 0 auto; font:700 13px/1.3 var(--ui);
+                                color:#4a3a1c; white-space:nowrap; }
+  .sp-edit-aqui{ color:#6b5936; }
+  .sp-nombre{ flex:1 1 auto; min-width:72px; height:30px; box-sizing:border-box;
+              border:1px solid rgba(140,116,68,.45); border-radius:999px;
+              background:rgba(255,253,247,.82); color:#4a3a1c;
+              padding:6px 10px; font:600 13px/1 var(--ui); }
+  .sp-nombre:focus{ outline:2px solid rgba(184,137,43,.55); outline-offset:1px; }
+  /* EL LÁPIZ, hermano de la X y con su misma medida: son las dos cosas que se
+     le hacen a una fila, y puestas iguales se leen como un par. */
+  .sp-fila-lapiz{ flex:0 0 auto; }
+  .sp-fila-lapiz:hover{ background:rgba(140,116,68,.2); color:#4d3f1d; }
   /* X por fila: borra ese separador tras el diálogo sí/no. */
-  .sp-fila-x{ flex:0 0 auto; width:36px; height:36px; display:grid; place-items:center;
+  .sp-fila-x, .sp-fila-lapiz{
+              width:36px; height:36px; display:grid; place-items:center;
               border:0; border-radius:50%; padding:0; cursor:pointer;
               background:transparent; color:#7b6838;
               -webkit-tap-highlight-color:transparent;
               transition:background .18s ease, color .18s ease; }
   .sp-fila-x:hover{ background:rgba(155,42,42,.14); color:#7d2323; }
-  .sp-fila-x:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
-  .sp-fila-x svg{ display:block; width:12px; height:12px; }
+  .sp-fila-x:focus-visible, .sp-fila-lapiz:focus-visible{
+              outline:2px solid #b8892b; outline-offset:1px; }
+  .sp-fila-x svg, .sp-fila-lapiz svg{ display:block; width:12px; height:12px; }
   .sp-vacio{ display:block; padding:6px 5px 8px; font:400 12.5px/1.5 var(--ui);
              color:#6b5936; opacity:.85; }
   /* La confirmación de borrado sale DENTRO del mismo menú y no en otra caja
@@ -1192,8 +1212,14 @@
      otro sitio de la pantalla obliga a buscar a qué se refiere.
      Los botones van grandes a propósito: en teléfono el área útil es estrecha
      y un toque fallido cancela sin querer. */
-  .sp-borrar{ margin-top:10px; padding:14px 12px; border-radius:7px;
+  /* Y VA PEGADA ARRIBA. Con la lista llena, la pregunta nacía al final del
+     menú y había que desplazarse para contestarla: se preguntaba en un sitio
+     que no se estaba mirando. position:sticky la deja a la vista sin sacarla
+     del menú, que es lo que dice el párrafo de aquí arriba. */
+  .sp-borrar{ position:sticky; top:7px; z-index:2;
+              margin:0 0 10px; padding:14px 12px; border-radius:7px;
               background:rgba(155,42,42,.1); border:1px solid rgba(155,42,42,.35);
+              box-shadow:0 10px 24px -13px rgba(60,40,15,.8);
               opacity:0; transform:translateY(-4px);
               transition:opacity .18s ease, transform .24s cubic-bezier(.2,.85,.3,1); }
   .sp-borrar.puesta{ opacity:1; transform:none; }
@@ -1256,12 +1282,27 @@
   .hs-sep:active{ transform:translateY(1px); }
   .hs-sep-cinta{ flex:0 0 auto; width:8px; height:14px; background:#9b2a2a;
                  clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%); }
+  /* EL PIE DEL RASTRO. Va al final y no arriba porque no compite con lo que se
+     viene a hacer aquí —mirar por dónde has pasado—: se lee la lista, y si lo
+     que buscabas no estaba, ahí abajo están las cintas. Pegado con sticky para
+     que con el rastro largo no haya que llegar al fondo para verlo. La franja
+     lo separa de la lista sin una raya dura: el degradado dice «esto ya no es
+     rastro» y deja pasar por debajo lo que se está desplazando. */
+  .hs-pie{ position:sticky; bottom:-6px; z-index:1;
+           display:flex; align-items:flex-start; justify-content:flex-end;
+           box-sizing:border-box; padding:11px 13px 10px; margin:5px -6px -6px;
+           background:linear-gradient(to bottom, rgba(231,219,190,.86), #e2d4ad 14px, #e7dbbe);
+           border-top:1px solid rgba(140,116,68,.18);
+           border-radius:0 0 5px 5px;
+           box-shadow:0 -15px 24px -18px rgba(74,58,28,.7); }
+  .hs-sep-lista{ box-shadow:0 5px 12px -9px rgba(60,40,15,.75); }
 
   /* QUIEN PIDIÓ MENOS MOVIMIENTO NO RECIBE NINGUNO DE ÉSTOS. Aparecer y
      desaparecer se queda —hace falta para entender que algo salió— pero sin
      recorrido ni escala: solo el fundido, y la cinta ya no cae. */
   @media (prefers-reduced-motion: reduce){
-    .separador, .sep-x, #sepMenu, #sepOferta, .sp-borrar, .sp-tela, .sp-fila{
+    .separador, .sep-x, #sepMenu, #sepOferta, .sp-borrar, .sp-tela, .sp-fila,
+    .sp-fila-lapiz{
       transition-duration:.01ms !important; }
     .separador.cayendo, .separador.entrando, .separador.saliendo{
       animation:none !important; }
@@ -1382,8 +1423,10 @@
     .sp-ref{ font-size:14px; }
     .sp-fila{ min-height:48px; padding:5px 5px 5px 10px; }
     .sp-ir{ min-height:44px; }
-    .sp-fila-x{ width:42px; height:42px; }
-    .sp-fila-x svg{ width:14px; height:14px; }
+    .sp-fila-x, .sp-fila-lapiz{ width:42px; height:42px; }
+    .sp-fila-x svg, .sp-fila-lapiz svg{ width:14px; height:14px; }
+    .sp-edit-base, .sp-edit-aqui{ font-size:14px; }
+    .sp-nombre{ height:36px; font-size:14px; }
     .sp-borrar{ padding:16px 14px; }
     .sp-pregunta{ font-size:15px; padding-bottom:14px; }
     .sp-btn{ min-height:52px; font-size:15px; padding:14px 16px; }
@@ -2648,7 +2691,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '01-SEP-26 04:23';
+window.GLOSS_BUILD = '02-SEP-26 05:57';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8578,12 +8621,37 @@ function cabezaHistorial(){
       '<span class="hs-sep-cinta" aria-hidden="true"></span>separador</button>' +
     '</div>';
 }
+/* EL PIE, con la puerta a las cintas que ya hay.
+
+   Hasta ahora la lista de separadores sólo se abría tocando la cinta, y la
+   cinta sólo asoma en la hoja donde está: para ver las demás había que
+   acertar a llegar a una. O sea que el sitio donde viven tus marcas de
+   lectura era el único al que no se podía ir a propósito.
+
+   Va en el RASTRO y no en un panel nuevo porque es la misma pregunta —«¿por
+   dónde iba?»— hecha de las dos maneras que existen: lo que has visto, y
+   dónde dejaste la cinta. Y va al FINAL, debajo de la lista: primero se mira
+   el rastro, que es a lo que se viene, y si lo que buscabas no estaba, ahí
+   abajo están las cintas.
+
+   Se pinta también con el rastro vacío. Un lector recién llegado no tiene
+   rastro y sí puede tener cintas de otro día; enseñarle un panel vacío sin
+   salida sería esconderle lo que sí tiene. */
+function pieSeparadores(){
+  return '<div class="hs-pie">' +
+    '<button class="hs-sep hs-sep-lista" data-sep-lista="1"' +
+      ' title="Ver tus separadores"' +
+      ' aria-label="Ver tus separadores">' +
+      '<span class="hs-sep-cinta" aria-hidden="true"></span>separadores</button>' +
+    '</div>';
+}
 function pintarHistorial(){
   const cont = $('historial');
   if (!historial.length){
     cont.innerHTML = cabezaHistorial() +
       '<span class="hs-vacio">Todavía nada. Aquí van quedando los pasajes a los ' +
-      'que saltas desde el panel de libros o desde una referencia de una glosa.</span>';
+      'que saltas desde el panel de libros o desde una referencia de una glosa.</span>' +
+      pieSeparadores();
     return;
   }
   /* "Estás aquí" se pregunta contra la HOJA ENTERA, no contra su primer
@@ -8608,7 +8676,7 @@ function pintarHistorial(){
       '" data-hs="' + h.libro + ':' + h.cap + ':' + h.vers + '">' +
       '<span class="hs-ref">' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '</span>' +
       '<span class="hs-txt">' + esc(t || '(no está en esta versión)') + '</span></button>';
-    }).join('');
+    }).join('') + pieSeparadores();
 }
 /* EL RASTRO SIN REPETICIONES SEGUIDAS.
 
@@ -8737,6 +8805,16 @@ $('btnHistorial').addEventListener('click', ev => {
   if (histAbierto) cerrarHistorial(); else abrirHistorial();
 });
 $('historial').addEventListener('click', ev => {
+  /* LA LISTA DE CINTAS, desde el pie. Cierra el rastro y abre el menú colgado
+     del propio botón: el menú se cuelga siempre de lo que lo abrió, y aquí lo
+     que lo abrió no es una cinta. */
+  const lista = ev.target.closest('[data-sep-lista]');
+  if (lista){
+    ev.preventDefault(); ev.stopPropagation();
+    cerrarHistorial();
+    abrirSepMenu(null, lista);
+    return;
+  }
   /* PONER UNA CINTA A MANO. Cierra el panel: acabas de marcar la hoja donde
      estás y lo que hay que ver es la cinta, no la lista de por dónde has
      pasado. Y la lectura queda marcada, así que no se te vuelve a preguntar
@@ -10256,18 +10334,32 @@ let sepActivo = null;
    seguidas se han leído de verdad y si ya se preguntó en esta sesión. */
 let sepHojaAnterior = null, sepLlegadaEn = 0, sepLeidasSeguidas = 0,
     sepOfrecido = false, sepCayendo = null, sepMenuAbierto = null,
-    sepOfertaAbierta = false, sepRelojOferta = null, sepBorrando = null;
+    sepOfertaAbierta = false, sepRelojOferta = null, sepBorrando = null,
+    /* sepMenuAncla: de qué se cuelga el menú cuando NO lo abrió una cinta.
+       sepEditando: la fila cuyo nombre se está escribiendo, o null. */
+    sepMenuAncla = null, sepEditando = null;
 
 /* Cada campo se comprueba antes de aceptarlo: un almacén de otra versión, a
    medio escribir o manoseado a mano no debe dejar cintas imposibles. Lo que
    no se entiende se tira; lo que se entiende a medias se completa. */
 const sepEntendible = x => x && typeof x.id === 'string' && x.id &&
                            typeof x.libro === 'string' && x.libro && x.cap > 0 && x.vers > 0;
+/* El nombre es de una mano, así que se limpia como todo lo que escribe una
+   mano: los espacios de sobra se juntan, los de los bordes se van, y 70
+   caracteres es el tope —más no cabe en la fila y una fila que no se lee no
+   sirve de nada—. Un almacén viejo no lo trae, y eso es válido: la cinta sin
+   nombre es la de siempre. */
+const sepNombreLimpio = x => String(x || '').replace(/\s+/g, ' ').trim().slice(0, 70);
 function sepSanear(x){
-  return { id: x.id, libro: x.libro, cap: +x.cap, vers: +x.vers,
+  const nombre = sepNombreLimpio(x.nombre);
+  const out = { id: x.id, libro: x.libro, cap: +x.cap, vers: +x.vers,
            color: telaDe(x.color)[0],
            creado: +x.creado > 0 ? +x.creado : Date.now(),
            tocado: +x.tocado > 0 ? +x.tocado : (+x.creado > 0 ? +x.creado : Date.now()) };
+  /* Sin nombre NO se guarda la clave: así el almacén de quien no nombra
+     ninguna cinta queda exactamente como estaba. */
+  if (nombre) out.nombre = nombre;
+  return out;
 }
 function sepDelAlmacen(){
   try {
@@ -10312,6 +10404,15 @@ function sepNuevoId(){
   return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 const sepDe = id => separadores.find(x => x.id === id) || null;
+/* CON NOMBRE, LA REFERENCIA SE ENCOGE. «Mateo 1:1» pasa a «Mt 1:1», porque
+   cuando una cinta se llama «lo de la genealogía» lo que se busca es el
+   nombre y el sitio exacto se lee después. Sin nombre no hay nada que ceder,
+   así que la referencia va entera. */
+const sepRef = (x, corta) => (corta ? abrevDe(x.libro) : nombreDe(x.libro)) + ' ' + x.cap + ':' + x.vers;
+function sepTexto(x){
+  const ref = sepRef(x, !!x.nombre);
+  return ref + (x.nombre ? ' · ' + x.nombre : '') + (sepAqui(x) ? ' · aquí' : '');
+}
 
 /* ¿QUÉ CINTA TOCA PINTAR EN ESTA HOJA? La misma pregunta que el «estás aquí»
    del rastro. Si hay más de una —se puede: son referencias distintas de la
@@ -10746,10 +10847,20 @@ $('sepOferta').addEventListener('click', ev => {
 });
 
 /* ---------- el menú de la cinta ---------- */
-function abrirSepMenu(id){
-  if (!sepDe(id)) return;
+/* SIN id SE ABRE EN MODO LISTA. Es la puerta del pie del rastro: no vienes de
+   una cinta, así que no hay color que cambiar —esa sección es de la cinta que
+   tocaste— y lo único que tiene sentido enseñar es la lista. La bandera se
+   pone en 'lista' y no en null porque null es «cerrado» en todo este bloque, y
+   confundir los dos dejaría el menú abierto sin que nadie supiera cerrarlo. */
+function abrirSepMenu(id, ancla){
+  if (id && !sepDe(id)) return;
   cerrarOferta();
-  sepMenuAbierto = id;
+  sepMenuAbierto = id || 'lista';
+  /* Se guarda el RECTÁNGULO, no el elemento: quien lo abrió puede irse —el
+     botón del pie se va con el rastro al cerrarlo— y un elemento fuera del
+     documento no mide nada. */
+  sepMenuAncla = ancla ? ancla.getBoundingClientRect() : null;
+  sepEditando = null;
   sepBorrando = null;
   pintarSepMenu();
   const el = $('sepMenu');
@@ -10758,12 +10869,16 @@ function abrirSepMenu(id){
   void el.offsetWidth;
   el.classList.add('visible');
   pintarSeparador();
-  const foco = el.querySelector('.sp-tela');
+  /* En modo lista no hay telas, así que el foco va a la primera cinta: quien
+     llega con el teclado tiene que caer en algo que sirva. */
+  const foco = el.querySelector('.sp-tela') || el.querySelector('.sp-ir');
   if (foco) foco.focus({ preventScroll:true });
 }
 function cerrarSepMenu(){
   if (!sepMenuAbierto) return;
   sepMenuAbierto = null;
+  sepMenuAncla = null;
+  sepEditando = null;
   sepBorrando = null;
   const el = $('sepMenu');
   el.classList.remove('visible');
@@ -10771,8 +10886,9 @@ function cerrarSepMenu(){
   pintarSeparador();
 }
 function pintarSepMenu(){
+  /* Puede no haber cinta: en modo lista sepMenuAbierto vale 'lista' y sepDe
+     devuelve null. No es un fallo, es el otro modo. */
   const s = sepDe(sepMenuAbierto);
-  if (!s) return;
   const aqui = sepAqui;
   /* La lista va por lo último que se tocó, que es lo que se busca: la cinta
      de la lectura de ahora arriba, y las de antes debajo en el orden en que
@@ -10782,43 +10898,86 @@ function pintarSepMenu(){
   const refBorrar = aBorrar
     ? (esc(nombreDe(aBorrar.libro)) + ' ' + aBorrar.cap + ':' + aBorrar.vers)
     : '';
+  /* La pregunta va DELANTE de la lista y pegada arriba —ver .sp-borrar—: con la
+     lista llena, puesta al final había que desplazarse para contestarla. */
+  const borrarHtml = sepBorrando ?
+    '<div class="sp-borrar" role="group" aria-label="Confirmar borrado">' +
+      '<span class="sp-pregunta">¿Eliminar el separador' +
+        (refBorrar ? ' de ' + refBorrar : '') + '?</span>' +
+      '<div class="sp-botones">' +
+        '<button class="sp-btn si" data-sep-borrar="' + esc(sepBorrando) + '">Eliminar</button>' +
+        '<button class="sp-btn" data-sep-cancelar="1">Cancelar</button>' +
+      '</div></div>' : '';
   $('sepMenu').innerHTML =
-    '<span class="sp-tit">Color de la cinta</span>' +
-    '<div class="sp-telas" role="group" aria-label="Color del separador">' +
+    /* Las telas sólo si se vino de una cinta: en modo lista no hay «esta
+       cinta» cuyo color cambiar, y enseñar la paleta apuntando a ninguna
+       sería ofrecer un mando que no manda nada. */
+    (s ? '<span class="sp-tit">Color de la cinta</span>' +
+      '<div class="sp-telas" role="group" aria-label="Color del separador">' +
       TELAS.map(t => '<button class="sp-tela" data-sep-color="' + t[0] + '"' +
         ' style="background:' + t[2] + '" aria-pressed="' + (t[0] === s.color) + '"' +
         ' aria-label="Cinta ' + t[1] + '" title="' + t[1] + '"></button>').join('') +
-    '</div>' +
+      '</div>' : '') +
     '<span class="sp-tit">Tus separadores</span>' +
+    borrarHtml +
     (lista.length ? lista.map(x => {
       const t = telaDe(x.color);
+      const editando = sepEditando === x.id;
+      const donde = esc(nombreDe(x.libro)) + ' ' + x.cap + ':' + x.vers;
       return '<div class="sp-fila' + (aqui(x) ? ' aqui' : '') + '">' +
-        '<button class="sp-ir" data-sep-ir="' + esc(x.id) + '"' +
-          ' aria-label="Ir al separador en ' + esc(nombreDe(x.libro)) + ' ' +
-            x.cap + ':' + x.vers + '">' +
-          '<span class="sp-chip" style="background:' + t[2] + '" aria-hidden="true"></span>' +
-          '<span class="sp-ref">' + esc(nombreDe(x.libro)) + ' ' + x.cap + ':' + x.vers +
-            (aqui(x) ? ' · aquí' : '') + '</span></button>' +
-        '<button type="button" class="sp-fila-x" data-sep-pedir-borrar="' + esc(x.id) + '"' +
-          ' aria-label="Eliminar separador en ' + esc(nombreDe(x.libro)) + ' ' +
-            x.cap + ':' + x.vers + '" title="Eliminar">' +
-          '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1 L9 9 M9 1 L1 9"' +
-          ' stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
-        '</button></div>';
-    }).join('') : '<span class="sp-vacio">Todavía ninguno.</span>') +
-    (sepBorrando ?
-      '<div class="sp-borrar" role="group" aria-label="Confirmar borrado">' +
-        '<span class="sp-pregunta">¿Eliminar el separador' +
-          (refBorrar ? ' de ' + refBorrar : '') + '?</span>' +
-        '<div class="sp-botones">' +
-          '<button class="sp-btn si" data-sep-borrar="' + esc(sepBorrando) + '">Eliminar</button>' +
-          '<button class="sp-btn" data-sep-cancelar="1">Cancelar</button>' +
-        '</div></div>' : '');
+        (editando
+          /* ESCRIBIENDO, LA FILA SE QUEDA CALLADA. Fuera el «· aquí» y fuera la
+             X: estás nombrando, no yendo a ningún sitio ni borrando nada, y en
+             un teléfono los tres juntos dejaban al campo 70px y el aviso
+             partido a la mitad. Que la cinta sea la de esta hoja se sigue
+             viendo —la fila lleva su aro—, y la X vuelve al terminar. */
+          ? '<div class="sp-edit">' +
+              '<span class="sp-chip" style="background:' + t[2] + '" aria-hidden="true"></span>' +
+              '<span class="sp-edit-base">' + esc(sepRef(x, true)) + ' ·</span>' +
+              '<input class="sp-nombre" data-sep-nombre="' + esc(x.id) + '"' +
+                ' value="' + esc(x.nombre || '') + '" maxlength="70" autocomplete="off"' +
+                ' enterkeyhint="done" placeholder="nombre…"' +
+                ' aria-label="Nombre del separador en ' + donde + '" />' +
+            '</div>'
+          : '<button class="sp-ir" data-sep-ir="' + esc(x.id) + '"' +
+              ' aria-label="Ir al separador en ' + donde + '"' +
+              /* El nombre largo se recorta con puntos suspensivos, así que el
+                 texto entero va también en el title: si no, la única manera de
+                 leerlo sería abrir el campo de escribirlo. */
+              ' title="' + esc(sepTexto(x)) + '">' +
+              '<span class="sp-chip" style="background:' + t[2] + '" aria-hidden="true"></span>' +
+              '<span class="sp-ref">' + esc(sepTexto(x)) + '</span></button>' +
+            /* EL LÁPIZ, y no un doble clic sobre el nombre. Un doble clic
+               obliga a esperar a que pase el plazo antes de atender el toque
+               simple, o sea que IR a la cinta —lo que se hace siempre—
+               pagaría un retraso por culpa de nombrarla, que se hace una vez.
+               Este archivo ya pagó ese precio en el rótulo del pie y hubo que
+               subirlo a 440 ms. Un botón aparte no cuesta nada a nadie, se ve
+               que está, y se alcanza con el tabulador. */
+            '<button type="button" class="sp-fila-lapiz" data-sep-renombrar="' + esc(x.id) + '"' +
+              ' aria-label="' + (x.nombre ? 'Cambiar el nombre del' : 'Ponerle nombre al') +
+              ' separador en ' + donde + '" title="Ponerle nombre">' +
+              '<svg viewBox="0 0 12 12" aria-hidden="true">' +
+              '<path d="M1.2 8.4 L8.1 1.5 L10.5 3.9 L3.6 10.8 L0.9 11.1 Z"' +
+              ' fill="none" stroke="currentColor" stroke-width="1.4"' +
+              ' stroke-linejoin="round"/></svg></button>') +
+        (editando ? '' :
+          '<button type="button" class="sp-fila-x" data-sep-pedir-borrar="' + esc(x.id) + '"' +
+            ' aria-label="Eliminar separador en ' + donde + '" title="Eliminar">' +
+            '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1 L9 9 M9 1 L1 9"' +
+            ' stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+          '</button>') + '</div>';
+    }).join('') : '<span class="sp-vacio">Todavía ninguno.</span>');
   if (sepBorrando){
     const caja = $('sepMenu').querySelector('.sp-borrar');
     void caja.offsetWidth;
     caja.classList.add('puesta');
     const b = caja.querySelector('.sp-btn'); if (b) b.focus({ preventScroll:true });
+  } else if (sepEditando){
+    /* El foco entra en el campo y lo que hubiera queda seleccionado: nombrar
+       de nuevo es lo normal, y así se escribe encima sin borrar antes. */
+    const campo = $('sepMenu').querySelector('[data-sep-nombre]');
+    if (campo){ campo.focus({ preventScroll:true }); campo.select(); }
   }
 }
 /* El menú se cuelga de la cinta —debajo y alineado por su borde derecho— y de
@@ -10826,17 +10985,25 @@ function pintarSepMenu(){
 function colocarSepMenu(){
   const el = $('sepMenu');
   if (el.style.display === 'none') return;
-  const cinta = document.querySelector('.separador');
+  /* El ancla guardada manda sobre la cinta: si el menú lo abrió el pie del
+     rastro, colgarlo de una cinta que además está en otra esquina sería
+     señalar a lo que no lo abrió. */
+  const de = sepMenuAncla || document.querySelector('.separador');
   const st = stage.getBoundingClientRect();
   const w = el.offsetWidth, h = el.offsetHeight;
   let izq = st.width - w - 8, arr = 44;
-  if (cinta){
-    const r = cinta.getBoundingClientRect();
+  if (de){
+    const r = typeof de.getBoundingClientRect === 'function' ? de.getBoundingClientRect() : de;
     izq = r.right - st.left - w;
     arr = r.bottom - st.top + 8;
+    /* Y SI NO CABE DEBAJO, SE PONE ENCIMA. El botón del pie vive abajo del
+       todo: colgando el menú debajo de él no cabe nunca, y sin esto acababa
+       aplastado contra el borde tapando el propio botón. */
+    if (arr + h > st.height - 8) arr = r.top - st.top - h - 8;
   }
   izq = Math.min(Math.max(8, izq), Math.max(8, st.width - w - 8));
   if (arr + h > st.height - 8) arr = Math.max(8, st.height - h - 8);
+  arr = Math.max(8, arr);
   el.style.left = Math.round(izq) + 'px';
   el.style.top = Math.round(arr) + 'px';
 }
@@ -10857,7 +11024,75 @@ stage.addEventListener('click', ev => {
   if (sepMenuAbierto === cinta.dataset.sep) cerrarSepMenu();
   else abrirSepMenu(cinta.dataset.sep);
 }, true);
+/* NOMBRAR UNA CINTA.
+
+   El nombre no mueve la fila de sitio: la lista va por lo último que se tocó,
+   y ponerle nombre a una cinta no es volver a leerla. Se toca `nombre` y nada
+   más —ni `tocado` ni `color`—, así que la de arriba sigue siendo la de la
+   lectura de ahora.
+
+   Vaciar el campo QUITA el nombre, no guarda una cadena vacía: una cinta sin
+   nombre es un estado que existe —es como nacen todas— y es la única manera
+   de deshacerse de uno puesto por error. */
+function sepGuardarNombre(id, valor){
+  const s = sepDe(id); if (!s) return;
+  const antes = s.nombre || '';
+  const nombre = sepNombreLimpio(valor);
+  if (nombre) s.nombre = nombre; else delete s.nombre;
+  sepEditando = null;
+  sepGuardar();
+  pintarSepMenu(); colocarSepMenu(); pintarSeparador();
+  /* Sólo se dice algo si algo cambió: abrir el campo, mirarlo y salir no es
+     un cambio, y avisar de él enseñaría a no leer los avisos. */
+  if (nombre !== antes)
+    readout.textContent = nombre ? 'separador nombrado' : 'nombre del separador borrado';
+}
+function sepEditarNombre(id){
+  if (!sepDe(id)) return;
+  sepBorrando = null;
+  sepEditando = id;
+  pintarSepMenu(); colocarSepMenu();
+}
+/* Enter cierra y guarda; Escape sale sin tocar nada. Y el foco que se va
+   guarda también, que es lo que espera cualquiera que toque en otro sitio: no
+   estaba abandonando, estaba terminando. Es la misma regla que el panel de la
+   glosa, y por la misma razón. */
+$('sepMenu').addEventListener('keydown', ev => {
+  const campo = ev.target.closest('[data-sep-nombre]');
+  if (!campo) return;
+  if (ev.key === 'Enter'){
+    ev.preventDefault(); ev.stopPropagation();
+    sepGuardarNombre(campo.dataset.sepNombre, campo.value);
+  } else if (ev.key === 'Escape'){
+    ev.preventDefault(); ev.stopPropagation();
+    sepEditando = null; pintarSepMenu(); colocarSepMenu();
+  }
+});
+$('sepMenu').addEventListener('focusout', ev => {
+  const campo = ev.target.closest('[data-sep-nombre]');
+  if (!campo || sepEditando !== campo.dataset.sepNombre) return;
+  /* A DÓNDE IBA EL FOCO, y esto es la parte que se rompe sola si se quita:
+     guardar repinta el menú entero, así que el botón que se estaba tocando
+     deja de existir antes de que llegue su clic. Si el foco iba al lápiz de
+     OTRA fila —cambiar de una a otra de un tirón, que es lo natural— se
+     guarda y se abre esa otra a mano; nadie va a venir a abrirla. */
+  const iba = ev.relatedTarget && ev.relatedTarget.closest
+    ? ev.relatedTarget.closest('[data-sep-renombrar]') : null;
+  const otro = iba && iba.dataset.sepRenombrar;
+  sepGuardarNombre(campo.dataset.sepNombre, campo.value);
+  if (otro && otro !== campo.dataset.sepNombre) sepEditarNombre(otro);
+});
 $('sepMenu').addEventListener('click', ev => {
+  /* Dentro del campo no hay nada que hacer aquí: poner el cursor a media
+     palabra es escribir, no pulsar. (Cerrar el menú no hace falta pararlo: el
+     oyente que cierra con un toque de fuera ya exceptúa #sepMenu entero.) */
+  if (ev.target.closest('[data-sep-nombre]')) return;
+  const renombrar = ev.target.closest('[data-sep-renombrar]');
+  if (renombrar){
+    ev.preventDefault(); ev.stopPropagation();
+    sepEditarNombre(renombrar.dataset.sepRenombrar);
+    return;
+  }
   const color = ev.target.closest('[data-sep-color]');
   if (color){
     ev.preventDefault(); ev.stopPropagation();
