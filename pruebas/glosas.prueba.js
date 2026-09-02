@@ -59,6 +59,27 @@ const guardadas = () => {
   catch(e){ return []; }
 };
 
+/* CUBRE LO SELECCIONADO Y CIERRA EN PALABRA.
+
+   Ya no se compara la cita con lo seleccionado letra por letra: la marca se
+   estira a la palabra entera —ver aPalabrasEnteras—, así que pedir «Ram fue el
+   padre d» deja «Ram fue el padre de», y eso es lo correcto, no un fallo.
+
+   Lo que se exige es lo que de verdad importa y no se cumple solo:
+   · que lo seleccionado esté DENTRO de lo que quedó marcado —si el estirón se
+     descolocara un carácter, esto se cae—;
+   · y que los dos extremos caigan en borde de palabra, que es el encargo.
+   Comprobar sólo «contiene» dejaría pasar una marca que se comiera el
+   versículo entero. */
+const cubreYCierraEnPalabra = (m, pedido, verso) => {
+  if (!m || typeof verso !== 'string') return false;
+  const dentro = /[\p{L}\p{N}]/u;
+  const antes   = m.ini > 0 ? verso[m.ini - 1] : ' ';
+  const despues = m.fin < verso.length ? verso[m.fin] : ' ';
+  return (m.cita || '').includes((pedido || '').trim()) &&
+         !dentro.test(antes) && !dentro.test(despues);
+};
+
 (async () => {
   const sesion = await abrir();
   const p = sesion.pagina;
@@ -129,7 +150,8 @@ const guardadas = () => {
       await pausa(700);
     }
     const puesta = lee().find(m => (m.nota||'') === 'lo que seleccioné') || null;
-    return { base, texto, deshecha, trasSoltar, abrio, puesta, guardadas: lee().length };
+    return { base, texto, deshecha, trasSoltar, abrio, puesta, verso: t.nodeValue,
+             guardadas: lee().length };
   });
   di('lo seleccionado', tarde.texto);
   di('la glosa que quedó', tarde.puesta && tarde.puesta.cita);
@@ -138,9 +160,9 @@ const guardadas = () => {
   vale('el toque abre la caja', tarde.abrio);
   vale('y lo escrito se guarda', tarde.guardadas === tarde.base + 1,
        tarde.base + ' → ' + tarde.guardadas);
-  vale('SOBRE LO QUE SE HABÍA SELECCIONADO',
-       !!tarde.puesta && tarde.puesta.cita === tarde.texto,
-       (tarde.puesta && tarde.puesta.cita) + '  vs  ' + tarde.texto);
+  vale('SOBRE LO QUE SE HABÍA SELECCIONADO, y cerrando en palabra',
+       cubreYCierraEnPalabra(tarde.puesta, tarde.texto, tarde.verso),
+       (tarde.puesta && tarde.puesta.cita) + '  contra lo pedido  ' + tarde.texto);
 
   /* ================================================================
      EL TOQUE QUE NO TRAE POINTERDOWN, que es el del teléfono de verdad.
@@ -189,13 +211,13 @@ const guardadas = () => {
       await pausa(700);
     }
     const puesta = lee().find(m => (m.nota||'') === 'sin bajada') || null;
-    return { base, texto, abrio, puesta, guardadas: lee().length };
+    return { base, texto, abrio, puesta, verso: t.nodeValue, guardadas: lee().length };
   });
   di('lo seleccionado', sinBajada.texto);
   vale('el soltar a solas abre la caja', sinBajada.abrio);
-  vale('y guarda lo que se había seleccionado',
-       !!sinBajada.puesta && sinBajada.puesta.cita === sinBajada.texto,
-       (sinBajada.puesta && sinBajada.puesta.cita) + '  vs  ' + sinBajada.texto);
+  vale('y guarda lo que se había seleccionado, cerrando en palabra',
+       cubreYCierraEnPalabra(sinBajada.puesta, sinBajada.texto, sinBajada.verso),
+       (sinBajada.puesta && sinBajada.puesta.cita) + '  contra lo pedido  ' + sinBajada.texto);
 
   titulo('y un toque lejos de lo seleccionado no inventa nada');
   /* La otra mitad: la selección recordada solo vale para el toque que cae
@@ -270,6 +292,112 @@ const guardadas = () => {
      —el estado acumulado se comía el gesto— mientras que en una página
      limpia el fallo salía a la primera. Una prueba que no puede ver el fallo
      que vigila no vigila nada. */
+  /* ================================================================
+     LA MARCA SE ESTIRA A LA PALABRA ENTERA.
+
+     Nadie quiere subrayar «adre» de «padre». Y no es sólo pulcritud: con el
+     dedo la precisión de un extremo es de milímetros, y en los bordes de la
+     hoja ni eso —el canto de pasar hoja son 30px con touch-action:none encima
+     del texto—. Estirando a la palabra, alcanzar cualquier letra basta.
+
+     Los tres casos que hay que separar, porque cada uno se rompe por su lado:
+     media palabra estira; una palabra ya entera se deja igual; y un espacio de
+     cola se RECORTA en vez de arrastrar la palabra de al lado, que es el
+     defecto fácil de este arreglo.
+     ================================================================ */
+  titulo('la marca se estira a la palabra entera');
+  {
+    const p4 = await sesion.navegador.newPage({ ...TELEFONO });
+    const fallos4 = [];
+    p4.on('pageerror', e => fallos4.push(String(e).split('\n')[0]));
+    await p4.goto(APP);
+    await listo(p4);
+
+    const marcar = (desde, hasta, nota) => p4.evaluate(async ([d, h, nota]) => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      let v = null, t = null;
+      for (const cand of document.querySelectorAll('#pgBody .v')){
+        const n = [...cand.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim().length > 60);
+        if (n){ v = cand; t = n; break; }
+      }
+      if (!t) return { error:'sin versículo largo' };
+      const rg = document.createRange(); rg.setStart(t, d); rg.setEnd(t, h);
+      getSelection().removeAllRanges(); getSelection().addRange(rg);
+      const pedido = rg.toString();
+      const rc = rg.getBoundingClientRect();
+      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+        { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
+      await pausa(500);
+      const ta = document.getElementById('glosaCaja');
+      if (!ta) return { error:'no abrió la caja', pedido };
+      ta.value = nota; ta.dispatchEvent(new Event('input', { bubbles:true }));
+      await pausa(200);
+      /* tocar fuera de verdad, que es como se cobra lo escrito */
+      document.body.dispatchEvent(new PointerEvent('pointerdown',
+        { bubbles:true, clientX:5, clientY:5 }));
+      await pausa(1000);
+      const m = JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]')
+                  .find(x => x.nota === nota) || null;
+      return { pedido, verso: t.nodeValue, cita: m && m.cita, ini: m && m.ini, fin: m && m.fin };
+    }, [desde, hasta, nota]);
+
+    /* Los sitios se buscan EN EL TEXTO DE VERDAD, no con números a ojo: un
+       índice escrito a mano se descuadra en cuanto cambia una coma, y la
+       prueba pasaría midiendo otra cosa. */
+    const sitios = await p4.evaluate(() => {
+      let t = null;
+      for (const cand of document.querySelectorAll('#pgBody .v')){
+        const n = [...cand.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim().length > 60);
+        if (n){ t = n; break; }
+      }
+      const txt = t.nodeValue;
+      const entera = /[\p{L}\p{N}]{3,}/u.exec(txt.slice(10));
+      const par = /([\p{L}\p{N}]{4,})(\s+)([\p{L}\p{N}]+)/u.exec(txt);
+      return {
+        entera: { ini: 10 + entera.index, fin: 10 + entera.index + entera[0].length,
+                  palabra: entera[0] },
+        par: { ini: par.index + 2, fin: par.index + par[1].length + par[2].length,
+               primera: par[1], siguiente: par[3] }
+      };
+    });
+
+    const bordes = r => {
+      if (!r || r.cita == null) return false;
+      const dentro = /[\p{L}\p{N}]/u;
+      const antes   = r.ini > 0 ? r.verso[r.ini - 1] : ' ';
+      const despues = r.fin < r.verso.length ? r.verso[r.fin] : ' ';
+      return !dentro.test(antes) && !dentro.test(despues);
+    };
+
+    const media = await marcar(4, 12, 'media palabra');
+    di('media palabra', JSON.stringify(media.pedido) + ' → ' + JSON.stringify(media.cita));
+    vale('lo pedido queda dentro de lo marcado',
+         !!media.cita && media.cita.includes((media.pedido || '').trim()),
+         media.error || (media.pedido + ' → ' + media.cita));
+    vale('y los dos extremos caen en borde de palabra', bordes(media),
+         'ini ' + media.ini + ' fin ' + media.fin);
+
+    const justa = await marcar(sitios.entera.ini, sitios.entera.fin, 'palabra justa');
+    di('palabra ya entera', JSON.stringify(justa.pedido) + ' → ' + JSON.stringify(justa.cita));
+    /* Si esto se rompiera, el estirón estaría comiéndose a los vecinos: una
+       palabra que ya está entera no tiene nada que estirar. */
+    vale('una palabra ya entera se deja igual', justa.cita === justa.pedido,
+         justa.pedido + '  →  ' + justa.cita);
+
+    const cola = await marcar(sitios.par.ini, sitios.par.fin, 'con espacio de cola');
+    di('con espacio de cola', JSON.stringify(cola.pedido) + ' → ' + JSON.stringify(cola.cita));
+    vale('el espacio de cola se recorta y la palabra se completa',
+         cola.cita === sitios.par.primera, cola.cita + '  esperado  ' + sitios.par.primera);
+    /* LA QUE VIGILA EL DEFECTO FÁCIL: estirar sin recortar primero se lleva la
+       palabra de al lado entera. */
+    vale('y NO se lleva la palabra siguiente',
+         !!cola.cita && !cola.cita.includes(sitios.par.siguiente),
+         cola.cita + '  no debe traer  ' + sitios.par.siguiente);
+    vale('  sin errores (palabra entera)', fallos4.length === 0,
+         fallos4.length ? fallos4 : 'ninguno');
+    await p4.close();
+  }
+
   titulo('cancelar con una tecla también lo olvida');
   {
     const p3 = await sesion.navegador.newPage({ ...TELEFONO });
