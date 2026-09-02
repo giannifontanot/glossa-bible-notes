@@ -140,6 +140,34 @@ async function pasar(p, lado, espera){
   await abrirEn(p, 'MAT', 1, 1);
 
   /* ---------------------------------------------------------------- */
+  /* EL BLANCO DEL FILO, MEDIDO. Son 30px y no 24: el filo es lo que se toca
+     para pasar hoja, y 24 se falla con el pulgar en marcha. Se comprueba
+     porque el número tiene dos dueños que tiran en direcciones contrarias
+     —cuanto más ancho, más fácil de atinar y más texto tapa— y el que baje
+     esto por descuido tiene que enterarse aquí.
+     Se mide el rectángulo pintado, no la regla de CSS: lo que importa es el
+     blanco que ofrece el dedo. Y se comprueban los dos, que el izquierdo se
+     apaga en la primera hoja y es fácil dejárselo. */
+  titulo('el filo mide 30px de blanco, a los dos lados');
+  const anchoFilos = await p.evaluate(() => {
+    const mide = id => {
+      const e = document.getElementById(id);
+      const r = e.getBoundingClientRect();
+      return { ancho: Math.round(r.width), toque: getComputedStyle(e).touchAction };
+    };
+    return { der: mide('edgeR'), izq: mide('edgeL') };
+  });
+  di('lo que mide cada filo', anchoFilos);
+  vale('el derecho mide 30', anchoFilos.der.ancho === 30, anchoFilos.der.ancho);
+  vale('y el izquierdo también', anchoFilos.izq.ancho === 30, anchoFilos.izq.ancho);
+  /* touch-action:none es lo que le quita el gesto al navegador para dárselo al
+     filo, y es también la razón de que ahí debajo no se pueda seleccionar. Va
+     escrito aquí para que quien lo quite sepa qué está moviendo. */
+  vale('y se quedan el gesto entero', anchoFilos.der.toque === 'none' &&
+       anchoFilos.izq.toque === 'none',
+       anchoFilos.der.toque + ' · ' + anchoFilos.izq.toque);
+
+  /* ---------------------------------------------------------------- */
   titulo('un toque en el filo derecho');
   const ida = await pasar(p, 'right');
   di('la hoja', ida.antes + '  →  ' + ida.despues);
