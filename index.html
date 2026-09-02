@@ -425,7 +425,13 @@
   /* el lienzo se recorta contra la ventana: puede ser más ancho que ella */
   .stage{ overflow:hidden; }
   #pg.hidden{ visibility:hidden; }
-  .edge{ position:absolute; top:0; width:24px; height:100%; z-index:3; touch-action:none; cursor:grab; }
+  /* 30px y no 24: el canto es el blanco que se toca para pasar hoja, y 24 se
+     falla con el pulgar en marcha. Sube a costa de tapar un poco más del
+     principio del renglón —el canto lleva touch-action:none, así que ahí no se
+     puede seleccionar— y eso se paga aparte: la marca se estira a la palabra
+     entera, así que basta con alcanzar CUALQUIER letra de la palabra. Ver
+     aPalabrasEnteras. */
+  .edge{ position:absolute; top:0; width:30px; height:100%; z-index:3; touch-action:none; cursor:grab; }
   .edge-r{ right:0; background:linear-gradient(to right, rgba(201,162,39,0), rgba(201,162,39,.16)); }
   /* El filo de arriba: de donde baja el índice de libros. Va metido entre
      los dos laterales para no robarles el gesto de pasar hoja. */
@@ -2691,7 +2697,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-SEP-26 06:09';
+window.GLOSS_BUILD = '02-SEP-26 06:21';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3648,8 +3654,54 @@ const visible = m => showMarks && m.libro === LIBRO && pasaFiltros(m);
 const enLista = m => pasaFiltros(m) &&
   (m.libro === LIBRO || librosFiltro.has(m.libro));
 
+/* LA MARCA SE ESTIRA A LA PALABRA ENTERA.
+
+   Nadie quiere subrayar «adre» de «padre». Marcar media palabra no es una
+   intención que exista: si el dedo cogió cuatro letras de una, lo que se pedía
+   era la palabra. Así que el arranque se retrocede hasta el principio de su
+   palabra y el final se adelanta hasta el final de la suya.
+
+   Y NO ES SÓLO PULCRITUD. Con el dedo la precisión de un extremo es de varios
+   milímetros, y en los bordes de la hoja ni eso: el canto de pasar hoja son
+   30px con touch-action:none encima del texto, así que el principio de cada
+   renglón de la columna izquierda —y el final de los de la derecha— no se
+   pueden tocar. Estirando a la palabra, alcanzar CUALQUIER letra de ella
+   basta, y el canto deja de estorbar sin tener que encogerlo.
+
+   Dos pasos, y el orden importa:
+   · primero se RECORTA lo que sobra por fuera —espacios, comas, comillas—,
+     porque una selección que acaba en un espacio no está pidiendo la palabra
+     siguiente. Sin este paso, soltar el dedo un pelo pasado de la última letra
+     se llevaba la palabra de al lado entera;
+   · y luego se ESTIRA hacia fuera mientras haya letra pegada.
+   Si entre los dos extremos no queda ni una letra —se marcó un espacio o un
+   signo suelto— se devuelve lo que había: no hay palabra que estirar, y
+   inventar una sería marcar algo que nadie señaló.
+
+   Letra es \p{L} o \p{N}, no [a-z]: aquí se lee en español, y «Ezequías» o
+   «Zorobabel» se parten mal con el alfabeto inglés. El guión y el apóstrofo
+   quedan FUERA a propósito, o sea que cuentan como borde: en este texto no
+   unen palabras, y tratarlos como letra haría que marcar una parte de
+   «Jesús-Cristo» se tragara las dos. */
+const LETRA_DE_PALABRA = /[\p{L}\p{N}]/u;
+function aPalabrasEnteras(texto, ini, fin){
+  if (typeof texto !== 'string' || !texto.length) return { ini, fin };
+  let a = Math.max(0, Math.min(ini, texto.length));
+  let b = Math.max(0, Math.min(fin, texto.length));
+  if (a > b){ const t = a; a = b; b = t; }
+  while (a < b && !LETRA_DE_PALABRA.test(texto[a])) a++;
+  while (b > a && !LETRA_DE_PALABRA.test(texto[b-1])) b--;
+  if (a >= b) return { ini, fin };
+  while (a > 0 && LETRA_DE_PALABRA.test(texto[a-1])) a--;
+  while (b < texto.length && LETRA_DE_PALABRA.test(texto[b])) b++;
+  return { ini: a, fin: b };
+}
 function crearMarca(cap, vers, ini, fin){
   const texto = versoTexto(version, cap, vers);
+  /* Aquí y no en quien llama: por este embudo pasan los dos caminos que crean
+     una marca —el arrastre y el toque sobre lo apuntado— y el día que haya un
+     tercero se estirará solo. */
+  ({ ini, fin } = aPalabrasEnteras(texto, ini, fin));
   return {
     id: 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
     libro: LIBRO, cap, vers,
@@ -7305,7 +7357,7 @@ function mostrarHuella(ev, s){
   const r = stage.getBoundingClientRect();
   /* A la ALTURA donde tocaste —que es de donde va a girar la hoja, así que la
      marca y el giro cuentan lo mismo— pero metida hacia adentro: el filo mide
-     24px y una huella centrada ahí saldría partida por el canto. Se ve entera
+     30px y una huella centrada ahí saldría partida por el canto. Se ve entera
      y se sigue leyendo como "tu dedo está en este filo". */
   const y = Math.min(Math.max(ev.clientY - r.top, 42), r.height - 42);
   huella.style.left = (s === 'right' ? r.width - 34 : 34) + 'px';
@@ -7940,13 +7992,20 @@ function medirZoom(){
      pequeña, y así las dos cosas conviven: el papel se pasa por sus orillas y
      el hueco sigue siendo la salida.
      No se estrechan con la escala: un filo mide lo que mide un dedo, no lo que
-     mide el papel. Se quedan en sus 24px. */
+     mide el papel. Se quedan en el ancho que les da el CSS.
+
+     Y ESE ANCHO SE MIDE, no se escribe aquí. Estaba escrito —un 24 a mano— y
+     el día que .edge pasó a 30px este sitio se quedó atrás: el filo derecho
+     acababa 6px pasado la orilla del papel, o sea metido en el hueco, que de
+     lejos es justo lo que NO puede comerse porque ahí el toque significa
+     «vuelve». Preguntándole al elemento no puede volver a descuadrarse.
+     Lo levantó la revisión de Codex. */
   const alto = Math.round(k*ph), arriba = Math.round(py);
   for (const [el, lado] of [[edgeL, 'left'], [edgeR, 'right']]){
     el.style.top = arriba + 'px';
     el.style.height = alto + 'px';
     if (lado === 'left') el.style.left = Math.round(px) + 'px';
-    else el.style.left = Math.round(px + k*pw - 24) + 'px';
+    else el.style.left = Math.round(px + k*pw - (el.offsetWidth || 30)) + 'px';
     el.style.right = 'auto';
   }
   /* Y EL CANTO DEL LIBRO CON ELLOS. Va pegado a la orilla de la ventana, que
