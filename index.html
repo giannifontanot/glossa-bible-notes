@@ -2656,10 +2656,16 @@
   <!-- Los chevrones vuelven: aquí son un par que se usa seguido y hay que
        distinguirlos entre sí a cada toque, no dos puertas que se aprenden. -->
   <div id="zoomPasos">
-    <button data-paso="-1" title="Hoja anterior — empuja hacia arriba para que pasen solas"
-            aria-label="Hoja anterior. Empuja hacia arriba para que pasen solas.">‹</button>
-    <button data-paso="1" title="Hoja siguiente — empuja hacia arriba para que pasen solas"
-            aria-label="Hoja siguiente. Empuja hacia arriba para que pasen solas.">›</button>
+    <!-- Los rótulos cuentan el gesto que existe, y ya no es empujar hacia
+         arriba: eso era el desliz de antes, y con el cálculo de ahora un dedo
+         que sólo sube se aleja cero del centro y no arranca nada. Quien no ve
+         la pantalla no tiene otra manera de enterarse de que aquí hay un paso
+         automático, así que un rótulo que describe un gesto imposible no es un
+         detalle: es la única puerta, tapiada. Lo levantó Codex. -->
+    <button data-paso="-1" title="Hoja anterior — arrástralo a la izquierda para que pasen solas, y más lejos para ir más deprisa"
+            aria-label="Hoja anterior. Arrástralo hacia la izquierda para que pasen solas, y más lejos para ir más deprisa.">‹</button>
+    <button data-paso="1" title="Hoja siguiente — arrástralo a la derecha para que pasen solas, y más lejos para ir más deprisa"
+            aria-label="Hoja siguiente. Arrástralo hacia la derecha para que pasen solas, y más lejos para ir más deprisa.">›</button>
   </div>
   <button id="btnHistorial" title="Lo que has visto" aria-label="Lo que has visto"></button>
   <div id="historial" role="dialog" aria-label="Escrituras vistas" aria-modal="false"></div>
@@ -2736,7 +2742,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-SEP-26 18:00';
+window.GLOSS_BUILD = '02-SEP-26 19:02';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8449,11 +8455,22 @@ const ladoDePaso = b => (+b.dataset.paso > 0 ? 'right' : 'left');
    ahora el mismo: el pliegue se acorta de los 700 ms de siempre a
    MS_PLIEGUE_CORTO, y la hoja se ve girar SIEMPRE, solo que con prisa.
 
-   Con el pliegue mandando, lo único que quedaba de más era el sondeo: el
-   automático pregunta cada ESPERA_ZOOM_AUTO si el pliegue ya terminó, y a toda
-   velocidad esos 80 ms se le suman a cada hoja como pura espera. Por eso el
-   sondeo también se acorta con el acelerador —a SONDEO_CORTO—, que no cambia
-   el ritmo de la animación: solo deja de llegar tarde a recogerla.
+   EL SONDEO SE QUEDA EN 80 ms, y esto está medido porque parecía lo
+   contrario. El automático pregunta cada ESPERA_ZOOM_AUTO si el pliegue
+   terminó, así que a toda velocidad esos 80 ms parecen espera muerta encima de
+   un pliegue de 120, y se probó a acortarlos a 24. No compran nada: al tope,
+   medianas de cinco tandas de 3 s, las tres variantes —80 fijos, acortado sólo
+   fuera del pliegue, y acortado también dentro— caen todas en 11-12 hojas, y
+   la propia medida se mueve una hoja entre tandas. O sea que la diferencia, si
+   la hay, está por debajo del ruido.
+
+   Y hay una razón para que no la haya: la pregunta se hace MIENTRAS la hoja se
+   pliega, así que despertar el hilo más a menudo le quita tiempo justo a la
+   animación que se está esperando. El sondeo no es el cuello de botella; el
+   coste fijo de cada hoja sí. Se deja un solo número, que es lo que se puede
+   defender con lo medido. Lo destapó la revisión de Codex, que vio que el
+   acortado no llegaba a aplicarse donde su propio comentario decía: tenía
+   razón, y al medirlo resultó que lo que sobraba era el acortado.
 
    DE RESORTE. Al soltar, el botón vuelve al centro y la velocidad vuelve a la
    normal; el automático sigue andando. Se eligió así frente a dejar el botón
@@ -8472,7 +8489,6 @@ const CORRIDA_ARRANQUE = 12;  /* px de corrida antes de que esto sea un gesto */
    repintado—, que ronda los 200 ms. Bajar más sería acortar la animación sin
    comprar velocidad. */
 const MS_PLIEGUE_CORTO = 120; /* lo más corto que se pliega, al tope */
-const SONDEO_CORTO = 24;      /* ms entre preguntas, al tope */
 
 /* Cuánto dura el pliegue de ESTA hoja. Sin acelerador puesto devuelve lo de
    siempre, jitter incluido: dos pliegues seguidos que duran exactamente lo
@@ -8482,16 +8498,6 @@ function msPliegueZoom(){
   if (!dirZoomAuto || veloZoom <= 0) return base;
   const t = Math.min(Math.max(veloZoom, 0), 1);
   return Math.round(base + (MS_PLIEGUE_CORTO - base) * t);
-}
-/* Cada cuánto se vuelve a preguntar si el pliegue terminó. Quien manda el
-   ritmo es el pliegue; esto es solo el sondeo, y a toda velocidad sus 80 ms se
-   le sumaban a cada hoja como espera muerta —casi un tercio del ciclo—. Se
-   acorta con el acelerador por eso y solo por eso: no acelera la animación,
-   deja de llegar tarde a recogerla. */
-function esperaZoomAuto(){
-  if (!dirZoomAuto || veloZoom <= 0) return ESPERA_ZOOM_AUTO;
-  const t = Math.min(Math.max(veloZoom, 0), 1);
-  return Math.round(ESPERA_ZOOM_AUTO + (SONDEO_CORTO - ESPERA_ZOOM_AUTO) * t);
 }
 function darPasoZoom(s){
   if (folding || preparandoPliegue) return false;
@@ -8512,12 +8518,17 @@ function darPasoZoom(s){
 function seguirZoomAuto(){
   const s = dirZoomAuto;
   if (!s || !zoomActivo){ detenerZoomAuto(); return; }
+  /* Las dos vueltas van al mismo ritmo, y esta de arriba es la que corre casi
+     siempre: el pliegue dura más que el sondeo, así que la pregunta que
+     encuentra la hoja YA plegada sale de aquí. Tenerlas a ritmos distintos era
+     mantener dos números para un solo reloj —ver arriba por qué el segundo no
+     compraba nada—. */
   if (folding || preparandoPliegue){
     relojZoomAuto = setTimeout(seguirZoomAuto, ESPERA_ZOOM_AUTO);
     return;
   }
   if (!darPasoZoom(s)){ detenerZoomAuto(); return; }
-  relojZoomAuto = setTimeout(seguirZoomAuto, esperaZoomAuto());
+  relojZoomAuto = setTimeout(seguirZoomAuto, ESPERA_ZOOM_AUTO);
 }
 $('zoomPasos').addEventListener('click', ev => {
   const b = ev.target.closest('[data-paso]'); if (!b || b.disabled) return;

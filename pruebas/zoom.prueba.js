@@ -604,7 +604,18 @@ const comoVan = r => {
       { bubbles:true, clientX:Math.round(r.left + r.width/2),
         clientY:Math.round(r.bottom + 60) }));
     await new Promise(z => setTimeout(z, 800));
-    return { enReposo, aMedias, enMarcha, trasParar, trasSubir, trasAlReves,
+    /* EL RÓTULO CUENTA EL GESTO QUE EXISTE. Es la única puerta que tiene
+       quien no ve la pantalla: aquí no hay nada más que anuncie que existe un
+       paso automático. Decía «empuja hacia arriba», que era el desliz de
+       antes, y con el cálculo de ahora un dedo que sólo sube se aleja cero del
+       centro y no arranca nada: describía un gesto imposible. Lo levantó
+       Codex, y por eso se comprueba en los DOS botones y en los dos atributos
+       —title para el ratón, aria-label para quien escucha—. */
+    const rotulos = b.map(x => ({
+      titulo: x.getAttribute('title') || '',
+      rotulo: x.getAttribute('aria-label') || ''
+    }));
+    return { enReposo, aMedias, enMarcha, trasParar, trasSubir, trasAlReves, rotulos,
              seQuedaFuera: !document.getElementById('pg').classList.contains('zoom') };
   }).then(r => {
     vale('en reposo, ninguno encendido',
@@ -625,6 +636,22 @@ const comoVan = r => {
          !mismoColor(r.trasSubir[1], MARRON), r.trasSubir[1]);
     vale('correrlo al lado contrario tampoco',
          !mismoColor(r.trasAlReves[1], MARRON), r.trasAlReves[1]);
+    /* Ni rastro del gesto que ya no existe, y sí el que existe: cada botón
+       nombra SU lado, que es hacia donde acelera. */
+    vale('ningún rótulo manda empujar hacia arriba',
+         r.rotulos.every(x => !/arriba/i.test(x.titulo + ' ' + x.rotulo)),
+         JSON.stringify(r.rotulos));
+    vale('el de retroceder dice izquierda',
+         /izquierda/i.test(r.rotulos[0].titulo) && /izquierda/i.test(r.rotulos[0].rotulo),
+         r.rotulos[0].rotulo);
+    vale('el de avanzar dice derecha',
+         /derecha/i.test(r.rotulos[1].titulo) && /derecha/i.test(r.rotulos[1].rotulo),
+         r.rotulos[1].rotulo);
+    vale('y los dos cuentan que arrastrar más lejos va más deprisa',
+         /* Con la tilde contemplada: «Arrástralo» no casa con /arrastr/i, y
+            una prueba que falla por su propia expresión no prueba nada. */
+         r.rotulos.every(x => /arr[aá]str/i.test(x.rotulo) && /deprisa/i.test(x.rotulo)),
+         r.rotulos[1].rotulo);
     vale('y la sección deja el zoom cerrado', r.seQuedaFuera);
     return r;
   }));
