@@ -2927,7 +2927,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-SEP-26 07:34';
+window.GLOSS_BUILD = '03-SEP-26 07:50';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -10958,6 +10958,23 @@ function piedrasGuardar(){
   piedras.sort((a, b) => b.tocado - a.tocado);
   if (piedras.length > TOPE_PIEDRAS) piedras.length = TOPE_PIEDRAS;
   try { localStorage.setItem(PIEDRAS, JSON.stringify(piedras)); } catch(e){}
+  /* Y LA FOTO DEL PLIEGUE CADUCA AQUÍ, que es el único sitio por donde pasan
+     todos los cambios de una piedra —ponerla, moverla, cambiarle forma,
+     tamaño, color o nombre, y quitarla—.
+
+     La foto no se rehace sola. Lo que decide si la guardada todavía sirve es
+     estiloFirma(), y ahí no hay ni una piedra: son los ajustes de la letra y
+     el papel. Así que tras cualquier retoque, la vuelta de hoja siguiente
+     seguía enseñando la foto vieja: la piedra cambiaba de color al empezar el
+     giro y volvía al suyo al aterrizar. Medido antes de arreglarlo: la hoja
+     viva en carmín y la foto con 18.781 píxeles de sepia y CERO de carmín.
+
+     Se invalida en vez de meter las piedras en la firma porque invalidar
+     también pone pageImg en nulo y encarga la foto nueva ya: apoyándose solo
+     en la firma, la primera vuelta después de un retoque se daría con la foto
+     vieja igual —iniciarPliegue la usa mientras la nueva carga—, que es
+     exactamente el parpadeo que se está quitando. Lo levantó Codex. */
+  invalidateSnapshot();
 }
 /* EN QUÉ RENGLÓN DEL LIBRO CAE, para saber si es de esta hoja. Igual que sepK,
    y con el mismo respaldo por capítulo: una piedra de otra versión puede
@@ -11862,9 +11879,16 @@ function ponerPiedra(){
      había puesto. Se corren en diagonal según cuántas haya ya en esta hoja, y
      se da la vuelta cada seis para no salirse del papel. */
   const n = piedrasDeLaHoja().length % 6;
+  /* EL COLOR VA ESCRITO AL NACER, aunque sea el de por defecto. Sin él la
+     piedra se pintaba bien —tintaDe(undefined) devuelve el primero— pero la
+     paleta del mando comparaba t[0] === x.color y no marcaba ninguna: la
+     piedra se veía sepia y las seis manchas decían aria-pressed="false", o
+     sea que quien la acababa de poner no tenía manera de saber en qué color
+     estaba. Duraba hasta recolorearla o hasta recargar, que es cuando
+     piedraSanear le pone el que le faltaba. Lo levantó Codex. */
   const x = { id: piedraNuevoId(), libro: a.libro, cap: a.cap, vers: a.vers,
               x: .5 + n * .055, y: .45 + n * .045,
-              forma: FORMAS[0], tam: PIEDRA_TAM_POR,
+              forma: FORMAS[0], tam: PIEDRA_TAM_POR, color: PIEDRA_TINTAS[0][0],
               creado: ahora, tocado: ahora };
   piedras.unshift(x);
   piedrasGuardar();

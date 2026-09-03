@@ -140,7 +140,7 @@ async function andamio(p){
     await window.__pausa(900);
     return { antes, rotulo, guardadas: window.__guardadas(),
              rastro: document.getElementById('historial').classList.contains('visible'),
-             piedra: window.__laPiedra() };
+             piedra: window.__laPiedra(), mando: window.__elMando() };
   });
   di('al poner', puesta.piedra);
   vale('el rastro trae el botón, y dice lo que deja',
@@ -165,6 +165,18 @@ async function andamio(p){
        !!puesta.piedra && puesta.piedra.editando === true && puesta.piedra.mando === true,
        puesta.piedra);
   vale('el rastro se cierra al ponerla', puesta.rastro === false);
+  /* Y NACE CON SU COLOR ESCRITO, aunque sea el de por defecto. Se pintaba bien
+     sin la clave —tintaDe(undefined) devuelve el primero— pero la paleta del
+     mando compara contra x.color y no marcaba ninguna mancha: la piedra se
+     veía sepia y las seis decían aria-pressed="false", así que quien la
+     acababa de poner no tenía manera de saber en qué color estaba. Duraba
+     hasta recolorearla o hasta recargar. Se comprueba en la PALETA y no en el
+     almacén, que es donde se veía. Lo levantó Codex. */
+  vale('y la paleta ya marca su color', puesta.mando.tinta === 'sepia',
+       puesta.mando.tinta);
+  vale('que es el mismo que se guarda',
+       (puesta.guardadas || [])[0] && puesta.guardadas[0].color === 'sepia',
+       puesta.guardadas && puesta.guardadas[0].color);
 
   /* ---------------------------------------------------------------- */
   titulo('un toque cambia la forma, un arrastre la mueve');
@@ -312,6 +324,7 @@ async function andamio(p){
   vale('y una paleta de colores', mando.m0.tintas >= 4, mando.m0.tintas);
   vale('y el campo del nombre', mando.m0.campo === true);
   vale('y cabe entero en la escena', mando.m0.cabe === true);
+
   vale('elegir una figura de la parrilla la cambia',
        mando.traForma.piedra.forma === 'barca', mando.traForma.piedra.forma);
   vale('y la parrilla marca cuál está puesta',
@@ -605,12 +618,16 @@ async function andamio(p){
      medido, 801 sin ella y 1.642 con ella, y las dos cifras se repiten clavadas
      entre vueltas. Sin el arreglo daba 801 contra 801, o sea que no estaba. */
   titulo('la piedra viaja en la foto del pliegue');
-  const tinta = async (sembrar, rgb) => {
+  /* `retocar` corre con la hoja ya puesta y la foto ya hecha, justo antes de
+     voltear: es lo único que distingue una piedra que nació así de una que se
+     acaba de cambiar, y ahí es donde vive el fallo de la foto caducada. */
+  const tinta = async (sembrar, rgb, retocar) => {
     const ses = await abrir();
     const w = ses.pagina;
     await w.evaluate(sembrar);
     await w.reload();
     await w.waitForTimeout(3200);
+    if (retocar){ await w.evaluate(retocar); await w.waitForTimeout(900); }
     const n = await w.evaluate(async (rgb) => {
       const pausa = ms => new Promise(z => setTimeout(z, ms));
       const e = document.getElementById('edgeR');
@@ -668,4 +685,54 @@ async function andamio(p){
   di('tinta carmín en el lienzo', 'sin: ' + sinCarmin + '  ·  con: ' + carmin);
   vale('Y VIAJA CON SU COLOR, no con el de la tinta',
        carmin > sinCarmin + 300, sinCarmin + ' → ' + carmin + ' píxeles');
+
+  /* LA FOTO CADUCA AL TOCAR LA PIEDRA, Y ESTO NO LO PILLABA LO DE ARRIBA.
+
+     Ahí la piedra nace ya carmín: la foto se hace después de cargar y sale
+     bien sin que nadie invalide nada. El fallo aparece cuando la foto YA
+     ESTÁ HECHA y entonces se cambia la piedra, que es lo normal —la pones, la
+     retocas, pasas de hoja—. La foto no se rehace sola: lo que decide si la
+     guardada sirve es estiloFirma(), y ahí no hay ni una piedra. Así que la
+     vuelta siguiente enseñaba la foto vieja y la piedra cambiaba de color al
+     empezar el giro para volver al suyo al aterrizar.
+
+     Reproducido antes de arreglarlo: la hoja viva en carmín y el lienzo con
+     CERO píxeles de carmín y 18.781 de sepia. Después del arreglo, 600 de
+     carmín en el cuadro, la misma cifra clavada entre vueltas, y sin piedra
+     el cuadro da 0 —el carmín no existe en la hoja, que es sepia sobre hueso—
+     así que el margen de 300 va al doble de holgura sobre un fondo de cero.
+     El tamaño 4 y no el 3 porque el 3 da 192, demasiado cerca del margen.
+     Lo levantó Codex. */
+  const traRetocar = await tinta(() => {
+    const hoy = Date.now();
+    localStorage.setItem('glossa:piedras:v1', JSON.stringify([
+      { id:'t', libro:'MAT', cap:1, vers:1, x:.18, y:.30, forma:'piedra',
+        tam:4, color:'sepia', creado:hoy, tocado:hoy }]));
+  }, CARMIN, async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    /* Con coordenadas: la piedra quieta no recibe eventos y el doble toque se
+       caza midiendo el punto (ver piedraEnPunto). */
+    const b = document.querySelector('.piedra');
+    const r = b.getBoundingClientRect();
+    b.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+      clientX: r.left + r.width/2, clientY: r.top + r.height/2 }));
+    await pausa(400);
+    const chip = document.querySelector('[data-piedra-color="carmin"]');
+    const c = chip.getBoundingClientRect();
+    const op = { bubbles:true, cancelable:true, pointerId:771, pointerType:'touch',
+                 isPrimary:true, clientX: c.left + c.width/2, clientY: c.top + c.height/2 };
+    chip.dispatchEvent(new PointerEvent('pointerdown', op));
+    await pausa(40);
+    chip.dispatchEvent(new PointerEvent('pointerup', op));
+    chip.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, op)));
+    await pausa(300);
+    /* Y se cierra la edición, que es como se llega a pasar hoja de verdad. */
+    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, pointerId:772, pointerType:'touch', isPrimary:true,
+        clientX:60, clientY:600 }));
+    await pausa(300);
+  });
+  di('carmín tras retocarla en vivo', traRetocar);
+  vale('LA FOTO CADUCA AL RETOCAR LA PIEDRA, no enseña la de antes',
+       traRetocar > sinCarmin + 300, sinCarmin + ' → ' + traRetocar + ' píxeles');
 })();
