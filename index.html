@@ -942,19 +942,12 @@
               transition:opacity .2s ease, transform .28s cubic-bezier(.2,.85,.3,1); }
   #historial::-webkit-scrollbar{ width:0; height:0; display:none; }
   #historial.visible{ opacity:1; transform:none; }
-  /* EL RÓTULO Y EL PASO ATRÁS, EN UN RENGLÓN DE VERDAD.
+  /* EL RÓTULO, SOLO EN SU RENGLÓN.
 
-     Compartirlo era la intención desde que el botón se subió aquí, y no se
-     cumplía: #historial es una COLUMNA, así que el rótulo y el botón eran dos
-     hijos uno debajo del otro y el margin-left:auto del botón solo lo corría
-     al filo derecho. Quedaban en dos franjas, el rótulo arriba a la izquierda
-     y el botón debajo a la derecha, y de ahí que no casaran.
-
-     Con un renglón propio que los envuelva ya son hermanos en horizontal, y
-     align-items:center los centra el uno con el otro: el botón lleva borde y
-     relleno, así que es más alto que el rótulo, y alinearlos por arriba o por
-     la base dejaría a uno colgando del otro. El hueco de arriba es el mismo
-     de antes —el relleno se muda del rótulo a su renglón, no cambia—. */
+     Aquí vivió también el paso atrás, y se ha bajado al renglón de los botones
+     —ver .hs-acciones—. Se queda el renglón propio aunque ahora lleve un solo
+     hijo: el relleno de arriba del panel es éste, y disolverlo obligaría a
+     devolvérselo al rótulo, que es de donde vino. */
   .hs-cab{ display:flex; align-items:center; gap:8px; padding:3px 3px 6px; }
   .hs-tit{ font:700 10.5px/1 var(--ui);
            letter-spacing:.14em; text-transform:uppercase; color:#8a7746; }
@@ -972,10 +965,11 @@
      salto a otra escritura, que es lo contrario de volver. Ahora mide 34px de
      alto —38 en pantalla chica—, que es el mínimo con el que se acierta, y la
      letra sube a la de las filas para que no parezca un rótulo. */
-  /* margin-left:auto lo manda al filo derecho del renglón del rótulo, que es
-     lo pedido y además el borde por el que este panel crece. Se perdió al
-     mudarlo de sitio un rato; sin él quedaba pegado al rótulo. */
-  .hs-atras{ flex:0 0 auto; margin-left:auto;
+  /* Ya no lleva margin-left:auto: vive en .hs-acciones, que empuja a sus dos
+     hijos al filo derecho con justify-content. Con el auto puesto se habría
+     separado del botón de al lado hasta el otro extremo del renglón, que es
+     justo lo contrario de tenerlos juntos. */
+  .hs-atras{ flex:0 0 auto;
              display:inline-flex; align-items:center; justify-content:center;
              gap:7px; min-height:34px;
              font:600 12px/1 var(--ui); letter-spacing:.06em;
@@ -1275,6 +1269,11 @@
      altura y el mismo estilo de pastilla: se leen como un par de acciones,
      no como dos piezas sueltas en filas distintas. El título queda solo
      arriba, sin pelear espacio. */
+  /* LOS DOS BOTONES EN UN RENGLÓN. Cabían desde que «separador» pasó a
+     llamarse «nuevo»: medido en 320 px, los dos y su hueco ocupan bastante
+     menos que el panel. Se deja flex-wrap:wrap de todas formas —no para que
+     parta, sino para que si algún día no cupieran bajara uno en vez de
+     desbordarse el panel por el lado—. */
   .hs-acciones{ display:flex; align-items:center; justify-content:flex-end;
                 flex-wrap:wrap; gap:8px; padding:0 3px 7px; }
   .hs-sep{ flex:0 0 auto; display:inline-flex; align-items:center; gap:6px;
@@ -1288,6 +1287,10 @@
   .hs-sep:active{ transform:translateY(1px); }
   .hs-sep-cinta{ flex:0 0 auto; width:8px; height:14px; background:#9b2a2a;
                  clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%); }
+  /* EL MANOJO. Van casi pegadas —2 px— porque lo que tienen que leerse es
+     «unas cuantas cintas», no cuatro adornos sueltos: con el hueco de 6 del
+     botón parecían una fila de banderitas. */
+  .hs-cintas{ flex:0 0 auto; display:inline-flex; align-items:center; gap:2px; }
   /* EL PIE DEL RASTRO. Va al final y no arriba porque no compite con lo que se
      viene a hacer aquí —mirar por dónde has pasado—: se lee la lista, y si lo
      que buscabas no estaba, ahí abajo están las cintas. Pegado con sticky para
@@ -2742,7 +2745,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-SEP-26 19:02';
+window.GLOSS_BUILD = '02-SEP-26 20:48';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8792,19 +8795,21 @@ let histAbierto = false, plenoAbierto = null;   /* plenoAbierto guarda la refere
    desde el primer minuto, sin haber saltado a ningún sitio todavía. El paso
    atrás sigue apareciendo solo cuando hay a dónde volver. */
 function cabezaHistorial(){
-  /* EL RÓTULO Y EL PASO ATRÁS COMPARTEN RENGLÓN, y eso no se toca: está
-     donde está por una razón que costó encontrar —ver .hs-cab más arriba— y
-     hay una prueba que lo vigila. El botón del separador va DEBAJO, en su
-     propio renglón y pegado al mismo filo derecho: medido, los tres no caben
-     en uno solo sin partir el rótulo o estrujar el atrás, y aun forzándolos
-     el navegador los parte igual en dos renglones. */
-  return '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span>' +
-    pieAtras() + '</div>' +
+  /* LOS DOS BOTONES COMPARTEN RENGLÓN, y el rótulo se queda solo arriba.
+
+     Antes era al revés: rótulo y paso atrás juntos, y el del separador debajo.
+     Los tres en uno no cabían —medido— porque «separador» es una palabra
+     larga; llamándolo «nuevo», que es lo que hace, los dos botones caben de
+     sobra y el panel gana un renglón entero. Y tiene más sentido así: el
+     rótulo dice qué es esto, y debajo van las dos cosas que se pueden hacer,
+     una al lado de otra. */
+  return '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span></div>' +
     '<div class="hs-acciones">' +
+    pieAtras() +
     '<button class="hs-sep" data-sep-nuevo="1"' +
       ' title="Dejar un separador en esta hoja"' +
       ' aria-label="Dejar un separador en esta hoja">' +
-      '<span class="hs-sep-cinta" aria-hidden="true"></span>separador</button>' +
+      '<span class="hs-sep-cinta" aria-hidden="true"></span>nuevo</button>' +
     '</div>';
 }
 /* EL PIE, con la puerta a las cintas que ya hay.
@@ -8823,12 +8828,19 @@ function cabezaHistorial(){
    Se pinta también con el rastro vacío. Un lector recién llegado no tiene
    rastro y sí puede tener cintas de otro día; enseñarle un panel vacío sin
    salida sería esconderle lo que sí tiene. */
+/* LAS CUATRO TELAS EN LUGAR DE UNA. Una cinta suelta no dice de qué va este
+   botón: podría ser «pon una» —que es lo que hace el otro, y llevaba el mismo
+   dibujo—. Cuatro juntas, una de cada color, sí: eso es una COLECCIÓN, que es
+   lo que hay detrás. Salen de TELAS y no de una lista escrita a mano, para que
+   no se queden atrás el día que la paleta cambie. */
 function pieSeparadores(){
+  const cintas = TELAS.map(t =>
+    '<span class="hs-sep-cinta" style="background:' + t[2] + '"></span>').join('');
   return '<div class="hs-pie">' +
     '<button class="hs-sep hs-sep-lista" data-sep-lista="1"' +
       ' title="Ver tus separadores"' +
       ' aria-label="Ver tus separadores">' +
-      '<span class="hs-sep-cinta" aria-hidden="true"></span>separadores</button>' +
+      '<span class="hs-cintas" aria-hidden="true">' + cintas + '</span>actuales</button>' +
     '</div>';
 }
 function pintarHistorial(){

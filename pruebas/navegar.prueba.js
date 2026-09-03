@@ -81,23 +81,36 @@ const ATERRIZA = 7000;
     const panel = document.getElementById('historial').getBoundingClientRect();
     const suyo = b.getBoundingClientRect();
     const rotulo = b.textContent.trim();
-    /* EL RÓTULO Y EL BOTÓN, EN EL MISMO RENGLÓN Y CENTRADOS EL UNO CON EL
-       OTRO. Se dieron por compartidos desde que el botón subió aquí y no lo
-       estaban: #historial es una columna, así que eran dos hijos uno debajo
-       del otro y el margin-left:auto solo corría el botón al filo derecho.
-       Se mide por los CENTROS y no por el borde de arriba: el botón lleva
-       borde y relleno, así que es más alto, y compartir renglón centrados es
-       justo lo que no se ve comparando bordes. */
+    /* EL PASO ATRÁS COMPARTE RENGLÓN CON EL DE PONER CINTA, y el rótulo se
+       queda solo arriba.
+
+       Aquí se midió antes lo contrario —rótulo y paso atrás juntos— porque así
+       estaba. Se cambió al acortar «separador» a «nuevo»: con el nombre corto
+       los dos botones caben en un renglón, y el panel gana el que ocupaba el
+       de abajo. Los tres nunca cupieron.
+
+       Se mide por los CENTROS y no por el borde de arriba: los botones llevan
+       borde y relleno, y compartir renglón centrados es justo lo que no se ve
+       comparando bordes. */
     const tit = document.querySelector('#historial .hs-tit');
+    const nuevo = document.querySelector('#historial [data-sep-nuevo]');
     const tb = tit ? tit.getBoundingClientRect() : null;
-    const juntos = tb ? {
-      mismoCentro: Math.abs((tb.top+tb.bottom)/2 - (suyo.top+suyo.bottom)/2) < 1.5,
-      centros: [Math.round((tb.top+tb.bottom)/2*10)/10,
-                Math.round((suyo.top+suyo.bottom)/2*10)/10],
-      /* y sin pisarse: el rótulo a la izquierda, el botón a la derecha */
-      sinPisarse: tb.right <= suyo.left,
-      /* el hueco de arriba es el que ya había */
-      huecoArriba: Math.round(Math.min(tb.top, suyo.top) - panel.top)
+    const rn = nuevo ? nuevo.getBoundingClientRect() : null;
+    const juntos = (tb && rn) ? {
+      mismoCentro: Math.abs((rn.top+rn.bottom)/2 - (suyo.top+suyo.bottom)/2) < 1.5,
+      centros: [Math.round((suyo.top+suyo.bottom)/2*10)/10,
+                Math.round((rn.top+rn.bottom)/2*10)/10],
+      /* y sin pisarse: el atrás a la izquierda, el de poner a la derecha */
+      sinPisarse: suyo.right <= rn.left,
+      /* el rótulo, entero por encima del renglón */
+      bajoElRotulo: tb.bottom <= suyo.top + 1,
+      /* EL HUECO DE ARRIBA SE MIDE EN EL RÓTULO, que es lo que ahora toca el
+         filo del panel. Sigue siendo el mismo de siempre: lo que se mudó de
+         renglón fue el botón, no el relleno. */
+      huecoArriba: Math.round(tb.top - panel.top),
+      /* Y EL RENGLÓN, PEGADO AL FILO DERECHO. Lo que hay que medir es el
+         ÚLTIMO del renglón, que ya no es el paso atrás sino el de poner. */
+      alFilo: Math.round(panel.right - rn.right)
     } : null;
     const antes = JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]');
     b.click();
@@ -109,16 +122,17 @@ const ATERRIZA = 7000;
     const aqui = [...document.querySelectorAll('#historial .hs-fila')]
       .map((f, i) => f.classList.contains('aqui') ? i : -1).filter(i => i >= 0);
     return { rotulo, juntos,
-             /* pegado al filo derecho, que es donde se pidió */
-             aLaDerecha: Math.abs(suyo.right - (panel.right - 6)) < 16,
              destino: antes[1].libro + ' ' + antes[1].cap + ':' + antes[1].vers,
              creció: despues.length - antes.length, aqui };
   }, ATERRIZA).then(r => {
     vale('hay paso atrás y dice a dónde', !r.sinBoton && /\d+:\d+/.test(r.rotulo || ''), r.rotulo);
-    vale('  y va a la derecha', r.aLaDerecha);
-    vale('  en el mismo renglón que el rótulo, centrados',
+    vale('  y su renglón va pegado al filo derecho',
+         !!r.juntos && r.juntos.alFilo <= 16, r.juntos && r.juntos.alFilo + 'px del filo');
+    vale('  en el mismo renglón que el de poner cinta, centrados',
          !!r.juntos && r.juntos.mismoCentro, r.juntos && (r.juntos.centros||[]).join(' vs '));
-    vale('  sin pisarlo', !!r.juntos && r.juntos.sinPisarse);
+    vale('  sin pisarse', !!r.juntos && r.juntos.sinPisarse);
+    vale('  con el rótulo entero por encima',
+         !!r.juntos && r.juntos.bajoElRotulo, r.juntos);
     vale('  y con el hueco de arriba de siempre',
          !!r.juntos && r.juntos.huecoArriba >= 7 && r.juntos.huecoArriba <= 13,
          r.juntos && r.juntos.huecoArriba + 'px');
