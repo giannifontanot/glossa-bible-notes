@@ -14,6 +14,11 @@
    3. QUE UNA PIEDRA QUIETA NO ESTORBE. Vive encima del papel, que es donde se
       selecciona texto, se abre una glosa y se arrastra la hoja. Una capa que
       se coma esos toques rompe la aplicación entera por un adorno.
+   4. QUE LLEGUE A SER ENORME DE VERDAD. Se pidieron piedras visibles con la
+      hoja alejada, o sea diez veces las de antes; y a ese tamaño el mando
+      dejó de caber colgado de ellas y se mudó a la escena. Las dos cosas se
+      miden aquí: cuánto crece —en fracción del papel, que es lo que la
+      aplicación promete— y que el panel siga cabiendo con la piedra al tope.
 
    Y la regla de la casa que aquí importa: NADA DE .click() PARA GESTOS. El
    toque y el arrastre van con PointerEvent y su pointerId, porque es
@@ -54,20 +59,54 @@ async function andamio(p){
     };
     window.__hayPiedra = () => !!document.querySelector('.piedra-sitio');
     window.__editando = () => !!document.querySelector('.piedra-sitio.editando');
-    /* La piedra medida como la ve el ojo: qué forma, qué tamaño, y DÓNDE está
-       en fracciones del papel, que es como se guarda. */
+    /* La piedra medida como la ve el ojo: qué forma, de qué color, cómo se
+       llama, qué tamaño, y DÓNDE está en fracciones del papel, que es como se
+       guarda. Y el TAMAÑO se devuelve también como fracción del papel, porque
+       es lo que la aplicación promete: la misma piedra ocupa lo mismo de la
+       hoja en cualquier pantalla, y en píxeles eso no se puede comprobar.
+
+       La FORMA se saca de la primera palabra del rótulo hablado, que empieza
+       por ella —«barca carmín «lo del monte» en Mat 1:1»—. Se leía partiendo
+       por ' en ', y eso se rompió el día que el rótulo empezó a decir también
+       el color: devolvía «barca carmín» donde antes decía «barca». */
     window.__laPiedra = () => {
       const e = document.querySelector('.piedra-sitio');
       if (!e) return null;
       const b = e.querySelector('.piedra');
       const r = b.getBoundingClientRect();
       const inner = document.querySelector('#pg .pg-inner').getBoundingClientRect();
+      const voz = b.getAttribute('aria-label') || '';
+      const m = document.getElementById('piedraMando');
       return { id: e.dataset.piedra, editando: e.classList.contains('editando'),
-               forma: (b.getAttribute('aria-label') || '').split(' en ')[0],
+               forma: voz.split(' ')[0],
+               color: getComputedStyle(b).color,
+               nombre: (e.querySelector('.piedra-nombre') || {}).textContent || null,
                lado: Math.round(r.width),
+               parte: +(r.width / inner.width).toFixed(3),
                fx: +((r.left + r.width/2 - inner.left) / inner.width).toFixed(3),
                fy: +((r.top + r.height/2 - inner.top) / inner.height).toFixed(3),
-               mandos: !!e.querySelector('.piedra-mandos') };
+               /* EL MANDO YA NO CUELGA DE LA PIEDRA. Estuvo dentro de su
+                  .piedra-sitio mientras fueron tres botones; con trece formas
+                  y seis colores la parrilla se salía de la pantalla por abajo
+                  sin nada a qué recortarla, así que se mudó a la escena. */
+               mando: !!(m && m.classList.contains('visible')) };
+    };
+    /* El mando, medido: qué enseña y si cabe donde se le puso. */
+    window.__elMando = () => {
+      const m = document.getElementById('piedraMando');
+      const st = document.querySelector('.stage').getBoundingClientRect();
+      const r = m.getBoundingClientRect();
+      return { visible: m.classList.contains('visible'),
+               formas: m.querySelectorAll('[data-piedra-forma]').length,
+               tintas: m.querySelectorAll('[data-piedra-color]').length,
+               marcada: (m.querySelector('.pm-forma.on') || {}).dataset &&
+                        m.querySelector('.pm-forma.on').dataset.piedraForma,
+               tinta: (m.querySelector('.pm-tinta.on') || {}).dataset &&
+                      m.querySelector('.pm-tinta.on').dataset.piedraColor,
+               contador: (m.querySelector('.pm-tam') || {}).textContent,
+               campo: !!m.querySelector('[data-piedra-nombre]'),
+               cabe: r.top >= st.top - 1 && r.bottom <= st.bottom + 1 &&
+                     r.left >= st.left - 1 && r.right <= st.right + 1 };
     };
     /* Pasar hoja por el filo, que es como se pasa de verdad. */
     window.__pasar = async (lado) => {
@@ -123,7 +162,7 @@ async function andamio(p){
   /* NACE EN EDICIÓN, y eso es media explicación de cómo funciona: aparece con
      su mando puesto, así que se ve de entrada que se puede mover y cambiar. */
   vale('y NACE EN EDICIÓN, con su mando',
-       !!puesta.piedra && puesta.piedra.editando === true && puesta.piedra.mandos === true,
+       !!puesta.piedra && puesta.piedra.editando === true && puesta.piedra.mando === true,
        puesta.piedra);
   vale('el rastro se cierra al ponerla', puesta.rastro === false);
 
@@ -158,7 +197,7 @@ async function andamio(p){
     return { antes, traToque, traOtro, traArrastre: window.__laPiedra(),
              guardada: window.__guardadas()[0] };
   });
-  di('las tres formas', [gesto.antes.forma, gesto.traToque.forma, gesto.traOtro.forma]);
+  di('tres formas seguidas', [gesto.antes.forma, gesto.traToque.forma, gesto.traOtro.forma]);
   vale('un toque da la siguiente forma', gesto.traToque.forma !== gesto.antes.forma,
        gesto.antes.forma + ' → ' + gesto.traToque.forma);
   vale('y otro toque, otra', gesto.traOtro.forma !== gesto.traToque.forma,
@@ -179,24 +218,130 @@ async function andamio(p){
        gesto.guardada && gesto.guardada.x);
 
   /* ---------------------------------------------------------------- */
-  titulo('el tamaño');
+  titulo('el tamaño: de una mota a media hoja');
+  /* LA PROMESA QUE SE MIDE AQUÍ NO ES «CRECE», ES CUÁNTO. Lo que se pidió fue
+     que se vieran DE LEJOS, con la vista alejada puesta, y eso es un salto de
+     grado: por lo menos diez veces lo que medían. Comprobar solo que «más» la
+     agranda dejaría pasar una escala que crece de 22 a 30 px, que es
+     exactamente la que había y la que no servía.
+
+     Y se mide en FRACCIÓN DEL PAPEL y no en píxeles, que es lo que la
+     aplicación promete: los píxeles cambian con la pantalla —571 en una de
+     320, 663 en una de 412— y una prueba escrita en píxeles diría cosas
+     distintas en cada aparato. Se sube y se baja a golpe de botón hasta el
+     tope, sin contar los escalones: cuántos haya es cosa de la aplicación. */
   const tam = await p.evaluate(async () => {
-    const antes = window.__laPiedra().lado;
-    await window.__toque('[data-piedra-acc="mas"]'); await window.__pausa(250);
-    const mas = window.__laPiedra().lado;
-    await window.__toque('[data-piedra-acc="menos"]'); await window.__pausa(250);
-    await window.__toque('[data-piedra-acc="menos"]'); await window.__pausa(250);
-    const menos = window.__laPiedra().lado;
-    /* Y en el suelo, el botón se apaga: no hay tamaño más chico que pedir. */
-    const b = document.querySelector('[data-piedra-acc="menos"]');
-    return { antes, mas, menos, tope: !!(b && b.disabled),
-             guardado: window.__guardadas()[0].tam };
+    const b = cual => document.querySelector('[data-piedra-acc="' + cual + '"]');
+    const hastaElTope = async (cual) => {
+      for (let i = 0; i < 20 && !b(cual).disabled; i++){
+        await window.__toque(b(cual)); await window.__pausa(120);
+      }
+      await window.__pausa(200);
+      return window.__laPiedra();
+    };
+    const antes = window.__laPiedra();
+    const arriba = await hastaElTope('mas');
+    const techo = { parte: arriba.parte, lado: arriba.lado,
+                    apagado: !!b('mas').disabled,
+                    contador: window.__elMando().contador,
+                    cabeElMando: window.__elMando().cabe };
+    const abajo = await hastaElTope('menos');
+    const suelo = { parte: abajo.parte, lado: abajo.lado,
+                    apagado: !!b('menos').disabled };
+    /* Y de vuelta a un tamaño de trabajo, que lo que sigue se toca con el dedo. */
+    await window.__toque(b('mas')); await window.__pausa(120);
+    await window.__toque(b('mas')); await window.__pausa(250);
+    return { antes: antes.parte, techo, suelo, guardado: window.__guardadas()[0].tam };
   });
-  di('los tamaños', tam);
-  vale('«más» la agranda', tam.mas > tam.antes, tam.antes + ' → ' + tam.mas + ' px');
-  vale('«menos» la encoge', tam.menos < tam.mas, tam.mas + ' → ' + tam.menos + ' px');
-  vale('en el suelo el botón se apaga', tam.tope === true);
+  di('el suelo', tam.suelo);
+  di('el techo', tam.techo);
+  vale('«más» la agranda', tam.techo.parte > tam.antes,
+       tam.antes + ' → ' + tam.techo.parte + ' del papel');
+  vale('«menos» la encoge', tam.suelo.parte < tam.techo.parte,
+       tam.techo.parte + ' → ' + tam.suelo.parte);
+  /* Diez veces es el número que se pidió, y el que separa «un adorno» de «algo
+     que se ve con la hoja alejada». Se comprueba contra el suelo, no contra el
+     tamaño de salida, que es el escalón que la aplicación elija poner. */
+  vale('EL TECHO ES DIEZ VECES EL SUELO, por lo menos',
+       tam.techo.parte >= tam.suelo.parte * 10,
+       tam.suelo.parte + ' → ' + tam.techo.parte + '  (x' +
+       (tam.techo.parte / tam.suelo.parte).toFixed(1) + ')');
+  /* Y en absoluto: media hoja. Es lo que la hace visible de lejos; una piedra
+     del 10% del papel encogida al 58% del zoom vuelve a ser una mota. */
+  vale('y arriba ocupa media hoja o más', tam.techo.parte >= .5,
+       tam.techo.parte + ' del ancho  ·  ' + tam.techo.lado + ' px');
+  vale('en los dos extremos el botón se apaga',
+       tam.techo.apagado === true && tam.suelo.apagado === true,
+       'techo: ' + tam.techo.apagado + '  suelo: ' + tam.suelo.apagado);
+  /* EL MANDO SIGUE CABIENDO CON LA PIEDRA ENORME, que es justo por lo que se
+     mudó fuera del papel: colgado de una piedra de 560 px se salía por abajo
+     de la pantalla y no había manera de volver a él. */
+  vale('y el mando sigue cabiendo en la escena', tam.techo.cabeElMando === true);
+  vale('el contador dice en qué escalón va', /^\d+\/\d+$/.test(tam.techo.contador || ''),
+       tam.techo.contador);
   vale('y el escalón queda guardado', Number.isInteger(tam.guardado), tam.guardado);
+
+  /* ---------------------------------------------------------------- */
+  /* LAS TRES COSAS QUE SE PIDIERON DESPUÉS DE VER LAS TRES PRIMERAS PIEDRAS:
+     muchas más figuras, color, y un texto en cada una. Las tres viven en el
+     mismo panel, así que se prueban seguidas. */
+  titulo('el mando: figuras, color y nombre');
+  const mando = await p.evaluate(async () => {
+    const m0 = window.__elMando();
+    /* LA FORMA SE ELIGE DE LA PARRILLA. Tocar la piedra sigue dando la
+       siguiente, pero con trece figuras eso solo sirve para curiosear: llegar
+       a la barca a base de toques son doce. */
+    await window.__toque('[data-piedra-forma="barca"]'); await window.__pausa(300);
+    const traForma = { piedra: window.__laPiedra(), mando: window.__elMando() };
+    await window.__toque('[data-piedra-color="carmin"]'); await window.__pausa(300);
+    const traColor = { piedra: window.__laPiedra(), mando: window.__elMando() };
+    /* EL NOMBRE ES UN NOMBRE, NO UNA NOTA: cabe debajo de la figura y para
+       escribir de verdad están las glosas. Intro lo guarda y suelta el campo. */
+    const campo = document.querySelector('[data-piedra-nombre]');
+    campo.focus();
+    campo.value = 'lo del monte';
+    campo.dispatchEvent(new KeyboardEvent('keydown',
+      { key:'Enter', bubbles:true, cancelable:true }));
+    await window.__pausa(350);
+    const traNombre = window.__laPiedra();
+    return { m0, traForma, traColor, traNombre, guardada: window.__guardadas()[0] };
+  });
+  di('el mando al abrirse', mando.m0);
+  di('la piedra al final', mando.traNombre);
+  vale('el mando enseña DIEZ FIGURAS O MÁS', mando.m0.formas >= 10, mando.m0.formas);
+  vale('y una paleta de colores', mando.m0.tintas >= 4, mando.m0.tintas);
+  vale('y el campo del nombre', mando.m0.campo === true);
+  vale('y cabe entero en la escena', mando.m0.cabe === true);
+  vale('elegir una figura de la parrilla la cambia',
+       mando.traForma.piedra.forma === 'barca', mando.traForma.piedra.forma);
+  vale('y la parrilla marca cuál está puesta',
+       mando.traForma.mando.marcada === 'barca', mando.traForma.mando.marcada);
+  /* El color se mide en la pantalla y no en el almacén: guardarlo y no
+     pintarlo es exactamente el fallo que esto vigila. */
+  vale('EL COLOR SE CAMBIA Y SE VE',
+       mando.traColor.piedra.color === 'rgb(155, 42, 42)', mando.traColor.piedra.color);
+  vale('y la paleta marca cuál está puesto',
+       mando.traColor.mando.tinta === 'carmin', mando.traColor.mando.tinta);
+  vale('EL NOMBRE SE ESCRIBE Y SE LEE EN LA HOJA',
+       mando.traNombre.nombre === 'lo del monte', mando.traNombre.nombre);
+  vale('la figura, el color y el nombre quedan guardados',
+       mando.guardada.forma === 'barca' && mando.guardada.color === 'carmin' &&
+       mando.guardada.nombre === 'lo del monte', mando.guardada);
+  /* Y EL RÓTULO HABLADO LO DICE TODO. Quien no ve la piedra tiene ahí su única
+     descripción: sin el color y el nombre, trece figuras de seis colores son
+     trece rótulos repetidos. */
+  /* Y VIVE FUERA DEL PAPEL. Es la razón entera de la mudanza: dentro de la
+     hoja lo recorta la columna de glosas y lo empuja fuera de la pantalla la
+     piedra grande, y un panel recortado no sirve de nada. Se comprueba por
+     dónde cuelga y no por dónde se ve, que verse puede verse por casualidad. */
+  const fuera = await p.evaluate(() =>
+    !document.getElementById('pg').contains(document.getElementById('piedraMando')));
+  vale('EL MANDO CUELGA DE LA ESCENA, no del papel', fuera === true);
+  const voz = await p.evaluate(() =>
+    document.querySelector('.piedra').getAttribute('aria-label'));
+  di('el rótulo hablado', voz);
+  vale('el rótulo hablado dice figura, color y nombre',
+       /barca/.test(voz) && /carm/.test(voz) && /lo del monte/.test(voz), voz);
 
   /* ---------------------------------------------------------------- */
   titulo('el modo edición se abre con dos toques y se cierra tocando fuera');
@@ -460,13 +605,13 @@ async function andamio(p){
      medido, 801 sin ella y 1.642 con ella, y las dos cifras se repiten clavadas
      entre vueltas. Sin el arreglo daba 801 contra 801, o sea que no estaba. */
   titulo('la piedra viaja en la foto del pliegue');
-  const tinta = async (sembrar) => {
+  const tinta = async (sembrar, rgb) => {
     const ses = await abrir();
     const w = ses.pagina;
     await w.evaluate(sembrar);
     await w.reload();
     await w.waitForTimeout(3200);
-    const n = await w.evaluate(async () => {
+    const n = await w.evaluate(async (rgb) => {
       const pausa = ms => new Promise(z => setTimeout(z, ms));
       const e = document.getElementById('edgeR');
       const r = e.getBoundingClientRect();
@@ -486,23 +631,41 @@ async function andamio(p){
       let n = 0;
       for (let i = 0; i < d.length; i += 4){
         if (d[i+3] < 40) continue;
-        if (Math.abs(d[i]-140) < 34 && Math.abs(d[i+1]-121) < 30 && Math.abs(d[i+2]-79) < 30) n++;
+        if (Math.abs(d[i]-rgb[0]) < 34 && Math.abs(d[i+1]-rgb[1]) < 30 &&
+            Math.abs(d[i+2]-rgb[2]) < 30) n++;
       }
       await pausa(1600);
       return n;
-    });
+    }, rgb);
     await cerrar(ses);
     return n;
   };
-  const sinPiedra = await tinta(() => localStorage.removeItem('glossa:piedras:v1'));
+  const SEPIA = [140, 121, 79], CARMIN = [155, 42, 42];
+  const sinPiedra = await tinta(() => localStorage.removeItem('glossa:piedras:v1'), SEPIA);
   const conPiedra = await tinta(() => {
     const hoy = Date.now();
     localStorage.setItem('glossa:piedras:v1', JSON.stringify([
       { id:'g', libro:'MAT', cap:1, vers:1, x:.18, y:.30, forma:'piedra',
         tam:3, creado:hoy, tocado:hoy }]));
-  });
+  }, SEPIA);
   di('tinta de piedra en el lienzo', 'sin: ' + sinPiedra + '  ·  con: ' + conPiedra);
   vale('sin piedra hay tinta de la letra, y poca', sinPiedra > 0, sinPiedra);
   vale('LA PIEDRA ESTÁ EN LA FOTO', conPiedra > sinPiedra + 300,
        sinPiedra + ' → ' + conPiedra + ' píxeles');
+  /* Y CON SU PROPIO COLOR, que es un fallo aparte y silencioso: la foto llevó
+     una tinta fija para todas mientras no hubo colores, y con seis, la piedra
+     carmín de la hoja salía sepia durante el giro y volvía a carmín al
+     aterrizar. No se ve mirando: hay que contar el rojo. Se cuenta el CARMÍN,
+     que en la hoja no existe —la letra es sepia y el papel es hueso— así que
+     cualquier cantidad apreciable solo puede venir de la piedra. */
+  const carmin = await tinta(() => {
+    const hoy = Date.now();
+    localStorage.setItem('glossa:piedras:v1', JSON.stringify([
+      { id:'c', libro:'MAT', cap:1, vers:1, x:.18, y:.30, forma:'piedra',
+        tam:3, color:'carmin', creado:hoy, tocado:hoy }]));
+  }, CARMIN);
+  const sinCarmin = await tinta(() => localStorage.removeItem('glossa:piedras:v1'), CARMIN);
+  di('tinta carmín en el lienzo', 'sin: ' + sinCarmin + '  ·  con: ' + carmin);
+  vale('Y VIAJA CON SU COLOR, no con el de la tinta',
+       carmin > sinCarmin + 300, sinCarmin + ' → ' + carmin + ' píxeles');
 })();
