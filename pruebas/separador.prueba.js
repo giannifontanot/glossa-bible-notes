@@ -181,9 +181,12 @@ async function ponerAMano(p){
   di('la cinta', mano.cinta);
   vale('el botón está en el panel, con el paso atrás',
        mano.hubo && mano.enLaCabecera, mano.rotulo);
-  /* Se llama NUEVO y no «separador», y el nombre corto es lo que hace que los
-     dos botones quepan en un renglón: ver el bloque de abajo. */
-  vale('y se llama «nuevo»', mano.rotulo === 'nuevo', mano.rotulo);
+  /* Se llama CINTA —no «separador», que era largo, ni «nuevo», que era lo que
+     decía cuando era la única familia—. Ahora hay dos botones de poner en el
+     mismo renglón, y dos que dijeran «nuevo» no se distinguirían: cada uno
+     dice LO QUE DEJA. Y de paso el nombre corto es lo que hace que los tres
+     quepan; ver el bloque de abajo. */
+  vale('y se llama «cinta»', mano.rotulo === 'cinta', mano.rotulo);
   vale('pone un separador', mano.guardadas.length === 1, mano.guardadas);
   vale('y sale la cinta', !!mano.cinta);
   vale('cuelga en el borde izquierdo de la columna', mano.cinta && mano.cinta.dentro);
@@ -763,7 +766,7 @@ async function ponerAMano(p){
      El rastro se siembra a mano: hace falta que HAYA paso atrás, y eso pide un
      salto previo. Se hace al final de la tanda para no moverle el rastro a los
      bloques de arriba. */
-  titulo('los dos botones comparten renglón, y el pie enseña las cuatro telas');
+  titulo('los tres botones comparten renglón, y el pie enseña las dos familias');
   await p.evaluate(async () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await window.__pausa(400);
@@ -783,41 +786,66 @@ async function ponerAMano(p){
     const acciones = panel.querySelector('.hs-acciones');
     const atras = panel.querySelector('.hs-atras');
     const nuevo = panel.querySelector('[data-sep-nuevo]');
+    const piedra = panel.querySelector('[data-piedra-nueva]');
     const lista = panel.querySelector('[data-sep-lista]');
-    if (!atras || !nuevo || !lista) return { falta:true, atras:!!atras, nuevo:!!nuevo };
+    const listaP = panel.querySelector('[data-piedra-lista]');
+    if (!atras || !nuevo || !piedra || !lista || !listaP)
+      return { falta:true, atras:!!atras, nuevo:!!nuevo, piedra:!!piedra, listaP:!!listaP };
     const r = e => e.getBoundingClientRect();
-    const rp = r(panel), ra = r(atras), rn = r(nuevo), rl = r(lista);
+    const rp = r(panel), ra = r(atras), rn = r(nuevo), rq = r(piedra);
+    const rl = r(lista), rlp = r(listaP);
+    const arriba = [...acciones.children];
     return {
       rotuloSolo: cab.children.length === 1,
-      juntos: atras.parentElement === acciones && nuevo.parentElement === acciones,
-      mismoRenglon: Math.abs(ra.top - rn.top) < 8,
-      /* Y CABEN DE VERDAD: los dos anchos y su hueco, contra el panel. */
-      ocupan: Math.round(ra.width + rn.width + 8), panel: Math.round(rp.width),
-      dentro: ra.left >= rp.left - 1 && rn.right <= rp.right + 1 &&
-              rl.right <= rp.right + 1,
-      /* El pie: cuatro telas distintas y el rótulo nuevo. */
+      juntos: arriba.length === 3 &&
+              [atras, piedra, nuevo].every(e => e.parentElement === acciones),
+      mismoRenglon: new Set([ra, rn, rq].map(x => Math.round(x.top))).size === 1,
+      /* Y CABEN DE VERDAD. Se mide contra el ancho ÚTIL —el panel menos su
+         relleno y el de la fila— y no contra el del panel a secas: por tres
+         píxeles de diferencia entre uno y otro se bajaba un botón de renglón,
+         y midiendo el de fuera la prueba lo daba por bueno. */
+      ocupan: Math.round(ra.width + rq.width + rn.width) +
+              2 * Math.round(parseFloat(getComputedStyle(acciones).gap) || 0),
+      util: acciones.clientWidth -
+            Math.round(parseFloat(getComputedStyle(acciones).paddingLeft) +
+                       parseFloat(getComputedStyle(acciones).paddingRight)),
+      panel: Math.round(rp.width),
+      dentro: [ra, rq, rn, rl, rlp].every(x =>
+                x.left >= rp.left - 1 && x.right <= rp.right + 1),
+      /* El pie: dos puertas, una por familia, cada una con su manojo. */
       pie: lista.textContent.trim(),
+      pieP: listaP.textContent.trim(),
+      pieUnRenglon: Math.abs(rl.top - rlp.top) < 8,
       telas: [...lista.querySelectorAll('.hs-sep-cinta')]
                .map(c => getComputedStyle(c).backgroundColor),
-      /* Y el de poner una sigue llevando UNA, que es lo que lo distingue. */
+      formas: listaP.querySelectorAll('svg').length,
+      /* Y el de poner una cinta sigue llevando UNA, que es lo que lo distingue
+         de la puerta a la lista. */
       unaSola: nuevo.querySelectorAll('.hs-sep-cinta').length
     };
   });
   di('el renglón de los botones', renglon);
-  vale('hay paso atrás y hay botón de poner', renglon.falta !== true, renglon);
+  vale('están los tres de arriba y los dos del pie', renglon.falta !== true, renglon);
   vale('el rótulo se queda solo arriba', renglon.rotuloSolo === true);
-  vale('LOS DOS BOTONES COMPARTEN RENGLÓN',
+  vale('LOS TRES BOTONES COMPARTEN RENGLÓN',
        renglon.juntos === true && renglon.mismoRenglon === true, renglon);
-  vale('y caben con hueco de sobra', renglon.ocupan < renglon.panel - 12,
-       renglon.ocupan + ' de ' + renglon.panel + ' px');
+  vale('y caben en el ancho útil', renglon.ocupan <= renglon.util,
+       renglon.ocupan + ' de ' + renglon.util + ' px útiles');
   vale('nada se sale del panel', renglon.dentro === true);
-  vale('el pie dice «actuales»', renglon.pie === 'actuales', renglon.pie);
-  vale('con UNA TELA DE CADA COLOR',
+  /* CADA BOTÓN DICE LO QUE DEJA. Con dos familias, dos botones que dijeran
+     «nuevo» no se distinguirían: el nombre es la cosa. */
+  vale('el pie tiene dos puertas, una por familia',
+       renglon.pie === 'cintas' && renglon.pieP === 'piedras',
+       renglon.pieP + ' | ' + renglon.pie);
+  vale('y las dos en un renglón', renglon.pieUnRenglon === true);
+  vale('la de cintas, con UNA TELA DE CADA COLOR',
        (renglon.telas || []).length === 4 && new Set(renglon.telas).size === 4,
        renglon.telas);
-  /* Si los dos llevaran el mismo dibujo volveríamos al problema de origen: no
-     se distinguiría «pon una» de «velas todas». */
-  vale('y el de poner sigue llevando una sola', renglon.unaSola === 1, renglon.unaSola);
+  vale('la de piedras, con las tres formas', renglon.formas === 3, renglon.formas);
+  /* Si el de poner llevara el mismo dibujo que la puerta volveríamos al
+     problema de origen: no se distinguiría «pon una» de «velas todas». */
+  vale('y el de poner cinta sigue llevando una sola',
+       renglon.unaSola === 1, renglon.unaSola);
 
   /* ================================================================
      CON TECLADO, LA VENTANITA TIENE QUE RECIBIR EL FOCO.
