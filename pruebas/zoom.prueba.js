@@ -532,21 +532,23 @@ const comoVan = r => {
     const b = [...document.querySelectorAll('#zoomPasos [data-paso]')];
     const color = i => getComputedStyle(b[i]).backgroundColor;
     const enReposo = [color(0), color(1)];
-    /* EL DESLIZ HACIA ARRIBA es lo que lo arranca, y desde aquí se da como lo
-       daría un dedo: down en el centro del botón, dos move subiendo y up. El
-       primer move se queda corto a propósito —el botón se mueve, pero no
-       arranca—, que es la mitad del gesto: se puede soltar a medias. */
-    const empujar = (b, alto, ancho) => {
+    /* CORRER EL BOTÓN A SU LADO es todo el gesto: no hay que subirlo antes.
+       Se da como lo daría un dedo —down en el centro, dos move y up—, y el
+       primer move se queda corto a propósito: seis píxeles es el temblor de un
+       toque, así que el botón no se mueve ni arranca nada. Ahí está la
+       frontera con el toque, que sigue significando otra cosa.
+       `alto` sirve para probar lo que NO arranca: un dedo que solo sube. */
+    const empujar = (b, ancho, alto) => {
       const r = b.getBoundingClientRect();
       const x = r.left + r.width/2, y = r.top + r.height/2;
       const ev = (t, cx, cy) => b.dispatchEvent(new PointerEvent(t,
         { bubbles:true, cancelable:true, pointerId:9, pointerType:'touch',
           clientX:cx, clientY:cy }));
       ev('pointerdown', x, y);
-      ev('pointermove', x, y - Math.min(8, alto));
+      ev('pointermove', x + Math.min(6, ancho), y);
       const aMedias = b.style.transform;
-      ev('pointermove', x + (ancho || 0), y - alto);
-      ev('pointerup', x + (ancho || 0), y - alto);
+      ev('pointermove', x + ancho, y - (alto || 0));
+      ev('pointerup', x + ancho, y - (alto || 0));
       return aMedias;
     };
     /* UN TOQUE DE VERDAD EMPIEZA POR UN pointerdown, y aquí importa: al soltar
@@ -574,15 +576,22 @@ const comoVan = r => {
     tocar(b[1]);
     await new Promise(z => setTimeout(z, 700));
     const trasParar = [color(0), color(1)];
-    /* Y UN BARRIDO EN DIAGONAL NO ARRANCA NADA: es como se pasa hoja de toda
-       la vida en un teléfono, y hacerlo pasar por «empújame hacia arriba»
-       pondría el automático en marcha sin haberlo pedido. */
-    empujar(b[1], 30, 40);
+    /* LO QUE NO ARRANCA, que es donde vive el riesgo desde que basta con
+       correr el botón. Dos casos, y los dos son gestos que ocurren:
+       · SUBIR Y NADA MÁS. Lo que cuenta es alejarse del centro hacia el
+         propio lado, y un dedo que solo sube se aleja cero.
+       · CORRERLO AL LADO CONTRARIO. Para el otro sentido está el otro botón;
+         éste no se pone del revés. */
+    empujar(b[1], 0, 60);
     await new Promise(z => setTimeout(z, 500));
-    const trasDiagonal = [color(0), color(1)];
-    /* Si hubiera arrancado —que es el fallo que esto vigila— se apaga antes de
-       seguir: la sección de después mide, y no se mide con hojas pasando. */
-    if (trasDiagonal[1] !== trasParar[1]){
+    const trasSubir = [color(0), color(1)];
+    empujar(b[1], -60, 0);
+    await new Promise(z => setTimeout(z, 500));
+    const trasAlReves = [color(0), color(1)];
+    /* Si alguno hubiera arrancado —que es el fallo que esto vigila— se apaga
+       antes de seguir: la sección de después mide, y no se mide con hojas
+       pasando. */
+    if (trasAlReves[1] !== trasParar[1]){
       tocar(b[1]);
       await new Promise(z => setTimeout(z, 700));
     }
@@ -595,7 +604,18 @@ const comoVan = r => {
       { bubbles:true, clientX:Math.round(r.left + r.width/2),
         clientY:Math.round(r.bottom + 60) }));
     await new Promise(z => setTimeout(z, 800));
-    return { enReposo, aMedias, enMarcha, trasParar, trasDiagonal,
+    /* EL RÓTULO CUENTA EL GESTO QUE EXISTE. Es la única puerta que tiene
+       quien no ve la pantalla: aquí no hay nada más que anuncie que existe un
+       paso automático. Decía «empuja hacia arriba», que era el desliz de
+       antes, y con el cálculo de ahora un dedo que sólo sube se aleja cero del
+       centro y no arranca nada: describía un gesto imposible. Lo levantó
+       Codex, y por eso se comprueba en los DOS botones y en los dos atributos
+       —title para el ratón, aria-label para quien escucha—. */
+    const rotulos = b.map(x => ({
+      titulo: x.getAttribute('title') || '',
+      rotulo: x.getAttribute('aria-label') || ''
+    }));
+    return { enReposo, aMedias, enMarcha, trasParar, trasSubir, trasAlReves, rotulos,
              seQuedaFuera: !document.getElementById('pg').classList.contains('zoom') };
   }).then(r => {
     vale('en reposo, ninguno encendido',
@@ -607,11 +627,31 @@ const comoVan = r => {
        trampa, mismo remedio. */
     vale('y solo el suyo', mismoColor(r.enMarcha[0], r.enReposo[0]), r.enMarcha[0]);
     vale('al parar se apaga', mismoColor(r.trasParar[1], r.enReposo[1]), r.trasParar[1]);
-    vale('a medio desliz el botón sigue al dedo', /translateY\(-\d/.test(r.aMedias || ''),
+    /* Seis píxeles es temblor de dedo, no gesto: ni mueve el botón ni arranca.
+       Es la frontera con el toque, que significa otra cosa. */
+    vale('a seis píxeles el botón no se ha movido', !/translate/.test(r.aMedias || ''),
          r.aMedias || '(nada)');
-    vale('y a medio desliz no arranca', !mismoColor(r.enReposo[1], MARRON), r.enReposo[1]);
-    vale('un barrido en diagonal no arranca',
-         !mismoColor(r.trasDiagonal[1], MARRON), r.trasDiagonal[1]);
+    vale('y a seis píxeles no arranca', !mismoColor(r.enReposo[1], MARRON), r.enReposo[1]);
+    vale('subir y nada más no arranca',
+         !mismoColor(r.trasSubir[1], MARRON), r.trasSubir[1]);
+    vale('correrlo al lado contrario tampoco',
+         !mismoColor(r.trasAlReves[1], MARRON), r.trasAlReves[1]);
+    /* Ni rastro del gesto que ya no existe, y sí el que existe: cada botón
+       nombra SU lado, que es hacia donde acelera. */
+    vale('ningún rótulo manda empujar hacia arriba',
+         r.rotulos.every(x => !/arriba/i.test(x.titulo + ' ' + x.rotulo)),
+         JSON.stringify(r.rotulos));
+    vale('el de retroceder dice izquierda',
+         /izquierda/i.test(r.rotulos[0].titulo) && /izquierda/i.test(r.rotulos[0].rotulo),
+         r.rotulos[0].rotulo);
+    vale('el de avanzar dice derecha',
+         /derecha/i.test(r.rotulos[1].titulo) && /derecha/i.test(r.rotulos[1].rotulo),
+         r.rotulos[1].rotulo);
+    vale('y los dos cuentan que arrastrar más lejos va más deprisa',
+         /* Con la tilde contemplada: «Arrástralo» no casa con /arrastr/i, y
+            una prueba que falla por su propia expresión no prueba nada. */
+         r.rotulos.every(x => /arr[aá]str/i.test(x.rotulo) && /deprisa/i.test(x.rotulo)),
+         r.rotulos[1].rotulo);
     vale('y la sección deja el zoom cerrado', r.seQuedaFuera);
     return r;
   }));
@@ -622,16 +662,27 @@ const comoVan = r => {
 
      Existe para buscar una hoja de lejos, que con el paso normal era quedarse
      mirando un minuto largo. Y aquí hay una trampa que conviene tener escrita:
-     el ritmo de antes NO lo ponía un reloj, lo ponía el pliegue —cada hoja
-     esperaba a que la anterior terminara de girar, 620-780 ms—, así que
-     acortar la espera no habría hecho nada. Pasado cierto punto del recorrido
-     se deja de plegar y se repinta, y ESO es lo que da la velocidad.
+     el ritmo NO lo pone un reloj, lo pone el pliegue —cada hoja espera a que
+     la anterior termine de girar—, así que acortar la espera sola no haría
+     nada. Lo que acelera es acortar el pliegue: de 620-780 ms a 120.
 
-     Se mide contando hojas: cada repintado rehace #pgBody, así que un
-     observador sobre él es un cuentahojas honrado. Se piden dos ventanas del
-     mismo tiempo —una sin correr el botón y otra al tope— y se exige que la
-     segunda saque MUCHO más. El margen es de 2x y lo medido son 6x: un umbral
-     pegado a la medida canta fallos en cuanto la máquina va cargada. */
+     Y AQUÍ SE VIGILAN DOS COSAS A LA VEZ, porque la segunda es la que se puede
+     perder sin que nadie lo note. Hubo un tramo rápido que no plegaba —se
+     repintaba la hoja y a por la siguiente—: era cuatro veces más rápido y se
+     quitó, porque lo que se veía era el texto dando saltos y una hoja que
+     aparece sin haber girado no se lee como una hoja que pasa. Medido en su
+     día: 36 hojas y UN solo pliegue. Así que no basta con contar hojas; hay
+     que contar también cuántas se ven girar, o la vuelta de aquel atajo
+     pasaría en verde.
+
+     Se cuentan las dos con el DOM: cada repintado rehace #pgBody, y el lienzo
+     del pliegue (#fx) se enciende una vez por hoja plegada. Se piden dos
+     ventanas del mismo tiempo —la corrida mínima y el tope— y se exige que la
+     segunda saque MUCHO más. El margen es de 2x y lo medido son 3.7x: un
+     umbral pegado a la medida canta fallos en cuanto la máquina va cargada.
+
+     Ojo con la base: ya no es «sin correr el botón», porque sin correrlo no
+     arranca nada. Es la corrida MÍNIMA, apenas pasado el umbral. */
   titulo('el acelerador corre las hojas de verdad');
   di('hojas en la misma ventana', await p.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
@@ -645,18 +696,25 @@ const comoVan = r => {
     const ev = (t, ax, ay) => b.dispatchEvent(new PointerEvent(t,
       { bubbles:true, cancelable:true, pointerId:9, pointerType:'touch',
         clientX:ax, clientY:ay }));
-    /* Cada renderPage rehace el cuerpo de la hoja: contamos esos. */
+    /* Cada renderPage rehace el cuerpo de la hoja: contamos esos. Y el lienzo
+       del pliegue, que se enciende una vez por hoja que se ve girar. */
     const contar = async (corrida, ms) => {
-      let n = 0;
+      let n = 0, pliegues = 0, visto = false, vivo = true;
       const obs = new MutationObserver(() => n++);
       obs.observe(document.getElementById('pgBody'), { childList:true });
+      const fx = document.getElementById('fx');
+      (function mirar(){
+        const ahora = getComputedStyle(fx).display === 'block';
+        if (ahora && !visto) pliegues++;
+        visto = ahora;
+        if (vivo) requestAnimationFrame(mirar);
+      })();
       ev('pointerdown', x, y);
-      ev('pointermove', x, y - 8);
-      ev('pointermove', x, y - 30);            /* arma el automático */
-      if (corrida) ev('pointermove', x + corrida, y - 30);
+      ev('pointermove', x + 14, y);            /* pasado el umbral: arranca */
+      if (corrida > 14) ev('pointermove', x + corrida, y);
       await pausa(ms);
-      ev('pointerup', x + (corrida || 0), y - 30);
-      obs.disconnect();
+      ev('pointerup', x + corrida, y);
+      obs.disconnect(); vivo = false;
       await pausa(500);
       /* Y se para, que la ventana siguiente empieza limpia. */
       b.dispatchEvent(new PointerEvent('pointerdown',
@@ -665,17 +723,25 @@ const comoVan = r => {
       b.dispatchEvent(new PointerEvent('pointerup',
         { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
       await pausa(700);
-      return n;
+      return { n, pliegues };
     };
-    const normal = await contar(0, 2500);
+    const normal = await contar(14, 2500);
     const alTope = await contar(200, 2500);
     return { normal, alTope };
   }).then(r => {
-    vale('sin correr el botón, pasan hojas', r.normal > 0, r.normal + ' hojas');
+    vale('con la corrida mínima, pasan hojas', r.normal.n > 0, r.normal.n + ' hojas');
     /* Con la normal en cero esto pasaba solo: 0 >= 0. Se exige que la normal
        haya pasado hojas, o la comparación no dice nada. */
-    vale('al tope pasan MUCHAS más', r.normal > 0 && r.alTope >= r.normal * 2,
-         r.normal + ' → ' + r.alTope + ' hojas en la misma ventana');
+    vale('al tope pasan MUCHAS más', r.normal.n > 0 && r.alTope.n >= r.normal.n * 2,
+         r.normal.n + ' → ' + r.alTope.n + ' hojas en la misma ventana');
+    /* LA OTRA MITAD, y la que se puede perder en silencio: todas se ven girar.
+       Se admite una de holgura por los bordes de la ventana —un pliegue puede
+       arrancar antes de empezar a contar, o quedarse a medias al acabar—. */
+    vale('Y AL TOPE TODAS SE VEN GIRAR',
+         r.alTope.pliegues >= r.alTope.n - 1,
+         r.alTope.pliegues + ' pliegues / ' + r.alTope.n + ' hojas');
+    vale('con la corrida mínima también', r.normal.pliegues >= r.normal.n - 1,
+         r.normal.pliegues + ' pliegues / ' + r.normal.n + ' hojas');
     return r;
   }));
 
@@ -691,10 +757,9 @@ const comoVan = r => {
       { bubbles:true, cancelable:true, pointerId:9, pointerType:'touch',
         clientX:ax, clientY:ay }));
     ev('pointerdown', x, y);
-    ev('pointermove', x, y - 8);
-    ev('pointermove', x, y - 30);
+    ev('pointermove', x + 14, y);
     /* El dedo se va hasta el borde de la pantalla: todo lo que se puede pedir. */
-    ev('pointermove', window.innerWidth - 1, y - 30);
+    ev('pointermove', window.innerWidth - 1, y);
     const corrido = b.style.transform;
     /* Y EL BOTÓN NO SE PUEDE SALIR DE LA ESCENA, que lleva overflow:hidden. Con
        un recorrido fijo se salía 39 px en una pantalla de 320, o sea que a la
@@ -702,7 +767,7 @@ const comoVan = r => {
     const rb = b.getBoundingClientRect();
     const st = document.querySelector('.stage').getBoundingClientRect();
     const seSale = Math.round(Math.max(rb.right - st.right, st.left - rb.left));
-    ev('pointerup', window.innerWidth - 1, y - 30);
+    ev('pointerup', window.innerWidth - 1, y);
     await pausa(400);
     const trasSoltar = b.style.transform;
     const sigue = getComputedStyle(b).backgroundColor;
@@ -726,10 +791,10 @@ const comoVan = r => {
     window.dispatchEvent(new PointerEvent('pointerup', { bubbles:true, cancelable:true,
       pointerId:9, pointerType:'touch', clientX:5, clientY:5 }));
     await pausa(200);
-    ev('pointerdown', x, y); ev('pointermove', x, y - 8); ev('pointermove', x, y - 30);
+    ev('pointerdown', x, y); ev('pointermove', x + 14, y); ev('pointermove', x + 40, y);
     await pausa(400);
     const trasSoltarFuera = getComputedStyle(b).backgroundColor;
-    ev('pointerup', x, y - 30);
+    ev('pointerup', x + 40, y);
     await pausa(200);
     b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, cancelable:true,
       pointerId:11, pointerType:'touch' }));
