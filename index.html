@@ -1306,7 +1306,17 @@
      responde la que está en edición; a la quieta se llega por el doble toque,
      que se caza midiendo el punto (ver piedraEnPunto) igual que hace la cinta
      con toqueEnCinta. Lo levantó la revisión de Codex. */
+  /* EL TAMAÑO SE ESCRIBE EN EL SITIO Y NO EN EL BOTÓN, y esto no es dónde
+     colocarlo por gusto. El tamaño va en PORCENTAJE del papel, y un porcentaje
+     se resuelve contra el contenedor: el del botón es el sitio, que no tiene
+     ancho propio —lo saca de lo que lleva dentro—, así que el porcentaje se
+     quedaba sin contra qué medir y el navegador lo trataba como «auto»: la
+     piedra salía siempre del mismo tamaño hiciera lo que hiciera el mando. El
+     sitio sí tiene contra qué medir, que es la capa, que cubre el papel
+     entero. El alto sale del ancho con aspect-ratio y no con otro porcentaje,
+     que iría contra el ALTO de la hoja y saldría un óvalo. */
   .piedra-sitio{ position:absolute; transform:translate(-50%, -50%);
+                 width:var(--piedra-tam, 30px); aspect-ratio:1;
                  pointer-events:none; display:grid; place-items:center; }
   .piedra-sitio.editando{ pointer-events:auto; }
   /* Y LA QUE SE EDITA VA ENCIMA DE LAS DEMÁS. Dos piedras pueden caer en el
@@ -1315,9 +1325,11 @@
      quedaba DEBAJO de una vieja, que le robaba el arrastre: no había manera de
      moverla sin mover antes la otra. También de Codex. */
   .piedra-sitio.editando{ z-index:2; }
-  .piedra{ display:block; width:var(--piedra-tam, 30px); height:var(--piedra-tam, 30px);
+  .piedra{ display:block; width:100%; height:100%;
            padding:0; border:0; background:none; cursor:pointer;
-           color:#7a6434; opacity:.82;   /* la misma tinta que PIEDRA_TINTA */
+           /* El color va escrito en línea, uno por piedra (ver PIEDRA_TINTAS);
+              esto es solo el respaldo si algún día llega una sin él. */
+           color:#7a6434; opacity:.82;
            -webkit-tap-highlight-color:transparent;
            filter:drop-shadow(0 1px 1px rgba(60,44,18,.35)); }
   .piedra svg{ display:block; width:100%; height:100%; }
@@ -1333,13 +1345,64 @@
   .piedra-sitio.editando .piedra{ opacity:1; cursor:grab; touch-action:none; }
   .piedra-sitio.editando .piedra:active{ cursor:grabbing; }
   @keyframes piedraLatir{ 50%{ border-color:rgba(184,137,43,.4); } }
-  /* EL MANDO, colgado debajo de la piedra. position:absolute con el sitio
-     centrado: así queda centrado bajo ella sea cual sea su tamaño. */
-  .piedra-mandos{ position:absolute; top:100%; left:50%; transform:translate(-50%, 12px);
-                  display:flex; gap:4px; padding:4px;
-                  background:linear-gradient(to bottom, #f2e9d6, #e7dbbe);
-                  border:1px solid rgba(140,116,68,.45); border-radius:999px;
-                  box-shadow:0 4px 12px -6px rgba(60,40,15,.8); }
+  /* EL NOMBRE, DEBAJO DE LA FIGURA Y SIN CRECER CON ELLA. Es un rótulo, no
+     parte del dibujo: en el escalón mayor la piedra ocupa media hoja y un
+     nombre proporcional sería un titular. Se queda en su cuerpo de siempre,
+     colgado del borde de abajo del sitio —que mide exactamente la figura— y
+     no recibe toques: quien manda es la piedra. */
+  .piedra-nombre{ position:absolute; top:100%; left:50%;
+                  transform:translateX(-50%); margin-top:5px;
+                  max-width:min(46vw, 190px); pointer-events:none;
+                  font:600 11.5px/1.3 var(--ui); letter-spacing:.01em;
+                  color:#4d3f1d; text-align:center;
+                  padding:1px 5px 2px; border-radius:4px;
+                  background:rgba(252,247,235,.72);
+                  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* EL MANDO DE LA PIEDRA EN EDICIÓN. Se viste como el menú de la cinta —es la
+     misma clase de panel— pero con parrilla dentro: trece formas y seis
+     colores no caben en una fila de botones. */
+  #piedraMando{ position:absolute; z-index:9; width:min(268px, calc(100% - 16px));
+                display:none; flex-direction:column; gap:7px;
+                background:linear-gradient(to bottom, #f2e9d6, #e7dbbe);
+                border:1px solid rgba(140,116,68,.5); border-radius:7px;
+                padding:8px 9px 9px;
+                box-shadow:0 12px 26px -14px rgba(60,40,15,.85);
+                opacity:0; transform:translateY(7px) scale(.98);
+                transition:opacity .2s ease, transform .28s cubic-bezier(.2,.85,.3,1); }
+  #piedraMando.visible{ opacity:1; transform:none; }
+  #piedraMando.apartado{ opacity:0; pointer-events:none; }
+  /* SIETE POR FILA, para que las trece quepan en dos renglones cortos: con
+     seis salían tres renglones y el panel se hacía más alto que la mitad de un
+     teléfono, que es cuando empieza a tapar la hoja que se está mirando. */
+  .pm-formas{ display:grid; grid-template-columns:repeat(7, 1fr); gap:3px; }
+  .pm-forma{ aspect-ratio:1; display:grid; place-items:center; padding:2px;
+             color:#6d5a2c; background:rgba(140,116,68,.10);
+             border:1px solid rgba(140,116,68,.28); border-radius:5px;
+             cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .pm-forma svg{ display:block; width:100%; height:100%; }
+  .pm-forma:hover{ background:rgba(140,116,68,.24); }
+  .pm-forma.on{ color:#3f3416; background:rgba(184,137,43,.34);
+                border-color:rgba(140,116,68,.7); }
+  .pm-forma:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
+  .pm-tintas{ display:flex; gap:5px; }
+  /* Los colores son manchas y no dibujos: lo que se elige es el color, así que
+     el botón ES el color. El elegido se marca con un aro por fuera y no con un
+     borde por dentro, que sobre una mancha oscura no se ve. */
+  .pm-tinta{ flex:1 1 0; height:19px; padding:0; border-radius:4px;
+             border:1px solid rgba(60,40,15,.28); cursor:pointer;
+             -webkit-tap-highlight-color:transparent; }
+  .pm-tinta.on{ box-shadow:0 0 0 2px #f2e9d6, 0 0 0 3.5px rgba(184,137,43,.95); }
+  .pm-tinta:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; }
+  .pm-pie{ display:flex; align-items:center; gap:5px; }
+  .pm-tam{ flex:0 0 auto; min-width:26px; text-align:center;
+           font:600 11px/1 var(--ui); color:#6d5a2c;
+           font-variant-numeric:tabular-nums; }
+  .pm-nombre{ flex:1 1 0; min-width:0; box-sizing:border-box;
+              padding:5px 7px; font:400 12.5px/1.3 var(--ui); color:#3f3416;
+              background:rgba(252,247,235,.86);
+              border:1px solid rgba(140,116,68,.45); border-radius:5px; }
+  .pm-nombre:focus{ outline:2px solid #b8892b; outline-offset:-1px; }
   .pm-btn{ width:30px; height:30px; display:grid; place-items:center; padding:0;
            color:#6d5a2c; background:rgba(140,116,68,.12);
            border:1px solid rgba(140,116,68,.35); border-radius:50%;
@@ -1350,8 +1413,13 @@
   .pm-btn svg{ display:block; width:12px; height:12px; }
   /* El manojo de formas del botón del pie, como el de las telas. */
   .hs-formas{ flex:0 0 auto; display:inline-flex; align-items:center; gap:3px; }
-  .hs-formas svg{ display:block; width:13px; height:13px; color:#7a6434; }
-  .hs-sep-forma{ flex:0 0 auto; display:block; width:13px; height:13px; }
+  /* El color va escrito en cada figura (ver pieSeparadores), así que aquí NO
+     se pone: una regla de color aquí ganaría al que hereda del <span> y las
+     tres saldrían del mismo tono, que es justo lo contrario de lo que se
+     quiere enseñar. */
+  .hs-sep-forma{ flex:0 0 auto; display:block; width:13px; height:13px;
+                 color:#7a6434; }
+  .hs-sep-forma svg{ display:block; width:100%; height:100%; }
   @media (prefers-reduced-motion: reduce){
     .piedra-sitio.editando::before{ animation:none; }
   }
@@ -2780,6 +2848,12 @@
   <!-- La lista de piedras. Vive en la escena, como el menú de la cinta, y se
        cuelga del botón que la abrió. -->
   <div id="piedraMenu" role="dialog" aria-label="Tus piedras" aria-modal="false"></div>
+  <!-- El mando de la piedra en edición. Vive en la escena y NO colgado de la
+       piedra, que es donde estaba: una parrilla de trece formas colgada de una
+       piedra que puede medir media hoja se sale de la pantalla y no hay a qué
+       recortarla dentro del papel. Aquí se coloca cerca y encajada, igual que
+       el menú de la cinta. -->
+  <div id="piedraMando" role="dialog" aria-label="Cambiar esta piedra" aria-modal="false"></div>
   <!-- El menú de la cinta y la oferta de ponerla. Viven en la escena y no
        dentro del papel a propósito: la columna de glosas recorta lo que
        asoma —que es justo lo que mantiene la cinta dentro de su sitio— y un
@@ -2853,7 +2927,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-SEP-26 23:58';
+window.GLOSS_BUILD = '03-SEP-26 07:50';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7143,11 +7217,37 @@ function htmlPiedrasFoto(hojaN){
   if (!mias.length) return '';
   return '<div style="position:absolute;inset:0;z-index:4;pointer-events:none">' +
     mias.map(x => {
-      const px = PIEDRA_TAMS[x.tam];
+      /* EL TAMAÑO VA EN PORCENTAJE, igual que en la hoja viva, y por eso la
+         foto y la hoja coinciden sin medir nada: el mismo número contra el
+         mismo papel. Estuvo escrito como píxeles —PIEDRA_TAMS[x.tam] + 'px'—
+         de cuando los tamaños eran píxeles; con la lista en fracciones eso
+         daba piedras de menos de un píxel, invisibles en el pliegue y a
+         tamaño normal al aterrizar.
+         El alto sale del ancho con aspect-ratio, que un porcentaje iría contra
+         el alto del papel y saldría un óvalo. Y el centrado va con márgenes
+         negativos: los márgenes en porcentaje SIEMPRE se miden contra el ancho
+         del contenedor, los cuatro, así que arriba e izquierda dan la misma
+         mitad y la piedra queda centrada en su punto. */
+      const por = (PIEDRA_TAMS[x.tam] * 100).toFixed(3);
+      const med = '-' + (PIEDRA_TAMS[x.tam] * 50).toFixed(3) + '%';
+      /* Y CADA UNA CON SU COLOR. Iba la tinta fija para todas, de cuando no
+         había colores; con seis, la piedra carmín de la hoja salía sepia en el
+         pliegue y volvía a carmín al aterrizar. Escrito a pelo porque dentro
+         del foreignObject currentColor no hereda (ver piedraDibujo). */
       return '<div style="position:absolute;left:' + (x.x * 100).toFixed(3) + '%;' +
-        'top:' + (x.y * 100).toFixed(3) + '%;width:' + px + 'px;height:' + px + 'px;' +
-        'margin:' + (-px/2) + 'px 0 0 ' + (-px/2) + 'px;opacity:.82">' +
-        piedraDibujo(x.forma, PIEDRA_TINTA) + '</div>';
+        'top:' + (x.y * 100).toFixed(3) + '%;width:' + por + '%;aspect-ratio:1;' +
+        'margin:' + med + ' 0 0 ' + med + ';opacity:.82">' +
+        piedraDibujo(x.forma, tintaDe(x.color)[2]) +
+        /* EL NOMBRE TAMBIÉN VA EN LA FOTO, o desaparecería durante el giro y
+           volvería de golpe al aterrizar, que es justo el parpadeo que este
+           retrato existe para evitar. La familia va escrita entera: --ui vive
+           en la raíz de la aplicación y aquí dentro no llega. */
+        (x.nombre ? '<div style="position:absolute;top:100%;left:50%;' +
+            'transform:translateX(-50%);margin-top:5px;white-space:nowrap;' +
+            "font:600 11.5px/1.3 'Segoe UI', system-ui, -apple-system, sans-serif;" +
+            'color:#4d3f1d;padding:1px 5px 2px;border-radius:4px;' +
+            'background:rgba(252,247,235,.72)">' + esc(x.nombre) + '</div>' : '') +
+        '</div>';
     }).join('') + '</div>';
 }
 function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza, hojaN){
@@ -8983,9 +9083,18 @@ function cabezaHistorial(){
 function pieSeparadores(){
   const cintas = TELAS.map(t =>
     '<span class="hs-sep-cinta" style="background:' + t[2] + '"></span>').join('');
-  const formas = FORMAS.map(piedraDibujo).join('');
+  /* TRES FIGURAS, NO LAS TRECE. Cuando eran tres cabían todas y el botón
+     enseñaba la familia entera; con trece, trece dibujos de 13 px son una
+     ristra que ni se lee ni cabe en el pie de un teléfono. Se enseñan tres —la
+     primera, una de en medio y la última— y cada una de un color distinto, que
+     es lo que las hace leerse como una COLECCIÓN y no como un dibujo suelto,
+     igual que las cuatro telas de al lado. Se sacan por posición y no escritas
+     a mano, para que no se queden atrás el día que la lista cambie. */
+  const formas = [0, FORMAS.length >> 1, FORMAS.length - 1].map((i, n) =>
+    '<span class="hs-sep-forma" style="color:' + PIEDRA_TINTAS[n + 1][2] + '">' +
+    piedraDibujo(FORMAS[i]) + '</span>').join('');
   /* DOS PUERTAS, UNA POR FAMILIA, y cada una enseña de qué va: las cuatro
-     telas para las cintas, las tres formas para las piedras. Los rótulos son
+     telas para las cintas, las figuras para las piedras. Los rótulos son
      el plural de lo que abren —«cintas», «piedras»— y no «actuales» dos veces:
      con una sola lista bastaba decir cuáles, con dos hay que decir de qué. */
   return '<div class="hs-pie">' +
@@ -10738,16 +10847,64 @@ const PAUSA_SESION = 20 * 60 * 1000;
    en el teléfono aparecería fuera de la hoja en el escritorio. */
 const PIEDRAS = 'glossa:piedras:v1';
 const TOPE_PIEDRAS = 300;
-/* Las tres formas, en el orden en que se van dando al tocarlas. El dibujo va
+/* Las formas, en el orden en que se van dando al tocar la piedra. El dibujo va
    en SVG y no en un emoji: un emoji lo dibuja el sistema, así que cambia de
-   cara entre teléfonos y encima no hereda la tinta de la hoja. */
-const FORMAS = ['piedra', 'avion', 'hoja'];
-const FORMA_NOMBRE = { piedra:'piedra', avion:'avioncito', hoja:'hoja de árbol' };
-/* Los escalones de tamaño. Discretos y no continuos: con un control de un
-   dedo, cuatro tamaños que se distinguen valen más que un resbalón infinito
-   donde nunca aciertas dos veces el mismo. */
-const PIEDRA_TAMS = [22, 30, 40, 54];
-const PIEDRA_TAM_POR = 1;              /* el de en medio tirando a chico */
+   cara entre teléfonos y encima no hereda el color que le pongas. */
+/* TRECE FIGURAS, y el criterio para elegirlas no fue «que sean bonitas» sino
+   QUE SE DISTINGAN POR LA SILUETA. Se ven a 20 px y a media hoja, y a 20 px no
+   queda más que el contorno: dos figuras que se parezcan de lejos son una sola
+   con dos nombres. Por eso no hay, por ejemplo, jarra y lámpara a la vez.
+
+   La mitad son de la Escritura —el pez, la paloma, la espiga, las uvas, la
+   lámpara, el ancla, la barca, la llama— y la otra mitad son cosas de todos los
+   días, que es lo que pidió el lector: una piedra, una hoja, una estrella, una
+   llave, y el avioncito de papel, que no viene de ninguna parte y es el que más
+   gusta. Sin cruz, a propósito: marcar una hoja no es ponerle un símbolo de fe
+   encima, y quien quiera una tiene doce maneras de decir lo mismo sin que la
+   aplicación se lo imponga. */
+const FORMAS = ['piedra', 'avion', 'hoja', 'pez', 'paloma', 'espiga', 'uvas',
+                'lampara', 'llave', 'ancla', 'estrella', 'barca', 'llama'];
+const FORMA_NOMBRE = {
+  piedra:'piedra', avion:'avioncito', hoja:'hoja', pez:'pez', paloma:'paloma',
+  espiga:'espiga', uvas:'uvas', lampara:'lámpara', llave:'llave', ancla:'ancla',
+  estrella:'estrella', barca:'barca', llama:'llama'
+};
+/* LOS ESCALONES DE TAMAÑO VAN EN FRACCIÓN DEL PAPEL, no en píxeles, y por lo
+   mismo que la posición: el papel mide 571 px en una pantalla de 320, 663 en
+   una de 412 y 584 en el escritorio —es más ancho que la ventana porque lleva
+   las dos columnas— así que un tamaño en píxeles sería una piedra distinta en
+   cada aparato. En fracción, la misma piedra ocupa lo mismo de la hoja
+   siempre, y de paso se encoge sola con la vista de lejos.
+
+   OCHO ESCALONES, Y EL ÚLTIMO ES ENORME A PROPÓSITO: .85 del ancho del papel
+   son 484 px en el teléfono más estrecho y 562 en el más ancho, o sea unas
+   diez veces el mayor de antes. Es para que se vea DE LEJOS, con la vista
+   alejada puesta, que es donde una marca chica no se distingue de una mota.
+   El primero, .04, son 23 px: lo que medía la más chica de antes.
+
+   Van en progresión geométrica y no en pasos iguales: el ojo compara tamaños
+   por proporción, así que con pasos iguales los primeros saltos se notarían
+   enormes y los últimos casi nada. Cada uno es 1.55 veces el anterior, y así
+   los ocho se distinguen igual de bien entre sí.
+
+   Discretos y no continuos: con un dedo, ocho tamaños que se distinguen valen
+   más que un resbalón infinito donde nunca aciertas dos veces el mismo. */
+const PIEDRA_TAMS = [.04, .062, .096, .148, .229, .354, .548, .848];
+const PIEDRA_TAM_POR = 2;              /* de salida, chica pero ya visible */
+/* LOS COLORES. Los cuatro de las cintas más el sepia de la tinta y una ciruela,
+   que son los que se despegan del papel sin gritar. El sepia va el primero
+   porque es el de la letra: una piedra recién puesta parece parte de la hoja, y
+   el color es algo que se pide, no que se impone. */
+const PIEDRA_TINTAS = [
+  ['sepia',   'sepia',   '#7a6434'],
+  ['carmin',  'carmín',  '#9b2a2a'],
+  ['oliva',   'oliva',   '#4d6a35'],
+  ['indigo',  'índigo',  '#2f4a78'],
+  ['ocre',    'ocre',    '#a4761d'],
+  ['ciruela', 'ciruela', '#6b3a63']
+];
+const tintaDe = c => PIEDRA_TINTAS.find(t => t[0] === c) || PIEDRA_TINTAS[0];
+const PIEDRA_NOMBRE_TOPE = 40;
 let piedras = [];
 let piedraEditando = null;             /* id de la que está en modo edición */
 let piedraBorradas = new Set();        /* ver sepBorrados: mismo motivo */
@@ -10765,14 +10922,21 @@ function piedraEntendible(x){
 }
 function piedraSanear(x){
   const enRango = (v, sino) => Number.isFinite(+v) ? Math.min(Math.max(+v, 0), 1) : sino;
-  return {
+  const r = {
     id: String(x.id), libro: String(x.libro), cap: +x.cap, vers: +x.vers,
     x: enRango(x.x, .5), y: enRango(x.y, .45),
     forma: FORMAS.includes(x.forma) ? x.forma : FORMAS[0],
     tam: (Number.isInteger(+x.tam) && +x.tam >= 0 && +x.tam < PIEDRA_TAMS.length)
            ? +x.tam : PIEDRA_TAM_POR,
+    color: PIEDRA_TINTAS.some(t => t[0] === x.color) ? x.color : PIEDRA_TINTAS[0][0],
     creado: +x.creado || Date.now(), tocado: +x.tocado || Date.now()
   };
+  /* EL NOMBRE SOLO EXISTE SI LO HAY. Una piedra sin nombre no guarda la clave
+     vacía: es como nacen todas, y así el archivo de quien no nombra ninguna
+     sigue siendo el de siempre. Igual que las cintas. */
+  const n = typeof x.nombre === 'string' ? x.nombre.trim().slice(0, PIEDRA_NOMBRE_TOPE) : '';
+  if (n) r.nombre = n;
+  return r;
 }
 function piedrasDelAlmacen(){
   try {
@@ -10794,6 +10958,23 @@ function piedrasGuardar(){
   piedras.sort((a, b) => b.tocado - a.tocado);
   if (piedras.length > TOPE_PIEDRAS) piedras.length = TOPE_PIEDRAS;
   try { localStorage.setItem(PIEDRAS, JSON.stringify(piedras)); } catch(e){}
+  /* Y LA FOTO DEL PLIEGUE CADUCA AQUÍ, que es el único sitio por donde pasan
+     todos los cambios de una piedra —ponerla, moverla, cambiarle forma,
+     tamaño, color o nombre, y quitarla—.
+
+     La foto no se rehace sola. Lo que decide si la guardada todavía sirve es
+     estiloFirma(), y ahí no hay ni una piedra: son los ajustes de la letra y
+     el papel. Así que tras cualquier retoque, la vuelta de hoja siguiente
+     seguía enseñando la foto vieja: la piedra cambiaba de color al empezar el
+     giro y volvía al suyo al aterrizar. Medido antes de arreglarlo: la hoja
+     viva en carmín y la foto con 18.781 píxeles de sepia y CERO de carmín.
+
+     Se invalida en vez de meter las piedras en la firma porque invalidar
+     también pone pageImg en nulo y encarga la foto nueva ya: apoyándose solo
+     en la firma, la primera vuelta después de un retoque se daría con la foto
+     vieja igual —iniciarPliegue la usa mientras la nueva carga—, que es
+     exactamente el parpadeo que se está quitando. Lo levantó Codex. */
+  invalidateSnapshot();
 }
 /* EN QUÉ RENGLÓN DEL LIBRO CAE, para saber si es de esta hoja. Igual que sepK,
    y con el mismo respaldo por capítulo: una piedra de otra versión puede
@@ -10820,19 +11001,35 @@ function piedraAncla(){
   return { libro: LIBRO, cap: it.cap, vers: it.vers };
 }
 const piedraRef = x => nombreDe(x.libro) + ' ' + x.cap + ':' + x.vers;
-const piedraTexto = x => piedraRef(x) + (piedraAqui(x) ? ' · aquí' : '');
+/* Con nombre, la referencia se encoge y el nombre manda, igual que en la lista
+   de cintas: cuando una piedra se llama «lo del monte», lo que se busca es el
+   nombre y el sitio se lee después. */
+const piedraTexto = x =>
+  (x.nombre ? abrevDe(x.libro) + ' ' + x.cap + ':' + x.vers + ' · ' + x.nombre
+            : piedraRef(x)) + (piedraAqui(x) ? ' · aquí' : '');
+/* CÓMO SE NOMBRA A UNA PIEDRA EN VOZ ALTA, para los rótulos de accesibilidad:
+   la figura, su color si no es el de por defecto, y dónde está. */
+const piedraVoz = x =>
+  FORMA_NOMBRE[x.forma] + (x.color && x.color !== PIEDRA_TINTAS[0][0]
+                             ? ' ' + tintaDe(x.color)[1] : '') +
+  (x.nombre ? ' «' + x.nombre + '»' : '') + ' en ' + piedraRef(x);
 
-/* LOS TRES DIBUJOS. Trazados a mano en un lienzo de 24x24, con currentColor
-   para que hereden la tinta de la hoja: el papel cambia de tono entre el día y
-   la noche, y un color escrito a pelo se quedaría clavado en uno de los dos.
-   La piedra va rellena y las otras dos combinan relleno y trazo, que es lo que
-   las distingue de un vistazo a 22 px, que es el tamaño más chico. */
+/* LOS DIBUJOS. Trazados a mano en un lienzo de 24x24, con currentColor para
+   que tomen el color de su piedra: cada una lleva el suyo, y un color escrito a
+   pelo dejaría a las trece del mismo tono.
+   Todas combinan relleno y trazo claro, y el criterio de cada trazo es el
+   mismo: que la figura se siga leyendo a 26 px, que es el escalón más chico y
+   donde no queda más que la silueta. Cada una que hubo que rehacer lleva
+   escrito ahí mismo por qué no se leía la anterior. */
 const PIEDRA_SVG = {
-  /* LAS TRES LLENAN LA CAJA POR IGUAL, y hubo que rehacerlas por eso: la
-     primera piedra ocupaba de 4 a 19 en un lienzo de 24, así que al mismo
-     tamaño se veía la mitad de grande que el avión, que sí llegaba a los
-     bordes. Puestas una al lado de otra parecían dos tamaños distintos
-     cuando eran el mismo número. */
+  /* TODAS LLENAN LA CAJA DE 24x24 POR IGUAL, y hubo que rehacer las primeras
+     por eso: la piedra ocupaba de 4 a 19 y al mismo tamaño se veía la mitad de
+     grande que el avión, que sí llegaba a los bordes. Puestas una al lado de
+     otra parecían dos tamaños distintos cuando eran el mismo número.
+
+     El relleno va en currentColor —así siguen el color que les pongas— y los
+     trazos claros van en blanco translúcido: son el detalle que las hace
+     legibles de cerca sin ensuciar la silueta de lejos. */
   piedra:
     '<path d="M3.1 14.2c-.7-3.1 1-6.3 3.9-8.1 3-1.9 7-2.1 9.9-.4 3 1.7 4.6 5.3 3.9 8.4' +
     '-.7 3.2-3.7 5.8-7.2 6.3-3.6.6-7.8-.9-9.5-3.6a6.9 6.9 0 0 1-1-2.6z" fill="currentColor"/>' +
@@ -10844,16 +11041,120 @@ const PIEDRA_SVG = {
     ' fill="currentColor"/>' +
     '<path d="M22.4 1.9 8 14.5" fill="none" stroke="#fff" stroke-opacity=".45"' +
     ' stroke-width="1.5" stroke-linecap="round"/>',
-  /* LA HOJA CON SU NERVIO Y SU RABILLO. Sin ellos, el contorno solo era una
-     gota y se confundía con la piedra a tamaño chico: lo que dice «hoja» no
-     es la silueta, es la raya de en medio. */
+  /* La hoja lleva nervio y rabillo: sin ellos el contorno es una gota y se
+     confunde con la piedra a tamaño chico. Lo que dice «hoja» no es la
+     silueta, es la raya de en medio. */
   hoja:
     '<path d="M21.4 2.3c1 7.2-1.3 12.3-5.2 15.1-3.7 2.7-8.4 2.5-10.8.2C3.1 15.4 3 11.2 5.6 8' +
     ' 8.3 4.6 13.5 2 21.4 2.3z" fill="currentColor"/>' +
     '<path d="M19.9 3.9C14.4 7.3 9.2 12.6 5.4 21.6" fill="none" stroke="#fff"' +
     ' stroke-opacity=".5" stroke-width="1.6" stroke-linecap="round"/>' +
     '<path d="M13.9 7.4c.6 1.6.8 3.2.7 4.9M17.4 11.1c-1.8.4-3.4 1.2-4.8 2.3" fill="none"' +
-    ' stroke="#fff" stroke-opacity=".3" stroke-width="1.2" stroke-linecap="round"/>'
+    ' stroke="#fff" stroke-opacity=".3" stroke-width="1.2" stroke-linecap="round"/>',
+  /* EL PEZ NECESITA SU COLA, y la primera no la tenía: el cuerpo solo se leía
+     como un limón con un ojo. La cola va aparte y en triángulo, que es lo que
+     dice «pez» de lejos; el cuerpo se estrecha hacia ella para que las dos
+     piezas se lean como una. */
+  pez:
+    '<path d="M1.6 12c2.6-4.4 6.5-6.6 10.6-6.6 3 0 5.6 1.2 7.4 3.3-.5 1-.8 2.1-.8 3.3s.3 2.3.8 3.3' +
+    'c-1.8 2.1-4.4 3.3-7.4 3.3-4.1 0-8-2.2-10.6-6.6z" fill="currentColor"/>' +
+    '<path d="M19.6 8.7c.8-.9 1.7-1.6 2.8-2.1v10.8c-1.1-.5-2-1.2-2.8-2.1' +
+    ' .5-1 .8-2.1.8-3.3s-.3-2.3-.8-3.3z" fill="currentColor"/>' +
+    '<circle cx="6.6" cy="10.6" r="1.3" fill="#fff" fill-opacity=".75"/>' +
+    '<path d="M12.4 8.1c1.4 2.5 1.4 5.3 0 7.8" fill="none" stroke="#fff"' +
+    ' stroke-opacity=".33" stroke-width="1.3" stroke-linecap="round"/>',
+  /* LA PALOMA, POR LA SILUETA Y NADA MÁS. Dos intentos se fueron en dibujar
+     un ave «en vuelo» con el ala levantada, y las dos veces salió una hoja con
+     un punto: a 20 px el ala no es más que un bulto. Lo que hace un pájaro y se
+     ve a cualquier tamaño son cuatro cosas —cuerpo, cabeza redonda, pico y
+     cola en abanico— así que solo van ésas, y el ala se insinúa por dentro con
+     un aclarado que no toca el contorno. */
+  paloma:
+    '<path d="M17.4 5.4c2.4 0 4.3 1.6 4.3 3.7 0 .6-.1 1.1-.4 1.6l1.9.9-2.4 1' +
+    'c-.6 3.4-2.9 5.7-6.4 6.7-2.4.7-4.7.6-6.9-.3l-6.7 2.4 4.3-4.6C3.4 14.9 3 13 3.4 11' +
+    ' 4 8 6.3 6.4 9.9 6.4c1.4 0 2.7.2 3.9.7 1-1.1 2.2-1.7 3.6-1.7z" fill="currentColor"/>' +
+    '<path d="M8.4 9.4c2.4 0 4.3.9 5.7 2.7 1.4 1.8 1.8 3.8 1.1 6-2.4 0-4.3-.9-5.7-2.7' +
+    '-1.4-1.8-1.8-3.8-1.1-6z" fill="#fff" fill-opacity=".3"/>' +
+    '<circle cx="18.4" cy="8.4" r="1" fill="#fff" fill-opacity=".85"/>',
+  espiga:
+    '<path d="M11.3 22.3V9.9" fill="none" stroke="currentColor" stroke-width="2"' +
+    ' stroke-linecap="round"/>' +
+    '<path d="M11.3 2.2c1.9 1.5 2.8 3.2 2.8 5.1s-.9 3.6-2.8 5.1c-1.9-1.5-2.8-3.2-2.8-5.1' +
+    's.9-3.6 2.8-5.1z" fill="currentColor"/>' +
+    '<path d="M6.1 6.6c2 .5 3.4 1.5 4.1 3s.7 3.2-.1 5.2c-2-.5-3.4-1.5-4.1-3s-.6-3.2.1-5.2z"' +
+    ' fill="currentColor"/>' +
+    '<path d="M16.5 6.6c.7 2 .8 3.7.1 5.2s-2.1 2.5-4.1 3c-.8-2-.8-3.7-.1-5.2s2.1-2.5 4.1-3z"' +
+    ' fill="currentColor"/>' +
+    '<path d="M11.3 4.6v7.4" fill="none" stroke="#fff" stroke-opacity=".35"' +
+    ' stroke-width="1.1" stroke-linecap="round"/>',
+  /* Al racimo hay que pegarle el rabo AL GRANO DE ARRIBA: suelto en el aire
+     parecía un gusano al lado de unas bolas. Y una hoja, que es lo que dice
+     «uvas» y no «bolas». */
+  uvas:
+    '<path d="M12 5.2V2.6" fill="none" stroke="currentColor" stroke-width="1.8"' +
+    ' stroke-linecap="round"/>' +
+    '<path d="M12.6 2.9c1.4-1.6 3.4-2.2 5.9-1.8.2 2.5-.6 4.3-2.4 5.2-1.8.9-3.3.4-4.5-1.4' +
+    ' .2-.8.5-1.5 1-2z" fill="currentColor"/>' +
+    '<circle cx="12" cy="8.2" r="3" fill="currentColor"/>' +
+    '<circle cx="6.7" cy="11.4" r="3" fill="currentColor"/>' +
+    '<circle cx="17.3" cy="11.4" r="3" fill="currentColor"/>' +
+    '<circle cx="12" cy="14.4" r="3" fill="currentColor"/>' +
+    '<circle cx="8.9" cy="19.4" r="2.9" fill="currentColor"/>' +
+    '<circle cx="15.1" cy="19.4" r="2.9" fill="currentColor"/>' +
+    '<circle cx="10.9" cy="7.1" r=".95" fill="#fff" fill-opacity=".35"/>',
+  /* LA LÁMPARA DE ACEITE, con el pico LARGO. Dos versiones anteriores la
+     dejaron en un bulto con rabo y en una taza: el cuenco solo no dice nada,
+     porque un cuenco es cualquier cosa. Lo que la nombra es el pico por donde
+     sale la mecha, y tiene que ser largo y afilado —tan largo como medio
+     cuerpo— o se lee como un pico de jarra. El asa de aro, al otro lado, cierra
+     la lectura. */
+  lampara:
+    '<path d="M7.4 9.9h8.2c2.6 0 4.4 1.7 4.4 4 0 2.6-2.4 4.6-5.6 4.6H8.6c-3.2 0-5.6-2-5.6-4.6' +
+    ' 0-2.3 1.8-4 4.4-4z" fill="currentColor"/>' +
+    '<path d="M7 11.6 1.1 8.4c-.7-.4-.4-1.4.4-1.4l6.4.4z" fill="currentColor"/>' +
+    '<path d="M18.9 10.9c2.6-.9 4.4 0 4.4 2.1 0 1.9-1.3 3.4-3.6 4.4" fill="none"' +
+    ' stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>' +
+    '<path d="M11.4 9.6V6.1" fill="none" stroke="currentColor" stroke-width="1.8"' +
+    ' stroke-linecap="round"/>' +
+    '<path d="M11.4 6.4c1.6-1.4 2.4-2.9 2.4-4.4-2.9.7-4.4 2.2-4.4 4.4z"' +
+    ' fill="currentColor"/>' +
+    '<path d="M7.6 14.4c1.6-.8 3.4-1.2 5.4-1.2" fill="none" stroke="#fff"' +
+    ' stroke-opacity=".33" stroke-width="1.3" stroke-linecap="round"/>',
+  llave:
+    '<circle cx="6.9" cy="6.9" r="5" fill="currentColor"/>' +
+    '<circle cx="6.9" cy="6.9" r="1.9" fill="#fff" fill-opacity=".85"/>' +
+    '<path d="M10.3 10.3 21 21" fill="none" stroke="currentColor" stroke-width="2.6"' +
+    ' stroke-linecap="round"/>' +
+    '<path d="M17.1 17.1 14.6 19.6M20 20l-2.6 2.6" fill="none" stroke="currentColor"' +
+    ' stroke-width="2.4" stroke-linecap="round"/>',
+  ancla:
+    '<circle cx="12" cy="3.9" r="2.6" fill="currentColor"/>' +
+    '<path d="M12 6.5v15" fill="none" stroke="currentColor" stroke-width="2.2"' +
+    ' stroke-linecap="round"/>' +
+    '<path d="M6.9 9.4h10.2" fill="none" stroke="currentColor" stroke-width="2.1"' +
+    ' stroke-linecap="round"/>' +
+    '<path d="M3.1 14.1c0 4.4 4 7.5 8.9 7.5s8.9-3.1 8.9-7.5" fill="none"' +
+    ' stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+  barca:
+    '<path d="M1.9 14.6h20.2c-1.1 3.9-4.8 6.6-10.1 6.6S3 18.5 1.9 14.6z" fill="currentColor"/>' +
+    '<path d="M12.9 2.1v11.2" fill="none" stroke="currentColor" stroke-width="1.9"' +
+    ' stroke-linecap="round"/>' +
+    '<path d="M11.7 3.6c-2.9 1.4-5 3.6-6.3 6.6l6.3 1.3z" fill="currentColor"/>' +
+    '<path d="M14.1 4.1c2.4 1.3 4.1 3.2 5.1 5.6l-5.1 1.1z" fill="currentColor"/>' +
+    '<path d="M5.4 17.1c3.9 1.4 8.1 1.4 12.4 0" fill="none" stroke="#fff"' +
+    ' stroke-opacity=".3" stroke-width="1.3" stroke-linecap="round"/>',
+  llama:
+    '<path d="M12.4 1.6c.6 3 2 5 4.1 6.9 2.2 2 3.4 4.3 3.4 6.8 0 4.1-3.6 7.1-8 7.1' +
+    's-8-3-8-7.1c0-2.2.9-4.1 2.6-5.8.5 1.1 1.3 1.8 2.4 2 .1-4 1.3-7.3 3.5-9.9z"' +
+    ' fill="currentColor"/>' +
+    '<path d="M12.1 11.4c1.9 1.6 2.9 3.3 2.9 5.1 0 1.9-1.4 3.2-3.2 3.2s-3.2-1.3-3.2-3.2' +
+    'c0-1.4.6-2.6 1.9-3.8.2.7.6 1.1 1.2 1.3.1-.9.3-1.7 2.4-2.6z" fill="#fff"' +
+    ' fill-opacity=".38"/>',
+  estrella:
+    '<path d="M12 1.4 15 8.8l7.9.6-6 5.2 1.8 7.7L12 18.1l-6.7 4.2L7.1 14.6l-6-5.2 7.9-.6z"' +
+    ' fill="currentColor"/>' +
+    '<path d="M12 4.9 13.9 9.6" fill="none" stroke="#fff" stroke-opacity=".33"' +
+    ' stroke-width="1.2" stroke-linecap="round"/>'
 };
 /* EL xmlns VA SIEMPRE PUESTO, y no es de adorno. En la hoja viva sobra —el
    navegador ya sabe que un <svg> es un <svg>— pero este mismo dibujo viaja a
@@ -10873,7 +11174,6 @@ const piedraDibujo = (f, tinta) => {
   return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">' +
     (tinta ? d.split('currentColor').join(tinta) : d) + '</svg>';
 };
-const PIEDRA_TINTA = '#7a6434';
 
 const TELAS = [['carmin', 'carmín', '#9b2a2a', '#7a1f1f'],
                ['oliva',  'oliva',  '#4d6a35', '#3a5127'],
@@ -11431,6 +11731,14 @@ function pintarPiedras(){
   if (!inner) return;
   let capa = document.getElementById('piedrero');
   const mias = piedrasDeLaHoja();
+  /* SI LA QUE SE EDITABA YA NO ESTÁ EN ESTA HOJA, se cierra la edición aquí y
+     no llamando a piedraCerrarEdicion(), que vuelve a pintar y se mordería la
+     cola. Pasa al pasar de página con el mando puesto: sin esto el panel se
+     queda flotando sobre una hoja donde no hay ninguna piedra suya. */
+  if (piedraEditando && !mias.some(x => x.id === piedraEditando)){
+    piedraEditando = null;
+    cerrarPiedraMando();
+  }
   if (!mias.length){
     if (capa) capa.remove();
     return;
@@ -11445,39 +11753,122 @@ function pintarPiedras(){
   }
   capa.innerHTML = mias.map(x => {
     const edita = piedraEditando === x.id;
-    const px = PIEDRA_TAMS[x.tam];
+    /* EL TAMAÑO SE ESCRIBE EN PORCENTAJE DEL PAPEL y no en píxeles, que es
+       como se guarda: así la piedra mide lo mismo de la hoja en cualquier
+       pantalla y se encoge sola con la vista de lejos, sin que nadie recalcule
+       nada al cambiar de aparato o de orientación. Va en el SITIO y no en el
+       botón, y el porqué está en .piedra-sitio: contra el botón el porcentaje
+       no tenía contra qué medir. */
+    const por = (PIEDRA_TAMS[x.tam] * 100).toFixed(2);
     return '<div class="piedra-sitio' + (edita ? ' editando' : '') + '"' +
-        ' style="left:' + (x.x * 100).toFixed(3) + '%;top:' + (x.y * 100).toFixed(3) + '%"' +
+        ' style="left:' + (x.x * 100).toFixed(3) + '%;top:' + (x.y * 100).toFixed(3) + '%' +
+        ';--piedra-tam:' + por + '%"' +
         ' data-piedra="' + esc(x.id) + '">' +
       '<button type="button" class="piedra" data-piedra-cuerpo="' + esc(x.id) + '"' +
-        ' style="--piedra-tam:' + px + 'px"' +
-        ' aria-label="' + FORMA_NOMBRE[x.forma] + ' en ' + esc(piedraRef(x)) +
-          '. Doble toque para moverla." title="' + FORMA_NOMBRE[x.forma] + ' · ' +
-          esc(piedraRef(x)) + '">' + piedraDibujo(x.forma) + '</button>' +
-      (edita ? piedraMandos(x) : '') +
+        ' style="color:' + tintaDe(x.color)[2] + '"' +
+        ' aria-label="' + esc(piedraVoz(x)) + '. Doble toque para moverla."' +
+        ' title="' + esc(piedraVoz(x)) + '">' + piedraDibujo(x.forma) + '</button>' +
+      (x.nombre ? '<span class="piedra-nombre">' + esc(x.nombre) + '</span>' : '') +
     '</div>';
   }).join('');
+  /* EL MANDO SE RECOLOCA CON CADA REPINTADO, que es lo que lo mantiene pegado
+     a su piedra: al cambiar de forma o de tamaño la piedra crece o se encoge y
+     el sitio de debajo deja de ser el mismo. */
+  if (piedraEditando) colocarPiedraMando();
 }
-/* EL MANDO DE EDICIÓN. Sale solo con la piedra en edición y lleva lo que no se
-   puede pedir arrastrando: los dos tamaños y el quitar. La forma NO tiene
-   botón —se cambia tocando la propia piedra— porque es lo que se hace más y
-   pedirlo desde aquí obligaría a apuntar a un blanco chico al lado de otro. */
-function piedraMandos(x){
+/* EL MANDO DE EDICIÓN, Y POR QUÉ SE MUDÓ FUERA DE LA HOJA.
+
+   Empezó siendo tres botones colgados debajo de la piedra, dentro de su propio
+   sitio. Con tres formas y cuatro tamaños eso bastaba. Ya no: con TRECE formas
+   y SEIS colores hay que enseñar una parrilla, y una parrilla colgada de una
+   piedra que puede medir media hoja se sale de la pantalla por abajo o por un
+   lado, sin manera de traerla de vuelta —dentro de .piedra-sitio no hay a qué
+   recortarla—.
+
+   Así que es un panel de la ESCENA, colocado cerca de la piedra pero encajado
+   dentro de los bordes, exactamente como el menú de la cinta y con el mismo
+   colocador. Y de paso resuelve otra: tocar para cambiar de forma servía con
+   tres —un toque, la siguiente— pero con trece son trece toques para volver a
+   la primera. Ahora la forma se elige de la parrilla, y el toque sobre la
+   piedra sigue dando la siguiente, que es el atajo para quien solo quiere
+   probar. */
+function pintarPiedraMando(){
+  const el = $('piedraMando');
+  const x = piedraEditando ? piedraDe(piedraEditando) : null;
+  if (!x){ el.innerHTML = ''; return; }
+  const formas = FORMAS.map(f =>
+    '<button type="button" class="pm-forma' + (f === x.forma ? ' on' : '') + '"' +
+      ' data-piedra-forma="' + f + '" aria-pressed="' + (f === x.forma) + '"' +
+      ' aria-label="' + FORMA_NOMBRE[f] + '" title="' + FORMA_NOMBRE[f] + '">' +
+      piedraDibujo(f) + '</button>').join('');
+  const tintas = PIEDRA_TINTAS.map(t =>
+    '<button type="button" class="pm-tinta' + (t[0] === x.color ? ' on' : '') + '"' +
+      ' data-piedra-color="' + t[0] + '" aria-pressed="' + (t[0] === x.color) + '"' +
+      ' style="background:' + t[2] + '"' +
+      ' aria-label="' + t[1] + '" title="' + t[1] + '"></button>').join('');
   const b = (acc, rot, dib, apagado) =>
     '<button type="button" class="pm-btn" data-piedra-acc="' + acc + '"' +
       (apagado ? ' disabled' : '') +
       ' aria-label="' + rot + '" title="' + rot + '">' + dib + '</button>';
-  return '<div class="piedra-mandos" role="group" aria-label="Ajustar esta piedra">' +
-    b('menos', 'Más pequeña', '<svg viewBox="0 0 12 12" aria-hidden="true">' +
-      '<path d="M2.5 6h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-      x.tam <= 0) +
-    b('mas', 'Más grande', '<svg viewBox="0 0 12 12" aria-hidden="true">' +
-      '<path d="M2.5 6h7M6 2.5v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-      x.tam >= PIEDRA_TAMS.length - 1) +
-    b('quitar', 'Quitar esta piedra', '<svg viewBox="0 0 12 12" aria-hidden="true">' +
-      '<path d="M2.5 2.5 L9.5 9.5 M9.5 2.5 L2.5 9.5" stroke="currentColor"' +
-      ' stroke-width="1.8" stroke-linecap="round"/></svg>') +
-  '</div>';
+  el.innerHTML =
+    '<div class="pm-formas" role="group" aria-label="Figura">' + formas + '</div>' +
+    '<div class="pm-tintas" role="group" aria-label="Color">' + tintas + '</div>' +
+    '<div class="pm-pie">' +
+      b('menos', 'Más pequeña', '<svg viewBox="0 0 12 12" aria-hidden="true">' +
+        '<path d="M2.5 6h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+        x.tam <= 0) +
+      '<span class="pm-tam" aria-hidden="true">' + (x.tam + 1) + '/' + PIEDRA_TAMS.length + '</span>' +
+      b('mas', 'Más grande', '<svg viewBox="0 0 12 12" aria-hidden="true">' +
+        '<path d="M2.5 6h7M6 2.5v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+        x.tam >= PIEDRA_TAMS.length - 1) +
+      /* EL NOMBRE ES UN NOMBRE, NO UNA NOTA. Para escribir de verdad están las
+         glosas, ancladas a las palabras y con su panel; un segundo sitio donde
+         escribir párrafos serían dos sistemas de notas compitiendo. Esto es lo
+         que se le escribe a una pegatina: cuarenta letras, las que caben
+         debajo de la figura sin taparla. */
+      '<input class="pm-nombre" data-piedra-nombre="' + esc(x.id) + '"' +
+        ' value="' + esc(x.nombre || '') + '" maxlength="' + PIEDRA_NOMBRE_TOPE + '"' +
+        ' autocomplete="off" enterkeyhint="done" placeholder="nombre…"' +
+        ' aria-label="Nombre de esta piedra" />' +
+      b('quitar', 'Quitar esta piedra', '<svg viewBox="0 0 12 12" aria-hidden="true">' +
+        '<path d="M2.5 2.5 L9.5 9.5 M9.5 2.5 L2.5 9.5" stroke="currentColor"' +
+        ' stroke-width="1.8" stroke-linecap="round"/></svg>') +
+    '</div>';
+}
+/* Se coloca como el menú de la cinta: pegado a la piedra si cabe, encima si no
+   cabe debajo, y siempre encajado en la escena. Se cuelga del RECTÁNGULO de la
+   piedra, que se vuelve a medir en cada colocación porque la piedra se está
+   moviendo y creciendo mientras el panel está puesto. */
+function colocarPiedraMando(){
+  const el = $('piedraMando');
+  if (el.style.display === 'none' || !piedraEditando) return;
+  const cuerpo = document.querySelector('[data-piedra-cuerpo="' + piedraEditando + '"]');
+  const st = stage.getBoundingClientRect();
+  const w = el.offsetWidth, h = el.offsetHeight;
+  let izq = (st.width - w) / 2, arr = st.height - h - 12;
+  if (cuerpo){
+    const r = cuerpo.getBoundingClientRect();
+    izq = r.left + r.width / 2 - st.left - w / 2;
+    arr = r.bottom - st.top + 10;
+    if (arr + h > st.height - 8) arr = r.top - st.top - h - 10;
+  }
+  izq = Math.min(Math.max(8, izq), Math.max(8, st.width - w - 8));
+  arr = Math.min(Math.max(8, arr), Math.max(8, st.height - h - 8));
+  el.style.left = Math.round(izq) + 'px';
+  el.style.top = Math.round(arr) + 'px';
+}
+function abrirPiedraMando(){
+  const el = $('piedraMando');
+  pintarPiedraMando();
+  el.style.display = 'flex';
+  colocarPiedraMando();
+  void el.offsetWidth;
+  el.classList.add('visible');
+}
+function cerrarPiedraMando(){
+  const el = $('piedraMando');
+  el.classList.remove('visible');
+  setTimeout(() => { if (!piedraEditando) el.style.display = 'none'; }, 240);
 }
 function ponerPiedra(){
   const a = piedraAncla();
@@ -11488,9 +11879,16 @@ function ponerPiedra(){
      había puesto. Se corren en diagonal según cuántas haya ya en esta hoja, y
      se da la vuelta cada seis para no salirse del papel. */
   const n = piedrasDeLaHoja().length % 6;
+  /* EL COLOR VA ESCRITO AL NACER, aunque sea el de por defecto. Sin él la
+     piedra se pintaba bien —tintaDe(undefined) devuelve el primero— pero la
+     paleta del mando comparaba t[0] === x.color y no marcaba ninguna: la
+     piedra se veía sepia y las seis manchas decían aria-pressed="false", o
+     sea que quien la acababa de poner no tenía manera de saber en qué color
+     estaba. Duraba hasta recolorearla o hasta recargar, que es cuando
+     piedraSanear le pone el que le faltaba. Lo levantó Codex. */
   const x = { id: piedraNuevoId(), libro: a.libro, cap: a.cap, vers: a.vers,
               x: .5 + n * .055, y: .45 + n * .045,
-              forma: FORMAS[0], tam: PIEDRA_TAM_POR,
+              forma: FORMAS[0], tam: PIEDRA_TAM_POR, color: PIEDRA_TINTAS[0][0],
               creado: ahora, tocado: ahora };
   piedras.unshift(x);
   piedrasGuardar();
@@ -11499,7 +11897,8 @@ function ponerPiedra(){
      y quitar. Sin esto habría que adivinar el doble toque para descubrirlo. */
   piedraEditando = x.id;
   pintarPiedras();
-  readout.textContent = 'piedra puesta · tócala para cambiarle la forma, arrástrala para moverla';
+  abrirPiedraMando();
+  readout.textContent = 'piedra puesta · arrástrala para moverla, o cámbiala en el mando';
   return x;
 }
 function quitarPiedra(id){
@@ -11507,7 +11906,7 @@ function quitarPiedra(id){
   if (!x) return;
   piedraBorradas.add(id);
   piedras = piedras.filter(y => y.id !== id);
-  if (piedraEditando === id) piedraEditando = null;
+  if (piedraEditando === id){ piedraEditando = null; cerrarPiedraMando(); }
   piedrasGuardar();
   pintarPiedras();
   if (typeof pintarPiedrero === 'function') pintarPiedrero();
@@ -11515,20 +11914,58 @@ function quitarPiedra(id){
 }
 function piedraCerrarEdicion(){
   if (!piedraEditando) return;
+  /* LO ESCRITO SE COBRA ANTES DE CERRAR, y el orden es todo. Es palabra por
+     palabra el fallo que tuvo el nombre de la cinta —está contado entero en
+     sepCobrarNombre—: el toque de fuera lo recoge un oyente de captura que
+     corre ANTES de que el navegador mueva el foco, así que cerrando primero el
+     focusout llegaba con piedraEditando ya en null y lo escrito se perdía sin
+     decir nada. Se cobra aquí, mientras el campo todavía existe, y así queda
+     cubierto por todos los caminos que cierran: Escape, un toque fuera, otra
+     piedra, cambiar de hoja. */
+  piedraCobrarNombre();
   piedraEditando = null;
+  cerrarPiedraMando();
   pintarPiedras();
 }
-/* CAMBIAR DE FORMA ES DAR LA VUELTA A LA LISTA. Un toque, la siguiente; al
-   final se vuelve a la primera. Sin menú y sin elegir: son tres, y girarlas
-   con el dedo puesto encima es más rápido que abrir nada. */
+/* REFRESCAR EL MANDO es repintarlo y volverlo a colocar, y hace falta después
+   de cada cambio: la parrilla marca la forma puesta, las manchas marcan el
+   color, el contador dice el tamaño, y la piedra que hay debajo acaba de
+   crecer o encogerse, así que el panel ya no está donde tenía que estar. */
+function refrescarPiedraMando(){
+  if (!piedraEditando) return;
+  pintarPiedraMando();
+  colocarPiedraMando();
+}
+/* CAMBIAR DE FORMA POR LA PARRILLA, Y EL TOQUE SIGUE DANDO LA SIGUIENTE.
+
+   Con tres formas, tocar para pasar a la siguiente era todo el mando que hacía
+   falta. Con TRECE deja de servir sola: volver a la primera cuesta trece
+   toques, y quien busca la barca no va a ir pasando figuras hasta que salga.
+   Por eso ahora se eligen de la parrilla del mando. El toque se queda porque
+   no estorba y es el atajo de quien solo quiere ver qué hay. */
 function piedraSiguienteForma(id){
+  piedraPonerForma(id, FORMAS[(FORMAS.indexOf((piedraDe(id) || {}).forma) + 1) % FORMAS.length]);
+}
+function piedraPonerForma(id, forma){
   const x = piedraDe(id);
-  if (!x) return;
-  x.forma = FORMAS[(FORMAS.indexOf(x.forma) + 1) % FORMAS.length];
+  if (!x || !FORMAS.includes(forma) || x.forma === forma) return;
+  x.forma = forma;
   x.tocado = Date.now();
   piedrasGuardar();
   pintarPiedras();
+  if (piedraMenuAbierto) pintarPiedraMenu();
+  refrescarPiedraMando();
   readout.textContent = FORMA_NOMBRE[x.forma];
+}
+function piedraPonerColor(id, color){
+  const x = piedraDe(id);
+  if (!x || !PIEDRA_TINTAS.some(t => t[0] === color) || x.color === color) return;
+  x.color = color;
+  x.tocado = Date.now();
+  piedrasGuardar();
+  pintarPiedras();
+  refrescarPiedraMando();
+  readout.textContent = tintaDe(color)[1];
 }
 function piedraTamano(id, paso){
   const x = piedraDe(id);
@@ -11538,6 +11975,35 @@ function piedraTamano(id, paso){
   x.tam = t; x.tocado = Date.now();
   piedrasGuardar();
   pintarPiedras();
+  refrescarPiedraMando();
+}
+/* EL NOMBRE ES UN NOMBRE Y NO UNA NOTA, y esa decisión es la que da forma a
+   todo lo demás. Para escribir de verdad están las glosas: ancladas a las
+   palabras, con su panel y su caja grande. Un segundo sitio donde escribir
+   párrafos serían dos sistemas de notas compitiendo, y a la larga nadie sabe
+   en cuál de los dos dejó escrito lo que busca. Esto es lo que se le pone a
+   una pegatina: cuarenta letras que quepan debajo de la figura.
+
+   Vaciar el campo QUITA el nombre en vez de guardar una cadena vacía, igual
+   que en las cintas: una piedra sin nombre no lleva la clave, y así el archivo
+   de quien no nombra ninguna sigue siendo el de siempre. */
+function piedraPonerNombre(id, txt){
+  const x = piedraDe(id);
+  if (!x) return null;
+  const n = String(txt == null ? '' : txt).trim().slice(0, PIEDRA_NOMBRE_TOPE);
+  if (n === (x.nombre || '')) return x;
+  if (n) x.nombre = n; else delete x.nombre;
+  x.tocado = Date.now();
+  piedrasGuardar();
+  pintarPiedras();
+  if (piedraMenuAbierto) pintarPiedraMenu();
+  return x;
+}
+function piedraCobrarNombre(){
+  if (!piedraEditando) return;
+  const campo = $('piedraMando').querySelector('[data-piedra-nombre]');
+  if (!campo || campo.dataset.piedraNombre !== piedraEditando) return;
+  piedraPonerNombre(piedraEditando, campo.value);
 }
 
 /* EL DOBLE TOQUE ABRE LA EDICIÓN, y el toque simple no hace nada.
@@ -11571,9 +12037,13 @@ function piedraEnPunto(ev){
 }
 function piedraAbrirEdicion(id){
   if (!id || piedraEditando === id) return false;
+  /* Se cobra el nombre de la anterior antes de soltarla: pasar de una piedra a
+     otra es terminar con la primera, no abandonarla. */
+  piedraCobrarNombre();
   piedraEditando = id;
   pintarPiedras();
-  readout.textContent = 'piedra en edición · arrástrala para moverla, tócala para cambiarle la forma';
+  abrirPiedraMando();
+  readout.textContent = 'piedra en edición · arrástrala para moverla, o cámbiala en el mando';
   return true;
 }
 stage.addEventListener('dblclick', ev => {
@@ -11610,6 +12080,14 @@ stage.addEventListener('pointermove', ev => {
   if (!g.movio &&
       Math.abs(ev.clientX - g.x0) < PIEDRA_ARRASTRE &&
       Math.abs(ev.clientY - g.y0) < PIEDRA_ARRASTRE) return;
+  if (!g.movio){
+    /* EL MANDO SE APARTA MIENTRAS DURA EL ARRASTRE. Está colocado debajo de la
+       piedra, así que siguiéndola se metería bajo el dedo justo donde se está
+       soltando, y persiguiéndola cuadro a cuadro parpadea de arriba abajo cada
+       vez que la piedra pasa por la mitad de la pantalla. Se desvanece y vuelve
+       al soltar, ya colocado en el sitio nuevo. */
+    $('piedraMando').classList.add('apartado');
+  }
   g.movio = true;
   ev.preventDefault();
   /* SE MIDE CONTRA LA CAJA DEL PAPEL, no contra la ventana, y en fracciones:
@@ -11628,12 +12106,16 @@ function piedraSoltar(ev){
   if (!piedraGesto || (ev && ev.pointerId !== piedraGesto.pid)) return;
   const g = piedraGesto;
   piedraGesto = null;
+  /* El mando vuelve pase lo que pase con la piedra: si se cancela el gesto o
+     la piedra ya no está, dejarlo apartado sería dejarlo invisible y sin
+     manera de recuperarlo salvo cerrando la edición. */
+  $('piedraMando').classList.remove('apartado');
   const x = piedraDe(g.id);
   if (!x) return;
   if (g.movio){
     x.x = g.fx; x.y = g.fy; x.tocado = Date.now();
     piedrasGuardar();
-    pintarPiedras();
+    pintarPiedras();                       /* y con él, colocarPiedraMando */
     /* El clic que manda el dedo al levantarse apagaría la edición en el oyente
        de fuera; se traga, igual que en el acelerador del zoom. */
     tragarElClic();
@@ -11671,15 +12153,93 @@ stage.addEventListener('click', ev => {
     });
     return;
   }
+  /* EL MANDO YA NO CUELGA DE LA PIEDRA, así que de quién es el botón no se
+     saca subiendo por el DOM —arriba no hay ninguna piedra— sino de quién se
+     está editando, que es lo único que el panel puede estar enseñando. */
+  const id = piedraEditando;
+  if (!id) return;
+  /* Dentro del campo del nombre no hay nada que hacer aquí: poner el cursor a
+     media palabra es escribir, no pulsar. */
+  if (ev.target.closest('[data-piedra-nombre]')) return;
+  /* SI EL FOCO ESTABA EN EL MANDO SE MIRA AHORA Y NO DESPUÉS: cada acción
+     repinta el panel, y para cuando se le pregunta al documento dónde está el
+     foco ya no queda nada donde estaba —el botón se destruyó— y la respuesta
+     es siempre «en ningún sitio». Preguntado aquí, antes de tocar nada, sí
+     dice la verdad. */
+  const conFoco = !!(document.activeElement && document.activeElement.closest &&
+                     document.activeElement.closest('#piedraMando'));
+  const forma = ev.target.closest('[data-piedra-forma]');
+  if (forma){
+    ev.preventDefault(); ev.stopPropagation();
+    piedraPonerForma(id, forma.dataset.piedraForma);
+    devolverFocoPiedraMando(conFoco, '[data-piedra-forma="' + forma.dataset.piedraForma + '"]');
+    return;
+  }
+  const color = ev.target.closest('[data-piedra-color]');
+  if (color){
+    ev.preventDefault(); ev.stopPropagation();
+    piedraPonerColor(id, color.dataset.piedraColor);
+    devolverFocoPiedraMando(conFoco, '[data-piedra-color="' + color.dataset.piedraColor + '"]');
+    return;
+  }
   const acc = ev.target.closest('[data-piedra-acc]');
   if (!acc) return;
   ev.preventDefault(); ev.stopPropagation();
-  const sitio = acc.closest('[data-piedra]');
-  const id = sitio ? sitio.dataset.piedra : null;
-  if (!id) return;
-  if (acc.dataset.piedraAcc === 'menos') piedraTamano(id, -1);
-  else if (acc.dataset.piedraAcc === 'mas') piedraTamano(id, +1);
-  else if (acc.dataset.piedraAcc === 'quitar') quitarPiedra(id);
+  const cual = acc.dataset.piedraAcc;
+  if (cual === 'menos') piedraTamano(id, -1);
+  else if (cual === 'mas') piedraTamano(id, +1);
+  else if (cual === 'quitar'){ quitarPiedra(id); return; }
+  /* Los de tamaño se apagan en los extremos, y un botón deshabilitado pierde
+     el foco: quien llegó al mayor a golpe de Intro se quedaría sin dónde
+     estar. Se le pasa al otro, que es el que sigue sirviendo. */
+  const x = piedraDe(id);
+  const vivo = x && ((cual === 'mas' && x.tam >= PIEDRA_TAMS.length - 1) ? 'menos' :
+                     (cual === 'menos' && x.tam <= 0) ? 'mas' : cual);
+  devolverFocoPiedraMando(conFoco, '[data-piedra-acc="' + (vivo || cual) + '"]');
+});
+/* El repintado del mando se lleva por delante el botón que se acaba de pulsar
+   —se rehace entero—, y con él el foco. Se le devuelve al que ocupa su sitio o
+   quien navega con teclado se cae al principio del documento en cada cambio.
+   Es lo mismo que hace el clic de teclado sobre la piedra, ahí arriba. */
+function devolverFocoPiedraMando(tenia, sel){
+  if (!tenia) return;
+  trasPintar(() => {
+    const vuelve = $('piedraMando').querySelector(sel);
+    if (vuelve && !vuelve.disabled) vuelve.focus({ preventScroll:true });
+  });
+}
+/* Intro guarda y suelta el campo. Escape DENTRO DEL CAMPO devuelve lo que
+   había y suelta el foco, pero no cierra la edición: el Escape general vive en
+   el documento y se lleva el panel entero, que no es lo que se pide al
+   arrepentirse de una palabra a medio escribir. Por eso se corta aquí. */
+$('piedraMando').addEventListener('keydown', ev => {
+  const campo = ev.target.closest('[data-piedra-nombre]');
+  if (!campo) return;
+  if (ev.key === 'Enter'){
+    ev.preventDefault(); ev.stopPropagation();
+    piedraPonerNombre(campo.dataset.piedraNombre, campo.value);
+    campo.blur();
+  } else if (ev.key === 'Escape'){
+    ev.preventDefault(); ev.stopPropagation();
+    const x = piedraDe(campo.dataset.piedraNombre);
+    campo.value = (x && x.nombre) || '';
+    campo.blur();
+  }
+});
+/* EL FOCO QUE SE VA GUARDA, PERO NO REPINTA. Salir del campo es terminar, no
+   abandonar —la misma regla que el panel de la glosa y que el nombre de la
+   cinta—, así que se guarda. Lo que no puede hacerse aquí es repintar el
+   mando: el focusout llega ANTES que el clic del botón que se está tocando, y
+   rehacer el panel destruye ese botón antes de que su clic aterrice; el toque
+   se perdía y había que darlo dos veces. Está contado entero en el focusout de
+   #sepMenu, donde costó una revisión.
+   Aquí no hace falta ni aplazarlo: piedraPonerNombre repinta las piedras —que
+   es donde se ve el nombre— y deja el panel como está, que ya enseña lo
+   escrito porque es lo que hay en el campo. */
+$('piedraMando').addEventListener('focusout', ev => {
+  const campo = ev.target.closest('[data-piedra-nombre]');
+  if (!campo) return;
+  piedraPonerNombre(campo.dataset.piedraNombre, campo.value);
 });
 /* Y LAS FLECHAS LA MUEVEN, que es la otra mitad de poder editarla sin dedo.
    Un paso es el 2% del papel: bastante para verlo moverse, poco para colocarla
@@ -11688,9 +12248,15 @@ stage.addEventListener('click', ev => {
 const PIEDRA_PASO = .02;
 document.addEventListener('keydown', ev => {
   if (!piedraEditando) return;
-  const dentro = document.activeElement &&
-                 document.activeElement.closest &&
-                 document.activeElement.closest('.piedra-sitio');
+  /* También desde el mando, que es donde está el foco casi siempre mientras se
+     edita: si solo valiera estando sobre la piedra, quien llegó al panel para
+     cambiarle la forma tendría que volver a ella con el tabulador para poder
+     moverla. Escribiendo el nombre no, evidentemente: ahí las flechas mueven
+     el cursor por las letras. */
+  const foco = document.activeElement;
+  const dentro = foco && foco.closest &&
+                 foco.closest('.piedra-sitio, #piedraMando') &&
+                 !foco.closest('[data-piedra-nombre]');
   if (!dentro) return;
   const paso = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] }[ev.key];
   if (!paso) return;
@@ -11706,13 +12272,17 @@ document.addEventListener('keydown', ev => {
     sitio.style.left = (x.x * 100).toFixed(3) + '%';
     sitio.style.top = (x.y * 100).toFixed(3) + '%';
   }
+  colocarPiedraMando();
 }, true);
 
 /* UN TOQUE FUERA CIERRA LA EDICIÓN. En captura y antes que nadie, como los
-   demás paneles. La propia piedra y su mando cuentan como «dentro». */
+   demás paneles. La propia piedra y su mando cuentan como «dentro», y el mando
+   hay que nombrarlo aparte desde que se mudó fuera del papel: colgado de la
+   piedra bastaba con .piedra-sitio, y ahora tocar un botón del panel sería un
+   toque fuera que cerraría la edición antes de que el clic llegara a él. */
 document.addEventListener('pointerdown', ev => {
   if (!piedraEditando) return;
-  if (ev.target.closest('.piedra-sitio')) return;
+  if (ev.target.closest('.piedra-sitio, #piedraMando')) return;
   piedraCerrarEdicion();
 }, true);
 
@@ -11754,12 +12324,16 @@ function pintarPiedraMenu(){
     piedras.map(x =>
       '<div class="sp-fila' + (piedraAqui(x) ? ' aqui' : '') + '">' +
         '<button class="sp-ir" data-piedra-ir="' + esc(x.id) + '"' +
-          ' aria-label="Ver el versículo de la ' + FORMA_NOMBRE[x.forma] + ' en ' +
-            esc(piedraRef(x)) + '" title="' + esc(piedraTexto(x)) + '">' +
-          '<span class="sp-chip-forma" aria-hidden="true">' + piedraDibujo(x.forma) + '</span>' +
+          ' aria-label="Ver el versículo de la ' + esc(piedraVoz(x)) + '"' +
+          ' title="' + esc(piedraTexto(x)) + '">' +
+          /* El chip lleva el COLOR de su piedra, no el de la tinta: en la
+             hoja se reconocen por color tanto como por forma, y una lista de
+             trece figuras todas sepias no ayuda a encontrar la que buscas. */
+          '<span class="sp-chip-forma" style="color:' + tintaDe(x.color)[2] + '"' +
+            ' aria-hidden="true">' + piedraDibujo(x.forma) + '</span>' +
           '<span class="sp-ref">' + esc(piedraTexto(x)) + '</span></button>' +
         '<button type="button" class="sp-fila-x" data-piedra-quitar="' + esc(x.id) + '"' +
-          ' aria-label="Quitar la ' + FORMA_NOMBRE[x.forma] + ' de ' + esc(piedraRef(x)) + '"' +
+          ' aria-label="Quitar la ' + esc(piedraVoz(x)) + '"' +
           ' title="Quitar">' +
           '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5 L9.5 9.5' +
           ' M9.5 2.5 L2.5 9.5" stroke="currentColor" stroke-width="1.8"' +
