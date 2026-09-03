@@ -1298,11 +1298,26 @@
      que es todo lo que se hace en esta hoja. Las piedras se lo devuelven una
      a una, que son lo único que sí responde. */
   .piedrero{ position:absolute; inset:0; z-index:4; pointer-events:none; }
+  /* QUIETA NO RECIBE NADA, Y ESO NO ES UN DETALLE. Con pointer-events:auto la
+     piedra se volvía el destino de cualquier toque que empezara encima de
+     ella: el papel no podía arrastrarse, el texto de debajo no se podía
+     seleccionar y la glosa no se abría. A 54 px eso es un agujero muerto sobre
+     la lectura, que es justo lo que este adorno no puede hacer. Así que solo
+     responde la que está en edición; a la quieta se llega por el doble toque,
+     que se caza midiendo el punto (ver piedraEnPunto) igual que hace la cinta
+     con toqueEnCinta. Lo levantó la revisión de Codex. */
   .piedra-sitio{ position:absolute; transform:translate(-50%, -50%);
-                 pointer-events:auto; display:grid; place-items:center; }
+                 pointer-events:none; display:grid; place-items:center; }
+  .piedra-sitio.editando{ pointer-events:auto; }
+  /* Y LA QUE SE EDITA VA ENCIMA DE LAS DEMÁS. Dos piedras pueden caer en el
+     mismo punto —la nueva nace siempre en el mismo sitio— y como cada una es
+     su propio contexto de apilado, mandaba la última pintada. La recién puesta
+     quedaba DEBAJO de una vieja, que le robaba el arrastre: no había manera de
+     moverla sin mover antes la otra. También de Codex. */
+  .piedra-sitio.editando{ z-index:2; }
   .piedra{ display:block; width:var(--piedra-tam, 30px); height:var(--piedra-tam, 30px);
            padding:0; border:0; background:none; cursor:pointer;
-           color:#7a6434; opacity:.82;
+           color:#7a6434; opacity:.82;   /* la misma tinta que PIEDRA_TINTA */
            -webkit-tap-highlight-color:transparent;
            filter:drop-shadow(0 1px 1px rgba(60,44,18,.35)); }
   .piedra svg{ display:block; width:100%; height:100%; }
@@ -2838,7 +2853,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-SEP-26 23:34';
+window.GLOSS_BUILD = '02-SEP-26 23:58';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7109,6 +7124,32 @@ function htmlCintaFoto(hojaN){
       'filter:drop-shadow(-1.5px 0 0 rgba(252,247,235,.92))' +
              ' drop-shadow(0 2px 3px rgba(60,40,15,.42))"></div></div>';
 }
+/* LAS PIEDRAS TAMBIÉN ENTRAN EN EL RETRATO, por lo mismo que la cinta: el
+   pliegue esconde la hoja viva y enseña esta foto, así que lo que no esté aquí
+   DESAPARECE durante el giro y reaparece de golpe al aterrizar. Una piedra que
+   parpadea en cada vuelta de hoja no parece pegada al papel, parece un fallo.
+
+   Se dibujan con estilos en línea y el SVG del dibujo repetido, porque el SVG
+   de la foto solo trae PAGE_CSS y no ve la hoja de la aplicación. El sitio va
+   en porcentaje igual que en vivo, así que la foto y la hoja coinciden sin
+   tener que medir nada. Lo levantó la revisión de Codex. */
+function htmlPiedrasFoto(hojaN){
+  if (hojaN == null || typeof piedras === 'undefined' || !piedras.length) return '';
+  const desde = paginas[hojaN] || 0, hasta = finDe(hojaN);
+  const mias = piedras.filter(x => {
+    const k = piedraK(x);
+    return k >= 0 && k >= desde && k < hasta;
+  });
+  if (!mias.length) return '';
+  return '<div style="position:absolute;inset:0;z-index:4;pointer-events:none">' +
+    mias.map(x => {
+      const px = PIEDRA_TAMS[x.tam];
+      return '<div style="position:absolute;left:' + (x.x * 100).toFixed(3) + '%;' +
+        'top:' + (x.y * 100).toFixed(3) + '%;width:' + px + 'px;height:' + px + 'px;' +
+        'margin:' + (-px/2) + 'px 0 0 ' + (-px/2) + 'px;opacity:.82">' +
+        piedraDibujo(x.forma, PIEDRA_TINTA) + '</div>';
+    }).join('') + '</div>';
+}
 function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza, hojaN){
   bodyHTML = aXML(bodyHTML); marginHTML = aXML(marginHTML); footHTML = aXML(footHTML);
   const fs = fontSize+'px', m = mw||'0px', g = gap||'0px';
@@ -7162,6 +7203,7 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza, hojaN){
           ';--mx:'+(med ? 0 : MARGENES[margen][1])+'px'+'">'+
         '<style>'+PAGE_CSS+'</style><div class="pg-inner"'+estInner+'>'+
         htmlCintaFoto(hojaN)+
+        htmlPiedrasFoto(hojaN)+
         '<div class="pg-version"'+estVer+'>'+esc(D.versiones[version].abrev || version)+'</div>'+
         '<div class="pg-cabeza"'+estCab+'>'+esc(cabeza||'')+'</div><div class="pg-cols"'+estCols+'>'+
         '<div class="pg-body" xml:lang="es" lang="es" style="'+estBody+estiloEnLinea()+'">'+bodyHTML+'</div>'+
@@ -10813,8 +10855,25 @@ const PIEDRA_SVG = {
     '<path d="M13.9 7.4c.6 1.6.8 3.2.7 4.9M17.4 11.1c-1.8.4-3.4 1.2-4.8 2.3" fill="none"' +
     ' stroke="#fff" stroke-opacity=".3" stroke-width="1.2" stroke-linecap="round"/>'
 };
-const piedraDibujo = f =>
-  '<svg viewBox="0 0 24 24" aria-hidden="true">' + (PIEDRA_SVG[f] || PIEDRA_SVG.piedra) + '</svg>';
+/* EL xmlns VA SIEMPRE PUESTO, y no es de adorno. En la hoja viva sobra —el
+   navegador ya sabe que un <svg> es un <svg>— pero este mismo dibujo viaja a
+   la FOTO del pliegue, que es un documento XML de verdad. Ahí, un <svg> sin su
+   espacio de nombres se lee como un elemento cualquiera de XHTML y no se pinta
+   NADA: sin error, sin foto rota y sin manera de enterarse mirando. Se vio
+   así: la foto seguía cargando —43 cuadros de pliegue contra 45 sin piedras—
+   pero la piedra no estaba en ella. */
+/* Y LA TINTA SE PUEDE PASAR A PELO, por lo mismo. En la hoja viva el dibujo
+   hereda el color del botón con currentColor, que es lo que hace que la piedra
+   siga el tono del papel. En la foto no hereda: dentro del foreignObject, el
+   `color` del div de fuera no llega al <svg> de dentro, así que currentColor se
+   quedaba sin resolver y solo se pintaban los trazos blancos —la piedra salía
+   como dos rayitas sueltas—. Quien dibuja la foto le pasa el color escrito. */
+const piedraDibujo = (f, tinta) => {
+  const d = PIEDRA_SVG[f] || PIEDRA_SVG.piedra;
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">' +
+    (tinta ? d.split('currentColor').join(tinta) : d) + '</svg>';
+};
+const PIEDRA_TINTA = '#7a6434';
 
 const TELAS = [['carmin', 'carmín', '#9b2a2a', '#7a1f1f'],
                ['oliva',  'oliva',  '#4d6a35', '#3a5127'],
@@ -11424,8 +11483,14 @@ function ponerPiedra(){
   const a = piedraAncla();
   if (!a){ readout.textContent = 'aquí no hay hoja donde dejarla'; return null; }
   const ahora = Date.now();
+  /* NO NACEN UNA ENCIMA DE OTRA. Todas caían en el mismo punto, así que la
+     segunda de una hoja aparecía tapada por la primera y parecía que no se
+     había puesto. Se corren en diagonal según cuántas haya ya en esta hoja, y
+     se da la vuelta cada seis para no salirse del papel. */
+  const n = piedrasDeLaHoja().length % 6;
   const x = { id: piedraNuevoId(), libro: a.libro, cap: a.cap, vers: a.vers,
-              x: .5, y: .45, forma: FORMAS[0], tam: PIEDRA_TAM_POR,
+              x: .5 + n * .055, y: .45 + n * .045,
+              forma: FORMAS[0], tam: PIEDRA_TAM_POR,
               creado: ahora, tocado: ahora };
   piedras.unshift(x);
   piedrasGuardar();
@@ -11486,15 +11551,36 @@ function piedraTamano(id, paso){
    Y una piedra quieta tiene que dejar pasar el resto de la hoja: no traga el
    arrastre del papel ni el toque que abre una glosa. Por eso solo escucha el
    doble toque mientras no está en edición. */
-stage.addEventListener('dblclick', ev => {
-  const cuerpo = ev.target.closest('[data-piedra-cuerpo]');
-  if (!cuerpo) return;
-  ev.preventDefault(); ev.stopPropagation();
-  const id = cuerpo.dataset.piedraCuerpo;
-  if (piedraEditando === id) return;         /* ya estaba: no la cierra */
+/* QUIÉN ESTÁ BAJO ESTE PUNTO. Hace falta porque la piedra quieta no recibe
+   eventos —ver .piedra-sitio— así que ev.target es el texto de debajo y un
+   closest() no la encuentra nunca. Se mide su rectángulo, que es lo mismo que
+   hace la cinta en toqueEnCinta y por el mismo motivo.
+   Se recorre AL REVÉS para que gane la de encima: las últimas del HTML son las
+   que se pintan arriba, y si dos se solapan el dedo tocó la que se ve. */
+function piedraEnPunto(ev){
+  const sitios = [...document.querySelectorAll('.piedra-sitio')];
+  for (let i = sitios.length - 1; i >= 0; i--){
+    const b = sitios[i].querySelector('.piedra');
+    if (!b) continue;
+    const r = b.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) continue;
+    if (ev.clientX >= r.left && ev.clientX <= r.right &&
+        ev.clientY >= r.top && ev.clientY <= r.bottom) return sitios[i].dataset.piedra;
+  }
+  return null;
+}
+function piedraAbrirEdicion(id){
+  if (!id || piedraEditando === id) return false;
   piedraEditando = id;
   pintarPiedras();
   readout.textContent = 'piedra en edición · arrástrala para moverla, tócala para cambiarle la forma';
+  return true;
+}
+stage.addEventListener('dblclick', ev => {
+  const id = piedraEnPunto(ev);
+  if (!id) return;
+  ev.preventDefault(); ev.stopPropagation();
+  piedraAbrirEdicion(id);
 });
 
 /* ARRASTRAR MUEVE, TOCAR CAMBIA LA FORMA, y lo que los distingue es si el dedo
@@ -11562,7 +11648,29 @@ function piedraSoltar(ev){
 window.addEventListener('pointerup', ev => piedraSoltar(ev));
 window.addEventListener('pointercancel', ev => piedraSoltar(ev));
 
+/* CON TECLADO NO HAY DOBLE TOQUE. La piedra es un <button> de verdad y el foco
+   le llega, pero Intro y Espacio mandan un CLIC, no un dblclick: quien navega
+   sin puntero llegaba a la piedra, leía su rótulo —«doble toque para
+   moverla»— y ahí se quedaba, sin manera de moverla, cambiarla ni quitarla.
+   Se distingue por detail: un clic de teclado trae 0, y uno de dedo o ratón
+   trae 1 o más. Así el mismo botón sirve a los dos sin que el dedo dispare
+   esto por su cuenta. Lo levantó Codex. */
 stage.addEventListener('click', ev => {
+  const cuerpo = ev.target.closest('[data-piedra-cuerpo]');
+  if (cuerpo && ev.detail === 0){
+    ev.preventDefault(); ev.stopPropagation();
+    const id = cuerpo.dataset.piedraCuerpo;
+    /* Ya en edición, Intro hace lo que el toque: la siguiente forma. */
+    if (piedraEditando === id) piedraSiguienteForma(id);
+    else piedraAbrirEdicion(id);
+    /* El repintado se lleva el botón que tenía el foco; se le devuelve al que
+       ocupa su sitio, o quien navega con teclado se queda sin dónde estar. */
+    trasPintar(() => {
+      const vuelve = document.querySelector('[data-piedra-cuerpo="' + id + '"]');
+      if (vuelve) vuelve.focus({ preventScroll:true });
+    });
+    return;
+  }
   const acc = ev.target.closest('[data-piedra-acc]');
   if (!acc) return;
   ev.preventDefault(); ev.stopPropagation();
@@ -11573,6 +11681,33 @@ stage.addEventListener('click', ev => {
   else if (acc.dataset.piedraAcc === 'mas') piedraTamano(id, +1);
   else if (acc.dataset.piedraAcc === 'quitar') quitarPiedra(id);
 });
+/* Y LAS FLECHAS LA MUEVEN, que es la otra mitad de poder editarla sin dedo.
+   Un paso es el 2% del papel: bastante para verlo moverse, poco para colocarla
+   con cuidado. Solo con la piedra en edición y con el foco dentro de ella, para
+   no robarle las flechas al paso de hoja. */
+const PIEDRA_PASO = .02;
+document.addEventListener('keydown', ev => {
+  if (!piedraEditando) return;
+  const dentro = document.activeElement &&
+                 document.activeElement.closest &&
+                 document.activeElement.closest('.piedra-sitio');
+  if (!dentro) return;
+  const paso = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] }[ev.key];
+  if (!paso) return;
+  const x = piedraDe(piedraEditando);
+  if (!x) return;
+  ev.preventDefault(); ev.stopPropagation();
+  x.x = Math.min(Math.max(x.x + paso[0] * PIEDRA_PASO, 0), 1);
+  x.y = Math.min(Math.max(x.y + paso[1] * PIEDRA_PASO, 0), 1);
+  x.tocado = Date.now();
+  piedrasGuardar();
+  const sitio = document.querySelector('[data-piedra="' + x.id + '"]');
+  if (sitio){
+    sitio.style.left = (x.x * 100).toFixed(3) + '%';
+    sitio.style.top = (x.y * 100).toFixed(3) + '%';
+  }
+}, true);
+
 /* UN TOQUE FUERA CIERRA LA EDICIÓN. En captura y antes que nadie, como los
    demás paneles. La propia piedra y su mando cuentan como «dentro». */
 document.addEventListener('pointerdown', ev => {

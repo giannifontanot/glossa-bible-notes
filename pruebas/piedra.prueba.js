@@ -37,7 +37,15 @@ async function andamio(p){
       e.dispatchEvent(new PointerEvent('pointerdown', op));
       await window.__pausa(40);
       e.dispatchEvent(new PointerEvent('pointerup', op));
-      e.dispatchEvent(new MouseEvent('click', op));
+      /* EL CLIC DE UN DEDO LLEVA detail:1, Y AQUÍ ESO IMPORTA. Sin ponerlo, un
+         MouseEvent nace con detail 0 — que es justo lo que manda el TECLADO al
+         pulsar Intro sobre un botón, y es como la piedra distingue el dedo del
+         teclado. Sin este 1, el toque sintético se hacía pasar por Intro y
+         abría la edición: la prueba de «quieta, un toque no la abre» cayó por
+         eso, y era el andamio mintiendo, no la aplicación fallando. Es la
+         cuarta regla de la casa otra vez: un evento hecho a mano llega como se
+         escriba, y el de un teléfono no. */
+      e.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, op)));
       return true;
     };
     window.__guardadas = () => {
@@ -201,8 +209,15 @@ async function andamio(p){
        abrirla sin querer. */
     await window.__toque('.piedra'); await window.__pausa(350);
     const traToqueSimple = window.__editando();
-    document.querySelector('.piedra')
-      .dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true }));
+    /* CON COORDENADAS, que un doble toque de verdad las lleva. Y aquí hacen
+       falta de verdad: la piedra quieta no recibe eventos —para no crear un
+       agujero muerto sobre el texto— así que el doble toque se caza midiendo
+       el PUNTO contra su rectángulo, igual que hace la cinta. Sin clientX/Y el
+       evento llega a 0,0 y no cae sobre ninguna piedra. */
+    const rp = document.querySelector('.piedra').getBoundingClientRect();
+    document.querySelector('.piedra').dispatchEvent(new MouseEvent('dblclick',
+      { bubbles:true, cancelable:true, detail:2,
+        clientX: rp.left + rp.width/2, clientY: rp.top + rp.height/2 }));
     await window.__pausa(350);
     const traDoble = window.__editando();
     const papel = document.getElementById('pgBody').getBoundingClientRect();
@@ -345,5 +360,149 @@ async function andamio(p){
   vale('y se guarda', juntos.creo === 1, juntos.creo);
   vale('con la piedra todavía en su sitio', juntos.sigue === true);
 
+  vale('con la piedra todavía en su sitio', juntos.sigue === true);
+
+  /* ================================================================
+     LOS CUATRO DE CODEX, y los cuatro se reprodujeron antes de arreglarlos.
+
+     Son de la misma familia: una piedra es un botón encima del papel, y un
+     botón encima del papel se lleva por delante cosas que no se ven hasta que
+     alguien las busca. */
+  titulo('una piedra quieta no crea un agujero muerto');
+  const muerto = await q.evaluate(() => {
+    const b = document.querySelector('.piedra');
+    const r = b.getBoundingClientRect();
+    /* JUSTO EN SU CENTRO: ¿quién recibiría el toque? Con pointer-events:auto
+       era la piedra, y entonces el papel no se arrastraba, el texto no se
+       seleccionaba y la glosa no se abría — a 54 px, un agujero muerto sobre
+       la lectura. */
+    const encima = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2);
+    return { pe: getComputedStyle(b).pointerEvents,
+             esLaPiedra: !!(encima && encima.closest('.piedra-sitio')),
+             quien: encima ? (encima.className || encima.tagName) : null };
+  });
+  di('en el centro de la piedra', muerto);
+  vale('QUIETA NO RECIBE EL TOQUE', muerto.pe === 'none', muerto.pe);
+  vale('y lo recibe lo que hay debajo', muerto.esLaPiedra === false, muerto.quien);
+
+  titulo('con teclado se puede editar');
+  const teclado = await q.evaluate(async () => {
+    const b = document.querySelector('.piedra');
+    b.focus();
+    const conFoco = document.activeElement === b;
+    /* Intro sobre un botón enfocado manda un CLIC, no un dblclick, y trae
+       detail 0. Sin esto, quien navega sin puntero llegaba a la piedra, leía
+       su rótulo y ahí se quedaba. */
+    const intro = () => document.querySelector('.piedra')
+      .dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, detail:0 }));
+    intro();
+    await window.__pausa(350);
+    const edita = window.__editando();
+    const forma1 = window.__laPiedra().forma;
+    intro();                                   /* ya en edición: cambia la forma */
+    await window.__pausa(350);
+    const forma2 = window.__laPiedra().forma;
+    /* Y las flechas la mueven, que es la otra mitad. */
+    const antes = window.__laPiedra();
+    const foco = document.activeElement;
+    (foco || document).dispatchEvent(new KeyboardEvent('keydown',
+      { key:'ArrowRight', bubbles:true, cancelable:true }));
+    await window.__pausa(250);
+    return { conFoco, edita, forma1, forma2, antes, despues: window.__laPiedra() };
+  });
+  di('con teclado', teclado);
+  vale('el foco llega a la piedra', teclado.conFoco === true);
+  vale('INTRO ABRE LA EDICIÓN', teclado.edita === true, teclado);
+  vale('y otro Intro le cambia la forma', teclado.forma2 !== teclado.forma1,
+       teclado.forma1 + ' → ' + teclado.forma2);
+  vale('las flechas la mueven', teclado.despues.fx > teclado.antes.fx,
+       teclado.antes.fx + ' → ' + teclado.despues.fx);
+
+  titulo('la recién puesta queda ENCIMA de la que ya estaba');
+  const encima = await q.evaluate(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(400);
+    await window.__toque('#btnHistorial'); await window.__pausa(600);
+    await window.__toque('[data-piedra-nueva]'); await window.__pausa(900);
+    const sitios = [...document.querySelectorAll('.piedra-sitio')];
+    const nueva = sitios.find(e => e.classList.contains('editando'));
+    if (!nueva || sitios.length < 2) return { sitios: sitios.length };
+    const r = nueva.querySelector('.piedra').getBoundingClientRect();
+    const quien = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2);
+    const suya = quien && quien.closest('.piedra-sitio');
+    return { sitios: sitios.length, laNueva: nueva.dataset.piedra,
+             recibe: suya ? suya.dataset.piedra : null,
+             /* Y no nacen una encima de otra: se corren en diagonal. */
+             sitiosDistintos: new Set(sitios.map(e => e.style.left + ',' + e.style.top)).size };
+  });
+  di('dos piedras', encima);
+  vale('hay dos', encima.sitios === 2, encima.sitios);
+  /* Cada .piedra-sitio es su propio contexto de apilado, así que mandaba la
+     última pintada: la nueva quedaba DEBAJO de la vieja y no había manera de
+     moverla sin mover antes la otra. */
+  vale('LA NUEVA RECIBE SU PROPIO TOQUE', encima.recibe === encima.laNueva,
+       'la toca ' + encima.recibe + ', la nueva es ' + encima.laNueva);
+  vale('y no nacen en el mismo punto', encima.sitiosDistintos === 2, encima.sitiosDistintos);
+
   await cerrar(dos);
+
+  /* ================================================================
+     LA PIEDRA VIAJA EN LA FOTO DEL PLIEGUE.
+
+     El pliegue esconde la hoja viva y enseña un retrato hecho aparte, así que
+     lo que no esté en él DESAPARECE durante el giro y vuelve de golpe al
+     aterrizar. Una piedra que parpadea en cada vuelta no parece pegada al
+     papel, parece un fallo.
+
+     Se mide contando la tinta de la piedra en el LIENZO, y solo en el cuadro
+     donde cae: en el lienzo entero su tinta se pierde entre la de la letra
+     —773 píxeles sobre 11.850, un 6%— y eso no distingue nada. En su cuadro sí:
+     medido, 801 sin ella y 1.642 con ella, y las dos cifras se repiten clavadas
+     entre vueltas. Sin el arreglo daba 801 contra 801, o sea que no estaba. */
+  titulo('la piedra viaja en la foto del pliegue');
+  const tinta = async (sembrar) => {
+    const ses = await abrir();
+    const w = ses.pagina;
+    await w.evaluate(sembrar);
+    await w.reload();
+    await w.waitForTimeout(3200);
+    const n = await w.evaluate(async () => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      const e = document.getElementById('edgeR');
+      const r = e.getBoundingClientRect();
+      const op = { bubbles:true, pointerId:611, pointerType:'touch', isPrimary:true,
+                   clientX: r.left + r.width/2, clientY: 420 };
+      e.dispatchEvent(new PointerEvent('pointerdown', op));
+      await pausa(60);
+      e.dispatchEvent(new PointerEvent('pointerup', op));
+      await pausa(320);                       /* a media vuelta */
+      const fx = document.getElementById('fx');
+      const g = fx.getContext('2d', { willReadFrequently:true });
+      const cx = Math.round(fx.width * .18), cy = Math.round(fx.height * .30);
+      const lado = 130;
+      const x0 = Math.max(0, cx - lado/2), y0 = Math.max(0, cy - lado/2);
+      const d = g.getImageData(x0, y0, Math.min(lado, fx.width - x0),
+                                       Math.min(lado, fx.height - y0)).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4){
+        if (d[i+3] < 40) continue;
+        if (Math.abs(d[i]-140) < 34 && Math.abs(d[i+1]-121) < 30 && Math.abs(d[i+2]-79) < 30) n++;
+      }
+      await pausa(1600);
+      return n;
+    });
+    await cerrar(ses);
+    return n;
+  };
+  const sinPiedra = await tinta(() => localStorage.removeItem('glossa:piedras:v1'));
+  const conPiedra = await tinta(() => {
+    const hoy = Date.now();
+    localStorage.setItem('glossa:piedras:v1', JSON.stringify([
+      { id:'g', libro:'MAT', cap:1, vers:1, x:.18, y:.30, forma:'piedra',
+        tam:3, creado:hoy, tocado:hoy }]));
+  });
+  di('tinta de piedra en el lienzo', 'sin: ' + sinPiedra + '  ·  con: ' + conPiedra);
+  vale('sin piedra hay tinta de la letra, y poca', sinPiedra > 0, sinPiedra);
+  vale('LA PIEDRA ESTÁ EN LA FOTO', conPiedra > sinPiedra + 300,
+       sinPiedra + ' → ' + conPiedra + ' píxeles');
 })();
