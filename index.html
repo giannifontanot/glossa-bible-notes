@@ -2143,22 +2143,26 @@
   #menu .mc[data-on]{ border-color:#fff; }
   #menu .mcolores{ display:flex; gap:8px; align-items:center; justify-content:center;
                    padding:2px 0 1px; }
-  /* LOS DOS TRAZOS, A MEDIAS EXACTAS. Los dos botones dicen la misma clase de
-     cosa —cómo se dibuja el texto de esta glosa— así que ninguno puede
-     parecer el principal: 1fr y 1fr, y el que está puesto se distingue por el
-     dorado y no por el tamaño.
+  /* LOS TRES, A TERCIOS EXACTOS.
 
-     Y EL OK NO ENTRA EN ESE REPARTO: 1fr 1fr auto, no tres tercios. Los dos
-     primeros eligen cómo se dibuja algo y siguen siendo mitades exactas el uno
-     del otro; el tercero no elige, termina. Dándole un tercio parecería un
-     tercer modo, y midiendo lo que mide su palabra se lee por lo que es: la
-     salida, al final de la fila y donde acaba el gesto. */
-  /* minmax(0,1fr) y no 1fr a secas: 1fr es minmax(AUTO,1fr), o sea que cada
+     Hubo una versión con «1fr 1fr auto»: los dos trazos a medias y el OK
+     midiendo lo que mide su palabra, con el argumento de que el tercero no
+     elige nada, termina, y que darle un tercio lo haría parecer un tercer
+     modo. Mirándolo puesto, lo que se ve es otra cosa: tres botones en una
+     fila y uno más chico que los otros dos, que se lee como que ese vale
+     menos. Y no vale menos —es la salida—.
+
+     A tercios, la fila es una fila y no dos cosas más un apéndice, y lo que
+     distingue al OK es el color, que ya lo distinguía. Es lo mismo que hacen
+     los dos trazos entre sí: el que está puesto se conoce por el dorado y no
+     por el tamaño.
+
+     minmax(0,1fr) y no 1fr a secas: 1fr es minmax(AUTO,1fr), o sea que cada
      columna se niega a bajar del ancho de su palabra, y «▮ resaltado» es más
-     larga que «▁ línea». Con 1fr salían 88 y 68 —medido— y la mitad exacta que
-     pide el párrafo de arriba se perdía en cuanto entró un tercer botón en la
-     fila. Con minmax(0,1fr) las dos ceden igual y vuelven a ser mitades. */
-  #menu .mmodos{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;
+     larga que «▁ línea». Con 1fr salían 88 y 68 —medido— y los tercios
+     exactos se perdían. Con minmax(0,1fr) las tres ceden igual. */
+  #menu .mmodos{ display:grid;
+                 grid-template-columns:repeat(3, minmax(0, 1fr));
                  gap:4px; }
   /* Los dos llevan recuadro, puesto o no. Sin él, el que no está elegido no
      se lee como algo que se pueda tocar —parecía un rótulo al lado de un
@@ -2185,7 +2189,9 @@
      Nunca se apaga, y eso es a propósito: sin texto tampoco es un botón
      muerto —cerrar sin nota es lo que borra la glosa, y el que quiere
      deshacer un subrayado por accidente necesita justo esa salida—. */
-  #menu .mmodos .mok{ padding-left:12px; padding-right:12px; font-weight:700;
+  /* Sin relleno lateral propio: el ancho lo pone la rejilla, y un relleno
+     escrito aquí solo serviría para empujar la palabra contra los bordes. */
+  #menu .mmodos .mok{ padding-left:4px; padding-right:4px; font-weight:700;
                       letter-spacing:.08em; color:#3a2f14;
                       background:#c9a227; border-color:#c9a227; }
   #menu .mmodos .mok:hover{ background:#dbb43a; border-color:#dbb43a; }
@@ -2566,9 +2572,11 @@
        arriba porque es lo primero que se elige. */
     #menu .mcolores{ justify-content:center; gap:12px; padding:2px 0 4px; }
     #menu .mc{ width:34px; height:34px; border-width:3px; }
-    #menu .mmodos{ gap:6px; }
-    #menu .mmodos button{ padding:11px 5px; }
-    #menu .mmodos .mok{ padding-left:14px; padding-right:14px; }
+    /* Con el dedo, los tres siguen siendo tercios y solo crece el alto. El
+       hueco baja a 4: a tercios, seis píxeles entre tres botones se comen el
+       ancho que necesita «▮ resaltado» para no partirse. */
+    #menu .mmodos{ gap:4px; }
+    #menu .mmodos button{ padding:11px 4px; }
     #menu input{ font-size:15px; padding:9px 11px; width:auto; flex:1 1 120px; }
     .tagbox{ gap:6px; }
     /* Estas dos siguen valiendo para el .tagbox de menuVinculos, que no es la
@@ -2838,10 +2846,10 @@
          la pantalla no tiene otra manera de enterarse de que aquí hay un paso
          automático, así que un rótulo que describe un gesto imposible no es un
          detalle: es la única puerta, tapiada. Lo levantó Codex. -->
-    <button data-paso="-1" title="Hoja anterior — arrástralo a la izquierda para que pasen solas, y más lejos para ir más deprisa"
-            aria-label="Hoja anterior. Arrástralo hacia la izquierda para que pasen solas, y más lejos para ir más deprisa.">‹</button>
-    <button data-paso="1" title="Hoja siguiente — arrástralo a la derecha para que pasen solas, y más lejos para ir más deprisa"
-            aria-label="Hoja siguiente. Arrástralo hacia la derecha para que pasen solas, y más lejos para ir más deprisa.">›</button>
+    <button data-paso="-1" title="Hoja anterior — arrástralo a la izquierda y las hojas pasan mientras lo sostengas; más lejos, más deprisa"
+            aria-label="Hoja anterior. Arrástralo hacia la izquierda y las hojas pasan mientras lo sostengas; más lejos, más deprisa.">‹</button>
+    <button data-paso="1" title="Hoja siguiente — arrástralo a la derecha y las hojas pasan mientras lo sostengas; más lejos, más deprisa"
+            aria-label="Hoja siguiente. Arrástralo hacia la derecha y las hojas pasan mientras lo sostengas; más lejos, más deprisa.">›</button>
   </div>
   <button id="btnHistorial" title="Lo que has visto" aria-label="Lo que has visto"></button>
   <div id="historial" role="dialog" aria-label="Escrituras vistas" aria-modal="false"></div>
@@ -2927,7 +2935,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-SEP-26 07:50';
+window.GLOSS_BUILD = '03-SEP-26 11:22';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5079,12 +5087,20 @@ function ocultarMenu(){
      panel de la glosa: la lista de vínculos no nació de un pasaje, así que no
      tiene a dónde recogerse. */
   const adios = (borrador && menu.style.display !== 'none') ? origenDelPanel() : null;
+  /* Con la lista de etiquetas desplegada el panel es más del doble de alto, y
+     eso cambia cómo tiene que irse: se mira ANTES de cerrar el borrador, que
+     es lo que vacía el panel. */
+  const conLista = !!menu.querySelector('.tagbox.abierta');
   const volo = borrador ? cerrarBorrador() : false;
   ultimoRect = null;
   /* Si lo escrito se fue volando a su sitio, no hay nada más que despedir: el
      vuelo ya cuenta la salida, y encoger el panel además sería contarla dos
-     veces. */
-  if (adios && !volo) morirPanel(adios); else guardarMenu();
+     veces. Con la lista abierta sí lo hay —ver morirPanel—: lo que vuela es
+     una nota y lo que se queda sin explicar es media pantalla de etiquetas,
+     así que ésas se funden. */
+  if (adios && !volo) morirPanel(adios);
+  else if (adios && conLista) morirPanel(adios, true);
+  else guardarMenu();
 }
 
 /* ---------- lo que se ve ---------- */
@@ -5366,12 +5382,37 @@ function nacerPanel(){
    falta relleno ninguno: mientras corre mandan los fotogramas, y cuando
    termina el panel ya está donde tiene que estar. Y guardarMenu, que devuelve
    esos dos estilos a su sitio, deja de tener que acertar con el momento. */
-function morirPanel(origen){
+/* DOS MANERAS DE IRSE, Y LA SEGUNDA ES POR LA LISTA DE ETIQUETAS.
+
+   `origen` encoge el panel hacia el pasaje del que salió: es la despedida de
+   cuando NO hay nota, o sea cuando no hay nada que vuele al margen.
+
+   `soloFundido` es un fundido a secas, sin encoger, y existe por un caso muy
+   concreto. Cuando lo escrito sale volando a su sitio, el panel se quitaba de
+   golpe: el vuelo ya contaba la salida, y encoger además era contarla dos
+   veces. Con la lista de etiquetas ABIERTA eso deja de ser cierto. El panel
+   mide entonces más del doble —medido: 355 px solo de lista— y lo que vuela es
+   una nota del tamaño de una nota, así que la mayor parte de lo que hay en
+   pantalla desaparece en un cuadro sin que nada la explique. Se lee como un
+   parpadeo, no como una salida.
+
+   Se funde y no se encoge para no discutir con el vuelo: dos movimientos a la
+   vez —el panel yéndose hacia el pasaje y la nota hacia el margen— son dos
+   historias contadas encima la una de la otra. La opacidad se aparta sin
+   contar nada, que es justo lo que hace falta aquí. */
+function morirPanel(origen, soloFundido){
   const g = ++vidaMenu;
-  menu.style.transformOrigin = origen;
   menu.style.pointerEvents = 'none';
-  menu.style.transform = 'scale(.82)';
   menu.style.opacity = '0';
+  if (soloFundido){
+    const f = menu.animate([{ opacity:1 }, { opacity:0 }],
+      { duration:190, easing:'cubic-bezier(.4,0,.6,1)' });
+    menu._adios = f;
+    f.onfinish = () => { if (g === vidaMenu) guardarMenu(); };
+    return;
+  }
+  menu.style.transformOrigin = origen;
+  menu.style.transform = 'scale(.82)';
   const a = menu.animate([
     { transform:'none', opacity:1 },
     { transform:'scale(.82)', opacity:0 }
@@ -5566,6 +5607,37 @@ const rotuloTags = (abierta, cuantas) =>
    discutiría con esa señal —la lista dormida se abriría hasta opaca del todo
    para volver a apagarse al acabar—. El doblez solo se ve con el alto. */
 const TAGS_MS = 160;
+/* LA LISTA SE COMPONE AL NACER EL PANEL, NO AL ABRIRLA.
+
+   La caja de etiquetas vive con display:none hasta que se despliega, así que
+   sus botones —treinta y pico, cada uno con su letra que medir— no existen
+   para el navegador hasta ese momento. La primera vez que se abre, el
+   manejador tiene que componerlos ENTEROS y encima medirlos en el mismo hilo,
+   y esa cuenta cae justo en el cuadro donde arranca el deslizamiento.
+
+   Medido a un sexto de CPU con 34 etiquetas, medianas de tres tandas: la
+   PRIMERA apertura se llevaba 30 ms de manejador y las siguientes 13. O sea
+   diecisiete milisegundos de castigo la primera vez y ninguno después, que es
+   exactamente lo que se ve —la primera da un tirón y las otras no—.
+
+   Se calienta al nacer el panel y en un turno aparte, cuando el panel ya está
+   pintado y quien lo abrió está leyendo o escribiendo: ahí sobra el tiempo que
+   al desplegar falta. Se compone, se apunta el alto y se vuelve a cerrar. Con
+   esto la primera baja a 19 ms y las siguientes se quedan en 14: el castigo
+   pasa de diecisiete milisegundos a cinco, y las demás no pagan nada por ello
+   —13.2 antes contra 13.9 después, por debajo del ruido de la propia medida—.
+
+   El alto apuntado le ahorra al despliegue su medida a pelo. Vale mientras la
+   lista no CREZCA: poner y quitar etiquetas solo les cambia el color (ver
+   .tg.on), pero crear una nueva añade un botón, y ahí el apunte se tira. */
+function calentarTags(){
+  const caja = menu.querySelector('.tagbox');
+  if (!caja || caja.classList.contains('abierta') || caja._pliegue) return;
+  caja.classList.add('abierta');
+  caja.style.height = ''; caja.style.overflow = '';
+  caja._alto = caja.getBoundingClientRect().height;
+  caja.classList.remove('abierta');
+}
 function plegarTags(caja, abrir){
   if (!caja) return;
   if (caja._pliegue){ caja._pliegue.cancel(); caja._pliegue = null; }
@@ -5579,7 +5651,10 @@ function plegarTags(caja, abrir){
      lado del pliegue. */
   caja.classList.add('abierta');
   caja.style.height = ''; caja.style.overflow = '';
-  const alto = caja.getBoundingClientRect().height;
+  /* Al ABRIR se usa el alto que apuntó calentarTags, si lo hay: es el mismo
+     número y ahorra medir a pelo dentro del manejador, que es donde se notaba.
+     Al cerrar se mide, que la caja ya está compuesta y la medida es barata. */
+  const alto = (abrir && caja._alto) || caja.getBoundingClientRect().height;
   const rematar = () => {
     caja._pliegue = null;
     menu._altoFinal = 0;
@@ -5800,6 +5875,11 @@ function abrirPanel(m, nueva, rect){
   /* Y el alto otra vez al final: el ancla sangra el primer renglón, y una
      sangría cambia dónde parte ese renglón y por tanto cuántos hay. */
   ajustarAlto(menu.querySelector('#glosaCaja'));
+  /* Y la lista de etiquetas se compone ya, en un turno aparte: ver
+     calentarTags. Va con trasPintar y no aquí mismo para no meterle la cuenta
+     al cuadro en el que el panel aparece, que es el que tiene que ir limpio. */
+  const mioTags = vidaMenu;
+  trasPintar(() => { if (mioTags === vidaMenu) calentarTags(); });
   colocarMenu();
   /* Al final del todo: crecer hacia un sitio exige saber dónde acabó el panel,
      y eso no se sabe hasta haberlo medido y colocado. */
@@ -6472,6 +6552,10 @@ function crearTagDeMarca(caja){
   if (menu.querySelector('.tagbox').classList.contains('dormida')) return;
   const t = caja.value.trim(); if (!t) return;
   caja.value = '';
+  /* La lista va a crecer un botón, así que el alto apuntado por calentarTags
+     deja de valer. Se tira; el siguiente despliegue vuelve a medir. */
+  const cajita = menu.querySelector('.tagbox');
+  if (cajita) cajita._alto = 0;
   const actuales = borrador.m.etiquetas || [];
   if (!actuales.includes(t)) borrador.m.etiquetas = actuales.concat(t);
   ultimaEtiqueta = t;
@@ -8713,11 +8797,17 @@ const ladoDePaso = b => (+b.dataset.paso > 0 ? 'right' : 'left');
    acortado no llegaba a aplicarse donde su propio comentario decía: tenía
    razón, y al medirlo resultó que lo que sobraba era el acortado.
 
-   DE RESORTE. Al soltar, el botón vuelve al centro y la velocidad vuelve a la
-   normal; el automático sigue andando. Se eligió así frente a dejar el botón
-   corrido: el paso rápido es para buscar, y buscar es algo que se hace con el
-   dedo puesto y se suelta al llegar. Dejarlo corrido obligaba a volver a tocar
-   para recuperar el paso normal. */
+   DE RESORTE, Y HASTA EL FINAL. Al soltar, el botón vuelve al centro, la
+   velocidad vuelve a la normal Y EL AUTOMÁTICO SE APAGA: las hojas corren
+   mientras el dedo está puesto y se quedan donde están al levantarlo.
+
+   Hubo una versión intermedia en la que el automático seguía andando tras
+   soltar, con el argumento de que buscar se hace mirando. No se sostuvo:
+   soltar un mando es la manera universal de decir «ya», y dejar las hojas
+   corriendo obligaba a un segundo gesto para deshacer algo que nadie pidió —y
+   ese segundo gesto siempre llega tarde, porque entre ver la hoja y alcanzar
+   a tocarla ya pasaron tres—. Un solo gesto que empieza y termina con el
+   dedo. */
 const CORRIDA_MAX = 132;      /* px de recorrido lateral hasta el tope */
 const CORRIDA_MIN = 56;       /* y lo menos que se le deja, por estrecha que sea */
 const CORRIDA_ARRANQUE = 12;  /* px de corrida antes de que esto sea un gesto */
@@ -8774,7 +8864,10 @@ function seguirZoomAuto(){
 $('zoomPasos').addEventListener('click', ev => {
   const b = ev.target.closest('[data-paso]'); if (!b || b.disabled) return;
   ev.preventDefault(); ev.stopPropagation();
-  /* En marcha, un toque solo para. */
+  /* En marcha, un toque solo para. Desde que soltar el acelerador apaga el
+     automático esto casi no llega a correr —al levantar el dedo ya no queda
+     nada andando— pero se queda como red: si algún camino dejara el
+     automático en marcha, un toque tiene que poder pararlo. */
   if (dirZoomAuto){ detenerZoomAuto(); return; }
   darPasoZoom(ladoDePaso(b));
 });
@@ -8901,10 +8994,23 @@ const soltarTiron = (ev, hubo) => {
   const t = tiron;
   tiron = null;
   ponerCorrida(t.b, 0);
-  /* EL ACELERADOR ES DE RESORTE: el botón vuelve al centro y la velocidad a la
-     normal, pero el automático sigue andando. El barrido rápido es para
-     buscar, y buscar se hace con el dedo puesto y se suelta al llegar. */
+  /* SOLTAR ES PARAR, Y ESTO CAMBIÓ.
+
+     Antes el botón volvía al centro pero las hojas seguían pasando solas, con
+     el argumento de que el barrido rápido es para buscar y buscar se hace
+     mirando. Usándolo no se sostiene: soltar un mando es la manera universal
+     de decir «ya», y quedarse con las hojas corriendo obliga a un segundo
+     gesto —tocar para parar— para deshacer algo que no se pidió. Peor aún,
+     ese segundo gesto llega tarde: entre que ves la hoja que buscabas y
+     alcanzas a tocar, ya pasaron tres.
+
+     Ahora el mando es de resorte entero: el botón vuelve al centro, la
+     velocidad vuelve a cero y el automático se apaga. Mientras el dedo está
+     puesto, las hojas corren; al levantarlo, se quedan donde están. La hoja
+     que estuviera plegándose termina su giro —no se corta a media vuelta—,
+     que es lo único que sigue después de soltar. */
   veloZoom = 0;
+  detenerZoomAuto();
   try { t.b.releasePointerCapture(t.id); } catch(_){}
   /* El clic de levantar el dedo se tira si el gesto hizo algo: arrancar el
      automático, o correr el acelerador. Los dos apagarían con ese clic lo que
@@ -9045,9 +9151,15 @@ function cabezaHistorial(){
      familia, «nuevo» bastaba; con dos, dos botones que dicen lo mismo no se
      distinguen. Cada uno dice LO QUE DEJA —una piedra, una cinta— que además
      es más corto y es lo que hace que los tres quepan. */
+  /* EL ORDEN ES PIEDRA, CINTA, ATRÁS, y el paso atrás va el último a
+     propósito. Los dos primeros DEJAN algo en esta hoja —son la misma clase
+     de gesto, y juntos se leen como un par— mientras que el tercero se va de
+     aquí. Poniendo el de irse en medio, o el primero, la fila no se lee como
+     «dos cosas que puedes dejar y una salida», sino como tres botones
+     sueltos. Y el que se va queda donde termina la lectura de la fila, que es
+     donde uno espera encontrar la puerta. */
   return '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span></div>' +
     '<div class="hs-acciones">' +
-    pieAtras() +
     '<button class="hs-sep" data-piedra-nueva="1"' +
       ' title="Dejar una piedra en esta hoja"' +
       ' aria-label="Dejar una piedra en esta hoja">' +
@@ -9057,6 +9169,7 @@ function cabezaHistorial(){
       ' title="Dejar un separador en esta hoja"' +
       ' aria-label="Dejar un separador en esta hoja">' +
       '<span class="hs-sep-cinta" aria-hidden="true"></span>cinta</button>' +
+    pieAtras() +
     '</div>';
 }
 /* EL PIE, con la puerta a las cintas que ya hay.

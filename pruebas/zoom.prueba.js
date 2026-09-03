@@ -526,6 +526,10 @@ const comoVan = r => {
     const n = c => (String(c).match(/[\d.]+/g) || []).slice(0, 3).join(',');
     return n(a) === n(b);
   };
+  /* Un número comparable a partir de «Mateo 2:13–2:23»: capítulo y versículo
+     del principio. Sirve para medir cuántas hojas se movió algo sin tener que
+     saber cuántos versículos lleva cada una. */
+  const refN = x => { const m = /(\d+):(\d+)/.exec(x || ''); return m ? +m[1]*1000 + +m[2] : 0; };
   di('el automático', await p.evaluate(async () => {
     document.getElementById('btnZoom').click();
     await new Promise(z => setTimeout(z, 1200));
@@ -538,7 +542,15 @@ const comoVan = r => {
        toque, así que el botón no se mueve ni arranca nada. Ahí está la
        frontera con el toque, que sigue significando otra cosa.
        `alto` sirve para probar lo que NO arranca: un dedo que solo sube. */
-    const empujar = (b, ancho, alto) => {
+    /* SOSTENIENDO EL DEDO, Y ESTO ES LO QUE CAMBIÓ.
+
+       Antes el empujón terminaba con su pointerup y se miraba el color
+       después: valía porque el automático seguía andando tras soltar. Ahora
+       soltar APAGA, así que mirar después de soltar diría siempre «apagado» y
+       la comprobación pasaría en verde sin haber probado nada —el peor de los
+       falsos verdes—. Se sostiene el dedo, se mira, y se suelta aparte. */
+    let pendiente = null;
+    const empujar = (b, ancho, alto, sostener) => {
       const r = b.getBoundingClientRect();
       const x = r.left + r.width/2, y = r.top + r.height/2;
       const ev = (t, cx, cy) => b.dispatchEvent(new PointerEvent(t,
@@ -548,9 +560,11 @@ const comoVan = r => {
       ev('pointermove', x + Math.min(6, ancho), y);
       const aMedias = b.style.transform;
       ev('pointermove', x + ancho, y - (alto || 0));
-      ev('pointerup', x + ancho, y - (alto || 0));
+      const fin = () => ev('pointerup', x + ancho, y - (alto || 0));
+      if (sostener) pendiente = fin; else fin();
       return aMedias;
     };
+    const soltar = () => { if (pendiente){ pendiente(); pendiente = null; } };
     /* UN TOQUE DE VERDAD EMPIEZA POR UN pointerdown, y aquí importa: al soltar
        el desliz queda puesto un tragador que se come el clic de ese mismo
        gesto —si no, el clic de levantar el dedo apagaría lo que el desliz
@@ -569,11 +583,12 @@ const comoVan = r => {
       el.dispatchEvent(new PointerEvent('pointerup',
         { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
     };
-    const aMedias = empujar(b[1], 30, 0);
+    const aMedias = empujar(b[1], 30, 0, true);
     await new Promise(z => setTimeout(z, 400));
-    const enMarcha = [color(0), color(1)];
-    /* un toque para, y con él se tiene que apagar */
-    tocar(b[1]);
+    const enMarcha = [color(0), color(1)];       /* con el dedo todavía puesto */
+    /* SOLTAR PARA, y con ello se tiene que apagar. Antes esto lo hacía un
+       toque aparte y el automático seguía andando hasta que lo dieras. */
+    soltar();
     await new Promise(z => setTimeout(z, 700));
     const trasParar = [color(0), color(1)];
     /* LO QUE NO ARRANCA, que es donde vive el riesgo desde que basta con
@@ -582,12 +597,19 @@ const comoVan = r => {
          propio lado, y un dedo que solo sube se aleja cero.
        · CORRERLO AL LADO CONTRARIO. Para el otro sentido está el otro botón;
          éste no se pone del revés. */
-    empujar(b[1], 0, 60);
+    /* Los dos se miran CON EL DEDO PUESTO, por lo mismo que arriba: soltando
+       primero, un gesto que sí hubiera arrancado saldría apagado y esto pasaría
+       en verde justo cuando hay algo que contar. */
+    empujar(b[1], 0, 60, true);
     await new Promise(z => setTimeout(z, 500));
     const trasSubir = [color(0), color(1)];
-    empujar(b[1], -60, 0);
+    soltar();
+    await new Promise(z => setTimeout(z, 300));
+    empujar(b[1], -60, 0, true);
     await new Promise(z => setTimeout(z, 500));
     const trasAlReves = [color(0), color(1)];
+    soltar();
+    await new Promise(z => setTimeout(z, 300));
     /* Si alguno hubiera arrancado —que es el fallo que esto vigila— se apaga
        antes de seguir: la sección de después mide, y no se mide con hojas
        pasando. */
@@ -621,12 +643,14 @@ const comoVan = r => {
     vale('en reposo, ninguno encendido',
          mismoColor(r.enReposo[0], r.enReposo[1]) && !mismoColor(r.enReposo[1], MARRON),
          r.enReposo[1]);
-    vale('con el automático, se pinta el suyo', mismoColor(r.enMarcha[1], MARRON), r.enMarcha[1]);
+    vale('con el dedo puesto, se pinta el suyo', mismoColor(r.enMarcha[1], MARRON), r.enMarcha[1]);
     /* Los otros dos comparan un color leído EN REPOSO contra uno leído con una
        animación en marcha, que es justo cuando cambia el formato. Misma
        trampa, mismo remedio. */
     vale('y solo el suyo', mismoColor(r.enMarcha[0], r.enReposo[0]), r.enMarcha[0]);
-    vale('al parar se apaga', mismoColor(r.trasParar[1], r.enReposo[1]), r.trasParar[1]);
+    /* AL SOLTAR SE APAGA. Antes hacía falta un toque aparte para pararlo, y
+       soltar dejaba las hojas corriendo solas. */
+    vale('AL SOLTAR SE APAGA', mismoColor(r.trasParar[1], r.enReposo[1]), r.trasParar[1]);
     /* Seis píxeles es temblor de dedo, no gesto: ni mueve el botón ni arranca.
        Es la frontera con el toque, que significa otra cosa. */
     vale('a seis píxeles el botón no se ha movido', !/translate/.test(r.aMedias || ''),
@@ -745,9 +769,12 @@ const comoVan = r => {
     return r;
   }));
 
-  /* La otra mitad del acelerador: es de RESORTE. Al soltar, el botón vuelve al
-     centro y la velocidad a la normal, pero el automático sigue andando —lo
-     que se soltó fue el acelerador, no el motor—. */
+  /* La otra mitad del acelerador: es de RESORTE ENTERO. Al soltar, el botón
+     vuelve al centro, la velocidad vuelve a la normal Y EL AUTOMÁTICO SE
+     APAGA. Hubo una versión intermedia en la que el motor seguía andando tras
+     soltar —«lo que se soltó fue el acelerador, no el motor»— y no se
+     sostuvo: soltar un mando es decir «ya», y dejar las hojas corriendo
+     obligaba a un segundo gesto para deshacer algo que nadie pidió. */
   di('al soltar el acelerador', await p.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     const b = [...document.querySelectorAll('#zoomPasos [data-paso]')][1];
@@ -767,17 +794,20 @@ const comoVan = r => {
     const rb = b.getBoundingClientRect();
     const st = document.querySelector('.stage').getBoundingClientRect();
     const seSale = Math.round(Math.max(rb.right - st.right, st.left - rb.left));
+    /* CON EL DEDO PUESTO, para tener contra qué comparar el después: sin esta
+       lectura, «apagado tras soltar» no distingue el arreglo de un gesto que
+       no arrancó nunca. */
+    await pausa(300);
+    const conElDedo = getComputedStyle(b).backgroundColor;
     ev('pointerup', window.innerWidth - 1, y);
     await pausa(400);
     const trasSoltar = b.style.transform;
     const sigue = getComputedStyle(b).backgroundColor;
-    b.dispatchEvent(new PointerEvent('pointerdown',
-      { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
-    b.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
-    b.dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, cancelable:true, pointerId:11, pointerType:'touch' }));
-    await pausa(700);
-    const parado = getComputedStyle(b).backgroundColor;
+    /* Y las hojas se quedan donde estaban: el color dice que el motor se
+       apagó, esto dice que además dejó de pasar hojas. */
+    const hojaAlSoltar = (window.__estado || '').split('·')[0].trim();
+    await pausa(1800);
+    const hojaDespues = (window.__estado || '').split('·')[0].trim();
     /* EL CANDADO: soltar el dedo FUERA del botón no puede dejar el mando
        muerto. Estos botones se apagan solos al acabarse el libro, y un botón
        deshabilitado no reparte eventos de puntero: quien deja el dedo puesto
@@ -809,14 +839,21 @@ const comoVan = r => {
       { bubbles:true, clientX:Math.round(rp.left + rp.width/2),
         clientY:Math.round(rp.bottom + 60) }));
     await pausa(800);
-    return { corrido, trasSoltar, sigue, parado, seSale, trasSoltarFuera };
+    return { corrido, trasSoltar, conElDedo, sigue, seSale, trasSoltarFuera,
+             hojaAlSoltar, hojaDespues };
   }).then(r => {
     vale('el botón se corre con el dedo', /translateX\(\d/.test(r.corrido || ''),
          r.corrido || '(nada)');
     vale('  y no se sale de la escena', r.seSale <= 0, r.seSale + 'px');
     vale('  y al soltar vuelve al centro', !r.trasSoltar, r.trasSoltar || '(sin transform)');
-    vale('  pero el automático sigue', mismoColor(r.sigue, MARRON), r.sigue);
-    vale('  y un toque lo para', !mismoColor(r.parado, MARRON), r.parado);
+    vale('  con el dedo puesto el motor va', mismoColor(r.conElDedo, MARRON), r.conElDedo);
+    vale('  Y AL SOLTAR SE APAGA', !mismoColor(r.sigue, MARRON), r.sigue);
+    /* La hoja que estuviera plegándose termina su giro; más de una serían las
+       hojas siguiendo solas, que es lo que este cambio vino a quitar. */
+    vale('  y las hojas dejan de pasar',
+         r.hojaAlSoltar === r.hojaDespues ||
+         Math.abs(refN(r.hojaDespues) - refN(r.hojaAlSoltar)) < 25,
+         r.hojaAlSoltar + '  →  ' + r.hojaDespues);
     vale('soltar el dedo fuera no deja el mando muerto',
          mismoColor(r.trasSoltarFuera, MARRON), r.trasSoltarFuera);
     return r;

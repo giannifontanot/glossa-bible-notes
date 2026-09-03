@@ -464,11 +464,17 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     const modos = [...m.querySelectorAll('.mmodos button[data-modo]')];
     const ok = m.querySelector('.mmodos [data-acc="ok"]');
     const tags = m.querySelector('.tagbox');
-    /* La fila mide: los dos trazos van a medias EXACTAS y el OK toma lo que
-       necesita. Con grid-template-columns:1fr 1fr auto no salía así —1fr es
-       minmax(auto,1fr), o sea que la columna no baja de su contenido y la de
-       la palabra larga se comía a la otra: 88 contra 68—. Por eso se miden. */
+    /* LOS TRES A TERCIOS EXACTOS, y se miden porque con 1fr a secas no salen:
+       1fr es minmax(auto,1fr), o sea que la columna no baja de su contenido y
+       la de la palabra larga se come a las otras —88 contra 68, medido—.
+
+       Hubo una versión con «1fr 1fr auto», con el OK midiendo lo que mide su
+       palabra: los dos trazos a medias y el tercero más chico. Se cambió
+       mirándolo puesto —tres botones en fila y uno más pequeño se lee como que
+       ese vale menos, y es la salida—. Ahora lo que distingue al OK es el
+       color, igual que a los trazos entre sí. */
     const anchos = modos.map(b => Math.round(b.getBoundingClientRect().width));
+    const fila = m.querySelector('.mmodos');
     return {
       salio: getComputedStyle(m).display !== 'none',
       colores: m.querySelectorAll('.mc').length,
@@ -477,6 +483,9 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       hayOk: !!ok,
       anchos,
       anchoOk: ok ? Math.round(ok.getBoundingClientRect().width) : 0,
+      altos: [...m.querySelectorAll('.mmodos button')]
+               .map(b => Math.round(b.getBoundingClientRect().height)),
+      hueco: fila ? parseFloat(getComputedStyle(fila).gap) : -1,
       /* SIN TEXTO EL OK SIGUE ACTIVO. Apagarlo sería mentir: sin texto,
          terminar es lo que borra la glosa, y ése es un camino que existe. */
       okApagado: ok ? (ok.disabled === true ||
@@ -505,8 +514,18 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     vale('el OK está en la fila', r.hayOk === true);
     vale('los dos trazos siguen midiendo lo mismo',
          r.anchos.length === 2 && Math.abs(r.anchos[0] - r.anchos[1]) <= 1, r.anchos);
-    vale('y el OK no es un tercio, es lo justo',
-         r.anchoOk > 0 && r.anchoOk < r.anchos[0], r.anchoOk + '  vs  ' + r.anchos[0]);
+    /* Y EL OK MIDE LO MISMO QUE ELLOS. Antes medía lo justo de su palabra y
+       era el más chico de los tres; puesto en pantalla, eso se leía como que
+       la salida valía menos que los dos modos. */
+    vale('Y EL OK MIDE LO MISMO: los tres a tercios',
+         r.anchoOk > 0 && Math.abs(r.anchoOk - r.anchos[0]) <= 1,
+         r.anchoOk + '  vs  ' + r.anchos.join(' / '));
+    vale('y los tres, del mismo alto',
+         r.altos.length === 3 && new Set(r.altos).size === 1, r.altos.join(' / '));
+    /* Separados por unos pocos píxeles: pegados se leen como un solo bloque
+       partido, y con mucho hueco «▮ resaltado» ya no cabe sin partirse. */
+    vale('separados por unos pocos píxeles',
+         r.hueco > 0 && r.hueco <= 8, r.hueco + 'px');
     vale('SIN TEXTO EL OK SIGUE ACTIVO', r.okApagado === false, r.okApagado);
     vale('macizo, y los trazos de contorno', r.okMacizo !== r.modoMacizo,
          r.okMacizo + '  vs  ' + r.modoMacizo);
@@ -1870,6 +1889,87 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     (document.getElementById('indice').textContent || '').includes('la nueva sin etiqueta'));
   vale('y sale en la lista de glosas', enLista === true);
   await cerrarParcial(filtros, 'filtros');
+
+  /* ================================================================
+     LA LISTA DE ETIQUETAS: CÓMO LLEGA Y CÓMO SE VA.
+
+     Dos cosas que no se ven mirando una captura, y por eso se miden aquí:
+
+     1. QUE ESTÉ COMPUESTA ANTES DE PEDIRLA. La caja vive con display:none, así
+        que sus botones no existen para el navegador hasta que se despliega, y
+        la primera apertura pagaba componerlos y medirlos dentro del manejador.
+        Medido a un sexto de CPU con 34 etiquetas: 30 ms la primera y 13 las
+        siguientes. Se calienta al nacer el panel; lo que se comprueba es que
+        el alto quedó apuntado, que es la huella de que se compuso.
+
+     2. QUE EL PANEL NO DESAPAREZCA DE GOLPE con la lista abierta. Cuando lo
+        escrito sale volando al margen, el panel se quitaba en un cuadro: el
+        vuelo contaba la salida. Con la lista desplegada el panel mide más del
+        doble, y lo que vuela sigue siendo una nota, así que media pantalla se
+        esfumaba sin que nada la explicara. Se mide contando CUADROS: con el
+        fallo puesto, uno.
+     ================================================================ */
+  const etiq = await abrir();
+  const e = etiq.pagina;
+  await conGlosas(e);
+  titulo('la lista de etiquetas se compone antes de pedirla');
+  const lista = await e.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const v = document.querySelector('#pgBody .v');
+    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
+    if (!n) return { sinTexto:true };
+    const rg = document.createRange(); rg.setStart(n, 0); rg.setEnd(n, 15);
+    getSelection().removeAllRanges(); getSelection().addRange(rg);
+    const rc = rg.getBoundingClientRect();
+    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+      { bubbles:true, clientX: Math.round(rc.left + 2), clientY: Math.round(rc.top + 2) }));
+    await pausa(800);
+    const m = document.getElementById('menu');
+    const caja = m.querySelector('.tagbox');
+    /* La huella de calentarTags: el alto apuntado con la caja todavía cerrada. */
+    const calentada = !!caja && caja._alto > 0;
+    const cerradaAun = !!caja && !caja.classList.contains('abierta');
+    /* Con nota, que la lista dormida no responde. */
+    const ta = document.getElementById('glosaCaja');
+    ta.value = 'nota para las etiquetas';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await pausa(300);
+    const bt = m.querySelector('[data-acc="vertags"]');
+    bt.dispatchEvent(new MouseEvent('click', { bubbles:true, detail:1 }));
+    await pausa(900);
+    const abierta = caja.classList.contains('abierta');
+    const altoPanel = Math.round(m.getBoundingClientRect().height);
+    /* Y ahora se cierra tocando fuera, filmando cuadro a cuadro cómo se va. */
+    const cuadros = [];
+    const t0 = performance.now();
+    const peli = (async () => {
+      while (performance.now() - t0 < 700){
+        const cs = getComputedStyle(m);
+        if (cs.display !== 'none') cuadros.push(+(+cs.opacity).toFixed(2));
+        await new Promise(z => requestAnimationFrame(z));
+      }
+    })();
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await peli;
+    return { calentada, cerradaAun, alto: Math.round(caja._alto || 0), abierta, altoPanel,
+             cuadros: cuadros.length, opacidades: cuadros.join(' ') };
+  });
+  di('la lista', { compuesta: lista.calentada, alto: lista.alto,
+                   altoDelPanel: lista.altoPanel, cuadrosAlIrse: lista.cuadros });
+  di('las opacidades', lista.opacidades);
+  vale('SE COMPONE AL NACER EL PANEL, sin esperar a que la pidan',
+       lista.calentada === true, 'alto apuntado: ' + lista.alto + ' px');
+  vale('  y se queda cerrada, que es como nace', lista.cerradaAun === true);
+  vale('la lista se despliega', lista.abierta === true);
+  /* Con el fallo puesto esto daba 1: el panel se quitaba en un cuadro. */
+  vale('Y EL PANEL SE VA FUNDIÉNDOSE, no de golpe',
+       lista.cuadros >= 5, lista.cuadros + ' cuadros');
+  vale('  bajando la opacidad hasta cero',
+       /0\.\d/.test(lista.opacidades || '') && / 0$/.test(' ' + (lista.opacidades || '')),
+       lista.opacidades);
+  await cerrarParcial(etiq, 'la lista de etiquetas');
 
   await cerrar(sesion);
 })();
