@@ -674,12 +674,22 @@ async function andamio(p){
      carmín de la hoja salía sepia durante el giro y volvía a carmín al
      aterrizar. No se ve mirando: hay que contar el rojo. Se cuenta el CARMÍN,
      que en la hoja no existe —la letra es sepia y el papel es hueso— así que
-     cualquier cantidad apreciable solo puede venir de la piedra. */
+     cualquier cantidad apreciable solo puede venir de la piedra.
+
+     TAMAÑO 4 Y NO 3, y esto lo dijo la propia prueba fallando. Con el 3 salen
+     192 píxeles: la piedra SÍ viaja con su color —contra un suelo de 0 no hay
+     otra manera de que aparezca ni uno— pero 192 no pasa el margen de 300, que
+     venía copiado del bloque del sepia sin volver a medirlo aquí. El sepia
+     tiene que despegarse de la letra de la hoja, que ya pone 801 de por sí; el
+     carmín parte de cero y su cuenta es toda de la piedra, así que lo único
+     que hacía falta era una piedra que dejara bastante tinta. Con el 4 son
+     600, la misma cifra que mide el bloque de abajo y clavada entre vueltas.
+     El fallo era del umbral, no de la aplicación. */
   const carmin = await tinta(() => {
     const hoy = Date.now();
     localStorage.setItem('glossa:piedras:v1', JSON.stringify([
       { id:'c', libro:'MAT', cap:1, vers:1, x:.18, y:.30, forma:'piedra',
-        tam:3, color:'carmin', creado:hoy, tocado:hoy }]));
+        tam:4, color:'carmin', creado:hoy, tocado:hoy }]));
   }, CARMIN);
   const sinCarmin = await tinta(() => localStorage.removeItem('glossa:piedras:v1'), CARMIN);
   di('tinta carmín en el lienzo', 'sin: ' + sinCarmin + '  ·  con: ' + carmin);
@@ -701,8 +711,7 @@ async function andamio(p){
      carmín en el cuadro, la misma cifra clavada entre vueltas, y sin piedra
      el cuadro da 0 —el carmín no existe en la hoja, que es sepia sobre hueso—
      así que el margen de 300 va al doble de holgura sobre un fondo de cero.
-     El tamaño 4 y no el 3 porque el 3 da 192, demasiado cerca del margen.
-     Lo levantó Codex. */
+     Tamaño 4 como el bloque de arriba, y por lo mismo. Lo levantó Codex. */
   const traRetocar = await tinta(() => {
     const hoy = Date.now();
     localStorage.setItem('glossa:piedras:v1', JSON.stringify([
