@@ -181,6 +181,9 @@ async function ponerAMano(p){
   di('la cinta', mano.cinta);
   vale('el botón está en el panel, con el paso atrás',
        mano.hubo && mano.enLaCabecera, mano.rotulo);
+  /* Se llama NUEVO y no «separador», y el nombre corto es lo que hace que los
+     dos botones quepan en un renglón: ver el bloque de abajo. */
+  vale('y se llama «nuevo»', mano.rotulo === 'nuevo', mano.rotulo);
   vale('pone un separador', mano.guardadas.length === 1, mano.guardadas);
   vale('y sale la cinta', !!mano.cinta);
   vale('cuelga en el borde izquierdo de la columna', mano.cinta && mano.cinta.dentro);
@@ -739,6 +742,82 @@ async function ponerAMano(p){
   vale('pero lo demás de la otra pestaña sí se funde',
        conOtraPestana.color === 'oliva', conOtraPestana.color);
   vale('y la fila enseña lo que dice el aviso', conOtraPestana.enLaFila === true);
+
+  /* ================================================================
+     EL RENGLÓN DE LOS BOTONES, Y LAS CUATRO TELAS DEL PIE.
+
+     Dos cosas de sitio, y las dos se miden porque una hoja de estilos no
+     avisa cuando deja de cumplirlas.
+
+     · LOS DOS BOTONES EN UN RENGLÓN. El paso atrás vivía arriba con el rótulo
+       y el del separador debajo, en su propio renglón. Los tres juntos no
+       cabían —está medido en el código— porque «separador» es una palabra
+       larga; llamándolo «nuevo» caben los dos y el panel gana un renglón. Se
+       exige que compartan la línea Y que no desborden el panel: forzarlos a
+       una línea sin mirar el ancho es cambiar un renglón de más por un botón
+       cortado.
+     · EL PIE ENSEÑA LA COLECCIÓN. Llevaba UNA cinta, el mismo dibujo que el
+       botón de poner una, así que no distinguía «pon una» de «velas todas».
+       Ahora lleva una de cada color, sacadas de TELAS.
+
+     El rastro se siembra a mano: hace falta que HAYA paso atrás, y eso pide un
+     salto previo. Se hace al final de la tanda para no moverle el rastro a los
+     bloques de arriba. */
+  titulo('los dos botones comparten renglón, y el pie enseña las cuatro telas');
+  await p.evaluate(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(400);
+    localStorage.setItem('glossa:historial:v1', JSON.stringify([
+      { libro:'MAT', cap:1, vers:1, t: Date.now() - 9000 },
+      { libro:'MRK', cap:2, vers:3, t: Date.now() - 5000 }
+    ]));
+  });
+  await p.reload();
+  await p.waitForTimeout(3200);
+  await andamio(p);
+  const renglon = await p.evaluate(async () => {
+    await window.__toque('#btnHistorial');
+    await window.__pausa(600);
+    const panel = document.getElementById('historial');
+    const cab = panel.querySelector('.hs-cab');
+    const acciones = panel.querySelector('.hs-acciones');
+    const atras = panel.querySelector('.hs-atras');
+    const nuevo = panel.querySelector('[data-sep-nuevo]');
+    const lista = panel.querySelector('[data-sep-lista]');
+    if (!atras || !nuevo || !lista) return { falta:true, atras:!!atras, nuevo:!!nuevo };
+    const r = e => e.getBoundingClientRect();
+    const rp = r(panel), ra = r(atras), rn = r(nuevo), rl = r(lista);
+    return {
+      rotuloSolo: cab.children.length === 1,
+      juntos: atras.parentElement === acciones && nuevo.parentElement === acciones,
+      mismoRenglon: Math.abs(ra.top - rn.top) < 8,
+      /* Y CABEN DE VERDAD: los dos anchos y su hueco, contra el panel. */
+      ocupan: Math.round(ra.width + rn.width + 8), panel: Math.round(rp.width),
+      dentro: ra.left >= rp.left - 1 && rn.right <= rp.right + 1 &&
+              rl.right <= rp.right + 1,
+      /* El pie: cuatro telas distintas y el rótulo nuevo. */
+      pie: lista.textContent.trim(),
+      telas: [...lista.querySelectorAll('.hs-sep-cinta')]
+               .map(c => getComputedStyle(c).backgroundColor),
+      /* Y el de poner una sigue llevando UNA, que es lo que lo distingue. */
+      unaSola: nuevo.querySelectorAll('.hs-sep-cinta').length
+    };
+  });
+  di('el renglón de los botones', renglon);
+  vale('hay paso atrás y hay botón de poner', renglon.falta !== true, renglon);
+  vale('el rótulo se queda solo arriba', renglon.rotuloSolo === true);
+  vale('LOS DOS BOTONES COMPARTEN RENGLÓN',
+       renglon.juntos === true && renglon.mismoRenglon === true, renglon);
+  vale('y caben con hueco de sobra', renglon.ocupan < renglon.panel - 12,
+       renglon.ocupan + ' de ' + renglon.panel + ' px');
+  vale('nada se sale del panel', renglon.dentro === true);
+  vale('el pie dice «actuales»', renglon.pie === 'actuales', renglon.pie);
+  vale('con UNA TELA DE CADA COLOR',
+       (renglon.telas || []).length === 4 && new Set(renglon.telas).size === 4,
+       renglon.telas);
+  /* Si los dos llevaran el mismo dibujo volveríamos al problema de origen: no
+     se distinguiría «pon una» de «velas todas». */
+  vale('y el de poner sigue llevando una sola', renglon.unaSola === 1, renglon.unaSola);
 
   /* ================================================================
      CON TECLADO, LA VENTANITA TIENE QUE RECIBIR EL FOCO.
