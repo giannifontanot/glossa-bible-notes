@@ -2935,7 +2935,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-SEP-26 11:22';
+window.GLOSS_BUILD = '03-SEP-26 14:12';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5622,20 +5622,34 @@ const TAGS_MS = 160;
 
    Se calienta al nacer el panel y en un turno aparte, cuando el panel ya está
    pintado y quien lo abrió está leyendo o escribiendo: ahí sobra el tiempo que
-   al desplegar falta. Se compone, se apunta el alto y se vuelve a cerrar. Con
-   esto la primera baja a 19 ms y las siguientes se quedan en 14: el castigo
-   pasa de diecisiete milisegundos a cinco, y las demás no pagan nada por ello
-   —13.2 antes contra 13.9 después, por debajo del ruido de la propia medida—.
+   al desplegar falta. Se compone y se vuelve a cerrar; con eso el navegador ya
+   ha resuelto los estilos y medido las letras de los treinta y pico botones.
+   Medido igual, medianas de tres tandas: la primera apertura pasa de 25.6 ms a
+   14.8 y las siguientes se quedan en 11, o sea que el castigo de la primera
+   vez desaparece y las demás no pagan nada por ello.
 
-   El alto apuntado le ahorra al despliegue su medida a pelo. Vale mientras la
-   lista no CREZCA: poner y quitar etiquetas solo les cambia el color (ver
-   .tg.on), pero crear una nueva añade un botón, y ahí el apunte se tira. */
+   Y NO SE APUNTA EL ALTO, que es lo que había aquí y hubo que quitar.
+
+   La idea era ahorrarle al despliegue su medida a pelo. No ahorraba nada
+   —medido: 14.8 ms con el apunte y 14.8 sin él, o sea que todo el beneficio
+   viene de haber compuesto la caja— y a cambio traía un número que se
+   quedaba viejo. Lo levantó el dueño al correr las pruebas: cambiando el
+   ancho de 412 a 320, el apunte seguía diciendo 61.33 px cuando el alto de
+   verdad ya era 74.80. Y estaba mal desde antes de redimensionar: al
+   componerse la caja en el turno del calentamiento todavía faltaba una
+   reflujo por llegar, así que apuntaba 291 donde la lista mide 355.
+
+   Un número guardado que hay que invalidar cuando cambia el ancho, cuando
+   crece la lista, cuando cambia el tipo de letra y cuando termina de cargar
+   una fuente es un número que va a estar mal alguna de esas veces. Medir en
+   el momento no se equivoca nunca, y aquí no costaba nada. */
 function calentarTags(){
   const caja = menu.querySelector('.tagbox');
   if (!caja || caja.classList.contains('abierta') || caja._pliegue) return;
   caja.classList.add('abierta');
   caja.style.height = ''; caja.style.overflow = '';
-  caja._alto = caja.getBoundingClientRect().height;
+  /* Se pide el rectángulo para FORZAR la composición, no para guardarlo. */
+  caja.getBoundingClientRect();
   caja.classList.remove('abierta');
 }
 function plegarTags(caja, abrir){
@@ -5651,10 +5665,8 @@ function plegarTags(caja, abrir){
      lado del pliegue. */
   caja.classList.add('abierta');
   caja.style.height = ''; caja.style.overflow = '';
-  /* Al ABRIR se usa el alto que apuntó calentarTags, si lo hay: es el mismo
-     número y ahorra medir a pelo dentro del manejador, que es donde se notaba.
-     Al cerrar se mide, que la caja ya está compuesta y la medida es barata. */
-  const alto = (abrir && caja._alto) || caja.getBoundingClientRect().height;
+  /* SIEMPRE MEDIDO AQUÍ, nunca guardado de antes: ver calentarTags. */
+  const alto = caja.getBoundingClientRect().height;
   const rematar = () => {
     caja._pliegue = null;
     menu._altoFinal = 0;
@@ -6552,10 +6564,6 @@ function crearTagDeMarca(caja){
   if (menu.querySelector('.tagbox').classList.contains('dormida')) return;
   const t = caja.value.trim(); if (!t) return;
   caja.value = '';
-  /* La lista va a crecer un botón, así que el alto apuntado por calentarTags
-     deja de valer. Se tira; el siguiente despliegue vuelve a medir. */
-  const cajita = menu.querySelector('.tagbox');
-  if (cajita) cajita._alto = 0;
   const actuales = borrador.m.etiquetas || [];
   if (!actuales.includes(t)) borrador.m.etiquetas = actuales.concat(t);
   ultimaEtiqueta = t;
