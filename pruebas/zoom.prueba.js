@@ -526,10 +526,6 @@ const comoVan = r => {
     const n = c => (String(c).match(/[\d.]+/g) || []).slice(0, 3).join(',');
     return n(a) === n(b);
   };
-  /* Un número comparable a partir de «Mateo 2:13–2:23»: capítulo y versículo
-     del principio. Sirve para medir cuántas hojas se movió algo sin tener que
-     saber cuántos versículos lleva cada una. */
-  const refN = x => { const m = /(\d+):(\d+)/.exec(x || ''); return m ? +m[1]*1000 + +m[2] : 0; };
   di('el automático', await p.evaluate(async () => {
     document.getElementById('btnZoom').click();
     await new Promise(z => setTimeout(z, 1200));
@@ -799,15 +795,28 @@ const comoVan = r => {
        no arrancó nunca. */
     await pausa(300);
     const conElDedo = getComputedStyle(b).backgroundColor;
+    /* Y LAS HOJAS SE QUEDAN DONDE ESTABAN. Se cuentan los REPINTADOS de
+       #pgBody —uno por hoja, que es como los cuenta la sección del acelerador
+       ahí arriba— y no la distancia entre las referencias que dice el rótulo.
+
+       Esto último se probó primero y estaba mal de las dos maneras posibles,
+       y lo levantó Codex: restando «capítulo por mil más versículo», la única
+       hoja que sí puede terminar de girar tras soltar CANTA FALLO si cruza de
+       capítulo —el número salta mil de golpe— y varias hojas seguidas dentro
+       del mismo capítulo PASAN, porque entre todas no suman los versículos del
+       umbral. Un número que no es el que se quiere medir falla en los dos
+       sentidos; los repintados sí son hojas.
+
+       El contador se arma ANTES de soltar, para no perderse el primero. */
+    let repintados = 0;
+    const obs = new MutationObserver(() => repintados++);
+    obs.observe(document.getElementById('pgBody'), { childList:true });
     ev('pointerup', window.innerWidth - 1, y);
     await pausa(400);
     const trasSoltar = b.style.transform;
     const sigue = getComputedStyle(b).backgroundColor;
-    /* Y las hojas se quedan donde estaban: el color dice que el motor se
-       apagó, esto dice que además dejó de pasar hojas. */
-    const hojaAlSoltar = (window.__estado || '').split('·')[0].trim();
     await pausa(1800);
-    const hojaDespues = (window.__estado || '').split('·')[0].trim();
+    obs.disconnect();
     /* EL CANDADO: soltar el dedo FUERA del botón no puede dejar el mando
        muerto. Estos botones se apagan solos al acabarse el libro, y un botón
        deshabilitado no reparte eventos de puntero: quien deja el dedo puesto
@@ -840,7 +849,7 @@ const comoVan = r => {
         clientY:Math.round(rp.bottom + 60) }));
     await pausa(800);
     return { corrido, trasSoltar, conElDedo, sigue, seSale, trasSoltarFuera,
-             hojaAlSoltar, hojaDespues };
+             repintados };
   }).then(r => {
     vale('el botón se corre con el dedo', /translateX\(\d/.test(r.corrido || ''),
          r.corrido || '(nada)');
@@ -848,12 +857,13 @@ const comoVan = r => {
     vale('  y al soltar vuelve al centro', !r.trasSoltar, r.trasSoltar || '(sin transform)');
     vale('  con el dedo puesto el motor va', mismoColor(r.conElDedo, MARRON), r.conElDedo);
     vale('  Y AL SOLTAR SE APAGA', !mismoColor(r.sigue, MARRON), r.sigue);
-    /* La hoja que estuviera plegándose termina su giro; más de una serían las
-       hojas siguiendo solas, que es lo que este cambio vino a quitar. */
-    vale('  y las hojas dejan de pasar',
-         r.hojaAlSoltar === r.hojaDespues ||
-         Math.abs(refN(r.hojaDespues) - refN(r.hojaAlSoltar)) < 25,
-         r.hojaAlSoltar + '  →  ' + r.hojaDespues);
+    /* UNA HOJA COMO MUCHO: la que estuviera plegándose termina su giro. Más
+       serían las hojas siguiendo solas, que es lo que este cambio vino a
+       quitar. Medido en tres tandas y a las dos velocidades —corrida mínima y
+       al tope—: siempre 0 ó 1, nunca 2. Con el fallo puesto, en los 2.2 s que
+       se miran aquí caben diez o veinte. */
+    vale('  y las hojas dejan de pasar: UNA COMO MUCHO',
+         r.repintados <= 1, r.repintados + ' hojas tras soltar');
     vale('soltar el dedo fuera no deja el mando muerto',
          mismoColor(r.trasSoltarFuera, MARRON), r.trasSoltarFuera);
     return r;
