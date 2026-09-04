@@ -3051,7 +3051,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '04-SEP-26 14:53';
+window.GLOSS_BUILD = '04-SEP-26 15:02';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -12945,7 +12945,7 @@ function filaHTML(o){
   return '<div class="sp-fila' + o.clase + '">' +
     '<button class="sp-ir" ' + o.irAttr +
       ' aria-label="Ver el versículo de la ' + esc(o.voz) +
-      '. Toca dos veces para cambiarle el nombre o borrarla."' +
+      '. Toca dos veces, o pulsa F2, para cambiarle el nombre o borrarla."' +
       ' title="' + esc(o.ref) + '">' + o.chip +
       '<span class="sp-ref">' + esc(o.ref) + '</span></button>' +
   '</div>';
@@ -13130,16 +13130,57 @@ $('piedraMenu').addEventListener('click', ev => {
    de algo que se hace una vez sería cobrarle a lo frecuente el precio de lo
    raro. Es la misma razón por la que el lápiz existía; el lápiz se fue porque
    entre él y la equis le dejaban al nombre setenta píxeles en un teléfono. */
+function piedraAbrirFila(id){
+  if (!id) return;
+  /* SE CIERRA LA VENTANITA DEL VERSÍCULO, y esto es el arreglo entero de un
+     fallo que levantó Codex. Un doble clic de verdad manda DOS click y después
+     el dblclick, así que para cuando llegamos aquí el PRIMER click ya abrió el
+     versículo —y #versoPleno vive en z-index 10, por encima de estos paneles
+     que están en 9—: la fila se abría detrás y no se veía.
+     Medido: pleno z10 puesta · menú z9.
+     No se vio antes porque la sonda mandaba solo un dblclick sintético, sin
+     los dos click de delante. Es la cuarta regla de la casa: un evento
+     despachado a mano siempre llega, y el de un dedo no llega igual. */
+  cerrarPleno();
+  piedraCobrarNombreLista();
+  piedraBorrando = null;
+  piedraNombrando = id;
+  pintarPiedraMenu(); colocarPiedraMenu();
+  const campo = $('piedraMenu').querySelector('[data-piedra-nombre]');
+  if (campo){ campo.focus(); campo.setSelectionRange(campo.value.length, campo.value.length); }
+}
 $('piedraMenu').addEventListener('dblclick', ev => {
   const fila = ev.target.closest('[data-piedra-ir]');
   if (!fila) return;
   ev.preventDefault(); ev.stopPropagation();
-  piedraCobrarNombreLista();
-  piedraBorrando = null;
-  piedraNombrando = fila.dataset.piedraIr;
-  pintarPiedraMenu(); colocarPiedraMenu();
-  const campo = $('piedraMenu').querySelector('[data-piedra-nombre]');
-  if (campo){ campo.focus(); campo.setSelectionRange(campo.value.length, campo.value.length); }
+  piedraAbrirFila(fila.dataset.piedraIr);
+});
+/* Y LAS OTRAS DOS PUERTAS, que son para quien no tiene dedo.
+
+   Un teclado NO fabrica dblclick: enfocando la fila y pulsando Intro sale un
+   click y nada más, o sea que se abre el versículo y no hay manera de llegar a
+   nombrar ni a borrar. Comprobado desde la lista recién abierta: lo único
+   alcanzable con el tabulador era el aspa de cerrar, «Nueva» y la propia fila.
+   Sin esto, quitar el lápiz y la equis dejaba a esa gente sin las dos
+   acciones. Lo levantó Codex.
+
+   Se abren dos caminos y los dos son convención, no invento nuestro:
+   · el MENÚ CONTEXTUAL —clic derecho con ratón, y desde el teclado la tecla de
+     menú o Shift+F10—, que es donde todo el mundo busca «más cosas de esto»;
+   · y F2, que es la tecla de renombrar desde hace treinta años.
+   El rótulo hablado de la fila las dice, que si no serían un secreto. */
+$('piedraMenu').addEventListener('contextmenu', ev => {
+  const fila = ev.target.closest('[data-piedra-ir]');
+  if (!fila) return;
+  ev.preventDefault(); ev.stopPropagation();
+  piedraAbrirFila(fila.dataset.piedraIr);
+});
+$('piedraMenu').addEventListener('keydown', ev => {
+  if (ev.key !== 'F2') return;
+  const fila = ev.target.closest('[data-piedra-ir]');
+  if (!fila) return;
+  ev.preventDefault(); ev.stopPropagation();
+  piedraAbrirFila(fila.dataset.piedraIr);
 });
 /* Un toque fuera lo cierra, con su propia puerta exceptuada para que el
    segundo toque del botón lo cierre en vez de reabrirlo. */
@@ -13411,12 +13452,35 @@ $('sepMenu').addEventListener('focusout', ev => {
    lo mismo: el toque simple ya hace lo que se hace siempre —abrir el
    versículo— y meterle el plazo del doble toque le cobraría a lo frecuente el
    precio de lo raro. Ver el mismo bloque en #piedraMenu. */
+function sepAbrirFila(id){
+  if (!id) return;
+  /* La ventanita del versículo se cierra antes: ver piedraAbrirFila, que es
+     donde está contado el porqué —el primer click del doble clic ya la abrió,
+     y vive por encima de este panel—. */
+  cerrarPleno();
+  sepBorrando = null;
+  sepEditarNombre(id);
+}
 $('sepMenu').addEventListener('dblclick', ev => {
   const fila = ev.target.closest('[data-sep-ir]');
   if (!fila) return;
   ev.preventDefault(); ev.stopPropagation();
-  sepBorrando = null;
-  sepEditarNombre(fila.dataset.sepIr);
+  sepAbrirFila(fila.dataset.sepIr);
+});
+/* Menú contextual y F2, las dos puertas para quien no tiene dedo: ver el mismo
+   bloque en #piedraMenu. */
+$('sepMenu').addEventListener('contextmenu', ev => {
+  const fila = ev.target.closest('[data-sep-ir]');
+  if (!fila) return;
+  ev.preventDefault(); ev.stopPropagation();
+  sepAbrirFila(fila.dataset.sepIr);
+});
+$('sepMenu').addEventListener('keydown', ev => {
+  if (ev.key !== 'F2') return;
+  const fila = ev.target.closest('[data-sep-ir]');
+  if (!fila) return;
+  ev.preventDefault(); ev.stopPropagation();
+  sepAbrirFila(fila.dataset.sepIr);
 });
 $('sepMenu').addEventListener('click', ev => {
   /* Dentro del campo no hay nada que hacer aquí: poner el cursor a media
