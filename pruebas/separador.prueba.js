@@ -115,6 +115,42 @@ async function andamio(p){
                saliendo: btn.classList.contains('saliendo'),
                ancho: Math.round(btn.getBoundingClientRect().width) };
     };
+    /* LO MISMO, PERO PARA UNA AUTOPSIA. __cintaEstado dice si hay cinta;
+       esto dice CUÁL y de dónde salió, que es lo que hace falta cuando lo
+       que se está mirando es una cinta que no debería estar ahí.
+
+       Son dos fallos distintos y el arreglo no se parece en nada:
+
+       · el id del nodo NO está en el almacén → es una PERCHA HUÉRFANA, un
+         nodo que se quedó sin retirar (o que se remontó desde una foto del
+         pliegue). El fallo está en retirarSeparador / sepTrasPliegue.
+       · el id SÍ está en el almacén → la cinta no se borró de verdad, y lo
+         que se ve al pasar hoja es el programa haciendo lo correcto con un
+         dato que sobrevivió al borrado. El fallo está en el borrado.
+
+       Se anotan también las clases del botón, porque una cinta atrapada en
+       'saliendo' con el temporizador de 400 ms perdido se ve exactamente
+       igual que una que nunca se mandó retirar. */
+    window.__cintaForense = () => {
+      const g = window.__guardadas();
+      const ids = Array.isArray(g) ? g.map(x => x.id) : g;
+      const nodos = Array.prototype.map.call(
+        document.querySelectorAll('#sepPercha, .sep-percha'), n => {
+          const marca = n.querySelector('[data-sep]');
+          const id = marca ? marca.dataset.sep : null;
+          const btn = n.querySelector('.separador');
+          const pa = n.parentNode;
+          return { id,
+                   enElAlmacen: Array.isArray(ids) ? ids.indexOf(id) >= 0 : 'ilegible',
+                   clases: btn ? btn.className : '(sin boton)',
+                   opacidad: btn
+                     ? Math.round(parseFloat(getComputedStyle(btn).opacity) * 100) / 100
+                     : null,
+                   padre: pa ? (pa.id || pa.className || pa.tagName) : '(suelto)' };
+        });
+      const cab = document.querySelector('.pg-cabeza');
+      return { nodos, almacen: ids, hoja: cab ? cab.textContent.trim() : '' };
+    };
     window.__desborde = () =>
       document.documentElement.scrollWidth > document.documentElement.clientWidth;
     /* Con el cajón abierto se ve la columna de glosas: en teléfono la hoja es
@@ -440,16 +476,29 @@ async function ponerAMano(p){
     await window.__toque('[data-sep-borrar]');
     await window.__pausa(1200);
     const tras = window.__cintaEstado();
+    const forenseTras = window.__cintaForense();
     /* Y al pasar hoja no reaparece un nodo huérfano. */
     await window.__pasar('right');
     await window.__pausa(700);
-    return { tras, trasPasar: window.__cintaEstado(),
+    return { tras, forenseTras,
+             trasPasar: window.__cintaEstado(),
+             forensePasar: window.__cintaForense(),
              guardadas: window.__guardadas().length };
   });
   di('tras borrar', borradaDelTodo.tras);
-  vale('no queda cinta', !borradaDelTodo.tras.hay && borradaDelTodo.tras.perchas === 0);
+  di('tras pasar hoja', borradaDelTodo.trasPasar);
+  vale('no queda cinta', !borradaDelTodo.tras.hay && borradaDelTodo.tras.perchas === 0,
+       borradaDelTodo.forenseTras);
+  /* ESTA ES LA QUE SE PONE ROJA FUERA DE CASA. Aquí sale verde —Chromium 141,
+     dos tandas de 154/154— y en la máquina del dueño —Chromium 149— sale roja
+     una y otra vez, también sobre main y también antes de los cambios que la
+     rodean. Sin repro aislado y sin nada que imprimir, lo único que decía era
+     que algo sobrevivió; la autopsia de arriba dice QUÉ, que es de donde puede
+     salir el arreglo. Va como detalle y no como di() para que salga pegado a
+     la línea que juzga, verde o roja: en verde es la foto de cuando iba bien,
+     que es la otra mitad del diagnóstico. */
   vale('ni reaparece al pasar hoja', !borradaDelTodo.trasPasar.hay &&
-       borradaDelTodo.trasPasar.perchas === 0);
+       borradaDelTodo.trasPasar.perchas === 0, borradaDelTodo.forensePasar);
   vale('y el almacén vuelve a lo que había', borradaDelTodo.guardadas === vaiven.base,
        vaiven.base + ' vs ' + borradaDelTodo.guardadas);
 
