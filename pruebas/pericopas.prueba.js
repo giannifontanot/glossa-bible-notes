@@ -72,8 +72,15 @@ const abrirEn = async (p, donde) => {
                       ? (t.nextElementSibling.querySelector('.vn') || {}).textContent
                       : 0) || 0) })),
       estilo: cs ? { familia: cs.fontFamily.split(',')[0], estilo: cs.fontStyle,
+                     peso: +cs.fontWeight, tam: parseFloat(cs.fontSize),
                      color: cs.color } : null,
-      /* La tinta del cuerpo del texto, para compararla con la del titulillo. */
+      /* El cuerpo del texto, para comparar contra él y no contra números
+         escritos a mano: tinta, tamaño y peso del versículo de al lado. */
+      texto: (() => {
+        const v = document.querySelector('#pgBody .v');
+        if (!v) return null;
+        const c = getComputedStyle(v);
+        return { color: c.color, tam: parseFloat(c.fontSize), peso: +c.fontWeight }; })(),
       tintaTexto: (() => {
         const v = document.querySelector('#pgBody .v');
         return v ? getComputedStyle(v).color : null; })(),
@@ -86,9 +93,27 @@ const abrirEn = async (p, donde) => {
        puesto.filas.every(f => f.arranque === f.siguiente), puesto.filas);
   /* EN CURSIVA Y DEL SERIF DE LA HOJA, no de la letra de la interfaz: es parte
      del libro, como el número de capítulo, y no un control que se pueda tocar. */
-  vale('  en cursiva y del serif del texto',
-       puesto.estilo && puesto.estilo.estilo === 'italic' &&
-       /Palatino|Georgia|Noto|serif/i.test(puesto.estilo.familia), puesto.estilo);
+  /* SE COMPARA CONTRA EL TEXTO DE AL LADO, no contra cifras escritas aquí: el
+     lector puede cambiar el cuerpo de la letra, así que un «14.1px» en esta
+     línea sería un número que se descuelga en cuanto alguien toque el ajuste.
+
+     Y ESTO AFIRMABA LO VIEJO hasta hoy: pedía cursiva. El titulillo nació en
+     cursiva, .94em y peso normal —o sea MÁS PEQUEÑO que el texto que anuncia—
+     y así se perdía en la hoja: el dueño lo leyó por encima sin verlo y un
+     panel de editores y tipógrafos lo levantó. Ahora va redonda, semibold y un
+     tercio más grande, que es lo contrario de lo que decía esta línea. */
+  vale('  del serif del texto, pero MÁS GRANDE y con más peso',
+       !!puesto.estilo && !!puesto.texto &&
+       /Palatino|Georgia|Noto|serif/i.test(puesto.estilo.familia) &&
+       puesto.estilo.tam > puesto.texto.tam * 1.15 &&
+       puesto.estilo.peso > puesto.texto.peso,
+       'titulillo ' + (puesto.estilo||{}).tam + 'px/' + (puesto.estilo||{}).peso +
+       '  ·  texto ' + (puesto.texto||{}).tam + 'px/' + (puesto.texto||{}).peso);
+  /* REDONDA Y NO CURSIVA: negrita más cursiva a este cuerpo y sobre papel
+     tostado se emborrona. Si lleva peso, que vaya derecha. */
+  vale('  y redonda, no cursiva',
+       !!puesto.estilo && puesto.estilo.estilo === 'normal',
+       (puesto.estilo||{}).estilo);
   /* Y CON LA TINTA DEL TEXTO, que es una aserción y no un capricho.
 
      Nació con el sepia apagado del aparato —#8a7746, el de los números de
