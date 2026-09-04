@@ -81,39 +81,33 @@ const ATERRIZA = 7000;
     const panel = document.getElementById('historial').getBoundingClientRect();
     const suyo = b.getBoundingClientRect();
     const rotulo = b.textContent.trim();
-    /* LOS TRES COMPARTEN RENGLÓN, EN ESTE ORDEN: PIEDRA, CINTA, ATRÁS. El
-       rótulo se queda solo arriba.
+    /* EL PASO ATRÁS, SOLO EN SU RENGLÓN, con el rótulo entero por encima.
 
-       Aquí se midió antes rótulo y paso atrás juntos, y luego atrás-cinta con
-       el atrás delante. Ahora el atrás va el ÚLTIMO, y no es cosmético: los
-       dos primeros DEJAN algo en esta hoja y son la misma clase de gesto; el
-       tercero se va de aquí. Con el de irse en medio, la fila no se lee como
-       «dos cosas que dejas y una salida» sino como tres botones sueltos.
+       Este bloque ha medido tres cosas distintas según iba cambiando el panel:
+       primero rótulo y paso atrás en el mismo renglón; luego el paso atrás
+       compartiéndolo con los dos botones de poner; y ahora otra vez el paso
+       atrás solo, porque los de poner se mudaron DENTRO de sus listas —poner
+       una cinta y ver tus cintas son el mismo asunto y estaban en dos sitios—.
 
        Se mide por los CENTROS y no por el borde de arriba: los botones llevan
-       borde y relleno, y compartir renglón centrados es justo lo que no se ve
+       borde y relleno, y estar centrado en su renglón es justo lo que no se ve
        comparando bordes. */
     const tit = document.querySelector('#historial .hs-tit');
-    const nuevo = document.querySelector('#historial [data-sep-nuevo]');
-    const piedra = document.querySelector('#historial [data-piedra-nueva]');
+    const acciones = document.querySelector('#historial .hs-acciones');
     const tb = tit ? tit.getBoundingClientRect() : null;
-    const rn = nuevo ? nuevo.getBoundingClientRect() : null;
-    const rp = piedra ? piedra.getBoundingClientRect() : null;
-    const cen = r => Math.round((r.top + r.bottom) / 2 * 10) / 10;
-    const juntos = (tb && rn && rp) ? {
-      mismoCentro: Math.abs(cen(rn) - cen(suyo)) < 1.5 &&
-                   Math.abs(cen(rp) - cen(suyo)) < 1.5,
-      centros: [cen(rp), cen(rn), cen(suyo)],
-      /* EL ORDEN, y sin pisarse: piedra, cinta, atrás, de izquierda a derecha. */
-      enOrden: rp.right <= rn.left && rn.right <= suyo.left,
+    const juntos = (tb && acciones) ? {
+      /* SOLO ÉL en el renglón: los de poner ya no viven aquí. */
+      soloElAtras: [...acciones.children].length === 1 &&
+                   b.parentElement === acciones,
+      sinLosDePoner: !document.querySelector('#historial [data-sep-nuevo]') &&
+                     !document.querySelector('#historial [data-piedra-nueva]'),
       /* el rótulo, entero por encima del renglón */
       bajoElRotulo: tb.bottom <= suyo.top + 1,
-      /* EL HUECO DE ARRIBA SE MIDE EN EL RÓTULO, que es lo que ahora toca el
-         filo del panel. Sigue siendo el mismo de siempre: lo que se mudó de
+      /* EL HUECO DE ARRIBA SE MIDE EN EL RÓTULO, que es lo que toca el filo
+         del panel. Sigue siendo el mismo de siempre: lo que se mudó de
          renglón fue el botón, no el relleno. */
       huecoArriba: Math.round(tb.top - panel.top),
-      /* Y EL RENGLÓN, PEGADO AL FILO DERECHO. Lo que hay que medir es el
-         ÚLTIMO del renglón, que ahora vuelve a ser el paso atrás. */
+      /* Y PEGADO AL FILO DERECHO. */
       alFilo: Math.round(panel.right - suyo.right)
     } : null;
     const antes = JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]');
@@ -132,10 +126,9 @@ const ATERRIZA = 7000;
     vale('hay paso atrás y dice a dónde', !r.sinBoton && /\d+:\d+/.test(r.rotulo || ''), r.rotulo);
     vale('  y su renglón va pegado al filo derecho',
          !!r.juntos && r.juntos.alFilo <= 16, r.juntos && r.juntos.alFilo + 'px del filo');
-    vale('  en el mismo renglón que piedra y cinta, centrados',
-         !!r.juntos && r.juntos.mismoCentro, r.juntos && (r.juntos.centros||[]).join(' vs '));
-    vale('  EN ORDEN: piedra, cinta, atrás', !!r.juntos && r.juntos.enOrden,
-         r.juntos && (r.juntos.centros||[]).length + ' botones');
+    vale('  y SOLO ÉL en su renglón', !!r.juntos && r.juntos.soloElAtras, r.juntos);
+    vale('  los de poner se fueron a sus listas',
+         !!r.juntos && r.juntos.sinLosDePoner, r.juntos);
     vale('  con el rótulo entero por encima',
          !!r.juntos && r.juntos.bajoElRotulo, r.juntos);
     vale('  y con el hueco de arriba de siempre',

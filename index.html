@@ -413,6 +413,14 @@
      la vez en vez de teñir una foto ya hecha. Meterlo en esta cadena como
      sepia() sería un tercer efecto encima del suyo, no el mismo. */
   #pg, #fx{ filter:brightness(var(--brillo,1)) contrast(var(--contraste,1)); }
+  /* LAS PIEDRAS SE QUEDAN FUERA DE ESOS DOS RIELES, pero NO con un
+     contrafiltro. Se intentó —poner en .piedrero la cadena inversa, contraste
+     y brillo al revés— y medido no cancela: con los rieles al tope los canales
+     se saturan dentro del filtro de la hoja y ya no hay información que
+     devolver. Desvío medio del píxel del centro de una piedra, contra la misma
+     piedra sin tocar los rieles: 39.3 sin contrafiltro y 37.9 con él, o sea
+     nada. Lo que sí funciona está en compensarTinta: se corrige el color de
+     ORIGEN, antes de que el filtro lo toque. */
   /* EL NÚMERO SE RESERVA SU SITIO, y esto no es maquetación fina: la .medida
      y el riel se reparten el mismo renglón, así que cuando el número pasa de
      "50%" a "100%" el riel se encoge 5 px MIENTRAS LO ESTÁS ARRASTRANDO y la
@@ -1192,6 +1200,23 @@
   .sp-nombre:focus{ outline:2px solid rgba(184,137,43,.55); outline-offset:1px; }
   /* EL LÁPIZ, hermano de la X y con su misma medida: son las dos cosas que se
      le hacen a una fila, y puestas iguales se leen como un par. */
+  /* EL BOTÓN DE PONER, DENTRO DE LA LISTA. Se distingue de las filas por dos
+     cosas y ninguna es el color: lleva un «+» delante y va de contorno
+     discontinuo, que es como se lee «aquí se añade» sin gritar. Del ancho
+     entero, porque no compite con nada: es lo único que se puede hacer aparte
+     de mirar lo que ya hay. */
+  .sp-nueva{ display:flex; align-items:center; gap:6px; width:100%;
+             margin:0 0 6px; padding:7px 9px; min-height:34px;
+             font:600 12px/1.2 var(--ui); letter-spacing:.02em; color:#5c4a24;
+             background:rgba(255,253,247,.5); cursor:pointer;
+             border:1px dashed rgba(140,116,68,.55); border-radius:5px; }
+  .sp-nueva:hover{ background:#fffdf6; color:#3c2f16;
+                   border-color:rgba(140,116,68,.85); }
+  .sp-nueva:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
+  .sp-mas{ flex:0 0 auto; font:700 14px/1 var(--ui); color:#8a6416; }
+  /* La cinta de muestra del botón va sin color escrito: la que se ponga toma
+     el que le toque por turno, así que enseñar uno concreto sería prometer. */
+  .sp-nueva .sp-chip{ background:rgba(140,116,68,.45); }
   .sp-fila-lapiz{ flex:0 0 auto; }
   .sp-fila-lapiz:hover{ background:rgba(140,116,68,.2); color:#4d3f1d; }
   /* X por fila: borra ese separador tras el diálogo sí/no. */
@@ -1603,6 +1628,7 @@
     .hs-sep{ padding:9px 8px; }
     .hs-acciones, .hs-pie{ gap:5px; }
     .sp-ref{ font-size:14px; }
+    .sp-nueva{ min-height:44px; font-size:14px; }
     .sp-fila{ min-height:48px; padding:5px 5px 5px 10px; }
     .sp-ir{ min-height:44px; }
     .sp-fila-x, .sp-fila-lapiz{ width:42px; height:42px; }
@@ -2159,11 +2185,16 @@
 
      minmax(0,1fr) y no 1fr a secas: 1fr es minmax(AUTO,1fr), o sea que cada
      columna se niega a bajar del ancho de su palabra, y «▮ resaltado» es más
-     larga que «▁ línea». Con 1fr salían 88 y 68 —medido— y los tercios
-     exactos se perdían. Con minmax(0,1fr) las tres ceden igual. */
-  #menu .mmodos{ display:grid;
-                 grid-template-columns:repeat(3, minmax(0, 1fr));
-                 gap:4px; }
+     larga que «▁ línea». Con 1fr salían 88 y 68 —medido— y las mitades
+     exactas se perdían. Con minmax(0,1fr) las dos ceden igual. */
+  /* DOS FILAS DE DOS, y las dos se miden igual: mismo alto, mismo radio, mismo
+     hueco. Lo que las distingue es el peso —contorno para lo que es un estado,
+     macizo para lo que termina— y no el tamaño, que es lo que hacía que la
+     fila de tres se leyera como dos botones y un apéndice. */
+  #menu .mmodos, #menu .macciones{
+                 display:grid; grid-template-columns:repeat(2, minmax(0, 1fr));
+                 gap:5px; }
+  #menu .macciones{ align-items:stretch; }
   /* Los dos llevan recuadro, puesto o no. Sin él, el que no está elegido no
      se lee como algo que se pueda tocar —parecía un rótulo al lado de un
      botón— y la mitad de la decisión quedaba escondida. */
@@ -2181,22 +2212,33 @@
      rótulo, que es lo que lo hacía frágil. */
   #menu .mmodos .mg{ display:block; margin-bottom:3px; line-height:1; }
   #menu .mmodos button.on{ background:rgba(201,162,39,.28); border-color:rgba(201,162,39,.75); }
-  /* EL OK, MACIZO. Los dos modos son de contorno porque son un estado —puesto
-     o no— y éste es una acción, que no tiene estado: se pulsa y se acabó.
-     Macizo, con el mismo dorado del programa, y con la letra oscura por
-     contraste. Es el único botón lleno del panel, así que no compite con
-     nada y se encuentra sin buscarlo.
+  /* EL OK, MACIZO Y OSCURO. Los dos modos son de contorno porque son un
+     estado —puesto o no— y éste es una acción, que no tiene estado: se pulsa
+     y se acabó. Es el único lleno del panel, así que se encuentra sin
+     buscarlo.
+
+     EN BRONCE Y NO EN DORADO CLARO, y el cambio se pidió mirándolo puesto. El
+     panel es marrón oscuro, y un dorado #c9a227 con la letra negra encima era
+     una losa que gritaba desde la esquina: lo primero que veía el ojo al abrir
+     una glosa era el botón de salir, no la nota. En bronce, con la letra clara
+     y un filo dorado por arriba, sigue siendo el único macizo —que es lo que
+     lo hace encontrable— pero deja que la nota vaya delante.
+
      Nunca se apaga, y eso es a propósito: sin texto tampoco es un botón
      muerto —cerrar sin nota es lo que borra la glosa, y el que quiere
      deshacer un subrayado por accidente necesita justo esa salida—. */
-  /* Sin relleno lateral propio: el ancho lo pone la rejilla, y un relleno
-     escrito aquí solo serviría para empujar la palabra contra los bordes. */
-  #menu .mmodos .mok{ padding-left:4px; padding-right:4px; font-weight:700;
-                      letter-spacing:.08em; color:#3a2f14;
-                      background:#c9a227; border-color:#c9a227; }
-  #menu .mmodos .mok:hover{ background:#dbb43a; border-color:#dbb43a; }
-  #menu .mmodos .mok:active{ transform:translateY(1px); }
-  #menu .mmodos .mok:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+  #menu .macciones .mok{ padding:6px 8px; font-weight:700;
+                      letter-spacing:.08em; color:#f6ecd2;
+                      background:linear-gradient(to bottom, #7a5a1c, #5c4315);
+                      border-color:#8a6a24;
+                      box-shadow:inset 0 1px 0 rgba(233,199,116,.45),
+                                 0 1px 3px rgba(0,0,0,.35); }
+  #menu .macciones .mok:hover{
+                      background:linear-gradient(to bottom, #8e6a22, #6b4e19);
+                      border-color:#a37f2c; }
+  #menu .macciones .mok:active{ transform:translateY(1px);
+                      box-shadow:inset 0 1px 3px rgba(0,0,0,.4); }
+  #menu .macciones .mok:focus-visible{ outline:2px solid #e9c774; outline-offset:2px; }
   /* EL ANTICIPO. Es una .gl de verdad —hereda familia, cuerpo, interlínea y
      el recuadro torcido de su id— y aquí solo se le dice que se plante en el
      panel: ancho y forma se los pone el guion, que es quien sabe cuánto mide
@@ -2250,11 +2292,18 @@
   /* El nombre corto de las columnas no se ve salvo en teléfono. */
   .corto{ display:none; }
   #menu input{ font-size:.68rem; padding:5px 7px; width:82px; }
-  /* EL BOTÓN QUE ABRE LA LISTA. Va discreto —es un mando, no una decisión— y
-     lleva la cuenta de las puestas para que cerrado siga diciendo algo. */
-  #menu .mtags{ text-align:left; font-size:.68rem; opacity:.72;
-                border-color:transparent; padding:4px 6px; }
-  #menu .mtags:hover{ opacity:1; }
+  /* EL BOTÓN QUE ABRE LA LISTA. Lleva la cuenta de las puestas para que
+     cerrado siga diciendo algo.
+
+     Iba sin recuadro y a media tinta, porque colgaba solo de un renglón y ahí
+     la discreción le sentaba bien. Ahora comparte fila con el OK, y en una
+     pareja el que no tiene borde no parece discreto: parece que le falta algo.
+     Lleva el suyo —de contorno, como los modos— y se distingue del OK por el
+     peso, no por la ausencia. */
+  #menu .mtags{ text-align:center; font-size:.68rem;
+                color:#e6dcc4; background:rgba(255,255,255,.05);
+                border-color:rgba(255,255,255,.22); padding:6px 8px; }
+  #menu .mtags:hover{ background:rgba(255,255,255,.13); }
   .tagbox{ display:flex; flex-wrap:wrap; gap:3px; align-items:center; }
   /* LA LISTA VIVE CERRADA. Lo que la nota lleva puesto ya se lee dentro de la
      glosa; esta lista es para cambiarlo, y eso no se hace en cada nota. */
@@ -2575,8 +2624,12 @@
     /* Con el dedo, los tres siguen siendo tercios y solo crece el alto. El
        hueco baja a 4: a tercios, seis píxeles entre tres botones se comen el
        ancho que necesita «▮ resaltado» para no partirse. */
-    #menu .mmodos{ gap:4px; }
-    #menu .mmodos button{ padding:11px 4px; }
+    #menu .mmodos, #menu .macciones{ gap:5px; }
+    #menu .mmodos button, #menu .macciones button{ padding:11px 6px; }
+    /* Los de arriba llegan solos a los 57 px porque llevan la marca en su
+       propio renglón; los de abajo son de un renglón y se quedaban en 38, que
+       para un pulgar es poco. Se les pone suelo. */
+    #menu .macciones button{ min-height:44px; }
     #menu input{ font-size:15px; padding:9px 11px; width:auto; flex:1 1 120px; }
     .tagbox{ gap:6px; }
     /* Estas dos siguen valiendo para el .tagbox de menuVinculos, que no es la
@@ -2599,7 +2652,7 @@
                                  flex:1 1 90px; min-width:0; }
     #menu .tagbox .tagctl button[data-acc]{ flex:0 0 auto; text-align:center;
                                             padding:9px 13px; font-size:15px; }
-    #menu .mtags{ font-size:14px; padding:7px 6px; }
+    #menu .mtags{ font-size:14px; }
 
     /* EL AVISO DE ABAJO. Iba en 10.5px, más pequeño que cualquier otra cosa
        de la pantalla, y aparece lejos de donde estás mirando. Un aviso que
@@ -2935,7 +2988,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-SEP-26 14:12';
+window.GLOSS_BUILD = '04-SEP-26 01:11';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3463,6 +3516,12 @@ const aplicarFiltros = () => {
   const v = document.documentElement.style;
   v.setProperty('--contraste', (contraste / 100).toFixed(2));
   v.setProperty('--brillo',    (brillo    / 100).toFixed(2));
+  /* Y LAS PIEDRAS SE REPINTAN, que su color va corregido contra estos dos
+     números (ver compensarTinta) y acaba de cambiar. Sin esto, la corrección
+     se queda con los valores de cuando se pintaron y el riel sí las mueve —que
+     es justo lo que se vino a quitar—. Va con guarda porque los rieles se
+     tocan también antes de que existan las piedras, al arrancar. */
+  if (typeof pintarPiedras === 'function') pintarPiedras();
 };
 const mezclar = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
 const rgb = a => 'rgb(' + a.join(',') + ')';
@@ -5187,16 +5246,23 @@ function panelHTML(m){
       COLORS.map(c => '<button class="mc" data-color="' + c + '" style="background:' +
         LINE_HEX[c] + '"' + (m.color===c ? ' data-on="1"' : '') + '></button>').join('') +
     '</div>' +
-    /* Los dos primeros dicen lo que hacen: no "esto es un resaltado" sino "el
-       texto de esta glosa va resaltado". El tercero no es de esa familia —no
-       elige nada, termina— y por eso se ve distinto; ver .mmodos y .mok. */
+    /* DOS ARRIBA Y DOS ABAJO, y el reparto no es de sitio sino de sentido.
+
+       Arriba, los dos que dicen CÓMO se dibuja esta glosa: resaltado o línea.
+       Son un estado —uno de los dos está puesto— y por eso van juntos y de
+       contorno.
+
+       Abajo, junto al anticipo, los dos que HACEN algo: abrir las etiquetas y
+       terminar. El OK estuvo un tiempo en la fila de arriba, primero midiendo
+       lo que medía su palabra y después a tercios; las dos veces se leía mal,
+       porque lo ponía a competir con dos cosas que no son de su clase. Bajado
+       aquí, la fila de arriba vuelve a ser una pareja y la de abajo también.
+       Ver .mmodos, .macciones y .mok. */
     '<div class="mmodos">' +
       '<button data-modo="fill" class="modo' + (m.estilo!=='border' ? ' on' : '') +
         '"><span class="mg" aria-hidden="true">▮</span>resaltado</button>' +
       '<button data-modo="border" class="modo' + (m.estilo==='border' ? ' on' : '') +
         '"><span class="mg" aria-hidden="true">▁</span>línea</button>' +
-      '<button type="button" class="mok" data-acc="ok"' +
-        ' aria-label="Terminar y guardar la glosa">OK</button>' +
     '</div>' +
     /* El valor NO va aquí dentro. Un textarea con el texto metido en el
        HTML obliga a escapar bien lo que escribió una mano, y basta un
@@ -5220,7 +5286,11 @@ function panelHTML(m){
     /* LA LISTA DE ETIQUETAS YA NO VIVE ABIERTA. Las que lleva puestas se leen
        arriba, dentro de la glosa, que es donde van a estar para siempre; abrir
        la lista es para CAMBIARLAS, y eso no se hace en cada nota. */
-    '<button class="mtags" data-acc="vertags"></button>' +
+    '<div class="macciones">' +
+      '<button class="mtags" data-acc="vertags"></button>' +
+      '<button type="button" class="mok" data-acc="ok"' +
+        ' aria-label="Terminar y guardar la glosa">OK</button>' +
+    '</div>' +
     tagboxHTML(m);
 }
 /* LA LISTA, EN RENGLÓN Y CON SU ALMOHADILLA. Eran pastillas, y una pastilla
@@ -5405,8 +5475,12 @@ function morirPanel(origen, soloFundido){
   menu.style.pointerEvents = 'none';
   menu.style.opacity = '0';
   if (soloFundido){
+    /* 280 y no 190: puesto en el teléfono, 190 seguía leyéndose como un corte
+       más que como una salida. Es el doble que el encogido de aquí abajo a
+       propósito —aquél acompaña a un panel que se va hacia su pasaje, y éste
+       tiene que deshacer media pantalla de lista sin nada que lo acompañe. */
     const f = menu.animate([{ opacity:1 }, { opacity:0 }],
-      { duration:190, easing:'cubic-bezier(.4,0,.6,1)' });
+      { duration:280, easing:'cubic-bezier(.4,0,.6,1)' });
     menu._adios = f;
     f.onfinish = () => { if (g === vidaMenu) guardarMenu(); };
     return;
@@ -5606,7 +5680,19 @@ const rotuloTags = (abierta, cuantas) =>
    opacity para decir «esto no responde todavía», y una animación que la mueva
    discutiría con esa señal —la lista dormida se abriría hasta opaca del todo
    para volver a apagarse al acabar—. El doblez solo se ve con el alto. */
-const TAGS_MS = 160;
+/* 110 Y NO 160, y lo que se acorta es el caso de todos los días.
+
+   El despliegue dura TAGS_MS más lo que viaje el panel. Medido de punta a
+   punta —del toque hasta que el alto deja de moverse, a un sexto de CPU— el
+   caso corriente daba unos 230 ms de reloj, de los que 66 son la propia
+   medición esperando cuadros quietos: la animación real rondaba los 165.
+
+   Se baja la BASE y no el factor del viaje. El factor existe porque un cambio
+   de lado son 250 px o más, y hacerlos en el tiempo del caso corriente los
+   convierte en el salto que ese factor vino a quitar (está contado ahí abajo,
+   con sus medidas). Lo que se pidió acortar es abrir la lista, no cambiar de
+   lado; así que se acorta lo que gobierna abrir la lista. */
+const TAGS_MS = 110;
 /* LA LISTA SE COMPONE AL NACER EL PANEL, NO AL ABRIRLA.
 
    La caja de etiquetas vive con display:none hasta que se despliega, así que
@@ -7329,7 +7415,7 @@ function htmlPiedrasFoto(hojaN){
       return '<div style="position:absolute;left:' + (x.x * 100).toFixed(3) + '%;' +
         'top:' + (x.y * 100).toFixed(3) + '%;width:' + por + '%;aspect-ratio:1;' +
         'margin:' + med + ' 0 0 ' + med + ';opacity:.82">' +
-        piedraDibujo(x.forma, tintaDe(x.color)[2]) +
+        piedraDibujo(x.forma, compensarTinta(tintaDe(x.color)[2])) +
         /* EL NOMBRE TAMBIÉN VA EN LA FOTO, o desaparecería durante el giro y
            volvería de golpe al aterrizar, que es justo el parpadeo que este
            retrato existe para evitar. La familia va escrita entera: --ui vive
@@ -9159,26 +9245,20 @@ function cabezaHistorial(){
      familia, «nuevo» bastaba; con dos, dos botones que dicen lo mismo no se
      distinguen. Cada uno dice LO QUE DEJA —una piedra, una cinta— que además
      es más corto y es lo que hace que los tres quepan. */
-  /* EL ORDEN ES PIEDRA, CINTA, ATRÁS, y el paso atrás va el último a
-     propósito. Los dos primeros DEJAN algo en esta hoja —son la misma clase
-     de gesto, y juntos se leen como un par— mientras que el tercero se va de
-     aquí. Poniendo el de irse en medio, o el primero, la fila no se lee como
-     «dos cosas que puedes dejar y una salida», sino como tres botones
-     sueltos. Y el que se va queda donde termina la lectura de la fila, que es
-     donde uno espera encontrar la puerta. */
+  /* LOS DOS DE PONER SE MUDARON A SUS LISTAS, y aquí queda solo el paso atrás.
+
+     Estuvieron los tres en este renglón —piedra, cinta y atrás— y el renglón
+     decía dos cosas a la vez: «vuelve por donde viniste» y «deja algo aquí».
+     Poner una piedra y ver tus piedras son el mismo asunto, y estaban en dos
+     sitios distintos: el de poner arriba, el de ver abajo, con el ancho del
+     panel entre medias. Ahora cada familia tiene una sola puerta —su lista— y
+     dentro de ella está el botón de añadir, que es donde se busca cuando ya
+     estás mirando las que hay.
+
+     El rastro se queda con lo suyo: lo que has visto, y cómo volver. */
+  const atras = pieAtras();
   return '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span></div>' +
-    '<div class="hs-acciones">' +
-    '<button class="hs-sep" data-piedra-nueva="1"' +
-      ' title="Dejar una piedra en esta hoja"' +
-      ' aria-label="Dejar una piedra en esta hoja">' +
-      '<span class="hs-sep-forma" aria-hidden="true">' + piedraDibujo('piedra') +
-      '</span>piedra</button>' +
-    '<button class="hs-sep" data-sep-nuevo="1"' +
-      ' title="Dejar un separador en esta hoja"' +
-      ' aria-label="Dejar un separador en esta hoja">' +
-      '<span class="hs-sep-cinta" aria-hidden="true"></span>cinta</button>' +
-    pieAtras() +
-    '</div>';
+    (atras ? '<div class="hs-acciones">' + atras + '</div>' : '');
 }
 /* EL PIE, con la puerta a las cintas que ya hay.
 
@@ -9213,7 +9293,7 @@ function pieSeparadores(){
      a mano, para que no se queden atrás el día que la lista cambie. */
   const formas = [0, FORMAS.length >> 1, FORMAS.length - 1].map((i, n) =>
     '<span class="hs-sep-forma" style="color:' + PIEDRA_TINTAS[n + 1][2] + '">' +
-    piedraDibujo(FORMAS[i]) + '</span>').join('');
+    piedraDibujo(FORMAS[i], null, true) + '</span>').join('');
   /* DOS PUERTAS, UNA POR FAMILIA, y cada una enseña de qué va: las cuatro
      telas para las cintas, las figuras para las piedras. Los rótulos son
      el plural de lo que abren —«cintas», «piedras»— y no «actuales» dos veces:
@@ -9415,29 +9495,10 @@ $('historial').addEventListener('click', ev => {
     else abrirPiedraMenu(piedraLista);
     return;
   }
-  /* PONER UNA PIEDRA cierra el rastro, por lo mismo que ponerle una cinta:
-     acabas de dejar algo en la hoja y lo que hay que ver es la hoja. */
-  if (ev.target.closest('[data-piedra-nueva]')){
-    ev.preventDefault(); ev.stopPropagation();
-    cerrarHistorial();
-    trasPintar(() => ponerPiedra());
-    return;
-  }
-  /* PONER UNA CINTA A MANO. Cierra el panel: acabas de marcar la hoja donde
-     estás y lo que hay que ver es la cinta, no la lista de por dónde has
-     pasado. Y la lectura queda marcada, así que no se te vuelve a preguntar
-     en esta sesión: ya contestaste poniéndola. */
-  if (ev.target.closest('[data-sep-nuevo]')){
-    ev.preventDefault(); ev.stopPropagation();
-    cerrarHistorial();
-    /* Si esta hoja YA tiene cinta, el botón no pone otra encima: abre la suya.
-       Dos cintas en la misma hoja no marcan dos sitios, marcan uno mal. Y de
-       paso es la puerta a la lista desde el panel, sin inventar otro botón. */
-    const ya = sepDeLaHoja();
-    if (ya){ abrirSepMenu(ya.id); return; }
-    crearSeparador();
-    return;
-  }
+  /* Los dos botones de PONER vivían aquí y se mudaron a sus listas —ver
+     cabezaHistorial—, así que sus ramas se fueron con ellos: quedarse aquí
+     sería código que no puede correr, esperando a confundir al que venga. Lo
+     que atienden ahora son los oyentes de #piedraMenu y #sepMenu. */
   if (ev.target.closest('[data-atras]')){
     ev.preventDefault(); ev.stopPropagation();
     darUnPasoAtras(); return;
@@ -10984,11 +11045,11 @@ const TOPE_PIEDRAS = 300;
    encima, y quien quiera una tiene doce maneras de decir lo mismo sin que la
    aplicación se lo imponga. */
 const FORMAS = ['piedra', 'avion', 'hoja', 'pez', 'paloma', 'espiga', 'uvas',
-                'lampara', 'llave', 'ancla', 'estrella', 'barca', 'llama'];
+                'lampara', 'llave', 'ancla', 'estrella', 'barca', 'llama', 'cinta'];
 const FORMA_NOMBRE = {
   piedra:'piedra', avion:'avioncito', hoja:'hoja', pez:'pez', paloma:'paloma',
   espiga:'espiga', uvas:'uvas', lampara:'lámpara', llave:'llave', ancla:'ancla',
-  estrella:'estrella', barca:'barca', llama:'llama'
+  estrella:'estrella', barca:'barca', llama:'llama', cinta:'cinta'
 };
 /* LOS ESCALONES DE TAMAÑO VAN EN FRACCIÓN DEL PAPEL, no en píxeles, y por lo
    mismo que la posición: el papel mide 571 px en una pantalla de 320, 663 en
@@ -11025,6 +11086,77 @@ const PIEDRA_TINTAS = [
   ['ciruela', 'ciruela', '#6b3a63']
 ];
 const tintaDe = c => PIEDRA_TINTAS.find(t => t[0] === c) || PIEDRA_TINTAS[0];
+/* EL COLOR SE CORRIGE ANTES DE QUE EL FILTRO LO TOQUE.
+
+   Brillo y contraste existen para la LECTURA: aclaran el papel y separan la
+   letra de él. Las piedras no son ni papel ni letra —son adornos puestos a
+   mano, y su color se eligió de una paleta de seis— así que un riel que las
+   lava o las quema deshace una decisión que ya tomó el lector.
+
+   Sacarlas del filtro no se puede: la capa cuelga de .pg-inner porque es lo
+   que la vista de lejos escala, y fuera de ahí habría que llevarles el zoom,
+   el pliegue y el sitio a mano. Y ponerles la cadena INVERSA no funciona:
+   medido, con los rieles al tope los canales se saturan dentro del filtro de
+   la hoja y no queda información que devolver —desvío medio 39.3 sin
+   contrafiltro y 37.9 con él, o sea nada—.
+
+   Lo que sí funciona es no pelearse con el filtro sino ADELANTARSE. La hoja
+   aplica brillo y luego contraste, las dos por canal:
+
+       salida = ((v · brillo) − ½) · contraste + ½
+
+   Así que para que salga el color que se eligió, se entrega el que resuelve
+   esa ecuación al revés:
+
+       v = ((deseado − ½) / contraste + ½) / brillo
+
+   Exacto mientras el resultado quepa entre 0 y 1. Cuando no cabe —rieles muy
+   al extremo con un color ya muy claro u oscuro— se recorta.
+
+   Y HAY UN SEGUNDO LÍMITE, QUE ES EL QUE MANDA: la piedra va al 82% de
+   opacidad, así que el papel se transparenta a través de ella y el papel SÍ
+   cambia con los rieles. Lo que se ve es 0.82 de piedra más 0.18 de un fondo
+   que se mueve, y ningún color de origen arregla eso para todos los fondos a
+   la vez: encima del papel el fondo es crema y encima de una palabra es tinta.
+
+   Medido, desvío medio del píxel del centro de una piedra carmín contra la
+   misma sin tocar los rieles, de 255:
+
+                                  sin corregir   corrigiendo
+       contraste 2, brillo 1  ....    41.1          21.7
+       contraste .5, brillo 1.6 ..    13.7          12.2
+       contraste 2, brillo 2  ....    39.3          23.5
+       contraste .5, brillo .5 ...    34.2          20.4
+
+   O sea que la corrección se lleva por delante la mitad larga del desvío, y lo
+   que queda es la transparencia. Quitarlo del todo pide que la piedra sea
+   opaca, y eso cambia cómo se ve encima del texto: es una decisión de lectura,
+   no de código, y está preguntada. */
+function compensarTinta(hex){
+  const raiz = getComputedStyle(document.documentElement);
+  const c = parseFloat(raiz.getPropertyValue('--contraste')) || 1;
+  const b = parseFloat(raiz.getPropertyValue('--brillo')) || 1;
+  if (c === 1 && b === 1) return hex;
+  /* Los dibujos llevan las dos escrituras —#fff en los realces y #4d6a35 en
+     las hojas— así que se admiten las dos y se devuelve siempre la larga. */
+  const t = hex.trim();
+  const corto = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(t);
+  const m = corto ? [null, corto[1] + corto[1], corto[2] + corto[2], corto[3] + corto[3]]
+                  : /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(t);
+  if (!m) return hex;
+  const dos = n => Math.round(Math.min(Math.max(n, 0), 1) * 255)
+                     .toString(16).padStart(2, '0');
+  return '#' + [1, 2, 3].map(i => {
+    const v = parseInt(m[i], 16) / 255;
+    return dos(((v - .5) / c + .5) / b);
+  }).join('');
+}
+/* El dibujo entero pasa por la corrección, no solo el relleno: los realces
+   blancos y las hojas verdes de las uvas son colores escritos a pelo y el
+   filtro se los lleva igual. Se sustituyen los tres formatos que aparecen en
+   estos dibujos —#rgb, #rrggbb y currentColor lo resuelve quien llama—. */
+const compensarDibujo = d =>
+  d.replace(/#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g, compensarTinta);
 const PIEDRA_NOMBRE_TOPE = 40;
 let piedras = [];
 let piedraEditando = null;             /* id de la que está en modo edición */
@@ -11212,10 +11344,20 @@ const PIEDRA_SVG = {
      parecía un gusano al lado de unas bolas. Y una hoja, que es lo que dice
      «uvas» y no «bolas». */
   uvas:
-    '<path d="M12 5.2V2.6" fill="none" stroke="currentColor" stroke-width="1.8"' +
+    /* LAS HOJAS VAN VERDES Y NO EN LA TINTA DE LA PIEDRA, y es la única figura
+       que rompe la regla. Todas las demás se pintan enteras del color que
+       lleve su piedra; ésta no puede, porque un racimo es dos cosas —el fruto
+       y la hoja— y del mismo tono se leía como un borrón con un rabo. Con la
+       hoja verde el racimo se reconoce de lejos y el fruto sigue tomando el
+       color que le pongas, que es lo que distingue una uva de una ciruela.
+       El verde va escrito a pelo y no en currentColor a propósito: una hoja
+       carmín no es una hoja. */
+    '<path d="M12 5.2V2.6" fill="none" stroke="#4d6a35" stroke-width="1.8"' +
     ' stroke-linecap="round"/>' +
     '<path d="M12.6 2.9c1.4-1.6 3.4-2.2 5.9-1.8.2 2.5-.6 4.3-2.4 5.2-1.8.9-3.3.4-4.5-1.4' +
-    ' .2-.8.5-1.5 1-2z" fill="currentColor"/>' +
+    ' .2-.8.5-1.5 1-2z" fill="#4d6a35"/>' +
+    '<path d="M13.2 3.6c1-.9 2.3-1.4 3.9-1.4" fill="none" stroke="#7fa35c"' +
+    ' stroke-opacity=".8" stroke-width=".9" stroke-linecap="round"/>' +
     '<circle cx="12" cy="8.2" r="3" fill="currentColor"/>' +
     '<circle cx="6.7" cy="11.4" r="3" fill="currentColor"/>' +
     '<circle cx="17.3" cy="11.4" r="3" fill="currentColor"/>' +
@@ -11275,7 +11417,23 @@ const PIEDRA_SVG = {
     '<path d="M12 1.4 15 8.8l7.9.6-6 5.2 1.8 7.7L12 18.1l-6.7 4.2L7.1 14.6l-6-5.2 7.9-.6z"' +
     ' fill="currentColor"/>' +
     '<path d="M12 4.9 13.9 9.6" fill="none" stroke="#fff" stroke-opacity=".33"' +
-    ' stroke-width="1.2" stroke-linecap="round"/>'
+    ' stroke-width="1.2" stroke-linecap="round"/>',
+  /* LA CINTA LARGA, LA ÚNICA QUE NO LLENA LA CAJA A LO ANCHO, y no es un
+     descuido: lo que hace que una cinta se lea como cinta es justamente que
+     sea LARGA Y ESTRECHA. Ensanchándola hasta los bordes deja de ser una
+     cinta y pasa a ser un rectángulo con una muesca.
+
+     Es la misma silueta que la cinta de verdad de la hoja —cuelga del filo de
+     arriba y termina en pico— así que las dos familias se reconocen entre sí:
+     quien ve esta piedra entiende de qué está hablando. El aclarado de la
+     izquierda es el mismo degradado que lleva la de tela, resuelto aquí como
+     una franja. */
+  cinta:
+    '<path d="M6.6 1h10.8v22L12 18.2 6.6 23z" fill="currentColor"/>' +
+    '<path d="M9 1.6v19.6" fill="none" stroke="#fff" stroke-opacity=".28"' +
+    ' stroke-width="1.6" stroke-linecap="round"/>' +
+    '<path d="M6.6 1h10.8" fill="none" stroke="#fff" stroke-opacity=".4"' +
+    ' stroke-width="1.1" stroke-linecap="round"/>'
 };
 /* EL xmlns VA SIEMPRE PUESTO, y no es de adorno. En la hoja viva sobra —el
    navegador ya sabe que un <svg> es un <svg>— pero este mismo dibujo viaja a
@@ -11290,10 +11448,14 @@ const PIEDRA_SVG = {
    `color` del div de fuera no llega al <svg> de dentro, así que currentColor se
    quedaba sin resolver y solo se pintaban los trazos blancos —la piedra salía
    como dos rayitas sueltas—. Quien dibuja la foto le pasa el color escrito. */
-const piedraDibujo = (f, tinta) => {
+const piedraDibujo = (f, tinta, crudo) => {
   const d = PIEDRA_SVG[f] || PIEDRA_SVG.piedra;
+  const con = tinta ? d.split('currentColor').join(tinta) : d;
+  /* `crudo` para los dibujos que NO viven sobre la hoja —la parrilla del
+     mando, los chips de la lista, los manojos de los botones—: ésos están
+     fuera del filtro, así que corregirlos los estropearía justo al revés. */
   return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">' +
-    (tinta ? d.split('currentColor').join(tinta) : d) + '</svg>';
+    (crudo ? con : compensarDibujo(con)) + '</svg>';
 };
 
 const TELAS = [['carmin', 'carmín', '#9b2a2a', '#7a1f1f'],
@@ -11886,7 +12048,7 @@ function pintarPiedras(){
         ';--piedra-tam:' + por + '%"' +
         ' data-piedra="' + esc(x.id) + '">' +
       '<button type="button" class="piedra" data-piedra-cuerpo="' + esc(x.id) + '"' +
-        ' style="color:' + tintaDe(x.color)[2] + '"' +
+        ' style="color:' + compensarTinta(tintaDe(x.color)[2]) + '"' +
         ' aria-label="' + esc(piedraVoz(x)) + '. Doble toque para moverla."' +
         ' title="' + esc(piedraVoz(x)) + '">' + piedraDibujo(x.forma) + '</button>' +
       (x.nombre ? '<span class="piedra-nombre">' + esc(x.nombre) + '</span>' : '') +
@@ -11921,7 +12083,7 @@ function pintarPiedraMando(){
     '<button type="button" class="pm-forma' + (f === x.forma ? ' on' : '') + '"' +
       ' data-piedra-forma="' + f + '" aria-pressed="' + (f === x.forma) + '"' +
       ' aria-label="' + FORMA_NOMBRE[f] + '" title="' + FORMA_NOMBRE[f] + '">' +
-      piedraDibujo(f) + '</button>').join('');
+      piedraDibujo(f, null, true) + '</button>').join('');
   const tintas = PIEDRA_TINTAS.map(t =>
     '<button type="button" class="pm-tinta' + (t[0] === x.color ? ' on' : '') + '"' +
       ' data-piedra-color="' + t[0] + '" aria-pressed="' + (t[0] === x.color) + '"' +
@@ -12412,6 +12574,9 @@ document.addEventListener('pointerdown', ev => {
    el mismo apaño de guardar el RECTÁNGULO y no el elemento: el botón se va con
    el rastro si se cierra, y un elemento fuera del documento no mide nada. */
 let piedraMenuAbierto = false, piedraMenuAncla = null;
+/* Cuál de las filas de la lista está con el campo del nombre abierto. Es lo
+   mismo que sepEditando para las cintas, y de ahí sale todo lo de abajo. */
+let piedraNombrando = null;
 function abrirPiedraMenu(ancla){
   piedraMenuAbierto = true;
   piedraMenuAncla = ancla ? ancla.getBoundingClientRect() : null;
@@ -12426,6 +12591,10 @@ function abrirPiedraMenu(ancla){
 }
 function cerrarPiedraMenu(){
   if (!piedraMenuAbierto) return;
+  /* Lo escrito se cobra ANTES de cerrar, y el orden es el arreglo entero: está
+     contado en sepCobrarNombre, que tuvo este mismo fallo. */
+  piedraCobrarNombreLista();
+  piedraNombrando = null;
   piedraMenuAbierto = false;
   piedraMenuAncla = null;
   const el = $('piedraMenu');
@@ -12433,34 +12602,106 @@ function cerrarPiedraMenu(){
   setTimeout(() => { if (!piedraMenuAbierto) el.style.display = 'none'; }, 280);
 }
 function pintarPiedrero(){ if (piedraMenuAbierto) pintarPiedraMenu(); }
+/* El botón de poner, dentro de la lista y no en el rastro: ver cabezaHistorial.
+   Sale también con la lista vacía, que es justo cuando más falta hace. */
+const piedraNuevaHTML = () =>
+  '<button type="button" class="sp-nueva" data-piedra-nueva="1"' +
+    ' title="Dejar una piedra en esta hoja"' +
+    ' aria-label="Dejar una piedra en la hoja que estás leyendo">' +
+    '<span class="sp-mas" aria-hidden="true">+</span>' +
+    '<span class="sp-chip-forma" aria-hidden="true">' +
+      piedraDibujo('piedra', null, true) + '</span>nueva piedra aquí</button>';
 function pintarPiedraMenu(){
   const el = $('piedraMenu');
   if (!piedras.length){
-    el.innerHTML = '<span class="sp-tit">Tus piedras</span>' +
-      '<p class="sp-vacio">Todavía no has dejado ninguna. El botón «piedra» del' +
-      ' rastro deja una en la hoja que estés leyendo.</p>';
+    el.innerHTML = '<span class="sp-tit">Tus piedras</span>' + piedraNuevaHTML() +
+      '<p class="sp-vacio">Todavía no has dejado ninguna. El botón de arriba' +
+      ' deja una en la hoja que estés leyendo.</p>';
     return;
   }
-  el.innerHTML = '<span class="sp-tit">Tus piedras</span>' +
+  el.innerHTML = '<span class="sp-tit">Tus piedras</span>' + piedraNuevaHTML() +
     piedras.map(x =>
       '<div class="sp-fila' + (piedraAqui(x) ? ' aqui' : '') + '">' +
-        '<button class="sp-ir" data-piedra-ir="' + esc(x.id) + '"' +
-          ' aria-label="Ver el versículo de la ' + esc(piedraVoz(x)) + '"' +
-          ' title="' + esc(piedraTexto(x)) + '">' +
-          /* El chip lleva el COLOR de su piedra, no el de la tinta: en la
-             hoja se reconocen por color tanto como por forma, y una lista de
-             trece figuras todas sepias no ayuda a encontrar la que buscas. */
-          '<span class="sp-chip-forma" style="color:' + tintaDe(x.color)[2] + '"' +
-            ' aria-hidden="true">' + piedraDibujo(x.forma) + '</span>' +
-          '<span class="sp-ref">' + esc(piedraTexto(x)) + '</span></button>' +
-        '<button type="button" class="sp-fila-x" data-piedra-quitar="' + esc(x.id) + '"' +
-          ' aria-label="Quitar la ' + esc(piedraVoz(x)) + '"' +
-          ' title="Quitar">' +
-          '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5 L9.5 9.5' +
-          ' M9.5 2.5 L2.5 9.5" stroke="currentColor" stroke-width="1.8"' +
-          ' stroke-linecap="round"/></svg></button>' +
+      (piedraNombrando === x.id
+        /* ESCRIBIENDO, LA FILA SE CALLA: fuera la equis y fuera el «· aquí»,
+           igual que en las cintas y por lo mismo —en un teléfono los tres
+           juntos dejaban al campo setenta píxeles—. */
+        ? '<div class="sp-edit">' +
+            '<span class="sp-chip-forma" style="color:' + tintaDe(x.color)[2] + '"' +
+              ' aria-hidden="true">' + piedraDibujo(x.forma, null, true) + '</span>' +
+            '<span class="sp-edit-base">' + esc(abrevDe(x.libro) + ' ' + x.cap + ':' + x.vers) + ' ·</span>' +
+            '<input class="sp-nombre" data-piedra-nombre="' + esc(x.id) + '"' +
+              ' value="' + esc(x.nombre || '') + '" maxlength="' + PIEDRA_NOMBRE_TOPE + '"' +
+              ' autocomplete="off" enterkeyhint="done" placeholder="nombre…"' +
+              ' aria-label="Nombre de la ' + esc(piedraVoz(x)) + '" />' +
+          '</div>'
+        : '<button class="sp-ir" data-piedra-ir="' + esc(x.id) + '"' +
+            ' aria-label="Ver el versículo de la ' + esc(piedraVoz(x)) + '"' +
+            ' title="' + esc(piedraTexto(x)) + '">' +
+            /* El chip lleva el COLOR de su piedra, no el de la tinta: en la
+               hoja se reconocen por color tanto como por forma, y una lista de
+               trece figuras todas sepias no ayuda a encontrar la que buscas. */
+            '<span class="sp-chip-forma" style="color:' + tintaDe(x.color)[2] + '"' +
+              ' aria-hidden="true">' + piedraDibujo(x.forma, null, true) + '</span>' +
+            '<span class="sp-ref">' + esc(piedraTexto(x)) + '</span></button>' +
+          /* EL LÁPIZ, igual que en las cintas y por la misma razón: un doble
+             clic sobre el nombre obligaría a que ABRIR la piedra —lo que se
+             hace siempre— esperase el plazo del doble toque por culpa de
+             nombrarla, que se hace una vez. */
+          '<button type="button" class="sp-fila-lapiz" data-piedra-renombrar="' + esc(x.id) + '"' +
+            ' aria-label="' + (x.nombre ? 'Cambiar el nombre de la' : 'Ponerle nombre a la') +
+            ' ' + esc(piedraVoz(x)) + '" title="Ponerle nombre">' +
+            '<svg viewBox="0 0 12 12" aria-hidden="true">' +
+            '<path d="M1.2 8.4 L8.1 1.5 L10.5 3.9 L3.6 10.8 L0.9 11.1 Z"' +
+            ' fill="none" stroke="currentColor" stroke-width="1.4"' +
+            ' stroke-linejoin="round"/></svg></button>' +
+          '<button type="button" class="sp-fila-x" data-piedra-quitar="' + esc(x.id) + '"' +
+            ' aria-label="Quitar la ' + esc(piedraVoz(x)) + '"' +
+            ' title="Quitar">' +
+            '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5 L9.5 9.5' +
+            ' M9.5 2.5 L2.5 9.5" stroke="currentColor" stroke-width="1.8"' +
+            ' stroke-linecap="round"/></svg></button>') +
       '</div>').join('');
 }
+/* NOMBRAR DESDE LA LISTA. El campo del mando de edición se queda —ahí se
+   nombra la que tienes delante— y éste sirve para la otra mitad: repasar las
+   que ya dejaste y ponerles nombre sin ir a buscarlas por el libro. Es lo que
+   hacen las cintas, y de ahí está copiado hasta el orden de las guardas. */
+function piedraCobrarNombreLista(){
+  if (!piedraNombrando) return;
+  const campo = $('piedraMenu').querySelector('[data-piedra-nombre]');
+  if (!campo || campo.dataset.piedraNombre !== piedraNombrando){
+    piedraNombrando = null; return;
+  }
+  piedraPonerNombre(piedraNombrando, campo.value);
+}
+/* Intro guarda y cierra el campo; Escape sale sin tocar nada. */
+$('piedraMenu').addEventListener('keydown', ev => {
+  const campo = ev.target.closest('[data-piedra-nombre]');
+  if (!campo) return;
+  if (ev.key === 'Enter'){
+    ev.preventDefault(); ev.stopPropagation();
+    piedraPonerNombre(campo.dataset.piedraNombre, campo.value);
+    piedraNombrando = null;
+    pintarPiedraMenu(); colocarPiedraMenu();
+  } else if (ev.key === 'Escape'){
+    ev.preventDefault(); ev.stopPropagation();
+    piedraNombrando = null;
+    pintarPiedraMenu(); colocarPiedraMenu();
+  }
+});
+/* EL FOCO QUE SE VA GUARDA, PERO EL REPINTADO ESPERA AL CLIC. Está contado
+   entero en el focusout de #sepMenu: el focusout llega ANTES que el clic del
+   botón que se está tocando, y repintar destruye ese botón antes de que su
+   clic aterrice —el toque se perdía y había que darlo dos veces—. */
+$('piedraMenu').addEventListener('focusout', ev => {
+  const campo = ev.target.closest('[data-piedra-nombre]');
+  if (!campo || piedraNombrando !== campo.dataset.piedraNombre) return;
+  piedraPonerNombre(campo.dataset.piedraNombre, campo.value);
+  setTimeout(() => {
+    if (piedraMenuAbierto && !piedraNombrando){ pintarPiedraMenu(); colocarPiedraMenu(); }
+  }, 0);
+});
 function colocarPiedraMenu(){
   const el = $('piedraMenu');
   if (el.style.display === 'none') return;
@@ -12479,6 +12720,29 @@ function colocarPiedraMenu(){
   el.style.top = Math.round(Math.max(8, arr)) + 'px';
 }
 $('piedraMenu').addEventListener('click', ev => {
+  /* Dentro del campo no hay nada que hacer aquí: poner el cursor a media
+     palabra es escribir, no pulsar. */
+  if (ev.target.closest('[data-piedra-nombre]')) return;
+  /* PONER UNA PIEDRA desde su lista. Cierra la lista: acabas de dejar algo en
+     la hoja y lo que hay que ver es la hoja, con la piedra recién puesta y su
+     mando abierto. */
+  if (ev.target.closest('[data-piedra-nueva]')){
+    ev.preventDefault(); ev.stopPropagation();
+    cerrarPiedraMenu();
+    cerrarHistorial();
+    trasPintar(() => ponerPiedra());
+    return;
+  }
+  const lapiz = ev.target.closest('[data-piedra-renombrar]');
+  if (lapiz){
+    ev.preventDefault(); ev.stopPropagation();
+    piedraCobrarNombreLista();
+    piedraNombrando = lapiz.dataset.piedraRenombrar;
+    pintarPiedraMenu(); colocarPiedraMenu();
+    const campo = $('piedraMenu').querySelector('[data-piedra-nombre]');
+    if (campo){ campo.focus(); campo.setSelectionRange(campo.value.length, campo.value.length); }
+    return;
+  }
   const quitar = ev.target.closest('[data-piedra-quitar]');
   if (quitar){
     ev.preventDefault(); ev.stopPropagation();
@@ -12578,6 +12842,15 @@ function pintarSepMenu(){
         ' aria-label="Cinta ' + t[1] + '" title="' + t[1] + '"></button>').join('') +
       '</div>' : '') +
     '<span class="sp-tit">Tus separadores</span>' +
+    /* PONER UNA CINTA SE PIDE DESDE AQUÍ, que es donde se está mirando las que
+       hay. Estuvo en el renglón del rastro, lejos de esta lista y con el ancho
+       del panel entre las dos; ver cabezaHistorial. Va DEBAJO del rótulo y
+       encima de la lista: primero lo que puedes hacer, después lo que hay. */
+    '<button type="button" class="sp-nueva" data-sep-nuevo="1"' +
+      ' title="Dejar un separador en esta hoja"' +
+      ' aria-label="Dejar un separador en la hoja que estás leyendo">' +
+      '<span class="sp-mas" aria-hidden="true">+</span>' +
+      '<span class="sp-chip" aria-hidden="true"></span>nueva cinta aquí</button>' +
     borrarHtml +
     (lista.length ? lista.map(x => {
       const t = telaDe(x.color);
@@ -12797,6 +13070,19 @@ $('sepMenu').addEventListener('click', ev => {
      palabra es escribir, no pulsar. (Cerrar el menú no hace falta pararlo: el
      oyente que cierra con un toque de fuera ya exceptúa #sepMenu entero.) */
   if (ev.target.closest('[data-sep-nombre]')) return;
+  /* PONER UNA CINTA desde su lista. Cierra el menú: acabas de marcar la hoja
+     donde estás y lo que hay que ver es la cinta, no la lista.
+     Si esta hoja YA tiene una, no pone otra encima: abre la suya. Dos cintas
+     en la misma hoja no marcan dos sitios, marcan uno mal. */
+  if (ev.target.closest('[data-sep-nuevo]')){
+    ev.preventDefault(); ev.stopPropagation();
+    const ya = sepDeLaHoja();
+    if (ya){ abrirSepMenu(ya.id); return; }
+    cerrarSepMenu();
+    cerrarHistorial();
+    crearSeparador();
+    return;
+  }
   const renombrar = ev.target.closest('[data-sep-renombrar]');
   if (renombrar){
     ev.preventDefault(); ev.stopPropagation();

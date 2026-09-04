@@ -53,6 +53,24 @@ async function andamio(p){
       e.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, op)));
       return true;
     };
+    /* PONER UNA PIEDRA SON DOS PASOS DESDE QUE EL BOTÓN SE MUDÓ: vivía en el
+       renglón del rastro y ahora vive DENTRO de la lista de piedras, que es
+       donde se está mirando las que hay. El camino de verdad es abrir el
+       rastro, abrir la lista, y ahí pedirla. */
+    window.__nuevaPiedra = async () => {
+      if (!document.getElementById('historial').classList.contains('visible')){
+        await window.__toque('#btnHistorial'); await window.__pausa(600);
+      }
+      if (!document.getElementById('piedraMenu').classList.contains('visible')){
+        await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
+      }
+      const b = document.querySelector('#piedraMenu [data-piedra-nueva]');
+      if (!b) return null;
+      const rotulo = b.textContent.trim();
+      await window.__toque(b);
+      await window.__pausa(900);
+      return rotulo;
+    };
     window.__guardadas = () => {
       try { return JSON.parse(localStorage.getItem('glossa:piedras:v1') || '[]'); }
       catch(e){ return 'ilegible'; }
@@ -98,6 +116,7 @@ async function andamio(p){
       const r = m.getBoundingClientRect();
       return { visible: m.classList.contains('visible'),
                formas: m.querySelectorAll('[data-piedra-forma]').length,
+               hayCinta: !!m.querySelector('[data-piedra-forma="cinta"]'),
                tintas: m.querySelectorAll('[data-piedra-color]').length,
                marcada: (m.querySelector('.pm-forma.on') || {}).dataset &&
                         m.querySelector('.pm-forma.on').dataset.piedraForma,
@@ -131,20 +150,21 @@ async function andamio(p){
   titulo('poner una piedra');
   const puesta = await p.evaluate(async () => {
     const antes = window.__guardadas().length;
-    await window.__toque('#btnHistorial');
-    await window.__pausa(600);
-    const b = document.querySelector('[data-piedra-nueva]');
-    if (!b) return { falta:'no hay botón' };
-    const rotulo = b.textContent.trim();
-    await window.__toque(b);
-    await window.__pausa(900);
+    const rotulo = await window.__nuevaPiedra();
+    if (rotulo === null) return { falta:'no hay botón' };
     return { antes, rotulo, guardadas: window.__guardadas(),
              rastro: document.getElementById('historial').classList.contains('visible'),
+             lista: document.getElementById('piedraMenu').classList.contains('visible'),
              piedra: window.__laPiedra(), mando: window.__elMando() };
   });
   di('al poner', puesta.piedra);
-  vale('el rastro trae el botón, y dice lo que deja',
-       puesta.rotulo === 'piedra', puesta.falta || puesta.rotulo);
+  /* EL BOTÓN VIVE DENTRO DE LA LISTA DE PIEDRAS, no en el renglón del rastro.
+     Estuvo allí, al lado del paso atrás, y el renglón decía dos cosas a la
+     vez: «vuelve por donde viniste» y «deja algo aquí». Poner una piedra y ver
+     tus piedras son el mismo asunto y estaban en dos sitios distintos. */
+  vale('la lista trae el botón, y dice lo que deja y dónde',
+       /piedra/.test(puesta.rotulo || '') && /aqu[ií]/.test(puesta.rotulo || ''),
+       puesta.falta || puesta.rotulo);
   vale('deja una guardada', (puesta.guardadas || []).length === puesta.antes + 1,
        (puesta.guardadas || []).length);
   /* ANCLADA A UN VERSÍCULO Y NO A UN NÚMERO DE HOJA: las hojas se rehacen al
@@ -164,7 +184,10 @@ async function andamio(p){
   vale('y NACE EN EDICIÓN, con su mando',
        !!puesta.piedra && puesta.piedra.editando === true && puesta.piedra.mando === true,
        puesta.piedra);
+  /* Y AL PONERLA SE CIERRA TODO: acabas de dejar algo en la hoja y lo que hay
+     que ver es la hoja, no la lista de la que saliste. */
   vale('el rastro se cierra al ponerla', puesta.rastro === false);
+  vale('  y la lista también', puesta.lista === false);
   /* Y NACE CON SU COLOR ESCRITO, aunque sea el de por defecto. Se pintaba bien
      sin la clave —tintaDe(undefined) devuelve el primero— pero la paleta del
      mando compara contra x.color y no marcaba ninguna mancha: la piedra se
@@ -321,6 +344,9 @@ async function andamio(p){
   di('el mando al abrirse', mando.m0);
   di('la piedra al final', mando.traNombre);
   vale('el mando enseña DIEZ FIGURAS O MÁS', mando.m0.formas >= 10, mando.m0.formas);
+  /* Y entre ellas la cinta larga, que es la que habla con la otra familia:
+     quien la ve entiende que esa piedra dice lo mismo que un separador. */
+  vale('  y una de ellas es la cinta larga', mando.m0.hayCinta === true);
   vale('y una paleta de colores', mando.m0.tintas >= 4, mando.m0.tintas);
   vale('y el campo del nombre', mando.m0.campo === true);
   vale('y cabe entero en la escena', mando.m0.cabe === true);
@@ -350,6 +376,36 @@ async function andamio(p){
   const fuera = await p.evaluate(() =>
     !document.getElementById('pg').contains(document.getElementById('piedraMando')));
   vale('EL MANDO CUELGA DE LA ESCENA, no del papel', fuera === true);
+  /* ---------------------------------------------------------------- */
+  /* NOMBRAR DESDE LA LISTA, que es la otra mitad de nombrar. El campo del
+     mando sirve para la piedra que tienes delante; éste, para repasar las que
+     dejaste sin ir a buscarlas por el libro. Es lo que hacen las cintas. */
+  titulo('nombrar una piedra desde su lista');
+  const lapiz = await p.evaluate(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(400);
+    await window.__toque('#btnHistorial'); await window.__pausa(600);
+    await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
+    const b = document.querySelector('#piedraMenu [data-piedra-renombrar]');
+    if (!b) return { sinLapiz:true };
+    await window.__toque(b); await window.__pausa(500);
+    const campo = document.querySelector('#piedraMenu [data-piedra-nombre]');
+    if (!campo) return { sinCampo:true };
+    const conFoco = document.activeElement === campo;
+    campo.value = 'la del monte';
+    campo.dispatchEvent(new KeyboardEvent('keydown',
+      { key:'Enter', bubbles:true, cancelable:true }));
+    await window.__pausa(500);
+    return { conFoco, guardado: window.__guardadas()[0].nombre,
+             fila: (document.querySelector('#piedraMenu .sp-ref') || {}).textContent,
+             cerroElCampo: !document.querySelector('#piedraMenu [data-piedra-nombre]') };
+  });
+  di('al nombrarla desde la lista', lapiz);
+  vale('EL LÁPIZ ABRE EL CAMPO Y SE LO LLEVA EL FOCO', lapiz.conFoco === true, lapiz);
+  vale('Intro guarda el nombre', lapiz.guardado === 'la del monte', lapiz.guardado);
+  vale('  y la fila lo enseña', /la del monte/.test(lapiz.fila || ''), lapiz.fila);
+  vale('  y el campo se cierra', lapiz.cerroElCampo === true);
+
   const voz = await p.evaluate(() =>
     document.querySelector('.piedra').getAttribute('aria-label'));
   di('el rótulo hablado', voz);
@@ -580,8 +636,7 @@ async function andamio(p){
   const encima = await q.evaluate(async () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await window.__pausa(400);
-    await window.__toque('#btnHistorial'); await window.__pausa(600);
-    await window.__toque('[data-piedra-nueva]'); await window.__pausa(900);
+    await window.__nuevaPiedra();
     const sitios = [...document.querySelectorAll('.piedra-sitio')];
     const nueva = sitios.find(e => e.classList.contains('editando'));
     if (!nueva || sitios.length < 2) return { sitios: sitios.length };

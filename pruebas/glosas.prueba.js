@@ -462,18 +462,22 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     await eval('(' + abrir + ')')();
     const m = document.getElementById('menu');
     const modos = [...m.querySelectorAll('.mmodos button[data-modo]')];
-    const ok = m.querySelector('.mmodos [data-acc="ok"]');
+    const ok = m.querySelector('.macciones [data-acc="ok"]');
     const tags = m.querySelector('.tagbox');
-    /* LOS TRES A TERCIOS EXACTOS, y se miden porque con 1fr a secas no salen:
-       1fr es minmax(auto,1fr), o sea que la columna no baja de su contenido y
-       la de la palabra larga se come a las otras —88 contra 68, medido—.
+    /* DOS FILAS DE DOS, y las cuatro celdas miden lo mismo. Se mide porque con
+       1fr a secas no sale: 1fr es minmax(auto,1fr), o sea que la columna no
+       baja de su contenido y la de la palabra larga se come a la otra —88
+       contra 68, medido—.
 
-       Hubo una versión con «1fr 1fr auto», con el OK midiendo lo que mide su
-       palabra: los dos trazos a medias y el tercero más chico. Se cambió
-       mirándolo puesto —tres botones en fila y uno más pequeño se lee como que
-       ese vale menos, y es la salida—. Ahora lo que distingue al OK es el
-       color, igual que a los trazos entre sí. */
+       El reparto pasó por tres versiones y las dos primeras se descartaron
+       mirándolas puestas: «1fr 1fr auto» dejaba al OK más chico que los modos
+       —y el más chico de una fila se lee como el que menos vale, siendo la
+       salida—; a tercios los tres iguales, y entonces el OK competía con dos
+       cosas que no son de su clase. Ahora arriba van los dos que dicen CÓMO se
+       dibuja la glosa y abajo los dos que HACEN algo, y cada pareja se mide
+       entre sí. */
     const anchos = modos.map(b => Math.round(b.getBoundingClientRect().width));
+    const acciones = [...m.querySelectorAll('.macciones button')];
     const fila = m.querySelector('.mmodos');
     return {
       salio: getComputedStyle(m).display !== 'none',
@@ -483,8 +487,14 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       hayOk: !!ok,
       anchos,
       anchoOk: ok ? Math.round(ok.getBoundingClientRect().width) : 0,
-      altos: [...m.querySelectorAll('.mmodos button')]
-               .map(b => Math.round(b.getBoundingClientRect().height)),
+      /* Los altos, por filas: arriba llevan la marca en su propio renglón y son
+         más altos que abajo. Lo que tiene que cuadrar es cada pareja. */
+      altosArriba: modos.map(b => Math.round(b.getBoundingClientRect().height)),
+      altosAbajo: acciones.map(b => Math.round(b.getBoundingClientRect().height)),
+      anchosAbajo: acciones.map(b => Math.round(b.getBoundingClientRect().width)),
+      /* Y que sean dos renglones de verdad: el de abajo, debajo. */
+      dosRenglones: acciones.length === 2 && modos.length === 2 &&
+        acciones[0].getBoundingClientRect().top > modos[0].getBoundingClientRect().top,
       hueco: fila ? parseFloat(getComputedStyle(fila).gap) : -1,
       /* SIN TEXTO EL OK SIGUE ACTIVO. Apagarlo sería mentir: sin texto,
          terminar es lo que borra la glosa, y ése es un camino que existe. */
@@ -514,14 +524,21 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     vale('el OK está en la fila', r.hayOk === true);
     vale('los dos trazos siguen midiendo lo mismo',
          r.anchos.length === 2 && Math.abs(r.anchos[0] - r.anchos[1]) <= 1, r.anchos);
-    /* Y EL OK MIDE LO MISMO QUE ELLOS. Antes medía lo justo de su palabra y
-       era el más chico de los tres; puesto en pantalla, eso se leía como que
-       la salida valía menos que los dos modos. */
-    vale('Y EL OK MIDE LO MISMO: los tres a tercios',
-         r.anchoOk > 0 && Math.abs(r.anchoOk - r.anchos[0]) <= 1,
-         r.anchoOk + '  vs  ' + r.anchos.join(' / '));
-    vale('y los tres, del mismo alto',
-         r.altos.length === 3 && new Set(r.altos).size === 1, r.altos.join(' / '));
+    /* EL OK BAJÓ A LA FILA DE ABAJO, junto a las etiquetas, y sigue midiendo
+       lo mismo que todos: lo que lo distingue es el color, no el tamaño. */
+    vale('DOS ARRIBA Y DOS ABAJO', r.dosRenglones === true,
+         r.anchos.length + ' arriba, ' + r.anchosAbajo.length + ' abajo');
+    vale('y las cuatro celdas miden lo mismo de ancho',
+         Math.max(...r.anchos, ...r.anchosAbajo) -
+         Math.min(...r.anchos, ...r.anchosAbajo) <= 1,
+         [...r.anchos, ...r.anchosAbajo].join(' / '));
+    vale('cada pareja, del mismo alto',
+         new Set(r.altosArriba).size === 1 && new Set(r.altosAbajo).size === 1,
+         r.altosArriba.join('/') + '  ·  ' + r.altosAbajo.join('/'));
+    /* Y CON SITIO PARA UN PULGAR. Los de arriba llegan solos porque llevan la
+       marca en su renglón; los de abajo son de un renglón y se quedaban en 38. */
+    vale('y los de abajo caben bajo un dedo',
+         Math.min(...r.altosAbajo) >= 44, r.altosAbajo.join(' / '));
     /* Separados por unos pocos píxeles: pegados se leen como un solo bloque
        partido, y con mucho hueco «▮ resaltado» ya no cabe sin partirse. */
     vale('separados por unos pocos píxeles',
@@ -640,7 +657,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     ta.value = 'terminada con el botón';
     ta.dispatchEvent(new Event('input', { bubbles:true }));
     await new Promise(z => setTimeout(z, 120));
-    const ok = document.querySelector('#menu .mmodos [data-acc="ok"]');
+    const ok = document.querySelector('#menu .macciones [data-acc="ok"]');
     if (!ok) return { error:'no hay OK' };
     ok.click();
     await new Promise(z => setTimeout(z, 600));
@@ -716,7 +733,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   di('OK con la caja vacía', await p.evaluate(async ([abrir]) => {
     const antes = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length;
     await eval('(' + abrir + ')')(78, 90);
-    const ok = document.querySelector('#menu .mmodos [data-acc="ok"]');
+    const ok = document.querySelector('#menu .macciones [data-acc="ok"]');
     const apagado = ok.disabled === true || getComputedStyle(ok).pointerEvents === 'none';
     ok.click();
     await new Promise(z => setTimeout(z, 600));
