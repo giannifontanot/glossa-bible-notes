@@ -464,11 +464,17 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     const modos = [...m.querySelectorAll('.mmodos button[data-modo]')];
     const ok = m.querySelector('.mmodos [data-acc="ok"]');
     const tags = m.querySelector('.tagbox');
-    /* La fila mide: los dos trazos van a medias EXACTAS y el OK toma lo que
-       necesita. Con grid-template-columns:1fr 1fr auto no salía así —1fr es
-       minmax(auto,1fr), o sea que la columna no baja de su contenido y la de
-       la palabra larga se comía a la otra: 88 contra 68—. Por eso se miden. */
+    /* LOS TRES A TERCIOS EXACTOS, y se miden porque con 1fr a secas no salen:
+       1fr es minmax(auto,1fr), o sea que la columna no baja de su contenido y
+       la de la palabra larga se come a las otras —88 contra 68, medido—.
+
+       Hubo una versión con «1fr 1fr auto», con el OK midiendo lo que mide su
+       palabra: los dos trazos a medias y el tercero más chico. Se cambió
+       mirándolo puesto —tres botones en fila y uno más pequeño se lee como que
+       ese vale menos, y es la salida—. Ahora lo que distingue al OK es el
+       color, igual que a los trazos entre sí. */
     const anchos = modos.map(b => Math.round(b.getBoundingClientRect().width));
+    const fila = m.querySelector('.mmodos');
     return {
       salio: getComputedStyle(m).display !== 'none',
       colores: m.querySelectorAll('.mc').length,
@@ -477,6 +483,9 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       hayOk: !!ok,
       anchos,
       anchoOk: ok ? Math.round(ok.getBoundingClientRect().width) : 0,
+      altos: [...m.querySelectorAll('.mmodos button')]
+               .map(b => Math.round(b.getBoundingClientRect().height)),
+      hueco: fila ? parseFloat(getComputedStyle(fila).gap) : -1,
       /* SIN TEXTO EL OK SIGUE ACTIVO. Apagarlo sería mentir: sin texto,
          terminar es lo que borra la glosa, y ése es un camino que existe. */
       okApagado: ok ? (ok.disabled === true ||
@@ -505,8 +514,18 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     vale('el OK está en la fila', r.hayOk === true);
     vale('los dos trazos siguen midiendo lo mismo',
          r.anchos.length === 2 && Math.abs(r.anchos[0] - r.anchos[1]) <= 1, r.anchos);
-    vale('y el OK no es un tercio, es lo justo',
-         r.anchoOk > 0 && r.anchoOk < r.anchos[0], r.anchoOk + '  vs  ' + r.anchos[0]);
+    /* Y EL OK MIDE LO MISMO QUE ELLOS. Antes medía lo justo de su palabra y
+       era el más chico de los tres; puesto en pantalla, eso se leía como que
+       la salida valía menos que los dos modos. */
+    vale('Y EL OK MIDE LO MISMO: los tres a tercios',
+         r.anchoOk > 0 && Math.abs(r.anchoOk - r.anchos[0]) <= 1,
+         r.anchoOk + '  vs  ' + r.anchos.join(' / '));
+    vale('y los tres, del mismo alto',
+         r.altos.length === 3 && new Set(r.altos).size === 1, r.altos.join(' / '));
+    /* Separados por unos pocos píxeles: pegados se leen como un solo bloque
+       partido, y con mucho hueco «▮ resaltado» ya no cabe sin partirse. */
+    vale('separados por unos pocos píxeles',
+         r.hueco > 0 && r.hueco <= 8, r.hueco + 'px');
     vale('SIN TEXTO EL OK SIGUE ACTIVO', r.okApagado === false, r.okApagado);
     vale('macizo, y los trazos de contorno', r.okMacizo !== r.modoMacizo,
          r.okMacizo + '  vs  ' + r.modoMacizo);
@@ -1870,6 +1889,159 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     (document.getElementById('indice').textContent || '').includes('la nueva sin etiqueta'));
   vale('y sale en la lista de glosas', enLista === true);
   await cerrarParcial(filtros, 'filtros');
+
+  /* ================================================================
+     LA LISTA DE ETIQUETAS: CÓMO LLEGA Y CÓMO SE VA.
+
+     Dos cosas que no se ven mirando una captura, y por eso se miden aquí:
+
+     1. QUE EL DESPLIEGUE MIDA EL ALTO DE AHORA. La caja se compone al nacer el
+        panel (ver calentarTags) para que la primera apertura no pague
+        componerla dentro del manejador —medido a un sexto de CPU con 34
+        etiquetas: 25.6 ms la primera contra 14.8 con el calentamiento—. Eso
+        es una ganancia de TIEMPO y no deja huella que mirar, así que aquí no
+        se mide; lo que sí se mide es lo que salió mal al intentar guardarse
+        también el alto: el número se quedaba viejo al cambiar el ancho. Se
+        comprueba cambiando de 412 a 320 y abriendo después: la lista tiene
+        que terminar en su alto de verdad, no en el de antes. Lo levantó el
+        dueño corriendo las pruebas.
+
+     2. QUE EL PANEL NO DESAPAREZCA DE GOLPE con la lista abierta. Cuando lo
+        escrito sale volando al margen, el panel se quitaba en un cuadro: el
+        vuelo contaba la salida. Con la lista desplegada el panel mide más del
+        doble, y lo que vuela sigue siendo una nota, así que media pantalla se
+        esfumaba sin que nada la explicara. Se mide contando CUADROS: con el
+        fallo puesto, uno.
+     ================================================================ */
+  const etiq = await abrir();
+  const e = etiq.pagina;
+  await conGlosas(e);
+  titulo('la lista de etiquetas se compone antes de pedirla');
+  const lista = await e.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const v = document.querySelector('#pgBody .v');
+    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
+    if (!n) return { sinTexto:true };
+    const rg = document.createRange(); rg.setStart(n, 0); rg.setEnd(n, 15);
+    getSelection().removeAllRanges(); getSelection().addRange(rg);
+    const rc = rg.getBoundingClientRect();
+    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+      { bubbles:true, clientX: Math.round(rc.left + 2), clientY: Math.round(rc.top + 2) }));
+    await pausa(800);
+    const m = document.getElementById('menu');
+    const caja = m.querySelector('.tagbox');
+    const cerradaAun = !!caja && !caja.classList.contains('abierta');
+    /* Con nota, que la lista dormida no responde. */
+    const ta = document.getElementById('glosaCaja');
+    ta.value = 'nota para las etiquetas';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await pausa(300);
+    const bt = m.querySelector('[data-acc="vertags"]');
+    bt.dispatchEvent(new MouseEvent('click', { bubbles:true, detail:1 }));
+    await pausa(900);
+    const abierta = caja.classList.contains('abierta');
+    const altoPanel = Math.round(m.getBoundingClientRect().height);
+    /* Y ahora se cierra tocando fuera, filmando cuadro a cuadro cómo se va. */
+    const cuadros = [];
+    const t0 = performance.now();
+    const peli = (async () => {
+      while (performance.now() - t0 < 700){
+        const cs = getComputedStyle(m);
+        if (cs.display !== 'none') cuadros.push(+(+cs.opacity).toFixed(2));
+        await new Promise(z => requestAnimationFrame(z));
+      }
+    })();
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await peli;
+    return { cerradaAun, abierta, altoPanel,
+             cuadros: cuadros.length, opacidades: cuadros.join(' ') };
+  });
+  di('la lista', { altoDelPanel: lista.altoPanel, cuadrosAlIrse: lista.cuadros });
+  di('las opacidades', lista.opacidades);
+  vale('nace cerrada, que es como tiene que nacer', lista.cerradaAun === true);
+  vale('la lista se despliega', lista.abierta === true);
+  /* Con el fallo puesto esto daba 1: el panel se quitaba en un cuadro. */
+  vale('Y EL PANEL SE VA FUNDIÉNDOSE, no de golpe',
+       lista.cuadros >= 5, lista.cuadros + ' cuadros');
+  vale('  bajando la opacidad hasta cero',
+       /0\.\d/.test(lista.opacidades || '') && / 0$/.test(' ' + (lista.opacidades || '')),
+       lista.opacidades);
+
+  /* EL ANCHO CAMBIA Y LA LISTA TIENE QUE ENTERARSE.
+
+     Aquí vivió un alto guardado —se apuntaba al componer la caja y el
+     despliegue lo reusaba— y se quitó porque se quedaba viejo: cambiando de
+     412 a 320, el apunte seguía diciendo 61.33 px cuando el alto de verdad ya
+     era 74.80. Lo levantó el dueño corriendo las pruebas, y de paso resultó
+     que el apunte tampoco ahorraba nada —medido: 14.8 ms de primera apertura
+     con él y 14.8 sin él, o sea que todo el beneficio venía de haber
+     compuesto la caja, no de recordar su medida—.
+
+     Y AQUÍ VA LO QUE ESTA PRUEBA NO ALCANZA A VIGILAR, escrito para que
+     nadie la crea más fuerte de lo que es. El daño del apunte viejo era
+     TRANSITORIO: la animación viajaba hacia el alto equivocado, pero al
+     rematar el pliegue devuelve height:auto y la caja acaba bien. Se
+     intentaron dos maneras de cazarlo —mirar el final y filmar el pico del
+     alto durante el despliegue— y las dos dan lo mismo con el fallo puesto y
+     sin él, porque para cuando se puede medir ya se ha curado solo. Lo que
+     quedaba era un tirón de unos cuadros, y esta prueba no lo ve.
+
+     Así que lo que se comprueba abajo es el INVARIANTE, no el tirón: tras
+     estrechar la ventana, la lista abierta mide lo que mide de verdad a ese
+     ancho. Pasa con el fallo y sin él, y está aquí porque documenta la regla
+     y cazaría cualquier versión futura que sí dejara el alto mal al terminar.
+     La garantía contra el tirón es estructural y no está en esta prueba: ya
+     no hay ningún alto recordado que pueda quedarse viejo. */
+  titulo('la lista se abre al alto de AHORA, no al de antes de estrechar');
+  const anchos = await e.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    /* Se vuelve a abrir un panel: el de antes se cerró tocando fuera. */
+    const v = document.querySelector('#pgBody .v');
+    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
+    if (!n) return { sinTexto:true };
+    const rg = document.createRange(); rg.setStart(n, 0); rg.setEnd(n, 15);
+    getSelection().removeAllRanges(); getSelection().addRange(rg);
+    const rc = rg.getBoundingClientRect();
+    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+      { bubbles:true, clientX: Math.round(rc.left + 2), clientY: Math.round(rc.top + 2) }));
+    await pausa(900);
+    const ta = document.getElementById('glosaCaja');
+    ta.value = 'nota para el ancho';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await pausa(300);
+    return { listo:true, anchoPanel: Math.round(document.getElementById('menu').offsetWidth) };
+  });
+  vale('el panel volvió a salir', anchos.listo === true, anchos);
+  /* Se estrecha la ventana CON EL PANEL PUESTO, que es el caso: girar el
+     teléfono o partir la pantalla mientras escribes una glosa. */
+  await e.setViewportSize({ width:320, height:720 });
+  await e.waitForTimeout(1200);
+  const tras = await e.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const m = document.getElementById('menu');
+    const caja = m.querySelector('.tagbox');
+    if (!caja) return { sinCaja:true };
+    const bt = m.querySelector('[data-acc="vertags"]');
+    if (!bt) return { sinBoton:true };
+    bt.dispatchEvent(new MouseEvent('click', { bubbles:true, detail:1 }));
+    await pausa(1200);                     /* con el viaje largo, de sobra */
+    const puesta = Math.round(caja.getBoundingClientRect().height);
+    /* El alto de verdad a este ancho: se pide con la caja ya abierta y sin
+       ninguna altura escrita encima, que es lo que deja rematar el pliegue. */
+    const natural = Math.round(caja.scrollHeight);
+    return { abierta: caja.classList.contains('abierta'), puesta, natural,
+             anchoPanel: Math.round(m.offsetWidth) };
+  });
+  di('tras estrechar a 320', tras);
+  vale('la lista se abre', tras.abierta === true, tras);
+  /* Un píxel de margen por el redondeo. */
+  vale('y al alto de AHORA, no al del ancho anterior',
+       Math.abs(tras.puesta - tras.natural) <= 1,
+       tras.puesta + ' px puestos contra ' + tras.natural + ' de verdad');
+  await cerrarParcial(etiq, 'la lista de etiquetas');
 
   await cerrar(sesion);
 })();

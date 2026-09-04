@@ -81,27 +81,31 @@ const ATERRIZA = 7000;
     const panel = document.getElementById('historial').getBoundingClientRect();
     const suyo = b.getBoundingClientRect();
     const rotulo = b.textContent.trim();
-    /* EL PASO ATRÁS COMPARTE RENGLÓN CON EL DE PONER CINTA, y el rótulo se
-       queda solo arriba.
+    /* LOS TRES COMPARTEN RENGLÓN, EN ESTE ORDEN: PIEDRA, CINTA, ATRÁS. El
+       rótulo se queda solo arriba.
 
-       Aquí se midió antes lo contrario —rótulo y paso atrás juntos— porque así
-       estaba. Se cambió al acortar «separador» a «nuevo»: con el nombre corto
-       los dos botones caben en un renglón, y el panel gana el que ocupaba el
-       de abajo. Los tres nunca cupieron.
+       Aquí se midió antes rótulo y paso atrás juntos, y luego atrás-cinta con
+       el atrás delante. Ahora el atrás va el ÚLTIMO, y no es cosmético: los
+       dos primeros DEJAN algo en esta hoja y son la misma clase de gesto; el
+       tercero se va de aquí. Con el de irse en medio, la fila no se lee como
+       «dos cosas que dejas y una salida» sino como tres botones sueltos.
 
        Se mide por los CENTROS y no por el borde de arriba: los botones llevan
        borde y relleno, y compartir renglón centrados es justo lo que no se ve
        comparando bordes. */
     const tit = document.querySelector('#historial .hs-tit');
     const nuevo = document.querySelector('#historial [data-sep-nuevo]');
+    const piedra = document.querySelector('#historial [data-piedra-nueva]');
     const tb = tit ? tit.getBoundingClientRect() : null;
     const rn = nuevo ? nuevo.getBoundingClientRect() : null;
-    const juntos = (tb && rn) ? {
-      mismoCentro: Math.abs((rn.top+rn.bottom)/2 - (suyo.top+suyo.bottom)/2) < 1.5,
-      centros: [Math.round((suyo.top+suyo.bottom)/2*10)/10,
-                Math.round((rn.top+rn.bottom)/2*10)/10],
-      /* y sin pisarse: el atrás a la izquierda, el de poner a la derecha */
-      sinPisarse: suyo.right <= rn.left,
+    const rp = piedra ? piedra.getBoundingClientRect() : null;
+    const cen = r => Math.round((r.top + r.bottom) / 2 * 10) / 10;
+    const juntos = (tb && rn && rp) ? {
+      mismoCentro: Math.abs(cen(rn) - cen(suyo)) < 1.5 &&
+                   Math.abs(cen(rp) - cen(suyo)) < 1.5,
+      centros: [cen(rp), cen(rn), cen(suyo)],
+      /* EL ORDEN, y sin pisarse: piedra, cinta, atrás, de izquierda a derecha. */
+      enOrden: rp.right <= rn.left && rn.right <= suyo.left,
       /* el rótulo, entero por encima del renglón */
       bajoElRotulo: tb.bottom <= suyo.top + 1,
       /* EL HUECO DE ARRIBA SE MIDE EN EL RÓTULO, que es lo que ahora toca el
@@ -109,8 +113,8 @@ const ATERRIZA = 7000;
          renglón fue el botón, no el relleno. */
       huecoArriba: Math.round(tb.top - panel.top),
       /* Y EL RENGLÓN, PEGADO AL FILO DERECHO. Lo que hay que medir es el
-         ÚLTIMO del renglón, que ya no es el paso atrás sino el de poner. */
-      alFilo: Math.round(panel.right - rn.right)
+         ÚLTIMO del renglón, que ahora vuelve a ser el paso atrás. */
+      alFilo: Math.round(panel.right - suyo.right)
     } : null;
     const antes = JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]');
     b.click();
@@ -128,9 +132,10 @@ const ATERRIZA = 7000;
     vale('hay paso atrás y dice a dónde', !r.sinBoton && /\d+:\d+/.test(r.rotulo || ''), r.rotulo);
     vale('  y su renglón va pegado al filo derecho',
          !!r.juntos && r.juntos.alFilo <= 16, r.juntos && r.juntos.alFilo + 'px del filo');
-    vale('  en el mismo renglón que el de poner cinta, centrados',
+    vale('  en el mismo renglón que piedra y cinta, centrados',
          !!r.juntos && r.juntos.mismoCentro, r.juntos && (r.juntos.centros||[]).join(' vs '));
-    vale('  sin pisarse', !!r.juntos && r.juntos.sinPisarse);
+    vale('  EN ORDEN: piedra, cinta, atrás', !!r.juntos && r.juntos.enOrden,
+         r.juntos && (r.juntos.centros||[]).length + ' botones');
     vale('  con el rótulo entero por encima',
          !!r.juntos && r.juntos.bajoElRotulo, r.juntos);
     vale('  y con el hueco de arriba de siempre',

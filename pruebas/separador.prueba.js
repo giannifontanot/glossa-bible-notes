@@ -800,6 +800,11 @@ async function ponerAMano(p){
       juntos: arriba.length === 3 &&
               [atras, piedra, nuevo].every(e => e.parentElement === acciones),
       mismoRenglon: new Set([ra, rn, rq].map(x => Math.round(x.top))).size === 1,
+      /* Y EN ESTE ORDEN: piedra, cinta, atrás. Los dos primeros dejan algo en
+         esta hoja —son la misma clase de gesto— y el tercero se va de aquí,
+         así que va donde termina la lectura de la fila, que es donde uno busca
+         la puerta. Estuvo al revés, con el atrás delante. */
+      orden: rq.left < rn.left && rn.left < ra.left,
       /* Y CABEN DE VERDAD. Se mide contra el ancho ÚTIL —el panel menos su
          relleno y el de la fila— y no contra el del panel a secas: por tres
          píxeles de diferencia entre uno y otro se bajaba un botón de renglón,
@@ -829,6 +834,7 @@ async function ponerAMano(p){
   vale('el rótulo se queda solo arriba', renglon.rotuloSolo === true);
   vale('LOS TRES BOTONES COMPARTEN RENGLÓN',
        renglon.juntos === true && renglon.mismoRenglon === true, renglon);
+  vale('Y EN ORDEN: piedra, cinta, atrás', renglon.orden === true, renglon.orden);
   vale('y caben en el ancho útil', renglon.ocupan <= renglon.util,
        renglon.ocupan + ' de ' + renglon.util + ' px útiles');
   vale('nada se sale del panel', renglon.dentro === true);
