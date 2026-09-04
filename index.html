@@ -3042,7 +3042,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '04-SEP-26 13:51';
+window.GLOSS_BUILD = '04-SEP-26 13:59';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3243,6 +3243,27 @@ const PAGE_CSS = `
    y anuncio del sufrimiento»— parte en tres renglones en una columna de este
    ancho. A 1.3 se ve de lejos y la hoja sigue teniendo un solo jefe.
 
+   CENTRADO, Y CON EL RENGLÓN UN POCO MÁS CORTO QUE LA COLUMNA.
+
+   Centrado porque el NÚMERO DE CAPÍTULO ya lo está: puestos uno debajo del
+   otro, la hoja tiene un eje. Alineado a la izquierda el titulillo iba por su
+   cuenta, y se notaba.
+
+   Y el relleno lateral no es un capricho: es lo único que hace que un
+   titulillo largo se pueda centrar sin quedar cojo. Comparadas las maquetas en
+   el teléfono con «El reino como semilla y levadura» —que en esta columna no
+   cabe de una—, centrado a secas parte dejando un renglón casi lleno y otro de
+   dos palabras, y ese desequilibrio centrado se ve mucho más que alineado a la
+   izquierda. Acortando el renglón parte en «El reino como / semilla y
+   levadura», dos mitades parejas. Es todo el truco de los titulillos centrados
+   en tipografía de libro: no es el centrado, es dónde parten.
+
+   NO ARREGLA TODOS LOS CASOS y no se pretende. Con noventa y cinco perícopas
+   habrá títulos que partan mal de todas formas, porque dónde corta un renglón
+   no lo decide uno; centrado eso se perdona menos. Se paga a sabiendas: los
+   cortos —que son la mayoría— salen mejor, y los largos salen mejor que
+   centrados sin el relleno.
+
    EL AIRE ES QUIEN MÁS TRABAJA, y va casi todo ARRIBA: un titulillo pertenece
    a lo que viene después, así que se separa de lo anterior y se pega a lo
    suyo. En em del propio rótulo, para que encoja con la letra cuando el lector
@@ -3272,7 +3293,7 @@ const PAGE_CSS = `
                    Georgia,'Noto Serif',serif;
        font-size:1.3em; font-style:normal; font-weight:600;
        line-height:1.25; color:var(--tinta,#241f1a); letter-spacing:.005em;
-       margin:1.5em 0 .3em; }
+       text-align:center; padding:0 .6em; margin:1.5em 0 .3em; }
 /* Los versículos van CORRIDOS, siempre. Hubo un ajuste para ponerlos cada uno
    en su renglón y se ha quitado: partía el texto en una lista de frases
    sueltas y una Biblia no es una lista, es prosa —así se leyó durante

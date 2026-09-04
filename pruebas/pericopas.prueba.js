@@ -73,6 +73,10 @@ const abrirEn = async (p, donde) => {
                       : 0) || 0) })),
       estilo: cs ? { familia: cs.fontFamily.split(',')[0], estilo: cs.fontStyle,
                      peso: +cs.fontWeight, tam: parseFloat(cs.fontSize),
+                     centrado: cs.textAlign,
+                     /* Cuánto se mete por cada lado: es lo que hace que un
+                        título largo parta en mitades parejas. */
+                     sangria: parseFloat(cs.paddingLeft),
                      color: cs.color } : null,
       /* El cuerpo del texto, para comparar contra él y no contra números
          escritos a mano: tinta, tamaño y peso del versículo de al lado. */
@@ -114,6 +118,18 @@ const abrirEn = async (p, donde) => {
   vale('  y redonda, no cursiva',
        !!puesto.estilo && puesto.estilo.estilo === 'normal',
        (puesto.estilo||{}).estilo);
+  /* CENTRADO Y SIN LLEGAR A LOS BORDES. Centrado porque el número de capítulo
+     ya lo está y así la hoja tiene un eje. Y con sangría a los dos lados
+     porque es lo único que hace que un titulillo largo parta en mitades
+     parejas: centrado a secas, «El reino como semilla y levadura» deja un
+     renglón casi lleno y otro de dos palabras, y ese desequilibrio centrado se
+     ve mucho más que alineado a la izquierda. Las dos cosas van juntas en esta
+     línea porque separadas no significan nada: centrar sin sangrar era peor
+     que no centrar. */
+  vale('  centrado, y sin llegar a los bordes de la columna',
+       !!puesto.estilo && puesto.estilo.centrado === 'center' &&
+       puesto.estilo.sangria > 0,
+       (puesto.estilo||{}).centrado + ', ' + (puesto.estilo||{}).sangria + 'px por lado');
   /* Y CON LA TINTA DEL TEXTO, que es una aserción y no un capricho.
 
      Nació con el sepia apagado del aparato —#8a7746, el de los números de
