@@ -55,6 +55,25 @@ async function andamio(p){
       e.dispatchEvent(new PointerEvent('pointerup', op));
       await window.__pausa(1700);
     };
+    /* PONER UNA CINTA SON DOS PASOS DESDE QUE EL BOTÓN SE MUDÓ. Vivía en el
+       renglón del rastro, al lado del paso atrás; ahora vive DENTRO de la
+       lista de cintas, que es donde se está mirando las que hay. El camino de
+       verdad es: abrir el rastro, abrir la lista, y ahí pedirla. Se envuelve
+       aquí para que las quince llamadas de este fichero no tengan que
+       aprenderse el camino cada una. */
+    window.__nuevaCinta = async () => {
+      if (!document.getElementById('historial').classList.contains('visible')){
+        await window.__toque('#btnHistorial'); await window.__pausa(600);
+      }
+      if (!document.getElementById('sepMenu').classList.contains('visible')){
+        await window.__toque('[data-sep-lista]'); await window.__pausa(700);
+      }
+      const b = document.querySelector('#sepMenu [data-sep-nuevo]');
+      if (!b) return false;
+      await window.__toque(b);
+      await window.__pausa(700);
+      return true;
+    };
     window.__guardadas = () => {
       try { return JSON.parse(localStorage.getItem('glossa:separadores:v1') || '[]'); }
       catch(e){ return 'ilegible'; }
@@ -96,6 +115,42 @@ async function andamio(p){
                saliendo: btn.classList.contains('saliendo'),
                ancho: Math.round(btn.getBoundingClientRect().width) };
     };
+    /* LO MISMO, PERO PARA UNA AUTOPSIA. __cintaEstado dice si hay cinta;
+       esto dice CUÁL y de dónde salió, que es lo que hace falta cuando lo
+       que se está mirando es una cinta que no debería estar ahí.
+
+       Son dos fallos distintos y el arreglo no se parece en nada:
+
+       · el id del nodo NO está en el almacén → es una PERCHA HUÉRFANA, un
+         nodo que se quedó sin retirar (o que se remontó desde una foto del
+         pliegue). El fallo está en retirarSeparador / sepTrasPliegue.
+       · el id SÍ está en el almacén → la cinta no se borró de verdad, y lo
+         que se ve al pasar hoja es el programa haciendo lo correcto con un
+         dato que sobrevivió al borrado. El fallo está en el borrado.
+
+       Se anotan también las clases del botón, porque una cinta atrapada en
+       'saliendo' con el temporizador de 400 ms perdido se ve exactamente
+       igual que una que nunca se mandó retirar. */
+    window.__cintaForense = () => {
+      const g = window.__guardadas();
+      const ids = Array.isArray(g) ? g.map(x => x.id) : g;
+      const nodos = Array.prototype.map.call(
+        document.querySelectorAll('#sepPercha, .sep-percha'), n => {
+          const marca = n.querySelector('[data-sep]');
+          const id = marca ? marca.dataset.sep : null;
+          const btn = n.querySelector('.separador');
+          const pa = n.parentNode;
+          return { id,
+                   enElAlmacen: Array.isArray(ids) ? ids.indexOf(id) >= 0 : 'ilegible',
+                   clases: btn ? btn.className : '(sin boton)',
+                   opacidad: btn
+                     ? Math.round(parseFloat(getComputedStyle(btn).opacity) * 100) / 100
+                     : null,
+                   padre: pa ? (pa.id || pa.className || pa.tagName) : '(suelto)' };
+        });
+      const cab = document.querySelector('.pg-cabeza');
+      return { nodos, almacen: ids, hoja: cab ? cab.textContent.trim() : '' };
+    };
     window.__desborde = () =>
       document.documentElement.scrollWidth > document.documentElement.clientWidth;
     /* Con el cajón abierto se ve la columna de glosas: en teléfono la hoja es
@@ -131,17 +186,12 @@ async function abrirEn(p, libro, cap, vers){
   await p.waitForTimeout(3200);
   await andamio(p);
 }
-/* El botón SEPARADOR vive en el panel del rastro, al lado del paso atrás. */
+/* El botón de poner vive DENTRO de la lista de cintas: ver __nuevaCinta. */
 async function ponerAMano(p){
   return p.evaluate(async () => {
-    await window.__toque('#btnHistorial');
-    await window.__pausa(420);
-    const b = document.querySelector('[data-sep-nuevo]');
-    const junto = !!(b && b.parentElement.querySelector('.hs-atras') !== undefined);
-    if (!b) return { hubo:false };
-    await window.__toque(b);
-    await window.__pausa(600);
-    return { hubo:true, junto, guardadas: window.__guardadas(), cinta: window.__cinta() };
+    const hubo = await window.__nuevaCinta();
+    if (!hubo) return { hubo:false };
+    return { hubo:true, guardadas: window.__guardadas(), cinta: window.__cinta() };
   });
 }
 
@@ -156,37 +206,41 @@ async function ponerAMano(p){
   vale('ni nada guardado', await p.evaluate(() => window.__guardadas().length === 0));
 
   /* ---------------------------------------------------------------- */
-  titulo('ponerlo a mano, desde el panel del rastro');
+  titulo('ponerlo a mano, desde la lista de cintas');
   const mano = await p.evaluate(async () => {
-    await window.__toque('#btnHistorial');
-    await window.__pausa(420);
-    const b = document.querySelector('[data-sep-nuevo]');
-    /* SEPARADOR y el paso atrás comparten renglón, alineados a la derecha. */
-    const panel = document.getElementById('historial');
-    const atras = panel.querySelector('.hs-atras');
-    const acciones = panel.querySelector('.hs-acciones');
-    const rb = b ? b.getBoundingClientRect() : null;
-    const ra = atras ? atras.getBoundingClientRect() : null;
-    const mismoRenglon = !!(b && acciones && b.parentElement === acciones &&
-      (!atras || (atras.parentElement === acciones && Math.abs(rb.top - ra.top) < 8)));
+    /* EL BOTÓN SE MUDÓ DEL RASTRO A LA LISTA. Estuvo en el renglón del rastro,
+       al lado del paso atrás, y el renglón decía dos cosas a la vez: «vuelve
+       por donde viniste» y «deja algo aquí». Poner una cinta y ver tus cintas
+       son el mismo asunto y estaban en dos sitios distintos; ahora la lista es
+       la única puerta y el botón de añadir está dentro, que es donde se busca
+       cuando ya estás mirando las que hay. */
+    await window.__toque('#btnHistorial'); await window.__pausa(600);
+    await window.__toque('[data-sep-lista]'); await window.__pausa(700);
+    const b = document.querySelector('#sepMenu [data-sep-nuevo]');
+    const menu = document.getElementById('sepMenu');
     const rotulo = b ? b.textContent.trim() : '';
-    await window.__toque(b);
-    await window.__pausa(700);
+    /* Y va DENTRO de la lista y arriba del todo: primero lo que puedes hacer,
+       después lo que hay. */
+    const filas = [...menu.querySelectorAll('.sp-fila')];
+    const dentro = !!(b && menu.contains(b));
+    const arriba = !filas.length || (b &&
+      b.getBoundingClientRect().top < filas[0].getBoundingClientRect().top);
+    if (b){ await window.__toque(b); await window.__pausa(700); }
     await window.__abrirCajon();
-    return { hubo:!!b, rotulo,
-             enLaCabecera: !!mismoRenglon,
+    return { hubo:!!b, rotulo, dentro, arriba,
              guardadas: window.__guardadas(), cinta: window.__cinta(),
              desborde: window.__desborde(), hoja: window.__hoja() };
   });
   di('la cinta', mano.cinta);
-  vale('el botón está en el panel, con el paso atrás',
-       mano.hubo && mano.enLaCabecera, mano.rotulo);
-  /* Se llama CINTA —no «separador», que era largo, ni «nuevo», que era lo que
-     decía cuando era la única familia—. Ahora hay dos botones de poner en el
-     mismo renglón, y dos que dijeran «nuevo» no se distinguirían: cada uno
-     dice LO QUE DEJA. Y de paso el nombre corto es lo que hace que los tres
-     quepan; ver el bloque de abajo. */
-  vale('y se llama «cinta»', mano.rotulo === 'cinta', mano.rotulo);
+  vale('el botón vive DENTRO de la lista de cintas',
+       mano.hubo && mano.dentro, mano.rotulo);
+  vale('  y encima de las filas', mano.arriba === true);
+  /* Dice CINTA y dice dónde la deja. Cuando los dos botones de poner
+     compartían renglón con el paso atrás, el rótulo tenía que ser corto para
+     que los tres cupieran; dentro de su lista hay sitio para decirlo entero,
+     y hace falta: desde la lista no se ve qué hoja tienes debajo. */
+  vale('y dice qué deja y dónde', /cinta/.test(mano.rotulo) && /aqu[ií]/.test(mano.rotulo),
+       mano.rotulo);
   vale('pone un separador', mano.guardadas.length === 1, mano.guardadas);
   vale('y sale la cinta', !!mano.cinta);
   vale('cuelga en el borde izquierdo de la columna', mano.cinta && mano.cinta.dentro);
@@ -247,7 +301,7 @@ async function ponerAMano(p){
     const segunda = window.__hoja();
     await window.__toque('#btnHistorial');
     await window.__pausa(420);
-    await window.__toque('[data-sep-nuevo]');
+    await window.__nuevaCinta();
     await window.__pausa(700);
     await window.__abrirCajon();
     await window.__toque('.separador');
@@ -382,7 +436,7 @@ async function ponerAMano(p){
     const base = window.__guardadas().length;   /* lo que ya había de antes */
     await window.__toque('#btnHistorial');
     await window.__pausa(450);
-    await window.__toque('[data-sep-nuevo]');
+    await window.__nuevaCinta();
     await window.__pausa(900);
     const puesta = window.__cintaEstado();
     const pasos = [];
@@ -413,25 +467,65 @@ async function ponerAMano(p){
        vaiven.base + ' → ' + vaiven.guardadas);
 
   titulo('y se va del todo al borrarla');
+  /* SE PERSIGUE EL ID QUE SE BORRA, NO «QUE NO HAYA NINGUNA CINTA», y esto lo
+     dijo el detalle forense a la primera corrida de tenerlo.
+
+     La aserción exigía cero cintas después de pasar hoja, y eso solo es cierto
+     si esta prueba fuese la única que ha puesto cintas. No lo es: el bloque de
+     arriba arranca con `base` —«lo que ya había de antes»— y en esa corrida
+     base valía 1. Se borra la que se acaba de poner, el almacén vuelve a base
+     correctamente (1 vs 1), y al pasar hoja aparece la OTRA, que sigue viva y
+     con todo el derecho. La prueba llamaba fallo al programa por hacer
+     exactamente lo suyo.
+
+     Y ESO EXPLICA POR FIN LO DEL NAVEGADOR. Salía verde en Chromium 141 y roja
+     en el 149, una y otra vez, también sobre main: no era una carrera ni un
+     nodo huérfano, es que la cinta vieja cae en una hoja u otra según dónde
+     parta el texto, y las dos versiones no cortan las líneas igual. Con la
+     paginación del 141 la vuelta aterrizaba antes de su hoja y con la del 149
+     justo encima. Una prueba que depende de dónde parte el texto no está
+     probando lo que dice.
+
+     Lo forense se queda puesto: costó tres corridas del dueño llegar hasta
+     aquí, y la próxima vez que esta línea se ponga roja dirá otra vez qué es
+     lo que hay en la hoja en vez de dejarlo a adivinar. */
   const borradaDelTodo = await p.evaluate(async () => {
     await window.__abrirCajon();
     await window.__toque('.separador');
     await window.__pausa(450);
+    /* El id de LA QUE SE VA, cogido antes de borrarla: es lo único que
+       distingue «no volvió» de «no hay ninguna». */
+    const laBorrada = window.__cinta() ? window.__cinta().id : null;
     await window.__toque('[data-sep-x]');
     await window.__pausa(400);
     await window.__toque('[data-sep-borrar]');
     await window.__pausa(1200);
-    const tras = window.__cintaEstado();
-    /* Y al pasar hoja no reaparece un nodo huérfano. */
+    const veo = () => {
+      const f = window.__cintaForense();
+      return { estado: window.__cintaEstado(), forense: f,
+               laBorradaEstaPuesta: f.nodos.some(n => n.id === laBorrada),
+               laBorradaEnElAlmacen: Array.isArray(f.almacen)
+                 ? f.almacen.indexOf(laBorrada) >= 0 : 'ilegible' };
+    };
+    const tras = veo();
+    /* Y al pasar hoja tampoco vuelve. */
     await window.__pasar('right');
     await window.__pausa(700);
-    return { tras, trasPasar: window.__cintaEstado(),
+    return { laBorrada, tras, trasPasar: veo(),
              guardadas: window.__guardadas().length };
   });
-  di('tras borrar', borradaDelTodo.tras);
-  vale('no queda cinta', !borradaDelTodo.tras.hay && borradaDelTodo.tras.perchas === 0);
-  vale('ni reaparece al pasar hoja', !borradaDelTodo.trasPasar.hay &&
-       borradaDelTodo.trasPasar.perchas === 0);
+  di('la que se borra', borradaDelTodo.laBorrada);
+  di('tras borrar', borradaDelTodo.tras.forense);
+  di('tras pasar hoja', borradaDelTodo.trasPasar.forense);
+  vale('la cinta borrada se va de la hoja',
+       borradaDelTodo.tras.laBorradaEstaPuesta === false,
+       borradaDelTodo.tras.estado);
+  vale('  y del almacén', borradaDelTodo.tras.laBorradaEnElAlmacen === false,
+       borradaDelTodo.tras.forense.almacen);
+  vale('ni reaparece al pasar hoja',
+       borradaDelTodo.trasPasar.laBorradaEstaPuesta === false &&
+       borradaDelTodo.trasPasar.laBorradaEnElAlmacen === false,
+       borradaDelTodo.trasPasar.forense);
   vale('y el almacén vuelve a lo que había', borradaDelTodo.guardadas === vaiven.base,
        vaiven.base + ' vs ' + borradaDelTodo.guardadas);
 
@@ -447,7 +541,7 @@ async function ponerAMano(p){
   const salto = await p.evaluate(async () => {
     await window.__toque('#btnHistorial');
     await window.__pausa(450);
-    await window.__toque('[data-sep-nuevo]');
+    await window.__nuevaCinta();
     await window.__pausa(800);
     const antes = window.__guardadas().map(x => x.libro + ' ' + x.cap + ':' + x.vers);
     await window.__toque('#btnHistorial');
@@ -785,38 +879,27 @@ async function ponerAMano(p){
     const cab = panel.querySelector('.hs-cab');
     const acciones = panel.querySelector('.hs-acciones');
     const atras = panel.querySelector('.hs-atras');
-    const nuevo = panel.querySelector('[data-sep-nuevo]');
-    const piedra = panel.querySelector('[data-piedra-nueva]');
     const lista = panel.querySelector('[data-sep-lista]');
     const listaP = panel.querySelector('[data-piedra-lista]');
-    if (!atras || !nuevo || !piedra || !lista || !listaP)
-      return { falta:true, atras:!!atras, nuevo:!!nuevo, piedra:!!piedra, listaP:!!listaP };
+    if (!atras || !lista || !listaP)
+      return { falta:true, atras:!!atras, listaP:!!listaP };
     const r = e => e.getBoundingClientRect();
-    const rp = r(panel), ra = r(atras), rn = r(nuevo), rq = r(piedra);
+    const rp = r(panel), ra = r(atras);
     const rl = r(lista), rlp = r(listaP);
-    const arriba = [...acciones.children];
     return {
       rotuloSolo: cab.children.length === 1,
-      juntos: arriba.length === 3 &&
-              [atras, piedra, nuevo].every(e => e.parentElement === acciones),
-      mismoRenglon: new Set([ra, rn, rq].map(x => Math.round(x.top))).size === 1,
-      /* Y EN ESTE ORDEN: piedra, cinta, atrás. Los dos primeros dejan algo en
-         esta hoja —son la misma clase de gesto— y el tercero se va de aquí,
-         así que va donde termina la lectura de la fila, que es donde uno busca
-         la puerta. Estuvo al revés, con el atrás delante. */
-      orden: rq.left < rn.left && rn.left < ra.left,
-      /* Y CABEN DE VERDAD. Se mide contra el ancho ÚTIL —el panel menos su
-         relleno y el de la fila— y no contra el del panel a secas: por tres
-         píxeles de diferencia entre uno y otro se bajaba un botón de renglón,
-         y midiendo el de fuera la prueba lo daba por bueno. */
-      ocupan: Math.round(ra.width + rq.width + rn.width) +
-              2 * Math.round(parseFloat(getComputedStyle(acciones).gap) || 0),
-      util: acciones.clientWidth -
-            Math.round(parseFloat(getComputedStyle(acciones).paddingLeft) +
-                       parseFloat(getComputedStyle(acciones).paddingRight)),
-      panel: Math.round(rp.width),
-      dentro: [ra, rq, rn, rl, rlp].every(x =>
+      /* EL RASTRO SE QUEDÓ CON LO SUYO. Llegó a llevar tres botones arriba
+         —piedra, cinta y el paso atrás— y el renglón decía dos cosas a la vez:
+         «vuelve por donde viniste» y «deja algo aquí». Los dos de poner se
+         mudaron DENTRO de sus listas, que es donde se está mirando las que
+         hay; aquí queda el paso atrás y nada más. */
+      soloElAtras: [...acciones.children].length === 1 &&
+                   atras.parentElement === acciones,
+      sinLosDePoner: !panel.querySelector('[data-sep-nuevo]') &&
+                     !panel.querySelector('[data-piedra-nueva]'),
+      dentro: [ra, rl, rlp].every(x =>
                 x.left >= rp.left - 1 && x.right <= rp.right + 1),
+      panel: Math.round(rp.width),
       /* El pie: dos puertas, una por familia, cada una con su manojo. */
       pie: lista.textContent.trim(),
       pieP: listaP.textContent.trim(),
@@ -824,19 +907,14 @@ async function ponerAMano(p){
       telas: [...lista.querySelectorAll('.hs-sep-cinta')]
                .map(c => getComputedStyle(c).backgroundColor),
       formas: listaP.querySelectorAll('svg').length,
-      /* Y el de poner una cinta sigue llevando UNA, que es lo que lo distingue
-         de la puerta a la lista. */
-      unaSola: nuevo.querySelectorAll('.hs-sep-cinta').length
+      formasCrudas: true
     };
   });
   di('el renglón de los botones', renglon);
-  vale('están los tres de arriba y los dos del pie', renglon.falta !== true, renglon);
+  vale('están el paso atrás y las dos puertas del pie', renglon.falta !== true, renglon);
   vale('el rótulo se queda solo arriba', renglon.rotuloSolo === true);
-  vale('LOS TRES BOTONES COMPARTEN RENGLÓN',
-       renglon.juntos === true && renglon.mismoRenglon === true, renglon);
-  vale('Y EN ORDEN: piedra, cinta, atrás', renglon.orden === true, renglon.orden);
-  vale('y caben en el ancho útil', renglon.ocupan <= renglon.util,
-       renglon.ocupan + ' de ' + renglon.util + ' px útiles');
+  vale('EL RASTRO SOLO LLEVA EL PASO ATRÁS', renglon.soloElAtras === true, renglon);
+  vale('  y ni rastro de los de poner', renglon.sinLosDePoner === true);
   vale('nada se sale del panel', renglon.dentro === true);
   /* CADA BOTÓN DICE LO QUE DEJA. Con dos familias, dos botones que dijeran
      «nuevo» no se distinguirían: el nombre es la cosa. */
@@ -847,11 +925,7 @@ async function ponerAMano(p){
   vale('la de cintas, con UNA TELA DE CADA COLOR',
        (renglon.telas || []).length === 4 && new Set(renglon.telas).size === 4,
        renglon.telas);
-  vale('la de piedras, con las tres formas', renglon.formas === 3, renglon.formas);
-  /* Si el de poner llevara el mismo dibujo que la puerta volveríamos al
-     problema de origen: no se distinguiría «pon una» de «velas todas». */
-  vale('y el de poner cinta sigue llevando una sola',
-       renglon.unaSola === 1, renglon.unaSola);
+  vale('la de piedras, con tres figuras de muestra', renglon.formas === 3, renglon.formas);
 
   /* ================================================================
      CON TECLADO, LA VENTANITA TIENE QUE RECIBIR EL FOCO.
@@ -1065,7 +1139,7 @@ async function ponerAMano(p){
     /* Y aquí, lejos de la quieta, se pone otra a mano. */
     await window.__toque('#btnHistorial');
     await window.__pausa(450);
-    await window.__toque('[data-sep-nuevo]');
+    await window.__nuevaCinta();
     await window.__pausa(800);
     const dos = window.__guardadas().length;
     const antes = window.__guardadas().map(x => x.id + '@' + x.cap + ':' + x.vers);
@@ -1096,7 +1170,7 @@ async function ponerAMano(p){
   const esc = await w.evaluate(async () => {
     await window.__toque('#btnHistorial');
     await window.__pausa(420);
-    await window.__toque('[data-sep-nuevo]');
+    await window.__nuevaCinta();
     await window.__pausa(700);
     const cinta = window.__cinta();
     await window.__toque('.separador');
@@ -1325,7 +1399,7 @@ async function ponerAMano(p){
   const pestanas = await w.evaluate(async () => {
     await window.__toque('#btnHistorial');
     await window.__pausa(450);
-    await window.__toque('[data-sep-nuevo]');
+    await window.__nuevaCinta();
     await window.__pausa(800);
     const mia = window.__guardadas()[0];
     /* La otra pestaña pone la suya, sin que ésta se entere. */
@@ -1352,7 +1426,7 @@ async function ponerAMano(p){
       [ajena, { ...mia, tocado: Date.now() + 1000 }]));
     await window.__toque('#btnHistorial');
     await window.__pausa(450);
-    await window.__toque('[data-sep-nuevo]');
+    await window.__nuevaCinta();
     await window.__pausa(800);
     const trasResucitar = window.__guardadas().map(x => x.id);
     return { mia: mia.id, trasGuardar, trasBorrar, trasResucitar };

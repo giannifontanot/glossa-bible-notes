@@ -23,7 +23,7 @@
    Y la regla de la casa que aquí importa: NADA DE .click() PARA GESTOS. El
    toque y el arrastre van con PointerEvent y su pointerId, porque es
    justamente el camino del puntero lo que se está probando. */
-const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, cerrarParcial, fin, di, vale, titulo } = require('./comun');
 
 const LLAVE = 'glossa:piedras:v1';
 
@@ -52,6 +52,24 @@ async function andamio(p){
          escriba, y el de un teléfono no. */
       e.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, op)));
       return true;
+    };
+    /* PONER UNA PIEDRA SON DOS PASOS DESDE QUE EL BOTÓN SE MUDÓ: vivía en el
+       renglón del rastro y ahora vive DENTRO de la lista de piedras, que es
+       donde se está mirando las que hay. El camino de verdad es abrir el
+       rastro, abrir la lista, y ahí pedirla. */
+    window.__nuevaPiedra = async () => {
+      if (!document.getElementById('historial').classList.contains('visible')){
+        await window.__toque('#btnHistorial'); await window.__pausa(600);
+      }
+      if (!document.getElementById('piedraMenu').classList.contains('visible')){
+        await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
+      }
+      const b = document.querySelector('#piedraMenu [data-piedra-nueva]');
+      if (!b) return null;
+      const rotulo = b.textContent.trim();
+      await window.__toque(b);
+      await window.__pausa(900);
+      return rotulo;
     };
     window.__guardadas = () => {
       try { return JSON.parse(localStorage.getItem('glossa:piedras:v1') || '[]'); }
@@ -98,6 +116,7 @@ async function andamio(p){
       const r = m.getBoundingClientRect();
       return { visible: m.classList.contains('visible'),
                formas: m.querySelectorAll('[data-piedra-forma]').length,
+               hayCinta: !!m.querySelector('[data-piedra-forma="cinta"]'),
                tintas: m.querySelectorAll('[data-piedra-color]').length,
                marcada: (m.querySelector('.pm-forma.on') || {}).dataset &&
                         m.querySelector('.pm-forma.on').dataset.piedraForma,
@@ -131,20 +150,21 @@ async function andamio(p){
   titulo('poner una piedra');
   const puesta = await p.evaluate(async () => {
     const antes = window.__guardadas().length;
-    await window.__toque('#btnHistorial');
-    await window.__pausa(600);
-    const b = document.querySelector('[data-piedra-nueva]');
-    if (!b) return { falta:'no hay botón' };
-    const rotulo = b.textContent.trim();
-    await window.__toque(b);
-    await window.__pausa(900);
+    const rotulo = await window.__nuevaPiedra();
+    if (rotulo === null) return { falta:'no hay botón' };
     return { antes, rotulo, guardadas: window.__guardadas(),
              rastro: document.getElementById('historial').classList.contains('visible'),
+             lista: document.getElementById('piedraMenu').classList.contains('visible'),
              piedra: window.__laPiedra(), mando: window.__elMando() };
   });
   di('al poner', puesta.piedra);
-  vale('el rastro trae el botón, y dice lo que deja',
-       puesta.rotulo === 'piedra', puesta.falta || puesta.rotulo);
+  /* EL BOTÓN VIVE DENTRO DE LA LISTA DE PIEDRAS, no en el renglón del rastro.
+     Estuvo allí, al lado del paso atrás, y el renglón decía dos cosas a la
+     vez: «vuelve por donde viniste» y «deja algo aquí». Poner una piedra y ver
+     tus piedras son el mismo asunto y estaban en dos sitios distintos. */
+  vale('la lista trae el botón, y dice lo que deja y dónde',
+       /piedra/.test(puesta.rotulo || '') && /aqu[ií]/.test(puesta.rotulo || ''),
+       puesta.falta || puesta.rotulo);
   vale('deja una guardada', (puesta.guardadas || []).length === puesta.antes + 1,
        (puesta.guardadas || []).length);
   /* ANCLADA A UN VERSÍCULO Y NO A UN NÚMERO DE HOJA: las hojas se rehacen al
@@ -164,7 +184,10 @@ async function andamio(p){
   vale('y NACE EN EDICIÓN, con su mando',
        !!puesta.piedra && puesta.piedra.editando === true && puesta.piedra.mando === true,
        puesta.piedra);
+  /* Y AL PONERLA SE CIERRA TODO: acabas de dejar algo en la hoja y lo que hay
+     que ver es la hoja, no la lista de la que saliste. */
   vale('el rastro se cierra al ponerla', puesta.rastro === false);
+  vale('  y la lista también', puesta.lista === false);
   /* Y NACE CON SU COLOR ESCRITO, aunque sea el de por defecto. Se pintaba bien
      sin la clave —tintaDe(undefined) devuelve el primero— pero la paleta del
      mando compara contra x.color y no marcaba ninguna mancha: la piedra se
@@ -321,6 +344,9 @@ async function andamio(p){
   di('el mando al abrirse', mando.m0);
   di('la piedra al final', mando.traNombre);
   vale('el mando enseña DIEZ FIGURAS O MÁS', mando.m0.formas >= 10, mando.m0.formas);
+  /* Y entre ellas la cinta larga, que es la que habla con la otra familia:
+     quien la ve entiende que esa piedra dice lo mismo que un separador. */
+  vale('  y una de ellas es la cinta larga', mando.m0.hayCinta === true);
   vale('y una paleta de colores', mando.m0.tintas >= 4, mando.m0.tintas);
   vale('y el campo del nombre', mando.m0.campo === true);
   vale('y cabe entero en la escena', mando.m0.cabe === true);
@@ -330,9 +356,29 @@ async function andamio(p){
   vale('y la parrilla marca cuál está puesta',
        mando.traForma.mando.marcada === 'barca', mando.traForma.mando.marcada);
   /* El color se mide en la pantalla y no en el almacén: guardarlo y no
-     pintarlo es exactamente el fallo que esto vigila. */
+     pintarlo es exactamente el fallo que esto vigila.
+
+     PERO YA NO SE COMPARA CON EL COLOR DE LA PALETA. Estuvo escrito
+     rgb(155, 42, 42) —el carmín crudo, #9b2a2a— y con la corrección del brillo
+     y el contraste la hoja ya no pinta ese color: pinta el corregido, que con
+     el contraste de fábrica es rgb(149, 59, 59), y cambia en cuanto alguien
+     toca los rieles. La expectativa fija llamaba fallo a la aplicación
+     haciéndolo bien.
+
+     Lo que esta línea tiene que decir es que el color CAMBIÓ y que lo que se
+     ve es carmín, no de qué número exacto es. El número exacto sí se comprueba,
+     pero abajo y donde tiene sentido: contra el de la foto del pliegue, que es
+     donde importa que los dos coincidan. */
+  const rojiza = c => {
+    const m = /^rgb\((\d+), (\d+), (\d+)\)$/.exec(c || '');
+    if (!m) return false;
+    const [R, G, B] = [1,2,3].map(i => +m[i]);
+    return R - G > 45 && Math.abs(G - B) < 26;
+  };
   vale('EL COLOR SE CAMBIA Y SE VE',
-       mando.traColor.piedra.color === 'rgb(155, 42, 42)', mando.traColor.piedra.color);
+       mando.traColor.piedra.color !== mando.traForma.piedra.color &&
+       rojiza(mando.traColor.piedra.color),
+       mando.traForma.piedra.color + ' → ' + mando.traColor.piedra.color);
   vale('y la paleta marca cuál está puesto',
        mando.traColor.mando.tinta === 'carmin', mando.traColor.mando.tinta);
   vale('EL NOMBRE SE ESCRIBE Y SE LEE EN LA HOJA',
@@ -350,11 +396,48 @@ async function andamio(p){
   const fuera = await p.evaluate(() =>
     !document.getElementById('pg').contains(document.getElementById('piedraMando')));
   vale('EL MANDO CUELGA DE LA ESCENA, no del papel', fuera === true);
+  /* ---------------------------------------------------------------- */
+  /* NOMBRAR DESDE LA LISTA, que es la otra mitad de nombrar. El campo del
+     mando sirve para la piedra que tienes delante; éste, para repasar las que
+     dejaste sin ir a buscarlas por el libro. Es lo que hacen las cintas. */
+  titulo('nombrar una piedra desde su lista');
+  const lapiz = await p.evaluate(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(400);
+    await window.__toque('#btnHistorial'); await window.__pausa(600);
+    await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
+    const b = document.querySelector('#piedraMenu [data-piedra-renombrar]');
+    if (!b) return { sinLapiz:true };
+    await window.__toque(b); await window.__pausa(500);
+    const campo = document.querySelector('#piedraMenu [data-piedra-nombre]');
+    if (!campo) return { sinCampo:true };
+    const conFoco = document.activeElement === campo;
+    campo.value = 'la del monte';
+    campo.dispatchEvent(new KeyboardEvent('keydown',
+      { key:'Enter', bubbles:true, cancelable:true }));
+    await window.__pausa(500);
+    return { conFoco, guardado: window.__guardadas()[0].nombre,
+             fila: (document.querySelector('#piedraMenu .sp-ref') || {}).textContent,
+             cerroElCampo: !document.querySelector('#piedraMenu [data-piedra-nombre]') };
+  });
+  di('al nombrarla desde la lista', lapiz);
+  vale('EL LÁPIZ ABRE EL CAMPO Y SE LO LLEVA EL FOCO', lapiz.conFoco === true, lapiz);
+  vale('Intro guarda el nombre', lapiz.guardado === 'la del monte', lapiz.guardado);
+  vale('  y la fila lo enseña', /la del monte/.test(lapiz.fila || ''), lapiz.fila);
+  vale('  y el campo se cierra', lapiz.cerroElCampo === true);
+
+  /* «la del monte» Y NO «lo del monte»: el bloque del lápiz, que va justo
+     encima, acaba de renombrarla desde la lista. El rótulo lo decía bien y la
+     expectativa se había quedado con el nombre del bloque anterior —el del
+     campo del mando—, así que la prueba llamaba fallo a la aplicación
+     haciéndolo bien. Se lee de lapiz.guardado y no a mano, que es lo que
+     impide que vuelva a descolgarse cuando alguien cambie el nombre arriba. */
   const voz = await p.evaluate(() =>
     document.querySelector('.piedra').getAttribute('aria-label'));
   di('el rótulo hablado', voz);
   vale('el rótulo hablado dice figura, color y nombre',
-       /barca/.test(voz) && /carm/.test(voz) && /lo del monte/.test(voz), voz);
+       /barca/.test(voz) && /carm/.test(voz) &&
+       voz.indexOf(lapiz.guardado) >= 0, voz);
 
   /* ---------------------------------------------------------------- */
   titulo('el modo edición se abre con dos toques y se cierra tocando fuera');
@@ -454,6 +537,88 @@ async function andamio(p){
   di('al quitarla', quitada);
   vale('la equis la quita de la hoja y del almacén',
        quitada.guardadas === 0 && quitada.hay === false, quitada);
+
+  /* EL PRIMER TOQUE EN OTRO LÁPIZ NO SE PIERDE.
+
+     Escribiendo un nombre, el campo tiene el foco. Tocar el lápiz de OTRA fila
+     manda primero un focusout —siempre llega antes que el clic del botón que
+     se está pulsando— y ahí es donde se guarda lo escrito. El guardado estaba
+     bien; lo que estaba mal era repintar la lista en ese mismo focusout: el
+     repintado destruye el botón que el dedo tiene debajo y su clic aterriza en
+     la nada. Para quien lo usa, el primer toque no hace nada y hay que dar dos.
+     Su propio comentario ya decía que ahí no se repinta —es la lección del
+     focusout de #sepMenu— y aun así se hizo. Lo levantó Codex.
+
+     LO QUE SE MIDE ES QUE EL NODO SOBREVIVA, y no que el segundo campo se
+     abra, y esto costó tres intentos:
+
+     · Tocar el otro lápiz con __toque y mirar si el campo se abre: PASA
+       IGUAL con el fallo puesto. Es la cuarta regla de la casa —un evento
+       despachado a mano SIEMPRE llega, y el de un teléfono no—: el clic se
+       manda al nodo que se tiene cogido y aterriza aunque ese nodo ya esté
+       fuera del documento. En un dedo de verdad el navegador vuelve a mirar
+       qué hay bajo el punto y entrega el clic al ancestro común, no al botón.
+       Comprobado contra b761ec6: verde con el fallo dentro.
+     · Mirarlo un macrotarea después: sale falso en las DOS versiones. El
+       arreglo no evita el repintado, lo APLAZA, así que un turno más tarde el
+       nodo tampoco está. Lo que separa a las dos es el instante exacto.
+     · Mirarlo EN EL ACTO, sin ceder el hilo tras el focusout: ahí sí.
+
+           arreglado ... el nodo sigue en el documento     ✓
+           b761ec6 .... el nodo ya no está                 ✗
+
+     Y el focusout se provoca con blur() a pelo porque un PointerEvent
+     despachado no mueve el foco: lo que se prueba es qué hace la aplicación
+     CUANDO llega el focusout, que es su contrato, no si el navegador lo
+     manda. */
+  titulo('escribir un nombre y tocar otro lápiz: un solo toque');
+  const dosLapices = await p.evaluate(async () => {
+    /* VA AL FINAL DE ESTA SESIÓN Y NO JUNTO AL BLOQUE DEL LÁPIZ, que es donde
+       se leería mejor: hacen falta DOS piedras y los bloques de en medio
+       cuentan las que hay —«sigue puesta», «con su fila y su referencia»—.
+       Puesto arriba, este bloque los rompía a los dos. Aquí el almacén acaba
+       de quedarse vacío y las dos se ponen de cero. */
+    while (window.__guardadas().length < 2){
+      if (!await window.__nuevaPiedra()) return { noPone:true };
+      /* La recién puesta nace en edición y su mando tapa la lista. */
+      document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+      await window.__pausa(400);
+    }
+    if (!document.getElementById('piedraMenu').classList.contains('visible')){
+      if (!document.getElementById('historial').classList.contains('visible')){
+        await window.__toque('#btnHistorial'); await window.__pausa(600);
+      }
+      await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
+    }
+    const lapices = document.querySelectorAll('#piedraMenu [data-piedra-renombrar]');
+    if (lapices.length < 2) return { faltan: lapices.length };
+    await window.__toque(lapices[0]); await window.__pausa(500);
+    const campo = document.querySelector('#piedraMenu [data-piedra-nombre]');
+    if (!campo) return { sinCampo:true };
+    const primera = campo.dataset.piedraNombre;
+    campo.value = 'la de la orilla';
+    const otro = [...document.querySelectorAll('#piedraMenu [data-piedra-renombrar]')]
+      .find(b => b.dataset.piedraRenombrar !== primera);
+    if (!otro) return { sinOtro:true };
+    /* El dedo se apoya en el otro lápiz, y con eso el campo pierde el foco. */
+    const r = otro.getBoundingClientRect();
+    otro.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, cancelable:true, pointerId:997, pointerType:'touch',
+        isPrimary:true, clientX: r.left + r.width/2, clientY: r.top + r.height/2 }));
+    campo.blur();
+    const sigueAhi = document.contains(otro);      /* SIN ceder el hilo */
+    await window.__pausa(600);
+    const guardada = window.__guardadas().find(x => x.id === primera);
+    return { primera, sigueAhi, guardado: guardada ? guardada.nombre : null,
+             lapicesAhora: document.querySelectorAll(
+               '#piedraMenu [data-piedra-renombrar]').length };
+  });
+  di('al apoyar el dedo en el otro lápiz', dosLapices);
+  vale('EL NOMBRE ESCRITO SE GUARDA AL SOLTAR EL CAMPO',
+       dosLapices.guardado === 'la de la orilla', dosLapices.guardado);
+  vale('  Y EL BOTÓN QUE EL DEDO TIENE DEBAJO NO SE DESTRUYE',
+       dosLapices.sigueAhi === true,
+       dosLapices.sigueAhi ? 'sigue en el documento' : 'lo repintó y se lo llevó');
 
   await cerrarParcial(sesion, 'la piedra sola');
 
@@ -580,8 +745,7 @@ async function andamio(p){
   const encima = await q.evaluate(async () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await window.__pausa(400);
-    await window.__toque('#btnHistorial'); await window.__pausa(600);
-    await window.__toque('[data-piedra-nueva]'); await window.__pausa(900);
+    await window.__nuevaPiedra();
     const sitios = [...document.querySelectorAll('.piedra-sitio')];
     const nueva = sitios.find(e => e.classList.contains('editando'));
     if (!nueva || sitios.length < 2) return { sitios: sitios.length };
@@ -621,14 +785,14 @@ async function andamio(p){
   /* `retocar` corre con la hoja ya puesta y la foto ya hecha, justo antes de
      voltear: es lo único que distingue una piedra que nació así de una que se
      acaba de cambiar, y ahí es donde vive el fallo de la foto caducada. */
-  const tinta = async (sembrar, rgb, retocar) => {
+  const tinta = async (sembrar, quien, retocar) => {
     const ses = await abrir();
     const w = ses.pagina;
     await w.evaluate(sembrar);
     await w.reload();
     await w.waitForTimeout(3200);
     if (retocar){ await w.evaluate(retocar); await w.waitForTimeout(900); }
-    const n = await w.evaluate(async (rgb) => {
+    const n = await w.evaluate(async (quien) => {
       const pausa = ms => new Promise(z => setTimeout(z, ms));
       const e = document.getElementById('edgeR');
       const r = e.getBoundingClientRect();
@@ -645,26 +809,55 @@ async function andamio(p){
       const x0 = Math.max(0, cx - lado/2), y0 = Math.max(0, cy - lado/2);
       const d = g.getImageData(x0, y0, Math.min(lado, fx.width - x0),
                                        Math.min(lado, fx.height - y0)).data;
+      /* SE CUENTA EL TONO, NO UN RGB EXACTO, y esto lo dijo la prueba
+         fallando. El carmín se buscaba como una caja de ±34/±30/±30 alrededor
+         del color de la paleta, [155,42,42], y con la corrección del brillo y
+         el contraste la piedra ya no se dibuja de ese color: sale del
+         corregido, [149,59,59], y encima el pliegue la aclara. Medido en el
+         lienzo, el montón de la piedra está en [163,86,79] —el verde se va 44
+         del centro de la caja, que solo admitía 30— así que la cuenta se
+         desplomó de 600 a 79 y la prueba llamó fallo a la aplicación
+         haciéndolo bien. Es la tercera vez en este repo que el umbral es el
+         que está mal, no el programa.
+
+         Contando el TONO eso no vuelve a pasar: rojizo es R claramente por
+         encima de G con G≈B, y eso lo cumple el carmín crudo, el corregido y
+         el aclarado por el pliegue, sea cual sea el ajuste de los rieles. Y
+         separa lo que hay que separar, medido en los tres casos:
+
+             sin piedra ....... 0 rojizos ·  801 sepias
+             piedra sepia ..... 0 rojizos · 7896 sepias   ← el fallo
+             piedra carmín .. 8232 rojizos ·  467 sepias
+
+         Cero contra 8232, y las dos cifras clavadas entre vueltas. El sepia se
+         sigue midiendo por caja porque ahí no hay nada que lo confunda: lo que
+         se le pregunta es si la piedra está, no de qué color. */
       let n = 0;
       for (let i = 0; i < d.length; i += 4){
         if (d[i+3] < 40) continue;
-        if (Math.abs(d[i]-rgb[0]) < 34 && Math.abs(d[i+1]-rgb[1]) < 30 &&
-            Math.abs(d[i+2]-rgb[2]) < 30) n++;
+        const R = d[i], G = d[i+1], B = d[i+2];
+        if (quien === 'rojizo'){
+          if (R - G > 45 && Math.abs(G - B) < 26) n++;
+        } else {
+          if (Math.abs(R-140) < 34 && Math.abs(G-121) < 30 && Math.abs(B-79) < 30) n++;
+        }
       }
       await pausa(1600);
       return n;
-    }, rgb);
-    await cerrar(ses);
+    }, quien);
+    /* CERRAR SIN RESUMIR. Aquí estuvo cerrar(), que imprime la cuenta de toda
+       la prueba y fija el código de salida: cinco sesiones, cinco resúmenes, y
+       aserciones saliendo después del último. Ver fin() en comun.js. */
+    await cerrarParcial(ses, 'foto del pliegue');
     return n;
   };
-  const SEPIA = [140, 121, 79], CARMIN = [155, 42, 42];
-  const sinPiedra = await tinta(() => localStorage.removeItem('glossa:piedras:v1'), SEPIA);
+  const sinPiedra = await tinta(() => localStorage.removeItem('glossa:piedras:v1'), 'sepia');
   const conPiedra = await tinta(() => {
     const hoy = Date.now();
     localStorage.setItem('glossa:piedras:v1', JSON.stringify([
       { id:'g', libro:'MAT', cap:1, vers:1, x:.18, y:.30, forma:'piedra',
         tam:3, creado:hoy, tocado:hoy }]));
-  }, SEPIA);
+  }, 'sepia');
   di('tinta de piedra en el lienzo', 'sin: ' + sinPiedra + '  ·  con: ' + conPiedra);
   vale('sin piedra hay tinta de la letra, y poca', sinPiedra > 0, sinPiedra);
   vale('LA PIEDRA ESTÁ EN LA FOTO', conPiedra > sinPiedra + 300,
@@ -676,25 +869,26 @@ async function andamio(p){
      que en la hoja no existe —la letra es sepia y el papel es hueso— así que
      cualquier cantidad apreciable solo puede venir de la piedra.
 
-     TAMAÑO 4 Y NO 3, y esto lo dijo la propia prueba fallando. Con el 3 salen
-     192 píxeles: la piedra SÍ viaja con su color —contra un suelo de 0 no hay
-     otra manera de que aparezca ni uno— pero 192 no pasa el margen de 300, que
-     venía copiado del bloque del sepia sin volver a medirlo aquí. El sepia
-     tiene que despegarse de la letra de la hoja, que ya pone 801 de por sí; el
-     carmín parte de cero y su cuenta es toda de la piedra, así que lo único
-     que hacía falta era una piedra que dejara bastante tinta. Con el 4 son
-     600, la misma cifra que mide el bloque de abajo y clavada entre vueltas.
-     El fallo era del umbral, no de la aplicación. */
+     TAMAÑO 4 Y NO 3, y esto lo dijo la propia prueba fallando: con el 3 la
+     piedra deja poca tinta y el margen no la distinguía del ruido. El fallo
+     era del umbral, no de la aplicación, y es la razón de que la cuenta de
+     aquí abajo se compare contra un suelo medido y no contra uno copiado del
+     bloque del sepia, que tiene otro suelo por completo —la letra de la hoja
+     ya pone 801 de por sí, y el carmín parte de cero. */
   const carmin = await tinta(() => {
     const hoy = Date.now();
     localStorage.setItem('glossa:piedras:v1', JSON.stringify([
       { id:'c', libro:'MAT', cap:1, vers:1, x:.18, y:.30, forma:'piedra',
         tam:4, color:'carmin', creado:hoy, tocado:hoy }]));
-  }, CARMIN);
-  const sinCarmin = await tinta(() => localStorage.removeItem('glossa:piedras:v1'), CARMIN);
+  }, 'rojizo');
+  const sinCarmin = await tinta(() => localStorage.removeItem('glossa:piedras:v1'), 'rojizo');
   di('tinta carmín en el lienzo', 'sin: ' + sinCarmin + '  ·  con: ' + carmin);
+  /* 8232 contra 0, medido en las dos direcciones y clavado entre vueltas. El
+     margen de 2000 es un cuarto de lo que hay: sobra para que un cambio de
+     tamaño, de forma o de ajustes no lo roce, y una piedra que se pintase
+     sepia —el fallo— daría cero exacto, no 1999. */
   vale('Y VIAJA CON SU COLOR, no con el de la tinta',
-       carmin > sinCarmin + 300, sinCarmin + ' → ' + carmin + ' píxeles');
+       carmin > sinCarmin + 2000, sinCarmin + ' → ' + carmin + ' píxeles');
 
   /* LA FOTO CADUCA AL TOCAR LA PIEDRA, Y ESTO NO LO PILLABA LO DE ARRIBA.
 
@@ -707,17 +901,16 @@ async function andamio(p){
      empezar el giro para volver al suyo al aterrizar.
 
      Reproducido antes de arreglarlo: la hoja viva en carmín y el lienzo con
-     CERO píxeles de carmín y 18.781 de sepia. Después del arreglo, 600 de
-     carmín en el cuadro, la misma cifra clavada entre vueltas, y sin piedra
-     el cuadro da 0 —el carmín no existe en la hoja, que es sepia sobre hueso—
-     así que el margen de 300 va al doble de holgura sobre un fondo de cero.
-     Tamaño 4 como el bloque de arriba, y por lo mismo. Lo levantó Codex. */
+     CERO píxeles de carmín y 18.781 de sepia. Después del arreglo el cuadro
+     se llena de rojizos y sin piedra da 0 —el carmín no existe en la hoja,
+     que es sepia sobre hueso—, así que el mismo margen de arriba vale aquí y
+     por lo mismo. Tamaño 4 como el bloque de arriba. Lo levantó Codex. */
   const traRetocar = await tinta(() => {
     const hoy = Date.now();
     localStorage.setItem('glossa:piedras:v1', JSON.stringify([
       { id:'t', libro:'MAT', cap:1, vers:1, x:.18, y:.30, forma:'piedra',
         tam:4, color:'sepia', creado:hoy, tocado:hoy }]));
-  }, CARMIN, async () => {
+  }, 'rojizo', async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     /* Con coordenadas: la piedra quieta no recibe eventos y el doble toque se
        caza midiendo el punto (ver piedraEnPunto). */
@@ -743,5 +936,108 @@ async function andamio(p){
   });
   di('carmín tras retocarla en vivo', traRetocar);
   vale('LA FOTO CADUCA AL RETOCAR LA PIEDRA, no enseña la de antes',
-       traRetocar > sinCarmin + 300, sinCarmin + ' → ' + traRetocar + ' píxeles');
+       traRetocar > sinCarmin + 2000, sinCarmin + ' → ' + traRetocar + ' píxeles');
+
+
+  /* ================================================================
+     Y EL COLOR DE LA FOTO ES EL MISMO QUE EL DE LA HOJA.
+
+     Contar píxeles dice si la piedra viaja y de qué familia de tono es, pero
+     NO puede decir si el color es exactamente el correcto: el pliegue aclara
+     lo que retrata —la piedra de [149,59,59] en la hoja sale [163,86,79] en el
+     lienzo— así que cualquier margen que aguante ese aclarado aguanta también
+     un color equivocado por poco. Y equivocado por poco es justo lo que era el
+     fallo que levantó Codex: la foto corregía el color DOS veces, y con el
+     contraste de fábrica —125%, que ya no es neutro— la piedra de la foto
+     salía #914949 donde la de la hoja era #953b3b. Trece de diferencia en dos
+     canales; ninguna cuenta de píxeles con margen lo separa.
+
+     Se compara entonces la FUENTE, que es exacta y no depende de márgenes:
+     el color escrito en el SVG de la foto contra el que la hoja tiene puesto.
+     Si son el mismo, la corrección se aplicó una vez; si no, dos —o ninguna.
+
+     PARA LEER EL SVG SE ENVUELVE new Image(), que es la única pieza que esta
+     casa deja sustituir, y por eso: el retrato se carga como data:image/svg+xml
+     y se compone en un lienzo, así que en el DOM no queda ni rastro del XML.
+     No se simula nada de la aplicación —la foto se hace igual, con el mismo
+     código— solo se mira de paso lo que el navegador iba a cargar.
+
+     Comprobado que esta aserción distingue de verdad, corriendo la misma sonda
+     contra el commit con el fallo (b761ec6) y contra el arreglo (4faf85c):
+
+         b761ec6 ... hoja rgb(149, 59, 59)  ·  foto #914949   ✗
+         4faf85c ... hoja rgb(149, 59, 59)  ·  foto #953b3b   ✓
+
+     Es la única de este fichero que falla si la corrección doble vuelve. */
+  titulo('el color de la foto es el mismo que el de la hoja');
+  const fuente = await (async () => {
+    const ses = await abrir();
+    const w = ses.pagina;
+    await w.evaluate(() => {
+      const hoy = Date.now();
+      localStorage.setItem('glossa:piedras:v1', JSON.stringify([
+        { id:'f', libro:'MAT', cap:1, vers:1, x:.18, y:.30, forma:'piedra',
+          tam:4, color:'carmin', creado:hoy, tocado:hoy }]));
+    });
+    await w.reload();
+    await w.waitForTimeout(3200);
+    const r = await w.evaluate(async () => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      const Original = window.Image;
+      const vistos = [];
+      window.Image = function(...a){
+        const img = new Original(...a);
+        Object.defineProperty(img, 'src', {
+          configurable: true,
+          get(){ return img.getAttribute('src'); },
+          set(v){ vistos.push(String(v)); img.setAttribute('src', v); }
+        });
+        return img;
+      };
+      window.Image.prototype = Original.prototype;
+      /* El color de la HOJA se lee antes de voltear: la piedra se queda en su
+         página —es toda la diferencia con la cinta— y después de pasar no hay
+         ninguna que mirar. */
+      const enLaHoja = getComputedStyle(document.querySelector('.piedra')).color;
+      const e = document.getElementById('edgeR');
+      const rc = e.getBoundingClientRect();
+      const op = { bubbles:true, pointerId:613, pointerType:'touch', isPrimary:true,
+                   clientX: rc.left + rc.width/2, clientY: 420 };
+      e.dispatchEvent(new PointerEvent('pointerdown', op));
+      await pausa(60);
+      e.dispatchEvent(new PointerEvent('pointerup', op));
+      await pausa(2600);
+      window.Image = Original;
+      /* De todos los retratos que se cargan —la hoja y sus dos vecinas— el que
+         lleva piedra se reconoce por la opacidad con la que se dibujan. */
+      const conPiedra = vistos
+        .map(v => decodeURIComponent(v.replace(/^data:[^,]+,/, '')))
+        .filter(x => x.indexOf('opacity:.82') >= 0);
+      let enLaFoto = null;
+      if (conPiedra.length){
+        const x = conPiedra[conPiedra.length - 1];
+        const m = /fill="(#[0-9a-fA-F]{3,6})"/.exec(x.slice(x.indexOf('opacity:.82')));
+        enLaFoto = m ? m[1] : null;
+      }
+      return { retratos: vistos.length, conPiedra: conPiedra.length,
+               enLaHoja, enLaFoto };
+    });
+    await cerrarParcial(ses, 'el color de la foto');
+    return r;
+  })();
+  /* El color de la hoja llega como rgb() y el de la foto como #rrggbb: se
+     pasan los dos a la misma escritura antes de compararlos. */
+  const aRGB = h => {
+    const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(h || '');
+    return m ? 'rgb(' + [1,2,3].map(i => parseInt(m[i], 16)).join(', ') + ')' : h;
+  };
+  di('la piedra en la hoja', fuente.enLaHoja);
+  di('la piedra en la foto', fuente.enLaFoto + '  →  ' + aRGB(fuente.enLaFoto));
+  vale('el retrato de la hoja lleva la piedra', fuente.conPiedra > 0,
+       fuente.conPiedra + ' de ' + fuente.retratos + ' retratos');
+  vale('LA FOTO USA EL MISMO COLOR QUE LA HOJA, corregido una vez y no dos',
+       aRGB(fuente.enLaFoto) === fuente.enLaHoja,
+       'hoja ' + fuente.enLaHoja + '  ·  foto ' + aRGB(fuente.enLaFoto));
+
+  fin();
 })();

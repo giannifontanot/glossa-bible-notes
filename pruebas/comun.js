@@ -155,6 +155,21 @@ async function cerrarParcial(sesion, comoSeLlama){
   await navegador.close();
 }
 
+/* LA CUENTA FINAL, SUELTA DEL NAVEGADOR. Vivía dentro de cerrar(), y una
+   prueba que abre y cierra varias sesiones —piedra abre cinco solo para las
+   fotos del pliegue— imprimía una cuenta por cada cierre. Leyendo la corrida
+   parecía que la prueba había terminado a la mitad, con un total que todavía
+   iba a crecer, y una aserción posterior salía DESPUÉS del resumen. La cifra
+   final era buena y el código de salida también, pero nadie que lea eso puede
+   saberlo. Ahora las sesiones intermedias se cierran con cerrarParcial y la
+   cuenta se pide una sola vez, al final. */
+function fin(){
+  const total = aciertos + fallos;
+  console.log('\n  ' + nombre + ': ' + aciertos + '/' + total +
+              (fallos ? '  ***  ' + fallos + ' FALLO' + (fallos>1?'S':'') + '  ***' : '  todo bien'));
+  process.exitCode = fallos ? 1 : 0;
+}
+
 /* El cierre final: comprueba que no hubo excepciones, resume y decide el
    código de salida. Sin esto último las pruebas no sirven para nada
    automático. */
@@ -163,11 +178,8 @@ async function cerrar(sesion){
   vale('sin errores de JavaScript', errores.length === 0,
        errores.length ? errores : 'ninguno');
   await navegador.close();
-  const total = aciertos + fallos;
-  console.log('\n  ' + nombre + ': ' + aciertos + '/' + total +
-              (fallos ? '  ***  ' + fallos + ' FALLO' + (fallos>1?'S':'') + '  ***' : '  todo bien'));
-  process.exitCode = fallos ? 1 : 0;
+  fin();
 }
 
-module.exports = { abrir, listo, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
+module.exports = { abrir, listo, cerrar, cerrarParcial, fin, conGlosas, di, vale, titulo,
                    APP, RAIZ, TELEFONO, ESCRITORIO, ESTRECHO_RATON };
