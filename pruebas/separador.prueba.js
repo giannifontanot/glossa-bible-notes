@@ -356,7 +356,27 @@ async function ponerAMano(p){
   vale('con su referencia y su botón',
        /^\D+\s\d+:\d+$/.test(lista.ensena.ref) && lista.ensena.hayBoton === true,
        lista.ensena);
-  vale('y la lista se quita de en medio', lista.ensena.menuIdo === true);
+  /* Y LA LISTA SE QUEDA, QUE ES LO CONTRARIO DE LO QUE PEDÍA ESTA LÍNEA.
+
+     Decía «y la lista se quita de en medio» y exigía menuIdo === true, de
+     cuando tocar una fila cerraba el panel antes de abrir la ventanita. Se
+     pidió al revés —repasar las cintas que dejaste es mirar varias seguidas, y
+     cerrar la lista cada vez obliga a volver a abrir el rastro y la lista por
+     cada una—, así que ahora la lista se queda detrás y solo se va al ACEPTAR
+     el salto. Las dos mitades se comprueban juntas en el bloque «mirar deja la
+     lista; aceptar el salto se la lleva», al final de este fichero.
+
+     Se cambia en vez de quitarse porque la línea sigue haciendo falta: sin
+     ella, que la lista se cerrara de nuevo al mirar no lo cazaría nadie hasta
+     llegar al bloque del final, y este bloque es el que recorre el camino
+     entero con dos cintas en dos hojas.
+
+     Y se cazó corriendo el banco: la suite se estaba contradiciendo consigo
+     misma —esta línea exigía que se fuera y la del final que se quedara— y de
+     las tres pruebas que busqué a mano al hacer el cambio, ésta no salió. Es
+     la quinta vez que este repo paga por una prueba que afirmaba lo viejo. */
+  vale('y la lista se queda detrás, que mirar no es irse',
+       lista.ensena.menuIdo === false, lista.ensena);
   vale('tocar la escritura sí lleva a su hoja', lista.llegada === partida,
        lista.llegada + '  vs  ' + partida);
   /* La cinta se cobra AL SALTAR, no al mirar: la de la llegada es la que se
