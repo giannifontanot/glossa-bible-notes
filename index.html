@@ -11137,9 +11137,15 @@ const tintaDe = c => PIEDRA_TINTAS.find(t => t[0] === c) || PIEDRA_TINTAS[0];
        contraste .5, brillo .5 ...    34.2          20.4
 
    O sea que la corrección se lleva por delante la mitad larga del desvío, y lo
-   que queda es la transparencia. Quitarlo del todo pide que la piedra sea
-   opaca, y eso cambia cómo se ve encima del texto: es una decisión de lectura,
-   no de código, y está preguntada. */
+   que queda es la transparencia.
+
+   Y AHÍ SE QUEDA, POR DECISIÓN DEL LECTOR. Quitar el resto pedía que la piedra
+   fuese opaca, y eso es una decisión de lectura y no de código: una piedra
+   opaca tapa la palabra que tiene debajo, y estas cosas se posan encima del
+   texto. Preguntado y contestado que no. Así que este medio desvío es el
+   precio de que la piedra deje leer lo que hay debajo, y está pagado a
+   propósito: quien venga a «terminar de arreglarlo» subiendo la opacidad
+   estaría deshaciendo lo que se pidió. */
 function compensarTinta(hex){
   const raiz = getComputedStyle(document.documentElement);
   const c = parseFloat(raiz.getPropertyValue('--contraste')) || 1;
