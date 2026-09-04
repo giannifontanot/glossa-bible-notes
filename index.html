@@ -3042,7 +3042,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '04-SEP-26 13:07';
+window.GLOSS_BUILD = '04-SEP-26 13:16';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3228,9 +3228,28 @@ const PAGE_CSS = `
    EN CURSIVA Y DEL MISMO SERIF, no en la letra de la interfaz. Es parte del
    libro —como el número de capítulo— y no un control de la aplicación; con la
    familia de la interfaz se leería como algo que se puede tocar. Va un punto
-   por debajo del cuerpo del texto y en el sepia apagado del aparato, el mismo
-   de los números de versículo: se encuentra recorriendo la hoja con el ojo y
-   no se impone leyendo de corrido.
+   por debajo del cuerpo del texto y CON SU MISMA TINTA.
+
+   La tinta del texto y no el sepia apagado del aparato, y esto se midió porque
+   Codex lo levantó. Nació en #8a7746 —el color de los números de versículo y
+   de los rótulos— por no querer que gritara. Medido en píxeles de pantalla,
+   después del filtro de la hoja y contra el papel que le toca:
+
+                          titulillo     texto al lado
+       de fábrica ......... 3.69:1         14.41:1
+       contraste al mínimo. 1.81:1          3.16:1
+       contraste al máximo. 4.51:1         20.56:1
+       brillo al máximo ... 1.10:1         10.37:1
+
+   Cuatro veces peor que el texto que tiene pegado, y por debajo del 4.5:1 que
+   pide un cuerpo normal. El aparato puede permitirse ser tenue —un número de
+   versículo se saltea, no se lee— pero un titulillo es TEXTO: dice de qué va
+   lo que viene y está ahí para leerse. Con var(--tinta) va del mismo color que
+   el versículo y sigue al ajuste de sepia, así que no hay ningún riel del
+   lector que lo pueda dejar ilegible sin dejar ilegible también el texto.
+
+   Lo que lo mantiene discreto es la cursiva, el cuerpo y el aire de alrededor,
+   que era el encargo; el color nunca fue la herramienta buena para eso.
 
    SIN VERSALITAS, y no por gusto: son lo primero que uno prueba aquí. El
    lienzo del pliegue las reproduce —hay red puesta para eso, ver
@@ -3251,7 +3270,7 @@ const PAGE_CSS = `
        font-family:'Palatino Linotype',Palatino,'Book Antiqua','Iowan Old Style',
                    Georgia,'Noto Serif',serif;
        font-size:.94em; font-style:italic; font-weight:400;
-       line-height:1.3; color:#8a7746; letter-spacing:.01em;
+       line-height:1.3; color:var(--tinta,#241f1a); letter-spacing:.01em;
        margin:1.15em 0 .32em; }
 /* Los versículos van CORRIDOS, siempre. Hubo un ajuste para ponerlos cada uno
    en su renglón y se ha quitado: partía el texto en una lista de frases

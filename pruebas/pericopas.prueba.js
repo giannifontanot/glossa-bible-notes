@@ -73,6 +73,10 @@ const abrirEn = async (p, donde) => {
                       : 0) || 0) })),
       estilo: cs ? { familia: cs.fontFamily.split(',')[0], estilo: cs.fontStyle,
                      color: cs.color } : null,
+      /* La tinta del cuerpo del texto, para compararla con la del titulillo. */
+      tintaTexto: (() => {
+        const v = document.querySelector('#pgBody .v');
+        return v ? getComputedStyle(v).color : null; })(),
       hoja: window.__hoja() };
   });
   di('los titulillos de la hoja', puesto.filas);
@@ -85,6 +89,27 @@ const abrirEn = async (p, donde) => {
   vale('  en cursiva y del serif del texto',
        puesto.estilo && puesto.estilo.estilo === 'italic' &&
        /Palatino|Georgia|Noto|serif/i.test(puesto.estilo.familia), puesto.estilo);
+  /* Y CON LA TINTA DEL TEXTO, que es una aserción y no un capricho.
+
+     Nació con el sepia apagado del aparato —#8a7746, el de los números de
+     versículo— por no querer que gritara, y medido en píxeles de pantalla
+     después del filtro de la hoja daba 3.69:1 de fábrica contra 14.41:1 del
+     texto que tiene pegado: cuatro veces peor, y por debajo del 4.5:1 que pide
+     un cuerpo normal. Con el brillo al tope bajaba a 1.10:1, o sea invisible.
+     Un número de versículo puede permitirse ser tenue porque se saltea; un
+     titulillo es TEXTO y está ahí para leerse. Lo levantó Codex.
+
+     SE VIGILA QUE SEA EL MISMO COLOR y no una razón de contraste, y a
+     propósito: la razón depende del sepia, del brillo y del contraste que
+     tenga puestos el lector, así que un número aquí sería un número que se
+     descuelga —ya nos pasó con los 160 ms del doblez de las etiquetas—.
+     Compartiendo tinta con el texto, el titulillo no puede ser menos legible
+     que el versículo que lo sigue con NINGÚN ajuste, y eso no hay riel que lo
+     rompa. Medido después: 14.41:1 los dos de fábrica, y los dos iguales en
+     los cuatro extremos de los rieles. */
+  vale('  Y CON LA MISMA TINTA QUE EL TEXTO, no con el gris del aparato',
+       !!puesto.estilo && puesto.estilo.color === puesto.tintaTexto,
+       'titulillo ' + (puesto.estilo || {}).color + '  ·  texto ' + puesto.tintaTexto);
 
   /* ---------------------------------------------------------------- */
   titulo('ninguno se queda huérfano al pie de la hoja');
