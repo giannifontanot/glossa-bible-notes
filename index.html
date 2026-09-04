@@ -1157,6 +1157,32 @@
   #sepMenu.visible{ opacity:1; transform:none; }
   .sp-tit{ display:block; font:700 10.5px/1 var(--ui); letter-spacing:.14em;
            text-transform:uppercase; color:#8a7746; padding:3px 3px 7px; }
+  /* LA PUERTA DE SALIDA, DICHA — la misma que la ventanita y por lo mismo.
+     Cerrar se podía tocando fuera, con Escape, o volviendo a tocar el botón
+     que abrió; las tres hay que saberlas de antes y ninguna se ve. Arriba a la
+     derecha es donde se busca.
+
+     EL ASPA SOLA, sin disco ni borde, y en el mismo dorado del rótulo: en un
+     panel que es una lista para mirar, un botón redondo con fondo sería lo
+     primero que ve el ojo. Ahí arriba no hay nada más, así que se encuentra
+     igual. Se apoya en la esquina con position:absolute para no empujar al
+     rótulo ni robarle ancho —el panel mide 280px y la lista los necesita— y
+     el rótulo se aparta con su propio padding derecho. Blanco de toque de
+     30px, 34 en pantalla chica, como el de la ventanita. */
+  #sepMenu, #piedraMenu{ position:relative; }
+  .sp-x{ position:absolute; top:2px; right:2px; z-index:2;
+         display:inline-flex; align-items:center; justify-content:center;
+         width:30px; height:30px; padding:0;
+         border:0; background:transparent; color:#8a7746;
+         font:400 20px/1 var(--ui); cursor:pointer;
+         -webkit-tap-highlight-color:transparent;
+         transition:color .28s cubic-bezier(.65,0,.35,1),
+                    transform .18s cubic-bezier(.65,0,.35,1); }
+  .sp-x:hover{ color:#4d3f1d; }
+  .sp-x:active{ transform:scale(.85); }
+  .sp-x:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
+  /* Y el rótulo le deja el sitio, que si no el aspa se le pone encima. */
+  .sp-tit{ padding-right:32px; }
   .sp-telas{ display:flex; gap:7px; padding:0 3px 9px; }
   .sp-tela{ flex:0 0 auto; width:30px; height:30px; border-radius:50%;
             border:1px solid rgba(90,70,30,.45); cursor:pointer; padding:0;
@@ -1205,15 +1231,30 @@
      discontinuo, que es como se lee «aquí se añade» sin gritar. Del ancho
      entero, porque no compite con nada: es lo único que se puede hacer aparte
      de mirar lo que ya hay. */
-  .sp-nueva{ display:flex; align-items:center; gap:6px; width:100%;
-             margin:0 0 6px; padding:7px 9px; min-height:34px;
-             font:600 12px/1.2 var(--ui); letter-spacing:.02em; color:#5c4a24;
-             background:rgba(255,253,247,.5); cursor:pointer;
-             border:1px dashed rgba(140,116,68,.55); border-radius:5px; }
-  .sp-nueva:hover{ background:#fffdf6; color:#3c2f16;
-                   border-color:rgba(140,116,68,.85); }
+  /* UN BOTÓN, NO UNA BANDA. Nació como una barra de ancho entero con el filo
+     discontinuo —«aquí se añade»— y con el rótulo entero dentro: «+ ▮ nueva
+     cinta aquí». Pedido y cambiado mirándolo puesto: del ancho entero y con
+     el filo de puntos no se leía como un botón sino como una zona, y el
+     rótulo largo repetía tres veces lo que la figura ya dice. Ahora es lo que
+     es —un botón, del ancho de su palabra— y dice «Nueva» con su figura al
+     lado. Qué se pone lo cuenta el dibujo; dónde, el panel donde está.
+     El rótulo hablado sí lo dice entero: ahí no hay figura que mirar. */
+  /* align-self, y no basta con inline-flex: los dos paneles son columnas
+     flex con align-items:stretch, y un hijo en línea se estira igual hasta el
+     ancho entero —medido, 264 de 280 px, o sea la banda de antes con otro
+     fondo—. Con flex-start mide lo que mide su palabra. */
+  .sp-nueva{ display:inline-flex; align-self:flex-start; align-items:center; gap:6px;
+             margin:0 0 8px; padding:6px 12px; min-height:32px;
+             font:600 12.5px/1.2 var(--ui); letter-spacing:.02em; color:#4a3c1c;
+             background:linear-gradient(to bottom, #fffdf6, #f2ead4);
+             cursor:pointer;
+             border:1px solid rgba(140,116,68,.6); border-radius:6px;
+             box-shadow:0 1px 2px rgba(60,45,15,.14); }
+  .sp-nueva:hover{ background:linear-gradient(to bottom, #fffefb, #f7f1e0);
+                   border-color:rgba(140,116,68,.9); }
+  .sp-nueva:active{ transform:translateY(1px);
+                    box-shadow:inset 0 1px 2px rgba(60,45,15,.2); }
   .sp-nueva:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
-  .sp-mas{ flex:0 0 auto; font:700 14px/1 var(--ui); color:#8a6416; }
   /* La cinta de muestra del botón va sin color escrito: la que se ponga toma
      el que le toque por turno, así que enseñar uno concreto sería prometer. */
   .sp-nueva .sp-chip{ background:rgba(140,116,68,.45); }
@@ -1628,7 +1669,9 @@
     .hs-sep{ padding:9px 8px; }
     .hs-acciones, .hs-pie{ gap:5px; }
     .sp-ref{ font-size:14px; }
-    .sp-nueva{ min-height:44px; font-size:14px; }
+    .sp-nueva{ min-height:44px; font-size:14px; padding:6px 14px; }
+    .sp-x{ width:34px; height:34px; font-size:22px; }
+    .sp-tit{ padding-right:36px; }
     .sp-fila{ min-height:48px; padding:5px 5px 5px 10px; }
     .sp-ir{ min-height:44px; }
     .sp-fila-x, .sp-fila-lapiz{ width:42px; height:42px; }
@@ -2204,6 +2247,12 @@
      columna de glosas y no lo que mide la pantalla—. */
   #menu .mmodos button{ text-align:center; border-color:rgba(255,255,255,.22);
                         padding-left:4px; padding-right:4px; }
+  /* Y LOS DE ABAJO TAMBIÉN CENTRADOS. Los modos lo estaban desde que eran una
+     fila de tres; los de acciones heredaban la alineación del panel y salían
+     pegados a la izquierda de su celda. Puestos en pareja eso se ve: dos
+     botones del mismo ancho con la palabra en sitios distintos se leen como
+     si uno estuviera mal colocado. */
+  #menu .macciones button{ text-align:center; }
   /* LA MARCA, EN SU PROPIO RENGLÓN Y EN LOS DOS. Puesta en línea, «resaltado»
      no cabía al lado de la suya y partía sola mientras «línea» se quedaba de
      un renglón: dos botones gemelos que no se parecían. Partiéndolos a los
@@ -2988,7 +3037,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '04-SEP-26 01:18';
+window.GLOSS_BUILD = '04-SEP-26 11:07';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5680,19 +5729,33 @@ const rotuloTags = (abierta, cuantas) =>
    opacity para decir «esto no responde todavía», y una animación que la mueva
    discutiría con esa señal —la lista dormida se abriría hasta opaca del todo
    para volver a apagarse al acabar—. El doblez solo se ve con el alto. */
-/* 110 Y NO 160, y lo que se acorta es el caso de todos los días.
+/* LA LISTA SALE EN EL ACTO. NO SE DOBLA.
 
-   El despliegue dura TAGS_MS más lo que viaje el panel. Medido de punta a
-   punta —del toque hasta que el alto deja de moverse, a un sexto de CPU— el
-   caso corriente daba unos 230 ms de reloj, de los que 66 son la propia
-   medición esperando cuadros quietos: la animación real rondaba los 165.
+   Se pidió que fuese instantánea, y medirlo dijo que se podía: lo que tardaba
+   no era trabajo, era la propia animación. A un sexto de CPU, con 34
+   etiquetas y con 120 —da igual, porque componer los botones no es el coste—:
 
-   Se baja la BASE y no el factor del viaje. El factor existe porque un cambio
-   de lado son 250 px o más, y hacerlos en el tiempo del caso corriente los
-   convierte en el salto que ese factor vino a quitar (está contado ahí abajo,
-   con sus medidas). Lo que se pidió acortar es abrir la lista, no cambiar de
-   lado; así que se acorta lo que gobierna abrir la lista. */
-const TAGS_MS = 110;
+       manejador ................  16–32 ms
+       primer píxel en pantalla ..  48–67 ms
+       de punta a punta ......... 194–533 ms
+
+   Los 500 del peor caso eran enteros del doblez, y el peor caso no es raro:
+   la duración se ataba al VIAJE del panel —TAGS_MS + min(viaje,300)×1.2— así
+   que abrir la lista sobre un pasaje que obliga al panel a cambiarse de lado
+   costaba medio segundo de mirar cómo crece un recuadro.
+
+   LO QUE SE DESATA ES EL ALTO, NO EL VIAJE. El deslizamiento del panel se
+   queda tal cual, con su factor y sus medidas: existe porque un cambio de
+   lado son 250 px y sin él da un salto de 309 px, y eso sigue siendo verdad.
+   Lo que ya no hace es arrastrar al alto consigo.
+
+   Y SE ACEPTA A SABIENDAS lo que el comentario de abajo temía: con el alto
+   puesto de golpe, en un cambio de lado se ve el recuadro llegar ya lleno.
+   Medido contra la alternativa, es el cambio bueno —ver el recuadro lleno
+   moverse 250 px dura lo que dure el viaje; esperar a que crezca duraba eso
+   MÁS el crecimiento, y lo que se está esperando es una lista que ya está
+   compuesta desde que nació el panel (ver calentarTags)—. */
+const TAGS_MS = 0;
 /* LA LISTA SE COMPONE AL NACER EL PANEL, NO AL ABRIRLA.
 
    La caja de etiquetas vive con display:none hasta que se despliega, así que
@@ -5794,11 +5857,14 @@ function plegarTags(caja, abrir){
   const dx = Math.round(desde.left - hasta.left), dy = Math.round(desde.top - hasta.top);
   /* UN VIAJE LARGO PIDE MÁS TIEMPO. Con los 160ms del doblez, el cambio de
      lado —250px o más— sale disparado: sigue siendo un salto, solo que con
-     cuadros. El añadido va con la distancia y con tope, y se le da a las DOS
-     animaciones para que el alto y la posición no se separen: si la lista
-     acabara de desplegarse con el panel todavía en camino, se vería el
-     recuadro llegando a su sitio ya lleno, que es peor que las dos cosas por
-     separado.
+     cuadros. El añadido va con la distancia y con tope.
+
+     ESTO YA NO GOBIERNA EL ALTO, solo el viaje. Se le daba a las dos
+     animaciones para que no se separasen —si la lista acababa de desplegarse
+     con el panel todavía en camino, se vería el recuadro llegando ya lleno—.
+     Se separan a propósito: medido, atarlas costaba medio segundo de abrir
+     una lista que ya está compuesta desde que nació el panel, y esperar a que
+     crezca un recuadro es peor que verlo llegar lleno. Ver TAGS_MS.
 
      El factor sale de medir. Recorriendo los catorce pasajes de una hoja y
      mirando el cuadro más rápido de cada uno: el cambio de lado pasa de 309px
@@ -5824,11 +5890,18 @@ function plegarTags(caja, abrir){
     menu._resbalon = res;
     res.onfinish = () => { if (menu._resbalon === res) menu._resbalon = null; };
   }
+  /* EL ALTO, DE GOLPE, Y AQUÍ ES DONDE SE DESATAN LAS DOS. El viaje conserva
+     su duración —`ms`, con el factor de la distancia— y el doblez se queda en
+     TAGS_MS, que es cero. Atarlos era lo que hacía que abrir la lista sobre un
+     pasaje que obliga al panel a cambiarse de lado costara medio segundo.
+     Se sigue llamando a animate en vez de saltárselo porque el remate cuelga
+     de su onfinish: con duración cero se llama igual, en el turno siguiente,
+     y así hay UN solo camino de salida en vez de dos. */
   caja.style.overflow = 'hidden';
   const an = caja.animate(
     [{ height: (abrir ? 0 : alto) + 'px' },
      { height: (abrir ? alto : 0) + 'px' }],
-    { duration: ms, easing: curva });
+    { duration: TAGS_MS, easing: curva });
   caja._pliegue = an;
   /* El rótulo dice ya lo que va a pasar y no lo que está pasando: mientras se
      cierra la clase sigue puesta —hace falta para que se siga viendo— y leerla
@@ -12619,22 +12692,29 @@ function cerrarPiedraMenu(){
 function pintarPiedrero(){ if (piedraMenuAbierto) pintarPiedraMenu(); }
 /* El botón de poner, dentro de la lista y no en el rastro: ver cabezaHistorial.
    Sale también con la lista vacía, que es justo cuando más falta hace. */
+/* EL ASPA DE CERRAR, la misma para los dos paneles. `acc` dice cuál cierra:
+   son dos cierres distintos y cada uno tiene su estado que apagar. */
+const spCerrarHTML = (acc, que) =>
+  '<button type="button" class="sp-x" data-sp-cerrar="' + acc + '"' +
+    ' title="Cerrar" aria-label="Cerrar ' + que + '">' +
+    '<span aria-hidden="true">\u00d7</span></button>';
 const piedraNuevaHTML = () =>
   '<button type="button" class="sp-nueva" data-piedra-nueva="1"' +
     ' title="Dejar una piedra en esta hoja"' +
-    ' aria-label="Dejar una piedra en la hoja que estás leyendo">' +
-    '<span class="sp-mas" aria-hidden="true">+</span>' +
+    ' aria-label="Dejar una piedra en la hoja que estás leyendo">Nueva' +
     '<span class="sp-chip-forma" aria-hidden="true">' +
-      piedraDibujo('piedra', null, true) + '</span>nueva piedra aquí</button>';
+      piedraDibujo('piedra', null, true) + '</span></button>';
 function pintarPiedraMenu(){
   const el = $('piedraMenu');
   if (!piedras.length){
-    el.innerHTML = '<span class="sp-tit">Tus piedras</span>' + piedraNuevaHTML() +
+    el.innerHTML = spCerrarHTML('piedras', 'la lista de piedras') +
+       '<span class="sp-tit">Tus piedras</span>' + piedraNuevaHTML() +
       '<p class="sp-vacio">Todavía no has dejado ninguna. El botón de arriba' +
       ' deja una en la hoja que estés leyendo.</p>';
     return;
   }
-  el.innerHTML = '<span class="sp-tit">Tus piedras</span>' + piedraNuevaHTML() +
+  el.innerHTML = spCerrarHTML('piedras', 'la lista de piedras') +
+    '<span class="sp-tit">Tus piedras</span>' + piedraNuevaHTML() +
     piedras.map(x =>
       '<div class="sp-fila' + (piedraAqui(x) ? ' aqui' : '') + '">' +
       (piedraNombrando === x.id
@@ -12753,6 +12833,12 @@ $('piedraMenu').addEventListener('click', ev => {
   /* Dentro del campo no hay nada que hacer aquí: poner el cursor a media
      palabra es escribir, no pulsar. */
   if (ev.target.closest('[data-piedra-nombre]')) return;
+  /* EL ASPA, la primera: ver el mismo bloque en #sepMenu. */
+  if (ev.target.closest('[data-sp-cerrar]')){
+    ev.preventDefault(); ev.stopPropagation();
+    cerrarPiedraMenu();
+    return;
+  }
   /* PONER UNA PIEDRA desde su lista. Cierra la lista: acabas de dejar algo en
      la hoja y lo que hay que ver es la hoja, con la piedra recién puesta y su
      mando abierto. */
@@ -12786,15 +12872,22 @@ $('piedraMenu').addEventListener('click', ev => {
   if (!x) return;
   /* ENSEÑA ANTES DE SALTAR, igual que la lista de cintas: se abre la ventanita
      con el versículo y el salto se pide tocando la escritura. Un solo camino
-     para la misma pregunta, se pregunte desde donde se pregunte. */
-  cerrarPiedraMenu();
+     para la misma pregunta, se pregunte desde donde se pregunte.
+
+     Y LA LISTA SE QUEDA DETRÁS. Aquí se cerraba, y cerrarla convertía «mirar
+     qué es esto» en un viaje de ida: la ventanita sale por encima, se lee el
+     versículo, se cierra… y la lista ya no está, así que para ver la siguiente
+     hay que volver a abrir el rastro y volver a abrir la lista. Repasar las
+     piedras que dejaste es justo mirar varias seguidas. Pedido y cambiado.
+     Es lo mismo que ya hacía el rastro, que se queda abierto detrás. */
   abrirPleno(x.libro, x.cap, x.vers);
 });
 /* Un toque fuera lo cierra, con su propia puerta exceptuada para que el
    segundo toque del botón lo cierre en vez de reabrirlo. */
 document.addEventListener('pointerdown', ev => {
   if (!piedraMenuAbierto) return;
-  if (ev.target.closest('#piedraMenu, [data-piedra-lista]')) return;
+  /* La ventanita, exceptuada por lo mismo que en #sepMenu: ver allí. */
+  if (ev.target.closest('#piedraMenu, #versoPleno, [data-piedra-lista]')) return;
   cerrarPiedraMenu();
 }, true);
 
@@ -12862,6 +12955,7 @@ function pintarSepMenu(){
         '<button class="sp-btn" data-sep-cancelar="1">Cancelar</button>' +
       '</div></div>' : '';
   $('sepMenu').innerHTML =
+    spCerrarHTML('cintas', 'el panel de cintas') +
     /* Las telas sólo si se vino de una cinta: en modo lista no hay «esta
        cinta» cuyo color cambiar, y enseñar la paleta apuntando a ninguna
        sería ofrecer un mando que no manda nada. */
@@ -12878,9 +12972,8 @@ function pintarSepMenu(){
        encima de la lista: primero lo que puedes hacer, después lo que hay. */
     '<button type="button" class="sp-nueva" data-sep-nuevo="1"' +
       ' title="Dejar un separador en esta hoja"' +
-      ' aria-label="Dejar un separador en la hoja que estás leyendo">' +
-      '<span class="sp-mas" aria-hidden="true">+</span>' +
-      '<span class="sp-chip" aria-hidden="true"></span>nueva cinta aquí</button>' +
+      ' aria-label="Dejar un separador en la hoja que estás leyendo">Nueva' +
+      '<span class="sp-chip" aria-hidden="true"></span></button>' +
     borrarHtml +
     (lista.length ? lista.map(x => {
       const t = telaDe(x.color);
@@ -13100,6 +13193,13 @@ $('sepMenu').addEventListener('click', ev => {
      palabra es escribir, no pulsar. (Cerrar el menú no hace falta pararlo: el
      oyente que cierra con un toque de fuera ya exceptúa #sepMenu entero.) */
   if (ev.target.closest('[data-sep-nombre]')) return;
+  /* EL ASPA. Va antes que todo lo demás de este panel: es la salida, y una
+     salida que compite con otro manejador no es una salida. */
+  if (ev.target.closest('[data-sp-cerrar]')){
+    ev.preventDefault(); ev.stopPropagation();
+    cerrarSepMenu();
+    return;
+  }
   /* PONER UNA CINTA desde su lista. Cierra el menú: acabas de marcar la hoja
      donde estás y lo que hay que ver es la cinta, no la lista.
      Si esta hoja YA tiene una, no pone otra encima: abre la suya. Dos cintas
@@ -13152,7 +13252,8 @@ $('sepMenu').addEventListener('click', ev => {
   if (!ir) return;
   ev.preventDefault(); ev.stopPropagation();
   const s = sepDe(ir.dataset.sepIr); if (!s) return;
-  cerrarSepMenu();
+  /* Y LA LISTA SE QUEDA DETRÁS: aquí se cerraba. Ver el mismo cambio en la
+     lista de piedras, que es donde está contado. */
   /* TOCAR UNA CINTA ENSEÑA, NO SALTA. Antes saltaba en el acto, y saltar es la
      única cosa de este panel que no se puede deshacer sin volver a buscar: la
      hoja donde estabas se va, y con ella el rastro y la lista. Ahora hace lo
@@ -13190,7 +13291,11 @@ document.addEventListener('pointerdown', ev => {
   /* El botón del pie del rastro va exceptuado por lo mismo que la cinta: es su
      puerta y alterna. Sin esto, el pointerdown lo cerraba y el click de detrás
      lo volvía a abrir, así que el segundo toque no cerraba nunca. */
-  if (ev.target.closest('#sepMenu, #sepOferta, [data-sep], [data-sep-x], [data-sep-lista]')) return;
+  /* Y LA VENTANITA TAMBIÉN VA EXCEPTUADA. Sale POR ENCIMA de este panel y de
+     él nació —tocando una fila—, así que un toque suyo no es «toque de
+     fuera»: sin esto, leer el versículo o cerrarlo con su aspa se llevaba por
+     delante la lista que hay debajo, que es justo lo que se pidió conservar. */
+  if (ev.target.closest('#sepMenu, #sepOferta, #versoPleno, [data-sep], [data-sep-x], [data-sep-lista]')) return;
   if (sepMenuAbierto) cerrarSepMenu();
   /* La oferta NO se cierra con un toque en cualquier sitio: se contesta con
      sus dos botones o se va sola. Tocar el papel para seguir leyendo no es
