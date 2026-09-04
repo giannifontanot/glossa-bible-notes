@@ -1051,5 +1051,55 @@ async function andamio(p){
        aRGB(fuente.enLaFoto) === fuente.enLaHoja,
        'hoja ' + fuente.enLaHoja + '  ·  foto ' + aRGB(fuente.enLaFoto));
 
+  /* ================================================================
+     MIRAR NO ES IRSE, PERO IRSE SÍ ES IRSE.
+
+     El gemelo del bloque de separador.prueba.js, donde está contado entero.
+     Aquí importa doblemente: la lista de piedras no tiene ningún enganche en
+     el repintado que la cierre —la de cintas sí—, así que si el cierre no
+     está en el camino del salto, no está en ninguna parte. Lo levantó Codex.
+     La piedra cae en la MISMA hoja a propósito: es la rama corta de irA, la
+     que no repinta nada. */
+  titulo('mirar deja la lista; aceptar el salto se la lleva');
+  const viaje = await abrir();
+  const vj = viaje.pagina;
+  await vj.evaluate(() => {
+    const hoy = Date.now();
+    /* La llave escrita a pelo: LLAVE vive en Node y no cruza a evaluate(). */
+    localStorage.setItem('glossa:piedras:v1', JSON.stringify([
+      { id:'z', libro:'MAT', cap:1, vers:6, x:.3, y:.3, forma:'piedra',
+        tam:3, color:'carmin', creado:hoy, tocado:hoy }]));
+    localStorage.setItem('glossa:ajustes:v1',
+      JSON.stringify({ v:1, libro:'MAT', cap:1, vers:1 }));
+  });
+  await vj.reload();
+  await vj.waitForTimeout(3000);
+  await andamio(vj);
+  const mirarIrse = await vj.evaluate(async () => {
+    await window.__toque('#btnHistorial'); await window.__pausa(600);
+    await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
+    const pm = document.getElementById('piedraMenu');
+    const fila = pm.querySelector('[data-piedra-ir]');
+    if (!fila) return { sinFila:true };
+    const hojaAntes = window.__hoja();
+    await window.__toque(fila); await window.__pausa(900);
+    const mirando = getComputedStyle(pm).display !== 'none';
+    const txt = document.querySelector('#versoPleno .vp-txt');
+    if (!txt) return { mirando, sinTexto:true };
+    await window.__toque(txt); await window.__pausa(3800);
+    return { mirando, hojaAntes, hojaDespues: window.__hoja(),
+             trasSaltar: getComputedStyle(pm).display !== 'none' &&
+                         pm.classList.contains('visible'),
+             pleno: document.getElementById('versoPleno').classList.contains('visible') };
+  });
+  di('mirar contra saltar', mirarIrse);
+  vale('MIRAR EL VERSÍCULO DEJA LA LISTA DETRÁS', mirarIrse.mirando === true, mirarIrse);
+  vale('  y es la misma hoja, o sea la rama corta de irA',
+       mirarIrse.hojaAntes === mirarIrse.hojaDespues,
+       mirarIrse.hojaAntes + ' → ' + mirarIrse.hojaDespues);
+  vale('ACEPTAR EL SALTO SÍ CIERRA LA LISTA', mirarIrse.trasSaltar === false, mirarIrse);
+  vale('  y la ventanita se va con él', mirarIrse.pleno === false, mirarIrse);
+  await cerrarParcial(viaje, 'mirar contra saltar');
+
   fin();
 })();

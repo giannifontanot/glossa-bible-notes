@@ -1466,5 +1466,62 @@ async function ponerAMano(p){
        otros.antes + '  →  ' + otros.conFilo);
   vale('y el panel del rastro sigue entero', otros.rastro.abierto);
 
-  await cerrar(ancho);
+  await cerrarParcial(ancho, 'ratón estrecho');
+
+  /* ================================================================
+     MIRAR NO ES IRSE, PERO IRSE SÍ ES IRSE.
+
+     Tocar una fila de la lista abre la ventanita con el versículo y la lista
+     se queda DETRÁS: repasar las cintas que dejaste es mirar varias seguidas,
+     y cerrar la lista cada vez convertía eso en volver a abrir el rastro y
+     volver a abrir la lista por cada una. Pero aceptar el salto —tocar el
+     texto de la ventanita— sí es irse, y entonces la lista tiene que cerrarse
+     o se queda flotando sobre la hoja de llegada, encima del texto al que
+     acabas de ir.
+
+     LA CINTA CAE EN LA MISMA HOJA A PROPÓSITO, y es lo que hace esta prueba
+     valer algo. Con la cinta en otra hoja, el salto repinta y cualquier cierre
+     colgado del repintado la taparía; en la misma hoja irA() se va por la rama
+     corta —solo resalta el versículo— y no hay repintado ninguno. Si el cierre
+     se apoyara en pintar, aquí se vería. Lo levantó Codex, y con razón: el
+     cierre estaba puesto donde no cubría este caso. */
+  titulo('mirar deja la lista; aceptar el salto se la lleva');
+  const viaje = await abrir();
+  const vp = viaje.pagina;
+  await vp.evaluate(() => {
+    const hoy = Date.now();
+    localStorage.setItem('glossa:separadores:v1', JSON.stringify([
+      { id:'c1', libro:'MAT', cap:1, vers:6, color:'indigo', creado:hoy, tocado:hoy }]));
+    localStorage.setItem('glossa:ajustes:v1',
+      JSON.stringify({ v:1, libro:'MAT', cap:1, vers:1 }));
+  });
+  await vp.reload();
+  await vp.waitForTimeout(3000);
+  await andamio(vp);
+  const mirarIrse = await vp.evaluate(async () => {
+    await window.__toque('#btnHistorial'); await window.__pausa(600);
+    await window.__toque('[data-sep-lista]'); await window.__pausa(700);
+    const sm = document.getElementById('sepMenu');
+    const fila = sm.querySelector('[data-sep-ir]');
+    if (!fila) return { sinFila:true };
+    const hojaAntes = window.__hoja();
+    await window.__toque(fila); await window.__pausa(900);
+    const mirando = sm.classList.contains('visible');
+    const txt = document.querySelector('#versoPleno .vp-txt');
+    if (!txt) return { mirando, sinTexto:true };
+    await window.__toque(txt); await window.__pausa(3800);
+    return { mirando, hojaAntes, hojaDespues: window.__hoja(),
+             trasSaltar: sm.classList.contains('visible') &&
+                         getComputedStyle(sm).display !== 'none',
+             pleno: document.getElementById('versoPleno').classList.contains('visible') };
+  });
+  di('mirar contra saltar', mirarIrse);
+  vale('MIRAR EL VERSÍCULO DEJA LA LISTA DETRÁS', mirarIrse.mirando === true, mirarIrse);
+  vale('  y es la misma hoja, o sea la rama corta de irA',
+       mirarIrse.hojaAntes === mirarIrse.hojaDespues,
+       mirarIrse.hojaAntes + ' → ' + mirarIrse.hojaDespues);
+  vale('ACEPTAR EL SALTO SÍ CIERRA LA LISTA', mirarIrse.trasSaltar === false, mirarIrse);
+  vale('  y la ventanita se va con él', mirarIrse.pleno === false, mirarIrse);
+
+  await cerrar(viaje);
 })();
