@@ -104,12 +104,21 @@ const abrirEn = async (p, donde) => {
      Y ESTO AFIRMABA LO VIEJO hasta hoy: pedía cursiva. El titulillo nació en
      cursiva, .94em y peso normal —o sea MÁS PEQUEÑO que el texto que anuncia—
      y así se perdía en la hoja: el dueño lo leyó por encima sin verlo y un
-     panel de editores y tipógrafos lo levantó. Ahora va redonda, semibold y un
-     tercio más grande, que es lo contrario de lo que decía esta línea. */
+     panel de editores y tipógrafos lo levantó. Ahora va redonda, semibold y
+     algo mayor, que es lo contrario de lo que decía esta línea.
+
+     EL MARGEN ES 1.04 Y NO 1.15, y el número tiene historia. Estuvo en 1.15
+     cuando el cuerpo era 1.3em, y al bajar a 1.08 —porque a 1.3 el rótulo se
+     peleaba con el número de capítulo y interrumpía la lectura— esta línea se
+     habría puesto roja con la aplicación haciendo lo correcto. Lo que hay que
+     exigir es que el titulillo sea MAYOR que el texto, que es la señal; cuánto
+     mayor es una decisión de diseño y no una regla, así que el margen se queda
+     justo por encima de «igual» en vez de fijar un tamaño concreto por la
+     puerta de atrás. */
   vale('  del serif del texto, pero MÁS GRANDE y con más peso',
        !!puesto.estilo && !!puesto.texto &&
        /Palatino|Georgia|Noto|serif/i.test(puesto.estilo.familia) &&
-       puesto.estilo.tam > puesto.texto.tam * 1.15 &&
+       puesto.estilo.tam > puesto.texto.tam * 1.04 &&
        puesto.estilo.peso > puesto.texto.peso,
        'titulillo ' + (puesto.estilo||{}).tam + 'px/' + (puesto.estilo||{}).peso +
        '  ·  texto ' + (puesto.texto||{}).tam + 'px/' + (puesto.texto||{}).peso);

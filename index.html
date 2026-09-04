@@ -3042,7 +3042,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '04-SEP-26 13:59';
+window.GLOSS_BUILD = '04-SEP-26 14:11';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3235,13 +3235,24 @@ const PAGE_CSS = `
    «aquí empieza otra cosa». Y negrita más cursiva a este cuerpo, sobre papel
    tostado, se emborrona: si va a llevar peso, que vaya derecha.
 
-   1.3 Y NO 1.8, que es lo que pedía el panel. Ellos no tenían delante una cosa
-   que esta hoja sí tiene: el NÚMERO DE CAPÍTULO ya mide más de cuatro veces el
-   cuerpo del texto, centrado y en dorado. Ya hay un elemento grande gobernando
-   la página. Comparadas las dos maquetas en el teléfono, a 1.45 el titulillo y
-   el numeral empiezan a competir y una perícopa larga —«Sanidad de un muchacho
-   y anuncio del sufrimiento»— parte en tres renglones en una columna de este
-   ancho. A 1.3 se ve de lejos y la hoja sigue teniendo un solo jefe.
+   1.08, Y SE LLEGÓ BAJANDO. El panel pedía de 1.4 a 1.8; se probó 1.3 y, leído
+   de verdad en el teléfono, seguía siendo demasiado. Las maquetas comparadas
+   fueron 1.00, 1.08, 1.15 y 1.30.
+
+   El error de razonamiento fue contar mal las señales. Este titulillo lleva ya
+   TRES trabajando —peso semibold, centrado, y bastante aire arriba— y el
+   tamaño era la cuarta. Con cuatro se pasa: a 1.3 el rótulo se pelea con el
+   número de capítulo, que mide más de cuatro veces el cuerpo del texto y es
+   quien manda en esta página.
+
+   Y PESA QUE ESTE RÓTULO SALE MUCHO: noventa y cinco en Lucas, dos o tres por
+   hoja. Un elemento que aparece una vez por libro puede permitirse ser grande;
+   uno que aparece cada pocos párrafos tiene que poder IGNORARSE mientras se
+   lee de corrido. A 1.3 interrumpe. A 1.08 sigue siendo mayor que el texto
+   —que es lo que le dice al ojo «esto es de otra clase»— y no se pone delante.
+
+   Si algún día se ve poco, lo que hay que subir es el AIRE de arriba, no el
+   cuerpo: el aire no compite con nada y el tamaño sí.
 
    CENTRADO, Y CON EL RENGLÓN UN POCO MÁS CORTO QUE LA COLUMNA.
 
@@ -3291,7 +3302,7 @@ const PAGE_CSS = `
 .peri{ display:block; break-after:avoid;
        font-family:'Palatino Linotype',Palatino,'Book Antiqua','Iowan Old Style',
                    Georgia,'Noto Serif',serif;
-       font-size:1.3em; font-style:normal; font-weight:600;
+       font-size:1.08em; font-style:normal; font-weight:600;
        line-height:1.25; color:var(--tinta,#241f1a); letter-spacing:.005em;
        text-align:center; padding:0 .6em; margin:1.5em 0 .3em; }
 /* Los versículos van CORRIDOS, siempre. Hubo un ajuste para ponerlos cada uno
