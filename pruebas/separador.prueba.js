@@ -467,38 +467,65 @@ async function ponerAMano(p){
        vaiven.base + ' → ' + vaiven.guardadas);
 
   titulo('y se va del todo al borrarla');
+  /* SE PERSIGUE EL ID QUE SE BORRA, NO «QUE NO HAYA NINGUNA CINTA», y esto lo
+     dijo el detalle forense a la primera corrida de tenerlo.
+
+     La aserción exigía cero cintas después de pasar hoja, y eso solo es cierto
+     si esta prueba fuese la única que ha puesto cintas. No lo es: el bloque de
+     arriba arranca con `base` —«lo que ya había de antes»— y en esa corrida
+     base valía 1. Se borra la que se acaba de poner, el almacén vuelve a base
+     correctamente (1 vs 1), y al pasar hoja aparece la OTRA, que sigue viva y
+     con todo el derecho. La prueba llamaba fallo al programa por hacer
+     exactamente lo suyo.
+
+     Y ESO EXPLICA POR FIN LO DEL NAVEGADOR. Salía verde en Chromium 141 y roja
+     en el 149, una y otra vez, también sobre main: no era una carrera ni un
+     nodo huérfano, es que la cinta vieja cae en una hoja u otra según dónde
+     parta el texto, y las dos versiones no cortan las líneas igual. Con la
+     paginación del 141 la vuelta aterrizaba antes de su hoja y con la del 149
+     justo encima. Una prueba que depende de dónde parte el texto no está
+     probando lo que dice.
+
+     Lo forense se queda puesto: costó tres corridas del dueño llegar hasta
+     aquí, y la próxima vez que esta línea se ponga roja dirá otra vez qué es
+     lo que hay en la hoja en vez de dejarlo a adivinar. */
   const borradaDelTodo = await p.evaluate(async () => {
     await window.__abrirCajon();
     await window.__toque('.separador');
     await window.__pausa(450);
+    /* El id de LA QUE SE VA, cogido antes de borrarla: es lo único que
+       distingue «no volvió» de «no hay ninguna». */
+    const laBorrada = window.__cinta() ? window.__cinta().id : null;
     await window.__toque('[data-sep-x]');
     await window.__pausa(400);
     await window.__toque('[data-sep-borrar]');
     await window.__pausa(1200);
-    const tras = window.__cintaEstado();
-    const forenseTras = window.__cintaForense();
-    /* Y al pasar hoja no reaparece un nodo huérfano. */
+    const veo = () => {
+      const f = window.__cintaForense();
+      return { estado: window.__cintaEstado(), forense: f,
+               laBorradaEstaPuesta: f.nodos.some(n => n.id === laBorrada),
+               laBorradaEnElAlmacen: Array.isArray(f.almacen)
+                 ? f.almacen.indexOf(laBorrada) >= 0 : 'ilegible' };
+    };
+    const tras = veo();
+    /* Y al pasar hoja tampoco vuelve. */
     await window.__pasar('right');
     await window.__pausa(700);
-    return { tras, forenseTras,
-             trasPasar: window.__cintaEstado(),
-             forensePasar: window.__cintaForense(),
+    return { laBorrada, tras, trasPasar: veo(),
              guardadas: window.__guardadas().length };
   });
-  di('tras borrar', borradaDelTodo.tras);
-  di('tras pasar hoja', borradaDelTodo.trasPasar);
-  vale('no queda cinta', !borradaDelTodo.tras.hay && borradaDelTodo.tras.perchas === 0,
-       borradaDelTodo.forenseTras);
-  /* ESTA ES LA QUE SE PONE ROJA FUERA DE CASA. Aquí sale verde —Chromium 141,
-     dos tandas de 154/154— y en la máquina del dueño —Chromium 149— sale roja
-     una y otra vez, también sobre main y también antes de los cambios que la
-     rodean. Sin repro aislado y sin nada que imprimir, lo único que decía era
-     que algo sobrevivió; la autopsia de arriba dice QUÉ, que es de donde puede
-     salir el arreglo. Va como detalle y no como di() para que salga pegado a
-     la línea que juzga, verde o roja: en verde es la foto de cuando iba bien,
-     que es la otra mitad del diagnóstico. */
-  vale('ni reaparece al pasar hoja', !borradaDelTodo.trasPasar.hay &&
-       borradaDelTodo.trasPasar.perchas === 0, borradaDelTodo.forensePasar);
+  di('la que se borra', borradaDelTodo.laBorrada);
+  di('tras borrar', borradaDelTodo.tras.forense);
+  di('tras pasar hoja', borradaDelTodo.trasPasar.forense);
+  vale('la cinta borrada se va de la hoja',
+       borradaDelTodo.tras.laBorradaEstaPuesta === false,
+       borradaDelTodo.tras.estado);
+  vale('  y del almacén', borradaDelTodo.tras.laBorradaEnElAlmacen === false,
+       borradaDelTodo.tras.forense.almacen);
+  vale('ni reaparece al pasar hoja',
+       borradaDelTodo.trasPasar.laBorradaEstaPuesta === false &&
+       borradaDelTodo.trasPasar.laBorradaEnElAlmacen === false,
+       borradaDelTodo.trasPasar.forense);
   vale('y el almacén vuelve a lo que había', borradaDelTodo.guardadas === vaiven.base,
        vaiven.base + ' vs ' + borradaDelTodo.guardadas);
 
