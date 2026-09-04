@@ -1231,46 +1231,73 @@
      discontinuo, que es como se lee «aquí se añade» sin gritar. Del ancho
      entero, porque no compite con nada: es lo único que se puede hacer aparte
      de mirar lo que ya hay. */
-  /* UN BOTÓN, NO UNA BANDA. Nació como una barra de ancho entero con el filo
-     discontinuo —«aquí se añade»— y con el rótulo entero dentro: «+ ▮ nueva
-     cinta aquí». Pedido y cambiado mirándolo puesto: del ancho entero y con
-     el filo de puntos no se leía como un botón sino como una zona, y el
-     rótulo largo repetía tres veces lo que la figura ya dice. Ahora es lo que
-     es —un botón, del ancho de su palabra— y dice «Nueva» con su figura al
-     lado. Qué se pone lo cuenta el dibujo; dónde, el panel donde está.
-     El rótulo hablado sí lo dice entero: ahí no hay figura que mirar. */
-  /* align-self, y no basta con inline-flex: los dos paneles son columnas
-     flex con align-items:stretch, y un hijo en línea se estira igual hasta el
-     ancho entero —medido, 264 de 280 px, o sea la banda de antes con otro
-     fondo—. Con flex-start mide lo que mide su palabra. */
-  .sp-nueva{ display:inline-flex; align-self:flex-start; align-items:center; gap:6px;
-             margin:0 0 8px; padding:6px 12px; min-height:32px;
-             font:600 12.5px/1.2 var(--ui); letter-spacing:.02em; color:#4a3c1c;
-             background:linear-gradient(to bottom, #fffdf6, #f2ead4);
-             cursor:pointer;
-             border:1px solid rgba(140,116,68,.6); border-radius:6px;
-             box-shadow:0 1px 2px rgba(60,45,15,.14); }
-  .sp-nueva:hover{ background:linear-gradient(to bottom, #fffefb, #f7f1e0);
-                   border-color:rgba(140,116,68,.9); }
-  .sp-nueva:active{ transform:translateY(1px);
-                    box-shadow:inset 0 1px 2px rgba(60,45,15,.2); }
+  /* EL BOTÓN DE PONER ES EL MISMO BOTÓN QUE LA PUERTA POR LA QUE ENTRASTE.
+
+     Pasó por tres formas y las dos primeras se descartaron mirándolas puestas.
+     Nació como una banda del ancho entero con filo de puntos y el rótulo
+     «+ ▮ nueva cinta aquí»: del ancho entero no se leía como un botón sino
+     como una zona, y el rótulo repetía tres veces lo que la figura ya dice.
+     Después fue un botón claro con su recuadro, del ancho de su palabra.
+
+     Ahora es LA MISMA PIEZA que .hs-sep, el botón del rastro que abre esta
+     lista: misma píldora, misma letra en versalita, mismo color y mismo alto.
+     La razón es que son la misma familia de cosa —«cintas» te trae aquí,
+     «nueva» deja una— y dos formas distintas para dos acciones hermanas
+     obligan a aprender dos veces. Y estando el uno a un dedo del otro, la
+     diferencia se veía.
+
+     A LA DERECHA, que es donde cae el pulgar y donde no estorba al rótulo del
+     panel: el título se lee de izquierda a derecha y el botón espera al final
+     del renglón, en vez de partirlo por la mitad. */
+  .sp-nueva{ flex:0 0 auto; display:inline-flex; align-items:center; gap:6px;
+             min-height:34px; font:600 12px/1 var(--ui); letter-spacing:.06em;
+             text-transform:uppercase;
+             color:#6d5a2c; background:rgba(140,116,68,.13);
+             border:1px solid rgba(140,116,68,.4); border-radius:999px;
+             padding:7px 13px; cursor:pointer;
+             box-shadow:0 5px 12px -9px rgba(60,40,15,.75);
+             -webkit-tap-highlight-color:transparent; }
+  .sp-nueva:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
+  .sp-nueva:active{ transform:translateY(1px); }
   .sp-nueva:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
+  /* EL RENGLÓN DEL RÓTULO: el título a la izquierda y el botón a la derecha,
+     con el aspa de cerrar por encima en su esquina. */
+  .sp-cabeza{ display:flex; align-items:center; justify-content:space-between;
+              gap:8px; padding-right:32px; margin:0 0 8px; }
+  .sp-cabeza .sp-tit{ padding:3px 0 0; }
   /* La cinta de muestra del botón va sin color escrito: la que se ponga toma
      el que le toque por turno, así que enseñar uno concreto sería prometer. */
   .sp-nueva .sp-chip{ background:rgba(140,116,68,.45); }
-  .sp-fila-lapiz{ flex:0 0 auto; }
-  .sp-fila-lapiz:hover{ background:rgba(140,116,68,.2); color:#4d3f1d; }
-  /* X por fila: borra ese separador tras el diálogo sí/no. */
-  .sp-fila-x, .sp-fila-lapiz{
-              width:36px; height:36px; display:grid; place-items:center;
-              border:0; border-radius:50%; padding:0; cursor:pointer;
-              background:transparent; color:#7b6838;
-              -webkit-tap-highlight-color:transparent;
-              transition:background .18s ease, color .18s ease; }
-  .sp-fila-x:hover{ background:rgba(155,42,42,.14); color:#7d2323; }
-  .sp-fila-x:focus-visible, .sp-fila-lapiz:focus-visible{
-              outline:2px solid #b8892b; outline-offset:1px; }
-  .sp-fila-x svg, .sp-fila-lapiz svg{ display:block; width:12px; height:12px; }
+  /* LA FILA ABIERTA Y LA FILA QUE PREGUNTA. Son los dos estados que salen del
+     doble toque, y se visten distinto a propósito: abrir para nombrar es
+     rutina y se ve como la lista; preguntar si se borra tiene que interrumpir,
+     así que va en el carmín de las cintas y con la pregunta delante. */
+  /* Los botones de dentro de una fila NO se estiran: .sp-btn nació para la
+     caja de confirmación grande, que tenía dos botones repartiéndose el ancho.
+     Dentro de una fila lo que manda es la palabra. */
+  .sp-fila .sp-btn{ flex:0 0 auto; min-height:36px; font-size:12.5px;
+                    padding:8px 14px; }
+  .sp-fila-abierta{ flex-wrap:wrap; gap:6px; }
+  .sp-fila-abierta .sp-edit{ flex:1 1 100%; }
+  .sp-btn-borrar{ margin-left:auto; color:#7d2323;
+                  border-color:rgba(155,42,42,.4);
+                  background:rgba(155,42,42,.08); }
+  .sp-btn-borrar:hover{ background:rgba(155,42,42,.16); }
+  .sp-fila-pregunta{ flex-wrap:wrap; gap:7px;
+                     background:rgba(155,42,42,.1);
+                     border-color:rgba(155,42,42,.35); }
+  .sp-fila-pregunta .sp-pregunta{ flex:1 1 100%; font:600 12.5px/1.35 var(--ui);
+                                  color:#5c2020; }
+  /* EL «SÍ» NO ES EL BOTÓN BONITO. Va del mismo tamaño que el «no» y sin
+     relleno macizo: lo que no se deshace no se ofrece más fácil que lo que sí.
+     Y el foco entra en el «no» —ver pintarSepMenu—. */
+  .sp-btn-si{ color:#7d2323; border-color:rgba(155,42,42,.45);
+              background:rgba(155,42,42,.1); }
+  .sp-btn-si:hover{ background:rgba(155,42,42,.2); }
+  /* EL LÁPIZ Y LA EQUIS DE CADA FILA SE FUERON, y con ellos su CSS. Entre los
+     dos le dejaban al nombre unos setenta píxeles en un teléfono, que es la
+     razón por la que la lista existe. Ahora la fila es un solo botón y lo que
+     había en esos dos botones se pide con doble toque —ver filaHTML—. */
   .sp-vacio{ display:block; padding:6px 5px 8px; font:400 12.5px/1.5 var(--ui);
              color:#6b5936; opacity:.85; }
   /* La confirmación de borrado sale DENTRO del mismo menú y no en otra caja
@@ -1416,15 +1443,6 @@
      nombre proporcional sería un titular. Se queda en su cuerpo de siempre,
      colgado del borde de abajo del sitio —que mide exactamente la figura— y
      no recibe toques: quien manda es la piedra. */
-  .piedra-nombre{ position:absolute; top:100%; left:50%;
-                  transform:translateX(-50%); margin-top:5px;
-                  max-width:min(46vw, 190px); pointer-events:none;
-                  font:600 11.5px/1.3 var(--ui); letter-spacing:.01em;
-                  color:#4d3f1d; text-align:center;
-                  padding:1px 5px 2px; border-radius:4px;
-                  background:rgba(252,247,235,.72);
-                  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-
   /* EL MANDO DE LA PIEDRA EN EDICIÓN. Se viste como el menú de la cinta —es la
      misma clase de panel— pero con parrilla dentro: trece formas y seis
      colores no caben en una fila de botones. */
@@ -1464,11 +1482,6 @@
   .pm-tam{ flex:0 0 auto; min-width:26px; text-align:center;
            font:600 11px/1 var(--ui); color:#6d5a2c;
            font-variant-numeric:tabular-nums; }
-  .pm-nombre{ flex:1 1 0; min-width:0; box-sizing:border-box;
-              padding:5px 7px; font:400 12.5px/1.3 var(--ui); color:#3f3416;
-              background:rgba(252,247,235,.86);
-              border:1px solid rgba(140,116,68,.45); border-radius:5px; }
-  .pm-nombre:focus{ outline:2px solid #b8892b; outline-offset:-1px; }
   .pm-btn{ width:30px; height:30px; display:grid; place-items:center; padding:0;
            color:#6d5a2c; background:rgba(140,116,68,.12);
            border:1px solid rgba(140,116,68,.35); border-radius:50%;
@@ -1533,8 +1546,6 @@
      recorrido ni escala: solo el fundido, y la cinta ya no cae. */
   @media (prefers-reduced-motion: reduce){
     .separador, .sep-x, #sepMenu, #sepOferta, .sp-borrar, .sp-tela, .sp-fila,
-    .sp-fila-lapiz{
-      transition-duration:.01ms !important; }
     .separador.cayendo, .separador.entrando, .separador.saliendo{
       animation:none !important; }
     .separador.entrando{ opacity:1; }
@@ -1674,8 +1685,6 @@
     .sp-tit{ padding-right:36px; }
     .sp-fila{ min-height:48px; padding:5px 5px 5px 10px; }
     .sp-ir{ min-height:44px; }
-    .sp-fila-x, .sp-fila-lapiz{ width:42px; height:42px; }
-    .sp-fila-x svg, .sp-fila-lapiz svg{ width:14px; height:14px; }
     .sp-edit-base, .sp-edit-aqui{ font-size:14px; }
     .sp-nombre{ height:36px; font-size:14px; }
     .sp-borrar{ padding:16px 14px; }
@@ -3042,7 +3051,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '04-SEP-26 14:11';
+window.GLOSS_BUILD = '04-SEP-26 15:06';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4606,6 +4615,18 @@ function verseHTML(k, withMarks, below){
   const tint = TINT_V.get(it.cap+':'+it.vers);
   let html = '';
   if (it.vers === 1) html += '<span class="cap">' + it.cap + '</span>';
+  /* EL TITULILLO VA DETRÁS DEL NÚMERO DE CAPÍTULO, no delante.
+
+     Se emitía antes que el versículo entero, y el versículo entero incluye el
+     numeral cuando es el primero del capítulo: en Lucas 14 salía «Humildad y
+     hospitalidad», luego el 14 enorme, y luego el texto. El titulillo quedaba
+     colgando del capítulo ANTERIOR, que es lo contrario de lo que es —un
+     titulillo pertenece a lo que viene después—. Se veía en la primera foto
+     que se miró de una perícopa que arranca en versículo 1.
+
+     Emitiéndolo aquí queda en el único sitio que sirve para los dos casos: si
+     hay numeral, debajo de él; si no lo hay, delante del texto y ya está. */
+  html += tituloHTML(k);
   /* El contador de citas lleva clase "vn" a propósito: los recorredores de
      offsets saltan esa clase, así que no altera las posiciones del texto. */
   const nb = backDe(it.cap, it.vers).length;
@@ -4647,7 +4668,7 @@ function paginate(bodyEl, from, below, hasta){
        que impide que se quede huérfano al pie: entran juntos y, si no caben,
        el corte de aquí abajo los retira juntos. Ver tituloHTML. */
     bodyEl.insertAdjacentHTML('beforeend',
-      tituloHTML(i) + verseHTML(i, SPAN_MARKS, below));
+      verseHTML(i, SPAN_MARKS, below));
     if (hasta == null && i > from && !cabe(bodyEl, marca)){
       while (bodyEl.childNodes.length > marca) bodyEl.removeChild(bodyEl.lastChild);
       break;
@@ -7670,15 +7691,12 @@ function htmlPiedrasFoto(hojaN){
         'top:' + (x.y * 100).toFixed(3) + '%;width:' + por + '%;aspect-ratio:1;' +
         'margin:' + med + ' 0 0 ' + med + ';opacity:.82">' +
         piedraDibujo(x.forma, tintaDe(x.color)[2]) +
-        /* EL NOMBRE TAMBIÉN VA EN LA FOTO, o desaparecería durante el giro y
-           volvería de golpe al aterrizar, que es justo el parpadeo que este
-           retrato existe para evitar. La familia va escrita entera: --ui vive
-           en la raíz de la aplicación y aquí dentro no llega. */
-        (x.nombre ? '<div style="position:absolute;top:100%;left:50%;' +
-            'transform:translateX(-50%);margin-top:5px;white-space:nowrap;' +
-            "font:600 11.5px/1.3 'Segoe UI', system-ui, -apple-system, sans-serif;" +
-            'color:#4d3f1d;padding:1px 5px 2px;border-radius:4px;' +
-            'background:rgba(252,247,235,.72)">' + esc(x.nombre) + '</div>' : '') +
+        /* Y EL NOMBRE TAMPOCO VA AQUÍ, porque ya no va en la hoja. Estuvo, y
+           tenía que estar: lo que no está en el retrato desaparece durante el
+           giro y vuelve de golpe al aterrizar. Ahora el trato es al revés —el
+           nombre vive en la lista y no sobre el papel— así que dejarlo aquí
+           haría lo mismo del revés: la foto enseñaría un rótulo que la hoja
+           viva no tiene, y aparecería solo mientras se voltea. */
         '</div>';
     }).join('') + '</div>';
 }
@@ -7765,7 +7783,7 @@ function loadSVG(svg, ok, fail){
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 function cuerpoHTML(a,b){ let s=''; const below = placement==='below';
-  for (let i=a;i<b;i++) s += tituloHTML(i) + verseHTML(i, SPAN_MARKS, below); return s; }
+  for (let i=a;i<b;i++) s += verseHTML(i, SPAN_MARKS, below); return s; }
 function rectsDeMarcas(bodyEl, hostEl){
   if (SPAN_MARKS) return [];
   const host = hostEl.getBoundingClientRect(), out = [];
@@ -12318,7 +12336,14 @@ function pintarPiedras(){
         ' style="color:' + compensarTinta(tintaDe(x.color)[2]) + '"' +
         ' aria-label="' + esc(piedraVoz(x)) + '. Doble toque para moverla."' +
         ' title="' + esc(piedraVoz(x)) + '">' + piedraDibujo(x.forma) + '</button>' +
-      (x.nombre ? '<span class="piedra-nombre">' + esc(x.nombre) + '</span>' : '') +
+      /* EL NOMBRE NO SE PINTA EN LA HOJA, y se quitó habiéndolo visto puesto.
+         Una piedra es una marca en el papel: lo que dice se lee mirándola, no
+         leyendo una etiqueta debajo. Con nombre, cada piedra traía un renglón
+         de texto flotando sobre el versículo —tapando justamente lo que se
+         está leyendo— y varias piedras en una hoja se convertían en una lista
+         desperdigada por encima del texto. El nombre existe para RECONOCERLAS
+         EN SU LISTA, que es donde se repasan; ahí sí se lee. Pedido y
+         quitado. */
     '</div>';
   }).join('');
   /* EL MANDO SE RECOLOCA CON CADA REPINTADO, que es lo que lo mantiene pegado
@@ -12371,15 +12396,14 @@ function pintarPiedraMando(){
       b('mas', 'Más grande', '<svg viewBox="0 0 12 12" aria-hidden="true">' +
         '<path d="M2.5 6h7M6 2.5v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
         x.tam >= PIEDRA_TAMS.length - 1) +
-      /* EL NOMBRE ES UN NOMBRE, NO UNA NOTA. Para escribir de verdad están las
-         glosas, ancladas a las palabras y con su panel; un segundo sitio donde
-         escribir párrafos serían dos sistemas de notas compitiendo. Esto es lo
-         que se le escribe a una pegatina: cuarenta letras, las que caben
-         debajo de la figura sin taparla. */
-      '<input class="pm-nombre" data-piedra-nombre="' + esc(x.id) + '"' +
-        ' value="' + esc(x.nombre || '') + '" maxlength="' + PIEDRA_NOMBRE_TOPE + '"' +
-        ' autocomplete="off" enterkeyhint="done" placeholder="nombre…"' +
-        ' aria-label="Nombre de esta piedra" />' +
+      /* EL NOMBRE NO SE ESCRIBE AQUÍ, y este campo se quitó habiéndolo usado.
+         Estuvo, y su razón era buena: nombrar la piedra que tienes delante sin
+         ir a buscarla. Pero el nombre ya no se pinta sobre la hoja —una piedra
+         es una marca en el papel, no una etiqueta— así que escribirlo aquí era
+         escribir a ciegas: se teclea al lado de la figura y no pasa nada
+         visible. El nombre existe para reconocerlas en su LISTA, y ahí es
+         donde se pone: doble toque en su fila. Un solo sitio para nombrar en
+         vez de dos que hay que mantener iguales. */
       b('quitar', 'Quitar esta piedra', '<svg viewBox="0 0 12 12" aria-hidden="true">' +
         '<path d="M2.5 2.5 L9.5 9.5 M9.5 2.5 L2.5 9.5" stroke="currentColor"' +
         ' stroke-width="1.8" stroke-linecap="round"/></svg>') +
@@ -12471,8 +12495,12 @@ function piedraCerrarEdicion(){
      focusout llegaba con piedraEditando ya en null y lo escrito se perdía sin
      decir nada. Se cobra aquí, mientras el campo todavía existe, y así queda
      cubierto por todos los caminos que cierran: Escape, un toque fuera, otra
-     piedra, cambiar de hoja. */
-  piedraCobrarNombre();
+     piedra, cambiar de hoja.
+
+     YA NO HAY NADA QUE COBRAR AQUÍ: el mando dejó de tener campo de nombre —se
+     nombra en la lista, con doble toque en la fila— así que este cierre solo
+     apaga la edición. El comentario se queda porque la lección sigue valiendo
+     para cualquier cosa que se escriba en un panel que se cierra solo. */
   piedraEditando = null;
   cerrarPiedraMando();
   pintarPiedras();
@@ -12550,12 +12578,6 @@ function piedraPonerNombre(id, txt, sinPintarLaLista){
   if (piedraMenuAbierto && !sinPintarLaLista) pintarPiedraMenu();
   return x;
 }
-function piedraCobrarNombre(){
-  if (!piedraEditando) return;
-  const campo = $('piedraMando').querySelector('[data-piedra-nombre]');
-  if (!campo || campo.dataset.piedraNombre !== piedraEditando) return;
-  piedraPonerNombre(piedraEditando, campo.value);
-}
 
 /* EL DOBLE TOQUE ABRE LA EDICIÓN, y el toque simple no hace nada.
 
@@ -12588,9 +12610,6 @@ function piedraEnPunto(ev){
 }
 function piedraAbrirEdicion(id){
   if (!id || piedraEditando === id) return false;
-  /* Se cobra el nombre de la anterior antes de soltarla: pasar de una piedra a
-     otra es terminar con la primera, no abandonarla. */
-  piedraCobrarNombre();
   piedraEditando = id;
   pintarPiedras();
   abrirPiedraMando();
@@ -12842,6 +12861,9 @@ document.addEventListener('pointerdown', ev => {
    el mismo apaño de guardar el RECTÁNGULO y no el elemento: el botón se va con
    el rastro si se cierra, y un elemento fuera del documento no mide nada. */
 let piedraMenuAbierto = false, piedraMenuAncla = null;
+/* Qué fila está preguntando «¿la borro?». Null es «ninguna», igual que en las
+   cintas (ver sepBorrando), y por eso se apaga en cada cierre del panel. */
+let piedraBorrando = null;
 /* Cuál de las filas de la lista está con el campo del nombre abierto. Es lo
    mismo que sepEditando para las cintas, y de ahí sale todo lo de abajo. */
 let piedraNombrando = null;
@@ -12863,6 +12885,9 @@ function cerrarPiedraMenu(){
      contado en sepCobrarNombre, que tuvo este mismo fallo. */
   piedraCobrarNombreLista();
   piedraNombrando = null;
+  /* Y la pregunta de borrar se va con el panel: una pregunta que sobrevive al
+     cierre vuelve a salir la próxima vez sin que nadie la haya hecho. */
+  piedraBorrando = null;
   piedraMenuAbierto = false;
   piedraMenuAncla = null;
   const el = $('piedraMenu');
@@ -12872,6 +12897,59 @@ function cerrarPiedraMenu(){
 function pintarPiedrero(){ if (piedraMenuAbierto) pintarPiedraMenu(); }
 /* El botón de poner, dentro de la lista y no en el rastro: ver cabezaHistorial.
    Sale también con la lista vacía, que es justo cuando más falta hace. */
+/* UNA FILA DE LISTA, LA MISMA PARA LAS CINTAS Y PARA LAS PIEDRAS.
+
+   Las dos listas hacían lo mismo con dos códigos distintos, y por eso se
+   separaban solas: una tenía la equis de borrar con confirmación y la otra
+   borraba al primer toque, el lápiz estaba en sitios distintos y el campo de
+   nombre se escribía dos veces. Se pidió que fueran iguales, y la manera de
+   que sigan siéndolo dentro de un año es que sean el MISMO código.
+
+   TRES ESTADOS Y NADA MÁS:
+
+   · en reposo, la fila es UN SOLO BOTÓN: la figura y la referencia, del ancho
+     entero. Antes llevaba además un lápiz y una equis, y entre los tres le
+     dejaban al nombre unos setenta píxeles en un teléfono. Quitándolos, el
+     nombre se lee, que es para lo que existe la lista.
+   · en DOBLE TOQUE se abre la ventanita: el campo del nombre con el foco
+     puesto, y un botón de borrar. Doble y no simple porque el toque simple ya
+     hace lo que se hace siempre —abrir el versículo— y no se le puede meter un
+     plazo de espera por culpa de algo que se hace una vez.
+   · pidiendo borrar, la fila pregunta: «¿Borrar X?» con sí y no. NUNCA se
+     borra al primer toque. Una cinta o una piedra son trabajo del lector —el
+     sitio donde lo dejó— y no hay deshacer.
+
+   El aviso de borrado se queda DENTRO de la fila y no en un panel aparte: la
+   pregunta tiene que estar donde está lo que se va a borrar, o se contesta a
+   ciegas. */
+function filaHTML(o){
+  const base = esc(o.ref.split('·')[0].trim());
+  if (o.borrando)
+    return '<div class="sp-fila sp-fila-pregunta">' +
+      '<span class="sp-pregunta">¿Borrar ' + esc(o.nombre || base) + '?</span>' +
+      '<button type="button" class="sp-btn sp-btn-si" ' + o.borrarAttr + '>Sí, borrar</button>' +
+      '<button type="button" class="sp-btn" ' + o.cancelarAttr + '>No</button>' +
+    '</div>';
+  if (o.abriendo)
+    return '<div class="sp-fila sp-fila-abierta">' +
+      '<div class="sp-edit">' + o.chip +
+        '<span class="sp-edit-base">' + base + ' ·</span>' +
+        '<input class="sp-nombre" ' + o.campoAttr +
+          ' value="' + esc(o.nombre || '') + '" maxlength="' + o.tope + '"' +
+          ' autocomplete="off" enterkeyhint="done" placeholder="nombre…"' +
+          ' aria-label="Nombre de la ' + esc(o.voz) + '" />' +
+      '</div>' +
+      '<button type="button" class="sp-btn sp-btn-borrar" ' + o.pedirAttr +
+        ' aria-label="Borrar la ' + esc(o.voz) + '">Borrar</button>' +
+    '</div>';
+  return '<div class="sp-fila' + o.clase + '">' +
+    '<button class="sp-ir" ' + o.irAttr +
+      ' aria-label="Ver el versículo de la ' + esc(o.voz) +
+      '. Toca dos veces, o pulsa F2, para cambiarle el nombre o borrarla."' +
+      ' title="' + esc(o.ref) + '">' + o.chip +
+      '<span class="sp-ref">' + esc(o.ref) + '</span></button>' +
+  '</div>';
+}
 /* EL ASPA DE CERRAR, la misma para los dos paneles. `acc` dice cuál cierra:
    son dos cierres distintos y cada uno tiene su estado que apagar. */
 const spCerrarHTML = (acc, que) =>
@@ -12888,55 +12966,29 @@ function pintarPiedraMenu(){
   const el = $('piedraMenu');
   if (!piedras.length){
     el.innerHTML = spCerrarHTML('piedras', 'la lista de piedras') +
-       '<span class="sp-tit">Tus piedras</span>' + piedraNuevaHTML() +
+       '<div class="sp-cabeza"><span class="sp-tit">Tus piedras</span>' +
+       piedraNuevaHTML() + '</div>' +
       '<p class="sp-vacio">Todavía no has dejado ninguna. El botón de arriba' +
       ' deja una en la hoja que estés leyendo.</p>';
     return;
   }
   el.innerHTML = spCerrarHTML('piedras', 'la lista de piedras') +
-    '<span class="sp-tit">Tus piedras</span>' + piedraNuevaHTML() +
-    piedras.map(x =>
-      '<div class="sp-fila' + (piedraAqui(x) ? ' aqui' : '') + '">' +
-      (piedraNombrando === x.id
-        /* ESCRIBIENDO, LA FILA SE CALLA: fuera la equis y fuera el «· aquí»,
-           igual que en las cintas y por lo mismo —en un teléfono los tres
-           juntos dejaban al campo setenta píxeles—. */
-        ? '<div class="sp-edit">' +
-            '<span class="sp-chip-forma" style="color:' + tintaDe(x.color)[2] + '"' +
-              ' aria-hidden="true">' + piedraDibujo(x.forma, null, true) + '</span>' +
-            '<span class="sp-edit-base">' + esc(abrevDe(x.libro) + ' ' + x.cap + ':' + x.vers) + ' ·</span>' +
-            '<input class="sp-nombre" data-piedra-nombre="' + esc(x.id) + '"' +
-              ' value="' + esc(x.nombre || '') + '" maxlength="' + PIEDRA_NOMBRE_TOPE + '"' +
-              ' autocomplete="off" enterkeyhint="done" placeholder="nombre…"' +
-              ' aria-label="Nombre de la ' + esc(piedraVoz(x)) + '" />' +
-          '</div>'
-        : '<button class="sp-ir" data-piedra-ir="' + esc(x.id) + '"' +
-            ' aria-label="Ver el versículo de la ' + esc(piedraVoz(x)) + '"' +
-            ' title="' + esc(piedraTexto(x)) + '">' +
-            /* El chip lleva el COLOR de su piedra, no el de la tinta: en la
-               hoja se reconocen por color tanto como por forma, y una lista de
-               trece figuras todas sepias no ayuda a encontrar la que buscas. */
-            '<span class="sp-chip-forma" style="color:' + tintaDe(x.color)[2] + '"' +
-              ' aria-hidden="true">' + piedraDibujo(x.forma, null, true) + '</span>' +
-            '<span class="sp-ref">' + esc(piedraTexto(x)) + '</span></button>' +
-          /* EL LÁPIZ, igual que en las cintas y por la misma razón: un doble
-             clic sobre el nombre obligaría a que ABRIR la piedra —lo que se
-             hace siempre— esperase el plazo del doble toque por culpa de
-             nombrarla, que se hace una vez. */
-          '<button type="button" class="sp-fila-lapiz" data-piedra-renombrar="' + esc(x.id) + '"' +
-            ' aria-label="' + (x.nombre ? 'Cambiar el nombre de la' : 'Ponerle nombre a la') +
-            ' ' + esc(piedraVoz(x)) + '" title="Ponerle nombre">' +
-            '<svg viewBox="0 0 12 12" aria-hidden="true">' +
-            '<path d="M1.2 8.4 L8.1 1.5 L10.5 3.9 L3.6 10.8 L0.9 11.1 Z"' +
-            ' fill="none" stroke="currentColor" stroke-width="1.4"' +
-            ' stroke-linejoin="round"/></svg></button>' +
-          '<button type="button" class="sp-fila-x" data-piedra-quitar="' + esc(x.id) + '"' +
-            ' aria-label="Quitar la ' + esc(piedraVoz(x)) + '"' +
-            ' title="Quitar">' +
-            '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5 L9.5 9.5' +
-            ' M9.5 2.5 L2.5 9.5" stroke="currentColor" stroke-width="1.8"' +
-            ' stroke-linecap="round"/></svg></button>') +
-      '</div>').join('');
+    '<div class="sp-cabeza"><span class="sp-tit">Tus piedras</span>' +
+    piedraNuevaHTML() + '</div>' +
+    piedras.map(x => filaHTML({
+      clase: piedraAqui(x) ? ' aqui' : '',
+      abriendo: piedraNombrando === x.id,
+      borrando: piedraBorrando === x.id,
+      chip: '<span class="sp-chip-forma" style="color:' + tintaDe(x.color)[2] + '"' +
+            ' aria-hidden="true">' + piedraDibujo(x.forma, null, true) + '</span>',
+      ref: piedraTexto(x), voz: piedraVoz(x), nombre: x.nombre,
+      tope: PIEDRA_NOMBRE_TOPE,
+      irAttr: 'data-piedra-ir="' + esc(x.id) + '"',
+      campoAttr: 'data-piedra-nombre="' + esc(x.id) + '"',
+      borrarAttr: 'data-piedra-borrar="' + esc(x.id) + '"',
+      pedirAttr: 'data-piedra-pedir-borrar="' + esc(x.id) + '"',
+      cancelarAttr: 'data-piedra-cancelar="1"',
+    })).join('');
 }
 /* NOMBRAR DESDE LA LISTA. El campo del mando de edición se queda —ahí se
    nombra la que tienes delante— y éste sirve para la otra mitad: repasar las
@@ -13029,20 +13081,29 @@ $('piedraMenu').addEventListener('click', ev => {
     trasPintar(() => ponerPiedra());
     return;
   }
-  const lapiz = ev.target.closest('[data-piedra-renombrar]');
-  if (lapiz){
+  /* PEDIR BORRAR, BORRAR DE VERDAD Y ARREPENTIRSE. Son tres toques distintos y
+     el de en medio es el que importa: una piedra es el sitio donde el lector la
+     dejó y no hay deshacer, así que nunca se borra al primero. */
+  const pedir = ev.target.closest('[data-piedra-pedir-borrar]');
+  if (pedir){
     ev.preventDefault(); ev.stopPropagation();
-    piedraCobrarNombreLista();
-    piedraNombrando = lapiz.dataset.piedraRenombrar;
+    piedraNombrando = null;
+    piedraBorrando = pedir.dataset.piedraPedirBorrar;
     pintarPiedraMenu(); colocarPiedraMenu();
-    const campo = $('piedraMenu').querySelector('[data-piedra-nombre]');
-    if (campo){ campo.focus(); campo.setSelectionRange(campo.value.length, campo.value.length); }
     return;
   }
-  const quitar = ev.target.closest('[data-piedra-quitar]');
-  if (quitar){
+  if (ev.target.closest('[data-piedra-cancelar]')){
     ev.preventDefault(); ev.stopPropagation();
-    quitarPiedra(quitar.dataset.piedraQuitar);
+    piedraBorrando = null;
+    pintarPiedraMenu(); colocarPiedraMenu();
+    return;
+  }
+  const borrar = ev.target.closest('[data-piedra-borrar]');
+  if (borrar){
+    ev.preventDefault(); ev.stopPropagation();
+    piedraBorrando = null;
+    quitarPiedra(borrar.dataset.piedraBorrar);
+    pintarPiedraMenu(); colocarPiedraMenu();
     return;
   }
   const ir = ev.target.closest('[data-piedra-ir]');
@@ -13061,6 +13122,65 @@ $('piedraMenu').addEventListener('click', ev => {
      piedras que dejaste es justo mirar varias seguidas. Pedido y cambiado.
      Es lo mismo que ya hacía el rastro, que se queda abierto detrás. */
   abrirPleno(x.libro, x.cap, x.vers);
+});
+/* EL DOBLE TOQUE ABRE LA VENTANITA DE LA FILA: nombre y borrar.
+
+   Doble y no simple porque el toque simple ya hace lo que se hace SIEMPRE
+   —abrir el versículo— y meterle el plazo de espera del doble toque por culpa
+   de algo que se hace una vez sería cobrarle a lo frecuente el precio de lo
+   raro. Es la misma razón por la que el lápiz existía; el lápiz se fue porque
+   entre él y la equis le dejaban al nombre setenta píxeles en un teléfono. */
+function piedraAbrirFila(id){
+  if (!id) return;
+  /* SE CIERRA LA VENTANITA DEL VERSÍCULO, y esto es el arreglo entero de un
+     fallo que levantó Codex. Un doble clic de verdad manda DOS click y después
+     el dblclick, así que para cuando llegamos aquí el PRIMER click ya abrió el
+     versículo —y #versoPleno vive en z-index 10, por encima de estos paneles
+     que están en 9—: la fila se abría detrás y no se veía.
+     Medido: pleno z10 puesta · menú z9.
+     No se vio antes porque la sonda mandaba solo un dblclick sintético, sin
+     los dos click de delante. Es la cuarta regla de la casa: un evento
+     despachado a mano siempre llega, y el de un dedo no llega igual. */
+  cerrarPleno();
+  piedraCobrarNombreLista();
+  piedraBorrando = null;
+  piedraNombrando = id;
+  pintarPiedraMenu(); colocarPiedraMenu();
+  const campo = $('piedraMenu').querySelector('[data-piedra-nombre]');
+  if (campo){ campo.focus(); campo.setSelectionRange(campo.value.length, campo.value.length); }
+}
+$('piedraMenu').addEventListener('dblclick', ev => {
+  const fila = ev.target.closest('[data-piedra-ir]');
+  if (!fila) return;
+  ev.preventDefault(); ev.stopPropagation();
+  piedraAbrirFila(fila.dataset.piedraIr);
+});
+/* Y LAS OTRAS DOS PUERTAS, que son para quien no tiene dedo.
+
+   Un teclado NO fabrica dblclick: enfocando la fila y pulsando Intro sale un
+   click y nada más, o sea que se abre el versículo y no hay manera de llegar a
+   nombrar ni a borrar. Comprobado desde la lista recién abierta: lo único
+   alcanzable con el tabulador era el aspa de cerrar, «Nueva» y la propia fila.
+   Sin esto, quitar el lápiz y la equis dejaba a esa gente sin las dos
+   acciones. Lo levantó Codex.
+
+   Se abren dos caminos y los dos son convención, no invento nuestro:
+   · el MENÚ CONTEXTUAL —clic derecho con ratón, y desde el teclado la tecla de
+     menú o Shift+F10—, que es donde todo el mundo busca «más cosas de esto»;
+   · y F2, que es la tecla de renombrar desde hace treinta años.
+   El rótulo hablado de la fila las dice, que si no serían un secreto. */
+$('piedraMenu').addEventListener('contextmenu', ev => {
+  const fila = ev.target.closest('[data-piedra-ir]');
+  if (!fila) return;
+  ev.preventDefault(); ev.stopPropagation();
+  piedraAbrirFila(fila.dataset.piedraIr);
+});
+$('piedraMenu').addEventListener('keydown', ev => {
+  if (ev.key !== 'F2') return;
+  const fila = ev.target.closest('[data-piedra-ir]');
+  if (!fila) return;
+  ev.preventDefault(); ev.stopPropagation();
+  piedraAbrirFila(fila.dataset.piedraIr);
 });
 /* Un toque fuera lo cierra, con su propia puerta exceptuada para que el
    segundo toque del botón lo cierre en vez de reabrirlo. */
@@ -13126,14 +13246,11 @@ function pintarSepMenu(){
     : '';
   /* La pregunta va DELANTE de la lista y pegada arriba —ver .sp-borrar—: con la
      lista llena, puesta al final había que desplazarse para contestarla. */
-  const borrarHtml = sepBorrando ?
-    '<div class="sp-borrar" role="group" aria-label="Confirmar borrado">' +
-      '<span class="sp-pregunta">¿Eliminar el separador' +
-        (refBorrar ? ' de ' + refBorrar : '') + '?</span>' +
-      '<div class="sp-botones">' +
-        '<button class="sp-btn si" data-sep-borrar="' + esc(sepBorrando) + '">Eliminar</button>' +
-        '<button class="sp-btn" data-sep-cancelar="1">Cancelar</button>' +
-      '</div></div>' : '';
+  /* LA PREGUNTA DE BORRAR VIVE EN SU FILA, no en una caja aparte arriba.
+     Estuvo arriba y pegada al rótulo, y era la única manera cuando la lista no
+     sabía preguntar; ahora la fila entera se convierte en la pregunta —ver
+     filaHTML— que es donde tiene que estar: al lado de lo que se va a borrar,
+     y no en un sitio desde el que hay que acordarse de a cuál se refería. */
   $('sepMenu').innerHTML =
     spCerrarHTML('cintas', 'el panel de cintas') +
     /* Las telas sólo si se vino de una cinta: en modo lista no hay «esta
@@ -13145,74 +13262,37 @@ function pintarSepMenu(){
         ' style="background:' + t[2] + '" aria-pressed="' + (t[0] === s.color) + '"' +
         ' aria-label="Cinta ' + t[1] + '" title="' + t[1] + '"></button>').join('') +
       '</div>' : '') +
-    '<span class="sp-tit">Tus separadores</span>' +
     /* PONER UNA CINTA SE PIDE DESDE AQUÍ, que es donde se está mirando las que
        hay. Estuvo en el renglón del rastro, lejos de esta lista y con el ancho
-       del panel entre las dos; ver cabezaHistorial. Va DEBAJO del rótulo y
-       encima de la lista: primero lo que puedes hacer, después lo que hay. */
-    '<button type="button" class="sp-nueva" data-sep-nuevo="1"' +
-      ' title="Dejar un separador en esta hoja"' +
-      ' aria-label="Dejar un separador en la hoja que estás leyendo">Nueva' +
-      '<span class="sp-chip" aria-hidden="true"></span></button>' +
-    borrarHtml +
-    (lista.length ? lista.map(x => {
-      const t = telaDe(x.color);
-      const editando = sepEditando === x.id;
-      const donde = esc(nombreDe(x.libro)) + ' ' + x.cap + ':' + x.vers;
-      return '<div class="sp-fila' + (aqui(x) ? ' aqui' : '') + '">' +
-        (editando
-          /* ESCRIBIENDO, LA FILA SE QUEDA CALLADA. Fuera el «· aquí» y fuera la
-             X: estás nombrando, no yendo a ningún sitio ni borrando nada, y en
-             un teléfono los tres juntos dejaban al campo 70px y el aviso
-             partido a la mitad. Que la cinta sea la de esta hoja se sigue
-             viendo —la fila lleva su aro—, y la X vuelve al terminar. */
-          ? '<div class="sp-edit">' +
-              '<span class="sp-chip" style="background:' + t[2] + '" aria-hidden="true"></span>' +
-              '<span class="sp-edit-base">' + esc(sepRef(x, true)) + ' ·</span>' +
-              '<input class="sp-nombre" data-sep-nombre="' + esc(x.id) + '"' +
-                ' value="' + esc(x.nombre || '') + '" maxlength="70" autocomplete="off"' +
-                ' enterkeyhint="done" placeholder="nombre…"' +
-                ' aria-label="Nombre del separador en ' + donde + '" />' +
-            '</div>'
-          /* EL RÓTULO DICE VER, NO IR, porque la fila ya no lleva: abre la
-             ventanita con el versículo y el salto se pide después, tocando la
-             escritura. Decía «Ir al separador…», y quien no ve la pantalla
-             pedía una cosa y le pasaba otra —justo en el paso que se acaba de
-             partir en dos—. Lo levantó la revisión de Codex. */
-          : '<button class="sp-ir" data-sep-ir="' + esc(x.id) + '"' +
-              ' aria-label="Ver el versículo del separador en ' + donde + '"' +
-              /* El nombre largo se recorta con puntos suspensivos, así que el
-                 texto entero va también en el title: si no, la única manera de
-                 leerlo sería abrir el campo de escribirlo. */
-              ' title="' + esc(sepTexto(x)) + '">' +
-              '<span class="sp-chip" style="background:' + t[2] + '" aria-hidden="true"></span>' +
-              '<span class="sp-ref">' + esc(sepTexto(x)) + '</span></button>' +
-            /* EL LÁPIZ, y no un doble clic sobre el nombre. Un doble clic
-               obliga a esperar a que pase el plazo antes de atender el toque
-               simple, o sea que ABRIR la cinta —lo que se hace siempre—
-               pagaría un retraso por culpa de nombrarla, que se hace una vez.
-               Este archivo ya pagó ese precio en el rótulo del pie y hubo que
-               subirlo a 440 ms. Un botón aparte no cuesta nada a nadie, se ve
-               que está, y se alcanza con el tabulador. */
-            '<button type="button" class="sp-fila-lapiz" data-sep-renombrar="' + esc(x.id) + '"' +
-              ' aria-label="' + (x.nombre ? 'Cambiar el nombre del' : 'Ponerle nombre al') +
-              ' separador en ' + donde + '" title="Ponerle nombre">' +
-              '<svg viewBox="0 0 12 12" aria-hidden="true">' +
-              '<path d="M1.2 8.4 L8.1 1.5 L10.5 3.9 L3.6 10.8 L0.9 11.1 Z"' +
-              ' fill="none" stroke="currentColor" stroke-width="1.4"' +
-              ' stroke-linejoin="round"/></svg></button>') +
-        (editando ? '' :
-          '<button type="button" class="sp-fila-x" data-sep-pedir-borrar="' + esc(x.id) + '"' +
-            ' aria-label="Eliminar separador en ' + donde + '" title="Eliminar">' +
-            '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1 L9 9 M9 1 L1 9"' +
-            ' stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
-          '</button>') + '</div>';
-    }).join('') : '<span class="sp-vacio">Todavía ninguno.</span>');
+       del panel entre las dos; ver cabezaHistorial. Y va EN EL RENGLÓN DEL
+       RÓTULO, a la derecha: el título se lee y el botón espera al final, en vez
+       de partir la lista por la mitad. */
+    '<div class="sp-cabeza"><span class="sp-tit">Tus separadores</span>' +
+      '<button type="button" class="sp-nueva" data-sep-nuevo="1"' +
+        ' title="Dejar un separador en esta hoja"' +
+        ' aria-label="Dejar un separador en la hoja que estás leyendo">Nueva' +
+        '<span class="sp-chip" aria-hidden="true"></span></button>' +
+    '</div>' +
+    (lista.length ? lista.map(x => filaHTML({
+      clase: aqui(x) ? ' aqui' : '',
+      abriendo: sepEditando === x.id,
+      borrando: sepBorrando === x.id,
+      chip: '<span class="sp-chip" style="background:' + telaDe(x.color)[2] +
+            '" aria-hidden="true"></span>',
+      ref: sepTexto(x),
+      voz: 'cinta en ' + nombreDe(x.libro) + ' ' + x.cap + ':' + x.vers,
+      nombre: x.nombre, tope: 70,
+      irAttr: 'data-sep-ir="' + esc(x.id) + '"',
+      campoAttr: 'data-sep-nombre="' + esc(x.id) + '"',
+      borrarAttr: 'data-sep-borrar="' + esc(x.id) + '"',
+      pedirAttr: 'data-sep-pedir-borrar="' + esc(x.id) + '"',
+      cancelarAttr: 'data-sep-cancelar="1"',
+    })).join('') : '<span class="sp-vacio">Todavía ninguno.</span>');
   if (sepBorrando){
-    const caja = $('sepMenu').querySelector('.sp-borrar');
-    void caja.offsetWidth;
-    caja.classList.add('puesta');
-    const b = caja.querySelector('.sp-btn'); if (b) b.focus({ preventScroll:true });
+    /* EL FOCO AL «NO», no al «sí». Quien llega aquí con el teclado y pulsa
+       Intro sin leer no puede borrar de un golpe algo que no se deshace. */
+    const no = $('sepMenu').querySelector('[data-sep-cancelar]');
+    if (no) no.focus({ preventScroll:true });
   } else if (sepEditando){
     /* El foco entra en el campo y lo que hubiera queda seleccionado: nombrar
        de nuevo es lo normal, y así se escribe encima sin borrar antes. */
@@ -13368,6 +13448,40 @@ $('sepMenu').addEventListener('focusout', ev => {
     if (sepMenuAbierto && !sepEditando){ pintarSepMenu(); colocarSepMenu(); }
   }, 0);
 });
+/* EL DOBLE TOQUE ABRE LA VENTANITA DE LA FILA, igual que en las piedras y por
+   lo mismo: el toque simple ya hace lo que se hace siempre —abrir el
+   versículo— y meterle el plazo del doble toque le cobraría a lo frecuente el
+   precio de lo raro. Ver el mismo bloque en #piedraMenu. */
+function sepAbrirFila(id){
+  if (!id) return;
+  /* La ventanita del versículo se cierra antes: ver piedraAbrirFila, que es
+     donde está contado el porqué —el primer click del doble clic ya la abrió,
+     y vive por encima de este panel—. */
+  cerrarPleno();
+  sepBorrando = null;
+  sepEditarNombre(id);
+}
+$('sepMenu').addEventListener('dblclick', ev => {
+  const fila = ev.target.closest('[data-sep-ir]');
+  if (!fila) return;
+  ev.preventDefault(); ev.stopPropagation();
+  sepAbrirFila(fila.dataset.sepIr);
+});
+/* Menú contextual y F2, las dos puertas para quien no tiene dedo: ver el mismo
+   bloque en #piedraMenu. */
+$('sepMenu').addEventListener('contextmenu', ev => {
+  const fila = ev.target.closest('[data-sep-ir]');
+  if (!fila) return;
+  ev.preventDefault(); ev.stopPropagation();
+  sepAbrirFila(fila.dataset.sepIr);
+});
+$('sepMenu').addEventListener('keydown', ev => {
+  if (ev.key !== 'F2') return;
+  const fila = ev.target.closest('[data-sep-ir]');
+  if (!fila) return;
+  ev.preventDefault(); ev.stopPropagation();
+  sepAbrirFila(fila.dataset.sepIr);
+});
 $('sepMenu').addEventListener('click', ev => {
   /* Dentro del campo no hay nada que hacer aquí: poner el cursor a media
      palabra es escribir, no pulsar. (Cerrar el menú no hace falta pararlo: el
@@ -13393,12 +13507,6 @@ $('sepMenu').addEventListener('click', ev => {
     crearSeparador();
     return;
   }
-  const renombrar = ev.target.closest('[data-sep-renombrar]');
-  if (renombrar){
-    ev.preventDefault(); ev.stopPropagation();
-    sepEditarNombre(renombrar.dataset.sepRenombrar);
-    return;
-  }
   const color = ev.target.closest('[data-sep-color]');
   if (color){
     ev.preventDefault(); ev.stopPropagation();
@@ -13411,6 +13519,11 @@ $('sepMenu').addEventListener('click', ev => {
   const pedirBorrar = ev.target.closest('[data-sep-pedir-borrar]');
   if (pedirBorrar){
     ev.preventDefault(); ev.stopPropagation();
+    /* Se sale de escribir para preguntar: la fila no puede ser a la vez el
+       campo del nombre y la pregunta, y lo que se ha escrito se cobra antes de
+       cambiar de estado. */
+    sepCobrarNombre();
+    sepEditando = null;
     sepBorrando = pedirBorrar.dataset.sepPedirBorrar;
     pintarSepMenu(); colocarSepMenu();
     return;

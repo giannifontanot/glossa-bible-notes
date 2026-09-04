@@ -31,6 +31,19 @@ async function andamio(p){
   await p.evaluate(() => {
     window.__pid = 300;
     window.__pausa = ms => new Promise(z => setTimeout(z, ms));
+    /* ABRIR LA VENTANITA DE UNA FILA. El lápiz de cada fila se fue —entre él y
+       la equis le dejaban al nombre setenta píxeles en un teléfono— y lo que
+       hacía se pide ahora con DOBLE toque sobre la fila. Se envuelve aquí para
+       que las quince llamadas de este fichero no repitan el gesto. */
+    window.__abrirFila = async (id) => {
+      const f = document.querySelector('[data-sep-ir="' + id + '"]');
+      if (!f) return false;
+      const r = f.getBoundingClientRect();
+      f.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true,
+        detail:2, clientX: r.left + r.width/2, clientY: r.top + r.height/2 }));
+      await window.__pausa(420);
+      return !!document.querySelector('[data-sep-nombre="' + id + '"]');
+    };
     window.__hoja = () => (window.__estado || '').split('·')[0].trim();
     window.__toque = async (sel) => {
       const e = typeof sel === 'string' ? document.querySelector(sel) : sel;
@@ -429,7 +442,11 @@ async function ponerAMano(p){
   });
   di('la pregunta', borrado.texto);
   vale('la equis sale con el menú', borrado.visibleAntes);
-  vale('pregunta antes de borrar', /eliminar/i.test(borrado.texto));
+  /* «BORRAR» Y NO «ELIMINAR»: la pregunta se rehizo cuando las dos listas
+     pasaron a compartir código, y ahora dice «¿Borrar X?» en la propia fila.
+     Se busca la palabra y no la frase entera porque la frase lleva dentro el
+     nombre de la cinta, que cambia. */
+  vale('pregunta antes de borrar', /borrar/i.test(borrado.texto), borrado.texto);
   vale('y no borra mientras pregunta', borrado.cuantas === 2);
   vale('cancelar lo deja todo', borrado.trasCancelar.guardadas === 2 &&
        borrado.trasCancelar.cinta && !borrado.trasCancelar.pregunta, borrado.trasCancelar);
@@ -639,6 +656,9 @@ async function ponerAMano(p){
                           r.bottom <= rh.top || r.top >= rh.bottom),
              telas: m.querySelectorAll('.sp-tela').length,
              filas: m.querySelectorAll('.sp-fila').length,
+             /* Ya no hay lápices: la fila es un solo botón y lo que hacía el
+                lápiz se pide con doble toque. Se cuenta para que, si alguien los
+                devuelve, esta prueba lo diga. */
              lapices: m.querySelectorAll('[data-sep-renombrar]').length,
              /* Colgado del botón, que vive abajo del todo: si el menú se
                 colocara SIEMPRE debajo de su ancla, aquí no cabría y saldría
@@ -652,8 +672,14 @@ async function ponerAMano(p){
   /* En modo lista no hay «esta cinta» cuyo color cambiar: enseñar la paleta
      sería ofrecer un mando que no manda nada. */
   vale('sin paleta de color, que no se vino de una cinta', puerta.telas === 0, puerta.telas);
-  vale('con las dos cintas y sus dos lápices',
-       puerta.filas === 2 && puerta.lapices === 2, puerta);
+  /* LAS DOS CINTAS, Y NINGÚN LÁPIZ. La cuenta de lápices se queda en la prueba
+     a propósito, esperando el cero: el lápiz y la equis de cada fila se
+     quitaron porque entre los dos le dejaban al nombre unos setenta píxeles en
+     un teléfono, que es justo para lo que sirve la lista. Lo que hacían se
+     pide ahora con doble toque sobre la fila. Si alguien los devuelve, esta
+     línea lo dice. */
+  vale('con las dos cintas, y sin lápices en las filas',
+       puerta.filas === 2 && puerta.lapices === 0, puerta);
   vale('y el menú cabe entero en la escena', puerta.cabe === true, puerta);
   vale('EL RASTRO SE QUEDA ABIERTO DETRÁS', puerta.rastro === true, puerta);
   vale('y el menú le pasa por encima', puerta.menuEncima === true, puerta);
@@ -680,7 +706,7 @@ async function ponerAMano(p){
 
   titulo('una cinta se nombra, y el nombre no la mueve de sitio');
   const nombrar = await p.evaluate(async () => {
-    await window.__toque('[data-sep-renombrar="s2"]');
+    await window.__abrirFila('s2');
     await window.__pausa(450);
     const campo = document.querySelector('[data-sep-nombre="s2"]');
     if (!campo) return { error:'no salió el campo' };
@@ -707,7 +733,7 @@ async function ponerAMano(p){
 
   titulo('vaciar el nombre lo quita, y Escape no toca nada');
   const deshacer = await p.evaluate(async () => {
-    await window.__toque('[data-sep-renombrar="s2"]');
+    await window.__abrirFila('s2');
     await window.__pausa(450);
     const campo = document.querySelector('[data-sep-nombre="s2"]');
     campo.value = '   ';
@@ -715,7 +741,7 @@ async function ponerAMano(p){
     await window.__pausa(700);
     const g = window.__guardadas().find(x => x.id === 's2');
     /* Y ahora Escape sobre la otra. */
-    await window.__toque('[data-sep-renombrar="s1"]');
+    await window.__abrirFila('s1');
     await window.__pausa(450);
     const c2 = document.querySelector('[data-sep-nombre="s1"]');
     c2.value = 'esto no se guarda';
@@ -765,7 +791,7 @@ async function ponerAMano(p){
      Se manda el pointerdown y DESPUÉS el blur, que es el orden del navegador:
      al revés, esto pasaría en verde con el fallo puesto. */
   const tocarFuera = await p.evaluate(async () => {
-    await window.__toque('[data-sep-renombrar="s1"]');
+    await window.__abrirFila('s1');
     await window.__pausa(450);
     const campo = document.querySelector('[data-sep-nombre="s1"]');
     if (!campo) return { error:'no salió el campo' };
@@ -792,20 +818,32 @@ async function ponerAMano(p){
      destinos distintos y no sólo el que se encontró primero. */
   await abrirLista();
   const alOtroLapiz = await p.evaluate(async () => {
-    await window.__toque('[data-sep-renombrar="s1"]');
+    await window.__abrirFila('s1');
     await window.__pausa(450);
     const campo = document.querySelector('[data-sep-nombre="s1"]');
     campo.value = 'primero';
-    const otro = document.querySelector('[data-sep-renombrar="s2"]');
+    const otro = document.querySelector('[data-sep-ir="s2"]');
+    /* EL DEDO SE APOYA EN LA OTRA FILA, y con eso el campo pierde el foco. Lo
+       que se vigila es que ese primer toque CUENTE: guardar repintaba el menú
+       entero, y el focusout llega antes que el clic del botón que se está
+       tocando, así que ese botón dejaba de existir antes de que su clic
+       aterrizara. Se mira que el nodo sobreviva —igual que en piedra— porque
+       un clic despachado a mano llega aunque su nodo ya no esté. */
+    const r = otro.getBoundingClientRect();
+    otro.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, cancelable:true, pointerId:996, pointerType:'touch',
+        isPrimary:true, clientX: r.left + r.width/2, clientY: r.top + r.height/2 }));
     campo.blur();
-    otro.click();
+    const sigueAhi = document.contains(otro);      /* SIN ceder el hilo */
     await window.__pausa(700);
     return { nombre: (window.__guardadas().find(x => x.id === 's1') || {}).nombre,
-             abrio: !!document.querySelector('[data-sep-nombre="s2"]') };
+             sigueAhi };
   });
-  di('al lápiz de otra fila', alOtroLapiz);
+  di('al apoyar el dedo en otra fila', alOtroLapiz);
   vale('guarda el primero', alOtroLapiz.nombre === 'primero', alOtroLapiz.nombre);
-  vale('y abre el segundo AL PRIMER TOQUE', alOtroLapiz.abrio === true, alOtroLapiz);
+  vale('Y LA FILA QUE EL DEDO TIENE DEBAJO NO SE DESTRUYE',
+       alOtroLapiz.sigueAhi === true,
+       alOtroLapiz.sigueAhi ? 'sigue en el documento' : 'lo repintó y se lo llevó');
 
   await p.evaluate(async () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
@@ -813,20 +851,29 @@ async function ponerAMano(p){
   });
   await abrirLista();
   const aLaEquis = await p.evaluate(async () => {
-    await window.__toque('[data-sep-renombrar="s2"]');
+    await window.__abrirFila('s2');
     await window.__pausa(450);
     const campo = document.querySelector('[data-sep-nombre="s2"]');
     campo.value = 'segundo';
-    const x = document.querySelector('[data-sep-pedir-borrar="s1"]');
+    /* EL BOTÓN DE BORRAR VIVE DENTRO DE LA FILA ABIERTA, no en cada fila en
+       reposo: el de s1 no existe mientras la abierta es s2. Se toca el de la
+       PROPIA fila abierta, que es el mismo camino —soltar el campo y aterrizar
+       en un botón— y el único que hay ahora. */
+    const x = document.querySelector('[data-sep-pedir-borrar]');
+    if (!x) return { sinBoton:true };
     campo.blur();
     x.click();
     await window.__pausa(700);
     return { nombre: (window.__guardadas().find(y => y.id === 's2') || {}).nombre,
-             pregunta: !!document.querySelector('.sp-borrar') };
+             /* La pregunta vive AHORA EN SU FILA y no en una caja aparte
+                arriba: al lado de lo que se va a borrar, que es donde se puede
+                contestar sin acordarse de a cuál se refería. */
+             pregunta: !!document.querySelector('.sp-fila-pregunta') };
   });
-  di('a la equis de otra fila', aLaEquis);
-  vale('guarda el nombre', aLaEquis.nombre === 'segundo', aLaEquis.nombre);
-  vale('y la equis pregunta AL PRIMER TOQUE', aLaEquis.pregunta === true, aLaEquis);
+  di('del campo al botón de borrar', aLaEquis);
+  vale('guarda el nombre', aLaEquis.nombre === 'segundo',
+       aLaEquis.sinBoton ? 'no salió el botón de borrar' : aLaEquis.nombre);
+  vale('y el botón pregunta AL PRIMER TOQUE', aLaEquis.pregunta === true, aLaEquis);
 
   titulo('con otra pestaña por medio, el nombre recién escrito gana');
   /* Nombrar no toca `tocado` —a propósito: no reordena la lista— así que si
@@ -841,7 +888,7 @@ async function ponerAMano(p){
   });
   await abrirLista();
   const conOtraPestana = await p.evaluate(async () => {
-    await window.__toque('[data-sep-renombrar="s1"]');
+    await window.__abrirFila('s1');
     await window.__pausa(450);
     const campo = document.querySelector('[data-sep-nombre="s1"]');
     campo.value = 'el mío de ahora';

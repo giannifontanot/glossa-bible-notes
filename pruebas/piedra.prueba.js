@@ -31,6 +31,19 @@ async function andamio(p){
   await p.evaluate(() => {
     window.__pid = 900;
     window.__pausa = ms => new Promise(z => setTimeout(z, ms));
+    /* ABRIR LA VENTANITA DE UNA FILA. El lápiz de cada fila se fue —entre él y
+       la equis le dejaban al nombre setenta píxeles en un teléfono— y lo que
+       hacía se pide ahora con DOBLE toque sobre la fila. Se envuelve aquí para
+       que las quince llamadas de este fichero no repitan el gesto. */
+    window.__abrirFila = async (id) => {
+      const f = document.querySelector('[data-piedra-ir="' + id + '"]');
+      if (!f) return false;
+      const r = f.getBoundingClientRect();
+      f.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true,
+        detail:2, clientX: r.left + r.width/2, clientY: r.top + r.height/2 }));
+      await window.__pausa(420);
+      return !!document.querySelector('[data-piedra-nombre="' + id + '"]');
+    };
     window.__hoja = () => (window.__estado || '').split('·')[0].trim();
     window.__toque = async (sel) => {
       const e = typeof sel === 'string' ? document.querySelector(sel) : sel;
@@ -99,6 +112,11 @@ async function andamio(p){
       return { id: e.dataset.piedra, editando: e.classList.contains('editando'),
                forma: voz.split(' ')[0],
                color: getComputedStyle(b).color,
+               /* EL NOMBRE NO SE PINTA EN LA HOJA y se sigue mirando aquí, a
+                  propósito, esperando el null: una piedra es una marca en el
+                  papel y no una etiqueta, y varias con rótulo se convertían en
+                  una lista desperdigada sobre el texto. El nombre vive en la
+                  lista. Si vuelve a la hoja, esto lo dice. */
                nombre: (e.querySelector('.piedra-nombre') || {}).textContent || null,
                lado: Math.round(r.width),
                parte: +(r.width / inner.width).toFixed(3),
@@ -342,25 +360,25 @@ async function andamio(p){
     const traForma = { piedra: window.__laPiedra(), mando: window.__elMando() };
     await window.__toque('[data-piedra-color="carmin"]'); await window.__pausa(300);
     const traColor = { piedra: window.__laPiedra(), mando: window.__elMando() };
-    /* EL NOMBRE ES UN NOMBRE, NO UNA NOTA: cabe debajo de la figura y para
-       escribir de verdad están las glosas. Intro lo guarda y suelta el campo. */
-    const campo = document.querySelector('[data-piedra-nombre]');
-    campo.focus();
-    campo.value = 'lo del monte';
-    campo.dispatchEvent(new KeyboardEvent('keydown',
-      { key:'Enter', bubbles:true, cancelable:true }));
-    await window.__pausa(350);
-    const traNombre = window.__laPiedra();
-    return { m0, traForma, traColor, traNombre, guardada: window.__guardadas()[0] };
+    /* AQUÍ SE ESCRIBÍA EL NOMBRE, Y EL CAMPO SE FUE DEL MANDO. Su razón era
+       buena —nombrar la que tienes delante sin ir a buscarla— pero el nombre
+       dejó de pintarse sobre la hoja, así que escribirlo aquí era escribir a
+       ciegas: se teclea al lado de la figura y no pasa nada visible. Se nombra
+       en la LISTA, con doble toque en su fila, que es donde el nombre se lee.
+       Lo que quedaba de este bloque —forma y color— sigue igual. */
+    return { m0, traForma, traColor, guardada: window.__guardadas()[0] };
   });
   di('el mando al abrirse', mando.m0);
-  di('la piedra al final', mando.traNombre);
+  di('la piedra al final', mando.traColor.piedra);
   vale('el mando enseña DIEZ FIGURAS O MÁS', mando.m0.formas >= 10, mando.m0.formas);
   /* Y entre ellas la cinta larga, que es la que habla con la otra familia:
      quien la ve entiende que esa piedra dice lo mismo que un separador. */
   vale('  y una de ellas es la cinta larga', mando.m0.hayCinta === true);
   vale('y una paleta de colores', mando.m0.tintas >= 4, mando.m0.tintas);
-  vale('y el campo del nombre', mando.m0.campo === true);
+  /* Y SIN CAMPO DE NOMBRE: se espera el false, no la ausencia de la línea. Si
+     alguien devuelve el campo al mando, esto lo dice. Ver arriba. */
+  vale('y SIN campo de nombre, que eso se hace en la lista',
+       mando.m0.campo === false, mando.m0.campo);
   vale('y cabe entero en la escena', mando.m0.cabe === true);
 
   vale('elegir una figura de la parrilla la cambia',
@@ -393,11 +411,9 @@ async function andamio(p){
        mando.traForma.piedra.color + ' → ' + mando.traColor.piedra.color);
   vale('y la paleta marca cuál está puesto',
        mando.traColor.mando.tinta === 'carmin', mando.traColor.mando.tinta);
-  vale('EL NOMBRE SE ESCRIBE Y SE LEE EN LA HOJA',
-       mando.traNombre.nombre === 'lo del monte', mando.traNombre.nombre);
-  vale('la figura, el color y el nombre quedan guardados',
-       mando.guardada.forma === 'barca' && mando.guardada.color === 'carmin' &&
-       mando.guardada.nombre === 'lo del monte', mando.guardada);
+  vale('la figura y el color quedan guardados',
+       mando.guardada.forma === 'barca' && mando.guardada.color === 'carmin',
+       mando.guardada);
   /* Y EL RÓTULO HABLADO LO DICE TODO. Quien no ve la piedra tiene ahí su única
      descripción: sin el color y el nombre, trece figuras de seis colores son
      trece rótulos repetidos. */
@@ -409,18 +425,19 @@ async function andamio(p){
     !document.getElementById('pg').contains(document.getElementById('piedraMando')));
   vale('EL MANDO CUELGA DE LA ESCENA, no del papel', fuera === true);
   /* ---------------------------------------------------------------- */
-  /* NOMBRAR DESDE LA LISTA, que es la otra mitad de nombrar. El campo del
-     mando sirve para la piedra que tienes delante; éste, para repasar las que
-     dejaste sin ir a buscarlas por el libro. Es lo que hacen las cintas. */
+  /* NOMBRAR DESDE LA LISTA, que es el ÚNICO sitio donde se nombra. El campo
+     del mando se quitó: el nombre ya no se pinta sobre la hoja, así que
+     escribirlo al lado de la figura era escribir a ciegas. Aquí se lee, que es
+     para lo que existe la lista. */
   titulo('nombrar una piedra desde su lista');
   const lapiz = await p.evaluate(async () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await window.__pausa(400);
     await window.__toque('#btnHistorial'); await window.__pausa(600);
     await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
-    const b = document.querySelector('#piedraMenu [data-piedra-renombrar]');
-    if (!b) return { sinLapiz:true };
-    await window.__toque(b); await window.__pausa(500);
+    const f = document.querySelector('#piedraMenu [data-piedra-ir]');
+    if (!f) return { sinFila:true };
+    if (!await window.__abrirFila(f.dataset.piedraIr)) return { noAbre:true };
     const campo = document.querySelector('#piedraMenu [data-piedra-nombre]');
     if (!campo) return { sinCampo:true };
     const conFoco = document.activeElement === campo;
@@ -433,17 +450,15 @@ async function andamio(p){
              cerroElCampo: !document.querySelector('#piedraMenu [data-piedra-nombre]') };
   });
   di('al nombrarla desde la lista', lapiz);
-  vale('EL LÁPIZ ABRE EL CAMPO Y SE LO LLEVA EL FOCO', lapiz.conFoco === true, lapiz);
+  vale('EL DOBLE TOQUE ABRE EL CAMPO Y SE LO LLEVA EL FOCO',
+       lapiz.conFoco === true, lapiz);
   vale('Intro guarda el nombre', lapiz.guardado === 'la del monte', lapiz.guardado);
   vale('  y la fila lo enseña', /la del monte/.test(lapiz.fila || ''), lapiz.fila);
   vale('  y el campo se cierra', lapiz.cerroElCampo === true);
 
-  /* «la del monte» Y NO «lo del monte»: el bloque del lápiz, que va justo
-     encima, acaba de renombrarla desde la lista. El rótulo lo decía bien y la
-     expectativa se había quedado con el nombre del bloque anterior —el del
-     campo del mando—, así que la prueba llamaba fallo a la aplicación
-     haciéndolo bien. Se lee de lapiz.guardado y no a mano, que es lo que
-     impide que vuelva a descolgarse cuando alguien cambie el nombre arriba. */
+  /* El nombre se lee de lapiz.guardado y no escrito a mano: ésta ya se
+     descolgó una vez, cuando el bloque de arriba cambió el nombre y aquí se
+     quedó el viejo. Leyéndolo de donde se puso, no puede volver a pasar. */
   const voz = await p.evaluate(() =>
     document.querySelector('.piedra').getAttribute('aria-label'));
   di('el rótulo hablado', voz);
@@ -542,12 +557,36 @@ async function andamio(p){
   vale('el rastro se queda abierto detrás', lista.rastro === true);
   vale('y cabe entera en la escena', lista.cabe === true);
 
+  /* BORRAR PREGUNTA ANTES, Y ES LO QUE MÁS IMPORTA DE ESTE BLOQUE. La equis de
+     cada fila borraba al primer toque y se quitó por eso: una piedra es el
+     sitio donde el lector la dejó y no hay deshacer. Ahora son tres pasos
+     —doble toque, «Borrar», y contestar que sí— y aquí se comprueban los tres,
+     incluido que decir que no la deje donde estaba. */
   const quitada = await p.evaluate(async () => {
-    await window.__toque('[data-piedra-quitar]'); await window.__pausa(600);
-    return { guardadas: window.__guardadas().length, hay: window.__hayPiedra() };
+    const f = document.querySelector('#piedraMenu [data-piedra-ir]');
+    if (!f) return { sinFila:true };
+    const id = f.dataset.piedraIr;
+    await window.__abrirFila(id);
+    await window.__toque('[data-piedra-pedir-borrar]'); await window.__pausa(400);
+    const preguntando = { hay: !!document.querySelector('.sp-fila-pregunta'),
+                          guardadas: window.__guardadas().length };
+    await window.__toque('[data-piedra-cancelar]'); await window.__pausa(400);
+    const traDecirNo = { pregunta: !!document.querySelector('.sp-fila-pregunta'),
+                         guardadas: window.__guardadas().length };
+    await window.__abrirFila(id);
+    await window.__toque('[data-piedra-pedir-borrar]'); await window.__pausa(400);
+    await window.__toque('[data-piedra-borrar]'); await window.__pausa(600);
+    return { preguntando, traDecirNo,
+             guardadas: window.__guardadas().length, hay: window.__hayPiedra() };
   });
-  di('al quitarla', quitada);
-  vale('la equis la quita de la hoja y del almacén',
+  di('al borrarla', quitada);
+  vale('PEDIR BORRAR PREGUNTA, Y NO BORRA',
+       quitada.preguntando && quitada.preguntando.hay === true &&
+       quitada.preguntando.guardadas === 1, quitada.preguntando);
+  vale('  y decir que no la deja donde estaba',
+       quitada.traDecirNo && quitada.traDecirNo.pregunta === false &&
+       quitada.traDecirNo.guardadas === 1, quitada.traDecirNo);
+  vale('  y decir que sí la quita de la hoja y del almacén',
        quitada.guardadas === 0 && quitada.hay === false, quitada);
 
   /* EL PRIMER TOQUE EN OTRO LÁPIZ NO SE PIERDE.
@@ -583,7 +622,7 @@ async function andamio(p){
      despachado no mueve el foco: lo que se prueba es qué hace la aplicación
      CUANDO llega el focusout, que es su contrato, no si el navegador lo
      manda. */
-  titulo('escribir un nombre y tocar otro lápiz: un solo toque');
+  titulo('escribir un nombre y tocar otra fila: un solo toque');
   const dosLapices = await p.evaluate(async () => {
     /* VA AL FINAL DE ESTA SESIÓN Y NO JUNTO AL BLOQUE DEL LÁPIZ, que es donde
        se leería mejor: hacen falta DOS piedras y los bloques de en medio
@@ -602,17 +641,20 @@ async function andamio(p){
       }
       await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
     }
-    const lapices = document.querySelectorAll('#piedraMenu [data-piedra-renombrar]');
-    if (lapices.length < 2) return { faltan: lapices.length };
-    await window.__toque(lapices[0]); await window.__pausa(500);
+    /* EL LÁPIZ SE FUE Y AHORA SON FILAS: el nodo bajo el dedo es la fila de la
+       otra piedra, que es lo que el repintado se llevaría por delante. El
+       invariante es el mismo y por eso el bloque sigue valiendo. */
+    const filas = document.querySelectorAll('#piedraMenu [data-piedra-ir]');
+    if (filas.length < 2) return { faltan: filas.length };
+    if (!await window.__abrirFila(filas[0].dataset.piedraIr)) return { noAbre:true };
     const campo = document.querySelector('#piedraMenu [data-piedra-nombre]');
     if (!campo) return { sinCampo:true };
     const primera = campo.dataset.piedraNombre;
     campo.value = 'la de la orilla';
-    const otro = [...document.querySelectorAll('#piedraMenu [data-piedra-renombrar]')]
-      .find(b => b.dataset.piedraRenombrar !== primera);
+    const otro = [...document.querySelectorAll('#piedraMenu [data-piedra-ir]')]
+      .find(b => b.dataset.piedraIr !== primera);
     if (!otro) return { sinOtro:true };
-    /* El dedo se apoya en el otro lápiz, y con eso el campo pierde el foco. */
+    /* El dedo se apoya en la otra fila, y con eso el campo pierde el foco. */
     const r = otro.getBoundingClientRect();
     otro.dispatchEvent(new PointerEvent('pointerdown',
       { bubbles:true, cancelable:true, pointerId:997, pointerType:'touch',
@@ -622,15 +664,101 @@ async function andamio(p){
     await window.__pausa(600);
     const guardada = window.__guardadas().find(x => x.id === primera);
     return { primera, sigueAhi, guardado: guardada ? guardada.nombre : null,
-             lapicesAhora: document.querySelectorAll(
-               '#piedraMenu [data-piedra-renombrar]').length };
+             filasAhora: document.querySelectorAll(
+               '#piedraMenu [data-piedra-ir]').length };
   });
-  di('al apoyar el dedo en el otro lápiz', dosLapices);
+  di('al apoyar el dedo en la otra fila', dosLapices);
   vale('EL NOMBRE ESCRITO SE GUARDA AL SOLTAR EL CAMPO',
        dosLapices.guardado === 'la de la orilla', dosLapices.guardado);
-  vale('  Y EL BOTÓN QUE EL DEDO TIENE DEBAJO NO SE DESTRUYE',
+  vale('  Y LA FILA QUE EL DEDO TIENE DEBAJO NO SE DESTRUYE',
        dosLapices.sigueAhi === true,
        dosLapices.sigueAhi ? 'sigue en el documento' : 'lo repintó y se lo llevó');
+
+  /* ================================================================
+     EL DOBLE TOQUE DE VERDAD, Y EL TECLADO. Los dos los levantó Codex y los
+     dos se escaparon de la sonda por la misma razón, que es la cuarta regla de
+     la casa: un evento despachado a mano llega, y el de un dedo no llega
+     igual. La sonda mandaba un dblclick suelto; un navegador manda DOS click
+     y después el dblclick. */
+  titulo('el doble toque de verdad, con sus dos clics delante');
+  const dobleReal = await p.evaluate(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(400);
+    while (window.__guardadas().length < 1){
+      if (!await window.__nuevaPiedra()) return { noPone:true };
+      document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+      await window.__pausa(400);
+    }
+    if (!document.getElementById('piedraMenu').classList.contains('visible')){
+      if (!document.getElementById('historial').classList.contains('visible')){
+        await window.__toque('#btnHistorial'); await window.__pausa(600);
+      }
+      await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
+    }
+    const fila = document.querySelector('#piedraMenu [data-piedra-ir]');
+    if (!fila) return { sinFila:true };
+    const c = fila.getBoundingClientRect();
+    const op = n => ({ bubbles:true, cancelable:true, detail:n,
+                       clientX:c.left + c.width/2, clientY:c.top + c.height/2,
+                       pointerId:900, pointerType:'touch', isPrimary:true });
+    fila.dispatchEvent(new PointerEvent('pointerdown', op(1)));
+    fila.dispatchEvent(new PointerEvent('pointerup', op(1)));
+    fila.dispatchEvent(new MouseEvent('click', op(1)));
+    await window.__pausa(140);
+    /* EL PRIMER CLIC YA ABRIÓ EL VERSÍCULO. Eso no es el fallo: es el
+       comportamiento de siempre, y es la razón de que el segundo tenga que
+       cerrarlo. */
+    const traElPrimero = document.getElementById('versoPleno').classList.contains('visible');
+    fila.dispatchEvent(new PointerEvent('pointerdown', op(2)));
+    fila.dispatchEvent(new PointerEvent('pointerup', op(2)));
+    fila.dispatchEvent(new MouseEvent('click', op(2)));
+    fila.dispatchEvent(new MouseEvent('dblclick', op(2)));
+    await window.__pausa(500);
+    const vp = document.getElementById('versoPleno');
+    const pm = document.getElementById('piedraMenu');
+    return { traElPrimero,
+             plenoFuera: !vp.classList.contains('visible'),
+             zPleno: +getComputedStyle(vp).zIndex, zMenu: +getComputedStyle(pm).zIndex,
+             campo: !!pm.querySelector('[data-piedra-nombre]') };
+  });
+  di('el doble toque real', dobleReal);
+  vale('(así es como llega) el primer clic abre el versículo',
+       dobleReal.traElPrimero === true, dobleReal);
+  /* LA VENTANITA VIVE POR ENCIMA DE ESTOS PANELES —z10 contra z9— así que
+     dejarla puesta escondía la fila detrás de ella. Se compara con los
+     z-index leídos y no con números escritos: si alguien los cambia, esta
+     línea sigue diciendo la verdad. */
+  vale('Y EL SEGUNDO LA CIERRA, o la fila se abriría detrás',
+       dobleReal.plenoFuera === true,
+       'pleno z' + dobleReal.zPleno + ' · menú z' + dobleReal.zMenu);
+  vale('  y el campo del nombre queda a la vista', dobleReal.campo === true);
+
+  titulo('y con el teclado, que no fabrica dobles toques');
+  const conTeclado = await p.evaluate(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(400);
+    if (!document.getElementById('historial').classList.contains('visible')){
+      await window.__toque('#btnHistorial'); await window.__pausa(600);
+    }
+    await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
+    const pm = document.getElementById('piedraMenu');
+    const alcanzable = [...pm.querySelectorAll('button, input')].length;
+    const fila = pm.querySelector('[data-piedra-ir]');
+    if (!fila) return { sinFila:true };
+    fila.focus();
+    const enFoco = document.activeElement === fila;
+    /* F2, la tecla de renombrar de toda la vida. Sin ella, quitar el lápiz y
+       la equis dejaba a quien no tiene dedo sin las dos acciones. */
+    fila.dispatchEvent(new KeyboardEvent('keydown', { key:'F2', bubbles:true, cancelable:true }));
+    await window.__pausa(500);
+    return { enFoco, alcanzable,
+             nombrar: !!pm.querySelector('[data-piedra-nombre]'),
+             borrar: !!pm.querySelector('[data-piedra-pedir-borrar]') };
+  });
+  di('con el teclado', conTeclado);
+  vale('(comprobación) la fila se enfoca', conTeclado.enFoco === true, conTeclado);
+  vale('F2 ABRE NOMBRE Y BORRAR SIN NINGÚN TOQUE',
+       conTeclado.nombrar === true && conTeclado.borrar === true, conTeclado);
 
   await cerrarParcial(sesion, 'la piedra sola');
 
