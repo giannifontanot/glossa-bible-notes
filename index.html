@@ -3037,7 +3037,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '04-SEP-26 11:07';
+window.GLOSS_BUILD = '04-SEP-26 11:33';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -9629,6 +9629,13 @@ $('versoPleno').addEventListener('click', ev => {
      hoja, que es donde está la ventanita. El salto arranca al cuadro
      siguiente para que el cierre alcance a empezar. */
   cerrarHistorial();
+  /* Y LAS DOS LISTAS. Antes se cerraban al tocar la fila, así que aquí ya no
+     quedaba ninguna; ahora se quedan detrás a propósito —mirar un versículo
+     no es irse— y por eso hay que cerrarlas EN EL SALTO, que sí es irse. Sin
+     esto la lista sobrevivía al viaje y aparecía flotando sobre la hoja de
+     llegada, encima del texto al que acabas de ir. */
+  cerrarSepMenu();
+  cerrarPiedraMenu();
   if (rGlosas && rGlosas.abierto) rGlosas.cerrar(false, true);
   /* Y el panel de la glosa también, si la ventanita salió de ahí: saltas a
      otro sitio, así que la edición que abrió esto se da por terminada —lo

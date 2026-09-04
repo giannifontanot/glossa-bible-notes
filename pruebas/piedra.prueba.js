@@ -66,6 +66,7 @@ async function andamio(p){
       }
       const b = document.querySelector('#piedraMenu [data-piedra-nueva]');
       if (!b) return null;
+      window.__vozNueva = b.getAttribute('aria-label') || '';
       const rotulo = b.textContent.trim();
       await window.__toque(b);
       await window.__pausa(900);
@@ -152,7 +153,8 @@ async function andamio(p){
     const antes = window.__guardadas().length;
     const rotulo = await window.__nuevaPiedra();
     if (rotulo === null) return { falta:'no hay botón' };
-    return { antes, rotulo, guardadas: window.__guardadas(),
+    return { antes, rotulo, voz: window.__vozNueva || '',
+             guardadas: window.__guardadas(),
              rastro: document.getElementById('historial').classList.contains('visible'),
              lista: document.getElementById('piedraMenu').classList.contains('visible'),
              piedra: window.__laPiedra(), mando: window.__elMando() };
@@ -162,9 +164,19 @@ async function andamio(p){
      Estuvo allí, al lado del paso atrás, y el renglón decía dos cosas a la
      vez: «vuelve por donde viniste» y «deja algo aquí». Poner una piedra y ver
      tus piedras son el mismo asunto y estaban en dos sitios distintos. */
-  vale('la lista trae el botón, y dice lo que deja y dónde',
-       /piedra/.test(puesta.rotulo || '') && /aqu[ií]/.test(puesta.rotulo || ''),
-       puesta.falta || puesta.rotulo);
+  /* EL RÓTULO VISIBLE DICE «NUEVA» Y LA FIGURA DICE EL RESTO. Aquí se exigía
+     que dijera «piedra» y «aquí», de cuando el botón era una banda del ancho
+     entero con «+ ▮ nueva piedra aquí» escrito. Se pidió que fuese un botón y
+     que dijera solo «Nueva» con su figurita, así que lo que hay que vigilar
+     cambia de sitio: la palabra corta arriba, y lo que deja y dónde en el
+     rótulo HABLADO, que es el que tiene que seguir diciéndolo entero porque
+     ahí no hay figura que mirar. Vigilar los dos es lo que impide que
+     acortando el visible se acorte también el otro. */
+  vale('la lista trae el botón, y dice «Nueva»',
+       (puesta.rotulo || '').trim() === 'Nueva', puesta.falta || puesta.rotulo);
+  vale('  y el rótulo hablado sí dice lo que deja y dónde',
+       /piedra/i.test(puesta.voz || '') && /hoja/i.test(puesta.voz || ''),
+       puesta.voz);
   vale('deja una guardada', (puesta.guardadas || []).length === puesta.antes + 1,
        (puesta.guardadas || []).length);
   /* ANCLADA A UN VERSÍCULO Y NO A UN NÚMERO DE HOJA: las hojas se rehacen al

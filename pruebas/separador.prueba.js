@@ -219,6 +219,7 @@ async function ponerAMano(p){
     const b = document.querySelector('#sepMenu [data-sep-nuevo]');
     const menu = document.getElementById('sepMenu');
     const rotulo = b ? b.textContent.trim() : '';
+    const voz = b ? (b.getAttribute('aria-label') || '') : '';
     /* Y va DENTRO de la lista y arriba del todo: primero lo que puedes hacer,
        después lo que hay. */
     const filas = [...menu.querySelectorAll('.sp-fila')];
@@ -227,7 +228,7 @@ async function ponerAMano(p){
       b.getBoundingClientRect().top < filas[0].getBoundingClientRect().top);
     if (b){ await window.__toque(b); await window.__pausa(700); }
     await window.__abrirCajon();
-    return { hubo:!!b, rotulo, dentro, arriba,
+    return { hubo:!!b, rotulo, voz, dentro, arriba,
              guardadas: window.__guardadas(), cinta: window.__cinta(),
              desborde: window.__desborde(), hoja: window.__hoja() };
   });
@@ -239,8 +240,12 @@ async function ponerAMano(p){
      compartían renglón con el paso atrás, el rótulo tenía que ser corto para
      que los tres cupieran; dentro de su lista hay sitio para decirlo entero,
      y hace falta: desde la lista no se ve qué hoja tienes debajo. */
-  vale('y dice qué deja y dónde', /cinta/.test(mano.rotulo) && /aqu[ií]/.test(mano.rotulo),
-       mano.rotulo);
+  /* Ver el mismo cambio en piedra.prueba.js, que es donde está contado: el
+     rótulo visible se acortó a «Nueva» a propósito y lo que deja y dónde vive
+     ahora en el hablado. Se vigilan los dos. */
+  vale('y dice «Nueva»', (mano.rotulo || '').trim() === 'Nueva', mano.rotulo);
+  vale('  y el rótulo hablado sí dice qué deja y dónde',
+       /separador/i.test(mano.voz || '') && /hoja/i.test(mano.voz || ''), mano.voz);
   vale('pone un separador', mano.guardadas.length === 1, mano.guardadas);
   vale('y sale la cinta', !!mano.cinta);
   vale('cuelga en el borde izquierdo de la columna', mano.cinta && mano.cinta.dentro);

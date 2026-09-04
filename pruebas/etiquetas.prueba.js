@@ -110,11 +110,26 @@ const FUERA = `async () => {
     return r;
   }));
 
-  titulo('y lo hace doblándose, no de un salto');
-  /* Era el gesto más frecuente del panel y también el más brusco: la lista
-     aparecía y desaparecía de un cuadro para otro, y con ella el panel entero
-     cambiaba de alto de golpe. Ahora se dobla como un papel: el alto, de cero
-     a lo que mida, y al revés. */
+  titulo('y la lista sale EN EL ACTO');
+  /* ESTE BLOQUE MEDÍA UN DOBLEZ QUE YA NO EXISTE, y merece contarse entero
+     porque es la tercera vez que una prueba de esta carpeta se queda
+     afirmando lo viejo.
+
+     La lista se doblaba como un papel —el alto de cero a lo que mida— porque
+     aparecer de golpe se leía brusco. Después el doblez se ató al VIAJE del
+     panel, para que el alto y la posición no se separasen. Y medido, esa
+     atadura costaba medio segundo cada vez que el panel tenía que cambiarse
+     de lado: 520 ms de mirar crecer un recuadro cuando el trabajo de verdad
+     —componer treinta y pico botones y medirlos— son 16-32 ms. Se pidió que
+     fuese instantánea, se midió que se podía, y se desató.
+
+     Y ESTA LÍNEA LLEVABA ROTA DESDE ANTES. Exigía dur === 160 y el doblez
+     bajó a 110 en el PR de los cinco detalles; nadie corrió `etiquetas`
+     entonces —se corrigieron glosas, separador, navegar y piedra, que eran
+     las que se buscaron— así que la cifra vieja se quedó ahí esperando. Un
+     número exacto de milisegundos dentro de una aserción es justo lo que se
+     descuelga en silencio; por eso lo que se vigila ahora no es la duración
+     sino LO QUE SE VE: que al primer respiro la lista ya esté entera. */
   di('el doblez', await p.evaluate(async ([abrir, fuera]) => {
     const despierta = await eval('(' + abrir + ')')(0, 12, 'nota para el doblez');
     if (!despierta) return { sinPanel:true };
@@ -122,9 +137,11 @@ const FUERA = `async () => {
     const bot = document.querySelector('#menu .mtags');
     const mitad = (r) => new Promise(z => setTimeout(z, r));
 
+    /* 45 ms es MENOS de lo que duraba el doblez más corto, así que si algún
+       día vuelve a doblarse, aquí se verá a medio camino y esto cantará. */
     bot.click(); await mitad(45);
     const an = caja.getAnimations()[0];
-    const abriendo = { animando: !!an, dur: an ? an.effect.getTiming().duration : null,
+    const abriendo = { dur: an ? an.effect.getTiming().duration : 0,
                        alto: caja.getBoundingClientRect().height,
                        recortada: caja.style.overflow === 'hidden',
                        rotulo: bot.textContent.trim() };
@@ -135,8 +152,7 @@ const FUERA = `async () => {
     abriendo.sinRastro = caja.style.height === '' && caja.style.overflow === '';
 
     bot.click(); await mitad(45);
-    const cerrando = { animando: !!caja.getAnimations()[0],
-                       aunSeVe: caja.getBoundingClientRect().height > 0,
+    const cerrando = { alto45: caja.getBoundingClientRect().height,
                        rotulo: bot.textContent.trim() };
     await mitad(300);
     cerrando.alto = caja.getBoundingClientRect().height;
@@ -151,14 +167,24 @@ const FUERA = `async () => {
     return { abriendo, cerrando, rapido };
   }, [ABRIR, FUERA]).then(r => {
     if (r.sinPanel) return vale('el doblez', false, 'sin panel');
-    vale('al abrir se dobla, no salta',
-         r.abriendo.animando && r.abriendo.dur === 160 &&
-         r.abriendo.alto > 0 && r.abriendo.alto < r.abriendo.altoFinal,
-         Math.round(r.abriendo.alto) + ' → ' + Math.round(r.abriendo.altoFinal));
-    vale('  recortando, no aplastando', r.abriendo.recortada);
-    vale('  y sin dejar el alto clavado', r.abriendo.sinRastro);
-    vale('al cerrar sigue viéndose mientras se va',
-         r.cerrando.animando && r.cerrando.aunSeVe);
+    /* ENTERA A LOS 45 ms, y no «creciendo»: es lo contrario exacto de lo que
+       pedía la línea de antes, y es el cambio. Se compara contra el alto final
+       en vez de contra un número escrito, que es lo que la dejó descolgada. */
+    vale('LA LISTA ESTÁ ENTERA AL PRIMER RESPIRO, no creciendo',
+         r.abriendo.alto > 0 && r.abriendo.alto === r.abriendo.altoFinal,
+         Math.round(r.abriendo.alto) + ' de ' + Math.round(r.abriendo.altoFinal));
+    vale('  y el doblez no dura nada', r.abriendo.dur === 0, r.abriendo.dur);
+    /* AQUÍ HABÍA UNA TERCERA, «recortando, no aplastando», y se va con el
+       doblez. Miraba que durante el crecimiento la caja llevara
+       overflow:hidden, para que la lista se descubriera en vez de encogerse.
+       Sin crecimiento no hay nada que recortar: el overflow se pone y se
+       quita dentro del mismo turno, así que a los 45 ms ya está limpio —y que
+       quede limpio es justo lo que vigila la línea de abajo, que es la que
+       importa: un overflow olvidado recortaría la lista al añadir una
+       etiqueta más—. Medido: recortada:false, sinRastro:true. */
+    vale('  y sin dejar el alto ni el recorte clavados', r.abriendo.sinRastro);
+    vale('al cerrar se va igual de rápido', r.cerrando.alto45 === 0,
+         r.cerrando.alto45);
     vale('  y el rótulo ya dice lo que va a pasar',
          /▸/.test(r.cerrando.rotulo), r.cerrando.rotulo);
     vale('  y acaba cerrada del todo',
