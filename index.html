@@ -3013,6 +3013,11 @@
 <p class="cred" id="cred"></p>
 
 <script src="bibles-included.js"></script>
+<!-- Las perícopas son datos editoriales, no programa: viven fuera por lo mismo
+     que las biblias. Si falta el fichero, la aplicación funciona igual y sin
+     titulillos —ver pericopaDeK—, que es justo lo que tiene que pasar con algo
+     que solo cubre un libro por ahora. -->
+<script src="pericopas.js"></script>
 <script>
 (function(){
 /* Sello de compilación. Sirve para una sola cosa, y es una que ya hizo falta:
@@ -3037,7 +3042,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '04-SEP-26 11:15';
+window.GLOSS_BUILD = '04-SEP-26 13:16';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3215,6 +3220,58 @@ const PAGE_CSS = `
    lienzo no sabe leer esa propiedad, así que en la foto del pliegue el
    número salía con otra forma y otra altura. Entre una cifra elegante y un
    pliegue que no miente, gana el pliegue. */
+/* EL TITULILLO DE LA PERÍCOPA.
+
+   Dice de qué va la escena que empieza, y tiene que hacerlo sin ponerse
+   delante del texto: quien lee viene a leer el versículo, no el rótulo.
+
+   EN CURSIVA Y DEL MISMO SERIF, no en la letra de la interfaz. Es parte del
+   libro —como el número de capítulo— y no un control de la aplicación; con la
+   familia de la interfaz se leería como algo que se puede tocar. Va un punto
+   por debajo del cuerpo del texto y CON SU MISMA TINTA.
+
+   La tinta del texto y no el sepia apagado del aparato, y esto se midió porque
+   Codex lo levantó. Nació en #8a7746 —el color de los números de versículo y
+   de los rótulos— por no querer que gritara. Medido en píxeles de pantalla,
+   después del filtro de la hoja y contra el papel que le toca:
+
+                          titulillo     texto al lado
+       de fábrica ......... 3.69:1         14.41:1
+       contraste al mínimo. 1.81:1          3.16:1
+       contraste al máximo. 4.51:1         20.56:1
+       brillo al máximo ... 1.10:1         10.37:1
+
+   Cuatro veces peor que el texto que tiene pegado, y por debajo del 4.5:1 que
+   pide un cuerpo normal. El aparato puede permitirse ser tenue —un número de
+   versículo se saltea, no se lee— pero un titulillo es TEXTO: dice de qué va
+   lo que viene y está ahí para leerse. Con var(--tinta) va del mismo color que
+   el versículo y sigue al ajuste de sepia, así que no hay ningún riel del
+   lector que lo pueda dejar ilegible sin dejar ilegible también el texto.
+
+   Lo que lo mantiene discreto es la cursiva, el cuerpo y el aire de alrededor,
+   que era el encargo; el color nunca fue la herramienta buena para eso.
+
+   SIN VERSALITAS, y no por gusto: son lo primero que uno prueba aquí. El
+   lienzo del pliegue las reproduce —hay red puesta para eso, ver
+   pintarPalabras— pero a este tamaño y en cursiva se leen apretadas, y una
+   perícopa larga como «Sanidad de un muchacho y anuncio del sufrimiento»
+   pierde el ritmo. La cursiva sola dice lo mismo y no cuesta nada.
+
+   MÁS AIRE ARRIBA QUE ABAJO, al revés que el número de capítulo y por la razón
+   contraria: un titulillo pertenece a lo que viene DESPUÉS, así que se separa
+   de lo anterior y se pega a lo suyo. En em del propio rótulo, para que encoja
+   con la letra cuando el lector la achica.
+
+   Y break-after:avoid, igual que el número de capítulo: en dos o tres columnas
+   un titulillo al pie de una columna con su versículo en la siguiente es
+   exactamente la orfandad que se quiere evitar. En una columna el que manda es
+   el paginador, que los mete y los retira juntos —ver paginate—. */
+.peri{ display:block; break-after:avoid;
+       font-family:'Palatino Linotype',Palatino,'Book Antiqua','Iowan Old Style',
+                   Georgia,'Noto Serif',serif;
+       font-size:.94em; font-style:italic; font-weight:400;
+       line-height:1.3; color:var(--tinta,#241f1a); letter-spacing:.01em;
+       margin:1.15em 0 .32em; }
 /* Los versículos van CORRIDOS, siempre. Hubo un ajuste para ponerlos cada uno
    en su renglón y se ha quitado: partía el texto en una lista de frases
    sueltas y una Biblia no es una lista, es prosa —así se leyó durante
@@ -4413,6 +4470,85 @@ function glossHTML(m, cls, style){
          ' style="' + forma.css + (style || '') + '"><span class="gl-ref">' + senal +
          (REFS.get(m.id)||'') + '·</span>' + enlazar(m.nota) + tags + '</div>';
 }
+/* ============================================================
+   LAS PERÍCOPAS: DÓNDE EMPIEZA CADA ESCENA.
+
+   Un titulillo entre versículos —«El buen samaritano»— que dice de qué va lo
+   que viene. Los datos están en pericopas.js y son editoriales: no salen de
+   ninguna traducción, y por eso encajan aquí sin pelearse con nada. Esta
+   aplicación ya pagina sincronizado —cada hoja se corta donde quepa en las
+   cuatro versiones— así que una división que tampoco depende de la versión
+   cae en el mismo molde.
+
+   SE RESUELVE UNA VEZ POR PLANO, NO UNA POR VERSÍCULO. Lo natural sería
+   preguntar «¿en qué perícopa cae este versículo?» al pintar cada uno, y sería
+   un error caro: paginar un libro entero recorre miles de versículos, y
+   paginar ya es la operación más cara del programa —está cronometrada más
+   abajo: llegar a Mateo eran once segundos antes de arreglarlo—. Aquí se
+   recorre el plano UNA vez y se apunta, para cada perícopa, el índice donde
+   empieza. Pintar un versículo pasa a ser una consulta a un Map.
+
+   Y SE APUNTA CONTRA EL PLANO, no contra la versión. El paginador le da la
+   vuelta a `plano` para maquetar en las otras versiones —ver asegurarPaginas—
+   así que preguntar por `version` daría la respuesta de la versión que se está
+   leyendo mientras se mide otra. Se memoriza contra el array mismo, que es lo
+   único que sabe de verdad qué texto se está maquetando.
+
+   SI EL VERSÍCULO DE INICIO NO EXISTE EN ESTA VERSIÓN, el titulillo se pone en
+   el primero que haya después, sin salirse de su propio rango. Es el mismo
+   problema que ya tienen las cintas —ver sepDestino— y la misma respuesta:
+   una referencia canónica no siempre cae donde dice. Si no queda ni uno dentro
+   del rango, esa perícopa no se enseña, que es mejor que enseñarla en el sitio
+   de otra. */
+const memoPericopas = new WeakMap();
+function mapaPericopas(pl){
+  const ya = memoPericopas.get(pl);
+  if (ya) return ya;
+  const mapa = new Map();
+  memoPericopas.set(pl, mapa);
+  const lista = (typeof GlossaPericopas !== 'undefined' && GlossaPericopas[LIBRO]) || null;
+  if (!lista || !pl.length) return mapa;
+  /* Un solo paseo por el plano con un puntero corriendo por la lista: las dos
+     están ordenadas, así que no hace falta buscar nada. */
+  let j = 0;
+  for (let k = 0; k < pl.length && j < lista.length; k++){
+    const it = pl[k];
+    while (j < lista.length){
+      const p = lista[j];
+      /* ¿Se quedó atrás? El versículo de arranque no existe en esta versión y
+         ya vamos por detrás de su final: esa perícopa no se enseña. */
+      if (it.cap > p.fin[0] || (it.cap === p.fin[0] && it.vers > p.fin[1])){ j++; continue; }
+      /* ¿Todavía no toca? Este versículo va antes de donde empieza. */
+      if (it.cap < p.ini[0] || (it.cap === p.ini[0] && it.vers < p.ini[1])) break;
+      mapa.set(k, p); j++; break;
+    }
+  }
+  return mapa;
+}
+/* EL IDIOMA, CON RESPALDO. Hoy la aplicación es en español entera, así que
+   esto es una sola línea; está escrita igual para que añadir otro no obligue a
+   buscar dónde se decidía. */
+const tituloPericopa = p => (p && (p.t.es || p.t.en)) || '';
+/* El titulillo, si en este versículo empieza una.
+
+   VA DENTRO DE LA COLUMNA y no en el margen, y eso se decidió mirando lo que
+   hace cada sitio: en el margen competiría con las glosas por el mismo hueco y
+   se leería como una nota del lector, que es lo contrario de lo que es. Dentro
+   ocupa alto, y por eso tiene que salir de aquí —de la única función que
+   recorre versículos para las tres cosas: medir la hoja, rellenarla y
+   retratarla para el pliegue—. Emitiéndolo aquí, la paginación lo mide en las
+   cuatro versiones y la foto del pliegue lo lleva, las dos sin enterarse.
+
+   Y NO PUEDE QUEDARSE HUÉRFANO al pie de una hoja: el titulillo y su versículo
+   se añaden en la misma cadena, así que el paginador los mete juntos y, si no
+   caben, los retira juntos. No hace falta guardia ninguna; sale de cómo está
+   escrito paginate. */
+function tituloHTML(k){
+  const p = mapaPericopas(plano).get(k);
+  if (!p) return '';
+  return '<h2 class="peri" data-peri="' + esc(p.id) + '">' +
+         esc(tituloPericopa(p)) + '</h2>';
+}
 function verseHTML(k, withMarks, below){
   const it = plano[k], base = it.texto;
   const aqui = marcas.filter(m => m.cap===it.cap && m.vers===it.vers && visible(m) && RES.has(m.id));
@@ -4474,7 +4610,11 @@ function paginate(bodyEl, from, below, hasta){
   let i = from;
   while (i < tope){
     const marca = bodyEl.childNodes.length;
-    bodyEl.insertAdjacentHTML('beforeend', verseHTML(i, SPAN_MARKS, below));
+    /* El titulillo va PEGADO a su versículo en la misma cadena, y eso es lo
+       que impide que se quede huérfano al pie: entran juntos y, si no caben,
+       el corte de aquí abajo los retira juntos. Ver tituloHTML. */
+    bodyEl.insertAdjacentHTML('beforeend',
+      tituloHTML(i) + verseHTML(i, SPAN_MARKS, below));
     if (hasta == null && i > from && !cabe(bodyEl, marca)){
       while (bodyEl.childNodes.length > marca) bodyEl.removeChild(bodyEl.lastChild);
       break;
@@ -7592,7 +7732,7 @@ function loadSVG(svg, ok, fail){
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 function cuerpoHTML(a,b){ let s=''; const below = placement==='below';
-  for (let i=a;i<b;i++) s += verseHTML(i, SPAN_MARKS, below); return s; }
+  for (let i=a;i<b;i++) s += tituloHTML(i) + verseHTML(i, SPAN_MARKS, below); return s; }
 function rectsDeMarcas(bodyEl, hostEl){
   if (SPAN_MARKS) return [];
   const host = hostEl.getBoundingClientRect(), out = [];
