@@ -219,6 +219,7 @@ async function ponerAMano(p){
     const b = document.querySelector('#sepMenu [data-sep-nuevo]');
     const menu = document.getElementById('sepMenu');
     const rotulo = b ? b.textContent.trim() : '';
+    const voz = b ? (b.getAttribute('aria-label') || '') : '';
     /* Y va DENTRO de la lista y arriba del todo: primero lo que puedes hacer,
        después lo que hay. */
     const filas = [...menu.querySelectorAll('.sp-fila')];
@@ -227,7 +228,7 @@ async function ponerAMano(p){
       b.getBoundingClientRect().top < filas[0].getBoundingClientRect().top);
     if (b){ await window.__toque(b); await window.__pausa(700); }
     await window.__abrirCajon();
-    return { hubo:!!b, rotulo, dentro, arriba,
+    return { hubo:!!b, rotulo, voz, dentro, arriba,
              guardadas: window.__guardadas(), cinta: window.__cinta(),
              desborde: window.__desborde(), hoja: window.__hoja() };
   });
@@ -239,8 +240,12 @@ async function ponerAMano(p){
      compartían renglón con el paso atrás, el rótulo tenía que ser corto para
      que los tres cupieran; dentro de su lista hay sitio para decirlo entero,
      y hace falta: desde la lista no se ve qué hoja tienes debajo. */
-  vale('y dice qué deja y dónde', /cinta/.test(mano.rotulo) && /aqu[ií]/.test(mano.rotulo),
-       mano.rotulo);
+  /* Ver el mismo cambio en piedra.prueba.js, que es donde está contado: el
+     rótulo visible se acortó a «Nueva» a propósito y lo que deja y dónde vive
+     ahora en el hablado. Se vigilan los dos. */
+  vale('y dice «Nueva»', (mano.rotulo || '').trim() === 'Nueva', mano.rotulo);
+  vale('  y el rótulo hablado sí dice qué deja y dónde',
+       /separador/i.test(mano.voz || '') && /hoja/i.test(mano.voz || ''), mano.voz);
   vale('pone un separador', mano.guardadas.length === 1, mano.guardadas);
   vale('y sale la cinta', !!mano.cinta);
   vale('cuelga en el borde izquierdo de la columna', mano.cinta && mano.cinta.dentro);
@@ -351,7 +356,27 @@ async function ponerAMano(p){
   vale('con su referencia y su botón',
        /^\D+\s\d+:\d+$/.test(lista.ensena.ref) && lista.ensena.hayBoton === true,
        lista.ensena);
-  vale('y la lista se quita de en medio', lista.ensena.menuIdo === true);
+  /* Y LA LISTA SE QUEDA, QUE ES LO CONTRARIO DE LO QUE PEDÍA ESTA LÍNEA.
+
+     Decía «y la lista se quita de en medio» y exigía menuIdo === true, de
+     cuando tocar una fila cerraba el panel antes de abrir la ventanita. Se
+     pidió al revés —repasar las cintas que dejaste es mirar varias seguidas, y
+     cerrar la lista cada vez obliga a volver a abrir el rastro y la lista por
+     cada una—, así que ahora la lista se queda detrás y solo se va al ACEPTAR
+     el salto. Las dos mitades se comprueban juntas en el bloque «mirar deja la
+     lista; aceptar el salto se la lleva», al final de este fichero.
+
+     Se cambia en vez de quitarse porque la línea sigue haciendo falta: sin
+     ella, que la lista se cerrara de nuevo al mirar no lo cazaría nadie hasta
+     llegar al bloque del final, y este bloque es el que recorre el camino
+     entero con dos cintas en dos hojas.
+
+     Y se cazó corriendo el banco: la suite se estaba contradiciendo consigo
+     misma —esta línea exigía que se fuera y la del final que se quedara— y de
+     las tres pruebas que busqué a mano al hacer el cambio, ésta no salió. Es
+     la quinta vez que este repo paga por una prueba que afirmaba lo viejo. */
+  vale('y la lista se queda detrás, que mirar no es irse',
+       lista.ensena.menuIdo === false, lista.ensena);
   vale('tocar la escritura sí lleva a su hoja', lista.llegada === partida,
        lista.llegada + '  vs  ' + partida);
   /* La cinta se cobra AL SALTAR, no al mirar: la de la llegada es la que se
@@ -1461,5 +1486,62 @@ async function ponerAMano(p){
        otros.antes + '  →  ' + otros.conFilo);
   vale('y el panel del rastro sigue entero', otros.rastro.abierto);
 
-  await cerrar(ancho);
+  await cerrarParcial(ancho, 'ratón estrecho');
+
+  /* ================================================================
+     MIRAR NO ES IRSE, PERO IRSE SÍ ES IRSE.
+
+     Tocar una fila de la lista abre la ventanita con el versículo y la lista
+     se queda DETRÁS: repasar las cintas que dejaste es mirar varias seguidas,
+     y cerrar la lista cada vez convertía eso en volver a abrir el rastro y
+     volver a abrir la lista por cada una. Pero aceptar el salto —tocar el
+     texto de la ventanita— sí es irse, y entonces la lista tiene que cerrarse
+     o se queda flotando sobre la hoja de llegada, encima del texto al que
+     acabas de ir.
+
+     LA CINTA CAE EN LA MISMA HOJA A PROPÓSITO, y es lo que hace esta prueba
+     valer algo. Con la cinta en otra hoja, el salto repinta y cualquier cierre
+     colgado del repintado la taparía; en la misma hoja irA() se va por la rama
+     corta —solo resalta el versículo— y no hay repintado ninguno. Si el cierre
+     se apoyara en pintar, aquí se vería. Lo levantó Codex, y con razón: el
+     cierre estaba puesto donde no cubría este caso. */
+  titulo('mirar deja la lista; aceptar el salto se la lleva');
+  const viaje = await abrir();
+  const vp = viaje.pagina;
+  await vp.evaluate(() => {
+    const hoy = Date.now();
+    localStorage.setItem('glossa:separadores:v1', JSON.stringify([
+      { id:'c1', libro:'MAT', cap:1, vers:6, color:'indigo', creado:hoy, tocado:hoy }]));
+    localStorage.setItem('glossa:ajustes:v1',
+      JSON.stringify({ v:1, libro:'MAT', cap:1, vers:1 }));
+  });
+  await vp.reload();
+  await vp.waitForTimeout(3000);
+  await andamio(vp);
+  const mirarIrse = await vp.evaluate(async () => {
+    await window.__toque('#btnHistorial'); await window.__pausa(600);
+    await window.__toque('[data-sep-lista]'); await window.__pausa(700);
+    const sm = document.getElementById('sepMenu');
+    const fila = sm.querySelector('[data-sep-ir]');
+    if (!fila) return { sinFila:true };
+    const hojaAntes = window.__hoja();
+    await window.__toque(fila); await window.__pausa(900);
+    const mirando = sm.classList.contains('visible');
+    const txt = document.querySelector('#versoPleno .vp-txt');
+    if (!txt) return { mirando, sinTexto:true };
+    await window.__toque(txt); await window.__pausa(3800);
+    return { mirando, hojaAntes, hojaDespues: window.__hoja(),
+             trasSaltar: sm.classList.contains('visible') &&
+                         getComputedStyle(sm).display !== 'none',
+             pleno: document.getElementById('versoPleno').classList.contains('visible') };
+  });
+  di('mirar contra saltar', mirarIrse);
+  vale('MIRAR EL VERSÍCULO DEJA LA LISTA DETRÁS', mirarIrse.mirando === true, mirarIrse);
+  vale('  y es la misma hoja, o sea la rama corta de irA',
+       mirarIrse.hojaAntes === mirarIrse.hojaDespues,
+       mirarIrse.hojaAntes + ' → ' + mirarIrse.hojaDespues);
+  vale('ACEPTAR EL SALTO SÍ CIERRA LA LISTA', mirarIrse.trasSaltar === false, mirarIrse);
+  vale('  y la ventanita se va con él', mirarIrse.pleno === false, mirarIrse);
+
+  await cerrar(viaje);
 })();
