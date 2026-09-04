@@ -2988,7 +2988,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '04-SEP-26 01:11';
+window.GLOSS_BUILD = '04-SEP-26 01:18';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7411,11 +7411,19 @@ function htmlPiedrasFoto(hojaN){
       /* Y CADA UNA CON SU COLOR. Iba la tinta fija para todas, de cuando no
          había colores; con seis, la piedra carmín de la hoja salía sepia en el
          pliegue y volvía a carmín al aterrizar. Escrito a pelo porque dentro
-         del foreignObject currentColor no hereda (ver piedraDibujo). */
+         del foreignObject currentColor no hereda (ver piedraDibujo).
+
+         SE PASA EL COLOR CRUDO, NO EL CORREGIDO. Aquí estuvo
+         compensarTinta(tintaDe(...)) y era corregirlo DOS VECES: piedraDibujo
+         sustituye currentColor por lo que le den y después pasa el dibujo
+         entero por compensarDibujo, que vuelve a corregir ese mismo #rrggbb.
+         Con el contraste de fábrica —125%— ya no es neutro, así que la piedra
+         de la foto salía de otro color que la de la hoja en cuanto se volteaba
+         una página. Lo levantó Codex. */
       return '<div style="position:absolute;left:' + (x.x * 100).toFixed(3) + '%;' +
         'top:' + (x.y * 100).toFixed(3) + '%;width:' + por + '%;aspect-ratio:1;' +
         'margin:' + med + ' 0 0 ' + med + ';opacity:.82">' +
-        piedraDibujo(x.forma, compensarTinta(tintaDe(x.color)[2])) +
+        piedraDibujo(x.forma, tintaDe(x.color)[2]) +
         /* EL NOMBRE TAMBIÉN VA EN LA FOTO, o desaparecería durante el giro y
            volvería de golpe al aterrizar, que es justo el parpadeo que este
            retrato existe para evitar. La familia va escrita entera: --ui vive
@@ -12270,7 +12278,8 @@ function piedraTamano(id, paso){
    Vaciar el campo QUITA el nombre en vez de guardar una cadena vacía, igual
    que en las cintas: una piedra sin nombre no lleva la clave, y así el archivo
    de quien no nombra ninguna sigue siendo el de siempre. */
-function piedraPonerNombre(id, txt){
+/* `sinPintarLaLista` es para el focusout, y no es un lujo: ver el oyente. */
+function piedraPonerNombre(id, txt, sinPintarLaLista){
   const x = piedraDe(id);
   if (!x) return null;
   const n = String(txt == null ? '' : txt).trim().slice(0, PIEDRA_NOMBRE_TOPE);
@@ -12279,7 +12288,7 @@ function piedraPonerNombre(id, txt){
   x.tocado = Date.now();
   piedrasGuardar();
   pintarPiedras();
-  if (piedraMenuAbierto) pintarPiedraMenu();
+  if (piedraMenuAbierto && !sinPintarLaLista) pintarPiedraMenu();
   return x;
 }
 function piedraCobrarNombre(){
@@ -12693,11 +12702,26 @@ $('piedraMenu').addEventListener('keydown', ev => {
 /* EL FOCO QUE SE VA GUARDA, PERO EL REPINTADO ESPERA AL CLIC. Está contado
    entero en el focusout de #sepMenu: el focusout llega ANTES que el clic del
    botón que se está tocando, y repintar destruye ese botón antes de que su
-   clic aterrice —el toque se perdía y había que darlo dos veces—. */
+   clic aterrice —el toque se perdía y había que darlo dos veces—.
+
+   Y AQUÍ ESTABA MAL PUESTO, aunque el comentario lo contara bien. Se llamaba a
+   piedraPonerNombre a secas, que repinta la lista dentro del propio focusout:
+   exactamente lo que este párrafo dice que no se puede hacer. Encima el
+   repintado aplazado no lo arreglaba, porque su guarda pide que
+   piedraNombrando esté ya en null y nadie lo ponía. O sea que escribir un
+   nombre y tocar después otro botón de la lista se comía ese primer toque.
+   Lo levantó Codex.
+
+   Ahora se guarda SIN repintar la lista —el dato no espera a nadie—, se suelta
+   la fila, y el repintado se aplaza al turno siguiente, cuando el clic ya se
+   atendió. Si ese clic hizo algo que repinta por su cuenta —abrir otro nombre,
+   ir a la piedra, cerrar la lista— el aplazado se encuentra el trabajo hecho y
+   se aparta. */
 $('piedraMenu').addEventListener('focusout', ev => {
   const campo = ev.target.closest('[data-piedra-nombre]');
   if (!campo || piedraNombrando !== campo.dataset.piedraNombre) return;
-  piedraPonerNombre(campo.dataset.piedraNombre, campo.value);
+  piedraPonerNombre(campo.dataset.piedraNombre, campo.value, true);
+  piedraNombrando = null;
   setTimeout(() => {
     if (piedraMenuAbierto && !piedraNombrando){ pintarPiedraMenu(); colocarPiedraMenu(); }
   }, 0);
