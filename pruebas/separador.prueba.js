@@ -442,7 +442,11 @@ async function ponerAMano(p){
   });
   di('la pregunta', borrado.texto);
   vale('la equis sale con el menú', borrado.visibleAntes);
-  vale('pregunta antes de borrar', /eliminar/i.test(borrado.texto));
+  /* «BORRAR» Y NO «ELIMINAR»: la pregunta se rehizo cuando las dos listas
+     pasaron a compartir código, y ahora dice «¿Borrar X?» en la propia fila.
+     Se busca la palabra y no la frase entera porque la frase lleva dentro el
+     nombre de la cinta, que cambia. */
+  vale('pregunta antes de borrar', /borrar/i.test(borrado.texto), borrado.texto);
   vale('y no borra mientras pregunta', borrado.cuantas === 2);
   vale('cancelar lo deja todo', borrado.trasCancelar.guardadas === 2 &&
        borrado.trasCancelar.cinta && !borrado.trasCancelar.pregunta, borrado.trasCancelar);
@@ -819,15 +823,27 @@ async function ponerAMano(p){
     const campo = document.querySelector('[data-sep-nombre="s1"]');
     campo.value = 'primero';
     const otro = document.querySelector('[data-sep-ir="s2"]');
+    /* EL DEDO SE APOYA EN LA OTRA FILA, y con eso el campo pierde el foco. Lo
+       que se vigila es que ese primer toque CUENTE: guardar repintaba el menú
+       entero, y el focusout llega antes que el clic del botón que se está
+       tocando, así que ese botón dejaba de existir antes de que su clic
+       aterrizara. Se mira que el nodo sobreviva —igual que en piedra— porque
+       un clic despachado a mano llega aunque su nodo ya no esté. */
+    const r = otro.getBoundingClientRect();
+    otro.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, cancelable:true, pointerId:996, pointerType:'touch',
+        isPrimary:true, clientX: r.left + r.width/2, clientY: r.top + r.height/2 }));
     campo.blur();
-    otro.click();
+    const sigueAhi = document.contains(otro);      /* SIN ceder el hilo */
     await window.__pausa(700);
     return { nombre: (window.__guardadas().find(x => x.id === 's1') || {}).nombre,
-             abrio: !!document.querySelector('[data-sep-nombre="s2"]') };
+             sigueAhi };
   });
-  di('al lápiz de otra fila', alOtroLapiz);
+  di('al apoyar el dedo en otra fila', alOtroLapiz);
   vale('guarda el primero', alOtroLapiz.nombre === 'primero', alOtroLapiz.nombre);
-  vale('y abre el segundo AL PRIMER TOQUE', alOtroLapiz.abrio === true, alOtroLapiz);
+  vale('Y LA FILA QUE EL DEDO TIENE DEBAJO NO SE DESTRUYE',
+       alOtroLapiz.sigueAhi === true,
+       alOtroLapiz.sigueAhi ? 'sigue en el documento' : 'lo repintó y se lo llevó');
 
   await p.evaluate(async () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
@@ -839,7 +855,12 @@ async function ponerAMano(p){
     await window.__pausa(450);
     const campo = document.querySelector('[data-sep-nombre="s2"]');
     campo.value = 'segundo';
-    const x = document.querySelector('[data-sep-pedir-borrar="s1"]');
+    /* EL BOTÓN DE BORRAR VIVE DENTRO DE LA FILA ABIERTA, no en cada fila en
+       reposo: el de s1 no existe mientras la abierta es s2. Se toca el de la
+       PROPIA fila abierta, que es el mismo camino —soltar el campo y aterrizar
+       en un botón— y el único que hay ahora. */
+    const x = document.querySelector('[data-sep-pedir-borrar]');
+    if (!x) return { sinBoton:true };
     campo.blur();
     x.click();
     await window.__pausa(700);
@@ -849,9 +870,10 @@ async function ponerAMano(p){
                 contestar sin acordarse de a cuál se refería. */
              pregunta: !!document.querySelector('.sp-fila-pregunta') };
   });
-  di('a la equis de otra fila', aLaEquis);
-  vale('guarda el nombre', aLaEquis.nombre === 'segundo', aLaEquis.nombre);
-  vale('y la equis pregunta AL PRIMER TOQUE', aLaEquis.pregunta === true, aLaEquis);
+  di('del campo al botón de borrar', aLaEquis);
+  vale('guarda el nombre', aLaEquis.nombre === 'segundo',
+       aLaEquis.sinBoton ? 'no salió el botón de borrar' : aLaEquis.nombre);
+  vale('y el botón pregunta AL PRIMER TOQUE', aLaEquis.pregunta === true, aLaEquis);
 
   titulo('con otra pestaña por medio, el nombre recién escrito gana');
   /* Nombrar no toca `tocado` —a propósito: no reordena la lista— así que si
