@@ -450,6 +450,59 @@
      dónde estás — hacer clic en dónde estás para ir a otro lado es un mapeo
      que no hay que explicar. */
   .edge-l{ left:0;  background:linear-gradient(to left,  rgba(201,162,39,0), rgba(201,162,39,.16)); }
+  /* LAS FLECHAS DE PASAR HOJA, A MEDIA ALTURA Y TRANSPARENTES.
+
+     Van sobre el papel, así que lo primero que tienen que hacer es NO
+     estorbar: el disco es apenas una veladura del marrón del programa y la
+     flecha va a media tinta. Se ven cuando las buscas y desaparecen cuando
+     lees, que es exactamente el trato.
+
+     Encima del filo pero debajo de todo lo demás: z-index 4 las pone sobre el
+     papel y sobre .edge (3) —o el filo se comería el toque— y por debajo de
+     los paneles, del rastro y de la ventanita, que tienen que taparlas.
+
+     A media altura porque es donde cae el pulgar sin mover la mano, y porque
+     arriba está el titulillo y abajo el rótulo de la versión.
+
+     Y NO SE PONEN SOBRE EL FILO SINO UN POCO ADENTRO: encima del filo, el
+     mismo dedo estaría pidiendo dos cosas —pasar hoja de golpe o plegarla a
+     mano— y ganaría la que respondiera antes. Adentro, cada gesto tiene su
+     sitio. */
+  .flecha-hoja{ position:absolute; top:50%; z-index:4;
+                width:44px; height:44px; padding:0; margin-top:-22px;
+                display:grid; place-items:center;
+                border:1px solid rgba(60,40,15,.20); border-radius:50%;
+                background:rgba(120,96,50,.10); color:rgba(60,40,15,.42);
+                cursor:pointer; -webkit-tap-highlight-color:transparent;
+                transition:background .28s cubic-bezier(.65,0,.35,1),
+                           color .28s cubic-bezier(.65,0,.35,1),
+                           transform .18s cubic-bezier(.65,0,.35,1),
+                           opacity .28s ease; }
+  /* Y APAGADAS QUIERE DECIR APAGADAS. Esta línea parece de más y es el arreglo
+     entero de un fallo que se vio en una foto: el atributo `hidden` esconde
+     con un display:none de la hoja del NAVEGADOR, y cualquier display escrito
+     por nosotros —el display:grid de aquí arriba— le gana por venir de la hoja
+     del autor. O sea que las flechas salían encendidas de fábrica, con el
+     interruptor apagado y con `hidden` puesto, y la prueba pasaba porque
+     preguntaba por el atributo en vez de por lo que se ve. */
+  .flecha-hoja[hidden]{ display:none; }
+  .flecha-hoja svg{ display:block; width:22px; height:22px; }
+  .flecha-hoja:hover{ background:rgba(120,96,50,.22); color:rgba(60,40,15,.72); }
+  .flecha-hoja:active{ transform:scale(.88); }
+  .flecha-hoja:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
+  .flecha-l{ left:34px; }
+  .flecha-r{ right:34px; }
+  /* Con el dedo se agrandan y se apartan un poco más del filo. */
+  @media (pointer:coarse){
+    .flecha-hoja{ width:48px; height:48px; margin-top:-24px; }
+    .flecha-hoja svg{ width:24px; height:24px; }
+    .flecha-l{ left:38px; }
+    .flecha-r{ right:38px; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .flecha-hoja{ transition:none; }
+    .flecha-hoja:active{ transform:none; }
+  }
   .edge.off{ opacity:.2; cursor:default; }
 
   /* LA HUELLA EN EL FILO. Tocar el filo no daba señal de nada. Y hay un rato
@@ -1169,7 +1222,11 @@
      rótulo ni robarle ancho —el panel mide 280px y la lista los necesita— y
      el rótulo se aparta con su propio padding derecho. Blanco de toque de
      30px, 34 en pantalla chica, como el de la ventanita. */
-  #sepMenu, #piedraMenu{ position:relative; }
+  /* AQUÍ HUBO UN «#sepMenu, #piedraMenu{ position:relative }» y era el ancla
+     de la equis cuando iba en absoluto sobre el panel entero. Ahora su ancla
+     es .sp-cierre, su propio renglón, así que esta regla ya no sujeta nada —y
+     además le ganaba el position:absolute a #sepMenu por venir después, que
+     era un accidente esperando a que alguien moviera el panel—. Fuera. */
   /* PEGADA A LA ESQUINA, Y NO CENTRADA EN SU BLANCO DE TOQUE. Pedido mirando
      los dos paneles: el aspa se veía baja. Y lo estaba: el blanco mide 30px y
      el aspa iba en su centro, así que entre el borde del panel y el signo
@@ -1187,8 +1244,22 @@
   .sp-x:hover{ color:#4d3f1d; }
   .sp-x:active{ transform:scale(.85); }
   .sp-x:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
-  /* Y el rótulo le deja el sitio, que si no el aspa se le pone encima. */
-  .sp-tit{ padding-right:32px; }
+  /* EL RENGLÓN DE LA EQUIS. La equis sigue siendo absoluta —así vive en el
+     mando de la piedra, encima de su rótulo— y aquí lo que hace este renglón
+     es RESERVARLE EL ALTO: 26px de nada donde ella cae, y debajo el rótulo y
+     «Nueva» con el filo derecho entero para ellos. Los márgenes negativos le
+     devuelven al panel el relleno que ya tenía, para que la equis quede en la
+     esquina de verdad y no a nueve píxeles de ella. */
+  /* El alto es EXACTAMENTE el del aspa y no menos: recortándolo por abajo con
+     un margen negativo se ahorraban cuatro píxeles y el aspa —que es absoluta
+     y va por encima— le comía a «Nueva» una franja de su esquina. Cuatro
+     píxeles de blanco de toque robados que no se ven y sí se notan. */
+  .sp-cierre{ position:relative; height:30px; margin:-4px -4px 0 0; }
+  /* El rótulo solo le deja sitio a la equis donde comparten renglón, que hoy
+     es el mando de la piedra; su relleno está escrito allí abajo, con el
+     resto de lo suyo. En los dos paneles de listas la equis tiene renglón
+     propio y ese relleno sobraba: eran 32px que le quitaba al filo derecho
+     de «Nueva». */
   .sp-telas{ display:flex; gap:7px; padding:0 3px 9px; }
   .sp-tela{ flex:0 0 auto; width:30px; height:30px; border-radius:50%;
             border:1px solid rgba(90,70,30,.45); cursor:pointer; padding:0;
@@ -1266,10 +1337,11 @@
   .sp-nueva:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
   .sp-nueva:active{ transform:translateY(1px); }
   .sp-nueva:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
-  /* EL RENGLÓN DEL RÓTULO: el título a la izquierda y el botón a la derecha,
-     con el aspa de cerrar por encima en su esquina. */
+  /* EL RENGLÓN DEL RÓTULO: el título a la izquierda y el botón al filo
+     derecho. Ya no reserva nada para el aspa —ella tiene su propio renglón
+     arriba, ver .sp-cierre—, así que «Nueva» llega hasta el borde. */
   .sp-cabeza{ display:flex; align-items:center; justify-content:space-between;
-              gap:8px; padding-right:32px; margin:0 0 8px; }
+              gap:8px; margin:0 0 8px; }
   .sp-cabeza .sp-tit{ padding:3px 0 0; }
   /* La cinta de muestra del botón va sin color escrito: la que se ponga toma
      el que le toque por turno, así que enseñar uno concreto sería prometer. */
@@ -1482,11 +1554,17 @@
   .pm-forma.on{ color:#3f3416; background:rgba(184,137,43,.34);
                 border-color:rgba(140,116,68,.7); }
   .pm-forma:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
-  .pm-tintas{ display:flex; gap:5px; }
+  /* DOS RENGLONES DE SEIS, y por eso es rejilla y ya no fila. En fila, los
+     doce se repartían el ancho a partes iguales y cada mancha bajaba a doce
+     píxeles: doce manchas de doce píxeles no son una paleta, son una regla de
+     colores. Con seis columnas fijas, la de abajo cae debajo de la suya —cada
+     color encima de su versión viva— que además es lo que explica la fila sin
+     necesidad de rótulo. */
+  .pm-tintas{ display:grid; grid-template-columns:repeat(6, 1fr); gap:5px; }
   /* Los colores son manchas y no dibujos: lo que se elige es el color, así que
      el botón ES el color. El elegido se marca con un aro por fuera y no con un
      borde por dentro, que sobre una mancha oscura no se ve. */
-  .pm-tinta{ flex:1 1 0; height:19px; padding:0; border-radius:4px;
+  .pm-tinta{ height:19px; padding:0; border-radius:4px;
              border:1px solid rgba(60,40,15,.28); cursor:pointer;
              -webkit-tap-highlight-color:transparent; }
   .pm-tinta.on{ box-shadow:0 0 0 2px #f2e9d6, 0 0 0 3.5px rgba(184,137,43,.95); }
@@ -1710,7 +1788,8 @@
     .sp-ref{ font-size:14px; }
     .sp-nueva{ min-height:44px; font-size:14px; padding:6px 14px; }
     .sp-x{ width:34px; height:34px; font-size:22px; }
-    .sp-tit{ padding-right:36px; }
+    .sp-cierre{ height:34px; }
+    #piedraMando .sp-tit{ padding-right:36px; }
     .sp-fila{ min-height:48px; padding:5px 5px 5px 10px; }
     .sp-ir{ min-height:44px; }
     .sp-edit-base, .sp-edit-aqui{ font-size:14px; }
@@ -2189,12 +2268,30 @@
   .fly-tit{ display:block; font:700 6.5px/1 var(--ui); letter-spacing:.14em;
             text-transform:uppercase; color:#8a7746; padding:1px 0 4px; }
   .fly-rejilla{ display:grid; grid-template-columns:repeat(6,26px); gap:2px; }
-  #cantoCab{ flex:0 0 auto; display:flex; align-items:center; gap:5px; height:14px;
+  /* Ya no es un renglón de 14px: ahora lleva el interruptor de las flechas,
+     que es una casilla y un rótulo que hay que poder leer. Sin alto clavado,
+     que crezca lo que necesite. */
+  #cantoCab{ flex:0 0 auto; display:flex; align-items:center; gap:5px;
              font:700 7.5px/1 var(--ui); color:#6d5c33; letter-spacing:.09em;
-             text-transform:uppercase; white-space:nowrap; }
-  #cantoCab .atras{ font:700 11px/1 var(--ui); color:#6d5c33; background:rgba(255,255,255,.5);
-                    border:0; border-radius:3px; width:15px; height:15px; cursor:pointer; padding:0; }
-  #cantoCab .atras:hover{ background:#fffdf6; color:#1d1608; }
+             text-transform:uppercase; white-space:nowrap;
+             padding-bottom:5px; margin-bottom:4px;
+             border-bottom:1px solid rgba(140,116,68,.28); }
+  /* EL INTERRUPTOR ES UN <label> ENTERO, y esto no es adorno: envolviendo la
+     casilla y el texto, el rótulo también responde al toque, y el rótulo es
+     doce veces el blanco de la casilla. En un teléfono es la diferencia entre
+     acertar y volver a intentarlo.
+     El texto va SIN versalitas: la cabecera entera las lleva —es un rótulo de
+     sección— pero esto es una frase que se lee, y en versalitas se lee peor. */
+  .canto-opcion{ display:flex; align-items:center; gap:7px; cursor:pointer;
+                 min-height:32px; padding:2px 2px 2px 1px;
+                 font:400 10.5px/1.3 var(--ui); letter-spacing:0;
+                 text-transform:none; color:#5c4a24; white-space:normal;
+                 -webkit-tap-highlight-color:transparent; }
+  .canto-opcion input{ flex:0 0 auto; width:17px; height:17px; margin:0;
+                       accent-color:#b8892b; cursor:pointer; }
+  .canto-opcion:hover{ color:#3f3416; }
+  .canto-opcion:focus-within{ outline:2px solid #b8892b; outline-offset:2px;
+                              border-radius:4px; }
   /* El relleno de abajo compensa que la cabecera de arriba ya da aire y aquí
      no había nada entre el último renglón de libros y el canto del panel. */
   #cantoCuerpo{ flex:1 1 auto; min-height:0; overflow-y:auto; padding-bottom:14px;
@@ -2209,12 +2306,27 @@
   #cantoCuerpo.rejilla{ display:grid; grid-template-columns:repeat(auto-fill,minmax(32px,1fr));
                         gap:2px; align-content:start; }
 
+  /* Las cuatro medidas de la caja van en la transición además del color: son
+     las que hacen que el libro bajo el dedo crezca en vez de dar un salto, y
+     las que hacen que sus vecinos se aparten poco a poco en lugar de
+     teletransportarse. Ver .tabo.bajoeldedo. */
   .tabo{ position:relative; flex:0 0 auto; border:0; padding:0 7px; height:18px;
          cursor:pointer; font:400 9.5px/18px var(--ui); color:#4a3a1c; letter-spacing:.01em;
          background:rgba(255,253,247,.62); border-radius:2px;
          white-space:nowrap; overflow:visible; text-align:center;
          transition:background .34s cubic-bezier(.65,0,.35,1),
-                    color .34s cubic-bezier(.65,0,.35,1); }
+                    color .34s cubic-bezier(.65,0,.35,1),
+                    font-size .22s cubic-bezier(.2,.85,.3,1),
+                    height .22s cubic-bezier(.2,.85,.3,1),
+                    line-height .22s cubic-bezier(.2,.85,.3,1),
+                    padding .22s cubic-bezier(.2,.85,.3,1); }
+  /* Quien pidió menos movimiento se queda con el cambio de color, que es lo
+     que dice qué hay debajo, y sin el estirón. El tamaño se le devuelve más
+     abajo, pegado a la regla que lo cambia: escrito aquí perdía contra ella
+     —misma especificidad y ella viene después— y el estirón salía igual. */
+  @media (prefers-reduced-motion: reduce){
+    .tabo{ transition:background .34s linear, color .34s linear; }
+  }
   /* Sin subrayados en toda la lista. Los llevaban todos los libros
      disponibles, y una marca que traen todos no marca nada. Lo único que
      señala al libro abierto es el fondo dorado de .aqui, que ya basta; y los
@@ -2626,7 +2738,10 @@
        primero que se lee al abrirlo: el rótulo iba en 7.5px y la flecha de
        volver era un blanco de 15px, la mitad de lo que alcanza un pulgar. */
     #cantoCab{ font-size:11.5px; height:auto; min-height:26px; }
-    #cantoCab .atras{ font-size:17px; width:29px; height:29px; }
+    /* Con el dedo, el renglón entero llega al suelo de la casa —48px— y la
+       casilla crece con él: una casilla de 17px es de ratón. */
+    .canto-opcion{ font-size:14px; min-height:48px; gap:10px; }
+    .canto-opcion input{ width:22px; height:22px; }
     /* Las rejillas siguen al alto de .num, que es de quien dependen: con
        celdas de 38px y números de 29px volvían a quedar apretados. */
     /* Las rejillas de números siguen al alto de .num, que es de quien
@@ -2694,7 +2809,27 @@
                 opacity:0; transition:opacity .12s linear; }
     #lupaLibro.viva{ display:block; opacity:1; }
     #lupaLibro.muerto{ background:#5c4a24; color:#cbbf9f; }
-    .tabo.bajoeldedo{ background:#b8892b; color:#fff8e4; }
+    /* EL LIBRO BAJO EL DEDO CRECE, y crece de VERDAD: no con un transform,
+       que no ocupa sitio y dejaría al de al lado tapado por debajo, sino de
+       caja —letra, alto y relleno— para que la fila se reacomode alrededor y
+       los vecinos se aparten solos. Es lo pedido, y es también lo honesto: lo
+       que se ve grande es lo que se va a abrir al soltar.
+
+       CRECE POCO, Y ESA ES LA MEDIDA. La rejilla envuelve, así que un libro
+       que crezca demasiado empuja al último de su renglón al siguiente y eso
+       se ve como un salto, no como que algo creció. De 13 a 17 y de 26 a 36 la
+       fila casi siempre absorbe el estirón; cuando no, salta uno solo.
+
+       El z-index lo pone por encima de sus vecinos mientras dura: sin él, el
+       que viene después lo recorta por el filo al reacomodarse. */
+    .tabo.bajoeldedo{ background:#b8892b; color:#fff8e4; z-index:10;
+                      font-size:17px; height:36px; line-height:36px;
+                      padding:0 14px; font-weight:600;
+                      box-shadow:0 3px 10px -4px rgba(60,40,15,.6); }
+    @media (prefers-reduced-motion: reduce){
+      .tabo.bajoeldedo{ font-size:13px; height:26px; line-height:26px;
+                        padding:0 9px; font-weight:400; box-shadow:none; }
+    }
 
     /* COLUMNAS EN CIFRAS. "una / dos / tres" son tres palabras de distinto
        largo peleando por el sitio más apretado del panel; 1, 2 y 3 dicen lo
@@ -2703,49 +2838,75 @@
     .largo{ display:none; }
     .corto{ display:inline; }
 
-    /* EL PANEL, A TAMAÑO DE DEDO. La columna ya la trae de serie; aquí solo
-       crecen los blancos. Ancho en vw y no en píxeles porque el panel lleva
-       dentro una caja de escribir, y escribir con el pulgar en una columna
-       estrecha es peor que no escribir. */
-    #menu{ gap:7px; padding:9px; border-radius:12px; width:84vw; max-width:360px; }
-    #menu button{ font-size:15px; padding:11px 14px; text-align:left; }
+    /* EL PANEL, A TAMAÑO DE DEDO — Y ESTA VEZ DE VERDAD.
+
+       Los blancos ya crecían aquí desde hace tiempo y aun así, puesto en un
+       teléfono, el panel entero seguía leyéndose como «una miniatura de
+       cositas y de botoncitos». La razón no estaba en esta regla sino en el
+       ANCHO: el panel medía lo que la glosa —240px clavados en el teléfono—
+       así que este `width:84vw` no llegaba a aplicarse nunca, lo pisaba el
+       ancho en línea que pone anchoPanelComoGlosa. Seis de cada diez píxeles
+       de pantalla, y dentro los cuatro colores, los dos trazos, las dos
+       acciones, la caja de escribir y la lista de etiquetas. Está contado allí;
+       aquí el `width` se queda de respaldo por si algún día no lo ponen.
+
+       LAS MEDIDAS NO SON DE GUSTO. El suelo de todo lo que se toca son 48px:
+       es el mínimo de Material 3, y queda por encima de los 44 de Apple y de
+       los 44 del criterio 2.5.5 de WCAG —el exigente; el 2.5.8, que es el que
+       hay que cumplir, pide 24—. Se toma el mayor de los tres porque cuesta lo
+       mismo. Y la letra de los mandos sube a 16px, que es el suelo de lectura
+       cómoda en un teléfono y además el punto en el que Safari de iOS deja de
+       ampliar la página al enfocar un campo. */
+    #menu{ gap:9px; padding:12px; border-radius:12px; width:92vw; max-width:400px; }
+    #menu button{ font-size:16px; padding:13px 15px; text-align:left; }
     /* Los colores se quedan en fila: son cuatro puntos, se distinguen por el
        color y no por el nombre, y en columna ocuparían media pantalla. Van
-       arriba porque es lo primero que se elige. */
-    #menu .mcolores{ justify-content:center; gap:12px; padding:2px 0 4px; }
-    #menu .mc{ width:34px; height:34px; border-width:3px; }
-    /* Con el dedo, los tres siguen siendo tercios y solo crece el alto. El
-       hueco baja a 4: a tercios, seis píxeles entre tres botones se comen el
-       ancho que necesita «▮ resaltado» para no partirse. */
-    #menu .mmodos, #menu .macciones{ gap:5px; }
-    #menu .mmodos button, #menu .macciones button{ padding:11px 6px; }
-    /* Los de arriba llegan solos a los 57 px porque llevan la marca en su
-       propio renglón; los de abajo son de un renglón y se quedaban en 38, que
-       para un pulgar es poco. Se les pone suelo. */
-    #menu .macciones button{ min-height:44px; }
-    #menu input{ font-size:15px; padding:9px 11px; width:auto; flex:1 1 120px; }
+       arriba porque es lo primero que se elige. Y crecen a 40: son redondos, o
+       sea que su blanco útil es el círculo inscrito, y un círculo de 34 se
+       toca peor que un cuadrado de 34. */
+    #menu .mcolores{ justify-content:center; gap:16px; padding:4px 0 6px; }
+    #menu .mc{ width:40px; height:40px; border-width:3px; }
+    /* Con el dedo, los tres siguen siendo tercios y solo crece el alto. */
+    #menu .mmodos, #menu .macciones{ gap:6px; }
+    #menu .mmodos button, #menu .macciones button{ padding:13px 8px; }
+    /* Los de arriba llegan solos porque llevan la marca en su propio renglón;
+       los de abajo son de un renglón y se quedaban en 38, que para un pulgar
+       es poco. Se les pone suelo, el mismo de la casa. */
+    #menu .macciones button{ min-height:48px; }
+    #menu input{ font-size:16px; padding:11px 13px; width:auto; flex:1 1 120px;
+                 min-height:48px; }
     .tagbox{ gap:6px; }
     /* Estas dos siguen valiendo para el .tagbox de menuVinculos, que no es la
        lista de la marca sino la de «citado desde», y sigue siendo fila corrida
        de pastillas. */
-    .tagbox .tg{ font-size:13.5px; padding:8px 12px; }
-    .tagbox .vacio{ font-size:13px; }
+    .tagbox .tg{ font-size:15px; padding:11px 14px; }
+    .tagbox .vacio{ font-size:14px; }
     /* EL #menu DE DELANTE ES LO QUE HACE QUE ESTO SE VEA. `#menu button` le
        clava a todo botón del panel 15px, 11px 14px y text-align:left, y una
        clase sola pierde contra un id —da igual que esta regla venga después—.
        Es la cuarta vez que este id se lleva por delante una regla de la lista;
        la costumbre de la casa es ya escribirlas todas con el #menu puesto. */
-    #menu .taglista .tg{ font-size:16px; line-height:1.55;
-                         padding:3px 12px 3px 0; }
-    /* El renglón del anticipo no baja de un dedo aunque la nota sea corta. */
-    #menu .gl-vista textarea{ min-height:3.2em; }
-    /* Los mandos no son etiquetas: sin esto heredan los 11/14 de #menu button
-       y el renglón se come 39px por nada. */
-    #menu .tagbox .tagctl input{ font-size:15px; padding:9px 11px; width:auto;
-                                 flex:1 1 90px; min-width:0; }
+    #menu .taglista .tg{ font-size:17px; line-height:1.65;
+                         padding:5px 14px 5px 0; }
+    /* LA CAJA DE ESCRIBIR CRECE DE ALTO Y NO DE LETRA, y es lo único de este
+       panel que no se toca de tamaño. Su letra es la de la NOTA —la hereda de
+       .gl— y esa es toda la gracia del anticipo: lo que escribes se ve con el
+       cuerpo y con los cortes de renglón con los que se va a leer después. Si
+       aquí se subiera a 16, el recuadro mentiría: partiría los renglones donde
+       no los va a partir la hoja. Quien la quiera más grande tiene el riel de
+       LETRA en Formato, que la sube aquí y en la hoja a la vez, que es la
+       manera honesta.
+       De ALTO sí crece: cuatro renglones y medio en vez de tres, que es la
+       diferencia entre escribir mirando lo escrito y escribir por una rendija. */
+    #menu .gl-vista textarea{ min-height:4.6em; }
+    /* Los mandos no son etiquetas: sin esto heredan los 13/15 de #menu button
+       y el renglón se come alto por nada. */
+    #menu .tagbox .tagctl input{ font-size:16px; padding:11px 13px; width:auto;
+                                 flex:1 1 90px; min-width:0; min-height:48px; }
     #menu .tagbox .tagctl button[data-acc]{ flex:0 0 auto; text-align:center;
-                                            padding:9px 13px; font-size:15px; }
-    #menu .mtags{ font-size:14px; }
+                                            padding:11px 15px; font-size:16px;
+                                            min-height:48px; }
+    #menu .mtags{ font-size:16px; }
 
     /* EL AVISO DE ABAJO. Iba en 10.5px, más pequeño que cualquier otra cosa
        de la pantalla, y aparece lejos de donde estás mirando. Un aviso que
@@ -2973,6 +3134,22 @@
   </div>
   <div class="edge edge-l" id="edgeL" title="Clic: hoja anterior · Arrastra: pliega"></div>
   <div class="edge edge-r" id="edgeR" title="Clic: pasa la hoja · Arrastra: pliega"></div>
+  <!-- LAS DOS FLECHAS DE PASAR HOJA. Nacen apagadas y las enciende un
+       interruptor en LIBROS: la hoja se pasa desde hace tiempo tocando el
+       filo, arrastrando el papel o con las flechas del teclado, y ninguna de
+       las tres se ve. Quien no las conoce necesita un botón; quien ya las
+       conoce no quiere dos discos encima del texto. Por eso se pregunta en
+       vez de decidir. Ver .flecha-hoja. -->
+  <button type="button" class="flecha-hoja flecha-l" id="flechaIzq" hidden
+          title="Hoja anterior" aria-label="Hoja anterior">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4 7.5 12 15 20"
+      fill="none" stroke="currentColor" stroke-width="2.4"
+      stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <button type="button" class="flecha-hoja flecha-r" id="flechaDer" hidden
+          title="Hoja siguiente" aria-label="Hoja siguiente">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 16.5 12 9 20"
+      fill="none" stroke="currentColor" stroke-width="2.4"
+      stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   <div id="menu"></div>
   <div id="readout"></div>
   <button class="btn" id="btnVolver" style="display:none">↩ volver</button>
@@ -3100,7 +3277,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '05-SEP-26 10:04';
+window.GLOSS_BUILD = '05-SEP-26 11:39';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3590,6 +3767,12 @@ let etiquetasVer = new Set();     /* chips marcadas en VER; vacío = ver todas *
 let librosFiltro = new Set();
 let diaFiltro = '';              // '' = todos los días
 let showMarks = true, fontSize = 15, fontSizeGlosa = 14;
+/* LAS FLECHAS DE PASAR HOJA NACEN APAGADAS, y no por tacañería: la hoja ya se
+   pasa de tres maneras —el filo, el arrastre del papel, las flechas del
+   teclado— y ninguna se ve. Dos discos encima del texto son la respuesta para
+   quien no las conoce y un estorbo para quien sí. Así que se pregunta, y se
+   pregunta donde se pregunta todo lo de la lectura: en un panel. */
+let verFlechas = false;
 /* EL SEPIA. Va de 0 a 100 y mueve papel y tinta juntos, no solo el fondo:
    entintar el papel y dejar la letra negra encima da una foto con filtro, no
    una hoja vieja. En papel amarillento la tinta también envejece hacia el
@@ -4687,10 +4870,31 @@ function mapaPericopas(pl){
   }
   return mapa;
 }
-/* EL IDIOMA, CON RESPALDO. Hoy la aplicación es en español entera, así que
-   esto es una sola línea; está escrita igual para que añadir otro no obligue a
-   buscar dónde se decidía. */
-const tituloPericopa = p => (p && (p.t.es || p.t.en)) || '';
+/* EL IDIOMA DEL TITULILLO LO MANDA LA VERSIÓN QUE SE ESTÁ LEYENDO.
+
+   Las perícopas vienen escritas en los dos idiomas desde el primer día, y
+   hasta hoy salía siempre el español: leyendo la Berean o la World English,
+   el texto estaba en inglés y el titulillo encima en español. Pedido y hecho.
+
+   POR QUÉ UNA TABLA Y NO ADIVINARLO. Los datos de las biblias los genera
+   ebible-a-glossa.py y sus registros traen nombre, abreviatura, licencia y
+   texto: ni una palabra del idioma. Se podría oler del nombre —«Reina Valera»
+   suena a español— y sería exactamente la clase de truco que funciona hasta el
+   día que llega una que no. Aquí está escrito, que son cuatro renglones, y el
+   día que se baje otra biblia se añade el suyo.
+
+   Y SI NO ESTÁ, ESPAÑOL. No por preferencia: es lo que se venía enseñando, así
+   que una biblia nueva sin entrada se comporta como hasta ahora en vez de
+   cambiar sola. */
+const IDIOMA_VERSION = { vbl:'es', rv1909:'es', bsb:'en', web:'en' };
+const idiomaVersion = v => IDIOMA_VERSION[v] || 'es';
+/* Y con respaldo al otro idioma: una perícopa a la que le falte el inglés se
+   enseña en español antes que en blanco. */
+const tituloPericopa = p => {
+  if (!p || !p.t) return '';
+  const l = idiomaVersion(version);
+  return p.t[l] || p.t.es || p.t.en || '';
+};
 /* El titulillo, si en este versículo empieza una.
 
    VA DENTRO DE LA COLUMNA y no en el margen, y eso se decidió mirando lo que
@@ -5891,7 +6095,37 @@ function anchoPanelComoGlosa(){
      va a poder ser tampoco cuando se guarde—.
      Lo levantó la cuarta revisión de Codex. */
   const tope = stage.getBoundingClientRect().width - 4;
-  menu.style.width = Math.round(Math.min(anchoVista() + pad + bor, tope)) + 'px';
+  const glosa = anchoVista();
+  /* EN EL TELÉFONO EL PANEL YA NO MIDE LO QUE LA GLOSA, y el anticipo sí.
+
+     Lo de arriba sigue siendo verdad en pantalla ancha y se queda. En un
+     teléfono sale al revés: la columna de glosas mide 240px clavados, así que
+     el panel entero salía de 253 sobre una pantalla de 412 —seis de cada diez
+     píxeles de ancho— y dentro de esos 253 hay que meter cuatro colores, dos
+     modos, dos acciones, la caja de escribir y la lista de etiquetas. Todo
+     cabía, y todo cabía CHICO: es literalmente lo que se dijo al verlo, «una
+     miniatura de cositas y de botoncitos».
+
+     Lo que se rompe aquí es la igualdad panel = glosa, no la promesa que había
+     detrás. La promesa era que lo que escribes se vea con el ancho con el que
+     se va a leer, y eso lo cumple el RECUADRO —.gl-vista, que es el anticipo—,
+     no el panel que lo rodea. Así que el recuadro se queda clavado al ancho de
+     la glosa y el panel se ensancha por debajo de él: el anticipo sigue
+     partiendo los renglones donde los va a partir la hoja, y los mandos dejan
+     de pelearse por un ancho que no era suyo.
+
+     Se le quita al recuadro en pantalla ancha —style.width a vacío— porque el
+     mismo #menu lo reusa la lista de «citado desde», y un ancho pegado de la
+     vez anterior es de los que se descubren tarde. */
+  const caja = menu.querySelector('.gl-vista');
+  if (enTelefono()){
+    const ancho = Math.min(Math.round(stage.getBoundingClientRect().width * .92), 400);
+    menu.style.width = Math.round(Math.min(ancho, tope)) + 'px';
+    if (caja) caja.style.width = Math.round(Math.min(glosa, tope - pad - bor)) + 'px';
+    return;
+  }
+  if (caja) caja.style.width = '';
+  menu.style.width = Math.round(Math.min(glosa + pad + bor, tope)) + 'px';
 }
 /* EL ANCLA DEL ANTICIPO, con la misma cuenta que glossHTML: la señal de
    aproximación cuando el anclaje no es exacto, y la referencia que le toca.
@@ -9651,8 +9885,13 @@ function cabezaHistorial(){
      estás mirando las que hay.
 
      El rastro se queda con lo suyo: lo que has visto, y cómo volver. */
+  /* Y LA EQUIS, LA MISMA QUE LAS DE LOS DOS PANELES DE LISTAS. El rastro se
+     cerraba tocando fuera o volviendo a tocar el botón que lo abrió, que son
+     las dos maneras que hay que saberse de antes; arriba a la derecha es donde
+     se busca, y ahora está. En su propio renglón, ver spCierreHTML. */
   const atras = pieAtras();
-  return '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span></div>' +
+  return spCierreHTML('rastro', 'lo que has visto') +
+    '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span></div>' +
     (atras ? '<div class="hs-acciones">' + atras + '</div>' : '');
 }
 /* EL PIE, con la puerta a las cintas que ya hay.
@@ -9862,6 +10101,11 @@ $('btnHistorial').addEventListener('click', ev => {
   if (histAbierto) cerrarHistorial(); else abrirHistorial();
 });
 $('historial').addEventListener('click', ev => {
+  if (ev.target.closest('[data-sp-cerrar]')){
+    ev.preventDefault(); ev.stopPropagation();
+    cerrarHistorial();
+    return;
+  }
   /* LA LISTA DE CINTAS, desde el pie. El menú se cuelga del propio botón: se
      cuelga siempre de lo que lo abrió, y aquí lo que lo abrió no es una cinta.
 
@@ -10451,6 +10695,41 @@ const versiculosDe = (libro, cap) => {
    una referencia, o pasar la última hoja— la lista nunca señala el anterior.
    Toca las tres clases y no solo 'aqui' porque son excluyentes: dejar 'viva'
    puesta debajo daría un botón que dice dos cosas. */
+/* Encender y apagar las dos flechas. Se toca el atributo `hidden` y no una
+   clase: un botón oculto con hidden no lo alcanza el tabulador ni lo lee un
+   lector de pantalla, que es lo que hay que conseguir —una flecha apagada no
+   existe—; con display:none haría falta acordarse de eso aparte. */
+function pintarFlechas(){
+  const izq = $('flechaIzq'), der = $('flechaDer');
+  if (izq) izq.hidden = !verFlechas;
+  if (der) der.hidden = !verFlechas;
+  const c = $('chkFlechas');
+  if (c) c.checked = verFlechas;
+}
+/* EL INTERRUPTOR SE ESCUCHA DESDE EL PANEL Y NO DESDE LA CASILLA: la casilla
+   la rehace pintarCanto en cada repintado, así que un oyente pegado a ella se
+   iría con la primera. */
+$('canto').addEventListener('change', ev => {
+  const c = ev.target.closest('#chkFlechas');
+  if (!c) return;
+  verFlechas = c.checked;
+  pintarFlechas();
+  guardarAjustes();
+});
+/* LAS DOS FLECHAS. Pasan la hoja por el mismo camino que el filo y que las
+   teclas —pasarHoja, o sea con pliegue— porque una hoja que aparece sin haber
+   girado no se lee como una hoja que pasa. La altura que se le pasa es la del
+   propio botón: es la que usa cruzarLibro para saber por dónde entra la hoja
+   del libro siguiente, y aquí lo honesto es decir por dónde se tocó. */
+for (const [id, lado] of [['flechaIzq', 'left'], ['flechaDer', 'right']]){
+  const b = $(id);
+  if (!b) continue;
+  b.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    const r = b.getBoundingClientRect();
+    pasarHoja(lado, r.top + r.height / 2);
+  });
+}
 function refrescarLibroActual(){
   document.querySelectorAll('#canto [data-libro]').forEach(b => {
     const vivo = hayLibro(b.dataset.libro), aqui = b.dataset.libro === LIBRO;
@@ -10545,10 +10824,21 @@ function cruzarLibro(s, clientY, sinAnimar){
 }
 
 function pintarCanto(){
-  /* Vacía: el rótulo "Libros" ya está en la pestaña, y repetirlo dos renglones
-     más abajo solo gastaba alto. Esta cabecera se queda para el botón de
-     regreso de la cascada de capítulos. */
-  $('cantoCab').innerHTML = '';
+  /* LA CABECERA YA NO ESTÁ VACÍA: aquí va el interruptor de las flechas.
+
+     Estuvo vacía desde que el rótulo «Libros» se mudó a la pestaña, guardada
+     para un botón de regreso que la cascada de capítulos acabó no usando. El
+     interruptor va AQUÍ y no en Formato porque lo que enciende no es un
+     ajuste de la letra ni del papel: es una manera de MOVERSE por el libro, y
+     éste es el panel de moverse por el libro.
+
+     Va arriba del todo y no al pie de los treinta y nueve libros del Antiguo:
+     un interruptor al final de una lista con desplazamiento es un interruptor
+     que no existe. */
+  $('cantoCab').innerHTML =
+    '<label class="canto-opcion"><input type="checkbox" id="chkFlechas"' +
+    (verFlechas ? ' checked' : '') + ' />' +
+    '<span>ver flechas de pasar página</span></label>';
   const celdas = libros => libros.map(b => {
       const vivo = hayLibro(b.id), aqui = b.id === LIBRO;
       return '<button class="tabo ' + (aqui ? 'aqui' : vivo ? 'viva' : 'muerta') +
@@ -11447,12 +11737,27 @@ const TOPE_PIEDRAS = 300;
    encima, y quien quiera una tiene doce maneras de decir lo mismo sin que la
    aplicación se lo imponga. */
 const FORMAS = ['piedra', 'avion', 'hoja', 'pez', 'paloma', 'espiga', 'uvas',
-                'lampara', 'llave', 'ancla', 'estrella', 'barca', 'llama', 'cinta'];
+                'corona', 'llave', 'ancla', 'estrella', 'barca', 'llama', 'cinta'];
 const FORMA_NOMBRE = {
   piedra:'piedra', avion:'avioncito', hoja:'hoja', pez:'pez', paloma:'paloma',
-  espiga:'espiga', uvas:'uvas', lampara:'lámpara', llave:'llave', ancla:'ancla',
+  espiga:'espiga', uvas:'uvas', corona:'corona', llave:'llave', ancla:'ancla',
   estrella:'estrella', barca:'barca', llama:'llama', cinta:'cinta'
 };
+/* LA LÁMPARA SE FUE Y LA CORONA OCUPA SU SITIO, y las piedras ya puestas no se
+   quedan sin figura por eso. Sin esta línea, piedraSanear no reconocería
+   'lampara' y la devolvería al primer escalón —una piedra lisa— o sea que a
+   quien la había elegido se le cambiaba la marca sin avisar. Aquí se traduce,
+   y la próxima vez que se guarde queda escrita ya como corona.
+
+   POR QUÉ SE FUE: dibujada, la lámpara de aceite es un cuerpo panzudo con
+   asa y pico, y a 24 px eso no se lee como lámpara sino como una CAFETERA. La
+   figura tiene que decir lo que es de un vistazo o no sirve de nada.
+
+   Y POR QUÉ UNA CORONA Y NO UNA CRUZ, teniendo permiso para la cruz: sigue
+   valiendo lo de más arriba —marcar una hoja no es ponerle encima un símbolo
+   de fe—. La corona es de las historias sin ser un credo, tiene silueta propia
+   a 24 px, y no se parece a ninguna de las trece que ya estaban. */
+const FORMA_VIEJA = { lampara:'corona' };
 /* LOS ESCALONES DE TAMAÑO VAN EN FRACCIÓN DEL PAPEL, no en píxeles, y por lo
    mismo que la posición: el papel mide 571 px en una pantalla de 320, 663 en
    una de 412 y 584 en el escritorio —es más ancho que la ventana porque lleva
@@ -11479,13 +11784,40 @@ const PIEDRA_TAM_POR = 2;              /* de salida, chica pero ya visible */
    que son los que se despegan del papel sin gritar. El sepia va el primero
    porque es el de la letra: una piedra recién puesta parece parte de la hoja, y
    el color es algo que se pide, no que se impone. */
+/* Y DEBAJO, LOS MISMOS SEIS PERO VIVOS. Pedido tal cual: otra fila con los
+   mismos colores, más brillantes. No son colores nuevos: es el mismo TONO de
+   cada uno con la saturación subida al 90% y la luz apenas siete puntos, así
+   que la fila de abajo se lee como «éste, pero encendido» y no como otra
+   paleta que hay que aprender.
+
+   SE SUBIÓ LA SATURACIÓN Y NO LA LUZ, y la diferencia importa. Aclarando se
+   llega a lo mismo de otra manera —más brillante— pero sobre papel crema un
+   color aclarado se despinta: pierde el tono y pierde el contraste a la vez.
+   Saturando, el tono se reconoce igual y el contraste cae mucho menos.
+
+   AUN ASÍ CAE, y hay que decirlo: sobre el papel, sepia vivo queda en 2.6:1,
+   oliva vivo en 2.2 y ocre vivo en 2.2, por debajo del 3:1 que se pide para
+   algo que no es letra. No hay manera de esquivarlo —un amarillo brillante
+   sobre crema es poco contraste por física, no por elección— y por eso la
+   fila de arriba se queda entera: quien necesite que se vea de lejos tiene
+   los seis de siempre, entre 3.4 y 7.3.
+
+   Los ids llevan «-vivo» y no un número: en el almacén de una piedra queda
+   escrito el color, y dentro de un año 'carmin-vivo' se entiende y 'carmin2'
+   no. */
 const PIEDRA_TINTAS = [
-  ['sepia',   'sepia',   '#7a6434'],
-  ['carmin',  'carmín',  '#9b2a2a'],
-  ['oliva',   'oliva',   '#4d6a35'],
-  ['indigo',  'índigo',  '#2f4a78'],
-  ['ocre',    'ocre',    '#a4761d'],
-  ['ciruela', 'ciruela', '#6b3a63']
+  ['sepia',        'sepia',         '#7a6434'],
+  ['carmin',       'carmín',        '#9b2a2a'],
+  ['oliva',        'oliva',         '#4d6a35'],
+  ['indigo',       'índigo',        '#2f4a78'],
+  ['ocre',         'ocre',          '#a4761d'],
+  ['ciruela',      'ciruela',       '#6b3a63'],
+  ['sepia-vivo',   'sepia vivo',    '#c2880a'],
+  ['carmin-vivo',  'carmín vivo',   '#d80b0b'],
+  ['oliva-vivo',   'oliva vivo',    '#57b409'],
+  ['indigo-vivo',  'índigo vivo',   '#0a4cbc'],
+  ['ocre-vivo',    'ocre vivo',     '#d4900b'],
+  ['ciruela-vivo', 'ciruela vivo',  '#ba0a9d']
 ];
 const tintaDe = c => PIEDRA_TINTAS.find(t => t[0] === c) || PIEDRA_TINTAS[0];
 /* EL COLOR SE CORRIGE ANTES DE QUE EL FILTRO LO TOQUE.
@@ -11586,7 +11918,8 @@ function piedraSanear(x){
   const r = {
     id: String(x.id), libro: String(x.libro), cap: +x.cap, vers: +x.vers,
     x: enRango(x.x, .5), y: enRango(x.y, .45),
-    forma: FORMAS.includes(x.forma) ? x.forma : FORMAS[0],
+    forma: FORMAS.includes(x.forma) ? x.forma
+           : (FORMA_VIEJA[x.forma] || FORMAS[0]),
     tam: (Number.isInteger(+x.tam) && +x.tam >= 0 && +x.tam < PIEDRA_TAMS.length)
            ? +x.tam : PIEDRA_TAM_POR,
     color: PIEDRA_TINTAS.some(t => t[0] === x.color) ? x.color : PIEDRA_TINTAS[0][0],
@@ -11730,13 +12063,23 @@ const PIEDRA_SVG = {
      ve a cualquier tamaño son cuatro cosas —cuerpo, cabeza redonda, pico y
      cola en abanico— así que solo van ésas, y el ala se insinúa por dentro con
      un aclarado que no toca el contorno. */
+  /* LA PALOMA, REHECHA. La de antes era un cuerpo redondo con una manchita
+     por ala: mirada al tamaño al que se usa —24 px— salía un PAJARITO
+     regordete, que es lo que se dijo al verla. Lo que hace que una paloma se
+     lea como paloma y no como un pájaro cualquiera son cuatro cosas, y las
+     cuatro están puestas aquí: cabeza pequeña y separada del cuerpo, PICO en
+     punta, ala barrida hacia atrás, y cola LARGA. Sin la cola es un gorrión;
+     sin el pico, una mancha.
+     Se dibujó y se miró a 24, 40 y 120 px antes de cambiarla: a 120 se juzga
+     el dibujo, a 24 se juzga si sirve, y las dos cosas hay que verlas. */
   paloma:
-    '<path d="M17.4 5.4c2.4 0 4.3 1.6 4.3 3.7 0 .6-.1 1.1-.4 1.6l1.9.9-2.4 1' +
-    'c-.6 3.4-2.9 5.7-6.4 6.7-2.4.7-4.7.6-6.9-.3l-6.7 2.4 4.3-4.6C3.4 14.9 3 13 3.4 11' +
-    ' 4 8 6.3 6.4 9.9 6.4c1.4 0 2.7.2 3.9.7 1-1.1 2.2-1.7 3.6-1.7z" fill="currentColor"/>' +
-    '<path d="M8.4 9.4c2.4 0 4.3.9 5.7 2.7 1.4 1.8 1.8 3.8 1.1 6-2.4 0-4.3-.9-5.7-2.7' +
-    '-1.4-1.8-1.8-3.8-1.1-6z" fill="#fff" fill-opacity=".3"/>' +
-    '<circle cx="18.4" cy="8.4" r="1" fill="#fff" fill-opacity=".85"/>',
+    '<circle cx="18.2" cy="5.4" r="2.5" fill="currentColor"/>' +
+    '<path d="M20.4 4.1 24 5.4 20.4 6.7z" fill="currentColor"/>' +
+    '<path d="M17.1 7.4c1.4 2.1 1.3 4.5-.3 7.1-1.7 2.9-4.5 4.9-8.4 6.1l-5.6 1.6' +
+    'c-.8.2-1.4-.8-.7-1.3l4.6-3.2-4.3-.4c-.9-.1-1.1-1.3-.2-1.6l5-1.8c2.8-1 4.8-2.3 6.3-4' +
+    ' .8-.8 1.7-1.7 3.1-2.6z" fill="currentColor"/>' +
+    '<path d="M15.1 8.5c0 3.1-1.3 5.5-3.7 7.3-1.5-2.9-1-5.5 1.5-7.9z" fill="#fff"' +
+    ' fill-opacity=".33"/>',
   espiga:
     '<path d="M11.3 22.3V9.9" fill="none" stroke="currentColor" stroke-width="2"' +
     ' stroke-linecap="round"/>' +
@@ -11779,18 +12122,16 @@ const PIEDRA_SVG = {
      sale la mecha, y tiene que ser largo y afilado —tan largo como medio
      cuerpo— o se lee como un pico de jarra. El asa de aro, al otro lado, cierra
      la lectura. */
-  lampara:
-    '<path d="M7.4 9.9h8.2c2.6 0 4.4 1.7 4.4 4 0 2.6-2.4 4.6-5.6 4.6H8.6c-3.2 0-5.6-2-5.6-4.6' +
-    ' 0-2.3 1.8-4 4.4-4z" fill="currentColor"/>' +
-    '<path d="M7 11.6 1.1 8.4c-.7-.4-.4-1.4.4-1.4l6.4.4z" fill="currentColor"/>' +
-    '<path d="M18.9 10.9c2.6-.9 4.4 0 4.4 2.1 0 1.9-1.3 3.4-3.6 4.4" fill="none"' +
-    ' stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>' +
-    '<path d="M11.4 9.6V6.1" fill="none" stroke="currentColor" stroke-width="1.8"' +
-    ' stroke-linecap="round"/>' +
-    '<path d="M11.4 6.4c1.6-1.4 2.4-2.9 2.4-4.4-2.9.7-4.4 2.2-4.4 4.4z"' +
-    ' fill="currentColor"/>' +
-    '<path d="M7.6 14.4c1.6-.8 3.4-1.2 5.4-1.2" fill="none" stroke="#fff"' +
-    ' stroke-opacity=".33" stroke-width="1.3" stroke-linecap="round"/>',
+  /* LA CORONA, EN EL SITIO DE LA LÁMPARA. Tres picos, tres valles y una banda
+     debajo: es la silueta que sigue leyéndose a 24 px cuando ya no se
+     distingue ni un solo detalle de dentro. La banda va SEPARADA del cuerpo
+     —un hueco de papel entre las dos— porque pegada se convierte en un
+     pentágono con la punta rota; separada, el ojo lee dos piezas y entiende
+     que una es el aro. Por qué la lámpara se fue está en FORMA_VIEJA. */
+  corona:
+    '<path d="M2.6 6.8c-.8-.4-1.7.4-1.4 1.3l3 10h13.6l3-10c.3-.9-.6-1.7-1.4-1.3' +
+    'l-4.8 2.7-3.3-5.8c-.4-.8-1.5-.8-1.9 0L6.1 9.5z" fill="currentColor"/>' +
+    '<path d="M4.2 19.6h15.6v2.8H4.2z" fill="currentColor"/>',
   llave:
     '<circle cx="6.9" cy="6.9" r="5" fill="currentColor"/>' +
     '<circle cx="6.9" cy="6.9" r="1.9" fill="#fff" fill-opacity=".85"/>' +
@@ -13089,6 +13430,21 @@ const spCerrarHTML = (acc, que) =>
   '<button type="button" class="sp-x" data-sp-cerrar="' + acc + '"' +
     ' title="Cerrar" aria-label="Cerrar ' + que + '">' +
     '<span aria-hidden="true">\u00d7</span></button>';
+/* Y LA EQUIS EN SU PROPIO RENGLÓN, que es lo que le deja el filo derecho
+   libre al botón de «Nueva».
+
+   Estaba pegada a la esquina en absoluto, o sea flotando por encima del
+   renglón del rótulo, y ese renglón tenía que reservarle 32px de relleno a la
+   derecha para no quedar debajo: «Nueva» terminaba a un dedo del borde y el
+   panel se leía descuadrado. En su propio renglón la equis no le quita sitio a
+   nadie, «Nueva» llega hasta el filo, y la equis sigue estando donde se la
+   busca —arriba a la derecha—, que es lo que importaba.
+
+   El mando de la piedra NO usa esto: allí la equis comparte renglón con el
+   rótulo «Esta piedra» y en absoluto está bien, porque allí no hay ningún
+   botón peleando por la esquina. */
+const spCierreHTML = (acc, que) =>
+  '<div class="sp-cierre">' + spCerrarHTML(acc, que) + '</div>';
 /* EL TECLADO TAPA JUSTO LO QUE SE ESTÁ ESCRIBIENDO.
 
    Los dos paneles se cuelgan de lo que los abrió y ahí se quedan. En un
@@ -13201,14 +13557,14 @@ const piedraNuevaHTML = () =>
 function pintarPiedraMenu(){
   const el = $('piedraMenu');
   if (!piedras.length){
-    el.innerHTML = spCerrarHTML('piedras', 'la lista de piedras') +
+    el.innerHTML = spCierreHTML('piedras', 'la lista de piedras') +
        '<div class="sp-cabeza"><span class="sp-tit">Tus piedras</span>' +
        piedraNuevaHTML() + '</div>' +
       '<p class="sp-vacio">Todavía no has dejado ninguna. El botón de arriba' +
       ' deja una en la hoja que estés leyendo.</p>';
     return;
   }
-  el.innerHTML = spCerrarHTML('piedras', 'la lista de piedras') +
+  el.innerHTML = spCierreHTML('piedras', 'la lista de piedras') +
     '<div class="sp-cabeza"><span class="sp-tit">Tus piedras</span>' +
     piedraNuevaHTML() + '</div>' +
     piedras.map(x => filaHTML({
@@ -13503,7 +13859,7 @@ function pintarSepMenu(){
      filaHTML— que es donde tiene que estar: al lado de lo que se va a borrar,
      y no en un sitio desde el que hay que acordarse de a cuál se refería. */
   $('sepMenu').innerHTML =
-    spCerrarHTML('cintas', 'el panel de cintas') +
+    spCierreHTML('cintas', 'el panel de cintas') +
     /* Las telas sólo si se vino de una cinta: en modo lista no hay «esta
        cinta» cuyo color cambiar, y enseñar la paleta apuntando a ninguna
        sería ofrecer un mando que no manda nada. */
@@ -14529,6 +14885,7 @@ function guardarAjustes(){
     localStorage.setItem(AJUSTES, JSON.stringify({
       v: 1, fontSize, fontSizeGlosa, columns, placement, alineacion,
       interlineado, margen, version, showMarks, sepia, contraste, brillo,
+      verFlechas,
       fuente: FUENTES.findIndex(f => f[1] === fuente),
       libro: LIBRO, cap: aqui.cap, vers: aqui.vers,
       /* LA ÚLTIMA ETIQUETA USADA SE GUARDA, y ya no decide nada: solo sale
@@ -14578,6 +14935,9 @@ function cargarAjustes(){
   if (AIRES.some(x => x[1] === a.interlineado)) interlineado = a.interlineado;
   if (MARGENES[a.margen]) margen = a.margen;
   showMarks = a.showMarks !== false;
+  /* === y no !==: apagadas es lo de fábrica, así que solo un true escrito las
+     enciende. Un ajuste viejo sin la clave se comporta como hasta ahora. */
+  verFlechas = a.verFlechas === true;
   /* Se acepta cualquier texto porque las etiquetas las escribe quien usa la
      aplicación y no hay lista cerrada que consultar; solo se rechaza lo que no
      es texto y lo desmedido, que sería un archivo manoseado y no una etiqueta.
@@ -14850,6 +15210,9 @@ stage.style.width = ANCHO_HOJA + 'px';
 void stage.offsetWidth;
 stage.style.transition = '';
 reflejarControles();
+/* Las flechas leen su interruptor al arrancar: sin esto, quien las dejó
+   encendidas ayer abría hoy sin ellas hasta tocar el panel de Libros. */
+pintarFlechas();
 rehacerPlano();
 sizeCanvas();
 $('cred').textContent = D.versiones[version].nombre + ' — ' + D.versiones[version].licencia + ' · vía eBible.org';

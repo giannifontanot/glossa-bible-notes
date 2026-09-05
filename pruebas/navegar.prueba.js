@@ -13,7 +13,7 @@
       de dónde, el historial contaba tres destinos sueltos sin el hilo que los
       unía; y el paso atrás no se apunta, porque apuntarlo lo convertiría en un
       columpio entre dos escrituras. */
-const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, cerrarParcial, conGlosas, di, vale, titulo } = require('./comun');
 
 const RASTRO = () => JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]')
   .map(h => h.libro + ' ' + h.cap + ':' + h.vers);
@@ -617,6 +617,129 @@ const ATERRIZA = 7000;
     vale('  y no apunta el regreso', r.guardadas === 7, r.guardadas);
     return r;
   }));
+
+  /* ================================================================
+     LAS DOS FLECHAS DE PASAR HOJA.
+
+     La hoja se pasa desde hace tiempo de tres maneras —tocar el filo,
+     arrastrar el papel, las flechas del teclado— y ninguna de las tres se ve.
+     Quien no las conoce se queda sin pasar hoja. Se pidieron dos flechas a
+     media altura, transparentes para no estorbar la lectura, y encendidas por
+     un interruptor en LIBROS: dos discos encima del texto son la respuesta
+     para quien no conoce los gestos y un estorbo para quien sí.
+
+     Lo que se prueba, en este orden, es la cadena entera: que NACEN APAGADAS
+     —si nacieran encendidas, el interruptor sería un adorno—, que la casilla
+     las enciende, que pasan la hoja de verdad, y que el ajuste sobrevive a
+     recargar. Las cuatro cosas se rompen por separado.
+
+     Y se mide dónde caen contra la ESCENA, no contra píxeles escritos: «a
+     media altura» tiene que seguir siendo verdad en cualquier pantalla, y una
+     coordenada fija se queda vieja sola. */
+  titulo('las flechas de pasar hoja');
+  const fl = await abrir();
+  const pf = fl.pagina;
+  const flechas = await pf.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    /* SE PREGUNTA POR LO QUE SE VE, NO POR EL ATRIBUTO, y esto es una lección
+       pagada: la primera versión de esta prueba miraba `.hidden` y daba verde
+       con las dos flechas pintadas en la pantalla. El atributo estaba puesto;
+       lo que no estaba era el display:none, porque el display:grid de la clase
+       —hoja del autor— le gana al de la hoja del navegador. El atributo dice
+       la intención; el display dice la verdad. Se miran los dos. */
+    const oculta = id => { const e = document.getElementById(id);
+      return e.hidden && getComputedStyle(e).display === 'none' &&
+             e.getBoundingClientRect().height === 0; };
+    const seVe = id => { const e = document.getElementById(id);
+      return !e.hidden && e.getBoundingClientRect().height > 8; };
+    const nacen = { izq: oculta('flechaIzq'), der: oculta('flechaDer') };
+    /* El interruptor vive en LIBROS, que es el panel de moverse por el libro. */
+    document.getElementById('pgCabeza').click(); await pausa(700);
+    const pest = [...document.querySelectorAll('.pestanas button')]
+                   .find(b => /libros/i.test(b.textContent));
+    if (pest) pest.click();
+    await pausa(700);
+    const chk = document.getElementById('chkFlechas');
+    if (!chk) return { nacen, sinCasilla:true };
+    const rotulo = chk.closest('label').textContent.trim();
+    const blanco = Math.round(chk.closest('label').getBoundingClientRect().height);
+    chk.click(); await pausa(500);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await pausa(700);
+    const st = document.querySelector('.stage').getBoundingClientRect();
+    const ri = document.getElementById('flechaIzq').getBoundingClientRect();
+    const rd = document.getElementById('flechaDer').getBoundingClientRect();
+    return { nacen, rotulo, blanco,
+             encendidas: { izq: seVe('flechaIzq'), der: seVe('flechaDer') },
+             mitad: Math.round(st.top + st.height/2),
+             centroIzq: Math.round(ri.top + ri.height/2),
+             /* Una a cada lado, y las dos dentro de la escena. */
+             izqAlaIzquierda: ri.left - st.left < st.width/2,
+             derAlaDerecha: rd.right > st.left + st.width/2,
+             dentro: ri.left >= st.left && rd.right <= st.right,
+             /* Transparentes: se ven cuando las buscas y no cuando lees. */
+             fondo: getComputedStyle(document.getElementById('flechaIzq')).backgroundColor,
+             lado: Math.round(ri.width),
+             guardado: JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}').verFlechas };
+  });
+  di('las flechas', flechas);
+  vale('la casilla está en LIBROS y dice lo que hace',
+       !flechas.sinCasilla && /ver flechas de pasar p/i.test(flechas.rotulo || ''),
+       flechas.sinCasilla ? 'no hay casilla' : flechas.rotulo);
+  vale('  con blanco de toque de dedo', flechas.blanco >= 44, flechas.blanco);
+  vale('NACEN APAGADAS', flechas.nacen.izq === true && flechas.nacen.der === true, flechas.nacen);
+  vale('y la casilla las enciende, y entonces SE VEN',
+       flechas.encendidas && flechas.encendidas.izq === true &&
+       flechas.encendidas.der === true, flechas.encendidas);
+  vale('una a cada lado, a media altura y dentro de la escena',
+       flechas.izqAlaIzquierda && flechas.derAlaDerecha && flechas.dentro &&
+       Math.abs(flechas.mitad - flechas.centroIzq) <= 3,
+       flechas.mitad + ' contra ' + flechas.centroIzq);
+  vale('  de 44 px o más', flechas.lado >= 44, flechas.lado);
+  /* TRANSPARENTES DE VERDAD: se pidió que no molestaran el texto de abajo, así
+     que el fondo tiene que dejar pasar. Se mira la alfa del color calculado,
+     que es lo único que de verdad lo dice. */
+  const alfa = (flechas.fondo || '').match(/rgba?\([^)]*?,\s*([\d.]+)\)/);
+  vale('  y el disco deja ver el texto de debajo',
+       !!alfa && parseFloat(alfa[1]) < .35, flechas.fondo);
+  const pasa = await pf.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const hoja = () => document.getElementById('pgCabeza').textContent.trim();
+    const antes = hoja();
+    const b = document.getElementById('flechaDer');
+    const r = b.getBoundingClientRect();
+    const op = { bubbles:true, cancelable:true, pointerId:640, pointerType:'touch',
+                 isPrimary:true, clientX: Math.round(r.left + r.width/2),
+                 clientY: Math.round(r.top + r.height/2) };
+    b.dispatchEvent(new PointerEvent('pointerdown', op)); await pausa(40);
+    b.dispatchEvent(new PointerEvent('pointerup', op));
+    b.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, op)));
+    await pausa(2800);
+    const media = hoja();
+    const i = document.getElementById('flechaIzq');
+    const ri = i.getBoundingClientRect();
+    const op2 = { bubbles:true, cancelable:true, pointerId:641, pointerType:'touch',
+                  isPrimary:true, clientX: Math.round(ri.left + ri.width/2),
+                  clientY: Math.round(ri.top + ri.height/2) };
+    i.dispatchEvent(new PointerEvent('pointerdown', op2)); await pausa(40);
+    i.dispatchEvent(new PointerEvent('pointerup', op2));
+    i.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, op2)));
+    await pausa(2800);
+    return { antes, media, vuelta: hoja() };
+  });
+  di('pasar con las flechas', pasa);
+  vale('LA DERECHA PASA LA HOJA', pasa.antes !== pasa.media, pasa.antes + ' → ' + pasa.media);
+  vale('  Y LA IZQUIERDA VUELVE', pasa.vuelta === pasa.antes, pasa.media + ' → ' + pasa.vuelta);
+  vale('el ajuste se guarda', flechas.guardado === true, flechas.guardado);
+  await pf.reload();
+  await pf.waitForTimeout(600);
+  const tras = await pf.evaluate(() => {
+    const alto = id => Math.round(document.getElementById(id).getBoundingClientRect().height);
+    return { izq: alto('flechaIzq'), der: alto('flechaDer') };
+  });
+  di('tras recargar', tras);
+  vale('  y sobrevive a recargar', tras.izq > 8 && tras.der > 8, tras);
+  await cerrarParcial(fl, 'las flechas');
 
   await cerrar(sesion);
 })();
