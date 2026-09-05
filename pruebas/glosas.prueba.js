@@ -1849,7 +1849,10 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       enLaLista: !!ind && ind.textContent.includes(nota),
       panelPuesto: document.getElementById('etiquetas').classList.contains('abierto'),
       chips: [...document.querySelectorAll('#etiquetas .chip.sel')].map(c => c.textContent.trim()),
-      aviso: document.getElementById('readout').textContent || ''
+      aviso: document.getElementById('readout').textContent || '',
+      /* Escrito y ENSEÑADO son ya dos cosas distintas: ver el bloque del
+         final, «el único aviso que sale». */
+      avisoSeVe: document.getElementById('readout').classList.contains('viva')
     };
   }, nota);
 
@@ -1900,7 +1903,13 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   vale('SE VE EN LA HOJA, que es lo que fallaba', r.enLaHoja === true);
   vale('el filtro que la escondía se quitó',
        !r.chips.some(c => /estudio/.test(c)), r.chips);
-  vale('y se dice por qué', /escond/i.test(r.aviso), r.aviso);
+  /* LA RAZÓN SE ESCRIBE PERO YA NO SE ENSEÑA. Esto decía «y se dice por qué»
+     y comprobaba solo el texto; el texto sigue ahí —el aviso se escribe igual
+     y se va a la consola— pero el cartel no sale. De los veintitrés avisos
+     que había, sale uno: el de la marca que cruza de versículo, que es el
+     único que cuenta algo que no se ve solo. Está probado al final. */
+  vale('la razón queda escrita', /escond/i.test(r.aviso), r.aviso);
+  vale('pero el cartel NO sale', r.avisoSeVe === false, r.avisoSeVe);
   await alPanelDeGlosas();
   const enLista = await q.evaluate(() =>
     (document.getElementById('indice').textContent || '').includes('la nueva sin etiqueta'));
@@ -2059,6 +2068,69 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        Math.abs(tras.puesta - tras.natural) <= 1,
        tras.puesta + ' px puestos contra ' + tras.natural + ' de verdad');
   await cerrarParcial(etiq, 'la lista de etiquetas');
+
+  /* ================================================================
+     EL ÚNICO AVISO QUE SALE.
+
+     Se pidió que no apareciera ningún cartel abajo salvo uno: el de la marca
+     que no puede cruzar de versículo. Y tiene su razón de ser: en ese gesto
+     sueltas el dedo y NO PASA NADA —no se abre el panel, no queda marca—, así
+     que sin el cartel no hay manera de saber por qué. Los otros veintidós
+     contaban lo que acababas de ver hacerse.
+
+     Se prueban los dos lados, que es lo que hace que la prueba valga: el que
+     sale y uno de los que se callan. Comprobar solo que uno sale pasaría
+     igual con el filtro quitado. */
+  titulo('el único aviso que sale');
+  await p.reload();
+  const avisos = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const ro = document.getElementById('readout');
+    const texto = e => { const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
+      while (w.nextNode()) if (w.currentNode.textContent.trim().length > 20) return w.currentNode;
+      return null; };
+    /* LA SELECCIÓN QUE CRUZA, hecha como se hace: empieza en el texto de un
+       versículo y termina en el del siguiente, y se suelta el dedo. */
+    const vs = [...document.querySelectorAll('#pgBody .v')];
+    if (vs.length < 2) return { versiculos: vs.length };
+    const a = texto(vs[0]), b = texto(vs[1]);
+    if (!a || !b) return { sinTexto:true };
+    const rg = document.createRange(); rg.setStart(a, 3); rg.setEnd(b, 10);
+    getSelection().removeAllRanges(); getSelection().addRange(rg);
+    const rc = rg.getBoundingClientRect();
+    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+      { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
+    await pausa(700);
+    const cruza = { dice: ro.textContent, sale: ro.classList.contains('viva'),
+                    opacidad: getComputedStyle(ro).opacity,
+                    panel: document.getElementById('menu').classList.contains('abierto') };
+    /* Y UNO DE LOS QUE SE CALLAN, por el mismo embudo: una marca normal
+       dentro de un solo versículo, que antes anunciaba «marca puesta». */
+    getSelection().removeAllRanges();
+    const r2 = document.createRange(); r2.setStart(a, 4); r2.setEnd(a, 18);
+    getSelection().removeAllRanges(); getSelection().addRange(r2);
+    const rc2 = r2.getBoundingClientRect();
+    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+      { bubbles:true, clientX:Math.round(rc2.left+2), clientY:Math.round(rc2.top+2) }));
+    await pausa(900);
+    const ta = document.getElementById('glosaCaja');
+    if (ta){ ta.value = 'una nota cualquiera'; ta.dispatchEvent(new Event('input', { bubbles:true })); }
+    await pausa(300);
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, clientX:5, clientY:5 }));
+    await pausa(900);
+    return { cruza, normal: { dice: ro.textContent, sale: ro.classList.contains('viva'),
+                              opacidad: getComputedStyle(ro).opacity } };
+  });
+  di('el que cruza', avisos.cruza);
+  di('el de siempre', avisos.normal);
+  vale('el de cruzar de versículo SALE',
+       !!avisos.cruza && avisos.cruza.sale === true && +avisos.cruza.opacidad > .9,
+       avisos.cruza);
+  vale('y dice lo suyo', !!avisos.cruza && /no puede cruzar de vers/i.test(avisos.cruza.dice),
+       avisos.cruza && avisos.cruza.dice);
+  vale('CONTROL: el aviso de una marca normal se calla',
+       !!avisos.normal && avisos.normal.sale === false && +avisos.normal.opacidad < .1,
+       avisos.normal);
 
   await cerrar(sesion);
 })();

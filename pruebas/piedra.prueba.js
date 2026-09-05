@@ -143,6 +143,24 @@ async function andamio(p){
                       m.querySelector('.pm-tinta.on').dataset.piedraColor,
                contador: (m.querySelector('.pm-tam') || {}).textContent,
                campo: !!m.querySelector('[data-piedra-nombre]'),
+               /* EL ASPA Y LOS DOS DE TAMAÑO, medidos. Ver el bloque «la
+                  salida y los dos botones que más se tocan». */
+               aspa: (() => { const x = m.querySelector('[data-sp-cerrar]');
+                 if (!x) return null;
+                 const rx = x.getBoundingClientRect();
+                 return { arriba: Math.round(rx.top - r.top),
+                          derecha: Math.round(r.right - rx.right),
+                          lado: Math.round(rx.width) }; })(),
+               quitar: !!m.querySelector('[data-piedra-acc="quitar"]'),
+               tamanos: [...m.querySelectorAll('.pm-btn')].map(b => {
+                 const rb = b.getBoundingClientRect();
+                 return { acc: b.dataset.piedraAcc, lado: Math.round(rb.width),
+                          alto: Math.round(rb.height),
+                          centro: Math.round(rb.left + rb.width/2) }; }),
+               piePie: (() => { const pie = m.querySelector('.pm-pie');
+                 if (!pie) return null;
+                 const rp = pie.getBoundingClientRect();
+                 return { centro: Math.round(rp.left + rp.width/2) }; })(),
                cabe: r.top >= st.top - 1 && r.bottom <= st.bottom + 1 &&
                      r.left >= st.left - 1 && r.right <= st.right + 1 };
     };
@@ -424,6 +442,54 @@ async function andamio(p){
   const fuera = await p.evaluate(() =>
     !document.getElementById('pg').contains(document.getElementById('piedraMando')));
   vale('EL MANDO CUELGA DE LA ESCENA, no del papel', fuera === true);
+
+  /* ----------------------------------------------------------------
+     LA SALIDA Y LOS DOS BOTONES QUE MÁS SE TOCAN.
+
+     El pie del mando era cuatro cosas en fila —menos, la cuenta, más, y una
+     equis de QUITAR— y tenía dos problemas a la vez: con la equis al final el
+     grupo quedaba descentrado, y el botón que borra sin preguntar compartía
+     sitio con los dos que se usan a tientas todo el rato. Se pidió lo que
+     había que pedir: la equis a la esquina de arriba a la derecha, como en las
+     otras cajitas, y los de tamaño más grandes y centrados.
+
+     Se comprueban las tres cosas y la cuarta que las sostiene: que el aspa
+     CIERRE. Un aspa que se ve y no cierra es peor que no ponerla, y este panel
+     no pasa por el oyente que atiende las de los dos paneles de listas: su
+     cierre se escribió aparte y por eso se prueba aparte.
+
+     44 PX, y el número no es de gusto: es la medida de pulgar que ya usan los
+     botones del panel de la glosa. A 30 se fallaba, y ajustar el tamaño de una
+     piedra es subir y bajar mirando la hoja, no el botón. */
+  titulo('el mando: la salida arriba y los de tamaño, grandes y centrados');
+  const remate = await p.evaluate(async () => {
+    const antes = window.__elMando();
+    await window.__toque('#piedraMando [data-sp-cerrar]');
+    await window.__pausa(500);
+    return { antes, cerrado: !window.__elMando().visible, editando: window.__editando() };
+  });
+  di('el mando por dentro', remate.antes);
+  vale('el aspa está en la esquina de arriba a la derecha',
+       !!remate.antes.aspa && remate.antes.aspa.arriba <= 6 && remate.antes.aspa.derecha <= 6,
+       remate.antes.aspa);
+  vale('  y con blanco de toque de 30 px o más',
+       !!remate.antes.aspa && remate.antes.aspa.lado >= 30, remate.antes.aspa);
+  vale('Y CIERRA EL MANDO', remate.cerrado === true && remate.editando === false, remate);
+  vale('ya no hay botón de quitar en el mando', remate.antes.quitar === false,
+       'borrar se pide en la lista, y allí pregunta');
+  vale('los dos de tamaño miden 44 px o más',
+       remate.antes.tamanos.length === 2 &&
+       remate.antes.tamanos.every(b => b.lado >= 44 && b.alto >= 44),
+       remate.antes.tamanos);
+  /* CENTRADOS DE VERDAD: el centro del grupo contra el centro del pie. Se mira
+     el punto medio entre los dos botones y no cada uno por su lado, que es lo
+     que de verdad se ve torcido. Dos píxeles de holgura por el redondeo. */
+  vale('y quedan centrados en el pie',
+       remate.antes.tamanos.length === 2 && !!remate.antes.piePie &&
+       Math.abs((remate.antes.tamanos[0].centro + remate.antes.tamanos[1].centro) / 2 -
+                remate.antes.piePie.centro) <= 2,
+       remate.antes.tamanos.map(b => b.centro) + ' contra ' +
+       (remate.antes.piePie && remate.antes.piePie.centro));
   /* ---------------------------------------------------------------- */
   /* NOMBRAR DESDE LA LISTA, que es el ÚNICO sitio donde se nombra. El campo
      del mando se quitó: el nombre ya no se pinta sobre la hoja, así que
@@ -437,7 +503,19 @@ async function andamio(p){
     await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
     const f = document.querySelector('#piedraMenu [data-piedra-ir]');
     if (!f) return { sinFila:true };
+    /* EL PANEL SE SUBE SOLO CUANDO EL TECLADO LO TAPA, y aquí no hay teclado:
+       en un navegador sin pantalla no lo hay, y visualViewport no encoge por
+       su cuenta. Lo que sí se puede exigir —y es lo que se rompería primero si
+       alguien enreda la cuenta— es que sin teclado NO se escriba --sube y el
+       panel siga anclado por abajo donde estaba. Crecer sí crece: la fila
+       abierta ocupa más y colocarPiedraMenu lo recoloca; por eso se mira el
+       BORDE DE ABAJO y no el de arriba. */
+    const cajaAntes = document.getElementById('piedraMenu').getBoundingClientRect();
     if (!await window.__abrirFila(f.dataset.piedraIr)) return { noAbre:true };
+    const cajaTras = document.getElementById('piedraMenu').getBoundingClientRect();
+    const teclado = { sube: document.getElementById('piedraMenu').style.getPropertyValue('--sube'),
+                      pieAntes: Math.round(cajaAntes.bottom),
+                      pieTras: Math.round(cajaTras.bottom) };
     const campo = document.querySelector('#piedraMenu [data-piedra-nombre]');
     if (!campo) return { sinCampo:true };
     const conFoco = document.activeElement === campo;
@@ -445,7 +523,7 @@ async function andamio(p){
     campo.dispatchEvent(new KeyboardEvent('keydown',
       { key:'Enter', bubbles:true, cancelable:true }));
     await window.__pausa(500);
-    return { conFoco, guardado: window.__guardadas()[0].nombre,
+    return { conFoco, teclado, guardado: window.__guardadas()[0].nombre,
              fila: (document.querySelector('#piedraMenu .sp-ref') || {}).textContent,
              cerroElCampo: !document.querySelector('#piedraMenu [data-piedra-nombre]') };
   });
@@ -455,6 +533,10 @@ async function andamio(p){
   vale('Intro guarda el nombre', lapiz.guardado === 'la del monte', lapiz.guardado);
   vale('  y la fila lo enseña', /la del monte/.test(lapiz.fila || ''), lapiz.fila);
   vale('  y el campo se cierra', lapiz.cerroElCampo === true);
+  di('el desplazamiento del teclado', lapiz.teclado);
+  vale('SIN TECLADO el panel no se desplaza',
+       !!lapiz.teclado && lapiz.teclado.sube === '' &&
+       lapiz.teclado.pieAntes === lapiz.teclado.pieTras, lapiz.teclado);
 
   /* El nombre se lee de lapiz.guardado y no escrito a mano: ésta ya se
      descolgó una vez, cuando el bloque de arriba cambió el nombre y aquí se
