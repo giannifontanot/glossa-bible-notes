@@ -1154,7 +1154,7 @@
             transform-origin:top left;
             transition:opacity .2s ease, transform .28s cubic-bezier(.2,.85,.3,1); }
   #sepMenu::-webkit-scrollbar{ width:0; height:0; display:none; }
-  #sepMenu.visible{ opacity:1; transform:none; }
+  #sepMenu.visible{ opacity:1; transform:translateY(var(--sube, 0px)); }
   .sp-tit{ display:block; font:700 10.5px/1 var(--ui); letter-spacing:.14em;
            text-transform:uppercase; color:#8a7746; padding:3px 3px 7px; }
   /* LA PUERTA DE SALIDA, DICHA — la misma que la ventanita y por lo mismo.
@@ -1170,9 +1170,15 @@
      el rótulo se aparta con su propio padding derecho. Blanco de toque de
      30px, 34 en pantalla chica, como el de la ventanita. */
   #sepMenu, #piedraMenu{ position:relative; }
-  .sp-x{ position:absolute; top:2px; right:2px; z-index:2;
-         display:inline-flex; align-items:center; justify-content:center;
-         width:30px; height:30px; padding:0;
+  /* PEGADA A LA ESQUINA, Y NO CENTRADA EN SU BLANCO DE TOQUE. Pedido mirando
+     los dos paneles: el aspa se veía baja. Y lo estaba: el blanco mide 30px y
+     el aspa iba en su centro, así que entre el borde del panel y el signo
+     había quince píxeles de nada. Ahora el blanco arranca en la esquina (0,0)
+     y el signo se apoya en su borde de arriba; el blanco sigue midiendo los
+     mismos 30px, que es lo que se toca. */
+  .sp-x{ position:absolute; top:0; right:0; z-index:2;
+         display:inline-flex; align-items:flex-start; justify-content:center;
+         width:30px; height:30px; padding:3px 0 0;
          border:0; background:transparent; color:#8a7746;
          font:400 20px/1 var(--ui); cursor:pointer;
          -webkit-tap-highlight-color:transparent;
@@ -1446,6 +1452,12 @@
   /* EL MANDO DE LA PIEDRA EN EDICIÓN. Se viste como el menú de la cinta —es la
      misma clase de panel— pero con parrilla dentro: trece formas y seis
      colores no caben en una fila de botones. */
+  /* EL RÓTULO DE ARRIBA ES LO QUE LE HACE SITIO AL ASPA. Sin nada ahí, el aspa
+     —que va en la esquina, por encima de todo— caía sobre la última figura de
+     la primera fila y le robaba la esquina al toque. Se podía dejar la banda
+     vacía; queda un hueco que parece un fallo. Con el rótulo puesto la banda
+     tiene razón de ser y el panel se lee como sus dos hermanos, que también
+     dicen de qué son. */
   #piedraMando{ position:absolute; z-index:9; width:min(268px, calc(100% - 16px));
                 display:none; flex-direction:column; gap:7px;
                 background:linear-gradient(to bottom, #f2e9d6, #e7dbbe);
@@ -1459,6 +1471,7 @@
   /* SIETE POR FILA, para que las trece quepan en dos renglones cortos: con
      seis salían tres renglones y el panel se hacía más alto que la mitad de un
      teléfono, que es cuando empieza a tapar la hoja que se está mirando. */
+  #piedraMando .sp-tit{ padding:2px 32px 3px 3px; }
   .pm-formas{ display:grid; grid-template-columns:repeat(7, 1fr); gap:3px; }
   .pm-forma{ aspect-ratio:1; display:grid; place-items:center; padding:2px;
              color:#6d5a2c; background:rgba(140,116,68,.10);
@@ -1478,18 +1491,31 @@
              -webkit-tap-highlight-color:transparent; }
   .pm-tinta.on{ box-shadow:0 0 0 2px #f2e9d6, 0 0 0 3.5px rgba(184,137,43,.95); }
   .pm-tinta:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; }
-  .pm-pie{ display:flex; align-items:center; gap:5px; }
-  .pm-tam{ flex:0 0 auto; min-width:26px; text-align:center;
-           font:600 11px/1 var(--ui); color:#6d5a2c;
+  /* EL PIE DEL MANDO: MENOS, CUÁNTO, MÁS. Y centrado.
+
+     Eran cuatro cosas en fila —menos, la cuenta, más, y la equis de quitar— y
+     con la equis al final el grupo quedaba descentrado y los dos botones que
+     se usan todo el rato compartían sitio con el que no se usa casi nunca y no
+     se deshace. La equis se fue a la esquina de arriba a la derecha, que es
+     donde ya está en la ventanita del versículo y en los dos paneles de
+     listas: quien busca cerrar mira ahí.
+
+     Y CRECEN de 30 a 44 px, que es la medida del pulgar y la que ya usan los
+     botones de abajo del panel de la glosa. Son los dos botones que más se
+     tocan de este panel —el tamaño se ajusta a tientas, subiendo y bajando
+     hasta que se ve bien— y a 30 px se fallaba. */
+  .pm-pie{ display:flex; align-items:center; justify-content:center; gap:10px; }
+  .pm-tam{ flex:0 0 auto; min-width:34px; text-align:center;
+           font:600 13px/1 var(--ui); color:#6d5a2c;
            font-variant-numeric:tabular-nums; }
-  .pm-btn{ width:30px; height:30px; display:grid; place-items:center; padding:0;
+  .pm-btn{ width:44px; height:44px; display:grid; place-items:center; padding:0;
            color:#6d5a2c; background:rgba(140,116,68,.12);
            border:1px solid rgba(140,116,68,.35); border-radius:50%;
            cursor:pointer; -webkit-tap-highlight-color:transparent; }
   .pm-btn:hover{ background:rgba(140,116,68,.28); color:#4d3f1d; }
   .pm-btn:disabled{ opacity:.3; cursor:default; }
   .pm-btn:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
-  .pm-btn svg{ display:block; width:12px; height:12px; }
+  .pm-btn svg{ display:block; width:17px; height:17px; }
   /* El manojo de formas del botón del pie, como el de las telas. */
   .hs-formas{ flex:0 0 auto; display:inline-flex; align-items:center; gap:3px; }
   /* El color va escrito en cada figura (ver pieSeparadores), así que aquí NO
@@ -1502,10 +1528,9 @@
   @media (prefers-reduced-motion: reduce){
     .piedra-sitio.editando::before{ animation:none; }
   }
-  @media (pointer:coarse){
-    .pm-btn{ width:38px; height:38px; }
-    .pm-btn svg{ width:14px; height:14px; }
-  }
+  /* AQUÍ HUBO UN «con el dedo, más chicos» —38px— y era de cuando la medida
+     de casa eran 30. Al subir a 44 esta regla quedó del revés: encogía justo
+     en la pantalla donde se toca con el pulgar. Fuera. */
 
   /* EL PIE DEL RASTRO. Va al final y no arriba porque no compite con lo que se
      viene a hacer aquí —mirar por dónde has pasado—: se lee la lista, y si lo
@@ -1535,7 +1560,7 @@
                box-shadow:0 12px 26px -14px rgba(60,40,15,.85);
                opacity:0; transform:translateY(7px) scale(.98);
                transition:opacity .2s ease, transform .28s cubic-bezier(.2,.85,.3,1); }
-  #piedraMenu.visible{ opacity:1; transform:none; }
+  #piedraMenu.visible{ opacity:1; transform:translateY(var(--sube, 0px)); }
   #piedraMenu::-webkit-scrollbar{ width:0; height:0; display:none; }
   .sp-chip-forma{ flex:0 0 auto; display:block; width:15px; height:15px; color:#7a6434; }
   .sp-chip-forma svg{ display:block; width:100%; height:100%; }
@@ -1550,7 +1575,10 @@
       animation:none !important; }
     .separador.entrando{ opacity:1; }
     .separador.saliendo{ opacity:0; }
-    #sepMenu{ transform:none !important; }
+    /* El desplazamiento del teclado SÍ se queda: no es adorno, es lo único
+       que deja ver lo que se está escribiendo. Lo que se quita es el
+       recorrido de entrada. */
+    #sepMenu{ transform:translateY(var(--sube, 0px)) !important; }
     #sepOferta{ transform:translateX(-50%) !important; }
     .sp-borrar{ transform:none !important; }
   }
@@ -1976,6 +2004,13 @@
      lo que hace falta.
      Recuadro y fondo tenues del mismo marrón del programa: se encuentra de un
      vistazo sin tener que leer el panel entero. */
+  /* EL RENGLÓN DEL FALLO. Del carmín de las cintas, que es el color con el que
+     este programa interrumpe, y no del marrón de todo lo demás: es lo único de
+     este panel que no se viene a leer, sino que sale al encuentro. */
+  .fallo-respaldo{ margin:8px 2px 0; padding:8px 10px;
+                   border:1px solid rgba(155,42,42,.45); border-radius:6px;
+                   background:rgba(155,42,42,.09);
+                   font:600 12px/1.45 var(--ui); color:#7c2020; }
   .sello-version{ margin:13px 2px 3px; padding:9px 11px 8px;
                   border:1px solid rgba(140,116,68,.42); border-radius:7px;
                   background:rgba(184,137,43,.12);
@@ -2990,6 +3025,20 @@
 
 <div id="ghost" class="pg" aria-hidden="true">
   <div class="pg-inner">
+    <!-- EL RÓTULO DE LA VERSIÓN TAMBIÉN VA EN EL MOLDE, y faltaba.
+
+         El molde es de donde sale la foto de las hojas VECINAS, y la foto se
+         hace midiendo la hoja palabra por palabra —el SVG no compone texto,
+         ver medirPalabras—. Sin este rótulo aquí, el retrato de la vecina
+         salía sin él: al pasar hoja el «VBL» desaparecía durante el giro y
+         volvía de golpe al aterrizar. Medido: 0 píxeles de tinta en su banda a
+         media vuelta.
+
+         Es el mismo fallo que ya tuvieron la cinta y la piedra, y por eso el
+         titulillo lo lleva el molde desde el primer día: lo que no está en el
+         retrato parpadea en cada vuelta. El de la cabecera sí estaba —de ahí
+         que nadie lo notara con él— y éste se quedó fuera. -->
+    <div class="pg-version" id="ghostVersion"></div>
     <div class="pg-cabeza" id="ghostCabeza"></div>
     <div class="pg-cols">
       <div id="ghostBody" class="pg-body" lang="es"></div>
@@ -3051,7 +3100,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '04-SEP-26 15:06';
+window.GLOSS_BUILD = '05-SEP-26 10:04';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3867,12 +3916,55 @@ const save = () => {
 
 const $ = id => document.getElementById(id);
 const stage=$('stage'), pg=$('pg'), pgBody=$('pgBody'), pgMargin=$('pgMargin'), pgFoot=$('pgFoot');
-const ghost=$('ghost'), ghostBody=$('ghostBody'), ghostMargin=$('ghostMargin'), ghostFoot=$('ghostFoot');
+const ghost=$('ghost'), ghostBody=$('ghostBody'), ghostMargin=$('ghostMargin'), ghostFoot=$('ghostFoot'), ghostVersion=$('ghostVersion');
 const fx=$('fx'), ctx=fx.getContext('2d'), readout=$('readout');
 /* Se intercepta la ESCRITURA de textContent en vez de cambiar los cien sitios
    que le escriben. Así cualquier aviso, venga de donde venga, aparece y se
    desvanece solo — y si mañana se agrega otro mensaje, hereda el
    comportamiento sin que nadie se acuerde de pedirlo. */
+/* LOS AVISOS QUE SÍ SALEN. Uno, hoy.
+
+   ANTES DE QUITAR MÁS —o de devolver alguno—, lo que hay que preguntarse de
+   cada mensaje es si dice algo que el lector NO puede ver por sí mismo. «piedra
+   puesta» no: la piedra está ahí. «por ahora una marca no puede cruzar de
+   versículo» sí: sueltas el dedo y no pasa nada, y sin el aviso el programa
+   parece roto.
+
+   Y LOS QUE AVISAN DE QUE ALGO FALLÓ NO SE CALLAN. Aquí quedaron callados un
+   rato y estuvo mal: si localStorage se llena, la glosa sigue en la pantalla
+   —parece guardada— y la única señal de que no lo está era ese cartel. Callarlo
+   es perder trabajo sin decirlo. Lo mismo con el respaldo: un archivo que no se
+   puede leer o que no es JSON deja la importación sin hacer y sin explicar.
+   Levantado en revisión.
+
+   Y NO SOLO SALEN: SE QUEDAN. Un cartel dura nueve segundos y la respuesta a
+   «no se pudo guardar» es «exporta antes de cerrar», que no se hace en nueve
+   segundos. Así que el mismo texto se apunta también en el panel de RESPALDO,
+   al lado de los botones de exportar e importar, que es donde se va a actuar.
+
+   Los avisos de navegación —«ese libro no está en los datos cargados» y sus
+   hermanos— siguen callados. Son de la misma familia que el de cruzar de
+   versículo, y quizá merezcan volver; no se tocan aquí porque no es lo que se
+   pidió y devolver diez carteles por mi cuenta sería deshacer el encargo. */
+const AVISOS_QUE_SALEN = [/no puede cruzar de vers/i];
+const AVISOS_QUE_FALLAN = [
+  /NO SE PUDO GUARDAR/i,
+  /no se pudo leer el archivo/i,
+  /no es JSON válido/i,
+  /no parece una exportación/i,
+  /no hay nada que exportar/i,
+];
+/* El último fallo, guardado aparte: el panel de Respaldo se arma al final del
+   guion, así que un fallo de los primeros milisegundos no tendría dónde
+   escribirse. Se apunta aquí y el panel lo recoge al nacer. */
+let ultimoFallo = null;
+function apuntarFallo(t){
+  ultimoFallo = t;
+  const p = document.getElementById('respaldoFallo');
+  if (!p) return;
+  p.textContent = t;
+  p.hidden = false;
+}
 (function avisoQueSeVa(){
   const dentro = document.createElement('span');
   readout.appendChild(dentro);
@@ -3883,6 +3975,34 @@ const fx=$('fx'), ctx=fx.getContext('2d'), readout=$('readout');
       dentro.textContent = t;
       clearTimeout(reloj);
       if (!t){ readout.classList.remove('viva'); return; }
+      /* SOLO SALE UNO, Y ES ÉSTE.
+
+         Aquí llegaban veintitrés avisos distintos: la piedra puesta, el
+         separador nombrado, el nombre de cada forma y de cada color al
+         tocarlos, la piedra quitada… Leyendo, todos ellos son un cartel que
+         aparece abajo para contarte lo que acabas de hacer y ya has visto
+         hacerse. El único que dice algo que NO se ve solo es el de la marca
+         que cruza de versículo: ahí sueltas el dedo, no pasa nada, y sin el
+         aviso no hay manera de saber por qué. Pedido y aplicado.
+
+         SE FILTRA AQUÍ Y NO EN LOS VEINTITRÉS SITIOS, que es lo mismo que hace
+         este bloque con el desvanecido: un solo sitio decide, y el aviso que
+         alguien añada mañana hereda la regla sin acordarse de pedirlo.
+
+         Y LOS QUE DICEN QUE ALGO FALLÓ TAMBIÉN SALEN, además de quedarse
+         escritos en el panel de Respaldo. Ver AVISOS_QUE_FALLAN.
+
+         Y NO SE PIERDEN: los que no salen van a la consola. Si algo falla —el
+         almacén lleno, una importación que no se puede leer— quien abra las
+         herramientas lo encuentra. Ver ANTES DE QUITAR MÁS, aquí abajo. */
+      /* Un fallo se apunta SIEMPRE en el panel, salga o no el cartel. */
+      const falla = AVISOS_QUE_FALLAN.some(re => re.test(t));
+      if (falla) apuntarFallo(t);
+      if (!falla && !AVISOS_QUE_SALEN.some(re => re.test(t))){
+        try { console.info('[glossa] ' + t); } catch(e){ /* da igual */ }
+        readout.classList.remove('viva');
+        return;
+      }
       readout.classList.add('viva');
       /* Nueve segundos, no tres. El aviso aparece abajo del todo mientras
          estás leyendo arriba: para cuando bajas la vista, tres segundos ya se
@@ -7845,6 +7965,9 @@ function fotoDeHojaCrudo(p, asignar){
   if (med) ghost.style.setProperty('--mx', '0px');
   const r = layoutInto(ghostBody, ghostMargin, ghostFoot, from, hasta);
   ghostCabeza.textContent = cabezaDe(from);
+  /* Y el rótulo de la versión, que es el mismo en todas las hojas: se lee del
+     estado y no se copia de la hoja viva, que puede estar a medio pintar. */
+  ghostVersion.textContent = D.versiones[version].abrev || version;
   const ms = rectsDeMarcas(ghostBody, ghost);
   const palabras = medirPalabras(ghost);
   loadSVG(buildSVG(cuerpoHTML(from, hasta), r.marginHTML, r.footHTML, r.mw, r.gap, w, h, cabezaDe(from), p),
@@ -12386,6 +12509,8 @@ function pintarPiedraMando(){
       (apagado ? ' disabled' : '') +
       ' aria-label="' + rot + '" title="' + rot + '">' + dib + '</button>';
   el.innerHTML =
+    spCerrarHTML('piedra', 'el mando de la piedra') +
+    '<span class="sp-tit">Esta piedra</span>' +
     '<div class="pm-formas" role="group" aria-label="Figura">' + formas + '</div>' +
     '<div class="pm-tintas" role="group" aria-label="Color">' + tintas + '</div>' +
     '<div class="pm-pie">' +
@@ -12404,9 +12529,6 @@ function pintarPiedraMando(){
          visible. El nombre existe para reconocerlas en su LISTA, y ahí es
          donde se pone: doble toque en su fila. Un solo sitio para nombrar en
          vez de dos que hay que mantener iguales. */
-      b('quitar', 'Quitar esta piedra', '<svg viewBox="0 0 12 12" aria-hidden="true">' +
-        '<path d="M2.5 2.5 L9.5 9.5 M9.5 2.5 L2.5 9.5" stroke="currentColor"' +
-        ' stroke-width="1.8" stroke-linecap="round"/></svg>') +
     '</div>';
 }
 /* Se coloca como el menú de la cinta: pegado a la piedra si cabe, encima si no
@@ -12731,6 +12853,14 @@ stage.addEventListener('click', ev => {
   /* Dentro del campo del nombre no hay nada que hacer aquí: poner el cursor a
      media palabra es escribir, no pulsar. */
   if (ev.target.closest('[data-piedra-nombre]')) return;
+  /* EL ASPA. Es la misma pieza que cierra los dos paneles de listas, pero
+     aquellos los cierra el oyente de SU panel: éste no pasa por ahí, así que
+     su cierre se atiende aquí. Cerrar el mando es dejar de editar. */
+  if (ev.target.closest('[data-sp-cerrar]')){
+    ev.preventDefault(); ev.stopPropagation();
+    piedraCerrarEdicion();
+    return;
+  }
   /* SI EL FOCO ESTABA EN EL MANDO SE MIRA AHORA Y NO DESPUÉS: cada acción
      repinta el panel, y para cuando se le pregunta al documento dónde está el
      foco ya no queda nada donde estaba —el botón se destruyó— y la respuesta
@@ -12758,7 +12888,9 @@ stage.addEventListener('click', ev => {
   const cual = acc.dataset.piedraAcc;
   if (cual === 'menos') piedraTamano(id, -1);
   else if (cual === 'mas') piedraTamano(id, +1);
-  else if (cual === 'quitar'){ quitarPiedra(id); return; }
+  /* AQUÍ HUBO UN 'quitar' y ya no hay. Borraba en el acto, sin preguntar, desde
+     un botón pegado a los de tamaño: el sitio donde más se toca a tientas.
+     Ahora se borra desde la fila de la lista, que pregunta antes. */
   /* Los de tamaño se apagan en los extremos, y un botón deshabilitado pierde
      el foco: quien llegó al mayor a golpe de Intro se quedaría sin dónde
      estar. Se le pasa al otro, que es el que sigue sirviendo. */
@@ -12891,6 +13023,7 @@ function cerrarPiedraMenu(){
   piedraMenuAbierto = false;
   piedraMenuAncla = null;
   const el = $('piedraMenu');
+  soltarTecladoPanel(el);
   el.classList.remove('visible');
   setTimeout(() => { if (!piedraMenuAbierto) el.style.display = 'none'; }, 280);
 }
@@ -12956,6 +13089,109 @@ const spCerrarHTML = (acc, que) =>
   '<button type="button" class="sp-x" data-sp-cerrar="' + acc + '"' +
     ' title="Cerrar" aria-label="Cerrar ' + que + '">' +
     '<span aria-hidden="true">\u00d7</span></button>';
+/* EL TECLADO TAPA JUSTO LO QUE SE ESTÁ ESCRIBIENDO.
+
+   Los dos paneles se cuelgan de lo que los abrió y ahí se quedan. En un
+   teléfono, abrir el campo del nombre levanta el teclado, que se come la mitad
+   de abajo de la pantalla: si la fila abierta caía en esa mitad, se escribe a
+   ciegas. Pasa en los dos paneles y por la misma razón, así que la cuenta es
+   una sola y se le pasa el panel.
+
+   SE MIDE, NO SE ADIVINA. Aquí hubo la tentación de mirar cuánto encogió la
+   ventana y dar por hecho que eso es el teclado —es lo que hace vigilarTeclado
+   para la caja de la glosa, con su umbral de 80px—. Pero para lo que hace
+   falta aquí el umbral sobra: la pregunta no es «¿hay teclado?» sino «¿se ve
+   la fila?», y eso se responde comparando dos números que ya existen. Sin
+   teclado la resta da cero y el panel no se mueve; con teclado da lo que hay
+   que subir. Un número menos que ajustar.
+
+   Y NO SUBE MÁS DE LA CUENTA: se para a ocho píxeles del techo de lo visible.
+   Subir hasta ver la fila puede querer decir sacar la cabecera del panel por
+   arriba, y entonces lo que se pierde es saber en qué panel estás.
+
+   PERO PARARSE EN EL TECHO NO PUEDE SER DEJARLO A MEDIAS, y eso es lo que
+   hacía. Con un teclado grande y el panel alto —64% de la escena— lo que hay
+   que subir es más de lo que el techo deja, así que la fila se quedaba tapada
+   igual y el panel encima descolocado: lo peor de las dos cosas. Lo que
+   sobra después del tope se le pide al panel POR DENTRO, que se desplaza —los
+   dos tienen overflow-y— y ahí no hay techo que valga: la cabecera se queda
+   donde está y lo que se mueve es la lista. Levantado por Codex.
+
+   El desplazamiento de dentro va suave por lo mismo que el de fuera, y se
+   deja quieto para quien pidió menos movimiento. Y se le da un respiro de
+   400 ms: cada aviso vuelve a medir, y midiendo a mitad de un desplazamiento
+   suave la cuenta sale corta y se pediría otro encima del que va.
+
+   Sube con la transición que el panel ya tenía puesta para aparecer, así que
+   el movimiento es el mismo de siempre y no hay que inventarle uno. Y quien
+   pidió menos movimiento SIGUE recibiendo éste: no es adorno.
+
+   OJO AL PROBARLO: esto no se puede ver en una prueba automática. El teclado
+   de un teléfono no existe en un navegador sin pantalla, y visualViewport no
+   encoge por mucho que se achique la ventana —encogen las dos a la vez—. Lo
+   que sí comprueba la prueba es lo de al lado: que sin teclado el panel se
+   queda exactamente donde estaba. */
+function vigilarTecladoPanel(el, buscarFila){
+  const vv = window.visualViewport;
+  if (!vv || el._teclado) return;
+  const mirar = () => {
+    const fila = buscarFila();
+    if (!fila){ el.style.removeProperty('--sube'); el.style.removeProperty('max-height'); return; }
+    /* PRIMERO EL PANEL TIENE QUE CABER, y ésta es la pieza sin la que las otras
+       dos no bastan. El panel mide hasta el 64% de la escena, y ese 64% no
+       encoge porque suba el teclado: con la lista larga y el teclado grande, lo
+       que había que subir era más de lo que el tope de arriba deja, el
+       desplazamiento de dentro llegaba a su máximo, y el campo se quedaba
+       detrás del teclado igual. Medido en revisión: panel arriba del todo,
+       scrollTop en su tope, y el campo 47 px por debajo de lo visible.
+       Recortándolo a lo que se ve, todo lo demás encaja: el panel entero cabe,
+       y dentro de un panel que cabe cualquier fila se alcanza.
+
+       SE SUELTA ANTES DE MEDIR. Si no, el recorte de la vez anterior se toma
+       por el alto natural y el panel ya nunca vuelve a crecer al cerrarse el
+       teclado. Soltar y volver a medir en el mismo tirón no parpadea: entre las
+       dos cosas no hay pintado.
+
+       Y ESTE NO VA SUAVE, a propósito. Animar el alto mientras se mide daría
+       medidas de mitad de camino y la cuenta saldría mal; además el recorte
+       pasa justo cuando el teclado está subiendo y tapándolo. */
+    el.style.removeProperty('max-height');
+    const sitio = vv.height - 16;
+    if (el.getBoundingClientRect().height > sitio) el.style.maxHeight = sitio + 'px';
+    /* Lo ya subido se descuenta de las dos medidas: getBoundingClientRect
+       devuelve dónde está AHORA, desplazamiento incluido, y sumar sobre eso
+       haría que cada aviso subiera el panel otro tanto. */
+    const d = parseFloat(el.style.getPropertyValue('--sube')) || 0;
+    const suelo = vv.offsetTop + vv.height - 10;
+    const tapado = (fila.getBoundingClientRect().bottom - d) - suelo;
+    const techo = (el.getBoundingClientRect().top - d) - (vv.offsetTop + 8);
+    const sube = Math.max(0, Math.min(tapado, techo));
+    if (Math.abs(-sube - d) >= 1) el.style.setProperty('--sube', (-sube) + 'px');
+    /* Lo que el techo no dejó subir se lo come el panel por dentro. */
+    const resto = tapado - sube;
+    if (resto > 1 && Date.now() - (el._rodando || 0) > 400 &&
+        el.scrollHeight - el.clientHeight - el.scrollTop > 1){
+      el._rodando = Date.now();
+      const quieto = window.matchMedia &&
+                     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      el.scrollTo({ top: el.scrollTop + resto, behavior: quieto ? 'auto' : 'smooth' });
+    }
+  };
+  vv.addEventListener('resize', mirar);
+  vv.addEventListener('scroll', mirar);
+  el._teclado = () => {
+    vv.removeEventListener('resize', mirar);
+    vv.removeEventListener('scroll', mirar);
+    el.style.removeProperty('--sube');
+    el.style.removeProperty('max-height');
+    el._rodando = 0;
+    el._teclado = null;
+  };
+  mirar();
+}
+/* Y la baja, que hace falta llamar desde los dos cierres: un panel que se
+   cierra subido vuelve a abrirse subido, sin teclado que lo justifique. */
+function soltarTecladoPanel(el){ if (el && el._teclado) el._teclado(); }
 const piedraNuevaHTML = () =>
   '<button type="button" class="sp-nueva" data-piedra-nueva="1"' +
     ' title="Dejar una piedra en esta hoja"' +
@@ -13169,6 +13405,20 @@ $('piedraMenu').addEventListener('dblclick', ev => {
      menú o Shift+F10—, que es donde todo el mundo busca «más cosas de esto»;
    · y F2, que es la tecla de renombrar desde hace treinta años.
    El rótulo hablado de la fila las dice, que si no serían un secreto. */
+/* El campo del nombre pide el vigía al recibir el foco y lo suelta al
+   perderlo. Se enganchan por focusin/focusout —que suben— y no por el propio
+   campo, que se rehace en cada repintado y se llevaría el oyente con él. */
+$('piedraMenu').addEventListener('focusin', ev => {
+  if (!ev.target.closest('[data-piedra-nombre]')) return;
+  vigilarTecladoPanel($('piedraMenu'), () => {
+    const c = $('piedraMenu').querySelector('[data-piedra-nombre]');
+    return c && (c.closest('.sp-fila') || c);
+  });
+});
+$('piedraMenu').addEventListener('focusout', ev => {
+  if (!ev.target.closest('[data-piedra-nombre]')) return;
+  soltarTecladoPanel($('piedraMenu'));
+});
 $('piedraMenu').addEventListener('contextmenu', ev => {
   const fila = ev.target.closest('[data-piedra-ir]');
   if (!fila) return;
@@ -13227,6 +13477,7 @@ function cerrarSepMenu(){
   sepEditando = null;
   sepBorrando = null;
   const el = $('sepMenu');
+  soltarTecladoPanel(el);
   el.classList.remove('visible');
   setTimeout(() => { if (!sepMenuAbierto) el.style.display = 'none'; }, 280);
   pintarSeparador();
@@ -13440,7 +13691,16 @@ $('sepMenu').addEventListener('keydown', ev => {
    turno siguiente, cuando el clic ya se atendió. Si ese clic hizo algo que
    repinta por su cuenta —abrir otro nombre, ir a la cinta, cerrar el menú— el
    aplazado se encuentra el trabajo hecho y se aparta. */
+/* El vigía del teclado, igual que en las piedras y contado allí. */
+$('sepMenu').addEventListener('focusin', ev => {
+  if (!ev.target.closest('[data-sep-nombre]')) return;
+  vigilarTecladoPanel($('sepMenu'), () => {
+    const c = $('sepMenu').querySelector('[data-sep-nombre]');
+    return c && (c.closest('.sp-fila') || c);
+  });
+});
 $('sepMenu').addEventListener('focusout', ev => {
+  if (ev.target.closest('[data-sep-nombre]')) soltarTecladoPanel($('sepMenu'));
   const campo = ev.target.closest('[data-sep-nombre]');
   if (!campo || sepEditando !== campo.dataset.sepNombre) return;
   sepDecirNombre(sepPonerNombre(campo.dataset.sepNombre, campo.value));
@@ -14456,6 +14716,17 @@ ajustes.appendChild($('cred'));
   ctrl.appendChild($('archivoImp'));
   fila.appendChild(ctrl);
   caja.appendChild(fila);
+  /* LO QUE FALLÓ, ESCRITO Y QUIETO. El cartel de abajo dura nueve segundos y
+     se lo puede comer cualquier cosa; la respuesta a «no se pudo guardar» es
+     exportar, y eso se hace aquí. Así que el mismo texto se queda puesto junto
+     al botón con el que se arregla. Nace escondido: un panel que enseña un
+     hueco rojo vacío avisa de nada. */
+  const fallo = document.createElement('p');
+  fallo.id = 'respaldoFallo';
+  fallo.className = 'fallo-respaldo';
+  fallo.hidden = true;
+  caja.appendChild(fallo);
+  if (ultimoFallo){ fallo.textContent = ultimoFallo; fallo.hidden = false; }
   const nota = document.createElement('p');
   nota.className = 'nota-respaldo';
   nota.textContent = 'Tus glosas viven en este navegador y en ningún otro lado. ' +

@@ -373,6 +373,68 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo,
   vale('y dibuja algo', !!aro.dibujo && aro.dibujo !== 'none', aro.dibujo);
   vale('en reposo no hay aro', aro.reposo === 'none', aro.reposo);
 
+  /* ================================================================
+     EL RÓTULO DEL PIE TIENE QUE ESTAR TAMBIÉN EN LA FOTO DE LA VECINA.
+
+     Al pasar hoja no se ve la hoja: se ve un RETRATO de la de al lado,
+     dibujado sobre el lienzo del pliegue a partir del molde #ghost. El molde
+     tenía su titulillo de arriba pero no el rótulo de la versión, así que
+     durante todo el giro el rótulo desaparecía y volvía a aparecer al
+     aterrizar. Se ve pasando hoja y mirando abajo.
+
+     SE MIRA LA TINTA DEL LIENZO Y NO EL DOM, porque en el DOM el rótulo del
+     molde puede estar y aun así no salir pintado: lo que se enseña son
+     píxeles. Se cuenta la tinta oscura en la banda de abajo, la que ocupa el
+     rótulo en la hoja viva.
+
+     Y SE MIRA UNA SERIE, NO UN INSTANTE. Esta prueba se escribió primero con
+     una sola foto a los 320 ms y salía en cero: a esa altura el pliegue aún
+     no había empezado a pintar. El fallo era del reloj, no del programa —el
+     mismo error del umbral de 160 ms que ya nos costó una tarde—. Se muestrea
+     todo el giro y se pregunta por el máximo, que es lo que el ojo ve. */
+  titulo('el rótulo de la versión, durante el giro');
+  const enElGiro = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const ver = document.querySelector('#pg .pg-version');
+    const inner = document.querySelector('#pg .pg-inner');
+    if (!ver || !inner) return { sinRotulo:true };
+    const ri = inner.getBoundingClientRect(), rv = ver.getBoundingClientRect();
+    const y0 = (rv.top - ri.top) / ri.height, y1 = (rv.bottom - ri.top) / ri.height;
+    /* Tinta oscura dentro de la banda del rótulo, con cuatro píxeles de
+       holgura por el redondeo del lienzo. */
+    const tinta = () => {
+      const fx = document.getElementById('fx');
+      if (!fx || !fx.width) return 0;
+      const g = fx.getContext('2d', { willReadFrequently:true });
+      const a0 = Math.max(0, Math.round(fx.height * y0) - 4);
+      const alto = Math.min(Math.max(6, Math.round(fx.height * (y1 - y0)) + 8), fx.height - a0);
+      const d = g.getImageData(0, a0, fx.width, alto).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4){
+        if (d[i+3] < 40) continue;
+        if (d[i] < 200 && d[i+1] < 190) n++;
+      }
+      return n;
+    };
+    const e = document.getElementById('edgeR');
+    const rc = e.getBoundingClientRect();
+    const op = { bubbles:true, pointerId:680, pointerType:'touch', isPrimary:true,
+                 clientX: rc.left + rc.width/2, clientY: 420 };
+    e.dispatchEvent(new PointerEvent('pointerdown', op));
+    await pausa(60);
+    e.dispatchEvent(new PointerEvent('pointerup', op));
+    let pico = 0;
+    for (let k = 0; k < 14; k++){ await pausa(90); pico = Math.max(pico, tinta()); }
+    await pausa(1500);
+    return { pico, enElMolde: !!document.querySelector('#ghost .pg-version'),
+             enLaHoja: !!document.querySelector('#pg .pg-version') };
+  });
+  di('la tinta del rótulo en el giro', enElGiro);
+  vale('(comprobación) la hoja viva lo tiene', enElGiro.enLaHoja === true, enElGiro);
+  vale('el molde de la vecina lo tiene', enElGiro.enElMolde === true, enElGiro);
+  vale('Y SE VE DURANTE EL GIRO', enElGiro.pico > 40,
+       enElGiro.pico + ' px de tinta en su banda');
+
   titulo('y con RATÓN, que es donde estuvo roto');
   await cerrarParcial(sesion, 'dedo');
 
