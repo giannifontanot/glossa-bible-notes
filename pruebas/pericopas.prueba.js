@@ -241,8 +241,19 @@ const abrirEn = async (p, donde) => {
          operación más cara del programa y hay que dejarla terminar. */
       await window.__pausa(2600);
       out.push({ v, hoja: window.__hoja(),
+                 /* Y CÓMO SE DECLARA LA COLUMNA. Elegir el texto en inglés y
+                    dejar el <div> diciendo lang="es" deja el trabajo a medias:
+                    un lector de pantalla pronuncia el inglés con reglas
+                    españolas. Vale para el capítulo entero, no solo para el
+                    titulillo. Lo levantó Codex. */
+                 declara: document.getElementById('pgBody').getAttribute('lang'),
+                 declaraMolde: document.getElementById('ghostBody').getAttribute('lang'),
                  titulillos: [...document.querySelectorAll('#pgBody .peri')]
-                   .map(t => t.dataset.peri).join('|') });
+                   .map(t => t.dataset.peri).join('|'),
+                 /* Y LO QUE DICEN, que no es lo mismo que cuáles son: el id
+                    no cambia con la versión y el texto sí tiene que cambiar. */
+                 dicen: [...document.querySelectorAll('#pgBody .peri')]
+                   .map(t => t.textContent.trim()).join(' | ') });
       await abrirGlobo();
     }
     return { out, cuales };
@@ -257,6 +268,50 @@ const abrirEn = async (p, donde) => {
   vale('  Y EL TITULILLO TAMBIÉN',
        new Set((versiones.out || []).map(x => x.titulillos)).size === 1,
        (versiones.out || []).map(x => x.v + ': ' + x.titulillos));
+  /* ================================================================
+     PERO LO QUE DICE SÍ CAMBIA: EL IDIOMA LO MANDA LA VERSIÓN.
+
+     Las perícopas vienen escritas en los dos idiomas desde el primer día y
+     hasta ahora salía siempre el español: leyendo la Berean o la World
+     English, el texto en inglés y el titulillo encima en español. Pedido y
+     hecho.
+
+     Son las dos caras de la misma moneda y por eso se prueban juntas: CUÁLES
+     son no cambia —es lo de arriba, y es lo que hace que la hoja sea la misma
+     en las cuatro— y CÓMO SE LLAMAN sí. Comprobar solo una de las dos dejaría
+     pasar el fallo contrario.
+
+     Se mira por marcas del idioma y no por la frase entera: la lista de
+     perícopas se edita, y una prueba que exija «Prólogo» al pie de la letra
+     se cae el día que alguien mejore una traducción. La tilde y la eñe no
+     salen en inglés, y «the/of/and» no salen en español. */
+  const ES = /[áéíóúñ¿¡]|\bdel?\b|\bla\b|\bnacimiento\b/i;
+  const EN = /\bthe\b|\bof\b|\band\b|\bbirth\b/i;
+  const porIdioma = (versiones.out || []).map(x => ({
+    v: x.v, dicen: x.dicen,
+    es: ES.test(x.dicen), en: EN.test(x.dicen) }));
+  di('lo que dice cada una', porIdioma);
+  const esp = porIdioma.filter(x => x.v === 'vbl' || x.v === 'rv1909');
+  const ing = porIdioma.filter(x => x.v === 'bsb' || x.v === 'web');
+  vale('(la prueba es válida) se vieron versiones de los dos idiomas',
+       esp.length > 0 && ing.length > 0,
+       esp.length + ' en español, ' + ing.length + ' en inglés');
+  vale('EL TITULILLO SIGUE AL IDIOMA DE LA VERSIÓN',
+       esp.every(x => x.es && !x.en) && ing.every(x => x.en && !x.es),
+       porIdioma.map(x => x.v + ': ' + x.dicen).join('  ·  '));
+  /* Y LA COLUMNA LO DECLARA, que es la otra mitad: sin esto el inglés se
+     pronuncia con reglas españolas. Se mira la hoja viva y el molde del que
+     sale la foto del pliegue, que se olvidaba solo. */
+  const declarado = (versiones.out || []).map(x => ({
+    v: x.v, hoja: x.declara, molde: x.declaraMolde,
+    debe: (x.v === 'bsb' || x.v === 'web') ? 'en' : 'es' }));
+  di('lo que declara la columna', declarado);
+  vale('LA COLUMNA DECLARA EL IDIOMA DE LA VERSIÓN',
+       declarado.every(x => x.hoja === x.debe),
+       declarado.map(x => x.v + ': ' + x.hoja).join(', '));
+  vale('  y el molde de la foto también',
+       declarado.every(x => x.molde === x.debe),
+       declarado.map(x => x.v + ': ' + x.molde).join(', '));
   await cerrarParcial(otra, 'las versiones');
 
   /* ================================================================

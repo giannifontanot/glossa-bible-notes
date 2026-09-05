@@ -1170,6 +1170,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
              anchoMargen: Math.round(rm.width),
              cabeEnElPanel: r.left >= panel.left - 1 && r.right <= panel.right + 1,
              anchoPanel: Math.round(panel.width),
+             anchoEscena: Math.round(document.querySelector('.stage').getBoundingClientRect().width),
              enPantalla: panel.top >= 0 && panel.bottom <= window.innerHeight + 1 };
   }, [ABRIR, FUERA, TOCAR]).then(r => {
     vale('el panel reabre con su nota', !r.sinTexto && !r.sinMargen && !r.sinCaja &&
@@ -1185,12 +1186,26 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
          r.anchoVista + ' contra ' + r.anchoMargen);
     vale('sin salirse del panel', r.cabeEnElPanel);
     vale('que cabe en la pantalla', r.enPantalla);
-    /* Y EL PANEL MIDE LO QUE MIDE LA GLOSA. Es lo que lo convierte en «esta
-       nota y sus mandos» en vez de en «un panel que además enseña una nota»:
-       los dos filos son los mismos de arriba abajo. Lo que sobra es solo el
-       relleno del panel. */
-    vale('y el panel mide lo que la glosa',
-         r.anchoPanel && r.anchoPanel - r.anchoVista <= 24,
+    /* AQUÍ SE EXIGÍA QUE EL PANEL MIDIERA LO QUE LA GLOSA, y en el teléfono
+       ya no. Se pidió expresamente lo contrario: con la columna de glosas en
+       240px clavados, el panel salía de 253 sobre una pantalla de 412 y todo
+       lo de dentro —cuatro colores, dos trazos, dos acciones, la caja de
+       escribir— cabía chico. «Una miniatura de cositas y de botoncitos».
+
+       LA PROMESA QUE HABÍA DETRÁS NO SE ROMPE, y por eso esta prueba no se
+       borra sino que se muda de sitio: la promesa era que lo escrito se vea
+       con el ancho con el que se va a leer, y eso lo cumple el RECUADRO, que
+       es lo que comprueba «y el mismo ancho» ahí arriba. El panel es lo de
+       alrededor.
+       Lo que sí se exige ahora: que el panel llene la pantalla —entre el 85 y
+       el 97 por ciento de la escena— y que NUNCA sea más estrecho que el
+       recuadro que lleva dentro, que es como volvería el fallo. */
+    const parte = r.anchoPanel / r.anchoEscena;
+    vale('el panel llena el ancho de la pantalla',
+         parte >= .85 && parte <= .97,
+         r.anchoPanel + ' de ' + r.anchoEscena + ' (' + Math.round(parte*100) + '%)');
+    vale('  y nunca es más estrecho que su recuadro',
+         r.anchoPanel >= r.anchoVista,
          r.anchoPanel + ' contra ' + r.anchoVista);
     return r;
   }));
@@ -1613,8 +1628,12 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     vale('el alto al abrir ya es el bueno',
          !r.sinTexto && !r.sinReabrir && r.alAbrir === r.trasTecla,
          r.alAbrir + ' contra ' + r.trasTecla);
-    vale('y el panel ya nació del ancho de la glosa',
-         r.anchoPanel && r.anchoPanel - r.anchoVista <= 24,
+    /* Y ancho de sobra desde el primer cuadro: aquí se exigía que naciera del
+       ancho de la glosa y en el teléfono ya no —ver «el panel llena el ancho
+       de la pantalla», más arriba—. Lo que no puede pasar es que nazca
+       estrecho y se ensanche después, que se vería como un tirón. */
+    vale('y el panel ya nació ancho, sin dar un tirón después',
+         r.anchoPanel && r.anchoPanel >= r.anchoVista,
          r.anchoPanel + ' contra ' + r.anchoVista);
     return r;
   }));
