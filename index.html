@@ -3093,7 +3093,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '05-SEP-26 08:08';
+window.GLOSS_BUILD = '05-SEP-26 08:15';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -13068,6 +13068,19 @@ const spCerrarHTML = (acc, que) =>
    Subir hasta ver la fila puede querer decir sacar la cabecera del panel por
    arriba, y entonces lo que se pierde es saber en qué panel estás.
 
+   PERO PARARSE EN EL TECHO NO PUEDE SER DEJARLO A MEDIAS, y eso es lo que
+   hacía. Con un teclado grande y el panel alto —64% de la escena— lo que hay
+   que subir es más de lo que el techo deja, así que la fila se quedaba tapada
+   igual y el panel encima descolocado: lo peor de las dos cosas. Lo que
+   sobra después del tope se le pide al panel POR DENTRO, que se desplaza —los
+   dos tienen overflow-y— y ahí no hay techo que valga: la cabecera se queda
+   donde está y lo que se mueve es la lista. Levantado por Codex.
+
+   El desplazamiento de dentro va suave por lo mismo que el de fuera, y se
+   deja quieto para quien pidió menos movimiento. Y se le da un respiro de
+   400 ms: cada aviso vuelve a medir, y midiendo a mitad de un desplazamiento
+   suave la cuenta sale corta y se pediría otro encima del que va.
+
    Sube con la transición que el panel ya tenía puesta para aparecer, así que
    el movimiento es el mismo de siempre y no hay que inventarle uno. Y quien
    pidió menos movimiento SIGUE recibiendo éste: no es adorno.
@@ -13091,8 +13104,16 @@ function vigilarTecladoPanel(el, buscarFila){
     const tapado = (fila.getBoundingClientRect().bottom - d) - suelo;
     const techo = (el.getBoundingClientRect().top - d) - (vv.offsetTop + 8);
     const sube = Math.max(0, Math.min(tapado, techo));
-    if (Math.abs(-sube - d) < 1) return;
-    el.style.setProperty('--sube', (-sube) + 'px');
+    if (Math.abs(-sube - d) >= 1) el.style.setProperty('--sube', (-sube) + 'px');
+    /* Lo que el techo no dejó subir se lo come el panel por dentro. */
+    const resto = tapado - sube;
+    if (resto > 1 && Date.now() - (el._rodando || 0) > 400 &&
+        el.scrollHeight - el.clientHeight - el.scrollTop > 1){
+      el._rodando = Date.now();
+      const quieto = window.matchMedia &&
+                     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      el.scrollTo({ top: el.scrollTop + resto, behavior: quieto ? 'auto' : 'smooth' });
+    }
   };
   vv.addEventListener('resize', mirar);
   vv.addEventListener('scroll', mirar);
@@ -13100,6 +13121,7 @@ function vigilarTecladoPanel(el, buscarFila){
     vv.removeEventListener('resize', mirar);
     vv.removeEventListener('scroll', mirar);
     el.style.removeProperty('--sube');
+    el._rodando = 0;
     el._teclado = null;
   };
   mirar();

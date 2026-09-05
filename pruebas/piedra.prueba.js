@@ -515,7 +515,12 @@ async function andamio(p){
     const cajaTras = document.getElementById('piedraMenu').getBoundingClientRect();
     const teclado = { sube: document.getElementById('piedraMenu').style.getPropertyValue('--sube'),
                       pieAntes: Math.round(cajaAntes.bottom),
-                      pieTras: Math.round(cajaTras.bottom) };
+                      pieTras: Math.round(cajaTras.bottom),
+                      /* Y tampoco se desplaza POR DENTRO: cuando el tope de
+                         arriba no basta, lo que sobra se le pide al panel; sin
+                         teclado no sobra nada y la lista tiene que quedarse
+                         quieta. Ver vigilarTecladoPanel. */
+                      rodado: document.getElementById('piedraMenu').scrollTop };
     const campo = document.querySelector('#piedraMenu [data-piedra-nombre]');
     if (!campo) return { sinCampo:true };
     const conFoco = document.activeElement === campo;
@@ -536,7 +541,8 @@ async function andamio(p){
   di('el desplazamiento del teclado', lapiz.teclado);
   vale('SIN TECLADO el panel no se desplaza',
        !!lapiz.teclado && lapiz.teclado.sube === '' &&
-       lapiz.teclado.pieAntes === lapiz.teclado.pieTras, lapiz.teclado);
+       lapiz.teclado.pieAntes === lapiz.teclado.pieTras &&
+       lapiz.teclado.rodado === 0, lapiz.teclado);
 
   /* El nombre se lee de lapiz.guardado y no escrito a mano: ésta ya se
      descolgó una vez, cuando el bloque de arriba cambió el nombre y aquí se
