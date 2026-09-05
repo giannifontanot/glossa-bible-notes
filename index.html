@@ -3282,7 +3282,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '05-SEP-26 11:49';
+window.GLOSS_BUILD = '05-SEP-26 15:05';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3539,7 +3539,13 @@ const PAGE_CSS = `
    un titulillo al pie de una columna con su versículo en la siguiente es
    exactamente la orfandad que se quiere evitar. En una columna el que manda es
    el paginador, que los mete y los retira juntos —ver paginate—. */
-.peri{ display:block; break-after:avoid;
+/* LOS DOS IDIOMAS, APILADOS EN LA MISMA CELDA. El alto de la caja es el del
+   más alto de los dos, y por eso no cambia al cambiar de versión: es lo que
+   mantiene la paginación sincronizada. Ver tituloHTML, que es donde está
+   contado el porqué entero. */
+.peri > span{ grid-area:1 / 1; }
+.peri-sombra{ visibility:hidden; }
+.peri{ display:grid; break-after:avoid;
        font-family:'Palatino Linotype',Palatino,'Book Antiqua','Iowan Old Style',
                    Georgia,'Noto Serif',serif;
        font-size:1.08em; font-style:normal; font-weight:600;
@@ -4929,13 +4935,42 @@ const tituloPericopa = p => {
    haga falta nada. El atributo se pone solo cuando NO coinciden, que es el
    caso del respaldo: una perícopa a la que le falte el inglés se enseña en
    español dentro de una hoja declarada en inglés. */
+/* Y OCUPA LO QUE OCUPE EL MÁS LARGO DE SUS IDIOMAS, siempre. Ésta es la
+   pieza sin la que traducir el titulillo rompe la aplicación entera, y costó
+   una corrida de pruebas descubrirlo.
+
+   Esta aplicación pagina SINCRONIZADO: cada hoja se corta donde quepa en las
+   cuatro versiones, para que la hoja que estás viendo traiga los mismos
+   versículos si cambias de traducción. Eso solo se sostiene si todo lo que se
+   mide es igual en las cuatro. El titulillo lo era —el mismo texto siempre— y
+   al traducirlo dejó de serlo: «El buen samaritano» y «The good Samaritan» no
+   miden igual, así que el corte caía en un sitio con la VBL y en otro con la
+   Berean. Medido: Lucas 10:21 contra Lucas 10:9, o sea doce versículos de
+   diferencia por culpa de un renglón.
+
+   La salida no es renunciar a traducirlo ni renunciar a sincronizar: es
+   RESERVAR EL PEOR CASO. Los dos idiomas se apilan en la misma celda de una
+   rejilla —uno visible, el otro solo para ocupar— así que el alto de la caja
+   es el del más alto de los dos y no cambia con la versión. El que sobra va
+   con visibility:hidden, que es lo que hace tres cosas de golpe: ocupa sitio,
+   no se ve, y ni el lector de pantalla ni el lienzo del pliegue lo leen
+   —medirPalabras se salta lo invisible, ver allí—.
+
+   El precio son unos píxeles de holgura al pie de una hoja cuando el idioma
+   corto es el que está puesto. Es barato al lado de que la misma hoja traiga
+   versículos distintos según la traducción. */
 function tituloHTML(k){
   const p = mapaPericopas(plano).get(k);
   if (!p) return '';
   const t = tituloPericopa(p);
   const suyo = t.l !== idiomaVersion(version) ? ' lang="' + t.l + '"' : '';
+  /* El otro idioma, el que no se enseña: de él solo se toma el alto. */
+  const sombra = Object.keys(p.t || {})
+    .filter(l => l !== t.l && p.t[l])
+    .map(l => '<span class="peri-sombra" aria-hidden="true" lang="' + l + '">' +
+              esc(p.t[l]) + '</span>').join('');
   return '<h2 class="peri" data-peri="' + esc(p.id) + '"' + suyo + '>' +
-         esc(t.t) + '</h2>';
+         '<span class="peri-dice">' + esc(t.t) + '</span>' + sombra + '</h2>';
 }
 function verseHTML(k, withMarks, below){
   const it = plano[k], base = it.texto;

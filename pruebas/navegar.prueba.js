@@ -95,6 +95,7 @@ const ATERRIZA = 7000;
     const tit = document.querySelector('#historial .hs-tit');
     const acciones = document.querySelector('#historial .hs-acciones');
     const tb = tit ? tit.getBoundingClientRect() : null;
+    const cierre = document.querySelector('#historial .sp-cierre');
     const juntos = (tb && acciones) ? {
       /* SOLO ÉL en el renglón: los de poner ya no viven aquí. */
       soloElAtras: [...acciones.children].length === 1 &&
@@ -103,10 +104,21 @@ const ATERRIZA = 7000;
                      !document.querySelector('#historial [data-piedra-nueva]'),
       /* el rótulo, entero por encima del renglón */
       bajoElRotulo: tb.bottom <= suyo.top + 1,
-      /* EL HUECO DE ARRIBA SE MIDE EN EL RÓTULO, que es lo que toca el filo
-         del panel. Sigue siendo el mismo de siempre: lo que se mudó de
-         renglón fue el botón, no el relleno. */
-      huecoArriba: Math.round(tb.top - panel.top),
+      /* EL HUECO DE ARRIBA YA NO SE MIDE CONTRA EL FILO DEL PANEL, y el
+         cambio es de la prueba y no del programa. Encima del rótulo hay ahora
+         otro renglón —el de la equis de cerrar, que se pidió— así que la
+         distancia del rótulo al filo pasó de 10px a 36 y esta aserción cantó
+         un fallo que no lo era: el relleno del rótulo no se ha movido, lo que
+         hay es una pieza nueva delante.
+
+         Se mide contra el renglón de la equis, que es lo que tiene encima, y
+         se le pone además un techo al conjunto: así sigue cazando lo que esta
+         línea venía a cazar —que la lista arranque pegada al filo, o que se
+         abra un hueco que nadie pidió— sin caerse cada vez que se añada algo
+         a la cabecera. Que la equis esté a ras de su esquina lo comprueba
+         separador.prueba.js, que es donde vive esa pieza. */
+      huecoArriba: cierre ? Math.round(tb.top - cierre.getBoundingClientRect().bottom) : null,
+      cabezaEntera: Math.round(tb.top - panel.top),
       /* Y PEGADO AL FILO DERECHO. */
       alFilo: Math.round(panel.right - suyo.right)
     } : null;
@@ -132,8 +144,12 @@ const ATERRIZA = 7000;
     vale('  con el rótulo entero por encima',
          !!r.juntos && r.juntos.bajoElRotulo, r.juntos);
     vale('  y con el hueco de arriba de siempre',
-         !!r.juntos && r.juntos.huecoArriba >= 7 && r.juntos.huecoArriba <= 13,
-         r.juntos && r.juntos.huecoArriba + 'px');
+         !!r.juntos && r.juntos.huecoArriba !== null &&
+         r.juntos.huecoArriba >= 1 && r.juntos.huecoArriba <= 10,
+         r.juntos && r.juntos.huecoArriba + 'px bajo el renglón de la equis');
+    vale('  y la cabecera entera sin hincharse',
+         !!r.juntos && r.juntos.cabezaEntera <= 48,
+         r.juntos && r.juntos.cabezaEntera + 'px del filo al rótulo');
     vale('el rastro no crece al volver', r.creció === 0, r.creció);
     /* Es lo que lo hace un ATRÁS y no un columpio: apuntando, el sitio de
        atrás pasaría a ser el primero y el siguiente «atrás» te devolvería a

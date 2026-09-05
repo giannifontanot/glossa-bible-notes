@@ -252,8 +252,23 @@ const abrirEn = async (p, donde) => {
                    .map(t => t.dataset.peri).join('|'),
                  /* Y LO QUE DICEN, que no es lo mismo que cuáles son: el id
                     no cambia con la versión y el texto sí tiene que cambiar. */
-                 dicen: [...document.querySelectorAll('#pgBody .peri')]
-                   .map(t => t.textContent.trim()).join(' | ') });
+                 /* LO QUE SE LEE ES .peri-dice Y NO EL <h2> ENTERO: dentro
+                    del titulillo viaja además el otro idioma, invisible, solo
+                    para que la caja mida lo mismo en las cuatro versiones y la
+                    paginación siga sincronizada (ver tituloHTML). Leyendo el
+                    h2 salen los dos pegados. */
+                 dicen: [...document.querySelectorAll('#pgBody .peri .peri-dice')]
+                   .map(t => t.textContent.trim()).join(' | '),
+                 /* Y EN PARES, id contra lo que dice, para poder cotejarlo con
+                    el fichero de datos en vez de adivinar el idioma. */
+                 pares: [...document.querySelectorAll('#pgBody .peri')]
+                   .map(t => ({ id: t.dataset.peri,
+                                dice: (t.querySelector('.peri-dice') || t).textContent.trim(),
+                                /* Y la sombra, que tiene que estar y no verse. */
+                                sombra: [...t.querySelectorAll('.peri-sombra')]
+                                  .map(x => x.textContent.trim()).join('|'),
+                                sombraSeVe: [...t.querySelectorAll('.peri-sombra')]
+                                  .some(x => getComputedStyle(x).visibility !== 'hidden') })) });
       await abrirGlobo();
     }
     return { out, cuales };
@@ -281,24 +296,75 @@ const abrirEn = async (p, donde) => {
      en las cuatro— y CÓMO SE LLAMAN sí. Comprobar solo una de las dos dejaría
      pasar el fallo contrario.
 
-     Se mira por marcas del idioma y no por la frase entera: la lista de
-     perícopas se edita, y una prueba que exija «Prólogo» al pie de la letra
-     se cae el día que alguien mejore una traducción. La tilde y la eñe no
-     salen en inglés, y «the/of/and» no salen en español. */
-  const ES = /[áéíóúñ¿¡]|\bdel?\b|\bla\b|\bnacimiento\b/i;
-  const EN = /\bthe\b|\bof\b|\band\b|\bbirth\b/i;
-  const porIdioma = (versiones.out || []).map(x => ({
-    v: x.v, dicen: x.dicen,
-    es: ES.test(x.dicen), en: EN.test(x.dicen) }));
-  di('lo que dice cada una', porIdioma);
-  const esp = porIdioma.filter(x => x.v === 'vbl' || x.v === 'rv1909');
-  const ing = porIdioma.filter(x => x.v === 'bsb' || x.v === 'web');
+     SE COTEJA CONTRA EL FICHERO DE DATOS, palabra por palabra, y no se
+     adivina el idioma mirando el texto. Aquí hubo una versión que buscaba
+     marcas —tildes, eñes, «de/la» contra «the/of/and»— con el argumento de que
+     la lista de perícopas se edita y exigir «Prólogo» al pie de la letra se
+     cae el día que alguien mejore una traducción. El argumento era bueno y la
+     ejecución mala: «El buen samaritano» no lleva tilde, ni eñe, ni «de», ni
+     «la», así que la prueba lo dio por NO español y cantó un fallo con el
+     programa haciéndolo bien. Lo levantó la corrida del dueño.
+
+     La salida es cotejar contra la MISMA FUENTE que usa la aplicación:
+     pericopas.js se lee aquí como módulo —ya se exporta— y para cada titulillo
+     de la hoja se compara lo que dice con lo que su ficha guarda para el
+     idioma que toca. Exacto y sin adivinar, y sigue sin caerse si alguien
+     reescribe una traducción, porque las dos partes leen el mismo archivo. */
+  const DATOS = require(path.join(RAIZ, 'pericopas.js'));
+  const ficha = new Map((DATOS.LUK || []).map(x => [x.id, x]));
+  const ESPERADO = { vbl:'es', rv1909:'es', bsb:'en', web:'en' };
+  const cotejo = (versiones.out || []).map(x => {
+    const debe = ESPERADO[x.v] || 'es';
+    const pares = (x.pares || []).map(par => {
+      const f = ficha.get(par.id);
+      return { id: par.id, dice: par.dice,
+               toca: f ? (f.t[debe] || f.t.es || f.t.en) : null };
+    });
+    return { v: x.v, debe, dicen: x.dicen,
+             cuantos: pares.length,
+             conFicha: pares.every(q => q.toca !== null),
+             bien: pares.length > 0 && pares.every(q => q.dice === q.toca),
+             falla: pares.find(q => q.dice !== q.toca) || null };
+  });
+  di('cotejado contra pericopas.js', cotejo.map(x => x.v + ' (' + x.debe + '): ' + x.dicen));
+  const esp = cotejo.filter(x => x.debe === 'es');
+  const ing = cotejo.filter(x => x.debe === 'en');
   vale('(la prueba es válida) se vieron versiones de los dos idiomas',
        esp.length > 0 && ing.length > 0,
        esp.length + ' en español, ' + ing.length + ' en inglés');
+  vale('(la prueba es válida) cada titulillo de la hoja tiene su ficha',
+       cotejo.every(x => x.cuantos > 0 && x.conFicha),
+       cotejo.map(x => x.v + ': ' + x.cuantos).join(', '));
   vale('EL TITULILLO SIGUE AL IDIOMA DE LA VERSIÓN',
-       esp.every(x => x.es && !x.en) && ing.every(x => x.en && !x.es),
-       porIdioma.map(x => x.v + ': ' + x.dicen).join('  ·  '));
+       cotejo.every(x => x.bien),
+       (cotejo.find(x => !x.bien) || {}).falla ||
+       cotejo.map(x => x.v + ': ' + x.dicen).join('  ·  '));
+  /* Y EL CONTROL: que los dos idiomas de verdad digan cosas distintas. Sin
+     esto, una lista con el mismo texto en ambos pasaría el cotejo entero sin
+     que la traducción funcionara. */
+  vale('  CONTROL: el español y el inglés no dicen lo mismo',
+       esp.length > 0 && ing.length > 0 && esp[0].dicen !== ing[0].dicen,
+       esp[0] && ing[0] ? esp[0].dicen + '  ≠  ' + ing[0].dicen : 'faltan');
+  /* ================================================================
+     Y LA SOMBRA QUE MANTIENE LA HOJA SINCRONIZADA.
+
+     El titulillo lleva dentro el otro idioma, invisible, apilado en la misma
+     celda: así la caja mide lo que el más largo de los dos y no cambia de alto
+     al cambiar de versión. Sin eso, «El buen samaritano» y «The good
+     Samaritan» cortaban la hoja en sitios distintos —medido: Lucas 10:21
+     contra Lucas 10:9— y se caía la promesa de que la misma hoja trae los
+     mismos versículos en las cuatro traducciones.
+
+     Está probado de rebote ahí arriba, en «LA HOJA ES LA MISMA EN TODAS», pero
+     esa aserción no dice POR QUÉ pasa: si alguien quita la sombra, aquella se
+     cae y nadie sabe dónde mirar. Ésta lo dice. */
+  const sombras = (versiones.out || []).flatMap(x => (x.pares || []).map(par => ({
+    v: x.v, id: par.id, sombra: par.sombra, seVe: par.sombraSeVe })));
+  di('la sombra del titulillo', sombras);
+  vale('el titulillo lleva su otro idioma dentro',
+       sombras.length > 0 && sombras.every(x => x.sombra),
+       sombras.map(x => x.v + ': ' + x.sombra).join(' · '));
+  vale('  y NO se ve', sombras.every(x => x.seVe === false), sombras);
   /* Y LA COLUMNA LO DECLARA, que es la otra mitad: sin esto el inglés se
      pronuncia con reglas españolas. Se mira la hoja viva y el molde del que
      sale la foto del pliegue, que se olvidaba solo. */
