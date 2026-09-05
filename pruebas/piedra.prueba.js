@@ -1353,14 +1353,18 @@ async function andamio(p){
   titulo('el teclado que tapa el nombre');
   const tecl = await abrir();
   const pt = tecl.pagina;
-  await pt.evaluate(() => {
+  /* LLAVE VA COMO ARGUMENTO, que es todo el asunto: lo de dentro de evaluate
+     corre en el NAVEGADOR y allí no existe ni una sola constante de este
+     fichero. Escrita a pelo, la prueba reventaba con «LLAVE is not defined» y
+     se llevaba por delante todo lo que venía detrás. */
+  await pt.evaluate(llave => {
     const hoy = Date.now();
     const ps = [];
     for (let i = 0; i < 20; i++)
       ps.push({ id:'p'+i, libro:'MAT', cap:1, vers:1+i, fx:.5, fy:.3, forma:'canto',
                 color:'tinta', tam:2, nombre:'piedra '+i, puesto:hoy+i });
-    localStorage.setItem(LLAVE, JSON.stringify(ps));
-  });
+    localStorage.setItem(llave, JSON.stringify(ps));
+  }, LLAVE);
   await pt.reload();
   await pt.waitForTimeout(2200);
   await andamio(pt);
@@ -1394,7 +1398,7 @@ async function andamio(p){
   di('con el teclado puesto', tapado);
   vale('EL CAMPO QUEDA POR ENCIMA DEL TECLADO',
        !!tapado.campo && tapado.campo.bottom <= tapado.suelo,
-       tapado.campo + ' contra ' + tapado.suelo);
+       (tapado.campo ? tapado.campo.bottom : '?') + ' contra ' + tapado.suelo);
   /* Y la razón por la que queda: el panel entero cabe. Sin esto, «se ve el
      campo» podría estar pasando por casualidad. */
   vale('  porque el panel entero cabe en lo que se ve',
