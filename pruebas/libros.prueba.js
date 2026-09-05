@@ -9,7 +9,7 @@
      · ¿hay a dónde ir?            → lo dicen el FILO y los botones de lejos.
    Apagar el filo al final de un libro sería mentir; no pintar el canto sería
    callarse que el texto de la hoja siguiente ya es de otro libro. */
-const { abrir, cerrar, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
 
 (async () => {
   const sesion = await abrir();
@@ -101,6 +101,106 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
     vale('sin clases pisadas', r.sinClasePisada);
     return r;
   }));
+
+  /* ================================================================
+     EL LIBRO BAJO EL DEDO CRECE, Y LOS VECINOS SE APARTAN.
+
+     La lista de libros son cuadritos de 26px con el nombre dentro, y con el
+     dedo encima el nombre queda tapado justo cuando hay que leerlo. Ya había
+     una lupa —un globo que dice qué hay debajo— y se pidió además que el
+     cuadrito CREZCA: se arrastra el dedo por la lista y el de debajo se hace
+     grande, el anterior vuelve a su tamaño, y los demás se corren un poco para
+     dejarle sitio.
+
+     CRECE DE CAJA Y NO CON UN transform, y ahí está la diferencia que se
+     prueba. Un transform no ocupa sitio: el cuadrito se vería grande pero
+     encima de sus vecinos, tapándolos, y nadie se apartaría. Creciendo de
+     caja —letra, alto y relleno— la fila se reacomoda sola, que es justo lo
+     que se pidió. Por eso la prueba no mira solo el que crece: mira que el
+     de al lado SE MUEVA. Sin esa segunda mitad, un transform pasaría.
+
+     EL GESTO ES EL DE VERDAD, con su pausa. La lupa no se gana moviéndose sino
+     quedándose quieto 200 ms —si no, cualquier desliz para desplazar la lista
+     la dispararía— así que el dedo se posa, espera, y solo entonces se
+     arrastra. Y se arrastra TORCIDO, que una línea recta no es un dedo. */
+  titulo('el libro bajo el dedo crece');
+  const lup = await abrir();
+  const pl = lup.pagina;
+  const crecer = await pl.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    document.getElementById('pgCabeza').click(); await pausa(700);
+    const pest = [...document.querySelectorAll('.pestanas button')]
+                   .find(b => /libros/i.test(b.textContent));
+    if (pest) pest.click();
+    await pausa(700);
+    const libros = [...document.querySelectorAll('#canto .rejilla-libros .tabo')];
+    if (libros.length < 6) return { pocos: libros.length };
+    const med = e => { const r = e.getBoundingClientRect();
+      return { t:e.textContent.trim(), x:Math.round(r.left), y:Math.round(r.top),
+               w:Math.round(r.width), h:Math.round(r.height),
+               fs: parseFloat(getComputedStyle(e).fontSize) }; };
+    /* El tercero y el cuarto: en medio de su renglón, con vecinos a los dos
+       lados. El primero de una fila no probaría que nadie se aparta. */
+    const uno = libros[2], dos = libros[3];
+    const antes = { uno: med(uno), dos: med(dos) };
+    const r1 = uno.getBoundingClientRect();
+    const op = { bubbles:true, cancelable:true, pointerId:73, pointerType:'touch',
+                 isPrimary:true, clientX: Math.round(r1.left + r1.width/2),
+                 clientY: Math.round(r1.top + r1.height/2) };
+    uno.dispatchEvent(new PointerEvent('pointerdown', op));
+    await pausa(340);                       /* el dedo quieto: eso es la lupa */
+    /* Y ahora se mueve, torcido, sin salir del mismo cuadrito. */
+    document.dispatchEvent(new PointerEvent('pointermove',
+      Object.assign({}, op, { clientX: op.clientX + 2, clientY: op.clientY + 1 })));
+    await pausa(60);
+    document.dispatchEvent(new PointerEvent('pointermove',
+      Object.assign({}, op, { clientX: op.clientX + 3, clientY: op.clientY - 1 })));
+    await pausa(420);                       /* que termine de crecer */
+    const conDedo = { uno: med(uno), dos: med(dos),
+                      marcado: uno.classList.contains('bajoeldedo'),
+                      lupa: (document.getElementById('lupaLibro') || {}).textContent };
+    /* Y el dedo sigue hasta el de al lado. */
+    const r2 = dos.getBoundingClientRect();
+    document.dispatchEvent(new PointerEvent('pointermove',
+      Object.assign({}, op, { clientX: Math.round(r2.left + r2.width/2) + 1,
+                              clientY: Math.round(r2.top + r2.height/2) - 1 })));
+    await pausa(450);
+    const movido = { uno: med(uno), dos: med(dos),
+                     marcadoUno: uno.classList.contains('bajoeldedo'),
+                     marcadoDos: dos.classList.contains('bajoeldedo') };
+    /* Cancelar y no soltar: soltar abriría los capítulos y esto no va de eso. */
+    document.dispatchEvent(new PointerEvent('pointercancel', op));
+    await pausa(400);
+    return { antes, conDedo, movido,
+             enReposo: uno.classList.contains('bajoeldedo') ||
+                       dos.classList.contains('bajoeldedo') };
+  });
+  di('antes', crecer.antes);
+  di('con el dedo encima', crecer.conDedo);
+  di('al pasar al de al lado', crecer.movido);
+  vale('(la prueba es válida) la lupa se enganchó',
+       crecer.pocos === undefined && crecer.conDedo.marcado === true,
+       crecer.pocos !== undefined ? crecer.pocos + ' libros' : crecer.conDedo);
+  vale('EL LIBRO BAJO EL DEDO CRECE',
+       crecer.conDedo.uno.h > crecer.antes.uno.h + 4 &&
+       crecer.conDedo.uno.w > crecer.antes.uno.w + 4 &&
+       crecer.conDedo.uno.fs > crecer.antes.uno.fs,
+       crecer.antes.uno.w + 'x' + crecer.antes.uno.h + ' → ' +
+       crecer.conDedo.uno.w + 'x' + crecer.conDedo.uno.h);
+  vale('  Y EL VECINO SE APARTA, o sea que crece de caja y no de transform',
+       crecer.conDedo.dos.x !== crecer.antes.dos.x ||
+       crecer.conDedo.dos.y !== crecer.antes.dos.y,
+       crecer.antes.dos.x + ',' + crecer.antes.dos.y + ' → ' +
+       crecer.conDedo.dos.x + ',' + crecer.conDedo.dos.y);
+  vale('al pasar al siguiente, el primero vuelve a su tamaño',
+       crecer.movido.marcadoUno === false &&
+       crecer.movido.uno.h <= crecer.antes.uno.h + 1, crecer.movido.uno);
+  vale('  y el nuevo es el que crece',
+       crecer.movido.marcadoDos === true &&
+       crecer.movido.dos.h > crecer.antes.dos.h + 4, crecer.movido.dos);
+  vale('y al levantar el dedo no queda ninguno grande',
+       crecer.enReposo === false, crecer.enReposo);
+  await cerrarParcial(lup, 'la lupa');
 
   await cerrar(sesion);
 })();

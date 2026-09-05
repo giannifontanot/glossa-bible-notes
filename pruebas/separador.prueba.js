@@ -958,8 +958,17 @@ async function ponerAMano(p){
     const r = e => e.getBoundingClientRect();
     const rp = r(panel), ra = r(atras);
     const rl = r(lista), rlp = r(listaP);
+    const rx = panel.querySelector('[data-sp-cerrar]');
     return {
       rotuloSolo: cab.children.length === 1,
+      /* LA EQUIS DEL RASTRO. Se cerraba tocando fuera o volviendo a tocar el
+         botón que lo abrió: las dos hay que saberlas de antes y ninguna se ve.
+         Arriba a la derecha es donde se busca. Se mide contra la ESQUINA del
+         panel y no contra un píxel escrito: el panel cambia de ancho con la
+         pantalla y una coordenada fija se queda vieja sola. */
+      aspa: rx ? { arriba: Math.round(r(rx).top - rp.top),
+                   derecha: Math.round(rp.right - r(rx).right),
+                   lado: Math.round(r(rx).width) } : null,
       /* EL RASTRO SE QUEDÓ CON LO SUYO. Llegó a llevar tres botones arriba
          —piedra, cinta y el paso atrás— y el renglón decía dos cosas a la vez:
          «vuelve por donde viniste» y «deja algo aquí». Los dos de poner se
@@ -985,6 +994,11 @@ async function ponerAMano(p){
   di('el renglón de los botones', renglon);
   vale('están el paso atrás y las dos puertas del pie', renglon.falta !== true, renglon);
   vale('el rótulo se queda solo arriba', renglon.rotuloSolo === true);
+  vale('EL RASTRO TIENE SU EQUIS, arriba a la derecha',
+       !!renglon.aspa && renglon.aspa.arriba <= 8 && renglon.aspa.derecha <= 8,
+       renglon.aspa);
+  vale('  con blanco de toque de 30 px o más',
+       !!renglon.aspa && renglon.aspa.lado >= 30, renglon.aspa);
   vale('EL RASTRO SOLO LLEVA EL PASO ATRÁS', renglon.soloElAtras === true, renglon);
   vale('  y ni rastro de los de poner', renglon.sinLosDePoner === true);
   vale('nada se sale del panel', renglon.dentro === true);
@@ -998,6 +1012,62 @@ async function ponerAMano(p){
        (renglon.telas || []).length === 4 && new Set(renglon.telas).size === 4,
        renglon.telas);
   vale('la de piedras, con tres figuras de muestra', renglon.formas === 3, renglon.formas);
+
+  /* Y QUE LA EQUIS CIERRE, que es la mitad que importa: un aspa que se ve y no
+     cierra es peor que no ponerla. Con el gesto de un dedo, no con .click(). */
+  const cierraElRastro = await p.evaluate(async () => {
+    if (!document.getElementById('historial').classList.contains('visible')){
+      await window.__toque('#btnHistorial'); await window.__pausa(600);
+    }
+    const abierto = document.getElementById('historial').classList.contains('visible');
+    await window.__toque('#historial [data-sp-cerrar]');
+    await window.__pausa(600);
+    return { abierto, cerrado: !document.getElementById('historial').classList.contains('visible') };
+  });
+  di('la equis del rastro', cierraElRastro);
+  vale('  Y CIERRA EL RASTRO',
+       cierraElRastro.abierto === true && cierraElRastro.cerrado === true, cierraElRastro);
+
+  /* ================================================================
+     «NUEVA» LLEGA AL FILO DERECHO, EN LAS DOS LISTAS.
+
+     La equis vivía flotando sobre el renglón del rótulo, así que ese renglón
+     tenía que reservarle 32px de relleno a la derecha para no quedar debajo:
+     «Nueva» terminaba a un dedo del borde y el panel se leía descuadrado.
+     Ahora la equis tiene su propio renglón encima y ese relleno se fue.
+
+     Se comprueban las DOS cosas y en los DOS paneles: que «Nueva» llegue al
+     filo, y que la equis quede por ENCIMA de ella y no a su lado —si alguien
+     devolviera el relleno, lo primero seguiría cumpliéndose por accidente en
+     un panel ancho y lo segundo no—. */
+  const filos = await p.evaluate(async () => {
+    const caja = e => { const r = e.getBoundingClientRect();
+      return { x:Math.round(r.left), y:Math.round(r.top),
+               w:Math.round(r.width), h:Math.round(r.height) }; };
+    const mirar = async (abridor, panelId, nuevaSel) => {
+      if (!document.getElementById('historial').classList.contains('visible')){
+        await window.__toque('#btnHistorial'); await window.__pausa(600);
+      }
+      await window.__toque(abridor); await window.__pausa(800);
+      const p = document.getElementById(panelId);
+      const n = p.querySelector(nuevaSel), x = p.querySelector('[data-sp-cerrar]');
+      if (!n || !x) return { falta:true, hayNueva:!!n, hayAspa:!!x };
+      const rp = caja(p), rn = caja(n), rx = caja(x);
+      return { hueco: (rp.x + rp.w) - (rn.x + rn.w),
+               aspaEncima: (rx.y + rx.h) <= rn.y + 2,
+               aspaALaDerecha: (rp.x + rp.w) - (rx.x + rx.w) <= 8 };
+    };
+    const piedras = await mirar('[data-piedra-lista]', 'piedraMenu', '[data-piedra-nueva]');
+    const cintas = await mirar('[data-sep-lista]', 'sepMenu', '[data-sep-nuevo]');
+    return { piedras, cintas };
+  });
+  di('el filo derecho', filos);
+  for (const [cual, r] of [['piedras', filos.piedras], ['cintas', filos.cintas]]){
+    vale('«Nueva» llega al filo derecho · ' + cual,
+         r.falta !== true && r.hueco <= 14, r.falta ? r : r.hueco + ' px de hueco');
+    vale('  y la equis queda encima, no a su lado · ' + cual,
+         r.falta !== true && r.aspaEncima === true && r.aspaALaDerecha === true, r);
+  }
 
   /* ================================================================
      CON TECLADO, LA VENTANITA TIENE QUE RECIBIR EL FOCO.

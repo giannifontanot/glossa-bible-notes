@@ -406,6 +406,48 @@ async function andamio(p){
      quien la ve entiende que esa piedra dice lo mismo que un separador. */
   vale('  y una de ellas es la cinta larga', mando.m0.hayCinta === true);
   vale('y una paleta de colores', mando.m0.tintas >= 4, mando.m0.tintas);
+  /* ----------------------------------------------------------------
+     LAS FIGURAS Y LOS COLORES QUE SE OFRECEN.
+
+     Dos cosas que se piden mirando la parrilla, no leyendo el código:
+
+     · LA LÁMPARA SE FUE. Dibujada, la lámpara de aceite es un cuerpo panzudo
+       con asa y pico, y a 24 px eso no se lee como lámpara sino como una
+       cafetera —es literalmente lo que se dijo al verla—. En su sitio hay una
+       corona. Se exige que la corona ESTÉ y que la lámpara NO, las dos cosas:
+       comprobar solo que hay corona pasaría igual con las dos puestas.
+
+     · Y LA PALETA TIENE DOS RENGLONES. Los seis de siempre y debajo los mismos
+       seis encendidos. Se mira que sean DOCE y que caigan en dos renglones de
+       seis —comparando la altura de la primera con la de la séptima—, porque
+       doce en una sola fila era justo el fallo que había que evitar: manchas
+       de doce píxeles no son una paleta. */
+  const oferta = await p.evaluate(() => {
+    const m = document.getElementById('piedraMando');
+    const formas = [...m.querySelectorAll('[data-piedra-forma]')].map(b => b.dataset.piedraForma);
+    const tin = [...m.querySelectorAll('[data-piedra-color]')];
+    const y = e => Math.round(e.getBoundingClientRect().top);
+    return { formas,
+             colores: tin.map(b => b.dataset.piedraColor),
+             renglones: new Set(tin.map(y)).size,
+             primeroDeAbajo: tin[6] ? y(tin[6]) > y(tin[0]) : false,
+             /* Y cada uno encima del suyo: la columna dice de quién es la
+                versión viva sin gastar un rótulo. */
+             encolumnados: tin[0] && tin[6] &&
+               Math.abs(tin[0].getBoundingClientRect().left -
+                        tin[6].getBoundingClientRect().left) <= 1 };
+  });
+  di('lo que ofrece el mando', oferta);
+  vale('está la corona', oferta.formas.includes('corona'), oferta.formas);
+  vale('  y la lámpara ya no', !oferta.formas.includes('lampara'), oferta.formas);
+  vale('la paleta tiene DOCE colores', oferta.colores.length === 12, oferta.colores.length);
+  vale('  seis de siempre y seis vivos',
+       ['sepia','carmin','oliva','indigo','ocre','ciruela']
+         .every(c => oferta.colores.includes(c) && oferta.colores.includes(c + '-vivo')),
+       oferta.colores);
+  vale('  EN DOS RENGLONES, no en una tira',
+       oferta.renglones === 2 && oferta.primeroDeAbajo === true, oferta.renglones);
+  vale('  y cada vivo debajo del suyo', oferta.encolumnados === true);
   /* Y SIN CAMPO DE NOMBRE: se espera el false, no la ausencia de la línea. Si
      alguien devuelve el campo al mando, esto lo dice. Ver arriba. */
   vale('y SIN campo de nombre, que eso se hace en la lista',
@@ -1406,6 +1448,63 @@ async function andamio(p){
        tapado.panel);
   vale('  y el panel se recortó al sitio que hay', !!tapado.tope, tapado.tope);
   await cerrarParcial(tecl, 'el teclado');
+
+  /* ================================================================
+     LA PIEDRA QUE ERA UNA LÁMPARA NO SE QUEDA SIN FIGURA.
+
+     La lámpara se retiró de la lista de figuras, y quien la tenía elegida
+     tiene esa palabra escrita en su almacén. Sin traducirla, piedraSanear no
+     la reconoce y la devuelve al primer escalón —una piedra lisa—: o sea que
+     a quien la había elegido se le cambia la marca sin avisar y sin manera de
+     recuperarla. Se traduce a corona, que es lo que ocupó su sitio.
+
+     Se siembra el almacén A MANO con la palabra vieja, que es la única manera
+     de reproducir el archivo de alguien que la usó: hoy ya no hay forma de
+     crear una piedra con esa figura desde la aplicación.
+
+     Y EL ALMACÉN NO SE REESCRIBE AL ABRIR, a propósito. Leer no debería
+     escribir: abrir la aplicación y mirar no tiene por qué tocar el archivo
+     de nadie. La traducción vive en la lectura —piedraSanear— así que la
+     piedra se ve y se dice corona desde el primer momento, y la palabra vieja
+     se queda en el disco hasta el siguiente guardado de verdad, que la
+     sustituye porque guarda lo que hay en memoria. Se comprueban las dos
+     mitades: lo que se ve al abrir, y que el archivo sana solo en cuanto se
+     toca cualquier cosa. */
+  titulo('la piedra que era una lámpara');
+  const vieja = await abrir();
+  const pv = vieja.pagina;
+  await pv.evaluate(llave => localStorage.setItem(llave, JSON.stringify([
+    { id:'vieja1', libro:'MAT', cap:1, vers:1, x:.5, y:.3,
+      forma:'lampara', color:'sepia', tam:2, nombre:'la de aceite',
+      creado:Date.now(), tocado:Date.now() }
+  ])), LLAVE);
+  await pv.reload();
+  await pv.waitForTimeout(2400);
+  await andamio(pv);
+  const migrada = await pv.evaluate(async () => {
+    const antes = JSON.parse(localStorage.getItem('glossa:piedras:v1') || '[]');
+    const b = document.querySelector('.piedra-sitio .piedra');
+    const visto = { enLaHoja: !!b, voz: b ? (b.getAttribute('aria-label') || '') : '',
+                    enDisco: antes[0] && antes[0].forma, nombre: antes[0] && antes[0].nombre };
+    /* Cualquier guardado de verdad reescribe la lista entera desde memoria.
+       Poner otra piedra es el más sencillo de pedir con el dedo. */
+    await window.__nuevaPiedra();
+    const luego = JSON.parse(localStorage.getItem('glossa:piedras:v1') || '[]');
+    const suya = luego.find(x => x.id === 'vieja1');
+    return { ...visto, trasGuardar: suya && suya.forma,
+             nombreTrasGuardar: suya && suya.nombre };
+  });
+  di('la piedra vieja', migrada);
+  vale('sigue en la hoja', migrada.enLaHoja === true, migrada);
+  vale('LA LÁMPARA SE VE Y SE DICE CORONA, no piedra lisa',
+       /corona/i.test(migrada.voz), migrada.voz);
+  vale('  y abrir no le tocó el archivo', migrada.enDisco === 'lampara', migrada.enDisco);
+  vale('  pero el primer guardado lo sana', migrada.trasGuardar === 'corona',
+       migrada.trasGuardar);
+  vale('  sin perder el nombre que le puso su dueño',
+       migrada.nombre === 'la de aceite' && migrada.nombreTrasGuardar === 'la de aceite',
+       migrada.nombre + ' / ' + migrada.nombreTrasGuardar);
+  await cerrarParcial(vieja, 'la lámpara vieja');
 
   fin();
 })();
