@@ -2004,6 +2004,13 @@
      lo que hace falta.
      Recuadro y fondo tenues del mismo marrón del programa: se encuentra de un
      vistazo sin tener que leer el panel entero. */
+  /* EL RENGLÓN DEL FALLO. Del carmín de las cintas, que es el color con el que
+     este programa interrumpe, y no del marrón de todo lo demás: es lo único de
+     este panel que no se viene a leer, sino que sale al encuentro. */
+  .fallo-respaldo{ margin:8px 2px 0; padding:8px 10px;
+                   border:1px solid rgba(155,42,42,.45); border-radius:6px;
+                   background:rgba(155,42,42,.09);
+                   font:600 12px/1.45 var(--ui); color:#7c2020; }
   .sello-version{ margin:13px 2px 3px; padding:9px 11px 8px;
                   border:1px solid rgba(140,116,68,.42); border-radius:7px;
                   background:rgba(184,137,43,.12);
@@ -3093,7 +3100,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '05-SEP-26 08:15';
+window.GLOSS_BUILD = '05-SEP-26 10:04';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -3923,13 +3930,41 @@ const fx=$('fx'), ctx=fx.getContext('2d'), readout=$('readout');
    versículo» sí: sueltas el dedo y no pasa nada, y sin el aviso el programa
    parece roto.
 
-   HAY TRES QUE ME DAN QUE PENSAR y que hoy solo van a la consola, porque se
-   pidió que no saliera ninguno más: «NO SE PUDO GUARDAR», «ese archivo no es
-   JSON válido» y «no se pudo leer el archivo». Los tres avisan de algo que
-   falló de verdad y que tampoco se ve —la glosa que no se guardó, el respaldo
-   que no entró— y quien los necesite no va a abrir la consola. Quedan
-   apuntados aquí para el día que se decida. */
+   Y LOS QUE AVISAN DE QUE ALGO FALLÓ NO SE CALLAN. Aquí quedaron callados un
+   rato y estuvo mal: si localStorage se llena, la glosa sigue en la pantalla
+   —parece guardada— y la única señal de que no lo está era ese cartel. Callarlo
+   es perder trabajo sin decirlo. Lo mismo con el respaldo: un archivo que no se
+   puede leer o que no es JSON deja la importación sin hacer y sin explicar.
+   Levantado en revisión.
+
+   Y NO SOLO SALEN: SE QUEDAN. Un cartel dura nueve segundos y la respuesta a
+   «no se pudo guardar» es «exporta antes de cerrar», que no se hace en nueve
+   segundos. Así que el mismo texto se apunta también en el panel de RESPALDO,
+   al lado de los botones de exportar e importar, que es donde se va a actuar.
+
+   Los avisos de navegación —«ese libro no está en los datos cargados» y sus
+   hermanos— siguen callados. Son de la misma familia que el de cruzar de
+   versículo, y quizá merezcan volver; no se tocan aquí porque no es lo que se
+   pidió y devolver diez carteles por mi cuenta sería deshacer el encargo. */
 const AVISOS_QUE_SALEN = [/no puede cruzar de vers/i];
+const AVISOS_QUE_FALLAN = [
+  /NO SE PUDO GUARDAR/i,
+  /no se pudo leer el archivo/i,
+  /no es JSON válido/i,
+  /no parece una exportación/i,
+  /no hay nada que exportar/i,
+];
+/* El último fallo, guardado aparte: el panel de Respaldo se arma al final del
+   guion, así que un fallo de los primeros milisegundos no tendría dónde
+   escribirse. Se apunta aquí y el panel lo recoge al nacer. */
+let ultimoFallo = null;
+function apuntarFallo(t){
+  ultimoFallo = t;
+  const p = document.getElementById('respaldoFallo');
+  if (!p) return;
+  p.textContent = t;
+  p.hidden = false;
+}
 (function avisoQueSeVa(){
   const dentro = document.createElement('span');
   readout.appendChild(dentro);
@@ -3954,10 +3989,16 @@ const AVISOS_QUE_SALEN = [/no puede cruzar de vers/i];
          este bloque con el desvanecido: un solo sitio decide, y el aviso que
          alguien añada mañana hereda la regla sin acordarse de pedirlo.
 
+         Y LOS QUE DICEN QUE ALGO FALLÓ TAMBIÉN SALEN, además de quedarse
+         escritos en el panel de Respaldo. Ver AVISOS_QUE_FALLAN.
+
          Y NO SE PIERDEN: los que no salen van a la consola. Si algo falla —el
          almacén lleno, una importación que no se puede leer— quien abra las
          herramientas lo encuentra. Ver ANTES DE QUITAR MÁS, aquí abajo. */
-      if (!AVISOS_QUE_SALEN.some(re => re.test(t))){
+      /* Un fallo se apunta SIEMPRE en el panel, salga o no el cartel. */
+      const falla = AVISOS_QUE_FALLAN.some(re => re.test(t));
+      if (falla) apuntarFallo(t);
+      if (!falla && !AVISOS_QUE_SALEN.some(re => re.test(t))){
         try { console.info('[glossa] ' + t); } catch(e){ /* da igual */ }
         readout.classList.remove('viva');
         return;
@@ -13095,7 +13136,28 @@ function vigilarTecladoPanel(el, buscarFila){
   if (!vv || el._teclado) return;
   const mirar = () => {
     const fila = buscarFila();
-    if (!fila){ el.style.removeProperty('--sube'); return; }
+    if (!fila){ el.style.removeProperty('--sube'); el.style.removeProperty('max-height'); return; }
+    /* PRIMERO EL PANEL TIENE QUE CABER, y ésta es la pieza sin la que las otras
+       dos no bastan. El panel mide hasta el 64% de la escena, y ese 64% no
+       encoge porque suba el teclado: con la lista larga y el teclado grande, lo
+       que había que subir era más de lo que el tope de arriba deja, el
+       desplazamiento de dentro llegaba a su máximo, y el campo se quedaba
+       detrás del teclado igual. Medido en revisión: panel arriba del todo,
+       scrollTop en su tope, y el campo 47 px por debajo de lo visible.
+       Recortándolo a lo que se ve, todo lo demás encaja: el panel entero cabe,
+       y dentro de un panel que cabe cualquier fila se alcanza.
+
+       SE SUELTA ANTES DE MEDIR. Si no, el recorte de la vez anterior se toma
+       por el alto natural y el panel ya nunca vuelve a crecer al cerrarse el
+       teclado. Soltar y volver a medir en el mismo tirón no parpadea: entre las
+       dos cosas no hay pintado.
+
+       Y ESTE NO VA SUAVE, a propósito. Animar el alto mientras se mide daría
+       medidas de mitad de camino y la cuenta saldría mal; además el recorte
+       pasa justo cuando el teclado está subiendo y tapándolo. */
+    el.style.removeProperty('max-height');
+    const sitio = vv.height - 16;
+    if (el.getBoundingClientRect().height > sitio) el.style.maxHeight = sitio + 'px';
     /* Lo ya subido se descuenta de las dos medidas: getBoundingClientRect
        devuelve dónde está AHORA, desplazamiento incluido, y sumar sobre eso
        haría que cada aviso subiera el panel otro tanto. */
@@ -13121,6 +13183,7 @@ function vigilarTecladoPanel(el, buscarFila){
     vv.removeEventListener('resize', mirar);
     vv.removeEventListener('scroll', mirar);
     el.style.removeProperty('--sube');
+    el.style.removeProperty('max-height');
     el._rodando = 0;
     el._teclado = null;
   };
@@ -14653,6 +14716,17 @@ ajustes.appendChild($('cred'));
   ctrl.appendChild($('archivoImp'));
   fila.appendChild(ctrl);
   caja.appendChild(fila);
+  /* LO QUE FALLÓ, ESCRITO Y QUIETO. El cartel de abajo dura nueve segundos y
+     se lo puede comer cualquier cosa; la respuesta a «no se pudo guardar» es
+     exportar, y eso se hace aquí. Así que el mismo texto se queda puesto junto
+     al botón con el que se arregla. Nace escondido: un panel que enseña un
+     hueco rojo vacío avisa de nada. */
+  const fallo = document.createElement('p');
+  fallo.id = 'respaldoFallo';
+  fallo.className = 'fallo-respaldo';
+  fallo.hidden = true;
+  caja.appendChild(fallo);
+  if (ultimoFallo){ fallo.textContent = ultimoFallo; fallo.hidden = false; }
   const nota = document.createElement('p');
   nota.className = 'nota-respaldo';
   nota.textContent = 'Tus glosas viven en este navegador y en ningún otro lado. ' +

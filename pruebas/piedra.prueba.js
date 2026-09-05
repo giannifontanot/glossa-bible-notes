@@ -190,6 +190,15 @@ async function andamio(p){
     const rotulo = await window.__nuevaPiedra();
     if (rotulo === null) return { falta:'no hay botón' };
     return { antes, rotulo, voz: window.__vozNueva || '',
+             /* EL AVISO QUE NO SALE. Poner una piedra escribe «piedra puesta
+                · arrástrala…» y ese cartel ya no se enseña: se pidió que abajo
+                no apareciera ninguno salvo el de la marca que cruza de
+                versículo (el que SÍ sale está probado en glosas). Se mira aquí
+                porque aquí hay un gesto que de verdad escribe uno; es el
+                control de aquella prueba, y sin él «solo sale uno» pasaría
+                igual con el filtro quitado. */
+             aviso: { dice: document.getElementById('readout').textContent || '',
+                      sale: document.getElementById('readout').classList.contains('viva') },
              guardadas: window.__guardadas(),
              rastro: document.getElementById('historial').classList.contains('visible'),
              lista: document.getElementById('piedraMenu').classList.contains('visible'),
@@ -227,6 +236,10 @@ async function andamio(p){
        puesta.guardadas[0].x <= 1 && puesta.guardadas[0].y > 0 && puesta.guardadas[0].y <= 1,
        puesta.guardadas && (puesta.guardadas[0].x + ',' + puesta.guardadas[0].y));
   vale('se ve en la hoja', !!puesta.piedra, puesta.piedra);
+  di('el aviso de ponerla', puesta.aviso);
+  vale('SE ESCRIBIÓ UN AVISO, para que el control valga algo',
+       /piedra puesta/i.test((puesta.aviso || {}).dice || ''), puesta.aviso);
+  vale('  y NO sale en pantalla', (puesta.aviso || {}).sale === false, puesta.aviso);
   /* NACE EN EDICIÓN, y eso es media explicación de cómo funciona: aparece con
      su mando puesto, así que se ve de entrada que se puede mover y cambiar. */
   vale('y NACE EN EDICIÓN, con su mando',
@@ -1316,6 +1329,79 @@ async function andamio(p){
   vale('ACEPTAR EL SALTO SÍ CIERRA LA LISTA', mirarIrse.trasSaltar === false, mirarIrse);
   vale('  y la ventanita se va con él', mirarIrse.pleno === false, mirarIrse);
   await cerrarParcial(viaje, 'mirar contra saltar');
+
+  /* ================================================================
+     EL TECLADO QUE TAPA EL NOMBRE, CON UN TECLADO DE MENTIRA.
+
+     Esto se dio primero por no comprobable: en un navegador sin pantalla no
+     hay teclado y visualViewport no encoge por su cuenta. Se puede, y la
+     manera cabe dentro de la regla de la casa —lo único que se sustituye
+     alguna vez es una pieza del NAVEGADOR, nunca código de la aplicación—:
+     se le cambia a visualViewport el alto que dice, que es exactamente lo que
+     hace un teclado al subir, y se manda el 'resize' que el navegador manda.
+     Todo lo demás es la aplicación de verdad.
+
+     Y ESTA PRUEBA MUERDE. Se comprobó quitándole al programa el recorte del
+     alto: sin él, con veinte piedras y 500px de ventana, el panel llega
+     arriba del todo, el desplazamiento de dentro se planta en su tope
+     —scrollTop 428 de 428— y el campo se queda en 547, cuarenta y siete
+     píxeles por debajo de lo que se ve. Es el fallo que levantó la revisión,
+     y son sus mismos números.
+
+     Veinte piedras SEMBRADAS y no puestas a mano: poner veinte piedras es
+     otra prueba, y ya está hecha más arriba. */
+  titulo('el teclado que tapa el nombre');
+  const tecl = await abrir();
+  const pt = tecl.pagina;
+  await pt.evaluate(() => {
+    const hoy = Date.now();
+    const ps = [];
+    for (let i = 0; i < 20; i++)
+      ps.push({ id:'p'+i, libro:'MAT', cap:1, vers:1+i, fx:.5, fy:.3, forma:'canto',
+                color:'tinta', tam:2, nombre:'piedra '+i, puesto:hoy+i });
+    localStorage.setItem(LLAVE, JSON.stringify(ps));
+  });
+  await pt.reload();
+  await pt.waitForTimeout(2200);
+  await andamio(pt);
+  const tapado = await pt.evaluate(async () => {
+    const vv = window.visualViewport;
+    const ALTO = 500;
+    Object.defineProperty(vv, 'height', { configurable:true, get: () => ALTO });
+    await window.__toque('#btnHistorial'); await window.__pausa(600);
+    await window.__toque('[data-piedra-lista]'); await window.__pausa(800);
+    const filas = [...document.querySelectorAll('#piedraMenu [data-piedra-ir]')];
+    if (!filas.length) return { sinFilas:true };
+    /* LA ÚLTIMA DE LA LISTA, que es el caso: la de más abajo es la que el
+       teclado tapa, y la que el tope de arriba solo no alcanza a salvar. */
+    const ultima = filas[filas.length - 1];
+    ultima.scrollIntoView({ block:'nearest' });
+    await window.__pausa(200);
+    if (!await window.__abrirFila(ultima.dataset.piedraIr)) return { noAbre:true };
+    /* Y el aviso que manda el navegador cuando el teclado termina de subir. */
+    vv.dispatchEvent(new Event('resize'));
+    await window.__pausa(900);
+    const el = document.getElementById('piedraMenu');
+    const campo = document.querySelector('#piedraMenu [data-piedra-nombre]');
+    const rc = campo ? campo.getBoundingClientRect() : null;
+    const rp = el.getBoundingClientRect();
+    return { suelo: Math.round(vv.offsetTop + ALTO),
+             panel: { top: Math.round(rp.top), bottom: Math.round(rp.bottom) },
+             campo: rc ? { top: Math.round(rc.top), bottom: Math.round(rc.bottom) } : null,
+             sube: el.style.getPropertyValue('--sube'), tope: el.style.maxHeight,
+             rodado: el.scrollTop };
+  });
+  di('con el teclado puesto', tapado);
+  vale('EL CAMPO QUEDA POR ENCIMA DEL TECLADO',
+       !!tapado.campo && tapado.campo.bottom <= tapado.suelo,
+       tapado.campo + ' contra ' + tapado.suelo);
+  /* Y la razón por la que queda: el panel entero cabe. Sin esto, «se ve el
+     campo» podría estar pasando por casualidad. */
+  vale('  porque el panel entero cabe en lo que se ve',
+       tapado.panel.top >= 0 && tapado.panel.bottom <= tapado.suelo,
+       tapado.panel);
+  vale('  y el panel se recortó al sitio que hay', !!tapado.tope, tapado.tope);
+  await cerrarParcial(tecl, 'el teclado');
 
   fin();
 })();

@@ -2078,9 +2078,19 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      que sin el cartel no hay manera de saber por qué. Los otros veintidós
      contaban lo que acababas de ver hacerse.
 
-     Se prueban los dos lados, que es lo que hace que la prueba valga: el que
-     sale y uno de los que se callan. Comprobar solo que uno sale pasaría
-     igual con el filtro quitado. */
+     Hacen falta LOS DOS LADOS —el que sale y uno de los que se callan— porque
+     comprobar solo que uno sale pasaría igual con el filtro quitado. El otro
+     lado NO está aquí, y por dos razones que se descubrieron a golpes:
+
+     · escribir una glosa normal no manda ningún aviso, así que el «control»
+       que había aquí no controlaba nada;
+     · y el cartel dura NUEVE segundos, así que mirarlo un segundo después del
+       primero seguía viendo el primero. Daba «sale: true» con el texto de
+       antes y hacía fallar la suite con el filtro funcionando.
+
+     El control está en piedra.prueba.js, en «poner una piedra», que es un
+     gesto que sí escribe uno («piedra puesta · arrástrala…») y además lo hace
+     antes que ningún otro. Levantado en revisión. */
   titulo('el único aviso que sale');
   await p.reload();
   const avisos = await p.evaluate(async () => {
@@ -2104,33 +2114,60 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     const cruza = { dice: ro.textContent, sale: ro.classList.contains('viva'),
                     opacidad: getComputedStyle(ro).opacity,
                     panel: document.getElementById('menu').classList.contains('abierto') };
-    /* Y UNO DE LOS QUE SE CALLAN, por el mismo embudo: una marca normal
-       dentro de un solo versículo, que antes anunciaba «marca puesta». */
-    getSelection().removeAllRanges();
-    const r2 = document.createRange(); r2.setStart(a, 4); r2.setEnd(a, 18);
-    getSelection().removeAllRanges(); getSelection().addRange(r2);
-    const rc2 = r2.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX:Math.round(rc2.left+2), clientY:Math.round(rc2.top+2) }));
-    await pausa(900);
-    const ta = document.getElementById('glosaCaja');
-    if (ta){ ta.value = 'una nota cualquiera'; ta.dispatchEvent(new Event('input', { bubbles:true })); }
-    await pausa(300);
-    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, clientX:5, clientY:5 }));
-    await pausa(900);
-    return { cruza, normal: { dice: ro.textContent, sale: ro.classList.contains('viva'),
-                              opacidad: getComputedStyle(ro).opacity } };
+    return { cruza };
   });
   di('el que cruza', avisos.cruza);
-  di('el de siempre', avisos.normal);
   vale('el de cruzar de versículo SALE',
        !!avisos.cruza && avisos.cruza.sale === true && +avisos.cruza.opacidad > .9,
        avisos.cruza);
   vale('y dice lo suyo', !!avisos.cruza && /no puede cruzar de vers/i.test(avisos.cruza.dice),
        avisos.cruza && avisos.cruza.dice);
-  vale('CONTROL: el aviso de una marca normal se calla',
-       !!avisos.normal && avisos.normal.sale === false && +avisos.normal.opacidad < .1,
-       avisos.normal);
+
+  /* ================================================================
+     LO QUE FALLÓ SÍ SE DICE, Y ADEMÁS SE QUEDA ESCRITO.
+
+     El filtro de arriba calló también los avisos de que algo NO se pudo hacer,
+     y eso era un fallo de verdad: si localStorage se llena, la glosa sigue en
+     la pantalla —parece guardada— y el único aviso de que no lo está era ese
+     cartel. Con el respaldo pasa lo mismo: un archivo ilegible deja la
+     importación sin hacer y sin explicar. Levantado en revisión.
+
+     Se prueba por el camino del archivo, que es el que se puede recorrer de
+     verdad: se le da al lector un JSON roto y se mira que lo diga en los dos
+     sitios. Y se miran los DOS porque cada uno cubre un agujero distinto: el
+     cartel avisa en el momento, y el renglón del panel de Respaldo se queda
+     puesto —el cartel dura nueve segundos y la respuesta a «no se pudo
+     guardar» es exportar, que no se hace en nueve segundos—. */
+  titulo('lo que falló se dice, y se queda escrito');
+  await p.reload();
+  /* El panel de Respaldo tiene que estar armado para que el renglón exista;
+     se abre como se abre, por su pestaña. */
+  await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    document.getElementById('pgCabeza').click();
+    await pausa(700);
+    const pest = [...document.querySelectorAll('.pestanas button')]
+                   .find(b => /respaldo/i.test(b.textContent));
+    if (pest) pest.click();
+    await pausa(600);
+  });
+  await p.setInputFiles('#archivoImp',
+    { name:'roto.json', mimeType:'application/json', buffer: Buffer.from('{esto no es json') });
+  await p.waitForTimeout(1200);
+  const fallo = await p.evaluate(() => {
+    const ro = document.getElementById('readout');
+    const p2 = document.getElementById('respaldoFallo');
+    return { dice: ro.textContent, sale: ro.classList.contains('viva'),
+             opacidad: getComputedStyle(ro).opacity,
+             renglon: p2 ? { hay:true, oculto: p2.hidden, texto: p2.textContent } : { hay:false } };
+  });
+  di('al importar un archivo roto', fallo);
+  vale('lo dice', /no es JSON válido/i.test(fallo.dice || ''), fallo.dice);
+  vale('Y SE VE, que es lo que faltaba',
+       fallo.sale === true && +fallo.opacidad > .9, fallo);
+  vale('y se queda escrito en el panel de Respaldo',
+       fallo.renglon.hay === true && fallo.renglon.oculto === false &&
+       /no es JSON válido/i.test(fallo.renglon.texto || ''), fallo.renglon);
 
   await cerrar(sesion);
 })();
