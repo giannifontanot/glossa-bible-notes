@@ -241,6 +241,13 @@ const abrirEn = async (p, donde) => {
          operación más cara del programa y hay que dejarla terminar. */
       await window.__pausa(2600);
       out.push({ v, hoja: window.__hoja(),
+                 /* Y CÓMO SE DECLARA LA COLUMNA. Elegir el texto en inglés y
+                    dejar el <div> diciendo lang="es" deja el trabajo a medias:
+                    un lector de pantalla pronuncia el inglés con reglas
+                    españolas. Vale para el capítulo entero, no solo para el
+                    titulillo. Lo levantó Codex. */
+                 declara: document.getElementById('pgBody').getAttribute('lang'),
+                 declaraMolde: document.getElementById('ghostBody').getAttribute('lang'),
                  titulillos: [...document.querySelectorAll('#pgBody .peri')]
                    .map(t => t.dataset.peri).join('|'),
                  /* Y LO QUE DICEN, que no es lo mismo que cuáles son: el id
@@ -292,6 +299,19 @@ const abrirEn = async (p, donde) => {
   vale('EL TITULILLO SIGUE AL IDIOMA DE LA VERSIÓN',
        esp.every(x => x.es && !x.en) && ing.every(x => x.en && !x.es),
        porIdioma.map(x => x.v + ': ' + x.dicen).join('  ·  '));
+  /* Y LA COLUMNA LO DECLARA, que es la otra mitad: sin esto el inglés se
+     pronuncia con reglas españolas. Se mira la hoja viva y el molde del que
+     sale la foto del pliegue, que se olvidaba solo. */
+  const declarado = (versiones.out || []).map(x => ({
+    v: x.v, hoja: x.declara, molde: x.declaraMolde,
+    debe: (x.v === 'bsb' || x.v === 'web') ? 'en' : 'es' }));
+  di('lo que declara la columna', declarado);
+  vale('LA COLUMNA DECLARA EL IDIOMA DE LA VERSIÓN',
+       declarado.every(x => x.hoja === x.debe),
+       declarado.map(x => x.v + ': ' + x.hoja).join(', '));
+  vale('  y el molde de la foto también',
+       declarado.every(x => x.molde === x.debe),
+       declarado.map(x => x.v + ': ' + x.molde).join(', '));
   await cerrarParcial(otra, 'las versiones');
 
   /* ================================================================

@@ -739,6 +739,31 @@ const ATERRIZA = 7000;
   });
   di('tras recargar', tras);
   vale('  y sobrevive a recargar', tras.izq > 8 && tras.der > 8, tras);
+
+  /* Y SE APAGAN DONDE NO HAY A DÓNDE IR, con la misma pregunta que el filo.
+     Un botón encendido que no hace nada se lee como que el toque no entró, y
+     ése era justamente el fallo que las flechas venían a arreglar. Lo levantó
+     Codex.
+
+     Se compara CONTRA EL FILO y no contra un libro escrito a mano: cuál es la
+     primera hoja depende de qué biblias estén cargadas —hoy los datos empiezan
+     en Mateo, mañana quizá no— y una prueba que diga «Génesis» se cae sola el
+     día que alguien baje el Antiguo Testamento. El filo ya sabe la respuesta;
+     lo que hay que exigir es que las flechas digan lo mismo que él. */
+  const extremos = await pf.evaluate(() => ({
+    hoja: document.getElementById('pgCabeza').textContent.trim(),
+    izq: document.getElementById('flechaIzq').disabled,
+    der: document.getElementById('flechaDer').disabled,
+    filoIzq: document.getElementById('edgeL').classList.contains('off'),
+    filoDer: document.getElementById('edgeR').classList.contains('off'),
+    opacidad: parseFloat(getComputedStyle(document.getElementById('flechaIzq')).opacity) }));
+  di('en la primera hoja de los datos', extremos);
+  vale('(la prueba es válida) estamos en un extremo',
+       extremos.filoIzq === true, extremos.hoja);
+  vale('LA FLECHA DICE LO MISMO QUE EL FILO',
+       extremos.izq === extremos.filoIzq && extremos.der === extremos.filoDer, extremos);
+  vale('  y se ve apagada, no invisible',
+       extremos.opacidad > .05 && extremos.opacidad < .6, extremos.opacidad);
   await cerrarParcial(fl, 'las flechas');
 
   await cerrar(sesion);

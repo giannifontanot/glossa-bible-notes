@@ -490,6 +490,11 @@
   .flecha-hoja:hover{ background:rgba(120,96,50,.22); color:rgba(60,40,15,.72); }
   .flecha-hoja:active{ transform:scale(.88); }
   .flecha-hoja:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
+  /* APAGADA EN GÉNESIS Y EN APOCALIPSIS. Se queda a la vista y a media tinta en
+     vez de irse: desaparecer y volver a aparecer al pasar una hoja es más ruido
+     que una flecha pálida, y además la posición del papel no cambia. */
+  .flecha-hoja:disabled{ opacity:.3; cursor:default; }
+  .flecha-hoja:disabled:hover{ background:rgba(120,96,50,.10); color:rgba(60,40,15,.42); }
   .flecha-l{ left:34px; }
   .flecha-r{ right:34px; }
   /* Con el dedo se agrandan y se apartan un poco más del filo. */
@@ -3277,7 +3282,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '05-SEP-26 11:39';
+window.GLOSS_BUILD = '05-SEP-26 11:49';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4889,11 +4894,16 @@ function mapaPericopas(pl){
 const IDIOMA_VERSION = { vbl:'es', rv1909:'es', bsb:'en', web:'en' };
 const idiomaVersion = v => IDIOMA_VERSION[v] || 'es';
 /* Y con respaldo al otro idioma: una perícopa a la que le falte el inglés se
-   enseña en español antes que en blanco. */
+   enseña en español antes que en blanco. Devuelve las DOS cosas —el texto y en
+   qué idioma salió— porque quien lo pinta tiene que declararlo: ver tituloHTML.
+   Elegir el texto y no decir de qué idioma es deja el trabajo a medias. */
 const tituloPericopa = p => {
-  if (!p || !p.t) return '';
+  if (!p || !p.t) return { t:'', l:'es' };
   const l = idiomaVersion(version);
-  return p.t[l] || p.t.es || p.t.en || '';
+  if (p.t[l]) return { t: p.t[l], l };
+  if (p.t.es) return { t: p.t.es, l:'es' };
+  if (p.t.en) return { t: p.t.en, l:'en' };
+  return { t:'', l };
 };
 /* El titulillo, si en este versículo empieza una.
 
@@ -4909,11 +4919,23 @@ const tituloPericopa = p => {
    se añaden en la misma cadena, así que el paginador los mete juntos y, si no
    caben, los retira juntos. No hace falta guardia ninguna; sale de cómo está
    escrito paginate. */
+/* Y LLEVA ESCRITO SU IDIOMA cuando no es el de la hoja.
+
+   Lo levantó Codex y es de las que no se ven mirando: leyendo la Berean, el
+   titulillo sale en inglés dentro de una columna declarada en español, así que
+   un lector de pantalla lo pronuncia con reglas españolas —«The announcement»
+   leído como si fuera castellano—. La hoja entera declara ahora el idioma de
+   la versión (ver renderPage), así que lo normal es que coincidan y aquí no
+   haga falta nada. El atributo se pone solo cuando NO coinciden, que es el
+   caso del respaldo: una perícopa a la que le falte el inglés se enseña en
+   español dentro de una hoja declarada en inglés. */
 function tituloHTML(k){
   const p = mapaPericopas(plano).get(k);
   if (!p) return '';
-  return '<h2 class="peri" data-peri="' + esc(p.id) + '">' +
-         esc(tituloPericopa(p)) + '</h2>';
+  const t = tituloPericopa(p);
+  const suyo = t.l !== idiomaVersion(version) ? ' lang="' + t.l + '"' : '';
+  return '<h2 class="peri" data-peri="' + esc(p.id) + '"' + suyo + '>' +
+         esc(t.t) + '</h2>';
 }
 function verseHTML(k, withMarks, below){
   const it = plano[k], base = it.texto;
@@ -5335,8 +5357,26 @@ function renderPageCrudo(){
   curMW = r.mw; curGap = r.gap;
   curMarginHTML = r.marginHTML; curFootHTML = r.footHTML;
   if (HL_API) aplicarHighlights();
+  /* LA COLUMNA DECLARA EL IDIOMA DE LA VERSIÓN, y no un español clavado en el
+     marcado. Leyendo la Berean o la World English, el texto es inglés dentro de
+     un <div lang="es">: un lector de pantalla lo pronuncia con reglas
+     españolas, palabra por palabra, y eso vale para el capítulo entero y no
+     solo para el titulillo. Estaba así desde que hay varias versiones y se vio
+     al traducir las perícopas. Lo levantó Codex.
+     Se pone en el molde también: la foto del pliegue sale de él. */
+  const idi = idiomaVersion(version);
+  pgBody.lang = idi;
+  if (ghostBody) ghostBody.lang = idi;
   edgeR.classList.toggle('off', !hayHoja('right'));
   edgeL.classList.toggle('off', !hayHoja('left'));
+  /* Y LAS FLECHAS SE APAGAN DONDE NO HAY A DÓNDE IR, con la misma pregunta que
+     el filo y que los botones de la vista de lejos: no al final de un libro
+     —ahí empieza el siguiente— sino solo en Génesis por la izquierda y en
+     Apocalipsis por la derecha. Un botón encendido que no hace nada se lee
+     como que el toque no entró. Lo levantó Codex. */
+  const fi = $('flechaIzq'), fd = $('flechaDer');
+  if (fi) fi.disabled = !hayHoja('left');
+  if (fd) fd.disabled = !hayHoja('right');
   /* El canto marca el final del LIBRO, no el final de la lectura. Antes eran
      lo mismo y se preguntaba una sola vez; ahora, pasando la última hoja
      empieza el libro siguiente, así que el filo sigue encendido y el canto
@@ -8094,7 +8134,7 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza, hojaN){
          Si se olvidan, el pliegue enseña una hoja blanca girando sobre una
          mesa sepia, que es el mismo brinco que ya costó dos comentarios más
          arriba, pero de color. */
-      '<div xmlns="http://www.w3.org/1999/xhtml" xml:lang="es" lang="es" class="pg sin-tinta" style="width:'+w+'px;height:'+h+'px;font-family:'+fuente+';--fam:'+fuente+
+      '<div xmlns="http://www.w3.org/1999/xhtml" xml:lang="'+idiomaVersion(version)+'" lang="'+idiomaVersion(version)+'" class="pg sin-tinta" style="width:'+w+'px;height:'+h+'px;font-family:'+fuente+';--fam:'+fuente+
           ';--papel:'+colorPapel()+';--tinta:'+colorTinta()+
           /* Estas dos NO pintan nada aquí, y conviene saberlo antes de ir a
              buscar por qué el titulillo de la foto no cambia: .sin-tinta deja
@@ -8110,7 +8150,7 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza, hojaN){
         htmlPiedrasFoto(hojaN)+
         '<div class="pg-version"'+estVer+'>'+esc(D.versiones[version].abrev || version)+'</div>'+
         '<div class="pg-cabeza"'+estCab+'>'+esc(cabeza||'')+'</div><div class="pg-cols"'+estCols+'>'+
-        '<div class="pg-body" xml:lang="es" lang="es" style="'+estBody+estiloEnLinea()+'">'+bodyHTML+'</div>'+
+        '<div class="pg-body" xml:lang="'+idiomaVersion(version)+'" lang="'+idiomaVersion(version)+'" style="'+estBody+estiloEnLinea()+'">'+bodyHTML+'</div>'+
         '<div class="pg-margin" style="width:'+m+';margin-left:'+g+';--mw:'+m+';--mgap:'+g+'">'+marginHTML+'</div>'+
         '</div><div class="pg-foot">'+footHTML+'</div></div></div>'+
     '</foreignObject></svg>';
