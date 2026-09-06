@@ -3540,7 +3540,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 11:30';
+window.GLOSS_BUILD = '06-SEP-26 11:35';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -15800,7 +15800,13 @@ function portadaCargar(){
           color: PIEDRA_TINTAS.some(t => t[0] === p.color) ? p.color : PIEDRA_TINTAS[0][0],
           tam: Math.min(Math.max(+p.tam || 46, 22), 140),
           x: enRango(p.x, .5), y: enRango(p.y, .5),
-          sombra: p.sombra === true
+          /* LO QUE NO TRAE SOMBRA ESCRITA LA TIENE, y no es un descuido: hasta
+             ahora la sombra la ponía el CSS a TODAS y no se guardaba en ningún
+             sitio. Leyendo la clave que falta como «no» —que es lo natural—,
+             abrir esta versión le quitaba la sombra a cada piedra ya puesta, y
+             el primer guardado lo dejaba escrito para siempre. Así que solo un
+             «false» escrito a conciencia la apaga. Lo levantó Codex. */
+          sombra: p.sombra !== false
         }))
       : [];
   } catch(e){ portadaAdorno.piedras = []; }
@@ -16260,8 +16266,18 @@ function portadaTomarArchivo(file){
     }
   });
   /* Un gesto que el sistema se quedó no es un toque del lector: no posa, no
-     mueve y no cambia nada. */
-  p.addEventListener('pointercancel', () => { portadaDedo = null; });
+     mueve y no cambia nada.
+
+     Y SI YA LA HABÍA MOVIDO, SE REPINTA. El arrastre mueve el nodo a mano en
+     cada cuadro —hay que hacerlo así o se pierde la captura del puntero—, de
+     modo que al cancelar la pantalla enseña el sitio nuevo y lo guardado
+     sigue teniendo el viejo. Sin repintar, la piedra se quedaba donde el dedo
+     la había llevado y daba un salto de vuelta en el siguiente repintado o al
+     recargar, sin que nadie hubiera tocado nada. Lo levantó Codex. */
+  p.addEventListener('pointercancel', () => {
+    const g = portadaDedo; portadaDedo = null;
+    if (g && g.movio) portadaPintarPiedras();
+  });
   p.addEventListener('pointerup', ev => {
     const g = portadaDedo; portadaDedo = null;
     if (!g || g.pid !== ev.pointerId) return;
@@ -16315,6 +16331,14 @@ function portadaTomarArchivo(file){
     const id = suya.dataset.ptPiedra;
     if (portadaEditando === id) portadaSiguienteForma(id);
     else portadaAbrirEdicion(id);
+    /* Y EL FOCO VUELVE AL BOTÓN QUE EL REPINTADO SE LLEVÓ. Las dos ramas
+       rehacen la capa entera con innerHTML, así que el botón que tenía el foco
+       deja de existir y el foco se cae al documento: quien navega con teclado
+       llegaba a la piedra, la cambiaba UNA vez, y se quedaba sin dónde estar
+       para volver a pulsar. Es lo mismo que hace la hoja tras pintar, y lo
+       levantó Codex. */
+    const vuelto = p.querySelector('[data-pt-piedra="' + id + '"]');
+    if (vuelto) vuelto.focus();
   });
 })();
 /* TECHO DURO. Lo de arriba quita la portada cuando la hoja está pintada, pero

@@ -311,6 +311,86 @@ async function tocarSinClic(pagina, x, y, pid = 21){
   /* De las seis entradas solo dos son piedras; las otras cuatro se criban. */
   vale('  y se quedan las piedras que sí valen', roto.piedras === 2, roto.piedras);
 
+  titulo('LO QUE YA ESTABA GUARDADO NO PIERDE SU SOMBRA');
+  /* Hasta esta versión la sombra la ponía el CSS a TODAS las piedras de la
+     portada y no se guardaba en ningún sitio. Leyendo la clave que falta como
+     «no» —que es lo natural— abrir la versión nueva se la quitaba a cada
+     piedra ya puesta, y el primer guardado lo dejaba escrito para siempre.
+     Solo un «false» a conciencia la apaga. */
+  await p.evaluate(k => localStorage.setItem(k, JSON.stringify({ piedras:[
+    { forma:'piedra', color:'sepia', tam:46, x:.3, y:.3 },
+    { forma:'ancla', color:'carmin', tam:60, x:.7, y:.6, sombra:false } ], foto:null })), LLAVE);
+  await p.reload();
+  await p.waitForTimeout(700);
+  const sombras = await p.evaluate(() =>
+    [...document.querySelectorAll('.pt-piedra')].map(x => x.classList.contains('con-sombra')));
+  di('las sombras al abrir un almacén viejo', JSON.stringify(sombras));
+  vale('LA QUE NO TRAÍA SOMBRA ESCRITA LA CONSERVA', sombras[0] === true, sombras);
+  vale('  y un «false» a conciencia sí la apaga', sombras[1] === false, sombras);
+
+  titulo('UN ARRASTRE CANCELADO NO DEJA LA PIEDRA MOVIDA');
+  /* El arrastre mueve el nodo a mano en cada cuadro —hay que hacerlo así o se
+     pierde la captura del puntero—, así que al cancelar la pantalla enseñaba
+     el sitio nuevo y lo guardado seguía con el viejo: la piedra daba un salto
+     de vuelta en el siguiente repintado o al recargar, sin que nadie hubiera
+     tocado nada. */
+  const cancelado = await p.evaluate(async k => {
+    const pausa = ms => new Promise(r => setTimeout(r, ms));
+    document.getElementById('btnPortadaPiedras').click(); await pausa(400);
+    const b = document.querySelector('.pt-piedra');
+    const r = b.getBoundingClientRect();
+    const cx = Math.round(r.left + r.width/2), cy = Math.round(r.top + r.height/2);
+    b.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true,
+      detail:2, clientX:cx, clientY:cy }));
+    await pausa(450);
+    const nodo = document.querySelector('.pt-piedra.editando');
+    if (!nodo) return { sinEdicion:true };
+    const o = (x, y) => ({ bubbles:true, cancelable:true, pointerId:31, pointerType:'touch',
+                           isPrimary:true, clientX:x, clientY:y });
+    nodo.dispatchEvent(new PointerEvent('pointerdown', o(cx, cy))); await pausa(30);
+    /* torcido, como un dedo */
+    nodo.dispatchEvent(new PointerEvent('pointermove', o(cx + 68, cy + 122))); await pausa(30);
+    nodo.dispatchEvent(new PointerEvent('pointermove', o(cx + 141, cy + 228))); await pausa(30);
+    const durante = document.querySelector('.pt-piedra.editando').style.left;
+    nodo.dispatchEvent(new PointerEvent('pointercancel', o(cx + 141, cy + 228)));
+    await pausa(350);
+    return { durante, pintado: document.querySelector('[data-pt-piedra]').style.left,
+             guardado: (JSON.parse(localStorage.getItem(k) || '{}').piedras || [])[0].x };
+  }, LLAVE);
+  di('el arrastre cancelado', JSON.stringify(cancelado));
+  vale('LO PINTADO VUELVE A LO GUARDADO',
+       !cancelado.sinEdicion &&
+       Math.abs(parseFloat(cancelado.pintado) - cancelado.guardado * 100) < .01,
+       cancelado.pintado + ' contra ' + (cancelado.guardado * 100).toFixed(3) + '%');
+  vale('  y no se queda donde lo llevó el dedo',
+       cancelado.pintado !== cancelado.durante,
+       'durante ' + cancelado.durante + ' · tras ' + cancelado.pintado);
+
+  titulo('EL FOCO SOBREVIVE AL REPINTADO');
+  /* Las dos ramas del teclado rehacen la capa entera con innerHTML, así que el
+     botón que tenía el foco deja de existir y el foco se cae al documento:
+     quien navega con teclado llegaba a la piedra, la cambiaba UNA vez y se
+     quedaba sin dónde estar. Intro sobre un <button> manda un clic con
+     detail 0, que es como se distingue del dedo. */
+  const foco = await p.evaluate(async () => {
+    const pausa = ms => new Promise(r => setTimeout(r, ms));
+    const b = document.querySelector('[data-pt-piedra]');
+    const id = b.dataset.ptPiedra;
+    b.focus();
+    const quien = () => { const a = document.activeElement;
+      return (a && a.dataset && a.dataset.ptPiedra) || (a || {}).tagName; };
+    b.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, detail:0 }));
+    await pausa(350);
+    const tras = quien();
+    const b2 = document.querySelector('[data-pt-piedra="' + id + '"]');
+    if (b2) b2.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, detail:0 }));
+    await pausa(350);
+    return { id, tras, tras2: quien() };
+  });
+  di('el foco', JSON.stringify(foco));
+  vale('TRAS EL REPINTADO EL FOCO SIGUE EN LA PIEDRA', foco.tras === foco.id, foco.tras);
+  vale('  y se puede volver a pulsar', foco.tras2 === foco.id, foco.tras2);
+
   fs.rmSync(carpeta, { recursive:true, force:true });
   await cerrar(sesion);
 })();
