@@ -155,11 +155,23 @@ async function tocarSinClic(pagina, x, y, pid = 21){
   vale('  y a la izquierda igual', g2 === g1.giro - 3, g1.giro + ' → ' + g2);
   vale('  y se ve girada, no solo apuntada', /rotate\(6deg\)/.test(g1.css || ''), g1.css);
 
-  titulo('LAS PIEDRAS DE LA PORTADA');
+  titulo('LAS PIEDRAS DE LA PORTADA USAN EL MANDO DE SIEMPRE');
+  /* Aquí hubo un panel entero escrito solo para estas piedras, con sus figuras
+     y sus colores. Se fue: la portada abre EL MISMO mando que la hoja, mudado
+     encima de la tapa. Lo que se comprueba es justamente eso —que es el mismo—
+     y no una lista de botones que volvería a describir un panel aparte. */
   await p.click('[data-pt-listo]'); await p.waitForTimeout(300);
   await p.click('#btnPortadaPiedras'); await p.waitForTimeout(400);
-  await p.click('[data-pt-forma="paloma"]'); await p.waitForTimeout(250);
-  await p.click('[data-pt-tinta="carmin"]'); await p.waitForTimeout(250);
+  const encendido = await p.evaluate(() => ({
+    dice: document.getElementById('btnPortadaPiedras').textContent.trim(),
+    decorando: document.getElementById('portada').classList.contains('decorando'),
+    sinPanelAparte: !document.getElementById('portadaMandoPiedras') }));
+  di('al encender', JSON.stringify(encendido));
+  vale('«Piedras» enciende el modo y pasa a decir «Listo»',
+       encendido.decorando === true && encendido.dice === 'Listo', encendido);
+  vale('  y no hay panel aparte para estas piedras',
+       encendido.sinPanelAparte === true, encendido.sinPanelAparte);
+
   /* SE PONEN CON EL PUNTERO Y SIN CLIC, y ésta es la prueba que faltaba.
      La capa donde caen las piedras es un <div> pelado con el oyente delegado
      en la portada, y un teléfono —iOS a la cabeza— solo se inventa el clic
@@ -170,53 +182,74 @@ async function tocarSinClic(pagina, x, y, pid = 21){
      temblor, pointerup— y NADA MÁS: si el arreglo volviera a apoyarse en el
      clic, esto lo dice. */
   await tocarSinClic(p, 120, 260);
-  await tocarSinClic(p, 300, 300);
+  const nacida = await p.evaluate(() => {
+    const m = document.getElementById('piedraMando');
+    return { n: document.querySelectorAll('.pt-piedra').length,
+             /* EL MANDO SE MUDA A LA PORTADA. Es el mismo nodo: la tapa es fija
+                con z-index 200 y el mando vive en la escena, muy por debajo,
+                así que quedarse en su sitio era quedarse tapado. */
+             padre: m.parentNode.id,
+             visible: m.classList.contains('visible'),
+             titulo: (m.querySelector('.sp-tit') || {}).textContent,
+             formas: m.querySelectorAll('[data-piedra-forma]').length,
+             tintas: m.querySelectorAll('[data-piedra-color]').length,
+             contador: (m.querySelector('.pm-tam') || {}).textContent,
+             salidas: [...m.querySelectorAll('.pm-btn2')].map(x => x.textContent.trim()),
+             cerco: !!document.querySelector('.pt-piedra.editando') };
+  });
+  di('la piedra nueva', JSON.stringify(nacida));
+  vale('LA NUEVA NACE EN EDICIÓN, como en la hoja',
+       nacida.n === 1 && nacida.visible === true && nacida.cerco === true, nacida);
+  vale('  con el mando de la hoja: catorce figuras, doce colores y su contador',
+       nacida.formas === 14 && nacida.tintas === 12 && /\/8$/.test(nacida.contador || ''),
+       [nacida.formas, nacida.tintas, nacida.contador].join(' · '));
+  vale('  mudado encima de la tapa', nacida.padre === 'portada', nacida.padre);
+  /* La única diferencia con la hoja, y por una razón: la portada no tiene lista
+     de piedras de donde borrar, así que la salida de borrar vive en el mando. */
+  vale('  y con «Quitar», que en la hoja no hace falta',
+       ['Quitar','Cancelar','OK'].every(x => nacida.salidas.includes(x)), nacida.salidas);
 
-  /* EL MANDO TAPA LA BANDA DE ABAJO, y por eso lleva «subir». Medido en el
-     teléfono de 412×915 ocupa de y=469 a y=811: ahí no se puede dejar una
-     piedra, y una puesta no se arrastra después. La prueba mide el estorbo
-     antes de mover el mando, para que si mañana el panel encoge y deja de
-     tapar, esto lo diga en vez de seguir en verde por casualidad. */
-  const tapa = await p.evaluate(() => {
-    const r = document.getElementById('portadaMandoPiedras').getBoundingClientRect();
-    const t = document.elementFromPoint(206, Math.round(r.top + r.height/2));
-    return { y: Math.round(r.top), abajo: Math.round(r.bottom),
-             tapando: !!(t && t.closest('.pt-mando')) };
-  });
-  di('el mando abajo', JSON.stringify(tapa));
-  vale('el mando abajo tapa parte de la portada', tapa.tapando === true, tapa);
-  await p.click('[data-pt-mover]'); await p.waitForTimeout(300);
-  const arriba = await p.evaluate(() => {
-    const el = document.getElementById('portadaMandoPiedras');
-    return { y: Math.round(el.getBoundingClientRect().top),
-             arriba: el.classList.contains('arriba'),
-             dice: (el.querySelector('[data-pt-mover]') || {}).textContent,
-             libre: (document.elementFromPoint(206, 700) || {}).id };
-  });
-  di('el mando arriba', JSON.stringify(arriba));
-  vale('SUBIR LO MUEVE Y LIBERA LO QUE TAPABA',
-       arriba.arriba === true && arriba.y < tapa.y && arriba.libre === 'portadaPiedras', arriba);
-  vale('  y el botón pasa a decir «bajar»', arriba.dice === 'bajar', arriba.dice);
-  await tocarSinClic(p, 206, 700);
-  await p.click('[data-pt-mover]'); await p.waitForTimeout(300);   /* se baja otra vez */
+  const cambia = await p.evaluate(async k => {
+    const pausa = ms => new Promise(r => setTimeout(r, ms));
+    const m = document.getElementById('piedraMando');
+    const g = () => (JSON.parse(localStorage.getItem(k) || '{}').piedras || [])[0] || {};
+    const antes = { forma:g().forma, color:g().color, tam:g().tam };
+    m.querySelector('[data-piedra-forma="paloma"]').click(); await pausa(300);
+    m.querySelector('[data-piedra-color="carmin"]').click(); await pausa(300);
+    m.querySelector('[data-piedra-acc="mas"]').click(); await pausa(300);
+    return { antes, medio: { forma:g().forma, color:g().color, tam:g().tam },
+             contador: (m.querySelector('.pm-tam') || {}).textContent };
+  }, LLAVE);
+  di('lo que hace el mando', JSON.stringify(cambia));
+  vale('EL MANDO LE CAMBIA FIGURA, COLOR Y TAMAÑO A ESA PIEDRA',
+       cambia.medio.forma === 'paloma' && cambia.medio.color === 'carmin' &&
+       cambia.medio.tam === cambia.antes.tam + 1, cambia.medio);
+
+  /* Se acepta y se deja una segunda, para tener dos con qué seguir. */
+  await p.click('#piedraMando [data-piedra-acc="ok"]'); await p.waitForTimeout(350);
+  await tocarSinClic(p, 300, 300, 24);
+  await p.click('#piedraMando [data-piedra-acc="ok"]'); await p.waitForTimeout(350);
 
   const pd = await p.evaluate(k => {
     const g = JSON.parse(localStorage.getItem(k) || '{}').piedras || [];
     return { puestas: document.querySelectorAll('.pt-piedra').length,
              guardadas: g.length, forma: (g[0] || {}).forma, color: (g[0] || {}).color,
+             /* El tamaño es un PELDAÑO, como en la hoja, no un número de
+                píxeles suelto: es lo que deja que el mando sea el mismo. */
+             enPeldanos: g.every(x => Number.isInteger(x.tam) && x.tam >= 0 && x.tam < 8),
              /* En fracciones, no en píxeles: la pantalla gira y el píxel no. */
              enFracciones: g.every(x => x.x >= 0 && x.x <= 1 && x.y >= 0 && x.y <= 1) };
   }, LLAVE);
   di('las piedras', JSON.stringify(pd));
-  vale('SE PONEN DONDE SE TOCA', pd.puestas === 3 && pd.guardadas === 3, pd);
-  vale('  con la figura y el color elegidos',
+  vale('SE PONEN DONDE SE TOCA', pd.puestas === 2 && pd.guardadas === 2, pd);
+  vale('  con lo que se les dejó puesto en el mando',
        pd.forma === 'paloma' && pd.color === 'carmin', [pd.forma, pd.color].join(' / '));
-  vale('  y guardadas en fracciones de la portada', pd.enFracciones === true, pd.enFracciones);
+  vale('  el tamaño en peldaños', pd.enPeldanos === true, pd.enPeldanos);
+  vale('  y el sitio en fracciones de la portada', pd.enFracciones === true, pd.enFracciones);
 
-  /* Y AHORA EL TRATO DE LAS PIEDRAS DE LA HOJA, que es lo que se pidió: una
-     piedra quieta no responde al toque —el doble toque la despierta—, y ya
-     despierta el toque le cambia la figura y el arrastre la mueve. Antes, en
-     la portada, una piedra puesta solo se podía quitar. */
+  /* Y AHORA EL TRATO DE LAS PIEDRAS DE LA HOJA: una piedra quieta no responde
+     al toque —el doble toque la despierta—, y ya despierta el toque le cambia
+     la figura. */
   const dondeEsta = await p.evaluate(() => {
     const b = document.querySelector('.pt-piedra');
     const r = b.getBoundingClientRect();
@@ -231,7 +264,7 @@ async function tocarSinClic(pagina, x, y, pid = 21){
     forma: (JSON.parse(localStorage.getItem(k)||'{}').piedras||[])[0].forma }), LLAVE);
   di('la piedra quieta', JSON.stringify(quieta));
   vale('QUIETA, UN TOQUE NO LA CAMBIA NI LA QUITA',
-       quieta.n === 3 && quieta.forma === antesQuieta, quieta);
+       quieta.n === 2 && quieta.forma === antesQuieta, quieta);
 
   await p.evaluate(d => {
     const b = document.querySelector('[data-pt-piedra="' + d.id + '"]');
@@ -241,34 +274,127 @@ async function tocarSinClic(pagina, x, y, pid = 21){
   await p.waitForTimeout(450);
   const edita = await p.evaluate(() => ({
     cerco: !!document.querySelector('.pt-piedra.editando'),
-    botones: [...document.querySelectorAll('#portadaMandoPiedras .pt-mini')]
-               .map(x => x.textContent.trim()) }));
+    visible: document.getElementById('piedraMando').classList.contains('visible'),
+    padre: document.getElementById('piedraMando').parentNode.id }));
   di('en edición', JSON.stringify(edita));
-  vale('EL DOBLE TOQUE ABRE SU EDICIÓN', edita.cerco === true, edita.cerco);
-  vale('  y el mando pasa a ser el suyo: Quitar, Cancelar y OK',
-       ['Quitar','Cancelar','OK'].every(x => edita.botones.includes(x)), edita.botones);
+  vale('EL DOBLE TOQUE ABRE SU EDICIÓN', edita.cerco === true && edita.visible === true, edita);
 
   await tocarSinClic(p, dondeEsta.x, dondeEsta.y, 23);
-  const otraForma = await p.evaluate(k =>
-    (JSON.parse(localStorage.getItem(k)||'{}').piedras||[])[0].forma, LLAVE);
-  vale('  y ya en edición, el toque le cambia la figura', otraForma !== antesQuieta,
-       antesQuieta + ' → ' + otraForma);
+  const trasTocarla = await p.evaluate(k => ({
+    forma: (JSON.parse(localStorage.getItem(k)||'{}').piedras||[])[0].forma,
+    /* Y QUE EL TOQUE NO LE CIERRE LA EDICIÓN, que es lo que hacía: el guardián
+       de «un toque fuera cierra» no nombraba a las piedras de la portada, así
+       que tocar la que se está editando contaba como tocar FUERA. El síntoma no
+       se parecía a la causa —la figura no cambiaba, y el «Quitar» del mando
+       seguía en el documento pero invisible— así que se comprueban las dos. */
+    cerco: !!document.querySelector('.pt-piedra.editando'),
+    visible: document.getElementById('piedraMando').classList.contains('visible') }), LLAVE);
+  di('tras tocarla en edición', JSON.stringify(trasTocarla));
+  vale('  y ya en edición, el toque le cambia la figura', trasTocarla.forma !== antesQuieta,
+       antesQuieta + ' → ' + trasTocarla.forma);
+  vale('  sin cerrarle la edición', trasTocarla.cerco === true && trasTocarla.visible === true,
+       trasTocarla);
 
-  /* Quitar se pide desde su mando, no con un toque suelto: quitar sin querer
-     una piedra que solo se quería mover es lo que esto evita. */
-  await p.click('#portadaMandoPiedras [data-pt-quitar-esta]');
+  /* «Quitar» vive en el mando y no en un toque suelto: quitar sin querer una
+     piedra que solo se quería mover es lo que esto evita. */
+  await p.click('#piedraMando [data-piedra-acc="quitar"]');
   await p.waitForTimeout(400);
   const menos = await p.evaluate(() => ({
     n: document.querySelectorAll('.pt-piedra').length,
-    /* QUITAR TERMINA, no deja el mando abierto sobre una piedra que ya no
-       existe: la edición era de ELLA, y sin ella no hay nada que editar.
-       Aquí la prueba tocaba «Listo» después y se quedaba treinta segundos
-       esperando un botón que ya no estaba. */
-    mando: !document.getElementById('portadaMandoPiedras').hidden,
-    cerco: !!document.querySelector('.pt-piedra.editando') }));
+    mandoFuera: !document.getElementById('piedraMando').classList.contains('visible'),
+    /* Y el mando vuelve a la escena, que es su casa: dejarlo dentro de la tapa
+       lo dejaría inalcanzable en cuanto la tapa se fuera. */
+    devuelto: document.getElementById('piedraMando').parentNode.id !== 'portada' }));
   di('tras quitarla', JSON.stringify(menos));
-  vale('  y «Quitar» del mando la quita', menos.n === 2, menos.n);
-  vale('  y cierra el mando con ella', menos.mando === false && menos.cerco === false, menos);
+  vale('  y «Quitar» del mando la quita', menos.n === 1, menos.n);
+  vale('  cerrando el mando y devolviéndolo a la escena',
+       menos.mandoFuera === true && menos.devuelto === true, menos);
+
+  /* REPINTAR LA HOJA NO PUEDE LLEVARSE EL MANDO PRESTADO, y esto era grave.
+     El pintor de las piedras de la hoja apaga la edición cuando el id que se
+     está editando no es de los suyos —hace falta al pasar de página—, pero con
+     una piedra de la PORTADA abierta ese id nunca es suyo: cualquier repintado
+     de la hoja (girar el teléfono, cambiar el tamaño de la ventana) cerraba el
+     mando SIN devolverlo a la escena ni soltar el taller. El mando se quedaba
+     dentro de la tapa, y al irse la tapa se lo llevaba por delante: a partir de
+     ahí no se podía editar ninguna piedra hasta recargar. */
+  await tocarSinClic(p, 150, 250, 25);
+  const antesDeGirar = await p.evaluate(() => ({
+    editando: !!document.querySelector('.pt-piedra.editando'),
+    padre: document.getElementById('piedraMando').parentNode.id }));
+  vale('(la prueba es válida) hay una piedra de la portada en edición',
+       antesDeGirar.editando === true && antesDeGirar.padre === 'portada', antesDeGirar);
+  await p.setViewportSize({ width:915, height:412 });
+  await p.waitForTimeout(900);
+  const girado = await p.evaluate(() => {
+    const m = document.getElementById('piedraMando');
+    return { existe: !!m, padre: m ? m.parentNode.id : null,
+             editando: !!document.querySelector('.pt-piedra.editando'),
+             visible: m ? m.classList.contains('visible') : false };
+  });
+  di('tras girar el teléfono', JSON.stringify(girado));
+  vale('LA EDICIÓN DE LA PORTADA SOBREVIVE AL REPINTADO DE LA HOJA',
+       girado.editando === true && girado.visible === true && girado.existe === true &&
+       girado.padre === 'portada', girado);
+  await p.setViewportSize({ width:412, height:915 });
+  await p.waitForTimeout(600);
+
+  /* Y LAS FLECHAS MUEVEN LA PIEDRA, también la de la portada: el que las
+     atiende buscaba la piedra solo en la hoja, así que con una de la tapa
+     abierta no la encontraba, se salía sin hacer nada y ni siquiera se tragaba
+     la tecla. */
+  const flechas = await p.evaluate(async k => {
+    const pausa = ms => new Promise(r => setTimeout(r, ms));
+    const g = () => (JSON.parse(localStorage.getItem(k) || '{}').piedras || [])
+                      .find(y => y.id === document.querySelector('.pt-piedra.editando').dataset.ptPiedra) || {};
+    const b = document.querySelector('.pt-piedra.editando');
+    b.focus();
+    const antes = { x:g().x, y:g().y };
+    for (const t of ['ArrowRight','ArrowRight','ArrowDown']){
+      document.dispatchEvent(new KeyboardEvent('keydown', { key:t, bubbles:true }));
+      await pausa(120);
+    }
+    const nodo = document.querySelector('[data-pt-piedra="' + g().id + '"]');
+    return { antes, tras: { x:g().x, y:g().y }, pintado: nodo ? nodo.style.left : null };
+  }, LLAVE);
+  di('las flechas', JSON.stringify(flechas));
+  /* Dos a la derecha y una abajo, a dos centésimas de portada por tecla. */
+  vale('LAS FLECHAS MUEVEN LA PIEDRA DE LA PORTADA',
+       Math.abs(flechas.tras.x - flechas.antes.x - .04) < 1e-9 &&
+       Math.abs(flechas.tras.y - flechas.antes.y - .02) < 1e-9, flechas);
+  vale('  y lo pintado sigue a lo guardado',
+       Math.abs(parseFloat(flechas.pintado) - flechas.tras.x * 100) < .01,
+       flechas.pintado + ' contra ' + (flechas.tras.x * 100).toFixed(3) + '%');
+  await p.click('#piedraMando [data-piedra-acc="quitar"]'); await p.waitForTimeout(400);
+
+  /* DECORANDO, EL PIE TIENE QUE SEGUIR SIENDO DEL PIE. La capa donde caen las
+     piedras cubre la portada entera y mientras se decora recibe toques; iba
+     por ENCIMA del pie, así que se comía los tres botones —«foto», «hold» y el
+     «Listo» con el que se deja de decorar—: se entraba a poner piedras y no
+     había manera de salir. No lo vio nadie antes porque la salida estaba
+     dentro del panel que este cambio ha quitado. */
+  const pie = await p.evaluate(() => {
+    const quien = id => { const e = document.getElementById(id);
+      const r = e.getBoundingClientRect();
+      const t = document.elementFromPoint(Math.round(r.left + r.width/2),
+                                          Math.round(r.top + r.height/2));
+      return t ? (t.id || String(t.className)) : 'nada'; };
+    return { decorando: document.getElementById('portada').classList.contains('decorando'),
+             foto: quien('btnPortadaFoto'), hold: quien('btnPortadaHold'),
+             piedras: quien('btnPortadaPiedras') };
+  });
+  di('el pie mientras se decora', JSON.stringify(pie));
+  vale('DECORANDO, LOS TRES BOTONES DEL PIE RECIBEN EL TOQUE',
+       pie.decorando === true && pie.foto === 'btnPortadaFoto' &&
+       pie.hold === 'btnPortadaHold' && pie.piedras === 'btnPortadaPiedras', pie);
+
+  /* Se apaga el modo de decorar con el mismo botón que lo encendió. */
+  await p.click('#btnPortadaPiedras'); await p.waitForTimeout(300);
+  const apagado = await p.evaluate(() => ({
+    modo: document.getElementById('portada').classList.contains('decorando'),
+    dice: document.getElementById('btnPortadaPiedras').textContent.trim() }));
+  vale('  y «Listo» apaga el modo', apagado.modo === false && apagado.dice === 'Piedras',
+       apagado);
 
   titulo('CONTINUE ABRE LA BIBLIA');
   await p.click('#btnPortadaHold');
@@ -287,7 +413,8 @@ async function tocarSinClic(pagina, x, y, pid = 21){
     piedras: document.querySelectorAll('.pt-piedra').length }));
   di('tras recargar', JSON.stringify(vuelta));
   vale('la foto vuelve', vuelta.foto === true, vuelta.foto);
-  vale('y las piedras también', vuelta.piedras === 2, vuelta.piedras);
+  /* Quedó una: se pusieron dos y «Quitar» se llevó la primera. */
+  vale('y la piedra también', vuelta.piedras === 1, vuelta.piedras);
 
   titulo('UN ADORNO ROTO NO SE LLEVA AL BUENO');
   /* EL FALLO QUE ESTO VIGILA. Las dos mitades —piedras y foto— se leían bajo

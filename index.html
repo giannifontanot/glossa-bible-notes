@@ -82,7 +82,15 @@
      pantalla: metido en el flujo lo empujaría hacia arriba. */
   #portadaPie{ position:absolute; left:0; right:0; bottom:max(22px, 5vh);
                display:grid; grid-template-columns:repeat(3, 1fr);
-               align-items:center; padding:0 12px; z-index:3; }
+               /* POR ENCIMA DE LA CAPA DE LAS PIEDRAS, y esto es de vida o
+                  muerte desde que el pie es la única salida. La capa cubre la
+                  portada entera y mientras se decora recibe toques; con el pie
+                  por debajo, la capa se comía los tres botones —«foto»,
+                  «hold» y el «Listo» con el que se deja de decorar—, así que
+                  se entraba a poner piedras y no había manera de salir.
+                  Lo cazó Codex, y no lo vio nadie antes porque la salida
+                  estaba dentro del panel que se ha quitado. */
+               align-items:center; padding:0 12px; z-index:5; }
   #portadaPie > *{ justify-self:center; }
   .pt-btn{ font:600 13px/1 var(--ui); letter-spacing:.06em; cursor:pointer;
            color:#e8dcc0; background:rgba(255,255,255,.09);
@@ -171,18 +179,10 @@
   .pt-mando.arriba{ top:max(22px, 5vh); bottom:auto; }
   .pt-tit{ font:700 10px/1 var(--ui); letter-spacing:.16em; text-transform:uppercase;
            color:rgba(232,213,163,.7); margin:0; }
-  .pt-formas{ display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; }
-  .pt-forma{ aspect-ratio:1; display:grid; place-items:center; padding:3px;
-             color:#e8dcc0; background:rgba(255,255,255,.07);
-             border:1px solid rgba(232,213,163,.22); border-radius:6px;
-             cursor:pointer; -webkit-tap-highlight-color:transparent; }
-  .pt-forma svg{ display:block; width:100%; height:100%; }
-  .pt-forma.on{ background:rgba(201,162,39,.42); border-color:rgba(232,213,163,.85); }
-  .pt-tintas{ display:grid; grid-template-columns:repeat(6, 1fr); gap:5px; }
-  .pt-tinta{ height:22px; padding:0; border-radius:5px; cursor:pointer;
-             border:1px solid rgba(0,0,0,.4);
-             -webkit-tap-highlight-color:transparent; }
-  .pt-tinta.on{ box-shadow:0 0 0 2px rgba(28,22,14,.94), 0 0 0 4px #e8d5a3; }
+  /* AQUÍ ESTABAN LA PARRILLA DE FIGURAS Y LAS MANCHAS DE COLOR de un segundo
+     panel de piedras escrito solo para la portada. Se fue entero: la portada
+     abre el mando de siempre. Lo que queda de .pt- es el pie de la portada y
+     el mando de la FOTO, que sí es suyo porque en la hoja no hay fotos. */
   .pt-fila{ display:flex; align-items:center; justify-content:center;
             gap:8px; flex-wrap:wrap; }
   .pt-mini{ font:600 12.5px/1 var(--ui); cursor:pointer; color:#e8dcc0;
@@ -195,18 +195,10 @@
   .pt-mini.listo{ background:rgba(201,162,39,.42); border-color:rgba(232,213,163,.8);
                   color:#fff8e4; }
   .pt-mini.quita{ border-color:rgba(224,60,60,.55); color:#f0b8b8; }
-  .pt-sombra{ display:inline-flex; align-items:center; gap:6px; cursor:pointer;
-              font:600 12.5px/1 var(--ui); color:#e8dcc0;
-              -webkit-tap-highlight-color:transparent; }
-  .pt-sombra input{ width:17px; height:17px; accent-color:#c9a227; margin:0; }
-  .pt-dice{ font:400 11.5px/1.45 var(--ui); color:rgba(238,231,216,.6);
-            margin:0; text-align:center; }
   /* Con el dedo, los botoncitos de los mandos al suelo de la casa. Igual que
      los del mando de piedras de la hoja, y por lo mismo. */
   @media (pointer:coarse){
     .pt-mini{ min-height:44px; padding:11px 13px; font-size:13.5px; }
-    .pt-sombra{ font-size:13.5px; }
-    .pt-sombra input{ width:19px; height:19px; }
   }
   @media (prefers-reduced-motion: reduce){
     .pt-btn, .pt-marco{ transition:none; }
@@ -1799,6 +1791,10 @@
   .pm-btn2:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
   .pm-btn2:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
   /* El OK va macizo: es el que se pulsa por costumbre, y el otro deshace. */
+  /* «Quitar» solo sale en la portada, que no tiene lista de dónde borrar. Va
+     en rojo apagado: es la salida que no se deshace. */
+  .pm-quita{ border-color:rgba(224,60,60,.55); color:#8d2b2b; }
+  .pm-quita:hover{ background:rgba(224,60,60,.14); }
   .pm-ok{ color:#3f3416; background:rgba(184,137,43,.4);
           border-color:rgba(140,116,68,.75); }
   .pm-ok:hover{ background:rgba(184,137,43,.6); }
@@ -3203,7 +3199,6 @@
   <input type="file" id="portadaArchivo" accept="image/*" hidden />
   <!-- Los dos mandos de la decoración, cada uno con lo suyo. Nacen vacíos. -->
   <div id="portadaMandoFoto" class="pt-mando" hidden></div>
-  <div id="portadaMandoPiedras" class="pt-mando" hidden></div>
 </div>
 
 <div id="ctrlConfig">
@@ -3540,7 +3535,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 11:43';
+window.GLOSS_BUILD = '06-SEP-26 13:21';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -13129,7 +13124,16 @@ function pintarPiedras(){
      no llamando a piedraCerrarEdicion(), que vuelve a pintar y se mordería la
      cola. Pasa al pasar de página con el mando puesto: sin esto el panel se
      queda flotando sobre una hoja donde no hay ninguna piedra suya. */
-  if (piedraEditando && !mias.some(x => x.id === piedraEditando)){
+  /* Y SOLO SI LA EDICIÓN ES DE LA HOJA. Sin esta condición, editando una
+     piedra de la PORTADA cualquier cosa que repinte la hoja —girar el
+     teléfono, cambiar el tamaño de la ventana— veía un id que no es de los
+     suyos, apagaba la edición y cerraba el mando… sin devolverlo a la escena
+     ni soltar el taller. El mando se quedaba dentro de la tapa, y al irse la
+     tapa se lo llevaba por delante: a partir de ahí no se podía editar
+     ninguna piedra, ni de la portada ni de la hoja, hasta recargar. Lo
+     levantó Codex. */
+  if (piedraEditando && piedraTaller === TALLER_HOJA &&
+      !mias.some(x => x.id === piedraEditando)){
     piedraEditando = null;
     cerrarPiedraMando();
   }
@@ -13194,9 +13198,55 @@ function pintarPiedras(){
    la primera. Ahora la forma se elige de la parrilla, y el toque sobre la
    piedra sigue dando la siguiente, que es el atajo para quien solo quiere
    probar. */
+/* ============================================================
+   EL MANDO DE LA PIEDRA ES UNO SOLO, Y ATIENDE A DOS SITIOS.
+
+   Aquí hubo un segundo panel entero para las piedras de la portada, escrito
+   aparte con sus propias figuras, sus propios colores y sus propios botones.
+   Era un invento innecesario y se notaba al usarlo: dos ventanas que hacen lo
+   mismo nunca lo hacen igual, y la que se usa menos es la que sale peor. Fuera.
+
+   Lo que queda es este mando —el que se abre con doble toque sobre una piedra
+   de la hoja, el que el lector ya conoce— y una pieza de nada que dice DÓNDE
+   vive la piedra que se está tocando: en la hoja o en la portada. El panel no
+   se entera de la diferencia, y ésa es toda la gracia.
+
+   Cada taller dice lo suyo: cómo encontrar la piedra por su nombre, cómo
+   guardar, cómo repintar, cuántos escalones de tamaño hay, dónde colocar el
+   panel, y qué más hay que refrescar después. */
+const TALLER_HOJA = {
+  de: id => piedraDe(id),
+  guardar: () => piedrasGuardar(),
+  pintar: () => pintarPiedras(),
+  pasos: () => PIEDRA_TAMS.length,
+  colocar: () => colocarPiedraMandoHoja(),
+  nodo: id => document.querySelector('[data-piedra="' + id + '"]'),
+  quitar: null,                      /* en la hoja se borra desde la lista */
+  eco: () => {
+    if (piedraMenuAbierto) pintarPiedraMenu();
+    if (typeof pintarPiedrero === 'function') pintarPiedrero();
+  }
+};
+const TALLER_PORTADA = {
+  de: id => portadaPiedraDe(id),
+  guardar: () => portadaGuardar(),
+  pintar: () => portadaPintarPiedras(),
+  pasos: () => PORTADA_TAMS.length,
+  colocar: () => colocarPiedraMandoPortada(),
+  nodo: id => document.querySelector('[data-pt-piedra="' + id + '"]'),
+  /* LA ÚNICA DIFERENCIA, y no es un capricho: en la hoja una piedra se borra
+     desde su LISTA, que pregunta antes. La portada no tiene lista —no hay
+     dónde ir a buscarla— así que sin esto una piedra puesta en la portada no
+     se podría quitar nunca. Es un botón más en el mismo renglón de salidas, no
+     un panel aparte. */
+  quitar: id => portadaQuitarPiedra(id),
+  eco: () => {}
+};
+let piedraTaller = TALLER_HOJA;
+
 function pintarPiedraMando(){
   const el = $('piedraMando');
-  const x = piedraEditando ? piedraDe(piedraEditando) : null;
+  const x = piedraEditando ? piedraTaller.de(piedraEditando) : null;
   if (!x){ el.innerHTML = ''; return; }
   const formas = FORMAS.map(f =>
     '<button type="button" class="pm-forma' + (f === x.forma ? ' on' : '') + '"' +
@@ -13221,10 +13271,10 @@ function pintarPiedraMando(){
       b('menos', 'Más pequeña', '<svg viewBox="0 0 12 12" aria-hidden="true">' +
         '<path d="M2.5 6h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
         x.tam <= 0) +
-      '<span class="pm-tam" aria-hidden="true">' + (x.tam + 1) + '/' + PIEDRA_TAMS.length + '</span>' +
+      '<span class="pm-tam" aria-hidden="true">' + (x.tam + 1) + '/' + piedraTaller.pasos() + '</span>' +
       b('mas', 'Más grande', '<svg viewBox="0 0 12 12" aria-hidden="true">' +
         '<path d="M2.5 6h7M6 2.5v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-        x.tam >= PIEDRA_TAMS.length - 1) +
+        x.tam >= piedraTaller.pasos() - 1) +
       /* EL NOMBRE NO SE ESCRIBE AQUÍ, y este campo se quitó habiéndolo usado.
          Estuvo, y su razón era buena: nombrar la piedra que tienes delante sin
          ir a buscarla. Pero el nombre ya no se pinta sobre la hoja —una piedra
@@ -13250,6 +13300,9 @@ function pintarPiedraMando(){
       '<label class="pm-sombra"><input type="checkbox" data-piedra-sombra="1"' +
         (x.sombra ? ' checked' : '') + ' /><span>sombra</span></label>' +
       '<span class="pm-salidas">' +
+        (piedraTaller.quitar
+          ? '<button type="button" class="pm-btn2 pm-quita" data-piedra-acc="quitar">Quitar</button>'
+          : '') +
         '<button type="button" class="pm-btn2" data-piedra-acc="cancelar">Cancelar</button>' +
         '<button type="button" class="pm-btn2 pm-ok" data-piedra-acc="ok">OK</button>' +
       '</span>' +
@@ -13259,7 +13312,31 @@ function pintarPiedraMando(){
    cabe debajo, y siempre encajado en la escena. Se cuelga del RECTÁNGULO de la
    piedra, que se vuelve a medir en cada colocación porque la piedra se está
    moviendo y creciendo mientras el panel está puesto. */
-function colocarPiedraMando(){
+function colocarPiedraMando(){ piedraTaller.colocar(); }
+/* EN LA PORTADA EL PANEL CUELGA DE LA PIEDRA IGUAL, pero se mide contra la
+   portada y no contra la escena: la portada es una tapa fija a pantalla
+   completa, y la escena de debajo ni siquiera se ve. */
+function colocarPiedraMandoPortada(){
+  const el = $('piedraMando');
+  if (el.style.display === 'none' || !piedraEditando) return;
+  const p = document.getElementById('portada');
+  if (!p) return;
+  const cuerpo = p.querySelector('[data-pt-piedra="' + piedraEditando + '"]');
+  const st = p.getBoundingClientRect();
+  const w = el.offsetWidth, h = el.offsetHeight;
+  let izq = (st.width - w) / 2, arr = st.height - h - 12;
+  if (cuerpo){
+    const r = cuerpo.getBoundingClientRect();
+    izq = r.left + r.width / 2 - st.left - w / 2;
+    arr = r.bottom - st.top + 10;
+    if (arr + h > st.height - 8) arr = r.top - st.top - h - 10;
+  }
+  izq = Math.min(Math.max(8, izq), Math.max(8, st.width - w - 8));
+  arr = Math.min(Math.max(8, arr), Math.max(8, st.height - h - 8));
+  el.style.left = Math.round(izq) + 'px';
+  el.style.top = Math.round(arr) + 'px';
+}
+function colocarPiedraMandoHoja(){
   const el = $('piedraMando');
   if (el.style.display === 'none' || !piedraEditando) return;
   const cuerpo = document.querySelector('[data-piedra-cuerpo="' + piedraEditando + '"]');
@@ -13294,7 +13371,7 @@ function colocarPiedraMando(){
    pasan los dos caminos, el del doble toque y el del nacimiento. */
 let piedraComoEstaba = null;
 function abrirPiedraMando(){
-  const x0 = piedraDe(piedraEditando);
+  const x0 = piedraTaller.de(piedraEditando);
   piedraComoEstaba = x0 ? { id: piedraEditando, forma:x0.forma, color:x0.color,
                             tam:x0.tam, x:x0.x, y:x0.y, sombra: x0.sombra === true }
                         : null;
@@ -13304,6 +13381,27 @@ function abrirPiedraMando(){
   colocarPiedraMando();
   void el.offsetWidth;
   el.classList.add('visible');
+}
+/* EL PANEL SE MUDA A LA PORTADA MIENTRAS SE DECORA, y vuelve al salir.
+
+   La portada es una tapa fija con z-index 200 que cubre la pantalla entera;
+   el mando vive en la escena, muy por debajo. Subirle el z-index no bastaba
+   —la tapa tiene su propio contexto de apilado— así que lo que se mueve es el
+   nodo. Se mueve el MISMO elemento y no se hace otro: los oyentes van pegados
+   a él y sobreviven a la mudanza, que es justamente lo que hace posible que
+   los dos sitios compartan un solo mando en vez de dos parecidos. */
+let piedraMandoEnCasa = null;
+function piedraLlevarMandoALaPortada(){
+  const el = $('piedraMando'), p = document.getElementById('portada');
+  if (!el || !p || el.parentNode === p) return;
+  piedraMandoEnCasa = el.parentNode;
+  p.appendChild(el);
+}
+function piedraDevolverMando(){
+  const el = $('piedraMando');
+  if (!el || !piedraMandoEnCasa || el.parentNode === piedraMandoEnCasa) return;
+  piedraMandoEnCasa.appendChild(el);
+  piedraMandoEnCasa = null;
 }
 function cerrarPiedraMando(){
   const el = $('piedraMando');
@@ -13358,27 +13456,28 @@ function quitarPiedra(id){
    a ciegas. */
 function piedraCancelarEdicion(){
   const c = piedraComoEstaba;
-  const x = c && piedraDe(c.id);
+  const t = piedraTaller;
+  const x = c && t.de(c.id);
   if (x){
     x.forma = c.forma; x.color = c.color; x.tam = c.tam;
     x.x = c.x; x.y = c.y;
     if (c.sombra) x.sombra = true; else delete x.sombra;
     x.tocado = Date.now();
-    piedrasGuardar();
+    t.guardar();
   }
   piedraCerrarEdicion();
-  if (typeof pintarPiedrero === 'function') pintarPiedrero();
+  t.eco();
 }
 /* La sombra: maciza y levantada, o de vuelta a plana. */
 function piedraPonerSombra(id, si){
-  const x = piedraDe(id);
+  const x = piedraTaller.de(id);
   if (!x) return;
   if (si) x.sombra = true; else delete x.sombra;
   x.tocado = Date.now();
-  piedrasGuardar();
-  pintarPiedras();
+  piedraTaller.guardar();
+  piedraTaller.pintar();
   pintarPiedraMando();
-  if (typeof pintarPiedrero === 'function') pintarPiedrero();
+  piedraTaller.eco();
 }
 function piedraCerrarEdicion(){
   if (!piedraEditando) return;
@@ -13397,7 +13496,12 @@ function piedraCerrarEdicion(){
      para cualquier cosa que se escriba en un panel que se cierra solo. */
   piedraEditando = null;
   cerrarPiedraMando();
-  pintarPiedras();
+  piedraTaller.pintar();
+  /* Y EL TALLER VUELVE A SER EL DE LA HOJA, que es el de casa. Dejarlo en el
+     de la portada haría que el doble toque siguiente sobre una piedra del
+     papel fuera a buscarla al sitio equivocado y no la encontrara. */
+  piedraDevolverMando();
+  piedraTaller = TALLER_HOJA;
 }
 /* REFRESCAR EL MANDO es repintarlo y volverlo a colocar, y hace falta después
    de cada cambio: la parrilla marca la forma puesta, las manchas marcan el
@@ -13416,37 +13520,40 @@ function refrescarPiedraMando(){
    Por eso ahora se eligen de la parrilla del mando. El toque se queda porque
    no estorba y es el atajo de quien solo quiere ver qué hay. */
 function piedraSiguienteForma(id){
-  piedraPonerForma(id, FORMAS[(FORMAS.indexOf((piedraDe(id) || {}).forma) + 1) % FORMAS.length]);
+  piedraPonerForma(id,
+    FORMAS[(FORMAS.indexOf((piedraTaller.de(id) || {}).forma) + 1) % FORMAS.length]);
 }
 function piedraPonerForma(id, forma){
-  const x = piedraDe(id);
+  const x = piedraTaller.de(id);
   if (!x || !FORMAS.includes(forma) || x.forma === forma) return;
   x.forma = forma;
   x.tocado = Date.now();
-  piedrasGuardar();
-  pintarPiedras();
-  if (piedraMenuAbierto) pintarPiedraMenu();
+  piedraTaller.guardar();
+  piedraTaller.pintar();
+  piedraTaller.eco();
   refrescarPiedraMando();
   readout.textContent = FORMA_NOMBRE[x.forma];
 }
 function piedraPonerColor(id, color){
-  const x = piedraDe(id);
+  const x = piedraTaller.de(id);
   if (!x || !PIEDRA_TINTAS.some(t => t[0] === color) || x.color === color) return;
   x.color = color;
   x.tocado = Date.now();
-  piedrasGuardar();
-  pintarPiedras();
+  piedraTaller.guardar();
+  piedraTaller.pintar();
+  piedraTaller.eco();
   refrescarPiedraMando();
   readout.textContent = tintaDe(color)[1];
 }
 function piedraTamano(id, paso){
-  const x = piedraDe(id);
+  const x = piedraTaller.de(id);
   if (!x) return;
-  const t = Math.min(Math.max(x.tam + paso, 0), PIEDRA_TAMS.length - 1);
+  const t = Math.min(Math.max(x.tam + paso, 0), piedraTaller.pasos() - 1);
   if (t === x.tam) return;
   x.tam = t; x.tocado = Date.now();
-  piedrasGuardar();
-  pintarPiedras();
+  piedraTaller.guardar();
+  piedraTaller.pintar();
+  piedraTaller.eco();
   refrescarPiedraMando();
 }
 /* EL NOMBRE ES UN NOMBRE Y NO UNA NOTA, y esa decisión es la que da forma a
@@ -13617,9 +13724,20 @@ stage.addEventListener('click', ev => {
     });
     return;
   }
-  /* EL MANDO YA NO CUELGA DE LA PIEDRA, así que de quién es el botón no se
-     saca subiendo por el DOM —arriba no hay ninguna piedra— sino de quién se
-     está editando, que es lo único que el panel puede estar enseñando. */
+});
+
+/* LOS BOTONES DEL MANDO SE ESCUCHAN EN EL MANDO, y no en la escena.
+
+   Vivían en el oyente de la escena, que valía mientras el panel colgara de
+   ella. Desde que el mando se muda a la portada para decorarla —es el MISMO
+   nodo, ver piedraLlevarMandoALaPortada— los clics ya no pasan por la escena y
+   el panel se quedaba mudo: se veía entero, con sus figuras y sus colores, y
+   no respondía a nada. Colgado del propio panel, funciona esté donde esté, que
+   es lo que hace que un solo mando pueda servir a los dos sitios. */
+$('piedraMando').addEventListener('click', ev => {
+  /* De quién es el botón no se saca subiendo por el DOM —arriba no hay ninguna
+     piedra— sino de quién se está editando, que es lo único que el panel puede
+     estar enseñando. */
   const id = piedraEditando;
   if (!id) return;
   /* Dentro del campo del nombre no hay nada que hacer aquí: poner el cursor a
@@ -13668,6 +13786,13 @@ stage.addEventListener('click', ev => {
      cerrar no queda mando al que devolverle el foco. */
   if (cual === 'ok'){ piedraCerrarEdicion(); return; }
   if (cual === 'cancelar'){ piedraCancelarEdicion(); return; }
+  /* Y «quitar» solo existe donde el taller lo ofrece —la portada, que no tiene
+     lista de dónde borrar—. Cierra también: la edición era de esa piedra. */
+  if (cual === 'quitar'){
+    if (piedraTaller.quitar) piedraTaller.quitar(id);
+    piedraCerrarEdicion();
+    return;
+  }
   if (cual === 'menos') piedraTamano(id, -1);
   else if (cual === 'mas') piedraTamano(id, +1);
   /* AQUÍ HUBO UN 'quitar' y ya no hay. Borraba en el acto, sin preguntar, desde
@@ -13747,19 +13872,28 @@ document.addEventListener('keydown', ev => {
      el cursor por las letras. */
   const foco = document.activeElement;
   const dentro = foco && foco.closest &&
-                 foco.closest('.piedra-sitio, #piedraMando') &&
+                 /* .pt-piedra es la de la portada: sin nombrarla, quien llegaba
+                    a una piedra de la tapa con el tabulador no podía moverla. */
+                 foco.closest('.piedra-sitio, .pt-piedra, #piedraMando') &&
                  !foco.closest('[data-piedra-nombre]');
   if (!dentro) return;
   const paso = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] }[ev.key];
   if (!paso) return;
-  const x = piedraDe(piedraEditando);
+  /* POR EL TALLER, como todo lo demás del mando. Esto se quedó buscando la
+     piedra solo en la hoja: con una de la portada abierta, las flechas no la
+     encontraban, se salían sin hacer nada y ni siquiera se tragaban la tecla.
+     Lo levantó Codex. */
+  const x = piedraTaller.de(piedraEditando);
   if (!x) return;
   ev.preventDefault(); ev.stopPropagation();
   x.x = Math.min(Math.max(x.x + paso[0] * PIEDRA_PASO, 0), 1);
   x.y = Math.min(Math.max(x.y + paso[1] * PIEDRA_PASO, 0), 1);
   x.tocado = Date.now();
-  piedrasGuardar();
-  const sitio = document.querySelector('[data-piedra="' + x.id + '"]');
+  piedraTaller.guardar();
+  /* Se mueve el nodo a mano y no se repinta la capa: repintando se pierde el
+     foco, y quien mueve con flechas lo tiene puesto. Cada taller sabe cuál es
+     el nodo que lleva el sitio. */
+  const sitio = piedraTaller.nodo(x.id);
   if (sitio){
     sitio.style.left = (x.x * 100).toFixed(3) + '%';
     sitio.style.top = (x.y * 100).toFixed(3) + '%';
@@ -13774,7 +13908,15 @@ document.addEventListener('keydown', ev => {
    toque fuera que cerraría la edición antes de que el clic llegara a él. */
 document.addEventListener('pointerdown', ev => {
   if (!piedraEditando) return;
-  if (ev.target.closest('.piedra-sitio, #piedraMando')) return;
+  /* .pt-piedra es la de la portada, y sin nombrarla aquí pasaba lo peor que
+     puede pasar con un guardián de éstos: tocar la piedra que se está editando
+     contaba como tocar FUERA, así que en vez de pasarle a la figura siguiente
+     le cerraba la edición. Y como el mando se cierra con retardo, el botón de
+     «Quitar» seguía en el documento pero invisible, que es un fallo que no se
+     parece en nada a su causa.
+     Es el gemelo del guardián de las flechas, ahí arriba; arreglé aquél y me
+     dejé éste. */
+  if (ev.target.closest('.piedra-sitio, .pt-piedra, #piedraMando')) return;
   piedraCerrarEdicion();
 }, true);
 
@@ -15679,6 +15821,16 @@ function sembrarGlosasDeEstreno(){
 function quitarPortada(){
   const el = document.getElementById('portada');
   if (!el || el.classList.contains('fuera')) return;
+  /* LO PRIMERO, RECUPERAR EL MANDO SI ESTABA PRESTADO. La portada se borra del
+     documento seiscientos milisegundos después, y el mando de la piedra es un
+     nodo que se le presta mientras se decora: si se va dentro, se va para
+     siempre. Va aquí y no solo en las puertas de salida porque esta función
+     también la llama el techo de emergencia, que no pasa por ninguna de
+     ellas. */
+  if (typeof piedraDevolverMando === 'function'){
+    if (piedraEditando && piedraTaller === TALLER_PORTADA) piedraCerrarEdicion();
+    else piedraDevolverMando();
+  }
   el.classList.add('fuera');
   setTimeout(() => { if (el.parentNode) el.remove(); }, 600);
 }
@@ -15736,6 +15888,16 @@ function portadaSeguir(){
   clearTimeout(portadaTecho);
   portadaTecho = setTimeout(() => { try { quitarPortada(); } catch(e){} }, 8000);
 }
+/* El botón de las piedras dice en qué estado está, que es lo único que
+   distingue «decorando» de no decorando cuando aún no hay ninguna puesta. */
+function portadaPintarPiedrasBoton(){
+  const b = document.getElementById('btnPortadaPiedras');
+  const p = document.getElementById('portada');
+  if (!b || !p) return;
+  const puesto = p.classList.contains('decorando');
+  b.textContent = puesto ? 'Listo' : 'Piedras';
+  b.setAttribute('aria-pressed', puesto ? 'true' : 'false');
+}
 function portadaPintarHold(){
   const b = document.getElementById('btnPortadaHold');
   if (!b) return;
@@ -15754,6 +15916,26 @@ function portadaPintarHold(){
    un almacén lleno se llevaría por delante los ajustes además del adorno.
    Separados, lo que falla falla solo. */
 const PORTADA_LLAVE = 'glossa:portada:v1';
+/* LOS TAMAÑOS DE LAS PIEDRAS DE LA PORTADA, en peldaños y no en píxeles
+   sueltos, porque el mando que los enseña es el mismo que el de la hoja: dice
+   «3/8» y se apaga en los extremos. Ocho como allí, y en píxeles porque la
+   portada no es papel que se repagina: es una pantalla.
+   VA AQUÍ ARRIBA, y no junto al resto de lo de las piedras, porque lo usa
+   portadaCargar y lo usa la piedra recién nacida: declarado más abajo, la
+   primera lectura del adorno reventaba con un «Cannot access before
+   initialization» y la portada arrancaba sin nada. */
+const PORTADA_TAMS = [26, 34, 44, 56, 70, 88, 110, 140];
+const PORTADA_TAM_POR = 2;
+/* De píxeles a escalón, para lo guardado por la versión anterior. Se busca el
+   escalón más parecido en vez de tirar el dato. */
+function portadaTamDesdePixeles(px){
+  let mejor = PORTADA_TAM_POR, dist = Infinity;
+  for (let i = 0; i < PORTADA_TAMS.length; i++){
+    const d = Math.abs(PORTADA_TAMS[i] - px);
+    if (d < dist){ dist = d; mejor = i; }
+  }
+  return mejor;
+}
 let portadaAdorno = { piedras: [], foto: null };
 let portadaContador = 0;
 const portadaNombreNuevo = () =>
@@ -15798,7 +15980,15 @@ function portadaCargar(){
           id: (typeof p.id === 'string' && p.id) ? p.id : portadaNombreNuevo(),
           forma: FORMAS.includes(p.forma) ? p.forma : FORMAS[0],
           color: PIEDRA_TINTAS.some(t => t[0] === p.color) ? p.color : PIEDRA_TINTAS[0][0],
-          tam: Math.min(Math.max(+p.tam || 46, 22), 140),
+          /* EL TAMAÑO ES UN ESCALÓN, como en la hoja, para que el mando —que
+             es el mismo— cuente «3/8» y se apague en los extremos. Lo guardado
+             por la versión anterior venía en píxeles sueltos: si el número es
+             de los grandes, se traduce al escalón más parecido en vez de
+             tirarlo. */
+          tam: (Number.isFinite(+p.tam) && +p.tam >= PORTADA_TAMS.length)
+                 ? portadaTamDesdePixeles(+p.tam)
+                 : Math.min(Math.max(Math.round(+p.tam) || PORTADA_TAM_POR, 0),
+                            PORTADA_TAMS.length - 1),
           x: enRango(p.x, .5), y: enRango(p.y, .5),
           /* LO QUE NO TRAE SOMBRA ESCRITA LA TIENE, y no es un descuido: hasta
              ahora la sombra la ponía el CSS a TODAS y no se guardaba en ningún
@@ -15853,18 +16043,22 @@ function portadaPintarFoto(){
 function portadaPintarPiedras(){
   const capa = document.getElementById('portadaPiedras');
   if (!capa) return;
+  /* Cuál se está editando lo dice el mando, que es uno solo: la piedra en
+     edición es la suya si además el taller abierto es el de la portada. */
+  const ed = (piedraTaller === TALLER_PORTADA) ? piedraEditando : null;
   capa.innerHTML = portadaAdorno.piedras.map(p =>
     '<button type="button" class="pt-piedra' +
-        (p.id === portadaEditando ? ' editando' : '') +
+        (p.id === ed ? ' editando' : '') +
         (p.sombra ? ' con-sombra' : '') +
       '" data-pt-piedra="' + esc(p.id) + '"' +
       ' style="left:' + (p.x * 100).toFixed(3) + '%;top:' + (p.y * 100).toFixed(3) + '%' +
-      ';--pt-tam:' + Math.round(p.tam) + 'px;color:' + tintaDe(p.color)[2] + '"' +
+      ';--pt-tam:' + (PORTADA_TAMS[p.tam] || PORTADA_TAMS[PORTADA_TAM_POR]) +
+      'px;color:' + tintaDe(p.color)[2] + '"' +
       /* El rótulo dice lo que hace el toque AHORA, que no es lo mismo estando
-         en edición que fuera de ella. Decía «quitar» cuando ya no quita. */
+         en edición que fuera de ella. */
       ' aria-label="' + esc(FORMA_NOMBRE[p.forma] || p.forma) +
-        (p.id === portadaEditando ? '. Tócala para cambiarle la figura, o arrástrala para moverla.'
-                                  : '. Doble toque para editarla.') + '">' +
+        (p.id === ed ? '. Tócala para cambiarle la figura, o arrástrala para moverla.'
+                     : '. Doble toque para editarla.') + '">' +
       piedraDibujo(p.forma, null, true) + '</button>').join('');
 }
 
@@ -15873,17 +16067,17 @@ function portadaPintarPiedras(){
    Uno a la vez: abrir el de la foto cierra el de las piedras y al revés. Dos
    panelitos abiertos sobre una portada de teléfono no dejan ver lo que se está
    decorando, que es justo lo que se viene a hacer. */
-let portadaFormaElegida = 'piedra', portadaTintaElegida = PIEDRA_TINTAS[0][0],
-    portadaTamElegido = 46
-let portadaSombraElegida = true;   /* como nacían todas antes de poder elegir */
-let portadaMandoArriba = false;
+/* Cómo NACE una piedra de la portada. No hay paleta que lo decida antes: nace
+   así y se cambia en su mando, que se abre solo encima de ella. */
+const PORTADA_PIEDRA_NUEVA = { forma:'piedra', color: PIEDRA_TINTAS[0][0],
+                               tam: PORTADA_TAM_POR, sombra: true };
+let portadaMandoArriba = false;    /* solo lo usa el mando de la foto */
 function portadaCerrarMandos(){
-  for (const id of ['portadaMandoFoto', 'portadaMandoPiedras']){
-    const el = document.getElementById(id);
-    if (el){ el.hidden = true; el.innerHTML = ''; }
-  }
+  const mf = document.getElementById('portadaMandoFoto');
+  if (mf){ mf.hidden = true; mf.innerHTML = ''; }
   const p = document.getElementById('portada');
   if (p) p.classList.remove('decorando');
+  portadaPintarPiedrasBoton();
 }
 /* CERRAR DE VERDAD ES OTRA COSA QUE CERRAR LOS PANELES, y confundirlas costó
    una sonda entera. portadaAbrirMando cierra los dos paneles antes de abrir el
@@ -15895,10 +16089,25 @@ function portadaCerrarMandos(){
    Quitar, y «continue» cuando la portada se va. */
 function portadaSalirDeDecorar(){
   portadaCerrarMandos();
-  if (portadaEditando){
-    portadaEditando = null; portadaComoEstaba = null;
-    portadaPintarPiedras();
-  }
+  /* Y si había una piedra en edición, se cierra por su puerta: la del mando de
+     siempre, que además devuelve el panel a la escena. */
+  if (piedraTaller === TALLER_PORTADA && piedraEditando) piedraCerrarEdicion();
+}
+/* «Piedras» ya no abre ningún panel: enciende el modo de dejar piedras y lo
+   dice. El panel es el de cada piedra, y se abre solo al poner una o al darle
+   doble toque. */
+function portadaDecorarPiedras(){
+  const p = document.getElementById('portada');
+  if (!p) return;
+  /* ENCIENDE Y APAGA. Sin el panel de antes ya no hay «Listo» donde salir, así
+     que el propio botón es la puerta por los dos lados: se toca para empezar a
+     poner piedras y se vuelve a tocar para dejar de ponerlas. */
+  if (p.classList.contains('decorando')){ portadaSalirDeDecorar(); return; }
+  portadaCerrarMandos();
+  portadaParar();
+  p.classList.add('decorando');
+  portadaPintarPiedrasBoton();
+  readout.textContent = 'toca la portada para dejar una piedra';
 }
 /* Abrir cualquiera de los dos PARA EL RELOJ. Decorar contra una cuenta de
    segundo y tres cuartos no es decorar, es una carrera. */
@@ -15909,100 +16118,42 @@ function portadaAbrirMando(id){
   if (el){ el.hidden = false; el.classList.toggle('arriba', portadaMandoArriba); }
   const p = document.getElementById('portada');
   if (p) p.classList.add('decorando');
+  portadaPintarPiedrasBoton();
   return el;
 }
 
-/* EL MISMO PANEL SIRVE PARA DOS COSAS, y no por ahorrar sino porque son la
-   misma: elegir una figura y un color. Sin piedra en edición es la PALETA —lo
-   que va a ser la siguiente que se deje—; con una en edición es su EDITOR, y
-   entonces cada toque cambia esa piedra y no la próxima.
+/* ---------- LAS PIEDRAS DE LA PORTADA USAN EL MANDO DE SIEMPRE ----------
 
-   Es el trato que ya tienen las de la hoja, y era lo que faltaba aquí: en la
-   portada una piedra puesta solo se podía quitar, sin cambiarle nada. */
-function portadaMandoPiedras(){
-  const el = portadaAbrirMando('portadaMandoPiedras');
-  if (!el) return;
-  const x = portadaEditando ? portadaPiedraDe(portadaEditando) : null;
-  if (portadaEditando && !x) portadaEditando = null;   /* se la llevaron */
-  const forma = x ? x.forma : portadaFormaElegida;
-  const tinta = x ? x.color : portadaTintaElegida;
-  el.innerHTML =
-    (x ? '<p class="pt-tit">Esta piedra</p>' : '') +
-    '<p class="pt-tit">Figura</p>' +
-    '<div class="pt-formas">' + FORMAS.map(f =>
-      '<button type="button" class="pt-forma' + (f === forma ? ' on' : '') +
-        '" data-pt-forma="' + f + '" title="' + esc(FORMA_NOMBRE[f]) + '"' +
-        ' aria-pressed="' + (f === forma) + '"' +
-        ' aria-label="' + esc(FORMA_NOMBRE[f]) + '">' +
-        piedraDibujo(f, null, true) + '</button>').join('') + '</div>' +
-    '<p class="pt-tit">Color</p>' +
-    '<div class="pt-tintas">' + PIEDRA_TINTAS.map(t =>
-      '<button type="button" class="pt-tinta' + (t[0] === tinta ? ' on' : '') +
-        '" data-pt-tinta="' + t[0] + '" style="background:' + t[2] + '"' +
-        ' aria-pressed="' + (t[0] === tinta) + '"' +
-        ' title="' + esc(t[1]) + '" aria-label="' + esc(t[1]) + '"></button>').join('') + '</div>' +
-    '<div class="pt-fila">' +
-      '<button type="button" class="pt-mini" data-pt-tam="-1" aria-label="Más pequeña">−</button>' +
-      '<button type="button" class="pt-mini" data-pt-tam="1" aria-label="Más grande">+</button>' +
-      '<label class="pt-sombra"><input type="checkbox" data-pt-sombra="1"' +
-        ((x ? x.sombra : portadaSombraElegida) ? ' checked' : '') +
-        ' /><span>sombra</span></label>' +
-      '<button type="button" class="pt-mini" data-pt-mover="1">' +
-        (portadaMandoArriba ? 'bajar' : 'subir') + '</button>' +
-    '</div>' +
-    (x
-      /* EDITANDO: aceptar, deshacer y quitar ESTA. Los mismos tres que el
-         mando de la hoja, con los mismos nombres. */
-      ? '<div class="pt-fila">' +
-          '<button type="button" class="pt-mini quita" data-pt-quitar-esta="1">Quitar</button>' +
-          '<button type="button" class="pt-mini" data-pt-cancelar="1">Cancelar</button>' +
-          '<button type="button" class="pt-mini listo" data-pt-ok="1">OK</button>' +
-        '</div>' +
-        '<p class="pt-dice">Tócala para pasar a la figura siguiente, o arrástrala para moverla.</p>'
-      : '<div class="pt-fila">' +
-          '<button type="button" class="pt-mini quita" data-pt-limpiar="1">Quitar todas</button>' +
-          '<button type="button" class="pt-mini listo" data-pt-listo="1">Listo</button>' +
-        '</div>' +
-        '<p class="pt-dice">Toca la portada para dejar una. Doble toque en una puesta para editarla.</p>');
+   Aquí hubo un panel entero escrito aparte para estas piedras, con sus figuras,
+   sus colores y sus botones. Era un invento innecesario y se notaba al usarlo:
+   dos ventanas que hacen lo mismo nunca lo hacen igual. Ahora se abre EL MISMO
+   mando que en la hoja —ver TALLER_PORTADA—, y lo que hay aquí es solo cómo se
+   entra y cómo se sale.
+
+   Y NO HAY PALETA DE «CÓMO SERÁ LA PRÓXIMA», que era la otra mitad del invento:
+   la piedra recién puesta NACE EN EDICIÓN, exactamente como en la hoja, con su
+   mando abierto encima. Se cambia ahí y ya está. Una paleta aparte obligaba a
+   decidir antes de ver, que es al revés de como se decora. */
+function portadaQuitarPiedra(id){
+  const i = portadaAdorno.piedras.findIndex(y => y.id === id);
+  if (i < 0) return;
+  portadaAdorno.piedras.splice(i, 1);
+  portadaGuardar();
+  portadaPintarPiedras();
 }
-
-/* ABRIR Y CERRAR LA EDICIÓN DE UNA PIEDRA DE LA PORTADA.
-
-   La instantánea se toma AQUÍ y no al pintar el mando, y es el mismo sitio
-   donde la toma la hoja y por la misma razón: el mando se rehace entero en
-   cada toque, así que tomándola ahí «cancelar» solo desharía el último. */
-let portadaEditando = null, portadaComoEstaba = null;
+/* ABRIR LA EDICIÓN DE UNA PIEDRA DE LA PORTADA es decirle al mando dónde vive
+   esa piedra, mudarlo encima de la tapa, y abrirlo por la puerta de siempre:
+   abrirPiedraMando, que es también donde se toma la copia para «Cancelar». */
 function portadaAbrirEdicion(id){
   const x = portadaPiedraDe(id);
-  if (!x || portadaEditando === id) return false;
-  portadaEditando = id;
-  portadaComoEstaba = { id, forma:x.forma, color:x.color, tam:x.tam,
-                        x:x.x, y:x.y, sombra: x.sombra === true };
+  if (!x) return false;
+  if (piedraEditando === id && piedraTaller === TALLER_PORTADA) return false;
+  piedraTaller = TALLER_PORTADA;
+  piedraEditando = id;
+  piedraLlevarMandoALaPortada();
   portadaPintarPiedras();
-  portadaMandoPiedras();
+  abrirPiedraMando();
   return true;
-}
-function portadaCerrarEdicion(){
-  portadaEditando = null; portadaComoEstaba = null;
-  portadaPintarPiedras();
-}
-function portadaCancelarEdicion(){
-  const v = portadaComoEstaba;
-  if (v){
-    const x = portadaPiedraDe(v.id);
-    if (x){ x.forma = v.forma; x.color = v.color; x.tam = v.tam;
-            x.x = v.x; x.y = v.y; x.sombra = v.sombra; }
-  }
-  portadaCerrarEdicion();
-  portadaGuardar();
-  portadaCerrarMandos();
-}
-function portadaSiguienteForma(id){
-  const x = portadaPiedraDe(id);
-  if (!x) return;
-  x.forma = FORMAS[(FORMAS.indexOf(x.forma) + 1) % FORMAS.length];
-  portadaPintarPiedras(); portadaGuardar();
-  if (portadaEditando === id) portadaMandoPiedras();
 }
 
 function portadaMandoFoto(){
@@ -16091,16 +16242,6 @@ function portadaTomarArchivo(file){
     ev.target.value = '';              /* deja volver a elegir la misma */
     portadaTomarArchivo(f);
   });
-  /* LA CASILLA DE LA SOMBRA VA POR change Y NO POR click, que es como se
-     escuchan las casillas: el clic llega antes de que el navegador le cambie
-     el estado, y leerlo ahí da siempre el anterior. */
-  p.addEventListener('change', ev => {
-    const c = ev.target.closest && ev.target.closest('[data-pt-sombra]');
-    if (!c) return;
-    const x = portadaEditando ? portadaPiedraDe(portadaEditando) : null;
-    if (x){ x.sombra = c.checked; portadaPintarPiedras(); portadaGuardar(); }
-    else portadaSombraElegida = c.checked;
-  });
   p.addEventListener('click', ev => {
     const t = ev.target;
     const en = sel => t.closest && t.closest(sel);
@@ -16121,46 +16262,14 @@ function portadaTomarArchivo(file){
     }
     if (en('#btnPortadaPiedras')){
       ev.stopPropagation();
-      portadaMandoPiedras();
+      portadaDecorarPiedras();
       return;
     }
 
     /* --- dentro de los mandos --- */
-    /* CON UNA PIEDRA EN EDICIÓN, EL MANDO ES SUYO: lo que se toque le cambia a
-       ELLA y no a la próxima que se deje. Sin ninguna, el mando es la paleta y
-       lo que se toque decide cómo nacerá la siguiente. */
-    const enEd = () => (portadaEditando ? portadaPiedraDe(portadaEditando) : null);
-    const forma = en('[data-pt-forma]');
-    if (forma){ ev.stopPropagation();
-      const x = enEd();
-      if (x){ x.forma = forma.dataset.ptForma; portadaPintarPiedras(); portadaGuardar(); }
-      else portadaFormaElegida = forma.dataset.ptForma;
-      portadaMandoPiedras(); return; }
-    const tinta = en('[data-pt-tinta]');
-    if (tinta){ ev.stopPropagation();
-      const x = enEd();
-      if (x){ x.color = tinta.dataset.ptTinta; portadaPintarPiedras(); portadaGuardar(); }
-      else portadaTintaElegida = tinta.dataset.ptTinta;
-      portadaMandoPiedras(); return; }
-    const tam = en('[data-pt-tam]');
-    if (tam){ ev.stopPropagation();
-      const paso = (+tam.dataset.ptTam) * 10;
-      const x = enEd();
-      if (x){ x.tam = Math.min(140, Math.max(22, x.tam + paso));
-              portadaPintarPiedras(); portadaGuardar(); }
-      else portadaTamElegido = Math.min(140, Math.max(22, portadaTamElegido + paso));
-      return; }
-    if (en('[data-pt-quitar-esta]')){ ev.stopPropagation();
-      const i = portadaAdorno.piedras.findIndex(y => y.id === portadaEditando);
-      if (i >= 0) portadaAdorno.piedras.splice(i, 1);
-      portadaCerrarEdicion(); portadaGuardar(); portadaCerrarMandos(); return; }
-    if (en('[data-pt-cancelar]')){ ev.stopPropagation();
-      portadaCancelarEdicion(); return; }
-    if (en('[data-pt-ok]')){ ev.stopPropagation();
-      portadaCerrarEdicion(); portadaGuardar(); portadaCerrarMandos(); return; }
-    if (en('[data-pt-limpiar]')){ ev.stopPropagation();
-      portadaAdorno.piedras = []; portadaCerrarEdicion();
-      portadaPintarPiedras(); portadaGuardar(); return; }
+    /* Las figuras, los colores, el tamaño y la sombra ya NO se atienden aquí:
+       de eso se encarga el mando de siempre, con sus propios oyentes. Lo que
+       queda en este oyente es lo de la portada que no es una piedra. */
     if (en('[data-pt-estilo]')){ ev.stopPropagation();
       const f = portadaAdorno.foto; if (!f) return;
       f.estilo = f.estilo === 'polaroid' ? 'normal' : 'polaroid';
@@ -16177,13 +16286,9 @@ function portadaTomarArchivo(file){
       portadaSalirDeDecorar(); return; }
     if (en('[data-pt-mover]')){ ev.stopPropagation();
       portadaMandoArriba = !portadaMandoArriba;
-      for (const id of ['portadaMandoFoto', 'portadaMandoPiedras']){
-        const m = document.getElementById(id);
-        if (m && !m.hidden) m.classList.toggle('arriba', portadaMandoArriba);
-      }
-      /* Se rehace el que este abierto para que el boton diga lo contrario. */
-      if (!document.getElementById('portadaMandoPiedras').hidden) portadaMandoPiedras();
-      else if (!document.getElementById('portadaMandoFoto').hidden) portadaMandoFoto();
+      const m = document.getElementById('portadaMandoFoto');
+      if (m && !m.hidden){ m.classList.toggle('arriba', portadaMandoArriba);
+                           portadaMandoFoto(); }
       return; }
     if (en('[data-pt-listo]')){ ev.stopPropagation(); portadaSalirDeDecorar(); return; }
 
@@ -16240,7 +16345,8 @@ function portadaTomarArchivo(file){
                     id, movio: false,
                     /* Solo la que está en edición se deja arrastrar. Una quieta
                        no es suya el toque, igual que en la hoja. */
-                    arrastrable: !!id && id === portadaEditando, nodo: suya };
+                    arrastrable: !!id && id === piedraEditando &&
+                                 piedraTaller === TALLER_PORTADA, nodo: suya };
     if (portadaDedo.arrastrable){
       ev.preventDefault();
       try { suya.setPointerCapture(ev.pointerId); } catch(_){}
@@ -16287,8 +16393,10 @@ function portadaTomarArchivo(file){
     if (g.arrastrable){
       const x = portadaPiedraDe(g.id);
       if (!x) return;
-      if (g.movio){ x.x = g.fx; x.y = g.fy; portadaGuardar(); portadaPintarPiedras(); }
-      else portadaSiguienteForma(g.id);      /* quieta: la figura siguiente */
+      if (g.movio){ x.x = g.fx; x.y = g.fy; portadaGuardar(); portadaPintarPiedras();
+                    colocarPiedraMando(); }
+      /* Quieta: la figura siguiente, con la misma función que en la hoja. */
+      else piedraSiguienteForma(g.id);
       return;
     }
     /* Un dedo que se fue de paseo no posa nada. */
@@ -16298,16 +16406,17 @@ function portadaTomarArchivo(file){
     if (g.id) return;
     if (portadaAdorno.piedras.length >= 40) return;
     const r = p.getBoundingClientRect();
-    portadaAdorno.piedras.push({
-      id: portadaNombreNuevo(),
-      forma: portadaFormaElegida, color: portadaTintaElegida,
-      tam: portadaTamElegido, sombra: portadaSombraElegida,
+    const nueva = Object.assign({ id: portadaNombreNuevo() }, PORTADA_PIEDRA_NUEVA, {
       /* En fracciones de la portada, como las de la hoja y por lo mismo: la
          pantalla cambia de tamaño y de orientación, y un píxel no. */
       x: Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)),
       y: Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height))
     });
-    portadaPintarPiedras(); portadaGuardar();
+    portadaAdorno.piedras.push(nueva);
+    portadaGuardar();
+    /* Y NACE EN EDICIÓN, como en la hoja: su mando se abre encima, y ahí se le
+       cambia la figura, el color, el tamaño y la sombra. */
+    portadaAbrirEdicion(nueva.id);
   });
 
   /* EL DOBLE TOQUE ABRE LA EDICIÓN. Y aquí sí vale dblclick: el navegador lo
@@ -16329,7 +16438,8 @@ function portadaTomarArchivo(file){
     if (!suya || ev.detail !== 0 || !p.classList.contains('decorando')) return;
     ev.preventDefault(); ev.stopPropagation();
     const id = suya.dataset.ptPiedra;
-    if (portadaEditando === id) portadaSiguienteForma(id);
+    if (piedraEditando === id && piedraTaller === TALLER_PORTADA)
+      piedraSiguienteForma(id);
     else portadaAbrirEdicion(id);
     /* Y EL FOCO VUELVE AL BOTÓN QUE EL REPINTADO SE LLEVÓ. Las dos ramas
        rehacen la capa entera con innerHTML, así que el botón que tenía el foco
