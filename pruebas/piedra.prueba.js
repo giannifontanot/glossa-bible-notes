@@ -743,6 +743,30 @@ async function andamio(p){
     await window.__pausa(500);
     return { antes, cerrado: !window.__elMando().visible, editando: window.__editando() };
   });
+  /* EL ROJO DE LAS FLECHAS ES UN COLOR DE ESTA PALETA, y se comprueba aquí
+     porque aquí es donde la paleta está en pantalla. Se eligió «carmín vivo»
+     en vez del rojo a ojo que llevaban antes: un color suelto que no usa nadie
+     más es un color que se queda atrás en cuanto la paleta se retoca. Si un
+     día alguien cambia ese tono en PIEDRA_TINTAS, esto lo dice. */
+  const rojo = await p.evaluate(async () => {
+    const e0 = document.querySelector('.piedra-sitio');
+    const r0 = e0.getBoundingClientRect();
+    e0.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+      clientX: r0.left + r0.width/2, clientY: r0.top + r0.height/2 }));
+    await window.__pausa(600);
+    const muestra = document.querySelector('#piedraMando [data-piedra-color="carmin-vivo"]');
+    const salida = { hayMuestra: !!muestra,
+                     paleta: muestra ? getComputedStyle(muestra).backgroundColor : null,
+                     flecha: getComputedStyle(document.getElementById('flechaIzq')).color };
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(400);
+    return salida;
+  });
+  di('el rojo del galón', JSON.stringify(rojo));
+  vale('LAS FLECHAS LLEVAN EL CARMÍN VIVO DE LA PALETA',
+       rojo.hayMuestra === true && rojo.paleta === rojo.flecha,
+       'paleta ' + rojo.paleta + '  ·  flecha ' + rojo.flecha);
+
   di('el mando por dentro', remate.antes);
   vale('el aspa está en la esquina de arriba a la derecha',
        !!remate.antes.aspa && remate.antes.aspa.arriba <= 6 && remate.antes.aspa.derecha <= 6,

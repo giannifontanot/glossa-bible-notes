@@ -607,11 +607,18 @@
      tabulador: no son un mando, son un dibujo.
 
      A media altura porque es donde cae el pulgar sin mover la mano, y porque
-     arriba está el titulillo y abajo el rótulo de la versión. */
+     arriba está el titulillo y abajo el rótulo de la versión.
+
+     EL ROJO SALE DE LA PALETA DE PIEDRAS —«carmín vivo»— y no de un número
+     escrito aquí. Antes era un #e01b1b puesto a ojo, y un color suelto que no
+     usa nadie más es un color que se queda atrás en cuanto la paleta se
+     retoca. La variable la escribe el programa desde PIEDRA_TINTAS al
+     arrancar, así que hay UN solo sitio donde vive ese rojo; el hex de aquí es
+     solo la red por si esa línea desaparece. */
   .flecha-hoja{ position:absolute; top:50%; z-index:4;
                 width:17px; height:34px; margin-top:-17px;
                 display:grid; place-items:center;
-                pointer-events:none; color:#e01b1b;
+                pointer-events:none; color:var(--rojo-galon, #d80b0b);
                 transition:opacity .28s ease; }
   /* Y APAGADAS QUIERE DECIR APAGADAS. Esta línea parece de más y es el arreglo
      entero de un fallo que se vio en una foto: el atributo `hidden` esconde
@@ -3519,7 +3526,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 08:34';
+window.GLOSS_BUILD = '06-SEP-26 09:47';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -16030,7 +16037,10 @@ void stage.offsetWidth;
 stage.style.transition = '';
 reflejarControles();
 /* Las flechas leen su interruptor al arrancar: sin esto, quien las dejó
-   encendidas ayer abría hoy sin ellas hasta tocar el panel de Libros. */
+   encendidas ayer abría hoy sin ellas hasta tocar el panel de Libros.
+   Y su rojo se copia aquí de la paleta de las piedras —ver .flecha-hoja—:
+   este es el único sitio donde ese color se decide. */
+document.documentElement.style.setProperty('--rojo-galon', tintaDe('carmin-vivo')[2]);
 pintarFlechas();
 /* Y la portada recupera su adorno. Va aquí y no antes porque necesita las
    figuras y los colores de las piedras, que se declaran más arriba pero

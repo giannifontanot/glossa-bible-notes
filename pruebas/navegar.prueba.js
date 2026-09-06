@@ -737,6 +737,11 @@ const ATERRIZA = 7000;
                 segundo «M» dentro del mismo path, así que contarlos dice si
                 volvió a colarse el palo horizontal. */
              trozos: (i.querySelector('path').getAttribute('d').match(/M/gi) || []).length,
+             /* Y DE DÓNDE SALE EL ROJO. Si la variable está puesta y el color
+                pintado es el suyo, el rojo viene de la paleta de piedras y no
+                de un número escrito en la hoja de estilos. */
+             variable: getComputedStyle(document.documentElement)
+                         .getPropertyValue('--rojo-galon').trim(),
              /* Un letrero, no un mando. */
              etiqueta: i.tagName, ojos: ci.pointerEvents, color: ci.color,
              fondo: ci.backgroundColor, borde: parseFloat(ci.borderTopWidth),
@@ -767,6 +772,8 @@ const ATERRIZA = 7000;
   vale('  y no reciben ni un toque', flechas.ojos === 'none', flechas.ojos);
   /* EL ROJO SE COMPRUEBA COMO ROJO Y NO COMO UN NÚMERO: el tono se retoca sin
      avisar, lo que no puede cambiar es que el rojo mande sobre los otros dos. */
+  vale('  y el rojo sale de la paleta, no de un número suelto',
+       !!flechas.variable, flechas.variable || '(sin variable)');
   const rgb = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(flechas.color || '');
   vale('  rojas de verdad',
        !!rgb && +rgb[1] > 170 && +rgb[2] < 90 && +rgb[3] < 90, flechas.color);
