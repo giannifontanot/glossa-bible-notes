@@ -22,6 +22,23 @@ const { abrirEnPortada, cerrar, di, vale, titulo } = require('./comun');
 
 const LLAVE = 'glossa:portada:v1';
 
+/* UN TOQUE DE DEDO, TORCIDO Y SIN CLIC. Lo que manda un teléfono: el puntero
+   baja, tiembla un poco —un dedo real no se posa quieto— y sube. El clic
+   sintetizado NO se manda a propósito: es justo el que en un teléfono puede no
+   llegar, y una prueba que lo mande está probando el ratón. */
+async function tocarSinClic(pagina, x, y, pid = 21){
+  await pagina.evaluate(async ([x, y, pid]) => {
+    const pausa = ms => new Promise(r => setTimeout(r, ms));
+    const o = (cx, cy) => ({ bubbles:true, cancelable:true, pointerId:pid,
+                             pointerType:'touch', isPrimary:true, clientX:cx, clientY:cy });
+    const t = document.elementFromPoint(x, y) || document.getElementById('portadaPiedras');
+    t.dispatchEvent(new PointerEvent('pointerdown', o(x, y)));       await pausa(30);
+    t.dispatchEvent(new PointerEvent('pointermove', o(x + 2, y - 1))); await pausa(25);
+    t.dispatchEvent(new PointerEvent('pointerup',   o(x + 1, y + 1)));
+  }, [x, y, pid]);
+  await pagina.waitForTimeout(280);
+}
+
 (async () => {
   const sesion = await abrirEnPortada();
   const p = sesion.pagina;
@@ -143,8 +160,17 @@ const LLAVE = 'glossa:portada:v1';
   await p.click('#btnPortadaPiedras'); await p.waitForTimeout(400);
   await p.click('[data-pt-forma="paloma"]'); await p.waitForTimeout(250);
   await p.click('[data-pt-tinta="carmin"]'); await p.waitForTimeout(250);
-  await p.mouse.click(120, 260); await p.waitForTimeout(250);
-  await p.mouse.click(300, 300); await p.waitForTimeout(250);
+  /* SE PONEN CON EL PUNTERO Y SIN CLIC, y ésta es la prueba que faltaba.
+     La capa donde caen las piedras es un <div> pelado con el oyente delegado
+     en la portada, y un teléfono —iOS a la cabeza— solo se inventa el clic
+     sobre lo que considera tocable: un control, o algo con su propio oyente.
+     Así que en el teléfono el toque en la capa no producía clic y no llegaba
+     nunca, mientras con ratón iba bien y esta prueba, que mandaba clics de
+     ratón, tampoco lo veía. Ahora manda lo que manda un dedo —pointerdown,
+     temblor, pointerup— y NADA MÁS: si el arreglo volviera a apoyarse en el
+     clic, esto lo dice. */
+  await tocarSinClic(p, 120, 260);
+  await tocarSinClic(p, 300, 300);
 
   /* EL MANDO TAPA LA BANDA DE ABAJO, y por eso lleva «subir». Medido en el
      teléfono de 412×915 ocupa de y=469 a y=811: ahí no se puede dejar una
@@ -171,7 +197,7 @@ const LLAVE = 'glossa:portada:v1';
   vale('SUBIR LO MUEVE Y LIBERA LO QUE TAPABA',
        arriba.arriba === true && arriba.y < tapa.y && arriba.libre === 'portadaPiedras', arriba);
   vale('  y el botón pasa a decir «bajar»', arriba.dice === 'bajar', arriba.dice);
-  await p.mouse.click(206, 700); await p.waitForTimeout(250);
+  await tocarSinClic(p, 206, 700);
   await p.click('[data-pt-mover]'); await p.waitForTimeout(300);   /* se baja otra vez */
 
   const pd = await p.evaluate(k => {
@@ -187,9 +213,53 @@ const LLAVE = 'glossa:portada:v1';
        pd.forma === 'paloma' && pd.color === 'carmin', [pd.forma, pd.color].join(' / '));
   vale('  y guardadas en fracciones de la portada', pd.enFracciones === true, pd.enFracciones);
 
-  await p.click('[data-pt-piedra="0"]'); await p.waitForTimeout(300);
+  /* Y AHORA EL TRATO DE LAS PIEDRAS DE LA HOJA, que es lo que se pidió: una
+     piedra quieta no responde al toque —el doble toque la despierta—, y ya
+     despierta el toque le cambia la figura y el arrastre la mueve. Antes, en
+     la portada, una piedra puesta solo se podía quitar. */
+  const dondeEsta = await p.evaluate(() => {
+    const b = document.querySelector('.pt-piedra');
+    const r = b.getBoundingClientRect();
+    return { id: b.dataset.ptPiedra,
+             x: Math.round(r.left + r.width/2), y: Math.round(r.top + r.height/2) };
+  });
+  const antesQuieta = await p.evaluate(k =>
+    (JSON.parse(localStorage.getItem(k)||'{}').piedras||[])[0].forma, LLAVE);
+  await tocarSinClic(p, dondeEsta.x, dondeEsta.y, 22);
+  const quieta = await p.evaluate(k => ({
+    n: document.querySelectorAll('.pt-piedra').length,
+    forma: (JSON.parse(localStorage.getItem(k)||'{}').piedras||[])[0].forma }), LLAVE);
+  di('la piedra quieta', JSON.stringify(quieta));
+  vale('QUIETA, UN TOQUE NO LA CAMBIA NI LA QUITA',
+       quieta.n === 3 && quieta.forma === antesQuieta, quieta);
+
+  await p.evaluate(d => {
+    const b = document.querySelector('[data-pt-piedra="' + d.id + '"]');
+    b.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true,
+      detail:2, clientX:d.x, clientY:d.y }));
+  }, dondeEsta);
+  await p.waitForTimeout(450);
+  const edita = await p.evaluate(() => ({
+    cerco: !!document.querySelector('.pt-piedra.editando'),
+    botones: [...document.querySelectorAll('#portadaMandoPiedras .pt-mini')]
+               .map(x => x.textContent.trim()) }));
+  di('en edición', JSON.stringify(edita));
+  vale('EL DOBLE TOQUE ABRE SU EDICIÓN', edita.cerco === true, edita.cerco);
+  vale('  y el mando pasa a ser el suyo: Quitar, Cancelar y OK',
+       ['Quitar','Cancelar','OK'].every(x => edita.botones.includes(x)), edita.botones);
+
+  await tocarSinClic(p, dondeEsta.x, dondeEsta.y, 23);
+  const otraForma = await p.evaluate(k =>
+    (JSON.parse(localStorage.getItem(k)||'{}').piedras||[])[0].forma, LLAVE);
+  vale('  y ya en edición, el toque le cambia la figura', otraForma !== antesQuieta,
+       antesQuieta + ' → ' + otraForma);
+
+  /* Quitar se pide desde su mando, no con un toque suelto: quitar sin querer
+     una piedra que solo se quería mover es lo que esto evita. */
+  await p.click('#portadaMandoPiedras [data-pt-quitar-esta]');
+  await p.waitForTimeout(400);
   const menos = await p.evaluate(() => document.querySelectorAll('.pt-piedra').length);
-  vale('  tocando una puesta se quita', menos === 2, menos);
+  vale('  y «Quitar» del mando la quita', menos === 2, menos);
 
   titulo('CONTINUE ABRE LA BIBLIA');
   await p.click('[data-pt-listo]'); await p.waitForTimeout(300);
