@@ -448,6 +448,55 @@ async function andamio(p){
   vale('  EN DOS RENGLONES, no en una tira',
        oferta.renglones === 2 && oferta.primeroDeAbajo === true, oferta.renglones);
   vale('  y cada vivo debajo del suyo', oferta.encolumnados === true);
+  /* ----------------------------------------------------------------
+     LAS DOS FIGURAS QUE SE REHICIERON MIRÁNDOLAS.
+
+     Un dibujo no se prueba por su silueta —eso se juzga con los ojos y una
+     foto— pero sí por las dos cosas de las que alguien se quejó, que son
+     medibles y vuelven solas si nadie las vigila:
+
+     · LA CORONA, SIMÉTRICA. La primera tenía el aro de abajo centrado en 12 y
+       el cuerpo en 11: a 24px no se ve, a tamaño grande el pie asomaba más por
+       un lado. Se mide el dibujo pintado, no el texto del path: es lo que se
+       ve, y sobrevive a que alguien reescriba las curvas.
+     · LA PALOMA, CON SU RAMA VERDE. Es la paloma de la PAZ, y lo que la
+       convierte en eso es la rama; el verde es el mismo de la hoja del racimo
+       —#4d6a35— y va escrito a pelo porque una hoja carmín no es una hoja. */
+  const dibujos = await p.evaluate(() => {
+    const m = document.getElementById('piedraMando');
+    const mide = forma => {
+      const b = m.querySelector('[data-piedra-forma="' + forma + '"]');
+      if (!b) return null;
+      const svg = b.querySelector('svg');
+      const rb = svg.getBoundingClientRect();
+      /* El centro de cada trazo contra el centro de la caja: si el dibujo está
+         descentrado, alguno de ellos se corre. */
+      const piezas = [...svg.querySelectorAll('path, circle')].map(t => {
+        const r = t.getBoundingClientRect();
+        return { centro: (r.left + r.width/2) - (rb.left + rb.width/2),
+                 relleno: getComputedStyle(t).fill };
+      });
+      return { piezas, ancho: rb.width };
+    };
+    return { corona: mide('corona'), paloma: mide('paloma') };
+  });
+  di('los dibujos', dibujos.corona && dibujos.corona.piezas.map(x => Math.round(x.centro*100)/100));
+  vale('LA CORONA ES SIMÉTRICA: sus dos piezas centradas',
+       !!dibujos.corona && dibujos.corona.piezas.length >= 2 &&
+       dibujos.corona.piezas.every(x => Math.abs(x.centro) <= dibujos.corona.ancho * .02),
+       dibujos.corona && dibujos.corona.piezas.map(x => Math.round(x.centro*10)/10).join(', '));
+  /* El verde se busca como VERDE y no como un número: el tono se puede
+     retocar; lo que no puede pasar es que la rama se pinte del color de la
+     piedra, que es de lo que se trata. */
+  const esVerde = c => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c || '');
+    return !!m && +m[2] > +m[1] && +m[2] > +m[3]; };
+  const verdes = (dibujos.paloma ? dibujos.paloma.piezas : []).filter(x => esVerde(x.relleno));
+  di('las piezas verdes de la paloma', verdes.length);
+  vale('LA PALOMA LLEVA SU RAMA DE OLIVO, y va verde',
+       verdes.length >= 2, verdes.length + ' piezas verdes');
+  vale('  y el ave no: ésa toma el color de la piedra',
+       !!dibujos.paloma && dibujos.paloma.piezas.length - verdes.length >= 3,
+       (dibujos.paloma ? dibujos.paloma.piezas.length : 0) + ' piezas en total');
   /* Y SIN CAMPO DE NOMBRE: se espera el false, no la ausencia de la línea. Si
      alguien devuelve el campo al mando, esto lo dice. Ver arriba. */
   vale('y SIN campo de nombre, que eso se hace en la lista',
@@ -499,6 +548,168 @@ async function andamio(p){
   vale('EL MANDO CUELGA DE LA ESCENA, no del papel', fuera === true);
 
   /* ----------------------------------------------------------------
+     EL RENGLÓN DE ABAJO: LA SOMBRA, Y CÓMO SE SALE.
+
+     Del mando se salía por el aspa de la esquina o tocando fuera, y las dos
+     dejan puesto lo que hubieras tocado. Faltaba DESHACER: con solo el aspa,
+     cada toque en una figura era definitivo y probar salía caro. «Cancelar»
+     devuelve la piedra a como estaba al abrir el mando —figura, color, tamaño,
+     sitio y sombra— y eso es lo que convierte el mando en un sitio donde se
+     puede probar.
+
+     Y LA INSTANTÁNEA SE TOMA AL ABRIR EL PANEL Y NO AL EMPEZAR LA EDICIÓN, que
+     no es lo mismo y costó una sonda: una piedra recién puesta NACE EN
+     EDICIÓN, así que el doble toque se encuentra con que ya la está editando y
+     no apunta nada. Justo el caso más frecuente —acabas de poner una, pruebas
+     cuatro figuras y quieres volver— era el que no deshacía. Por eso esta
+     prueba empieza deshaciendo sobre la piedra recién puesta. */
+  titulo('el mando: la sombra, el OK y el Cancelar');
+  const abajo = await p.evaluate(() => {
+    const m = document.getElementById('piedraMando');
+    const c = e => { const r = e.getBoundingClientRect();
+      return { x:Math.round(r.left), y:Math.round(r.top),
+               w:Math.round(r.width), h:Math.round(r.height) }; };
+    const ok = m.querySelector('[data-piedra-acc="ok"]');
+    const can = m.querySelector('[data-piedra-acc="cancelar"]');
+    const chk = m.querySelector('[data-piedra-sombra]');
+    if (!ok || !can || !chk) return { falta:{ ok:!!ok, can:!!can, chk:!!chk } };
+    const rm = c(m), ro = c(ok), rc = c(can), rl = c(chk.closest('label'));
+    const pie = c(m.querySelector('.pm-pie'));
+    const medio = e => e.y + e.h/2;
+    return { rotulo: chk.closest('label').textContent.trim(),
+             /* Mismo renglón se mide por los CENTROS: la casilla mide 19 de
+                alto y los botones 44, así que sus bordes de arriba no
+                coinciden ni tienen por qué. */
+             mismoRenglon: Math.abs(medio(ro) - medio(rc)) < 3 &&
+                           Math.abs(medio(ro) - medio(rl)) < 4,
+             abajoDelTodo: ro.y > pie.y,
+             centroFila: Math.round((rl.x + Math.max(ro.x+ro.w, rc.x+rc.w)) / 2),
+             centroPanel: Math.round(rm.x + rm.w/2),
+             choca: (rl.x + rl.w) > Math.min(ro.x, rc.x),
+             dentro: rl.x >= rm.x && Math.max(ro.x+ro.w, rc.x+rc.w) <= rm.x + rm.w,
+             blancoOk: Math.min(ro.h, rc.h) };
+  });
+  di('el renglón de abajo', abajo);
+  vale('están la casilla, el Cancelar y el OK', !abajo.falta, abajo.falta);
+  vale('  los tres en el mismo renglón', abajo.mismoRenglon === true, abajo);
+  vale('  y ese renglón va abajo del todo', abajo.abajoDelTodo === true, abajo);
+  vale('  la casilla dice «sombra»', /sombra/i.test(abajo.rotulo || ''), abajo.rotulo);
+  /* SE CENTRA EL RENGLÓN ENTERO Y NO SOLO LOS BOTONES, y es una renuncia
+     medida: el panel tiene 250px por dentro, la casilla ocupa 73 y los dos
+     botones 167, así que para que el par quedara centrado en el panel la
+     casilla tendría que meterse treinta y dos píxeles DEBAJO de «Cancelar».
+     Un rótulo tapado por un botón no es una casilla. */
+  vale('  el renglón va centrado en el panel',
+       Math.abs(abajo.centroFila - abajo.centroPanel) <= 3,
+       abajo.centroFila + ' contra ' + abajo.centroPanel);
+  vale('  sin que la casilla se encime en los botones', abajo.choca === false, abajo);
+  vale('  ni nada se salga del panel', abajo.dentro === true, abajo);
+  vale('  y con blanco de dedo en los botones', abajo.blancoOk >= 44, abajo.blancoOk);
+
+  const sombra = await p.evaluate(async () => {
+    const cs = () => { const b = document.querySelector('.piedra');
+      /* LA OPACIDAD NO DICE NADA EN EDICIÓN: la piedra que se está editando ya
+         va opaca por su cuenta —es lo que dice que está viva—. Lo que
+         distingue es la sombra. */
+      return { filtro: getComputedStyle(b).filter, clase: b.className }; };
+    const antes = cs();
+    await window.__toque('#piedraMando [data-piedra-sombra]');
+    await window.__pausa(500);
+    return { antes, despues: cs(),
+             guardada: window.__guardadas()[0].sombra };
+  });
+  di('la sombra', sombra);
+  vale('sin marcar, la piedra va plana',
+       !/5px 5px 10px/.test(sombra.antes.filtro) && !/con-sombra/.test(sombra.antes.clase),
+       sombra.antes);
+  vale('MARCADA, LA PIEDRA SE LEVANTA',
+       /5px 5px 10px/.test(sombra.despues.filtro) &&
+       /con-sombra/.test(sombra.despues.clase), sombra.despues);
+  vale('  y se guarda', sombra.guardada === true, sombra.guardada);
+
+  const deshacer = await p.evaluate(async () => {
+    const g = () => window.__guardadas()[0];
+    /* SE CIERRA LA EDICIÓN Y SE VUELVE A ABRIR ANTES DE MEDIR, y esto costó
+       dos corridas.
+
+       La instantánea que cancelar deshace se toma UNA VEZ, cuando la edición
+       se abre de verdad —no en cada repintado, o cancelar solo desharía el
+       último toque—. Los bloques de arriba llevaban la piedra en edición desde
+       hacía rato y le habían cambiado figura y color por el camino, así que el
+       «antes» que apuntaba esta prueba era de mitad de la sesión mientras la
+       instantánea del programa era del principio: cancelar hacía lo suyo y la
+       prueba cantaba fallo.
+
+       Y EL DOBLE TOQUE SOLO NO VALE, que fue el segundo intento: sobre una
+       piedra QUE YA ESTÁ EN EDICIÓN, piedraAbrirEdicion se sale por la primera
+       línea —`piedraEditando === id`— y no hay instantánea nueva. Por eso va
+       antes el Escape: cerrar de verdad y volver a entrar es lo único que
+       arranca una sesión de edición nueva. */
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(400);
+    const e0 = document.querySelector('.piedra-sitio');
+    const r0 = e0.getBoundingClientRect();
+    e0.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+      clientX: r0.left + r0.width/2, clientY: r0.top + r0.height/2 }));
+    await window.__pausa(600);
+    /* LOS CUATRO CAMBIOS SE HACEN AQUÍ DENTRO, incluida la sombra. Estaba
+       marcada en el bloque de arriba y la aserción daba por hecho que la
+       instantánea la tenía apagada; en cuanto la edición empieza AQUÍ, la
+       instantánea la tiene encendida y cancelar la deja encendida, que es lo
+       correcto. Un bloque que se apoya en lo que tocó el anterior mide el
+       rastro, no lo suyo.
+       Y EL COLOR SE CAMBIA DE VERDAD: aquí se tocaba «carmín» sobre una piedra
+       que YA era carmín, así que esa pata no probaba nada —ni el cambio ni el
+       deshacer—. Con índigo sí hay ida y vuelta. */
+    const antes = { forma:g().forma, color:g().color, tam:g().tam, sombra: g().sombra === true };
+    await window.__toque('#piedraMando [data-piedra-forma="ancla"]'); await window.__pausa(300);
+    await window.__toque('#piedraMando [data-piedra-color="indigo"]'); await window.__pausa(300);
+    await window.__toque('#piedraMando [data-piedra-acc="mas"]'); await window.__pausa(300);
+    await window.__toque('#piedraMando [data-piedra-sombra]'); await window.__pausa(300);
+    const medio = { forma:g().forma, color:g().color, tam:g().tam, sombra: g().sombra === true };
+    await window.__toque('#piedraMando [data-piedra-acc="cancelar"]'); await window.__pausa(600);
+    return { antes, medio, tras: { forma:g().forma, color:g().color, tam:g().tam,
+                                   sombra: g().sombra === true },
+             cerrado: !document.getElementById('piedraMando').classList.contains('visible'),
+             editando: window.__editando() };
+  });
+  di('cancelar', deshacer);
+  vale('(la prueba es válida) los cuatro cambios entraron',
+       deshacer.medio.forma === 'ancla' && deshacer.medio.color === 'indigo' &&
+       deshacer.medio.tam === deshacer.antes.tam + 1 &&
+       deshacer.medio.sombra !== deshacer.antes.sombra, deshacer.medio);
+  vale('CANCELAR LOS DESHACE LOS TRES',
+       deshacer.tras.forma === deshacer.antes.forma &&
+       deshacer.tras.color === deshacer.antes.color &&
+       deshacer.tras.tam === deshacer.antes.tam, deshacer.tras);
+  /* Y LA SOMBRA CON ELLOS, en el sentido que toque: se compara contra cómo
+     estaba al empezar ESTA edición, no contra «apagada». */
+  vale('  y la sombra, que también se tocó',
+       deshacer.tras.sombra === deshacer.antes.sombra,
+       deshacer.antes.sombra + ' → ' + deshacer.medio.sombra + ' → ' + deshacer.tras.sombra);
+  vale('  y cierra el mando', deshacer.cerrado === true && deshacer.editando === false,
+       deshacer);
+
+  /* Y EL OK CIERRA DEJANDO LO HECHO, que es la otra mitad: sin esto, «cancelar
+     deshace» pasaría igual si los dos botones deshicieran. */
+  const aceptar = await p.evaluate(async () => {
+    const g = () => window.__guardadas()[0];
+    const e = document.querySelector('.piedra-sitio');
+    const r = e.getBoundingClientRect();
+    e.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+      clientX: r.left + r.width/2, clientY: r.top + r.height/2 }));
+    await window.__pausa(600);
+    await window.__toque('#piedraMando [data-piedra-forma="llave"]'); await window.__pausa(300);
+    await window.__toque('#piedraMando [data-piedra-acc="ok"]'); await window.__pausa(600);
+    return { forma: g().forma,
+             cerrado: !document.getElementById('piedraMando').classList.contains('visible'),
+             editando: window.__editando() };
+  });
+  di('ok', aceptar);
+  vale('EL OK CIERRA Y DEJA LO HECHO', aceptar.forma === 'llave', aceptar.forma);
+  vale('  y también cierra', aceptar.cerrado === true && aceptar.editando === false, aceptar);
+
+  /* ----------------------------------------------------------------
      LA SALIDA Y LOS DOS BOTONES QUE MÁS SE TOCAN.
 
      El pie del mando era cuatro cosas en fila —menos, la cuenta, más, y una
@@ -518,11 +729,44 @@ async function andamio(p){
      piedra es subir y bajar mirando la hoja, no el botón. */
   titulo('el mando: la salida arriba y los de tamaño, grandes y centrados');
   const remate = await p.evaluate(async () => {
+    /* Y AQUÍ TAMBIÉN SE ABRE. Antes este bloque heredaba el mando abierto de
+       los de arriba; desde que OK y cancelar lo CIERRAN, heredaba uno cerrado
+       y medía ceros —el aspa a 0x0, los de tamaño a 0x0— sin que nada del
+       programa estuviera mal. Cada bloque abre lo que va a medir. */
+    const e0 = document.querySelector('.piedra-sitio');
+    const r0 = e0.getBoundingClientRect();
+    e0.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+      clientX: r0.left + r0.width/2, clientY: r0.top + r0.height/2 }));
+    await window.__pausa(600);
     const antes = window.__elMando();
     await window.__toque('#piedraMando [data-sp-cerrar]');
     await window.__pausa(500);
     return { antes, cerrado: !window.__elMando().visible, editando: window.__editando() };
   });
+  /* EL ROJO DE LAS FLECHAS ES UN COLOR DE ESTA PALETA, y se comprueba aquí
+     porque aquí es donde la paleta está en pantalla. Se eligió «carmín vivo»
+     en vez del rojo a ojo que llevaban antes: un color suelto que no usa nadie
+     más es un color que se queda atrás en cuanto la paleta se retoca. Si un
+     día alguien cambia ese tono en PIEDRA_TINTAS, esto lo dice. */
+  const rojo = await p.evaluate(async () => {
+    const e0 = document.querySelector('.piedra-sitio');
+    const r0 = e0.getBoundingClientRect();
+    e0.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+      clientX: r0.left + r0.width/2, clientY: r0.top + r0.height/2 }));
+    await window.__pausa(600);
+    const muestra = document.querySelector('#piedraMando [data-piedra-color="carmin-vivo"]');
+    const salida = { hayMuestra: !!muestra,
+                     paleta: muestra ? getComputedStyle(muestra).backgroundColor : null,
+                     flecha: getComputedStyle(document.getElementById('flechaIzq')).color };
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(400);
+    return salida;
+  });
+  di('el rojo del galón', JSON.stringify(rojo));
+  vale('LAS FLECHAS LLEVAN EL CARMÍN VIVO DE LA PALETA',
+       rojo.hayMuestra === true && rojo.paleta === rojo.flecha,
+       'paleta ' + rojo.paleta + '  ·  flecha ' + rojo.flecha);
+
   di('el mando por dentro', remate.antes);
   vale('el aspa está en la esquina de arriba a la derecha',
        !!remate.antes.aspa && remate.antes.aspa.arriba <= 6 && remate.antes.aspa.derecha <= 6,
@@ -602,8 +846,23 @@ async function andamio(p){
   /* El nombre se lee de lapiz.guardado y no escrito a mano: ésta ya se
      descolgó una vez, cuando el bloque de arriba cambió el nombre y aquí se
      quedó el viejo. Leyéndolo de donde se puso, no puede volver a pasar. */
-  const voz = await p.evaluate(() =>
-    document.querySelector('.piedra').getAttribute('aria-label'));
+  /* Y LA FIGURA Y EL COLOR SE PONEN AQUÍ, no se heredan. Escritos a mano
+     —«barca», «carmín»— se descolgaron en cuanto los bloques de OK y cancelar
+     dejaron la piedra en otra figura y en el color de fábrica; y el color de
+     fábrica ni siquiera sale en el rótulo, porque piedraVoz solo lo dice
+     cuando NO es el de siempre. Poniéndolos aquí, esto mide el rótulo y no el
+     rastro que dejó el bloque anterior. */
+  const voz = await p.evaluate(async () => {
+    const e0 = document.querySelector('.piedra-sitio');
+    const r0 = e0.getBoundingClientRect();
+    e0.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+      clientX: r0.left + r0.width/2, clientY: r0.top + r0.height/2 }));
+    await window.__pausa(600);
+    await window.__toque('#piedraMando [data-piedra-forma="barca"]'); await window.__pausa(300);
+    await window.__toque('#piedraMando [data-piedra-color="carmin"]'); await window.__pausa(300);
+    await window.__toque('#piedraMando [data-piedra-acc="ok"]'); await window.__pausa(600);
+    return document.querySelector('.piedra').getAttribute('aria-label');
+  });
   di('el rótulo hablado', voz);
   vale('el rótulo hablado dice figura, color y nombre',
        /barca/.test(voz) && /carm/.test(voz) &&
@@ -1447,6 +1706,49 @@ async function andamio(p){
        tapado.panel.top >= 0 && tapado.panel.bottom <= tapado.suelo,
        tapado.panel);
   vale('  y el panel se recortó al sitio que hay', !!tapado.tope, tapado.tope);
+
+  /* Y AHORA SE MUEVE EL PANEL CON EL TECLADO PUESTO, que es lo que lo rompía.
+
+     Abrir el nombre de otra fila recoloca el panel —colocarPiedraMenu—, y el
+     desplazamiento del teclado estaba calculado contra el sitio anterior.
+     Peor: el sitio salía distinto según el recorte del teclado estuviera
+     puesto o no en ese instante (medido: 216 px sin él, 424 con él), así que
+     la cuenta de subir y el sitio hablaban de dos paneles distintos y el
+     resultado era el panel 200 px POR ENCIMA de lo que se ve, con la cabecera
+     fuera de la pantalla.
+
+     Esto no se veía en el contenedor de este repositorio y sí en la máquina de
+     Codex: es una carrera, y la ganaba uno u otro según la máquina. Por eso lo
+     que se vigila aquí no es un número sino la invariante —el panel dentro de
+     lo que se ve—, repitiéndolo sobre varias filas. */
+  const movido = await pt.evaluate(async () => {
+    const vv = window.visualViewport;
+    const el = document.getElementById('piedraMenu');
+    const suelo = vv.offsetTop + vv.height;
+    const filas = () => [...document.querySelectorAll('#piedraMenu [data-piedra-ir]')];
+    const fuera = [];
+    for (const i of [0, 18, 1, 17]){
+      const f = filas()[i]; if (!f) continue;
+      f.scrollIntoView({ block:'nearest' }); await window.__pausa(150);
+      const r = f.getBoundingClientRect();
+      f.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+        clientX: r.left + r.width/2, clientY: r.top + r.height/2 }));
+      await window.__pausa(420);
+      vv.dispatchEvent(new Event('resize'));
+      await window.__pausa(900);
+      const rp = el.getBoundingClientRect();
+      /* Solo se juzga por arriba: por abajo el panel puede asomar detrás del
+         teclado mientras el campo se vea, que es lo que el programa promete. */
+      if (rp.top < 0) fuera.push({ fila:i, top:Math.round(rp.top),
+                                   sube: el.style.getPropertyValue('--sube') });
+    }
+    return { fuera, suelo: Math.round(suelo),
+             top: Math.round(el.getBoundingClientRect().top) };
+  });
+  di('moviendo el panel con el teclado', JSON.stringify(movido));
+  vale('MOVER EL PANEL CON EL TECLADO NO LO SACA DE LA PANTALLA',
+       movido.fuera.length === 0,
+       movido.fuera.length ? movido.fuera : 'las cuatro filas dentro');
   await cerrarParcial(tecl, 'el teclado');
 
   /* ================================================================
@@ -1505,6 +1807,73 @@ async function andamio(p){
        migrada.nombre === 'la de aceite' && migrada.nombreTrasGuardar === 'la de aceite',
        migrada.nombre + ' / ' + migrada.nombreTrasGuardar);
   await cerrarParcial(vieja, 'la lámpara vieja');
+
+  /* ================================================================
+     LA SOMBRA VIAJA EN LA FOTO DEL PLIEGUE.
+
+     Lo que no está en el retrato desaparece durante el giro y vuelve de golpe
+     al aterrizar. Con las piedras costó dos revisiones —una vez sin color,
+     otra corregido dos veces— y la sombra es de la misma familia: sin esto, la
+     piedra se aplanaría a media vuelta y se levantaría al caer.
+
+     Y NO SE PUEDE PROBAR POR CLASE, que es la trampa: la foto no comparte la
+     hoja de estilos de la aplicación —lleva la suya, PAGE_CSS— así que
+     .con-sombra no existe allí y el filtro va escrito a pelo en el estilo en
+     línea. Lo que hay que mirar es la FUENTE del retrato.
+
+     Se lee envolviendo `new Image()`, que es la única pieza que estas pruebas
+     sustituyen alguna vez, y es del navegador: el pliegue carga su SVG como la
+     src de una imagen, así que interceptando la asignación se ve el documento
+     entero tal como sale. */
+  titulo('la sombra viaja en la foto del pliegue');
+  const foto = await abrir();
+  const pfo = foto.pagina;
+  await pfo.evaluate(llave => localStorage.setItem(llave, JSON.stringify([
+    { id:'consombra', libro:'MAT', cap:1, vers:1, x:.5, y:.3, forma:'ancla',
+      color:'carmin', tam:3, sombra:true, creado:Date.now(), tocado:Date.now() },
+    { id:'sinsombra', libro:'MAT', cap:1, vers:2, x:.3, y:.6, forma:'pez',
+      color:'oliva', tam:3, creado:Date.now(), tocado:Date.now() }
+  ])), LLAVE);
+  await pfo.reload();
+  await pfo.waitForTimeout(2400);
+  await andamio(pfo);
+  const enLaFoto = await pfo.evaluate(async () => {
+    const Original = window.Image;
+    const vistos = [];
+    window.Image = function(...a){
+      const img = new Original(...a);
+      Object.defineProperty(img, 'src', { configurable:true,
+        get(){ return img.getAttribute('src'); },
+        set(v){ vistos.push(String(v)); img.setAttribute('src', v); } });
+      return img;
+    };
+    window.Image.prototype = Original.prototype;
+    const e = document.getElementById('edgeR');
+    const rc = e.getBoundingClientRect();
+    const op = { bubbles:true, pointerId:645, pointerType:'touch', isPrimary:true,
+                 clientX: rc.left + rc.width/2, clientY: 420 };
+    e.dispatchEvent(new PointerEvent('pointerdown', op));
+    await window.__pausa(60);
+    e.dispatchEvent(new PointerEvent('pointerup', op));
+    await window.__pausa(2600);
+    window.Image = Original;
+    const fuente = vistos.map(v => { try { return decodeURIComponent(v); } catch(e){ return v; } })
+                         .filter(v => /piedra|svg/i.test(v)).join('\n');
+    /* Cuántas piedras lleva el retrato y cuántas de ellas van levantadas. */
+    return { retratos: vistos.length,
+             conSombra: (fuente.match(/drop-shadow\(5px 5px 10px/g) || []).length,
+             opacas: (fuente.match(/opacity:1;filter:drop-shadow/g) || []).length,
+             planas: (fuente.match(/opacity:\.82/g) || []).length };
+  });
+  di('lo que lleva el retrato', enLaFoto);
+  vale('(la prueba es válida) hubo retrato', enLaFoto.retratos > 0, enLaFoto.retratos);
+  vale('LA PIEDRA CON SOMBRA LA LLEVA TAMBIÉN EN LA FOTO',
+       enLaFoto.conSombra >= 1, enLaFoto.conSombra + ' con sombra');
+  vale('  y va opaca, no fantasma', enLaFoto.opacas >= 1, enLaFoto.opacas);
+  /* EL CONTROL: la otra piedra sigue plana. Sin él, un retrato que le pusiera
+     sombra a todas pasaría igual. */
+  vale('  CONTROL: la que no la tiene sigue plana', enLaFoto.planas >= 1, enLaFoto.planas);
+  await cerrarParcial(foto, 'la sombra en la foto');
 
   fin();
 })();
