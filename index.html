@@ -3535,7 +3535,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 13:21';
+window.GLOSS_BUILD = '06-SEP-26 14:08';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -12418,19 +12418,46 @@ const PIEDRA_SVG = {
      A 24 px la rama es una mota verde junto al pico, que es lo que hace
      cualquier icono de paloma de la paz a ese tamaño; a tamaño grande se leen
      las tres hojas. */
+  /* LA PALOMA VA BLANCA, y es la única de las catorce que no se llena del color
+     elegido. Una paloma de la paz marrón no es una paloma de la paz.
+
+     PERO EL PERFIL SÍ LLEVA EL COLOR, y no es un apaño: una paloma blanca sin
+     línea sobre papel crema no se ve —el papel es #f4ecd8, no blanco—, así que
+     el contorno hace falta de todas formas. Poniéndolo en currentColor, el
+     color que se elige en la paleta sigue haciendo algo: dibuja la línea en vez
+     de rellenar. Es la misma figura en trece colores, como las demás.
+
+     La rama va en verde oliva fijo, como la hoja de la uva: es una oliva, y una
+     oliva azul no dice nada.
+
+     LA ANTERIOR ERA UNA SILUETA MACIZA y a tamaño de piedra parecía un pez o un
+     pájaro cualquiera. Ésta se compone de piezas: cuerpo y cola de una tirada,
+     el ala encima, y la rama saliendo del pico. Probada en el banco de dibujo a
+     24, 40 y 120 px, que es donde se ve si a 24 sigue siendo una paloma. */
   paloma:
-    '<circle cx="15.6" cy="5.2" r="2.4" fill="currentColor"/>' +
-    '<path d="M17.7 4 20.9 5.2 17.7 6.4z" fill="currentColor"/>' +
-    '<path d="M14.6 7.1c1.3 2 1.2 4.3-.3 6.8-1.6 2.8-4.3 4.7-8 5.8l-5.3 1.6' +
-    'c-.8.2-1.3-.8-.7-1.2l4.4-3.1-4.1-.4c-.9-.1-1-1.2-.2-1.5l4.8-1.7c2.7-1 4.6-2.2 6-3.8' +
-    ' .8-.8 1.6-1.6 3-2.5z" fill="currentColor"/>' +
-    '<path d="M12.7 8.1c0 3-1.2 5.3-3.5 7-1.4-2.8-1-5.3 1.4-7.6z" fill="#fff"' +
-    ' fill-opacity=".33"/>' +
-    '<path d="M20.7 5.2c1.3.2 2.3.8 3 1.9" fill="none" stroke="#4d6a35"' +
-    ' stroke-width="1.1" stroke-linecap="round"/>' +
-    '<path d="M21.4 3.6c.9-.1 1.5.3 1.9 1.2-.9.5-1.6.4-2.1-.4z" fill="#4d6a35"/>' +
-    '<path d="M22.8 5.6c.8.2 1.2.8 1.2 1.7-1 .1-1.6-.2-1.8-1.1z" fill="#4d6a35"/>' +
-    '<path d="M20.1 6.5c.7-.4 1.4-.3 2 .3-.6.7-1.3.8-2 .2z" fill="#4d6a35"/>',
+    '<g transform="translate(.4,1.1)">' +
+      '<g fill="#fff" stroke="currentColor" stroke-width="1.05"' +
+         ' stroke-linejoin="round" stroke-linecap="round">' +
+        /* cuerpo, cuello y cola de una sola tirada */
+        '<path d="M6.4 4.6a2.6 2.6 0 0 0-2.5 3.1c.1.7.5 1.3 1.1 1.7' +
+          '-.8 1.6-.6 3.3.4 4.9 1.1 1.8 3 3.1 5.6 3.9l4.3 4.6' +
+          'c.4.5 1.2 0 1-.6l-.9-2.6 2.8.3c.6.1.9-.7.4-1.1l-6.3-4.8' +
+          'c1.9-1 3.2-2.4 3.9-4.2z"/>' +
+        /* el ala, levantada */
+        '<path d="M9.7 11c1.2-3.7 3.8-6.1 7.9-7.2 1 4.2-.7 7-4.9 8.5' +
+          '-1.8.6-2.8.1-3-1.3z"/>' +
+      '</g>' +
+      '<path d="M4 5.9 1.3 7l2.7 1z" fill="currentColor"/>' +
+      '<circle cx="6.5" cy="6.4" r=".62" fill="currentColor"/>' +
+      /* la ramita de oliva, del pico hacia arriba */
+      '<path d="M2.3 6.6C1.9 5.3 2.1 4.2 2.9 3.3" fill="none" stroke="#5d7a33"' +
+        ' stroke-width=".95" stroke-linecap="round"/>' +
+      '<g transform="translate(2.8,3.5) rotate(8)">' +
+        '<path d="M0 0c-.3-2.4.9-4 3.6-4.8.8 2.6-.3 4.3-2.8 5z" fill="#5d7a33"/>' +
+        '<path d="M.6 .1C1.5-1.2 2.4-2.2 3.4-3" fill="none" stroke="#fff"' +
+          ' stroke-opacity=".5" stroke-width=".55" stroke-linecap="round"/>' +
+      '</g>' +
+    '</g>',
   espiga:
     '<path d="M11.3 22.3V9.9" fill="none" stroke="currentColor" stroke-width="2"' +
     ' stroke-linecap="round"/>' +

@@ -459,9 +459,14 @@ async function andamio(p){
        el cuerpo en 11: a 24px no se ve, a tamaño grande el pie asomaba más por
        un lado. Se mide el dibujo pintado, no el texto del path: es lo que se
        ve, y sobrevive a que alguien reescriba las curvas.
-     · LA PALOMA, CON SU RAMA VERDE. Es la paloma de la PAZ, y lo que la
-       convierte en eso es la rama; el verde es el mismo de la hoja del racimo
-       —#4d6a35— y va escrito a pelo porque una hoja carmín no es una hoja. */
+     · LA PALOMA, BLANCA Y CON SU RAMA VERDE. Es la paloma de la PAZ, y lo que
+       la convierte en eso son las dos cosas: que sea blanca y que lleve la
+       rama. Es la única de las catorce que no se llena del color elegido —una
+       paloma de la paz marrón no es una paloma de la paz— pero el color no se
+       pierde: se va al PERFIL, que además hace falta porque una paloma blanca
+       sin línea no se ve sobre papel crema. Así que se comprueban tres cosas
+       distintas: que el cuerpo es blanco, que su línea sigue al color de la
+       piedra, y que la rama va verde pase lo que pase. */
   const dibujos = await p.evaluate(() => {
     const m = document.getElementById('piedraMando');
     const mide = forma => {
@@ -473,10 +478,13 @@ async function andamio(p){
          descentrado, alguno de ellos se corre. */
       const piezas = [...svg.querySelectorAll('path, circle')].map(t => {
         const r = t.getBoundingClientRect();
+        const c = getComputedStyle(t);
         return { centro: (r.left + r.width/2) - (rb.left + rb.width/2),
-                 relleno: getComputedStyle(t).fill };
+                 relleno: c.fill, linea: c.stroke };
       });
-      return { piezas, ancho: rb.width };
+      /* El color que le toca a esta piedra, para poder decir si el perfil lo
+         sigue: currentColor sale de aquí. */
+      return { piezas, ancho: rb.width, tinta: getComputedStyle(svg).color };
     };
     return { corona: mide('corona'), paloma: mide('paloma') };
   });
@@ -490,13 +498,23 @@ async function andamio(p){
      piedra, que es de lo que se trata. */
   const esVerde = c => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c || '');
     return !!m && +m[2] > +m[1] && +m[2] > +m[3]; };
-  const verdes = (dibujos.paloma ? dibujos.paloma.piezas : []).filter(x => esVerde(x.relleno));
+  const esBlanco = c => /rgba?\(255,\s*255,\s*255/.test(c || '');
+  const pal = (dibujos.paloma ? dibujos.paloma.piezas : []);
+  /* El verde se busca como VERDE y no como un número —el tono se puede
+     retocar—, y en el relleno O en el trazo: la hoja se pinta y el tallo se
+     traza, así que mirar solo el relleno se dejaba fuera la mitad de la rama. */
+  const verdes = pal.filter(x => esVerde(x.relleno) || esVerde(x.linea));
   di('las piezas verdes de la paloma', verdes.length);
   vale('LA PALOMA LLEVA SU RAMA DE OLIVO, y va verde',
-       verdes.length >= 2, verdes.length + ' piezas verdes');
-  vale('  y el ave no: ésa toma el color de la piedra',
-       !!dibujos.paloma && dibujos.paloma.piezas.length - verdes.length >= 3,
-       (dibujos.paloma ? dibujos.paloma.piezas.length : 0) + ' piezas en total');
+       verdes.length >= 2, verdes.length + ' piezas verdes de ' + pal.length);
+  /* El cuerpo blanco: al menos una pieza grande rellena de blanco. */
+  vale('  y el ave va BLANCA, que es lo que la hace de la paz',
+       pal.some(x => esBlanco(x.relleno)),
+       pal.map(x => x.relleno).join(' · '));
+  /* Y el color elegido no se pierde: se lo queda el perfil. */
+  vale('  con el perfil del color de la piedra, que si no no se ve en el papel',
+       !!dibujos.paloma && pal.some(x => x.linea === dibujos.paloma.tinta),
+       'tinta ' + (dibujos.paloma ? dibujos.paloma.tinta : '?'));
   /* Y SIN CAMPO DE NOMBRE: se espera el false, no la ausencia de la línea. Si
      alguien devuelve el campo al mando, esto lo dice. Ver arriba. */
   vale('y SIN campo de nombre, que eso se hace en la lista',
