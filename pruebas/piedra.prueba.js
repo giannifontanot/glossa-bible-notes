@@ -488,6 +488,52 @@ async function andamio(p){
     };
     return { corona: mide('corona'), paloma: mide('paloma') };
   });
+  /* Y LAS CATORCE TIENEN QUE CABER EN SU RECUADRO, que es un fallo que no se
+     ve mirando el código y sí mirando el dibujo. La paloma nueva salía a
+     y=24.63 con el recuadro en 0 0 24 24: se recortaba por abajo y la cola se
+     veía aplastada, más cuanto más grande la piedra. Lo levantó Codex.
+
+     SE MIDE LA TINTA, no la caja geométrica: getBoundingClientRect no cuenta el
+     grosor del trazo, y con un trazo de 1.05 eso es medio punto por cada lado
+     —justo el orden de lo que se salía—. Se le suma medio grosor a mano.
+     Y se mide con getBoundingClientRect y no con getBBox porque las figuras
+     llevan transform dentro: getBBox devuelve el recuadro en el espacio de la
+     propia pieza, no en el del dibujo, y con eso la primera medición dijo que
+     la paloma se salía por arriba cuando lo que se salía era por abajo. */
+  const encaje = await p.evaluate(() => {
+    const m = document.getElementById('piedraMando');
+    const fuera = {};
+    for (const bt of m.querySelectorAll('[data-piedra-forma]')){
+      const svg = bt.querySelector('svg');
+      const rs = svg.getBoundingClientRect();
+      if (!rs.width) continue;
+      const aU = v => v / rs.width * 24;
+      let c = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
+      for (const t of svg.querySelectorAll('path, circle, ellipse, rect')){
+        const r = t.getBoundingClientRect();
+        const cs = getComputedStyle(t);
+        const g = (cs.stroke && cs.stroke !== 'none')
+                    ? aU(parseFloat(cs.strokeWidth) / 24 * rs.width) / 2 : 0;
+        c.x1 = Math.min(c.x1, aU(r.left - rs.left) - g);
+        c.y1 = Math.min(c.y1, aU(r.top - rs.top) - g);
+        c.x2 = Math.max(c.x2, aU(r.right - rs.left) + g);
+        c.y2 = Math.max(c.y2, aU(r.bottom - rs.top) + g);
+      }
+      /* Cuánto se sale por el lado que peor va. Negativo quiere decir que le
+         sobra sitio. */
+      fuera[bt.dataset.piedraForma] =
+        +Math.max(-c.x1, -c.y1, c.x2 - 24, c.y2 - 24).toFixed(2);
+    }
+    return fuera;
+  });
+  const seSalen = Object.entries(encaje).filter(([, v]) => v > .05);
+  di('el que peor encaja', Object.entries(encaje).sort((a, b) => b[1] - a[1])
+       .slice(0, 3).map(([n, v]) => n + ' ' + v).join(' · '));
+  vale('LAS CATORCE FIGURAS CABEN EN SU RECUADRO, con el trazo incluido',
+       seSalen.length === 0,
+       seSalen.length ? seSalen.map(([n, v]) => n + ' se sale ' + v).join(', ')
+                      : Object.keys(encaje).length + ' figuras, ninguna recortada');
+
   di('los dibujos', dibujos.corona && dibujos.corona.piezas.map(x => Math.round(x.centro*100)/100));
   vale('LA CORONA ES SIMÉTRICA: sus dos piezas centradas',
        !!dibujos.corona && dibujos.corona.piezas.length >= 2 &&

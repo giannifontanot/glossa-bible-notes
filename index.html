@@ -3535,7 +3535,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 14:08';
+window.GLOSS_BUILD = '06-SEP-26 14:14';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -12435,7 +12435,13 @@ const PIEDRA_SVG = {
      el ala encima, y la rama saliendo del pico. Probada en el banco de dibujo a
      24, 40 y 120 px, que es donde se ve si a 24 sigue siendo una paloma. */
   paloma:
-    '<g transform="translate(.4,1.1)">' +
+    /* EL ENCAJE EN EL RECUADRO ESTÁ MEDIDO, no puesto a ojo. Con
+       translate(.4,1.1) a secas la cola salía a y=24.63 y la hoja a y=-0.16:
+       el recuadro es 0 0 24 24, así que las dos se recortaban y la cola se veía
+       aplastada a los tamaños grandes. Se mide la caja de la TINTA —el
+       recuadro de cada trazo MÁS medio grosor, que getBoundingClientRect no
+       cuenta— y de ahí salen la escala y el desplazamiento. Lo levantó Codex. */
+    '<g transform="translate(2.38,1.64) scale(.93)">' +
       '<g fill="#fff" stroke="currentColor" stroke-width="1.05"' +
          ' stroke-linejoin="round" stroke-linecap="round">' +
         /* cuerpo, cuello y cola de una sola tirada */
