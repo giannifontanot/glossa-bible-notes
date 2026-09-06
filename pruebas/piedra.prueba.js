@@ -1706,6 +1706,49 @@ async function andamio(p){
        tapado.panel.top >= 0 && tapado.panel.bottom <= tapado.suelo,
        tapado.panel);
   vale('  y el panel se recortó al sitio que hay', !!tapado.tope, tapado.tope);
+
+  /* Y AHORA SE MUEVE EL PANEL CON EL TECLADO PUESTO, que es lo que lo rompía.
+
+     Abrir el nombre de otra fila recoloca el panel —colocarPiedraMenu—, y el
+     desplazamiento del teclado estaba calculado contra el sitio anterior.
+     Peor: el sitio salía distinto según el recorte del teclado estuviera
+     puesto o no en ese instante (medido: 216 px sin él, 424 con él), así que
+     la cuenta de subir y el sitio hablaban de dos paneles distintos y el
+     resultado era el panel 200 px POR ENCIMA de lo que se ve, con la cabecera
+     fuera de la pantalla.
+
+     Esto no se veía en el contenedor de este repositorio y sí en la máquina de
+     Codex: es una carrera, y la ganaba uno u otro según la máquina. Por eso lo
+     que se vigila aquí no es un número sino la invariante —el panel dentro de
+     lo que se ve—, repitiéndolo sobre varias filas. */
+  const movido = await pt.evaluate(async () => {
+    const vv = window.visualViewport;
+    const el = document.getElementById('piedraMenu');
+    const suelo = vv.offsetTop + vv.height;
+    const filas = () => [...document.querySelectorAll('#piedraMenu [data-piedra-ir]')];
+    const fuera = [];
+    for (const i of [0, 18, 1, 17]){
+      const f = filas()[i]; if (!f) continue;
+      f.scrollIntoView({ block:'nearest' }); await window.__pausa(150);
+      const r = f.getBoundingClientRect();
+      f.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+        clientX: r.left + r.width/2, clientY: r.top + r.height/2 }));
+      await window.__pausa(420);
+      vv.dispatchEvent(new Event('resize'));
+      await window.__pausa(900);
+      const rp = el.getBoundingClientRect();
+      /* Solo se juzga por arriba: por abajo el panel puede asomar detrás del
+         teclado mientras el campo se vea, que es lo que el programa promete. */
+      if (rp.top < 0) fuera.push({ fila:i, top:Math.round(rp.top),
+                                   sube: el.style.getPropertyValue('--sube') });
+    }
+    return { fuera, suelo: Math.round(suelo),
+             top: Math.round(el.getBoundingClientRect().top) };
+  });
+  di('moviendo el panel con el teclado', JSON.stringify(movido));
+  vale('MOVER EL PANEL CON EL TECLADO NO LO SACA DE LA PANTALLA',
+       movido.fuera.length === 0,
+       movido.fuera.length ? movido.fuera : 'las cuatro filas dentro');
   await cerrarParcial(tecl, 'el teclado');
 
   /* ================================================================

@@ -3526,7 +3526,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 09:47';
+window.GLOSS_BUILD = '06-SEP-26 10:05';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -13970,9 +13970,15 @@ function vigilarTecladoPanel(el, buscarFila){
   };
   vv.addEventListener('resize', mirar);
   vv.addEventListener('scroll', mirar);
+  /* Y SE DEJA LLAMAR DESDE FUERA. Quien mueve el panel —colocarPiedraMenu,
+     colocarSepMenu— tiene que poder decir «lo he movido, vuelve a echar la
+     cuenta»: el desplazamiento se calcula contra el sitio, y un sitio nuevo
+     con la cuenta vieja es el panel fuera de la pantalla. */
+  el._mirarTeclado = mirar;
   el._teclado = () => {
     vv.removeEventListener('resize', mirar);
     vv.removeEventListener('scroll', mirar);
+    el._mirarTeclado = null;
     el.style.removeProperty('--sube');
     el.style.removeProperty('max-height');
     el._rodando = 0;
@@ -14075,7 +14081,23 @@ function colocarPiedraMenu(){
   const el = $('piedraMenu');
   if (el.style.display === 'none') return;
   const st = stage.getBoundingClientRect();
-  const w = el.offsetWidth, h = el.offsetHeight;
+  /* EL ALTO QUE VA A TENER, NO EL QUE TIENE AHORA MISMO, y ésta es la mitad de
+     un fallo que solo salía en la máquina de otro.
+
+     Con el teclado puesto, el vigilante recorta el panel a lo que se ve y lo
+     suelta otra vez para medir, en su propio ritmo. Colocarlo midiendo el alto
+     de este instante daba DOS sitios distintos para el mismo panel —medido en
+     el teléfono de 412x915 con veinte piedras: 216 px sin el recorte y 424 con
+     él—, y el desplazamiento del teclado, que se calcula contra el sitio, se
+     quedaba mirando al otro. Calculado contra 424 y aplicado sobre 216, el
+     panel acababa 208 px POR ENCIMA de lo que se ve: la cabecera fuera de la
+     pantalla y el lector sin saber en qué panel está.
+
+     Midiendo el alto ya recortado, el sitio es el mismo lo esté o no en este
+     instante, y las dos cuentas hablan del mismo panel. */
+  const vvp = window.visualViewport;
+  const cabeAlto = vvp ? vvp.height - 16 : Infinity;
+  const w = el.offsetWidth, h = Math.min(el.offsetHeight, cabeAlto);
   let izq = st.width - w - 8, arr = 44;
   const r = piedraMenuAncla;
   if (r){
@@ -14087,6 +14109,11 @@ function colocarPiedraMenu(){
   if (arr + h > st.height - 8) arr = Math.max(8, st.height - h - 8);
   el.style.left = Math.round(izq) + 'px';
   el.style.top = Math.round(Math.max(8, arr)) + 'px';
+  /* Y SI HAY TECLADO, SE RECALCULA LO QUE SUBE. Es la otra mitad: mover el
+     panel invalida un --sube que se calculó contra el sitio anterior, y nadie
+     se lo estaba diciendo. El vigilante no llama aquí, así que no hay vuelta
+     atrás posible entre los dos. */
+  if (el._mirarTeclado) el._mirarTeclado();
 }
 $('piedraMenu').addEventListener('click', ev => {
   /* Dentro del campo no hay nada que hacer aquí: poner el cursor a media
@@ -14352,7 +14379,24 @@ function colocarSepMenu(){
      señalar a lo que no lo abrió. */
   const de = sepMenuAncla || document.querySelector('.separador');
   const st = stage.getBoundingClientRect();
-  const w = el.offsetWidth, h = el.offsetHeight;
+  /* EL ALTO QUE VA A TENER, NO EL QUE TIENE AHORA MISMO, y ésta es la mitad de
+     un fallo que solo salía en la máquina de otro.
+
+     Con el teclado puesto, el vigilante recorta el panel a lo que se ve y lo
+     suelta otra vez para medir, en su propio ritmo. Colocarlo midiendo el alto
+     de este instante daba DOS sitios distintos para el mismo panel —medido en
+     el teléfono de 412x915 con veinte piedras: 216 px sin el recorte y 424 con
+     él—, y el desplazamiento del teclado, que se calcula contra el sitio, se
+     quedaba mirando al otro. Calculado contra 424 y aplicado sobre 216, el
+     panel acababa 208 px POR ENCIMA de lo que se ve: la cabecera fuera de la
+     pantalla y el lector sin saber en qué panel está.
+
+     (Es el mismo panel de al lado en otra caja: mismo vigilante de teclado,
+     mismo fallo.) Midiendo el alto ya recortado, el sitio es el mismo lo esté o no en este
+     instante, y las dos cuentas hablan del mismo panel. */
+  const vvp = window.visualViewport;
+  const cabeAlto = vvp ? vvp.height - 16 : Infinity;
+  const w = el.offsetWidth, h = Math.min(el.offsetHeight, cabeAlto);
   let izq = st.width - w - 8, arr = 44;
   if (de){
     const r = typeof de.getBoundingClientRect === 'function' ? de.getBoundingClientRect() : de;
@@ -14368,6 +14412,11 @@ function colocarSepMenu(){
   arr = Math.max(8, arr);
   el.style.left = Math.round(izq) + 'px';
   el.style.top = Math.round(arr) + 'px';
+  /* Y SI HAY TECLADO, SE RECALCULA LO QUE SUBE. Es la otra mitad: mover el
+     panel invalida un --sube que se calculó contra el sitio anterior, y nadie
+     se lo estaba diciendo. El vigilante no llama aquí, así que no hay vuelta
+     atrás posible entre los dos. */
+  if (el._mirarTeclado) el._mirarTeclado();
 }
 /* La cinta y su equis. Van en la escena porque la cinta se rehace en cada
    repintado: un oyente puesto en el elemento se iría con él. */
