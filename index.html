@@ -82,7 +82,15 @@
      pantalla: metido en el flujo lo empujaría hacia arriba. */
   #portadaPie{ position:absolute; left:0; right:0; bottom:max(22px, 5vh);
                display:grid; grid-template-columns:repeat(3, 1fr);
-               align-items:center; padding:0 12px; z-index:3; }
+               /* POR ENCIMA DE LA CAPA DE LAS PIEDRAS, y esto es de vida o
+                  muerte desde que el pie es la única salida. La capa cubre la
+                  portada entera y mientras se decora recibe toques; con el pie
+                  por debajo, la capa se comía los tres botones —«foto»,
+                  «hold» y el «Listo» con el que se deja de decorar—, así que
+                  se entraba a poner piedras y no había manera de salir.
+                  Lo cazó Codex, y no lo vio nadie antes porque la salida
+                  estaba dentro del panel que se ha quitado. */
+               align-items:center; padding:0 12px; z-index:5; }
   #portadaPie > *{ justify-self:center; }
   .pt-btn{ font:600 13px/1 var(--ui); letter-spacing:.06em; cursor:pointer;
            color:#e8dcc0; background:rgba(255,255,255,.09);
@@ -3527,7 +3535,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 13:18';
+window.GLOSS_BUILD = '06-SEP-26 13:21';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';

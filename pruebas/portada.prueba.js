@@ -367,8 +367,34 @@ async function tocarSinClic(pagina, x, y, pid = 21){
        flechas.pintado + ' contra ' + (flechas.tras.x * 100).toFixed(3) + '%');
   await p.click('#piedraMando [data-piedra-acc="quitar"]'); await p.waitForTimeout(400);
 
+  /* DECORANDO, EL PIE TIENE QUE SEGUIR SIENDO DEL PIE. La capa donde caen las
+     piedras cubre la portada entera y mientras se decora recibe toques; iba
+     por ENCIMA del pie, así que se comía los tres botones —«foto», «hold» y el
+     «Listo» con el que se deja de decorar—: se entraba a poner piedras y no
+     había manera de salir. No lo vio nadie antes porque la salida estaba
+     dentro del panel que este cambio ha quitado. */
+  const pie = await p.evaluate(() => {
+    const quien = id => { const e = document.getElementById(id);
+      const r = e.getBoundingClientRect();
+      const t = document.elementFromPoint(Math.round(r.left + r.width/2),
+                                          Math.round(r.top + r.height/2));
+      return t ? (t.id || String(t.className)) : 'nada'; };
+    return { decorando: document.getElementById('portada').classList.contains('decorando'),
+             foto: quien('btnPortadaFoto'), hold: quien('btnPortadaHold'),
+             piedras: quien('btnPortadaPiedras') };
+  });
+  di('el pie mientras se decora', JSON.stringify(pie));
+  vale('DECORANDO, LOS TRES BOTONES DEL PIE RECIBEN EL TOQUE',
+       pie.decorando === true && pie.foto === 'btnPortadaFoto' &&
+       pie.hold === 'btnPortadaHold' && pie.piedras === 'btnPortadaPiedras', pie);
+
   /* Se apaga el modo de decorar con el mismo botón que lo encendió. */
   await p.click('#btnPortadaPiedras'); await p.waitForTimeout(300);
+  const apagado = await p.evaluate(() => ({
+    modo: document.getElementById('portada').classList.contains('decorando'),
+    dice: document.getElementById('btnPortadaPiedras').textContent.trim() }));
+  vale('  y «Listo» apaga el modo', apagado.modo === false && apagado.dice === 'Piedras',
+       apagado);
 
   titulo('CONTINUE ABRE LA BIBLIA');
   await p.click('#btnPortadaHold');
