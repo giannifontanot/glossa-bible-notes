@@ -588,10 +588,17 @@
      Cuando el gesto se aprende, se apaga el interruptor y no queda nada
      encima del papel.
 
-     LA PUNTA TOCA EL FILO Y NO LO PISA: left:0 con la punta dibujada en x=3
-     del recuadro de 24 la deja justo en el borde de la escena, que es donde
-     empieza el filo. Un letrero que se solapa con lo que señala deja de
-     señalar.
+     SOLO EL GALÓN, SIN ASTA. Llevaban el palo horizontal —la flecha entera—
+     y sobraba: lo que se señala es el filo, que está a un lado, y el palo
+     tiraba de la vista hacia el centro de la hoja, justo al revés. Un « y un
+     » dicen lo mismo con la mitad de tinta encima del texto que se lee.
+
+     LA PUNTA TOCA EL FILO Y NO LO PISA. Quitado el asta, la caja se estrechó a
+     la mitad —17 px por 34, y 20 por 40 con el dedo— y el recuadro pasó a ser
+     de 12x24, que es lo que mide el galón. Así el dibujo LLENA su caja: con el
+     recuadro viejo de 24 el galón se quedaba en el tercio izquierdo y la punta
+     caía cuatro píxeles adentro, o sea despegada de lo que señala. Un letrero
+     que no toca lo que señala, o que se solapa con ello, deja de señalar.
 
      Y NO RECIBEN NI UN TOQUE: pointer-events:none. Es la línea que hace que
      esto funcione. Sin ella la flecha se comería el toque del filo —está
@@ -602,7 +609,7 @@
      A media altura porque es donde cae el pulgar sin mover la mano, y porque
      arriba está el titulillo y abajo el rótulo de la versión. */
   .flecha-hoja{ position:absolute; top:50%; z-index:4;
-                width:34px; height:34px; margin-top:-17px;
+                width:17px; height:34px; margin-top:-17px;
                 display:grid; place-items:center;
                 pointer-events:none; color:#e01b1b;
                 transition:opacity .28s ease; }
@@ -625,7 +632,7 @@
   /* Con el dedo, más grande: es un letrero que se mira de lejos, no un blanco
      que se toca. */
   @media (pointer:coarse){
-    .flecha-hoja{ width:40px; height:40px; margin-top:-20px; }
+    .flecha-hoja{ width:20px; height:40px; margin-top:-20px; }
   }
   @media (prefers-reduced-motion: reduce){
     .flecha-hoja{ transition:none; }
@@ -3378,11 +3385,11 @@
        dice nada —él tiene las teclas de flecha, que sí funcionan—.
        Ver .flecha-hoja. -->
   <div class="flecha-hoja flecha-l" id="flechaIzq" aria-hidden="true" hidden>
-    <svg viewBox="0 0 24 24"><path d="M20 12H4M11 4 3 12l8 8"
+    <svg viewBox="0 0 12 24"><path d="M9.8 2.2 2.2 12l7.6 9.8"
       fill="none" stroke="currentColor" stroke-width="3.4"
       stroke-linecap="round" stroke-linejoin="round"/></svg></div>
   <div class="flecha-hoja flecha-r" id="flechaDer" aria-hidden="true" hidden>
-    <svg viewBox="0 0 24 24"><path d="M4 12h16M13 4l8 8-8 8"
+    <svg viewBox="0 0 12 24"><path d="M2.2 2.2 9.8 12l-7.6 9.8"
       fill="none" stroke="currentColor" stroke-width="3.4"
       stroke-linecap="round" stroke-linejoin="round"/></svg></div>
   <div id="menu"></div>
@@ -3512,7 +3519,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 07:13';
+window.GLOSS_BUILD = '06-SEP-26 08:34';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';

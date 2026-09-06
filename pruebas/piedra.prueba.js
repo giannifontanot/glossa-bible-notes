@@ -629,6 +629,20 @@ async function andamio(p){
 
   const deshacer = await p.evaluate(async () => {
     const g = () => window.__guardadas()[0];
+    /* SE VUELVE A ABRIR EL MANDO ANTES DE MEDIR, y esto costó una corrida.
+       La instantánea que cancelar deshace se toma UNA VEZ, cuando el mando se
+       abre de verdad —no en cada repintado, o cancelar solo desharía el último
+       toque—. Los bloques de arriba llevaban el mando abierto desde hacía
+       rato y le habían cambiado figura y color por el camino, así que el
+       «antes» que apuntaba esta prueba era de mitad de la sesión y la
+       instantánea del programa era del principio. Cancelar hacía lo suyo y la
+       prueba cantaba fallo. Abriéndolo aquí, las dos referencias son la misma
+       y esto mide lo que dice medir: que cancelar deshaga ESTA edición. */
+    const e0 = document.querySelector('.piedra-sitio');
+    const r0 = e0.getBoundingClientRect();
+    e0.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+      clientX: r0.left + r0.width/2, clientY: r0.top + r0.height/2 }));
+    await window.__pausa(600);
     const antes = { forma:g().forma, color:g().color, tam:g().tam };
     await window.__toque('#piedraMando [data-piedra-forma="ancla"]'); await window.__pausa(300);
     await window.__toque('#piedraMando [data-piedra-color="carmin"]'); await window.__pausa(300);
@@ -693,6 +707,15 @@ async function andamio(p){
      piedra es subir y bajar mirando la hoja, no el botón. */
   titulo('el mando: la salida arriba y los de tamaño, grandes y centrados');
   const remate = await p.evaluate(async () => {
+    /* Y AQUÍ TAMBIÉN SE ABRE. Antes este bloque heredaba el mando abierto de
+       los de arriba; desde que OK y cancelar lo CIERRAN, heredaba uno cerrado
+       y medía ceros —el aspa a 0x0, los de tamaño a 0x0— sin que nada del
+       programa estuviera mal. Cada bloque abre lo que va a medir. */
+    const e0 = document.querySelector('.piedra-sitio');
+    const r0 = e0.getBoundingClientRect();
+    e0.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+      clientX: r0.left + r0.width/2, clientY: r0.top + r0.height/2 }));
+    await window.__pausa(600);
     const antes = window.__elMando();
     await window.__toque('#piedraMando [data-sp-cerrar]');
     await window.__pausa(500);
@@ -777,8 +800,23 @@ async function andamio(p){
   /* El nombre se lee de lapiz.guardado y no escrito a mano: ésta ya se
      descolgó una vez, cuando el bloque de arriba cambió el nombre y aquí se
      quedó el viejo. Leyéndolo de donde se puso, no puede volver a pasar. */
-  const voz = await p.evaluate(() =>
-    document.querySelector('.piedra').getAttribute('aria-label'));
+  /* Y LA FIGURA Y EL COLOR SE PONEN AQUÍ, no se heredan. Escritos a mano
+     —«barca», «carmín»— se descolgaron en cuanto los bloques de OK y cancelar
+     dejaron la piedra en otra figura y en el color de fábrica; y el color de
+     fábrica ni siquiera sale en el rótulo, porque piedraVoz solo lo dice
+     cuando NO es el de siempre. Poniéndolos aquí, esto mide el rótulo y no el
+     rastro que dejó el bloque anterior. */
+  const voz = await p.evaluate(async () => {
+    const e0 = document.querySelector('.piedra-sitio');
+    const r0 = e0.getBoundingClientRect();
+    e0.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+      clientX: r0.left + r0.width/2, clientY: r0.top + r0.height/2 }));
+    await window.__pausa(600);
+    await window.__toque('#piedraMando [data-piedra-forma="barca"]'); await window.__pausa(300);
+    await window.__toque('#piedraMando [data-piedra-color="carmin"]'); await window.__pausa(300);
+    await window.__toque('#piedraMando [data-piedra-acc="ok"]'); await window.__pausa(600);
+    return document.querySelector('.piedra').getAttribute('aria-label');
+  });
   di('el rótulo hablado', voz);
   vale('el rótulo hablado dice figura, color y nombre',
        /barca/.test(voz) && /carm/.test(voz) &&

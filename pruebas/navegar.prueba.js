@@ -698,16 +698,32 @@ const ATERRIZA = 7000;
     const i = document.getElementById('flechaIzq'), d = document.getElementById('flechaDer');
     const ri = i.getBoundingClientRect(), rd = d.getBoundingClientRect();
     const ci = getComputedStyle(i);
-    /* LA PUNTA SE MIDE EN EL DIBUJO Y NO EN LA CAJA: el <svg> llena el <div>,
-       así que sus filos son los del letrero. */
-    const si = i.querySelector('svg').getBoundingClientRect();
-    const sd = d.querySelector('svg').getBoundingClientRect();
+    /* LA PUNTA SE MIDE EN LA TINTA, no en la caja. Esto medía el <svg>, que
+       llena el <div> y por tanto tiene sus mismos filos: la aserción salía
+       verde dijera lo que dijera el dibujo de dentro, y con el galón metido en
+       el tercio izquierdo del recuadro la punta habría estado a cuatro píxeles
+       del filo sin que nadie se enterara.
+       Y NO BASTA CON EL RECUADRO DEL <path>: getBoundingClientRect devuelve la
+       caja GEOMÉTRICA del trazado, sin el grosor del trazo. Con 3.4 de grosor y
+       remates redondos, la tinta sobresale medio grosor por cada lado —casi
+       tres píxeles en pantalla—, que en esta medida es la diferencia entre
+       tocar el filo y no tocarlo. Se suma. */
+    const tinta = e => {
+      const path = e.querySelector('path');
+      const r = path.getBoundingClientRect();
+      const bb = path.getBBox();
+      /* de unidades del recuadro a píxeles de pantalla */
+      const escala = bb.width ? r.width / bb.width : 1;
+      const medio = parseFloat(getComputedStyle(path).strokeWidth) * escala / 2;
+      return { left: r.left - medio, right: r.right + medio };
+    };
+    const si = tinta(i), sd = tinta(d);
     /* Y QUÉ HAY DEBAJO DE LA PUNTA. Tres píxeles adentro del filo del dibujo,
        a media altura: ahí tiene que responder el filo de pasar hoja. */
     const bajoIzq = document.elementFromPoint(Math.round(si.left + 3),
-                                              Math.round(si.top + si.height/2));
+                                              Math.round(ri.top + ri.height/2));
     const bajoDer = document.elementFromPoint(Math.round(sd.right - 3),
-                                              Math.round(sd.top + sd.height/2));
+                                              Math.round(rd.top + rd.height/2));
     return { nacen, rotulo, blanco,
              encendidas: { izq: seVe('flechaIzq'), der: seVe('flechaDer') },
              mitad: Math.round(st.top + st.height/2),
@@ -717,6 +733,10 @@ const ATERRIZA = 7000;
              /* Pegadas al filo de la escena por fuera y sin salirse. */
              puntaIzq: Math.round(si.left - st.left),
              puntaDer: Math.round(st.right - sd.right),
+             /* SOLO EL GALÓN: un trazado de un solo trozo. El asta era un
+                segundo «M» dentro del mismo path, así que contarlos dice si
+                volvió a colarse el palo horizontal. */
+             trozos: (i.querySelector('path').getAttribute('d').match(/M/gi) || []).length,
              /* Un letrero, no un mando. */
              etiqueta: i.tagName, ojos: ci.pointerEvents, color: ci.color,
              fondo: ci.backgroundColor, borde: parseFloat(ci.borderTopWidth),
@@ -738,9 +758,11 @@ const ATERRIZA = 7000;
        Math.abs(flechas.mitad - flechas.centroIzq) <= 3,
        flechas.mitad + ' contra ' + flechas.centroIzq);
   vale('LA PUNTA TOCA EL FILO DE LA ESCENA',
-       flechas.puntaIzq >= 0 && flechas.puntaIzq <= 4 &&
-       flechas.puntaDer >= 0 && flechas.puntaDer <= 4,
+       flechas.puntaIzq >= 0 && flechas.puntaIzq <= 2 &&
+       flechas.puntaDer >= 0 && flechas.puntaDer <= 2,
        flechas.puntaIzq + ' px por la izquierda, ' + flechas.puntaDer + ' por la derecha');
+  vale('SOLO EL GALÓN, SIN ASTA', flechas.trozos === 1,
+       flechas.trozos + ' trozo' + (flechas.trozos === 1 ? '' : 's') + ' en el trazado');
   vale('SON UN DIBUJO, NO UN BOTÓN', flechas.etiqueta === 'DIV', flechas.etiqueta);
   vale('  y no reciben ni un toque', flechas.ojos === 'none', flechas.ojos);
   /* EL ROJO SE COMPRUEBA COMO ROJO Y NO COMO UN NÚMERO: el tono se retoca sin
