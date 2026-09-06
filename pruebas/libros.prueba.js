@@ -201,59 +201,16 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
   vale('y al levantar el dedo no queda ninguno grande',
        crecer.enReposo === false, crecer.enReposo);
 
-  /* ================================================================
-     Y ARRASTRAR NO SELECCIONA LOS NOMBRES.
-
-     Es la otra mitad de la lupa y sin ella la lupa no sirve: arrastrar el dedo
-     por encima de texto es, para el navegador, SELECCIONARLO. Al recorrer la
-     lista se iban quedando media docena de nombres en azul de selección encima
-     de lo que se intenta leer, y la función entera quedaba inservible por un
-     comportamiento que nadie pidió.
-
-     SE PRUEBA CON RATÓN Y NO CON DEDO, a propósito y en contra de la costumbre
-     de la casa: la selección por arrastre es cosa del ratón —el dedo la hace
-     con un mantener pulsado, que es otro gesto— así que el camino que hay que
-     recorrer para reproducir el fallo es mousedown, mousemove, mouseup. Y va
-     TORCIDO igual: una línea recta tampoco es una mano.
-
-     Se miran las dos cosas: la propiedad puesta y, sobre todo, que después de
-     arrastrar de verdad no quede nada seleccionado. La primera sola pasaría
-     con la regla puesta en un sitio que no cubre el hueco entre botones, que
-     es justo por donde la selección se estira. */
-  titulo('arrastrar por los libros no selecciona sus nombres');
-  const sinSeleccion = await pl.evaluate(async () => {
-    const pausa = ms => new Promise(z => setTimeout(z, ms));
-    const libros = [...document.querySelectorAll('#canto .rejilla-libros .tabo')];
-    if (libros.length < 8) return { pocos: libros.length };
-    getSelection().removeAllRanges();
-    const cs = getComputedStyle(libros[2]);
-    const a = libros[2].getBoundingClientRect(), b = libros[6].getBoundingClientRect();
-    const raton = (t, x, y) => {
-      const el = document.elementFromPoint(x, y);
-      if (el) el.dispatchEvent(new MouseEvent(t, { bubbles:true, cancelable:true,
-                                                  clientX:x, clientY:y, buttons:1 }));
-    };
-    raton('mousedown', Math.round(a.left + a.width/2), Math.round(a.top + a.height/2));
-    for (let i = 1; i <= 6; i++){
-      raton('mousemove',
-            Math.round(a.left + (b.left - a.left) * i/6) + (i % 2 ? 1 : -1),
-            Math.round(a.top  + (b.top  - a.top)  * i/6) + (i % 2 ? -1 : 1));
-      await pausa(30);
-    }
-    raton('mouseup', Math.round(b.left + b.width/2), Math.round(b.top + b.height/2));
-    await pausa(200);
-    return { userSelect: cs.userSelect || cs.webkitUserSelect,
-             seleccionado: String(getSelection()) };
-  });
-  di('tras arrastrar con el ratón', sinSeleccion);
-  vale('(la prueba es válida) hay libros que recorrer',
-       sinSeleccion.pocos === undefined,
-       sinSeleccion.pocos !== undefined ? sinSeleccion.pocos + ' libros' : 'los de siempre');
-  vale('el nombre no es seleccionable', sinSeleccion.userSelect === 'none',
-       sinSeleccion.userSelect);
-  vale('Y ARRASTRANDO NO QUEDA NADA SELECCIONADO',
-       sinSeleccion.seleccionado === '',
-       JSON.stringify(sinSeleccion.seleccionado));
+  /* AQUÍ ESTABA LA PRUEBA DE QUE ARRASTRAR POR LOS LIBROS NO SELECCIONABA SUS
+     NOMBRES, y se va con la regla que vigilaba: el dueño del repo pidió deshacer
+     el user-select:none de la rejilla porque en el aparato de verdad no
+     funcionaba bien. Una prueba que exige lo contrario de lo que se decidió no
+     es una red, es un obstáculo.
+     Si algún día se vuelve a atacar el subrayado azul —por otro camino, ver el
+     comentario de .rejilla-libros en index.html— la prueba que hace falta es la
+     de aquí abajo: arrastre de ratón TORCIDO y mirar getSelection() al final,
+     no la propiedad CSS, que puede estar puesta en un sitio que no cubra el
+     hueco entre botones. */
   await cerrarParcial(lup, 'la lupa');
 
   await cerrar(sesion);

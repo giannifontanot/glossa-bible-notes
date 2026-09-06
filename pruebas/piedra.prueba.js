@@ -459,9 +459,8 @@ async function andamio(p){
        el cuerpo en 11: a 24px no se ve, a tamaño grande el pie asomaba más por
        un lado. Se mide el dibujo pintado, no el texto del path: es lo que se
        ve, y sobrevive a que alguien reescriba las curvas.
-     · LA PALOMA, CON SU RAMA VERDE. Es la paloma de la PAZ, y lo que la
-       convierte en eso es la rama; el verde es el mismo de la hoja del racimo
-       —#4d6a35— y va escrito a pelo porque una hoja carmín no es una hoja. */
+     · LA PALOMA se comprueba aparte y más abajo, porque NO SE PUEDE MEDIR
+       AQUÍ. Ver el bloque que sigue a este. */
   const dibujos = await p.evaluate(() => {
     const m = document.getElementById('piedraMando');
     const mide = forma => {
@@ -473,30 +472,165 @@ async function andamio(p){
          descentrado, alguno de ellos se corre. */
       const piezas = [...svg.querySelectorAll('path, circle')].map(t => {
         const r = t.getBoundingClientRect();
+        const c = getComputedStyle(t);
         return { centro: (r.left + r.width/2) - (rb.left + rb.width/2),
-                 relleno: getComputedStyle(t).fill };
+                 relleno: c.fill, linea: c.stroke };
       });
       return { piezas, ancho: rb.width };
     };
-    return { corona: mide('corona'), paloma: mide('paloma') };
+    /* Solo la corona: en la parrilla las catorce van del mismo sepia fijo, así
+       que de aquí no se puede sacar nada sobre el color de la paloma. */
+    return { corona: mide('corona') };
   });
+  /* Y LAS CATORCE TIENEN QUE CABER EN SU RECUADRO, que es un fallo que no se
+     ve mirando el código y sí mirando el dibujo. La paloma nueva salía a
+     y=24.63 con el recuadro en 0 0 24 24: se recortaba por abajo y la cola se
+     veía aplastada, más cuanto más grande la piedra. Lo levantó Codex.
+
+     SE MIDE LA TINTA, no la caja geométrica: getBoundingClientRect no cuenta el
+     grosor del trazo, y con un trazo de 1.05 eso es medio punto por cada lado
+     —justo el orden de lo que se salía—. Se le suma medio grosor a mano.
+     Y se mide con getBoundingClientRect y no con getBBox porque las figuras
+     llevan transform dentro: getBBox devuelve el recuadro en el espacio de la
+     propia pieza, no en el del dibujo, y con eso la primera medición dijo que
+     la paloma se salía por arriba cuando lo que se salía era por abajo. */
+  const encaje = await p.evaluate(() => {
+    const m = document.getElementById('piedraMando');
+    const fuera = {};
+    for (const bt of m.querySelectorAll('[data-piedra-forma]')){
+      const svg = bt.querySelector('svg');
+      const rs = svg.getBoundingClientRect();
+      if (!rs.width) continue;
+      const aU = v => v / rs.width * 24;
+      let c = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
+      for (const t of svg.querySelectorAll('path, circle, ellipse, rect')){
+        const r = t.getBoundingClientRect();
+        const cs = getComputedStyle(t);
+        const g = (cs.stroke && cs.stroke !== 'none')
+                    ? aU(parseFloat(cs.strokeWidth) / 24 * rs.width) / 2 : 0;
+        c.x1 = Math.min(c.x1, aU(r.left - rs.left) - g);
+        c.y1 = Math.min(c.y1, aU(r.top - rs.top) - g);
+        c.x2 = Math.max(c.x2, aU(r.right - rs.left) + g);
+        c.y2 = Math.max(c.y2, aU(r.bottom - rs.top) + g);
+      }
+      /* Cuánto se sale por el lado que peor va. Negativo quiere decir que le
+         sobra sitio. */
+      fuera[bt.dataset.piedraForma] =
+        +Math.max(-c.x1, -c.y1, c.x2 - 24, c.y2 - 24).toFixed(2);
+    }
+    return fuera;
+  });
+  const seSalen = Object.entries(encaje).filter(([, v]) => v > .05);
+  di('el que peor encaja', Object.entries(encaje).sort((a, b) => b[1] - a[1])
+       .slice(0, 3).map(([n, v]) => n + ' ' + v).join(' · '));
+  vale('LAS CATORCE FIGURAS CABEN EN SU RECUADRO, con el trazo incluido',
+       seSalen.length === 0,
+       seSalen.length ? seSalen.map(([n, v]) => n + ' se sale ' + v).join(', ')
+                      : Object.keys(encaje).length + ' figuras, ninguna recortada');
+
   di('los dibujos', dibujos.corona && dibujos.corona.piezas.map(x => Math.round(x.centro*100)/100));
   vale('LA CORONA ES SIMÉTRICA: sus dos piezas centradas',
        !!dibujos.corona && dibujos.corona.piezas.length >= 2 &&
        dibujos.corona.piezas.every(x => Math.abs(x.centro) <= dibujos.corona.ancho * .02),
        dibujos.corona && dibujos.corona.piezas.map(x => Math.round(x.centro*10)/10).join(', '));
-  /* El verde se busca como VERDE y no como un número: el tono se puede
-     retocar; lo que no puede pasar es que la rama se pinte del color de la
-     piedra, que es de lo que se trata. */
-  const esVerde = c => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c || '');
-    return !!m && +m[2] > +m[1] && +m[2] > +m[3]; };
-  const verdes = (dibujos.paloma ? dibujos.paloma.piezas : []).filter(x => esVerde(x.relleno));
-  di('las piezas verdes de la paloma', verdes.length);
-  vale('LA PALOMA LLEVA SU RAMA DE OLIVO, y va verde',
-       verdes.length >= 2, verdes.length + ' piezas verdes');
-  vale('  y el ave no: ésa toma el color de la piedra',
-       !!dibujos.paloma && dibujos.paloma.piezas.length - verdes.length >= 3,
-       (dibujos.paloma ? dibujos.paloma.piezas.length : 0) + ' piezas en total');
+  /* ----------------------------------------------------------------
+     LA PALOMA, BLANCA Y CON LA RAMA DEL COLOR ELEGIDO.
+
+     Es la paloma de la PAZ, y lo que la convierte en eso son las dos cosas:
+     que sea blanca y que lleve la rama. Es la única de las catorce que no se
+     llena del color elegido —una paloma de la paz marrón no es una paloma de
+     la paz— y el color no se pierde: SE LO LLEVA LA RAMA.
+
+     ESTUVO AL REVÉS, y esta prueba lo estuvo con ella: primero el color se fue
+     al PERFIL del ave y la rama iba verde fija. El dueño del repo lo corrigió
+     —la ramita es la que cambia de color— y la prueba se quedó pidiendo lo de
+     antes: contó «0 piezas verdes de 7» y llamó fallo a la aplicación haciendo
+     lo que se le había pedido.
+
+     Y NO SE MIDE EN LA PARRILLA DEL MANDO, que es donde se medía y es la otra
+     mitad de por qué aquello engañaba: las catorce figuras de la parrilla van
+     de un sepia fijo (#6d5a2c, ver .pm-forma), a propósito, porque allí se
+     elige la FIGURA y no el color. Con la rama en verde fijo el verde se veía
+     igual en la parrilla; con la rama en currentColor, allí sale sepia como
+     todo lo demás. La parrilla nunca supo de qué color va la piedra.
+
+     Se mide DONDE EL COLOR ENTRA: en la piedra pintada en la hoja, que es
+     donde piedraDibujo sustituye currentColor por la tinta —ya corregida para
+     el filtro, así que tampoco vale comparar con el hexadecimal de la paleta—.
+     Y se mide DOS VECES, con dos tintas distintas, que es la única manera de
+     separar lo que sigue al color de lo que no: se pide que lo que cambia sea
+     la rama, que lo que no cambia sea el ave, y que lo que cambia valga
+     exactamente lo que vale una figura corriente de esa misma tinta. */
+  const paloma = await p.evaluate(async () => {
+    const m = document.getElementById('piedraMando');
+    const puesto = sel => { const b = m.querySelector(sel + '.on') ||
+                                     m.querySelector(sel + '[aria-pressed="true"]');
+                            return b || null; };
+    const antesForma = puesto('[data-piedra-forma]');
+    const antesColor = puesto('[data-piedra-color]');
+    const previo = { forma: antesForma && antesForma.dataset.piedraForma,
+                     color: antesColor && antesColor.dataset.piedraColor };
+    /* La piedra pintada, no el botón: la del sitio si la hay, si no la suelta. */
+    const lee = () => {
+      const svg = document.querySelector('.piedra-sitio svg') ||
+                  document.querySelector('.piedra svg');
+      if (!svg) return null;
+      return [...svg.querySelectorAll('path, circle')].map(t => {
+        const c = getComputedStyle(t);
+        return { relleno: c.fill, linea: c.stroke };
+      });
+    };
+    /* Con __toque y no con .click(): aquí son botones y no gestos, pero la
+       casa manda eventos de puntero en todas partes y no hay razón para que
+       este bloque sea la excepción. */
+    const pon = async sel => { if (m.querySelector(sel)) await window.__toque(sel);
+                               await window.__pausa(350); };
+    await pon('[data-piedra-forma="paloma"]');
+    await pon('[data-piedra-color="indigo"]');
+    const conA = lee();
+    await pon('[data-piedra-color="carmin"]');
+    const conB = lee();
+    /* Y una figura CORRIENTE con la misma tinta, para saber qué número es de
+       verdad esa tinta en la hoja. Se pregunta, no se calcula. */
+    await pon('[data-piedra-forma="barca"]');
+    const llana = lee();
+    if (previo.forma) await pon('[data-piedra-forma="' + previo.forma + '"]');
+    if (previo.color) await pon('[data-piedra-color="' + previo.color + '"]');
+    return { conA, conB, llana, previo };
+  });
+  const pintaDe = x => x.relleno + '/' + x.linea;
+  const pA = paloma.conA || [], pB = paloma.conB || [];
+  di('la paloma con dos tintas', pA.map(pintaDe).join(' · ') + '   ‖   ' +
+                                 pB.map(pintaDe).join(' · '));
+  /* La tinta de la hoja: la que lleva la figura llana, que no tiene colores
+     propios que la enturbien. */
+  const tintaB = (paloma.llana || []).map(x => x.relleno)
+                   .find(c => c && c !== 'none' && !/255,\s*255,\s*255|230,\s*230,\s*230/.test(c));
+  di('la tinta de la hoja', tintaB);
+  const mismas = pA.length > 0 && pA.length === pB.length;
+  /* Se guardan los ÍNDICES y no las piezas: hace falta mirar la misma pieza en
+     las dos medidas, y dos piezas del mismo color son indistinguibles. */
+  const dedos = mismas ? pA.map((x, i) => i) : [];
+  const cambian = dedos.filter(i => pintaDe(pA[i]) !== pintaDe(pB[i]));
+  const quedan  = dedos.filter(i => pintaDe(pA[i]) === pintaDe(pB[i])).map(i => pA[i]);
+  vale('LA RAMA DE LA PALOMA LLEVA EL COLOR ELEGIDO',
+       cambian.length >= 2, cambian.length + ' piezas cambian de las ' + pA.length);
+  vale('  y son ellas las que llevan la tinta, con el número de la hoja',
+       !!tintaB && cambian.length >= 2 &&
+       cambian.every(i => pB[i].relleno === tintaB || pB[i].linea === tintaB),
+       'tinta ' + tintaB);
+  /* EL AVE NO CAMBIA: si el perfil volviera a seguir a la tinta, el ave se
+     teñiría entera y volvería la paloma marrón. El blanco se busca claro y no
+     en 255: la hoja lo corrige a 230 antes de que el filtro lo toque. */
+  const esClaro = c => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c || '');
+    return !!m && +m[1] >= 210 && +m[2] >= 210 && +m[3] >= 210; };
+  const cuerpo = quedan.filter(x => esClaro(x.relleno));
+  vale('  y el ave va BLANCA y NO cambia con el color',
+       cuerpo.length > 0, quedan.map(pintaDe).join(' · '));
+  vale('  con perfil propio, que si no no se ve sobre el papel crema',
+       cuerpo.length > 0 &&
+       cuerpo.every(x => x.linea && x.linea !== 'none' && x.linea !== tintaB),
+       cuerpo.map(x => x.linea).join(' · '));
   /* Y SIN CAMPO DE NOMBRE: se espera el false, no la ausencia de la línea. Si
      alguien devuelve el campo al mando, esto lo dice. Ver arriba. */
   vale('y SIN campo de nombre, que eso se hace en la lista',
@@ -744,17 +878,23 @@ async function andamio(p){
     return { antes, cerrado: !window.__elMando().visible, editando: window.__editando() };
   });
   /* EL ROJO DE LAS FLECHAS ES UN COLOR DE ESTA PALETA, y se comprueba aquí
-     porque aquí es donde la paleta está en pantalla. Se eligió «carmín vivo»
-     en vez del rojo a ojo que llevaban antes: un color suelto que no usa nadie
-     más es un color que se queda atrás en cuanto la paleta se retoca. Si un
-     día alguien cambia ese tono en PIEDRA_TINTAS, esto lo dice. */
+     porque aquí es donde la paleta está en pantalla. Lo que se vigila es que
+     salga DE LA PALETA: un rojo suelto puesto a ojo es un color que se queda
+     atrás en cuanto la paleta se retoca. Si un día alguien cambia ese tono en
+     PIEDRA_TINTAS, esto lo dice.
+
+     ERA «CARMÍN VIVO» Y AHORA ES «CARMÍN». Dos galones de rojo puro a los
+     lados del texto tiran de la vista más que el propio texto, y esto es un
+     letrero que se mira una vez; el dueño del repo pidió bajarlo. La prueba
+     seguía midiendo la muestra del vivo —rgb(216, 11, 11) contra la flecha en
+     rgb(155, 42, 42)— y llamaba fallo al cambio que se había pedido. */
   const rojo = await p.evaluate(async () => {
     const e0 = document.querySelector('.piedra-sitio');
     const r0 = e0.getBoundingClientRect();
     e0.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
       clientX: r0.left + r0.width/2, clientY: r0.top + r0.height/2 }));
     await window.__pausa(600);
-    const muestra = document.querySelector('#piedraMando [data-piedra-color="carmin-vivo"]');
+    const muestra = document.querySelector('#piedraMando [data-piedra-color="carmin"]');
     const salida = { hayMuestra: !!muestra,
                      paleta: muestra ? getComputedStyle(muestra).backgroundColor : null,
                      flecha: getComputedStyle(document.getElementById('flechaIzq')).color };
@@ -763,7 +903,7 @@ async function andamio(p){
     return salida;
   });
   di('el rojo del galón', JSON.stringify(rojo));
-  vale('LAS FLECHAS LLEVAN EL CARMÍN VIVO DE LA PALETA',
+  vale('LAS FLECHAS LLEVAN EL CARMÍN DE LA PALETA',
        rojo.hayMuestra === true && rojo.paleta === rojo.flecha,
        'paleta ' + rojo.paleta + '  ·  flecha ' + rojo.flecha);
 
