@@ -211,6 +211,36 @@ const LLAVE = 'glossa:portada:v1';
   vale('la foto vuelve', vuelta.foto === true, vuelta.foto);
   vale('y las piedras también', vuelta.piedras === 2, vuelta.piedras);
 
+  titulo('UN ADORNO ROTO NO SE LLEVA AL BUENO');
+  /* EL FALLO QUE ESTO VIGILA. Las dos mitades —piedras y foto— se leían bajo
+     el mismo try. Un null colado en la lista de piedras reventaba en p.forma,
+     el catch se comía el cargar entero, y con las piedras desaparecía también
+     la foto, que estaba intacta. Y como el programa seguía andando, el
+     siguiente guardado escribía la portada vacía encima: el adorno bueno se
+     perdía de verdad, no solo por esa sesión.
+     Se siembra un almacén con basura de la que sale de un guardado a medias
+     —un null, un número, una piedra sin nada— junto a una foto buena. */
+  await p.evaluate(k => localStorage.setItem(k, JSON.stringify({
+    piedras: [ null, { forma:'piedra', color:'carmin', tam:46, x:.3, y:.3 },
+               7, 'ni esto', {}, { forma:'paloma', color:'carmin', tam:60, x:.7, y:.6 } ],
+    /* un gif de un píxel: lo que importa es que pase el filtro de data:image/ */
+    foto: { src:'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==',
+            estilo:'polaroid', giro:9 }
+  })), LLAVE);
+  await p.reload();
+  await p.waitForTimeout(700);
+  const roto = await p.evaluate(() => ({
+    foto: !!document.querySelector('.pt-foto'),
+    polaroid: !!document.querySelector('.pt-foto.polaroid'),
+    piedras: document.querySelectorAll('.pt-piedra').length,
+    giro: (document.querySelector('.pt-marco') || {}).style
+            ? document.querySelector('.pt-marco').style.transform : '' }));
+  di('con el almacén sucio', JSON.stringify(roto));
+  vale('LA FOTO SOBREVIVE A UNAS PIEDRAS ROTAS', roto.foto === true, roto);
+  vale('  con su estilo y su giro', roto.polaroid === true && /rotate\(9deg\)/.test(roto.giro || ''), roto);
+  /* De las seis entradas solo dos son piedras; las otras cuatro se criban. */
+  vale('  y se quedan las piedras que sí valen', roto.piedras === 2, roto.piedras);
+
   fs.rmSync(carpeta, { recursive:true, force:true });
   await cerrar(sesion);
 })();

@@ -106,9 +106,14 @@
      elemento que lleva la sombra, la sombra gira con él y deja de venir de
      arriba, que es de donde viene la luz en todo este programa. */
   .pt-marco{ transition:transform .18s cubic-bezier(.2,.85,.3,1); }
-  /* NORMAL: cuadrada, opaca, y con la MISMA sombra que una piedra con sombra
-     —5px 5px 10px al 50%—. Es lo pedido, y de paso las dos cosas que se posan
-     sobre la portada se leen como la misma familia. */
+  /* NORMAL: sin marco, esquinas a escuadra, opaca, y con la MISMA sombra que
+     una piedra con sombra —5px 5px 10px al 50%—, para que las dos cosas que se
+     posan sobre la portada se lean como la misma familia.
+     LA FOTO SE ENSEÑA ENTERA, con la proporción que traiga. «Cuadrada» aquí es
+     lo contrario de la polaroid —el marco blanco con el pie ancho—, no un
+     recorte a uno por uno: forzarla a cuadrada obligaría a cortar la foto que
+     el lector acaba de elegir, y decidir por él qué mitad se tira es
+     justamente lo que no toca hacer sin preguntar. */
   .pt-foto{ display:block; background:#000;
             box-shadow:5px 5px 10px rgba(0,0,0,.5); }
   .pt-foto img{ display:block; max-width:min(58vw, 340px);
@@ -3507,7 +3512,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 07:05';
+window.GLOSS_BUILD = '06-SEP-26 07:13';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -15674,25 +15679,54 @@ function portadaPintarHold(){
 const PORTADA_LLAVE = 'glossa:portada:v1';
 let portadaAdorno = { piedras: [], foto: null };
 function portadaCargar(){
+  let j = null;
+  try { j = JSON.parse(localStorage.getItem(PORTADA_LLAVE) || 'null'); }
+  catch(e){ return; }                    /* con un adorno ilegible, portada limpia */
+  if (!j || typeof j !== 'object') return;
+  const enRango = (v, sino) => Number.isFinite(+v) ? Math.min(Math.max(+v, 0), 1) : sino;
+
+  /* CADA MITAD EN SU PROPIO try, Y LAS PIEDRAS CRIBADAS ANTES DE MIRARLAS.
+     Estaban las dos bajo el mismo try, y eso escondía un desastre callado: un
+     null colado en la lista —un almacén tocado a mano, un guardado a medias—
+     reventaba en p.forma, el catch se tragaba el cargar ENTERO, y con las
+     piedras se iba también la foto, que estaba intacta y ni se había llegado
+     a leer. Y como el programa sigue vivo, el siguiente guardado escribía la
+     portada vacía encima: el adorno bueno se perdía de verdad, no solo por
+     esa sesión. Ahora una mitad rota no se lleva a la otra.
+     La criba va ANTES del corte de cuarenta, para que cuarenta piedras buenas
+     sigan siendo cuarenta aunque delante vinieran huecos.
+
+     Y SE PIDE SITIO, no solo que sea un objeto. Aquí no se hace como
+     piedraSanear con las de la hoja, que a una sin coordenadas le pone el
+     centro: aquélla cuelga de un versículo y sigue siendo esa piedra aunque
+     pierda el sitio. Una de la portada no es más que su sitio y su dibujo, así
+     que un {} no es una piedra descolocada, es basura, y plantarla en mitad de
+     la portada sería inventarse una que nadie puso.
+     (Las de la hoja ya lo hacían con piedraEntendible; esto sigue esa casa.) */
+  const esPiedraDePortada = p => !!p && typeof p === 'object' &&
+                                 Number.isFinite(+p.x) && Number.isFinite(+p.y);
   try {
-    const j = JSON.parse(localStorage.getItem(PORTADA_LLAVE) || 'null');
-    if (!j || typeof j !== 'object') return;
-    const enRango = (v, sino) => Number.isFinite(+v) ? Math.min(Math.max(+v, 0), 1) : sino;
-    portadaAdorno.piedras = Array.isArray(j.piedras) ? j.piedras.slice(0, 40).map(p => ({
-      forma: FORMAS.includes(p.forma) ? p.forma : FORMAS[0],
-      color: PIEDRA_TINTAS.some(t => t[0] === p.color) ? p.color : PIEDRA_TINTAS[0][0],
-      tam: Math.min(Math.max(+p.tam || 46, 22), 140),
-      x: enRango(p.x, .5), y: enRango(p.y, .5)
-    })) : [];
-    /* La foto se acepta solo si es una imagen en línea. Un src cualquiera
-       saliendo de un almacén manoseado sería una petición a donde diga. */
-    portadaAdorno.foto = (j.foto && typeof j.foto.src === 'string' &&
+    portadaAdorno.piedras = Array.isArray(j.piedras)
+      ? j.piedras.filter(esPiedraDePortada).slice(0, 40).map(p => ({
+          forma: FORMAS.includes(p.forma) ? p.forma : FORMAS[0],
+          color: PIEDRA_TINTAS.some(t => t[0] === p.color) ? p.color : PIEDRA_TINTAS[0][0],
+          tam: Math.min(Math.max(+p.tam || 46, 22), 140),
+          x: enRango(p.x, .5), y: enRango(p.y, .5)
+        }))
+      : [];
+  } catch(e){ portadaAdorno.piedras = []; }
+
+  /* La foto se acepta solo si es una imagen en línea. Un src cualquiera
+     saliendo de un almacén manoseado sería una petición a donde diga. */
+  try {
+    portadaAdorno.foto = (j.foto && typeof j.foto === 'object' &&
+                          typeof j.foto.src === 'string' &&
                           /^data:image\//.test(j.foto.src))
       ? { src: j.foto.src,
           estilo: j.foto.estilo === 'polaroid' ? 'polaroid' : 'normal',
           giro: Number.isFinite(+j.foto.giro) ? Math.max(-180, Math.min(180, +j.foto.giro)) : 0 }
       : null;
-  } catch(e){ /* con un adorno ilegible, portada limpia */ }
+  } catch(e){ portadaAdorno.foto = null; }
 }
 function portadaGuardar(){
   try {
