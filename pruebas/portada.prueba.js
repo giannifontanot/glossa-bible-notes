@@ -22,6 +22,23 @@ const { abrirEnPortada, cerrar, di, vale, titulo } = require('./comun');
 
 const LLAVE = 'glossa:portada:v1';
 
+/* UN TOQUE DE DEDO, TORCIDO Y SIN CLIC. Lo que manda un teléfono: el puntero
+   baja, tiembla un poco —un dedo real no se posa quieto— y sube. El clic
+   sintetizado NO se manda a propósito: es justo el que en un teléfono puede no
+   llegar, y una prueba que lo mande está probando el ratón. */
+async function tocarSinClic(pagina, x, y, pid = 21){
+  await pagina.evaluate(async ([x, y, pid]) => {
+    const pausa = ms => new Promise(r => setTimeout(r, ms));
+    const o = (cx, cy) => ({ bubbles:true, cancelable:true, pointerId:pid,
+                             pointerType:'touch', isPrimary:true, clientX:cx, clientY:cy });
+    const t = document.elementFromPoint(x, y) || document.getElementById('portadaPiedras');
+    t.dispatchEvent(new PointerEvent('pointerdown', o(x, y)));       await pausa(30);
+    t.dispatchEvent(new PointerEvent('pointermove', o(x + 2, y - 1))); await pausa(25);
+    t.dispatchEvent(new PointerEvent('pointerup',   o(x + 1, y + 1)));
+  }, [x, y, pid]);
+  await pagina.waitForTimeout(280);
+}
+
 (async () => {
   const sesion = await abrirEnPortada();
   const p = sesion.pagina;
@@ -143,8 +160,17 @@ const LLAVE = 'glossa:portada:v1';
   await p.click('#btnPortadaPiedras'); await p.waitForTimeout(400);
   await p.click('[data-pt-forma="paloma"]'); await p.waitForTimeout(250);
   await p.click('[data-pt-tinta="carmin"]'); await p.waitForTimeout(250);
-  await p.mouse.click(120, 260); await p.waitForTimeout(250);
-  await p.mouse.click(300, 300); await p.waitForTimeout(250);
+  /* SE PONEN CON EL PUNTERO Y SIN CLIC, y ésta es la prueba que faltaba.
+     La capa donde caen las piedras es un <div> pelado con el oyente delegado
+     en la portada, y un teléfono —iOS a la cabeza— solo se inventa el clic
+     sobre lo que considera tocable: un control, o algo con su propio oyente.
+     Así que en el teléfono el toque en la capa no producía clic y no llegaba
+     nunca, mientras con ratón iba bien y esta prueba, que mandaba clics de
+     ratón, tampoco lo veía. Ahora manda lo que manda un dedo —pointerdown,
+     temblor, pointerup— y NADA MÁS: si el arreglo volviera a apoyarse en el
+     clic, esto lo dice. */
+  await tocarSinClic(p, 120, 260);
+  await tocarSinClic(p, 300, 300);
 
   /* EL MANDO TAPA LA BANDA DE ABAJO, y por eso lleva «subir». Medido en el
      teléfono de 412×915 ocupa de y=469 a y=811: ahí no se puede dejar una
@@ -171,7 +197,7 @@ const LLAVE = 'glossa:portada:v1';
   vale('SUBIR LO MUEVE Y LIBERA LO QUE TAPABA',
        arriba.arriba === true && arriba.y < tapa.y && arriba.libre === 'portadaPiedras', arriba);
   vale('  y el botón pasa a decir «bajar»', arriba.dice === 'bajar', arriba.dice);
-  await p.mouse.click(206, 700); await p.waitForTimeout(250);
+  await tocarSinClic(p, 206, 700);
   await p.click('[data-pt-mover]'); await p.waitForTimeout(300);   /* se baja otra vez */
 
   const pd = await p.evaluate(k => {
@@ -187,12 +213,64 @@ const LLAVE = 'glossa:portada:v1';
        pd.forma === 'paloma' && pd.color === 'carmin', [pd.forma, pd.color].join(' / '));
   vale('  y guardadas en fracciones de la portada', pd.enFracciones === true, pd.enFracciones);
 
-  await p.click('[data-pt-piedra="0"]'); await p.waitForTimeout(300);
-  const menos = await p.evaluate(() => document.querySelectorAll('.pt-piedra').length);
-  vale('  tocando una puesta se quita', menos === 2, menos);
+  /* Y AHORA EL TRATO DE LAS PIEDRAS DE LA HOJA, que es lo que se pidió: una
+     piedra quieta no responde al toque —el doble toque la despierta—, y ya
+     despierta el toque le cambia la figura y el arrastre la mueve. Antes, en
+     la portada, una piedra puesta solo se podía quitar. */
+  const dondeEsta = await p.evaluate(() => {
+    const b = document.querySelector('.pt-piedra');
+    const r = b.getBoundingClientRect();
+    return { id: b.dataset.ptPiedra,
+             x: Math.round(r.left + r.width/2), y: Math.round(r.top + r.height/2) };
+  });
+  const antesQuieta = await p.evaluate(k =>
+    (JSON.parse(localStorage.getItem(k)||'{}').piedras||[])[0].forma, LLAVE);
+  await tocarSinClic(p, dondeEsta.x, dondeEsta.y, 22);
+  const quieta = await p.evaluate(k => ({
+    n: document.querySelectorAll('.pt-piedra').length,
+    forma: (JSON.parse(localStorage.getItem(k)||'{}').piedras||[])[0].forma }), LLAVE);
+  di('la piedra quieta', JSON.stringify(quieta));
+  vale('QUIETA, UN TOQUE NO LA CAMBIA NI LA QUITA',
+       quieta.n === 3 && quieta.forma === antesQuieta, quieta);
+
+  await p.evaluate(d => {
+    const b = document.querySelector('[data-pt-piedra="' + d.id + '"]');
+    b.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true,
+      detail:2, clientX:d.x, clientY:d.y }));
+  }, dondeEsta);
+  await p.waitForTimeout(450);
+  const edita = await p.evaluate(() => ({
+    cerco: !!document.querySelector('.pt-piedra.editando'),
+    botones: [...document.querySelectorAll('#portadaMandoPiedras .pt-mini')]
+               .map(x => x.textContent.trim()) }));
+  di('en edición', JSON.stringify(edita));
+  vale('EL DOBLE TOQUE ABRE SU EDICIÓN', edita.cerco === true, edita.cerco);
+  vale('  y el mando pasa a ser el suyo: Quitar, Cancelar y OK',
+       ['Quitar','Cancelar','OK'].every(x => edita.botones.includes(x)), edita.botones);
+
+  await tocarSinClic(p, dondeEsta.x, dondeEsta.y, 23);
+  const otraForma = await p.evaluate(k =>
+    (JSON.parse(localStorage.getItem(k)||'{}').piedras||[])[0].forma, LLAVE);
+  vale('  y ya en edición, el toque le cambia la figura', otraForma !== antesQuieta,
+       antesQuieta + ' → ' + otraForma);
+
+  /* Quitar se pide desde su mando, no con un toque suelto: quitar sin querer
+     una piedra que solo se quería mover es lo que esto evita. */
+  await p.click('#portadaMandoPiedras [data-pt-quitar-esta]');
+  await p.waitForTimeout(400);
+  const menos = await p.evaluate(() => ({
+    n: document.querySelectorAll('.pt-piedra').length,
+    /* QUITAR TERMINA, no deja el mando abierto sobre una piedra que ya no
+       existe: la edición era de ELLA, y sin ella no hay nada que editar.
+       Aquí la prueba tocaba «Listo» después y se quedaba treinta segundos
+       esperando un botón que ya no estaba. */
+    mando: !document.getElementById('portadaMandoPiedras').hidden,
+    cerco: !!document.querySelector('.pt-piedra.editando') }));
+  di('tras quitarla', JSON.stringify(menos));
+  vale('  y «Quitar» del mando la quita', menos.n === 2, menos.n);
+  vale('  y cierra el mando con ella', menos.mando === false && menos.cerco === false, menos);
 
   titulo('CONTINUE ABRE LA BIBLIA');
-  await p.click('[data-pt-listo]'); await p.waitForTimeout(300);
   await p.click('#btnPortadaHold');
   await p.waitForTimeout(2600);
   const fin1 = await p.evaluate(() => {
@@ -240,6 +318,86 @@ const LLAVE = 'glossa:portada:v1';
   vale('  con su estilo y su giro', roto.polaroid === true && /rotate\(9deg\)/.test(roto.giro || ''), roto);
   /* De las seis entradas solo dos son piedras; las otras cuatro se criban. */
   vale('  y se quedan las piedras que sí valen', roto.piedras === 2, roto.piedras);
+
+  titulo('LO QUE YA ESTABA GUARDADO NO PIERDE SU SOMBRA');
+  /* Hasta esta versión la sombra la ponía el CSS a TODAS las piedras de la
+     portada y no se guardaba en ningún sitio. Leyendo la clave que falta como
+     «no» —que es lo natural— abrir la versión nueva se la quitaba a cada
+     piedra ya puesta, y el primer guardado lo dejaba escrito para siempre.
+     Solo un «false» a conciencia la apaga. */
+  await p.evaluate(k => localStorage.setItem(k, JSON.stringify({ piedras:[
+    { forma:'piedra', color:'sepia', tam:46, x:.3, y:.3 },
+    { forma:'ancla', color:'carmin', tam:60, x:.7, y:.6, sombra:false } ], foto:null })), LLAVE);
+  await p.reload();
+  await p.waitForTimeout(700);
+  const sombras = await p.evaluate(() =>
+    [...document.querySelectorAll('.pt-piedra')].map(x => x.classList.contains('con-sombra')));
+  di('las sombras al abrir un almacén viejo', JSON.stringify(sombras));
+  vale('LA QUE NO TRAÍA SOMBRA ESCRITA LA CONSERVA', sombras[0] === true, sombras);
+  vale('  y un «false» a conciencia sí la apaga', sombras[1] === false, sombras);
+
+  titulo('UN ARRASTRE CANCELADO NO DEJA LA PIEDRA MOVIDA');
+  /* El arrastre mueve el nodo a mano en cada cuadro —hay que hacerlo así o se
+     pierde la captura del puntero—, así que al cancelar la pantalla enseñaba
+     el sitio nuevo y lo guardado seguía con el viejo: la piedra daba un salto
+     de vuelta en el siguiente repintado o al recargar, sin que nadie hubiera
+     tocado nada. */
+  const cancelado = await p.evaluate(async k => {
+    const pausa = ms => new Promise(r => setTimeout(r, ms));
+    document.getElementById('btnPortadaPiedras').click(); await pausa(400);
+    const b = document.querySelector('.pt-piedra');
+    const r = b.getBoundingClientRect();
+    const cx = Math.round(r.left + r.width/2), cy = Math.round(r.top + r.height/2);
+    b.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true,
+      detail:2, clientX:cx, clientY:cy }));
+    await pausa(450);
+    const nodo = document.querySelector('.pt-piedra.editando');
+    if (!nodo) return { sinEdicion:true };
+    const o = (x, y) => ({ bubbles:true, cancelable:true, pointerId:31, pointerType:'touch',
+                           isPrimary:true, clientX:x, clientY:y });
+    nodo.dispatchEvent(new PointerEvent('pointerdown', o(cx, cy))); await pausa(30);
+    /* torcido, como un dedo */
+    nodo.dispatchEvent(new PointerEvent('pointermove', o(cx + 68, cy + 122))); await pausa(30);
+    nodo.dispatchEvent(new PointerEvent('pointermove', o(cx + 141, cy + 228))); await pausa(30);
+    const durante = document.querySelector('.pt-piedra.editando').style.left;
+    nodo.dispatchEvent(new PointerEvent('pointercancel', o(cx + 141, cy + 228)));
+    await pausa(350);
+    return { durante, pintado: document.querySelector('[data-pt-piedra]').style.left,
+             guardado: (JSON.parse(localStorage.getItem(k) || '{}').piedras || [])[0].x };
+  }, LLAVE);
+  di('el arrastre cancelado', JSON.stringify(cancelado));
+  vale('LO PINTADO VUELVE A LO GUARDADO',
+       !cancelado.sinEdicion &&
+       Math.abs(parseFloat(cancelado.pintado) - cancelado.guardado * 100) < .01,
+       cancelado.pintado + ' contra ' + (cancelado.guardado * 100).toFixed(3) + '%');
+  vale('  y no se queda donde lo llevó el dedo',
+       cancelado.pintado !== cancelado.durante,
+       'durante ' + cancelado.durante + ' · tras ' + cancelado.pintado);
+
+  titulo('EL FOCO SOBREVIVE AL REPINTADO');
+  /* Las dos ramas del teclado rehacen la capa entera con innerHTML, así que el
+     botón que tenía el foco deja de existir y el foco se cae al documento:
+     quien navega con teclado llegaba a la piedra, la cambiaba UNA vez y se
+     quedaba sin dónde estar. Intro sobre un <button> manda un clic con
+     detail 0, que es como se distingue del dedo. */
+  const foco = await p.evaluate(async () => {
+    const pausa = ms => new Promise(r => setTimeout(r, ms));
+    const b = document.querySelector('[data-pt-piedra]');
+    const id = b.dataset.ptPiedra;
+    b.focus();
+    const quien = () => { const a = document.activeElement;
+      return (a && a.dataset && a.dataset.ptPiedra) || (a || {}).tagName; };
+    b.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, detail:0 }));
+    await pausa(350);
+    const tras = quien();
+    const b2 = document.querySelector('[data-pt-piedra="' + id + '"]');
+    if (b2) b2.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, detail:0 }));
+    await pausa(350);
+    return { id, tras, tras2: quien() };
+  });
+  di('el foco', JSON.stringify(foco));
+  vale('TRAS EL REPINTADO EL FOCO SIGUE EN LA PIEDRA', foco.tras === foco.id, foco.tras);
+  vale('  y se puede volver a pulsar', foco.tras2 === foco.id, foco.tras2);
 
   fs.rmSync(carpeta, { recursive:true, force:true });
   await cerrar(sesion);
