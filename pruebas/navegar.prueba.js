@@ -635,23 +635,25 @@ const ATERRIZA = 7000;
   }));
 
   /* ================================================================
-     LAS DOS FLECHAS DE PASAR HOJA.
+     LAS DOS FLECHAS: UN LETRERO QUE APUNTA AL FILO.
 
-     La hoja se pasa desde hace tiempo de tres maneras —tocar el filo,
-     arrastrar el papel, las flechas del teclado— y ninguna de las tres se ve.
-     Quien no las conoce se queda sin pasar hoja. Se pidieron dos flechas a
-     media altura, transparentes para no estorbar la lectura, y encendidas por
-     un interruptor en LIBROS: dos discos encima del texto son la respuesta
-     para quien no conoce los gestos y un estorbo para quien sí.
+     Nacieron como botones que pasaban hoja y eso se deshizo a propósito. La
+     hoja se pasa tocando el filo —o arrastrándolo, que además la pliega con el
+     dedo— y ese filo es invisible: quien no lo sabe no lo descubre. Un botón
+     encima resolvía el problema de hoy y dejaba el de mañana, porque el lector
+     aprendía el botón y nunca el filo. Ahora la flecha es un dibujo rojo con la
+     punta pegada al filo, y el que trabaja es el filo.
 
-     Lo que se prueba, en este orden, es la cadena entera: que NACEN APAGADAS
-     —si nacieran encendidas, el interruptor sería un adorno—, que la casilla
-     las enciende, que pasan la hoja de verdad, y que el ajuste sobrevive a
-     recargar. Las cuatro cosas se rompen por separado.
+     LO QUE HAY QUE PROBAR ES QUE NO HAGA NADA, que es lo raro de esta prueba.
+     Tres cosas, y las tres se rompen por separado:
+     · que bajo su punta esté EL FILO y no ella —si se comiera el toque, el
+       lector aprendería a tocar la flecha, que es justo lo contrario—;
+     · que tocarla no pase hoja;
+     · y que el filo sí la pase, o lo de arriba sería verdad por estar todo
+       roto.
 
-     Y se mide dónde caen contra la ESCENA, no contra píxeles escritos: «a
-     media altura» tiene que seguir siendo verdad en cualquier pantalla, y una
-     coordenada fija se queda vieja sola. */
+     Y se mide dónde cae contra la ESCENA, no contra píxeles escritos: «pegada
+     al filo» tiene que seguir siendo verdad en cualquier pantalla. */
   titulo('las flechas de pasar hoja');
   const fl = await abrir();
   const pf = fl.pagina;
@@ -660,9 +662,8 @@ const ATERRIZA = 7000;
     /* SE PREGUNTA POR LO QUE SE VE, NO POR EL ATRIBUTO, y esto es una lección
        pagada: la primera versión de esta prueba miraba `.hidden` y daba verde
        con las dos flechas pintadas en la pantalla. El atributo estaba puesto;
-       lo que no estaba era el display:none, porque el display:grid de la clase
-       —hoja del autor— le gana al de la hoja del navegador. El atributo dice
-       la intención; el display dice la verdad. Se miran los dos. */
+       lo que no estaba era el display:none. El atributo dice la intención; el
+       display dice la verdad. Se miran los dos. */
     const oculta = id => { const e = document.getElementById(id);
       return e.hidden && getComputedStyle(e).display === 'none' &&
              e.getBoundingClientRect().height === 0; };
@@ -682,20 +683,45 @@ const ATERRIZA = 7000;
     chk.click(); await pausa(500);
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await pausa(700);
+    /* SE PASA UNA HOJA ANTES DE MEDIR, y hace falta: en la primera hoja de los
+       datos la flecha izquierda no existe —no hay a dónde ir— así que medirla
+       ahí daba ceros y hacía fallar «una a cada lado» con el programa
+       haciéndolo bien. Con una hoja de por medio las dos están puestas. */
+    const filo = document.getElementById('edgeR');
+    const rf = filo.getBoundingClientRect();
+    const opf = { bubbles:true, cancelable:true, pointerId:661, pointerType:'touch',
+                  isPrimary:true, clientX: Math.round(rf.left + rf.width/2), clientY: 420 };
+    filo.dispatchEvent(new PointerEvent('pointerdown', opf)); await pausa(60);
+    filo.dispatchEvent(new PointerEvent('pointerup', opf));
+    await pausa(2800);
     const st = document.querySelector('.stage').getBoundingClientRect();
-    const ri = document.getElementById('flechaIzq').getBoundingClientRect();
-    const rd = document.getElementById('flechaDer').getBoundingClientRect();
+    const i = document.getElementById('flechaIzq'), d = document.getElementById('flechaDer');
+    const ri = i.getBoundingClientRect(), rd = d.getBoundingClientRect();
+    const ci = getComputedStyle(i);
+    /* LA PUNTA SE MIDE EN EL DIBUJO Y NO EN LA CAJA: el <svg> llena el <div>,
+       así que sus filos son los del letrero. */
+    const si = i.querySelector('svg').getBoundingClientRect();
+    const sd = d.querySelector('svg').getBoundingClientRect();
+    /* Y QUÉ HAY DEBAJO DE LA PUNTA. Tres píxeles adentro del filo del dibujo,
+       a media altura: ahí tiene que responder el filo de pasar hoja. */
+    const bajoIzq = document.elementFromPoint(Math.round(si.left + 3),
+                                              Math.round(si.top + si.height/2));
+    const bajoDer = document.elementFromPoint(Math.round(sd.right - 3),
+                                              Math.round(sd.top + sd.height/2));
     return { nacen, rotulo, blanco,
              encendidas: { izq: seVe('flechaIzq'), der: seVe('flechaDer') },
              mitad: Math.round(st.top + st.height/2),
              centroIzq: Math.round(ri.top + ri.height/2),
-             /* Una a cada lado, y las dos dentro de la escena. */
              izqAlaIzquierda: ri.left - st.left < st.width/2,
              derAlaDerecha: rd.right > st.left + st.width/2,
-             dentro: ri.left >= st.left && rd.right <= st.right,
-             /* Transparentes: se ven cuando las buscas y no cuando lees. */
-             fondo: getComputedStyle(document.getElementById('flechaIzq')).backgroundColor,
-             lado: Math.round(ri.width),
+             /* Pegadas al filo de la escena por fuera y sin salirse. */
+             puntaIzq: Math.round(si.left - st.left),
+             puntaDer: Math.round(st.right - sd.right),
+             /* Un letrero, no un mando. */
+             etiqueta: i.tagName, ojos: ci.pointerEvents, color: ci.color,
+             fondo: ci.backgroundColor, borde: parseFloat(ci.borderTopWidth),
+             bajoIzq: bajoIzq ? (bajoIzq.id || String(bajoIzq.className)) : null,
+             bajoDer: bajoDer ? (bajoDer.id || String(bajoDer.className)) : null,
              guardado: JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}').verFlechas };
   });
   di('las flechas', flechas);
@@ -707,45 +733,55 @@ const ATERRIZA = 7000;
   vale('y la casilla las enciende, y entonces SE VEN',
        flechas.encendidas && flechas.encendidas.izq === true &&
        flechas.encendidas.der === true, flechas.encendidas);
-  vale('una a cada lado, a media altura y dentro de la escena',
-       flechas.izqAlaIzquierda && flechas.derAlaDerecha && flechas.dentro &&
+  vale('una a cada lado y a media altura',
+       flechas.izqAlaIzquierda && flechas.derAlaDerecha &&
        Math.abs(flechas.mitad - flechas.centroIzq) <= 3,
        flechas.mitad + ' contra ' + flechas.centroIzq);
-  vale('  de 44 px o más', flechas.lado >= 44, flechas.lado);
-  /* TRANSPARENTES DE VERDAD: se pidió que no molestaran el texto de abajo, así
-     que el fondo tiene que dejar pasar. Se mira la alfa del color calculado,
-     que es lo único que de verdad lo dice. */
-  const alfa = (flechas.fondo || '').match(/rgba?\([^)]*?,\s*([\d.]+)\)/);
-  vale('  y el disco deja ver el texto de debajo',
-       !!alfa && parseFloat(alfa[1]) < .35, flechas.fondo);
-  const pasa = await pf.evaluate(async () => {
+  vale('LA PUNTA TOCA EL FILO DE LA ESCENA',
+       flechas.puntaIzq >= 0 && flechas.puntaIzq <= 4 &&
+       flechas.puntaDer >= 0 && flechas.puntaDer <= 4,
+       flechas.puntaIzq + ' px por la izquierda, ' + flechas.puntaDer + ' por la derecha');
+  vale('SON UN DIBUJO, NO UN BOTÓN', flechas.etiqueta === 'DIV', flechas.etiqueta);
+  vale('  y no reciben ni un toque', flechas.ojos === 'none', flechas.ojos);
+  /* EL ROJO SE COMPRUEBA COMO ROJO Y NO COMO UN NÚMERO: el tono se retoca sin
+     avisar, lo que no puede cambiar es que el rojo mande sobre los otros dos. */
+  const rgb = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(flechas.color || '');
+  vale('  rojas de verdad',
+       !!rgb && +rgb[1] > 170 && +rgb[2] < 90 && +rgb[3] < 90, flechas.color);
+  vale('  sin disco ni borde',
+       flechas.fondo === 'rgba(0, 0, 0, 0)' && flechas.borde === 0,
+       flechas.fondo + ' / ' + flechas.borde);
+  vale('Y BAJO SU PUNTA ESTÁ EL FILO, no ellas',
+       /edge/i.test(String(flechas.bajoIzq)) && /edge/i.test(String(flechas.bajoDer)),
+       flechas.bajoIzq + ' | ' + flechas.bajoDer);
+
+  /* Y AHORA LOS DOS LADOS DE LO MISMO: la flecha no pasa hoja, el filo sí. La
+     segunda mitad es la que hace que la primera valga algo. */
+  const gestos = await pf.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     const hoja = () => document.getElementById('pgCabeza').textContent.trim();
+    const tocar = async (el, y) => {
+      const r = el.getBoundingClientRect();
+      const op = { bubbles:true, cancelable:true, pointerId: 640 + Math.random()*50 | 0,
+                   pointerType:'touch', isPrimary:true,
+                   clientX: Math.round(r.left + r.width/2),
+                   clientY: y != null ? y : Math.round(r.top + r.height/2) };
+      el.dispatchEvent(new PointerEvent('pointerdown', op)); await pausa(50);
+      el.dispatchEvent(new PointerEvent('pointerup', op));
+      el.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, op)));
+      await pausa(2800);
+    };
     const antes = hoja();
-    const b = document.getElementById('flechaDer');
-    const r = b.getBoundingClientRect();
-    const op = { bubbles:true, cancelable:true, pointerId:640, pointerType:'touch',
-                 isPrimary:true, clientX: Math.round(r.left + r.width/2),
-                 clientY: Math.round(r.top + r.height/2) };
-    b.dispatchEvent(new PointerEvent('pointerdown', op)); await pausa(40);
-    b.dispatchEvent(new PointerEvent('pointerup', op));
-    b.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, op)));
-    await pausa(2800);
-    const media = hoja();
-    const i = document.getElementById('flechaIzq');
-    const ri = i.getBoundingClientRect();
-    const op2 = { bubbles:true, cancelable:true, pointerId:641, pointerType:'touch',
-                  isPrimary:true, clientX: Math.round(ri.left + ri.width/2),
-                  clientY: Math.round(ri.top + ri.height/2) };
-    i.dispatchEvent(new PointerEvent('pointerdown', op2)); await pausa(40);
-    i.dispatchEvent(new PointerEvent('pointerup', op2));
-    i.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, op2)));
-    await pausa(2800);
-    return { antes, media, vuelta: hoja() };
+    await tocar(document.getElementById('flechaDer'));
+    const traFlecha = hoja();
+    await tocar(document.getElementById('edgeR'), 420);
+    return { antes, traFlecha, traFilo: hoja() };
   });
-  di('pasar con las flechas', pasa);
-  vale('LA DERECHA PASA LA HOJA', pasa.antes !== pasa.media, pasa.antes + ' → ' + pasa.media);
-  vale('  Y LA IZQUIERDA VUELVE', pasa.vuelta === pasa.antes, pasa.media + ' → ' + pasa.vuelta);
+  di('los dos gestos', gestos);
+  vale('TOCAR LA FLECHA NO HACE NADA',
+       gestos.antes === gestos.traFlecha, gestos.antes + ' → ' + gestos.traFlecha);
+  vale('  Y EL FILO SÍ PASA LA HOJA',
+       gestos.traFilo !== gestos.antes, gestos.traFlecha + ' → ' + gestos.traFilo);
   vale('el ajuste se guarda', flechas.guardado === true, flechas.guardado);
   await pf.reload();
   await pf.waitForTimeout(600);
@@ -756,30 +792,42 @@ const ATERRIZA = 7000;
   di('tras recargar', tras);
   vale('  y sobrevive a recargar', tras.izq > 8 && tras.der > 8, tras);
 
-  /* Y SE APAGAN DONDE NO HAY A DÓNDE IR, con la misma pregunta que el filo.
-     Un botón encendido que no hace nada se lee como que el toque no entró, y
-     ése era justamente el fallo que las flechas venían a arreglar. Lo levantó
-     Codex.
+  /* Y SE QUITAN DONDE NO HAY A DÓNDE IR. Aquí antes se atenuaban, y eso valía
+     cuando eran botones: un botón apagado dice «esto existe y ahora no». Un
+     letrero que señala una salida que no hay se quita, no se despinta.
 
      Se compara CONTRA EL FILO y no contra un libro escrito a mano: cuál es la
      primera hoja depende de qué biblias estén cargadas —hoy los datos empiezan
-     en Mateo, mañana quizá no— y una prueba que diga «Génesis» se cae sola el
-     día que alguien baje el Antiguo Testamento. El filo ya sabe la respuesta;
-     lo que hay que exigir es que las flechas digan lo mismo que él. */
-  const extremos = await pf.evaluate(() => ({
-    hoja: document.getElementById('pgCabeza').textContent.trim(),
-    izq: document.getElementById('flechaIzq').disabled,
-    der: document.getElementById('flechaDer').disabled,
-    filoIzq: document.getElementById('edgeL').classList.contains('off'),
-    filoDer: document.getElementById('edgeR').classList.contains('off'),
-    opacidad: parseFloat(getComputedStyle(document.getElementById('flechaIzq')).opacity) }));
+     en Mateo, no en Génesis— y una prueba que diga «Génesis» se cae sola el
+     día que alguien baje el Antiguo Testamento. */
+  const extremos = await pf.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    /* SE VUELVE AL PRINCIPIO A PROPÓSITO: el bloque de arriba dejó la lectura
+       una hoja más allá, y un extremo es lo único que prueba algo aquí. Se
+       vuelve por el filo, tantas veces como haga falta y con tope, que cuántas
+       hojas hay depende de los datos cargados. */
+    const filo = document.getElementById('edgeL');
+    for (let i = 0; i < 6; i++){
+      if (filo.classList.contains('off')) break;
+      const r = filo.getBoundingClientRect();
+      const op = { bubbles:true, cancelable:true, pointerId: 670 + i, pointerType:'touch',
+                   isPrimary:true, clientX: Math.round(r.left + r.width/2), clientY: 420 };
+      filo.dispatchEvent(new PointerEvent('pointerdown', op)); await pausa(60);
+      filo.dispatchEvent(new PointerEvent('pointerup', op));
+      await pausa(2800);
+    }
+    const se = id => { const e = document.getElementById(id);
+      return e.getBoundingClientRect().height > 8; };
+    return { hoja: document.getElementById('pgCabeza').textContent.trim(),
+             izq: se('flechaIzq'), der: se('flechaDer'),
+             filoIzq: !document.getElementById('edgeL').classList.contains('off'),
+             filoDer: !document.getElementById('edgeR').classList.contains('off') };
+  });
   di('en la primera hoja de los datos', extremos);
   vale('(la prueba es válida) estamos en un extremo',
-       extremos.filoIzq === true, extremos.hoja);
+       extremos.filoIzq === false, extremos.hoja);
   vale('LA FLECHA DICE LO MISMO QUE EL FILO',
        extremos.izq === extremos.filoIzq && extremos.der === extremos.filoDer, extremos);
-  vale('  y se ve apagada, no invisible',
-       extremos.opacidad > .05 && extremos.opacidad < .6, extremos.opacidad);
   await cerrarParcial(fl, 'las flechas');
 
   await cerrar(sesion);

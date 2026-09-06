@@ -450,34 +450,34 @@
      dónde estás — hacer clic en dónde estás para ir a otro lado es un mapeo
      que no hay que explicar. */
   .edge-l{ left:0;  background:linear-gradient(to left,  rgba(201,162,39,0), rgba(201,162,39,.16)); }
-  /* LAS FLECHAS DE PASAR HOJA, A MEDIA ALTURA Y TRANSPARENTES.
+  /* LAS FLECHAS DE PASAR HOJA: UN LETRERO PEGADO AL FILO.
 
-     Van sobre el papel, así que lo primero que tienen que hacer es NO
-     estorbar: el disco es apenas una veladura del marrón del programa y la
-     flecha va a media tinta. Se ven cuando las buscas y desaparecen cuando
-     lees, que es exactamente el trato.
+     ROJAS, GRUESAS Y SIN DISCO. Antes eran dos botones translúcidos con su
+     aro, puestos para no estorbar, y estorbaban de la manera peor: se
+     entendían como el sitio donde se pasa hoja, que no lo es. Ahora son un
+     letrero que apunta: la PUNTA TOCA EL FILO, el rojo dice «mira aquí», y lo
+     que se toca es el filo —que responde con la huella y con el pliegue—.
+     Cuando el gesto se aprende, se apaga el interruptor y no queda nada
+     encima del papel.
 
-     Encima del filo pero debajo de todo lo demás: z-index 4 las pone sobre el
-     papel y sobre .edge (3) —o el filo se comería el toque— y por debajo de
-     los paneles, del rastro y de la ventanita, que tienen que taparlas.
+     LA PUNTA TOCA EL FILO Y NO LO PISA: left:0 con la punta dibujada en x=3
+     del recuadro de 24 la deja justo en el borde de la escena, que es donde
+     empieza el filo. Un letrero que se solapa con lo que señala deja de
+     señalar.
+
+     Y NO RECIBEN NI UN TOQUE: pointer-events:none. Es la línea que hace que
+     esto funcione. Sin ella la flecha se comería el toque del filo —está
+     encima— y el lector aprendería a tocar la flecha, que es exactamente lo
+     contrario de lo que se busca. Tampoco tienen oyente de clic, ni foco, ni
+     tabulador: no son un mando, son un dibujo.
 
      A media altura porque es donde cae el pulgar sin mover la mano, y porque
-     arriba está el titulillo y abajo el rótulo de la versión.
-
-     Y NO SE PONEN SOBRE EL FILO SINO UN POCO ADENTRO: encima del filo, el
-     mismo dedo estaría pidiendo dos cosas —pasar hoja de golpe o plegarla a
-     mano— y ganaría la que respondiera antes. Adentro, cada gesto tiene su
-     sitio. */
+     arriba está el titulillo y abajo el rótulo de la versión. */
   .flecha-hoja{ position:absolute; top:50%; z-index:4;
-                width:44px; height:44px; padding:0; margin-top:-22px;
+                width:34px; height:34px; margin-top:-17px;
                 display:grid; place-items:center;
-                border:1px solid rgba(60,40,15,.20); border-radius:50%;
-                background:rgba(120,96,50,.10); color:rgba(60,40,15,.42);
-                cursor:pointer; -webkit-tap-highlight-color:transparent;
-                transition:background .28s cubic-bezier(.65,0,.35,1),
-                           color .28s cubic-bezier(.65,0,.35,1),
-                           transform .18s cubic-bezier(.65,0,.35,1),
-                           opacity .28s ease; }
+                pointer-events:none; color:#e01b1b;
+                transition:opacity .28s ease; }
   /* Y APAGADAS QUIERE DECIR APAGADAS. Esta línea parece de más y es el arreglo
      entero de un fallo que se vio en una foto: el atributo `hidden` esconde
      con un display:none de la hoja del NAVEGADOR, y cualquier display escrito
@@ -486,27 +486,21 @@
      interruptor apagado y con `hidden` puesto, y la prueba pasaba porque
      preguntaba por el atributo en vez de por lo que se ve. */
   .flecha-hoja[hidden]{ display:none; }
-  .flecha-hoja svg{ display:block; width:22px; height:22px; }
-  .flecha-hoja:hover{ background:rgba(120,96,50,.22); color:rgba(60,40,15,.72); }
-  .flecha-hoja:active{ transform:scale(.88); }
-  .flecha-hoja:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
-  /* APAGADA EN GÉNESIS Y EN APOCALIPSIS. Se queda a la vista y a media tinta en
-     vez de irse: desaparecer y volver a aparecer al pasar una hoja es más ruido
-     que una flecha pálida, y además la posición del papel no cambia. */
-  .flecha-hoja:disabled{ opacity:.3; cursor:default; }
-  .flecha-hoja:disabled:hover{ background:rgba(120,96,50,.10); color:rgba(60,40,15,.42); }
-  .flecha-l{ left:34px; }
-  .flecha-r{ right:34px; }
-  /* Con el dedo se agrandan y se apartan un poco más del filo. */
+  .flecha-hoja svg{ display:block; width:100%; height:100%;
+                    filter:drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+  /* SIN HOJA AL LADO, SIN LETRERO. Aquí antes se quedaba a media tinta, y eso
+     valía cuando era un botón: un botón apagado dice «esto existe y ahora no».
+     Un letrero que señala una salida que no hay no se atenúa: se quita. */
+  .flecha-hoja.sin-hoja{ display:none; }
+  .flecha-l{ left:0; }
+  .flecha-r{ right:0; }
+  /* Con el dedo, más grande: es un letrero que se mira de lejos, no un blanco
+     que se toca. */
   @media (pointer:coarse){
-    .flecha-hoja{ width:48px; height:48px; margin-top:-24px; }
-    .flecha-hoja svg{ width:24px; height:24px; }
-    .flecha-l{ left:38px; }
-    .flecha-r{ right:38px; }
+    .flecha-hoja{ width:40px; height:40px; margin-top:-20px; }
   }
   @media (prefers-reduced-motion: reduce){
     .flecha-hoja{ transition:none; }
-    .flecha-hoja:active{ transform:none; }
   }
   .edge.off{ opacity:.2; cursor:default; }
 
@@ -1508,6 +1502,20 @@
            color:#7a6434; opacity:.82;
            -webkit-tap-highlight-color:transparent;
            filter:drop-shadow(0 1px 1px rgba(60,44,18,.35)); }
+  /* CON SOMBRA: MACIZA Y LEVANTADA. Los dos efectos van juntos a propósito y
+     son lo mismo dicho dos veces: una piedra a media tinta parece parte del
+     papel, y lo que la sombra dice es que está ENCIMA. Dejar la transparencia
+     y añadir la sombra daba una piedra fantasma proyectando sombra, que es lo
+     único que no puede ser.
+     Los números son los pedidos: 5px de lado, 5 de caída y 10 de difuminado
+     sobre negro al 50%. Van en píxeles fijos, así que en la piedra más chica
+     —23px de lado— la sombra pesa más que en la más grande —484px—, donde
+     apenas se nota. Se deja así porque es lo que se pidió y porque la piedra
+     de fábrica está en el segundo escalón, que es donde la medida está hecha.
+     El día que moleste, la manera de arreglarlo es escalarla desde el guion:
+     el porcentaje del papel no se puede convertir a píxeles en CSS. */
+  .piedra.con-sombra{ opacity:1;
+                      filter:drop-shadow(5px 5px 10px rgba(0,0,0,.5)); }
   .piedra svg{ display:block; width:100%; height:100%; }
   .piedra:hover{ opacity:1; }
   .piedra:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; border-radius:4px; }
@@ -1599,6 +1607,51 @@
   .pm-btn:disabled{ opacity:.3; cursor:default; }
   .pm-btn:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
   .pm-btn svg{ display:block; width:17px; height:17px; }
+  /* EL RENGLÓN DE ABAJO DEL MANDO, Y POR QUÉ VA CENTRADO ENTERO.
+
+     El encargo era los dos botones centrados con la casilla en el mismo
+     renglón, y se intentó al pie de la letra: la casilla fuera del flujo,
+     pegada a la izquierda, y los botones centrados de verdad en el panel.
+     Medido, no cabe. El panel mide 268 y le quedan 250 por dentro; la casilla
+     ocupa 73 y los dos botones 167, así que para que el centro del par caiga
+     en el centro del panel la casilla tiene que meterse DEBAJO de «Cancelar»
+     —treinta y dos píxeles de solape—. Un rótulo tapado por un botón no es
+     una casilla.
+
+     Así que se centra el renglón entero: casilla, Cancelar y OK como un solo
+     grupo en medio del panel. Los botones quedan a la derecha del centro
+     exacto, y a cambio se lee todo. Si algún día se quieren dead-center, la
+     manera es bajar la casilla a su propio renglón. */
+  .pm-abajo{ display:flex; align-items:center;
+             justify-content:center; gap:8px; margin-top:2px;
+             padding-top:7px; border-top:1px solid rgba(140,116,68,.3); }
+  .pm-sombra{ flex:0 0 auto;
+              display:flex; align-items:center; gap:5px; cursor:pointer;
+              font:400 11.5px/1 var(--ui); color:#6d5a2c;
+              -webkit-tap-highlight-color:transparent; }
+  .pm-sombra input{ width:15px; height:15px; margin:0; accent-color:#b8892b;
+                    cursor:pointer; }
+  .pm-sombra:hover{ color:#4d3f1d; }
+  .pm-sombra:focus-within{ outline:2px solid #b8892b; outline-offset:2px;
+                           border-radius:4px; }
+  .pm-salidas{ display:flex; align-items:center; gap:7px; }
+  .pm-btn2{ min-height:32px; padding:6px 12px; cursor:pointer;
+            font:600 12.5px/1 var(--ui); color:#6d5a2c;
+            background:rgba(140,116,68,.12);
+            border:1px solid rgba(140,116,68,.4); border-radius:5px;
+            -webkit-tap-highlight-color:transparent; }
+  .pm-btn2:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
+  .pm-btn2:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
+  /* El OK va macizo: es el que se pulsa por costumbre, y el otro deshace. */
+  .pm-ok{ color:#3f3416; background:rgba(184,137,43,.4);
+          border-color:rgba(140,116,68,.75); }
+  .pm-ok:hover{ background:rgba(184,137,43,.6); }
+  /* Con el dedo, los dos al suelo de la casa y la casilla con él. */
+  @media (pointer:coarse){
+    .pm-btn2{ min-height:44px; padding:10px 13px; font-size:14px; }
+    .pm-sombra{ font-size:13px; }
+    .pm-sombra input{ width:19px; height:19px; }
+  }
   /* El manojo de formas del botón del pie, como el de las telas. */
   .hs-formas{ flex:0 0 auto; display:inline-flex; align-items:center; gap:3px; }
   /* El color va escrito en cada figura (ver pieSeparadores), así que aquí NO
@@ -2315,6 +2368,16 @@
      las que hacen que el libro bajo el dedo crezca en vez de dar un salto, y
      las que hacen que sus vecinos se aparten poco a poco en lugar de
      teletransportarse. Ver .tabo.bajoeldedo. */
+  /* EL NOMBRE NO SE SELECCIONA, y sin esto la lupa no sirve para nada. El
+     gesto de la lupa es arrastrar el dedo por encima de los libros, y arrastrar
+     por encima de texto es, para el navegador, SELECCIONARLO: al recorrer la
+     lista se iban quedando media docena de nombres en azul de selección, encima
+     de lo que se está intentando leer. La función entera quedaba inservible por
+     un comportamiento que nadie pidió.
+     Va en la rejilla entera y no solo en el botón: la selección se estira entre
+     elementos, así que basta con que el hueco de en medio sea seleccionable
+     para que arrastre a los dos de al lado. */
+  .rejilla-libros, .tabo{ -webkit-user-select:none; user-select:none; }
   .tabo{ position:relative; flex:0 0 auto; border:0; padding:0 7px; height:18px;
          cursor:pointer; font:400 9.5px/18px var(--ui); color:#4a3a1c; letter-spacing:.01em;
          background:rgba(255,253,247,.62); border-radius:2px;
@@ -3139,22 +3202,31 @@
   </div>
   <div class="edge edge-l" id="edgeL" title="Clic: hoja anterior · Arrastra: pliega"></div>
   <div class="edge edge-r" id="edgeR" title="Clic: pasa la hoja · Arrastra: pliega"></div>
-  <!-- LAS DOS FLECHAS DE PASAR HOJA. Nacen apagadas y las enciende un
-       interruptor en LIBROS: la hoja se pasa desde hace tiempo tocando el
-       filo, arrastrando el papel o con las flechas del teclado, y ninguna de
-       las tres se ve. Quien no las conoce necesita un botón; quien ya las
-       conoce no quiere dos discos encima del texto. Por eso se pregunta en
-       vez de decidir. Ver .flecha-hoja. -->
-  <button type="button" class="flecha-hoja flecha-l" id="flechaIzq" hidden
-          title="Hoja anterior" aria-label="Hoja anterior">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4 7.5 12 15 20"
-      fill="none" stroke="currentColor" stroke-width="2.4"
-      stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-  <button type="button" class="flecha-hoja flecha-r" id="flechaDer" hidden
-          title="Hoja siguiente" aria-label="Hoja siguiente">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 16.5 12 9 20"
-      fill="none" stroke="currentColor" stroke-width="2.4"
-      stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <!-- LAS DOS FLECHAS SON UN LETRERO, NO UN BOTÓN. Nacen apagadas y las
+       enciende un interruptor en LIBROS.
+
+       DEJARON DE SER BOTONES A PROPÓSITO, y es todo el cambio: no señalan a
+       dónde ir, señalan DÓNDE TOCAR. La hoja se pasa tocando el filo —o
+       arrastrándolo, que además la pliega con el dedo— y ese filo es
+       invisible: quien no lo sabe no lo descubre. Un botón encima resolvía el
+       problema de hoy y dejaba el de mañana, porque el lector aprendía el
+       botón y nunca el filo. La flecha apunta al filo con la punta pegada a
+       él, se toca el filo, sale la huella, y la hoja gira: el gesto que se
+       aprende es el bueno.
+
+       Por eso son <div> y no <button>: sin tabulador, sin foco, sin oyente de
+       clic, y con pointer-events en none para que el toque atraviese hasta el
+       filo que hay debajo. aria-hidden porque a un lector de pantalla no le
+       dice nada —él tiene las teclas de flecha, que sí funcionan—.
+       Ver .flecha-hoja. -->
+  <div class="flecha-hoja flecha-l" id="flechaIzq" aria-hidden="true" hidden>
+    <svg viewBox="0 0 24 24"><path d="M20 12H4M11 4 3 12l8 8"
+      fill="none" stroke="currentColor" stroke-width="3.4"
+      stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div class="flecha-hoja flecha-r" id="flechaDer" aria-hidden="true" hidden>
+    <svg viewBox="0 0 24 24"><path d="M4 12h16M13 4l8 8-8 8"
+      fill="none" stroke="currentColor" stroke-width="3.4"
+      stroke-linecap="round" stroke-linejoin="round"/></svg></div>
   <div id="menu"></div>
   <div id="readout"></div>
   <button class="btn" id="btnVolver" style="display:none">↩ volver</button>
@@ -3282,7 +3354,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '05-SEP-26 15:05';
+window.GLOSS_BUILD = '06-SEP-26 06:43';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5404,14 +5476,14 @@ function renderPageCrudo(){
   if (ghostBody) ghostBody.lang = idi;
   edgeR.classList.toggle('off', !hayHoja('right'));
   edgeL.classList.toggle('off', !hayHoja('left'));
-  /* Y LAS FLECHAS SE APAGAN DONDE NO HAY A DÓNDE IR, con la misma pregunta que
+  /* Y LAS FLECHAS SE QUITAN DONDE NO HAY A DÓNDE IR, con la misma pregunta que
      el filo y que los botones de la vista de lejos: no al final de un libro
-     —ahí empieza el siguiente— sino solo en Génesis por la izquierda y en
-     Apocalipsis por la derecha. Un botón encendido que no hace nada se lee
-     como que el toque no entró. Lo levantó Codex. */
+     —ahí empieza el siguiente— sino solo en el primer extremo de los datos y
+     en el último. Señalar una salida que no existe es peor que no señalar.
+     Se toca una clase y no `disabled`: ya no son botones. */
   const fi = $('flechaIzq'), fd = $('flechaDer');
-  if (fi) fi.disabled = !hayHoja('left');
-  if (fd) fd.disabled = !hayHoja('right');
+  if (fi) fi.classList.toggle('sin-hoja', !hayHoja('left'));
+  if (fd) fd.classList.toggle('sin-hoja', !hayHoja('right'));
   /* El canto marca el final del LIBRO, no el final de la lectura. Antes eran
      lo mismo y se preguntaba una sola vez; ahora, pasando la última hoja
      empieza el libro siguiente, así que el filo sigue encendido y el canto
@@ -8118,7 +8190,13 @@ function htmlPiedrasFoto(hojaN){
          una página. Lo levantó Codex. */
       return '<div style="position:absolute;left:' + (x.x * 100).toFixed(3) + '%;' +
         'top:' + (x.y * 100).toFixed(3) + '%;width:' + por + '%;aspect-ratio:1;' +
-        'margin:' + med + ' 0 0 ' + med + ';opacity:.82">' +
+        /* Y LA SOMBRA VIAJA A LA FOTO, o la piedra se aplanaría durante el
+           giro y volvería a levantarse al aterrizar: es el mismo brinco que
+           este archivo lleva media docena de comentarios evitando. Escrita a
+           pelo y no por clase, porque la foto no comparte esta hoja de
+           estilos —lleva la suya, PAGE_CSS— y .piedra no está en ella. */
+        'margin:' + med + ' 0 0 ' + med + ';opacity:' + (x.sombra ? '1' : '.82') +
+        (x.sombra ? ';filter:drop-shadow(5px 5px 10px rgba(0,0,0,.5))' : '') + '">' +
         piedraDibujo(x.forma, tintaDe(x.color)[2]) +
         /* Y EL NOMBRE TAMPOCO VA AQUÍ, porque ya no va en la hoja. Estuvo, y
            tenía que estar: lo que no está en el retrato desaparece durante el
@@ -10771,9 +10849,9 @@ const versiculosDe = (libro, cap) => {
    Toca las tres clases y no solo 'aqui' porque son excluyentes: dejar 'viva'
    puesta debajo daría un botón que dice dos cosas. */
 /* Encender y apagar las dos flechas. Se toca el atributo `hidden` y no una
-   clase: un botón oculto con hidden no lo alcanza el tabulador ni lo lee un
-   lector de pantalla, que es lo que hay que conseguir —una flecha apagada no
-   existe—; con display:none haría falta acordarse de eso aparte. */
+   clase, aunque ya no sean botones: hidden es la manera de decir «esto no
+   está» que entienden a la vez el navegador, el tabulador y quien lee el
+   marcado, y no hay que acordarse de tres cosas distintas. */
 function pintarFlechas(){
   const izq = $('flechaIzq'), der = $('flechaDer');
   if (izq) izq.hidden = !verFlechas;
@@ -10791,20 +10869,13 @@ $('canto').addEventListener('change', ev => {
   pintarFlechas();
   guardarAjustes();
 });
-/* LAS DOS FLECHAS. Pasan la hoja por el mismo camino que el filo y que las
-   teclas —pasarHoja, o sea con pliegue— porque una hoja que aparece sin haber
-   girado no se lee como una hoja que pasa. La altura que se le pasa es la del
-   propio botón: es la que usa cruzarLibro para saber por dónde entra la hoja
-   del libro siguiente, y aquí lo honesto es decir por dónde se tocó. */
-for (const [id, lado] of [['flechaIzq', 'left'], ['flechaDer', 'right']]){
-  const b = $(id);
-  if (!b) continue;
-  b.addEventListener('click', ev => {
-    ev.preventDefault(); ev.stopPropagation();
-    const r = b.getBoundingClientRect();
-    pasarHoja(lado, r.top + r.height / 2);
-  });
-}
+/* AQUÍ HUBO UN OYENTE DE CLIC EN CADA FLECHA, y quitarlo es el encargo.
+
+   Las flechas pasaban hoja por sí solas. Funcionaba, y por eso era el problema:
+   el lector aprendía a tocar la flecha y no se enteraba nunca de que el filo
+   pasa hoja y además la pliega con el dedo. Ahora la flecha señala el filo y
+   se calla; el toque lo recoge el filo, que ya estaba ahí. Con pointer-events
+   en none el toque ni siquiera llega hasta aquí. */
 function refrescarLibroActual(){
   document.querySelectorAll('#canto [data-libro]').forEach(b => {
     const vivo = hayLibro(b.dataset.libro), aqui = b.dataset.libro === LIBRO;
@@ -12000,6 +12071,10 @@ function piedraSanear(x){
     color: PIEDRA_TINTAS.some(t => t[0] === x.color) ? x.color : PIEDRA_TINTAS[0][0],
     creado: +x.creado || Date.now(), tocado: +x.tocado || Date.now()
   };
+  /* LA SOMBRA SOLO EXISTE SI ESTÁ PUESTA, igual que el nombre y por lo mismo:
+     una piedra sin sombra no guarda la clave, así que el archivo de quien no
+     usa la sombra —que es como nacen todas— sigue siendo el de siempre. */
+  if (x.sombra === true) r.sombra = true;
   /* EL NOMBRE SOLO EXISTE SI LO HAY. Una piedra sin nombre no guarda la clave
      vacía: es como nacen todas, y así el archivo de quien no nombra ninguna
      sigue siendo el de siempre. Igual que las cintas. */
@@ -12147,14 +12222,32 @@ const PIEDRA_SVG = {
      sin el pico, una mancha.
      Se dibujó y se miró a 24, 40 y 120 px antes de cambiarla: a 120 se juzga
      el dibujo, a 24 se juzga si sirve, y las dos cosas hay que verlas. */
+  /* Y CON SU RAMA DE OLIVO: LA PALOMA DE LA PAZ. Pedido, y no es un adorno:
+     una paloma sola es un pájaro blanco y la rama es lo que la convierte en LA
+     paloma, la que vuelve al arca. El cuerpo se corrió dos píxeles y medio a
+     la izquierda para hacerle sitio a la rama sin que se salga de la caja.
+
+     LAS HOJAS VAN VERDES, con el mismo verde escrito a pelo que la hoja del
+     racimo —#4d6a35— y por la misma razón que allí: una hoja carmín no es una
+     hoja. Es la segunda y última figura que rompe la regla de pintarse entera
+     del color de su piedra. El fruto de la analogía aquí es el ave: ella sí
+     toma el color que le pongas.
+     A 24 px la rama es una mota verde junto al pico, que es lo que hace
+     cualquier icono de paloma de la paz a ese tamaño; a tamaño grande se leen
+     las tres hojas. */
   paloma:
-    '<circle cx="18.2" cy="5.4" r="2.5" fill="currentColor"/>' +
-    '<path d="M20.4 4.1 24 5.4 20.4 6.7z" fill="currentColor"/>' +
-    '<path d="M17.1 7.4c1.4 2.1 1.3 4.5-.3 7.1-1.7 2.9-4.5 4.9-8.4 6.1l-5.6 1.6' +
-    'c-.8.2-1.4-.8-.7-1.3l4.6-3.2-4.3-.4c-.9-.1-1.1-1.3-.2-1.6l5-1.8c2.8-1 4.8-2.3 6.3-4' +
-    ' .8-.8 1.7-1.7 3.1-2.6z" fill="currentColor"/>' +
-    '<path d="M15.1 8.5c0 3.1-1.3 5.5-3.7 7.3-1.5-2.9-1-5.5 1.5-7.9z" fill="#fff"' +
-    ' fill-opacity=".33"/>',
+    '<circle cx="15.6" cy="5.2" r="2.4" fill="currentColor"/>' +
+    '<path d="M17.7 4 20.9 5.2 17.7 6.4z" fill="currentColor"/>' +
+    '<path d="M14.6 7.1c1.3 2 1.2 4.3-.3 6.8-1.6 2.8-4.3 4.7-8 5.8l-5.3 1.6' +
+    'c-.8.2-1.3-.8-.7-1.2l4.4-3.1-4.1-.4c-.9-.1-1-1.2-.2-1.5l4.8-1.7c2.7-1 4.6-2.2 6-3.8' +
+    ' .8-.8 1.6-1.6 3-2.5z" fill="currentColor"/>' +
+    '<path d="M12.7 8.1c0 3-1.2 5.3-3.5 7-1.4-2.8-1-5.3 1.4-7.6z" fill="#fff"' +
+    ' fill-opacity=".33"/>' +
+    '<path d="M20.7 5.2c1.3.2 2.3.8 3 1.9" fill="none" stroke="#4d6a35"' +
+    ' stroke-width="1.1" stroke-linecap="round"/>' +
+    '<path d="M21.4 3.6c.9-.1 1.5.3 1.9 1.2-.9.5-1.6.4-2.1-.4z" fill="#4d6a35"/>' +
+    '<path d="M22.8 5.6c.8.2 1.2.8 1.2 1.7-1 .1-1.6-.2-1.8-1.1z" fill="#4d6a35"/>' +
+    '<path d="M20.1 6.5c.7-.4 1.4-.3 2 .3-.6.7-1.3.8-2 .2z" fill="#4d6a35"/>',
   espiga:
     '<path d="M11.3 22.3V9.9" fill="none" stroke="currentColor" stroke-width="2"' +
     ' stroke-linecap="round"/>' +
@@ -12203,10 +12296,16 @@ const PIEDRA_SVG = {
      —un hueco de papel entre las dos— porque pegada se convierte en un
      pentágono con la punta rota; separada, el ojo lee dos piezas y entiende
      que una es el aro. Por qué la lámpara se fue está en FORMA_VIEJA. */
+  /* SIMÉTRICA RESPECTO A x=12, Y ESO HUBO QUE ARREGLARLO. La primera salió
+     con el aro de abajo centrado en 12 y el cuerpo en 11: un píxel de
+     diferencia que a 24 px no se ve y a tamaño grande se ve enseguida —el pie
+     asomaba más por un lado que por el otro—. Ahora los tres pares se miran:
+     puntas 2.4↔21.6, base del cuerpo 4↔20, valles 7.6↔16.4, y el aro
+     4.4↔19.6. Cambiar cualquiera de esos números pide cambiar su pareja. */
   corona:
-    '<path d="M2.6 6.8c-.8-.4-1.7.4-1.4 1.3l3 10h13.6l3-10c.3-.9-.6-1.7-1.4-1.3' +
-    'l-4.8 2.7-3.3-5.8c-.4-.8-1.5-.8-1.9 0L6.1 9.5z" fill="currentColor"/>' +
-    '<path d="M4.2 19.6h15.6v2.8H4.2z" fill="currentColor"/>',
+    '<path d="M2.4 6.9c-.9-.5-1.9.4-1.6 1.4L4 18.1h16l3.2-9.8c.3-1-.7-1.9-1.6-1.4' +
+    'l-5.2 2.7-3.5-6c-.4-.7-1.4-.7-1.8 0L7.6 9.6z" fill="currentColor"/>' +
+    '<path d="M4.4 19.6h15.2v2.8H4.4z" fill="currentColor"/>',
   llave:
     '<circle cx="6.9" cy="6.9" r="5" fill="currentColor"/>' +
     '<circle cx="6.9" cy="6.9" r="1.9" fill="#fff" fill-opacity=".85"/>' +
@@ -12871,7 +12970,8 @@ function pintarPiedras(){
         ' style="left:' + (x.x * 100).toFixed(3) + '%;top:' + (x.y * 100).toFixed(3) + '%' +
         ';--piedra-tam:' + por + '%"' +
         ' data-piedra="' + esc(x.id) + '">' +
-      '<button type="button" class="piedra" data-piedra-cuerpo="' + esc(x.id) + '"' +
+      '<button type="button" class="piedra' + (x.sombra ? ' con-sombra' : '') +
+        '" data-piedra-cuerpo="' + esc(x.id) + '"' +
         ' style="color:' + compensarTinta(tintaDe(x.color)[2]) + '"' +
         ' aria-label="' + esc(piedraVoz(x)) + '. Doble toque para moverla."' +
         ' title="' + esc(piedraVoz(x)) + '">' + piedraDibujo(x.forma) + '</button>' +
@@ -12945,6 +13045,26 @@ function pintarPiedraMando(){
          visible. El nombre existe para reconocerlas en su LISTA, y ahí es
          donde se pone: doble toque en su fila. Un solo sitio para nombrar en
          vez de dos que hay que mantener iguales. */
+    '</div>' +
+    /* EL RENGLÓN DE ABAJO: LA SOMBRA, Y CÓMO SE SALE.
+
+       Hasta ahora del mando se salía por el aspa de la esquina o tocando
+       fuera, y las dos dejan puesto lo que hubieras tocado. Faltaba lo otro:
+       DESHACER. «Cancelar» devuelve la piedra a como estaba cuando se abrió
+       la edición —figura, color, tamaño, sitio y sombra— que es lo que
+       convierte el mando en un sitio donde se puede probar. Con solo el aspa,
+       cada toque en una figura era definitivo y probar salía caro.
+
+       El aspa se queda: es la salida de la esquina, la misma que en los otros
+       paneles, y hace lo mismo que OK. Dos maneras de aceptar y una de
+       deshacer, que es el reparto de siempre. */
+    '<div class="pm-abajo">' +
+      '<label class="pm-sombra"><input type="checkbox" data-piedra-sombra="1"' +
+        (x.sombra ? ' checked' : '') + ' /><span>sombra</span></label>' +
+      '<span class="pm-salidas">' +
+        '<button type="button" class="pm-btn2" data-piedra-acc="cancelar">Cancelar</button>' +
+        '<button type="button" class="pm-btn2 pm-ok" data-piedra-acc="ok">OK</button>' +
+      '</span>' +
     '</div>';
 }
 /* Se coloca como el menú de la cinta: pegado a la piedra si cabe, encima si no
@@ -12969,7 +13089,27 @@ function colocarPiedraMando(){
   el.style.left = Math.round(izq) + 'px';
   el.style.top = Math.round(arr) + 'px';
 }
+/* CÓMO ESTABA LA PIEDRA AL ABRIR EL MANDO, para poder deshacer.
+
+   Se guarda una COPIA y no la piedra: piedraDe devuelve el objeto vivo, así
+   que apuntarlo sería apuntar a algo que va cambiando con cada toque y
+   «Cancelar» restauraría el estado final contra sí mismo, o sea nada. Se copia
+   lo que el mando puede tocar y también el SITIO, porque la piedra se arrastra
+   con el mando puesto y eso también es parte de lo que se estaba probando.
+
+   SE APUNTA AQUÍ Y NO EN piedraAbrirEdicion, y esto lo encontró una sonda al
+   primer intento: una piedra recién puesta NACE EN EDICIÓN, así que cuando se
+   le hace doble toque piedraAbrirEdicion se encuentra con que ya la está
+   editando y se va por su salida de arriba sin apuntar nada. Resultado:
+   Cancelar no deshacía justo en el caso más frecuente —acabas de poner una,
+   pruebas cuatro figuras y quieres volver—. Este es el único sitio por el que
+   pasan los dos caminos, el del doble toque y el del nacimiento. */
+let piedraComoEstaba = null;
 function abrirPiedraMando(){
+  const x0 = piedraDe(piedraEditando);
+  piedraComoEstaba = x0 ? { id: piedraEditando, forma:x0.forma, color:x0.color,
+                            tam:x0.tam, x:x0.x, y:x0.y, sombra: x0.sombra === true }
+                        : null;
   const el = $('piedraMando');
   pintarPiedraMando();
   el.style.display = 'flex';
@@ -13023,6 +13163,34 @@ function quitarPiedra(id){
   pintarPiedras();
   if (typeof pintarPiedrero === 'function') pintarPiedrero();
   readout.textContent = 'piedra quitada';
+}
+/* DESHACER: la piedra vuelve a como estaba y se cierra. Si por lo que sea no
+   hay copia —una edición que empezó antes de este código, un id que ya no
+   existe— cerrar sin tocar nada es lo honesto: mejor no deshacer que deshacer
+   a ciegas. */
+function piedraCancelarEdicion(){
+  const c = piedraComoEstaba;
+  const x = c && piedraDe(c.id);
+  if (x){
+    x.forma = c.forma; x.color = c.color; x.tam = c.tam;
+    x.x = c.x; x.y = c.y;
+    if (c.sombra) x.sombra = true; else delete x.sombra;
+    x.tocado = Date.now();
+    piedrasGuardar();
+  }
+  piedraCerrarEdicion();
+  if (typeof pintarPiedrero === 'function') pintarPiedrero();
+}
+/* La sombra: maciza y levantada, o de vuelta a plana. */
+function piedraPonerSombra(id, si){
+  const x = piedraDe(id);
+  if (!x) return;
+  if (si) x.sombra = true; else delete x.sombra;
+  x.tocado = Date.now();
+  piedrasGuardar();
+  pintarPiedras();
+  pintarPiedraMando();
+  if (typeof pintarPiedrero === 'function') pintarPiedrero();
 }
 function piedraCerrarEdicion(){
   if (!piedraEditando) return;
@@ -13269,9 +13437,15 @@ stage.addEventListener('click', ev => {
   /* Dentro del campo del nombre no hay nada que hacer aquí: poner el cursor a
      media palabra es escribir, no pulsar. */
   if (ev.target.closest('[data-piedra-nombre]')) return;
+  /* LA CASILLA DE LA SOMBRA NO SE ATIENDE AQUÍ. Es un <input>, y su cambio
+     llega por 'change', que es el único evento que dice de verdad si quedó
+     marcada. Atenderla en el clic obligaría a adivinar el estado siguiente y
+     dejaría fuera al teclado, que la marca con la barra espaciadora. */
+  if (ev.target.closest('[data-piedra-sombra]')) return;
   /* EL ASPA. Es la misma pieza que cierra los dos paneles de listas, pero
      aquellos los cierra el oyente de SU panel: éste no pasa por ahí, así que
-     su cierre se atiende aquí. Cerrar el mando es dejar de editar. */
+     su cierre se atiende aquí. Cerrar el mando es dejar de editar, lo mismo
+     que el OK de abajo. */
   if (ev.target.closest('[data-sp-cerrar]')){
     ev.preventDefault(); ev.stopPropagation();
     piedraCerrarEdicion();
@@ -13302,6 +13476,10 @@ stage.addEventListener('click', ev => {
   if (!acc) return;
   ev.preventDefault(); ev.stopPropagation();
   const cual = acc.dataset.piedraAcc;
+  /* Los dos que CIERRAN se atienden antes que nada y se van: después de
+     cerrar no queda mando al que devolverle el foco. */
+  if (cual === 'ok'){ piedraCerrarEdicion(); return; }
+  if (cual === 'cancelar'){ piedraCancelarEdicion(); return; }
   if (cual === 'menos') piedraTamano(id, -1);
   else if (cual === 'mas') piedraTamano(id, +1);
   /* AQUÍ HUBO UN 'quitar' y ya no hay. Borraba en el acto, sin preguntar, desde
@@ -13330,6 +13508,14 @@ function devolverFocoPiedraMando(tenia, sel){
    había y suelta el foco, pero no cierra la edición: el Escape general vive en
    el documento y se lleva el panel entero, que no es lo que se pide al
    arrepentirse de una palabra a medio escribir. Por eso se corta aquí. */
+$('piedraMando').addEventListener('change', ev => {
+  const c = ev.target.closest('[data-piedra-sombra]');
+  if (!c || !piedraEditando) return;
+  piedraPonerSombra(piedraEditando, c.checked);
+  /* El repintado se lleva la casilla por delante; se le devuelve el foco a la
+     que ocupa su sitio, como se hace con los demás mandos de este panel. */
+  devolverFocoPiedraMando(true, '[data-piedra-sombra]');
+});
 $('piedraMando').addEventListener('keydown', ev => {
   const campo = ev.target.closest('[data-piedra-nombre]');
   if (!campo) return;
