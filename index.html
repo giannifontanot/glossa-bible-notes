@@ -133,29 +133,30 @@
                      box-shadow:5px 5px 10px rgba(0,0,0,.5); }
   .pt-foto.polaroid img{ max-width:min(52vw, 300px); max-height:min(34vh, 300px); }
 
-  /* LAS PIEDRAS DE LA PORTADA. Su capa cubre la portada entera y NO recibe
-     toques salvo cuando se está decorando: si los recibiera siempre, la tapa
-     se comería el toque que la quita. */
+  /* LAS PIEDRAS DE LA PORTADA. La capa NUNCA recibe toques —cubre la tapa
+     entera, y si los recibiera se comería el toque que quita la portada— y las
+     piedras sí, siempre: son botones de verdad, como los de la hoja. Aquí hubo
+     un «modo de decorar» que encendía la capa entera para poder tocar donde
+     dejar la piedra; se quitó, y con él el que la capa tapara el pie. */
   #portadaPiedras{ position:absolute; inset:0; z-index:4; pointer-events:none; }
-  #portada.decorando #portadaPiedras{ pointer-events:auto; cursor:crosshair; }
   .pt-piedra{ position:absolute; transform:translate(-50%, -50%);
               width:var(--pt-tam, 46px); aspect-ratio:1;
               display:block; padding:0; border:0; background:none;
-              pointer-events:none; touch-action:none; }
+              touch-action:none; }
   /* LA SOMBRA ES DE LA PIEDRA QUE LA LLEVA, no de todas. La llevaban todas
      puesta desde el CSS, que estaba bien mientras no se podían editar; ahora
      es una casilla del mando, como en la hoja. */
   .pt-piedra.con-sombra{ filter:drop-shadow(5px 5px 10px rgba(0,0,0,.5)); }
-  #portada.decorando .pt-piedra{ pointer-events:auto; cursor:pointer; }
+  .pt-piedra{ pointer-events:auto; cursor:pointer; }
   .pt-piedra svg{ display:block; width:100%; height:100%; }
-  /* Decorando, cada piedra puesta enseña que responde al toque. */
-  #portada.decorando .pt-piedra:hover{ outline:2px dashed rgba(232,213,163,.75);
-                                       outline-offset:3px; border-radius:4px; }
+  /* Cada piedra puesta enseña que responde al toque. */
+  .pt-piedra:hover{ outline:2px dashed rgba(232,213,163,.75);
+                    outline-offset:3px; border-radius:4px; }
   /* Y LA QUE SE ESTÁ EDITANDO SE DISTINGUE, que si no el mando parece hablar
      de todas. Es el mismo aviso que la de la hoja: un cerco vivo alrededor. */
   .pt-piedra.editando{ outline:2px solid rgba(232,213,163,.95); outline-offset:3px;
                        border-radius:4px; }
-  #portada.decorando .pt-piedra.editando{ cursor:grab; }
+  .pt-piedra.editando{ cursor:grab; }
 
   /* LOS DOS MANDOS. Se apoyan sobre el pie, ocupan el ancho disponible y no
      pasan de la mitad del alto: con catorce figuras y doce colores hay que
@@ -615,8 +616,11 @@
      A media altura porque es donde cae el pulgar sin mover la mano, y porque
      arriba está el titulillo y abajo el rótulo de la versión.
 
-     EL ROJO SALE DE LA PALETA DE PIEDRAS —«carmín vivo»— y no de un número
-     escrito aquí. Antes era un #e01b1b puesto a ojo, y un color suelto que no
+     EL ROJO SALE DE LA PALETA DE PIEDRAS —«carmín», no «carmín vivo»— y no de
+     un número escrito aquí. Empezó en carmín vivo y deslumbraba: dos galones
+     de rojo puro a los lados del texto tiran de la vista más que el propio
+     texto, y esto es un letrero que se mira una vez, no un adorno. El carmín
+     de la paleta señala igual sin gritar. Antes era un #e01b1b puesto a ojo, y un color suelto que no
      usa nadie más es un color que se queda atrás en cuanto la paleta se
      retoca. La variable la escribe el programa desde PIEDRA_TINTAS al
      arrancar, así que hay UN solo sitio donde vive ese rojo; el hex de aquí es
@@ -624,7 +628,7 @@
   .flecha-hoja{ position:absolute; top:50%; z-index:4;
                 width:17px; height:34px; margin-top:-17px;
                 display:grid; place-items:center;
-                pointer-events:none; color:var(--rojo-galon, #d80b0b);
+                pointer-events:none; color:var(--rojo-galon, #9b2a2a);
                 transition:opacity .28s ease; }
   /* Y APAGADAS QUIERE DECIR APAGADAS. Esta línea parece de más y es el arreglo
      entero de un fallo que se vio en una foto: el atributo `hidden` esconde
@@ -2520,16 +2524,18 @@
      las que hacen que el libro bajo el dedo crezca en vez de dar un salto, y
      las que hacen que sus vecinos se aparten poco a poco en lugar de
      teletransportarse. Ver .tabo.bajoeldedo. */
-  /* EL NOMBRE NO SE SELECCIONA, y sin esto la lupa no sirve para nada. El
-     gesto de la lupa es arrastrar el dedo por encima de los libros, y arrastrar
-     por encima de texto es, para el navegador, SELECCIONARLO: al recorrer la
-     lista se iban quedando media docena de nombres en azul de selección, encima
-     de lo que se está intentando leer. La función entera quedaba inservible por
-     un comportamiento que nadie pidió.
-     Va en la rejilla entera y no solo en el botón: la selección se estira entre
-     elementos, así que basta con que el hueco de en medio sea seleccionable
-     para que arrastre a los dos de al lado. */
-  .rejilla-libros, .tabo{ -webkit-user-select:none; user-select:none; }
+  /* AQUÍ HUBO UN user-select:none SOBRE LA REJILLA Y LOS BOTONES, y se ha
+     quitado a petición del dueño del repo: no funcionaba bien.
+
+     Se puso para que arrastrar el dedo por la lista —el gesto de la lupa— no
+     fuera dejando nombres en azul de selección. El problema que resolvía era
+     real, pero el remedio salió peor que la enfermedad en el aparato de
+     verdad, que es donde se juzga esto.
+
+     Queda escrito para que no se vuelva a poner sin más: si el subrayado azul
+     vuelve a molestar, hay que atacarlo por otro lado —cancelar la selección
+     al empezar el gesto de la lupa, y solo mientras dure— y no apagando la
+     selección de toda la lista, que es lo que aquí no valió. */
   .tabo{ position:relative; flex:0 0 auto; border:0; padding:0 7px; height:18px;
          cursor:pointer; font:400 9.5px/18px var(--ui); color:#4a3a1c; letter-spacing:.01em;
          background:rgba(255,253,247,.62); border-radius:2px;
@@ -3535,7 +3541,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 14:14';
+window.GLOSS_BUILD = '06-SEP-26 14:58';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -12418,17 +12424,20 @@ const PIEDRA_SVG = {
      A 24 px la rama es una mota verde junto al pico, que es lo que hace
      cualquier icono de paloma de la paz a ese tamaño; a tamaño grande se leen
      las tres hojas. */
-  /* LA PALOMA VA BLANCA, y es la única de las catorce que no se llena del color
-     elegido. Una paloma de la paz marrón no es una paloma de la paz.
+  /* LA PALOMA VA BLANCA Y EL COLOR SE LO LLEVA LA RAMA. Es la única de las
+     catorce repartida así, y las dos mitades tienen su razón.
 
-     PERO EL PERFIL SÍ LLEVA EL COLOR, y no es un apaño: una paloma blanca sin
-     línea sobre papel crema no se ve —el papel es #f4ecd8, no blanco—, así que
-     el contorno hace falta de todas formas. Poniéndolo en currentColor, el
-     color que se elige en la paleta sigue haciendo algo: dibuja la línea en vez
-     de rellenar. Es la misma figura en trece colores, como las demás.
+     EL AVE, BLANCA CON PERFIL FIJO. Una paloma de la paz marrón no es una
+     paloma de la paz, así que el cuerpo no se llena del color elegido; y una
+     paloma blanca sin línea no se ve sobre papel crema —el papel es #f4ecd8,
+     no blanco—, así que lleva contorno. Ese contorno va en un sepia fijo, el de
+     la tinta de la hoja, para que la paloma sea siempre la misma paloma.
 
-     La rama va en verde oliva fijo, como la hoja de la uva: es una oliva, y una
-     oliva azul no dice nada.
+     LA RAMA, EN currentColor. Aquí estuvo al revés —perfil de color y rama
+     verde fija— y el dueño del repo lo corrigió: lo que cambia de color es la
+     rama. Tiene sentido y es lo que hace que la figura siga sirviendo en trece
+     colores sin dejar de ser una paloma: el ave se queda quieta y lo que se
+     elige es de qué color es lo que trae en el pico.
 
      LA ANTERIOR ERA UNA SILUETA MACIZA y a tamaño de piedra parecía un pez o un
      pájaro cualquiera. Ésta se compone de piezas: cuerpo y cola de una tirada,
@@ -12442,7 +12451,7 @@ const PIEDRA_SVG = {
        recuadro de cada trazo MÁS medio grosor, que getBoundingClientRect no
        cuenta— y de ahí salen la escala y el desplazamiento. Lo levantó Codex. */
     '<g transform="translate(2.38,1.64) scale(.93)">' +
-      '<g fill="#fff" stroke="currentColor" stroke-width="1.05"' +
+      '<g fill="#fff" stroke="#6d5a2c" stroke-width="1.05"' +
          ' stroke-linejoin="round" stroke-linecap="round">' +
         /* cuerpo, cuello y cola de una sola tirada */
         '<path d="M6.4 4.6a2.6 2.6 0 0 0-2.5 3.1c.1.7.5 1.3 1.1 1.7' +
@@ -12453,13 +12462,15 @@ const PIEDRA_SVG = {
         '<path d="M9.7 11c1.2-3.7 3.8-6.1 7.9-7.2 1 4.2-.7 7-4.9 8.5' +
           '-1.8.6-2.8.1-3-1.3z"/>' +
       '</g>' +
-      '<path d="M4 5.9 1.3 7l2.7 1z" fill="currentColor"/>' +
-      '<circle cx="6.5" cy="6.4" r=".62" fill="currentColor"/>' +
-      /* la ramita de oliva, del pico hacia arriba */
-      '<path d="M2.3 6.6C1.9 5.3 2.1 4.2 2.9 3.3" fill="none" stroke="#5d7a33"' +
+      '<path d="M4 5.9 1.3 7l2.7 1z" fill="#6d5a2c"/>' +
+      '<circle cx="6.5" cy="6.4" r=".62" fill="#6d5a2c"/>' +
+      /* LA RAMITA, del pico hacia arriba, y es la que lleva el color elegido. */
+      '<path d="M2.3 6.6C1.9 5.3 2.1 4.2 2.9 3.3" fill="none" stroke="currentColor"' +
         ' stroke-width=".95" stroke-linecap="round"/>' +
       '<g transform="translate(2.8,3.5) rotate(8)">' +
-        '<path d="M0 0c-.3-2.4.9-4 3.6-4.8.8 2.6-.3 4.3-2.8 5z" fill="#5d7a33"/>' +
+        '<path d="M0 0c-.3-2.4.9-4 3.6-4.8.8 2.6-.3 4.3-2.8 5z" fill="currentColor"/>' +
+        /* El nervio en blanco translúcido, que es el recurso de toda la casa
+           para dar detalle sin ensuciar la silueta de lejos. */
         '<path d="M.6 .1C1.5-1.2 2.4-2.2 3.4-3" fill="none" stroke="#fff"' +
           ' stroke-opacity=".5" stroke-width=".55" stroke-linecap="round"/>' +
       '</g>' +
@@ -15877,9 +15888,8 @@ const t0Portada = performance.now();
    sabiendo irse y sabiendo pararse.
 
    EL RELOJ SE PARA Y SIGUE DONDE ESTABA, no vuelve a empezar. Es la diferencia
-   entre un botón de pausa y uno de reinicio, y con segundo y tres cuartos de
-   cuenta se nota: reiniciando, cada «continue» sería otro segundo y tres
-   cuartos de espera.
+   entre un botón de pausa y uno de reinicio, y se nota: reiniciando, cada
+   «continue» costaría la cuenta entera otra vez.
 
    Y EL TECHO DURO SE SUSPENDE MIENTRAS SE ESPERA. Ese plazo existe para que
    una excepción en el arranque no deje al lector mirando una tapa que no se
@@ -15887,7 +15897,7 @@ const t0Portada = performance.now();
    arrancársela a los seis segundos con la caja de piedras abierta sería el
    fallo más tonto de todo esto.
    ============================================================ */
-const PORTADA_ESPERA = 1750;      /* lo que dura la tapa si nadie la toca */
+const PORTADA_ESPERA = 3000;      /* lo que dura la tapa si nadie la toca */
 let portadaReloj = null;          /* el temporizador vivo, o null */
 let portadaVence = 0;             /* cuándo vence, en tiempo de performance */
 let portadaResto = 0;             /* lo que faltaba al parar */
@@ -15920,16 +15930,6 @@ function portadaSeguir(){
      mirando, así que si algo se atasca la mesa se destapa igual. */
   clearTimeout(portadaTecho);
   portadaTecho = setTimeout(() => { try { quitarPortada(); } catch(e){} }, 8000);
-}
-/* El botón de las piedras dice en qué estado está, que es lo único que
-   distingue «decorando» de no decorando cuando aún no hay ninguna puesta. */
-function portadaPintarPiedrasBoton(){
-  const b = document.getElementById('btnPortadaPiedras');
-  const p = document.getElementById('portada');
-  if (!b || !p) return;
-  const puesto = p.classList.contains('decorando');
-  b.textContent = puesto ? 'Listo' : 'Piedras';
-  b.setAttribute('aria-pressed', puesto ? 'true' : 'false');
 }
 function portadaPintarHold(){
   const b = document.getElementById('btnPortadaHold');
@@ -16109,8 +16109,6 @@ function portadaCerrarMandos(){
   const mf = document.getElementById('portadaMandoFoto');
   if (mf){ mf.hidden = true; mf.innerHTML = ''; }
   const p = document.getElementById('portada');
-  if (p) p.classList.remove('decorando');
-  portadaPintarPiedrasBoton();
 }
 /* CERRAR DE VERDAD ES OTRA COSA QUE CERRAR LOS PANELES, y confundirlas costó
    una sonda entera. portadaAbrirMando cierra los dos paneles antes de abrir el
@@ -16120,27 +16118,47 @@ function portadaCerrarMandos(){
    siguiente ya no es suyo.
    Esto es lo que llaman los botones que SÍ terminan: Listo, OK, Cancelar,
    Quitar, y «continue» cuando la portada se va. */
+/* Terminar con la portada: se cierran los paneles y, si había una piedra en
+   edición, se cierra por su puerta —la del mando de siempre, que además
+   devuelve el panel a la escena—. */
 function portadaSalirDeDecorar(){
   portadaCerrarMandos();
-  /* Y si había una piedra en edición, se cierra por su puerta: la del mando de
-     siempre, que además devuelve el panel a la escena. */
   if (piedraTaller === TALLER_PORTADA && piedraEditando) piedraCerrarEdicion();
 }
 /* «Piedras» ya no abre ningún panel: enciende el modo de dejar piedras y lo
    dice. El panel es el de cada piedra, y se abre solo al poner una o al darle
    doble toque. */
-function portadaDecorarPiedras(){
+/* «PIEDRAS» HACE LO MISMO QUE «NUEVA» EN LA HOJA: deja una piedra y abre su
+   mando. Ni más ni menos.
+
+   AQUÍ HUBO UN MODO DE DECORAR —se encendía, la portada entera se volvía
+   sensible al toque, y se tocaba donde se quisiera dejar la piedra— y se ha
+   quitado entero a petición del dueño del repo, que tenía razón: era inventar
+   una manera nueva de hacer algo que esta aplicación ya sabe hacer. Y de paso
+   se lleva sus problemas, que no eran pocos: la capa tapaba los botones del
+   pie, el toque en un <div> pelado no llega en un teléfono, y había que
+   acordarse de apagar el modo.
+
+   Nacen corridas en diagonal como las de la hoja y por lo mismo: todas en el
+   mismo punto y la segunda aparece tapada por la primera, que parece que no se
+   ha puesto. */
+function portadaPiedraNueva(){
   const p = document.getElementById('portada');
-  if (!p) return;
-  /* ENCIENDE Y APAGA. Sin el panel de antes ya no hay «Listo» donde salir, así
-     que el propio botón es la puerta por los dos lados: se toca para empezar a
-     poner piedras y se vuelve a tocar para dejar de ponerlas. */
-  if (p.classList.contains('decorando')){ portadaSalirDeDecorar(); return; }
+  if (!p) return null;
   portadaCerrarMandos();
   portadaParar();
-  p.classList.add('decorando');
-  portadaPintarPiedrasBoton();
-  readout.textContent = 'toca la portada para dejar una piedra';
+  if (portadaAdorno.piedras.length >= 40){
+    readout.textContent = 'la portada ya está llena de piedras';
+    return null;
+  }
+  const n = portadaAdorno.piedras.length % 6;
+  const x = Object.assign({ id: portadaNombreNuevo() }, PORTADA_PIEDRA_NUEVA, {
+    x: Math.min(.92, .38 + n * .055), y: Math.min(.92, .34 + n * .045)
+  });
+  portadaAdorno.piedras.push(x);
+  portadaGuardar();
+  portadaAbrirEdicion(x.id);
+  return x;
 }
 /* Abrir cualquiera de los dos PARA EL RELOJ. Decorar contra una cuenta de
    segundo y tres cuartos no es decorar, es una carrera. */
@@ -16150,8 +16168,6 @@ function portadaAbrirMando(id){
   const el = document.getElementById(id);
   if (el){ el.hidden = false; el.classList.toggle('arriba', portadaMandoArriba); }
   const p = document.getElementById('portada');
-  if (p) p.classList.add('decorando');
-  portadaPintarPiedrasBoton();
   return el;
 }
 
@@ -16295,7 +16311,7 @@ function portadaTomarArchivo(file){
     }
     if (en('#btnPortadaPiedras')){
       ev.stopPropagation();
-      portadaDecorarPiedras();
+      portadaPiedraNueva();
       return;
     }
 
@@ -16328,66 +16344,38 @@ function portadaTomarArchivo(file){
     /* Las piedras NO se atienden aquí. Ver el oyente de puntero de abajo. */
   });
 
-  /* ---------- PONER Y QUITAR PIEDRAS: CON EL PUNTERO, NO CON EL CLIC ----------
+  /* ---------- LOS GESTOS SOBRE UNA PIEDRA DE LA PORTADA ----------
 
-     ESTO ES LA REGLA DE LA CASA APRENDIDA OTRA VEZ, y en el sitio donde menos
-     se esperaba. En el teléfono se abría la caja de piedras, se elegía figura
-     y color, y tocar la portada NO DEJABA NADA. Con ratón iba bien.
+     ARRASTRAR MUEVE Y TOCAR CAMBIA LA FIGURA, y las dos cosas SOLO cuando esa
+     piedra está en edición; el doble toque es lo que la despierta. Es palabra
+     por palabra el trato de las piedras de la hoja, que es de lo que se trata:
+     una sola manera de manejar piedras en toda la aplicación.
 
-     La razón es qué es cada cosa. Todo lo demás de la portada —foto, hold,
-     Piedras, las catorce figuras, los doce colores, y cada piedra ya puesta—
-     es un <button>: un control de verdad, y a un control el teléfono le
-     sintetiza su clic. La CAPA no lo es. Es un <div> pelado, y un teléfono
-     —iOS a la cabeza— solo se inventa el clic sobre lo que considera tocable:
-     un enlace, un control, algo con su propio oyente o con cursor:pointer. Un
-     oyente delegado en un ancestro NO cuenta para esa cuenta. Así que el
-     toque en la capa se quedaba sin clic y no llegaba aquí nunca.
+     AQUÍ HUBO ADEMÁS UN TOQUE EN EL HUECO PARA DEJAR UNA NUEVA, y se ha
+     quitado: las nuevas salen del botón «Piedras», igual que las de la hoja
+     salen de «Nueva». Con él se va el último sitio donde esto dependía de que
+     un teléfono sintetice el clic sobre un <div> pelado, que es la clase de
+     apaño que esta carpeta lleva media docena de comentarios evitando.
 
-     Y por eso tampoco lo vio la prueba: manda clics de ratón, y el ratón sí
-     los produce. Un evento despachado a mano siempre llega, y el de un
-     teléfono no. La prueba de esto tiene que mandar el toque SIN clic.
-
-     pointerup llega en los tres —ratón, dedo y lápiz— y por eso es lo que se
-     escucha ahora. Se quitan del clic las dos cosas, poner y quitar, para que
-     no haya dos caminos que hagan lo mismo: en el escritorio llegarían los dos
-     y la piedra se pondría por duplicado.
-
-     Y SE MIRA QUE EL DEDO NO SE HAYA MOVIDO, con los mismos seis píxeles que
-     usa la piedra de la hoja: arrastrar el dedo por la pantalla no es posar
-     una piedra, y el temblor de un dedo al posarse no es un arrastre. */
-  /* ARRASTRAR MUEVE, TOCAR CAMBIA LA FORMA, DOBLE TOQUE EDITA, y el toque en
-     el hueco deja una nueva. Es palabra por palabra el trato de las piedras de
-     la hoja, que es lo que se pidió: allí una piedra quieta no responde al
-     toque —el doble toque la despierta— y ya despierta, el toque le cambia la
-     figura y el arrastre la mueve. Aquí faltaba todo eso: una piedra puesta
-     solo se podía quitar.
-
-     Los seis píxeles del umbral son los mismos de allí, y por lo mismo: menos
-     lo dispara el temblor de un dedo al posarse, y más obliga a un arrastre
+     Los seis píxeles del umbral son los de la hoja, y por lo mismo: menos lo
+     dispara el temblor de un dedo al posarse, y más obliga a un arrastre
      exagerado para mover la piedra un pelo. */
   const PORTADA_ARRASTRE = 6;
+  const suyaEnEdicion = id => id && id === piedraEditando &&
+                              piedraTaller === TALLER_PORTADA;
   let portadaDedo = null;
   p.addEventListener('pointerdown', ev => {
     portadaDedo = null;
-    if (!p.classList.contains('decorando')) return;
-    const t = ev.target;
-    if (!t.closest || !t.closest('#portadaPiedras')) return;
-    const suya = t.closest('[data-pt-piedra]');
-    const id = suya ? suya.dataset.ptPiedra : null;
+    const suya = ev.target.closest && ev.target.closest('[data-pt-piedra]');
+    if (!suya || !suyaEnEdicion(suya.dataset.ptPiedra)) return;
     portadaDedo = { pid: ev.pointerId, x: ev.clientX, y: ev.clientY,
-                    id, movio: false,
-                    /* Solo la que está en edición se deja arrastrar. Una quieta
-                       no es suya el toque, igual que en la hoja. */
-                    arrastrable: !!id && id === piedraEditando &&
-                                 piedraTaller === TALLER_PORTADA, nodo: suya };
-    if (portadaDedo.arrastrable){
-      ev.preventDefault();
-      try { suya.setPointerCapture(ev.pointerId); } catch(_){}
-    }
+                    id: suya.dataset.ptPiedra, movio: false, nodo: suya };
+    ev.preventDefault();
+    try { suya.setPointerCapture(ev.pointerId); } catch(_){}
   });
   p.addEventListener('pointermove', ev => {
     const g = portadaDedo;
-    if (!g || g.pid !== ev.pointerId || !g.arrastrable) return;
+    if (!g || g.pid !== ev.pointerId) return;
     if (!g.movio &&
         Math.abs(ev.clientX - g.x) < PORTADA_ARRASTRE &&
         Math.abs(ev.clientY - g.y) < PORTADA_ARRASTRE) return;
@@ -16404,15 +16392,9 @@ function portadaTomarArchivo(file){
       g.nodo.style.top = (g.fy * 100).toFixed(3) + '%';
     }
   });
-  /* Un gesto que el sistema se quedó no es un toque del lector: no posa, no
-     mueve y no cambia nada.
-
-     Y SI YA LA HABÍA MOVIDO, SE REPINTA. El arrastre mueve el nodo a mano en
-     cada cuadro —hay que hacerlo así o se pierde la captura del puntero—, de
-     modo que al cancelar la pantalla enseña el sitio nuevo y lo guardado
-     sigue teniendo el viejo. Sin repintar, la piedra se quedaba donde el dedo
-     la había llevado y daba un salto de vuelta en el siguiente repintado o al
-     recargar, sin que nadie hubiera tocado nada. Lo levantó Codex. */
+  /* Un gesto que el sistema se quedó no es un toque del lector: no mueve y no
+     cambia nada. Y si ya la había movido se repinta, o la pantalla se queda
+     enseñando un sitio que no es el guardado. */
   p.addEventListener('pointercancel', () => {
     const g = portadaDedo; portadaDedo = null;
     if (g && g.movio) portadaPintarPiedras();
@@ -16420,36 +16402,16 @@ function portadaTomarArchivo(file){
   p.addEventListener('pointerup', ev => {
     const g = portadaDedo; portadaDedo = null;
     if (!g || g.pid !== ev.pointerId) return;
-    if (!p.classList.contains('decorando')) return;
     ev.stopPropagation();
-
-    if (g.arrastrable){
-      const x = portadaPiedraDe(g.id);
-      if (!x) return;
-      if (g.movio){ x.x = g.fx; x.y = g.fy; portadaGuardar(); portadaPintarPiedras();
-                    colocarPiedraMando(); }
+    const x = portadaPiedraDe(g.id);
+    if (!x) return;
+    if (g.movio){
+      x.x = g.fx; x.y = g.fy;
+      portadaGuardar(); portadaPintarPiedras(); colocarPiedraMando();
+    } else {
       /* Quieta: la figura siguiente, con la misma función que en la hoja. */
-      else piedraSiguienteForma(g.id);
-      return;
+      piedraSiguienteForma(g.id);
     }
-    /* Un dedo que se fue de paseo no posa nada. */
-    if (Math.hypot(ev.clientX - g.x, ev.clientY - g.y) > PORTADA_ARRASTRE) return;
-    /* Sobre una piedra que no está en edición no pasa nada: la despierta el
-       doble toque, no éste. */
-    if (g.id) return;
-    if (portadaAdorno.piedras.length >= 40) return;
-    const r = p.getBoundingClientRect();
-    const nueva = Object.assign({ id: portadaNombreNuevo() }, PORTADA_PIEDRA_NUEVA, {
-      /* En fracciones de la portada, como las de la hoja y por lo mismo: la
-         pantalla cambia de tamaño y de orientación, y un píxel no. */
-      x: Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)),
-      y: Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height))
-    });
-    portadaAdorno.piedras.push(nueva);
-    portadaGuardar();
-    /* Y NACE EN EDICIÓN, como en la hoja: su mando se abre encima, y ahí se le
-       cambia la figura, el color, el tamaño y la sombra. */
-    portadaAbrirEdicion(nueva.id);
   });
 
   /* EL DOBLE TOQUE ABRE LA EDICIÓN. Y aquí sí vale dblclick: el navegador lo
@@ -16457,7 +16419,7 @@ function portadaTomarArchivo(file){
      de un toque suelto sino un evento propio del doble. */
   p.addEventListener('dblclick', ev => {
     const suya = ev.target.closest && ev.target.closest('[data-pt-piedra]');
-    if (!suya || !p.classList.contains('decorando')) return;
+    if (!suya) return;
     ev.preventDefault(); ev.stopPropagation();
     portadaAbrirEdicion(suya.dataset.ptPiedra);
   });
@@ -16465,21 +16427,15 @@ function portadaTomarArchivo(file){
   /* CON TECLADO NO HAY DOBLE TOQUE, igual que en la hoja: la piedra es un
      <button> de verdad y el foco le llega, pero Intro y Espacio mandan un CLIC
      y no un dblclick. Se distingue por detail —el del teclado trae 0— así que
-     el mismo botón sirve a los dos sin que el dedo dispare esto por su cuenta. */
+     el mismo botón sirve a los dos sin que el dedo dispare esto por su cuenta.
+     Y el foco vuelve al botón que el repintado se llevó. */
   p.addEventListener('click', ev => {
     const suya = ev.target.closest && ev.target.closest('[data-pt-piedra]');
-    if (!suya || ev.detail !== 0 || !p.classList.contains('decorando')) return;
+    if (!suya || ev.detail !== 0) return;
     ev.preventDefault(); ev.stopPropagation();
     const id = suya.dataset.ptPiedra;
-    if (piedraEditando === id && piedraTaller === TALLER_PORTADA)
-      piedraSiguienteForma(id);
+    if (suyaEnEdicion(id)) piedraSiguienteForma(id);
     else portadaAbrirEdicion(id);
-    /* Y EL FOCO VUELVE AL BOTÓN QUE EL REPINTADO SE LLEVÓ. Las dos ramas
-       rehacen la capa entera con innerHTML, así que el botón que tenía el foco
-       deja de existir y el foco se cae al documento: quien navega con teclado
-       llegaba a la piedra, la cambiaba UNA vez, y se quedaba sin dónde estar
-       para volver a pulsar. Es lo mismo que hace la hoja tras pintar, y lo
-       levantó Codex. */
     const vuelto = p.querySelector('[data-pt-piedra="' + id + '"]');
     if (vuelto) vuelto.focus();
   });
@@ -16490,7 +16446,7 @@ function portadaTomarArchivo(file){
    va y que además se come los toques. Este plazo se arma antes que nada y no
    depende de que el arranque termine bien: pase lo que pase, la mesa se
    destapa. */
-portadaTecho = setTimeout(() => { try { quitarPortada(); } catch(e){} }, 6000);
+portadaTecho = setTimeout(() => { try { quitarPortada(); } catch(e){} }, 7000);
 const guardado = cargarAjustes();
 cargarHistorial();
 cargarSeparadores();
@@ -16513,7 +16469,7 @@ reflejarControles();
    encendidas ayer abría hoy sin ellas hasta tocar el panel de Libros.
    Y su rojo se copia aquí de la paleta de las piedras —ver .flecha-hoja—:
    este es el único sitio donde ese color se decide. */
-document.documentElement.style.setProperty('--rojo-galon', tintaDe('carmin-vivo')[2]);
+document.documentElement.style.setProperty('--rojo-galon', tintaDe('carmin')[2]);
 pintarFlechas();
 /* Y la portada recupera su adorno. Va aquí y no antes porque necesita las
    figuras y los colores de las piedras, que se declaran más arriba pero
@@ -16523,9 +16479,10 @@ rehacerPlano();
 sizeCanvas();
 $('cred').textContent = D.versiones[version].nombre + ' — ' + D.versiones[version].licencia + ' · vía eBible.org';
 renderPage();
-/* Portada fuera: la hoja ya está. Segundo y tres cuartos para que el letrero
-   se lea —eran tres y se hicieron largos— y ni un milisegundo si el lector ya
-   ha pulsado «hold»: la tapa es suya hasta que diga «continue». */
+/* Portada fuera: la hoja ya está. Tres segundos para que el letrero se lea
+   —se probaron segundo y tres cuartos y se quedaban cortos— y ni un milisegundo
+   si el lector ya ha pulsado «hold»: la tapa es suya hasta que diga
+   «continue». */
 (function(){
   if (portadaEnEspera) return;
   portadaArrancarReloj(Math.max(0, PORTADA_ESPERA - (performance.now() - t0Portada)));
