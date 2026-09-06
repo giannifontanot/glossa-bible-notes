@@ -629,15 +629,24 @@ async function andamio(p){
 
   const deshacer = await p.evaluate(async () => {
     const g = () => window.__guardadas()[0];
-    /* SE VUELVE A ABRIR EL MANDO ANTES DE MEDIR, y esto costó una corrida.
-       La instantánea que cancelar deshace se toma UNA VEZ, cuando el mando se
-       abre de verdad —no en cada repintado, o cancelar solo desharía el último
-       toque—. Los bloques de arriba llevaban el mando abierto desde hacía
-       rato y le habían cambiado figura y color por el camino, así que el
-       «antes» que apuntaba esta prueba era de mitad de la sesión y la
-       instantánea del programa era del principio. Cancelar hacía lo suyo y la
-       prueba cantaba fallo. Abriéndolo aquí, las dos referencias son la misma
-       y esto mide lo que dice medir: que cancelar deshaga ESTA edición. */
+    /* SE CIERRA LA EDICIÓN Y SE VUELVE A ABRIR ANTES DE MEDIR, y esto costó
+       dos corridas.
+
+       La instantánea que cancelar deshace se toma UNA VEZ, cuando la edición
+       se abre de verdad —no en cada repintado, o cancelar solo desharía el
+       último toque—. Los bloques de arriba llevaban la piedra en edición desde
+       hacía rato y le habían cambiado figura y color por el camino, así que el
+       «antes» que apuntaba esta prueba era de mitad de la sesión mientras la
+       instantánea del programa era del principio: cancelar hacía lo suyo y la
+       prueba cantaba fallo.
+
+       Y EL DOBLE TOQUE SOLO NO VALE, que fue el segundo intento: sobre una
+       piedra QUE YA ESTÁ EN EDICIÓN, piedraAbrirEdicion se sale por la primera
+       línea —`piedraEditando === id`— y no hay instantánea nueva. Por eso va
+       antes el Escape: cerrar de verdad y volver a entrar es lo único que
+       arranca una sesión de edición nueva. */
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(400);
     const e0 = document.querySelector('.piedra-sitio');
     const r0 = e0.getBoundingClientRect();
     e0.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
