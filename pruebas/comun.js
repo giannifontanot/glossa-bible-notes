@@ -133,6 +133,24 @@ async function abrir(opciones = {}){
   return { navegador, pagina, errores };
 }
 
+/* ABRIR Y QUEDARSE EN LA PORTADA, que es lo contrario de lo que hace abrir().
+
+   La portada tiene botones propios —hold, foto, Piedras— y para probarlos hay
+   que llegar antes de que se vaya. abrir() espera justo a lo contrario: a que
+   se haya ido. Envolverla con una opción no servía, porque el envoltorio de
+   reload() de abrir() también espera a que se vaya, y la prueba de la portada
+   recarga para comprobar que el adorno vuelve; con ese envoltorio cada recarga
+   se comía los doce segundos del tope antes de seguir. Así que esta abre y
+   devuelve, sin esperar a nada, y quien la use decide cuándo mira. */
+async function abrirEnPortada(opciones = {}){
+  const navegador = await chromium.launch({ executablePath: EJECUTABLE });
+  const pagina = await navegador.newPage({ ...TELEFONO, ...opciones });
+  const errores = [];
+  pagina.on('pageerror', e => errores.push(String(e).split('\n')[0]));
+  await pagina.goto(opciones.url || APP);
+  return { navegador, pagina, errores };
+}
+
 /* Sembrar glosas de ejemplo antes de arrancar, para las pruebas que necesitan
    notas ya puestas. Se recarga después porque el programa las lee al abrir. */
 async function conGlosas(pagina){
@@ -181,5 +199,5 @@ async function cerrar(sesion){
   fin();
 }
 
-module.exports = { abrir, listo, cerrar, cerrarParcial, fin, conGlosas, di, vale, titulo,
+module.exports = { abrir, abrirEnPortada, listo, cerrar, cerrarParcial, fin, conGlosas, di, vale, titulo,
                    APP, RAIZ, TELEFONO, ESCRITORIO, ESTRECHO_RATON };

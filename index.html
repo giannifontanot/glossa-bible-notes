@@ -70,6 +70,129 @@
     font-family:var(--ui); font-size:clamp(.72rem, 2.4vw, .9rem);
     letter-spacing:.28em; text-transform:uppercase;
     color:rgba(238,231,216,.55); margin:0; }
+
+  /* ===== LA PORTADA QUE SE DECORA ===================================== */
+
+  /* EL PIE, A UN CUARTO, A LA MITAD Y A TRES CUARTOS. Se reparte con una
+     rejilla de tres columnas iguales y cada botón centrado en la suya: eso
+     pone «foto» en el centro de la mitad izquierda, «hold» en el centro de la
+     portada y «Piedras» en el centro de la mitad derecha, que es lo pedido, y
+     se recoloca solo en cualquier ancho.
+     Va en absoluto y no en la columna para que el rótulo siga centrado en la
+     pantalla: metido en el flujo lo empujaría hacia arriba. */
+  #portadaPie{ position:absolute; left:0; right:0; bottom:max(22px, 5vh);
+               display:grid; grid-template-columns:repeat(3, 1fr);
+               align-items:center; padding:0 12px; z-index:3; }
+  #portadaPie > *{ justify-self:center; }
+  .pt-btn{ font:600 13px/1 var(--ui); letter-spacing:.06em; cursor:pointer;
+           color:#e8dcc0; background:rgba(255,255,255,.09);
+           border:1px solid rgba(232,213,163,.34); border-radius:8px;
+           padding:13px 18px; min-height:48px; min-width:88px;
+           -webkit-tap-highlight-color:transparent;
+           transition:background .24s ease, color .24s ease, transform .16s ease; }
+  .pt-btn:hover{ background:rgba(255,255,255,.18); color:#fff8e4; }
+  .pt-btn:active{ transform:scale(.94); }
+  .pt-btn:focus-visible{ outline:2px solid #e8d5a3; outline-offset:2px; }
+  /* EN ESPERA, EL BOTÓN DEL MEDIO SE ENCIENDE. Es la única señal de que el
+     reloj está parado, y hace falta: sin ella, una portada que no se va se lee
+     como que el programa se colgó. */
+  .pt-hold.esperando{ background:rgba(201,162,39,.42);
+                      border-color:rgba(232,213,163,.8); color:#fff8e4; }
+
+  /* LA FOTO. Entra en la columna, encima del rótulo, así que nunca lo tapa. */
+  #portadaFoto{ display:none; z-index:2; }
+  #portadaFoto.puesta{ display:block; }
+  /* El giro va en el envoltorio y la sombra en el marco: girando el mismo
+     elemento que lleva la sombra, la sombra gira con él y deja de venir de
+     arriba, que es de donde viene la luz en todo este programa. */
+  .pt-marco{ transition:transform .18s cubic-bezier(.2,.85,.3,1); }
+  /* NORMAL: cuadrada, opaca, y con la MISMA sombra que una piedra con sombra
+     —5px 5px 10px al 50%—. Es lo pedido, y de paso las dos cosas que se posan
+     sobre la portada se leen como la misma familia. */
+  .pt-foto{ display:block; background:#000;
+            box-shadow:5px 5px 10px rgba(0,0,0,.5); }
+  .pt-foto img{ display:block; max-width:min(58vw, 340px);
+                max-height:min(38vh, 340px); width:auto; height:auto; }
+  /* POLAROID: el marco blanco con el pie ancho, que es lo que la hace
+     reconocible —un borde igual por los cuatro lados es un passe-partout, no
+     una polaroid—. */
+  .pt-foto.polaroid{ background:#f7f4ea; padding:11px 11px 34px;
+                     box-shadow:5px 5px 10px rgba(0,0,0,.5); }
+  .pt-foto.polaroid img{ max-width:min(52vw, 300px); max-height:min(34vh, 300px); }
+
+  /* LAS PIEDRAS DE LA PORTADA. Su capa cubre la portada entera y NO recibe
+     toques salvo cuando se está decorando: si los recibiera siempre, la tapa
+     se comería el toque que la quita. */
+  #portadaPiedras{ position:absolute; inset:0; z-index:4; pointer-events:none; }
+  #portada.decorando #portadaPiedras{ pointer-events:auto; cursor:crosshair; }
+  .pt-piedra{ position:absolute; transform:translate(-50%, -50%);
+              width:var(--pt-tam, 46px); aspect-ratio:1;
+              display:block; padding:0; border:0; background:none;
+              pointer-events:none;
+              filter:drop-shadow(5px 5px 10px rgba(0,0,0,.5)); }
+  #portada.decorando .pt-piedra{ pointer-events:auto; cursor:pointer; }
+  .pt-piedra svg{ display:block; width:100%; height:100%; }
+  /* Decorando, cada piedra puesta enseña que se puede quitar. */
+  #portada.decorando .pt-piedra:hover{ outline:2px dashed rgba(255,120,120,.9);
+                                       outline-offset:3px; border-radius:4px; }
+
+  /* LOS DOS MANDOS. Se apoyan sobre el pie, ocupan el ancho disponible y no
+     pasan de la mitad del alto: con catorce figuras y doce colores hay que
+     poder verlos sin que tapen lo que se está decorando. */
+  .pt-mando{ position:absolute; left:50%; transform:translateX(-50%);
+             bottom:calc(max(22px, 5vh) + 58px); z-index:6;
+             width:min(320px, calc(100% - 24px)); max-height:52vh;
+             overflow-y:auto; overscroll-behavior:contain;
+             display:flex; flex-direction:column; gap:9px;
+             padding:12px; border-radius:11px;
+             background:rgba(28,22,14,.94);
+             border:1px solid rgba(232,213,163,.3);
+             box-shadow:0 14px 34px -12px rgba(0,0,0,.8); }
+  .pt-mando[hidden]{ display:none; }
+  /* Y SE PUEDE SUBIR AL OTRO EXTREMO. Medido en un telefono de 412x915, el
+     mando de las piedras ocupa de y=517 a y=811: casi un tercio de la portada,
+     y justo la banda de abajo. Ahi no se puede dejar una piedra mientras esta
+     abierto, y una piedra puesta no se arrastra despues. Cerrarlo tampoco vale
+     —cerrar sale de decorar—, asi que el mando se muda arriba y deja libre lo
+     que tapaba. */
+  .pt-mando.arriba{ top:max(22px, 5vh); bottom:auto; }
+  .pt-tit{ font:700 10px/1 var(--ui); letter-spacing:.16em; text-transform:uppercase;
+           color:rgba(232,213,163,.7); margin:0; }
+  .pt-formas{ display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; }
+  .pt-forma{ aspect-ratio:1; display:grid; place-items:center; padding:3px;
+             color:#e8dcc0; background:rgba(255,255,255,.07);
+             border:1px solid rgba(232,213,163,.22); border-radius:6px;
+             cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .pt-forma svg{ display:block; width:100%; height:100%; }
+  .pt-forma.on{ background:rgba(201,162,39,.42); border-color:rgba(232,213,163,.85); }
+  .pt-tintas{ display:grid; grid-template-columns:repeat(6, 1fr); gap:5px; }
+  .pt-tinta{ height:22px; padding:0; border-radius:5px; cursor:pointer;
+             border:1px solid rgba(0,0,0,.4);
+             -webkit-tap-highlight-color:transparent; }
+  .pt-tinta.on{ box-shadow:0 0 0 2px rgba(28,22,14,.94), 0 0 0 4px #e8d5a3; }
+  .pt-fila{ display:flex; align-items:center; justify-content:center;
+            gap:8px; flex-wrap:wrap; }
+  .pt-mini{ font:600 12.5px/1 var(--ui); cursor:pointer; color:#e8dcc0;
+            background:rgba(255,255,255,.08);
+            border:1px solid rgba(232,213,163,.3); border-radius:7px;
+            padding:9px 12px; min-height:40px;
+            -webkit-tap-highlight-color:transparent; }
+  .pt-mini:hover{ background:rgba(255,255,255,.18); color:#fff8e4; }
+  .pt-mini:disabled{ opacity:.35; cursor:default; }
+  .pt-mini.listo{ background:rgba(201,162,39,.42); border-color:rgba(232,213,163,.8);
+                  color:#fff8e4; }
+  .pt-mini.quita{ border-color:rgba(224,60,60,.55); color:#f0b8b8; }
+  .pt-dice{ font:400 11.5px/1.45 var(--ui); color:rgba(238,231,216,.6);
+            margin:0; text-align:center; }
+  /* Con el dedo, los botoncitos de los mandos al suelo de la casa. Igual que
+     los del mando de piedras de la hoja, y por lo mismo. */
+  @media (pointer:coarse){
+    .pt-mini{ min-height:44px; padding:11px 13px; font-size:13.5px; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .pt-btn, .pt-marco{ transition:none; }
+    .pt-btn:active{ transform:none; }
+  }
   .row{ display:flex; gap:5px; flex-wrap:wrap; justify-content:center; align-items:center; }
   .btn{ font:inherit; font-size:.7rem; color:#eee7d8; cursor:pointer; line-height:1;
         background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.18);
@@ -3015,9 +3138,39 @@
 </head>
 <body>
 
+<!-- LA PORTADA, QUE AHORA ADEMÁS SE DECORA.
+
+     Era una tapa de tres segundos y nada más. Ahora es lo primero que se ve
+     cada día y se puede hacer propia: una foto y las figuras de las piedras,
+     puestas donde uno quiera y guardadas.
+
+     Y por eso el reloj se puede PARAR. Con la tapa yéndose a segundo y tres
+     cuartos no hay manera de colocar nada: «hold» detiene la cuenta y la deja
+     abierta el tiempo que haga falta; «continue» la reanuda desde donde se
+     quedó, no desde el principio. Los otros dos botones la paran solos, que
+     abrir la caja de piedras contra un reloj sería una broma. -->
 <div id="portada" role="status" aria-live="polite" aria-label="Biblia Glosa">
+  <!-- LAS PIEDRAS VAN EN SU CAPA Y POR ENCIMA DE TODO, la foto no: la foto
+       entra en la columna, entre el borde de arriba y el rótulo, y así no lo
+       tapa nunca. Las piedras sí pueden caer donde sea —son adornos que se
+       posan— y para eso necesitan una capa que cubra la portada entera. -->
+  <div id="portadaPiedras" aria-hidden="true"></div>
+  <div id="portadaFoto"></div>
   <p class="portada-marca">Biblia Glosa</p>
   <p class="portada-sub">Gloss Bible</p>
+  <!-- EL PIE: foto al centro de la mitad izquierda, hold en medio, piedras al
+       centro de la mitad derecha. O sea a un cuarto, a la mitad y a tres
+       cuartos del ancho, que es lo pedido y además se reparte solo. -->
+  <div id="portadaPie">
+    <button type="button" class="pt-btn" id="btnPortadaFoto">foto</button>
+    <button type="button" class="pt-btn pt-hold" id="btnPortadaHold">hold</button>
+    <button type="button" class="pt-btn" id="btnPortadaPiedras">Piedras</button>
+  </div>
+  <!-- El selector del sistema. Oculto: lo dispara el botón de arriba. -->
+  <input type="file" id="portadaArchivo" accept="image/*" hidden />
+  <!-- Los dos mandos de la decoración, cada uno con lo suyo. Nacen vacíos. -->
+  <div id="portadaMandoFoto" class="pt-mando" hidden></div>
+  <div id="portadaMandoPiedras" class="pt-mando" hidden></div>
 </div>
 
 <div id="ctrlConfig">
@@ -3354,7 +3507,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 06:43';
+window.GLOSS_BUILD = '06-SEP-26 07:05';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4215,6 +4368,8 @@ const fx=$('fx'), ctx=fx.getContext('2d'), readout=$('readout');
 const AVISOS_QUE_SALEN = [/no puede cruzar de vers/i];
 const AVISOS_QUE_FALLAN = [
   /NO SE PUDO GUARDAR/i,
+  /no es una imagen/i,
+  /imagen rota/i,
   /no se pudo leer el archivo/i,
   /no es JSON válido/i,
   /no parece una exportación/i,
@@ -15446,13 +15601,375 @@ function quitarPortada(){
   setTimeout(() => { if (el.parentNode) el.remove(); }, 600);
 }
 const t0Portada = performance.now();
+
+/* ============================================================
+   LA PORTADA QUE SE PUEDE PARAR Y DECORAR.
+
+   Tres cosas que van juntas y por eso viven aquí, lo más arriba posible del
+   arranque: si algo de más abajo se rompe, la portada tiene que seguir
+   sabiendo irse y sabiendo pararse.
+
+   EL RELOJ SE PARA Y SIGUE DONDE ESTABA, no vuelve a empezar. Es la diferencia
+   entre un botón de pausa y uno de reinicio, y con segundo y tres cuartos de
+   cuenta se nota: reiniciando, cada «continue» sería otro segundo y tres
+   cuartos de espera.
+
+   Y EL TECHO DURO SE SUSPENDE MIENTRAS SE ESPERA. Ese plazo existe para que
+   una excepción en el arranque no deje al lector mirando una tapa que no se
+   va; una tapa que el lector mismo ha detenido es lo contrario de eso, y
+   arrancársela a los seis segundos con la caja de piedras abierta sería el
+   fallo más tonto de todo esto.
+   ============================================================ */
+const PORTADA_ESPERA = 1750;      /* lo que dura la tapa si nadie la toca */
+let portadaReloj = null;          /* el temporizador vivo, o null */
+let portadaVence = 0;             /* cuándo vence, en tiempo de performance */
+let portadaResto = 0;             /* lo que faltaba al parar */
+let portadaEnEspera = false;      /* ¿la paró el lector? */
+let portadaTecho = null;          /* el plazo de emergencia */
+
+function portadaArrancarReloj(ms){
+  clearTimeout(portadaReloj);
+  portadaVence = performance.now() + ms;
+  portadaReloj = setTimeout(quitarPortada, ms);
+}
+function portadaParar(){
+  if (portadaEnEspera) return;
+  portadaEnEspera = true;
+  clearTimeout(portadaReloj); portadaReloj = null;
+  clearTimeout(portadaTecho); portadaTecho = null;
+  /* Si todavía no había arrancado —se paró antes de que la hoja estuviera
+     lista— lo que queda es la espera entera. */
+  portadaResto = portadaVence ? Math.max(0, portadaVence - performance.now())
+                              : PORTADA_ESPERA;
+  portadaPintarHold();
+}
+function portadaSeguir(){
+  if (!portadaEnEspera) return;
+  portadaEnEspera = false;
+  portadaCerrarMandos();
+  portadaPintarHold();
+  portadaArrancarReloj(Math.max(120, portadaResto));
+  /* El techo vuelve a armarse, generoso: a partir de aquí ya no hay nadie
+     mirando, así que si algo se atasca la mesa se destapa igual. */
+  clearTimeout(portadaTecho);
+  portadaTecho = setTimeout(() => { try { quitarPortada(); } catch(e){} }, 8000);
+}
+function portadaPintarHold(){
+  const b = document.getElementById('btnPortadaHold');
+  if (!b) return;
+  b.textContent = portadaEnEspera ? 'continue' : 'hold';
+  b.classList.toggle('esperando', portadaEnEspera);
+  b.setAttribute('aria-pressed', portadaEnEspera ? 'true' : 'false');
+  b.title = portadaEnEspera ? 'Seguir y abrir la Biblia'
+                            : 'Detener la cuenta y quedarse aquí';
+}
+
+/* ---------- LO QUE SE GUARDA DE LA PORTADA ----------
+
+   EN SU PROPIA CLAVE Y NO EN LOS AJUSTES, y la razón es el tamaño: una foto
+   pesa cientos de kilobytes y los ajustes son cuatro números que se guardan en
+   cada repaginado. Juntos, cada cambio de letra reescribiría la foto entera, y
+   un almacén lleno se llevaría por delante los ajustes además del adorno.
+   Separados, lo que falla falla solo. */
+const PORTADA_LLAVE = 'glossa:portada:v1';
+let portadaAdorno = { piedras: [], foto: null };
+function portadaCargar(){
+  try {
+    const j = JSON.parse(localStorage.getItem(PORTADA_LLAVE) || 'null');
+    if (!j || typeof j !== 'object') return;
+    const enRango = (v, sino) => Number.isFinite(+v) ? Math.min(Math.max(+v, 0), 1) : sino;
+    portadaAdorno.piedras = Array.isArray(j.piedras) ? j.piedras.slice(0, 40).map(p => ({
+      forma: FORMAS.includes(p.forma) ? p.forma : FORMAS[0],
+      color: PIEDRA_TINTAS.some(t => t[0] === p.color) ? p.color : PIEDRA_TINTAS[0][0],
+      tam: Math.min(Math.max(+p.tam || 46, 22), 140),
+      x: enRango(p.x, .5), y: enRango(p.y, .5)
+    })) : [];
+    /* La foto se acepta solo si es una imagen en línea. Un src cualquiera
+       saliendo de un almacén manoseado sería una petición a donde diga. */
+    portadaAdorno.foto = (j.foto && typeof j.foto.src === 'string' &&
+                          /^data:image\//.test(j.foto.src))
+      ? { src: j.foto.src,
+          estilo: j.foto.estilo === 'polaroid' ? 'polaroid' : 'normal',
+          giro: Number.isFinite(+j.foto.giro) ? Math.max(-180, Math.min(180, +j.foto.giro)) : 0 }
+      : null;
+  } catch(e){ /* con un adorno ilegible, portada limpia */ }
+}
+function portadaGuardar(){
+  try {
+    localStorage.setItem(PORTADA_LLAVE, JSON.stringify(portadaAdorno));
+    return true;
+  } catch(e){
+    /* Y SE DICE. Es de los que sí salen: el lector acaba de elegir una foto y
+       si no se guarda, mañana no está y nadie le avisó. Ver AVISOS_QUE_FALLAN. */
+    readout.textContent = 'NO SE PUDO GUARDAR la portada (' + (e.name || 'error') +
+                          ') — quizá la foto pesa demasiado';
+    return false;
+  }
+}
+
+/* ---------- PINTAR LO PUESTO ---------- */
+function portadaPintarFoto(){
+  const caja = document.getElementById('portadaFoto');
+  if (!caja) return;
+  const f = portadaAdorno.foto;
+  if (!f){ caja.className = ''; caja.innerHTML = ''; return; }
+  caja.className = 'puesta';
+  caja.innerHTML =
+    '<div class="pt-marco" style="transform:rotate(' + f.giro + 'deg)">' +
+      '<div class="pt-foto' + (f.estilo === 'polaroid' ? ' polaroid' : '') + '">' +
+        '<img src="' + esc(f.src) + '" alt="" />' +
+      '</div>' +
+    '</div>';
+}
+function portadaPintarPiedras(){
+  const capa = document.getElementById('portadaPiedras');
+  if (!capa) return;
+  capa.innerHTML = portadaAdorno.piedras.map((p, i) =>
+    '<button type="button" class="pt-piedra" data-pt-piedra="' + i + '"' +
+      ' style="left:' + (p.x * 100).toFixed(3) + '%;top:' + (p.y * 100).toFixed(3) + '%' +
+      ';--pt-tam:' + Math.round(p.tam) + 'px;color:' + tintaDe(p.color)[2] + '"' +
+      ' aria-label="Quitar esta ' + esc(FORMA_NOMBRE[p.forma] || p.forma) + '">' +
+      piedraDibujo(p.forma, null, true) + '</button>').join('');
+}
+
+/* ---------- LOS DOS MANDOS DE LA DECORACIÓN ----------
+
+   Uno a la vez: abrir el de la foto cierra el de las piedras y al revés. Dos
+   panelitos abiertos sobre una portada de teléfono no dejan ver lo que se está
+   decorando, que es justo lo que se viene a hacer. */
+let portadaFormaElegida = 'piedra', portadaTintaElegida = PIEDRA_TINTAS[0][0],
+    portadaTamElegido = 46;
+let portadaMandoArriba = false;
+function portadaCerrarMandos(){
+  for (const id of ['portadaMandoFoto', 'portadaMandoPiedras']){
+    const el = document.getElementById(id);
+    if (el){ el.hidden = true; el.innerHTML = ''; }
+  }
+  const p = document.getElementById('portada');
+  if (p) p.classList.remove('decorando');
+}
+/* Abrir cualquiera de los dos PARA EL RELOJ. Decorar contra una cuenta de
+   segundo y tres cuartos no es decorar, es una carrera. */
+function portadaAbrirMando(id){
+  portadaCerrarMandos();
+  portadaParar();
+  const el = document.getElementById(id);
+  if (el){ el.hidden = false; el.classList.toggle('arriba', portadaMandoArriba); }
+  const p = document.getElementById('portada');
+  if (p) p.classList.add('decorando');
+  return el;
+}
+
+function portadaMandoPiedras(){
+  const el = portadaAbrirMando('portadaMandoPiedras');
+  if (!el) return;
+  el.innerHTML =
+    '<p class="pt-tit">Figura</p>' +
+    '<div class="pt-formas">' + FORMAS.map(f =>
+      '<button type="button" class="pt-forma' + (f === portadaFormaElegida ? ' on' : '') +
+        '" data-pt-forma="' + f + '" title="' + esc(FORMA_NOMBRE[f]) + '"' +
+        ' aria-label="' + esc(FORMA_NOMBRE[f]) + '">' +
+        piedraDibujo(f, null, true) + '</button>').join('') + '</div>' +
+    '<p class="pt-tit">Color</p>' +
+    '<div class="pt-tintas">' + PIEDRA_TINTAS.map(t =>
+      '<button type="button" class="pt-tinta' + (t[0] === portadaTintaElegida ? ' on' : '') +
+        '" data-pt-tinta="' + t[0] + '" style="background:' + t[2] + '"' +
+        ' title="' + esc(t[1]) + '" aria-label="' + esc(t[1]) + '"></button>').join('') + '</div>' +
+    '<div class="pt-fila">' +
+      '<button type="button" class="pt-mini" data-pt-tam="-1" aria-label="Más pequeña">−</button>' +
+      '<button type="button" class="pt-mini" data-pt-tam="1" aria-label="Más grande">+</button>' +
+      '<button type="button" class="pt-mini quita" data-pt-limpiar="1">Quitar todas</button>' +
+      '<button type="button" class="pt-mini" data-pt-mover="1">' +
+        (portadaMandoArriba ? 'bajar' : 'subir') + '</button>' +
+      '<button type="button" class="pt-mini listo" data-pt-listo="1">Listo</button>' +
+    '</div>' +
+    '<p class="pt-dice">Toca la portada para dejarla. Toca una puesta para quitarla.</p>';
+}
+
+function portadaMandoFoto(){
+  const el = portadaAbrirMando('portadaMandoFoto');
+  if (!el) return;
+  const f = portadaAdorno.foto;
+  if (!f){ el.hidden = true; return; }
+  const esPol = f.estilo === 'polaroid';
+  el.innerHTML =
+    '<div class="pt-fila">' +
+      '<button type="button" class="pt-mini" data-pt-estilo="1">' +
+        (esPol ? 'cambiar a normal' : 'cambiar a Polaroid') + '</button>' +
+    '</div>' +
+    '<div class="pt-fila">' +
+      '<button type="button" class="pt-mini" data-pt-giro="-3"' +
+        ' aria-label="Girar a la izquierda">\u21ba</button>' +
+      '<button type="button" class="pt-mini" data-pt-giro="3"' +
+        ' aria-label="Girar a la derecha">\u21bb</button>' +
+      '<button type="button" class="pt-mini quita" data-pt-quitar="1">Quitar</button>' +
+      '<button type="button" class="pt-mini" data-pt-mover="1">' +
+        (portadaMandoArriba ? 'bajar' : 'subir') + '</button>' +
+      '<button type="button" class="pt-mini listo" data-pt-listo="1">Listo</button>' +
+    '</div>';
+}
+
+/* ---------- ELEGIR LA FOTO ----------
+
+   SE ENCOGE ANTES DE GUARDARLA, y no es optimizar por optimizar: una foto de
+   teléfono ronda los cuatro megas, el almacén del navegador da unos cinco para
+   TODO —glosas, piedras, cintas, ajustes— y guardarla entera se lo comería con
+   la primera. Se reduce a 1200 px por el lado mayor y se recomprime en JPEG,
+   que para una portada que se mira dos segundos sobra y baja de megas a
+   cientos de kilobytes.
+
+   Y SE DIBUJA EN UN LIENZO Y NO SE GUARDA EL ARCHIVO TAL CUAL, lo que además
+   le quita los metadatos: la foto de un teléfono lleva dentro dónde se tomó. */
+const PORTADA_LADO = 1200;
+function portadaTomarArchivo(file){
+  if (!file) return;
+  if (!/^image\//.test(file.type || '')){
+    readout.textContent = 'no se pudo leer el archivo — eso no es una imagen';
+    return;
+  }
+  const lector = new FileReader();
+  lector.onerror = () => { readout.textContent = 'no se pudo leer el archivo'; };
+  lector.onload = () => {
+    const img = new Image();
+    img.onerror = () => { readout.textContent = 'no se pudo leer el archivo — imagen rota'; };
+    img.onload = () => {
+      const k = Math.min(1, PORTADA_LADO / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.max(1, Math.round(img.naturalWidth * k));
+      const h = Math.max(1, Math.round(img.naturalHeight * k));
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      let src;
+      try { src = c.toDataURL('image/jpeg', .82); }
+      catch(e){ readout.textContent = 'no se pudo leer el archivo'; return; }
+      portadaAdorno.foto = { src, estilo:'normal', giro:0 };
+      portadaPintarFoto();
+      portadaGuardar();
+      /* Y SE QUEDA EN EDICIÓN, que es lo pedido: la foto aparece con sus
+         mandos puestos, no puesta y a ver qué haces. */
+      portadaMandoFoto();
+    };
+    img.src = lector.result;
+  };
+  lector.readAsDataURL(file);
+}
+
+/* ---------- LOS OYENTES ----------
+
+   TODOS COLGADOS DE LA PORTADA Y NO DE CADA BOTÓN, porque los mandos se rehacen
+   enteros en cada cambio: un oyente pegado a un botón se iría con él al primer
+   toque.
+
+   Y AQUÍ SE DECIDE QUÉ NO CIERRA LA PORTADA: nada de lo de dentro. La tapa se
+   va cuando vence el reloj y solo entonces. Con botones encima, un toque en
+   «foto» no puede ser además un toque en «abre la Biblia». */
+(function portadaOyentes(){
+  const p = document.getElementById('portada');
+  if (!p) return;
+  const arch = document.getElementById('portadaArchivo');
+  if (arch) arch.addEventListener('change', ev => {
+    const f = ev.target.files && ev.target.files[0];
+    ev.target.value = '';              /* deja volver a elegir la misma */
+    portadaTomarArchivo(f);
+  });
+  p.addEventListener('click', ev => {
+    const t = ev.target;
+    const en = sel => t.closest && t.closest(sel);
+
+    if (en('#btnPortadaHold')){
+      ev.stopPropagation();
+      if (portadaEnEspera) portadaSeguir(); else portadaParar();
+      return;
+    }
+    if (en('#btnPortadaFoto')){
+      ev.stopPropagation();
+      portadaParar();
+      /* Con foto puesta, el botón lleva a sus mandos; sin ella, al archivador.
+         Cambiarla se pide quitando la que hay, que es lo que dice «Quitar». */
+      if (portadaAdorno.foto) portadaMandoFoto();
+      else if (arch) arch.click();
+      return;
+    }
+    if (en('#btnPortadaPiedras')){
+      ev.stopPropagation();
+      portadaMandoPiedras();
+      return;
+    }
+
+    /* --- dentro de los mandos --- */
+    const forma = en('[data-pt-forma]');
+    if (forma){ ev.stopPropagation();
+      portadaFormaElegida = forma.dataset.ptForma; portadaMandoPiedras(); return; }
+    const tinta = en('[data-pt-tinta]');
+    if (tinta){ ev.stopPropagation();
+      portadaTintaElegida = tinta.dataset.ptTinta; portadaMandoPiedras(); return; }
+    const tam = en('[data-pt-tam]');
+    if (tam){ ev.stopPropagation();
+      portadaTamElegido = Math.min(140, Math.max(22,
+        portadaTamElegido + (+tam.dataset.ptTam) * 10));
+      return; }
+    if (en('[data-pt-limpiar]')){ ev.stopPropagation();
+      portadaAdorno.piedras = []; portadaPintarPiedras(); portadaGuardar(); return; }
+    if (en('[data-pt-estilo]')){ ev.stopPropagation();
+      const f = portadaAdorno.foto; if (!f) return;
+      f.estilo = f.estilo === 'polaroid' ? 'normal' : 'polaroid';
+      portadaPintarFoto(); portadaGuardar(); portadaMandoFoto(); return; }
+    const giro = en('[data-pt-giro]');
+    if (giro){ ev.stopPropagation();
+      const f = portadaAdorno.foto; if (!f) return;
+      /* De tres en tres grados: «poquito a poquito», con tope en media vuelta
+         para cada lado —más allá es la misma inclinación al revés—. */
+      f.giro = Math.max(-180, Math.min(180, (f.giro || 0) + (+giro.dataset.ptGiro)));
+      portadaPintarFoto(); portadaGuardar(); return; }
+    if (en('[data-pt-quitar]')){ ev.stopPropagation();
+      portadaAdorno.foto = null; portadaPintarFoto(); portadaGuardar();
+      portadaCerrarMandos(); return; }
+    if (en('[data-pt-mover]')){ ev.stopPropagation();
+      portadaMandoArriba = !portadaMandoArriba;
+      for (const id of ['portadaMandoFoto', 'portadaMandoPiedras']){
+        const m = document.getElementById(id);
+        if (m && !m.hidden) m.classList.toggle('arriba', portadaMandoArriba);
+      }
+      /* Se rehace el que este abierto para que el boton diga lo contrario. */
+      if (!document.getElementById('portadaMandoPiedras').hidden) portadaMandoPiedras();
+      else if (!document.getElementById('portadaMandoFoto').hidden) portadaMandoFoto();
+      return; }
+    if (en('[data-pt-listo]')){ ev.stopPropagation(); portadaCerrarMandos(); return; }
+
+    /* --- una piedra puesta: tocarla la quita, y solo decorando --- */
+    const suya = en('[data-pt-piedra]');
+    if (suya && p.classList.contains('decorando')){
+      ev.stopPropagation();
+      portadaAdorno.piedras.splice(+suya.dataset.ptPiedra, 1);
+      portadaPintarPiedras(); portadaGuardar();
+      return;
+    }
+
+    /* --- la capa: dejar una piedra donde se tocó --- */
+    if (en('#portadaPiedras') && p.classList.contains('decorando')){
+      ev.stopPropagation();
+      if (portadaAdorno.piedras.length >= 40) return;
+      const r = p.getBoundingClientRect();
+      portadaAdorno.piedras.push({
+        forma: portadaFormaElegida, color: portadaTintaElegida,
+        tam: portadaTamElegido,
+        /* En fracciones de la portada, como las de la hoja y por lo mismo: la
+           pantalla cambia de tamaño y de orientación, y un píxel no. */
+        x: Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)),
+        y: Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height))
+      });
+      portadaPintarPiedras(); portadaGuardar();
+      return;
+    }
+  });
+})();
 /* TECHO DURO. Lo de arriba quita la portada cuando la hoja está pintada, pero
    esa línea vive DESPUÉS de todo el arranque: si algo de en medio tira una
    excepción, nunca se ejecuta y el lector se queda mirando una tapa que no se
    va y que además se come los toques. Este plazo se arma antes que nada y no
    depende de que el arranque termine bien: pase lo que pase, la mesa se
    destapa. */
-setTimeout(() => { try { quitarPortada(); } catch(e){} }, 6000);
+portadaTecho = setTimeout(() => { try { quitarPortada(); } catch(e){} }, 6000);
 const guardado = cargarAjustes();
 cargarHistorial();
 cargarSeparadores();
@@ -15474,14 +15991,20 @@ reflejarControles();
 /* Las flechas leen su interruptor al arrancar: sin esto, quien las dejó
    encendidas ayer abría hoy sin ellas hasta tocar el panel de Libros. */
 pintarFlechas();
+/* Y la portada recupera su adorno. Va aquí y no antes porque necesita las
+   figuras y los colores de las piedras, que se declaran más arriba pero
+   después del techo duro. */
+portadaCargar(); portadaPintarFoto(); portadaPintarPiedras(); portadaPintarHold();
 rehacerPlano();
 sizeCanvas();
 $('cred').textContent = D.versiones[version].nombre + ' — ' + D.versiones[version].licencia + ' · vía eBible.org';
 renderPage();
-/* Portada fuera: la hoja ya está. Mínimo 3 s para que el letrero se lea. */
+/* Portada fuera: la hoja ya está. Segundo y tres cuartos para que el letrero
+   se lea —eran tres y se hicieron largos— y ni un milisegundo si el lector ya
+   ha pulsado «hold»: la tapa es suya hasta que diga «continue». */
 (function(){
-  const falta = Math.max(0, 3000 - (performance.now() - t0Portada));
-  setTimeout(quitarPortada, falta);
+  if (portadaEnEspera) return;
+  portadaArrancarReloj(Math.max(0, PORTADA_ESPERA - (performance.now() - t0Portada)));
 })();
 /* La firma se siembra con lo que ya hay puesto. Sin esto arranca vacía, así
    que el PRIMER guardado de la sesión siempre la ve distinta y repagina —y con

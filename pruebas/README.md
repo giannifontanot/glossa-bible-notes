@@ -63,6 +63,7 @@ diagnóstico. Salen con código distinto de cero si algo falla.
 | `estreno` | las tres glosas que trae un lector recién abierto: que estén, que estén bien ancladas y —lo que de verdad vigila— que NO reaparezcan si las borras; y la portada, que tape al abrir y devuelva los toques al irse |
 | `contraste` | el riel de Formato: que el filtro llegue a la hoja **y al lienzo del pliegue** con el mismo número, que NO llegue al panel de Formato, y que sobreviva a la recarga |
 | `ventanita` | la salida de `#versoPleno`: que el toque de fuera la cierre venga del rastro o de una referencia dentro de una glosa, y que cerrarla no apague el panel de la glosa de debajo |
+| `portada` | la tapa del arranque: que cuente segundo y tres cuartos, que «hold» la pare y «continue» la suelte, y que la foto y las piedras que se le peguen sigan ahí al volver |
 | `version` | el sello del panel de Respaldo: que se vea, que tenga la forma pedida, y —lo que de verdad vigila— que la hora sea la de Dallas y no la del aparato |
 
 ## Tres reglas que costaron caro

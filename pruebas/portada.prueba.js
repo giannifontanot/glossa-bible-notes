@@ -1,0 +1,216 @@
+/* ============================================================
+   LA PORTADA.
+
+   La tapa que se ve al abrir dejó de ser un letrero que se va solo: cuenta
+   segundo y tres cuartos, y mientras cuenta se puede parar («hold»), pegarle
+   piedras y ponerle una foto. Eso la vuelve una pantalla con estado, y una
+   pantalla con estado se prueba.
+
+   POR QUÉ NO USA abrir(). El andamio espera a que la portada SE VAYA antes de
+   devolver la página —es lo que quiere el resto de la carpeta—. Aquí hay que
+   llegar antes, así que se usa abrirEnPortada(), que abre y devuelve.
+
+   Y POR QUÉ NO HAY QUE CORRER: en cuanto se toca «hold» o cualquiera de los
+   dos mandos, el reloj se para y la portada se queda. Solo la primera medida
+   —«sigue puesta»— compite contra la cuenta, y por eso mira a los 900 ms de
+   los 1750 que dura.
+   ============================================================ */
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { abrirEnPortada, cerrar, di, vale, titulo } = require('./comun');
+
+const LLAVE = 'glossa:portada:v1';
+
+(async () => {
+  const sesion = await abrirEnPortada();
+  const p = sesion.pagina;
+  await p.waitForTimeout(900);
+
+  titulo('EL RELOJ Y LOS TRES BOTONES');
+  const viva = await p.evaluate(() =>
+    !document.getElementById('portada').classList.contains('fuera'));
+  vale('a los 900 ms la portada sigue puesta', viva === true, viva);
+
+  /* Los tres van al centro de su tercio: 1/6, 1/2 y 5/6 del ancho. Lo pedido
+     era «a la mitad horizontal del espacio disponible» a cada lado, y con tres
+     columnas iguales eso cae en 17 %, 50 % y 83 %. El margen de 4 puntos es el
+     ancho del propio botón, que no es un punto. */
+  const bot = await p.evaluate(() => {
+    const r = document.getElementById('portada').getBoundingClientRect();
+    const c = id => { const e = document.getElementById(id);
+                      const x = e.getBoundingClientRect();
+                      return { t: e.textContent.trim(),
+                               centro: Math.round(((x.left + x.width/2) - r.left) / r.width * 100),
+                               alto: Math.round(x.height) }; };
+    return { foto:c('btnPortadaFoto'), hold:c('btnPortadaHold'), piedras:c('btnPortadaPiedras') };
+  });
+  di('los tres botones', JSON.stringify(bot));
+  vale('«foto» a la mitad de la izquierda', Math.abs(bot.foto.centro - 17) <= 4, bot.foto.centro + '%');
+  vale('«hold» en el centro', Math.abs(bot.hold.centro - 50) <= 2, bot.hold.centro + '%');
+  vale('«Piedras» a la mitad de la derecha', Math.abs(bot.piedras.centro - 83) <= 4, bot.piedras.centro + '%');
+  vale('y dicen lo suyo',
+       bot.foto.t === 'foto' && bot.hold.t === 'hold' && bot.piedras.t === 'Piedras',
+       [bot.foto.t, bot.hold.t, bot.piedras.t].join(' | '));
+  /* 48 px es el suelo de esta aplicación: por encima de los 44 de la WCAG 2.5.5
+     y de los 44 de Apple, al nivel de Material 3. */
+  vale('y se pueden tocar con el dedo',
+       Math.min(bot.foto.alto, bot.hold.alto, bot.piedras.alto) >= 48,
+       [bot.foto.alto, bot.hold.alto, bot.piedras.alto].join(' / '));
+
+  titulo('HOLD PARA LA CUENTA');
+  await p.click('#btnPortadaHold');
+  /* 2600 es más de los 1750 de la cuenta entera: si el reloj siguiera vivo,
+     aquí ya no habría portada. */
+  await p.waitForTimeout(2600);
+  const tras = await p.evaluate(() => ({
+    puesta: !document.getElementById('portada').classList.contains('fuera'),
+    rotulo: document.getElementById('btnPortadaHold').textContent.trim() }));
+  di('tras hold', JSON.stringify(tras));
+  vale('HOLD DEJA LA PORTADA ABIERTA', tras.puesta === true, tras);
+  vale('  y el botón pasa a «continue»', tras.rotulo === 'continue', tras.rotulo);
+
+  titulo('LA FOTO');
+  /* La imagen se dibuja aquí y se escribe en un archivo de verdad: el camino
+     que se prueba es el del archivador del navegador, con su FileReader y su
+     lienzo, y ese camino necesita un archivo. Lo único que se sustituye en
+     esta carpeta son piezas del navegador, y aquí no se sustituye ninguna. */
+  const png = await p.evaluate(() => {
+    const c = document.createElement('canvas'); c.width = 600; c.height = 400;
+    const g = c.getContext('2d');
+    g.fillStyle = '#3a6ea5'; g.fillRect(0, 0, 600, 400);
+    g.fillStyle = '#e8d5a3'; g.beginPath(); g.arc(300, 200, 120, 0, 7); g.fill();
+    return c.toDataURL('image/png');
+  });
+  const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), 'glossa-portada-'));
+  const archivo = path.join(carpeta, 'foto.png');
+  fs.writeFileSync(archivo, Buffer.from(png.split(',')[1], 'base64'));
+  await p.setInputFiles('#portadaArchivo', archivo);
+  await p.waitForTimeout(900);
+
+  const f1 = await p.evaluate(k => {
+    const el = document.querySelector('.pt-foto');
+    const m = document.getElementById('portadaMandoFoto');
+    const est = el && getComputedStyle(el);
+    return { hay: !!el,
+             polaroid: el ? el.classList.contains('polaroid') : null,
+             sombra: est && est.boxShadow,
+             mando: (m && !m.hidden) ? [...m.querySelectorAll('.pt-mini')].map(x => x.textContent.trim()) : null,
+             guardada: !!(JSON.parse(localStorage.getItem(k) || '{}').foto) };
+  }, LLAVE);
+  di('la foto recién puesta', JSON.stringify(f1.mando));
+  vale('LA FOTO APARECE', f1.hay === true, f1.hay);
+  vale('  cuadrada, no polaroid', f1.polaroid === false, f1.polaroid);
+  /* La misma sombra que lleva una piedra con «sombra» marcada. */
+  vale('  con la sombra de las piedras', /5px 5px 10px/.test(f1.sombra || ''), f1.sombra);
+  vale('  y ya en modo edición, con sus mandos', Array.isArray(f1.mando) && f1.mando.length >= 4, f1.mando);
+  vale('  el botón dice «cambiar a Polaroid»', (f1.mando || [])[0] === 'cambiar a Polaroid', (f1.mando || [])[0]);
+  vale('  y queda guardada', f1.guardada === true, f1.guardada);
+
+  await p.click('[data-pt-estilo]'); await p.waitForTimeout(300);
+  const f2 = await p.evaluate(() => ({
+    polaroid: document.querySelector('.pt-foto').classList.contains('polaroid'),
+    fondo: getComputedStyle(document.querySelector('.pt-foto')).backgroundColor,
+    rotulo: document.querySelector('[data-pt-estilo]').textContent.trim() }));
+  di('en polaroid', JSON.stringify(f2));
+  vale('CAMBIA A POLAROID', f2.polaroid === true, f2.polaroid);
+  vale('  y el botón dice «cambiar a normal»', f2.rotulo === 'cambiar a normal', f2.rotulo);
+
+  await p.click('[data-pt-estilo]'); await p.waitForTimeout(300);
+  const f3 = await p.evaluate(() => ({
+    polaroid: document.querySelector('.pt-foto').classList.contains('polaroid'),
+    rotulo: document.querySelector('[data-pt-estilo]').textContent.trim() }));
+  vale('Y VUELVE A NORMAL', f3.polaroid === false, f3.polaroid);
+  vale('  con el botón otra vez en «cambiar a Polaroid»', f3.rotulo === 'cambiar a Polaroid', f3.rotulo);
+
+  /* «Poquito a poquito»: tres grados por toque. Se comprueba lo guardado Y lo
+     pintado, que no es lo mismo —el número puede subir sin que la foto gire—. */
+  const g0 = await p.evaluate(k => JSON.parse(localStorage.getItem(k)).foto.giro, LLAVE);
+  await p.click('[data-pt-giro="3"]'); await p.waitForTimeout(200);
+  await p.click('[data-pt-giro="3"]'); await p.waitForTimeout(200);
+  const g1 = await p.evaluate(k => ({
+    giro: JSON.parse(localStorage.getItem(k)).foto.giro,
+    css: document.querySelector('.pt-marco').style.transform }), LLAVE);
+  await p.click('[data-pt-giro="-3"]'); await p.waitForTimeout(200);
+  const g2 = await p.evaluate(k => JSON.parse(localStorage.getItem(k)).foto.giro, LLAVE);
+  di('el giro', JSON.stringify({ g0, g1, g2 }));
+  vale('GIRA A LA DERECHA DE TRES EN TRES', g1.giro === g0 + 6, g0 + ' → ' + g1.giro);
+  vale('  y a la izquierda igual', g2 === g1.giro - 3, g1.giro + ' → ' + g2);
+  vale('  y se ve girada, no solo apuntada', /rotate\(6deg\)/.test(g1.css || ''), g1.css);
+
+  titulo('LAS PIEDRAS DE LA PORTADA');
+  await p.click('[data-pt-listo]'); await p.waitForTimeout(300);
+  await p.click('#btnPortadaPiedras'); await p.waitForTimeout(400);
+  await p.click('[data-pt-forma="paloma"]'); await p.waitForTimeout(250);
+  await p.click('[data-pt-tinta="carmin"]'); await p.waitForTimeout(250);
+  await p.mouse.click(120, 260); await p.waitForTimeout(250);
+  await p.mouse.click(300, 300); await p.waitForTimeout(250);
+
+  /* EL MANDO TAPA LA BANDA DE ABAJO, y por eso lleva «subir». Medido en el
+     teléfono de 412×915 ocupa de y=469 a y=811: ahí no se puede dejar una
+     piedra, y una puesta no se arrastra después. La prueba mide el estorbo
+     antes de mover el mando, para que si mañana el panel encoge y deja de
+     tapar, esto lo diga en vez de seguir en verde por casualidad. */
+  const tapa = await p.evaluate(() => {
+    const r = document.getElementById('portadaMandoPiedras').getBoundingClientRect();
+    const t = document.elementFromPoint(206, Math.round(r.top + r.height/2));
+    return { y: Math.round(r.top), abajo: Math.round(r.bottom),
+             tapando: !!(t && t.closest('.pt-mando')) };
+  });
+  di('el mando abajo', JSON.stringify(tapa));
+  vale('el mando abajo tapa parte de la portada', tapa.tapando === true, tapa);
+  await p.click('[data-pt-mover]'); await p.waitForTimeout(300);
+  const arriba = await p.evaluate(() => {
+    const el = document.getElementById('portadaMandoPiedras');
+    return { y: Math.round(el.getBoundingClientRect().top),
+             arriba: el.classList.contains('arriba'),
+             dice: (el.querySelector('[data-pt-mover]') || {}).textContent,
+             libre: (document.elementFromPoint(206, 700) || {}).id };
+  });
+  di('el mando arriba', JSON.stringify(arriba));
+  vale('SUBIR LO MUEVE Y LIBERA LO QUE TAPABA',
+       arriba.arriba === true && arriba.y < tapa.y && arriba.libre === 'portadaPiedras', arriba);
+  vale('  y el botón pasa a decir «bajar»', arriba.dice === 'bajar', arriba.dice);
+  await p.mouse.click(206, 700); await p.waitForTimeout(250);
+  await p.click('[data-pt-mover]'); await p.waitForTimeout(300);   /* se baja otra vez */
+
+  const pd = await p.evaluate(k => {
+    const g = JSON.parse(localStorage.getItem(k) || '{}').piedras || [];
+    return { puestas: document.querySelectorAll('.pt-piedra').length,
+             guardadas: g.length, forma: (g[0] || {}).forma, color: (g[0] || {}).color,
+             /* En fracciones, no en píxeles: la pantalla gira y el píxel no. */
+             enFracciones: g.every(x => x.x >= 0 && x.x <= 1 && x.y >= 0 && x.y <= 1) };
+  }, LLAVE);
+  di('las piedras', JSON.stringify(pd));
+  vale('SE PONEN DONDE SE TOCA', pd.puestas === 3 && pd.guardadas === 3, pd);
+  vale('  con la figura y el color elegidos',
+       pd.forma === 'paloma' && pd.color === 'carmin', [pd.forma, pd.color].join(' / '));
+  vale('  y guardadas en fracciones de la portada', pd.enFracciones === true, pd.enFracciones);
+
+  await p.click('[data-pt-piedra="0"]'); await p.waitForTimeout(300);
+  const menos = await p.evaluate(() => document.querySelectorAll('.pt-piedra').length);
+  vale('  tocando una puesta se quita', menos === 2, menos);
+
+  titulo('CONTINUE ABRE LA BIBLIA');
+  await p.click('[data-pt-listo]'); await p.waitForTimeout(300);
+  await p.click('#btnPortadaHold');
+  await p.waitForTimeout(2600);
+  const fin1 = await p.evaluate(() => {
+    const x = document.getElementById('portada');
+    return !x || x.classList.contains('fuera');
+  });
+  vale('CONTINUE TERMINA LA CUENTA Y DESTAPA', fin1 === true, fin1);
+
+  titulo('Y AL VOLVER, EL ADORNO SIGUE');
+  await p.reload();
+  await p.waitForTimeout(700);
+  const vuelta = await p.evaluate(() => ({
+    foto: !!document.querySelector('.pt-foto'),
+    piedras: document.querySelectorAll('.pt-piedra').length }));
+  di('tras recargar', JSON.stringify(vuelta));
+  vale('la foto vuelve', vuelta.foto === true, vuelta.foto);
+  vale('y las piedras también', vuelta.piedras === 2, vuelta.piedras);
+
+  fs.rmSync(carpeta, { recursive:true, force:true });
+  await cerrar(sesion);
+})();
