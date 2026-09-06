@@ -300,6 +300,63 @@ async function tocarSinClic(pagina, x, y, pid = 21){
   vale('  cerrando el mando y devolviéndolo a la escena',
        menos.mandoFuera === true && menos.devuelto === true, menos);
 
+  /* REPINTAR LA HOJA NO PUEDE LLEVARSE EL MANDO PRESTADO, y esto era grave.
+     El pintor de las piedras de la hoja apaga la edición cuando el id que se
+     está editando no es de los suyos —hace falta al pasar de página—, pero con
+     una piedra de la PORTADA abierta ese id nunca es suyo: cualquier repintado
+     de la hoja (girar el teléfono, cambiar el tamaño de la ventana) cerraba el
+     mando SIN devolverlo a la escena ni soltar el taller. El mando se quedaba
+     dentro de la tapa, y al irse la tapa se lo llevaba por delante: a partir de
+     ahí no se podía editar ninguna piedra hasta recargar. */
+  await tocarSinClic(p, 150, 250, 25);
+  const antesDeGirar = await p.evaluate(() => ({
+    editando: !!document.querySelector('.pt-piedra.editando'),
+    padre: document.getElementById('piedraMando').parentNode.id }));
+  vale('(la prueba es válida) hay una piedra de la portada en edición',
+       antesDeGirar.editando === true && antesDeGirar.padre === 'portada', antesDeGirar);
+  await p.setViewportSize({ width:915, height:412 });
+  await p.waitForTimeout(900);
+  const girado = await p.evaluate(() => {
+    const m = document.getElementById('piedraMando');
+    return { existe: !!m, padre: m ? m.parentNode.id : null,
+             editando: !!document.querySelector('.pt-piedra.editando'),
+             visible: m ? m.classList.contains('visible') : false };
+  });
+  di('tras girar el teléfono', JSON.stringify(girado));
+  vale('LA EDICIÓN DE LA PORTADA SOBREVIVE AL REPINTADO DE LA HOJA',
+       girado.editando === true && girado.visible === true && girado.existe === true &&
+       girado.padre === 'portada', girado);
+  await p.setViewportSize({ width:412, height:915 });
+  await p.waitForTimeout(600);
+
+  /* Y LAS FLECHAS MUEVEN LA PIEDRA, también la de la portada: el que las
+     atiende buscaba la piedra solo en la hoja, así que con una de la tapa
+     abierta no la encontraba, se salía sin hacer nada y ni siquiera se tragaba
+     la tecla. */
+  const flechas = await p.evaluate(async k => {
+    const pausa = ms => new Promise(r => setTimeout(r, ms));
+    const g = () => (JSON.parse(localStorage.getItem(k) || '{}').piedras || [])
+                      .find(y => y.id === document.querySelector('.pt-piedra.editando').dataset.ptPiedra) || {};
+    const b = document.querySelector('.pt-piedra.editando');
+    b.focus();
+    const antes = { x:g().x, y:g().y };
+    for (const t of ['ArrowRight','ArrowRight','ArrowDown']){
+      document.dispatchEvent(new KeyboardEvent('keydown', { key:t, bubbles:true }));
+      await pausa(120);
+    }
+    const nodo = document.querySelector('[data-pt-piedra="' + g().id + '"]');
+    return { antes, tras: { x:g().x, y:g().y }, pintado: nodo ? nodo.style.left : null };
+  }, LLAVE);
+  di('las flechas', JSON.stringify(flechas));
+  /* Dos a la derecha y una abajo, a dos centésimas de portada por tecla. */
+  vale('LAS FLECHAS MUEVEN LA PIEDRA DE LA PORTADA',
+       Math.abs(flechas.tras.x - flechas.antes.x - .04) < 1e-9 &&
+       Math.abs(flechas.tras.y - flechas.antes.y - .02) < 1e-9, flechas);
+  vale('  y lo pintado sigue a lo guardado',
+       Math.abs(parseFloat(flechas.pintado) - flechas.tras.x * 100) < .01,
+       flechas.pintado + ' contra ' + (flechas.tras.x * 100).toFixed(3) + '%');
+  await p.click('#piedraMando [data-piedra-acc="quitar"]'); await p.waitForTimeout(400);
+
   /* Se apaga el modo de decorar con el mismo botón que lo encendió. */
   await p.click('#btnPortadaPiedras'); await p.waitForTimeout(300);
 

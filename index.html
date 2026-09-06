@@ -3527,7 +3527,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 12:46';
+window.GLOSS_BUILD = '06-SEP-26 12:55';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -13116,7 +13116,16 @@ function pintarPiedras(){
      no llamando a piedraCerrarEdicion(), que vuelve a pintar y se mordería la
      cola. Pasa al pasar de página con el mando puesto: sin esto el panel se
      queda flotando sobre una hoja donde no hay ninguna piedra suya. */
-  if (piedraEditando && !mias.some(x => x.id === piedraEditando)){
+  /* Y SOLO SI LA EDICIÓN ES DE LA HOJA. Sin esta condición, editando una
+     piedra de la PORTADA cualquier cosa que repinte la hoja —girar el
+     teléfono, cambiar el tamaño de la ventana— veía un id que no es de los
+     suyos, apagaba la edición y cerraba el mando… sin devolverlo a la escena
+     ni soltar el taller. El mando se quedaba dentro de la tapa, y al irse la
+     tapa se lo llevaba por delante: a partir de ahí no se podía editar
+     ninguna piedra, ni de la portada ni de la hoja, hasta recargar. Lo
+     levantó Codex. */
+  if (piedraEditando && piedraTaller === TALLER_HOJA &&
+      !mias.some(x => x.id === piedraEditando)){
     piedraEditando = null;
     cerrarPiedraMando();
   }
@@ -13203,6 +13212,7 @@ const TALLER_HOJA = {
   pintar: () => pintarPiedras(),
   pasos: () => PIEDRA_TAMS.length,
   colocar: () => colocarPiedraMandoHoja(),
+  nodo: id => document.querySelector('[data-piedra="' + id + '"]'),
   quitar: null,                      /* en la hoja se borra desde la lista */
   eco: () => {
     if (piedraMenuAbierto) pintarPiedraMenu();
@@ -13215,6 +13225,7 @@ const TALLER_PORTADA = {
   pintar: () => portadaPintarPiedras(),
   pasos: () => PORTADA_TAMS.length,
   colocar: () => colocarPiedraMandoPortada(),
+  nodo: id => document.querySelector('[data-pt-piedra="' + id + '"]'),
   /* LA ÚNICA DIFERENCIA, y no es un capricho: en la hoja una piedra se borra
      desde su LISTA, que pregunta antes. La portada no tiene lista —no hay
      dónde ir a buscarla— así que sin esto una piedra puesta en la portada no
@@ -13853,19 +13864,28 @@ document.addEventListener('keydown', ev => {
      el cursor por las letras. */
   const foco = document.activeElement;
   const dentro = foco && foco.closest &&
-                 foco.closest('.piedra-sitio, #piedraMando') &&
+                 /* .pt-piedra es la de la portada: sin nombrarla, quien llegaba
+                    a una piedra de la tapa con el tabulador no podía moverla. */
+                 foco.closest('.piedra-sitio, .pt-piedra, #piedraMando') &&
                  !foco.closest('[data-piedra-nombre]');
   if (!dentro) return;
   const paso = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] }[ev.key];
   if (!paso) return;
-  const x = piedraDe(piedraEditando);
+  /* POR EL TALLER, como todo lo demás del mando. Esto se quedó buscando la
+     piedra solo en la hoja: con una de la portada abierta, las flechas no la
+     encontraban, se salían sin hacer nada y ni siquiera se tragaban la tecla.
+     Lo levantó Codex. */
+  const x = piedraTaller.de(piedraEditando);
   if (!x) return;
   ev.preventDefault(); ev.stopPropagation();
   x.x = Math.min(Math.max(x.x + paso[0] * PIEDRA_PASO, 0), 1);
   x.y = Math.min(Math.max(x.y + paso[1] * PIEDRA_PASO, 0), 1);
   x.tocado = Date.now();
-  piedrasGuardar();
-  const sitio = document.querySelector('[data-piedra="' + x.id + '"]');
+  piedraTaller.guardar();
+  /* Se mueve el nodo a mano y no se repinta la capa: repintando se pierde el
+     foco, y quien mueve con flechas lo tiene puesto. Cada taller sabe cuál es
+     el nodo que lleva el sitio. */
+  const sitio = piedraTaller.nodo(x.id);
   if (sitio){
     sitio.style.left = (x.x * 100).toFixed(3) + '%';
     sitio.style.top = (x.y * 100).toFixed(3) + '%';
@@ -15785,6 +15805,16 @@ function sembrarGlosasDeEstreno(){
 function quitarPortada(){
   const el = document.getElementById('portada');
   if (!el || el.classList.contains('fuera')) return;
+  /* LO PRIMERO, RECUPERAR EL MANDO SI ESTABA PRESTADO. La portada se borra del
+     documento seiscientos milisegundos después, y el mando de la piedra es un
+     nodo que se le presta mientras se decora: si se va dentro, se va para
+     siempre. Va aquí y no solo en las puertas de salida porque esta función
+     también la llama el techo de emergencia, que no pasa por ninguna de
+     ellas. */
+  if (typeof piedraDevolverMando === 'function'){
+    if (piedraEditando && piedraTaller === TALLER_PORTADA) piedraCerrarEdicion();
+    else piedraDevolverMando();
+  }
   el.classList.add('fuera');
   setTimeout(() => { if (el.parentNode) el.remove(); }, 600);
 }
