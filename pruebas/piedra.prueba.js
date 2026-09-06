@@ -652,28 +652,41 @@ async function andamio(p){
     e0.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
       clientX: r0.left + r0.width/2, clientY: r0.top + r0.height/2 }));
     await window.__pausa(600);
-    const antes = { forma:g().forma, color:g().color, tam:g().tam };
+    /* LOS CUATRO CAMBIOS SE HACEN AQUÍ DENTRO, incluida la sombra. Estaba
+       marcada en el bloque de arriba y la aserción daba por hecho que la
+       instantánea la tenía apagada; en cuanto la edición empieza AQUÍ, la
+       instantánea la tiene encendida y cancelar la deja encendida, que es lo
+       correcto. Un bloque que se apoya en lo que tocó el anterior mide el
+       rastro, no lo suyo.
+       Y EL COLOR SE CAMBIA DE VERDAD: aquí se tocaba «carmín» sobre una piedra
+       que YA era carmín, así que esa pata no probaba nada —ni el cambio ni el
+       deshacer—. Con índigo sí hay ida y vuelta. */
+    const antes = { forma:g().forma, color:g().color, tam:g().tam, sombra: g().sombra === true };
     await window.__toque('#piedraMando [data-piedra-forma="ancla"]'); await window.__pausa(300);
-    await window.__toque('#piedraMando [data-piedra-color="carmin"]'); await window.__pausa(300);
+    await window.__toque('#piedraMando [data-piedra-color="indigo"]'); await window.__pausa(300);
     await window.__toque('#piedraMando [data-piedra-acc="mas"]'); await window.__pausa(300);
-    const medio = { forma:g().forma, color:g().color, tam:g().tam };
+    await window.__toque('#piedraMando [data-piedra-sombra]'); await window.__pausa(300);
+    const medio = { forma:g().forma, color:g().color, tam:g().tam, sombra: g().sombra === true };
     await window.__toque('#piedraMando [data-piedra-acc="cancelar"]'); await window.__pausa(600);
     return { antes, medio, tras: { forma:g().forma, color:g().color, tam:g().tam,
-                                   sombra: g().sombra },
+                                   sombra: g().sombra === true },
              cerrado: !document.getElementById('piedraMando').classList.contains('visible'),
              editando: window.__editando() };
   });
   di('cancelar', deshacer);
-  vale('(la prueba es válida) los tres cambios entraron',
-       deshacer.medio.forma === 'ancla' && deshacer.medio.color === 'carmin' &&
-       deshacer.medio.tam === deshacer.antes.tam + 1, deshacer.medio);
+  vale('(la prueba es válida) los cuatro cambios entraron',
+       deshacer.medio.forma === 'ancla' && deshacer.medio.color === 'indigo' &&
+       deshacer.medio.tam === deshacer.antes.tam + 1 &&
+       deshacer.medio.sombra !== deshacer.antes.sombra, deshacer.medio);
   vale('CANCELAR LOS DESHACE LOS TRES',
        deshacer.tras.forma === deshacer.antes.forma &&
        deshacer.tras.color === deshacer.antes.color &&
        deshacer.tras.tam === deshacer.antes.tam, deshacer.tras);
-  /* Y LA SOMBRA CON ELLOS: se marcó DESPUÉS de abrir el mando, así que la
-     instantánea la tiene apagada y cancelar tiene que apagarla. */
-  vale('  y la sombra, que también se tocó', !deshacer.tras.sombra, deshacer.tras.sombra);
+  /* Y LA SOMBRA CON ELLOS, en el sentido que toque: se compara contra cómo
+     estaba al empezar ESTA edición, no contra «apagada». */
+  vale('  y la sombra, que también se tocó',
+       deshacer.tras.sombra === deshacer.antes.sombra,
+       deshacer.antes.sombra + ' → ' + deshacer.medio.sombra + ' → ' + deshacer.tras.sombra);
   vale('  y cierra el mando', deshacer.cerrado === true && deshacer.editando === false,
        deshacer);
 
