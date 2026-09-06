@@ -3527,7 +3527,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 12:55';
+window.GLOSS_BUILD = '06-SEP-26 13:18';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -13900,7 +13900,15 @@ document.addEventListener('keydown', ev => {
    toque fuera que cerraría la edición antes de que el clic llegara a él. */
 document.addEventListener('pointerdown', ev => {
   if (!piedraEditando) return;
-  if (ev.target.closest('.piedra-sitio, #piedraMando')) return;
+  /* .pt-piedra es la de la portada, y sin nombrarla aquí pasaba lo peor que
+     puede pasar con un guardián de éstos: tocar la piedra que se está editando
+     contaba como tocar FUERA, así que en vez de pasarle a la figura siguiente
+     le cerraba la edición. Y como el mando se cierra con retardo, el botón de
+     «Quitar» seguía en el documento pero invisible, que es un fallo que no se
+     parece en nada a su causa.
+     Es el gemelo del guardián de las flechas, ahí arriba; arreglé aquél y me
+     dejé éste. */
+  if (ev.target.closest('.piedra-sitio, .pt-piedra, #piedraMando')) return;
   piedraCerrarEdicion();
 }, true);
 

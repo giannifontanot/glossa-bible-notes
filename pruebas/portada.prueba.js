@@ -280,10 +280,20 @@ async function tocarSinClic(pagina, x, y, pid = 21){
   vale('EL DOBLE TOQUE ABRE SU EDICIÓN', edita.cerco === true && edita.visible === true, edita);
 
   await tocarSinClic(p, dondeEsta.x, dondeEsta.y, 23);
-  const otraForma = await p.evaluate(k =>
-    (JSON.parse(localStorage.getItem(k)||'{}').piedras||[])[0].forma, LLAVE);
-  vale('  y ya en edición, el toque le cambia la figura', otraForma !== antesQuieta,
-       antesQuieta + ' → ' + otraForma);
+  const trasTocarla = await p.evaluate(k => ({
+    forma: (JSON.parse(localStorage.getItem(k)||'{}').piedras||[])[0].forma,
+    /* Y QUE EL TOQUE NO LE CIERRE LA EDICIÓN, que es lo que hacía: el guardián
+       de «un toque fuera cierra» no nombraba a las piedras de la portada, así
+       que tocar la que se está editando contaba como tocar FUERA. El síntoma no
+       se parecía a la causa —la figura no cambiaba, y el «Quitar» del mando
+       seguía en el documento pero invisible— así que se comprueban las dos. */
+    cerco: !!document.querySelector('.pt-piedra.editando'),
+    visible: document.getElementById('piedraMando').classList.contains('visible') }), LLAVE);
+  di('tras tocarla en edición', JSON.stringify(trasTocarla));
+  vale('  y ya en edición, el toque le cambia la figura', trasTocarla.forma !== antesQuieta,
+       antesQuieta + ' → ' + trasTocarla.forma);
+  vale('  sin cerrarle la edición', trasTocarla.cerco === true && trasTocarla.visible === true,
+       trasTocarla);
 
   /* «Quitar» vive en el mando y no en un toque suelto: quitar sin querer una
      piedra que solo se quería mover es lo que esto evita. */
