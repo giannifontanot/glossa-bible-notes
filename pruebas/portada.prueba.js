@@ -258,11 +258,19 @@ async function tocarSinClic(pagina, x, y, pid = 21){
      una piedra que solo se quería mover es lo que esto evita. */
   await p.click('#portadaMandoPiedras [data-pt-quitar-esta]');
   await p.waitForTimeout(400);
-  const menos = await p.evaluate(() => document.querySelectorAll('.pt-piedra').length);
-  vale('  y «Quitar» del mando la quita', menos === 2, menos);
+  const menos = await p.evaluate(() => ({
+    n: document.querySelectorAll('.pt-piedra').length,
+    /* QUITAR TERMINA, no deja el mando abierto sobre una piedra que ya no
+       existe: la edición era de ELLA, y sin ella no hay nada que editar.
+       Aquí la prueba tocaba «Listo» después y se quedaba treinta segundos
+       esperando un botón que ya no estaba. */
+    mando: !document.getElementById('portadaMandoPiedras').hidden,
+    cerco: !!document.querySelector('.pt-piedra.editando') }));
+  di('tras quitarla', JSON.stringify(menos));
+  vale('  y «Quitar» del mando la quita', menos.n === 2, menos.n);
+  vale('  y cierra el mando con ella', menos.mando === false && menos.cerco === false, menos);
 
   titulo('CONTINUE ABRE LA BIBLIA');
-  await p.click('[data-pt-listo]'); await p.waitForTimeout(300);
   await p.click('#btnPortadaHold');
   await p.waitForTimeout(2600);
   const fin1 = await p.evaluate(() => {
