@@ -152,6 +152,30 @@ async function andamio(p){
                           derecha: Math.round(r.right - rx.right),
                           lado: Math.round(rx.width) }; })(),
                quitar: !!m.querySelector('[data-piedra-acc="quitar"]'),
+               /* EL RENGLÓN DE ABAJO, medido: las tres salidas y la casilla de
+                  la sombra. Con «Quitar» ya son tres botones, y lo que hay que
+                  vigilar es que no se estrujen ni se caigan a otro renglón. */
+               salidas: [...m.querySelectorAll('.pm-btn2')].map(b => {
+                 const rb = b.getBoundingClientRect();
+                 return { rot: b.textContent.trim(), acc: b.dataset.piedraAcc,
+                          ancho: Math.round(rb.width), alto: Math.round(rb.height) }; }),
+               sombra: (() => {
+                 const lab = m.querySelector('.pm-sombra');
+                 if (!lab) return null;
+                 const cas = lab.querySelector('input'), pal = lab.querySelector('span');
+                 if (!cas || !pal) return null;
+                 const rc = cas.getBoundingClientRect(), rp = pal.getBoundingClientRect();
+                 return { casillaAbajo: Math.round(rc.bottom), palabraArriba: Math.round(rp.top),
+                          lado: Math.round(rc.width) }; })(),
+               /* Un renglón se mide por SOLAPE vertical y no por el mismo
+                  «top»: align-items:center deja tops distintos en la misma
+                  fila, y comparándolos esto decía «dos renglones» con el
+                  renglón entero puesto en uno. */
+               abajoEnUnRenglon: (() => {
+                 const ab = m.querySelector('.pm-abajo');
+                 if (!ab || ab.children.length < 2) return null;
+                 const rs = [...ab.children].map(c => c.getBoundingClientRect());
+                 return rs.every(x => x.top < rs[0].bottom && x.bottom > rs[0].top); })(),
                tamanos: [...m.querySelectorAll('.pm-btn')].map(b => {
                  const rb = b.getBoundingClientRect();
                  return { acc: b.dataset.piedraAcc, lado: Math.round(rb.width),
@@ -914,8 +938,33 @@ async function andamio(p){
   vale('  y con blanco de toque de 30 px o más',
        !!remate.antes.aspa && remate.antes.aspa.lado >= 30, remate.antes.aspa);
   vale('Y CIERRA EL MANDO', remate.cerrado === true && remate.editando === false, remate);
-  vale('ya no hay botón de quitar en el mando', remate.antes.quitar === false,
-       'borrar se pide en la lista, y allí pregunta');
+  /* «QUITAR» VOLVIÓ, Y ESTA LÍNEA PEDÍA LO CONTRARIO. Se había ido del mando
+     por su SITIO —estaba pegado a los de tamaño, donde se toca a tientas— y
+     aquí quedó escrito «ya no hay botón de quitar», que es una decisión de
+     colocación disfrazada de contrato. El dueño del repo lo pidió de vuelta al
+     ver que la portada sí lo tenía y la hoja no; ahora está abajo, en el
+     renglón de las salidas, al lado de «Cancelar». Lo que se vigila es lo que
+     importa: que estén las TRES y que ninguna se estruje. */
+  vale('EL MANDO TIENE LAS TRES SALIDAS: Quitar, Cancelar y OK',
+       remate.antes.quitar === true && remate.antes.salidas.length === 3 &&
+       ['quitar','cancelar','ok'].every(a =>
+         remate.antes.salidas.some(b => b.acc === a)),
+       remate.antes.salidas.map(b => b.rot).join(' · '));
+  vale('  y las tres con 44 px de alto o más, que es lo que pide el dedo',
+       remate.antes.salidas.length === 3 &&
+       remate.antes.salidas.every(b => b.alto >= 44),
+       remate.antes.salidas.map(b => b.rot + ' ' + b.alto).join(' · '));
+  /* LA CASILLA ENCIMA DE SU PALABRA. En fila, «☐ sombra» se llevaba unos 70 px
+     de un renglón que ahora tiene tres botones. Se pide las dos cosas —que la
+     casilla quede por encima Y que el renglón siga siendo uno— porque apilarla
+     sin mirar el renglón no arregla nada, y el renglón cabiendo por casualidad
+     tampoco dice que se apilara. */
+  vale('LA CASILLA DE LA SOMBRA VA ENCIMA DE SU PALABRA',
+       !!remate.antes.sombra &&
+       remate.antes.sombra.casillaAbajo <= remate.antes.sombra.palabraArriba + 2,
+       remate.antes.sombra);
+  vale('  y el renglón de abajo sigue siendo UNO',
+       remate.antes.abajoEnUnRenglon === true);
   vale('los dos de tamaño miden 44 px o más',
        remate.antes.tamanos.length === 2 &&
        remate.antes.tamanos.every(b => b.lado >= 44 && b.alto >= 44),
@@ -1301,6 +1350,64 @@ async function andamio(p){
   vale('(comprobación) la fila se enfoca', conTeclado.enFoco === true, conTeclado);
   vale('F2 ABRE NOMBRE Y BORRAR SIN NINGÚN TOQUE',
        conTeclado.nombrar === true && conTeclado.borrar === true, conTeclado);
+
+  /* ----------------------------------------------------------------
+     Y «QUITAR» QUITA. Va el último de esta sesión y se pone SU PROPIA PIEDRA:
+     por aquí ya han pasado bloques que borran desde la lista, así que dar por
+     hecho que queda alguna es dar por hecho el estado que dejó otro. Nace con
+     el mando abierto, que es justo la situación en la que se usa este botón.
+
+     Se comprueban las tres cosas que hacen falta para creerse un borrado: que
+     desaparece del PAPEL, que desaparece de lo GUARDADO —si no, vuelve al
+     recargar— y que el mando se cierra, porque estaba editando justo esa. */
+  titulo('«Quitar» se lleva la piedra de la hoja');
+  const quitarDelMando = await p.evaluate(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(400);
+    await window.__nuevaPiedra();
+    /* SE SIGUE ESTA PIEDRA POR SU NOMBRE PROPIO, no «¿queda alguna?». Por esta
+       hoja han pasado bloques que dejan piedras puestas, así que preguntar por
+       __hayPiedra() —que dice si queda CUALQUIERA— daba «sí» con la borrada
+       borrada, y la comprobación pasaba o fallaba por lo que hiciera otro. La
+       recién nacida es la que está en edición: de ahí sale su id. */
+    const suya = document.querySelector('.piedra-sitio.editando');
+    const id = suya && suya.dataset.piedra;
+    const esta = () => !!document.querySelector('[data-piedra="' + id + '"]');
+    const enElAlmacen = () => window.__guardadas().some(x => x.id === id);
+    const antes = { id, enLaHoja: esta(), guardada: enElAlmacen(),
+                    cuantas: window.__guardadas().length,
+                    abierto: window.__elMando().visible,
+                    hayBoton: !!document.querySelector('#piedraMando [data-piedra-acc="quitar"]') };
+    await window.__toque('#piedraMando [data-piedra-acc="quitar"]');
+    await window.__pausa(700);
+    return { antes, enLaHoja: esta(), guardada: enElAlmacen(),
+             cuantas: window.__guardadas().length,
+             editando: window.__editando(),
+             abierto: window.__elMando().visible,
+             otras: [...document.querySelectorAll('.piedra-sitio')]
+                      .map(e => e.dataset.piedra) };
+  });
+  di('al quitar', JSON.stringify(quitarDelMando));
+  vale('(la prueba es válida) nace una piedra suya, con su mando y su botón',
+       !!quitarDelMando.antes.id && quitarDelMando.antes.enLaHoja === true &&
+       quitarDelMando.antes.guardada === true &&
+       quitarDelMando.antes.abierto === true &&
+       quitarDelMando.antes.hayBoton === true, quitarDelMando.antes);
+  vale('«QUITAR» LA BORRA DEL PAPEL', quitarDelMando.enLaHoja === false,
+       'la ' + quitarDelMando.antes.id);
+  vale('  y de lo guardado, que si no vuelve al recargar',
+       quitarDelMando.guardada === false &&
+       quitarDelMando.cuantas === quitarDelMando.antes.cuantas - 1,
+       quitarDelMando.antes.cuantas + ' → ' + quitarDelMando.cuantas);
+  vale('  y cierra el mando, que estaba editando esa',
+       quitarDelMando.abierto === false && quitarDelMando.editando === false,
+       quitarDelMando);
+  /* EL CONTROL, que es lo que hace que lo de arriba signifique algo: las demás
+     piedras de la hoja siguen donde estaban. Sin él, un «Quitar» que barriera
+     la hoja entera pasaría las tres comprobaciones anteriores. */
+  vale('  CONTROL: no se lleva por delante a las demás',
+       !quitarDelMando.otras.includes(quitarDelMando.antes.id),
+       quitarDelMando.otras.length + ' piedras siguen puestas');
 
   await cerrarParcial(sesion, 'la piedra sola');
 
