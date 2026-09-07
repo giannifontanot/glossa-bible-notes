@@ -2,18 +2,23 @@
    LA PORTADA.
 
    La tapa que se ve al abrir dejó de ser un letrero que se va solo: cuenta
-   segundo y tres cuartos, y mientras cuenta se puede parar («hold»), pegarle
-   piedras y ponerle una foto. Eso la vuelve una pantalla con estado, y una
-   pantalla con estado se prueba.
+   CINCO SEGUNDOS, y mientras cuenta se puede parar, pegarle piedras y ponerle
+   una foto. Eso la vuelve una pantalla con estado, y una pantalla con estado
+   se prueba.
+
+   La cuenta ha ido cambiando —tres segundos, luego segundo y tres cuartos,
+   ahora cinco— y por eso aquí no se escribe el número dos veces: las esperas
+   se explican contra PORTADA_ESPERA en el comentario, y lo que se mide es lo
+   que se ve.
 
    POR QUÉ NO USA abrir(). El andamio espera a que la portada SE VAYA antes de
    devolver la página —es lo que quiere el resto de la carpeta—. Aquí hay que
    llegar antes, así que se usa abrirEnPortada(), que abre y devuelve.
 
-   Y POR QUÉ NO HAY QUE CORRER: en cuanto se toca «hold», «foto» o «Piedras»,
-   el reloj se para y la portada se queda. Solo la primera medida —«sigue
-   puesta»— compite contra la cuenta, y por eso mira a los 2000 ms de los 3000
-   que dura.
+   Y POR QUÉ NO HAY QUE CORRER: en cuanto se toca el botón del medio, «foto» o
+   «Piedras», el reloj se para y la portada se queda. Solo la primera medida
+   —«sigue puesta»— compite contra la cuenta, y por eso mira a los 2000 ms de
+   los 5000 que dura.
    ============================================================ */
 const fs = require('fs');
 const os = require('os');
@@ -42,6 +47,51 @@ async function tocarSinClic(pagina, x, y, pid = 21){
 (async () => {
   const sesion = await abrirEnPortada();
   const p = sesion.pagina;
+
+  titulo('EL BOTÓN DEL MEDIO ES LA CUENTA ATRÁS');
+  /* EL BOTÓN DICE CUÁNTO QUEDA. Decía «hold», que hay que entender antes de
+     servir de algo; ahora cuenta 5, 4, 3, 2 y en el último segundo dice
+     «pausa», encendido. Se muestrea mientras corre en vez de mirar una vez:
+     lo que hay que probar es que BAJA, y una foto sola no lo dice.
+     Se guarda además el reloj de la página en cada muestra, porque la única
+     manera honesta de comprobar que la tapa dura cinco segundos es contra el
+     reloj de la página y no contra el de la prueba: entre que el navegador
+     abre el archivo y la prueba mira ya ha corrido medio segundo largo. */
+  const muestras = [];
+  for (let i = 0; i < 13; i++){
+    muestras.push(await p.evaluate(() => {
+      const b = document.getElementById('btnPortadaHold');
+      const pt = document.getElementById('portada');
+      return { rot: b ? b.textContent.trim() : null,
+               on: b ? b.classList.contains('esperando') : null,
+               t: Math.round(performance.now()),
+               viva: !!pt && !pt.classList.contains('fuera') };
+    }));
+    if (!muestras[muestras.length - 1].viva) break;
+    await p.waitForTimeout(400);
+  }
+  const vistos = muestras.filter(m => m.viva).map(m => m.rot);
+  di('la cuenta', muestras.map(m => (m.viva ? '' : '(fuera) ') + m.rot +
+                                    (m.on ? '*' : '')).join(' · '));
+  vale('CUENTA 5, 4, 3, 2 Y LUEGO «pausa»',
+       ['5','4','3','2','pausa'].every(x => vistos.includes(x)),
+       [...new Set(vistos)].join(' '));
+  /* Y NO SUBE. Sin esto, un rótulo que fuera y volviera —o que se repintara
+     desde un reloj equivocado— pasaría la de arriba. */
+  const numeros = muestras.filter(m => m.viva && /^\d$/.test(m.rot)).map(m => +m.rot);
+  vale('  y va bajando, nunca sube',
+       numeros.every((n, i) => i === 0 || n <= numeros[i-1]), numeros.join(' '));
+  vale('  «pausa» va encendida y los números no',
+       muestras.filter(m => m.viva && m.rot === 'pausa').every(m => m.on === true) &&
+       muestras.filter(m => m.viva && /^\d$/.test(m.rot)).every(m => m.on === false),
+       muestras.filter(m => m.viva).map(m => m.rot + (m.on ? '*' : '')).join(' '));
+  /* CINCO SEGUNDOS DE VERDAD, medidos con el reloj de la página. */
+  const fuera = muestras.find(m => !m.viva);
+  vale('Y LA TAPA DURA CINCO SEGUNDOS',
+       !!fuera && fuera.t >= 4800 && fuera.t <= 6600,
+       fuera ? 'ya fuera a los ' + fuera.t + ' ms' : 'seguía puesta al acabar el muestreo');
+
+  await p.reload();
   await p.waitForTimeout(2000);
 
   titulo('EL RELOJ Y LOS TRES BOTONES');
@@ -66,8 +116,11 @@ async function tocarSinClic(pagina, x, y, pid = 21){
   vale('«foto» a la mitad de la izquierda', Math.abs(bot.foto.centro - 17) <= 4, bot.foto.centro + '%');
   vale('«hold» en el centro', Math.abs(bot.hold.centro - 50) <= 2, bot.hold.centro + '%');
   vale('«Piedras» a la mitad de la derecha', Math.abs(bot.piedras.centro - 83) <= 4, bot.piedras.centro + '%');
+  /* El del medio ya no dice «hold»: dice lo que queda, o «pausa». Se pide la
+     forma y no un valor: qué número toque depende de cuándo mire la prueba. */
   vale('y dicen lo suyo',
-       bot.foto.t === 'foto' && bot.hold.t === 'hold' && bot.piedras.t === 'Piedras',
+       bot.foto.t === 'foto' && /^(\d|pausa)$/.test(bot.hold.t) &&
+       bot.piedras.t === 'Piedras',
        [bot.foto.t, bot.hold.t, bot.piedras.t].join(' | '));
   /* 48 px es el suelo de esta aplicación: por encima de los 44 de la WCAG 2.5.5
      y de los 44 de Apple, al nivel de Material 3. */
@@ -75,16 +128,18 @@ async function tocarSinClic(pagina, x, y, pid = 21){
        Math.min(bot.foto.alto, bot.hold.alto, bot.piedras.alto) >= 48,
        [bot.foto.alto, bot.hold.alto, bot.piedras.alto].join(' / '));
 
-  titulo('HOLD PARA LA CUENTA');
+  titulo('EL BOTÓN DEL MEDIO PARA LA CUENTA');
   await p.click('#btnPortadaHold');
-  /* 3400 es más de los 3000 de la cuenta entera, y se pulsa «hold» pasados ya
-     2000: si el reloj siguiera vivo, aquí ya no habría portada ni de lejos. */
-  await p.waitForTimeout(3400);
+  /* 4500 es casi la cuenta entera OTRA VEZ, y se pulsa pasados ya 2000 de los
+     5000: si el reloj siguiera vivo, aquí ya no habría portada ni de lejos.
+     Antes eran 3400 sobre una cuenta de 3000, que dejaba 400 ms de margen; con
+     la cuenta en 5000 ese número habría pasado igual con el reloj corriendo. */
+  await p.waitForTimeout(4500);
   const tras = await p.evaluate(() => ({
     puesta: !document.getElementById('portada').classList.contains('fuera'),
     rotulo: document.getElementById('btnPortadaHold').textContent.trim() }));
   di('tras hold', JSON.stringify(tras));
-  vale('HOLD DEJA LA PORTADA ABIERTA', tras.puesta === true, tras);
+  vale('PARAR DEJA LA PORTADA ABIERTA', tras.puesta === true, tras);
   vale('  y el botón pasa a «continue»', tras.rotulo === 'continue', tras.rotulo);
 
   titulo('LA FOTO');
@@ -315,11 +370,25 @@ async function tocarSinClic(pagina, x, y, pid = 21){
 
   titulo('CONTINUE ABRE LA BIBLIA');
   await p.click('#btnPortadaHold');
-  await p.waitForTimeout(2600);
-  const fin1 = await p.evaluate(() => {
-    const x = document.getElementById('portada');
-    return !x || x.classList.contains('fuera');
-  });
+  /* SE ESPERA A QUE PASE, NO UN RATO FIJO. Estuvo en 2600 ms y aguantó
+     mientras la cuenta duraba 3000: se paraba hacia los 2000, así que al
+     seguir quedaba un segundo largo. Con la cuenta en 5000 lo que queda al
+     reanudar son unos tres segundos y los 2600 se quedaron cortos: la prueba
+     miraba antes de tiempo y decía que la tapa no se iba. Un número fijo aquí
+     es un número que hay que recordar cambiar cada vez que se toca el reloj,
+     y nadie lo recuerda. Se espera a la condición, con un tope generoso: si de
+     verdad no se destapa, falla igual, solo que siete segundos después. */
+  const fin1 = await (async () => {
+    for (let i = 0; i < 35; i++){
+      const ya = await p.evaluate(() => {
+        const x = document.getElementById('portada');
+        return !x || x.classList.contains('fuera');
+      });
+      if (ya) return true;
+      await p.waitForTimeout(200);
+    }
+    return false;
+  })();
   vale('CONTINUE TERMINA LA CUENTA Y DESTAPA', fin1 === true, fin1);
 
   titulo('Y AL VOLVER, EL ADORNO SIGUE');

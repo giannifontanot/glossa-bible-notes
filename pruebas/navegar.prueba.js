@@ -774,9 +774,20 @@ const ATERRIZA = 7000;
      avisar, lo que no puede cambiar es que el rojo mande sobre los otros dos. */
   vale('  y el rojo sale de la paleta, no de un número suelto',
        !!flechas.variable, flechas.variable || '(sin variable)');
+  /* «ROJAS DE VERDAD» ERA UN UMBRAL, Y EL UMBRAL ERA UN NÚMERO DISFRAZADO.
+     Pedía R > 170, que es el carmín VIVO —rgb(216, 11, 11)— y no el carmín
+     —rgb(155, 42, 42)—. El dueño del repo pidió bajar ese rojo, y esta línea
+     llamó fallo al cambio; la de arriba, que mira que el color salga de la
+     paleta y no de un número suelto, pasó tan campante. O sea que el bloque se
+     contradecía a sí mismo. Lo que dice su propio comentario —el rojo manda
+     sobre los otros dos— se pide ahora sin fijar cuánto: que el rojo saque
+     buena ventaja al verde, y que el verde y el azul anden juntos, que es lo
+     que hace que sea rojo y no naranja ni morado. Es la misma cuenta que usa
+     la prueba de la piedra para lo mismo. */
   const rgb = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(flechas.color || '');
   vale('  rojas de verdad',
-       !!rgb && +rgb[1] > 170 && +rgb[2] < 90 && +rgb[3] < 90, flechas.color);
+       !!rgb && +rgb[1] - +rgb[2] > 45 && Math.abs(+rgb[2] - +rgb[3]) < 26,
+       flechas.color);
   vale('  sin disco ni borde',
        flechas.fondo === 'rgba(0, 0, 0, 0)' && flechas.borde === 0,
        flechas.fondo + ' / ' + flechas.borde);

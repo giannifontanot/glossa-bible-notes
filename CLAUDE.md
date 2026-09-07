@@ -64,6 +64,19 @@ Así que el orden es este, sin saltarse pasos:
 2. Se **espera**. No se lanza nada mientras tanto.
 3. Llega el resultado —lo corra quien lo corra— y se sigue desde ahí.
 
+Y dos cosas de forma que no son de forma:
+
+- **Las suites y el HEAD van en la ÚLTIMA línea del mensaje**, solos, sin nada
+  detrás. El dueño del repo lee el final de la conversación para saber qué
+  lanzar; si eso queda enterrado en medio de una explicación, hay que ir a
+  buscarlo. La explicación va antes; el comando y el commit, al final y en un
+  solo sitio.
+- **Y se pide por escrito en la PR**, en un comentario nuevo, nombrando las
+  mismas suites y el mismo commit. El chat es de dos; la PR es donde queda.
+  Quien corre las pruebas —Codex, hoy— trabaja desde ahí, y un encargo que solo
+  existe en una conversación es un encargo que hay que copiar a mano, con lo
+  que eso tiene de equivocarse de commit.
+
 El comando:
 
 ```sh

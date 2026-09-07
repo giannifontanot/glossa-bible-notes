@@ -280,11 +280,22 @@ async function andamio(p){
      acababa de poner no tenía manera de saber en qué color estaba. Duraba
      hasta recolorearla o hasta recargar. Se comprueba en la PALETA y no en el
      almacén, que es donde se veía. Lo levantó Codex. */
-  vale('y la paleta ya marca su color', puesta.mando.tinta === 'sepia',
-       puesta.mando.tinta);
-  vale('que es el mismo que se guarda',
-       (puesta.guardadas || [])[0] && puesta.guardadas[0].color === 'sepia',
-       puesta.guardadas && puesta.guardadas[0].color);
+  /* EL COLOR DE FÁBRICA YA NO ES SEPIA. Era sepia porque era el primero de la
+     paleta, y el dueño del repo lo cambió a carmín vivo por una razón que se
+     ve al usarlo: sepia es el color de la letra y del papel, así que una
+     piedra recién puesta se confundía con el texto de debajo. Lo que esta
+     pareja vigila no es CUÁL es el color —eso es una decisión de diseño y
+     cambiará otra vez—, sino que la paleta y el almacén digan LO MISMO: el
+     fallo original era una piedra pintada de un color y una paleta sin marcar
+     ninguno. Así que se comprueba la coincidencia, y aparte que sea el de
+     fábrica, que es una línea sola y se ve de dónde viene. */
+  vale('y la paleta marca EL MISMO color que se guarda',
+       !!puesta.mando.tinta && (puesta.guardadas || [])[0] &&
+       puesta.mando.tinta === puesta.guardadas[0].color,
+       puesta.mando.tinta + ' contra ' +
+       (puesta.guardadas && puesta.guardadas[0] && puesta.guardadas[0].color));
+  vale('  y es el de fábrica: carmín vivo',
+       puesta.mando.tinta === 'carmin-vivo', puesta.mando.tinta);
 
   /* ---------------------------------------------------------------- */
   titulo('un toque cambia la forma, un arrastre la mueve');
@@ -643,18 +654,29 @@ async function andamio(p){
        !!tintaB && cambian.length >= 2 &&
        cambian.every(i => pB[i].relleno === tintaB || pB[i].linea === tintaB),
        'tinta ' + tintaB);
-  /* EL AVE NO CAMBIA: si el perfil volviera a seguir a la tinta, el ave se
-     teñiría entera y volvería la paloma marrón. El blanco se busca claro y no
-     en 255: la hoja lo corrige a 230 antes de que el filtro lo toque. */
-  const esClaro = c => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c || '');
-    return !!m && +m[1] >= 210 && +m[2] >= 210 && +m[3] >= 210; };
-  const cuerpo = quedan.filter(x => esClaro(x.relleno));
+  /* EL AVE NO CAMBIA: si el color volviera a alcanzarla, se teñiría entera y
+     volvería la paloma marrón. El blanco se busca claro y no en 255: la hoja
+     lo corrige a 230 antes de que el filtro lo toque. */
+  const tono = c => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c || '');
+    return m ? (+m[1] + +m[2] + +m[3]) / 3 : null; };
+  const claro = x => tono(x.relleno) !== null && tono(x.relleno) >= 200;
+  const oscuro = x => [x.relleno, x.linea].some(c => tono(c) !== null && tono(c) <= 170);
+  const cuerpo = quedan.filter(claro);
   vale('  y el ave va BLANCA y NO cambia con el color',
        cuerpo.length > 0, quedan.map(pintaDe).join(' · '));
-  vale('  con perfil propio, que si no no se ve sobre el papel crema',
-       cuerpo.length > 0 &&
-       cuerpo.every(x => x.linea && x.linea !== 'none' && x.linea !== tintaB),
-       cuerpo.map(x => x.linea).join(' · '));
+  /* Y SE VE SOBRE EL PAPEL CREMA, que es lo que de verdad hay que exigir.
+     Esto pedía que las piezas blancas llevaran TRAZO, y eso no era el
+     requisito: era la técnica del dibujo de entonces —relleno blanco con
+     perfil—. La paloma de ahora es la del dueño del repo, que es un calco: el
+     cuerpo va relleno y sin trazo, y el contorno son piezas GRISES aparte. Con
+     la exigencia vieja, un dibujo mejor habría suspendido por dibujarse de
+     otra manera. Lo que no puede faltar es tinta oscura que no siga al color:
+     sin ella, una paloma blanca sobre papel crema no se ve. */
+  const perfil = quedan.filter(oscuro);
+  vale('  y con tinta oscura propia, que si no no se ve sobre el papel crema',
+       perfil.length > 0 &&
+       perfil.every(x => x.relleno !== tintaB && x.linea !== tintaB),
+       perfil.length + ' piezas oscuras que no siguen a la tinta');
   /* Y SIN CAMPO DE NOMBRE: se espera el false, no la ausencia de la línea. Si
      alguien devuelve el campo al mando, esto lo dice. Ver arriba. */
   vale('y SIN campo de nombre, que eso se hace en la lista',
@@ -764,26 +786,50 @@ async function andamio(p){
   vale('  ni nada se salga del panel', abajo.dentro === true, abajo);
   vale('  y con blanco de dedo en los botones', abajo.blancoOk >= 44, abajo.blancoOk);
 
+  /* LA CASILLA ENCIENDE Y APAGA, Y SE MIDE ASÍ: EN LOS DOS SENTIDOS.
+
+     Esto pedía «sin marcar va plana» y «marcada se levanta», en ese orden, y
+     era una prueba escrita contra un valor de fábrica: la piedra nacía sin
+     sombra. El dueño del repo pidió que naciera CON ella —una piedra recién
+     puesta tiene que verse encima del papel— y el primer toque de la casilla
+     pasó a ser el que la apaga, así que la prueba llamó fallo al cambio.
+     Ahora se mira el estado de salida, sea el que sea, y se pide que el toque
+     lo INVIERTA y que el segundo toque lo devuelva. Eso es lo que hace una
+     casilla, y no depende de con qué venga puesta. */
   const sombra = await p.evaluate(async () => {
     const cs = () => { const b = document.querySelector('.piedra');
       /* LA OPACIDAD NO DICE NADA EN EDICIÓN: la piedra que se está editando ya
          va opaca por su cuenta —es lo que dice que está viva—. Lo que
          distingue es la sombra. */
-      return { filtro: getComputedStyle(b).filter, clase: b.className }; };
+      return { levantada: /5px 5px 10px/.test(getComputedStyle(b).filter) &&
+                          /con-sombra/.test(b.className),
+               guardada: window.__guardadas()[0].sombra === true,
+               marcada: !!(document.querySelector('#piedraMando [data-piedra-sombra]') || {}).checked };
+    };
     const antes = cs();
     await window.__toque('#piedraMando [data-piedra-sombra]');
     await window.__pausa(500);
-    return { antes, despues: cs(),
-             guardada: window.__guardadas()[0].sombra };
+    const tras = cs();
+    await window.__toque('#piedraMando [data-piedra-sombra]');
+    await window.__pausa(500);
+    return { antes, tras, vuelta: cs() };
   });
-  di('la sombra', sombra);
-  vale('sin marcar, la piedra va plana',
-       !/5px 5px 10px/.test(sombra.antes.filtro) && !/con-sombra/.test(sombra.antes.clase),
-       sombra.antes);
-  vale('MARCADA, LA PIEDRA SE LEVANTA',
-       /5px 5px 10px/.test(sombra.despues.filtro) &&
-       /con-sombra/.test(sombra.despues.clase), sombra.despues);
-  vale('  y se guarda', sombra.guardada === true, sombra.guardada);
+  di('la sombra', JSON.stringify(sombra));
+  /* Lo pintado y lo guardado tienen que decir lo mismo en los tres momentos:
+     guardar una cosa y pintar otra es el fallo que esto vigila. */
+  vale('lo que se ve y lo que se guarda dicen lo mismo',
+       [sombra.antes, sombra.tras, sombra.vuelta]
+         .every(m => m.levantada === m.guardada && m.levantada === m.marcada),
+       JSON.stringify(sombra));
+  vale('LA CASILLA INVIERTE LA SOMBRA',
+       sombra.tras.levantada === !sombra.antes.levantada,
+       sombra.antes.levantada + ' → ' + sombra.tras.levantada);
+  vale('  y volver a tocarla la devuelve',
+       sombra.vuelta.levantada === sombra.antes.levantada,
+       sombra.tras.levantada + ' → ' + sombra.vuelta.levantada);
+  /* Cómo nace de fábrica se comprueba abajo, en el bloque de «Quitar», que es
+     el único que se pone una piedra suya: aquí la de la hoja ya ha pasado por
+     varios bloques y su sombra podría venir de cualquiera de ellos. */
 
   const deshacer = await p.evaluate(async () => {
     const g = () => window.__guardadas()[0];
@@ -1374,9 +1420,15 @@ async function andamio(p){
     const id = suya && suya.dataset.piedra;
     const esta = () => !!document.querySelector('[data-piedra="' + id + '"]');
     const enElAlmacen = () => window.__guardadas().some(x => x.id === id);
+    const nacida = window.__guardadas().find(x => x.id === id) || {};
     const antes = { id, enLaHoja: esta(), guardada: enElAlmacen(),
                     cuantas: window.__guardadas().length,
                     abierto: window.__elMando().visible,
+                    /* CÓMO NACE, y se mira aquí porque éste es el único bloque
+                       que se pone una piedra recién hecha: en los de arriba la
+                       piedra ya ha pasado por varias manos. */
+                    deFabrica: { forma: nacida.forma, color: nacida.color,
+                                 sombra: nacida.sombra === true },
                     hayBoton: !!document.querySelector('#piedraMando [data-piedra-acc="quitar"]') };
     await window.__toque('#piedraMando [data-piedra-acc="quitar"]');
     await window.__pausa(700);
@@ -1393,6 +1445,15 @@ async function andamio(p){
        quitarDelMando.antes.guardada === true &&
        quitarDelMando.antes.abierto === true &&
        quitarDelMando.antes.hayBoton === true, quitarDelMando.antes);
+  /* DE FÁBRICA: PIEDRA, CARMÍN VIVO Y LEVANTADA. Nacía en sepia y plana, que
+     es lo mismo que nacer escondida —sepia es el color de la letra y del
+     papel, y sin sombra tampoco se ve que está ENCIMA—. Lo pidió el dueño del
+     repo: lo primero que hace una piedra nueva es dejarse ver. */
+  vale('LA PIEDRA NUEVA NACE EN CARMÍN VIVO Y LEVANTADA',
+       quitarDelMando.antes.deFabrica.forma === 'piedra' &&
+       quitarDelMando.antes.deFabrica.color === 'carmin-vivo' &&
+       quitarDelMando.antes.deFabrica.sombra === true,
+       JSON.stringify(quitarDelMando.antes.deFabrica));
   vale('«QUITAR» LA BORRA DEL PAPEL', quitarDelMando.enLaHoja === false,
        'la ' + quitarDelMando.antes.id);
   vale('  y de lo guardado, que si no vuelve al recargar',
@@ -1967,7 +2028,17 @@ async function andamio(p){
      Esto no se veía en el contenedor de este repositorio y sí en la máquina de
      Codex: es una carrera, y la ganaba uno u otro según la máquina. Por eso lo
      que se vigila aquí no es un número sino la invariante —el panel dentro de
-     lo que se ve—, repitiéndolo sobre varias filas. */
+     lo que se ve—, repitiéndolo sobre varias filas.
+
+     Y SE MARTILLEA EL AVISO, QUE ES LO QUE FALTABA. Con un solo «resize» por
+     fila esta prueba pasaba en esta máquina y fallaba en la de Codex, o sea
+     que dependía de quién ganara la carrera y no de si el programa la tenía
+     ganada. Un teclado de verdad manda VARIOS avisos mientras sube, y los de
+     en medio caen dentro de la transición del panel: ése es el instante en que
+     la cuenta se hacía mal. Mandando cuatro seguidos —a 0, 30, 50 y 70 ms—
+     el fallo sale aquí también: medido, tres de siete filas con la cabecera 56
+     px fuera de la pantalla. Con el arreglo, cero de siete. Una prueba que
+     solo falla en la máquina de otro no es una red. */
   const movido = await pt.evaluate(async () => {
     const vv = window.visualViewport;
     const el = document.getElementById('piedraMenu');
@@ -1980,8 +2051,13 @@ async function andamio(p){
       const r = f.getBoundingClientRect();
       f.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
         clientX: r.left + r.width/2, clientY: r.top + r.height/2 }));
-      await window.__pausa(420);
-      vv.dispatchEvent(new Event('resize'));
+      await window.__pausa(60);
+      /* Los cuatro avisos, y el primero pronto: lo que importa es que caigan
+         mientras el panel se está moviendo. Ver el comentario de arriba. */
+      for (const t of [0, 30, 50, 70]){
+        vv.dispatchEvent(new Event('resize'));
+        await window.__pausa(t);
+      }
       await window.__pausa(900);
       const rp = el.getBoundingClientRect();
       /* Solo se juzga por arriba: por abajo el panel puede asomar detrás del
