@@ -274,13 +274,28 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        se abra con un movimiento suave igual que ya se hace»—. Una prueba que
        midiera «se movió algo» pasaría con cualquier movimiento inventado. */
     const cuerpo = document.getElementById('cantoCuerpo');
+    /* Y SE CUENTAN LOS ARRANQUES, que es lo que caza el fallo de abajo sin
+       depender del reloj: un cambio de testamento tiene que valer UNA
+       entrada, ni cero ni dos. */
+    const arranques = [];
+    cuerpo.addEventListener('animationstart', e => {
+      if (e.target === cuerpo) arranques.push(e.animationName);
+    });
     await toque(bAT); await pausa(60);
     const entrando = { anim: getComputedStyle(cuerpo).animationName,
                        dir: cuerpo.style.getPropertyValue('--dir') };
     await pausa(600);
     const enAT = lee();
-    const reposo = { opacidad: getComputedStyle(cuerpo).opacity };
-    return { enNT, enAT, entrando, reposo,
+    const reposo = { opacidad: getComputedStyle(cuerpo).opacity,
+                     clase: cuerpo.classList.contains('cambia'),
+                     arranques: arranques.length };
+    /* Y AHORA SE CIERRA Y SE VUELVE A ABRIR SIN TOCAR LAS PESTAÑAS. */
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await pausa(900);
+    await abrirLibros();
+    const alVolver = { clase: cuerpo.classList.contains('cambia'),
+                       arranques: arranques.length };
+    return { enNT, enAT, entrando, reposo, alVolver,
              marcadaNT: enNT.marcada && enNT.marcada.testa,
              marcadaAT: enAT.marcada && enAT.marcada.testa,
              guardado: (JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}') || {}).cantoTesta };
@@ -324,6 +339,22 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        tabs.entrando.dir === '-1', tabs.entrando.dir);
   vale('  y acaba entera, sin quedarse a medio fundir',
        tabs.reposo.opacidad === '1', tabs.reposo.opacidad);
+  /* Y NO SE QUEDA ANIMANDO PARA SIEMPRE. La clase se ponía y no se quitaba
+     nunca, y una clase de animación que se queda puesta vuelve a animar sola:
+     cerrar LIBROS pone el panel en display:none, y volver a abrirlo REARRANCA
+     las animaciones de dentro. O sea que desde el primer AT/NT, cada vez que
+     se abría el panel la lista entraba de lado otra vez sin haber cambiado
+     nada. Lo cazó Codex en revisión de la PR y se reprodujo contando los
+     arranques: dos donde tenía que haber uno.
+     Se cuentan y no se cronometran a propósito: un «se ve quieta a los 60 ms»
+     pasaría por casualidad según lo que tardara el panel en abrirse. */
+  di('al reabrir sin tocar pestañas', JSON.stringify(tabs.alVolver));
+  vale('UN CAMBIO DE TESTAMENTO VALE UNA ENTRADA, Y SE LIMPIA AL ACABAR',
+       tabs.reposo.arranques === 1 && tabs.reposo.clase === false,
+       tabs.reposo.arranques + ' arranques, clase puesta: ' + tabs.reposo.clase);
+  vale('  y REABRIR EL PANEL no vuelve a animar la lista',
+       tabs.alVolver.arranques === 1 && tabs.alVolver.clase === false,
+       tabs.reposo.arranques + ' → ' + tabs.alVolver.arranques + ' arranques');
 
   /* Y SOBREVIVE A CERRAR EL LIBRO. Guardarlo en los ajustes y no volver a
      leerlo sería exactamente el mismo fallo con más pasos. */

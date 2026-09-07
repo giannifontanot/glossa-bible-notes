@@ -3659,7 +3659,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '07-SEP-26 15:59';
+window.GLOSS_BUILD = '07-SEP-26 16:09';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11379,6 +11379,29 @@ function cantoVerTestamento(id){
   c.style.setProperty('--dir', dir);
   void c.offsetWidth;
   c.classList.add('cambia');
+}
+/* Y LA CLASE SE QUITA EN CUANTO LA ANIMACIÓN TERMINA, que es la otra mitad
+   de ponerla. Sin esto se quedaba puesta para siempre desde el primer cambio
+   de testamento, y una clase de animación que se queda puesta vuelve a
+   animar sola: cerrar LIBROS pone el panel en display:none, y volver a
+   abrirlo REARRANCA las animaciones de dentro. O sea que a partir del primer
+   AT/NT, cada vez que se abría el panel la lista entraba de lado otra vez sin
+   haber cambiado nada. Lo cazó Codex en revisión, y aquí se reprodujo
+   escuchando los arranques: dos «animationstart» donde tenía que haber uno.
+
+   Se escucha también «animationcancel»: cerrar el panel a media animación la
+   cancela —no la termina— y sin esa segunda mitad la clase se quedaba puesta
+   justo en el caso que más se repite.
+
+   Y se comprueba el destinatario: «animationend» burbujea, así que sin el
+   ev.target === ev.currentTarget cualquier animación de un hijo quitaría la
+   clase de la madre a media entrada. El oyente se pone UNA vez y no en cada
+   cambio: uno por cambio se acumula, y los cancelados no se recogen. */
+$('cantoCuerpo').addEventListener('animationend', cantoFinDeEntrada);
+$('cantoCuerpo').addEventListener('animationcancel', cantoFinDeEntrada);
+function cantoFinDeEntrada(ev){
+  if (ev.target !== ev.currentTarget || ev.animationName !== 'entraDeLado') return;
+  ev.currentTarget.classList.remove('cambia');
 }
 
 /* ============================================================
