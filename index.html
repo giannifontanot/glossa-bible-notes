@@ -2493,6 +2493,12 @@
   #barraGrupo .tagctl{ display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
   #barraGrupo .tagctl input{ flex:1 1 90px; min-width:0; }
   .ajuste{ display:flex; align-items:center; gap:6px; padding:0; min-width:0; }
+  /* Y EL [hidden] TIENE QUE GANARLE. El display:none del navegador para
+     [hidden] es de la hoja del propio navegador, así que cualquier regla de
+     aquí —esta misma— lo pisa: sin esta línea, poner hidden en una fila de
+     ajustes no la esconde. Es lo que oculta la de márgenes; ver su comentario
+     en el marcado. */
+  .ajuste[hidden]{ display:none; }
   /* nowrap es lo que sostiene la simetría: una etiqueta que parte en dos
      renglones crece de alto y desalinea toda su columna. Con esto, si
      alguna vez no cabe, se nota de inmediato en vez de deformar la reja. */
@@ -3292,7 +3298,26 @@
   <div class="ajuste"><span class="lbl">tipografía</span><span class="ctrl">
     <select id="selFuente" title="Tipo de letra"></select>
   </span></div>
-  <div class="ajuste"><span class="lbl">márgenes</span><span class="ctrl">
+  <!-- LOS MÁRGENES SE OCULTAN, PERO SIGUEN AHÍ.
+
+       Se quita de la vista a petición del dueño del repo, y lo que le hizo
+       pedirlo tiene explicación: EN TELÉFONO EL BOTÓN NO HACE NADA. Medido —
+       tres pulsaciones seguidas, la columna de texto en 412 px las tres veces
+       y el texto empezando en el mismo píxel—. La razón es el acomodo del
+       teléfono: medirHojaTelefono le clava a la columna de texto su ancho con
+       !important y el molde pone --mx en 0, así que el relleno que este botón
+       gobierna no tiene dónde aplicarse. En escritorio sí funciona —421, 377 y
+       437 px de columna según el escalón— pero un ajuste que solo obedece en
+       una de las dos pantallas se lee como roto en la otra, y ésa es la que
+       más se usa.
+
+       SE OCULTA Y NO SE BORRA, que es lo que se pidió: `margen` sigue en la
+       firma del estilo, en prepararHoja, en la foto del pliegue y en lo
+       guardado, y el botón sigue cableado. Enseñarlo otra vez es quitar el
+       hidden. Si algún día se quiere de vuelta en teléfono, el trabajo no está
+       aquí sino en medirHojaTelefono: hay que descontarle el margen a
+       COL_TEXTO en vez de anularlo. -->
+  <div class="ajuste" id="filaMargenes" hidden><span class="lbl">márgenes</span><span class="ctrl">
     <button class="btn" id="btnMargen">normales</button>
   </span></div>
   <div class="ajuste"><span class="lbl">alineación</span><span class="ctrl">
@@ -3610,7 +3635,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '07-SEP-26 07:49';
+window.GLOSS_BUILD = '07-SEP-26 07:54';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
