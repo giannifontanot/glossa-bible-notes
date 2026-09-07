@@ -1695,7 +1695,13 @@
      vacía; queda un hueco que parece un fallo. Con el rótulo puesto la banda
      tiene razón de ser y el panel se lee como sus dos hermanos, que también
      dicen de qué son. */
-  #piedraMando{ position:absolute; z-index:9; width:min(268px, calc(100% - 16px));
+  /* ANCHO: 320 y no 268. Con «Quitar» en el renglón de abajo son TRES botones
+     de salida más la casilla de la sombra, y en 268 el renglón se partía en
+     dos —o peor, los botones se estrujaban por debajo del suelo de 44 px que
+     pide el dedo—. Se ensancha el panel, que es lo que pidió el dueño del
+     repo: «eso va a hacer que necesitemos hacer la caja mas grande, eso esta
+     bien, porque es poquito». De paso las catorce figuras se ven mayores. */
+  #piedraMando{ position:absolute; z-index:9; width:min(320px, calc(100% - 16px));
                 display:none; flex-direction:column; gap:7px;
                 background:linear-gradient(to bottom, #f2e9d6, #e7dbbe);
                 border:1px solid rgba(140,116,68,.5); border-radius:7px;
@@ -1774,11 +1780,16 @@
      grupo en medio del panel. Los botones quedan a la derecha del centro
      exacto, y a cambio se lee todo. Si algún día se quieren dead-center, la
      manera es bajar la casilla a su propio renglón. */
-  .pm-abajo{ display:flex; align-items:center;
+  .pm-abajo{ display:flex; align-items:center; flex-wrap:wrap;
              justify-content:center; gap:8px; margin-top:2px;
              padding-top:7px; border-top:1px solid rgba(140,116,68,.3); }
+  /* LA CASILLA VA ENCIMA DE SU PALABRA, no al lado. En fila, «☐ sombra» se
+     lleva unos 70 px de un renglón que ahora tiene tres botones; en columna se
+     queda en la anchura de la palabra y el renglón entra sin estrujar a nadie.
+     Y sigue siendo un <label>: el toque en la palabra cuenta igual. */
   .pm-sombra{ flex:0 0 auto;
-              display:flex; align-items:center; gap:5px; cursor:pointer;
+              display:flex; flex-direction:column; align-items:center; gap:3px;
+              cursor:pointer;
               font:400 11.5px/1 var(--ui); color:#6d5a2c;
               -webkit-tap-highlight-color:transparent; }
   .pm-sombra input{ width:15px; height:15px; margin:0; accent-color:#b8892b;
@@ -1795,8 +1806,7 @@
   .pm-btn2:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
   .pm-btn2:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
   /* El OK va macizo: es el que se pulsa por costumbre, y el otro deshace. */
-  /* «Quitar» solo sale en la portada, que no tiene lista de dónde borrar. Va
-     en rojo apagado: es la salida que no se deshace. */
+  /* «Quitar» va en rojo apagado: es la salida que no se deshace. */
   .pm-quita{ border-color:rgba(224,60,60,.55); color:#8d2b2b; }
   .pm-quita:hover{ background:rgba(224,60,60,.14); }
   .pm-ok{ color:#3f3416; background:rgba(184,137,43,.4);
@@ -3541,7 +3551,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 16:26';
+window.GLOSS_BUILD = '06-SEP-26 19:51';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11641,17 +11651,18 @@ document.addEventListener('keydown', ev => {
   if (ev.key === 'ArrowLeft' ){ ev.preventDefault(); pasarHoja('left',  cantoY); }
 });
 
-/* Un solo manejador para los tres niveles, ahora en cascada: el libro abre
-   los capítulos a su lado, el capítulo abre los versículos al suyo, y solo
-   el versículo dispara el salto. */
+/* Un solo manejador para los tres niveles, ahora en cascada: el libro lleva a
+   ese libro y abre sus capítulos al lado, el capítulo abre los versículos al
+   suyo, y el versículo afina el salto.
+
+   Y ESTO ERA CÓDIGO DUPLICADO, que es cómo se coló el fallo. El toque tenía
+   aquí su propia copia de lo que hace la LUPA en abrirCapitulosDe —las mismas
+   cuatro líneas escritas dos veces— con un comentario allí prometiendo que las
+   dos contaban la misma historia. En cuanto una cambió, la otra se quedó
+   contando la de antes. Ahora hay una sola. */
 function tocarLibro(ev){
   const lib = ev.target.closest('.tabo'); if (!lib) return;
-  const id = lib.dataset.libro;
-  if (!hayLibro(id)){
-    readout.textContent = nombreDe(id) + ' no está en estos datos — genéralo con el convertidor';
-    return;
-  }
-  abrirCapitulos(id, lib.getBoundingClientRect());
+  abrirCapitulosDe(lib);
 }
 canto.addEventListener('click', tocarLibro);
 
@@ -11788,7 +11799,21 @@ canto.addEventListener('click', tocarLibro);
   });
 })();
 /* El mismo desenlace que un toque, para que la lupa y el click no cuenten dos
-   historias distintas de lo que pasa al elegir un libro. */
+   historias distintas de lo que pasa al elegir un libro.
+
+   TOCAR EL LIBRO YA TE LLEVA AL LIBRO. Antes solo abría la cascada: el libro
+   no quedaba elegido hasta que se tocaba además un capítulo y un versículo, y
+   eso son tres toques para lo que el lector pide en uno —«pico Marcos, llévame
+   a Marcos»—. Ahora el toque hace las dos cosas a la vez: salta al 1:1 del
+   libro Y deja los capítulos abiertos, colgados del mismo botón, para quien
+   quería un capítulo en concreto. No se pierde nada y se gana el caso normal.
+
+   Y el panel NO se cierra —sinCerrar—, que es lo que permite que la cascada
+   siga ahí después del viaje. Se puede: el panel se entera del cambio de libro
+   repintando SOLO la marca (refrescarLibroActual), no la lista entera, cosa
+   que ya estaba escrita para no sacar a nadie de la cascada.
+
+   Si ya estás en ese libro no hay viaje que hacer: se abre la cascada y ya. */
 function abrirCapitulosDe(lib){
   const id = lib.dataset.libro;
   if (!hayLibro(id)){
@@ -11796,6 +11821,7 @@ function abrirCapitulosDe(lib){
     return;
   }
   abrirCapitulos(id, lib.getBoundingClientRect());
+  if (id !== LIBRO) saltarA(id, 1, 1, null, { sinCerrar:true });
 }
 /* Tocar fuera cierra la burbuja. Quedan exentos los sitios que son la burbuja
    o la abren: el propio panel, las cajitas de capítulos y versículos, el menú
@@ -12444,36 +12470,54 @@ const PIEDRA_SVG = {
      el ala encima, y la rama saliendo del pico. Probada en el banco de dibujo a
      24, 40 y 120 px, que es donde se ve si a 24 sigue siendo una paloma. */
   paloma:
-    /* EL ENCAJE EN EL RECUADRO ESTÁ MEDIDO, no puesto a ojo. Con
-       translate(.4,1.1) a secas la cola salía a y=24.63 y la hoja a y=-0.16:
-       el recuadro es 0 0 24 24, así que las dos se recortaban y la cola se veía
-       aplastada a los tamaños grandes. Se mide la caja de la TINTA —el
-       recuadro de cada trazo MÁS medio grosor, que getBoundingClientRect no
-       cuenta— y de ahí salen la escala y el desplazamiento. Lo levantó Codex. */
-    '<g transform="translate(2.38,1.64) scale(.93)">' +
-      '<g fill="#fff" stroke="#6d5a2c" stroke-width="1.05"' +
-         ' stroke-linejoin="round" stroke-linecap="round">' +
-        /* cuerpo, cuello y cola de una sola tirada */
-        '<path d="M6.4 4.6a2.6 2.6 0 0 0-2.5 3.1c.1.7.5 1.3 1.1 1.7' +
-          '-.8 1.6-.6 3.3.4 4.9 1.1 1.8 3 3.1 5.6 3.9l4.3 4.6' +
-          'c.4.5 1.2 0 1-.6l-.9-2.6 2.8.3c.6.1.9-.7.4-1.1l-6.3-4.8' +
-          'c1.9-1 3.2-2.4 3.9-4.2z"/>' +
-        /* el ala, levantada */
-        '<path d="M9.7 11c1.2-3.7 3.8-6.1 7.9-7.2 1 4.2-.7 7-4.9 8.5' +
-          '-1.8.6-2.8.1-3-1.3z"/>' +
-      '</g>' +
-      '<path d="M4 5.9 1.3 7l2.7 1z" fill="#6d5a2c"/>' +
-      '<circle cx="6.5" cy="6.4" r=".62" fill="#6d5a2c"/>' +
-      /* LA RAMITA, del pico hacia arriba, y es la que lleva el color elegido. */
-      '<path d="M2.3 6.6C1.9 5.3 2.1 4.2 2.9 3.3" fill="none" stroke="currentColor"' +
-        ' stroke-width=".95" stroke-linecap="round"/>' +
-      '<g transform="translate(2.8,3.5) rotate(8)">' +
-        '<path d="M0 0c-.3-2.4.9-4 3.6-4.8.8 2.6-.3 4.3-2.8 5z" fill="currentColor"/>' +
-        /* El nervio en blanco translúcido, que es el recurso de toda la casa
-           para dar detalle sin ensuciar la silueta de lejos. */
-        '<path d="M.6 .1C1.5-1.2 2.4-2.2 3.4-3" fill="none" stroke="#fff"' +
-          ' stroke-opacity=".5" stroke-width=".55" stroke-linecap="round"/>' +
-      '</g>' +
+    /* LA TERCERA PALOMA, y la primera dibujada con un modelo delante: el dueño
+       del repo mandó el suyo —un ave de contorno, cabeza arriba a la izquierda,
+       hoja verde en el pico y el manojo de plumas subiendo a la derecha— y esto
+       lo sigue.
+
+       LO QUE SE DESCARTÓ POR EL CAMINO, que es lo que no se puede recuperar
+       leyendo el código:
+       · el ala TUMBADA, a lo largo del cuerpo, lee hoja o cola de pez;
+       · la cola en dos puntas colgando hacia abajo lee PATAS —ya había pasado
+         con la paloma anterior y volvió a pasar—;
+       · el cuerpo redondo y bajito lee pato.
+       Lo que funciona es esto: panza cerrada y llena, y las plumas SUBIENDO en
+       diagonal, que es lo único que dice «vuela» a 22 px.
+
+       Y EL ENCAJE VA MEDIDO, no puesto a ojo: el recuadro es 0 0 24 24 y la
+       primera versión de la hoja se salía por arriba a y = -0.2. Se mide la
+       caja de la TINTA —el recuadro de cada trazo MÁS medio grosor, que
+       getBoundingClientRect no cuenta— y la prueba de piedra lo vigila para
+       las catorce figuras. */
+    '<g fill="#fff" stroke="#6d5a2c" stroke-width="1"' +
+       ' stroke-linejoin="round" stroke-linecap="round">' +
+      /* cabeza, pecho, panza y cola de una sola tirada */
+      '<path d="M6.8 3.5C5.0 3.5 3.9 5.0 4.0 6.9' +
+        'C4.1 10.1 4.8 13.1 6.5 15.6' +
+        'C8.2 18.0 10.9 19.2 13.8 18.9' +
+        'C12.6 16.0 11.8 13.2 11.4 10.4' +
+        'C10.4 7.9 8.9 5.4 6.8 3.5Z"/>' +
+      /* el ala, subiendo, con las tres puntas de las plumas */
+      '<path d="M9.9 10.4C11.8 6.4 14.9 3.6 19.5 1.9' +
+        'L18.7 5.0C20.1 4.2 21.5 3.9 23.0 4.1' +
+        'L21.1 7.2C21.8 7.4 22.4 7.7 22.9 8.1' +
+        'C20.4 11.6 16.1 13.8 9.8 13.6Z"/>' +
+      /* el pico va dentro del grupo: con su perfil pesa lo justo para verse a
+         22 px, y sin él desaparece */
+      '<path d="M4.0 5.6 1.8 6.7 4.1 7.7z" fill="#6d5a2c"/>' +
+    '</g>' +
+    '<circle cx="6.5" cy="5.7" r=".55" fill="#6d5a2c"/>' +
+    /* LA RAMITA, del pico hacia arriba, y es la que lleva el color elegido:
+       el ave es siempre la misma —una paloma de la paz marrón no es una
+       paloma de la paz— y el color se lo lleva lo que trae en el pico. */
+    '<path d="M3.9 6.2 2.5 4.7" fill="none" stroke="currentColor"' +
+      ' stroke-width=".9" stroke-linecap="round"/>' +
+    '<g transform="translate(2.5,4.7)">' +
+      '<path d="M0 0c-.35-1.75.45-3 2.4-3.6.55 2-.35 3.15-2.4 3.6z" fill="currentColor"/>' +
+      /* El nervio en blanco translúcido, que es el recurso de toda la casa
+         para dar detalle sin ensuciar la silueta de lejos. */
+      '<path d="M.45-.25C1.05-1.1 1.65-1.75 2.35-2.3" fill="none" stroke="#fff"' +
+        ' stroke-opacity=".55" stroke-width=".45" stroke-linecap="round"/>' +
     '</g>',
   espiga:
     '<path d="M11.3 22.3V9.9" fill="none" stroke="currentColor" stroke-width="2"' +
@@ -13265,7 +13309,18 @@ const TALLER_HOJA = {
   pasos: () => PIEDRA_TAMS.length,
   colocar: () => colocarPiedraMandoHoja(),
   nodo: id => document.querySelector('[data-piedra="' + id + '"]'),
-  quitar: null,                      /* en la hoja se borra desde la lista */
+  /* «QUITAR» TAMBIÉN AQUÍ, y esto lo pidió el dueño del repo después de usar
+     las dos: en la portada estaba y en la hoja no, y la que faltaba era la que
+     más se usa. Los dos mandos son el mismo panel —una sola pintarPiedraMando,
+     un solo nodo— así que la diferencia no era de diseño, era una casilla sin
+     rellenar.
+
+     Y SIN PREGUNTAR, igual que en la portada. La fila de la lista sí pregunta,
+     y no es incoherencia: allí borras una piedra que has tenido que ir a
+     buscar, y el toque cae lejos de donde estabas mirando. Aquí borras la que
+     tienes delante, recién puesta o recién tocada, con el botón al lado de
+     «Cancelar» y «OK». Preguntar en ese sitio es preguntar por preguntar. */
+  quitar: id => quitarPiedra(id),
   eco: () => {
     if (piedraMenuAbierto) pintarPiedraMenu();
     if (typeof pintarPiedrero === 'function') pintarPiedrero();
@@ -13278,11 +13333,8 @@ const TALLER_PORTADA = {
   pasos: () => PORTADA_TAMS.length,
   colocar: () => colocarPiedraMandoPortada(),
   nodo: id => document.querySelector('[data-pt-piedra="' + id + '"]'),
-  /* LA ÚNICA DIFERENCIA, y no es un capricho: en la hoja una piedra se borra
-     desde su LISTA, que pregunta antes. La portada no tiene lista —no hay
-     dónde ir a buscarla— así que sin esto una piedra puesta en la portada no
-     se podría quitar nunca. Es un botón más en el mismo renglón de salidas, no
-     un panel aparte. */
+  /* La portada no tiene lista de piedras —no hay dónde ir a buscarlas— así
+     que aquí «Quitar» es además la única manera de borrar una. */
   quitar: id => portadaQuitarPiedra(id),
   eco: () => {}
 };
@@ -13839,14 +13891,20 @@ $('piedraMando').addEventListener('click', ev => {
   }
   if (cual === 'menos') piedraTamano(id, -1);
   else if (cual === 'mas') piedraTamano(id, +1);
-  /* AQUÍ HUBO UN 'quitar' y ya no hay. Borraba en el acto, sin preguntar, desde
-     un botón pegado a los de tamaño: el sitio donde más se toca a tientas.
-     Ahora se borra desde la fila de la lista, que pregunta antes. */
+  /* «QUITAR» ESTUVO AQUÍ PEGADO A LOS DE TAMAÑO y por eso se quitó: borraba en
+     el acto desde el sitio donde más se toca a tientas. Ha vuelto, pero abajo,
+     en el renglón de las salidas y al lado de «Cancelar», que es donde se mira
+     antes de decidir. El sitio era el problema, no el botón. */
   /* Los de tamaño se apagan en los extremos, y un botón deshabilitado pierde
      el foco: quien llegó al mayor a golpe de Intro se quedaría sin dónde
-     estar. Se le pasa al otro, que es el que sigue sirviendo. */
-  const x = piedraDe(id);
-  const vivo = x && ((cual === 'mas' && x.tam >= PIEDRA_TAMS.length - 1) ? 'menos' :
+     estar. Se le pasa al otro, que es el que sigue sirviendo.
+
+     Y SE PREGUNTA AL TALLER, no a la hoja. Esto decía piedraDe(id) y
+     PIEDRA_TAMS.length, que son los de la hoja: editando una piedra de la
+     PORTADA, x salía undefined, «vivo» se quedaba en falso y el foco se le
+     devolvía a un botón que acababa de apagarse. */
+  const x = piedraTaller.de(id);
+  const vivo = x && ((cual === 'mas' && x.tam >= piedraTaller.pasos() - 1) ? 'menos' :
                      (cual === 'menos' && x.tam <= 0) ? 'mas' : cual);
   devolverFocoPiedraMando(conFoco, '[data-piedra-acc="' + (vivo || cual) + '"]');
 });
@@ -14921,7 +14979,11 @@ function saltarA(libro, cap, vers, regreso, opciones){
   const iAlla  = CANON.findIndex(b => b.id === libro);
   const haciaAtras = mismo ? false : (iAlla >= 0 && iAhora >= 0 && iAlla < iAhora);
   mostrarBuscando();
-  cerrarCanto(() => trasPintar(() => {
+  /* EL VIAJE, SUELTO DEL CIERRE DEL PANEL. Todos los saltos cierran «Libros»
+     antes de viajar y así seguirá siendo, menos uno: tocar un libro en la
+     lista lleva ya a ese libro y DEJA la cascada de capítulos puesta, para que
+     el siguiente toque sea el capítulo. Ver abrirCapitulosDe. */
+  const viajar = () => trasPintar(() => {
     LIBRO = libro;
     volverA = regreso || null; paginasSucias = true;
     rehacerPlano();
@@ -14975,7 +15037,8 @@ function saltarA(libro, cap, vers, regreso, opciones){
       quitarBuscando();
       animarHojas(b.hojas, rnd(b.dur[0], b.dur[1]), aterrizar);
     });
-  }), true);
+  });
+  if (op.sinCerrar) viajar(); else cerrarCanto(viajar, true);
 }
 
 /* ============================================================

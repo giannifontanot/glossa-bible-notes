@@ -213,5 +213,76 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
      hueco entre botones. */
   await cerrarParcial(lup, 'la lupa');
 
+  /* ================================================================
+     TOCAR EL LIBRO YA TE LLEVA AL LIBRO.
+
+     Antes el toque solo abría la cascada de capítulos: el libro no quedaba
+     elegido hasta tocar además un capítulo Y un versículo, o sea tres toques
+     para lo que se pide en uno —«pico Marcos, llévame a Marcos»—. Lo levantó
+     el dueño del repo usándolo.
+
+     Se piden las TRES cosas a la vez, y ninguna sobra:
+     · que se cambie de libro de verdad —no que se marque y ya—;
+     · que la cascada de capítulos SIGA puesta, que es lo que hace que no se
+       pierda nada: quien quería un capítulo en concreto lo tiene ahí;
+     · y que el panel de Libros no se cierre, que es de donde cuelga la
+       cascada. Sin esta tercera, «sigue puesta» podría pasar con el panel
+       yéndose por debajo.
+
+     El salto entre libros lejanos es LARGO —repagina y voltea un bonche— así
+     que se espera de verdad y se mira el rótulo de la cabecera, que es lo que
+     el lector ve. */
+  titulo('tocar un libro lleva a ese libro');
+  const ses2 = await abrir();
+  const p2 = ses2.pagina;
+  const salto = await p2.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const toque = async e => {
+      const r = e.getBoundingClientRect();
+      const o = { bubbles:true, cancelable:true, pointerId:91, pointerType:'touch',
+                  isPrimary:true, clientX: r.left + r.width/2, clientY: r.top + r.height/2 };
+      e.dispatchEvent(new PointerEvent('pointerdown', o));
+      await pausa(40);
+      e.dispatchEvent(new PointerEvent('pointerup', o));
+      e.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, o)));
+    };
+    const cab = () => document.getElementById('pgCabeza').textContent.trim();
+    document.getElementById('pgCabeza').click(); await pausa(800);
+    const pest = [...document.querySelectorAll('.pestanas button')]
+                   .find(b => /libros/i.test(b.textContent));
+    if (pest) pest.click();
+    await pausa(900);
+    /* El ÚLTIMO de los que sí están en los datos: el salto más largo que hay,
+       que es el que peor lo pasa. */
+    const vivos = [...document.querySelectorAll('#canto .tabo.viva')];
+    if (vivos.length < 2) return { pocos: vivos.length };
+    const otro = vivos[vivos.length - 1];
+    const pedido = otro.textContent.trim(), antes = cab();
+    await toque(otro);
+    /* Se espera a que llegue, hasta seis segundos: un salto de punta a punta
+       repagina el libro entero antes de voltear nada. */
+    for (let i = 0; i < 24 && cab() === antes; i++) await pausa(250);
+    const caps = document.getElementById('flyCaps');
+    const marca = document.querySelector('#canto .tabo.aqui');
+    return { pedido, antes, despues: cab(),
+             marcado: marca && marca.textContent.trim(),
+             cascada: !!caps && getComputedStyle(caps).display !== 'none',
+             panel: getComputedStyle(document.getElementById('canto')).display !== 'none' };
+  });
+  di('al tocar el libro', JSON.stringify(salto));
+  vale('(la prueba es válida) había libros que tocar', salto.pocos === undefined,
+       salto.pocos + ' vivos');
+  vale('TOCAR EL LIBRO CAMBIA DE LIBRO',
+       salto.marcado === salto.pedido && salto.despues !== salto.antes,
+       'pedido ' + salto.pedido + ' · marcado ' + salto.marcado +
+       '  ·  ' + salto.antes + ' → ' + salto.despues);
+  vale('  y la cabecera ya dice el libro nuevo',
+       typeof salto.despues === 'string' &&
+       salto.despues.indexOf(salto.pedido) === 0,
+       salto.despues);
+  vale('  con la cascada de capítulos todavía puesta', salto.cascada === true);
+  vale('  y el panel de Libros sin cerrarse', salto.panel === true);
+  await cerrarParcial(ses2, 'tocar un libro');
+
   await cerrar(sesion);
 })();
