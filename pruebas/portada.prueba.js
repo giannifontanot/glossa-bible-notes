@@ -311,11 +311,37 @@ async function tocarSinClic(pagina, x, y, pid = 21){
                 píxeles suelto: es lo que deja que el mando sea el mismo. */
              enPeldanos: g.every(x => Number.isInteger(x.tam) && x.tam >= 0 && x.tam < 8),
              /* En fracciones, no en píxeles: la pantalla gira y el píxel no. */
-             enFracciones: g.every(x => x.x >= 0 && x.x <= 1 && x.y >= 0 && x.y <= 1) };
+             enFracciones: g.every(x => x.x >= 0 && x.x <= 1 && x.y >= 0 && x.y <= 1),
+             /* Y LO QUE DE VERDAD IMPORTA: que ninguna entierre el CENTRO de
+                otra. Aquí se miraba solo que no cayeran en el mismo punto
+                exacto, y eso pasa con cualquier separación por pequeña que
+                sea. Lo destapó la tanda de Codex: al nacer la piedra en el
+                escalón 8 —140 px— la diagonal escrita a mano las dejaba a 47
+                px, o sea la segunda tapando el centro de la primera, y tocar
+                la de abajo se volvía imposible porque el toque se lo quedaba
+                la de encima. Se mide preguntando QUIÉN recibiría el toque en
+                el centro de cada una, que es la pregunta de verdad; el
+                elementFromPoint devuelve el <path> de dentro, de ahí el
+                closest. */
+             enterradas: [...document.querySelectorAll('.pt-piedra')].filter(e => {
+               const r = e.getBoundingClientRect();
+               const t = document.elementFromPoint(Math.round(r.left + r.width / 2),
+                                                   Math.round(r.top + r.height / 2));
+               const d = t && t.closest ? t.closest('.pt-piedra') : null;
+               return d !== e;
+             }).map(e => e.dataset.ptPiedra),
+             lado: Math.round((document.querySelector('.pt-piedra') || {
+                                 getBoundingClientRect: () => ({ width: 0 }) })
+                                .getBoundingClientRect().width) };
   }, LLAVE);
   di('las piedras', JSON.stringify(pd));
   vale('LA SEGUNDA NO CAE ENCIMA DE LA PRIMERA',
        pd.puestas === 2 && pd.guardadas === 2 && pd.encima === false, pd);
+  vale('  Y NINGUNA ENTIERRA EL CENTRO DE LA OTRA, que si no no se puede tocar',
+       Array.isArray(pd.enterradas) && pd.enterradas.length === 0,
+       pd.enterradas && pd.enterradas.length
+         ? pd.enterradas.join(', ') + ' con piedras de ' + pd.lado + ' px'
+         : 'ninguna, con piedras de ' + pd.lado + ' px');
   vale('  con lo que se le dejó puesto en el mando',
        pd.forma === 'paloma' && pd.color === 'carmin', [pd.forma, pd.color].join(' / '));
   vale('  el tamaño en peldaños', pd.enPeldanos === true, pd.enPeldanos);

@@ -3659,7 +3659,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '07-SEP-26 16:09';
+window.GLOSS_BUILD = '07-SEP-26 17:11';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -16671,9 +16671,34 @@ function portadaPiedraNueva(){
     readout.textContent = 'la portada ya está llena de piedras';
     return null;
   }
+  /* Y EL PASO DE LA DIAGONAL SE SACA DEL TAMAÑO DE LA PIEDRA, no de un número
+     fijo. Estuvo escrito a mano —.055 y .045 de la portada— y valía mientras
+     la piedra nueva nacía en el escalón 3, que son 44 px. En cuanto pasó a
+     nacer en el 8, que son 140, esos pasos se quedaron cortísimos: medido, dos
+     piedras de 140 px separadas 47, o sea la segunda tapando el CENTRO de la
+     primera. Y eso no es solo feo: tocar la de abajo se volvía imposible
+     porque el toque se lo quedaba la de encima, que es lo que hizo caer la
+     prueba de la portada.
+
+     Se pide algo MÁS DE MEDIA PIEDRA de separación —el .62 del alto—, que es
+     el umbral exacto por debajo del cual el centro de la anterior queda
+     cubierto. La mayor parte del recorrido va en vertical porque es donde hay
+     sitio: en un teléfono la portada es mucho más alta que ancha, y seis pasos
+     horizontales de media piedra no caben.
+
+     Los topes también son del tamaño y no un .92 de antes: una piedra se
+     coloca por su CENTRO (ver .pt-piedra, con su translate(-50%,-50%)), así
+     que el borde de lo que cabe está a media piedra del filo, y con 140 px eso
+     ya no es lo mismo que con 44. */
+  const caja = p.getBoundingClientRect();
+  const lado = PORTADA_TAMS[PORTADA_TAM_NUEVA] || PORTADA_TAMS[PORTADA_TAM_POR];
+  const ancho = Math.max(1, caja.width), alto = Math.max(1, caja.height);
+  const pasoX = (lado * .34) / ancho, pasoY = (lado * .62) / alto;
+  const topeX = Math.max(.5, 1 - (lado / 2 + 6) / ancho);
+  const topeY = Math.max(.5, 1 - (lado / 2 + 6) / alto);
   const n = portadaAdorno.piedras.length % 6;
   const x = Object.assign({ id: portadaNombreNuevo() }, PORTADA_PIEDRA_NUEVA, {
-    x: Math.min(.92, .38 + n * .055), y: Math.min(.92, .34 + n * .045)
+    x: Math.min(topeX, .28 + n * pasoX), y: Math.min(topeY, .20 + n * pasoY)
   });
   portadaAdorno.piedras.push(x);
   portadaGuardar();
