@@ -1244,8 +1244,10 @@
      no hay manera de que se salga ni de que empuje la página a lo ancho.
 
      CORTA A PROPÓSITO, PERO SE VE DESDE EL TEXTO. Cuelga del borde IZQUIERDO
-     de la columna de glosas y asoma 19 px hacia la columna de lectura, para
+     de la columna de glosas y asoma 38 px hacia la columna de lectura, para
      que se note que hay cinta sin tener que abrir el cajón de las glosas.
+     Eran 19 y el dueño del repo los pidió al doble; el número vive en
+     CINTA_ASOMO, que es quien manda, y allí está la cuenta de por qué cabe.
      El ancho es el doble de lo que era —36 % de la columna, entre 32 y 64 px—
      y el alto sale de la misma proporción (aspect-ratio 1 / 1.75), así que
      también queda al doble. Con eso ocupa la esquina de arriba a la izquierda
@@ -1297,9 +1299,10 @@
                  lo que haya— y sin nada que las separe, el renglón cortado se
                  lee como una nota rota. Con un filo de papel a su izquierda,
                  el texto pasa POR DEBAJO y se entiende que sigue ahí.
-                 Por eso asoma 19 px al texto: se ve claro desde la lectura
+                 Por eso asoma sobre el texto: se ve claro desde la lectura
                  y aún no tapa el versículo. El titulillo vive a la derecha
-                 y ya no comparte esquina con ella. */
+                 y ya no comparte esquina con ella. Cuánto asoma lo dice
+                 CINTA_ASOMO. */
               filter:drop-shadow(-1.5px 0 0 rgba(252,247,235,.92))
                      drop-shadow(0 2px 3px rgba(60,40,15,.42));
               transition:transform .24s cubic-bezier(.2,.85,.3,1), filter .22s ease; }
@@ -3635,7 +3638,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '07-SEP-26 07:54';
+window.GLOSS_BUILD = '07-SEP-26 08:09';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11982,7 +11985,17 @@ function cantoMarcarLibro(lib){
    Se cierra enrollándose, no disolviéndose: tocar afuera es "me arrepentí" o
    "ya acabé", no "elegí esto". La disolución se reserva para cuando el panel
    entendió una orden. */
-const FUERA_NO = '.rollo, .fly, #menu, #pgCabeza, #pgVersion';
+/* Y LA VENTANITA DEL VERSÍCULO CUENTA COMO DENTRO. Es la tercera vez que esta
+   misma lección hay que escribirla —ya está puesta para el panel de la glosa y
+   para el rastro—, así que conviene decirla entera: #versoPleno sale POR
+   ENCIMA del panel que la abrió y no es un sitio ajeno, es lo que ese panel
+   acaba de enseñar. Sin esta excepción, tocar su X era un toque fuera de la
+   burbuja: la ventanita se cerraba —eso lo hace su propio oyente— y el panel
+   de GLOSAS se cerraba con ella, devolviendo al lector al libro. O sea que
+   quitar de en medio lo que tapa el panel se llevaba el panel.
+   Lo levantó el dueño del repo usándolo. Ver también los dos comentarios de
+   los oyentes de #menu y de #historial, que dicen lo mismo en su sitio. */
+const FUERA_NO = '.rollo, .fly, #menu, #versoPleno, #pgCabeza, #pgVersion';
 document.addEventListener('pointerdown', ev => {
   if (!burbujaAbierta()) return;
   if (ev.target.closest(FUERA_NO)) return;
@@ -12632,54 +12645,45 @@ const PIEDRA_SVG = {
      el ala encima, y la rama saliendo del pico. Probada en el banco de dibujo a
      24, 40 y 120 px, que es donde se ve si a 24 sigue siendo una paloma. */
   paloma:
-    /* LA TERCERA PALOMA, y la primera dibujada con un modelo delante: el dueño
-       del repo mandó el suyo —un ave de contorno, cabeza arriba a la izquierda,
-       hoja verde en el pico y el manojo de plumas subiendo a la derecha— y esto
-       lo sigue.
+    /* ESTA PALOMA NO LA DIBUJÉ YO: ES LA DEL DUEÑO DEL REPO, tal cual.
 
-       LO QUE SE DESCARTÓ POR EL CAMINO, que es lo que no se puede recuperar
-       leyendo el código:
-       · el ala TUMBADA, a lo largo del cuerpo, lee hoja o cola de pez;
-       · la cola en dos puntas colgando hacia abajo lee PATAS —ya había pasado
-         con la paloma anterior y volvió a pasar—;
-       · el cuerpo redondo y bajito lee pato.
-       Lo que funciona es esto: panza cerrada y llena, y las plumas SUBIENDO en
-       diagonal, que es lo único que dice «vuela» a 22 px.
+       Hubo tres antes —la maciza que a tamaño de piedra parecía un pez, la de
+       piezas, y la del abanico de plumas— y ninguna le gustó. Mandó la suya y
+       la pidió exacta, así que aquí está exacta: los mismos trazos de su
+       archivo, con tres cambios y ninguno toca la forma.
 
-       Y EL ENCAJE VA MEDIDO, no puesto a ojo: el recuadro es 0 0 24 24 y la
-       primera versión de la hoja se salía por arriba a y = -0.2. Se mide la
-       caja de la TINTA —el recuadro de cada trazo MÁS medio grosor, que
-       getBoundingClientRect no cuenta— y la prueba de piedra lo vigila para
-       las catorce figuras. */
-    '<g fill="#fff" stroke="#6d5a2c" stroke-width="1"' +
-       ' stroke-linejoin="round" stroke-linecap="round">' +
-      /* cabeza, pecho, panza y cola de una sola tirada */
-      '<path d="M6.8 3.5C5.0 3.5 3.9 5.0 4.0 6.9' +
-        'C4.1 10.1 4.8 13.1 6.5 15.6' +
-        'C8.2 18.0 10.9 19.2 13.8 18.9' +
-        'C12.6 16.0 11.8 13.2 11.4 10.4' +
-        'C10.4 7.9 8.9 5.4 6.8 3.5Z"/>' +
-      /* el ala, subiendo, con las tres puntas de las plumas */
-      '<path d="M9.9 10.4C11.8 6.4 14.9 3.6 19.5 1.9' +
-        'L18.7 5.0C20.1 4.2 21.5 3.9 23.0 4.1' +
-        'L21.1 7.2C21.8 7.4 22.4 7.7 22.9 8.1' +
-        'C20.4 11.6 16.1 13.8 9.8 13.6Z"/>' +
-      /* el pico va dentro del grupo: con su perfil pesa lo justo para verse a
-         22 px, y sin él desaparece */
-      '<path d="M4.0 5.6 1.8 6.7 4.1 7.7z" fill="#6d5a2c"/>' +
-    '</g>' +
-    '<circle cx="6.5" cy="5.7" r=".55" fill="#6d5a2c"/>' +
-    /* LA RAMITA, del pico hacia arriba, y es la que lleva el color elegido:
-       el ave es siempre la misma —una paloma de la paz marrón no es una
-       paloma de la paz— y el color se lo lleva lo que trae en el pico. */
-    '<path d="M3.9 6.2 2.5 4.7" fill="none" stroke="currentColor"' +
-      ' stroke-width=".9" stroke-linecap="round"/>' +
-    '<g transform="translate(2.5,4.7)">' +
-      '<path d="M0 0c-.35-1.75.45-3 2.4-3.6.55 2-.35 3.15-2.4 3.6z" fill="currentColor"/>' +
-      /* El nervio en blanco translúcido, que es el recurso de toda la casa
-         para dar detalle sin ensuciar la silueta de lejos. */
-      '<path d="M.45-.25C1.05-1.1 1.65-1.75 2.35-2.3" fill="none" stroke="#fff"' +
-        ' stroke-opacity=".55" stroke-width=".45" stroke-linecap="round"/>' +
+       1 · FUERA EL RECTÁNGULO DEL FONDO. Su archivo es un calco: un rectángulo
+           de 155x146 relleno de #f7f7f7 con la paloma RECORTADA dentro, o sea
+           que lo pintado es el fondo y la paloma es el hueco. Metido aquí tal
+           cual, cada piedra sería un cuadrado blanco tapando el texto. Se le
+           quita al primer trazo el subrecorrido del rectángulo —lo que empieza
+           en M 0,0— y lo que queda es la silueta del ave, que es lo que se
+           quiere pintar.
+       2 · EL VERDE PASA A currentColor. Seis tonos de verde en su archivo —el
+           vivo de la hoja y cinco de sombra y de borde— se vuelven todos el
+           color elegido. Es el trato de esta casa desde que él mismo lo pidió:
+           el ave no cambia de color y la ramita sí. Se aplana a un solo tono a
+           propósito: currentColor no sabe dar sombras de sí mismo, y un verde
+           fijo al lado de una tinta carmín se ve como un error.
+       3 · SE MIDE Y SE ENCAJA. Su lienzo es 155x146 y el de aquí es 0 0 24 24.
+           La escala y el desplazamiento salen de MEDIR la caja de la tinta
+           —17.26 a 133.06 de ancho, 5.96 a 133.39 de alto— y no de poner un
+           número a ojo. De ahí el translate(-1.57,-0.58) scale(.1805), que
+           deja el dibujo centrado con medio punto de aire por lado.
+
+       Los grises son suyos: son los píxeles del borde que deja un calco, y son
+       los que le dan el contorno sobre el papel crema. Van sin tocar, y el
+       filtro de la hoja los corrige como a cualquier otro color (ver
+       compensarDibujo).
+
+       Y PESA. Catorce mil caracteres para una figura de 24 px, contra las
+       doscientas o trescientas de las otras trece. Es el precio de un calco
+       —cada curva del borde va escrita— y se paga porque se pidió esta paloma
+       y no una parecida. Los trazos van apretados (sin espacios sobrantes) y
+       eso ahorró novecientos caracteres sin mover un punto: la caja de la
+       tinta se midió antes y después, y da lo mismo. */
+    '<g transform="translate(-1.57,-0.58) scale(.1805)">' +
+      '<path fill="#f7f7f7" d="M71.22,48.93c-0.65,0.63 -1.12,1.38 -1.41,2.24c-1.95,-0.17 -1.68,-2.54 -2.6,-3.85c-1.67,-3.22 -3.75,-6.16 -6.22,-8.81c-1.68,-1.28 -3.35,-2.55 -5.02,-3.83c-2.42,-1.19 -4.95,-2.02 -7.61,-2.48c-4.71,-1.04 -8.87,0.02 -12.48,3.18c-1.77,2.04 -4.58,6.36 -7.52,6.61c-0.47,-0.21 -0.67,-0.57 -0.6,-1.09c1.05,-0.75 1.55,-1.77 1.48,-3.06c2.63,0.77 1.85,-8 0.94,-9.46c-0.22,-0.35 -0.54,-0.53 -0.94,-0.54c0.74,-2.93 -4.04,-9.46 -5.76,-11.94c-0.36,-0.5 -0.84,-0.8 -1.44,-0.92c0.01,-3.03 -4.18,-4.49 -3.18,0.11c-0.28,0.14 -0.5,0.35 -0.65,0.64c-0.59,3.18 -2.11,20.05 0.58,21.25c0.52,1.73 1.5,3.15 2.95,4.25c0.23,0.42 0.58,0.71 1.03,0.88c0.19,1.02 -0.09,1.9 -0.83,2.65c-0.54,0.51 -0.51,0.98 0.09,1.4c1.22,1.8 -1.05,2.46 0.55,4c0.65,0.19 1.11,-0.03 1.39,-0.66c0.08,-0.82 0.31,-1.58 0.69,-2.27c1.36,-0.16 2.68,0 3.97,0.47c16.13,6.21 10.23,21.18 11.39,34.8c1.17,28.92 16.9,28.86 40.07,34.28c0.97,0.33 1.92,0.71 2.84,1.16c3.72,1.89 6.47,4.73 8.24,8.51c1.05,1.53 1.76,6.55 3.47,6.98c6.15,-0.92 13.11,-6.45 16.99,-11.21c1.28,-1.5 3.53,-5.49 2.03,-7.3c-9.4,-3.25 -16.31,-5.28 -24.3,-11.66c-0.4,-0.19 -0.81,-0.22 -1.24,-0.1c-0.14,-0.46 -0.28,-0.91 -0.42,-1.37c-0.7,-1.1 -1.29,-2.24 -1.79,-3.44c2.06,-0.02 4.12,-0.08 6.18,-0.18c3.14,-1.22 8.81,-2.21 11.12,-4.98c3.35,-2.06 6.31,-4.58 8.89,-7.57c1.35,-1.92 2.77,-3.8 4.24,-5.64c0.39,-0.59 0.53,-1.23 0.43,-1.92c1.18,-0.82 1.48,-1.91 0.92,-3.25c0.06,-2.1 3.35,-3.43 4.45,-5.14c0.67,-1.14 1.41,-2.24 2.2,-3.3c2.21,-2.61 2.96,-5.56 2.24,-8.85c1.51,-1.7 2.89,-3.52 4.11,-5.46c1.09,-2.58 1.84,-5.26 2.25,-8.04c0.22,-2.43 0.16,-4.85 -0.16,-7.26c-0.77,-0.59 -1.37,-1.34 -1.8,-2.26c0.09,-3.25 -0.03,-6.5 -0.35,-9.73c-0.58,-1.2 -1,-2.44 -1.26,-3.72c-0.03,-1.96 -1.54,-3.43 -2.7,-1.12c-0.79,2.23 -1.69,4.4 -2.69,6.54c-0.08,0.41 0,0.79 0.23,1.13c-0.86,0.45 -1.73,0.87 -2.61,1.27c-0.73,-1.58 -1.49,-3.17 -2.26,-4.78c-0.19,-0.46 -0.37,-0.91 -0.56,-1.37c-0.15,-1.46 -1.71,-1.1 -2.67,-1.51c-0.07,-1.61 -0.59,-3.05 -1.56,-4.33c-0.78,-3.28 -2.02,-6.37 -3.73,-9.27c-0.16,-0.36 -0.42,-0.56 -0.79,-0.63c-0.42,-1.18 -1.08,-1.34 -1.97,-0.47c-0.22,3.26 -0.37,6.52 -0.46,9.79c-2.77,7.11 -5,10.46 -10.41,15.45c-2.96,1.6 -5.92,3.2 -8.86,4.81c-4.98,0.3 -16.3,7.61 -17.11,12.37ZM114.16,29.88c0.03,0.82 -1.64,2.56 -0.52,3.05c1.07,0.16 1.92,-0.2 2.56,-1.11c1.59,-1.04 1.52,-3.05 2.16,-4.63c2.18,5.32 -0.05,6.11 -3.91,8.82c-0.18,0.31 -0.21,0.63 -0.08,0.96c-0.57,0.07 -1.14,0.14 -1.72,0.21c-3.81,1.35 -7.68,2.52 -11.61,3.5c-0.4,0.17 -0.8,0.35 -1.2,0.52c-1.23,-0.49 -2.41,-0.39 -3.56,0.31c-6.24,-0.16 -13.92,0.37 -19.04,4.29c-0.75,0.09 -1.03,-0.22 -0.85,-0.93c0.89,-0.77 1.81,-1.5 2.77,-2.18c13.23,-6.19 25.44,-9.48 29.98,-25.16c0.19,-1.67 0.42,-3.32 0.69,-4.95c0.63,-0.36 1.15,-0.24 1.58,0.34c0.74,2.26 1.5,4.52 2.26,6.77c0.65,3.52 0.65,6.82 0.49,10.19ZM128.27,34.74c-0.23,0.68 -0.3,1.38 -0.22,2.09c-0.63,2.66 -1.83,5.03 -3.6,7.12c-0.77,1.25 -0.42,1.92 1.03,2.02c1.98,0.06 3.07,-1.86 4.52,-2.89c0.39,-0.02 0.66,0.16 0.79,0.54c-0.7,8 -4.79,12.78 -11.74,16.24c-2.46,1.32 -2.32,2.14 0.43,2.45c1.27,-0.05 2.52,-0.24 3.74,-0.58c1.54,1.41 -0.89,2.66 -0.37,4.55c-0.34,-0.16 -0.66,-0.14 -0.98,0.08c-1.16,1.52 -2.37,2.99 -3.64,4.42c-1.77,1.1 -3.57,2.14 -5.4,3.12c-1.75,0.16 -3.5,0.23 -5.25,0.22c-0.89,0.8 -0.8,1.46 0.27,1.98c0.39,0.07 0.79,0.13 1.18,0.2c0.26,2.26 6.78,0.83 5.36,2.83c-2.97,4.58 -6.64,8.5 -11.01,11.75c-0.19,0.32 -0.24,0.66 -0.13,1.02c-0.5,0.1 -1,0.21 -1.49,0.31c-3.03,1.47 -6.15,2.69 -9.36,3.68c-0.55,0.11 -0.92,0.4 -1.1,0.89c-4.12,-0.17 -8.85,0.93 -12.61,-1.05c-0.68,-0.1 -3.1,-0.18 -2.09,1.17c2.2,0.57 3.3,1.59 5.87,1.4c0.52,0.13 0.94,0.4 1.27,0.83c0.63,1.66 1.65,3.01 3.07,4.05c4.93,6.39 18.05,11.68 25.79,13.35c-3.21,6.7 -9.65,12.48 -16.93,14.18c-0.49,-0.11 -0.82,-0.41 -0.98,-0.89c-2.26,-6.09 -4.19,-10.69 -10.68,-13.26c-0.99,-0.44 -1.98,-0.88 -2.96,-1.31c-5.35,-2.81 -11.72,-3.07 -17.5,-4.5c-39.16,-7.27 -6.17,-57.04 -33.54,-64.19c-0.44,-0.47 -2.03,-0.73 -1.4,-1.62c1.53,-1.06 3.06,-2.15 4.59,-3.25c1.84,-2.12 3.76,-4.16 5.76,-6.12c3.97,-2.5 8.19,-1.18 12.42,-0.45c8.47,2.3 12.68,10.58 16.22,17.86c0.95,1.59 -1.75,4.48 -2.32,5.93c-0.54,1.42 -0.88,2.86 -1.02,4.33c0.85,0.58 1.52,0.38 2.02,-0.59c1.08,-2.87 2.31,-5.66 3.7,-8.37c1.12,-1.13 2.16,-2.33 3.11,-3.6c1.71,-0.82 3.23,-1.91 4.56,-3.28c7.31,-3.56 12.94,-4.26 20.9,-4.23c0.74,-0.05 1.24,-0.4 1.5,-1.07c1.71,0.12 3.4,-0.04 5.06,-0.48c2.27,0.05 7.84,-1.48 9.08,-3.36c4.4,-1.51 6.86,-5 9.92,-8.21c1.43,-1.82 2.61,-3.78 3.56,-5.89c0.38,0.24 0.61,0.58 0.67,1.04c0.51,3.19 0.49,6.37 -0.07,9.54ZM42.83,39c0.21,2.24 1.2,2.67 2.99,1.27c1.13,-2.97 -2.85,-4.57 -2.99,-1.27Z"/><path fill="#868686" d="M81.05,115.25c0.98,0.43 1.97,0.87 2.96,1.31c-0.36,0.46 -0.72,0.92 -1.08,1.38c-0.92,-0.45 -1.87,-0.83 -2.84,-1.16c-0.05,-0.73 0.27,-1.24 0.96,-1.53Z"/><path fill="#9a9a9a" d="M112.83,73.9c-0.93,4.65 2.06,1.84 3.94,4.16c0.1,0.69 -0.04,1.33 -0.43,1.92c-1.47,1.84 -2.89,3.72 -4.24,5.64c-2.58,2.99 -5.54,5.51 -8.89,7.57c0.01,-0.43 0.02,-0.86 0.04,-1.29c-0.11,-0.36 -0.06,-0.7 0.13,-1.02c4.37,-3.25 8.04,-7.17 11.01,-11.75c1.42,-2 -5.1,-0.57 -5.36,-2.83c0.79,0.18 1.43,-0.01 1.94,-0.57c-0.76,-1.2 -2.86,-1.28 -3.12,0.37c-1.07,-0.52 -1.16,-1.18 -0.27,-1.98c1.75,0.01 3.5,-0.06 5.25,-0.22ZM86.81,103.18c0.44,-0.01 0.87,-0.01 1.31,-0.02c0.43,-0.12 0.84,-0.09 1.24,0.1c7.99,6.38 14.9,8.41 24.3,11.66c1.5,1.81 -0.75,5.8 -2.03,7.3c-3.88,4.76 -10.84,10.29 -16.99,11.21c-1.71,-0.43 -2.42,-5.45 -3.47,-6.98c-1.77,-3.78 -4.52,-6.62 -8.24,-8.51c0.36,-0.46 0.72,-0.92 1.08,-1.38c6.49,2.57 8.42,7.17 10.68,13.26c0.16,0.48 0.49,0.78 0.98,0.89c7.28,-1.7 13.72,-7.48 16.93,-14.18c-7.74,-1.67 -20.86,-6.96 -25.79,-13.35Z"/><path fill="#a1a1a1" d="M122.85,66.28c0.5,0.03 0.99,0.06 1.49,0.09c-0.79,1.06 -1.53,2.16 -2.2,3.3c-1.1,1.71 -4.39,3.04 -4.45,5.14c-1.07,1.72 -3.09,1.92 -3.72,-0.31c-0.28,-0.39 -0.66,-0.59 -1.14,-0.6c1.83,-0.98 3.63,-2.02 5.4,-3.12c1.27,-1.43 2.48,-2.9 3.64,-4.42c0.32,-0.22 0.64,-0.24 0.98,-0.08Z"/><path fill="#727272" d="M119.05,59.86c1.78,-0.22 3.16,0.41 4.17,1.87c-1.22,0.34 -2.47,0.53 -3.74,0.58c-2.75,-0.31 -2.89,-1.13 -0.43,-2.45ZM112.83,73.9c0.48,0.01 0.86,0.21 1.14,0.6c0.63,2.23 2.65,2.03 3.72,0.31c0.56,1.34 0.26,2.43 -0.92,3.25c-1.88,-2.32 -4.87,0.49 -3.94,-4.16Z"/><path fill="#616161" d="M73.09,50.68c-0.95,1.27 -1.99,2.47 -3.11,3.6c-2.13,-0.28 -0.79,-2.16 -0.17,-3.11c0.29,-0.86 0.76,-1.61 1.41,-2.24c0.52,-0.12 1,-0.34 1.44,-0.66c0.34,0.75 0.48,1.55 0.43,2.41Z"/><path fill="#a0a0a0" d="M28.63,47.7c0.46,-0.38 0.92,-0.76 1.38,-1.14c27.37,7.15 -5.62,56.92 33.54,64.19c5.78,1.43 12.15,1.69 17.5,4.5c-0.69,0.29 -1.01,0.8 -0.96,1.53c-23.17,-5.42 -38.9,-5.36 -40.07,-34.28c-1.16,-13.62 4.74,-28.59 -11.39,-34.8Z"/><path fill="#747474" d="M99.84,41.2c0.4,-0.17 0.8,-0.35 1.2,-0.52c1.45,-0.12 2.81,0.19 4.07,0.94c-1.66,0.44 -3.35,0.6 -5.06,0.48c-0.07,-0.3 -0.14,-0.6 -0.21,-0.9Z"/><path fill="#818181" d="M128.05,36.83c0.44,0.06 0.73,0.31 0.86,0.74c-0.04,0.9 0.15,1.73 0.57,2.48c1.17,-1.17 0.98,-3.71 3.3,-3.29c0.32,2.41 0.38,4.83 0.16,7.26c-1.77,-0.65 -0.04,-2.97 -2.41,-3.17c-0.61,0.62 -0.79,1.37 -0.53,2.23c-1.45,1.03 -2.54,2.95 -4.52,2.89c-1.45,-0.1 -1.8,-0.77 -1.03,-2.02c1.77,-2.09 2.97,-4.46 3.6,-7.12Z"/><path fill="#9e9e9e" d="M69.81,51.17c-0.62,0.95 -1.96,2.83 0.17,3.11c-1.39,2.71 -2.62,5.5 -3.7,8.37c-0.5,0.97 -1.17,1.17 -2.02,0.59c0.14,-1.47 0.48,-2.91 1.02,-4.33c0.57,-1.45 3.27,-4.34 2.32,-5.93c-3.54,-7.28 -7.75,-15.56 -16.22,-17.86c-4.23,-0.73 -8.45,-2.05 -12.42,0.45c-2,1.96 -3.92,4 -5.76,6.12c-1.53,1.1 -3.06,2.19 -4.59,3.25c-0.63,0.89 0.96,1.15 1.4,1.62c-0.46,0.38 -0.92,0.76 -1.38,1.14c-1.29,-0.47 -2.61,-0.63 -3.97,-0.47c-0.38,0.69 -0.61,1.45 -0.69,2.27c-0.28,0.63 -0.74,0.85 -1.39,0.66c-1.6,-1.54 0.67,-2.2 -0.55,-4c1.01,0.4 4.33,0.03 2.77,-1.62c-0.98,-0.31 -1.94,-0.24 -2.86,0.22c0.74,-0.75 1.02,-1.63 0.83,-2.65c2.4,1.05 2.86,0.07 4.99,-1.21c-0.07,0.52 0.13,0.88 0.6,1.09c2.94,-0.25 5.75,-4.57 7.52,-6.61c3.61,-3.16 7.77,-4.22 12.48,-3.18c2.66,0.46 5.19,1.29 7.61,2.48c1.67,1.28 3.34,2.55 5.02,3.83c2.47,2.65 4.55,5.59 6.22,8.81c0.92,1.31 0.65,3.68 2.6,3.85ZM101.76,92.21c0.23,0.68 0.71,1 1.45,0.98c-2.31,2.77 -7.98,3.76 -11.12,4.98c-0.23,-0.48 -0.49,-0.95 -0.79,-1.39c0.18,-0.49 0.55,-0.78 1.1,-0.89c3.21,-0.99 6.33,-2.21 9.36,-3.68Z"/><path fill="currentColor" d="M18.66,30.93c0.41,0.08 0.7,0.31 0.87,0.68c0.06,2.36 0.7,4.52 1.94,6.51c0.94,0.93 1.56,0.73 1.85,-0.59c-0.02,-2.18 0,-4.35 0.04,-6.5c0.94,1.23 0.58,5.8 0.44,7.4c-0.28,1.21 -0.97,2.14 -2.06,2.8c-1.45,-1.1 -2.43,-2.52 -2.95,-4.25c-0.11,-2.02 -0.15,-4.04 -0.13,-6.05Z"/><path fill="#696969" d="M116.2,31.82c-0.64,0.91 -1.49,1.27 -2.56,1.11c-1.12,-0.49 0.55,-2.23 0.52,-3.05c1.98,-1.69 1.81,0.67 2.04,1.94ZM21.94,44.76c0.92,-0.46 1.88,-0.53 2.86,-0.22c1.56,1.65 -1.76,2.02 -2.77,1.62c-0.6,-0.42 -0.63,-0.89 -0.09,-1.4Z"/><path fill="#b5b5b5" d="M130.63,24.77c0.32,3.23 0.44,6.48 0.35,9.73c0.43,0.92 1.03,1.67 1.8,2.26c-2.32,-0.42 -2.13,2.12 -3.3,3.29c-0.42,-0.75 -0.61,-1.58 -0.57,-2.48c-0.13,-0.43 -0.42,-0.68 -0.86,-0.74c-0.08,-0.71 -0.01,-1.41 0.22,-2.09c0.84,1.4 1.53,1.37 2.05,-0.09c-0.07,-3.31 0.03,-6.6 0.31,-9.88Z"/><path fill="currentColor" d="M29.24,37.84c0.07,1.29 -0.43,2.31 -1.48,3.06c-2.13,1.28 -2.59,2.26 -4.99,1.21c-0.45,-0.17 -0.8,-0.46 -1.03,-0.88c1.09,-0.66 1.78,-1.59 2.06,-2.8c0.14,-1.6 0.5,-6.17 -0.44,-7.4c-0.51,-1.75 -0.81,-3.53 -0.91,-5.35c0.34,-1.32 1.66,-0.3 1.7,0.76c0.17,2.06 0.54,4.07 1.1,6.05c0.37,1.62 -0.48,6.34 0.44,7.44c1.07,-0.83 2.26,-1.53 3.55,-2.09Z"/><path fill="#a7a7a7" d="M126.67,19.93c0.17,1.06 0.54,2.03 1.12,2.91c1.14,0 1.67,-0.59 1.58,-1.79c0.26,1.28 0.68,2.52 1.26,3.72c-0.28,3.28 -0.38,6.57 -0.31,9.88c-0.52,1.46 -1.21,1.49 -2.05,0.09c0.56,-3.17 0.58,-6.35 0.07,-9.54c-0.06,-0.46 -0.29,-0.8 -0.67,-1.04c-0.95,2.11 -2.13,4.07 -3.56,5.89c0.06,-0.81 0.1,-1.63 0.1,-2.45c-0.23,-0.34 -0.31,-0.72 -0.23,-1.13c1,-2.14 1.9,-4.31 2.69,-6.54ZM112.65,37.18c0.48,0.41 0.99,0.77 1.54,1.08c-1.24,1.88 -6.81,3.41 -9.08,3.36c-1.26,-0.75 -2.62,-1.06 -4.07,-0.94c3.93,-0.98 7.8,-2.15 11.61,-3.5Z"/><path fill="#6f6f6f" d="M129.37,21.05c0.09,1.2 -0.44,1.79 -1.58,1.79c-0.58,-0.88 -0.95,-1.85 -1.12,-2.91c1.16,-2.31 2.67,-0.84 2.7,1.12Z"/><path fill="currentColor" d="M22.04,14.98c0.6,0.12 1.08,0.42 1.44,0.92c1.72,2.48 6.5,9.01 5.76,11.94c-1.51,0.57 -2.25,-3.72 -2.88,-4.59c-0.9,-1.65 -4.83,-6.57 -4.32,-8.27ZM29.24,27.84c0.4,0.01 0.72,0.19 0.94,0.54c0.91,1.46 1.69,10.23 -0.94,9.46c0.1,-2.79 -0.03,-5.58 -0.4,-8.37c0.05,-0.57 0.18,-1.11 0.4,-1.63Z"/><path fill="currentColor" d="M18.86,15.09c1.06,-0.09 2.12,-0.12 3.18,-0.11c-0.51,1.7 3.42,6.62 4.32,8.27c0.63,0.87 1.37,5.16 2.88,4.59c-0.22,0.52 -0.35,1.06 -0.4,1.63c0.37,2.79 0.5,5.58 0.4,8.37c-1.29,0.56 -2.48,1.26 -3.55,2.09c-0.92,-1.1 -0.07,-5.82 -0.44,-7.44c-0.56,-1.98 -0.93,-3.99 -1.1,-6.05c-0.04,-1.06 -1.36,-2.08 -1.7,-0.76c0.1,1.82 0.4,3.6 0.91,5.35c-0.04,2.15 -0.06,4.32 -0.04,6.5c-0.29,1.32 -0.91,1.52 -1.85,0.59c-1.24,-1.99 -1.88,-4.15 -1.94,-6.51c-0.17,-0.37 -0.46,-0.6 -0.87,-0.68c-0.04,-5.29 0.02,-10.57 0.2,-15.84Z"/><path fill="currentColor" d="M18.86,15.09c-0.18,5.27 -0.24,10.55 -0.2,15.84c-0.02,2.01 0.02,4.03 0.13,6.05c-2.69,-1.2 -1.17,-18.07 -0.58,-21.25c0.15,-0.29 0.37,-0.5 0.65,-0.64Z"/><path fill="currentColor" d="M22.04,14.98c-1.06,-0.01 -2.12,0.02 -3.18,0.11c-1,-4.6 3.19,-3.14 3.18,-0.11Z"/><path fill="#5a5a5a" d="M112.65,37.18c0.58,-0.07 1.15,-0.14 1.72,-0.21c-0.06,0.43 -0.12,0.86 -0.18,1.29c-0.55,-0.31 -1.06,-0.67 -1.54,-1.08ZM101.76,92.21c0.49,-0.1 0.99,-0.21 1.49,-0.31c-0.02,0.43 -0.03,0.86 -0.04,1.29c-0.74,0.02 -1.22,-0.3 -1.45,-0.98Z"/><path fill="#636363" d="M87.7,101.79c0.14,0.46 0.28,0.91 0.42,1.37c-0.44,0.01 -0.87,0.01 -1.31,0.02c0.24,-0.5 0.54,-0.96 0.89,-1.39Z"/><path fill="#9b9b9b" d="M110.03,6.98c-1.14,0.34 -1.3,0.95 -0.5,1.84c1.12,-0.16 0.72,-1.04 0.5,-1.84c0.37,0.07 0.63,0.27 0.79,0.63c1.71,2.9 2.95,5.99 3.73,9.27c0.97,1.28 1.49,2.72 1.56,4.33c0.96,0.41 2.52,0.05 2.67,1.51c-1.1,0.9 -1.2,1.91 -0.29,3.02c0.49,-0.43 0.78,-0.98 0.85,-1.65c0.77,1.61 1.53,3.2 2.26,4.78c0.88,-0.4 1.75,-0.82 2.61,-1.27c0,0.82 -0.04,1.64 -0.1,2.45c-3.06,3.21 -5.52,6.7 -9.92,8.21c0.06,-0.43 0.12,-0.86 0.18,-1.29c-0.13,-0.33 -0.1,-0.65 0.08,-0.96c3.86,-2.71 6.09,-3.5 3.91,-8.82c-0.64,1.58 -0.57,3.59 -2.16,4.63c-0.23,-1.27 -0.06,-3.63 -2.04,-1.94c0.16,-3.37 0.16,-6.67 -0.49,-10.19c-0.76,-2.25 -1.52,-4.51 -2.26,-6.77c-0.43,-0.58 -0.95,-0.7 -1.58,-0.34c-0.27,1.63 -0.5,3.28 -0.69,4.95c-4.54,15.68 -16.75,18.97 -29.98,25.16c-0.96,0.68 -1.88,1.41 -2.77,2.18c-0.18,0.71 0.1,1.02 0.85,0.93c5.12,-3.92 12.8,-4.45 19.04,-4.29c1.15,-0.7 2.33,-0.8 3.56,-0.31c0.07,0.3 0.14,0.6 0.21,0.9c-0.26,0.67 -0.76,1.02 -1.5,1.07c-7.96,-0.03 -13.59,0.67 -20.9,4.23c-1.33,1.37 -2.85,2.46 -4.56,3.28c0.05,-0.86 -0.09,-1.66 -0.43,-2.41c-0.44,0.32 -0.92,0.54 -1.44,0.66c0.81,-4.76 12.13,-12.07 17.11,-12.37c2.94,-1.61 5.9,-3.21 8.86,-4.81c5.41,-4.99 7.64,-8.34 10.41,-15.45c0.09,-3.27 0.24,-6.53 0.46,-9.79c0.89,-0.87 1.55,-0.71 1.97,0.47ZM132.94,44.02c-0.41,2.78 -1.16,5.46 -2.25,8.04c-1.22,1.94 -2.6,3.76 -4.11,5.46c0.72,3.29 -0.03,6.24 -2.24,8.85c-0.5,-0.03 -0.99,-0.06 -1.49,-0.09c-0.52,-1.89 1.91,-3.14 0.37,-4.55c-1.01,-1.46 -2.39,-2.09 -4.17,-1.87c6.95,-3.46 11.04,-8.24 11.74,-16.24c-0.13,-0.38 -0.4,-0.56 -0.79,-0.54c-0.26,-0.86 -0.08,-1.61 0.53,-2.23c2.37,0.2 0.64,2.52 2.41,3.17ZM85.91,98.35c0.5,1.2 1.09,2.34 1.79,3.44c-0.35,0.43 -0.65,0.89 -0.89,1.39c-1.42,-1.04 -2.44,-2.39 -3.07,-4.05c0.78,-0.08 1.51,-0.34 2.17,-0.78Z"/><path fill="#808080" d="M91.3,96.78c0.3,0.44 0.56,0.91 0.79,1.39c-2.06,0.1 -4.12,0.16 -6.18,0.18c-0.66,0.44 -1.39,0.7 -2.17,0.78c-0.33,-0.43 -0.75,-0.7 -1.27,-0.83c-2.57,0.19 -3.67,-0.83 -5.87,-1.4c-1.01,-1.35 1.41,-1.27 2.09,-1.17c3.76,1.98 8.49,0.88 12.61,1.05Z"/><path fill="#2b2b2b" d="M42.83,39c0.14,-3.3 4.12,-1.7 2.99,1.27c-1.79,1.4 -2.78,0.97 -2.99,-1.27Z"/><path fill="#535353" d="M118.78,22.72c0.19,0.46 0.37,0.91 0.56,1.37c-0.07,0.67 -0.36,1.22 -0.85,1.65c-0.91,-1.11 -0.81,-2.12 0.29,-3.02ZM109.03,76.3c-0.39,-0.07 -0.79,-0.13 -1.18,-0.2c0.26,-1.65 2.36,-1.57 3.12,-0.37c-0.51,0.56 -1.15,0.75 -1.94,0.57Z"/><path fill="#4a4a4a" d="M110.03,6.98c0.22,0.8 0.62,1.68 -0.5,1.84c-0.8,-0.89 -0.64,-1.5 0.5,-1.84Z"/>' +
     '</g>',
   espiga:
     '<path d="M11.3 22.3V9.9" fill="none" stroke="currentColor" stroke-width="2"' +
@@ -12993,12 +12997,28 @@ function sepDeLaHoja(){
    32 y 64 px— y el alto sale del aspect-ratio. Sin columna —las glosas
    puestas debajo o al pie— se conforma con el mínimo.
 
-   La percha se clava en el borde IZQUIERDO de la columna menos 19 px, para
-   que se vea un buen trozo desde el texto sin tener que abrir las glosas. */
-const CINTA_ASOMO = 19;
+   La percha se clava en el borde IZQUIERDO de la columna menos lo que asoma,
+   para que se vea un buen trozo desde el texto sin tener que abrir las glosas.
+
+   EL ASOMO ES AHORA EL DOBLE: 38 px donde eran 19. Lo pidió el dueño del repo
+   y con la cinta medida se ve por qué cabe: la cinta mide 64 px en teléfono y
+   55 en escritorio, así que asomando 38 todavía le quedan 26 y 17 apoyados en
+   la columna de glosas. Sigue siendo una cinta metida en el libro y no una
+   pegatina flotando sobre el texto, que es lo que se perdería si asomara
+   entera.
+
+   Y POR ESO VA CON TOPE. El ancho de la cinta es una proporción de la columna
+   —36 %, entre 32 y 64 px— así que con la columna estrecha baja a 32, y 32
+   menos 38 es una cinta que se despega de la columna y flota. El tope deja
+   siempre 16 px apoyados: en las dos pantallas de arriba no muerde —38 en las
+   dos— y solo actúa en la ventana angosta, que es donde tiene que actuar. */
+const CINTA_ASOMO = 38;
+const CINTA_APOYO = 16;    /* lo que se queda encima de la columna, pase lo que pase */
 function sepMedidas(){
   const inner = pg.querySelector('.pg-inner');
   const col = pgMargin.offsetWidth;
+  const ancho = Math.round(Math.min(64, Math.max(32, (col || 90) * 0.36)));
+  const asoma = Math.max(0, Math.min(CINTA_ASOMO, ancho - CINTA_APOYO));
   let izq = 0;
   if (inner && pgMargin){
     let n = pgMargin, x = 0;
@@ -13006,11 +13026,9 @@ function sepMedidas(){
       x += n.offsetLeft;
       n = n.offsetParent;
     }
-    izq = x - CINTA_ASOMO;
+    izq = x - asoma;
   }
-  return { arriba: -(inner ? inner.offsetTop : 0),
-           ancho: Math.round(Math.min(64, Math.max(32, (col || 90) * 0.36))),
-           izq };
+  return { arriba: -(inner ? inner.offsetTop : 0), ancho, izq };
 }
 /* La cinta ACTIVA no se desmonta al pasar hoja: vive en .pg-inner, que
    sobrevive al pliegue. Remontarla (ocultar → esperar → entrar) era lo que

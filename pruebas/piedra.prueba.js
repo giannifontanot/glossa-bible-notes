@@ -643,18 +643,29 @@ async function andamio(p){
        !!tintaB && cambian.length >= 2 &&
        cambian.every(i => pB[i].relleno === tintaB || pB[i].linea === tintaB),
        'tinta ' + tintaB);
-  /* EL AVE NO CAMBIA: si el perfil volviera a seguir a la tinta, el ave se
-     teñiría entera y volvería la paloma marrón. El blanco se busca claro y no
-     en 255: la hoja lo corrige a 230 antes de que el filtro lo toque. */
-  const esClaro = c => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c || '');
-    return !!m && +m[1] >= 210 && +m[2] >= 210 && +m[3] >= 210; };
-  const cuerpo = quedan.filter(x => esClaro(x.relleno));
+  /* EL AVE NO CAMBIA: si el color volviera a alcanzarla, se teñiría entera y
+     volvería la paloma marrón. El blanco se busca claro y no en 255: la hoja
+     lo corrige a 230 antes de que el filtro lo toque. */
+  const tono = c => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c || '');
+    return m ? (+m[1] + +m[2] + +m[3]) / 3 : null; };
+  const claro = x => tono(x.relleno) !== null && tono(x.relleno) >= 200;
+  const oscuro = x => [x.relleno, x.linea].some(c => tono(c) !== null && tono(c) <= 170);
+  const cuerpo = quedan.filter(claro);
   vale('  y el ave va BLANCA y NO cambia con el color',
        cuerpo.length > 0, quedan.map(pintaDe).join(' · '));
-  vale('  con perfil propio, que si no no se ve sobre el papel crema',
-       cuerpo.length > 0 &&
-       cuerpo.every(x => x.linea && x.linea !== 'none' && x.linea !== tintaB),
-       cuerpo.map(x => x.linea).join(' · '));
+  /* Y SE VE SOBRE EL PAPEL CREMA, que es lo que de verdad hay que exigir.
+     Esto pedía que las piezas blancas llevaran TRAZO, y eso no era el
+     requisito: era la técnica del dibujo de entonces —relleno blanco con
+     perfil—. La paloma de ahora es la del dueño del repo, que es un calco: el
+     cuerpo va relleno y sin trazo, y el contorno son piezas GRISES aparte. Con
+     la exigencia vieja, un dibujo mejor habría suspendido por dibujarse de
+     otra manera. Lo que no puede faltar es tinta oscura que no siga al color:
+     sin ella, una paloma blanca sobre papel crema no se ve. */
+  const perfil = quedan.filter(oscuro);
+  vale('  y con tinta oscura propia, que si no no se ve sobre el papel crema',
+       perfil.length > 0 &&
+       perfil.every(x => x.relleno !== tintaB && x.linea !== tintaB),
+       perfil.length + ' piezas oscuras que no siguen a la tinta');
   /* Y SIN CAMPO DE NOMBRE: se espera el false, no la ausencia de la línea. Si
      alguien devuelve el campo al mando, esto lo dice. Ver arriba. */
   vale('y SIN campo de nombre, que eso se hace en la lista',
