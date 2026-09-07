@@ -1365,27 +1365,49 @@ async function andamio(p){
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await window.__pausa(400);
     await window.__nuevaPiedra();
-    const antes = { hay: window.__hayPiedra(), guardadas: window.__guardadas().length,
+    /* SE SIGUE ESTA PIEDRA POR SU NOMBRE PROPIO, no «¿queda alguna?». Por esta
+       hoja han pasado bloques que dejan piedras puestas, así que preguntar por
+       __hayPiedra() —que dice si queda CUALQUIERA— daba «sí» con la borrada
+       borrada, y la comprobación pasaba o fallaba por lo que hiciera otro. La
+       recién nacida es la que está en edición: de ahí sale su id. */
+    const suya = document.querySelector('.piedra-sitio.editando');
+    const id = suya && suya.dataset.piedra;
+    const esta = () => !!document.querySelector('[data-piedra="' + id + '"]');
+    const enElAlmacen = () => window.__guardadas().some(x => x.id === id);
+    const antes = { id, enLaHoja: esta(), guardada: enElAlmacen(),
+                    cuantas: window.__guardadas().length,
                     abierto: window.__elMando().visible,
                     hayBoton: !!document.querySelector('#piedraMando [data-piedra-acc="quitar"]') };
     await window.__toque('#piedraMando [data-piedra-acc="quitar"]');
     await window.__pausa(700);
-    return { antes, hay: window.__hayPiedra(),
-             guardadas: window.__guardadas().length,
+    return { antes, enLaHoja: esta(), guardada: enElAlmacen(),
+             cuantas: window.__guardadas().length,
              editando: window.__editando(),
-             abierto: window.__elMando().visible };
+             abierto: window.__elMando().visible,
+             otras: [...document.querySelectorAll('.piedra-sitio')]
+                      .map(e => e.dataset.piedra) };
   });
   di('al quitar', JSON.stringify(quitarDelMando));
-  vale('(la prueba es válida) nace una piedra con su mando y su botón',
-       quitarDelMando.antes.hay === true && quitarDelMando.antes.abierto === true &&
+  vale('(la prueba es válida) nace una piedra suya, con su mando y su botón',
+       !!quitarDelMando.antes.id && quitarDelMando.antes.enLaHoja === true &&
+       quitarDelMando.antes.guardada === true &&
+       quitarDelMando.antes.abierto === true &&
        quitarDelMando.antes.hayBoton === true, quitarDelMando.antes);
-  vale('«QUITAR» LA BORRA DEL PAPEL', quitarDelMando.hay === false);
+  vale('«QUITAR» LA BORRA DEL PAPEL', quitarDelMando.enLaHoja === false,
+       'la ' + quitarDelMando.antes.id);
   vale('  y de lo guardado, que si no vuelve al recargar',
-       quitarDelMando.guardadas === quitarDelMando.antes.guardadas - 1,
-       quitarDelMando.antes.guardadas + ' → ' + quitarDelMando.guardadas);
+       quitarDelMando.guardada === false &&
+       quitarDelMando.cuantas === quitarDelMando.antes.cuantas - 1,
+       quitarDelMando.antes.cuantas + ' → ' + quitarDelMando.cuantas);
   vale('  y cierra el mando, que estaba editando esa',
        quitarDelMando.abierto === false && quitarDelMando.editando === false,
        quitarDelMando);
+  /* EL CONTROL, que es lo que hace que lo de arriba signifique algo: las demás
+     piedras de la hoja siguen donde estaban. Sin él, un «Quitar» que barriera
+     la hoja entera pasaría las tres comprobaciones anteriores. */
+  vale('  CONTROL: no se lleva por delante a las demás',
+       !quitarDelMando.otras.includes(quitarDelMando.antes.id),
+       quitarDelMando.otras.length + ' piedras siguen puestas');
 
   await cerrarParcial(sesion, 'la piedra sola');
 

@@ -3551,7 +3551,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 19:51';
+window.GLOSS_BUILD = '06-SEP-26 20:02';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -14960,7 +14960,44 @@ document.addEventListener('pointerdown', ev => {
    asignarse después de llamar, porque saltarA no termina en el acto —espera a
    que el panel se cierre— y adentro limpia volverA. Asignarlo por fuera se
    perdía en cuanto corría el diferido. */
+/* UN SALTO A LA VEZ, Y EL ÚLTIMO QUE SE PIDE ES EL QUE MANDA.
+
+   Esto no hacía falta mientras TODOS los saltos cerraban el panel antes de
+   viajar: con el panel cerrado no quedaba nada que tocar, así que no había
+   manera de pedir un segundo salto con el primero en el aire. Desde que tocar
+   un libro deja la cascada puesta —ver abrirCapitulosDe— sí la hay, y el
+   choque es este: el salto del libro tarda lo suyo, el lector aprovecha para
+   elegir su versículo, y arrancan dos viajes que se pelean por las mismas
+   variables —LIBRO, plano, folding, paginaActual—. Si el primero aterriza el
+   último, el lector acaba en el 1:1 del libro en vez de en el versículo que
+   pidió, que es exactamente al revés de lo que quería. Lo levantó Codex.
+
+   NO SE CANCELA EL PRIMERO A MEDIAS, SE ENCOLA EL SEGUNDO. Abortar un viaje
+   por el medio parece más listo y es peor: la limpieza de aterrizar
+   —hojasExtra, progreso, folding, anchor— es justo lo que el otro viaje está
+   usando, así que un aterrizaje a destiempo hace más daño llegando tarde que
+   no llegando. Encolando, los dos viajes son enteros y van en fila; se ve
+   aterrizar en el libro y salir enseguida hacia el versículo, que es raro de
+   ver una vez y correcto siempre.
+
+   Y con un seguro de veinte segundos: si un viaje se queda a medias por lo que
+   sea, la bandera se suelta sola. Una bandera que se atasca aquí deja la
+   aplicación sin saltos, y eso es peor que el choque que evita. */
+let saltoEnVuelo = false, saltoEnCola = null, saltoSeguro = 0;
+function soltarSalto(){
+  clearTimeout(saltoSeguro);
+  saltoEnVuelo = false;
+  const enCola = saltoEnCola; saltoEnCola = null;
+  /* Diferido y no aquí mismo: esto se llama desde dentro del aterrizaje del
+     viaje anterior, y arrancar el siguiente encima de su propia pila es pedir
+     sorpresas. */
+  if (enCola) setTimeout(() => saltarA.apply(null, enCola), 0);
+}
 function saltarA(libro, cap, vers, regreso, opciones){
+  if (saltoEnVuelo){ saltoEnCola = [libro, cap, vers, regreso, opciones]; return; }
+  saltoEnVuelo = true;
+  clearTimeout(saltoSeguro);
+  saltoSeguro = setTimeout(soltarSalto, 20000);
   const op = opciones || {};
   sepSalto = true;                   /* esto es saltar, no leer: ver sepSalto */
   const viejo = pageImg, mismo = libro === LIBRO, desdeHoja = paginaActual;
@@ -15016,6 +15053,10 @@ function saltarA(libro, cap, vers, regreso, opciones){
         apuntarDeDonde(origen);
         apuntarVisto(libro, cap, vers);
       }
+      /* Y aquí se suelta la fila: el viaje terminó de verdad. Va lo último de
+         aterrizar y no antes, que es lo que hace que el siguiente empiece con
+         el estado ya asentado. */
+      soltarSalto();
     };
     if (mismo && destino === desdeHoja){ aterrizar(); return; }
     side = (mismo ? destino < desdeHoja : haciaAtras) ? 'left' : 'right';
