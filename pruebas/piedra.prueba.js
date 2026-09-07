@@ -2028,7 +2028,17 @@ async function andamio(p){
      Esto no se veía en el contenedor de este repositorio y sí en la máquina de
      Codex: es una carrera, y la ganaba uno u otro según la máquina. Por eso lo
      que se vigila aquí no es un número sino la invariante —el panel dentro de
-     lo que se ve—, repitiéndolo sobre varias filas. */
+     lo que se ve—, repitiéndolo sobre varias filas.
+
+     Y SE MARTILLEA EL AVISO, QUE ES LO QUE FALTABA. Con un solo «resize» por
+     fila esta prueba pasaba en esta máquina y fallaba en la de Codex, o sea
+     que dependía de quién ganara la carrera y no de si el programa la tenía
+     ganada. Un teclado de verdad manda VARIOS avisos mientras sube, y los de
+     en medio caen dentro de la transición del panel: ése es el instante en que
+     la cuenta se hacía mal. Mandando cuatro seguidos —a 0, 30, 50 y 70 ms—
+     el fallo sale aquí también: medido, tres de siete filas con la cabecera 56
+     px fuera de la pantalla. Con el arreglo, cero de siete. Una prueba que
+     solo falla en la máquina de otro no es una red. */
   const movido = await pt.evaluate(async () => {
     const vv = window.visualViewport;
     const el = document.getElementById('piedraMenu');
@@ -2041,8 +2051,13 @@ async function andamio(p){
       const r = f.getBoundingClientRect();
       f.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
         clientX: r.left + r.width/2, clientY: r.top + r.height/2 }));
-      await window.__pausa(420);
-      vv.dispatchEvent(new Event('resize'));
+      await window.__pausa(60);
+      /* Los cuatro avisos, y el primero pronto: lo que importa es que caigan
+         mientras el panel se está moviendo. Ver el comentario de arriba. */
+      for (const t of [0, 30, 50, 70]){
+        vv.dispatchEvent(new Event('resize'));
+        await window.__pausa(t);
+      }
       await window.__pausa(900);
       const rp = el.getBoundingClientRect();
       /* Solo se juzga por arriba: por abajo el panel puede asomar detrás del

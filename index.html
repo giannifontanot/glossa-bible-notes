@@ -3638,7 +3638,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '07-SEP-26 10:35';
+window.GLOSS_BUILD = '07-SEP-26 13:45';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -14390,11 +14390,37 @@ function vigilarTecladoPanel(el, buscarFila){
     if (el.getBoundingClientRect().height > sitio) el.style.maxHeight = sitio + 'px';
     /* Lo ya subido se descuenta de las dos medidas: getBoundingClientRect
        devuelve dónde está AHORA, desplazamiento incluido, y sumar sobre eso
-       haría que cada aviso subiera el panel otro tanto. */
+       haría que cada aviso subiera el panel otro tanto.
+
+       Y SE DESCUENTA LO QUE HAY PUESTO DE VERDAD, NO LO QUE SE PIDIÓ. Aquí se
+       leía el --sube de la línea de estilo, que es el DESTINO; y el panel sube
+       con transición, así que mientras la transición corre lo que
+       getBoundingClientRect devuelve es un punto a medio camino. Restarle el
+       destino entero a una posición a medio camino da un panel más abajo del
+       que hay, o sea más sitio libre por arriba del que hay, o sea un techo
+       más alto del que hay: y el techo es justo lo que impide que el panel se
+       vaya por encima de la pantalla. Con dos avisos seguidos —el teclado
+       manda varios mientras sube— el error se acumula.
+
+       Eso es lo que se veía: --sube en -620 px con el panel en -302, o sea 302
+       px de cabecera fuera de la pantalla. Y por eso ganaba en una máquina y
+       perdía en otra: depende de si el aviso cae dentro de la transición o
+       después. Con getComputedStyle se lee la matriz REAL, la interpolada, así
+       que «dónde está» y «cuánto lleva puesto» hablan siempre del mismo
+       instante y la resta da la posición sin desplazar, que es la única que no
+       se mueve. Lo levantó Codex, dos veces. */
+    const puesto = (() => {
+      const t = getComputedStyle(el).transform;
+      if (!t || t === 'none') return 0;
+      /* matrix(a,b,c,d,e,f) y matrix3d(...) — la f (o la 14ª) es el traslado
+         vertical. Se lee a mano y no con DOMMatrix para no depender de él. */
+      const n = t.slice(t.indexOf('(') + 1, -1).split(',').map(x => parseFloat(x));
+      return n.length === 16 ? (n[13] || 0) : (n[5] || 0);
+    })();
     const d = parseFloat(el.style.getPropertyValue('--sube')) || 0;
     const suelo = vv.offsetTop + vv.height - 10;
-    const tapado = (fila.getBoundingClientRect().bottom - d) - suelo;
-    const techo = (el.getBoundingClientRect().top - d) - (vv.offsetTop + 8);
+    const tapado = (fila.getBoundingClientRect().bottom - puesto) - suelo;
+    const techo = (el.getBoundingClientRect().top - puesto) - (vv.offsetTop + 8);
     const sube = Math.max(0, Math.min(tapado, techo));
     if (Math.abs(-sube - d) >= 1) el.style.setProperty('--sube', (-sube) + 'px');
     /* Lo que el techo no dejó subir se lo come el panel por dentro. */
