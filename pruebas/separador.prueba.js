@@ -106,7 +106,16 @@ async function andamio(p){
                   lectura. Cuánto asoma lo dice CINTA_ASOMO: ver abajo. */
                desdeArriba: Math.round(r.top - papel.top),
                asomo: Math.round(m.left - r.left),
-               dentro: r.left >= m.left - 23 && r.right <= m.right + 1 &&
+               /* «DENTRO» ES DENTRO DEL PAPEL, no dentro de la columna, y por
+                  eso el margen de la izquierda es holgado: la cinta asoma a
+                  propósito hacia el texto. Estuvo en 23 —los 19 que asomaba
+                  más el redondeo— y con el asomo doblado a 38 esta línea
+                  empezó a decir que la cinta se había salido, que es
+                  exactamente lo contrario de lo que pasó. Se pone en 44: los
+                  38 de ahora con holgura, y sigue cazando una cinta que se
+                  fuera de verdad al otro extremo de la hoja. Lo que vigila
+                  cuánto asoma es la aserción del asomo, no ésta. */
+               dentro: r.left >= m.left - 44 && r.right <= m.right + 1 &&
                        r.top >= papel.top - 1 && r.bottom <= papel.bottom + 1,
                corta: r.height <= m.height * 0.45,
                /* El titulillo vive a la derecha; la cinta, a la izquierda de
@@ -276,8 +285,8 @@ async function ponerAMano(p){
      como una pegatina flotando sobre el texto. Se pide que le quede un buen
      trozo encima; el tope de la aplicación garantiza 16 px. */
   vale('  y le queda un buen trozo apoyado en la columna',
-       mano.cinta && mano.cinta.ancho - mano.cinta.asomo >= 16,
-       mano.cinta && (mano.cinta.ancho - mano.cinta.asomo) + ' px sobre la columna');
+       mano.cinta && mano.cinta.w - mano.cinta.asomo >= 16,
+       mano.cinta && (mano.cinta.w - mano.cinta.asomo) + ' px sobre la columna');
   vale('ARRANCA EN EL FILO DE ARRIBA', mano.cinta && mano.cinta.desdeArriba === 0,
        mano.cinta && mano.cinta.desdeArriba + ' px de hueco');
   vale('sin taparle el titulillo', mano.cinta && !mano.cinta.tapaElTitulillo);
@@ -1339,8 +1348,8 @@ async function ponerAMano(p){
        esc.cinta && Math.abs(esc.cinta.asomo - 38) <= 3,
        esc.cinta && esc.cinta.asomo + ' px de asomo');
   vale('  y le queda un buen trozo apoyado en la columna',
-       esc.cinta && esc.cinta.ancho - esc.cinta.asomo >= 16,
-       esc.cinta && (esc.cinta.ancho - esc.cinta.asomo) + ' px sobre la columna');
+       esc.cinta && esc.cinta.w - esc.cinta.asomo >= 16,
+       esc.cinta && (esc.cinta.w - esc.cinta.asomo) + ' px sobre la columna');
   vale('y arranca en el filo de arriba', esc.cinta && esc.cinta.desdeArriba === 0,
        esc.cinta && esc.cinta.desdeArriba + ' px de hueco');
   vale('sigue siendo corta', esc.cinta && esc.cinta.corta,

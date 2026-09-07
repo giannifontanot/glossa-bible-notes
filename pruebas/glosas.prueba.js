@@ -2000,8 +2000,13 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     document.body.dispatchEvent(new PointerEvent('pointerdown',
       { bubbles:true, clientX:5, clientY:5 }));
     await peli;
+    /* Y CÓMO ACABÓ, que es lo único que no depende de cuándo mire la cámara:
+       el panel fuera. Ver la aserción de abajo. */
+    await pausa(400);
     return { cerradaAun, abierta, altoPanel,
-             cuadros: cuadros.length, opacidades: cuadros.join(' ') };
+             cuadros: cuadros.length, opacidades: cuadros.join(' '),
+             ultima: cuadros[cuadros.length - 1],
+             seFue: getComputedStyle(m).display === 'none' };
   });
   di('la lista', { altoDelPanel: lista.altoPanel, cuadrosAlIrse: lista.cuadros });
   di('las opacidades', lista.opacidades);
@@ -2010,9 +2015,27 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   /* Con el fallo puesto esto daba 1: el panel se quitaba en un cuadro. */
   vale('Y EL PANEL SE VA FUNDIÉNDOSE, no de golpe',
        lista.cuadros >= 5, lista.cuadros + ' cuadros');
-  vale('  bajando la opacidad hasta cero',
-       /0\.\d/.test(lista.opacidades || '') && / 0$/.test(' ' + (lista.opacidades || '')),
-       lista.opacidades);
+  /* BAJANDO HASTA CERO, Y «CERO» NO PUEDE SER EL LITERAL DEL ÚLTIMO CUADRO.
+
+     Esto exigía que el último valor filmado fuera exactamente 0, y eso no lo
+     decide el fundido: lo decide si el último requestAnimationFrame cae antes
+     o después de que el panel se ponga en display:none, que es lo que corta la
+     película. En este contenedor la serie llega a 0 a los ~290 ms y la
+     aserción pasaba cinco de cinco; en la máquina del dueño del repo el último
+     cuadro salió 0.01 y suspendió. No conseguí reproducirlo, así que esto no
+     se arregla adivinando la causa: se arregla pidiendo lo que de verdad
+     importa, que son dos cosas y ninguna depende del reloj de la cámara.
+
+     La primera, que la opacidad BAJE hasta casi nada —0.05 es un panel que ya
+     no está ahí, y con el fallo original esto valía 1 en el único cuadro que
+     había—. La segunda, y es la que sobraba: que el panel ACABE fuera. Un
+     fundido que baja y luego se queda a medias pasaba la comprobación vieja
+     igual de bien, porque nadie miraba el final. */
+  vale('  bajando la opacidad hasta casi cero',
+       typeof lista.ultima === 'number' && lista.ultima <= 0.05 &&
+       /0\.\d/.test(lista.opacidades || ''),
+       'acabó en ' + lista.ultima + '  ·  ' + lista.opacidades);
+  vale('  y el panel acaba fuera, no a medio camino', lista.seFue === true);
 
   /* EL ANCHO CAMBIA Y LA LISTA TIENE QUE ENTERARSE.
 

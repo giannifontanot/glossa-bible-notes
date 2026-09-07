@@ -370,11 +370,25 @@ async function tocarSinClic(pagina, x, y, pid = 21){
 
   titulo('CONTINUE ABRE LA BIBLIA');
   await p.click('#btnPortadaHold');
-  await p.waitForTimeout(2600);
-  const fin1 = await p.evaluate(() => {
-    const x = document.getElementById('portada');
-    return !x || x.classList.contains('fuera');
-  });
+  /* SE ESPERA A QUE PASE, NO UN RATO FIJO. Estuvo en 2600 ms y aguantó
+     mientras la cuenta duraba 3000: se paraba hacia los 2000, así que al
+     seguir quedaba un segundo largo. Con la cuenta en 5000 lo que queda al
+     reanudar son unos tres segundos y los 2600 se quedaron cortos: la prueba
+     miraba antes de tiempo y decía que la tapa no se iba. Un número fijo aquí
+     es un número que hay que recordar cambiar cada vez que se toca el reloj,
+     y nadie lo recuerda. Se espera a la condición, con un tope generoso: si de
+     verdad no se destapa, falla igual, solo que siete segundos después. */
+  const fin1 = await (async () => {
+    for (let i = 0; i < 35; i++){
+      const ya = await p.evaluate(() => {
+        const x = document.getElementById('portada');
+        return !x || x.classList.contains('fuera');
+      });
+      if (ya) return true;
+      await p.waitForTimeout(200);
+    }
+    return false;
+  })();
   vale('CONTINUE TERMINA LA CUENTA Y DESTAPA', fin1 === true, fin1);
 
   titulo('Y AL VOLVER, EL ADORNO SIGUE');

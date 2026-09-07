@@ -280,11 +280,22 @@ async function andamio(p){
      acababa de poner no tenía manera de saber en qué color estaba. Duraba
      hasta recolorearla o hasta recargar. Se comprueba en la PALETA y no en el
      almacén, que es donde se veía. Lo levantó Codex. */
-  vale('y la paleta ya marca su color', puesta.mando.tinta === 'sepia',
-       puesta.mando.tinta);
-  vale('que es el mismo que se guarda',
-       (puesta.guardadas || [])[0] && puesta.guardadas[0].color === 'sepia',
-       puesta.guardadas && puesta.guardadas[0].color);
+  /* EL COLOR DE FÁBRICA YA NO ES SEPIA. Era sepia porque era el primero de la
+     paleta, y el dueño del repo lo cambió a carmín vivo por una razón que se
+     ve al usarlo: sepia es el color de la letra y del papel, así que una
+     piedra recién puesta se confundía con el texto de debajo. Lo que esta
+     pareja vigila no es CUÁL es el color —eso es una decisión de diseño y
+     cambiará otra vez—, sino que la paleta y el almacén digan LO MISMO: el
+     fallo original era una piedra pintada de un color y una paleta sin marcar
+     ninguno. Así que se comprueba la coincidencia, y aparte que sea el de
+     fábrica, que es una línea sola y se ve de dónde viene. */
+  vale('y la paleta marca EL MISMO color que se guarda',
+       !!puesta.mando.tinta && (puesta.guardadas || [])[0] &&
+       puesta.mando.tinta === puesta.guardadas[0].color,
+       puesta.mando.tinta + ' contra ' +
+       (puesta.guardadas && puesta.guardadas[0] && puesta.guardadas[0].color));
+  vale('  y es el de fábrica: carmín vivo',
+       puesta.mando.tinta === 'carmin-vivo', puesta.mando.tinta);
 
   /* ---------------------------------------------------------------- */
   titulo('un toque cambia la forma, un arrastre la mueve');
