@@ -104,6 +104,10 @@
   /* EN ESPERA, EL BOTÓN DEL MEDIO SE ENCIENDE. Es la única señal de que el
      reloj está parado, y hace falta: sin ella, una portada que no se va se lee
      como que el programa se colgó. */
+  /* ANCHO FIJO PARA QUE LA CUENTA NO EMPUJE A LOS VECINOS. El rótulo pasa de
+     un dígito a «pausa» y a «continue»; sin un mínimo, los otros dos botones
+     del pie se corren en cada segundo y el pie entero tiembla. */
+  .pt-hold{ min-width:74px; }
   .pt-hold.esperando{ background:rgba(201,162,39,.42);
                       border-color:rgba(232,213,163,.8); color:#fff8e4; }
 
@@ -2220,7 +2224,21 @@
   .vidrio-fila{ display:flex; justify-content:center; width:100%; margin:2px 0 4px; }
   .vidrio-btn{ width:100%; min-height:38px; letter-spacing:.12em; font-weight:700;
                font-size:.72rem !important; }
-  #ajustes.cristal .vidrio-btn{ background:rgba(255,253,247,.88); }
+  /* EL BOTÓN DE VOLVER, EN MODO TRANSPARENTE. Dos arreglos que van juntos y
+     los dos los pidió el dueño del repo usándolo:
+
+     · SE LE PONE FONDO DE PAPEL Y HAY QUE PONERLE LETRA OSCURA. Encendido, el
+       botón es .btn.active: fondo dorado y letra CREMA. Aquí se le cambia el
+       fondo a papel casi blanco y la letra se quedaba crema — crema sobre
+       blanco, o sea invisible justo en el modo donde es la única manera de
+       volver. Va en negro, que es lo que se pidió y lo que se lee sobre papel.
+     · Y NO ENCOGE. Estuvo con width:auto, con la idea de las tablillas
+       estrechas que dejan ver la hoja: cada control mide lo que miden sus
+       letras. Con éste sale mal, y por lo que es: no es un control del ajuste,
+       es la PUERTA DE SALIDA del modo transparente. Encogido y en medio de la
+       hoja hay que buscarlo; a todo lo ancho está donde uno mira. Se le deja
+       el ancho entero, que en un teléfono es el de la pantalla. */
+  #ajustes.cristal .vidrio-btn{ background:rgba(255,253,247,.88); color:#000; }
   /* CADA CONTROL CON SU PROPIA TABLILLA, Y DEL ANCHO JUSTO.
 
      Con el panel transparente se ve la hoja —que es de lo que se trata— pero
@@ -2253,6 +2271,16 @@
     padding:3px 9px 4px; border-radius:9px;
     background:rgba(255,253,247,.9);
     box-shadow:0 1px 3px rgba(0,0,0,.26); }
+  /* MENOS SU FILA, QUE NO ES UN CONTROL. La regla de arriba encoge cada fila a
+     lo que miden sus letras —es lo que deja ver la hoja entre tablilla y
+     tablilla— y al botón de volver le hacía lo mismo: quedaba en 126 px de los
+     412 de la pantalla. Aquí no vale, y no es una excepción caprichosa: las
+     demás filas son ajustes, y ésta es la salida. Además su tablilla sobra,
+     porque el botón ya trae fondo de papel propio; dos papeles superpuestos
+     solo engordan el borde. */
+  #ajustes.cristal #ctrlConfig .ajuste.vidrio-fila{
+    justify-self:stretch; width:100%;
+    background:transparent; box-shadow:none; padding:0; }
   #ajustes.cristal #ctrlConfig .ajuste > .ctrl{ flex:0 0 auto; }
   #ajustes.cristal #ctrlConfig .ajuste > .lbl{ flex:0 0 auto; }
   #ajustes.cristal .rollo input[type=range],
@@ -2261,9 +2289,6 @@
      separa nada: con las tablillas sueltas, el hueco entre ellas se ve solo. */
   #ajustes.cristal #ctrlConfig .ajuste.ancho{
     border-top:0; margin-top:2px; padding-top:3px; }
-  /* El botón de volver tampoco necesita el ancho entero. Sigue centrado por
-     .vidrio-fila, que es donde se le busca. */
-  #ajustes.cristal .vidrio-btn{ width:auto; padding-left:18px; padding-right:18px; }
   /* Y EL CRÉDITO, que también es letra suelta sobre la hoja. La atribución de
      CC BY-SA tiene que poder leerse, y transparente no se leía. Se le deja su
      tablilla, pero con inline-block para que mida sus renglones y no el panel:
@@ -2496,10 +2521,35 @@
      que es una casilla y un rótulo que hay que poder leer. Sin alto clavado,
      que crezca lo que necesite. */
   #cantoCab{ flex:0 0 auto; display:flex; align-items:center; gap:5px;
+             flex-wrap:wrap;
              font:700 7.5px/1 var(--ui); color:#6d5c33; letter-spacing:.09em;
              text-transform:uppercase; white-space:nowrap;
              padding-bottom:5px; margin-bottom:4px;
              border-bottom:1px solid rgba(140,116,68,.28); }
+  /* LAS DOS PESTAÑAS DEL TESTAMENTO. Renglón propio y centradas: son el
+     interruptor de TODO lo que hay debajo, y puestas a un lado se leen como un
+     ajuste más, al lado del de las flechas. En medio se leen como lo que son.
+     Se visten como las pestañas de secciones del panel —mismo dorado para la
+     activa— porque hacen lo mismo, y así no hay dos gramáticas de pestaña en
+     la misma pantalla. */
+  .canto-tabs{ flex:1 0 100%; display:flex; justify-content:center; gap:4px;
+               margin-top:2px; }
+  .canto-tab{ flex:0 0 auto; min-width:76px; border:0; cursor:pointer;
+              padding:5px 14px;
+              font:700 10px/1.4 var(--ui); letter-spacing:.1em;
+              color:#5c4a24; background:rgba(255,253,247,.5);
+              border-radius:3px 3px 0 0;
+              -webkit-tap-highlight-color:transparent;
+              transition:background .28s cubic-bezier(.65,0,.35,1),
+                         color .28s cubic-bezier(.65,0,.35,1); }
+  .canto-tab:hover{ background:#fffdf6; color:#1d1608; }
+  .canto-tab.aqui{ background:#b8892b; color:#fff8e4; }
+  .canto-tab:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
+  /* Con el dedo, al suelo de la casa: son dos blancos y nada más en su
+     renglón, así que no hay razón para dejarlos en 24 px. */
+  @media (pointer:coarse){
+    .canto-tab{ min-height:44px; min-width:96px; padding:10px 18px; font-size:12px; }
+  }
   /* EL INTERRUPTOR ES UN <label> ENTERO, y esto no es adorno: envolviendo la
      casilla y el texto, el rótulo también responde al toque, y el rótulo es
      doce veces el blanco de la casilla. En un teléfono es la diferencia entre
@@ -2521,8 +2571,11 @@
   #cantoCuerpo{ flex:1 1 auto; min-height:0; overflow-y:auto; padding-bottom:14px;
                 display:flex; flex-direction:column; gap:4px; }
   .aire-final{ flex:0 0 100%; height:16px; }
-  .grupo-tit{ display:block; font:700 6.5px/1 var(--ui); letter-spacing:.14em;
-              text-transform:uppercase; color:#8a7746; padding:2px 0 3px; }
+  /* AQUÍ ESTABA .grupo-tit, el rótulo «Antiguo Testamento» / «Nuevo
+     Testamento» que encabezaba cada mitad de la lista. Se va con las mitades:
+     ahora lo que dice cuál se está mirando es la PESTAÑA, que además sirve
+     para cambiarlo. Un rótulo que solo informa al lado de un botón que informa
+     y actúa es un rótulo de más. */
   /* Ya no es rejilla de celdas iguales: cada pestaña mide lo que mide su
      nombre. Con los nombres completos, obligarlas a un ancho común dejaba
      huecos enormes junto a 'Rut' y apretaba a '1 Tesalonicenses'. */
@@ -2546,8 +2599,13 @@
      vuelve a molestar, hay que atacarlo por otro lado —cancelar la selección
      al empezar el gesto de la lupa, y solo mientras dure— y no apagando la
      selección de toda la lista, que es lo que aquí no valió. */
-  .tabo{ position:relative; flex:0 0 auto; border:0; padding:0 7px; height:18px;
-         cursor:pointer; font:400 9.5px/18px var(--ui); color:#4a3a1c; letter-spacing:.01em;
+  /* AL DOBLE DE ALTO, de 18 a 36. Se puede desde que el panel enseña UN
+     testamento y no dos: antes la lista tenía media pantalla y cada píxel de
+     alto se pagaba en libros que dejaban de verse. Con la lista entera para
+     ella, el alto se puede gastar en lo que de verdad falla, que es atinarle
+     con el dedo. El ancho sigue midiendo lo que mide el nombre. */
+  .tabo{ position:relative; flex:0 0 auto; border:0; padding:0 7px; height:36px;
+         cursor:pointer; font:400 9.5px/36px var(--ui); color:#4a3a1c; letter-spacing:.01em;
          background:rgba(255,253,247,.62); border-radius:2px;
          white-space:nowrap; overflow:visible; text-align:center;
          transition:background .34s cubic-bezier(.65,0,.35,1),
@@ -2949,11 +3007,10 @@
        arrastra el dedo por encima y un globo va diciendo qué libro hay debajo,
        así que se elige mirando el globo y no el hueco entre dos nombres. Un
        blanco chico con confirmación se atina mejor que uno grande a ciegas. */
-    .tabo{ font-size:13px; height:26px; line-height:26px; padding:0 9px; }
+    .tabo{ font-size:13px; height:52px; line-height:52px; padding:0 9px; }
     .rejilla-libros{ gap:5px; }
     #cantoCuerpo{ gap:6px; }
     .num{ font-size:13.5px; height:40px; line-height:40px; }
-    .grupo-tit{ font-size:10.5px; padding:6px 0 4px; }
     .fly-tit{ font-size:12px; padding:2px 0 5px; }
     /* La glosa del índice NO entra en esta lista de tamaños. Aquí estaba
        clavada en 13px, y eso es exactamente lo que rompía el espejo: la de la
@@ -3020,9 +3077,11 @@
        Es el mismo 88% que ya era su tope, así que en la práctica solo deja de
        encogerse cuando hay pocos libros — y libros siempre hay 66. */
     #canto{ height:88%; }
+    /* UNA SOLA LISTA, LA DEL TESTAMENTO ELEGIDO. Aquí hubo dos mitades, una
+       por testamento, cada una con su desplazamiento; la regla de .testamento
+       que las repartía se fue con ellas. Lo que queda vale igual: la rejilla
+       se estira a lo que hay y se corre por dentro. */
     #cantoCuerpo.testamentos{ overflow:hidden; }
-    #cantoCuerpo.testamentos .testamento{ display:flex; flex-direction:column;
-                                          flex:1 1 0; min-height:0; }
     #cantoCuerpo.testamentos .rejilla-libros{ flex:1 1 auto; min-height:0;
                                               overflow-y:auto; align-content:flex-start;
                                               overscroll-behavior:contain;
@@ -3059,11 +3118,11 @@
        El z-index lo pone por encima de sus vecinos mientras dura: sin él, el
        que viene después lo recorta por el filo al reacomodarse. */
     .tabo.bajoeldedo{ background:#b8892b; color:#fff8e4; z-index:10;
-                      font-size:17px; height:36px; line-height:36px;
+                      font-size:17px; height:64px; line-height:64px;
                       padding:0 14px; font-weight:600;
                       box-shadow:0 3px 10px -4px rgba(60,40,15,.6); }
     @media (prefers-reduced-motion: reduce){
-      .tabo.bajoeldedo{ font-size:13px; height:26px; line-height:26px;
+      .tabo.bajoeldedo{ font-size:13px; height:52px; line-height:52px;
                         padding:0 9px; font-weight:400; box-shadow:none; }
     }
 
@@ -3551,7 +3610,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '06-SEP-26 20:02';
+window.GLOSS_BUILD = '07-SEP-26 07:49';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4053,6 +4112,11 @@ let showMarks = true, fontSize = 15, fontSizeGlosa = 14;
    quien no las conoce y un estorbo para quien sí. Así que se pregunta, y se
    pregunta donde se pregunta todo lo de la lectura: en un panel. */
 let verFlechas = false;
+/* QUÉ TESTAMENTO ENSEÑA EL PANEL DE LIBROS, y se guarda con los ajustes: quien
+   está leyendo el Antiguo vuelve al Antiguo. Arranca en el Nuevo porque ahí es
+   donde arranca la lectura —y donde están los datos que vienen incluidos—, no
+   por orden canónico. */
+let cantoTesta = 'NT';
 /* EL SEPIA. Va de 0 a 100 y mueve papel y tinta juntos, no solo el fondo:
    entintar el papel y dejar la letra negra encima da una foto con filtro, no
    una hoja vieja. En papel amarillento la tinta también envejece hacia el
@@ -11068,6 +11132,14 @@ $('canto').addEventListener('change', ev => {
   pintarFlechas();
   guardarAjustes();
 });
+/* Y las pestañas del testamento, por lo mismo: las rehace pintarCanto. Va en
+   el panel y no en cada botón. */
+$('canto').addEventListener('click', ev => {
+  const t = ev.target.closest('[data-testa]');
+  if (!t) return;
+  ev.preventDefault(); ev.stopPropagation();
+  cantoVerTestamento(t.dataset.testa);
+});
 /* AQUÍ HUBO UN OYENTE DE CLIC EN CADA FLECHA, y quitarlo es el encargo.
 
    Las flechas pasaban hoja por sí solas. Funcionaba, y por eso era el problema:
@@ -11183,35 +11255,69 @@ function pintarCanto(){
   $('cantoCab').innerHTML =
     '<label class="canto-opcion"><input type="checkbox" id="chkFlechas"' +
     (verFlechas ? ' checked' : '') + ' />' +
-    '<span>ver flechas de pasar página</span></label>';
+    '<span>ver flechas de pasar página</span></label>' +
+    cantoPestanasHTML();
   const celdas = libros => libros.map(b => {
       const vivo = hayLibro(b.id), aqui = b.id === LIBRO;
       return '<button class="tabo ' + (aqui ? 'aqui' : vivo ? 'viva' : 'muerta') +
              '" data-libro="' + b.id + '" title="' + b.nombre +
              (vivo ? '' : ' — no está en estos datos') + '">' + b.nombre + '</button>';
     }).join('');
-  /* CADA TESTAMENTO EN SU MITAD. Antes los dos grupos iban seguidos dentro de
-     una sola caja con desplazamiento, y con 39 libros el Antiguo se comía el
-     panel entero: el Nuevo Testamento quedaba abajo del todo, fuera de la
-     vista, y para llegar a Mateo había que recorrer el Antiguo entero. Un
-     índice en el que la mitad del contenido no se ve no es un índice.
-     Ahora cada testamento tiene su propia caja con su propio desplazamiento y
-     no pasa de la mitad del alto. Correr el Antiguo ya no mueve al Nuevo: son
-     dos listas vecinas, no una lista larga. Y el rótulo se queda fijo fuera
-     del desplazamiento, así que siempre se sabe cuál se está mirando.
+  /* UN TESTAMENTO A LA VEZ, CON DOS PESTAÑAS. Y son la tercera forma que toma
+     esta lista, así que conviene dejar por qué:
+
+     · Primero fueron los 66 libros seguidos en una sola caja con
+       desplazamiento. Con 39 del Antiguo por delante, el Nuevo quedaba fuera
+       de la vista y para llegar a Mateo había que recorrerlo entero. Un índice
+       en el que la mitad del contenido no se ve no es un índice.
+     · Después, cada testamento en SU MITAD del panel, con su propio
+       desplazamiento. Se arregló lo de arriba y se pagó con la mitad del alto:
+       las dos listas cabían a medias y las dos había que correrlas.
+     · Ahora, una sola lista a pantalla completa y una pestaña que dice cuál.
+       Es lo que pidió el dueño del repo, y lo que hace posible lo otro que
+       pidió: con el alto entero disponible, los botones de los libros caben
+       AL DOBLE de altura (ver .tabo), que es lo que de verdad se atina con el
+       dedo.
+
+     La pestaña elegida SE GUARDA con los ajustes: quien está leyendo el
+     Antiguo vuelve al Antiguo, y no tiene que volver a decirlo cada vez que
+     abre el panel.
+
      El aire de abajo va como un elemento vacío y no como padding de la caja.
      Parece rebuscado y no lo es: el relleno final de una caja con
      desplazamiento se lo comen varios navegadores en cuanto el contenido
      desborda —justo el caso que aquí es la norma—. Con flex-basis:100% cae en
      su propio renglón dentro de la rejilla y ocupa alto de verdad. */
-  const grupo = (titulo, libros) =>
-    '<div class="testamento"><span class="grupo-tit">' + titulo + '</span>' +
-    '<div class="rejilla-libros">' + celdas(libros) +
-    '<div class="aire-final"></div></div></div>';
   const c = $('cantoCuerpo');
   c.classList.add('testamentos');
-  c.innerHTML = grupo('Antiguo Testamento', CANON.filter(b => !b.nt)) +
-                grupo('Nuevo Testamento',  CANON.filter(b => b.nt));
+  c.innerHTML = '<div class="rejilla-libros">' +
+                  celdas(CANON.filter(b => !!b.nt === (cantoTesta === 'NT'))) +
+                  '<div class="aire-final"></div></div>';
+}
+/* LAS DOS PESTAÑAS, en la cabecera y centradas. Van con role=tab y no como
+   botones sueltos: lo que hacen es cambiar de qué va la lista de abajo, que es
+   exactamente lo que un lector de pantalla espera oír de una pestaña. */
+function cantoPestanasHTML(){
+  const uno = (id, corto, largo) =>
+    '<button type="button" class="canto-tab' + (cantoTesta === id ? ' aqui' : '') + '"' +
+      ' data-testa="' + id + '" role="tab"' +
+      ' aria-selected="' + (cantoTesta === id) + '"' +
+      ' title="' + largo + '" aria-label="' + largo + '">' + corto + '</button>';
+  return '<div class="canto-tabs" role="tablist" aria-label="Testamento">' +
+           uno('AT', 'AT', 'Antiguo Testamento') +
+           uno('NT', 'NT', 'Nuevo Testamento') +
+         '</div>';
+}
+/* Cambiar de pestaña rehace la lista, así que se lleva por delante la cascada
+   de capítulos: estaba colgada de un botón que ya no existe, y una cajita
+   flotando junto a un libro de otro testamento no dice nada. */
+function cantoVerTestamento(id){
+  if (id !== 'AT' && id !== 'NT') return;
+  if (cantoTesta === id) return;
+  cantoTesta = id;
+  guardarAjustes();
+  ocultarCascada();
+  pintarCanto();
 }
 
 /* ============================================================
@@ -11820,8 +11926,28 @@ function abrirCapitulosDe(lib){
     readout.textContent = nombreDe(id) + ' no está en estos datos — genéralo con el convertidor';
     return;
   }
+  /* SE PINTA PRIMERO, Y ESTO NO ES ADORNO. El salto entre libros lejanos tarda
+     segundos —repagina el libro entero antes de voltear nada— y en todo ese
+     rato la marca del libro seguía en el de antes, porque quien la mueve es
+     refrescarLibroActual y ése corre al ATERRIZAR. O sea que el lector tocaba
+     Marcos, se le abría la cascada, y Mateo seguía pintado: la pantalla decía
+     que su toque no había entrado. Se pinta aquí, en el toque, y al aterrizar
+     refrescarLibroActual lo confirma o lo corrige. El orden es el que pidió el
+     dueño del repo: se pinta el libro, y ENTONCES se abren los capítulos. */
+  cantoMarcarLibro(lib);
   abrirCapitulos(id, lib.getBoundingClientRect());
   if (id !== LIBRO) saltarA(id, 1, 1, null, { sinCerrar:true });
+}
+/* Mueve la marca a este botón sin esperar al viaje. Es lo mismo que hace
+   refrescarLibroActual pero de uno solo y por adelantado. */
+function cantoMarcarLibro(lib){
+  document.querySelectorAll('#canto .tabo.aqui').forEach(b => {
+    b.classList.remove('aqui');
+    b.classList.toggle('viva', hayLibro(b.dataset.libro));
+    b.classList.toggle('muerta', !hayLibro(b.dataset.libro));
+  });
+  lib.classList.remove('viva', 'muerta');
+  lib.classList.add('aqui');
 }
 /* Tocar fuera cierra la burbuja. Quedan exentos los sitios que son la burbuja
    o la abren: el propio panel, las cajitas de capítulos y versículos, el menú
@@ -12166,6 +12292,17 @@ const PIEDRA_TAM_POR = 2;              /* de salida, chica pero ya visible */
    Los ids llevan «-vivo» y no un número: en el almacén de una piedra queda
    escrito el color, y dentro de un año 'carmin-vivo' se entiende y 'carmin2'
    no. */
+/* CÓMO NACE UNA PIEDRA, y en un solo sitio para las dos familias: las de la
+   hoja y las de la portada. Nacía en SEPIA y sin sombra, que es lo mismo que
+   decir que nacía escondida: sepia es el color de la letra y del papel, así
+   que una piedra recién puesta se confundía con el texto que hay debajo, y sin
+   sombra tampoco se veía que está ENCIMA del papel y no dentro de él. El dueño
+   del repo la quiere visible desde el primer momento —carmín vivo y levantada—
+   y tiene razón: lo primero que hace una piedra nueva es dejarse ver; el color
+   discreto se elige después, en el mando, si se quiere.
+   El nombre se guarda como cadena y no como índice de la paleta a propósito:
+   así sigue valiendo si mañana se reordena PIEDRA_TINTAS. */
+const PIEDRA_COLOR_NUEVA = 'carmin-vivo';
 const PIEDRA_TINTAS = [
   ['sepia',        'sepia',         '#7a6434'],
   ['carmin',       'carmín',        '#9b2a2a'],
@@ -13522,7 +13659,8 @@ function ponerPiedra(){
      piedraSanear le pone el que le faltaba. Lo levantó Codex. */
   const x = { id: piedraNuevoId(), libro: a.libro, cap: a.cap, vers: a.vers,
               x: .5 + n * .055, y: .45 + n * .045,
-              forma: FORMAS[0], tam: PIEDRA_TAM_POR, color: PIEDRA_TINTAS[0][0],
+              forma: FORMAS[0], tam: PIEDRA_TAM_POR, color: PIEDRA_COLOR_NUEVA,
+              sombra: true,
               creado: ahora, tocado: ahora };
   piedras.unshift(x);
   piedrasGuardar();
@@ -15673,7 +15811,7 @@ function guardarAjustes(){
     localStorage.setItem(AJUSTES, JSON.stringify({
       v: 1, fontSize, fontSizeGlosa, columns, placement, alineacion,
       interlineado, margen, version, showMarks, sepia, contraste, brillo,
-      verFlechas,
+      verFlechas, cantoTesta,
       fuente: FUENTES.findIndex(f => f[1] === fuente),
       libro: LIBRO, cap: aqui.cap, vers: aqui.vers,
       /* LA ÚLTIMA ETIQUETA USADA SE GUARDA, y ya no decide nada: solo sale
@@ -15726,6 +15864,7 @@ function cargarAjustes(){
   /* === y no !==: apagadas es lo de fábrica, así que solo un true escrito las
      enciende. Un ajuste viejo sin la clave se comporta como hasta ahora. */
   verFlechas = a.verFlechas === true;
+  cantoTesta = a.cantoTesta === 'AT' ? 'AT' : 'NT';
   /* Se acepta cualquier texto porque las etiquetas las escribe quien usa la
      aplicación y no hay lista cerrada que consultar; solo se rechaza lo que no
      es texto y lo desmedido, que sería un archivo manoseado y no una etiqueta.
@@ -15979,6 +16118,9 @@ function quitarPortada(){
     if (piedraEditando && piedraTaller === TALLER_PORTADA) piedraCerrarEdicion();
     else piedraDevolverMando();
   }
+  /* Y se para el latido de la cuenta: sin esto queda un intervalo cada 200 ms
+     buscando un botón que ya no existe, para siempre. */
+  if (typeof portadaPararLatido === 'function') portadaPararLatido();
   el.classList.add('fuera');
   setTimeout(() => { if (el.parentNode) el.remove(); }, 600);
 }
@@ -16001,17 +16143,33 @@ const t0Portada = performance.now();
    arrancársela a los seis segundos con la caja de piedras abierta sería el
    fallo más tonto de todo esto.
    ============================================================ */
-const PORTADA_ESPERA = 3000;      /* lo que dura la tapa si nadie la toca */
+const PORTADA_ESPERA = 5000;      /* lo que dura la tapa si nadie la toca */
 let portadaReloj = null;          /* el temporizador vivo, o null */
 let portadaVence = 0;             /* cuándo vence, en tiempo de performance */
 let portadaResto = 0;             /* lo que faltaba al parar */
 let portadaEnEspera = false;      /* ¿la paró el lector? */
 let portadaTecho = null;          /* el plazo de emergencia */
+let portadaLatido = null;         /* el que va repintando la cuenta atrás */
 
+/* EL BOTÓN DEL MEDIO ES EL RELOJ. Decía «hold», que es una palabra que hay que
+   entender antes de servir de algo; ahora dice cuánto queda —5, 4, 3, 2— y en
+   el último segundo dice «pausa», encendido, que es cuando de verdad hace
+   falta ofrecerlo. Un botón que además cuenta explica dos cosas con un solo
+   sitio: que la tapa se va sola, y cuándo.
+
+   El latido va a 200 ms y no a 1000: con un segundo justo, el número cambia
+   hasta 200 ms tarde respecto al reloj de verdad y la cuenta se ve saltar. */
+function portadaArrancarLatido(){
+  clearInterval(portadaLatido);
+  portadaLatido = setInterval(portadaPintarHold, 200);
+}
+function portadaPararLatido(){ clearInterval(portadaLatido); portadaLatido = null; }
 function portadaArrancarReloj(ms){
   clearTimeout(portadaReloj);
   portadaVence = performance.now() + ms;
   portadaReloj = setTimeout(quitarPortada, ms);
+  portadaArrancarLatido();
+  portadaPintarHold();
 }
 function portadaParar(){
   if (portadaEnEspera) return;
@@ -16022,6 +16180,7 @@ function portadaParar(){
      lista— lo que queda es la espera entera. */
   portadaResto = portadaVence ? Math.max(0, portadaVence - performance.now())
                               : PORTADA_ESPERA;
+  portadaPararLatido();
   portadaPintarHold();
 }
 function portadaSeguir(){
@@ -16038,8 +16197,25 @@ function portadaSeguir(){
 function portadaPintarHold(){
   const b = document.getElementById('btnPortadaHold');
   if (!b) return;
-  b.textContent = portadaEnEspera ? 'continue' : 'hold';
-  b.classList.toggle('esperando', portadaEnEspera);
+  /* Lo que queda, en segundos enteros hacia arriba: con la espera en 5 000 ms
+     eso da 5, 4, 3, 2 y 1. El 1 no se enseña —se cambia por «pausa»— porque
+     un «1» que dura un segundo y desaparece no informa de nada, y ese es
+     justamente el momento de ofrecer el botón. Antes de que el reloj arranque
+     —la tapa está esperando a que la hoja esté lista— se enseña la espera
+     entera: cero sería mentira. */
+  const queda = portadaVence
+    ? Math.max(0, Math.ceil((portadaVence - performance.now()) / 1000))
+    : Math.ceil(PORTADA_ESPERA / 1000);
+  const rotulo = portadaEnEspera ? 'continue' : (queda >= 2 ? String(queda) : 'pausa');
+  if (b.textContent !== rotulo) b.textContent = rotulo;
+  /* EL ENCENDIDO ES EL DE LA PAUSA, Y VALE PARA LAS DOS. Estaba solo para
+     «parado», que es donde nació —una tapa que no se va se lee como colgada si
+     nada lo explica—, y ahora sale también en el último segundo: es el mismo
+     estado del botón visto desde los dos lados, «puedes parar» y «está
+     parado». Encender la palabra y no el número es a propósito: los números
+     son cuenta, la palabra es oferta. */
+  const encendido = portadaEnEspera || rotulo === 'pausa';
+  b.classList.toggle('esperando', encendido);
   b.setAttribute('aria-pressed', portadaEnEspera ? 'true' : 'false');
   b.title = portadaEnEspera ? 'Seguir y abrir la Biblia'
                             : 'Detener la cuenta y quedarse aquí';
@@ -16206,7 +16382,7 @@ function portadaPintarPiedras(){
    decorando, que es justo lo que se viene a hacer. */
 /* Cómo NACE una piedra de la portada. No hay paleta que lo decida antes: nace
    así y se cambia en su mando, que se abre solo encima de ella. */
-const PORTADA_PIEDRA_NUEVA = { forma:'piedra', color: PIEDRA_TINTAS[0][0],
+const PORTADA_PIEDRA_NUEVA = { forma:'piedra', color: PIEDRA_COLOR_NUEVA,
                                tam: PORTADA_TAM_POR, sombra: true };
 let portadaMandoArriba = false;    /* solo lo usa el mando de la foto */
 function portadaCerrarMandos(){
@@ -16549,8 +16725,12 @@ function portadaTomarArchivo(file){
    excepción, nunca se ejecuta y el lector se queda mirando una tapa que no se
    va y que además se come los toques. Este plazo se arma antes que nada y no
    depende de que el arranque termine bien: pase lo que pase, la mesa se
-   destapa. */
-portadaTecho = setTimeout(() => { try { quitarPortada(); } catch(e){} }, 7000);
+   destapa.
+
+   NUEVE SEGUNDOS Y NO SIETE: la espera normal subió a cinco, y un techo tiene
+   que quedar claramente por encima de la cuenta o deja de ser un techo y se
+   convierte en un segundo reloj compitiendo con el primero. */
+portadaTecho = setTimeout(() => { try { quitarPortada(); } catch(e){} }, 9000);
 const guardado = cargarAjustes();
 cargarHistorial();
 cargarSeparadores();
@@ -16578,6 +16758,18 @@ pintarFlechas();
 /* Y la portada recupera su adorno. Va aquí y no antes porque necesita las
    figuras y los colores de las piedras, que se declaran más arriba pero
    después del techo duro. */
+/* LA CUENTA EMPIEZA CUANDO EMPIEZA LA TAPA, no cuando la hoja está lista.
+
+   El temporizador de verdad se arma más abajo, al terminar el arranque, con lo
+   que quede de los cinco segundos. Eso está bien para QUITARLA —la tapa dura
+   cinco segundos desde que se ve, pase lo que pase—, pero deja el rótulo del
+   botón sin nada que contar hasta entonces: si el arranque tarda segundo y
+   medio, el lector se encuentra la cuenta empezada en «4» y nunca ve el 5.
+   Fijando aquí el vencimiento —el mismo instante al que apunta el de abajo— la
+   cuenta se ve entera y no da ningún salto cuando el reloj de verdad arranca:
+   los dos apuntan a t0Portada + PORTADA_ESPERA. */
+portadaVence = t0Portada + PORTADA_ESPERA;
+portadaArrancarLatido();
 portadaCargar(); portadaPintarFoto(); portadaPintarPiedras(); portadaPintarHold();
 rehacerPlano();
 sizeCanvas();

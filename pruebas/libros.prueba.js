@@ -214,6 +214,114 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
   await cerrarParcial(lup, 'la lupa');
 
   /* ================================================================
+     LAS DOS PESTAÑAS DEL TESTAMENTO.
+
+     El panel enseña UN testamento y una pestaña dice cuál. Es la tercera forma
+     de esta lista —los 66 seguidos, luego cada testamento en su mitad, ahora
+     uno a la vez— y lo que compra es el alto: con la lista entera para ella,
+     los botones de los libros caben AL DOBLE de altura, que es lo que de
+     verdad se atina con el dedo.
+
+     Se piden cuatro cosas, y la cuarta es la que no se ve mirando la pantalla:
+     que la pestaña elegida SE GUARDE. Quien está leyendo el Antiguo vuelve al
+     Antiguo sin tener que volver a decirlo, y eso solo se comprueba yéndose y
+     volviendo. */
+  titulo('las dos pestañas: Antiguo y Nuevo');
+  const pes = await abrir();
+  const pp = pes.pagina;
+  const tabs = await pp.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const toque = async e => {
+      const r = e.getBoundingClientRect();
+      const o = { bubbles:true, cancelable:true, pointerId:64, pointerType:'touch',
+                  isPrimary:true, clientX: r.left + r.width/2, clientY: r.top + r.height/2 };
+      e.dispatchEvent(new PointerEvent('pointerdown', o)); await pausa(30);
+      e.dispatchEvent(new PointerEvent('pointerup', o));
+      e.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, o)));
+    };
+    const abrirLibros = async () => {
+      document.getElementById('pgCabeza').click(); await pausa(700);
+      const pest = [...document.querySelectorAll('.pestanas button')]
+                     .find(b => /libros/i.test(b.textContent));
+      if (pest) pest.click();
+      await pausa(800);
+    };
+    await abrirLibros();
+    const lee = () => {
+      const t = [...document.querySelectorAll('.canto-tab')];
+      const libros = [...document.querySelectorAll('#canto .tabo')];
+      const cab = document.getElementById('cantoCab').getBoundingClientRect();
+      return { cuales: t.map(x => x.dataset.testa),
+               rotulos: t.map(x => x.textContent.trim()),
+               marcada: (t.find(x => x.classList.contains('aqui')) || {}).dataset,
+               /* Centradas: el punto medio del grupo contra el de la cabecera. */
+               centradas: t.length === 2 && Math.abs(
+                 ((t[0].getBoundingClientRect().left +
+                   t[1].getBoundingClientRect().right) / 2) -
+                 (cab.left + cab.width / 2)) <= 3,
+               altoTab: t[0] ? Math.round(t[0].getBoundingClientRect().height) : 0,
+               cuantos: libros.length,
+               primero: libros[0] && libros[0].textContent.trim(),
+               altoLibro: libros[0] ? Math.round(libros[0].getBoundingClientRect().height) : 0 };
+    };
+    const enNT = lee();
+    const bAT = document.querySelector('.canto-tab[data-testa="AT"]');
+    await toque(bAT); await pausa(600);
+    const enAT = lee();
+    return { enNT, enAT,
+             marcadaNT: enNT.marcada && enNT.marcada.testa,
+             marcadaAT: enAT.marcada && enAT.marcada.testa,
+             guardado: (JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}') || {}).cantoTesta };
+  });
+  di('en el Nuevo', JSON.stringify(tabs.enNT));
+  di('en el Antiguo', JSON.stringify(tabs.enAT));
+  vale('HAY DOS PESTAÑAS, AT Y NT',
+       JSON.stringify(tabs.enNT.cuales) === JSON.stringify(['AT','NT']),
+       tabs.enNT.rotulos.join(' · '));
+  vale('  centradas en la cabecera, que es donde se leen como interruptor',
+       tabs.enNT.centradas === true);
+  vale('  y con blanco de dedo, 44 px o más', tabs.enNT.altoTab >= 44,
+       tabs.enNT.altoTab + ' px');
+  /* Arranca en el Nuevo: es donde arranca la lectura y donde están los datos
+     que vienen incluidos. */
+  vale('arranca en el NUEVO, con sus 27 libros',
+       tabs.marcadaNT === 'NT' && tabs.enNT.cuantos === 27 &&
+       tabs.enNT.primero === 'Mateo',
+       tabs.enNT.cuantos + ' · ' + tabs.enNT.primero);
+  vale('  y NO se ven los del Antiguo mezclados',
+       tabs.enNT.cuantos === 27, tabs.enNT.cuantos + ' libros en la lista');
+  vale('TOCAR «AT» CAMBIA LA LISTA ENTERA',
+       tabs.marcadaAT === 'AT' && tabs.enAT.cuantos === 39 &&
+       tabs.enAT.primero === 'Génesis',
+       tabs.enAT.cuantos + ' · ' + tabs.enAT.primero);
+  /* EL DOBLE DE ALTO, que es lo que compra enseñar un testamento y no dos.
+     26 px eran los de antes; 52 son los de ahora. */
+  vale('LOS LIBROS VAN AL DOBLE DE ALTO', tabs.enNT.altoLibro === 52,
+       tabs.enNT.altoLibro + ' px');
+  vale('y la pestaña elegida se guarda', tabs.guardado === 'AT', tabs.guardado);
+
+  /* Y SOBREVIVE A CERRAR EL LIBRO. Guardarlo en los ajustes y no volver a
+     leerlo sería exactamente el mismo fallo con más pasos. */
+  /* reload() del andamio ya espera a que la portada se vaya. */
+  await pp.reload();
+  await pp.waitForTimeout(300);
+  const trasRecargar = await pp.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    document.getElementById('pgCabeza').click(); await pausa(700);
+    const pest = [...document.querySelectorAll('.pestanas button')]
+                   .find(b => /libros/i.test(b.textContent));
+    if (pest) pest.click();
+    await pausa(800);
+    return { marcada: (document.querySelector('.canto-tab.aqui') || {}).dataset.testa,
+             cuantos: document.querySelectorAll('#canto .tabo').length };
+  });
+  di('al volver', JSON.stringify(trasRecargar));
+  vale('AL VOLVER SIGUE EN EL ANTIGUO',
+       trasRecargar.marcada === 'AT' && trasRecargar.cuantos === 39,
+       JSON.stringify(trasRecargar));
+  await cerrarParcial(pes, 'las pestañas');
+
+  /* ================================================================
      TOCAR EL LIBRO YA TE LLEVA AL LIBRO.
 
      Antes el toque solo abría la cascada de capítulos: el libro no quedaba

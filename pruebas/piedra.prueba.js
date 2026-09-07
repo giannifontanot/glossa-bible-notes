@@ -764,26 +764,50 @@ async function andamio(p){
   vale('  ni nada se salga del panel', abajo.dentro === true, abajo);
   vale('  y con blanco de dedo en los botones', abajo.blancoOk >= 44, abajo.blancoOk);
 
+  /* LA CASILLA ENCIENDE Y APAGA, Y SE MIDE ASÍ: EN LOS DOS SENTIDOS.
+
+     Esto pedía «sin marcar va plana» y «marcada se levanta», en ese orden, y
+     era una prueba escrita contra un valor de fábrica: la piedra nacía sin
+     sombra. El dueño del repo pidió que naciera CON ella —una piedra recién
+     puesta tiene que verse encima del papel— y el primer toque de la casilla
+     pasó a ser el que la apaga, así que la prueba llamó fallo al cambio.
+     Ahora se mira el estado de salida, sea el que sea, y se pide que el toque
+     lo INVIERTA y que el segundo toque lo devuelva. Eso es lo que hace una
+     casilla, y no depende de con qué venga puesta. */
   const sombra = await p.evaluate(async () => {
     const cs = () => { const b = document.querySelector('.piedra');
       /* LA OPACIDAD NO DICE NADA EN EDICIÓN: la piedra que se está editando ya
          va opaca por su cuenta —es lo que dice que está viva—. Lo que
          distingue es la sombra. */
-      return { filtro: getComputedStyle(b).filter, clase: b.className }; };
+      return { levantada: /5px 5px 10px/.test(getComputedStyle(b).filter) &&
+                          /con-sombra/.test(b.className),
+               guardada: window.__guardadas()[0].sombra === true,
+               marcada: !!(document.querySelector('#piedraMando [data-piedra-sombra]') || {}).checked };
+    };
     const antes = cs();
     await window.__toque('#piedraMando [data-piedra-sombra]');
     await window.__pausa(500);
-    return { antes, despues: cs(),
-             guardada: window.__guardadas()[0].sombra };
+    const tras = cs();
+    await window.__toque('#piedraMando [data-piedra-sombra]');
+    await window.__pausa(500);
+    return { antes, tras, vuelta: cs() };
   });
-  di('la sombra', sombra);
-  vale('sin marcar, la piedra va plana',
-       !/5px 5px 10px/.test(sombra.antes.filtro) && !/con-sombra/.test(sombra.antes.clase),
-       sombra.antes);
-  vale('MARCADA, LA PIEDRA SE LEVANTA',
-       /5px 5px 10px/.test(sombra.despues.filtro) &&
-       /con-sombra/.test(sombra.despues.clase), sombra.despues);
-  vale('  y se guarda', sombra.guardada === true, sombra.guardada);
+  di('la sombra', JSON.stringify(sombra));
+  /* Lo pintado y lo guardado tienen que decir lo mismo en los tres momentos:
+     guardar una cosa y pintar otra es el fallo que esto vigila. */
+  vale('lo que se ve y lo que se guarda dicen lo mismo',
+       [sombra.antes, sombra.tras, sombra.vuelta]
+         .every(m => m.levantada === m.guardada && m.levantada === m.marcada),
+       JSON.stringify(sombra));
+  vale('LA CASILLA INVIERTE LA SOMBRA',
+       sombra.tras.levantada === !sombra.antes.levantada,
+       sombra.antes.levantada + ' → ' + sombra.tras.levantada);
+  vale('  y volver a tocarla la devuelve',
+       sombra.vuelta.levantada === sombra.antes.levantada,
+       sombra.tras.levantada + ' → ' + sombra.vuelta.levantada);
+  /* Cómo nace de fábrica se comprueba abajo, en el bloque de «Quitar», que es
+     el único que se pone una piedra suya: aquí la de la hoja ya ha pasado por
+     varios bloques y su sombra podría venir de cualquiera de ellos. */
 
   const deshacer = await p.evaluate(async () => {
     const g = () => window.__guardadas()[0];
@@ -1374,9 +1398,15 @@ async function andamio(p){
     const id = suya && suya.dataset.piedra;
     const esta = () => !!document.querySelector('[data-piedra="' + id + '"]');
     const enElAlmacen = () => window.__guardadas().some(x => x.id === id);
+    const nacida = window.__guardadas().find(x => x.id === id) || {};
     const antes = { id, enLaHoja: esta(), guardada: enElAlmacen(),
                     cuantas: window.__guardadas().length,
                     abierto: window.__elMando().visible,
+                    /* CÓMO NACE, y se mira aquí porque éste es el único bloque
+                       que se pone una piedra recién hecha: en los de arriba la
+                       piedra ya ha pasado por varias manos. */
+                    deFabrica: { forma: nacida.forma, color: nacida.color,
+                                 sombra: nacida.sombra === true },
                     hayBoton: !!document.querySelector('#piedraMando [data-piedra-acc="quitar"]') };
     await window.__toque('#piedraMando [data-piedra-acc="quitar"]');
     await window.__pausa(700);
@@ -1393,6 +1423,15 @@ async function andamio(p){
        quitarDelMando.antes.guardada === true &&
        quitarDelMando.antes.abierto === true &&
        quitarDelMando.antes.hayBoton === true, quitarDelMando.antes);
+  /* DE FÁBRICA: PIEDRA, CARMÍN VIVO Y LEVANTADA. Nacía en sepia y plana, que
+     es lo mismo que nacer escondida —sepia es el color de la letra y del
+     papel, y sin sombra tampoco se ve que está ENCIMA—. Lo pidió el dueño del
+     repo: lo primero que hace una piedra nueva es dejarse ver. */
+  vale('LA PIEDRA NUEVA NACE EN CARMÍN VIVO Y LEVANTADA',
+       quitarDelMando.antes.deFabrica.forma === 'piedra' &&
+       quitarDelMando.antes.deFabrica.color === 'carmin-vivo' &&
+       quitarDelMando.antes.deFabrica.sombra === true,
+       JSON.stringify(quitarDelMando.antes.deFabrica));
   vale('«QUITAR» LA BORRA DEL PAPEL', quitarDelMando.enLaHoja === false,
        'la ' + quitarDelMando.antes.id);
   vale('  y de lo guardado, que si no vuelve al recargar',
