@@ -243,6 +243,13 @@ async function tocarSinClic(pagina, x, y, pid = 21){
   vale('  con el mando de la hoja: catorce figuras, doce colores y su contador',
        nacida.formas === 14 && nacida.tintas === 12 && /\/8$/.test(nacida.contador || ''),
        [nacida.formas, nacida.tintas, nacida.contador].join(' · '));
+  /* Y NACE EN EL 8 DE 8, el más grande. En la hoja nace en el 5, y son dos
+     números distintos a propósito: en la portada la piedra es adorno y se pone
+     para verla, y en la hoja va encima de un renglón que hay que seguir
+     leyendo. Los pidió así el dueño del repo. El escalón va escrito aquí y no
+     leído de la aplicación, como el asomo de la cinta. */
+  vale('  Y NACE EN EL 8 DE 8, que en la portada la piedra es para verla',
+       nacida.contador === '8/8', nacida.contador);
   vale('  mudado encima de la tapa', nacida.padre === 'portada', nacida.padre);
   /* La única diferencia con la hoja, y por una razón: la portada no tiene lista
      de piedras de donde borrar, así que la salida de borrar vive en el mando. */
@@ -275,13 +282,18 @@ async function tocarSinClic(pagina, x, y, pid = 21){
     const antes = { forma:g().forma, color:g().color, tam:g().tam };
     m.querySelector('[data-piedra-forma="paloma"]').click(); await pausa(300);
     m.querySelector('[data-piedra-color="carmin"]').click(); await pausa(300);
-    m.querySelector('[data-piedra-acc="mas"]').click(); await pausa(300);
+    /* SE ENCOGE, NO SE AGRANDA, y no es un capricho: desde que la piedra de la
+       portada nace en el escalón de arriba, «más» no tiene adónde ir y esta
+       línea pedía un cambio que no puede pasar. Para comprobar que el mando
+       mueve el tamaño da igual hacia dónde; lo que no da igual es pedirlo
+       contra un tope. */
+    m.querySelector('[data-piedra-acc="menos"]').click(); await pausa(300);
     return { antes, medio: { forma:g().forma, color:g().color, tam:g().tam } };
   }, LLAVE);
   di('lo que hace el mando', JSON.stringify(cambia));
   vale('EL MANDO LE CAMBIA FIGURA, COLOR Y TAMAÑO A ESA PIEDRA',
        cambia.medio.forma === 'paloma' && cambia.medio.color === 'carmin' &&
-       cambia.medio.tam === cambia.antes.tam + 1, cambia.medio);
+       cambia.medio.tam === cambia.antes.tam - 1, cambia.medio);
 
   /* Se acepta y se deja una segunda: no puede caer encima de la primera. */
   await p.click('#piedraMando [data-piedra-acc="ok"]'); await p.waitForTimeout(350);
@@ -299,11 +311,37 @@ async function tocarSinClic(pagina, x, y, pid = 21){
                 píxeles suelto: es lo que deja que el mando sea el mismo. */
              enPeldanos: g.every(x => Number.isInteger(x.tam) && x.tam >= 0 && x.tam < 8),
              /* En fracciones, no en píxeles: la pantalla gira y el píxel no. */
-             enFracciones: g.every(x => x.x >= 0 && x.x <= 1 && x.y >= 0 && x.y <= 1) };
+             enFracciones: g.every(x => x.x >= 0 && x.x <= 1 && x.y >= 0 && x.y <= 1),
+             /* Y LO QUE DE VERDAD IMPORTA: que ninguna entierre el CENTRO de
+                otra. Aquí se miraba solo que no cayeran en el mismo punto
+                exacto, y eso pasa con cualquier separación por pequeña que
+                sea. Lo destapó la tanda de Codex: al nacer la piedra en el
+                escalón 8 —140 px— la diagonal escrita a mano las dejaba a 47
+                px, o sea la segunda tapando el centro de la primera, y tocar
+                la de abajo se volvía imposible porque el toque se lo quedaba
+                la de encima. Se mide preguntando QUIÉN recibiría el toque en
+                el centro de cada una, que es la pregunta de verdad; el
+                elementFromPoint devuelve el <path> de dentro, de ahí el
+                closest. */
+             enterradas: [...document.querySelectorAll('.pt-piedra')].filter(e => {
+               const r = e.getBoundingClientRect();
+               const t = document.elementFromPoint(Math.round(r.left + r.width / 2),
+                                                   Math.round(r.top + r.height / 2));
+               const d = t && t.closest ? t.closest('.pt-piedra') : null;
+               return d !== e;
+             }).map(e => e.dataset.ptPiedra),
+             lado: Math.round((document.querySelector('.pt-piedra') || {
+                                 getBoundingClientRect: () => ({ width: 0 }) })
+                                .getBoundingClientRect().width) };
   }, LLAVE);
   di('las piedras', JSON.stringify(pd));
   vale('LA SEGUNDA NO CAE ENCIMA DE LA PRIMERA',
        pd.puestas === 2 && pd.guardadas === 2 && pd.encima === false, pd);
+  vale('  Y NINGUNA ENTIERRA EL CENTRO DE LA OTRA, que si no no se puede tocar',
+       Array.isArray(pd.enterradas) && pd.enterradas.length === 0,
+       pd.enterradas && pd.enterradas.length
+         ? pd.enterradas.join(', ') + ' con piedras de ' + pd.lado + ' px'
+         : 'ninguna, con piedras de ' + pd.lado + ' px');
   vale('  con lo que se le dejó puesto en el mando',
        pd.forma === 'paloma' && pd.color === 'carmin', [pd.forma, pd.color].join(' / '));
   vale('  el tamaño en peldaños', pd.enPeldanos === true, pd.enPeldanos);
