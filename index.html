@@ -1244,10 +1244,10 @@
      no hay manera de que se salga ni de que empuje la página a lo ancho.
 
      CORTA A PROPÓSITO, PERO SE VE DESDE EL TEXTO. Cuelga del borde IZQUIERDO
-     de la columna de glosas y asoma 38 px hacia la columna de lectura, para
+     de la columna de glosas y asoma 25 px hacia la columna de lectura, para
      que se note que hay cinta sin tener que abrir el cajón de las glosas.
-     Eran 19 y el dueño del repo los pidió al doble; el número vive en
-     CINTA_ASOMO, que es quien manda, y allí está la cuenta de por qué cabe.
+     El número vive en CINTA_ASOMO, que es quien manda, y allí está contado
+     por qué es 25 y no 19 ni 38.
      El ancho es el doble de lo que era —36 % de la columna, entre 32 y 64 px—
      y el alto sale de la misma proporción (aspect-ratio 1 / 1.75), así que
      también queda al doble. Con eso ocupa la esquina de arriba a la izquierda
@@ -2554,6 +2554,20 @@
   .canto-tab:hover{ background:#fffdf6; color:#1d1608; }
   .canto-tab.aqui{ background:#b8892b; color:#fff8e4; }
   .canto-tab:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
+  /* Y LA LISTA ENTRA COMO ENTRAN LAS SECCIONES. Cambiar de testamento cambia
+     los 66 nombres de golpe, y de golpe se lee como una sustitución y no como
+     un movimiento —es lo mismo que ya se había aprendido con las pestañas de
+     LIBROS / GLOSAS / FORMATO / RESPALDO, y lo pidió el dueño del repo al ver
+     que aquí faltaba—. Se reutiliza la MISMA animación, entraDeLado, con el
+     mismo tiempo y la misma curva: dos gestos iguales tienen que sentirse
+     iguales, y copiarla con otros números sería inventar un segundo idioma.
+     La dirección la pone el guion: viniendo del Antiguo entra por la
+     izquierda, del Nuevo por la derecha. */
+  #cantoCuerpo.cambia{
+    animation:entraDeLado .46s cubic-bezier(.5,0,.25,1) both; }
+  @media (prefers-reduced-motion: reduce){
+    #cantoCuerpo.cambia{ animation:none; }
+  }
   /* Con el dedo, al suelo de la casa: son dos blancos y nada más en su
      renglón, así que no hay razón para dejarlos en 24 px. */
   @media (pointer:coarse){
@@ -2636,7 +2650,14 @@
      que no están en los datos se distinguen por el color del texto. */
   .tabo.viva{ }
   .tabo.muerta{ color:#918a76; background:rgba(255,253,247,.34); }
-  .tabo.aqui{ background:#b8892b; color:#fff8e4; }
+  /* EL LIBRO DONDE ESTÁS, MARCADO SOLO CON EL FONDO. Llevaba también la letra
+     en crema, y el dueño del repo lo levantó al tocar un libro: el nombre se
+     le ponía blanco de golpe, justo en el instante en que además empezaba a
+     pasar algo. Dos cambios a la vez en el mismo sitio se leen como un
+     parpadeo, no como una respuesta.
+     Y de paso se lee mejor: crema sobre el dorado da un contraste de 2.6, y el
+     sepia que ya tenía, 3.2. La marca no la hacía la letra; la hace el fondo. */
+  .tabo.aqui{ background:#b8892b; }
   .tabo:hover{ z-index:9; background:#fffdf6; color:#1d1608; }
 
   .num{ font:600 9.5px/18px var(--ui); color:#4a3a1c; background:rgba(255,253,247,.62);
@@ -3638,7 +3659,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '07-SEP-26 13:45';
+window.GLOSS_BUILD = '07-SEP-26 15:59';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11342,10 +11363,22 @@ function cantoPestanasHTML(){
 function cantoVerTestamento(id){
   if (id !== 'AT' && id !== 'NT') return;
   if (cantoTesta === id) return;
+  /* De dónde viene lo nuevo: del Antiguo se entra por la izquierda, del Nuevo
+     por la derecha, que es el orden en que están las dos pestañas. */
+  const dir = id === 'AT' ? -1 : 1;
   cantoTesta = id;
   guardarAjustes();
   ocultarCascada();
   pintarCanto();
+  const c = $('cantoCuerpo');
+  /* Se quita y se vuelve a poner en el mismo tirón: sin quitarla, cambiar dos
+     veces seguidas de pestaña no reinicia la animación —ya está puesta— y la
+     segunda entra sin moverse. El offsetWidth de en medio es lo que obliga al
+     navegador a darse cuenta. */
+  c.classList.remove('cambia');
+  c.style.setProperty('--dir', dir);
+  void c.offsetWidth;
+  c.classList.add('cambia');
 }
 
 /* ============================================================
@@ -11935,19 +11968,22 @@ canto.addEventListener('click', tocarLibro);
 /* El mismo desenlace que un toque, para que la lupa y el click no cuenten dos
    historias distintas de lo que pasa al elegir un libro.
 
-   TOCAR EL LIBRO YA TE LLEVA AL LIBRO. Antes solo abría la cascada: el libro
-   no quedaba elegido hasta que se tocaba además un capítulo y un versículo, y
-   eso son tres toques para lo que el lector pide en uno —«pico Marcos, llévame
-   a Marcos»—. Ahora el toque hace las dos cosas a la vez: salta al 1:1 del
-   libro Y deja los capítulos abiertos, colgados del mismo botón, para quien
-   quería un capítulo en concreto. No se pierde nada y se gana el caso normal.
+   TOCAR EL LIBRO LO MARCA Y ABRE SUS CAPÍTULOS. NI UNA HOJA SE MUEVE.
 
-   Y el panel NO se cierra —sinCerrar—, que es lo que permite que la cascada
-   siga ahí después del viaje. Se puede: el panel se entera del cambio de libro
-   repintando SOLO la marca (refrescarLibroActual), no la lista entera, cosa
-   que ya estaba escrita para no sacar a nadie de la cascada.
+   Aquí hubo un viaje y se ha ido, y las dos mitades de esa historia valen la
+   pena. El problema original era real: el toque no acusaba nada —la marca la
+   movía refrescarLibroActual, que corre al ATERRIZAR, así que durante los
+   segundos del salto seguía pintado el libro de antes y la pantalla decía que
+   tu toque no había entrado—. Se arregló con dos cosas a la vez: pintar en el
+   toque, y saltar ya al 1:1 del libro.
 
-   Si ya estás en ese libro no hay viaje que hacer: se abre la cascada y ya. */
+   La primera era el arreglo. La segunda sobraba, y se vio usándola: tocar un
+   libro para ojear sus capítulos ponía la aplicación entera a repaginar y a
+   voltear un bonche de hojas que nadie había pedido. El dueño del repo lo
+   cortó: «solo hasta que selecciono libro/capítulo/versículo debe empezar a
+   moverse». Así que se queda la marca —que es lo que acusa el toque, y es
+   instantánea— y el movimiento espera al versículo, que es cuando de verdad se
+   sabe a dónde se va. */
 function abrirCapitulosDe(lib){
   const id = lib.dataset.libro;
   if (!hayLibro(id)){
@@ -11964,7 +12000,6 @@ function abrirCapitulosDe(lib){
      dueño del repo: se pinta el libro, y ENTONCES se abren los capítulos. */
   cantoMarcarLibro(lib);
   abrirCapitulos(id, lib.getBoundingClientRect());
-  if (id !== LIBRO) saltarA(id, 1, 1, null, { sinCerrar:true });
 }
 /* Mueve la marca a este botón sin esperar al viaje. Es lo mismo que hace
    refrescarLibroActual pero de uno solo y por adelantado. */
@@ -12262,11 +12297,11 @@ const TOPE_PIEDRAS = 300;
    encima, y quien quiera una tiene doce maneras de decir lo mismo sin que la
    aplicación se lo imponga. */
 const FORMAS = ['piedra', 'avion', 'hoja', 'pez', 'paloma', 'espiga', 'uvas',
-                'corona', 'llave', 'ancla', 'estrella', 'barca', 'llama', 'cinta'];
+                'corona', 'llave', 'ancla', 'estrella', 'corazon', 'llama', 'cinta'];
 const FORMA_NOMBRE = {
   piedra:'piedra', avion:'avioncito', hoja:'hoja', pez:'pez', paloma:'paloma',
   espiga:'espiga', uvas:'uvas', corona:'corona', llave:'llave', ancla:'ancla',
-  estrella:'estrella', barca:'barca', llama:'llama', cinta:'cinta'
+  estrella:'estrella', corazon:'corazón', llama:'llama', cinta:'cinta'
 };
 /* LA LÁMPARA SE FUE Y LA CORONA OCUPA SU SITIO, y las piedras ya puestas no se
    quedan sin figura por eso. Sin esta línea, piedraSanear no reconocería
@@ -12282,7 +12317,13 @@ const FORMA_NOMBRE = {
    valiendo lo de más arriba —marcar una hoja no es ponerle encima un símbolo
    de fe—. La corona es de las historias sin ser un credo, tiene silueta propia
    a 24 px, y no se parece a ninguna de las trece que ya estaban. */
-const FORMA_VIEJA = { lampara:'corona' };
+/* LAS QUE SE FUERON, Y EN QUÉ SE CONVIERTEN. Sin esto, una piedra guardada con
+   una figura que ya no existe se volvería la primera de la lista y el lector
+   perdería la que había elegido. La lámpara se fue porque a 24 px parecía una
+   cafetera; la barca, porque el dueño del repo pidió un corazón en su sitio.
+   Las dos siguen aquí para siempre: el archivo de alguien puede ser de
+   cualquier versión. */
+const FORMA_VIEJA = { lampara:'corona', barca:'corazon' };
 /* LOS ESCALONES DE TAMAÑO VAN EN FRACCIÓN DEL PAPEL, no en píxeles, y por lo
    mismo que la posición: el papel mide 571 px en una pantalla de 320, 663 en
    una de 412 y 584 en el escritorio —es más ancho que la ventana porque lleva
@@ -12304,7 +12345,15 @@ const FORMA_VIEJA = { lampara:'corona' };
    Discretos y no continuos: con un dedo, ocho tamaños que se distinguen valen
    más que un resbalón infinito donde nunca aciertas dos veces el mismo. */
 const PIEDRA_TAMS = [.04, .062, .096, .148, .229, .354, .548, .848];
-const PIEDRA_TAM_POR = 2;              /* de salida, chica pero ya visible */
+const PIEDRA_TAM_POR = 2;              /* el de repuesto: ver PIEDRA_TAM_NUEVA */
+/* CON QUÉ TAMAÑO NACE, que no es lo mismo que el de repuesto y por eso son dos
+   constantes. PIEDRA_TAM_POR es lo que se le pone a una piedra cuyo tamaño
+   guardado no se entiende: ahí lo que se quiere es algo discreto, porque nadie
+   lo ha pedido. Al NACER es al revés —lo pidió el dueño del repo—: una piedra
+   recién puesta tiene que verse, y en la hoja eso es el quinto escalón. Con
+   una sola constante, arreglar lo uno estropeaba lo otro: un dato roto se
+   convertía en una piedra enorme. */
+const PIEDRA_TAM_NUEVA = 4;            /* el 5 de 8, contando como el mando */
 /* LOS COLORES. Los cuatro de las cintas más el sepia de la tinta y una ciruela,
    que son los que se despegan del papel sin gritar. El sepia va el primero
    porque es el de la letra: una piedra recién puesta parece parte de la hoja, y
@@ -12681,8 +12730,24 @@ const PIEDRA_SVG = {
        —cada curva del borde va escrita— y se paga porque se pidió esta paloma
        y no una parecida. Los trazos van apretados (sin espacios sobrantes) y
        eso ahorró novecientos caracteres sin mover un punto: la caja de la
-       tinta se midió antes y después, y da lo mismo. */
+       tinta se midió antes y después, y da lo mismo.
+
+       LA SILUETA VA DEBAJO, RELLENA DE BLANCO, y no estaba: el calco del dueño
+       del repo es un dibujo de LÍNEA sobre un lienzo blanco, o sea que el ave
+       no tiene cuerpo —lo que se ve de blanco dentro del contorno es el fondo
+       del papel—. Sobre la hoja crema eso cuela; sobre la foto de la portada,
+       o sobre una piedra de otro color, se veía el ave hueca y por dentro se
+       colaba lo que hubiera detrás. Lo levantó el dueño del repo: «rellénala
+       siempre de blanco».
+
+       El cuerpo sale del PRIMER subrecorrido del calco —el contorno exterior
+       del ave— relleno con la regla nonzero, que es la que lo cierra en una
+       silueta maciza; con evenodd sale igual, y con los cuatro subrecorridos
+       juntos sale solo la banda del contorno, que es justo lo que no sirve.
+       Va el primero de todos para quedar DEBAJO, y lleva el blanco a pelo para
+       que compensarDibujo se lo corrija como a cualquier otro color. */
     '<g transform="translate(-1.57,-0.58) scale(.1805)">' +
+      '<path fill="#fff" d="M71.22,48.93c-0.65,0.63 -1.12,1.38 -1.41,2.24c-1.95,-0.17 -1.68,-2.54 -2.6,-3.85c-1.67,-3.22 -3.75,-6.16 -6.22,-8.81c-1.68,-1.28 -3.35,-2.55 -5.02,-3.83c-2.42,-1.19 -4.95,-2.02 -7.61,-2.48c-4.71,-1.04 -8.87,0.02 -12.48,3.18c-1.77,2.04 -4.58,6.36 -7.52,6.61c-0.47,-0.21 -0.67,-0.57 -0.6,-1.09c1.05,-0.75 1.55,-1.77 1.48,-3.06c2.63,0.77 1.85,-8 0.94,-9.46c-0.22,-0.35 -0.54,-0.53 -0.94,-0.54c0.74,-2.93 -4.04,-9.46 -5.76,-11.94c-0.36,-0.5 -0.84,-0.8 -1.44,-0.92c0.01,-3.03 -4.18,-4.49 -3.18,0.11c-0.28,0.14 -0.5,0.35 -0.65,0.64c-0.59,3.18 -2.11,20.05 0.58,21.25c0.52,1.73 1.5,3.15 2.95,4.25c0.23,0.42 0.58,0.71 1.03,0.88c0.19,1.02 -0.09,1.9 -0.83,2.65c-0.54,0.51 -0.51,0.98 0.09,1.4c1.22,1.8 -1.05,2.46 0.55,4c0.65,0.19 1.11,-0.03 1.39,-0.66c0.08,-0.82 0.31,-1.58 0.69,-2.27c1.36,-0.16 2.68,0 3.97,0.47c16.13,6.21 10.23,21.18 11.39,34.8c1.17,28.92 16.9,28.86 40.07,34.28c0.97,0.33 1.92,0.71 2.84,1.16c3.72,1.89 6.47,4.73 8.24,8.51c1.05,1.53 1.76,6.55 3.47,6.98c6.15,-0.92 13.11,-6.45 16.99,-11.21c1.28,-1.5 3.53,-5.49 2.03,-7.3c-9.4,-3.25 -16.31,-5.28 -24.3,-11.66c-0.4,-0.19 -0.81,-0.22 -1.24,-0.1c-0.14,-0.46 -0.28,-0.91 -0.42,-1.37c-0.7,-1.1 -1.29,-2.24 -1.79,-3.44c2.06,-0.02 4.12,-0.08 6.18,-0.18c3.14,-1.22 8.81,-2.21 11.12,-4.98c3.35,-2.06 6.31,-4.58 8.89,-7.57c1.35,-1.92 2.77,-3.8 4.24,-5.64c0.39,-0.59 0.53,-1.23 0.43,-1.92c1.18,-0.82 1.48,-1.91 0.92,-3.25c0.06,-2.1 3.35,-3.43 4.45,-5.14c0.67,-1.14 1.41,-2.24 2.2,-3.3c2.21,-2.61 2.96,-5.56 2.24,-8.85c1.51,-1.7 2.89,-3.52 4.11,-5.46c1.09,-2.58 1.84,-5.26 2.25,-8.04c0.22,-2.43 0.16,-4.85 -0.16,-7.26c-0.77,-0.59 -1.37,-1.34 -1.8,-2.26c0.09,-3.25 -0.03,-6.5 -0.35,-9.73c-0.58,-1.2 -1,-2.44 -1.26,-3.72c-0.03,-1.96 -1.54,-3.43 -2.7,-1.12c-0.79,2.23 -1.69,4.4 -2.69,6.54c-0.08,0.41 0,0.79 0.23,1.13c-0.86,0.45 -1.73,0.87 -2.61,1.27c-0.73,-1.58 -1.49,-3.17 -2.26,-4.78c-0.19,-0.46 -0.37,-0.91 -0.56,-1.37c-0.15,-1.46 -1.71,-1.1 -2.67,-1.51c-0.07,-1.61 -0.59,-3.05 -1.56,-4.33c-0.78,-3.28 -2.02,-6.37 -3.73,-9.27c-0.16,-0.36 -0.42,-0.56 -0.79,-0.63c-0.42,-1.18 -1.08,-1.34 -1.97,-0.47c-0.22,3.26 -0.37,6.52 -0.46,9.79c-2.77,7.11 -5,10.46 -10.41,15.45c-2.96,1.6 -5.92,3.2 -8.86,4.81c-4.98,0.3 -16.3,7.61 -17.11,12.37Z"/>' +
       '<path fill="#f7f7f7" d="M71.22,48.93c-0.65,0.63 -1.12,1.38 -1.41,2.24c-1.95,-0.17 -1.68,-2.54 -2.6,-3.85c-1.67,-3.22 -3.75,-6.16 -6.22,-8.81c-1.68,-1.28 -3.35,-2.55 -5.02,-3.83c-2.42,-1.19 -4.95,-2.02 -7.61,-2.48c-4.71,-1.04 -8.87,0.02 -12.48,3.18c-1.77,2.04 -4.58,6.36 -7.52,6.61c-0.47,-0.21 -0.67,-0.57 -0.6,-1.09c1.05,-0.75 1.55,-1.77 1.48,-3.06c2.63,0.77 1.85,-8 0.94,-9.46c-0.22,-0.35 -0.54,-0.53 -0.94,-0.54c0.74,-2.93 -4.04,-9.46 -5.76,-11.94c-0.36,-0.5 -0.84,-0.8 -1.44,-0.92c0.01,-3.03 -4.18,-4.49 -3.18,0.11c-0.28,0.14 -0.5,0.35 -0.65,0.64c-0.59,3.18 -2.11,20.05 0.58,21.25c0.52,1.73 1.5,3.15 2.95,4.25c0.23,0.42 0.58,0.71 1.03,0.88c0.19,1.02 -0.09,1.9 -0.83,2.65c-0.54,0.51 -0.51,0.98 0.09,1.4c1.22,1.8 -1.05,2.46 0.55,4c0.65,0.19 1.11,-0.03 1.39,-0.66c0.08,-0.82 0.31,-1.58 0.69,-2.27c1.36,-0.16 2.68,0 3.97,0.47c16.13,6.21 10.23,21.18 11.39,34.8c1.17,28.92 16.9,28.86 40.07,34.28c0.97,0.33 1.92,0.71 2.84,1.16c3.72,1.89 6.47,4.73 8.24,8.51c1.05,1.53 1.76,6.55 3.47,6.98c6.15,-0.92 13.11,-6.45 16.99,-11.21c1.28,-1.5 3.53,-5.49 2.03,-7.3c-9.4,-3.25 -16.31,-5.28 -24.3,-11.66c-0.4,-0.19 -0.81,-0.22 -1.24,-0.1c-0.14,-0.46 -0.28,-0.91 -0.42,-1.37c-0.7,-1.1 -1.29,-2.24 -1.79,-3.44c2.06,-0.02 4.12,-0.08 6.18,-0.18c3.14,-1.22 8.81,-2.21 11.12,-4.98c3.35,-2.06 6.31,-4.58 8.89,-7.57c1.35,-1.92 2.77,-3.8 4.24,-5.64c0.39,-0.59 0.53,-1.23 0.43,-1.92c1.18,-0.82 1.48,-1.91 0.92,-3.25c0.06,-2.1 3.35,-3.43 4.45,-5.14c0.67,-1.14 1.41,-2.24 2.2,-3.3c2.21,-2.61 2.96,-5.56 2.24,-8.85c1.51,-1.7 2.89,-3.52 4.11,-5.46c1.09,-2.58 1.84,-5.26 2.25,-8.04c0.22,-2.43 0.16,-4.85 -0.16,-7.26c-0.77,-0.59 -1.37,-1.34 -1.8,-2.26c0.09,-3.25 -0.03,-6.5 -0.35,-9.73c-0.58,-1.2 -1,-2.44 -1.26,-3.72c-0.03,-1.96 -1.54,-3.43 -2.7,-1.12c-0.79,2.23 -1.69,4.4 -2.69,6.54c-0.08,0.41 0,0.79 0.23,1.13c-0.86,0.45 -1.73,0.87 -2.61,1.27c-0.73,-1.58 -1.49,-3.17 -2.26,-4.78c-0.19,-0.46 -0.37,-0.91 -0.56,-1.37c-0.15,-1.46 -1.71,-1.1 -2.67,-1.51c-0.07,-1.61 -0.59,-3.05 -1.56,-4.33c-0.78,-3.28 -2.02,-6.37 -3.73,-9.27c-0.16,-0.36 -0.42,-0.56 -0.79,-0.63c-0.42,-1.18 -1.08,-1.34 -1.97,-0.47c-0.22,3.26 -0.37,6.52 -0.46,9.79c-2.77,7.11 -5,10.46 -10.41,15.45c-2.96,1.6 -5.92,3.2 -8.86,4.81c-4.98,0.3 -16.3,7.61 -17.11,12.37ZM114.16,29.88c0.03,0.82 -1.64,2.56 -0.52,3.05c1.07,0.16 1.92,-0.2 2.56,-1.11c1.59,-1.04 1.52,-3.05 2.16,-4.63c2.18,5.32 -0.05,6.11 -3.91,8.82c-0.18,0.31 -0.21,0.63 -0.08,0.96c-0.57,0.07 -1.14,0.14 -1.72,0.21c-3.81,1.35 -7.68,2.52 -11.61,3.5c-0.4,0.17 -0.8,0.35 -1.2,0.52c-1.23,-0.49 -2.41,-0.39 -3.56,0.31c-6.24,-0.16 -13.92,0.37 -19.04,4.29c-0.75,0.09 -1.03,-0.22 -0.85,-0.93c0.89,-0.77 1.81,-1.5 2.77,-2.18c13.23,-6.19 25.44,-9.48 29.98,-25.16c0.19,-1.67 0.42,-3.32 0.69,-4.95c0.63,-0.36 1.15,-0.24 1.58,0.34c0.74,2.26 1.5,4.52 2.26,6.77c0.65,3.52 0.65,6.82 0.49,10.19ZM128.27,34.74c-0.23,0.68 -0.3,1.38 -0.22,2.09c-0.63,2.66 -1.83,5.03 -3.6,7.12c-0.77,1.25 -0.42,1.92 1.03,2.02c1.98,0.06 3.07,-1.86 4.52,-2.89c0.39,-0.02 0.66,0.16 0.79,0.54c-0.7,8 -4.79,12.78 -11.74,16.24c-2.46,1.32 -2.32,2.14 0.43,2.45c1.27,-0.05 2.52,-0.24 3.74,-0.58c1.54,1.41 -0.89,2.66 -0.37,4.55c-0.34,-0.16 -0.66,-0.14 -0.98,0.08c-1.16,1.52 -2.37,2.99 -3.64,4.42c-1.77,1.1 -3.57,2.14 -5.4,3.12c-1.75,0.16 -3.5,0.23 -5.25,0.22c-0.89,0.8 -0.8,1.46 0.27,1.98c0.39,0.07 0.79,0.13 1.18,0.2c0.26,2.26 6.78,0.83 5.36,2.83c-2.97,4.58 -6.64,8.5 -11.01,11.75c-0.19,0.32 -0.24,0.66 -0.13,1.02c-0.5,0.1 -1,0.21 -1.49,0.31c-3.03,1.47 -6.15,2.69 -9.36,3.68c-0.55,0.11 -0.92,0.4 -1.1,0.89c-4.12,-0.17 -8.85,0.93 -12.61,-1.05c-0.68,-0.1 -3.1,-0.18 -2.09,1.17c2.2,0.57 3.3,1.59 5.87,1.4c0.52,0.13 0.94,0.4 1.27,0.83c0.63,1.66 1.65,3.01 3.07,4.05c4.93,6.39 18.05,11.68 25.79,13.35c-3.21,6.7 -9.65,12.48 -16.93,14.18c-0.49,-0.11 -0.82,-0.41 -0.98,-0.89c-2.26,-6.09 -4.19,-10.69 -10.68,-13.26c-0.99,-0.44 -1.98,-0.88 -2.96,-1.31c-5.35,-2.81 -11.72,-3.07 -17.5,-4.5c-39.16,-7.27 -6.17,-57.04 -33.54,-64.19c-0.44,-0.47 -2.03,-0.73 -1.4,-1.62c1.53,-1.06 3.06,-2.15 4.59,-3.25c1.84,-2.12 3.76,-4.16 5.76,-6.12c3.97,-2.5 8.19,-1.18 12.42,-0.45c8.47,2.3 12.68,10.58 16.22,17.86c0.95,1.59 -1.75,4.48 -2.32,5.93c-0.54,1.42 -0.88,2.86 -1.02,4.33c0.85,0.58 1.52,0.38 2.02,-0.59c1.08,-2.87 2.31,-5.66 3.7,-8.37c1.12,-1.13 2.16,-2.33 3.11,-3.6c1.71,-0.82 3.23,-1.91 4.56,-3.28c7.31,-3.56 12.94,-4.26 20.9,-4.23c0.74,-0.05 1.24,-0.4 1.5,-1.07c1.71,0.12 3.4,-0.04 5.06,-0.48c2.27,0.05 7.84,-1.48 9.08,-3.36c4.4,-1.51 6.86,-5 9.92,-8.21c1.43,-1.82 2.61,-3.78 3.56,-5.89c0.38,0.24 0.61,0.58 0.67,1.04c0.51,3.19 0.49,6.37 -0.07,9.54ZM42.83,39c0.21,2.24 1.2,2.67 2.99,1.27c1.13,-2.97 -2.85,-4.57 -2.99,-1.27Z"/><path fill="#868686" d="M81.05,115.25c0.98,0.43 1.97,0.87 2.96,1.31c-0.36,0.46 -0.72,0.92 -1.08,1.38c-0.92,-0.45 -1.87,-0.83 -2.84,-1.16c-0.05,-0.73 0.27,-1.24 0.96,-1.53Z"/><path fill="#9a9a9a" d="M112.83,73.9c-0.93,4.65 2.06,1.84 3.94,4.16c0.1,0.69 -0.04,1.33 -0.43,1.92c-1.47,1.84 -2.89,3.72 -4.24,5.64c-2.58,2.99 -5.54,5.51 -8.89,7.57c0.01,-0.43 0.02,-0.86 0.04,-1.29c-0.11,-0.36 -0.06,-0.7 0.13,-1.02c4.37,-3.25 8.04,-7.17 11.01,-11.75c1.42,-2 -5.1,-0.57 -5.36,-2.83c0.79,0.18 1.43,-0.01 1.94,-0.57c-0.76,-1.2 -2.86,-1.28 -3.12,0.37c-1.07,-0.52 -1.16,-1.18 -0.27,-1.98c1.75,0.01 3.5,-0.06 5.25,-0.22ZM86.81,103.18c0.44,-0.01 0.87,-0.01 1.31,-0.02c0.43,-0.12 0.84,-0.09 1.24,0.1c7.99,6.38 14.9,8.41 24.3,11.66c1.5,1.81 -0.75,5.8 -2.03,7.3c-3.88,4.76 -10.84,10.29 -16.99,11.21c-1.71,-0.43 -2.42,-5.45 -3.47,-6.98c-1.77,-3.78 -4.52,-6.62 -8.24,-8.51c0.36,-0.46 0.72,-0.92 1.08,-1.38c6.49,2.57 8.42,7.17 10.68,13.26c0.16,0.48 0.49,0.78 0.98,0.89c7.28,-1.7 13.72,-7.48 16.93,-14.18c-7.74,-1.67 -20.86,-6.96 -25.79,-13.35Z"/><path fill="#a1a1a1" d="M122.85,66.28c0.5,0.03 0.99,0.06 1.49,0.09c-0.79,1.06 -1.53,2.16 -2.2,3.3c-1.1,1.71 -4.39,3.04 -4.45,5.14c-1.07,1.72 -3.09,1.92 -3.72,-0.31c-0.28,-0.39 -0.66,-0.59 -1.14,-0.6c1.83,-0.98 3.63,-2.02 5.4,-3.12c1.27,-1.43 2.48,-2.9 3.64,-4.42c0.32,-0.22 0.64,-0.24 0.98,-0.08Z"/><path fill="#727272" d="M119.05,59.86c1.78,-0.22 3.16,0.41 4.17,1.87c-1.22,0.34 -2.47,0.53 -3.74,0.58c-2.75,-0.31 -2.89,-1.13 -0.43,-2.45ZM112.83,73.9c0.48,0.01 0.86,0.21 1.14,0.6c0.63,2.23 2.65,2.03 3.72,0.31c0.56,1.34 0.26,2.43 -0.92,3.25c-1.88,-2.32 -4.87,0.49 -3.94,-4.16Z"/><path fill="#616161" d="M73.09,50.68c-0.95,1.27 -1.99,2.47 -3.11,3.6c-2.13,-0.28 -0.79,-2.16 -0.17,-3.11c0.29,-0.86 0.76,-1.61 1.41,-2.24c0.52,-0.12 1,-0.34 1.44,-0.66c0.34,0.75 0.48,1.55 0.43,2.41Z"/><path fill="#a0a0a0" d="M28.63,47.7c0.46,-0.38 0.92,-0.76 1.38,-1.14c27.37,7.15 -5.62,56.92 33.54,64.19c5.78,1.43 12.15,1.69 17.5,4.5c-0.69,0.29 -1.01,0.8 -0.96,1.53c-23.17,-5.42 -38.9,-5.36 -40.07,-34.28c-1.16,-13.62 4.74,-28.59 -11.39,-34.8Z"/><path fill="#747474" d="M99.84,41.2c0.4,-0.17 0.8,-0.35 1.2,-0.52c1.45,-0.12 2.81,0.19 4.07,0.94c-1.66,0.44 -3.35,0.6 -5.06,0.48c-0.07,-0.3 -0.14,-0.6 -0.21,-0.9Z"/><path fill="#818181" d="M128.05,36.83c0.44,0.06 0.73,0.31 0.86,0.74c-0.04,0.9 0.15,1.73 0.57,2.48c1.17,-1.17 0.98,-3.71 3.3,-3.29c0.32,2.41 0.38,4.83 0.16,7.26c-1.77,-0.65 -0.04,-2.97 -2.41,-3.17c-0.61,0.62 -0.79,1.37 -0.53,2.23c-1.45,1.03 -2.54,2.95 -4.52,2.89c-1.45,-0.1 -1.8,-0.77 -1.03,-2.02c1.77,-2.09 2.97,-4.46 3.6,-7.12Z"/><path fill="#9e9e9e" d="M69.81,51.17c-0.62,0.95 -1.96,2.83 0.17,3.11c-1.39,2.71 -2.62,5.5 -3.7,8.37c-0.5,0.97 -1.17,1.17 -2.02,0.59c0.14,-1.47 0.48,-2.91 1.02,-4.33c0.57,-1.45 3.27,-4.34 2.32,-5.93c-3.54,-7.28 -7.75,-15.56 -16.22,-17.86c-4.23,-0.73 -8.45,-2.05 -12.42,0.45c-2,1.96 -3.92,4 -5.76,6.12c-1.53,1.1 -3.06,2.19 -4.59,3.25c-0.63,0.89 0.96,1.15 1.4,1.62c-0.46,0.38 -0.92,0.76 -1.38,1.14c-1.29,-0.47 -2.61,-0.63 -3.97,-0.47c-0.38,0.69 -0.61,1.45 -0.69,2.27c-0.28,0.63 -0.74,0.85 -1.39,0.66c-1.6,-1.54 0.67,-2.2 -0.55,-4c1.01,0.4 4.33,0.03 2.77,-1.62c-0.98,-0.31 -1.94,-0.24 -2.86,0.22c0.74,-0.75 1.02,-1.63 0.83,-2.65c2.4,1.05 2.86,0.07 4.99,-1.21c-0.07,0.52 0.13,0.88 0.6,1.09c2.94,-0.25 5.75,-4.57 7.52,-6.61c3.61,-3.16 7.77,-4.22 12.48,-3.18c2.66,0.46 5.19,1.29 7.61,2.48c1.67,1.28 3.34,2.55 5.02,3.83c2.47,2.65 4.55,5.59 6.22,8.81c0.92,1.31 0.65,3.68 2.6,3.85ZM101.76,92.21c0.23,0.68 0.71,1 1.45,0.98c-2.31,2.77 -7.98,3.76 -11.12,4.98c-0.23,-0.48 -0.49,-0.95 -0.79,-1.39c0.18,-0.49 0.55,-0.78 1.1,-0.89c3.21,-0.99 6.33,-2.21 9.36,-3.68Z"/><path fill="currentColor" d="M18.66,30.93c0.41,0.08 0.7,0.31 0.87,0.68c0.06,2.36 0.7,4.52 1.94,6.51c0.94,0.93 1.56,0.73 1.85,-0.59c-0.02,-2.18 0,-4.35 0.04,-6.5c0.94,1.23 0.58,5.8 0.44,7.4c-0.28,1.21 -0.97,2.14 -2.06,2.8c-1.45,-1.1 -2.43,-2.52 -2.95,-4.25c-0.11,-2.02 -0.15,-4.04 -0.13,-6.05Z"/><path fill="#696969" d="M116.2,31.82c-0.64,0.91 -1.49,1.27 -2.56,1.11c-1.12,-0.49 0.55,-2.23 0.52,-3.05c1.98,-1.69 1.81,0.67 2.04,1.94ZM21.94,44.76c0.92,-0.46 1.88,-0.53 2.86,-0.22c1.56,1.65 -1.76,2.02 -2.77,1.62c-0.6,-0.42 -0.63,-0.89 -0.09,-1.4Z"/><path fill="#b5b5b5" d="M130.63,24.77c0.32,3.23 0.44,6.48 0.35,9.73c0.43,0.92 1.03,1.67 1.8,2.26c-2.32,-0.42 -2.13,2.12 -3.3,3.29c-0.42,-0.75 -0.61,-1.58 -0.57,-2.48c-0.13,-0.43 -0.42,-0.68 -0.86,-0.74c-0.08,-0.71 -0.01,-1.41 0.22,-2.09c0.84,1.4 1.53,1.37 2.05,-0.09c-0.07,-3.31 0.03,-6.6 0.31,-9.88Z"/><path fill="currentColor" d="M29.24,37.84c0.07,1.29 -0.43,2.31 -1.48,3.06c-2.13,1.28 -2.59,2.26 -4.99,1.21c-0.45,-0.17 -0.8,-0.46 -1.03,-0.88c1.09,-0.66 1.78,-1.59 2.06,-2.8c0.14,-1.6 0.5,-6.17 -0.44,-7.4c-0.51,-1.75 -0.81,-3.53 -0.91,-5.35c0.34,-1.32 1.66,-0.3 1.7,0.76c0.17,2.06 0.54,4.07 1.1,6.05c0.37,1.62 -0.48,6.34 0.44,7.44c1.07,-0.83 2.26,-1.53 3.55,-2.09Z"/><path fill="#a7a7a7" d="M126.67,19.93c0.17,1.06 0.54,2.03 1.12,2.91c1.14,0 1.67,-0.59 1.58,-1.79c0.26,1.28 0.68,2.52 1.26,3.72c-0.28,3.28 -0.38,6.57 -0.31,9.88c-0.52,1.46 -1.21,1.49 -2.05,0.09c0.56,-3.17 0.58,-6.35 0.07,-9.54c-0.06,-0.46 -0.29,-0.8 -0.67,-1.04c-0.95,2.11 -2.13,4.07 -3.56,5.89c0.06,-0.81 0.1,-1.63 0.1,-2.45c-0.23,-0.34 -0.31,-0.72 -0.23,-1.13c1,-2.14 1.9,-4.31 2.69,-6.54ZM112.65,37.18c0.48,0.41 0.99,0.77 1.54,1.08c-1.24,1.88 -6.81,3.41 -9.08,3.36c-1.26,-0.75 -2.62,-1.06 -4.07,-0.94c3.93,-0.98 7.8,-2.15 11.61,-3.5Z"/><path fill="#6f6f6f" d="M129.37,21.05c0.09,1.2 -0.44,1.79 -1.58,1.79c-0.58,-0.88 -0.95,-1.85 -1.12,-2.91c1.16,-2.31 2.67,-0.84 2.7,1.12Z"/><path fill="currentColor" d="M22.04,14.98c0.6,0.12 1.08,0.42 1.44,0.92c1.72,2.48 6.5,9.01 5.76,11.94c-1.51,0.57 -2.25,-3.72 -2.88,-4.59c-0.9,-1.65 -4.83,-6.57 -4.32,-8.27ZM29.24,27.84c0.4,0.01 0.72,0.19 0.94,0.54c0.91,1.46 1.69,10.23 -0.94,9.46c0.1,-2.79 -0.03,-5.58 -0.4,-8.37c0.05,-0.57 0.18,-1.11 0.4,-1.63Z"/><path fill="currentColor" d="M18.86,15.09c1.06,-0.09 2.12,-0.12 3.18,-0.11c-0.51,1.7 3.42,6.62 4.32,8.27c0.63,0.87 1.37,5.16 2.88,4.59c-0.22,0.52 -0.35,1.06 -0.4,1.63c0.37,2.79 0.5,5.58 0.4,8.37c-1.29,0.56 -2.48,1.26 -3.55,2.09c-0.92,-1.1 -0.07,-5.82 -0.44,-7.44c-0.56,-1.98 -0.93,-3.99 -1.1,-6.05c-0.04,-1.06 -1.36,-2.08 -1.7,-0.76c0.1,1.82 0.4,3.6 0.91,5.35c-0.04,2.15 -0.06,4.32 -0.04,6.5c-0.29,1.32 -0.91,1.52 -1.85,0.59c-1.24,-1.99 -1.88,-4.15 -1.94,-6.51c-0.17,-0.37 -0.46,-0.6 -0.87,-0.68c-0.04,-5.29 0.02,-10.57 0.2,-15.84Z"/><path fill="currentColor" d="M18.86,15.09c-0.18,5.27 -0.24,10.55 -0.2,15.84c-0.02,2.01 0.02,4.03 0.13,6.05c-2.69,-1.2 -1.17,-18.07 -0.58,-21.25c0.15,-0.29 0.37,-0.5 0.65,-0.64Z"/><path fill="currentColor" d="M22.04,14.98c-1.06,-0.01 -2.12,0.02 -3.18,0.11c-1,-4.6 3.19,-3.14 3.18,-0.11Z"/><path fill="#5a5a5a" d="M112.65,37.18c0.58,-0.07 1.15,-0.14 1.72,-0.21c-0.06,0.43 -0.12,0.86 -0.18,1.29c-0.55,-0.31 -1.06,-0.67 -1.54,-1.08ZM101.76,92.21c0.49,-0.1 0.99,-0.21 1.49,-0.31c-0.02,0.43 -0.03,0.86 -0.04,1.29c-0.74,0.02 -1.22,-0.3 -1.45,-0.98Z"/><path fill="#636363" d="M87.7,101.79c0.14,0.46 0.28,0.91 0.42,1.37c-0.44,0.01 -0.87,0.01 -1.31,0.02c0.24,-0.5 0.54,-0.96 0.89,-1.39Z"/><path fill="#9b9b9b" d="M110.03,6.98c-1.14,0.34 -1.3,0.95 -0.5,1.84c1.12,-0.16 0.72,-1.04 0.5,-1.84c0.37,0.07 0.63,0.27 0.79,0.63c1.71,2.9 2.95,5.99 3.73,9.27c0.97,1.28 1.49,2.72 1.56,4.33c0.96,0.41 2.52,0.05 2.67,1.51c-1.1,0.9 -1.2,1.91 -0.29,3.02c0.49,-0.43 0.78,-0.98 0.85,-1.65c0.77,1.61 1.53,3.2 2.26,4.78c0.88,-0.4 1.75,-0.82 2.61,-1.27c0,0.82 -0.04,1.64 -0.1,2.45c-3.06,3.21 -5.52,6.7 -9.92,8.21c0.06,-0.43 0.12,-0.86 0.18,-1.29c-0.13,-0.33 -0.1,-0.65 0.08,-0.96c3.86,-2.71 6.09,-3.5 3.91,-8.82c-0.64,1.58 -0.57,3.59 -2.16,4.63c-0.23,-1.27 -0.06,-3.63 -2.04,-1.94c0.16,-3.37 0.16,-6.67 -0.49,-10.19c-0.76,-2.25 -1.52,-4.51 -2.26,-6.77c-0.43,-0.58 -0.95,-0.7 -1.58,-0.34c-0.27,1.63 -0.5,3.28 -0.69,4.95c-4.54,15.68 -16.75,18.97 -29.98,25.16c-0.96,0.68 -1.88,1.41 -2.77,2.18c-0.18,0.71 0.1,1.02 0.85,0.93c5.12,-3.92 12.8,-4.45 19.04,-4.29c1.15,-0.7 2.33,-0.8 3.56,-0.31c0.07,0.3 0.14,0.6 0.21,0.9c-0.26,0.67 -0.76,1.02 -1.5,1.07c-7.96,-0.03 -13.59,0.67 -20.9,4.23c-1.33,1.37 -2.85,2.46 -4.56,3.28c0.05,-0.86 -0.09,-1.66 -0.43,-2.41c-0.44,0.32 -0.92,0.54 -1.44,0.66c0.81,-4.76 12.13,-12.07 17.11,-12.37c2.94,-1.61 5.9,-3.21 8.86,-4.81c5.41,-4.99 7.64,-8.34 10.41,-15.45c0.09,-3.27 0.24,-6.53 0.46,-9.79c0.89,-0.87 1.55,-0.71 1.97,0.47ZM132.94,44.02c-0.41,2.78 -1.16,5.46 -2.25,8.04c-1.22,1.94 -2.6,3.76 -4.11,5.46c0.72,3.29 -0.03,6.24 -2.24,8.85c-0.5,-0.03 -0.99,-0.06 -1.49,-0.09c-0.52,-1.89 1.91,-3.14 0.37,-4.55c-1.01,-1.46 -2.39,-2.09 -4.17,-1.87c6.95,-3.46 11.04,-8.24 11.74,-16.24c-0.13,-0.38 -0.4,-0.56 -0.79,-0.54c-0.26,-0.86 -0.08,-1.61 0.53,-2.23c2.37,0.2 0.64,2.52 2.41,3.17ZM85.91,98.35c0.5,1.2 1.09,2.34 1.79,3.44c-0.35,0.43 -0.65,0.89 -0.89,1.39c-1.42,-1.04 -2.44,-2.39 -3.07,-4.05c0.78,-0.08 1.51,-0.34 2.17,-0.78Z"/><path fill="#808080" d="M91.3,96.78c0.3,0.44 0.56,0.91 0.79,1.39c-2.06,0.1 -4.12,0.16 -6.18,0.18c-0.66,0.44 -1.39,0.7 -2.17,0.78c-0.33,-0.43 -0.75,-0.7 -1.27,-0.83c-2.57,0.19 -3.67,-0.83 -5.87,-1.4c-1.01,-1.35 1.41,-1.27 2.09,-1.17c3.76,1.98 8.49,0.88 12.61,1.05Z"/><path fill="#2b2b2b" d="M42.83,39c0.14,-3.3 4.12,-1.7 2.99,1.27c-1.79,1.4 -2.78,0.97 -2.99,-1.27Z"/><path fill="#535353" d="M118.78,22.72c0.19,0.46 0.37,0.91 0.56,1.37c-0.07,0.67 -0.36,1.22 -0.85,1.65c-0.91,-1.11 -0.81,-2.12 0.29,-3.02ZM109.03,76.3c-0.39,-0.07 -0.79,-0.13 -1.18,-0.2c0.26,-1.65 2.36,-1.57 3.12,-0.37c-0.51,0.56 -1.15,0.75 -1.94,0.57Z"/><path fill="#4a4a4a" d="M110.03,6.98c0.22,0.8 0.62,1.68 -0.5,1.84c-0.8,-0.89 -0.64,-1.5 0.5,-1.84Z"/>' +
     '</g>',
   espiga:
@@ -12758,14 +12823,19 @@ const PIEDRA_SVG = {
     ' stroke-linecap="round"/>' +
     '<path d="M3.1 14.1c0 4.4 4 7.5 8.9 7.5s8.9-3.1 8.9-7.5" fill="none"' +
     ' stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
-  barca:
-    '<path d="M1.9 14.6h20.2c-1.1 3.9-4.8 6.6-10.1 6.6S3 18.5 1.9 14.6z" fill="currentColor"/>' +
-    '<path d="M12.9 2.1v11.2" fill="none" stroke="currentColor" stroke-width="1.9"' +
-    ' stroke-linecap="round"/>' +
-    '<path d="M11.7 3.6c-2.9 1.4-5 3.6-6.3 6.6l6.3 1.3z" fill="currentColor"/>' +
-    '<path d="M14.1 4.1c2.4 1.3 4.1 3.2 5.1 5.6l-5.1 1.1z" fill="currentColor"/>' +
-    '<path d="M5.4 17.1c3.9 1.4 8.1 1.4 12.4 0" fill="none" stroke="#fff"' +
-    ' stroke-opacity=".3" stroke-width="1.3" stroke-linecap="round"/>',
+  /* EL CORAZÓN, EN EL SITIO DE LA BARCA. Un corazón macizo y sin punta larga:
+     la punta afilada lo vuelve una gota en cuanto la piedra es pequeña. Las
+     dos jorobas de arriba son iguales —se dibujan con la misma curva espejada—
+     porque un corazón torcido se ve torcido antes de verse corazón, que es la
+     misma lección que dejó la corona. El brillo blanco translúcido de la
+     joroba izquierda es el recurso de toda la casa: detalle de cerca que no
+     ensucia la silueta de lejos. */
+  corazon:
+    '<path d="M12 21.1C6.4 17 2.6 13.5 2.6 9.3c0-2.8 2.2-5 4.9-5' +
+      ' 1.9 0 3.5 1 4.5 2.6 1-1.6 2.6-2.6 4.5-2.6 2.7 0 4.9 2.2 4.9 5' +
+      ' 0 4.2-3.8 7.7-9.4 11.8z" fill="currentColor"/>' +
+    '<path d="M6.4 7.2c-.9.6-1.4 1.5-1.5 2.7" fill="none" stroke="#fff"' +
+    ' stroke-opacity=".38" stroke-width="1.2" stroke-linecap="round"/>',
   llama:
     '<path d="M12.4 1.6c.6 3 2 5 4.1 6.9 2.2 2 3.4 4.3 3.4 6.8 0 4.1-3.6 7.1-8 7.1' +
     's-8-3-8-7.1c0-2.2.9-4.1 2.6-5.8.5 1.1 1.3 1.8 2.4 2 .1-4 1.3-7.3 3.5-9.9z"' +
@@ -13000,19 +13070,18 @@ function sepDeLaHoja(){
    La percha se clava en el borde IZQUIERDO de la columna menos lo que asoma,
    para que se vea un buen trozo desde el texto sin tener que abrir las glosas.
 
-   EL ASOMO ES AHORA EL DOBLE: 38 px donde eran 19. Lo pidió el dueño del repo
-   y con la cinta medida se ve por qué cabe: la cinta mide 64 px en teléfono y
-   55 en escritorio, así que asomando 38 todavía le quedan 26 y 17 apoyados en
-   la columna de glosas. Sigue siendo una cinta metida en el libro y no una
-   pegatina flotando sobre el texto, que es lo que se perdería si asomara
-   entera.
+   EL ASOMO, EN DOS PASOS Y CON EL SEGUNDO PEDIDO SOBRE LO VISTO: eran 19, se
+   doblaron a 38 y el dueño del repo dijo que se había pasado y que le quitara
+   una tercera parte. 25, entonces. Es el número que sale de mirarlo puesto, no
+   de una cuenta, y por eso vale más que los otros dos: 19 no se notaba y 38 ya
+   era una pegatina sobre el texto.
 
    Y POR ESO VA CON TOPE. El ancho de la cinta es una proporción de la columna
    —36 %, entre 32 y 64 px— así que con la columna estrecha baja a 32, y 32
    menos 38 es una cinta que se despega de la columna y flota. El tope deja
    siempre 16 px apoyados: en las dos pantallas de arriba no muerde —38 en las
    dos— y solo actúa en la ventana angosta, que es donde tiene que actuar. */
-const CINTA_ASOMO = 38;
+const CINTA_ASOMO = 25;
 const CINTA_APOYO = 16;    /* lo que se queda encima de la columna, pase lo que pase */
 function sepMedidas(){
   const inner = pg.querySelector('.pg-inner');
@@ -13702,7 +13771,7 @@ function ponerPiedra(){
      piedraSanear le pone el que le faltaba. Lo levantó Codex. */
   const x = { id: piedraNuevoId(), libro: a.libro, cap: a.cap, vers: a.vers,
               x: .5 + n * .055, y: .45 + n * .045,
-              forma: FORMAS[0], tam: PIEDRA_TAM_POR, color: PIEDRA_COLOR_NUEVA,
+              forma: FORMAS[0], tam: PIEDRA_TAM_NUEVA, color: PIEDRA_COLOR_NUEVA,
               sombra: true,
               creado: ahora, tocado: ahora };
   piedras.unshift(x);
@@ -14361,6 +14430,18 @@ const spCierreHTML = (acc, que) =>
    encoge por mucho que se achique la ventana —encogen las dos a la vez—. Lo
    que sí comprueba la prueba es lo de al lado: que sin teclado el panel se
    queda exactamente donde estaba. */
+/* CUÁNTO LLEVA SUBIDO EL PANEL AHORA MISMO, leído de la matriz de verdad y no
+   de la línea de estilo. La diferencia importa mientras la transición corre:
+   la línea de estilo dice el DESTINO y la matriz dice dónde está. Ver el
+   comentario largo de vigilarTecladoPanel. */
+function trasladoDe(el){
+  const t = getComputedStyle(el).transform;
+  if (!t || t === 'none') return 0;
+  /* matrix(a,b,c,d,e,f) y matrix3d(...) — la f (o la 14ª) es el traslado
+     vertical. Se lee a mano y no con DOMMatrix para no depender de él. */
+  const n = t.slice(t.indexOf('(') + 1, -1).split(',').map(x => parseFloat(x));
+  return n.length === 16 ? (n[13] || 0) : (n[5] || 0);
+}
 function vigilarTecladoPanel(el, buscarFila){
   const vv = window.visualViewport;
   if (!vv || el._teclado) return;
@@ -14409,20 +14490,72 @@ function vigilarTecladoPanel(el, buscarFila){
        que «dónde está» y «cuánto lleva puesto» hablan siempre del mismo
        instante y la resta da la posición sin desplazar, que es la única que no
        se mueve. Lo levantó Codex, dos veces. */
-    const puesto = (() => {
-      const t = getComputedStyle(el).transform;
-      if (!t || t === 'none') return 0;
-      /* matrix(a,b,c,d,e,f) y matrix3d(...) — la f (o la 14ª) es el traslado
-         vertical. Se lee a mano y no con DOMMatrix para no depender de él. */
-      const n = t.slice(t.indexOf('(') + 1, -1).split(',').map(x => parseFloat(x));
-      return n.length === 16 ? (n[13] || 0) : (n[5] || 0);
-    })();
+    const puesto = trasladoDe(el);
     const d = parseFloat(el.style.getPropertyValue('--sube')) || 0;
     const suelo = vv.offsetTop + vv.height - 10;
     const tapado = (fila.getBoundingClientRect().bottom - puesto) - suelo;
     const techo = (el.getBoundingClientRect().top - puesto) - (vv.offsetTop + 8);
-    const sube = Math.max(0, Math.min(tapado, techo));
+    /* Y EL TECHO PUEDE PEDIR QUE BAJE, no solo que suba menos.
+
+       «techo» es cuánto le cabe subir antes de que la cabecera se salga; si el
+       panel ARRANCA ya por encima de lo que se ve, sale negativo, y entonces
+       no es un tope: es una orden de bajar. Esto pasa en un teléfono y no aquí:
+       ver el párrafo de visualViewport.offsetTop, más abajo. Con el
+       Math.max(0, ...) de antes, un techo negativo se leía como «no te muevas»
+       y el panel se quedaba con la cabecera fuera —el «se sigue yendo hasta
+       arriba» del dueño del repo—.
+       Así que el desplazamiento se acota entre min(0, techo) y techo: con
+       techo positivo son los mismos números de siempre (entre 0 y techo), y
+       con techo negativo los dos extremos coinciden y baja exactamente lo que
+       le falta. Se estabiliza a la primera —la cuenta se hace contra el sitio
+       sin desplazar, que no cambia—, así que no hay ida y vuelta. */
+    const sube = Math.max(Math.min(0, techo), Math.min(tapado, techo));
     if (Math.abs(-sube - d) >= 1) el.style.setProperty('--sube', (-sube) + 'px');
+    /* Y DESPUÉS SE MIRA CÓMO QUEDÓ, que es lo único que no se puede equivocar.
+
+       La cuenta de arriba es correcta con los números que tiene delante, y aun
+       así el panel seguía saliéndose por arriba en el teléfono del dueño del
+       repo —dos arreglos y seguía—. No lo he podido reproducir aquí, así que
+       esto no es un diagnóstico: es un cinturón. Entre que se echa la cuenta y
+       el panel llega a su sitio pasan cosas que no están en ella —el teclado
+       manda varios avisos mientras sube, la ventana visual se desplaza sola,
+       el panel se recoloca, la lista rueda por dentro— y cualquiera de ellas
+       deja la cuenta hablando de un panel que ya no está donde estaba.
+
+       Así que cuando todo se ha asentado se MIRA dónde acabó el panel, y si la
+       cabecera quedó por encima del borde, se le devuelve exactamente lo que
+       le falta. No hace falta saber cuál de las cosas de arriba pasó: el
+       resultado se corrige solo. Y no puede entrar en bucle, porque lo deja
+       exactamente en el borde: a la vuelta siguiente r.top ya es arriba y se
+       vuelve sin tocar nada.
+
+       Y EMPUJA HACIA ABAJO AUNQUE ESO SEA PASARSE DE SU SITIO NATURAL. Aquí
+       había un Math.min(0, ...) —«no bajes de donde te puso colocarPiedraMenu»—
+       y era justo lo que dejaba el panel fuera en el teléfono del dueño del
+       repo, tres arreglos seguidos. La causa, encontrada por fin midiendo:
+       visualViewport.offsetTop. Al subir el teclado, el navegador de un
+       teléfono DESPLAZA la ventana visual dentro de la de maquetación para
+       enseñar el campo; el panel es position:absolute dentro de stage, o sea
+       que se queda en coordenadas de maquetación y no se entera. El techo se
+       le viene encima y su sitio natural pasa a estar POR ENCIMA de lo que se
+       ve. Entonces «techo» sale negativo, sube se queda en 0 —Math.max(0,...)
+       de más arriba— y el panel no se mueve: exactamente el «se sigue yendo
+       hasta arriba».
+       Medido en el barrido: con offsetTop de 260, el panel en 216 y el techo
+       en 268, o sea 52 px de cabecera fuera, con --sube en 0px. Sin el
+       Math.min baja esos 52 y se queda pegado al borde de lo visible, que es
+       donde tiene que estar. Bajar por debajo de su sitio natural no es un
+       accidente aquí: es la única manera de seguir a una ventana visual que se
+       ha ido hacia abajo. Y sin teclado, offsetTop es 0 y esta rama ni se pisa.
+       En un navegador sin pantalla offsetTop es siempre 0, por eso no salía
+       nunca aquí y salía siempre allí; la sonda lo finge. */
+    clearTimeout(el._recorte);
+    el._recorte = setTimeout(() => {
+      const arriba = vv.offsetTop + 8;
+      const r = el.getBoundingClientRect();
+      if (r.top >= arriba - 1) return;
+      el.style.setProperty('--sube', (trasladoDe(el) + (arriba - r.top)) + 'px');
+    }, 420);
     /* Lo que el techo no dejó subir se lo come el panel por dentro. */
     const resto = tapado - sube;
     if (resto > 1 && Date.now() - (el._rodando || 0) > 400 &&
@@ -14443,6 +14576,7 @@ function vigilarTecladoPanel(el, buscarFila){
   el._teclado = () => {
     vv.removeEventListener('resize', mirar);
     vv.removeEventListener('scroll', mirar);
+    clearTimeout(el._recorte); el._recorte = null;
     el._mirarTeclado = null;
     el.style.removeProperty('--sube');
     el.style.removeProperty('max-height');
@@ -15223,10 +15357,16 @@ function saltarA(libro, cap, vers, regreso, opciones){
   const iAlla  = CANON.findIndex(b => b.id === libro);
   const haciaAtras = mismo ? false : (iAlla >= 0 && iAhora >= 0 && iAlla < iAhora);
   mostrarBuscando();
-  /* EL VIAJE, SUELTO DEL CIERRE DEL PANEL. Todos los saltos cierran «Libros»
-     antes de viajar y así seguirá siendo, menos uno: tocar un libro en la
-     lista lleva ya a ese libro y DEJA la cascada de capítulos puesta, para que
-     el siguiente toque sea el capítulo. Ver abrirCapitulosDe. */
+  /* AQUÍ HUBO UNA OPCIÓN «sinCerrar», y se va con el viaje que la pedía: tocar
+     un libro llegó a saltar dejando el panel puesto, y el dueño del repo lo
+     cortó (ver abrirCapitulosDe). Sin quien la use, una opción es código que
+     no puede correr esperando a confundir al que venga. Vuelven a ser todos
+     los saltos los que cierran el panel antes de viajar.
+
+     LO QUE SÍ SE QUEDA ES LA FILA DE SALTOS, aquí abajo. La puerta que la hizo
+     falta está cerrada, pero la garantía sigue valiendo: dos saltos a la vez
+     escriben en las mismas variables, y eso no depende de por dónde entraron.
+     Lo levantó Codex y no hay razón para devolverlo. */
   const viajar = () => trasPintar(() => {
     LIBRO = libro;
     volverA = regreso || null; paginasSucias = true;
@@ -15286,7 +15426,7 @@ function saltarA(libro, cap, vers, regreso, opciones){
       animarHojas(b.hojas, rnd(b.dur[0], b.dur[1]), aterrizar);
     });
   });
-  if (op.sinCerrar) viajar(); else cerrarCanto(viajar, true);
+  cerrarCanto(viajar, true);
 }
 
 /* ============================================================
@@ -16307,7 +16447,11 @@ const PORTADA_LLAVE = 'glossa:portada:v1';
    primera lectura del adorno reventaba con un «Cannot access before
    initialization» y la portada arrancaba sin nada. */
 const PORTADA_TAMS = [26, 34, 44, 56, 70, 88, 110, 140];
-const PORTADA_TAM_POR = 2;
+const PORTADA_TAM_POR = 2;             /* el de repuesto, como en la hoja */
+/* Y EL DE NACER, EL ÚLTIMO ESCALÓN. En la portada las piedras son adorno sobre
+   una tapa entera, no marcas sobre un renglón, así que empiezan grandes: lo
+   pidió el dueño del repo, ocho de ocho aquí y cinco de ocho en el libro. */
+const PORTADA_TAM_NUEVA = 7;
 /* De píxeles a escalón, para lo guardado por la versión anterior. Se busca el
    escalón más parecido en vez de tirar el dato. */
 function portadaTamDesdePixeles(px){
@@ -16360,7 +16504,11 @@ function portadaCargar(){
              quedaría editando la de al lado. Las de la hoja llevan id desde
              siempre, por lo mismo. */
           id: (typeof p.id === 'string' && p.id) ? p.id : portadaNombreNuevo(),
-          forma: FORMAS.includes(p.forma) ? p.forma : FORMAS[0],
+          /* Y aquí también se traducen las figuras que se fueron: ver
+             FORMA_VIEJA. Sin esto, la barca de una piedra de la portada se
+             volvía una piedra y la del libro un corazón. */
+          forma: FORMAS.includes(p.forma) ? p.forma
+                 : (FORMA_VIEJA[p.forma] || FORMAS[0]),
           color: PIEDRA_TINTAS.some(t => t[0] === p.color) ? p.color : PIEDRA_TINTAS[0][0],
           /* EL TAMAÑO ES UN ESCALÓN, como en la hoja, para que el mando —que
              es el mismo— cuente «3/8» y se apague en los extremos. Lo guardado
@@ -16452,7 +16600,7 @@ function portadaPintarPiedras(){
 /* Cómo NACE una piedra de la portada. No hay paleta que lo decida antes: nace
    así y se cambia en su mando, que se abre solo encima de ella. */
 const PORTADA_PIEDRA_NUEVA = { forma:'piedra', color: PIEDRA_COLOR_NUEVA,
-                               tam: PORTADA_TAM_POR, sombra: true };
+                               tam: PORTADA_TAM_NUEVA, sombra: true };
 let portadaMandoArriba = false;    /* solo lo usa el mando de la foto */
 function portadaCerrarMandos(){
   const mf = document.getElementById('portadaMandoFoto');

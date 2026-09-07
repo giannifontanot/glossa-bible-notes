@@ -98,9 +98,9 @@ async function andamio(p){
        hoja en cualquier pantalla, y en píxeles eso no se puede comprobar.
 
        La FORMA se saca de la primera palabra del rótulo hablado, que empieza
-       por ella —«barca carmín «lo del monte» en Mat 1:1»—. Se leía partiendo
+       por ella —«corazón carmín «lo del monte» en Mat 1:1»—. Se leía partiendo
        por ' en ', y eso se rompió el día que el rótulo empezó a decir también
-       el color: devolvía «barca carmín» donde antes decía «barca». */
+       el color: devolvía «corazón carmín» donde antes decía «corazón». */
     window.__laPiedra = () => {
       const e = document.querySelector('.piedra-sitio');
       if (!e) return null;
@@ -420,9 +420,9 @@ async function andamio(p){
   const mando = await p.evaluate(async () => {
     const m0 = window.__elMando();
     /* LA FORMA SE ELIGE DE LA PARRILLA. Tocar la piedra sigue dando la
-       siguiente, pero con trece figuras eso solo sirve para curiosear: llegar
-       a la barca a base de toques son doce. */
-    await window.__toque('[data-piedra-forma="barca"]'); await window.__pausa(300);
+       siguiente, pero con catorce figuras eso solo sirve para curiosear:
+       llegar al corazón a base de toques son once. */
+    await window.__toque('[data-piedra-forma="corazon"]'); await window.__pausa(300);
     const traForma = { piedra: window.__laPiedra(), mando: window.__elMando() };
     await window.__toque('[data-piedra-color="carmin"]'); await window.__pausa(300);
     const traColor = { piedra: window.__laPiedra(), mando: window.__elMando() };
@@ -612,7 +612,9 @@ async function andamio(p){
       if (!svg) return null;
       return [...svg.querySelectorAll('path, circle')].map(t => {
         const c = getComputedStyle(t);
-        return { relleno: c.fill, linea: c.stroke };
+        const r = t.getBoundingClientRect();
+        return { relleno: c.fill, linea: c.stroke,
+                 area: Math.round(r.width * r.height) };
       });
     };
     /* Con __toque y no con .click(): aquí son botones y no gestos, pero la
@@ -627,7 +629,7 @@ async function andamio(p){
     const conB = lee();
     /* Y una figura CORRIENTE con la misma tinta, para saber qué número es de
        verdad esa tinta en la hoja. Se pregunta, no se calcula. */
-    await pon('[data-piedra-forma="barca"]');
+    await pon('[data-piedra-forma="corazon"]');
     const llana = lee();
     if (previo.forma) await pon('[data-piedra-forma="' + previo.forma + '"]');
     if (previo.color) await pon('[data-piedra-color="' + previo.color + '"]');
@@ -677,6 +679,22 @@ async function andamio(p){
        perfil.length > 0 &&
        perfil.every(x => x.relleno !== tintaB && x.linea !== tintaB),
        perfil.length + ' piezas oscuras que no siguen a la tinta');
+  /* Y VA RELLENA, NO HUECA. El calco del dueño del repo son veintitantas
+     piezas de sombreado sueltas y ninguna de ellas es el ave entera: puesta
+     tal cual, entre pieza y pieza se veía el fondo —papel crema, o la foto de
+     la portada, o el color de la piedra— y el ave se leía como un dibujo a
+     rayas. Lo pidió él mirándola: «rellénala siempre de blanco».
+     El arreglo es una silueta blanca DEBAJO de todo lo demás, así que se pide
+     eso mismo y en ese orden: que la pieza más grande del dibujo sea clara y
+     que sea la PRIMERA, que es lo que la pone debajo. Se mide por el área de
+     su caja, que no depende de cómo esté trazada: un dibujo distinto que
+     también vaya relleno sigue pasando. */
+  const dibujo = paloma.conB || [];
+  const grande = dibujo.reduce((a, b) => (b.area > a.area ? b : a), dibujo[0] || {});
+  vale('  Y VA RELLENA DE BLANCO: la pieza mayor es clara y va la primera',
+       dibujo.length > 0 && grande === dibujo[0] && claro(grande),
+       'la mayor: ' + grande.area + ' px² en ' + grande.relleno +
+       (grande === dibujo[0] ? ', la primera' : ', la ' + (dibujo.indexOf(grande) + 1)));
   /* Y SIN CAMPO DE NOMBRE: se espera el false, no la ausencia de la línea. Si
      alguien devuelve el campo al mando, esto lo dice. Ver arriba. */
   vale('y SIN campo de nombre, que eso se hace en la lista',
@@ -684,9 +702,9 @@ async function andamio(p){
   vale('y cabe entero en la escena', mando.m0.cabe === true);
 
   vale('elegir una figura de la parrilla la cambia',
-       mando.traForma.piedra.forma === 'barca', mando.traForma.piedra.forma);
+       mando.traForma.piedra.forma === 'corazón', mando.traForma.piedra.forma);
   vale('y la parrilla marca cuál está puesta',
-       mando.traForma.mando.marcada === 'barca', mando.traForma.mando.marcada);
+       mando.traForma.mando.marcada === 'corazon', mando.traForma.mando.marcada);
   /* El color se mide en la pantalla y no en el almacén: guardarlo y no
      pintarlo es exactamente el fallo que esto vigila.
 
@@ -714,7 +732,7 @@ async function andamio(p){
   vale('y la paleta marca cuál está puesto',
        mando.traColor.mando.tinta === 'carmin', mando.traColor.mando.tinta);
   vale('la figura y el color quedan guardados',
-       mando.guardada.forma === 'barca' && mando.guardada.color === 'carmin',
+       mando.guardada.forma === 'corazon' && mando.guardada.color === 'carmin',
        mando.guardada);
   /* Y EL RÓTULO HABLADO LO DICE TODO. Quien no ve la piedra tiene ahí su única
      descripción: sin el color y el nombre, trece figuras de seis colores son
@@ -1078,11 +1096,124 @@ async function andamio(p){
        lapiz.teclado.pieAntes === lapiz.teclado.pieTras &&
        lapiz.teclado.rodado === 0, lapiz.teclado);
 
+  /* ----------------------------------------------------------------
+     Y CON TECLADO: EL PANEL NUNCA SE SALE POR ARRIBA.
+
+     Ésta es la prueba de un fallo que tardó cuatro arreglos porque no se podía
+     ver aquí. El dueño del repo lo veía en su teléfono —«se sigue yendo hasta
+     arriba»: la cabecera del panel fuera de la pantalla, sin saber en qué
+     panel estás— y aquí pasaba siempre, con cualquier medida.
+
+     La causa, encontrada midiendo y no razonando: visualViewport.offsetTop. Al
+     subir el teclado, un navegador de teléfono no solo ENCOGE la ventana
+     visual, también LA DESPLAZA dentro de la de maquetación para enseñar el
+     campo con foco. El panel es position:absolute dentro de la escena, o sea
+     que se queda en coordenadas de maquetación y no se entera de ese
+     desplazamiento: el techo de lo visible le baja encima y su sitio queda por
+     ENCIMA de lo que se ve. La cuenta del vigilante leía entonces un tope
+     negativo, lo tomaba por «no te muevas» —Math.max(0, ...)— y el panel se
+     quedaba fuera.
+
+     En un navegador sin pantalla offsetTop es SIEMPRE 0, y por eso ninguna
+     medida de aquí lo veía. Así que se finge, que es lo único que se finge:
+     una pieza del navegador, no código de la aplicación. Es la misma licencia
+     que ya se toma la altura, y por la misma razón.
+
+     Se barre: tres alturas de teclado × cuatro desplazamientos × tres filas
+     —la primera, la de en medio y la última—, y de cada combinación se piden
+     las dos cosas que el lector necesita a la vez, que es lo que hace que no
+     se pueda arreglar una rompiendo la otra:
+     · que la cabecera del panel no quede por encima de lo que se ve;
+     · y que el campo donde se escribe no quede debajo del teclado.
+     Sin la segunda, «no se sale por arriba» se arregla dejando el panel
+     quieto y el campo tapado, que era el estado anterior. */
+  titulo('con teclado, el panel no se sale por arriba ni tapa el campo');
+  const sesVV = await abrir();
+  const pvv = sesVV.pagina;
+  await pvv.evaluate(() => {
+    const hoy = Date.now(); const ps = [];
+    for (let i = 0; i < 20; i++)
+      ps.push({ id:'vv'+i, libro:'MAT', cap:1, vers:1+i, x:.5, y:.3, forma:'piedra',
+                color:'carmin-vivo', tam:2, nombre:'piedra '+i, creado:hoy+i, tocado:hoy+i });
+    localStorage.setItem('glossa:piedras:v1', JSON.stringify(ps));
+  });
+  await pvv.reload();
+  await pvv.waitForTimeout(400);
+  const barrido = await pvv.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    let pid = 800;
+    const toque = async sel => {
+      const e = typeof sel === 'string' ? document.querySelector(sel) : sel;
+      if (!e) return false;
+      const r = e.getBoundingClientRect();
+      const o = { bubbles:true, cancelable:true, pointerId: ++pid, pointerType:'touch',
+                  isPrimary:true, clientX: r.left + r.width/2, clientY: r.top + r.height/2 };
+      e.dispatchEvent(new PointerEvent('pointerdown', o)); await pausa(40);
+      e.dispatchEvent(new PointerEvent('pointerup', o));
+      e.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, o)));
+      return true;
+    };
+    const vv = window.visualViewport;
+    if (!vv) return { sinVV:true };
+    let ALTO = window.innerHeight, DESP = 0;
+    Object.defineProperty(vv, 'height',    { configurable:true, get: () => ALTO });
+    Object.defineProperty(vv, 'offsetTop', { configurable:true, get: () => DESP });
+    await toque('#btnHistorial'); await pausa(600);
+    await toque('[data-piedra-lista]'); await pausa(800);
+    const el = document.getElementById('piedraMenu');
+    const filas = () => [...document.querySelectorAll('#piedraMenu [data-piedra-ir]')];
+    if (filas().length < 20) return { pocas: filas().length };
+    const malas = [];
+    let cuantas = 0;
+    for (const alto of [560, 460, 380])
+    for (const desp of [0, 60, 140, 260])
+    for (const fi of [0, 9, 19]){
+      /* Se suelta el teclado entre una y otra: cada combinación empieza como
+         empieza de verdad, sin el desplazamiento de la anterior puesto. */
+      ALTO = window.innerHeight; DESP = 0;
+      vv.dispatchEvent(new Event('resize')); await pausa(500);
+      if (document.activeElement) document.activeElement.blur();
+      await pausa(300);
+      const f = filas()[fi]; if (!f) continue;
+      f.scrollIntoView({ block:'nearest' }); await pausa(120);
+      const rr = f.getBoundingClientRect();
+      f.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+        clientX: rr.left + rr.width/2, clientY: rr.top + rr.height/2 }));
+      await pausa(220);
+      /* Y AHORA EL TECLADO, con varios avisos seguidos y encima de la
+         transición del panel: es lo que manda un teléfono mientras sube, y ese
+         martilleo ya destapó una vez que la cuenta se hacía contra el destino
+         de la transición y no contra dónde está el panel. */
+      ALTO = alto; DESP = desp;
+      for (const t of [0, 30, 50, 70]){ vv.dispatchEvent(new Event('resize')); await pausa(t); }
+      await pausa(1100);
+      cuantas++;
+      const rp = el.getBoundingClientRect();
+      const campo = el.querySelector('[data-piedra-nombre]');
+      const rc = campo ? campo.getBoundingClientRect() : null;
+      const techo = desp + 8, suelo = desp + alto;
+      if (!rc || rp.top < techo - 1 || rc.bottom > suelo + 1)
+        malas.push({ alto, desp, fila: fi, techo, suelo,
+                     top: Math.round(rp.top),
+                     campo: rc ? Math.round(rc.bottom) : null,
+                     sube: el.style.getPropertyValue('--sube') });
+    }
+    return { malas, cuantas };
+  });
+  di('el barrido del teclado', JSON.stringify(barrido));
+  vale('(la prueba es válida) se barrieron las 36 combinaciones',
+       barrido.cuantas === 36, barrido.cuantas + ' de 36');
+  vale('CON TECLADO, LA CABECERA NO SE VA POR ENCIMA NI EL CAMPO SE TAPA',
+       !!barrido.malas && barrido.malas.length === 0,
+       barrido.malas ? barrido.malas.length + ' fallan: ' +
+                       JSON.stringify(barrido.malas.slice(0, 3)) : JSON.stringify(barrido));
+  await cerrarParcial(sesVV, 'el teclado desplazado');
+
   /* El nombre se lee de lapiz.guardado y no escrito a mano: ésta ya se
      descolgó una vez, cuando el bloque de arriba cambió el nombre y aquí se
      quedó el viejo. Leyéndolo de donde se puso, no puede volver a pasar. */
   /* Y LA FIGURA Y EL COLOR SE PONEN AQUÍ, no se heredan. Escritos a mano
-     —«barca», «carmín»— se descolgaron en cuanto los bloques de OK y cancelar
+     —«corazón», «carmín»— se descolgaron en cuanto los bloques de OK y cancelar
      dejaron la piedra en otra figura y en el color de fábrica; y el color de
      fábrica ni siquiera sale en el rótulo, porque piedraVoz solo lo dice
      cuando NO es el de siempre. Poniéndolos aquí, esto mide el rótulo y no el
@@ -1093,14 +1224,14 @@ async function andamio(p){
     e0.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
       clientX: r0.left + r0.width/2, clientY: r0.top + r0.height/2 }));
     await window.__pausa(600);
-    await window.__toque('#piedraMando [data-piedra-forma="barca"]'); await window.__pausa(300);
+    await window.__toque('#piedraMando [data-piedra-forma="corazon"]'); await window.__pausa(300);
     await window.__toque('#piedraMando [data-piedra-color="carmin"]'); await window.__pausa(300);
     await window.__toque('#piedraMando [data-piedra-acc="ok"]'); await window.__pausa(600);
     return document.querySelector('.piedra').getAttribute('aria-label');
   });
   di('el rótulo hablado', voz);
   vale('el rótulo hablado dice figura, color y nombre',
-       /barca/.test(voz) && /carm/.test(voz) &&
+       /coraz/.test(voz) && /carm/.test(voz) &&
        voz.indexOf(lapiz.guardado) >= 0, voz);
 
   /* ---------------------------------------------------------------- */
@@ -1428,7 +1559,10 @@ async function andamio(p){
                        que se pone una piedra recién hecha: en los de arriba la
                        piedra ya ha pasado por varias manos. */
                     deFabrica: { forma: nacida.forma, color: nacida.color,
-                                 sombra: nacida.sombra === true },
+                                 sombra: nacida.sombra === true,
+                                 tam: nacida.tam,
+                                 contador: (document.querySelector(
+                                   '#piedraMando .pm-tam') || {}).textContent },
                     hayBoton: !!document.querySelector('#piedraMando [data-piedra-acc="quitar"]') };
     await window.__toque('#piedraMando [data-piedra-acc="quitar"]');
     await window.__pausa(700);
@@ -1454,6 +1588,19 @@ async function andamio(p){
        quitarDelMando.antes.deFabrica.color === 'carmin-vivo' &&
        quitarDelMando.antes.deFabrica.sombra === true,
        JSON.stringify(quitarDelMando.antes.deFabrica));
+  /* Y NACE EN EL 5 DE 8. Nacía en el 3 —el de repuesto, PIEDRA_TAM_POR, que
+     está ahí para una piedra guardada con un tamaño que ya no existe— y el
+     dueño del repo la vio demasiado chica en la hoja. Son dos números
+     distintos y por eso son dos constantes distintas: con qué tamaño NACE una
+     piedra y con cuál se REPARA una guardada no tienen por qué coincidir.
+     El escalón se escribe aquí a mano, como el asomo de la cinta: preguntárselo
+     a la aplicación sería repetir lo que diga. El contador cuenta desde 1 y el
+     escalón guardado desde 0, de ahí el 4 y el «5/8». */
+  vale('  Y EN EL 5 DE 8, que es donde se ve sin tapar el renglón',
+       quitarDelMando.antes.deFabrica.tam === 4 &&
+       quitarDelMando.antes.deFabrica.contador === '5/8',
+       quitarDelMando.antes.deFabrica.tam + '  ·  ' +
+       quitarDelMando.antes.deFabrica.contador);
   vale('«QUITAR» LA BORRA DEL PAPEL', quitarDelMando.enLaHoja === false,
        'la ' + quitarDelMando.antes.id);
   vale('  y de lo guardado, que si no vuelve al recargar',

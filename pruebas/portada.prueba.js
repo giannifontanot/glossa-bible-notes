@@ -243,6 +243,13 @@ async function tocarSinClic(pagina, x, y, pid = 21){
   vale('  con el mando de la hoja: catorce figuras, doce colores y su contador',
        nacida.formas === 14 && nacida.tintas === 12 && /\/8$/.test(nacida.contador || ''),
        [nacida.formas, nacida.tintas, nacida.contador].join(' · '));
+  /* Y NACE EN EL 8 DE 8, el más grande. En la hoja nace en el 5, y son dos
+     números distintos a propósito: en la portada la piedra es adorno y se pone
+     para verla, y en la hoja va encima de un renglón que hay que seguir
+     leyendo. Los pidió así el dueño del repo. El escalón va escrito aquí y no
+     leído de la aplicación, como el asomo de la cinta. */
+  vale('  Y NACE EN EL 8 DE 8, que en la portada la piedra es para verla',
+       nacida.contador === '8/8', nacida.contador);
   vale('  mudado encima de la tapa', nacida.padre === 'portada', nacida.padre);
   /* La única diferencia con la hoja, y por una razón: la portada no tiene lista
      de piedras de donde borrar, así que la salida de borrar vive en el mando. */
@@ -275,13 +282,18 @@ async function tocarSinClic(pagina, x, y, pid = 21){
     const antes = { forma:g().forma, color:g().color, tam:g().tam };
     m.querySelector('[data-piedra-forma="paloma"]').click(); await pausa(300);
     m.querySelector('[data-piedra-color="carmin"]').click(); await pausa(300);
-    m.querySelector('[data-piedra-acc="mas"]').click(); await pausa(300);
+    /* SE ENCOGE, NO SE AGRANDA, y no es un capricho: desde que la piedra de la
+       portada nace en el escalón de arriba, «más» no tiene adónde ir y esta
+       línea pedía un cambio que no puede pasar. Para comprobar que el mando
+       mueve el tamaño da igual hacia dónde; lo que no da igual es pedirlo
+       contra un tope. */
+    m.querySelector('[data-piedra-acc="menos"]').click(); await pausa(300);
     return { antes, medio: { forma:g().forma, color:g().color, tam:g().tam } };
   }, LLAVE);
   di('lo que hace el mando', JSON.stringify(cambia));
   vale('EL MANDO LE CAMBIA FIGURA, COLOR Y TAMAÑO A ESA PIEDRA',
        cambia.medio.forma === 'paloma' && cambia.medio.color === 'carmin' &&
-       cambia.medio.tam === cambia.antes.tam + 1, cambia.medio);
+       cambia.medio.tam === cambia.antes.tam - 1, cambia.medio);
 
   /* Se acepta y se deja una segunda: no puede caer encima de la primera. */
   await p.click('#piedraMando [data-piedra-acc="ok"]'); await p.waitForTimeout(350);

@@ -109,10 +109,10 @@ async function andamio(p){
                /* «DENTRO» ES DENTRO DEL PAPEL, no dentro de la columna, y por
                   eso el margen de la izquierda es holgado: la cinta asoma a
                   propósito hacia el texto. Estuvo en 23 —los 19 que asomaba
-                  más el redondeo— y con el asomo doblado a 38 esta línea
-                  empezó a decir que la cinta se había salido, que es
-                  exactamente lo contrario de lo que pasó. Se pone en 44: los
-                  38 de ahora con holgura, y sigue cazando una cinta que se
+                  más el redondeo— y al doblar el asomo esta línea empezó a
+                  decir que la cinta se había salido, que es exactamente lo
+                  contrario de lo que pasó. Se deja en 44: cubre los 25 de
+                  ahora con holgura de sobra, y sigue cazando una cinta que se
                   fuera de verdad al otro extremo de la hoja. Lo que vigila
                   cuánto asoma es la aserción del asomo, no ésta. */
                dentro: r.left >= m.left - 44 && r.right <= m.right + 1 &&
@@ -272,13 +272,15 @@ async function ponerAMano(p){
   vale('pone un separador', mano.guardadas.length === 1, mano.guardadas);
   vale('y sale la cinta', !!mano.cinta);
   vale('cuelga en el borde izquierdo de la columna', mano.cinta && mano.cinta.dentro);
-  /* EL ASOMO SE DOBLÓ: eran 19 y son 38, a petición del dueño del repo. El
-     número va escrito aquí a propósito y no leído de la aplicación: una prueba
-     que se lo pregunta al código no comprueba nada, solo repite lo que el
-     código diga. Los 3 px de holgura son del redondeo. Si vuelve a cambiar,
-     esta línea tiene que cambiar con él, y eso es lo que se quiere. */
-  vale('asoma ~38 px al texto, el doble que antes',
-       mano.cinta && Math.abs(mano.cinta.asomo - 38) <= 3,
+  /* EL ASOMO: eran 19, se doblaron a 38 a petición del dueño del repo, y al
+     verlos puestos dijo que se había pasado de grande y que le quitara «como
+     la tercera parte»: 25. El número va escrito aquí a propósito y no leído de
+     la aplicación: una prueba que se lo pregunta al código no comprueba nada,
+     solo repite lo que el código diga. Los 3 px de holgura son del redondeo.
+     Si vuelve a cambiar, esta línea tiene que cambiar con él, y eso es lo que
+     se quiere. */
+  vale('asoma ~25 px al texto',
+       mano.cinta && Math.abs(mano.cinta.asomo - 25) <= 3,
        mano.cinta && mano.cinta.asomo + ' px de asomo');
   /* Y NO SE DESPEGA DE LA COLUMNA. Es la otra mitad de doblarlo: asomando
      demasiado, la cinta deja de estar apoyada en la columna de glosas y se lee
@@ -1344,8 +1346,8 @@ async function ponerAMano(p){
   });
   di('la cinta', esc.cinta);
   vale('cuelga en el borde izquierdo de la columna', esc.cinta && esc.cinta.dentro);
-  vale('asoma ~38 px al texto, el doble que antes',
-       esc.cinta && Math.abs(esc.cinta.asomo - 38) <= 3,
+  vale('asoma ~25 px al texto',
+       esc.cinta && Math.abs(esc.cinta.asomo - 25) <= 3,
        esc.cinta && esc.cinta.asomo + ' px de asomo');
   vale('  y le queda un buen trozo apoyado en la columna',
        esc.cinta && esc.cinta.w - esc.cinta.asomo >= 16,

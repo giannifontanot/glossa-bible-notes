@@ -266,9 +266,21 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     };
     const enNT = lee();
     const bAT = document.querySelector('.canto-tab[data-testa="AT"]');
-    await toque(bAT); await pausa(600);
+    /* LA ENTRADA SE MIRA EN MARCHA, no al final: una animación se comprueba
+       mientras corre o no se comprueba. Se lee a los 60 ms, que es dentro de
+       los 460 que dura. Y se mira el NOMBRE de la animación, no un número de
+       opacidad de mitad de camino: el nombre dice que es la misma que usan
+       LIBROS, GLOSAS, FORMATO y RESPALDO, que es justo lo que se pidió —«que
+       se abra con un movimiento suave igual que ya se hace»—. Una prueba que
+       midiera «se movió algo» pasaría con cualquier movimiento inventado. */
+    const cuerpo = document.getElementById('cantoCuerpo');
+    await toque(bAT); await pausa(60);
+    const entrando = { anim: getComputedStyle(cuerpo).animationName,
+                       dir: cuerpo.style.getPropertyValue('--dir') };
+    await pausa(600);
     const enAT = lee();
-    return { enNT, enAT,
+    const reposo = { opacidad: getComputedStyle(cuerpo).opacity };
+    return { enNT, enAT, entrando, reposo,
              marcadaNT: enNT.marcada && enNT.marcada.testa,
              marcadaAT: enAT.marcada && enAT.marcada.testa,
              guardado: (JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}') || {}).cantoTesta };
@@ -299,6 +311,19 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
   vale('LOS LIBROS VAN AL DOBLE DE ALTO', tabs.enNT.altoLibro === 52,
        tabs.enNT.altoLibro + ' px');
   vale('y la pestaña elegida se guarda', tabs.guardado === 'AT', tabs.guardado);
+  /* Y ENTRA CON EL MISMO MOVIMIENTO QUE LAS SECCIONES. La lista se cambiaba de
+     golpe: 27 nombres se iban y aparecían 39 en el mismo fotograma, y eso se
+     lee como un salto y no como «se abrió otra cosa». Se reusa entraDeLado, la
+     animación que ya tenían LIBROS/GLOSAS/FORMATO/RESPALDO, con el sentido
+     puesto en --dir: el Antiguo viene por la izquierda y el Nuevo por la
+     derecha, que es como están las dos pestañas. */
+  di('la entrada', JSON.stringify(tabs.entrando));
+  vale('LA LISTA ENTRA CON LA MISMA ANIMACIÓN QUE LAS SECCIONES',
+       tabs.entrando.anim === 'entraDeLado', tabs.entrando.anim);
+  vale('  y por el lado de su pestaña: el Antiguo, desde la izquierda',
+       tabs.entrando.dir === '-1', tabs.entrando.dir);
+  vale('  y acaba entera, sin quedarse a medio fundir',
+       tabs.reposo.opacidad === '1', tabs.reposo.opacidad);
 
   /* Y SOBREVIVE A CERRAR EL LIBRO. Guardarlo en los ajustes y no volver a
      leerlo sería exactamente el mismo fallo con más pasos. */
@@ -322,25 +347,25 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
   await cerrarParcial(pes, 'las pestañas');
 
   /* ================================================================
-     TOCAR EL LIBRO YA TE LLEVA AL LIBRO.
+     TOCAR EL LIBRO LO MARCA Y ABRE SUS CAPÍTULOS. NO MUEVE LA HOJA.
 
-     Antes el toque solo abría la cascada de capítulos: el libro no quedaba
-     elegido hasta tocar además un capítulo Y un versículo, o sea tres toques
-     para lo que se pide en uno —«pico Marcos, llévame a Marcos»—. Lo levantó
-     el dueño del repo usándolo.
+     Esto estuvo escrito al revés, y el «al revés» duró un día. La idea era
+     buena de leer —«pico Marcos, llévame a Marcos»— y la pidió el dueño del
+     repo; en cuanto la usó, la retiró: en un teléfono, el libro se toca de
+     paso, buscando, y cada roce se llevaba la hoja a otro sitio y había que
+     volver. Elegir libro es el primero de tres pasos —libro, capítulo,
+     versículo— y ninguno de los tres debe mover nada por su cuenta.
 
-     Se piden las TRES cosas a la vez, y ninguna sobra:
-     · que se cambie de libro de verdad —no que se marque y ya—;
-     · que la cascada de capítulos SIGA puesta, que es lo que hace que no se
-       pierda nada: quien quería un capítulo en concreto lo tiene ahí;
-     · y que el panel de Libros no se cierre, que es de donde cuelga la
-       cascada. Sin esta tercera, «sigue puesta» podría pasar con el panel
-       yéndose por debajo.
+     Así que ahora el toque hace dos cosas y NINGUNA de ellas es viajar:
+     · marca el libro, para que se vea cuál se está eligiendo;
+     · y abre la cascada de capítulos, que es el paso siguiente.
 
-     El salto entre libros lejanos es LARGO —repagina y voltea un bonche— así
-     que se espera de verdad y se mira el rótulo de la cabecera, que es lo que
-     el lector ve. */
-  titulo('tocar un libro lleva a ese libro');
+     Se comprueban las dos, y sobre todo la que las sostiene: que la cabecera
+     no cambie. Y no se mira solo al instante: el salto de antes tardaba —
+     repaginaba el libro entero— así que un «no se ha movido» medido a los 200
+     ms podría ser un salto en camino. Se espera de verdad y se vuelve a
+     mirar. */
+  titulo('tocar un libro lo marca, y no mueve la hoja');
   const ses2 = await abrir();
   const p2 = ses2.pagina;
   const salto = await p2.evaluate(async () => {
@@ -360,35 +385,50 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
                    .find(b => /libros/i.test(b.textContent));
     if (pest) pest.click();
     await pausa(900);
-    /* El ÚLTIMO de los que sí están en los datos: el salto más largo que hay,
-       que es el que peor lo pasa. */
+    /* El ÚLTIMO de los que sí están en los datos: el salto más largo que
+       había, o sea el que más se notaría si todavía saltara. */
     const vivos = [...document.querySelectorAll('#canto .tabo.viva')];
     if (vivos.length < 2) return { pocos: vivos.length };
     const otro = vivos[vivos.length - 1];
     const pedido = otro.textContent.trim(), antes = cab();
+    const colorAntes = getComputedStyle(otro).color;
     await toque(otro);
-    /* Se espera a que llegue, hasta seis segundos: un salto de punta a punta
-       repagina el libro entero antes de voltear nada. */
-    for (let i = 0; i < 24 && cab() === antes; i++) await pausa(250);
+    await pausa(300);
+    const alInstante = { cabeza: cab(), color: getComputedStyle(otro).color };
+    /* Y CINCO SEGUNDOS DESPUÉS, que es de sobra para el salto más largo. */
+    await pausa(5000);
     const caps = document.getElementById('flyCaps');
     const marca = document.querySelector('#canto .tabo.aqui');
-    return { pedido, antes, despues: cab(),
+    return { pedido, antes, colorAntes, alInstante,
+             despues: cab(),
              marcado: marca && marca.textContent.trim(),
+             fondo: getComputedStyle(otro).backgroundColor,
+             color: getComputedStyle(otro).color,
              cascada: !!caps && getComputedStyle(caps).display !== 'none',
              panel: getComputedStyle(document.getElementById('canto')).display !== 'none' };
   });
   di('al tocar el libro', JSON.stringify(salto));
   vale('(la prueba es válida) había libros que tocar', salto.pocos === undefined,
        salto.pocos + ' vivos');
-  vale('TOCAR EL LIBRO CAMBIA DE LIBRO',
-       salto.marcado === salto.pedido && salto.despues !== salto.antes,
-       'pedido ' + salto.pedido + ' · marcado ' + salto.marcado +
-       '  ·  ' + salto.antes + ' → ' + salto.despues);
-  vale('  y la cabecera ya dice el libro nuevo',
-       typeof salto.despues === 'string' &&
-       salto.despues.indexOf(salto.pedido) === 0,
-       salto.despues);
-  vale('  con la cascada de capítulos todavía puesta', salto.cascada === true);
+  vale('TOCAR EL LIBRO NO MUEVE LA HOJA, ni al momento ni cinco segundos después',
+       salto.alInstante.cabeza === salto.antes && salto.despues === salto.antes,
+       salto.antes + ' → ' + (salto.alInstante || {}).cabeza + ' → ' + salto.despues);
+  vale('  pero SÍ lo marca', salto.marcado === salto.pedido,
+       'pedido ' + salto.pedido + ' · marcado ' + salto.marcado);
+  /* EL NOMBRE NO CAMBIA DE COLOR, y esto lo levantó el dueño del repo mirando
+     la pantalla: la marca llevaba también la letra en crema, así que el nombre
+     se ponía blanco de golpe justo cuando además pasaba otra cosa, y eso se
+     lee como un parpadeo. Lo que marca es el fondo dorado, y basta.
+     El fondo se mide REPOSADO —.tabo lleva una transición de .34s y a medio
+     camino da un dorado a medias—; el color, en cambio, se mira también AL
+     INSTANTE, que es justo donde se veía el salto. */
+  vale('  SIN QUE EL NOMBRE SE PONGA BLANCO',
+       salto.alInstante.color === salto.colorAntes && salto.color === salto.colorAntes,
+       salto.colorAntes + ' → ' + salto.alInstante.color + ' → ' + salto.color);
+  vale('  y con el fondo dorado, que es lo que marca de verdad',
+       salto.fondo === 'rgb(184, 137, 43)', salto.fondo);
+  vale('  con la cascada de capítulos abierta, que es el paso siguiente',
+       salto.cascada === true);
   vale('  y el panel de Libros sin cerrarse', salto.panel === true);
   await cerrarParcial(ses2, 'tocar un libro');
 
