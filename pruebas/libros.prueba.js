@@ -461,6 +461,124 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
   vale('  con la cascada de capítulos abierta, que es el paso siguiente',
        salto.cascada === true);
   vale('  y el panel de Libros sin cerrarse', salto.panel === true);
+
+  /* ================================================================
+     Y LA MARCA AGUANTA LOS REPINTADOS.
+
+     Ésta es la otra mitad de que tocar un libro ya no salte, y faltaba. La
+     marca dorada la pintaba refrescarLibroActual leyendo LIBRO —«aquí estás
+     leyendo»—, y desde que el toque no salta, LIBRO no cambia: la marca que
+     pone el toque la borraba el primer repintado que pasara por ahí. Y por ahí
+     pasa cualquier cosa —pasar de hoja, un resize—, que en un teléfono salta
+     solo cada vez que el navegador esconde o enseña su barra de direcciones.
+     El dueño del repo lo dijo corto: «al tocar un libro no se marca». Aquí
+     aguantaba, porque entre el toque y la comprobación no pasaba nada.
+
+     Así que se hace que pase: dos resize y una rodada de la lista, con el
+     panel abierto. Y se comprueba también lo contrario —cerrar el panel
+     OLVIDA la elección—, que sin eso «la marca aguanta» se cumpliría con una
+     marca pegada para siempre, que es otro fallo con el mismo aspecto. */
+  const aguanta = await p2.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const toque = async e => {
+      const r = e.getBoundingClientRect();
+      const o = { bubbles:true, cancelable:true, pointerId:92, pointerType:'touch',
+                  isPrimary:true, clientX: r.left + r.width/2, clientY: r.top + r.height/2 };
+      e.dispatchEvent(new PointerEvent('pointerdown', o));
+      await pausa(40);
+      e.dispatchEvent(new PointerEvent('pointerup', o));
+      e.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, o)));
+    };
+    const marca = () => (document.querySelector('#canto .tabo.aqui') || {}).textContent || 'ninguna';
+    const abierto = () => getComputedStyle(document.getElementById('canto')).display !== 'none';
+    const vivos = [...document.querySelectorAll('#canto .tabo.viva')];
+    if (!vivos.length) return { pocos:true };
+    const otro = vivos[vivos.length - 1], pedido = otro.textContent.trim();
+    await toque(otro); await pausa(300);
+    const traTocar = marca();
+    window.dispatchEvent(new Event('resize')); await pausa(400);
+    window.dispatchEvent(new Event('resize')); await pausa(400);
+    document.getElementById('cantoCuerpo').scrollTop = 200; await pausa(400);
+    const traZarandear = marca();
+    const sigueAbierto = abierto();
+    /* Y ahora se cierra, que tiene que olvidarla. */
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await pausa(900);
+    document.getElementById('pgCabeza').click(); await pausa(800);
+    const pest = [...document.querySelectorAll('.pestanas button')]
+                   .find(b => /libros/i.test(b.textContent));
+    if (pest) pest.click();
+    await pausa(900);
+    return { pedido, traTocar, traZarandear, sigueAbierto, alVolverAAbrir: marca() };
+  });
+  di('la marca zarandeada', JSON.stringify(aguanta));
+  vale('LA MARCA AGUANTA LOS REPINTADOS: dos resize y una rodada',
+       !aguanta.pocos && aguanta.traTocar === aguanta.pedido &&
+       aguanta.traZarandear === aguanta.pedido && aguanta.sigueAbierto === true,
+       aguanta.pedido + ': ' + aguanta.traTocar + ' → ' + aguanta.traZarandear);
+  vale('  y CERRAR EL PANEL la olvida, que es lo contrario y también hace falta',
+       aguanta.alVolverAAbrir !== aguanta.pedido, aguanta.alVolverAAbrir);
+
+  /* ================================================================
+     LA CASCADA DE CAPÍTULOS SE ABRE DEBAJO DEL LIBRO, SIN TAPARLO.
+
+     Iba al lado, alineando su cabecera con la del libro… salvo que no
+     cupiera, que en un teléfono es casi siempre: la lista ocupa el ancho, así
+     que la cajita no tenía sitio a ningún lado. Y como además se recolocaba
+     hacia arriba para caber entera, con un libro de la mitad de abajo subía y
+     tapaba justamente el libro recién tocado. Medido antes del arreglo: con
+     Apocalipsis, la cascada de 461 a 720 sobre un libro de 465 a 517.
+
+     Se prueban los TRES sitios que se comportan distinto —el primer libro, uno
+     de en medio y el último—, porque el fallo solo salía abajo: una prueba con
+     el primero habría pasado siempre. Y se pide lo que el dueño del repo
+     pidió: que el libro elegido se siga viendo. */
+  const cascada = await p2.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const toque = async e => {
+      const r = e.getBoundingClientRect();
+      const o = { bubbles:true, cancelable:true, pointerId:93, pointerType:'touch',
+                  isPrimary:true, clientX: r.left + r.width/2, clientY: r.top + r.height/2 };
+      e.dispatchEvent(new PointerEvent('pointerdown', o));
+      await pausa(40);
+      e.dispatchEvent(new PointerEvent('pointerup', o));
+      e.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, o)));
+    };
+    const libros = [...document.querySelectorAll('#canto .tabo.viva, #canto .tabo.aqui')];
+    if (libros.length < 3) return { pocos: libros.length };
+    const malas = [], vistos = [];
+    for (const i of [0, Math.floor(libros.length / 2), libros.length - 1]){
+      const b = libros[i];
+      b.scrollIntoView({ block:'nearest' }); await pausa(250);
+      await toque(b); await pausa(700);
+      const rb = b.getBoundingClientRect();
+      const f = document.getElementById('flyCaps');
+      if (!f || getComputedStyle(f).display === 'none'){ malas.push({ libro:b.textContent.trim(), sinCascada:true }); continue; }
+      const rf = f.getBoundingClientRect();
+      const tapa = !(rf.right <= rb.left || rf.left >= rb.right ||
+                     rf.bottom <= rb.top || rf.top >= rb.bottom);
+      /* Y CABE ENTERA EN LA ESCENA, que es la otra mitad: abrirla debajo sin
+         recortarla la dejaría con la mitad fuera de la pantalla. */
+      const esc = document.querySelector('.stage').getBoundingClientRect();
+      const dentro = rf.top >= esc.top - 1 && rf.bottom <= esc.bottom + 1;
+      vistos.push({ libro: b.textContent.trim(),
+                    debajo: Math.round(rf.top - rb.bottom),
+                    alto: Math.round(rf.height) });
+      if (tapa || !dentro)
+        malas.push({ libro: b.textContent.trim(), tapa, dentro,
+                     libro_top: Math.round(rb.top), libro_bottom: Math.round(rb.bottom),
+                     casc_top: Math.round(rf.top), casc_bottom: Math.round(rf.bottom) });
+    }
+    return { malas, vistos };
+  });
+  di('la cascada', JSON.stringify(cascada));
+  vale('(la prueba es válida) se probaron tres libros de la lista',
+       !cascada.pocos && cascada.vistos.length === 3,
+       cascada.pocos !== undefined ? cascada.pocos + ' libros' : cascada.vistos.length + ' probados');
+  vale('LA CASCADA NUNCA TAPA EL LIBRO QUE SE ACABA DE TOCAR, y cabe entera',
+       !!cascada.malas && cascada.malas.length === 0,
+       cascada.malas && cascada.malas.length ? JSON.stringify(cascada.malas)
+                                             : JSON.stringify(cascada.vistos));
   await cerrarParcial(ses2, 'tocar un libro');
 
   await cerrar(sesion);
