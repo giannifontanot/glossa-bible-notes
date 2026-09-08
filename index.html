@@ -2558,11 +2558,16 @@
      dueño del repo, y del mismo modo que los libros de abajo: blanco lo que no
      está elegido, sepia lo que sí, para que el panel entero diga lo mismo con
      el mismo par de tonos.
-     El sepia sale de PIEDRA_TINTAS, que es la paleta de la casa, y no de un
-     valor a ojo: un color nuevo escrito aquí sería un séptimo tono que nadie
-     vuelve a tocar cuando la paleta se retoca. Blanco sobre él da 5.0 de
-     contraste, de sobra para un rótulo. */
-  .canto-tab.aqui{ background:#7a6434; color:#fff; }
+     Y EL TONO ES EL DE LAS PESTAÑAS DE ARRIBA —LIBROS, GLOSAS, FORMATO,
+     RESPALDO—, no uno propio. Estuvo en el sepia de PIEDRA_TINTAS, que era la
+     paleta de la casa y parecía la elección honesta; puesto en pantalla, el
+     dueño del repo lo cambió por éste, y tiene razón por una razón que la
+     paleta no sabe: estas pestañas y aquéllas están a dos centímetros una de
+     otra en el mismo panel, y dos maneras de decir «ésta es la abierta» en la
+     misma pantalla son dos cosas que aprender. El tono va escrito una vez aquí
+     y otra en .tabo.aqui porque son dos reglas; si algún día cambia, cambian
+     las tres a la vez —ésta, la de los libros y la de bajoeldedo—. */
+  .canto-tab.aqui{ background:#b8892b; color:#fff; }
   .canto-tab:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
   /* Y LA LISTA ENTRA COMO ENTRAN LAS SECCIONES. Cambiar de testamento cambia
      los 66 nombres de golpe, y de golpe se lee como una sustitución y no como
@@ -2677,14 +2682,25 @@
      parpadeo porque ya no hay dos estados parecidos: hay uno claro y uno
      oscuro, y el ojo los separa sin leer.
 
-     El sepia sale de PIEDRA_TINTAS —la paleta de la casa— y no de un valor a
-     ojo. Blanco sobre él da 5.0 de contraste; el sepia oscuro de la letra
-     sobre el blanco, 9.6. Los dos de sobra.
+     EL TONO ES EL DE LAS PESTAÑAS DE ARRIBA —LIBROS, GLOSAS, FORMATO,
+     RESPALDO— y no uno propio. Estuvo en el sepia de PIEDRA_TINTAS, que era la
+     paleta de la casa; puesto en pantalla, el dueño del repo pidió éste, y
+     tiene razón por algo que la paleta no sabe: los dos juegos de pestañas
+     están en el mismo panel a dos centímetros, y dos maneras de decir «ésta es
+     la abierta» en la misma pantalla son dos cosas que aprender.
+
+     LA LETRA VA EN BLANCO Y NO EN LA CREMA DE LAS PESTAÑAS, y esto sí se
+     aparta a propósito: sobre este dorado, la crema da 2.6 de contraste y el
+     blanco 3.2. Ninguno de los dos llega al 4.5 que pide un texto de este
+     tamaño, así que se toma el mejor de los dos, que además es lo que se
+     pidió. Queda dicho para quien venga: si algún día hay que subir el
+     contraste, lo que hay que oscurecer es el fondo, no aclarar más la letra
+     —del blanco ya no se sube—.
 
      El hover se exceptúa del elegido: sin el :not, pasar el ratón por encima
      del libro elegido lo devolvía a blanco y parecía que se había
      desmarcado. En un teléfono no hay hover, pero en un ratón sí. */
-  .tabo.aqui{ background:#7a6434; color:#fff; }
+  .tabo.aqui{ background:#b8892b; color:#fff; }
   .tabo:hover:not(.aqui){ z-index:9; background:#f4ecd9; color:#1d1608; }
 
   .num{ font:600 9.5px/18px var(--ui); color:#4a3a1c; background:rgba(255,253,247,.62);
@@ -3178,7 +3194,7 @@
        blanca—, que es lo honesto: lo que se ve es lo que va a quedar al
        soltar. Antes era dorado con la letra en crema, o sea un tercer aspecto
        para un estado que dura medio segundo. */
-    .tabo.bajoeldedo{ background:#7a6434; color:#fff; z-index:10;
+    .tabo.bajoeldedo{ background:#b8892b; color:#fff; z-index:10;
                       font-size:17px; height:64px; line-height:64px;
                       padding:0 14px; font-weight:600;
                       box-shadow:0 3px 10px -4px rgba(60,40,15,.6); }
@@ -3690,7 +3706,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '07-SEP-26 19:19';
+window.GLOSS_BUILD = '07-SEP-26 19:35';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
