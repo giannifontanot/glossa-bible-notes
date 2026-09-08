@@ -422,19 +422,28 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     if (vivos.length < 2) return { pocos: vivos.length };
     const otro = vivos[vivos.length - 1];
     const pedido = otro.textContent.trim(), antes = cab();
-    const colorAntes = getComputedStyle(otro).color;
+    /* El aspecto de un NO elegido, para tenerlo con qué comparar: se lee de
+       otro cualquiera de la lista y no de un valor escrito aquí. */
+    const suelto = vivos[0];
+    const sinElegir = { fondo: getComputedStyle(suelto).backgroundColor,
+                        color: getComputedStyle(suelto).color };
     await toque(otro);
     await pausa(300);
-    const alInstante = { cabeza: cab(), color: getComputedStyle(otro).color };
+    const alInstante = { cabeza: cab() };
     /* Y CINCO SEGUNDOS DESPUÉS, que es de sobra para el salto más largo. */
     await pausa(5000);
     const caps = document.getElementById('flyCaps');
     const marca = document.querySelector('#canto .tabo.aqui');
-    return { pedido, antes, colorAntes, alInstante,
+    const tab = document.querySelector('.canto-tab.aqui');
+    const otroTab = document.querySelector('.canto-tab:not(.aqui)');
+    return { pedido, antes, alInstante, sinElegir,
              despues: cab(),
              marcado: marca && marca.textContent.trim(),
              fondo: getComputedStyle(otro).backgroundColor,
              color: getComputedStyle(otro).color,
+             tabFondo: tab ? getComputedStyle(tab).backgroundColor : null,
+             tabColor: tab ? getComputedStyle(tab).color : null,
+             tabSueltoFondo: otroTab ? getComputedStyle(otroTab).backgroundColor : null,
              cascada: !!caps && getComputedStyle(caps).display !== 'none',
              panel: getComputedStyle(document.getElementById('canto')).display !== 'none' };
   });
@@ -446,18 +455,39 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        salto.antes + ' → ' + (salto.alInstante || {}).cabeza + ' → ' + salto.despues);
   vale('  pero SÍ lo marca', salto.marcado === salto.pedido,
        'pedido ' + salto.pedido + ' · marcado ' + salto.marcado);
-  /* EL NOMBRE NO CAMBIA DE COLOR, y esto lo levantó el dueño del repo mirando
-     la pantalla: la marca llevaba también la letra en crema, así que el nombre
-     se ponía blanco de golpe justo cuando además pasaba otra cosa, y eso se
-     lee como un parpadeo. Lo que marca es el fondo dorado, y basta.
-     El fondo se mide REPOSADO —.tabo lleva una transición de .34s y a medio
-     camino da un dorado a medias—; el color, en cambio, se mira también AL
-     INSTANTE, que es justo donde se veía el salto. */
-  vale('  SIN QUE EL NOMBRE SE PONGA BLANCO',
-       salto.alInstante.color === salto.colorAntes && salto.color === salto.colorAntes,
-       salto.colorAntes + ' → ' + salto.alInstante.color + ' → ' + salto.color);
-  vale('  y con el fondo dorado, que es lo que marca de verdad',
-       salto.fondo === 'rgb(184, 137, 43)', salto.fondo);
+  /* EL PAR DE TONOS: BLANCO LO QUE NO ESTÁ ELEGIDO, SEPIA LO QUE SÍ, Y SOBRE
+     EL SEPIA LA LETRA BLANCA. Aquí decía lo contrario —«sin que el nombre se
+     ponga blanco»— y no era un error de entonces: era lo que el dueño del repo
+     había pedido cuando la marca era un fondo dorado y la letra en crema, dos
+     estados parecidos donde el cambio de letra se leía como un parpadeo.
+     Mirándolo puesto pidió otra cosa: cambiar el par entero. Con un claro y un
+     oscuro ya no hay parpadeo que evitar, y la letra blanca es lo que hace
+     legible el sepia. Una prueba que siguiera pidiendo lo de antes llamaría
+     fallo al cambio que se pidió, que en este repo ya ha pasado cuatro veces.
+
+     Se mide REPOSADO: .tabo lleva una transición de .34s y a medio camino da
+     un sepia a medias.
+
+     Y NO SE COMPARA CONTRA UN HEXADECIMAL ESCRITO AQUÍ salvo el blanco, que es
+     el blanco. Lo que se pide es la RELACIÓN: que el elegido sea oscuro, que
+     los demás sean claros, y que la letra de cada uno sea lo contrario de su
+     fondo. Así el día que el sepia de la paleta se retoque, esto sigue
+     diciendo lo que tiene que decir. */
+  const luz = c => { const m = (String(c).match(/[\d.]+/g) || []).map(Number);
+                     return m.length >= 3 ? (m[0] + m[1] + m[2]) / 3 : null; };
+  vale('  EL ELEGIDO VA EN SEPIA, oscuro, y los demás en blanco',
+       luz(salto.fondo) < 150 && luz(salto.sinElegir.fondo) > 230,
+       'elegido ' + salto.fondo + ' · suelto ' + salto.sinElegir.fondo);
+  vale('  Y SU LETRA VA EN BLANCO, que es lo que lo hace legible',
+       luz(salto.color) > 230 && luz(salto.sinElegir.color) < 150,
+       'elegido ' + salto.color + ' · suelto ' + salto.sinElegir.color);
+  /* Y LA PESTAÑA AT/NT LLEVA EL MISMO PAR, que era la mitad del encargo: dos
+     maneras de marcar en el mismo panel son dos cosas que aprender. */
+  vale('  y la pestaña AT/NT marca igual: sepia con letra blanca',
+       luz(salto.tabFondo) < 150 && luz(salto.tabColor) > 230 &&
+       luz(salto.tabSueltoFondo) > 230,
+       'pestaña ' + salto.tabFondo + ' / ' + salto.tabColor +
+       ' · la otra ' + salto.tabSueltoFondo);
   vale('  con la cascada de capítulos abierta, que es el paso siguiente',
        salto.cascada === true);
   vale('  y el panel de Libros sin cerrarse', salto.panel === true);

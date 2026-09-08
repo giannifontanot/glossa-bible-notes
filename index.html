@@ -2546,13 +2546,23 @@
   .canto-tab{ flex:0 0 auto; min-width:76px; border:0; cursor:pointer;
               padding:5px 14px;
               font:700 10px/1.4 var(--ui); letter-spacing:.1em;
-              color:#5c4a24; background:rgba(255,253,247,.5);
+              color:#5c4a24; background:#fffdf8;
               border-radius:3px 3px 0 0;
               -webkit-tap-highlight-color:transparent;
               transition:background .28s cubic-bezier(.65,0,.35,1),
                          color .28s cubic-bezier(.65,0,.35,1); }
-  .canto-tab:hover{ background:#fffdf6; color:#1d1608; }
-  .canto-tab.aqui{ background:#b8892b; color:#fff8e4; }
+  .canto-tab:hover:not(.aqui){ background:#f4ecd9; color:#1d1608; }
+  /* LA ELEGIDA VA EN SEPIA CON LA LETRA BLANCA, y las otras en blanco. Iban al
+     revés de tono —dorado la elegida, crema translúcido las demás— y sobre el
+     papel tostado del panel las dos se parecían demasiado. Pedido así por el
+     dueño del repo, y del mismo modo que los libros de abajo: blanco lo que no
+     está elegido, sepia lo que sí, para que el panel entero diga lo mismo con
+     el mismo par de tonos.
+     El sepia sale de PIEDRA_TINTAS, que es la paleta de la casa, y no de un
+     valor a ojo: un color nuevo escrito aquí sería un séptimo tono que nadie
+     vuelve a tocar cuando la paleta se retoca. Blanco sobre él da 5.0 de
+     contraste, de sobra para un rótulo. */
+  .canto-tab.aqui{ background:#7a6434; color:#fff; }
   .canto-tab:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
   /* Y LA LISTA ENTRA COMO ENTRAN LAS SECCIONES. Cambiar de testamento cambia
      los 66 nombres de golpe, y de golpe se lee como una sustitución y no como
@@ -2629,7 +2639,7 @@
      con el dedo. El ancho sigue midiendo lo que mide el nombre. */
   .tabo{ position:relative; flex:0 0 auto; border:0; padding:0 7px; height:36px;
          cursor:pointer; font:400 9.5px/36px var(--ui); color:#4a3a1c; letter-spacing:.01em;
-         background:rgba(255,253,247,.62); border-radius:2px;
+         background:#fffdf8; border-radius:2px;
          white-space:nowrap; overflow:visible; text-align:center;
          transition:background .34s cubic-bezier(.65,0,.35,1),
                     color .34s cubic-bezier(.65,0,.35,1),
@@ -2649,16 +2659,33 @@
      señala al libro abierto es el fondo dorado de .aqui, que ya basta; y los
      que no están en los datos se distinguen por el color del texto. */
   .tabo.viva{ }
-  .tabo.muerta{ color:#918a76; background:rgba(255,253,247,.34); }
-  /* EL LIBRO DONDE ESTÁS, MARCADO SOLO CON EL FONDO. Llevaba también la letra
-     en crema, y el dueño del repo lo levantó al tocar un libro: el nombre se
-     le ponía blanco de golpe, justo en el instante en que además empezaba a
-     pasar algo. Dos cambios a la vez en el mismo sitio se leen como un
-     parpadeo, no como una respuesta.
-     Y de paso se lee mejor: crema sobre el dorado da un contraste de 2.6, y el
-     sepia que ya tenía, 3.2. La marca no la hacía la letra; la hace el fondo. */
-  .tabo.aqui{ background:#b8892b; }
-  .tabo:hover{ z-index:9; background:#fffdf6; color:#1d1608; }
+  /* Los que no están en los datos van en el MISMO blanco y se distinguen por
+     la letra, que es lo que ya decía el párrafo de arriba. Iban además en un
+     blanco más lavado, y con el fondo del panel debajo eso los dejaba de un
+     tercer tono que no significaba nada. */
+  .tabo.muerta{ color:#918a76; }
+  /* EL LIBRO ELEGIDO VA EN SEPIA CON LA LETRA BLANCA, y los demás en blanco.
+
+     Esto ha dado dos vueltas y conviene dejar las dos. Primero la marca era
+     fondo dorado con la letra en crema, y el dueño del repo levantó la letra:
+     se ponía blanca de golpe justo cuando además empezaba a pasar algo, y dos
+     cambios a la vez en el mismo sitio se leen como un parpadeo. Se quitó la
+     letra y quedó solo el dorado.
+     Y mirándolo puesto pidió lo de ahora, que es otra cosa: no quitarle la
+     letra al dorado sino cambiar el PAR de tonos. Blanco lo que no está
+     elegido, sepia lo que sí, y sobre el sepia la letra blanca. Ya no hay
+     parpadeo porque ya no hay dos estados parecidos: hay uno claro y uno
+     oscuro, y el ojo los separa sin leer.
+
+     El sepia sale de PIEDRA_TINTAS —la paleta de la casa— y no de un valor a
+     ojo. Blanco sobre él da 5.0 de contraste; el sepia oscuro de la letra
+     sobre el blanco, 9.6. Los dos de sobra.
+
+     El hover se exceptúa del elegido: sin el :not, pasar el ratón por encima
+     del libro elegido lo devolvía a blanco y parecía que se había
+     desmarcado. En un teléfono no hay hover, pero en un ratón sí. */
+  .tabo.aqui{ background:#7a6434; color:#fff; }
+  .tabo:hover:not(.aqui){ z-index:9; background:#f4ecd9; color:#1d1608; }
 
   .num{ font:600 9.5px/18px var(--ui); color:#4a3a1c; background:rgba(255,253,247,.62);
         border:0; border-radius:2px; height:18px; cursor:pointer; padding:0;
@@ -3147,7 +3174,11 @@
 
        El z-index lo pone por encima de sus vecinos mientras dura: sin él, el
        que viene después lo recorta por el filo al reacomodarse. */
-    .tabo.bajoeldedo{ background:#b8892b; color:#fff8e4; z-index:10;
+    /* Bajo el dedo se enseña ya el aspecto de elegido —sepia con letra
+       blanca—, que es lo honesto: lo que se ve es lo que va a quedar al
+       soltar. Antes era dorado con la letra en crema, o sea un tercer aspecto
+       para un estado que dura medio segundo. */
+    .tabo.bajoeldedo{ background:#7a6434; color:#fff; z-index:10;
                       font-size:17px; height:64px; line-height:64px;
                       padding:0 14px; font-weight:600;
                       box-shadow:0 3px 10px -4px rgba(60,40,15,.6); }
@@ -3659,7 +3690,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '07-SEP-26 18:15';
+window.GLOSS_BUILD = '07-SEP-26 19:19';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
