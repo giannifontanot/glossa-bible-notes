@@ -1209,6 +1209,101 @@ async function andamio(p){
                        JSON.stringify(barrido.malas.slice(0, 3)) : JSON.stringify(barrido));
   await cerrarParcial(sesVV, 'el teclado desplazado');
 
+  /* ----------------------------------------------------------------
+     LA PIEDRA NO SE HUNDE BAJO EL TEXTO AL VOLTEAR LA HOJA.
+
+     En la hoja quieta la piedra va ENCIMA del texto: es algo que se dejó sobre
+     el papel, no algo impreso en él. Durante el volteo salía debajo, y no por
+     un z-index: la foto del pliegue no es una imagen sino un LIENZO, y
+     componer() dibuja primero el SVG de la hoja y ENCIMA pinta los glifos uno
+     a uno —el SVG va en sin-tinta, con el texto transparente, justo para eso—.
+     Con las piedras dentro de ese SVG, ninguna podía quedar por encima de una
+     letra. Se veía hundirse al empezar a girar y salir a flote al aterrizar.
+     Lo levantó el dueño del repo pasando páginas, y se notó ahora porque la
+     piedra nueva nace grande; con las chicas de antes tapaba media palabra.
+
+     SE MIDE EN EL LIENZO DE VERDAD, #fx, que es donde se pinta el volteo. Se
+     muestrea una rejilla dentro del disco macizo de la piedra y se cuenta qué
+     parte lleva su tinta. Y no se compara con un color escrito a mano sino con
+     la RELACIÓN entre canales —el índigo tiene el azul muy por encima del
+     rojo—, que sobrevive al filtro de brillo y contraste de la hoja y a que
+     alguien retoque la paleta.
+
+     Medido en las dos direcciones, que es lo que hace que esto valga: 92% con
+     las piedras dentro del SVG —los glifos se comen el 8%, que es más o menos
+     lo que mancha de tinta un párrafo— y 100% con la capa dibujada al final.
+     El listón va en 99: por debajo de eso hay letras encima.
+
+     La caja de #fx se mide EN CADA MUESTRA: va en display:none mientras la
+     hoja está quieta, así que medirla antes del volteo da 0x0 y todas las
+     cuentas caen fuera del lienzo. */
+  titulo('al voltear la hoja, la piedra no se hunde bajo el texto');
+  const sesFx = await abrir();
+  const pfx = sesFx.pagina;
+  await pfx.evaluate(() => {
+    const hoy = Date.now();
+    localStorage.setItem('glossa:piedras:v1', JSON.stringify([{
+      id:'fx1', libro:'MAT', cap:1, vers:1, x:.26, y:.30,
+      forma:'piedra', color:'indigo', tam:5, sombra:true,
+      creado:hoy, tocado:hoy }]));
+  });
+  await pfx.reload();
+  await pfx.waitForTimeout(900);
+  const enElPliegue = await pfx.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const fx = document.getElementById('fx');
+    const sitio = document.querySelector('.piedra-sitio');
+    if (!fx || !sitio) return { sinNada: !fx ? 'no hay lienzo' : 'no hay piedra' };
+    const s = sitio.getBoundingClientRect();
+    const cx = s.left + s.width / 2, cy = s.top + s.height / 2;
+    /* Dentro del 30% del ancho: bien adentro del disco, lejos del filo y de
+       su suavizado. */
+    const rad = s.width * 0.30, puntos = [];
+    for (let i = -4; i <= 4; i++) for (let j = -4; j <= 4; j++){
+      const dx = i * rad / 4, dy = j * rad / 4;
+      if (dx * dx + dy * dy <= rad * rad) puntos.push([cx + dx, cy + dy]);
+    }
+    const esPiedra = d => d[3] > 200 && d[2] - d[0] > 25;
+    const medir = () => {
+      try {
+        const rf = fx.getBoundingClientRect();
+        if (!rf.width || !rf.height) return null;
+        const k = fx.width / rf.width;
+        const g = fx.getContext('2d', { willReadFrequently:true });
+        let si = 0;
+        for (const [x, y] of puntos){
+          const d = g.getImageData(Math.round((x - rf.left) * k),
+                                   Math.round((y - rf.top) * k), 1, 1).data;
+          if (esPiedra(d)) si++;
+        }
+        return Math.round(si * 100 / puntos.length);
+      } catch(e){ return null; }
+    };
+    /* Se pasa hoja con el puntero, como manda la casa, y se muestrea mientras
+       gira: el pliegue acaba tapando la piedra, así que lo que vale es el
+       mejor cuadro de los que la enseñan enteros. */
+    const b = document.querySelector('[data-paso="1"]');
+    const rr = b.getBoundingClientRect();
+    const o = { bubbles:true, cancelable:true, pointerId:66, pointerType:'touch',
+                isPrimary:true, clientX: rr.left + rr.width/2, clientY: rr.top + rr.height/2 };
+    b.dispatchEvent(new PointerEvent('pointerdown', o));
+    setTimeout(() => { b.dispatchEvent(new PointerEvent('pointerup', o));
+      b.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, o))); }, 40);
+    const serie = [];
+    for (let i = 0; i < 16; i++){ await pausa(40); serie.push(medir()); }
+    return { puntos: puntos.length, serie,
+             vistos: serie.filter(x => x !== null && x > 0).length,
+             mejor: serie.reduce((a, x) => (x !== null && x > a ? x : a), 0) };
+  });
+  di('la piedra en el lienzo', JSON.stringify(enElPliegue));
+  vale('(la prueba es válida) el lienzo del pliegue enseñó la piedra',
+       !enElPliegue.sinNada && enElPliegue.vistos > 0,
+       enElPliegue.sinNada || (enElPliegue.vistos + ' cuadros con piedra'));
+  vale('AL VOLTEAR, LA PIEDRA SALE ENTERA Y NO CON EL TEXTO ENCIMA',
+       enElPliegue.mejor >= 99,
+       enElPliegue.mejor + '% de la piedra, de ' + enElPliegue.puntos + ' puntos');
+  await cerrarParcial(sesFx, 'la piedra en el pliegue');
+
   /* El nombre se lee de lapiz.guardado y no escrito a mano: ésta ya se
      descolgó una vez, cuando el bloque de arriba cambió el nombre y aquí se
      quedó el viejo. Leyéndolo de donde se puso, no puede volver a pasar. */

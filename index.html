@@ -3659,7 +3659,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '07-SEP-26 17:11';
+window.GLOSS_BUILD = '07-SEP-26 18:15';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8519,6 +8519,42 @@ function htmlPiedrasFoto(hojaN){
         '</div>';
     }).join('') + '</div>';
 }
+/* LA CAPA DE LAS PIEDRAS, SOLA Y CON EL PAPEL EN TRANSPARENTE.
+
+   Es el mismo esqueleto que buildSVG —.pg con su relleno y .pg-inner con su
+   ancho— y no puede ser otro: las piedras se colocan en PORCENTAJES de
+   .pg-inner, así que una caja de otro tamaño las pondría en otro sitio, y una
+   piedra que se mueve al voltear es peor que una piedra tapada. Lo único que
+   cambia es --papel, que aquí va transparente: esta imagen se dibuja ENCIMA
+   del texto ya pintado y un fondo de papel lo borraría entero.
+   Devuelve cadena vacía si esta hoja no tiene piedras, y entonces no se carga
+   ninguna segunda imagen: el volteo de una hoja sin piedras cuesta hoy
+   exactamente lo que costaba antes. */
+function svgPiedrasSolas(w, h, hojaN){
+  const capa = htmlPiedrasFoto(hojaN);
+  if (!capa) return '';
+  const med = enTelefono() ? { texto:pgBody.offsetWidth, glosa:pgMargin.offsetWidth,
+                               hueco:11 } : null;
+  const estInner = med ? ' style="width:'+(med.texto+med.hueco+med.glosa)+'px;max-width:none;' +
+                         'padding-bottom:'+getComputedStyle(pgBody.closest('.pg-inner')).paddingBottom+'"' : '';
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'+
+    '<foreignObject x="0" y="0" width="'+w+'" height="'+h+'">'+
+      '<div xmlns="http://www.w3.org/1999/xhtml" class="pg" style="width:'+w+'px;height:'+h+'px'+
+          ';--papel:transparent;background:transparent'+
+          ';--mx:'+(med ? 0 : MARGENES[margen][1])+'px'+'">'+
+        '<style>'+PAGE_CSS+'</style><div class="pg-inner"'+estInner+'>'+capa+'</div>'+
+      '</div>'+
+    '</foreignObject></svg>';
+}
+/* Y LAS DOS IMÁGENES, PEDIDAS EN ORDEN. La segunda solo se pide si la hay, y
+   si falla se sigue adelante sin ella: una foto sin piedras es una foto; no
+   tenerla es una hoja en blanco girando. */
+function cargarFotoYPiedras(svg, svgPiedras, ok, fail){
+  loadSVG(svg, img => {
+    if (!svgPiedras){ ok(img, null); return; }
+    loadSVG(svgPiedras, ip => ok(img, ip), () => ok(img, null));
+  }, fail);
+}
 function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza, hojaN){
   bodyHTML = aXML(bodyHTML); marginHTML = aXML(marginHTML); footHTML = aXML(footHTML);
   const fs = fontSize+'px', m = mw||'0px', g = gap||'0px';
@@ -8570,9 +8606,26 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza, hojaN){
           ';--rot-cab:'+colorRotuloCab()+';--rot-pie:'+colorRotuloPie()+
           ';--fs:'+fontSize+'px;--fs-glosa:'+fontSizeGlosa+'px'+
           ';--mx:'+(med ? 0 : MARGENES[margen][1])+'px'+'">'+
+        /* LAS PIEDRAS YA NO VAN AQUÍ, y esto es un arreglo, no una limpieza.
+
+           Estaban, y salían DEBAJO DEL TEXTO durante todo el volteo. La foto
+           no es solo esta imagen: componer() la dibuja en un lienzo y ENCIMA
+           pinta los glifos uno a uno —el SVG va en sin-tinta, con el texto
+           transparente, justo para eso—. O sea que cualquier cosa metida en
+           este SVG queda por debajo de las letras pase lo que pase, y ni el
+           z-index ni el orden de los hijos pueden nada contra eso: son dos
+           capas de un lienzo, no dos cajas de una hoja.
+           En la hoja viva la piedra va encima, así que al voltear se veía
+           hundirse bajo el texto y volver a salir al aterrizar: el mismo
+           brinco que este archivo lleva media docena de comentarios evitando.
+           Se notaba poco con las piedras chicas de antes; con la piedra nueva
+           naciendo en el 5 de 8, se ve a la primera. Lo levantó el dueño del
+           repo pasando páginas.
+           Ahora van en su propia imagen, que componer() dibuja LA ÚLTIMA. La
+           cinta se queda aquí a propósito: cuelga del filo, fuera de la
+           columna de texto, así que nada la tapa. */
         '<style>'+PAGE_CSS+'</style><div class="pg-inner"'+estInner+'>'+
         htmlCintaFoto(hojaN)+
-        htmlPiedrasFoto(hojaN)+
         '<div class="pg-version"'+estVer+'>'+esc(D.versiones[version].abrev || version)+'</div>'+
         '<div class="pg-cabeza"'+estCab+'>'+esc(cabeza||'')+'</div><div class="pg-cols"'+estCols+'>'+
         '<div class="pg-body" xml:lang="'+idiomaVersion(version)+'" lang="'+idiomaVersion(version)+'" style="'+estBody+estiloEnLinea()+'">'+bodyHTML+'</div>'+
@@ -8617,7 +8670,7 @@ function rectsDeMarcas(bodyEl, hostEl){
   }
   return out;
 }
-function componer(img, ms, palabras, w, h){
+function componer(img, ms, palabras, w, h, imgPiedras){
   const dpr = Math.min(window.devicePixelRatio||1, 2);
   const c = document.createElement('canvas'); c.width = w*dpr; c.height = h*dpr;
   const g = c.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
@@ -8642,6 +8695,11 @@ function componer(img, ms, palabras, w, h){
       g.restore();
     }
   }
+  /* Y LAS PIEDRAS, LAS ÚLTIMAS DE TODAS. Van después de los glifos y de las
+     marcas porque en la hoja viva van encima de las dos: una piedra es algo
+     que se dejó SOBRE el papel, no algo impreso en él. Ver el comentario de
+     buildSVG, que es donde estaban antes y por qué salían hundidas. */
+  if (imgPiedras) g.drawImage(imgPiedras, 0, 0, w, h);
   return c;
 }
 /* Fotografía CUALQUIER hoja del mapa, no solo las vecinas: un salto
@@ -8669,14 +8727,16 @@ function fotoDeHojaCrudo(p, asignar){
   ghostVersion.textContent = D.versiones[version].abrev || version;
   const ms = rectsDeMarcas(ghostBody, ghost);
   const palabras = medirPalabras(ghost);
-  loadSVG(buildSVG(cuerpoHTML(from, hasta), r.marginHTML, r.footHTML, r.mw, r.gap, w, h, cabezaDe(from), p),
-    img => {
+  cargarFotoYPiedras(
+    buildSVG(cuerpoHTML(from, hasta), r.marginHTML, r.footHTML, r.mw, r.gap, w, h, cabezaDe(from), p),
+    svgPiedrasSolas(w, h, p),
+    (img, ip) => {
       /* Componer puede reventar —un lienzo enorme no siempre se reserva— y si
          revienta aquí, `asignar` no se llama nunca y quien esperaba la foto se
          queda esperando. Una foto que no salió es una foto nula, que es un
          desenlace que todos los que llaman aquí ya saben atender. */
       let foto = null;
-      try { foto = componer(img, ms, palabras, w, h); } catch(e){ foto = null; }
+      try { foto = componer(img, ms, palabras, w, h, ip); } catch(e){ foto = null; }
       asignar(foto); if (folding) drawFold();
     }, () => asignar(null));
 }
@@ -8695,9 +8755,11 @@ function makeSnapshotCrudo(){
   snapFirma = estiloFirma();
   const ms = rectsDeMarcas(pgBody, pg);
   const palabras = medirPalabras(pg);
-  loadSVG(buildSVG(cuerpoHTML(startIdx, nextIdx), curMarginHTML, curFootHTML, curMW, curGap, w, h, cabezaDe(startIdx), paginaActual),
-    img => { if (mia !== rondaFoto) return;
-             pageImg = componer(img, ms, palabras, w, h); if (folding){ pg.classList.add('hidden'); drawFold(); } },
+  cargarFotoYPiedras(
+    buildSVG(cuerpoHTML(startIdx, nextIdx), curMarginHTML, curFootHTML, curMW, curGap, w, h, cabezaDe(startIdx), paginaActual),
+    svgPiedrasSolas(w, h, paginaActual),
+    (img, ip) => { if (mia !== rondaFoto) return;
+             pageImg = componer(img, ms, palabras, w, h, ip); if (folding){ pg.classList.add('hidden'); drawFold(); } },
     () => { if (mia !== rondaFoto) return;
             pageImg = null; pg.classList.remove('hidden'); });
   fotoDeHoja(paginaActual + 1, i => { if (mia !== rondaFoto) return;
@@ -11196,9 +11258,29 @@ $('canto').addEventListener('click', ev => {
    pasa hoja y además la pliega con el dedo. Ahora la flecha señala el filo y
    se calla; el toque lo recoge el filo, que ya estaba ahí. Con pointer-events
    en none el toque ni siquiera llega hasta aquí. */
+/* EL LIBRO QUE SE ESTÁ ELIGIENDO, que NO es el libro donde estás.
+
+   La marca dorada del panel quería decir dos cosas a la vez y por eso no
+   servía para ninguna. Decía «aquí estás leyendo», y la pintaba
+   refrescarLibroActual leyendo LIBRO; desde que tocar un libro dejó de saltar
+   —se pidió así: elegir libro es el primero de tres pasos y ninguno debe mover
+   la hoja—, LIBRO ya no cambia al tocar, así que la marca que pone el toque la
+   borraba el primer repintado que pasara por aquí. Y por aquí pasa cualquier
+   cosa: pasar de hoja, un resize… que en un teléfono salta solo cada vez que
+   el navegador esconde o enseña su barra. Medido: la marca aguanta mientras no
+   pase nada, y se va a «Mateo» en cuanto llega un resize. El dueño del repo lo
+   dijo más corto: «al tocar un libro no se marca».
+
+   Así que la elección tiene su propio apunte. Mientras el panel está abierto
+   manda lo elegido; cuando no hay nada elegido —o el panel se abre o se
+   cierra— vuelve a mandar dónde estás, que es lo que hay que ver al abrirlo.
+   No se guarda en los ajustes a propósito: es de este rato, no de este
+   lector. */
+let cantoElegido = null;
+const cantoMarcado = () => cantoElegido || LIBRO;
 function refrescarLibroActual(){
   document.querySelectorAll('#canto [data-libro]').forEach(b => {
-    const vivo = hayLibro(b.dataset.libro), aqui = b.dataset.libro === LIBRO;
+    const vivo = hayLibro(b.dataset.libro), aqui = b.dataset.libro === cantoMarcado();
     b.classList.toggle('aqui', aqui);
     b.classList.toggle('viva', !aqui && vivo);
     b.classList.toggle('muerta', !aqui && !vivo);
@@ -11307,7 +11389,7 @@ function pintarCanto(){
     '<span>ver flechas de pasar página</span></label>' +
     cantoPestanasHTML();
   const celdas = libros => libros.map(b => {
-      const vivo = hayLibro(b.id), aqui = b.id === LIBRO;
+      const vivo = hayLibro(b.id), aqui = b.id === cantoMarcado();
       return '<button class="tabo ' + (aqui ? 'aqui' : vivo ? 'viva' : 'muerta') +
              '" data-libro="' + b.id + '" title="' + b.nombre +
              (vivo ? '' : ' — no está en estos datos') + '">' + b.nombre + '</button>';
@@ -11366,6 +11448,10 @@ function cantoVerTestamento(id){
   /* De dónde viene lo nuevo: del Antiguo se entra por la izquierda, del Nuevo
      por la derecha, que es el orden en que están las dos pestañas. */
   const dir = id === 'AT' ? -1 : 1;
+  /* Cambiar de testamento se lleva la elección: el libro elegido ya no está en
+     la lista que se ve, y una marca en una lista que no la contiene no marca
+     nada. Es lo mismo que ya hace con la cascada de capítulos. */
+  cantoElegido = null;
   cantoTesta = id;
   guardarAjustes();
   ocultarCascada();
@@ -11419,17 +11505,57 @@ function ocultarCascada(){ ocultarFly(flyVers); ocultarFly(flyCaps); }
 
 /* Se coloca al lado del ancla; si no cabe a la derecha, se pasa a la
    izquierda, y siempre se mantiene dentro de la hoja. */
-function colocarFly(el, ancla){
+/* DÓNDE SE CUELGA UNA CAJITA, Y POR QUÉ HAY DOS MANERAS.
+
+   Los VERSÍCULOS se cuelgan AL LADO de su número de capítulo: es una cascada,
+   y al lado no tapa nada de lo que ya elegiste.
+
+   Los CAPÍTULOS se cuelgan DEBAJO de su libro, y esto es un arreglo. Iban
+   también al lado, alineando la cabecera con la del libro… salvo que no
+   cupieran, que en un teléfono es casi siempre: la lista de libros ocupa el
+   ancho, así que la cajita no tiene sitio a ningún lado y acababa encima. Y
+   como además se recolocaba hacia arriba para caber entera —el
+   Math.min(y, alto - h) de antes—, con un libro de la mitad de abajo la
+   cajita subía y tapaba justamente el libro que se acababa de tocar. Medido:
+   con Apocalipsis, la cascada de 461 a 720 sobre un libro de 465 a 517. El
+   dueño del repo lo pidió al derecho: «deberia abrir abajo del libro para
+   seguir viendo el libro seleccionado».
+
+   Así que ahora se elige lado —debajo si cabe, encima si no— y se le RECORTA
+   el alto a lo que quede de ese lado, en vez de moverla para que quepa. La
+   cajita ya rueda por dentro (.fly lleva overflow-y), así que recortarla no
+   esconde ningún capítulo: los pone a un dedo de distancia. Moverla, en
+   cambio, escondía el libro, que es lo único que no se puede esconder.
+
+   El recorte se SUELTA en cada colocación: si no, el de la vez anterior se
+   toma por el alto natural y la cajita ya nunca vuelve a crecer. */
+function colocarFly(el, ancla, modo){
   const e = stage.getBoundingClientRect();
   el.style.display = 'block';
   el.style.visibility = 'hidden';
+  el.style.removeProperty('max-height');
   el.classList.remove('visible');
-  const w = el.offsetWidth, h = el.offsetHeight;
-  let x = ancla.right - e.left + 7;
-  if (x + w > e.width - 5) x = ancla.left - e.left - w - 7;
+  const w = el.offsetWidth;
+  let h = el.offsetHeight, x, y;
+  if (modo === 'abajo'){
+    /* Pegada al filo izquierdo del libro, que es de donde cuelga. */
+    x = ancla.left - e.left;
+    const hueco = 6;
+    const cabeDebajo = e.height - (ancla.bottom - e.top) - hueco - 5;
+    const cabeEncima = (ancla.top - e.top) - hueco - 5;
+    const debajo = cabeDebajo >= h || cabeDebajo >= cabeEncima;
+    const tope = Math.max(90, debajo ? cabeDebajo : cabeEncima);
+    if (h > tope){ el.style.maxHeight = tope + 'px'; h = tope; }
+    y = debajo ? (ancla.bottom - e.top + hueco)
+               : (ancla.top - e.top - h - hueco);
+  } else {
+    x = ancla.right - e.left + 7;
+    if (x + w > e.width - 5) x = ancla.left - e.left - w - 7;
+    y = ancla.top - e.top - 4;
+    y = Math.max(5, Math.min(y, e.height - h - 5));
+  }
   x = Math.max(5, Math.min(x, e.width - w - 5));
-  let y = ancla.top - e.top - 4;
-  y = Math.max(5, Math.min(y, e.height - h - 5));
+  y = Math.max(5, y);
   el.style.left = Math.round(x) + 'px';
   el.style.top  = Math.round(y) + 'px';
   el.style.visibility = '';
@@ -11444,7 +11570,7 @@ function abrirCapitulos(libro, ancla){
     caps.length + ' cap</span><div class="fly-rejilla">' +
     caps.map(c => '<button class="num" data-cap="' + c + '" title="' +
       versiculosDe(libro, c) + ' versículos">' + c + '</button>').join('') + '</div>';
-  colocarFly(flyCaps, ancla);
+  colocarFly(flyCaps, ancla, 'abajo');
 }
 function abrirVersiculos(cap, ancla){
   selCap = cap;
@@ -11758,6 +11884,9 @@ function abrirCanto(){
   cerrarOtrosRollos(canto);
   cantoAbierto = true;
   selLibro = selCap = null;
+  /* Abrir el panel enseña DÓNDE ESTÁS, no lo que se estuvo eligiendo la vez
+     pasada: una elección a medias de hace un rato es ruido. */
+  cantoElegido = null;
   pintarCanto();
   ponerBarra(canto, 'libros');
   canto.classList.remove('plegando', 'disuelto');
@@ -11775,6 +11904,9 @@ function cerrarCanto(alTerminar, disolver){
   ocultarCascada();
   if (!cantoAbierto){ if (alTerminar) alTerminar(); return; }
   cantoAbierto = false;
+  /* Y cerrarlo la olvida, salte o no salte: si saltó, LIBRO ya dice lo mismo;
+     si no, no hay nada elegido que enseñar. */
+  cantoElegido = null;
   canto.classList.remove('cambio', 'saliendo');
   if (!cambiandoSeccion) marcarCabeza(true);
   if (cambiandoSeccion && !disolver){       /* cambio de pestaña: sin teatro */
@@ -12027,6 +12159,9 @@ function abrirCapitulosDe(lib){
 /* Mueve la marca a este botón sin esperar al viaje. Es lo mismo que hace
    refrescarLibroActual pero de uno solo y por adelantado. */
 function cantoMarcarLibro(lib){
+  /* Se apunta ANTES de pintar: lo que pinta esta función lo repinta cualquiera
+     que llame a refrescarLibroActual, y sin el apunte lo repinta mal. */
+  cantoElegido = lib.dataset.libro;
   document.querySelectorAll('#canto .tabo.aqui').forEach(b => {
     b.classList.remove('aqui');
     b.classList.toggle('viva', hayLibro(b.dataset.libro));
