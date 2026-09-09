@@ -1324,6 +1324,8 @@ async function andamio(p){
      · que el cofre esté en la parrilla y la espiga no;
      · que se llame por su nombre de viva voz, que es como lo oye quien no ve
        la pantalla;
+     · que se abra sobre su bisagra, que es lo que el dueño del repo pidió
+       cuando la primera versión le pareció una caja de herramientas;
      · y QUE NINGUNA PIEDRA YA PUESTA SE QUEDE SIN FIGURA. Una piedra guardada
        con «espiga» tiene que seguir en la hoja y pintarse como cofre. Sin la
        línea de FORMA_VIEJA, piedraSanear no reconocería el nombre y la
@@ -1372,6 +1374,40 @@ async function andamio(p){
     const vieja = { sigue: !!sitio,
                     voz: cuerpo ? cuerpo.getAttribute('aria-label') : null,
                     oro: svgVieja ? [...svgVieja.querySelectorAll('*')].filter(esOro).length : 0 };
+    /* LA CUÑA: se rasteriza el dibujo y se cuenta, columna a columna, cuánto
+       papel hay entre la tapa y el cuerpo. No se mide el ángulo ni se busca
+       un transform, que son la manera de hacerlo y no lo que se pidió. */
+    const hueco = async () => {
+      if (!svgVieja) return null;
+      const lado = 96;
+      const cv = document.createElement('canvas'); cv.width = cv.height = lado;
+      const cx = cv.getContext('2d');
+      const copia = svgVieja.cloneNode(true);
+      copia.setAttribute('width', lado); copia.setAttribute('height', lado);
+      copia.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      const texto = new XMLSerializer().serializeToString(copia);
+      /* new Image() es pieza del navegador, no del programa: se puede usar. */
+      await new Promise((ok, mal) => { const im = new Image();
+        im.onload = () => { cx.drawImage(im, 0, 0, lado, lado); ok(); };
+        im.onerror = mal;
+        im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(texto); });
+      const p = cx.getImageData(0, 0, lado, lado).data;
+      /* el papel que queda ENTRE dos tramos de tinta, que es el hueco; el de
+         arriba y el de abajo del dibujo no cuentan */
+      const enmedio = x => {
+        const hay = []; let dentro = false, ini = 0;
+        for (let y = 0; y < lado; y++){
+          const t = p[(y * lado + x) * 4 + 3] > 60;
+          if (t !== dentro){ if (dentro) hay.push([ini, y]); else ini = y; dentro = t; }
+        }
+        if (dentro) hay.push([ini, lado]);
+        return hay.length < 2 ? 0 : hay[1][0] - hay[0][1];
+      };
+      return { bisagra: enmedio(Math.round(lado * .14)),
+               medio:   enmedio(Math.round(lado * .50)),
+               suelta:  enmedio(Math.round(lado * .75)) };
+    };
+    vieja.hueco = await hueco();
     /* Y LA PARRILLA, abriéndole el mando a esa misma piedra. */
     const r0 = sitio.getBoundingClientRect();
     sitio.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
@@ -1392,11 +1428,29 @@ async function andamio(p){
        cofre.formas.length === 14, cofre.formas.join(' '));
   vale('  y se llama «cofre del tesoro» de viva voz',
        cofre.rotulo === 'cofre del tesoro', cofre.rotulo);
-  /* EL ORO ES LO QUE LO HACE UN COFRE DEL TESORO Y NO UN BAÚL: son las cuatro
-     piezas del montón de monedas, el único color fijo del dibujo. Si alguien
-     las quita creyendo que sobran, esto lo dice. */
-  vale('  y lleva su montón de monedas: cuatro piezas de oro',
-       cofre.vieja.oro === 4, cofre.vieja.oro + ' piezas doradas');
+  /* EL ORO ES LO QUE LO HACE UN COFRE DEL TESORO Y NO UN BAÚL: el montón de
+     monedas y el bocallave, que es el único color fijo del dibujo. Si alguien
+     lo quita creyendo que sobra, esto lo dice.
+     VA COMO SUELO Y NO COMO CIFRA EXACTA, y eso es a propósito: esta misma
+     línea pedía «cuatro» y el rediseño de la tapa —cuatro monedas, bocallave y
+     bisagra— la habría hecho fallar sin que nada estuviera roto. Una prueba
+     que cuenta piezas prueba el dibujo que había el día que se escribió; lo
+     que hay que sostener es que el oro siga ahí. */
+  vale('  y lleva su montón de monedas: cuatro piezas de oro o más',
+       cofre.vieja.oro >= 4, cofre.vieja.oro + ' piezas doradas');
+  /* LA TAPA CUELGA DE UNA BISAGRA A LA IZQUIERDA, que es lo que el dueño del
+     repo pidió después de ver la primera versión: con la tapa plana flotando
+     encima, el cofre parecía «una caja de herramientas con una olla». Abierta
+     sobre una bisagra, el papel que queda entre la tapa y el cuerpo es UNA
+     CUÑA: cerrada en la bisagra y ancha en el extremo suelto. Eso es lo que se
+     mide —tres columnas del dibujo rasterizado—, y no el ángulo ni el
+     transform: si mañana la tapa se dibuja de otra manera pero sigue
+     abriéndose sobre la izquierda, esta prueba tiene que seguir pasando. */
+  vale('LA TAPA SE ABRE SOBRE UNA BISAGRA A LA IZQUIERDA: el hueco es una cuña',
+       !!cofre.vieja.hueco && cofre.vieja.hueco.bisagra <= 1 &&
+       cofre.vieja.hueco.suelta >= 8 &&
+       cofre.vieja.hueco.suelta > cofre.vieja.hueco.medio,
+       JSON.stringify(cofre.vieja.hueco));
   vale('UNA PIEDRA GUARDADA COMO ESPIGA SIGUE EN LA HOJA Y SE PINTA COMO COFRE',
        cofre.vieja.sigue === true && /cofre del tesoro/.test(cofre.vieja.voz || ''),
        JSON.stringify(cofre.vieja));
