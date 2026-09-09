@@ -1119,10 +1119,10 @@ async function andamio(p){
      una pieza del navegador, no código de la aplicación. Es la misma licencia
      que ya se toma la altura, y por la misma razón.
 
-     Se barre: tres alturas de teclado × cuatro desplazamientos × tres filas
-     —la primera, la de en medio y la última—, y de cada combinación se piden
-     las dos cosas que el lector necesita a la vez, que es lo que hace que no
-     se pueda arreglar una rompiendo la otra:
+     Se barre: cinco alturas de teclado × cuatro desplazamientos × cuatro filas
+     —la primera, la de en medio, la 15 y la última—, y de cada combinación se
+     piden las dos cosas que el lector necesita a la vez, que es lo que hace
+     que no se pueda arreglar una rompiendo la otra:
      · que la cabecera del panel no quede por encima de lo que se ve;
      · y que el campo donde se escribe no quede debajo del teclado.
      Sin la segunda, «no se sale por arriba» se arregla dejando el panel
@@ -1165,9 +1165,20 @@ async function andamio(p){
     if (filas().length < 20) return { pocas: filas().length };
     const malas = [];
     let cuantas = 0;
-    for (const alto of [560, 460, 380])
+    /* EL BARRIDO SE ANCHÓ, y no por gusto. Con [560,460,380] × [0,60,140,260]
+       × [0,9,19] este bloque pasaba aquí y fallaba en el navegador del dueño
+       del repo por diez píxeles: lo que mide una fila no es igual en dos
+       navegadores, así que la misma combinación cae a un lado o al otro de la
+       raya. Un umbral no arregla eso. Se añaden la fila 15 y las alturas 340 y
+       420, que es donde se reproduce aquí —con 380 y la fila 15, el campo
+       quedaba 19 px por debajo del suelo teniendo el panel 222 px de rodadura
+       sin usar—; y el arreglo está en vigilarTecladoPanel, que ahora mira los
+       DOS bordes al asentarse y no solo la cabecera.
+       Son 60 combinaciones y tarda: es la parte lenta de esta suite, y vale lo
+       que cuesta, porque es lo único que ha cazado este fallo. */
+    for (const alto of [560, 460, 420, 380, 340])
     for (const desp of [0, 60, 140, 260])
-    for (const fi of [0, 9, 19]){
+    for (const fi of [0, 9, 15, 19]){
       /* Se suelta el teclado entre una y otra: cada combinación empieza como
          empieza de verdad, sin el desplazamiento de la anterior puesto. */
       ALTO = window.innerHeight; DESP = 0;
@@ -1201,8 +1212,8 @@ async function andamio(p){
     return { malas, cuantas };
   });
   di('el barrido del teclado', JSON.stringify(barrido));
-  vale('(la prueba es válida) se barrieron las 36 combinaciones',
-       barrido.cuantas === 36, barrido.cuantas + ' de 36');
+  vale('(la prueba es válida) se barrieron las 80 combinaciones',
+       barrido.cuantas === 80, barrido.cuantas + ' de 80');
   vale('CON TECLADO, LA CABECERA NO SE VA POR ENCIMA NI EL CAMPO SE TAPA',
        !!barrido.malas && barrido.malas.length === 0,
        barrido.malas ? barrido.malas.length + ' fallan: ' +

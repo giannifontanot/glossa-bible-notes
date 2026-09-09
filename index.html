@@ -3768,7 +3768,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '09-SEP-26 06:57';
+window.GLOSS_BUILD = '09-SEP-26 07:36';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -14867,14 +14867,56 @@ function vigilarTecladoPanel(el, buscarFila){
        accidente aquí: es la única manera de seguir a una ventana visual que se
        ha ido hacia abajo. Y sin teclado, offsetTop es 0 y esta rama ni se pisa.
        En un navegador sin pantalla offsetTop es siempre 0, por eso no salía
-       nunca aquí y salía siempre allí; la sonda lo finge. */
+       nunca aquí y salía siempre allí; la sonda lo finge.
+
+       Y SE MIRAN LOS DOS BORDES, NO SOLO EL DE ARRIBA. Había cinturón para la
+       cabecera y ninguno para el campo, y por ahí se coló el fallo que levantó
+       la tanda de Codex: el panel pegado al techo, correcto, y el campo del
+       nombre diez píxeles POR DEBAJO de lo que se ve. Lo que el techo no deja
+       subir se lo come el panel por dentro —el bloque de abajo—, pero eso se
+       calcula UNA vez, con los números de ese instante, y después nadie
+       comprueba dónde acabó. Con la lista larga y el panel recortado, el
+       desplazamiento de dentro se quedaba corto y ahí se quedaba: medido, el
+       panel podía rodar 45 px más y no los rodaba.
+       Por eso el mismo caso salía bien aquí y mal allí: depende de lo que
+       midan las filas, que no es igual en dos navegadores. Diez píxeles de
+       sobra en uno, diez de menos en el otro. Un umbral no lo arregla; lo
+       arregla mirar.
+
+       Se hace en el mismo sitio y por la misma razón que el de arriba: cuando
+       todo se ha asentado, se mira, y lo que falte se termina. Primero la
+       cabecera y después el campo, y NO en el mismo tirón: mover el panel es
+       una transición, así que si se ha tocado se vuelve a mirar cuando llegue,
+       en vez de medir el campo contra un panel a medio camino.
+       Las dos ramas convergen —una deja la cabecera exactamente en el borde y
+       la otra rueda hacia un tope que existe—, pero el número de pasadas va
+       contado igualmente: un bucle de asentamiento que no se sabe terminar es
+       peor que el fallo que arregla. */
     clearTimeout(el._recorte);
-    el._recorte = setTimeout(() => {
+    el._asientos = 0;
+    const asentar = () => {
+      if (++el._asientos > 4) return;
       const arriba = vv.offsetTop + 8;
       const r = el.getBoundingClientRect();
-      if (r.top >= arriba - 1) return;
-      el.style.setProperty('--sube', (trasladoDe(el) + (arriba - r.top)) + 'px');
-    }, 420);
+      if (r.top < arriba - 1){
+        el.style.setProperty('--sube', (trasladoDe(el) + (arriba - r.top)) + 'px');
+        clearTimeout(el._recorte);
+        el._recorte = setTimeout(asentar, 420);
+        return;
+      }
+      const f = buscarFila();
+      if (!f) return;
+      const falta = f.getBoundingClientRect().bottom - (vv.offsetTop + vv.height - 10);
+      if (falta <= 1) return;
+      if (el.scrollHeight - el.clientHeight - el.scrollTop <= 1) return;
+      const quieto = window.matchMedia &&
+                     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      el._rodando = Date.now();
+      el.scrollTo({ top: el.scrollTop + falta, behavior: quieto ? 'auto' : 'smooth' });
+      clearTimeout(el._recorte);
+      el._recorte = setTimeout(asentar, 420);
+    };
+    el._recorte = setTimeout(asentar, 420);
     /* Lo que el techo no dejó subir se lo come el panel por dentro. */
     const resto = tapado - sube;
     if (resto > 1 && Date.now() - (el._rodando || 0) > 400 &&
@@ -14895,7 +14937,7 @@ function vigilarTecladoPanel(el, buscarFila){
   el._teclado = () => {
     vv.removeEventListener('resize', mirar);
     vv.removeEventListener('scroll', mirar);
-    clearTimeout(el._recorte); el._recorte = null;
+    clearTimeout(el._recorte); el._recorte = null; el._asientos = 0;
     el._mirarTeclado = null;
     el.style.removeProperty('--sube');
     el.style.removeProperty('max-height');
