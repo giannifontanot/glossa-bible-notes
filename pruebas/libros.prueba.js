@@ -488,6 +488,61 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        luz(salto.tabSueltoFondo) > 230,
        'pestaña ' + salto.tabFondo + ' / ' + salto.tabColor +
        ' · la otra ' + salto.tabSueltoFondo);
+
+  /* ================================================================
+     LOS BOTONES SON CHICLETS: ESQUINA REDONDA Y RELIEVE.
+
+     Pedido por el dueño del repo, y son las DOS cosas: con solo la esquina se
+     quedan en botones redonditos y planos; lo que los convierte en pastillas
+     es el relieve —una sombra blanca dentro por arriba, una tostada dentro por
+     abajo, y una de fuera corta que los despega del papel—. Se piden las dos
+     porque quitar cualquiera de ellas deshace el encargo sin romper la otra.
+
+     Y SE PIDE EL MISMO TRATO EN LAS PESTAÑAS AT/NT, que es donde el encargo se
+     paró: no en las de arriba —LIBROS, GLOSAS, FORMATO, RESPALDO—, que siguen
+     siendo pestañas con su esquina de abajo recta. Se comprueba también eso,
+     que si no «lo mismo en todas partes» pasaría igual de verde.
+
+     Los números no se leen de la hoja de estilos sino que se piden por
+     encima: la esquina, que llegue a 10 px —por debajo la curva no se lee a la
+     altura que tienen en el teléfono—; y del relieve, que HAYA sombra dentro y
+     fuera, sin exigir cuántas ni de qué tono, que eso es la técnica y puede
+     cambiar. */
+  const chiclets = await p2.evaluate(() => {
+    const lee = e => {
+      if (!e) return null;
+      const c = getComputedStyle(e);
+      return { radio: parseFloat(c.borderTopLeftRadius) || 0,
+               abajo: parseFloat(c.borderBottomLeftRadius) || 0,
+               sombra: c.boxShadow || 'none' };
+    };
+    const libro = document.querySelector('#canto .tabo.viva') ||
+                  document.querySelector('#canto .tabo');
+    const tab = document.querySelector('.canto-tab');
+    const seccion = [...document.querySelectorAll('.pestanas button')]
+                      .find(b => /libros/i.test(b.textContent));
+    return { libro: lee(libro), tab: lee(tab), seccion: lee(seccion) };
+  });
+  di('los chiclets', JSON.stringify(chiclets));
+  const tieneDentro = s => /inset/.test(s || '');
+  const tieneFuera  = s => (s || '').split(/,(?![^()]*\))/).some(t => !/inset/.test(t) && /px/.test(t));
+  vale('LOS LIBROS TIENEN LA ESQUINA REDONDA DE UN CHICLET, arriba y abajo',
+       !!chiclets.libro && chiclets.libro.radio >= 10 && chiclets.libro.abajo >= 10,
+       chiclets.libro && (chiclets.libro.radio + ' / ' + chiclets.libro.abajo + ' px'));
+  vale('  Y RELIEVE: sombra por dentro y por fuera, que es lo que los abomba',
+       !!chiclets.libro && tieneDentro(chiclets.libro.sombra) &&
+       tieneFuera(chiclets.libro.sombra), chiclets.libro && chiclets.libro.sombra);
+  vale('  y las pestañas AT/NT llevan el mismo trato',
+       !!chiclets.tab && chiclets.tab.radio >= 10 && chiclets.tab.abajo >= 10 &&
+       tieneDentro(chiclets.tab.sombra),
+       chiclets.tab && (chiclets.tab.radio + ' / ' + chiclets.tab.abajo + ' px · ' +
+                        chiclets.tab.sombra));
+  /* Y EL CONTROL, que es lo que hace que lo de arriba signifique algo: las
+     pestañas de SECCIÓN no son chiclets. Sin esta línea, redondearlo todo
+     pasaría las tres comprobaciones anteriores. */
+  vale('  CONTROL: las de arriba siguen siendo pestañas, con la esquina de abajo recta',
+       !!chiclets.seccion && chiclets.seccion.abajo <= 4,
+       chiclets.seccion && (chiclets.seccion.radio + ' / ' + chiclets.seccion.abajo + ' px'));
   vale('  con la cascada de capítulos abierta, que es el paso siguiente',
        salto.cascada === true);
   vale('  y el panel de Libros sin cerrarse', salto.panel === true);

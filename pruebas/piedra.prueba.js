@@ -1119,10 +1119,10 @@ async function andamio(p){
      una pieza del navegador, no código de la aplicación. Es la misma licencia
      que ya se toma la altura, y por la misma razón.
 
-     Se barre: tres alturas de teclado × cuatro desplazamientos × tres filas
-     —la primera, la de en medio y la última—, y de cada combinación se piden
-     las dos cosas que el lector necesita a la vez, que es lo que hace que no
-     se pueda arreglar una rompiendo la otra:
+     Se barre: cinco alturas de teclado × cuatro desplazamientos × cuatro filas
+     —la primera, la de en medio, la 15 y la última—, y de cada combinación se
+     piden las dos cosas que el lector necesita a la vez, que es lo que hace
+     que no se pueda arreglar una rompiendo la otra:
      · que la cabecera del panel no quede por encima de lo que se ve;
      · y que el campo donde se escribe no quede debajo del teclado.
      Sin la segunda, «no se sale por arriba» se arregla dejando el panel
@@ -1165,9 +1165,20 @@ async function andamio(p){
     if (filas().length < 20) return { pocas: filas().length };
     const malas = [];
     let cuantas = 0;
-    for (const alto of [560, 460, 380])
+    /* EL BARRIDO SE ANCHÓ, y no por gusto. Con [560,460,380] × [0,60,140,260]
+       × [0,9,19] este bloque pasaba aquí y fallaba en el navegador del dueño
+       del repo por diez píxeles: lo que mide una fila no es igual en dos
+       navegadores, así que la misma combinación cae a un lado o al otro de la
+       raya. Un umbral no arregla eso. Se añaden la fila 15 y las alturas 340 y
+       420, que es donde se reproduce aquí —con 380 y la fila 15, el campo
+       quedaba 19 px por debajo del suelo teniendo el panel 222 px de rodadura
+       sin usar—; y el arreglo está en vigilarTecladoPanel, que ahora mira los
+       DOS bordes al asentarse y no solo la cabecera.
+       Son 60 combinaciones y tarda: es la parte lenta de esta suite, y vale lo
+       que cuesta, porque es lo único que ha cazado este fallo. */
+    for (const alto of [560, 460, 420, 380, 340])
     for (const desp of [0, 60, 140, 260])
-    for (const fi of [0, 9, 19]){
+    for (const fi of [0, 9, 15, 19]){
       /* Se suelta el teclado entre una y otra: cada combinación empieza como
          empieza de verdad, sin el desplazamiento de la anterior puesto. */
       ALTO = window.innerHeight; DESP = 0;
@@ -1201,8 +1212,8 @@ async function andamio(p){
     return { malas, cuantas };
   });
   di('el barrido del teclado', JSON.stringify(barrido));
-  vale('(la prueba es válida) se barrieron las 36 combinaciones',
-       barrido.cuantas === 36, barrido.cuantas + ' de 36');
+  vale('(la prueba es válida) se barrieron las 80 combinaciones',
+       barrido.cuantas === 80, barrido.cuantas + ' de 80');
   vale('CON TECLADO, LA CABECERA NO SE VA POR ENCIMA NI EL CAMPO SE TAPA',
        !!barrido.malas && barrido.malas.length === 0,
        barrido.malas ? barrido.malas.length + ' fallan: ' +
@@ -1303,6 +1314,95 @@ async function andamio(p){
        enElPliegue.mejor >= 99,
        enElPliegue.mejor + '% de la piedra, de ' + enElPliegue.puntos + ' puntos');
   await cerrarParcial(sesFx, 'la piedra en el pliegue');
+
+  /* ----------------------------------------------------------------
+     EL COFRE DEL TESORO, Y LA ESPIGA QUE DEJÓ SU SITIO.
+
+     Lo pidió el dueño del repo. Se comprueban las tres cosas que un cambio de
+     figura tiene que traer, y la tercera es la que se olvida:
+
+     · que el cofre esté en la parrilla y la espiga no;
+     · que se llame por su nombre de viva voz, que es como lo oye quien no ve
+       la pantalla;
+     · y QUE NINGUNA PIEDRA YA PUESTA SE QUEDE SIN FIGURA. Una piedra guardada
+       con «espiga» tiene que seguir en la hoja y pintarse como cofre. Sin la
+       línea de FORMA_VIEJA, piedraSanear no reconocería el nombre y la
+       devolvería al primer escalón —una piedra lisa—, o sea que al lector se
+       le cambiarían solas figuras que él eligió. Ya pasó con la lámpara y con
+       la barca; por eso se prueba.
+
+     EL ORO SE BUSCA POR RELACIÓN Y NO POR SU HEXADECIMAL. compensarDibujo lo
+     corrige antes de pintarlo para el filtro de la hoja: el #e9bb3c del código
+     sale en pantalla como rgb(212,175,74). Un dorado es rojo alto, verde alto
+     y azul bajo, y eso sobrevive a la corrección y a que alguien retoque los
+     rieles de brillo y contraste. Es la cuarta vez en este repo que un umbral
+     escrito a mano llama fallo a la aplicación haciéndolo bien. */
+  titulo('el cofre del tesoro ocupa el sitio de la espiga');
+  const sesCofre = await abrir();
+  const pc = sesCofre.pagina;
+  await pc.evaluate(() => {
+    const hoy = Date.now();
+    localStorage.setItem('glossa:piedras:v1', JSON.stringify([{
+      id:'vieja', libro:'MAT', cap:1, vers:1, x:.5, y:.4, forma:'espiga',
+      color:'carmin', tam:5, sombra:true, creado:hoy, tocado:hoy }]));
+  });
+  await pc.reload();
+  await pc.waitForTimeout(1100);
+  const cofre = await pc.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const toque = async sel => {
+      const e = typeof sel === 'string' ? document.querySelector(sel) : sel;
+      if (!e) return false;
+      const r = e.getBoundingClientRect();
+      const o = { bubbles:true, cancelable:true, pointerId:77, pointerType:'touch',
+                  isPrimary:true, clientX: r.left + r.width/2, clientY: r.top + r.height/2 };
+      e.dispatchEvent(new PointerEvent('pointerdown', o)); await pausa(40);
+      e.dispatchEvent(new PointerEvent('pointerup', o));
+      e.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, o)));
+      return true;
+    };
+    const esOro = t => {
+      const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(getComputedStyle(t).fill || '');
+      return !!m && +m[1] > 180 && +m[2] > 140 && +m[1] - +m[3] > 90;
+    };
+    /* LA VIEJA, la que estaba guardada como espiga. */
+    const sitio = document.querySelector('[data-piedra="vieja"]');
+    const cuerpo = sitio && sitio.querySelector('.piedra');
+    const svgVieja = cuerpo && cuerpo.querySelector('svg');
+    const vieja = { sigue: !!sitio,
+                    voz: cuerpo ? cuerpo.getAttribute('aria-label') : null,
+                    oro: svgVieja ? [...svgVieja.querySelectorAll('*')].filter(esOro).length : 0 };
+    /* Y LA PARRILLA, abriéndole el mando a esa misma piedra. */
+    const r0 = sitio.getBoundingClientRect();
+    sitio.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+      clientX: r0.left + r0.width/2, clientY: r0.top + r0.height/2 }));
+    await pausa(700);
+    const m = document.getElementById('piedraMando');
+    const formas = [...m.querySelectorAll('[data-piedra-forma]')].map(x => x.dataset.piedraForma);
+    const bot = m.querySelector('[data-piedra-forma="cofre"]');
+    return { vieja, formas,
+             hayCofre: !!bot, hayEspiga: formas.includes('espiga'),
+             rotulo: bot ? bot.getAttribute('aria-label') : null,
+             marcada: !!m.querySelector('[data-piedra-forma="cofre"].on, ' +
+                                        '[data-piedra-forma="cofre"][aria-pressed="true"]') };
+  });
+  di('el cofre', JSON.stringify(cofre));
+  vale('EL COFRE ESTÁ EN LA PARRILLA Y LA ESPIGA YA NO',
+       cofre.hayCofre === true && cofre.hayEspiga === false &&
+       cofre.formas.length === 14, cofre.formas.join(' '));
+  vale('  y se llama «cofre del tesoro» de viva voz',
+       cofre.rotulo === 'cofre del tesoro', cofre.rotulo);
+  /* EL ORO ES LO QUE LO HACE UN COFRE DEL TESORO Y NO UN BAÚL: son las cuatro
+     piezas del montón de monedas, el único color fijo del dibujo. Si alguien
+     las quita creyendo que sobran, esto lo dice. */
+  vale('  y lleva su montón de monedas: cuatro piezas de oro',
+       cofre.vieja.oro === 4, cofre.vieja.oro + ' piezas doradas');
+  vale('UNA PIEDRA GUARDADA COMO ESPIGA SIGUE EN LA HOJA Y SE PINTA COMO COFRE',
+       cofre.vieja.sigue === true && /cofre del tesoro/.test(cofre.vieja.voz || ''),
+       JSON.stringify(cofre.vieja));
+  vale('  y la parrilla la enseña marcada en el cofre, no en otra figura',
+       cofre.marcada === true, cofre.marcada);
+  await cerrarParcial(sesCofre, 'el cofre del tesoro');
 
   /* El nombre se lee de lapiz.guardado y no escrito a mano: ésta ya se
      descolgó una vez, cuando el bloque de arriba cambió el nombre y aquí se
