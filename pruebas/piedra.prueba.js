@@ -1304,6 +1304,95 @@ async function andamio(p){
        enElPliegue.mejor + '% de la piedra, de ' + enElPliegue.puntos + ' puntos');
   await cerrarParcial(sesFx, 'la piedra en el pliegue');
 
+  /* ----------------------------------------------------------------
+     EL COFRE DEL TESORO, Y LA ESPIGA QUE DEJÓ SU SITIO.
+
+     Lo pidió el dueño del repo. Se comprueban las tres cosas que un cambio de
+     figura tiene que traer, y la tercera es la que se olvida:
+
+     · que el cofre esté en la parrilla y la espiga no;
+     · que se llame por su nombre de viva voz, que es como lo oye quien no ve
+       la pantalla;
+     · y QUE NINGUNA PIEDRA YA PUESTA SE QUEDE SIN FIGURA. Una piedra guardada
+       con «espiga» tiene que seguir en la hoja y pintarse como cofre. Sin la
+       línea de FORMA_VIEJA, piedraSanear no reconocería el nombre y la
+       devolvería al primer escalón —una piedra lisa—, o sea que al lector se
+       le cambiarían solas figuras que él eligió. Ya pasó con la lámpara y con
+       la barca; por eso se prueba.
+
+     EL ORO SE BUSCA POR RELACIÓN Y NO POR SU HEXADECIMAL. compensarDibujo lo
+     corrige antes de pintarlo para el filtro de la hoja: el #e9bb3c del código
+     sale en pantalla como rgb(212,175,74). Un dorado es rojo alto, verde alto
+     y azul bajo, y eso sobrevive a la corrección y a que alguien retoque los
+     rieles de brillo y contraste. Es la cuarta vez en este repo que un umbral
+     escrito a mano llama fallo a la aplicación haciéndolo bien. */
+  titulo('el cofre del tesoro ocupa el sitio de la espiga');
+  const sesCofre = await abrir();
+  const pc = sesCofre.pagina;
+  await pc.evaluate(() => {
+    const hoy = Date.now();
+    localStorage.setItem('glossa:piedras:v1', JSON.stringify([{
+      id:'vieja', libro:'MAT', cap:1, vers:1, x:.5, y:.4, forma:'espiga',
+      color:'carmin', tam:5, sombra:true, creado:hoy, tocado:hoy }]));
+  });
+  await pc.reload();
+  await pc.waitForTimeout(1100);
+  const cofre = await pc.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const toque = async sel => {
+      const e = typeof sel === 'string' ? document.querySelector(sel) : sel;
+      if (!e) return false;
+      const r = e.getBoundingClientRect();
+      const o = { bubbles:true, cancelable:true, pointerId:77, pointerType:'touch',
+                  isPrimary:true, clientX: r.left + r.width/2, clientY: r.top + r.height/2 };
+      e.dispatchEvent(new PointerEvent('pointerdown', o)); await pausa(40);
+      e.dispatchEvent(new PointerEvent('pointerup', o));
+      e.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, o)));
+      return true;
+    };
+    const esOro = t => {
+      const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(getComputedStyle(t).fill || '');
+      return !!m && +m[1] > 180 && +m[2] > 140 && +m[1] - +m[3] > 90;
+    };
+    /* LA VIEJA, la que estaba guardada como espiga. */
+    const sitio = document.querySelector('[data-piedra="vieja"]');
+    const cuerpo = sitio && sitio.querySelector('.piedra');
+    const svgVieja = cuerpo && cuerpo.querySelector('svg');
+    const vieja = { sigue: !!sitio,
+                    voz: cuerpo ? cuerpo.getAttribute('aria-label') : null,
+                    oro: svgVieja ? [...svgVieja.querySelectorAll('*')].filter(esOro).length : 0 };
+    /* Y LA PARRILLA, abriéndole el mando a esa misma piedra. */
+    const r0 = sitio.getBoundingClientRect();
+    sitio.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+      clientX: r0.left + r0.width/2, clientY: r0.top + r0.height/2 }));
+    await pausa(700);
+    const m = document.getElementById('piedraMando');
+    const formas = [...m.querySelectorAll('[data-piedra-forma]')].map(x => x.dataset.piedraForma);
+    const bot = m.querySelector('[data-piedra-forma="cofre"]');
+    return { vieja, formas,
+             hayCofre: !!bot, hayEspiga: formas.includes('espiga'),
+             rotulo: bot ? bot.getAttribute('aria-label') : null,
+             marcada: !!m.querySelector('[data-piedra-forma="cofre"].on, ' +
+                                        '[data-piedra-forma="cofre"][aria-pressed="true"]') };
+  });
+  di('el cofre', JSON.stringify(cofre));
+  vale('EL COFRE ESTÁ EN LA PARRILLA Y LA ESPIGA YA NO',
+       cofre.hayCofre === true && cofre.hayEspiga === false &&
+       cofre.formas.length === 14, cofre.formas.join(' '));
+  vale('  y se llama «cofre del tesoro» de viva voz',
+       cofre.rotulo === 'cofre del tesoro', cofre.rotulo);
+  /* EL ORO ES LO QUE LO HACE UN COFRE DEL TESORO Y NO UN BAÚL: son las cuatro
+     piezas del montón de monedas, el único color fijo del dibujo. Si alguien
+     las quita creyendo que sobran, esto lo dice. */
+  vale('  y lleva su montón de monedas: cuatro piezas de oro',
+       cofre.vieja.oro === 4, cofre.vieja.oro + ' piezas doradas');
+  vale('UNA PIEDRA GUARDADA COMO ESPIGA SIGUE EN LA HOJA Y SE PINTA COMO COFRE',
+       cofre.vieja.sigue === true && /cofre del tesoro/.test(cofre.vieja.voz || ''),
+       JSON.stringify(cofre.vieja));
+  vale('  y la parrilla la enseña marcada en el cofre, no en otra figura',
+       cofre.marcada === true, cofre.marcada);
+  await cerrarParcial(sesCofre, 'el cofre del tesoro');
+
   /* El nombre se lee de lapiz.guardado y no escrito a mano: ésta ya se
      descolgó una vez, cuando el bloque de arriba cambió el nombre y aquí se
      quedó el viejo. Leyéndolo de donde se puso, no puede volver a pasar. */
