@@ -3776,7 +3776,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '10-SEP-26 07:20';
+window.GLOSS_BUILD = '10-SEP-26 07:30';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5548,7 +5548,25 @@ function tituloHTML(k){
     .filter(l => l !== t.l && p.t[l])
     .map(l => '<span class="peri-sombra" aria-hidden="true" lang="' + l + '">' +
               esc(p.t[l]) + '</span>').join('');
-  return '<h2 class="peri" data-peri="' + esc(p.id) + '"' + suyo + '>' +
+  /* ALCANZABLE CON EL TECLADO, y con atributos y no con un <button> dentro.
+
+     Lo levantó Codex revisando el PR #84 y tenía razón: la lista solo se abría
+     con un click, así que quien navega con teclado o con un conmutador no
+     podía ni llegar al titulillo. Lo natural sería envolver el texto en un
+     <button>, y aquí es justo lo que no se puede hacer: este renglón lo mide
+     el paginador en las CUATRO versiones para cortar la hoja por el mismo
+     sitio, y un botón trae su propia caja, su propio tipo y sus propios
+     rellenos. Un tabindex y un aria no ocupan un píxel —comprobado midiendo
+     los cortes antes y después—, y dan lo mismo: se llega con el tabulador y
+     se abre con Intro o con la barra.
+
+     Y SIGUE SIENDO UN ENCABEZADO. No se le pone role="button" a propósito:
+     eso le quitaría a un lector de pantalla lo que este renglón ES —el título
+     de la escena, y por tanto un sitio por el que saltar—, para decirle en su
+     lugar que es un botón. Con aria-haspopup se anuncia como lo que es y
+     además se avisa de que abre algo. */
+  return '<h2 class="peri" data-peri="' + esc(p.id) + '" tabindex="0"' +
+         ' aria-haspopup="dialog"' + suyo + '>' +
          '<span class="peri-dice">' + esc(t.t) + '</span>' + sombra + '</h2>';
 }
 /* ============================================================
@@ -5659,6 +5677,23 @@ pgBody.addEventListener('click', ev => {
                    Math.hypot(ev.clientX - periAbajo.x, ev.clientY - periAbajo.y) > 12;
   periAbajo = null;
   if (arrastro) return;
+  /* DE LEJOS NO. Con la hoja alejada, un toque en el papel significa «vuelve»
+     —es la puerta de salida del zoom, ver el oyente de stage— y el titulillo
+     es papel de esa hoja como cualquier otro. Sin esta línea pasaban las dos
+     cosas: se abría la lista medida contra la miniatura Y el zoom se cerraba
+     debajo, así que la hoja crecía y la lista se quedaba flotando en el
+     tamaño de antes, despegada del titulillo del que decía salir. Lo levantó
+     Codex revisando el PR #84. */
+  if (zoomActivo) return;
+  ev.preventDefault();
+  abrirEscenas(h);
+});
+/* Y con el teclado: Intro o barra sobre el titulillo hacen lo que el toque. */
+pgBody.addEventListener('keydown', ev => {
+  if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
+  const h = ev.target.closest && ev.target.closest('.peri');
+  if (!h) return;
+  if (zoomActivo) return;
   ev.preventDefault();
   abrirEscenas(h);
 });
@@ -12272,7 +12307,17 @@ document.addEventListener('keydown', ev => {
 
      Va ANTES del guardián de «escribiendo» a propósito: el caso que importa
      es justamente el de estar tecleando dentro de la caja de la glosa. */
-  if (ev.key === 'Escape' && escenasPuestas()){ cerrarEscenas(); ev.preventDefault(); return; }
+  /* CON LA LISTA PUESTA, LA HOJA DE DEBAJO NO SE MUEVE.
+
+     Escape la cierra, y las flechas —que pasan hoja— se quedan aquí. Sin esto
+     se pasaba la hoja por debajo con la lista abierta: la marcada seguía
+     señalando una perícopa de la hoja anterior y el ancla al que volvía el
+     foco ya no existía. Lo levantó Codex revisando el PR #84. */
+  if (escenasPuestas()){
+    if (ev.key === 'Escape'){ cerrarEscenas(); ev.preventDefault(); return; }
+    if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight' ||
+        ev.key === 'PageUp' || ev.key === 'PageDown'){ ev.preventDefault(); return; }
+  }
   if (ev.key === 'Escape'){ ocultarCascada(); cerrarTodosLosRollos(); ocultarMenu();
     /* Y lo del separador, que también son cosas de las que hay que poder
        salir sin puntero: el menú, y la pregunta si está puesta. */

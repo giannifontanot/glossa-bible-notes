@@ -623,6 +623,84 @@ const abrirEn = async (p, donde) => {
   vale('LA HOJA A LA QUE LLEGA TRAE LA PERÍCOPA QUE SE TOCÓ',
        llegada.titulillos.includes(salto.pedida), llegada.titulillos.join(' '));
   vale('  y la lista se cerró sola', llegada.puesta === false, llegada.puesta);
+  /* ================================================================
+     LAS TRES QUE LEVANTÓ CODEX REVISANDO EL PR #84, y las tres eran de verdad.
+
+     Van juntas porque son la misma clase de fallo: el gesto nuevo funciona
+     con el dedo y se olvida de todo lo demás que ya había en la hoja —el
+     teclado, el zoom, las flechas—. Es justo lo que no se ve probando a mano
+     lo que acabas de escribir. */
+  titulo('las escenas no se llevan por delante lo que ya había');
+
+  /* 1 · SE LLEGA CON EL TECLADO. Y el titulillo sigue siendo un encabezado:
+     ponerle role="button" le quitaría a un lector de pantalla lo que ese
+     renglón ES —un sitio por el que saltar— para decirle que es un botón. */
+  const conTeclado = await ses2.pagina.evaluate(async () => {
+    const ts = [...document.querySelectorAll('#pgBody .peri')];
+    const h2 = ts[Math.min(1, ts.length - 1)];
+    h2.focus();
+    const conFoco = document.activeElement === h2;
+    h2.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true, cancelable:true }));
+    await new Promise(z => setTimeout(z, 600));
+    return { alcanzable: h2.tabIndex >= 0, conFoco,
+             abrio: document.getElementById('escenas').classList.contains('puesto'),
+             etiqueta: h2.tagName, papel: h2.getAttribute('role'),
+             avisa: h2.getAttribute('aria-haspopup') };
+  });
+  di('con el teclado', conTeclado);
+  vale('SE LLEGA AL TITULILLO CON EL TECLADO Y SE ABRE CON INTRO',
+       conTeclado.alcanzable === true && conTeclado.conFoco === true &&
+       conTeclado.abrio === true, JSON.stringify(conTeclado));
+  vale('  y sigue siendo un encabezado, no un botón',
+       conTeclado.etiqueta === 'H2' && !conTeclado.papel &&
+       conTeclado.avisa === 'dialog',
+       conTeclado.etiqueta + ' role=' + conTeclado.papel + ' haspopup=' + conTeclado.avisa);
+
+  /* 2 · CON LA LISTA PUESTA, LA HOJA DE DEBAJO NO SE MUEVE. Las flechas pasan
+     hoja, y pasándola por debajo la marcada señalaba una perícopa de la hoja
+     anterior y el ancla al que vuelve el foco ya no existía. */
+  const antesDeFlecha = await ses2.pagina.evaluate(() => window.__estado || '');
+  await ses2.pagina.keyboard.press('ArrowRight');
+  await ses2.pagina.waitForTimeout(1700);
+  const trasFlecha = await ses2.pagina.evaluate(() => ({
+    estado: window.__estado || '',
+    puesta: document.getElementById('escenas').classList.contains('puesto') }));
+  di('la flecha con la lista puesta', { antesDeFlecha, trasFlecha });
+  vale('LAS FLECHAS NO PASAN HOJA CON LA LISTA PUESTA',
+       antesDeFlecha === trasFlecha.estado,
+       antesDeFlecha + ' → ' + trasFlecha.estado);
+  vale('  y la lista sigue donde estaba', trasFlecha.puesta === true, trasFlecha.puesta);
+  await ses2.pagina.keyboard.press('Escape');
+  await ses2.pagina.waitForTimeout(500);
+
+  /* 3 · DE LEJOS, UN TOQUE EN EL PAPEL ES «VUELVE». El titulillo es papel de
+     esa hoja como cualquier otro, y abriendo la lista pasaban las dos cosas a
+     la vez: la lista medida contra la miniatura y el zoom cerrándose debajo,
+     con lo que la hoja crecía y la lista se quedaba flotando despegada. */
+  const deLejos = await ses2.pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const lejos = () => !!document.querySelector('.zoom');
+    document.getElementById('btnZoom').click();
+    await pausa(1600);
+    if (!lejos()) return { sinZoom:true };
+    const ts = [...document.querySelectorAll('#pgBody .peri')];
+    const h2 = ts[Math.min(1, ts.length - 1)];
+    const r = h2.getBoundingClientRect();
+    h2.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, detail:1,
+      clientX:r.left + r.width/2, clientY:r.top + r.height/2 }));
+    await pausa(900);
+    return { seAlejo:true,
+             lista: document.getElementById('escenas').classList.contains('puesto'),
+             sigueLejos: lejos() };
+  });
+  di('de lejos', deLejos);
+  vale('(la prueba es válida) la hoja llegó a alejarse',
+       deLejos.seAlejo === true, JSON.stringify(deLejos));
+  vale('DE LEJOS, TOCAR EL TITULILLO NO ABRE LA LISTA',
+       deLejos.lista === false, deLejos.lista);
+  vale('  y el toque hace lo de siempre: acercar la hoja',
+       deLejos.sigueLejos === false, deLejos.sigueLejos);
+
   await cerrarParcial(ses2, 'las escenas del libro');
 
   titulo('sin pericopas.js la hoja se pinta igual');
