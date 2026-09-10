@@ -1404,22 +1404,37 @@ async function andamio(p){
         if (dentro) hay.push([ini, lado]);
         return hay.length < 2 ? 0 : hay[1][0] - hay[0][1];
       };
-      /* Y LOS CANTOS: en una caja, el borde del cuerpo es el mismo número a
-         cualquier altura. Un redondeo o un estrechamiento lo mueven, y el
+      /* Y LOS CANTOS, QUE SON DOS SITIOS Y NO UNO.
+
+         En una caja el borde es el mismo número a cualquier altura, y el
          redondeo es lo que convirtió dos versiones de esta figura en una
-         olla. Se miran tres filas dentro del cuerpo, ni la tapa ni la base. */
+         olla. Pero hay que mirar donde la esquina SE VE, y aquí la esquina
+         que se ve no es la del cuerpo: la banda de hierro de la base va de
+         1.9 a 22.1 y el cuerpo de 2.5 a 21.5, o sea que la banda lo desborda
+         y le tapa las cuatro esquinas. Medido: redondear el cuerpo hasta
+         rx=2.5 no mueve un solo píxel del contorno —es un cambio invisible, y
+         un cambio invisible no es una regresión—; redondear las bandas se
+         nota ya con rx=0.8.
+
+         Así que se miran dos cosas distintas: los LADOS del cuerpo, en el
+         tramo que queda a la vista entre las dos bandas, y la ESQUINA de
+         verdad, tres filas que cruzan la banda de la base de su borde de
+         arriba al de abajo. Sin las segundas, un redondeo del contorno pasaba
+         la prueba; lo dijo Codex revisando el PR #83 y tenía razón. */
       const borde = (fila, desde) => {
         const y = Math.round(lado * fila);
         if (desde > 0) { for (let x = 0; x < lado; x++) if (p[(y * lado + x) * 4 + 3] > 60) return x; }
         else { for (let x = lado - 1; x >= 0; x--) if (p[(y * lado + x) * 4 + 3] > 60) return x; }
         return -1;
       };
-      const filas = [.66, .74, .82];
+      const lados = [.66, .74, .82], pie = [.854, .875, .896];
       return { bisagra: enmedio(Math.round(lado * .14)),
                medio:   enmedio(Math.round(lado * .50)),
                suelta:  enmedio(Math.round(lado * .75)),
-               izq: filas.map(f => borde(f, 1)),
-               der: filas.map(f => borde(f, -1)) };
+               izq: lados.map(f => borde(f, 1)),
+               der: lados.map(f => borde(f, -1)),
+               pieIzq: pie.map(f => borde(f, 1)),
+               pieDer: pie.map(f => borde(f, -1)) };
     };
     vieja.hueco = await hueco();
     /* Y LA PARRILLA, abriéndole el mando a esa misma piedra. */
@@ -1466,16 +1481,21 @@ async function andamio(p){
        cofre.vieja.hueco.suelta > cofre.vieja.hueco.medio,
        JSON.stringify(cofre.vieja.hueco));
   /* Y ES UNA CAJA, NO UNA OLLA. Ésta es la seña que el dueño del repo puso la
-     primera de su lista, y la que se había perdido dos veces: un cofre tiene
-     cantos rectos. Con los bordes verticales, el borde izquierdo del cuerpo
-     mide lo mismo a cualquier altura y el derecho también. Un redondeo en las
-     esquinas —que es lo que hacía que la figura se leyera como loza— mueve
-     esos números en cuanto se acerca al suelo. */
-  vale('  y es una CAJA: los cantos del cuerpo son rectos',
-       !!cofre.vieja.hueco &&
-       new Set(cofre.vieja.hueco.izq).size === 1 && cofre.vieja.hueco.izq[0] > 0 &&
-       new Set(cofre.vieja.hueco.der).size === 1,
-       'izq ' + (cofre.vieja.hueco || {}).izq + ' · der ' + (cofre.vieja.hueco || {}).der);
+     primera de su lista y la que se había perdido dos veces: un cofre tiene
+     cantos rectos, y lo redondo es loza.
+     Antes de afirmarlo hay que saber que se está mirando donde la esquina se
+     ve. Las filas del pie tienen que caer en la banda de la base, que
+     desborda al cuerpo por los dos lados; si un día el dibujo se mueve y esas
+     filas caen en otro sitio, esto lo dice en vez de pasar en falso. */
+  const hc = cofre.vieja.hueco || {};
+  vale('  (la prueba es válida) las filas del pie caen en la banda de la base',
+       !!hc.pieIzq && hc.pieIzq[0] < hc.izq[0] && hc.pieDer[0] > hc.der[0],
+       'pie ' + hc.pieIzq + '/' + hc.pieDer + ' contra lados ' + hc.izq + '/' + hc.der);
+  vale('  y es una CAJA: cantos rectos en los lados Y en la esquina',
+       !!hc.izq &&
+       new Set(hc.izq).size === 1 && hc.izq[0] > 0 && new Set(hc.der).size === 1 &&
+       new Set(hc.pieIzq).size === 1 && new Set(hc.pieDer).size === 1,
+       'lados ' + hc.izq + '/' + hc.der + ' · esquina ' + hc.pieIzq + '/' + hc.pieDer);
   vale('UNA PIEDRA GUARDADA COMO ESPIGA SIGUE EN LA HOJA Y SE PINTA COMO COFRE',
        cofre.vieja.sigue === true && /cofre del tesoro/.test(cofre.vieja.voz || ''),
        JSON.stringify(cofre.vieja));
