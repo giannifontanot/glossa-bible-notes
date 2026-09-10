@@ -1324,6 +1324,9 @@ async function andamio(p){
      · que el cofre esté en la parrilla y la espiga no;
      · que se llame por su nombre de viva voz, que es como lo oye quien no ve
        la pantalla;
+     · que se abra por la izquierda y que sea una CAJA de cantos rectos, que
+       son las dos señas que el dueño del repo puso al frente de su lista
+       después de que dos versiones seguidas le parecieran una olla;
      · y QUE NINGUNA PIEDRA YA PUESTA SE QUEDE SIN FIGURA. Una piedra guardada
        con «espiga» tiene que seguir en la hoja y pintarse como cofre. Sin la
        línea de FORMA_VIEJA, piedraSanear no reconocería el nombre y la
@@ -1372,6 +1375,68 @@ async function andamio(p){
     const vieja = { sigue: !!sitio,
                     voz: cuerpo ? cuerpo.getAttribute('aria-label') : null,
                     oro: svgVieja ? [...svgVieja.querySelectorAll('*')].filter(esOro).length : 0 };
+    /* LA CUÑA: se rasteriza el dibujo y se cuenta, columna a columna, cuánto
+       papel hay entre la tapa y el cuerpo. No se mide el ángulo ni se busca
+       un transform, que son la manera de hacerlo y no lo que se pidió. */
+    const hueco = async () => {
+      if (!svgVieja) return null;
+      const lado = 96;
+      const cv = document.createElement('canvas'); cv.width = cv.height = lado;
+      const cx = cv.getContext('2d');
+      const copia = svgVieja.cloneNode(true);
+      copia.setAttribute('width', lado); copia.setAttribute('height', lado);
+      copia.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      const texto = new XMLSerializer().serializeToString(copia);
+      /* new Image() es pieza del navegador, no del programa: se puede usar. */
+      await new Promise((ok, mal) => { const im = new Image();
+        im.onload = () => { cx.drawImage(im, 0, 0, lado, lado); ok(); };
+        im.onerror = mal;
+        im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(texto); });
+      const p = cx.getImageData(0, 0, lado, lado).data;
+      /* el papel que queda ENTRE dos tramos de tinta, que es el hueco; el de
+         arriba y el de abajo del dibujo no cuentan */
+      const enmedio = x => {
+        const hay = []; let dentro = false, ini = 0;
+        for (let y = 0; y < lado; y++){
+          const t = p[(y * lado + x) * 4 + 3] > 60;
+          if (t !== dentro){ if (dentro) hay.push([ini, y]); else ini = y; dentro = t; }
+        }
+        if (dentro) hay.push([ini, lado]);
+        return hay.length < 2 ? 0 : hay[1][0] - hay[0][1];
+      };
+      /* Y LOS CANTOS, QUE SON DOS SITIOS Y NO UNO.
+
+         En una caja el borde es el mismo número a cualquier altura, y el
+         redondeo es lo que convirtió dos versiones de esta figura en una
+         olla. Pero hay que mirar donde la esquina SE VE, y aquí la esquina
+         que se ve no es la del cuerpo: la banda de hierro de la base va de
+         1.9 a 22.1 y el cuerpo de 2.5 a 21.5, o sea que la banda lo desborda
+         y le tapa las cuatro esquinas. Medido: redondear el cuerpo hasta
+         rx=2.5 no mueve un solo píxel del contorno —es un cambio invisible, y
+         un cambio invisible no es una regresión—; redondear las bandas se
+         nota ya con rx=0.8.
+
+         Así que se miran dos cosas distintas: los LADOS del cuerpo, en el
+         tramo que queda a la vista entre las dos bandas, y la ESQUINA de
+         verdad, tres filas que cruzan la banda de la base de su borde de
+         arriba al de abajo. Sin las segundas, un redondeo del contorno pasaba
+         la prueba; lo dijo Codex revisando el PR #83 y tenía razón. */
+      const borde = (fila, desde) => {
+        const y = Math.round(lado * fila);
+        if (desde > 0) { for (let x = 0; x < lado; x++) if (p[(y * lado + x) * 4 + 3] > 60) return x; }
+        else { for (let x = lado - 1; x >= 0; x--) if (p[(y * lado + x) * 4 + 3] > 60) return x; }
+        return -1;
+      };
+      const lados = [.66, .74, .82], pie = [.854, .875, .896];
+      return { bisagra: enmedio(Math.round(lado * .14)),
+               medio:   enmedio(Math.round(lado * .50)),
+               suelta:  enmedio(Math.round(lado * .75)),
+               izq: lados.map(f => borde(f, 1)),
+               der: lados.map(f => borde(f, -1)),
+               pieIzq: pie.map(f => borde(f, 1)),
+               pieDer: pie.map(f => borde(f, -1)) };
+    };
+    vieja.hueco = await hueco();
     /* Y LA PARRILLA, abriéndole el mando a esa misma piedra. */
     const r0 = sitio.getBoundingClientRect();
     sitio.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
@@ -1392,11 +1457,45 @@ async function andamio(p){
        cofre.formas.length === 14, cofre.formas.join(' '));
   vale('  y se llama «cofre del tesoro» de viva voz',
        cofre.rotulo === 'cofre del tesoro', cofre.rotulo);
-  /* EL ORO ES LO QUE LO HACE UN COFRE DEL TESORO Y NO UN BAÚL: son las cuatro
-     piezas del montón de monedas, el único color fijo del dibujo. Si alguien
-     las quita creyendo que sobran, esto lo dice. */
-  vale('  y lleva su montón de monedas: cuatro piezas de oro',
-       cofre.vieja.oro === 4, cofre.vieja.oro + ' piezas doradas');
+  /* EL ORO ES LO QUE LO HACE UN COFRE DEL TESORO Y NO UN BAÚL: el montón de
+     monedas y el bocallave, que es el único color fijo del dibujo. Si alguien
+     lo quita creyendo que sobra, esto lo dice.
+     VA COMO SUELO Y NO COMO CIFRA EXACTA, y eso es a propósito: esta misma
+     línea pedía «cuatro» y el rediseño de la tapa —cuatro monedas, bocallave y
+     bisagra— la habría hecho fallar sin que nada estuviera roto. Una prueba
+     que cuenta piezas prueba el dibujo que había el día que se escribió; lo
+     que hay que sostener es que el oro siga ahí. */
+  vale('  y lleva su montón de monedas: cuatro piezas de oro o más',
+       cofre.vieja.oro >= 4, cofre.vieja.oro + ' piezas doradas');
+  /* LA TAPA CUELGA POR LA IZQUIERDA Y SE ABRE. El papel que queda entre la
+     tapa y el cuerpo es UNA CUÑA: cerrada donde la tapa se sujeta y ancha en
+     el extremo suelto. Se miden tres columnas del dibujo rasterizado, no el
+     ángulo ni el transform: si mañana la tapa se dibuja de otra manera pero
+     sigue abriéndose por la izquierda, esto tiene que seguir pasando.
+     El del medio da 0 y no es un fallo: ahí el hueco lo llena el montón de
+     oro, que es justamente lo que se quiere ver. Por eso la afirmación es
+     «el suelto es ancho y mayor que el medio», y no una cifra por columna. */
+  vale('LA TAPA SE ABRE POR LA IZQUIERDA: el hueco es una cuña',
+       !!cofre.vieja.hueco && cofre.vieja.hueco.bisagra <= 1 &&
+       cofre.vieja.hueco.suelta >= 8 &&
+       cofre.vieja.hueco.suelta > cofre.vieja.hueco.medio,
+       JSON.stringify(cofre.vieja.hueco));
+  /* Y ES UNA CAJA, NO UNA OLLA. Ésta es la seña que el dueño del repo puso la
+     primera de su lista y la que se había perdido dos veces: un cofre tiene
+     cantos rectos, y lo redondo es loza.
+     Antes de afirmarlo hay que saber que se está mirando donde la esquina se
+     ve. Las filas del pie tienen que caer en la banda de la base, que
+     desborda al cuerpo por los dos lados; si un día el dibujo se mueve y esas
+     filas caen en otro sitio, esto lo dice en vez de pasar en falso. */
+  const hc = cofre.vieja.hueco || {};
+  vale('  (la prueba es válida) las filas del pie caen en la banda de la base',
+       !!hc.pieIzq && hc.pieIzq[0] < hc.izq[0] && hc.pieDer[0] > hc.der[0],
+       'pie ' + hc.pieIzq + '/' + hc.pieDer + ' contra lados ' + hc.izq + '/' + hc.der);
+  vale('  y es una CAJA: cantos rectos en los lados Y en la esquina',
+       !!hc.izq &&
+       new Set(hc.izq).size === 1 && hc.izq[0] > 0 && new Set(hc.der).size === 1 &&
+       new Set(hc.pieIzq).size === 1 && new Set(hc.pieDer).size === 1,
+       'lados ' + hc.izq + '/' + hc.der + ' · esquina ' + hc.pieIzq + '/' + hc.pieDer);
   vale('UNA PIEDRA GUARDADA COMO ESPIGA SIGUE EN LA HOJA Y SE PINTA COMO COFRE',
        cofre.vieja.sigue === true && /cofre del tesoro/.test(cofre.vieja.voz || ''),
        JSON.stringify(cofre.vieja));
