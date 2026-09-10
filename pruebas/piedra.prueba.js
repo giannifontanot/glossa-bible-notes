@@ -1324,8 +1324,9 @@ async function andamio(p){
      · que el cofre esté en la parrilla y la espiga no;
      · que se llame por su nombre de viva voz, que es como lo oye quien no ve
        la pantalla;
-     · que se abra sobre su bisagra, que es lo que el dueño del repo pidió
-       cuando la primera versión le pareció una caja de herramientas;
+     · que se abra por la izquierda y que sea una CAJA de cantos rectos, que
+       son las dos señas que el dueño del repo puso al frente de su lista
+       después de que dos versiones seguidas le parecieran una olla;
      · y QUE NINGUNA PIEDRA YA PUESTA SE QUEDE SIN FIGURA. Una piedra guardada
        con «espiga» tiene que seguir en la hoja y pintarse como cofre. Sin la
        línea de FORMA_VIEJA, piedraSanear no reconocería el nombre y la
@@ -1403,9 +1404,22 @@ async function andamio(p){
         if (dentro) hay.push([ini, lado]);
         return hay.length < 2 ? 0 : hay[1][0] - hay[0][1];
       };
+      /* Y LOS CANTOS: en una caja, el borde del cuerpo es el mismo número a
+         cualquier altura. Un redondeo o un estrechamiento lo mueven, y el
+         redondeo es lo que convirtió dos versiones de esta figura en una
+         olla. Se miran tres filas dentro del cuerpo, ni la tapa ni la base. */
+      const borde = (fila, desde) => {
+        const y = Math.round(lado * fila);
+        if (desde > 0) { for (let x = 0; x < lado; x++) if (p[(y * lado + x) * 4 + 3] > 60) return x; }
+        else { for (let x = lado - 1; x >= 0; x--) if (p[(y * lado + x) * 4 + 3] > 60) return x; }
+        return -1;
+      };
+      const filas = [.66, .74, .82];
       return { bisagra: enmedio(Math.round(lado * .14)),
                medio:   enmedio(Math.round(lado * .50)),
-               suelta:  enmedio(Math.round(lado * .75)) };
+               suelta:  enmedio(Math.round(lado * .75)),
+               izq: filas.map(f => borde(f, 1)),
+               der: filas.map(f => borde(f, -1)) };
     };
     vieja.hueco = await hueco();
     /* Y LA PARRILLA, abriéndole el mando a esa misma piedra. */
@@ -1438,19 +1452,30 @@ async function andamio(p){
      que hay que sostener es que el oro siga ahí. */
   vale('  y lleva su montón de monedas: cuatro piezas de oro o más',
        cofre.vieja.oro >= 4, cofre.vieja.oro + ' piezas doradas');
-  /* LA TAPA CUELGA DE UNA BISAGRA A LA IZQUIERDA, que es lo que el dueño del
-     repo pidió después de ver la primera versión: con la tapa plana flotando
-     encima, el cofre parecía «una caja de herramientas con una olla». Abierta
-     sobre una bisagra, el papel que queda entre la tapa y el cuerpo es UNA
-     CUÑA: cerrada en la bisagra y ancha en el extremo suelto. Eso es lo que se
-     mide —tres columnas del dibujo rasterizado—, y no el ángulo ni el
-     transform: si mañana la tapa se dibuja de otra manera pero sigue
-     abriéndose sobre la izquierda, esta prueba tiene que seguir pasando. */
-  vale('LA TAPA SE ABRE SOBRE UNA BISAGRA A LA IZQUIERDA: el hueco es una cuña',
+  /* LA TAPA CUELGA POR LA IZQUIERDA Y SE ABRE. El papel que queda entre la
+     tapa y el cuerpo es UNA CUÑA: cerrada donde la tapa se sujeta y ancha en
+     el extremo suelto. Se miden tres columnas del dibujo rasterizado, no el
+     ángulo ni el transform: si mañana la tapa se dibuja de otra manera pero
+     sigue abriéndose por la izquierda, esto tiene que seguir pasando.
+     El del medio da 0 y no es un fallo: ahí el hueco lo llena el montón de
+     oro, que es justamente lo que se quiere ver. Por eso la afirmación es
+     «el suelto es ancho y mayor que el medio», y no una cifra por columna. */
+  vale('LA TAPA SE ABRE POR LA IZQUIERDA: el hueco es una cuña',
        !!cofre.vieja.hueco && cofre.vieja.hueco.bisagra <= 1 &&
        cofre.vieja.hueco.suelta >= 8 &&
        cofre.vieja.hueco.suelta > cofre.vieja.hueco.medio,
        JSON.stringify(cofre.vieja.hueco));
+  /* Y ES UNA CAJA, NO UNA OLLA. Ésta es la seña que el dueño del repo puso la
+     primera de su lista, y la que se había perdido dos veces: un cofre tiene
+     cantos rectos. Con los bordes verticales, el borde izquierdo del cuerpo
+     mide lo mismo a cualquier altura y el derecho también. Un redondeo en las
+     esquinas —que es lo que hacía que la figura se leyera como loza— mueve
+     esos números en cuanto se acerca al suelo. */
+  vale('  y es una CAJA: los cantos del cuerpo son rectos',
+       !!cofre.vieja.hueco &&
+       new Set(cofre.vieja.hueco.izq).size === 1 && cofre.vieja.hueco.izq[0] > 0 &&
+       new Set(cofre.vieja.hueco.der).size === 1,
+       'izq ' + (cofre.vieja.hueco || {}).izq + ' · der ' + (cofre.vieja.hueco || {}).der);
   vale('UNA PIEDRA GUARDADA COMO ESPIGA SIGUE EN LA HOJA Y SE PINTA COMO COFRE',
        cofre.vieja.sigue === true && /cofre del tesoro/.test(cofre.vieja.voz || ''),
        JSON.stringify(cofre.vieja));
