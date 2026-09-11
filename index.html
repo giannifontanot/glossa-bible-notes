@@ -13,7 +13,17 @@
             1 es "sin tocar". */
          --contraste:1;
          /* Y el brillo, por lo mismo y en el mismo sitio. */
-         --brillo:1; }
+         --brillo:1;
+         /* EL SEPIA TAMBIÉN VIVE ARRIBA. --papel se escribía solo en la hoja,
+            y la lista de escenas —hermana, no hija— caía al respaldo crema
+            claro. Ahí se veía «menos sepia que el libro». Los de fábrica son
+            el tope de la rampa (sepia 100); el guion los mueve con el riel. */
+         --papel:rgb(232,211,172);
+         --tinta:rgb(59,43,24);
+         --rot-cab:rgb(91,72,45);
+         --rot-pie:rgb(103,82,52);
+         --raya:rgba(91,72,45,.38);
+         --marca-suave:rgba(91,72,45,.12); }
   *{ box-sizing:border-box; }
   /* EL COLOR SÓLIDO VA ADEMÁS DEL DEGRADADO, y no es repetirse.
 
@@ -941,39 +951,51 @@
      sale tocando el hueco, y un control encendido que no lleva a ningún sitio
      solo compite con el papel. */
   .stage.zoom #btnZoom{ display:none !important; }
-  /* LA G DE LAS GLOSAS. Un círculo con una G, como el de copyright con una C.
-     Segoe 21 pt en negrita, carmín de las piedras —el que no deslumbra, el
-     mismo --rojo-galon de los galones—. Vive en la escena y no en la hoja:
-     si viajara con el papel, al abrir el cajón se iría con él y no habría
-     con qué cerrarlo.
-     EL SITIO LO ESCRIBE colocarG: a la derecha, con el punto del historial,
-     y a media altura entre ese punto y el borde más bajo del texto. El CSS
-     solo deja el derecho de arranque; el top sale de la medida.
+  /* LA G DE LAS GLOSAS. Ya no es un círculo con una letra: es un SELLO DE
+     CERA, como una piedra nueva. Lo miraron tres oficios:
+
+     · El paleógrafo: un sello de cera no es redondo de compás; es un disco
+       irregular, con un realce y una letra gótica hundida. La G va en
+       textura, no en Segoe.
+     · El colorista: apagado, el carmín de las piedras —#9b2a2a, el que se
+       eligió, no el vivo—. Encendido, la cera recién prensada, más honda
+       —#5c1414— y la letra en crema, que es el hueco de la impresión.
+     · Esta casa: vive en la escena, no en la hoja, o al abrir el cajón se
+       iría con el papel y no habría con qué cerrarlo.
+
+     EL SITIO, FIJO. Encima del punto del historial, a la misma derecha. El
+     hueco es el de la casa: 8 px en escritorio, 10 en el teléfono —el mismo
+     aire que hay entre el punto y el borde de abajo—. No viaja con el texto.
+
      Y AL PASAR HOJA SE FUNDE: opacidad 0 mientras el pliegue corre, y
      .puesta la devuelve. Pedido. */
-  #btnGlosas{ position:absolute; z-index:8; right:8px; top:0;
-              width:1.5em; height:1.5em; padding:0; margin:0;
+  #btnGlosas{ position:absolute; z-index:8; right:8px; bottom:50px;
+              width:42px; height:42px; padding:0; margin:0;
               display:grid; place-items:center;
-              border-radius:50%;
-              border:1.7px solid var(--rojo-galon, #9b2a2a);
-              background:var(--papel, #faf7f1);
-              color:var(--rojo-galon, #9b2a2a);
-              font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
-              font-size:21pt; font-weight:700; font-style:normal;
-              line-height:1; letter-spacing:0;
+              border:0; background:none;
+              color:#9b2a2a;
               cursor:pointer;
               opacity:0; pointer-events:none;
-              transition:opacity .46s cubic-bezier(.65,0,.35,1);
+              transition:opacity .46s cubic-bezier(.65,0,.35,1),
+                         color .34s cubic-bezier(.65,0,.35,1),
+                         filter .34s cubic-bezier(.65,0,.35,1);
               -webkit-tap-highlight-color:transparent;
               -webkit-user-select:none; user-select:none; }
-  /* MARGEN INVISIBLE. El círculo se ve de 1.5 em; el toque llega 14 px más
+  #btnGlosas svg{ display:block; width:100%; height:100%; pointer-events:none; }
+  #btnGlosas .sello-g{ fill:#f0d4a0; }
+  /* MARGEN INVISIBLE. El sello se ve de 42 px; el toque llega 14 px más
      allá, para que gane a lo que hay al lado —el historial, el filo, el
      texto—. El z-index 8 le gana al 7 del historial en el recubrimiento.
-     El recuadro de la G no crece: el ::before no pinta y no empuja. */
+     El recuadro del sello no crece: el ::before no pinta y no empuja. */
   #btnGlosas::before{ content:''; position:absolute; inset:-14px; }
   #btnGlosas[hidden]{ display:none; }
   #btnGlosas.puesta{ opacity:1; pointer-events:auto; }
-  #btnGlosas.abierta{ background:var(--rojo-galon, #9b2a2a); color:#fff8e4; }
+  /* PRENSADO: la cera se hunde y la letra se aclara. La sombra es la de una
+     piedra pequeña —no el 5/5/10 del escalón de nacer, que aquí taparía el
+     punto del historial. */
+  #btnGlosas.abierta{ color:#5c1414;
+                      filter:drop-shadow(2px 3px 4px rgba(40,10,8,.5)); }
+  #btnGlosas.abierta .sello-g{ fill:#fff8e4; }
   .stage.zoom #btnGlosas{ display:none !important; }
   @media (prefers-reduced-motion: reduce){
     #btnGlosas{ transition:none; }
@@ -1089,7 +1111,9 @@
     #btnZoom{ left:10px; } #btnHistorial{ right:10px; }
     #btnZoom::before, #btnHistorial::before{ width:9px; height:9px; }
     #btnVolver{ bottom:58px; }
-    #btnGlosas{ right:10px; }
+    /* 10 de hueco: el mismo aire que hay entre el historial y el borde.
+       10 + 44 + 10 = 64. */
+    #btnGlosas{ right:10px; bottom:64px; }
     /* Más grandes y más separadas: son los únicos controles de la vista de
        lejos y se usan seguidos, uno tras otro, mirando el papel y no el botón.
        Con 52 y 10 de hueco el pulgar rebotaba de uno a otro; con 62 y 18 cada
@@ -3696,12 +3720,27 @@
        se busca cuando se necesita, no una que tenga que llamar la atención
        mientras lees. -->
   <button id="btnZoom" title="Ver la hoja entera" aria-label="Ver la hoja entera"></button>
-  <!-- LA G ABRE LAS GLOSAS. Pedido: un círculo con G, como el de copyright
-       con C. No es un adorno: es el único toque que corre el cajón. El desliz
-       de lado ya no lo abre —pasa hoja—. Ver #btnGlosas. -->
+  <!-- LA G ABRE LAS GLOSAS. Pedido: un sello de cera, como una piedra nueva,
+       con la G gótica de un sello de lacre. No es un adorno: es el único
+       toque que corre el cajón. El desliz de lado ya no lo abre —pasa hoja—.
+       Ver #btnGlosas. -->
   <button type="button" id="btnGlosas" hidden
           aria-label="glosas" aria-pressed="false"
-          title="glosas">G</button>
+          title="glosas">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <!-- Disco irregular: cera, no círculo de compás. -->
+      <path class="sello-cera" fill="currentColor"
+            d="M12.1 2.05c2.9-.15 5.55 1.05 7.1 3.2 1.55 2.15 1.95 5.1.9 7.55-1.05 2.45-3.3 4.4-6.05 5.1-2.7.7-5.7.15-7.85-1.7C4.05 14.45 2.8 11.55 3.15 8.5 3.5 5.5 5.7 3.05 8.55 2.3c1.15-.3 2.35-.35 3.55-.25z"/>
+      <path fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="1.45"
+            stroke-linecap="round"
+            d="M7.35 9.7c1.65-2.05 4.15-3.25 6.7-3.05"/>
+      <circle cx="15.55" cy="15.15" r="1.3" fill="#fff" fill-opacity=".14"/>
+      <!-- G gótica, textura: tallo, diamante de arriba, panza abierta a la
+           derecha con la barrita de la G. fill-rule evenodd para el hueco. -->
+      <path class="sello-g" fill-rule="evenodd"
+            d="M9.05 4.55 11.5 2.3l2.45 2.25v2.65h3.45l1.15 1.55-.95.45h-3.65V10.5h2.55c2.35 0 3.75 1.45 3.75 3.55 0 2.2-1.55 3.75-4.15 4.05v2.15h1.95v1.55H8.35v-1.55h2.15v-2.15c-2.2-.4-3.55-1.95-3.55-4.05 0-1.75 1.05-3.15 2.95-3.55V9.45H7.7l-1.15-.45 1.15-1.55h3.35zm3.15 7.55c-1.15.2-1.8 1.05-1.8 2.15 0 1.15.7 2 1.95 2.15h2.55c1.2-.15 1.85-1 1.85-2.15 0-1.1-.7-1.95-1.85-2.15z"/>
+    </svg>
+  </button>
   <!-- Los chevrones vuelven: aquí son un par que se usa seguido y hay que
        distinguirlos entre sí a cada toque, no dos puertas que se aprenden. -->
   <div id="zoomPasos">
@@ -3819,7 +3858,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '11-SEP-26 14:51';
+window.GLOSS_BUILD = '11-SEP-26 15:25';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4157,29 +4196,38 @@ const PAGE_CSS = `
             en el botón, y entonces .escena-dice cambia de offsetParent: el
             cuadre de abrirEscenas mide offsetTop del texto y se cree que el
             renglón está arriba del todo. box-shadow no ocupa, no posiciona
-            y no mueve a nadie. Medio píxel, sepia del libro a media tinta:
-            un pelo, no un renglón más. */
-         box-shadow:0 .5px 0 0 rgba(184,137,43,.45); }
+            y no mueve a nadie.
+            El pelo es --raya: el sepia oscuro del libro (--rot-cab) a media
+            tinta. Si fuera el relleno del recuadro de antes (#b8892b), sobre
+            el papel del libro no se vería, o se vería como otro aparato. */
+         box-shadow:0 .5px 0 0 var(--raya, rgba(91,72,45,.38)); }
 .escena:last-child{ box-shadow:none; }
 /* Y va en BLOQUE y no en línea: un span en línea mide lo que mide su texto, y
    entonces comparar dónde cayó contra dónde estaba compara dos cosas distintas
    —el titulillo es una celda de rejilla y ocupa la columna entera—. En bloque
    los dos miden lo mismo y el cuadre se puede comprobar. */
 .escena-dice{ display:block; }
-/* LA QUE ESTÁS LEYENDO VA CON EL SEPIA DEL LIBRO ELEGIDO. Es el mismo #b8892b
-   de .tabo.aqui, de las pestañas y de un botón cumplido: el color con el que
-   esta aplicación dice «aquí». El borde va más oscuro —#4a3a1c, la tinta de
-   los números del canto— para que el recuadro se despegue del relleno y no se
-   lea como un bloque plano.
-   Y EL BORDE VA DE SOMBRA INTERIOR Y NO DE border, que no es un capricho:
-   un border de verdad ocupa sitio y corre el texto un píxel y medio hacia
-   dentro, justo en el renglón que tiene que quedarse EXACTAMENTE donde
-   estaba. Con box-shadow el marco se pinta y no empuja nada. */
-.escena.aqui{ background:#b8892b; color:#fff8e4;
-              box-shadow:inset 0 0 0 1.5px #4a3a1c, 0 .5px 0 0 rgba(184,137,43,.45); }
-.escena.aqui:last-child{ box-shadow:inset 0 0 0 1.5px #4a3a1c; }
-.escena:hover:not(.aqui){ background:rgba(184,137,43,.10); }
-.escena.bajoeldedo{ background:rgba(184,137,43,.20); }
+/* LA QUE ESTÁS LEYENDO, CON EL SEPIA OSCURO DEL LIBRO. El velo ya es el
+   papel (--papel, el mismo de la hoja, con su brillo y su contraste). El
+   recuadro de «aquí» no puede ser ese papel, ni el #b8892b de las pestañas:
+   el uno no se vería y el otro es aparato, no libro. Lo miraron dos oficios:
+
+   · El tipógrafo: la marca de «estás aquí» en un índice es más tinta, no
+     otro color. --rot-cab es el marrón del titulillo de la hoja, de la
+     misma rampa que el papel: si el sepia se mueve, los dos se mueven.
+   · El contraste: letra del papel sobre ese marrón, y el borde de la tinta
+     de la hoja (--tinta), más honda, para que el recuadro no sea un bloque
+     plano.
+
+   Y EL BORDE VA DE SOMBRA INTERIOR Y NO DE border: un border de verdad
+   ocupa sitio y corre el texto, justo en el renglón que tiene que
+   quedarse EXACTAMENTE donde estaba. */
+.escena.aqui{ background:var(--rot-cab, #5b482d); color:var(--papel, #e8d3ac);
+              box-shadow:inset 0 0 0 1.5px var(--tinta, #3b2b18),
+                         0 .5px 0 0 var(--raya, rgba(91,72,45,.38)); }
+.escena.aqui:last-child{ box-shadow:inset 0 0 0 1.5px var(--tinta, #3b2b18); }
+.escena:hover:not(.aqui){ background:var(--marca-suave, rgba(91,72,45,.12)); }
+.escena.bajoeldedo{ background:var(--raya, rgba(91,72,45,.38)); }
 /* El movimiento se apaga entero cuando el aparato lo pide: la lista sigue
    apareciendo, pero puesta y no deslizándose. */
 @media (prefers-reduced-motion: reduce){
@@ -4547,6 +4595,9 @@ const aplicarFiltros = () => {
   const v = document.documentElement.style;
   v.setProperty('--contraste', (contraste / 100).toFixed(2));
   v.setProperty('--brillo',    (brillo    / 100).toFixed(2));
+  /* Y EL SEPIA DE LA HOJA, en la raíz: la lista de escenas lo lee de aquí.
+     Ver aplicarTintaHoja. */
+  if (typeof aplicarTintaHoja === 'function') aplicarTintaHoja();
   /* Y LAS PIEDRAS SE REPINTAN, que su color va corregido contra estos dos
      números (ver compensarTinta) y acaba de cambiar. Sin esto, la corrección
      se queda con los valores de cuando se pintaron y el riel sí las mueve —que
@@ -4561,6 +4612,23 @@ const colorPapel = () => rgb(papelRGB());
 const colorTinta = () => rgb(mezclar(TINTA[0], TINTA[1], sepia / 100));
 const colorRotuloCab = () => rgb(mezclar(ROTULO_CAB[0], ROTULO_CAB[1], sepia / 100));
 const colorRotuloPie = () => rgb(mezclar(ROTULO_PIE[0], ROTULO_PIE[1], sepia / 100));
+/* EL SEPIA EN LA RAÍZ, no solo en la hoja. --papel se escribía en #pg, y la
+   lista de escenas —que es hermana, no hija— se quedaba con el crema del
+   respaldo. Pedido: el mismo sepia del libro, con su brillo y su contraste.
+   --raya y --marca-suave salen de --rot-cab, el marrón de la misma rampa,
+   para que la línea y el recuadro de «aquí» se muevan con el riel. */
+function aplicarTintaHoja(){
+  const v = document.documentElement.style;
+  const papel = colorPapel(), tinta = colorTinta();
+  const cab = colorRotuloCab(), pie = colorRotuloPie();
+  const r = mezclar(ROTULO_CAB[0], ROTULO_CAB[1], sepia / 100);
+  v.setProperty('--papel', papel);
+  v.setProperty('--tinta', tinta);
+  v.setProperty('--rot-cab', cab);
+  v.setProperty('--rot-pie', pie);
+  v.setProperty('--raya', 'rgba(' + r.join(',') + ',.38)');
+  v.setProperty('--marca-suave', 'rgba(' + r.join(',') + ',.12)');
+}
 /* EL REVÉS DE LA HOJA Y EL BONCHE. El pliegue se dibuja en un lienzo, no en
    el DOM, así que no ve --papel: sus tonos estaban escritos a mano. Con el
    sepia puesto, arrastrar el filo enseñaba un revés casi blanco girando
@@ -9905,41 +9973,15 @@ function pintarG(){
   const abierto = hay && pg.scrollLeft >= tope - 4;
   g.classList.toggle('abierta', abierto);
   g.setAttribute('aria-pressed', abierto ? 'true' : 'false');
-  if (hay) colocarG();
 }
-/* A MEDIA ALTURA ENTRE EL PUNTO DEL HISTORIAL Y EL BORDE MÁS BAJO DEL TEXTO.
-   Pedido. El punto es el centro del botón —ahí vive el círculo que se ve—.
-   El texto es el último renglón de la hoja, no el pie de la columna: si la
-   página es corta, la G se sienta en el blanco, como un sello de copyright.
-   A la derecha, alineada con el historial. Si el hueco no da, se queda
-   justo encima del punto, sin taparlo. */
-function colocarG(){
-  const g = $('btnGlosas'), hist = $('btnHistorial');
-  if (!g || !hist || g.hidden) return;
-  const escena = stage.getBoundingClientRect();
-  const punto = hist.getBoundingClientRect();
-  const ultimo = pgBody && pgBody.lastElementChild;
-  const textoAbajo = ultimo ? ultimo.getBoundingClientRect().bottom
-                            : (pgBody ? pgBody.getBoundingClientRect().bottom
-                                      : escena.bottom);
-  const puntoY = (punto.top + punto.bottom) / 2;
-  const medio = (textoAbajo + puntoY) / 2;
-  const alto = g.offsetHeight || 40;
-  /* No tapar el historial: si el medio cae encima, la G se queda un pelo
-     arriba del botón. */
-  const techoHist = punto.top - escena.top - alto - 4;
-  let top = medio - escena.top - alto / 2;
-  if (top > techoHist) top = techoHist;
-  if (top < 4) top = 4;
-  g.style.top = Math.round(top) + 'px';
-  g.style.right = Math.round(escena.right - punto.right) + 'px';
-}
+/* EL SITIO LO PONE EL CSS: encima del historial, a la misma derecha, con el
+   hueco de la casa (8 / 10 px). Ya no se mide contra el texto: pedido, que
+   no cambie de lugar al pasar hoja. */
 function apagarG(){
   const g = $('btnGlosas');
   if (g) g.classList.remove('puesta');
 }
 function encenderG(){
-  colocarG();
   pintarG();
   const g = $('btnGlosas');
   if (!g || g.hidden) return;
@@ -16499,6 +16541,9 @@ $('fsGlosaAhora').onchange = e => ponerTamanoGlosa(+e.target.value);
 $('sepia').oninput = e => {
   sepia = Math.max(0, Math.min(100, +e.target.value || 0));
   $('sepiaAhora').textContent = sepia;
+  /* La lista de escenas lee --papel de la raíz: hay que escribirla aquí, no
+     solo en la hoja, o el riel movería el libro y dejaría la lista atrás. */
+  aplicarTintaHoja();
   /* Sin fundido: los rótulos tienen que llegar al color nuevo dentro de esta
      misma tarea, o la foto del pliegue los retrata con el tono de antes. */
   sinFundido(renderPage);
