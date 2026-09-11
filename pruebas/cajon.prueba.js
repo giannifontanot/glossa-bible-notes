@@ -2,9 +2,8 @@
 
    Dos cosas, que antes eran una:
 
-   · La G —un círculo con G, carmín de las piedras— abre y cierra el cajón.
-     El viaje dura lo que el de una glosa nueva (2400 ms), despacio al
-     arrancar y al parar: lo abre una persona, no un interruptor.
+   · La G —un sello de cera, carmín de las piedras, G gótica— abre y cierra
+     el cajón. El viaje dura lo que el de una glosa nueva (2400 ms).
    · El desliz de lado, que antes corría el papel, ahora pasa hoja: a la
      izquierda la siguiente, a la derecha la anterior. El umbral es el de
      siempre (34 px de intención, 10 de ruido, y si el dedo se queda era
@@ -139,10 +138,10 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
     const vivo = carmin === 'rgb(216, 11, 11)';
     const hist = document.getElementById('btnHistorial').getBoundingClientRect();
     const gR = b.getBoundingClientRect();
-    const ultimo = document.getElementById('pgBody').lastElementChild;
-    const textoAbajo = ultimo.getBoundingClientRect().bottom;
-    const gMedio = (gR.top + gR.bottom) / 2;
-    const hMedio = (hist.top + hist.bottom) / 2;
+    const svg = b.querySelector('svg');
+    const gPath = b.querySelector('.sello-g');
+    const cera = b.querySelector('.sello-cera');
+    const hueco = hist.top - gR.bottom;
     const traza = [];
     const tope = pg.scrollWidth - pg.clientWidth;
     b.click();
@@ -153,15 +152,15 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
         if (performance.now()-t0 < 2800) requestAnimationFrame(mira); else fin();
       })();
     });
+    const csOn = getComputedStyle(b);
     return {
-      letra: b.textContent.trim(),
-      familia: cs.fontFamily, peso: cs.fontWeight, tam: cs.fontSize,
-      redonda: cs.borderRadius, carmin, vivo,
+      haySvg: !!svg, hayG: !!gPath, hayCera: !!cera,
+      gotica: !!(gPath && /evenodd/i.test(gPath.getAttribute('fill-rule') || '')),
+      carmin, vivo, on: csOn.color,
       tope, final: traza[traza.length-1][1], traza,
       presionada: b.getAttribute('aria-pressed'), abierta: b.classList.contains('abierta'),
       aLaDerecha: Math.abs(gR.right - hist.right) <= 2,
-      entre: gMedio >= Math.min(textoAbajo, hMedio) - 2 &&
-             gMedio <= Math.max(textoAbajo, hMedio) + 2,
+      hueco,
       funde: /opacity/.test(cs.transition),
       halo: (() => {
         const x = gR.left + gR.width / 2, y = gR.top - 12;
@@ -170,16 +169,16 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
       })()
     };
   });
-  di('la G', { letra:g.letra, tam:g.tam, peso:g.peso, carmin:g.carmin, final:g.final });
-  vale('(la prueba es válida) hay una G', !g.sinG && g.letra === 'G', g.letra);
-  vale('en Segoe', /Segoe/i.test(g.familia || ''), g.familia);
-  vale('21 pt', g.tam === '28px', g.tam);
-  vale('en negrita', +g.peso >= 700, g.peso);
-  vale('en un círculo', parseFloat(g.redonda) >= 14, g.redonda);
-  vale('carmín de las piedras, no el vivo',
+  di('la G', { carmin:g.carmin, on:g.on, hueco:g.hueco, final:g.final });
+  vale('(la prueba es válida) hay un sello', !g.sinG && g.haySvg && g.hayCera && g.hayG, g.haySvg);
+  vale('con una G gótica', g.gotica === true, g.gotica);
+  vale('carmín de las piedras cuando está apagada, no el vivo',
        /155,\s*42,\s*42/.test(g.carmin || '') && !g.vivo, g.carmin);
+  vale('y más honda cuando está prendida',
+       /92,\s*20,\s*20/.test(g.on || '') && g.on !== g.carmin, g.on);
   vale('a la derecha, con el historial', g.aLaDerecha === true, g.aLaDerecha);
-  vale('a media altura entre el texto y el historial', g.entre === true, g.entre);
+  vale('encima del historial, a un aire de la casa',
+       g.hueco >= 8 && g.hueco <= 12, g.hueco);
   vale('y al pasar hoja se funde', g.funde === true, g.funde);
   vale('y el margen invisible gana el toque', g.halo === true, g.halo);
   vale('EL CAJÓN SE ABRE ENTERO', g.final >= g.tope - 2, g.final + ' de ' + g.tope);

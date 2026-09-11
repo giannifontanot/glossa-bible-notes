@@ -568,6 +568,10 @@ const abrirEn = async (p, donde) => {
       marco: cs ? cs.boxShadow : null,
       fondoOtra: csOtra ? csOtra.backgroundColor : null,
       marcoOtra: csOtra ? csOtra.boxShadow : null,
+      velo: getComputedStyle(caj.querySelector('.escenas-velo')).backgroundColor,
+      papel: getComputedStyle(document.getElementById('pg')).backgroundColor,
+      filtroLista: getComputedStyle(caj).filter,
+      filtroHoja: getComputedStyle(document.getElementById('pg')).filter,
       eligeLista: csLista.userSelect,
       eligeCaja: cs ? cs.userSelect : null,
       selAqui, selOtra
@@ -601,20 +605,26 @@ const abrirEn = async (p, donde) => {
   vale('  y va marcada ella y ninguna más',
        escenas.marcada === escenas.tocada && escenas.marcadas === 1,
        escenas.marcada + ' · ' + escenas.marcadas + ' marcada(s)');
-  /* El relleno es el sepia del libro elegido (#b8892b). El borde va más
-     oscuro para despegarse de ese relleno. Las demás no llevan ni uno ni otro. */
-  vale('  con el sepia del libro elegido',
-       /184,\s*137,\s*43/.test(escenas.fondo || ''), escenas.fondo);
+  /* El velo es el papel del libro —la misma rampa del sepia, el mismo
+     brillo y el mismo contraste—. La marcada ya no puede ser ese papel:
+     va con el marrón del titulillo (--rot-cab) y el borde de la tinta. */
+  vale('  y el velo es el papel del libro',
+       escenas.velo === escenas.papel, escenas.velo + ' contra ' + escenas.papel);
+  vale('  con el mismo brillo y contraste',
+       escenas.filtroLista === escenas.filtroHoja,
+       escenas.filtroLista + ' contra ' + escenas.filtroHoja);
+  vale('  la marcada, con el sepia oscuro del libro',
+       /91,\s*72,\s*45/.test(escenas.fondo || ''), escenas.fondo);
   vale('  y el borde más oscuro que ese sepia',
-       /74,\s*58,\s*28/.test(escenas.marco || ''),
+       /59,\s*43,\s*24/.test(escenas.marco || ''),
        escenas.marco);
   vale('  CONTROL: las demás no llevan el recuadro sepia',
        /0,\s*0,\s*0,\s*0|transparent/.test(escenas.fondoOtra || '') &&
-       !/74,\s*58,\s*28/.test(escenas.marcoOtra || ''),
+       !/59,\s*43,\s*24/.test(escenas.marcoOtra || ''),
        escenas.fondoOtra + ' · ' + escenas.marcoOtra);
-  /* Entre renglones: un pelo del mismo sepia, sin ocupar sitio. */
+  /* Entre renglones: un pelo del sepia oscuro, sin ocupar sitio. */
   vale('  y entre renglones, un pelo sepia',
-       /184,\s*137,\s*43/.test(escenas.marcoOtra || ''),
+       /91,\s*72,\s*45/.test(escenas.marcoOtra || ''),
        escenas.marcoOtra);
   /* NO SE SELECCIONA. Pedido: ni el recuadro sepia ni ningún renglón de la
      lista. Se mira la propiedad Y un arrastre de ratón, que es lo que pinta
