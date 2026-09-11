@@ -3773,7 +3773,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '11-SEP-26 07:24';
+window.GLOSS_BUILD = '11-SEP-26 07:36';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -9802,16 +9802,21 @@ window.medida = () => ({
   columnaGlosa: pgMargin.offsetWidth
 });
 
-/* CORRER EL PAPEL ARRASTRÁNDOLO DESDE DONDE NO HAY TEXTO.
+/* CORRER EL PAPEL ARRASTRÁNDOLO DESDE CUALQUIER SITIO DE LA HOJA.
 
-   Ésta es la manera directa: agarras el papel por cualquier parte vacía —el
-   margen, el hueco entre columnas, la orilla, el blanco de abajo— y lo
-   corres. Sobre el texto no, porque ahí arrastrar significa seleccionar, y
-   seleccionar es como se hacen las glosas: quitarle eso al texto sería
-   cambiar una cosa que sirve por otra.
+   Pedido: no solo el blanco de abajo. En el teléfono el texto llena el
+   ancho y el único asidero que quedaba era el pie de la página —el margen,
+   el hueco, la orilla—. Ahora el gesto arranca también sobre un versículo,
+   un titulillo o una glosa.
 
-   Sale solo cuando de verdad hay papel de sobra, así que en escritorio ancho
-   ni se entera. Y no estorba a los clics: hasta que no mueves 4px no se
+   La selección no se va: un desliz más vertical que de lado se abandona y
+   glosar sigue; y si el dedo se queda quieto, era para seleccionar, no
+   para correr el papel. Lo que sí se queda con el gesto es el desliz
+   inmediato de lado —el de abrir el cajón—, y entonces la selección se
+   suelta: era un jalón, no una glosa.
+
+   Sale solo cuando de verdad hay papel de sobra, así que en escritorio
+   ancho ni se entera. Y no estorba a los clics: hasta INTENCION no se
    considera arrastre, de modo que un toque limpio sigue siendo un toque. */
 /* CERRAR EL CAJÓN DE GLOSAS DE GOLPE. Lo usa el aterrizaje de un salto, que
    no es un gesto tuyo sobre el papel sino una hoja nueva: no hay nada que
@@ -9868,31 +9873,18 @@ const topeCajon = () => pg.scrollWidth - pg.clientWidth;
      roces accidentales y el ajuste continuo es cómodo. */
   const INTENCION = 34;    /* px de puntero que hay que mover para que cuente */
   const RUIDO = 10;        /* por debajo de esto el dedo no dice dirección, tiembla */
-  let activo = false, x0 = 0, y0 = 0, puntero = null, reloj = null;
+  /* Si el dedo se quedó, era para glosar: un desliz que arranca después de
+     este rato ya no es el jalón del cajón. 280 ms está por encima de los 200
+     de un titulillo (ese gesto es otro) y por debajo de lo que tarda el
+     teléfono en armar la selección. */
+  const ESPERA_SELECCION = 280;
+  let activo = false, x0 = 0, y0 = 0, t0 = 0, puntero = null, reloj = null;
   const sobraPapel = () => pg.scrollWidth - pg.clientWidth > 4;
-  /* El número de capítulo SÍ se puede agarrar. Es un blanco grande —ocupa casi
-     un tercio del ancho en la primera hoja de cada capítulo— y nadie lo
-     selecciona nunca para copiar: de hecho ya está marcado como no
-     seleccionable, porque es aparato y no texto bíblico. Con el texto ocupando
-     ahora todo el ancho de la pantalla, hacían falta asideros, y éste estaba
-     ahí sin usarse.
-     Los números de versículo quedan fuera aunque también sean aparato: son
-     chiquitos, y algunos llevan encima el contador de citas, que se toca. */
-  /* LOS DOS RÓTULOS TAMPOCO SON PAPEL. Van en la lista de lo que no se agarra
-     por la misma razón que los botones: son aparato, no hoja. Faltaban, y el
-     defecto solo asomaba con RATÓN en ventana estrecha —medido: con el dedo a
-     390x844 el rótulo abre bien; con el ratón, el mismo sitio, no abre—.
-     La causa es la captura de puntero. Al empezar un posible arrastre, #pg
-     captura el puntero; con el ratón eso redirige también el click de
-     compatibilidad, que acaba llegando a #pg en vez de al rótulo, y el oyente
-     del rótulo no se entera. Con el dedo no pasa, y ahí estaba escondido: en
-     un teléfono nunca se ve, y en escritorio ancho tampoco, porque sin papel
-     de sobra el arrastre ni siquiera arranca. Solo se junta en la ventana
-     estrecha con ratón, que es donde lo encontró la revisión.
-     Se arregla donde se decide qué es agarrable, no en el rótulo, porque el
-     problema no es del rótulo: es de la lista. */
+  /* LO QUE NO SE AGARRA ES APARATO: botones, campos, los dos rótulos.
+     Arrastrar ahí no es correr el papel, es pulsar. El texto, el número de
+     capítulo, el titulillo y las glosas SÍ: pedido, desde cualquier sitio. */
   const intocable = t => t.closest && t.closest(
-    '.v, .gl, .ref, .vn, button, a, select, input, textarea, .chip, .pg-cabeza, .pg-version');
+    'button, a, select, input, textarea, .chip, .pg-cabeza, .pg-version');
   const tope = () => pg.scrollWidth - pg.clientWidth;
   const poner = x => { pg.scrollLeft = Math.min(Math.max(x, 0), tope()); };
 
@@ -9918,9 +9910,7 @@ const topeCajon = () => pg.scrollWidth - pg.clientWidth;
     })(t0);
   }
 
-  /* .cap vive DENTRO de .v, así que la exclusión del versículo lo atraparía;
-     por eso se le pregunta primero a él. */
-  const agarrable = t => (t.closest && t.closest('.cap')) || !intocable(t);
+  const agarrable = t => !intocable(t);
   pg.addEventListener('pointerdown', ev => {
     /* De lejos no se corre el papel: se ve entero, no hay nada escondido que
        traer, y arrastrarlo solo serviría para descolocar la vista de conjunto
@@ -9929,7 +9919,7 @@ const topeCajon = () => pg.scrollWidth - pg.clientWidth;
     if (!sobraPapel() || !agarrable(ev.target)) return;
     cancelAnimationFrame(reloj);
     activo = true;
-    x0 = ev.clientX; y0 = ev.clientY; puntero = ev.pointerId;
+    x0 = ev.clientX; y0 = ev.clientY; t0 = performance.now(); puntero = ev.pointerId;
     /* NO se captura el puntero. Antes hacía falta para seguir el dedo hasta
        fuera de la hoja; ahora el gesto se decide en cuanto cruza el umbral y
        no hay nada que seguir. Y capturar tiene un costo que este archivo ya
@@ -9948,6 +9938,9 @@ const topeCajon = () => pg.scrollWidth - pg.clientWidth;
        lado. Por debajo de RUIDO no hay dirección que leer, solo temblor.
        Lo encontró la revisión de Codex. */
     if (Math.hypot(dx, dy) < RUIDO) return;
+    /* El dedo que se quedó era para glosar. A partir de aquí el cajón se
+       retira y la selección hace lo suyo. */
+    if (performance.now() - t0 > ESPERA_SELECCION){ activo = false; return; }
     /* Ahora sí: vertical manda. Deslizar hacia abajo es leer, no abrir el
        cajón. Si el gesto va más hacia abajo que de lado, se abandona y que el
        desplazamiento normal haga lo suyo. */
@@ -9955,9 +9948,15 @@ const topeCajon = () => pg.scrollWidth - pg.clientWidth;
     if (Math.abs(dx) < INTENCION) return;
     /* Cruzado el umbral: la decisión está tomada y el gesto termina aquí. El
        cajón sale o entra ENTERO —jalar hacia la izquierda trae las glosas,
-       hacia la derecha devuelve el texto— y el dedo ya no manda nada más. */
+       hacia la derecha devuelve el texto— y el dedo ya no manda nada más.
+       Y se suelta la selección: este desliz nació sobre el texto, y dejar
+       el subrayado sería dejar una glosa a medias encima del cajón. */
     activo = false;
     ev.preventDefault();
+    olvidarSeleccion();
+    const sel = window.getSelection && window.getSelection();
+    if (sel && sel.removeAllRanges) sel.removeAllRanges();
+    tragarElClic();
     irA(dx < 0 ? tope() : 0);
   });
 
