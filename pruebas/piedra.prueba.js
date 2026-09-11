@@ -412,6 +412,65 @@ async function andamio(p){
        tam.techo.contador);
   vale('y el escalón queda guardado', Number.isInteger(tam.guardado), tam.guardado);
 
+  /* LA SOMBRA CRECE CON LA PIEDRA. El 5/5/10 se midió en el 5 de 8 y ahí se
+     queda; en el suelo tiene que ser más chica —si no, 10 px de difuminado
+     sobre 23 px son un manchón— y en el techo más grande, sin llegar a un
+     charco. Se lee el filter computado, no el número escrito. */
+  titulo('la sombra crece con la piedra');
+  const sombras = await p.evaluate(async () => {
+    const b = cual => document.querySelector('[data-piedra-acc="' + cual + '"]');
+    const nums = () => {
+      const f = getComputedStyle(document.querySelector('.piedra')).filter;
+      const m = String(f).match(/([\d.]+)px\s+([\d.]+)px\s+([\d.]+)px/);
+      return { filtro: f, n: m ? [+m[1], +m[2], +m[3]] : null,
+               contador: (window.__elMando() || {}).contador };
+    };
+    const hasta = async cual => {
+      for (let i = 0; i < 20 && b(cual) && !b(cual).disabled; i++){
+        await window.__toque(b(cual)); await window.__pausa(80);
+      }
+      await window.__pausa(160);
+    };
+    await hasta('menos');
+    const suelo = nums();
+    while (((window.__elMando() || {}).contador || '') !== '5/8' && b('mas') && !b('mas').disabled){
+      await window.__toque(b('mas')); await window.__pausa(80);
+    }
+    await window.__pausa(160);
+    const medio = nums();
+    await hasta('mas');
+    const techo = nums();
+    /* De vuelta al 5 de 8: el bloque de Cancelar toca «más» y espera que el
+       escalón suba. Dejarla en el techo apaga ese botón y esa prueba deja de
+       ser válida. */
+    while (((window.__elMando() || {}).contador || '') !== '5/8' && b('menos') && !b('menos').disabled){
+      await window.__toque(b('menos')); await window.__pausa(80);
+    }
+    return { suelo, medio, techo };
+  });
+  di('sombra en el suelo', sombras.suelo);
+  di('sombra en el 5 de 8', sombras.medio);
+  di('sombra en el techo', sombras.techo);
+  vale('(la prueba es válida) se llegó al 5 de 8',
+       sombras.medio.contador === '5/8', sombras.medio.contador);
+  vale('EN EL 5 DE 8 LA SOMBRA SIGUE SIENDO 5/5/10',
+       !!sombras.medio.n &&
+       sombras.medio.n[0] === 5 && sombras.medio.n[1] === 5 && sombras.medio.n[2] === 10,
+       JSON.stringify(sombras.medio.n));
+  vale('EN EL SUELO ES MÁS CHICA, y se distingue',
+       !!sombras.suelo.n && sombras.suelo.n[0] < 5 && sombras.suelo.n[0] >= 2,
+       JSON.stringify(sombras.suelo.n));
+  vale('EN EL TECHO ES MÁS GRANDE, y no es un charco',
+       !!sombras.techo.n && sombras.techo.n[0] > 5 && sombras.techo.n[0] <= 12,
+       JSON.stringify(sombras.techo.n));
+  vale('  y el difuminado va al doble de la caída',
+       [sombras.suelo, sombras.medio, sombras.techo].every(s =>
+         s.n && Math.abs(s.n[2] - s.n[0] * 2) < 0.05 && s.n[0] === s.n[1]),
+       JSON.stringify({ suelo: sombras.suelo.n, medio: sombras.medio.n, techo: sombras.techo.n }));
+  vale('  y los tres escalones se distinguen',
+       sombras.suelo.n[0] < sombras.medio.n[0] && sombras.medio.n[0] < sombras.techo.n[0],
+       sombras.suelo.n[0] + ' < ' + sombras.medio.n[0] + ' < ' + sombras.techo.n[0]);
+
   /* ---------------------------------------------------------------- */
   /* LAS TRES COSAS QUE SE PIDIERON DESPUÉS DE VER LAS TRES PRIMERAS PIEDRAS:
      muchas más figuras, color, y un texto en cada una. Las tres viven en el
@@ -819,7 +878,7 @@ async function andamio(p){
       /* LA OPACIDAD NO DICE NADA EN EDICIÓN: la piedra que se está editando ya
          va opaca por su cuenta —es lo que dice que está viva—. Lo que
          distingue es la sombra. */
-      return { levantada: /5px 5px 10px/.test(getComputedStyle(b).filter) &&
+      return { levantada: /drop-shadow/.test(getComputedStyle(b).filter) &&
                           /con-sombra/.test(b.className),
                guardada: window.__guardadas()[0].sombra === true,
                marcada: !!(document.querySelector('#piedraMando [data-piedra-sombra]') || {}).checked };
@@ -2625,7 +2684,7 @@ async function andamio(p){
                          .filter(v => /piedra|svg/i.test(v)).join('\n');
     /* Cuántas piedras lleva el retrato y cuántas de ellas van levantadas. */
     return { retratos: vistos.length,
-             conSombra: (fuente.match(/drop-shadow\(5px 5px 10px/g) || []).length,
+             conSombra: (fuente.match(/filter:drop-shadow\(/g) || []).length,
              opacas: (fuente.match(/opacity:1;filter:drop-shadow/g) || []).length,
              planas: (fuente.match(/opacity:\.82/g) || []).length };
   });
