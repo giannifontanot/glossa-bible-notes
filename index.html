@@ -945,9 +945,13 @@
      Segoe 21 pt en negrita, carmín de las piedras —el que no deslumbra, el
      mismo --rojo-galon de los galones—. Vive en la escena y no en la hoja:
      si viajara con el papel, al abrir el cajón se iría con él y no habría
-     con qué cerrarlo. Va al lado del zoom, en la franja de los mandos, no
-     encima del texto ni en un filo de pasar hoja. */
-  #btnGlosas{ position:absolute; z-index:7; left:46px; bottom:8px;
+     con qué cerrarlo.
+     EL SITIO LO ESCRIBE colocarG: a la derecha, con el punto del historial,
+     y a media altura entre ese punto y el borde más bajo del texto. El CSS
+     solo deja el derecho de arranque; el top sale de la medida.
+     Y AL PASAR HOJA SE FUNDE: opacidad 0 mientras el pliegue corre, y
+     .puesta la devuelve. Pedido. */
+  #btnGlosas{ position:absolute; z-index:7; right:8px; top:0;
               width:1.5em; height:1.5em; padding:0; margin:0;
               display:grid; place-items:center;
               border-radius:50%;
@@ -958,11 +962,17 @@
               font-size:21pt; font-weight:700; font-style:normal;
               line-height:1; letter-spacing:0;
               cursor:pointer;
+              opacity:0; pointer-events:none;
+              transition:opacity .46s cubic-bezier(.65,0,.35,1);
               -webkit-tap-highlight-color:transparent;
               -webkit-user-select:none; user-select:none; }
   #btnGlosas[hidden]{ display:none; }
+  #btnGlosas.puesta{ opacity:1; pointer-events:auto; }
   #btnGlosas.abierta{ background:var(--rojo-galon, #9b2a2a); color:#fff8e4; }
   .stage.zoom #btnGlosas{ display:none !important; }
+  @media (prefers-reduced-motion: reduce){
+    #btnGlosas{ transition:none; }
+  }
   /* El botón de volver del salto sube un piso: la esquina de abajo a la
      izquierda ahora tiene dueño. */
   #btnVolver{ bottom:46px; }
@@ -1074,7 +1084,7 @@
     #btnZoom{ left:10px; } #btnHistorial{ right:10px; }
     #btnZoom::before, #btnHistorial::before{ width:9px; height:9px; }
     #btnVolver{ bottom:58px; }
-    #btnGlosas{ left:58px; bottom:10px; }
+    #btnGlosas{ right:10px; }
     /* Más grandes y más separadas: son los únicos controles de la vista de
        lejos y se usan seguidos, uno tras otro, mirando el papel y no el botón.
        Con 52 y 10 de hueco el pulgar rebotaba de uno a otro; con 62 y 18 cada
@@ -3804,7 +3814,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '11-SEP-26 14:35';
+window.GLOSS_BUILD = '11-SEP-26 14:42';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -6224,6 +6234,7 @@ function renderPage(){
      sabe si estamos en una punta es esto, que corre después de cada cambio de
      hoja venga de donde venga: del filo, del botón o de un salto. */
   if (zoomActivo) refrescarPasos();
+  if (typeof encenderG === 'function') encenderG();
   return r;
 }
 function renderPageCrudo(){
@@ -9467,6 +9478,7 @@ let gestoPendiente = null;
 
 function iniciarPliegue(s, clientY){
   if (!hayHoja(s)) return false;
+  apagarG();
   side = s;
   hojasExtra = []; alfaTop = 1;
   bajoImg = (s === 'right' ? nextImg : prevImg);
@@ -9888,6 +9900,45 @@ function pintarG(){
   const abierto = hay && pg.scrollLeft >= tope - 4;
   g.classList.toggle('abierta', abierto);
   g.setAttribute('aria-pressed', abierto ? 'true' : 'false');
+  if (hay) colocarG();
+}
+/* A MEDIA ALTURA ENTRE EL PUNTO DEL HISTORIAL Y EL BORDE MÁS BAJO DEL TEXTO.
+   Pedido. El punto es el centro del botón —ahí vive el círculo que se ve—.
+   El texto es el último renglón de la hoja, no el pie de la columna: si la
+   página es corta, la G se sienta en el blanco, como un sello de copyright.
+   A la derecha, alineada con el historial. Si el hueco no da, se queda
+   justo encima del punto, sin taparlo. */
+function colocarG(){
+  const g = $('btnGlosas'), hist = $('btnHistorial');
+  if (!g || !hist || g.hidden) return;
+  const escena = stage.getBoundingClientRect();
+  const punto = hist.getBoundingClientRect();
+  const ultimo = pgBody && pgBody.lastElementChild;
+  const textoAbajo = ultimo ? ultimo.getBoundingClientRect().bottom
+                            : (pgBody ? pgBody.getBoundingClientRect().bottom
+                                      : escena.bottom);
+  const puntoY = (punto.top + punto.bottom) / 2;
+  const medio = (textoAbajo + puntoY) / 2;
+  const alto = g.offsetHeight || 40;
+  /* No tapar el historial: si el medio cae encima, la G se queda un pelo
+     arriba del botón. */
+  const techoHist = punto.top - escena.top - alto - 4;
+  let top = medio - escena.top - alto / 2;
+  if (top > techoHist) top = techoHist;
+  if (top < 4) top = 4;
+  g.style.top = Math.round(top) + 'px';
+  g.style.right = Math.round(escena.right - punto.right) + 'px';
+}
+function apagarG(){
+  const g = $('btnGlosas');
+  if (g) g.classList.remove('puesta');
+}
+function encenderG(){
+  colocarG();
+  pintarG();
+  const g = $('btnGlosas');
+  if (!g || g.hidden) return;
+  g.classList.add('puesta');
 }
 (function correrPapel(){
   /* EL DESLIZ DE LADO YA NO ABRE EL CAJÓN. Pedido: ese movimiento pasa hoja,
@@ -11489,6 +11540,7 @@ function animate(turn){
         anchor = F = null;
         if (cruzarLibro(side, null, true)) return;
         fx.style.display='none'; pg.classList.remove('hidden'); updateReadout();
+        encenderG();
         return;
       }
       paginaActual = destino;
@@ -11496,6 +11548,7 @@ function animate(turn){
     }
     fx.style.display='none'; pg.classList.remove('hidden'); anchor=F=null; updateReadout();
     if (typeof sepTrasPliegue === 'function') sepTrasPliegue();
+    encenderG();
   })(t0);
 }
 
@@ -11524,6 +11577,7 @@ function pasoAnimado(desde, hacia, dur, hojas, cb){
 function animarHojas(hojas, dur, cb, anclaY){
   folding = true;
   plegandoConDedo = false;                 /* esto lo mueve la máquina, no un dedo */
+  apagarG();
   if (typeof sepAlPlegar === 'function') sepAlPlegar();
   pg.classList.add('hidden'); fx.style.display = 'block';
 

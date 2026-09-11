@@ -137,6 +137,12 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
     const cs = getComputedStyle(b);
     const carmin = cs.color;
     const vivo = carmin === 'rgb(216, 11, 11)';
+    const hist = document.getElementById('btnHistorial').getBoundingClientRect();
+    const gR = b.getBoundingClientRect();
+    const ultimo = document.getElementById('pgBody').lastElementChild;
+    const textoAbajo = ultimo.getBoundingClientRect().bottom;
+    const gMedio = (gR.top + gR.bottom) / 2;
+    const hMedio = (hist.top + hist.bottom) / 2;
     const traza = [];
     const tope = pg.scrollWidth - pg.clientWidth;
     b.click();
@@ -152,7 +158,11 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
       familia: cs.fontFamily, peso: cs.fontWeight, tam: cs.fontSize,
       redonda: cs.borderRadius, carmin, vivo,
       tope, final: traza[traza.length-1][1], traza,
-      presionada: b.getAttribute('aria-pressed'), abierta: b.classList.contains('abierta')
+      presionada: b.getAttribute('aria-pressed'), abierta: b.classList.contains('abierta'),
+      aLaDerecha: Math.abs(gR.right - hist.right) <= 2,
+      entre: gMedio >= Math.min(textoAbajo, hMedio) - 2 &&
+             gMedio <= Math.max(textoAbajo, hMedio) + 2,
+      funde: /opacity/.test(cs.transition)
     };
   });
   di('la G', { letra:g.letra, tam:g.tam, peso:g.peso, carmin:g.carmin, final:g.final });
@@ -163,11 +173,14 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
   vale('en un círculo', parseFloat(g.redonda) >= 14, g.redonda);
   vale('carmín de las piedras, no el vivo',
        /155,\s*42,\s*42/.test(g.carmin || '') && !g.vivo, g.carmin);
+  vale('a la derecha, con el historial', g.aLaDerecha === true, g.aLaDerecha);
+  vale('a media altura entre el texto y el historial', g.entre === true, g.entre);
+  vale('y al pasar hoja se funde', g.funde === true, g.funde);
   vale('EL CAJÓN SE ABRE ENTERO', g.final >= g.tope - 2, g.final + ' de ' + g.tope);
   vale('y queda marcada como abierta', g.presionada === 'true' && g.abierta, g.presionada);
   /* La forma del viaje: despacio, rápido, despacio. Misma medida que cuando
      el desliz abría el cajón; ahora la G es quien lo corre. */
-  const t = g.traza, topeG = g.tope;
+  const t = g.traza || [], topeG = g.tope || 0;
   const cuando = f => { const q = t.find(x => x[1] >= topeG*f); return q ? q[0] : null; };
   const marcas = { c25: cuando(.25), c50: cuando(.5), c75: cuando(.75), c100: cuando(.999) };
   di('cruza cada cuarto en', marcas);
