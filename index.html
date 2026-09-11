@@ -3773,7 +3773,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '11-SEP-26 07:10';
+window.GLOSS_BUILD = '11-SEP-26 07:24';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4064,7 +4064,13 @@ const PAGE_CSS = `
    una aplicación que es un libro. Con un velo del color del papel, la lista
    se lee con la misma tinta de siempre. Y opaco: con transparencia la hoja
    se leía a través y los renglones se cruzaban. */
-.escenas{ position:absolute; inset:0; z-index:12; display:none; }
+.escenas{ position:absolute; inset:0; z-index:12; display:none;
+          /* NO SE SELECCIONA. Son renglones que se pulsan, no texto que se
+             copia, y el recuadro sepia de la que se lee se confundía con una
+             selección. Cubriendo el diálogo entero —velo y lista— no queda
+             hueco entre botones donde el arrastre pinte azul. */
+          -webkit-user-select:none; user-select:none;
+          -webkit-touch-callout:none; }
 .escenas.puesto{ display:block; }
 .escenas-velo{ position:absolute; inset:0; background:var(--papel,#faf7f1);
                opacity:0; transition:opacity .28s ease; }
@@ -4074,6 +4080,10 @@ const PAGE_CSS = `
 .escenas.visible .escenas-velo{ opacity:1; }
 .escenas-lista{ position:absolute; overflow-y:auto; overscroll-behavior:contain;
                 -webkit-overflow-scrolling:touch;
+                /* SIN BARRA. La lista rueda, que hay más escenas de las que
+                   caben, pero el riel no: es el mismo trato que el globo de
+                   versiones, el historial y el canto. Pedido. */
+                scrollbar-width:none; -ms-overflow-style:none;
                 font-family:'Palatino Linotype',Palatino,'Book Antiqua',
                             'Iowan Old Style',Georgia,'Noto Serif',serif;
                 font-style:normal; font-weight:600; line-height:1.25;
@@ -4083,6 +4093,7 @@ const PAGE_CSS = `
                 transition:opacity .3s ease,
                            transform .34s cubic-bezier(.2,.85,.3,1); }
 .escenas.visible .escenas-lista{ opacity:1; transform:none; }
+.escenas-lista::-webkit-scrollbar{ width:0; height:0; display:none; }
 /* La escena es un botón porque se pulsa, pero no tiene que parecerlo: lo que
    se pulsa aquí es un renglón de texto, igual que el titulillo del que salió. */
 .escena{ display:block; width:100%; box-sizing:border-box; margin:0;
@@ -5647,6 +5658,11 @@ function cerrarEscenas(){
 function abrirEscenas(h2){
   const lista = (typeof GlossaPericopas !== 'undefined' && GlossaPericopas[LIBRO]) || null;
   if (!lista || !lista.length) return;
+  /* Lo que hubiera seleccionado en la hoja se va: con la lista puesta no se
+     selecciona nada, y dejar el subrayado de detrás sería dejar una marca de
+     otra cosa. */
+  const sel = window.getSelection && window.getSelection();
+  if (sel && sel.removeAllRanges) sel.removeAllRanges();
   escenaCierreGen++;
   clearTimeout(escenaCierreReloj);
   const dice = h2.querySelector('.peri-dice') || h2;
@@ -5774,6 +5790,11 @@ escenas.addEventListener('click', ev => {
      misma hoja se ve como un parpadeo sin motivo. */
   if (!misma && Number.isFinite(cap) && Number.isFinite(vers)) saltarA(LIBRO, cap, vers);
 });
+/* Y tampoco se arranca una selección: user-select:none tapa el caso común,
+   pero un arrastre a pelo todavía dispara selectstart en algunos aparatos.
+   Cancelarlo aquí es lo que se pidió para la lupa de los libros cuando el
+   CSS no valió —ver .rejilla-libros. */
+escenas.addEventListener('selectstart', ev => ev.preventDefault());
 function verseHTML(k, withMarks, below){
   const it = plano[k], base = it.texto;
   const aqui = marcas.filter(m => m.cap===it.cap && m.vers===it.vers && visible(m) && RES.has(m.id));
