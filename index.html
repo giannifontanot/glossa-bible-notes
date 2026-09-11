@@ -951,7 +951,7 @@
      solo deja el derecho de arranque; el top sale de la medida.
      Y AL PASAR HOJA SE FUNDE: opacidad 0 mientras el pliegue corre, y
      .puesta la devuelve. Pedido. */
-  #btnGlosas{ position:absolute; z-index:7; right:8px; top:0;
+  #btnGlosas{ position:absolute; z-index:8; right:8px; top:0;
               width:1.5em; height:1.5em; padding:0; margin:0;
               display:grid; place-items:center;
               border-radius:50%;
@@ -966,6 +966,11 @@
               transition:opacity .46s cubic-bezier(.65,0,.35,1);
               -webkit-tap-highlight-color:transparent;
               -webkit-user-select:none; user-select:none; }
+  /* MARGEN INVISIBLE. El círculo se ve de 1.5 em; el toque llega 14 px más
+     allá, para que gane a lo que hay al lado —el historial, el filo, el
+     texto—. El z-index 8 le gana al 7 del historial en el recubrimiento.
+     El recuadro de la G no crece: el ::before no pinta y no empuja. */
+  #btnGlosas::before{ content:''; position:absolute; inset:-14px; }
   #btnGlosas[hidden]{ display:none; }
   #btnGlosas.puesta{ opacity:1; pointer-events:auto; }
   #btnGlosas.abierta{ background:var(--rojo-galon, #9b2a2a); color:#fff8e4; }
@@ -3814,7 +3819,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '11-SEP-26 14:42';
+window.GLOSS_BUILD = '11-SEP-26 14:51';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';

@@ -162,7 +162,12 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
       aLaDerecha: Math.abs(gR.right - hist.right) <= 2,
       entre: gMedio >= Math.min(textoAbajo, hMedio) - 2 &&
              gMedio <= Math.max(textoAbajo, hMedio) + 2,
-      funde: /opacity/.test(cs.transition)
+      funde: /opacity/.test(cs.transition),
+      halo: (() => {
+        const x = gR.left + gR.width / 2, y = gR.top - 12;
+        const el = document.elementFromPoint(x, y);
+        return !!(el && el.closest && el.closest('#btnGlosas'));
+      })()
     };
   });
   di('la G', { letra:g.letra, tam:g.tam, peso:g.peso, carmin:g.carmin, final:g.final });
@@ -176,6 +181,7 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
   vale('a la derecha, con el historial', g.aLaDerecha === true, g.aLaDerecha);
   vale('a media altura entre el texto y el historial', g.entre === true, g.entre);
   vale('y al pasar hoja se funde', g.funde === true, g.funde);
+  vale('y el margen invisible gana el toque', g.halo === true, g.halo);
   vale('EL CAJÓN SE ABRE ENTERO', g.final >= g.tope - 2, g.final + ' de ' + g.tope);
   vale('y queda marcada como abierta', g.presionada === 'true' && g.abierta, g.presionada);
   /* La forma del viaje: despacio, rápido, despacio. Misma medida que cuando
