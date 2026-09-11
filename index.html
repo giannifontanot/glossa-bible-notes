@@ -150,7 +150,7 @@
   /* LA SOMBRA ES DE LA PIEDRA QUE LA LLEVA, no de todas. La llevaban todas
      puesta desde el CSS, que estaba bien mientras no se podían editar; ahora
      es una casilla del mando, como en la hoja. */
-  .pt-piedra.con-sombra{ filter:drop-shadow(5px 5px 10px rgba(0,0,0,.5)); }
+  .pt-piedra.con-sombra{ filter:var(--piedra-sombra, drop-shadow(5px 5px 10px rgba(0,0,0,.5))); }
   .pt-piedra{ pointer-events:auto; cursor:pointer; }
   .pt-piedra svg{ display:block; width:100%; height:100%; }
   /* Cada piedra puesta enseña que responde al toque. */
@@ -1666,15 +1666,12 @@
      papel, y lo que la sombra dice es que está ENCIMA. Dejar la transparencia
      y añadir la sombra daba una piedra fantasma proyectando sombra, que es lo
      único que no puede ser.
-     Los números son los pedidos: 5px de lado, 5 de caída y 10 de difuminado
-     sobre negro al 50%. Van en píxeles fijos, así que en la piedra más chica
-     —23px de lado— la sombra pesa más que en la más grande —484px—, donde
-     apenas se nota. Se deja así porque es lo que se pidió y porque la piedra
-     de fábrica está en el segundo escalón, que es donde la medida está hecha.
-     El día que moleste, la manera de arreglarlo es escalarla desde el guion:
-     el porcentaje del papel no se puede convertir a píxeles en CSS. */
+     El 5/5/10 se midió en el escalón 5 —el de nacer— y ahí se queda exactamente.
+     En los demás el filtro lo escribe el guion, proporcional al lado, porque el
+     porcentaje del papel no se puede convertir a píxeles en CSS. Ver
+     piedraSombraFiltro. */
   .piedra.con-sombra{ opacity:1;
-                      filter:drop-shadow(5px 5px 10px rgba(0,0,0,.5)); }
+                      filter:var(--piedra-sombra, drop-shadow(5px 5px 10px rgba(0,0,0,.5))); }
   .piedra svg{ display:block; width:100%; height:100%; }
   .piedra:hover{ opacity:1; }
   .piedra:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; border-radius:4px; }
@@ -3776,7 +3773,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '10-SEP-26 21:20';
+window.GLOSS_BUILD = '11-SEP-26 06:45';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8912,7 +8909,8 @@ function htmlPiedrasFoto(hojaN){
            pelo y no por clase, porque la foto no comparte esta hoja de
            estilos —lleva la suya, PAGE_CSS— y .piedra no está en ella. */
         'margin:' + med + ' 0 0 ' + med + ';opacity:' + (x.sombra ? '1' : '.82') +
-        (x.sombra ? ';filter:drop-shadow(5px 5px 10px rgba(0,0,0,.5))' : '') + '">' +
+        (x.sombra ? ';filter:' +
+          piedraSombraFiltro(PIEDRA_TAMS[x.tam], PIEDRA_TAMS[PIEDRA_TAM_NUEVA]) : '') + '">' +
         piedraDibujo(x.forma, tintaDe(x.color)[2]) +
         /* Y EL NOMBRE TAMPOCO VA AQUÍ, porque ya no va en la hoja. Estuvo, y
            tenía que estar: lo que no está en el retrato desaparece durante el
@@ -12936,6 +12934,37 @@ const PIEDRA_TAM_POR = 2;              /* el de repuesto: ver PIEDRA_TAM_NUEVA *
    una sola constante, arreglar lo uno estropeaba lo otro: un dato roto se
    convertía en una piedra enorme. */
 const PIEDRA_TAM_NUEVA = 4;            /* el 5 de 8, contando como el mando */
+/* LA SOMBRA ESCALA CON LA PIEDRA.
+
+   El 5 px de lado, 5 de caída y 10 de difuminado se midieron en el escalón 5
+   —el de nacer en la hoja— y AHÍ se quedan exactamente. En los demás se
+   multiplica por la raíz del lado contra ese escalón.
+
+   Por qué la raíz y no el lado a pelo. Lo miraron cuatro oficios y coincidieron
+   en los extremos, no en la fórmula:
+
+   · El tipógrafo: en lo chico el trazo relativo engorda. 0.9 px de caída en la
+     de 23 px es ruido de un píxel; 2 px se leen como sombra.
+   · El lector en el teléfono: en lo grande no puede manchar el versículo.
+     18 px de caída y 37 de difuminado sobre una de media hoja es un charco.
+   · La luz de esta casa: sigue viniendo de arriba a la izquierda, 1:1, y el
+     difuminado al doble. Eso no se toca.
+   · Esta casa: el 5 de 8 no se toca. Es el punto medido.
+
+   Con el lado a pelo, 1 y 2 caían bajo 2 px y 7 y 8 se pasaban de 12, o sea
+   que había que recortar y dos pares de escalones compartirían sombra. Con la
+   raíz, el suelo cae en 2.1 y el techo en 9.6, los ocho se distinguen, y el 5
+   sigue siendo 5. Es proporcional al tamaño que el ojo ve, no al número de
+   píxeles.
+
+   Los píxeles salen del guion: el tamaño es un % del papel y CSS no puede
+   convertirlo a px para un filter. */
+const PIEDRA_SOMBRA_REF = 5;
+function piedraSombraFiltro(lado, ref){
+  const r = (lado > 0 && ref > 0) ? Math.sqrt(lado / ref) : 1;
+  const o = Math.abs(r - 1) < 1e-9 ? PIEDRA_SOMBRA_REF : +(PIEDRA_SOMBRA_REF * r).toFixed(1);
+  return 'drop-shadow(' + o + 'px ' + o + 'px ' + (o * 2) + 'px rgba(0,0,0,.5))';
+}
 /* LOS COLORES. Los cuatro de las cintas más el sepia de la tinta y una ciruela,
    que son los que se despegan del papel sin gritar. El sepia va el primero
    porque es el de la letra: una piedra recién puesta parece parte de la hoja, y
@@ -14148,7 +14177,9 @@ function pintarPiedras(){
         ' data-piedra="' + esc(x.id) + '">' +
       '<button type="button" class="piedra' + (x.sombra ? ' con-sombra' : '') +
         '" data-piedra-cuerpo="' + esc(x.id) + '"' +
-        ' style="color:' + compensarTinta(tintaDe(x.color)[2]) + '"' +
+        ' style="color:' + compensarTinta(tintaDe(x.color)[2]) +
+        (x.sombra ? ';--piedra-sombra:' +
+          piedraSombraFiltro(PIEDRA_TAMS[x.tam], PIEDRA_TAMS[PIEDRA_TAM_NUEVA]) : '') + '"' +
         ' aria-label="' + esc(piedraVoz(x)) + '. Doble toque para moverla."' +
         ' title="' + esc(piedraVoz(x)) + '">' + piedraDibujo(x.forma) + '</button>' +
       /* EL NOMBRE NO SE PINTA EN LA HOJA, y se quitó habiéndolo visto puesto.
@@ -17272,7 +17303,10 @@ function portadaPintarPiedras(){
       '" data-pt-piedra="' + esc(p.id) + '"' +
       ' style="left:' + (p.x * 100).toFixed(3) + '%;top:' + (p.y * 100).toFixed(3) + '%' +
       ';--pt-tam:' + (PORTADA_TAMS[p.tam] || PORTADA_TAMS[PORTADA_TAM_POR]) +
-      'px;color:' + tintaDe(p.color)[2] + '"' +
+      'px;color:' + tintaDe(p.color)[2] +
+      (p.sombra ? ';--piedra-sombra:' +
+        piedraSombraFiltro(PORTADA_TAMS[p.tam] || PORTADA_TAMS[PORTADA_TAM_POR],
+                           PORTADA_TAMS[PIEDRA_TAM_NUEVA]) : '') + '"' +
       /* El rótulo dice lo que hace el toque AHORA, que no es lo mismo estando
          en edición que fuera de ella. */
       ' aria-label="' + esc(FORMA_NOMBRE[p.forma] || p.forma) +
