@@ -562,6 +562,7 @@ const abrirEn = async (p, donde) => {
       primera: items[0] && items[0].textContent.trim(),
       ultima: items[items.length - 1] && items[items.length - 1].textContent.trim(),
       rueda: lista.scrollHeight > lista.clientHeight,
+      barra: csLista.scrollbarWidth,
       fondo: cs ? cs.backgroundColor : null,
       letra: cs ? cs.color : null,
       marco: cs ? cs.boxShadow : null,
@@ -586,6 +587,7 @@ const abrirEn = async (p, donde) => {
        escenas.ultima === DATOS_LUK[DATOS_LUK.length - 1].t.es,
        escenas.primera + ' … ' + escenas.ultima);
   vale('  y hay más de las que caben, o sea que se rueda', escenas.rueda === true, escenas.rueda);
+  vale('  y SIN la línea del scroll', escenas.barra === 'none', escenas.barra);
   /* EL CUADRE. Un píxel y medio de holgura y no cero: offsetTop viene
      redondeado a entero, así que exigir la igualdad exacta sería exigir que el
      navegador no redondee. Lo que se afirma es que no hay salto. */

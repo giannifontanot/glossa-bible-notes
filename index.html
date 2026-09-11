@@ -3773,7 +3773,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '11-SEP-26 07:20';
+window.GLOSS_BUILD = '11-SEP-26 07:24';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4080,6 +4080,10 @@ const PAGE_CSS = `
 .escenas.visible .escenas-velo{ opacity:1; }
 .escenas-lista{ position:absolute; overflow-y:auto; overscroll-behavior:contain;
                 -webkit-overflow-scrolling:touch;
+                /* SIN BARRA. La lista rueda, que hay más escenas de las que
+                   caben, pero el riel no: es el mismo trato que el globo de
+                   versiones, el historial y el canto. Pedido. */
+                scrollbar-width:none; -ms-overflow-style:none;
                 font-family:'Palatino Linotype',Palatino,'Book Antiqua',
                             'Iowan Old Style',Georgia,'Noto Serif',serif;
                 font-style:normal; font-weight:600; line-height:1.25;
@@ -4089,6 +4093,7 @@ const PAGE_CSS = `
                 transition:opacity .3s ease,
                            transform .34s cubic-bezier(.2,.85,.3,1); }
 .escenas.visible .escenas-lista{ opacity:1; transform:none; }
+.escenas-lista::-webkit-scrollbar{ width:0; height:0; display:none; }
 /* La escena es un botón porque se pulsa, pero no tiene que parecerlo: lo que
    se pulsa aquí es un renglón de texto, igual que el titulillo del que salió. */
 .escena{ display:block; width:100%; box-sizing:border-box; margin:0;
