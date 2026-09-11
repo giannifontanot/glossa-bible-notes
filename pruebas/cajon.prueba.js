@@ -82,6 +82,68 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
   di('60 px de ratón', { alSoltar: raton.alSoltar, final: raton.final, tope: raton.tope });
   vale('el ratón también lo abre', raton.final >= raton.tope - 2);
 
+  /* DESDE UN VERSÍCULO, no solo desde el blanco de abajo. Pedido: el texto
+     llena el ancho y el pie era el único asidero. El desliz arranca sobre
+     el renglón y el cajón se tiene que ir igual. */
+  titulo('desde un versículo también se abre');
+  const desdeTexto = await p.evaluate(async () => {
+    const pg = document.getElementById('pg');
+    pg.scrollLeft = 0;
+    const v = document.querySelector('#pgBody .v');
+    if (!v) return { sinVerso:true };
+    const r = v.getBoundingClientRect();
+    const x0 = r.left + Math.min(80, r.width * .4);
+    const y0 = r.top + r.height / 2;
+    const op = i => ({ bubbles:true, pointerId:8, pointerType:'touch', isPrimary:true,
+                       clientX: x0 - (60 * i / 6),
+                       clientY: y0 + (i % 2 ? 2 : -1) });
+    v.dispatchEvent(new PointerEvent('pointerdown', op(0)));
+    for (let i = 1; i <= 6; i++){
+      v.dispatchEvent(new PointerEvent('pointermove', op(i)));
+      await new Promise(z => setTimeout(z, 10));
+    }
+    v.dispatchEvent(new PointerEvent('pointerup', op(6)));
+    const traza = [];
+    const t0 = performance.now();
+    await new Promise(fin => {
+      (function mira(){
+        traza.push(pg.scrollLeft);
+        if (performance.now()-t0 < 900) requestAnimationFrame(mira); else fin();
+      })();
+    });
+    const tope = pg.scrollWidth - pg.clientWidth;
+    return { tope, final: traza[traza.length-1], sobre: v.dataset.k };
+  });
+  di('60 px sobre el versículo', desdeTexto);
+  vale('(la prueba es válida) había un versículo de donde jalar',
+       !desdeTexto.sinVerso, desdeTexto.sobre);
+  vale('EL CAJÓN SE ABRE TAMBIÉN DESDE EL TEXTO',
+       desdeTexto.final >= desdeTexto.tope - 2,
+       desdeTexto.final + ' de ' + desdeTexto.tope);
+
+  /* Y SI EL DEDO SE QUEDA, era para glosar: el cajón no se lo queda. */
+  titulo('si el dedo se queda sobre el texto, no es el cajón');
+  const seQuedo = await p.evaluate(async () => {
+    const pg = document.getElementById('pg');
+    pg.scrollLeft = 0;
+    const v = document.querySelector('#pgBody .v');
+    if (!v) return { sinVerso:true };
+    const r = v.getBoundingClientRect();
+    const x0 = r.left + Math.min(80, r.width * .4);
+    const y0 = r.top + r.height / 2;
+    const op = (x) => ({ bubbles:true, pointerId:9, pointerType:'touch', isPrimary:true,
+                         clientX:x, clientY:y0 });
+    v.dispatchEvent(new PointerEvent('pointerdown', op(x0)));
+    await new Promise(z => setTimeout(z, 340));
+    v.dispatchEvent(new PointerEvent('pointermove', op(x0 - 60)));
+    v.dispatchEvent(new PointerEvent('pointerup', op(x0 - 60)));
+    await new Promise(z => setTimeout(z, 400));
+    return { final: pg.scrollLeft, tope: pg.scrollWidth - pg.clientWidth };
+  });
+  di('tras quedarse 340 ms', seQuedo);
+  vale('el cajón se queda cerrado', seQuedo.final < seQuedo.tope * 0.5,
+       Math.round(seQuedo.final/(seQuedo.tope||1)*100) + '% abierto');
+
   titulo('la página no se desplaza en vertical');
   /* NO HAY NADA QUE DESPLAZAR, y sin embargo se podía. El cuerpo iba en
      min-height:100vh y la escena en height:100dvh, y esas dos NO miden lo
