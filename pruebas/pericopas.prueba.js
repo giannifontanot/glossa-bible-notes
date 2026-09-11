@@ -608,10 +608,14 @@ const abrirEn = async (p, donde) => {
   vale('  y el borde más oscuro que ese sepia',
        /74,\s*58,\s*28/.test(escenas.marco || ''),
        escenas.marco);
-  vale('  CONTROL: las demás no llevan ni relleno ni marco',
+  vale('  CONTROL: las demás no llevan el recuadro sepia',
        /0,\s*0,\s*0,\s*0|transparent/.test(escenas.fondoOtra || '') &&
-       escenas.marcoOtra === 'none',
+       !/74,\s*58,\s*28/.test(escenas.marcoOtra || ''),
        escenas.fondoOtra + ' · ' + escenas.marcoOtra);
+  /* Entre renglones: un pelo del mismo sepia, sin ocupar sitio. */
+  vale('  y entre renglones, un pelo sepia',
+       /184,\s*137,\s*43/.test(escenas.marcoOtra || ''),
+       escenas.marcoOtra);
   /* NO SE SELECCIONA. Pedido: ni el recuadro sepia ni ningún renglón de la
      lista. Se mira la propiedad Y un arrastre de ratón, que es lo que pinta
      el subrayado azul si la regla no cubre. */
