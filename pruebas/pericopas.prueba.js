@@ -534,6 +534,22 @@ const abrirEn = async (p, donde) => {
     const suDice = elegida && elegida.querySelector('.escena-dice');
     const cs = elegida && getComputedStyle(elegida);
     const csOtra = items.length ? getComputedStyle(items[0] === elegida ? items[1] : items[0]) : null;
+    const csLista = getComputedStyle(lista);
+    const arrastre = el => {
+      const b = el.getBoundingClientRect();
+      const ev = (t, x) => el.dispatchEvent(new MouseEvent(t, {
+        bubbles:true, cancelable:true, clientX:x, clientY: b.top + b.height/2,
+        buttons: t === 'mouseup' ? 0 : 1
+      }));
+      ev('mousedown', b.left + 8);
+      ev('mousemove', b.right - 8);
+      ev('mouseup', b.right - 8);
+      return String(window.getSelection() || '').trim();
+    };
+    const selAqui = elegida ? arrastre(elegida) : 'sin elegida';
+    window.getSelection().removeAllRanges();
+    const otra = items[0] === elegida ? items[1] : items[0];
+    const selOtra = otra ? arrastre(otra) : 'sin otra';
     return {
       trasCorto,
       abierta: caj.classList.contains('puesto') && caj.classList.contains('visible'),
@@ -550,7 +566,10 @@ const abrirEn = async (p, donde) => {
       letra: cs ? cs.color : null,
       marco: cs ? cs.boxShadow : null,
       fondoOtra: csOtra ? csOtra.backgroundColor : null,
-      marcoOtra: csOtra ? csOtra.boxShadow : null
+      marcoOtra: csOtra ? csOtra.boxShadow : null,
+      eligeLista: csLista.userSelect,
+      eligeCaja: cs ? cs.userSelect : null,
+      selAqui, selOtra
     };
   });
   di('las escenas', escenas);
@@ -591,6 +610,15 @@ const abrirEn = async (p, donde) => {
        /0,\s*0,\s*0,\s*0|transparent/.test(escenas.fondoOtra || '') &&
        escenas.marcoOtra === 'none',
        escenas.fondoOtra + ' · ' + escenas.marcoOtra);
+  /* NO SE SELECCIONA. Pedido: ni el recuadro sepia ni ningún renglón de la
+     lista. Se mira la propiedad Y un arrastre de ratón, que es lo que pinta
+     el subrayado azul si la regla no cubre. */
+  vale('  y no se selecciona el recuadro sepia',
+       escenas.eligeCaja === 'none' && !escenas.selAqui,
+       escenas.eligeCaja + ' · «' + escenas.selAqui + '»');
+  vale('  ni ningún renglón de la lista',
+       escenas.eligeLista === 'none' && !escenas.selOtra,
+       escenas.eligeLista + ' · «' + escenas.selOtra + '»');
 
   /* EL FONDO ES OPACO. Se mide en píxeles: al lado de la lista no puede
      quedar tinta de la hoja. El recorte sale del rect de la lista —al lado,
