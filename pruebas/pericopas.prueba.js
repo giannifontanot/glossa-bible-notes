@@ -446,7 +446,11 @@ const abrirEn = async (p, donde) => {
     if (conTitulo.length){
       const x = conTitulo[conTitulo.length - 1];
       const i = x.indexOf('class="peri"');
-      trozo = x.slice(i, i + 90);
+      /* Hasta el cierre del h2, no un recorte de 90 caracteres: con
+         aria-expanded el atributo ya se come esa ventana y el texto cae
+         fuera, que es precisamente lo que esta aserción quería ver. */
+      const j = x.indexOf('</h2>', i);
+      trozo = x.slice(i, j > i ? j + 5 : i + 220);
     }
     return { texto, banda, tinta, retratos: conCuerpo.length,
              conTitulo: conTitulo.length, trozo };
