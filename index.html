@@ -3776,7 +3776,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '10-SEP-26 07:30';
+window.GLOSS_BUILD = '10-SEP-26 21:20';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5564,9 +5564,10 @@ function tituloHTML(k){
      eso le quitaría a un lector de pantalla lo que este renglón ES —el título
      de la escena, y por tanto un sitio por el que saltar—, para decirle en su
      lugar que es un botón. Con aria-haspopup se anuncia como lo que es y
-     además se avisa de que abre algo. */
+     además se avisa de que abre algo. aria-expanded lo llevan al día
+     abrirEscenas y cerrarEscenas, igual que pgCabeza y pgVersion. */
   return '<h2 class="peri" data-peri="' + esc(p.id) + '" tabindex="0"' +
-         ' aria-haspopup="dialog"' + suyo + '>' +
+         ' aria-haspopup="dialog" aria-expanded="false"' + suyo + '>' +
          '<span class="peri-dice">' + esc(t.t) + '</span>' + sombra + '</h2>';
 }
 /* ============================================================
@@ -5587,7 +5588,7 @@ function tituloHTML(k){
    Prólogo —la primera de Lucas— estando abajo de la pantalla, para dejarlo
    donde está haría falta un scrollTop negativo, y el navegador lo recorta a
    cero y el renglón se va a otro sitio. Con un acolchado de una pantalla
-   repartido según dónde caiga el ancla, cualquiera de las 108 puede quedarse
+   repartido según dónde caiga el ancla, cualquiera de las 95 puede quedarse
    quieta. El precio es una pantalla en blanco en cada punta, que es
    exactamente lo que hace falta y ni un píxel más.
 
@@ -5595,28 +5596,71 @@ function tituloHTML(k){
    titulillo, así que aquí no hay nada que tocar; el día que se añada otro
    libro a pericopas.js, esto funciona con él sin tocar una línea. */
 let escenaAncla = null;                /* el .peri desde el que se abrió */
+let escenaCierreGen = 0, escenaCierreReloj = null;
 function escenasPuestas(){ return escenas.classList.contains('puesto'); }
+function escenaAislar(si){
+  /* El diálogo se anuncia modal: hay que INERTAR la hoja, no solo decirlo.
+     Sin esto el tabulador se iba a #btnZoom y a los otros titulillos.
+     #buscando se deja: un salto mientras se cierra tiene que poder anunciarse.
+     Lo levantó la revisión del PR #84. */
+  for (const n of stage.children){
+    if (n === escenas || n.id === 'buscando') continue;
+    n.inert = !!si;
+  }
+}
+function escenasBotones(){ return [...escenasLista.querySelectorAll('.escena')]; }
+function escenasFocoVecino(dir){
+  const bots = escenasBotones();
+  if (!bots.length) return;
+  let i = bots.indexOf(document.activeElement);
+  if (i < 0) i = bots.findIndex(b => b.classList.contains('aqui'));
+  if (i < 0) i = 0;
+  const n = bots[(i + dir + bots.length) % bots.length];
+  n.focus({ preventScroll:true });
+  const r = n.getBoundingClientRect(), e = stage.getBoundingClientRect();
+  if (r.top < e.top + 8 || r.bottom > e.bottom - 8)
+    n.scrollIntoView({ block:'nearest', inline:'nearest' });
+}
 function cerrarEscenas(){
   if (!escenasPuestas()) return;
   escenas.classList.remove('visible');
+  /* UN RETIRO PENDIENTE NO PUEDE BORRAR LA QUE SE REABRIÓ. El foco volvía al
+     titulillo en el acto, así que Escape y luego Intro dentro de los 300 ms
+     reconstruía la lista y el setTimeout de antes la vaciaba. Misma idea que
+     sepRetiroGen: cada cierre tiene generación, y fin no hace nada si ya no
+     le toca. El foco vuelve EN fin, no antes. Lo levantó la revisión del
+     PR #84. */
+  const gen = ++escenaCierreGen;
+  const ancla = escenaAncla;
+  escenaAncla = null;
+  if (ancla && ancla.isConnected) ancla.setAttribute('aria-expanded', 'false');
+  const fin = () => {
+    if (gen !== escenaCierreGen) return;
+    if (escenas.classList.contains('visible')) return;
+    escenas.classList.remove('puesto');
+    escenasLista.innerHTML = '';
+    escenaAislar(false);
+    if (ancla && ancla.isConnected) ancla.focus({ preventScroll:true });
+  };
   const quieto = window.matchMedia &&
                  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const fin = () => { escenas.classList.remove('puesto'); escenasLista.innerHTML = ''; };
-  if (quieto) fin(); else setTimeout(fin, 300);
-  /* El foco vuelve al titulillo del que salió; si la hoja ya cambió, se deja
-     donde esté antes que devolverlo a un elemento que ya no existe. */
-  if (escenaAncla && escenaAncla.isConnected) escenaAncla.focus({ preventScroll:true });
-  escenaAncla = null;
+  clearTimeout(escenaCierreReloj);
+  if (quieto) fin(); else escenaCierreReloj = setTimeout(fin, 300);
 }
 function abrirEscenas(h2){
   const lista = (typeof GlossaPericopas !== 'undefined' && GlossaPericopas[LIBRO]) || null;
   if (!lista || !lista.length) return;
+  escenaCierreGen++;
+  clearTimeout(escenaCierreReloj);
   const dice = h2.querySelector('.peri-dice') || h2;
   const e = stage.getBoundingClientRect();
   const rH2 = h2.getBoundingClientRect();
   const rDice = dice.getBoundingClientRect();
   const aqui = h2.dataset.peri;
+  if (escenaAncla && escenaAncla !== h2 && escenaAncla.isConnected)
+    escenaAncla.setAttribute('aria-expanded', 'false');
   escenaAncla = h2;
+  h2.setAttribute('aria-expanded', 'true');
   escenasLista.innerHTML = lista.map(p => {
     const t = tituloPericopa(p);
     const suyo = t.l !== idiomaVersion(version) ? ' lang="' + t.l + '"' : '';
@@ -5640,6 +5684,7 @@ function abrirEscenas(h2){
   escenasLista.style.fontSize = getComputedStyle(dice).fontSize;
   escenasLista.style.setProperty('--sangria', suyoCss.paddingLeft);
   escenas.classList.add('puesto');
+  escenaAislar(true);
   /* Y ahora se cuadra midiendo, no calculando: se pinta, se mira dónde cayó
      el renglón de la elegida y se corrige la diferencia. Así da igual el
      relleno del botón, el interlineado o lo que haga el navegador con los
@@ -5698,6 +5743,10 @@ pgBody.addEventListener('keydown', ev => {
   abrirEscenas(h);
 });
 escenas.addEventListener('click', ev => {
+  /* SIN .visible NO. Mientras se apaga los botones siguen en el DOM y puesto
+     sigue puesto, así que un segundo toque llamaba otra vez a saltarA.
+     Lo levantó la revisión del PR #84. */
+  if (!escenas.classList.contains('visible')) return;
   const b = ev.target.closest && ev.target.closest('.escena');
   if (!b){ cerrarEscenas(); return; }        /* el velo, o el hueco de al lado */
   const cap = +b.dataset.cap, vers = +b.dataset.vers;
@@ -12317,6 +12366,13 @@ document.addEventListener('keydown', ev => {
     if (ev.key === 'Escape'){ cerrarEscenas(); ev.preventDefault(); return; }
     if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight' ||
         ev.key === 'PageUp' || ev.key === 'PageDown'){ ev.preventDefault(); return; }
+    /* Tab se queda DENTRO. aria-modal es un aviso; inert cubre el puntero y
+       el tabulador del documento, y esto cubre el tabulador que ya iba a
+       salir hacia #btnZoom. Arriba y abajo recorren la lista, que es lo que
+       uno espera dentro de ella —95 paradas de tabulador es un via crucis. */
+    if (ev.key === 'Tab'){ escenasFocoVecino(ev.shiftKey ? -1 : 1); ev.preventDefault(); return; }
+    if (ev.key === 'ArrowDown'){ escenasFocoVecino(1); ev.preventDefault(); return; }
+    if (ev.key === 'ArrowUp'){ escenasFocoVecino(-1); ev.preventDefault(); return; }
   }
   if (ev.key === 'Escape'){ ocultarCascada(); cerrarTodosLosRollos(); ocultarMenu();
     /* Y lo del separador, que también son cosas de las que hay que poder
