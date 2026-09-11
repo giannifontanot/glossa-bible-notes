@@ -446,7 +446,11 @@ const abrirEn = async (p, donde) => {
     if (conTitulo.length){
       const x = conTitulo[conTitulo.length - 1];
       const i = x.indexOf('class="peri"');
-      trozo = x.slice(i, i + 90);
+      /* Hasta el cierre del h2, no un recorte de 90 caracteres: con
+         aria-expanded el atributo ya se come esa ventana y el texto cae
+         fuera, que es precisamente lo que esta aserción quería ver. */
+      const j = x.indexOf('</h2>', i);
+      trozo = x.slice(i, j > i ? j + 5 : i + 220);
     }
     return { texto, banda, tinta, retratos: conCuerpo.length,
              conTitulo: conTitulo.length, trozo };
@@ -472,6 +476,336 @@ const abrirEn = async (p, donde) => {
      desde una copia sin él— la hoja se pinta igual y sencillamente no hay
      titulillos. Se prueba de verdad, con una copia del directorio a la que le
      falta el fichero, y no simulando nada. */
+  /* ================================================================
+     TOCAR UN TITULILLO Y VER EL LIBRO ENTERO.
+
+     Lo pidió el dueño del repo: un toque en una perícopa saca la lista de
+     todas las del libro, con la tocada EN EL MISMO SITIO donde estaba, las de
+     atrás hacia arriba y las de adelante hacia abajo. Tocar otra salta a su
+     página.
+
+     LO QUE SE AFIRMA ES QUE EL RENGLÓN NO SE MUEVE, y se mide comparando su
+     rect antes y después. Es la única propiedad del gesto que no se puede ver
+     leyendo el código: el cuadre depende del relleno de los botones, del
+     interlineado y de la transición de entrada, y ya se rompió una vez —la
+     lista entra con un translateY de cinco píxeles y cuadrarla contra un rect
+     a medio animar dejaba el renglón cinco píxeles alto—.
+
+     Y LA CUENTA SE COTEJA CONTRA pericopas.js, no contra un número escrito
+     aquí: el día que se añada un libro o una escena, esta prueba tiene que
+     seguir valiendo sin tocarla. */
+  titulo('tocar un titulillo saca las escenas del libro');
+  const DATOS_LUK = require(path.join(RAIZ, 'pericopas.js')).LUK;
+  const ses2 = await abrir();
+  await abrirEn(ses2.pagina, DONDE);
+  const escenas = await ses2.pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const caja = el => { const b = el.getBoundingClientRect();
+      return { x:+b.left.toFixed(1), y:+b.top.toFixed(1) }; };
+    const ts = [...document.querySelectorAll('#pgBody .peri')];
+    if (!ts.length) return { sinTitulillos:true };
+    const h2 = ts[Math.min(1, ts.length - 1)];
+    const dice = h2.querySelector('.peri-dice');
+    const antes = caja(dice), tam = getComputedStyle(dice).fontSize;
+    /* SIN pointerdown: un toque de dedo no siempre lo manda antes del click,
+       y el arreglo no puede apoyarse en verlo. */
+    const r = h2.getBoundingClientRect();
+    h2.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, detail:1,
+      clientX:r.left + r.width/2, clientY:r.top + r.height/2 }));
+    await pausa(600);
+    const caj = document.getElementById('escenas');
+    const lista = document.getElementById('escenasLista');
+    const items = [...lista.querySelectorAll('.escena')];
+    const elegida = lista.querySelector('.escena.aqui');
+    const suDice = elegida && elegida.querySelector('.escena-dice');
+    return {
+      abierta: caj.classList.contains('puesto') && caj.classList.contains('visible'),
+      cuantas: items.length,
+      tocada: h2.dataset.peri,
+      marcada: elegida ? elegida.dataset.peri : null,
+      marcadas: items.filter(x => x.classList.contains('aqui')).length,
+      antes, despues: suDice ? caja(suDice) : null,
+      tam, tamLista: suDice ? getComputedStyle(suDice).fontSize : null,
+      /* de la primera a la última: la lista es del libro entero */
+      primera: items[0] && items[0].textContent.trim(),
+      ultima: items[items.length - 1] && items[items.length - 1].textContent.trim(),
+      /* y se puede rodar hasta las dos puntas */
+      rueda: lista.scrollHeight > lista.clientHeight,
+      marco: elegida ? getComputedStyle(elegida).boxShadow : null,
+      marcoOtra: getComputedStyle(items[0] === elegida ? items[1] : items[0]).boxShadow
+    };
+  });
+  di('las escenas', escenas);
+  vale('(la prueba es válida) había un titulillo que tocar',
+       !escenas.sinTitulillos, escenas.tocada);
+  vale('UN TOQUE SACA LA LISTA', escenas.abierta === true, escenas.abierta);
+  vale('  y trae TODAS las escenas del libro, cotejado contra pericopas.js',
+       escenas.cuantas === DATOS_LUK.length,
+       escenas.cuantas + ' de ' + DATOS_LUK.length);
+  vale('  de la primera a la última',
+       escenas.primera === DATOS_LUK[0].t.es &&
+       escenas.ultima === DATOS_LUK[DATOS_LUK.length - 1].t.es,
+       escenas.primera + ' … ' + escenas.ultima);
+  vale('  y hay más de las que caben, o sea que se rueda', escenas.rueda === true, escenas.rueda);
+  /* EL CUADRE. Un píxel y medio de holgura y no cero: offsetTop viene
+     redondeado a entero, así que exigir la igualdad exacta sería exigir que el
+     navegador no redondee. Lo que se afirma es que no hay salto. */
+  vale('LA TOCADA SE QUEDA DONDE ESTABA',
+       !!escenas.despues &&
+       Math.abs(escenas.despues.y - escenas.antes.y) <= 1.5 &&
+       Math.abs(escenas.despues.x - escenas.antes.x) <= 1.5,
+       'antes ' + JSON.stringify(escenas.antes) + ' · después ' + JSON.stringify(escenas.despues));
+  vale('  y con el mismo tamaño de letra que el titulillo',
+       escenas.tam === escenas.tamLista, escenas.tam + ' contra ' + escenas.tamLista);
+  vale('  y va marcada ella y ninguna más',
+       escenas.marcada === escenas.tocada && escenas.marcadas === 1,
+       escenas.marcada + ' · ' + escenas.marcadas + ' marcada(s)');
+  /* El marco de la elegida se busca por lo que ES —un recuadro sepia— y no por
+     la cadena exacta que devuelva getComputedStyle. */
+  vale('  con su recuadro sepia, que las demás no llevan',
+       /184,\s*137,\s*43/.test(escenas.marco || '') && escenas.marcoOtra === 'none',
+       escenas.marco + ' contra ' + escenas.marcoOtra);
+
+  /* LA HOJA SE ATENÚA DETRÁS, y se mide en píxeles y no por la opacidad
+     escrita en el CSS: lo que importa es cuánta tinta de la hoja queda.
+     El recorte se saca del rect de la lista —al lado, no encima— para no
+     depender de un rectángulo mágico que se rompe si la columna se mueve. */
+  titulo('la hoja se atenúa detrás de las escenas');
+  const clipVelo = await ses2.pagina.evaluate(() => {
+    const lista = document.getElementById('escenasLista').getBoundingClientRect();
+    const escena = document.getElementById('stage').getBoundingClientRect();
+    const aLaDerecha = escena.right - lista.right >= 90;
+    const x = aLaDerecha
+      ? Math.round(lista.right + 8)
+      : Math.round(Math.max(escena.left + 8, lista.left - 88));
+    const y = Math.round(Math.max(escena.top + 20, lista.top + 40));
+    return { x, y, width: 80, height: 160 };
+  });
+  di('el recorte del velo', clipVelo);
+  const oscuridad = async () => {
+    const b = await ses2.pagina.screenshot({ clip: clipVelo });
+    return ses2.pagina.evaluate(async d => {
+      const im = new Image();
+      await new Promise(ok => { im.onload = ok; im.src = 'data:image/png;base64,' + d; });
+      const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+      const cx = c.getContext('2d'); cx.drawImage(im, 0, 0);
+      const p = cx.getImageData(0, 0, im.width, im.height).data;
+      let min = 255;
+      for (let i = 0; i < p.length; i += 4){
+        const l = p[i] * .299 + p[i+1] * .587 + p[i+2] * .114;
+        if (l < min) min = l;
+      }
+      return +min.toFixed(1);
+    }, b.toString('base64'));
+  };
+  const conVelo = await oscuridad();
+  await ses2.pagina.keyboard.press('Escape');
+  await ses2.pagina.waitForTimeout(500);
+  const sinVelo = await oscuridad();
+  di('la tinta más oscura de la columna', { conVelo, sinVelo });
+  vale('(la prueba es válida) sin velo la hoja tiene tinta de verdad',
+       sinVelo < 90, sinVelo);
+  vale('LA HOJA SE ATENÚA, PERO NO DESAPARECE',
+       conVelo > sinVelo + 80 && conVelo < 235, conVelo + ' contra ' + sinVelo);
+  vale('  y Escape la cierra', await ses2.pagina.evaluate(() =>
+       !document.getElementById('escenas').classList.contains('puesto')), 'cerrada');
+
+  /* EL ACOLCHADO. El segundo titulillo de Lucas 10 nunca pide un scrollTop
+     negativo; el que sí es el que queda más abajo en la escena. Ahí es donde
+     el Prólogo se iba a otro sitio sin la pantalla en blanco de arriba. */
+  titulo('el titulillo de más abajo también se queda donde estaba');
+  const borde = await ses2.pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const caja = el => { const b = el.getBoundingClientRect();
+      return { x:+b.left.toFixed(1), y:+b.top.toFixed(1) }; };
+    const ts = [...document.querySelectorAll('#pgBody .peri')];
+    if (!ts.length) return { sinTitulillos:true };
+    const h2 = ts.reduce((a, b) =>
+      a.getBoundingClientRect().top >= b.getBoundingClientRect().top ? a : b);
+    const dice = h2.querySelector('.peri-dice') || h2;
+    const antes = caja(dice);
+    const r = h2.getBoundingClientRect();
+    h2.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, detail:1,
+      clientX:r.left + r.width/2, clientY:r.top + r.height/2 }));
+    await pausa(600);
+    const elegida = document.querySelector('.escena.aqui .escena-dice');
+    const lista = document.getElementById('escenasLista');
+    return {
+      tocada: h2.dataset.peri,
+      antes, despues: elegida ? caja(elegida) : null,
+      paddingTop: parseFloat(lista.style.paddingTop) || 0,
+      paddingBottom: parseFloat(lista.style.paddingBottom) || 0,
+      alto: lista.clientHeight
+    };
+  });
+  di('el de más abajo', borde);
+  vale('(la prueba es válida) había un titulillo abajo que tocar',
+       !borde.sinTitulillos, borde.tocada);
+  vale('TAMBIÉN EL DE MÁS ABAJO SE QUEDA DONDE ESTABA',
+       !!borde.despues &&
+       Math.abs(borde.despues.y - borde.antes.y) <= 1.5 &&
+       Math.abs(borde.despues.x - borde.antes.x) <= 1.5,
+       'antes ' + JSON.stringify(borde.antes) + ' · después ' + JSON.stringify(borde.despues));
+  vale('  y el acolchado cubre una pantalla',
+       borde.paddingTop + borde.paddingBottom >= borde.alto - 2,
+       borde.paddingTop + '+' + borde.paddingBottom + ' contra ' + borde.alto);
+
+  /* LA CARRERA DEL CIERRE. Escape devuelve el foco al titulillo; Intro lo
+     reabre. Si fin no mira generación, a los 300 ms vacía la lista reabierta. */
+  titulo('el cierre no se come una lista reabierta');
+  const carrera = await ses2.pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true, cancelable:true }));
+    const ts = [...document.querySelectorAll('#pgBody .peri')];
+    const h2 = ts[Math.min(1, ts.length - 1)] || ts[0];
+    h2.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true, cancelable:true }));
+    await pausa(400);
+    const caj = document.getElementById('escenas');
+    return {
+      puesta: caj.classList.contains('puesto'),
+      visible: caj.classList.contains('visible'),
+      cuantas: caj.querySelectorAll('.escena').length,
+      expandido: h2.getAttribute('aria-expanded')
+    };
+  });
+  di('la carrera', carrera);
+  vale('ESCAPE E INTRO SEGUIDOS DEJAN LA LISTA PUESTA',
+       carrera.puesta === true && carrera.visible === true && carrera.cuantas > 0,
+       JSON.stringify(carrera));
+  vale('  y el titulillo dice que está abierto',
+       carrera.expandido === 'true', carrera.expandido);
+  await ses2.pagina.keyboard.press('Escape');
+  await ses2.pagina.waitForTimeout(500);
+
+  /* EL SALTO. Lo que se afirma no es que cambie la hoja sino que la hoja a la
+     que llega TRAE ESA PERÍCOPA: es lo que el lector pidió al tocarla. */
+  titulo('tocar otra escena salta a su página');
+  const salto = await ses2.pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const ts = [...document.querySelectorAll('#pgBody .peri')];
+    const h2 = ts[Math.min(1, ts.length - 1)];
+    const r = h2.getBoundingClientRect();
+    h2.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, detail:1,
+      clientX:r.left + r.width/2, clientY:r.top + r.height/2 }));
+    await pausa(600);
+    const items = [...document.querySelectorAll('.escena')];
+    const i = items.findIndex(x => x.classList.contains('aqui'));
+    const otra = items[Math.max(0, i - 6)];
+    const pedida = otra.dataset.peri;
+    otra.click();
+    return { pedida, desde: h2.dataset.peri };
+  });
+  await ses2.pagina.waitForTimeout(7000);
+  const llegada = await ses2.pagina.evaluate(() => ({
+    puesta: document.getElementById('escenas').classList.contains('puesto'),
+    titulillos: [...document.querySelectorAll('#pgBody .peri')].map(t => t.dataset.peri)
+  }));
+  di('el salto', { salto, llegada });
+  vale('(la prueba es válida) se pidió otra distinta de la que se leía',
+       salto.pedida !== salto.desde, salto.pedida + ' desde ' + salto.desde);
+  vale('LA HOJA A LA QUE LLEGA TRAE LA PERÍCOPA QUE SE TOCÓ',
+       llegada.titulillos.includes(salto.pedida), llegada.titulillos.join(' '));
+  vale('  y la lista se cerró sola', llegada.puesta === false, llegada.puesta);
+  /* ================================================================
+     LAS TRES QUE LEVANTÓ CODEX REVISANDO EL PR #84, y las tres eran de verdad.
+
+     Van juntas porque son la misma clase de fallo: el gesto nuevo funciona
+     con el dedo y se olvida de todo lo demás que ya había en la hoja —el
+     teclado, el zoom, las flechas—. Es justo lo que no se ve probando a mano
+     lo que acabas de escribir. */
+  titulo('las escenas no se llevan por delante lo que ya había');
+
+  /* 1 · SE LLEGA CON EL TECLADO. Y el titulillo sigue siendo un encabezado:
+     ponerle role="button" le quitaría a un lector de pantalla lo que ese
+     renglón ES —un sitio por el que saltar— para decirle que es un botón. */
+  const conTeclado = await ses2.pagina.evaluate(async () => {
+    const ts = [...document.querySelectorAll('#pgBody .peri')];
+    const h2 = ts[Math.min(1, ts.length - 1)];
+    h2.focus();
+    const conFoco = document.activeElement === h2;
+    h2.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true, cancelable:true }));
+    await new Promise(z => setTimeout(z, 600));
+    return { alcanzable: h2.tabIndex >= 0, conFoco,
+             abrio: document.getElementById('escenas').classList.contains('puesto'),
+             etiqueta: h2.tagName, papel: h2.getAttribute('role'),
+             avisa: h2.getAttribute('aria-haspopup'),
+             expandido: h2.getAttribute('aria-expanded') };
+  });
+  di('con el teclado', conTeclado);
+  vale('SE LLEGA AL TITULILLO CON EL TECLADO Y SE ABRE CON INTRO',
+       conTeclado.alcanzable === true && conTeclado.conFoco === true &&
+       conTeclado.abrio === true, JSON.stringify(conTeclado));
+  vale('  y sigue siendo un encabezado, no un botón',
+       conTeclado.etiqueta === 'H2' && !conTeclado.papel &&
+       conTeclado.avisa === 'dialog',
+       conTeclado.etiqueta + ' role=' + conTeclado.papel + ' haspopup=' + conTeclado.avisa);
+  vale('  y avisa que el diálogo está abierto',
+       conTeclado.expandido === 'true', conTeclado.expandido);
+
+  /* EL TABULADOR SE QUEDA DENTRO. Del último botón tiene que volver al
+     primero, no saltar a #btnZoom. */
+  const tabo = await ses2.pagina.evaluate(() => {
+    const bots = [...document.querySelectorAll('#escenasLista .escena')];
+    if (bots.length < 2) return { cortos:true };
+    const primero = bots[0].dataset.peri;
+    bots[bots.length - 1].focus();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Tab', bubbles:true, cancelable:true }));
+    return { primero, cayo: document.activeElement && document.activeElement.dataset.peri,
+             inerte: !!document.getElementById('pg').inert };
+  });
+  di('el tabulador', tabo);
+  vale('EL TABULADOR NO SE SALE DEL DIÁLOGO',
+       tabo.cortos !== true && tabo.cayo === tabo.primero,
+       JSON.stringify(tabo));
+  vale('  y la hoja detrás está inerte', tabo.inerte === true, tabo.inerte);
+
+  /* 2 · CON LA LISTA PUESTA, LA HOJA DE DEBAJO NO SE MUEVE. Las flechas pasan
+     hoja, y pasándola por debajo la marcada señalaba una perícopa de la hoja
+     anterior y el ancla al que vuelve el foco ya no existía. */
+  const antesDeFlecha = await ses2.pagina.evaluate(() => window.__estado || '');
+  await ses2.pagina.keyboard.press('ArrowRight');
+  await ses2.pagina.waitForTimeout(1700);
+  const trasFlecha = await ses2.pagina.evaluate(() => ({
+    estado: window.__estado || '',
+    puesta: document.getElementById('escenas').classList.contains('puesto') }));
+  di('la flecha con la lista puesta', { antesDeFlecha, trasFlecha });
+  vale('LAS FLECHAS NO PASAN HOJA CON LA LISTA PUESTA',
+       antesDeFlecha === trasFlecha.estado,
+       antesDeFlecha + ' → ' + trasFlecha.estado);
+  vale('  y la lista sigue donde estaba', trasFlecha.puesta === true, trasFlecha.puesta);
+  await ses2.pagina.keyboard.press('Escape');
+  await ses2.pagina.waitForTimeout(500);
+
+  /* 3 · DE LEJOS, UN TOQUE EN EL PAPEL ES «VUELVE». El titulillo es papel de
+     esa hoja como cualquier otro, y abriendo la lista pasaban las dos cosas a
+     la vez: la lista medida contra la miniatura y el zoom cerrándose debajo,
+     con lo que la hoja crecía y la lista se quedaba flotando despegada. */
+  const deLejos = await ses2.pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const lejos = () => !!document.querySelector('.zoom');
+    document.getElementById('btnZoom').click();
+    await pausa(1600);
+    if (!lejos()) return { sinZoom:true };
+    const ts = [...document.querySelectorAll('#pgBody .peri')];
+    const h2 = ts[Math.min(1, ts.length - 1)];
+    const r = h2.getBoundingClientRect();
+    h2.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, detail:1,
+      clientX:r.left + r.width/2, clientY:r.top + r.height/2 }));
+    await pausa(900);
+    return { seAlejo:true,
+             lista: document.getElementById('escenas').classList.contains('puesto'),
+             sigueLejos: lejos() };
+  });
+  di('de lejos', deLejos);
+  vale('(la prueba es válida) la hoja llegó a alejarse',
+       deLejos.seAlejo === true, JSON.stringify(deLejos));
+  vale('DE LEJOS, TOCAR EL TITULILLO NO ABRE LA LISTA',
+       deLejos.lista === false, deLejos.lista);
+  vale('  y el toque hace lo de siempre: acercar la hoja',
+       deLejos.sigueLejos === false, deLejos.sigueLejos);
+
+  await cerrarParcial(ses2, 'las escenas del libro');
+
   titulo('sin pericopas.js la hoja se pinta igual');
   const cuarto = fs.mkdtempSync(path.join(os.tmpdir(), 'glossa-sin-peri-'));
   for (const f of ['index.html', 'bibles-included.js'])

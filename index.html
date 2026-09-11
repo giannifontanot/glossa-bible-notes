@@ -3586,6 +3586,14 @@
   </div>
   <div id="flyCaps" class="fly"></div>
   <div id="flyVers" class="fly"></div>
+  <!-- Las escenas del libro. Vive en la escena y no dentro de la hoja: la hoja
+       la recorta el clip-path del pliegue, y esto tiene que poder pasar por
+       encima de los dos bordes. -->
+  <div id="escenas" class="escenas" role="dialog" aria-modal="true"
+       aria-label="escenas del libro">
+    <div class="escenas-velo"></div>
+    <div class="escenas-lista" id="escenasLista"></div>
+  </div>
   <div id="ajustes" class="rollo"></div>
   <div id="etiquetas" class="rollo"></div>
   <div id="respaldo" class="rollo"></div>
@@ -3768,7 +3776,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '09-SEP-26 22:22';
+window.GLOSS_BUILD = '10-SEP-26 21:20';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4037,6 +4045,83 @@ const PAGE_CSS = `
        font-size:1.08em; font-style:normal; font-weight:600;
        line-height:1.25; color:var(--tinta,#241f1a); letter-spacing:.005em;
        text-align:center; padding:0 .6em; margin:1.5em 0 .3em; }
+/* ============================================================
+   LAS ESCENAS DEL LIBRO: LA LISTA QUE SALE DEL TITULILLO.
+
+   Tocas una perícopa y aparece toda la lista del libro, con la que tocaste
+   EN EL MISMO SITIO donde estaba y las demás creciendo hacia arriba y hacia
+   abajo. Eso es lo que hace que el gesto se sienta continuo: no es un panel
+   que se abre en otra parte, es la misma línea que se queda quieta mientras
+   el libro entero aparece alrededor.
+
+   POR ESO LA LISTA MIDE LO QUE MIDE LA COLUMNA y lleva la tipografía del
+   titulillo, con su tamaño copiado en píxeles desde el que se tocó: el
+   titulillo va en em, así que su tamaño depende del zoom de la hoja, y
+   escribir aquí un 1.08em de otro contexto lo dejaría parecido pero no igual.
+   Parecido es peor que distinto, porque el ojo lo lee como un salto.
+
+   EL VELO ES DE PAPEL Y NO DE SOMBRA. La primera idea fue oscurecer, que es
+   lo que hace todo el mundo, y aquí no vale: la hoja es crema y la letra es
+   tinta oscura, así que oscureciendo el fondo la lista tendría que volverse
+   clara y de golpe estás leyendo en negativo dentro de una aplicación que es
+   un libro. Con un velo del color del papel, la hoja se va hacia atrás y la
+   lista se lee con la misma tinta de siempre. */
+.escenas{ position:absolute; inset:0; z-index:12; display:none; }
+.escenas.puesto{ display:block; }
+.escenas-velo{ position:absolute; inset:0; background:var(--papel,#faf7f1);
+               opacity:0; transition:opacity .28s ease; }
+/* .84 Y NO MÁS, MEDIDO: el papel está en 244 y la tinta de la hoja detrás del
+   velo queda en 207 con .82, en 220 con .88. Por encima de eso la hoja no se
+   atenúa, desaparece, y lo que se pidió es que se apague un poco —que siga
+   ahí, detrás—. Por debajo, el texto de la hoja se cruza con los renglones de
+   la lista y las dos cosas se estorban. */
+.escenas.visible .escenas-velo{ opacity:.84; }
+.escenas-lista{ position:absolute; overflow-y:auto; overscroll-behavior:contain;
+                -webkit-overflow-scrolling:touch;
+                font-family:'Palatino Linotype',Palatino,'Book Antiqua',
+                            'Iowan Old Style',Georgia,'Noto Serif',serif;
+                font-style:normal; font-weight:600; line-height:1.25;
+                color:var(--tinta,#241f1a); letter-spacing:.005em;
+                text-align:center;
+                opacity:0; transform:translateY(5px);
+                transition:opacity .3s ease,
+                           transform .34s cubic-bezier(.2,.85,.3,1); }
+.escenas.visible .escenas-lista{ opacity:1; transform:none; }
+/* La escena es un botón porque se pulsa, pero no tiene que parecerlo: lo que
+   se pulsa aquí es un renglón de texto, igual que el titulillo del que salió. */
+.escena{ display:block; width:100%; box-sizing:border-box; margin:0;
+         font:inherit; color:inherit; letter-spacing:inherit;
+         text-align:inherit; background:none; border:0;
+         border-radius:6px; cursor:pointer;
+         -webkit-tap-highlight-color:transparent;
+         /* LA SANGRÍA LA COPIA DEL TITULILLO, no la elige. Es la que hace que
+            un título largo parta en mitades parejas, y si aquí fuera otra, el
+            mismo texto rompería en otro sitio y el renglón anclado cambiaría
+            de forma justo al abrirse. Ver abrirEscenas. */
+         padding:.42em var(--sangria, .6em); }
+/* Y va en BLOQUE y no en línea: un span en línea mide lo que mide su texto, y
+   entonces comparar dónde cayó contra dónde estaba compara dos cosas distintas
+   —el titulillo es una celda de rejilla y ocupa la columna entera—. En bloque
+   los dos miden lo mismo y el cuadre se puede comprobar. */
+.escena-dice{ display:block; }
+/* LA QUE ESTÁS LEYENDO VA CON BORDE Y SIN FONDO, por decisión del dueño del
+   repo: un fondo sepia la convertía en el asunto de la pantalla, y el asunto
+   es la lista. El borde dice dónde estás sin levantar la voz. Y va del mismo
+   sepia que las pestañas y el libro elegido, que es el color con el que esta
+   aplicación dice «aquí». */
+/* Y EL BORDE VA DE SOMBRA INTERIOR Y NO DE border, que no es un capricho:
+   un border de verdad ocupa sitio y corre el texto un píxel y medio hacia
+   dentro, justo en el renglón que tiene que quedarse EXACTAMENTE donde
+   estaba. Con box-shadow el marco se pinta y no empuja nada. */
+.escena.aqui{ box-shadow:inset 0 0 0 1.5px #b8892b; }
+.escena:hover:not(.aqui){ background:rgba(184,137,43,.10); }
+.escena.bajoeldedo{ background:rgba(184,137,43,.20); }
+/* El movimiento se apaga entero cuando el aparato lo pide: la lista sigue
+   apareciendo, pero puesta y no deslizándose. */
+@media (prefers-reduced-motion: reduce){
+  .escenas-velo, .escenas-lista{ transition:none; }
+  .escenas-lista{ transform:none; }
+}
 /* Los versículos van CORRIDOS, siempre. Hubo un ajuste para ponerlos cada uno
    en su renglón y se ha quitado: partía el texto en una lista de frases
    sueltas y una Biblia no es una lista, es prosa —así se leyó durante
@@ -4601,6 +4686,7 @@ const save = () => {
 
 const $ = id => document.getElementById(id);
 const stage=$('stage'), pg=$('pg'), pgBody=$('pgBody'), pgMargin=$('pgMargin'), pgFoot=$('pgFoot');
+const escenas=$('escenas'), escenasLista=$('escenasLista');
 const ghost=$('ghost'), ghostBody=$('ghostBody'), ghostMargin=$('ghostMargin'), ghostFoot=$('ghostFoot'), ghostVersion=$('ghostVersion');
 const fx=$('fx'), ctx=fx.getContext('2d'), readout=$('readout');
 /* Se intercepta la ESCRITURA de textContent en vez de cambiar los cien sitios
@@ -5462,9 +5548,214 @@ function tituloHTML(k){
     .filter(l => l !== t.l && p.t[l])
     .map(l => '<span class="peri-sombra" aria-hidden="true" lang="' + l + '">' +
               esc(p.t[l]) + '</span>').join('');
-  return '<h2 class="peri" data-peri="' + esc(p.id) + '"' + suyo + '>' +
+  /* ALCANZABLE CON EL TECLADO, y con atributos y no con un <button> dentro.
+
+     Lo levantó Codex revisando el PR #84 y tenía razón: la lista solo se abría
+     con un click, así que quien navega con teclado o con un conmutador no
+     podía ni llegar al titulillo. Lo natural sería envolver el texto en un
+     <button>, y aquí es justo lo que no se puede hacer: este renglón lo mide
+     el paginador en las CUATRO versiones para cortar la hoja por el mismo
+     sitio, y un botón trae su propia caja, su propio tipo y sus propios
+     rellenos. Un tabindex y un aria no ocupan un píxel —comprobado midiendo
+     los cortes antes y después—, y dan lo mismo: se llega con el tabulador y
+     se abre con Intro o con la barra.
+
+     Y SIGUE SIENDO UN ENCABEZADO. No se le pone role="button" a propósito:
+     eso le quitaría a un lector de pantalla lo que este renglón ES —el título
+     de la escena, y por tanto un sitio por el que saltar—, para decirle en su
+     lugar que es un botón. Con aria-haspopup se anuncia como lo que es y
+     además se avisa de que abre algo. aria-expanded lo llevan al día
+     abrirEscenas y cerrarEscenas, igual que pgCabeza y pgVersion. */
+  return '<h2 class="peri" data-peri="' + esc(p.id) + '" tabindex="0"' +
+         ' aria-haspopup="dialog" aria-expanded="false"' + suyo + '>' +
          '<span class="peri-dice">' + esc(t.t) + '</span>' + sombra + '</h2>';
 }
+/* ============================================================
+   TOCAR UN TITULILLO Y VER EL LIBRO ENTERO.
+
+   Un toque en una perícopa saca la lista de todas las del libro, con la que
+   tocaste en el mismo sitio donde estaba: las de atrás crecen hacia arriba y
+   las de adelante hacia abajo. Tocar otra salta a su página; tocar la misma,
+   o fuera, o Escape, cierra sin ir a ninguna parte.
+
+   LO QUE NO SE MUEVE ES EL TEXTO, NO LA CAJA. La lista se coloca midiendo el
+   .peri-dice —el renglón que se ve— y no el <h2>, que lleva sus márgenes y su
+   relleno y sobre todo su hermano invisible del otro idioma (ver tituloHTML).
+   Alineando cajas, el renglón acababa dos o tres píxeles más abajo, y dos o
+   tres píxeles bastan para que el ojo lea un salto en vez de una aparición.
+
+   LA LISTA SE ACOLCHA POR ARRIBA Y POR ABAJO, y no es adorno: si tocas el
+   Prólogo —la primera de Lucas— estando abajo de la pantalla, para dejarlo
+   donde está haría falta un scrollTop negativo, y el navegador lo recorta a
+   cero y el renglón se va a otro sitio. Con un acolchado de una pantalla
+   repartido según dónde caiga el ancla, cualquiera de las 95 puede quedarse
+   quieta. El precio es una pantalla en blanco en cada punta, que es
+   exactamente lo que hace falta y ni un píxel más.
+
+   Y SOLO HAY PERÍCOPAS EN LUCAS. En los demás libros no se pinta ni un
+   titulillo, así que aquí no hay nada que tocar; el día que se añada otro
+   libro a pericopas.js, esto funciona con él sin tocar una línea. */
+let escenaAncla = null;                /* el .peri desde el que se abrió */
+let escenaCierreGen = 0, escenaCierreReloj = null;
+function escenasPuestas(){ return escenas.classList.contains('puesto'); }
+function escenaAislar(si){
+  /* El diálogo se anuncia modal: hay que INERTAR la hoja, no solo decirlo.
+     Sin esto el tabulador se iba a #btnZoom y a los otros titulillos.
+     #buscando se deja: un salto mientras se cierra tiene que poder anunciarse.
+     Lo levantó la revisión del PR #84. */
+  for (const n of stage.children){
+    if (n === escenas || n.id === 'buscando') continue;
+    n.inert = !!si;
+  }
+}
+function escenasBotones(){ return [...escenasLista.querySelectorAll('.escena')]; }
+function escenasFocoVecino(dir){
+  const bots = escenasBotones();
+  if (!bots.length) return;
+  let i = bots.indexOf(document.activeElement);
+  if (i < 0) i = bots.findIndex(b => b.classList.contains('aqui'));
+  if (i < 0) i = 0;
+  const n = bots[(i + dir + bots.length) % bots.length];
+  n.focus({ preventScroll:true });
+  const r = n.getBoundingClientRect(), e = stage.getBoundingClientRect();
+  if (r.top < e.top + 8 || r.bottom > e.bottom - 8)
+    n.scrollIntoView({ block:'nearest', inline:'nearest' });
+}
+function cerrarEscenas(){
+  if (!escenasPuestas()) return;
+  escenas.classList.remove('visible');
+  /* UN RETIRO PENDIENTE NO PUEDE BORRAR LA QUE SE REABRIÓ. El foco volvía al
+     titulillo en el acto, así que Escape y luego Intro dentro de los 300 ms
+     reconstruía la lista y el setTimeout de antes la vaciaba. Misma idea que
+     sepRetiroGen: cada cierre tiene generación, y fin no hace nada si ya no
+     le toca. El foco vuelve EN fin, no antes. Lo levantó la revisión del
+     PR #84. */
+  const gen = ++escenaCierreGen;
+  const ancla = escenaAncla;
+  escenaAncla = null;
+  if (ancla && ancla.isConnected) ancla.setAttribute('aria-expanded', 'false');
+  const fin = () => {
+    if (gen !== escenaCierreGen) return;
+    if (escenas.classList.contains('visible')) return;
+    escenas.classList.remove('puesto');
+    escenasLista.innerHTML = '';
+    escenaAislar(false);
+    if (ancla && ancla.isConnected) ancla.focus({ preventScroll:true });
+  };
+  const quieto = window.matchMedia &&
+                 window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  clearTimeout(escenaCierreReloj);
+  if (quieto) fin(); else escenaCierreReloj = setTimeout(fin, 300);
+}
+function abrirEscenas(h2){
+  const lista = (typeof GlossaPericopas !== 'undefined' && GlossaPericopas[LIBRO]) || null;
+  if (!lista || !lista.length) return;
+  escenaCierreGen++;
+  clearTimeout(escenaCierreReloj);
+  const dice = h2.querySelector('.peri-dice') || h2;
+  const e = stage.getBoundingClientRect();
+  const rH2 = h2.getBoundingClientRect();
+  const rDice = dice.getBoundingClientRect();
+  const aqui = h2.dataset.peri;
+  if (escenaAncla && escenaAncla !== h2 && escenaAncla.isConnected)
+    escenaAncla.setAttribute('aria-expanded', 'false');
+  escenaAncla = h2;
+  h2.setAttribute('aria-expanded', 'true');
+  escenasLista.innerHTML = lista.map(p => {
+    const t = tituloPericopa(p);
+    const suyo = t.l !== idiomaVersion(version) ? ' lang="' + t.l + '"' : '';
+    return '<button type="button" class="escena' + (p.id === aqui ? ' aqui' : '') +
+           '" data-peri="' + esc(p.id) + '" data-cap="' + p.ini[0] +
+           '" data-vers="' + p.ini[1] + '"' + suyo +
+           (p.id === aqui ? ' aria-current="true"' : '') + '>' +
+           '<span class="escena-dice">' + esc(t.t) + '</span></button>';
+  }).join('');
+  /* La caja: el ancho de la columna del titulillo y el alto de la escena. */
+  const arriba = rDice.top - e.top;
+  escenasLista.style.left = Math.round(rH2.left - e.left) + 'px';
+  escenasLista.style.width = Math.round(rH2.width) + 'px';
+  escenasLista.style.top = '0px';
+  escenasLista.style.height = Math.round(e.height) + 'px';
+  escenasLista.style.paddingTop = Math.max(0, Math.round(arriba)) + 'px';
+  escenasLista.style.paddingBottom = Math.max(0, Math.round(e.height - arriba)) + 'px';
+  /* El tamaño, copiado en píxeles del titulillo que se tocó: en em saldría
+     parecido y no igual, porque el titulillo depende del zoom de la hoja. */
+  const suyoCss = getComputedStyle(h2);
+  escenasLista.style.fontSize = getComputedStyle(dice).fontSize;
+  escenasLista.style.setProperty('--sangria', suyoCss.paddingLeft);
+  escenas.classList.add('puesto');
+  escenaAislar(true);
+  /* Y ahora se cuadra midiendo, no calculando: se pinta, se mira dónde cayó
+     el renglón de la elegida y se corrige la diferencia. Así da igual el
+     relleno del botón, el interlineado o lo que haga el navegador con los
+     redondeos. */
+  const elegida = escenasLista.querySelector('.escena.aqui');
+  if (elegida){
+    const suDice = elegida.querySelector('.escena-dice') || elegida;
+    /* CON offsetTop Y NO CON getBoundingClientRect, y costó verlo: la lista
+       entra con un translateY de cinco píxeles, así que mientras la transición
+       corre su rect está cinco píxeles más abajo de donde va a acabar.
+       Cuadrando contra ese rect, el renglón quedaba cinco píxeles ALTO en
+       cuanto la transición terminaba —medido: -4.9—. offsetTop es maquetación
+       y no le afecta ninguna transformación, y el borde de arriba de la lista
+       lo sabemos porque lo acabamos de poner en cero dentro de la escena. */
+    escenasLista.scrollTop = (e.top + suDice.offsetTop) - rDice.top;
+    /* preventScroll o el navegador deshace lo que acabamos de cuadrar. */
+    elegida.focus({ preventScroll:true });
+  }
+  requestAnimationFrame(() => escenas.classList.add('visible'));
+}
+/* El toque. Va en el click y no en el pointerup por lo de siempre en esta
+   casa: un evento despachado a mano llega siempre y el de un dedo no, y el
+   click es el que llega en los dos casos. Lo único que se mira del puntero es
+   si hubo arrastre —pasar la hoja empieza con el dedo encima del texto—, y si
+   no hubo pointerdown ninguno se atiende igual: es un toque como otro. */
+let periAbajo = null;
+pgBody.addEventListener('pointerdown', ev => {
+  const h = ev.target.closest && ev.target.closest('.peri');
+  periAbajo = h ? { h, x: ev.clientX, y: ev.clientY } : null;
+});
+pgBody.addEventListener('click', ev => {
+  const h = ev.target.closest && ev.target.closest('.peri');
+  if (!h) return;
+  const arrastro = periAbajo && periAbajo.h === h &&
+                   Math.hypot(ev.clientX - periAbajo.x, ev.clientY - periAbajo.y) > 12;
+  periAbajo = null;
+  if (arrastro) return;
+  /* DE LEJOS NO. Con la hoja alejada, un toque en el papel significa «vuelve»
+     —es la puerta de salida del zoom, ver el oyente de stage— y el titulillo
+     es papel de esa hoja como cualquier otro. Sin esta línea pasaban las dos
+     cosas: se abría la lista medida contra la miniatura Y el zoom se cerraba
+     debajo, así que la hoja crecía y la lista se quedaba flotando en el
+     tamaño de antes, despegada del titulillo del que decía salir. Lo levantó
+     Codex revisando el PR #84. */
+  if (zoomActivo) return;
+  ev.preventDefault();
+  abrirEscenas(h);
+});
+/* Y con el teclado: Intro o barra sobre el titulillo hacen lo que el toque. */
+pgBody.addEventListener('keydown', ev => {
+  if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
+  const h = ev.target.closest && ev.target.closest('.peri');
+  if (!h) return;
+  if (zoomActivo) return;
+  ev.preventDefault();
+  abrirEscenas(h);
+});
+escenas.addEventListener('click', ev => {
+  /* SIN .visible NO. Mientras se apaga los botones siguen en el DOM y puesto
+     sigue puesto, así que un segundo toque llamaba otra vez a saltarA.
+     Lo levantó la revisión del PR #84. */
+  if (!escenas.classList.contains('visible')) return;
+  const b = ev.target.closest && ev.target.closest('.escena');
+  if (!b){ cerrarEscenas(); return; }        /* el velo, o el hueco de al lado */
+  const cap = +b.dataset.cap, vers = +b.dataset.vers;
+  const misma = b.classList.contains('aqui');
+  cerrarEscenas();
+  /* Tocar la que ya estás leyendo no viaja: ya estás ahí, y un salto a la
+     misma hoja se ve como un parpadeo sin motivo. */
+  if (!misma && Number.isFinite(cap) && Number.isFinite(vers)) saltarA(LIBRO, cap, vers);
+});
 function verseHTML(k, withMarks, below){
   const it = plano[k], base = it.texto;
   const aqui = marcas.filter(m => m.cap===it.cap && m.vers===it.vers && visible(m) && RES.has(m.id));
@@ -7564,6 +7855,10 @@ function seleccionParaEsteToque(ev){
 pgBody.addEventListener('pointerup', ev => {
   if (ev.target.tagName === 'TEXTAREA') return;
   if (ev.target.closest('.gl')) return;   // las glosas de "abajo" viven aquí dentro
+  /* Un titulillo no es texto que se glose: se toca para ver el libro entero,
+     y de eso se encarga su propio click. Sin esta línea el toque hacía las dos
+     cosas —abrir las escenas y buscar una marca debajo—. */
+  if (ev.target.closest('.peri')) return;
   setTimeout(() => {
     const sel = window.getSelection();
     const arrastre = sel && !sel.isCollapsed && sel.toString().trim().length > 0;
@@ -12061,6 +12356,24 @@ document.addEventListener('keydown', ev => {
 
      Va ANTES del guardián de «escribiendo» a propósito: el caso que importa
      es justamente el de estar tecleando dentro de la caja de la glosa. */
+  /* CON LA LISTA PUESTA, LA HOJA DE DEBAJO NO SE MUEVE.
+
+     Escape la cierra, y las flechas —que pasan hoja— se quedan aquí. Sin esto
+     se pasaba la hoja por debajo con la lista abierta: la marcada seguía
+     señalando una perícopa de la hoja anterior y el ancla al que volvía el
+     foco ya no existía. Lo levantó Codex revisando el PR #84. */
+  if (escenasPuestas()){
+    if (ev.key === 'Escape'){ cerrarEscenas(); ev.preventDefault(); return; }
+    if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight' ||
+        ev.key === 'PageUp' || ev.key === 'PageDown'){ ev.preventDefault(); return; }
+    /* Tab se queda DENTRO. aria-modal es un aviso; inert cubre el puntero y
+       el tabulador del documento, y esto cubre el tabulador que ya iba a
+       salir hacia #btnZoom. Arriba y abajo recorren la lista, que es lo que
+       uno espera dentro de ella —95 paradas de tabulador es un via crucis. */
+    if (ev.key === 'Tab'){ escenasFocoVecino(ev.shiftKey ? -1 : 1); ev.preventDefault(); return; }
+    if (ev.key === 'ArrowDown'){ escenasFocoVecino(1); ev.preventDefault(); return; }
+    if (ev.key === 'ArrowUp'){ escenasFocoVecino(-1); ev.preventDefault(); return; }
+  }
   if (ev.key === 'Escape'){ ocultarCascada(); cerrarTodosLosRollos(); ocultarMenu();
     /* Y lo del separador, que también son cosas de las que hay que poder
        salir sin puntero: el menú, y la pregunta si está puesta. */
