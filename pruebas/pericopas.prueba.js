@@ -494,10 +494,21 @@ const abrirEn = async (p, donde) => {
      Y LA CUENTA SE COTEJA CONTRA pericopas.js, no contra un número escrito
      aquí: el día que se añada un libro o una escena, esta prueba tiene que
      seguir valiendo sin tocarla. */
-  titulo('tocar un titulillo saca las escenas del libro');
+  titulo('un toque largo saca las escenas del libro');
   const DATOS_LUK = require(path.join(RAIZ, 'pericopas.js')).LUK;
   const ses2 = await abrir();
   await abrirEn(ses2.pagina, DONDE);
+  await ses2.pagina.evaluate(() => {
+    window.__holdPeri = async h2 => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      const r = h2.getBoundingClientRect();
+      const op = { bubbles:true, cancelable:true, pointerId:81, pointerType:'touch',
+                   isPrimary:true,
+                   clientX: r.left + r.width/2, clientY: r.top + r.height/2 };
+      h2.dispatchEvent(new PointerEvent('pointerdown', op));
+      await pausa(340);
+    };
+  });
   const escenas = await ses2.pagina.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     const caja = el => { const b = el.getBoundingClientRect();
@@ -507,18 +518,24 @@ const abrirEn = async (p, donde) => {
     const h2 = ts[Math.min(1, ts.length - 1)];
     const dice = h2.querySelector('.peri-dice');
     const antes = caja(dice), tam = getComputedStyle(dice).fontSize;
-    /* SIN pointerdown: un toque de dedo no siempre lo manda antes del click,
-       y el arreglo no puede apoyarse en verlo. */
+    /* UN TOQUE CORTO NO ABRE. El gesto es el de la lupa: hay que quedarse
+       quieto 200 ms. Un clic suelto es leer. */
     const r = h2.getBoundingClientRect();
     h2.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, detail:1,
       clientX:r.left + r.width/2, clientY:r.top + r.height/2 }));
+    await pausa(400);
+    const trasCorto = document.getElementById('escenas').classList.contains('puesto');
+    await window.__holdPeri(h2);
     await pausa(600);
     const caj = document.getElementById('escenas');
     const lista = document.getElementById('escenasLista');
     const items = [...lista.querySelectorAll('.escena')];
     const elegida = lista.querySelector('.escena.aqui');
     const suDice = elegida && elegida.querySelector('.escena-dice');
+    const cs = elegida && getComputedStyle(elegida);
+    const csOtra = items.length ? getComputedStyle(items[0] === elegida ? items[1] : items[0]) : null;
     return {
+      trasCorto,
       abierta: caj.classList.contains('puesto') && caj.classList.contains('visible'),
       cuantas: items.length,
       tocada: h2.dataset.peri,
@@ -526,19 +543,22 @@ const abrirEn = async (p, donde) => {
       marcadas: items.filter(x => x.classList.contains('aqui')).length,
       antes, despues: suDice ? caja(suDice) : null,
       tam, tamLista: suDice ? getComputedStyle(suDice).fontSize : null,
-      /* de la primera a la última: la lista es del libro entero */
       primera: items[0] && items[0].textContent.trim(),
       ultima: items[items.length - 1] && items[items.length - 1].textContent.trim(),
-      /* y se puede rodar hasta las dos puntas */
       rueda: lista.scrollHeight > lista.clientHeight,
-      marco: elegida ? getComputedStyle(elegida).boxShadow : null,
-      marcoOtra: getComputedStyle(items[0] === elegida ? items[1] : items[0]).boxShadow
+      fondo: cs ? cs.backgroundColor : null,
+      letra: cs ? cs.color : null,
+      marco: cs ? cs.boxShadow : null,
+      fondoOtra: csOtra ? csOtra.backgroundColor : null,
+      marcoOtra: csOtra ? csOtra.boxShadow : null
     };
   });
   di('las escenas', escenas);
   vale('(la prueba es válida) había un titulillo que tocar',
        !escenas.sinTitulillos, escenas.tocada);
-  vale('UN TOQUE SACA LA LISTA', escenas.abierta === true, escenas.abierta);
+  vale('UN TOQUE CORTO NO SACA LA LISTA',
+       escenas.trasCorto === false, escenas.trasCorto);
+  vale('UN TOQUE LARGO SÍ', escenas.abierta === true, escenas.abierta);
   vale('  y trae TODAS las escenas del libro, cotejado contra pericopas.js',
        escenas.cuantas === DATOS_LUK.length,
        escenas.cuantas + ' de ' + DATOS_LUK.length);
@@ -560,17 +580,22 @@ const abrirEn = async (p, donde) => {
   vale('  y va marcada ella y ninguna más',
        escenas.marcada === escenas.tocada && escenas.marcadas === 1,
        escenas.marcada + ' · ' + escenas.marcadas + ' marcada(s)');
-  /* El marco de la elegida se busca por lo que ES —un recuadro sepia— y no por
-     la cadena exacta que devuelva getComputedStyle. */
-  vale('  con su recuadro sepia, que las demás no llevan',
-       /184,\s*137,\s*43/.test(escenas.marco || '') && escenas.marcoOtra === 'none',
-       escenas.marco + ' contra ' + escenas.marcoOtra);
+  /* El relleno es el sepia del libro elegido (#b8892b). El borde va más
+     oscuro para despegarse de ese relleno. Las demás no llevan ni uno ni otro. */
+  vale('  con el sepia del libro elegido',
+       /184,\s*137,\s*43/.test(escenas.fondo || ''), escenas.fondo);
+  vale('  y el borde más oscuro que ese sepia',
+       /74,\s*58,\s*28/.test(escenas.marco || ''),
+       escenas.marco);
+  vale('  CONTROL: las demás no llevan ni relleno ni marco',
+       /0,\s*0,\s*0,\s*0|transparent/.test(escenas.fondoOtra || '') &&
+       escenas.marcoOtra === 'none',
+       escenas.fondoOtra + ' · ' + escenas.marcoOtra);
 
-  /* LA HOJA SE ATENÚA DETRÁS, y se mide en píxeles y no por la opacidad
-     escrita en el CSS: lo que importa es cuánta tinta de la hoja queda.
-     El recorte se saca del rect de la lista —al lado, no encima— para no
-     depender de un rectángulo mágico que se rompe si la columna se mueve. */
-  titulo('la hoja se atenúa detrás de las escenas');
+  /* EL FONDO ES OPACO. Se mide en píxeles: al lado de la lista no puede
+     quedar tinta de la hoja. El recorte sale del rect de la lista —al lado,
+     no encima. */
+  titulo('el fondo de las escenas es opaco');
   const clipVelo = await ses2.pagina.evaluate(() => {
     const lista = document.getElementById('escenasLista').getBoundingClientRect();
     const escena = document.getElementById('stage').getBoundingClientRect();
@@ -605,8 +630,8 @@ const abrirEn = async (p, donde) => {
   di('la tinta más oscura de la columna', { conVelo, sinVelo });
   vale('(la prueba es válida) sin velo la hoja tiene tinta de verdad',
        sinVelo < 90, sinVelo);
-  vale('LA HOJA SE ATENÚA, PERO NO DESAPARECE',
-       conVelo > sinVelo + 80 && conVelo < 235, conVelo + ' contra ' + sinVelo);
+  vale('EL FONDO ES OPACO: no se lee la hoja a través',
+       conVelo >= 230, conVelo + ' contra ' + sinVelo);
   vale('  y Escape la cierra', await ses2.pagina.evaluate(() =>
        !document.getElementById('escenas').classList.contains('puesto')), 'cerrada');
 
@@ -624,9 +649,7 @@ const abrirEn = async (p, donde) => {
       a.getBoundingClientRect().top >= b.getBoundingClientRect().top ? a : b);
     const dice = h2.querySelector('.peri-dice') || h2;
     const antes = caja(dice);
-    const r = h2.getBoundingClientRect();
-    h2.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, detail:1,
-      clientX:r.left + r.width/2, clientY:r.top + r.height/2 }));
+    await window.__holdPeri(h2);
     await pausa(600);
     const elegida = document.querySelector('.escena.aqui .escena-dice');
     const lista = document.getElementById('escenasLista');
@@ -684,9 +707,7 @@ const abrirEn = async (p, donde) => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     const ts = [...document.querySelectorAll('#pgBody .peri')];
     const h2 = ts[Math.min(1, ts.length - 1)];
-    const r = h2.getBoundingClientRect();
-    h2.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, detail:1,
-      clientX:r.left + r.width/2, clientY:r.top + r.height/2 }));
+    await window.__holdPeri(h2);
     await pausa(600);
     const items = [...document.querySelectorAll('.escena')];
     const i = items.findIndex(x => x.classList.contains('aqui'));
