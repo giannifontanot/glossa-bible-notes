@@ -1,18 +1,16 @@
-/* EL CAJÓN DE LAS GLOSAS: EL PAPEL SE CORRE PARA ENSEÑAR EL MARGEN.
+/* EL CAJÓN DE LAS GLOSAS Y EL DESLIZ QUE PASA HOJA.
 
-   No es un panel que se abre: es la hoja que se desplaza de lado. Y el gesto
-   que lo abre tuvo tres versiones, porque acertar aquí es difícil:
+   Dos cosas, que antes eran una:
 
-   · Con la palanca floja, sesenta píxeles de dedo abrían el cajón entero de
-     golpe. Cualquier roce al pasar hoja lo disparaba.
-   · Con el eje decidido en la PRIMERA muestra, un temblor de dos píxeles lo
-     mataba para siempre. Un dedo real tiembla: el gesto podría no haberse
-     abierto nunca. Por eso el eje se decide después de diez píxeles de
-     movimiento, y por eso las pruebas de aquí van TORCIDAS a propósito.
-   · Y ahora exige intención —treinta y cuatro píxeles— y luego termina el
-     viaje solo, decelerando sin rebote, como un cajón de verdad.
+   · La G —un círculo con G, carmín de las piedras— abre y cierra el cajón.
+     El viaje dura lo que el de una glosa nueva (2400 ms), despacio al
+     arrancar y al parar: lo abre una persona, no un interruptor.
+   · El desliz de lado, que antes corría el papel, ahora pasa hoja: a la
+     izquierda la siguiente, a la derecha la anterior. El umbral es el de
+     siempre (34 px de intención, 10 de ruido, y si el dedo se queda era
+     para glosar), para no disparar un pliegue con un roce al leer.
 
-   Se prueba con dedo Y con ratón porque el papel se corre con los dos. */
+   Se prueba con dedo Y con ratón porque el desliz llega con los dos. */
 const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
 
 (async () => {
@@ -34,58 +32,47 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
       pg.dispatchEvent(new PointerEvent('pointermove', op(i)));
       await new Promise(z => setTimeout(z, a.ms));
     }
-    const alSoltar = pg.scrollLeft;
     pg.dispatchEvent(new PointerEvent('pointerup', op(a.pasos)));
-    const traza = [];
-    const t0 = performance.now();
-    await new Promise(fin => {
-      (function mira(){
-        traza.push([Math.round(performance.now()-t0), Math.round(pg.scrollLeft)]);
-        if (performance.now()-t0 < 900) requestAnimationFrame(mira); else fin();
-      })();
-    });
-    return { alSoltar, tope: pg.scrollWidth - pg.clientWidth,
-             final: traza[traza.length-1][1], traza };
+    return { tope: pg.scrollWidth - pg.clientWidth, cajon: pg.scrollLeft,
+             hoja: window.__estado };
   }, { dx, pasos, ms, tipo });
 
-  titulo('un roce corto no lo abre');
+  titulo('un roce corto no pasa hoja ni abre el cajón');
+  const hoja0 = await p.evaluate(() => window.__estado);
   const roce = await arrastrar(-18, 6, 40, 'touch');
-  di('18 px de dedo', { tope: roce.tope, alSoltar: roce.alSoltar, final: roce.final });
-  vale('el cajón se queda cerrado', roce.final < roce.tope * 0.5,
-       Math.round(roce.final/roce.tope*100) + '% abierto');
+  di('18 px de dedo', { tope: roce.tope, cajon: roce.cajon, hoja: roce.hoja });
+  vale('el cajón se queda cerrado', roce.cajon < roce.tope * 0.5,
+       Math.round(roce.cajon/roce.tope*100) + '% abierto');
+  vale('y la hoja no cambió', roce.hoja === hoja0, roce.hoja);
 
-  titulo('un desliz con intención lo abre entero');
+  titulo('un desliz a la izquierda pasa a la hoja siguiente');
   const envion = await arrastrar(-60, 6, 10, 'touch');
-  di('60 px en 60 ms', { tope: envion.tope, alSoltar: envion.alSoltar, final: envion.final });
-  vale('termina el viaje solo', envion.final >= envion.tope - 2,
-       envion.alSoltar + ' al soltar → ' + envion.final);
+  di('60 px a la izquierda', { cajon: envion.cajon, desde: hoja0, hasta: envion.hoja });
+  vale('el cajón NO se abre', envion.cajon < 4, envion.cajon);
+  await p.waitForFunction(a => window.__estado && window.__estado !== a, hoja0, { timeout: 5000 })
+    .catch(() => {});
+  const trasIzq = await p.evaluate(() => window.__estado);
+  vale('LA HOJA SIGUIENTE', trasIzq !== hoja0, hoja0 + ' → ' + trasIzq);
 
-  titulo('la forma del viaje: despacio, rápido, despacio');
-  /* Sin esto se abriría igual pero se sentiría como un interruptor. Se mide
-     cuándo cruza cada cuarto: si el primer cuarto tarda tanto como la mitad,
-     hay arranque suave; si el último se estira, hay frenada. */
-  const t = envion.traza, tope = envion.tope;
-  const cuando = f => { const q = t.find(x => x[1] >= tope*f); return q ? q[0] : null; };
-  const marcas = { c25: cuando(.25), c50: cuando(.5), c75: cuando(.75), c100: cuando(.999) };
-  di('cruza cada cuarto en', marcas);
-  vale('arranca suave', marcas.c25 !== null && marcas.c50 !== null &&
-       (marcas.c50 - marcas.c25) < marcas.c25,
-       'primer cuarto ' + marcas.c25 + ' ms · segundo ' + (marcas.c50 - marcas.c25) + ' ms');
-  vale('y frena al llegar', marcas.c100 !== null && marcas.c75 !== null &&
-       (marcas.c100 - marcas.c75) > (marcas.c75 - marcas.c50),
-       'tercer cuarto ' + (marcas.c75 - marcas.c50) + ' ms · último ' + (marcas.c100 - marcas.c75) + ' ms');
-  vale('sin rebote', t.every(x => x[1] <= tope + 1),
-       'máximo ' + Math.max(...t.map(x => x[1])) + ' de ' + tope);
+  titulo('un desliz a la derecha vuelve a la anterior');
+  const hoja1 = trasIzq;
+  await arrastrar(60, 6, 10, 'touch');
+  await p.waitForFunction(a => window.__estado && window.__estado !== a, hoja1, { timeout: 5000 })
+    .catch(() => {});
+  const trasDer = await p.evaluate(() => window.__estado);
+  vale('LA HOJA ANTERIOR', trasDer === hoja0, hoja1 + ' → ' + trasDer);
 
-  titulo('el mismo desliz con ratón');
-  const raton = await arrastrar(-60, 6, 10, 'mouse');
-  di('60 px de ratón', { alSoltar: raton.alSoltar, final: raton.final, tope: raton.tope });
-  vale('el ratón también lo abre', raton.final >= raton.tope - 2);
+  titulo('el mismo desliz con ratón también pasa hoja');
+  const antesRaton = await p.evaluate(() => window.__estado);
+  await arrastrar(-60, 6, 10, 'mouse');
+  await p.waitForFunction(a => window.__estado && window.__estado !== a, antesRaton, { timeout: 5000 })
+    .catch(() => {});
+  const trasRaton = await p.evaluate(() => window.__estado);
+  vale('el ratón también pasa hoja', trasRaton !== antesRaton, antesRaton + ' → ' + trasRaton);
 
-  /* DESDE UN VERSÍCULO, no solo desde el blanco de abajo. Pedido: el texto
-     llena el ancho y el pie era el único asidero. El desliz arranca sobre
-     el renglón y el cajón se tiene que ir igual. */
-  titulo('desde un versículo también se abre');
+  /* DESDE UN VERSÍCULO, no solo desde el blanco. El desliz arranca sobre el
+     renglón y tiene que pasar hoja igual —y dejar el cajón en paz. */
+  titulo('desde un versículo también se pasa hoja');
   const desdeTexto = await p.evaluate(async () => {
     const pg = document.getElementById('pg');
     pg.scrollLeft = 0;
@@ -94,6 +81,7 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
     const r = v.getBoundingClientRect();
     const x0 = r.left + Math.min(80, r.width * .4);
     const y0 = r.top + r.height / 2;
+    const hoja = window.__estado;
     const op = i => ({ bubbles:true, pointerId:8, pointerType:'touch', isPrimary:true,
                        clientX: x0 - (60 * i / 6),
                        clientY: y0 + (i % 2 ? 2 : -1) });
@@ -103,26 +91,19 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
       await new Promise(z => setTimeout(z, 10));
     }
     v.dispatchEvent(new PointerEvent('pointerup', op(6)));
-    const traza = [];
-    const t0 = performance.now();
-    await new Promise(fin => {
-      (function mira(){
-        traza.push(pg.scrollLeft);
-        if (performance.now()-t0 < 900) requestAnimationFrame(mira); else fin();
-      })();
-    });
-    const tope = pg.scrollWidth - pg.clientWidth;
-    return { tope, final: traza[traza.length-1], sobre: v.dataset.k };
+    return { cajon: pg.scrollLeft, sobre: v.dataset.k, hoja };
   });
   di('60 px sobre el versículo', desdeTexto);
   vale('(la prueba es válida) había un versículo de donde jalar',
        !desdeTexto.sinVerso, desdeTexto.sobre);
-  vale('EL CAJÓN SE ABRE TAMBIÉN DESDE EL TEXTO',
-       desdeTexto.final >= desdeTexto.tope - 2,
-       desdeTexto.final + ' de ' + desdeTexto.tope);
+  vale('el cajón se queda cerrado', desdeTexto.cajon < 4, desdeTexto.cajon);
+  await p.waitForFunction(a => window.__estado && window.__estado !== a,
+                          desdeTexto.hoja, { timeout: 5000 }).catch(() => {});
+  const trasVerso = await p.evaluate(() => window.__estado);
+  vale('Y LA HOJA CAMBIÓ', trasVerso !== desdeTexto.hoja, desdeTexto.hoja + ' → ' + trasVerso);
 
-  /* Y SI EL DEDO SE QUEDA, era para glosar: el cajón no se lo queda. */
-  titulo('si el dedo se queda sobre el texto, no es el cajón');
+  /* Y SI EL DEDO SE QUEDA, era para glosar: ni cajón ni pliegue. */
+  titulo('si el dedo se queda sobre el texto, no es el cajón ni la hoja');
   const seQuedo = await p.evaluate(async () => {
     const pg = document.getElementById('pg');
     pg.scrollLeft = 0;
@@ -131,6 +112,7 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
     const r = v.getBoundingClientRect();
     const x0 = r.left + Math.min(80, r.width * .4);
     const y0 = r.top + r.height / 2;
+    const hoja = window.__estado;
     const op = (x) => ({ bubbles:true, pointerId:9, pointerType:'touch', isPrimary:true,
                          clientX:x, clientY:y0 });
     v.dispatchEvent(new PointerEvent('pointerdown', op(x0)));
@@ -138,11 +120,104 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
     v.dispatchEvent(new PointerEvent('pointermove', op(x0 - 60)));
     v.dispatchEvent(new PointerEvent('pointerup', op(x0 - 60)));
     await new Promise(z => setTimeout(z, 400));
-    return { final: pg.scrollLeft, tope: pg.scrollWidth - pg.clientWidth };
+    return { cajon: pg.scrollLeft, tope: pg.scrollWidth - pg.clientWidth, hoja,
+             hojaDespues: window.__estado };
   });
   di('tras quedarse 340 ms', seQuedo);
-  vale('el cajón se queda cerrado', seQuedo.final < seQuedo.tope * 0.5,
-       Math.round(seQuedo.final/(seQuedo.tope||1)*100) + '% abierto');
+  vale('el cajón se queda cerrado', seQuedo.cajon < seQuedo.tope * 0.5,
+       Math.round(seQuedo.cajon/(seQuedo.tope||1)*100) + '% abierto');
+  vale('y la hoja no cambió', seQuedo.hojaDespues === seQuedo.hoja, seQuedo.hojaDespues);
+
+  titulo('la G abre el cajón, despacio, como una glosa');
+  const g = await p.evaluate(async () => {
+    const b = document.getElementById('btnGlosas');
+    const pg = document.getElementById('pg');
+    pg.scrollLeft = 0;
+    if (!b || b.hidden) return { sinG:true };
+    const cs = getComputedStyle(b);
+    const carmin = cs.color;
+    const vivo = carmin === 'rgb(216, 11, 11)';
+    const hist = document.getElementById('btnHistorial').getBoundingClientRect();
+    const gR = b.getBoundingClientRect();
+    const ultimo = document.getElementById('pgBody').lastElementChild;
+    const textoAbajo = ultimo.getBoundingClientRect().bottom;
+    const gMedio = (gR.top + gR.bottom) / 2;
+    const hMedio = (hist.top + hist.bottom) / 2;
+    const traza = [];
+    const tope = pg.scrollWidth - pg.clientWidth;
+    b.click();
+    const t0 = performance.now();
+    await new Promise(fin => {
+      (function mira(){
+        traza.push([Math.round(performance.now()-t0), Math.round(pg.scrollLeft)]);
+        if (performance.now()-t0 < 2800) requestAnimationFrame(mira); else fin();
+      })();
+    });
+    return {
+      letra: b.textContent.trim(),
+      familia: cs.fontFamily, peso: cs.fontWeight, tam: cs.fontSize,
+      redonda: cs.borderRadius, carmin, vivo,
+      tope, final: traza[traza.length-1][1], traza,
+      presionada: b.getAttribute('aria-pressed'), abierta: b.classList.contains('abierta'),
+      aLaDerecha: Math.abs(gR.right - hist.right) <= 2,
+      entre: gMedio >= Math.min(textoAbajo, hMedio) - 2 &&
+             gMedio <= Math.max(textoAbajo, hMedio) + 2,
+      funde: /opacity/.test(cs.transition),
+      halo: (() => {
+        const x = gR.left + gR.width / 2, y = gR.top - 12;
+        const el = document.elementFromPoint(x, y);
+        return !!(el && el.closest && el.closest('#btnGlosas'));
+      })()
+    };
+  });
+  di('la G', { letra:g.letra, tam:g.tam, peso:g.peso, carmin:g.carmin, final:g.final });
+  vale('(la prueba es válida) hay una G', !g.sinG && g.letra === 'G', g.letra);
+  vale('en Segoe', /Segoe/i.test(g.familia || ''), g.familia);
+  vale('21 pt', g.tam === '28px', g.tam);
+  vale('en negrita', +g.peso >= 700, g.peso);
+  vale('en un círculo', parseFloat(g.redonda) >= 14, g.redonda);
+  vale('carmín de las piedras, no el vivo',
+       /155,\s*42,\s*42/.test(g.carmin || '') && !g.vivo, g.carmin);
+  vale('a la derecha, con el historial', g.aLaDerecha === true, g.aLaDerecha);
+  vale('a media altura entre el texto y el historial', g.entre === true, g.entre);
+  vale('y al pasar hoja se funde', g.funde === true, g.funde);
+  vale('y el margen invisible gana el toque', g.halo === true, g.halo);
+  vale('EL CAJÓN SE ABRE ENTERO', g.final >= g.tope - 2, g.final + ' de ' + g.tope);
+  vale('y queda marcada como abierta', g.presionada === 'true' && g.abierta, g.presionada);
+  /* La forma del viaje: despacio, rápido, despacio. Misma medida que cuando
+     el desliz abría el cajón; ahora la G es quien lo corre. */
+  const t = g.traza || [], topeG = g.tope || 0;
+  const cuando = f => { const q = t.find(x => x[1] >= topeG*f); return q ? q[0] : null; };
+  const marcas = { c25: cuando(.25), c50: cuando(.5), c75: cuando(.75), c100: cuando(.999) };
+  di('cruza cada cuarto en', marcas);
+  vale('arranca suave', marcas.c25 !== null && marcas.c50 !== null &&
+       (marcas.c50 - marcas.c25) < marcas.c25,
+       'primer cuarto ' + marcas.c25 + ' ms · segundo ' + (marcas.c50 - marcas.c25) + ' ms');
+  vale('y frena al llegar', marcas.c100 !== null && marcas.c75 !== null &&
+       (marcas.c100 - marcas.c75) > (marcas.c75 - marcas.c50),
+       'tercer cuarto ' + (marcas.c75 - marcas.c50) + ' ms · último ' + (marcas.c100 - marcas.c75) + ' ms');
+  vale('sin rebote', t.every(x => x[1] <= topeG + 1),
+       'máximo ' + Math.max(...t.map(x => x[1])) + ' de ' + topeG);
+  vale('y no es un interruptor: tarda lo de una glosa',
+       marcas.c100 !== null && marcas.c100 >= 1800, marcas.c100 + ' ms');
+
+  titulo('otro toque a la G lo cierra');
+  const cierra = await p.evaluate(async () => {
+    const b = document.getElementById('btnGlosas');
+    const pg = document.getElementById('pg');
+    b.click();
+    const t0 = performance.now();
+    await new Promise(fin => {
+      (function mira(){
+        if (pg.scrollLeft <= 1 || performance.now()-t0 > 2800) fin();
+        else requestAnimationFrame(mira);
+      })();
+    });
+    return { final: pg.scrollLeft, presionada: b.getAttribute('aria-pressed') };
+  });
+  di('al cerrar', cierra);
+  vale('el cajón vuelve al texto', cierra.final <= 2, cierra.final);
+  vale('y la G se apaga', cierra.presionada === 'false', cierra.presionada);
 
   titulo('la página no se desplaza en vertical');
   /* NO HAY NADA QUE DESPLAZAR, y sin embargo se podía. El cuerpo iba en
