@@ -3773,7 +3773,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '11-SEP-26 06:45';
+window.GLOSS_BUILD = '11-SEP-26 07:10';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4057,22 +4057,21 @@ const PAGE_CSS = `
    escribir aquí un 1.08em de otro contexto lo dejaría parecido pero no igual.
    Parecido es peor que distinto, porque el ojo lo lee como un salto.
 
-   EL VELO ES DE PAPEL Y NO DE SOMBRA. La primera idea fue oscurecer, que es
-   lo que hace todo el mundo, y aquí no vale: la hoja es crema y la letra es
-   tinta oscura, así que oscureciendo el fondo la lista tendría que volverse
-   clara y de golpe estás leyendo en negativo dentro de una aplicación que es
-   un libro. Con un velo del color del papel, la hoja se va hacia atrás y la
-   lista se lee con la misma tinta de siempre. */
+   EL VELO ES DE PAPEL Y NO DE SOMBRA, Y VA OPACO. La primera idea fue
+   oscurecer, que es lo que hace todo el mundo, y aquí no vale: la hoja es
+   crema y la letra es tinta oscura, así que oscureciendo el fondo la lista
+   tendría que volverse clara y de golpe estás leyendo en negativo dentro de
+   una aplicación que es un libro. Con un velo del color del papel, la lista
+   se lee con la misma tinta de siempre. Y opaco: con transparencia la hoja
+   se leía a través y los renglones se cruzaban. */
 .escenas{ position:absolute; inset:0; z-index:12; display:none; }
 .escenas.puesto{ display:block; }
 .escenas-velo{ position:absolute; inset:0; background:var(--papel,#faf7f1);
                opacity:0; transition:opacity .28s ease; }
-/* .84 Y NO MÁS, MEDIDO: el papel está en 244 y la tinta de la hoja detrás del
-   velo queda en 207 con .82, en 220 con .88. Por encima de eso la hoja no se
-   atenúa, desaparece, y lo que se pidió es que se apague un poco —que siga
-   ahí, detrás—. Por debajo, el texto de la hoja se cruza con los renglones de
-   la lista y las dos cosas se estorban. */
-.escenas.visible .escenas-velo{ opacity:.84; }
+/* OPACO, no un velo. Con transparencia la hoja se leía a través y los
+   renglones de la lista se cruzaban con los de debajo. Pedido: el fondo
+   blanco no tiene transparencia. */
+.escenas.visible .escenas-velo{ opacity:1; }
 .escenas-lista{ position:absolute; overflow-y:auto; overscroll-behavior:contain;
                 -webkit-overflow-scrolling:touch;
                 font-family:'Palatino Linotype',Palatino,'Book Antiqua',
@@ -4101,16 +4100,17 @@ const PAGE_CSS = `
    —el titulillo es una celda de rejilla y ocupa la columna entera—. En bloque
    los dos miden lo mismo y el cuadre se puede comprobar. */
 .escena-dice{ display:block; }
-/* LA QUE ESTÁS LEYENDO VA CON BORDE Y SIN FONDO, por decisión del dueño del
-   repo: un fondo sepia la convertía en el asunto de la pantalla, y el asunto
-   es la lista. El borde dice dónde estás sin levantar la voz. Y va del mismo
-   sepia que las pestañas y el libro elegido, que es el color con el que esta
-   aplicación dice «aquí». */
-/* Y EL BORDE VA DE SOMBRA INTERIOR Y NO DE border, que no es un capricho:
+/* LA QUE ESTÁS LEYENDO VA CON EL SEPIA DEL LIBRO ELEGIDO. Es el mismo #b8892b
+   de .tabo.aqui, de las pestañas y de un botón cumplido: el color con el que
+   esta aplicación dice «aquí». El borde va más oscuro —#4a3a1c, la tinta de
+   los números del canto— para que el recuadro se despegue del relleno y no se
+   lea como un bloque plano.
+   Y EL BORDE VA DE SOMBRA INTERIOR Y NO DE border, que no es un capricho:
    un border de verdad ocupa sitio y corre el texto un píxel y medio hacia
    dentro, justo en el renglón que tiene que quedarse EXACTAMENTE donde
    estaba. Con box-shadow el marco se pinta y no empuja nada. */
-.escena.aqui{ box-shadow:inset 0 0 0 1.5px #b8892b; }
+.escena.aqui{ background:#b8892b; color:#fff8e4;
+              box-shadow:inset 0 0 0 1.5px #4a3a1c; }
 .escena:hover:not(.aqui){ background:rgba(184,137,43,.10); }
 .escena.bajoeldedo{ background:rgba(184,137,43,.20); }
 /* El movimiento se apaga entero cuando el aparato lo pide: la lista sigue
@@ -5702,35 +5702,56 @@ function abrirEscenas(h2){
   }
   requestAnimationFrame(() => escenas.classList.add('visible'));
 }
-/* El toque. Va en el click y no en el pointerup por lo de siempre en esta
-   casa: un evento despachado a mano llega siempre y el de un dedo no, y el
-   click es el que llega en los dos casos. Lo único que se mira del puntero es
-   si hubo arrastre —pasar la hoja empieza con el dedo encima del texto—, y si
-   no hubo pointerdown ninguno se atiende igual: es un toque como otro. */
-let periAbajo = null;
+/* EL TOQUE LARGO ABRE LAS ESCENAS. Un toque corto no: el titulillo vive
+   encima del texto y un clic suelto es leer, pasar hoja o glosar. El gesto
+   es el de la lupa de los libros —ver lupaDeLibros—: el dedo se posa y
+   espera, y si se mueve era otra cosa.
+
+   ESPERA y RUIDO son los mismos números. Un desliz para pasar hoja arranca
+   enseguida; quien quiere las escenas se queda quieto. Si se suelta antes,
+   no pasa nada: era un toque. */
+const PERI_ESPERA = 200;   /* ms de dedo quieto, igual que la lupa */
+const PERI_RUIDO  = 10;    /* px que se le perdonan al dedo mientras espera */
+let periGesto = null;
+function periLimpiar(){
+  if (!periGesto) return;
+  clearTimeout(periGesto.reloj);
+  document.removeEventListener('pointermove', periMueve, true);
+  document.removeEventListener('pointerup', periArriba, true);
+  document.removeEventListener('pointercancel', periLimpiar, true);
+  periGesto = null;
+}
+function periMueve(ev){
+  if (!periGesto || ev.pointerId !== periGesto.pid) return;
+  if (Math.hypot(ev.clientX - periGesto.x, ev.clientY - periGesto.y) > PERI_RUIDO)
+    periLimpiar();
+}
+function periArriba(ev){
+  if (!periGesto || (ev && ev.pointerId !== periGesto.pid)) return;
+  periLimpiar();
+}
+function periEnganchar(){
+  if (!periGesto) return;
+  const h = periGesto.h;
+  periLimpiar();
+  if (zoomActivo || !h.isConnected) return;
+  tragarElClic();
+  abrirEscenas(h);
+}
 pgBody.addEventListener('pointerdown', ev => {
   const h = ev.target.closest && ev.target.closest('.peri');
-  periAbajo = h ? { h, x: ev.clientX, y: ev.clientY } : null;
-});
-pgBody.addEventListener('click', ev => {
-  const h = ev.target.closest && ev.target.closest('.peri');
   if (!h) return;
-  const arrastro = periAbajo && periAbajo.h === h &&
-                   Math.hypot(ev.clientX - periAbajo.x, ev.clientY - periAbajo.y) > 12;
-  periAbajo = null;
-  if (arrastro) return;
-  /* DE LEJOS NO. Con la hoja alejada, un toque en el papel significa «vuelve»
-     —es la puerta de salida del zoom, ver el oyente de stage— y el titulillo
-     es papel de esa hoja como cualquier otro. Sin esta línea pasaban las dos
-     cosas: se abría la lista medida contra la miniatura Y el zoom se cerraba
-     debajo, así que la hoja crecía y la lista se quedaba flotando en el
-     tamaño de antes, despegada del titulillo del que decía salir. Lo levantó
-     Codex revisando el PR #84. */
   if (zoomActivo) return;
-  ev.preventDefault();
-  abrirEscenas(h);
+  periLimpiar();
+  periGesto = { h, pid: ev.pointerId, x: ev.clientX, y: ev.clientY,
+                reloj: setTimeout(periEnganchar, PERI_ESPERA) };
+  document.addEventListener('pointermove', periMueve, true);
+  document.addEventListener('pointerup', periArriba, true);
+  document.addEventListener('pointercancel', periLimpiar, true);
 });
-/* Y con el teclado: Intro o barra sobre el titulillo hacen lo que el toque. */
+/* Y con el teclado: Intro o barra sobre el titulillo hacen lo que el toque
+   largo. SIN EL PLAZO, que con el teclado no hay un «doble Enter» que
+   distinguir —es lo mismo que el rótulo de las versiones. */
 pgBody.addEventListener('keydown', ev => {
   if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
   const h = ev.target.closest && ev.target.closest('.peri');
@@ -7852,9 +7873,9 @@ function seleccionParaEsteToque(ev){
 pgBody.addEventListener('pointerup', ev => {
   if (ev.target.tagName === 'TEXTAREA') return;
   if (ev.target.closest('.gl')) return;   // las glosas de "abajo" viven aquí dentro
-  /* Un titulillo no es texto que se glose: se toca para ver el libro entero,
-     y de eso se encarga su propio click. Sin esta línea el toque hacía las dos
-     cosas —abrir las escenas y buscar una marca debajo—. */
+  /* Un titulillo no es texto que se glose: se sostiene para ver el libro
+     entero, y de eso se encarga su propio toque largo. Sin esta línea el
+     toque hacía las dos cosas —abrir las escenas y buscar una marca debajo—. */
   if (ev.target.closest('.peri')) return;
   setTimeout(() => {
     const sel = window.getSelection();
