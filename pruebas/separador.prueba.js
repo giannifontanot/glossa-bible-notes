@@ -1265,31 +1265,52 @@ async function ponerAMano(p){
        (queSi.puesta && queSi.puesta.cap + ':' + queSi.puesta.vers) + '  →  ' +
        (queSi.movida && queSi.movida.cap + ':' + queSi.movida.vers));
 
-  titulo('la cinta activa también se viene al ir hacia atrás');
-  /* Al pasar hoja con el filo (adelante o atrás) la activa sigue al lector.
-     Un salto de verdad (índice, glosa, paso atrás del rastro) no. */
+  titulo('LA CINTA NO ANDA HACIA ATRÁS');
+  /* ESTO AFIRMABA LO CONTRARIO hasta hoy: «al pasar hacia atrás la activa se
+     mueve». La cinta seguía al lector en los dos sentidos, y eso la convierte
+     en otra cosa. Una cinta marca hasta dónde llegaste; volver una hoja a
+     releer un versículo no deshace lo leído, y sin embargo arrastraba la marca
+     contigo. Retrocedías tres hojas para comprobar un nombre, volvías
+     adelante, y tu cinta se había quedado tres hojas atrás sin que hubieras
+     tocado nada.
+
+     Y NO BASTA CON MIRAR EL SENTIDO DEL GESTO, por eso se prueban los tres
+     pasos seguidos. Retroceder y volver adelante es un gesto «hacia adelante»
+     que cae sobre hoja ya leída: si lo único que se comprobara fuera la
+     dirección, la cinta se iría ahí y habría andado hacia atrás por la puerta
+     de al lado. Lo que el programa compara es el SITIO, y esta prueba lo
+     comprueba llegando por los dos caminos. */
   const haciaAtras = await p2.evaluate(async () => {
     const id = window.__guardadas()[0] && window.__guardadas()[0].id;
-    const antes = window.__guardadas()[0];
-    await window.__pasar('left');
-    await window.__pausa(400);
-    const despues = window.__guardadas().find(x => x.id === id);
-    return {
-      id, antes: antes && (antes.cap + ':' + antes.vers),
-      despues: despues && (despues.cap + ':' + despues.vers),
-      movida: !!(antes && despues &&
-                 (antes.cap !== despues.cap || antes.vers !== despues.vers))
-    };
+    const donde = () => { const c = window.__guardadas().find(x => x.id === id);
+                          return c ? c.cap + ':' + c.vers : '(no está)'; };
+    const salida = donde();
+    await window.__pasar('left');  await window.__pausa(400);
+    const unaAtras = donde();
+    await window.__pasar('left');  await window.__pausa(400);
+    const dosAtras = donde();
+    /* y ahora adelante, pero todavía por detrás de donde está la cinta */
+    await window.__pasar('right'); await window.__pausa(400);
+    const volviendo = donde();
+    return { id, salida, unaAtras, dosAtras, volviendo };
   });
-  di('hacia atrás', haciaAtras.antes + '  →  ' + haciaAtras.despues);
-  vale('al pasar hacia atrás la activa se mueve', haciaAtras.movida,
-       haciaAtras.antes + '  →  ' + haciaAtras.despues);
+  di('la cinta al ir y venir', [haciaAtras.salida, haciaAtras.unaAtras,
+      haciaAtras.dosAtras, haciaAtras.volviendo].join('  →  '));
+  vale('AL PASAR HACIA ATRÁS LA CINTA SE QUEDA DONDE ESTABA',
+       haciaAtras.unaAtras === haciaAtras.salida &&
+       haciaAtras.dosAtras === haciaAtras.salida,
+       haciaAtras.salida + '  →  ' + haciaAtras.unaAtras + '  →  ' + haciaAtras.dosAtras);
+  vale('  y volver adelante sobre lo ya leído tampoco la retrasa',
+       haciaAtras.volviendo === haciaAtras.salida,
+       haciaAtras.salida + '  →  ' + haciaAtras.volviendo);
 
   titulo('la cinta vieja se queda donde la dejaron');
-  /* Para tener una quieta y una activa hace falta SALTAR, no retroceder: la
-     activa se viene al pasar hoja en los dos sentidos, así que hacia atrás
-     seguiría pegada al lector y el botón abriría su menú en vez de poner
-     otra. Un salto por el rastro sí la deja donde estaba. */
+  /* Se salta por el rastro en vez de retroceder con el filo, y ahora es por
+     una razón distinta a la de antes. Antes hacía falta porque la activa se
+     venía en los dos sentidos y hacia atrás seguía pegada al lector. Ahora ya
+     no se viene hacia atrás —ver el bloque de arriba—, pero retroceder deja
+     al lector CON la cinta delante, y el botón abriría su menú en vez de
+     poner otra: para tener dos, hay que irse lejos de la primera. */
   /* Dos referencias DISTINTAS: el rastro se pinta sin ecos, así que dos
      iguales seguidas dejarían el panel sin paso atrás que tocar. */
   await p2.evaluate(() => localStorage.setItem('glossa:historial:v1', JSON.stringify([
