@@ -157,7 +157,25 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
     const csOn = getComputedStyle(b);
     return {
       haySvg: !!svg, hayG: !!gPath, hayCera: !!cera,
-      gotica: !!(gPath && /evenodd/i.test(gPath.getAttribute('fill-rule') || '')),
+      /* LA LETRA ESTÁ DENTRO DE LA CERA, que es lo que se quiere de un sello.
+         Aquí decía «tiene fill-rule evenodd», o sea la MANERA de dibujar la G
+         de aquel día, y al redibujarla de trazo —un arco y su barra— la prueba
+         llamó fallo a un cambio pedido. Van las cajas: la del dibujo tiene que
+         caber en la del lacre. Es además lo que fallaba de verdad en la G
+         anterior, que colgaba por debajo del disco (y=21.8 contra 18.2). */
+      letra: (() => {
+        if (!gPath || !cera) return null;
+        const a = gPath.getBBox(), c = cera.getBBox();
+        return { dentro: a.x >= c.x - .5 && a.y >= c.y - .5 &&
+                         a.x + a.width <= c.x + c.width + .5 &&
+                         a.y + a.height <= c.y + c.height + .5,
+                 /* y ocupa el disco: una letra de dos píxeles «cabría» igual */
+                 parte: +((a.width * a.height) / (c.width * c.height)).toFixed(2),
+                 caja: [+a.x.toFixed(1), +a.y.toFixed(1),
+                        +(a.x + a.width).toFixed(1), +(a.y + a.height).toFixed(1)],
+                 lacre: [+c.x.toFixed(1), +c.y.toFixed(1),
+                         +(c.x + c.width).toFixed(1), +(c.y + c.height).toFixed(1)] };
+      })(),
       carmin, vivo, on: csOn.color,
       tope, final: traza[traza.length-1][1], traza,
       presionada: b.getAttribute('aria-pressed'), abierta: b.classList.contains('abierta'),
@@ -173,7 +191,12 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
   });
   di('la G', { carmin:g.carmin, on:g.on, hueco:g.hueco, final:g.final });
   vale('(la prueba es válida) hay un sello', !g.sinG && g.haySvg && g.hayCera && g.hayG, g.haySvg);
-  vale('con una G gótica', g.gotica === true, g.gotica);
+  vale('con su letra DENTRO del lacre',
+       !!g.letra && g.letra.dentro === true,
+       g.letra ? 'letra ' + g.letra.caja + ' · lacre ' + g.letra.lacre : 'sin letra');
+  vale('  y ocupando el disco, no una mota en un rincón',
+       !!g.letra && g.letra.parte >= .2,
+       g.letra ? g.letra.parte + ' del lacre' : '—');
   vale('carmín de las piedras cuando está apagada, no el vivo',
        /155,\s*42,\s*42/.test(g.carmin || '') && !g.vivo, g.carmin);
   vale('y más honda cuando está prendida',
