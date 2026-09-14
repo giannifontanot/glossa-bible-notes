@@ -3895,7 +3895,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '14-SEP-26 11:38';
+window.GLOSS_BUILD = '14-SEP-26 11:43';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18081,7 +18081,16 @@ renderPage();
    sale más caro que eso. */
 setInterval(() => { if (!document.hidden) marcarVisita(); }, 30000);
 addEventListener('pagehide', marcarVisita);
-addEventListener('visibilitychange', () => { if (document.hidden) marcarVisita(); });
+/* EN document Y NO EN window, y esto se midió antes de escribirlo. El evento
+   se lanza en el documento; llegar a window depende de que burbujee, y
+   burbujea —comprobado: un evento lanzado en document con bubbles puesto sí
+   despierta a un oyente de window—. O sea que las dos formas funcionan.
+   Se escribe la de document igualmente porque es la que no hay que comprobar:
+   un oyente colgado del sitio donde el evento nace no depende de un detalle
+   que hay que ir a mirar a la especificación para saber si sigue siendo
+   cierto. Lo levantó la revisión de Codex, con el razonamiento al revés —decía
+   que no burbujea— y la conclusión buena. */
+document.addEventListener('visibilitychange', () => { if (document.hidden) marcarVisita(); });
 /* La firma se siembra con lo que ya hay puesto. Sin esto arranca vacía, así
    que el PRIMER guardado de la sesión siempre la ve distinta y repagina —y con
    glosas ya escritas, ese primer guardado es justo el de crear la siguiente—.
