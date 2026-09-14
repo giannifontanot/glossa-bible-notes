@@ -252,16 +252,31 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     if (!sello.sinG){
       vale('(la prueba es válida) el jalón llegó a abrir el cajón',
            sello.jalado.cajon > 40, sello.jalado.cajon + ' px');
+      /* LO QUE SE AFIRMA ES QUE VAN ATADOS, y no dónde está cada uno a los
+         60 ms. La primera versión decía «con movimiento normal el sello sí se
+         anima», y eso da por hecho que a los 60 ms el viaje va por la mitad:
+         una afirmación sobre un instante, que es de las que fallan en otra
+         máquina sin que nada esté roto. Falló, de hecho —Codex, sobre
+         5146acb—, en un entorno donde el resto de las animaciones de esta
+         misma rama tampoco arrancaron.
+         La fracción de viaje no depende de eso: si los dos van al mismo ritmo
+         están atados, vayan deprisa, despacio o de un tirón. Y sigue cazando
+         lo que había que cazar: con la transición de CSS que se quitó, el
+         cajón saltaba a cero y el sello se quedaba en 0.55 del camino. */
+      const frac = (x, de) => de ? x / de : 0;
+      const fCajon = frac(sello.justo.cajon, sello.jalado.cajon);
+      const fSello = frac(sello.justo.sello, sello.jalado.sello);
+      vale('EL SELLO Y EL CAJÓN VUELVEN ATADOS, AL MISMO RITMO',
+           Math.abs(fCajon - fSello) <= .08,
+           'cajón ' + fCajon.toFixed(3) + ' · sello ' + fSello.toFixed(3) +
+           ' del camino');
       if (modo === 'reduce'){
-        vale('EL SELLO VUELVE CON EL CAJÓN, SIN ANIMARSE POR SU CUENTA',
+        /* Y con la preferencia puesta el viaje es de un tirón: eso sí es una
+           afirmación sobre el instante, y aquí se puede hacer porque lo que
+           se pide es justamente que no haya viaje. */
+        vale('  y con menos movimiento no hay viaje: los dos ya están en casa',
              sello.justo.cajon === 0 && Math.abs(sello.justo.sello) <= 1,
              'cajón ' + sello.justo.cajon + ' · sello ' + sello.justo.sello);
-      } else {
-        /* Y con movimiento normal SÍ se anima: si no, esta prueba no estaría
-           comprobando nada —una transición que no existe pasa las dos ramas—. */
-        vale('con movimiento normal el sello sí vuelve animándose',
-             Math.abs(sello.justo.sello) > 1,
-             'sello ' + sello.justo.sello + ' a los 60 ms');
       }
     }
 
