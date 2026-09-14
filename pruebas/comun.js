@@ -105,8 +105,35 @@ function titulo(t){ console.log('\n  ' + t); }
    un milisegundo más, el toque de la prueba se lo comía la portada y el fallo
    salía en cualquier otra parte —la caja que no abre, la marca que no
    responde— sin decir por qué. Esperamos la señal real: la portada fuera. */
+/* LA TAPA YA NO SE VA SOLA: HAY QUE DECIRLE «continue».
+
+   Antes esto solo esperaba. La portada contaba cinco segundos y se iba, así
+   que el andamio no tenía más que sentarse a mirar. Ahora la tapa espera al
+   lector, y un andamio que solo esperara colgaría las veinte pruebas de la
+   carpeta contra el tope de doce segundos, cada una.
+
+   Se espera A QUE LA HOJA ESTÉ DETRÁS antes de pulsar, y no a que el botón
+   exista: el botón está escrito en el documento desde el primer instante y su
+   oyente se pone durante el arranque, así que un clic demasiado pronto cae en
+   un botón que todavía no escucha y la prueba se queda con la tapa puesta sin
+   entender por qué.
+
+   Y NO SIEMPRE HAY TAPA. Quien estuvo aquí hace menos de cinco minutos entra
+   directo, y en una prueba eso pasa en cuanto se recarga: la primera llamada
+   pasa la tapa y sella la visita, y de ahí en adelante ya no hay nada que
+   pulsar. Las dos ramas terminan igual, así que quien llame no se entera. */
 async function listo(pagina, tope = 12000){
   try {
+    await pagina.waitForFunction(() => {
+      const p = document.getElementById('portada');
+      if (!p || p.classList.contains('fuera')) return true;
+      return !!document.querySelector('#pgBody .v');
+    }, null, { timeout: tope });
+    await pagina.evaluate(() => {
+      const p = document.getElementById('portada');
+      const b = document.getElementById('btnPortadaSeguir');
+      if (p && !p.classList.contains('fuera') && b) b.click();
+    });
     await pagina.waitForFunction(() => {
       const p = document.getElementById('portada');
       return !p || p.classList.contains('fuera');
@@ -135,19 +162,30 @@ async function abrir(opciones = {}){
 
 /* ABRIR Y QUEDARSE EN LA PORTADA, que es lo contrario de lo que hace abrir().
 
-   La portada tiene botones propios —hold, foto, Piedras— y para probarlos hay
-   que llegar antes de que se vaya. abrir() espera justo a lo contrario: a que
-   se haya ido. Envolverla con una opción no servía, porque el envoltorio de
+   La portada tiene botones propios —continue, foto, Piedras— y para probarlos
+   hay que llegar con ella puesta. abrir() hace justo lo contrario: pulsa
+   «continue» y espera a que se haya ido. Envolverla con una opción no servía, porque el envoltorio de
    reload() de abrir() también espera a que se vaya, y la prueba de la portada
    recarga para comprobar que el adorno vuelve; con ese envoltorio cada recarga
    se comía los doce segundos del tope antes de seguir. Así que esta abre y
    devuelve, sin esperar a nada, y quien la use decide cuándo mira. */
 async function abrirEnPortada(opciones = {}){
+  /* visitaHace: milisegundos desde la última visita, sembrados ANTES de que el
+     documento arranque. Hace falta así y no de otra manera: el programa decide
+     si enseña la tapa en su primer renglón, y tocando el almacén desde la
+     página ya cargada se llega tarde. Poniéndolo desde la página tampoco
+     valdría para una recarga: al irse, la página sella la visita otra vez y lo
+     sembrado se pierde. */
+  const { visitaHace, url, ...deNavegador } = opciones;
   const navegador = await chromium.launch({ executablePath: EJECUTABLE });
-  const pagina = await navegador.newPage({ ...TELEFONO, ...opciones });
+  const pagina = await navegador.newPage({ ...TELEFONO, ...deNavegador });
   const errores = [];
   pagina.on('pageerror', e => errores.push(String(e).split('\n')[0]));
-  await pagina.goto(opciones.url || APP);
+  if (visitaHace != null)
+    await pagina.addInitScript(([k, t]) => {
+      try { localStorage.setItem(k, String(t)); } catch(_){}
+    }, ['glossa:visita:v1', Date.now() - visitaHace]);
+  await pagina.goto(url || APP);
   return { navegador, pagina, errores };
 }
 
