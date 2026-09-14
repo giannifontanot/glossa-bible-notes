@@ -3884,7 +3884,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '14-SEP-26 14:19';
+window.GLOSS_BUILD = '14-SEP-26 14:31';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -14322,9 +14322,19 @@ function crearSeparador(){
    adelante: el gesto es hacia adelante y la cinta se iría a la 4, o sea
    treinta y seis hojas hacia atrás. Preguntando por dónde queda cada una, ese
    caso se cierra solo y no hay que acordarse de él. */
+/* EL ORDEN ES EL DEL CANON, NO EL DE D.libros, y esto no es lo mismo aunque
+   hoy coincidan. D.libros lo arma el generador recorriendo las versiones y
+   añadiendo cada libro la primera vez que aparece —ver ebible-a-glossa.py,
+   orden_libros.append—, así que un libro que la primera versión no traiga se
+   cuela detrás de Apocalipsis. Con esa lista, la cinta podía dar por anterior
+   un libro que va después: o se movía hacia atrás cruzando de libro, o se
+   negaba a avanzar. CANON es el orden de verdad y es el que ya gobierna la
+   navegación entre libros —ver libroVecino—, así que las dos cosas que se
+   preguntan «¿qué va antes?» contestan por el mismo sitio.
+   Lo levantó la revisión de Codex. */
 function sepOrdenLibro(id){
-  const i = D.libros.findIndex(b => b.id === id);
-  /* Un libro que no está en la lista no arrastra la cinta a ninguna parte. */
+  const i = CANON.findIndex(b => b.id === id);
+  /* Un libro que no está en el canon no arrastra la cinta a ninguna parte. */
   return i < 0 ? Infinity : i;
 }
 function cintaSeQuedaDetras(s, p){
