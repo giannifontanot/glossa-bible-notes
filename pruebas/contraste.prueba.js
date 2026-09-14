@@ -212,6 +212,17 @@ async function ponerContraste(pagina, pct){
     const ancho = panel.getBoundingClientRect().width;
     const hueco = c => { const m = /rgba?\(([^)]+)\)/.exec(c);
                          return !m || +(m[1].split(',')[3] || 1) < 0.05; };
+    /* LA SALIDA SE RECONOCE POR SU BOTÓN, no por la clase que le da el trato
+       especial. Estuvo por la clase y Codex lo levantó: .vidrio-fila es la
+       misma que enciende la excepción del CSS, así que preguntando por ella
+       la prueba no podía enterarse de que alguien la pusiera en la fila
+       equivocada —la recién marcada pasaría por salida y cumpliría sus
+       aserciones, mientras la del botón de verdad se encogía y le salía
+       tablilla, y se colaba como un ajuste más—. Por el botón, las dos mitades
+       se vigilan solas: si la clase se muda, la salida de verdad aparece
+       estrecha y con tablilla, y la otra sale ancha donde no debe. */
+    const filaSalida = (document.getElementById('btnVidrio') || {}).closest
+      ? document.getElementById('btnVidrio').closest('.ajuste') : null;
     const filas = [...document.querySelectorAll('#ctrlConfig .ajuste')].map(f => {
       const r = f.getBoundingClientRect(), cs = getComputedStyle(f);
       const hijos = [...f.children].map(h => h.getBoundingClientRect().right);
@@ -223,13 +234,15 @@ async function ponerContraste(pagina, pct){
                   papel propio; dos papeles superpuestos solo engordan el
                   borde»—. Se apunta aquí para poder dejarla fuera de las dos
                   afirmaciones que hablan de tablillas. */
-               salida: f.classList.contains('vidrio-fila'),
+               salida: !!filaSalida && f === filaSalida,
                pct: Math.round(r.width / ancho * 100),
                conFondo: !hueco(cs.backgroundColor),
                redondas: parseFloat(cs.borderRadius) >= 4,
                /* que la tablilla CUBRA lo que sostiene: un fondo estrecho que
                   deje el control fuera no lo hace legible, lo parte. */
-               cabe: hijos.length === 0 || Math.max(...hijos) <= r.right + 1 };
+               cabe: hijos.length === 0 || Math.max(...hijos) <= r.right + 1,
+               claseSalida: f.classList.contains('vidrio-fila'),
+               clases: f.className };
     });
     return { opaco, cristal, filas };
   });
@@ -251,6 +264,11 @@ async function ponerContraste(pagina, pct){
   const salidas = tablillas.filas.filter(f => f.salida);
   vale('(la prueba es válida) la fila de la salida está, y es una sola',
        salidas.length === 1, salidas.length);
+  /* Y que el trato especial le siga tocando a ELLA: la clase se busca aquí,
+     después de haberla encontrado por el botón, que es el único orden en que
+     esta comprobación dice algo. */
+  vale('  y es ella la que lleva la clase del trato especial',
+       salidas.every(f => f.claseSalida), salidas.map(f => f.clases).join(' · '));
   vale('la salida va a todo lo ancho y sin tablilla, como pide su regla',
        salidas.every(f => f.pct > 90 && !f.conFondo),
        salidas.map(f => f.pct + '% · tablilla ' + f.conFondo).join(' · '));
