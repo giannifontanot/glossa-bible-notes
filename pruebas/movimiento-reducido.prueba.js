@@ -213,6 +213,58 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
         vale('y queda guardada igual', vuelo.guardada);
       }
     }
+    /* EL SELLO DE LAS GLOSAS VUELVE CON EL CAJÓN, NO POR SU CUENTA.
+
+       Al soltar un jalón, irA mira la preferencia y cierra el cajón en el
+       acto; si la transición del dibujo sobreviviera, el sello seguiría
+       viajando 230 ms solo y se vería despegado de lo que abrió. Pasaba:
+       #btnGlosas.volviendo pesa más que #btnGlosas, así que la regla de
+       movimiento reducido no lo alcanzaba. Medido entonces: cajón en 0 y
+       sello en -54.9 a los 60 ms. Lo levantó Codex revisando el PR #91. */
+    const sello = await p.evaluate(async () => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      const g = document.getElementById('btnGlosas');
+      const pgEl = document.getElementById('pg');
+      if (!g || g.hidden) return { sinG:true };
+      const r = g.getBoundingClientRect();
+      const x = r.left + r.width/2, y = r.top + r.height/2;
+      const op = () => ({ bubbles:true, cancelable:true, pointerId:83,
+                          pointerType:'touch', isPrimary:true });
+      const donde = () => +(new DOMMatrix(getComputedStyle(g).transform).m41).toFixed(1);
+      g.dispatchEvent(new PointerEvent('pointerdown',
+        Object.assign(op(), { clientX:x, clientY:y })));
+      for (const dx of [-20, -60, -100]){
+        g.dispatchEvent(new PointerEvent('pointermove',
+          Object.assign(op(), { clientX:x + dx, clientY:y + (dx % 3 ? 2 : -1) })));
+        await pausa(26);
+      }
+      const jalado = { cajon: Math.round(pgEl.scrollLeft), sello: donde() };
+      g.dispatchEvent(new PointerEvent('pointerup',
+        Object.assign(op(), { clientX:x - 100, clientY:y })));
+      await pausa(60);
+      return { jalado, justo: { cajon: Math.round(pgEl.scrollLeft), sello: donde() } };
+    });
+    di('el sello al soltarlo', sello);
+    /* Y esto va FUERA del if: sin él, una sesión sin glosas se saltaba el
+       bloque entero en silencio y la suite pasaba sin haber probado nada. */
+    vale('(la prueba es válida) el sello de las glosas está puesto',
+         !sello.sinG, sello.sinG ? 'no hay G que jalar' : 'puesto');
+    if (!sello.sinG){
+      vale('(la prueba es válida) el jalón llegó a abrir el cajón',
+           sello.jalado.cajon > 40, sello.jalado.cajon + ' px');
+      if (modo === 'reduce'){
+        vale('EL SELLO VUELVE CON EL CAJÓN, SIN ANIMARSE POR SU CUENTA',
+             sello.justo.cajon === 0 && Math.abs(sello.justo.sello) <= 1,
+             'cajón ' + sello.justo.cajon + ' · sello ' + sello.justo.sello);
+      } else {
+        /* Y con movimiento normal SÍ se anima: si no, esta prueba no estaría
+           comprobando nada —una transición que no existe pasa las dos ramas—. */
+        vale('con movimiento normal el sello sí vuelve animándose',
+             Math.abs(sello.justo.sello) > 1,
+             'sello ' + sello.justo.sello + ' a los 60 ms');
+      }
+    }
+
     /* Se revisan los errores de ESTA sesión antes de tirarla: cerrando a pelo,
        una excepción que solo ocurriera con la animación puesta se perdía y la
        prueba terminaba en verde. */

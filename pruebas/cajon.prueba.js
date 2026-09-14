@@ -328,6 +328,45 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
        jalon.aMedias < jalon.abierto * 0.35 && jalon.aMedias > 0,
        'de ' + jalon.abierto + ' a ' + jalon.aMedias + ' en 120 ms de 230');
 
+  /* EL SELLO SIGUE AL DEDO, NO AL SITIO DEL CAJÓN. Con el cajón ya medio
+     abierto —la rueda del ratón lo deja así, y también el toque a media
+     animación— el desplazamiento absoluto teletransportaba el dibujo: base 120
+     y ocho píxeles de dedo lo mandaban a -128 en el primer movimiento. Lo
+     levantó Codex revisando el PR #91. */
+  titulo('con el cajón medio abierto, el sello no salta');
+  const medio = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const g = document.getElementById('btnGlosas');
+    const pgEl = document.getElementById('pg');
+    pgEl.scrollLeft = 120;
+    await pausa(60);
+    const r = g.getBoundingClientRect();
+    const x = r.left + r.width/2, y = r.top + r.height/2;
+    const op = () => ({ bubbles:true, cancelable:true, pointerId:79,
+                        pointerType:'touch', isPrimary:true });
+    const sello = () => +(new DOMMatrix(getComputedStyle(g).transform).m41).toFixed(1);
+    const base = Math.round(pgEl.scrollLeft);
+    g.dispatchEvent(new PointerEvent('pointerdown', Object.assign(op(), { clientX:x, clientY:y })));
+    g.dispatchEvent(new PointerEvent('pointermove',
+      Object.assign(op(), { clientX:x - 9, clientY:y + 2 })));
+    await pausa(30);
+    const uno = { dedo:9, cajon: Math.round(pgEl.scrollLeft), sello: sello() };
+    g.dispatchEvent(new PointerEvent('pointerup', Object.assign(op(), { clientX:x - 9, clientY:y })));
+    await pausa(500);
+    return { base, uno, cerrado: Math.round(pgEl.scrollLeft) };
+  });
+  di('con el cajón medio abierto', medio);
+  vale('(la prueba es válida) el cajón partía medio abierto',
+       medio.base > 60, medio.base + ' px');
+  vale('EL SELLO SE MUEVE LO QUE SE MUEVE EL DEDO, NO LO QUE MIDE EL CAJÓN',
+       Math.abs(medio.uno.sello + medio.uno.dedo) <= 1.5,
+       'dedo ' + medio.uno.dedo + ' · sello ' + medio.uno.sello +
+       ' · cajón ' + medio.uno.cajon);
+  vale('  y el cajón sí cuenta desde donde estaba',
+       Math.abs(medio.uno.cajon - (medio.base + medio.uno.dedo)) <= 1,
+       medio.base + ' + ' + medio.uno.dedo + ' = ' + medio.uno.cajon);
+  await p.evaluate(() => { document.getElementById('pg').scrollLeft = 0; });
+
   /* Y EL TOQUE SIGUE ENGANCHANDO. Son dos gestos en el mismo botón y lo que
      los separa es el umbral: si el jalón se comiera también el toque, la
      columna ya no se podría dejar abierta. */
