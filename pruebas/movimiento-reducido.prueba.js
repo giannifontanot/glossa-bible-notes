@@ -124,50 +124,139 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     }
 
     /* EL DESLIZAMIENTO AL ABRIR LAS ETIQUETAS TAMPOCO. Abrir la lista sube el
-       panel, y a veces lo obliga a cambiarse de lado del pasaje entero. Se
-       mueve con Element.animate(), o sea que aquí también hay que preguntar:
-       con la preferencia puesta el panel se planta en su sitio nuevo y ya
-       está, que es lo que esa preferencia viene a pedir. */
+       panel, y a veces lo obliga a cambiarse de lado del pasaje entero. Con la
+       preferencia puesta el panel se planta en su sitio nuevo y ya está, que
+       es lo que esa preferencia viene a pedir.
+
+       ESTA PRUEBA AFIRMABA UN MOVIMIENTO QUE NO SIEMPRE OCURRE. Elegía el
+       versículo 2 de la hoja —el que menciona el comentario de plegarTags al
+       contar dónde se vio el salto— y preguntaba si el panel tenía una
+       animación puesta. Pero ahí el panel no tiene que moverse: ya está
+       debajo del pasaje antes de abrir la lista, no hay viaje, y plegarTags
+       no anima lo que no se mueve, con toda la razón. La prueba llamaba fallo
+       a que no pasara nada cuando no tenía que pasar nada. Barridos los
+       catorce pasajes de la hoja, cinco no mueven el panel y nueve sí.
+
+       Así que ahora SE BUSCA un pasaje que obligue al panel a cambiar de
+       sitio, y sobre ése se afirma. Y no se pregunta por el objeto animación
+       —eso es la técnica— sino por lo que se ve: por dónde va el panel en
+       cada cuadro. Si viaja, hay cuadros por el camino; si se teletransporta,
+       el primer cuadro ya está en el destino. Medido, sobre el pasaje que
+       cambia de lado (342 px): 20 cuadros por el camino con movimiento
+       normal, ninguno con la preferencia puesta. */
     const pliegue = await p.evaluate(async () => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
       const menu = document.getElementById('menu');
-      const v = document.querySelectorAll('#pgBody .v')[1] ||
-                document.querySelector('#pgBody .v');
-      const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-      while (w.nextNode()) if (w.currentNode.textContent.trim().length > 40){ n = w.currentNode; break; }
-      if (!n) return { sinTexto:true };
-      const r = document.createRange(); r.setStart(n, 5); r.setEnd(n, 25);
-      getSelection().removeAllRanges(); getSelection().addRange(r);
-      const rc = r.getBoundingClientRect();
-      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-        { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-      await new Promise(z => setTimeout(z, 500));
-      const ta = document.getElementById('glosaCaja'); if (!ta) return { sinPanel:true };
-      ta.value = 'una nota cualquiera';
-      ta.dispatchEvent(new Event('input', { bubbles:true }));
-      await new Promise(z => setTimeout(z, 200));
-      const bot = menu.querySelector('.mtags'); if (!bot) return { sinBoton:true };
-      bot.click();
-      await new Promise(z => setTimeout(z, 30));
-      /* se pregunta por las animaciones DEL PANEL: la del alto es de la lista,
-         y esa es otro asunto —la apaga la misma preferencia, pero por su
-         cuenta—. */
-      const res = { animando: menu.getAnimations().length > 0 };
-      await new Promise(z => setTimeout(z, 900));
-      res.acabaQuieto = getComputedStyle(menu).transform === 'none';
-      res.listaAbierta = !!menu.querySelector('.tagbox.abierta');
-      document.body.dispatchEvent(new PointerEvent('pointerdown',
-        { bubbles:true, clientX:5, clientY:5 }));
-      await new Promise(z => setTimeout(z, 400));
-      return res;
+      /* Y SE ESPERA A QUE EL CIELO QUEDE LIMPIO, que esto no es cortesía.
+         Cerrar un panel con texto dentro no lo encoge: guarda la nota y suelta
+         un calco volando 2.4 segundos. El bloque siguiente —el del vuelo de la
+         glosa— busca ese calco con un .find, que se queda con el PRIMERO que
+         encuentre: un calco rezagado de aquí lo atiende igual de bien que el
+         suyo, y entonces ese bloque pasaría aunque su vuelo no hubiera
+         existido. Lo levantó la revisión de Codex sobre esta misma PR.
+         Se pregunta por el cielo en vez de esperar un número fijo: el número
+         fijo es otra afirmación sobre un instante, que es justo el vicio que
+         esta PR viene a quitar. */
+      const cerrarLoAbierto = async () => {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+        await pausa(200);
+        document.body.dispatchEvent(new PointerEvent('pointerdown',
+          { bubbles:true, clientX:5, clientY:5 }));
+        getSelection().removeAllRanges();
+        await pausa(400);
+        for (let i = 0; i < 70 && document.querySelector('.gl-vista'); i++) await pausa(50);
+      };
+      const cuantos = document.querySelectorAll('#pgBody .v').length;
+      if (!cuantos) return { sinTexto:true };
+      const probados = [];
+      for (let i = 0; i < cuantos; i++){
+        if (i) await cerrarLoAbierto();
+        /* SE VUELVE A PREGUNTAR POR EL VERSO EN CADA VUELTA: al guardar una
+           nota la hoja se rehace, y la referencia de la vuelta anterior queda
+           suelta del documento —su rectángulo sale en cero y el toque cae en
+           la esquina de la pantalla, donde no hay nada que glosar—. */
+        const v = document.querySelectorAll('#pgBody .v')[i];
+        if (!v) continue;
+        const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+        while (w.nextNode()) if (w.currentNode.textContent.trim().length > 40){ n = w.currentNode; break; }
+        if (!n) continue;
+        const r = document.createRange(); r.setStart(n, 5); r.setEnd(n, 25);
+        getSelection().removeAllRanges(); getSelection().addRange(r);
+        const rc = r.getBoundingClientRect();
+        document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+          { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
+        await pausa(500);
+        const ta = document.getElementById('glosaCaja');
+        if (!ta){ probados.push({ i, sinPanel:true }); continue; }
+        ta.value = 'una nota cualquiera';
+        ta.dispatchEvent(new Event('input', { bubbles:true }));
+        await pausa(200);
+        const bot = menu.querySelector('.mtags');
+        if (!bot){ probados.push({ i, sinBoton:true }); continue; }
+        const antes = Math.round(menu.getBoundingClientRect().top);
+        bot.click();
+        /* CUADRO A CUADRO, que es como se mira un movimiento. Preguntar «¿se
+           está animando?» a los 30 ms es preguntar por un instante, y un
+           instante depende de la máquina; por dónde pasó no depende de
+           nadie. El viaje más largo dura 360 ms —TAGS_MS + 300×1.2—, así que
+           700 lo cubren con sitio de sobra. */
+        const paso = [], t0 = performance.now();
+        await new Promise(z => {
+          const mirar = () => {
+            paso.push(Math.round(menu.getBoundingClientRect().top));
+            if (performance.now() - t0 < 700) requestAnimationFrame(mirar); else z();
+          };
+          requestAnimationFrame(mirar);
+        });
+        const fin = paso[paso.length - 1];
+        const res = { i, antes, fin, viaje: fin - antes,
+                      primerCuadro: paso[0], cuadros: paso.length,
+                      /* los que caen ENTRE la salida y la meta: si el panel
+                         saltó, no hay ninguno */
+                      enMedio: paso.filter(x => (x - antes) * (x - fin) < 0).length,
+                      acabaQuieto: getComputedStyle(menu).transform === 'none',
+                      listaAbierta: !!menu.querySelector('.tagbox.abierta') };
+        probados.push(res);
+        if (res.viaje){
+          /* SE CIERRA ANTES DE SALIR. Al encontrar el pasaje que mueve el
+             panel se volvía con él abierto y con su borrador dentro, y de eso
+             se encargaba el bloque siguiente al abrir el suyo: abrirPanel
+             guardaba esta nota huérfana y soltaba su calco, en un momento que
+             no elegía nadie. */
+          await cerrarLoAbierto();
+          res.cieloLimpio = !document.querySelector('.gl-vista');
+          return { ...res, cuantosProbados: probados.length, probados };
+        }
+      }
+      return { sinViaje:true, probados };
     });
     di('el panel al abrir las etiquetas', pliegue);
-    if (!pliegue.sinTexto && !pliegue.sinPanel && !pliegue.sinBoton){
-      if (modo === 'reduce')
-        vale('el panel no se desliza, se planta', pliegue.animando === false);
-      else
-        vale('el panel se desliza a su sitio nuevo', pliegue.animando === true);
-      vale('en los dos casos la lista queda abierta y el panel quieto',
-           pliegue.listaAbierta && pliegue.acabaQuieto);
+    if (!pliegue.sinTexto){
+      /* Si ningún pasaje mueve el panel, esta prueba no puede afirmar nada:
+         más vale que se caiga a que pase en silencio sin haber mirado. */
+      vale('(la prueba es válida) hay un pasaje que obliga al panel a moverse',
+           !pliegue.sinViaje, pliegue.sinViaje ? 'ninguno de ' +
+             pliegue.probados.length : 'el ' + pliegue.i + ', ' + pliegue.viaje + ' px');
+      if (!pliegue.sinViaje){
+        if (modo === 'reduce'){
+          vale('el panel no se desliza, se planta',
+               pliegue.enMedio === 0 && pliegue.primerCuadro === pliegue.fin,
+               'primer cuadro ' + pliegue.primerCuadro + ' de ' + pliegue.fin +
+               ' · ' + pliegue.enMedio + ' por el camino');
+        } else {
+          vale('el panel se desliza a su sitio nuevo, no salta',
+               pliegue.enMedio > 0,
+               pliegue.enMedio + ' cuadros por el camino de ' + pliegue.cuadros);
+          vale('  y arranca dibujado donde estaba',
+               Math.abs(pliegue.primerCuadro - pliegue.antes) <= 2,
+               'primer cuadro ' + pliegue.primerCuadro + ' · salía de ' + pliegue.antes);
+        }
+        vale('en los dos casos la lista queda abierta y el panel quieto',
+             pliegue.listaAbierta && pliegue.acabaQuieto);
+        /* Y no se le deja nada volando al bloque siguiente. */
+        vale('  y al salir no queda ningún calco en el aire',
+             pliegue.cieloLimpio === true);
+      }
     }
 
     /* EL VUELO DE LA GLOSA TAMPOCO. Es la otra animación grande del programa
