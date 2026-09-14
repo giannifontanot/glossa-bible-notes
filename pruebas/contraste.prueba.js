@@ -216,6 +216,14 @@ async function ponerContraste(pagina, pct){
       const r = f.getBoundingClientRect(), cs = getComputedStyle(f);
       const hijos = [...f.children].map(h => h.getBoundingClientRect().right);
       return { que: (f.querySelector('.lbl') || {}).textContent || '(sin rótulo)',
+               /* LA FILA DEL BOTÓN DE VOLVER NO ES UN AJUSTE, ES LA SALIDA, y
+                  el programa la trata aparte a propósito: se queda sin
+                  tablilla y a todo lo ancho. Lo dice su propia regla, y con
+                  razón —«su tablilla sobra, porque el botón ya trae fondo de
+                  papel propio; dos papeles superpuestos solo engordan el
+                  borde»—. Se apunta aquí para poder dejarla fuera de las dos
+                  afirmaciones que hablan de tablillas. */
+               salida: f.classList.contains('vidrio-fila'),
                pct: Math.round(r.width / ancho * 100),
                conFondo: !hueco(cs.backgroundColor),
                redondas: parseFloat(cs.borderRadius) >= 4,
@@ -231,23 +239,38 @@ async function ponerContraste(pagina, pct){
        tablillas.opaco.sombra !== 'none' && tablillas.cristal.sombra === 'none' &&
        tablillas.opaco.antes !== 'none' && tablillas.cristal.antes === 'none',
        JSON.stringify(tablillas.opaco) + ' → ' + JSON.stringify(tablillas.cristal));
+  /* LOS AJUSTES DE VERDAD, sin la fila de la salida. Sin este filtro estas dos
+     afirmaciones llamaban fallo a algo que el programa hace a propósito y
+     tiene escrito por qué, que es la peor clase de prueba roja: la que enseña
+     a no hacer caso de las rojas.
+     Pero se comprueba que la salida SIGUE SIENDO la excepción, en vez de
+     apartarla y olvidarse: si algún día le ponen tablilla o la encogen, esta
+     prueba tiene que enterarse, aunque sea para decir que ahora sobra el
+     apaño. */
+  const ajustes = tablillas.filas.filter(f => !f.salida);
+  const salidas = tablillas.filas.filter(f => f.salida);
+  vale('(la prueba es válida) la fila de la salida está, y es una sola',
+       salidas.length === 1, salidas.length);
+  vale('la salida va a todo lo ancho y sin tablilla, como pide su regla',
+       salidas.every(f => f.pct > 90 && !f.conFondo),
+       salidas.map(f => f.pct + '% · tablilla ' + f.conFondo).join(' · '));
   vale('todas las filas llevan su tablilla',
-       tablillas.filas.every(f => f.conFondo), tablillas.filas.filter(f => !f.conFondo).map(f => f.que));
-  vale('de esquinas redondeadas', tablillas.filas.every(f => f.redondas));
+       ajustes.every(f => f.conFondo), ajustes.filter(f => !f.conFondo).map(f => f.que));
+  vale('de esquinas redondeadas', ajustes.every(f => f.redondas));
   vale('y cada una cubre su control',
-       tablillas.filas.every(f => f.cabe), tablillas.filas.filter(f => !f.cabe).map(f => f.que));
+       ajustes.every(f => f.cabe), ajustes.filter(f => !f.cabe).map(f => f.que));
   /* NINGUNA A TODO LO ANCHO. Ésta es la que se pidió y la que se rompe sola si
      alguien le quita el justify-self o el flex:0 0 auto: con cualquiera de las
      dos cosas fuera, las filas vuelven a medir la columna entera. */
   vale('NINGUNA ocupa el ancho del panel',
-       tablillas.filas.every(f => f.pct <= 90),
-       tablillas.filas.filter(f => f.pct > 90).map(f => f.que + ' ' + f.pct + '%'));
+       ajustes.every(f => f.pct <= 90),
+       ajustes.filter(f => f.pct > 90).map(f => f.que + ' ' + f.pct + '%'));
   /* Y la mitad largas es poco: los tres deslizadores no pueden encoger —un
      riel corto no se atina con el pulgar— pero el resto sí, y si la media se
      dispara es que algo volvió a estirarse. */
   vale('y la mayoría son de verdad estrechas',
-       tablillas.filas.filter(f => f.pct <= 70).length >= tablillas.filas.length - 3,
-       tablillas.filas.map(f => f.pct).join(' '));
+       ajustes.filter(f => f.pct <= 70).length >= ajustes.length - 3,
+       ajustes.map(f => f.pct).join(' '));
   await pagina.evaluate(async () => {
     document.getElementById('btnVidrio').click();
     await new Promise(z => setTimeout(z, 300));
