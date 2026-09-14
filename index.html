@@ -2867,14 +2867,25 @@
      touch-action:none, o el navegador se queda con el arrastre y manda
      pointercancel a media mudanza. Es la misma línea, y por la misma razón,
      que llevan el sello de las glosas y los chevrones. */
+  /* EL COLOR SALE DE MEDIRLO, y la primera versión no. Puse una tinta oscura
+     —rgba(60,42,18,.28)— pensando en un papel claro, y este panel es
+     #2a2118: la barra quedaba en 1.04:1 contra su propio fondo, o sea
+     invisible. Lo levantó la revisión de Codex.
+     Con la tinta clara de los botones del panel a .55 sale 4.87:1, muy por
+     encima del 3:1 que se le pide a un mando que no es texto, y sin gritar.
+     Medido también el estado pulsado: .78 da 7.8:1. */
   #menu .mmanija{ flex:0 0 auto; align-self:stretch; display:flex;
                   align-items:center; justify-content:center;
                   padding:9px 0 7px; margin:-2px 0 0; cursor:grab;
+                  background:transparent; border:1px solid transparent;
                   touch-action:none; -webkit-tap-highlight-color:transparent; }
   #menu .mmanija::before{ content:''; display:block; width:38px; height:4px;
-                          border-radius:2px; background:rgba(60,42,18,.28); }
+                          border-radius:2px; background:rgba(238,231,216,.55); }
+  #menu .mmanija:hover::before{ background:rgba(238,231,216,.72); }
   #menu .mmanija:active{ cursor:grabbing; }
-  #menu .mmanija:active::before{ background:rgba(60,42,18,.45); }
+  #menu .mmanija:active::before{ background:rgba(238,231,216,.78); }
+  #menu .mmanija:focus-visible{ outline:2px solid #e8d5a3; outline-offset:2px; }
+  #menu .mmanija:hover{ background:transparent; }
   #menu .mcolores{ display:flex; gap:8px; align-items:center; justify-content:center;
                    padding:2px 0 1px; }
   /* LOS TRES, A TERCIOS EXACTOS.
@@ -3900,7 +3911,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '14-SEP-26 15:07';
+window.GLOSS_BUILD = '14-SEP-26 15:15';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -6798,14 +6809,56 @@ function sitioDelMenu(w, h, r, s){
    pelo: así el panel sigue obedeciendo a los topes de la hoja —no se puede
    sacar fuera— y al recolocarse cuando la lista de etiquetas lo estira. */
 (function moverElPanel(){
+  /* DE DÓNDE ESTÁ, NO DE LO QUE SE GUARDÓ, y esta distinción era un fallo.
+
+     El desvío guardado y el sitio que el panel ocupa de verdad pueden no
+     coincidir: los topes lo recortan si la pantalla es más chica que aquella
+     en la que se guardó, y la lista de etiquetas puede haberlo subido para que
+     quepa. Arrancando el arrastre del número guardado, el panel se quedaba
+     clavado en el filo hasta que el dedo recorriera toda esa diferencia —que
+     puede ser más que el alto de la pantalla, o sea nunca—. Lo levantó la
+     revisión de Codex.
+     Se lee el sitio de verdad y se convierte a desvío, que es exactamente lo
+     mismo que ya se hacía al soltar. */
+  function desvioDeVerdad(){
+    const s = stage.getBoundingClientRect();
+    const w = menu.offsetWidth, h = menu.offsetHeight;
+    const izq = parseFloat(menu.style.left), arr = parseFloat(menu.style.top);
+    if (!Number.isFinite(izq) || !Number.isFinite(arr)) return { ...menuDesvio };
+    return { x: Math.round(izq - (s.width - w) / 2),
+             y: Math.round(arr - MENU_ARRIBA) };
+  }
   let gesto = null;
   menu.addEventListener('pointerdown', ev => {
     const m = ev.target.closest && ev.target.closest('[data-manija]');
     if (!m || ev.button > 0) return;
-    gesto = { id: ev.pointerId, x: ev.clientX, y: ev.clientY,
-              x0: menuDesvio.x, y0: menuDesvio.y };
+    const d = desvioDeVerdad();
+    menuDesvio = d;
+    gesto = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, x0: d.x, y0: d.y };
     try { m.setPointerCapture(ev.pointerId); } catch(_){}
     ev.preventDefault();
+  });
+  /* CON EL TECLADO: las flechas lo mueven y Inicio lo devuelve a su sitio. El
+     paso de 14 px es el que hace falta para que apartar el panel de un pasaje
+     no cueste treinta pulsaciones, y bastante fino para colocarlo. */
+  const PASO = 14;
+  menu.addEventListener('keydown', ev => {
+    if (!ev.target.closest || !ev.target.closest('[data-manija]')) return;
+    const teclas = { ArrowLeft:[-PASO,0], ArrowRight:[PASO,0],
+                     ArrowUp:[0,-PASO], ArrowDown:[0,PASO] };
+    if (ev.key === 'Home'){
+      ev.preventDefault();
+      menuDesvio = { x:0, y:0 };
+      colocarMenu(); guardarAjustes();
+      return;
+    }
+    const d = teclas[ev.key];
+    if (!d) return;
+    ev.preventDefault();
+    const base = desvioDeVerdad();
+    menuDesvio = { x: base.x + d[0], y: base.y + d[1] };
+    colocarMenu();
+    guardarAjustes();
   });
   menu.addEventListener('pointermove', ev => {
     if (!gesto || ev.pointerId !== gesto.id) return;
@@ -6945,8 +6998,17 @@ function panelHTML(m){
      panel está lleno de cosas que se tocan —seis colores, dos modos, las
      etiquetas, la caja de escribir—, y un panel que se mueve al arrastrar
      desde cualquier sitio convierte cada roce en una mudanza. La manija es
-     una barra y no dice nada: se entiende porque se agarra. */
-  return '<div class="mmanija" data-manija aria-hidden="true"></div>' +
+     una barra y no dice nada: se entiende porque se agarra.
+
+     Y ES UN BOTÓN, no un div con un oyente. Empezó siendo un div escondido de
+     la accesibilidad, y así el panel solo se podía mover con un dedo o un
+     ratón: quien navega con teclado —o con un conmutador— se quedaba con el
+     panel donde cayera, que es justo la persona a la que peor le viene que le
+     tape el pasaje. Lo levantó la revisión de Codex. Como botón se alcanza con
+     el tabulador, se anuncia solo, y las flechas lo mueven. */
+  return '<button type="button" class="mmanija" data-manija' +
+      ' aria-label="Mover el panel: arrastra, o con las flechas del teclado"' +
+      ' title="Arrastra para mover el panel · flechas para moverlo · Inicio para devolverlo"></button>' +
     '<div class="mcolores">' +
       COLORS.map(c => '<button class="mc" data-color="' + c + '" style="background:' +
         LINE_HEX[c] + '"' + (m.color===c ? ' data-on="1"' : '') + '></button>').join('') +
