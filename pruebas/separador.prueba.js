@@ -522,9 +522,34 @@ async function ponerAMano(p){
   di('al ponerla', vaiven.puesta);
   di('al final', vaiven.final);
   vale('la cinta se pone', vaiven.puesta.hay && vaiven.puesta.perchas === 1);
-  vale('sigue puesta en las ocho vueltas',
-       vaiven.pasos.every(x => x.hay), vaiven.pasos.filter(x => !x.hay).length + ' sin cinta');
-  vale('y nunca hay dos', vaiven.pasos.every(x => x.perchas === 1) &&
+  /* ESTO PEDÍA CINTA EN LAS OCHO VUELTAS, y ya no puede: desde que la cinta no
+     anda hacia atrás, retroceder la deja donde estaba y la hoja a la que
+     llegas no tiene ninguna. Eso no es que se pierda, es que se queda.
+
+     Así que en vez de «siempre hay» se afirma DÓNDE tiene que haberla, que es
+     más fuerte. Partiendo de la hoja P, el paseo
+     right·right·left·right·left·left·right·right deja la cinta en P+2 en
+     cuanto se llega, y a partir de ahí solo se ve en las vueltas que vuelven
+     a pisar P+2:
+
+       right → P+1  la cinta viene      sí
+       right → P+2  la cinta viene      sí
+       left  → P+1  se queda en P+2     no
+       right → P+2  estamos en la suya  sí
+       left  → P+1                      no
+       left  → P                        no
+       right → P+1  aún por detrás      no
+       right → P+2  estamos en la suya  sí
+
+     Y lo que este bloque vigilaba de verdad —que no se quede atrapada entre
+     animaciones, que nunca haya dos— sigue entero abajo. */
+  const ESPERADO = [true, true, false, true, false, false, false, true];
+  vale('LA CINTA SE VE DONDE TIENE QUE VERSE, Y NO EN LAS DEMÁS',
+       vaiven.pasos.length === ESPERADO.length &&
+       vaiven.pasos.every((x, i) => !!x.hay === ESPERADO[i]),
+       vaiven.pasos.map(x => x.hay ? '·' : '_').join('') + ' contra ' +
+       ESPERADO.map(x => x ? '·' : '_').join(''));
+  vale('y nunca hay dos', vaiven.pasos.every(x => x.perchas <= 1) &&
        vaiven.final.perchas === 1);
   vale('no se queda esperando ni saliendo',
        !vaiven.final.esperando && !vaiven.final.saliendo, vaiven.final);
@@ -1394,8 +1419,24 @@ async function ponerAMano(p){
   });
   di('con movimiento reducido', quieto);
   vale('la cinta no cae', quieto.cinta === 'none');
-  vale('y el menú no recorre', quieto.sinRecorrido === 'none' ||
-       quieto.sinRecorrido === 'matrix(1, 0, 0, 1, 0, 0)', quieto.sinRecorrido);
+  /* LO QUE SE AFIRMA ES QUE NO HAY RECORRIDO QUE HACER, no dónde está el menú
+     en el instante en que se mira. Pedía que el transform fuera la identidad
+     justo después de encender la preferencia, y eso falla sin que nada esté
+     roto: si el menú venía de una transición a medio correr, encender el
+     movimiento reducido no la cancela —la preferencia apaga las que EMPIECEN,
+     no las que ya van—. Medido en la tanda de Codex: matrix(0.996266, 0, 0,
+     0.996266, 0, -0.995727), o sea a cuatro milésimas del final.
+     La duración sí es la afirmación: con la preferencia puesta vale cero, y
+     eso no depende de cuándo se mire. El transform se comprueba además, pero
+     después de dejarle acabar lo que llevara. */
+  vale('y el menú no tiene recorrido que hacer',
+       /^0s(,\s*0s)*$/.test(quieto.transicion || ''), quieto.transicion);
+  const asentado = await w.evaluate(async () => {
+    await new Promise(z => setTimeout(z, 600));
+    return getComputedStyle(document.getElementById('sepMenu')).transform;
+  });
+  vale('  y acaba en su sitio, sin recorrido pendiente',
+       asentado === 'none' || asentado === 'matrix(1, 0, 0, 1, 0, 0)', asentado);
 
   titulo('con teclado, sin ratón');
   /* La cinta es un botón de verdad, así que Intro tiene que abrirla. Quien
