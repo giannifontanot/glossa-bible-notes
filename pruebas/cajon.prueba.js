@@ -2,8 +2,10 @@
 
    Dos cosas, que antes eran una:
 
-   · La G —un sello de cera, carmín de las piedras, G gótica— abre y cierra
-     el cajón. El viaje dura lo que el de una glosa nueva (2400 ms).
+   · La G —un sello de cera, carmín de las piedras— abre y cierra el cajón de
+     dos maneras, y las dos se prueban: el TOQUE lo engancha y el viaje dura
+     lo que el de una glosa nueva (2400 ms), y el JALÓN lo lleva donde va la
+     mano, sin velocidad propia, y al soltarlo se cierra solo.
    · El desliz de lado, que antes corría el papel, ahora pasa hoja: a la
      izquierda la siguiente, a la derecha la anterior. El umbral es el de
      siempre (34 px de intención, 10 de ruido, y si el dedo se queda era
@@ -155,7 +157,25 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
     const csOn = getComputedStyle(b);
     return {
       haySvg: !!svg, hayG: !!gPath, hayCera: !!cera,
-      gotica: !!(gPath && /evenodd/i.test(gPath.getAttribute('fill-rule') || '')),
+      /* LA LETRA ESTÁ DENTRO DE LA CERA, que es lo que se quiere de un sello.
+         Aquí decía «tiene fill-rule evenodd», o sea la MANERA de dibujar la G
+         de aquel día, y al redibujarla de trazo —un arco y su barra— la prueba
+         llamó fallo a un cambio pedido. Van las cajas: la del dibujo tiene que
+         caber en la del lacre. Es además lo que fallaba de verdad en la G
+         anterior, que colgaba por debajo del disco (y=21.8 contra 18.2). */
+      letra: (() => {
+        if (!gPath || !cera) return null;
+        const a = gPath.getBBox(), c = cera.getBBox();
+        return { dentro: a.x >= c.x - .5 && a.y >= c.y - .5 &&
+                         a.x + a.width <= c.x + c.width + .5 &&
+                         a.y + a.height <= c.y + c.height + .5,
+                 /* y ocupa el disco: una letra de dos píxeles «cabría» igual */
+                 parte: +((a.width * a.height) / (c.width * c.height)).toFixed(2),
+                 caja: [+a.x.toFixed(1), +a.y.toFixed(1),
+                        +(a.x + a.width).toFixed(1), +(a.y + a.height).toFixed(1)],
+                 lacre: [+c.x.toFixed(1), +c.y.toFixed(1),
+                         +(c.x + c.width).toFixed(1), +(c.y + c.height).toFixed(1)] };
+      })(),
       carmin, vivo, on: csOn.color,
       tope, final: traza[traza.length-1][1], traza,
       presionada: b.getAttribute('aria-pressed'), abierta: b.classList.contains('abierta'),
@@ -171,7 +191,12 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
   });
   di('la G', { carmin:g.carmin, on:g.on, hueco:g.hueco, final:g.final });
   vale('(la prueba es válida) hay un sello', !g.sinG && g.haySvg && g.hayCera && g.hayG, g.haySvg);
-  vale('con una G gótica', g.gotica === true, g.gotica);
+  vale('con su letra DENTRO del lacre',
+       !!g.letra && g.letra.dentro === true,
+       g.letra ? 'letra ' + g.letra.caja + ' · lacre ' + g.letra.lacre : 'sin letra');
+  vale('  y ocupando el disco, no una mota en un rincón',
+       !!g.letra && g.letra.parte >= .2,
+       g.letra ? g.letra.parte + ' del lacre' : '—');
   vale('carmín de las piedras cuando está apagada, no el vivo',
        /155,\s*42,\s*42/.test(g.carmin || '') && !g.vivo, g.carmin);
   vale('y más honda cuando está prendida',
@@ -258,6 +283,143 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
          (r.cuerpo[r.cuerpo.length-1] || '?') + ' / ' + (r.escena[r.escena.length-1] || '?'));
     return r;
   }));
+
+  /* ================================================================
+     JALAR LA G: EL CAJÓN VA DONDE VA LA MANO.
+
+     Pedido por el dueño del repo: llevando el sello hacia la izquierda, la
+     columna se abre EXACTAMENTE lo que lo llevas —sin velocidad propia— y el
+     sello se mueve con el dedo. Al soltar se cierra sola, como un cajón que
+     avientas.
+
+     LO QUE SE AFIRMA ES EL 1:1, y es la única parte del gesto que no se puede
+     ver leyendo el código: depende de que nadie deje corriendo una animación
+     por debajo. Si un irA a medio camino siguiera mandando, el cajón iría a su
+     ritmo y no al del dedo, y estos números dejarían de coincidir.
+
+     Y el camino va torcido a propósito: una recta perfecta no es un dedo. */
+  titulo('jalar la G abre el cajón lo que se jala, y soltarla lo cierra');
+  const jalon = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const g = document.getElementById('btnGlosas');
+    const pgEl = document.getElementById('pg');
+    if (!g || g.hidden) return { sinG:true };
+    pgEl.scrollLeft = 0;
+    const r = g.getBoundingClientRect();
+    const x0 = r.left + r.width/2, y0 = r.top + r.height/2;
+    const tope = pgEl.scrollWidth - pgEl.clientWidth;
+    const op = () => ({ bubbles:true, cancelable:true, pointerId:77,
+                        pointerType:'touch', isPrimary:true });
+    const sello = () => +(new DOMMatrix(getComputedStyle(g).transform).m41).toFixed(1);
+    g.dispatchEvent(new PointerEvent('pointerdown',
+      Object.assign(op(), { clientX:x0, clientY:y0 })));
+    const traza = [];
+    for (const [dx, dy] of [[-12,2],[-29,-1],[-51,3],[-78,-2],[-99,2]]){
+      g.dispatchEvent(new PointerEvent('pointermove',
+        Object.assign(op(), { clientX:x0 + dx, clientY:y0 + dy })));
+      await pausa(26);
+      traza.push({ dedo:-dx, cajon:Math.round(pgEl.scrollLeft), sello:Math.round(sello()) });
+    }
+    const abierto = Math.round(pgEl.scrollLeft);
+    g.dispatchEvent(new PointerEvent('pointerup',
+      Object.assign(op(), { clientX:x0 - 99, clientY:y0 })));
+    await pausa(120);
+    const aMedias = Math.round(pgEl.scrollLeft);
+    await pausa(500);
+    return { traza, tope, abierto, aMedias,
+             cerrado: Math.round(pgEl.scrollLeft), selloFinal: sello() };
+  });
+  di('el jalón', jalon);
+  vale('(la prueba es válida) había cajón que abrir',
+       !jalon.sinG && jalon.tope > 100, JSON.stringify({ tope: jalon.tope }));
+  /* Un píxel de holgura: el sitio del dedo lleva decimales y el scrollLeft del
+     navegador no siempre los guarda igual. Lo que se afirma es que no hay
+     animación por debajo, no que el navegador redondee a nuestro gusto. */
+  vale('EL CAJÓN VA DONDE VA EL DEDO, 1:1',
+       jalon.traza.every(t => Math.abs(t.cajon - t.dedo) <= 1),
+       jalon.traza.map(t => t.dedo + '→' + t.cajon).join(' · '));
+  vale('  y el sello se mueve con él',
+       jalon.traza.every(t => Math.abs(t.sello + t.cajon) <= 1),
+       jalon.traza.map(t => t.sello).join(' · '));
+  /* Soltar: ni un corte ni un viaje largo. A los 120 ms de los 230 que dura,
+     una salida sola ya se comió la mayor parte del camino —es un cajón que
+     avientas, no uno que empujas— pero todavía no ha llegado. */
+  vale('AL SOLTARLA SE CIERRA SOLA',
+       jalon.cerrado === 0 && jalon.selloFinal === 0,
+       'cajón ' + jalon.cerrado + ' · sello ' + jalon.selloFinal);
+  vale('  y vuelve como un cajón: deprisa al principio y frenando',
+       jalon.aMedias < jalon.abierto * 0.35 && jalon.aMedias > 0,
+       'de ' + jalon.abierto + ' a ' + jalon.aMedias + ' en 120 ms de 230');
+
+  /* EL SELLO SIGUE AL DEDO, NO AL SITIO DEL CAJÓN. Con el cajón ya medio
+     abierto —la rueda del ratón lo deja así, y también el toque a media
+     animación— el desplazamiento absoluto teletransportaba el dibujo: base 120
+     y ocho píxeles de dedo lo mandaban a -128 en el primer movimiento. Lo
+     levantó Codex revisando el PR #91. */
+  titulo('con el cajón medio abierto, el sello no salta');
+  const medio = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const g = document.getElementById('btnGlosas');
+    const pgEl = document.getElementById('pg');
+    pgEl.scrollLeft = 120;
+    await pausa(60);
+    const r = g.getBoundingClientRect();
+    const x = r.left + r.width/2, y = r.top + r.height/2;
+    const op = () => ({ bubbles:true, cancelable:true, pointerId:79,
+                        pointerType:'touch', isPrimary:true });
+    const sello = () => +(new DOMMatrix(getComputedStyle(g).transform).m41).toFixed(1);
+    const base = Math.round(pgEl.scrollLeft);
+    g.dispatchEvent(new PointerEvent('pointerdown', Object.assign(op(), { clientX:x, clientY:y })));
+    g.dispatchEvent(new PointerEvent('pointermove',
+      Object.assign(op(), { clientX:x - 9, clientY:y + 2 })));
+    await pausa(30);
+    const uno = { dedo:9, cajon: Math.round(pgEl.scrollLeft), sello: sello() };
+    g.dispatchEvent(new PointerEvent('pointerup', Object.assign(op(), { clientX:x - 9, clientY:y })));
+    await pausa(500);
+    return { base, uno, cerrado: Math.round(pgEl.scrollLeft) };
+  });
+  di('con el cajón medio abierto', medio);
+  vale('(la prueba es válida) el cajón partía medio abierto',
+       medio.base > 60, medio.base + ' px');
+  vale('EL SELLO SE MUEVE LO QUE SE MUEVE EL DEDO, NO LO QUE MIDE EL CAJÓN',
+       Math.abs(medio.uno.sello + medio.uno.dedo) <= 1.5,
+       'dedo ' + medio.uno.dedo + ' · sello ' + medio.uno.sello +
+       ' · cajón ' + medio.uno.cajon);
+  vale('  y el cajón sí cuenta desde donde estaba',
+       Math.abs(medio.uno.cajon - (medio.base + medio.uno.dedo)) <= 1,
+       medio.base + ' + ' + medio.uno.dedo + ' = ' + medio.uno.cajon);
+  await p.evaluate(() => { document.getElementById('pg').scrollLeft = 0; });
+
+  /* Y EL TOQUE SIGUE ENGANCHANDO. Son dos gestos en el mismo botón y lo que
+     los separa es el umbral: si el jalón se comiera también el toque, la
+     columna ya no se podría dejar abierta. */
+  titulo('un toque en la G sigue enganchando el cajón');
+  const toque = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const g = document.getElementById('btnGlosas');
+    const pgEl = document.getElementById('pg');
+    pgEl.scrollLeft = 0;
+    const r = g.getBoundingClientRect();
+    const x0 = r.left + r.width/2, y0 = r.top + r.height/2;
+    const op = { bubbles:true, cancelable:true, pointerId:78,
+                 pointerType:'touch', isPrimary:true, clientX:x0, clientY:y0 };
+    g.dispatchEvent(new PointerEvent('pointerdown', op));
+    await pausa(50);
+    g.dispatchEvent(new PointerEvent('pointerup', op));
+    g.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, op)));
+    /* El viaje del toque dura VUELO_MS (2400), a propósito: lo abre una
+       persona, no un interruptor. */
+    await pausa(2900);
+    return { cajon: Math.round(pgEl.scrollLeft),
+             tope: pgEl.scrollWidth - pgEl.clientWidth,
+             marcada: g.classList.contains('abierta'),
+             pulsado: g.getAttribute('aria-pressed') };
+  });
+  di('el toque', toque);
+  vale('UN TOQUE ABRE Y SE QUEDA ABIERTO',
+       toque.cajon >= toque.tope - 4 && toque.marcada === true &&
+       toque.pulsado === 'true', JSON.stringify(toque));
+  await p.evaluate(() => { document.getElementById('pg').scrollLeft = 0; });
 
   /* Y el síntoma, en varias ventanas. Aquí siempre sale cero porque no hay
      barra retráctil, pero cazaría cualquier otra cosa que hiciera crecer el

@@ -213,6 +213,98 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
         vale('y queda guardada igual', vuelo.guardada);
       }
     }
+    /* EL SELLO DE LAS GLOSAS VUELVE CON EL CAJÓN, NO POR SU CUENTA.
+
+       Al soltar un jalón, irA mira la preferencia y cierra el cajón en el
+       acto; si la transición del dibujo sobreviviera, el sello seguiría
+       viajando 230 ms solo y se vería despegado de lo que abrió. Pasaba:
+       #btnGlosas.volviendo pesa más que #btnGlosas, así que la regla de
+       movimiento reducido no lo alcanzaba. Medido entonces: cajón en 0 y
+       sello en -54.9 a los 60 ms. Lo levantó Codex revisando el PR #91. */
+    const sello = await p.evaluate(async () => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      const g = document.getElementById('btnGlosas');
+      const pgEl = document.getElementById('pg');
+      if (!g || g.hidden) return { sinG:true };
+      /* SE CIERRA EL CAJÓN ANTES DE JALAR, y esto no estaba. El bloque de
+         arriba lo deja ABIERTO DEL TODO —«y acaba en las glosas», cajón en
+         el tope—, y desde el tope un jalón hacia la izquierda no mueve nada:
+         el sello se quedaba quieto en 0 con toda la razón del mundo y la
+         prueba leía ese 0 como un desacuerdo. Falló así las dos veces en el
+         entorno de Codex. Aquí no salía porque la sonda suelta con la que lo
+         comprobé empezaba con el cajón cerrado: la sonda probaba otra cosa
+         que la prueba, y ésa era toda la diferencia, no la máquina.
+         Se pone el papel a la izquierda a pelo en vez de tocar la G: el toque
+         abre y cierra con un vuelo de 2400 ms, y aquí lo que hace falta es el
+         punto de partida, no el viaje. */
+      pgEl.scrollLeft = 0;
+      await pausa(60);
+      const partida = Math.round(pgEl.scrollLeft);
+      const r = g.getBoundingClientRect();
+      const x = r.left + r.width/2, y = r.top + r.height/2;
+      const op = () => ({ bubbles:true, cancelable:true, pointerId:83,
+                          pointerType:'touch', isPrimary:true });
+      const donde = () => +(new DOMMatrix(getComputedStyle(g).transform).m41).toFixed(1);
+      g.dispatchEvent(new PointerEvent('pointerdown',
+        Object.assign(op(), { clientX:x, clientY:y })));
+      for (const dx of [-20, -60, -100]){
+        g.dispatchEvent(new PointerEvent('pointermove',
+          Object.assign(op(), { clientX:x + dx, clientY:y + (dx % 3 ? 2 : -1) })));
+        await pausa(26);
+      }
+      const jalado = { cajon: Math.round(pgEl.scrollLeft), sello: donde() };
+      g.dispatchEvent(new PointerEvent('pointerup',
+        Object.assign(op(), { clientX:x - 100, clientY:y })));
+      await pausa(60);
+      return { partida, jalado,
+               justo: { cajon: Math.round(pgEl.scrollLeft), sello: donde() } };
+    });
+    di('el sello al soltarlo', sello);
+    /* Y esto va FUERA del if: sin él, una sesión sin glosas se saltaba el
+       bloque entero en silencio y la suite pasaba sin haber probado nada. */
+    vale('(la prueba es válida) el sello de las glosas está puesto',
+         !sello.sinG, sello.sinG ? 'no hay G que jalar' : 'puesto');
+    if (!sello.sinG){
+      vale('(la prueba es válida) se parte con el cajón cerrado',
+           sello.partida === 0, sello.partida + ' px');
+      vale('(la prueba es válida) el jalón llegó a abrir el cajón',
+           sello.jalado.cajon > 40, sello.jalado.cajon + ' px');
+      /* Y ÉSTA ES LA QUE FALTABA. Sin ella, un sello que no se movió da un
+         denominador de cero, la fracción sale 0 igual que la del cajón
+         quieto, y «van atados» se cumple sin que nada se haya movido: la
+         prueba pasaba justo en el caso en que no estaba probando nada. */
+      vale('(la prueba es válida) el jalón movió el sello',
+           Math.abs(sello.jalado.sello) > 4, sello.jalado.sello + ' px');
+      /* LO QUE SE AFIRMA ES QUE VAN ATADOS, y no dónde está cada uno a los
+         60 ms. La primera versión decía «con movimiento normal el sello sí se
+         anima», y eso da por hecho que a los 60 ms el viaje va por la mitad:
+         una afirmación sobre un instante, que es de las que fallan en otra
+         máquina sin que nada esté roto. (Al escribirla di por hecho que el
+         fallo que levantó Codex sobre 5146acb era eso, cosa de la máquina.
+         No lo era: el cajón estaba abierto y el sello no tenía por qué
+         moverse. Aun así la afirmación sobre el instante sobraba, y la de la
+         fracción es mejor por su cuenta.)
+         La fracción de viaje no depende de eso: si los dos van al mismo ritmo
+         están atados, vayan deprisa, despacio o de un tirón. Y sigue cazando
+         lo que había que cazar: con la transición de CSS que se quitó, el
+         cajón saltaba a cero y el sello se quedaba en 0.55 del camino. */
+      const frac = (x, de) => de ? x / de : 0;
+      const fCajon = frac(sello.justo.cajon, sello.jalado.cajon);
+      const fSello = frac(sello.justo.sello, sello.jalado.sello);
+      vale('EL SELLO Y EL CAJÓN VUELVEN ATADOS, AL MISMO RITMO',
+           Math.abs(fCajon - fSello) <= .08,
+           'cajón ' + fCajon.toFixed(3) + ' · sello ' + fSello.toFixed(3) +
+           ' del camino');
+      if (modo === 'reduce'){
+        /* Y con la preferencia puesta el viaje es de un tirón: eso sí es una
+           afirmación sobre el instante, y aquí se puede hacer porque lo que
+           se pide es justamente que no haya viaje. */
+        vale('  y con menos movimiento no hay viaje: los dos ya están en casa',
+             sello.justo.cajon === 0 && Math.abs(sello.justo.sello) <= 1,
+             'cajón ' + sello.justo.cajon + ' · sello ' + sello.justo.sello);
+      }
+    }
+
     /* Se revisan los errores de ESTA sesión antes de tirarla: cerrando a pelo,
        una excepción que solo ocurriera con la animación puesta se perdía y la
        prueba terminaba en verde. */

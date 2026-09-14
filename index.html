@@ -980,9 +980,20 @@
                          color .34s cubic-bezier(.65,0,.35,1),
                          filter .34s cubic-bezier(.65,0,.35,1);
               -webkit-tap-highlight-color:transparent;
-              -webkit-user-select:none; user-select:none; }
+              -webkit-user-select:none; user-select:none;
+              /* EL JALÓN ES NUESTRO. Sin esto el navegador se queda con el
+                 gesto —un desliz horizontal sobre un botón es candidato a
+                 desplazar la página—, manda pointercancel a media corrida y
+                 el cajón se queda a medio abrir. Es la misma línea, y por la
+                 misma razón, que llevan los chevrones de lejos. */
+              touch-action:none; }
   #btnGlosas svg{ display:block; width:100%; height:100%; pointer-events:none; }
-  #btnGlosas .sello-g{ fill:#f0d4a0; }
+  /* LA LETRA SE PINTA EN EL TRAZO. Y esta regla es la que hay que mirar si
+     algún día la G aparece como un borrón macizo: un atributo de presentación
+     —el fill="none" del path— PIERDE contra una regla de CSS, así que un
+     fill puesto aquí rellena el anillo y la G se vuelve un disco mordido.
+     Pasó al probarla en el panel. */
+  #btnGlosas .sello-g{ fill:none; stroke:#f0d4a0; }
   /* MARGEN INVISIBLE. El sello se ve de 42 px; el toque llega 14 px más
      allá, para que gane a lo que hay al lado —el historial, el filo, el
      texto—. El z-index 8 le gana al 7 del historial en el recubrimiento.
@@ -995,7 +1006,7 @@
      punto del historial. */
   #btnGlosas.abierta{ color:#5c1414;
                       filter:drop-shadow(2px 3px 4px rgba(40,10,8,.5)); }
-  #btnGlosas.abierta .sello-g{ fill:#fff8e4; }
+  #btnGlosas.abierta .sello-g{ stroke:#fff8e4; }
   .stage.zoom #btnGlosas{ display:none !important; }
   @media (prefers-reduced-motion: reduce){
     #btnGlosas{ transition:none; }
@@ -3735,10 +3746,25 @@
             stroke-linecap="round"
             d="M7.35 9.7c1.65-2.05 4.15-3.25 6.7-3.05"/>
       <circle cx="15.55" cy="15.15" r="1.3" fill="#fff" fill-opacity=".14"/>
-      <!-- G gótica, textura: tallo, diamante de arriba, panza abierta a la
-           derecha con la barrita de la G. fill-rule evenodd para el hueco. -->
-      <path class="sello-g" fill-rule="evenodd"
-            d="M9.05 4.55 11.5 2.3l2.45 2.25v2.65h3.45l1.15 1.55-.95.45h-3.65V10.5h2.55c2.35 0 3.75 1.45 3.75 3.55 0 2.2-1.55 3.75-4.15 4.05v2.15h1.95v1.55H8.35v-1.55h2.15v-2.15c-2.2-.4-3.55-1.95-3.55-4.05 0-1.75 1.05-3.15 2.95-3.55V9.45H7.7l-1.15-.45 1.15-1.55h3.35zm3.15 7.55c-1.15.2-1.8 1.05-1.8 2.15 0 1.15.7 2 1.95 2.15h2.55c1.2-.15 1.85-1 1.85-2.15 0-1.1-.7-1.95-1.85-2.15z"/>
+      <!-- LA G VA DE TRAZO Y NO DE RELLENO, y no es un capricho de dibujo.
+
+           La de antes se construía a mano —tallo, diamante, panza— y salían
+           tres cosas mal a la vez: medía más que la cera (la letra llegaba a
+           y=21.8 con el disco acabando en 18.2, o sea que el palo colgaba por
+           debajo del lacre), no se leía como una G a ningún tamaño, y a 26 px
+           era un borrón. Una G es un anillo abierto por la derecha con su
+           barra: eso es UN arco y dos segmentos, y sale exacta.
+
+           El centro no es (12,12) sino (12.3,10.1): la cera está dibujada a
+           mano y pesa hacia arriba, así que la letra se centra contra el
+           DISCO y no contra el lienzo. Barrido y medido: desvío del centro
+           0.01 / 0.00, con 3.09 de holgura hasta el borde de la cera.
+
+           El grueso 2.55 sale de mirarla a 26 px, que es donde vive: más fina
+           se deshace y más gorda se le cierra el ojo. -->
+      <path class="sello-g" fill="none"
+            stroke-width="2.55" stroke-linecap="butt" stroke-linejoin="miter"
+            d="M15.24 6.05A5 5 0 1 0 16.45 12.90L16.45 10.40L12.90 10.40"/>
     </svg>
   </button>
   <!-- Los chevrones vuelven: aquí son un par que se usa seguido y hay que
@@ -3858,7 +3884,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '11-SEP-26 15:25';
+window.GLOSS_BUILD = '14-SEP-26 10:00';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -9960,6 +9986,12 @@ let cerrarCajonDeGlosas = () => { pg.scrollLeft = 0; };
 let moverCajonDeGlosas = (abrir) => {
   pg.scrollLeft = abrir ? topeCajon() : 0;
 };
+/* JALAR Y SOLTAR. Las dos las instala correrPapel, como las de arriba.
+   jalar pone el cajón donde diga el dedo y no anima NADA: el cajón no tiene
+   velocidad propia mientras lo llevas, va donde va tu mano.
+   soltar lo devuelve solo, que es lo otro que se pidió. */
+let jalarCajonDeGlosas = (x) => { pg.scrollLeft = x; };
+let soltarCajonDeGlosas = () => { pg.scrollLeft = 0; };
 const topeCajon = () => pg.scrollWidth - pg.clientWidth;
 function pintarG(){
   const g = $('btnGlosas');
@@ -10016,12 +10048,18 @@ function encenderG(){
      La duración, si no se pide otra, es VUELO_MS: la de una glosa recién
      creada yendo a su sitio. Pedido: que parezca que lo abre una persona. */
   const suaveIda = k => (k < .5 ? 4*k*k*k : 1 - Math.pow(-2*k + 2, 3)/2);
-  function irA(meta, duraPedida){
+  /* LA DE SOLTAR ES OTRA, Y TIENE QUE SERLO. La de arriba es de ida y vuelta
+     —despacio, rápido, despacio—, que es una persona empujando. Un cajón que
+     sueltas no arranca despacio: sale con la velocidad que le diste y frena
+     contra el tope. Eso es una salida sola, sin rebote: se probó el rebote al
+     hacer el cajón y se veía como un tic, no como madera. */
+  const suaveSalida = k => 1 - Math.pow(1 - k, 3);
+  function irA(meta, duraPedida, curva, alPaso){
     cancelAnimationFrame(reloj);
     const desde = pg.scrollLeft, tramo = meta - desde;
-    if (Math.abs(tramo) < 1){ poner(meta); pintarG(); return; }
+    if (Math.abs(tramo) < 1){ poner(meta); if (alPaso) alPaso(meta); pintarG(); return; }
     if (matchMedia('(prefers-reduced-motion: reduce)').matches){
-      poner(meta); pintarG(); return;
+      poner(meta); if (alPaso) alPaso(meta); pintarG(); return;
     }
     const dura = duraPedida != null
       ? duraPedida
@@ -10029,9 +10067,11 @@ function encenderG(){
     const tArranque = performance.now();
     (function paso(ahora){
       const k = Math.min(1, (ahora - tArranque) / dura);
-      poner(desde + tramo * suaveIda(k));
+      const x = desde + tramo * (curva || suaveIda)(k);
+      poner(x);
+      if (alPaso) alPaso(x);
       if (k < 1) reloj = requestAnimationFrame(paso);
-      else { poner(meta); pintarG(); }
+      else { poner(meta); if (alPaso) alPaso(meta); pintarG(); }
     })(tArranque);
   }
 
@@ -10092,6 +10132,11 @@ function encenderG(){
     pintarG();
   };
   moverCajonDeGlosas = (abrir, dura) => irA(abrir ? tope() : 0, dura);
+  jalarCajonDeGlosas = x => { cancelAnimationFrame(reloj); poner(x); };
+  /* 230 ms: «con suavidad pero más o menos rápido», que es lo que se pidió.
+     Por encima de 300 deja de parecer que lo soltaste y parece que lo estás
+     cerrando tú; por debajo de 180 es un corte, no un cajón. */
+  soltarCajonDeGlosas = alPaso => irA(0, 230, suaveSalida, alPaso);
 })();
 
 /* LA G ABRE Y CIERRA EL CAJÓN. Un toque lo corre, otro lo devuelve. El
@@ -10105,6 +10150,119 @@ $('btnGlosas').addEventListener('click', ev => {
   const abierto = pg.scrollLeft >= tope - 4;
   moverCajonDeGlosas(!abierto, VUELO_MS);
 });
+
+/* ============================================================
+   Y LA G TAMBIÉN SE JALA.
+
+   Pedido: llevándola hacia la izquierda, el sello se mueve con el dedo —como
+   los chevrones de lejos— y la columna de glosas se abre EXACTAMENTE lo que
+   la llevas. Al soltar se cierra sola, como un cajón que avientas.
+
+   ASÍ QUE SON DOS GESTOS EN UN BOTÓN, Y NO SE PISAN: el toque engancha —abre
+   y se queda abierto, que es lo que ya hacía—, y el jalón asoma —enseña
+   mientras aguantas y se cierra al soltar—. Lo que los separa es UMBRAL: por
+   debajo de 6 px no hubo jalón y el clic sigue su camino; por encima, el clic
+   se tira a la basura con el mismo tragador de siempre, o al levantar el dedo
+   el toque desharía lo que el jalón acaba de hacer.
+
+   MIENTRAS SE JALA NO HAY ANIMACIÓN NINGUNA, y ésa es la mitad de lo que se
+   pidió: el cajón no tiene velocidad propia, va donde va tu mano. Por eso
+   jalarCajonDeGlosas cancela el reloj de irA antes de poner el sitio; si no,
+   una animación a medio correr seguiría mandando y el papel iría a su ritmo
+   en vez de al tuyo.
+
+   EL TOPE SE MIDE UNA VEZ, al posar el dedo. Preguntarlo en cada movimiento
+   obliga al navegador a rehacer la maquetación sesenta veces por segundo para
+   un número que no cambia mientras dura el gesto.
+
+   Y EL SELLO SE MUEVE LO QUE SE HA ABIERTO EL CAJÓN DESDE QUE EMPEZÓ EL
+   JALÓN, no lo que corre el dedo ni el sitio absoluto del cajón: si el cajón
+   topa, el dibujo topa con él —un botón que sigue viajando con el cajón ya
+   parado dice que queda sitio, y no queda—, y si el cajón ya venía medio
+   abierto, el sello arranca de donde está y no de donde estaría. */
+(function jalarLaG(){
+  const g = $('btnGlosas');
+  if (!g) return;
+  const UMBRAL = 6;              /* por debajo de esto el dedo no jaló, tocó */
+  let gesto = null;
+  const ponerSello = x => {
+    g.style.transform = x ? 'translateX(' + x.toFixed(1) + 'px)' : '';
+  };
+  const selloAhora = () => {
+    const t = getComputedStyle(g).transform;
+    if (!t || t === 'none') return 0;
+    try { return new DOMMatrix(t).m41; } catch(_){ return 0; }
+  };
+  g.addEventListener('pointerdown', ev => {
+    if (zoomActivo || ev.button > 0) return;
+    const tope = topeCajon();
+    if (tope < 4) return;
+    /* DE DÓNDE SALE EL SELLO. Se congela donde esté AHORA, y eso importa en
+       dos casos que no son raros: agarrarlo a media vuelta —lo sueltas y lo
+       vuelves a coger, y el reloj de la vuelta sigue mandando hasta que el
+       primer movimiento lo cancele— y agarrarlo con el cajón ya medio
+       abierto. Sin congelarlo, el dibujo daría un salto antes de que el dedo
+       se mueva. */
+    gesto = { id: ev.pointerId, x: ev.clientX, y: ev.clientY,
+              base: pg.scrollLeft, tope, jalo: false, sello: selloAhora() };
+    ponerSello(gesto.sello);
+    /* Con la captura el dedo puede salirse del sello sin perder el gesto, que
+       es lo que pasa siempre: jalando a la izquierda se sale enseguida. */
+    try { g.setPointerCapture(ev.pointerId); } catch(_){}
+  });
+  g.addEventListener('pointermove', ev => {
+    if (!gesto || ev.pointerId !== gesto.id) return;
+    const dx = ev.clientX - gesto.x;
+    if (!gesto.jalo){
+      if (Math.abs(dx) < UMBRAL) return;
+      /* Vertical manda: el dedo que baja está leyendo, no abriendo. */
+      if (Math.abs(ev.clientY - gesto.y) > Math.abs(dx)){ gesto = null; return; }
+      gesto.jalo = true;
+    }
+    ev.preventDefault();
+    /* A la izquierda se abre: dx negativo suma cajón. */
+    const donde = Math.min(Math.max(gesto.base - dx, 0), gesto.tope);
+    jalarCajonDeGlosas(donde);
+    /* RELATIVO A DONDE EMPEZÓ EL JALÓN, no al sitio absoluto del cajón. Con
+       el cajón ya medio abierto —por la rueda, o a media animación del toque—
+       lo absoluto teletransportaba el sello: base 120 y ocho píxeles de dedo
+       lo mandaban a -128 en el primer movimiento. Lo levantó Codex revisando
+       el PR #91. */
+    ponerSello(gesto.sello - (donde - gesto.base));
+    /* La marca de «abierta» se pone a mano y no llamando a pintarG: aquélla
+       vuelve a medir la hoja —scrollWidth contra clientWidth— y eso obliga al
+       navegador a rehacer la maquetación en cada movimiento del dedo. El tope
+       ya se midió al posarlo y no cambia mientras dura el gesto. */
+    const lleno = donde >= gesto.tope - 4;
+    g.classList.toggle('abierta', lleno);
+    g.setAttribute('aria-pressed', lleno ? 'true' : 'false');
+  });
+  const soltar = ev => {
+    if (!gesto || (ev && ev.pointerId != null && ev.pointerId !== gesto.id)) return;
+    const jalo = gesto.jalo;
+    gesto = null;
+    if (!jalo) return;            /* fue un toque: que el clic haga lo suyo */
+    tragarElClic();
+    /* LA VUELTA LA MANDA EL RELOJ DEL CAJÓN, no una transición de CSS.
+
+       Con una transición eran dos animaciones distintas para una sola cosa, y
+       aunque se les diera la misma curva y la misma duración no arrancaban en
+       el mismo cuadro: medido a mitad de camino, el cajón en 51 de 100 y el
+       sello en 61. Diez píxeles no se ven, pero son diez píxeles que delatan
+       que son dos cosas y no una. Atando el dibujo al sitio del cajón —la
+       misma fracción de viaje— no hay dos curvas que cuadrar, hay una.
+       De paso desaparece el caso de movimiento reducido: si irA salta al
+       final de un tirón, el sello salta con él. */
+    const s0 = selloAhora(), d0 = pg.scrollLeft;
+    soltarCajonDeGlosas(x => ponerSello(d0 > 0 ? s0 * (x / d0) : 0));
+  };
+  g.addEventListener('pointerup', soltar);
+  g.addEventListener('pointercancel', soltar);
+  /* Si el sello se va —al pasar hoja, al alejarse, al saltar— el gesto se
+     cae con él: un puntero capturado por un botón que se esconde no vuelve a
+     mandar ni un pointerup, y el cajón se quedaría a medio abrir. */
+  g.addEventListener('lostpointercapture', soltar);
+})();
 
 /* CORRER EL PAPEL CON RATÓN O TRACKPAD.
 
