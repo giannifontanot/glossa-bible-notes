@@ -226,6 +226,20 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
       const g = document.getElementById('btnGlosas');
       const pgEl = document.getElementById('pg');
       if (!g || g.hidden) return { sinG:true };
+      /* SE CIERRA EL CAJÓN ANTES DE JALAR, y esto no estaba. El bloque de
+         arriba lo deja ABIERTO DEL TODO —«y acaba en las glosas», cajón en
+         el tope—, y desde el tope un jalón hacia la izquierda no mueve nada:
+         el sello se quedaba quieto en 0 con toda la razón del mundo y la
+         prueba leía ese 0 como un desacuerdo. Falló así las dos veces en el
+         entorno de Codex. Aquí no salía porque la sonda suelta con la que lo
+         comprobé empezaba con el cajón cerrado: la sonda probaba otra cosa
+         que la prueba, y ésa era toda la diferencia, no la máquina.
+         Se pone el papel a la izquierda a pelo en vez de tocar la G: el toque
+         abre y cierra con un vuelo de 2400 ms, y aquí lo que hace falta es el
+         punto de partida, no el viaje. */
+      pgEl.scrollLeft = 0;
+      await pausa(60);
+      const partida = Math.round(pgEl.scrollLeft);
       const r = g.getBoundingClientRect();
       const x = r.left + r.width/2, y = r.top + r.height/2;
       const op = () => ({ bubbles:true, cancelable:true, pointerId:83,
@@ -242,7 +256,8 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
       g.dispatchEvent(new PointerEvent('pointerup',
         Object.assign(op(), { clientX:x - 100, clientY:y })));
       await pausa(60);
-      return { jalado, justo: { cajon: Math.round(pgEl.scrollLeft), sello: donde() } };
+      return { partida, jalado,
+               justo: { cajon: Math.round(pgEl.scrollLeft), sello: donde() } };
     });
     di('el sello al soltarlo', sello);
     /* Y esto va FUERA del if: sin él, una sesión sin glosas se saltaba el
@@ -250,15 +265,25 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     vale('(la prueba es válida) el sello de las glosas está puesto',
          !sello.sinG, sello.sinG ? 'no hay G que jalar' : 'puesto');
     if (!sello.sinG){
+      vale('(la prueba es válida) se parte con el cajón cerrado',
+           sello.partida === 0, sello.partida + ' px');
       vale('(la prueba es válida) el jalón llegó a abrir el cajón',
            sello.jalado.cajon > 40, sello.jalado.cajon + ' px');
+      /* Y ÉSTA ES LA QUE FALTABA. Sin ella, un sello que no se movió da un
+         denominador de cero, la fracción sale 0 igual que la del cajón
+         quieto, y «van atados» se cumple sin que nada se haya movido: la
+         prueba pasaba justo en el caso en que no estaba probando nada. */
+      vale('(la prueba es válida) el jalón movió el sello',
+           Math.abs(sello.jalado.sello) > 4, sello.jalado.sello + ' px');
       /* LO QUE SE AFIRMA ES QUE VAN ATADOS, y no dónde está cada uno a los
          60 ms. La primera versión decía «con movimiento normal el sello sí se
          anima», y eso da por hecho que a los 60 ms el viaje va por la mitad:
          una afirmación sobre un instante, que es de las que fallan en otra
-         máquina sin que nada esté roto. Falló, de hecho —Codex, sobre
-         5146acb—, en un entorno donde el resto de las animaciones de esta
-         misma rama tampoco arrancaron.
+         máquina sin que nada esté roto. (Al escribirla di por hecho que el
+         fallo que levantó Codex sobre 5146acb era eso, cosa de la máquina.
+         No lo era: el cajón estaba abierto y el sello no tenía por qué
+         moverse. Aun así la afirmación sobre el instante sobraba, y la de la
+         fracción es mejor por su cuenta.)
          La fracción de viaje no depende de eso: si los dos van al mismo ritmo
          están atados, vayan deprisa, despacio o de un tirón. Y sigue cazando
          lo que había que cazar: con la transición de CSS que se quitó, el
