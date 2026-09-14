@@ -147,6 +147,16 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     const pliegue = await p.evaluate(async () => {
       const pausa = ms => new Promise(z => setTimeout(z, ms));
       const menu = document.getElementById('menu');
+      /* Y SE ESPERA A QUE EL CIELO QUEDE LIMPIO, que esto no es cortesía.
+         Cerrar un panel con texto dentro no lo encoge: guarda la nota y suelta
+         un calco volando 2.4 segundos. El bloque siguiente —el del vuelo de la
+         glosa— busca ese calco con un .find, que se queda con el PRIMERO que
+         encuentre: un calco rezagado de aquí lo atiende igual de bien que el
+         suyo, y entonces ese bloque pasaría aunque su vuelo no hubiera
+         existido. Lo levantó la revisión de Codex sobre esta misma PR.
+         Se pregunta por el cielo en vez de esperar un número fijo: el número
+         fijo es otra afirmación sobre un instante, que es justo el vicio que
+         esta PR viene a quitar. */
       const cerrarLoAbierto = async () => {
         document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
         await pausa(200);
@@ -154,6 +164,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
           { bubbles:true, clientX:5, clientY:5 }));
         getSelection().removeAllRanges();
         await pausa(400);
+        for (let i = 0; i < 70 && document.querySelector('.gl-vista'); i++) await pausa(50);
       };
       const cuantos = document.querySelectorAll('#pgBody .v').length;
       if (!cuantos) return { sinTexto:true };
@@ -206,7 +217,16 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
                       acabaQuieto: getComputedStyle(menu).transform === 'none',
                       listaAbierta: !!menu.querySelector('.tagbox.abierta') };
         probados.push(res);
-        if (res.viaje) return { ...res, cuantosProbados: probados.length, probados };
+        if (res.viaje){
+          /* SE CIERRA ANTES DE SALIR. Al encontrar el pasaje que mueve el
+             panel se volvía con él abierto y con su borrador dentro, y de eso
+             se encargaba el bloque siguiente al abrir el suyo: abrirPanel
+             guardaba esta nota huérfana y soltaba su calco, en un momento que
+             no elegía nadie. */
+          await cerrarLoAbierto();
+          res.cieloLimpio = !document.querySelector('.gl-vista');
+          return { ...res, cuantosProbados: probados.length, probados };
+        }
       }
       return { sinViaje:true, probados };
     });
@@ -233,6 +253,9 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
         }
         vale('en los dos casos la lista queda abierta y el panel quieto',
              pliegue.listaAbierta && pliegue.acabaQuieto);
+        /* Y no se le deja nada volando al bloque siguiente. */
+        vale('  y al salir no queda ningún calco en el aire',
+             pliegue.cieloLimpio === true);
       }
     }
 
