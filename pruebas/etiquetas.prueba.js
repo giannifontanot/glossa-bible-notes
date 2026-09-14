@@ -25,15 +25,8 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
    etiqueta puesta ahí se perdería al cerrar. */
 const ABRIR = `async (desde, hasta, nota) => {
   const v = document.querySelector('#pgBody .v');
-  const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-  while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-  if (!n) return false;
-  const r = document.createRange(); r.setStart(n,desde); r.setEnd(n,hasta);
-  getSelection().removeAllRanges(); getSelection().addRange(r);
-  const rc = r.getBoundingClientRect();
-  document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-    { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-  await new Promise(z => setTimeout(z, 450));
+  /* con el dedo: ver PINCEL en comun.js */
+  if (!await window.__glosarEn(v, desde, hasta)) return false;
   const ta = document.getElementById('glosaCaja');
   if (!ta) return false;
   ta.value = nota; ta.dispatchEvent(new Event('input', { bubbles:true }));
@@ -61,14 +54,7 @@ const FUERA = `async () => {
   titulo('las etiquetas duermen mientras no haya nota');
   di('panel recién abierto', await p.evaluate(async ([abrir, fuera]) => {
     const v = document.querySelector('#pgBody .v');
-    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-    const r = document.createRange(); r.setStart(n,0); r.setEnd(n,12);
-    getSelection().removeAllRanges(); getSelection().addRange(r);
-    const rc = r.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-    await new Promise(z => setTimeout(z, 450));
+    await window.__glosarEn(v, 0, 12);
     const caja = document.querySelector('#menu .tagbox');
     const dormida = caja.classList.contains('dormida');
     const puntero = getComputedStyle(caja).pointerEvents;
@@ -495,15 +481,7 @@ const FUERA = `async () => {
         { bubbles:true, clientX:5, clientY:5 }));
       await new Promise(z => setTimeout(z, 700));
       const v = document.querySelectorAll('#pgBody .v')[k]; if (!v) continue;
-      const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let t = null;
-      while (w.nextNode()) if (w.currentNode.textContent.trim().length > 40){ t = w.currentNode; break; }
-      if (!t) continue;
-      const rg = document.createRange(); rg.setStart(t, 5); rg.setEnd(t, 25);
-      getSelection().removeAllRanges(); getSelection().addRange(rg);
-      const rc = rg.getBoundingClientRect();
-      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-        { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-      await new Promise(z => setTimeout(z, 500));
+      if (!await window.__glosarEn(v, 5, 25)) continue;
       const ta = document.getElementById('glosaCaja'); if (!ta) continue;
       ta.value = 'una nota cualquiera';
       ta.dispatchEvent(new Event('input', { bubbles:true }));

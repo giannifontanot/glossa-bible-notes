@@ -167,15 +167,8 @@ const ATERRIZA = 7000;
      referencia existe de verdad. */
   di('tocando la referencia escrita', await p.evaluate(async () => {
     const v = document.querySelector('#pgBody .v');
-    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-    if (!n) return { sinTexto:true };
-    const r = document.createRange(); r.setStart(n, 10); r.setEnd(n, 30);
-    getSelection().removeAllRanges(); getSelection().addRange(r);
-    const rc = r.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-    await new Promise(z => setTimeout(z, 500));
+    /* con el dedo: ver PINCEL en comun.js */
+    if (!await window.__glosarEn(v, 10, 30)) return { sinTexto:true };
     const ta = document.getElementById('glosaCaja');
     if (!ta) return { sinPanel:true };
     ta.value = 'ver Mateo 5:9 y también algo más';
@@ -221,15 +214,7 @@ const ATERRIZA = 7000;
      sitio y el otro en otro, y la raya cae bajo las palabras equivocadas. */
   di('el calco', await p.evaluate(async () => {
     const v = document.querySelector('#pgBody .v');
-    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-    if (!n) return { sinTexto:true };
-    const rg = document.createRange(); rg.setStart(n, 10); rg.setEnd(n, 30);
-    getSelection().removeAllRanges(); getSelection().addRange(rg);
-    const rc = rg.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-    await new Promise(z => setTimeout(z, 500));
+    if (!await window.__glosarEn(v, 10, 30)) return { sinTexto:true };
     const ta = document.getElementById('glosaCaja');
     const eco = document.querySelector('#menu .gl-eco');
     if (!ta || !eco) return { falta:{ ta:!!ta, eco:!!eco } };
@@ -340,15 +325,7 @@ const ATERRIZA = 7000;
     const vp = document.getElementById('versoPleno');
     const vivo = () => getComputedStyle(document.getElementById('menu')).display !== 'none';
     const v = document.querySelector('#pgBody .v');
-    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-    if (!n) return { sinTexto:true };
-    const rg = document.createRange(); rg.setStart(n, 10); rg.setEnd(n, 30);
-    getSelection().removeAllRanges(); getSelection().addRange(rg);
-    const rc = rg.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-    await new Promise(z => setTimeout(z, 500));
+    if (!await window.__glosarEn(v, 10, 30)) return { sinTexto:true };
     const ta = document.getElementById('glosaCaja'); if (!ta) return { sinPanel:true };
     ta.value = 'ver Mateo 5:9 aquí';
     ta.dispatchEvent(new Event('input', { bubbles:true }));
@@ -386,15 +363,7 @@ const ATERRIZA = 7000;
         { bubbles:true, clientX:3, clientY:3 }));
       await new Promise(z => setTimeout(z, 700));
       const v = document.querySelector('#pgBody .v');
-      const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-      while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-      if (!n) return false;
-      const rg = document.createRange(); rg.setStart(n, 10); rg.setEnd(n, 30);
-      getSelection().removeAllRanges(); getSelection().addRange(rg);
-      const rc = rg.getBoundingClientRect();
-      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-        { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-      await new Promise(z => setTimeout(z, 500));
+      if (!await window.__glosarEn(v, 10, 30)) return false;
       const ta = document.getElementById('glosaCaja'); if (!ta) return false;
       ta.value = 'ver Mateo 5:9 aquí';
       ta.dispatchEvent(new Event('input', { bubbles:true }));

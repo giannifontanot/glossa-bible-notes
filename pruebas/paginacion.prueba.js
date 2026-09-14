@@ -91,14 +91,8 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
   titulo('una nota VACÍA no mueve nada');
   await p.evaluate(async () => {
     const v = document.querySelector('#pgBody .v');
-    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 20){ n = w.currentNode; break; }
-    const r = document.createRange(); r.setStart(n,0); r.setEnd(n,15);
-    getSelection().removeAllRanges(); getSelection().addRange(r);
-    const rc = r.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX:rc.left+2, clientY:rc.top+2 }));
-    await new Promise(z => setTimeout(z, 450));
+    /* con el dedo: ver PINCEL en comun.js */
+    await window.__glosarEn(v, 0, 15);
     /* se cierra sin escribir nada: el panel trae la caja puesta desde el
        principio, y sin texto no llega a guardarse ninguna marca */
     document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerdown',
@@ -119,14 +113,8 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
     JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').map(m => m.id));
   await p.evaluate(async () => {
     const v = document.querySelector('#pgBody .v');
-    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 20){ n = w.currentNode; break; }
-    const r = document.createRange(); r.setStart(n,0); r.setEnd(n,15);
-    getSelection().removeAllRanges(); getSelection().addRange(r);
-    const rc = r.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX:rc.left+2, clientY:rc.top+2 }));
-    await new Promise(z => setTimeout(z, 450));
+    /* con el dedo: ver PINCEL en comun.js */
+    await window.__glosarEn(v, 0, 15);
     const ta = document.getElementById('glosaCaja');
     /* Larga a propósito, y con holgura de sobra: la premisa que se comprueba
        más abajo es que esta nota NO CABE en el hueco que quedaba al pie, y

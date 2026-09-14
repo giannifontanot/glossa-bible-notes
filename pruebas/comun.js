@@ -98,6 +98,77 @@ function vale(rotulo, condicion, detalle){
 
 function titulo(t){ console.log('\n  ' + t); }
 
+/* ---------- GLOSAR PINTANDO CON EL DEDO ----------
+
+   El pasaje dejó de seleccionarse: ahora se pinta. Y eso obliga a cambiar los
+   sitios de esta carpeta que creaban glosas con getSelection().addRange(),
+   porque con user-select:none una selección puesta a mano se serializa VACÍA
+   —comprobado, el panel ya no abría— y ese camino dejó de existir.
+
+   El gesto va entero y de verdad, sin atajos:
+
+   · EL DEDO SE QUEDA ANTES DE ARRASTRAR. Por debajo de ESPERA_SELECCION —280
+     ms— un desliz de lado PASA LA HOJA, y eso no ha cambiado. Sin la espera,
+     lo que se prueba es el pase de hoja y el trazo se va con ella. Esto costó
+     una tarde: la sonda pintaba, soltaba, y al tocar encontraba el lienzo del
+     pliegue en vez del papel.
+   · EL TRAZO VA TORCIDO, como cualquier dedo de esta carpeta.
+   · Y SON DOS TIEMPOS: se pinta, se levanta, y se toca encima. El toque es el
+     que abre la glosa, igual que antes lo abría el toque sobre lo
+     seleccionado.
+
+   Se instala como guion de arranque para que esté en todas las páginas de
+   todas las suites sin que cada una tenga que acordarse. */
+const PINCEL = `window.__pintarGlosa = async (nodo, ini, fin) => {
+  const pgBody = document.getElementById('pgBody');
+  if (!pgBody || !nodo) return false;
+  const pausa = ms => new Promise(z => setTimeout(z, ms));
+  const caja = (a, b) => { const r = document.createRange();
+    r.setStart(nodo, a); r.setEnd(nodo, b); return r.getBoundingClientRect(); };
+  const A = caja(ini, Math.min(ini + 1, fin)), B = caja(Math.max(ini, fin - 1), fin);
+  const x0 = Math.round(A.left + A.width / 2), y0 = Math.round(A.top + A.height / 2);
+  const x1 = Math.round(B.left + B.width / 2), y1 = Math.round(B.top + B.height / 2);
+  const op = (x, y) => ({ bubbles:true, cancelable:true, pointerId:64,
+                          pointerType:'touch', isPrimary:true, clientX:x, clientY:y });
+  pgBody.dispatchEvent(new PointerEvent('pointerdown', op(x0, y0)));
+  await pausa(340);
+  for (let i = 1; i <= 4; i++){
+    const t = i / 4;
+    pgBody.dispatchEvent(new PointerEvent('pointermove',
+      op(Math.round(x0 + (x1 - x0) * t), Math.round(y0 + (y1 - y0) * t + (i % 2 ? 1 : -1)))));
+    await pausa(25);
+  }
+  pgBody.dispatchEvent(new PointerEvent('pointerup', op(x1, y1)));
+  await pausa(140);
+  /* Se devuelve DÓNDE hay que tocar en vez de tocar aquí: hay pruebas que
+     miden el panel a los 45 ms de nacer, y ésas necesitan dar ellas el toque
+     para poder mirar justo después. Ver __glosarEn, que es el camino corto. */
+  return { x: x0, y: y0 };
+};
+window.__tocarLoPintado = async (donde) => {
+  const pgBody = document.getElementById('pgBody');
+  if (!pgBody || !donde) return false;
+  const pausa = ms => new Promise(z => setTimeout(z, ms));
+  const op = (x, y) => ({ bubbles:true, cancelable:true, pointerId:65,
+                          pointerType:'touch', isPrimary:true, clientX:x, clientY:y });
+  pgBody.dispatchEvent(new PointerEvent('pointerdown', op(donde.x, donde.y)));
+  await pausa(40);
+  pgBody.dispatchEvent(new PointerEvent('pointerup', op(donde.x, donde.y)));
+  await pausa(520);
+  return !!document.getElementById('glosaCaja');
+};
+/* El atajo de siempre: el primer nodo de texto largo de un versiculo. */
+window.__pintarEn = async (v, ini, fin) => {
+  if (!v) return null;
+  const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+  while (w.nextNode()) if (w.currentNode.textContent.trim().length > (fin + 4)){ n = w.currentNode; break; }
+  return n ? window.__pintarGlosa(n, ini, fin) : null;
+};
+window.__glosarEn = async (v, ini, fin) => {
+  const donde = await window.__pintarEn(v, ini, fin);
+  return donde ? window.__tocarLoPintado(donde) : false;
+};`;
+
 /* ESPERAR A QUE LA MESA ESTÉ DESTAPADA, no a que pase un rato. La portada
    cubre la pantalla entera con pointer-events puestos hasta que la primera
    hoja está pintada, y tiene además un mínimo de tiempo para que el letrero
@@ -123,6 +194,7 @@ async function abrir(opciones = {}){
   const pagina = await navegador.newPage({ ...TELEFONO, ...opciones });
   const errores = [];
   pagina.on('pageerror', e => errores.push(String(e).split('\n')[0]));
+  await pagina.addInitScript(PINCEL);
   /* Toda recarga espera también: las pruebas recargan en veinte sitios y
      ninguna tiene por qué acordarse de la portada. */
   const recargar = pagina.reload.bind(pagina);
@@ -147,6 +219,7 @@ async function abrirEnPortada(opciones = {}){
   const pagina = await navegador.newPage({ ...TELEFONO, ...opciones });
   const errores = [];
   pagina.on('pageerror', e => errores.push(String(e).split('\n')[0]));
+  await pagina.addInitScript(PINCEL);
   await pagina.goto(opciones.url || APP);
   return { navegador, pagina, errores };
 }

@@ -17,19 +17,12 @@ const { abrir, listo, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
         APP, TELEFONO } = require('./comun');
 
 /* Abrir el panel sobre las primeras letras de un versículo, como lo abre un
-   dedo: se selecciona y se suelta encima. */
+   dedo: se PINTA y se toca encima. Se seleccionaba, y ya no se puede —el
+   pasaje lleva user-select:none desde que se glosa pintando—; el pincel lo
+   pone el andamio, ver PINCEL en comun.js. */
 const ABRIR = `async (desde = 0, hasta = 15) => {
   const v = document.querySelector('#pgBody .v');
-  const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-  while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-  if (!n) return null;
-  const r = document.createRange(); r.setStart(n,desde); r.setEnd(n,hasta);
-  getSelection().removeAllRanges(); getSelection().addRange(r);
-  const rc = r.getBoundingClientRect();
-  document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-    { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-  await new Promise(z => setTimeout(z, 400));
-  return true;
+  return (await window.__glosarEn(v, desde, hasta)) || null;
 }`;
 /* Tocar fuera: el gesto que cobra lo escrito y cierra. */
 const FUERA = `async () => {

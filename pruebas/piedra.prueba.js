@@ -2003,14 +2003,8 @@ async function andamio(p){
     await window.__pausa(400);
     const nAntes = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length;
     const v = document.querySelector('#pgBody .v');
-    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-    const rg = document.createRange(); rg.setStart(n, 0); rg.setEnd(n, 15);
-    getSelection().removeAllRanges(); getSelection().addRange(rg);
-    const rc = rg.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX: Math.round(rc.left + 2), clientY: Math.round(rc.top + 2) }));
-    await window.__pausa(500);
+    /* con el dedo, que es como se glosa ahora: ver PINCEL en comun.js */
+    await window.__glosarEn(v, 0, 15);
     const panel = getComputedStyle(document.getElementById('menu')).display !== 'none';
     const ta = document.getElementById('glosaCaja');
     if (ta){ ta.value = 'con piedra delante';

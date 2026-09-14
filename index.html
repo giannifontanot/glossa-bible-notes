@@ -3884,7 +3884,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '14-SEP-26 14:31';
+window.GLOSS_BUILD = '14-SEP-26 14:59';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4274,6 +4274,18 @@ const PAGE_CSS = `
    arrastra el número, que es de donde venía la falla. De paso, copiar un
    pasaje ya no se lleva los números pegados a las palabras. */
 .vn, .cap{ -webkit-user-select:none; user-select:none; }
+/* EL PASAJE NO SE SELECCIONA: SE PINTA CON EL DEDO.
+
+   La clase la pone el programa, y solo cuando puede cumplir lo que quita: sin
+   la API de resaltados no habría con qué dibujar lo que el dedo va pintando, y
+   quitar la selección ahí dejaría al lector sin ninguna manera de glosar. Ver
+   pintarConElDedo.
+
+   La caja de escribir queda fuera a propósito: es lo único de esta pantalla
+   que el lector escribe él, y ahí seleccionar y copiar es suyo. */
+.sin-seleccion #pgBody{ -webkit-user-select:none; user-select:none; }
+.sin-seleccion #pgBody textarea,
+.sin-seleccion #pgBody input{ -webkit-user-select:text; user-select:text; }
 .vn{ font-size:.68em; color:#a98f57; vertical-align:.4em; padding-right:2px; }
 .vn-yellow{ color:#c9a227; font-weight:700; }
 .vn-green { color:#3a8f4f; font-weight:700; }
@@ -6488,6 +6500,10 @@ if (HL_API){
     ' text-underline-offset:4px; text-decoration-skip-ink:none; }'
   ).join('\n') +
   '\n::highlight(aprox){ text-decoration:underline dotted 2px #b23a3a; text-underline-offset:4px; }' +
+  /* LO QUE EL DEDO VA PINTANDO, con el mismo amarillo con el que nace toda
+     marca —ver crearMarca—: lo que se ve arrastrando es exactamente lo que va
+     a quedar, y no un color de ensayo que luego cambia al soltar. */
+  '\n::highlight(pintando){ background-color:' + F.yellow + '; }' +
   /* Naranja, tres pulsos, y ya. Probamos el contorno pegado a las letras —se
      veía fantasmal— y el marco alrededor del versículo —se veía bien, pero
      pedía una capa de elementos encima de la hoja y medir rectángulos en cada
@@ -8042,6 +8058,155 @@ function seleccionParaEsteToque(ev){
   return r;
 }
 
+/* ============================================================
+   GLOSAR PINTANDO CON EL DEDO, Y NO SELECCIONANDO.
+
+   Hasta aquí, glosar era seleccionar: arrastrabas, el navegador te ponía su
+   selección con sus manijas y su menú de copiar, y un toque encima abría la
+   glosa. Eso dejaba el texto del pasaje a un toque de distancia del
+   portapapeles, y el gesto no era el de marcar un libro sino el de citar una
+   página web.
+
+   Ahora el pasaje no se selecciona y el resaltado lo dibuja el programa: el
+   dedo baja, y mientras se arrastra se va pintando en amarillo. Al levantarlo
+   se queda pintado; al tocar encima se abre la glosa, que es el mismo segundo
+   tiempo de siempre —ver seleccionParaEsteToque, que existía justo para eso—.
+
+   TRES COSAS QUE NO SE VEN LEYÉNDOLO:
+
+   · SE AJUSTA A PALABRAS ENTERAS CON LA MISMA FUNCIÓN QUE LA MARCA. Lo hace
+     aPalabrasEnteras, que ya usaba crearMarca, así que lo que se ve mientras
+     se arrastra es exactamente lo que va a quedar guardado. Pintar con otro
+     criterio y ajustar al soltar sería enseñar una cosa y hacer otra, y en un
+     teléfono la diferencia es de media palabra: un dedo mide cuarenta píxeles
+     y una letra seis.
+
+   · SIN LA API DE RESALTADOS NO SE QUITA LA SELECCIÓN. Aquí el trato es un
+     intercambio: se le quita al lector la selección del navegador y a cambio
+     se le da un pincel. Donde no hay con qué pintar —CSS.highlights no
+     existe— hacer solo la primera mitad dejaría el programa sin ninguna
+     manera de glosar, que es peor que el copiado que se venía a estorbar. Ahí
+     se sigue seleccionando como hasta hoy.
+
+   · Y ESTO NO PROTEGE EL TEXTO DE VERDAD, conviene tenerlo escrito donde se
+     lea: estorba el copiado de paso, pero el texto viaja entero en el archivo
+     y el panel de RESPALDO lo exporta. Lo que se gana es el gesto correcto,
+     no una cerradura.
+   ============================================================ */
+/* EL DEDO QUE SE QUEDÓ ERA PARA GLOSAR. 280 ms está por encima de los 200 de
+   un titulillo —ese gesto es otro— y por debajo de lo que tardaba el teléfono
+   en armar la selección, que es lo que este trazo viene a sustituir. Lo lee
+   también correrPapel, que es quien se retira cuando se cumple. */
+const ESPERA_SELECCION = 280;
+const PINTADO_UMBRAL = 4;        /* px antes de dar el arrastre por empezado */
+const PINTADO_RUIDO = 10;        /* por debajo, el dedo no dice dirección */
+let pintado = null;              /* { k, ini, fin } mientras no se toque */
+
+function limpiarPintado(){
+  if (!pintado) return;
+  pintado = null;
+  if (HL_API) CSS.highlights.delete('pintando');
+}
+function rangoPintado(){
+  if (!pintado) return null;
+  const el = pgBody.querySelector('.v[data-k="' + pintado.k + '"]');
+  if (!el) return null;
+  const a = nodoEn(el, pintado.ini), b = nodoEn(el, pintado.fin);
+  if (!a || !b) return null;
+  const rg = document.createRange();
+  try { rg.setStart(a.node, a.offset); rg.setEnd(b.node, b.offset); } catch(e){ return null; }
+  return rg;
+}
+function pintarLoPintado(){
+  if (!HL_API) return;
+  const rg = rangoPintado();
+  if (!rg){ CSS.highlights.delete('pintando'); return; }
+  CSS.highlights.set('pintando', new Highlight(rg));
+}
+(function pintarConElDedo(){
+  if (!HL_API) return;
+  document.documentElement.classList.add('sin-seleccion');
+  /* El CSS tapa el caso común; un arrastre a pelo todavía dispara selectstart
+     en algunos aparatos. Es la misma línea, y por la misma razón, que lleva la
+     rejilla de los libros. */
+  pgBody.addEventListener('selectstart', ev => ev.preventDefault());
+
+  let gesto = null;
+  const sePuedeGlosar = t => t && t.closest &&
+    !t.closest('.gl, .peri, .vn, .cap, a, button, textarea, input, select');
+
+  pgBody.addEventListener('pointerdown', ev => {
+    gesto = null;
+    if (zoomActivo || ev.button > 0) return;
+    if (!sePuedeGlosar(ev.target)) return;
+    const p = puntoA(ev.clientX, ev.clientY);
+    if (!p) return;
+    /* Sobre una marca ya hecha el gesto es ABRIRLA, no pintar otra encima. */
+    if (marcaEn(p.k, p.off)) return;
+    gesto = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, t0: performance.now(),
+              k: p.k, off: p.off, pinto: false };
+  });
+
+  /* EL REPARTO CON EL PASE DE HOJA, que es lo que costó encontrar: un desliz
+     de lado por encima del texto PASA LA HOJA, y eso ya estaba y no se toca.
+     El primer trazo que escribí no lo respetaba, así que el gesto de pintar
+     acababa volteando la hoja y el trazo se perdía con ella.
+     correrPapel ya tenía escrito el reparto y sus razones, así que aquí se
+     obedece en vez de inventar otro: el pase de hoja se retira cuando el dedo
+     se quedó quieto más de ESPERA_SELECCION, o cuando el movimiento es más
+     vertical que horizontal —bajar es leer, no pasar—. En esos dos huecos, y
+     solo en ésos, el dedo pinta. Fuera de ellos manda la hoja.
+     Se lee como una pérdida y no lo es: es exactamente el hueco en el que
+     antes se armaba la selección del navegador, o sea el mismo gesto de
+     siempre con otra tinta. */
+  const tocaPintar = ev => {
+    if (gesto.pinto) return true;
+    if (performance.now() - gesto.t0 > ESPERA_SELECCION) return true;
+    const dx = ev.clientX - gesto.x, dy = ev.clientY - gesto.y;
+    if (Math.hypot(dx, dy) < PINTADO_RUIDO) return false;
+    return Math.abs(dy) > Math.abs(dx);
+  };
+  pgBody.addEventListener('pointermove', ev => {
+    if (!gesto || ev.pointerId !== gesto.id) return;
+    if (!gesto.pinto &&
+        Math.hypot(ev.clientX - gesto.x, ev.clientY - gesto.y) < PINTADO_UMBRAL) return;
+    if (!tocaPintar(ev)) return;
+    const p = puntoA(ev.clientX, ev.clientY);
+    /* Cruzar de versículo no se puede —lo dice el mensaje de siempre—, así que
+       el trazo se queda en el suyo en vez de saltar a ninguna parte. */
+    if (!p || p.k !== gesto.k) return;
+    const it = plano[gesto.k]; if (!it) return;
+    gesto.pinto = true;
+    ev.preventDefault();
+    const texto = versoTexto(version, it.cap, it.vers);
+    const a = Math.min(gesto.off, p.off), b = Math.max(gesto.off, p.off);
+    const r = aPalabrasEnteras(texto, a, b);
+    if (pintado && pintado.k === gesto.k && pintado.ini === r.ini && pintado.fin === r.fin) return;
+    pintado = { k: gesto.k, ini: r.ini, fin: r.fin };
+    pintarLoPintado();
+  });
+
+  const soltar = ev => {
+    if (!gesto || (ev && ev.pointerId != null && ev.pointerId !== gesto.id)) return;
+    const pinto = gesto.pinto;
+    gesto = null;
+    if (!pinto) return;
+    /* El clic que viene detrás del arrastre se tira: si llegara, el toque
+       abriría la glosa en el mismo gesto con el que se pintó, y el segundo
+       tiempo —tocar encima— dejaría de existir. */
+    tragarElClic();
+    /* Y EL PROPIO SOLTAR TAMPOCO ES UN TOQUE, que es más sutil y fue lo que
+       pasó: el oyente de pointerup que abre la glosa es OTRO, y ese no sabe si
+       el dedo venía arrastrando. Al levantarlo dentro de lo recién pintado
+       —que es donde se levanta siempre— lo leía como el toque de encima y
+       abría la glosa en el acto. El trazo se marca como recién hecho y ese
+       oyente se salta una vez. */
+    if (pintado) pintado.recienHecho = true;
+  };
+  pgBody.addEventListener('pointerup', soltar);
+  pgBody.addEventListener('pointercancel', soltar);
+})();
+
 pgBody.addEventListener('pointerup', ev => {
   if (ev.target.tagName === 'TEXTAREA') return;
   if (ev.target.closest('.gl')) return;   // las glosas de "abajo" viven aquí dentro
@@ -8086,8 +8251,30 @@ pgBody.addEventListener('pointerup', ev => {
       return;
     }
     const p = puntoA(ev.clientX, ev.clientY);
+    /* EL SEGUNDO TIEMPO: tocar encima de lo que el dedo acaba de pintar abre
+       la glosa. Es el mismo gesto que tenía el lector cuando esto se
+       seleccionaba —arrastrar, y luego tocar lo apuntado—, y por eso va antes
+       que la marca de debajo: lo recién pintado manda sobre lo que hubiera. */
+    if (pintado && pintado.recienHecho){
+      /* el soltar del arrastre, que no cuenta: ver soltar en pintarConElDedo */
+      pintado.recienHecho = false;
+      return;
+    }
+    if (pintado && p && p.k === pintado.k &&
+        p.off >= pintado.ini && p.off < pintado.fin){
+      const it = plano[pintado.k];
+      const rg = rangoPintado();
+      const caja = rg ? rg.getBoundingClientRect()
+                      : { left:ev.clientX, top:ev.clientY, width:0, height:0, bottom:ev.clientY };
+      const nueva = crearMarca(it.cap, it.vers, pintado.ini, pintado.fin);
+      limpiarPintado();
+      abrirPanel(nueva, true, caja);
+      return;
+    }
     const m = p && marcaEn(p.k, p.off);
-    if (!m){ ocultarMenu(); return; }
+    /* Y un toque en cualquier otro sitio borra el trazo: lo pintado dura lo
+       que duraba la selección, hasta el siguiente toque. */
+    if (!m){ limpiarPintado(); ocultarMenu(); return; }
     const rg = rangoDe(m, pgBody);
     abrirPanel(m, false, rg ? rg.getBoundingClientRect()
       : { left:ev.clientX, top:ev.clientY, width:0, height:0, bottom:ev.clientY });
@@ -10026,11 +10213,10 @@ function encenderG(){
      glosar— para no disparar un pliegue con un roce al leer. */
   const INTENCION = 34;    /* px de puntero que hay que mover para que cuente */
   const RUIDO = 10;        /* por debajo de esto el dedo no dice dirección, tiembla */
-  /* Si el dedo se quedó, era para glosar: un desliz que arranca después de
-     este rato ya no es pasar hoja. 280 ms está por encima de los 200 de un
-     titulillo (ese gesto es otro) y por debajo de lo que tarda el teléfono
-     en armar la selección. */
-  const ESPERA_SELECCION = 280;
+  /* ESPERA_SELECCION vive fuera desde que el trazo existe: la misma cifra
+     decide las dos mitades del reparto —cuándo esto deja de pasar hoja y
+     cuándo el dedo empieza a pintar—, y dos números iguales escritos en dos
+     sitios se separan el día que alguien toca uno. Ver pintarConElDedo. */
   let activo = false, x0 = 0, y0 = 0, t0 = 0, puntero = null, reloj = null;
   const sobraPapel = () => pg.scrollWidth - pg.clientWidth > 4;
   /* LO QUE NO SE AGARRA ES APARATO: botones, campos, los dos rótulos.
@@ -14448,11 +14634,15 @@ function sepLlegada(){
    muchas más razones que pasar de hoja —cambiar la letra, escribir una
    glosa, mover un filtro— y ninguna de ésas es llegar a ningún sitio. */
 let sepClaveHoja = null;
+/* Y lo pintado no sobrevive a un cambio de hoja: el trazo vive en offsets de
+   UN versículo de LA hoja que se está viendo, así que dejarlo puesto sería
+   pintar en otro sitio lo que se marcó aquí. */
 function separadorAlPintar(){
   const p = plano[paginas[paginaActual]] || null;
   const clave = LIBRO + ' ' + (p ? p.cap + ':' + p.vers : '?');
   const cambio = clave !== sepClaveHoja;
   sepClaveHoja = clave;
+  if (cambio && typeof limpiarPintado === 'function') limpiarPintado();
   if (cambio && sepMenuAbierto) cerrarSepMenu();
   if (cambio) sepLlegada();
   pintarSeparador();
