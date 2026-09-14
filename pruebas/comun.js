@@ -185,6 +185,21 @@ async function abrirEnPortada(opciones = {}){
     await pagina.addInitScript(([k, t]) => {
       try { localStorage.setItem(k, String(t)); } catch(_){}
     }, ['glossa:visita:v1', Date.now() - visitaHace]);
+  else
+    /* SIN SELLO, Y EN CADA CARGA. Esta función promete quedarse en la portada,
+       y sin esto dejaba de cumplirlo a la primera recarga: la prueba de la
+       portada pulsa «continue» a media faena y sigue decorando después, y en
+       cuanto la tapa se pasa una vez, la visita queda sellada y las recargas
+       siguientes entran directas al libro. Lo que quedaba entonces era una
+       tapa invisible: sus piedras y su foto siguen en el documento, así que
+       todo lo que mira datos guardados pasaba igual, y solo se caía lo que
+       necesita ver —el foco no entra en algo con visibility:hidden—. Tres
+       aserciones en rojo y ninguna hablando de la causa.
+       Va como guion de arranque porque hay que ganarle a pagehide: la página
+       que se va sella la visita, así que borrar el sello desde la página vieja
+       no serviría de nada. */
+    await pagina.addInitScript(k => { try { localStorage.removeItem(k); } catch(_){} },
+                               'glossa:visita:v1');
   await pagina.goto(url || APP);
   return { navegador, pagina, errores };
 }

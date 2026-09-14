@@ -121,16 +121,24 @@ async function tocarSinClic(pagina, x, y, pid = 21){
      pedir un color concreto: lo que importa es que destaque, no qué ámbar. */
   const luz = await p.evaluate(() => {
     const f = id => getComputedStyle(document.getElementById(id)).backgroundColor;
-    const num = c => (c.match(/[\d.]+/g) || []).map(Number);
+    /* LA OPACIDAD, Y NO LA SUMA DE LOS CANALES. Aquí hubo una comprobación de
+       «el encendido es más claro» sumando rojo, verde y azul, y decía que no:
+       el ámbar del botón suma 402 y el blanco de los vecinos 765. Pero el
+       blanco de los vecinos va al 9 % sobre un fondo oscuro —o sea, casi no
+       está— y el ámbar al 42 %. Lo que hace que un botón se vea encendido
+       sobre esta portada es cuánto tapa lo de debajo, no qué color trae. */
+    const alfa = c => { const m = /rgba?\(([^)]+)\)/.exec(c);
+                        return m ? +(m[1].split(',')[3] || 1) : 1; };
     return { seguir: f('btnPortadaSeguir'), foto: f('btnPortadaFoto'),
              piedras: f('btnPortadaPiedras'),
-             claro: num(f('btnPortadaSeguir')).slice(0,3).reduce((a,b)=>a+b,0) >
-                    num(f('btnPortadaFoto')).slice(0,3).reduce((a,b)=>a+b,0) };
+             alfaSeguir: alfa(f('btnPortadaSeguir')), alfaFoto: alfa(f('btnPortadaFoto')) };
   });
   di('los fondos del pie', JSON.stringify(luz));
   vale('EL BOTÓN DEL MEDIO VA ENCENDIDO Y LOS OTROS DOS NO',
-       luz.seguir !== luz.foto && luz.foto === luz.piedras && luz.claro === true,
-       luz.seguir + ' contra ' + luz.foto);
+       luz.seguir !== luz.foto && luz.foto === luz.piedras &&
+       luz.alfaSeguir > luz.alfaFoto * 2,
+       luz.seguir + ' (alfa ' + luz.alfaSeguir + ') contra ' +
+       luz.foto + ' (alfa ' + luz.alfaFoto + ')');
 
   titulo('LA FOTO');
   /* La imagen se dibuja aquí y se escribe en un archivo de verdad: el camino
