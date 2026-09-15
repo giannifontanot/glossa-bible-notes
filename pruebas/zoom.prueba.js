@@ -350,7 +350,7 @@ const comoVan = r => {
     const v = document.querySelector('#pgBody .v');
     /* Se pinta con el dedo, que es como se glosa desde que el pasaje no se
        selecciona. El pincel lo pone el andamio: ver PINCEL en comun.js. */
-    if (!await window.__glosarEn(v, 0, 14)) return { sinTexto:true };
+    if (!await window.__glosarEn(v, 0, 14)) return { sinTexto:true, porque: window.__pincelPorque };
     const menu = document.getElementById('menu');
     const salio = getComputedStyle(menu).display !== 'none' && menu.textContent.trim().length > 0;
     /* Toda marca es una glosa: se escribe la nota y se toca fuera, que es lo

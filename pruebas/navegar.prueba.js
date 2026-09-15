@@ -168,7 +168,7 @@ const ATERRIZA = 7000;
   di('tocando la referencia escrita', await p.evaluate(async () => {
     const v = document.querySelector('#pgBody .v');
     /* con el dedo: ver PINCEL en comun.js */
-    if (!await window.__glosarEn(v, 10, 30)) return { sinTexto:true };
+    if (!await window.__glosarEn(v, 10, 30)) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
     if (!ta) return { sinPanel:true };
     ta.value = 'ver Mateo 5:9 y también algo más';
@@ -214,7 +214,7 @@ const ATERRIZA = 7000;
      sitio y el otro en otro, y la raya cae bajo las palabras equivocadas. */
   di('el calco', await p.evaluate(async () => {
     const v = document.querySelector('#pgBody .v');
-    if (!await window.__glosarEn(v, 10, 30)) return { sinTexto:true };
+    if (!await window.__glosarEn(v, 10, 30)) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
     const eco = document.querySelector('#menu .gl-eco');
     if (!ta || !eco) return { falta:{ ta:!!ta, eco:!!eco } };
@@ -325,7 +325,7 @@ const ATERRIZA = 7000;
     const vp = document.getElementById('versoPleno');
     const vivo = () => getComputedStyle(document.getElementById('menu')).display !== 'none';
     const v = document.querySelector('#pgBody .v');
-    if (!await window.__glosarEn(v, 10, 30)) return { sinTexto:true };
+    if (!await window.__glosarEn(v, 10, 30)) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja'); if (!ta) return { sinPanel:true };
     ta.value = 'ver Mateo 5:9 aquí';
     ta.dispatchEvent(new Event('input', { bubbles:true }));

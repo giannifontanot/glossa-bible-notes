@@ -82,7 +82,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
          lo abre tiene que darlo esta prueba para poder mirar justo después.
          Ver __pintarEn y __tocarLoPintado en comun.js. */
       const donde = await window.__pintarEn(v, 0, 20);
-      if (!donde) return { sinTexto:true };
+      if (!donde) return { sinTexto:true, porque: window.__pincelPorque };
       const centro = { x: donde.x, y: donde.y };
       const pgB = document.getElementById('pgBody');
       const op = (x, y) => ({ bubbles:true, cancelable:true, pointerId:65,
@@ -171,7 +171,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
         for (let i = 0; i < 70 && document.querySelector('.gl-vista'); i++) await pausa(50);
       };
       const cuantos = document.querySelectorAll('#pgBody .v').length;
-      if (!cuantos) return { sinTexto:true };
+      if (!cuantos) return { sinTexto:true, porque: window.__pincelPorque };
       const probados = [];
       for (let i = 0; i < cuantos; i++){
         if (i) await cerrarLoAbierto();
@@ -261,7 +261,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        media query. Había que preguntarlo desde el guion. Lo levantó Codex. */
     const vuelo = await p.evaluate(async () => {
       const v = document.querySelector('#pgBody .v');
-      if (!await window.__glosarEn(v, 0, 14)) return { sinTexto:true };
+      if (!await window.__glosarEn(v, 0, 14)) return { sinTexto:true, porque: window.__pincelPorque };
       const ta = document.getElementById('glosaCaja');
       if (!ta) return { sinPanel:true };
       ta.value = 'una nota que quizá vuele';

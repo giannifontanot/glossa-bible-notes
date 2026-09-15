@@ -13,7 +13,7 @@
    Y una tercera que no se ve pero se rompe sola: poner una etiqueta NO puede
    repintar el panel, porque el panel lleva dentro la caja de escribir y
    repintarlo se llevaría por delante el foco, el cursor y lo escrito. */
-const { abrir, listo, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
+const { abrir, otraPagina, listo, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
         APP, TELEFONO } = require('./comun');
 
 /* Abrir el panel sobre las primeras letras de un versículo, como lo abre un
@@ -147,7 +147,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      ================================================================ */
   titulo('la marca se estira a la palabra entera');
   {
-    const p4 = await sesion.navegador.newPage({ ...TELEFONO });
+    const p4 = await otraPagina(sesion.navegador);
     const fallos4 = [];
     p4.on('pageerror', e => fallos4.push(String(e).split('\n')[0]));
     await p4.goto(APP);
@@ -947,7 +947,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        una glosa cualquiera de la hoja no valdría: hay que comparar el anticipo
        con la nota EN LA QUE SE CONVIERTE. */
     const ok = await eval('(' + abrir + ')')(0, 14);
-    if (!ok) return { sinTexto:true };
+    if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     const ta0 = document.getElementById('glosaCaja');
     ta0.value = 'para medir contra el margen';
     ta0.dispatchEvent(new Event('input', { bubbles:true }));
@@ -1049,9 +1049,9 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      antes de que la nota exista. */
   di('ancla y sangría', await p.evaluate(async ([abrir, fuera, tocar]) => {
     const ok = await eval('(' + abrir + ')')(0, 14);
-    if (!ok) return { sinTexto:true };
+    if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
-    if (!ta) return { sinTexto:true };
+    if (!ta) return { sinTexto:true, porque: window.__pincelPorque };
     const vacia = document.querySelector('#glVista .gl-ref').textContent;
     ta.value = 'una nota larga para ver dónde parte el primer renglón';
     ta.dispatchEvent(new Event('input', { bubbles:true }));
@@ -1211,7 +1211,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       if (b) b.click();
       await new Promise(z => setTimeout(z, 1400));
       const ok = await eval('(' + abrir + ')')(0, 16);
-      if (!ok) return { sinTexto:true };
+      if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
       const vista = document.getElementById('glVista');
       if (!vista) return { sinPanel:true };
       const anticipo = Math.round(vista.getBoundingClientRect().width);
@@ -1239,7 +1239,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      para llegar a ellos. Lo levantó Codex. */
   di('con una nota larguísima', await p.evaluate(async ([abrir, fuera]) => {
     const ok = await eval('(' + abrir + ')')(0, 16);
-    if (!ok) return { sinTexto:true };
+    if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
     if (!ta) return { sinPanel:true };
     ta.value = ('una nota francamente larga que sigue y sigue sin parar. ').repeat(30);
@@ -1277,7 +1277,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        veces y con las marcas se van sus etiquetas, así que a estas alturas no
        queda ninguna que alternar. */
     let ok = await eval('(' + abrir + ')')(0, 16);
-    if (!ok) return { sinTexto:true };
+    if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     let sembrar = document.getElementById('glosaCaja');
     sembrar.value = 'nota que trae vocabulario';
     sembrar.dispatchEvent(new Event('input', { bubbles:true }));
@@ -1293,7 +1293,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     await new Promise(z => setTimeout(z, 3300));
     /* y ahora, sobre OTRO tramo, esas etiquetas están libres */
     ok = await eval('(' + abrir + ')')(30, 46);
-    if (!ok) return { sinTexto:true };
+    if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
     ta.value = 'corta'; ta.dispatchEvent(new Event('input', { bubbles:true }));
     await new Promise(z => setTimeout(z, 200));
@@ -1332,7 +1332,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      mismo. Lo levantó Codex. */
   di('ancla en el editor, el calco y la hoja', await p.evaluate(async ([abrir, fuera]) => {
     const ok = await eval('(' + abrir + ')')(0, 16);
-    if (!ok) return { sinTexto:true };
+    if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
     if (!ta) return { sinPanel:true };
     ta.value = 'una nota con texto de sobra para que el primer renglón se llene y pase al siguiente';
@@ -1399,7 +1399,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     if (b) b.click();
     await new Promise(z => setTimeout(z, 1400));
     const ok = await eval('(' + abrir + ')')(20, 38);
-    if (!ok) return { sinTexto:true };
+    if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
     if (!ta) return { sinPanel:true };
     ta.value = 'una nota al pie con bastante texto para que ocupe más de un renglón y se note el alto';
@@ -1453,10 +1453,10 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     };
     /* dos tramos bien separados del renglón: antes uno salía a un lado y el
        otro al otro, y eso es justo lo que deja de pasar */
-    if (!await eval('(' + abrir + ')')(0, 10)) return { sinTexto:true };
+    if (!await eval('(' + abrir + ')')(0, 10)) return { sinTexto:true, porque: window.__pincelPorque };
     const cerca = medir();
     await eval('(' + fuera + ')')();
-    if (!await eval('(' + abrir + ')')(56, 70)) return { sinTexto:true };
+    if (!await eval('(' + abrir + ')')(56, 70)) return { sinTexto:true, porque: window.__pincelPorque };
     const lejos = medir();
     /* y el foco cae en la caja, con el cursor al final: se puede escribir sin
        tener que tocar nada más */
@@ -1489,7 +1489,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      vuelo y serían dos despedidas para lo mismo. */
   di('salir sin escribir', await p.evaluate(async ([abrir]) => {
     const menu = document.getElementById('menu');
-    if (!await eval('(' + abrir + ')')(50, 66)) return { sinTexto:true };
+    if (!await eval('(' + abrir + ')')(50, 66)) return { sinTexto:true, porque: window.__pincelPorque };
     const m = menu.getBoundingClientRect();
     document.body.dispatchEvent(new PointerEvent('pointerdown',
       { bubbles:true, clientX:5, clientY:5 }));
@@ -1529,7 +1529,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
 
   di('salir CON texto no se despide dos veces', await p.evaluate(async ([abrir]) => {
     const menu = document.getElementById('menu');
-    if (!await eval('(' + abrir + ')')(68, 84)) return { sinTexto:true };
+    if (!await eval('(' + abrir + ')')(68, 84)) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
     if (!ta) return { sinPanel:true };
     ta.value = 'esta sí se escribe y por eso vuela';
@@ -1557,11 +1557,11 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      dentro de la despedida, que es donde se coló. */
   di('reabrir a media despedida', await p.evaluate(async ([abrir]) => {
     const menu = document.getElementById('menu');
-    if (!await eval('(' + abrir + ')')(50, 66)) return { sinTexto:true };
+    if (!await eval('(' + abrir + ')')(50, 66)) return { sinTexto:true, porque: window.__pincelPorque };
     document.body.dispatchEvent(new PointerEvent('pointerdown',
       { bubbles:true, clientX:5, clientY:5 }));
     await new Promise(z => setTimeout(z, 50));       /* a media despedida */
-    if (!await eval('(' + abrir + ')')(20, 38)) return { sinTexto:true };
+    if (!await eval('(' + abrir + ')')(20, 38)) return { sinTexto:true, porque: window.__pincelPorque };
     await new Promise(z => setTimeout(z, 400));      /* pasado el adiós viejo */
     return { puesto: getComputedStyle(menu).display !== 'none',
              hayCaja: !!document.getElementById('glosaCaja'),
@@ -1587,7 +1587,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     const chico = await abrir({ viewport:{ width:ancho, height:760 } });
     di('· ' + ancho + 'px', await chico.pagina.evaluate(async ([abrir]) => {
       const ok = await eval('(' + abrir + ')')(0, 16);
-      if (!ok) return { sinTexto:true };
+      if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
       const menu = document.getElementById('menu');
       const st = document.getElementById('stage');
       if (getComputedStyle(menu).display === 'none') return { sinPanel:true };
@@ -1766,7 +1766,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   const lista = await e.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     const v = document.querySelector('#pgBody .v');
-    if (!await window.__glosarEn(v, 0, 15)) return { sinTexto:true };
+    if (!await window.__glosarEn(v, 0, 15)) return { sinTexto:true, porque: window.__pincelPorque };
     await pausa(300);
     const m = document.getElementById('menu');
     const caja = m.querySelector('.tagbox');
@@ -1861,7 +1861,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     /* Se vuelve a abrir un panel: el de antes se cerró tocando fuera. */
     const v = document.querySelector('#pgBody .v');
-    if (!await window.__glosarEn(v, 0, 15)) return { sinTexto:true };
+    if (!await window.__glosarEn(v, 0, 15)) return { sinTexto:true, porque: window.__pincelPorque };
     await pausa(400);
     const ta = document.getElementById('glosaCaja');
     ta.value = 'nota para el ancho';
@@ -1937,7 +1937,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     const vs = [...document.querySelectorAll('#pgBody .v')];
     if (vs.length < 2) return { versiculos: vs.length };
     const a = texto(vs[0]), b = texto(vs[1]);
-    if (!a || !b) return { sinTexto:true };
+    if (!a || !b) return { sinTexto:true, porque: window.__pincelPorque };
     const caja = (nodo, i, j) => { const r = document.createRange();
       r.setStart(nodo, i); r.setEnd(nodo, j); return r.getBoundingClientRect(); };
     const A = caja(a, 3, 4), B = caja(b, 9, 10);

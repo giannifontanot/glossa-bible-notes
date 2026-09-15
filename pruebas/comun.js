@@ -119,15 +119,58 @@ function titulo(t){ console.log('\n  ' + t); }
 
    Se instala como guion de arranque para que esté en todas las páginas de
    todas las suites sin que cada una tenga que acordarse. */
-const PINCEL = `window.__pintarGlosa = async (nodo, ini, fin) => {
+/* EL PINCEL DICE POR QUÉ NO PUDO, y antes se callaba.
+
+   Devolvía null y el que llamaba respondía { sinTexto:true }, que es una
+   suposición y muchas veces era falsa: el gesto no arranca si el punto de
+   salida no tiene texto debajo —lo tapan los cantos de pasar hoja, o una capa
+   abierta encima de la hoja—, y eso no es «sin texto». Con cuatro bloques en
+   rojo diciendo lo mismo no había manera de saber cuál de las causas era.
+   Ahora la razón queda en window.__pincelPorque y quien llama la puede
+   enseñar. */
+const PINCEL = `window.__pincelPorque = null;
+window.__pintarGlosa = async (nodo, ini, fin) => {
   const pgBody = document.getElementById('pgBody');
-  if (!pgBody || !nodo) return false;
+  window.__pincelPorque = null;
+  if (!pgBody){ window.__pincelPorque = 'no hay #pgBody'; return false; }
+  if (!nodo){ window.__pincelPorque = 'sin nodo de texto'; return false; }
   const pausa = ms => new Promise(z => setTimeout(z, ms));
   const caja = (a, b) => { const r = document.createRange();
     r.setStart(nodo, a); r.setEnd(nodo, b); return r.getBoundingClientRect(); };
   const A = caja(ini, Math.min(ini + 1, fin)), B = caja(Math.max(ini, fin - 1), fin);
-  const x0 = Math.round(A.left + A.width / 2), y0 = Math.round(A.top + A.height / 2);
-  const x1 = Math.round(B.left + B.width / 2), y1 = Math.round(B.top + B.height / 2);
+  /* EL DEDO TIENE QUE CAER SOBRE EL TEXTO, y el centro de una letra no siempre
+     lo hace: los cantos de pasar hoja son dos franjas de 30 px encima de la
+     hoja, y la primera letra de un renglon cae debajo del de la izquierda. Ahi
+     caretPositionFromPoint devuelve el DIV del canto, puntoA no encuentra
+     versiculo y el gesto no llega a empezar — sin error y sin pintar nada.
+     Costo cuatro suites en rojo: todas las que pedian un tramo desde la letra
+     0. Un lector de verdad tampoco empieza ahi; empieza un poco mas adentro.
+     Asi que el punto se corre a la derecha hasta que de verdad haya texto
+     debajo, igual que haria un dedo. */
+  const sobreTexto = (x, y) => {
+    const cp = document.caretPositionFromPoint ? document.caretPositionFromPoint(x, y)
+             : (document.caretRangeFromPoint
+                ? (function(){ const g = document.caretRangeFromPoint(x, y);
+                               return g && { offsetNode: g.startContainer }; })() : null);
+    const n = cp && cp.offsetNode;
+    return !!(n && n.nodeType === 3 && pgBody.contains(n));
+  };
+  const acomodar = (c) => {
+    let x = Math.round(c.left + c.width / 2), y = Math.round(c.top + c.height / 2);
+    for (let i = 0; i < 40 && !sobreTexto(x, y); i++) x += 2;
+    return { x, y, vale: sobreTexto(x, y) };
+  };
+  const a = acomodar(A), b = acomodar(B);
+  if (!a.vale){
+    /* Quién está encima, que es lo que hace falta saber para arreglarlo. */
+    const el = document.elementFromPoint(a.x, a.y);
+    window.__pincelPorque = 'el punto de salida (' + a.x + ',' + a.y +
+      ') no tiene texto debajo; encima hay ' +
+      (el ? (el.tagName + (el.id ? '#' + el.id : '') +
+             (el.className ? '.' + String(el.className).split(' ')[0] : '')) : 'nada');
+    return false;
+  }
+  const x0 = a.x, y0 = a.y, x1 = b.x, y1 = b.y;
   const op = (x, y) => ({ bubbles:true, cancelable:true, pointerId:64,
                           pointerType:'touch', isPrimary:true, clientX:x, clientY:y });
   pgBody.dispatchEvent(new PointerEvent('pointerdown', op(x0, y0)));
@@ -159,14 +202,26 @@ window.__tocarLoPintado = async (donde) => {
 };
 /* El atajo de siempre: el primer nodo de texto largo de un versiculo. */
 window.__pintarEn = async (v, ini, fin) => {
-  if (!v) return null;
-  const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-  while (w.nextNode()) if (w.currentNode.textContent.trim().length > (fin + 4)){ n = w.currentNode; break; }
-  return n ? window.__pintarGlosa(n, ini, fin) : null;
+  window.__pincelPorque = null;
+  if (!v){ window.__pincelPorque = 'no se pasó versículo'; return null; }
+  const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null, mayor = 0;
+  while (w.nextNode()){
+    mayor = Math.max(mayor, w.currentNode.textContent.trim().length);
+    if (!n && w.currentNode.textContent.trim().length > (fin + 4)) n = w.currentNode;
+  }
+  if (!n){
+    window.__pincelPorque = 'el versículo no tiene un nodo de más de ' + (fin + 4) +
+      ' letras; el mayor es de ' + mayor;
+    return null;
+  }
+  return window.__pintarGlosa(n, ini, fin);
 };
 window.__glosarEn = async (v, ini, fin) => {
   const donde = await window.__pintarEn(v, ini, fin);
-  return donde ? window.__tocarLoPintado(donde) : false;
+  if (!donde) return false;
+  const abrio = await window.__tocarLoPintado(donde);
+  if (!abrio) window.__pincelPorque = 'se pintó, pero el toque de encima no abrió la caja';
+  return abrio;
 };`;
 
 /* ESPERAR A QUE LA MESA ESTÉ DESTAPADA, no a que pase un rato. La portada
@@ -211,6 +266,21 @@ async function listo(pagina, tope = 12000){
     }, null, { timeout: tope });
   } catch (e) { /* si no se va, que falle la prueba diciendo lo suyo */ }
   await pagina.waitForTimeout(120);
+}
+
+/* OTRA PESTAÑA EN EL MISMO NAVEGADOR, CON EL PINCEL PUESTO.
+
+   Hay bloques que necesitan una página limpia sin pagar otro arranque de
+   navegador, y la pedían con `sesion.navegador.newPage(...)` a pelo. Eso se
+   salta el guion del PINCEL, que solo instala abrir(); desde que el texto se
+   glosa pintando, una página sin pincel no puede ni abrir el panel, y el
+   fallo sale como «window.__pintarGlosa is not a function» a mitad del
+   bloque, lejos de donde está la causa. Se envuelve aquí para que no haya que
+   acordarse. */
+async function otraPagina(navegador, opciones = {}){
+  const pagina = await navegador.newPage({ ...TELEFONO, ...opciones });
+  await pagina.addInitScript(PINCEL);
+  return pagina;
 }
 
 /* Abre la aplicación y devuelve la página, con los errores de JavaScript ya
@@ -325,5 +395,5 @@ async function cerrar(sesion){
   fin();
 }
 
-module.exports = { abrir, abrirEnPortada, listo, cerrar, cerrarParcial, fin, conGlosas, di, vale, titulo,
+module.exports = { abrir, abrirEnPortada, otraPagina, listo, cerrar, cerrarParcial, fin, conGlosas, di, vale, titulo,
                    APP, RAIZ, TELEFONO, ESCRITORIO, ESTRECHO_RATON };
