@@ -1298,6 +1298,18 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
                 /* y lo que sobra se puede alcanzar desplazando */
                 desplazable: menu.scrollHeight > menu.clientHeight + 1 ||
                              ta.scrollHeight > ta.clientHeight + 1 };
+    /* Y LA NOTA MONSTRUOSA NO SE QUEDA. Se vacia antes de salir, que es lo
+       que hace que no se guarde nada —la primera regla del fichero—.
+
+       Este bloque viene a medir el panel contra la escena, no a dejar una
+       nota de mil quinientas letras en la hoja. Dejandola, el bloque de «al
+       pie» de mas abajo cambia de disposicion y esa nota se come la pagina
+       entera: medido, el pie deja la hoja con CERO versiculos y el primero
+       se va a la columna siguiente, en x=411 de una ventana de 412. El
+       pincel no tenia entonces donde pintar y caian siete aserciones de tres
+       bloques que no tienen nada que ver con esto. */
+    ta.value = ''; ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 200));
     await eval('(' + fuera + ')')();
     await new Promise(z => setTimeout(z, 3300));
     return r;
@@ -1684,7 +1696,14 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     if (document.getElementById('etiquetas').classList.contains('abierto')) return;
     document.getElementById('pgCabeza').click();
     await new Promise(z => setTimeout(z, 900));
-    const t = [...document.querySelectorAll('.pestanas button')].find(x => /glosas/i.test(x.textContent));
+    /* LA TIRA DEL CANTO, no la primera que haya. Hay DOS: una en #canto —la
+       que abre— y otra dentro de #etiquetas, que es la que cambia de pestaña
+       con el panel ya puesto. La del panel se queda en el documento cuando
+       se cierra, y va ANTES en orden, asi que a la segunda vuelta el
+       querySelectorAll suelto cogia esa y el clic no abria nada: la lista
+       seguia siendo la de antes y la glosa nueva no salia. */
+    const t = [...document.querySelectorAll('#canto .pestanas button')]
+                .find(x => /glosas/i.test(x.textContent));
     if (t) t.click();
     await new Promise(z => setTimeout(z, 900));
   });

@@ -456,11 +456,20 @@ window.__glosarEn = async (v, ini, fin) => {
   const miK = v && v.dataset ? v.dataset.k : null;
   const enOrden = miK != null && ks.includes(miK)
     ? [miK, ...ks.filter(x => x !== miK)] : ks;
-  let panelDeOtra = false, corto = 0;
+  let panelDeOtra = false, corto = 0, fuera = 0;
   for (const k of enOrden){
     for (let d = 0; d < 400; d += ancho + 4){
       const vv = document.querySelector('#pgBody .v[data-k="' + k + '"]');
       if (!vv) break;
+      /* SOLO LO QUE SE VE. La hoja es de columnas: los versiculos que no
+         caben pasan a la siguiente y se quedan en el documento, fuera de la
+         ventana. Pintarlos es apoyar el dedo donde no hay pantalla, y
+         elementFromPoint devuelve null. Medido con una nota larguisima al
+         pie: la pagina se queda con CERO versiculos y el primero aparece en
+         x=411 de una ventana de 412. */
+      const cv = vv.getBoundingClientRect();
+      if (cv.right <= 0 || cv.left >= innerWidth ||
+          cv.bottom <= 0 || cv.top >= innerHeight){ fuera++; break; }
       const donde = await window.__pintarEn(vv, ini + d, fin + d);
       if (donde){
         const abrio = await window.__tocarLoPintado(donde);
@@ -507,7 +516,7 @@ window.__glosarEn = async (v, ini, fin) => {
   }
   window.__pincelPorque =
     'no se encontro texto libre donde pintar: ' + enOrden.length + ' versiculos probados, ' +
-    corto + ' se acabaron antes' +
+    corto + ' se acabaron antes, ' + fuera + ' estaban fuera de la ventana' +
     (panelDeOtra ? ', alguno abrio una marca ya hecha' : ', ninguno tenia marca debajo') +
     '; encima del texto hay ' + debajo +
     '; capas abiertas: ' + (window.__capasAbiertas().join(',') || 'ninguna');
