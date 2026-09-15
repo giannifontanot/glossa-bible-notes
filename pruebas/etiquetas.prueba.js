@@ -475,17 +475,34 @@ const FUERA = `async () => {
     return r;
   }));
 
-  titulo('abrir la lista mueve el panel, no lo teletransporta');
-  /* EL PANEL CUELGA DE UN `top` QUE DEPENDE DE SU PROPIO ALTO, así que abrir
-     la lista lo recoloca. Casi siempre es un empujón corto hacia arriba; pero
-     colocarMenu tiene un escalón —si arriba ya no cabe, el panel se pasa
-     DEBAJO del pasaje— y ese escalón no tiene cuadros que enseñar: el panel
-     aparecía 300px más abajo de un cuadro para el siguiente.
+  titulo('abrir la lista NO mueve el panel');
+  /* ESTE BLOQUE AFIRMABA LO CONTRARIO, Y CAMBIÓ CON LA FUNCIÓN.
 
-     Se recorre la hoja ENTERA y no un pasaje elegido, porque el salto depende
-     de a qué altura caiga el pasaje: con uno solo, la prueba pasaría o
-     fallaría según qué versículo tocara ese día. Lo que se mide es el paso
-     más largo que da el panel entre dos cuadros seguidos. */
+     Cuando el panel salía pegado al pasaje, su `top` dependía de su propio
+     alto: abrir la lista lo estiraba y colocarMenu tenía que recolocarlo,
+     casi siempre un empujón corto hacia arriba. Y había un escalón —si arriba
+     ya no cabía, el panel se pasaba DEBAJO del pasaje— que no tenía cuadros
+     que enseñar: aparecía 309 px más abajo de un cuadro para el siguiente.
+     Eso es lo que este bloque vigilaba, y por eso terminaba exigiendo que
+     ALGÚN pasaje hiciera al panel cambiarse de lado: sin eso, la comprobación
+     del salto pasaba sin haber mirado nada.
+
+     Ahora el panel sale clavado casi arriba, así que la lista lo estira hacia
+     ABAJO y el filo de arriba se queda donde está. Medido en los catorce
+     pasajes de la hoja: 0 mueven el panel, donde antes lo movían nueve. O sea
+     que la premisa de aquella última comprobación ya no se puede cumplir
+     nunca, y una prueba que exige lo que el programa dejó de hacer a propósito
+     es peor que no tenerla: enseña a ignorar el rojo.
+
+     Así que se le da la vuelta y se afirma lo que pasa —el panel no se mueve—,
+     conservando la vigilancia del teletransporte, que sigue teniendo sentido:
+     el escalón NO se ha quitado del programa, queda para cuando el panel
+     estirado no quepa de arriba abajo, y si alguna vez vuelve a dispararse
+     aquí, tiene que ser sin saltos.
+
+     Se recorre la hoja ENTERA y no un pasaje elegido, porque lo que hiciera el
+     panel dependía de a qué altura cayera el pasaje: con uno solo, la prueba
+     diría una cosa u otra según qué versículo tocara ese día. */
   const saltos = await p.evaluate(async () => {
     const menu = document.getElementById('menu');
     const filas = [];
@@ -536,10 +553,15 @@ const FUERA = `async () => {
      y lo que esta prueba tiene que cazar es el teletransporte —309px—, no una
      décima de diferencia. */
   vale('ningún cuadro da un salto', peor.paso < 80, peor.paso + 'px en el peor');
-  /* Y que el caso feo se haya probado de verdad: si ningún pasaje obliga al
-     panel a cambiarse de lado, lo de arriba pasa sin haber mirado nada. */
-  vale('  y alguno cambia de lado', masLejos.recorrido > 150,
-       masLejos.recorrido + 'px de recorrido');
+  /* LO QUE ESTE BLOQUE VIGILA AHORA: que el panel se quede. El margen sale del
+     ruido medido y no de lo que parezca razonable —el redondeo de un `top`
+     fraccionario puede dar un píxel—, pero por encima de eso cualquier
+     recorrido significa que el panel ha vuelto a perseguir al pasaje. */
+  vale('el panel se queda donde estaba', masLejos.recorrido <= 2,
+       'el viaje más largo de los ' + saltos.length + ': ' + masLejos.recorrido + 'px');
+  vale('  y no es uno solo: ninguno se mueve',
+       saltos.every(f => f.recorrido <= 2),
+       saltos.filter(f => f.recorrido > 2).length + ' de ' + saltos.length + ' se movieron');
 
   await cerrar(sesion);
 })();

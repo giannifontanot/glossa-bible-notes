@@ -3911,7 +3911,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '14-SEP-26 15:15';
+window.GLOSS_BUILD = '14-SEP-26 19:07';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -6783,6 +6783,31 @@ const MENU_ARRIBA = 10;
    apartarlo mañana. Se guarda el desvío y no la posición, para que siga
    valiendo cuando cambie el tamaño de la pantalla. */
 let menuDesvio = { x: 0, y: 0 };
+/* EN EL TELÉFONO EL PANEL SOLO SUBE Y BAJA, Y NO ES UNA LIMITACIÓN: ES QUE
+   DE LADO NO HAY ADÓNDE IR.
+
+   Se puso que se moviera en las dos direcciones sin mirar cuánto sitio había.
+   Medido en los tres contextos de las pruebas, con el panel abierto:
+
+       teléfono  412x915 → el panel mide 379 de ancho →  15 px a cada lado
+       estrecho  390x844 → el panel mide 359 de ancho →  14 px a cada lado
+       escritorio        → el panel mide 159 de ancho → 229 px a cada lado
+
+   O sea que en un teléfono el panel ya ocupa el ancho entero y los 15 px que
+   sobran no apartan nada de nada; lo vertical, en cambio, son 598. Dejar el
+   eje horizontal suelto ahí solo servía para tres estorbos: el panel se
+   descentraba sin motivo, las flechas izquierda y derecha dejaban de pasar
+   hoja para mover un panel que no se movía, y el redondeo del centro lo hacía
+   derivar un píxel por viaje.
+
+   El umbral se saca de esa medida y no de una anchura de pantalla: 40 px cae
+   en medio del abismo entre 15 y 229, así que la regla se cumple sola en
+   cualquier aparato sin tener que saber cuál es. Un móvil apaisado con sitio
+   de verdad lo recupera sin que nadie lo declare. */
+const MENU_LADO_MINIMO = 40;
+function deLadoSePuede(w, s){
+  return (s.width - w) / 2 >= MENU_LADO_MINIMO;
+}
 function sitioDelMenu(w, h, r, s){
   /* EL PANEL DE LA GLOSA YA NO PERSIGUE AL PASAJE. Iba pegado encima de lo
      señalado, y saltaba de arriba abajo del pasaje según dónde cupiera: el
@@ -6792,7 +6817,7 @@ function sitioDelMenu(w, h, r, s){
      La lista de «citado desde» no: ésa sí es un bocadillo de su botón y tiene
      a qué apuntar. */
   if (borrador){
-    const x = (s.width - w) / 2 + menuDesvio.x;
+    const x = (s.width - w) / 2 + (deLadoSePuede(w, s) ? menuDesvio.x : 0);
     const y = MENU_ARRIBA + menuDesvio.y;
     return { x: Math.round(Math.min(Math.max(x, 2), Math.max(2, s.width - w - 2))),
              y: Math.round(Math.min(Math.max(y, 2), Math.max(2, s.height - h - 2))) };
@@ -6819,14 +6844,22 @@ function sitioDelMenu(w, h, r, s){
      puede ser más que el alto de la pantalla, o sea nunca—. Lo levantó la
      revisión de Codex.
      Se lee el sitio de verdad y se convierte a desvío, que es exactamente lo
-     mismo que ya se hacía al soltar. */
+     mismo que ya se hacía al soltar.
+
+     Y SIN REDONDEAR, que es lo que parecía inofensivo y no lo era. El centro
+     de la pantalla cae a menudo en medio píxel, así que redondear aquí tira
+     esa mitad; colocarMenu vuelve a redondear al colocar, y entre las dos se
+     pierde un píxel en cada viaje. Medido con el teclado: derecha sumaba 14 e
+     izquierda restaba 13, o sea que ir y volver dejaba el panel un píxel más a
+     la derecha cada vez. Dejando la fracción en el desvío, colocarMenu
+     redondea una sola vez y la ida y la vuelta cierran exactas. */
   function desvioDeVerdad(){
     const s = stage.getBoundingClientRect();
-    const w = menu.offsetWidth, h = menu.offsetHeight;
+    const w = menu.offsetWidth;
     const izq = parseFloat(menu.style.left), arr = parseFloat(menu.style.top);
     if (!Number.isFinite(izq) || !Number.isFinite(arr)) return { ...menuDesvio };
-    return { x: Math.round(izq - (s.width - w) / 2),
-             y: Math.round(arr - MENU_ARRIBA) };
+    return { x: izq - (s.width - w) / 2,
+             y: arr - MENU_ARRIBA };
   }
   let gesto = null;
   menu.addEventListener('pointerdown', ev => {
@@ -6840,21 +6873,40 @@ function sitioDelMenu(w, h, r, s){
   });
   /* CON EL TECLADO: las flechas lo mueven y Inicio lo devuelve a su sitio. El
      paso de 14 px es el que hace falta para que apartar el panel de un pasaje
-     no cueste treinta pulsaciones, y bastante fino para colocarlo. */
+     no cueste treinta pulsaciones, y bastante fino para colocarlo.
+
+     Y LA TECLA SE QUEDA AQUÍ, QUE ES LA MITAD DEL ARREGLO. Las flechas pasan
+     hoja desde un oyente puesto en el documento, y ese se retira solo cuando
+     estás escribiendo —mira INPUT, TEXTAREA y SELECT—. La manija es un BUTTON,
+     o sea que no entraba en esa lista: con la manija enfocada, cada flecha
+     movía el panel Y pasaba la hoja detrás. Medido antes de creérselo, con el
+     control delante —con el panel cerrado las flechas TIENEN que pasar hoja, y
+     pasan: 0 → 14 → 0—; con la manija enfocada, 0 → 14 otra vez. O sea que el
+     arreglo de accesibilidad le rompía la navegación justo a quien venía a
+     ayudar, que es la peor manera de romperla.
+     preventDefault no bastaba: eso le habla al navegador, no al otro oyente.
+     El que corta la subida es stopPropagation, y solo para las teclas que esta
+     manija se queda; las demás siguen su camino como si nada. */
   const PASO = 14;
   menu.addEventListener('keydown', ev => {
     if (!ev.target.closest || !ev.target.closest('[data-manija]')) return;
     const teclas = { ArrowLeft:[-PASO,0], ArrowRight:[PASO,0],
                      ArrowUp:[0,-PASO], ArrowDown:[0,PASO] };
     if (ev.key === 'Home'){
-      ev.preventDefault();
+      ev.preventDefault(); ev.stopPropagation();
       menuDesvio = { x:0, y:0 };
       colocarMenu(); guardarAjustes();
       return;
     }
     const d = teclas[ev.key];
     if (!d) return;
-    ev.preventDefault();
+    /* Y SI DE LADO NO HAY ADÓNDE IR, IZQUIERDA Y DERECHA NO SON NUESTRAS: se
+       dejan subir para que sigan pasando hoja, que es lo que hacen en todo el
+       resto del programa. Quedárselas para no mover nada sería lo peor de los
+       dos mundos —ni mueve el panel ni pasa la hoja—. */
+    const s = stage.getBoundingClientRect();
+    if (d[0] && !deLadoSePuede(menu.offsetWidth, s)) return;
+    ev.preventDefault(); ev.stopPropagation();
     const base = desvioDeVerdad();
     menuDesvio = { x: base.x + d[0], y: base.y + d[1] };
     colocarMenu();
@@ -6863,7 +6915,11 @@ function sitioDelMenu(w, h, r, s){
   menu.addEventListener('pointermove', ev => {
     if (!gesto || ev.pointerId !== gesto.id) return;
     ev.preventDefault();
-    menuDesvio = { x: gesto.x0 + (ev.clientX - gesto.x),
+    /* El dedo se mueve en diagonal siempre —una línea recta no es un dedo—,
+       así que sin este recorte un arrastre para bajar el panel lo dejaba
+       además descentrado unos píxeles, sin que nadie lo hubiera pedido. */
+    const puedo = deLadoSePuede(menu.offsetWidth, stage.getBoundingClientRect());
+    menuDesvio = { x: puedo ? gesto.x0 + (ev.clientX - gesto.x) : 0,
                    y: gesto.y0 + (ev.clientY - gesto.y) };
     colocarMenu();
   });
@@ -6876,9 +6932,9 @@ function sitioDelMenu(w, h, r, s){
        próxima vez que cambiara de tamaño. Se lee el sitio que de verdad ocupa
        y se guarda la diferencia. */
     const s = stage.getBoundingClientRect();
-    const w = menu.offsetWidth, h = menu.offsetHeight;
-    menuDesvio = { x: Math.round(parseFloat(menu.style.left || 0) - (s.width - w) / 2),
-                   y: Math.round(parseFloat(menu.style.top || 0) - MENU_ARRIBA) };
+    const w = menu.offsetWidth;
+    menuDesvio = { x: deLadoSePuede(w, s) ? parseFloat(menu.style.left || 0) - (s.width - w) / 2 : 0,
+                   y: parseFloat(menu.style.top || 0) - MENU_ARRIBA };
     if (typeof guardarAjustes === 'function') guardarAjustes();
   };
   menu.addEventListener('pointerup', soltar);
