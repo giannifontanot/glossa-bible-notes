@@ -2023,7 +2023,7 @@ async function andamio(p){
   vale('el filo sigue pasando hoja', juntos.traPasar !== juntos.antes,
        juntos.antes + '  →  ' + juntos.traPasar);
   vale('y el pliegue devuelve la hoja entera', juntos.vuelta === juntos.antes, juntos.vuelta);
-  vale('la glosa se sigue abriendo al seleccionar', juntos.panel === true);
+  vale('la glosa se sigue abriendo al pintar con el dedo', juntos.panel === true);
   vale('y se guarda', juntos.creo === 1, juntos.creo);
   vale('con la piedra todavía en su sitio', juntos.sigue === true);
 
