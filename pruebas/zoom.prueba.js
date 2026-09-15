@@ -348,15 +348,9 @@ const comoVan = r => {
     const cuantas = () => JSON.parse(localStorage.getItem(clave) || '[]').length;
     const antes = cuantas();
     const v = document.querySelector('#pgBody .v');
-    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 20){ n = w.currentNode; break; }
-    if (!n) return { sinTexto:true };
-    const rg = document.createRange(); rg.setStart(n, 0); rg.setEnd(n, 14);
-    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rg);
-    const rc = rg.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX:Math.round(rc.left + 2), clientY:Math.round(rc.top + 2) }));
-    await new Promise(z => setTimeout(z, 500));
+    /* Se pinta con el dedo, que es como se glosa desde que el pasaje no se
+       selecciona. El pincel lo pone el andamio: ver PINCEL en comun.js. */
+    if (!await window.__glosarEn(v, 0, 14)) return { sinTexto:true, porque: window.__pincelPorque };
     const menu = document.getElementById('menu');
     const salio = getComputedStyle(menu).display !== 'none' && menu.textContent.trim().length > 0;
     /* Toda marca es una glosa: se escribe la nota y se toca fuera, que es lo

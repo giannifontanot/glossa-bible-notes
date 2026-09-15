@@ -20,25 +20,58 @@
    fallo. */
 const { abrir, cerrar, di, vale, titulo } = require('./comun');
 
-/* Abrir el panel sobre un tramo del primer versículo y dejar una nota escrita:
-   sin nota las etiquetas duermen, porque sin nota no se guarda nada y una
-   etiqueta puesta ahí se perdería al cerrar. */
+/* Abrir el panel sobre un tramo SIN ETIQUETAS PUESTAS y dejar una nota
+   escrita: sin nota las etiquetas duermen, porque sin nota no se guarda nada
+   y una etiqueta puesta ahí se perdería al cerrar.
+
+   Y LO DE «SIN ETIQUETAS PUESTAS» ES NUEVO, porque cambió el gesto. Con la
+   selección, señalar encima de una marca que ya existía creaba OTRA que se
+   llevaba la de debajo por delante, así que cada bloque podía pedir el tramo
+   que quisiera y recibía siempre un panel limpio. Pintando no: el dedo sobre
+   una marca hecha la ABRE, que es lo que tiene que hacer. Así que un bloque
+   que pide (16,30) después de que otro dejara «reino» en (16,28) recibe el
+   panel de aquella glosa, con su etiqueta encendida — y entonces «no se
+   aplica sola» sale en rojo diciendo ["reino"], que es verdad y no es el
+   fallo que vigila.
+
+   No se arregla repartiendo tramos a mano entre los bloques —eso se descuadra
+   en cuanto alguien añade uno—, sino pidiendo lo que de verdad hace falta:
+   un panel sin etiquetas encendidas. Si el primer versículo ya está ocupado,
+   se prueba el siguiente. */
 const ABRIR = `async (desde, hasta, nota) => {
-  const v = document.querySelector('#pgBody .v');
-  const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-  while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-  if (!n) return false;
-  const r = document.createRange(); r.setStart(n,desde); r.setEnd(n,hasta);
-  getSelection().removeAllRanges(); getSelection().addRange(r);
-  const rc = r.getBoundingClientRect();
-  document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-    { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-  await new Promise(z => setTimeout(z, 450));
-  const ta = document.getElementById('glosaCaja');
-  if (!ta) return false;
-  ta.value = nota; ta.dispatchEvent(new Event('input', { bubbles:true }));
-  await new Promise(z => setTimeout(z, 120));
-  return !document.querySelector('#menu .tagbox').classList.contains('dormida');
+  const escribir = async () => {
+    const ta = document.getElementById('glosaCaja');
+    if (!ta) return false;
+    ta.value = nota; ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 120));
+    const caja = document.querySelector('#menu .tagbox');
+    return !!caja && !caja.classList.contains('dormida');
+  };
+  const cerrar = async () => {
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await new Promise(z => setTimeout(z, 450));
+  };
+  /* SE PRUEBAN VARIOS TRAMOS DENTRO DE CADA VERSICULO, no uno por versiculo.
+
+     Con uno por versiculo, cada bloque que pasa consume el suyo y la hoja se
+     acaba: este fichero llama aqui una docena de veces y la hoja tiene
+     catorce versiculos, algunos demasiado cortos. El quinto nombre raro se
+     quedaba ya sin sitio y devolvia false, y el bloque decia «sinPanel».
+     Pero un versiculo mide entre 88 y 245 letras, o sea que caben de sobra
+     varias marcas: se corre el tramo a lo largo del versiculo antes de pasar
+     al siguiente. Cuando el tramo ya no cabe, el pincel devuelve falso solo y
+     se pasa al de al lado. */
+  const ancho = hasta - desde;
+  for (const v of [...document.querySelectorAll('#pgBody .v')]){
+    for (let d = 0; d < 400; d += ancho + 4){
+      /* con el dedo: ver PINCEL en comun.js */
+      if (!await window.__glosarEn(v, desde + d, hasta + d)) break;
+      if (!document.querySelector('#menu .tg.on')) return escribir();
+      await cerrar();
+    }
+  }
+  return false;
 }`;
 const FUERA = `async () => {
   document.body.dispatchEvent(new PointerEvent('pointerdown',
@@ -61,14 +94,7 @@ const FUERA = `async () => {
   titulo('las etiquetas duermen mientras no haya nota');
   di('panel recién abierto', await p.evaluate(async ([abrir, fuera]) => {
     const v = document.querySelector('#pgBody .v');
-    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-    const r = document.createRange(); r.setStart(n,0); r.setEnd(n,12);
-    getSelection().removeAllRanges(); getSelection().addRange(r);
-    const rc = r.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-    await new Promise(z => setTimeout(z, 450));
+    await window.__glosarEn(v, 0, 12);
     const caja = document.querySelector('#menu .tagbox');
     const dormida = caja.classList.contains('dormida');
     const puntero = getComputedStyle(caja).pointerEvents;
@@ -301,8 +327,14 @@ const FUERA = `async () => {
       await new Promise(z => setTimeout(z, 350));
       /* y se puede volver a tocar: si el nombre no sobrevivió al atributo, el
          chip existe pero no se encuentra por su data-tag */
-      const chip = document.querySelector('#menu .tg.on');
-      const seEncuentra = !!chip && chip.dataset.tag === raro;
+      /* SE BUSCA POR SU NOMBRE, no «el primero encendido». Lo que este bloque
+         vigila es que el nombre sobreviva al viaje por el atributo, y coger el
+         primer chip encendido da por hecho que no hay otro — cosa que dejó de
+         ser cierta en cuanto el panel puede venir de una glosa con etiquetas
+         ya puestas. */
+      const chip = [...document.querySelectorAll('#menu .tg')]
+        .find(b => b.dataset.tag === raro);
+      const seEncuentra = !!chip && chip.classList.contains('on');
       /* volver a crearla NO puede sacar un segundo chip: es la mitad
          silenciosa del fallo del selector */
       const i2 = document.getElementById('tagNueva');
@@ -512,15 +544,7 @@ const FUERA = `async () => {
         { bubbles:true, clientX:5, clientY:5 }));
       await new Promise(z => setTimeout(z, 700));
       const v = document.querySelectorAll('#pgBody .v')[k]; if (!v) continue;
-      const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let t = null;
-      while (w.nextNode()) if (w.currentNode.textContent.trim().length > 40){ t = w.currentNode; break; }
-      if (!t) continue;
-      const rg = document.createRange(); rg.setStart(t, 5); rg.setEnd(t, 25);
-      getSelection().removeAllRanges(); getSelection().addRange(rg);
-      const rc = rg.getBoundingClientRect();
-      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-        { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-      await new Promise(z => setTimeout(z, 500));
+      if (!await window.__glosarEn(v, 5, 25)) continue;
       const ta = document.getElementById('glosaCaja'); if (!ta) continue;
       ta.value = 'una nota cualquiera';
       ta.dispatchEvent(new Event('input', { bubbles:true }));

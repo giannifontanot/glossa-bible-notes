@@ -532,30 +532,33 @@ async function ponerContraste(pagina, pct){
 
   /* ---------- el texto se sigue pudiendo agarrar ---------- */
   titulo('un filtro no convierte la hoja en una estampa');
+  /* ESTE BLOQUE AFIRMABA QUE EL TEXTO SE PODÍA SELECCIONAR, y ya no puede: el
+     pasaje se glosa pintándolo con el dedo y user-select:none es a propósito,
+     no un descuido. Pero lo que este bloque vigilaba de verdad sigue haciendo
+     falta, y es otra cosa: que un filtro no convierta la hoja en una estampa
+     que se mira y no se toca. Apagar pointer-events es la manera fácil de
+     «arreglar» un filtro que estorba, y sería un desastre.
+     Así que la pregunta cambia de sitio: en vez de la selección, se pinta una
+     glosa de verdad con el filtro al 200 %, que es el gesto que este programa
+     necesita que siga funcionando ahí. */
   const seleccion = await pagina.evaluate(async () => {
     const r = document.getElementById('contraste');
     r.value = '200'; r.dispatchEvent(new Event('input', { bubbles:true }));
     await new Promise(z => setTimeout(z, 150));
     const v = document.querySelector('#pgBody .v');
     if (!v) return { falta:'un versículo' };
-    const rg = document.createRange();
-    rg.selectNodeContents(v);
-    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rg);
+    const abrio = await window.__glosarEn(v, 0, 16);
     const cs = getComputedStyle(v);
-    return { texto: String(sel).slice(0, 28),
-             /* si alguien hubiera apagado la selección para "proteger" el
-                filtro, se vería aquí */
-             seleccionable: cs.userSelect !== 'none' &&
-                            cs.webkitUserSelect !== 'none',
-             /* y la hoja tiene que seguir recibiendo el dedo: un filtro no
-                cambia pointer-events, pero apagarlo es la manera fácil de
-                "arreglar" un filtro que estorba, y sería un desastre */
+    return { abrio,
+             /* y que sea a propósito, no un filtro que se comió el texto */
+             sinSeleccion: cs.userSelect === 'none' ||
+                           cs.webkitUserSelect === 'none',
              recibeElDedo: getComputedStyle(document.getElementById('pg'))
                              .pointerEvents !== 'none' };
   });
-  di('seleccionando a 200%', seleccion);
-  vale('se puede seleccionar texto', (seleccion.texto || '').length > 3, seleccion.texto);
-  vale('nadie apagó user-select', seleccion.seleccionable === true);
+  di('glosando a 200%', seleccion);
+  vale('SE PUEDE GLOSAR CON EL FILTRO PUESTO', seleccion.abrio === true, seleccion.abrio);
+  vale('y el pasaje no se selecciona, que es lo pedido', seleccion.sinSeleccion === true);
   vale('y la hoja sigue recibiendo el dedo', seleccion.recibeElDedo === true);
 
   /* ---------- el brillo, y que los tres no se pisen ---------- */

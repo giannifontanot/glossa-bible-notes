@@ -13,23 +13,27 @@
    Y una tercera que no se ve pero se rompe sola: poner una etiqueta NO puede
    repintar el panel, porque el panel lleva dentro la caja de escribir y
    repintarlo se llevaría por delante el foco, el cursor y lo escrito. */
-const { abrir, listo, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
+const { abrir, otraPagina, listo, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
         APP, TELEFONO } = require('./comun');
 
 /* Abrir el panel sobre las primeras letras de un versículo, como lo abre un
-   dedo: se selecciona y se suelta encima. */
+   dedo: se PINTA y se toca encima. Se seleccionaba, y ya no se puede —el
+   pasaje lleva user-select:none desde que se glosa pintando—; el pincel lo
+   pone el andamio, ver PINCEL en comun.js. */
 const ABRIR = `async (desde = 0, hasta = 15) => {
-  const v = document.querySelector('#pgBody .v');
-  const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-  while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-  if (!n) return null;
-  const r = document.createRange(); r.setStart(n,desde); r.setEnd(n,hasta);
-  getSelection().removeAllRanges(); getSelection().addRange(r);
-  const rc = r.getBoundingClientRect();
-  document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-    { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-  await new Promise(z => setTimeout(z, 400));
-  return true;
+  /* LA BUSQUEDA DE SITIO VIVE EN __glosarEn, no aqui.
+
+     Este fichero llama decenas de veces con tramos fijos del PRIMER
+     versiculo, y cada llamada deja una marca: al rato el tramo pedido ya
+     esta marcado, y sobre una marca hecha el dedo no pinta —la abre—. Se
+     parcheo primero aqui, y luego en el ABRIR de etiquetas, y cada tanda
+     destapaba otra llamada sin parche; ahora lo hace el andamio para todas.
+
+     Y el bucle de aqui estorbaba ademas de sobrar: pisaba el
+     __pincelPorque que deja __glosarEn con el motivo de verdad, y lo
+     cambiaba por el de la ultima vuelta —siempre «el versiculo no tiene un
+     nodo de mas de 800 letras»—, que es cierto y no explica nada. */
+  return await window.__glosarEn(document.querySelector('#pgBody .v'), desde, hasta) || null;
 }`;
 /* Tocar fuera: el gesto que cobra lo escrito y cierra. */
 const FUERA = `async () => {
@@ -85,213 +89,60 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   const p = sesion.pagina;
 
   /* ================================================================
-     LA SELECCIÓN QUE LLEGA TARDE, que es como llega en el teléfono.
+     AQUÍ VIVÍAN TRES BLOQUES DE LA SELECCIÓN, y se van con ella.
 
-     En escritorio la selección ya existe cuando se suelta el ratón, y el
-     gesto la lee ahí mismo. En Android no: el sistema termina de armarla
-     DESPUÉS del pointerup —es cuando salen los tiradores— así que al
-     preguntar no hay nada y el gesto se va de vacío. El lector hace entonces
-     lo natural, tocar lo que acaba de seleccionar para confirmarlo, y ese
-     toque la deshace antes de que nadie la lea.
+     Probaban la memoria de la selección: que en el teléfono llega DESPUÉS del
+     pointerup —cuando salen los tiradores—, que el toque que la confirma la
+     deshace antes de que nadie la lea, y que un toque lejos de lo señalado no
+     inventa ninguna marca. Todo eso sostenía un camino que ya no existe: el
+     texto no se selecciona y quien marca es el dedo.
 
-     Medido con el código anterior: seleccionabas, tocabas, se abría una caja
-     —la de otra glosa, o ninguna— y lo seleccionado no se guardaba nunca.
-
-     Se prueba en ese orden exacto, con el pointerup ANTES de la selección,
-     porque el orden es el fallo. */
-  titulo('seleccionar en el teléfono: la selección llega tras soltar');
-  const tarde = await p.evaluate(async () => {
-    const pausa = ms => new Promise(z => setTimeout(z, ms));
-    const lee = () => { try { return JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]'); }
-                        catch(e){ return []; } };
-    const base = lee().length;
-    const v = document.querySelectorAll('#pgBody .v')[3];
-    const t = [...v.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim().length > 25);
-    if (!t) return { error:'sin versículo largo' };
-    const rg = document.createRange(); rg.setStart(t, 2); rg.setEnd(t, 18);
-    const c = rg.getBoundingClientRect();
-    const x0 = c.left + 2, x1 = c.right - 2, y = c.top + c.height/2, mx = (x0 + x1)/2;
-    const op = (id, x) => ({ bubbles:true, pointerId:id, pointerType:'touch',
-                             isPrimary:true, clientX:x, clientY:y });
-    /* El arrastre suelta SIN selección todavía. */
-    v.dispatchEvent(new PointerEvent('pointerdown', op(70, x0)));
-    v.dispatchEvent(new PointerEvent('pointermove', op(70, x1)));
-    v.dispatchEvent(new PointerEvent('pointerup',   op(70, x1)));
-    await pausa(150);
-    /* Y ahora sí la pone el sistema. */
-    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rg);
-    const texto = sel.toString();
-    await pausa(300);
-    const trasSoltar = { panel: getComputedStyle(document.getElementById('menu')).display,
-                         guardadas: lee().length };
-    /* El toque de confirmar, encima de lo seleccionado. Y LA SELECCIÓN SE
-       DESHACE EN MEDIO, entre el pointerdown y el pointerup, que es lo que
-       hace el navegador de verdad y lo que rompía el guardado. Un
-       PointerEvent despachado a mano no trae la acción por defecto que la
-       deshace, así que sin esta línea la selección seguiría puesta al
-       preguntar: el programa tomaría el camino de siempre —el del
-       arrastre— y esta prueba pasaría en verde aunque el arreglo no
-       existiera. */
-    const el = document.elementFromPoint(mx, y);
-    el.dispatchEvent(new PointerEvent('pointerdown', op(71, mx)));
-    await pausa(30);
-    getSelection().removeAllRanges();
-    await pausa(60);
-    const deshecha = getSelection().toString();
-    el.dispatchEvent(new PointerEvent('pointerup', op(71, mx)));
-    await pausa(450);
-    const caja = document.getElementById('glosaCaja');
-    const abrio = !!caja;
-    if (caja){
-      caja.value = 'lo que seleccioné';
-      caja.dispatchEvent(new Event('input', { bubbles:true }));
-      await pausa(200);
-      document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
-      await pausa(700);
-    }
-    const puesta = lee().find(m => (m.nota||'') === 'lo que seleccioné') || null;
-    return { base, texto, deshecha, trasSoltar, abrio, puesta, verso: t.nodeValue,
-             guardadas: lee().length };
-  });
-  di('lo seleccionado', tarde.texto);
-  di('la glosa que quedó', tarde.puesta && tarde.puesta.cita);
-  vale('y al tocar ya no había selección', tarde.deshecha === '',
-       '«' + tarde.deshecha + '»');
-  vale('el toque abre la caja', tarde.abrio);
-  vale('y lo escrito se guarda', tarde.guardadas === tarde.base + 1,
-       tarde.base + ' → ' + tarde.guardadas);
-  vale('SOBRE LO QUE SE HABÍA SELECCIONADO, y cerrando en palabra',
-       cubreYCierraEnPalabra(tarde.puesta, tarde.texto, tarde.verso),
-       (tarde.puesta && tarde.puesta.cita) + '  contra lo pedido  ' + tarde.texto);
-
-  /* ================================================================
-     EL TOQUE QUE NO TRAE POINTERDOWN, que es el del teléfono de verdad.
-
-     Cuando tocas encima de lo que acabas de seleccionar, el toque se lo queda
-     la capa de la selección —los tiradores, el menú de copiar—: el
-     pointerdown no llega a la hoja, y a la hoja solo le consta que la
-     selección se deshizo y que hubo un soltar. Todo arreglo que se apoye en
-     ver bajar el dedo se cae justo aquí, y no se nota en las pruebas porque
-     un PointerEvent despachado a mano SIEMPRE llega.
-
-     Así que este bloque manda el soltar A SOLAS, sin pointerdown ninguno.
-     Es la prueba que le faltaba al arreglo: si mañana el olvido vuelve a
-     colgarse de ver el gesto entero, esto se pone rojo. */
-  titulo('en el teléfono el toque llega sin pointerdown, y aun así guarda');
-  const sinBajada = await p.evaluate(async () => {
-    const pausa = ms => new Promise(z => setTimeout(z, ms));
-    const lee = () => { try { return JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]'); }
-                        catch(e){ return []; } };
-    const base = lee().length;
-    const v = document.querySelectorAll('#pgBody .v')[2];
-    const t = [...v.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim().length > 25);
-    if (!t) return { error:'sin versículo largo' };
-    const rg = document.createRange(); rg.setStart(t, 3); rg.setEnd(t, 19);
-    const c = rg.getBoundingClientRect();
-    const mx = Math.round(c.left + c.width/2), my = Math.round(c.top + c.height/2);
-    /* La selección aparece tarde, como en Android. */
-    getSelection().removeAllRanges(); getSelection().addRange(rg);
-    const texto = getSelection().toString();
-    await pausa(300);
-    /* Y ahora el toque de confirmar: la selección se deshace y SOLO llega el
-       soltar. Ni un pointerdown. */
-    getSelection().removeAllRanges();
-    await pausa(60);
-    const el = document.elementFromPoint(mx, my) || v;
-    el.dispatchEvent(new PointerEvent('pointerup', { bubbles:true, pointerId:90,
-      pointerType:'touch', isPrimary:true, clientX:mx, clientY:my }));
-    await pausa(450);
-    const caja = document.getElementById('glosaCaja');
-    const abrio = !!caja;
-    if (caja){
-      caja.value = 'sin bajada';
-      caja.dispatchEvent(new Event('input', { bubbles:true }));
-      await pausa(200);
-      document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
-      await pausa(700);
-    }
-    const puesta = lee().find(m => (m.nota||'') === 'sin bajada') || null;
-    return { base, texto, abrio, puesta, verso: t.nodeValue, guardadas: lee().length };
-  });
-  di('lo seleccionado', sinBajada.texto);
-  vale('el soltar a solas abre la caja', sinBajada.abrio);
-  vale('y guarda lo que se había seleccionado, cerrando en palabra',
-       cubreYCierraEnPalabra(sinBajada.puesta, sinBajada.texto, sinBajada.verso),
-       (sinBajada.puesta && sinBajada.puesta.cita) + '  contra lo pedido  ' + sinBajada.texto);
-
-  titulo('y un toque lejos de lo seleccionado no inventa nada');
-  /* La otra mitad: la selección recordada solo vale para el toque que cae
-     ENCIMA de ella. Tocar en otro sitio sigue queriendo decir lo de siempre. */
+     De los tres, el tercero sí decía algo que sigue siendo verdad —señalar y
+     luego tocar en otra parte no crea nada—, así que ése se queda, traducido
+     al trazo. Los otros dos se van enteros: una prueba que vigila código
+     borrado no vigila nada, y leerla cuesta el mismo rato que leer una útil.
+     ================================================================ */
+  titulo('un toque lejos del trazo no inventa nada');
+  /* La otra mitad de lo pintado: el trazo solo se convierte en glosa si el
+     toque cae ENCIMA. Tocar en otro sitio quiere decir lo de siempre —nada—,
+     y además borra el trazo. */
   const lejos = await p.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     const lee = () => { try { return JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]'); }
                         catch(e){ return []; } };
     const base = lee().length;
-    const v = document.querySelectorAll('#pgBody .v')[5];
-    const t = [...v.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim().length > 25);
-    const rg = document.createRange(); rg.setStart(t, 2); rg.setEnd(t, 16);
+    const vs = [...document.querySelectorAll('#pgBody .v')];
+    const v = vs[5] || vs[vs.length-1];
+    const donde = await window.__pintarEn(v, 2, 20);
+    if (!donde) return { error:'no se pudo pintar' };
+    const trazo = () => {
+      const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+      if (h){ const r = [...h][0]; return r ? r.toString().length : 0; }
+      const e = document.querySelector('#pgBody .pintando');
+      return e ? e.textContent.length : 0;
+    };
+    const pintado = trazo();
+    /* LEJOS DE VERDAD: otro versículo, no unos píxeles al lado. Con holgura de
+       un dedo de por medio, «al lado» no prueba nada. */
+    const otro = vs[0] === v ? vs[1] : vs[0];
+    const w = document.createTreeWalker(otro, NodeFilter.SHOW_TEXT); let t = null;
+    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 20){ t = w.currentNode; break; }
+    if (!t) return { error:'sin otro versículo' };
+    const rg = document.createRange(); rg.setStart(t, 1); rg.setEnd(t, 2);
     const c = rg.getBoundingClientRect();
-    const op = (id, x, y) => ({ bubbles:true, pointerId:id, pointerType:'touch',
-                                isPrimary:true, clientX:x, clientY:y });
-    v.dispatchEvent(new PointerEvent('pointerup', op(80, c.right, c.top + c.height/2)));
-    await pausa(120);
-    getSelection().removeAllRanges(); getSelection().addRange(rg);
-    await pausa(300);
-    /* Un toque muy por debajo: otro versículo, lejos de lo marcado. Y la
-       selección se deshace en medio, como la deshace el navegador: sin eso
-       el programa vería una selección viva y estaría probándose el camino
-       del arrastre, que no es el de aquí. */
-    const otro = document.querySelectorAll('#pgBody .v')[9] ||
-                 document.querySelectorAll('#pgBody .v')[7];
-    const r2 = otro.getBoundingClientRect();
-    const x = Math.round(r2.left + r2.width/2), y = Math.round(r2.top + r2.height/2);
-    const el = document.elementFromPoint(x, y) || otro;
-    el.dispatchEvent(new PointerEvent('pointerdown', op(81, x, y)));
-    await pausa(30);
-    getSelection().removeAllRanges();
-    await pausa(60);
-    el.dispatchEvent(new PointerEvent('pointerup', op(81, x, y)));
-    await pausa(450);
-    const caja = document.getElementById('glosaCaja');
-    if (caja) document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
-    await pausa(500);
-    const trasElLejano = lee().length;
-    /* Y AHORA LA VUELTA: tocar OTRA VEZ, ya encima de lo que se había
-       seleccionado. El toque de antes fue una cancelación —el lector tocó en
-       otro sitio—, así que lo apuntado tiene que estar olvidado. Si
-       sobreviviera, este segundo toque abriría una glosa sobre unas palabras
-       que hace rato dejaron de estar seleccionadas: una marca que nadie
-       pidió. */
-    const c2 = rg.getBoundingClientRect();
-    const vx = Math.round(c2.left + c2.width/2), vy = Math.round(c2.top + c2.height/2);
-    const el2 = document.elementFromPoint(vx, vy) || v;
-    el2.dispatchEvent(new PointerEvent('pointerdown', op(82, vx, vy)));
-    await pausa(30);
-    el2.dispatchEvent(new PointerEvent('pointerup', op(82, vx, vy)));
-    await pausa(450);
-    const caja2 = document.getElementById('glosaCaja');
-    const abrioCaja = !!caja2;
-    if (caja2) document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
-    await pausa(500);
-    return { base, trasElLejano, abrioCaja, guardadas: lee().length };
+    const tocado = await window.__tocarLoPintado(
+      { x: Math.round(c.left + c.width/2), y: Math.round(c.top + c.height/2) });
+    await pausa(400);
+    return { base, pintado, tocado, despues: lee().length, quedaTrazo: trazo() };
   });
-  vale('no se guarda ninguna glosa nueva', lejos.trasElLejano === lejos.base,
-       lejos.base + ' → ' + lejos.trasElLejano);
-  vale('y volver a tocarla ya no la resucita', !lejos.abrioCaja &&
-       lejos.guardadas === lejos.base, lejos.base + ' → ' + lejos.guardadas +
-       (lejos.abrioCaja ? '  (¡abrió la caja!)' : ''));
+  di('el trazo y el toque lejos', JSON.stringify(lejos));
+  vale('el trazo se pintó', !lejos.error && lejos.pintado > 0,
+       lejos.error || (lejos.pintado + ' letras'));
+  vale('y un toque en otro versículo NO crea marca',
+       lejos.despues === lejos.base, lejos.base + ' → ' + lejos.despues);
+  vale('  y borra el trazo', lejos.quedaTrazo === 0, lejos.quedaTrazo + ' letras');
 
-  /* La otra manera de cancelar: el TECLADO. Se deshace una selección sin que
-     baje ningún dedo —una flecha, Escape, ponerse a escribir— y ahí el olvido
-     por gesto no llega. Sin esto, hacer clic más tarde donde estuvo la
-     selección sacaba una glosa sobre unas palabras que ya nadie tenía
-     marcadas. Lo levantó la revisión de Codex.
 
-     VA EN SU PROPIA PESTAÑA, y no por gusto: escrito sobre la página que
-     traen los bloques de arriba pasaba en verde INCLUSO CON EL FALLO PUESTO
-     —el estado acumulado se comía el gesto— mientras que en una página
-     limpia el fallo salía a la primera. Una prueba que no puede ver el fallo
-     que vigila no vigila nada. */
   /* ================================================================
      LA MARCA SE ESTIRA A LA PALABRA ENTERA.
 
@@ -307,27 +158,48 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      ================================================================ */
   titulo('la marca se estira a la palabra entera');
   {
-    const p4 = await sesion.navegador.newPage({ ...TELEFONO });
+    const p4 = await otraPagina(sesion.navegador);
     const fallos4 = [];
     p4.on('pageerror', e => fallos4.push(String(e).split('\n')[0]));
     await p4.goto(APP);
     await listo(p4);
 
-    const marcar = (desde, hasta, nota) => p4.evaluate(async ([d, h, nota]) => {
-      const pausa = ms => new Promise(z => setTimeout(z, ms));
-      let v = null, t = null;
-      for (const cand of document.querySelectorAll('#pgBody .v')){
-        const n = [...cand.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim().length > 60);
-        if (n){ v = cand; t = n; break; }
+    /* SE PIDE CON EL DEDO, no con una selección: es lo que hace el lector desde
+       que el texto no se selecciona. `pedido` sigue siendo el tramo EXACTO que
+       se señaló, sacado de un Range que no se llega a seleccionar —solo se usa
+       para leer qué letras caen ahí—, porque lo que este bloque compara es
+       justo eso: lo pedido contra lo que quedó guardado. */
+    /* CADA CASO EN SU PROPIO VERSÍCULO, y esto es nuevo.
+
+       Los tres pedían el mismo, y con la selección daba igual: señalar encima
+       de una marca creaba otra que se llevaba la de debajo. Pintando no —el
+       dedo sobre una marca hecha la ABRE—, así que el tercer caso caía sobre
+       la marca del primero y no pintaba nada. Pasaba en verde por accidente:
+       se abría aquel panel, se le escribía la nota del tercero, y la cita que
+       leía era la del primero, que resulta que coincidía. El pincel, desde que
+       comprueba que de verdad pintó, lo dice en vez de callárselo.
+
+       Así que cada caso se lleva su versículo y saca de ÉL sus posiciones: son
+       tres comprobaciones independientes y ahora lo son de verdad. */
+    const versoLargo = (i) => {
+      const vs = [...document.querySelectorAll('#pgBody .v')];
+      let n = 0;
+      for (const cand of vs){
+        const t = [...cand.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim().length > 60);
+        if (t){ if (n === i) return { v: cand, t }; n++; }
       }
-      if (!t) return { error:'sin versículo largo' };
+      return null;
+    };
+    const marcar = (desde, hasta, nota, iVerso = 0) => p4.evaluate(async ([d, h, nota, i, fn]) => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      const par = eval('(' + fn + ')')(i);
+      const v = par && par.v, t = par && par.t;
+      if (!t) return { error:'sin versículo largo (' + i + ')' };
       const rg = document.createRange(); rg.setStart(t, d); rg.setEnd(t, h);
-      getSelection().removeAllRanges(); getSelection().addRange(rg);
       const pedido = rg.toString();
-      const rc = rg.getBoundingClientRect();
-      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-        { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-      await pausa(500);
+      const donde = await window.__pintarGlosa(t, d, h);
+      if (!donde) return { error:'no se pudo pintar', pedido };
+      await window.__tocarLoPintado(donde);
       const ta = document.getElementById('glosaCaja');
       if (!ta) return { error:'no abrió la caja', pedido };
       ta.value = nota; ta.dispatchEvent(new Event('input', { bubbles:true }));
@@ -339,27 +211,25 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       const m = JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]')
                   .find(x => x.nota === nota) || null;
       return { pedido, verso: t.nodeValue, cita: m && m.cita, ini: m && m.ini, fin: m && m.fin };
-    }, [desde, hasta, nota]);
+    }, [desde, hasta, nota, iVerso, String(versoLargo)]);
 
     /* Los sitios se buscan EN EL TEXTO DE VERDAD, no con números a ojo: un
        índice escrito a mano se descuadra en cuanto cambia una coma, y la
        prueba pasaría midiendo otra cosa. */
-    const sitios = await p4.evaluate(() => {
-      let t = null;
-      for (const cand of document.querySelectorAll('#pgBody .v')){
-        const n = [...cand.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim().length > 60);
-        if (n){ t = n; break; }
-      }
+    const sitiosDe = (i) => p4.evaluate(([i, fn]) => {
+      const par = eval('(' + fn + ')')(i);
+      const t = par && par.t;
+      if (!t) return null;
       const txt = t.nodeValue;
       const entera = /[\p{L}\p{N}]{3,}/u.exec(txt.slice(10));
-      const par = /([\p{L}\p{N}]{4,})(\s+)([\p{L}\p{N}]+)/u.exec(txt);
+      const par2 = /([\p{L}\p{N}]{4,})(\s+)([\p{L}\p{N}]+)/u.exec(txt);
       return {
         entera: { ini: 10 + entera.index, fin: 10 + entera.index + entera[0].length,
                   palabra: entera[0] },
-        par: { ini: par.index + 2, fin: par.index + par[1].length + par[2].length,
-               primera: par[1], siguiente: par[3] }
+        par: { ini: par2.index + 2, fin: par2.index + par2[1].length + par2[2].length,
+               primera: par2[1], siguiente: par2[3] }
       };
-    });
+    }, [i, String(versoLargo)]);
 
     const bordes = r => {
       if (!r || r.cita == null) return false;
@@ -369,7 +239,23 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       return !dentro.test(antes) && !dentro.test(despues);
     };
 
-    const media = await marcar(4, 12, 'media palabra');
+    const sitios0 = await sitiosDe(0), sitios1 = await sitiosDe(1), sitios2 = await sitiosDe(2);
+    di('los sitios de cada versículo', JSON.stringify(
+      { v0: sitios0 && sitios0.par, v1: sitios1 && sitios1.entera, v2: sitios2 && sitios2.par }));
+    vale('hay tres versículos largos que usar',
+         !!sitios0 && !!sitios1 && !!sitios2,
+         [sitios0, sitios1, sitios2].filter(Boolean).length + ' de 3');
+
+    /* DE MEDIA PALABRA A MEDIA PALABRA, y sacado del texto de verdad.
+
+       Antes pedía un tramo fijo, (4,12), y con el dedo eso no vale: el 4 caía
+       justo en el espacio entre dos palabras, que es el sitio más ambiguo que
+       hay para apoyar un dedo —el trazo empezaba ya dentro de la siguiente—, y
+       lo pedido dejaba de estar dentro de lo marcado por el borde equivocado.
+       Con la selección daba igual porque los extremos eran exactos. Ahora se
+       entra dos letras en la primera palabra y se sale dos dentro de la
+       segunda, que es lo que este caso quiere decir. */
+    const media = await marcar(sitios0.par.ini, sitios0.par.fin + 2, 'media palabra', 0);
     di('media palabra', JSON.stringify(media.pedido) + ' → ' + JSON.stringify(media.cita));
     vale('lo pedido queda dentro de lo marcado',
          !!media.cita && media.cita.includes((media.pedido || '').trim()),
@@ -377,82 +263,35 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     vale('y los dos extremos caen en borde de palabra', bordes(media),
          'ini ' + media.ini + ' fin ' + media.fin);
 
-    const justa = await marcar(sitios.entera.ini, sitios.entera.fin, 'palabra justa');
+    const justa = await marcar(sitios1.entera.ini, sitios1.entera.fin, 'palabra justa', 1);
     di('palabra ya entera', JSON.stringify(justa.pedido) + ' → ' + JSON.stringify(justa.cita));
     /* Si esto se rompiera, el estirón estaría comiéndose a los vecinos: una
        palabra que ya está entera no tiene nada que estirar. */
     vale('una palabra ya entera se deja igual', justa.cita === justa.pedido,
          justa.pedido + '  →  ' + justa.cita);
 
-    const cola = await marcar(sitios.par.ini, sitios.par.fin, 'con espacio de cola');
+    const cola = await marcar(sitios2.par.ini, sitios2.par.fin, 'con espacio de cola', 2);
     di('con espacio de cola', JSON.stringify(cola.pedido) + ' → ' + JSON.stringify(cola.cita));
     vale('el espacio de cola se recorta y la palabra se completa',
-         cola.cita === sitios.par.primera, cola.cita + '  esperado  ' + sitios.par.primera);
+         cola.cita === sitios2.par.primera, cola.cita + '  esperado  ' + sitios2.par.primera);
     /* LA QUE VIGILA EL DEFECTO FÁCIL: estirar sin recortar primero se lleva la
        palabra de al lado entera. */
     vale('y NO se lleva la palabra siguiente',
-         !!cola.cita && !cola.cita.includes(sitios.par.siguiente),
-         cola.cita + '  no debe traer  ' + sitios.par.siguiente);
+         !!cola.cita && !cola.cita.includes(sitios2.par.siguiente),
+         cola.cita + '  no debe traer  ' + sitios2.par.siguiente);
     vale('  sin errores (palabra entera)', fallos4.length === 0,
          fallos4.length ? fallos4 : 'ninguno');
     await p4.close();
   }
 
-  titulo('cancelar con una tecla también lo olvida');
-  {
-    const p3 = await sesion.navegador.newPage({ ...TELEFONO });
-    const fallos3 = [];
-    p3.on('pageerror', e => fallos3.push(String(e).split('\n')[0]));
-    await p3.goto(APP);
-    await listo(p3);
-    const conTecla = await p3.evaluate(async () => {
-      const pausa = ms => new Promise(z => setTimeout(z, ms));
-      const lee = () => { try { return JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]'); }
-                          catch(e){ return []; } };
-      const base = lee().length;
-      const vs = [...document.querySelectorAll('#pgBody .v')];
-      let v = null, t = null;
-      for (const cand of vs){
-        const n = [...cand.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim().length > 25);
-        if (n){ v = cand; t = n; break; }
-      }
-      if (!t) return { error:'sin versículo largo' };
-      const rg = document.createRange(); rg.setStart(t, 2); rg.setEnd(t, 17);
-      getSelection().removeAllRanges(); getSelection().addRange(rg);
-      await pausa(300);
-      const seleccionado = getSelection().toString();
-      const c = rg.getBoundingClientRect();
-      const mx = Math.round(c.left + c.width/2), my = Math.round(c.top + c.height/2);
-      const el = document.elementFromPoint(mx, my) || v;
-      const enLaHoja = !!(el && el.closest('#pgBody'));
-      /* Una flecha: la selección se va, y no baja ningún dedo. */
-      document.dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowRight', bubbles:true }));
-      getSelection().removeAllRanges();
-      await pausa(200);
-      /* Y ahora el clic donde estuvo. Cae DENTRO de lo que se había apuntado. */
-      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, pointerId:95,
-        pointerType:'mouse', isPrimary:true, clientX:mx, clientY:my }));
-      await pausa(30);
-      el.dispatchEvent(new PointerEvent('pointerup', { bubbles:true, pointerId:95,
-        pointerType:'mouse', isPrimary:true, clientX:mx, clientY:my }));
-      await pausa(500);
-      const caja = document.getElementById('glosaCaja');
-      const abrio = !!caja;
-      if (caja) document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
-      await pausa(600);
-      return { base, seleccionado, enLaHoja, abrio, guardadas: lee().length };
-    });
-    di('lo que se llegó a seleccionar', conTecla.seleccionado);
-    vale('el montaje selecciona y el clic cae en la hoja',
-         !conTecla.error && (conTecla.seleccionado || '').trim().length > 3 &&
-         conTecla.enLaHoja === true,
-         conTecla.error || '«' + conTecla.seleccionado + '»');
-    vale('el clic de después no abre nada', conTecla.abrio === false, conTecla.abrio);
-    vale('  y no se guarda ninguna glosa', conTecla.guardadas === conTecla.base,
-         conTecla.base + ' → ' + conTecla.guardadas);
-    vale('  sin errores (tecla)', fallos3.length === 0, fallos3.length ? fallos3 : 'ninguno');
-    await p3.close();
-  }
+  /* AQUÍ ESTABA «cancelar con una tecla también lo olvida», y se va con el
+     resto de la selección. Probaba el hueco que dejaba el olvido atado al
+     dedo: con el teclado se deshace una selección sin que baje ningún dedo,
+     así que un clic posterior sobre el mismo sitio abría una glosa de unas
+     palabras que ya no estaban señaladas. Lo levantó una revisión de Codex y
+     estuvo bien levantado — pero es un fallo de una máquina que ya no existe.
+     El trazo no lo deshace ninguna tecla: se borra al tocar en otro sitio, al
+     cancelar el gesto, o al repintarse la hoja, y de esas tres hay pruebas. */
 
   titulo('el panel al nacer');
   const base = await p.evaluate(
@@ -1146,7 +985,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        una glosa cualquiera de la hoja no valdría: hay que comparar el anticipo
        con la nota EN LA QUE SE CONVIERTE. */
     const ok = await eval('(' + abrir + ')')(0, 14);
-    if (!ok) return { sinTexto:true };
+    if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     const ta0 = document.getElementById('glosaCaja');
     ta0.value = 'para medir contra el margen';
     ta0.dispatchEvent(new Event('input', { bubbles:true }));
@@ -1248,9 +1087,9 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      antes de que la nota exista. */
   di('ancla y sangría', await p.evaluate(async ([abrir, fuera, tocar]) => {
     const ok = await eval('(' + abrir + ')')(0, 14);
-    if (!ok) return { sinTexto:true };
+    if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
-    if (!ta) return { sinTexto:true };
+    if (!ta) return { sinTexto:true, porque: window.__pincelPorque };
     const vacia = document.querySelector('#glVista .gl-ref').textContent;
     ta.value = 'una nota larga para ver dónde parte el primer renglón';
     ta.dispatchEvent(new Event('input', { bubbles:true }));
@@ -1270,7 +1109,12 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       .find(m => (m.nota||'').startsWith('una nota larga para ver'));
     if (!mia) return { sinGuardar:true };
     const enLaHoja = document.querySelector('.gl[data-gl="' + mia.id + '"] .gl-ref');
-    await eval('(' + tocar + ')')(3, 11);
+    /* SE REABRE LA SUYA, por su cita. Tocar un tramo fijo del primer
+       versiculo valia mientras el bloque dejaba una sola marca; desde que el
+       pincel corre el tramo para encontrar sitio libre, la marca nueva cae
+       donde cabe y el toque fijo abria la de al lado. Salia «1a· contra 1b·»
+       con las dos anclas bien puestas, cada una hablando de su marca. */
+    if (!await window.__tocarCita(mia.cita)) return { sinReabrir:true, porque: window.__pincelPorque };
     const ancla = document.querySelector('#glVista .gl-ref');
     const ta2 = document.getElementById('glosaCaja');
     if (!ancla || !ta2) return { sinReabrir:true };
@@ -1410,7 +1254,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       if (b) b.click();
       await new Promise(z => setTimeout(z, 1400));
       const ok = await eval('(' + abrir + ')')(0, 16);
-      if (!ok) return { sinTexto:true };
+      if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
       const vista = document.getElementById('glVista');
       if (!vista) return { sinPanel:true };
       const anticipo = Math.round(vista.getBoundingClientRect().width);
@@ -1438,7 +1282,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      para llegar a ellos. Lo levantó Codex. */
   di('con una nota larguísima', await p.evaluate(async ([abrir, fuera]) => {
     const ok = await eval('(' + abrir + ')')(0, 16);
-    if (!ok) return { sinTexto:true };
+    if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
     if (!ta) return { sinPanel:true };
     ta.value = ('una nota francamente larga que sigue y sigue sin parar. ').repeat(30);
@@ -1454,6 +1298,18 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
                 /* y lo que sobra se puede alcanzar desplazando */
                 desplazable: menu.scrollHeight > menu.clientHeight + 1 ||
                              ta.scrollHeight > ta.clientHeight + 1 };
+    /* Y LA NOTA MONSTRUOSA NO SE QUEDA. Se vacia antes de salir, que es lo
+       que hace que no se guarde nada —la primera regla del fichero—.
+
+       Este bloque viene a medir el panel contra la escena, no a dejar una
+       nota de mil quinientas letras en la hoja. Dejandola, el bloque de «al
+       pie» de mas abajo cambia de disposicion y esa nota se come la pagina
+       entera: medido, el pie deja la hoja con CERO versiculos y el primero
+       se va a la columna siguiente, en x=411 de una ventana de 412. El
+       pincel no tenia entonces donde pintar y caian siete aserciones de tres
+       bloques que no tienen nada que ver con esto. */
+    ta.value = ''; ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 200));
     await eval('(' + fuera + ')')();
     await new Promise(z => setTimeout(z, 3300));
     return r;
@@ -1476,7 +1332,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        veces y con las marcas se van sus etiquetas, así que a estas alturas no
        queda ninguna que alternar. */
     let ok = await eval('(' + abrir + ')')(0, 16);
-    if (!ok) return { sinTexto:true };
+    if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     let sembrar = document.getElementById('glosaCaja');
     sembrar.value = 'nota que trae vocabulario';
     sembrar.dispatchEvent(new Event('input', { bubbles:true }));
@@ -1492,7 +1348,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     await new Promise(z => setTimeout(z, 3300));
     /* y ahora, sobre OTRO tramo, esas etiquetas están libres */
     ok = await eval('(' + abrir + ')')(30, 46);
-    if (!ok) return { sinTexto:true };
+    if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
     ta.value = 'corta'; ta.dispatchEvent(new Event('input', { bubbles:true }));
     await new Promise(z => setTimeout(z, 200));
@@ -1531,7 +1387,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      mismo. Lo levantó Codex. */
   di('ancla en el editor, el calco y la hoja', await p.evaluate(async ([abrir, fuera]) => {
     const ok = await eval('(' + abrir + ')')(0, 16);
-    if (!ok) return { sinTexto:true };
+    if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
     if (!ta) return { sinPanel:true };
     ta.value = 'una nota con texto de sobra para que el primer renglón se llene y pase al siguiente';
@@ -1598,7 +1454,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     if (b) b.click();
     await new Promise(z => setTimeout(z, 1400));
     const ok = await eval('(' + abrir + ')')(20, 38);
-    if (!ok) return { sinTexto:true };
+    if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
     if (!ta) return { sinPanel:true };
     ta.value = 'una nota al pie con bastante texto para que ocupe más de un renglón y se note el alto';
@@ -1652,10 +1508,10 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     };
     /* dos tramos bien separados del renglón: antes uno salía a un lado y el
        otro al otro, y eso es justo lo que deja de pasar */
-    if (!await eval('(' + abrir + ')')(0, 10)) return { sinTexto:true };
+    if (!await eval('(' + abrir + ')')(0, 10)) return { sinTexto:true, porque: window.__pincelPorque };
     const cerca = medir();
     await eval('(' + fuera + ')')();
-    if (!await eval('(' + abrir + ')')(56, 70)) return { sinTexto:true };
+    if (!await eval('(' + abrir + ')')(56, 70)) return { sinTexto:true, porque: window.__pincelPorque };
     const lejos = medir();
     /* y el foco cae en la caja, con el cursor al final: se puede escribir sin
        tener que tocar nada más */
@@ -1688,7 +1544,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      vuelo y serían dos despedidas para lo mismo. */
   di('salir sin escribir', await p.evaluate(async ([abrir]) => {
     const menu = document.getElementById('menu');
-    if (!await eval('(' + abrir + ')')(50, 66)) return { sinTexto:true };
+    if (!await eval('(' + abrir + ')')(50, 66)) return { sinTexto:true, porque: window.__pincelPorque };
     const m = menu.getBoundingClientRect();
     document.body.dispatchEvent(new PointerEvent('pointerdown',
       { bubbles:true, clientX:5, clientY:5 }));
@@ -1728,7 +1584,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
 
   di('salir CON texto no se despide dos veces', await p.evaluate(async ([abrir]) => {
     const menu = document.getElementById('menu');
-    if (!await eval('(' + abrir + ')')(68, 84)) return { sinTexto:true };
+    if (!await eval('(' + abrir + ')')(68, 84)) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
     if (!ta) return { sinPanel:true };
     ta.value = 'esta sí se escribe y por eso vuela';
@@ -1756,11 +1612,11 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      dentro de la despedida, que es donde se coló. */
   di('reabrir a media despedida', await p.evaluate(async ([abrir]) => {
     const menu = document.getElementById('menu');
-    if (!await eval('(' + abrir + ')')(50, 66)) return { sinTexto:true };
+    if (!await eval('(' + abrir + ')')(50, 66)) return { sinTexto:true, porque: window.__pincelPorque };
     document.body.dispatchEvent(new PointerEvent('pointerdown',
       { bubbles:true, clientX:5, clientY:5 }));
     await new Promise(z => setTimeout(z, 50));       /* a media despedida */
-    if (!await eval('(' + abrir + ')')(20, 38)) return { sinTexto:true };
+    if (!await eval('(' + abrir + ')')(20, 38)) return { sinTexto:true, porque: window.__pincelPorque };
     await new Promise(z => setTimeout(z, 400));      /* pasado el adiós viejo */
     return { puesto: getComputedStyle(menu).display !== 'none',
              hayCaja: !!document.getElementById('glosaCaja'),
@@ -1786,7 +1642,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     const chico = await abrir({ viewport:{ width:ancho, height:760 } });
     di('· ' + ancho + 'px', await chico.pagina.evaluate(async ([abrir]) => {
       const ok = await eval('(' + abrir + ')')(0, 16);
-      if (!ok) return { sinTexto:true };
+      if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
       const menu = document.getElementById('menu');
       const st = document.getElementById('stage');
       if (getComputedStyle(menu).display === 'none') return { sinPanel:true };
@@ -1840,7 +1696,14 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     if (document.getElementById('etiquetas').classList.contains('abierto')) return;
     document.getElementById('pgCabeza').click();
     await new Promise(z => setTimeout(z, 900));
-    const t = [...document.querySelectorAll('.pestanas button')].find(x => /glosas/i.test(x.textContent));
+    /* LA TIRA DEL CANTO, no la primera que haya. Hay DOS: una en #canto —la
+       que abre— y otra dentro de #etiquetas, que es la que cambia de pestaña
+       con el panel ya puesto. La del panel se queda en el documento cuando
+       se cierra, y va ANTES en orden, asi que a la segunda vuelta el
+       querySelectorAll suelto cogia esa y el clic no abria nada: la lista
+       seguia siendo la de antes y la glosa nueva no salia. */
+    const t = [...document.querySelectorAll('#canto .pestanas button')]
+                .find(x => /glosas/i.test(x.textContent));
     if (t) t.click();
     await new Promise(z => setTimeout(z, 900));
   });
@@ -1965,15 +1828,8 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   const lista = await e.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     const v = document.querySelector('#pgBody .v');
-    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-    if (!n) return { sinTexto:true };
-    const rg = document.createRange(); rg.setStart(n, 0); rg.setEnd(n, 15);
-    getSelection().removeAllRanges(); getSelection().addRange(rg);
-    const rc = rg.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX: Math.round(rc.left + 2), clientY: Math.round(rc.top + 2) }));
-    await pausa(800);
+    if (!await window.__glosarEn(v, 0, 15)) return { sinTexto:true, porque: window.__pincelPorque };
+    await pausa(300);
     const m = document.getElementById('menu');
     const caja = m.querySelector('.tagbox');
     const cerradaAun = !!caja && !caja.classList.contains('abierta');
@@ -2067,15 +1923,8 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     /* Se vuelve a abrir un panel: el de antes se cerró tocando fuera. */
     const v = document.querySelector('#pgBody .v');
-    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-    if (!n) return { sinTexto:true };
-    const rg = document.createRange(); rg.setStart(n, 0); rg.setEnd(n, 15);
-    getSelection().removeAllRanges(); getSelection().addRange(rg);
-    const rc = rg.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX: Math.round(rc.left + 2), clientY: Math.round(rc.top + 2) }));
-    await pausa(900);
+    if (!await window.__glosarEn(v, 0, 15)) return { sinTexto:true, porque: window.__pincelPorque };
+    await pausa(400);
     const ta = document.getElementById('glosaCaja');
     ta.value = 'nota para el ancho';
     ta.dispatchEvent(new Event('input', { bubbles:true }));
@@ -2134,6 +1983,20 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      gesto que sí escribe uno («piedra puesta · arrástrala…») y además lo hace
      antes que ningún otro. Levantado en revisión. */
   titulo('el único aviso que sale');
+  /* CON LA HOJA LIMPIA, y hace falta desde que se glosa pintando.
+
+     Esta pagina lleva encima las marcas de treinta bloques, y el gesto de
+     aqui empieza en el caracter 3 del primer versiculo: sobre una marca
+     hecha el dedo no pinta —la ABRE—, asi que no habia trazo que cruzara de
+     versiculo y el aviso no llegaba a escribirse. Se veia como
+     «sale:false» con el texto vacio, que parecia el filtro de avisos
+     comiendose este, y no era. Con la seleccion daba igual porque
+     seleccionar encima de una marca si creaba otra.
+
+     Se borran las marcas ANTES de recargar, que es lo que deja la hoja como
+     la de un lector que estrena: el bloque no viene a probar nada de lo que
+     dejaron los de arriba. */
+  await p.evaluate(() => localStorage.removeItem('glossa:marcas:v1'));
   await p.reload();
   const avisos = await p.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
@@ -2141,17 +2004,36 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     const texto = e => { const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
       while (w.nextNode()) if (w.currentNode.textContent.trim().length > 20) return w.currentNode;
       return null; };
-    /* LA SELECCIÓN QUE CRUZA, hecha como se hace: empieza en el texto de un
-       versículo y termina en el del siguiente, y se suelta el dedo. */
+    /* EL TRAZO QUE CRUZA, hecho como se hace: el dedo empieza en el texto de un
+       versículo y sigue hasta el del siguiente, sin levantarlo.
+
+       Antes esto era una selección que cruzaba y el aviso salía AL SOLTAR.
+       Ahora sale mientras el dedo cruza, que es cuando sirve, y una sola vez
+       por gesto por mucho que el dedo siga yendo y viniendo. */
     const vs = [...document.querySelectorAll('#pgBody .v')];
     if (vs.length < 2) return { versiculos: vs.length };
     const a = texto(vs[0]), b = texto(vs[1]);
-    if (!a || !b) return { sinTexto:true };
-    const rg = document.createRange(); rg.setStart(a, 3); rg.setEnd(b, 10);
-    getSelection().removeAllRanges(); getSelection().addRange(rg);
-    const rc = rg.getBoundingClientRect();
-    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-      { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
+    if (!a || !b) return { sinTexto:true, porque: window.__pincelPorque };
+    const caja = (nodo, i, j) => { const r = document.createRange();
+      r.setStart(nodo, i); r.setEnd(nodo, j); return r.getBoundingClientRect(); };
+    const A = caja(a, 3, 4), B = caja(b, 9, 10);
+    const pgBody = document.getElementById('pgBody');
+    const op = (x, y) => ({ bubbles:true, cancelable:true, pointerId:71,
+                            pointerType:'touch', isPrimary:true, clientX:x, clientY:y });
+    const x0 = Math.round(A.left + A.width/2), y0 = Math.round(A.top + A.height/2);
+    const x1 = Math.round(B.left + B.width/2), y1 = Math.round(B.top + B.height/2);
+    pgBody.dispatchEvent(new PointerEvent('pointerdown', op(x0, y0)));
+    await pausa(340);
+    /* Torcido, que un dedo no va recto, y con pasos suficientes para que
+       alguno caiga de verdad en el versículo de al lado. */
+    for (let i = 1; i <= 10; i++){
+      const t = i / 10;
+      pgBody.dispatchEvent(new PointerEvent('pointermove',
+        op(Math.round(x0 + (x1-x0)*t) + (i % 3 ? -2 : 3),
+           Math.round(y0 + (y1-y0)*t) + (i % 2 ? 1 : -1))));
+      await pausa(22);
+    }
+    pgBody.dispatchEvent(new PointerEvent('pointerup', op(x1, y1)));
     await pausa(700);
     const cruza = { dice: ro.textContent, sale: ro.classList.contains('viva'),
                     opacidad: getComputedStyle(ro).opacity,

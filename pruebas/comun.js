@@ -98,6 +98,446 @@ function vale(rotulo, condicion, detalle){
 
 function titulo(t){ console.log('\n  ' + t); }
 
+/* ---------- GLOSAR PINTANDO CON EL DEDO ----------
+
+   El pasaje dejó de seleccionarse: ahora se pinta. Y eso obliga a cambiar los
+   sitios de esta carpeta que creaban glosas con getSelection().addRange(),
+   porque con user-select:none una selección puesta a mano se serializa VACÍA
+   —comprobado, el panel ya no abría— y ese camino dejó de existir.
+
+   El gesto va entero y de verdad, sin atajos:
+
+   · EL DEDO SE QUEDA ANTES DE ARRASTRAR. Por debajo de ESPERA_SELECCION —280
+     ms— un desliz de lado PASA LA HOJA, y eso no ha cambiado. Sin la espera,
+     lo que se prueba es el pase de hoja y el trazo se va con ella. Esto costó
+     una tarde: la sonda pintaba, soltaba, y al tocar encontraba el lienzo del
+     pliegue en vez del papel.
+   · EL TRAZO VA TORCIDO, como cualquier dedo de esta carpeta.
+   · Y SON DOS TIEMPOS: se pinta, se levanta, y se toca encima. El toque es el
+     que abre la glosa, igual que antes lo abría el toque sobre lo
+     seleccionado.
+
+   Se instala como guion de arranque para que esté en todas las páginas de
+   todas las suites sin que cada una tenga que acordarse. */
+/* EL PINCEL DICE POR QUÉ NO PUDO, y antes se callaba.
+
+   Devolvía null y el que llamaba respondía { sinTexto:true }, que es una
+   suposición y muchas veces era falsa: el gesto no arranca si el punto de
+   salida no tiene texto debajo —lo tapan los cantos de pasar hoja, o una capa
+   abierta encima de la hoja—, y eso no es «sin texto». Con cuatro bloques en
+   rojo diciendo lo mismo no había manera de saber cuál de las causas era.
+   Ahora la razón queda en window.__pincelPorque y quien llama la puede
+   enseñar. */
+const PINCEL = `window.__pincelPorque = null;
+window.__pintarGlosa = async (nodo, ini, fin) => {
+  const pgBody = document.getElementById('pgBody');
+  window.__pincelPorque = null;
+  if (!pgBody){ window.__pincelPorque = 'no hay #pgBody'; return false; }
+  if (!nodo){ window.__pincelPorque = 'sin nodo de texto'; return false; }
+  const pausa = ms => new Promise(z => setTimeout(z, ms));
+  const caja = (a, b) => { const r = document.createRange();
+    r.setStart(nodo, a); r.setEnd(nodo, b); return r.getBoundingClientRect(); };
+  const A = caja(ini, Math.min(ini + 1, fin)), B = caja(Math.max(ini, fin - 1), fin);
+  /* EL DEDO TIENE QUE CAER SOBRE EL TEXTO, y el centro de una letra no siempre
+     lo hace: los cantos de pasar hoja son dos franjas de 30 px encima de la
+     hoja, y la primera letra de un renglon cae debajo del de la izquierda. Ahi
+     caretPositionFromPoint devuelve el DIV del canto, puntoA no encuentra
+     versiculo y el gesto no llega a empezar — sin error y sin pintar nada.
+     Costo cuatro suites en rojo: todas las que pedian un tramo desde la letra
+     0. Un lector de verdad tampoco empieza ahi; empieza un poco mas adentro.
+     Asi que el punto se corre a la derecha hasta que de verdad haya texto
+     debajo, igual que haria un dedo. */
+  const sobreTexto = (x, y) => {
+    const cp = document.caretPositionFromPoint ? document.caretPositionFromPoint(x, y)
+             : (document.caretRangeFromPoint
+                ? (function(){ const g = document.caretRangeFromPoint(x, y);
+                               return g && { offsetNode: g.startContainer }; })() : null);
+    const n = cp && cp.offsetNode;
+    return !!(n && n.nodeType === 3 && pgBody.contains(n));
+  };
+  const acomodar = (c) => {
+    let x = Math.round(c.left + c.width / 2), y = Math.round(c.top + c.height / 2);
+    for (let i = 0; i < 40 && !sobreTexto(x, y); i++) x += 2;
+    return { x, y, vale: sobreTexto(x, y) };
+  };
+  const a = acomodar(A), b = acomodar(B);
+  if (!a.vale){
+    /* Quién está encima, que es lo que hace falta saber para arreglarlo. */
+    const el = document.elementFromPoint(a.x, a.y);
+    window.__pincelPorque = 'el punto de salida (' + a.x + ',' + a.y +
+      ') no tiene texto debajo; encima hay ' +
+      (el ? (el.tagName + (el.id ? '#' + el.id : '') +
+             (el.className ? '.' + String(el.className).split(' ')[0] : '')) : 'nada');
+    return false;
+  }
+  const x0 = a.x, y0 = a.y, x1 = b.x, y1 = b.y;
+  const op = (x, y) => ({ bubbles:true, cancelable:true, pointerId:64,
+                          pointerType:'touch', isPrimary:true, clientX:x, clientY:y });
+  pgBody.dispatchEvent(new PointerEvent('pointerdown', op(x0, y0)));
+  await pausa(340);
+  for (let i = 1; i <= 4; i++){
+    const t = i / 4;
+    pgBody.dispatchEvent(new PointerEvent('pointermove',
+      op(Math.round(x0 + (x1 - x0) * t), Math.round(y0 + (y1 - y0) * t + (i % 2 ? 1 : -1)))));
+    await pausa(25);
+  }
+  pgBody.dispatchEvent(new PointerEvent('pointerup', op(x1, y1)));
+  await pausa(140);
+  /* Y SE COMPRUEBA QUE DE VERDAD SE PINTO ALGO, que es lo que faltaba y lo que
+     me hizo perseguir tres hipotesis falsas.
+
+     Esto mandaba el gesto y devolvia el punto sin mirar el resultado, asi que
+     cuando el programa NO pintaba —por el guardia del zoom, por caer sobre una
+     marca ya hecha, por lo que fuera— el pincel decia que si y el fallo
+     aparecia una casa mas alla, en el toque, con el mensaje «se pinto, pero el
+     toque no abrio la caja». Una mentira, y encima una que apunta al sitio
+     equivocado. Ahora si no hay trazo se dice aqui, que es donde paso. */
+  const hayTrazo = () => {
+    const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+    if (h){ const r = [...h][0]; return r ? r.toString().length : 0; }
+    const e = document.querySelector('#pgBody .pintando');
+    return e ? e.textContent.length : 0;
+  };
+  if (!hayTrazo()){
+    const el = document.elementFromPoint(x0, y0);
+    window.__pincelPorque = 'el gesto no llego a pintar nada (salida ' + x0 + ',' + y0 +
+      '; debajo ' + (el ? el.tagName + (el.className ? '.' + String(el.className).split(' ')[0] : '') : 'nada') +
+      '; zoom ' + (document.getElementById('pg').classList.contains('zoom')) + ')';
+    return false;
+  }
+  /* EL PUNTO QUE SE DEVUELVE SALE DE LO PINTADO, no de donde apoyó el dedo.
+
+     Devolvía (x0,y0), el sitio del pointerdown, dando por hecho que el trazo
+     empieza donde empezó el dedo. No siempre: la marca se ajusta a PALABRAS
+     ENTERAS, y si el dedo apoya en un espacio entre dos palabras el principio
+     del trazo se corre hacia ADELANTE, hasta la primera letra de la siguiente.
+     Entonces (x0,y0) queda por detrás del trazo y el toque cae fuera: el
+     programa lo lee como «tocar en otro sitio», que borra lo pintado y no abre
+     nada. Exactamente lo que pasaba en navegar, que pide el tramo (10,30) y en
+     este texto el 10 es el espacio entre «libro» y «es».
+
+     Costó cuatro tandas porque el mensaje decía «se pintó, pero el toque no
+     abrió la caja» sin decir dónde había caído el toque. Con la frase puesta
+     —«el toque cayó FUERA del trazo; el trazo tenía 23 letras»— se vio a la
+     primera.
+
+     Así que se lee el trazo de verdad y se devuelve el centro de su primer
+     renglón, que es donde tocaría cualquiera que vea lo pintado. */
+  const rgTrazo = (function(){
+    const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+    if (h){ const r = [...h][0]; return r || null; }
+    const e = document.querySelector('#pgBody .pintando');
+    if (!e) return null;
+    const r = document.createRange(); r.selectNodeContents(e); return r;
+  })();
+  const renglon = rgTrazo && [...rgTrazo.getClientRects()].find(c => c.width > 0 && c.height > 0);
+  if (renglon) return { x: Math.round(renglon.left + renglon.width / 2),
+                        y: Math.round(renglon.top + renglon.height / 2) };
+  /* Se devuelve DÓNDE hay que tocar en vez de tocar aquí: hay pruebas que
+     miden el panel a los 45 ms de nacer, y ésas necesitan dar ellas el toque
+     para poder mirar justo después. Ver __glosarEn, que es el camino corto. */
+  return { x: x0, y: y0 };
+};
+/* EL TOQUE QUE CONFIRMA, Y LA AUTOPSIA DE CUANDO NO ABRE.
+
+   «se pinto, pero el toque de encima no abrio la caja» ha aparecido tres
+   veces con tres causas distintas, y cada vez costo una tanda entera
+   averiguar cual. Asi que cuando no abre se apunta el estado: si el trazo
+   seguia puesto, si el punto del toque cae DENTRO de lo pintado, que elemento
+   hay debajo, y si se abrio algun panel. Con eso la proxima vez lo dice el
+   mensaje y no hace falta otra tanda. */
+window.__tocarLoPintado = async (donde) => {
+  const pgBody = document.getElementById('pgBody');
+  if (!pgBody || !donde) return false;
+  const pausa = ms => new Promise(z => setTimeout(z, ms));
+  const trazo = () => {
+    const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+    if (h){ const r = [...h][0]; return r || null; }
+    const e = document.querySelector('#pgBody .pintando');
+    if (!e) return null;
+    const r = document.createRange(); r.selectNodeContents(e); return r;
+  };
+  const dentroDelTrazo = (rg, x, y) => {
+    if (!rg) return null;
+    return [...rg.getClientRects()].some(c =>
+      x >= c.left - 1 && x <= c.right + 1 && y >= c.top - 1 && y <= c.bottom + 1);
+  };
+  const antes = trazo();
+  const habia = antes ? antes.toString().length : 0;
+  const caia = dentroDelTrazo(antes, donde.x, donde.y);
+  const op = (x, y) => ({ bubbles:true, cancelable:true, pointerId:65,
+                          pointerType:'touch', isPrimary:true, clientX:x, clientY:y });
+  pgBody.dispatchEvent(new PointerEvent('pointerdown', op(donde.x, donde.y)));
+  await pausa(40);
+  pgBody.dispatchEvent(new PointerEvent('pointerup', op(donde.x, donde.y)));
+  await pausa(520);
+  if (document.getElementById('glosaCaja')) return true;
+  const el = document.elementFromPoint(donde.x, donde.y);
+  const despues = trazo();
+  const menu = document.getElementById('menu');
+  const quien = el ? (el.tagName + (el.id ? '#' + el.id : '') +
+                      (el.className ? '.' + String(el.className).split(' ')[0] : '')) : 'nada';
+  /* LA AUTOPSIA EN UNA FRASE, no en un JSON al final.
+
+     Iba como objeto pegado detras del mensaje, y quien resume la tanda lo
+     recorto las dos veces que hizo falta: llegaba «se pinto, pero el toque no
+     abrio la caja» a secas, que es justo lo que ya no servia. Dicho en
+     palabras y al principio, no hay nada que podar. */
+  window.__pincelAutopsia = {
+    toque: donde.x + ',' + donde.y, trazoAntes: habia, elToqueCaiaDentro: caia,
+    trazoDespues: despues ? despues.toString().length : 0, debajo: quien,
+    panel: menu ? getComputedStyle(menu).display : 'sin menu',
+    capas: window.__capasAbiertas()
+  };
+  window.__pincelFrase =
+    (caia === false ? 'el toque cayo FUERA del trazo' :
+     habia === 0 ? 'no quedaba trazo que tocar' :
+     'el toque cayo dentro del trazo y aun asi no abrio') +
+    '; debajo habia ' + quien +
+    '; el trazo tenia ' + habia + ' letras antes y ' +
+    (despues ? despues.toString().length : 0) + ' despues' +
+    '; el panel esta ' + (menu ? getComputedStyle(menu).display : '?') +
+    (window.__capasAbiertas().length ? '; capas abiertas: ' + window.__capasAbiertas().join(',') : '');
+  return false;
+};
+/* TOCAR UNA MARCA CONCRETA, LA SUYA, no «la que haya por el carac 3».
+
+   Los bloques que reabren una glosa recien guardada tocaban un tramo fijo
+   del primer versiculo. Mientras cada bloque dejaba una sola marca, el tramo
+   fijo y la marca eran la misma cosa; ahora que el pincel CORRE el tramo para
+   encontrar sitio libre, la marca nueva acaba en otro sitio y el toque fijo
+   abre la de al lado. Asi salio «1a· contra 1b·»: el anticipo hablaba de la
+   marca de antes y la hoja de la recien hecha, y las dos tenian razon.
+
+   Se busca por la cita, que es lo que el programa guarda de la marca y lo
+   unico que la identifica en la pantalla —con la API de resaltado los tramos
+   marcados no son elementos, van por color y no por marca, asi que no hay un
+   nodo al que apuntar—. */
+window.__tocarCita = async (cita) => {
+  const pgBody = document.getElementById('pgBody');
+  if (!pgBody || !cita) return false;
+  const trozo = String(cita).trim().slice(0, 30);
+  const w = document.createTreeWalker(pgBody, NodeFilter.SHOW_TEXT);
+  let n = null, i = -1;
+  while (w.nextNode()){
+    const j = w.currentNode.data.indexOf(trozo);
+    if (j >= 0){ n = w.currentNode; i = j; break; }
+  }
+  if (!n){ window.__pincelPorque = 'no se encontro la cita «' + trozo + '» en la hoja'; return false; }
+  const r = document.createRange();
+  r.setStart(n, i); r.setEnd(n, Math.min(n.data.length, i + trozo.length));
+  const c = [...r.getClientRects()].find(x => x.width > 0 && x.height > 0);
+  if (!c){ window.__pincelPorque = 'la cita no tiene caja en pantalla'; return false; }
+  const x = Math.round(c.left + c.width / 2), y = Math.round(c.top + c.height / 2);
+  const op = { bubbles:true, cancelable:true, pointerId:73, pointerType:'touch',
+               isPrimary:true, clientX:x, clientY:y };
+  getSelection().removeAllRanges();
+  pgBody.dispatchEvent(new PointerEvent('pointerdown', op));
+  await new Promise(z => setTimeout(z, 40));
+  pgBody.dispatchEvent(new PointerEvent('pointerup', op));
+  await new Promise(z => setTimeout(z, 450));
+  return !!document.getElementById('glosaCaja');
+};
+/* El atajo de siempre: el primer nodo de texto largo de un versiculo. */
+window.__pintarEn = async (v, ini, fin) => {
+  window.__pincelPorque = null;
+  if (!v){ window.__pincelPorque = 'no se pasó versículo'; return null; }
+  const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null, mayor = 0;
+  while (w.nextNode()){
+    mayor = Math.max(mayor, w.currentNode.textContent.trim().length);
+    if (!n && w.currentNode.textContent.trim().length > (fin + 4)) n = w.currentNode;
+  }
+  if (!n){
+    window.__pincelPorque = 'el versículo no tiene un nodo de más de ' + (fin + 4) +
+      ' letras; el mayor es de ' + mayor;
+    return null;
+  }
+  return window.__pintarGlosa(n, ini, fin);
+};
+/* DESPEJAR LA HOJA ANTES DE GLOSAR, y hace falta desde esta rama.
+
+   Con la seleccion, el panel se abria en UN gesto: se soltaba el dedo sobre
+   lo apuntado y ya. Pintando son DOS —se pinta, y luego se toca encima para
+   confirmar—, y ese segundo toque choca con cualquier capa que hubiera
+   quedado abierta: la ventanita del versiculo se lo come para cerrarse, que
+   es lo que tiene que hacer una capa, y el panel no llega a abrirse. El
+   programa se porta bien; lo que cambio es que ahora hace falta un gesto mas,
+   y un bloque que dejaba la ventanita puesta ya no puede glosar detras.
+
+   Medido: con la ventanita abierta, el pincel pinta y el toque no abre nada;
+   con un Escape antes, abre. Eso valio diecinueve aserciones de navegar en la
+   primera tanda de la rama.
+
+   Es lo mismo que haria un lector: cerrar lo que tiene delante antes de
+   marcar. No toca nada del programa.
+
+   Y NO LO HACE EN SILENCIO, que era el peligro de meterlo aqui: un andamio
+   que cierra capas por su cuenta puede tapar el dia en que una capa aparezca
+   donde no debe. Solo pulsa si de verdad hay algo abierto, y deja apuntado
+   que lo pulso en window.__pincelDespejo, para que quien sospeche lo pueda
+   mirar. */
+window.__capasAbiertas = () => {
+  const abiertas = ['versoPleno', 'sepMenu', 'sepOferta', 'escenas']
+    .filter(id => { const e = document.getElementById(id);
+                    return e && e.classList.contains('visible'); });
+  /* Y EL PANEL DE LA GLOSA, que es el que mas estorba y el que se me habia
+     escapado: no lleva la clase que miran las otras, se ensena con display,
+     asi que mirando solo las clases no salia. Y no es que se coma el
+     toque de lejos: TAPA el texto. Medido, el punto de salida caia sobre
+     BUTTON.mok —el boton de terminar del propio panel—. */
+  const m = document.getElementById('menu');
+  if (m && getComputedStyle(m).display !== 'none') abiertas.push('menu');
+  /* Y EL PANEL DE GLOSAS, que en telefono TAPA LA HOJA ENTERA.
+     Medido en 412x915 con el panel abierto por su pestana: en mitad del
+     primer versiculo, elementFromPoint devuelve DIV.ix-item —un renglon de
+     la lista—, asi que el dedo no llega al texto y el pincel no pinta. Con
+     la seleccion daba igual, porque una seleccion no toca la pantalla; el
+     dedo si. Un Escape lo cierra, y los chips del filtro se quedan puestos,
+     que es lo que el bloque viene a mirar. */
+  const et = document.getElementById('etiquetas');
+  if (et && et.classList.contains('abierto')) abiertas.push('etiquetas');
+  return abiertas;
+};
+window.__despejar = async () => {
+  const habia = window.__capasAbiertas();
+  if (!habia.length) return habia;
+  /* El panel no se va con Escape a secas en todos los casos, y ademas la
+     manera de cerrarlo que tiene el lector es tocar fuera —que cobra lo
+     escrito—. Se hacen las dos: la tecla para las capas y el toque fuera
+     para el panel. */
+  document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+  await new Promise(z => setTimeout(z, 200));
+  if (window.__capasAbiertas().length){
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await new Promise(z => setTimeout(z, 600));
+  }
+  return habia;
+};
+window.__glosarEn = async (v, ini, fin) => {
+  window.__pincelDespejo = await window.__despejar();
+  /* Y SE VUELVE A BUSCAR EL VERSICULO, porque despejar puede haberlo tirado.
+     Cerrar el panel cobra lo escrito, cobrar repinta la hoja, y renderPage
+     rehace TODOS los nodos: el elemento que el bloque capturo antes de
+     llamarnos queda huerfano. Medido: tras despejar, document.contains da
+     false y su caja pasa a 0x0 en la esquina, asi que el pincel apoyaba el
+     dedo en el 0,0 de la ventana y pintaba donde cayera. Se recupera el que
+     ocupa ahora su sitio, por su data-k. */
+  if (v && v.dataset && v.dataset.k != null && !document.contains(v)){
+    const fresco = document.querySelector('#pgBody .v[data-k="' + v.dataset.k + '"]');
+    if (fresco) v = fresco;
+  }
+  /* SE BUSCA TEXTO LIBRE, y esto es lo que deja de romperse solo.
+
+     Los bloques piden siempre un tramo fijo del versiculo que tienen a mano, y
+     cada llamada deja una marca: al rato ese tramo ya esta marcado, y sobre
+     una marca hecha el dedo no pinta —la ABRE, que es lo que tiene que
+     hacer—. Con la seleccion daba igual, porque marcar encima de otra marca
+     creaba una nueva que se llevaba la de debajo; pintando no.
+
+     Lo estuve parcheando llamada por llamada, en el ABRIR de etiquetas y en
+     el de glosas, y cada tanda destapaba otra que no tenia parche. Va aqui,
+     que es donde vale para todas: se corre el tramo por el versiculo y se
+     pasa al siguiente cuando no cabe, hasta encontrar sitio donde el gesto de
+     verdad pinte.
+
+     Y SE PREFIERE SITIO LIBRE, no solo un panel abierto: quien llama suele
+     querer una glosa NUEVA, y abrirle la de otro le hace escribir su nota
+     encima de una ajena. Si no queda sitio libre en ninguna parte, entonces
+     si se acepta el panel que el gesto haya abierto, que es mejor que nada.
+     Lo que abra por el camino se cierra, o taparia el intento siguiente. */
+  const ancho = Math.max(4, fin - ini);
+  /* SE GUARDAN LOS data-k, NO LOS ELEMENTOS. Cerrar un panel por el camino
+     cobra lo escrito, y cobrar repinta la hoja: la lista de nodos que se
+     hubiera hecho al empezar queda huerfana a la segunda vuelta y el pincel
+     acaba pintando en el 0,0 de la ventana. Se vuelve a buscar cada
+     versiculo por su k justo antes de usarlo. */
+  const ks = [...document.querySelectorAll('#pgBody .v')].map(x => x.dataset.k);
+  const miK = v && v.dataset ? v.dataset.k : null;
+  const enOrden = miK != null && ks.includes(miK)
+    ? [miK, ...ks.filter(x => x !== miK)] : ks;
+  let panelDeOtra = false, corto = 0, fuera = 0;
+  for (const k of enOrden){
+    for (let d = 0; d < 400; d += ancho + 4){
+      const vv = document.querySelector('#pgBody .v[data-k="' + k + '"]');
+      if (!vv) break;
+      /* SOLO LO QUE SE VE. La hoja es de columnas: los versiculos que no
+         caben pasan a la siguiente y se quedan en el documento, fuera de la
+         ventana. Pintarlos es apoyar el dedo donde no hay pantalla, y
+         elementFromPoint devuelve null. Medido con una nota larguisima al
+         pie: la pagina se queda con CERO versiculos y el primero aparece en
+         x=411 de una ventana de 412. */
+      const cv = vv.getBoundingClientRect();
+      if (cv.right <= 0 || cv.left >= innerWidth ||
+          cv.bottom <= 0 || cv.top >= innerHeight){ fuera++; break; }
+      const donde = await window.__pintarEn(vv, ini + d, fin + d);
+      if (donde){
+        const abrio = await window.__tocarLoPintado(donde);
+        if (!abrio) window.__pincelPorque = 'se pintó y ' +
+          (window.__pincelFrase || 'el toque no abrió la caja');
+        return abrio;
+      }
+      /* SE CORTA CUANDO EL VERSICULO SE ACABA, en vez de seguir corriendo el
+         tramo cien veces por un versiculo de noventa letras. Importa por el
+         motivo que queda escrito: el ultimo __pincelPorque era siempre «no
+         tiene un nodo de mas de 822 letras», que es verdad y no dice nada.
+         Quien lea el fallo quiere saber que habia debajo del dedo. */
+      if (/no tiene un nodo/.test(window.__pincelPorque || '')){ corto++; break; }
+      /* El gesto cayo sobre una marca hecha y el programa la abrio: se cierra
+         y se sigue buscando sitio limpio. */
+      if (document.getElementById('glosaCaja')){
+        panelDeOtra = true;
+        document.body.dispatchEvent(new PointerEvent('pointerdown',
+          { bubbles:true, clientX:5, clientY:5 }));
+        await new Promise(z => setTimeout(z, 450));
+      }
+    }
+  }
+  if (panelDeOtra){
+    /* No quedaba sitio libre: se vuelve a abrir la que haya, que es lo unico
+       que se puede ofrecer. */
+    const vv = document.querySelector('#pgBody .v[data-k="' + (miK != null ? miK : ks[0]) + '"]');
+    await window.__pintarEn(vv, ini, fin);
+    if (document.getElementById('glosaCaja')) return true;
+  }
+  /* EL MOTIVO, CON LO QUE HACE FALTA PARA CREERLO. Decir «no habia sitio» a
+     secas mando cuatro rondas a buscar marcas donde el problema era una capa
+     encima. Se dice cuantos versiculos se probaron, si alguno abrio una
+     marca ya hecha, que capas hay puestas y que elemento esta de verdad
+     encima del texto. */
+  const v0 = document.querySelector('#pgBody .v');
+  let debajo = 'sin hoja';
+  if (v0){
+    const c = v0.getBoundingClientRect();
+    const el = document.elementFromPoint(Math.round(c.left + c.width / 2),
+                                         Math.round(c.top + c.height / 2));
+    debajo = el ? el.tagName + (el.id ? '#' + el.id : '') +
+                  (el.className ? '.' + String(el.className).split(' ')[0] : '') : 'nada';
+  }
+  window.__pincelPorque =
+    'no se encontro texto libre donde pintar: ' + enOrden.length + ' versiculos probados, ' +
+    corto + ' se acabaron antes, ' + fuera + ' estaban fuera de la ventana' +
+    (panelDeOtra ? ', alguno abrio una marca ya hecha' : ', ninguno tenia marca debajo') +
+    '; encima del texto hay ' + debajo +
+    '; capas abiertas: ' + (window.__capasAbiertas().join(',') || 'ninguna');
+  return false;
+};`;
+
+/* Y SE COMPRUEBA QUE EL PINCEL COMPILA, aquí y no dentro del navegador.
+
+   Va en una plantilla, así que el compilador de Node no lo mira: un acento
+   grave de más en un comentario, o dos `const` con el mismo nombre, y el guion
+   revienta al inyectarse. Lo que se ve entonces es «window.__pintarGlosa is
+   not a function» a mitad de un bloque, a mil líneas de la causa. Me ha pasado
+   dos veces. Mirándolo aquí, el fallo sale antes de abrir el navegador y dice
+   lo que es. */
+try { new Function(PINCEL); }
+catch (e) {
+  console.error('\n  EL GUION DEL PINCEL NO COMPILA: ' + e.message +
+                '\n  (está en la plantilla PINCEL de pruebas/comun.js)\n');
+  process.exit(1);
+}
+
 /* ESPERAR A QUE LA MESA ESTÉ DESTAPADA, no a que pase un rato. La portada
    cubre la pantalla entera con pointer-events puestos hasta que la primera
    hoja está pintada, y tiene además un mínimo de tiempo para que el letrero
@@ -142,6 +582,21 @@ async function listo(pagina, tope = 12000){
   await pagina.waitForTimeout(120);
 }
 
+/* OTRA PESTAÑA EN EL MISMO NAVEGADOR, CON EL PINCEL PUESTO.
+
+   Hay bloques que necesitan una página limpia sin pagar otro arranque de
+   navegador, y la pedían con `sesion.navegador.newPage(...)` a pelo. Eso se
+   salta el guion del PINCEL, que solo instala abrir(); desde que el texto se
+   glosa pintando, una página sin pincel no puede ni abrir el panel, y el
+   fallo sale como «window.__pintarGlosa is not a function» a mitad del
+   bloque, lejos de donde está la causa. Se envuelve aquí para que no haya que
+   acordarse. */
+async function otraPagina(navegador, opciones = {}){
+  const pagina = await navegador.newPage({ ...TELEFONO, ...opciones });
+  await pagina.addInitScript(PINCEL);
+  return pagina;
+}
+
 /* Abre la aplicación y devuelve la página, con los errores de JavaScript ya
    recogidos: que el programa no tire una excepción es parte de cada prueba y
    no algo que haya que acordarse de mirar. */
@@ -150,6 +605,7 @@ async function abrir(opciones = {}){
   const pagina = await navegador.newPage({ ...TELEFONO, ...opciones });
   const errores = [];
   pagina.on('pageerror', e => errores.push(String(e).split('\n')[0]));
+  await pagina.addInitScript(PINCEL);
   /* Toda recarga espera también: las pruebas recargan en veinte sitios y
      ninguna tiene por qué acordarse de la portada. */
   const recargar = pagina.reload.bind(pagina);
@@ -181,6 +637,7 @@ async function abrirEnPortada(opciones = {}){
   const pagina = await navegador.newPage({ ...TELEFONO, ...deNavegador });
   const errores = [];
   pagina.on('pageerror', e => errores.push(String(e).split('\n')[0]));
+  await pagina.addInitScript(PINCEL);
   if (visitaHace != null)
     await pagina.addInitScript(([k, t]) => {
       try { localStorage.setItem(k, String(t)); } catch(_){}
@@ -252,5 +709,5 @@ async function cerrar(sesion){
   fin();
 }
 
-module.exports = { abrir, abrirEnPortada, listo, cerrar, cerrarParcial, fin, conGlosas, di, vale, titulo,
+module.exports = { abrir, abrirEnPortada, otraPagina, listo, cerrar, cerrarParcial, fin, conGlosas, di, vale, titulo,
                    APP, RAIZ, TELEFONO, ESCRITORIO, ESTRECHO_RATON };

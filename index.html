@@ -3934,7 +3934,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '14-SEP-26 19:47';
+window.GLOSS_BUILD = '15-SEP-26 06:45';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4378,6 +4378,42 @@ const PAGE_CSS = `
    arrastra el número, que es de donde venía la falla. De paso, copiar un
    pasaje ya no se lleva los números pegados a las palabras. */
 .vn, .cap{ -webkit-user-select:none; user-select:none; }
+/* EL PASAJE NO SE SELECCIONA: SE PINTA CON EL DEDO.
+
+   La clase la pone el programa, y solo cuando puede cumplir lo que quita: sin
+   la API de resaltados no habría con qué dibujar lo que el dedo va pintando, y
+   quitar la selección ahí dejaría al lector sin ninguna manera de glosar. Ver
+   pintarConElDedo.
+
+   La caja de escribir queda fuera a propósito: es lo único de esta pantalla
+   que el lector escribe él, y ahí seleccionar y copiar es suyo. */
+/* Y EL NAVEGADOR NO SE QUEDA CON EL TRAZO, que es lo que pasaba.
+
+   #pg declara touch-action:pan-y, y pintar es un gesto vertical: el navegador
+   lo leía como un desplazamiento suyo, se lo quedaba y mandaba pointercancel
+   a media pintada. El preventDefault del pointermove no lo salva —touch-action
+   se decide antes de que el gesto empiece, no durante—. Lo levantó la revisión
+   de Codex en la PR #98.
+
+   ESTO NO SE VEÍA DESDE LAS PRUEBAS, y es la cuarta regla de la carpeta al pie
+   de la letra: un evento despachado a mano siempre llega, y el de un teléfono
+   no. Un PointerEvent construido a mano se salta el reparto de touch-action
+   entero, así que por ese camino el fallo es invisible. Se vio mandando toques
+   por el protocolo del navegador: 1 pointercancel y 0 pointerup.
+
+   Se pone none aquí y no se relaja el pan-y de arriba, porque aquel gobierna
+   la hoja entera y esto es solo del texto. Medido antes de tocarlo: la hoja NO
+   se desplaza en vertical —0 px de sobra, para eso está la paginación—, así
+   que ese pan-y no servía aquí más que para robar el gesto. El arrastre de
+   lado sigue siendo del programa, como ya lo era.
+
+   Y OJO CON LOS ACENTOS GRAVES EN ESTA ZONA: este CSS vive dentro de una
+   plantilla de JavaScript, así que un backtick en un comentario la parte en
+   dos y la aplicación deja de arrancar entera. Me pasó escribiendo esto. */
+.sin-seleccion #pgBody{ -webkit-user-select:none; user-select:none;
+                        touch-action:none; }
+.sin-seleccion #pgBody textarea,
+.sin-seleccion #pgBody input{ -webkit-user-select:text; user-select:text; }
 .vn{ font-size:.68em; color:#a98f57; vertical-align:.4em; padding-right:2px; }
 .vn-yellow{ color:#c9a227; font-weight:700; }
 .vn-green { color:#3a8f4f; font-weight:700; }
@@ -6049,25 +6085,47 @@ escenas.addEventListener('click', ev => {
    Cancelarlo aquí es lo que se pidió para la lupa de los libros cuando el
    CSS no valió —ver .rejilla-libros. */
 escenas.addEventListener('selectstart', ev => ev.preventDefault());
+/* LO QUE EL DEDO ESTÁ PINTANDO AHORA MISMO: { k, ini, fin } mientras no se
+   toque otra cosa. Se declara aquí arriba, y no junto al gesto que lo mueve
+   —que vive mil líneas más abajo—, porque verseHTML lo lee para dibujarlo
+   cuando no hay API de resaltado, y un `let` que se ejecuta después sería una
+   trampa de zona muerta esperando al primer repintado que llegue antes. */
+let pintado = null;
 function verseHTML(k, withMarks, below){
   const it = plano[k], base = it.texto;
   const aqui = marcas.filter(m => m.cap===it.cap && m.vers===it.vers && visible(m) && RES.has(m.id));
+  /* EL TRAZO DE AHORA ES UN TRAMO MÁS, y por eso entra aquí y no por su lado.
+
+     Sin la API de resaltado no hay dónde dibujar una capa aparte: lo que se
+     está pintando tiene que salir del mismo reparto de cortes que las marcas
+     guardadas, o los dos se pisan —un trazo encima de media marca partiría el
+     span de la marca por su cuenta y se vería el corte—. Reusando los cortes,
+     el solape sale bien solo.
+     Va el último de la lista a propósito: cuando el trazo cae encima de una
+     marca, manda el trazo, que es lo que el dedo está haciendo ahora mismo. */
+  const tramos = aqui.map(m => {
+    const r = RES.get(m.id), g = r.grado;
+    return { ini:r.ini, fin:r.fin,
+             cls: 'hl ' + (m.estilo==='fill'?'f-':'b-') + m.color +
+                  (g === 'aprox' || g === 'versiculo' ? ' aprox' : '') };
+  });
+  if (withMarks && pintado && pintado.k === k)
+    tramos.push({ ini: pintado.ini, fin: pintado.fin, cls: 'hl f-yellow pintando' });
   let inner;
-  if (!withMarks || !aqui.length){
+  if (!withMarks || !tramos.length){
     inner = esc(base);
   } else {
     const cortes = new Set([0, base.length]);
-    for (const m of aqui){ const r = RES.get(m.id); cortes.add(r.ini); cortes.add(r.fin); }
+    for (const t of tramos){ cortes.add(t.ini); cortes.add(t.fin); }
     const pts = [...cortes].filter(p => p>=0 && p<=base.length).sort((a,b)=>a-b);
     inner = '';
     for (let i = 0; i < pts.length-1; i++){
       const s = pts[i], e = pts[i+1], seg = esc(base.slice(s,e));
-      const m = aqui.find(m => { const r = RES.get(m.id); return r.ini <= s && r.fin >= e; });
-      if (!m){ inner += seg; continue; }
-      const g = RES.get(m.id).grado;
-      const cls = 'hl ' + (m.estilo==='fill'?'f-':'b-') + m.color +
-                  (g === 'aprox' || g === 'versiculo' ? ' aprox' : '');
-      inner += '<span class="' + cls + '">' + seg + '</span>';
+      /* El último que cubra este tramo, no el primero: ver arriba. */
+      let t = null;
+      for (const x of tramos) if (x.ini <= s && x.fin >= e) t = x;
+      if (!t){ inner += seg; continue; }
+      inner += '<span class="' + t.cls + '">' + seg + '</span>';
     }
   }
   const tint = TINT_V.get(it.cap+':'+it.vers);
@@ -6502,9 +6560,6 @@ function renderPageCrudo(){
      rehacer el panel te sacaría de ella. */
   refrescarLibroActual();
   medirHojaTelefono();
-  /* Lo apuntado de la selección era de la hoja que estaba puesta: sus
-     posiciones ya no dicen nada. Ver selRecordada. */
-  olvidarSeleccion();
   pintarFiltros(); pintarIndice(); invalidateSnapshot(); updateReadout();
   /* La cinta se vuelve a colgar aquí, después del acomodo: layoutInto vacía la
      columna de glosas cada vez, así que ponerla antes sería ponerla para que
@@ -6592,6 +6647,10 @@ if (HL_API){
     ' text-underline-offset:4px; text-decoration-skip-ink:none; }'
   ).join('\n') +
   '\n::highlight(aprox){ text-decoration:underline dotted 2px #b23a3a; text-underline-offset:4px; }' +
+  /* LO QUE EL DEDO VA PINTANDO, con el mismo amarillo con el que nace toda
+     marca —ver crearMarca—: lo que se ve arrastrando es exactamente lo que va
+     a quedar, y no un color de ensayo que luego cambia al soltar. */
+  '\n::highlight(pintando){ background-color:' + F.yellow + '; }' +
   /* Naranja, tres pulsos, y ya. Probamos el contorno pegado a las letras —se
      veía fantasmal— y el marco alrededor del versículo —se veía bien, pero
      pedía una capa de elementos encima de la hoja y medir rectángulos en cada
@@ -8229,102 +8288,247 @@ $('btnDeshacer').onclick = () => {
 
 /* ---------- el gesto que lo abre ---------- */
 
-/* LA SELECCIÓN SE RECUERDA, PORQUE EN EL TELÉFONO NO ESTÁ CUANDO SE PREGUNTA.
+/* AQUÍ VIVÍA LA MEMORIA DE LA SELECCIÓN, y se va entera con ella.
 
-   En escritorio la selección ya existe al soltar el ratón, y el oyente de
-   abajo la lee y abre el panel. En Android no: el sistema termina de armar la
-   selección DESPUÉS del pointerup —es cuando salen los tiradores— así que al
-   preguntar todavía no hay nada y el gesto se va sin hacer nada. El lector
-   entonces hace lo natural, tocar lo que acaba de seleccionar para
-   confirmarlo… y ese toque la deshace antes de que nadie la lea. Medido: tras
-   el toque la selección vale "" y el panel que se abre es el de otra glosa o
-   ninguno. Se seleccionaba, se abría una caja, y no se guardaba nada.
+   Eran unas ochenta líneas para un problema que ya no existe: en Android el
+   sistema termina de armar la selección DESPUÉS del pointerup, así que al
+   preguntar no había nada; el lector tocaba lo que acababa de seleccionar
+   para confirmarlo y ese toque la deshacía antes de que nadie la leyera. Se
+   apuntaba la última selección buena y se gastaba con el toque siguiente, con
+   tres guardias —dentro de un versículo, caducidad, y el toque encima de lo
+   apuntado— y con el olvido atado al gesto y no a la selección, porque en
+   Android el toque sobre lo seleccionado se lo queda la capa de la selección
+   y el pointerdown no llega nunca a la hoja.
 
-   Así que se apunta la última selección buena que hubo dentro del cuerpo, y
-   cuando el toque llega con la selección ya deshecha se usa esa. Tres
-   guardias para que sea la del lector y no un fantasma:
-   · tiene que estar dentro de #pgBody y caber en UN versículo —lo mismo que
-     ya exigía el camino normal—;
-   · caduca: una selección de hace un minuto no convierte un toque de ahora en
-     una glosa. VIDA_SELECCION;
-   · y el toque tiene que caer ENCIMA de lo seleccionado, con holgura de un
-     dedo. Tocar en otro sitio sigue queriendo decir lo de siempre: nada.
-   Se gasta al usarla, así que dos toques seguidos no crean dos marcas.
+   Todo eso era andamiaje para sostener un camino que ya no está. Ahora el
+   dedo pinta y lo pintado no se deshace solo: no hay nada que recordar. Queda
+   escrito porque el problema que resolvía es real y volverá a morder a quien
+   se le ocurra reintroducir la selección, y porque la lección de fondo se
+   paga una sola vez: la prueba no lo veía, y no lo veía porque un
+   PointerEvent despachado a mano SIEMPRE llega. Está en la regla 4 de
+   pruebas/README.md. */
 
-   LO APUNTADO SE OLVIDA POR EL GESTO, NO POR LA SELECCIÓN. Es la parte que
-   costó y conviene no volver a moverla. Lo primero que hice fue olvidarlo en
-   cuanto la selección dejaba de ser la que era, con una excepción para el
-   toque que la confirma. Suena bien y no aguanta un teléfono: en Android el
-   toque sobre lo seleccionado se lo queda la propia capa de la selección —los
-   tiradores, el menú de copiar— y el pointerdown no llega nunca a la hoja. Así
-   que la excepción no se activaba, la selección se deshacía, lo apuntado se
-   borraba con ella, y el lector veía lo de siempre: se abre una caja, no es la
-   suya, y no se guarda nada. La prueba no lo veía porque un PointerEvent
-   despachado a mano SIEMPRE llega.
+/* ============================================================
+   GLOSAR PINTANDO CON EL DEDO, Y NO SELECCIONANDO.
 
-   Así que ya no se mira cuándo se deshace la selección —eso pasa cuando el
-   aparato quiere— sino dónde baja el dedo, que es lo único que dice la
-   intención del lector:
-   · un dedo que baja FUERA de lo apuntado lo cancela, y se olvida ahí mismo.
-     Se escucha en el documento entero y en captura, para que cuente también el
-     toque que se queda en un botón o en el escritorio;
-   · un dedo que baja encima —o que no llega, porque se lo comió la selección—
-     no borra nada: la marca la decide el toque cuando se suelta.
-   Con el olvido atado a un gesto de verdad, la caducidad puede ser holgada:
-   quien selecciona, lee, se lo piensa y luego toca sigue estando a tiempo. */
-const VIDA_SELECCION = 60000;
-const HOLGURA_SELECCION = 26;          /* px: el ancho de un dedo, más o menos */
-let selRecordada = null;
-const encimaDeLoApuntado = (ev, r) => {
-  if (!r) return false;
-  const c = r.caja, h = HOLGURA_SELECCION;
-  return ev.clientX >= c.left - h && ev.clientX <= c.right + h &&
-         ev.clientY >= c.top  - h && ev.clientY <= c.bottom + h;
-};
-function recordarSeleccion(){
-  const sel = window.getSelection();
-  if (!sel || sel.isCollapsed || !sel.rangeCount) return;
-  if (!sel.toString().trim()) return;
-  const rg = sel.getRangeAt(0);
-  if (!pgBody.contains(rg.commonAncestorContainer)) return;
-  const a = offsetGlobal(sel.anchorNode, sel.anchorOffset);
-  const b = offsetGlobal(sel.focusNode, sel.focusOffset);
-  if (!a || !b || a.k !== b.k || a.off === b.off) return;
-  const caja = rg.getBoundingClientRect();
-  if (caja.width < 1 && caja.height < 1) return;
-  selRecordada = { k:a.k, ini:Math.min(a.off,b.off), fin:Math.max(a.off,b.off),
-                   caja: { left:caja.left, top:caja.top, right:caja.right,
-                           bottom:caja.bottom, width:caja.width, height:caja.height },
-                   t: Date.now() };
+   Hasta aquí, glosar era seleccionar: arrastrabas, el navegador te ponía su
+   selección con sus manijas y su menú de copiar, y un toque encima abría la
+   glosa. Eso dejaba el texto del pasaje a un toque de distancia del
+   portapapeles, y el gesto no era el de marcar un libro sino el de citar una
+   página web.
+
+   Ahora el pasaje no se selecciona y el resaltado lo dibuja el programa: el
+   dedo baja, y mientras se arrastra se va pintando en amarillo. Al levantarlo
+   se queda pintado; al tocar encima se abre la glosa, que es el mismo segundo
+   tiempo de siempre: el lector señalaba y luego confirmaba tocando, y eso no
+   cambia.
+
+   TRES COSAS QUE NO SE VEN LEYÉNDOLO:
+
+   · SE AJUSTA A PALABRAS ENTERAS CON LA MISMA FUNCIÓN QUE LA MARCA. Lo hace
+     aPalabrasEnteras, que ya usaba crearMarca, así que lo que se ve mientras
+     se arrastra es exactamente lo que va a quedar guardado. Pintar con otro
+     criterio y ajustar al soltar sería enseñar una cosa y hacer otra, y en un
+     teléfono la diferencia es de media palabra: un dedo mide cuarenta píxeles
+     y una letra seis.
+
+   · SIN LA API DE RESALTADOS NO SE QUITA LA SELECCIÓN. Aquí el trato es un
+     intercambio: se le quita al lector la selección del navegador y a cambio
+     se le da un pincel. Donde no hay con qué pintar —CSS.highlights no
+     existe— hacer solo la primera mitad dejaría el programa sin ninguna
+     manera de glosar, que es peor que el copiado que se venía a estorbar. Ahí
+     se sigue seleccionando como hasta hoy.
+
+   · Y ESTO NO PROTEGE EL TEXTO DE VERDAD, conviene tenerlo escrito donde se
+     lea: estorba el copiado de paso, pero el texto viaja entero en el archivo
+     y el panel de RESPALDO lo exporta. Lo que se gana es el gesto correcto,
+     no una cerradura.
+   ============================================================ */
+/* EL DEDO QUE SE QUEDÓ ERA PARA GLOSAR. 280 ms está por encima de los 200 de
+   un titulillo —ese gesto es otro— y por debajo de lo que tardaba el teléfono
+   en armar la selección, que es lo que este trazo viene a sustituir. Lo lee
+   también correrPapel, que es quien se retira cuando se cumple. */
+const ESPERA_SELECCION = 280;
+const PINTADO_UMBRAL = 4;        /* px antes de dar el arrastre por empezado */
+const PINTADO_RUIDO = 10;        /* por debajo, el dedo no dice dirección */
+
+/* REDIBUJAR SOLO EL VERSÍCULO DEL TRAZO, que es lo que hace falta sin la API.
+
+   Con la API basta con cambiar el resaltado y el documento no se toca. Sin
+   ella el trazo es un <span>, así que hay que rehacer el versículo entero —y
+   solo ése: rehacer la hoja en cada cuadro del dedo sería otra cosa—.
+   Medido en un navegador sin la API, sobre el versículo más largo de la hoja y
+   forzando el diseño en cada paso: p95 1.4 ms en frío y 1.5 en caliente, el
+   peor cuadro de 180 en 1.8. El presupuesto de un cuadro a 60/s es 16.7, así
+   que cabe ocho veces. Por eso se pinta en todos los navegadores y no solo en
+   los que traen la API: la protección del texto no puede tener un agujero
+   justo en los aparatos viejos. */
+function repintarVersoDelTrazo(k){
+  if (HL_API || k == null) return;
+  const el = pgBody.querySelector('.v[data-k="' + k + '"]');
+  if (!el || !el.parentNode) return;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = verseHTML(k, SPAN_MARKS, false);
+  const nuevo = tmp.querySelector('.v[data-k="' + k + '"]');
+  if (nuevo) el.replaceWith(nuevo);
 }
-document.addEventListener('selectionchange', recordarSeleccion);
-/* EL DEDO QUE BAJA FUERA CANCELA. En el documento y en captura: un toque en un
-   botón, en el margen o en el escritorio también es cancelar. */
-document.addEventListener('pointerdown', ev => {
-  if (selRecordada && !encimaDeLoApuntado(ev, selRecordada)) selRecordada = null;
-}, true);
-/* Y UNA TECLA TAMBIÉN CANCELA. Lo levantó la revisión de Codex, y es el hueco
-   que deja colgar el olvido del dedo: con el teclado se deshace una selección
-   sin que baje ningún dedo. Alguien selecciona con el ratón, pulsa una flecha
-   —la selección se va— y al rato hace clic donde estaba: sin esta línea ese
-   clic cae dentro de lo apuntado, no cancela, y al soltar sale una glosa
-   sobre unas palabras que ya no estaban seleccionadas.
-   No toca el camino del teléfono, que es justo el que no tiene teclas de por
-   medio: entre seleccionar y confirmar no se pulsa nada. Y extender con
-   mayúsculas y flechas tampoco se pierde: la selección nueva se vuelve a
-   apuntar en el selectionchange que viene detrás. */
-document.addEventListener('keydown', () => { selRecordada = null; }, true);
-/* Cambiar de hoja, repaginar o abrir un panel invalidan lo apuntado: las
-   posiciones son de la hoja que estaba puesta. */
-function olvidarSeleccion(){ selRecordada = null; }
-function seleccionParaEsteToque(ev){
-  const r = selRecordada;
-  if (!r) return null;
-  if (Date.now() - r.t > VIDA_SELECCION){ selRecordada = null; return null; }
-  if (!encimaDeLoApuntado(ev, r)) return null;
-  selRecordada = null;                 /* se gasta: un toque, una marca */
-  return r;
+function limpiarPintado(){
+  if (!pintado) return;
+  const k = pintado.k;
+  pintado = null;
+  if (HL_API) CSS.highlights.delete('pintando');
+  else repintarVersoDelTrazo(k);
 }
+function rangoPintado(){
+  if (!pintado) return null;
+  const el = pgBody.querySelector('.v[data-k="' + pintado.k + '"]');
+  if (!el) return null;
+  const a = nodoEn(el, pintado.ini), b = nodoEn(el, pintado.fin);
+  if (!a || !b) return null;
+  const rg = document.createRange();
+  try { rg.setStart(a.node, a.offset); rg.setEnd(b.node, b.offset); } catch(e){ return null; }
+  return rg;
+}
+function pintarLoPintado(){
+  if (!HL_API){ repintarVersoDelTrazo(pintado && pintado.k); return; }
+  const rg = rangoPintado();
+  if (!rg){ CSS.highlights.delete('pintando'); return; }
+  CSS.highlights.set('pintando', new Highlight(rg));
+}
+(function pintarConElDedo(){
+  /* SE ENCIENDE EN TODOS LOS NAVEGADORES, y antes solo donde había API de
+     resaltado. Mientras esto salía por la puerta en los demás, ahí seguía
+     vivo el camino viejo de seleccionar: o sea que el texto se podía copiar
+     justo en los aparatos viejos, que es el agujero que este cambio venía a
+     tapar. Sin la API el trazo se dibuja con un <span> y cuesta 1.4 ms de p95
+     contra los 16.7 de un cuadro; ver repintarVersoDelTrazo. */
+  document.documentElement.classList.add('sin-seleccion');
+  /* El CSS tapa el caso común; un arrastre a pelo todavía dispara selectstart
+     en algunos aparatos. Es la misma línea, y por la misma razón, que lleva la
+     rejilla de los libros. */
+  pgBody.addEventListener('selectstart', ev => ev.preventDefault());
+
+  let gesto = null;
+  const sePuedeGlosar = t => t && t.closest &&
+    !t.closest('.gl, .peri, .vn, .cap, a, button, textarea, input, select');
+
+  pgBody.addEventListener('pointerdown', ev => {
+    gesto = null;
+    /* Y AQUÍ DECÍA «zoomActivo», que era mío y sobraba. Lo puse por parecido
+       con el arrastre del papel, sin mirar que glosar DE LEJOS es una cosa que
+       ya se hacía y que tiene su prueba —la vista de lejos es para ver la hoja
+       entera y marcar lo que salta a la vista—. Apagando la pintura ahí, ese
+       camino se quedaba sin gesto: la prueba de zoom decía que el panel no
+       salía y llevaba razón. El zoom no estorba a pintar, porque puntoA
+       trabaja en coordenadas de pantalla y la escala ya viene aplicada. */
+    if (ev.button > 0) return;
+    if (!sePuedeGlosar(ev.target)) return;
+    const p = puntoA(ev.clientX, ev.clientY);
+    if (!p) return;
+    /* Sobre una marca ya hecha el gesto es ABRIRLA, no pintar otra encima. */
+    if (marcaEn(p.k, p.off)) return;
+    gesto = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, t0: performance.now(),
+              k: p.k, off: p.off, pinto: false };
+  });
+
+  /* EL REPARTO CON EL PASE DE HOJA, que es lo que costó encontrar: un desliz
+     de lado por encima del texto PASA LA HOJA, y eso ya estaba y no se toca.
+     El primer trazo que escribí no lo respetaba, así que el gesto de pintar
+     acababa volteando la hoja y el trazo se perdía con ella.
+     correrPapel ya tenía escrito el reparto y sus razones, así que aquí se
+     obedece en vez de inventar otro: el pase de hoja se retira cuando el dedo
+     se quedó quieto más de ESPERA_SELECCION, o cuando el movimiento es más
+     vertical que horizontal —bajar es leer, no pasar—. En esos dos huecos, y
+     solo en ésos, el dedo pinta. Fuera de ellos manda la hoja.
+     Se lee como una pérdida y no lo es: es exactamente el hueco en el que
+     antes se armaba la selección del navegador, o sea el mismo gesto de
+     siempre con otra tinta. */
+  const tocaPintar = ev => {
+    if (gesto.pinto) return true;
+    if (performance.now() - gesto.t0 > ESPERA_SELECCION) return true;
+    const dx = ev.clientX - gesto.x, dy = ev.clientY - gesto.y;
+    if (Math.hypot(dx, dy) < PINTADO_RUIDO) return false;
+    return Math.abs(dy) > Math.abs(dx);
+  };
+  pgBody.addEventListener('pointermove', ev => {
+    if (!gesto || ev.pointerId !== gesto.id) return;
+    if (!gesto.pinto &&
+        Math.hypot(ev.clientX - gesto.x, ev.clientY - gesto.y) < PINTADO_UMBRAL) return;
+    if (!tocaPintar(ev)) return;
+    const p = puntoA(ev.clientX, ev.clientY);
+    /* Sin punto no hay nada que decir: el dedo está sobre un hueco, un
+       titulillo o el margen. Eso no es cruzar, es no señalar. */
+    if (!p) return;
+    const it = plano[gesto.k]; if (!it) return;
+    const texto = versoTexto(version, it.cap, it.vers);
+    /* CRUZAR DE VERSÍCULO: LA PINTURA SE PARA EN EL FILO, Y SE DICE.
+
+       Decía «lo dice el mensaje de siempre» y era mentira: el mensaje vivía en
+       el camino de la selección, y pintando no lo decía nadie. El dedo seguía
+       andando y la pintura se quedaba clavada sin explicar por qué, que es
+       exactamente el caso para el que ese aviso existe —el único de los
+       veintitrés que sobrevivió a la poda, porque dice algo que no se ve solo—.
+
+       Dos decisiones dentro de esto. La primera: se pinta HASTA EL FILO en vez
+       de dejar el trazo donde estuviera. Un dedo que se pasa de largo quería
+       todo el versículo, y quedarse a medias donde cayó el último cuadro es
+       arbitrario. La segunda: el aviso sale UNA VEZ POR GESTO, no por cada
+       cuadro. Pintando se cruza a cada rato y el pointermove llega decenas de
+       veces por segundo; el cartel dura nueve segundos y dispararlo en cada uno
+       lo dejaría pegado a la pantalla mientras el dedo se mueva. Una vez por
+       gesto es lo que hacía antes el camino de la selección: un aviso por
+       intento. */
+    let hasta = p.off;
+    if (p.k !== gesto.k){
+      hasta = p.k > gesto.k ? texto.length : 0;
+      if (!gesto.aviso){
+        gesto.aviso = true;
+        readout.textContent = 'por ahora una marca no puede cruzar de versículo';
+      }
+    }
+    gesto.pinto = true;
+    ev.preventDefault();
+    const a = Math.min(gesto.off, hasta), b = Math.max(gesto.off, hasta);
+    const r = aPalabrasEnteras(texto, a, b);
+    if (pintado && pintado.k === gesto.k && pintado.ini === r.ini && pintado.fin === r.fin) return;
+    pintado = { k: gesto.k, ini: r.ini, fin: r.fin };
+    pintarLoPintado();
+  });
+
+  const soltar = ev => {
+    if (!gesto || (ev && ev.pointerId != null && ev.pointerId !== gesto.id)) return;
+    const pinto = gesto.pinto;
+    gesto = null;
+    if (!pinto) return;
+    /* El clic que viene detrás del arrastre se tira: si llegara, el toque
+       abriría la glosa en el mismo gesto con el que se pintó, y el segundo
+       tiempo —tocar encima— dejaría de existir. */
+    tragarElClic();
+    /* Y EL PROPIO SOLTAR TAMPOCO ES UN TOQUE, que es más sutil y fue lo que
+       pasó: el oyente de pointerup que abre la glosa es OTRO, y ese no sabe si
+       el dedo venía arrastrando. Al levantarlo dentro de lo recién pintado
+       —que es donde se levanta siempre— lo leía como el toque de encima y
+       abría la glosa en el acto. El trazo se marca como recién hecho y ese
+       oyente se salta una vez. */
+    if (pintado) pintado.recienHecho = true;
+  };
+  /* UN GESTO CANCELADO NO ES UN GESTO TERMINADO, y esto los trataba igual.
+
+     pointercancel lo manda el navegador o el sistema cuando se lleva el gesto:
+     un segundo dedo, una notificación, un gesto del aparato. Pasándolo por
+     `soltar`, el trazo a medias se quedaba pintado y marcado como recién
+     hecho, así que el toque siguiente se lo comía y el de después abría una
+     glosa nacida de un gesto que la plataforma había cancelado. Lo levantó la
+     revisión de Codex.
+     Cancelar es deshacer: se tira el gesto y se borra lo pintado. */
+  const cancelar = ev => {
+    if (!gesto || (ev && ev.pointerId != null && ev.pointerId !== gesto.id)) return;
+    gesto = null;
+    limpiarPintado();
+  };
+  pgBody.addEventListener('pointerup', soltar);
+  pgBody.addEventListener('pointercancel', cancelar);
+})();
 
 pgBody.addEventListener('pointerup', ev => {
   if (ev.target.tagName === 'TEXTAREA') return;
@@ -8334,43 +8538,43 @@ pgBody.addEventListener('pointerup', ev => {
      toque hacía las dos cosas —abrir las escenas y buscar una marca debajo—. */
   if (ev.target.closest('.peri')) return;
   setTimeout(() => {
-    const sel = window.getSelection();
-    const arrastre = sel && !sel.isCollapsed && sel.toString().trim().length > 0;
-    /* La selección ya deshecha, pero el toque cayó sobre la que había: es la
-       misma intención, así que se atiende igual. Ver selRecordada. */
-    if (!arrastre){
-      const r = seleccionParaEsteToque(ev);
-      if (r){
-        const it = plano[r.k];
-        if (it){
-          abrirPanel(crearMarca(it.cap, it.vers, r.ini, r.fin), true, r.caja);
-          return;
-        }
-      }
-    }
-    if (arrastre){
-      const a = offsetGlobal(sel.anchorNode, sel.anchorOffset);
-      const b = offsetGlobal(sel.focusNode, sel.focusOffset);
-      if (a && b && a.k === b.k && a.off !== b.off){
-        const it = plano[a.k];
-        const ini = Math.min(a.off,b.off), fin = Math.max(a.off,b.off);
-        const rect = sel.getRangeAt(0).getBoundingClientRect();
-        olvidarSeleccion();
-        /* La selección del navegador se suelta aquí: a partir de ahora
-           lo que enseña dónde estás es el ancla de la marca, y dos
-           subrayados a la vez sobre las mismas palabras se leen como un
-           error. En el teléfono además se lleva los tiradores, que
-           taparían medio panel. */
-        sel.removeAllRanges();
-        abrirPanel(crearMarca(it.cap, it.vers, ini, fin), true, rect);
-      } else if (a && b && a.k !== b.k){
-        readout.textContent = 'por ahora una marca no puede cruzar de versículo';
-        ocultarMenu();
-      }
+    /* AQUÍ SE LEÍA LA SELECCIÓN, y ya no hay ninguna que leer: el texto no se
+       selecciona y quien marca es el dedo. Lo que hacía esta rama —convertir
+       lo seleccionado en marca, y avisar si cruzaba de versículo— lo hace
+       ahora el trazo, que además avisa MIENTRAS cruzas y no al soltar. */
+    const p = puntoA(ev.clientX, ev.clientY);
+    /* EL SEGUNDO TIEMPO: tocar encima de lo que el dedo acaba de pintar abre
+       la glosa. Es el mismo gesto que tenía el lector cuando esto se
+       seleccionaba —arrastrar, y luego tocar lo apuntado—, y por eso va antes
+       que la marca de debajo: lo recién pintado manda sobre lo que hubiera. */
+    if (pintado && pintado.recienHecho){
+      /* el soltar del arrastre, que no cuenta: ver soltar en pintarConElDedo */
+      pintado.recienHecho = false;
       return;
     }
-    const p = puntoA(ev.clientX, ev.clientY);
+    if (pintado && p && p.k === pintado.k &&
+        p.off >= pintado.ini && p.off < pintado.fin){
+      const it = plano[pintado.k];
+      const rg = rangoPintado();
+      const caja = rg ? rg.getBoundingClientRect()
+                      : { left:ev.clientX, top:ev.clientY, width:0, height:0, bottom:ev.clientY };
+      const nueva = crearMarca(it.cap, it.vers, pintado.ini, pintado.fin);
+      limpiarPintado();
+      abrirPanel(nueva, true, caja);
+      return;
+    }
     const m = p && marcaEn(p.k, p.off);
+    /* Y UN TOQUE EN CUALQUIER OTRO SITIO BORRA EL TRAZO: lo pintado dura lo
+       que duraba la selección, hasta el siguiente toque.
+
+       CUALQUIER OTRO SITIO INCLUYE OTRA GLOSA, y ahí no lo borraba. Si el
+       lector pintaba un tramo y luego tocaba una glosa que ya existía en otra
+       parte, esta rama se iba por abajo sin limpiar: se abría la glosa vieja y
+       el trazo amarillo seguía vivo detrás. Al cerrar ese panel, tocar el
+       trazo huérfano creaba una glosa de algo que el lector ya había
+       abandonado. Lo levantó la revisión de Codex.
+       Se limpia antes de repartir, que es donde la regla es una sola. */
+    limpiarPintado();
     if (!m){ ocultarMenu(); return; }
     const rg = rangoDe(m, pgBody);
     abrirPanel(m, false, rg ? rg.getBoundingClientRect()
@@ -10310,11 +10514,10 @@ function encenderG(){
      glosar— para no disparar un pliegue con un roce al leer. */
   const INTENCION = 34;    /* px de puntero que hay que mover para que cuente */
   const RUIDO = 10;        /* por debajo de esto el dedo no dice dirección, tiembla */
-  /* Si el dedo se quedó, era para glosar: un desliz que arranca después de
-     este rato ya no es pasar hoja. 280 ms está por encima de los 200 de un
-     titulillo (ese gesto es otro) y por debajo de lo que tarda el teléfono
-     en armar la selección. */
-  const ESPERA_SELECCION = 280;
+  /* ESPERA_SELECCION vive fuera desde que el trazo existe: la misma cifra
+     decide las dos mitades del reparto —cuándo esto deja de pasar hoja y
+     cuándo el dedo empieza a pintar—, y dos números iguales escritos en dos
+     sitios se separan el día que alguien toca uno. Ver pintarConElDedo. */
   let activo = false, x0 = 0, y0 = 0, t0 = 0, puntero = null, reloj = null;
   const sobraPapel = () => pg.scrollWidth - pg.clientWidth > 4;
   /* LO QUE NO SE AGARRA ES APARATO: botones, campos, los dos rótulos.
@@ -10391,9 +10594,6 @@ function encenderG(){
        retrato del pliegue es de la hoja de lectura, no de las glosas. */
     activo = false;
     ev.preventDefault();
-    olvidarSeleccion();
-    const sel = window.getSelection && window.getSelection();
-    if (sel && sel.removeAllRanges) sel.removeAllRanges();
     tragarElClic();
     cancelAnimationFrame(reloj);
     poner(0);
@@ -14732,11 +14932,27 @@ function sepLlegada(){
    muchas más razones que pasar de hoja —cambiar la letra, escribir una
    glosa, mover un filtro— y ninguna de ésas es llegar a ningún sitio. */
 let sepClaveHoja = null;
+/* Y LO PINTADO NO SOBREVIVE A NINGÚN REPINTADO, no solo al cambio de hoja.
+
+   El trazo vive en offsets de UN versículo de LA hoja que se está viendo, así
+   que dejarlo puesto sería pintar en otro sitio lo que se marcó aquí. Eso ya
+   estaba escrito, pero se limpiaba solo cuando cambiaba la hoja, y renderPage
+   rehace los nodos de todos los versículos por muchas más razones: cambiar de
+   versión, de letra, de columnas, un filtro, girar el aparato. En esos casos
+   el rango del resaltado se quedaba apuntando a nodos que ya no están en el
+   documento —la pintura desaparece de la pantalla— mientras `pintado` seguía
+   vivo con sus números; y tras un cambio de versión, con los offsets de OTRA
+   traducción, así que un toque después abría una glosa de un texto que el
+   lector no había señalado y que ni siquiera se veía. Lo levantó la revisión
+   de Codex.
+   Se limpia en cada repintado y no solo cuando cambia la hoja: el trazo es de
+   este dibujo de la hoja, no de esta hoja. */
 function separadorAlPintar(){
   const p = plano[paginas[paginaActual]] || null;
   const clave = LIBRO + ' ' + (p ? p.cap + ':' + p.vers : '?');
   const cambio = clave !== sepClaveHoja;
   sepClaveHoja = clave;
+  if (typeof limpiarPintado === 'function') limpiarPintado();
   if (cambio && sepMenuAbierto) cerrarSepMenu();
   if (cambio) sepLlegada();
   pintarSeparador();

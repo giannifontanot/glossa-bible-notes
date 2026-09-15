@@ -77,15 +77,19 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        apagarlo y hay que preguntarlo desde el guion. */
     const nacer = await p.evaluate(async () => {
       const v = document.querySelector('#pgBody .v');
-      const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-      while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-      if (!n) return { sinTexto:true };
-      const r = document.createRange(); r.setStart(n,0); r.setEnd(n,20);
-      getSelection().removeAllRanges(); getSelection().addRange(r);
-      const rc = r.getBoundingClientRect();
-      const centro = { x: rc.left + rc.width/2, y: rc.top + rc.height/2 };
-      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-        { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
+      /* SE PINTA Y SE TOCA APARTE, y aquí la separación hace falta de verdad:
+         lo que se mide es el panel a los 45 ms de NACER, así que el toque que
+         lo abre tiene que darlo esta prueba para poder mirar justo después.
+         Ver __pintarEn y __tocarLoPintado en comun.js. */
+      const donde = await window.__pintarEn(v, 0, 20);
+      if (!donde) return { sinTexto:true, porque: window.__pincelPorque };
+      const centro = { x: donde.x, y: donde.y };
+      const pgB = document.getElementById('pgBody');
+      const op = (x, y) => ({ bubbles:true, cancelable:true, pointerId:65,
+                              pointerType:'touch', isPrimary:true, clientX:x, clientY:y });
+      pgB.dispatchEvent(new PointerEvent('pointerdown', op(donde.x, donde.y)));
+      await new Promise(z => setTimeout(z, 20));
+      pgB.dispatchEvent(new PointerEvent('pointerup', op(donde.x, donde.y)));
       await new Promise(z => setTimeout(z, 45));
       const menu = document.getElementById('menu');
       const an = menu.getAnimations()[0];
@@ -144,18 +148,23 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     const pliegue = await p.evaluate(async () => {
       const pausa = ms => new Promise(z => setTimeout(z, ms));
       const menu = document.getElementById('menu');
+      /* CON EL DEDO, que la selección ya no existe. El cuerpo del pasaje
+         lleva user-select:none desde que se glosa pintando, así que el
+         addRange de antes no armaba nada y el toque no abría el panel: se
+         pinta y se toca encima, que es el gesto de verdad. Lo pone el
+         andamio, ver PINCEL en comun.js.
+
+         Y lo que se afirma abajo es lo del PR #97, no lo que traía la rama de
+         pintar: mientras el panel perseguía al pasaje había que buscar cuál
+         de los catorce lo obligaba a moverse, y desde que sale casi arriba y
+         se queda ahí NINGUNO lo mueve. Las dos ramas cambiaron este bloque a
+         la vez y en sentidos contrarios; manda la del panel, que es la que
+         cambió el programa. */
       const v = document.querySelectorAll('#pgBody .v')[1] ||
                 document.querySelector('#pgBody .v');
       if (!v) return { sinTexto:true };
-      const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-      while (w.nextNode()) if (w.currentNode.textContent.trim().length > 40){ n = w.currentNode; break; }
-      if (!n) return { sinTexto:true };
-      const r = document.createRange(); r.setStart(n, 5); r.setEnd(n, 25);
-      getSelection().removeAllRanges(); getSelection().addRange(r);
-      const rc = r.getBoundingClientRect();
-      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-        { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-      await pausa(500);
+      if (!await window.__glosarEn(v, 5, 25))
+        return { sinTexto:true, porque: window.__pincelPorque };
       const ta = document.getElementById('glosaCaja'); if (!ta) return { sinPanel:true };
       ta.value = 'una nota cualquiera';
       ta.dispatchEvent(new Event('input', { bubbles:true }));
@@ -199,15 +208,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        media query. Había que preguntarlo desde el guion. Lo levantó Codex. */
     const vuelo = await p.evaluate(async () => {
       const v = document.querySelector('#pgBody .v');
-      const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
-      while (w.nextNode()) if (w.currentNode.textContent.trim().length > 70){ n = w.currentNode; break; }
-      if (!n) return { sinTexto:true };
-      const r = document.createRange(); r.setStart(n,0); r.setEnd(n,14);
-      getSelection().removeAllRanges(); getSelection().addRange(r);
-      const rc = r.getBoundingClientRect();
-      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
-        { bubbles:true, clientX:Math.round(rc.left+2), clientY:Math.round(rc.top+2) }));
-      await new Promise(z => setTimeout(z, 550));
+      if (!await window.__glosarEn(v, 0, 14)) return { sinTexto:true, porque: window.__pincelPorque };
       const ta = document.getElementById('glosaCaja');
       if (!ta) return { sinPanel:true };
       ta.value = 'una nota que quizá vuele';
