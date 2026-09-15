@@ -1846,10 +1846,22 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     /* Y ahora se cierra tocando fuera, filmando cuadro a cuadro cómo se va. */
     const cuadros = [];
     const t0 = performance.now();
+    /* SE FILMA HASTA QUE EL PANEL SE VA, no durante un plazo fijo.
+
+       Iba a 700 ms, y eso da por hecho que la cámara corre a su velocidad: en
+       una máquina cargada la película salió de CINCO cuadros en esos 700 ms
+       —«1 1 0.99 0.96 0.92»— y la aserción del final leyó ese 0.92 como un
+       fundido que no bajaba. No era eso: era una cámara a siete cuadros por
+       segundo. Aquí, con la máquina libre, el mismo bloque da dieciocho
+       cuadros y llega a 0.
+       Filmando hasta que el panel se va, lo que se mide es el fundido y no el
+       reloj de quien mira. El tope de 2500 ms está para que un panel que NO se
+       fuera no colgara la prueba; que no se vaya ya lo dice seFue. */
     const peli = (async () => {
-      while (performance.now() - t0 < 700){
+      while (performance.now() - t0 < 2500){
         const cs = getComputedStyle(m);
-        if (cs.display !== 'none') cuadros.push(+(+cs.opacity).toFixed(2));
+        if (cs.display === 'none') break;
+        cuadros.push(+(+cs.opacity).toFixed(2));
         await new Promise(z => requestAnimationFrame(z));
       }
     })();
@@ -1982,6 +1994,369 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      El control está en piedra.prueba.js, en «poner una piedra», que es un
      gesto que sí escribe uno («piedra puesta · arrástrala…») y además lo hace
      antes que ningún otro. Levantado en revisión. */
+  /* ================================================================
+     SOSTENER EL DEDO, Y LOS TIRADORES QUE QUEDAN.
+
+     Dos cosas que no tenía el trazo y que la selección del navegador sí daba:
+     que sostener el dedo encienda la palabra de debajo —sin eso, quien apoya
+     y no arrastra no ve nada y no sabe si el programa le entendió—, y que se
+     pueda corregir el tramo DESPUÉS de levantar el dedo. Una letra mide seis
+     píxeles y un pulgar cuarenta: acertar a la primera no es razonable, y sin
+     tiradores la única salida era tocar fuera y volver a arrastrar entero.
+
+     Se prueba con la hoja limpia a propósito: sobre una marca hecha el dedo
+     ABRE en vez de pintar, que es otra cosa y ya está probada más arriba.
+     ================================================================ */
+  titulo('sostener el dedo pinta la palabra, y se puede estirar después');
+  await p.evaluate(() => localStorage.removeItem('glossa:marcas:v1'));
+  await p.reload();
+  await listo(p);
+
+  const sostenido = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const pgBody = document.getElementById('pgBody');
+    const v = document.querySelector('#pgBody .v');
+    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 40){ n = w.currentNode; break; }
+    if (!n) return { sinTexto:true };
+    /* EN MITAD DE UNA PALABRA LARGA, y se elige por el texto y no por un
+       número: pedir «el carácter 10» es apostar a que ahí haya letra, y en
+       este versículo el 10 es un espacio. Eso costó una tanda entera. */
+    const pal = (n.data.match(/[\p{L}\p{N}]{6,}/u) || [])[0];
+    if (!pal) return { sinTexto:true };
+    const i = n.data.indexOf(pal);
+    const r = document.createRange(); r.setStart(n, i + 2); r.setEnd(n, i + 3);
+    const c = r.getBoundingClientRect();
+    const op = { bubbles:true, cancelable:true, pointerId:91, pointerType:'touch',
+                 isPrimary:true, clientX:Math.round(c.left + c.width/2),
+                 clientY:Math.round(c.top + c.height/2) };
+    const trazo = () => {
+      const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+      if (h){ const g = [...h][0]; return g ? g.toString() : ''; }
+      const e = document.querySelector('#pgBody .pintando');
+      return e ? e.textContent : '';
+    };
+    pgBody.dispatchEvent(new PointerEvent('pointerdown', op));
+    /* ANTES DEL PLAZO Y DESPUÉS, que medir solo el después no distingue
+       «se encendió al sostener» de «se encendió al tocar». */
+    await pausa(140);
+    const pronto = trazo();
+    await pausa(320);
+    const tarde = trazo();
+    pgBody.dispatchEvent(new PointerEvent('pointerup', op));
+    await pausa(250);
+    return { pal, pronto, tarde, trasSoltar: trazo(),
+             tiradores: !document.getElementById('tiradores').hidden,
+             cuantos: document.querySelectorAll('#tiradores .tirador').length };
+  });
+  di('el dedo sostenido', sostenido);
+  if (!sostenido.sinTexto){
+    vale('antes del plazo no hay nada pintado', sostenido.pronto === '',
+         '«' + sostenido.pronto + '»');
+    vale('pasado el plazo está la palabra ENTERA', sostenido.tarde === sostenido.pal,
+         '«' + sostenido.tarde + '» contra «' + sostenido.pal + '»');
+    vale('y se queda al levantar el dedo', sostenido.trasSoltar === sostenido.pal,
+         '«' + sostenido.trasSoltar + '»');
+    vale('con sus dos tiradores puestos',
+         sostenido.tiradores === true && sostenido.cuantos === 2, sostenido);
+  }
+
+  const estirado = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const trazo = () => {
+      const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+      if (h){ const g = [...h][0]; return g ? g.toString() : ''; }
+      const e = document.querySelector('#pgBody .pintando');
+      return e ? e.textContent : '';
+    };
+    const t = document.querySelector('#tiradores .tirador[data-tirador="fin"]');
+    if (!t) return { sinTirador:true };
+    const antes = trazo();
+    const c = t.getBoundingClientRect();
+    const x0 = Math.round(c.left + c.width/2), y0 = Math.round(c.top + c.height/2);
+    const op = (x, y) => ({ bubbles:true, cancelable:true, pointerId:92,
+                            pointerType:'touch', isPrimary:true, clientX:x, clientY:y });
+    t.dispatchEvent(new PointerEvent('pointerdown', op(x0, y0)));
+    await pausa(50);
+    /* torcido, que un dedo no va recto; y corto, que un tirón largo se sale
+       del versículo y entonces lo que se mide es el recorte del filo */
+    for (let i = 1; i <= 6; i++){
+      t.dispatchEvent(new PointerEvent('pointermove',
+        op(x0 + i * 4 + (i % 3 ? -2 : 3), y0 + (i % 2 ? 1 : -2))));
+      await pausa(28);
+    }
+    t.dispatchEvent(new PointerEvent('pointerup', op(x0 + 24, y0)));
+    await pausa(200);
+    return { antes, despues: trazo() };
+  });
+  di('tras arrastrar el tirador de la derecha', estirado);
+  if (!estirado.sinTirador){
+    vale('lo pintado crece por su lado y empieza igual',
+         estirado.despues.length > estirado.antes.length &&
+         estirado.despues.startsWith(estirado.antes),
+         '«' + estirado.antes + '» → «' + estirado.despues + '»');
+    /* La misma regla que el arrastre y que la marca guardada: aPalabrasEnteras
+       pasa por aquí también, así que un tirador no puede dejar media palabra. */
+    vale('y sigue empezando y acabando en palabra entera',
+         /^[\p{L}\p{N}]/u.test(estirado.despues) && /[\p{L}\p{N}]$/u.test(estirado.despues),
+         '«' + estirado.despues + '»');
+  }
+
+  /* CON EL TECLADO, Y CON SU CONTROL.
+
+     Las flechas pasan hoja desde un oyente del documento que solo se retira
+     cuando estás escribiendo, y un BUTTON no entra en esa lista. Sin
+     stopPropagation, cada flecha estiraría el trazo Y pasaría la hoja detrás,
+     que se lo lleva por delante. Es exactamente lo que le pasó a la manija del
+     panel, así que aquí se mide con el control delante: sin el tirador
+     enfocado la flecha TIENE que pasar hoja, y con él enfocado no. */
+  const teclas = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const trazo = () => {
+      const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+      if (h){ const g = [...h][0]; return g ? g.toString() : ''; }
+      const e = document.querySelector('#pgBody .pintando');
+      return e ? e.textContent : '';
+    };
+    /* LA HOJA SE MIDE POR EL VERSÍCULO QUE SE VE, no por pg.scrollLeft.
+       scrollLeft es el CAJÓN de las glosas; pasar hoja no lo mueve, así que el
+       control decía «0 → 0» y llamaba a eso «no pasó hoja» tanto si pasaba
+       como si no. Un control que no distingue es peor que no tenerlo. */
+    const hoja = () => document.querySelector('#pgBody .v').dataset.k;
+    const t = document.querySelector('#tiradores .tirador[data-tirador="fin"]');
+    if (!t) return { sinTirador:true };
+    const antes = trazo(), hoja0 = hoja();
+    t.focus();
+    const enfocado = document.activeElement === t;
+    t.dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowLeft', bubbles:true }));
+    await pausa(250);
+    const corto = trazo();
+    t.dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowRight', bubbles:true }));
+    await pausa(250);
+    const vuelta = trazo(), hojaConTirador = hoja();
+    /* Y EL CONTROL AL FINAL, que es destructivo: pasar hoja se lleva el trazo
+       por delante —la hoja se repinta y lo pintado no sobrevive—, así que
+       hacerlo primero dejaba sin trazo todo lo de arriba. */
+    const hojaAntes = hoja();
+    document.body.focus();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowRight', bubbles:true }));
+    await pausa(900);
+    return { hojaAntes, hojaSuelta: hoja(), antes, corto, vuelta,
+             enfocado, nombre: t.getAttribute('aria-label'),
+             hoja0, hoja: hojaConTirador };
+  });
+  di('con las flechas', teclas);
+  if (!teclas.sinTirador){
+    vale('CONTROL: sin el tirador enfocado, la flecha pasa hoja',
+         teclas.hojaSuelta !== teclas.hojaAntes,
+         teclas.hojaAntes + ' → ' + teclas.hojaSuelta);
+    vale('el tirador se alcanza con el tabulador y dice lo que es',
+         teclas.enfocado === true && /flechas/.test(teclas.nombre || ''), teclas.nombre);
+    vale('la izquierda le quita una palabra', teclas.corto.length < teclas.antes.length,
+         '«' + teclas.antes + '» → «' + teclas.corto + '»');
+    vale('y la derecha se la devuelve', teclas.vuelta === teclas.antes,
+         '«' + teclas.vuelta + '» contra «' + teclas.antes + '»');
+    vale('Y LA HOJA NO PASA con el tirador enfocado', teclas.hoja === teclas.hoja0,
+         teclas.hoja0 + ' → ' + teclas.hoja);
+  }
+
+  /* Y EL SEGUNDO TIEMPO NO CAMBIA: tocar lo pintado abre la glosa, y lo que
+     queda guardado es el tramo estirado y no la palabra de la que salió. */
+  const guardada = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+    const rg = h ? [...h][0] : null;
+    const el = document.querySelector('#pgBody .pintando');
+    const c = rg ? [...rg.getClientRects()][0] : (el && el.getBoundingClientRect());
+    if (!c) return { sinTrazo:true };
+    const dice = rg ? rg.toString() : el.textContent;
+    const pgBody = document.getElementById('pgBody');
+    const op = { bubbles:true, cancelable:true, pointerId:93, pointerType:'touch',
+                 isPrimary:true, clientX:Math.round(c.left + c.width/2),
+                 clientY:Math.round(c.top + c.height/2) };
+    pgBody.dispatchEvent(new PointerEvent('pointerdown', op));
+    await pausa(40);
+    pgBody.dispatchEvent(new PointerEvent('pointerup', op));
+    await pausa(520);
+    const ta = document.getElementById('glosaCaja');
+    if (!ta) return { dice, sinCaja:true };
+    ta.value = 'la nota del tramo estirado';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await pausa(200);
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await pausa(3300);
+    const m = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
+      .find(x => x.nota === 'la nota del tramo estirado');
+    return { dice, cita: m ? m.cita : null,
+             tiradores: document.getElementById('tiradores').hidden };
+  });
+  di('al tocarlo y guardarlo', guardada);
+  if (!guardada.sinTrazo){
+    vale('tocar lo estirado abre la caja', guardada.sinCaja !== true, guardada);
+    vale('y la marca guarda EL TRAMO, no la palabra de la que salió',
+         guardada.cita === guardada.dice,
+         '«' + guardada.cita + '» contra «' + guardada.dice + '»');
+    vale('y los tiradores se van con el trazo', guardada.tiradores === true);
+  }
+
+  /* LOS DOS QUE LEVANTÓ CODEX, y los dos eran de verdad.
+
+     El primero es el que más enseña: una mano no se está quieta. El «se fue»
+     del dedo se apuntaba a los PINTADO_UMBRAL (4 px) y quien decide si el
+     movimiento cuenta es tocaPintar, que pide PINTADO_RUIDO (10). Entre las
+     dos cifras había tierra de nadie: un dedo con el temblor normal quedaba
+     marcado como ido —así que el reloj del sostenido se negaba— y demasiado
+     quieto para que el arrastre pintara. Soltabas y no había pasado nada, que
+     es el peor de los dos mundos. */
+  /* CON LA HOJA LIMPIA OTRA VEZ: el bloque de arriba dejó una marca guardada
+     justo encima de esa palabra, y sobre una marca hecha el dedo la ABRE en
+     vez de pintar. Sin esto, lo que se estaría midiendo es el otro camino. */
+  await p.evaluate(() => localStorage.removeItem('glossa:marcas:v1'));
+  await p.reload();
+  await listo(p);
+  const tembloroso = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const pgBody = document.getElementById('pgBody');
+    const trazo = () => {
+      const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+      if (h){ const g = [...h][0]; return g ? g.toString() : ''; }
+      const e = document.querySelector('#pgBody .pintando');
+      return e ? e.textContent : '';
+    };
+    const v = document.querySelector('#pgBody .v');
+    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 40){ n = w.currentNode; break; }
+    if (!n) return { sinTexto:true };
+    const pal = (n.data.match(/[\p{L}\p{N}]{6,}/u) || [])[0];
+    if (!pal) return { sinTexto:true };
+    const i = n.data.indexOf(pal);
+    const r = document.createRange(); r.setStart(n, i + 2); r.setEnd(n, i + 3);
+    const c = r.getBoundingClientRect();
+    const x = Math.round(c.left + c.width/2), y = Math.round(c.top + c.height/2);
+    const op = (px, py) => ({ bubbles:true, cancelable:true, pointerId:94,
+                              pointerType:'touch', isPrimary:true, clientX:px, clientY:py });
+    pgBody.dispatchEvent(new PointerEvent('pointerdown', op(x, y)));
+    /* EL TEMBLOR: idas y venidas de 5 y 6 px alrededor del punto, ninguna de
+       10. Y alrededor, no en fila: un temblor vuelve, y sumando pasitos en
+       línea recta cualquier mano acabaría «yéndose» sin moverse de sitio. */
+    for (let j = 0; j < 6; j++){
+      pgBody.dispatchEvent(new PointerEvent('pointermove',
+        op(x + (j % 2 ? 5 : -6), y + (j % 3 ? 3 : -4))));
+      await pausa(40);
+    }
+    await pausa(350);
+    const pintado = trazo();
+    pgBody.dispatchEvent(new PointerEvent('pointerup', op(x, y)));
+    await pausa(250);
+    return { pal, pintado };
+  });
+  di('el dedo que tiembla', tembloroso);
+  if (!tembloroso.sinTexto){
+    vale('un dedo con temblor normal SIGUE encendiendo la palabra',
+         tembloroso.pintado === tembloroso.pal,
+         '«' + tembloroso.pintado + '» contra «' + tembloroso.pal + '»');
+  }
+
+  /* El segundo: la guarda que esconde los tiradores de lejos solo hace algo si
+     alguien la llama, y entrar o salir del zoom no la llamaba. Se quedaban las
+     bolitas de tamaño normal encima de una hoja a escala. */
+  const conZoom = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const caja = () => {
+      const t = document.querySelector('[data-tirador="ini"]');
+      if (!t || document.getElementById('tiradores').hidden) return 'ocultos';
+      const b = t.getBoundingClientRect();
+      return [b.left, b.top].map(Math.round).join(',');
+    };
+    /* SE PULSA HASTA QUE DE VERDAD ESTÁ DE LEJOS, no una vez y a fe: medido,
+       el primer clic con un trazo puesto no abre el zoom, y medir entonces
+       sería mirar la vista normal llamándola zoom. */
+    const zoom = () => document.getElementById('btnZoom').classList.contains('abierto');
+    const antes = caja();
+    if (antes === 'ocultos') return { sinTrazo:true };
+    for (let j = 0; j < 3 && !zoom(); j++){
+      document.getElementById('btnZoom').click();
+      await pausa(1800);
+    }
+    const enZoom = caja(), llego = zoom();
+    for (let j = 0; j < 3 && zoom(); j++){
+      document.getElementById('btnZoom').click();
+      await pausa(1800);
+    }
+    return { antes, enZoom, llego, tras: caja(), sigueDeLejos: zoom() };
+  });
+  di('los tiradores y la vista de lejos', conZoom);
+  if (!conZoom.sinTrazo){
+    vale('PREMISA: se llegó a la vista de lejos y se volvió',
+         conZoom.llego === true && conZoom.sigueDeLejos === false, conZoom);
+    vale('de lejos los tiradores no se dibujan', conZoom.enZoom === 'ocultos',
+         conZoom.enZoom);
+    vale('y al volver están otra vez donde el trazo',
+         conZoom.tras !== 'ocultos' && conZoom.tras === conZoom.antes,
+         conZoom.antes + ' → ' + conZoom.tras);
+  }
+
+  /* ================================================================
+     Y AHORA CON EL DEDO DE VERDAD, que es la regla 4 del README y aquí no es
+     una formalidad: sostener es justo el gesto que una plataforma se queda
+     para lo suyo. #pg declara touch-action:pan-y y el trazo se perdió una vez
+     por eso —el navegador mandaba pointercancel a media pintada— y no se vio
+     en veinte mediciones, porque un PointerEvent hecho a mano SIEMPRE llega.
+     Este es el único camino de estas pruebas que pasa por donde vive
+     touch-action, así que el toque sostenido se mide también por aquí.
+     ================================================================ */
+  titulo('sostener el dedo de verdad, por el protocolo del navegador');
+  await p.evaluate(() => localStorage.removeItem('glossa:marcas:v1'));
+  await p.reload();
+  await listo(p);
+  const cdp = await p.context().newCDPSession(p);
+  const sitio = await p.evaluate(() => {
+    const v = document.querySelector('#pgBody .v');
+    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 40){ n = w.currentNode; break; }
+    if (!n) return null;
+    const pal = (n.data.match(/[\p{L}\p{N}]{6,}/u) || [])[0];
+    if (!pal) return null;
+    const i = n.data.indexOf(pal);
+    const r = document.createRange(); r.setStart(n, i + 2); r.setEnd(n, i + 3);
+    const c = r.getBoundingClientRect();
+    return { pal, x: Math.round(c.left + c.width/2), y: Math.round(c.top + c.height/2),
+             hoja: Math.round(document.getElementById('pg').scrollLeft) };
+  });
+  const mirarTrazo = () => p.evaluate(() => {
+    const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+    if (h){ const g = [...h][0]; return g ? g.toString() : ''; }
+    const e = document.querySelector('#pgBody .pintando');
+    return e ? e.textContent : '';
+  });
+  if (sitio){
+    await cdp.send('Input.dispatchTouchEvent',
+                   { type:'touchStart', touchPoints:[{ x:sitio.x, y:sitio.y, id:1 }] });
+    await p.waitForTimeout(140);
+    const pronto = await mirarTrazo();
+    await p.waitForTimeout(340);
+    const tarde = await mirarTrazo();
+    await cdp.send('Input.dispatchTouchEvent', { type:'touchEnd', touchPoints:[] });
+    await p.waitForTimeout(300);
+    const tras = await p.evaluate(() => ({
+      tiradores: !document.getElementById('tiradores').hidden,
+      hoja: Math.round(document.getElementById('pg').scrollLeft) }));
+    const queda = await mirarTrazo();
+    di('con el dedo de verdad', { pronto, tarde, queda, ...tras });
+    vale('antes del plazo, nada', pronto === '', '«' + pronto + '»');
+    vale('SOSTENIENDO DE VERDAD se enciende la palabra', tarde === sitio.pal,
+         '«' + tarde + '» contra «' + sitio.pal + '»');
+    vale('y el navegador no se quedó el gesto: sigue al levantar', queda === sitio.pal,
+         '«' + queda + '»');
+    vale('con sus tiradores', tras.tiradores === true);
+    /* EL CONTROL DE ESTE BLOQUE: sostener no es pasar hoja. Si la hoja se
+       hubiera movido, el trazo se iría con ella y lo de arriba no probaría
+       que el gesto llegó, sino que llegó y se perdió. */
+    vale('y la hoja no se movió', tras.hoja === sitio.hoja,
+         sitio.hoja + ' → ' + tras.hoja);
+  }
+
   titulo('el único aviso que sale');
   /* CON LA HOJA LIMPIA, y hace falta desde que se glosa pintando.
 

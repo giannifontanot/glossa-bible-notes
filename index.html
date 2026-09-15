@@ -2871,6 +2871,54 @@
      algo crezca más de la cuenta —muchas etiquetas, una pantalla muy baja— el
      panel nunca pasa del alto de la escena, y lo que sobra se desplaza dentro
      en vez de quedarse recortado y fuera de alcance. */
+  /* LOS TIRADORES DEL TRAZO.
+
+     Van DEBAJO del panel (z-index 6 contra 8) y encima de la hoja: cuando el
+     panel sale ya no hay trazo que estirar, asi que no llegan a verse juntos,
+     pero el dia que se solapen manda el panel.
+
+     Lo que se ve es una bolita de 13 px y lo que recibe el dedo mide 34: es la
+     misma cuenta de la manija del panel —4 px vistos y 22 tocables— y por la
+     misma razon, que un pulgar mide cuarenta pixeles y una bolita del tamano
+     del dedo taparia justo la palabra que se esta estirando. El hueco va en un
+     ::before transparente, no en la bolita, para que agrandar el blanco no
+     engorde el dibujo.
+
+     El tallo sube hasta el renglon para que se vea DE DONDE agarra: sin el,
+     dos bolitas sueltas debajo de una linea no dicen a que letra pertenecen.
+     Y el de la izquierda cuelga a su izquierda y el de la derecha a su
+     derecha, como los del sistema, para que ninguno tape la palabra del filo.
+
+     El amarillo es el mismo TRAZO_HEX del resaltado: son el mismo objeto. */
+  #tiradores{ position:absolute; inset:0; z-index:6; pointer-events:none; }
+  #tiradores .tirador{
+    position:absolute; width:13px; height:13px; padding:0; margin:0;
+    background:#edb200; border:1.5px solid #6d5410; border-radius:50%;
+    pointer-events:auto; cursor:grab; touch-action:none;
+    -webkit-tap-highlight-color:transparent; }
+  /* EL HUECO CRECE HACIA ABAJO, NUNCA HACIA EL RENGLON, y esto costo una
+     medicion para verlo. Estaba centrado en la bolita —34 px a cada lado— y
+     entonces se metia 13 px dentro de la linea: el toque que abre la glosa
+     caia sobre el hueco del tirador y caretPositionFromPoint devolvia BUTTON
+     en vez del texto, asi que el programa lo leia como «tocaste en otro
+     sitio» y borraba el trazo. A tamano normal no se notaba —la palabra mide
+     46 px y las bolitas se quedan en los filos—, pero DE LEJOS la palabra
+     mide 16 y los dos huecos se la comian entera. Naciendo en el borde de
+     arriba de la bolita, que ya esta 4 px por debajo del renglon, el texto
+     queda libre a cualquier escala. */
+  #tiradores .tirador::before{
+    content:''; position:absolute; left:50%; top:0;
+    width:34px; height:30px; transform:translateX(-50%); }
+  #tiradores .tirador::after{
+    content:''; position:absolute; left:50%; width:2px; height:9px;
+    background:#6d5410; transform:translateX(-50%); bottom:100%; }
+  #tiradores .tirador:active{ cursor:grabbing; }
+  #tiradores .tirador:focus-visible{ outline:2px solid #e8d5a3; outline-offset:3px; }
+  /* Quien pide menos movimiento no quiere que una bolita se deslice sola al
+     cambiar de sitio: se pone donde toca y ya. */
+  @media (prefers-reduced-motion: no-preference){
+    #tiradores .tirador{ transition:left .08s linear, top .08s linear; }
+  }
   #menu{ position:absolute; z-index:8; display:none; flex-direction:column;
          align-items:stretch; gap:6px; padding:6px; width:250px;
          max-height:calc(100% - 8px); overflow-y:auto; overscroll-behavior:contain;
@@ -3772,6 +3820,9 @@
       fill="none" stroke="currentColor" stroke-width="3.4"
       stroke-linecap="round" stroke-linejoin="round"/></svg></div>
   <div id="menu"></div>
+  <!-- Los tiradores del trazo: ver «LOS TIRADORES» en el guion. Nacen
+       vacios y se llenan la primera vez que hay algo pintado. -->
+  <div id="tiradores" hidden></div>
   <div id="readout"></div>
   <button class="btn" id="btnVolver" style="display:none">↩ volver</button>
   <!-- LO QUE HAS VISTO. El botón vive en la esquina de abajo a la derecha, que
@@ -3934,7 +3985,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-SEP-26 06:45';
+window.GLOSS_BUILD = '15-SEP-26 16:36';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5328,6 +5379,41 @@ function aPalabrasEnteras(texto, ini, fin){
   while (a < b && !LETRA_DE_PALABRA.test(texto[a])) a++;
   while (b > a && !LETRA_DE_PALABRA.test(texto[b-1])) b--;
   if (a >= b) return { ini, fin };
+  while (a > 0 && LETRA_DE_PALABRA.test(texto[a-1])) a--;
+  while (b < texto.length && LETRA_DE_PALABRA.test(texto[b])) b++;
+  return { ini: a, fin: b };
+}
+/* LA PALABRA QUE HAY DEBAJO DE UN PUNTO, que no es lo mismo que estirar un
+   tramo a palabras enteras.
+
+   aPalabrasEnteras necesita DOS extremos con algo en medio: si se le pide un
+   punto —ini igual a fin— recorta, se queda sin nada que estirar y devuelve lo
+   que le dieron. Es lo correcto para el arrastre, donde un tramo vacío
+   significa que el dedo no señaló ninguna letra. Pero el toque sostenido sí
+   señala: el dedo está encima de UNA palabra y hay que averiguar cuál.
+
+   Se mira a los dos lados del punto porque el navegador devuelve el hueco
+   entre dos letras, no una letra: apoyando en mitad de «registro», caretPosition
+   puede dar el 4, y el 4 es a la vez el final de «regi» y el principio de
+   «stro». Mirando solo hacia delante, un dedo apoyado justo detrás de la
+   última letra de una palabra no encontraría ninguna.
+
+   Devuelve null solo cuando no hay letra a NINGUNO de los dos lados. En la
+   practica eso casi no pasa, y conviene saber por que antes de creerse que
+   este camino protege de algo: caretPosition devuelve el punto de insercion
+   mas cercano, asi que un dedo en mitad de un espacio da el filo de una de las
+   dos palabras y ahi si hay letra. Medido: sostener sobre el hueco que va
+   antes de «registro» pinta «registro» entera. Y esta bien que asi sea —un
+   dedo en el hueco esta senalando texto, no el vacio—; lo que hay que
+   garantizar no es que no pinte, sino que lo que pinte sea una palabra
+   ENTERA. El null queda para lo que de verdad no tiene palabra debajo: un
+   tramo largo de signos, o el filo de un versiculo que empieza por uno. */
+function palabraEn(texto, off){
+  if (typeof texto !== 'string' || !texto.length) return null;
+  let a = Math.max(0, Math.min(off, texto.length)), b;
+  if (a < texto.length && LETRA_DE_PALABRA.test(texto[a])) b = a + 1;
+  else if (a > 0 && LETRA_DE_PALABRA.test(texto[a-1])){ a -= 1; b = a + 1; }
+  else return null;
   while (a > 0 && LETRA_DE_PALABRA.test(texto[a-1])) a--;
   while (b < texto.length && LETRA_DE_PALABRA.test(texto[b])) b++;
   return { ini: a, fin: b };
@@ -8318,8 +8404,12 @@ $('btnDeshacer').onclick = () => {
    página web.
 
    Ahora el pasaje no se selecciona y el resaltado lo dibuja el programa: el
-   dedo baja, y mientras se arrastra se va pintando en amarillo. Al levantarlo
-   se queda pintado; al tocar encima se abre la glosa, que es el mismo segundo
+   dedo baja, y mientras se arrastra se va pintando en amarillo. Sostenerlo
+   quieto también pinta —la palabra que hay debajo, a los ESPERA_SELECCION—,
+   que es como se marca en un teléfono desde siempre y era lo que le faltaba a
+   este trazo: quien apoyaba y no arrastraba no veía nada. Al levantarlo se
+   queda pintado, con un tirador en cada punta para corregir el tramo sin
+   volver a empezar; al tocar encima se abre la glosa, que es el mismo segundo
    tiempo de siempre: el lector señalaba y luego confirmaba tocando, y eso no
    cambia.
 
@@ -8378,6 +8468,7 @@ function limpiarPintado(){
   pintado = null;
   if (HL_API) CSS.highlights.delete('pintando');
   else repintarVersoDelTrazo(k);
+  colocarTiradores();
 }
 function rangoPintado(){
   if (!pintado) return null;
@@ -8390,11 +8481,228 @@ function rangoPintado(){
   return rg;
 }
 function pintarLoPintado(){
-  if (!HL_API){ repintarVersoDelTrazo(pintado && pintado.k); return; }
+  if (!HL_API){ repintarVersoDelTrazo(pintado && pintado.k); colocarTiradores(); return; }
   const rg = rangoPintado();
-  if (!rg){ CSS.highlights.delete('pintando'); return; }
+  if (!rg){ CSS.highlights.delete('pintando'); colocarTiradores(); return; }
   CSS.highlights.set('pintando', new Highlight(rg));
+  colocarTiradores();
 }
+/* ============================================================
+   LOS TIRADORES: ESTIRAR LO PINTADO DESPUES DE LEVANTAR EL DEDO.
+
+   Pintando, el tramo quedaba decidido en el instante en que el dedo se
+   levantaba. Eso es pedirle al primer intento una punteria que el dedo no
+   tiene: una letra mide seis pixeles y un pulgar cuarenta, asi que pasarse o
+   quedarse corto es lo normal, y la unica salida era tocar fuera y volver a
+   arrastrarlo entero. La seleccion del navegador traia sus manijas justo para
+   esto, y al quitarla se fue tambien lo que resolvian.
+
+   Asi que van aqui, dibujadas por el programa: dos bolitas, una en cada punta
+   del trazo, que se arrastran y mueven SU punta. Lo que se corrige en dos
+   segundos deja de costar el gesto entero.
+
+   TRES COSAS QUE NO SE VEN LEYENDOLO:
+
+   · VIVEN FUERA DE #pgBody, y eso no es colocacion sino comportamiento. El
+     oyente que reparte los toques de la hoja BORRA lo pintado en cuanto tocas
+     en cualquier otro sitio —es lo que hacia la seleccion, y esta bien—.
+     Colgando los tiradores de dentro, agarrar uno seria «otro sitio» y el
+     trazo se borraria justo al ir a estirarlo. Fuera, ese oyente ni se entera.
+
+   · SE ARRASTRA EL PUNTO, NO EL DEDO. La bolita cuelga POR DEBAJO del renglon
+     —si no, tapa la palabra que estas estirando—, asi que preguntarle a
+     caretPosition por donde esta el dedo daria el renglon de abajo. Lo que se
+     mueve es el punto que la bolita senala, y el dedo solo aporta el DESVIO
+     desde donde agarro.
+
+   · Y SE PUEDEN CRUZAR. Arrastrando la punta de la izquierda mas alla de la
+     derecha, lo que el lector quiere es seguir estirando por el otro lado, no
+     que el trazo se quede clavado. Se intercambian los papeles y el arrastre
+     continua con la otra punta, que es lo que hacen las manijas del sistema.
+
+   Lo que NO hacen: cruzar de versiculo. La marca no puede, asi que estirar
+   hasta el de al lado seria ofrecer algo que luego no se guarda; el punto se
+   recorta al filo, igual que hace el arrastre. */
+const tiradores = $('tiradores');
+let tirIni = null, tirFin = null;
+function armarTiradores(){
+  if (tirIni) return;
+  const hacer = lado => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tirador';
+    b.dataset.tirador = lado;
+    /* Con nombre, que quien navega con teclado o con un conmutador no ve la
+       bolita. Las flechas los mueven de palabra en palabra: ver mas abajo. */
+    b.setAttribute('aria-label', lado === 'ini'
+      ? 'Principio de lo marcado: arrástralo, o con las flechas del teclado'
+      : 'Final de lo marcado: arrástralo, o con las flechas del teclado');
+    tiradores.appendChild(b);
+    return b;
+  };
+  tirIni = hacer('ini');
+  tirFin = hacer('fin');
+}
+function colocarTiradores(){
+  /* DE LEJOS NO SE DIBUJAN. La vista de lejos es la hoja entera en miniatura
+     para marcar lo que salta a la vista; ahi una palabra mide 16 px y una
+     bolita de 13 con su hueco de 34 no es un mando, es un estorbo del tamano
+     de lo que quiere senalar. Se glosa igual —el trazo y el toque siguen—,
+     pero sin tiradores hasta volver. */
+  if (zoomActivo){ if (tiradores) tiradores.hidden = true; return; }
+  const rg = pintado && rangoPintado();
+  const cajas = rg ? [...rg.getClientRects()].filter(c => c.width > 0 && c.height > 0) : [];
+  if (!cajas.length){ if (tiradores) tiradores.hidden = true; return; }
+  armarTiradores();
+  const s = stage.getBoundingClientRect();
+  const a = cajas[0], b = cajas[cajas.length - 1];
+  /* Fuera de la ventana de la hoja no se dibujan: con las columnas corridas,
+     el trazo puede estar en la pagina de al lado y una bolita pegada al filo
+     senalaria a un texto que no se ve. */
+  const dentro = c => c.right > s.left && c.left < s.right &&
+                      c.bottom > s.top && c.top < s.bottom;
+  if (!dentro(a) && !dentro(b)){ tiradores.hidden = true; return; }
+  const poner = (el, x, y) => {
+    el.style.left = Math.round(x - s.left) + 'px';
+    el.style.top = Math.round(y - s.top) + 'px';
+  };
+  /* La bolita cuelga por debajo del renglon y se descuelga hacia su lado:
+     la de la izquierda a la izquierda del primer caracter y la de la derecha
+     a la derecha del ultimo, para que ninguna tape la palabra del filo. */
+  poner(tirIni, a.left - 13, a.bottom + 4);
+  poner(tirFin, b.right, b.bottom + 4);
+  tirIni.hidden = !dentro(a);
+  tirFin.hidden = !dentro(b);
+  tiradores.hidden = false;
+}
+(function estirarLoPintado(){
+  let arrastre = null;
+  /* El punto que senala cada bolita, en coordenadas de pantalla: el filo de lo
+     pintado a media altura de su renglon. Es lo que se arrastra. */
+  const anclaDe = lado => {
+    const rg = rangoPintado(); if (!rg) return null;
+    const cajas = [...rg.getClientRects()].filter(c => c.width > 0 && c.height > 0);
+    if (!cajas.length) return null;
+    const c = lado === 'ini' ? cajas[0] : cajas[cajas.length - 1];
+    return { x: lado === 'ini' ? c.left + 1 : c.right - 1, y: c.top + c.height / 2 };
+  };
+  const mover = (lado, off) => {
+    if (!pintado) return;
+    const it = plano[pintado.k]; if (!it) return;
+    const texto = versoTexto(version, it.cap, it.vers);
+    let a = pintado.ini, b = pintado.fin;
+    if (lado === 'ini') a = off; else b = off;
+    /* CRUZADAS, SE CAMBIAN LOS PAPELES en vez de plantarse. */
+    if (a > b){ const t = a; a = b; b = t; lado = lado === 'ini' ? 'fin' : 'ini'; }
+    const r = aPalabrasEnteras(texto, a, b);
+    if (r.ini === r.fin) return lado;
+    if (pintado.ini === r.ini && pintado.fin === r.fin) return lado;
+    pintado.ini = r.ini; pintado.fin = r.fin;
+    pintarLoPintado();
+    return lado;
+  };
+  tiradores.addEventListener('pointerdown', ev => {
+    const t = ev.target.closest && ev.target.closest('[data-tirador]');
+    if (!t || ev.button > 0 || !pintado) return;
+    const ancla = anclaDe(t.dataset.tirador);
+    if (!ancla) return;
+    arrastre = { id: ev.pointerId, lado: t.dataset.tirador, ancla,
+                 x: ev.clientX, y: ev.clientY };
+    try { t.setPointerCapture(ev.pointerId); } catch(_){}
+    ev.preventDefault();
+  });
+  tiradores.addEventListener('pointermove', ev => {
+    if (!arrastre || ev.pointerId !== arrastre.id || !pintado) return;
+    ev.preventDefault();
+    const p = puntoA(arrastre.ancla.x + (ev.clientX - arrastre.x),
+                     arrastre.ancla.y + (ev.clientY - arrastre.y));
+    if (!p) return;
+    const it = plano[pintado.k]; if (!it) return;
+    /* El filo del versiculo, que es hasta donde llega una marca. */
+    let off = p.off;
+    if (p.k !== pintado.k){
+      off = p.k > pintado.k ? versoTexto(version, it.cap, it.vers).length : 0;
+      if (!arrastre.aviso){
+        arrastre.aviso = true;
+        readout.textContent = 'por ahora una marca no puede cruzar de versículo';
+      }
+    }
+    const lado = mover(arrastre.lado, off);
+    if (lado && lado !== arrastre.lado){
+      arrastre.lado = lado;
+      /* El ancla se recalcula al cambiar de punta, o el desvio seguiria
+         midiendose desde la de antes y el trazo daria un salto. */
+      const nueva = anclaDe(lado);
+      if (nueva){ arrastre.ancla = nueva; arrastre.x = ev.clientX; arrastre.y = ev.clientY; }
+    }
+  });
+  const soltarTirador = ev => {
+    if (!arrastre || (ev && ev.pointerId != null && ev.pointerId !== arrastre.id)) return;
+    arrastre = null;
+    /* El trazo se queda: estirarlo NO lo confirma. Se confirma tocandolo, que
+       es el mismo segundo tiempo de siempre. Y el toque de encima no puede ser
+       este mismo soltar —el dedo esta en la bolita, fuera de la hoja—, asi que
+       aqui no hace falta la marca de «recien hecho» que si necesita el
+       arrastre de pintar. */
+  };
+  tiradores.addEventListener('pointerup', soltarTirador);
+  tiradores.addEventListener('pointercancel', soltarTirador);
+  /* CON EL TECLADO: las flechas mueven SU punta de palabra en palabra.
+
+     Y se quedan la tecla, por lo mismo que la manija del panel: las flechas
+     pasan hoja desde un oyente del documento que solo se retira cuando estas
+     escribiendo, y un BUTTON no entra en esa lista. Sin el stopPropagation,
+     cada flecha estiraria el trazo Y pasaria la hoja detras, que se lleva el
+     trazo por delante. preventDefault no basta: eso le habla al navegador, no
+     al otro oyente. */
+  const finAntesDe = (texto, off) => {
+    let i = Math.max(0, Math.min(off, texto.length));
+    while (i > 0 && LETRA_DE_PALABRA.test(texto[i-1])) i--;
+    while (i > 0 && !LETRA_DE_PALABRA.test(texto[i-1])) i--;
+    return i;
+  };
+  const iniTrasDe = (texto, off) => {
+    let i = Math.max(0, Math.min(off, texto.length));
+    while (i < texto.length && LETRA_DE_PALABRA.test(texto[i])) i++;
+    while (i < texto.length && !LETRA_DE_PALABRA.test(texto[i])) i++;
+    return i;
+  };
+  tiradores.addEventListener('keydown', ev => {
+    const t = ev.target.closest && ev.target.closest('[data-tirador]');
+    if (!t || !pintado) return;
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+    const it = plano[pintado.k]; if (!it) return;
+    const texto = versoTexto(version, it.cap, it.vers);
+    const lado = t.dataset.tirador, haciaFuera =
+      lado === 'ini' ? ev.key === 'ArrowLeft' : ev.key === 'ArrowRight';
+    let off = null;
+    if (lado === 'ini'){
+      if (haciaFuera){
+        const i = finAntesDe(texto, pintado.ini);
+        const w = i > 0 && palabraEn(texto, i - 1);
+        off = w ? w.ini : null;
+      } else {
+        const i = iniTrasDe(texto, pintado.ini);
+        off = i < pintado.fin ? i : null;
+      }
+    } else {
+      if (haciaFuera){
+        const w = palabraEn(texto, iniTrasDe(texto, pintado.fin));
+        off = w ? w.fin : null;
+      } else {
+        const i = finAntesDe(texto, pintado.fin);
+        off = i > pintado.ini ? i : null;
+      }
+    }
+    /* SI NO HAY ADONDE IR, LA TECLA NO ES NUESTRA: se deja subir para que siga
+       pasando hoja. Quedarsela para no mover nada seria lo peor de los dos
+       mundos —ni estira ni pasa la hoja—. */
+    if (off === null) return;
+    ev.preventDefault(); ev.stopPropagation();
+    mover(lado, off);
+    t.focus();
+  });
+})();
 (function pintarConElDedo(){
   /* SE ENCIENDE EN TODOS LOS NAVEGADORES, y antes solo donde había API de
      resaltado. Mientras esto salía por la puerta en los demás, ahí seguía
@@ -8413,6 +8721,7 @@ function pintarLoPintado(){
     !t.closest('.gl, .peri, .vn, .cap, a, button, textarea, input, select');
 
   pgBody.addEventListener('pointerdown', ev => {
+    if (gesto) clearTimeout(gesto.reloj);
     gesto = null;
     /* Y AQUÍ DECÍA «zoomActivo», que era mío y sobraba. Lo puse por parecido
        con el arrastre del papel, sin mirar que glosar DE LEJOS es una cosa que
@@ -8428,7 +8737,32 @@ function pintarLoPintado(){
     /* Sobre una marca ya hecha el gesto es ABRIRLA, no pintar otra encima. */
     if (marcaEn(p.k, p.off)) return;
     gesto = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, t0: performance.now(),
-              k: p.k, off: p.off, pinto: false };
+              k: p.k, off: p.off, pinto: false, lejos: false };
+    /* EL DEDO SOSTENIDO PINTA LA PALABRA, SIN ESPERAR A QUE SE MUEVA.
+
+       Hasta aquí el trazo nacía del arrastre: quien apoyaba el dedo y lo
+       dejaba quieto no veía nada, y sin nada que ver no hay manera de saber
+       que el programa te entendió. Es el gesto con el que se marca en un
+       teléfono desde siempre —sostener y que la palabra se encienda— y era
+       justo el que faltaba.
+
+       Va al MISMO plazo que ya usaba todo lo demás: a los ESPERA_SELECCION,
+       correrPapel se retira y el hueco de pintar se abre. Poner aquí otra
+       cifra sería tener dos relojes para el mismo instante, y el día que
+       alguien tocara uno el otro se quedaría atrás.
+
+       Solo cuenta si el dedo NO se ha ido: gesto.lejos lo apunta el
+       pointermove. Un dedo que ya viajó está arrastrando, y el arrastre pinta
+       por su cuenta. */
+    gesto.reloj = setTimeout(() => {
+      if (!gesto || gesto.pinto || gesto.lejos) return;
+      const it = plano[gesto.k]; if (!it) return;
+      const w = palabraEn(versoTexto(version, it.cap, it.vers), gesto.off);
+      if (!w) return;
+      gesto.pinto = true;
+      pintado = { k: gesto.k, ini: w.ini, fin: w.fin };
+      pintarLoPintado();
+    }, ESPERA_SELECCION);
   });
 
   /* EL REPARTO CON EL PASE DE HOJA, que es lo que costó encontrar: un desliz
@@ -8452,6 +8786,25 @@ function pintarLoPintado(){
   };
   pgBody.addEventListener('pointermove', ev => {
     if (!gesto || ev.pointerId !== gesto.id) return;
+    /* EL DEDO SE HA IDO CUANDO PASA DE PINTADO_RUIDO, no de PINTADO_UMBRAL, y
+       la diferencia entre las dos cifras se tragaba el gesto entero.
+
+       Lo apuntaba a los 4 px del umbral, y el umbral no significa «se fue»
+       sino «ya se puede mirar hacia dónde»: quien decide si el movimiento
+       cuenta es tocaPintar, y ése pide 10 px porque por debajo un dedo no dice
+       dirección. O sea que un dedo sostenido con el temblor normal de una mano
+       —entre 4 y 9 px— quedaba en tierra de nadie: marcado como ido, así que
+       el reloj del sostenido se negaba a pintar, y a la vez demasiado quieto
+       para que el arrastre pintara. Soltabas y no había pasado nada.
+       Medido: seis micromovimientos de 5 y 6 px y el trazo no aparecía.
+       Lo levantó Codex revisando esta PR. Va contra la MISMA cifra que usa
+       tocaPintar, que es la que de verdad significa que el dedo viaja.
+
+       Y se mide desde donde bajó el dedo, no del cuadro anterior: un temblor
+       es ir y venir alrededor de un punto, y sumando pasitos cualquier mano
+       acaba «yéndose» sin haberse movido de sitio. */
+    if (Math.hypot(ev.clientX - gesto.x, ev.clientY - gesto.y) >= PINTADO_RUIDO)
+      gesto.lejos = true;
     if (!gesto.pinto &&
         Math.hypot(ev.clientX - gesto.x, ev.clientY - gesto.y) < PINTADO_UMBRAL) return;
     if (!tocaPintar(ev)) return;
@@ -8498,12 +8851,18 @@ function pintarLoPintado(){
   const soltar = ev => {
     if (!gesto || (ev && ev.pointerId != null && ev.pointerId !== gesto.id)) return;
     const pinto = gesto.pinto;
+    clearTimeout(gesto.reloj);
     gesto = null;
     if (!pinto) return;
-    /* El clic que viene detrás del arrastre se tira: si llegara, el toque
+    /* El clic que viene detrás del gesto se tira: si llegara, el toque
        abriría la glosa en el mismo gesto con el que se pintó, y el segundo
-       tiempo —tocar encima— dejaría de existir. */
-    tragarElClic();
+       tiempo —tocar encima— dejaría de existir.
+
+       Y SE TIRA SOLO EL DE AQUÍ, por el punto: ver tragarElClic. Este camino
+       es el que más lo necesita desde que el dedo sostenido pinta, porque
+       ahora lo arma cualquier toque largo sobre el texto y no solo un
+       arrastre. */
+    tragarElClic(ev && ev.clientX != null ? { x: ev.clientX, y: ev.clientY } : null);
     /* Y EL PROPIO SOLTAR TAMPOCO ES UN TOQUE, que es más sutil y fue lo que
        pasó: el oyente de pointerup que abre la glosa es OTRO, y ese no sabe si
        el dedo venía arrastrando. Al levantarlo dentro de lo recién pintado
@@ -8523,6 +8882,7 @@ function pintarLoPintado(){
      Cancelar es deshacer: se tira el gesto y se borra lo pintado. */
   const cancelar = ev => {
     if (!gesto || (ev && ev.pointerId != null && ev.pointerId !== gesto.id)) return;
+    clearTimeout(gesto.reloj);
     gesto = null;
     limpiarPintado();
   };
@@ -8680,14 +9040,34 @@ menu.addEventListener('click', ev => {
    · al empezar OTRO toque, que ese ya es de quien lo dé;
    · y por tiempo, para el toque que nunca llega a clic —arrastrar para
      seleccionar, o desplazar la hoja—. */
-function tragarElClic(){
+/* Y SE PUEDE PEDIR QUE SOLO SE TRAGUE EL CLIC DE ESTE GESTO, pasándole el
+   punto donde se levantó el dedo. Sin eso se come el PRIMERO que pase, y ahí
+   hay dos clics que no son del gesto y que no traen dedo delante —o sea que
+   el «se suelta al empezar otro toque» no los libra—:
+
+   · el de una tecla. Quien navega con el teclado pulsa Intro sobre un botón y
+     eso es un click sin pointerdown: dentro de los 700 ms se lo comía éste.
+   · y el de un guion, que es como salió. Desde que el dedo sostenido pinta,
+     CUALQUIER toque largo sobre el texto arma el tragador; la prueba del
+     cajón se queda 340 ms sobre la hoja y justo después pulsa la G con
+     b.click(), y el cajón no se abría. Seis aserciones en rojo por un clic
+     que se comió el gesto de antes.
+
+   El clic de un dedo cae donde cayó el dedo, así que con el punto se
+   distingue: lo que está lejos es de otro y se deja pasar. */
+function tragarElClic(cerca){
   let t;
   const soltar = () => {
     document.removeEventListener('click', tragar, true);
     document.removeEventListener('pointerdown', soltar, true);
     clearTimeout(t);
   };
-  const tragar = ev => { ev.stopPropagation(); ev.preventDefault(); soltar(); };
+  const tragar = ev => {
+    if (cerca && Math.hypot(ev.clientX - cerca.x, ev.clientY - cerca.y) > 24){
+      soltar(); return;                       /* no es el nuestro: que pase */
+    }
+    ev.stopPropagation(); ev.preventDefault(); soltar();
+  };
   document.addEventListener('click', tragar, true);
   document.addEventListener('pointerdown', soltar, true);
   t = setTimeout(soltar, 700);
@@ -10785,6 +11165,10 @@ pg.addEventListener('scroll', () => {
   stage.classList.toggle('hasta-el-fondo', alFondo);
   if (folding) fx.style.left = (-pg.scrollLeft) + 'px';
   pintarG();
+  /* Las bolitas se ponen sobre coordenadas de pantalla, y corriendo el papel
+     el trazo se mueve debajo de ellas. Sin esto se quedaban donde estaban:
+     dos bolitas apuntando a un texto que ya no es el suyo. */
+  colocarTiradores();
 }, { passive:true });
 
 /* ============================================================
@@ -11024,6 +11408,19 @@ function finSuave(){
     papel.style.removeProperty('transition');   /* por si se quedó apagada al asentar */
     papel.style.removeProperty('display');
   }
+  /* Y LOS TIRADORES SE VUELVEN A PONER AQUÍ, que es donde el viaje se acaba.
+
+     La guarda de zoomActivo que hay en colocarTiradores no basta por sí sola:
+     solo hace algo si alguien la llama, y ni abrirZoom ni cerrarZoom la
+     llamaban. Medido con una palabra pintada: al entrar de lejos las bolitas
+     se quedaban en 103,186 —su sitio de tamaño normal, sobre una hoja que ya
+     estaba a escala—, y al volver seguían igual hasta que un desplazamiento o
+     un giro las movía de casualidad. Lo levantó Codex revisando esta PR.
+
+     Va en finSuave y no en las dos puntas porque aquí es donde la hoja ha
+     terminado de moverse: llamándolo al empezar, las bolitas se colocarían
+     sobre la geometría de la mitad del viaje, que no es la de ningún sitio. */
+  colocarTiradores();
 }
 function armarSuave(){
   clearTimeout(relojSuave);
@@ -11045,6 +11442,9 @@ function abrirZoom(){
   finSuave();
   const papel = $('zoomPapel');
   zoomActivo = true;
+  /* Se esconden EN EL ACTO, sin esperar a que acabe el viaje: una bolita de
+     tamaño normal paseando por encima de una hoja que se encoge se ve. */
+  colocarTiradores();
   pintarG();
   /* EL ORDEN DE ESTAS SEIS LÍNEAS ES EL CAMBIO, y costó medirlo para verlo.
      armarSuave iba al final, después de medirZoom, y de las tres cosas que
@@ -18605,6 +19005,9 @@ window.addEventListener('resize', () => {
      con sus medidas nuevas: medir antes daría la escala de la orientación que
      acaba de irse. */
   medirZoom(); if (zoomActivo) refrescarPasos();
+  /* renderPage rehace la hoja, así que el trazo —si sobrevivió— está en otro
+     sitio de la pantalla y sus bolitas también. */
+  colocarTiradores();
 });
 })();
 </script>
