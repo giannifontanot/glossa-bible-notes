@@ -69,6 +69,10 @@
             transition:opacity .55s ease, visibility .55s ease;
             opacity:1; visibility:visible; }
   #portada.fuera{ opacity:0; visibility:hidden; pointer-events:none; }
+  /* La tapa que no llega a saludar tampoco se despide: sin transición no
+     hay medio segundo de tapa desvaneciéndose delante de quien acaba de
+     estar aquí. Ver portadaDePaso. */
+  #portada.de-paso{ transition:none; }
   #portada .portada-marca{
     font-family:Georgia, 'Palatino Linotype', 'Times New Roman', serif;
     font-weight:700; font-size:clamp(2.1rem, 9vw, 3.6rem);
@@ -111,15 +115,22 @@
   .pt-btn:hover{ background:rgba(255,255,255,.18); color:#fff8e4; }
   .pt-btn:active{ transform:scale(.94); }
   .pt-btn:focus-visible{ outline:2px solid #e8d5a3; outline-offset:2px; }
-  /* EN ESPERA, EL BOTÓN DEL MEDIO SE ENCIENDE. Es la única señal de que el
-     reloj está parado, y hace falta: sin ella, una portada que no se va se lee
-     como que el programa se colgó. */
-  /* ANCHO FIJO PARA QUE LA CUENTA NO EMPUJE A LOS VECINOS. El rótulo pasa de
-     un dígito a «pausa» y a «continue»; sin un mínimo, los otros dos botones
-     del pie se corren en cada segundo y el pie entero tiembla. */
-  .pt-hold{ min-width:74px; }
-  .pt-hold.esperando{ background:rgba(201,162,39,.42);
-                      border-color:rgba(232,213,163,.8); color:#fff8e4; }
+  /* EL BOTÓN DEL MEDIO ES LA PUERTA, Y VA ENCENDIDO SIEMPRE.
+
+     Antes contaba —5, 4, 3, 2, «pausa»— y solo se encendía en el último
+     segundo o al pararlo: el encendido era la señal de «esto está detenido».
+     Ahora la tapa no se va sola, así que el encendido dice otra cosa y la dice
+     todo el rato: de aquí se sale por aquí. Es el único botón del pie que
+     hace algo con la Biblia —los otros dos decoran— y tiene que leerse como
+     tal sin que haya que probarlos.
+
+     Y sigue con ancho propio, más ancho que antes porque «continue» es más
+     largo que un dígito: los otros dos botones del pie están repartidos en
+     tercios y se corren si éste crece. */
+  .pt-seguir{ min-width:112px;
+              background:rgba(201,162,39,.42);
+              border-color:rgba(232,213,163,.8); color:#fff8e4; }
+  .pt-seguir:hover{ background:rgba(201,162,39,.58); color:#fff; }
 
   /* LA FOTO. Entra en la columna, encima del rótulo, así que nunca lo tapa. */
   #portadaFoto{ display:none; z-index:2; }
@@ -3490,7 +3501,7 @@
        cuartos del ancho, que es lo pedido y además se reparte solo. -->
   <div id="portadaPie">
     <button type="button" class="pt-btn" id="btnPortadaFoto">foto</button>
-    <button type="button" class="pt-btn pt-hold" id="btnPortadaHold">hold</button>
+    <button type="button" class="pt-btn pt-seguir" id="btnPortadaSeguir">continue</button>
     <button type="button" class="pt-btn" id="btnPortadaPiedras">Piedras</button>
   </div>
   <!-- El selector del sistema. Oculto: lo dispara el botón de arriba. -->
@@ -3900,6 +3911,60 @@ window.GLOSS_BUILD = '14-SEP-26 19:19';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
+
+/* ============================================================
+   ¿HAY TAPA, O NO LA HAY? Y ESTO SE DECIDE AQUÍ ARRIBA DEL TODO.
+
+   La portada ya no se va sola: espera a que el lector diga «continue». Pero a
+   quien vuelve a los dos minutos —cerró el navegador sin querer, cambió de
+   aplicación y volvió, recargó— enseñarle otra vez la tapa y pedirle otro
+   toque es cobrarle la entrada dos veces por la misma visita. Si estuvo aquí
+   hace menos de cinco minutos, la tapa no aparece.
+
+   VA EN EL PRIMER RENGLÓN DEL PROGRAMA, antes que ninguna otra cosa, porque lo
+   que se evita es un PARPADEO: la tapa está escrita en el documento y ya
+   existe cuando llega este guion. Decidirlo más abajo —después de cargar los
+   ajustes, de sembrar, de repaginar— daría tiempo a que se pintara y lo que el
+   lector vería es la tapa asomando y yéndose, que es peor que la tapa.
+
+   Y SIN FUNDIDO: .de-paso le quita la transición. La tapa que se va después de
+   «continue» sí se funde, medio segundo, porque ahí hay una despedida; ésta no
+   llegó a saludar.
+
+   El sello se escribe cuando la mesa queda a la vista y se refresca mientras
+   se lee, no al abrir: sellar al abrir contaría como visita una tapa que el
+   lector no llegó a pasar, y la siguiente vez se la saltaría sin haberla visto
+   nunca. Ver marcarVisita. */
+const PORTADA_RECIENTE = 5 * 60 * 1000;
+const PORTADA_VISITA = 'glossa:visita:v1';
+/* El almacén puede estar cerrado —ventana privada, permisos—, y una tapa de
+   más es un mal menor comparado con un programa que no arranca. */
+function ultimaVisita(){
+  try { return +localStorage.getItem(PORTADA_VISITA) || 0; } catch(_){ return 0; }
+}
+/* EL SELLO SOLO SE PONE CON LA MESA A LA VISTA, y esta guardia es el arreglo
+   de un fallo que se coló entero: el sello se refresca también al irse la
+   página —pagehide—, y eso incluye una recarga. Sin la guardia, alguien que
+   abría, se encontraba la tapa y recargaba sin tocarla sellaba la visita al
+   recargar, y la vuelta se saltaba una tapa que no había pasado nunca.
+   Medido: tres recargas seguidas y la tapa no volvió a salir ni una vez. */
+let mesaALaVista = false;
+function marcarVisita(){
+  if (!mesaALaVista) return;
+  try { localStorage.setItem(PORTADA_VISITA, String(Date.now())); } catch(_){}
+}
+function abrirLaMesa(){ mesaALaVista = true; marcarVisita(); }
+const portadaDePaso = (function(){
+  const t = ultimaVisita();
+  /* Un sello del futuro es un reloj que se movió: no se hace caso. */
+  if (!t || t > Date.now() + 60000) return false;
+  return Date.now() - t < PORTADA_RECIENTE;
+})();
+if (portadaDePaso){
+  const tapa = document.getElementById('portada');
+  if (tapa) tapa.classList.add('de-paso', 'fuera');
+  abrirLaMesa();
+}
 
 const PAGE_CSS = `
 /* El documento de afuera tiene una regla universal de box-sizing; dentro
@@ -17444,108 +17509,50 @@ function quitarPortada(){
     if (piedraEditando && piedraTaller === TALLER_PORTADA) piedraCerrarEdicion();
     else piedraDevolverMando();
   }
-  /* Y se para el latido de la cuenta: sin esto queda un intervalo cada 200 ms
-     buscando un botón que ya no existe, para siempre. */
-  if (typeof portadaPararLatido === 'function') portadaPararLatido();
   el.classList.add('fuera');
   setTimeout(() => { if (el.parentNode) el.remove(); }, 600);
+  /* Y AQUÍ SE SELLA LA VISITA, no al abrir. Este es el instante en que la mesa
+     queda a la vista, que es lo que cuenta como haber estado. Sellando al
+     abrir, una tapa que el lector no llegó a pasar —abre, se distrae, cierra—
+     contaría como visita y la próxima vez se la saltaría sin haberla visto
+     nunca. Ver PORTADA_RECIENTE. */
+  abrirLaMesa();
 }
-const t0Portada = performance.now();
 
 /* ============================================================
-   LA PORTADA QUE SE PUEDE PARAR Y DECORAR.
+   LA PORTADA SE VA CUANDO EL LECTOR LO DICE.
 
-   Tres cosas que van juntas y por eso viven aquí, lo más arriba posible del
-   arranque: si algo de más abajo se rompe, la portada tiene que seguir
-   sabiendo irse y sabiendo pararse.
+   Aquí vivían un reloj de cinco segundos, un botón que lo paraba y lo
+   reanudaba, un latido que repintaba la cuenta atrás cada 200 ms y un techo
+   de emergencia a los nueve segundos. Se fueron los cuatro, y conviene que
+   quede escrito por qué, porque cada uno se ganó su sitio en su momento:
 
-   EL RELOJ SE PARA Y SIGUE DONDE ESTABA, no vuelve a empezar. Es la diferencia
-   entre un botón de pausa y uno de reinicio, y se nota: reiniciando, cada
-   «continue» costaría la cuenta entera otra vez.
+   EL RELOJ Y LA PAUSA eran un par. Una tapa que se va sola necesita poder
+   pararse —si no, decorarla es una carrera contra la cuenta—, y una pausa
+   necesita un reloj que parar. Quitado el reloj, la pausa no tiene qué hacer:
+   la tapa ya está parada siempre. Los dos botones que decoran, «foto» y
+   «Piedras», llamaban a portadaParar() antes de abrir sus mandos; ahora no
+   llaman a nadie, que es lo mismo pero sin código.
 
-   Y EL TECHO DURO SE SUSPENDE MIENTRAS SE ESPERA. Ese plazo existe para que
-   una excepción en el arranque no deje al lector mirando una tapa que no se
-   va; una tapa que el lector mismo ha detenido es lo contrario de eso, y
-   arrancársela a los seis segundos con la caja de piedras abierta sería el
-   fallo más tonto de todo esto.
+   LA CUENTA ATRÁS explicaba dos cosas —que la tapa se va sola y cuándo—, y ya
+   no hay ninguna de las dos que explicar. El botón dice lo que hace.
+
+   EL TECHO DURO existía para que una excepción en el arranque no dejara al
+   lector mirando una tapa que no se va. Ese miedo es real y no desaparece:
+   lo que cambia es la salida. Antes la tapa se quitaba sola a los nueve
+   segundos aunque el programa estuviera roto; ahora la puerta es el botón, y
+   por eso SU OYENTE SE PONE AQUÍ ARRIBA y no allá abajo con los demás. Si algo
+   revienta a media carga, lo que el lector tiene delante es una tapa con un
+   botón que funciona.
    ============================================================ */
-const PORTADA_ESPERA = 5000;      /* lo que dura la tapa si nadie la toca */
-let portadaReloj = null;          /* el temporizador vivo, o null */
-let portadaVence = 0;             /* cuándo vence, en tiempo de performance */
-let portadaResto = 0;             /* lo que faltaba al parar */
-let portadaEnEspera = false;      /* ¿la paró el lector? */
-let portadaTecho = null;          /* el plazo de emergencia */
-let portadaLatido = null;         /* el que va repintando la cuenta atrás */
-
-/* EL BOTÓN DEL MEDIO ES EL RELOJ. Decía «hold», que es una palabra que hay que
-   entender antes de servir de algo; ahora dice cuánto queda —5, 4, 3, 2— y en
-   el último segundo dice «pausa», encendido, que es cuando de verdad hace
-   falta ofrecerlo. Un botón que además cuenta explica dos cosas con un solo
-   sitio: que la tapa se va sola, y cuándo.
-
-   El latido va a 200 ms y no a 1000: con un segundo justo, el número cambia
-   hasta 200 ms tarde respecto al reloj de verdad y la cuenta se ve saltar. */
-function portadaArrancarLatido(){
-  clearInterval(portadaLatido);
-  portadaLatido = setInterval(portadaPintarHold, 200);
-}
-function portadaPararLatido(){ clearInterval(portadaLatido); portadaLatido = null; }
-function portadaArrancarReloj(ms){
-  clearTimeout(portadaReloj);
-  portadaVence = performance.now() + ms;
-  portadaReloj = setTimeout(quitarPortada, ms);
-  portadaArrancarLatido();
-  portadaPintarHold();
-}
-function portadaParar(){
-  if (portadaEnEspera) return;
-  portadaEnEspera = true;
-  clearTimeout(portadaReloj); portadaReloj = null;
-  clearTimeout(portadaTecho); portadaTecho = null;
-  /* Si todavía no había arrancado —se paró antes de que la hoja estuviera
-     lista— lo que queda es la espera entera. */
-  portadaResto = portadaVence ? Math.max(0, portadaVence - performance.now())
-                              : PORTADA_ESPERA;
-  portadaPararLatido();
-  portadaPintarHold();
-}
-function portadaSeguir(){
-  if (!portadaEnEspera) return;
-  portadaEnEspera = false;
-  portadaSalirDeDecorar();
-  portadaPintarHold();
-  portadaArrancarReloj(Math.max(120, portadaResto));
-  /* El techo vuelve a armarse, generoso: a partir de aquí ya no hay nadie
-     mirando, así que si algo se atasca la mesa se destapa igual. */
-  clearTimeout(portadaTecho);
-  portadaTecho = setTimeout(() => { try { quitarPortada(); } catch(e){} }, 8000);
-}
-function portadaPintarHold(){
-  const b = document.getElementById('btnPortadaHold');
+(function puertaDeLaPortada(){
+  const b = document.getElementById('btnPortadaSeguir');
   if (!b) return;
-  /* Lo que queda, en segundos enteros hacia arriba: con la espera en 5 000 ms
-     eso da 5, 4, 3, 2 y 1. El 1 no se enseña —se cambia por «pausa»— porque
-     un «1» que dura un segundo y desaparece no informa de nada, y ese es
-     justamente el momento de ofrecer el botón. Antes de que el reloj arranque
-     —la tapa está esperando a que la hoja esté lista— se enseña la espera
-     entera: cero sería mentira. */
-  const queda = portadaVence
-    ? Math.max(0, Math.ceil((portadaVence - performance.now()) / 1000))
-    : Math.ceil(PORTADA_ESPERA / 1000);
-  const rotulo = portadaEnEspera ? 'continue' : (queda >= 2 ? String(queda) : 'pausa');
-  if (b.textContent !== rotulo) b.textContent = rotulo;
-  /* EL ENCENDIDO ES EL DE LA PAUSA, Y VALE PARA LAS DOS. Estaba solo para
-     «parado», que es donde nació —una tapa que no se va se lee como colgada si
-     nada lo explica—, y ahora sale también en el último segundo: es el mismo
-     estado del botón visto desde los dos lados, «puedes parar» y «está
-     parado». Encender la palabra y no el número es a propósito: los números
-     son cuenta, la palabra es oferta. */
-  const encendido = portadaEnEspera || rotulo === 'pausa';
-  b.classList.toggle('esperando', encendido);
-  b.setAttribute('aria-pressed', portadaEnEspera ? 'true' : 'false');
-  b.title = portadaEnEspera ? 'Seguir y abrir la Biblia'
-                            : 'Detener la cuenta y quedarse aquí';
-}
+  b.addEventListener('click', ev => {
+    ev.stopPropagation();
+    quitarPortada();
+  });
+})();
 
 /* ---------- LO QUE SE GUARDA DE LA PORTADA ----------
 
@@ -17763,7 +17770,6 @@ function portadaPiedraNueva(){
   const p = document.getElementById('portada');
   if (!p) return null;
   portadaCerrarMandos();
-  portadaParar();
   if (portadaAdorno.piedras.length >= 40){
     readout.textContent = 'la portada ya está llena de piedras';
     return null;
@@ -17802,11 +17808,11 @@ function portadaPiedraNueva(){
   portadaAbrirEdicion(x.id);
   return x;
 }
-/* Abrir cualquiera de los dos PARA EL RELOJ. Decorar contra una cuenta de
-   segundo y tres cuartos no es decorar, es una carrera. */
+/* Abrir cualquiera de los dos NO TIENE QUE PARAR NADA, y antes sí: había una
+   cuenta atrás corriendo y decorar contra ella era una carrera. La tapa ya no
+   se va sola, así que aquí no queda nada que detener. */
 function portadaAbrirMando(id){
   portadaCerrarMandos();
-  portadaParar();
   const el = document.getElementById(id);
   if (el){ el.hidden = false; el.classList.toggle('arriba', portadaMandoArriba); }
   const p = document.getElementById('portada');
@@ -17937,14 +17943,12 @@ function portadaTomarArchivo(file){
     const t = ev.target;
     const en = sel => t.closest && t.closest(sel);
 
-    if (en('#btnPortadaHold')){
-      ev.stopPropagation();
-      if (portadaEnEspera) portadaSeguir(); else portadaParar();
-      return;
-    }
+    /* El botón del medio NO se atiende aquí: su oyente se pone al principio
+       del programa, para que sea lo último que deje de funcionar. Ver
+       puertaDeLaPortada. */
+    if (en('#btnPortadaSeguir')) return;
     if (en('#btnPortadaFoto')){
       ev.stopPropagation();
-      portadaParar();
       /* Con foto puesta, el botón lleva a sus mandos; sin ella, al archivador.
          Cambiarla se pide quitando la que hay, que es lo que dice «Quitar». */
       if (portadaAdorno.foto) portadaMandoFoto();
@@ -18092,7 +18096,6 @@ function portadaTomarArchivo(file){
    NUEVE SEGUNDOS Y NO SIETE: la espera normal subió a cinco, y un techo tiene
    que quedar claramente por encima de la cuenta o deja de ser un techo y se
    convierte en un segundo reloj compitiendo con el primero. */
-portadaTecho = setTimeout(() => { try { quitarPortada(); } catch(e){} }, 9000);
 const guardado = cargarAjustes();
 cargarHistorial();
 cargarSeparadores();
@@ -18120,31 +18123,34 @@ pintarFlechas();
 /* Y la portada recupera su adorno. Va aquí y no antes porque necesita las
    figuras y los colores de las piedras, que se declaran más arriba pero
    después del techo duro. */
-/* LA CUENTA EMPIEZA CUANDO EMPIEZA LA TAPA, no cuando la hoja está lista.
-
-   El temporizador de verdad se arma más abajo, al terminar el arranque, con lo
-   que quede de los cinco segundos. Eso está bien para QUITARLA —la tapa dura
-   cinco segundos desde que se ve, pase lo que pase—, pero deja el rótulo del
-   botón sin nada que contar hasta entonces: si el arranque tarda segundo y
-   medio, el lector se encuentra la cuenta empezada en «4» y nunca ve el 5.
-   Fijando aquí el vencimiento —el mismo instante al que apunta el de abajo— la
-   cuenta se ve entera y no da ningún salto cuando el reloj de verdad arranca:
-   los dos apuntan a t0Portada + PORTADA_ESPERA. */
-portadaVence = t0Portada + PORTADA_ESPERA;
-portadaArrancarLatido();
-portadaCargar(); portadaPintarFoto(); portadaPintarPiedras(); portadaPintarHold();
+portadaCargar(); portadaPintarFoto(); portadaPintarPiedras();
 rehacerPlano();
 sizeCanvas();
 $('cred').textContent = D.versiones[version].nombre + ' — ' + D.versiones[version].licencia + ' · vía eBible.org';
 renderPage();
-/* Portada fuera: la hoja ya está. Tres segundos para que el letrero se lea
-   —se probaron segundo y tres cuartos y se quedaban cortos— y ni un milisegundo
-   si el lector ya ha pulsado «hold»: la tapa es suya hasta que diga
-   «continue». */
-(function(){
-  if (portadaEnEspera) return;
-  portadaArrancarReloj(Math.max(0, PORTADA_ESPERA - (performance.now() - t0Portada)));
-})();
+/* Aquí se armaba el reloj que quitaba la tapa. Ya no: la hoja está lista y la
+   tapa sigue puesta, esperando. La quita el lector.
+
+   Y AQUÍ EMPIEZA A LATIR EL SELLO DE LA VISITA. Uno solo, al destapar, no
+   basta: quien lee una hora seguida y recarga habría dejado su última señal
+   una hora atrás, y le saldría la tapa como si llegara de nuevas. Se refresca
+   mientras la ventana está delante, y al irse —que es el instante que de
+   verdad importa, el de cerrar la pestaña—.
+   Treinta segundos entre sellos: lo que se pierde si el navegador se cierra
+   sin avisar es medio minuto de los cinco, y escribir en el almacén cada poco
+   sale más caro que eso. */
+setInterval(() => { if (!document.hidden) marcarVisita(); }, 30000);
+addEventListener('pagehide', marcarVisita);
+/* EN document Y NO EN window, y esto se midió antes de escribirlo. El evento
+   se lanza en el documento; llegar a window depende de que burbujee, y
+   burbujea —comprobado: un evento lanzado en document con bubbles puesto sí
+   despierta a un oyente de window—. O sea que las dos formas funcionan.
+   Se escribe la de document igualmente porque es la que no hay que comprobar:
+   un oyente colgado del sitio donde el evento nace no depende de un detalle
+   que hay que ir a mirar a la especificación para saber si sigue siendo
+   cierto. Lo levantó la revisión de Codex, con el razonamiento al revés —decía
+   que no burbujea— y la conclusión buena. */
+document.addEventListener('visibilitychange', () => { if (document.hidden) marcarVisita(); });
 /* La firma se siembra con lo que ya hay puesto. Sin esto arranca vacía, así
    que el PRIMER guardado de la sesión siempre la ve distinta y repagina —y con
    glosas ya escritas, ese primer guardado es justo el de crear la siguiente—.
