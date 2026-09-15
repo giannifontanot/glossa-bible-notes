@@ -2882,6 +2882,33 @@
   #menu .mc{ width:20px; height:20px; padding:0; border-radius:50%;
              border:2px solid rgba(255,255,255,.25); }
   #menu .mc[data-on]{ border-color:#fff; }
+  /* LA MANIJA. Una barra corta y centrada, del color de la tinta apagada: se
+     entiende porque se agarra, no porque diga nada. El sitio que recibe el
+     dedo es MÁS ALTO que la barra que se ve —padding arriba y abajo— porque
+     una barra de tres píxeles es imposible de agarrar con un pulgar; lo que se
+     ve es fino y lo que se toca mide 22.
+     touch-action:none, o el navegador se queda con el arrastre y manda
+     pointercancel a media mudanza. Es la misma línea, y por la misma razón,
+     que llevan el sello de las glosas y los chevrones. */
+  /* EL COLOR SALE DE MEDIRLO, y la primera versión no. Puse una tinta oscura
+     —rgba(60,42,18,.28)— pensando en un papel claro, y este panel es
+     #2a2118: la barra quedaba en 1.04:1 contra su propio fondo, o sea
+     invisible. Lo levantó la revisión de Codex.
+     Con la tinta clara de los botones del panel a .55 sale 4.87:1, muy por
+     encima del 3:1 que se le pide a un mando que no es texto, y sin gritar.
+     Medido también el estado pulsado: .78 da 7.8:1. */
+  #menu .mmanija{ flex:0 0 auto; align-self:stretch; display:flex;
+                  align-items:center; justify-content:center;
+                  padding:9px 0 7px; margin:-2px 0 0; cursor:grab;
+                  background:transparent; border:1px solid transparent;
+                  touch-action:none; -webkit-tap-highlight-color:transparent; }
+  #menu .mmanija::before{ content:''; display:block; width:38px; height:4px;
+                          border-radius:2px; background:rgba(238,231,216,.55); }
+  #menu .mmanija:hover::before{ background:rgba(238,231,216,.72); }
+  #menu .mmanija:active{ cursor:grabbing; }
+  #menu .mmanija:active::before{ background:rgba(238,231,216,.78); }
+  #menu .mmanija:focus-visible{ outline:2px solid #e8d5a3; outline-offset:2px; }
+  #menu .mmanija:hover{ background:transparent; }
   #menu .mcolores{ display:flex; gap:8px; align-items:center; justify-content:center;
                    padding:2px 0 1px; }
   /* LOS TRES, A TERCIOS EXACTOS.
@@ -3907,7 +3934,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '14-SEP-26 19:36';
+window.GLOSS_BUILD = '14-SEP-26 19:47';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -6824,14 +6851,173 @@ function colocarMenu(){
    preguntarlo SIN mover nada: el pliegue de las etiquetas necesita saber a
    dónde va a parar el panel antes de empezar a plegarlas, y con la cuenta
    metida dentro del que la aplica no había manera de preguntar sin aplicar. */
+/* CASI ARRIBA DEL TODO: 10 px del filo de la hoja. Se probó pegado a cero y
+   se lee como si se hubiera colado por encima del papel; con este pelo de aire
+   se lee como algo puesto ENCIMA de la hoja, que es lo que es. */
+const MENU_ARRIBA = 10;
+/* Y LO QUE EL LECTOR LO HAYA MOVIDO, que se guarda con los ajustes: quien
+   aparta el panel porque le tapaba el pasaje no tiene por qué volver a
+   apartarlo mañana. Se guarda el desvío y no la posición, para que siga
+   valiendo cuando cambie el tamaño de la pantalla. */
+let menuDesvio = { x: 0, y: 0 };
+/* EN EL TELÉFONO EL PANEL SOLO SUBE Y BAJA, Y NO ES UNA LIMITACIÓN: ES QUE
+   DE LADO NO HAY ADÓNDE IR.
+
+   Se puso que se moviera en las dos direcciones sin mirar cuánto sitio había.
+   Medido en los tres contextos de las pruebas, con el panel abierto:
+
+       teléfono  412x915 → el panel mide 379 de ancho →  15 px a cada lado
+       estrecho  390x844 → el panel mide 359 de ancho →  14 px a cada lado
+       escritorio        → el panel mide 159 de ancho → 229 px a cada lado
+
+   O sea que en un teléfono el panel ya ocupa el ancho entero y los 15 px que
+   sobran no apartan nada de nada; lo vertical, en cambio, son 598. Dejar el
+   eje horizontal suelto ahí solo servía para tres estorbos: el panel se
+   descentraba sin motivo, las flechas izquierda y derecha dejaban de pasar
+   hoja para mover un panel que no se movía, y el redondeo del centro lo hacía
+   derivar un píxel por viaje.
+
+   El umbral se saca de esa medida y no de una anchura de pantalla: 40 px cae
+   en medio del abismo entre 15 y 229, así que la regla se cumple sola en
+   cualquier aparato sin tener que saber cuál es. Un móvil apaisado con sitio
+   de verdad lo recupera sin que nadie lo declare. */
+const MENU_LADO_MINIMO = 40;
+function deLadoSePuede(w, s){
+  return (s.width - w) / 2 >= MENU_LADO_MINIMO;
+}
 function sitioDelMenu(w, h, r, s){
-  let x = borrador ? (s.width - w) / 2
-                   : r.left - s.left + r.width/2 - w/2;
+  /* EL PANEL DE LA GLOSA YA NO PERSIGUE AL PASAJE. Iba pegado encima de lo
+     señalado, y saltaba de arriba abajo del pasaje según dónde cupiera: el
+     mismo gesto dejaba el panel en un sitio distinto cada vez. Ahora sale
+     siempre en el mismo, casi arriba y centrado, y de dónde viene ya lo cuenta
+     el crecimiento, que sigue anclado en las palabras señaladas.
+     La lista de «citado desde» no: ésa sí es un bocadillo de su botón y tiene
+     a qué apuntar. */
+  if (borrador){
+    const x = (s.width - w) / 2 + (deLadoSePuede(w, s) ? menuDesvio.x : 0);
+    const y = MENU_ARRIBA + menuDesvio.y;
+    return { x: Math.round(Math.min(Math.max(x, 2), Math.max(2, s.width - w - 2))),
+             y: Math.round(Math.min(Math.max(y, 2), Math.max(2, s.height - h - 2))) };
+  }
+  let x = r.left - s.left + r.width/2 - w/2;
   let y = r.top - s.top - h - 8;
   if (y < 2) y = r.bottom - s.top + 8;
   return { x: Math.round(Math.min(Math.max(x, 2), s.width - w - 2)),
            y: Math.round(Math.min(Math.max(y, 2), s.height - h - 2)) };
 }
+/* ARRASTRAR EL PANEL POR SU MANIJA.
+
+   Mueve el DESVÍO y vuelve a preguntar dónde va, en vez de escribir left/top a
+   pelo: así el panel sigue obedeciendo a los topes de la hoja —no se puede
+   sacar fuera— y al recolocarse cuando la lista de etiquetas lo estira. */
+(function moverElPanel(){
+  /* DE DÓNDE ESTÁ, NO DE LO QUE SE GUARDÓ, y esta distinción era un fallo.
+
+     El desvío guardado y el sitio que el panel ocupa de verdad pueden no
+     coincidir: los topes lo recortan si la pantalla es más chica que aquella
+     en la que se guardó, y la lista de etiquetas puede haberlo subido para que
+     quepa. Arrancando el arrastre del número guardado, el panel se quedaba
+     clavado en el filo hasta que el dedo recorriera toda esa diferencia —que
+     puede ser más que el alto de la pantalla, o sea nunca—. Lo levantó la
+     revisión de Codex.
+     Se lee el sitio de verdad y se convierte a desvío, que es exactamente lo
+     mismo que ya se hacía al soltar.
+
+     Y SIN REDONDEAR, que es lo que parecía inofensivo y no lo era. El centro
+     de la pantalla cae a menudo en medio píxel, así que redondear aquí tira
+     esa mitad; colocarMenu vuelve a redondear al colocar, y entre las dos se
+     pierde un píxel en cada viaje. Medido con el teclado: derecha sumaba 14 e
+     izquierda restaba 13, o sea que ir y volver dejaba el panel un píxel más a
+     la derecha cada vez. Dejando la fracción en el desvío, colocarMenu
+     redondea una sola vez y la ida y la vuelta cierran exactas. */
+  function desvioDeVerdad(){
+    const s = stage.getBoundingClientRect();
+    const w = menu.offsetWidth;
+    const izq = parseFloat(menu.style.left), arr = parseFloat(menu.style.top);
+    if (!Number.isFinite(izq) || !Number.isFinite(arr)) return { ...menuDesvio };
+    return { x: izq - (s.width - w) / 2,
+             y: arr - MENU_ARRIBA };
+  }
+  let gesto = null;
+  menu.addEventListener('pointerdown', ev => {
+    const m = ev.target.closest && ev.target.closest('[data-manija]');
+    if (!m || ev.button > 0) return;
+    const d = desvioDeVerdad();
+    menuDesvio = d;
+    gesto = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, x0: d.x, y0: d.y };
+    try { m.setPointerCapture(ev.pointerId); } catch(_){}
+    ev.preventDefault();
+  });
+  /* CON EL TECLADO: las flechas lo mueven y Inicio lo devuelve a su sitio. El
+     paso de 14 px es el que hace falta para que apartar el panel de un pasaje
+     no cueste treinta pulsaciones, y bastante fino para colocarlo.
+
+     Y LA TECLA SE QUEDA AQUÍ, QUE ES LA MITAD DEL ARREGLO. Las flechas pasan
+     hoja desde un oyente puesto en el documento, y ese se retira solo cuando
+     estás escribiendo —mira INPUT, TEXTAREA y SELECT—. La manija es un BUTTON,
+     o sea que no entraba en esa lista: con la manija enfocada, cada flecha
+     movía el panel Y pasaba la hoja detrás. Medido antes de creérselo, con el
+     control delante —con el panel cerrado las flechas TIENEN que pasar hoja, y
+     pasan: 0 → 14 → 0—; con la manija enfocada, 0 → 14 otra vez. O sea que el
+     arreglo de accesibilidad le rompía la navegación justo a quien venía a
+     ayudar, que es la peor manera de romperla.
+     preventDefault no bastaba: eso le habla al navegador, no al otro oyente.
+     El que corta la subida es stopPropagation, y solo para las teclas que esta
+     manija se queda; las demás siguen su camino como si nada. */
+  const PASO = 14;
+  menu.addEventListener('keydown', ev => {
+    if (!ev.target.closest || !ev.target.closest('[data-manija]')) return;
+    const teclas = { ArrowLeft:[-PASO,0], ArrowRight:[PASO,0],
+                     ArrowUp:[0,-PASO], ArrowDown:[0,PASO] };
+    if (ev.key === 'Home'){
+      ev.preventDefault(); ev.stopPropagation();
+      menuDesvio = { x:0, y:0 };
+      colocarMenu(); guardarAjustes();
+      return;
+    }
+    const d = teclas[ev.key];
+    if (!d) return;
+    /* Y SI DE LADO NO HAY ADÓNDE IR, IZQUIERDA Y DERECHA NO SON NUESTRAS: se
+       dejan subir para que sigan pasando hoja, que es lo que hacen en todo el
+       resto del programa. Quedárselas para no mover nada sería lo peor de los
+       dos mundos —ni mueve el panel ni pasa la hoja—. */
+    const s = stage.getBoundingClientRect();
+    if (d[0] && !deLadoSePuede(menu.offsetWidth, s)) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const base = desvioDeVerdad();
+    menuDesvio = { x: base.x + d[0], y: base.y + d[1] };
+    colocarMenu();
+    guardarAjustes();
+  });
+  menu.addEventListener('pointermove', ev => {
+    if (!gesto || ev.pointerId !== gesto.id) return;
+    ev.preventDefault();
+    /* El dedo se mueve en diagonal siempre —una línea recta no es un dedo—,
+       así que sin este recorte un arrastre para bajar el panel lo dejaba
+       además descentrado unos píxeles, sin que nadie lo hubiera pedido. */
+    const puedo = deLadoSePuede(menu.offsetWidth, stage.getBoundingClientRect());
+    menuDesvio = { x: puedo ? gesto.x0 + (ev.clientX - gesto.x) : 0,
+                   y: gesto.y0 + (ev.clientY - gesto.y) };
+    colocarMenu();
+  });
+  const soltar = ev => {
+    if (!gesto || (ev && ev.pointerId != null && ev.pointerId !== gesto.id)) return;
+    gesto = null;
+    /* EL DESVÍO SE GUARDA YA RECORTADO, no como lo dejó el dedo: arrastrando
+       hasta el filo, el dedo pide un desvío enorme que los topes no dejan
+       cumplir, y guardarlo tal cual haría que el panel saltara al filo la
+       próxima vez que cambiara de tamaño. Se lee el sitio que de verdad ocupa
+       y se guarda la diferencia. */
+    const s = stage.getBoundingClientRect();
+    const w = menu.offsetWidth;
+    menuDesvio = { x: deLadoSePuede(w, s) ? parseFloat(menu.style.left || 0) - (s.width - w) / 2 : 0,
+                   y: parseFloat(menu.style.top || 0) - MENU_ARRIBA };
+    if (typeof guardarAjustes === 'function') guardarAjustes();
+  };
+  menu.addEventListener('pointerup', soltar);
+  menu.addEventListener('pointercancel', soltar);
+  menu.addEventListener('lostpointercapture', soltar);
+})();
 function ocultarMenu(){
   if (menu._teclado) menu._teclado();
   /* El punto del adiós se mide ANTES de cerrar el borrador: cerrarlo repinta
@@ -6935,7 +7121,28 @@ function anchoVista(){
 
 function panelHTML(m){
   const forma = formaOrganica(m);
-  return '<div class="mcolores">' +
+  /* LA MANIJA, Y POR QUÉ ES UNA MANIJA Y NO EL PANEL ENTERO.
+
+     El panel sale casi arriba del todo y centrado, que es donde no estorba
+     casi nunca. Pero «casi» no es «nunca»: el pasaje que estás glosando puede
+     caer justo debajo, y entonces lo que necesitas es apartarlo, no cerrarlo.
+
+     Se arrastra por la manija y no por cualquier parte del panel porque el
+     panel está lleno de cosas que se tocan —seis colores, dos modos, las
+     etiquetas, la caja de escribir—, y un panel que se mueve al arrastrar
+     desde cualquier sitio convierte cada roce en una mudanza. La manija es
+     una barra y no dice nada: se entiende porque se agarra.
+
+     Y ES UN BOTÓN, no un div con un oyente. Empezó siendo un div escondido de
+     la accesibilidad, y así el panel solo se podía mover con un dedo o un
+     ratón: quien navega con teclado —o con un conmutador— se quedaba con el
+     panel donde cayera, que es justo la persona a la que peor le viene que le
+     tape el pasaje. Lo levantó la revisión de Codex. Como botón se alcanza con
+     el tabulador, se anuncia solo, y las flechas lo mueven. */
+  return '<button type="button" class="mmanija" data-manija' +
+      ' aria-label="Mover el panel: arrastra, o con las flechas del teclado"' +
+      ' title="Arrastra para mover el panel · flechas para moverlo · Inicio para devolverlo"></button>' +
+    '<div class="mcolores">' +
       COLORS.map(c => '<button class="mc" data-color="' + c + '" style="background:' +
         LINE_HEX[c] + '"' + (m.color===c ? ' data-on="1"' : '') + '></button>').join('') +
     '</div>' +
@@ -17214,6 +17421,11 @@ function guardarAjustes(){
          y la etiqueta de ayer está donde la dejaste, en negrita y a un toque.
          Si se pierde no se rompe nada; solo hay que buscarla en la lista. */
       ultimaEtiqueta,
+      /* DÓNDE DEJÓ EL LECTOR EL PANEL DE LA GLOSA, en desvío y no en posición:
+         así sigue valiendo si mañana abre en otra pantalla. Los ajustes de
+         antes de que la manija existiera no traen el campo y se quedan en
+         cero, que es el sitio de fábrica; por eso el objeto sigue en v:1. */
+      menuDesvioX: menuDesvio.x, menuDesvioY: menuDesvio.y,
       etiquetasVer: [...etiquetasVer]
     }));
   } catch(e){ /* si no se puede, se arranca con lo de fábrica */ }
@@ -17242,6 +17454,13 @@ function cargarAjustes(){
      traen el campo, Number.isFinite lo rechaza y se queda en su 100, que es
      el neutro. El objeto sigue en v:1 por lo mismo que la vez pasada. */
   if (Number.isFinite(a.brillo)) brillo = Math.max(50, Math.min(150, a.brillo));
+  /* El desvío del panel. Se recorta a un tamaño de pantalla generoso y no al
+     de ahora: cuando esto se lee, la hoja todavía no está compuesta. Los topes
+     de verdad los pone sitioDelMenu en cada colocación, que es donde se sabe
+     cuánto mide todo. */
+  if (Number.isFinite(a.menuDesvioX) && Number.isFinite(a.menuDesvioY))
+    menuDesvio = { x: Math.max(-2000, Math.min(2000, a.menuDesvioX)),
+                   y: Math.max(-2000, Math.min(2000, a.menuDesvioY)) };
   if (FUENTES[a.fuente]) fuente = FUENTES[a.fuente][1];
   if ([1,2,3].includes(a.columns)) columns = a.columns;
   if (['below','margin','foot'].includes(a.placement)){ placement = a.placement; placementTocado = true; }
