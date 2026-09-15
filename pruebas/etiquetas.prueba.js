@@ -20,18 +20,45 @@
    fallo. */
 const { abrir, cerrar, di, vale, titulo } = require('./comun');
 
-/* Abrir el panel sobre un tramo del primer versículo y dejar una nota escrita:
-   sin nota las etiquetas duermen, porque sin nota no se guarda nada y una
-   etiqueta puesta ahí se perdería al cerrar. */
+/* Abrir el panel sobre un tramo SIN ETIQUETAS PUESTAS y dejar una nota
+   escrita: sin nota las etiquetas duermen, porque sin nota no se guarda nada
+   y una etiqueta puesta ahí se perdería al cerrar.
+
+   Y LO DE «SIN ETIQUETAS PUESTAS» ES NUEVO, porque cambió el gesto. Con la
+   selección, señalar encima de una marca que ya existía creaba OTRA que se
+   llevaba la de debajo por delante, así que cada bloque podía pedir el tramo
+   que quisiera y recibía siempre un panel limpio. Pintando no: el dedo sobre
+   una marca hecha la ABRE, que es lo que tiene que hacer. Así que un bloque
+   que pide (16,30) después de que otro dejara «reino» en (16,28) recibe el
+   panel de aquella glosa, con su etiqueta encendida — y entonces «no se
+   aplica sola» sale en rojo diciendo ["reino"], que es verdad y no es el
+   fallo que vigila.
+
+   No se arregla repartiendo tramos a mano entre los bloques —eso se descuadra
+   en cuanto alguien añade uno—, sino pidiendo lo que de verdad hace falta:
+   un panel sin etiquetas encendidas. Si el primer versículo ya está ocupado,
+   se prueba el siguiente. */
 const ABRIR = `async (desde, hasta, nota) => {
-  const v = document.querySelector('#pgBody .v');
-  /* con el dedo: ver PINCEL en comun.js */
-  if (!await window.__glosarEn(v, desde, hasta)) return false;
-  const ta = document.getElementById('glosaCaja');
-  if (!ta) return false;
-  ta.value = nota; ta.dispatchEvent(new Event('input', { bubbles:true }));
-  await new Promise(z => setTimeout(z, 120));
-  return !document.querySelector('#menu .tagbox').classList.contains('dormida');
+  const escribir = async () => {
+    const ta = document.getElementById('glosaCaja');
+    if (!ta) return false;
+    ta.value = nota; ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 120));
+    const caja = document.querySelector('#menu .tagbox');
+    return !!caja && !caja.classList.contains('dormida');
+  };
+  const cerrar = async () => {
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await new Promise(z => setTimeout(z, 450));
+  };
+  for (const v of [...document.querySelectorAll('#pgBody .v')]){
+    /* con el dedo: ver PINCEL en comun.js */
+    if (!await window.__glosarEn(v, desde, hasta)) continue;
+    if (!document.querySelector('#menu .tg.on')) return escribir();
+    await cerrar();
+  }
+  return false;
 }`;
 const FUERA = `async () => {
   document.body.dispatchEvent(new PointerEvent('pointerdown',
@@ -287,8 +314,14 @@ const FUERA = `async () => {
       await new Promise(z => setTimeout(z, 350));
       /* y se puede volver a tocar: si el nombre no sobrevivió al atributo, el
          chip existe pero no se encuentra por su data-tag */
-      const chip = document.querySelector('#menu .tg.on');
-      const seEncuentra = !!chip && chip.dataset.tag === raro;
+      /* SE BUSCA POR SU NOMBRE, no «el primero encendido». Lo que este bloque
+         vigila es que el nombre sobreviva al viaje por el atributo, y coger el
+         primer chip encendido da por hecho que no hay otro — cosa que dejó de
+         ser cierta en cuanto el panel puede venir de una glosa con etiquetas
+         ya puestas. */
+      const chip = [...document.querySelectorAll('#menu .tg')]
+        .find(b => b.dataset.tag === raro);
+      const seEncuentra = !!chip && chip.classList.contains('on');
       /* volver a crearla NO puede sacar un segundo chip: es la mitad
          silenciosa del fallo del selector */
       const i2 = document.getElementById('tagNueva');

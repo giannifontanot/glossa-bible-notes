@@ -238,18 +238,48 @@ window.__pintarEn = async (v, ini, fin) => {
    donde no debe. Solo pulsa si de verdad hay algo abierto, y deja apuntado
    que lo pulso en window.__pincelDespejo, para que quien sospeche lo pueda
    mirar. */
-window.__capasAbiertas = () => ['versoPleno', 'sepMenu', 'sepOferta', 'escenas']
-  .filter(id => { const e = document.getElementById(id);
-                  return e && e.classList.contains('visible'); });
+window.__capasAbiertas = () => {
+  const abiertas = ['versoPleno', 'sepMenu', 'sepOferta', 'escenas']
+    .filter(id => { const e = document.getElementById(id);
+                    return e && e.classList.contains('visible'); });
+  /* Y EL PANEL DE LA GLOSA, que es el que mas estorba y el que se me habia
+     escapado: no lleva la clase que miran las otras, se ensena con display,
+     asi que mirando solo las clases no salia. Y no es que se coma el
+     toque de lejos: TAPA el texto. Medido, el punto de salida caia sobre
+     BUTTON.mok —el boton de terminar del propio panel—. */
+  const m = document.getElementById('menu');
+  if (m && getComputedStyle(m).display !== 'none') abiertas.push('menu');
+  return abiertas;
+};
 window.__despejar = async () => {
   const habia = window.__capasAbiertas();
   if (!habia.length) return habia;
+  /* El panel no se va con Escape a secas en todos los casos, y ademas la
+     manera de cerrarlo que tiene el lector es tocar fuera —que cobra lo
+     escrito—. Se hacen las dos: la tecla para las capas y el toque fuera
+     para el panel. */
   document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
-  await new Promise(z => setTimeout(z, 260));
+  await new Promise(z => setTimeout(z, 200));
+  if (window.__capasAbiertas().length){
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await new Promise(z => setTimeout(z, 600));
+  }
   return habia;
 };
 window.__glosarEn = async (v, ini, fin) => {
   window.__pincelDespejo = await window.__despejar();
+  /* Y SE VUELVE A BUSCAR EL VERSICULO, porque despejar puede haberlo tirado.
+     Cerrar el panel cobra lo escrito, cobrar repinta la hoja, y renderPage
+     rehace TODOS los nodos: el elemento que el bloque capturo antes de
+     llamarnos queda huerfano. Medido: tras despejar, document.contains da
+     false y su caja pasa a 0x0 en la esquina, asi que el pincel apoyaba el
+     dedo en el 0,0 de la ventana y pintaba donde cayera. Se recupera el que
+     ocupa ahora su sitio, por su data-k. */
+  if (v && v.dataset && v.dataset.k != null && !document.contains(v)){
+    const fresco = document.querySelector('#pgBody .v[data-k="' + v.dataset.k + '"]');
+    if (fresco) v = fresco;
+  }
   const donde = await window.__pintarEn(v, ini, fin);
   if (!donde) return false;
   const abrio = await window.__tocarLoPintado(donde);
