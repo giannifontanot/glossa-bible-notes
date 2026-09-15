@@ -21,20 +21,19 @@ const { abrir, otraPagina, listo, cerrar, cerrarParcial, conGlosas, di, vale, ti
    pasaje lleva user-select:none desde que se glosa pintando—; el pincel lo
    pone el andamio, ver PINCEL en comun.js. */
 const ABRIR = `async (desde = 0, hasta = 15) => {
-  /* SE BUSCA SITIO, no se pide siempre el mismo. Este fichero llama aqui
-     decenas de veces con tramos fijos del PRIMER versiculo, y cada llamada
-     deja una marca: al rato el tramo pedido ya esta marcado, y sobre una marca
-     hecha el dedo no pinta —la abre—. Cuando ademas el panel de esa marca
-     queda por medio, no se abre caja ninguna y el bloque de arriba revienta
-     con «Cannot set properties of null». Se corre el tramo por el versiculo y
-     se pasa al siguiente cuando no cabe, igual que en etiquetas. */
-  const ancho = hasta - desde;
-  for (const v of [...document.querySelectorAll('#pgBody .v')]){
-    for (let d = 0; d < 400; d += ancho + 4){
-      if (await window.__glosarEn(v, desde + d, hasta + d)) return true;
-    }
-  }
-  return null;
+  /* LA BUSQUEDA DE SITIO VIVE EN __glosarEn, no aqui.
+
+     Este fichero llama decenas de veces con tramos fijos del PRIMER
+     versiculo, y cada llamada deja una marca: al rato el tramo pedido ya
+     esta marcado, y sobre una marca hecha el dedo no pinta —la abre—. Se
+     parcheo primero aqui, y luego en el ABRIR de etiquetas, y cada tanda
+     destapaba otra llamada sin parche; ahora lo hace el andamio para todas.
+
+     Y el bucle de aqui estorbaba ademas de sobrar: pisaba el
+     __pincelPorque que deja __glosarEn con el motivo de verdad, y lo
+     cambiaba por el de la ultima vuelta —siempre «el versiculo no tiene un
+     nodo de mas de 800 letras»—, que es cierto y no explica nada. */
+  return await window.__glosarEn(document.querySelector('#pgBody .v'), desde, hasta) || null;
 }`;
 /* Tocar fuera: el gesto que cobra lo escrito y cierra. */
 const FUERA = `async () => {
@@ -1110,7 +1109,12 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       .find(m => (m.nota||'').startsWith('una nota larga para ver'));
     if (!mia) return { sinGuardar:true };
     const enLaHoja = document.querySelector('.gl[data-gl="' + mia.id + '"] .gl-ref');
-    await eval('(' + tocar + ')')(3, 11);
+    /* SE REABRE LA SUYA, por su cita. Tocar un tramo fijo del primer
+       versiculo valia mientras el bloque dejaba una sola marca; desde que el
+       pincel corre el tramo para encontrar sitio libre, la marca nueva cae
+       donde cabe y el toque fijo abria la de al lado. Salia «1a· contra 1b·»
+       con las dos anclas bien puestas, cada una hablando de su marca. */
+    if (!await window.__tocarCita(mia.cita)) return { sinReabrir:true, porque: window.__pincelPorque };
     const ancla = document.querySelector('#glVista .gl-ref');
     const ta2 = document.getElementById('glosaCaja');
     if (!ancla || !ta2) return { sinReabrir:true };
@@ -1960,6 +1964,20 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      gesto que sí escribe uno («piedra puesta · arrástrala…») y además lo hace
      antes que ningún otro. Levantado en revisión. */
   titulo('el único aviso que sale');
+  /* CON LA HOJA LIMPIA, y hace falta desde que se glosa pintando.
+
+     Esta pagina lleva encima las marcas de treinta bloques, y el gesto de
+     aqui empieza en el caracter 3 del primer versiculo: sobre una marca
+     hecha el dedo no pinta —la ABRE—, asi que no habia trazo que cruzara de
+     versiculo y el aviso no llegaba a escribirse. Se veia como
+     «sale:false» con el texto vacio, que parecia el filtro de avisos
+     comiendose este, y no era. Con la seleccion daba igual porque
+     seleccionar encima de una marca si creaba otra.
+
+     Se borran las marcas ANTES de recargar, que es lo que deja la hoja como
+     la de un lector que estrena: el bloque no viene a probar nada de lo que
+     dejaron los de arriba. */
+  await p.evaluate(() => localStorage.removeItem('glossa:marcas:v1'));
   await p.reload();
   const avisos = await p.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));

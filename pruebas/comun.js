@@ -300,6 +300,44 @@ window.__tocarLoPintado = async (donde) => {
     (window.__capasAbiertas().length ? '; capas abiertas: ' + window.__capasAbiertas().join(',') : '');
   return false;
 };
+/* TOCAR UNA MARCA CONCRETA, LA SUYA, no «la que haya por el carac 3».
+
+   Los bloques que reabren una glosa recien guardada tocaban un tramo fijo
+   del primer versiculo. Mientras cada bloque dejaba una sola marca, el tramo
+   fijo y la marca eran la misma cosa; ahora que el pincel CORRE el tramo para
+   encontrar sitio libre, la marca nueva acaba en otro sitio y el toque fijo
+   abre la de al lado. Asi salio «1a· contra 1b·»: el anticipo hablaba de la
+   marca de antes y la hoja de la recien hecha, y las dos tenian razon.
+
+   Se busca por la cita, que es lo que el programa guarda de la marca y lo
+   unico que la identifica en la pantalla —con la API de resaltado los tramos
+   marcados no son elementos, van por color y no por marca, asi que no hay un
+   nodo al que apuntar—. */
+window.__tocarCita = async (cita) => {
+  const pgBody = document.getElementById('pgBody');
+  if (!pgBody || !cita) return false;
+  const trozo = String(cita).trim().slice(0, 30);
+  const w = document.createTreeWalker(pgBody, NodeFilter.SHOW_TEXT);
+  let n = null, i = -1;
+  while (w.nextNode()){
+    const j = w.currentNode.data.indexOf(trozo);
+    if (j >= 0){ n = w.currentNode; i = j; break; }
+  }
+  if (!n){ window.__pincelPorque = 'no se encontro la cita «' + trozo + '» en la hoja'; return false; }
+  const r = document.createRange();
+  r.setStart(n, i); r.setEnd(n, Math.min(n.data.length, i + trozo.length));
+  const c = [...r.getClientRects()].find(x => x.width > 0 && x.height > 0);
+  if (!c){ window.__pincelPorque = 'la cita no tiene caja en pantalla'; return false; }
+  const x = Math.round(c.left + c.width / 2), y = Math.round(c.top + c.height / 2);
+  const op = { bubbles:true, cancelable:true, pointerId:73, pointerType:'touch',
+               isPrimary:true, clientX:x, clientY:y };
+  getSelection().removeAllRanges();
+  pgBody.dispatchEvent(new PointerEvent('pointerdown', op));
+  await new Promise(z => setTimeout(z, 40));
+  pgBody.dispatchEvent(new PointerEvent('pointerup', op));
+  await new Promise(z => setTimeout(z, 450));
+  return !!document.getElementById('glosaCaja');
+};
 /* El atajo de siempre: el primer nodo de texto largo de un versiculo. */
 window.__pintarEn = async (v, ini, fin) => {
   window.__pincelPorque = null;
@@ -349,6 +387,15 @@ window.__capasAbiertas = () => {
      BUTTON.mok —el boton de terminar del propio panel—. */
   const m = document.getElementById('menu');
   if (m && getComputedStyle(m).display !== 'none') abiertas.push('menu');
+  /* Y EL PANEL DE GLOSAS, que en telefono TAPA LA HOJA ENTERA.
+     Medido en 412x915 con el panel abierto por su pestana: en mitad del
+     primer versiculo, elementFromPoint devuelve DIV.ix-item —un renglon de
+     la lista—, asi que el dedo no llega al texto y el pincel no pinta. Con
+     la seleccion daba igual, porque una seleccion no toca la pantalla; el
+     dedo si. Un Escape lo cierra, y los chips del filtro se quedan puestos,
+     que es lo que el bloque viene a mirar. */
+  const et = document.getElementById('etiquetas');
+  if (et && et.classList.contains('abierto')) abiertas.push('etiquetas');
   return abiertas;
 };
 window.__despejar = async () => {
@@ -380,26 +427,91 @@ window.__glosarEn = async (v, ini, fin) => {
     const fresco = document.querySelector('#pgBody .v[data-k="' + v.dataset.k + '"]');
     if (fresco) v = fresco;
   }
-  const donde = await window.__pintarEn(v, ini, fin);
-  if (!donde){
-    /* EL GESTO PUEDE HABER ABIERTO YA EL PANEL, y entonces no hay que tocar
-       otra vez. Si el dedo cae sobre una marca que ya existe, el programa no
-       pinta: la ABRE, que es lo que tiene que hacer. El panel queda puesto por
-       el propio gesto.
+  /* SE BUSCA TEXTO LIBRE, y esto es lo que deja de romperse solo.
 
-       Aqui estaba el fallo de navegar, y costo cuatro vueltas. Sus bloques
-       piden siempre el mismo tramo del mismo versiculo: el primero crea la
-       marca y del segundo en adelante el dedo cae encima. Se abria el panel, y
-       el toque de confirmar caia sobre el panel recien abierto —que tapa el
-       texto— y lo cerraba. El mensaje decia «se pinto, pero el toque no abrio
-       la caja»: las dos mitades enganosas, porque ni se pinto ni el toque
-       tenia nada que abrir. */
-    if (document.getElementById('glosaCaja')) return true;
-    return false;
+     Los bloques piden siempre un tramo fijo del versiculo que tienen a mano, y
+     cada llamada deja una marca: al rato ese tramo ya esta marcado, y sobre
+     una marca hecha el dedo no pinta —la ABRE, que es lo que tiene que
+     hacer—. Con la seleccion daba igual, porque marcar encima de otra marca
+     creaba una nueva que se llevaba la de debajo; pintando no.
+
+     Lo estuve parcheando llamada por llamada, en el ABRIR de etiquetas y en
+     el de glosas, y cada tanda destapaba otra que no tenia parche. Va aqui,
+     que es donde vale para todas: se corre el tramo por el versiculo y se
+     pasa al siguiente cuando no cabe, hasta encontrar sitio donde el gesto de
+     verdad pinte.
+
+     Y SE PREFIERE SITIO LIBRE, no solo un panel abierto: quien llama suele
+     querer una glosa NUEVA, y abrirle la de otro le hace escribir su nota
+     encima de una ajena. Si no queda sitio libre en ninguna parte, entonces
+     si se acepta el panel que el gesto haya abierto, que es mejor que nada.
+     Lo que abra por el camino se cierra, o taparia el intento siguiente. */
+  const ancho = Math.max(4, fin - ini);
+  /* SE GUARDAN LOS data-k, NO LOS ELEMENTOS. Cerrar un panel por el camino
+     cobra lo escrito, y cobrar repinta la hoja: la lista de nodos que se
+     hubiera hecho al empezar queda huerfana a la segunda vuelta y el pincel
+     acaba pintando en el 0,0 de la ventana. Se vuelve a buscar cada
+     versiculo por su k justo antes de usarlo. */
+  const ks = [...document.querySelectorAll('#pgBody .v')].map(x => x.dataset.k);
+  const miK = v && v.dataset ? v.dataset.k : null;
+  const enOrden = miK != null && ks.includes(miK)
+    ? [miK, ...ks.filter(x => x !== miK)] : ks;
+  let panelDeOtra = false, corto = 0;
+  for (const k of enOrden){
+    for (let d = 0; d < 400; d += ancho + 4){
+      const vv = document.querySelector('#pgBody .v[data-k="' + k + '"]');
+      if (!vv) break;
+      const donde = await window.__pintarEn(vv, ini + d, fin + d);
+      if (donde){
+        const abrio = await window.__tocarLoPintado(donde);
+        if (!abrio) window.__pincelPorque = 'se pintó y ' +
+          (window.__pincelFrase || 'el toque no abrió la caja');
+        return abrio;
+      }
+      /* SE CORTA CUANDO EL VERSICULO SE ACABA, en vez de seguir corriendo el
+         tramo cien veces por un versiculo de noventa letras. Importa por el
+         motivo que queda escrito: el ultimo __pincelPorque era siempre «no
+         tiene un nodo de mas de 822 letras», que es verdad y no dice nada.
+         Quien lea el fallo quiere saber que habia debajo del dedo. */
+      if (/no tiene un nodo/.test(window.__pincelPorque || '')){ corto++; break; }
+      /* El gesto cayo sobre una marca hecha y el programa la abrio: se cierra
+         y se sigue buscando sitio limpio. */
+      if (document.getElementById('glosaCaja')){
+        panelDeOtra = true;
+        document.body.dispatchEvent(new PointerEvent('pointerdown',
+          { bubbles:true, clientX:5, clientY:5 }));
+        await new Promise(z => setTimeout(z, 450));
+      }
+    }
   }
-  const abrio = await window.__tocarLoPintado(donde);
-  if (!abrio) window.__pincelPorque = 'se pintó y ' + (window.__pincelFrase || 'el toque no abrió la caja');
-  return abrio;
+  if (panelDeOtra){
+    /* No quedaba sitio libre: se vuelve a abrir la que haya, que es lo unico
+       que se puede ofrecer. */
+    const vv = document.querySelector('#pgBody .v[data-k="' + (miK != null ? miK : ks[0]) + '"]');
+    await window.__pintarEn(vv, ini, fin);
+    if (document.getElementById('glosaCaja')) return true;
+  }
+  /* EL MOTIVO, CON LO QUE HACE FALTA PARA CREERLO. Decir «no habia sitio» a
+     secas mando cuatro rondas a buscar marcas donde el problema era una capa
+     encima. Se dice cuantos versiculos se probaron, si alguno abrio una
+     marca ya hecha, que capas hay puestas y que elemento esta de verdad
+     encima del texto. */
+  const v0 = document.querySelector('#pgBody .v');
+  let debajo = 'sin hoja';
+  if (v0){
+    const c = v0.getBoundingClientRect();
+    const el = document.elementFromPoint(Math.round(c.left + c.width / 2),
+                                         Math.round(c.top + c.height / 2));
+    debajo = el ? el.tagName + (el.id ? '#' + el.id : '') +
+                  (el.className ? '.' + String(el.className).split(' ')[0] : '') : 'nada';
+  }
+  window.__pincelPorque =
+    'no se encontro texto libre donde pintar: ' + enOrden.length + ' versiculos probados, ' +
+    corto + ' se acabaron antes' +
+    (panelDeOtra ? ', alguno abrio una marca ya hecha' : ', ninguno tenia marca debajo') +
+    '; encima del texto hay ' + debajo +
+    '; capas abiertas: ' + (window.__capasAbiertas().join(',') || 'ninguna');
+  return false;
 };`;
 
 /* Y SE COMPRUEBA QUE EL PINCEL COMPILA, aquí y no dentro del navegador.
