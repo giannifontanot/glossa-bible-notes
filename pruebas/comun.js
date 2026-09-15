@@ -188,17 +188,54 @@ window.__pintarGlosa = async (nodo, ini, fin) => {
      para poder mirar justo después. Ver __glosarEn, que es el camino corto. */
   return { x: x0, y: y0 };
 };
+/* EL TOQUE QUE CONFIRMA, Y LA AUTOPSIA DE CUANDO NO ABRE.
+
+   «se pinto, pero el toque de encima no abrio la caja» ha aparecido tres
+   veces con tres causas distintas, y cada vez costo una tanda entera
+   averiguar cual. Asi que cuando no abre se apunta el estado: si el trazo
+   seguia puesto, si el punto del toque cae DENTRO de lo pintado, que elemento
+   hay debajo, y si se abrio algun panel. Con eso la proxima vez lo dice el
+   mensaje y no hace falta otra tanda. */
 window.__tocarLoPintado = async (donde) => {
   const pgBody = document.getElementById('pgBody');
   if (!pgBody || !donde) return false;
   const pausa = ms => new Promise(z => setTimeout(z, ms));
+  const trazo = () => {
+    const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+    if (h){ const r = [...h][0]; return r || null; }
+    const e = document.querySelector('#pgBody .pintando');
+    if (!e) return null;
+    const r = document.createRange(); r.selectNodeContents(e); return r;
+  };
+  const dentroDelTrazo = (rg, x, y) => {
+    if (!rg) return null;
+    return [...rg.getClientRects()].some(c =>
+      x >= c.left - 1 && x <= c.right + 1 && y >= c.top - 1 && y <= c.bottom + 1);
+  };
+  const antes = trazo();
+  const habia = antes ? antes.toString().length : 0;
+  const caia = dentroDelTrazo(antes, donde.x, donde.y);
   const op = (x, y) => ({ bubbles:true, cancelable:true, pointerId:65,
                           pointerType:'touch', isPrimary:true, clientX:x, clientY:y });
   pgBody.dispatchEvent(new PointerEvent('pointerdown', op(donde.x, donde.y)));
   await pausa(40);
   pgBody.dispatchEvent(new PointerEvent('pointerup', op(donde.x, donde.y)));
   await pausa(520);
-  return !!document.getElementById('glosaCaja');
+  if (document.getElementById('glosaCaja')) return true;
+  const el = document.elementFromPoint(donde.x, donde.y);
+  const despues = trazo();
+  const menu = document.getElementById('menu');
+  window.__pincelAutopsia = {
+    toque: donde.x + ',' + donde.y,
+    trazoAntes: habia,
+    elToqueCaiaDentro: caia,
+    trazoDespues: despues ? despues.toString().length : 0,
+    debajo: el ? (el.tagName + (el.id ? '#' + el.id : '') +
+                  (el.className ? '.' + String(el.className).split(' ')[0] : '')) : 'nada',
+    panel: menu ? getComputedStyle(menu).display : 'sin menu',
+    capas: window.__capasAbiertas()
+  };
+  return false;
 };
 /* El atajo de siempre: el primer nodo de texto largo de un versiculo. */
 window.__pintarEn = async (v, ini, fin) => {
@@ -283,7 +320,8 @@ window.__glosarEn = async (v, ini, fin) => {
   const donde = await window.__pintarEn(v, ini, fin);
   if (!donde) return false;
   const abrio = await window.__tocarLoPintado(donde);
-  if (!abrio) window.__pincelPorque = 'se pintó, pero el toque de encima no abrió la caja';
+  if (!abrio) window.__pincelPorque = 'se pintó, pero el toque no abrió la caja · ' +
+    JSON.stringify(window.__pincelAutopsia || {});
   return abrio;
 };`;
 

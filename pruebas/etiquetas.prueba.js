@@ -52,11 +52,24 @@ const ABRIR = `async (desde, hasta, nota) => {
       { bubbles:true, clientX:5, clientY:5 }));
     await new Promise(z => setTimeout(z, 450));
   };
+  /* SE PRUEBAN VARIOS TRAMOS DENTRO DE CADA VERSICULO, no uno por versiculo.
+
+     Con uno por versiculo, cada bloque que pasa consume el suyo y la hoja se
+     acaba: este fichero llama aqui una docena de veces y la hoja tiene
+     catorce versiculos, algunos demasiado cortos. El quinto nombre raro se
+     quedaba ya sin sitio y devolvia false, y el bloque decia «sinPanel».
+     Pero un versiculo mide entre 88 y 245 letras, o sea que caben de sobra
+     varias marcas: se corre el tramo a lo largo del versiculo antes de pasar
+     al siguiente. Cuando el tramo ya no cabe, el pincel devuelve falso solo y
+     se pasa al de al lado. */
+  const ancho = hasta - desde;
   for (const v of [...document.querySelectorAll('#pgBody .v')]){
-    /* con el dedo: ver PINCEL en comun.js */
-    if (!await window.__glosarEn(v, desde, hasta)) continue;
-    if (!document.querySelector('#menu .tg.on')) return escribir();
-    await cerrar();
+    for (let d = 0; d < 400; d += ancho + 4){
+      /* con el dedo: ver PINCEL en comun.js */
+      if (!await window.__glosarEn(v, desde + d, hasta + d)) break;
+      if (!document.querySelector('#menu .tg.on')) return escribir();
+      await cerrar();
+    }
   }
   return false;
 }`;
