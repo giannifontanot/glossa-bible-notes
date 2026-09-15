@@ -3985,7 +3985,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-SEP-26 12:54';
+window.GLOSS_BUILD = '15-SEP-26 13:06';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8786,11 +8786,27 @@ function colocarTiradores(){
   };
   pgBody.addEventListener('pointermove', ev => {
     if (!gesto || ev.pointerId !== gesto.id) return;
+    /* EL DEDO SE HA IDO CUANDO PASA DE PINTADO_RUIDO, no de PINTADO_UMBRAL, y
+       la diferencia entre las dos cifras se tragaba el gesto entero.
+
+       Lo apuntaba a los 4 px del umbral, y el umbral no significa «se fue»
+       sino «ya se puede mirar hacia dónde»: quien decide si el movimiento
+       cuenta es tocaPintar, y ése pide 10 px porque por debajo un dedo no dice
+       dirección. O sea que un dedo sostenido con el temblor normal de una mano
+       —entre 4 y 9 px— quedaba en tierra de nadie: marcado como ido, así que
+       el reloj del sostenido se negaba a pintar, y a la vez demasiado quieto
+       para que el arrastre pintara. Soltabas y no había pasado nada.
+       Medido: seis micromovimientos de 5 y 6 px y el trazo no aparecía.
+       Lo levantó Codex revisando esta PR. Va contra la MISMA cifra que usa
+       tocaPintar, que es la que de verdad significa que el dedo viaja.
+
+       Y se mide desde donde bajó el dedo, no del cuadro anterior: un temblor
+       es ir y venir alrededor de un punto, y sumando pasitos cualquier mano
+       acaba «yéndose» sin haberse movido de sitio. */
+    if (Math.hypot(ev.clientX - gesto.x, ev.clientY - gesto.y) >= PINTADO_RUIDO)
+      gesto.lejos = true;
     if (!gesto.pinto &&
         Math.hypot(ev.clientX - gesto.x, ev.clientY - gesto.y) < PINTADO_UMBRAL) return;
-    /* Se apunta ANTES de repartir: el reloj del toque sostenido lo mira para
-       no encenderse debajo de un dedo que ya se fue. */
-    gesto.lejos = true;
     if (!tocaPintar(ev)) return;
     const p = puntoA(ev.clientX, ev.clientY);
     /* Sin punto no hay nada que decir: el dedo está sobre un hueco, un
@@ -11367,6 +11383,19 @@ function finSuave(){
     papel.style.removeProperty('transition');   /* por si se quedó apagada al asentar */
     papel.style.removeProperty('display');
   }
+  /* Y LOS TIRADORES SE VUELVEN A PONER AQUÍ, que es donde el viaje se acaba.
+
+     La guarda de zoomActivo que hay en colocarTiradores no basta por sí sola:
+     solo hace algo si alguien la llama, y ni abrirZoom ni cerrarZoom la
+     llamaban. Medido con una palabra pintada: al entrar de lejos las bolitas
+     se quedaban en 103,186 —su sitio de tamaño normal, sobre una hoja que ya
+     estaba a escala—, y al volver seguían igual hasta que un desplazamiento o
+     un giro las movía de casualidad. Lo levantó Codex revisando esta PR.
+
+     Va en finSuave y no en las dos puntas porque aquí es donde la hoja ha
+     terminado de moverse: llamándolo al empezar, las bolitas se colocarían
+     sobre la geometría de la mitad del viaje, que no es la de ningún sitio. */
+  colocarTiradores();
 }
 function armarSuave(){
   clearTimeout(relojSuave);
@@ -11388,6 +11417,9 @@ function abrirZoom(){
   finSuave();
   const papel = $('zoomPapel');
   zoomActivo = true;
+  /* Se esconden EN EL ACTO, sin esperar a que acabe el viaje: una bolita de
+     tamaño normal paseando por encima de una hoja que se encoge se ve. */
+  colocarTiradores();
   pintarG();
   /* EL ORDEN DE ESTAS SEIS LÍNEAS ES EL CAMBIO, y costó medirlo para verlo.
      armarSuave iba al final, después de medirZoom, y de las tres cosas que

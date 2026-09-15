@@ -2182,6 +2182,103 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     vale('y los tiradores se van con el trazo', guardada.tiradores === true);
   }
 
+  /* LOS DOS QUE LEVANTÓ CODEX, y los dos eran de verdad.
+
+     El primero es el que más enseña: una mano no se está quieta. El «se fue»
+     del dedo se apuntaba a los PINTADO_UMBRAL (4 px) y quien decide si el
+     movimiento cuenta es tocaPintar, que pide PINTADO_RUIDO (10). Entre las
+     dos cifras había tierra de nadie: un dedo con el temblor normal quedaba
+     marcado como ido —así que el reloj del sostenido se negaba— y demasiado
+     quieto para que el arrastre pintara. Soltabas y no había pasado nada, que
+     es el peor de los dos mundos. */
+  /* CON LA HOJA LIMPIA OTRA VEZ: el bloque de arriba dejó una marca guardada
+     justo encima de esa palabra, y sobre una marca hecha el dedo la ABRE en
+     vez de pintar. Sin esto, lo que se estaría midiendo es el otro camino. */
+  await p.evaluate(() => localStorage.removeItem('glossa:marcas:v1'));
+  await p.reload();
+  await listo(p);
+  const tembloroso = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const pgBody = document.getElementById('pgBody');
+    const trazo = () => {
+      const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+      if (h){ const g = [...h][0]; return g ? g.toString() : ''; }
+      const e = document.querySelector('#pgBody .pintando');
+      return e ? e.textContent : '';
+    };
+    const v = document.querySelector('#pgBody .v');
+    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 40){ n = w.currentNode; break; }
+    if (!n) return { sinTexto:true };
+    const pal = (n.data.match(/[\p{L}\p{N}]{6,}/u) || [])[0];
+    if (!pal) return { sinTexto:true };
+    const i = n.data.indexOf(pal);
+    const r = document.createRange(); r.setStart(n, i + 2); r.setEnd(n, i + 3);
+    const c = r.getBoundingClientRect();
+    const x = Math.round(c.left + c.width/2), y = Math.round(c.top + c.height/2);
+    const op = (px, py) => ({ bubbles:true, cancelable:true, pointerId:94,
+                              pointerType:'touch', isPrimary:true, clientX:px, clientY:py });
+    pgBody.dispatchEvent(new PointerEvent('pointerdown', op(x, y)));
+    /* EL TEMBLOR: idas y venidas de 5 y 6 px alrededor del punto, ninguna de
+       10. Y alrededor, no en fila: un temblor vuelve, y sumando pasitos en
+       línea recta cualquier mano acabaría «yéndose» sin moverse de sitio. */
+    for (let j = 0; j < 6; j++){
+      pgBody.dispatchEvent(new PointerEvent('pointermove',
+        op(x + (j % 2 ? 5 : -6), y + (j % 3 ? 3 : -4))));
+      await pausa(40);
+    }
+    await pausa(350);
+    const pintado = trazo();
+    pgBody.dispatchEvent(new PointerEvent('pointerup', op(x, y)));
+    await pausa(250);
+    return { pal, pintado };
+  });
+  di('el dedo que tiembla', tembloroso);
+  if (!tembloroso.sinTexto){
+    vale('un dedo con temblor normal SIGUE encendiendo la palabra',
+         tembloroso.pintado === tembloroso.pal,
+         '«' + tembloroso.pintado + '» contra «' + tembloroso.pal + '»');
+  }
+
+  /* El segundo: la guarda que esconde los tiradores de lejos solo hace algo si
+     alguien la llama, y entrar o salir del zoom no la llamaba. Se quedaban las
+     bolitas de tamaño normal encima de una hoja a escala. */
+  const conZoom = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const caja = () => {
+      const t = document.querySelector('[data-tirador="ini"]');
+      if (!t || document.getElementById('tiradores').hidden) return 'ocultos';
+      const b = t.getBoundingClientRect();
+      return [b.left, b.top].map(Math.round).join(',');
+    };
+    /* SE PULSA HASTA QUE DE VERDAD ESTÁ DE LEJOS, no una vez y a fe: medido,
+       el primer clic con un trazo puesto no abre el zoom, y medir entonces
+       sería mirar la vista normal llamándola zoom. */
+    const zoom = () => document.getElementById('btnZoom').classList.contains('abierto');
+    const antes = caja();
+    if (antes === 'ocultos') return { sinTrazo:true };
+    for (let j = 0; j < 3 && !zoom(); j++){
+      document.getElementById('btnZoom').click();
+      await pausa(1800);
+    }
+    const enZoom = caja(), llego = zoom();
+    for (let j = 0; j < 3 && zoom(); j++){
+      document.getElementById('btnZoom').click();
+      await pausa(1800);
+    }
+    return { antes, enZoom, llego, tras: caja(), sigueDeLejos: zoom() };
+  });
+  di('los tiradores y la vista de lejos', conZoom);
+  if (!conZoom.sinTrazo){
+    vale('PREMISA: se llegó a la vista de lejos y se volvió',
+         conZoom.llego === true && conZoom.sigueDeLejos === false, conZoom);
+    vale('de lejos los tiradores no se dibujan', conZoom.enZoom === 'ocultos',
+         conZoom.enZoom);
+    vale('y al volver están otra vez donde el trazo',
+         conZoom.tras !== 'ocultos' && conZoom.tras === conZoom.antes,
+         conZoom.antes + ' → ' + conZoom.tras);
+  }
+
   /* ================================================================
      Y AHORA CON EL DEDO DE VERDAD, que es la regla 4 del README y aquí no es
      una formalidad: sostener es justo el gesto que una plataforma se queda
