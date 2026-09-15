@@ -247,16 +247,29 @@ window.__tocarLoPintado = async (donde) => {
   const el = document.elementFromPoint(donde.x, donde.y);
   const despues = trazo();
   const menu = document.getElementById('menu');
+  const quien = el ? (el.tagName + (el.id ? '#' + el.id : '') +
+                      (el.className ? '.' + String(el.className).split(' ')[0] : '')) : 'nada';
+  /* LA AUTOPSIA EN UNA FRASE, no en un JSON al final.
+
+     Iba como objeto pegado detras del mensaje, y quien resume la tanda lo
+     recorto las dos veces que hizo falta: llegaba «se pinto, pero el toque no
+     abrio la caja» a secas, que es justo lo que ya no servia. Dicho en
+     palabras y al principio, no hay nada que podar. */
   window.__pincelAutopsia = {
-    toque: donde.x + ',' + donde.y,
-    trazoAntes: habia,
-    elToqueCaiaDentro: caia,
-    trazoDespues: despues ? despues.toString().length : 0,
-    debajo: el ? (el.tagName + (el.id ? '#' + el.id : '') +
-                  (el.className ? '.' + String(el.className).split(' ')[0] : '')) : 'nada',
+    toque: donde.x + ',' + donde.y, trazoAntes: habia, elToqueCaiaDentro: caia,
+    trazoDespues: despues ? despues.toString().length : 0, debajo: quien,
     panel: menu ? getComputedStyle(menu).display : 'sin menu',
     capas: window.__capasAbiertas()
   };
+  window.__pincelFrase =
+    (caia === false ? 'el toque cayo FUERA del trazo' :
+     habia === 0 ? 'no quedaba trazo que tocar' :
+     'el toque cayo dentro del trazo y aun asi no abrio') +
+    '; debajo habia ' + quien +
+    '; el trazo tenia ' + habia + ' letras antes y ' +
+    (despues ? despues.toString().length : 0) + ' despues' +
+    '; el panel esta ' + (menu ? getComputedStyle(menu).display : '?') +
+    (window.__capasAbiertas().length ? '; capas abiertas: ' + window.__capasAbiertas().join(',') : '');
   return false;
 };
 /* El atajo de siempre: el primer nodo de texto largo de un versiculo. */
@@ -357,8 +370,7 @@ window.__glosarEn = async (v, ini, fin) => {
     return false;
   }
   const abrio = await window.__tocarLoPintado(donde);
-  if (!abrio) window.__pincelPorque = 'se pintó, pero el toque no abrió la caja · ' +
-    JSON.stringify(window.__pincelAutopsia || {});
+  if (!abrio) window.__pincelPorque = 'se pintó y ' + (window.__pincelFrase || 'el toque no abrió la caja');
   return abrio;
 };`;
 

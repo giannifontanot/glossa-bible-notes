@@ -21,8 +21,20 @@ const { abrir, otraPagina, listo, cerrar, cerrarParcial, conGlosas, di, vale, ti
    pasaje lleva user-select:none desde que se glosa pintando—; el pincel lo
    pone el andamio, ver PINCEL en comun.js. */
 const ABRIR = `async (desde = 0, hasta = 15) => {
-  const v = document.querySelector('#pgBody .v');
-  return (await window.__glosarEn(v, desde, hasta)) || null;
+  /* SE BUSCA SITIO, no se pide siempre el mismo. Este fichero llama aqui
+     decenas de veces con tramos fijos del PRIMER versiculo, y cada llamada
+     deja una marca: al rato el tramo pedido ya esta marcado, y sobre una marca
+     hecha el dedo no pinta —la abre—. Cuando ademas el panel de esa marca
+     queda por medio, no se abre caja ninguna y el bloque de arriba revienta
+     con «Cannot set properties of null». Se corre el tramo por el versiculo y
+     se pasa al siguiente cuando no cabe, igual que en etiquetas. */
+  const ancho = hasta - desde;
+  for (const v of [...document.querySelectorAll('#pgBody .v')]){
+    for (let d = 0; d < 400; d += ancho + 4){
+      if (await window.__glosarEn(v, desde + d, hasta + d)) return true;
+    }
+  }
+  return null;
 }`;
 /* Tocar fuera: el gesto que cobra lo escrito y cierra. */
 const FUERA = `async () => {
