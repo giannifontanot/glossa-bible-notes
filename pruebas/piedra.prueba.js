@@ -188,16 +188,32 @@ async function andamio(p){
                cabe: r.top >= st.top - 1 && r.bottom <= st.bottom + 1 &&
                      r.left >= st.left - 1 && r.right <= st.right + 1 };
     };
-    /* Pasar hoja por el filo, que es como se pasa de verdad. */
+    /* Pasar hoja por el filo, que es como se pasa de verdad.
+
+       Y SE ESPERA A QUE LA HOJA CAMBIE, no un plazo fijo. Esperaba 1800 ms y
+       leía; en una máquina cargada eso no alcanza, y entonces lo que se lee es
+       la hoja de ANTES. Salió así en una tanda: «el filo sigue pasando hoja»
+       en rojo con antes y traPasar iguales, y la vuelta trayendo el resultado
+       del primer pase —o sea, la lectura entera corrida un paso—. Aquí no se
+       reprodujo en seis intentos seguidos, que es justamente la señal: lo que
+       fallaba era el reloj, no el filo.
+
+       El tope está para el caso legítimo en que la hoja NO cambia —pasar hacia
+       atrás desde la primera—; ahí se espera el tope y se sigue. */
     window.__pasar = async (lado) => {
       const e = document.getElementById(lado === 'left' ? 'edgeL' : 'edgeR');
       const r = e.getBoundingClientRect();
       const op = { bubbles:true, pointerId: ++window.__pid, pointerType:'touch',
                    isPrimary:true, clientX: r.left + r.width/2, clientY: 420 };
+      const antes = window.__estado;
       e.dispatchEvent(new PointerEvent('pointerdown', op));
       await window.__pausa(60);
       e.dispatchEvent(new PointerEvent('pointerup', op));
-      await window.__pausa(1800);
+      const hasta = performance.now() + 4000;
+      while (window.__estado === antes && performance.now() < hasta)
+        await window.__pausa(50);
+      /* y un respiro para que el vuelo de la hoja acabe de asentarse */
+      await window.__pausa(400);
     };
   });
 }
