@@ -1969,8 +1969,20 @@
     .separador.saliendo{ opacity:0; }
     /* El desplazamiento del teclado SÍ se queda: no es adorno, es lo único
        que deja ver lo que se está escribiendo. Lo que se quita es el
-       recorrido de entrada. */
-    #sepMenu{ transform:translateY(var(--sube, 0px)) !important; }
+       recorrido de entrada.
+
+       Y SE QUITA TAMBIÉN LA TRANSICIÓN DE `transform`, QUE ANTES SE QUEDABA.
+       Se fijaba el destino con !important y se daba por hecho que así no
+       viajaba nada: mientras nadie escriba otro transform, es verdad. Pero la
+       transición seguía declarada —.28s— y basta con que algo ponga un
+       transform distinto para que el recorrido vuelva, justo en el modo donde
+       no se quiere. Se corta en el CSS, que es donde se declara, en vez de
+       confiar en que nadie lo toque.
+       El desvanecido de opacidad se queda a propósito: la preferencia es de
+       MOVIMIENTO, y un fundido no se mueve; quitarlo haría aparecer el menú de
+       golpe sin ganar nada. */
+    #sepMenu{ transform:translateY(var(--sube, 0px)) !important;
+              transition:opacity .2s ease !important; }
     #sepOferta{ transform:translateX(-50%) !important; }
     .sp-borrar{ transform:none !important; }
   }
@@ -14575,14 +14587,59 @@ function crearSeparador(){
   pintarSeparador();
   return s;
 }
-/* La cinta activa sigue al lector hoja a hoja —hacia adelante y hacia
-   atrás—, y solo ella: las demás se quedan donde las dejaron. Mover es
-   mover la referencia, no crear otra. */
+/* La cinta activa sigue al lector hoja a hoja, y solo ella: las demás se
+   quedan donde las dejaron. Mover es mover la referencia, no crear otra.
+
+   PERO SOLO HACIA ADELANTE, Y ESTO ES LO QUE MÁS IMPORTA DE AQUÍ.
+
+   Seguía al lector en los dos sentidos, y eso convierte la cinta en otra cosa.
+   Una cinta marca hasta dónde llegaste; volver una hoja a releer un versículo
+   no deshace lo leído, y sin embargo arrastraba la marca contigo. El lector
+   retrocedía tres hojas para comprobar un nombre, volvía adelante, y su cinta
+   se había quedado tres hojas atrás sin que él hubiera tocado nada. Una marca
+   que se mueve sola hacia atrás no es una marca: es un segundo cursor que va
+   por libre.
+
+   SE COMPARA EL SITIO, no el sentido del gesto, y la diferencia importa:
+   bastaba con no llamar aquí al retroceder, pero eso deja un agujero. Saltas
+   desde el índice a la hoja 3 con la cinta en la 40 y pasas UNA hoja hacia
+   adelante: el gesto es hacia adelante y la cinta se iría a la 4, o sea
+   treinta y seis hojas hacia atrás. Preguntando por dónde queda cada una, ese
+   caso se cierra solo y no hay que acordarse de él. */
+/* EL ORDEN ES EL DEL CANON, NO EL DE D.libros, y esto no es lo mismo aunque
+   hoy coincidan. D.libros lo arma el generador recorriendo las versiones y
+   añadiendo cada libro la primera vez que aparece —ver ebible-a-glossa.py,
+   orden_libros.append—, así que un libro que la primera versión no traiga se
+   cuela detrás de Apocalipsis. Con esa lista, la cinta podía dar por anterior
+   un libro que va después: o se movía hacia atrás cruzando de libro, o se
+   negaba a avanzar. CANON es el orden de verdad y es el que ya gobierna la
+   navegación entre libros —ver libroVecino—, así que las dos cosas que se
+   preguntan «¿qué va antes?» contestan por el mismo sitio.
+   Lo levantó la revisión de Codex. */
+function sepOrdenLibro(id){
+  const i = CANON.findIndex(b => b.id === id);
+  /* Un libro que no está en el canon no arrastra la cinta a ninguna parte. */
+  return i < 0 ? Infinity : i;
+}
+function cintaSeQuedaDetras(s, p){
+  const a = sepOrdenLibro(s.libro), b = sepOrdenLibro(p.libro);
+  if (a !== b) return a < b;
+  /* Mismo libro: se comparan por su sitio en el plano, que es el orden en que
+     se lee. sepK devuelve dónde cae la cinta; paginas[paginaActual], dónde
+     empieza la hoja de ahora. */
+  const k = sepK(s);
+  /* Y si la cinta apunta a algo que este libro ya no tiene —otra versión con
+     otro reparto de versículos—, seguir al lector es mejor que congelarla en
+     un sitio que no existe. */
+  if (k < 0) return true;
+  return k < (paginas[paginaActual] || 0);
+}
 function avanzarSeparador(){
   const s = sepDe(sepActivo);
   if (!s) return;
   const p = puntoActual();
   if (s.libro === p.libro && s.cap === p.ref.cap && s.vers === p.ref.vers) return;
+  if (!cintaSeQuedaDetras(s, p)) return;
   s.libro = p.libro; s.cap = p.ref.cap; s.vers = p.ref.vers; s.tocado = Date.now();
   sepGuardar();
 }
@@ -14642,8 +14699,11 @@ function sepLlegada(){
   const salto = sepSalto; sepSalto = false;
   /* Adelante: hoja siguiente del mismo libro, o primera hoja del libro
      siguiente al cruzar leyendo. Atrás: hoja anterior del mismo libro.
-     En los dos casos la cinta ACTIVA sigue al lector; un salto (índice,
-     glosa, paso atrás del rastro) no. */
+     Los dos cuentan como pasar hoja —la cinta de la hoja nueva entra suave en
+     los dos casos, y la que el lector traía se adopta igual—, pero MOVER la
+     cinta activa solo pasa hacia adelante: de eso se encarga avanzarSeparador,
+     que mira dónde queda cada una en vez de fiarse del sentido del gesto. Un
+     salto (índice, glosa, paso atrás del rastro) no mueve nada. */
   const adelante = !salto && !!ant &&
                   ((sitio.libro === ant.libro && sitio.n === ant.n + 1) ||
                    (sitio.libro !== ant.libro && sitio.n === 0));
