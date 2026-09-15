@@ -3985,7 +3985,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-SEP-26 13:06';
+window.GLOSS_BUILD = '15-SEP-26 16:36';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8854,10 +8854,15 @@ function colocarTiradores(){
     clearTimeout(gesto.reloj);
     gesto = null;
     if (!pinto) return;
-    /* El clic que viene detrás del arrastre se tira: si llegara, el toque
+    /* El clic que viene detrás del gesto se tira: si llegara, el toque
        abriría la glosa en el mismo gesto con el que se pintó, y el segundo
-       tiempo —tocar encima— dejaría de existir. */
-    tragarElClic();
+       tiempo —tocar encima— dejaría de existir.
+
+       Y SE TIRA SOLO EL DE AQUÍ, por el punto: ver tragarElClic. Este camino
+       es el que más lo necesita desde que el dedo sostenido pinta, porque
+       ahora lo arma cualquier toque largo sobre el texto y no solo un
+       arrastre. */
+    tragarElClic(ev && ev.clientX != null ? { x: ev.clientX, y: ev.clientY } : null);
     /* Y EL PROPIO SOLTAR TAMPOCO ES UN TOQUE, que es más sutil y fue lo que
        pasó: el oyente de pointerup que abre la glosa es OTRO, y ese no sabe si
        el dedo venía arrastrando. Al levantarlo dentro de lo recién pintado
@@ -9035,14 +9040,34 @@ menu.addEventListener('click', ev => {
    · al empezar OTRO toque, que ese ya es de quien lo dé;
    · y por tiempo, para el toque que nunca llega a clic —arrastrar para
      seleccionar, o desplazar la hoja—. */
-function tragarElClic(){
+/* Y SE PUEDE PEDIR QUE SOLO SE TRAGUE EL CLIC DE ESTE GESTO, pasándole el
+   punto donde se levantó el dedo. Sin eso se come el PRIMERO que pase, y ahí
+   hay dos clics que no son del gesto y que no traen dedo delante —o sea que
+   el «se suelta al empezar otro toque» no los libra—:
+
+   · el de una tecla. Quien navega con el teclado pulsa Intro sobre un botón y
+     eso es un click sin pointerdown: dentro de los 700 ms se lo comía éste.
+   · y el de un guion, que es como salió. Desde que el dedo sostenido pinta,
+     CUALQUIER toque largo sobre el texto arma el tragador; la prueba del
+     cajón se queda 340 ms sobre la hoja y justo después pulsa la G con
+     b.click(), y el cajón no se abría. Seis aserciones en rojo por un clic
+     que se comió el gesto de antes.
+
+   El clic de un dedo cae donde cayó el dedo, así que con el punto se
+   distingue: lo que está lejos es de otro y se deja pasar. */
+function tragarElClic(cerca){
   let t;
   const soltar = () => {
     document.removeEventListener('click', tragar, true);
     document.removeEventListener('pointerdown', soltar, true);
     clearTimeout(t);
   };
-  const tragar = ev => { ev.stopPropagation(); ev.preventDefault(); soltar(); };
+  const tragar = ev => {
+    if (cerca && Math.hypot(ev.clientX - cerca.x, ev.clientY - cerca.y) > 24){
+      soltar(); return;                       /* no es el nuestro: que pase */
+    }
+    ev.stopPropagation(); ev.preventDefault(); soltar();
+  };
   document.addEventListener('click', tragar, true);
   document.addEventListener('pointerdown', soltar, true);
   t = setTimeout(soltar, 700);

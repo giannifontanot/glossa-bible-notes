@@ -1846,10 +1846,22 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     /* Y ahora se cierra tocando fuera, filmando cuadro a cuadro cómo se va. */
     const cuadros = [];
     const t0 = performance.now();
+    /* SE FILMA HASTA QUE EL PANEL SE VA, no durante un plazo fijo.
+
+       Iba a 700 ms, y eso da por hecho que la cámara corre a su velocidad: en
+       una máquina cargada la película salió de CINCO cuadros en esos 700 ms
+       —«1 1 0.99 0.96 0.92»— y la aserción del final leyó ese 0.92 como un
+       fundido que no bajaba. No era eso: era una cámara a siete cuadros por
+       segundo. Aquí, con la máquina libre, el mismo bloque da dieciocho
+       cuadros y llega a 0.
+       Filmando hasta que el panel se va, lo que se mide es el fundido y no el
+       reloj de quien mira. El tope de 2500 ms está para que un panel que NO se
+       fuera no colgara la prueba; que no se vaya ya lo dice seFue. */
     const peli = (async () => {
-      while (performance.now() - t0 < 700){
+      while (performance.now() - t0 < 2500){
         const cs = getComputedStyle(m);
-        if (cs.display !== 'none') cuadros.push(+(+cs.opacity).toFixed(2));
+        if (cs.display === 'none') break;
+        cuadros.push(+(+cs.opacity).toFixed(2));
         await new Promise(z => requestAnimationFrame(z));
       }
     })();
@@ -2106,13 +2118,11 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       const e = document.querySelector('#pgBody .pintando');
       return e ? e.textContent : '';
     };
-    const hoja = () => Math.round(document.getElementById('pg').scrollLeft);
-    /* EL CONTROL PRIMERO, que después el tirador está enfocado. */
-    const hojaAntes = hoja();
-    document.body.focus();
-    document.dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowRight', bubbles:true }));
-    await pausa(700);
-    const hojaSuelta = hoja();
+    /* LA HOJA SE MIDE POR EL VERSÍCULO QUE SE VE, no por pg.scrollLeft.
+       scrollLeft es el CAJÓN de las glosas; pasar hoja no lo mueve, así que el
+       control decía «0 → 0» y llamaba a eso «no pasó hoja» tanto si pasaba
+       como si no. Un control que no distingue es peor que no tenerlo. */
+    const hoja = () => document.querySelector('#pgBody .v').dataset.k;
     const t = document.querySelector('#tiradores .tirador[data-tirador="fin"]');
     if (!t) return { sinTirador:true };
     const antes = trazo(), hoja0 = hoja();
@@ -2123,9 +2133,17 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     const corto = trazo();
     t.dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowRight', bubbles:true }));
     await pausa(250);
-    return { hojaAntes, hojaSuelta, antes, corto, vuelta: trazo(),
+    const vuelta = trazo(), hojaConTirador = hoja();
+    /* Y EL CONTROL AL FINAL, que es destructivo: pasar hoja se lleva el trazo
+       por delante —la hoja se repinta y lo pintado no sobrevive—, así que
+       hacerlo primero dejaba sin trazo todo lo de arriba. */
+    const hojaAntes = hoja();
+    document.body.focus();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowRight', bubbles:true }));
+    await pausa(900);
+    return { hojaAntes, hojaSuelta: hoja(), antes, corto, vuelta,
              enfocado, nombre: t.getAttribute('aria-label'),
-             hoja0, hoja: hoja() };
+             hoja0, hoja: hojaConTirador };
   });
   di('con las flechas', teclas);
   if (!teclas.sinTirador){
