@@ -3884,7 +3884,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '14-SEP-26 14:59';
+window.GLOSS_BUILD = '14-SEP-26 19:30';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8172,14 +8172,39 @@ function pintarLoPintado(){
         Math.hypot(ev.clientX - gesto.x, ev.clientY - gesto.y) < PINTADO_UMBRAL) return;
     if (!tocaPintar(ev)) return;
     const p = puntoA(ev.clientX, ev.clientY);
-    /* Cruzar de versículo no se puede —lo dice el mensaje de siempre—, así que
-       el trazo se queda en el suyo en vez de saltar a ninguna parte. */
-    if (!p || p.k !== gesto.k) return;
+    /* Sin punto no hay nada que decir: el dedo está sobre un hueco, un
+       titulillo o el margen. Eso no es cruzar, es no señalar. */
+    if (!p) return;
     const it = plano[gesto.k]; if (!it) return;
+    const texto = versoTexto(version, it.cap, it.vers);
+    /* CRUZAR DE VERSÍCULO: LA PINTURA SE PARA EN EL FILO, Y SE DICE.
+
+       Decía «lo dice el mensaje de siempre» y era mentira: el mensaje vivía en
+       el camino de la selección, y pintando no lo decía nadie. El dedo seguía
+       andando y la pintura se quedaba clavada sin explicar por qué, que es
+       exactamente el caso para el que ese aviso existe —el único de los
+       veintitrés que sobrevivió a la poda, porque dice algo que no se ve solo—.
+
+       Dos decisiones dentro de esto. La primera: se pinta HASTA EL FILO en vez
+       de dejar el trazo donde estuviera. Un dedo que se pasa de largo quería
+       todo el versículo, y quedarse a medias donde cayó el último cuadro es
+       arbitrario. La segunda: el aviso sale UNA VEZ POR GESTO, no por cada
+       cuadro. Pintando se cruza a cada rato y el pointermove llega decenas de
+       veces por segundo; el cartel dura nueve segundos y dispararlo en cada uno
+       lo dejaría pegado a la pantalla mientras el dedo se mueva. Una vez por
+       gesto es lo que hacía antes el camino de la selección: un aviso por
+       intento. */
+    let hasta = p.off;
+    if (p.k !== gesto.k){
+      hasta = p.k > gesto.k ? texto.length : 0;
+      if (!gesto.aviso){
+        gesto.aviso = true;
+        readout.textContent = 'por ahora una marca no puede cruzar de versículo';
+      }
+    }
     gesto.pinto = true;
     ev.preventDefault();
-    const texto = versoTexto(version, it.cap, it.vers);
-    const a = Math.min(gesto.off, p.off), b = Math.max(gesto.off, p.off);
+    const a = Math.min(gesto.off, hasta), b = Math.max(gesto.off, hasta);
     const r = aPalabrasEnteras(texto, a, b);
     if (pintado && pintado.k === gesto.k && pintado.ini === r.ini && pintado.fin === r.fin) return;
     pintado = { k: gesto.k, ini: r.ini, fin: r.fin };
