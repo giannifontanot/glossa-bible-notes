@@ -500,14 +500,24 @@ async function ponerAMano(p){
      que después de cada vuelta haya UNA cinta, visible, y ninguna atrapada en
      el estado de espera o de salida. */
   const vaiven = await p.evaluate(async () => {
+    const base = window.__guardadas().length;   /* lo que ya había de antes */
     await window.__toque('#btnHistorial');
     await window.__pausa(450);
     await window.__nuevaCinta();
     await window.__pausa(900);
     /* LA CINTA QUE SE VA A SEGUIR, por su id y no por «la que cuelgue».
-       crearSeparador hace unshift, así que la de esta lectura es la primera de
-       la lista; y medido, pedir «nueva» con una ya puesta NO añade otra, la
-       mueve. O sea que aquí hay una sola cinta y la primera es ella. */
+       Vale tanto si el botón creó una como si movió la que ya había:
+       crearSeparador hace unshift, así que la de esta lectura es en los dos
+       casos la primera de la lista.
+
+       Y HACE FALTA QUE VALGA PARA LOS DOS, porque pasan los dos. Midiendo esto
+       a solas vi que pedir «nueva» no añadía otra sino que movía la existente,
+       y lo escribí aquí como si fuera la regla; la tanda completa devolvió
+       «1 → 2», o sea que sí la añadió. La diferencia está en dónde esté la
+       cinta: en mi medida venía siguiéndome y estaba siempre en la hoja
+       actual, y ahí el botón la mueve en vez de duplicarla. Una medida de un
+       caso no es una regla, y por eso esto ya no depende de cuál de los dos
+       ocurra. */
     const mia = window.__guardadas()[0] && window.__guardadas()[0].id;
     const sitio = () => { const c = window.__guardadas().find(x => x.id === mia);
                           return c ? { libro:c.libro, cap:c.cap, vers:c.vers } : null; };
@@ -522,7 +532,7 @@ async function ponerAMano(p){
       pasos.push({ ...window.__cintaEstado(), lado: lados[i], sitio: sitio() });
     }
     await window.__pausa(1600);
-    return { mia, puesta, pasos, sitioFinal: sitio(),
+    return { base, mia, puesta, pasos, sitioFinal: sitio(),
              final: window.__cintaEstado(), guardadas: window.__guardadas().length };
   });
   di('al ponerla', vaiven.puesta);
@@ -591,6 +601,15 @@ async function ponerAMano(p){
        !vaiven.final.esperando && !vaiven.final.saliendo, vaiven.final);
   vale('y se ve al terminar', vaiven.final.hay && vaiven.final.opacidad === 1 &&
        vaiven.final.ancho > 8, vaiven.final.opacidad + ' de opacidad');
+  /* ESTA DA POR HECHO QUE EL BOTÓN CREA UNA, y no siempre lo hace: si la cinta
+     ya está en la hoja donde estás, lo que hace es moverla, y entonces el
+     almacén se queda igual y esto cantaría un fallo que no existe. Hoy pasa
+     porque al llegar aquí la cinta viene de otra hoja —medido en la tanda,
+     1 → 2—, o sea que depende del sitio en que la dejaran los bloques de
+     antes, igual que dependía la aserción de más arriba que por eso se
+     reescribió. Se deja como está porque es anterior a esta rama, pasa, y
+     cambiarla sería ensanchar el cambio por mi cuenta; queda escrito para que
+     el día que se caiga no cueste otra tarde entender por qué. */
   vale('sin duplicarse en el almacén', vaiven.guardadas === vaiven.base + 1,
        vaiven.base + ' → ' + vaiven.guardadas);
 
