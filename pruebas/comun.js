@@ -216,7 +216,40 @@ window.__pintarEn = async (v, ini, fin) => {
   }
   return window.__pintarGlosa(n, ini, fin);
 };
+/* DESPEJAR LA HOJA ANTES DE GLOSAR, y hace falta desde esta rama.
+
+   Con la seleccion, el panel se abria en UN gesto: se soltaba el dedo sobre
+   lo apuntado y ya. Pintando son DOS —se pinta, y luego se toca encima para
+   confirmar—, y ese segundo toque choca con cualquier capa que hubiera
+   quedado abierta: la ventanita del versiculo se lo come para cerrarse, que
+   es lo que tiene que hacer una capa, y el panel no llega a abrirse. El
+   programa se porta bien; lo que cambio es que ahora hace falta un gesto mas,
+   y un bloque que dejaba la ventanita puesta ya no puede glosar detras.
+
+   Medido: con la ventanita abierta, el pincel pinta y el toque no abre nada;
+   con un Escape antes, abre. Eso valio diecinueve aserciones de navegar en la
+   primera tanda de la rama.
+
+   Es lo mismo que haria un lector: cerrar lo que tiene delante antes de
+   marcar. No toca nada del programa.
+
+   Y NO LO HACE EN SILENCIO, que era el peligro de meterlo aqui: un andamio
+   que cierra capas por su cuenta puede tapar el dia en que una capa aparezca
+   donde no debe. Solo pulsa si de verdad hay algo abierto, y deja apuntado
+   que lo pulso en window.__pincelDespejo, para que quien sospeche lo pueda
+   mirar. */
+window.__capasAbiertas = () => ['versoPleno', 'sepMenu', 'sepOferta', 'escenas']
+  .filter(id => { const e = document.getElementById(id);
+                  return e && e.classList.contains('visible'); });
+window.__despejar = async () => {
+  const habia = window.__capasAbiertas();
+  if (!habia.length) return habia;
+  document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+  await new Promise(z => setTimeout(z, 260));
+  return habia;
+};
 window.__glosarEn = async (v, ini, fin) => {
+  window.__pincelDespejo = await window.__despejar();
   const donde = await window.__pintarEn(v, ini, fin);
   if (!donde) return false;
   const abrio = await window.__tocarLoPintado(donde);
