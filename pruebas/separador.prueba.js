@@ -500,11 +500,17 @@ async function ponerAMano(p){
      que después de cada vuelta haya UNA cinta, visible, y ninguna atrapada en
      el estado de espera o de salida. */
   const vaiven = await p.evaluate(async () => {
-    const base = window.__guardadas().length;   /* lo que ya había de antes */
     await window.__toque('#btnHistorial');
     await window.__pausa(450);
     await window.__nuevaCinta();
     await window.__pausa(900);
+    /* LA CINTA QUE SE VA A SEGUIR, por su id y no por «la que cuelgue».
+       crearSeparador hace unshift, así que la de esta lectura es la primera de
+       la lista; y medido, pedir «nueva» con una ya puesta NO añade otra, la
+       mueve. O sea que aquí hay una sola cinta y la primera es ella. */
+    const mia = window.__guardadas()[0] && window.__guardadas()[0].id;
+    const sitio = () => { const c = window.__guardadas().find(x => x.id === mia);
+                          return c ? { libro:c.libro, cap:c.cap, vers:c.vers } : null; };
     const puesta = window.__cintaEstado();
     const pasos = [];
     /* Ocho vueltas, y las últimas atropelladas: encimar el pliegue con la
@@ -513,11 +519,11 @@ async function ponerAMano(p){
     for (let i = 0; i < lados.length; i++){
       await window.__pasar(lados[i]);
       if (i >= 5) await window.__pausa(120); else await window.__pausa(500);
-      pasos.push(window.__cintaEstado());
+      pasos.push({ ...window.__cintaEstado(), lado: lados[i], sitio: sitio() });
     }
     await window.__pausa(1600);
-    return { base, puesta, pasos, final: window.__cintaEstado(),
-             guardadas: window.__guardadas().length };
+    return { mia, puesta, pasos, sitioFinal: sitio(),
+             final: window.__cintaEstado(), guardadas: window.__guardadas().length };
   });
   di('al ponerla', vaiven.puesta);
   di('al final', vaiven.final);
@@ -526,29 +532,59 @@ async function ponerAMano(p){
      anda hacia atrás, retroceder la deja donde estaba y la hoja a la que
      llegas no tiene ninguna. Eso no es que se pierda, es que se queda.
 
-     Así que en vez de «siempre hay» se afirma DÓNDE tiene que haberla, que es
-     más fuerte. Partiendo de la hoja P, el paseo
-     right·right·left·right·left·left·right·right deja la cinta en P+2 en
-     cuanto se llega, y a partir de ahí solo se ve en las vueltas que vuelven
-     a pisar P+2:
+     MI PRIMER ARREGLO FUE PEOR QUE EL FALLO, y conviene que quede escrito. Lo
+     cambié por un dibujo fijo —«se ve en estas vueltas y no en las otras»,
+     ··_·___·— sacado de razonar el paseo sobre el papel. Abriendo la
+     aplicación a solas sale clavado, así que parecía demostrado. Codex midió
+     ·····_·· corriendo la tanda entera, y tenía razón.
 
-       right → P+1  la cinta viene      sí
-       right → P+2  la cinta viene      sí
-       left  → P+1  se queda en P+2     no
-       right → P+2  estamos en la suya  sí
-       left  → P+1                      no
-       left  → P                        no
-       right → P+1  aún por detrás      no
-       right → P+2  estamos en la suya  sí
+     Lo que se midió buscando el porqué: pedir «nueva» con una cinta ya puesta
+     NO añade otra, la mueve a la hoja actual —o sea que aquí hay una sola
+     cinta siempre, y este bloque la trae a donde esté el lector al empezar—.
+     Ese traslado hacia atrás es correcto y no contradice la rama: lo que no
+     anda hacia atrás es el avance AUTOMÁTICO al pasar hoja; pedir una cinta
+     aquí es una orden, no un automatismo.
 
-     Y lo que este bloque vigilaba de verdad —que no se quede atrapada entre
-     animaciones, que nunca haya dos— sigue entero abajo. */
-  const ESPERADO = [true, true, false, true, false, false, false, true];
-  vale('LA CINTA SE VE DONDE TIENE QUE VERSE, Y NO EN LAS DEMÁS',
-       vaiven.pasos.length === ESPERADO.length &&
-       vaiven.pasos.every((x, i) => !!x.hay === ESPERADO[i]),
-       vaiven.pasos.map(x => x.hay ? '·' : '_').join('') + ' contra ' +
-       ESPERADO.map(x => x ? '·' : '_').join(''));
+     Y AQUÍ ESTÁ LO HONESTO: montando las dos situaciones a mano —cinta recién
+     puesta, y cinta traída desde doce hojas más adelante— el dibujo sale
+     ··_·___· en las dos, y no he conseguido reproducir el ·····_·· de la tanda
+     a solas. No sé decir qué lo cambia; lo que sé es que cambia con algo que
+     no es el programa que esta rama toca, porque en aislamiento el mismo
+     código da otro dibujo. Y ésa es precisamente la razón para no afirmarlo:
+     una aserción cuyo valor depende de lo que hicieran los bloques de antes se
+     rompe el día que alguien añada uno, y entonces el rojo no enseña nada.
+
+     Así que se sigue a esa cinta por su id y se afirma de ella lo que esta
+     rama vino a hacer: que no retrocede. Eso vale salga de donde salga, y se
+     ha comprobado verde en las dos situaciones de arriba. */
+  const orden = c => c ? c.cap * 1000 + c.vers : -1;
+  const recorrido = vaiven.pasos.map(x => orden(x.sitio));
+  di('por dónde anduvo la cinta',
+     vaiven.pasos.map(x => x.sitio ? x.sitio.cap + ':' + x.sitio.vers : '—').join('  '));
+  vale('  (y se está siguiendo a una cinta de verdad)', !!vaiven.mia && recorrido[0] > 0,
+       vaiven.mia ? 'id ' + String(vaiven.mia).slice(-4) : 'NO HAY CINTA QUE SEGUIR');
+  vale('LA CINTA NUNCA RETROCEDE EN LAS OCHO VUELTAS',
+       recorrido.every((v, i) => i === 0 || v >= recorrido[i-1]),
+       vaiven.pasos.map(x => x.lado[0]).join('') + ' → ' + recorrido.join(' '));
+  /* NO SE EXIGE QUE AVANZARA, y esa renuncia es deliberada. Dónde esté la
+     cinta al empezar este bloque depende de lo que hicieran los de antes: si
+     ya viene por delante de estas ocho hojas, el paseo entero cae sobre
+     terreno leído y la cinta no se mueve —que es justo lo que debe hacer—. Una
+     aserción de que avanzó volvería a afirmar el orden del fichero. Que la
+     cinta AVANZA cuando toca lo prueba entero el bloque «LA CINTA NO ANDA
+     HACIA ATRÁS», con su sitio de partida controlado; lo de aquí es que
+     ocho pliegues encimados no la hagan retroceder ni perderse.
+     Si se movió o no, se enseña como dato y no como juicio. */
+  di('¿se movió en el paseo?',
+     recorrido[recorrido.length-1] > recorrido[0] ? 'sí, avanzó' : 'no: ya venía por delante');
+  /* Y LA PREMISA DE ESA CUENTA, comprobada en vez de supuesta: cap*1000+vers
+     solo ordena DENTRO de un libro. Ocho hojas desde el principio de Mateo no
+     salen de Mateo, pero si algún día el reparto cambia y el paseo cruza a
+     Marcos, el número de arriba mentiría sin avisar —y diría que la cinta
+     retrocedió cuando lo que pasó es que empezó otro libro—. */
+  const libros = [...new Set(vaiven.pasos.map(x => x.sitio && x.sitio.libro).filter(Boolean))];
+  vale('  (y el paseo no se sale de un libro, que es lo que la cuenta supone)',
+       libros.length === 1, libros.join(', ') || '(ninguno)');
   vale('y nunca hay dos', vaiven.pasos.every(x => x.perchas <= 1) &&
        vaiven.final.perchas === 1);
   vale('no se queda esperando ni saliendo',
@@ -1413,9 +1449,22 @@ async function ponerAMano(p){
   const quieto = await w.evaluate(async () => {
     const cinta = document.querySelector('.separador');
     const menu = document.getElementById('sepMenu');
-    return { cinta: getComputedStyle(cinta).animationName,
-             transicion: getComputedStyle(menu).transitionDuration,
-             sinRecorrido: getComputedStyle(menu).transform };
+    const cs = getComputedStyle(menu);
+    /* Las dos listas van emparejadas y en el mismo orden, así que se juntan
+       para poder preguntar por UNA propiedad en vez de leer un "0.2s, 0.28s"
+       y adivinar cuál es cuál. */
+    const props = (cs.transitionProperty || '').split(',').map(x => x.trim());
+    const dur = (cs.transitionDuration || '').split(',').map(x => x.trim());
+    const cuanto = nombre => {
+      const i = props.indexOf(nombre);
+      return i < 0 ? '0s' : (dur[i] || '0s');
+    };
+    return { cinta: cs && getComputedStyle(cinta).animationName,
+             transicion: cs.transitionDuration,
+             propiedades: cs.transitionProperty,
+             mueve: cuanto('transform'),
+             funde: cuanto('opacity'),
+             sinRecorrido: cs.transform };
   });
   di('con movimiento reducido', quieto);
   vale('la cinta no cae', quieto.cinta === 'none');
@@ -1426,11 +1475,22 @@ async function ponerAMano(p){
      movimiento reducido no la cancela —la preferencia apaga las que EMPIECEN,
      no las que ya van—. Medido en la tanda de Codex: matrix(0.996266, 0, 0,
      0.996266, 0, -0.995727), o sea a cuatro milésimas del final.
-     La duración sí es la afirmación: con la preferencia puesta vale cero, y
-     eso no depende de cuándo se mire. El transform se comprueba además, pero
-     después de dejarle acabar lo que llevara. */
-  vale('y el menú no tiene recorrido que hacer',
-       /^0s(,\s*0s)*$/.test(quieto.transicion || ''), quieto.transicion);
+
+     Y LUEGO PEDÍ QUE LA DURACIÓN ENTERA FUERA CERO, QUE TAMPOCO ERA. Eso
+     afirmaba que bajo movimiento reducido el menú no hace NINGUNA transición,
+     y el programa sí hace una a propósito: el fundido de opacidad. La
+     preferencia es de MOVIMIENTO —un fundido no se mueve—, así que quitarlo
+     haría aparecer el menú de golpe sin ganar nada. Codex midió «0.2s, 0.28s»
+     y tenía razón: el rojo era mío, no del programa.
+     Lo que sí estaba flojo era la otra mitad de ese par: la transición de
+     `transform` seguía declarada y se confiaba en un !important para que no
+     viajara nunca. Eso se ha cortado en el CSS, y es lo que se afirma aquí,
+     por su nombre y no por su sitio en una lista de dos. */
+  di('lo que transiciona', quieto.propiedades);
+  vale('el menú no tiene recorrido que hacer', quieto.mueve === '0s',
+       'transform: ' + quieto.mueve);
+  vale('  y el fundido se queda, que no es movimiento', quieto.funde !== '0s',
+       'opacity: ' + quieto.funde);
   const asentado = await w.evaluate(async () => {
     await new Promise(z => setTimeout(z, 600));
     return getComputedStyle(document.getElementById('sepMenu')).transform;

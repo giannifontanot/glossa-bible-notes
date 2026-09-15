@@ -1958,8 +1958,20 @@
     .separador.saliendo{ opacity:0; }
     /* El desplazamiento del teclado SÍ se queda: no es adorno, es lo único
        que deja ver lo que se está escribiendo. Lo que se quita es el
-       recorrido de entrada. */
-    #sepMenu{ transform:translateY(var(--sube, 0px)) !important; }
+       recorrido de entrada.
+
+       Y SE QUITA TAMBIÉN LA TRANSICIÓN DE `transform`, QUE ANTES SE QUEDABA.
+       Se fijaba el destino con !important y se daba por hecho que así no
+       viajaba nada: mientras nadie escriba otro transform, es verdad. Pero la
+       transición seguía declarada —.28s— y basta con que algo ponga un
+       transform distinto para que el recorrido vuelva, justo en el modo donde
+       no se quiere. Se corta en el CSS, que es donde se declara, en vez de
+       confiar en que nadie lo toque.
+       El desvanecido de opacidad se queda a propósito: la preferencia es de
+       MOVIMIENTO, y un fundido no se mueve; quitarlo haría aparecer el menú de
+       golpe sin ganar nada. */
+    #sepMenu{ transform:translateY(var(--sube, 0px)) !important;
+              transition:opacity .2s ease !important; }
     #sepOferta{ transform:translateX(-50%) !important; }
     .sp-borrar{ transform:none !important; }
   }
@@ -3884,7 +3896,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '14-SEP-26 15:02';
+window.GLOSS_BUILD = '14-SEP-26 19:19';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
