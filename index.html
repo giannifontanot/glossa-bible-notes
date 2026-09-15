@@ -3907,7 +3907,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '14-SEP-26 21:36';
+window.GLOSS_BUILD = '14-SEP-26 21:49';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8207,7 +8207,14 @@ function pintarLoPintado(){
 
   pgBody.addEventListener('pointerdown', ev => {
     gesto = null;
-    if (zoomActivo || ev.button > 0) return;
+    /* Y AQUÍ DECÍA «zoomActivo», que era mío y sobraba. Lo puse por parecido
+       con el arrastre del papel, sin mirar que glosar DE LEJOS es una cosa que
+       ya se hacía y que tiene su prueba —la vista de lejos es para ver la hoja
+       entera y marcar lo que salta a la vista—. Apagando la pintura ahí, ese
+       camino se quedaba sin gesto: la prueba de zoom decía que el panel no
+       salía y llevaba razón. El zoom no estorba a pintar, porque puntoA
+       trabaja en coordenadas de pantalla y la escala ya viene aplicada. */
+    if (ev.button > 0) return;
     if (!sePuedeGlosar(ev.target)) return;
     const p = puntoA(ev.clientX, ev.clientY);
     if (!p) return;

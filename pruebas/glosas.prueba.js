@@ -158,14 +158,32 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        se señaló, sacado de un Range que no se llega a seleccionar —solo se usa
        para leer qué letras caen ahí—, porque lo que este bloque compara es
        justo eso: lo pedido contra lo que quedó guardado. */
-    const marcar = (desde, hasta, nota) => p4.evaluate(async ([d, h, nota]) => {
-      const pausa = ms => new Promise(z => setTimeout(z, ms));
-      let v = null, t = null;
-      for (const cand of document.querySelectorAll('#pgBody .v')){
-        const n = [...cand.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim().length > 60);
-        if (n){ v = cand; t = n; break; }
+    /* CADA CASO EN SU PROPIO VERSÍCULO, y esto es nuevo.
+
+       Los tres pedían el mismo, y con la selección daba igual: señalar encima
+       de una marca creaba otra que se llevaba la de debajo. Pintando no —el
+       dedo sobre una marca hecha la ABRE—, así que el tercer caso caía sobre
+       la marca del primero y no pintaba nada. Pasaba en verde por accidente:
+       se abría aquel panel, se le escribía la nota del tercero, y la cita que
+       leía era la del primero, que resulta que coincidía. El pincel, desde que
+       comprueba que de verdad pintó, lo dice en vez de callárselo.
+
+       Así que cada caso se lleva su versículo y saca de ÉL sus posiciones: son
+       tres comprobaciones independientes y ahora lo son de verdad. */
+    const versoLargo = (i) => {
+      const vs = [...document.querySelectorAll('#pgBody .v')];
+      let n = 0;
+      for (const cand of vs){
+        const t = [...cand.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim().length > 60);
+        if (t){ if (n === i) return { v: cand, t }; n++; }
       }
-      if (!t) return { error:'sin versículo largo' };
+      return null;
+    };
+    const marcar = (desde, hasta, nota, iVerso = 0) => p4.evaluate(async ([d, h, nota, i, fn]) => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      const par = eval('(' + fn + ')')(i);
+      const v = par && par.v, t = par && par.t;
+      if (!t) return { error:'sin versículo largo (' + i + ')' };
       const rg = document.createRange(); rg.setStart(t, d); rg.setEnd(t, h);
       const pedido = rg.toString();
       const donde = await window.__pintarGlosa(t, d, h);
@@ -182,27 +200,25 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       const m = JSON.parse(localStorage.getItem('glossa:marcas:v1')||'[]')
                   .find(x => x.nota === nota) || null;
       return { pedido, verso: t.nodeValue, cita: m && m.cita, ini: m && m.ini, fin: m && m.fin };
-    }, [desde, hasta, nota]);
+    }, [desde, hasta, nota, iVerso, String(versoLargo)]);
 
     /* Los sitios se buscan EN EL TEXTO DE VERDAD, no con números a ojo: un
        índice escrito a mano se descuadra en cuanto cambia una coma, y la
        prueba pasaría midiendo otra cosa. */
-    const sitios = await p4.evaluate(() => {
-      let t = null;
-      for (const cand of document.querySelectorAll('#pgBody .v')){
-        const n = [...cand.childNodes].find(x => x.nodeType === 3 && x.nodeValue.trim().length > 60);
-        if (n){ t = n; break; }
-      }
+    const sitiosDe = (i) => p4.evaluate(([i, fn]) => {
+      const par = eval('(' + fn + ')')(i);
+      const t = par && par.t;
+      if (!t) return null;
       const txt = t.nodeValue;
       const entera = /[\p{L}\p{N}]{3,}/u.exec(txt.slice(10));
-      const par = /([\p{L}\p{N}]{4,})(\s+)([\p{L}\p{N}]+)/u.exec(txt);
+      const par2 = /([\p{L}\p{N}]{4,})(\s+)([\p{L}\p{N}]+)/u.exec(txt);
       return {
         entera: { ini: 10 + entera.index, fin: 10 + entera.index + entera[0].length,
                   palabra: entera[0] },
-        par: { ini: par.index + 2, fin: par.index + par[1].length + par[2].length,
-               primera: par[1], siguiente: par[3] }
+        par: { ini: par2.index + 2, fin: par2.index + par2[1].length + par2[2].length,
+               primera: par2[1], siguiente: par2[3] }
       };
-    });
+    }, [i, String(versoLargo)]);
 
     const bordes = r => {
       if (!r || r.cita == null) return false;
@@ -212,7 +228,23 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       return !dentro.test(antes) && !dentro.test(despues);
     };
 
-    const media = await marcar(4, 12, 'media palabra');
+    const sitios0 = await sitiosDe(0), sitios1 = await sitiosDe(1), sitios2 = await sitiosDe(2);
+    di('los sitios de cada versículo', JSON.stringify(
+      { v0: sitios0 && sitios0.par, v1: sitios1 && sitios1.entera, v2: sitios2 && sitios2.par }));
+    vale('hay tres versículos largos que usar',
+         !!sitios0 && !!sitios1 && !!sitios2,
+         [sitios0, sitios1, sitios2].filter(Boolean).length + ' de 3');
+
+    /* DE MEDIA PALABRA A MEDIA PALABRA, y sacado del texto de verdad.
+
+       Antes pedía un tramo fijo, (4,12), y con el dedo eso no vale: el 4 caía
+       justo en el espacio entre dos palabras, que es el sitio más ambiguo que
+       hay para apoyar un dedo —el trazo empezaba ya dentro de la siguiente—, y
+       lo pedido dejaba de estar dentro de lo marcado por el borde equivocado.
+       Con la selección daba igual porque los extremos eran exactos. Ahora se
+       entra dos letras en la primera palabra y se sale dos dentro de la
+       segunda, que es lo que este caso quiere decir. */
+    const media = await marcar(sitios0.par.ini, sitios0.par.fin + 2, 'media palabra', 0);
     di('media palabra', JSON.stringify(media.pedido) + ' → ' + JSON.stringify(media.cita));
     vale('lo pedido queda dentro de lo marcado',
          !!media.cita && media.cita.includes((media.pedido || '').trim()),
@@ -220,27 +252,22 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     vale('y los dos extremos caen en borde de palabra', bordes(media),
          'ini ' + media.ini + ' fin ' + media.fin);
 
-    const justa = await marcar(sitios.entera.ini, sitios.entera.fin, 'palabra justa');
+    const justa = await marcar(sitios1.entera.ini, sitios1.entera.fin, 'palabra justa', 1);
     di('palabra ya entera', JSON.stringify(justa.pedido) + ' → ' + JSON.stringify(justa.cita));
     /* Si esto se rompiera, el estirón estaría comiéndose a los vecinos: una
        palabra que ya está entera no tiene nada que estirar. */
     vale('una palabra ya entera se deja igual', justa.cita === justa.pedido,
          justa.pedido + '  →  ' + justa.cita);
 
-    /* OJO: con el texto de hoy este caso y el de media palabra piden EL MISMO
-       tramo —«te », porque par.fin cae justo donde acaba ini+3—, así que el
-       del espacio de cola no se está probando aparte. Viene de antes de pintar
-       con el dedo y no se toca aquí para no ensanchar el cambio, pero queda
-       dicho: si alguien viene a reforzarlo, es este sitio. */
-    const cola = await marcar(sitios.par.ini, sitios.par.fin, 'con espacio de cola');
+    const cola = await marcar(sitios2.par.ini, sitios2.par.fin, 'con espacio de cola', 2);
     di('con espacio de cola', JSON.stringify(cola.pedido) + ' → ' + JSON.stringify(cola.cita));
     vale('el espacio de cola se recorta y la palabra se completa',
-         cola.cita === sitios.par.primera, cola.cita + '  esperado  ' + sitios.par.primera);
+         cola.cita === sitios2.par.primera, cola.cita + '  esperado  ' + sitios2.par.primera);
     /* LA QUE VIGILA EL DEFECTO FÁCIL: estirar sin recortar primero se lleva la
        palabra de al lado entera. */
     vale('y NO se lleva la palabra siguiente',
-         !!cola.cita && !cola.cita.includes(sitios.par.siguiente),
-         cola.cita + '  no debe traer  ' + sitios.par.siguiente);
+         !!cola.cita && !cola.cita.includes(sitios2.par.siguiente),
+         cola.cita + '  no debe traer  ' + sitios2.par.siguiente);
     vale('  sin errores (palabra entera)', fallos4.length === 0,
          fallos4.length ? fallos4 : 'ninguno');
     await p4.close();

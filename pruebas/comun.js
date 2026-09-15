@@ -183,6 +183,28 @@ window.__pintarGlosa = async (nodo, ini, fin) => {
   }
   pgBody.dispatchEvent(new PointerEvent('pointerup', op(x1, y1)));
   await pausa(140);
+  /* Y SE COMPRUEBA QUE DE VERDAD SE PINTO ALGO, que es lo que faltaba y lo que
+     me hizo perseguir tres hipotesis falsas.
+
+     Esto mandaba el gesto y devolvia el punto sin mirar el resultado, asi que
+     cuando el programa NO pintaba —por el guardia del zoom, por caer sobre una
+     marca ya hecha, por lo que fuera— el pincel decia que si y el fallo
+     aparecia una casa mas alla, en el toque, con el mensaje «se pinto, pero el
+     toque no abrio la caja». Una mentira, y encima una que apunta al sitio
+     equivocado. Ahora si no hay trazo se dice aqui, que es donde paso. */
+  const hayTrazo = () => {
+    const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+    if (h){ const r = [...h][0]; return r ? r.toString().length : 0; }
+    const e = document.querySelector('#pgBody .pintando');
+    return e ? e.textContent.length : 0;
+  };
+  if (!hayTrazo()){
+    const el = document.elementFromPoint(x0, y0);
+    window.__pincelPorque = 'el gesto no llego a pintar nada (salida ' + x0 + ',' + y0 +
+      '; debajo ' + (el ? el.tagName + (el.className ? '.' + String(el.className).split(' ')[0] : '') : 'nada') +
+      '; zoom ' + (document.getElementById('pg').classList.contains('zoom')) + ')';
+    return false;
+  }
   /* Se devuelve DÓNDE hay que tocar en vez de tocar aquí: hay pruebas que
      miden el panel a los 45 ms de nacer, y ésas necesitan dar ellas el toque
      para poder mirar justo después. Ver __glosarEn, que es el camino corto. */
@@ -318,7 +340,22 @@ window.__glosarEn = async (v, ini, fin) => {
     if (fresco) v = fresco;
   }
   const donde = await window.__pintarEn(v, ini, fin);
-  if (!donde) return false;
+  if (!donde){
+    /* EL GESTO PUEDE HABER ABIERTO YA EL PANEL, y entonces no hay que tocar
+       otra vez. Si el dedo cae sobre una marca que ya existe, el programa no
+       pinta: la ABRE, que es lo que tiene que hacer. El panel queda puesto por
+       el propio gesto.
+
+       Aqui estaba el fallo de navegar, y costo cuatro vueltas. Sus bloques
+       piden siempre el mismo tramo del mismo versiculo: el primero crea la
+       marca y del segundo en adelante el dedo cae encima. Se abria el panel, y
+       el toque de confirmar caia sobre el panel recien abierto —que tapa el
+       texto— y lo cerraba. El mensaje decia «se pinto, pero el toque no abrio
+       la caja»: las dos mitades enganosas, porque ni se pinto ni el toque
+       tenia nada que abrir. */
+    if (document.getElementById('glosaCaja')) return true;
+    return false;
+  }
   const abrio = await window.__tocarLoPintado(donde);
   if (!abrio) window.__pincelPorque = 'se pintó, pero el toque no abrió la caja · ' +
     JSON.stringify(window.__pincelAutopsia || {});
