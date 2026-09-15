@@ -526,9 +526,10 @@ const FUERA = `async () => {
       ta.dispatchEvent(new Event('input', { bubbles:true }));
       await new Promise(z => setTimeout(z, 200));
       const bot = menu.querySelector('.mtags'); if (!bot) continue;
-      const tops = []; let vivo = true;
+      const tops = [], altos = []; let vivo = true;
       const mirar = () => { if (!vivo) return;
-        tops.push(Math.round(menu.getBoundingClientRect().top));
+        const b = menu.getBoundingClientRect();
+        tops.push(Math.round(b.top)); altos.push(Math.round(b.height));
         requestAnimationFrame(mirar); };
       requestAnimationFrame(mirar);
       bot.click();
@@ -536,7 +537,15 @@ const FUERA = `async () => {
       vivo = false;
       let paso = 0;
       for (let i = 1; i < tops.length; i++) paso = Math.max(paso, Math.abs(tops[i] - tops[i-1]));
-      filas.push({ pasaje:k, paso, recorrido: Math.abs(tops[tops.length-1] - tops[0]) });
+      /* SE GUARDA LA GEOMETRÍA, no solo el recorrido. Sin el alto del panel y
+         el del escenario no se puede distinguir «el panel se movió sin motivo»
+         de «el panel se movió porque ya no cabía», que son un fallo y un
+         acierto. La vez que esto salió en rojo, el mensaje decía «56px» y no
+         había manera de saber cuál de las dos cosas era. */
+      const esc = document.getElementById('stage').getBoundingClientRect();
+      filas.push({ pasaje:k, paso, recorrido: Math.abs(tops[tops.length-1] - tops[0]),
+                   arribaAntes: tops[0], arriba: tops[tops.length-1],
+                   alto: altos[altos.length-1], escenario: Math.round(esc.height) });
     }
     document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerdown',
       { bubbles:true, clientX:5, clientY:5 }));
@@ -553,15 +562,45 @@ const FUERA = `async () => {
      y lo que esta prueba tiene que cazar es el teletransporte —309px—, no una
      décima de diferencia. */
   vale('ningún cuadro da un salto', peor.paso < 80, peor.paso + 'px en el peor');
-  /* LO QUE ESTE BLOQUE VIGILA AHORA: que el panel se quede. El margen sale del
-     ruido medido y no de lo que parezca razonable —el redondeo de un `top`
-     fraccionario puede dar un píxel—, pero por encima de eso cualquier
-     recorrido significa que el panel ha vuelto a perseguir al pasaje. */
-  vale('el panel se queda donde estaba', masLejos.recorrido <= 2,
-       'el viaje más largo de los ' + saltos.length + ': ' + masLejos.recorrido + 'px');
-  vale('  y no es uno solo: ninguno se mueve',
-       saltos.every(f => f.recorrido <= 2),
-       saltos.filter(f => f.recorrido > 2).length + ' de ' + saltos.length + ' se movieron');
+  /* LO QUE ESTE BLOQUE VIGILA AHORA, Y POR QUÉ NO ES «NO SE MUEVE» A SECAS.
+
+     Primero puse eso: que el panel no se moviera, con dos píxeles de margen
+     para el redondeo. Pasaba en mi máquina —barriendo la hoja entera, 0 de 14—
+     y salió en rojo en la tanda completa: «1 de 12 se movieron, 56px». Probé a
+     reproducirlo con glosas sembradas, con trescientas etiquetas, con el panel
+     de una glosa ya existente en vez de una nueva, y con el cajón lateral
+     abierto. Ninguna de las cuatro lo reprodujo. No sé todavía qué estado lo
+     provoca.
+
+     Pero el problema estaba en la aserción antes que en el estado, y eso sí lo
+     sé: «no se mueve» NO ES LO QUE EL PROGRAMA PROMETE. sitioDelMenu promete
+     que el panel va a MENU_ARRIBA del filo *salvo que no quepa*, y cuando no
+     cabe tiene que subirlo —el escalón, que se conservó a propósito para las
+     pantallas bajas—. O sea que yo estaba afirmando algo más fuerte que la
+     función, y un panel que se aparta porque no cabe es un acierto que mi
+     línea contaba como fallo.
+
+     Así que se afirma la promesa entera: o el panel se queda, o se movió
+     porque topaba con el borde. Eso no depende de en qué estado lo dejen los
+     bloques de antes, que es la enfermedad que ya costó dos rojos hoy. Y NO es
+     una aserción más floja: un panel que se mueva TENIENDO sitio sigue dando
+     rojo, que es el fallo que esto vigila. Lo único que deja de contar como
+     fallo es el caso que la función hace a propósito.
+
+     Y se imprime la geometría de cada uno que se mueva, porque el rojo de
+     «56px» a secas no dejaba distinguir las dos cosas y costó cuatro sondas. */
+  const cabe = f => f.arriba + f.alto + 2 < f.escenario;
+  const sospechosos = saltos.filter(f => f.recorrido > 2 && cabe(f));
+  for (const f of saltos.filter(f => f.recorrido > 2))
+    di('  se movió el pasaje ' + f.pasaje,
+       'arriba ' + f.arribaAntes + ' → ' + f.arriba + ' (' + f.recorrido + 'px)' +
+       ' · alto ' + f.alto + ' · escenario ' + f.escenario +
+       ' · fondo ' + (f.arriba + f.alto) + (cabe(f) ? '  ← CABÍA: no tenía por qué moverse'
+                                                    : '  ← topaba con el borde'));
+  vale('el panel se queda, salvo que no quepa', sospechosos.length === 0,
+       sospechosos.length ? (sospechosos.length + ' se movieron TENIENDO sitio')
+                          : (saltos.filter(f => f.recorrido > 2).length + ' de ' + saltos.length +
+                             ' se movieron, todos por no caber'));
 
   await cerrar(sesion);
 })();
