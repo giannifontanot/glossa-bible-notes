@@ -66,7 +66,7 @@ diagnóstico. Salen con código distinto de cero si algo falla.
 | `portada` | la tapa del arranque: que cuente segundo y tres cuartos, que «hold» la pare y «continue» la suelte, y que la foto y las piedras que se le peguen sigan ahí al volver |
 | `version` | el sello del panel de Respaldo: que se vea, que tenga la forma pedida, y —lo que de verdad vigila— que la hora sea la de Dallas y no la del aparato |
 
-## Tres reglas que costaron caro
+## Cuatro reglas que costaron caro
 
 **1 · Nada de `.click()` para gestos.** Un clic sintético no pasa por la
 captura del puntero, que es justo donde vivía un fallo. Los gestos se mandan
@@ -80,6 +80,31 @@ cosa.
 Una prueba comparaba el centroide de tinta del pliegue con 6 px de margen;
 midiendo tres veces el *mismo* caso, ese centroide bailaba 12 px. Cantaba
 fallos que no existían, y eso enseña a ignorarla — peor que no tenerla.
+
+**4 · Un evento despachado a mano siempre llega; el de un teléfono no.** Y
+esto tiene un filo concreto que costó un fallo entero, así que va con nombre:
+un `PointerEvent` construido con `new` **se salta `touch-action`**. El
+navegador reparte los gestos táctiles *antes* de que empiecen, mirando el
+`touch-action` del elemento y sus antepasados, y si decide que el gesto es
+suyo manda `pointercancel` a media faena — `preventDefault()` ya no lo salva,
+porque esa decisión está tomada. Los eventos sintéticos no pasan por ese
+reparto, así que **por ese camino el fallo es invisible**: el trazo de pintar
+con el dedo se medía bien veinte veces seguidas y en un teléfono se cortaba a
+la tercera línea.
+
+Cuando lo que se prueba depende de `touch-action` —pintar, arrastrar, pasar
+hoja—, los toques se mandan por el protocolo del navegador:
+
+```js
+const cdp = await pagina.context().newCDPSession(pagina);
+await cdp.send('Input.dispatchTouchEvent',
+               { type:'touchStart', touchPoints:[{ x, y, id:1 }] });
+```
+
+Es el único camino de estas pruebas que pasa por donde vive `touch-action`.
+No sustituye a la regla 1 —para casi todo, `PointerEvent` está bien y es más
+cómodo—, pero si el fallo que se busca huele a «el navegador se quedó con el
+gesto», con `PointerEvent` no se va a ver nunca.
 
 ## Lo que NO cubren
 
