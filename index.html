@@ -3985,7 +3985,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-SEP-26 16:36';
+window.GLOSS_BUILD = '15-SEP-26 18:11';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8550,7 +8550,15 @@ function colocarTiradores(){
      de lo que quiere senalar. Se glosa igual —el trazo y el toque siguen—,
      pero sin tiradores hasta volver. */
   if (zoomActivo){ if (tiradores) tiradores.hidden = true; return; }
-  const rg = pintado && rangoPintado();
+  /* SIN TRAZO NO SE TOCA EL DOM. Esto lo llama el desplazamiento de la hoja,
+     o sea una vez por cuadro mientras el papel corre, y casi siempre no hay
+     nada pintado: escribir hidden=true en cada cuadro es trabajo tirado justo
+     en el momento en que la hoja está animándose. */
+  if (!pintado){
+    if (tiradores && !tiradores.hidden) tiradores.hidden = true;
+    return;
+  }
+  const rg = rangoPintado();
   const cajas = rg ? [...rg.getClientRects()].filter(c => c.width > 0 && c.height > 0) : [];
   if (!cajas.length){ if (tiradores) tiradores.hidden = true; return; }
   armarTiradores();
