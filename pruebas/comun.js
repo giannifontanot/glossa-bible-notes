@@ -205,6 +205,34 @@ window.__pintarGlosa = async (nodo, ini, fin) => {
       '; zoom ' + (document.getElementById('pg').classList.contains('zoom')) + ')';
     return false;
   }
+  /* EL PUNTO QUE SE DEVUELVE SALE DE LO PINTADO, no de donde apoyó el dedo.
+
+     Devolvía (x0,y0), el sitio del pointerdown, dando por hecho que el trazo
+     empieza donde empezó el dedo. No siempre: la marca se ajusta a PALABRAS
+     ENTERAS, y si el dedo apoya en un espacio entre dos palabras el principio
+     del trazo se corre hacia ADELANTE, hasta la primera letra de la siguiente.
+     Entonces (x0,y0) queda por detrás del trazo y el toque cae fuera: el
+     programa lo lee como «tocar en otro sitio», que borra lo pintado y no abre
+     nada. Exactamente lo que pasaba en navegar, que pide el tramo (10,30) y en
+     este texto el 10 es el espacio entre «libro» y «es».
+
+     Costó cuatro tandas porque el mensaje decía «se pintó, pero el toque no
+     abrió la caja» sin decir dónde había caído el toque. Con la frase puesta
+     —«el toque cayó FUERA del trazo; el trazo tenía 23 letras»— se vio a la
+     primera.
+
+     Así que se lee el trazo de verdad y se devuelve el centro de su primer
+     renglón, que es donde tocaría cualquiera que vea lo pintado. */
+  const rgTrazo = (function(){
+    const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+    if (h){ const r = [...h][0]; return r || null; }
+    const e = document.querySelector('#pgBody .pintando');
+    if (!e) return null;
+    const r = document.createRange(); r.selectNodeContents(e); return r;
+  })();
+  const renglon = rgTrazo && [...rgTrazo.getClientRects()].find(c => c.width > 0 && c.height > 0);
+  if (renglon) return { x: Math.round(renglon.left + renglon.width / 2),
+                        y: Math.round(renglon.top + renglon.height / 2) };
   /* Se devuelve DÓNDE hay que tocar en vez de tocar aquí: hay pruebas que
      miden el panel a los 45 ms de nacer, y ésas necesitan dar ellas el toque
      para poder mirar justo después. Ver __glosarEn, que es el camino corto. */
@@ -373,6 +401,21 @@ window.__glosarEn = async (v, ini, fin) => {
   if (!abrio) window.__pincelPorque = 'se pintó y ' + (window.__pincelFrase || 'el toque no abrió la caja');
   return abrio;
 };`;
+
+/* Y SE COMPRUEBA QUE EL PINCEL COMPILA, aquí y no dentro del navegador.
+
+   Va en una plantilla, así que el compilador de Node no lo mira: un acento
+   grave de más en un comentario, o dos `const` con el mismo nombre, y el guion
+   revienta al inyectarse. Lo que se ve entonces es «window.__pintarGlosa is
+   not a function» a mitad de un bloque, a mil líneas de la causa. Me ha pasado
+   dos veces. Mirándolo aquí, el fallo sale antes de abrir el navegador y dice
+   lo que es. */
+try { new Function(PINCEL); }
+catch (e) {
+  console.error('\n  EL GUION DEL PINCEL NO COMPILA: ' + e.message +
+                '\n  (está en la plantilla PINCEL de pruebas/comun.js)\n');
+  process.exit(1);
+}
 
 /* ESPERAR A QUE LA MESA ESTÉ DESTAPADA, no a que pase un rato. La portada
    cubre la pantalla entera con pointer-events puestos hasta que la primera
