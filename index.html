@@ -3895,7 +3895,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '14-SEP-26 19:30';
+window.GLOSS_BUILD = '14-SEP-26 19:55';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -4348,7 +4348,31 @@ const PAGE_CSS = `
 
    La caja de escribir queda fuera a propósito: es lo único de esta pantalla
    que el lector escribe él, y ahí seleccionar y copiar es suyo. */
-.sin-seleccion #pgBody{ -webkit-user-select:none; user-select:none; }
+/* Y EL NAVEGADOR NO SE QUEDA CON EL TRAZO, que es lo que pasaba.
+
+   #pg declara touch-action:pan-y, y pintar es un gesto vertical: el navegador
+   lo leía como un desplazamiento suyo, se lo quedaba y mandaba pointercancel
+   a media pintada. El preventDefault del pointermove no lo salva —touch-action
+   se decide antes de que el gesto empiece, no durante—. Lo levantó la revisión
+   de Codex en la PR #98.
+
+   ESTO NO SE VEÍA DESDE LAS PRUEBAS, y es la cuarta regla de la carpeta al pie
+   de la letra: un evento despachado a mano siempre llega, y el de un teléfono
+   no. Un PointerEvent construido a mano se salta el reparto de touch-action
+   entero, así que por ese camino el fallo es invisible. Se vio mandando toques
+   por el protocolo del navegador: 1 pointercancel y 0 pointerup.
+
+   Se pone none aquí y no se relaja el pan-y de arriba, porque aquel gobierna
+   la hoja entera y esto es solo del texto. Medido antes de tocarlo: la hoja NO
+   se desplaza en vertical —0 px de sobra, para eso está la paginación—, así
+   que ese pan-y no servía aquí más que para robar el gesto. El arrastre de
+   lado sigue siendo del programa, como ya lo era.
+
+   Y OJO CON LOS ACENTOS GRAVES EN ESTA ZONA: este CSS vive dentro de una
+   plantilla de JavaScript, así que un backtick en un comentario la parte en
+   dos y la aplicación deja de arrancar entera. Me pasó escribiendo esto. */
+.sin-seleccion #pgBody{ -webkit-user-select:none; user-select:none;
+                        touch-action:none; }
 .sin-seleccion #pgBody textarea,
 .sin-seleccion #pgBody input{ -webkit-user-select:text; user-select:text; }
 .vn{ font-size:.68em; color:#a98f57; vertical-align:.4em; padding-right:2px; }
@@ -8293,8 +8317,22 @@ function pintarLoPintado(){
        oyente se salta una vez. */
     if (pintado) pintado.recienHecho = true;
   };
+  /* UN GESTO CANCELADO NO ES UN GESTO TERMINADO, y esto los trataba igual.
+
+     pointercancel lo manda el navegador o el sistema cuando se lleva el gesto:
+     un segundo dedo, una notificación, un gesto del aparato. Pasándolo por
+     `soltar`, el trazo a medias se quedaba pintado y marcado como recién
+     hecho, así que el toque siguiente se lo comía y el de después abría una
+     glosa nacida de un gesto que la plataforma había cancelado. Lo levantó la
+     revisión de Codex.
+     Cancelar es deshacer: se tira el gesto y se borra lo pintado. */
+  const cancelar = ev => {
+    if (!gesto || (ev && ev.pointerId != null && ev.pointerId !== gesto.id)) return;
+    gesto = null;
+    limpiarPintado();
+  };
   pgBody.addEventListener('pointerup', soltar);
-  pgBody.addEventListener('pointercancel', soltar);
+  pgBody.addEventListener('pointercancel', cancelar);
 })();
 
 pgBody.addEventListener('pointerup', ev => {
@@ -8362,9 +8400,18 @@ pgBody.addEventListener('pointerup', ev => {
       return;
     }
     const m = p && marcaEn(p.k, p.off);
-    /* Y un toque en cualquier otro sitio borra el trazo: lo pintado dura lo
-       que duraba la selección, hasta el siguiente toque. */
-    if (!m){ limpiarPintado(); ocultarMenu(); return; }
+    /* Y UN TOQUE EN CUALQUIER OTRO SITIO BORRA EL TRAZO: lo pintado dura lo
+       que duraba la selección, hasta el siguiente toque.
+
+       CUALQUIER OTRO SITIO INCLUYE OTRA GLOSA, y ahí no lo borraba. Si el
+       lector pintaba un tramo y luego tocaba una glosa que ya existía en otra
+       parte, esta rama se iba por abajo sin limpiar: se abría la glosa vieja y
+       el trazo amarillo seguía vivo detrás. Al cerrar ese panel, tocar el
+       trazo huérfano creaba una glosa de algo que el lector ya había
+       abandonado. Lo levantó la revisión de Codex.
+       Se limpia antes de repartir, que es donde la regla es una sola. */
+    limpiarPintado();
+    if (!m){ ocultarMenu(); return; }
     const rg = rangoDe(m, pgBody);
     abrirPanel(m, false, rg ? rg.getBoundingClientRect()
       : { left:ev.clientX, top:ev.clientY, width:0, height:0, bottom:ev.clientY });
@@ -14724,15 +14771,27 @@ function sepLlegada(){
    muchas más razones que pasar de hoja —cambiar la letra, escribir una
    glosa, mover un filtro— y ninguna de ésas es llegar a ningún sitio. */
 let sepClaveHoja = null;
-/* Y lo pintado no sobrevive a un cambio de hoja: el trazo vive en offsets de
-   UN versículo de LA hoja que se está viendo, así que dejarlo puesto sería
-   pintar en otro sitio lo que se marcó aquí. */
+/* Y LO PINTADO NO SOBREVIVE A NINGÚN REPINTADO, no solo al cambio de hoja.
+
+   El trazo vive en offsets de UN versículo de LA hoja que se está viendo, así
+   que dejarlo puesto sería pintar en otro sitio lo que se marcó aquí. Eso ya
+   estaba escrito, pero se limpiaba solo cuando cambiaba la hoja, y renderPage
+   rehace los nodos de todos los versículos por muchas más razones: cambiar de
+   versión, de letra, de columnas, un filtro, girar el aparato. En esos casos
+   el rango del resaltado se quedaba apuntando a nodos que ya no están en el
+   documento —la pintura desaparece de la pantalla— mientras `pintado` seguía
+   vivo con sus números; y tras un cambio de versión, con los offsets de OTRA
+   traducción, así que un toque después abría una glosa de un texto que el
+   lector no había señalado y que ni siquiera se veía. Lo levantó la revisión
+   de Codex.
+   Se limpia en cada repintado y no solo cuando cambia la hoja: el trazo es de
+   este dibujo de la hoja, no de esta hoja. */
 function separadorAlPintar(){
   const p = plano[paginas[paginaActual]] || null;
   const clave = LIBRO + ' ' + (p ? p.cap + ':' + p.vers : '?');
   const cambio = clave !== sepClaveHoja;
   sepClaveHoja = clave;
-  if (cambio && typeof limpiarPintado === 'function') limpiarPintado();
+  if (typeof limpiarPintado === 'function') limpiarPintado();
   if (cambio && sepMenuAbierto) cerrarSepMenu();
   if (cambio) sepLlegada();
   pintarSeparador();
