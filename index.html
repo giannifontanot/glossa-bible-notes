@@ -3985,7 +3985,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-SEP-26 18:11';
+window.GLOSS_BUILD = '16-SEP-26 14:45';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5066,7 +5066,8 @@ const fx=$('fx'), ctx=fx.getContext('2d'), readout=$('readout');
    hermanos— siguen callados. Son de la misma familia que el de cruzar de
    versículo, y quizá merezcan volver; no se tocan aquí porque no es lo que se
    pidió y devolver diez carteles por mi cuenta sería deshacer el encargo. */
-const AVISOS_QUE_SALEN = [/no puede cruzar de vers/i];
+const AVISOS_QUE_SALEN = [/no puede cruzar de vers/i,
+                          /lo marcado se queda en esta hoja/i];
 const AVISOS_QUE_FALLAN = [
   /NO SE PUDO GUARDAR/i,
   /no es una imagen/i,
@@ -8462,6 +8463,45 @@ function repintarVersoDelTrazo(k){
   const nuevo = tmp.querySelector('.v[data-k="' + k + '"]');
   if (nuevo) el.replaceWith(nuevo);
 }
+/* ============================================================
+   CON ALGO MARCADO, LA HOJA NO PASA.
+
+   Marcar y pasar hoja viven en el mismo dedo y en el mismo sitio, y hasta
+   aqui el reparto se decidia UNA sola vez: al empezar el gesto, correrPapel
+   se retiraba si el dedo se quedaba quieto o si bajaba en vez de cruzar. Eso
+   protege el trazo mientras se pinta, y no protege nada despues. Con el trazo
+   ya puesto —que es cuando el lector esta mirandolo y decidiendo si le sirve—
+   un desliz de lado, un toque en el filo o una flecha se llevaban la hoja, y
+   con ella el trazo, sin que nada explicara adonde se fue lo que acababa de
+   marcar.
+
+   Asi que mientras haya algo pintado, los tres caminos de pasar hoja se
+   callan. NO es una traba: lo pintado se suelta tocando en cualquier otro
+   sitio, que es el gesto que ya lo soltaba, y en cuanto se suelta la hoja
+   vuelve a pasar como siempre.
+
+   LO QUE NO SE TOCA, y conviene tenerlo escrito: el avance automatico de la
+   vista de lejos, y los saltos que el lector pide por su nombre —una
+   referencia, el indice, el canto de los libros—. Ésos no son «pasar hoja»
+   sino «llevame a otro sitio», y quien los pide ya sabe que se va. */
+function hayTrazoVivo(){ return !!pintado && pintado.fin > pintado.ini; }
+/* Y SE DICE POR QUÉ, una vez por intento.
+
+   Es el segundo aviso que sale de los veintitrés, y entra por la misma puerta
+   que el primero y no por otra: «sueltas el dedo, no pasa nada, y sin el
+   cartel no hay manera de saber por qué». Un gesto que deja de responder sin
+   explicarse enseña a desconfiar de él, que es justo lo contrario de lo que
+   este cambio viene a hacer. Dice además CÓMO salir, que es la mitad que de
+   verdad quita la confusión. */
+function avisarHojaAtada(){
+  /* «EL PASAJE» Y NO «FUERA», y la diferencia se midió: lo marcado lo suelta
+     un toque dentro de #pgBody, no un toque en cualquier parte. Tocando el
+     margen de las glosas el trazo se queda —en teléfono ese margen ni
+     siquiera está a la vista, pero en pantalla ancha sí—, así que un cartel
+     que dijera «toca fuera» estaría dando una salida que no siempre existe, y
+     un mando que promete y no cumple enseña a desconfiar del que sí cumple. */
+  readout.textContent = 'lo marcado se queda en esta hoja · toca el pasaje para soltarlo';
+}
 function limpiarPintado(){
   if (!pintado) return;
   const k = pintado.k;
@@ -8851,6 +8891,16 @@ function colocarTiradores(){
     ev.preventDefault();
     const a = Math.min(gesto.off, hasta), b = Math.max(gesto.off, hasta);
     const r = aPalabrasEnteras(texto, a, b);
+    /* UN TRAZO VACÍO NO ES UN TRAZO, y hasta ahora se guardaba igual.
+
+       Un dedo que baja poco puede caer en el MISMO carácter del que salió
+       —medido: a=72 b=72—, y aPalabrasEnteras ante un punto devuelve el punto,
+       que es lo correcto: no hay palabra que estirar. Pero eso se guardaba en
+       pintado, o sea un trazo de cero letras: invisible, sin tiradores que lo
+       suelten, y desde que la hoja se ata a lo marcado, ATANDO LA HOJA. El
+       lector veía la hoja dejar de pasar, un cartel ofreciéndole soltar algo,
+       y nada que soltar. Justo la confusión que esto venía a quitar. */
+    if (r.ini === r.fin) return;
     if (pintado && pintado.k === gesto.k && pintado.ini === r.ini && pintado.fin === r.fin) return;
     pintado = { k: gesto.k, ini: r.ini, fin: r.fin };
     pintarLoPintado();
@@ -8875,9 +8925,15 @@ function colocarTiradores(){
        pasó: el oyente de pointerup que abre la glosa es OTRO, y ese no sabe si
        el dedo venía arrastrando. Al levantarlo dentro de lo recién pintado
        —que es donde se levanta siempre— lo leía como el toque de encima y
-       abría la glosa en el acto. El trazo se marca como recién hecho y ese
-       oyente se salta una vez. */
-    if (pintado) pintado.recienHecho = true;
+       abría la glosa en el acto. Se marca el trazo y ese oyente se salta una
+       vez.
+
+       La bandera se llamaba «recienHecho» y ahora dice lo que de verdad
+       significa: que el pointerup que viene es el FINAL DE UN GESTO y no un
+       toque. Con un solo usuario los dos nombres valían igual; con tres —el
+       desliz que se planta también la pone— el nombre viejo obligaba a leer
+       los otros sitios para entender el propio. */
+    if (pintado) pintado.noEsToque = true;
   };
   /* UN GESTO CANCELADO NO ES UN GESTO TERMINADO, y esto los trataba igual.
 
@@ -8915,9 +8971,11 @@ pgBody.addEventListener('pointerup', ev => {
        la glosa. Es el mismo gesto que tenía el lector cuando esto se
        seleccionaba —arrastrar, y luego tocar lo apuntado—, y por eso va antes
        que la marca de debajo: lo recién pintado manda sobre lo que hubiera. */
-    if (pintado && pintado.recienHecho){
-      /* el soltar del arrastre, que no cuenta: ver soltar en pintarConElDedo */
-      pintado.recienHecho = false;
+    if (pintado && pintado.noEsToque){
+      /* el soltar de un gesto, que no cuenta como toque: lo ponen el arrastre
+         que pinta —ver soltar en pintarConElDedo— y el desliz que se planta
+         por haber algo marcado —ver hayTrazoVivo—. */
+      pintado.noEsToque = false;
       return;
     }
     if (pintado && p && p.k === pintado.k &&
@@ -10577,6 +10635,11 @@ function abrirCintaPorToque(){
 }
 function bordeAbajo(ev, s){
   if (cantoAbierto){ cerrarCanto(); return; }
+  /* Con algo marcado, el filo se calla: ver hayTrazoVivo. Va en el
+     pointerdown y no más abajo porque por aquí entran LOS DOS gestos del
+     filo —el toque que pasa y el arrastre que pliega—, y atajarlos en un
+     solo sitio es lo que evita que mañana uno de los dos se escape. */
+  if (hayTrazoVivo()){ ev.preventDefault(); avisarHojaAtada(); return; }
   /* La cinta gana al filo: sin esto, de lejos (y a veces de cerca) el toque
      en el pedacito de cinta abría la huella y pasaba de hoja. */
   if (toqueEnCinta(ev)){
@@ -10723,7 +10786,17 @@ function bordeArriba(ev, s){
      arranca el giro —ni antes, que devolvería el hueco a otro sitio, ni
      después, que la dejaría flotando sobre una hoja que ya se fue. */
   relojClic = setTimeout(() => {
-    relojClic = null; ocultarHuella(); pasarHoja(s, alturaClic);
+    relojClic = null; ocultarHuella();
+    /* Y SE VUELVE A PREGUNTAR AQUÍ, que el guardia del pointerdown no alcanza.
+
+       Entre el toque del filo y este giro pasan los ESPERA_DOBLE del doble
+       clic, y en ese hueco cabe un gesto entero: se suelta el filo, se empieza
+       a marcar, y el reloj —armado cuando todavía no había nada pintado—
+       llegaba igual y se llevaba la hoja con el trazo recién hecho dentro.
+       Un guardia que mira el estado de hace un cuarto de segundo no está
+       mirando el estado. Lo levantó la revisión de Codex. */
+    if (hayTrazoVivo()){ avisarHojaAtada(); return; }
+    pasarHoja(s, alturaClic);
   }, ESPERA_DOBLE);
 }
 /* endFold TERMINA EL PLIEGUE QUE LLEVA UN DEDO, y solo ése.
@@ -10986,6 +11059,22 @@ function encenderG(){
     cancelAnimationFrame(reloj);
     poner(0);
     pintarG();
+    /* Con algo marcado no se pasa: ver hayTrazoVivo. El desliz llega hasta
+       aquí —se retira el papel, se traga el clic— y solo entonces se planta,
+       que es lo que deja la hoja quieta en vez de a medio correr.
+
+       Y NO SE LLEVA LO MARCADO POR DELANTE, que es la mitad que faltaba y se
+       vio midiendo: la hoja se quedaba quieta, sí, pero el pointerup de este
+       mismo desliz lo leía el repartidor de toques como «tocaste en otro
+       sitio» y borraba el trazo. O sea lo peor de los dos mundos —ni pasa la
+       hoja ni conservas lo que marcaste— y encima con un cartel diciendo
+       «toca fuera para soltarlo» sobre algo que ya se había soltado solo. Un
+       desliz no es un toque, y aquí se dice. */
+    if (hayTrazoVivo()){
+      pintado.noEsToque = true;
+      avisarHojaAtada();
+      return;
+    }
     if (folding || preparandoPliegue) return;
     pasarHoja(dx < 0 ? 'right' : 'left', y0);
   });
@@ -13615,6 +13704,11 @@ document.addEventListener('keydown', ev => {
   /* Desde el teclado no hay dedo ni esquina, así que se agarra por el mismo
      sitio que un chevrón: el canto de abajo. */
   const cantoY = pg.getBoundingClientRect().bottom - 20;
+  const flecha = ev.key === 'ArrowRight' || ev.key === 'ArrowLeft';
+  /* Con algo marcado tampoco pasan las flechas: ver hayTrazoVivo. Y se quedan
+     la tecla —preventDefault— en vez de dejarla subir, porque aquí SÍ es
+     nuestra: el lector pidió pasar hoja y la respuesta es que ahora no. */
+  if (flecha && hayTrazoVivo()){ ev.preventDefault(); avisarHojaAtada(); return; }
   if (ev.key === 'ArrowRight'){ ev.preventDefault(); pasarHoja('right', cantoY); }
   if (ev.key === 'ArrowLeft' ){ ev.preventDefault(); pasarHoja('left',  cantoY); }
 });

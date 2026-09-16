@@ -1733,7 +1733,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       chips: [...document.querySelectorAll('#etiquetas .chip.sel')].map(c => c.textContent.trim()),
       aviso: document.getElementById('readout').textContent || '',
       /* Escrito y ENSEÑADO son ya dos cosas distintas: ver el bloque del
-         final, «el único aviso que sale». */
+         final, «los dos avisos que salen». */
       avisoSeVe: document.getElementById('readout').classList.contains('viva')
     };
   }, nota);
@@ -1973,28 +1973,6 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   await cerrarParcial(etiq, 'la lista de etiquetas');
 
   /* ================================================================
-     EL ÚNICO AVISO QUE SALE.
-
-     Se pidió que no apareciera ningún cartel abajo salvo uno: el de la marca
-     que no puede cruzar de versículo. Y tiene su razón de ser: en ese gesto
-     sueltas el dedo y NO PASA NADA —no se abre el panel, no queda marca—, así
-     que sin el cartel no hay manera de saber por qué. Los otros veintidós
-     contaban lo que acababas de ver hacerse.
-
-     Hacen falta LOS DOS LADOS —el que sale y uno de los que se callan— porque
-     comprobar solo que uno sale pasaría igual con el filtro quitado. El otro
-     lado NO está aquí, y por dos razones que se descubrieron a golpes:
-
-     · escribir una glosa normal no manda ningún aviso, así que el «control»
-       que había aquí no controlaba nada;
-     · y el cartel dura NUEVE segundos, así que mirarlo un segundo después del
-       primero seguía viendo el primero. Daba «sale: true» con el texto de
-       antes y hacía fallar la suite con el filtro funcionando.
-
-     El control está en piedra.prueba.js, en «poner una piedra», que es un
-     gesto que sí escribe uno («piedra puesta · arrástrala…») y además lo hace
-     antes que ningún otro. Levantado en revisión. */
-  /* ================================================================
      SOSTENER EL DEDO, Y LOS TIRADORES QUE QUEDAN.
 
      Dos cosas que no tenía el trazo y que la selección del navegador sí daba:
@@ -2134,21 +2112,36 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     t.dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowRight', bubbles:true }));
     await pausa(250);
     const vuelta = trazo(), hojaConTirador = hoja();
-    /* Y EL CONTROL AL FINAL, que es destructivo: pasar hoja se lleva el trazo
-       por delante —la hoja se repinta y lo pintado no sobrevive—, así que
-       hacerlo primero dejaba sin trazo todo lo de arriba. */
+    /* EL CONTROL, Y POR QUÉ CAMBIÓ.
+
+       Aquí se comprobaba que SIN el tirador enfocado la flecha sí pasa hoja,
+       para que «con el tirador enfocado no pasa» significara algo. Ese
+       control dejó de distinguir nada en cuanto la hoja se ata a lo marcado:
+       ahora la flecha no pasa hoja mientras haya un trazo, enfocado el
+       tirador o no, así que medía 0 → 0 en los dos casos y se caía. El
+       stopPropagation del tirador sigue estando y sigue siendo correcto,
+       pero ha pasado a ser el segundo cerrojo de una puerta que ya está
+       cerrada por hayTrazoVivo.
+
+       Lo que sí distingue, y es lo que se mide ahora: SOLTADO el trazo, esa
+       misma flecha vuelve a pasar hoja. Eso prueba que la tecla llega, que el
+       camino está vivo, y que lo que la paraba era el trazo. Va al final
+       porque es destructivo. */
+    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await pausa(500);
     const hojaAntes = hoja();
     document.body.focus();
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowRight', bubbles:true }));
     await pausa(900);
     return { hojaAntes, hojaSuelta: hoja(), antes, corto, vuelta,
              enfocado, nombre: t.getAttribute('aria-label'),
-             hoja0, hoja: hojaConTirador };
+             hoja0, hoja: hojaConTirador, trazoAlFinal: trazo() };
   });
   di('con las flechas', teclas);
   if (!teclas.sinTirador){
-    vale('CONTROL: sin el tirador enfocado, la flecha pasa hoja',
-         teclas.hojaSuelta !== teclas.hojaAntes,
+    vale('CONTROL: soltado el trazo, la flecha vuelve a pasar hoja',
+         teclas.trazoAlFinal === '' && teclas.hojaSuelta !== teclas.hojaAntes,
          teclas.hojaAntes + ' → ' + teclas.hojaSuelta);
     vale('el tirador se alcanza con el tabulador y dice lo que es',
          teclas.enfocado === true && /flechas/.test(teclas.nombre || ''), teclas.nombre);
@@ -2357,7 +2350,262 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
          sitio.hoja + ' → ' + tras.hoja);
   }
 
-  titulo('el único aviso que sale');
+  /* ================================================================
+     CON ALGO MARCADO, LA HOJA NO PASA.
+
+     Marcar y pasar hoja viven en el mismo dedo y en el mismo sitio. El
+     reparto se decidía una sola vez, al empezar el gesto, y eso protege el
+     trazo MIENTRAS se pinta y nada después: con el trazo ya puesto —que es
+     cuando el lector lo está mirando y decidiendo si le sirve— un desliz, un
+     toque en el filo o una flecha se llevaban la hoja y el trazo con ella.
+
+     Se prueban LOS TRES CAMINOS, y cada uno con su control delante: sin nada
+     marcado ese mismo gesto TIENE que pasar hoja. Sin el control, un filo
+     roto pasaría este bloque en verde.
+
+     Y se prueba además lo que lo convierte en una espera y no en una traba:
+     soltando lo marcado, la hoja vuelve a pasar.
+     ================================================================ */
+  titulo('con algo marcado, la hoja no pasa');
+  /* EL ANDAMIO SE INSTALA DESPUÉS DE CADA RECARGA, y esto no es una
+     precaución: p.reload() estrena el objeto window entero, así que unos
+     ayudantes puestos una sola vez antes del bucle desaparecen en la primera
+     vuelta y el bloque revienta con «window.__hoja is not a function» —y se
+     lleva por delante todo lo que viniera detrás en el fichero—. Lo levantó
+     la revisión de Codex.
+
+     Y VA COMO FUNCIÓN DE VERDAD, NO COMO PLANTILLA, que es la segunda mitad
+     de la lección y costó una tanda entera. Puesto entre acentos graves, el
+     \p de /[\p{L}\p{N}]{6,}/u se lo come la plantilla —en un literal de
+     plantilla \p no es un escape y sale una p pelada—, así que la expresión
+     que llegaba al navegador era /[p{L}p{N}]{6,}/u. Y NO REVIENTA: con la u
+     puesta se compila igual y no casa nunca. O sea que __marcar devolvía ''
+     en silencio y las tres vueltas del bloque se caían por «no se marcó
+     nada», que es lo último que uno mira. Playwright serializa una función
+     de verdad tal cual, con sus contrabarras, así que el agujero desaparece
+     en vez de esconderse mejor. */
+  const ANDAMIO_ATADURA = () => {
+    window.__pausa = ms => new Promise(z => setTimeout(z, ms));
+    window.__hoja = () => document.querySelector('#pgBody .v').dataset.k;
+    window.__trazo = () => {
+      const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+      if (h){ const g = [...h][0]; return g ? g.toString() : ''; }
+      const e = document.querySelector('#pgBody .pintando');
+      return e ? e.textContent : '';
+    };
+    window.__marcar = async () => {
+      const pgBody = document.getElementById('pgBody');
+      const v = document.querySelector('#pgBody .v');
+      const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+      while (w.nextNode()) if (w.currentNode.textContent.trim().length > 40){ n = w.currentNode; break; }
+      if (!n) return '';
+      const pal = (n.data.match(/[\p{L}\p{N}]{6,}/u) || [])[0];
+      if (!pal) return '';
+      const i = n.data.indexOf(pal);
+      const r = document.createRange(); r.setStart(n, i + 2); r.setEnd(n, i + 3);
+      const c = r.getBoundingClientRect();
+      const op = { bubbles:true, cancelable:true, pointerId:300, pointerType:'touch',
+                   isPrimary:true, clientX:Math.round(c.left + c.width/2),
+                   clientY:Math.round(c.top + c.height/2) };
+      pgBody.dispatchEvent(new PointerEvent('pointerdown', op));
+      await window.__pausa(420);
+      pgBody.dispatchEvent(new PointerEvent('pointerup', op));
+      await window.__pausa(300);
+      return window.__trazo();
+    };
+    window.__soltar = async () => {
+      document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+        { bubbles:true, clientX:5, clientY:5 }));
+      await window.__pausa(400);
+    };
+    window.__filo = async () => {
+      const e = document.getElementById('edgeR');
+      const r = e.getBoundingClientRect();
+      const op = { bubbles:true, cancelable:true, pointerId:301, pointerType:'touch',
+                   isPrimary:true, clientX: r.left + r.width/2, clientY: 420 };
+      e.dispatchEvent(new PointerEvent('pointerdown', op));
+      await window.__pausa(60);
+      e.dispatchEvent(new PointerEvent('pointerup', op));
+      await window.__pausa(2200);
+    };
+    window.__desliz = async () => {
+      const pgBody = document.getElementById('pgBody');
+      const c = document.querySelector('#pgBody .v').getBoundingClientRect();
+      const x0 = Math.round(c.right - 10), y0 = Math.round(c.top + c.height/2);
+      const op = (x, y) => ({ bubbles:true, cancelable:true, pointerId:302,
+                              pointerType:'touch', isPrimary:true, clientX:x, clientY:y });
+      pgBody.dispatchEvent(new PointerEvent('pointerdown', op(x0, y0)));
+      /* rápido y de lado, que es lo que pasa hoja; y torcido, que un dedo no
+         va recto y una recta perfecta está probando otra cosa */
+      for (let i = 1; i <= 8; i++){
+        pgBody.dispatchEvent(new PointerEvent('pointermove',
+          op(x0 - i * 16 + (i % 3 ? -2 : 3), y0 + (i % 2 ? 1 : -2))));
+        await window.__pausa(12);
+      }
+      pgBody.dispatchEvent(new PointerEvent('pointerup', op(x0 - 130, y0)));
+      await window.__pausa(2200);
+    };
+    window.__flecha = async () => {
+      document.body.focus();
+      document.dispatchEvent(new KeyboardEvent('keydown',
+        { key:'ArrowRight', bubbles:true, cancelable:true }));
+      await window.__pausa(2200);
+    };
+  };
+  for (const [nombre, fn] of [['el filo', '__filo'], ['el desliz', '__desliz'],
+                              ['la flecha', '__flecha']]){
+    /* Hoja limpia en cada vuelta: sobre una marca hecha el dedo la ABRE en vez
+       de pintar, y entonces no habría trazo que atara nada. */
+    await p.evaluate(() => localStorage.removeItem('glossa:marcas:v1'));
+    await p.reload();
+    await listo(p);
+    await p.evaluate(ANDAMIO_ATADURA);
+    const r = await p.evaluate(async f => {
+      /* EL CONTROL PRIMERO: sin nada marcado, este gesto pasa hoja. */
+      const antesCtrl = window.__hoja();
+      await window[f]();
+      const ctrl = window.__hoja();
+      const marcado = await window.__marcar();
+      const antes = window.__hoja();
+      document.getElementById('readout').textContent = '';
+      await window[f]();
+      const ro = document.getElementById('readout');
+      /* DOS NOMBRES DISTINTOS y no uno: lo que se marcó y lo que queda
+         después del gesto son dos cosas, y llamarlas igual deja escrita una
+         aserción que se compara consigo misma y pasa siempre. */
+      const trasElGesto = window.__trazo();
+      const atado = { hoja: window.__hoja(),
+                      dice: ro.textContent, sale: ro.classList.contains('viva') };
+      /* y soltando lo marcado, la hoja vuelve a pasar */
+      await window.__soltar();
+      const antesLibre = window.__hoja();
+      await window[f]();
+      return { antesCtrl, ctrl, marcado, trasElGesto, antes, ...atado,
+               libreDe: antesLibre, libreA: window.__hoja(),
+               quedaTrazo: window.__trazo() };
+    }, fn);
+    di('por ' + nombre, r);
+    vale('CONTROL: sin nada marcado, ' + nombre + ' pasa hoja',
+         r.ctrl !== r.antesCtrl, r.antesCtrl + ' → ' + r.ctrl);
+    vale('  (premisa) se marcó una palabra', !!r.marcado, '«' + r.marcado + '»');
+    vale('  CON ALGO MARCADO, ' + nombre + ' NO pasa hoja', r.hoja === r.antes,
+         r.antes + ' → ' + r.hoja);
+    /* Y NO SE LO LLEVA POR DELANTE, que es la otra mitad: una hoja que se
+       queda quieta borrando lo marcado es lo peor de los dos mundos, y es lo
+       que hacía el desliz —su propio soltar lo leía el repartidor de toques
+       como «tocaste en otro sitio»—. */
+    vale('  y lo marcado sigue puesto', r.trasElGesto === r.marcado,
+         '«' + r.trasElGesto + '» contra «' + r.marcado + '»');
+    vale('  y se dice por qué, con la salida', r.sale === true && /toca el pasaje/.test(r.dice || ''),
+         r.dice);
+    vale('  soltado lo marcado, ' + nombre + ' vuelve a pasar hoja',
+         r.quedaTrazo === '' && r.libreA !== r.libreDe, r.libreDe + ' → ' + r.libreA);
+  }
+
+  /* EL HUECO DEL DOBLE CLIC, que el guardia del pointerdown no alcanza.
+
+     El filo no gira al soltarlo: arma un reloj y espera los ESPERA_DOBLE por
+     si llega el segundo toque. En ese cuarto de segundo cabe un gesto entero
+     —se suelta el filo y se empieza a marcar—, y el reloj, armado cuando
+     todavía no había nada pintado, llegaba igual y se llevaba la hoja con el
+     trazo recién hecho dentro. Un guardia que mira el estado de hace un
+     cuarto de segundo no está mirando el estado. Lo levantó Codex.
+
+     Con su control, que aquí es imprescindible: si el reloj del filo no
+     estuviera vivo, «la hoja no pasó» se cumpliría sola y este bloque pasaría
+     en verde sin haber probado nada. */
+  titulo('marcar dentro del plazo del doble clic también ata la hoja');
+  await p.evaluate(() => localStorage.removeItem('glossa:marcas:v1'));
+  await p.reload();
+  await listo(p);
+  await p.evaluate(ANDAMIO_ATADURA);
+  const hueco = await p.evaluate(async () => {
+    const antes = window.__hoja();
+    /* 1. el toque del filo arma el reloj */
+    const e = document.getElementById('edgeR');
+    const c = e.getBoundingClientRect();
+    const op = { bubbles:true, cancelable:true, pointerId:320, pointerType:'touch',
+                 isPrimary:true, clientX: c.left + c.width/2, clientY: 420 };
+    e.dispatchEvent(new PointerEvent('pointerdown', op));
+    await window.__pausa(60);
+    e.dispatchEvent(new PointerEvent('pointerup', op));
+    /* 2. y EN EL ACTO se marca, sobre una palabra de verdad: empezando en el
+          filo de arriba del versículo el trazo salía « », y un espacio no es
+          una marca —la premisa no probaría nada—. */
+    const pgBody = document.getElementById('pgBody');
+    const v = document.querySelector('#pgBody .v');
+    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 40){ n = w.currentNode; break; }
+    if (!n) return { sinTexto:true };
+    const pal = (n.data.match(/[\p{L}\p{N}]{6,}/u) || [])[0];
+    if (!pal) return { sinTexto:true };
+    const i = n.data.indexOf(pal);
+    const rg = document.createRange(); rg.setStart(n, i + 2); rg.setEnd(n, i + 3);
+    const vc = rg.getBoundingClientRect();
+    const x0 = Math.round(vc.left + vc.width/2), y0 = Math.round(vc.top + vc.height/2);
+    const od = (x, y) => ({ bubbles:true, cancelable:true, pointerId:321,
+                            pointerType:'touch', isPrimary:true, clientX:x, clientY:y });
+    pgBody.dispatchEvent(new PointerEvent('pointerdown', od(x0, y0)));
+    /* PASOS DE DOCE Y NO DE SEIS, y la cifra no es cosmética: bajando de seis
+       en seis el dedo puede caer en el MISMO carácter del que salió —medido,
+       a=72 b=72— y entonces no hay tramo que pintar. Un renglón mide
+       dieciséis, así que doce garantiza que el punto se mueve de verdad. */
+    for (let j = 1; j <= 10; j++){
+      pgBody.dispatchEvent(new PointerEvent('pointermove',
+        od(x0 + (j % 3 ? -2 : 3), y0 + j * 12 + (j % 2 ? 1 : -1))));
+      await window.__pausa(14);
+    }
+    const alPintar = window.__trazo();
+    pgBody.dispatchEvent(new PointerEvent('pointerup', od(x0, y0 + 120)));
+    /* 3. y se le da al reloj del filo tiempo de sobra para vencer */
+    await window.__pausa(2400);
+    const atado = { antes, alPintar, despues: window.__hoja(), queda: window.__trazo() };
+    /* EL CONTROL: soltado lo marcado, ese mismo toque del filo sí pasa hoja. */
+    await window.__soltar();
+    const antesCtrl = window.__hoja();
+    await window.__filo();
+    return { ...atado, antesCtrl, ctrl: window.__hoja() };
+  });
+  di('el hueco del doble clic', hueco);
+  if (!hueco.sinTexto){
+    vale('(premisa) el trazo nació dentro del plazo, y es una palabra',
+         /[\p{L}\p{N}]/u.test(hueco.alPintar || ''), '«' + hueco.alPintar + '»');
+    vale('LA HOJA NO PASA aunque el reloj ya estuviera armado',
+         hueco.despues === hueco.antes, hueco.antes + ' → ' + hueco.despues);
+    vale('  y el trazo sigue vivo', hueco.queda === hueco.alPintar, '«' + hueco.queda + '»');
+    vale('CONTROL: el reloj del filo está vivo y sin marca sí pasa hoja',
+         hueco.ctrl !== hueco.antesCtrl, hueco.antesCtrl + ' → ' + hueco.ctrl);
+  }
+
+  /* ================================================================
+     LOS DOS AVISOS QUE SALEN.
+
+     Se pidió que no apareciera ningún cartel abajo salvo el que cuente algo
+     que NO se ve solo. Ese criterio dejó uno de veintitrés —el de la marca
+     que no puede cruzar de versículo— y hoy deja dos: el segundo es el de la
+     hoja que no pasa por haber algo marcado, y entra por la misma puerta,
+     sueltas el dedo y no pasa nada. Ése tiene su bloque propio más arriba;
+     aquí se prueba el primero.
+
+     Su razón de ser es la misma: en ese gesto sueltas el dedo y NO PASA NADA
+     —no se abre el panel, no queda marca—, así que sin el cartel no hay
+     manera de saber por qué. Los veintiún que se fueron contaban lo que
+     acababas de ver hacerse.
+
+     Hacen falta LOS DOS LADOS —el que sale y uno de los que se callan— porque
+     comprobar solo que uno sale pasaría igual con el filtro quitado. El otro
+     lado NO está aquí, y por dos razones que se descubrieron a golpes:
+
+     · escribir una glosa normal no manda ningún aviso, así que el «control»
+       que había aquí no controlaba nada;
+     · y el cartel dura NUEVE segundos, así que mirarlo un segundo después del
+       primero seguía viendo el primero. Daba «sale: true» con el texto de
+       antes y hacía fallar la suite con el filtro funcionando.
+
+     El control está en piedra.prueba.js, en «poner una piedra», que es un
+     gesto que sí escribe uno («piedra puesta · arrástrala…») y además lo hace
+     antes que ningún otro. Levantado en revisión. */
+  titulo('los dos avisos que salen, y los que se callan');
   /* CON LA HOJA LIMPIA, y hace falta desde que se glosa pintando.
 
      Esta pagina lleva encima las marcas de treinta bloques, y el gesto de
