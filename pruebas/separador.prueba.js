@@ -68,16 +68,14 @@ async function andamio(p){
       e.dispatchEvent(new PointerEvent('pointerup', op));
       await window.__pausa(1700);
     };
-    /* PONER UNA CINTA SON DOS PASOS DESDE QUE EL BOTÓN SE MUDÓ. Vivía en el
+    /* PONER UNA CINTA ES ABRIR LA LISTA Y PEDIRLA AHÍ. El botón vivía en el
        renglón del rastro, al lado del paso atrás; ahora vive DENTRO de la
-       lista de cintas, que es donde se está mirando las que hay. El camino de
-       verdad es: abrir el rastro, abrir la lista, y ahí pedirla. Se envuelve
-       aquí para que las quince llamadas de este fichero no tengan que
-       aprenderse el camino cada una. */
+       lista de cintas, que es donde se está mirando las que hay.
+       Y la lista ya no cuelga del pie del rastro: su puerta es el punto de
+       arriba a la derecha de la escena (#btnCintas), así que el rodeo por el
+       rastro se fue de aquí. Se envuelve para que las quince llamadas de este
+       fichero no tengan que aprenderse el camino cada una. */
     window.__nuevaCinta = async () => {
-      if (!document.getElementById('historial').classList.contains('visible')){
-        await window.__toque('#btnHistorial'); await window.__pausa(600);
-      }
       if (!document.getElementById('sepMenu').classList.contains('visible')){
         await window.__toque('[data-sep-lista]'); await window.__pausa(700);
       }
@@ -237,7 +235,6 @@ async function ponerAMano(p){
        son el mismo asunto y estaban en dos sitios distintos; ahora la lista es
        la única puerta y el botón de añadir está dentro, que es donde se busca
        cuando ya estás mirando las que hay. */
-    await window.__toque('#btnHistorial'); await window.__pausa(600);
     await window.__toque('[data-sep-lista]'); await window.__pausa(700);
     const b = document.querySelector('#sepMenu [data-sep-nuevo]');
     const menu = document.getElementById('sepMenu');
@@ -716,7 +713,9 @@ async function ponerAMano(p){
 
      Hasta ahora la lista sólo se abría tocando la cinta, y la cinta sólo asoma
      en la hoja donde está: para ver las demás había que acertar a llegar a
-     una. El pie del rastro es la puerta que faltaba.
+     una. La puerta que faltaba estuvo primero en el pie del rastro —dentro de
+     otro panel, o sea a dos toques y un rodeo— y ahora es el punto de arriba a
+     la derecha de la escena.
 
      Y una cinta se nombra. Lo que hay que vigilar de eso no es que el campo
      salga —eso se ve— sino las tres reglas que se rompen solas:
@@ -726,7 +725,7 @@ async function ponerAMano(p){
        es la única manera de deshacer uno puesto por error;
      · y Escape sale sin tocar nada.
      ================================================================ */
-  titulo('la lista de cintas se abre desde el pie del rastro');
+  titulo('la lista de cintas se abre desde su punto de la esquina');
   await p.evaluate(() => {
     const hoy = Date.now();
     /* Estado de partida, no gesto: dos cintas puestas a mano en el almacén. */
@@ -737,43 +736,55 @@ async function ponerAMano(p){
   });
   await abrirEn(p, 'MAT', 1, 1);
 
+  /* LA PUERTA SE MUDÓ AL PUNTO DE ARRIBA A LA DERECHA. Estuvo en el pie del
+     rastro, o sea DENTRO de otro panel, y por eso este bloque exigía que el
+     rastro se quedara abierto detrás: cerrarlo para enseñar la lista habría
+     hecho desaparecer entero el sitio de donde había salido.
+     Ahora la lista tiene su propia esquina y son dos paneles hermanos: se abre
+     de un toque, sin rastro de por medio, y si el rastro estaba puesto se
+     cierra —lo cierra su vigilante del toque de fuera, porque un punto de la
+     escena no es parte de él—. Se empieza con el rastro ABIERTO justamente
+     para medir ese caso, que es el que cambió de sentido. */
   const puerta = await p.evaluate(async () => {
     await window.__toque('#btnHistorial');
     await window.__pausa(600);
-    const b = document.querySelector('#historial [data-sep-lista]');
+    const b = document.getElementById('btnCintas');
     if (!b) return { hay:false };
+    const st = document.querySelector('.stage').getBoundingClientRect();
+    const rb = b.getBoundingClientRect();
+    const enLaEsquina = rb.top - st.top < 24 && st.right - rb.right < 24;
     await window.__toque(b);
     await window.__pausa(700);
     const m = document.getElementById('sepMenu');
     const r = m.getBoundingClientRect();
-    const st = document.querySelector('.stage').getBoundingClientRect();
     const h = document.getElementById('historial');
-    const rh = h.getBoundingClientRect();
     return { hay:true, visible: m.classList.contains('visible'),
-             /* EL RASTRO SE QUEDA DETRÁS. Cerrarlo para enseñar la lista era
-                demasiada carga visual de golpe: desaparecía entero lo que se
-                estaba mirando. Y el menú tiene que quedar POR ENCIMA, o
-                quedarse abierto detrás no serviría de nada. */
+             enLaEsquina, esPuerta: b.matches('[data-sep-lista]'),
+             encendido: b.classList.contains('abierto'),
+             /* Y EL RASTRO SE VA. Es lo contrario de lo que exigía este mismo
+                bloque cuando la puerta vivía en su pie, y es a propósito. */
              rastro: h.classList.contains('visible') &&
                      getComputedStyle(h).display !== 'none',
-             menuEncima: +getComputedStyle(m).zIndex > +getComputedStyle(h).zIndex,
-             seSolapan: !(r.right <= rh.left || r.left >= rh.right ||
-                          r.bottom <= rh.top || r.top >= rh.bottom),
              telas: m.querySelectorAll('.sp-tela').length,
              filas: m.querySelectorAll('.sp-fila').length,
              /* Ya no hay lápices: la fila es un solo botón y lo que hacía el
                 lápiz se pide con doble toque. Se cuenta para que, si alguien los
                 devuelve, esta prueba lo diga. */
              lapices: m.querySelectorAll('[data-sep-renombrar]').length,
-             /* Colgado del botón, que vive abajo del todo: si el menú se
-                colocara SIEMPRE debajo de su ancla, aquí no cabría y saldría
-                aplastado contra el borde tapando el propio botón. */
+             /* Colgado del punto, que vive arriba del todo: el menú cae por
+                debajo de su ancla y tiene que caber entero de todas formas. */
              cabe: r.top >= st.top - 1 && r.bottom <= st.bottom + 1 &&
-                   r.left >= st.left - 1 && r.right <= st.right + 1 };
+                   r.left >= st.left - 1 && r.right <= st.right + 1,
+             /* Y del lado derecho, que es de donde nació. */
+             porLaDerecha: st.right - r.right < 24 };
   });
-  di('el menú desde el pie', puerta);
-  vale('el pie del rastro trae el botón', puerta.hay === true);
+  di('el menú desde el punto', puerta);
+  vale('el punto de arriba a la derecha es la puerta',
+       puerta.hay === true && puerta.esPuerta === true &&
+       puerta.enLaEsquina === true, puerta);
   vale('y abre el menú', puerta.visible === true);
+  vale('y el punto se enciende con él', puerta.encendido === true, puerta);
+  vale('y el menú sale de su lado', puerta.porLaDerecha === true, puerta);
   /* En modo lista no hay «esta cinta» cuyo color cambiar: enseñar la paleta
      sería ofrecer un mando que no manda nada. */
   vale('sin paleta de color, que no se vino de una cinta', puerta.telas === 0, puerta.telas);
@@ -786,27 +797,24 @@ async function ponerAMano(p){
   vale('con las dos cintas, y sin lápices en las filas',
        puerta.filas === 2 && puerta.lapices === 0, puerta);
   vale('y el menú cabe entero en la escena', puerta.cabe === true, puerta);
-  vale('EL RASTRO SE QUEDA ABIERTO DETRÁS', puerta.rastro === true, puerta);
-  vale('y el menú le pasa por encima', puerta.menuEncima === true, puerta);
+  vale('y el rastro se cierra, que ya no es su casa', puerta.rastro === false, puerta);
 
-  /* El botón es la puerta, y una puerta que solo abre deja al lector buscando
-     por dónde se sale: el segundo toque la cierra. Se mide en las dos
-     direcciones —cierra el menú, NO cierra el rastro— porque el fallo que se
-     vigila aquí es justo el de llevárselos a los dos. */
+  /* El punto es la puerta, y una puerta que solo abre deja al lector buscando
+     por dónde se sale: el segundo toque la cierra, y con ella se apaga el
+     punto. El tercero la abre otra vez. */
   const segundoToque = await p.evaluate(async () => {
-    await window.__toque('#historial [data-sep-lista]');
+    await window.__toque('#btnCintas');
     await window.__pausa(600);
     const menu = document.getElementById('sepMenu').classList.contains('visible');
-    const rastro = document.getElementById('historial').classList.contains('visible');
-    /* Y el tercero lo vuelve a abrir, que es lo que hace una puerta. */
-    await window.__toque('#historial [data-sep-lista]');
+    const apagado = !document.getElementById('btnCintas').classList.contains('abierto');
+    await window.__toque('#btnCintas');
     await window.__pausa(600);
-    return { menu, rastro,
+    return { menu, apagado,
              deVuelta: document.getElementById('sepMenu').classList.contains('visible') };
   });
   di('el segundo toque', segundoToque);
   vale('el segundo toque cierra la lista', segundoToque.menu === false, segundoToque);
-  vale('y deja el rastro donde estaba', segundoToque.rastro === true, segundoToque);
+  vale('y apaga el punto', segundoToque.apagado === true, segundoToque);
   vale('el tercero la abre otra vez', segundoToque.deVuelta === true, segundoToque);
 
   titulo('una cinta se nombra, y el nombre no la mueve de sitio');
@@ -873,16 +881,12 @@ async function ponerAMano(p){
      medidas en las dos direcciones.
      ================================================================ */
   titulo('escribir un nombre y tocar fuera: se guarda igual');
-  /* Se mira antes de tocar. Los dos botones ALTERNAN, y desde que la lista no
-     cierra el rastro los dos pueden llegar aquí ya abiertos: tocarlos a ciegas
-     cerraría lo que se viene a abrir. */
+  /* Se mira antes de tocar. El punto ALTERNA, y la lista puede llegar aquí ya
+     abierta de un bloque anterior: tocarlo a ciegas cerraría justo lo que se
+     viene a abrir. */
   const abrirLista = () => p.evaluate(async () => {
-    if (!document.getElementById('historial').classList.contains('visible')){
-      await window.__toque('#btnHistorial');
-      await window.__pausa(600);
-    }
     if (!document.getElementById('sepMenu').classList.contains('visible')){
-      await window.__toque('#historial [data-sep-lista]');
+      await window.__toque('#btnCintas');
       await window.__pausa(700);
     }
   });
@@ -1018,26 +1022,24 @@ async function ponerAMano(p){
   vale('y la fila enseña lo que dice el aviso', conOtraPestana.enLaFila === true);
 
   /* ================================================================
-     EL RENGLÓN DE LOS BOTONES, Y LAS CUATRO TELAS DEL PIE.
+     EL RASTRO SE QUEDÓ CON LO SUYO, Y LAS DOS PUERTAS SE FUERON ARRIBA.
 
-     Dos cosas de sitio, y las dos se miden porque una hoja de estilos no
-     avisa cuando deja de cumplirlas.
+     Este bloque medía el PIE del rastro —dos botones, «piedras» y «cintas»,
+     con su manojo de telas y de figuras—, y ese pie ya no existe: las dos
+     listas se abren desde los dos puntos de las esquinas de arriba de la
+     escena. Lo que se mide ahora es lo que queda en pie de aquello:
 
-     · LOS DOS BOTONES EN UN RENGLÓN. El paso atrás vivía arriba con el rótulo
-       y el del separador debajo, en su propio renglón. Los tres juntos no
-       cabían —está medido en el código— porque «separador» es una palabra
-       larga; llamándolo «nuevo» caben los dos y el panel gana un renglón. Se
-       exige que compartan la línea Y que no desborden el panel: forzarlos a
-       una línea sin mirar el ancho es cambiar un renglón de más por un botón
-       cortado.
-     · EL PIE ENSEÑA LA COLECCIÓN. Llevaba UNA cinta, el mismo dibujo que el
-       botón de poner una, así que no distinguía «pon una» de «velas todas».
-       Ahora lleva una de cada color, sacadas de TELAS.
+     · que el rastro NO lleve pie ni ninguna de las dos puertas, que es lo que
+       se rompería primero si alguien devolviera pieSeparadores;
+     · que el paso atrás siga solo en su renglón y sin desbordar el panel;
+     · y que las dos puertas existan, estén en las esquinas de arriba y una a
+       cada lado —que es lo único que las distingue, porque un punto no lleva
+       rótulo—.
 
      El rastro se siembra a mano: hace falta que HAYA paso atrás, y eso pide un
      salto previo. Se hace al final de la tanda para no moverle el rastro a los
      bloques de arriba. */
-  titulo('los tres botones comparten renglón, y el pie enseña las dos familias');
+  titulo('el rastro se queda con el paso atrás, y las puertas viven arriba');
   await p.evaluate(async () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await window.__pausa(400);
@@ -1056,13 +1058,15 @@ async function ponerAMano(p){
     const cab = panel.querySelector('.hs-cab');
     const acciones = panel.querySelector('.hs-acciones');
     const atras = panel.querySelector('.hs-atras');
-    const lista = panel.querySelector('[data-sep-lista]');
-    const listaP = panel.querySelector('[data-piedra-lista]');
-    if (!atras || !lista || !listaP)
-      return { falta:true, atras:!!atras, listaP:!!listaP };
+    if (!atras) return { falta:true, atras:false };
+    const st = document.querySelector('.stage').getBoundingClientRect();
+    const cintas = document.getElementById('btnCintas');
+    const piedras = document.getElementById('btnPiedras');
+    if (!cintas || !piedras)
+      return { falta:true, atras:true, cintas:!!cintas, piedras:!!piedras };
     const r = e => e.getBoundingClientRect();
     const rp = r(panel), ra = r(atras);
-    const rl = r(lista), rlp = r(listaP);
+    const rc = r(cintas), rpi = r(piedras);
     const rx = panel.querySelector('[data-sp-cerrar]');
     return {
       rotuloSolo: cab.children.length === 1,
@@ -1083,21 +1087,27 @@ async function ponerAMano(p){
                    atras.parentElement === acciones,
       sinLosDePoner: !panel.querySelector('[data-sep-nuevo]') &&
                      !panel.querySelector('[data-piedra-nueva]'),
-      dentro: [ra, rl, rlp].every(x =>
-                x.left >= rp.left - 1 && x.right <= rp.right + 1),
+      /* NI PIE NI PUERTAS DENTRO DEL RASTRO. Lo primero que se rompería si
+         alguien devolviera aquel pie. */
+      sinPie: !panel.querySelector('.hs-pie') &&
+              !panel.querySelector('[data-sep-lista]') &&
+              !panel.querySelector('[data-piedra-lista]'),
+      dentro: ra.left >= rp.left - 1 && ra.right <= rp.right + 1,
       panel: Math.round(rp.width),
-      /* El pie: dos puertas, una por familia, cada una con su manojo. */
-      pie: lista.textContent.trim(),
-      pieP: listaP.textContent.trim(),
-      pieUnRenglon: Math.abs(rl.top - rlp.top) < 8,
-      telas: [...lista.querySelectorAll('.hs-sep-cinta')]
-               .map(c => getComputedStyle(c).backgroundColor),
-      formas: listaP.querySelectorAll('svg').length,
-      formasCrudas: true
+      /* LAS DOS PUERTAS, ARRIBA Y UNA A CADA LADO. Un punto no lleva rótulo:
+         lo único que dice cuál es cuál es dónde está, así que es lo que se
+         mide. El margen de 24 da para los 8 de la pantalla ancha y los 10 del
+         teléfono, más el ancho del propio punto. */
+      puertas: cintas.matches('[data-sep-lista]') &&
+               piedras.matches('[data-piedra-lista]'),
+      arriba: (rc.top - st.top) < 24 && (rpi.top - st.top) < 24,
+      aCadaLado: (rpi.left - st.left) < 24 && (st.right - rc.right) < 24,
+      /* Y a la misma altura, como los dos de abajo. */
+      aLaPar: Math.abs(rc.top - rpi.top) < 2
     };
   });
-  di('el renglón de los botones', renglon);
-  vale('están el paso atrás y las dos puertas del pie', renglon.falta !== true, renglon);
+  di('el rastro y las dos puertas', renglon);
+  vale('están el paso atrás y los dos puntos', renglon.falta !== true, renglon);
   vale('el rótulo se queda solo arriba', renglon.rotuloSolo === true);
   vale('EL RASTRO TIENE SU EQUIS, arriba a la derecha',
        !!renglon.aspa && renglon.aspa.arriba <= 8 && renglon.aspa.derecha <= 8,
@@ -1106,17 +1116,14 @@ async function ponerAMano(p){
        !!renglon.aspa && renglon.aspa.lado >= 30, renglon.aspa);
   vale('EL RASTRO SOLO LLEVA EL PASO ATRÁS', renglon.soloElAtras === true, renglon);
   vale('  y ni rastro de los de poner', renglon.sinLosDePoner === true);
+  vale('  ni del pie con las dos puertas, que se fue arriba',
+       renglon.sinPie === true, renglon);
   vale('nada se sale del panel', renglon.dentro === true);
-  /* CADA BOTÓN DICE LO QUE DEJA. Con dos familias, dos botones que dijeran
-     «nuevo» no se distinguirían: el nombre es la cosa. */
-  vale('el pie tiene dos puertas, una por familia',
-       renglon.pie === 'cintas' && renglon.pieP === 'piedras',
-       renglon.pieP + ' | ' + renglon.pie);
-  vale('y las dos en un renglón', renglon.pieUnRenglon === true);
-  vale('la de cintas, con UNA TELA DE CADA COLOR',
-       (renglon.telas || []).length === 4 && new Set(renglon.telas).size === 4,
-       renglon.telas);
-  vale('la de piedras, con tres figuras de muestra', renglon.formas === 3, renglon.formas);
+  /* CADA PUNTO ES SU PUERTA, y lo que dice cuál es cuál es DÓNDE está. */
+  vale('las dos puertas son los dos puntos de arriba', renglon.puertas === true, renglon);
+  vale('  arriba los dos', renglon.arriba === true, renglon);
+  vale('  y uno a cada lado', renglon.aCadaLado === true, renglon);
+  vale('  a la misma altura, como los de abajo', renglon.aLaPar === true, renglon);
 
   /* Y QUE LA EQUIS CIERRE, que es la mitad que importa: un aspa que se ve y no
      cierra es peor que no ponerla. Con el gesto de un dedo, no con .click(). */
@@ -1150,9 +1157,6 @@ async function ponerAMano(p){
       return { x:Math.round(r.left), y:Math.round(r.top),
                w:Math.round(r.width), h:Math.round(r.height) }; };
     const mirar = async (abridor, panelId, nuevaSel) => {
-      if (!document.getElementById('historial').classList.contains('visible')){
-        await window.__toque('#btnHistorial'); await window.__pausa(600);
-      }
       await window.__toque(abridor); await window.__pausa(800);
       const p = document.getElementById(panelId);
       const n = p.querySelector(nuevaSel), x = p.querySelector('[data-sp-cerrar]');
@@ -1806,7 +1810,6 @@ async function ponerAMano(p){
   await vp.waitForTimeout(3000);
   await andamio(vp);
   const mirarIrse = await vp.evaluate(async () => {
-    await window.__toque('#btnHistorial'); await window.__pausa(600);
     await window.__toque('[data-sep-lista]'); await window.__pausa(700);
     const sm = document.getElementById('sepMenu');
     const fila = sm.querySelector('[data-sep-ir]');

@@ -66,14 +66,13 @@ async function andamio(p){
       e.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, op)));
       return true;
     };
-    /* PONER UNA PIEDRA SON DOS PASOS DESDE QUE EL BOTÓN SE MUDÓ: vivía en el
-       renglón del rastro y ahora vive DENTRO de la lista de piedras, que es
-       donde se está mirando las que hay. El camino de verdad es abrir el
-       rastro, abrir la lista, y ahí pedirla. */
+    /* PONER UNA PIEDRA ES ABRIR LA LISTA Y PEDIRLA AHÍ. El botón de poner
+       vivía en el renglón del rastro y se mudó DENTRO de la lista, que es
+       donde se está mirando las que hay.
+       Y la lista ya no cuelga del pie del rastro: su puerta es el punto de
+       arriba a la izquierda de la escena (#btnPiedras). Por eso este andamio
+       dejó de abrir el rastro primero: era un rodeo que ya no existe. */
     window.__nuevaPiedra = async () => {
-      if (!document.getElementById('historial').classList.contains('visible')){
-        await window.__toque('#btnHistorial'); await window.__pausa(600);
-      }
       if (!document.getElementById('piedraMenu').classList.contains('visible')){
         await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
       }
@@ -1126,7 +1125,6 @@ async function andamio(p){
   const lapiz = await p.evaluate(async () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await window.__pausa(400);
-    await window.__toque('#btnHistorial'); await window.__pausa(600);
     await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
     const f = document.querySelector('#piedraMenu [data-piedra-ir]');
     if (!f) return { sinFila:true };
@@ -1134,15 +1132,22 @@ async function andamio(p){
        en un navegador sin pantalla no lo hay, y visualViewport no encoge por
        su cuenta. Lo que sí se puede exigir —y es lo que se rompería primero si
        alguien enreda la cuenta— es que sin teclado NO se escriba --sube y el
-       panel siga anclado por abajo donde estaba. Crecer sí crece: la fila
-       abierta ocupa más y colocarPiedraMenu lo recoloca; por eso se mira el
-       BORDE DE ABAJO y no el de arriba. */
+       panel siga anclado donde estaba. Crecer sí crece: la fila abierta ocupa
+       más y colocarPiedraMenu lo recoloca.
+
+       SE MIRA EL BORDE DE ARRIBA, Y ANTES ERA EL DE ABAJO. No es que la
+       prueba se haya ablandado: es que el panel cambió de ancla. Colgaba del
+       botón del pie del rastro, que vivía abajo del todo, y desde ahí no cabía
+       por debajo y colocarPiedraMenu lo ponía ENCIMA —o sea pegado por el
+       pie—. Ahora cuelga del punto de arriba a la izquierda y cae por debajo
+       de él, así que el borde quieto es el de arriba y es lo que hay que
+       exigir: creciendo hacia abajo, el de abajo TIENE que moverse. */
     const cajaAntes = document.getElementById('piedraMenu').getBoundingClientRect();
     if (!await window.__abrirFila(f.dataset.piedraIr)) return { noAbre:true };
     const cajaTras = document.getElementById('piedraMenu').getBoundingClientRect();
     const teclado = { sube: document.getElementById('piedraMenu').style.getPropertyValue('--sube'),
-                      pieAntes: Math.round(cajaAntes.bottom),
-                      pieTras: Math.round(cajaTras.bottom),
+                      techoAntes: Math.round(cajaAntes.top),
+                      techoTras: Math.round(cajaTras.top),
                       /* Y tampoco se desplaza POR DENTRO: cuando el tope de
                          arriba no basta, lo que sobra se le pide al panel; sin
                          teclado no sobra nada y la lista tiene que quedarse
@@ -1168,7 +1173,7 @@ async function andamio(p){
   di('el desplazamiento del teclado', lapiz.teclado);
   vale('SIN TECLADO el panel no se desplaza',
        !!lapiz.teclado && lapiz.teclado.sube === '' &&
-       lapiz.teclado.pieAntes === lapiz.teclado.pieTras &&
+       lapiz.teclado.techoAntes === lapiz.teclado.techoTras &&
        lapiz.teclado.rodado === 0, lapiz.teclado);
 
   /* ----------------------------------------------------------------
@@ -1233,7 +1238,6 @@ async function andamio(p){
     let ALTO = window.innerHeight, DESP = 0;
     Object.defineProperty(vv, 'height',    { configurable:true, get: () => ALTO });
     Object.defineProperty(vv, 'offsetTop', { configurable:true, get: () => DESP });
-    await toque('#btnHistorial'); await pausa(600);
     await toque('[data-piedra-lista]'); await pausa(800);
     const el = document.getElementById('piedraMenu');
     const filas = () => [...document.querySelectorAll('#piedraMenu [data-piedra-ir]')];
@@ -1667,17 +1671,29 @@ async function andamio(p){
   vale('y no vuelve en modo edición', tras.editando === false);
 
   /* ---------------------------------------------------------------- */
-  titulo('la lista de piedras, desde el pie del rastro');
+  /* LA PUERTA SE MUDÓ AL PUNTO DE ARRIBA A LA IZQUIERDA. Estaba en el pie del
+     rastro, o sea dentro de otro panel: para ver tus piedras había que abrir
+     el rastro, bajar al fondo y tocar. Ahora es una esquina de la escena y se
+     abre de un toque, sin rastro de por medio.
+     Se comprueba con el rastro ABIERTO a propósito: es el caso que cambió de
+     sentido. Antes la lista nacía dentro de él y tenía que dejarlo puesto
+     detrás; ahora son dos paneles hermanos y a la vez sólo hace falta uno, así
+     que tocar el punto lo cierra —lo cierra su propio vigilante del toque de
+     fuera, porque un punto de la escena no es parte del rastro—. */
+  titulo('la lista de piedras, desde su punto de la esquina');
   const lista = await p.evaluate(async () => {
     await window.__toque('#btnHistorial'); await window.__pausa(600);
-    const b = document.querySelector('[data-piedra-lista]');
+    const b = document.getElementById('btnPiedras');
     if (!b) return { falta:true };
-    const rotulo = b.textContent.trim();
+    const puerta = b.matches('[data-piedra-lista]');
+    const rc = b.getBoundingClientRect();
+    const st = document.querySelector('.stage').getBoundingClientRect();
+    const arriba = rc.top - st.top < 24 && rc.left - st.left < 24;
     await window.__toque(b); await window.__pausa(700);
     const m = document.getElementById('piedraMenu');
-    const st = document.querySelector('.stage').getBoundingClientRect();
     const r = m.getBoundingClientRect();
-    return { rotulo, visible: m.classList.contains('visible'),
+    return { puerta, arriba, visible: m.classList.contains('visible'),
+             encendido: b.classList.contains('abierto'),
              filas: m.querySelectorAll('[data-piedra-ir]').length,
              dice: (m.querySelector('.sp-ref') || {}).textContent,
              rastro: document.getElementById('historial').classList.contains('visible'),
@@ -1685,13 +1701,14 @@ async function andamio(p){
                    r.left >= st.left - 1 && r.right <= st.right + 1 };
   });
   di('la lista', lista);
-  vale('el pie trae su puerta', lista.rotulo === 'piedras', lista.falta || lista.rotulo);
+  vale('el punto de arriba a la izquierda es su puerta',
+       lista.puerta === true && lista.arriba === true, lista.falta || lista);
   vale('y abre la lista', lista.visible === true);
+  vale('y el punto se enciende con ella', lista.encendido === true);
   vale('con su fila y su referencia',
        lista.filas === 1 && /\d+:\d+/.test(lista.dice || ''), lista.dice);
-  /* Igual que la de cintas: el rastro se queda detrás, que cerrarlo era
-     demasiada carga visual de golpe. */
-  vale('el rastro se queda abierto detrás', lista.rastro === true);
+  /* Y el rastro se va: ya no es el sitio de donde salió esto. */
+  vale('el rastro se cierra, que ya no es su casa', lista.rastro === false);
   vale('y cabe entera en la escena', lista.cabe === true);
 
   /* BORRAR PREGUNTA ANTES, Y ES LO QUE MÁS IMPORTA DE ESTE BLOQUE. La equis de
@@ -1773,9 +1790,6 @@ async function andamio(p){
       await window.__pausa(400);
     }
     if (!document.getElementById('piedraMenu').classList.contains('visible')){
-      if (!document.getElementById('historial').classList.contains('visible')){
-        await window.__toque('#btnHistorial'); await window.__pausa(600);
-      }
       await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
     }
     /* EL LÁPIZ SE FUE Y AHORA SON FILAS: el nodo bajo el dedo es la fila de la
@@ -1827,9 +1841,6 @@ async function andamio(p){
       await window.__pausa(400);
     }
     if (!document.getElementById('piedraMenu').classList.contains('visible')){
-      if (!document.getElementById('historial').classList.contains('visible')){
-        await window.__toque('#btnHistorial'); await window.__pausa(600);
-      }
       await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
     }
     const fila = document.querySelector('#piedraMenu [data-piedra-ir]');
@@ -1874,9 +1885,6 @@ async function andamio(p){
   const conTeclado = await p.evaluate(async () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await window.__pausa(400);
-    if (!document.getElementById('historial').classList.contains('visible')){
-      await window.__toque('#btnHistorial'); await window.__pausa(600);
-    }
     await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
     const pm = document.getElementById('piedraMenu');
     const alcanzable = [...pm.querySelectorAll('button, input')].length;
@@ -2424,7 +2432,6 @@ async function andamio(p){
   await vj.waitForTimeout(3000);
   await andamio(vj);
   const mirarIrse = await vj.evaluate(async () => {
-    await window.__toque('#btnHistorial'); await window.__pausa(600);
     await window.__toque('[data-piedra-lista]'); await window.__pausa(700);
     const pm = document.getElementById('piedraMenu');
     const fila = pm.querySelector('[data-piedra-ir]');
@@ -2491,7 +2498,6 @@ async function andamio(p){
     const vv = window.visualViewport;
     const ALTO = 500;
     Object.defineProperty(vv, 'height', { configurable:true, get: () => ALTO });
-    await window.__toque('#btnHistorial'); await window.__pausa(600);
     await window.__toque('[data-piedra-lista]'); await window.__pausa(800);
     const filas = [...document.querySelectorAll('#piedraMenu [data-piedra-ir]')];
     if (!filas.length) return { sinFilas:true };

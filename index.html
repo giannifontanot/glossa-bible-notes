@@ -927,7 +927,11 @@
   /* Y las dos esquinas de abajo se quitan de en medio mientras dura: la
      derecha se la quedan los botones de hoja, y la izquierda el propio botón
      del zoom, que se queda para poder salir también por donde entraste. */
-  .stage.zoom #btnHistorial, .stage.zoom #btnVolver{ display:none !important; }
+  /* Y las dos de arriba se van con ellos: de lejos no hay a qué volver desde
+     una lista —el papel está entero en la pantalla— y dos puntos más en las
+     esquinas compiten con lo único que se viene a hacer aquí, que es mirar. */
+  .stage.zoom #btnHistorial, .stage.zoom #btnVolver,
+  .stage.zoom #btnPiedras, .stage.zoom #btnCintas{ display:none !important; }
 
   /* LAS DOS ESQUINAS DE ABAJO, EN PUNTOS. Tenían dibujo —un menos dentro de un
      círculo y una flecha girando— y el dibujo no estaba aportando: a ese
@@ -938,25 +942,50 @@
      Así que se quedan en lo que hacía falta: un punto gordo que dice "aquí hay
      algo que tocar" y nada más. El blanco de toque no encoge —el círculo va
      entero, es la tinta la que se retira—. */
-  #btnZoom, #btnHistorial{ position:absolute; bottom:8px; z-index:7;
+  #btnZoom, #btnHistorial, #btnPiedras, #btnCintas{
+            position:absolute; z-index:7;
             width:34px; height:34px; padding:0; cursor:pointer;
             display:flex; align-items:center; justify-content:center;
             background:transparent; border:0; border-radius:50%;
             -webkit-tap-highlight-color:transparent;
             -webkit-user-select:none; user-select:none; }
+  #btnZoom, #btnHistorial{ bottom:8px; }
   #btnZoom{ left:8px; }
   #btnHistorial{ right:8px; }
-  #btnZoom::before, #btnHistorial::before{ content:''; display:block;
+  /* ARRIBA LA CAJA ES MÁS BAJA, y esto no es gusto: es el titulillo.
+
+     En pantalla ancha el titulillo vive pegado al canto de arriba a la
+     derecha —empieza a 22 px del borde y mide 17—, y es un BOTÓN: abre
+     LIBROS. Con los 34 px de alto de los de abajo, el blanco de toque del
+     punto de las cintas le caía encima y le robaba un tercio de su ancho: el
+     punto se llevaba toques que iban al titulillo, sin que nada lo enseñara.
+     Probado con el ancla a 8 px del canto, que es lo que se pidió por
+     simetría, y por eso se descartó.
+
+     22 de alto dejan el punto entero DENTRO de la banda de papel que hay por
+     encima del titulillo, con aire de sobra y sin tocarlo. El ancho se queda
+     en 34, que es lo que los alinea con los dos de abajo, y arriba no hay nada
+     más con qué chocar. En el teléfono el titulillo va centrado sobre la
+     columna, las esquinas están libres y allí sí van los 44 de siempre —ver el
+     bloque del teléfono—. */
+  #btnPiedras, #btnCintas{ top:0; height:22px; }
+  #btnPiedras{ left:8px; }
+  #btnCintas{ right:8px; }
+  #btnZoom::before, #btnHistorial::before,
+  #btnPiedras::before, #btnCintas::before{ content:''; display:block;
             width:11px; height:11px; border-radius:50%;
             background:#a98f57; opacity:.62;
             transition:opacity .28s cubic-bezier(.65,0,.35,1),
                        background .28s cubic-bezier(.65,0,.35,1),
                        transform .28s cubic-bezier(.3,.8,.4,1); }
-  #btnZoom:hover::before, #btnHistorial:hover::before{ opacity:1; transform:scale(1.18); }
-  #btnZoom:active::before, #btnHistorial:active::before{ transform:scale(.9); }
+  #btnZoom:hover::before, #btnHistorial:hover::before,
+  #btnPiedras:hover::before, #btnCintas:hover::before{ opacity:1; transform:scale(1.18); }
+  #btnZoom:active::before, #btnHistorial:active::before,
+  #btnPiedras:active::before, #btnCintas:active::before{ transform:scale(.9); }
   /* Abierto, el punto se pone del marrón macizo del programa: el mismo idioma
      que un botón cumplido en el panel. */
-  #btnZoom.abierto::before, #btnHistorial.abierto::before{
+  #btnZoom.abierto::before, #btnHistorial.abierto::before,
+  #btnPiedras.abierto::before, #btnCintas.abierto::before{
             background:#b8892b; opacity:1; transform:scale(1.25); }
   /* Y de lejos, el botón que abrió el zoom se va: ya no hay nada que abrir, se
      sale tocando el hueco, y un control encendido que no lleva a ningún sitio
@@ -1129,9 +1158,17 @@
        que es lo que necesita el pulgar; la tinta baja a 9, que es lo que
        necesita una señal discreta que no compita con el papel. En pantalla
        ancha se quedan como estaban, que ahí ya estaban bien. */
-    #btnZoom, #btnHistorial{ width:44px; height:44px; bottom:10px; }
+    #btnZoom, #btnHistorial, #btnPiedras, #btnCintas{ width:44px; height:44px; }
+    #btnZoom, #btnHistorial{ bottom:10px; }
     #btnZoom{ left:10px; } #btnHistorial{ right:10px; }
-    #btnZoom::before, #btnHistorial::before{ width:9px; height:9px; }
+    /* Aquí arriba sí caben los 44 enteros: el titulillo del teléfono no está
+       en la esquina, va centrado sobre la columna de texto (ver el bloque de
+       los rótulos). Así que las cuatro esquinas quedan iguales, que es como
+       se pidieron. */
+    #btnPiedras, #btnCintas{ top:10px; height:44px; }
+    #btnPiedras{ left:10px; } #btnCintas{ right:10px; }
+    #btnZoom::before, #btnHistorial::before,
+    #btnPiedras::before, #btnCintas::before{ width:9px; height:9px; }
     #btnVolver{ bottom:58px; }
     /* 10 de hueco: el mismo aire que hay entre el historial y el borde.
        10 + 44 + 10 = 64. */
@@ -1560,12 +1597,13 @@
      como una zona, y el rótulo repetía tres veces lo que la figura ya dice.
      Después fue un botón claro con su recuadro, del ancho de su palabra.
 
-     Ahora es LA MISMA PIEZA que .hs-sep, el botón del rastro que abre esta
-     lista: misma píldora, misma letra en versalita, mismo color y mismo alto.
-     La razón es que son la misma familia de cosa —«cintas» te trae aquí,
-     «nueva» deja una— y dos formas distintas para dos acciones hermanas
-     obligan a aprender dos veces. Y estando el uno a un dedo del otro, la
-     diferencia se veía.
+     Ahora es la píldora en versalita que se ve aquí. Nació copiada de .hs-sep
+     —el botón del pie del rastro que abría esta lista— para que la puerta por
+     la que entrabas y el botón de dentro fueran la misma pieza: son la misma
+     familia de cosa, «cintas» te trae aquí y «nueva» deja una, y estando el
+     uno a un dedo del otro la diferencia se veía. Aquella puerta ya no existe
+     —ahora es un punto en la esquina, ver #btnCintas— pero la píldora se
+     queda: era lo que estaba bien de las tres formas que probó.
 
      A LA DERECHA, que es donde cae el pulgar y donde no estorba al rótulo del
      panel: el título se lee de izquierda a derecha y el botón espera al final
@@ -1691,21 +1729,6 @@
      desbordarse el panel por el lado—. */
   .hs-acciones{ display:flex; align-items:center; justify-content:flex-end;
                 flex-wrap:wrap; gap:8px; padding:0 3px 7px; }
-  .hs-sep{ flex:0 0 auto; display:inline-flex; align-items:center; gap:6px;
-           min-height:34px; font:600 12px/1 var(--ui); letter-spacing:.06em;
-           text-transform:uppercase;
-           color:#6d5a2c; background:rgba(140,116,68,.13);
-           border:1px solid rgba(140,116,68,.4); border-radius:999px;
-           padding:7px 13px; cursor:pointer;
-           -webkit-tap-highlight-color:transparent; }
-  .hs-sep:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
-  .hs-sep:active{ transform:translateY(1px); }
-  .hs-sep-cinta{ flex:0 0 auto; width:8px; height:14px; background:#9b2a2a;
-                 clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%); }
-  /* EL MANOJO. Van casi pegadas —2 px— porque lo que tienen que leerse es
-     «unas cuantas cintas», no cuatro adornos sueltos: con el hueco de 6 del
-     botón parecían una fila de banderitas. */
-  .hs-cintas{ flex:0 0 auto; display:inline-flex; align-items:center; gap:2px; }
 /* ---------- las piedras ---------- */
   /* LA CAPA NO TOCA NADA. Cubre el papel entero para poder colocar por
      porcentaje, y deja pasar todo: sin pointer-events:none se comería el
@@ -1908,15 +1931,6 @@
     .pm-sombra{ font-size:13px; }
     .pm-sombra input{ width:19px; height:19px; }
   }
-  /* El manojo de formas del botón del pie, como el de las telas. */
-  .hs-formas{ flex:0 0 auto; display:inline-flex; align-items:center; gap:3px; }
-  /* El color va escrito en cada figura (ver pieSeparadores), así que aquí NO
-     se pone: una regla de color aquí ganaría al que hereda del <span> y las
-     tres saldrían del mismo tono, que es justo lo contrario de lo que se
-     quiere enseñar. */
-  .hs-sep-forma{ flex:0 0 auto; display:block; width:13px; height:13px;
-                 color:#7a6434; }
-  .hs-sep-forma svg{ display:block; width:100%; height:100%; }
   @media (prefers-reduced-motion: reduce){
     .piedra-sitio.editando::before{ animation:none; }
   }
@@ -1924,23 +1938,6 @@
      de casa eran 30. Al subir a 44 esta regla quedó del revés: encogía justo
      en la pantalla donde se toca con el pulgar. Fuera. */
 
-  /* EL PIE DEL RASTRO. Va al final y no arriba porque no compite con lo que se
-     viene a hacer aquí —mirar por dónde has pasado—: se lee la lista, y si lo
-     que buscabas no estaba, ahí abajo están las cintas. Pegado con sticky para
-     que con el rastro largo no haya que llegar al fondo para verlo. La franja
-     lo separa de la lista sin una raya dura: el degradado dice «esto ya no es
-     rastro» y deja pasar por debajo lo que se está desplazando. */
-  /* Dos puertas ahora, y con hueco para partir en dos renglones si la pantalla
-     es muy angosta: es preferible a que una se salga del panel. */
-  .hs-pie{ position:sticky; bottom:-6px; z-index:1;
-           display:flex; align-items:center; justify-content:flex-end;
-           flex-wrap:wrap; gap:8px;
-           box-sizing:border-box; padding:11px 13px 10px; margin:5px -6px -6px;
-           background:linear-gradient(to bottom, rgba(231,219,190,.86), #e2d4ad 14px, #e7dbbe);
-           border-top:1px solid rgba(140,116,68,.18);
-           border-radius:0 0 5px 5px;
-           box-shadow:0 -15px 24px -18px rgba(74,58,28,.7); }
-  .hs-sep-lista{ box-shadow:0 5px 12px -9px rgba(60,40,15,.75); }
   /* La lista de piedras se viste igual que la de cintas: es la misma clase de
      panel y aprender dos aspectos para lo mismo sería gratuito. */
   #piedraMenu{ position:absolute; z-index:9; width:min(280px, calc(100% - 16px));
@@ -2098,8 +2095,7 @@
        y no se pierde blanco de dedo: el alto sigue en 38 y el más estrecho
        mide 83 de ancho, que es más que un dedo. */
     .hs-atras{ min-height:38px; font-size:13px; padding:9px 10px 9px 12px; }
-    .hs-sep{ min-height:38px; font-size:13px; padding:9px 10px; }
-    .hs-acciones, .hs-pie{ gap:6px; }
+    .hs-acciones{ gap:6px; }
   }
   /* Y EN LO MÁS ANGOSTO, UN PELO MÁS. Medido en 320 px: al renglón le quedan
      288 útiles —el panel mide 308, menos su relleno y el de .hs-acciones— y
@@ -2109,8 +2105,7 @@
      para arriba sobra sitio, y un botón más holgado se toca mejor. */
   @media (pointer:coarse) and (max-width: 360px){
     .hs-atras{ padding:9px 9px 9px 11px; }
-    .hs-sep{ padding:9px 8px; }
-    .hs-acciones, .hs-pie{ gap:5px; }
+    .hs-acciones{ gap:5px; }
     .sp-ref{ font-size:14px; }
     .sp-nueva{ min-height:44px; font-size:14px; padding:6px 14px; }
     .sp-x{ width:34px; height:34px; font-size:22px; }
@@ -3825,12 +3820,31 @@
   <div id="tiradores" hidden></div>
   <div id="readout"></div>
   <button class="btn" id="btnVolver" style="display:none">↩ volver</button>
-  <!-- LO QUE HAS VISTO. El botón vive en la esquina de abajo a la derecha, que
-       es la única de las cuatro que estaba libre: arriba a la izquierda no hay
-       nada, arriba a la derecha está el titulillo, abajo a la izquierda el
-       botón de volver del salto. Y va discreto a propósito: es una salida que
-       se busca cuando se necesita, no una que tenga que llamar la atención
-       mientras lees. -->
+  <!-- LAS CUATRO ESQUINAS, UNA PUERTA EN CADA UNA.
+
+       Abajo llevaban tiempo las dos de siempre: la hoja entera a la izquierda,
+       lo que has visto a la derecha. Arriba no había nada, y mientras tanto
+       las dos listas —tus piedras y tus cintas— vivían en el PIE DEL RASTRO.
+       Eso obligaba a un rodeo: para ver tus piedras había que abrir primero la
+       lista de por dónde has pasado, que es otra pregunta, y buscar el botón
+       al fondo del panel. Dos toques y un desvío para algo que se mira a
+       menudo.
+
+       Ahora cada lista tiene su esquina: arriba a la izquierda las piedras,
+       arriba a la derecha las cintas. Cuál es cuál no lo dice ningún dibujo
+       —no cabe a ese tamaño— sino DÓNDE está, que es lo mismo que pasó con
+       las dos de abajo y se aprende usándolas una vez.
+
+       Y siguen llevando data-piedra-lista y data-sep-lista, que es como las
+       nombra todo lo demás —los dos vigilantes del toque de fuera, y las
+       pruebas—: lo que se mudó es la puerta, no lo que abre. -->
+  <button id="btnPiedras" data-piedra-lista="1"
+          title="Ver tus piedras" aria-label="Ver tus piedras"></button>
+  <button id="btnCintas" data-sep-lista="1"
+          title="Ver tus separadores" aria-label="Ver tus separadores"></button>
+  <!-- Y LA HOJA ENTERA, abajo a la izquierda. Va discreto a propósito: es una
+       salida que se busca cuando se necesita, no una que tenga que llamar la
+       atención mientras lees. -->
   <button id="btnZoom" title="Ver la hoja entera" aria-label="Ver la hoja entera"></button>
   <!-- LA G ABRE LAS GLOSAS. Pedido: un sello de cera, como una piedra nueva,
        con la G gótica de un sello de lacre. No es un adorno: es el único
@@ -3985,7 +3999,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-SEP-26 14:45';
+window.GLOSS_BUILD = '16-SEP-26 17:16';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11527,6 +11541,11 @@ function armarSuave(){
 function abrirZoom(){
   if (zoomActivo || folding) return;
   cerrarTodosLosRollos(); cerrarHistorial(); ocultarMenu();
+  /* Y LAS DOS LISTAS. De lejos sus puntos se esconden —ver .stage.zoom—, así
+     que dejarlas abiertas sería dejar un panel sin la puerta por la que se
+     cierra, flotando encima de una hoja que acaba de encogerse. Antes no hacía
+     falta decirlo aquí porque vivían dentro del rastro y se iban con él. */
+  cerrarSepMenu(); cerrarPiedraMenu();
   /* DE QUÉ CAJÓN VENÍAS. Se apunta antes de cerrarlo, que es la única línea en
      la que todavía se sabe: salir por el hueco significa «devuélveme y ya», y
      ya es esto —donde estabas—, no el principio del papel. */
@@ -12135,60 +12154,32 @@ function cabezaHistorial(){
     '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span></div>' +
     (atras ? '<div class="hs-acciones">' + atras + '</div>' : '');
 }
-/* EL PIE, con la puerta a las cintas que ya hay.
+/* AQUÍ ESTUVO EL PIE DEL RASTRO, con las dos puertas —«piedras» y «cintas»—.
+   Se fue a las dos esquinas de arriba de la escena: ver #btnPiedras y
+   #btnCintas en el marcado.
 
-   Hasta ahora la lista de separadores sólo se abría tocando la cinta, y la
-   cinta sólo asoma en la hoja donde está: para ver las demás había que
-   acertar a llegar a una. O sea que el sitio donde viven tus marcas de
-   lectura era el único al que no se podía ir a propósito.
+   Merece la pena dejar escrito por qué estuvo aquí, porque el motivo era
+   bueno: la lista de cintas sólo se abría tocando una cinta, y la cinta sólo
+   asoma en la hoja donde está, así que el sitio donde viven tus marcas de
+   lectura era el único al que no se podía ir a propósito. El pie del rastro
+   les dio una puerta, y estar en el rastro tenía su lógica —«¿por dónde iba?»
+   contestada de las dos maneras que existen—.
 
-   Va en el RASTRO y no en un panel nuevo porque es la misma pregunta —«¿por
-   dónde iba?»— hecha de las dos maneras que existen: lo que has visto, y
-   dónde dejaste la cinta. Y va al FINAL, debajo de la lista: primero se mira
-   el rastro, que es a lo que se viene, y si lo que buscabas no estaba, ahí
-   abajo están las cintas.
+   Lo que no tenía arreglo desde aquí es que la puerta estaba DENTRO de otro
+   panel: para ver tus piedras había que abrir el rastro, bajar al fondo y
+   tocar. Con una esquina propia se abre de un toque, y el rastro se queda con
+   lo suyo: lo que has visto, y cómo volver.
 
-   Se pinta también con el rastro vacío. Un lector recién llegado no tiene
-   rastro y sí puede tener cintas de otro día; enseñarle un panel vacío sin
-   salida sería esconderle lo que sí tiene. */
-/* LAS CUATRO TELAS EN LUGAR DE UNA. Una cinta suelta no dice de qué va este
-   botón: podría ser «pon una» —que es lo que hace el otro, y llevaba el mismo
-   dibujo—. Cuatro juntas, una de cada color, sí: eso es una COLECCIÓN, que es
-   lo que hay detrás. Salen de TELAS y no de una lista escrita a mano, para que
-   no se queden atrás el día que la paleta cambie. */
-function pieSeparadores(){
-  const cintas = TELAS.map(t =>
-    '<span class="hs-sep-cinta" style="background:' + t[2] + '"></span>').join('');
-  /* TRES FIGURAS, NO LAS TRECE. Cuando eran tres cabían todas y el botón
-     enseñaba la familia entera; con trece, trece dibujos de 13 px son una
-     ristra que ni se lee ni cabe en el pie de un teléfono. Se enseñan tres —la
-     primera, una de en medio y la última— y cada una de un color distinto, que
-     es lo que las hace leerse como una COLECCIÓN y no como un dibujo suelto,
-     igual que las cuatro telas de al lado. Se sacan por posición y no escritas
-     a mano, para que no se queden atrás el día que la lista cambie. */
-  const formas = [0, FORMAS.length >> 1, FORMAS.length - 1].map((i, n) =>
-    '<span class="hs-sep-forma" style="color:' + PIEDRA_TINTAS[n + 1][2] + '">' +
-    piedraDibujo(FORMAS[i], null, true) + '</span>').join('');
-  /* DOS PUERTAS, UNA POR FAMILIA, y cada una enseña de qué va: las cuatro
-     telas para las cintas, las figuras para las piedras. Los rótulos son
-     el plural de lo que abren —«cintas», «piedras»— y no «actuales» dos veces:
-     con una sola lista bastaba decir cuáles, con dos hay que decir de qué. */
-  return '<div class="hs-pie">' +
-    '<button class="hs-sep hs-sep-lista" data-piedra-lista="1"' +
-      ' title="Ver tus piedras" aria-label="Ver tus piedras">' +
-      '<span class="hs-formas" aria-hidden="true">' + formas + '</span>piedras</button>' +
-    '<button class="hs-sep hs-sep-lista" data-sep-lista="1"' +
-      ' title="Ver tus separadores" aria-label="Ver tus separadores">' +
-      '<span class="hs-cintas" aria-hidden="true">' + cintas + '</span>cintas</button>' +
-    '</div>';
-}
+   Con el pie se fue su vestido: .hs-pie, .hs-sep, .hs-sep-lista, .hs-cintas,
+   .hs-sep-cinta, .hs-formas y .hs-sep-forma. Los dos puntos no llevan nada de
+   eso —no son una píldora con rótulo, son un punto— y dejar el CSS puesto
+   sería guardar el traje de alguien que ya no vive aquí. */
 function pintarHistorial(){
   const cont = $('historial');
   if (!historial.length){
     cont.innerHTML = cabezaHistorial() +
       '<span class="hs-vacio">Todavía nada. Aquí van quedando los pasajes a los ' +
-      'que saltas desde el panel de libros o desde una referencia de una glosa.</span>' +
-      pieSeparadores();
+      'que saltas desde el panel de libros o desde una referencia de una glosa.</span>';
     return;
   }
   /* "Estás aquí" se pregunta contra la HOJA ENTERA, no contra su primer
@@ -12213,7 +12204,7 @@ function pintarHistorial(){
       '" data-hs="' + h.libro + ':' + h.cap + ':' + h.vers + '">' +
       '<span class="hs-ref">' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '</span>' +
       '<span class="hs-txt">' + esc(t || '(no está en esta versión)') + '</span></button>';
-    }).join('') + pieSeparadores();
+    }).join('');
 }
 /* EL RASTRO SIN REPETICIONES SEGUIDAS.
 
@@ -12341,40 +12332,40 @@ $('btnHistorial').addEventListener('click', ev => {
   ev.preventDefault(); ev.stopPropagation();
   if (histAbierto) cerrarHistorial(); else abrirHistorial();
 });
+/* LAS DOS PUERTAS DE ARRIBA. Cada una alterna la suya, como el rastro: una
+   puerta que solo abre deja al lector buscando por dónde se sale.
+
+   El menú se cuelga del PROPIO PUNTO —se cuelga siempre de lo que lo abrió—,
+   y colocarSepMenu/colocarPiedraMenu ya saben caer por debajo del ancla y
+   pegarse al canto que les toque, así que desde una esquina de arriba salen
+   solos hacia abajo sin tocar nada.
+
+   Y el rastro, si estaba abierto, se cierra: lo cierra su propio vigilante de
+   toque de fuera, porque un punto de arriba no es parte de él. Antes las dos
+   listas vivían en su pie y tenían que dejarlo puesto detrás; ahora son tres
+   paneles hermanos y a la vez sólo hace falta uno. */
+$('btnPiedras').addEventListener('click', ev => {
+  ev.preventDefault(); ev.stopPropagation();
+  if (piedraMenuAbierto) cerrarPiedraMenu();
+  else abrirPiedraMenu($('btnPiedras'));
+});
+$('btnCintas').addEventListener('click', ev => {
+  ev.preventDefault(); ev.stopPropagation();
+  /* 'lista' y no «abierto a secas»: el menú de las cintas tiene dos modos, y
+     si lo abrió una cinta de la hoja este punto no es su puerta. Tocarlo
+     entonces cambia de modo, que es lo que se espera de él. */
+  if (sepMenuAbierto === 'lista') cerrarSepMenu();
+  else abrirSepMenu(null, $('btnCintas'));
+});
 $('historial').addEventListener('click', ev => {
   if (ev.target.closest('[data-sp-cerrar]')){
     ev.preventDefault(); ev.stopPropagation();
     cerrarHistorial();
     return;
   }
-  /* LA LISTA DE CINTAS, desde el pie. El menú se cuelga del propio botón: se
-     cuelga siempre de lo que lo abrió, y aquí lo que lo abrió no es una cinta.
-
-     Y EL RASTRO SE QUEDA ABIERTO. Antes se cerraba, y cerrarlo era demasiada
-     carga visual de golpe: la lista de por dónde has pasado desaparecía entera
-     para enseñar la de cintas, cuando las dos contestan la misma pregunta y se
-     miran una detrás de otra. El menú vive por encima del rastro (z-index 9
-     contra 8) y sale pegado al botón, así que se ve dónde nació y basta con
-     cerrarlo para tener el rastro otra vez debajo, tal como estaba.
-
-     Segundo toque en el botón lo cierra: el botón es la puerta, y una puerta
-     que solo abre deja al lector buscando por dónde se sale. */
-  const lista = ev.target.closest('[data-sep-lista]');
-  if (lista){
-    ev.preventDefault(); ev.stopPropagation();
-    if (sepMenuAbierto === 'lista') cerrarSepMenu();
-    else abrirSepMenu(null, lista);
-    return;
-  }
-  /* LA LISTA DE PIEDRAS, por la misma puerta y con las mismas reglas que la de
-     cintas: el rastro se queda abierto detrás y el botón alterna. */
-  const piedraLista = ev.target.closest('[data-piedra-lista]');
-  if (piedraLista){
-    ev.preventDefault(); ev.stopPropagation();
-    if (piedraMenuAbierto) cerrarPiedraMenu();
-    else abrirPiedraMenu(piedraLista);
-    return;
-  }
+  /* LAS DOS LISTAS YA NO SE ABREN DESDE AQUÍ: sus puertas son los dos puntos
+     de arriba de la escena, y sus oyentes están junto a los de #btnZoom y
+     #btnHistorial, que es donde vive esa familia. Ver #btnPiedras. */
   /* Los dos botones de PONER vivían aquí y se mudaron a sus listas —ver
      cabezaHistorial—, así que sus ramas se fueron con ellos: quedarse aquí
      sería código que no puede correr, esperando a confundir al que venga. Lo
@@ -16335,10 +16326,28 @@ document.addEventListener('pointerdown', ev => {
 }, true);
 
 /* ---------- la lista de piedras ---------- */
-/* Se cuelga del botón del pie y se coloca igual que el menú de la cinta, con
-   el mismo apaño de guardar el RECTÁNGULO y no el elemento: el botón se va con
-   el rastro si se cierra, y un elemento fuera del documento no mide nada. */
+/* Se cuelga del punto de su esquina y se coloca igual que el menú de la
+   cinta, con el mismo apaño de guardar el RECTÁNGULO y no el elemento. El
+   punto ya no se va —vive en la escena, no dentro de un panel que se cierra—,
+   pero el apaño se queda: la otra lista sí se cuelga de una cinta, que se
+   rehace en cada repintado, y un elemento fuera del documento no mide nada. */
 let piedraMenuAbierto = false, piedraMenuAncla = null;
+/* LOS DOS PUNTOS DE ARRIBA SE ENCIENDEN CON SU LISTA, igual que el del rastro
+   y el del zoom: marrón macizo y un pelo más gordos. Aquí hace más falta que
+   allí, porque los dos paneles se parecen y salen del mismo canto de arriba:
+   el punto encendido es lo que dice de cuál de las dos esquinas nació el que
+   estás mirando.
+
+   Se pinta desde un solo sitio y no en cada abrir y cerrar por separado porque
+   las dos listas se cierran desde media docena de lados —el salto, el Escape,
+   el toque de fuera, el zoom— y un encendido que hay que acordarse de apagar
+   en seis sitios se queda puesto en el séptimo. */
+function pintarPuntosLista(){
+  $('btnPiedras').classList.toggle('abierto', piedraMenuAbierto);
+  /* Sólo en modo lista: abierta desde una cinta de la hoja, la lista no salió
+     de este punto y encenderlo señalaría a la puerta equivocada. */
+  $('btnCintas').classList.toggle('abierto', sepMenuAbierto === 'lista');
+}
 /* Qué fila está preguntando «¿la borro?». Null es «ninguna», igual que en las
    cintas (ver sepBorrando), y por eso se apaga en cada cierre del panel. */
 let piedraBorrando = null;
@@ -16347,6 +16356,7 @@ let piedraBorrando = null;
 let piedraNombrando = null;
 function abrirPiedraMenu(ancla){
   piedraMenuAbierto = true;
+  pintarPuntosLista();
   piedraMenuAncla = ancla ? ancla.getBoundingClientRect() : null;
   pintarPiedraMenu();
   const el = $('piedraMenu');
@@ -16368,6 +16378,7 @@ function cerrarPiedraMenu(){
   piedraBorrando = null;
   piedraMenuAbierto = false;
   piedraMenuAncla = null;
+  pintarPuntosLista();
   const el = $('piedraMenu');
   soltarTecladoPanel(el);
   el.classList.remove('visible');
@@ -16972,9 +16983,11 @@ function abrirSepMenu(id, ancla){
   if (id && !sepDe(id)) return;
   cerrarOferta();
   sepMenuAbierto = id || 'lista';
-  /* Se guarda el RECTÁNGULO, no el elemento: quien lo abrió puede irse —el
-     botón del pie se va con el rastro al cerrarlo— y un elemento fuera del
-     documento no mide nada. */
+  pintarPuntosLista();
+  /* Se guarda el RECTÁNGULO, no el elemento: quien lo abrió puede irse —una
+     cinta se rehace en cada repintado de la hoja— y un elemento fuera del
+     documento no mide nada. El punto de la esquina sí se queda, pero no hay
+     dos maneras de guardar un ancla. */
   sepMenuAncla = ancla ? ancla.getBoundingClientRect() : null;
   sepEditando = null;
   sepBorrando = null;
@@ -16995,6 +17008,7 @@ function cerrarSepMenu(){
   sepCobrarNombre();               /* ver sepCobrarNombre: cerrar es terminar */
   sepMenuAbierto = null;
   sepMenuAncla = null;
+  pintarPuntosLista();
   sepEditando = null;
   sepBorrando = null;
   const el = $('sepMenu');
@@ -17105,9 +17119,12 @@ function colocarSepMenu(){
     const r = typeof de.getBoundingClientRect === 'function' ? de.getBoundingClientRect() : de;
     izq = r.right - st.left - w;
     arr = r.bottom - st.top + 8;
-    /* Y SI NO CABE DEBAJO, SE PONE ENCIMA. El botón del pie vive abajo del
-       todo: colgando el menú debajo de él no cabe nunca, y sin esto acababa
-       aplastado contra el borde tapando el propio botón. */
+    /* Y SI NO CABE DEBAJO, SE PONE ENCIMA. Nació por el botón del pie del
+       rastro, que vivía abajo del todo: colgando el menú debajo de él no cabía
+       nunca, y sin esto acababa aplastado contra el borde tapando el propio
+       botón. Ese botón ya no existe —ahora la puerta es el punto de arriba, y
+       desde ahí cabe de sobra— pero una cinta puede estar en cualquier renglón
+       de la hoja, incluido el último. */
     if (arr + h > st.height - 8) arr = r.top - st.top - h - 8;
   }
   izq = Math.min(Math.max(8, izq), Math.max(8, st.width - w - 8));
