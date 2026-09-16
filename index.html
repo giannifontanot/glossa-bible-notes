@@ -3985,7 +3985,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-SEP-26 06:55';
+window.GLOSS_BUILD = '16-SEP-26 14:13';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8484,7 +8484,7 @@ function repintarVersoDelTrazo(k){
    vista de lejos, y los saltos que el lector pide por su nombre —una
    referencia, el indice, el canto de los libros—. Ésos no son «pasar hoja»
    sino «llevame a otro sitio», y quien los pide ya sabe que se va. */
-function hayTrazoVivo(){ return !!pintado; }
+function hayTrazoVivo(){ return !!pintado && pintado.fin > pintado.ini; }
 /* Y SE DICE POR QUÉ, una vez por intento.
 
    Es el segundo aviso que sale de los veintitrés, y entra por la misma puerta
@@ -8891,6 +8891,16 @@ function colocarTiradores(){
     ev.preventDefault();
     const a = Math.min(gesto.off, hasta), b = Math.max(gesto.off, hasta);
     const r = aPalabrasEnteras(texto, a, b);
+    /* UN TRAZO VACÍO NO ES UN TRAZO, y hasta ahora se guardaba igual.
+
+       Un dedo que baja poco puede caer en el MISMO carácter del que salió
+       —medido: a=72 b=72—, y aPalabrasEnteras ante un punto devuelve el punto,
+       que es lo correcto: no hay palabra que estirar. Pero eso se guardaba en
+       pintado, o sea un trazo de cero letras: invisible, sin tiradores que lo
+       suelten, y desde que la hoja se ata a lo marcado, ATANDO LA HOJA. El
+       lector veía la hoja dejar de pasar, un cartel ofreciéndole soltar algo,
+       y nada que soltar. Justo la confusión que esto venía a quitar. */
+    if (r.ini === r.fin) return;
     if (pintado && pintado.k === gesto.k && pintado.ini === r.ini && pintado.fin === r.fin) return;
     pintado = { k: gesto.k, ini: r.ini, fin: r.fin };
     pintarLoPintado();

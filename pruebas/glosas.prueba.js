@@ -2112,21 +2112,36 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     t.dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowRight', bubbles:true }));
     await pausa(250);
     const vuelta = trazo(), hojaConTirador = hoja();
-    /* Y EL CONTROL AL FINAL, que es destructivo: pasar hoja se lleva el trazo
-       por delante —la hoja se repinta y lo pintado no sobrevive—, así que
-       hacerlo primero dejaba sin trazo todo lo de arriba. */
+    /* EL CONTROL, Y POR QUÉ CAMBIÓ.
+
+       Aquí se comprobaba que SIN el tirador enfocado la flecha sí pasa hoja,
+       para que «con el tirador enfocado no pasa» significara algo. Ese
+       control dejó de distinguir nada en cuanto la hoja se ata a lo marcado:
+       ahora la flecha no pasa hoja mientras haya un trazo, enfocado el
+       tirador o no, así que medía 0 → 0 en los dos casos y se caía. El
+       stopPropagation del tirador sigue estando y sigue siendo correcto,
+       pero ha pasado a ser el segundo cerrojo de una puerta que ya está
+       cerrada por hayTrazoVivo.
+
+       Lo que sí distingue, y es lo que se mide ahora: SOLTADO el trazo, esa
+       misma flecha vuelve a pasar hoja. Eso prueba que la tecla llega, que el
+       camino está vivo, y que lo que la paraba era el trazo. Va al final
+       porque es destructivo. */
+    document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerup',
+      { bubbles:true, clientX:5, clientY:5 }));
+    await pausa(500);
     const hojaAntes = hoja();
     document.body.focus();
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowRight', bubbles:true }));
     await pausa(900);
     return { hojaAntes, hojaSuelta: hoja(), antes, corto, vuelta,
              enfocado, nombre: t.getAttribute('aria-label'),
-             hoja0, hoja: hojaConTirador };
+             hoja0, hoja: hojaConTirador, trazoAlFinal: trazo() };
   });
   di('con las flechas', teclas);
   if (!teclas.sinTirador){
-    vale('CONTROL: sin el tirador enfocado, la flecha pasa hoja',
-         teclas.hojaSuelta !== teclas.hojaAntes,
+    vale('CONTROL: soltado el trazo, la flecha vuelve a pasar hoja',
+         teclas.trazoAlFinal === '' && teclas.hojaSuelta !== teclas.hojaAntes,
          teclas.hojaAntes + ' → ' + teclas.hojaSuelta);
     vale('el tirador se alcanza con el tabulador y dice lo que es',
          teclas.enfocado === true && /flechas/.test(teclas.nombre || ''), teclas.nombre);
@@ -2357,8 +2372,19 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      ayudantes puestos una sola vez antes del bucle desaparecen en la primera
      vuelta y el bloque revienta con «window.__hoja is not a function» —y se
      lleva por delante todo lo que viniera detrás en el fichero—. Lo levantó
-     la revisión de Codex. Va como TEXTO y se vuelve a evaluar cada vez. */
-  const ANDAMIO_ATADURA = `() => {
+     la revisión de Codex.
+
+     Y VA COMO FUNCIÓN DE VERDAD, NO COMO PLANTILLA, que es la segunda mitad
+     de la lección y costó una tanda entera. Puesto entre acentos graves, el
+     \p de /[\p{L}\p{N}]{6,}/u se lo come la plantilla —en un literal de
+     plantilla \p no es un escape y sale una p pelada—, así que la expresión
+     que llegaba al navegador era /[p{L}p{N}]{6,}/u. Y NO REVIENTA: con la u
+     puesta se compila igual y no casa nunca. O sea que __marcar devolvía ''
+     en silencio y las tres vueltas del bloque se caían por «no se marcó
+     nada», que es lo último que uno mira. Playwright serializa una función
+     de verdad tal cual, con sus contrabarras, así que el agujero desaparece
+     en vez de esconderse mejor. */
+  const ANDAMIO_ATADURA = () => {
     window.__pausa = ms => new Promise(z => setTimeout(z, ms));
     window.__hoja = () => document.querySelector('#pgBody .v').dataset.k;
     window.__trazo = () => {
@@ -2425,7 +2451,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
         { key:'ArrowRight', bubbles:true, cancelable:true }));
       await window.__pausa(2200);
     };
-  }`;
+  };
   for (const [nombre, fn] of [['el filo', '__filo'], ['el desliz', '__desliz'],
                               ['la flecha', '__flecha']]){
     /* Hoja limpia en cada vuelta: sobre una marca hecha el dedo la ABRE en vez
@@ -2433,7 +2459,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     await p.evaluate(() => localStorage.removeItem('glossa:marcas:v1'));
     await p.reload();
     await listo(p);
-    await p.evaluate(a => eval('(' + a + ')')(), ANDAMIO_ATADURA);
+    await p.evaluate(ANDAMIO_ATADURA);
     const r = await p.evaluate(async f => {
       /* EL CONTROL PRIMERO: sin nada marcado, este gesto pasa hoja. */
       const antesCtrl = window.__hoja();
@@ -2492,7 +2518,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   await p.evaluate(() => localStorage.removeItem('glossa:marcas:v1'));
   await p.reload();
   await listo(p);
-  await p.evaluate(a => eval('(' + a + ')')(), ANDAMIO_ATADURA);
+  await p.evaluate(ANDAMIO_ATADURA);
   const hueco = await p.evaluate(async () => {
     const antes = window.__hoja();
     /* 1. el toque del filo arma el reloj */
@@ -2520,13 +2546,17 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     const od = (x, y) => ({ bubbles:true, cancelable:true, pointerId:321,
                             pointerType:'touch', isPrimary:true, clientX:x, clientY:y });
     pgBody.dispatchEvent(new PointerEvent('pointerdown', od(x0, y0)));
-    for (let j = 1; j <= 6; j++){
+    /* PASOS DE DOCE Y NO DE SEIS, y la cifra no es cosmética: bajando de seis
+       en seis el dedo puede caer en el MISMO carácter del que salió —medido,
+       a=72 b=72— y entonces no hay tramo que pintar. Un renglón mide
+       dieciséis, así que doce garantiza que el punto se mueve de verdad. */
+    for (let j = 1; j <= 10; j++){
       pgBody.dispatchEvent(new PointerEvent('pointermove',
-        od(x0 + (j % 3 ? -2 : 3), y0 + j * 6 + (j % 2 ? 1 : -1))));
+        od(x0 + (j % 3 ? -2 : 3), y0 + j * 12 + (j % 2 ? 1 : -1))));
       await window.__pausa(14);
     }
     const alPintar = window.__trazo();
-    pgBody.dispatchEvent(new PointerEvent('pointerup', od(x0, y0 + 36)));
+    pgBody.dispatchEvent(new PointerEvent('pointerup', od(x0, y0 + 120)));
     /* 3. y se le da al reloj del filo tiempo de sobra para vencer */
     await window.__pausa(2400);
     const atado = { antes, alPintar, despues: window.__hoja(), queda: window.__trazo() };
