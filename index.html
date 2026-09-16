@@ -3368,7 +3368,22 @@
        es el cuerpo de la hoja —15 px—: el panel llega hasta ahí y no más,
        porque lo que se pedía no es un panel grande sino uno que no obligue
        a acercarse el teléfono a la cara. */
-    .rollo .lbl, .ajuste > .lbl{ font-size:14px; flex-basis:78px; line-height:1.25; }
+    /* LA COLUMNA DE LOS RÓTULOS SE FIJA, Y ESTO LO DESTAPÓ LA SUBIDA.
+
+       El rótulo iba con `flex:0 0 <basis>`, o sea sin crecer ni encoger, y aun
+       así la columna de «contraste» medía 94 y la de «sepia» 78. El culpable
+       es `min-width:auto`, que en un hijo de flex vale lo que mide su palabra
+       y le gana al basis sin decir nada. Con la letra pequeña la diferencia no
+       se notaba; a 14 px el riel del contraste se quedó 24 px más corto que el
+       del sepia, y la prueba —que vigila justo eso— lo cantó.
+
+       Se fija a 96, que es lo que mide la más larga de todas («alineación»),
+       y se pone min-width:0 para que mande el basis y no la palabra. Así los
+       tres rieles miden lo mismo, que es lo que la prueba pide de verdad: no
+       que sean largos por casualidad, sino que ninguno se estruje porque su
+       rótulo tenga más letras. */
+    .rollo .lbl, .ajuste > .lbl{ font-size:14px; flex-basis:96px; min-width:0;
+                                 line-height:1.25; }
     .rollo .btn{ font-size:15px; padding:8px 12px; }
     /* LAS CUATRO PESTAÑAS Y LA EQUIS COMPARTEN UN SOLO RENGLÓN, y ese
        renglón es lo que pone el techo aquí. A 15.5 con 11 de relleno la
@@ -3455,7 +3470,10 @@
     /* Estos tres se habían quedado fuera de la lista y por eso se veían
        hundidos entre los demás: el número del sepia, el aviso de índice
        vacío y el botón de volver del salto. */
-    .rollo .medida{ font-size:14.5px; min-width:32px; }
+    /* Y LA MEDIDA IGUAL, POR LO MISMO. «100%» ocupa más que «100», así que el
+       riel del sepia salía 8 px más largo que el del brillo sin que nadie lo
+       hubiera decidido. 40 es lo que pide el más ancho con la letra nueva. */
+    .rollo .medida{ font-size:14.5px; min-width:40px; }
     .ix-vacio{ font-size:14px; }
     #btnVolver{ font-size:14px; padding:7px 13px; }
     /* La cabecera del panel de libros nunca estuvo en la lista, y es lo
@@ -4138,7 +4156,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-SEP-26 18:55';
+window.GLOSS_BUILD = '16-SEP-26 18:59';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
