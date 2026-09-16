@@ -2,3 +2,8 @@ node_modules/
 # Las pruebas dejan capturas cuando algo no cuadra: sirven para mirar, no para
 # guardar. Se quedan fuera a propósito.
 pruebas/capturas/
+# Y el cuaderno de bitácora de Playwright, que no es de esta casa: el banco se
+# corre con pruebas/correr.js y no con `playwright test`. Un `npx playwright
+# test` tecleado por error deja aquí un .last-run.json diciendo «failed» sin
+# haber corrido nada, y se coló en un commit. No es del repo.
+test-results/
