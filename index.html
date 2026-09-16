@@ -2086,46 +2086,134 @@
 
   @media (max-width: 560px){
     #historial{ bottom:56px; right:8px; }
-    .hs-ref{ font-size:14px; min-width:70px; }
-    .hs-txt{ font-size:14px; }
-    .hs-fila{ min-height:44px; padding:10px; }
-    /* EL RELLENO SE APRIETA PORQUE AHORA SON TRES. Con 14 px a los lados los
-       tres del renglón pedían 319 de los 302 útiles en una pantalla de 320, y
-       el que sobraba se bajaba a otro renglón. A 10 px caben con holgura —291—
-       y no se pierde blanco de dedo: el alto sigue en 38 y el más estrecho
-       mide 83 de ancho, que es más que un dedo. */
-    .hs-atras{ min-height:38px; font-size:13px; padding:9px 10px 9px 12px; }
+    /* AQUÍ SE APRETABA EL PASO ATRÁS, Y YA NO HACE FALTA. Decía «se aprieta
+       porque ahora son TRES»: el renglón llevaba el paso atrás y los dos de
+       poner, y a 14 px de relleno los tres pedían 319 de los 302 útiles de una
+       pantalla de 320. El apretón era legítimo y su cuenta también.
+       Pero los otros dos se fueron —los de poner, a sus listas— y el renglón
+       se quedó con UNO. Apretar un botón solo contra un borde que ya no
+       existe es pagar dos veces por una mudanza. El alto y la letra suben con
+       todo lo demás, en el bloque del dedo. */
     .hs-acciones{ gap:6px; }
   }
-  /* Y EN LO MÁS ANGOSTO, UN PELO MÁS. Medido en 320 px: al renglón le quedan
+  /* ============================================================
+     LA MEDIDA DEL DEDO NO DEPENDE DEL ANCHO DE LA PANTALLA.
+
+     Todo lo de aquí abajo vivía en UN SOLO bloque, y el bloque estaba
+     cerrado con la llave equivocada: `(pointer:coarse) and (max-width:
+     360px)`. Dentro había dos clases de número que no se parecen en nada:
+
+     · los del ANCHO —apretar un relleno para que tres botones quepan en
+       una pantalla de 320—, y
+     · los del DEDO —44 px de blanco de toque, la letra con la que se lee
+       una lista con el teléfono en la mano—.
+
+     Los segundos no tienen nada que ver con el ancho, y sin embargo sólo
+     llegaban por debajo de 360 px. Un teléfono de hoy mide 390, 412, 430:
+     NINGUNO entraba. O sea que el aparato para el que se escribieron esas
+     medidas era justo el aparato que no las recibía, y lo que veía el
+     lector eran las del ratón: la equis de 30 px, la lista a 13. Se
+     escribió el remedio y se le puso delante una puerta por la que no
+     cabe nadie. Lo dijo el dueño del repo con las palabras justas: «la
+     interfaz es demasiado pequeña para usarla», y llevaba razón.
+
+     Así que se parten en dos, y la pregunta de cada bloque es la suya:
+     `pointer:coarse` a secas pregunta si hay un dedo; el de 360 pregunta
+     si cabe. Un bloque que pregunta las dos cosas contesta mal a una.
+
+     Y de paso sube el suelo, que es lo que se pidió. Lo miraron tres
+     oficios y los tres dijeron lo mismo por caminos distintos:
+
+     · EL ERGÓNOMO. 44 px es el suelo de un blanco de toque —lo dicen
+       Apple y Google, y lo dice el pulgar—. La equis de los paneles medía
+       30, la de las pestañas 44 de alto y 28 de ancho, «Nueva» 36 de
+       alto. Los tres por debajo, y los tres se fallan.
+     · EL TIPÓGRAFO. El cuerpo de la hoja va a 15 px. Una lista que se
+       lee a 13 le dice al ojo «esto es una nota al pie», y estas listas
+       no son una nota: son donde se trabaja. Suben a 15, la medida del
+       texto que se está leyendo. Los rótulos de panel se quedan
+       pequeños —de 10.5 a 12— porque van en versalita y con tracking:
+       la versalita se lee más grande de lo que mide, y un rótulo a 15
+       le gritaría por encima a la lista que anuncia.
+     · ESTA CASA. La hoja manda sobre el panel, y el panel no puede pedir
+       más atención que ella. Por eso sube hasta donde sube la hoja y ni
+       un punto más: lo que se buscaba no es un panel grande, es uno que
+       no obligue a acercarse el teléfono a la cara.
+     ============================================================ */
+  @media (pointer:coarse){
+    /* EL RASTRO */
+    .hs-tit{ font-size:12px; }
+    .hs-atras{ min-height:44px; font-size:14px; padding:11px 14px; }
+    .hs-atras-ref{ font-size:14px; }
+    .hs-fila{ min-height:44px; padding:10px; }
+    .hs-ref{ font-size:15px; min-width:74px; }
+    .hs-txt{ font-size:15px; }
+    .hs-vacio{ font-size:14px; }
+    /* LAS DOS LISTAS, CINTAS Y PIEDRAS */
+    /* EL RÓTULO SUBE Y AFLOJA EL TRACKING A LA VEZ, y lo segundo es por lo
+       primero: comparte renglón con «Nueva», y a 12 px con el tracking de
+       .14em «TUS SEPARADORES» pedía 151 de los 155 que le quedan en un panel
+       de 280. Cuatro píxeles, y por cuatro se partía en dos renglones —visto
+       puesto, no calculado—. A .08em mide 140 y cabe con holgura.
+       Se afloja el tracking y no se baja la letra porque de las dos cosas la
+       que se lee es el tamaño: una versalita con menos aire sigue siendo una
+       versalita, y una más chica es una más chica. */
+    .sp-tit{ font-size:12px; letter-spacing:.08em; }
+    .sp-fila{ min-height:48px; padding:5px 5px 5px 10px; }
+    .sp-ir{ min-height:44px; }
+    .sp-ref{ font-size:15px; }
+    /* Los tres van a la par a propósito: comparten renglón, y una fila con
+       tres tamaños distintos se lee como tres cosas. */
+    .sp-edit-base, .sp-edit-aqui{ font-size:15px; }
+    .sp-nombre{ height:38px; font-size:15px; }
+    .sp-fila .sp-btn{ min-height:44px; font-size:14px; }
+    .sp-vacio{ font-size:14px; }
+    .sp-nueva{ min-height:44px; font-size:14px; padding:6px 14px; }
+    .sp-pregunta{ font-size:15px; padding-bottom:14px; }
+    .sp-btn{ min-height:52px; font-size:15px; padding:14px 16px; }
+    .sp-borrar{ padding:16px 14px; }
+    .so-btn{ min-height:44px; font-size:14px; }
+    .so-dice{ font-size:14px; }
+    /* LA VENTANITA DE LEER ANTES DE SALTAR */
+    .vp-txt{ font-size:17px; padding:13px 14px; }
+    .vp-pie{ font-size:14px; }
+    /* LAS EQUIS, QUE SON LA SALIDA.
+
+       Aquí no se cambia DÓNDE están —arriba a la derecha, que es donde se
+       busca una salida y donde llevan desde que se pusieron—, se cambia
+       CUÁNTO miden. Medido en un teléfono de 412: la de los paneles de
+       listas daba un blanco de 30x30 y la de las pestañas 44 de alto por
+       28 de ancho. Una salida que se falla deja al lector dentro.
+
+       El renglón que las aloja sube con ellas, y no es un detalle: la
+       equis va en absoluto y .sp-cierre es lo único que le reserva alto.
+       Dejándolo en 30 con una equis de 44, la equis se le comería por
+       arriba catorce píxeles del blanco de toque a «Nueva» —ya pasó con
+       cuatro, está contado ahí arriba—. */
+    .sp-x{ width:44px; height:44px; font-size:24px; padding:6px 0 0; }
+    .sp-cierre{ height:44px; }
+    #piedraMando .sp-tit{ padding-right:46px; }
+    .vp-x{ width:44px; height:44px; font-size:24px; }
+    /* La de las pestañas no va aquí: su regla base se escribe más abajo, con
+       el panel de las secciones, y una regla de la misma fuerza escrita antes
+       la pierde por orden. Está allí, pegada a la suya. */
+    /* EL GLOBO DE LA VERSIÓN */
+    .bv-tit{ font-size:12px; }
+    .bv-abrev{ font-size:15px; min-width:72px; }
+    .bv-nombre{ font-size:14.5px; }
+  }
+  /* Y EN LO MÁS ANGOSTO, UN PELO MÁS APRETADO. Esto sí es del ancho, y por
+     eso es lo único que se queda aquí. Medido en 320 px: al renglón le quedan
      288 útiles —el panel mide 308, menos su relleno y el de .hs-acciones— y
      con 10 px a los lados los tres piden 291. Tres píxeles, y por tres se
      bajaba uno de renglón. Aquí van a 8 y el hueco a 5: 279, con nueve de
      sobra. No se aprieta en todos los tamaños porque no hace falta: de 360
      para arriba sobra sitio, y un botón más holgado se toca mejor. */
   @media (pointer:coarse) and (max-width: 360px){
-    .hs-atras{ padding:9px 9px 9px 11px; }
     .hs-acciones{ gap:5px; }
-    .sp-ref{ font-size:14px; }
-    .sp-nueva{ min-height:44px; font-size:14px; padding:6px 14px; }
-    .sp-x{ width:34px; height:34px; font-size:22px; }
-    .sp-cierre{ height:34px; }
-    #piedraMando .sp-tit{ padding-right:36px; }
-    .sp-fila{ min-height:48px; padding:5px 5px 5px 10px; }
-    .sp-ir{ min-height:44px; }
-    .sp-edit-base, .sp-edit-aqui{ font-size:14px; }
-    .sp-nombre{ height:36px; font-size:14px; }
-    .sp-borrar{ padding:16px 14px; }
-    .sp-pregunta{ font-size:15px; padding-bottom:14px; }
-    .sp-btn{ min-height:52px; font-size:15px; padding:14px 16px; }
-    .so-btn{ min-height:40px; font-size:13.5px; }
-    .so-dice{ font-size:13.5px; }
     #sepOferta{ bottom:64px; }
     .sep-x{ width:22px; height:22px; }
     .sep-x svg{ width:11px; height:11px; }
-    .vp-txt{ font-size:17px; padding:13px 14px; }
-    .vp-x{ width:34px; height:34px; font-size:22px; }
-    .hs-vacio, .vp-pie{ font-size:13px; }
   }
 
   /* ============================================================
@@ -2449,6 +2537,42 @@
                        background:transparent; border-radius:0; color:#2c2416;
                        font:400 22px/28px Georgia, 'Times New Roman', serif;
                        letter-spacing:0; opacity:.78; }
+  /* Y CON EL DEDO, MÁS ANCHA. 28 de ancho por 44 de alto es media medida: el
+     alto lo daba el renglón y el ancho se quedó en lo que ocupa el signo. Un
+     blanco estrecho con una pestaña pegada al lado no se falla solo, se falla
+     ABRIENDO Respaldo, que es peor que no acertar.
+     40 y no 44, que es el suelo: el renglón lleva cuatro pestañas que reparten
+     lo que sobra —flex:1 1 0— y en un teléfono de 412 va justo. Los cuatro
+     píxeles que faltan para el suelo se los queda el ancho de las pestañas,
+     que es lo que se lee. Medido: con 44 la última se sale. */
+  @media (pointer:coarse){
+    .pestanas .cerrar-x{ flex:0 0 40px; width:40px; min-width:40px;
+                         font:400 24px/44px Georgia, 'Times New Roman', serif; }
+  }
+  /* Y POR DEBAJO DE 400, UN PELO MENOS TODO EL RENGLÓN.
+
+     Las cuatro pestañas no se pueden encoger por debajo de su palabra
+     —«Respaldo» mide lo que mide— así que cuando no caben no se aprietan: se
+     SALEN, calladas, por el filo derecho del panel. Y la que se sale primero
+     es la equis, que va la última.
+
+     Medido en los anchos que existen: a 15 px con 9 de relleno el renglón pide
+     394 y cabe en 412 y en 430, va al milímetro en 390 y se sale en 360. A 14
+     con 7 pide 369 y entra en los tres —390, 412, 430— con sitio de sobra.
+
+     EN 320 NO CABE, Y NO ES DE ESTA SUBIDA. Ya no cabía: en main pedía 361 de
+     los 302 que hay, con la última pestaña y la equis fuera del panel. Con
+     esto pide 369, ocho píxeles peor, y los ocho son el ancho que gana la
+     equis —que a esa anchura está fuera de la pantalla lo mismo a 28 que a
+     36—. Apretar más no lo arregla: no hay tamaño legible con el que cuatro
+     palabras y una equis quepan en 302 px. Queda apuntado como lo que es, un
+     renglón que en la pantalla más estrecha que existe hay que repensar —que
+     bajen a dos filas, o que las palabras se acorten— y no encoger. */
+  @media (pointer:coarse) and (max-width: 400px){
+    .pestanas button{ font-size:14px; padding:8px 7px; }
+    .pestanas .cerrar-x{ flex:0 0 36px; width:36px; min-width:36px;
+                         font:400 22px/44px Georgia, 'Times New Roman', serif; }
+  }
   .pestanas .cerrar-x:hover{ background:transparent; color:#1a140c; opacity:1; }
   .pestanas button:hover{ background:#fffdf6; color:#1d1608; }
   .pestanas button.aqui{ background:#b8892b; color:#fff8e4; }
@@ -2688,7 +2812,7 @@
   /* Con el dedo, al suelo de la casa: son dos blancos y nada más en su
      renglón, así que no hay razón para dejarlos en 24 px. */
   @media (pointer:coarse){
-    .canto-tab{ min-height:44px; min-width:96px; padding:10px 18px; font-size:12px; }
+    .canto-tab{ min-height:44px; min-width:96px; padding:10px 18px; font-size:14px; }
   }
   /* EL INTERRUPTOR ES UN <label> ENTERO, y esto no es adorno: envolviendo la
      casilla y el texto, el rótulo también responde al toque, y el rótulo es
@@ -3234,10 +3358,25 @@
        Todo sube junto y en la misma proporción a propósito: si solo creciera
        la lista de libros, el resto del panel pasaría a verse hundido al lado,
        y el problema no era el tamaño de una parte sino la escala de todas. */
-    .rollo .lbl, .ajuste > .lbl{ font-size:12.5px; flex-basis:72px; line-height:1.25; }
-    .rollo .btn{ font-size:13.5px; padding:7px 11px; }
-    .pestanas button{ font-size:14.5px; padding:8px 10px; }
-    .rollo .chip{ font-size:13.5px; padding:6px 11px; }
+    /* CUARTA SUBIDA, y ésta la pidió el lector con estas palabras: «la
+       interfaz es demasiado pequeña para usarla». Las tres anteriores
+       dejaron el panel legible, cómodo de leer y cómodo de tocar, y aun
+       así se quedó corto: el rótulo de un ajuste a 12.5 y su botón a 13.5
+       son medidas de ratón, y aquí no hay ratón.
+       Sube todo junto otra vez, por lo mismo que la segunda: si sólo
+       creciera una parte, el resto se vería hundido al lado. La referencia
+       es el cuerpo de la hoja —15 px—: el panel llega hasta ahí y no más,
+       porque lo que se pedía no es un panel grande sino uno que no obligue
+       a acercarse el teléfono a la cara. */
+    .rollo .lbl, .ajuste > .lbl{ font-size:14px; flex-basis:78px; line-height:1.25; }
+    .rollo .btn{ font-size:15px; padding:8px 12px; }
+    /* LAS CUATRO PESTAÑAS Y LA EQUIS COMPARTEN UN SOLO RENGLÓN, y ese
+       renglón es lo que pone el techo aquí. A 15.5 con 11 de relleno la
+       equis se salía por 3 px en un teléfono de 412 —medido, no supuesto—.
+       A 15 con 9 caben las cinco con sitio de sobra, y 15 es la medida del
+       cuerpo de la hoja, que es adonde iba todo esto de todas formas. */
+    .pestanas button{ font-size:15px; padding:8px 9px; }
+    .rollo .chip{ font-size:15px; padding:7px 12px; }
 
     /* ============================================================
        TERCERA SUBIDA, Y ÉSTA NO ES DE TAMAÑO DE LETRA. Las dos anteriores
@@ -3299,33 +3438,33 @@
        arrastra el dedo por encima y un globo va diciendo qué libro hay debajo,
        así que se elige mirando el globo y no el hueco entre dos nombres. Un
        blanco chico con confirmación se atina mejor que uno grande a ciegas. */
-    .tabo{ font-size:13px; height:52px; line-height:52px; padding:0 9px; }
+    .tabo{ font-size:15px; height:52px; line-height:52px; padding:0 9px; }
     .rejilla-libros{ gap:5px; }
     #cantoCuerpo{ gap:6px; }
-    .num{ font-size:13.5px; height:40px; line-height:40px; }
-    .fly-tit{ font-size:12px; padding:2px 0 5px; }
+    .num{ font-size:15px; height:40px; line-height:40px; }
+    .fly-tit{ font-size:13px; padding:2px 0 5px; }
     /* La glosa del índice NO entra en esta lista de tamaños. Aquí estaba
        clavada en 13px, y eso es exactamente lo que rompía el espejo: la de la
        hoja crece y se encoge con el ajuste de Formato y ésta se quedaba
        quieta. Ahora la manda --fs, como a la de la hoja. */
-    .nota-respaldo, .rollo .cred{ font-size:12px; }
+    .nota-respaldo, .rollo .cred{ font-size:13px; }
     /* En el teléfono sube igual que el resto: es donde de verdad se consulta,
        porque es el aparato del que uno duda si tiene la versión nueva. */
     .sello-version{ font-size:17px; }
-    .ajuste select{ font-size:13.5px; padding:5px 7px; }
+    .ajuste select{ font-size:15px; padding:6px 8px; }
     /* Estos tres se habían quedado fuera de la lista y por eso se veían
        hundidos entre los demás: el número del sepia, el aviso de índice
        vacío y el botón de volver del salto. */
-    .rollo .medida{ font-size:13px; min-width:30px; }
-    .ix-vacio{ font-size:12px; }
-    #btnVolver{ font-size:12.5px; padding:6px 12px; }
+    .rollo .medida{ font-size:14.5px; min-width:32px; }
+    .ix-vacio{ font-size:14px; }
+    #btnVolver{ font-size:14px; padding:7px 13px; }
     /* La cabecera del panel de libros nunca estuvo en la lista, y es lo
        primero que se lee al abrirlo: el rótulo iba en 7.5px y la flecha de
        volver era un blanco de 15px, la mitad de lo que alcanza un pulgar. */
-    #cantoCab{ font-size:11.5px; height:auto; min-height:26px; }
+    #cantoCab{ font-size:13px; height:auto; min-height:30px; }
     /* Con el dedo, el renglón entero llega al suelo de la casa —48px— y la
        casilla crece con él: una casilla de 17px es de ratón. */
-    .canto-opcion{ font-size:14px; min-height:48px; gap:10px; }
+    .canto-opcion{ font-size:15px; min-height:48px; gap:10px; }
     .canto-opcion input{ width:22px; height:22px; }
     /* Las rejillas siguen al alto de .num, que es de quien dependen: con
        celdas de 38px y números de 29px volvían a quedar apretados. */
@@ -3999,7 +4138,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-SEP-26 17:45';
+window.GLOSS_BUILD = '16-SEP-26 18:55';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
