@@ -2352,8 +2352,13 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      soltando lo marcado, la hoja vuelve a pasar.
      ================================================================ */
   titulo('con algo marcado, la hoja no pasa');
-  const atadura = await p.evaluate(() => {
-    /* los tres caminos, cada uno como lo hace un lector */
+  /* EL ANDAMIO SE INSTALA DESPUÉS DE CADA RECARGA, y esto no es una
+     precaución: p.reload() estrena el objeto window entero, así que unos
+     ayudantes puestos una sola vez antes del bucle desaparecen en la primera
+     vuelta y el bloque revienta con «window.__hoja is not a function» —y se
+     lleva por delante todo lo que viniera detrás en el fichero—. Lo levantó
+     la revisión de Codex. Va como TEXTO y se vuelve a evaluar cada vez. */
+  const ANDAMIO_ATADURA = `() => {
     window.__pausa = ms => new Promise(z => setTimeout(z, ms));
     window.__hoja = () => document.querySelector('#pgBody .v').dataset.k;
     window.__trazo = () => {
@@ -2420,14 +2425,15 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
         { key:'ArrowRight', bubbles:true, cancelable:true }));
       await window.__pausa(2200);
     };
-    return true;
-  });
+  }`;
   for (const [nombre, fn] of [['el filo', '__filo'], ['el desliz', '__desliz'],
                               ['la flecha', '__flecha']]){
+    /* Hoja limpia en cada vuelta: sobre una marca hecha el dedo la ABRE en vez
+       de pintar, y entonces no habría trazo que atara nada. */
     await p.evaluate(() => localStorage.removeItem('glossa:marcas:v1'));
     await p.reload();
     await listo(p);
-    await p.evaluate(() => {});
+    await p.evaluate(a => eval('(' + a + ')')(), ANDAMIO_ATADURA);
     const r = await p.evaluate(async f => {
       /* EL CONTROL PRIMERO: sin nada marcado, este gesto pasa hoja. */
       const antesCtrl = window.__hoja();
@@ -2468,6 +2474,77 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
          r.dice);
     vale('  soltado lo marcado, ' + nombre + ' vuelve a pasar hoja',
          r.quedaTrazo === '' && r.libreA !== r.libreDe, r.libreDe + ' → ' + r.libreA);
+  }
+
+  /* EL HUECO DEL DOBLE CLIC, que el guardia del pointerdown no alcanza.
+
+     El filo no gira al soltarlo: arma un reloj y espera los ESPERA_DOBLE por
+     si llega el segundo toque. En ese cuarto de segundo cabe un gesto entero
+     —se suelta el filo y se empieza a marcar—, y el reloj, armado cuando
+     todavía no había nada pintado, llegaba igual y se llevaba la hoja con el
+     trazo recién hecho dentro. Un guardia que mira el estado de hace un
+     cuarto de segundo no está mirando el estado. Lo levantó Codex.
+
+     Con su control, que aquí es imprescindible: si el reloj del filo no
+     estuviera vivo, «la hoja no pasó» se cumpliría sola y este bloque pasaría
+     en verde sin haber probado nada. */
+  titulo('marcar dentro del plazo del doble clic también ata la hoja');
+  await p.evaluate(() => localStorage.removeItem('glossa:marcas:v1'));
+  await p.reload();
+  await listo(p);
+  await p.evaluate(a => eval('(' + a + ')')(), ANDAMIO_ATADURA);
+  const hueco = await p.evaluate(async () => {
+    const antes = window.__hoja();
+    /* 1. el toque del filo arma el reloj */
+    const e = document.getElementById('edgeR');
+    const c = e.getBoundingClientRect();
+    const op = { bubbles:true, cancelable:true, pointerId:320, pointerType:'touch',
+                 isPrimary:true, clientX: c.left + c.width/2, clientY: 420 };
+    e.dispatchEvent(new PointerEvent('pointerdown', op));
+    await window.__pausa(60);
+    e.dispatchEvent(new PointerEvent('pointerup', op));
+    /* 2. y EN EL ACTO se marca, sobre una palabra de verdad: empezando en el
+          filo de arriba del versículo el trazo salía « », y un espacio no es
+          una marca —la premisa no probaría nada—. */
+    const pgBody = document.getElementById('pgBody');
+    const v = document.querySelector('#pgBody .v');
+    const w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT); let n = null;
+    while (w.nextNode()) if (w.currentNode.textContent.trim().length > 40){ n = w.currentNode; break; }
+    if (!n) return { sinTexto:true };
+    const pal = (n.data.match(/[\p{L}\p{N}]{6,}/u) || [])[0];
+    if (!pal) return { sinTexto:true };
+    const i = n.data.indexOf(pal);
+    const rg = document.createRange(); rg.setStart(n, i + 2); rg.setEnd(n, i + 3);
+    const vc = rg.getBoundingClientRect();
+    const x0 = Math.round(vc.left + vc.width/2), y0 = Math.round(vc.top + vc.height/2);
+    const od = (x, y) => ({ bubbles:true, cancelable:true, pointerId:321,
+                            pointerType:'touch', isPrimary:true, clientX:x, clientY:y });
+    pgBody.dispatchEvent(new PointerEvent('pointerdown', od(x0, y0)));
+    for (let j = 1; j <= 6; j++){
+      pgBody.dispatchEvent(new PointerEvent('pointermove',
+        od(x0 + (j % 3 ? -2 : 3), y0 + j * 6 + (j % 2 ? 1 : -1))));
+      await window.__pausa(14);
+    }
+    const alPintar = window.__trazo();
+    pgBody.dispatchEvent(new PointerEvent('pointerup', od(x0, y0 + 36)));
+    /* 3. y se le da al reloj del filo tiempo de sobra para vencer */
+    await window.__pausa(2400);
+    const atado = { antes, alPintar, despues: window.__hoja(), queda: window.__trazo() };
+    /* EL CONTROL: soltado lo marcado, ese mismo toque del filo sí pasa hoja. */
+    await window.__soltar();
+    const antesCtrl = window.__hoja();
+    await window.__filo();
+    return { ...atado, antesCtrl, ctrl: window.__hoja() };
+  });
+  di('el hueco del doble clic', hueco);
+  if (!hueco.sinTexto){
+    vale('(premisa) el trazo nació dentro del plazo, y es una palabra',
+         /[\p{L}\p{N}]/u.test(hueco.alPintar || ''), '«' + hueco.alPintar + '»');
+    vale('LA HOJA NO PASA aunque el reloj ya estuviera armado',
+         hueco.despues === hueco.antes, hueco.antes + ' → ' + hueco.despues);
+    vale('  y el trazo sigue vivo', hueco.queda === hueco.alPintar, '«' + hueco.queda + '»');
+    vale('CONTROL: el reloj del filo está vivo y sin marca sí pasa hoja',
+         hueco.ctrl !== hueco.antesCtrl, hueco.antesCtrl + ' → ' + hueco.ctrl);
   }
 
   /* ================================================================

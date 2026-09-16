@@ -3985,7 +3985,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-SEP-26 06:42';
+window.GLOSS_BUILD = '16-SEP-26 06:55';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -10776,7 +10776,17 @@ function bordeArriba(ev, s){
      arranca el giro —ni antes, que devolvería el hueco a otro sitio, ni
      después, que la dejaría flotando sobre una hoja que ya se fue. */
   relojClic = setTimeout(() => {
-    relojClic = null; ocultarHuella(); pasarHoja(s, alturaClic);
+    relojClic = null; ocultarHuella();
+    /* Y SE VUELVE A PREGUNTAR AQUÍ, que el guardia del pointerdown no alcanza.
+
+       Entre el toque del filo y este giro pasan los ESPERA_DOBLE del doble
+       clic, y en ese hueco cabe un gesto entero: se suelta el filo, se empieza
+       a marcar, y el reloj —armado cuando todavía no había nada pintado—
+       llegaba igual y se llevaba la hoja con el trazo recién hecho dentro.
+       Un guardia que mira el estado de hace un cuarto de segundo no está
+       mirando el estado. Lo levantó la revisión de Codex. */
+    if (hayTrazoVivo()){ avisarHojaAtada(); return; }
+    pasarHoja(s, alturaClic);
   }, ESPERA_DOBLE);
 }
 /* endFold TERMINA EL PLIEGUE QUE LLEVA UN DEDO, y solo ése.
