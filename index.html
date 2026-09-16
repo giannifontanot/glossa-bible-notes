@@ -3999,7 +3999,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-SEP-26 17:16';
+window.GLOSS_BUILD = '16-SEP-26 17:45';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -12271,9 +12271,31 @@ function darUnPasoAtras(){
   trasPintar(() => irA(h.libro, h.cap, h.vers, '', { sinApuntar:true }));
 }
 
+/* LOS TRES PANELES DE LA ESCENA SON UNO A LA VEZ, Y SE CIERRAN DESDE AQUÍ.
+
+   El rastro, la lista de piedras y la lista de cintas viven los tres en la
+   escena, se cuelgan de sus esquinas y se tapan entre ellos —los dos menús
+   comparten el z-index 9—. Hasta ahora eso lo resolvían los tres vigilantes
+   del toque de FUERA: tocar el punto de las cintas era un toque de fuera para
+   el rastro, y el rastro se iba solo.
+
+   Y AHÍ ESTABA EL AGUJERO, que lo levantó la revisión de Codex: esos
+   vigilantes escuchan `pointerdown`, y con Enter o con la barra —o con un
+   lector de pantalla— el navegador manda el `click` Y NO MANDA `pointerdown`.
+   O sea que quien navega con teclado podía encender los dos menús a la vez,
+   uno encima del otro, y ninguno de los dos se enteraba. Es la cuarta regla de
+   la casa por el otro lado: no es que un evento hecho a mano siempre llegue,
+   es que el del teclado NO trae el del dedo.
+
+   Se arregla en los tres `abrir`, y no en los oyentes de los botones, porque
+   es el único sitio por el que pasan TODOS los caminos: el dedo, el teclado, y
+   los que no vienen de un botón —tocar una cinta en la hoja abre su menú—. El
+   vigilante del toque de fuera se queda donde está: sigue haciendo falta para
+   cerrar tocando el papel, que no abre nada. */
 function abrirHistorial(){
   if (histAbierto) return;
   cerrarTodosLosRollos();
+  cerrarSepMenu(); cerrarPiedraMenu();
   cargarHistorial();            /* por si otra pestaña del navegador lo movió */
   histAbierto = true;
   pintarHistorial();
@@ -16355,6 +16377,8 @@ let piedraBorrando = null;
    mismo que sepEditando para las cintas, y de ahí sale todo lo de abajo. */
 let piedraNombrando = null;
 function abrirPiedraMenu(ancla){
+  /* Los hermanos, fuera: ver «LOS TRES PANELES DE LA ESCENA» en abrirHistorial. */
+  cerrarHistorial(); cerrarSepMenu();
   piedraMenuAbierto = true;
   pintarPuntosLista();
   piedraMenuAncla = ancla ? ancla.getBoundingClientRect() : null;
@@ -16982,6 +17006,8 @@ document.addEventListener('pointerdown', ev => {
 function abrirSepMenu(id, ancla){
   if (id && !sepDe(id)) return;
   cerrarOferta();
+  /* Los hermanos, fuera: ver «LOS TRES PANELES DE LA ESCENA» en abrirHistorial. */
+  cerrarHistorial(); cerrarPiedraMenu();
   sepMenuAbierto = id || 'lista';
   pintarPuntosLista();
   /* Se guarda el RECTÁNGULO, no el elemento: quien lo abrió puede irse —una

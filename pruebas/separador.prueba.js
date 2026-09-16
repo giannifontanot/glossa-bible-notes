@@ -817,6 +817,66 @@ async function ponerAMano(p){
   vale('y apaga el punto', segundoToque.apagado === true, segundoToque);
   vale('el tercero la abre otra vez', segundoToque.deVuelta === true, segundoToque);
 
+  /* ================================================================
+     CON EL TECLADO, LOS TRES PANELES SIGUEN SIENDO UNO A LA VEZ.
+
+     Los tres —el rastro, las piedras y las cintas— viven en la escena y se
+     tapan entre ellos; los dos menús comparten el z-index 9. Que sólo haya uno
+     lo resolvían los vigilantes del toque de FUERA, y ahí estaba el agujero:
+     escuchan `pointerdown`, y con Enter el navegador manda el `click` Y NO
+     MANDA `pointerdown`. Quien navega con teclado podía encender los dos menús
+     a la vez, uno encima del otro. Lo levantó la revisión de Codex.
+
+     Es la cuarta regla de la casa por el otro lado —un evento hecho a mano
+     siempre llega, y el del teclado NO trae el del dedo—, así que la prueba
+     tiene que pulsar de verdad: p.keyboard, nunca un KeyboardEvent a mano.
+     Escrita con dispatchEvent, esta prueba pasaría en verde con el fallo
+     puesto, porque un `click` a mano tampoco trae `pointerdown` pero tampoco
+     lo traía el que sí funcionaba.
+     ================================================================ */
+  titulo('con el teclado también: un panel a la vez');
+  const capas = () => p.evaluate(() => ({
+    rastro: document.getElementById('historial').classList.contains('visible'),
+    piedras: document.getElementById('piedraMenu').classList.contains('visible'),
+    cintas: document.getElementById('sepMenu').classList.contains('visible') }));
+  const conIntro = async id => {
+    await p.evaluate(i => document.getElementById(i).focus(), id);
+    await p.keyboard.press('Enter');
+    await p.waitForTimeout(700);
+    return capas();
+  };
+  await p.evaluate(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(500);
+  });
+  const soloUno = {
+    piedras: await conIntro('btnPiedras'),
+    cintas:  await conIntro('btnCintas'),
+    rastro:  await conIntro('btnHistorial'),
+    vuelta:  await conIntro('btnPiedras'),
+    cerrada: await conIntro('btnPiedras')
+  };
+  di('los tres con Intro', JSON.stringify(soloUno));
+  vale('Intro abre las piedras', soloUno.piedras.piedras === true, soloUno.piedras);
+  vale('Intro abre las cintas', soloUno.cintas.cintas === true, soloUno.cintas);
+  vale('  Y SE LLEVA LAS PIEDRAS, sin pointerdown de por medio',
+       soloUno.cintas.piedras === false, soloUno.cintas);
+  vale('el rastro abre y se lleva las cintas',
+       soloUno.rastro.rastro === true && soloUno.rastro.cintas === false &&
+       soloUno.rastro.piedras === false, soloUno.rastro);
+  vale('  y las piedras se llevan el rastro',
+       soloUno.vuelta.piedras === true && soloUno.vuelta.rastro === false,
+       soloUno.vuelta);
+  vale('  y el segundo Intro las cierra', soloUno.cerrada.piedras === false,
+       soloUno.cerrada);
+  /* Y se devuelve el escenario: este bloque termina con todo cerrado, y el de
+     abajo sigue con la lista de cintas abierta donde la dejó el anterior. */
+  await p.evaluate(async () => {
+    if (!document.getElementById('sepMenu').classList.contains('visible')){
+      await window.__toque('#btnCintas'); await window.__pausa(700);
+    }
+  });
+
   titulo('una cinta se nombra, y el nombre no la mueve de sitio');
   const nombrar = await p.evaluate(async () => {
     await window.__abrirFila('s2');
