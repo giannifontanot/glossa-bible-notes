@@ -1821,6 +1821,10 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
         esfumaba sin que nada la explicara. Se mide contando CUADROS: con el
         fallo puesto, uno.
      ================================================================ */
+  /* El primer cuadro de la película, para compararlo con el último. Va aparte
+     porque se lee en dos aserciones y una cuenta escrita dos veces se corrige
+     una sola. */
+  const cuadrosPrimero = r => +(r.opacidades || '').split(' ')[0];
   const etiq = await abrir();
   const e = etiq.pagina;
   await conGlosas(e);
@@ -1846,23 +1850,48 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     /* Y ahora se cierra tocando fuera, filmando cuadro a cuadro cómo se va. */
     const cuadros = [];
     const t0 = performance.now();
-    /* SE FILMA HASTA QUE EL PANEL SE VA, no durante un plazo fijo.
+    /* SE FILMA HASTA QUE EL PANEL SE VA, no durante un plazo fijo. Y LO QUE SE
+       MIDE ES EL RELOJ, NO LOS CUADROS.
 
-       Iba a 700 ms, y eso da por hecho que la cámara corre a su velocidad: en
-       una máquina cargada la película salió de CINCO cuadros en esos 700 ms
-       —«1 1 0.99 0.96 0.92»— y la aserción del final leyó ese 0.92 como un
-       fundido que no bajaba. No era eso: era una cámara a siete cuadros por
-       segundo. Aquí, con la máquina libre, el mismo bloque da dieciocho
-       cuadros y llega a 0.
-       Filmando hasta que el panel se va, lo que se mide es el fundido y no el
-       reloj de quien mira. El tope de 2500 ms está para que un panel que NO se
-       fuera no colgara la prueba; que no se vaya ya lo dice seFue. */
+       Éste es el tercer intento de este bloque y las tres veces falló por lo
+       mismo: la máquina del dueño del repo. Iba a un plazo fijo de 700 ms y la
+       película salió de cinco cuadros —«1 1 0.99 0.96 0.92»—; se cambió a
+       filmar hasta que el panel se fuera, y volvió a fallar con CUATRO cuadros
+       y «1 1 0.99 0.97».
+
+       Filmar hasta el final arregló el plazo pero no la raíz, porque la
+       aserción seguía contando CUADROS: cinco. Y un número de cuadros es una
+       propiedad de la cámara, no del fundido. A siete cuadros por segundo no
+       hay manera de sacar cinco en un fundido de 280 ms por correcto que esté
+       el programa, igual que no la habría de leer una opacidad baja si la
+       cámara no llega a mirar mientras baja.
+
+       Y LA RAÍZ ERA LA CÁMARA, no la aserción: filmaba con
+       requestAnimationFrame, que es el reloj del PINTADO. En una máquina que
+       no pinta —un navegador sin pantalla, ahogado, con la página sin
+       componer— ese reloj se para o se arrastra, y cuatro cuadros en 2500 ms
+       es exactamente eso: 1,6 por segundo. No había nada lento en el fundido;
+       lo lento era la cámara.
+
+       Aquí se filma con setTimeout, que es el reloj del PROGRAMA y sigue
+       corriendo aunque no se pinte un solo cuadro. Y la opacidad se lee de
+       getComputedStyle, que la resuelve cuando se le pregunta y no cuando se
+       dibuja, así que la película sale igual en una máquina libre que en una
+       ahogada. 16 ms entre fotos porque es el paso de un cuadro a 60: la
+       película se parece a la de antes sin depender de que los haya.
+
+       Con eso, lo que se juzga pasa a ser CUÁNTO TARDA el panel en irse. Con
+       el fallo original se iba en un cuadro —el vuelo de la nota contaba como
+       la salida—, o sea ~16 ms; con el fundido puesto tarda unos 280. El tope
+       de 2500 ms está para que un panel que NO se fuera no colgara la prueba;
+       que no se vaya ya lo dice seFue. */
+    let seFueEn = null;
     const peli = (async () => {
       while (performance.now() - t0 < 2500){
         const cs = getComputedStyle(m);
-        if (cs.display === 'none') break;
+        if (cs.display === 'none'){ seFueEn = performance.now() - t0; break; }
         cuadros.push(+(+cs.opacity).toFixed(2));
-        await new Promise(z => requestAnimationFrame(z));
+        await new Promise(z => setTimeout(z, 16));
       }
     })();
     document.body.dispatchEvent(new PointerEvent('pointerdown',
@@ -1874,35 +1903,44 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     return { cerradaAun, abierta, altoPanel,
              cuadros: cuadros.length, opacidades: cuadros.join(' '),
              ultima: cuadros[cuadros.length - 1],
+             /* El reloj empieza en t0, que es justo antes del toque de fuera. */
+             tardo: seFueEn === null ? null : Math.round(seFueEn),
              seFue: getComputedStyle(m).display === 'none' };
   });
-  di('la lista', { altoDelPanel: lista.altoPanel, cuadrosAlIrse: lista.cuadros });
+  di('la lista', { altoDelPanel: lista.altoPanel, cuadrosAlIrse: lista.cuadros,
+                   msEnIrse: lista.tardo });
   di('las opacidades', lista.opacidades);
   vale('nace cerrada, que es como tiene que nacer', lista.cerradaAun === true);
   vale('la lista se despliega', lista.abierta === true);
   /* Con el fallo puesto esto daba 1: el panel se quitaba en un cuadro. */
+  /* 120 ms y no 280: lo que se caza es «no se va de golpe», y de golpe era un
+     cuadro. Entre 16 y 120 hay sitio de sobra para distinguir las dos cosas
+     sin clavarse a la duración exacta del fundido, que puede cambiar el día
+     que alguien la ajuste sin estar rompiendo nada. */
   vale('Y EL PANEL SE VA FUNDIÉNDOSE, no de golpe',
-       lista.cuadros >= 5, lista.cuadros + ' cuadros');
-  /* BAJANDO HASTA CERO, Y «CERO» NO PUEDE SER EL LITERAL DEL ÚLTIMO CUADRO.
+       typeof lista.tardo === 'number' && lista.tardo >= 120,
+       lista.tardo + ' ms en irse  ·  ' + lista.cuadros + ' cuadros');
+  /* Y QUE LA OPACIDAD BAJE, QUE ES LA OTRA MITAD: tardar no basta, un panel
+     que se quedara quieto 300 ms y luego desapareciera también tardaría.
 
-     Esto exigía que el último valor filmado fuera exactamente 0, y eso no lo
-     decide el fundido: lo decide si el último requestAnimationFrame cae antes
-     o después de que el panel se ponga en display:none, que es lo que corta la
-     película. En este contenedor la serie llega a 0 a los ~290 ms y la
-     aserción pasaba cinco de cinco; en la máquina del dueño del repo el último
-     cuadro salió 0.01 y suspendió. No conseguí reproducirlo, así que esto no
-     se arregla adivinando la causa: se arregla pidiendo lo que de verdad
-     importa, que son dos cosas y ninguna depende del reloj de la cámara.
+     Esta línea pidió primero que el último cuadro valiera 0 exacto, y después
+     que valiera 0.05 o menos. Las dos preguntan por un cuadro CONCRETO, y cuál
+     sea el último no lo decide el fundido: lo decide si el último
+     requestAnimationFrame cae antes o después del display:none. En la máquina
+     del dueño del repo salió 0.01 la primera vez y 0.97 la segunda, con el
+     programa igual de bien las dos veces.
 
-     La primera, que la opacidad BAJE hasta casi nada —0.05 es un panel que ya
-     no está ahí, y con el fallo original esto valía 1 en el único cuadro que
-     había—. La segunda, y es la que sobraba: que el panel ACABE fuera. Un
-     fundido que baja y luego se queda a medias pasaba la comprobación vieja
-     igual de bien, porque nadie miraba el final. */
-  vale('  bajando la opacidad hasta casi cero',
-       typeof lista.ultima === 'number' && lista.ultima <= 0.05 &&
-       /0\.\d/.test(lista.opacidades || ''),
-       'acabó en ' + lista.ultima + '  ·  ' + lista.opacidades);
+     Lo que sí se puede exigir sin saber cuándo miró la cámara es que la
+     opacidad HAYA BAJADO: que el último cuadro sea menor que el primero. Con
+     el fallo original no bajaba nada —había un solo cuadro, valía 1— así que
+     lo sigue cazando; y a una cámara lenta le basta con haber mirado dos
+     veces, no cinco. Lo demás —que acabe fuera y no a medio camino— es la
+     línea de abajo, que es la que cierra el caso. */
+  vale('  bajando la opacidad',
+       typeof lista.ultima === 'number' && lista.cuadros >= 2 &&
+       lista.ultima < cuadrosPrimero(lista),
+       'de ' + cuadrosPrimero(lista) + ' a ' + lista.ultima +
+       '  ·  ' + lista.opacidades);
   vale('  y el panel acaba fuera, no a medio camino', lista.seFue === true);
 
   /* EL ANCHO CAMBIA Y LA LISTA TIENE QUE ENTERARSE.
