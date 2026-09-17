@@ -140,15 +140,31 @@ async function ponerContraste(pagina, pct){
      a "100%", el riel se encogía debajo del pulgar. */
   const estable = await pagina.evaluate(async () => {
     const r = document.getElementById('contraste');
+    const m = r.parentElement.querySelector('.medida');
     const ancho = async v => { r.value = String(v);
       r.dispatchEvent(new Event('input', { bubbles:true }));
       await new Promise(z => setTimeout(z, 100));
       return Math.round(r.getBoundingClientRect().width); };
-    return { c50: await ancho(50), c100: await ancho(100), c200: await ancho(200) };
+    return { c50: await ancho(50), c100: await ancho(100), c200: await ancho(200),
+             /* Y DE QUÉ FAMILIA ES EL NÚMERO, que es la causa de todo esto. */
+             familia: m ? getComputedStyle(m).fontFamily : null };
   });
   di('el riel a 50, 100 y 200', estable);
   vale('el riel no se encoge con el número',
        estable.c50 === estable.c100 && estable.c100 === estable.c200, estable);
+  /* Y LA CAUSA, DICHA: el número va en monoespaciada justamente para que «50%»
+     y «100%» ocupen lo mismo. La línea de arriba caza el síntoma —tres píxeles
+     de riel— y esta caza el motivo.
+
+     Hace falta porque el CSS no avisa: una declaración mal escrita se la come
+     el navegador en silencio, y si la que se cae es la que pone la
+     monoespaciada, el número pasa a una proporcional, «100%» se ensancha y el
+     riel encoge. Pasó: una pasada automática partió `.7rem` en dos y dejó un
+     `.calc(` suelto en el atajo `font:`, que tumbó con él la familia y el
+     peso. Lo cazó la de arriba por tres píxeles, y costó llegar del síntoma a
+     la causa. Preguntando por la familia, la próxima lo dice de una vez. */
+  vale('  y el número conserva su monoespaciada, que es por lo que no se encoge',
+       /mono|menlo|consolas|courier/i.test(estable.familia || ''), estable.familia);
 
   /* ---------- el panel ya no ofrece versiones ---------- */
   /* La fila de versión vivía al final de Formato y era una segunda lista de lo
