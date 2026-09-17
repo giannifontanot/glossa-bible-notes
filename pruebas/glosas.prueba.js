@@ -1424,15 +1424,30 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     }
     return r;
   }, [ABRIR, FUERA]).then(r => {
+    /* UN PÍXEL DE HOLGURA TAMBIÉN AQUÍ, y esto es lo que esta línea no había
+       aprendido todavía: la de abajo ya lo sabía y ésta pedía igualdad exacta.
+
+       No es aflojar para pasar, es que la igualdad exacta nunca fue una
+       propiedad del programa. Los dos números salen de redondear la misma
+       medida tomada dos veces, en el editor y en el calco, y dos redondeos del
+       mismo flotante se separan en cuanto cae cerca de un medio. Que el sitio
+       baila lo dice el propio valor entre tandas: 6, 7 y 8 según qué
+       referencia le toque a la glosa —«1a», «1b», «12a»—, que depende de las
+       marcas que haya y de cuáles renumere la que se acaba de guardar.
+
+       Cayó una vez con 8 contra 9 y el borde derecho idéntico, o sea el ancla
+       en su sitio y un redondeo a un lado. Dos tandas seguidas después dieron
+       6 contra 6 y 7 contra 7. Lo que se vigila es que el ancla ocupe el mismo
+       sitio, no que dos redondeos coincidan; y eso es exactamente lo que dice
+       la línea de abajo desde que se escribió. */
     vale('el ancla del calco cae donde la del editor',
-         !r.sinTexto && !r.sinCalco && r.calco.izq === r.editor.izq &&
-         r.calco.der === r.editor.der,
+         !r.sinTexto && !r.sinCalco &&
+         Math.abs(r.calco.izq - r.editor.izq) <= 1 &&
+         Math.abs(r.calco.der - r.editor.der) <= 1,
          JSON.stringify(r.calco) + ' contra ' + JSON.stringify(r.editor));
-    /* Un píxel de holgura: son medidas redondeadas del mismo texto al mismo
-       cuerpo, y la referencia puede no ser la misma letra —«1a» contra «1b»—
-       porque guardar una marca nueva se lleva las que pisa y renumera. Lo que
-       se vigila es que el ancla ocupe el mismo sitio, no que dos redondeos
-       coincidan. */
+    /* Un píxel de holgura, por lo mismo que la de arriba, y además porque la
+       referencia puede no ser la misma letra —«1a» contra «1b»— porque guardar
+       una marca nueva se lleva las que pisa y renumera. */
     vale('y donde la de la hoja', r.hoja && Math.abs(r.calco.izq - r.hoja.izq) <= 1 &&
          Math.abs(r.calco.der - r.hoja.der) <= 1, JSON.stringify(r.hoja));
     vale('el texto no se le monta encima', r.sePisan === false,
