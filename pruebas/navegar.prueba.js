@@ -722,8 +722,13 @@ const ATERRIZA = 7000;
              guardado: JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}').verFlechas };
   });
   di('las flechas', flechas);
+  /* EL RÓTULO CAMBIÓ CON LO QUE HACE LA CASILLA. Decía «ver flechas de pasar
+     página» cuando encendía una sola cosa; ahora enciende también los cuatro
+     puntos de las esquinas y los dos rótulos de la hoja, y nombrar sólo las
+     flechas escondería tres cuartas partes. El porqué de estas palabras está
+     escrito donde se escriben, en pintarCanto. */
   vale('la casilla está en LIBROS y dice lo que hace',
-       !flechas.sinCasilla && /ver flechas de pasar p/i.test(flechas.rotulo || ''),
+       !flechas.sinCasilla && /se puede tocar/i.test(flechas.rotulo || ''),
        flechas.sinCasilla ? 'no hay casilla' : flechas.rotulo);
   vale('  con blanco de toque de dedo', flechas.blanco >= 44, flechas.blanco);
   vale('NACEN APAGADAS', flechas.nacen.izq === true && flechas.nacen.der === true, flechas.nacen);

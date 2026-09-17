@@ -5,7 +5,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Gloss Bible</title>
 <style>
-  :root{ --desk:#362c20; --desk-2:#4a3c29; --ui:'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* ============================================================
+     LA INTERFAZ CRECE CON EL LIBRO.
+
+     Pedido: «que las letras de los menús, los paneles y los botones tengan el
+     mismo tamaño que el que tiene el libro, y que cambien cuando el usuario
+     cambia el del libro». Y tiene razón de fondo: quien sube la letra de la
+     hoja a 22 px no lo hace por gusto tipográfico, lo hace porque VE PEOR, y
+     dejarle el panel de Libros en 13 es darle con una mano lo que se le quita
+     con la otra. El ajuste era de la hoja y tenía que ser del lector.
+
+     --escala-ui es un número SIN UNIDAD —15 px de libro es 1— y lo escribe el
+     guion en cada cambio de tamaño. Todo el cromo se multiplica por él, así
+     que a 15 no cambia ni un píxel de lo que había y a 22 todo sube en la
+     misma proporción. Se hace con un factor y no reescribiendo cada medida
+     como fracción de --fs porque las proporciones entre las piezas del panel
+     están medidas una por una y peleadas de antes: multiplicarlas todas por lo
+     mismo las conserva; volver a escribirlas sería volver a decidirlas.
+
+     QUÉ NO ESCALA, Y NO ES UN OLVIDO:
+
+     · LOS RÓTULOS DE LA HOJA —el titulillo y la versión—. Son de la hoja, no
+       del cromo, y su alto es de donde sale --alto-cabeza, que es lo que
+       aparta el texto. Tocarlos repagina el libro entero.
+     · LOS SIGNOS QUE NO SON LETRA: las equis de cerrar, las flechas del zoom.
+       Son figuras dentro de un blanco de toque de medida fija; creciendo solas
+       se saldrían de su caja. Lo que se pidió es la letra que se lee, y un
+       aspa no se lee, se acierta.
+     ============================================================ */
+  :root{ --escala-ui:1;
+         --desk:#362c20; --desk-2:#4a3c29; --ui:'Segoe UI', system-ui, -apple-system, sans-serif;
          /* EL CONTRASTE VIVE EN LA RAÍZ y no en la hoja, porque lo leen tres
             elementos que no son parientes: la hoja viva, el lienzo del
             pliegue y la lista de escenas. Puesto arriba, los tres heredan el
@@ -106,7 +135,7 @@
                   estaba dentro del panel que se ha quitado. */
                align-items:center; padding:0 12px; z-index:5; }
   #portadaPie > *{ justify-self:center; }
-  .pt-btn{ font:600 13px/1 var(--ui); letter-spacing:.06em; cursor:pointer;
+  .pt-btn{ font:600 calc(13px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.06em; cursor:pointer;
            color:#e8dcc0; background:rgba(255,255,255,.09);
            border:1px solid rgba(232,213,163,.34); border-radius:8px;
            padding:13px 18px; min-height:48px; min-width:88px;
@@ -203,7 +232,7 @@
      —cerrar sale de decorar—, asi que el mando se muda arriba y deja libre lo
      que tapaba. */
   .pt-mando.arriba{ top:max(22px, 5vh); bottom:auto; }
-  .pt-tit{ font:700 10px/1 var(--ui); letter-spacing:.16em; text-transform:uppercase;
+  .pt-tit{ font:700 calc(10px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.16em; text-transform:uppercase;
            color:rgba(232,213,163,.7); margin:0; }
   /* AQUÍ ESTABAN LA PARRILLA DE FIGURAS Y LAS MANCHAS DE COLOR de un segundo
      panel de piedras escrito solo para la portada. Se fue entero: la portada
@@ -211,7 +240,7 @@
      el mando de la FOTO, que sí es suyo porque en la hoja no hay fotos. */
   .pt-fila{ display:flex; align-items:center; justify-content:center;
             gap:8px; flex-wrap:wrap; }
-  .pt-mini{ font:600 12.5px/1 var(--ui); cursor:pointer; color:#e8dcc0;
+  .pt-mini{ font:600 calc(12.5px * var(--escala-ui, 1))/1 var(--ui); cursor:pointer; color:#e8dcc0;
             background:rgba(255,255,255,.08);
             border:1px solid rgba(232,213,163,.3); border-radius:7px;
             padding:9px 12px; min-height:40px;
@@ -224,7 +253,7 @@
   /* Con el dedo, los botoncitos de los mandos al suelo de la casa. Igual que
      los del mando de piedras de la hoja, y por lo mismo. */
   @media (pointer:coarse){
-    .pt-mini{ min-height:44px; padding:11px 13px; font-size:13.5px; }
+    .pt-mini{ min-height:44px; padding:11px 13px; font-size:calc(13.5px * var(--escala-ui, 1)); }
   }
   @media (prefers-reduced-motion: reduce){
     .pt-btn, .pt-marco{ transition:none; }
@@ -510,7 +539,7 @@
      enseña; no se cuenta. */
   #readout{ position:absolute; left:50%; bottom:26px; transform:translate(-50%, 6px);
             z-index:7; max-width:86%; pointer-events:none;
-            font:400 10.5px/1.45 var(--ui); color:#f3ead6; text-align:center;
+            font:400 calc(10.5px * var(--escala-ui, 1))/1.45 var(--ui); color:#f3ead6; text-align:center;
             background:rgba(40,31,14,.9); padding:5px 11px; border-radius:5px;
             opacity:0; transition:opacity .34s cubic-bezier(.65,0,.35,1),
                                   transform .34s cubic-bezier(.65,0,.35,1); }
@@ -971,22 +1000,66 @@
   #btnPiedras, #btnCintas{ top:0; height:22px; }
   #btnPiedras{ left:8px; }
   #btnCintas{ right:8px; }
+  /* EL PUNTO SE PINTA DESDE TRES VARIABLES, Y NO ES UN ADORNO DE ESTILO: es
+     lo que deja que los tres estados del punto —en reposo, señalado y
+     abierto— convivan sin pelearse por especificidad.
+
+     Con reglas normales no convivían. La guía (.stage.guias) tiene que llegar
+     a los cuatro puntos, y escrita con la escena delante pesa más que el
+     `.abierto` de un punto suelto: encendido el interruptor, el punto del
+     panel que está abierto se habría quedado rojo y habríamos perdido la
+     señal de «éste es el que tienes abierto». Con variables no hay pelea que
+     resolver, porque un valor puesto EN el elemento le gana siempre a uno
+     heredado, venga de donde venga: .guias pinta la escena y .abierto pinta
+     el botón, y el botón está más cerca. */
   #btnZoom::before, #btnHistorial::before,
   #btnPiedras::before, #btnCintas::before{ content:''; display:block;
             width:11px; height:11px; border-radius:50%;
-            background:#a98f57; opacity:.62;
+            background:var(--punto, #a98f57);
+            opacity:var(--punto-luz, .62);
+            transform:scale(var(--punto-esc, 1));
+            box-shadow:var(--punto-halo, none);
             transition:opacity .28s cubic-bezier(.65,0,.35,1),
                        background .28s cubic-bezier(.65,0,.35,1),
+                       box-shadow .28s cubic-bezier(.65,0,.35,1),
                        transform .28s cubic-bezier(.3,.8,.4,1); }
   #btnZoom:hover::before, #btnHistorial:hover::before,
-  #btnPiedras:hover::before, #btnCintas:hover::before{ opacity:1; transform:scale(1.18); }
+  #btnPiedras:hover::before, #btnCintas:hover::before{
+            opacity:1; transform:scale(calc(var(--punto-esc, 1) * 1.18)); }
   #btnZoom:active::before, #btnHistorial:active::before,
-  #btnPiedras:active::before, #btnCintas:active::before{ transform:scale(.9); }
+  #btnPiedras:active::before, #btnCintas:active::before{
+            transform:scale(calc(var(--punto-esc, 1) * .9)); }
   /* Abierto, el punto se pone del marrón macizo del programa: el mismo idioma
      que un botón cumplido en el panel. */
-  #btnZoom.abierto::before, #btnHistorial.abierto::before,
-  #btnPiedras.abierto::before, #btnCintas.abierto::before{
-            background:#b8892b; opacity:1; transform:scale(1.25); }
+  #btnZoom.abierto, #btnHistorial.abierto,
+  #btnPiedras.abierto, #btnCintas.abierto{
+            --punto:#b8892b; --punto-luz:1; --punto-esc:1.25; --punto-halo:none; }
+  /* ============================================================
+     LAS GUÍAS: DÓNDE SE PUEDE TOCAR, DICHO EN ROJO.
+
+     Este programa esconde su cromo a propósito —el papel es lo que importa— y
+     el precio es que las puertas no se ven: cuatro puntos beige del tamaño de
+     una lenteja y dos rótulos que parecen parte de la hoja. Quien no las
+     descubre por casualidad no las descubre.
+
+     El interruptor de las flechas ya existía para eso mismo, para enseñar por
+     dónde pasa la hoja, y ahora enseña TODO lo que se puede tocar: es la misma
+     pregunta —«¿qué hay aquí que yo no esté viendo?»— contestada entera en vez
+     de por la tercera parte.
+
+     EL ROJO ES EL DE LAS FLECHAS, y sale de --rojo-galon, que es el carmín de
+     las piedras. Un rojo nuevo puesto a ojo sería un tercer rojo que mantener.
+
+     Y LOS ROTULOS LLEVAN ANILLO, NO BORDE. Un borde ocuparía sitio, y del alto
+     del titulillo sale --alto-cabeza, que es lo que aparta el texto de la
+     hoja: engordarlo un píxel repagina el libro entero. El anillo va por
+     dentro con box-shadow, que no ocupa nada. Se escribe contra #pg para que
+     no alcance jamás a #ghost, que es el molde con el que se miden las
+     palabras: un molde con anillo mide distinto que la hoja que copia. */
+  .stage.guias{ --punto:var(--rojo-galon, #9b2a2a); --punto-luz:1;
+                --punto-esc:1.2; --punto-halo:0 0 0 3px rgba(155,42,42,.20); }
+  .stage.guias #pg .pg-cabeza, .stage.guias #pg .pg-version{
+            box-shadow:inset 0 0 0 1px var(--rojo-galon, #9b2a2a); }
   /* Y de lejos, el botón que abrió el zoom se va: ya no hay nada que abrir, se
      sale tocando el hueco, y un control encendido que no lleva a ningún sitio
      solo compite con el papel. */
@@ -1224,7 +1297,7 @@
                               transform .28s cubic-bezier(.2,.85,.3,1); }
   #burbujaVersion::-webkit-scrollbar{ width:0; height:0; display:none; }
   #burbujaVersion.visible{ opacity:1; transform:translate(-50%, 0) scale(1); }
-  .bv-tit{ display:block; font:700 10.5px/1 var(--ui); letter-spacing:.14em;
+  .bv-tit{ display:block; font:700 calc(10.5px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.14em;
            text-transform:uppercase; color:#8a7746; padding:3px 3px 6px; }
   .bv-fila{ display:flex; align-items:baseline; gap:9px; width:100%;
             border:0; background:rgba(255,253,247,.62); cursor:pointer;
@@ -1238,17 +1311,17 @@
      es el mismo idioma en otro sitio, y así no hay nada nuevo que aprender. */
   .bv-fila.aqui, .bv-fila.aqui:hover{ background:#b8892b; }
   .bv-fila.aqui .bv-abrev, .bv-fila.aqui .bv-nombre{ color:#fff8e4; }
-  .bv-abrev{ flex:0 0 auto; min-width:62px; font:700 13px/1.35 var(--ui);
+  .bv-abrev{ flex:0 0 auto; min-width:62px; font:700 calc(13px * var(--escala-ui, 1))/1.35 var(--ui);
              color:#6d5c33; letter-spacing:.06em; white-space:nowrap; }
-  .bv-nombre{ flex:1 1 auto; min-width:0; font:400 12.5px/1.35 var(--ui);
+  .bv-nombre{ flex:1 1 auto; min-width:0; font:400 calc(12.5px * var(--escala-ui, 1))/1.35 var(--ui);
               color:#4a3a1c; overflow:hidden; text-overflow:ellipsis;
               white-space:nowrap; }
 
   @media (max-width: 560px){
     #burbujaVersion{ bottom:52px; }
     .bv-fila{ min-height:44px; padding:10px; }
-    .bv-abrev{ font-size:14px; min-width:68px; }
-    .bv-nombre{ font-size:13.5px; }
+    .bv-abrev{ font-size:calc(14px * var(--escala-ui, 1)); min-width:68px; }
+    .bv-nombre{ font-size:calc(13.5px * var(--escala-ui, 1)); }
   }
 
   /* ============================================================
@@ -1289,9 +1362,10 @@
      devolvérselo al rótulo, que es de donde vino. */
   /* El rótulo se queda con lo que sobra para que la equis se vaya al filo
      derecho, a su misma altura. Ver .sp-x. */
-  .hs-cab{ display:flex; align-items:center; gap:8px; padding:3px 3px 6px; }
-  .hs-cab .hs-tit{ flex:1 1 auto; min-width:0; }
-  .hs-tit{ font:700 10.5px/1 var(--ui);
+  .hs-cab{ display:flex; align-items:center; flex-wrap:wrap;
+           justify-content:flex-end; gap:8px; padding:3px 3px 6px; }
+  .hs-cab .hs-tit{ flex:1 1 auto; white-space:nowrap; }
+  .hs-tit{ font:700 calc(10.5px * var(--escala-ui, 1))/1 var(--ui);
            letter-spacing:.14em; text-transform:uppercase; color:#8a7746; }
   /* EL PASO ATRÁS. Dice a dónde va además de llevar la flecha: una flecha
      sola en una lista de escrituras no distingue «atrás por donde vine» de
@@ -1314,7 +1388,7 @@
   .hs-atras{ flex:0 0 auto;
              display:inline-flex; align-items:center; justify-content:center;
              gap:7px; min-height:34px;
-             font:600 12px/1 var(--ui); letter-spacing:.06em;
+             font:600 calc(12px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.06em;
              color:#6d5a2c; background:rgba(140,116,68,.13);
              border:1px solid rgba(140,116,68,.4); border-radius:999px;
              padding:7px 13px 7px 15px; cursor:pointer;
@@ -1352,12 +1426,12 @@
   .hs-fila:last-child{ margin-bottom:0; }
   .hs-fila:hover{ background:#fffdf6; }
   .hs-fila.aqui{ box-shadow:inset 0 0 0 1.5px rgba(184,137,43,.7); }
-  .hs-ref{ flex:0 0 auto; min-width:64px; font:700 13px/1.35 var(--ui);
+  .hs-ref{ flex:0 0 auto; min-width:64px; font:700 calc(13px * var(--escala-ui, 1))/1.35 var(--ui);
            color:#6d5c33; letter-spacing:.02em; white-space:nowrap; }
-  .hs-txt{ flex:1 1 auto; min-width:0; font:400 13px/1.35 var(--ui);
+  .hs-txt{ flex:1 1 auto; min-width:0; font:400 calc(13px * var(--escala-ui, 1))/1.35 var(--ui);
            color:#4a3a1c; white-space:nowrap; overflow:hidden;
            text-overflow:ellipsis; }
-  .hs-vacio{ display:block; padding:8px 5px 10px; font:400 12.5px/1.5 var(--ui);
+  .hs-vacio{ display:block; padding:8px 5px 10px; font:400 calc(12.5px * var(--escala-ui, 1))/1.5 var(--ui);
              color:#6b5936; opacity:.8; }
 
   /* ============================================================
@@ -1492,7 +1566,7 @@
             transition:opacity .2s ease, transform .28s cubic-bezier(.2,.85,.3,1); }
   #sepMenu::-webkit-scrollbar{ width:0; height:0; display:none; }
   #sepMenu.visible{ opacity:1; transform:translateY(var(--sube, 0px)); }
-  .sp-tit{ display:block; font:700 10.5px/1 var(--ui); letter-spacing:.14em;
+  .sp-tit{ display:block; font:700 calc(10.5px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.14em;
            text-transform:uppercase; color:#8a7746; padding:3px 3px 7px; }
   /* LA PUERTA DE SALIDA, DICHA — la misma que la ventanita y por lo mismo.
      Cerrar se podía tocando fuera, con Escape, o volviendo a tocar el botón
@@ -1575,7 +1649,7 @@
   .sp-chip{ flex:0 0 auto; width:11px; height:20px;
             clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
             border-radius:1px; }
-  .sp-ref{ flex:1 1 auto; min-width:0; font:700 13px/1.3 var(--ui); color:#4a3a1c;
+  .sp-ref{ flex:1 1 auto; min-width:0; font:700 calc(13px * var(--escala-ui, 1))/1.3 var(--ui); color:#4a3a1c;
            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   /* EL NOMBRE, EN LA MISMA FILA Y CON LA MISMA LETRA. La referencia se queda
      delante y encogida a su abreviatura —«Mt 1:1 -»— porque cuando hay nombre
@@ -1583,13 +1657,13 @@
      fila mantiene su alto para que la lista no dé un salto al abrir el campo. */
   .sp-edit{ flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:6px;
             padding:4px 4px 4px 0; min-height:38px; }
-  .sp-edit-base, .sp-edit-aqui{ flex:0 0 auto; font:700 13px/1.3 var(--ui);
+  .sp-edit-base, .sp-edit-aqui{ flex:0 0 auto; font:700 calc(13px * var(--escala-ui, 1))/1.3 var(--ui);
                                 color:#4a3a1c; white-space:nowrap; }
   .sp-edit-aqui{ color:#6b5936; }
   .sp-nombre{ flex:1 1 auto; min-width:72px; height:30px; box-sizing:border-box;
               border:1px solid rgba(140,116,68,.45); border-radius:999px;
               background:rgba(255,253,247,.82); color:#4a3a1c;
-              padding:6px 10px; font:600 13px/1 var(--ui); }
+              padding:6px 10px; font:600 calc(13px * var(--escala-ui, 1))/1 var(--ui); }
   .sp-nombre:focus{ outline:2px solid rgba(184,137,43,.55); outline-offset:1px; }
   /* EL LÁPIZ, hermano de la X y con su misma medida: son las dos cosas que se
      le hacen a una fila, y puestas iguales se leen como un par. */
@@ -1618,7 +1692,7 @@
      panel: el título se lee de izquierda a derecha y el botón espera al final
      del renglón, en vez de partirlo por la mitad. */
   .sp-nueva{ flex:0 0 auto; display:inline-flex; align-items:center; gap:6px;
-             min-height:34px; font:600 12px/1 var(--ui); letter-spacing:.06em;
+             min-height:34px; font:600 calc(12px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.06em;
              text-transform:uppercase;
              color:#6d5a2c; background:rgba(140,116,68,.13);
              border:1px solid rgba(140,116,68,.4); border-radius:999px;
@@ -1634,8 +1708,23 @@
      con tres hijos repartía el hueco por en medio en vez de agruparlos.
      El padding-top del rótulo se fue con el align-items:center: lo tenía para
      empujarse a la altura de una equis que estaba en otro renglón. */
-  .sp-cabeza{ display:flex; align-items:center; gap:8px; margin:0 0 8px; }
-  .sp-cabeza .sp-tit{ flex:1 1 auto; min-width:0; padding:0; }
+  /* Y EL RENGLÓN BAJA ENTERO ANTES DE ROMPER LA PALABRA. Con el cromo atado al
+     tamaño del libro, a 22 px el rótulo pide 210 de los 318 que hay y con
+     «Nueva» y la equis al lado ya no caben los tres. Sin esto el rótulo se
+     partía en dos y en tres renglones —«TUS / SEPARA- / DORES»—, que es la
+     peor de las salidas: el nombre del panel ilegible y las otras dos piezas
+     centradas contra una torre de letras.
+     El nowrap es lo que lo consigue, y no el flex-wrap solo: un hijo de flex
+     con min-width:0 prefiere encoger y partirse antes que mandar a nadie al
+     renglón de abajo. Sin poder partirse, no le queda otra que bajarlos. */
+  /* Y LO QUE BAJA SE PEGA AL FILO DERECHO. Sin esto, «Nueva» y la equis caían
+     al segundo renglón pero alineadas a la izquierda, con la equis flotando a
+     media anchura del panel: se pierde la esquina, que es donde se busca una
+     salida. En el primer renglón esto no hace nada —el rótulo es flex:1 y se
+     come el hueco—, así que sólo se nota cuando hay algo que bajar. */
+  .sp-cabeza{ display:flex; align-items:center; flex-wrap:wrap;
+              justify-content:flex-end; gap:8px; margin:0 0 8px; }
+  .sp-cabeza .sp-tit{ flex:1 1 auto; white-space:nowrap; padding:0; }
   /* La cinta de muestra del botón va sin color escrito: la que se ponga toma
      el que le toque por turno, así que enseñar uno concreto sería prometer. */
   .sp-nueva .sp-chip{ background:rgba(140,116,68,.45); }
@@ -1646,7 +1735,7 @@
   /* Los botones de dentro de una fila NO se estiran: .sp-btn nació para la
      caja de confirmación grande, que tenía dos botones repartiéndose el ancho.
      Dentro de una fila lo que manda es la palabra. */
-  .sp-fila .sp-btn{ flex:0 0 auto; min-height:36px; font-size:12.5px;
+  .sp-fila .sp-btn{ flex:0 0 auto; min-height:36px; font-size:calc(12.5px * var(--escala-ui, 1));
                     padding:8px 14px; }
   .sp-fila-abierta{ flex-wrap:wrap; gap:6px; }
   .sp-fila-abierta .sp-edit{ flex:1 1 100%; }
@@ -1657,7 +1746,7 @@
   .sp-fila-pregunta{ flex-wrap:wrap; gap:7px;
                      background:rgba(155,42,42,.1);
                      border-color:rgba(155,42,42,.35); }
-  .sp-fila-pregunta .sp-pregunta{ flex:1 1 100%; font:600 12.5px/1.35 var(--ui);
+  .sp-fila-pregunta .sp-pregunta{ flex:1 1 100%; font:600 calc(12.5px * var(--escala-ui, 1))/1.35 var(--ui);
                                   color:#5c2020; }
   /* EL «SÍ» NO ES EL BOTÓN BONITO. Va del mismo tamaño que el «no» y sin
      relleno macizo: lo que no se deshace no se ofrece más fácil que lo que sí.
@@ -1669,7 +1758,7 @@
      dos le dejaban al nombre unos setenta píxeles en un teléfono, que es la
      razón por la que la lista existe. Ahora la fila es un solo botón y lo que
      había en esos dos botones se pide con doble toque —ver filaHTML—. */
-  .sp-vacio{ display:block; padding:6px 5px 8px; font:400 12.5px/1.5 var(--ui);
+  .sp-vacio{ display:block; padding:6px 5px 8px; font:400 calc(12.5px * var(--escala-ui, 1))/1.5 var(--ui);
              color:#6b5936; opacity:.85; }
   /* La confirmación de borrado sale DENTRO del mismo menú y no en otra caja
      flotante: la pregunta es sobre la cinta que estás mirando, y sacarla a
@@ -1687,11 +1776,11 @@
               opacity:0; transform:translateY(-4px);
               transition:opacity .18s ease, transform .24s cubic-bezier(.2,.85,.3,1); }
   .sp-borrar.puesta{ opacity:1; transform:none; }
-  .sp-pregunta{ display:block; font:600 14px/1.4 var(--ui); color:#5c2323;
+  .sp-pregunta{ display:block; font:600 calc(14px * var(--escala-ui, 1))/1.4 var(--ui); color:#5c2323;
                 padding-bottom:12px; }
   .sp-botones{ display:flex; gap:10px; }
   .sp-btn{ flex:1 1 auto; min-height:48px; border-radius:999px; cursor:pointer;
-           font:600 14px/1 var(--ui); letter-spacing:.04em; padding:12px 14px;
+           font:600 calc(14px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.04em; padding:12px 14px;
            -webkit-tap-highlight-color:transparent;
            border:1px solid rgba(140,116,68,.4); color:#6d5a2c;
            background:rgba(140,116,68,.13); }
@@ -1715,9 +1804,9 @@
               opacity:0; transform:translateX(-50%) translateY(9px);
               transition:opacity .22s ease, transform .3s cubic-bezier(.2,.85,.3,1); }
   #sepOferta.visible{ opacity:1; transform:translateX(-50%); }
-  .so-dice{ font:600 12.5px/1.3 var(--ui); color:#4a3a1c; }
+  .so-dice{ font:600 calc(12.5px * var(--escala-ui, 1))/1.3 var(--ui); color:#4a3a1c; }
   .so-btn{ flex:0 0 auto; min-height:32px; min-width:44px; border-radius:999px;
-           cursor:pointer; font:600 12.5px/1 var(--ui); letter-spacing:.04em;
+           cursor:pointer; font:600 calc(12.5px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.04em;
            padding:8px 14px; -webkit-tap-highlight-color:transparent;
            border:1px solid rgba(140,116,68,.42); color:#6d5a2c;
            background:rgba(140,116,68,.14); }
@@ -1894,7 +1983,7 @@
      hasta que se ve bien— y a 30 px se fallaba. */
   .pm-pie{ display:flex; align-items:center; justify-content:center; gap:10px; }
   .pm-tam{ flex:0 0 auto; min-width:34px; text-align:center;
-           font:600 13px/1 var(--ui); color:#6d5a2c;
+           font:600 calc(13px * var(--escala-ui, 1))/1 var(--ui); color:#6d5a2c;
            font-variant-numeric:tabular-nums; }
   .pm-btn{ width:44px; height:44px; display:grid; place-items:center; padding:0;
            color:#6d5a2c; background:rgba(140,116,68,.12);
@@ -1929,7 +2018,7 @@
   .pm-sombra{ flex:0 0 auto;
               display:flex; flex-direction:column; align-items:center; gap:3px;
               cursor:pointer;
-              font:400 11.5px/1 var(--ui); color:#6d5a2c;
+              font:400 calc(11.5px * var(--escala-ui, 1))/1 var(--ui); color:#6d5a2c;
               -webkit-tap-highlight-color:transparent; }
   .pm-sombra input{ width:15px; height:15px; margin:0; accent-color:#b8892b;
                     cursor:pointer; }
@@ -1938,7 +2027,7 @@
                            border-radius:4px; }
   .pm-salidas{ display:flex; align-items:center; gap:7px; }
   .pm-btn2{ min-height:32px; padding:6px 12px; cursor:pointer;
-            font:600 12.5px/1 var(--ui); color:#6d5a2c;
+            font:600 calc(12.5px * var(--escala-ui, 1))/1 var(--ui); color:#6d5a2c;
             background:rgba(140,116,68,.12);
             border:1px solid rgba(140,116,68,.4); border-radius:5px;
             -webkit-tap-highlight-color:transparent; }
@@ -1953,8 +2042,8 @@
   .pm-ok:hover{ background:rgba(184,137,43,.6); }
   /* Con el dedo, los dos al suelo de la casa y la casilla con él. */
   @media (pointer:coarse){
-    .pm-btn2{ min-height:44px; padding:10px 13px; font-size:14px; }
-    .pm-sombra{ font-size:13px; }
+    .pm-btn2{ min-height:44px; padding:10px 13px; font-size:calc(14px * var(--escala-ui, 1)); }
+    .pm-sombra{ font-size:calc(13px * var(--escala-ui, 1)); }
     .pm-sombra input{ width:19px; height:19px; }
   }
   @media (prefers-reduced-motion: reduce){
@@ -1979,7 +2068,7 @@
   #piedraMenu::-webkit-scrollbar{ width:0; height:0; display:none; }
   .sp-chip-forma{ flex:0 0 auto; display:block; width:15px; height:15px; color:#7a6434; }
   .sp-chip-forma svg{ display:block; width:100%; height:100%; }
-  .sp-vacio{ margin:4px 2px 2px; font:400 12.5px/1.45 var(--ui); color:#6d5a2c; }
+  .sp-vacio{ margin:4px 2px 2px; font:400 calc(12.5px * var(--escala-ui, 1))/1.45 var(--ui); color:#6d5a2c; }
 
   /* QUIEN PIDIÓ MENOS MOVIMIENTO NO RECIBE NINGUNO DE ÉSTOS. Aparecer y
      desaparecer se queda —hace falta para entender que algo salió— pero sin
@@ -2062,7 +2151,7 @@
            display:flex; align-items:center; gap:10px;
            margin:0 -14px; padding:13px 14px 8px; background:#f7f0dd; }
   .vp-ref{ display:block; flex:1 1 auto; min-width:0;
-           font:700 12px/1.2 var(--ui); letter-spacing:.1em;
+           font:700 calc(12px * var(--escala-ui, 1))/1.2 var(--ui); letter-spacing:.1em;
            text-transform:uppercase; color:#8a7746; }
   /* LA PUERTA DE SALIDA, DICHA.
 
@@ -2098,7 +2187,7 @@
   .vp-txt{ display:block; width:100%; text-align:left; border:0; cursor:pointer;
            background:rgba(255,253,247,.75); border-radius:5px;
            padding:11px 12px; color:#2f2610;
-           font-family:Georgia,'Times New Roman',serif; font-size:15.5px;
+           font-family:Georgia,'Times New Roman',serif; font-size:calc(15.5px * var(--escala-ui, 1));
            line-height:1.55; -webkit-tap-highlight-color:transparent;
            transition:background .28s cubic-bezier(.65,0,.35,1),
                       box-shadow .28s cubic-bezier(.65,0,.35,1); }
@@ -2107,7 +2196,7 @@
      realce al pasar por encima. Se ve como lo que es, un recuadro de aviso. */
   .vp-mudo, .vp-mudo:hover{ cursor:default; box-shadow:none; opacity:.75;
                             background:rgba(255,253,247,.5); font-style:italic; }
-  .vp-pie{ display:block; padding:7px 2px 0; font:400 11px/1.4 var(--ui);
+  .vp-pie{ display:block; padding:7px 2px 0; font:400 calc(11px * var(--escala-ui, 1))/1.4 var(--ui);
            color:#6b5936; opacity:.85; }
 
   @media (max-width: 560px){
@@ -2168,13 +2257,13 @@
      ============================================================ */
   @media (pointer:coarse){
     /* EL RASTRO */
-    .hs-tit{ font-size:12px; }
-    .hs-atras{ min-height:44px; font-size:14px; padding:11px 14px; }
-    .hs-atras-ref{ font-size:14px; }
+    .hs-tit{ font-size:calc(12px * var(--escala-ui, 1)); }
+    .hs-atras{ min-height:44px; font-size:calc(14px * var(--escala-ui, 1)); padding:11px 14px; }
+    .hs-atras-ref{ font-size:calc(14px * var(--escala-ui, 1)); }
     .hs-fila{ min-height:44px; padding:10px; }
-    .hs-ref{ font-size:15px; min-width:74px; }
-    .hs-txt{ font-size:15px; }
-    .hs-vacio{ font-size:14px; }
+    .hs-ref{ font-size:calc(15px * var(--escala-ui, 1)); min-width:74px; }
+    .hs-txt{ font-size:calc(15px * var(--escala-ui, 1)); }
+    .hs-vacio{ font-size:calc(14px * var(--escala-ui, 1)); }
     /* LAS DOS LISTAS, CINTAS Y PIEDRAS */
     /* EL RÓTULO SUBE Y AFLOJA EL TRACKING A LA VEZ, y lo segundo es por lo
        primero: comparte renglón con «Nueva», y a 12 px con el tracking de
@@ -2184,25 +2273,25 @@
        Se afloja el tracking y no se baja la letra porque de las dos cosas la
        que se lee es el tamaño: una versalita con menos aire sigue siendo una
        versalita, y una más chica es una más chica. */
-    .sp-tit{ font-size:12px; letter-spacing:.08em; }
+    .sp-tit{ font-size:calc(12px * var(--escala-ui, 1)); letter-spacing:.08em; }
     .sp-fila{ min-height:48px; padding:5px 5px 5px 10px; }
     .sp-ir{ min-height:44px; }
-    .sp-ref{ font-size:15px; }
+    .sp-ref{ font-size:calc(15px * var(--escala-ui, 1)); }
     /* Los tres van a la par a propósito: comparten renglón, y una fila con
        tres tamaños distintos se lee como tres cosas. */
-    .sp-edit-base, .sp-edit-aqui{ font-size:15px; }
-    .sp-nombre{ height:38px; font-size:15px; }
-    .sp-fila .sp-btn{ min-height:44px; font-size:14px; }
-    .sp-vacio{ font-size:14px; }
-    .sp-nueva{ min-height:44px; font-size:14px; padding:6px 14px; }
-    .sp-pregunta{ font-size:15px; padding-bottom:14px; }
-    .sp-btn{ min-height:52px; font-size:15px; padding:14px 16px; }
+    .sp-edit-base, .sp-edit-aqui{ font-size:calc(15px * var(--escala-ui, 1)); }
+    .sp-nombre{ height:38px; font-size:calc(15px * var(--escala-ui, 1)); }
+    .sp-fila .sp-btn{ min-height:44px; font-size:calc(14px * var(--escala-ui, 1)); }
+    .sp-vacio{ font-size:calc(14px * var(--escala-ui, 1)); }
+    .sp-nueva{ min-height:44px; font-size:calc(14px * var(--escala-ui, 1)); padding:6px 14px; }
+    .sp-pregunta{ font-size:calc(15px * var(--escala-ui, 1)); padding-bottom:14px; }
+    .sp-btn{ min-height:52px; font-size:calc(15px * var(--escala-ui, 1)); padding:14px 16px; }
     .sp-borrar{ padding:16px 14px; }
-    .so-btn{ min-height:44px; font-size:14px; }
-    .so-dice{ font-size:14px; }
+    .so-btn{ min-height:44px; font-size:calc(14px * var(--escala-ui, 1)); }
+    .so-dice{ font-size:calc(14px * var(--escala-ui, 1)); }
     /* LA VENTANITA DE LEER ANTES DE SALTAR */
-    .vp-txt{ font-size:17px; padding:13px 14px; }
-    .vp-pie{ font-size:14px; }
+    .vp-txt{ font-size:calc(17px * var(--escala-ui, 1)); padding:13px 14px; }
+    .vp-pie{ font-size:calc(14px * var(--escala-ui, 1)); }
     /* LOS DOS PANELES DE LISTAS SE ENSANCHAN, Y ES LA CONSECUENCIA DE JUNTAR
        EL RÓTULO Y LA EQUIS.
 
@@ -2245,9 +2334,9 @@
        el panel de las secciones, y una regla de la misma fuerza escrita antes
        la pierde por orden. Está allí, pegada a la suya. */
     /* EL GLOBO DE LA VERSIÓN */
-    .bv-tit{ font-size:12px; }
-    .bv-abrev{ font-size:15px; min-width:72px; }
-    .bv-nombre{ font-size:14.5px; }
+    .bv-tit{ font-size:calc(12px * var(--escala-ui, 1)); }
+    .bv-abrev{ font-size:calc(15px * var(--escala-ui, 1)); min-width:72px; }
+    .bv-nombre{ font-size:calc(14.5px * var(--escala-ui, 1)); }
   }
   /* Y EN LO MÁS ANGOSTO, UN PELO MÁS APRETADO. Esto sí es del ancho, y por
      eso es lo único que se queda aquí. Medido en 320 px: al renglón le quedan
@@ -2559,9 +2648,9 @@
      el mismo fondo y el mismo ancho, así que no hizo falta fusionarlos en uno:
      basta con ponerles arriba la misma barra y que cambiar de pestaña abra el
      de al lado. Se ve —y se usa— como una sola burbuja con tres secciones. */
-  .rollo .cred{ margin:5px 2px 0; font:400 9px/1.5 var(--ui); color:#5c4a24;
+  .rollo .cred{ margin:5px 2px 0; font:400 calc(9px * var(--escala-ui, 1))/1.5 var(--ui); color:#5c4a24;
                 opacity:.8; max-width:60ch; }
-  .nota-respaldo{ margin:6px 2px 0; font:400 9.5px/1.5 var(--ui); color:#5c4a24;
+  .nota-respaldo{ margin:6px 2px 0; font:400 calc(9.5px * var(--escala-ui, 1))/1.5 var(--ui); color:#5c4a24;
                   opacity:.85; max-width:52ch; }
   /* EL SELLO DE VERSIÓN VA A GRITAR, y es la única cosa de este panel que lo
      hace. Todo lo demás de aquí se lee una vez y se olvida; esto se viene a
@@ -2577,15 +2666,39 @@
   .fallo-respaldo{ margin:8px 2px 0; padding:8px 10px;
                    border:1px solid rgba(155,42,42,.45); border-radius:6px;
                    background:rgba(155,42,42,.09);
-                   font:600 12px/1.45 var(--ui); color:#7c2020; }
+                   font:600 calc(12px * var(--escala-ui, 1))/1.45 var(--ui); color:#7c2020; }
   .sello-version{ margin:13px 2px 3px; padding:9px 11px 8px;
                   border:1px solid rgba(140,116,68,.42); border-radius:7px;
                   background:rgba(184,137,43,.12);
-                  font:700 14px/1.3 var(--ui); color:#4a3a18;
+                  font:700 calc(14px * var(--escala-ui, 1))/1.3 var(--ui); color:#4a3a18;
                   letter-spacing:.05em; }
-  .pestanas{ flex:0 0 auto; display:flex; gap:3px; margin:0 0 5px;
+  /* EL RENGLÓN BAJA ANTES DE SALIRSE, y esto era una deuda vieja que la letra
+     grande vino a cobrar.
+
+     Las cuatro pestañas no se encogen por debajo de su palabra —«Respaldo»
+     mide lo que mide—, así que cuando no caben no se apretaban: se SALÍAN,
+     calladas, por el filo derecho del panel, y la primera en irse era la equis
+     de cerrar. Ya pasaba en 320 px antes de todo esto; atando el cromo al
+     tamaño del libro pasa también en un teléfono normal en cuanto el lector
+     sube la letra, que es justo el lector que menos puede permitirse perder la
+     salida.
+
+     flex-wrap:wrap lo arregla, pero SÓLO con basis auto: con `flex:1 1 0` la
+     medida de partida de cada pestaña es cero, o sea que «caben» siempre y no
+     se baja nunca ninguna. Con auto la medida de partida es su palabra, que es
+     lo que de verdad ocupa, y entonces la que no entra se va al renglón de
+     abajo entera.
+
+     Y ESO CAMBIA UN POCO EL RENGLÓN NORMAL, que conviene decirlo en vez de
+     dejarlo de sorpresa: con basis cero las cuatro salían casi iguales
+     —78·78·82·89 en un teléfono de 412— y ahora salen a la medida de su
+     palabra —70·75·87·94—, porque el sobrante se reparte a partes iguales
+     SOBRE lo que ya ocupa cada una. Se lee igual de bien y es lo que hace una
+     barra de pestañas de toda la vida; el ancho de dedo lo sigue teniendo la
+     más estrecha, con 70 px. */
+  .pestanas{ flex:0 0 auto; display:flex; flex-wrap:wrap; gap:3px; margin:0 0 5px;
              align-items:stretch; border-bottom:1px solid rgba(140,116,68,.34); padding-bottom:4px; }
-  .pestanas button{ flex:1 1 0; border:0; cursor:pointer; padding:3px 6px;
+  .pestanas button{ flex:1 1 auto; border:0; cursor:pointer; padding:3px 6px;
                     font:400 10px/1.4 var(--ui); color:#5c4a24; letter-spacing:.02em;
                     background:rgba(255,253,247,.5); border-radius:3px 3px 0 0;
                     transition:background .34s cubic-bezier(.65,0,.35,1),
@@ -2731,7 +2844,7 @@
                margin-top:6px; padding:7px 8px; background:rgba(255,253,247,.78);
                border:1px solid rgba(140,116,68,.34); border-radius:4px; }
   #etiquetas.eligiendo #barraGrupo{ display:flex; }
-  #barraGrupo .bg-cuenta{ font:600 11px/1.3 var(--ui); color:#5c4a24; }
+  #barraGrupo .bg-cuenta{ font:600 calc(11px * var(--escala-ui, 1))/1.3 var(--ui); color:#5c4a24; }
   #barraGrupo .tagbox{ display:flex; flex-direction:column; align-items:stretch; gap:6px; }
   #barraGrupo .taglista{ display:flex; flex-wrap:wrap; gap:2px 8px; max-height:22vh; overflow-y:auto; }
   #barraGrupo .taglista .tg{ font-size:.82rem; font-weight:500; line-height:1.45;
@@ -2771,7 +2884,7 @@
         transition:opacity .2s ease, transform .26s cubic-bezier(.2,.85,.3,1); }
   .fly.visible{ opacity:1; transform:none; }
   #flyVers{ z-index:9; }
-  .fly-tit{ display:block; font:700 6.5px/1 var(--ui); letter-spacing:.14em;
+  .fly-tit{ display:block; font:700 calc(6.5px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.14em;
             text-transform:uppercase; color:#8a7746; padding:1px 0 4px; }
   .fly-rejilla{ display:grid; grid-template-columns:repeat(6,26px); gap:2px; }
   /* Ya no es un renglón de 14px: ahora lleva el interruptor de las flechas,
@@ -2779,7 +2892,7 @@
      que crezca lo que necesite. */
   #cantoCab{ flex:0 0 auto; display:flex; align-items:center; gap:5px;
              flex-wrap:wrap;
-             font:700 7.5px/1 var(--ui); color:#6d5c33; letter-spacing:.09em;
+             font:700 calc(7.5px * var(--escala-ui, 1))/1 var(--ui); color:#6d5c33; letter-spacing:.09em;
              text-transform:uppercase; white-space:nowrap;
              padding-bottom:5px; margin-bottom:4px;
              border-bottom:1px solid rgba(140,116,68,.28); }
@@ -2801,7 +2914,7 @@
      lista, y ahora se parecen entre sí porque hacen lo mismo. */
   .canto-tab{ flex:0 0 auto; min-width:76px; border:0; cursor:pointer;
               padding:5px 14px;
-              font:700 10px/1.4 var(--ui); letter-spacing:.1em;
+              font:700 calc(10px * var(--escala-ui, 1))/1.4 var(--ui); letter-spacing:.1em;
               color:#5c4a24; background:#fffdf8;
               border-radius:12px;
               box-shadow:inset 0 1px 0 rgba(255,255,255,.85),
@@ -2846,7 +2959,7 @@
   /* Con el dedo, al suelo de la casa: son dos blancos y nada más en su
      renglón, así que no hay razón para dejarlos en 24 px. */
   @media (pointer:coarse){
-    .canto-tab{ min-height:44px; min-width:96px; padding:10px 18px; font-size:14px; }
+    .canto-tab{ min-height:44px; min-width:96px; padding:10px 18px; font-size:calc(14px * var(--escala-ui, 1)); }
   }
   /* EL INTERRUPTOR ES UN <label> ENTERO, y esto no es adorno: envolviendo la
      casilla y el texto, el rótulo también responde al toque, y el rótulo es
@@ -2856,7 +2969,7 @@
      sección— pero esto es una frase que se lee, y en versalitas se lee peor. */
   .canto-opcion{ display:flex; align-items:center; gap:7px; cursor:pointer;
                  min-height:32px; padding:2px 2px 2px 1px;
-                 font:400 10.5px/1.3 var(--ui); letter-spacing:0;
+                 font:400 calc(10.5px * var(--escala-ui, 1))/1.3 var(--ui); letter-spacing:0;
                  text-transform:none; color:#5c4a24; white-space:normal;
                  -webkit-tap-highlight-color:transparent; }
   .canto-opcion input{ flex:0 0 auto; width:17px; height:17px; margin:0;
@@ -2930,7 +3043,7 @@
      al marcar un libro mientras el fondo se fundía despacio: dos velocidades
      para el mismo gesto. */
   .tabo{ position:relative; flex:0 0 auto; border:0; padding:0 7px; height:36px;
-         cursor:pointer; font:400 9.5px/36px var(--ui); color:#4a3a1c; letter-spacing:.01em;
+         cursor:pointer; font:400 calc(9.5px * var(--escala-ui, 1))/36px var(--ui); color:#4a3a1c; letter-spacing:.01em;
          background:#fffdf8; border-radius:12px;
          box-shadow:inset 0 1px 0 rgba(255,255,255,.85),
                     inset 0 -1.5px 0 rgba(120,96,48,.13),
@@ -3005,7 +3118,7 @@
   .tabo.aqui{ background:#b8892b; color:#fff; }
   .tabo:hover:not(.aqui){ z-index:9; background:#f4ecd9; color:#1d1608; }
 
-  .num{ font:600 9.5px/18px var(--ui); color:#4a3a1c; background:rgba(255,253,247,.62);
+  .num{ font:600 calc(9.5px * var(--escala-ui, 1))/18px var(--ui); color:#4a3a1c; background:rgba(255,253,247,.62);
         border:0; border-radius:2px; height:18px; cursor:pointer; padding:0;
         transition:background .13s, color .13s, box-shadow .13s; }
   .num:hover{ background:#fffdf6; color:#1d1608; box-shadow:inset 0 0 0 1px rgba(138,100,22,.65); }
@@ -3363,7 +3476,7 @@
   #indice .ix-item.hueco{ box-shadow:0 0 0 2px rgba(140,116,68,.45); }
   #indice::-webkit-scrollbar{ width:0; height:0; display:none; }
   .ix-vacio{ opacity:.55; padding:6px 5px; display:block;
-             font:400 10px/1.5 var(--ui); color:#3d3117; }
+             font:400 calc(10px * var(--escala-ui, 1))/1.5 var(--ui); color:#3d3117; }
 
   /* ============================================================
      TAMAÑOS DE LETRA EN TELÉFONO. Los de escritorio se eligieron para una
@@ -3416,16 +3529,16 @@
        tres rieles miden lo mismo, que es lo que la prueba pide de verdad: no
        que sean largos por casualidad, sino que ninguno se estruje porque su
        rótulo tenga más letras. */
-    .rollo .lbl, .ajuste > .lbl{ font-size:14px; flex-basis:96px; min-width:0;
+    .rollo .lbl, .ajuste > .lbl{ font-size:calc(14px * var(--escala-ui, 1)); flex-basis:96px; min-width:0;
                                  line-height:1.25; }
-    .rollo .btn{ font-size:15px; padding:8px 12px; }
+    .rollo .btn{ font-size:calc(15px * var(--escala-ui, 1)); padding:8px 12px; }
     /* LAS CUATRO PESTAÑAS Y LA EQUIS COMPARTEN UN SOLO RENGLÓN, y ese
        renglón es lo que pone el techo aquí. A 15.5 con 11 de relleno la
        equis se salía por 3 px en un teléfono de 412 —medido, no supuesto—.
        A 15 con 9 caben las cinco con sitio de sobra, y 15 es la medida del
        cuerpo de la hoja, que es adonde iba todo esto de todas formas. */
-    .pestanas button{ font-size:15px; padding:8px 9px; }
-    .rollo .chip{ font-size:15px; padding:7px 12px; }
+    .pestanas button{ font-size:calc(15px * var(--escala-ui, 1)); padding:8px 9px; }
+    .rollo .chip{ font-size:calc(15px * var(--escala-ui, 1)); padding:7px 12px; }
 
     /* ============================================================
        TERCERA SUBIDA, Y ÉSTA NO ES DE TAMAÑO DE LETRA. Las dos anteriores
@@ -3487,36 +3600,36 @@
        arrastra el dedo por encima y un globo va diciendo qué libro hay debajo,
        así que se elige mirando el globo y no el hueco entre dos nombres. Un
        blanco chico con confirmación se atina mejor que uno grande a ciegas. */
-    .tabo{ font-size:15px; height:52px; line-height:52px; padding:0 9px; }
+    .tabo{ font-size:calc(15px * var(--escala-ui, 1)); height:52px; line-height:52px; padding:0 9px; }
     .rejilla-libros{ gap:5px; }
     #cantoCuerpo{ gap:6px; }
-    .num{ font-size:15px; height:40px; line-height:40px; }
-    .fly-tit{ font-size:13px; padding:2px 0 5px; }
+    .num{ font-size:calc(15px * var(--escala-ui, 1)); height:40px; line-height:40px; }
+    .fly-tit{ font-size:calc(13px * var(--escala-ui, 1)); padding:2px 0 5px; }
     /* La glosa del índice NO entra en esta lista de tamaños. Aquí estaba
        clavada en 13px, y eso es exactamente lo que rompía el espejo: la de la
        hoja crece y se encoge con el ajuste de Formato y ésta se quedaba
        quieta. Ahora la manda --fs, como a la de la hoja. */
-    .nota-respaldo, .rollo .cred{ font-size:13px; }
+    .nota-respaldo, .rollo .cred{ font-size:calc(13px * var(--escala-ui, 1)); }
     /* En el teléfono sube igual que el resto: es donde de verdad se consulta,
        porque es el aparato del que uno duda si tiene la versión nueva. */
-    .sello-version{ font-size:17px; }
-    .ajuste select{ font-size:15px; padding:6px 8px; }
+    .sello-version{ font-size:calc(17px * var(--escala-ui, 1)); }
+    .ajuste select{ font-size:calc(15px * var(--escala-ui, 1)); padding:6px 8px; }
     /* Estos tres se habían quedado fuera de la lista y por eso se veían
        hundidos entre los demás: el número del sepia, el aviso de índice
        vacío y el botón de volver del salto. */
     /* Y LA MEDIDA IGUAL, POR LO MISMO. «100%» ocupa más que «100», así que el
        riel del sepia salía 8 px más largo que el del brillo sin que nadie lo
        hubiera decidido. 40 es lo que pide el más ancho con la letra nueva. */
-    .rollo .medida{ font-size:14.5px; min-width:40px; }
-    .ix-vacio{ font-size:14px; }
-    #btnVolver{ font-size:14px; padding:7px 13px; }
+    .rollo .medida{ font-size:calc(14.5px * var(--escala-ui, 1)); min-width:40px; }
+    .ix-vacio{ font-size:calc(14px * var(--escala-ui, 1)); }
+    #btnVolver{ font-size:calc(14px * var(--escala-ui, 1)); padding:7px 13px; }
     /* La cabecera del panel de libros nunca estuvo en la lista, y es lo
        primero que se lee al abrirlo: el rótulo iba en 7.5px y la flecha de
        volver era un blanco de 15px, la mitad de lo que alcanza un pulgar. */
-    #cantoCab{ font-size:13px; height:auto; min-height:30px; }
+    #cantoCab{ font-size:calc(13px * var(--escala-ui, 1)); height:auto; min-height:30px; }
     /* Con el dedo, el renglón entero llega al suelo de la casa —48px— y la
        casilla crece con él: una casilla de 17px es de ratón. */
-    .canto-opcion{ font-size:15px; min-height:48px; gap:10px; }
+    .canto-opcion{ font-size:calc(15px * var(--escala-ui, 1)); min-height:48px; gap:10px; }
     .canto-opcion input{ width:22px; height:22px; }
     /* Las rejillas siguen al alto de .num, que es de quien dependen: con
        celdas de 38px y números de 29px volvían a quedar apretados. */
@@ -3582,7 +3695,7 @@
                 transform:translate(-50%, -100%);
                 background:#3a2f18; color:#f6eeda; border-radius:7px;
                 padding:7px 13px; white-space:nowrap;
-                font:600 16px/1.2 var(--ui); letter-spacing:.01em;
+                font:600 calc(16px * var(--escala-ui, 1))/1.2 var(--ui); letter-spacing:.01em;
                 box-shadow:0 8px 20px -6px rgba(0,0,0,.6);
                 opacity:0; transition:opacity .12s linear; }
     #lupaLibro.viva{ display:block; opacity:1; }
@@ -3605,7 +3718,7 @@
        soltar. Antes era dorado con la letra en crema, o sea un tercer aspecto
        para un estado que dura medio segundo. */
     .tabo.bajoeldedo{ background:#b8892b; color:#fff; z-index:10;
-                      font-size:17px; height:64px; line-height:64px;
+                      font-size:calc(17px * var(--escala-ui, 1)); height:64px; line-height:64px;
                       padding:0 14px; font-weight:600; border-radius:15px;
                       /* La pastilla se levanta del papel mientras el dedo la
                          sostiene: la sombra de fuera crece y se separa, y las
@@ -3617,7 +3730,7 @@
                                  inset 0 -1.5px 0 rgba(60,40,15,.22),
                                  0 5px 12px -4px rgba(60,40,15,.6); }
     @media (prefers-reduced-motion: reduce){
-      .tabo.bajoeldedo{ font-size:13px; height:52px; line-height:52px;
+      .tabo.bajoeldedo{ font-size:calc(13px * var(--escala-ui, 1)); height:52px; line-height:52px;
                         padding:0 9px; font-weight:400; box-shadow:none; }
     }
 
@@ -3648,7 +3761,7 @@
        cómoda en un teléfono y además el punto en el que Safari de iOS deja de
        ampliar la página al enfocar un campo. */
     #menu{ gap:9px; padding:12px; border-radius:12px; width:92vw; max-width:400px; }
-    #menu button{ font-size:16px; padding:13px 15px; text-align:left; }
+    #menu button{ font-size:calc(16px * var(--escala-ui, 1)); padding:13px 15px; text-align:left; }
     /* Los colores se quedan en fila: son cuatro puntos, se distinguen por el
        color y no por el nombre, y en columna ocuparían media pantalla. Van
        arriba porque es lo primero que se elige. Y crecen a 40: son redondos, o
@@ -3663,20 +3776,20 @@
        los de abajo son de un renglón y se quedaban en 38, que para un pulgar
        es poco. Se les pone suelo, el mismo de la casa. */
     #menu .macciones button{ min-height:48px; }
-    #menu input{ font-size:16px; padding:11px 13px; width:auto; flex:1 1 120px;
+    #menu input{ font-size:calc(16px * var(--escala-ui, 1)); padding:11px 13px; width:auto; flex:1 1 120px;
                  min-height:48px; }
     .tagbox{ gap:6px; }
     /* Estas dos siguen valiendo para el .tagbox de menuVinculos, que no es la
        lista de la marca sino la de «citado desde», y sigue siendo fila corrida
        de pastillas. */
-    .tagbox .tg{ font-size:15px; padding:11px 14px; }
-    .tagbox .vacio{ font-size:14px; }
+    .tagbox .tg{ font-size:calc(15px * var(--escala-ui, 1)); padding:11px 14px; }
+    .tagbox .vacio{ font-size:calc(14px * var(--escala-ui, 1)); }
     /* EL #menu DE DELANTE ES LO QUE HACE QUE ESTO SE VEA. `#menu button` le
        clava a todo botón del panel 15px, 11px 14px y text-align:left, y una
        clase sola pierde contra un id —da igual que esta regla venga después—.
        Es la cuarta vez que este id se lleva por delante una regla de la lista;
        la costumbre de la casa es ya escribirlas todas con el #menu puesto. */
-    #menu .taglista .tg{ font-size:17px; line-height:1.65;
+    #menu .taglista .tg{ font-size:calc(17px * var(--escala-ui, 1)); line-height:1.65;
                          padding:5px 14px 5px 0; }
     /* LA CAJA DE ESCRIBIR CRECE DE ALTO Y NO DE LETRA, y es lo único de este
        panel que no se toca de tamaño. Su letra es la de la NOTA —la hereda de
@@ -3691,17 +3804,17 @@
     #menu .gl-vista textarea{ min-height:4.6em; }
     /* Los mandos no son etiquetas: sin esto heredan los 13/15 de #menu button
        y el renglón se come alto por nada. */
-    #menu .tagbox .tagctl input{ font-size:16px; padding:11px 13px; width:auto;
+    #menu .tagbox .tagctl input{ font-size:calc(16px * var(--escala-ui, 1)); padding:11px 13px; width:auto;
                                  flex:1 1 90px; min-width:0; min-height:48px; }
     #menu .tagbox .tagctl button[data-acc]{ flex:0 0 auto; text-align:center;
-                                            padding:11px 15px; font-size:16px;
+                                            padding:11px 15px; font-size:calc(16px * var(--escala-ui, 1));
                                             min-height:48px; }
-    #menu .mtags{ font-size:16px; }
+    #menu .mtags{ font-size:calc(16px * var(--escala-ui, 1)); }
 
     /* EL AVISO DE ABAJO. Iba en 10.5px, más pequeño que cualquier otra cosa
        de la pantalla, y aparece lejos de donde estás mirando. Un aviso que
        hay que acercarse a leer no avisa. */
-    #readout{ font-size:14px; line-height:1.4; padding:8px 15px; bottom:30px;
+    #readout{ font-size:calc(14px * var(--escala-ui, 1)); line-height:1.4; padding:8px 15px; bottom:30px;
               max-width:90%; border-radius:7px; }
   }
 
@@ -3710,7 +3823,7 @@
      ESTE BLOQUE TIENE QUE IR AQUÍ ABAJO, y la primera vez no lo estaba. Vivía
      con su familia —junto a las reglas de .pestanas, que es donde uno lo
      busca— y ahí no servía de nada: `.pestanas button` pesa lo mismo escrito
-     arriba que escrito abajo, así que el `font-size:15px` del bloque de 560 le
+     arriba que escrito abajo, así que el `font-size:calc(15px * var(--escala-ui, 1))` del bloque de 560 le
      ganaba por orden y las pestañas se quedaban en 15 mientras la equis sí
      crecía a 36. O sea justo el renglón más ancho de los dos, que es lo
      contrario de lo que este bloque viene a hacer. Lo levantó la revisión de
@@ -3736,7 +3849,7 @@
      que existe hay que repensar —que bajen a dos filas, o que las palabras se
      acorten— y no encoger. */
   @media (pointer:coarse) and (max-width: 400px){
-    .pestanas button{ font-size:14px; padding:8px 7px; }
+    .pestanas button{ font-size:calc(14px * var(--escala-ui, 1)); padding:8px 7px; }
     .pestanas .cerrar-x{ flex:0 0 36px; width:36px; min-width:36px;
                          font:400 22px/44px Georgia, 'Times New Roman', serif; }
   }
@@ -4226,7 +4339,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-SEP-26 22:32';
+window.GLOSS_BUILD = '17-SEP-26 12:50';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -13182,11 +13295,21 @@ const versiculosDe = (libro, cap) => {
 /* Encender y apagar las dos flechas. Se toca el atributo `hidden` y no una
    clase, aunque ya no sean botones: hidden es la manera de decir «esto no
    está» que entienden a la vez el navegador, el tabulador y quien lee el
-   marcado, y no hay que acordarse de tres cosas distintas. */
+   marcado, y no hay que acordarse de tres cosas distintas.
+
+   Y DE PASO SE ENCIENDEN LAS DEMÁS PUERTAS. El interruptor era sólo de las
+   flechas y ahora es de todo lo que se puede tocar: los cuatro puntos de las
+   esquinas y los dos rótulos de la hoja. Es la misma pregunta que ya
+   contestaba —«¿qué hay aquí que yo no esté viendo?»— contestada entera.
+
+   La clase va en la ESCENA y no en cada pieza: las seis viven ahí dentro, y
+   repartir el encendido en seis sitios es repartir también el olvidarse de
+   uno. Lo que se ve con ella puesta está escrito en .stage.guias. */
 function pintarFlechas(){
   const izq = $('flechaIzq'), der = $('flechaDer');
   if (izq) izq.hidden = !verFlechas;
   if (der) der.hidden = !verFlechas;
+  stage.classList.toggle('guias', verFlechas);
   const c = $('chkFlechas');
   if (c) c.checked = verFlechas;
 }
@@ -13340,10 +13463,30 @@ function pintarCanto(){
      Va arriba del todo y no al pie de los treinta y nueve libros del Antiguo:
      un interruptor al final de una lista con desplazamiento es un interruptor
      que no existe. */
+  /* EL RÓTULO DE LA CASILLA, y lo miraron cuatro oficios porque una casilla se
+     lee una vez en la vida y decide si se toca o no.
+
+     Decía «ver flechas de pasar página», que era exacto cuando encendía una
+     sola cosa. Ahora enciende cuatro —las dos flechas, los cuatro puntos de
+     las esquinas y los dos rótulos de la hoja— y nombrar sólo las flechas
+     sería esconder tres cuartas partes de lo que hace.
+
+     · EL REDACTOR: una casilla dice lo que RECIBES, no lo que hace el
+       programa por dentro. Fuera «guías», «resaltar», «marcar»: son palabras
+       de quien lo escribió.
+     · EL DE ACCESIBILIDAD: esto es lo que va a leer en voz alta un lector de
+       pantalla, así que tiene que valer sin ver nada. «Los botones
+       disponibles» no vale por dos motivos: las flechas NO son botones —está
+       escrito en su propio comentario, son un letrero— y «disponibles» hace
+       pensar que hay otros que no lo están, que es otra idea distinta.
+     · ESTA CASA: en minúsculas, y con el verbo de la casa. Aquí se TOCA:
+       «toca dos veces», «un toque». No se «pulsa» ni se «hace clic».
+     · EL LECTOR: lo que quiere saber es dónde puede tocar. Eso es lo que dice
+       el rótulo, con esas palabras y sin ninguna más. */
   $('cantoCab').innerHTML =
     '<label class="canto-opcion"><input type="checkbox" id="chkFlechas"' +
     (verFlechas ? ' checked' : '') + ' />' +
-    '<span>ver flechas de pasar página</span></label>' +
+    '<span>señalar dónde se puede tocar</span></label>' +
     cantoPestanasHTML();
   const celdas = libros => libros.map(b => {
       const vivo = hayLibro(b.id), aqui = b.id === cantoMarcado();
@@ -17988,10 +18131,24 @@ function reflejarTamano(){
   const g = $('fsGlosaAhora');
   if (g) g.value = String(fontSizeGlosa);
 }
+/* LA ESCALA DEL CROMO, escrita en un solo sitio. Ver --escala-ui en la hoja de
+   estilos: 15 px de libro es 1, y de ahí sale el tamaño de todo lo que no es
+   la hoja. Va en documentElement y no en la escena porque los paneles cuelgan
+   de sitios distintos —el rastro de la escena, el globo de versiones de la
+   hoja, los avisos del cuerpo— y el único ancestro de todos ellos es la raíz.
+
+   Se llama desde los DOS sitios por donde puede cambiar el tamaño: aquí, que
+   es el único que lo mueve en caliente, y el arranque, que lo trae guardado de
+   la última vez. Un ajuste que se aplica al cambiarlo pero no al volver a
+   abrir el libro es la mitad de un ajuste. */
+function escalarInterfaz(){
+  document.documentElement.style.setProperty(
+    '--escala-ui', (fontSize / 15).toFixed(4));
+}
 function ponerTamano(n){
   const v = Math.max(FS_MIN, Math.min(FS_MAX, Math.round(n)));
   if (v === fontSize){ reflejarTamano(); return; }   // rebota el select si topó
-  fontSize = v; paginasSucias = true; renderPage();
+  fontSize = v; escalarInterfaz(); paginasSucias = true; renderPage();
 }
 function ponerTamanoGlosa(n){
   const v = Math.max(FS_MIN, Math.min(FS_MAX, Math.round(n)));
@@ -19323,6 +19480,8 @@ reflejarControles();
    Y su rojo se copia aquí de la paleta de las piedras —ver .flecha-hoja—:
    este es el único sitio donde ese color se decide. */
 document.documentElement.style.setProperty('--rojo-galon', tintaDe('carmin')[2]);
+/* Y el cromo toma el tamaño guardado, que para entonces ya se leyó. */
+escalarInterfaz();
 pintarFlechas();
 /* Y la portada recupera su adorno. Va aquí y no antes porque necesita las
    figuras y los colores de las piedras, que se declaran más arriba pero
