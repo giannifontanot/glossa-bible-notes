@@ -1362,9 +1362,8 @@
      devolvérselo al rótulo, que es de donde vino. */
   /* El rótulo se queda con lo que sobra para que la equis se vaya al filo
      derecho, a su misma altura. Ver .sp-x. */
-  .hs-cab{ display:flex; align-items:center; flex-wrap:wrap;
-           justify-content:flex-end; gap:8px; padding:3px 3px 6px; }
-  .hs-cab .hs-tit{ flex:1 1 auto; white-space:nowrap; }
+  .hs-cab{ display:flex; align-items:center; gap:8px; padding:3px 3px 6px; }
+  .hs-cab .hs-tit{ flex:1 1 auto; min-width:0; }
   .hs-tit{ font:700 calc(10.5px * var(--escala-ui, 1))/1 var(--ui);
            letter-spacing:.14em; text-transform:uppercase; color:#8a7746; }
   /* EL PASO ATRÁS. Dice a dónde va además de llevar la flecha: una flecha
@@ -1708,23 +1707,28 @@
      con tres hijos repartía el hueco por en medio en vez de agruparlos.
      El padding-top del rótulo se fue con el align-items:center: lo tenía para
      empujarse a la altura de una equis que estaba en otro renglón. */
-  /* Y EL RENGLÓN BAJA ENTERO ANTES DE ROMPER LA PALABRA. Con el cromo atado al
-     tamaño del libro, a 22 px el rótulo pide 210 de los 318 que hay y con
-     «Nueva» y la equis al lado ya no caben los tres. Sin esto el rótulo se
-     partía en dos y en tres renglones —«TUS / SEPARA- / DORES»—, que es la
-     peor de las salidas: el nombre del panel ilegible y las otras dos piezas
-     centradas contra una torre de letras.
-     El nowrap es lo que lo consigue, y no el flex-wrap solo: un hijo de flex
-     con min-width:0 prefiere encoger y partirse antes que mandar a nadie al
-     renglón de abajo. Sin poder partirse, no le queda otra que bajarlos. */
-  /* Y LO QUE BAJA SE PEGA AL FILO DERECHO. Sin esto, «Nueva» y la equis caían
-     al segundo renglón pero alineadas a la izquierda, con la equis flotando a
-     media anchura del panel: se pierde la esquina, que es donde se busca una
-     salida. En el primer renglón esto no hace nada —el rótulo es flex:1 y se
-     come el hueco—, así que sólo se nota cuando hay algo que bajar. */
-  .sp-cabeza{ display:flex; align-items:center; flex-wrap:wrap;
-              justify-content:flex-end; gap:8px; margin:0 0 8px; }
-  .sp-cabeza .sp-tit{ flex:1 1 auto; white-space:nowrap; padding:0; }
+  /* EL RÓTULO SE ACOMODA EN VARIOS RENGLONES, Y ES LO QUE SE PIDIÓ.
+
+     Aquí estuvo lo contrario: con el cromo atado al tamaño del libro, a 22 px
+     el rótulo ya no cabe al lado de «Nueva» y la equis, y le puse un nowrap
+     para que en vez de partirse bajara a los otros dos al renglón de abajo.
+     El dueño del repo lo miró puesto y dijo que no: que se acomode en varias
+     líneas, que es mejor. Y mirándolo tiene razón —el rótulo es lo que menos
+     se mira de esta cabecera; las dos piezas que se TOCAN se quedan donde
+     siempre están, en su esquina, en vez de mudarse de sitio según el tamaño
+     de letra que tenga puesto el lector. Un control que cambia de sitio se
+     vuelve a buscar cada vez.
+
+     Y EL flex-wrap SE VA CON EL NOWRAP, que creí que no estorbaba y estorba:
+     el reparto de flex decide primero QUÉ CABE en el renglón —con el ancho
+     natural de cada pieza, no con el encogido— y sólo después encoge lo que
+     quedó dentro. O sea que con wrap puesto, en cuanto los tres anchos
+     naturales pasan del renglón, la equis se va abajo Y ADEMÁS a la izquierda,
+     que es donde no se la busca. Visto en una foto a 22 px.
+     Sin wrap no hay a dónde mandar a nadie: el rótulo encoge y se acomoda en
+     los renglones que necesite, que es lo que se pidió. */
+  .sp-cabeza{ display:flex; align-items:center; gap:8px; margin:0 0 8px; }
+  .sp-cabeza .sp-tit{ flex:1 1 auto; min-width:0; padding:0; }
   /* La cinta de muestra del botón va sin color escrito: la que se ponga toma
      el que le toque por turno, así que enseñar uno concreto sería prometer. */
   .sp-nueva .sp-chip{ background:rgba(140,116,68,.45); }
@@ -4339,7 +4343,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-SEP-26 12:50';
+window.GLOSS_BUILD = '17-SEP-26 12:56';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18140,10 +18144,54 @@ function reflejarTamano(){
    Se llama desde los DOS sitios por donde puede cambiar el tamaño: aquí, que
    es el único que lo mueve en caliente, y el arranque, que lo trae guardado de
    la última vez. Un ajuste que se aplica al cambiarlo pero no al volver a
-   abrir el libro es la mitad de un ajuste. */
+   abrir el libro es la mitad de un ajuste.
+
+   ============================================================
+   NO CRECE AL MISMO PASO QUE EL LIBRO, Y ESE 0.6 ESTÁ MEDIDO.
+
+   La primera versión ataba el cromo uno a uno: libro a 22, panel a 22. Visto
+   puesto, el dueño del repo dijo «es demasiado grande, ¿será el tipo de
+   letra?». Era el tipo de letra, y tiene número: medidas las dos fuentes al
+   mismo cuerpo, «Mateo 1:1» ocupa 81.7 px en la del libro y 100.4 en la del
+   cromo —un 23% más ancha— y su minúscula es de un 10 a un 29% más alta. Un
+   cuerpo nominal no es un tamaño visto: dos letras del mismo número se ven
+   distintas según cuánto ocupa su «x». Igualar el número garantiza justamente
+   NO igualar lo que se ve.
+
+   Lo miraron cuatro oficios:
+
+   · EL TIPÓGRAFO: la corrección de toda la vida entre dos fuentes es la razón
+     de sus alturas de x, que aquí sale sobre 0.85. O sea que para que el panel
+     se vea como el libro, su número tiene que ser un 15% menor que el suyo.
+   · EL DE INTERFAZ: un rótulo no es texto corrido. El texto se lee seguido
+     durante minutos; un rótulo se RECONOCE de un vistazo. Por eso la interfaz
+     va igual o algo por debajo del cuerpo del texto, nunca por encima. Y aquí
+     la mitad del cromo va en negrita, en versalita y con tracking, que suman
+     peso: una versalita negra de 22 pesa como una redonda de 26.
+   · EL DE ACCESIBILIDAD: cuidado con corregir de más. El lector sube la letra
+     porque VE PEOR; el cromo tiene que seguir subiendo con él. Un factor, no
+     un tope. Y abajo importa más que arriba: con el libro en 10 el panel no
+     puede irse a 8, que no lo lee nadie.
+   · ESTA CASA: la regla ya escrita es que la hoja manda sobre el panel y el
+     panel llega hasta ella y ni un punto más. A 15 se cumple al píxel. Para
+     que se siga cumpliendo a 22 hay que crecer más despacio que ella.
+
+   De ahí sale una recta en vez de una proporción: 1 clavado en 15 —que es
+   donde el panel ya estaba aprobado y no se toca— y de ahí en adelante 0.6 px
+   de cromo por cada píxel de libro.
+
+     libro   10     15     18     22     26
+     escala  0.80   1.00   1.12   1.28   1.44
+     panel   12.0   15.0   16.8   19.2   21.6
+     contra  1.20x  1.00x  0.93x  0.87x  0.83x   ← del tamaño del libro
+
+   Y la recta acaba haciendo sola lo que pedían los cuatro: por arriba se queda
+   en 0.83–0.87 del libro, que es la corrección del tipógrafo casi al decimal;
+   por abajo NO baja tanto como el libro —12 px con el libro en 10— que es el
+   suelo que pedía el de accesibilidad, y sale gratis. */
 function escalarInterfaz(){
-  document.documentElement.style.setProperty(
-    '--escala-ui', (fontSize / 15).toFixed(4));
+  const k = 1 + (fontSize - 15) / 15 * 0.6;
+  document.documentElement.style.setProperty('--escala-ui', k.toFixed(4));
 }
 function ponerTamano(n){
   const v = Math.max(FS_MIN, Math.min(FS_MAX, Math.round(n)));
