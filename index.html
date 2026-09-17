@@ -1057,9 +1057,29 @@
      no alcance jamás a #ghost, que es el molde con el que se miden las
      palabras: un molde con anillo mide distinto que la hoja que copia. */
   .stage.guias{ --punto:var(--rojo-galon, #9b2a2a); --punto-luz:1;
-                --punto-esc:1.2; --punto-halo:0 0 0 3px rgba(155,42,42,.20); }
+                --punto-esc:1.2; --punto-halo:var(--halo-guia);
+                /* EL HALO SE DECIDE UNA VEZ Y LO LLEVAN LOS DOS. Es lo que
+                   emparenta a los rótulos con los puntos: el mismo rojo, el
+                   mismo aro tenue alrededor. Escrito dos veces se despareja a
+                   la primera que alguien retoque uno. */
+                --halo-guia:0 0 0 3px rgba(155,42,42,.20); }
+  /* EL ANILLO DE LOS RÓTULOS, MÁS GRUESO Y CON EL MISMO HALO QUE LOS PUNTOS.
+
+     Iba a 1 px y el dueño del repo lo dijo mirándolo: «no parece que el rojo
+     sirva para saber que los titulillos también se pueden tocar». Y era eso:
+     una raya de un píxel se lee como un BORDE —algo que enmarca— y un punto
+     gordo con halo se lee como una SEÑAL. Del mismo color y sin parentesco
+     ninguno, así que el rojo no llegaba a decir «esto también».
+
+     Dos píxeles y el halo de los puntos. El halo es lo que de verdad los
+     empareja: es la misma pieza, no una parecida, y por eso sale de la misma
+     variable. Y sigue sin ocupar sitio —box-shadow no entra en la caja—, que
+     es lo que permite tocar estos dos rótulos sin repaginar el libro: de su
+     alto sale --alto-cabeza. Con un borde de 2 px esto sería otra cosa y
+     habría que medir la hoja entera otra vez. */
   .stage.guias #pg .pg-cabeza, .stage.guias #pg .pg-version{
-            box-shadow:inset 0 0 0 1px var(--rojo-galon, #9b2a2a); }
+            box-shadow:inset 0 0 0 2px var(--rojo-galon, #9b2a2a),
+                       var(--halo-guia); }
   /* Y de lejos, el botón que abrió el zoom se va: ya no hay nada que abrir, se
      sale tocando el hueco, y un control encendido que no lleva a ningún sitio
      solo compite con el papel. */
@@ -4362,7 +4382,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-SEP-26 14:32';
+window.GLOSS_BUILD = '17-SEP-26 15:18';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
