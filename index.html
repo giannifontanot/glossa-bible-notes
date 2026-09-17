@@ -1287,7 +1287,10 @@
      —ver .hs-acciones—. Se queda el renglón propio aunque ahora lleve un solo
      hijo: el relleno de arriba del panel es éste, y disolverlo obligaría a
      devolvérselo al rótulo, que es de donde vino. */
+  /* El rótulo se queda con lo que sobra para que la equis se vaya al filo
+     derecho, a su misma altura. Ver .sp-x. */
   .hs-cab{ display:flex; align-items:center; gap:8px; padding:3px 3px 6px; }
+  .hs-cab .hs-tit{ flex:1 1 auto; min-width:0; }
   .hs-tit{ font:700 10.5px/1 var(--ui);
            letter-spacing:.14em; text-transform:uppercase; color:#8a7746; }
   /* EL PASO ATRÁS. Dice a dónde va además de llevar la flecha: una flecha
@@ -1504,19 +1507,27 @@
      el rótulo se aparta con su propio padding derecho. Blanco de toque de
      30px, 34 en pantalla chica, como el de la ventanita. */
   /* AQUÍ HUBO UN «#sepMenu, #piedraMenu{ position:relative }» y era el ancla
-     de la equis cuando iba en absoluto sobre el panel entero. Ahora su ancla
-     es .sp-cierre, su propio renglón, así que esta regla ya no sujeta nada —y
-     además le ganaba el position:absolute a #sepMenu por venir después, que
-     era un accidente esperando a que alguien moviera el panel—. Fuera. */
-  /* PEGADA A LA ESQUINA, Y NO CENTRADA EN SU BLANCO DE TOQUE. Pedido mirando
-     los dos paneles: el aspa se veía baja. Y lo estaba: el blanco mide 30px y
-     el aspa iba en su centro, así que entre el borde del panel y el signo
-     había quince píxeles de nada. Ahora el blanco arranca en la esquina (0,0)
-     y el signo se apoya en su borde de arriba; el blanco sigue midiendo los
-     mismos 30px, que es lo que se toca. */
-  .sp-x{ position:absolute; top:0; right:0; z-index:2;
-         display:inline-flex; align-items:flex-start; justify-content:center;
-         width:30px; height:30px; padding:3px 0 0;
+     de la equis cuando iba en absoluto sobre el panel entero. Ya no hace falta
+     de ninguna de las dos maneras: la equis es un hijo más del renglón del
+     rótulo y no flota sobre nada. Fuera.
+     Y HUBO UN «pegada a la esquina y no centrada en su blanco de toque», que
+     empujaba el signo contra el borde de arriba de su caja porque la caja
+     estaba clavada en la esquina (0,0) del panel y el signo se veía bajo. Con
+     la equis dentro del renglón eso se da la vuelta: lo que la pone a la
+     altura del rótulo es estar CENTRADA en su caja, que es lo que el flex del
+     renglón alinea. */
+  /* LA EQUIS VA EN EL RENGLÓN DEL RÓTULO, A SU MISMA ALTURA. Lo pidió el
+     dueño del repo —«que el título de los paneles quede al mismo nivel que la
+     x que cierra»— y es lo que se ve al mirarlos: la equis vivía sola en un
+     renglón suyo, con el rótulo debajo y una banda de 44 px de nada entre los
+     dos. Dos cosas que se leen juntas, puestas en dos alturas.
+
+     Ahora es un hijo más del renglón, alineado al centro con el rótulo, y ya
+     no hace falta que sea absoluta: la caja la coloca el flex. Sigue siendo
+     absoluta en un solo sitio, el mando de la piedra, y está escrito allí. */
+  .sp-x{ flex:0 0 auto; z-index:2;
+         display:inline-flex; align-items:center; justify-content:center;
+         width:30px; height:30px; padding:0;
          border:0; background:transparent; color:#8a7746;
          font:400 20px/1 var(--ui); cursor:pointer;
          -webkit-tap-highlight-color:transparent;
@@ -1525,22 +1536,20 @@
   .sp-x:hover{ color:#4d3f1d; }
   .sp-x:active{ transform:scale(.85); }
   .sp-x:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
-  /* EL RENGLÓN DE LA EQUIS. La equis sigue siendo absoluta —así vive en el
-     mando de la piedra, encima de su rótulo— y aquí lo que hace este renglón
-     es RESERVARLE EL ALTO: 26px de nada donde ella cae, y debajo el rótulo y
-     «Nueva» con el filo derecho entero para ellos. Los márgenes negativos le
-     devuelven al panel el relleno que ya tenía, para que la equis quede en la
-     esquina de verdad y no a nueve píxeles de ella. */
-  /* El alto es EXACTAMENTE el del aspa y no menos: recortándolo por abajo con
-     un margen negativo se ahorraban cuatro píxeles y el aspa —que es absoluta
-     y va por encima— le comía a «Nueva» una franja de su esquina. Cuatro
-     píxeles de blanco de toque robados que no se ven y sí se notan. */
-  .sp-cierre{ position:relative; height:30px; margin:-4px -4px 0 0; }
-  /* El rótulo solo le deja sitio a la equis donde comparten renglón, que hoy
-     es el mando de la piedra; su relleno está escrito allí abajo, con el
-     resto de lo suyo. En los dos paneles de listas la equis tiene renglón
-     propio y ese relleno sobraba: eran 32px que le quitaba al filo derecho
-     de «Nueva». */
+  /* AQUÍ ESTUVO .sp-cierre, EL RENGLÓN QUE LE RESERVABA EL ALTO A LA EQUIS.
+
+     Nació para dejarle a «Nueva» el filo derecho entero: con la equis absoluta
+     encima del renglón del rótulo, ese renglón tenía que reservarle 32 px de
+     relleno a la derecha y «Nueva» terminaba a un dedo del borde. El renglón
+     propio resolvía eso.
+
+     Y creaba lo otro: el rótulo y la equis, que se leen juntos, quedaban a dos
+     alturas distintas con una banda vacía entre medias —44 px en cuanto la
+     equis creció al blanco de toque de un dedo—. De los dos males, ése se ve
+     todos los días y el otro sólo si lo buscas. Así que la equis vuelve al
+     renglón del rótulo, esta vez como un hijo más del flex y no flotando por
+     encima: «Nueva» le cede los 44 px de su derecha, que es el precio, y el
+     panel gana un renglón de alto y una cabecera que se lee de una vez. */
   .sp-telas{ display:flex; gap:7px; padding:0 3px 9px; }
   .sp-tela{ flex:0 0 auto; width:30px; height:30px; border-radius:50%;
             border:1px solid rgba(90,70,30,.45); cursor:pointer; padding:0;
@@ -1619,12 +1628,14 @@
   .sp-nueva:hover{ background:rgba(140,116,68,.26); color:#4d3f1d; }
   .sp-nueva:active{ transform:translateY(1px); }
   .sp-nueva:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
-  /* EL RENGLÓN DEL RÓTULO: el título a la izquierda y el botón al filo
-     derecho. Ya no reserva nada para el aspa —ella tiene su propio renglón
-     arriba, ver .sp-cierre—, así que «Nueva» llega hasta el borde. */
-  .sp-cabeza{ display:flex; align-items:center; justify-content:space-between;
-              gap:8px; margin:0 0 8px; }
-  .sp-cabeza .sp-tit{ padding:3px 0 0; }
+  /* EL RENGLÓN DE LA CABECERA: rótulo, «Nueva» y la equis, en este orden y a
+     la misma altura. El rótulo se queda con lo que sobra —flex:1— y por eso
+     los otros dos se van al filo derecho sin necesidad de space-between, que
+     con tres hijos repartía el hueco por en medio en vez de agruparlos.
+     El padding-top del rótulo se fue con el align-items:center: lo tenía para
+     empujarse a la altura de una equis que estaba en otro renglón. */
+  .sp-cabeza{ display:flex; align-items:center; gap:8px; margin:0 0 8px; }
+  .sp-cabeza .sp-tit{ flex:1 1 auto; min-width:0; padding:0; }
   /* La cinta de muestra del botón va sin color escrito: la que se ponga toma
      el que le toque por turno, así que enseñar uno concreto sería prometer. */
   .sp-nueva .sp-chip{ background:rgba(140,116,68,.45); }
@@ -1827,6 +1838,21 @@
   /* SIETE POR FILA, para que las trece quepan en dos renglones cortos: con
      seis salían tres renglones y el panel se hacía más alto que la mitad de un
      teléfono, que es cuando empieza a tapar la hoja que se está mirando. */
+  /* EL MANDO DE LA PIEDRA ES EL ÚNICO QUE LA MANTIENE ABSOLUTA. Aquí la equis
+     no comparte renglón con nada más que el rótulo —no hay «Nueva» peleando
+     por la esquina—, y el rótulo va suelto, sin caja de flex que lo coloque.
+     Flotando en la esquina queda al nivel del rótulo, que es lo que se pide,
+     sin tener que envolver nada. El relleno del rótulo es lo que le deja
+     sitio.
+
+     Y NO SE LE PONE position:relative AL PANEL. Lo puse y era un error de los
+     que no avisan: #piedraMando ya es position:absolute —se coloca al lado de
+     la piedra—, y un absolute ES el ancla de sus hijos absolutos, así que no
+     hacía falta; lo que sí hacía era PISAR ese absolute por venir después y
+     mandar el mando entero a otro sitio. Es el mismo accidente que estaba
+     avisado unas líneas más arriba para #sepMenu, y lo pisé igual. */
+  #piedraMando .sp-x{ position:absolute; top:0; right:0;
+                      align-items:flex-start; padding:3px 0 0; }
   #piedraMando .sp-tit{ padding:2px 32px 3px 3px; }
   .pm-formas{ display:grid; grid-template-columns:repeat(7, 1fr); gap:3px; }
   .pm-forma{ aspect-ratio:1; display:grid; place-items:center; padding:2px;
@@ -2177,6 +2203,26 @@
     /* LA VENTANITA DE LEER ANTES DE SALTAR */
     .vp-txt{ font-size:17px; padding:13px 14px; }
     .vp-pie{ font-size:14px; }
+    /* LOS DOS PANELES DE LISTAS SE ENSANCHAN, Y ES LA CONSECUENCIA DE JUNTAR
+       EL RÓTULO Y LA EQUIS.
+
+       Con la equis en su renglón propio, el de la cabecera lo repartían dos:
+       el rótulo y «Nueva». Ahora son tres, y en 280 px no caben —«TUS
+       SEPARADORES» pide 144, «Nueva» 105 y la equis 44, que con los huecos son
+       309 de los 268 útiles—, así que el rótulo se partía en dos renglones.
+
+       De las tres maneras de arreglarlo, encoger el rótulo es deshacer lo que
+       se acaba de pedir y bajar «Nueva» a un renglón suyo devuelve el alto que
+       se había ganado. La tercera es mirar de dónde sale el 280: es un tope de
+       cuando estos paneles se pensaron con ratón. En un teléfono de 412 hay
+       396 de escena y el panel se estaba quedando en 280 por costumbre.
+
+       330 deja 318 útiles: la cabecera entra en un renglón con 9 de sobra, y
+       de paso las filas ganan 50 px para la referencia y el nombre, que es
+       justo lo que se les cortaba con puntos suspensivos. El `calc(100% -
+       16px)` sigue mandando por debajo de 346, así que en las pantallas
+       estrechas no cambia nada. */
+    #sepMenu, #piedraMenu{ width:min(330px, calc(100% - 16px)); }
     /* LAS EQUIS, QUE SON LA SALIDA.
 
        Aquí no se cambia DÓNDE están —arriba a la derecha, que es donde se
@@ -2185,14 +2231,15 @@
        listas daba un blanco de 30x30 y la de las pestañas 44 de alto por
        28 de ancho. Una salida que se falla deja al lector dentro.
 
-       El renglón que las aloja sube con ellas, y no es un detalle: la
-       equis va en absoluto y .sp-cierre es lo único que le reserva alto.
-       Dejándolo en 30 con una equis de 44, la equis se le comería por
-       arriba catorce píxeles del blanco de toque a «Nueva» —ya pasó con
-       cuatro, está contado ahí arriba—. */
-    .sp-x{ width:44px; height:44px; font-size:24px; padding:6px 0 0; }
-    .sp-cierre{ height:44px; }
+       Aquí hubo un `.sp-cierre{ height:44px }` que subía el renglón propio
+       de la equis con ella. Ese renglón ya no existe —la equis vive en el
+       del rótulo, ver .sp-x—, así que el alto se lo da el propio botón y no
+       hay nada que sincronizar. */
+    .sp-x{ width:44px; height:44px; font-size:24px; }
+    /* La del mando de la piedra sí sigue flotando en la esquina, y su rótulo
+       tiene que apartarse lo que ella mide. */
     #piedraMando .sp-tit{ padding-right:46px; }
+    #piedraMando .sp-x{ padding:5px 0 0; }
     .vp-x{ width:44px; height:44px; font-size:24px; }
     /* La de las pestañas no va aquí: su regla base se escribe más abajo, con
        el panel de las secciones, y una regla de la misma fuerza escrita antes
@@ -2211,6 +2258,17 @@
      para arriba sobra sitio, y un botón más holgado se toca mejor. */
   @media (pointer:coarse) and (max-width: 360px){
     .hs-acciones{ gap:5px; }
+    /* Y LA CABECERA DE LAS LISTAS SE APRIETA, por lo mismo que todo lo de este
+       bloque: en 320 px el panel se queda en 304 por el calc y sus útiles no
+       dan para el rótulo, «Nueva» y la equis con sus huecos. El rótulo se
+       partía en dos renglones —visto puesto, no calculado—.
+       Se recorta donde sobra y en ningún sitio donde se lea: el tracking del
+       rótulo, el relleno de «Nueva» y el hueco entre los tres. Ni la letra ni
+       el blanco de toque se tocan, que es justo lo que se vino a arreglar.
+       Medido en 320: con esto el rótulo cabe en un renglón. */
+    .sp-tit{ letter-spacing:.04em; }
+    .sp-nueva{ padding:6px 8px; }
+    .sp-cabeza{ gap:6px; }
     #sepOferta{ bottom:64px; }
     .sep-x{ width:22px; height:22px; }
     .sep-x svg{ width:11px; height:11px; }
@@ -4168,7 +4226,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-SEP-26 19:02';
+window.GLOSS_BUILD = '16-SEP-26 22:07';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -12317,10 +12375,10 @@ function cabezaHistorial(){
   /* Y LA EQUIS, LA MISMA QUE LAS DE LOS DOS PANELES DE LISTAS. El rastro se
      cerraba tocando fuera o volviendo a tocar el botón que lo abrió, que son
      las dos maneras que hay que saberse de antes; arriba a la derecha es donde
-     se busca, y ahora está. En su propio renglón, ver spCierreHTML. */
+     se busca, y ahora está. En el renglón del rótulo y a su altura, ver .sp-x. */
   const atras = pieAtras();
-  return spCierreHTML('rastro', 'lo que has visto') +
-    '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span></div>' +
+  return '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span>' +
+      spCerrarHTML('rastro', 'lo que has visto') + '</div>' +
     (atras ? '<div class="hs-acciones">' + atras + '</div>' : '');
 }
 /* AQUÍ ESTUVO EL PIE DEL RASTRO, con las dos puertas —«piedras» y «cintas»—.
@@ -16639,21 +16697,9 @@ const spCerrarHTML = (acc, que) =>
   '<button type="button" class="sp-x" data-sp-cerrar="' + acc + '"' +
     ' title="Cerrar" aria-label="Cerrar ' + que + '">' +
     '<span aria-hidden="true">\u00d7</span></button>';
-/* Y LA EQUIS EN SU PROPIO RENGLÓN, que es lo que le deja el filo derecho
-   libre al botón de «Nueva».
-
-   Estaba pegada a la esquina en absoluto, o sea flotando por encima del
-   renglón del rótulo, y ese renglón tenía que reservarle 32px de relleno a la
-   derecha para no quedar debajo: «Nueva» terminaba a un dedo del borde y el
-   panel se leía descuadrado. En su propio renglón la equis no le quita sitio a
-   nadie, «Nueva» llega hasta el filo, y la equis sigue estando donde se la
-   busca —arriba a la derecha—, que es lo que importaba.
-
-   El mando de la piedra NO usa esto: allí la equis comparte renglón con el
-   rótulo «Esta piedra» y en absoluto está bien, porque allí no hay ningún
-   botón peleando por la esquina. */
-const spCierreHTML = (acc, que) =>
-  '<div class="sp-cierre">' + spCerrarHTML(acc, que) + '</div>';
+/* AQUÍ ESTUVO spCierreHTML, que envolvía la equis en un renglón suyo.
+   Ya no hay tal renglón: la equis va dentro del de la cabecera, al nivel del
+   rótulo. Está contado en .sp-x, con lo que se gana y lo que se paga. */
 /* EL TECLADO TAPA JUSTO LO QUE SE ESTÁ ESCRIBIENDO.
 
    Los dos paneles se cuelgan de lo que los abrió y ahí se quedan. En un
@@ -16905,16 +16951,16 @@ const piedraNuevaHTML = () =>
 function pintarPiedraMenu(){
   const el = $('piedraMenu');
   if (!piedras.length){
-    el.innerHTML = spCierreHTML('piedras', 'la lista de piedras') +
+    el.innerHTML =
        '<div class="sp-cabeza"><span class="sp-tit">Tus piedras</span>' +
-       piedraNuevaHTML() + '</div>' +
+       piedraNuevaHTML() + spCerrarHTML('piedras', 'la lista de piedras') + '</div>' +
       '<p class="sp-vacio">Todavía no has dejado ninguna. El botón de arriba' +
       ' deja una en la hoja que estés leyendo.</p>';
     return;
   }
-  el.innerHTML = spCierreHTML('piedras', 'la lista de piedras') +
+  el.innerHTML =
     '<div class="sp-cabeza"><span class="sp-tit">Tus piedras</span>' +
-    piedraNuevaHTML() + '</div>' +
+    piedraNuevaHTML() + spCerrarHTML('piedras', 'la lista de piedras') + '</div>' +
     piedras.map(x => filaHTML({
       clase: piedraAqui(x) ? ' aqui' : '',
       abriendo: piedraNombrando === x.id,
@@ -17232,17 +17278,16 @@ function pintarSepMenu(){
      sabía preguntar; ahora la fila entera se convierte en la pregunta —ver
      filaHTML— que es donde tiene que estar: al lado de lo que se va a borrar,
      y no en un sitio desde el que hay que acordarse de a cuál se refería. */
+  /* LA CABECERA DEL PANEL VA PRIMERA SIEMPRE, y antes no lo era: en modo
+     cinta —cuando se llegó tocando una cinta de la hoja— delante iba «Color de
+     la cinta» con su paleta, y el rótulo del panel quedaba debajo de ella.
+     Daba igual mientras la equis vivía en un renglón suyo por encima de todo;
+     desde que la equis se mudó al renglón del rótulo, dejarla ahí la habría
+     puesto a media altura del panel, debajo de la paleta, que no es donde se
+     busca una salida.
+     Y leído de arriba abajo tiene más sentido así: primero de qué panel es
+     esto, después la sección de la cinta que tocaste. */
   $('sepMenu').innerHTML =
-    spCierreHTML('cintas', 'el panel de cintas') +
-    /* Las telas sólo si se vino de una cinta: en modo lista no hay «esta
-       cinta» cuyo color cambiar, y enseñar la paleta apuntando a ninguna
-       sería ofrecer un mando que no manda nada. */
-    (s ? '<span class="sp-tit">Color de la cinta</span>' +
-      '<div class="sp-telas" role="group" aria-label="Color del separador">' +
-      TELAS.map(t => '<button class="sp-tela" data-sep-color="' + t[0] + '"' +
-        ' style="background:' + t[2] + '" aria-pressed="' + (t[0] === s.color) + '"' +
-        ' aria-label="Cinta ' + t[1] + '" title="' + t[1] + '"></button>').join('') +
-      '</div>' : '') +
     /* PONER UNA CINTA SE PIDE DESDE AQUÍ, que es donde se está mirando las que
        hay. Estuvo en el renglón del rastro, lejos de esta lista y con el ancho
        del panel entre las dos; ver cabezaHistorial. Y va EN EL RENGLÓN DEL
@@ -17253,7 +17298,17 @@ function pintarSepMenu(){
         ' title="Dejar un separador en esta hoja"' +
         ' aria-label="Dejar un separador en la hoja que estás leyendo">Nueva' +
         '<span class="sp-chip" aria-hidden="true"></span></button>' +
+      spCerrarHTML('cintas', 'el panel de cintas') +
     '</div>' +
+    /* Las telas sólo si se vino de una cinta: en modo lista no hay «esta
+       cinta» cuyo color cambiar, y enseñar la paleta apuntando a ninguna
+       sería ofrecer un mando que no manda nada. */
+    (s ? '<span class="sp-tit">Color de la cinta</span>' +
+      '<div class="sp-telas" role="group" aria-label="Color del separador">' +
+      TELAS.map(t => '<button class="sp-tela" data-sep-color="' + t[0] + '"' +
+        ' style="background:' + t[2] + '" aria-pressed="' + (t[0] === s.color) + '"' +
+        ' aria-label="Cinta ' + t[1] + '" title="' + t[1] + '"></button>').join('') +
+      '</div>' : '') +
     (lista.length ? lista.map(x => filaHTML({
       clase: aqui(x) ? ' aqui' : '',
       abriendo: sepEditando === x.id,

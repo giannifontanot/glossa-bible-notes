@@ -1116,6 +1116,7 @@ async function ponerAMano(p){
     await window.__pausa(600);
     const panel = document.getElementById('historial');
     const cab = panel.querySelector('.hs-cab');
+    const tit = panel.querySelector('.hs-tit');
     const acciones = panel.querySelector('.hs-acciones');
     const atras = panel.querySelector('.hs-atras');
     if (!atras) return { falta:true, atras:false };
@@ -1129,15 +1130,29 @@ async function ponerAMano(p){
     const rc = r(cintas), rpi = r(piedras);
     const rx = panel.querySelector('[data-sp-cerrar]');
     return {
-      rotuloSolo: cab.children.length === 1,
+      /* EL RÓTULO Y LA EQUIS, Y NADA MÁS. Esto pedía `children.length === 1`
+         —el rótulo solo— cuando la equis vivía en un renglón aparte. Ahora
+         comparten renglón a propósito, así que son dos y lo que se vigila es
+         que no se cuele un tercero: este renglón es el nombre del panel y su
+         salida, y cualquier otra cosa aquí arriba compite con la lista. */
+      soloRotuloYEquis: cab.children.length === 2 &&
+                        cab.firstElementChild === tit &&
+                        cab.lastElementChild.matches('[data-sp-cerrar]'),
       /* LA EQUIS DEL RASTRO. Se cerraba tocando fuera o volviendo a tocar el
          botón que lo abrió: las dos hay que saberlas de antes y ninguna se ve.
          Arriba a la derecha es donde se busca. Se mide contra la ESQUINA del
          panel y no contra un píxel escrito: el panel cambia de ancho con la
-         pantalla y una coordenada fija se queda vieja sola. */
+         pantalla y una coordenada fija se queda vieja sola.
+         El margen pasó de 8 a 12 cuando la equis se metió en el renglón del
+         rótulo: ya no se apoya en la esquina del panel, se apoya en el relleno
+         del renglón, que es lo que la pone al nivel del rótulo. */
       aspa: rx ? { arriba: Math.round(r(rx).top - rp.top),
                    derecha: Math.round(rp.right - r(rx).right),
-                   lado: Math.round(r(rx).width) } : null,
+                   lado: Math.round(r(rx).width),
+                   /* Y al nivel del rótulo, que es lo que se pidió. */
+                   desnivel: tit ? Math.round(Math.abs(
+                     (r(tit).top + r(tit).height / 2) -
+                     (r(rx).top + r(rx).height / 2))) : null } : null,
       /* EL RASTRO SE QUEDÓ CON LO SUYO. Llegó a llevar tres botones arriba
          —piedra, cinta y el paso atrás— y el renglón decía dos cosas a la vez:
          «vuelve por donde viniste» y «deja algo aquí». Los dos de poner se
@@ -1168,12 +1183,15 @@ async function ponerAMano(p){
   });
   di('el rastro y las dos puertas', renglon);
   vale('están el paso atrás y los dos puntos', renglon.falta !== true, renglon);
-  vale('el rótulo se queda solo arriba', renglon.rotuloSolo === true);
+  vale('arriba, el rótulo y su equis y nada más',
+       renglon.soloRotuloYEquis === true, renglon);
   vale('EL RASTRO TIENE SU EQUIS, arriba a la derecha',
-       !!renglon.aspa && renglon.aspa.arriba <= 8 && renglon.aspa.derecha <= 8,
+       !!renglon.aspa && renglon.aspa.arriba <= 12 && renglon.aspa.derecha <= 12,
        renglon.aspa);
   vale('  con blanco de toque de 30 px o más',
        !!renglon.aspa && renglon.aspa.lado >= 30, renglon.aspa);
+  vale('  Y AL NIVEL DEL RÓTULO', !!renglon.aspa && renglon.aspa.desnivel <= 2,
+       renglon.aspa);
   vale('EL RASTRO SOLO LLEVA EL PASO ATRÁS', renglon.soloElAtras === true, renglon);
   vale('  y ni rastro de los de poner', renglon.sinLosDePoner === true);
   vale('  ni del pie con las dos puertas, que se fue arriba',
@@ -1201,41 +1219,66 @@ async function ponerAMano(p){
        cierraElRastro.abierto === true && cierraElRastro.cerrado === true, cierraElRastro);
 
   /* ================================================================
-     «NUEVA» LLEGA AL FILO DERECHO, EN LAS DOS LISTAS.
+     LA CABECERA ES UN SOLO RENGLÓN: RÓTULO, «NUEVA» Y LA EQUIS.
 
-     La equis vivía flotando sobre el renglón del rótulo, así que ese renglón
-     tenía que reservarle 32px de relleno a la derecha para no quedar debajo:
-     «Nueva» terminaba a un dedo del borde y el panel se leía descuadrado.
-     Ahora la equis tiene su propio renglón encima y ese relleno se fue.
+     Este bloque medía lo contrario, y merece la pena dejar escrito por qué.
+     Pedía que «Nueva» llegara al filo derecho y que la equis quedara POR
+     ENCIMA de ella, en su propio renglón, porque antes la equis flotaba sobre
+     el renglón del rótulo y obligaba a reservarle 32 px de relleno: «Nueva»
+     terminaba a un dedo del borde y el panel se leía descuadrado.
 
-     Se comprueban las DOS cosas y en los DOS paneles: que «Nueva» llegue al
-     filo, y que la equis quede por ENCIMA de ella y no a su lado —si alguien
-     devolviera el relleno, lo primero seguiría cumpliéndose por accidente en
-     un panel ancho y lo segundo no—. */
+     Lo pidió el dueño del repo al revés: «que el título de los paneles quede
+     al mismo nivel que la x que cierra». Y tenía razón mirándolos puestos: el
+     rótulo y la equis se leen juntos, y estaban a dos alturas con una banda
+     vacía de 44 px entre medias.
+
+     Así que ahora los tres comparten renglón y lo que se mide es eso: que el
+     rótulo y la equis estén A LA MISMA ALTURA —se comparan los centros, no los
+     bordes, que es lo que de verdad se ve—, que el rótulo no se parta en dos
+     renglones, y que la equis siga arriba a la derecha con blanco de toque de
+     dedo. «Nueva» ya no llega al filo y no debe: esos 44 px son ahora de la
+     equis. */
   const filos = await p.evaluate(async () => {
     const caja = e => { const r = e.getBoundingClientRect();
       return { x:Math.round(r.left), y:Math.round(r.top),
                w:Math.round(r.width), h:Math.round(r.height) }; };
-    const mirar = async (abridor, panelId, nuevaSel) => {
+    const mirar = async (abridor, panelId, nuevaSel, titSel) => {
       await window.__toque(abridor); await window.__pausa(800);
       const p = document.getElementById(panelId);
       const n = p.querySelector(nuevaSel), x = p.querySelector('[data-sp-cerrar]');
-      if (!n || !x) return { falta:true, hayNueva:!!n, hayAspa:!!x };
-      const rp = caja(p), rn = caja(n), rx = caja(x);
-      return { hueco: (rp.x + rp.w) - (rn.x + rn.w),
-               aspaEncima: (rx.y + rx.h) <= rn.y + 2,
-               aspaALaDerecha: (rp.x + rp.w) - (rx.x + rx.w) <= 8 };
+      const t = p.querySelector(titSel);
+      if (!n || !x || !t) return { falta:true, hayNueva:!!n, hayAspa:!!x, hayTit:!!t };
+      const rp = caja(p), rn = caja(n), rx = caja(x), rt = caja(t);
+      /* EL CENTRO Y NO EL BORDE. El rótulo mide 12 px de alto y la equis 44:
+         alineados como se ven, sus bordes no coinciden ni tienen por qué.
+         Lo que dice «están al mismo nivel» es que sus centros lo estén. */
+      return { difCentros: Math.abs((rt.y + rt.h/2) - (rx.y + rx.h/2)),
+               /* Los tres en el mismo renglón: ninguno empieza por debajo del
+                  final de otro. */
+               unRenglon: rt.y < rx.y + rx.h && rx.y < rn.y + rn.h &&
+                          rn.y < rt.y + rt.h,
+               /* Y el rótulo entero, sin partirse: dos renglones de versalita
+                  a 12 px miden más de 20. */
+               titEnUnRenglon: rt.h < 20,
+               aspaALaDerecha: (rp.x + rp.w) - (rx.x + rx.w) <= 12,
+               ladoAspa: rx.w };
     };
-    const piedras = await mirar('[data-piedra-lista]', 'piedraMenu', '[data-piedra-nueva]');
-    const cintas = await mirar('[data-sep-lista]', 'sepMenu', '[data-sep-nuevo]');
+    const piedras = await mirar('[data-piedra-lista]', 'piedraMenu',
+                                '[data-piedra-nueva]', '.sp-tit');
+    const cintas = await mirar('[data-sep-lista]', 'sepMenu',
+                               '[data-sep-nuevo]', '.sp-tit');
     return { piedras, cintas };
   });
-  di('el filo derecho', filos);
+  di('la cabecera', filos);
   for (const [cual, r] of [['piedras', filos.piedras], ['cintas', filos.cintas]]){
-    vale('«Nueva» llega al filo derecho · ' + cual,
-         r.falta !== true && r.hueco <= 14, r.falta ? r : r.hueco + ' px de hueco');
-    vale('  y la equis queda encima, no a su lado · ' + cual,
-         r.falta !== true && r.aspaEncima === true && r.aspaALaDerecha === true, r);
+    vale('EL RÓTULO Y LA EQUIS, AL MISMO NIVEL · ' + cual,
+         r.falta !== true && r.difCentros <= 2, r.falta ? r : r.difCentros + ' px de desnivel');
+    vale('  y los tres en un renglón · ' + cual,
+         r.falta !== true && r.unRenglon === true, r);
+    vale('  con el rótulo entero, sin partirse · ' + cual,
+         r.falta !== true && r.titEnUnRenglon === true, r);
+    vale('  y la equis arriba a la derecha, con blanco de dedo · ' + cual,
+         r.falta !== true && r.aspaALaDerecha === true && r.ladoAspa >= 40, r);
   }
 
   /* ================================================================
