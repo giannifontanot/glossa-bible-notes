@@ -2549,30 +2549,6 @@
     .pestanas .cerrar-x{ flex:0 0 40px; width:40px; min-width:40px;
                          font:400 24px/44px Georgia, 'Times New Roman', serif; }
   }
-  /* Y POR DEBAJO DE 400, UN PELO MENOS TODO EL RENGLÓN.
-
-     Las cuatro pestañas no se pueden encoger por debajo de su palabra
-     —«Respaldo» mide lo que mide— así que cuando no caben no se aprietan: se
-     SALEN, calladas, por el filo derecho del panel. Y la que se sale primero
-     es la equis, que va la última.
-
-     Medido en los anchos que existen: a 15 px con 9 de relleno el renglón pide
-     394 y cabe en 412 y en 430, va al milímetro en 390 y se sale en 360. A 14
-     con 7 pide 369 y entra en los tres —390, 412, 430— con sitio de sobra.
-
-     EN 320 NO CABE, Y NO ES DE ESTA SUBIDA. Ya no cabía: en main pedía 361 de
-     los 302 que hay, con la última pestaña y la equis fuera del panel. Con
-     esto pide 369, ocho píxeles peor, y los ocho son el ancho que gana la
-     equis —que a esa anchura está fuera de la pantalla lo mismo a 28 que a
-     36—. Apretar más no lo arregla: no hay tamaño legible con el que cuatro
-     palabras y una equis quepan en 302 px. Queda apuntado como lo que es, un
-     renglón que en la pantalla más estrecha que existe hay que repensar —que
-     bajen a dos filas, o que las palabras se acorten— y no encoger. */
-  @media (pointer:coarse) and (max-width: 400px){
-    .pestanas button{ font-size:14px; padding:8px 7px; }
-    .pestanas .cerrar-x{ flex:0 0 36px; width:36px; min-width:36px;
-                         font:400 22px/44px Georgia, 'Times New Roman', serif; }
-  }
   .pestanas .cerrar-x:hover{ background:transparent; color:#1a140c; opacity:1; }
   .pestanas button:hover{ background:#fffdf6; color:#1d1608; }
   .pestanas button.aqui{ background:#b8892b; color:#fff8e4; }
@@ -3671,6 +3647,42 @@
               max-width:90%; border-radius:7px; }
   }
 
+  /* Y POR DEBAJO DE 400, UN PELO MENOS TODO EL RENGLÓN DE LAS PESTAÑAS.
+
+     ESTE BLOQUE TIENE QUE IR AQUÍ ABAJO, y la primera vez no lo estaba. Vivía
+     con su familia —junto a las reglas de .pestanas, que es donde uno lo
+     busca— y ahí no servía de nada: `.pestanas button` pesa lo mismo escrito
+     arriba que escrito abajo, así que el `font-size:15px` del bloque de 560 le
+     ganaba por orden y las pestañas se quedaban en 15 mientras la equis sí
+     crecía a 36. O sea justo el renglón más ancho de los dos, que es lo
+     contrario de lo que este bloque viene a hacer. Lo levantó la revisión de
+     Codex. Es el mismo tropiezo que ya está contado unas líneas más arriba
+     para los tamaños del panel, y por la misma razón: dos reglas de la misma
+     fuerza las decide el orden.
+
+     Las cuatro pestañas no se pueden encoger por debajo de su palabra
+     —«Respaldo» mide lo que mide—, así que cuando no caben no se aprietan: se
+     SALEN, calladas, por el filo derecho del panel. Y la que se sale primero
+     es la equis, que va la última.
+
+     Medido en los anchos que existen, con la equis ya ancha: a 15 px con 9 de
+     relleno el renglón pide 394, cabe en 412 y en 430 y va al milímetro en
+     390. A 14 con 7 pide 338, así que entra en 390 con sitio de sobra y entra
+     también en 360 —342 justos—, que a 15 se salía.
+
+     EN 320 SIGUE SIN CABER, y ahí ya no llega ningún apretón razonable: no hay
+     tamaño legible con el que cuatro palabras y una equis quepan en 302 px.
+     Con esto pide 338, que es mejor de lo que había —en main pedía 361, con la
+     última pestaña Y la equis fuera del panel—, pero mejor no es bastante.
+     Queda apuntado como lo que es: un renglón que en la pantalla más estrecha
+     que existe hay que repensar —que bajen a dos filas, o que las palabras se
+     acorten— y no encoger. */
+  @media (pointer:coarse) and (max-width: 400px){
+    .pestanas button{ font-size:14px; padding:8px 7px; }
+    .pestanas .cerrar-x{ flex:0 0 36px; width:36px; min-width:36px;
+                         font:400 22px/44px Georgia, 'Times New Roman', serif; }
+  }
+
   /* PANTALLA BAJA. Agrandar la letra tiene un costo que hay que pagar aquí:
      el panel de Formato pasó de 264px de contenido a 373px, y .rollo está
      topado en max-height:88%. Mientras la pantalla es alta no pasa nada
@@ -4156,7 +4168,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-SEP-26 18:59';
+window.GLOSS_BUILD = '16-SEP-26 19:02';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
