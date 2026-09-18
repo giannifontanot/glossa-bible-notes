@@ -875,7 +875,16 @@
   /* El cursor dice cuál de los dos vuelve: la lupa va en el hueco, no en la
      hoja. Sobre la hoja se lee, y en el escritorio de alrededor no hay nada
      más que hacer. */
-  #pg.zoom{ background:transparent; cursor:zoom-in; }
+  /* DE LEJOS EL TEXTO NO SE SELECCIONA. La vista de lejos es para ver el libro
+     desde otra perspectiva, no para trabajar sobre él: marcar es de cerca,
+     sobre la palabra que se está leyendo. Aquí la letra mide la mitad y lo que
+     cabe bajo un dedo es un renglón entero.
+     Son dos puertas y hay que cerrar las dos: ésta es la del ratón —arrastrar
+     y que se pinte de azul— y la del dedo está en el pointerdown de pgBody,
+     donde está contado por qué esa línea ha ido y vuelto. El cursor lo dice
+     además sin palabras: zoom-in, o sea «esto lo que hace es acercarse». */
+  #pg.zoom{ background:transparent; cursor:zoom-in;
+            -webkit-user-select:none; user-select:none; }
   /* EL ORIGEN DEL TRANSFORM VIVE FUERA DE .zoom, y tiene que vivir fuera.
 
      Estaba dentro de la regla de abajo, que es lo natural mientras el cambio
@@ -971,8 +980,20 @@
      Así que se quedan en lo que hacía falta: un punto gordo que dice "aquí hay
      algo que tocar" y nada más. El blanco de toque no encoge —el círculo va
      entero, es la tinta la que se retira—. */
+  /* LOS PUNTOS VAN DEBAJO DE LOS PANELES, Y ESO ES UN 5 Y NO UN 7.
+
+     Estaban en 7 y el panel de las secciones —Libros, Glosas, Formato,
+     Respaldo— está en 6, así que los cuatro puntos le flotaban ENCIMA: cuatro
+     lentejas de la hoja pegadas sobre un panel que no es la hoja. Lo dijo el
+     dueño del repo con el argumento entero: pertenecen al libro, que es lo que
+     queda debajo.
+
+     5 los pone donde les toca en la pila: por encima de los filos de pasar
+     hoja (3) y de las piedras (4), que son de la hoja como ellos, y por debajo
+     de todo lo que se abre encima —el panel de secciones (6), el rastro (8) y
+     las dos listas (9)—. */
   #btnZoom, #btnHistorial, #btnPiedras, #btnCintas{
-            position:absolute; z-index:7;
+            position:absolute; z-index:5;
             width:34px; height:34px; padding:0; cursor:pointer;
             display:flex; align-items:center; justify-content:center;
             background:transparent; border:0; border-radius:50%;
@@ -4382,7 +4403,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-SEP-26 15:18';
+window.GLOSS_BUILD = '17-SEP-26 19:15';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5080,7 +5101,16 @@ let showMarks = true, fontSize = 15, fontSizeGlosa = 14;
    teclado— y ninguna se ve. Dos discos encima del texto son la respuesta para
    quien no las conoce y un estorbo para quien sí. Así que se pregunta, y se
    pregunta donde se pregunta todo lo de la lectura: en un panel. */
-let verFlechas = false;
+/* ENCENDIDAS DE FÁBRICA, y esto cambió. Nacían apagadas porque eran sólo las
+   dos flechas de pasar hoja, y unas flechas permanentes sobre el papel son
+   ruido para quien ya sabe pasarlo. Pero el interruptor ya no enciende eso
+   solo: enciende TODAS las puertas —los cuatro puntos de las esquinas y los
+   dos rótulos de la hoja—, y ésas son justamente las que alguien que abre por
+   primera vez no tiene manera de descubrir.
+   Quien las quiera quitar las quita en Libros, y su decisión se guarda; lo que
+   no se puede es enseñarle a alguien una puerta que no ve. Sólo afecta a la
+   instalación recién estrenada: cargarAjustes respeta el `false` guardado. */
+let verFlechas = true;
 /* QUÉ TESTAMENTO ENSEÑA EL PANEL DE LIBROS, y se guarda con los ajustes: quien
    está leyendo el Antiguo vuelve al Antiguo. Arranca en el Nuevo porque ahí es
    donde arranca la lectura —y donde están los datos que vienen incluidos—, no
@@ -9168,13 +9198,26 @@ function colocarTiradores(){
   pgBody.addEventListener('pointerdown', ev => {
     if (gesto) clearTimeout(gesto.reloj);
     gesto = null;
-    /* Y AQUÍ DECÍA «zoomActivo», que era mío y sobraba. Lo puse por parecido
-       con el arrastre del papel, sin mirar que glosar DE LEJOS es una cosa que
-       ya se hacía y que tiene su prueba —la vista de lejos es para ver la hoja
-       entera y marcar lo que salta a la vista—. Apagando la pintura ahí, ese
-       camino se quedaba sin gesto: la prueba de zoom decía que el panel no
-       salía y llevaba razón. El zoom no estorba a pintar, porque puntoA
-       trabaja en coordenadas de pantalla y la escala ya viene aplicada. */
+    /* DE LEJOS NO SE PINTA, y esta línea ha ido y vuelto, así que conviene
+       dejar las dos razones escritas.
+
+       Estuvo, se quitó y vuelve. Se quitó con este argumento: la vista de
+       lejos es para ver la hoja entera y marcar lo que salta a la vista, y
+       apagar la pintura allí dejaba ese camino sin gesto. Técnicamente no
+       estorbaba nada —puntoA trabaja en coordenadas de pantalla y la escala ya
+       viene aplicada—, así que se podía.
+
+       Vuelve porque el dueño del repo decidió lo contrario, y la razón es de
+       para qué sirve la vista y no de si se puede: «de lejos es sólo la
+       oportunidad de ver el libro desde otra perspectiva». Marcar es trabajo
+       de cerca, sobre la palabra que se está leyendo; de lejos la letra mide
+       la mitad y lo que se apunta con el dedo es un renglón entero. Un gesto
+       que se puede hacer y casi nunca acierta es peor que uno que no está.
+
+       Va con .stage.zoom en la hoja de estilos, que apaga también la selección
+       del navegador: el dedo entra por aquí y el ratón por allí, y las dos
+       puertas tienen que decir lo mismo. */
+    if (zoomActivo) return;
     if (ev.button > 0) return;
     if (!sePuedeGlosar(ev.target)) return;
     const p = puntoA(ev.clientX, ev.clientY);
@@ -18896,6 +18939,8 @@ ajustes.appendChild($('cred'));
    Van después de cargarAjustes porque necesitan versoTexto, que se define
    bastante más arriba pero como const: en el sitio donde se leen las marcas
    todavía no existe. */
+/* LAS TRES PRIMERAS SON DE LA GENEALOGÍA DE MATEO y la cuarta no, así que el
+   libro dejó de ir fijo y viaja con cada una. Ver sembrarGlosasDeEstreno. */
 const GLOSAS_DE_ESTRENO = [
   { cap:1, vers:1, frase:'Hijo de David', color:'yellow',
     nota:'El título real, de entrada. El último libro lo cierra con el mismo, ' +
@@ -18905,16 +18950,27 @@ const GLOSAS_DE_ESTRENO = [
   { cap:1, vers:6, frase:'la esposa de Urías', color:'green',
     nota:'No la nombra: la llama por el marido. Betsabé entra en el linaje sin ' +
          'su nombre propio.' },
+  /* Y JUAN 3:16, que es el versículo que todo el mundo sabe de memoria y por
+     eso mismo el que menos se lee. La nota no lo explica —no hace falta— sino
+     que señala lo único que la costumbre se come: que ese «así» no es una
+     cantidad. */
+  { libro:'JHN', cap:3, vers:16, frase:'lo hizo de esta manera', color:'orange',
+    nota:'No dice cuánto amó: dice cómo. El «así» de este versículo no mide el ' +
+         'amor, señala la manera —y la manera viene justo después, en lo que ' +
+         'entregó—. Se aprende de memoria como una medida y es una dirección.' },
 ];
 function sembrarGlosasDeEstreno(){
-  /* EL LIBRO VA FIJO, no el que esté abierto. Estas notas hablan de la
-     genealogía de Mateo: en otro libro no dirían nada, y peor, la frase podría
-     encontrarse por casualidad en otro versículo 1:1 y marcar lo que no es. */
-  const libro = D.libros[0] && D.libros[0].id;
-  if (!libro) return;
+  /* EL LIBRO VA ESCRITO EN CADA UNA, no se toma del que esté abierto. Estas
+     notas hablan de un sitio concreto: en otro libro no dirían nada, y peor,
+     la frase podría encontrarse por casualidad en otro 1:1 y marcar lo que no
+     es. Tres son de Mateo y por eso el primero del archivo sigue siendo el
+     valor por defecto; la de Juan trae el suyo. */
+  const porDefecto = D.libros[0] && D.libros[0].id;
+  if (!porDefecto) return;
   const hoy = new Date().toISOString().slice(0,10);
   const nuevas = [];
   for (const e of GLOSAS_DE_ESTRENO){
+    const libro = e.libro || porDefecto;
     let texto = '';
     try { texto = versoTexto(version, e.cap, e.vers, libro) || ''; } catch(err){ continue; }
     /* Sin distinguir mayúsculas: hay versiones que escriben «hijo de David» en
@@ -18927,7 +18983,9 @@ function sembrarGlosasDeEstreno(){
     if (ini < 0) continue;
     const fin = ini + e.frase.length;
     nuevas.push({
-      id: 'estreno-' + e.cap + '-' + e.vers,
+      /* El libro entra en el id: sin él, un 3:16 de otro libro chocaría con
+         éste el día que se siembre otra. */
+      id: 'estreno-' + libro + '-' + e.cap + '-' + e.vers,
       libro, cap: e.cap, vers: e.vers,
       cita: texto.slice(ini, fin),      /* la del texto, con sus mayúsculas */
       antes: texto.slice(Math.max(0, ini-24), ini),

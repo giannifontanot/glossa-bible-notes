@@ -641,7 +641,30 @@ const ATERRIZA = 7000;
              e.getBoundingClientRect().height === 0; };
     const seVe = id => { const e = document.getElementById(id);
       return !e.hidden && e.getBoundingClientRect().height > 8; };
-    const nacen = { izq: oculta('flechaIzq'), der: oculta('flechaDer') };
+    /* NACEN ENCENDIDAS, Y ESO ES LO CONTRARIO DE LO QUE PEDÍA ESTA LÍNEA.
+
+       Nacían apagadas mientras el interruptor era sólo el de las flechas: unas
+       flechas permanentes sobre el papel son ruido para quien ya sabe pasar la
+       hoja. Ahora enciende TODAS las puertas —los cuatro puntos de las
+       esquinas y los dos rótulos—, que son justamente las que alguien que abre
+       por primera vez no tiene manera de descubrir, así que de fábrica van
+       puestas. Lo decidió el dueño del repo.
+
+       Y de paso el andamio mejora: antes daba UN clic y medía: comprobaba que
+       la casilla enciende y nada más. Ahora da DOS y mide en los dos sitios,
+       así que comprueba el interruptor entero —que apaga y que enciende—, que
+       es lo que un interruptor tiene que hacer. */
+    /* Y «ENCENDIDAS» NO ES «LAS DOS SE VEN», que es lo que escribí primero y
+       lo que la tanda desmintió: al arrancar estamos en la PRIMERA hoja de los
+       datos y hacia atrás no hay a dónde ir, así que la izquierda no sale —ni
+       debe—. Es lo mismo que este bloque ya sabe unas líneas más abajo, donde
+       pasa una hoja antes de medir por esta misma razón.
+       Así que se mide contra el FILO, que es el invariante de verdad y el que
+       este bloque comprueba al final: cada flecha se ve exactamente cuando hay
+       hoja a su lado. Encendido el interruptor, eso es lo que significa. */
+    const vivo = id => !document.getElementById(id).classList.contains('off');
+    const nacen = { izq: seVe('flechaIzq'), der: seVe('flechaDer'),
+                    filoIzq: vivo('edgeL'), filoDer: vivo('edgeR') };
     /* El interruptor vive en LIBROS, que es el panel de moverse por el libro. */
     document.getElementById('pgCabeza').click(); await pausa(700);
     const pest = [...document.querySelectorAll('.pestanas button')]
@@ -652,6 +675,13 @@ const ATERRIZA = 7000;
     if (!chk) return { nacen, sinCasilla:true };
     const rotulo = chk.closest('label').textContent.trim();
     const blanco = Math.round(chk.closest('label').getBoundingClientRect().height);
+    /* Primer clic: apaga. Se mide con el panel todavía abierto, que las
+       flechas viven en la escena y no dentro de él. */
+    chk.click(); await pausa(600);
+    const apagadas = { izq: oculta('flechaIzq'), der: oculta('flechaDer') };
+    const guardadoApagado = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}').verFlechas;
+    /* Y el segundo las devuelve, que es el estado en el que se mide todo lo
+       demás: dónde caen, de qué color son y qué hay bajo su punta. */
     chk.click(); await pausa(500);
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await pausa(700);
@@ -696,7 +726,7 @@ const ATERRIZA = 7000;
                                               Math.round(ri.top + ri.height/2));
     const bajoDer = document.elementFromPoint(Math.round(sd.right - 3),
                                               Math.round(rd.top + rd.height/2));
-    return { nacen, rotulo, blanco,
+    return { nacen, rotulo, blanco, apagadas, guardadoApagado,
              encendidas: { izq: seVe('flechaIzq'), der: seVe('flechaDer') },
              mitad: Math.round(st.top + st.height/2),
              centroIzq: Math.round(ri.top + ri.height/2),
@@ -731,8 +761,15 @@ const ATERRIZA = 7000;
        !flechas.sinCasilla && /se puede tocar/i.test(flechas.rotulo || ''),
        flechas.sinCasilla ? 'no hay casilla' : flechas.rotulo);
   vale('  con blanco de toque de dedo', flechas.blanco >= 44, flechas.blanco);
-  vale('NACEN APAGADAS', flechas.nacen.izq === true && flechas.nacen.der === true, flechas.nacen);
-  vale('y la casilla las enciende, y entonces SE VEN',
+  vale('NACEN ENCENDIDAS, que es lo que ve quien abre por primera vez',
+       flechas.nacen.izq === flechas.nacen.filoIzq &&
+       flechas.nacen.der === flechas.nacen.filoDer &&
+       flechas.nacen.der === true, flechas.nacen);
+  vale('y la casilla las APAGA, y entonces no están',
+       !!flechas.apagadas && flechas.apagadas.izq === true &&
+       flechas.apagadas.der === true, flechas.apagadas);
+  vale('  y eso queda guardado', flechas.guardadoApagado === false, flechas.guardadoApagado);
+  vale('y el segundo toque las devuelve, y SE VEN',
        flechas.encendidas && flechas.encendidas.izq === true &&
        flechas.encendidas.der === true, flechas.encendidas);
   vale('una a cada lado y a media altura',

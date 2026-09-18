@@ -340,35 +340,47 @@ const comoVan = r => {
     return r;
   }));
 
-  /* Y que el texto se siga pudiendo resaltar de lejos, que es la otra cosa que
-     la hoja tiene que conservar. */
+  /* ================================================================
+     DE LEJOS NO SE MARCA, Y ESTE BLOQUE DECÍA LO CONTRARIO.
+
+     Exigía que el texto se pudiera resaltar de lejos —«la otra cosa que la
+     hoja tiene que conservar»— y estaba bien exigido mientras ésa fue la
+     decisión. Ya no lo es: la vista de lejos es sólo la oportunidad de ver el
+     libro desde otra perspectiva, y marcar es trabajo de cerca, sobre la
+     palabra que se está leyendo. De lejos la letra mide la mitad y lo que cabe
+     bajo un dedo es un renglón entero, así que un gesto que se puede hacer y
+     casi nunca acierta es peor que uno que no está. Lo decidió el dueño del
+     repo.
+
+     Se mide con el MISMO gesto que antes servía para lo contrario, que es lo
+     que hace que este bloque siga valiendo: si alguien vuelve a encender la
+     pintura de lejos, aquí se entera. Y se comprueban las DOS puertas, la del
+     dedo y la del ratón, porque están en sitios distintos del programa —un
+     pointerdown y una regla de estilo— y cerrar una sola dejaría la otra
+     abierta sin que nada lo dijera.
+     ================================================================ */
   await enZoom();
-  di('seleccionar y resaltar, de lejos', await p.evaluate(async () => {
+  di('de lejos no se marca', await p.evaluate(async () => {
     const clave = 'glossa:marcas:v1';
     const cuantas = () => JSON.parse(localStorage.getItem(clave) || '[]').length;
     const antes = cuantas();
     const v = document.querySelector('#pgBody .v');
-    /* Se pinta con el dedo, que es como se glosa desde que el pasaje no se
-       selecciona. El pincel lo pone el andamio: ver PINCEL en comun.js. */
-    if (!await window.__glosarEn(v, 0, 14)) return { sinTexto:true, porque: window.__pincelPorque };
+    /* El pincel del andamio hace el gesto del dedo tal cual: ver PINCEL en
+       comun.js. Que devuelva false es ya la primera respuesta. */
+    const pinto = await window.__glosarEn(v, 0, 14);
     const menu = document.getElementById('menu');
     const salio = getComputedStyle(menu).display !== 'none' && menu.textContent.trim().length > 0;
-    /* Toda marca es una glosa: se escribe la nota y se toca fuera, que es lo
-       que la guarda. Sin texto no se guardaría nada, y de lejos tampoco. */
-    const ta = document.getElementById('glosaCaja');
-    if (ta){
-      ta.value = 'resaltada de lejos';
-      ta.dispatchEvent(new Event('input', { bubbles:true }));
-      document.body.dispatchEvent(new PointerEvent('pointerdown',
-        { bubbles:true, clientX:5, clientY:5 }));
-    }
-    await new Promise(z => setTimeout(z, 1000));
-    return { salioElMenu:salio, habiaCaja:!!ta, antes, despues:cuantas(),
+    await new Promise(z => setTimeout(z, 600));
+    return { pinto, salioElMenu:salio, antes, despues:cuantas(),
+             /* La puerta del ratón: el navegador no debe dejar seleccionar. */
+             seleccion: getComputedStyle(document.getElementById('pg')).userSelect,
              sigueLejos: document.getElementById('pg').classList.contains('zoom') };
   }).then(r => {
-    vale('sale el panel de lejos', !!r.salioElMenu && r.habiaCaja);
-    vale('y resalta de verdad', r.despues === r.antes + 1, r.antes + ' → ' + r.despues);
-    vale('sin sacarte de la vista', !!r.sigueLejos);
+    vale('EL GESTO NO ABRE NINGÚN PANEL de lejos', r.salioElMenu === false, r);
+    vale('y no deja ninguna marca', r.despues === r.antes, r.antes + ' → ' + r.despues);
+    vale('la hoja tampoco se deja seleccionar con el ratón',
+         r.seleccion === 'none', r.seleccion);
+    vale('y todo esto sin sacarte de la vista', !!r.sigueLejos);
     return r;
   }));
 

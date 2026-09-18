@@ -17,11 +17,21 @@
 const { abrir, listo, cerrar, cerrarParcial, di, vale, titulo,
         APP, TELEFONO } = require('./comun');
 
+/* LAS DE ESTRENO YA NO SON TODAS DE MATEO, así que cada una trae su libro.
+   Tres son de la genealogía y la cuarta es Juan 3:16, que se sembró porque es
+   el versículo que todo el mundo sabe de memoria y por eso mismo el que menos
+   se lee. Las comprobaciones de aquí abajo dejaron de contar «tres» y de dar
+   Mateo por supuesto: contar a mano lo que ya está escrito en una lista es
+   tener que acordarse dos veces. */
 const ESPERADAS = [
-  { vers:1, cita:'Hijo de David',      color:'yellow' },
-  { vers:3, cita:'su madre fue Tamar', color:'blue'   },
-  { vers:6, cita:'la esposa de Urías', color:'green'  },
+  { libro:'MAT', cap:1, vers:1, cita:'Hijo de David',          color:'yellow' },
+  { libro:'MAT', cap:1, vers:3, cita:'su madre fue Tamar',     color:'blue'   },
+  { libro:'MAT', cap:1, vers:6, cita:'la esposa de Urías',     color:'green'  },
+  { libro:'JHN', cap:3, vers:16, cita:'lo hizo de esta manera', color:'orange' },
 ];
+/* Las que se ven en la hoja de arranque, que es la primera de Mateo. La de
+   Juan está guardada igual, pero su margen es el de otro libro. */
+const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
 
 (async () => {
   const sesion = await abrir();
@@ -30,45 +40,63 @@ const ESPERADAS = [
   titulo('al estrenar');
   const puestas = await p.evaluate(() => {
     const M = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
-    return { guardadas: M.map(m => ({ cap:m.cap, vers:m.vers, cita:m.cita, color:m.color,
+    return { guardadas: M.map(m => ({ libro:m.libro, cap:m.cap, vers:m.vers, cita:m.cita, color:m.color,
                                       etiquetas:m.etiquetas, ini:m.ini, fin:m.fin,
                                       tieneNota: !!(m.nota && m.nota.length > 10) })),
              enElMargen: document.querySelectorAll('#pgMargin .gl').length,
              conEtiqueta: document.querySelectorAll('#pgMargin .gl-tag').length };
   });
-  di('lo que quedó guardado', puestas.guardadas.map(m => m.cap + ':' + m.vers + ' «' + m.cita +
-     '» ' + m.color + ' #' + (m.etiquetas||[]).join(',')));
-  vale('son tres', puestas.guardadas.length === 3, puestas.guardadas.length);
+  di('lo que quedó guardado', puestas.guardadas.map(m => m.libro + ' ' + m.cap + ':' + m.vers +
+     ' «' + m.cita + '» ' + m.color + ' #' + (m.etiquetas||[]).join(',')));
+  vale('están todas las de estreno', puestas.guardadas.length === ESPERADAS.length,
+       puestas.guardadas.length + ' de ' + ESPERADAS.length);
   for (const e of ESPERADAS){
-    const m = puestas.guardadas.find(x => x.vers === e.vers);
-    vale('Mateo 1:' + e.vers + ' · ' + e.color,
-         !!m && m.cap === 1 && m.cita === e.cita && m.color === e.color,
+    const m = puestas.guardadas.find(x => x.libro === e.libro && x.cap === e.cap &&
+                                          x.vers === e.vers);
+    vale(e.libro + ' ' + e.cap + ':' + e.vers + ' · ' + e.color,
+         !!m && m.cita === e.cita && m.color === e.color,
          m ? m.cita + ' / ' + m.color : 'no está');
     vale('   con su etiqueta y su nota',
          !!m && (m.etiquetas||[]).join() === 'Interesante' && m.tieneNota);
   }
-  vale('las tres se ven en el margen', puestas.enElMargen === 3, puestas.enElMargen);
-  vale('y las tres llevan etiqueta', puestas.conEtiqueta === 3, puestas.conEtiqueta);
+  /* En el margen sólo las de este libro: la hoja de arranque es Mateo 1. */
+  vale('las de Mateo se ven en el margen',
+       puestas.enElMargen === EN_LA_PRIMERA_HOJA.length, puestas.enElMargen);
+  vale('y todas llevan etiqueta',
+       puestas.conEtiqueta === EN_LA_PRIMERA_HOJA.length, puestas.conEtiqueta);
 
   titulo('el anclaje señala la frase que dice citar');
-  /* Se lee el versículo de la hoja y se compara el trozo que va de ini a fin
-     con la cita. Si los números estuvieran escritos a ojo, aquí saldría otra
-     cosa —o media palabra— y la marca resaltaría el sitio equivocado. */
+  /* Se compara el trozo que va de ini a fin con la cita. Si los números
+     estuvieran escritos a ojo, aquí saldría otra cosa —o media palabra— y la
+     marca resaltaría el sitio equivocado.
+
+     CADA UNA CONTRA SU LIBRO, y esto es lo que cambió. Antes se leía el
+     versículo de la HOJA ABIERTA, que valía mientras las tres eran de Mateo 1;
+     con la de Juan 3:16 sembrada, buscarla en la genealogía daba null y la
+     prueba cantaba un fallo que no lo era. Ahora el texto se saca del archivo
+     de datos por libro, capítulo y versículo, que es de donde lo sacó la
+     siembra: así la comprobación dice lo que quería decir —que los números
+     apuntan a la frase— sin depender de qué hoja esté abierta. */
   di('ini/fin contra el texto', await p.evaluate(() => {
     const M = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
-    const texto = k => {
-      const el = document.querySelector('#pgBody .v[data-k="' + k + '"]');
-      return el ? el.textContent.replace(/^\s*\d+\s*/, '') : null;
+    const D = window.GLOSSA_DATA;
+    const texto = m => {
+      const v = D && D.versiones[m.versionOrigen];
+      const b = v && v.texto[m.libro];
+      const c = b && b[String(m.cap)];
+      return (c && c[m.vers - 1]) || null;
     };
     return M.map(m => {
-      const t = texto(m.vers - 1);            /* data-k va desde cero */
-      return { vers:m.vers, cita:m.cita,
+      const t = texto(m);
+      return { libro:m.libro, vers:m.vers, cita:m.cita,
                enElTexto: t ? t.slice(m.ini, m.fin) : null,
                cuadra: !!t && t.slice(m.ini, m.fin) === m.cita };
     });
   }).then(r => {
-    vale('los tres anclajes cuadran', r.length === 3 && r.every(x => x.cuadra),
-         r.map(x => x.vers + ':' + (x.cuadra ? 'ok' : '«' + x.enElTexto + '»')).join(' '));
+    vale('todos los anclajes cuadran',
+         r.length === ESPERADAS.length && r.every(x => x.cuadra),
+         r.map(x => x.libro + ' ' + x.vers + ':' +
+                    (x.cuadra ? 'ok' : '«' + x.enElTexto + '»')).join(' '));
     return r;
   }));
 
@@ -86,7 +114,7 @@ const ESPERADAS = [
       return { cuantas:M.length, nota:M[0] && M[0].nota, color:M[0] && M[0].color };
     });
   }).then(r => {
-    vale('siguen siendo tres', r.cuantas === 3, r.cuantas);
+    vale('siguen siendo las mismas', r.cuantas === ESPERADAS.length, r.cuantas);
     /* si volviera a sembrar, esto se habría perdido */
     vale('y lo editado se respeta', r.nota === 'ESTA LA CAMBIÉ YO' && r.color === 'orange',
          r.nota + ' / ' + r.color);
@@ -171,11 +199,13 @@ const ESPERADAS = [
      cambió de versión sin llegar a escribir—: las tres se sembraban con citas
      de VBL y los anclajes caían en «David, hijo d», « Zara: y Phares en» y
      «r de Urías: ». Resaltado sobre trozos sin sentido.
-     Lo que se exige aquí NO es que siembre tres: es que lo que siembre esté
-     BIEN ANCLADO. En una versión donde la frase no existe, cero es la
-     respuesta correcta —una nota en español sobre un texto en inglés tampoco
-     diría nada—, y lo que nunca vale es una marca señalando lo que no es. */
-  for (const [v, minimo] of [['rv1909', 0], ['bsb', 0], ['vbl', 3]]){
+     Lo que se exige aquí NO es un número: es que lo que siembre esté BIEN
+     ANCLADO. En una versión donde la frase no existe, cero es la respuesta
+     correcta —una nota en español sobre un texto en inglés tampoco diría
+     nada—, y lo que nunca vale es una marca señalando lo que no es.
+     El mínimo de la versión de casa sale de ESPERADAS y no de un número
+     escrito aquí: el día que se siembre otra, esta línea ya lo sabe. */
+  for (const [v, minimo] of [['rv1909', 0], ['bsb', 0], ['vbl', ESPERADAS.length]]){
     di('guardado en ' + v, await p.evaluate(async v => {
       localStorage.removeItem('glossa:marcas:v1');
       const c = 'glossa:ajustes:v1';
@@ -186,15 +216,22 @@ const ESPERADAS = [
       await p.waitForTimeout(3200);
       return p.evaluate(() => {
         const M = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+        /* Del archivo de datos y no de la hoja abierta, por lo mismo que en
+           el bloque del anclaje: desde que hay una glosa de Juan, la hoja de
+           Mateo no puede responder por todas. */
+        const D = window.GLOSSA_DATA;
         const trozo = m => {
-          const el = document.querySelector('#pgBody .v[data-k="' + (m.vers - 1) + '"]');
-          const t = el ? el.textContent.replace(/^\s*\d+\s*/, '') : null;
+          const ver = D && D.versiones[m.versionOrigen];
+          const b = ver && ver.texto[m.libro];
+          const c = b && b[String(m.cap)];
+          const t = (c && c[m.vers - 1]) || null;
           return t ? t.slice(m.ini, m.fin) : null;
         };
         return { version: document.getElementById('pgVersion').textContent.trim(),
                  sembradas: M.length,
                  origen: [...new Set(M.map(m => m.versionOrigen))],
-                 malPuestas: M.filter(m => trozo(m) !== m.cita).map(m => m.vers + ':«' + trozo(m) + '»'),
+                 malPuestas: M.filter(m => trozo(m) !== m.cita)
+                              .map(m => m.libro + ' ' + m.vers + ':«' + trozo(m) + '»'),
                  citas: M.map(m => m.cita) };
       });
     }).then(r => {
