@@ -13,7 +13,8 @@
       de dónde, el historial contaba tres destinos sueltos sin el hilo que los
       unía; y el paso atrás no se apunta, porque apuntarlo lo convertiría en un
       columpio entre dos escrituras. */
-const { abrir, cerrar, cerrarParcial, conGlosas, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
+        ESCRITORIO } = require('./comun');
 
 const RASTRO = () => JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]')
   .map(h => h.libro + ' ' + h.cap + ':' + h.vers);
@@ -881,6 +882,367 @@ const ATERRIZA = 7000;
   vale('LA FLECHA DICE LO MISMO QUE EL FILO',
        extremos.izq === extremos.filoIzq && extremos.der === extremos.filoDer, extremos);
   await cerrarParcial(fl, 'las flechas');
+
+  /* ================================================================
+     LOS LETREROS DE LAS GUÍAS: QUÉ SE HACE EN CADA PUERTA.
+
+     El rojo decía dónde se puede tocar. No decía QUÉ hacer, y en esta hoja no
+     es lo mismo para todos: la perícopa pide un toque SOSTENIDO —uno corto ahí
+     no hace nada, y lo que se aprende de eso es que el rojo miente—, el sello
+     de la G se JALA, y los demás se tocan y ya.
+
+     Y LA PERÍCOPA ESTRENA ANILLO, que era la puerta que faltaba: un titulillo
+     de escena centrado entre versículos se lee como parte del texto —es lo que
+     se buscó al componerlo— y el precio era que no se descubría.
+
+     LO QUE DE VERDAD VIGILA ESTE BLOQUE NO ES QUE LAS PALABRAS ESTÉN, es que
+     NO PESEN. El alto de un .peri lo mide el paginador en las cuatro versiones
+     para cortar la hoja por el mismo sitio, así que un borde de 2 px o un
+     letrero en el flujo no son 2 px: son el libro entero repaginado, y encima
+     repaginado sólo mientras el interruptor esté encendido —o sea una hoja que
+     cambia de contenido al tocar una casilla—. Por eso se mide la hoja con las
+     guías puestas y sin ellas y se comparan los versículos que caben, el
+     último de ellos y la caja del propio titulillo. Si alguien cambia el
+     anillo por un borde, esto se pone rojo antes de que nadie lo vea leyendo.
+
+     Y SE COMPRUEBA QUE NO MIENTEN DE LEJOS. Con el zoom puesto el titulillo no
+     abre el panel y el toque largo de la perícopa se para en el guardia del
+     zoom —medido—, así que ahí los letreros se apagan. Un letrero encendido
+     sobre algo que no responde es lo que enseña a desconfiar del rojo. */
+  titulo('los letreros dicen qué se hace en cada puerta');
+  const ltr = await abrir();
+  const pltr = ltr.pagina;
+  const letreros = await pltr.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    /* content devuelve la forma con texto alternativo —«"click" / ""»— y esa
+       segunda mitad es justo lo que hay que vigilar: vacía quiere decir que un
+       lector de pantalla no lo lee. Sin ella oiría «click» pegado al final de
+       cada titulillo, noventa y cinco veces en Lucas. */
+    const dice = sel => {
+      const e = document.querySelector(sel);
+      return e ? getComputedStyle(e, '::after').content : '(no está)';
+    };
+    const anillo = sel => {
+      const e = document.querySelector(sel);
+      return e ? getComputedStyle(e).boxShadow : '(no está)';
+    };
+    const hoja = () => {
+      const pe = document.querySelector('#pgBody .peri');
+      const r = pe ? pe.getBoundingClientRect() : null;
+      const v = [...document.querySelectorAll('#pgBody .v')];
+      return { versos: v.length,
+               ultimo: v.length ? v[v.length - 1].textContent.trim().slice(0, 30) : null,
+               caja: r ? [Math.round(r.left), Math.round(r.top),
+                          Math.round(r.width), Math.round(r.height)] : null };
+    };
+    const guias = () => document.querySelector('.stage').classList.contains('guias');
+    const hayPeri = () => !!document.querySelector('#pgBody .peri');
+
+    const con = {
+      guias: guias(), hayPeri: hayPeri(),
+      peri: dice('#pgBody .peri'),
+      cabeza: dice('#pg .pg-cabeza'), version: dice('#pg .pg-version'),
+      piedras: dice('#btnPiedras'), cintas: dice('#btnCintas'),
+      zoom: dice('#btnZoom'), hist: dice('#btnHistorial'),
+      flecha: dice('#flechaDer'), g: dice('#btnGlosas'),
+      anilloPeri: anillo('#pgBody .peri'),
+      hoja: hoja() };
+
+    /* DE LEJOS. Se entra y se sale por donde se entra y se sale de verdad. */
+    document.getElementById('btnZoom').click();
+    await pausa(1500);
+    const lejos = { peri: dice('#pgBody .peri'), cabeza: dice('#pg .pg-cabeza'),
+                    version: dice('#pg .pg-version'),
+                    anilloPeri: anillo('#pgBody .peri'),
+                    anilloCabeza: anillo('#pg .pg-cabeza') };
+    const rr = document.querySelector('#pg .pg-inner').getBoundingClientRect();
+    document.getElementById('pg').dispatchEvent(new MouseEvent('click',
+      { bubbles:true, clientX:Math.round(rr.left + rr.width/2),
+        clientY:Math.round(rr.bottom + 60) }));
+    await pausa(1600);
+
+    /* Y AHORA SIN GUÍAS, por el interruptor de LIBROS, que es por donde se
+       apagan de verdad. */
+    document.getElementById('pgCabeza').click(); await pausa(800);
+    const t = document.querySelector('.pestanas button[data-sec="libros"]');
+    if (t) t.click();
+    await pausa(800);
+    const chk = document.getElementById('chkFlechas');
+    if (!chk) return { con, lejos, sinCasilla:true };
+    chk.click(); await pausa(700);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await pausa(1200);
+    const sin = { guias: guias(), peri: dice('#pgBody .peri'),
+                  anilloPeri: anillo('#pgBody .peri'), hoja: hoja() };
+    return { con, lejos, sin };
+  });
+  di('con guías', JSON.stringify(letreros.con));
+  di('de lejos', JSON.stringify(letreros.lejos));
+  di('sin guías', JSON.stringify(letreros.sin));
+  const c = letreros.con || {}, z = letreros.lejos || {}, n = letreros.sin || {};
+  const suena = (v, palabra) => typeof v === 'string' &&
+        v.indexOf('"' + palabra + '"') === 0;
+  const mudo = v => typeof v === 'string' && /\/\s*""\s*$/.test(v);
+  vale('(la prueba es válida) hay perícopa en la hoja y las guías están puestas',
+       c.hayPeri === true && c.guias === true,
+       'perícopa: ' + c.hayPeri + ' · guías: ' + c.guias);
+  vale('LA PERÍCOPA DICE «click largo», que es el gesto que de verdad pide',
+       suena(c.peri, 'click largo'), c.peri);
+  vale('  y estrena su anillo rojo, como los otros dos rótulos',
+       /rgb\(155,\s*42,\s*42\)/.test(c.anilloPeri || ''), c.anilloPeri);
+  vale('LA G DICE «jalar»', suena(c.g, 'jalar'), c.g);
+  vale('y los otros seis dicen «click»',
+       [c.cabeza, c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha]
+         .every(x => suena(x, 'click')),
+       [c.cabeza, c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha].join(' · '));
+  /* Decorativos: lo que el lector de pantalla necesita ya se lo dicen
+     aria-haspopup y aria-expanded, que están puestos desde antes. */
+  vale('  y NINGUNO se lee en voz alta',
+       [c.peri, c.g, c.cabeza, c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha]
+         .every(mudo),
+       'alternativo vacío en los nueve');
+  vale('DE LEJOS SE APAGAN, que ahí no responde ninguno',
+       z.peri === 'none' && z.cabeza === 'none' && z.version === 'none' &&
+       z.anilloPeri === 'none' && z.anilloCabeza === 'none',
+       JSON.stringify(z));
+  vale('y el interruptor se los lleva a todos',
+       n.guias === false && n.peri === 'none' && n.anilloPeri === 'none',
+       JSON.stringify(n));
+  /* LA QUE IMPORTA. */
+  const hc = (c.hoja || {}), hn = (n.hoja || {});
+  di('la hoja con guías', JSON.stringify(hc));
+  di('la hoja sin guías', JSON.stringify(hn));
+  vale('Y LA HOJA NO SE MUEVE NI UN PÍXEL AL ENCENDERLAS',
+       hc.versos === hn.versos && hc.ultimo === hn.ultimo &&
+       JSON.stringify(hc.caja) === JSON.stringify(hn.caja),
+       hc.versos + ' vs ' + hn.versos + ' versículos · titulillo ' +
+       JSON.stringify(hc.caja) + ' vs ' + JSON.stringify(hn.caja));
+  await cerrarParcial(ltr, 'los letreros');
+
+  /* ================================================================
+     Y EL DE LA PERÍCOPA TIENE QUE CABER, HOJA TRAS HOJA.
+
+     Nació encima del recuadro, que es donde se pidió, y encima desaparecía.
+     Un .peri lleva 1.5em de aire arriba y de ese margen salía el sitio del
+     letrero; pero cuando el titulillo arranca COLUMNA —que pasa a menudo,
+     porque break-after:avoid lo empuja junto con su versículo al fragmento
+     siguiente— el navegador descarta el margen en el corte. El titulillo queda
+     pegado al canto de arriba de #pgBody, el letrero cae fuera, y #pgBody
+     recorta con overflow:hidden: el anillo rojo se quedaba y la palabra se iba
+     sin decir nada. Seis de las primeras cuarenta hojas de Mateo, una de cada
+     siete. Lo levantó la revisión de Codex.
+
+     Ahora va debajo, que está siempre dentro y no por suerte: break-after:avoid
+     garantiza que el titulillo nunca cierra columna, o sea que siempre tiene su
+     versículo detrás.
+
+     SE RECORREN HOJAS DE VERDAD Y NO UNA SOLA. El fallo no se ve en la primera
+     —ahí el titulillo cae a media columna y le sobra margen—; sólo aparece en
+     las que arrancan con él. Una prueba que mirara una hoja habría pasado en
+     verde con el fallo puesto, que es exactamente lo que pasó.
+
+     Y se mira la caja contra la de #pgBody, no si «se ve»: un pseudo-elemento
+     recortado por un ancestro sigue teniendo su tamaño y su opacidad, así que
+     preguntarle al estilo no delata nada. Lo que delata es la geometría. */
+  titulo('el letrero de la perícopa cabe en todas las hojas');
+  const cab = await abrir();
+  const pcab = cab.pagina;
+  const cabida = await pcab.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const pasarHoja = async () => {
+      const f = document.getElementById('edgeR');
+      const rf = f.getBoundingClientRect();
+      const o = { bubbles:true, cancelable:true, pointerId:314, pointerType:'touch',
+                  isPrimary:true, clientX: Math.round(rf.left + rf.width/2), clientY: 420 };
+      f.dispatchEvent(new PointerEvent('pointerdown', o)); await pausa(60);
+      f.dispatchEvent(new PointerEvent('pointerup', o));
+      await pausa(1100);
+    };
+    /* LA CAJA DEL LETRERO SE LEE, NO SE SUPONE, y esto es la mitad de la
+       prueba. Escrita primero dando por hecho que el letrero va debajo
+       —«r.bottom + 2»—, la comprobación no miraba el CSS en absoluto: devolví
+       la regla a su sitio de antes, el que fallaba, y la prueba siguió en
+       verde. Una prueba que calcula ella misma lo que viene a vigilar no
+       vigila nada.
+       Un ::after no tiene getBoundingClientRect, pero su estilo calculado sí
+       trae el `top` YA RESUELTO en píxeles contra su bloque contenedor —el
+       .peri, que no lleva borde ni relleno vertical, así que su caja de
+       relleno empieza donde empieza su caja de borde—. Sumando uno al otro
+       sale la caja de verdad, y con ella el fallo se caza. */
+    const cajaLetrero = (e) => {
+      const c = getComputedStyle(e, '::after');
+      const r = e.getBoundingClientRect();
+      /* height/width del estilo calculado son la caja de CONTENIDO: sin
+         sumarle los rellenos, la cuenta sale corta justo por el borde que se
+         quiere vigilar. */
+      const alto = parseFloat(c.height) + parseFloat(c.paddingTop) + parseFloat(c.paddingBottom);
+      /* Y EL TRANSFORM SE SUMA APARTE. `top` es la posición ANTES de
+         transformar, así que un translate no aparece ahí: medido sin él, un
+         letrero centrado con translateY salía de su sitio por media altura y
+         la prueba cantaba un desbordamiento que no existe. La matriz lo dice
+         sin tener que saber qué transform se escribió. */
+      const m = new DOMMatrix(c.transform === 'none' ? '' : c.transform);
+      const arriba = r.top + parseFloat(c.top) + m.m42;
+      return { arriba, abajo: arriba + alto };
+    };
+    const mira = () => {
+      const body = document.getElementById('pgBody').getBoundingClientRect();
+      return [...document.querySelectorAll('#pgBody .peri')].map(e => {
+        const r = e.getBoundingClientRect();
+        const { arriba, abajo } = cajaLetrero(e);
+        return { dice: (e.querySelector('.peri-dice') || e).textContent.trim().slice(0, 24),
+                 /* arrancaColumna: el titulillo pegado al canto de arriba, que
+                    es el caso que se rompía. Se APUNTA, no se exige: ver abajo. */
+                 arrancaColumna: Math.abs(r.top - body.top) < 2,
+                 /* Y LA PROPIEDAD QUE DE VERDAD ARREGLA EL FALLO, que se puede
+                    mirar en TODAS y no sólo en las que arrancan columna: que
+                    el letrero no cuelgue por encima del titulillo. Colgado
+                    arriba, su sitio sale del margen de 1.5em, y ese margen es
+                    justo lo que el navegador tira en un corte de columna. */
+                 cuelgaArriba: arriba < r.top - 0.5,
+                 corta: arriba < body.top - 0.5 || abajo > body.bottom + 0.5 };
+      });
+    };
+    let vistas = 0, cortadas = 0, arranques = 0, cuelgan = 0, hojas = 0;
+    const malas = [];
+    for (let i = 0; i < 26; i++){
+      for (const x of mira()){
+        vistas++;
+        if (x.arrancaColumna) arranques++;
+        if (x.cuelgaArriba) cuelgan++;
+        if (x.corta){ cortadas++; if (malas.length < 5) malas.push(x); }
+      }
+      hojas++;
+      await pasarHoja();
+    }
+    return { hojas, vistas, cortadas, arranques, cuelgan, malas };
+  });
+  di('el recorrido', JSON.stringify(cabida));
+  /* CUÁNTAS ARRANCAN COLUMNA SE ENSEÑA Y NO SE EXIGE, y esto costó un rojo.
+
+     Estaba escrito como aserción —«y alguna arranca columna»— con la idea de
+     que sin visitar el caso peligroso el verde no significaría nada. La idea
+     es buena y el sitio era el equivocado: DÓNDE cae cada titulillo depende de
+     dónde corta cada renglón, y eso depende de las fuentes que tenga la
+     máquina. Aquí salieron tres de cuarenta y seis; en la máquina que corrió
+     la tanda, cero de cuarenta y seis, con el arreglo puesto y funcionando.
+     Una prueba que canta fallo según qué tipografías haya instaladas enseña a
+     ignorarla, que es peor que no tenerla.
+
+     Lo que sí se afirma, y vale MÁS, es la propiedad que hace correcto el
+     arreglo, y se puede mirar en todas las perícopas y no sólo en las que
+     arrancan columna: que el letrero no cuelgue por encima del titulillo.
+     Colgado arriba, su sitio sale del margen de 1.5em —que es justo lo que el
+     navegador tira en un corte de columna— y el fallo vuelve. Eso no depende
+     de dónde caiga nada: si alguien lo devuelve arriba, esto se pone rojo en
+     la primera hoja con perícopa, haya o no una arrancando columna. */
+  vale('(la prueba es válida) se recorrieron hojas con perícopas',
+       cabida.hojas >= 20 && cabida.vistas >= 10,
+       cabida.hojas + ' hojas · ' + cabida.vistas + ' perícopas · ' +
+       cabida.arranques + ' arrancando columna');
+  vale('EL LETRERO NO CUELGA DEL MARGEN DE ARRIBA, que es lo que el corte tira',
+       cabida.cuelgan === 0,
+       cabida.cuelgan + ' de ' + cabida.vistas);
+  vale('  y ni uno se sale de la columna',
+       cabida.cortadas === 0,
+       cabida.cortadas ? JSON.stringify(cabida.malas) : 'ninguno de ' + cabida.vistas);
+  await cerrarParcial(cab, 'la cabida del letrero');
+
+  /* ================================================================
+     Y NINGUNO SE SALE DE LA ESCENA, TAMPOCO CON LA LETRA GRANDE.
+
+     Los letreros miden lo que mide la letra del libro, así que subirla los
+     hace crecer, y hay dos sitios donde crecer se paga:
+
+     · LOS DOS PUNTOS DE ARRIBA viven en top:0 y en pantalla ancha miden 22 px
+       —se quedaron ahí para no robarle toques al titulillo—. Un letrero
+       centrado sobre un botón más bajo que él sobresale por arriba, y .stage
+       recorta con overflow:hidden: subir la letra le cortaba la cabeza a las
+       palabras, y sólo en pantalla ancha. El freno es max(0px, …): céntrate
+       si cabes, y si no, pégate a tu propio canto de arriba.
+     · Y AUN PEGADO AL CANTO, en pantalla ancha el letrero de las cintas le
+       caía ENCIMA al titulillo, que empieza 22 px más abajo. Medido: a 15 no
+       choca, a 20 sí, a 26 se come 41 por 14 píxeles de «Mateo 1:1». Por eso
+       esos dos tienen techo ahí, y sólo ahí.
+
+     Los dos los levantó la revisión de Codex, y los dos tienen la misma forma:
+     una regla que era verdad a 15 px y dejaba de serlo más arriba. Por eso
+     esta prueba mide al TOPE de la letra y no al tamaño de fábrica: a 15 todo
+     esto pasa en verde con el fallo puesto.
+
+     Se mide la caja y no si «se ve»: un pseudo-elemento recortado por un
+     ancestro conserva su tamaño y su opacidad. */
+  titulo('con la letra al tope, ningún letrero se sale ni se pisa');
+  for (const [comoSeLlama, opciones] of [['escritorio', ESCRITORIO], ['teléfono', {}]]){
+    const ses = await abrir(opciones);
+    const pp = ses.pagina;
+    const borde = await pp.evaluate(async () => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      /* Se sube por el panel, como lo sube un lector. */
+      document.getElementById('pgCabeza').click(); await pausa(800);
+      const t = document.querySelector('.pestanas button[data-sec="formato"]');
+      if (!t) return { sinPestana:true };
+      t.click(); await pausa(800);
+      const sel = document.getElementById('fsAhora');
+      const tope = Math.max(...[...sel.options].map(o => +o.value));
+      sel.value = String(tope);
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
+      await pausa(2200);
+      const cerrar = document.querySelector('#ajustes .cerrar-pie');
+      if (cerrar) cerrar.click();
+      await pausa(1500);
+
+      const st = document.querySelector('.stage').getBoundingClientRect();
+      /* La caja del letrero se arma a mano: un ::after no tiene rect propio.
+         width/height del estilo calculado son la caja de CONTENIDO, así que
+         hay que sumarle sus rellenos o la cuenta sale corta justo por el borde
+         que se quiere vigilar. */
+      /* Y AQUÍ TAMBIÉN SE LEE LA CAJA EN VEZ DE SUPONERLA. Estuvo escrita
+         copiando a mano la colocación —centrado con freno, a tal lado, a tal
+         hueco— y eso es escribir la regla dos veces: la prueba habría seguido
+         en verde con la regla cambiada, porque estaba comprobando su propia
+         copia. El estilo calculado de un ::after trae top y left ya resueltos
+         en píxeles contra su bloque contenedor, que aquí es el botón: sin
+         borde y sin relleno, su caja de relleno es la que devuelve
+         getBoundingClientRect. */
+      const caja = id => {
+        const e = document.getElementById(id);
+        if (!e) return null;
+        const r = e.getBoundingClientRect(), c = getComputedStyle(e, '::after');
+        const w = parseFloat(c.width) + parseFloat(c.paddingLeft) + parseFloat(c.paddingRight);
+        const h = parseFloat(c.height) + parseFloat(c.paddingTop) + parseFloat(c.paddingBottom);
+        /* El transform se suma aparte: `top` y `left` son la posición ANTES
+           de transformar, así que un translate no aparece en ellos. */
+        const m = new DOMMatrix(c.transform === 'none' ? '' : c.transform);
+        const top = r.top + parseFloat(c.top) + m.m42;
+        const left = r.left + parseFloat(c.left) + m.m41;
+        return { left, top, right: left + w, bottom: top + h };
+      };
+      const dentro = b => !!b && b.top >= st.top - 0.5 && b.bottom <= st.bottom + 0.5 &&
+                                b.left >= st.left - 0.5 && b.right <= st.right + 0.5;
+      const pisa = (a, b) => !!a && !!b &&
+        !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+      const tit = document.querySelector('#pg .pg-cabeza').getBoundingClientRect();
+      const pi = caja('btnPiedras'), ci = caja('btnCintas');
+      const zo = caja('btnZoom'), hi = caja('btnHistorial');
+      return { tope, cuerpo: getComputedStyle(document.getElementById('pgBody')).fontSize,
+               fuera: [['piedras', pi], ['cintas', ci], ['zoom', zo], ['historial', hi]]
+                 .filter(([, b]) => !dentro(b)).map(([n]) => n),
+               pisan: [['piedras', pi], ['cintas', ci]]
+                 .filter(([, b]) => pisa(b, tit)).map(([n]) => n) };
+    });
+    di('con la letra al tope (' + comoSeLlama + ')', JSON.stringify(borde));
+    vale('(la prueba es válida) la letra subió al tope · ' + comoSeLlama,
+         !borde.sinPestana && borde.cuerpo === borde.tope + 'px',
+         borde.sinPestana ? 'no hay pestaña de la letra' : borde.cuerpo);
+    vale('NINGÚN LETRERO SE SALE DE LA ESCENA · ' + comoSeLlama,
+         !!borde.fuera && borde.fuera.length === 0,
+         (borde.fuera || []).join(' · ') || 'ninguno');
+    vale('  y ninguno le cae encima al titulillo · ' + comoSeLlama,
+         !!borde.pisan && borde.pisan.length === 0,
+         (borde.pisan || []).join(' · ') || 'ninguno');
+    await cerrarParcial(ses, 'los letreros con la letra al tope, ' + comoSeLlama);
+  }
 
   await cerrar(sesion);
 })();

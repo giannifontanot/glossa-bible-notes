@@ -1106,6 +1106,294 @@
   .stage.guias #pg .pg-cabeza, .stage.guias #pg .pg-version{
             box-shadow:inset 0 0 0 2px var(--rojo-galon, #9b2a2a),
                        var(--halo-guia); }
+  /* Y LAS PERÍCOPAS LLEVAN EL SUYO, que es lo que faltaba: son la tercera
+     puerta de la hoja —tocas un titulillo de escena y sale la lista del libro
+     entero— y no había nada que lo dijera. Un rótulo centrado entre versículos
+     se lee como parte del texto, que es justo lo que se quiso al componerlo
+     así; el precio es que no se descubre.
+
+     ANILLO Y NO BORDE, Y ESTO AQUÍ ES MÁS GRAVE QUE EN LOS DOS RÓTULOS. El
+     alto de un .peri lo mide el paginador en las CUATRO versiones para cortar
+     la hoja por el mismo sitio —ver tituloHTML—, así que dos píxeles de borde
+     no son dos píxeles: son el libro entero repaginado, y encima repaginado
+     sólo mientras el interruptor esté encendido, o sea una hoja que cambia de
+     contenido al tocar una casilla. box-shadow no entra en la caja.
+
+     Y va contra #pg por lo de siempre: #ghost es el molde con el que se miden
+     las palabras, y un molde con anillo mide distinto que la hoja que copia.
+
+     El radio es corto —3 px— porque el anillo abraza un renglón de texto y no
+     un botón: redondeado de más parecería una pastilla y pediría fondo. */
+  .stage.guias #pg .peri{
+            box-shadow:inset 0 0 0 2px var(--rojo-galon, #9b2a2a),
+                       var(--halo-guia);
+            border-radius:3px; }
+  /* ============================================================
+     LOS LETREROS: QUÉ SE HACE AQUÍ, DICHO EN UNA PALABRA.
+
+     El rojo ya decía DÓNDE se puede tocar. No decía QUÉ hacer, y en esta hoja
+     eso no es lo mismo para todos: el titulillo de escena pide un toque
+     sostenido —un toque corto ahí no hace nada, y lo que el lector aprende de
+     eso es que el rojo miente—, el sello de la G se JALA, y los demás se tocan
+     y ya. Tres gestos distintos bajo una sola señal.
+
+     UN SOLO MECANISMO Y UNA VARIABLE, igual que los puntos con --punto. La
+     regla del letrero se escribe una vez y cada elemento pone su palabra en
+     --guia-dice; `content` lee variables, así que no hace falta una regla por
+     palabra ni un atributo en el marcado. Si mañana hay una cuarta puerta con
+     un cuarto gesto, es una línea.
+
+     Y NO SE LEE EN VOZ ALTA. `content: var(…) / ""` es la forma con texto
+     alternativo: la segunda mitad es lo que anuncia un lector de pantalla, y
+     vacía quiere decir «esto es decoración». Sin ella, quien navega con lector
+     oiría «click» pegado al final de cada titulillo —noventa y cinco veces en
+     Lucas— y encima una palabra que no le sirve de nada, porque él no toca:
+     pulsa Intro. Lo que el lector de pantalla necesita ya se lo dicen
+     aria-haspopup y aria-expanded, que están puestos desde antes.
+
+     NO OCUPA SITIO: position:absolute. Es la misma razón que el anillo, y en
+     las perícopas la misma consecuencia. Por eso .peri estrena
+     position:relative, que no mueve ni mide nada —sin desplazamientos, una
+     caja relativa queda exactamente donde estaba— pero le da al letrero contra
+     qué colocarse; sin eso se colgaría de la hoja entera y aparecería en la
+     esquina.
+
+     CON FONDO DE PAPEL, y no es adorno: el letrero de las flechas y el de las
+     perícopas caen SOBRE el texto del libro, y letra roja fina encima de letra
+     negra no se lee ninguna de las dos. Un chip de papel con su aro del mismo
+     carmín lo despega y de paso lo emparenta con los anillos, que es lo que
+     hace que se lea como la misma señal y no como un segundo idioma.
+
+     LA PALABRA ES LA QUE SE PIDIÓ —«click», «click largo», «jalar»— y no la de
+     la casa. Aquí se TOCA: está escrito en el rótulo de la casilla y en medio
+     archivo. Queda apuntado porque es una excepción consciente y no un
+     descuido: el dueño del repo las eligió así. */
+  .stage.guias #pg .peri{ position:relative; }
+  .stage.guias #pg .peri::after,
+  .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after,
+  .stage.guias #btnZoom::after, .stage.guias #btnHistorial::after,
+  .stage.guias #pg .pg-cabeza::after, .stage.guias #pg .pg-version::after,
+  .stage.guias #btnGlosas::after, .stage.guias .flecha-hoja::after{
+            content:var(--guia-dice, "") / "";
+            position:absolute; z-index:2; pointer-events:none;
+            white-space:nowrap;
+            padding:1px 5px 2px; border-radius:7px;
+            background:transparent;
+            box-shadow:inset 0 0 0 1px rgba(155,42,42,.55);
+            /* AL TAMAÑO DE LA LETRA DEL LIBRO, que es lo que se pidió, y no
+               a los 8,5 px de cromo con los que nació.
+
+               No lleva --escala-ui: esa es la escala del CROMO, un factor con
+               freno —el panel crece menos que la hoja porque la tipografía de
+               interfaz sienta más grande a igual cuerpo— y aquí no hace falta
+               frenar nada, porque no se busca que PAREZCA del tamaño del
+               libro, se pidió que LO SEA. --fs-libro son los píxeles tal cual.
+               El de la perícopa heredaría --fs de la propia hoja, pero los
+               otros ocho cuelgan de la escena y ahí no llega; con la variable
+               de la raíz los nueve miden lo mismo, que es lo que hace que se
+               lean como un solo juego de señales.
+
+               El peso baja de 600 a 500: a 8,5 px la seminegrita era lo que
+               hacía legible una palabra diminuta; al cuerpo del libro esa
+               misma seminegrita grita más que el texto que acompaña. */
+            font:500 var(--fs-libro, 15px)/1.25 var(--ui);
+            letter-spacing:.02em; text-transform:none;
+            color:var(--rojo-galon, #9b2a2a);
+            /* EL HALO VA EN LA LETRA, NO EN LA CAJA, y ese cambio es el
+               encargo entero.
+
+               Estos letreros nacieron con fondo de papel macizo, y el fondo
+               resolvía un problema real: el de las flechas y el de la perícopa
+               caen SOBRE el texto del libro, y letra roja fina encima de letra
+               negra no deja leer ninguna de las dos. Pero un chip opaco se lee
+               como una etiqueta pegada ENCIMA de la hoja, o sea como una cosa
+               aparte, y lo que tiene que decir es «soy de este recuadro rojo».
+               Lo dijo el dueño del repo mirándolo, y tiene razón: el fondo
+               blanco estaba cortando el parentesco que el letrero existe para
+               tener.
+
+               Transparente, lo que queda emparentándolos es el trazo: el mismo
+               carmín y el mismo grosor fino del anillo que rodea al titulillo.
+               Y la legibilidad no se pierde, se resuelve en otro sitio: cuatro
+               sombras de papel alrededor de las letras tapan lo justo para que
+               se lean, y sólo detrás de la letra. Se ve la hoja por dentro del
+               recuadro —que es lo que se pidió— y sigue leyéndose sobre el
+               texto. Es el mismo truco de los subtítulos de cine, y por la
+               misma razón: el rótulo no puede tapar la imagen. */
+            text-shadow:0 0 2px var(--papel, #faf7f1),
+                        0 0 2px var(--papel, #faf7f1),
+                        0 1px 1px var(--papel, #faf7f1),
+                        0 -1px 1px var(--papel, #faf7f1); }
+  /* DÓNDE CAE CADA UNO LO DECIDE QUIÉN TIENE AL LADO, no la simetría. Todos
+     querrían ir ARRIBA —que es donde se pidió, y donde un letrero se lee como
+     el nombre de lo que hay debajo— y los cuatro puntos de las esquinas no
+     pueden. Van de lado, hacia dentro, a la altura del punto:
+
+     · LOS DOS DE ARRIBA están pegados al canto de la pantalla, así que encima
+       no hay hoja donde ponerlo. Y debajo tampoco sirve: EN PANTALLA ANCHA el
+       titulillo vive justo ahí, en la esquina de arriba a la derecha —es por
+       lo que este punto se quedó en 22 px de alto en vez de 34, está contado
+       en #btnPiedras— y el letrero le caía encima de las letras. Medido en la
+       captura: dos «click» apilados y uno tapando «Mateo 1:1».
+     · EL DEL RASTRO tiene el sello de la G justo encima —esquina de abajo a la
+       derecha, 64 px por encima del canto— así que su letrero le caería en la
+       cera.
+     · Y EL DE LA HOJA ENTERA sale de lado también, aunque a su derecha no haya
+       nada: las cuatro esquinas son la misma pieza repetida y lo que se
+       aprende en una tiene que valer en las otras. Tres de lado y una encima
+       se lee como dos cosas distintas.
+
+     Hacia DENTRO y no hacia fuera por lo obvio: fuera está el canto de la
+     pantalla. */
+  /* EL DE LA PERÍCOPA VA DEBAJO DEL RECUADRO, Y NO ENCIMA COMO SE PIDIÓ.
+
+     Encima es donde tiene que ir —se pidió así, y es donde un letrero se lee
+     como el nombre de lo que hay debajo— y encima DESAPARECE. La razón es de
+     maquetación y no se ve leyendo esta regla:
+
+     Un .peri lleva 1.5em de aire arriba, y ese margen es de donde salía el
+     sitio del letrero. Pero cuando el titulillo cae AL PRINCIPIO de una
+     columna —que pasa a menudo, porque break-after:avoid lo empuja junto con
+     su versículo al fragmento siguiente— el navegador DESCARTA el margen en el
+     corte. El titulillo queda entonces pegado al canto de arriba de #pgBody, y
+     un letrero colgado por encima de su caja cae fuera; #pgBody recorta con
+     overflow:hidden, así que el anillo rojo se queda y la palabra se va sin
+     decir nada.
+
+     Medido en las primeras cuarenta hojas de Mateo: seis perícopas con el
+     letrero cortado, una de cada siete hojas, y todas con el titulillo arrancando
+     columna. Lo levantó la revisión de Codex.
+
+     Debajo está siempre dentro, y no por suerte: break-after:avoid garantiza
+     que el titulillo nunca cierra columna, o sea que SIEMPRE tiene su
+     versículo detrás. El precio es que el letrero se apoya en el primer
+     renglón de ese versículo, que es justo para lo que está el halo de papel
+     de las letras.
+
+     De las dos maneras de perderlo, ésta es la que no se pierde. */
+  .stage.guias #pg .peri::after{
+            left:50%; transform:translateX(-50%); top:calc(100% + 2px); }
+  /* CENTRADOS EN SU PUNTO, PERO NUNCA POR ENCIMA DE ÉL, y esa segunda mitad
+     es un arreglo, no un adorno.
+
+     Los dos puntos de arriba viven en top:0 y miden 22 px de alto en pantalla
+     ancha —se quedaron ahí para no robarle toques al titulillo, está contado
+     en #btnPiedras—. Con el letrero al cuerpo del libro, a 26 el letrero mide
+     más que el botón: centrado sobre él sobresale por arriba, y .stage recorta
+     con overflow:hidden. O sea que subir la letra le cortaba la cabeza a las
+     palabras, y sólo en pantalla ancha. Lo levantó la revisión de Codex.
+
+     El freno se escribe en CSS y no en el guion porque el alto del letrero se
+     puede calcular: es su interlínea por el cuerpo del libro más sus dos
+     rellenos. max(0px, …) dice «céntrate si cabes, y si no, pégate a tu propio
+     canto de arriba», que es exactamente la regla que hacía falta y que
+     además se cumple sola cuando alguien cambie el cuerpo, el relleno o la
+     interlínea: los tres están en la cuenta.
+
+     Va en los cuatro y no sólo en los dos de arriba. A los de abajo les sobra
+     sitio y el freno no los mueve —a 26 en pantalla ancha, tres cuartos de
+     píxel—, pero una regla que dice lo mismo para las cuatro esquinas es una
+     regla; dos reglas parecidas son dos cosas que mantener. */
+  .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after,
+  .stage.guias #btnZoom::after, .stage.guias #btnHistorial::after{
+            --guia-alto:calc(1.25 * var(--fs-libro, 15px) + 3px);
+            top:max(0px, calc(50% - var(--guia-alto) / 2)); transform:none; }
+  .stage.guias #btnPiedras::after, .stage.guias #btnZoom::after{
+            left:calc(100% + 2px); }
+  .stage.guias #btnCintas::after, .stage.guias #btnHistorial::after{
+            right:calc(100% + 2px); }
+  /* Y EN PANTALLA ANCHA LOS DOS DE ARRIBA TIENEN UN TECHO, que es lo único de
+     todo esto que no mide lo que mide el libro.
+
+     No es una preferencia: es que ahí no cabe. En pantalla ancha el titulillo
+     vive en la esquina de arriba a la derecha —empieza 22 px por debajo del
+     canto y el punto de las cintas se quedó en 22 de alto justamente para no
+     robarle toques, está contado en #btnPiedras—, así que entre el canto de la
+     escena y el titulillo hay una banda de 22 px y nada más. Un letrero al
+     cuerpo del libro mide 36 a los 26 de la hoja: pegado al canto de arriba
+     —que es donde lo deja el freno de ahí arriba— le cae encima al titulillo y
+     le tapa el anillo y la primera letra. Medido: a 15 no choca, a 20 sí, y a
+     26 se come 41 por 14 píxeles de «Mateo 1:1».
+
+     De las dos maneras de estorbar, tapar un rótulo es peor que ser más
+     pequeño: lo primero esconde información y lo segundo sólo la sirve en otro
+     cuerpo. Así que crecen con el libro hasta que dejan de caber, y ahí se
+     paran. El techo sale de la banda misma —el alto del punto menos los dos
+     rellenos del letrero, partido por su interlínea— y no de un número a ojo:
+     si algún día ese punto vuelve a medir 34, esta cuenta se entera sola.
+
+     EN TELÉFONO NO HAY TECHO, y el umbral es el del ANCHO y no el del puntero:
+     lo que crea el problema es dónde vive el titulillo, y eso lo decide
+     max-width:560px —ahí se va al centro de la columna y las dos esquinas de
+     arriba quedan libres—. Atarlo a pointer:coarse habría dejado sin techo a
+     una pantalla ancha con dedo, que es justo donde el titulillo sigue en la
+     esquina. */
+  .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after{
+            font-size:min(var(--fs-libro, 15px), calc((22px - 3px) / 1.25)); }
+  @media (max-width: 560px){
+    .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after{
+              font-size:var(--fs-libro, 15px); }
+  }
+  .stage.guias #pg .pg-cabeza::after{
+            left:50%; transform:translateX(-50%); top:calc(100% + 3px); }
+  .stage.guias #pg .pg-version::after{
+            left:50%; transform:translateX(-50%); bottom:calc(100% + 3px); }
+  /* EL SELLO SACA EL SUYO POR LA IZQUIERDA, y no encima. Pedido por el dueño
+     del repo viéndolo, y en cuanto se dice se ve por qué: encima del sello lo
+     que hay es la columna de glosas, que es justo lo que el sello abre. Un
+     letrero puesto ahí se lee como el rótulo de lo que tapa en vez del de lo
+     que hay debajo, y además queda a un dedo del punto del rastro, con el que
+     ya comparte esquina. Por la izquierda sale hacia el papel vacío y queda
+     apuntando al mismo sitio hacia el que se jala. */
+  .stage.guias #btnGlosas::after{
+            right:calc(100% - 6px); top:50%; transform:translateY(-50%); }
+  /* Las flechas se anclan al canto por el que entran y no a su centro: miden
+     20 px pegadas al filo de la pantalla, así que un letrero centrado sobre
+     ellas se saldría por el lado. */
+  .stage.guias .flecha-hoja::after{ bottom:calc(100% + 3px); }
+  .stage.guias .flecha-l::after{ left:0; }
+  .stage.guias .flecha-r::after{ right:0; }
+  /* Y LAS PALABRAS. Una línea por gesto, que es como hay que leerlo: lo que
+     cambia entre estas puertas no es el sitio, es lo que hay que hacer. */
+  .stage.guias #btnPiedras, .stage.guias #btnCintas,
+  .stage.guias #btnZoom, .stage.guias #btnHistorial,
+  .stage.guias #pg .pg-cabeza, .stage.guias #pg .pg-version,
+  .stage.guias .flecha-hoja{ --guia-dice:"click"; }
+  .stage.guias #pg .peri{ --guia-dice:"click largo"; }
+  .stage.guias #btnGlosas{ --guia-dice:"jalar"; }
+  /* UN LETRERO QUE MIENTE ES PEOR QUE NINGUNO, y hay dos sitios donde este
+     mentiría si no se apagara.
+
+     DE LEJOS (.zoom) los cuatro puntos y el sello ya se esconden solos, pero
+     la hoja sigue ahí con sus perícopas y sus dos rótulos, y ninguno responde:
+     el toque largo de la perícopa se para en el guardia del zoom —ver el
+     pointerdown de .peri— y los rótulos tampoco abren nada. Un «click largo»
+     encendido sobre algo que no va a hacer nada es exactamente lo que enseña a
+     desconfiar del rojo, que es lo contrario de para qué está el rojo.
+
+     CON UN PANEL PUESTO (.conpanel) es lo mismo por otro motivo: el libro está
+     tapado. Los puntos ya desaparecían enteros y con ellos su letrero; lo que
+     quedaba asomando por debajo del panel eran las perícopas y el rótulo del
+     pie, que es el caso que se arregló bajando los puntos. Los anillos ya se
+     apagaban ahí; faltaban las palabras.
+
+     content:none y no un color transparente: un letrero transparente sigue
+     ocupando su caja y sigue estando en el árbol de accesibilidad. */
+  .stage.zoom #pg .peri, .stage.conpanel #pg .peri{ box-shadow:none; }
+  /* Y DE LEJOS SE APAGAN TAMBIÉN LOS DOS ANILLOS DE LOS RÓTULOS, que es la
+     otra mitad de lo mismo. Medido, no supuesto: con el zoom puesto se toca el
+     titulillo y el panel de Libros se queda en display:none —ya lo decía el
+     comentario de su prueba, y se volvió a comprobar—. El anillo rojo estaba
+     ahí desde antes diciendo «esto se toca», y mientras fue sólo un color se
+     podía leer como un adorno que sobra; con la palabra al lado pasa a ser una
+     frase entera, y media frase apagada es peor que la frase completa. Se van
+     juntos. */
+  .stage.zoom #pg .pg-cabeza, .stage.zoom #pg .pg-version{ box-shadow:none; }
+  .stage.zoom #pg .peri::after, .stage.zoom #pg .pg-cabeza::after,
+  .stage.zoom #pg .pg-version::after, .stage.zoom .flecha-hoja::after,
+  .stage.conpanel #pg .peri::after, .stage.conpanel #pg .pg-cabeza::after,
+  .stage.conpanel #pg .pg-version::after,
+  .stage.conpanel .flecha-hoja::after{ content:none; }
   /* CON EL PANEL PUESTO, LA HOJA NO ENSEÑA SUS PUERTAS.
 
      Los cuatro puntos son del LIBRO, y el libro está tapado: eso ya se dijo
@@ -4580,7 +4868,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '20-SEP-26 07:41';
+window.GLOSS_BUILD = '20-SEP-26 10:21';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18510,6 +18798,19 @@ function reflejarTamano(){
 function escalarInterfaz(){
   const k = 1 + (fontSize - 15) / 15 * 0.6;
   document.documentElement.style.setProperty('--escala-ui', k.toFixed(4));
+  /* Y EL TAMAÑO DEL LIBRO A PELO, que no es lo mismo que la escala.
+     --escala-ui es un FACTOR con freno —el cromo crece menos que la letra de
+     la hoja, por lo de la equis de la tipografía de interfaz, está contado
+     donde se decidió—; esto es los píxeles tal cual, para lo poco que tiene
+     que medir exactamente lo que mide el libro.
+     Hoy lo usan los letreros de las guías: se pidió que midan lo que mide la
+     letra de la hoja, y la mitad de ellos —los cuatro puntos, las flechas, el
+     sello— cuelgan de la escena y no de #pg, así que no heredan el --fs que la
+     hoja se escribe a sí misma. Va con nombre propio y no reusando --fs: hay
+     reglas fuera de la hoja que leen var(--fs, 15px) contando con que ahí no
+     esté puesto, y ponerlo en la raíz se las llevaría por delante sin decir
+     nada. */
+  document.documentElement.style.setProperty('--fs-libro', fontSize + 'px');
 }
 function ponerTamano(n){
   const v = Math.max(FS_MIN, Math.min(FS_MAX, Math.round(n)));
