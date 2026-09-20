@@ -13,7 +13,8 @@
       de dónde, el historial contaba tres destinos sueltos sin el hilo que los
       unía; y el paso atrás no se apunta, porque apuntarlo lo convertiría en un
       columpio entre dos escrituras. */
-const { abrir, cerrar, cerrarParcial, conGlosas, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
+        ESCRITORIO } = require('./comun');
 
 const RASTRO = () => JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]')
   .map(h => h.libro + ' ' + h.cap + ':' + h.vers);
@@ -1098,6 +1099,91 @@ const ATERRIZA = 7000;
        cabida.cortadas === 0,
        cabida.cortadas ? JSON.stringify(cabida.malas) : 'ninguno de ' + cabida.vistas);
   await cerrarParcial(cab, 'la cabida del letrero');
+
+  /* ================================================================
+     Y NINGUNO SE SALE DE LA ESCENA, TAMPOCO CON LA LETRA GRANDE.
+
+     Los letreros miden lo que mide la letra del libro, así que subirla los
+     hace crecer, y hay dos sitios donde crecer se paga:
+
+     · LOS DOS PUNTOS DE ARRIBA viven en top:0 y en pantalla ancha miden 22 px
+       —se quedaron ahí para no robarle toques al titulillo—. Un letrero
+       centrado sobre un botón más bajo que él sobresale por arriba, y .stage
+       recorta con overflow:hidden: subir la letra le cortaba la cabeza a las
+       palabras, y sólo en pantalla ancha. El freno es max(0px, …): céntrate
+       si cabes, y si no, pégate a tu propio canto de arriba.
+     · Y AUN PEGADO AL CANTO, en pantalla ancha el letrero de las cintas le
+       caía ENCIMA al titulillo, que empieza 22 px más abajo. Medido: a 15 no
+       choca, a 20 sí, a 26 se come 41 por 14 píxeles de «Mateo 1:1». Por eso
+       esos dos tienen techo ahí, y sólo ahí.
+
+     Los dos los levantó la revisión de Codex, y los dos tienen la misma forma:
+     una regla que era verdad a 15 px y dejaba de serlo más arriba. Por eso
+     esta prueba mide al TOPE de la letra y no al tamaño de fábrica: a 15 todo
+     esto pasa en verde con el fallo puesto.
+
+     Se mide la caja y no si «se ve»: un pseudo-elemento recortado por un
+     ancestro conserva su tamaño y su opacidad. */
+  titulo('con la letra al tope, ningún letrero se sale ni se pisa');
+  for (const [comoSeLlama, opciones] of [['escritorio', ESCRITORIO], ['teléfono', {}]]){
+    const ses = await abrir(opciones);
+    const pp = ses.pagina;
+    const borde = await pp.evaluate(async () => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      /* Se sube por el panel, como lo sube un lector. */
+      document.getElementById('pgCabeza').click(); await pausa(800);
+      const t = document.querySelector('.pestanas button[data-sec="formato"]');
+      if (!t) return { sinPestana:true };
+      t.click(); await pausa(800);
+      const sel = document.getElementById('fsAhora');
+      const tope = Math.max(...[...sel.options].map(o => +o.value));
+      sel.value = String(tope);
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
+      await pausa(2200);
+      const cerrar = document.querySelector('#ajustes .cerrar-pie');
+      if (cerrar) cerrar.click();
+      await pausa(1500);
+
+      const st = document.querySelector('.stage').getBoundingClientRect();
+      /* La caja del letrero se arma a mano: un ::after no tiene rect propio.
+         width/height del estilo calculado son la caja de CONTENIDO, así que
+         hay que sumarle sus rellenos o la cuenta sale corta justo por el borde
+         que se quiere vigilar. */
+      const caja = (id, lado) => {
+        const e = document.getElementById(id);
+        if (!e) return null;
+        const r = e.getBoundingClientRect(), c = getComputedStyle(e, '::after');
+        const w = parseFloat(c.width) + parseFloat(c.paddingLeft) + parseFloat(c.paddingRight);
+        const h = parseFloat(c.height) + parseFloat(c.paddingTop) + parseFloat(c.paddingBottom);
+        const top = r.top + Math.max(0, r.height / 2 - h / 2);
+        const left = lado === 'izq' ? r.right + 2 : r.left - 2 - w;
+        return { left, top, right: left + w, bottom: top + h };
+      };
+      const dentro = b => !!b && b.top >= st.top - 0.5 && b.bottom <= st.bottom + 0.5 &&
+                                b.left >= st.left - 0.5 && b.right <= st.right + 0.5;
+      const pisa = (a, b) => !!a && !!b &&
+        !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+      const tit = document.querySelector('#pg .pg-cabeza').getBoundingClientRect();
+      const pi = caja('btnPiedras', 'izq'), ci = caja('btnCintas', 'der');
+      const zo = caja('btnZoom', 'izq'), hi = caja('btnHistorial', 'der');
+      return { tope, cuerpo: getComputedStyle(document.getElementById('pgBody')).fontSize,
+               fuera: [['piedras', pi], ['cintas', ci], ['zoom', zo], ['historial', hi]]
+                 .filter(([, b]) => !dentro(b)).map(([n]) => n),
+               pisan: [['piedras', pi], ['cintas', ci]]
+                 .filter(([, b]) => pisa(b, tit)).map(([n]) => n) };
+    });
+    di('con la letra al tope (' + comoSeLlama + ')', JSON.stringify(borde));
+    vale('(la prueba es válida) la letra subió al tope · ' + comoSeLlama,
+         !borde.sinPestana && borde.cuerpo === borde.tope + 'px',
+         borde.sinPestana ? 'no hay pestaña de la letra' : borde.cuerpo);
+    vale('NINGÚN LETRERO SE SALE DE LA ESCENA · ' + comoSeLlama,
+         !!borde.fuera && borde.fuera.length === 0,
+         (borde.fuera || []).join(' · ') || 'ninguno');
+    vale('  y ninguno le cae encima al titulillo · ' + comoSeLlama,
+         !!borde.pisan && borde.pisan.length === 0,
+         (borde.pisan || []).join(' · ') || 'ninguno');
+    await cerrarParcial(ses, 'los letreros con la letra al tope, ' + comoSeLlama);
+  }
 
   await cerrar(sesion);
 })();

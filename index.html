@@ -1273,10 +1273,67 @@
      De las dos maneras de perderlo, ésta es la que no se pierde. */
   .stage.guias #pg .peri::after{
             left:50%; transform:translateX(-50%); top:calc(100% + 2px); }
+  /* CENTRADOS EN SU PUNTO, PERO NUNCA POR ENCIMA DE ÉL, y esa segunda mitad
+     es un arreglo, no un adorno.
+
+     Los dos puntos de arriba viven en top:0 y miden 22 px de alto en pantalla
+     ancha —se quedaron ahí para no robarle toques al titulillo, está contado
+     en #btnPiedras—. Con el letrero al cuerpo del libro, a 26 el letrero mide
+     más que el botón: centrado sobre él sobresale por arriba, y .stage recorta
+     con overflow:hidden. O sea que subir la letra le cortaba la cabeza a las
+     palabras, y sólo en pantalla ancha. Lo levantó la revisión de Codex.
+
+     El freno se escribe en CSS y no en el guion porque el alto del letrero se
+     puede calcular: es su interlínea por el cuerpo del libro más sus dos
+     rellenos. max(0px, …) dice «céntrate si cabes, y si no, pégate a tu propio
+     canto de arriba», que es exactamente la regla que hacía falta y que
+     además se cumple sola cuando alguien cambie el cuerpo, el relleno o la
+     interlínea: los tres están en la cuenta.
+
+     Va en los cuatro y no sólo en los dos de arriba. A los de abajo les sobra
+     sitio y el freno no los mueve —a 26 en pantalla ancha, tres cuartos de
+     píxel—, pero una regla que dice lo mismo para las cuatro esquinas es una
+     regla; dos reglas parecidas son dos cosas que mantener. */
+  .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after,
+  .stage.guias #btnZoom::after, .stage.guias #btnHistorial::after{
+            --guia-alto:calc(1.25 * var(--fs-libro, 15px) + 3px);
+            top:max(0px, calc(50% - var(--guia-alto) / 2)); transform:none; }
   .stage.guias #btnPiedras::after, .stage.guias #btnZoom::after{
-            left:calc(100% + 2px); top:50%; transform:translateY(-50%); }
+            left:calc(100% + 2px); }
   .stage.guias #btnCintas::after, .stage.guias #btnHistorial::after{
-            right:calc(100% + 2px); top:50%; transform:translateY(-50%); }
+            right:calc(100% + 2px); }
+  /* Y EN PANTALLA ANCHA LOS DOS DE ARRIBA TIENEN UN TECHO, que es lo único de
+     todo esto que no mide lo que mide el libro.
+
+     No es una preferencia: es que ahí no cabe. En pantalla ancha el titulillo
+     vive en la esquina de arriba a la derecha —empieza 22 px por debajo del
+     canto y el punto de las cintas se quedó en 22 de alto justamente para no
+     robarle toques, está contado en #btnPiedras—, así que entre el canto de la
+     escena y el titulillo hay una banda de 22 px y nada más. Un letrero al
+     cuerpo del libro mide 36 a los 26 de la hoja: pegado al canto de arriba
+     —que es donde lo deja el freno de ahí arriba— le cae encima al titulillo y
+     le tapa el anillo y la primera letra. Medido: a 15 no choca, a 20 sí, y a
+     26 se come 41 por 14 píxeles de «Mateo 1:1».
+
+     De las dos maneras de estorbar, tapar un rótulo es peor que ser más
+     pequeño: lo primero esconde información y lo segundo sólo la sirve en otro
+     cuerpo. Así que crecen con el libro hasta que dejan de caber, y ahí se
+     paran. El techo sale de la banda misma —el alto del punto menos los dos
+     rellenos del letrero, partido por su interlínea— y no de un número a ojo:
+     si algún día ese punto vuelve a medir 34, esta cuenta se entera sola.
+
+     EN TELÉFONO NO HAY TECHO, y el umbral es el del ANCHO y no el del puntero:
+     lo que crea el problema es dónde vive el titulillo, y eso lo decide
+     max-width:560px —ahí se va al centro de la columna y las dos esquinas de
+     arriba quedan libres—. Atarlo a pointer:coarse habría dejado sin techo a
+     una pantalla ancha con dedo, que es justo donde el titulillo sigue en la
+     esquina. */
+  .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after{
+            font-size:min(var(--fs-libro, 15px), calc((22px - 3px) / 1.25)); }
+  @media (max-width: 560px){
+    .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after{
+              font-size:var(--fs-libro, 15px); }
+  }
   .stage.guias #pg .pg-cabeza::after{
             left:50%; transform:translateX(-50%); top:calc(100% + 3px); }
   .stage.guias #pg .pg-version::after{
@@ -4811,7 +4868,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '20-SEP-26 09:33';
+window.GLOSS_BUILD = '20-SEP-26 09:42';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
