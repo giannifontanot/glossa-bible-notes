@@ -1018,5 +1018,86 @@ const ATERRIZA = 7000;
        JSON.stringify(hc.caja) + ' vs ' + JSON.stringify(hn.caja));
   await cerrarParcial(ltr, 'los letreros');
 
+  /* ================================================================
+     Y EL DE LA PERÍCOPA TIENE QUE CABER, HOJA TRAS HOJA.
+
+     Nació encima del recuadro, que es donde se pidió, y encima desaparecía.
+     Un .peri lleva 1.5em de aire arriba y de ese margen salía el sitio del
+     letrero; pero cuando el titulillo arranca COLUMNA —que pasa a menudo,
+     porque break-after:avoid lo empuja junto con su versículo al fragmento
+     siguiente— el navegador descarta el margen en el corte. El titulillo queda
+     pegado al canto de arriba de #pgBody, el letrero cae fuera, y #pgBody
+     recorta con overflow:hidden: el anillo rojo se quedaba y la palabra se iba
+     sin decir nada. Seis de las primeras cuarenta hojas de Mateo, una de cada
+     siete. Lo levantó la revisión de Codex.
+
+     Ahora va debajo, que está siempre dentro y no por suerte: break-after:avoid
+     garantiza que el titulillo nunca cierra columna, o sea que siempre tiene su
+     versículo detrás.
+
+     SE RECORREN HOJAS DE VERDAD Y NO UNA SOLA. El fallo no se ve en la primera
+     —ahí el titulillo cae a media columna y le sobra margen—; sólo aparece en
+     las que arrancan con él. Una prueba que mirara una hoja habría pasado en
+     verde con el fallo puesto, que es exactamente lo que pasó.
+
+     Y se mira la caja contra la de #pgBody, no si «se ve»: un pseudo-elemento
+     recortado por un ancestro sigue teniendo su tamaño y su opacidad, así que
+     preguntarle al estilo no delata nada. Lo que delata es la geometría. */
+  titulo('el letrero de la perícopa cabe en todas las hojas');
+  const cab = await abrir();
+  const pcab = cab.pagina;
+  const cabida = await pcab.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const pasarHoja = async () => {
+      const f = document.getElementById('edgeR');
+      const rf = f.getBoundingClientRect();
+      const o = { bubbles:true, cancelable:true, pointerId:314, pointerType:'touch',
+                  isPrimary:true, clientX: Math.round(rf.left + rf.width/2), clientY: 420 };
+      f.dispatchEvent(new PointerEvent('pointerdown', o)); await pausa(60);
+      f.dispatchEvent(new PointerEvent('pointerup', o));
+      await pausa(1100);
+    };
+    const mira = () => {
+      const body = document.getElementById('pgBody').getBoundingClientRect();
+      const uno = document.querySelector('#pgBody .peri');
+      if (!uno) return [];
+      /* El alto del letrero es el mismo para todos, así que se lee una vez. */
+      const alto = parseFloat(getComputedStyle(uno, '::after').height) || 0;
+      return [...document.querySelectorAll('#pgBody .peri')].map(e => {
+        const r = e.getBoundingClientRect();
+        const arriba = r.bottom + 2, abajo = r.bottom + 2 + alto;
+        return { dice: (e.querySelector('.peri-dice') || e).textContent.trim().slice(0, 24),
+                 /* arrancaColumna: el titulillo pegado al canto de arriba, que
+                    es el caso que se rompía. Se apunta para poder decir que la
+                    prueba de verdad pasó por él. */
+                 arrancaColumna: Math.abs(r.top - body.top) < 2,
+                 corta: arriba < body.top - 0.5 || abajo > body.bottom + 0.5 };
+      });
+    };
+    let vistas = 0, cortadas = 0, arranques = 0, hojas = 0;
+    const malas = [];
+    for (let i = 0; i < 26; i++){
+      for (const x of mira()){
+        vistas++;
+        if (x.arrancaColumna) arranques++;
+        if (x.corta){ cortadas++; if (malas.length < 5) malas.push(x); }
+      }
+      hojas++;
+      await pasarHoja();
+    }
+    return { hojas, vistas, cortadas, arranques, malas };
+  });
+  di('el recorrido', JSON.stringify(cabida));
+  /* Sin perícopas que arranquen columna, la prueba no ha visitado el caso que
+     se rompía y su verde no significa nada. Por eso se afirma. */
+  vale('(la prueba es válida) se recorrieron hojas con perícopas, y alguna arranca columna',
+       cabida.hojas >= 20 && cabida.vistas >= 10 && cabida.arranques >= 1,
+       cabida.hojas + ' hojas · ' + cabida.vistas + ' perícopas · ' +
+       cabida.arranques + ' arrancando columna');
+  vale('NI UN LETRERO SE SALE DE LA COLUMNA',
+       cabida.cortadas === 0,
+       cabida.cortadas ? JSON.stringify(cabida.malas) : 'ninguno de ' + cabida.vistas);
+  await cerrarParcial(cab, 'la cabida del letrero');
+
   await cerrar(sesion);
 })();

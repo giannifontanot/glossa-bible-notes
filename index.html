@@ -1245,8 +1245,34 @@
 
      Hacia DENTRO y no hacia fuera por lo obvio: fuera está el canto de la
      pantalla. */
+  /* EL DE LA PERÍCOPA VA DEBAJO DEL RECUADRO, Y NO ENCIMA COMO SE PIDIÓ.
+
+     Encima es donde tiene que ir —se pidió así, y es donde un letrero se lee
+     como el nombre de lo que hay debajo— y encima DESAPARECE. La razón es de
+     maquetación y no se ve leyendo esta regla:
+
+     Un .peri lleva 1.5em de aire arriba, y ese margen es de donde salía el
+     sitio del letrero. Pero cuando el titulillo cae AL PRINCIPIO de una
+     columna —que pasa a menudo, porque break-after:avoid lo empuja junto con
+     su versículo al fragmento siguiente— el navegador DESCARTA el margen en el
+     corte. El titulillo queda entonces pegado al canto de arriba de #pgBody, y
+     un letrero colgado por encima de su caja cae fuera; #pgBody recorta con
+     overflow:hidden, así que el anillo rojo se queda y la palabra se va sin
+     decir nada.
+
+     Medido en las primeras cuarenta hojas de Mateo: seis perícopas con el
+     letrero cortado, una de cada siete hojas, y todas con el titulillo arrancando
+     columna. Lo levantó la revisión de Codex.
+
+     Debajo está siempre dentro, y no por suerte: break-after:avoid garantiza
+     que el titulillo nunca cierra columna, o sea que SIEMPRE tiene su
+     versículo detrás. El precio es que el letrero se apoya en el primer
+     renglón de ese versículo, que es justo para lo que está el halo de papel
+     de las letras.
+
+     De las dos maneras de perderlo, ésta es la que no se pierde. */
   .stage.guias #pg .peri::after{
-            left:50%; transform:translateX(-50%); bottom:calc(100% + 4px); }
+            left:50%; transform:translateX(-50%); top:calc(100% + 2px); }
   .stage.guias #btnPiedras::after, .stage.guias #btnZoom::after{
             left:calc(100% + 2px); top:50%; transform:translateY(-50%); }
   .stage.guias #btnCintas::after, .stage.guias #btnHistorial::after{
@@ -4785,7 +4811,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '20-SEP-26 09:24';
+window.GLOSS_BUILD = '20-SEP-26 09:33';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
