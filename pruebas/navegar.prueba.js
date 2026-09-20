@@ -1058,44 +1058,92 @@ const ATERRIZA = 7000;
       f.dispatchEvent(new PointerEvent('pointerup', o));
       await pausa(1100);
     };
+    /* LA CAJA DEL LETRERO SE LEE, NO SE SUPONE, y esto es la mitad de la
+       prueba. Escrita primero dando por hecho que el letrero va debajo
+       —«r.bottom + 2»—, la comprobación no miraba el CSS en absoluto: devolví
+       la regla a su sitio de antes, el que fallaba, y la prueba siguió en
+       verde. Una prueba que calcula ella misma lo que viene a vigilar no
+       vigila nada.
+       Un ::after no tiene getBoundingClientRect, pero su estilo calculado sí
+       trae el `top` YA RESUELTO en píxeles contra su bloque contenedor —el
+       .peri, que no lleva borde ni relleno vertical, así que su caja de
+       relleno empieza donde empieza su caja de borde—. Sumando uno al otro
+       sale la caja de verdad, y con ella el fallo se caza. */
+    const cajaLetrero = (e) => {
+      const c = getComputedStyle(e, '::after');
+      const r = e.getBoundingClientRect();
+      /* height/width del estilo calculado son la caja de CONTENIDO: sin
+         sumarle los rellenos, la cuenta sale corta justo por el borde que se
+         quiere vigilar. */
+      const alto = parseFloat(c.height) + parseFloat(c.paddingTop) + parseFloat(c.paddingBottom);
+      /* Y EL TRANSFORM SE SUMA APARTE. `top` es la posición ANTES de
+         transformar, así que un translate no aparece ahí: medido sin él, un
+         letrero centrado con translateY salía de su sitio por media altura y
+         la prueba cantaba un desbordamiento que no existe. La matriz lo dice
+         sin tener que saber qué transform se escribió. */
+      const m = new DOMMatrix(c.transform === 'none' ? '' : c.transform);
+      const arriba = r.top + parseFloat(c.top) + m.m42;
+      return { arriba, abajo: arriba + alto };
+    };
     const mira = () => {
       const body = document.getElementById('pgBody').getBoundingClientRect();
-      const uno = document.querySelector('#pgBody .peri');
-      if (!uno) return [];
-      /* El alto del letrero es el mismo para todos, así que se lee una vez. */
-      const alto = parseFloat(getComputedStyle(uno, '::after').height) || 0;
       return [...document.querySelectorAll('#pgBody .peri')].map(e => {
         const r = e.getBoundingClientRect();
-        const arriba = r.bottom + 2, abajo = r.bottom + 2 + alto;
+        const { arriba, abajo } = cajaLetrero(e);
         return { dice: (e.querySelector('.peri-dice') || e).textContent.trim().slice(0, 24),
                  /* arrancaColumna: el titulillo pegado al canto de arriba, que
-                    es el caso que se rompía. Se apunta para poder decir que la
-                    prueba de verdad pasó por él. */
+                    es el caso que se rompía. Se APUNTA, no se exige: ver abajo. */
                  arrancaColumna: Math.abs(r.top - body.top) < 2,
+                 /* Y LA PROPIEDAD QUE DE VERDAD ARREGLA EL FALLO, que se puede
+                    mirar en TODAS y no sólo en las que arrancan columna: que
+                    el letrero no cuelgue por encima del titulillo. Colgado
+                    arriba, su sitio sale del margen de 1.5em, y ese margen es
+                    justo lo que el navegador tira en un corte de columna. */
+                 cuelgaArriba: arriba < r.top - 0.5,
                  corta: arriba < body.top - 0.5 || abajo > body.bottom + 0.5 };
       });
     };
-    let vistas = 0, cortadas = 0, arranques = 0, hojas = 0;
+    let vistas = 0, cortadas = 0, arranques = 0, cuelgan = 0, hojas = 0;
     const malas = [];
     for (let i = 0; i < 26; i++){
       for (const x of mira()){
         vistas++;
         if (x.arrancaColumna) arranques++;
+        if (x.cuelgaArriba) cuelgan++;
         if (x.corta){ cortadas++; if (malas.length < 5) malas.push(x); }
       }
       hojas++;
       await pasarHoja();
     }
-    return { hojas, vistas, cortadas, arranques, malas };
+    return { hojas, vistas, cortadas, arranques, cuelgan, malas };
   });
   di('el recorrido', JSON.stringify(cabida));
-  /* Sin perícopas que arranquen columna, la prueba no ha visitado el caso que
-     se rompía y su verde no significa nada. Por eso se afirma. */
-  vale('(la prueba es válida) se recorrieron hojas con perícopas, y alguna arranca columna',
-       cabida.hojas >= 20 && cabida.vistas >= 10 && cabida.arranques >= 1,
+  /* CUÁNTAS ARRANCAN COLUMNA SE ENSEÑA Y NO SE EXIGE, y esto costó un rojo.
+
+     Estaba escrito como aserción —«y alguna arranca columna»— con la idea de
+     que sin visitar el caso peligroso el verde no significaría nada. La idea
+     es buena y el sitio era el equivocado: DÓNDE cae cada titulillo depende de
+     dónde corta cada renglón, y eso depende de las fuentes que tenga la
+     máquina. Aquí salieron tres de cuarenta y seis; en la máquina que corrió
+     la tanda, cero de cuarenta y seis, con el arreglo puesto y funcionando.
+     Una prueba que canta fallo según qué tipografías haya instaladas enseña a
+     ignorarla, que es peor que no tenerla.
+
+     Lo que sí se afirma, y vale MÁS, es la propiedad que hace correcto el
+     arreglo, y se puede mirar en todas las perícopas y no sólo en las que
+     arrancan columna: que el letrero no cuelgue por encima del titulillo.
+     Colgado arriba, su sitio sale del margen de 1.5em —que es justo lo que el
+     navegador tira en un corte de columna— y el fallo vuelve. Eso no depende
+     de dónde caiga nada: si alguien lo devuelve arriba, esto se pone rojo en
+     la primera hoja con perícopa, haya o no una arrancando columna. */
+  vale('(la prueba es válida) se recorrieron hojas con perícopas',
+       cabida.hojas >= 20 && cabida.vistas >= 10,
        cabida.hojas + ' hojas · ' + cabida.vistas + ' perícopas · ' +
        cabida.arranques + ' arrancando columna');
-  vale('NI UN LETRERO SE SALE DE LA COLUMNA',
+  vale('EL LETRERO NO CUELGA DEL MARGEN DE ARRIBA, que es lo que el corte tira',
+       cabida.cuelgan === 0,
+       cabida.cuelgan + ' de ' + cabida.vistas);
+  vale('  y ni uno se sale de la columna',
        cabida.cortadas === 0,
        cabida.cortadas ? JSON.stringify(cabida.malas) : 'ninguno de ' + cabida.vistas);
   await cerrarParcial(cab, 'la cabida del letrero');
@@ -1149,14 +1197,25 @@ const ATERRIZA = 7000;
          width/height del estilo calculado son la caja de CONTENIDO, así que
          hay que sumarle sus rellenos o la cuenta sale corta justo por el borde
          que se quiere vigilar. */
-      const caja = (id, lado) => {
+      /* Y AQUÍ TAMBIÉN SE LEE LA CAJA EN VEZ DE SUPONERLA. Estuvo escrita
+         copiando a mano la colocación —centrado con freno, a tal lado, a tal
+         hueco— y eso es escribir la regla dos veces: la prueba habría seguido
+         en verde con la regla cambiada, porque estaba comprobando su propia
+         copia. El estilo calculado de un ::after trae top y left ya resueltos
+         en píxeles contra su bloque contenedor, que aquí es el botón: sin
+         borde y sin relleno, su caja de relleno es la que devuelve
+         getBoundingClientRect. */
+      const caja = id => {
         const e = document.getElementById(id);
         if (!e) return null;
         const r = e.getBoundingClientRect(), c = getComputedStyle(e, '::after');
         const w = parseFloat(c.width) + parseFloat(c.paddingLeft) + parseFloat(c.paddingRight);
         const h = parseFloat(c.height) + parseFloat(c.paddingTop) + parseFloat(c.paddingBottom);
-        const top = r.top + Math.max(0, r.height / 2 - h / 2);
-        const left = lado === 'izq' ? r.right + 2 : r.left - 2 - w;
+        /* El transform se suma aparte: `top` y `left` son la posición ANTES
+           de transformar, así que un translate no aparece en ellos. */
+        const m = new DOMMatrix(c.transform === 'none' ? '' : c.transform);
+        const top = r.top + parseFloat(c.top) + m.m42;
+        const left = r.left + parseFloat(c.left) + m.m41;
         return { left, top, right: left + w, bottom: top + h };
       };
       const dentro = b => !!b && b.top >= st.top - 0.5 && b.bottom <= st.bottom + 0.5 &&
@@ -1164,8 +1223,8 @@ const ATERRIZA = 7000;
       const pisa = (a, b) => !!a && !!b &&
         !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
       const tit = document.querySelector('#pg .pg-cabeza').getBoundingClientRect();
-      const pi = caja('btnPiedras', 'izq'), ci = caja('btnCintas', 'der');
-      const zo = caja('btnZoom', 'izq'), hi = caja('btnHistorial', 'der');
+      const pi = caja('btnPiedras'), ci = caja('btnCintas');
+      const zo = caja('btnZoom'), hi = caja('btnHistorial');
       return { tope, cuerpo: getComputedStyle(document.getElementById('pgBody')).fontSize,
                fuera: [['piedras', pi], ['cintas', ci], ['zoom', zo], ['historial', hi]]
                  .filter(([, b]) => !dentro(b)).map(([n]) => n),
