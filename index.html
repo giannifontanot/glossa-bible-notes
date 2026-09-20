@@ -1178,11 +1178,36 @@
             position:absolute; z-index:2; pointer-events:none;
             white-space:nowrap;
             padding:1px 5px 2px; border-radius:7px;
-            background:rgba(250,247,241,.93);
+            background:transparent;
             box-shadow:inset 0 0 0 1px rgba(155,42,42,.55);
             font:600 calc(8.5px * var(--escala-ui, 1))/1.35 var(--ui);
             letter-spacing:.06em; text-transform:none;
-            color:var(--rojo-galon, #9b2a2a); }
+            color:var(--rojo-galon, #9b2a2a);
+            /* EL HALO VA EN LA LETRA, NO EN LA CAJA, y ese cambio es el
+               encargo entero.
+
+               Estos letreros nacieron con fondo de papel macizo, y el fondo
+               resolvía un problema real: el de las flechas y el de la perícopa
+               caen SOBRE el texto del libro, y letra roja fina encima de letra
+               negra no deja leer ninguna de las dos. Pero un chip opaco se lee
+               como una etiqueta pegada ENCIMA de la hoja, o sea como una cosa
+               aparte, y lo que tiene que decir es «soy de este recuadro rojo».
+               Lo dijo el dueño del repo mirándolo, y tiene razón: el fondo
+               blanco estaba cortando el parentesco que el letrero existe para
+               tener.
+
+               Transparente, lo que queda emparentándolos es el trazo: el mismo
+               carmín y el mismo grosor fino del anillo que rodea al titulillo.
+               Y la legibilidad no se pierde, se resuelve en otro sitio: cuatro
+               sombras de papel alrededor de las letras tapan lo justo para que
+               se lean, y sólo detrás de la letra. Se ve la hoja por dentro del
+               recuadro —que es lo que se pidió— y sigue leyéndose sobre el
+               texto. Es el mismo truco de los subtítulos de cine, y por la
+               misma razón: el rótulo no puede tapar la imagen. */
+            text-shadow:0 0 2px var(--papel, #faf7f1),
+                        0 0 2px var(--papel, #faf7f1),
+                        0 1px 1px var(--papel, #faf7f1),
+                        0 -1px 1px var(--papel, #faf7f1); }
   /* DÓNDE CAE CADA UNO LO DECIDE QUIÉN TIENE AL LADO, no la simetría. Todos
      querrían ir ARRIBA —que es donde se pidió, y donde un letrero se lee como
      el nombre de lo que hay debajo— y los cuatro puntos de las esquinas no
@@ -4744,7 +4769,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '20-SEP-26 09:16';
+window.GLOSS_BUILD = '20-SEP-26 09:19';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
