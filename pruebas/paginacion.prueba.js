@@ -167,8 +167,7 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
     const btn = document.getElementById('btnAire');
     document.getElementById('pgCabeza').click();
     await new Promise(z => setTimeout(z, 900));
-    const t = [...document.querySelectorAll('.pestanas button')]
-      .find(x => x.textContent.trim().toLowerCase() === 'formato');
+    const t = document.querySelector('.pestanas button[data-sec="formato"]');
     if (t) t.click();
     await new Promise(z => setTimeout(z, 900));
     const dice = () => btn.textContent.trim();

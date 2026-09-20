@@ -1077,13 +1077,18 @@
      dentro con box-shadow, que no ocupa nada. Se escribe contra #pg para que
      no alcance jamás a #ghost, que es el molde con el que se miden las
      palabras: un molde con anillo mide distinto que la hoja que copia. */
+  /* EL HALO SE DECIDE UNA VEZ Y LO LLEVAN TODOS LOS QUE SEÑALAN. Es lo que
+     emparenta a los rótulos con los puntos: el mismo rojo, el mismo aro tenue
+     alrededor. Escrito dos veces se despareja a la primera que alguien retoque
+     uno.
+     VIVE EN .stage Y NO EN .stage.guias, y eso cambió al aparecer el recuadro
+     permanente de la casilla de LIBROS: ese anillo se pinta con el interruptor
+     apagado —es lo que enseña qué va a pasar si lo enciendes— así que necesita
+     el halo fuera de la clase que enciende las guías. Escrito aquí lo heredan
+     los dos, y sigue habiendo un solo sitio donde tocarlo. */
+  .stage{ --halo-guia:0 0 0 3px rgba(155,42,42,.20); }
   .stage.guias{ --punto:var(--rojo-galon, #9b2a2a); --punto-luz:1;
-                --punto-esc:1.2; --punto-halo:var(--halo-guia);
-                /* EL HALO SE DECIDE UNA VEZ Y LO LLEVAN LOS DOS. Es lo que
-                   emparenta a los rótulos con los puntos: el mismo rojo, el
-                   mismo aro tenue alrededor. Escrito dos veces se despareja a
-                   la primera que alguien retoque uno. */
-                --halo-guia:0 0 0 3px rgba(155,42,42,.20); }
+                --punto-esc:1.2; --punto-halo:var(--halo-guia); }
   /* EL ANILLO DE LOS RÓTULOS, MÁS GRUESO Y CON EL MISMO HALO QUE LOS PUNTOS.
 
      Iba a 1 px y el dueño del repo lo dijo mirándolo: «no parece que el rojo
@@ -1101,6 +1106,38 @@
   .stage.guias #pg .pg-cabeza, .stage.guias #pg .pg-version{
             box-shadow:inset 0 0 0 2px var(--rojo-galon, #9b2a2a),
                        var(--halo-guia); }
+  /* CON EL PANEL PUESTO, LA HOJA NO ENSEÑA SUS PUERTAS.
+
+     Los cuatro puntos son del LIBRO, y el libro está tapado: eso ya se dijo
+     una vez bajándolos de la capa 7 a la 5, por debajo del panel (6). No bastó,
+     y la razón es de geometría y no de pila: el panel mide lo que mide su
+     contenido —805 de 915 en un teléfono— así que los dos puntos de abajo y el
+     rótulo del pie se quedan ASOMANDO por debajo de él. Nunca hubo nada que se
+     les pusiera encima. Tapar eso estirando el panel hasta el suelo sería
+     mentir sobre cuánto contenido tiene.
+
+     Así que mientras hay panel, no se pintan. Es lo mismo que ya se decía con
+     la capa, dicho de la única manera que funciona también donde el panel no
+     llega: lo que pertenece al libro desaparece con el libro, y vuelve entero
+     en cuanto el panel se enrolla.
+
+     Y CON ELLOS SE VAN LOS DOS ANILLOS ROJOS de los rótulos, por lo mismo: son
+     la otra mitad de la misma señal —«aquí se puede tocar»— y el rótulo del
+     pie asoma por debajo del panel igual que los puntos. Un recuadro rojo
+     encendido debajo de un panel abierto invita a tocar algo que el panel está
+     tapando. El anillo permanente de la casilla de LIBROS no entra aquí: ése
+     vive DENTRO del panel y es justamente lo que hay que poder leer. */
+  .stage.conpanel #btnZoom, .stage.conpanel #btnHistorial,
+  .stage.conpanel #btnPiedras, .stage.conpanel #btnCintas{ display:none; }
+  /* Y EL SELLO DE LA G SE VA CON ELLOS, por la misma razón y por una más que
+     se vio en pantalla: es la quinta puerta de la hoja —abre el cajón de las
+     glosas— pero además vive en la capa 8, o sea POR ENCIMA del panel, y cae
+     justo donde ahora está el botón CERRAR. Un sello de cera de 42 px posado
+     encima de la salida del panel no es un adorno de más: es un trozo de la
+     salida que no se puede tocar. */
+  .stage.conpanel #btnGlosas{ opacity:0; pointer-events:none; }
+  .stage.conpanel.guias #pg .pg-cabeza,
+  .stage.conpanel.guias #pg .pg-version{ box-shadow:none; }
   /* Y de lejos, el botón que abrió el zoom se va: ya no hay nada que abrir, se
      sale tocando el hueco, y un control encendido que no lleva a ningún sitio
      solo compite con el papel. */
@@ -2760,24 +2797,37 @@
                     transition:background .34s cubic-bezier(.65,0,.35,1),
                                color .34s cubic-bezier(.65,0,.35,1),
                                box-shadow .26s ease; }
-  .pestanas .cerrar-x{ flex:0 0 28px; width:28px; min-width:28px; padding:0;
-                       background:transparent; border-radius:0; color:#2c2416;
-                       font:400 22px/28px Georgia, 'Times New Roman', serif;
-                       letter-spacing:0; opacity:.78; }
-  /* Y CON EL DEDO, MÁS ANCHA. 28 de ancho por 44 de alto es media medida: el
-     alto lo daba el renglón y el ancho se quedó en lo que ocupa el signo. Un
-     blanco estrecho con una pestaña pegada al lado no se falla solo, se falla
-     ABRIENDO Respaldo, que es peor que no acertar.
-     40 y no 44, que es el suelo: el renglón lleva cuatro pestañas que reparten
-     lo que sobra —flex:1 1 0— y en un teléfono de 412 va justo. Los cuatro
-     píxeles que faltan para el suelo se los queda el ancho de las pestañas,
-     que es lo que se lee. Medido: con 44 la última se sale. */
-  @media (pointer:coarse){
-    .pestanas .cerrar-x{ flex:0 0 40px; width:40px; min-width:40px;
-                         font:400 24px/44px Georgia, 'Times New Roman', serif; }
-  }
-  .pestanas .cerrar-x:hover{ background:transparent; color:#1a140c; opacity:1; }
+  /* AQUÍ VIVÍA LA EQUIS DE CERRAR, con su ancho de dedo y su bloque aparte
+     para las pantallas estrechas. Se fue entera, y con ella el problema que
+     arrastraba desde que existe: era la última del renglón, o sea la primera
+     en salirse por el filo cuando las cuatro palabras no caben —pasaba en 320
+     px, y atando el cromo al tamaño del libro pasaba también en un teléfono
+     normal en cuanto el lector subía la letra—. La única salida del panel era
+     lo primero que se perdía.
+     La salida es ahora el botón CERRAR del pie, que ocupa el ancho entero y no
+     compite con nada. Ver .pie-cerrar. */
   .pestanas button:hover{ background:#fffdf6; color:#1d1608; }
+  /* LAS TRES AES SON EL RÓTULO DEL PANEL DE LA LETRA, y dicen con el dibujo lo
+     que «Formato» decía con una palabra que no significaba nada concreto.
+
+     Tres aes de tamaño decreciente es el signo con el que medio mundo enseña
+     «aquí se cambia el tamaño del texto», y funciona sin traducirse y sin
+     leerse: se reconoce la forma. Va de mayor a menor —pedido así— porque en
+     ese orden se lee como una escala que baja y no como un tropiezo.
+
+     Las medidas van en em y no en píxeles: esta pestaña vive dentro de un
+     renglón que ya escala dos veces —con el ancho de la pantalla y con
+     --escala-ui— y clavar píxeles aquí la dejaría fuera de las dos.
+
+     baseline y no center: alineadas por el centro, las tres aes flotan cada
+     una a su altura y parecen mal puestas; apoyadas en la misma línea se leen
+     como lo que son, tres letras escritas de corrido. */
+  .pestanas .aaa{ display:inline-flex; align-items:baseline; justify-content:center;
+                  gap:.04em; line-height:1; font-weight:700; letter-spacing:0; }
+  .pestanas .aaa i{ font-style:normal; }
+  .pestanas .aaa i:nth-child(1){ font-size:1.3em; }
+  .pestanas .aaa i:nth-child(2){ font-size:1em; }
+  .pestanas .aaa i:nth-child(3){ font-size:.76em; }
   .pestanas button.aqui{ background:#b8892b; color:#fff8e4; }
   /* EL ACUSE DE RECIBO DE LA PESTAÑA. El cambio de color ya decía cuál está
      abierta, pero eso es el resultado, no el recibo: llega junto con el
@@ -2827,7 +2877,7 @@
      seco era lo que se sentía mal: no hay transición, hay sustitución. Ahora
      lo que está se desvanece corriéndose un poco hacia el lado contrario del
      que viene lo nuevo, y solo cuando terminó, entra el otro. */
-  .rollo.saliendo > *:not(.pestanas){
+  .rollo.saliendo > *:not(.pestanas):not(.pie-cerrar){
     animation:saleDeLado .18s cubic-bezier(.4,0,.9,.6) both; }
   @keyframes saleDeLado{
     from{ opacity:1; transform:none; }
@@ -2837,7 +2887,12 @@
      sitio y se acomoda. En la cortina eso es el scaleY(1.006) del 86%; aquí
      es pasarse 4px y volver. Es el mismo gesto contado en otro eje: una cosa
      con masa no se detiene exactamente donde debía. */
-  .rollo.cambio > *:not(.pestanas){
+  /* El pie queda fuera de las dos animaciones por lo mismo que la barra de
+     pestañas: son el marco del panel, no su contenido. Cambiar de sección
+     cambia lo de en medio; la salida y las pestañas se quedan quietas, que es
+     lo que hace que se sienta un solo sitio con secciones y no cuatro paneles
+     distintos abriéndose uno tras otro. */
+  .rollo.cambio > *:not(.pestanas):not(.pie-cerrar){
     animation:entraDeLado .46s cubic-bezier(.5,0,.25,1) both; }
   @keyframes entraDeLado{
     0%  { opacity:0; transform:translateX(calc(26px * var(--dir, 1))); }
@@ -2845,6 +2900,67 @@
     82% { transform:translateX(calc(-4px * var(--dir, 1))); }
     100%{ opacity:1; transform:none; }
   }
+  /* ============================================================
+     EL PIE DEL PANEL: UN SOLO BOTÓN, DE LADO A LADO Y SIEMPRE A LA VISTA.
+
+     Sustituye a la equis del renglón de pestañas, y el cambio no es de sitio
+     sino de categoría. La equis era un blanco de 28 px metido al final de una
+     fila de cuatro pestañas, o sea el control más pequeño de la pantalla
+     puesto justo donde más vecinos tiene: fallarla no era no acertar, era
+     ABRIR otra sección. Y era la última del renglón, así que cuando las
+     palabras no cabían, la salida era lo primero que se perdía.
+
+     Ahora es lo que se hace con una salida: el ancho entero, abajo, donde el
+     pulgar ya está. Se copia del botón «transparente» de FORMATO —mismo ancho
+     completo, mismo peso de letra, mismo espaciado— porque aquel ya resolvió
+     este mismo problema en su panel y dos salidas con el mismo trabajo tienen
+     que verse iguales. Ver .vidrio-btn.
+
+     SIEMPRE VISIBLE, y eso pide dos cosas a la vez:
+     · flex:0 0 auto — el panel es una columna de flex, así que sin esto el pie
+       se encogería para dejar sitio al contenido de arriba, que es justo lo
+       contrario de lo que hace falta;
+     · position:sticky con bottom:0 — por debajo de 560 px los tres paneles
+       llevan overflow-y:auto, así que su contenido se corre por dentro y un
+       pie normal se iría con él. Pegado, se queda apoyado en el canto de abajo
+       del panel mientras el resto pasa por detrás. Donde el panel no se
+       desplaza —LIBROS, que corre su lista por dentro— sticky no hace nada y
+       el pie queda donde ya estaba: al final de la columna.
+
+     Y EL FONDO ES OPACO A PROPÓSITO. Pegado y translúcido, el contenido que
+     pasa por debajo se lee a través del botón y el renglón se vuelve ilegible
+     justo mientras se desplaza. El degradado de arriba es lo que evita el
+     corte seco: el papel se apaga hacia el pie en vez de terminar en una raya.
+
+     Los márgenes negativos cancelan el relleno del panel —9 px a los lados y
+     17 abajo— para que el botón llegue DE CANTO A CANTO, sin los 9 px de aire
+     que tienen a los lados todos los demás controles. Ahí se separa del botón
+     «transparente», del que copia todo lo demás: aquél es un control del panel
+     y respeta su margen; éste ES el canto de abajo del panel. Las esquinas de
+     abajo se redondean con el mismo radio que el papel —4 px— y las de arriba
+     se quedan rectas, que es lo que hace que se lea como un borde y no como un
+     botón puesto encima. */
+  .pie-cerrar{ flex:0 0 auto; position:sticky; bottom:0; z-index:4;
+               margin:7px -9px -17px; padding:7px 0 0;
+               background:linear-gradient(to bottom,
+                 rgba(214,198,162,0) 0%, #d8c8a5 60%, #d2c19c 100%); }
+  .cerrar-pie{ display:block; width:100%; min-height:38px;
+               border-left:0; border-right:0; border-bottom:0;
+               border-radius:0 0 4px 4px;
+               letter-spacing:.12em; font-weight:700;
+               font-size:calc(.72rem * var(--escala-ui, 1)) !important; }
+  /* Con el dedo, el suelo de la casa. Es la salida del panel: si hay un blanco
+     de toque que no se puede fallar, es éste. */
+  @media (pointer:coarse){
+    .cerrar-pie{ min-height:48px; }
+  }
+  /* En modo transparente le pasa lo mismo que al botón de volver: el panel
+     deja de dar fondo y el pie se queda flotando sobre la hoja. Se le pone su
+     propia tablilla de papel, y la letra en negro por lo de siempre —crema
+     sobre papel casi blanco es crema invisible—. Ver #ajustes.cristal
+     .vidrio-btn, que es el mismo arreglo y la misma razón. */
+  #ajustes.cristal .pie-cerrar{ background:none; }
+  #ajustes.cristal .cerrar-pie{ background:rgba(255,253,247,.92); color:#000; }
   .rollo, .fly, #cantoCuerpo{ scrollbar-width:none; -ms-overflow-style:none; }
   .rollo::-webkit-scrollbar, .fly::-webkit-scrollbar,
   #cantoCuerpo::-webkit-scrollbar{ width:0; height:0; display:none; }
@@ -3029,16 +3145,37 @@
      acertar y volver a intentarlo.
      El texto va SIN versalitas: la cabecera entera las lleva —es un rótulo de
      sección— pero esto es una frase que se lee, y en versalitas se lee peor. */
+  /* Y VA DENTRO DEL MISMO RECUADRO ROJO QUE PINTA, SIEMPRE.
+
+     La casilla enciende las guías rojas —los puntos, los dos rótulos de la
+     hoja— y hasta ahora no había manera de saber eso antes de tocarla: el
+     rótulo lo dice con palabras («señalar dónde se puede tocar») y las
+     palabras no dicen de qué color. Quien la encendía descubría el rojo
+     después, que es justo al revés de como debe ir un interruptor.
+
+     El anillo es EL MISMO que llevan los titulillos —dos píxeles del carmín
+     de las piedras y el halo de --halo-guia, la misma variable— para que se
+     lea como una muestra y no como un adorno: esto es lo que vas a ver.
+
+     Y ES PERMANENTE, encendido o apagado el interruptor. Pedido así, y es lo
+     que lo hace servir: un recuadro que solo aparece cuando ya diste al
+     interruptor enseña lo que ya estás viendo. El que hace falta es el de
+     antes. */
   .canto-opcion{ display:flex; align-items:center; gap:7px; cursor:pointer;
-                 min-height:32px; padding:2px 2px 2px 1px;
+                 min-height:32px; padding:6px 10px;
+                 border-radius:6px;
+                 box-shadow:inset 0 0 0 2px var(--rojo-galon, #9b2a2a),
+                            var(--halo-guia, 0 0 0 3px rgba(155,42,42,.20));
                  font:400 calc(10.5px * var(--escala-ui, 1))/1.3 var(--ui); letter-spacing:0;
                  text-transform:none; color:#5c4a24; white-space:normal;
                  -webkit-tap-highlight-color:transparent; }
   .canto-opcion input{ flex:0 0 auto; width:17px; height:17px; margin:0;
                        accent-color:#b8892b; cursor:pointer; }
   .canto-opcion:hover{ color:#3f3416; }
-  .canto-opcion:focus-within{ outline:2px solid #b8892b; outline-offset:2px;
-                              border-radius:4px; }
+  /* El offset del foco sale del halo —3 px— y no de los 2 de siempre: pegado
+     al anillo rojo, el dorado del foco se le montaba encima y no se distinguía
+     cuál de los dos era. */
+  .canto-opcion:focus-within{ outline:2px solid #b8892b; outline-offset:4px; }
   /* El relleno de abajo compensa que la cabecera de arriba ya da aire y aquí
      no había nada entre el último renglón de libros y el canto del panel. */
   #cantoCuerpo{ flex:1 1 auto; min-height:0; overflow-y:auto; padding-bottom:14px;
@@ -3052,7 +3189,14 @@
   /* Ya no es rejilla de celdas iguales: cada pestaña mide lo que mide su
      nombre. Con los nombres completos, obligarlas a un ancho común dejaba
      huecos enormes junto a 'Rut' y apretaba a '1 Tesalonicenses'. */
-  .rejilla-libros{ display:flex; flex-wrap:wrap; gap:3px; }
+  /* Y CENTRADOS. Pedido por el dueño del repo, y es la única alineación que
+     funciona con nombres de ancho tan distinto: pegados a la izquierda, el
+     hueco sobrante se acumulaba todo al final del último renglón —«1 Juan ·
+     2 Juan · 3 Juan · Judas · Apocalipsis» dejaba medio panel en blanco a la
+     derecha— y la lista se leía torcida respecto a las dos pestañas del
+     testamento, que sí están en medio. Centrando, el sobrante se reparte a los
+     dos lados y la columna entera cae bajo el mismo eje. */
+  .rejilla-libros{ display:flex; flex-wrap:wrap; justify-content:center; gap:3px; }
   #cantoCuerpo.rejilla{ display:grid; grid-template-columns:repeat(auto-fill,minmax(32px,1fr));
                         gap:2px; align-content:start; }
 
@@ -3895,27 +4039,21 @@
      para los tamaños del panel, y por la misma razón: dos reglas de la misma
      fuerza las decide el orden.
 
-     Las cuatro pestañas no se pueden encoger por debajo de su palabra
-     —«Respaldo» mide lo que mide—, así que cuando no caben no se aprietan: se
-     SALEN, calladas, por el filo derecho del panel. Y la que se sale primero
-     es la equis, que va la última.
+     Las cuatro pestañas no se pueden encoger por debajo de su palabra, así que
+     cuando no caben no se aprietan: bajan al renglón siguiente enteras, que es
+     lo que hace flex-wrap con basis auto.
 
-     Medido en los anchos que existen, con la equis ya ancha: a 15 px con 9 de
-     relleno el renglón pide 394, cabe en 412 y en 430 y va al milímetro en
-     390. A 14 con 7 pide 338, así que entra en 390 con sitio de sobra y entra
-     también en 360 —342 justos—, que a 15 se salía.
-
-     EN 320 SIGUE SIN CABER, y ahí ya no llega ningún apretón razonable: no hay
-     tamaño legible con el que cuatro palabras y una equis quepan en 302 px.
-     Con esto pide 338, que es mejor de lo que había —en main pedía 361, con la
-     última pestaña Y la equis fuera del panel—, pero mejor no es bastante.
-     Queda apuntado como lo que es: un renglón que en la pantalla más estrecha
-     que existe hay que repensar —que bajen a dos filas, o que las palabras se
-     acorten— y no encoger. */
+     Y EL RENGLÓN ADELGAZÓ DOS VECES desde que esto se midió. Se fue la equis
+     —que era la que se salía primero, ver .pestanas— y «Formato» y «Respaldo»
+     se volvieron «AAA» y «Share», que son las dos palabras más cortas de las
+     cuatro. Lo que antes pedía 394 px en un teléfono de 412 hoy cabe con
+     holgura, y el caso de 320 px que quedaba apuntado como pendiente se
+     resolvió por el mismo camino que decía el apunte: acortar las palabras, no
+     encoger la letra.
+     El bloque se queda porque sigue sirviendo por debajo de 400: no para que
+     quepa, sino para que no vaya al milímetro. */
   @media (pointer:coarse) and (max-width: 400px){
     .pestanas button{ font-size:calc(14px * var(--escala-ui, 1)); padding:8px 7px; }
-    .pestanas .cerrar-x{ flex:0 0 36px; width:36px; min-width:36px;
-                         font:400 22px/44px Georgia, 'Times New Roman', serif; }
   }
 
   /* PANTALLA BAJA. Agrandar la letra tiene un costo que hay que pagar aquí:
@@ -3992,11 +4130,12 @@
     <select id="fsAhora" title="Elige el tamaño de un tirón"></select>
     <button class="btn" id="fsUp" title="Un punto más">A+</button>
   </span></div>
-  <div class="ajuste"><span class="lbl">glosa</span><span class="ctrl">
-    <button class="btn" id="fsGlosaDown" title="Letra de la glosa, un punto menos">A−</button>
-    <select id="fsGlosaAhora" title="Tamaño de letra de las glosas"></select>
-    <button class="btn" id="fsGlosaUp" title="Letra de la glosa, un punto más">A+</button>
-  </span></div>
+  <!-- AQUÍ VIVÍA EL TAMAÑO DE LETRA DE LA GLOSA, al lado del de la hoja. Se
+       mudó al principio de GLOSAS, que es su panel: ver #ctrlEtiquetas. Estar
+       juntos era cómodo para quien escribió el panel —son dos controles
+       idénticos— y confuso para quien lo usa: dos filas seguidas con los
+       mismos tres botones y un rótulo de una palabra de diferencia. Más de una
+       vez se encogió el libro entero queriendo encoger una nota. -->
   <div class="ajuste"><span class="lbl">tipografía</span><span class="ctrl">
     <select id="selFuente" title="Tipo de letra"></select>
   </span></div>
@@ -4109,6 +4248,28 @@
 </div>
 
 <div id="ctrlEtiquetas">
+<!-- EL TAMAÑO DE LA LETRA DE LAS GLOSAS, Y LO PRIMERO DEL PANEL.
+
+     Venía de FORMATO, donde estaba pegado al tamaño de la hoja: dos filas
+     seguidas con los mismos tres botones —A−, la lista, A+— y como toda
+     diferencia un rótulo de una palabra. Se confundían, y equivocarse ahí no
+     es un detalle: se repagina el libro entero por querer agrandar una nota.
+
+     Aquí no hay nada con qué confundirlo. Y va ARRIBA DEL TODO y no al final,
+     por lo mismo que el interruptor de las flechas está arriba en LIBROS: este
+     panel lleva debajo el índice de glosas, que es una lista larga con
+     desplazamiento, y un control al fondo de una lista con desplazamiento es
+     un control que no existe.
+
+     El rótulo pasa de «glosa» a «tamaño»: allí nombraba de QUÉ era el tamaño
+     —había dos—, y aquí, dentro de GLOSAS, «glosa» sería decir dos veces
+     dónde estamos y ninguna qué hace. -->
+<div class="ajuste"><span class="lbl">tamaño</span><span class="ctrl">
+  <button class="btn" id="fsGlosaDown" title="Letra de la glosa, un punto menos">A−</button>
+  <select id="fsGlosaAhora" title="Tamaño de letra de las glosas"></select>
+  <button class="btn" id="fsGlosaUp" title="Letra de la glosa, un punto más">A+</button>
+</span></div>
+
 <div class="ajuste fila-etiq">
   <span class="lbl">etiquetas</span>
   <select id="selDia"></select>
@@ -4403,7 +4564,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-SEP-26 19:15';
+window.GLOSS_BUILD = '20-SEP-26 07:17';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -13788,11 +13949,30 @@ function abrirVersiculos(cap, ancla){
    ahora ahí viven las glosas mismas, listadas y filtrables, así que se llama
    por lo que guarda y no por cómo se ordena. El cuarto es "Respaldo", que es
    literalmente lo que hacen exportar e importar. */
+/* LOS CUATRO RÓTULOS, Y POR QUÉ DOS CAMBIARON.
+
+   «Formato» y «Respaldo» eran las dos palabras más largas del renglón y las
+   dos que menos decían.
+
+   · FORMATO era el nombre del cajón, no el de lo que se va a buscar en él.
+     Nadie abre un panel «para formatear»: se abre porque la letra es pequeña,
+     y eso ahora lo dice el propio rótulo con tres aes decrecientes. Es un
+     signo, no una palabra: se reconoce sin leerse y sin traducirse. Ver
+     .pestanas .aaa.
+   · RESPALDO decía la mitad del panel. Ahí están exportar e importar, que es
+     sacar tus glosas de este navegador y meterlas en otro —o mandárselas a
+     alguien—, y eso es compartir tanto como respaldar. «Share» es lo que se
+     pidió y además cabe.
+
+   El rótulo puede llevar marcado, así que va en `html`. Y cuando lo lleva hace
+   falta `nombre`: un lector de pantalla leyendo «A A A» no dice nada, así que
+   se le pone al botón el aria-label y el title que la palabra daba sola. */
 const SECCIONES = [
-  { id:'libros',   rotulo:'Libros'   },
-  { id:'glosas',   rotulo:'Glosas'   },
-  { id:'formato',  rotulo:'Formato'  },
-  { id:'respaldo', rotulo:'Respaldo' },
+  { id:'libros',   html:'Libros' },
+  { id:'glosas',   html:'Glosas' },
+  { id:'formato',  html:'<span class="aaa" aria-hidden="true"><i>A</i><i>A</i><i>A</i></span>',
+                   nombre:'Tamaño de letra y aspecto de la hoja' },
+  { id:'respaldo', html:'Share' },
 ];
 /* el elemento de cada sección, en un solo sitio para no repetir el mapeo */
 const PANEL = { libros:'canto', glosas:'etiquetas', formato:'ajustes', respaldo:'respaldo' };
@@ -13835,8 +14015,8 @@ function barraPestanas(activa){
   b.className = 'pestanas';
   b.innerHTML = SECCIONES.map(x =>
     '<button data-sec="' + x.id + '"' + (x.id === activa ? ' class="aqui"' : '') +
-    '>' + x.rotulo + '</button>').join('') +
-    '<button type="button" class="cerrar-x" aria-label="Cerrar el panel">×</button>';
+    (x.nombre ? ' title="' + x.nombre + '" aria-label="' + x.nombre + '"' : '') +
+    '>' + x.html + '</button>').join('');
   /* El acuse se enciende AL APOYAR EL DEDO, y también cuando tocas la pestaña
      que ya está abierta: ahí no va a pasar nada más —abrirSeccion no se llama—
      y sin el borde ese toque parecería no haber entrado. Un recibo que solo
@@ -13859,12 +14039,6 @@ function barraPestanas(activa){
     }
   }
   b.addEventListener('click', ev => {
-    const x = ev.target.closest('.cerrar-x');
-    if (x){
-      ev.preventDefault(); ev.stopPropagation();
-      cerrarTodosLosRollos();
-      return;
-    }
     const t = ev.target.closest('[data-sec]'); if (!t) return;
     ev.preventDefault(); ev.stopPropagation();
     if (t.dataset.sec !== activa) abrirSeccion(t.dataset.sec, true);
@@ -13877,6 +14051,44 @@ function ponerBarra(el, activa){
   const vieja = el.querySelector('.pestanas');
   if (vieja) vieja.remove();
   el.insertBefore(barraPestanas(activa), el.firstChild);
+  ponerPie(el);
+}
+/* EL PIE CON LA SALIDA, y al revés que la barra: se hace UNA VEZ por panel y
+   luego solo se reordena.
+
+   La barra se rehace en cada apertura porque su contenido cambia —la pestaña
+   encendida es otra—. El pie dice siempre lo mismo, así que rehacerlo sería
+   tirar y volver a colgar el oyente cuatro veces por sesión para acabar con
+   el mismo botón. Se guarda el que ya existe y se vuelve a mandar al final,
+   que es lo único que de verdad hace falta: LIBROS repinta su cuerpo al
+   abrirse y GLOSAS añade el índice después, así que sin este reenvío el pie
+   quedaría en medio de la columna.
+
+   appendChild sobre un nodo que ya está dentro lo MUEVE, no lo duplica —es la
+   misma propiedad con la que se mudaron #ctrlConfig y #ctrlEtiquetas a sus
+   paneles—, así que llamarlo de más no cuesta nada.
+
+   :scope > es imprescindible en la búsqueda: sin él, un panel encontraría el
+   pie de cualquier descendiente, y #canto lleva dentro su propio cuerpo con
+   más botones. */
+function ponerPie(el){
+  let pie = el.querySelector(':scope > .pie-cerrar');
+  if (!pie){
+    pie = document.createElement('div');
+    pie.className = 'pie-cerrar';
+    pie.innerHTML = '<button type="button" class="btn cerrar-pie">CERRAR</button>';
+    /* stopPropagation porque el panel entero lleva encima el vigilante del
+       "clic fuera": sin esto el clic sube, el vigilante lo ve llegar desde
+       dentro y no pasa nada malo, pero el acuse de obrando —que escucha en el
+       panel— se quedaría encendido sobre un botón que ya no existe en la
+       pantalla. */
+    pie.addEventListener('click', ev => {
+      if (!ev.target.closest('.cerrar-pie')) return;
+      ev.preventDefault(); ev.stopPropagation();
+      cerrarTodosLosRollos();
+    });
+  }
+  el.appendChild(pie);
 }
 const SALIDA = 180;
 const panelDe = id => document.getElementById(PANEL[id]);
@@ -13946,6 +14158,14 @@ function marcarCabeza(cerrando){
      Se pone aquí porque marcarCabeza es por donde pasan las cuatro secciones
      al abrirse y al cerrarse. */
   c.setAttribute('aria-expanded', !cerrando && burbujaAbierta() ? 'true' : 'false');
+  /* Y DE PASO SE APAGAN LOS PUNTOS DE LAS ESQUINAS, que son del libro y el
+     libro está tapado. Va aquí y no en cada panel por la misma razón por la
+     que el aria-expanded está aquí: marcarCabeza es el único sitio por el que
+     pasan las cuatro secciones al abrirse Y al cerrarse. Repartido en los
+     cuatro, el día que alguien añada la quinta se olvidará en uno.
+     Se usa la misma cuenta que el atributo —burbujaAbierta()— y no seccionViva,
+     que dice CUÁL se está viendo y no SI hay algo puesto. Ver .stage.conpanel. */
+  stage.classList.toggle('conpanel', !cerrando && burbujaAbierta());
 }
 function alternarBurbuja(seccion){
   /* Si ya está abierta pero en otra sección, no cierra: cambia. Cerrar sería

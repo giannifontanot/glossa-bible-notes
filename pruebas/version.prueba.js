@@ -22,8 +22,7 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
   const s = await sesion.pagina.evaluate(async () => {
     document.getElementById('pgCabeza').click();
     await new Promise(z => setTimeout(z, 900));
-    const t = [...document.querySelectorAll('.pestanas button')]
-      .find(x => x.textContent.trim().toLowerCase() === 'respaldo');
+    const t = document.querySelector('.pestanas button[data-sec="respaldo"]');
     if (!t) return { falta:'la pestaña de Respaldo' };
     t.click();
     await new Promise(z => setTimeout(z, 700));

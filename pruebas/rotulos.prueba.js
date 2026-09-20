@@ -342,14 +342,21 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo,
   const cabeza = await p.evaluate(() => ({
     canto: getComputedStyle(document.getElementById('canto')).display,
     aria: document.getElementById('pgCabeza').getAttribute('aria-expanded'),
+    /* SE PREGUNTA POR data-sec Y NO POR LA PALABRA, y no es indiferente: la
+       pestaña de la letra ya no dice «Formato», dice tres aes de tamaño
+       decreciente, y la de Respaldo dice «Share». Lo que esta prueba quiere
+       saber es si desde el titulillo se llega a las cuatro secciones —no cómo
+       se llaman hoy—, y eso es justo lo que el identificador contesta sin
+       volver a romperse la próxima vez que cambie un rótulo. */
     pestanas: [...document.querySelectorAll('.pestanas button')]
-                .map(b => b.textContent.trim().toLowerCase()) }));
-  di('las pestañas que quedan a mano', cabeza.pestanas);
+                .map(b => b.dataset.sec) }));
+  di('las secciones que quedan a mano', cabeza.pestanas);
   vale('Enter en el titulillo abre la burbuja',
        cabeza.canto !== 'none' && cabeza.aria === 'true',
        cabeza.canto + ' · ' + cabeza.aria);
-  vale('y desde ahí se llega a Formato',
-       cabeza.pestanas.includes('formato'), cabeza.pestanas);
+  vale('y desde ahí se llega a las cuatro',
+       ['libros','glosas','formato','respaldo']
+         .every(x => cabeza.pestanas.includes(x)), cabeza.pestanas);
   await p.keyboard.press('Escape');
   await p.waitForTimeout(800);
   vale('Escape la cierra', await p.evaluate(() =>

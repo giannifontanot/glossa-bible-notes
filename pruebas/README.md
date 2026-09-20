@@ -55,16 +55,16 @@ diagnóstico. Salen con código distinto de cero si algo falla.
 | `separador` | la cinta de lectura: que hojear no cuente como leer, que la oferta salga una sola vez, que la cinta activa siga al lector sin arrastrar a las viejas, y que lo guardado sobreviva a recargar y a un almacén dañado |
 | `zoom` | que entrar y salir sean el mismo viaje —desborde cero de la letra sobre su papel—, la salida por el hueco y que el libro siga usándose de lejos, y que medir a media transición no contamine |
 | `movimiento-reducido` | que quien pidió menos movimiento no reciba el del zoom |
-| `libros` | cruzar al libro siguiente y volver, el trazo del canto, y que el panel de Libros se entere |
+| `libros` | cruzar al libro siguiente y volver, el trazo del canto, que el panel de Libros se entere, y que con el panel puesto no asome nada del libro —ni los cuatro puntos, ni los anillos rojos de los rótulos— |
 | `glosas` | la caja de escribir —es una glosa, no un formulario—, sus colores, y el vuelo |
 | `rotulos` | los dos rótulos, con dedo **y con ratón**, y que el del pie no se ponga blanco |
 | `etiquetas` | las cuatro maneras de etiquetar, los nombres raros, y que el control no mienta |
 | `cajon` | que el papel se corra con intención y termine el viaje solo, sin rebote |
 | `estreno` | las tres glosas que trae un lector recién abierto: que estén, que estén bien ancladas y —lo que de verdad vigila— que NO reaparezcan si las borras; y la portada, que tape al abrir y devuelva los toques al irse |
-| `contraste` | el riel de Formato: que el filtro llegue a la hoja **y al lienzo del pliegue** con el mismo número, que NO llegue al panel de Formato, y que sobreviva a la recarga |
+| `contraste` | el riel del panel de la letra (la pestaña «AAA», antes «Formato»): que el filtro llegue a la hoja **y al lienzo del pliegue** con el mismo número, que NO llegue al propio panel, y que sobreviva a la recarga |
 | `ventanita` | la salida de `#versoPleno`: que el toque de fuera la cierre venga del rastro o de una referencia dentro de una glosa, y que cerrarla no apague el panel de la glosa de debajo |
 | `portada` | la tapa del arranque: que cuente segundo y tres cuartos, que «hold» la pare y «continue» la suelte, y que la foto y las piedras que se le peguen sigan ahí al volver |
-| `version` | el sello del panel de Respaldo: que se vea, que tenga la forma pedida, y —lo que de verdad vigila— que la hora sea la de Dallas y no la del aparato |
+| `version` | el sello del panel de «Share» (antes «Respaldo»): que se vea, que tenga la forma pedida, y —lo que de verdad vigila— que la hora sea la de Dallas y no la del aparato |
 
 ## Cuatro reglas que costaron caro
 
