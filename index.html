@@ -1214,7 +1214,15 @@
             left:50%; transform:translateX(-50%); top:calc(100% + 3px); }
   .stage.guias #pg .pg-version::after{
             left:50%; transform:translateX(-50%); bottom:calc(100% + 3px); }
-  .stage.guias #btnGlosas::after{ right:0; bottom:calc(100% - 2px); }
+  /* EL SELLO SACA EL SUYO POR LA IZQUIERDA, y no encima. Pedido por el dueño
+     del repo viéndolo, y en cuanto se dice se ve por qué: encima del sello lo
+     que hay es la columna de glosas, que es justo lo que el sello abre. Un
+     letrero puesto ahí se lee como el rótulo de lo que tapa en vez del de lo
+     que hay debajo, y además queda a un dedo del punto del rastro, con el que
+     ya comparte esquina. Por la izquierda sale hacia el papel vacío y queda
+     apuntando al mismo sitio hacia el que se jala. */
+  .stage.guias #btnGlosas::after{
+            right:calc(100% - 6px); top:50%; transform:translateY(-50%); }
   /* Las flechas se anclan al canto por el que entran y no a su centro: miden
      20 px pegadas al filo de la pantalla, así que un letrero centrado sobre
      ellas se saldría por el lado. */
@@ -4736,7 +4744,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '20-SEP-26 09:14';
+window.GLOSS_BUILD = '20-SEP-26 09:16';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
