@@ -882,5 +882,141 @@ const ATERRIZA = 7000;
        extremos.izq === extremos.filoIzq && extremos.der === extremos.filoDer, extremos);
   await cerrarParcial(fl, 'las flechas');
 
+  /* ================================================================
+     LOS LETREROS DE LAS GUÍAS: QUÉ SE HACE EN CADA PUERTA.
+
+     El rojo decía dónde se puede tocar. No decía QUÉ hacer, y en esta hoja no
+     es lo mismo para todos: la perícopa pide un toque SOSTENIDO —uno corto ahí
+     no hace nada, y lo que se aprende de eso es que el rojo miente—, el sello
+     de la G se JALA, y los demás se tocan y ya.
+
+     Y LA PERÍCOPA ESTRENA ANILLO, que era la puerta que faltaba: un titulillo
+     de escena centrado entre versículos se lee como parte del texto —es lo que
+     se buscó al componerlo— y el precio era que no se descubría.
+
+     LO QUE DE VERDAD VIGILA ESTE BLOQUE NO ES QUE LAS PALABRAS ESTÉN, es que
+     NO PESEN. El alto de un .peri lo mide el paginador en las cuatro versiones
+     para cortar la hoja por el mismo sitio, así que un borde de 2 px o un
+     letrero en el flujo no son 2 px: son el libro entero repaginado, y encima
+     repaginado sólo mientras el interruptor esté encendido —o sea una hoja que
+     cambia de contenido al tocar una casilla—. Por eso se mide la hoja con las
+     guías puestas y sin ellas y se comparan los versículos que caben, el
+     último de ellos y la caja del propio titulillo. Si alguien cambia el
+     anillo por un borde, esto se pone rojo antes de que nadie lo vea leyendo.
+
+     Y SE COMPRUEBA QUE NO MIENTEN DE LEJOS. Con el zoom puesto el titulillo no
+     abre el panel y el toque largo de la perícopa se para en el guardia del
+     zoom —medido—, así que ahí los letreros se apagan. Un letrero encendido
+     sobre algo que no responde es lo que enseña a desconfiar del rojo. */
+  titulo('los letreros dicen qué se hace en cada puerta');
+  const ltr = await abrir();
+  const pltr = ltr.pagina;
+  const letreros = await pltr.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    /* content devuelve la forma con texto alternativo —«"click" / ""»— y esa
+       segunda mitad es justo lo que hay que vigilar: vacía quiere decir que un
+       lector de pantalla no lo lee. Sin ella oiría «click» pegado al final de
+       cada titulillo, noventa y cinco veces en Lucas. */
+    const dice = sel => {
+      const e = document.querySelector(sel);
+      return e ? getComputedStyle(e, '::after').content : '(no está)';
+    };
+    const anillo = sel => {
+      const e = document.querySelector(sel);
+      return e ? getComputedStyle(e).boxShadow : '(no está)';
+    };
+    const hoja = () => {
+      const pe = document.querySelector('#pgBody .peri');
+      const r = pe ? pe.getBoundingClientRect() : null;
+      const v = [...document.querySelectorAll('#pgBody .v')];
+      return { versos: v.length,
+               ultimo: v.length ? v[v.length - 1].textContent.trim().slice(0, 30) : null,
+               caja: r ? [Math.round(r.left), Math.round(r.top),
+                          Math.round(r.width), Math.round(r.height)] : null };
+    };
+    const guias = () => document.querySelector('.stage').classList.contains('guias');
+    const hayPeri = () => !!document.querySelector('#pgBody .peri');
+
+    const con = {
+      guias: guias(), hayPeri: hayPeri(),
+      peri: dice('#pgBody .peri'),
+      cabeza: dice('#pg .pg-cabeza'), version: dice('#pg .pg-version'),
+      piedras: dice('#btnPiedras'), cintas: dice('#btnCintas'),
+      zoom: dice('#btnZoom'), hist: dice('#btnHistorial'),
+      flecha: dice('#flechaDer'), g: dice('#btnGlosas'),
+      anilloPeri: anillo('#pgBody .peri'),
+      hoja: hoja() };
+
+    /* DE LEJOS. Se entra y se sale por donde se entra y se sale de verdad. */
+    document.getElementById('btnZoom').click();
+    await pausa(1500);
+    const lejos = { peri: dice('#pgBody .peri'), cabeza: dice('#pg .pg-cabeza'),
+                    version: dice('#pg .pg-version'),
+                    anilloPeri: anillo('#pgBody .peri'),
+                    anilloCabeza: anillo('#pg .pg-cabeza') };
+    const rr = document.querySelector('#pg .pg-inner').getBoundingClientRect();
+    document.getElementById('pg').dispatchEvent(new MouseEvent('click',
+      { bubbles:true, clientX:Math.round(rr.left + rr.width/2),
+        clientY:Math.round(rr.bottom + 60) }));
+    await pausa(1600);
+
+    /* Y AHORA SIN GUÍAS, por el interruptor de LIBROS, que es por donde se
+       apagan de verdad. */
+    document.getElementById('pgCabeza').click(); await pausa(800);
+    const t = document.querySelector('.pestanas button[data-sec="libros"]');
+    if (t) t.click();
+    await pausa(800);
+    const chk = document.getElementById('chkFlechas');
+    if (!chk) return { con, lejos, sinCasilla:true };
+    chk.click(); await pausa(700);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await pausa(1200);
+    const sin = { guias: guias(), peri: dice('#pgBody .peri'),
+                  anilloPeri: anillo('#pgBody .peri'), hoja: hoja() };
+    return { con, lejos, sin };
+  });
+  di('con guías', JSON.stringify(letreros.con));
+  di('de lejos', JSON.stringify(letreros.lejos));
+  di('sin guías', JSON.stringify(letreros.sin));
+  const c = letreros.con || {}, z = letreros.lejos || {}, n = letreros.sin || {};
+  const suena = (v, palabra) => typeof v === 'string' &&
+        v.indexOf('"' + palabra + '"') === 0;
+  const mudo = v => typeof v === 'string' && /\/\s*""\s*$/.test(v);
+  vale('(la prueba es válida) hay perícopa en la hoja y las guías están puestas',
+       c.hayPeri === true && c.guias === true,
+       'perícopa: ' + c.hayPeri + ' · guías: ' + c.guias);
+  vale('LA PERÍCOPA DICE «click largo», que es el gesto que de verdad pide',
+       suena(c.peri, 'click largo'), c.peri);
+  vale('  y estrena su anillo rojo, como los otros dos rótulos',
+       /rgb\(155,\s*42,\s*42\)/.test(c.anilloPeri || ''), c.anilloPeri);
+  vale('LA G DICE «jalar»', suena(c.g, 'jalar'), c.g);
+  vale('y los otros seis dicen «click»',
+       [c.cabeza, c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha]
+         .every(x => suena(x, 'click')),
+       [c.cabeza, c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha].join(' · '));
+  /* Decorativos: lo que el lector de pantalla necesita ya se lo dicen
+     aria-haspopup y aria-expanded, que están puestos desde antes. */
+  vale('  y NINGUNO se lee en voz alta',
+       [c.peri, c.g, c.cabeza, c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha]
+         .every(mudo),
+       'alternativo vacío en los nueve');
+  vale('DE LEJOS SE APAGAN, que ahí no responde ninguno',
+       z.peri === 'none' && z.cabeza === 'none' && z.version === 'none' &&
+       z.anilloPeri === 'none' && z.anilloCabeza === 'none',
+       JSON.stringify(z));
+  vale('y el interruptor se los lleva a todos',
+       n.guias === false && n.peri === 'none' && n.anilloPeri === 'none',
+       JSON.stringify(n));
+  /* LA QUE IMPORTA. */
+  const hc = (c.hoja || {}), hn = (n.hoja || {});
+  di('la hoja con guías', JSON.stringify(hc));
+  di('la hoja sin guías', JSON.stringify(hn));
+  vale('Y LA HOJA NO SE MUEVE NI UN PÍXEL AL ENCENDERLAS',
+       hc.versos === hn.versos && hc.ultimo === hn.ultimo &&
+       JSON.stringify(hc.caja) === JSON.stringify(hn.caja),
+       hc.versos + ' vs ' + hn.versos + ' versículos · titulillo ' +
+       JSON.stringify(hc.caja) + ' vs ' + JSON.stringify(hn.caja));
+  await cerrarParcial(ltr, 'los letreros');
+
   await cerrar(sesion);
 })();

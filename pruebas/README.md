@@ -58,6 +58,7 @@ diagnóstico. Salen con código distinto de cero si algo falla.
 | `libros` | cruzar al libro siguiente y volver, el trazo del canto, que el panel de Libros se entere, y que con el panel puesto no asome nada del libro —ni los cuatro puntos, ni los anillos rojos de los rótulos— |
 | `glosas` | la caja de escribir —es una glosa, no un formulario—, sus colores, y el vuelo |
 | `rotulos` | los dos rótulos, con dedo **y con ratón**, y que el del pie no se ponga blanco |
+| `navegar` | el rastro y los saltos, las flechas de pasar hoja, y los letreros de las guías: que cada puerta diga su gesto —«click largo» en la perícopa, «jalar» en la G, «click» en las demás—, que ninguno se lea en voz alta, y **que encenderlos no mueva la hoja ni un píxel** |
 | `etiquetas` | las cuatro maneras de etiquetar, los nombres raros, y que el control no mienta |
 | `cajon` | que el papel se corra con intención y termine el viaje solo, sin rebote |
 | `estreno` | las tres glosas que trae un lector recién abierto: que estén, que estén bien ancladas y —lo que de verdad vigila— que NO reaparezcan si las borras; y la portada, que tape al abrir y devuelva los toques al irse |
