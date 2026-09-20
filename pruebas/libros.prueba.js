@@ -768,6 +768,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
 
     return { guias, antes, con, centrados, equis, alFinal, sinGuias, casilla,
              anchoBoton: rb ? Math.round(rb.width) : 0,
+             altoBoton: rb ? Math.round(rb.height) : 0,
              anchoPanel: Math.round(rp.width),
              libros: libros.length, enLaFila: fila.length, tras };
   });
@@ -797,6 +798,15 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        fuera.anchoBoton + ' de ' + fuera.anchoPanel);
   vale('  y sigue a la vista con el panel corrido hasta el final',
        fuera.alFinal === true);
+  /* EL SUELO DE LA CASA, Y ESTA LÍNEA NACIÓ DE UN FALLO. La regla del alto se
+     escribió con `.cerrar-pie` a secas —(0,1,0)— y el bloque del teléfono trae
+     `.rollo .btn{ min-height:40px }`, que pesa (0,2,0) y le ganaba esté escrita
+     donde esté: la salida del panel era el único blanco de toque por debajo del
+     suelo, y la regla que lo decía estaba puesta sin hacer nada. Lo levantó la
+     revisión de Codex. Por eso se MIDE el alto pintado y no se confía en que la
+     regla exista. */
+  vale('  y con blanco de dedo, 48 px', fuera.altoBoton >= 48,
+       fuera.altoBoton + ' px');
   vale('  y CIERRA', fuera.tras.panel === 'none', fuera.tras.panel);
   vale('(la prueba es válida) la casilla se lee con las guías apagadas',
        fuera.sinGuias === true);

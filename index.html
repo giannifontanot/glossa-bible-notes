@@ -2944,7 +2944,22 @@
                margin:7px -9px -17px; padding:7px 0 0;
                background:linear-gradient(to bottom,
                  rgba(214,198,162,0) 0%, #d8c8a5 60%, #d2c19c 100%); }
-  .cerrar-pie{ display:block; width:100%; min-height:38px;
+  /* EL SELECTOR LLEVA DOS PADRES DE MÁS A PROPÓSITO, y no es manía de escribir
+     largo: sin ellos esta regla PIERDE.
+
+     `.cerrar-pie` a secas pesa (0,1,0) y el bloque del teléfono trae
+     `.rollo .btn, .rollo .chip{ min-height:40px }`, que pesa (0,2,0) y le gana
+     esté escrita donde esté. El botón salía de 40 px en vez de los 48 que dice
+     esta regla —medido: 40—, o sea que la salida del panel era el único blanco
+     de toque de la pantalla por debajo del suelo de la casa, y encima
+     callando: la regla estaba escrita y no hacía nada.
+
+     Ponerla después del bloque de 560 la habría arreglado hoy y dejado el
+     problema para el día que alguien mueva un bloque —ya pasó una vez en este
+     archivo, con las pestañas estrechas—. Con (0,3,0) gana esté donde esté, y
+     no depende de un orden que nadie puede ver leyendo una de las dos reglas.
+     Lo levantó la revisión de Codex. */
+  .rollo .pie-cerrar .cerrar-pie{ display:block; width:100%; min-height:38px;
                border-left:0; border-right:0; border-bottom:0;
                border-radius:0 0 4px 4px;
                letter-spacing:.12em; font-weight:700;
@@ -2952,7 +2967,7 @@
   /* Con el dedo, el suelo de la casa. Es la salida del panel: si hay un blanco
      de toque que no se puede fallar, es éste. */
   @media (pointer:coarse){
-    .cerrar-pie{ min-height:48px; }
+    .rollo .pie-cerrar .cerrar-pie{ min-height:48px; }
   }
   /* En modo transparente le pasa lo mismo que al botón de volver: el panel
      deja de dar fondo y el pie se queda flotando sobre la hoja. Se le pone su
@@ -2960,7 +2975,7 @@
      sobre papel casi blanco es crema invisible—. Ver #ajustes.cristal
      .vidrio-btn, que es el mismo arreglo y la misma razón. */
   #ajustes.cristal .pie-cerrar{ background:none; }
-  #ajustes.cristal .cerrar-pie{ background:rgba(255,253,247,.92); color:#000; }
+  #ajustes.cristal .pie-cerrar .cerrar-pie{ background:rgba(255,253,247,.92); color:#000; }
   .rollo, .fly, #cantoCuerpo{ scrollbar-width:none; -ms-overflow-style:none; }
   .rollo::-webkit-scrollbar, .fly::-webkit-scrollbar,
   #cantoCuerpo::-webkit-scrollbar{ width:0; height:0; display:none; }
@@ -4565,7 +4580,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '20-SEP-26 07:19';
+window.GLOSS_BUILD = '20-SEP-26 07:25';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
