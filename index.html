@@ -1180,8 +1180,24 @@
             padding:1px 5px 2px; border-radius:7px;
             background:transparent;
             box-shadow:inset 0 0 0 1px rgba(155,42,42,.55);
-            font:600 calc(8.5px * var(--escala-ui, 1))/1.35 var(--ui);
-            letter-spacing:.06em; text-transform:none;
+            /* AL TAMAÑO DE LA LETRA DEL LIBRO, que es lo que se pidió, y no
+               a los 8,5 px de cromo con los que nació.
+
+               No lleva --escala-ui: esa es la escala del CROMO, un factor con
+               freno —el panel crece menos que la hoja porque la tipografía de
+               interfaz sienta más grande a igual cuerpo— y aquí no hace falta
+               frenar nada, porque no se busca que PAREZCA del tamaño del
+               libro, se pidió que LO SEA. --fs-libro son los píxeles tal cual.
+               El de la perícopa heredaría --fs de la propia hoja, pero los
+               otros ocho cuelgan de la escena y ahí no llega; con la variable
+               de la raíz los nueve miden lo mismo, que es lo que hace que se
+               lean como un solo juego de señales.
+
+               El peso baja de 600 a 500: a 8,5 px la seminegrita era lo que
+               hacía legible una palabra diminuta; al cuerpo del libro esa
+               misma seminegrita grita más que el texto que acompaña. */
+            font:500 var(--fs-libro, 15px)/1.25 var(--ui);
+            letter-spacing:.02em; text-transform:none;
             color:var(--rojo-galon, #9b2a2a);
             /* EL HALO VA EN LA LETRA, NO EN LA CAJA, y ese cambio es el
                encargo entero.
@@ -4769,7 +4785,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '20-SEP-26 09:19';
+window.GLOSS_BUILD = '20-SEP-26 09:24';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18699,6 +18715,19 @@ function reflejarTamano(){
 function escalarInterfaz(){
   const k = 1 + (fontSize - 15) / 15 * 0.6;
   document.documentElement.style.setProperty('--escala-ui', k.toFixed(4));
+  /* Y EL TAMAÑO DEL LIBRO A PELO, que no es lo mismo que la escala.
+     --escala-ui es un FACTOR con freno —el cromo crece menos que la letra de
+     la hoja, por lo de la equis de la tipografía de interfaz, está contado
+     donde se decidió—; esto es los píxeles tal cual, para lo poco que tiene
+     que medir exactamente lo que mide el libro.
+     Hoy lo usan los letreros de las guías: se pidió que midan lo que mide la
+     letra de la hoja, y la mitad de ellos —los cuatro puntos, las flechas, el
+     sello— cuelgan de la escena y no de #pg, así que no heredan el --fs que la
+     hoja se escribe a sí misma. Va con nombre propio y no reusando --fs: hay
+     reglas fuera de la hoja que leen var(--fs, 15px) contando con que ahí no
+     esté puesto, y ponerlo en la raíz se las llevaría por delante sin decir
+     nada. */
+  document.documentElement.style.setProperty('--fs-libro', fontSize + 'px');
 }
 function ponerTamano(n){
   const v = Math.max(FS_MIN, Math.min(FS_MAX, Math.round(n)));
