@@ -86,7 +86,7 @@ const FUERA = `async () => {
     if (document.getElementById('etiquetas').classList.contains('abierto')) return;
     document.getElementById('pgCabeza').click();
     await new Promise(z => setTimeout(z, 900));
-    const t = [...document.querySelectorAll('.pestanas button')].find(x => /glosas/i.test(x.textContent));
+    const t = document.querySelector('.pestanas button[data-sec="glosas"]');
     if (t) t.click();
     await new Promise(z => setTimeout(z, 900));
   });

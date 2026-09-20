@@ -473,8 +473,7 @@ const ATERRIZA = 7000;
     const cabeza = document.getElementById('pgCabeza').textContent.trim();
     document.getElementById('pgCabeza').click();
     await new Promise(z => setTimeout(z, 700));
-    const t = [...document.querySelectorAll('.pestanas button')]
-      .find(x => x.textContent.trim().toLowerCase().includes('glosa'));
+    const t = document.querySelector('.pestanas button[data-sec="glosas"]');
     if (!t) return { sinPestana:true };
     t.click();
     await new Promise(z => setTimeout(z, 1200));
@@ -667,8 +666,7 @@ const ATERRIZA = 7000;
                     filoIzq: vivo('edgeL'), filoDer: vivo('edgeR') };
     /* El interruptor vive en LIBROS, que es el panel de moverse por el libro. */
     document.getElementById('pgCabeza').click(); await pausa(700);
-    const pest = [...document.querySelectorAll('.pestanas button')]
-                   .find(b => /libros/i.test(b.textContent));
+    const pest = document.querySelector('.pestanas button[data-sec="libros"]');
     if (pest) pest.click();
     await pausa(700);
     const chk = document.getElementById('chkFlechas');

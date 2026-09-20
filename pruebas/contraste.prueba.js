@@ -81,8 +81,7 @@ async function ponerContraste(pagina, pct){
   const abrioAlPrincipio = await pagina.evaluate(async () => {
     document.getElementById('pgCabeza').click();
     await new Promise(z => setTimeout(z, 900));
-    const t = [...document.querySelectorAll('.pestanas button')]
-      .find(x => x.textContent.trim().toLowerCase() === 'formato');
+    const t = document.querySelector('.pestanas button[data-sec="formato"]');
     if (!t) return false;
     t.click();
     await new Promise(z => setTimeout(z, 800));
@@ -386,8 +385,7 @@ async function ponerContraste(pagina, pct){
   const abierto = await pagina.evaluate(async () => {
     document.getElementById('pgCabeza').click();
     await new Promise(z => setTimeout(z, 900));
-    const t = [...document.querySelectorAll('.pestanas button')]
-      .find(x => x.textContent.trim().toLowerCase() === 'formato');
+    const t = document.querySelector('.pestanas button[data-sec="formato"]');
     if (!t) return { falta:'la pestaña de Formato' };
     t.click();
     await new Promise(z => setTimeout(z, 800));

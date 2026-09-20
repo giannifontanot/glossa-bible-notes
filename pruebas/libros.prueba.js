@@ -129,8 +129,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
   const crecer = await pl.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     document.getElementById('pgCabeza').click(); await pausa(700);
-    const pest = [...document.querySelectorAll('.pestanas button')]
-                   .find(b => /libros/i.test(b.textContent));
+    const pest = document.querySelector('.pestanas button[data-sec="libros"]');
     if (pest) pest.click();
     await pausa(700);
     const libros = [...document.querySelectorAll('#canto .rejilla-libros .tabo')];
@@ -241,8 +240,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     };
     const abrirLibros = async () => {
       document.getElementById('pgCabeza').click(); await pausa(700);
-      const pest = [...document.querySelectorAll('.pestanas button')]
-                     .find(b => /libros/i.test(b.textContent));
+      const pest = document.querySelector('.pestanas button[data-sec="libros"]');
       if (pest) pest.click();
       await pausa(800);
     };
@@ -364,8 +362,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
   const trasRecargar = await pp.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     document.getElementById('pgCabeza').click(); await pausa(700);
-    const pest = [...document.querySelectorAll('.pestanas button')]
-                   .find(b => /libros/i.test(b.textContent));
+    const pest = document.querySelector('.pestanas button[data-sec="libros"]');
     if (pest) pest.click();
     await pausa(800);
     return { marcada: (document.querySelector('.canto-tab.aqui') || {}).dataset.testa,
@@ -412,8 +409,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     };
     const cab = () => document.getElementById('pgCabeza').textContent.trim();
     document.getElementById('pgCabeza').click(); await pausa(800);
-    const pest = [...document.querySelectorAll('.pestanas button')]
-                   .find(b => /libros/i.test(b.textContent));
+    const pest = document.querySelector('.pestanas button[data-sec="libros"]');
     if (pest) pest.click();
     await pausa(900);
     /* El ÚLTIMO de los que sí están en los datos: el salto más largo que
@@ -519,8 +515,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     const libro = document.querySelector('#canto .tabo.viva') ||
                   document.querySelector('#canto .tabo');
     const tab = document.querySelector('.canto-tab');
-    const seccion = [...document.querySelectorAll('.pestanas button')]
-                      .find(b => /libros/i.test(b.textContent));
+    const seccion = document.querySelector('.pestanas button[data-sec="libros"]');
     return { libro: lee(libro), tab: lee(tab), seccion: lee(seccion) };
   });
   di('los chiclets', JSON.stringify(chiclets));
@@ -590,8 +585,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await pausa(900);
     document.getElementById('pgCabeza').click(); await pausa(800);
-    const pest = [...document.querySelectorAll('.pestanas button')]
-                   .find(b => /libros/i.test(b.textContent));
+    const pest = document.querySelector('.pestanas button[data-sec="libros"]');
     if (pest) pest.click();
     await pausa(900);
     return { pedido, traTocar, traZarandear, sigueAbierto, alVolverAAbrir: marca() };
@@ -665,6 +659,160 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        cascada.malas && cascada.malas.length ? JSON.stringify(cascada.malas)
                                              : JSON.stringify(cascada.vistos));
   await cerrarParcial(ses2, 'tocar un libro');
+
+  /* ================================================================
+     EL PANEL, POR FUERA: QUÉ SE VE Y QUÉ NO MIENTRAS ESTÁ PUESTO.
+
+     Cinco encargos del dueño del repo que son el mismo encargo mirado desde
+     cinco sitios: un panel abierto tiene que ser lo único que se lee.
+
+     · LOS CUATRO PUNTOS Y LOS DOS ANILLOS ROJOS SE APAGAN. Bajarlos de capa no
+       bastó y por eso esto se mide y no se confía: el panel mide lo que mide
+       su contenido —805 de 915 en un teléfono— así que los dos puntos de abajo
+       y el rótulo del pie asomaban POR DEBAJO de él. Nunca hubo nada que se
+       les pusiera encima. Se comprueba con el interruptor de las guías
+       ENCENDIDO, que es el caso que se vio en pantalla y el único en el que
+       hay anillo que apagar.
+     · LOS LIBROS, CENTRADOS. Se mide contra el eje de la caja y no contra una
+       lista de posiciones: lo que se pidió es que la columna caiga bajo el
+       mismo eje que las dos pestañas del testamento, no que cada nombre esté
+       en un píxel concreto.
+     · LA SALIDA ES EL PIE Y YA NO LA EQUIS. Se mira que la equis no esté —si
+       volviera, habría dos salidas diciendo lo mismo— que el botón llegue de
+       canto a canto del panel, y sobre todo QUE CIERRE: un pie bonito que no
+       cierra es peor que la equis que quitó.
+     · Y QUE SE VEA SIEMPRE, que es lo que se pidió con esas palabras. Se
+       comprueba donde de verdad puede fallar: con el panel desplazado hasta
+       el final. Pegado, sigue apoyado en el canto de abajo; suelto, se habría
+       ido con el contenido.
+     · EL RECUADRO ROJO DE LA CASILLA ES PERMANENTE. Se lee con las guías
+       APAGADAS, que es el único estado en el que la afirmación significa algo:
+       encendidas, un anillo rojo no distingue entre permanente y prestado. */
+  titulo('el panel abierto es lo único que se lee');
+  const ses3 = await abrir();
+  const p3 = ses3.pagina;
+  const fuera = await p3.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const abrirLibros = async () => {
+      document.getElementById('pgCabeza').click(); await pausa(700);
+      const t = document.querySelector('.pestanas button[data-sec="libros"]');
+      if (t) t.click();
+      await pausa(800);
+    };
+    const visto = id => {
+      const e = document.getElementById(id);
+      const c = getComputedStyle(e);
+      return c.display !== 'none' && c.visibility !== 'hidden' && +c.opacity > .01;
+    };
+    const anillo = sel => getComputedStyle(document.querySelector(sel)).boxShadow;
+    const LOS_PUNTOS = ['btnZoom', 'btnHistorial', 'btnPiedras', 'btnCintas'];
+
+    /* Las guías nacen encendidas en una instalación nueva, así que esto es
+       tal cual lo que ve quien abre el libro por primera vez. */
+    const guias = document.querySelector('.stage').classList.contains('guias');
+    const antes = { puntos: LOS_PUNTOS.filter(visto),
+                    cabeza: anillo('#pg .pg-cabeza'),
+                    version: anillo('#pg .pg-version') };
+    await abrirLibros();
+    const con = { puntos: LOS_PUNTOS.filter(visto),
+                  sello: visto('btnGlosas'),
+                  cabeza: anillo('#pg .pg-cabeza'),
+                  version: anillo('#pg .pg-version') };
+
+    /* CENTRADOS: el eje del bloque de nombres contra el eje de su caja. */
+    const rej = document.querySelector('#canto .rejilla-libros');
+    const libros = [...document.querySelectorAll('#canto .tabo')]
+                     .map(b => b.getBoundingClientRect());
+    const rr = rej.getBoundingClientRect();
+    /* El último renglón es el que delata la alineación: es el que sobra
+       sitio. Se cogen los que comparten la fila del último libro. */
+    const ultimo = libros[libros.length - 1];
+    const fila = libros.filter(r => Math.abs(r.top - ultimo.top) < 4);
+    const ejeFila = (fila[0].left + fila[fila.length - 1].right) / 2;
+    const ejeCaja = rr.left + rr.width / 2;
+    const centrados = Math.round(ejeFila - ejeCaja);
+
+    /* EL PIE. */
+    const panel = document.getElementById('canto');
+    const rp = panel.getBoundingClientRect();
+    const btn = document.querySelector('#canto .pie-cerrar .cerrar-pie');
+    const rb = btn ? btn.getBoundingClientRect() : null;
+    const equis = document.querySelectorAll('.pestanas .cerrar-x').length;
+    /* Con el contenido corrido hasta el final: es donde un pie no pegado se
+       habría ido de la pantalla. */
+    const cuerpo = document.getElementById('cantoCuerpo');
+    cuerpo.scrollTop = cuerpo.scrollHeight;
+    panel.scrollTop = panel.scrollHeight;
+    await pausa(300);
+    const rb2 = btn ? btn.getBoundingClientRect() : null;
+    const alFinal = !!rb2 && rb2.bottom <= rp.bottom + 2 && rb2.top >= rp.top &&
+                    rb2.height > 20;
+
+    /* EL RECUADRO DE LA CASILLA, con las guías apagadas. */
+    const chk = document.getElementById('chkFlechas');
+    if (chk && chk.checked){ chk.click(); await pausa(600); }
+    const sinGuias = !document.querySelector('.stage').classList.contains('guias');
+    const casilla = getComputedStyle(document.querySelector('.canto-opcion')).boxShadow;
+
+    /* Y QUE EL BOTÓN CIERRE DE VERDAD. Con el toque de la casa, no con
+       .click(): es un botón del panel y pasa por los mismos oyentes. */
+    const r = btn.getBoundingClientRect();
+    const o = { bubbles:true, cancelable:true, pointerId:91, pointerType:'touch',
+                isPrimary:true, clientX: r.left + r.width/2, clientY: r.top + r.height/2 };
+    btn.dispatchEvent(new PointerEvent('pointerdown', o)); await pausa(30);
+    btn.dispatchEvent(new PointerEvent('pointerup', o));
+    btn.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, o)));
+    await pausa(900);
+    const tras = { panel: getComputedStyle(panel).display,
+                   puntos: LOS_PUNTOS.filter(visto) };
+
+    return { guias, antes, con, centrados, equis, alFinal, sinGuias, casilla,
+             anchoBoton: rb ? Math.round(rb.width) : 0,
+             altoBoton: rb ? Math.round(rb.height) : 0,
+             anchoPanel: Math.round(rp.width),
+             libros: libros.length, enLaFila: fila.length, tras };
+  });
+  di('sin panel', JSON.stringify(fuera.antes));
+  di('con panel', JSON.stringify(fuera.con));
+  vale('(la prueba es válida) las guías nacen encendidas', fuera.guias === true);
+  vale('  y sin panel los cuatro puntos se ven', fuera.antes.puntos.length === 4,
+       fuera.antes.puntos.join(' · '));
+  vale('  y los dos rótulos llevan su anillo rojo',
+       /rgb/.test(fuera.antes.cabeza) && /rgb/.test(fuera.antes.version));
+  vale('CON EL PANEL PUESTO NO QUEDA NI UN PUNTO',
+       fuera.con.puntos.length === 0, fuera.con.puntos.join(' · ') || 'ninguno');
+  vale('  ni el sello de la G, que caía sobre el botón de cerrar',
+       fuera.con.sello === false);
+  vale('  ni los anillos rojos de los dos rótulos',
+       fuera.con.cabeza === 'none' && fuera.con.version === 'none',
+       fuera.con.cabeza + ' · ' + fuera.con.version);
+  vale('y al cerrar vuelven los cuatro', fuera.tras.puntos.length === 4,
+       fuera.tras.puntos.join(' · '));
+  di('el eje de la última fila', fuera.centrados + ' px del centro de la caja');
+  vale('LOS LIBROS VAN CENTRADOS', Math.abs(fuera.centrados) <= 2,
+       fuera.centrados + ' px  (' + fuera.enLaFila + ' en la última fila de ' +
+       fuera.libros + ')');
+  vale('LA EQUIS YA NO ESTÁ EN LAS PESTAÑAS', fuera.equis === 0, fuera.equis);
+  vale('y el pie cubre el panel de lado a lado',
+       fuera.anchoBoton === fuera.anchoPanel,
+       fuera.anchoBoton + ' de ' + fuera.anchoPanel);
+  vale('  y sigue a la vista con el panel corrido hasta el final',
+       fuera.alFinal === true);
+  /* EL SUELO DE LA CASA, Y ESTA LÍNEA NACIÓ DE UN FALLO. La regla del alto se
+     escribió con `.cerrar-pie` a secas —(0,1,0)— y el bloque del teléfono trae
+     `.rollo .btn{ min-height:40px }`, que pesa (0,2,0) y le ganaba esté escrita
+     donde esté: la salida del panel era el único blanco de toque por debajo del
+     suelo, y la regla que lo decía estaba puesta sin hacer nada. Lo levantó la
+     revisión de Codex. Por eso se MIDE el alto pintado y no se confía en que la
+     regla exista. */
+  vale('  y con blanco de dedo, 48 px', fuera.altoBoton >= 48,
+       fuera.altoBoton + ' px');
+  vale('  y CIERRA', fuera.tras.panel === 'none', fuera.tras.panel);
+  vale('(la prueba es válida) la casilla se lee con las guías apagadas',
+       fuera.sinGuias === true);
+  vale('EL RECUADRO ROJO DE LA CASILLA ES PERMANENTE',
+       /rgb\(155,\s*42,\s*42\)/.test(fuera.casilla), fuera.casilla);
+  await cerrarParcial(ses3, 'el panel por fuera');
 
   await cerrar(sesion);
 })();

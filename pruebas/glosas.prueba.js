@@ -1717,8 +1717,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        se cierra, y va ANTES en orden, asi que a la segunda vuelta el
        querySelectorAll suelto cogia esa y el clic no abria nada: la lista
        seguia siendo la de antes y la glosa nueva no salia. */
-    const t = [...document.querySelectorAll('#canto .pestanas button')]
-                .find(x => /glosas/i.test(x.textContent));
+    const t = document.querySelector('#canto .pestanas button[data-sec="glosas"]');
     if (t) t.click();
     await new Promise(z => setTimeout(z, 900));
   });
@@ -2746,8 +2745,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     document.getElementById('pgCabeza').click();
     await pausa(700);
-    const pest = [...document.querySelectorAll('.pestanas button')]
-                   .find(b => /respaldo/i.test(b.textContent));
+    const pest = document.querySelector('.pestanas button[data-sec="respaldo"]');
     if (pest) pest.click();
     await pausa(600);
   });

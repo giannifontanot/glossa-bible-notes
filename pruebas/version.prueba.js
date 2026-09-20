@@ -22,8 +22,7 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
   const s = await sesion.pagina.evaluate(async () => {
     document.getElementById('pgCabeza').click();
     await new Promise(z => setTimeout(z, 900));
-    const t = [...document.querySelectorAll('.pestanas button')]
-      .find(x => x.textContent.trim().toLowerCase() === 'respaldo');
+    const t = document.querySelector('.pestanas button[data-sec="respaldo"]');
     if (!t) return { falta:'la pestaña de Respaldo' };
     t.click();
     await new Promise(z => setTimeout(z, 700));
@@ -38,7 +37,30 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
              medida: Math.round(r.width) + 'x' + Math.round(r.height),
              opacidad: +cs.opacity, grosor: +cs.fontWeight,
              tamano: parseFloat(cs.fontSize),
-             alFinal: el === el.parentElement.lastElementChild,
+             /* «LO ÚLTIMO» YA NO ES EL ÚLTIMO HIJO, y la diferencia importa.
+                El panel estrenó un pie con el botón de CERRAR, que va pegado
+                al canto de abajo y es el último hijo de los cuatro paneles.
+                Con lastElementChild esta línea pasó a preguntar «¿es el sello
+                el botón de cerrar?», que no es lo que vino a vigilar: lo que
+                se pidió es que el sello sea LO ÚLTIMO QUE SE LEE del panel,
+                o sea el final de su contenido. El pie no es contenido del
+                panel de Share, es el marco que llevan los cuatro. */
+             alFinal: (() => {
+               const hs = [...el.parentElement.children]
+                            .filter(x => !x.classList.contains('pie-cerrar'));
+               return el === hs[hs.length - 1];
+             })(),
+             tapado: (() => {
+               /* Y QUE EL PIE NO SE LO COMA. Un pie pegado al canto de abajo
+                  puede quedar ENCIMA del último renglón del contenido, y el
+                  sello es justo ese último renglón: la comprobación de arriba
+                  seguiría en verde con el sello debajo del botón. Se mira que
+                  su mitad de arriba quede por encima del pie. */
+               const pie = el.parentElement.querySelector(':scope > .pie-cerrar');
+               if (!pie) return false;
+               const a = el.getBoundingClientRect(), b = pie.getBoundingClientRect();
+               return a.top + a.height / 2 > b.top;
+             })(),
              notaNormal: parseFloat(getComputedStyle(
                document.querySelector('#respaldo .nota-respaldo')).fontSize) };
   });
@@ -53,7 +75,8 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
   /* Y opaco: el sello anterior estaba al 60%, o sea puesto para no molestar,
      que para este dato es justo lo contrario de lo que hace falta. */
   vale('sin atenuar', s.opacidad >= 0.9, s.opacidad);
-  vale('es lo último del panel', s.alFinal);
+  vale('es lo último que se lee del panel', s.alFinal);
+  vale('  y el pie de CERRAR no se lo come', s.tapado === false, s.tapado);
   vale('en negrita', s.grosor >= 700, s.grosor);
   vale('más grande que las notas', s.tamano > s.notaNormal,
        s.tamano + ' px contra ' + s.notaNormal);
