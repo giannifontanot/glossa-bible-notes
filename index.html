@@ -1450,10 +1450,16 @@
      Los cuatro puntos son del LIBRO, y el libro está tapado: eso ya se dijo
      una vez bajándolos de la capa 7 a la 5, por debajo del panel (6). No bastó,
      y la razón es de geometría y no de pila: el panel mide lo que mide su
-     contenido —805 de 915 en un teléfono— así que los dos puntos de abajo y el
-     rótulo del pie se quedan ASOMANDO por debajo de él. Nunca hubo nada que se
-     les pusiera encima. Tapar eso estirando el panel hasta el suelo sería
-     mentir sobre cuánto contenido tiene.
+     contenido —cuando esto se escribió, 805 de 915 en un teléfono— así que los
+     dos puntos de abajo y el rótulo del pie se quedan ASOMANDO por debajo de
+     él. Nunca hubo nada que se les pusiera encima. Tapar eso estirando el
+     panel hasta el suelo sería mentir sobre cuánto contenido tiene.
+
+     Y SIGUE HACIENDO FALTA CON EL TOPE EN EL 100%. Subirlo llena la escena en
+     LIBROS y en GLOSAS, que son los dos que tienen contenido de sobra, pero
+     FORMATO mide 674 de 915 y RESPALDO 335: por debajo de ellos asoma justo lo
+     que asomaba antes. Un tope no es un alto; el panel sigue midiendo lo suyo
+     y esta regla sigue siendo la única que funciona en los cuatro.
 
      Así que mientras hay panel, no se pintan. Es lo mismo que ya se decía con
      la capa, dicho de la única manera que funciona también donde el panel no
@@ -2871,7 +2877,15 @@
      toques llegan solas a las pestañas. */
   /* DOS ROLLOS con el mismo comportamiento: ajustes y libros. Todo lo que
      es "hoja que se desenrolla" vive en .rollo; cada uno solo pone lo suyo. */
-  .rollo{ position:absolute; top:0; left:0; right:0; height:auto; max-height:88%; z-index:6;
+  /* EL TOPE ES LA ESCENA ENTERA, y estuvo en el 88%. Aquel doce por ciento
+     era una cuerda de seguridad —que la hoja asomara siempre por debajo del
+     panel, para no olvidar que hay un libro detrás— y lo que costaba era el
+     sitio de tres o cuatro renglones de contenido en cada panel: la lista de
+     libros perdía una fila, el índice de glosas una glosa y media. El dueño
+     del repo pidió el alto entero, y la razón de la cuerda se había ido por
+     su cuenta: desde que la escena se apaga con un velo, lo que se veía
+     asomando no era el libro, era papel apagado. Ver #veloPanel. */
+  .rollo{ position:absolute; top:0; left:0; right:0; height:auto; max-height:100%; z-index:6;
           transform-origin:top center;
           /* El relleno de abajo es mayor que el de arriba a propósito: arriba
              ya respira con la cabecera y su hueco, abajo no había nada entre
@@ -3375,8 +3389,13 @@
   .rollo::-webkit-scrollbar, .fly::-webkit-scrollbar,
   #cantoCuerpo::-webkit-scrollbar{ width:0; height:0; display:none; }
   #ajustes, #etiquetas{ overflow:visible; }
-  /* Glosas abierta: casi toda la hoja, para manejar el índice. */
-  #etiquetas.abierto{ max-height:95%; height:95%; overflow:hidden; }
+  /* Glosas abierta: la escena entera, para manejar el índice. Es el único
+     panel con alto FIJO y no de contenido, y lo necesita: su índice de glosas
+     es flexible y se estira a lo que sobre, así que contra un alto que sale
+     del contenido no habría nada que repartir. Estuvo en el 95%; ver el tope
+     de .rollo, que es donde está contado por qué ya no hace falta dejar la
+     rendija de abajo. */
+  #etiquetas.abierto{ max-height:100%; height:100%; overflow:hidden; }
   /* Rejilla que se acomoda sola. Ahora que los botones ya no repiten el
      nombre de su renglón caben más columnas, y el cajón queda bajito: la
      idea es ver cambiar el texto mientras mueves los controles. */
@@ -4318,9 +4337,9 @@
        aportan contenido —la base en cero les quita esa voz—, así que el panel
        se encogía a 21px y se llevaba las dos listas por delante. Con un alto
        definido, el reparto tiene de dónde salir.
-       Es el mismo 88% que ya era su tope, así que en la práctica solo deja de
+       Es el mismo 100% que ya es su tope, así que en la práctica solo deja de
        encogerse cuando hay pocos libros — y libros siempre hay 66. */
-    #canto{ height:88%; }
+    #canto{ height:100%; }
     /* UNA SOLA LISTA, LA DEL TESTAMENTO ELEGIDO. Aquí hubo dos mitades, una
        por testamento, cada una con su desplazamiento; la regla de .testamento
        que las repartía se fue con ellas. Lo que queda vale igual: la rejilla
@@ -4498,7 +4517,7 @@
 
   /* PANTALLA BAJA. Agrandar la letra tiene un costo que hay que pagar aquí:
      el panel de Formato pasó de 264px de contenido a 373px, y .rollo está
-     topado en max-height:88%. Mientras la pantalla es alta no pasa nada
+     topado en el alto de la escena (era el 88%, hoy el 100%). Mientras la pantalla es alta no pasa nada
      —en vertical sobran cuatrocientos píxeles— pero en una pantalla baja el
      tope muerde, y como #ajustes y #etiquetas llevan overflow:visible, lo que
      sobra no se recorta con barra: se derrama y lo tapa .stage, que sí lleva
@@ -5022,7 +5041,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 06:31';
+window.GLOSS_BUILD = '21-SEP-26 06:36';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';

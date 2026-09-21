@@ -545,7 +545,12 @@ const FUERA = `async () => {
     const arriba = cajas.length ? Math.min(...cajas.map(r => r.top)) : 0;
     const primera = cajas.filter(r => Math.abs(r.top - arriba) < 3)
                          .sort((a, b) => a.left - b.left)[0];
+    const rst = document.querySelector('.stage').getBoundingClientRect();
     return { apagada,
+             /* Y DE PASO EL ALTO: este panel es el único con alto fijo —su
+                índice es flexible y necesita de dónde estirarse— y subió del
+                95% al 100% de la escena. */
+             altoPanel: Math.round(rp.height), escena: Math.round(rst.height),
              encendida: { fila: getComputedStyle(fila).display,
                           pulsado: bot.getAttribute('aria-pressed'),
                           encendido: bot.classList.contains('active') },
@@ -572,6 +577,9 @@ const FUERA = `async () => {
   /* Y sigue siendo un blanco que se acierta: bajarlas era el encargo,
      dejarlas en una raya no. */
   vale('  y siguen siendo tocables', tira.altoMax >= 24, tira.altoMax + ' px');
+  vale('EL PANEL DE GLOSAS LLENA LA ESCENA A LO ALTO',
+       Math.abs(tira.altoPanel - tira.escena) <= 1,
+       tira.altoPanel + ' de ' + tira.escena);
   vale('la tira tiene techo y se corre por dentro',
        tira.tope !== 'none' && parseFloat(tira.tope) > 0 &&
        /auto|scroll/.test(tira.desborde),

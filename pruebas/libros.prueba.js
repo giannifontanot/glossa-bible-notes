@@ -668,9 +668,12 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
 
      · LOS CUATRO PUNTOS Y LOS DOS ANILLOS ROJOS SE APAGAN. Bajarlos de capa no
        bastó y por eso esto se mide y no se confía: el panel mide lo que mide
-       su contenido —805 de 915 en un teléfono— así que los dos puntos de abajo
-       y el rótulo del pie asomaban POR DEBAJO de él. Nunca hubo nada que se
-       les pusiera encima. Se comprueba con el interruptor de las guías
+       su contenido, así que los dos puntos de abajo y el rótulo del pie
+       asomaban POR DEBAJO de él. Nunca hubo nada que se les pusiera encima.
+       El tope de los paneles subió del 88% al 100% y esto no cambia: LIBROS
+       —el que abre este bloque— llena ahora la escena, pero FORMATO mide 674
+       de 915 y RESPALDO 335, y por debajo de esos dos asoma lo mismo que
+       antes. Un tope no es un alto. Se comprueba con el interruptor de las guías
        ENCENDIDO, que es el caso que se vio en pantalla y el único en el que
        hay anillo que apagar.
      · LOS LIBROS, CENTRADOS. Se mide contra el eje de la caja y no contra una
@@ -763,6 +766,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     /* EL PIE. */
     const panel = document.getElementById('canto');
     const rp = panel.getBoundingClientRect();
+    const rst = document.querySelector('.stage').getBoundingClientRect();
     const btn = document.querySelector('#canto .pie-cerrar .cerrar-pie');
     const rb = btn ? btn.getBoundingClientRect() : null;
     const equis = document.querySelectorAll('.pestanas .cerrar-x').length;
@@ -811,6 +815,13 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
              altoBoton: rb ? Math.round(rb.height) : 0,
              anchoPanel: Math.round(rp.width),
              palabra: Math.round(palabra),
+             /* EL ALTO. El tope subió del 88% al 100% de la escena y este
+                panel es el que lo cobra entero: sus 66 libros siempre dan de
+                sobra, así que llena. Se mide contra la escena y no contra un
+                número: la escena es la ventana. */
+             altoPanel: Math.round(rp.height),
+             escena: Math.round(rst.height),
+             sobresale: Math.round(rp.bottom - rst.bottom),
              /* Centrado contra el eje del panel, y el hueco que le queda por
                 debajo: lo que se pidió es que no vaya aventado al fondo. */
              descentrado: rb ? Math.round((rb.left + rb.right) / 2 -
@@ -839,6 +850,20 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        fuera.centrados + ' px  (' + fuera.enLaFila + ' en la última fila de ' +
        fuera.libros + ')');
   vale('LA EQUIS YA NO ESTÁ EN LAS PESTAÑAS', fuera.equis === 0, fuera.equis);
+  di('el alto del panel', fuera.altoPanel + ' de ' + fuera.escena);
+  /* EL PANEL LLENA LA ESCENA. Estuvo topado en el 88% —una rendija de hoja
+     asomando por debajo, para no olvidar que hay un libro detrás— y eso
+     costaba una fila de libros y glosa y media del índice. Se pidió el alto
+     entero y la rendija ya no decía lo que decía: desde que la escena se apaga
+     con velo, lo que asomaba era papel apagado.
+     Se mide EN TELÉFONO, que es esta sesión, y ahí el alto de este panel lo
+     fija una regla; en pantalla ancha vuelve a medir su contenido —341 de 470
+     medido— y exigir el lleno allí sería exigir que sobren libros. */
+  vale('EL PANEL LLENA LA ESCENA A LO ALTO',
+       Math.abs(fuera.altoPanel - fuera.escena) <= 1,
+       fuera.altoPanel + ' de ' + fuera.escena);
+  vale('  sin salirse por abajo', fuera.sobresale <= 1,
+       fuera.sobresale + ' px fuera');
   di('el botón de cerrar', fuera.anchoBoton + ' px de ' + fuera.anchoPanel +
      ' · la palabra mide ' + fuera.palabra);
   /* NI DE CANTO A CANTO NI DE JUGUETE. El techo es la mitad del panel —lo que
