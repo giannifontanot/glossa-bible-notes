@@ -185,6 +185,9 @@ const IR_A = `async (sec) => {
                 al entrar el quinto —«que sea infinito el número de tabs que
                 podamos tener en el mismo renglón»—. Se cuentan los TOPES de
                 las pestañas: si alguna se hubiera ido de renglón habría dos. */
+             /* todos los src pedidos, para poder afirmar que el escondido no
+                pidió el suyo */
+             marcosPedidos:[...c.querySelectorAll('.enc-marco')].map(m => m.getAttribute('src')),
              renglonesDePestanitas:(() => {
                const bs = [...c.querySelectorAll('.pestanitas button')];
                return [...new Set(bs.map(b => Math.round(b.getBoundingClientRect().top)))].length;
@@ -231,19 +234,26 @@ const IR_A = `async (sec) => {
      no es. */
   vale('con una pestaña por encuentro, en el orden pedido',
        dentro.pestanitas.map(x => x.enc).join(',') ===
-         'zaqueo,samaritana,agua,centurion,espalda',
+         'zaqueo,samaritana,agua,centurion',
        dentro.pestanitas.map(x => x.rotulo).join(' · '));
-  vale('  y el de la espalda es el último',
-       dentro.pestanitas[dentro.pestanitas.length - 1].enc === 'espalda',
-       dentro.pestanitas[dentro.pestanitas.length - 1].rotulo);
+  /* EL ESCONDIDO NO EXISTE, y esto es lo que se pidió del de la espalda: que
+     se quite de la vista sin borrarlo. Se comprueba por los tres sitios donde
+     podría asomar, porque esconder a medias es el fallo natural: una pestaña
+     que no está pero cuya hoja sigue armada, o un marco escondido que
+     igualmente pide su relato, son peso muerto que nadie va a leer. */
+  vale('EL ENCUENTRO ESCONDIDO NO ASOMA POR NINGÚN LADO',
+       !dentro.pestanitas.some(x => x.enc === 'espalda') &&
+       !dentro.hojas.some(h => h.enc === 'espalda') &&
+       dentro.marcosPedidos.every(src => !/la-espalda/.test(src || '')),
+       dentro.pestanitas.map(x => x.enc).join(' · '));
   /* EL RÓTULO SE ACORTA Y EL NOMBRE NO SE PIERDE: la pestaña lleva lo corto y
-     el título del ratón lleva lo entero, que es lo que se pidió al entrar un
-     nombre de un renglón. Se mira la que más se acorta. */
+     el título del ratón lleva lo entero. Se mira la que se acorta de las que
+     quedan. */
   vale('  los rótulos largos se acortan sin perder el nombre',
-       dentro.pestanitas.find(x => x.enc === 'espalda').rotulo === 'Nos dio la espalda' &&
-       dentro.pestanitas.find(x => x.enc === 'espalda').titulo ===
-         'El día que Cristo nos dio la espalda',
-       JSON.stringify(dentro.pestanitas.find(x => x.enc === 'espalda')));
+       dentro.pestanitas.find(x => x.enc === 'samaritana').rotulo === 'La samaritana' &&
+       dentro.pestanitas.find(x => x.enc === 'samaritana').titulo ===
+         'La mujer samaritana',
+       JSON.stringify(dentro.pestanitas.find(x => x.enc === 'samaritana')));
   /* Y LA SAMARITANA VA EN MINÚSCULA, corregido a mano por el dueño del repo:
      no es un nombre propio, es de dónde era. Se comprueba el nombre entero,
      que es el que se lee. */
@@ -408,7 +418,7 @@ const IR_A = `async (sec) => {
   });
   di('al volver', devuelta);
   vale('LAS PESTAÑAS SIGUEN AHÍ, TODAS Y EN SU ORDEN',
-       devuelta.pestanitas.join(',') === 'zaqueo,samaritana,agua,centurion,espalda',
+       devuelta.pestanitas.join(',') === 'zaqueo,samaritana,agua,centurion',
        devuelta.pestanitas.join(' · '));
   vale('  y sigue habiendo una hoja por encuentro',
        devuelta.hojas === devuelta.pestanitas.length, devuelta.hojas);
@@ -649,7 +659,14 @@ const IR_A = `async (sec) => {
   const tiraAntes = await p.evaluate(() => {
     const b = document.getElementById('encuentros').querySelector('.pestanitas');
     b.scrollLeft = 0;
-    return { sobra:b.scrollWidth - b.clientWidth, scroll:Math.round(b.scrollLeft) };
+    const caja = document.getElementById('encuentros').querySelector('.enc-barra');
+    return { sobra:b.scrollWidth - b.clientWidth, scroll:Math.round(b.scrollLeft),
+             /* SE LEE AQUÍ Y NO DESPUÉS DE LA RUEDA. Lo era, y con cuatro
+                pestañas dejó de valer: lo que sobra cabe en un golpe de rueda,
+                así que al llegar al final el aviso de la derecha se apaga —con
+                razón— y la validez del giro cantaba fallo por un aviso que
+                había hecho su trabajo. La foto del «antes» se toma antes. */
+             hayDer:caja.classList.contains('hay-der') };
   });
   di('la tira antes de la rueda', JSON.stringify(tiraAntes));
   /* La línea de validez: sin nada que quede fuera, mover la rueda no tiene por
@@ -677,10 +694,6 @@ const IR_A = `async (sec) => {
 
   /* Y AL GIRAR EL TELÉFONO CON EL PANEL ABIERTO. Sin cerrar nada: es justo el
      caso que se escapaba. */
-  const antesDeGirar = await p.evaluate(() => {
-    const caja = document.getElementById('encuentros').querySelector('.enc-barra');
-    return { hayDer:caja.classList.contains('hay-der') };
-  });
   await p.setViewportSize({ width:915, height:412 });
   await p.waitForTimeout(800);
   const girado = await p.evaluate(() => {
@@ -694,8 +707,8 @@ const IR_A = `async (sec) => {
   di('con el teléfono girado', JSON.stringify(girado));
   vale('(la prueba es válida) el panel siguió abierto al girar',
        girado.puesto === true);
-  vale('(la prueba es válida) y antes de girar sí avisaba',
-       antesDeGirar.hayDer === true);
+  vale('(la prueba es válida) y en vertical sí avisaba',
+       tiraAntes.hayDer === true);
   /* Girado cabe todo, así que el aviso tiene que APAGARSE sin que nadie haya
      tocado la tira. Si siguiera encendido estaría señalando pestañas que ya
      se ven. */
