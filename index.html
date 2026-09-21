@@ -1394,9 +1394,31 @@
      esquina. */
   .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after{
             font-size:min(var(--fs-libro, 15px), calc((22px - 3px) / 1.25)); }
+  /* EN TELÉFONO SÍ MIDEN LO QUE MIDE EL LIBRO, PERO CON UN TECHO DE 18.
+
+     Aquí no había ninguno y con la letra al tope el letrero se comía el
+     titulillo. Los dos puntos de arriba viven ahora EN MEDIO de sus vecinos
+     —el de cintas entre el titulillo y la cinta, el de piedras entre el filo y
+     el titulillo— así que sus letreros ya no crecen hacia una esquina vacía:
+     crecen hacia las letras del titulillo. Medido a 26 de libro, con el
+     letrero de «click» en 84 px de ancho: en un teléfono de 390 el de piedras
+     acababa en 143 y las letras empiezan en 141, y en uno de 320 se metían los
+     dos. Lo de 320 ya pasaba antes de mover nada; lo de 390 lo estrenó la
+     mudanza.
+
+     16 px es lo que cabe en el hueco más estrecho, y el número está medido, no
+     elegido: a 18 el letrero medía 65 px contra los 64 del hueco de un
+     teléfono de 320 y se pasaba por uno; a 17 quedaba en 105 contra 106, o sea
+     un píxel, que es lo mismo que nada. A 16 acaba en 103 y deja tres de aire
+     en el peor de los tres anchos probados —412, 390 y 320—, que con el hueco
+     midiendo 64 es todo lo que hay.
+     Y sigue siendo letra del libro mientras el libro no pase de 16: el tamaño
+     de fábrica es 15, así que el techo sólo muerde a quien ya subió la letra
+     por encima de eso, que es justo el caso en el que el letrero se comía el
+     titulillo. */
   @media (max-width: 560px){
     .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after{
-              font-size:var(--fs-libro, 15px); }
+              font-size:min(var(--fs-libro, 15px), 16px); }
   }
   .stage.guias #pg .pg-version::after{
             left:50%; transform:translateX(-50%); bottom:calc(100% + 3px); }
@@ -5193,7 +5215,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 09:51';
+window.GLOSS_BUILD = '21-SEP-26 11:26';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7898,8 +7920,8 @@ function renderPage(){
      glosas, y las dos cosas acaban de rehacerse. Va aquí y no en
      pintarSeparador —que sería el sitio natural— porque aquélla se va por
      varias puertas antes de llegar al final, y este punto tiene que quedar
-     puesto haya cinta o no. Ver colocarPuntoCintas. */
-  if (typeof colocarPuntoCintas === 'function') colocarPuntoCintas();
+     puesto haya cinta o no. Ver colocarPuntosDeArriba. */
+  if (typeof colocarPuntosDeArriba === 'function') colocarPuntosDeArriba();
   return r;
 }
 function renderPageCrudo(){
@@ -13114,14 +13136,14 @@ function cerrarZoom(hacia){
       el.style.removeProperty(p);
   /* Y el punto de las cintas se vuelve a colocar, que de lejos no se mide: la
      hoja llevaba escala y las dos medidas que usa hablan en unidades
-     distintas. Ver colocarPuntoCintas.
+     distintas. Ver colocarPuntosDeArriba.
 
      Y aquí mismo vale: desde que esto se mide con desplazamientos y no con
      rectángulos, el sitio es el mismo con la animación de vuelta a medias o
      terminada. Estuvo con trasPintar mientras medía rectángulos, y ni con dos
      cuadros llegaba: lo que estaba a medias no era el pintado, era la
      transición de la escala. */
-  if (typeof colocarPuntoCintas === 'function') colocarPuntoCintas();
+  if (typeof colocarPuntosDeArriba === 'function') colocarPuntosDeArriba();
 }
 function refrescarPasos(){
   const b = $('zoomPasos').querySelectorAll('[data-paso]');
@@ -16733,12 +16755,15 @@ function aplicarMedidasSeparador(percha){
    propio titulillo. Ahí el punto se queda donde lo pone la hoja de estilos,
    que además es donde no estorba, porque el problema que esto arregla —el
    punto rozando la cinta— sólo existe cuando la cinta está a su lado. */
-function colocarPuntoCintas(){
-  const b = document.getElementById('btnCintas');
+function colocarPuntosDeArriba(){
+  const bd = document.getElementById('btnCintas');
+  const bi = document.getElementById('btnPiedras');
   const inner = pg && pg.querySelector('.pg-inner');
   const cab = pg && pg.querySelector('.pg-cabeza');
-  if (!b || !inner || !cab) return;
-  const suelta = () => { b.style.left = ''; b.style.right = ''; };
+  if (!inner || !cab) return;
+  /* Soltar es devolverle el sitio a la hoja de estilos, que es donde cada
+     punto vive cuando no hay medio que calcular. */
+  const suelta = b => { if (b){ b.style.left = ''; b.style.right = ''; } };
   /* TODO SE MIDE CON DESPLAZAMIENTOS Y NADA CON RECTÁNGULOS, y eso es el
      arreglo entero de dos fallos que esta función tuvo seguidos.
 
@@ -16774,21 +16799,57 @@ function colocarPuntoCintas(){
     const t = getComputedStyle(el).transform;
     return t && t !== 'none' ? new DOMMatrix(t).m41 : 0;
   };
-  /* Los dos vecinos, en coordenadas de la hoja. */
-  const finTitulillo = sumaIzq(cab, inner) + trasladoX(cab) + cab.offsetWidth;
-  const cinta = sepMedidas().izq;
-  const ancho = b.offsetWidth || 34;
-  /* Con menos hueco que el propio punto no hay en medio que valga. En pantalla
-     ancha el titulillo vive en la esquina de arriba a la derecha, o sea a la
-     DERECHA de donde cuelga la cinta: entre los dos no hay «en medio», y la
-     cuenta daría un sitio encima del propio titulillo. Ahí el punto se queda
-     donde lo pone la hoja de estilos, que además es donde no estorba, porque
-     el problema que esto arregla —el punto rozando la cinta— sólo existe
-     cuando la cinta está a su lado. */
-  if (!(cinta - finTitulillo > ancho)) return suelta();
-  const centro = sumaIzq(inner, stage) + (finTitulillo + cinta) / 2;
-  b.style.left = Math.round(centro - ancho / 2) + 'px';
-  b.style.right = 'auto';
+  /* El titulillo, en coordenadas de la hoja: dónde empieza y dónde acaba. Los
+     dos puntos de arriba se colocan contra él, cada uno por su lado. */
+  const iniTitulillo = sumaIzq(cab, inner) + trasladoX(cab);
+  const finTitulillo = iniTitulillo + cab.offsetWidth;
+  const hojaEnEscena = sumaIzq(inner, stage);
+  const pon = (b, centro) => {
+    b.style.left = Math.round(centro - (b.offsetWidth || 34) / 2) + 'px';
+    b.style.right = 'auto';
+  };
+
+  /* EL DE LA DERECHA, ENTRE EL TITULILLO Y LA CINTA. */
+  if (bd){
+    const cinta = sepMedidas().izq;
+    /* Con menos hueco que el propio punto no hay en medio que valga. En
+       pantalla ancha el titulillo vive en la esquina de arriba a la derecha, o
+       sea a la DERECHA de donde cuelga la cinta: entre los dos no hay «en
+       medio», y la cuenta daría un sitio encima del propio titulillo. Ahí el
+       punto se queda donde lo pone la hoja de estilos, que además es donde no
+       estorba, porque el problema que esto arregla —el punto rozando la
+       cinta— sólo existe cuando la cinta está a su lado. */
+    if (cinta - finTitulillo > (bd.offsetWidth || 34))
+      pon(bd, hojaEnEscena + (finTitulillo + cinta) / 2);
+    else suelta(bd);
+  }
+
+  /* Y EL DE LA IZQUIERDA, ENTRE EL FILO DE LA HOJA Y EL TITULILLO, que es el
+     mismo encargo mirado al revés y por el mismo motivo.
+
+     Vivía pegado al canto izquierdo, a 8 px, y ahí se monta sobre el FILO de
+     pasar hoja: medido en un teléfono de 412, el punto ocupaba de 10 a 54 y el
+     filo de 0 a 30, o sea veinte píxeles compartidos entre «abre las piedras»
+     y «pasa la hoja». Es el mismo choque que tenía el de las cintas con el
+     separador, y se arregla igual: en medio de sus dos vecinos no lo reclama
+     ninguno. Con el titulillo empezando en 139, el medio cae en 70 y el punto
+     —que arriba mide 44 de ancho en teléfono— queda de 48 a 92: libre del filo
+     y con cuarenta y siete píxeles de aire hasta las letras.
+
+     EL LÍMITE DE ARRIBA ES LA MITAD DE LA HOJA, y sin él esto se rompe en
+     pantalla ancha: allí el titulillo se va a la esquina de arriba a la
+     derecha —medido, empieza en 517 de una hoja de 584— y «en medio de lo que
+     queda a su izquierda» sería el centro del canto de arriba, que es un sitio
+     sin ningún sentido. Si el titulillo no empieza en la primera mitad de la
+     hoja, no está centrado sobre la columna y no hay medio que calcular: el
+     punto se queda donde lo pone la hoja de estilos, que es su esquina. Es la
+     contrapartida exacta del guardia del otro lado. */
+  if (bi){
+    const ancho = bi.offsetWidth || 34;
+    if (iniTitulillo > ancho && iniTitulillo < inner.offsetWidth / 2)
+      pon(bi, hojaEnEscena + iniTitulillo / 2);
+    else suelta(bi);
+  }
 }
 /* Y SE VUELVE A COLOCAR CUANDO ALGUNO DE LOS DOS VECINOS CAMBIA DE TAMAÑO.
 
@@ -16811,7 +16872,7 @@ function colocarPuntoCintas(){
    No hay riesgo de bucle: mover el punto no cambia el ancho de ninguno de los
    dos, y el punto vive en la escena, fuera de la hoja. */
 if (typeof ResizeObserver === 'function'){
-  const ojo = new ResizeObserver(() => colocarPuntoCintas());
+  const ojo = new ResizeObserver(() => colocarPuntosDeArriba());
   for (const el of [document.getElementById('pgCabeza'), document.getElementById('pgMargin')])
     if (el) ojo.observe(el);
 }
@@ -21031,7 +21092,7 @@ window.addEventListener('resize', () => {
      columna de glosas, o sea dónde cuelga la cinta, o sea dónde está el medio.
      renderPage ya lo coloca, pero lo hace ANTES de que medirZoom deje la hoja
      con sus medidas nuevas. */
-  colocarPuntoCintas();
+  colocarPuntosDeArriba();
 });
 })();
 </script>
