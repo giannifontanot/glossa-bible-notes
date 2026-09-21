@@ -65,7 +65,8 @@ diagnóstico. Salen con código distinto de cero si algo falla.
 | `contraste` | el riel del panel de la letra (la pestaña «AAA», antes «Formato»): que el filtro llegue a la hoja **y al lienzo del pliegue** con el mismo número, que NO llegue al propio panel, y que sobreviva a la recarga |
 | `ventanita` | la salida de `#versoPleno`: que el toque de fuera la cierre venga del rastro o de una referencia dentro de una glosa, y que cerrarla no apague el panel de la glosa de debajo |
 | `portada` | la tapa del arranque: que cuente segundo y tres cuartos, que «hold» la pare y «continue» la suelte, y que la foto y las piedras que se le peguen sigan ahí al volver |
-| `version` | el sello del panel de «Share» (antes «Respaldo»): que se vea, que tenga la forma pedida, y —lo que de verdad vigila— que la hora sea la de Dallas y no la del aparato |
+| `version` | el sello del panel de compartir (antes «Respaldo», luego «Share», hoy el signo del punto que se abre en otros dos): que se vea, que tenga la forma pedida, y —lo que de verdad vigila— que la hora sea la de Dallas y no la del aparato; y el crédito de licencia, que vive ahí porque la atribución CC BY-SA es obligatoria |
+| `encuentros` | la quinta sección y el signo de compartir: que Encuentros esté detrás de Glosas, que su barra de dentro sobreviva a cerrar y volver a abrir —la trampa: si se llamara `.pestanas`, ponerBarra la borraría—, que el relato de Zaqueo se pida al abrir y no al arrancar, y que llene el panel sin comerse el botón de CERRAR |
 
 ## Cuatro reglas que costaron caro
 

@@ -62,7 +62,29 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
                return a.top + a.height / 2 > b.top;
              })(),
              notaNormal: parseFloat(getComputedStyle(
-               document.querySelector('#respaldo .nota-respaldo')).fontSize) };
+               document.querySelector('#respaldo .nota-respaldo')).fontSize),
+             /* EL CRÉDITO DE LICENCIA, QUE AHORA VIVE EN ESTE PANEL. No es
+                decoración: la Versión Biblia Libre es CC BY-SA y la atribución
+                es obligatoria, así que esto es lo único de la carpeta que falla
+                por una razón que no es de gusto ni de comodidad. Estuvo en el
+                panel de la letra, se pidió sacarlo de ahí y pasó un rato sin
+                enseñarse en ninguna parte; esta prueba es la que no deja que
+                eso vuelva a pasar sin avisar.
+                Se mide igual que el sello —rectángulo, visibilidad y display—
+                porque «está en el DOM» no es «se lee». */
+             cred: (() => {
+               const c = document.querySelector('#respaldo #cred');
+               if (!c) return { hay:false };
+               const cs = getComputedStyle(c), r = c.getBoundingClientRect();
+               const s = document.querySelector('#respaldo .sello-version');
+               return { hay:true, texto:c.textContent.trim(),
+                        seVe: r.width > 4 && r.height > 4 &&
+                              cs.visibility !== 'hidden' && cs.display !== 'none',
+                        medida: Math.round(r.width) + 'x' + Math.round(r.height),
+                        /* y ANTES del sello, que es lo último que se lee */
+                        antesDelSello: !!s && c.compareDocumentPosition(s) &
+                                       Node.DOCUMENT_POSITION_FOLLOWING ? true : false };
+             })() };
   });
 
   titulo('el sello está y se ve');
@@ -80,6 +102,21 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
   vale('en negrita', s.grosor >= 700, s.grosor);
   vale('más grande que las notas', s.tamano > s.notaNormal,
        s.tamano + ' px contra ' + s.notaNormal);
+
+  titulo('el crédito de licencia, que también vive aquí');
+  di('lo que dice el crédito', s.cred);
+  vale('ESTÁ EN EL PANEL DE SHARE', s.cred.hay === true);
+  /* Que esté no es que se vea, y la licencia pide que se vea. */
+  vale('  y se ve de verdad', s.cred.hay && s.cred.seVe === true, s.cred.medida);
+  vale('  nombra la licencia y de dónde sale el texto',
+       /CC BY/.test(s.cred.texto || '') && /eBible/.test(s.cred.texto || ''),
+       s.cred.texto);
+  /* El sello se viene a buscar con prisa y tiene que quedar el último; el
+     crédito se lee una vez. Si algún día se cuelan en el orden contrario, el
+     sello deja de ser lo último y eso ya lo vigila la línea de arriba —esta
+     dice por qué—. */
+  vale('  y va antes del sello, que es lo último que se lee',
+       s.cred.hay && s.cred.antesDelSello === true, s.cred.antesDelSello);
 
   titulo('la forma pedida: VERSIÓN DD-MMM-YY HH:MM');
   const t = s.texto || '';
