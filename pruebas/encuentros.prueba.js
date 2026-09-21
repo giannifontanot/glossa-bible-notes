@@ -17,7 +17,7 @@
    error y sin aviso, dejando la historia de Zaqueo a la vista y ninguna manera
    de llegar a la otra. Por eso aquí se abre, se cierra y se vuelve a abrir, que
    es el gesto que lo destapa. */
-const { abrir, cerrar, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, cerrarParcial, di, vale, titulo, ESCRITORIO } = require('./comun');
 
 /* Abrir la burbuja y tocar una pestaña de sección, como se hace con un dedo.
    LA BARRA DEL PANEL QUE SE VE, no la primera del documento: los paneles
@@ -169,7 +169,7 @@ const IR_A = `async (sec) => {
        encendida.relleno + ' / ' + encendida.trazo + ' contra ' + encendida.letra);
 
   /* ---------------- la sección ---------------- */
-  titulo('Encuentros trae sus dos, y la historia de Zaqueo');
+  titulo('Encuentros trae sus cinco, y la historia de Zaqueo');
   vale('se llega a Encuentros desde la barra', await irA('encuentros'));
   const dentro = await p.evaluate(() => {
     const c = document.getElementById('encuentros');
@@ -178,8 +178,28 @@ const IR_A = `async (sec) => {
     return { puesto:getComputedStyle(c).display !== 'none',
              pestanitas:[...c.querySelectorAll('.pestanitas button')]
                           .map(b => ({ enc:b.dataset.enc, rotulo:b.textContent.trim(),
+                                       titulo:b.getAttribute('title'),
                                        aqui:b.classList.contains('aqui'),
                                        alto:Math.round(b.getBoundingClientRect().height) })),
+             /* LA TIRA EN UN SOLO RENGLÓN, se corra o no: es lo que se pidió
+                al entrar el quinto —«que sea infinito el número de tabs que
+                podamos tener en el mismo renglón»—. Se cuentan los TOPES de
+                las pestañas: si alguna se hubiera ido de renglón habría dos. */
+             renglonesDePestanitas:(() => {
+               const bs = [...c.querySelectorAll('.pestanitas button')];
+               return [...new Set(bs.map(b => Math.round(b.getBoundingClientRect().top)))].length;
+             })(),
+             tira:(() => {
+               const b = c.querySelector('.pestanitas');
+               const caja = c.querySelector('.enc-barra');
+               return { sobra:b.scrollWidth - b.clientWidth,
+                        hayDer:caja.classList.contains('hay-der'),
+                        hayIzq:caja.classList.contains('hay-izq'),
+                        /* la caja de fuera es la que avisa; la de dentro es la
+                           que se corre. Si la sombra viviera en la que se
+                           corre, se iría de viaje con las pestañas. */
+                        sombraFuera:!b.classList.contains('hay-der') };
+             })(),
              /* Una sola barra de SECCIÓN dentro del panel: si la de dentro se
                 llamara igual, aquí habría dos y la de ponerBarra borraría la
                 que no es. */
@@ -204,9 +224,33 @@ const IR_A = `async (sec) => {
   });
   di('lo que hay dentro', JSON.stringify(dentro));
   vale('el panel está puesto', dentro.puesto === true);
-  vale('con una pestaña por encuentro, en su orden',
-       dentro.pestanitas.map(x => x.enc).join(',') === 'zaqueo,samaritana',
+  /* EL ORDEN SE PIDIÓ ENTERO Y POR ESO SE ESCRIBE ENTERO: primero Zaqueo,
+     luego la samaritana, el agua, el centurión, y AL FINAL el de la espalda,
+     que es el único que no es un encuentro sino el día en que ya no lo hay. Un
+     orden pedido a mano no se puede comprobar «de alguna manera»: o es ése o
+     no es. */
+  vale('con una pestaña por encuentro, en el orden pedido',
+       dentro.pestanitas.map(x => x.enc).join(',') ===
+         'zaqueo,samaritana,agua,centurion,espalda',
        dentro.pestanitas.map(x => x.rotulo).join(' · '));
+  vale('  y el de la espalda es el último',
+       dentro.pestanitas[dentro.pestanitas.length - 1].enc === 'espalda',
+       dentro.pestanitas[dentro.pestanitas.length - 1].rotulo);
+  /* EL RÓTULO SE ACORTA Y EL NOMBRE NO SE PIERDE: la pestaña lleva lo corto y
+     el título del ratón lleva lo entero, que es lo que se pidió al entrar un
+     nombre de un renglón. Se mira la que más se acorta. */
+  vale('  los rótulos largos se acortan sin perder el nombre',
+       dentro.pestanitas.find(x => x.enc === 'espalda').rotulo === 'Nos dio la espalda' &&
+       dentro.pestanitas.find(x => x.enc === 'espalda').titulo ===
+         'El día que Cristo nos dio la espalda',
+       JSON.stringify(dentro.pestanitas.find(x => x.enc === 'espalda')));
+  /* Y LA SAMARITANA VA EN MINÚSCULA, corregido a mano por el dueño del repo:
+     no es un nombre propio, es de dónde era. Se comprueba el nombre entero,
+     que es el que se lee. */
+  vale('  y la samaritana va en minúscula',
+       dentro.pestanitas.find(x => x.enc === 'samaritana').titulo ===
+         'La mujer samaritana',
+       dentro.pestanitas.find(x => x.enc === 'samaritana').titulo);
   vale('  y la primera encendida',
        dentro.pestanitas[0] && dentro.pestanitas[0].aqui === true &&
        dentro.pestanitas[1] && dentro.pestanitas[1].aqui === false);
@@ -215,7 +259,28 @@ const IR_A = `async (sec) => {
        dentro.pestanitas.map(x => x.alto).join(' · '));
   vale('SOLO HAY UNA BARRA DE SECCIONES EN EL PANEL',
        dentro.barrasDeSeccion === 1, dentro.barrasDeSeccion);
-  vale('una hoja a la vista y la otra no',
+  /* LAS CINCO EN UN SOLO RENGLÓN, Y LA TIRA SE CORRE. Lo pedido fue que quepan
+     siempre, cuantas sean: una tira que se arrastra en vez de partirse en dos
+     renglones, que le comerían el alto al relato. */
+  vale('LAS PESTAÑAS VAN EN UN SOLO RENGLÓN',
+       dentro.renglonesDePestanitas === 1, dentro.renglonesDePestanitas + ' renglones');
+  /* La línea de validez: en un teléfono las cinco NO caben, y ahí es donde
+     esto significa algo. Si un día cupieran —pantalla ancha, o menos
+     encuentros—, la de abajo diría lo contrario y tendría razón. */
+  di('la tira', JSON.stringify(dentro.tira));
+  if (dentro.tira.sobra > 0){
+    vale('  y cuando no caben, la tira se corre y lo avisa',
+         dentro.tira.hayDer === true && dentro.tira.hayIzq === false,
+         JSON.stringify(dentro.tira));
+    vale('  con el aviso en la caja de fuera, que no se va de viaje',
+         dentro.tira.sombraFuera === true);
+  } else {
+    di('  (caben todas: no hay nada que avisar)', dentro.tira.sobra);
+    vale('  y si caben, no se avisa de nada',
+         dentro.tira.hayDer === false && dentro.tira.hayIzq === false,
+         JSON.stringify(dentro.tira));
+  }
+  vale('una hoja a la vista y las demás no',
        dentro.hojas.filter(h => h.alto > 0).length === 1 &&
        dentro.hojas.find(h => h.enc === 'zaqueo').alto > 0,
        JSON.stringify(dentro.hojas));
@@ -326,16 +391,34 @@ const IR_A = `async (sec) => {
                 mirando: cerrar un panel no es perder dónde ibas */
              aLaVista:[...c.querySelectorAll('.enc-hoja')]
                         .filter(h => h.getBoundingClientRect().height > 0)
-                        .map(h => h.dataset.enc) };
+                        .map(h => h.dataset.enc),
+             /* Y LA PESTAÑA ENCENDIDA, DENTRO DE LA TIRA. Con la tira corrida,
+                volver por la que se estaba leyendo enseñaba el principio y la
+                encendida fuera de pantalla: el panel decía que estás en una
+                historia y no se veía cuál. */
+             vivaALaVista:(() => {
+               const b = c.querySelector('.pestanitas');
+               const v = b.querySelector('.aqui');
+               if (!v) return null;
+               const rb = b.getBoundingClientRect(), rv = v.getBoundingClientRect();
+               return { rotulo:v.textContent.trim(),
+                        dentro: rv.left >= rb.left - 1 && rv.right <= rb.right + 1,
+                        corrida:Math.round(b.scrollLeft) };
+             })() };
   });
   di('al volver', devuelta);
-  vale('LAS DOS PESTAÑAS SIGUEN AHÍ',
-       devuelta.pestanitas.join(',') === 'zaqueo,samaritana', devuelta.pestanitas.join(' · '));
-  vale('  y siguen siendo dos hojas', devuelta.hojas === 2, devuelta.hojas);
+  vale('LAS PESTAÑAS SIGUEN AHÍ, TODAS Y EN SU ORDEN',
+       devuelta.pestanitas.join(',') === 'zaqueo,samaritana,agua,centurion,espalda',
+       devuelta.pestanitas.join(' · '));
+  vale('  y sigue habiendo una hoja por encuentro',
+       devuelta.hojas === devuelta.pestanitas.length, devuelta.hojas);
   vale('  y sigue habiendo una sola barra de secciones',
        devuelta.barrasDeSeccion === 1, devuelta.barrasDeSeccion);
   vale('  y se quedó donde se estaba leyendo',
        devuelta.aLaVista.join(',') === 'samaritana', devuelta.aLaVista.join(' · '));
+  vale('  Y LA PESTAÑA ENCENDIDA SE VE, con la tira corrida o sin ella',
+       !!devuelta.vivaALaVista && devuelta.vivaALaVista.dentro === true,
+       JSON.stringify(devuelta.vivaALaVista));
 
   /* ---------------- el relato se viste con la ropa del libro ---------------- */
   titulo('el relato toma la letra, la tinta y el papel del libro');
@@ -548,5 +631,123 @@ const IR_A = `async (sec) => {
     vale('  y el titulillo se entera', luego.aria === 'false', luego.aria);
   }
 
-  await cerrar(sesion);
+  /* ---------------- llegar a lo que queda fuera ---------------- */
+  titulo('la tira recortada se puede alcanzar, y avisa cuando cambia de ancho');
+  /* DOS MANERAS DE QUEDARSE SIN CAMINO, las dos levantadas por la revisión de
+     Codex y las dos medidas aquí:
+
+     · LA RUEDA. Una rueda vertical sobre una caja que solo se desplaza en
+       horizontal no hace nada en la mayoría de los navegadores, y girar la
+       rueda encima es lo primero que hace quien ve una tira recortada. Se
+       traduce a un desplazamiento de lado.
+     · EL CAMBIO DE ANCHO. Las sombras se refrescaban solo al correr la tira o
+       al abrir el panel, así que con Encuentros abierto y el teléfono girando,
+       una tira que antes cabía empezaba a desbordar sin un solo scroll que lo
+       contara: el aviso se quedaba apagado. Y al revés, una que dejaba de
+       desbordar seguía avisando de algo que ya no hay. */
+  await irA('encuentros');
+  const tiraAntes = await p.evaluate(() => {
+    const b = document.getElementById('encuentros').querySelector('.pestanitas');
+    b.scrollLeft = 0;
+    return { sobra:b.scrollWidth - b.clientWidth, scroll:Math.round(b.scrollLeft) };
+  });
+  di('la tira antes de la rueda', JSON.stringify(tiraAntes));
+  /* La línea de validez: sin nada que quede fuera, mover la rueda no tiene por
+     qué hacer nada y lo de abajo no probaría nada. */
+  vale('(la prueba es válida) hay tira fuera de la pantalla',
+       tiraAntes.sobra > 0, tiraAntes.sobra + ' px fuera');
+  const trasRueda = await p.evaluate(async () => {
+    const b = document.getElementById('encuentros').querySelector('.pestanitas');
+    const r = b.getBoundingClientRect();
+    /* La rueda se manda como la manda un ratón: vertical, encima de la tira.
+       Lo que se prueba es justo la traducción, así que un deltaX sería hacer
+       trampa. */
+    b.dispatchEvent(new WheelEvent('wheel', { bubbles:true, cancelable:true,
+      deltaY:120, clientX:Math.round(r.left + 40), clientY:Math.round(r.top + 10) }));
+    await new Promise(z => setTimeout(z, 300));
+    const caja = document.getElementById('encuentros').querySelector('.enc-barra');
+    return { scroll:Math.round(b.scrollLeft),
+             hayIzq:caja.classList.contains('hay-izq') };
+  });
+  di('tras girar la rueda', JSON.stringify(trasRueda));
+  vale('LA RUEDA VERTICAL CORRE LA TIRA DE LADO',
+       trasRueda.scroll > tiraAntes.scroll, tiraAntes.scroll + ' → ' + trasRueda.scroll);
+  vale('  y el aviso del filo se entera',
+       trasRueda.hayIzq === true, trasRueda.hayIzq);
+
+  /* Y AL GIRAR EL TELÉFONO CON EL PANEL ABIERTO. Sin cerrar nada: es justo el
+     caso que se escapaba. */
+  const antesDeGirar = await p.evaluate(() => {
+    const caja = document.getElementById('encuentros').querySelector('.enc-barra');
+    return { hayDer:caja.classList.contains('hay-der') };
+  });
+  await p.setViewportSize({ width:915, height:412 });
+  await p.waitForTimeout(800);
+  const girado = await p.evaluate(() => {
+    const c = document.getElementById('encuentros');
+    const b = c.querySelector('.pestanitas'), caja = c.querySelector('.enc-barra');
+    return { puesto:getComputedStyle(c).display !== 'none',
+             sobra:b.scrollWidth - b.clientWidth,
+             hayIzq:caja.classList.contains('hay-izq'),
+             hayDer:caja.classList.contains('hay-der') };
+  });
+  di('con el teléfono girado', JSON.stringify(girado));
+  vale('(la prueba es válida) el panel siguió abierto al girar',
+       girado.puesto === true);
+  vale('(la prueba es válida) y antes de girar sí avisaba',
+       antesDeGirar.hayDer === true);
+  /* Girado cabe todo, así que el aviso tiene que APAGARSE sin que nadie haya
+     tocado la tira. Si siguiera encendido estaría señalando pestañas que ya
+     se ven. */
+  vale('AL CAMBIAR DE ANCHO, EL AVISO SE VUELVE A MEDIR',
+       girado.sobra === 0 && girado.hayDer === false && girado.hayIzq === false,
+       JSON.stringify(girado));
+  await p.setViewportSize({ width:412, height:915 });
+  await p.waitForTimeout(800);
+
+  /* La sesión del teléfono se cierra AQUÍ y sin pedir la cuenta: abajo se abre
+     otra y el resumen se pide una sola vez, al final. Cerrando con cerrar() se
+     imprimirían dos cuentas y la primera parecería el total. Está contado en
+     comun.js, donde vive fin(). */
+  await cerrarParcial(sesion, 'el teléfono');
+
+  /* ================================================================
+     Y CON RATÓN HAY BARRA, que es la única manera de llegar a lo recortado.
+
+     Un dedo arrastra la tira y un trackpad la empuja; un ratón de rueda no
+     hace ninguna de las dos cosas —por eso la rueda se traduce, arriba— y
+     arrastrar el contenido de una caja con overflow no es algo que hagan los
+     navegadores de escritorio. La barra se esconde en el teléfono, donde es de
+     superposición y el aviso lo dan las sombras, y se enseña con puntero fino.
+
+     SE MIRA scrollbar-width Y NO SI OCUPA SITIO: si la barra roba alto o se
+     pinta encima lo decide el sistema —en este Chromium son de superposición y
+     miden cero— y eso no es cosa de este programa. Lo que sí es cosa suya es
+     pedirla en escritorio y no pedirla en el teléfono.
+     ================================================================ */
+  titulo('con ratón la tira lleva barra; con dedo, no');
+  const ancha = await abrir(ESCRITORIO);
+  const pa = ancha.pagina;
+  await pa.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    document.getElementById('pgCabeza').click(); await z(900);
+    const t = document.querySelector('.rollo:not([style*="none"]) .pestanas [data-sec="encuentros"]');
+    if (t) t.click();
+    await z(1500);
+  });
+  const conRaton = await pa.evaluate(() => {
+    const b = document.getElementById('encuentros').querySelector('.pestanitas');
+    const cs = getComputedStyle(b);
+    return { ancho:cs.scrollbarWidth, color:cs.scrollbarColor,
+             puntero:matchMedia('(pointer:fine)').matches };
+  });
+  di('con ratón', JSON.stringify(conRaton));
+  vale('(la prueba es válida) esta sesión es de puntero fino',
+       conRaton.puntero === true);
+  vale('CON RATÓN, LA TIRA PIDE SU BARRA', conRaton.ancho === 'thin', conRaton.ancho);
+  /* Y del marrón de la casa: una barra azul del sistema encima de un panel de
+     papel se ve como un trozo de otro programa. */
+  vale('  y del color de la casa, no del sistema',
+       /140, *116, *68/.test(conRaton.color || ''), conRaton.color);
+  await cerrar(ancha);
 })();
