@@ -224,14 +224,29 @@ const IR_A = `async (sec) => {
     return f.evaluate(() => ({
       titulo:document.title,
       encabezado:(document.querySelector('h1') || {}).textContent,
-      capitulos:document.querySelectorAll('section.chapter').length,
+      /* LOS CAPÍTULOS SE CUENTAN POR SUS TÍTULOS, no por un envoltorio.
+         Esta línea pedía `section.chapter` y cantó fallo con cero capítulos
+         cuando entró el relato nuevo: el texto era el mismo y los tres
+         capítulos estaban ahí, pero ya no venían envueltos en secciones. La
+         prueba estaba atada a cómo estaba armado el documento de entonces, y
+         eso no es lo que vino a vigilar: lo que importa es que el marco traiga
+         ESTE relato entero y no otra cosa, o media.
+         Un rótulo es lo que un capítulo tiene siempre, lo envuelva quien lo
+         envuelva. */
+      capitulos:[...document.querySelectorAll('h2 .num')].map(x => x.textContent.trim()),
       largo:document.documentElement.scrollHeight }));
   })();
   di('lo que trae el relato', relato);
   vale('el relato cargó de verdad', !relato.falta, relato.falta ? relato.marcos : 'sí');
   vale('  y es el de Zaqueo, con sus tres capítulos',
-       !relato.falta && /Zaqueo/.test(relato.encabezado || '') && relato.capitulos === 3,
-       relato.encabezado + ' · ' + relato.capitulos + ' capítulos');
+       !relato.falta && /Zaqueo/.test(relato.encabezado || '') &&
+       (relato.capitulos || []).length === 3,
+       relato.encabezado + ' · ' + (relato.capitulos || []).join(' / '));
+  /* Y ENTERO, que es lo que de verdad se quiere saber. Un marco que cargara a
+     medias —la portada sí y el cuerpo no— pasaría la línea de arriba con sus
+     tres rótulos. El largo lo delata: son miles de píxeles de texto. */
+  vale('  y llegó entero, no solo la portada',
+       !relato.falta && relato.largo > 3000, relato.largo + ' px de alto');
 
   /* La otra todavía no tiene historia, y el panel lo dice en vez de estar
      vacío: un hueco sin explicar se lee como algo que se rompió al cargar. */
@@ -294,6 +309,175 @@ const IR_A = `async (sec) => {
        devuelta.barrasDeSeccion === 1, devuelta.barrasDeSeccion);
   vale('  y se quedó donde se estaba leyendo',
        devuelta.aLaVista.join(',') === 'samaritana', devuelta.aLaVista.join(' · '));
+
+  /* ---------------- el relato se viste con la ropa del libro ---------------- */
+  titulo('el relato toma la letra, la tinta y el papel del libro');
+  /* UN MARCO ES OTRO DOCUMENTO Y NO HEREDA NADA. Ni el tamaño de letra de AAA
+     ni el sepia del riel: sin que alguien se lo diga, la historia se lee a los
+     dieciséis píxeles de fábrica con tinta negra mientras el libro de al lado
+     está en veintidós y en marrón. Se pidió que creciera con el libro y que
+     tomara su papel, y la única manera es decírselo —el puente está en
+     encuentros/salida.js—, así que lo que se mide aquí es que se lo digan Y
+     que le llegue.
+
+     Se compara CONTRA EL LIBRO y no contra un número escrito: lo que se pidió
+     es que vayan juntos, y un número aquí sería otra cosa, y encima una que
+     cambia con el ajuste del lector. */
+  const vestido = async () => {
+    const f = p.frames().find(x => /zaqueo\.html/.test(x.url() || ''));
+    if (!f) return { falta:true };
+    const dentro = await f.evaluate(() => ({
+      raiz:getComputedStyle(document.documentElement).fontSize,
+      /* EL TEXTO COMPUESTO, que es lo que se lee. La raíz sola no basta y esto
+         costó un fallo: el relato recibía la raíz correcta y encima la
+         multiplicaba por 1,05, así que un libro de 15 se leía a 15,75 y la
+         prueba —que miraba la raíz— decía que iban iguales. Lo levantó la
+         revisión de Codex. */
+      texto:getComputedStyle(document.body).fontSize,
+      familia:getComputedStyle(document.body).fontFamily,
+      familiaTitulo:getComputedStyle(document.querySelector('h1')).fontFamily,
+      familiaNum:getComputedStyle(document.querySelector('h2 .num')).fontFamily,
+      tinta:getComputedStyle(document.body).color,
+      papel:getComputedStyle(document.body).backgroundColor,
+      papelRaiz:getComputedStyle(document.documentElement).backgroundColor,
+      oro:getComputedStyle(document.querySelector('h2 .num')).color }));
+    const fuera = await p.evaluate(() => {
+      const v = getComputedStyle(document.documentElement);
+      const m = document.querySelector('.enc-marco');
+      const cap = document.querySelector('#pgBody .cap');
+      const verso = document.querySelector('#pgBody .v');
+      return { letra:v.getPropertyValue('--fs-libro').trim(),
+               /* y el tamaño al que se lee el libro de verdad, para comparar
+                  texto con texto y no variable con raíz */
+               texto:verso ? getComputedStyle(verso).fontSize : null,
+               tinta:v.getPropertyValue('--tinta').trim(),
+               /* la familia se lee del VERSÍCULO, que es el texto del libro:
+                  es lo que el lector ve cuando elige el tipo en AAA */
+               familia:verso ? getComputedStyle(verso).fontFamily : null,
+               familiaCap:cap ? getComputedStyle(cap).fontFamily : null,
+               marco:getComputedStyle(m).backgroundColor,
+               /* EL PAPEL DEL PANEL, que es lo que tiene que verse a través, y
+                  se mira el DIBUJO y no el color: el papel de los rollos es un
+                  degradado, así que backgroundColor devuelve transparente
+                  también ahí. Preguntando por el color, la línea de validez
+                  decía que el panel no tiene papel —y lo tiene, es el que se
+                  ve—. */
+               panel:getComputedStyle(document.getElementById('encuentros')).backgroundImage,
+               capitulo:cap ? getComputedStyle(cap).color : null };
+    });
+    return { dentro, fuera };
+  };
+  /* Los colores se comparan sin espacios: la variable del programa viene
+     escrita «rgb(59,43,24)» y el navegador la devuelve «rgb(59, 43, 24)». */
+  const pelado = x => String(x || '').replace(/\s+/g, '');
+
+  await p.evaluate(() =>
+    document.querySelector('#encuentros .pestanitas [data-enc="zaqueo"]').click());
+  await p.waitForTimeout(500);
+  const antes = await vestido();
+  di('de fábrica', antes);
+  vale('(la prueba es válida) se pudo mirar dentro del relato', !antes.falta);
+  if (!antes.falta){
+    /* SE COMPARA TEXTO CONTRA TEXTO: lo que mide un renglón del relato contra
+       lo que mide un versículo en la hoja. Comparar la raíz del relato con la
+       variable del programa deja pasar cualquier cosa que el relato haga
+       después con ese número, y eso fue justo lo que pasó. */
+    vale('LA LETRA DEL RELATO ES LA DEL LIBRO',
+         !!antes.fuera.texto && antes.dentro.texto === antes.fuera.texto,
+         antes.dentro.texto + ' contra ' + antes.fuera.texto);
+    vale('  y le llegó por la raíz, que es de donde cuelga su hoja',
+         antes.dentro.raiz === antes.fuera.letra,
+         antes.dentro.raiz + ' contra ' + antes.fuera.letra);
+    vale('Y EL TIPO DE LETRA, el que esté puesto en AAA',
+         !!antes.fuera.familia && antes.dentro.familia === antes.fuera.familia,
+         antes.dentro.familia + ' contra ' + antes.fuera.familia);
+    /* Los títulos del relato no llevan familia propia: un relato en Verdana
+       con los títulos en Georgia sería otra página. */
+    vale('  y los títulos del relato van con ella',
+         antes.dentro.familiaTitulo === antes.fuera.familia,
+         antes.dentro.familiaTitulo);
+    /* LA ÚNICA EXCEPCIÓN, y es una copia del libro: .cap lleva su familia
+       clavada, así que el número de capítulo no cambia de tipo cuando el
+       lector cambia el de AAA. El «Capítulo I» del relato hace lo mismo. */
+    vale('  salvo el «Capítulo I», que copia al número de capítulo',
+         !!antes.fuera.familiaCap && antes.dentro.familiaNum === antes.fuera.familiaCap,
+         antes.dentro.familiaNum + ' contra ' + antes.fuera.familiaCap);
+    vale('Y LA TINTA TAMBIÉN',
+         pelado(antes.dentro.tinta) === pelado(antes.fuera.tinta),
+         antes.dentro.tinta + ' contra ' + antes.fuera.tinta);
+    /* TRANSPARENTE DE LOS DOS LADOS. No basta con que lo sea el documento de
+       dentro: el marco tuvo un fondo crema propio y era justo lo que se pidió
+       quitar —un recuadro más claro flotando sobre la hoja—. Alfa cero es lo
+       único que vale; un color «casi igual» al del panel se separa en cuanto
+       el lector mueve el sepia. */
+    const transparente = c => /rgba\(0,0,0,0\)|transparent/.test(pelado(c));
+    vale('EL RELATO NO TRAE PAPEL PROPIO: se ve el del panel',
+         transparente(antes.dentro.papel) && transparente(antes.dentro.papelRaiz) &&
+         transparente(antes.fuera.marco),
+         'body ' + antes.dentro.papel + ' · html ' + antes.dentro.papelRaiz +
+         ' · marco ' + antes.fuera.marco);
+    /* La línea de validez de la de arriba: transparente sobre nada no es
+       tomar el papel del libro, es no tener ninguno. El panel sí tiene. */
+    vale('(la prueba es válida) y el panel de debajo sí tiene papel',
+         /gradient|rgb/.test(antes.fuera.panel || ''),
+         (antes.fuera.panel || '').slice(0, 48));
+    /* EL ORO ES EL DEL NÚMERO DE CAPÍTULO DEL LIBRO. Lo pidió así el dueño del
+       repo al reconocerlo —«me recuerdan el sepia del número de capítulo»—, y
+       se comprueba contra el número de verdad, no contra el hexadecimal: lo
+       que se quiere es que sean el mismo, no que uno de ellos sea un valor. */
+    vale('los títulos llevan el oro del número de capítulo',
+         !!antes.fuera.capitulo &&
+         pelado(antes.dentro.oro) === pelado(antes.fuera.capitulo),
+         antes.dentro.oro + ' contra ' + antes.fuera.capitulo);
+  }
+
+  /* Y QUE SIGA AL LIBRO CUANDO EL LECTOR LO MUEVE, que es la mitad que se
+     rompe sola: mandar el estilo una vez al cargar es fácil, acordarse de
+     mandarlo otra vez cuando cambia el riel es lo que se olvida. */
+  await irA('formato');
+  await p.evaluate(async () => {
+    for (let i = 0; i < 4; i++){
+      document.getElementById('fsUp').click();
+      await new Promise(z => setTimeout(z, 450));
+    }
+  });
+  await p.waitForTimeout(700);
+  await irA('encuentros');
+  const luegoDeAA = await vestido();
+  di('tras subir la letra cuatro puntos', luegoDeAA);
+  /* La línea de validez: si el libro no hubiera cambiado de tamaño, la de
+     abajo saldría verde sin haber probado nada. */
+  vale('(la prueba es válida) el libro cambió de letra',
+       !luegoDeAA.falta && luegoDeAA.fuera.letra !== antes.fuera.letra,
+       antes.fuera.letra + ' → ' + (luegoDeAA.falta ? '?' : luegoDeAA.fuera.letra));
+  vale('EL RELATO CRECIÓ CON EL LIBRO, Y AL MISMO TAMAÑO',
+       !luegoDeAA.falta && luegoDeAA.dentro.texto === luegoDeAA.fuera.texto,
+       luegoDeAA.falta ? 'sin marco' : luegoDeAA.dentro.texto + ' contra ' + luegoDeAA.fuera.texto);
+
+  /* Y lo mismo con el TIPO, que viaja por otro camino: el tamaño pasa por
+     escalarInterfaz y el tipo no pasa por ahí, así que son dos avisos
+     distintos y se olvida uno sin que el otro se entere. */
+  await irA('formato');
+  await p.evaluate(async () => {
+    const s = document.getElementById('selFuente');
+    /* La última de la lista, que es la que menos se parece a la de fábrica:
+       si el relato se quedara con la suya, se vería a la legua. */
+    s.value = String(s.options.length - 1);
+    s.dispatchEvent(new Event('change', { bubbles:true }));
+    await new Promise(z => setTimeout(z, 1200));
+  });
+  await irA('encuentros');
+  const luegoDeTipo = await vestido();
+  di('tras cambiar el tipo de letra', luegoDeTipo && luegoDeTipo.dentro);
+  vale('(la prueba es válida) el libro cambió de tipo',
+       !luegoDeTipo.falta && luegoDeTipo.fuera.familia !== antes.fuera.familia,
+       antes.fuera.familia + ' → ' + (luegoDeTipo.falta ? '?' : luegoDeTipo.fuera.familia));
+  vale('EL RELATO CAMBIÓ CON ÉL',
+       !luegoDeTipo.falta && luegoDeTipo.dentro.familia === luegoDeTipo.fuera.familia,
+       luegoDeTipo.falta ? 'sin marco' : luegoDeTipo.dentro.familia);
+  vale('  y el «Capítulo I» siguió quieto, como el número de capítulo',
+       !luegoDeTipo.falta && luegoDeTipo.dentro.familiaNum === luegoDeTipo.fuera.familiaCap,
+       luegoDeTipo.falta ? 'sin marco' : luegoDeTipo.dentro.familiaNum);
 
   /* ---------------- la salida de teclado ---------------- */
   titulo('Escape cierra el panel también desde dentro del relato');
