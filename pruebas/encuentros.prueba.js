@@ -224,14 +224,29 @@ const IR_A = `async (sec) => {
     return f.evaluate(() => ({
       titulo:document.title,
       encabezado:(document.querySelector('h1') || {}).textContent,
-      capitulos:document.querySelectorAll('section.chapter').length,
+      /* LOS CAPÍTULOS SE CUENTAN POR SUS TÍTULOS, no por un envoltorio.
+         Esta línea pedía `section.chapter` y cantó fallo con cero capítulos
+         cuando entró el relato nuevo: el texto era el mismo y los tres
+         capítulos estaban ahí, pero ya no venían envueltos en secciones. La
+         prueba estaba atada a cómo estaba armado el documento de entonces, y
+         eso no es lo que vino a vigilar: lo que importa es que el marco traiga
+         ESTE relato entero y no otra cosa, o media.
+         Un rótulo es lo que un capítulo tiene siempre, lo envuelva quien lo
+         envuelva. */
+      capitulos:[...document.querySelectorAll('h2 .num')].map(x => x.textContent.trim()),
       largo:document.documentElement.scrollHeight }));
   })();
   di('lo que trae el relato', relato);
   vale('el relato cargó de verdad', !relato.falta, relato.falta ? relato.marcos : 'sí');
   vale('  y es el de Zaqueo, con sus tres capítulos',
-       !relato.falta && /Zaqueo/.test(relato.encabezado || '') && relato.capitulos === 3,
-       relato.encabezado + ' · ' + relato.capitulos + ' capítulos');
+       !relato.falta && /Zaqueo/.test(relato.encabezado || '') &&
+       (relato.capitulos || []).length === 3,
+       relato.encabezado + ' · ' + (relato.capitulos || []).join(' / '));
+  /* Y ENTERO, que es lo que de verdad se quiere saber. Un marco que cargara a
+     medias —la portada sí y el cuerpo no— pasaría la línea de arriba con sus
+     tres rótulos. El largo lo delata: son miles de píxeles de texto. */
+  vale('  y llegó entero, no solo la portada',
+       !relato.falta && relato.largo > 3000, relato.largo + ' px de alto');
 
   /* La otra todavía no tiene historia, y el panel lo dice en vez de estar
      vacío: un hueco sin explicar se lee como algo que se rompió al cargar. */
