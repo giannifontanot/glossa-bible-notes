@@ -526,7 +526,23 @@ async function ponerAMano(p){
      una sesión— porque dentro de la misma la cinta activa se viene con el
      lector y el botón abriría la suya en vez de poner otra, que es justo lo
      que tiene que hacer. Aquí hacen falta dos cintas en dos sitios. */
-  const partida = await p.evaluate(() => window.__hoja());
+  /* EL DESTINO ES LA CINTA, NO DONDE SE QUEDÓ EL LECTOR, y esta línea decía lo
+     segundo. Guardaba la hoja en la que estaba el lector antes de irse a MAT
+     5:1 y, al final del bloque, exigía llegar ahí. Funcionaba por una
+     COINCIDENCIA: la cinta activa venía siguiendo al lector, así que su sitio
+     y el del lector eran el mismo.
+     La coincidencia se rompió al pedir que de lejos la cinta no ande —el
+     bloque de la vista de lejos, unas líneas más arriba, pasa hoja desde el
+     zoom— y entonces la cinta se quedó en Mateo 1:1 mientras el lector
+     terminaba en 1:13. La prueba dio rojo diciendo «Mateo 1:1–1:12 vs Mateo
+     1:13–1:23», que es exactamente lo que el cambio vino a hacer.
+     Así que se afirma lo que el bloque se llama: que tocar la escritura lleva
+     a la hoja DE SU CINTA. Se apunta dónde está la cinta —leído del almacén,
+     no de la pantalla— para poder decirlo en el rojo si vuelve a fallar. */
+  const partida = await p.evaluate(() => {
+    const c = window.__guardadas()[0];
+    return c ? c.libro + ' ' + c.cap + ':' + c.vers : '(no hay cinta)';
+  });
   await abrirEn(p, 'MAT', 5, 1);
   const lista = await p.evaluate(async () => {
     const segunda = window.__hoja();
@@ -570,6 +586,20 @@ async function ponerAMano(p){
     await window.__toque('.vp-txt');
     await window.__pausa(3600);
     return { segunda, filas, dos: m ? m.filas : 0, ensena, cual,
+             /* LLEGAR A SU HOJA ES QUE LA HOJA DE LA LLEGADA CONTENGA SU
+                VERSÍCULO, y eso se lee del rótulo de la hoja —«Mateo 1:1–1:12»—
+                contra lo que la cinta tiene guardado. No se compara con la
+                hoja donde estaba el lector, que era una coincidencia (ver
+                arriba), ni se pregunta por la cinta que cuelga, que es la
+                aserción de la línea siguiente y diría lo mismo dos veces. */
+             cubre: (() => {
+               const c = window.__guardadas().find(x => x.id === cual);
+               const m = /(\d+):(\d+)\s*[–-]\s*(\d+):(\d+)/.exec(window.__hoja());
+               if (!c || !m) return null;
+               const k = (cap, v) => cap * 1000 + v;
+               return k(c.cap, c.vers) >= k(+m[1], +m[2]) &&
+                      k(c.cap, c.vers) <= k(+m[3], +m[4]);
+             })(),
              activa: (window.__cinta() || {}).id,
              plenoIdo: !document.getElementById('versoPleno').classList.contains('visible'),
              guardadas: window.__guardadas().length, llegada: window.__hoja() };
@@ -608,8 +638,8 @@ async function ponerAMano(p){
      la quinta vez que este repo paga por una prueba que afirmaba lo viejo. */
   vale('y la lista se queda detrás, que mirar no es irse',
        lista.ensena.menuIdo === false, lista.ensena);
-  vale('tocar la escritura sí lleva a su hoja', lista.llegada === partida,
-       lista.llegada + '  vs  ' + partida);
+  vale('tocar la escritura sí lleva a SU hoja', lista.cubre === true,
+       'la cinta ' + partida + ' y se llegó a ' + lista.llegada);
   /* La cinta se cobra AL SALTAR, no al mirar: la de la llegada es la que se
      tocó, no la que colgaba antes. */
   vale('y la cinta de la llegada es la que se tocó', lista.activa === lista.cual,
