@@ -1383,6 +1383,18 @@ const FUERA = `async () => {
     g[1].etiquetas = ['oracion', 'Oracion'];   /* lleva las dos: la fusión no puede duplicar */
     g[2].etiquetas = ['oracion'];
     localStorage.setItem('glossa:marcas:v1', JSON.stringify(g));
+    /* Y SE QUITA EL FILTRO QUE DEJARON LOS BLOQUES DE ARRIBA, que si no este
+       empieza con el índice vacío: el filtro de etiquetas SE GUARDA, así que
+       lo que dejó puesto una comprobación de hace veinte bloques sigue puesto
+       aquí y esconde las glosas que este bloque acaba de sembrar. Se quitó
+       tras verlo: la tanda cantó «0 elegidas» donde la sonda, con el almacén
+       limpio, elegía una sin problema. */
+    const A = 'glossa:ajustes:v1';
+    try {
+      const a = JSON.parse(localStorage.getItem(A) || '{}');
+      a.etiquetasVer = [];
+      localStorage.setItem(A, JSON.stringify(a));
+    } catch(_){}
     return true;
   });
   await p.reload();
@@ -1415,6 +1427,14 @@ const FUERA = `async () => {
              /* y lo que hay guardado, que es lo que sobrevive a la recarga */
              enMarcas:JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
                         .slice(0, 3).map(m => m.etiquetas || []),
+             /* EL ÍNDICE ES LO QUE EL LECTOR TIENE DELANTE mientras renombra:
+                está en este mismo panel y lista TODAS las glosas, esté donde
+                esté la hoja. La hoja se mira también, pero aparte: cuál es la
+                hoja abierta depende de por dónde iba la tanda, y una prueba
+                que da por hecho que la glosa sembrada cae en la página visible
+                mide la suerte. Eso fue un fallo de la primera versión. */
+             enIndice:[...document.querySelectorAll('#indice .gl-t')].map(x => x.textContent),
+             cuantasEnIndice:document.querySelectorAll('#indice .ix-item').length,
              enHoja:[...document.querySelectorAll('#pgMargin .gl-t')].map(x => x.textContent) };
   });
   const antes = await foto();
@@ -1464,11 +1484,25 @@ const FUERA = `async () => {
   vale('  la lista enseña el nombre nuevo y no el viejo',
        luego.tags.includes('#OraciónDiaria') && !luego.tags.includes('#Oracion'),
        luego.tags.join(' '));
-  /* Y EN LA HOJA, que es donde el lector lo ve. El almacén y la lista podrían
-     estar al día con el papel enseñando lo de antes: son tres pintados
-     distintos y cada uno se puede olvidar por su lado. */
-  vale('  Y LA HOJA LO ENSEÑA YA, sin recargar',
-       luego.enHoja.includes('#OraciónDiaria'), luego.enHoja.join(' '));
+  /* Y EN EL ÍNDICE, que es donde el lector lo ve mientras lo hace. El almacén
+     y la lista de etiquetas podrían estar al día con el índice enseñando lo de
+     antes: son tres pintados distintos y cada uno se puede olvidar por su
+     lado. */
+  vale('  Y EL ÍNDICE LO ENSEÑA YA, sin recargar',
+       luego.enIndice.includes('#OraciónDiaria') &&
+       !luego.enIndice.includes('#Oracion'),
+       luego.enIndice.join(' '));
+  /* Y LA HOJA, SÓLO SI LA GLOSA ESTABA EN ELLA. Cuál es la hoja abierta
+     depende de por dónde iba la tanda; lo que no depende de nada es que si la
+     etiqueta vieja se veía en el papel, ahora se vea la nueva y no la vieja.
+     Escrito así, el día que la hoja no la enseñe dirá la verdad, y el día que
+     la glosa caiga en otra página no cantará un fallo que no existe. */
+  if (antes.enHoja.includes('#Oracion'))
+    vale('  y la hoja también, que la tenía a la vista',
+         luego.enHoja.includes('#OraciónDiaria') && !luego.enHoja.includes('#Oracion'),
+         luego.enHoja.join(' '));
+  else
+    di('  (la hoja abierta no enseñaba esta glosa)', luego.enHoja.join(' ') || 'sin etiquetas');
   vale('  y el botón vuelve a ser el de crear',
        luego.accion === 'crear', luego.boton);
 
@@ -1521,6 +1555,11 @@ const FUERA = `async () => {
 
   /* ELEGIR UNA GLOSA CANCELA LA EDICIÓN, que es lo que mantiene separados los
      dos modos: con algo elegido el botón vuelve a ser el de poner etiquetas. */
+  /* La validez de lo que viene: sin glosas en el índice no hay ninguna que
+     elegir, y la comprobación de abajo diría «no se canceló» cuando lo que
+     pasó es que no se eligió nada. */
+  vale('(la prueba es válida) el índice tiene glosas que elegir',
+       fundida.cuantasEnIndice > 0, fundida.cuantasEnIndice + ' en el índice');
   await p.evaluate(async () => {
     document.querySelector('#tagboxGrupo [data-tag-grupo="Domingo"]').click();
     await new Promise(z => setTimeout(z, 300));
