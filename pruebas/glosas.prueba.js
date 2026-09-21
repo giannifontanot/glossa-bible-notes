@@ -964,6 +964,85 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     return r;
   }));
 
+  /* QUE UNA ETIQUETA NO SE PARTA TENIENDO EL RENGLÓN DE ABAJO ENTERO.
+
+     Las etiquetas largas llevan un <wbr> cada once grafemas —es obligatorio,
+     está justo arriba: overflow-wrap rompe la foto del pliegue y la salida fue
+     partir el nodo de texto—, y el navegador los usaba como PRIMERA opción, no
+     como última: con «#MuyInteresante» empezando a media línea partía por el
+     corte que cabía en el hueco y dejaba «#MuyInter» arriba y «esante» abajo,
+     con sitio de sobra en el renglón siguiente para la etiqueta entera. El
+     dueño del repo pidió lo contrario: si no cabe, que baje entera.
+
+     CÓMO SE CUENTAN LOS RENGLONES, que se midió mal dos veces antes de dar con
+     esto. getClientRects() de la etiqueta devuelve UN rectángulo, se parta o
+     no: la caja es inline-block y la caja es una sola. Y un Range sobre su
+     contenido devuelve un rectángulo POR TROZO —uno por <wbr>—, quepan todos
+     en el mismo renglón o no, así que contarlos tampoco dice nada. Lo que sí
+     dice es cuántos TOPES distintos hay entre esos rectángulos: los trozos que
+     comparten renglón comparten tope. */
+  di('   de vuelta al principio',
+     await alPrincipio(['ParaElEstudioDelDomingo', 'MuyInteresante', 'Relectura', 'Memorizar']));
+  di('las etiquetas bajan enteras', await p.evaluate(() => {
+    const renglones = el => {
+      const g = document.createRange(); g.selectNodeContents(el);
+      return new Set([...g.getClientRects()].map(x => Math.round(x.top))).size;
+    };
+    const t = document.querySelector('#pgMargin .gl-tag');
+    if (!t) return { sinEtiqueta:true };
+    const col = document.getElementById('pgMargin').getBoundingClientRect();
+    const etq = [...t.querySelectorAll('.gl-t')].map(x => {
+      const r = x.getBoundingClientRect();
+      return { texto:x.textContent, renglones:renglones(x),
+               seSale: Math.round(Math.max(col.left - r.left, r.right - col.right)) > 0 };
+    });
+    return { etq, renglonesDelBloque:renglones(t), cuantas:etq.length,
+             caja: etq.length ? getComputedStyle(t.querySelector('.gl-t')).display : null };
+  }).then(r => {
+    vale('cada etiqueta cabe en un solo renglón',
+         !r.sinEtiqueta && r.cuantas === 4 && r.etq.every(x => x.renglones === 1),
+         r.sinEtiqueta ? 'sin etiqueta' : r.etq.map(x => x.texto + ': ' + x.renglones).join(' · '));
+    /* LA LÍNEA DE VALIDEZ. Si las cuatro cupieran en un renglón, lo de arriba
+       saldría verde sin haber probado nada: no habría habido corte que hacer y
+       la prueba estaría midiendo una hoja donde la regla no llega a aplicarse.
+       Por eso se ponen cuatro y se comprueba que el bloque de verdad ocupa
+       más de un renglón. */
+    vale('y el bloque tuvo de verdad que cortar en algún sitio',
+         !r.sinEtiqueta && r.renglonesDelBloque > 1, r.renglonesDelBloque + ' renglones');
+    vale('ninguna se sale de la columna',
+         !r.sinEtiqueta && r.etq.every(x => !x.seSale),
+         r.sinEtiqueta ? 'sin etiqueta' : r.etq.filter(x => x.seSale).map(x => x.texto).join(' ') || 'ninguna');
+    /* La causa, por si alguien quita el display y las aserciones de arriba
+       siguen pasando por casualidad en el ancho de este teléfono. */
+    vale('porque la etiqueta es una caja, no un trozo de frase',
+         r.caja === 'inline-block', r.caja);
+    return r;
+  }));
+
+  /* Y EL ÚLTIMO RECURSO SIGUE AHÍ, que es la otra mitad de la misma regla: una
+     etiqueta que no cabe entera NI EN UNA COLUMNA VACÍA tiene que partirse por
+     sus <wbr>. Esto es lo que vigila el max-width:100%: sin él la caja mide lo
+     que mide su contenido, los cortes internos no se usan nunca y vuelve el
+     fallo que vinieron a arreglar —.pg-margin recorta con overflow:hidden y en
+     el teléfono del autor aparecía «#Interesant»—. */
+  di('   de vuelta al principio',
+     await alPrincipio(['EstaEtiquetaEsAbsurdamenteLargaYNoCabeDeNingunaManeraEnLaColumnaDelMargenNiAunqueEstuvieraVaciaDelTodo']));
+  di('la etiqueta imposible sí se parte', await p.evaluate(() => {
+    const t = document.querySelector('#pgMargin .gl-tag .gl-t');
+    if (!t) return { sinEtiqueta:true };
+    const g = document.createRange(); g.selectNodeContents(t);
+    const r = t.getBoundingClientRect();
+    const col = document.getElementById('pgMargin').getBoundingClientRect();
+    return { renglones: new Set([...g.getClientRects()].map(x => Math.round(x.top))).size,
+             seSale: Math.round(Math.max(col.left - r.left, r.right - col.right)) };
+  }).then(r => {
+    vale('la que no cabe de ninguna manera usa sus cortes',
+         !r.sinEtiqueta && r.renglones > 1, r.renglones + ' renglones');
+    vale('y aun así no se sale de la columna',
+         !r.sinEtiqueta && r.seSale <= 0, r.seSale + ' px');
+    return r;
+  }));
+
   /* EL ANTICIPO ES LA GLOSA, y eso se comprueba MIDIENDO LAS DOS, no leyendo
      el CSS. Dos cosas tienen que coincidir o esto deja de ser un anticipo: el
      cuerpo de letra —si no, se escribe a un tamaño y se lee a otro— y el

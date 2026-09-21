@@ -5312,7 +5312,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 11:38';
+window.GLOSS_BUILD = '21-SEP-26 11:47';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5985,7 +5985,31 @@ const PAGE_CSS = `
 .gl-tag{ display:block; margin-top:3px; text-align:right; padding-right:2px;
          font-size:calc(1em * var(--tag-fs, .78));
          line-height:1.25; font-weight:500; letter-spacing:.02em; }
-.gl-tag .gl-t{ padding-left:7px; }
+/* CADA ETIQUETA ES UN BLOQUE, Y POR ESO NO SE PARTE POR LA MITAD.
+
+   Las etiquetas largas llevan <wbr> cada once grafemas —está contado en
+   etiquetaHTML: es la única manera de partirlas sin romper la foto del
+   pliegue— y esos puntos de corte se estaban usando SIEMPRE, no como último
+   recurso. Con «#Interesante» empezando a media línea, el navegador partía por
+   el <wbr> que cabía en el hueco y dejaba «#Interes» arriba y «ante» abajo,
+   teniendo sitio de sobra en el renglón siguiente para la etiqueta entera. El
+   dueño del repo pidió lo contrario: si no cabe, que baje entera.
+
+   inline-block lo resuelve sin tocar los <wbr>, y el orden en que trabaja es
+   justo el que se pidió: la caja se coloca como una unidad —si no cabe en lo
+   que queda de renglón, baja entera— y sólo cuando ella sola no cabe en la
+   columna se estrecha hasta el tope y entonces sí usa sus cortes internos. Los
+   <wbr> pasan de ser la primera opción a ser la última, que es lo que siempre
+   debieron ser.
+
+   max-width:100% es la mitad que no se puede olvidar: sin él la caja mide lo
+   que mide su contenido y una etiqueta larguísima se saldría de la columna,
+   que es el fallo que los <wbr> vinieron a arreglar —.pg-margin recorta con
+   overflow:hidden y aparecía «#Interesant»—.
+   Y no rompe la foto del pliegue: medirPalabras recorre NODOS DE TEXTO y mide
+   sus rectángulos en la hoja viva, así que dibuja lo que haya; los trozos que
+   separa un <wbr> siguen siendo nodos distintos con su propio rectángulo. */
+.gl-tag .gl-t{ padding-left:7px; display:inline-block; max-width:100%; }
 /* El contador de citas del índice era también .gl-tag y no es una etiqueta: con
    la etiqueta convertida en bloque a la derecha se habría ido de renglón. */
 .gl-cuenta{ font-size:.78em; padding-left:5px; opacity:.55; }
@@ -7207,8 +7231,17 @@ function etiquetaHTML(t){
    como una frase; separadas, como una lista. */
 function etiquetasHTML(m){
   const e = m.etiquetas || [];
+  /* SE UNEN CON <wbr> Y NO CON NADA, y sin eso lo de arriba no sirve de mucho.
+     Dos spans pegados no dan al navegador dónde cortar: no hay espacio entre
+     ellos, así que con dos etiquetas seguidas el único sitio por donde podía
+     partir la línea era DENTRO de una —por sus cortes de once grafemas— y eso
+     es justo lo que se vino a quitar. El <wbr> de en medio le da el sitio
+     bueno: entre una etiqueta y la siguiente.
+     No se usa un espacio porque se vería: estas etiquetas van pegadas a la
+     derecha con su propio relleno, y un espacio de texto sumaría un hueco que
+     no está en el diseño. */
   return e.length ? '<span class="gl-tag">' +
-    e.map(t => '<span class="gl-t">#' + etiquetaHTML(t) + '</span>').join('') + '</span>' : '';
+    e.map(t => '<span class="gl-t">#' + etiquetaHTML(t) + '</span>').join('<wbr>') + '</span>' : '';
 }
 function glossHTML(m, cls, style){
   const tags = etiquetasHTML(m);
