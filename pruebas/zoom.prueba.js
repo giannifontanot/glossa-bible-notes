@@ -176,12 +176,18 @@ const comoVan = r => {
      estabas. La idea es que de lejos ves la hoja entera y eliges a qué
      acercarte, así que el toque que te devuelve dice además a qué.
 
-     LA OTRA MITAD, Y ES LA QUE HAY QUE VIGILAR: el contenido no es puerta. De
-     lejos una glosa se sigue abriendo y el texto se sigue seleccionando para
-     resaltar. Si eso se pierde, la hoja de lejos deja de ser una hoja y pasa a
-     ser un botón grande — y no se notaría en ninguna prueba que solo mirase si
-     la vuelta funciona. Por eso aquí hay tantos casos de «no pasa nada» como
-     de «vuelve».
+     Y EL TEXTO TAMBIÉN ES PUERTA, que es lo que cambió. Esta prueba exigía lo
+     contrario —«una palabra suelta no te saca»— con su razón escrita: un toque
+     encima de un renglón es casi siempre el dedo apoyado. Lo que se ve usándolo
+     es otra cosa: de lejos el texto es una mancha gris que no se lee, nadie
+     apoya el dedo ahí para leer, y quedaba una hoja llena de zonas muertas sin
+     manera de saber cuáles eran. El dueño del repo pidió que el texto devuelva
+     de cerca, y un toque que no hace nada enseña a desconfiar del toque.
+
+     LO QUE SE PONE ENCIMA DE LA HOJA SIGUE SIENDO SUYO, y es lo que hay que
+     vigilar: de lejos una glosa se sigue abriendo. Si eso se pierde, la hoja
+     de lejos deja de ser una hoja y pasa a ser un botón grande — y no se
+     notaría en ninguna prueba que solo mirase si la vuelta funciona.
 
      Los puntos se buscan, no se calculan. Los filos de pasar hoja se recolocan
      de lejos sobre los cantos de la hoja —lo que midan, y el derecho cae
@@ -272,11 +278,13 @@ const comoVan = r => {
 
   const palabra = await tocarDeLejos('palabra');
   di('encima de una palabra', palabra);
+  /* La validez primero: los filos se recolocan de lejos sobre los cantos de la
+     hoja, así que un punto elegido a ojo aterriza en un filo y esto mediría
+     otra cosa. Pasó al escribir el bloque. */
   vale('el punto cayó en el texto y no en un filo',
        /\bv\b/.test(String(palabra.recibio || '')), palabra.recibio);
-  /* Un toque encima de un renglón es casi siempre el dedo apoyado. Cobrarle la
-     vista entera sería el accidente que se quiso evitar. */
-  vale('una palabra suelta no te saca', palabra.sigueLejos);
+  vale('UNA PALABRA TAMBIÉN TE SACA, y te deja en el texto',
+       !palabra.sigueLejos && palabra.cajon === 0, palabra.cajon);
 
   /* EL HUECO NO APUNTA A NADA, así que devuelve el cajón en el que entraste.
      Se prueba desde los dos, porque desde el del libro daría verde aunque el

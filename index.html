@@ -5193,7 +5193,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 09:39';
+window.GLOSS_BUILD = '21-SEP-26 09:49';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -13482,6 +13482,12 @@ window.addEventListener('pointercancel', ev => soltarTiron(ev, false));
    motivo: son las cosas que tienen algo que hacer con tu dedo. */
 const CONTENIDO_DE_HOJA =
   '.v, .vn, .cap, .gl, .ref, .chip, a, button, select, input, textarea';
+/* EL TEXTO DEL LIBRO, QUE DE LEJOS TAMBIÉN ES PUERTA. Es el subconjunto de
+   arriba que el lector reconoce como «la hoja»: el versículo, su número y el
+   número del capítulo. Lo demás de esa lista se queda inerte —una glosa se
+   abre, un enlace lleva a su sitio, un control controla— porque eso no es la
+   hoja, es lo que hay encima de ella. Ver el oyente de la escena. */
+const TEXTO_DEL_LIBRO = '.v, .vn, .cap';
 
 /* EL BLANCO DE LA HOJA ES EL BOTÓN DE VOLVER, y el oyente NO puede colgar de #pg.
 
@@ -13525,23 +13531,45 @@ stage.addEventListener('click', ev => {
   if (!inner) return;
   if (dirZoomAuto || folding || preparandoPliegue){ detenerZoomAuto(); return; }
 
-  /* EL CONTENIDO ES INERTE; EL BLANCO ES LA PUERTA.
+  /* LA HOJA ENTERA ES LA PUERTA; LO QUE SE PONE ENCIMA, NO.
 
-     De lejos la hoja no es una miniatura que solo sirva para mirarla: se sigue
-     usando entera. Una glosa se abre, salta a su pasaje y se edita; el texto
-     se selecciona y de ahí salen Resaltar, Línea y Glosa —comprobado, el menú
-     sale igual de lejos que de cerca—. Nada de eso se puede perder por haber
-     convertido la hoja en un botón.
-     Así que lo que se toca decide: si debajo del dedo hay ALGO —una glosa, un
-     versículo, un número, un enlace—, ese algo se queda con el toque y aquí no
-     pasa nada. La vuelta se pide tocando donde no hay nada puesto.
+     Esto decía lo contrario para el texto, y con su razón escrita: «una
+     palabra suelta tampoco vale, aunque no lleve selección detrás; un toque
+     encima de un renglón es casi siempre el dedo que se apoyó». Lo que se veía
+     usándolo es otra cosa: de lejos el texto es una mancha gris que no se lee,
+     así que nadie apoya el dedo ahí para leer —se toca para volver—, y quedaba
+     una hoja llena de zonas muertas donde el toque no hacía nada y no había
+     manera de saber cuáles eran. El dueño del repo pidió que el texto también
+     devuelva de cerca. Un toque que no hace nada enseña a desconfiar del
+     toque; ése es el accidente que sale caro aquí.
 
-     Y una palabra suelta tampoco vale, aunque no lleve selección detrás. Un
-     toque encima de un renglón es casi siempre el dedo que se apoyó: cobrarle
-     la vista entera por eso sería justo el accidente que se quiso evitar
-     cuando la salida dejó de ser el libro. */
+     LO QUE SE PONE ENCIMA DE LA HOJA SIGUE SIENDO SUYO, que es la otra mitad y
+     la que hay que cuidar: una glosa se abre, salta a su pasaje y se edita; un
+     enlace lleva a su sitio; un control controla. Si eso se pierde, la hoja de
+     lejos deja de ser una hoja y pasa a ser un botón grande. Por eso la puerta
+     es el texto del libro —ver TEXTO_DEL_LIBRO— y no todo lo que hay dentro.
+
+     Y EL TOQUE QUE CIERRA EL PANEL DE UN PASAJE NO SE COBRA. De lejos el texto
+     se elige y de ahí salen Resaltar, Línea y Glosa; el toque que despide ese
+     panel cae casi siempre sobre el propio texto, y sin esto cerrarlo se
+     llevaría por delante la vista entera. Con el panel puesto, el toque es el
+     final de ESE gesto y no una petición de volver.
+     Se pregunta por el panel y no por window.getSelection(), que aquí no dice
+     nada: la hoja lleva user-select:none —medido, de cerca y de lejos— porque
+     la elección de un pasaje la hace el programa con sus propios punteros, no
+     el navegador. Una guarda sobre la selección del navegador habría sido
+     código muerto con un comentario explicando por qué hacía falta.
+     Y hay que decir lo que NO se pudo comprobar: sondeando esto no conseguí
+     abrir el panel de una glosa desde la vista de lejos, ni con un clic ni con
+     un toque de los de la casa, así que esta guarda no se ha visto en marcha.
+     Se queda porque cuesta una comparación y porque el comentario que había
+     aquí afirmaba que de lejos ese panel se abre: si es verdad por algún
+     camino que no encontré, el toque que lo despide no puede llevarse además
+     la vista entera. */
   const t = ev.target;
-  if (t.closest && t.closest(CONTENIDO_DE_HOJA)) return;
+  const enElTexto = t.closest && t.closest(TEXTO_DEL_LIBRO);
+  if (t.closest && t.closest(CONTENIDO_DE_HOJA) && !enElTexto) return;
+  if (enElTexto && menu && menu.style.display !== 'none') return;
 
   /* Ya se sabe que el toque cayó en blanco. Ahora, de qué lado.
      Aquí sí mandan las coordenadas y no el destino, y por dos motivos: el
