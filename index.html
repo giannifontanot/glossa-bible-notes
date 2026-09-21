@@ -4918,7 +4918,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '20-SEP-26 19:28';
+window.GLOSS_BUILD = '20-SEP-26 19:48';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5110,7 +5110,29 @@ const PAGE_CSS = `
    del diccionario del idioma, y ese diccionario no está disponible cuando
    la hoja se rasteriza para el pliegue. Resultado: el texto vivo partía
    palabras y la foto no, y al agarrar el borde los espacios brincaban. */
-.pg-body{ flex:1 1 auto; min-width:0; font-size:var(--fs,15px); line-height:var(--lh,1.62);
+/* EL MARGEN DE ABAJO DEL NÚMERO DE CAPÍTULO, EN UNA VARIABLE Y AQUÍ.
+
+   Lo escribe .cap para sí mismo y lo lee además .cap + .peri, que necesita
+   restarlo para cancelar el colapso de márgenes. Escrito dos veces se
+   despareja a la primera que alguien retoque el número.
+
+   Y VA EN PÍXELES, NO EN em, aunque el margen que copia esté escrito en em.
+   Una variable no guarda el resultado: guarda los signos, y el em se resuelve
+   DONDE SE USA. Escrita con em, .cap la leía con su propio cuerpo —que mide
+   cuatro veces el del texto— y el margen salía cuatro veces más grande: la
+   hoja repaginaba entera. Multiplicando por --fs, que es el cuerpo de la
+   hoja en píxeles, la cuenta se cierra aquí y los dos leen el mismo número
+   mida lo que mida su letra.
+
+   (Y SIN COMILLAS INVERSAS EN ESTE COMENTARIO, que es donde se fue media
+   tarde: todo esto vive dentro de PAGE_CSS, que es una plantilla de
+   JavaScript. Una comilla inversa aquí la cierra, y lo que sigue deja de ser
+   texto y pasa a ser código: el programa entero se cayó con «Unexpected
+   identifier em» y la hoja salió en blanco.)
+   4.2 y 0.45 son el tamaño del numeral y lo que encoge por columna; 0.46 es
+   su margen de abajo. Si esos tres cambian en .cap, cambian aquí. */
+.pg-body{ --cap-mb:calc(var(--fs, 15px) * .46 * (4.2 - (var(--cols, 1) - 1) * .45));
+          flex:1 1 auto; min-width:0; font-size:var(--fs,15px); line-height:var(--lh,1.62);
           text-align:var(--ali,left); hyphens:var(--guion,none);
           overflow:hidden; box-sizing:border-box;
           column-count:var(--cols,1); column-gap:15px; column-fill:auto;
@@ -5145,7 +5167,7 @@ const PAGE_CSS = `
          hueco de arriba ya viene inflado por donde haya terminado el
          capítulo anterior —eso no lo controla el margen. Van en em del
          propio número, así que encogen con él en varias columnas. */
-      margin:.30em 0 .46em; }
+      margin:.30em 0 var(--cap-mb, .46em); }
 /* Aquí iba font-variant-numeric:oldstyle-nums, y se veía precioso —pero el
    lienzo no sabe leer esa propiedad, así que en la foto del pliegue el
    número salía con otra forma y otra altura. Entre una cifra elegante y un
@@ -5292,14 +5314,26 @@ const PAGE_CSS = `
    px. Basta para mover un versículo de hoja, y se vio: la primera hoja de
    Mateo pasaba de catorce a trece.
 
-   Un margen negativo del tamaño de la banda lo devuelve: colapsado contra los
-   25.88 del capítulo da 4.13, más la banda son los 25.88 de siempre hasta el
-   texto del título, y el alto total consumido vuelve a ser el mismo al píxel.
+   Un margen negativo lo devuelve: colapsado contra el del capítulo, el hueco
+   vuelve a ser el de siempre hasta el texto del título, y el alto total
+   consumido es el mismo al píxel.
+
+   Y NO ES «MENOS LA BANDA» A SECAS, aunque a dos columnas lo parezca. El
+   colapso deja el MAYOR de los dos márgenes, y cuál es el mayor depende de
+   las columnas: el numeral encoge con ellas —4.2em, 3.75em, 3.3em— y con él su
+   margen de abajo, que a tres columnas mide 1.518 del cuerpo y ya no le gana
+   al 1.62 del titulillo. Escrito «−banda» a secas, a tres columnas el hueco
+   quedaba 0.102em corto en cada perícopa que sigue a un capítulo, que es
+   justo la clase de deuda que mueve un versículo de hoja sin que nadie sepa
+   por qué. La cuenta pide el mayor de los dos explícitamente y le descuenta
+   el del capítulo, que es contra quien va a colapsar. Lo levantó la revisión
+   de Codex.
 
    SI ALGÚN DÍA OTRO BLOQUE puede quedar justo delante de un titulillo, tendrá
    que entrar en este selector: lo que decide no es quién es, es que su margen
    de abajo colapse con el de arriba de la perícopa. */
-.cap + .peri{ margin-top:calc(-1 * var(--peri-banda)); }
+.cap + .peri{
+  margin-top:calc(max(var(--cap-mb), 1.5em) - var(--peri-banda) - var(--cap-mb)); }
 /* ============================================================
    LAS ESCENAS DEL LIBRO: LA LISTA QUE SALE DEL TITULILLO.
 
@@ -12677,6 +12711,16 @@ function cerrarZoom(hacia){
   for (const el of [edgeL, edgeR, $('cantoIzq'), $('cantoDer')])
     if (el) for (const p of ['top','bottom','height','left','right'])
       el.style.removeProperty(p);
+  /* Y el punto de las cintas se vuelve a colocar, que de lejos no se mide: la
+     hoja llevaba escala y las dos medidas que usa hablan en unidades
+     distintas. Ver colocarPuntoCintas.
+
+     Y aquí mismo vale: desde que esto se mide con desplazamientos y no con
+     rectángulos, el sitio es el mismo con la animación de vuelta a medias o
+     terminada. Estuvo con trasPintar mientras medía rectángulos, y ni con dos
+     cuadros llegaba: lo que estaba a medias no era el pintado, era la
+     transición de la escala. */
+  if (typeof colocarPuntoCintas === 'function') colocarPuntoCintas();
 }
 function refrescarPasos(){
   const b = $('zoomPasos').querySelectorAll('[data-paso]');
@@ -16252,16 +16296,81 @@ function colocarPuntoCintas(){
   const cab = pg && pg.querySelector('.pg-cabeza');
   if (!b || !inner || !cab) return;
   const suelta = () => { b.style.left = ''; b.style.right = ''; };
-  const corrido = pg.scrollLeft || 0;
-  const st = stage.getBoundingClientRect();
-  const cinta = inner.getBoundingClientRect().left + corrido + sepMedidas().izq;
-  const finTitulillo = cab.getBoundingClientRect().right + corrido;
+  /* TODO SE MIDE CON DESPLAZAMIENTOS Y NADA CON RECTÁNGULOS, y eso es el
+     arreglo entero de dos fallos que esta función tuvo seguidos.
+
+     getBoundingClientRect devuelve lo que se VE: lleva dentro el
+     desplazamiento del papel —en teléfono la hoja es más ancha que la
+     pantalla y se corre a mano— y lleva dentro la escala de la vista de
+     lejos, y hasta la transición con la que esa escala se deshace. Medido:
+     llamando a esto al cerrar el zoom, el filo de .pg-inner iba por 11 px
+     camino de 0 y el punto acababa 89 px corrido; dos cuadros después seguía
+     mal, porque lo que estaba a medias no era el pintado sino la animación.
+
+     offsetLeft no sabe de nada de eso: es la hoja en reposo, siempre. Sumando
+     la cadena de desplazamientos hasta la escena sale el mismo sitio antes,
+     durante y después del zoom, y con el papel corrido o sin correr —que es
+     justo lo que se pidió: una posición fija—. Lo primero lo levantó la
+     revisión de Codex; lo segundo salió al medirlo. */
+  const sumaIzq = (el, hasta) => {
+    let n = el, x = 0;
+    while (n && n !== hasta){ x += n.offsetLeft; n = n.offsetParent; }
+    return x;
+  };
+  /* EL TRASLADO SE SUMA APARTE, y sin él la cuenta sale por media palabra.
+     En teléfono el titulillo se centra sobre la columna con un
+     translateX(-50%), y offsetLeft NO lleva transformaciones dentro: da el
+     sitio de antes de trasladar, o sea medio rótulo a la derecha del que se
+     ve. Medido: con eso el hueco hasta la cinta se quedaba tan corto que el
+     guardia de abajo lo daba por inexistente y el punto se volvía al canto.
+     Es la contrapartida justa de usar desplazamientos: no saben de escalas
+     —que es lo que se buscaba— y tampoco de traslados, que aquí sí hacen
+     falta. La matriz lo dice sin tener que saber qué transform se escribió, y
+     en pantalla ancha, donde el titulillo no lleva ninguna, vale cero. */
+  const trasladoX = el => {
+    const t = getComputedStyle(el).transform;
+    return t && t !== 'none' ? new DOMMatrix(t).m41 : 0;
+  };
+  /* Los dos vecinos, en coordenadas de la hoja. */
+  const finTitulillo = sumaIzq(cab, inner) + trasladoX(cab) + cab.offsetWidth;
+  const cinta = sepMedidas().izq;
   const ancho = b.offsetWidth || 34;
-  /* Con menos hueco que el propio punto no hay en medio que valga. */
+  /* Con menos hueco que el propio punto no hay en medio que valga. En pantalla
+     ancha el titulillo vive en la esquina de arriba a la derecha, o sea a la
+     DERECHA de donde cuelga la cinta: entre los dos no hay «en medio», y la
+     cuenta daría un sitio encima del propio titulillo. Ahí el punto se queda
+     donde lo pone la hoja de estilos, que además es donde no estorba, porque
+     el problema que esto arregla —el punto rozando la cinta— sólo existe
+     cuando la cinta está a su lado. */
   if (!(cinta - finTitulillo > ancho)) return suelta();
-  const centro = (finTitulillo + cinta) / 2 - st.left;
+  const centro = sumaIzq(inner, stage) + (finTitulillo + cinta) / 2;
   b.style.left = Math.round(centro - ancho / 2) + 'px';
   b.style.right = 'auto';
+}
+/* Y SE VUELVE A COLOCAR CUANDO ALGUNO DE LOS DOS VECINOS CAMBIA DE TAMAÑO.
+
+   Esto empezó siendo una llamada al final de renderPage y de girar el aparato,
+   y se quedaba corto de dos maneras que costó ver:
+
+   · EL TITULILLO CAMBIA DE ANCHO SIN QUE NADIE REPINTE. Mide lo que miden sus
+     letras, así que «Mateo 1:1» y «1 Tesalonicenses 5:12» dan medios
+     distintos. Y al volver de la vista de lejos no cambia de golpe: TRANSICIONA
+     —medido, 182 → 167 → 148 → 147 px a lo largo de unos 200 ms— así que
+     cualquier momento que uno elija para medir es el equivocado menos el
+     último, y no hay manera de saber cuál es el último sin que te lo digan.
+   · Y LA COLUMNA DE GLOSAS decide dónde cuelga la cinta, o sea el otro
+     extremo del medio.
+
+   Un observador de tamaño lo dice cuando pasa, sea por lo que sea: pasar
+   hoja, cambiar la letra, girar, salir del zoom o el final de una transición
+   que nadie está mirando. Los dos elementos son fijos —no se rehacen con la
+   hoja— así que se observan una vez y ya.
+   No hay riesgo de bucle: mover el punto no cambia el ancho de ninguno de los
+   dos, y el punto vive en la escena, fuera de la hoja. */
+if (typeof ResizeObserver === 'function'){
+  const ojo = new ResizeObserver(() => colocarPuntoCintas());
+  for (const el of [document.getElementById('pgCabeza'), document.getElementById('pgMargin')])
+    if (el) ojo.observe(el);
 }
 function actualizarSeparador(percha, s){
   const t = telaDe(s.color);

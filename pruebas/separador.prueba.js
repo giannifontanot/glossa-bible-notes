@@ -397,6 +397,82 @@ async function ponerAMano(p){
        enMedio.desvio !== null && Math.abs(enMedio.desvio) <= 1,
        enMedio.desvio + ' px del medio');
 
+  /* Y SIGUE EN MEDIO DESPUÉS DE IR Y VOLVER DE LA VISTA DE LEJOS, que es
+     donde el sitio se perdía.
+
+     El punto se esconde con el zoom, así que un cálculo equivocado ahí no se
+     ve: se ve al volver, con el sitio ya escrito. Y había dos maneras de
+     equivocarse, las dos medidas:
+
+     · MEDIR CON RECTÁNGULOS. getBoundingClientRect lleva dentro la escala de
+       la vista de lejos y la transición con la que esa escala se deshace, y
+       el filo de la hoja iba por 11 px camino de 0. Ahora todo se mide con
+       desplazamientos, que son la hoja en reposo.
+     · Y MEDIR ANTES DE TIEMPO. El titulillo no cambia de ancho de golpe al
+       volver: transiciona —182 → 167 → 148 → 147 px en unos 200 ms— así que
+       cualquier instante que uno elija es el equivocado menos el último. Lo
+       resuelve un observador de tamaño sobre el titulillo y la columna de
+       glosas, que avisa cuando de verdad pasa.
+
+     Por eso esta comprobación pasa hoja DE LEJOS antes de volver: así el
+     titulillo cambia de texto y de ancho, que es el caso que obliga a
+     recolocar. Volviendo sin pasar hoja, el ancho es el mismo y el fallo no
+     aparece. */
+  titulo('y sigue en medio al volver de la vista de lejos');
+  const trasZoom = await p.evaluate(async () => {
+    const lee = () => {
+      const b = document.getElementById('btnCintas').getBoundingClientRect();
+      const t = document.querySelector('#pg .pg-cabeza').getBoundingClientRect();
+      const inner = document.querySelector('#pg .pg-inner');
+      const m = document.getElementById('pgMargin');
+      /* El filo de la cinta en coordenadas de pantalla, sumando la cadena de
+         desplazamientos igual que hace el programa. */
+      let n = m, x = 0;
+      while (n && n !== inner){ x += n.offsetLeft; n = n.offsetParent; }
+      const cinta = inner.getBoundingClientRect().left +
+                    (document.getElementById('pg').scrollLeft || 0) + x;
+      return { centro: (b.left + b.right) / 2, finTitulillo: t.right,
+               hoja: document.getElementById('pgCabeza').textContent.trim(),
+               cinta };
+    };
+    document.getElementById('btnZoom').click();
+    await window.__pausa(1600);
+    const paso = document.querySelector('#zoomPasos [data-paso="1"]');
+    if (!paso) return { sinPaso:true };
+    paso.click();
+    await window.__pausa(2400);
+    /* Se sale por el hueco de debajo del libro, que es la salida de verdad. */
+    const r = document.querySelector('#pg .pg-inner').getBoundingClientRect();
+    document.getElementById('pg').dispatchEvent(new MouseEvent('click',
+      { bubbles:true, clientX: Math.round(r.left + r.width / 2),
+        clientY: Math.round(r.bottom + 60) }));
+    await window.__pausa(2600);
+    const alVolver = document.getElementById('btnCintas').style.left;
+    /* Y EL PATRÓN CONTRA EL QUE SE COMPARA NO ES UN NÚMERO, ES LA MISMA CUENTA
+       HECHA EN REPOSO.
+
+       Escribir aquí dónde debería caer el punto sería copiar a mano la regla
+       que se viene a vigilar —el asomo de la cinta, el medio, el ancho del
+       propio punto— y una prueba que calcula lo que comprueba no comprueba
+       nada; en este archivo ya pasó una vez. Lo que sí se puede afirmar sin
+       copiar nada es que la cuenta hecha AL VOLVER dé lo mismo que la cuenta
+       hecha con todo quieto: si el zoom dejó el punto mal puesto, un giro del
+       aparato lo movería, y eso es exactamente el fallo. */
+    window.dispatchEvent(new Event('resize'));
+    await window.__pausa(2600);
+    const enReposo = document.getElementById('btnCintas').style.left;
+    const v = lee();
+    return { hoja: v.hoja, alVolver, enReposo };
+  });
+  di('al volver de lejos', JSON.stringify(trasZoom));
+  vale('(la prueba es válida) se pasó hoja de lejos, así que el titulillo cambió',
+       !trasZoom.sinPaso && trasZoom.hoja !== 'Mateo  1:1', trasZoom.hoja);
+  vale('(la prueba es válida) el punto lleva sitio escrito',
+       !!trasZoom.alVolver && trasZoom.alVolver !== 'auto', trasZoom.alVolver);
+  vale('SIGUE EN MEDIO AL VOLVER, sin esperar a que nada se mueva',
+       trasZoom.alVolver === trasZoom.enReposo,
+       trasZoom.alVolver + '  vs  ' + trasZoom.enReposo + '  (en reposo)');
+
   /* ---------------------------------------------------------------- */
   titulo('la lista lleva a la hoja guardada');
   /* La segunda cinta se pone en OTRA lectura —se recarga, que es lo que corta
