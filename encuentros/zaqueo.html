@@ -4,478 +4,261 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Zaqueo: el hombre que Jericó no quería ver</title>
-<meta name="description" content="Relato dramatizado en tres capítulos basado en Lucas 19:1-10.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400&family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --parchment: #f5eedf;
-    --parchment-deep: #ebe0c8;
-    --paper: #fbf7ee;
-    --ink: #2b2118;
-    --ink-soft: #5a4a3a;
-    --terracotta: #a4502f;
-    --terracotta-soft: #c9825f;
-    --olive: #6b6b3a;
-    --amber: #b8862d;
-    --rule: #d8c9a8;
-    --shadow: rgba(60, 40, 20, 0.12);
+  /* LA HOJA DE ESTE RELATO NO TIENE COLORES PROPIOS NI TAMAÑO PROPIO.
+
+     Se lee dentro de un marco en el panel de Encuentros, y un marco es otro
+     documento: no hereda ni la letra ni el papel de quien lo enseña. Así que
+     los recibe. El puente que los trae está en salida.js —el mismo que
+     devuelve la tecla Escape—, y lo que hace es poner en :root el tamaño de
+     letra del libro y los marrones del sepia, que se mueven con el riel de
+     AAA. Todo lo de aquí abajo cuelga de esas cuatro variables.
+
+     LOS RESPALDOS DE var() NO SON ADORNO: son lo que se ve si este fichero se
+     abre solo, sin programa que le hable. Abierto así tiene que seguir siendo
+     un relato legible y no una página en blanco con letras negras. */
+  :root{
+    font-size:15px;                 /* lo pisa el puente con la letra del libro */
+    /* El tipo de letra que el lector dejó puesto en AAA. El respaldo es el
+       primero de la lista del programa, que es con el que arranca. */
+    --familia:Georgia, 'Times New Roman', serif;
+    --tinta:rgb(59,43,24);
+    --rotulo:rgb(91,72,45);
+    --raya:rgba(91,72,45,.38);
+    /* EL ORO ES EL DEL NÚMERO DE CAPÍTULO DEL LIBRO, copiado de .cap. Lo
+       notó el dueño del repo mirando los títulos —«me recuerdan el sepia del
+       número de capítulo»— y tenía razón: era un marrón de la familia, pero
+       no ÉSE. Ahora es el mismo número, #b0873a, así que el «Capítulo I» de
+       un relato y el «3» de Lucas están escritos con la misma tinta.
+       Y no viene de fuera como los otros tres: aquéllos se mueven con el
+       riel del sepia porque son papel y tinta; éste no se mueve en el libro
+       tampoco, es el color con el que este programa numera. */
+    --oro:#b0873a;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --parchment: #1c1712;
-      --parchment-deep: #241d16;
-      --paper: #221b15;
-      --ink: #ece2cf;
-      --ink-soft: #bfae94;
-      --terracotta: #d98560;
-      --terracotta-soft: #b86a48;
-      --olive: #a8a868;
-      --amber: #d9a94f;
-      --rule: #4a3d2e;
-      --shadow: rgba(0, 0, 0, 0.4);
-    }
-  }
-
-  * { box-sizing: border-box; }
-
-  html { scroll-behavior: smooth; }
-
   body {
     margin: 0;
-    background: var(--parchment);
-    background-image:
-      radial-gradient(ellipse at top, rgba(255,255,255,0.35), transparent 60%),
-      radial-gradient(ellipse at bottom, var(--parchment-deep), transparent 70%);
-    background-attachment: fixed;
-    color: var(--ink);
-    font-family: 'Spectral', Georgia, 'Times New Roman', serif;
-    font-size: 1.15rem;
-    line-height: 1.8;
-    -webkit-font-smoothing: antialiased;
+    /* TRANSPARENTE A PROPÓSITO: el relato se lee sobre el papel del panel, que
+       es el mismo del libro y se tiñe con el sepia. Un fondo propio aquí sería
+       un recuadro más claro flotando sobre la hoja. */
+    background: transparent;
+    color: var(--tinta);
+    font-family: var(--familia);
+    font-size: 1.05rem;
+    line-height: 1.75;
+    -webkit-text-size-adjust: none;
+  }
+  /* El ancho se mide en rem y no en píxeles: crece con la letra, así que el
+     renglón guarda su cuenta de caracteres cuando el lector sube el tamaño.
+     Un ancho en píxeles con letra grande da renglones de cinco palabras. */
+  .page { max-width: 36rem; margin: 0 auto; padding: 1.6rem 1.1rem 3rem; }
+
+  /* ---------- la portada del relato ---------- */
+  /* LOS TÍTULOS NO LLEVAN FAMILIA PROPIA: heredan la del cuerpo, que es la que
+     el lector eligió en AAA. Un relato en Verdana con los títulos en Georgia
+     sería otra página. La única excepción está abajo, en h2 .num. */
+  h1 {
+    font-size: 2.15rem; line-height: 1.15; font-weight: 400;
+    margin: 0 0 .35rem; letter-spacing: -.01em; color: var(--tinta);
+  }
+  .subtitle { font-style: italic; font-size: 1.12rem; margin: 0 0 .9rem; color: var(--rotulo); }
+  /* La referencia hace de pie de portada: versalitas, oro y una raya que cierra
+     el bloque. Es el único sitio donde el oro lleva peso, y por eso el título
+     se lee como título sin necesidad de negritas. */
+  .ref {
+    font-size: .78rem; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--oro); margin: 0 0 2.6rem; padding-bottom: 1rem;
+    border-bottom: 1px solid var(--raya);
   }
 
-  .page {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 0 16px 6rem;
+  /* ---------- los capítulos ---------- */
+  h2 {
+    font-size: 1.5rem; font-weight: 400; line-height: 1.25;
+    margin: 3rem 0 1.4rem; color: var(--tinta);
+  }
+  /* Y CON LA LETRA DEL NÚMERO DE CAPÍTULO, no con una de palo seco. Es la
+     misma familia de .cap en el libro: si el color ya es el del número de
+     capítulo, la letra también, o se nota que son dos cosas distintas
+     intentando parecerse.
+
+     ÉSTA SÍ VA ESCRITA Y NO HEREDADA, y es la única de la hoja: .cap en el
+     libro también lleva la suya clavada, así que el número de capítulo no
+     cambia de tipo cuando el lector cambia el de AAA. Un «Capítulo I» que
+     siguiera al ajuste dejaría de parecerse al número de capítulo justo con
+     las letras de palo, que es cuando más se nota. */
+  h2 .num {
+    display: block; font-size: .78rem; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--oro); margin-bottom: .5rem;
+    font-family: 'Palatino Linotype', Palatino, 'Book Antiqua',
+                 'Iowan Old Style', Georgia, 'Noto Serif', serif;
+  }
+  /* La capitular del primer párrafo de cada capítulo. Es lo que hace que esto
+     parezca compuesto y no escrito: una letra, ninguna decoración más. */
+  h2 + p::first-letter {
+    float: left; font-size: 3.1em; line-height: .82;
+    padding: .06em .09em 0 0; color: var(--oro);
+    font-family: 'Palatino Linotype', Palatino, 'Book Antiqua',
+                 'Iowan Old Style', Georgia, 'Noto Serif', serif;
   }
 
-  /* ---------- Portada ---------- */
-  header.hero {
-    text-align: center;
-    padding: 6rem 0 4rem;
-    border-bottom: 1px solid var(--rule);
-    margin-bottom: 3rem;
+  p { margin: 0 0 1.15rem; }
+  .dialogue p, p.dialogue { margin-left: 1.4rem; }
+  .thought { font-style: italic; margin-left: 1.4rem; color: var(--rotulo); }
+
+  /* Las palabras de Jesús, que son las únicas citadas: raya de oro a la
+     izquierda en vez de comillas, que es lo que las separa sin gritar. */
+  blockquote {
+    margin: 1.6rem 0 1.6rem .6rem; padding: .1rem 0 .1rem 1.1rem;
+    border-left: 2px solid var(--oro); font-style: italic;
   }
-  .hero .kicker {
-    font-family: 'Fraunces', serif;
-    font-size: 0.8rem;
-    letter-spacing: 0.35em;
-    text-transform: uppercase;
-    color: var(--terracotta);
-    margin-bottom: 1.5rem;
-  }
-  .hero h1 {
-    font-family: 'Fraunces', serif;
-    font-weight: 700;
-    font-size: clamp(3rem, 11vw, 5.5rem);
-    line-height: 1;
-    margin: 0;
-    letter-spacing: -0.02em;
-  }
-  .hero .subtitle {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-weight: 400;
-    font-size: clamp(1.2rem, 4vw, 1.6rem);
-    color: var(--ink-soft);
-    margin: 1rem 0 2.5rem;
-  }
-  .hero .ref {
-    display: inline-block;
-    font-size: 0.95rem;
-    color: var(--ink-soft);
-    border-top: 1px solid var(--rule);
-    border-bottom: 1px solid var(--rule);
-    padding: 0.4rem 1.5rem;
-    letter-spacing: 0.08em;
-  }
-  .ornament {
-    display: block;
-    text-align: center;
-    color: var(--amber);
-    font-size: 1.4rem;
-    letter-spacing: 0.8em;
-    margin: 2.5rem 0 0;
-    padding-left: 0.8em;
+  blockquote cite {
+    display: block; font-style: normal; font-size: .82rem;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--rotulo); margin-top: .5rem;
   }
 
-  /* ---------- Índice ---------- */
-  nav.contents {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    margin: 0 auto 4rem;
-    max-width: 480px;
-  }
-  nav.contents a {
-    display: flex;
-    align-items: baseline;
-    gap: 1rem;
-    text-decoration: none;
-    color: var(--ink);
-    padding: 0.5rem 0;
-    border-bottom: 1px dotted var(--rule);
-    transition: color 0.2s;
-  }
-  nav.contents a:hover { color: var(--terracotta); }
-  nav.contents .num {
-    font-family: 'Fraunces', serif;
-    font-weight: 500;
-    color: var(--terracotta);
-    min-width: 2.2rem;
-  }
-  nav.contents .name {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-  }
-
-  /* ---------- Capítulos ---------- */
-  section.chapter {
-    background: var(--paper);
-    border: 1px solid var(--rule);
-    border-radius: 4px;
-    box-shadow: 0 1px 2px var(--shadow), 0 12px 40px -18px var(--shadow);
-    padding: 3.5rem clamp(1.25rem, 6vw, 4rem);
-    margin-bottom: 3.5rem;
-    position: relative;
-  }
-  section.chapter::before {
-    content: "";
-    position: absolute;
-    top: 0; left: 50%;
-    transform: translateX(-50%);
-    width: 60px; height: 3px;
-    background: var(--terracotta);
-  }
-  .chapter-head {
-    text-align: center;
-    margin-bottom: 2.5rem;
-  }
-  .chapter-head .roman {
-    font-family: 'Fraunces', serif;
-    font-weight: 300;
-    font-size: 3.2rem;
-    color: var(--terracotta);
-    line-height: 1;
-    display: block;
-  }
-  .chapter-head .label {
-    font-family: 'Fraunces', serif;
-    font-size: 0.75rem;
-    letter-spacing: 0.35em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
-    display: block;
-    margin: 0.75rem 0 0.5rem;
-  }
-  .chapter-head h2 {
-    font-family: 'Fraunces', serif;
-    font-weight: 500;
-    font-style: italic;
-    font-size: clamp(1.7rem, 5vw, 2.3rem);
-    margin: 0;
-    line-height: 1.2;
-  }
-
-  .chapter p { margin: 0 0 1.4rem; text-align: left; hyphens: auto; }
-
-  .chapter p.opening::first-letter {
-    font-family: 'Fraunces', serif;
-    font-weight: 700;
-    float: left;
-    font-size: 4.6rem;
-    line-height: 0.85;
-    padding: 0.35rem 0.6rem 0 0;
-    color: var(--terracotta);
-  }
-
-  .dialogue {
-    padding-left: 1rem;
-    border-left: 2px solid var(--rule);
-  }
-
-  .thought {
-    font-style: italic;
-    color: var(--ink-soft);
-    text-align: center !important;
-    font-size: 1.2rem;
-    margin: 2rem 0 !important;
-  }
-
-  blockquote.scripture {
-    margin: 2.2rem 0;
-    padding: 1.4rem 1.6rem;
-    background: color-mix(in srgb, var(--parchment-deep) 60%, transparent);
-    border-left: 4px solid var(--terracotta);
-    border-radius: 0 4px 4px 0;
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-size: 1.25rem;
-    line-height: 1.6;
-  }
-  blockquote.scripture cite {
-    display: block;
-    font-family: 'Spectral', serif;
-    font-style: normal;
-    font-size: 0.85rem;
-    letter-spacing: 0.1em;
-    color: var(--ink-soft);
-    margin-top: 0.75rem;
-  }
-
-  .pause {
-    text-align: center;
-    color: var(--amber);
-    letter-spacing: 0.6em;
-    margin: 2.5rem 0;
-    padding-left: 0.6em;
-  }
-
-  .name-moment {
-    text-align: center !important;
-    font-family: 'Fraunces', serif;
-    font-weight: 700;
-    font-style: italic;
-    font-size: clamp(2.2rem, 8vw, 3.2rem);
-    color: var(--terracotta);
-    margin: 2.5rem 0 !important;
-    letter-spacing: 0.02em;
-  }
-
-  .crowd {
-    font-style: italic;
-    color: var(--ink-soft);
-    padding-left: 1.5rem;
-    margin-bottom: 0.6rem !important;
-  }
-
-  .closing {
-    text-align: center !important;
-    font-family: 'Fraunces', serif;
-    font-size: 1.35rem;
-    margin: 0.4rem 0 !important;
-  }
-  .closing.final {
-    font-size: 1.9rem;
-    font-style: italic;
-    color: var(--terracotta);
-    margin-top: 1.2rem !important;
-  }
-
-  /* ---------- Pie ---------- */
-  footer {
-    text-align: center;
-    color: var(--ink-soft);
-    font-size: 0.95rem;
-    margin-top: 2rem;
-  }
-  footer .verse {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-size: 1.15rem;
-    color: var(--ink);
-    max-width: 520px;
-    margin: 1.5rem auto 0.5rem;
-    line-height: 1.6;
-  }
-
-  @media (max-width: 520px) {
-    body { font-size: 1.05rem; }
-    header.hero { padding: 4rem 0 3rem; }
-    section.chapter { padding: 2.5rem 1.25rem; }
-    .chapter p.opening::first-letter { font-size: 3.8rem; }
-  }
-
-  @media print {
-    body { background: #fff; }
-    section.chapter { box-shadow: none; page-break-before: always; }
-    nav.contents { display: none; }
+  .sep { text-align: center; margin: 2.2rem 0; letter-spacing: .6em; color: var(--oro); }
+  .note {
+    margin-top: 2.8rem; padding-top: 1rem; border-top: 1px solid var(--raya);
+    font-size: .8rem; letter-spacing: .06em; color: var(--rotulo);
   }
 </style>
 </head>
 <body>
 <div class="page">
 
-  <header class="hero">
-    <div class="kicker">Relato en tres capítulos</div>
-    <h1>Zaqueo</h1>
-    <p class="subtitle">el hombre que Jericó no quería ver</p>
-    <span class="ref">Basado en Lucas 19:1-10</span>
-    <span class="ornament">✦ ✦ ✦</span>
-  </header>
+  <h1>Zaqueo</h1>
+  <p class="subtitle">El hombre que Jericó no quería ver</p>
+  <p class="ref">Basado en Lucas 19:1-10</p>
 
-  <nav class="contents" aria-label="Capítulos">
-    <a href="#cap1"><span class="num">I</span><span class="name">Las monedas y el silencio</span></a>
-    <a href="#cap2"><span class="num">II</span><span class="name">Un hombre en un árbol</span></a>
-    <a href="#cap3"><span class="num">III</span><span class="name">Hoy, en tu casa</span></a>
-  </nav>
+  <!-- CAPÍTULO I -->
+  <h2><span class="num">Capítulo I</span>Las monedas y el silencio</h2>
 
-  <!-- ================= CAPÍTULO I ================= -->
-  <section class="chapter" id="cap1">
-    <div class="chapter-head">
-      <span class="roman">I</span>
-      <span class="label">Capítulo primero</span>
-      <h2>Las monedas y el silencio</h2>
-    </div>
+  <p>El sol de Jericó caía temprano sobre la mesa de recaudación. Zaqueo contaba las monedas con dedos rápidos, casi sin mirarlas. Sabía su peso de memoria. Sabía también cuánto de cada montón iría a Roma y cuánto se quedaría en su propio cofre.</p>
 
-    <p class="opening">El sol de Jericó caía temprano sobre la mesa de recaudación. Zaqueo contaba las monedas con dedos rápidos, casi sin mirarlas. Sabía su peso de memoria. Sabía también cuánto de cada montón iría a Roma y cuánto se quedaría en su propio cofre.</p>
+  <p>Era el jefe de los cobradores de impuestos de la ciudad. Jericó era rica: pasaban por ella las caravanas del Jordán, los bálsamos, los dátiles, el comercio que subía hacia Jerusalén. Y donde había riqueza, había impuestos. Donde había impuestos, estaba Zaqueo.</p>
 
-    <p>Era el jefe de los cobradores de impuestos de la ciudad. Jericó era rica: pasaban por ella las caravanas del Jordán, los bálsamos, los dátiles, el comercio que subía hacia Jerusalén. Y donde había riqueza, había impuestos. Donde había impuestos, estaba Zaqueo.</p>
+  <p>Nadie lo saludaba por la calle. Los hombres cambiaban de acera y las madres apartaban a sus hijos. En la sinagoga, su lugar quedaba vacío, porque hacía años que había dejado de ir. No lo habían expulsado con palabras. Lo expulsaron con miradas.</p>
 
-    <p>Nadie lo saludaba por la calle. Los hombres cambiaban de acera y las madres apartaban a sus hijos. En la sinagoga, su lugar quedaba vacío, porque hacía años que había dejado de ir. No lo habían expulsado con palabras. Lo expulsaron con miradas.</p>
+  <p>Por las noches, en su casa amplia, rodeado de lámparas de aceite fino y alfombras traídas de Damasco, Zaqueo a veces repetía su propio nombre en voz baja: <em>Zakkai</em>. «Puro». «Limpio». Su padre se lo había puesto con esperanza. Ahora le sonaba a burla.</p>
 
-    <p>Por las noches, en su casa amplia, rodeado de lámparas de aceite fino y alfombras traídas de Damasco, Zaqueo a veces repetía su propio nombre en voz baja: <em>Zakkai</em>. «Puro». «Limpio». Su padre se lo había puesto con esperanza. Ahora le sonaba a burla.</p>
+  <p class="dialogue">—Puro —murmuraba, y se reía sin alegría.</p>
 
-    <p class="dialogue">—Puro —murmuraba, y se reía sin alegría.</p>
+  <p>No era ingenuo. Sabía exactamente la vida que llevaba. Conocía el rostro de la viuda a la que le había cobrado de más, el temblor del agricultor que no alcanzaba a pagar. Se había dicho mil veces que así funcionaba el mundo, que si no lo hacía él, otro lo haría. Pero las justificaciones, como las monedas, pesan más cuanto más se acumulan.</p>
 
-    <p>No era ingenuo. Sabía exactamente la vida que llevaba. Conocía el rostro de la viuda a la que le había cobrado de más, el temblor del agricultor que no alcanzaba a pagar. Se había dicho mil veces que así funcionaba el mundo, que si no lo hacía él, otro lo haría. Pero las justificaciones, como las monedas, pesan más cuanto más se acumulan.</p>
+  <p>Y tenía otra herida, más pequeña y más vieja: su estatura. Desde niño había mirado el mundo desde abajo, entre codos y espaldas. Quizás por eso aprendió a ser grande de otra manera: con poder, con dinero, con miedo ajeno. Si no podían admirarlo, al menos tendrían que tomarlo en cuenta.</p>
 
-    <p>Y tenía otra herida, más pequeña y más vieja: su estatura. Desde niño había mirado el mundo desde abajo, entre codos y espaldas. Quizás por eso aprendió a ser grande de otra manera: con poder, con dinero, con miedo ajeno. Si no podían admirarlo, al menos tendrían que tomarlo en cuenta.</p>
+  <p>Aquella mañana, mientras cerraba el libro de cuentas, escuchó a dos comerciantes hablando en voz baja cerca de su mesa.</p>
 
-    <p>Aquella mañana, mientras cerraba el libro de cuentas, escuchó a dos comerciantes hablando en voz baja cerca de su mesa.</p>
+  <div class="dialogue">
+    <p>—Dicen que viene el rabí de Nazaret.</p>
+    <p>—¿El que sana enfermos?</p>
+    <p>—Ese. Y hay más: dicen que come con cobradores de impuestos. Que uno de ellos, un tal Leví, dejó su mesa en Capernaúm y se fue con él.</p>
+  </div>
 
-    <div class="dialogue">
-      <p>—Dicen que viene el rabí de Nazaret.</p>
-      <p>—¿El que sana enfermos?</p>
-      <p>—Ese. Y hay más: dicen que come con cobradores de impuestos. Que uno de ellos, un tal Leví, dejó su mesa en Capernaúm y se fue con él.</p>
-    </div>
+  <p>Zaqueo levantó la vista. Los hombres se callaron de inmediato y se alejaron.</p>
 
-    <p>Zaqueo levantó la vista. Los hombres se callaron de inmediato y se alejaron.</p>
+  <p>Pero la frase ya se le había quedado clavada: <em>come con cobradores de impuestos.</em></p>
 
-    <p>Pero la frase ya se le había quedado clavada:</p>
+  <!-- CAPÍTULO II -->
+  <h2><span class="num">Capítulo II</span>Un hombre en un árbol</h2>
 
-    <p class="thought">come con cobradores de impuestos.</p>
-  </section>
+  <p>Los rumores crecieron durante el día como agua que sube. A la entrada de la ciudad, decían, un ciego llamado Bartimeo había gritado sin parar: «¡Hijo de David, ten compasión de mí!». La gente lo había mandado callar, pero él gritó más fuerte. Y el rabí se detuvo, lo llamó, y el ciego ahora veía.</p>
 
-  <!-- ================= CAPÍTULO II ================= -->
-  <section class="chapter" id="cap2">
-    <div class="chapter-head">
-      <span class="roman">II</span>
-      <span class="label">Capítulo segundo</span>
-      <h2>Un hombre en un árbol</h2>
-    </div>
+  <p>Zaqueo escuchó la historia tres veces, de tres bocas distintas. Cada vez sentía algo extraño en el pecho, algo que no era exactamente curiosidad. Era más parecido a la sed.</p>
 
-    <p class="opening">Los rumores crecieron durante el día como agua que sube. A la entrada de la ciudad, decían, un ciego llamado Bartimeo había gritado sin parar: «¡Hijo de David, ten compasión de mí!». La gente lo había mandado callar, pero él gritó más fuerte. Y el rabí se detuvo, lo llamó, y el ciego ahora veía.</p>
+  <p class="thought">Un hombre que se detiene por alguien a quien todos mandan callar.</p>
 
-    <p>Zaqueo escuchó la historia tres veces, de tres bocas distintas. Cada vez sentía algo extraño en el pecho, algo que no era exactamente curiosidad. Era más parecido a la sed.</p>
+  <p>Dejó la mesa de recaudación a su asistente sin dar explicaciones y salió a la calle principal.</p>
 
-    <p class="thought">Un hombre que se detiene por alguien a quien todos mandan callar.</p>
+  <p>La multitud era un muro. Hombros, turbantes, niños sobre espaldas, gente que empujaba para ver. Zaqueo intentó abrirse paso, pero cuando lo reconocieron, el muro se cerró todavía más. Nadie iba a hacerle lugar al cobrador. Uno le dio un codazo, «sin querer». Otro se rió.</p>
 
-    <p>Dejó la mesa de recaudación a su asistente sin dar explicaciones y salió a la calle principal.</p>
+  <p>Por un momento pensó en volver a casa. Era lo razonable. Un hombre de su posición no debía hacer el ridículo.</p>
 
-    <p>La multitud era un muro. Hombros, turbantes, niños sobre espaldas, gente que empujaba para ver. Zaqueo intentó abrirse paso, pero cuando lo reconocieron, el muro se cerró todavía más. Nadie iba a hacerle lugar al cobrador. Uno le dio un codazo, «sin querer». Otro se rió.</p>
+  <p>Pero entonces vio, más adelante en el camino, un sicómoro de ramas bajas y anchas.</p>
 
-    <p>Por un momento pensó en volver a casa. Era lo razonable. Un hombre de su posición no debía hacer el ridículo.</p>
+  <p>Y Zaqueo, el jefe de los cobradores, el hombre rico y temido de Jericó, se recogió la túnica y corrió. Corrió como no corría desde niño, sin importarle que lo vieran. Llegó al árbol, se agarró de una rama, raspándose las palmas, y trepó.</p>
 
-    <p>Pero entonces vio, más adelante en el camino, un sicómoro de ramas bajas y anchas.</p>
+  <p>Desde arriba, escondido entre las hojas, vio llegar la procesión. Y en medio, caminando sin prisa, estaba él.</p>
 
-    <p>Y Zaqueo, el jefe de los cobradores, el hombre rico y temido de Jericó, se recogió la túnica y corrió. Corrió como no corría desde niño, sin importarle que lo vieran. Llegó al árbol, se agarró de una rama, raspándose las palmas, y trepó.</p>
+  <p>No parecía un rey. No tenía guardia ni vestiduras finas. Pero la gente se movía a su alrededor como se mueve el agua alrededor de una piedra. Zaqueo lo observó con el corazón golpeándole las costillas.</p>
 
-    <p>Desde arriba, escondido entre las hojas, vio llegar la procesión. Y en medio, caminando sin prisa, estaba él.</p>
+  <p class="thought">Solo quiero verlo. Nada más. Verlo y volver a mi vida.</p>
 
-    <p>No parecía un rey. No tenía guardia ni vestiduras finas. Pero la gente se movía a su alrededor como se mueve el agua alrededor de una piedra. Zaqueo lo observó con el corazón golpeándole las costillas.</p>
+  <p>Jesús se acercaba. Diez pasos. Cinco. Ya estaba casi debajo del sicómoro.</p>
 
-    <p class="thought">Solo quiero verlo. Nada más. Verlo y volver a mi vida.</p>
+  <p>Y entonces se detuvo.</p>
 
-    <p>Jesús se acercaba. Diez pasos. Cinco. Ya estaba casi debajo del sicómoro.</p>
+  <!-- CAPÍTULO III -->
+  <h2><span class="num">Capítulo III</span>Hoy, en tu casa</h2>
 
-    <div class="pause">· · ·</div>
+  <p>Jesús levantó la mirada. Directo hacia las ramas. Directo hacia él.</p>
 
-    <p class="closing final">Y entonces se detuvo.</p>
-  </section>
+  <p>La multitud se quedó en silencio, siguiendo sus ojos. Algunos empezaron a reconocer la figura entre las hojas, y un murmullo incrédulo recorrió la calle.</p>
 
-  <!-- ================= CAPÍTULO III ================= -->
-  <section class="chapter" id="cap3">
-    <div class="chapter-head">
-      <span class="roman">III</span>
-      <span class="label">Capítulo tercero</span>
-      <h2>Hoy, en tu casa</h2>
-    </div>
+  <p>Entonces Jesús habló:</p>
 
-    <p class="opening">Jesús levantó la mirada. Directo hacia las ramas. Directo hacia él.</p>
+  <blockquote>
+    —Zaqueo, baja en seguida, porque hoy tengo que quedarme en tu casa.
+    <cite>Lucas 19:5</cite>
+  </blockquote>
 
-    <p>La multitud se quedó en silencio, siguiendo sus ojos. Algunos empezaron a reconocer la figura entre las hojas, y un murmullo incrédulo recorrió la calle.</p>
+  <p><em>Zaqueo.</em></p>
 
-    <p>Entonces Jesús habló:</p>
+  <p>El nombre cayó sobre él como agua fresca. Nadie le había dicho que se conocían. Nadie se lo había presentado. Y sin embargo lo llamó por su nombre, el nombre que significaba «puro», pronunciado sin ironía, sin desprecio, como se llama a un amigo.</p>
 
-    <blockquote class="scripture">
-      —Zaqueo, baja en seguida, porque hoy tengo que quedarme en tu casa.
-      <cite>Lucas 19:5</cite>
-    </blockquote>
+  <p>Zaqueo sintió que algo se le rompía por dentro, pero no como se rompe una vasija, sino como se rompe una cáscara. Bajó tan rápido que casi se cae. Aterrizó con las rodillas temblando, y cuando levantó la vista, Jesús le estaba sonriendo.</p>
 
-    <p class="name-moment">Zaqueo.</p>
+  <p>Zaqueo se rió. Una risa verdadera, de esas que había olvidado que tenía. Sus ojos se llenaron de lágrimas.</p>
 
-    <p>El nombre cayó sobre él como agua fresca. Nadie le había dicho que se conocían. Nadie se lo había presentado. Y sin embargo lo llamó por su nombre, el nombre que significaba «puro», pronunciado sin ironía, sin desprecio, como se llama a un amigo.</p>
+  <p class="dialogue">—¡Sí, Señor! ¡Ven, ven a mi casa!</p>
 
-    <p>Zaqueo sintió que algo se le rompía por dentro, pero no como se rompe una vasija, sino como se rompe una cáscara. Bajó tan rápido que casi se cae. Aterrizó con las rodillas temblando, y cuando levantó la vista, Jesús le estaba sonriendo.</p>
+  <p>Pero detrás de él, la multitud ya había encontrado su voz:</p>
 
-    <p>Zaqueo se rió. Una risa verdadera, de esas que había olvidado que tenía. Sus ojos se llenaron de lágrimas.</p>
+  <div class="dialogue">
+    <p>—¿Se va a hospedar en casa de <em>ese</em>?</p>
+    <p>—Un pecador. Un ladrón.</p>
+    <p>—¿Así es el profeta?</p>
+  </div>
 
-    <p class="dialogue">—¡Sí, Señor! ¡Ven, ven a mi casa!</p>
+  <p>Zaqueo escuchó cada palabra. Y lo más extraño fue que no le dolieron como antes. Tenían razón en lo que decían de él. Pero Jesús lo sabía también, y aun así lo había llamado.</p>
 
-    <p>Pero detrás de él, la multitud ya había encontrado su voz:</p>
+  <p class="sep">* * *</p>
 
-    <p class="crowd">—¿Se va a hospedar en casa de <em>ese</em>?</p>
-    <p class="crowd">—Un pecador. Un ladrón.</p>
-    <p class="crowd" style="margin-bottom:1.4rem !important;">—¿Así es el profeta?</p>
+  <p>En su casa, con la mesa servida y las lámparas encendidas, Zaqueo miró a su alrededor: las alfombras, los cofres, las copas. Todo lo que había acumulado para sentirse grande. Y por primera vez lo vio como realmente era: no un tesoro, sino un peso.</p>
 
-    <p>Zaqueo escuchó cada palabra. Y lo más extraño fue que no le dolieron como antes. Tenían razón en lo que decían de él. Pero Jesús lo sabía también, y aun así lo había llamado.</p>
+  <p>Se puso de pie delante de todos.</p>
 
-    <div class="pause">✦</div>
+  <blockquote>
+    —Mira, Señor, voy a dar a los pobres la mitad de todo lo que tengo; y si le he robado algo a alguien, le devolveré cuatro veces más.
+    <cite>Lucas 19:8</cite>
+  </blockquote>
 
-    <p>En su casa, con la mesa servida y las lámparas encendidas, Zaqueo miró a su alrededor: las alfombras, los cofres, las copas. Todo lo que había acumulado para sentirse grande. Y por primera vez lo vio como realmente era: no un tesoro, sino un peso.</p>
+  <p>Nadie se lo había exigido. Jesús no había dado un sermón sobre el dinero. No hubo condición previa ni amenaza. La generosidad brotó sola, como brota el agua cuando se quita la piedra que tapaba el manantial. Zaqueo no estaba comprando su perdón: estaba respondiendo a un amor que ya había recibido.</p>
 
-    <p>Se puso de pie delante de todos.</p>
+  <p>Jesús lo miró largamente, y luego dijo, para que todos oyeran:</p>
 
-    <blockquote class="scripture">
-      —Mira, Señor, voy a dar a los pobres la mitad de todo lo que tengo; y si le he robado algo a alguien, le devolveré cuatro veces más.
-      <cite>Lucas 19:8</cite>
-    </blockquote>
+  <blockquote>
+    —Hoy ha llegado la salvación a esta casa, porque este hombre también es descendiente de Abraham. Pues el Hijo del hombre ha venido a buscar y salvar lo que se había perdido.
+    <cite>Lucas 19:9-10</cite>
+  </blockquote>
 
-    <p>Nadie se lo había exigido. Jesús no había dado un sermón sobre el dinero. No hubo condición previa ni amenaza. La generosidad brotó sola, como brota el agua cuando se quita la piedra que tapaba el manantial. Zaqueo no estaba comprando su perdón: estaba respondiendo a un amor que ya había recibido.</p>
+  <p><em>También es hijo de Abraham.</em> Zaqueo cerró los ojos. Después de años de exilio en su propia ciudad, alguien le devolvía su lugar en el pueblo. No por lo que había hecho, sino por lo que Dios hacía con él.</p>
 
-    <p>Jesús lo miró largamente, y luego dijo, para que todos oyeran:</p>
+  <p>Esa noche, cuando los invitados se fueron, Zaqueo salió al patio y miró las estrellas sobre Jericó. Repitió su nombre en voz baja, como tantas otras noches.</p>
 
-    <blockquote class="scripture">
-      —Hoy ha llegado la salvación a esta casa, porque este hombre también es descendiente de Abraham. Pues el Hijo del hombre ha venido a buscar y salvar lo que se había perdido.
-      <cite>Lucas 19:9-10</cite>
-    </blockquote>
+  <p class="dialogue"><em>—Zakkai.</em></p>
 
-    <p><em>También es hijo de Abraham.</em> Zaqueo cerró los ojos. Después de años de exilio en su propia ciudad, alguien le devolvía su lugar en el pueblo. No por lo que había hecho, sino por lo que Dios hacía con él.</p>
+  <p>Y por primera vez, no le sonó a burla.</p>
 
-    <p>Esa noche, cuando los invitados se fueron, Zaqueo salió al patio y miró las estrellas sobre Jericó. Repitió su nombre en voz baja, como tantas otras noches.</p>
+  <p>Le sonó a promesa.</p>
 
-    <p class="closing"><em>—Zakkai.</em></p>
-
-    <div class="pause">· · ·</div>
-
-    <p class="closing">Y por primera vez, no le sonó a burla.</p>
-    <p class="closing final">Le sonó a promesa.</p>
-  </section>
-
-  <footer>
-    <span class="ornament" style="margin-top:0;">✦ ✦ ✦</span>
-    <p class="verse">«El Hijo del hombre ha venido a buscar y salvar lo que se había perdido.»</p>
-    <p>Lucas 19:10 · Dios Habla Hoy</p>
-  </footer>
+  <p class="note">Citas bíblicas: Dios Habla Hoy.</p>
 
 </div>
-<!-- Lo único que se le añadió a este relato: devuelve la tecla Escape al
-     programa que lo enseña, que si no se queda sin salida de teclado.
-     Está explicado en encuentros/salida.js. -->
+<!-- Lo único que se le añadió a este relato: el puente con el programa que
+     lo enseña. Trae la letra del libro y los marrones del sepia, y le
+     devuelve la tecla Escape, que si no el relato se queda sin salida de
+     teclado. Está explicado en encuentros/salida.js. -->
 <script src="salida.js"></script>
 </body>
 </html>
