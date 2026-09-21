@@ -326,7 +326,7 @@ async function ponerAMano(p){
      lleva a la paleta y a la salida.
      Se afirma que NO hay lista, y no se calla: una prueba que dejara de mirar
      la lista pasaría igual con la lista puesta, y el encargo era quitarla. La
-     lista sigue existiendo por su propia puerta —el punto de la esquina— y eso
+     lista sigue existiendo por su propia puerta —el punto de arriba— y eso
      lo vigila el bloque de «la lista lleva a la hoja guardada». */
   vale('y NADA MÁS: ni lista, ni «nueva», ni el rótulo del panel entero',
        menu.abierto && menu.abierto.filas === 0, menu.abierto && menu.abierto.filas);
@@ -355,14 +355,30 @@ async function ponerAMano(p){
      cinta en la hoja, así que es perfectamente posible escribir una cuenta que
      sólo funcione cuando hay una puesta —y entonces el punto bailaría de sitio
      al pasar de una hoja con cinta a una sin ella, que es de las cosas que más
-     se notan sin saber decir qué pasó—. Se mide antes y después de poner una,
-     y se exige el mismo píxel.
+     se notan sin saber decir qué pasó—. Se mide con una puesta y después de
+     quitarla, y se exige el mismo píxel.
 
      El medio se comprueba contra el titulillo y contra la cinta de verdad, no
      contra un número: dónde caen los dos depende del ancho de la columna de
      glosas, que cambia con la letra y con la pantalla. */
   titulo('el punto de las cintas se queda en medio, haya cinta o no');
   const enMedio = await p.evaluate(async () => {
+    /* CON EL PAPEL EN REPOSO, o esto mide dos mundos a la vez.
+
+       En teléfono la hoja es más ancha que la pantalla y los bloques de arriba
+       la dejan corrida a mano para ver la columna de glosas (ver
+       __abrirCajon). El punto vive en la ESCENA y no se corre con el papel,
+       así que leer a sus dos vecinos con rectángulos mientras la hoja está
+       desplazada es comparar coordenadas de sitios distintos: medido en el
+       banco, el titulillo acababa en 21 y la cinta empezaba en 147 —251 px
+       corridos— contra un punto que seguía en 335, y el medio salía por esos
+       mismos 251 px. No fallaba la aplicación: fallaba la regla.
+       El programa mide con desplazamientos justo para no depender de esto;
+       aquí se mide con rectángulos a propósito —una cuenta distinta de la
+       suya, que es lo que hace que la prueba valga— pero con el papel
+       devuelto a su sitio. */
+    document.getElementById('pg').scrollLeft = 0;
+    await window.__pausa(300);
     const lee = () => {
       const b = document.getElementById('btnCintas').getBoundingClientRect();
       const t = document.querySelector('#pg .pg-cabeza').getBoundingClientRect();
@@ -372,30 +388,61 @@ async function ponerAMano(p){
                finTitulillo: t.right,
                cinta: c ? c.getBoundingClientRect().left : null };
     };
-    /* Sin cinta: en esta hoja no hay ninguna puesta todavía. */
+    /* CON CINTA PRIMERO, QUE ES COMO SE LLEGA AQUÍ. Esto estuvo escrito al
+       revés —medir, poner una cinta, medir— dando por hecho que la hoja
+       estaba limpia; y no lo está: los bloques de arriba dejan una puesta en
+       MAT 1:1 y se quedan en ella. La comprobación de validez lo dijo en el
+       banco, que para eso está. */
+    const con = lee();
+    /* Y SIN ELLA, QUITÁNDOLA DE VERDAD. Es la mitad del encargo —el sitio es
+       el mismo haya cinta o no— y no hay manera de mirarla sin una hoja sin
+       cinta. Se quita por donde se quita, por su equis, y no borrando el
+       almacén a mano: lo que se vigila es que el punto no se mueva cuando la
+       cinta se va, y el programa solo se entera si se va por su camino. */
+    await window.__toque('.separador');
+    await window.__pausa(450);
+    await window.__toque('[data-sep-x]');
+    await window.__pausa(400);
+    await window.__toque('[data-sep-borrar]');
+    await window.__pausa(700);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(600);
     const sin = lee();
+    /* Y LA HOJA SE DEJA COMO SE ENCONTRÓ: los bloques de abajo cuentan con
+       una cinta aquí y con que la de la otra hoja sea la segunda. */
     await window.__toque('[data-sep-lista]');
     await window.__pausa(450);
     await window.__toque('[data-sep-nuevo]');
     await window.__pausa(1200);
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await window.__pausa(600);
-    const con = lee();
-    return { sin, con,
+    return { sin, con, repuestas: window.__guardadas().length,
              desvio: con.cinta == null ? null
                : Math.round(con.centro - (con.finTitulillo + con.cinta) / 2) };
   });
-  di('sin cinta', JSON.stringify(enMedio.sin));
   di('con cinta', JSON.stringify(enMedio.con));
-  vale('(la prueba es válida) se puso una cinta y antes no había',
-       enMedio.sin.cinta === null && enMedio.con.cinta !== null,
-       'antes: ' + enMedio.sin.cinta + ' · después: ' + enMedio.con.cinta);
-  vale('EL PUNTO NO SE MUEVE AL PONER LA CINTA',
+  di('sin cinta', JSON.stringify(enMedio.sin));
+  vale('(la prueba es válida) había una cinta y se quitó',
+       enMedio.con.cinta !== null && enMedio.sin.cinta === null,
+       'con: ' + enMedio.con.cinta + ' · sin: ' + enMedio.sin.cinta);
+  vale('EL PUNTO NO SE MUEVE AL QUITAR LA CINTA',
        enMedio.sin.punto === enMedio.con.punto,
-       enMedio.sin.punto + '  vs  ' + enMedio.con.punto);
+       enMedio.con.punto + '  vs  ' + enMedio.sin.punto);
+  /* DOS PÍXELES DE HOLGURA Y NI UNO MÁS. El programa redondea el sitio del
+     punto a píxel entero y los dos vecinos caen en medios píxeles —el ancho
+     del titulillo depende de las letras instaladas—, así que la cuenta de
+     aquí y la de allá pueden discrepar en uno sin que nada esté mal; medido,
+     da 1. Estuvo en 1 justo y pasaba al filo: un píxel de diferencia en la
+     máquina de otro lo habría puesto en rojo sin haber ningún fallo. Lo que
+     este número tiene que cazar son las decenas —251 px con el papel corrido,
+     89 saliendo del zoom—, y para eso 2 sobra. */
   vale('  y cae en medio del titulillo y la cinta',
-       enMedio.desvio !== null && Math.abs(enMedio.desvio) <= 1,
+       enMedio.desvio !== null && Math.abs(enMedio.desvio) <= 2,
        enMedio.desvio + ' px del medio');
+  /* Y la hoja queda con su cinta, que es de donde parten los bloques de
+     abajo: si esto falla, lo que sigue miente por arrastre. */
+  vale('  (y la hoja se queda con su cinta, para lo que viene)',
+       enMedio.repuestas === 1, enMedio.repuestas + ' guardadas');
 
   /* Y SIGUE EN MEDIO DESPUÉS DE IR Y VOLVER DE LA VISTA DE LEJOS, que es
      donde el sitio se perdía.
@@ -874,7 +921,7 @@ async function ponerAMano(p){
        es la única manera de deshacer uno puesto por error;
      · y Escape sale sin tocar nada.
      ================================================================ */
-  titulo('la lista de cintas se abre desde su punto de la esquina');
+  titulo('la lista de cintas se abre desde su punto de arriba');
   await p.evaluate(() => {
     const hoy = Date.now();
     /* Estado de partida, no gesto: dos cintas puestas a mano en el almacén. */
@@ -901,14 +948,26 @@ async function ponerAMano(p){
     if (!b) return { hay:false };
     const st = document.querySelector('.stage').getBoundingClientRect();
     const rb = b.getBoundingClientRect();
-    const enLaEsquina = rb.top - st.top < 24 && st.right - rb.right < 24;
+    /* ARRIBA Y A LA DERECHA, PERO YA NO EN EL CANTO. Esto pedía el canto
+       —a 24 px del filo de la escena— y era verdad mientras el punto vivía
+       ahí, con sus tres hermanos. Se mudó al medio entre el titulillo y la
+       cinta porque en el canto quedaba a cuatro píxeles del separador, y
+       dejar esta línea como estaba sería pedir por escrito que se deshiciera
+       ese encargo: una prueba que exige el sitio viejo no protege nada, obliga
+       a volver.
+       Lo que sí sigue siendo cierto —y es lo que dice cuál de los dos puntos
+       es éste, porque un punto no lleva rótulo— es que vive en la franja de
+       arriba y en la mitad derecha. El sitio exacto lo vigila, con sus dos
+       vecinos delante, «el punto de las cintas se queda en medio». */
+    const arribaYDerecha = rb.top - st.top < 24 &&
+                           (rb.left + rb.right) / 2 > st.left + st.width / 2;
     await window.__toque(b);
     await window.__pausa(700);
     const m = document.getElementById('sepMenu');
     const r = m.getBoundingClientRect();
     const h = document.getElementById('historial');
     return { hay:true, visible: m.classList.contains('visible'),
-             enLaEsquina, esPuerta: b.matches('[data-sep-lista]'),
+             arribaYDerecha, esPuerta: b.matches('[data-sep-lista]'),
              encendido: b.classList.contains('abierto'),
              /* Y EL RASTRO SE VA. Es lo contrario de lo que exigía este mismo
                 bloque cuando la puerta vivía en su pie, y es a propósito. */
@@ -924,16 +983,24 @@ async function ponerAMano(p){
                 debajo de su ancla y tiene que caber entero de todas formas. */
              cabe: r.top >= st.top - 1 && r.bottom <= st.bottom + 1 &&
                    r.left >= st.left - 1 && r.right <= st.right + 1,
-             /* Y del lado derecho, que es de donde nació. */
-             porLaDerecha: st.right - r.right < 24 };
+             /* Y COLGADO DE SU PUNTO, no del canto de la escena. Medía la
+                distancia al filo derecho, que valía mientras el punto estaba
+                pegado a él; ahora el punto está en medio y el filo no dice
+                nada de quién abrió el panel. Lo que se pide es lo que hace
+                colocarSepMenu: el panel alinea su canto derecho con el del
+                ancla, y si no cabe se corre hacia dentro —nunca más a la
+                derecha que ella—. Un menú que saliera del otro extremo de la
+                pantalla seguiría señalando a lo que no lo abrió. */
+             bajoSuPunto: r.right <= rb.right + 1 && r.right > rb.left,
+             sobra: Math.round(rb.right - r.right) };
   });
   di('el menú desde el punto', puerta);
   vale('el punto de arriba a la derecha es la puerta',
        puerta.hay === true && puerta.esPuerta === true &&
-       puerta.enLaEsquina === true, puerta);
+       puerta.arribaYDerecha === true, puerta);
   vale('y abre el menú', puerta.visible === true);
   vale('y el punto se enciende con él', puerta.encendido === true, puerta);
-  vale('y el menú sale de su lado', puerta.porLaDerecha === true, puerta);
+  vale('y el menú sale de su punto', puerta.bajoSuPunto === true, puerta);
   /* En modo lista no hay «esta cinta» cuyo color cambiar: enseñar la paleta
      sería ofrecer un mando que no manda nada. */
   vale('sin paleta de color, que no se vino de una cinta', puerta.telas === 0, puerta.telas);
@@ -1325,7 +1392,13 @@ async function ponerAMano(p){
       puertas: cintas.matches('[data-sep-lista]') &&
                piedras.matches('[data-piedra-lista]'),
       arriba: (rc.top - st.top) < 24 && (rpi.top - st.top) < 24,
-      aCadaLado: (rpi.left - st.left) < 24 && (st.right - rc.right) < 24,
+      /* UNA A CADA LADO, pero la de las cintas ya no toca el canto: se mudó al
+         medio entre el titulillo y el separador, que estaba a cuatro píxeles.
+         Así que aquí se mide el ORDEN y el LADO —que es lo que de verdad dice
+         cuál es cuál cuando ninguna de las dos lleva rótulo— y no la esquina.
+         El sitio exacto de la de cintas lo vigila su propio bloque. */
+      aCadaLado: (rpi.left - st.left) < 24 && rc.left > rpi.right &&
+                 (rc.left + rc.right) / 2 > st.left + st.width / 2,
       /* Y a la misma altura, como los dos de abajo. */
       aLaPar: Math.abs(rc.top - rpi.top) < 2
     };
@@ -1851,7 +1924,7 @@ async function ponerAMano(p){
     const cinta = window.__cinta();
     if (!cinta) return { vivo, cinta:null };
     /* DOS PUERTAS PARA DOS COSAS: las filas están en la lista, que abre el
-       punto de la esquina; la paleta está en el panel de la cinta, que abre la
+       punto de arriba; la paleta está en el panel de la cinta, que abre la
        cinta. Antes salían las dos juntas y bastaba con un toque. */
     await window.__toque('[data-sep-lista]');
     await window.__pausa(450);
@@ -1923,7 +1996,14 @@ async function ponerAMano(p){
   await w.waitForTimeout(3200);
   await andamio(w);
   const otroLibro = await w.evaluate(async () => {
-    await window.__toque('.separador');
+    /* POR LA PUERTA DE LA LISTA, que es la única que la enseña. Este bloque
+       entraba tocando la CINTA, y aquel panel traía entonces la lista entera;
+       se pidió que tocar la cinta enseñara su color «y nada más», así que
+       por ahí ya no hay filas y la de «lejos» no aparecía. Además la cinta
+       que cuelga aquí es la de MAT, no la de MRK: entrar por ella para
+       buscar la de otro libro era entrar por la puerta equivocada aunque
+       funcionara. */
+    await window.__toque('[data-sep-lista]');
     await window.__pausa(450);
     const fila = document.querySelector('[data-sep-ir="lejos"]');
     const dice = fila ? fila.querySelector('.sp-ref').textContent.trim() : '(no está)';
