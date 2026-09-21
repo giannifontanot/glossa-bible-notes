@@ -289,7 +289,15 @@
   .rollo .chip-mas{ background:transparent; border-style:dashed; opacity:.8; }
   .rollo .chip-mas:hover{ background:rgba(255,253,247,.75); opacity:1; }
 
-  .stage{ position:relative; height:470px; width:340px; transition:width .22s ease;
+  /* EL ALTO DE LA ESCENA, ESCRITO TAMBIÉN COMO VARIABLE. Lo que mide la
+     escena es lo que mide un panel abierto, y hay quien necesita repartirse
+     ese alto —el techo de la tira de etiquetas— sin poder preguntárselo al
+     navegador: en pantalla ancha la escena mide 470 px FIJOS y la ventana
+     puede medir 1440, así que un tope en vh ahí no reparte el panel, reparte
+     el monitor. Se declara al lado del alto para que las dos no puedan
+     separarse. */
+  .stage{ position:relative; --alto-escena:470px; height:var(--alto-escena);
+          width:340px; transition:width .22s ease;
           filter:drop-shadow(0 14px 26px rgba(0,0,0,.45)); }
 
   /* ============================================================
@@ -416,7 +424,10 @@
        mide contra la caja viva, así que se entera solo. */
     #pg .pg-inner, #ghost .pg-inner{
         padding-bottom:calc(var(--alto-version) + var(--aire-cabeza)); }
-    .stage{ width:100vw !important; height:100svh; height:100dvh;
+    /* Las dos declaraciones de la variable son la escalera de siempre: svh
+       para quien no entienda dvh, dvh para quien sí. Ver .stage. */
+    .stage{ width:100vw !important; --alto-escena:100svh; --alto-escena:100dvh;
+            height:var(--alto-escena);
             filter:none; transition:none; }
     #pg{ border-radius:0;
          /* desplazamiento nativo: trae su inercia y su rebote de fábrica, y
@@ -3448,10 +3459,19 @@
      dentro y se alcanza corriéndolo: la tira ocupa lo suyo y ni un píxel más,
      pase lo que pase con el número de etiquetas.
 
-     El tope va en vh y no en píxeles porque lo que se está repartiendo es la
-     altura de la pantalla entre la tira y el índice, y contain para que
-     llegar al final de la tira no empiece a correr el panel de atrás. */
-  #filtros{ max-height:24vh; overflow-y:auto; overscroll-behavior:contain;
+     EL TOPE SE MIDE CONTRA LA ESCENA Y NO CONTRA LA VENTANA, y esto estuvo
+     mal escrito: era 24vh, o sea la cuarta parte de lo que mida el navegador.
+     En teléfono da igual —la escena ES la ventana— pero en pantalla ancha la
+     escena mide 470 px fijos dentro de una ventana que puede medir 1440: allí
+     24vh son 346 px de un panel de 470, o sea la tira comiéndose el índice,
+     las pestañas y el pie, que es exactamente lo que este tope vino a
+     impedir. Con --alto-escena se reparte el panel, que es lo que hay que
+     repartir: 220 px en un teléfono de 915 y 113 en pantalla ancha.
+     Lo levantó la revisión de Codex.
+     Y contain para que llegar al final de la tira no empiece a correr el panel
+     de atrás. */
+  #filtros{ max-height:calc(var(--alto-escena, 100vh) * .24);
+            overflow-y:auto; overscroll-behavior:contain;
             align-content:flex-start; gap:5px 6px; }
   #filtros::-webkit-scrollbar{ width:0; height:0; display:none; }
   /* Y LAS PASTILLAS ADELGAZAN. En teléfono heredaban el suelo de toque de la
@@ -5041,7 +5061,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 06:36';
+window.GLOSS_BUILD = '21-SEP-26 06:40';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -10814,14 +10834,31 @@ function pintarDias(){
   sel.value = diaFiltro;
 }
 $('selDia').onchange = e => { diaFiltro = e.target.value; renderPage(); };
-/* Enseña u oculta la tira de chips para dejar el índice de glosas a la vista. */
-$('btnVerEtiquetas').onclick = () => {
-  const caja = $('ctrlEtiquetas');
-  const on = caja.classList.contains('sin-chips');
-  caja.classList.toggle('sin-chips', !on);
+/* ENSEÑA U OCULTA LA TIRA DE CHIPS, para dejar el índice de glosas a la vista.
+
+   Las tres cosas que tienen que decir lo mismo —la clase del panel, el botón
+   encendido y su aria-pressed— viven aquí y no dentro del oyente, porque hay
+   más de uno que necesita abrirla: ver abajo. */
+function verEtiquetas(on){
+  $('ctrlEtiquetas').classList.toggle('sin-chips', !on);
   const b = $('btnVerEtiquetas');
   b.classList.toggle('active', on);
   b.setAttribute('aria-pressed', on ? 'true' : 'false');
+}
+/* Y UN FILTRO PUESTO NO PUEDE QUEDARSE ESCONDIDO. La tira nace apagada —es lo
+   que se pidió y es lo que deja sitio al índice— pero etiquetasVer SE GUARDA
+   en los ajustes: un chip que tocaste hace días sigue puesto al abrir, y
+   esconde glosas de la hoja y de la lista. Con la tira apagada, el único sitio
+   donde se ve qué filtro está puesto —y el único donde se quita— desaparece:
+   el lector abre el libro, le faltan notas, y no hay nada en pantalla que lo
+   explique. Es la misma trampa que este archivo ya describe dos veces («un
+   estado sin salida obvia») y que destaparLaNueva vino a romper por el otro
+   lado. Así que al arrancar manda el filtro: si hay alguno, la tira sale
+   puesta aunque su sitio de fábrica sea apagada. Lo levantó la revisión de
+   Codex. */
+function hayFiltroPuesto(){ return etiquetasVer.size > 0 || librosFiltro.size > 0; }
+$('btnVerEtiquetas').onclick = () => {
+  verEtiquetas($('ctrlEtiquetas').classList.contains('sin-chips'));
 };
 let eligiendoGlosas = false;
 const glosasElegidas = new Set();
@@ -19486,6 +19523,11 @@ menu.addEventListener('click', ev => {
   const b = ev.target.closest('[data-libfil]'); if (!b) return;
   ev.stopPropagation();
   librosFiltro.add(b.dataset.libfil);
+  /* Y SE ENSEÑA LA TIRA, porque este filtro se pone desde el menú de una glosa
+     y no desde ella: sin esto, tocar «ver en otro libro» escondería media
+     lista y dejaría la única manera de deshacerlo detrás de un botón apagado
+     que el lector no tiene motivo para tocar. */
+  verEtiquetas(true);
   ocultarMenu(); pintarFiltros(); pintarIndice();
 }, true);
 
@@ -19767,6 +19809,9 @@ function reflejarControles(){
   poner(btnA,  aire[0], interlineado !== AIRES[1][1]);
   poner(btnM,  MARGENES[margen][0], margen !== 1);
   marksBtn.textContent = 'Marcas: ' + (showMarks ? 'ON' : 'OFF');
+  /* La tira de etiquetas: apagada de fábrica, puesta si el filtro guardado
+     esconde algo. Ver hayFiltroPuesto. */
+  verEtiquetas(hayFiltroPuesto());
   /* 'estrecho' pone el panel en una sola columna cuando no hay ancho para
      dos. Preguntaba por anchoHoja, que era el ajuste de la hoja y no el
      espacio disponible; y como el manejador de aquellos botones nunca

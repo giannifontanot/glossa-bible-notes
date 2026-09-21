@@ -18,7 +18,7 @@
    y el change de la caja llega después. Disparar el change a mano da verde
    sin haber probado el orden que impone el navegador, que es donde vivía el
    fallo. */
-const { abrir, cerrar, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, di, vale, titulo, ESCRITORIO } = require('./comun');
 
 /* Abrir el panel sobre un tramo SIN ETIQUETAS PUESTAS y dejar una nota
    escrita: sin nota las etiquetas duermen, porque sin nota no se guarda nada
@@ -790,5 +790,97 @@ const FUERA = `async () => {
        muchas.indice > 120 && muchas.indiceDentro === true,
        muchas.indice + ' px de alto');
 
+  /* ================================================================
+     UN FILTRO GUARDADO NO PUEDE QUEDARSE ESCONDIDO.
+
+     La tira nace apagada, y etiquetasVer SE GUARDA en los ajustes: son dos
+     verdades que juntas hacen una trampa. Un chip que tocaste hace días sigue
+     puesto al abrir y esconde glosas de la hoja y de la lista; con la tira
+     apagada desaparece el único sitio donde se ve cuál está puesto y el único
+     donde se quita. El lector abre el libro, le faltan notas y no hay nada en
+     pantalla que lo explique.
+
+     Lo levantó la revisión de Codex sobre el commit de la tira, o sea que
+     esto lo estrenó este mismo cambio: por eso la prueba va aquí y no en el
+     bloque de arriba. Se siembra el filtro en los ajustes y se recarga, que es
+     el camino real —«vuelves al día siguiente»— y no se llama a nada por
+     dentro: lo que se vigila es justamente el arranque.
+     ================================================================ */
+  titulo('un filtro guardado abre la tira aunque nazca apagada');
+  const guardado = await p.evaluate(() => {
+    const ms = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    const t = ms.flatMap(m => m.etiquetas || [])[0] || null;
+    if (!t) return null;
+    const a = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
+    a.etiquetasVer = [t];
+    localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a));
+    return t;
+  });
+  await p.reload();
+  await p.waitForTimeout(2600);
+  await alPanel();
+  const conFiltro = await p.evaluate(t => {
+    const b = document.getElementById('btnVerEtiquetas');
+    const marcadas = [...document.querySelectorAll('#filtros .chip.sel')]
+                       .map(c => c.textContent.trim());
+    return { apagada: document.getElementById('ctrlEtiquetas').classList.contains('sin-chips'),
+             fila: getComputedStyle(document.getElementById('filaFiltros')).display,
+             pulsado: b.getAttribute('aria-pressed'),
+             encendido: b.classList.contains('active'),
+             /* Y SE VE CUÁL: enseñar la tira sin marcar el chip que filtra
+                sería enseñar el cuarto sin decir dónde está la luz. */
+             loMarca: marcadas.some(x => x.indexOf(t) === 0), marcadas };
+  }, guardado);
+  di('con «' + guardado + '» guardada', JSON.stringify(conFiltro));
+  vale('(la prueba es válida) había una etiqueta que guardar', !!guardado, guardado);
+  vale('LA TIRA SALE PUESTA SI EL FILTRO GUARDADO ESCONDE ALGO',
+       conFiltro.apagada === false && conFiltro.fila !== 'none', conFiltro);
+  vale('  con su botón encendido',
+       conFiltro.pulsado === 'true' && conFiltro.encendido === true, conFiltro);
+  vale('  y se ve CUÁL es el filtro puesto', conFiltro.loMarca === true,
+       conFiltro.marcadas);
+
   await cerrar(sesion);
+
+  /* ================================================================
+     Y EL TECHO DE LA TIRA SE MIDE CONTRA LA ESCENA, NO CONTRA LA VENTANA.
+
+     En teléfono las dos son la misma cosa y por eso esto no se ve allí: la
+     escena mide lo que la ventana. En pantalla ancha la escena mide 470 px
+     FIJOS dentro de una ventana que puede medir mil y pico, así que un techo
+     en vh —que es como se escribió— repartía el monitor en vez del panel: 24vh
+     de una ventana de 1440 son 346 px de un panel de 470, o sea la tira
+     comiéndose el índice, las pestañas y el pie. Lo levantó la revisión de
+     Codex.
+
+     La comprobación se apoya en que la ventana sea MÁS ALTA que la escena: sin
+     eso las dos cuentas darían lo mismo y la prueba pasaría en verde con el vh
+     puesto. Por eso esa condición se afirma antes, como validez.
+     ================================================================ */
+  titulo('en pantalla ancha el techo de la tira es del panel, no del monitor');
+  const ancha = await abrir(ESCRITORIO);
+  const pa = ancha.pagina;
+  await pa.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    document.getElementById('pgCabeza').click(); await z(900);
+    const t = document.querySelector('.pestanas button[data-sec="glosas"]');
+    if (t) t.click(); await z(1000);
+  });
+  const techo = await pa.evaluate(() => {
+    const f = document.getElementById('filtros');
+    const st = document.querySelector('.stage').getBoundingClientRect();
+    return { tope: parseFloat(getComputedStyle(f).maxHeight),
+             escena: Math.round(st.height), ventana: window.innerHeight };
+  });
+  di('el techo en pantalla ancha', JSON.stringify(techo));
+  vale('(la prueba es válida) la ventana es más alta que la escena',
+       techo.ventana > techo.escena + 100,
+       techo.ventana + ' contra ' + techo.escena);
+  vale('EL TECHO SALE DE LA ESCENA', techo.tope <= techo.escena * .3,
+       techo.tope + ' px de una escena de ' + techo.escena);
+  /* Y por el otro lado: un techo tan bajo que no quepa una pastilla tampoco
+     sirve; lo que se quería es repartir, no cerrar. */
+  vale('  y da para dos renglones de pastillas', techo.tope >= 66,
+       techo.tope + ' px');
+  await cerrar(ancha);
 })();
