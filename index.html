@@ -289,7 +289,15 @@
   .rollo .chip-mas{ background:transparent; border-style:dashed; opacity:.8; }
   .rollo .chip-mas:hover{ background:rgba(255,253,247,.75); opacity:1; }
 
-  .stage{ position:relative; height:470px; width:340px; transition:width .22s ease;
+  /* EL ALTO DE LA ESCENA, ESCRITO TAMBIÉN COMO VARIABLE. Lo que mide la
+     escena es lo que mide un panel abierto, y hay quien necesita repartirse
+     ese alto —el techo de la tira de etiquetas— sin poder preguntárselo al
+     navegador: en pantalla ancha la escena mide 470 px FIJOS y la ventana
+     puede medir 1440, así que un tope en vh ahí no reparte el panel, reparte
+     el monitor. Se declara al lado del alto para que las dos no puedan
+     separarse. */
+  .stage{ position:relative; --alto-escena:470px; height:var(--alto-escena);
+          width:340px; transition:width .22s ease;
           filter:drop-shadow(0 14px 26px rgba(0,0,0,.45)); }
 
   /* ============================================================
@@ -416,7 +424,10 @@
        mide contra la caja viva, así que se entera solo. */
     #pg .pg-inner, #ghost .pg-inner{
         padding-bottom:calc(var(--alto-version) + var(--aire-cabeza)); }
-    .stage{ width:100vw !important; height:100svh; height:100dvh;
+    /* Las dos declaraciones de la variable son la escalera de siempre: svh
+       para quien no entienda dvh, dvh para quien sí. Ver .stage. */
+    .stage{ width:100vw !important; --alto-escena:100svh; --alto-escena:100dvh;
+            height:var(--alto-escena);
             filter:none; transition:none; }
     #pg{ border-radius:0;
          /* desplazamiento nativo: trae su inercia y su rebote de fábrica, y
@@ -1450,10 +1461,16 @@
      Los cuatro puntos son del LIBRO, y el libro está tapado: eso ya se dijo
      una vez bajándolos de la capa 7 a la 5, por debajo del panel (6). No bastó,
      y la razón es de geometría y no de pila: el panel mide lo que mide su
-     contenido —805 de 915 en un teléfono— así que los dos puntos de abajo y el
-     rótulo del pie se quedan ASOMANDO por debajo de él. Nunca hubo nada que se
-     les pusiera encima. Tapar eso estirando el panel hasta el suelo sería
-     mentir sobre cuánto contenido tiene.
+     contenido —cuando esto se escribió, 805 de 915 en un teléfono— así que los
+     dos puntos de abajo y el rótulo del pie se quedan ASOMANDO por debajo de
+     él. Nunca hubo nada que se les pusiera encima. Tapar eso estirando el
+     panel hasta el suelo sería mentir sobre cuánto contenido tiene.
+
+     Y SIGUE HACIENDO FALTA CON EL TOPE EN EL 100%. Subirlo llena la escena en
+     LIBROS y en GLOSAS, que son los dos que tienen contenido de sobra, pero
+     FORMATO mide 674 de 915 y RESPALDO 335: por debajo de ellos asoma justo lo
+     que asomaba antes. Un tope no es un alto; el panel sigue midiendo lo suyo
+     y esta regla sigue siendo la única que funciona en los cuatro.
 
      Así que mientras hay panel, no se pintan. Es lo mismo que ya se decía con
      la capa, dicho de la única manera que funciona también donde el panel no
@@ -2871,7 +2888,15 @@
      toques llegan solas a las pestañas. */
   /* DOS ROLLOS con el mismo comportamiento: ajustes y libros. Todo lo que
      es "hoja que se desenrolla" vive en .rollo; cada uno solo pone lo suyo. */
-  .rollo{ position:absolute; top:0; left:0; right:0; height:auto; max-height:88%; z-index:6;
+  /* EL TOPE ES LA ESCENA ENTERA, y estuvo en el 88%. Aquel doce por ciento
+     era una cuerda de seguridad —que la hoja asomara siempre por debajo del
+     panel, para no olvidar que hay un libro detrás— y lo que costaba era el
+     sitio de tres o cuatro renglones de contenido en cada panel: la lista de
+     libros perdía una fila, el índice de glosas una glosa y media. El dueño
+     del repo pidió el alto entero, y la razón de la cuerda se había ido por
+     su cuenta: desde que la escena se apaga con un velo, lo que se veía
+     asomando no era el libro, era papel apagado. Ver #veloPanel. */
+  .rollo{ position:absolute; top:0; left:0; right:0; height:auto; max-height:100%; z-index:6;
           transform-origin:top center;
           /* El relleno de abajo es mayor que el de arriba a propósito: arriba
              ya respira con la cabecera y su hueco, abajo no había nada entre
@@ -2886,6 +2911,36 @@
   .rollo.abierto.disuelto{ animation:none; opacity:0; transform:scaleY(1);
           clip-path:inset(0 0 0 0); transition:opacity .34s ease; }
   .rollo.plegando{ animation:enrollar .42s cubic-bezier(.55,0,.8,.35) forwards; }
+
+  /* ============================================================
+     LA SOMBRA DE DEBAJO DEL PANEL.
+
+     Con un panel puesto hay dos cosas encendidas a la vez —el libro y el
+     panel— y las dos piden lo mismo: papel claro, letra marrón, el mismo
+     aire. Compiten, y el ojo tiene que elegir cuál de las dos está mirando;
+     el dueño del repo lo dijo así: que el panel resalte y no compita con el
+     libro. Un velo apagado debajo lo resuelve sin tocar el panel: lo que se
+     oscurece es TODO lo demás, y el panel queda siendo lo único con luz.
+
+     NO ES UN PANEL MODAL Y NO SE COMPORTA COMO UNO. No atrapa el toque
+     —pointer-events:none— y esto es deliberado: el vigilante del «clic
+     fuera» que cierra la burbuja escucha en el papel, así que un velo que
+     recogiera los toques dejaría de cerrar los paneles tocando la hoja, que
+     es como se cierran desde que existen. El velo se ve y no se toca.
+
+     Y VA EN LA ESCENA, a la altura de los puntos (5): por debajo de los
+     paneles (6) para no ensuciarlos, y por encima de la hoja y sus filos.
+     Los cuatro puntos ya se esconden solos con .conpanel, así que no hay
+     nada suyo que velar. Se enciende con la misma clase que los esconde a
+     ellos, que es la que sabe si hay burbuja puesta.
+
+     Entra y sale con transición y no de golpe: el panel tarda 0,74 s en
+     desenrollarse y un fondo que se apaga en un cuadro llegaría antes que
+     él, contando el final antes que el principio. */
+  #veloPanel{ position:absolute; inset:0; z-index:5; pointer-events:none;
+              opacity:0; background:rgba(34,24,8,.44);
+              transition:opacity .5s cubic-bezier(.22,.72,.24,1); }
+  .stage.conpanel #veloPanel{ opacity:1; }
 
   /* Baja y frena; el último tramo es solo el asentamiento del papel:
      se pasa un pelo del 100% y regresa. Ese medio por ciento es lo que
@@ -3248,11 +3303,23 @@
      ABRIR otra sección. Y era la última del renglón, así que cuando las
      palabras no cabían, la salida era lo primero que se perdía.
 
-     Ahora es lo que se hace con una salida: el ancho entero, abajo, donde el
-     pulgar ya está. Se copia del botón «transparente» de FORMATO —mismo ancho
-     completo, mismo peso de letra, mismo espaciado— porque aquel ya resolvió
-     este mismo problema en su panel y dos salidas con el mismo trabajo tienen
-     que verse iguales. Ver .vidrio-btn.
+     Ahora es lo que se hace con una salida: abajo, centrado, donde el pulgar
+     ya está.
+
+     Y MIDE SU PALABRA, QUE ES EL SEGUNDO SITIO DONDE ESTO SE CORRIGE. Nació
+     del ancho entero, copiado del botón «transparente» de FORMATO, y el dueño
+     del repo lo paró al verlo puesto: una barra de canto a canto para seis
+     letras es el control más grande de la pantalla dedicado a lo que menos se
+     hace en ella, y de paso se lee como el suelo del panel en vez de como un
+     botón. Ahora mide lo que mide «CERRAR» más su aire, va centrado, y se
+     queda a unos píxeles del canto de abajo en vez de aplastado contra él.
+
+     LA FRANJA SIGUE SIENDO DE LADO A LADO aunque el botón no lo sea, y eso no
+     es una contradicción: son dos cosas distintas puestas una encima de otra.
+     La franja es el suelo del panel —el degradado que apaga el contenido que
+     pasa por debajo mientras se desplaza, para que no se lea a través del
+     botón— y el botón es lo que se toca. Quitar la franja con el botón habría
+     devuelto el problema que ella vino a resolver.
 
      SIEMPRE VISIBLE, y eso pide dos cosas a la vez:
      · flex:0 0 auto — el panel es una columna de flex, así que sin esto el pie
@@ -3271,15 +3338,30 @@
      corte seco: el papel se apaga hacia el pie en vez de terminar en una raya.
 
      Los márgenes negativos cancelan el relleno del panel —9 px a los lados y
-     17 abajo— para que el botón llegue DE CANTO A CANTO, sin los 9 px de aire
-     que tienen a los lados todos los demás controles. Ahí se separa del botón
-     «transparente», del que copia todo lo demás: aquél es un control del panel
-     y respeta su margen; éste ES el canto de abajo del panel. Las esquinas de
-     abajo se redondean con el mismo radio que el papel —4 px— y las de arriba
-     se quedan rectas, que es lo que hace que se lea como un borde y no como un
-     botón puesto encima. */
+     17 abajo— para que LA FRANJA llegue de canto a canto: un degradado que se
+     acabara a 9 px del filo dejaría ver el contenido colándose por los lados
+     justo donde tiene que estar apagándose.
+
+     El aire de debajo del botón lo pone el relleno de la franja y no el del
+     panel, y esa diferencia es la que hace que se vea: cuando el panel se
+     desplaza, el pie pegado se apoya en el canto del hueco visible y el
+     relleno del panel queda por debajo, así que un hueco puesto ahí no
+     aparecería. Once píxeles dentro de la franja se ven siempre.
+
+     Y EL HUECO NO SALE IGUAL EN LOS CUATRO PANELES: 11 px en LIBROS y 28 en
+     los otros tres, medido. No es un descuido, es en qué estado está cada uno.
+     LIBROS llena su tope y se desplaza, así que el pie va PEGADO y se apoya en
+     el canto de abajo; los otros caben enteros y el pie se queda donde cae, al
+     final de su columna, o sea 17 px más arriba —el relleno de abajo del
+     panel—. Igualarlos pide elegir: o el pie pegado deja de apoyarse en el
+     canto y entonces se ve un dedo de contenido corriendo por debajo de la
+     franja, que es justo lo que la franja vino a tapar, o los que caben se
+     pegan al canto y pierden su relleno. Los dos huecos se leen igual de bien
+     —ninguno va aventado al fondo, que es lo que se pidió— y nadie ve dos
+     paneles a la vez para compararlos. */
   .pie-cerrar{ flex:0 0 auto; position:sticky; bottom:0; z-index:4;
-               margin:7px -9px -17px; padding:7px 0 0;
+               display:flex; justify-content:center;
+               margin:7px -9px -17px; padding:7px 0 11px;
                background:linear-gradient(to bottom,
                  rgba(214,198,162,0) 0%, #d8c8a5 60%, #d2c19c 100%); }
   /* EL SELECTOR LLEVA DOS PADRES DE MÁS A PROPÓSITO, y no es manía de escribir
@@ -3297,9 +3379,9 @@
      archivo, con las pestañas estrechas—. Con (0,3,0) gana esté donde esté, y
      no depende de un orden que nadie puede ver leyendo una de las dos reglas.
      Lo levantó la revisión de Codex. */
-  .rollo .pie-cerrar .cerrar-pie{ display:block; width:100%; min-height:38px;
-               border-left:0; border-right:0; border-bottom:0;
-               border-radius:0 0 4px 4px;
+  .rollo .pie-cerrar .cerrar-pie{ display:inline-flex; width:auto;
+               align-items:center; justify-content:center;
+               min-height:38px; padding:0 26px; border-radius:999px;
                letter-spacing:.12em; font-weight:700;
                font-size:calc(.72rem * var(--escala-ui, 1)) !important; }
   /* Con el dedo, el suelo de la casa. Es la salida del panel: si hay un blanco
@@ -3318,8 +3400,13 @@
   .rollo::-webkit-scrollbar, .fly::-webkit-scrollbar,
   #cantoCuerpo::-webkit-scrollbar{ width:0; height:0; display:none; }
   #ajustes, #etiquetas{ overflow:visible; }
-  /* Glosas abierta: casi toda la hoja, para manejar el índice. */
-  #etiquetas.abierto{ max-height:95%; height:95%; overflow:hidden; }
+  /* Glosas abierta: la escena entera, para manejar el índice. Es el único
+     panel con alto FIJO y no de contenido, y lo necesita: su índice de glosas
+     es flexible y se estira a lo que sobre, así que contra un alto que sale
+     del contenido no habría nada que repartir. Estuvo en el 95%; ver el tope
+     de .rollo, que es donde está contado por qué ya no hace falta dejar la
+     rendija de abajo. */
+  #etiquetas.abierto{ max-height:100%; height:100%; overflow:hidden; }
   /* Rejilla que se acomoda sola. Ahora que los botones ya no repiten el
      nombre de su renglón caben más columnas, y el cajón queda bajito: la
      idea es ver cambiar el texto mientras mueves los controles. */
@@ -3362,6 +3449,45 @@
   #btnVerEtiquetas, #btnElegirGlosas{ width:auto; flex:0 0 auto; min-height:32px;
                                       padding:0 12px; letter-spacing:.04em; }
   #ctrlEtiquetas.sin-chips #filaFiltros{ display:none; }
+  /* LA TIRA DE ETIQUETAS TIENE TECHO Y SE DESPLAZA POR DENTRO.
+
+     No lo tenía, y por eso encenderla se llevaba el panel: la tira crece con
+     cada etiqueta que hayas usado alguna vez, empuja hacia abajo al índice de
+     glosas —que es lo que se viene a ver aquí— y con unas cuantas puestas el
+     índice se quedaba sin sitio o el panel se pasaba de su tope y lo que
+     sobraba se iba fuera de la pantalla. Con un techo, lo que sobra se queda
+     dentro y se alcanza corriéndolo: la tira ocupa lo suyo y ni un píxel más,
+     pase lo que pase con el número de etiquetas.
+
+     EL TOPE SE MIDE CONTRA LA ESCENA Y NO CONTRA LA VENTANA, y esto estuvo
+     mal escrito: era 24vh, o sea la cuarta parte de lo que mida el navegador.
+     En teléfono da igual —la escena ES la ventana— pero en pantalla ancha la
+     escena mide 470 px fijos dentro de una ventana que puede medir 1440: allí
+     24vh son 346 px de un panel de 470, o sea la tira comiéndose el índice,
+     las pestañas y el pie, que es exactamente lo que este tope vino a
+     impedir. Con --alto-escena se reparte el panel, que es lo que hay que
+     repartir: 220 px en un teléfono de 915 y 113 en pantalla ancha.
+     Lo levantó la revisión de Codex.
+     Y contain para que llegar al final de la tira no empiece a correr el panel
+     de atrás. */
+  #filtros{ max-height:calc(var(--alto-escena, 100vh) * .24);
+            overflow-y:auto; overscroll-behavior:contain;
+            align-content:flex-start; gap:5px 6px; }
+  #filtros::-webkit-scrollbar{ width:0; height:0; display:none; }
+  /* Y LAS PASTILLAS ADELGAZAN. En teléfono heredaban el suelo de toque de la
+     casa —40 px de alto, letra de 15— que es el que se le puso a los botones
+     de los paneles porque fallar uno de ellos repagina el libro o cambia la
+     versión. Aquí lo que hay detrás de un toque es encender o apagar un
+     filtro, que se ve en el acto y se deshace tocando otra vez, y a cambio
+     cada pastilla se comía el alto de un renglón entero: con ocho etiquetas,
+     el índice empezaba fuera de la pantalla. El suelo baja a 28, que sigue
+     siendo un blanco cómodo, y con el tope de arriba caben tres renglones de
+     tira donde antes cabía uno y medio.
+     El selector lleva el id a propósito: pesa (1,1,0) y le gana al
+     `.rollo .chip` del bloque del teléfono —(0,2,0)— esté escrito donde esté,
+     que es la misma lección que costó el botón de cerrar. */
+  #filtros .chip{ font-size:calc(11.5px * var(--escala-ui, 1));
+                  min-height:28px; padding:3px 9px; }
   #indice .ix-item.elegida{
     border-width:2.6px !important; border-color:#5a3d0e !important;
     box-shadow:0 0 0 3px rgba(90,61,14,.55), 0 2px 0 #5a3d0e; }
@@ -4231,9 +4357,9 @@
        aportan contenido —la base en cero les quita esa voz—, así que el panel
        se encogía a 21px y se llevaba las dos listas por delante. Con un alto
        definido, el reparto tiene de dónde salir.
-       Es el mismo 88% que ya era su tope, así que en la práctica solo deja de
+       Es el mismo 100% que ya es su tope, así que en la práctica solo deja de
        encogerse cuando hay pocos libros — y libros siempre hay 66. */
-    #canto{ height:88%; }
+    #canto{ height:100%; }
     /* UNA SOLA LISTA, LA DEL TESTAMENTO ELEGIDO. Aquí hubo dos mitades, una
        por testamento, cada una con su desplazamiento; la regla de .testamento
        que las repartía se fue con ellas. Lo que queda vale igual: la rejilla
@@ -4411,7 +4537,7 @@
 
   /* PANTALLA BAJA. Agrandar la letra tiene un costo que hay que pagar aquí:
      el panel de Formato pasó de 264px de contenido a 373px, y .rollo está
-     topado en max-height:88%. Mientras la pantalla es alta no pasa nada
+     topado en el alto de la escena (era el 88%, hoy el 100%). Mientras la pantalla es alta no pasa nada
      —en vertical sobran cuatrocientos píxeles— pero en una pantalla baja el
      tope muerde, y como #ajustes y #etiquetas llevan overflow:visible, lo que
      sobra no se recorta con barra: se derrama y lo tapa .stage, que sí lleva
@@ -4601,7 +4727,13 @@
      donde ya estaba. -->
 </div>
 
-<div id="ctrlEtiquetas">
+<!-- NACE CON LAS ETIQUETAS APAGADAS (sin-chips), y el botón «ver» apagado con
+     ellas. Estuvieron encendidas de salida, y encendidas de salida se comían
+     el panel: son una lista que crece sola —una pastilla por etiqueta puesta
+     alguna vez— y lo que hay debajo es el índice de glosas, que es a lo que se
+     entra a este panel. Quien quiera filtrar lo pide; quien venga a leer sus
+     notas no tiene que apartar nada primero. -->
+<div id="ctrlEtiquetas" class="sin-chips">
 <!-- EL TAMAÑO DE LA LETRA DE LAS GLOSAS, Y LO PRIMERO DEL PANEL.
 
      Venía de FORMATO, donde estaba pegado al tamaño de la hoja: dos filas
@@ -4627,15 +4759,22 @@
 <div class="ajuste fila-etiq">
   <span class="lbl">etiquetas</span>
   <select id="selDia"></select>
-  <button type="button" class="btn active" id="btnVerEtiquetas"
-          aria-pressed="true"
+  <button type="button" class="btn" id="btnVerEtiquetas"
+          aria-pressed="false"
           title="Mostrar u ocultar las etiquetas">ver</button>
   <button type="button" class="btn" id="btnElegirGlosas"
           aria-pressed="false"
           title="Elegir varias glosas para cambiarles las etiquetas">cambiar</button>
 </div>
 
-<div class="ajuste ancho" id="filaFiltros"><span class="lbl">ver</span><span class="ctrl" id="filtros"></span></div>
+<!-- SIN RÓTULO Y PEGADA AL FILO IZQUIERDO. Llevaba delante un «ver» en la
+     columna fija de los rótulos —96 px en teléfono, alineados a la derecha—
+     que empujaba la primera pastilla casi al centro del panel y repetía la
+     palabra del botón que enciende esta misma fila, tres controles más arriba.
+     Decía dos veces lo mismo y cobraba por ello el sitio de dos pastillas por
+     renglón. El rótulo hablado se queda en el grupo, que es donde sirve. -->
+<div class="ajuste ancho" id="filaFiltros"><span class="ctrl" id="filtros"
+     role="group" aria-label="Etiquetas para filtrar las glosas"></span></div>
 </div>
 
 <div class="stage" id="stage">
@@ -4678,6 +4817,10 @@
     <div class="escenas-velo"></div>
     <div class="escenas-lista" id="escenasLista"></div>
   </div>
+  <!-- El velo que apaga la escena con un panel puesto. Va antes que los
+       paneles para que, a igualdad de capa, nada de lo suyo le caiga encima.
+       Ver #veloPanel. -->
+  <div id="veloPanel" aria-hidden="true"></div>
   <div id="ajustes" class="rollo"></div>
   <div id="etiquetas" class="rollo"></div>
   <div id="respaldo" class="rollo"></div>
@@ -4918,7 +5061,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '20-SEP-26 20:00';
+window.GLOSS_BUILD = '21-SEP-26 06:40';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -10691,14 +10834,31 @@ function pintarDias(){
   sel.value = diaFiltro;
 }
 $('selDia').onchange = e => { diaFiltro = e.target.value; renderPage(); };
-/* Enseña u oculta la tira de chips para dejar el índice de glosas a la vista. */
-$('btnVerEtiquetas').onclick = () => {
-  const caja = $('ctrlEtiquetas');
-  const on = caja.classList.contains('sin-chips');
-  caja.classList.toggle('sin-chips', !on);
+/* ENSEÑA U OCULTA LA TIRA DE CHIPS, para dejar el índice de glosas a la vista.
+
+   Las tres cosas que tienen que decir lo mismo —la clase del panel, el botón
+   encendido y su aria-pressed— viven aquí y no dentro del oyente, porque hay
+   más de uno que necesita abrirla: ver abajo. */
+function verEtiquetas(on){
+  $('ctrlEtiquetas').classList.toggle('sin-chips', !on);
   const b = $('btnVerEtiquetas');
   b.classList.toggle('active', on);
   b.setAttribute('aria-pressed', on ? 'true' : 'false');
+}
+/* Y UN FILTRO PUESTO NO PUEDE QUEDARSE ESCONDIDO. La tira nace apagada —es lo
+   que se pidió y es lo que deja sitio al índice— pero etiquetasVer SE GUARDA
+   en los ajustes: un chip que tocaste hace días sigue puesto al abrir, y
+   esconde glosas de la hoja y de la lista. Con la tira apagada, el único sitio
+   donde se ve qué filtro está puesto —y el único donde se quita— desaparece:
+   el lector abre el libro, le faltan notas, y no hay nada en pantalla que lo
+   explique. Es la misma trampa que este archivo ya describe dos veces («un
+   estado sin salida obvia») y que destaparLaNueva vino a romper por el otro
+   lado. Así que al arrancar manda el filtro: si hay alguno, la tira sale
+   puesta aunque su sitio de fábrica sea apagada. Lo levantó la revisión de
+   Codex. */
+function hayFiltroPuesto(){ return etiquetasVer.size > 0 || librosFiltro.size > 0; }
+$('btnVerEtiquetas').onclick = () => {
+  verEtiquetas($('ctrlEtiquetas').classList.contains('sin-chips'));
 };
 let eligiendoGlosas = false;
 const glosasElegidas = new Set();
@@ -19363,6 +19523,11 @@ menu.addEventListener('click', ev => {
   const b = ev.target.closest('[data-libfil]'); if (!b) return;
   ev.stopPropagation();
   librosFiltro.add(b.dataset.libfil);
+  /* Y SE ENSEÑA LA TIRA, porque este filtro se pone desde el menú de una glosa
+     y no desde ella: sin esto, tocar «ver en otro libro» escondería media
+     lista y dejaría la única manera de deshacerlo detrás de un botón apagado
+     que el lector no tiene motivo para tocar. */
+  verEtiquetas(true);
   ocultarMenu(); pintarFiltros(); pintarIndice();
 }, true);
 
@@ -19644,6 +19809,9 @@ function reflejarControles(){
   poner(btnA,  aire[0], interlineado !== AIRES[1][1]);
   poner(btnM,  MARGENES[margen][0], margen !== 1);
   marksBtn.textContent = 'Marcas: ' + (showMarks ? 'ON' : 'OFF');
+  /* La tira de etiquetas: apagada de fábrica, puesta si el filtro guardado
+     esconde algo. Ver hayFiltroPuesto. */
+  verEtiquetas(hayFiltroPuesto());
   /* 'estrecho' pone el panel en una sola columna cuando no hay ancho para
      dos. Preguntaba por anchoHoja, que era el ajuste de la hoja y no el
      espacio disponible; y como el manejador de aquellos botones nunca

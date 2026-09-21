@@ -18,7 +18,7 @@
    y el change de la caja llega después. Disparar el change a mano da verde
    sin haber probado el orden que impone el navegador, que es donde vivía el
    fallo. */
-const { abrir, cerrar, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, di, vale, titulo, ESCRITORIO } = require('./comun');
 
 /* Abrir el panel sobre un tramo SIN ETIQUETAS PUESTAS y dejar una nota
    escrita: sin nota las etiquetas duermen, porque sin nota no se guarda nada
@@ -89,6 +89,17 @@ const FUERA = `async () => {
     const t = document.querySelector('.pestanas button[data-sec="glosas"]');
     if (t) t.click();
     await new Promise(z => setTimeout(z, 900));
+  });
+  /* LA TIRA DE ETIQUETAS NACE APAGADA, así que quien venga a mirarla la
+     enciende primero, igual que el lector. Antes salía puesta y esto no hacía
+     falta; ahora hace falta en todos los bloques que hablan de los chips, y
+     por eso se envuelve en vez de repetir el toque en cada uno. */
+  const encenderEtiquetas = () => p.evaluate(async () => {
+    const caja = document.getElementById('ctrlEtiquetas');
+    if (!caja.classList.contains('sin-chips')) return false;
+    document.getElementById('btnVerEtiquetas').click();
+    await new Promise(z => setTimeout(z, 420));
+    return true;
   });
 
   titulo('las etiquetas duermen mientras no haya nota');
@@ -482,8 +493,101 @@ const FUERA = `async () => {
     return r;
   }));
 
+  /* ================================================================
+     LA TIRA DE ETIQUETAS DEL PANEL: APAGADA AL ENTRAR Y PEGADA AL FILO.
+
+     Tres encargos del dueño del repo sobre el mismo renglón, y los tres son
+     el mismo: que la tira no se coma el panel.
+
+     · NACE APAGADA. Salía encendida, y encendida de salida ocupa lo que
+       ocupen las etiquetas que hayas usado alguna vez, delante del índice de
+       glosas, que es a lo que se entra aquí.
+     · VA AL FILO IZQUIERDO. Llevaba delante un rótulo «ver» en la columna fija
+       de los rótulos —96 px en teléfono— que empujaba la primera pastilla casi
+       al centro y repetía la palabra del botón que la enciende.
+     · Y LAS PASTILLAS ADELGAZAN. Heredaban el suelo de toque de los paneles,
+       40 px de alto, que es el que se puso donde fallar un botón repagina el
+       libro; aquí un toque enciende un filtro y se deshace tocando otra vez.
+
+     Se mide el alto PINTADO y no la regla: el suelo de 40 px del bloque del
+     teléfono pesa (0,2,0) y ya le ganó una vez a una regla escrita sin peso
+     —la del botón de cerrar—, así que preguntar por la hoja de estilos aquí
+     sería creerse lo que dice el CSS en vez de mirar lo que se ve.
+     ================================================================ */
+  titulo('las etiquetas del panel nacen apagadas');
+  await alPanel();
+  const tira = await p.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const caja = document.getElementById('ctrlEtiquetas');
+    const bot = document.getElementById('btnVerEtiquetas');
+    const fila = document.getElementById('filaFiltros');
+    const apagada = { clase: caja.classList.contains('sin-chips'),
+                      fila: getComputedStyle(fila).display,
+                      pulsado: bot.getAttribute('aria-pressed'),
+                      encendido: bot.classList.contains('active') };
+    bot.click();
+    await z(450);
+    const f = document.getElementById('filtros');
+    const cf = getComputedStyle(f);
+    const panel = document.getElementById('etiquetas');
+    const rp = panel.getBoundingClientRect();
+    const cp = getComputedStyle(panel);
+    /* El filo de CONTENIDO del panel, no el de su caja: los 9 px de relleno
+       los tienen todos los controles y pedir que la pastilla los pise sería
+       pedir que se salga del panel. */
+    const filo = rp.left + parseFloat(cp.paddingLeft);
+    const cajas = [...f.querySelectorAll('.chip')].map(c => c.getBoundingClientRect());
+    const chips = cajas.map(r => ({ alto: Math.round(r.height) }));
+    /* La primera del PRIMER RENGLÓN, y por eso se filtra por altura: la tira
+       se parte en varios renglones y la de más a la izquierda de todas podría
+       ser una del segundo. La que dice si la tira arranca en el filo es la
+       primera de arriba. */
+    const arriba = cajas.length ? Math.min(...cajas.map(r => r.top)) : 0;
+    const primera = cajas.filter(r => Math.abs(r.top - arriba) < 3)
+                         .sort((a, b) => a.left - b.left)[0];
+    const rst = document.querySelector('.stage').getBoundingClientRect();
+    return { apagada,
+             /* Y DE PASO EL ALTO: este panel es el único con alto fijo —su
+                índice es flexible y necesita de dónde estirarse— y subió del
+                95% al 100% de la escena. */
+             altoPanel: Math.round(rp.height), escena: Math.round(rst.height),
+             encendida: { fila: getComputedStyle(fila).display,
+                          pulsado: bot.getAttribute('aria-pressed'),
+                          encendido: bot.classList.contains('active') },
+             cuantas: chips.length,
+             altoMax: chips.length ? Math.max(...chips.map(c => c.alto)) : 0,
+             primeraDesdeElFilo: primera ? Math.round(primera.left - filo) : null,
+             tope: cf.maxHeight, desborde: cf.overflowY };
+  });
+  di('la tira', JSON.stringify(tira));
+  vale('(la prueba es válida) hay etiquetas que enseñar', tira.cuantas > 0,
+       tira.cuantas + ' pastillas');
+  vale('AL ENTRAR, LAS ETIQUETAS ESTÁN APAGADAS',
+       tira.apagada.clase === true && tira.apagada.fila === 'none' &&
+       tira.apagada.pulsado === 'false' && tira.apagada.encendido === false,
+       tira.apagada);
+  vale('y el botón «ver» las enciende',
+       tira.encendida.fila !== 'none' && tira.encendida.pulsado === 'true' &&
+       tira.encendida.encendido === true, tira.encendida);
+  vale('LA PRIMERA PASTILLA ARRANCA EN EL FILO',
+       Math.abs(tira.primeraDesdeElFilo) <= 1,
+       tira.primeraDesdeElFilo + ' px del filo del contenido');
+  vale('LAS PASTILLAS NO SE COMEN UN RENGLÓN ENTERO',
+       tira.altoMax > 0 && tira.altoMax <= 32, tira.altoMax + ' px de alto');
+  /* Y sigue siendo un blanco que se acierta: bajarlas era el encargo,
+     dejarlas en una raya no. */
+  vale('  y siguen siendo tocables', tira.altoMax >= 24, tira.altoMax + ' px');
+  vale('EL PANEL DE GLOSAS LLENA LA ESCENA A LO ALTO',
+       Math.abs(tira.altoPanel - tira.escena) <= 1,
+       tira.altoPanel + ' de ' + tira.escena);
+  vale('la tira tiene techo y se corre por dentro',
+       tira.tope !== 'none' && parseFloat(tira.tope) > 0 &&
+       /auto|scroll/.test(tira.desborde),
+       tira.tope + ' · ' + tira.desborde);
+
   titulo('los chips de «ver» filtran');
   await alPanel();
+  await encenderEtiquetas();
   di('apagar un chip', await p.evaluate(async () => {
     const cuantas = () =>
       document.querySelectorAll('#pgMargin .gl[data-gl], #pgBody .gl[data-gl]').length;
@@ -626,5 +730,157 @@ const FUERA = `async () => {
                           : (saltos.filter(f => f.recorrido > 2).length + ' de ' + saltos.length +
                              ' se movieron, todos por no caber'));
 
+  /* ================================================================
+     Y CON MUCHAS ETIQUETAS, LA TIRA SIGUE SIN COMERSE EL PANEL.
+
+     Ésta es la mitad que de verdad importa del techo, y la que no se ve con
+     las tres o cuatro etiquetas que deja el resto de la suite: una tira sin
+     tope crece con cada etiqueta que hayas usado alguna vez, empuja al índice
+     de glosas hacia abajo y, pasado el tope del panel, lo que sobra se sale
+     por fuera de la pantalla sin manera de alcanzarlo.
+
+     Las treinta etiquetas se siembran en el almacén y se recarga, como se
+     siembra el estado de partida en las otras suites: no es un simulacro del
+     programa —el programa lee su almacén y pinta lo que hay— es la biblioteca
+     de alguien que lleva un año etiquetando. Se cuelgan de la marca que ya
+     existe para no inventar una: lo que hace falta aquí son etiquetas, no
+     glosas.
+     ================================================================ */
+  titulo('con muchas etiquetas, la tira tiene su sitio y el índice el suyo');
+  await p.evaluate(() => {
+    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    if (!g.length) return false;
+    g[0].etiquetas = Array.from({ length:30 }, (_, i) => 'etiqueta' + (i + 1));
+    localStorage.setItem('glossa:marcas:v1', JSON.stringify(g));
+    return true;
+  });
+  await p.reload();
+  await p.waitForTimeout(2600);
+  await alPanel();
+  await encenderEtiquetas();
+  const muchas = await p.evaluate(() => {
+    const f = document.getElementById('filtros');
+    const ix = document.getElementById('indice');
+    const panel = document.getElementById('etiquetas');
+    const rf = f.getBoundingClientRect(), rx = ix.getBoundingClientRect();
+    const rp = panel.getBoundingClientRect();
+    return { chips: f.querySelectorAll('.chip').length,
+             tira: Math.round(rf.height),
+             /* Lo que la tira mediría suelta, que es contra lo que se compara
+                el techo: si no la desborda, el techo no se está probando. */
+             suelta: Math.round(f.scrollHeight),
+             seCorre: f.scrollHeight > f.clientHeight + 4,
+             indice: Math.round(rx.height),
+             panel: Math.round(rp.height),
+             /* Y nada por debajo del canto del panel. */
+             tiraDentro: rf.bottom <= rp.bottom + 1,
+             indiceDentro: rx.top < rp.bottom - 20 };
+  });
+  di('con treinta etiquetas', JSON.stringify(muchas));
+  vale('(la prueba es válida) hay etiquetas de sobra para desbordar la tira',
+       muchas.chips >= 30 && muchas.suelta > muchas.tira + 20,
+       muchas.chips + ' pastillas · ' + muchas.suelta + ' px sueltas contra ' +
+       muchas.tira + ' puestas');
+  vale('LA TIRA SE QUEDA EN SU SITIO Y SE CORRE POR DENTRO',
+       muchas.seCorre === true && muchas.tira < muchas.panel / 3,
+       muchas.tira + ' px de ' + muchas.panel);
+  vale('  y no se sale del panel', muchas.tiraDentro === true, muchas);
+  /* EL ÍNDICE ES A LO QUE SE ENTRA AQUÍ, y es lo que la tira le quitaba. */
+  vale('Y EL ÍNDICE DE GLOSAS SIGUE TENIENDO SITIO',
+       muchas.indice > 120 && muchas.indiceDentro === true,
+       muchas.indice + ' px de alto');
+
+  /* ================================================================
+     UN FILTRO GUARDADO NO PUEDE QUEDARSE ESCONDIDO.
+
+     La tira nace apagada, y etiquetasVer SE GUARDA en los ajustes: son dos
+     verdades que juntas hacen una trampa. Un chip que tocaste hace días sigue
+     puesto al abrir y esconde glosas de la hoja y de la lista; con la tira
+     apagada desaparece el único sitio donde se ve cuál está puesto y el único
+     donde se quita. El lector abre el libro, le faltan notas y no hay nada en
+     pantalla que lo explique.
+
+     Lo levantó la revisión de Codex sobre el commit de la tira, o sea que
+     esto lo estrenó este mismo cambio: por eso la prueba va aquí y no en el
+     bloque de arriba. Se siembra el filtro en los ajustes y se recarga, que es
+     el camino real —«vuelves al día siguiente»— y no se llama a nada por
+     dentro: lo que se vigila es justamente el arranque.
+     ================================================================ */
+  titulo('un filtro guardado abre la tira aunque nazca apagada');
+  const guardado = await p.evaluate(() => {
+    const ms = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    const t = ms.flatMap(m => m.etiquetas || [])[0] || null;
+    if (!t) return null;
+    const a = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
+    a.etiquetasVer = [t];
+    localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a));
+    return t;
+  });
+  await p.reload();
+  await p.waitForTimeout(2600);
+  await alPanel();
+  const conFiltro = await p.evaluate(t => {
+    const b = document.getElementById('btnVerEtiquetas');
+    const marcadas = [...document.querySelectorAll('#filtros .chip.sel')]
+                       .map(c => c.textContent.trim());
+    return { apagada: document.getElementById('ctrlEtiquetas').classList.contains('sin-chips'),
+             fila: getComputedStyle(document.getElementById('filaFiltros')).display,
+             pulsado: b.getAttribute('aria-pressed'),
+             encendido: b.classList.contains('active'),
+             /* Y SE VE CUÁL: enseñar la tira sin marcar el chip que filtra
+                sería enseñar el cuarto sin decir dónde está la luz. */
+             loMarca: marcadas.some(x => x.indexOf(t) === 0), marcadas };
+  }, guardado);
+  di('con «' + guardado + '» guardada', JSON.stringify(conFiltro));
+  vale('(la prueba es válida) había una etiqueta que guardar', !!guardado, guardado);
+  vale('LA TIRA SALE PUESTA SI EL FILTRO GUARDADO ESCONDE ALGO',
+       conFiltro.apagada === false && conFiltro.fila !== 'none', conFiltro);
+  vale('  con su botón encendido',
+       conFiltro.pulsado === 'true' && conFiltro.encendido === true, conFiltro);
+  vale('  y se ve CUÁL es el filtro puesto', conFiltro.loMarca === true,
+       conFiltro.marcadas);
+
   await cerrar(sesion);
+
+  /* ================================================================
+     Y EL TECHO DE LA TIRA SE MIDE CONTRA LA ESCENA, NO CONTRA LA VENTANA.
+
+     En teléfono las dos son la misma cosa y por eso esto no se ve allí: la
+     escena mide lo que la ventana. En pantalla ancha la escena mide 470 px
+     FIJOS dentro de una ventana que puede medir mil y pico, así que un techo
+     en vh —que es como se escribió— repartía el monitor en vez del panel: 24vh
+     de una ventana de 1440 son 346 px de un panel de 470, o sea la tira
+     comiéndose el índice, las pestañas y el pie. Lo levantó la revisión de
+     Codex.
+
+     La comprobación se apoya en que la ventana sea MÁS ALTA que la escena: sin
+     eso las dos cuentas darían lo mismo y la prueba pasaría en verde con el vh
+     puesto. Por eso esa condición se afirma antes, como validez.
+     ================================================================ */
+  titulo('en pantalla ancha el techo de la tira es del panel, no del monitor');
+  const ancha = await abrir(ESCRITORIO);
+  const pa = ancha.pagina;
+  await pa.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    document.getElementById('pgCabeza').click(); await z(900);
+    const t = document.querySelector('.pestanas button[data-sec="glosas"]');
+    if (t) t.click(); await z(1000);
+  });
+  const techo = await pa.evaluate(() => {
+    const f = document.getElementById('filtros');
+    const st = document.querySelector('.stage').getBoundingClientRect();
+    return { tope: parseFloat(getComputedStyle(f).maxHeight),
+             escena: Math.round(st.height), ventana: window.innerHeight };
+  });
+  di('el techo en pantalla ancha', JSON.stringify(techo));
+  vale('(la prueba es válida) la ventana es más alta que la escena',
+       techo.ventana > techo.escena + 100,
+       techo.ventana + ' contra ' + techo.escena);
+  vale('EL TECHO SALE DE LA ESCENA', techo.tope <= techo.escena * .3,
+       techo.tope + ' px de una escena de ' + techo.escena);
+  /* Y por el otro lado: un techo tan bajo que no quepa una pastilla tampoco
+     sirve; lo que se quería es repartir, no cerrar. */
+  vale('  y da para dos renglones de pastillas', techo.tope >= 66,
+       techo.tope + ' px');
+  await cerrar(ancha);
 })();
