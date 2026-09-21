@@ -5443,7 +5443,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 17:08';
+window.GLOSS_BUILD = '21-SEP-26 17:50';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -6554,7 +6554,35 @@ let RES = new Map(), REFS = new Map(), TINT_V = new Map();
    color viaja hasta el nombre de la clase CSS: una marca con color 'red'
    pediría .f-red, que ya no existe, y se pintaría sin resaltar ninguno. */
 const RENOMBRES = {red:'orange'};
-const alDia = m => { if (m && RENOMBRES[m.color]) m.color = RENOMBRES[m.color]; return m; };
+/* Y LAS ETIQUETAS CON ESPACIOS TAMBIÉN SE PONEN AL DÍA, por la misma puerta.
+
+   Las nuevas ya no los llevan —se juntan en jorobas al crearlas, ver
+   etiquetaLimpia— pero una instalación de antes, o un respaldo importado,
+   traía las suyas con espacios y se quedaban así para siempre. Convivían dos
+   maneras de escribir lo mismo en el mismo cajón, que es justo lo que la regla
+   vino a evitar. Lo pidió el dueño del repo: «arréglalas tú». Su respaldo
+   lleva «clase 12 oct», así que esto se ve en la primera carga.
+
+   AQUÍ Y NO EN DOS SITIOS: alDia es por donde pasan las marcas al leerlas del
+   almacén Y al importarlas de un archivo, así que la regla no tiene puerta
+   trasera. Es lo mismo que ya hace con el color viejo.
+
+   EL Set NO ES ADORNO: dos etiquetas distintas pueden juntarse en la misma
+   —«clase 12 oct» y «Clase12Oct» acaban siendo una—, y una marca que llevara
+   las dos terminaría con la misma repetida, que en la hoja se lee como
+   «#Clase12Oct #Clase12Oct» pegadas.
+
+   NO SE GUARDA AQUÍ, y es a propósito. Esto normaliza lo que está EN MEMORIA;
+   el almacén se queda como está hasta que el lector toque algo y se guarde
+   solo. Abrir el programa no tiene por qué reescribirte el archivo, y si algo
+   saliera mal en esta cuenta, lo de antes sigue en el disco. Lo que sí sale ya
+   normalizado es lo que se exporta, porque se exporta lo de memoria. */
+const alDia = m => {
+  if (m && RENOMBRES[m.color]) m.color = RENOMBRES[m.color];
+  if (m && Array.isArray(m.etiquetas))
+    m.etiquetas = [...new Set(m.etiquetas.map(etiquetaLimpia).filter(Boolean))];
+  return m;
+};
 /* NUNCA existió, que no es lo mismo que estar vacía: si borraste todas tus
    glosas a propósito, la clave queda en '[]' y hay que respetarlo. Solo se
    siembran ejemplos cuando esto es una instalación recién estrenada. */
@@ -20726,10 +20754,18 @@ function cargarAjustes(){
      aplicación y no hay lista cerrada que consultar; solo se rechaza lo que no
      es texto y lo desmedido, que sería un archivo manoseado y no una etiqueta.
      Vacío vale: significa que todavía no has usado ninguna. */
+  /* LOS DOS PASAN POR etiquetaLimpia, y esto es la otra mitad de la migración
+     de las marcas. Sin ello, un filtro guardado por «clase 12 oct» seguiría
+     pidiendo ese nombre mientras las marcas ya dicen «Clase12Oct»: filtro por
+     una etiqueta que no existe, o sea la pantalla sin glosas y sin decir por
+     qué. Es el mismo agujero que se tapó en renombrarEtiqueta, aquí por el
+     camino de la carga. */
   if (typeof a.ultimaEtiqueta === 'string' && a.ultimaEtiqueta.length <= 120)
-    ultimaEtiqueta = a.ultimaEtiqueta;
+    ultimaEtiqueta = etiquetaLimpia(a.ultimaEtiqueta);
   if (Array.isArray(a.etiquetasVer))
-    etiquetasVer = new Set(a.etiquetasVer.filter(t => typeof t === 'string' && t.length <= 120));
+    etiquetasVer = new Set(a.etiquetasVer
+      .filter(t => typeof t === 'string' && t.length <= 120)
+      .map(etiquetaLimpia).filter(Boolean));
   if (D.versiones[a.version]) version = a.version;      // antes que el libro:
   if (a.libro && hayLibro(a.libro)) LIBRO = a.libro;    // hayLibro depende de version
   return a;

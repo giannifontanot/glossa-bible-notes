@@ -1354,6 +1354,111 @@ const FUERA = `async () => {
        conFiltro.sombra);
 
   /* ================================================================
+     LAS VIEJAS CON ESPACIOS SE PONEN AL DÍA AL CARGAR.
+
+     La regla nueva valía para lo que el programa CREA, así que una instalación
+     de antes —o un respaldo importado, que el del repo lleva «clase 12 oct»—
+     seguía conviviendo con las dos maneras de escribir lo mismo en el mismo
+     cajón. El dueño del repo pidió arreglarlas: «arréglalas tú».
+
+     TRES COSAS QUE SE MIRAN, Y LAS TRES SON LA MISMA MIGRACIÓN VISTA DESDE
+     SITIOS DISTINTOS:
+
+     · las marcas, que es lo que se lee;
+     · el FILTRO GUARDADO, que es lo que se rompe en silencio: si las marcas
+       pasan a decir «Clase12Oct» y el filtro sigue pidiendo «clase 12 oct», el
+       lector abre el programa y no tiene glosas, sin una palabra que lo
+       explique. Es el mismo agujero que ya se tapó en renombrarEtiqueta, aquí
+       por el camino de la carga;
+     · y que DOS QUE SE JUNTAN NO QUEDEN REPETIDAS en la misma marca, que es lo
+       que pasa al normalizar con un map y sin mirar.
+
+     Y UNA CUARTA QUE ES UNA DECISIÓN Y NO UN EFECTO: abrir el programa NO
+     reescribe el archivo. La migración es de lo que está en memoria; el disco
+     se queda como estaba hasta que el lector toque algo. Si un día se prefiere
+     lo contrario, esta línea se pondrá roja y habrá que venir a cambiarla a
+     propósito, que es lo que se quiere de una decisión escrita.
+     ================================================================ */
+  titulo('las etiquetas viejas con espacios se ponen al día al cargar');
+  await p.evaluate(() => {
+    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    if (g.length < 3) return false;
+    g[0].etiquetas = ['clase 12 oct', 'Domingo'];
+    g[1].etiquetas = ['clase 12 oct', 'Clase12Oct'];   /* las dos: se funden */
+    g[2].etiquetas = ['oración  diaria'];
+    localStorage.setItem('glossa:marcas:v1', JSON.stringify(g));
+    const A = 'glossa:ajustes:v1';
+    try {
+      const a = JSON.parse(localStorage.getItem(A) || '{}');
+      a.etiquetasVer = ['clase 12 oct'];      /* el filtro, con el nombre viejo */
+      a.ultimaEtiqueta = 'oración  diaria';
+      localStorage.setItem(A, JSON.stringify(a));
+    } catch(_){}
+    return true;
+  });
+  await p.reload();
+  await p.waitForTimeout(2600);
+  const migrada = await p.evaluate(() => ({
+    enMemoria:(() => {
+      /* Lo que el programa tiene cargado se mira por donde se ve: los chips de
+         la tira salen de las marcas en memoria, no del almacén. */
+      const chips = [...document.querySelectorAll('#filtros .chip')]
+        .map(c => c.firstChild.textContent.trim());
+      return chips;
+    })(),
+    filtroPuesto:[...document.querySelectorAll('#filtros .chip.sel')]
+                   .map(c => c.firstChild.textContent.trim()),
+    enDisco:JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
+              .slice(0, 3).map(m => m.etiquetas || []) }));
+  di('tras cargar una instalación vieja', JSON.stringify(migrada));
+  /* La línea de validez: si la siembra no hubiera entrado, lo de abajo saldría
+     verde sobre una lista que nunca tuvo espacios. */
+  vale('(la prueba es válida) el almacén tiene etiquetas con espacios',
+       migrada.enDisco.some(t => t.some(x => /\s/.test(x))),
+       JSON.stringify(migrada.enDisco));
+  /* SE NOMBRAN LAS DOS QUE ENTRARON Y LAS DOS QUE DEBEN DESAPARECER, en vez de
+     exigir «ninguna con espacios» en toda la tira: ahí también viven los chips
+     de LIBRO, y hay libros con espacio en el nombre —«1 Corintios»— más el de
+     «+ libro». Una regla de más ancho de la cuenta canta fallos que no son. */
+  vale('LAS VIEJAS SALEN YA JUNTAS EN JOROBAS',
+       migrada.enMemoria.includes('Clase12Oct') &&
+       migrada.enMemoria.includes('OraciónDiaria') &&
+       !migrada.enMemoria.includes('clase 12 oct') &&
+       !migrada.enMemoria.includes('oración  diaria'),
+       migrada.enMemoria.join(' · '));
+  vale('EL FILTRO GUARDADO SE PONE AL DÍA CON ELLAS',
+       migrada.filtroPuesto.includes('Clase12Oct'),
+       migrada.filtroPuesto.join(' · '));
+  vale('y abrir el programa NO reescribe el archivo',
+       migrada.enDisco.some(t => t.some(x => /\s/.test(x))),
+       JSON.stringify(migrada.enDisco));
+  /* La fusión se comprueba donde se ve: la marca que llevaba las dos maneras
+     de escribirlo termina con UNA, no con la misma dos veces. */
+  const sinRepetir = await p.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    /* se guarda algo para que la memoria migrada baje al disco */
+    if (!document.getElementById('etiquetas').classList.contains('abierto')){
+      document.getElementById('pgCabeza').click(); await z(900);
+      const t = document.querySelector('.pestanas button[data-sec="glosas"]');
+      if (t) t.click(); await z(900);
+    }
+    const b = document.getElementById('btnElegirGlosas');
+    if (b.getAttribute('aria-pressed') !== 'true'){ b.click(); await z(600); }
+    document.querySelector('#tagboxGrupo [data-tag-grupo="Domingo"]').click();
+    await z(300);
+    document.getElementById('tagNuevaGrupo').value = 'DomingoDeRamos';
+    document.querySelector('#tagboxGrupo [data-acc="renombrartag"]').click();
+    await z(800);
+    return JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
+             .slice(0, 3).map(m => m.etiquetas || []);
+  });
+  di('y al guardar, lo migrado baja al disco', JSON.stringify(sinRepetir));
+  vale('AL GUARDAR, EL DISCO SE PONE AL DÍA',
+       !sinRepetir.some(t => t.some(x => /\s/.test(x))), JSON.stringify(sinRepetir));
+  vale('  y la que llevaba las dos no la lleva repetida',
+       sinRepetir.every(t => t.length === new Set(t).size), JSON.stringify(sinRepetir));
+
+  /* ================================================================
      CAMBIARLE EL NOMBRE A UNA ETIQUETA, DESDE ACTUALIZAR Y SIN NADA ELEGIDO.
 
      Una etiqueta no es un rótulo por glosa: es la misma cosa escrita en
