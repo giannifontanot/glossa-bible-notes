@@ -45,20 +45,35 @@ const IR_A = `async (sec) => {
      importa es que aparezca la primera hoja del libro. Después de abrir
      Encuentros ya no se puede comprobar. */
   titulo('el relato no se pide hasta que se va a leer');
-  const alArrancar = await p.evaluate(() =>
-    [...document.querySelectorAll('.enc-marco')].map(m => m.getAttribute('src')));
-  di('marcos con src al arrancar', alArrancar);
-  /* La línea de validez: si no hubiera marcos, la de abajo saldría verde sobre
-     una lista vacía. Son dos, uno por relato, y se cuentan contra la barra de
-     pestañas de dentro y no contra un número escrito: el día que entre el
-     tercer encuentro esto tiene que seguir diciendo la verdad sola. */
-  const cuantasPestanitas = await p.evaluate(() =>
-    document.querySelectorAll('#encuentros .pestanitas button').length);
-  vale('(la prueba es válida) hay un marco por relato',
-       alArrancar.length === cuantasPestanitas && alArrancar.length >= 2,
-       alArrancar.length + ' marcos · ' + cuantasPestanitas + ' pestañas');
-  vale('y todavía no ha pedido nada', alArrancar.every(x => x === null),
-       JSON.stringify(alArrancar));
+  const alArrancar = await p.evaluate(() => {
+    const hojas = [...document.querySelectorAll('#encuentros .enc-hoja')];
+    return { hojas:hojas.length,
+             /* CADA HOJA ES DE UNA DE LAS DOS CLASES: la que tiene relato lleva
+                su marco, y la que todavía no lo tiene lleva el cartel que lo
+                dice. No hay una tercera. */
+             conMarco:hojas.filter(h => h.querySelector('.enc-marco')).length,
+             conCartel:hojas.filter(h => h.querySelector('.enc-panel')).length,
+             pedidos:[...document.querySelectorAll('#encuentros .enc-marco')]
+                       .map(m => m.getAttribute('src')) };
+  });
+  di('las hojas al arrancar', alArrancar);
+  /* LA LÍNEA DE VALIDEZ NO CUENTA PESTAÑAS, Y ÉSA FUE LA PRIMERA VERSIÓN: decía
+     «un marco por pestaña», que hoy es verdad y mañana no. El día que entre un
+     encuentro sin historia escrita —que es un estado previsto y está explicado
+     en armarEncuentros— tendría su pestaña y su cartel, y ningún marco: la
+     prueba habría cantado fallo con el programa haciendo exactamente lo que se
+     le pidió. Lo levantó la revisión de Codex.
+     Lo que se exige es la regla: cada hoja es de una clase o de la otra, y hay
+     al menos un relato de verdad, que es lo que estas líneas vienen a mirar. */
+  vale('(la prueba es válida) cada hoja lleva su relato o su cartel, y ninguna las dos',
+       alArrancar.conMarco + alArrancar.conCartel === alArrancar.hojas &&
+       alArrancar.hojas >= 2,
+       alArrancar.conMarco + ' con relato · ' + alArrancar.conCartel +
+       ' esperando · ' + alArrancar.hojas + ' hojas');
+  vale('(la prueba es válida) y hay al menos un relato que pedir',
+       alArrancar.conMarco >= 1, alArrancar.conMarco);
+  vale('y ninguno ha pedido nada todavía',
+       alArrancar.pedidos.every(x => x === null), JSON.stringify(alArrancar.pedidos));
 
   /* ---------------- la barra ---------------- */
   titulo('la barra lleva cinco, y Encuentros va detrás de Glosas');
