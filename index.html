@@ -5502,7 +5502,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 18:35';
+window.GLOSS_BUILD = '21-SEP-26 18:44';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -20953,10 +20953,17 @@ const ENCUENTROS = [
     historia:'encuentros/sobre-el-agua.html' },
   { id:'centurion',  nombre:'El centurión',
     historia:'encuentros/centurion.html' },
-  /* Y ÉSTE VA AL FINAL, pedido así. Los cuatro de arriba son encuentros con
-     Jesús; éste es el que no ocurre, el día en que ya no hay encuentro. */
+  /* ESCONDIDO, PEDIDO ASÍ, Y SE ESCONDE CON UNA PALABRA. Entró al final —los
+     otros son encuentros con Jesús y éste es el que no ocurre, el día en que
+     ya no hay encuentro— y el dueño del repo pidió quitarlo de la vista.
+
+     `oculto` y no borrarlo: el relato sigue en encuentros/la-espalda.html, con
+     su renglón aquí y su sitio en el orden. Volver a enseñarlo es tachar una
+     palabra, no rehacer nada. Borrarlo habría sido tirar el fichero, el
+     renglón y el orden para recuperarlos a mano el día que se quiera de
+     vuelta. */
   { id:'espalda',    nombre:'El día que Cristo nos dio la espalda',
-    rotulo:'Nos dio la espalda',
+    rotulo:'Nos dio la espalda', oculto:true,
     historia:'encuentros/la-espalda.html' },
 ];
 (function armarEncuentros(){
@@ -20971,7 +20978,10 @@ const ENCUENTROS = [
   cajaBarra.appendChild(barra);
   const hojas = document.createElement('div');
   hojas.className = 'enc-hojas';
-  ENCUENTROS.forEach((e, i) => {
+  /* Los escondidos no llegan a existir: ni pestaña, ni hoja, ni marco. Un
+     `hidden` los habría dejado en el documento, y una hoja escondida que
+     igualmente pide su relato es peso muerto que nadie va a leer. */
+  ENCUENTROS.filter(e => !e.oculto).forEach((e, i) => {
     const b = document.createElement('button');
     b.type = 'button';                 /* dentro de nada, pero un <button> sin
                                           tipo es submit en cuanto alguien lo
