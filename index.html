@@ -3807,6 +3807,18 @@
   #barraGrupo .taglista .tg.mix{ color:#6d5c33; text-decoration:underline dotted;
                                  text-underline-offset:3px; }
   #barraGrupo .taglista .tg.ultima{ text-decoration:underline dotted; text-underline-offset:3px; }
+  /* LA QUE SE ESTÁ RENOMBRANDO. Va con el marrón macizo del programa y no con
+     un subrayado más: en esta lista ya hay tres subrayados distintos —la
+     última usada, la que llevan algunas y la que llevan todas— y un cuarto no
+     se distinguiría de los otros tres. Lo que dice es «ésta es la que estás
+     editando», y eso pide un cambio de clase, no de matiz. */
+  #barraGrupo .taglista .tg.editando{ color:#fff8e4; background:#b8892b;
+            border-radius:4px; padding:0 5px; text-decoration:none; }
+  /* Y EL RENGLÓN DE ABAJO SE DA POR ENTERADO. Sin esto, la única diferencia
+     entre crear y renombrar sería la palabra del botón, y la palabra del botón
+     es justo lo que no se lee cuando uno ya sabe lo que va a pulsar. */
+  #barraGrupo .tagctl.renombrando{ background:rgba(184,137,43,.12);
+            border-radius:7px; padding:5px 6px; margin:0 -6px; }
   #barraGrupo .tagctl{ display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
   #barraGrupo .tagctl input{ flex:1 1 90px; min-width:0; }
   .ajuste{ display:flex; align-items:center; gap:6px; padding:0; min-width:0; }
@@ -5431,7 +5443,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 16:33';
+window.GLOSS_BUILD = '21-SEP-26 17:50';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -6542,7 +6554,35 @@ let RES = new Map(), REFS = new Map(), TINT_V = new Map();
    color viaja hasta el nombre de la clase CSS: una marca con color 'red'
    pediría .f-red, que ya no existe, y se pintaría sin resaltar ninguno. */
 const RENOMBRES = {red:'orange'};
-const alDia = m => { if (m && RENOMBRES[m.color]) m.color = RENOMBRES[m.color]; return m; };
+/* Y LAS ETIQUETAS CON ESPACIOS TAMBIÉN SE PONEN AL DÍA, por la misma puerta.
+
+   Las nuevas ya no los llevan —se juntan en jorobas al crearlas, ver
+   etiquetaLimpia— pero una instalación de antes, o un respaldo importado,
+   traía las suyas con espacios y se quedaban así para siempre. Convivían dos
+   maneras de escribir lo mismo en el mismo cajón, que es justo lo que la regla
+   vino a evitar. Lo pidió el dueño del repo: «arréglalas tú». Su respaldo
+   lleva «clase 12 oct», así que esto se ve en la primera carga.
+
+   AQUÍ Y NO EN DOS SITIOS: alDia es por donde pasan las marcas al leerlas del
+   almacén Y al importarlas de un archivo, así que la regla no tiene puerta
+   trasera. Es lo mismo que ya hace con el color viejo.
+
+   EL Set NO ES ADORNO: dos etiquetas distintas pueden juntarse en la misma
+   —«clase 12 oct» y «Clase12Oct» acaban siendo una—, y una marca que llevara
+   las dos terminaría con la misma repetida, que en la hoja se lee como
+   «#Clase12Oct #Clase12Oct» pegadas.
+
+   NO SE GUARDA AQUÍ, y es a propósito. Esto normaliza lo que está EN MEMORIA;
+   el almacén se queda como está hasta que el lector toque algo y se guarde
+   solo. Abrir el programa no tiene por qué reescribirte el archivo, y si algo
+   saliera mal en esta cuenta, lo de antes sigue en el disco. Lo que sí sale ya
+   normalizado es lo que se exporta, porque se exporta lo de memoria. */
+const alDia = m => {
+  if (m && RENOMBRES[m.color]) m.color = RENOMBRES[m.color];
+  if (m && Array.isArray(m.etiquetas))
+    m.etiquetas = [...new Set(m.etiquetas.map(etiquetaLimpia).filter(Boolean))];
+  return m;
+};
 /* NUNCA existió, que no es lo mismo que estar vacía: si borraste todas tus
    glosas a propósito, la clave queda en '[]' y hay que respetarlo. Solo se
    siembran ejemplos cuando esto es una instalación recién estrenada. */
@@ -10863,13 +10903,44 @@ menu.addEventListener('focusout', ev => {
    caminos por los que puede llegar el mismo gesto. Se vacía la caja
    ANTES de tocar nada más, porque su salida dispararía otra vez esto
    con el mismo texto. */
+/* UNA ETIQUETA NO LLEVA ESPACIOS, Y LOS QUE TRAIGA SE CONVIERTEN EN JOROBAS.
+
+   Pedido así por el dueño del repo. Una etiqueta se escribe para volver a
+   encontrarla, y un espacio la rompe por los dos lados: en la hoja se lee como
+   dos palabras sueltas detrás de una almohadilla —«#oración diaria» parece una
+   etiqueta y una palabra perdida— y al buscarla nadie se acuerda de si la
+   escribió con uno o con dos.
+
+   LO QUE SE HACE ES JUNTARLAS EN JOROBAS Y NO BORRAR EL ESPACIO A SECAS:
+   «oracióndiaria» no se lee, «OraciónDiaria» sí. Es además como están escritas
+   todas las que usa el dueño del repo.
+
+   Y UNA SOLA PALABRA NO SE TOCA. Es la parte que se decidió y conviene que
+   esté escrita: la regla existe para quitar espacios, así que donde no hay
+   espacios no hay nada que arreglar. Poniéndole mayúscula también a la palabra
+   suelta, escribir «eco» devolvería «Eco», que es corregirle la letra a quien
+   no pidió que se la corrigieran.
+
+   Se parte por PUNTOS DE CÓDIGO y no por charAt: una etiqueta puede empezar
+   por emoji, y un par suplente partido por la mitad son dos rombos. Es la
+   misma cuenta que ya paga etiquetaHTML al cortar por grafemas. */
+function etiquetaLimpia(t){
+  const crudo = String(t == null ? '' : t).trim();
+  if (!crudo) return '';
+  const trozos = crudo.split(/\s+/);
+  if (trozos.length === 1) return crudo;
+  return trozos.map(x => {
+    const [primera, ...resto] = [...x];
+    return primera.toLocaleUpperCase('es') + resto.join('');
+  }).join('');
+}
 function crearTagDeMarca(caja){
   if (!caja || !borrador) return;
   /* Dormida se comprueba ANTES de vaciar la caja: vaciarla y luego rendirse
      se llevaría lo escrito sin poner nada, que es el modo de fallar más
      antipático que tiene una caja de texto. */
   if (menu.querySelector('.tagbox').classList.contains('dormida')) return;
-  const t = caja.value.trim(); if (!t) return;
+  const t = etiquetaLimpia(caja.value); if (!t) return;
   caja.value = '';
   const actuales = borrador.m.etiquetas || [];
   if (!actuales.includes(t)) borrador.m.etiquetas = actuales.concat(t);
@@ -11379,11 +11450,31 @@ $('btnVerEtiquetas').onclick = () => {
 };
 let eligiendoGlosas = false;
 const glosasElegidas = new Set();
+/* QUÉ ETIQUETA SE ESTÁ RENOMBRANDO, o null si no hay ninguna.
+
+   Con ACTUALIZAR puesto y NINGUNA glosa elegida, el panel no hacía nada: tocar
+   una etiqueta llamaba a ponerTagGrupo, que se iba por la puerta de atrás
+   —«sin glosas elegidas no hay a quién ponérsela»— y el botón de crear
+   tampoco tenía a quién. Una pantalla entera sin respuesta.
+
+   Ese hueco es justo donde cabe lo que se pidió: sin glosas elegidas, tocar
+   una etiqueta la baja a la caja de escribir y el botón pasa a decir
+   ACTUALIZAR. Se cambia el texto, se pulsa, y la etiqueta cambia de nombre en
+   TODAS las glosas que la llevan. No hay ambigüedad posible entre los dos
+   modos porque no se solapan: con glosas elegidas se pone y se quita, sin
+   ellas se renombra. */
+let etiquetaEnEdicion = null;
 function marcasElegidas(){
   return marcas.filter(m => glosasElegidas.has(m.id));
 }
 function pintarBarraGrupo(){
   const n = glosasElegidas.size;
+  /* ELEGIR UNA GLOSA CANCELA LA EDICIÓN, y se resuelve aquí de una vez y no en
+     cada sitio que toca la selección. Los dos modos comparten la misma caja de
+     escribir y el mismo botón: con una glosa elegida el botón vuelve a ser el
+     de crear, y dejar el nombre viejo cargado en la caja sería ofrecer un
+     ACTUALIZAR que ya no está. */
+  if (n) etiquetaEnEdicion = null;
   const cuenta = $('cuentaGrupo');
   if (cuenta) cuenta.textContent = n === 1 ? '1 elegida' : n + ' elegidas';
   const caja = $('tagboxGrupo');
@@ -11397,20 +11488,106 @@ function pintarBarraGrupo(){
         const cls = k === grupo.length && grupo.length ? ' on' :
                     k > 0 ? ' mix' : '';
         const ultima = t && t === ultimaEtiqueta ? ' ultima' : '';
-        return '<button type="button" class="tg' + cls + ultima +
+        const enEdicion = t && t === etiquetaEnEdicion ? ' editando' : '';
+        return '<button type="button" class="tg' + cls + ultima + enEdicion +
           '" data-tag-grupo="' + esc(t) + '">#' + esc(t) + '</button>';
       }).join('')
     : '<span class="vacio">sin etiquetas todavía</span>';
+  /* LOS DOS MODOS DE LA MISMA CAJA. Un solo renglón de control, y lo que dice
+     el botón es lo único que cambia entre poner una etiqueta nueva y cambiarle
+     el nombre a una que ya existe. Dos cajas distintas habrían sido dos sitios
+     donde escribir lo mismo, y el panel ya es estrecho. */
+  const renombrando = !n && !!etiquetaEnEdicion;
   caja.innerHTML =
     '<div class="taglista">' + htmlLista + '</div>' +
-    '<div class="tagctl">' +
-      '<input id="tagNuevaGrupo" placeholder="nueva…" enterkeyhint="done" ' +
-        'autocapitalize="none" autocomplete="off" />' +
-      '<button type="button" class="btn crear" data-acc="creartag-grupo">+ crear</button>' +
+    '<div class="tagctl' + (renombrando ? ' renombrando' : '') + '">' +
+      '<input id="tagNuevaGrupo" enterkeyhint="done" autocapitalize="none" ' +
+        'autocomplete="off" placeholder="' + (renombrando ? 'nuevo nombre…' : 'nueva…') + '" ' +
+        'aria-label="' + (renombrando ? 'Nuevo nombre de #' + esc(etiquetaEnEdicion)
+                                      : 'Etiqueta nueva') + '" ' +
+        'value="' + (renombrando ? esc(etiquetaEnEdicion) : '') + '" />' +
+      (renombrando
+        ? '<button type="button" class="btn crear" data-acc="renombrartag">actualizar</button>' +
+          /* La salida, que si no la única manera de volver a crear sería
+             acertarle otra vez a la misma etiqueta. */
+          '<button type="button" class="btn" data-acc="dejartag" ' +
+            'title="Dejar de cambiarle el nombre">cancelar</button>'
+        : '<button type="button" class="btn crear" data-acc="creartag-grupo">+ crear</button>') +
     '</div>';
 }
+/* BAJAR UNA ETIQUETA A LA CAJA. Se repinta y DESPUÉS se busca el campo: el
+   repintado rehace el renglón entero, así que el que había antes ya no existe
+   y enfocarlo antes sería enfocar a un muerto. El cursor va al final y no al
+   principio, que es donde uno escribe cuando viene a corregir un nombre. */
+function editarEtiqueta(t){
+  etiquetaEnEdicion = t || null;
+  pintarBarraGrupo();
+  const campo = $('tagNuevaGrupo');
+  if (campo && etiquetaEnEdicion){
+    campo.focus();
+    campo.setSelectionRange(campo.value.length, campo.value.length);
+  }
+}
+/* RENOMBRAR EN TODAS LAS GLOSAS QUE LA LLEVAN, que es lo que se pidió: una
+   etiqueta no es un rótulo por glosa, es la misma cosa escrita en muchas.
+
+   RENOMBRAR A UNA QUE YA EXISTE ES FUNDIRLAS, y no se impide a propósito: es
+   la respuesta útil a «escribí "Oración" y "oracion" y ahora son dos». Lo que
+   sí hay que cuidar es que una glosa que lleve las dos no acabe con la misma
+   etiqueta dos veces, y de eso se encarga el Set. Se ve al soltarlo: la lista
+   pasa a tener una etiqueta menos.
+
+   No se toca el orden de las demás: se sustituye en el sitio, así que una
+   glosa que tenía #a #b #c y renombra #b sigue teniendo tres en ese orden. */
+function renombrarEtiqueta(viejo, nuevo){
+  /* POR LA MISMA PUERTA QUE LAS NUEVAS: sin esto, renombrar sería el hueco por
+     donde volverían los espacios a las etiquetas, y encima el sitio donde más
+     se nota —se renombra para corregir, no para estropear—. */
+  nuevo = etiquetaLimpia(nuevo);
+  if (!viejo || !nuevo || nuevo === viejo) return false;
+  let tocadas = 0;
+  for (const m of marcas){
+    const cur = m.etiquetas || [];
+    if (!cur.includes(viejo)) continue;
+    m.etiquetas = [...new Set(cur.map(x => x === viejo ? nuevo : x))];
+    tocadas++;
+  }
+  if (!tocadas) return false;
+  /* LO QUE APUNTABA AL NOMBRE VIEJO TIENE QUE SEGUIRLO, o queda apuntando a
+     una etiqueta que ya no existe. Son dos: la última usada —que es la que el
+     panel subraya— y el FILTRO PUESTO, que además se guarda en los ajustes: un
+     filtro por una etiqueta inexistente esconde todas las glosas y no hay
+     manera de ver por qué. */
+  let ajustesTocados = false;
+  if (ultimaEtiqueta === viejo){ ultimaEtiqueta = nuevo; ajustesTocados = true; }
+  if (etiquetasVer.has(viejo)){
+    etiquetasVer.delete(viejo); etiquetasVer.add(nuevo); ajustesTocados = true;
+  }
+  etiquetaEnEdicion = null;
+  save();
+  /* Y LOS AJUSTES APARTE, que save() no los guarda: save() escribe las marcas y
+     estas dos cosas —la última usada y el filtro puesto— viven en el otro
+     almacén, el de guardarAjustes.
+
+     Hoy esto se salvaba de milagro: renderPage acaba llamando a guardarAjustes
+     por su cuenta —va guardando por dónde vas leyendo— así que el filtro
+     renombrado se escribía igual, por un camino que no tiene nada que ver con
+     esto. El día que esa llamada se mueva, renombrar la etiqueta que estás
+     filtrando dejaría el filtro viejo guardado: al recargar vuelve un filtro
+     por una etiqueta que ya no existe, o sea la pantalla en blanco sin decir
+     por qué. Apoyarse en el efecto secundario de otra función es tener el
+     fallo escrito y esperando. Lo levantó la revisión de Codex.
+
+     Va con bandera y no siempre: guardarAjustes serializa el estado entero y
+     no hay por qué pagarlo al renombrar una etiqueta que nadie está filtrando
+     ni acaba de usar. */
+  if (ajustesTocados) guardarAjustes();
+  pintarFiltros(); pintarIndice(); pintarBarraGrupo();
+  if (typeof renderPage === 'function') renderPage();
+  return true;
+}
 function ponerTagGrupo(t){
-  t = (t || '').trim(); if (!t || !glosasElegidas.size) return;
+  t = etiquetaLimpia(t); if (!t || !glosasElegidas.size) return;
   for (const m of marcasElegidas()){
     const cur = m.etiquetas || [];
     if (!cur.includes(t)) m.etiquetas = cur.concat(t);
@@ -11441,6 +11618,9 @@ function elegirGlosas(on){
   $('etiquetas').classList.toggle('eligiendo', on);
   if (!on){
     glosasElegidas.clear();
+    /* Y la etiqueta que se estuviera renombrando: salir del modo es salir de
+       todo lo que el modo tenía abierto. */
+    etiquetaEnEdicion = null;
     document.querySelectorAll('#indice .ix-item.elegida')
       .forEach(el => el.classList.remove('elegida'));
   }
@@ -11451,23 +11631,53 @@ function elegirGlosas(on){
 }
 $('btnElegirGlosas').onclick = () => elegirGlosas(!eligiendoGlosas);
 $('tagboxGrupo').addEventListener('click', ev => {
-  const crear = ev.target.closest('[data-acc="creartag-grupo"]');
-  if (crear){
+  if (ev.target.closest('[data-acc="creartag-grupo"]')){
     const caja = $('tagNuevaGrupo');
     ponerTagGrupo(caja && caja.value);
     if (caja) caja.value = '';
     return;
   }
+  if (ev.target.closest('[data-acc="renombrartag"]')){
+    const caja = $('tagNuevaGrupo');
+    /* Si no cambió nada —o se vació la caja— renombrarEtiqueta no hace nada y
+       devuelve false, y entonces esto tampoco: la etiqueta sigue cargada y el
+       botón sigue diciendo ACTUALIZAR, que es lo que corresponde a «todavía no
+       has escrito otro nombre». Salir de la edición a la primera pulsación en
+       falso sería castigar un titubeo. */
+    renombrarEtiqueta(etiquetaEnEdicion, caja && caja.value);
+    return;
+  }
+  if (ev.target.closest('[data-acc="dejartag"]')){ editarEtiqueta(null); return; }
   const b = ev.target.closest('[data-tag-grupo]'); if (!b) return;
   const t = b.dataset.tagGrupo;
+  /* SIN GLOSAS ELEGIDAS, TOCAR UNA ETIQUETA ES ABRIRLA PARA RENOMBRARLA. Antes
+     no era nada: ponerTagGrupo se iba por su puerta de atrás y el toque se
+     perdía. Volver a tocar la misma la suelta, que es lo que espera el dedo
+     que se equivocó de etiqueta. */
+  if (!glosasElegidas.size){
+    editarEtiqueta(t === etiquetaEnEdicion ? null : t);
+    return;
+  }
   const grupo = marcasElegidas();
   const todasLaTienen = grupo.length && grupo.every(m => (m.etiquetas || []).includes(t));
   if (todasLaTienen) quitarTagGrupo(t);
   else ponerTagGrupo(t);
 });
 $('tagboxGrupo').addEventListener('keydown', ev => {
-  if (ev.key !== 'Enter' || ev.target.id !== 'tagNuevaGrupo') return;
+  if (ev.target.id !== 'tagNuevaGrupo') return;
+  /* Escape suelta la etiqueta sin cambiarle nada, como en todas las cajas de
+     este programa. Va antes que el Enter porque es la salida, y una salida que
+     depende del orden en que se escriban los ifs es una salida frágil. */
+  if (ev.key === 'Escape' && etiquetaEnEdicion){
+    ev.preventDefault(); ev.stopPropagation();   /* que no cierre el panel */
+    editarEtiqueta(null);
+    return;
+  }
+  if (ev.key !== 'Enter') return;
   ev.preventDefault();
+  /* Enter hace lo que dice el botón que tiene al lado, que es lo único que
+     puede hacer sin sorprender a nadie. */
+  if (etiquetaEnEdicion){ renombrarEtiqueta(etiquetaEnEdicion, ev.target.value); return; }
   ponerTagGrupo(ev.target.value);
   ev.target.value = '';
 });
@@ -20544,10 +20754,18 @@ function cargarAjustes(){
      aplicación y no hay lista cerrada que consultar; solo se rechaza lo que no
      es texto y lo desmedido, que sería un archivo manoseado y no una etiqueta.
      Vacío vale: significa que todavía no has usado ninguna. */
+  /* LOS DOS PASAN POR etiquetaLimpia, y esto es la otra mitad de la migración
+     de las marcas. Sin ello, un filtro guardado por «clase 12 oct» seguiría
+     pidiendo ese nombre mientras las marcas ya dicen «Clase12Oct»: filtro por
+     una etiqueta que no existe, o sea la pantalla sin glosas y sin decir por
+     qué. Es el mismo agujero que se tapó en renombrarEtiqueta, aquí por el
+     camino de la carga. */
   if (typeof a.ultimaEtiqueta === 'string' && a.ultimaEtiqueta.length <= 120)
-    ultimaEtiqueta = a.ultimaEtiqueta;
+    ultimaEtiqueta = etiquetaLimpia(a.ultimaEtiqueta);
   if (Array.isArray(a.etiquetasVer))
-    etiquetasVer = new Set(a.etiquetasVer.filter(t => typeof t === 'string' && t.length <= 120));
+    etiquetasVer = new Set(a.etiquetasVer
+      .filter(t => typeof t === 'string' && t.length <= 120)
+      .map(etiquetaLimpia).filter(Boolean));
   if (D.versiones[a.version]) version = a.version;      // antes que el libro:
   if (a.libro && hayLibro(a.libro)) LIBRO = a.libro;    // hayLibro depende de version
   return a;
