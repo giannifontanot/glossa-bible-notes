@@ -3432,8 +3432,41 @@
      cambia de historia dentro de una sección. Van sin panel de fondo y la
      encendida se marca con un subrayado macizo, que es la misma familia del
      marrón de arriba dicho más bajo. */
-  .pestanitas{ flex:0 0 auto; display:flex; flex-wrap:wrap; gap:4px; margin:0 0 9px; }
-  .pestanitas button{ border:0; cursor:pointer; padding:4px 8px 3px;
+  /* LA BARRA SE CORRE DE LADO, Y POR ESO VIVE DENTRO DE OTRA CAJA. Con cinco
+     encuentros las pestañas ya no caben en el renglón, y lo que se pidió es
+     que quepan siempre: una tira que se arrastra, no una que se parte en dos
+     renglones y le come el alto al relato.
+
+     El aviso de que hay más va en .enc-barra y NO en .pestanitas porque lo que
+     se corre es la tira: una sombra pintada dentro de ella se iría de viaje
+     con las pestañas y aparecería en medio del recorrido. La de fuera se queda
+     quieta en el filo, que es donde dice algo.
+
+     Las dos sombras y no una: al llegar al final la de la derecha se apaga y
+     la de la izquierda se enciende, así que el filo siempre contesta la
+     pregunta que toca —«¿hay más hacia allá?»— en vez de decir siempre que sí.
+     Es la misma idea que la tira de filtros y su .hay-mas, ahí en vertical. */
+  .enc-barra{ position:relative; flex:0 0 auto; margin:0 0 9px; }
+  .enc-barra::before, .enc-barra::after{
+            content:''; position:absolute; top:0; bottom:0; width:20px;
+            pointer-events:none; opacity:0; transition:opacity .22s ease; z-index:1; }
+  .enc-barra::before{ left:0;
+            background:linear-gradient(to right, rgba(74,58,28,.30), rgba(74,58,28,0)); }
+  .enc-barra::after{ right:0;
+            background:linear-gradient(to left, rgba(74,58,28,.30), rgba(74,58,28,0)); }
+  .enc-barra.hay-izq::before, .enc-barra.hay-der::after{ opacity:1; }
+  /* nowrap Y scroll: sin el nowrap el overflow no tiene nada que desbordar y
+     las pestañas se siguen partiendo de renglón. La barra del navegador se
+     esconde —en el teléfono es de superposición y en escritorio robaría alto
+     al panel—; el aviso lo dan las dos sombras. */
+  .pestanitas{ display:flex; flex-wrap:nowrap; gap:4px; margin:0;
+               overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain;
+               scrollbar-width:none; -ms-overflow-style:none; }
+  .pestanitas::-webkit-scrollbar{ display:none; }
+  /* flex:0 0 auto para que ninguna se encoja: una pestaña apretada hasta que
+     su palabra se parte es peor que una tira que se corre. */
+  .pestanitas button{ flex:0 0 auto; white-space:nowrap;
+                      border:0; cursor:pointer; padding:4px 8px 3px;
                       border-radius:5px 5px 0 0; background:transparent;
                       color:#5c4a24; letter-spacing:.02em;
                       font:400 calc(10.5px * var(--escala-ui, 1))/1.4 var(--ui);
@@ -5443,7 +5476,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 17:50';
+window.GLOSS_BUILD = '21-SEP-26 18:26';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -15607,11 +15640,6 @@ function rolloSimple(el){
       abierto = true;
       ponerBarra(el, seccionDe(el));
       if (el === etiquetas) pintarIndice();   /* la lista, al día con los filtros */
-      /* Y el relato se pide ahora, no al arrancar: ver despertar() en
-         armarEncuentros. Se pregunta por la sección y no por el elemento
-         porque el panel de Encuentros no tiene variable propia —los otros dos
-         la tienen por herencia, no por diseño—. */
-      if (seccionDe(el) === 'encuentros') encenderHistoriaViva();
       el.classList.remove('plegando', 'disuelto');
       el.style.display = 'flex';
       void el.offsetWidth;
@@ -15632,6 +15660,18 @@ function rolloSimple(el){
          repintara. Medido: 33 pastillas desbordando y las dos apagadas.
          Lo levantó la revisión de Codex. */
       if (el === etiquetas) avisarMasEtiquetas();
+      /* Y LO MISMO PARA ENCUENTROS, POR LA MISMA RAZÓN Y AL FINAL POR ELLA.
+         Aquí se pide el relato —no al arrancar: ver despertar() en
+         armarEncuentros— y se miden las pestañas, que ahora se corren de lado.
+         Estaba doce líneas más arriba, antes del display:flex, y con el panel
+         todavía escondido la cuenta de la tira daba cero: las sombras de «hay
+         más» nacían apagadas con 187 px de pestañas fuera de pantalla. Es
+         exactamente la trampa que la tira de filtros ya había pagado, y caí en
+         ella con el comentario que la explica escrito al lado.
+         Se pregunta por la sección y no por el elemento porque el panel de
+         Encuentros no tiene variable propia —los otros dos la tienen por
+         herencia, no por diseño—. */
+      if (seccionDe(el) === 'encuentros') encenderHistoriaViva();
     },
     /* Tres maneras de cerrarse, y no son intercambiables:
          seco      — cambio de pestaña, sin animación
@@ -20877,14 +20917,32 @@ etiquetas.appendChild($('barraGrupo'));
    fuerza de reemplazos es un id que cambia el día que alguien corrija el
    rótulo. El rótulo es para leerse; el id, para durar. */
 const ENCUENTROS = [
-  { id:'zaqueo',     nombre:'Zaqueo',              historia:'encuentros/zaqueo.html' },
-  { id:'samaritana', nombre:'La mujer Samaritana', historia:'encuentros/samaritana.html' },
+  { id:'zaqueo',     nombre:'Zaqueo',
+    historia:'encuentros/zaqueo.html' },
+  /* «samaritana» en minúscula, corregido a mano por el dueño del repo: no es
+     un nombre propio, es de dónde era. */
+  { id:'samaritana', nombre:'La mujer samaritana',  rotulo:'La samaritana',
+    historia:'encuentros/samaritana.html' },
+  { id:'agua',       nombre:'Sobre el agua',
+    historia:'encuentros/sobre-el-agua.html' },
+  { id:'centurion',  nombre:'El centurión',
+    historia:'encuentros/centurion.html' },
+  /* Y ÉSTE VA AL FINAL, pedido así. Los cuatro de arriba son encuentros con
+     Jesús; éste es el que no ocurre, el día en que ya no hay encuentro. */
+  { id:'espalda',    nombre:'El día que Cristo nos dio la espalda',
+    rotulo:'Nos dio la espalda',
+    historia:'encuentros/la-espalda.html' },
 ];
 (function armarEncuentros(){
   const caja = document.getElementById('encuentros');
   if (!caja) return;
   const barra = document.createElement('div');
   barra.className = 'pestanitas';
+  /* La caja de fuera es la que lleva las sombras de «hay más»: ver .enc-barra.
+     La de dentro es la que se corre. */
+  const cajaBarra = document.createElement('div');
+  cajaBarra.className = 'enc-barra';
+  cajaBarra.appendChild(barra);
   const hojas = document.createElement('div');
   hojas.className = 'enc-hojas';
   ENCUENTROS.forEach((e, i) => {
@@ -20893,7 +20951,14 @@ const ENCUENTROS = [
                                           tipo es submit en cuanto alguien lo
                                           meta en un formulario */
     b.dataset.enc = e.id;
-    b.textContent = e.nombre;
+    /* EL RÓTULO CORTO EN LA PESTAÑA Y EL NOMBRE ENTERO DONDE HAY SITIO. Pedido
+       al entrar el quinto: «El día que Cristo nos dio la espalda» en una
+       pestaña es un renglón entero. El nombre completo no se pierde —lo lleva
+       el title de la pestaña, el del marco y el h1 del propio relato—, así que
+       lo que se acorta es el asa, no la cosa. Sin rotulo, el rótulo es el
+       nombre: los que caben no necesitan dos. */
+    b.textContent = e.rotulo || e.nombre;
+    if (e.rotulo) b.title = e.nombre;
     if (!i) b.classList.add('aqui');
     barra.appendChild(b);
 
@@ -20976,14 +21041,43 @@ const ENCUENTROS = [
       h.hidden = h.dataset.enc !== t.dataset.enc;
       if (!h.hidden) despertar(h);
     });
+    centrarPestanita();
   });
-  caja.appendChild(barra);
+  /* LAS SOMBRAS DE LOS DOS FILOS, y se preguntan al pintar, no al escribirlas:
+     si hay más a la izquierda es que ya se corrió, y si hay más a la derecha
+     es que sobra tira. Los dos márgenes de un píxel son por el redondeo del
+     desplazamiento, que con el zoom del navegador no cae en enteros. */
+  const avisarMasEncuentros = () => {
+    const sobra = barra.scrollWidth - barra.clientWidth;
+    cajaBarra.classList.toggle('hay-izq', barra.scrollLeft > 1);
+    cajaBarra.classList.toggle('hay-der', sobra - barra.scrollLeft > 1);
+  };
+  barra.addEventListener('scroll', avisarMasEncuentros, { passive:true });
+  /* Y LA PESTAÑA ENCENDIDA SE TRAE A LA VISTA. Con la tira corrida, volver a
+     abrir Encuentros por la que se estaba leyendo enseñaba el principio de la
+     tira y la encendida fuera de pantalla: el panel decía que estás en una
+     historia y no se veía cuál. inline:'nearest' para que no la centre a la
+     fuerza cuando ya se ve —mover algo que está bien también es un tic—. */
+  const centrarPestanita = () => {
+    const viva = barra.querySelector('.aqui');
+    if (viva && viva.scrollIntoView)
+      viva.scrollIntoView({ block:'nearest', inline:'nearest' });
+    avisarMasEncuentros();
+  };
+  caja.appendChild(cajaBarra);
   caja.appendChild(hojas);
   /* Y LA PRIMERA SE ENCIENDE CUANDO SE ABRE LA SECCIÓN, no aquí: aquí todavía
      estamos armando el panel y el programa está arrancando. Se engancha al
      primer toque de la pestaña de Encuentros, que es el momento en que el
      relato deja de ser peso muerto y pasa a ser lo que se vino a ver. */
-  encenderHistoriaViva = () => despertar(hojas.querySelector('.enc-hoja:not([hidden])'));
+  encenderHistoriaViva = () => {
+    despertar(hojas.querySelector('.enc-hoja:not([hidden])'));
+    /* LAS MEDIDAS DE LA TIRA NO EXISTEN HASTA QUE EL PANEL SE VE: con
+       display:none, scrollWidth y clientWidth valen cero, o sea «no sobra
+       nada», y las sombras nacerían apagadas con la tira llena. Es la misma
+       trampa que ya costó una vez en la tira de filtros. */
+    centrarPestanita();
+  };
 })();
 
 /* El panel de Respaldo se arma con los botones que vivían en la barra de

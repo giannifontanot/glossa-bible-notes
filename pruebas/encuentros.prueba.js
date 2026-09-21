@@ -169,7 +169,7 @@ const IR_A = `async (sec) => {
        encendida.relleno + ' / ' + encendida.trazo + ' contra ' + encendida.letra);
 
   /* ---------------- la sección ---------------- */
-  titulo('Encuentros trae sus dos, y la historia de Zaqueo');
+  titulo('Encuentros trae sus cinco, y la historia de Zaqueo');
   vale('se llega a Encuentros desde la barra', await irA('encuentros'));
   const dentro = await p.evaluate(() => {
     const c = document.getElementById('encuentros');
@@ -178,8 +178,28 @@ const IR_A = `async (sec) => {
     return { puesto:getComputedStyle(c).display !== 'none',
              pestanitas:[...c.querySelectorAll('.pestanitas button')]
                           .map(b => ({ enc:b.dataset.enc, rotulo:b.textContent.trim(),
+                                       titulo:b.getAttribute('title'),
                                        aqui:b.classList.contains('aqui'),
                                        alto:Math.round(b.getBoundingClientRect().height) })),
+             /* LA TIRA EN UN SOLO RENGLÓN, se corra o no: es lo que se pidió
+                al entrar el quinto —«que sea infinito el número de tabs que
+                podamos tener en el mismo renglón»—. Se cuentan los TOPES de
+                las pestañas: si alguna se hubiera ido de renglón habría dos. */
+             renglonesDePestanitas:(() => {
+               const bs = [...c.querySelectorAll('.pestanitas button')];
+               return [...new Set(bs.map(b => Math.round(b.getBoundingClientRect().top)))].length;
+             })(),
+             tira:(() => {
+               const b = c.querySelector('.pestanitas');
+               const caja = c.querySelector('.enc-barra');
+               return { sobra:b.scrollWidth - b.clientWidth,
+                        hayDer:caja.classList.contains('hay-der'),
+                        hayIzq:caja.classList.contains('hay-izq'),
+                        /* la caja de fuera es la que avisa; la de dentro es la
+                           que se corre. Si la sombra viviera en la que se
+                           corre, se iría de viaje con las pestañas. */
+                        sombraFuera:!b.classList.contains('hay-der') };
+             })(),
              /* Una sola barra de SECCIÓN dentro del panel: si la de dentro se
                 llamara igual, aquí habría dos y la de ponerBarra borraría la
                 que no es. */
@@ -204,9 +224,33 @@ const IR_A = `async (sec) => {
   });
   di('lo que hay dentro', JSON.stringify(dentro));
   vale('el panel está puesto', dentro.puesto === true);
-  vale('con una pestaña por encuentro, en su orden',
-       dentro.pestanitas.map(x => x.enc).join(',') === 'zaqueo,samaritana',
+  /* EL ORDEN SE PIDIÓ ENTERO Y POR ESO SE ESCRIBE ENTERO: primero Zaqueo,
+     luego la samaritana, el agua, el centurión, y AL FINAL el de la espalda,
+     que es el único que no es un encuentro sino el día en que ya no lo hay. Un
+     orden pedido a mano no se puede comprobar «de alguna manera»: o es ése o
+     no es. */
+  vale('con una pestaña por encuentro, en el orden pedido',
+       dentro.pestanitas.map(x => x.enc).join(',') ===
+         'zaqueo,samaritana,agua,centurion,espalda',
        dentro.pestanitas.map(x => x.rotulo).join(' · '));
+  vale('  y el de la espalda es el último',
+       dentro.pestanitas[dentro.pestanitas.length - 1].enc === 'espalda',
+       dentro.pestanitas[dentro.pestanitas.length - 1].rotulo);
+  /* EL RÓTULO SE ACORTA Y EL NOMBRE NO SE PIERDE: la pestaña lleva lo corto y
+     el título del ratón lleva lo entero, que es lo que se pidió al entrar un
+     nombre de un renglón. Se mira la que más se acorta. */
+  vale('  los rótulos largos se acortan sin perder el nombre',
+       dentro.pestanitas.find(x => x.enc === 'espalda').rotulo === 'Nos dio la espalda' &&
+       dentro.pestanitas.find(x => x.enc === 'espalda').titulo ===
+         'El día que Cristo nos dio la espalda',
+       JSON.stringify(dentro.pestanitas.find(x => x.enc === 'espalda')));
+  /* Y LA SAMARITANA VA EN MINÚSCULA, corregido a mano por el dueño del repo:
+     no es un nombre propio, es de dónde era. Se comprueba el nombre entero,
+     que es el que se lee. */
+  vale('  y la samaritana va en minúscula',
+       dentro.pestanitas.find(x => x.enc === 'samaritana').titulo ===
+         'La mujer samaritana',
+       dentro.pestanitas.find(x => x.enc === 'samaritana').titulo);
   vale('  y la primera encendida',
        dentro.pestanitas[0] && dentro.pestanitas[0].aqui === true &&
        dentro.pestanitas[1] && dentro.pestanitas[1].aqui === false);
@@ -215,7 +259,28 @@ const IR_A = `async (sec) => {
        dentro.pestanitas.map(x => x.alto).join(' · '));
   vale('SOLO HAY UNA BARRA DE SECCIONES EN EL PANEL',
        dentro.barrasDeSeccion === 1, dentro.barrasDeSeccion);
-  vale('una hoja a la vista y la otra no',
+  /* LAS CINCO EN UN SOLO RENGLÓN, Y LA TIRA SE CORRE. Lo pedido fue que quepan
+     siempre, cuantas sean: una tira que se arrastra en vez de partirse en dos
+     renglones, que le comerían el alto al relato. */
+  vale('LAS PESTAÑAS VAN EN UN SOLO RENGLÓN',
+       dentro.renglonesDePestanitas === 1, dentro.renglonesDePestanitas + ' renglones');
+  /* La línea de validez: en un teléfono las cinco NO caben, y ahí es donde
+     esto significa algo. Si un día cupieran —pantalla ancha, o menos
+     encuentros—, la de abajo diría lo contrario y tendría razón. */
+  di('la tira', JSON.stringify(dentro.tira));
+  if (dentro.tira.sobra > 0){
+    vale('  y cuando no caben, la tira se corre y lo avisa',
+         dentro.tira.hayDer === true && dentro.tira.hayIzq === false,
+         JSON.stringify(dentro.tira));
+    vale('  con el aviso en la caja de fuera, que no se va de viaje',
+         dentro.tira.sombraFuera === true);
+  } else {
+    di('  (caben todas: no hay nada que avisar)', dentro.tira.sobra);
+    vale('  y si caben, no se avisa de nada',
+         dentro.tira.hayDer === false && dentro.tira.hayIzq === false,
+         JSON.stringify(dentro.tira));
+  }
+  vale('una hoja a la vista y las demás no',
        dentro.hojas.filter(h => h.alto > 0).length === 1 &&
        dentro.hojas.find(h => h.enc === 'zaqueo').alto > 0,
        JSON.stringify(dentro.hojas));
@@ -326,16 +391,34 @@ const IR_A = `async (sec) => {
                 mirando: cerrar un panel no es perder dónde ibas */
              aLaVista:[...c.querySelectorAll('.enc-hoja')]
                         .filter(h => h.getBoundingClientRect().height > 0)
-                        .map(h => h.dataset.enc) };
+                        .map(h => h.dataset.enc),
+             /* Y LA PESTAÑA ENCENDIDA, DENTRO DE LA TIRA. Con la tira corrida,
+                volver por la que se estaba leyendo enseñaba el principio y la
+                encendida fuera de pantalla: el panel decía que estás en una
+                historia y no se veía cuál. */
+             vivaALaVista:(() => {
+               const b = c.querySelector('.pestanitas');
+               const v = b.querySelector('.aqui');
+               if (!v) return null;
+               const rb = b.getBoundingClientRect(), rv = v.getBoundingClientRect();
+               return { rotulo:v.textContent.trim(),
+                        dentro: rv.left >= rb.left - 1 && rv.right <= rb.right + 1,
+                        corrida:Math.round(b.scrollLeft) };
+             })() };
   });
   di('al volver', devuelta);
-  vale('LAS DOS PESTAÑAS SIGUEN AHÍ',
-       devuelta.pestanitas.join(',') === 'zaqueo,samaritana', devuelta.pestanitas.join(' · '));
-  vale('  y siguen siendo dos hojas', devuelta.hojas === 2, devuelta.hojas);
+  vale('LAS PESTAÑAS SIGUEN AHÍ, TODAS Y EN SU ORDEN',
+       devuelta.pestanitas.join(',') === 'zaqueo,samaritana,agua,centurion,espalda',
+       devuelta.pestanitas.join(' · '));
+  vale('  y sigue habiendo una hoja por encuentro',
+       devuelta.hojas === devuelta.pestanitas.length, devuelta.hojas);
   vale('  y sigue habiendo una sola barra de secciones',
        devuelta.barrasDeSeccion === 1, devuelta.barrasDeSeccion);
   vale('  y se quedó donde se estaba leyendo',
        devuelta.aLaVista.join(',') === 'samaritana', devuelta.aLaVista.join(' · '));
+  vale('  Y LA PESTAÑA ENCENDIDA SE VE, con la tira corrida o sin ella',
+       !!devuelta.vivaALaVista && devuelta.vivaALaVista.dentro === true,
+       JSON.stringify(devuelta.vivaALaVista));
 
   /* ---------------- el relato se viste con la ropa del libro ---------------- */
   titulo('el relato toma la letra, la tinta y el papel del libro');
