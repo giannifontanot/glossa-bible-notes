@@ -34,6 +34,15 @@
        aspa no se lee, se acierta.
      ============================================================ */
   :root{ --escala-ui:1;
+         /* LO QUE MIDE UNA ETIQUETA, EN UN SOLO SITIO. Las etiquetas se ven en
+            dos: dentro de la glosa —donde se consultan— y como pastillas en la
+            tira de VER —donde se tocan para filtrar—. Se pidió que midan lo
+            mismo, y «lo mismo» aquí no es un número: la letra de las glosas la
+            elige el lector en GLOSAS, así que las dos tienen que salir de ella.
+            La proporción va en la raíz para que las dos reglas lean la misma:
+            escrito .78 en dos sitios, el día que alguien mueva uno se quedan
+            de distinto tamaño y nadie se entera hasta verlo. */
+         --tag-fs:.78;
          --desk:#362c20; --desk-2:#4a3c29; --ui:'Segoe UI', system-ui, -apple-system, sans-serif;
          /* EL CONTRASTE VIVE EN LA RAÍZ y no en la hoja, porque lo leen tres
             elementos que no son parientes: la hoja viva, el lienzo del
@@ -3541,9 +3550,7 @@
      filtro, que es justo la confusión que lo tenía en la otra fila. Lleva dos
      ids en el selector para ganarle al `.rollo .ajuste select` del bloque del
      teléfono, que le pone 40 px de alto. */
-  #filtros #selDia{ flex:0 0 auto; max-width:60%; min-height:28px;
-                    padding:2px 8px; border-radius:999px;
-                    font-size:calc(11.5px * var(--escala-ui, 1));
+  #filtros #selDia{ flex:0 0 auto; max-width:60%; border-radius:999px;
                     border:1px solid rgba(140,116,68,.42);
                     background:rgba(255,253,247,.75); color:#4a3a1c; }
   /* Con un día elegido se enciende como un chip marcado: el filtro puesto se
@@ -3563,8 +3570,18 @@
      El selector lleva el id a propósito: pesa (1,1,0) y le gana al
      `.rollo .chip` del bloque del teléfono —(0,2,0)— esté escrito donde esté,
      que es la misma lección que costó el botón de cerrar. */
-  #filtros .chip{ font-size:calc(11.5px * var(--escala-ui, 1));
-                  min-height:28px; padding:3px 9px; }
+  /* Y LA LETRA SALE DE LA GLOSA, NO DEL CROMO. Estuvo en 11,5 px por la
+     escala de la interfaz, que es la que crece con el tamaño del LIBRO: la
+     pastilla de «estudio» en la tira y el «#estudio» escrito en la glosa eran
+     la misma palabra a dos tamaños, y cambiar la letra de las glosas movía uno
+     y dejaba el otro quieto. Ahora las dos salen de --fs-glosa-ui con la misma
+     proporción, así que el ajuste de GLOSAS las mueve a la vez.
+     El relleno pasa a em por lo mismo: en píxeles, una letra grande dentro de
+     un relleno fijo se pega a los bordes. Y el suelo de 28 px se queda como
+     suelo, para que con la letra chica la pastilla siga siendo tocable. */
+  #filtros .chip, #filtros #selDia{
+                  font-size:calc(var(--fs-glosa-ui, 14px) * var(--tag-fs, .78));
+                  min-height:28px; padding:.22em .66em; }
   #indice .ix-item.elegida{
     border-width:2.6px !important; border-color:#5a3d0e !important;
     box-shadow:0 0 0 3px rgba(90,61,14,.55), 0 2px 0 #5a3d0e; }
@@ -5152,7 +5169,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 08:06';
+window.GLOSS_BUILD = '21-SEP-26 08:10';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5823,7 +5840,8 @@ const PAGE_CSS = `
    Sin pastilla: las pastillas de este programa son los chips del filtro, o sea
    «esto se toca». Un rótulo que se consulta no debe vestirse de control. */
 .gl-tag{ display:block; margin-top:3px; text-align:right; padding-right:2px;
-         font-size:.78em; line-height:1.25; font-weight:500; letter-spacing:.02em; }
+         font-size:calc(1em * var(--tag-fs, .78));
+         line-height:1.25; font-weight:500; letter-spacing:.02em; }
 .gl-tag .gl-t{ padding-left:7px; }
 /* El contador de citas del índice era también .gl-tag y no es una etiqueta: con
    la etiqueta convertida en bloque a la derecha se habría ido de renglón. */
@@ -19428,6 +19446,16 @@ function escalarInterfaz(){
      esté puesto, y ponerlo en la raíz se las llevaría por delante sin decir
      nada. */
   document.documentElement.style.setProperty('--fs-libro', fontSize + 'px');
+  /* Y LOS DE LA GLOSA, por la misma razón y para el mismo tipo de cliente: lo
+     de fuera de la hoja que tiene que medir lo que mide una glosa. --fs-glosa
+     lo llevan la hoja, el fantasma y el índice cada uno en su elemento —son
+     los que PINTAN glosas— y la tira de filtros no cuelga de ninguno de los
+     tres: la raíz es el único ancestro que comparten.
+     Lleva otro nombre a propósito. Poniendo --fs-glosa en la raíz, cualquier
+     `var(--fs-glosa, algo)` de la hoja dejaría de caer en su respaldo y
+     empezaría a heredar éste; hoy darían el mismo número, pero eso es la
+     clase de atajo que se paga el día que uno de los dos cambia. */
+  document.documentElement.style.setProperty('--fs-glosa-ui', fontSizeGlosa + 'px');
 }
 function ponerTamano(n){
   const v = Math.max(FS_MIN, Math.min(FS_MAX, Math.round(n)));
@@ -19438,6 +19466,12 @@ function ponerTamanoGlosa(n){
   const v = Math.max(FS_MIN, Math.min(FS_MAX, Math.round(n)));
   if (v === fontSizeGlosa){ reflejarTamano(); return; }
   fontSizeGlosa = v;
+  /* La misma llamada que hace ponerTamano, y por lo mismo: ahí dentro se
+     escriben los píxeles que necesita el cromo que mide contra el libro —o
+     contra la glosa, desde que las pastillas de la tira miden lo que miden las
+     etiquetas de dentro—. Sin esto, cambiar la letra de las glosas movía las
+     de la hoja y dejaba las de la tira quietas. */
+  escalarInterfaz();
   if (placement !== 'margin') paginasSucias = true;
   renderPage();
 }

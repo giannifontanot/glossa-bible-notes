@@ -624,6 +624,70 @@ const FUERA = `async () => {
        tira.tope + ' · ' + tira.desborde);
 
   /* ================================================================
+     LAS PASTILLAS MIDEN LO QUE MIDEN LAS ETIQUETAS DE DENTRO DE LA GLOSA.
+
+     Es la misma palabra en dos sitios: «#estudio» escrito al pie de la nota,
+     donde se consulta, y «estudio» en la tira, donde se toca para filtrar. A
+     dos tamaños distintos se leen como dos cosas, y la letra de las glosas la
+     elige el lector, así que no es cosa de acertar un número una vez: la
+     pastilla tiene que seguir a la glosa cada vez que la muevan.
+
+     Estuvo atada a la escala del cromo, que crece con el tamaño del LIBRO, o
+     sea que cambiar la letra de las glosas movía la etiqueta de la hoja y
+     dejaba la pastilla quieta.
+
+     Se mide a DOS tamaños y se comprueba también que el número cambió: si la
+     letra no se moviera —un control que no engancha, un cambio que no llega a
+     la tira— las dos medidas seguirían siendo iguales entre sí y la prueba
+     pasaría en verde sin haber comprobado nada. Y se mueve por el control de
+     GLOSAS, que es por donde lo mueve el lector.
+     ================================================================ */
+  titulo('la pastilla mide lo que mide la etiqueta de la glosa');
+  const letras = await p.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const mide = () => {
+      const enLaHoja = document.querySelector('#pgMargin .gl .gl-tag, #pgBody .gl .gl-tag');
+      const chip = document.querySelector('#filtros .chip');
+      return { glosa: enLaHoja ? +parseFloat(getComputedStyle(enLaHoja).fontSize).toFixed(2) : null,
+               pastilla: chip ? +parseFloat(getComputedStyle(chip).fontSize).toFixed(2) : null,
+               alto: chip ? Math.round(chip.getBoundingClientRect().height) : null };
+    };
+    const sel = document.getElementById('fsGlosaAhora');
+    const antes = sel.value;
+    const tamanos = [...sel.options].map(o => +o.value);
+    const poner = async n => {
+      sel.value = String(n);
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
+      await z(2500);
+    };
+    await poner(Math.max(...tamanos));
+    const grande = mide();
+    await poner(Math.min(...tamanos));
+    const chica = mide();
+    /* Se deja como estaba: los bloques de abajo cuentan glosas y no tienen
+       por qué heredar la letra al mínimo. */
+    await poner(+antes);
+    return { grande, chica, tope: Math.max(...tamanos), suelo: Math.min(...tamanos),
+             vuelta: mide() };
+  });
+  di('las dos letras', JSON.stringify(letras));
+  vale('(la prueba es válida) se ve una etiqueta en la hoja y una pastilla',
+       letras.grande.glosa !== null && letras.grande.pastilla !== null, letras.grande);
+  vale('(la prueba es válida) el tamaño de verdad cambió',
+       letras.grande.glosa !== letras.chica.glosa,
+       letras.chica.glosa + ' → ' + letras.grande.glosa + ' px');
+  vale('CON LA LETRA AL TOPE, LA PASTILLA MIDE LO MISMO QUE LA ETIQUETA',
+       Math.abs(letras.grande.pastilla - letras.grande.glosa) <= 0.1,
+       letras.grande.pastilla + ' contra ' + letras.grande.glosa);
+  vale('  y con la letra al mínimo, también',
+       Math.abs(letras.chica.pastilla - letras.chica.glosa) <= 0.1,
+       letras.chica.pastilla + ' contra ' + letras.chica.glosa);
+  /* Y LA PASTILLA NO SE ENCOGE POR DEBAJO DE UN BLANCO DE DEDO. La letra baja
+     hasta 7,8 px si el lector quiere; el botón que la lleva, no. */
+  vale('  sin perder el blanco de toque con la letra chica',
+       letras.chica.alto >= 26, letras.chica.alto + ' px de alto');
+
+  /* ================================================================
      VER Y CAMBIAR NO PUEDEN ESTAR LOS DOS PUESTOS.
 
      Son dos maneras de usar la misma lista y se estorban: con las dos
