@@ -96,7 +96,15 @@
   h1{ font-size:calc(.9rem * var(--escala-ui, 1)); font-weight:600; margin:0; letter-spacing:.03em; }
   /* Los controles de Formato/Glosas nacen en el body y el guion los muda a
      su rollo. Sin esto se ve un instante el panel de Formato al abrir. */
-  body > #ctrlConfig, body > #ctrlEtiquetas{ display:none !important; }
+  /* Y EL CRÉDITO SE APARCA AQUÍ MIENTRAS NO TENGA CASA. Vivía al final del
+     panel de la letra y el dueño del repo pidió sacarlo de ahí; lo que no
+     puede es quedarse suelto al pie del documento, que es donde cae un hijo
+     directo del body. El nodo se queda —con su texto puesto por el programa,
+     ver $('cred')— para que devolverlo a la pantalla sea una línea.
+     OJO A LO QUE ESTO SIGNIFICA MIENTRAS TANTO: la Versión Biblia Libre es CC
+     BY-SA y la atribución es obligatoria, así que el programa está ahora mismo
+     sin enseñarla en ninguna parte. Es un estado de paso, no el sitio nuevo. */
+  body > #ctrlConfig, body > #ctrlEtiquetas, body > #cred{ display:none !important; }
   /* PORTADA. Cubre la mesa hasta que la primera hoja está lista. */
   #portada{ position:fixed; inset:0; z-index:200; display:flex;
             flex-direction:column; align-items:center; justify-content:center;
@@ -3053,30 +3061,58 @@
      Se ve de un vistazo que algo pasa, y se sigue distinguiendo de lo que ya
      pasó.
 
-     El latido va desparejo a propósito —sube en un quinto del ciclo, baja en
-     dos y descansa el resto— porque un pulso simétrico se lee como máquina.
+     El latido va desparejo a propósito —sube deprisa, baja más despacio—
+     porque un pulso simétrico se lee como máquina.
      La señal vive en el botón que tocaste, no encima de la pantalla, que es lo
      que haría un aro girando y sería demasiado alto para esto.
      Y si el hilo se traba repaginando, se queda congelado ENCENDIDO, que es
-     justo lo que hay que decir en ese momento. */
+     justo lo que hay que decir en ese momento.
+
+     Y AHORA DESTELLA, QUE ES LO QUE SE PIDIÓ. La primera versión latía entre
+     el 30% y el 62% de ese marrón: era un cambio de tinta, no un destello, y
+     el dueño del repo lo dijo con estas palabras —que se vea mucho más obvio
+     que la aplicación está trabajando y que sólo hay que esperar—. Mirando los
+     números se entiende: entre las dos puntas había 32 centésimas de opacidad
+     sobre un papel claro, o sea una diferencia que hay que estar mirando para
+     ver. Ahora va del 12% al 96% y lleva halo: el botón se apaga casi del todo
+     y se enciende casi macizo, once veces en diez segundos.
+
+     LOS TRES NÚMEROS QUE HACEN EL DESTELLO, para quien venga a ajustarlo:
+     · El RECORRIDO (12 → 96) es lo que se ve de lejos. Con menos de setenta
+       centésimas entre las dos puntas esto vuelve a ser un cambio de tinta.
+     · El CICLO (.9 s) es lo que lo hace legible como latido y no como
+       parpadeo de aviso roto. Por debajo de medio segundo marea y encima de
+       uno y medio parece que se colgó.
+     · Y el HALO (0 → 4 px más el resplandor) es lo que lo saca del botón:
+       sin él, un botón que ya es dorado cuando está cumplido se confunde con
+       uno trabajando en la punta alta del ciclo.
+     No sube hasta el macizo del 100% a propósito: ése es el color de «ya
+     está», y llegar ahí once veces por ciclo sería decir «terminé» once veces
+     mientras no ha terminado. */
   .rollo .btn.obrando, .rollo .chip.obrando{
-    animation:obrandoBorde 1.05s cubic-bezier(.35,0,.5,1) infinite; }
+    animation:obrandoBorde .9s cubic-bezier(.4,0,.6,1) infinite; }
   @keyframes obrandoBorde{
-    0%   { background:rgba(184,137,43,.30); border-color:rgba(150,112,31,.5);
+    0%   { background:rgba(184,137,43,.12); border-color:rgba(150,112,31,.45);
            box-shadow:0 0 0 0 rgba(184,137,43,0); }
-    20%  { background:rgba(184,137,43,.62); border-color:#96701f;
-           box-shadow:0 0 0 1.5px rgba(184,137,43,.58), 0 0 10px 0 rgba(184,137,43,.42); }
-    58%  { background:rgba(184,137,43,.34); border-color:rgba(150,112,31,.55);
-           box-shadow:0 0 0 1px rgba(184,137,43,.15), 0 0 4px 0 rgba(184,137,43,.12); }
-    100% { background:rgba(184,137,43,.30); border-color:rgba(150,112,31,.5);
+    38%  { background:rgba(184,137,43,.96); border-color:#7d5c16;
+           box-shadow:0 0 0 4px rgba(184,137,43,.55),
+                      0 0 18px 3px rgba(201,162,39,.75); }
+    62%  { background:rgba(184,137,43,.72); border-color:#96701f;
+           box-shadow:0 0 0 2px rgba(184,137,43,.35),
+                      0 0 10px 1px rgba(201,162,39,.35); }
+    100% { background:rgba(184,137,43,.12); border-color:rgba(150,112,31,.45);
            box-shadow:0 0 0 0 rgba(184,137,43,0); }
   }
   /* Quieto se queda a media tinta, que es donde más se distingue de las dos
-     puntas: ni el papel de "sin tocar" ni el macizo de "ya está". */
+     puntas: ni el papel de "sin tocar" ni el macizo de "ya está". Con el
+     destello nuevo esto importa más, no menos: quien pidió menos movimiento
+     no puede quedarse sin el aviso, así que se le sube el halo —que no se
+     mueve— para compensar el latido que no va a ver. */
   @media (prefers-reduced-motion: reduce){
     .rollo .btn.obrando, .rollo .chip.obrando{
-      animation:none; background:rgba(184,137,43,.5); border-color:#96701f;
-      box-shadow:0 0 0 1.5px rgba(184,137,43,.55); }
+      animation:none; background:rgba(184,137,43,.58); border-color:#96701f;
+      box-shadow:0 0 0 3px rgba(184,137,43,.45),
+                 0 0 12px 2px rgba(201,162,39,.4); }
   }
   .rollo select, .rollo input{ font-size:calc(.63rem * var(--escala-ui, 1)); padding:3px 5px; color:#3c2f16;
                background:rgba(255,253,247,.85); border-color:rgba(140,116,68,.42); }
@@ -3142,7 +3178,7 @@
      manera de evitarlo: un riel corto no se atina con el pulgar, y son justo
      los que se arrastran mirando la hoja. Se les deja un riel de 150 px, que
      es cómodo sin llegar al borde. */
-  #ajustes.cristal #ctrlConfig .ajuste{
+  #ajustes.cristal #ctrlConfig .ajuste:not(.riel-fila){
     justify-self:start; width:max-content; max-width:100%;
     padding:3px 9px 4px; border-radius:9px;
     background:rgba(255,253,247,.9);
@@ -3157,10 +3193,47 @@
   #ajustes.cristal #ctrlConfig .ajuste.vidrio-fila{
     justify-self:stretch; width:100%;
     background:transparent; box-shadow:none; padding:0; }
-  #ajustes.cristal #ctrlConfig .ajuste > .ctrl{ flex:0 0 auto; }
-  #ajustes.cristal #ctrlConfig .ajuste > .lbl{ flex:0 0 auto; }
-  #ajustes.cristal .rollo input[type=range],
-  #ajustes.cristal input[type=range]{ flex:0 0 150px; }
+  /* Y LAS TRES DEL RIEL TAMPOCO ENCOGEN POR DENTRO. Estas dos líneas ajustan
+     cada pieza a sus letras, que es lo que deja las tablillas estrechas; en
+     una fila de riel hacen lo de siempre por otro camino —el riel se queda en
+     su medida de partida, 140— y el largo vuelve a cambiar al tocar
+     «transparente». Con la fila entera fuera de las tres reglas, el riel mide
+     lo que mide en opaco, que es lo que se pidió. */
+  #ajustes.cristal #ctrlConfig .ajuste:not(.riel-fila) > .ctrl{ flex:0 0 auto; }
+  #ajustes.cristal #ctrlConfig .ajuste:not(.riel-fila) > .lbl{ flex:0 0 auto; }
+  /* LOS TRES RIELES NO CAMBIAN DE LARGO AL VOLVERSE TRANSPARENTE.
+
+     Aquí vivía un `flex:0 0 150px` para el modo cristal y hacía justo lo
+     contrario: el riel pasaba de 242 px a 150 en un teléfono y de unos 505 a
+     150 en pantalla ancha —medido— o sea que tocar «transparente» te dejaba el
+     mismo mando con la mitad del recorrido. Y el recorrido de un riel no es
+     decoración: cuanto más largo, más fino el ajuste con el mismo gesto, que
+     es la razón por la que estas tres filas son `ancho` desde que existen. El
+     dueño del repo pidió que no cambien.
+
+     Se quedan del ancho del panel, que es lo que les devuelve el largo: en
+     cristal las demás filas encogen a lo que miden sus letras —de eso va el
+     modo, dejar ver la hoja entre tablilla y tablilla— y estas tres no pueden,
+     porque encogerlas ES encoger el riel. Su tablilla se queda, y ancha: un
+     riel sin fondo sobre el texto del libro se lee tan mal como un rótulo sin
+     él, y estas tres filas tienen además un número que leer al final.
+
+     El coste está medido y es el que se acepta: tres filas de las diez del
+     panel tapan la hoja de lado a lado en modo transparente. Las otras siete
+     siguen estrechas. */
+  #ajustes.cristal #ctrlConfig .ajuste.riel-fila{
+            justify-self:stretch; width:100%;
+            /* SIN RELLENO A LOS LADOS, y esos dieciocho píxeles son justo el
+               encargo. La tablilla de las demás filas mete 9 px por lado, y en
+               una fila de riel ese relleno sale del riel: medido, 242 en opaco
+               contra 224 en cristal, o sea que «no cambia de largo» se quedaba
+               en «cambia menos». Sin relleno lateral, la caja de contenido de
+               la fila es la misma en los dos modos y el riel mide lo mismo al
+               píxel. El aire de arriba y abajo se queda, que ése no le quita
+               recorrido a nadie. */
+            padding:3px 0 4px; border-radius:9px;
+            background:rgba(255,253,247,.9);
+            box-shadow:0 1px 3px rgba(0,0,0,.26); }
   /* La raya que separaba los anchos cruzaría la hoja de lado a lado, y ya no
      separa nada: con las tablillas sueltas, el hueco entre ellas se ve solo. */
   #ajustes.cristal #ctrlConfig .ajuste.ancho{
@@ -3168,7 +3241,12 @@
   /* Y EL CRÉDITO, que también es letra suelta sobre la hoja. La atribución de
      CC BY-SA tiene que poder leerse, y transparente no se leía. Se le deja su
      tablilla, pero con inline-block para que mida sus renglones y no el panel:
-     un <p> a secas ocupa el ancho entero aunque el texto acabe a la mitad. */
+     un <p> a secas ocupa el ancho entero aunque el texto acabe a la mitad.
+     HOY ESTA REGLA NO PINTA NADA: el crédito salió de este panel —se pidió
+     sacarlo de ahí hasta decidirle sitio, ver la regla del body— así que no
+     hay ningún .cred dentro de #ajustes. Se queda escrita porque el día que
+     vuelva a un panel vuelve a hacer falta, y porque su razón —lo que se
+     intentó y por qué no servía— es la misma dondequiera que acabe. */
   #ajustes.cristal .cred{
     display:inline-block; padding:3px 9px 4px; border-radius:9px;
     background:rgba(255,253,247,.9);
@@ -3776,7 +3854,18 @@
      que lo hace servir: un recuadro que solo aparece cuando ya diste al
      interruptor enseña lo que ya estás viendo. El que hace falta es el de
      antes. */
+  /* CENTRADO Y NO AL FILO. Pedido por el dueño del repo, y va con la mayúscula
+     que estrena el rótulo: encerrado en su anillo rojo y en medio del renglón,
+     el interruptor deja de leerse como una etiqueta arrinconada a la
+     izquierda y se lee como lo que es —el aviso de que esta pantalla puede
+     enseñar dónde se toca—. Es lo mismo que ya se hizo con las dos pestañas
+     del testamento, que están justo debajo y por la misma razón.
+     margin-inline:auto y no justify-content en el padre: el padre lleva
+     también las pestañas, y centrarlo entero movería dos cosas para colocar
+     una. Un margen automático se come el hueco de los dos lados y sólo afecta
+     a este renglón. */
   .canto-opcion{ display:flex; align-items:center; gap:7px; cursor:pointer;
+                 margin-inline:auto;
                  min-height:32px; padding:6px 10px;
                  border-radius:6px;
                  box-shadow:inset 0 0 0 2px var(--rojo-galon, #9b2a2a),
@@ -4811,7 +4900,7 @@
      pulgar: cuanto más largo el riel, más fino el ajuste con el mismo gesto.
      Y va ARRIBA de la versión, que es lo último del panel por ser lo que
      menos se toca. -->
-<div class="ajuste ancho"><span class="lbl">sepia</span><span class="ctrl">
+<div class="ajuste ancho riel-fila"><span class="lbl">sepia</span><span class="ctrl">
   <input type="range" id="sepia" min="0" max="100" step="1" value="100"
          title="Entinta el papel: de blanco de imprenta a papel viejo" />
   <span class="medida" id="sepiaAhora">100</span>
@@ -4825,7 +4914,7 @@
      El rótulo es un <span>, no un <label>, igual que en todo el panel: por
      eso el riel lleva su propio aria-label, o un lector de pantalla anunciaría
      un deslizador sin nombre. -->
-<div class="ajuste ancho"><span class="lbl">contraste</span><span class="ctrl">
+<div class="ajuste ancho riel-fila"><span class="lbl">contraste</span><span class="ctrl">
   <input type="range" id="contraste" min="50" max="200" step="1" value="125"
          aria-label="contraste"
          title="Despega la letra del papel: de tenue a marcada, sin cambiar el color" />
@@ -4838,7 +4927,7 @@
      Arranca en 100, que aquí sí quiere decir "no toques nada": a diferencia
      del contraste, este riel no compensa nada del papel, sólo sube o baja lo
      que ya hay. Mismo aria-label por lo mismo: el rótulo es un <span>. -->
-<div class="ajuste ancho"><span class="lbl">brillo</span><span class="ctrl">
+<div class="ajuste ancho riel-fila"><span class="lbl">brillo</span><span class="ctrl">
   <input type="range" id="brillo" min="50" max="150" step="1" value="100"
          aria-label="brillo"
          title="Sube o baja la luz de la hoja, sin cambiar el color ni la letra" />
@@ -5215,7 +5304,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 11:26';
+window.GLOSS_BUILD = '21-SEP-26 11:36';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -14640,14 +14729,19 @@ function pintarCanto(){
        disponibles» no vale por dos motivos: las flechas NO son botones —está
        escrito en su propio comentario, son un letrero— y «disponibles» hace
        pensar que hay otros que no lo están, que es otra idea distinta.
-     · ESTA CASA: en minúsculas, y con el verbo de la casa. Aquí se TOCA:
-       «toca dos veces», «un toque». No se «pulsa» ni se «hace clic».
+     · ESTA CASA: con el verbo de la casa. Aquí se TOCA: «toca dos veces», «un
+       toque». No se «pulsa» ni se «hace clic».
+       Estuvo todo en minúsculas —es como habla el resto del cromo— y el dueño
+       del repo pidió la primera en mayúscula. Tiene su lógica ahora que el
+       rótulo va centrado y con su anillo rojo alrededor: dejó de ser una
+       etiqueta al margen de una fila y pasa a leerse como una frase, y una
+       frase empieza como empiezan las frases.
      · EL LECTOR: lo que quiere saber es dónde puede tocar. Eso es lo que dice
        el rótulo, con esas palabras y sin ninguna más. */
   $('cantoCab').innerHTML =
     '<label class="canto-opcion"><input type="checkbox" id="chkFlechas"' +
     (verFlechas ? ' checked' : '') + ' />' +
-    '<span>señalar dónde se puede tocar</span></label>' +
+    '<span>Señalar dónde se puede tocar</span></label>' +
     cantoPestanasHTML();
   const celdas = libros => libros.map(b => {
       const vivo = hayLibro(b.id), aqui = b.id === cantoMarcado();
@@ -20253,11 +20347,13 @@ etiquetas.appendChild($('ctrlEtiquetas'));
 etiquetas.appendChild($('indice'));
 etiquetas.appendChild($('barraGrupo'));
 
-/* El crédito de licencia se va al panel de Formato, pegado a la versión que
-   nombra. No es adorno legal: la Versión Biblia Libre es CC BY-SA y exige
-   atribución, así que tiene que estar a la vista en alguna parte. Al lado del
-   selector es donde de verdad significa algo. */
-ajustes.appendChild($('cred'));
+/* AQUÍ SE MUDABA EL CRÉDITO DE LICENCIA AL PANEL DE LA LETRA, y se pidió
+   sacarlo: «lo incluiremos en otro sitio después». Así que el nodo se queda en
+   el documento, escondido por su regla del body, con su texto al día y a una
+   línea de volver a colgarse donde se decida.
+   NO ES ADORNO LEGAL: la Versión Biblia Libre es CC BY-SA y exige atribución.
+   Mientras esa línea no vuelva, el programa no la enseña en ninguna parte, y
+   eso hay que cerrarlo. Queda dicho aquí y en la regla del body. */
 
 /* El panel de Respaldo se arma con los botones que vivían en la barra de
    abajo: exportar e importar, que son las dos cosas que le pasan al archivo
