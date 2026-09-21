@@ -4991,13 +4991,21 @@
      de la hoja y de la lista— así que vive donde viven los filtros y se
      enciende y se apaga con ellos. Va el primero de la tira, delante de las
      etiquetas, porque «qué día» es la pregunta más gruesa de las dos. -->
+<!-- LOS DOS RÓTULOS DICEN LO QUE HACEN, y antes no. «ver» y «cambiar» son dos
+     verbos que en una pantalla de glosas valen para casi todo: ver ¿qué?,
+     cambiar ¿el qué? Y los dos se excluyen —encender uno apaga el otro—, así
+     que el lector necesita entender en un vistazo entre qué dos cosas está
+     eligiendo. FILTRAR enseña la tira y esconde glosas; ACTUALIZAR elige
+     varias y les cambia las etiquetas. Pedido así por el dueño del repo.
+     Los ids se quedan como están: renombrarlos tocaría el guion, las tres
+     suites que los buscan y nada de eso se ve desde la pantalla. -->
 <div class="ajuste fila-etiq">
   <button type="button" class="btn" id="btnVerEtiquetas"
           aria-pressed="false"
-          title="Mostrar u ocultar las etiquetas">ver</button>
+          title="Filtrar las glosas por etiqueta o por día">filtrar</button>
   <button type="button" class="btn" id="btnElegirGlosas"
           aria-pressed="false"
-          title="Elegir varias glosas para cambiarles las etiquetas">cambiar</button>
+          title="Elegir varias glosas para actualizarles las etiquetas">actualizar</button>
 </div>
 
 <!-- SIN RÓTULO Y PEGADA AL FILO IZQUIERDO. Llevaba delante un «ver» en la
@@ -5304,7 +5312,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 11:36';
+window.GLOSS_BUILD = '21-SEP-26 11:38';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11100,12 +11108,13 @@ function verEtiquetas(on){
   const b = $('btnVerEtiquetas');
   b.classList.toggle('active', on);
   b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  /* VER Y CAMBIAR NO PUEDEN ESTAR LOS DOS PUESTOS. Son dos maneras de usar la
-     misma lista y se estorban: con las dos encendidas, la mitad de arriba del
-     panel pregunta por cuáles quieres VER y la de abajo por cuáles quieres
-     TOCAR, con los mismos chips a la vista para dos cosas distintas. Apagadas
-     las dos sí se puede estar —es el sitio de fábrica, el índice a solas— así
-     que no son un interruptor de dos posiciones: son dos que se excluyen.
+  /* FILTRAR Y ACTUALIZAR NO PUEDEN ESTAR LOS DOS PUESTOS. Son dos maneras de
+     usar la misma lista y se estorban: con las dos encendidas, la mitad de
+     arriba del panel pregunta por cuáles quieres FILTRAR y la de abajo por
+     cuáles quieres TOCAR, con los mismos chips a la vista para dos cosas
+     distintas. Apagadas las dos sí se puede estar —es el sitio de fábrica, el
+     índice a solas— así que no son un interruptor de dos posiciones: son dos
+     que se excluyen.
      Manda el gesto de ahora, como en destaparLaNueva: el que acabas de tocar
      se enciende y el otro se va. */
   if (on && eligiendoGlosas) elegirGlosas(false);
@@ -11188,7 +11197,7 @@ function hayFiltroPuesto(){
    el mando no desaparezcan. El mando es el propio botón de VER —él la vuelve
    a enseñar— así que el aviso se le pone encima: un punto dorado y un rótulo
    hablado que dice que hay filtros puestos. El botón está a la vista también
-   en modo CAMBIAR, que es el otro camino por el que la tira se apaga. */
+   en modo ACTUALIZAR, que es el otro camino por el que la tira se apaga. */
 function marcarFiltroEscondido(){
   const b = $('btnVerEtiquetas');
   if (!b) return;
@@ -11196,10 +11205,10 @@ function marcarFiltroEscondido(){
                     $('ctrlEtiquetas').classList.contains('sin-chips');
   b.classList.toggle('filtrando', escondido);
   b.title = escondido ? 'Hay filtros puestos y no se ven: tócalo para enseñarlos'
-                      : 'Mostrar u ocultar las etiquetas';
+                      : 'Filtrar las glosas por etiqueta o por día';
   b.setAttribute('aria-label', escondido
-    ? 'Ver las etiquetas. Hay filtros puestos que no se están viendo'
-    : 'Mostrar u ocultar las etiquetas');
+    ? 'Filtrar las glosas. Hay filtros puestos que no se están viendo'
+    : 'Filtrar las glosas por etiqueta o por día');
 }
 $('btnVerEtiquetas').onclick = () => {
   verEtiquetas($('ctrlEtiquetas').classList.contains('sin-chips'));

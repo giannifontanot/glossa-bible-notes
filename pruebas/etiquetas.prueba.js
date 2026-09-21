@@ -502,7 +502,7 @@ const FUERA = `async () => {
      · NACE APAGADA. Salía encendida, y encendida de salida ocupa lo que
        ocupen las etiquetas que hayas usado alguna vez, delante del índice de
        glosas, que es a lo que se entra aquí.
-     · VA AL FILO IZQUIERDO. Llevaba delante un rótulo «ver» en la columna fija
+     · VA AL FILO IZQUIERDO. Llevaba delante un rótulo en la columna fija
        de los rótulos —96 px en teléfono— que empujaba la primera pastilla casi
        al centro y repetía la palabra del botón que la enciende.
      · Y LAS PASTILLAS ADELGAZAN. Heredaban el suelo de toque de los paneles,
@@ -579,6 +579,14 @@ const FUERA = `async () => {
                 dentro del panel que se llama GLOSAS, o sea nada que distinga
                 esa fila de las demás, y cobraba por ello una columna fija. */
              rotuloFila: !!document.querySelector('.fila-etiq .lbl'),
+             /* LOS DOS RÓTULOS, que cambiaron de palabra. Eran «ver» y
+                «cambiar» —dos verbos que en una pantalla de glosas valen para
+                casi todo— y como los dos botones se excluyen, el lector tiene
+                que entender en un vistazo entre qué dos cosas elige. Se miran
+                las letras pintadas, que es lo único que el lector lee: los ids
+                siguen llamándose como siempre a propósito. */
+             rotulos: [bot.textContent.trim(),
+                       document.getElementById('btnElegirGlosas').textContent.trim()],
              dia: dia ? { enLaTira: dia.parentElement === f,
                           elPrimero: f.firstElementChild === dia,
                           alto: Math.round(rd.height),
@@ -593,13 +601,16 @@ const FUERA = `async () => {
        tira.apagada.clase === true && tira.apagada.fila === 'none' &&
        tira.apagada.pulsado === 'false' && tira.apagada.encendido === false,
        tira.apagada);
-  vale('y el botón «ver» las enciende',
+  vale('y el botón «filtrar» las enciende',
        tira.encendida.fila !== 'none' && tira.encendida.pulsado === 'true' &&
        tira.encendida.encendido === true, tira.encendida);
   vale('LA TIRA ARRANCA EN EL FILO', Math.abs(tira.primeraDesdeElFilo) <= 1,
        tira.primeraDesdeElFilo + ' px del filo del contenido');
   vale('LA FILA DE LOS BOTONES SE QUEDÓ SIN RÓTULO',
        tira.rotuloFila === false, tira.rotuloFila);
+  vale('LOS BOTONES DICEN FILTRAR Y ACTUALIZAR',
+       tira.rotulos[0] === 'filtrar' && tira.rotulos[1] === 'actualizar',
+       tira.rotulos.join(' · '));
   /* EL DÍA ES UN FILTRO MÁS Y VIVE CON LOS DEMÁS. Se comprueban las dos
      mitades: que esté en la tira Y que ya no esté en la fila de antes. Sólo
      la primera pasaría en verde con el combo duplicado, que es un estado que
@@ -698,21 +709,21 @@ const FUERA = `async () => {
        letras.chica.alto >= 26, letras.chica.alto + ' px de alto');
 
   /* ================================================================
-     VER Y CAMBIAR NO PUEDEN ESTAR LOS DOS PUESTOS.
+     FILTRAR Y ACTUALIZAR NO PUEDEN ESTAR LOS DOS PUESTOS.
 
      Son dos maneras de usar la misma lista y se estorban: con las dos
-     encendidas, la mitad de arriba del panel pregunta cuáles quieres VER y la
-     de abajo cuáles quieres TOCAR, con los mismos chips a la vista para dos
+     encendidas, la mitad de arriba del panel pregunta cuáles quieres FILTRAR y
+     la de abajo cuáles quieres TOCAR, con los mismos chips a la vista para dos
      cosas distintas. Apagadas las dos sí se puede —es el sitio de fábrica, el
      índice a solas— así que no son un interruptor de dos posiciones: son dos
      que se excluyen, y eso son tres estados de cuatro. Se recorren los tres.
      ================================================================ */
-  titulo('ver y cambiar se excluyen, pero las dos pueden estar apagadas');
+  titulo('filtrar y actualizar se excluyen, pero las dos pueden estar apagadas');
   await alPanel();
   const turnos = await p.evaluate(async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
-    const ver = document.getElementById('btnVerEtiquetas');
-    const cam = document.getElementById('btnElegirGlosas');
+    const ver = document.getElementById('btnVerEtiquetas');   /* dice «filtrar» */
+    const cam = document.getElementById('btnElegirGlosas');   /* dice «actualizar» */
     const foto = () => ({
       ver: ver.getAttribute('aria-pressed'), cam: cam.getAttribute('aria-pressed'),
       /* Y lo que cada uno enciende de verdad, no sólo su botón: la tira y la
@@ -742,15 +753,15 @@ const FUERA = `async () => {
   vale('  y con las dos apagadas no sale ni la tira ni la barra',
        turnos.ninguna.tira === 'none' && turnos.ninguna.barra === 'none',
        turnos.ninguna);
-  vale('VER ENCIENDE LA TIRA Y DEJA CAMBIAR APAGADO',
+  vale('FILTRAR ENCIENDE LA TIRA Y DEJA ACTUALIZAR APAGADO',
        turnos.conVer.ver === 'true' && turnos.conVer.cam === 'false' &&
        turnos.conVer.tira !== 'none' && turnos.conVer.barra === 'none',
        turnos.conVer);
-  vale('CAMBIAR APAGA A VER, Y CON ÉL LA TIRA',
+  vale('ACTUALIZAR APAGA A FILTRAR, Y CON ÉL LA TIRA',
        turnos.conCambiar.cam === 'true' && turnos.conCambiar.ver === 'false' &&
        turnos.conCambiar.tira === 'none' && turnos.conCambiar.barra !== 'none',
        turnos.conCambiar);
-  vale('  y VER vuelve a apagar a CAMBIAR',
+  vale('  y FILTRAR vuelve a apagar a ACTUALIZAR',
        turnos.otraVez.ver === 'true' && turnos.otraVez.cam === 'false' &&
        turnos.otraVez.barra === 'none', turnos.otraVez);
   vale('Y LAS DOS PUEDEN QUEDARSE APAGADAS',
@@ -767,7 +778,7 @@ const FUERA = `async () => {
      etiquetas ya pasaba; con el día empezó a pasar al mudar su combo dentro de
      la tira, que hasta entonces vivía en una fila que no se esconde nunca.
 
-     El mando es el propio botón de VER —él la vuelve a enseñar— así que el
+     El mando es el propio botón de FILTRAR —él la vuelve a enseñar— así que el
      aviso se le pone encima. Se comprueban los tres estados que importan:
      con la tira puesta NO hay punto (el filtro se ve solo, un punto sobraría y
      enseñaría a no hacerle caso), escondida SÍ, y sin filtro no lo hay aunque
@@ -781,8 +792,8 @@ const FUERA = `async () => {
   await alPanel();
   const aviso = await p.evaluate(async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
-    const ver = document.getElementById('btnVerEtiquetas');
-    const cam = document.getElementById('btnElegirGlosas');
+    const ver = document.getElementById('btnVerEtiquetas');   /* dice «filtrar» */
+    const cam = document.getElementById('btnElegirGlosas');   /* dice «actualizar» */
     const foto = () => ({
       punto: getComputedStyle(ver, '::after').content,
       voz: ver.getAttribute('aria-label') || '',
@@ -850,7 +861,7 @@ const FUERA = `async () => {
        /filtro/i.test(aviso.escondido.voz), aviso.escondido);
   vale('  y el punto se va al volver a enseñarla',
        !conPunto(aviso.devuelto), aviso.devuelto);
-  vale('CAMBIAR APAGA LA TIRA Y TAMBIÉN LO ANUNCIA',
+  vale('ACTUALIZAR APAGA LA TIRA Y TAMBIÉN LO ANUNCIA',
        aviso.porCambiar.tira === 'none' && conPunto(aviso.porCambiar),
        aviso.porCambiar);
   /* La que impide que el punto se vuelva un adorno permanente. */
@@ -860,7 +871,7 @@ const FUERA = `async () => {
        !!aviso.porDia && aviso.porDia.tira === 'none' && conPunto(aviso.porDia),
        aviso.porDia);
 
-  titulo('los chips de «ver» filtran');
+  titulo('los chips de la tira filtran');
   await alPanel();
   await encenderEtiquetas();
   di('apagar un chip', await p.evaluate(async () => {
