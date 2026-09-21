@@ -96,14 +96,17 @@
   h1{ font-size:calc(.9rem * var(--escala-ui, 1)); font-weight:600; margin:0; letter-spacing:.03em; }
   /* Los controles de Formato/Glosas nacen en el body y el guion los muda a
      su rollo. Sin esto se ve un instante el panel de Formato al abrir. */
-  /* Y EL CRÉDITO SE APARCA AQUÍ MIENTRAS NO TENGA CASA. Vivía al final del
-     panel de la letra y el dueño del repo pidió sacarlo de ahí; lo que no
-     puede es quedarse suelto al pie del documento, que es donde cae un hijo
-     directo del body. El nodo se queda —con su texto puesto por el programa,
-     ver $('cred')— para que devolverlo a la pantalla sea una línea.
-     OJO A LO QUE ESTO SIGNIFICA MIENTRAS TANTO: la Versión Biblia Libre es CC
-     BY-SA y la atribución es obligatoria, así que el programa está ahora mismo
-     sin enseñarla en ninguna parte. Es un estado de paso, no el sitio nuevo. */
+  /* Y EL CRÉDITO YA TIENE CASA: el panel de Share. Estuvo un rato aparcado
+     aquí, sin enseñarse en ninguna parte, y eso no podía durar —la Versión
+     Biblia Libre es CC BY-SA y la atribución es obligatoria—. Ahora lo muda
+     armarRespaldo, junto al sello y a la nota de exportar, que es donde el
+     lector viene a saber QUÉ COPIA tiene entre manos: qué edición del texto,
+     de dónde sale y con qué licencia. Esta regla sigue haciendo falta para el
+     rato en que el nodo todavía cuelga del body: sin ella se vería un instante
+     al pie del documento antes de que el guion lo mude, que es lo mismo que le
+     pasa a #ctrlConfig y a #ctrlEtiquetas. En cuanto se muda, el selector deja
+     de alcanzarlo solo —es `body >`, no `#cred`—, así que no hay nada que
+     apagar después. */
   body > #ctrlConfig, body > #ctrlEtiquetas, body > #cred{ display:none !important; }
   /* PORTADA. Cubre la mesa hasta que la primera hoja está lista. */
   #portada{ position:fixed; inset:0; z-index:200; display:flex;
@@ -592,11 +595,11 @@
      las escenas.
 
      NO VA EN #stage NI EN body, aunque sería una línea menos. #ajustes,
-     #etiquetas, #respaldo, #canto, el menú, el readout y los filos son HIJOS
-     DE #stage: un filtro ahí dentro se los lleva a todos, y con el contraste
-     al máximo el propio panel de Formato —desde el que estás moviendo el
-     riel— cambiaría de color mientras lo usas. Un control no puede teñirse a
-     sí mismo mientras lo mueves.
+     #etiquetas, #encuentros, #respaldo, #canto, el menú, el readout y los
+     filos son HIJOS DE #stage: un filtro ahí dentro se los lleva a todos, y
+     con el contraste al máximo el propio panel de Formato —desde el que
+     estás moviendo el riel— cambiaría de color mientras lo usas. Un control
+     no puede teñirse a sí mismo mientras lo mueves.
 
      Tampoco hizo falta un contenedor nuevo: la hoja ya es un elemento con
      nombre. Envolverla habría tocado el posicionamiento absoluto, las
@@ -3362,6 +3365,25 @@
   .pestanas .aaa i:nth-child(1){ font-size:1.3em; }
   .pestanas .aaa i:nth-child(2){ font-size:1em; }
   .pestanas .aaa i:nth-child(3){ font-size:.76em; }
+  /* EL PUNTO QUE SE ABRE EN OTROS DOS: el signo de compartir. Mismo oficio que
+     las tres aes —decir con el dibujo lo que una palabra decía mal— y con dos
+     cuidados que no son de gusto:
+
+     · CURRENTCOLOR en los dos trazos, relleno y línea. La pestaña encendida se
+       pinta de marrón con la letra clara, y un signo con su color escrito se
+       habría quedado oscuro sobre el marrón, o sea invisible justo en la
+       pestaña que estás mirando.
+     · em y no píxeles, por lo mismo que las aes: este renglón escala con el
+       ancho de la pantalla y con --escala-ui, y un tamaño en píxeles se
+       quedaría fuera de las dos.
+
+     El bloque va centrado y con la misma altura de línea que el texto de las
+     otras pestañas, para que el renglón no dé un salto al llegar a ésta. */
+  .pestanas .compartir{ display:block; width:1.35em; height:1.35em; margin:0 auto;
+                        overflow:visible; }
+  .pestanas .compartir circle{ fill:currentColor; }
+  .pestanas .compartir path{ fill:none; stroke:currentColor; stroke-width:1.7;
+                             stroke-linecap:round; }
   .pestanas button.aqui{ background:#b8892b; color:#fff8e4; }
   /* EL ACUSE DE RECIBO DE LA PESTAÑA. El cambio de color ya decía cuál está
      abierta, pero eso es el resultado, no el recibo: llega junto con el
@@ -3395,6 +3417,68 @@
     .pestanas button.acusa{ animation:none;
       box-shadow:inset 0 0 0 2px rgba(201,162,39,.9); }
   }
+  /* LAS PESTAÑAS DE DENTRO DE ENCUENTROS.
+
+     LO PRIMERO ES POR QUÉ NO SE LLAMAN .pestanas. ponerBarra quita la barra
+     vieja con el.querySelector('.pestanas') antes de colgar la nueva, y esa
+     búsqueda alcanza a CUALQUIER descendiente del panel. Una barra de segundo
+     nivel con esa clase se habría borrado sola en cada apertura de la sección,
+     en silencio y sin error: el panel enseñaría la historia de Zaqueo y ninguna
+     manera de llegar a la otra.
+
+     Y se ven más calladas que las de arriba a propósito. Dos barras de
+     pestañas, una debajo de la otra y con el mismo peso, se leen como dos
+     mandos del mismo rango, y no lo son: la de arriba cambia de sección y ésta
+     cambia de historia dentro de una sección. Van sin panel de fondo y la
+     encendida se marca con un subrayado macizo, que es la misma familia del
+     marrón de arriba dicho más bajo. */
+  .pestanitas{ flex:0 0 auto; display:flex; flex-wrap:wrap; gap:4px; margin:0 0 9px; }
+  .pestanitas button{ border:0; cursor:pointer; padding:4px 8px 3px;
+                      border-radius:5px 5px 0 0; background:transparent;
+                      color:#5c4a24; letter-spacing:.02em;
+                      font:400 calc(10.5px * var(--escala-ui, 1))/1.4 var(--ui);
+                      box-shadow:inset 0 -1px 0 rgba(140,116,68,.34);
+                      transition:background .3s cubic-bezier(.65,0,.35,1),
+                                 color .3s cubic-bezier(.65,0,.35,1),
+                                 box-shadow .26s ease; }
+  .pestanitas button:hover{ background:rgba(255,253,247,.72); color:#1d1608; }
+  .pestanitas button.aqui{ color:#3a2d10; font-weight:600;
+                           background:rgba(184,137,43,.14);
+                           box-shadow:inset 0 -2px 0 #b8892b; }
+  /* LA HOJA QUE SE VE OCUPA TODO LO QUE SOBRA, porque lo que lleva dentro es
+     un relato entero y su marco tiene que llegar hasta el pie. De ahí la
+     cadena de tres: el contenedor crece, la hoja crece y el marco crece. Los
+     min-height:0 no son adorno: una caja flex no baja de su contenido salvo
+     que se le diga, y sin ellos el marco empuja el panel hacia abajo y el
+     botón de CERRAR se va de la pantalla —que es justo lo que costó arreglar
+     en los cuatro paneles—.
+
+     Y EL display:none DEL ATRIBUTO TIENE QUE GANARLE AL display:flex de la
+     hoja. Le gana, pero por un pelo que conviene saber: .enc-hoja[hidden] pesa
+     una clase más que .enc-hoja, así que la regla de abajo manda. Cualquiera
+     que escriba después otro display para .enc-hoja con más peso —o el mismo
+     peso más abajo— enseñará las dos historias a la vez. Es el error que se
+     comete al añadir la tercera. */
+  .enc-hojas{ flex:1 1 auto; display:flex; min-height:0; }
+  .enc-hoja{ flex:1 1 auto; display:flex; flex-direction:column; min-height:0; }
+  .enc-hoja[hidden]{ display:none; }
+  /* EL MARCO DEL RELATO. Sin borde y del color del papel: lo que tiene que
+     verse es la historia, no la caja en la que viene. El fondo es el del panel
+     y no blanco, que es lo que se ve el rato que el relato tarda en llegar. */
+  .enc-marco{ flex:1 1 auto; width:100%; min-height:0; border:0; display:block;
+              border-radius:8px; background:rgba(255,253,247,.55); }
+  .enc-titulo{ margin:0 0 6px; font:600 calc(12px * var(--escala-ui, 1))/1.3 var(--ui);
+               color:#3a2d10; letter-spacing:.02em; }
+  /* EL PANEL DONDE IRÁ LA HISTORIA. Va con el borde a rayas y no macizo porque
+     lo que dice es «aquí falta algo», que es distinto de «aquí hay un recuadro
+     vacío»: un marco cerrado se lee como un sitio terminado que se quedó sin
+     contenido, y éste está esperando. El alto mínimo es para que se vea que
+     hay sitio guardado y no una rendija. */
+  .enc-panel{ border:1px dashed rgba(140,116,68,.55); border-radius:8px;
+              background:rgba(255,253,247,.55); padding:11px 12px;
+              min-height:96px; display:flex; align-items:center; }
+  .enc-vacio{ margin:0; font:400 calc(9.5px * var(--escala-ui, 1))/1.55 var(--ui);
+              color:#5c4a24; opacity:.85; max-width:52ch; }
   /* CAMBIO DE SECCIÓN. La burbuja ya está abierta, así que volver a bajar la
      cortina sería contar otra vez algo que ya pasó. El papel se queda quieto
      y lo único que se mueve es el contenido, que entra deslizándose desde el
@@ -4484,6 +4568,10 @@
        separación dejaban los bordes de dos pestañas casi tocándose. */
     .pestanas button{ min-height:44px; }
     .pestanas{ gap:7px; }
+    /* Las de dentro de Encuentros van a 40 y no a 44: son de segundo nivel y
+       ya se distinguen por eso, pero siguen siendo blancos de dedo y 40 es el
+       alto que tienen aquí los botones del rollo. */
+    .pestanitas button{ min-height:40px; }
     /* El hueco, que es el arreglo de verdad. Va en los dos ejes por si algún
        renglón se parte: dos botones que caen uno debajo de otro necesitan la
        misma separación que dos que caen uno al lado del otro. */
@@ -4520,7 +4608,9 @@
        clavada en 13px, y eso es exactamente lo que rompía el espejo: la de la
        hoja crece y se encoge con el ajuste de Formato y ésta se quedaba
        quieta. Ahora la manda --fs, como a la de la hoja. */
-    .nota-respaldo, .rollo .cred{ font-size:calc(13px * var(--escala-ui, 1)); }
+    .nota-respaldo, .rollo .cred, .enc-vacio{ font-size:calc(13px * var(--escala-ui, 1)); }
+    .pestanitas button{ font-size:calc(14px * var(--escala-ui, 1)); }
+    .enc-titulo{ font-size:calc(16px * var(--escala-ui, 1)); }
     /* En el teléfono sube igual que el resto: es donde de verdad se consulta,
        porque es el aparato del que uno duda si tiene la versión nueva. */
     .sello-version{ font-size:calc(17px * var(--escala-ui, 1)); }
@@ -4748,15 +4838,35 @@
 
      Y EL RENGLÓN ADELGAZÓ DOS VECES desde que esto se midió. Se fue la equis
      —que era la que se salía primero, ver .pestanas— y «Formato» y «Respaldo»
-     se volvieron «AAA» y «Share», que son las dos palabras más cortas de las
-     cuatro. Lo que antes pedía 394 px en un teléfono de 412 hoy cabe con
-     holgura, y el caso de 320 px que quedaba apuntado como pendiente se
-     resolvió por el mismo camino que decía el apunte: acortar las palabras, no
-     encoger la letra.
-     El bloque se queda porque sigue sirviendo por debajo de 400: no para que
-     quepa, sino para que no vaya al milímetro. */
+     se volvieron «AAA» y el punto de compartir, que son los dos rótulos más
+     cortos de los cinco. Lo que antes pedía 394 px en un teléfono de 412 hoy
+     cabe con holgura.
+
+     PERO LLEGÓ UNA QUINTA, «Encuentros», que es además la palabra más larga
+     del renglón, y el caso de 320 volvió: medido, las cinco pedían 324 px de
+     los 302 que hay dentro del panel y la del punto se iba sola al renglón de
+     abajo, estirada de lado a lado por el reparto del flex. Un renglón entero
+     para un dibujo.
+
+     El relleno lateral baja de 7 a 4 y con eso caben las cinco en una línea:
+     266 de contenido más 28 de huecos son 294 contra 302, ocho de sobra. Se
+     toca el relleno y NO el hueco entre pestañas, que también sobraba a la
+     vista: esos 7 px están puestos a propósito —el borde del acuse entra dos
+     píxeles por dentro de cada botón y con menos hueco los bordes de dos
+     vecinas quedan casi tocándose, está contado arriba—. Y no se toca la letra,
+     por lo que decía el apunte viejo: se acorta el envoltorio antes que el
+     texto.
+
+     LO QUE ESTO CUESTA, MEDIDO Y ACEPTADO: en 320 la pestaña del punto queda
+     de 28 px de ancho por 44 de alto. Es la única de las cinco que baja de 30
+     —las otras las sostiene su palabra— y no hay manera de subirla sin perder
+     el renglón único: se probó devolverle sus 9 px de relleno a ella sola y la
+     cuenta se va a 304 contra 302. Se prefiere así porque la otra salida es
+     peor de verdad: un renglón entero de la barra ocupado por un solo dibujo,
+     y 51 px menos de panel en la pantalla que menos tiene. Si algún día hay
+     que subirla, la salida son dos renglones, no una letra más chica. */
   @media (pointer:coarse) and (max-width: 400px){
-    .pestanas button{ font-size:calc(14px * var(--escala-ui, 1)); padding:8px 7px; }
+    .pestanas button{ font-size:calc(14px * var(--escala-ui, 1)); padding:8px 4px; }
   }
 
   /* PANTALLA BAJA. Agrandar la letra tiene un costo que hay que pagar aquí:
@@ -4782,10 +4892,13 @@
      aparece— y no ponerla donde sí hace falta cuesta el último ajuste del
      panel, que es lo que ya pasó una vez. El caso de orilla dejó de ser de
      orilla. Va también Respaldo, que se había quedado fuera de la lista sin
-     más motivo que ser el más corto de los tres. */
+     más motivo que ser el más corto de los tres. Y Encuentros, que es el que
+     más va a crecer: lo que guarda son historias, o sea texto largo, y sin
+     esta línea la primera que se escriba se sale del panel sin manera de
+     alcanzarla. */
   @media (max-width: 560px){
-    #ajustes, #etiquetas, #respaldo{ overflow-y:auto; overflow-x:visible;
-                                     overscroll-behavior:contain; }
+    #ajustes, #etiquetas, #encuentros, #respaldo{ overflow-y:auto; overflow-x:visible;
+                                                  overscroll-behavior:contain; }
   }
 </style>
 </head>
@@ -5074,6 +5187,7 @@
   <div id="veloPanel" aria-hidden="true"></div>
   <div id="ajustes" class="rollo"></div>
   <div id="etiquetas" class="rollo"></div>
+  <div id="encuentros" class="rollo"></div>
   <div id="respaldo" class="rollo"></div>
   <div id="canto" class="rollo"><div id="cantoCab"></div><div id="cantoCuerpo"></div>
     <!-- La lupa: dice qué libro hay bajo el dedo mientras se arrastra. -->
@@ -5268,7 +5382,8 @@
        · volver del salto      -> botón flotante en la esquina de la hoja
        · Marcas ON/OFF         -> panel de Glosas
        · exportar e importar   -> panel de Respaldo (ya estaban)
-       · el crédito de licencia-> panel de Formato, junto a la versión
+       · el crédito de licencia-> panel de Share, junto al sello de versión
+                                  (pasó por el de Formato y se pidió sacarlo)
      El crédito NO se puede quitar: la Versión Biblia Libre es CC BY-SA y la
      atribución es obligatoria. -->
 <button class="btn ghost" id="marksBtn" style="display:none">Marcas: ON</button>
@@ -5312,7 +5427,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 12:26';
+window.GLOSS_BUILD = '21-SEP-26 13:30';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8076,7 +8191,7 @@ function renderPageCrudo(){
   prepararHoja(pg);
   reflejarTamano();
   $('pgCabeza').textContent = cabezaDe(startIdx);
-  $('pgCabeza').title = 'Libros, glosas, formato y respaldo';
+  $('pgCabeza').title = 'Libros, glosas, encuentros, formato y compartir';
   $('pgVersion').textContent = D.versiones[version].abrev || version;
   /* El aviso dice lo que hacen los dos gestos, no lo que hacían: un toque abre
      la lista de versiones y dos abren Libros. Decía "Formato y versión" desde
@@ -15019,21 +15134,39 @@ function abrirVersiculos(cap, ancla){
      .pestanas .aaa.
    · RESPALDO decía la mitad del panel. Ahí están exportar e importar, que es
      sacar tus glosas de este navegador y meterlas en otro —o mandárselas a
-     alguien—, y eso es compartir tanto como respaldar. «Share» es lo que se
-     pidió y además cabe.
+     alguien—, y eso es compartir tanto como respaldar. Se llamó «Share» un
+     tiempo, y ahora no se llama: lleva el punto que se abre en otros dos, que
+     es el signo de compartir que reconoce cualquiera que use internet. Mismo
+     motivo que las tres aes: un signo se reconoce sin leerse y sin traducirse,
+     y este panel es el único que hablaba en inglés en un programa que está
+     entero en español. Ver .pestanas .compartir.
+
+   Y ENCUENTROS es la quinta, detrás de Glosas. Va ahí y no al final porque lo
+   que guarda se parece a lo que guarda Glosas —texto que se lee, no mandos que
+   se tocan—, y las dos de la derecha son las de ajustar y guardar.
 
    El rótulo puede llevar marcado, así que va en `html`. Y cuando lo lleva hace
-   falta `nombre`: un lector de pantalla leyendo «A A A» no dice nada, así que
-   se le pone al botón el aria-label y el title que la palabra daba sola. */
+   falta `nombre`: un lector de pantalla leyendo «A A A» no dice nada, y un
+   dibujo sin nombre no dice ni eso, así que se le pone al botón el aria-label
+   y el title que la palabra daba sola. */
 const SECCIONES = [
-  { id:'libros',   html:'Libros' },
-  { id:'glosas',   html:'Glosas' },
-  { id:'formato',  html:'<span class="aaa" aria-hidden="true"><i>A</i><i>A</i><i>A</i></span>',
-                   nombre:'Tamaño de letra y aspecto de la hoja' },
-  { id:'respaldo', html:'Share' },
+  { id:'libros',     html:'Libros' },
+  { id:'glosas',     html:'Glosas' },
+  { id:'encuentros', html:'Encuentros' },
+  { id:'formato',    html:'<span class="aaa" aria-hidden="true"><i>A</i><i>A</i><i>A</i></span>',
+                     nombre:'Tamaño de letra y aspecto de la hoja' },
+  /* El dibujo va con los círculos rellenos y las dos varas trazadas, y los dos
+     toman currentColor: la pestaña encendida cambia de color de letra y el
+     signo tiene que irse con ella. Ver .pestanas .compartir. */
+  { id:'respaldo',   html:'<svg class="compartir" viewBox="0 0 24 24" aria-hidden="true" ' +
+                          'focusable="false"><path d="M8.7 13.2l6.6 3.9M15.3 6.9l-6.6 3.9"/>' +
+                          '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/>' +
+                          '<circle cx="18" cy="19" r="3"/></svg>',
+                     nombre:'Compartir y respaldar tus glosas' },
 ];
 /* el elemento de cada sección, en un solo sitio para no repetir el mapeo */
-const PANEL = { libros:'canto', glosas:'etiquetas', formato:'ajustes', respaldo:'respaldo' };
+const PANEL = { libros:'canto', glosas:'etiquetas', encuentros:'encuentros',
+                formato:'ajustes', respaldo:'respaldo' };
 let seccionViva = 'libros', cambiandoSeccion = false, dirSeccion = 1;
 
 /* EL ACUSE TIENE QUE SOBREVIVIR AL CAMBIO DE BARRA. Abrir una sección vuelve
@@ -15160,12 +15293,19 @@ function abrirSeccion(id, enSeco){
   const seVa = enSeco && burbujaAbierta() && previo && previo.style.display !== 'none';
   seccionViva = id;
 
+  /* QUIÉN ABRE CADA SECCIÓN SALE DE LA TABLA, y esto era una escalera de if
+     que terminaba en un `else` suelto. La escalera funcionaba con cuatro y
+     traía escrita su propia trampa: el `else` no decía «respaldo», decía
+     «cualquier otra cosa», así que al añadir la quinta sección —Encuentros—
+     tocar su pestaña habría abierto el panel de Share sin que nada fallara ni
+     avisara. Los sitios que enumeraban los paneles eran cinco, y ese aviso
+     está escrito de su puño en marcarCabeza: «el día que alguien añada la
+     quinta se olvidará en uno». Ese día es hoy, así que la lista vive en un
+     solo sitio, ROLLOS, y Libros se queda aparte porque su panel no es un
+     rollo simple: lo abre abrirCanto. */
   const arranca = () => {
     cambiandoSeccion = !!enSeco;
-    if (id === 'libros')        abrirCanto();
-    else if (id === 'glosas')   rGlosas.abrir();
-    else if (id === 'formato')  rFormato.abrir();
-    else                        rRespaldo.abrir();
+    if (ROLLOS[id]) ROLLOS[id].abrir(); else abrirCanto();
     cambiandoSeccion = false;
   };
   if (!seVa) return arranca();
@@ -15192,7 +15332,7 @@ function entradaDeSeccion(el){
   void el.offsetWidth;
   el.classList.add('cambio');
 }
-function burbujaAbierta(){ return cantoAbierto || rFormato.abierto || rGlosas.abierto || rRespaldo.abierto; }
+function burbujaAbierta(){ return cantoAbierto || LOS_ROLLOS.some(r => r.abierto); }
 /* `cerrando` va en true cuando se llama desde el cierre, porque en ese momento
    la bandera del panel todavía no se ha apagado. */
 /* EL RÓTULO DE ABAJO YA NO ES DE FORMATO. Lo era cuando lo abría, y de eso
@@ -15237,6 +15377,11 @@ function alternarBurbuja(seccion){
 function rolloSimple(el){
   let abierto = false;
   return {
+    /* Se asoma el elemento porque quien recorre ROLLOS necesita compararlo
+       —cerrarOtrosRollos recibe un elemento, no un identificador— y sin esto
+       la tabla no ahorraría nada: habría que volver a escribir la lista de
+       paneles al lado para poder cruzarla. */
+    el,
     get abierto(){ return abierto; },
     abrir(){
       if (abierto || folding) return;
@@ -15244,6 +15389,11 @@ function rolloSimple(el){
       abierto = true;
       ponerBarra(el, seccionDe(el));
       if (el === etiquetas) pintarIndice();   /* la lista, al día con los filtros */
+      /* Y el relato se pide ahora, no al arrancar: ver despertar() en
+         armarEncuentros. Se pregunta por la sección y no por el elemento
+         porque el panel de Encuentros no tiene variable propia —los otros dos
+         la tienen por herencia, no por diseño—. */
+      if (seccionDe(el) === 'encuentros') encenderHistoriaViva();
       el.classList.remove('plegando', 'disuelto');
       el.style.display = 'flex';
       void el.offsetWidth;
@@ -15293,7 +15443,24 @@ function rolloSimple(el){
   };
 }
 const rFormato = rolloSimple(ajustes), rGlosas = rolloSimple(etiquetas),
+      rEncuentros = rolloSimple(document.getElementById('encuentros')),
       rRespaldo = rolloSimple(document.getElementById('respaldo'));
+/* LA LISTA DE LOS ROLLOS, EN UN SOLO SITIO. Estaba repartida en cuatro
+   —el despacho de abrirSeccion, burbujaAbierta, cerrarOtrosRollos y el oyente
+   del acuse—, y cuatro copias de una lista es una lista que algún día dirá
+   cuatro cosas distintas. Libros no está aquí: su panel tiene cabeza y cuerpo
+   propios y lo abren y cierran abrirCanto y cerrarCanto, así que quien recorra
+   esta tabla tiene que acordarse de él aparte. Está dicho en cada sitio donde
+   se recorre. */
+const ROLLOS = { glosas:rGlosas, encuentros:rEncuentros,
+                 formato:rFormato, respaldo:rRespaldo };
+const LOS_ROLLOS = Object.values(ROLLOS);
+/* El interruptor del relato de Encuentros. Se declara aquí —donde abrir() lo
+   va a llamar— y lo rellena armarEncuentros, que es quien tiene los marcos a
+   mano. Nace sin hacer nada para que abrir Encuentros no dependa del orden en
+   que se armó el panel: si un día su armado se cae, la sección se abre vacía
+   en vez de reventar. */
+let encenderHistoriaViva = () => {};
 
 /* ============================================================
    "TE OÍ, ESTOY EN ELLO" EN EL BOTÓN QUE TOCASTE.
@@ -15326,7 +15493,7 @@ function encenderObrando(el){
   el.classList.add('obrando');
   relojObrando = setTimeout(() => apagarObrando(true), 1400);
 }
-for (const el of [ajustes, etiquetas, document.getElementById('respaldo')]){
+for (const { el } of LOS_ROLLOS){
   el.addEventListener('pointerdown', ev => {
     const b = ev.target.closest('.btn, .chip');
     /* Los deshabilitados no acusan nada: no va a pasar nada, y encender el
@@ -15339,12 +15506,10 @@ for (const el of [ajustes, etiquetas, document.getElementById('respaldo')]){
     trasPintar(() => apagarObrando());
   });
 }
-/* Los tres se excluyen: comparten el mismo filo y la misma superficie. */
+/* Todos se excluyen: comparten el mismo filo y la misma superficie. */
 function cerrarOtrosRollos(menos){
-  if (ajustes   !== menos) rFormato.cerrar();
-  if (etiquetas !== menos) rGlosas.cerrar();
-  if (document.getElementById('respaldo') !== menos) rRespaldo.cerrar();
-  if (canto     !== menos) cerrarCanto();
+  for (const r of LOS_ROLLOS) if (r.el !== menos) r.cerrar();
+  if (canto !== menos) cerrarCanto();      /* el de Libros, que no es un rollo simple */
   /* Y los dos globos, que comparten la misma hoja. Se cedían en un solo
      sentido —abrir un globo cerraba los rollos, pero abrir un rollo dejaba el
      globo puesto— y dos cosas ocupando el mismo papel a la vez es la misma
@@ -20397,13 +20562,124 @@ etiquetas.appendChild($('ctrlEtiquetas'));
 etiquetas.appendChild($('indice'));
 etiquetas.appendChild($('barraGrupo'));
 
-/* AQUÍ SE MUDABA EL CRÉDITO DE LICENCIA AL PANEL DE LA LETRA, y se pidió
-   sacarlo: «lo incluiremos en otro sitio después». Así que el nodo se queda en
-   el documento, escondido por su regla del body, con su texto al día y a una
-   línea de volver a colgarse donde se decida.
-   NO ES ADORNO LEGAL: la Versión Biblia Libre es CC BY-SA y exige atribución.
-   Mientras esa línea no vuelva, el programa no la enseña en ninguna parte, y
-   eso hay que cerrarlo. Queda dicho aquí y en la regla del body. */
+/* ENCUENTROS: las historias de quien se topó con Jesús y se fue distinto.
+
+   La sección nace con dos —Zaqueo y la mujer samaritana— y con el sitio hecho
+   para la historia de cada una, que todavía no está escrita. Eso es lo que se
+   pidió y es lo que hay: el panel puesto y esperando.
+
+   LA LISTA MANDA, y por eso está aquí arriba y suelta. Añadir la tercera tiene
+   que ser una línea en este arreglo y nada más: ni una pestaña que colgar, ni
+   una hoja que esconder, ni una regla de estilo que copiar. Es la misma cuenta
+   que se acaba de pagar con las secciones de la barra de arriba, que vivían
+   repartidas en cuatro sitios y hubo que juntarlas para poder añadir ésta.
+
+   Los identificadores van en el dato y no salen del nombre: «La mujer
+   Samaritana» tiene mayúsculas, espacios y acentos, y un id sacado de ahí a
+   fuerza de reemplazos es un id que cambia el día que alguien corrija el
+   rótulo. El rótulo es para leerse; el id, para durar. */
+const ENCUENTROS = [
+  { id:'zaqueo',     nombre:'Zaqueo', historia:'encuentros/zaqueo.html' },
+  { id:'samaritana', nombre:'La mujer Samaritana' },
+];
+(function armarEncuentros(){
+  const caja = document.getElementById('encuentros');
+  if (!caja) return;
+  const barra = document.createElement('div');
+  barra.className = 'pestanitas';
+  const hojas = document.createElement('div');
+  hojas.className = 'enc-hojas';
+  ENCUENTROS.forEach((e, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';                 /* dentro de nada, pero un <button> sin
+                                          tipo es submit en cuanto alguien lo
+                                          meta en un formulario */
+    b.dataset.enc = e.id;
+    b.textContent = e.nombre;
+    if (!i) b.classList.add('aqui');
+    barra.appendChild(b);
+
+    const hoja = document.createElement('section');
+    hoja.className = 'enc-hoja';
+    hoja.dataset.enc = e.id;
+    if (i) hoja.hidden = true;
+    if (e.historia){
+      /* LA HISTORIA VA EN UN MARCO Y NO PEGADA DENTRO DEL PANEL, y no es por
+         comodidad: cada relato es un documento entero, con su tipografía, su
+         papel, su `body` y su `*{box-sizing}`. Metido en la página con
+         innerHTML, ese CSS se sube a la hoja de estilos de la aplicación y
+         reescribe el libro entero desde abajo. El marco es lo único que separa
+         de verdad dos hojas de estilo que no se conocen.
+
+         Y QUEDA UNA COSA SIN RESOLVER, ESCRITA AQUÍ PARA QUE NO SE DESCUBRA
+         DOS VECES: el relato trae su propio modo oscuro —@media
+         (prefers-color-scheme: dark)— y esta aplicación no tiene modo oscuro
+         ninguno, es papel crema siempre. En un teléfono puesto en oscuro el
+         relato se pinta negro dentro de un programa crema. Se probaron las dos
+         salidas que no tocan el documento ajeno, y NINGUNA funciona: ni
+         color-scheme:light en el marco ni un <meta name="color-scheme"> dentro
+         del relato cambian lo que contesta la consulta —medido en Chromium:
+         sigue diciendo que sí al modo oscuro en los dos casos—, porque esa
+         consulta habla de lo que prefiere la persona y no de lo que declara la
+         página. La única salida es quitarle el bloque oscuro al relato, y eso
+         es decisión de quien lo escribió, no de aquí. Queda apuntado. */
+      const marco = document.createElement('iframe');
+      marco.className = 'enc-marco';
+      marco.title = 'Historia de ' + e.nombre;
+      marco.dataset.historia = e.historia;
+      /* SE CARGA CUANDO SE MIRA, NO AL ARRANCAR. Son diecisiete kilobytes y
+         una tipografía de fuera por cada relato, y al arrancar lo que importa
+         es que aparezca la primera hoja del libro. loading="lazy" no basta
+         para fiarse: el panel nace en display:none y lo que hace un marco
+         perezoso dentro de algo escondido no está escrito igual en todas
+         partes. Aquí se dice cuándo: la primera vez que su pestaña se mira. */
+      hoja.appendChild(marco);
+    } else {
+      const tit = document.createElement('h3');
+      tit.className = 'enc-titulo';
+      tit.textContent = e.nombre;
+      const panel = document.createElement('div');
+      panel.className = 'enc-panel';
+      panel.dataset.historia = e.id;     /* por aquí entrará la historia */
+      const vacio = document.createElement('p');
+      vacio.className = 'enc-vacio';
+      /* El cartel dice qué falta, no pide perdón. Un panel vacío sin una línea
+         que lo explique se lee como algo que se rompió al cargar. */
+      vacio.textContent = 'Aquí va la historia. Todavía no está escrita.';
+      panel.appendChild(vacio);
+      hoja.appendChild(tit); hoja.appendChild(panel);
+    }
+    hojas.appendChild(hoja);
+  });
+  /* Encender el marco de una hoja: poner el src la primera vez y no más. */
+  const despertar = hoja => {
+    const m = hoja && hoja.querySelector('.enc-marco');
+    if (m && !m.getAttribute('src')) m.setAttribute('src', m.dataset.historia);
+  };
+  /* EL OYENTE VA EN LA BARRA Y NO EN CADA BOTÓN, que es como lo hace la barra
+     de arriba: los botones de una lista que puede crecer no tienen por qué
+     llevar cada uno su oyente colgado. */
+  barra.addEventListener('click', ev => {
+    const t = ev.target.closest('[data-enc]'); if (!t) return;
+    /* stopPropagation por lo mismo que el pie: el panel entero lleva encima el
+       vigilante del «clic fuera», y aunque un clic de dentro no cierra nada,
+       dejarlo subir es dejar que un día lo cierre. */
+    ev.preventDefault(); ev.stopPropagation();
+    barra.querySelectorAll('[data-enc]').forEach(x =>
+      x.classList.toggle('aqui', x === t));
+    hojas.querySelectorAll('.enc-hoja').forEach(h => {
+      h.hidden = h.dataset.enc !== t.dataset.enc;
+      if (!h.hidden) despertar(h);
+    });
+  });
+  caja.appendChild(barra);
+  caja.appendChild(hojas);
+  /* Y LA PRIMERA SE ENCIENDE CUANDO SE ABRE LA SECCIÓN, no aquí: aquí todavía
+     estamos armando el panel y el programa está arrancando. Se engancha al
+     primer toque de la pestaña de Encuentros, que es el momento en que el
+     relato deja de ser peso muerto y pasa a ser lo que se vino a ver. */
+  encenderHistoriaViva = () => despertar(hojas.querySelector('.enc-hoja:not([hidden])'));
+})();
 
 /* El panel de Respaldo se arma con los botones que vivían en la barra de
    abajo: exportar e importar, que son las dos cosas que le pasan al archivo
@@ -20460,6 +20736,27 @@ etiquetas.appendChild($('barraGrupo'));
      primera pregunta es si ese teléfono tiene la versión nueva o una guardada
      en caché, y esa pregunta la tiene que poder contestar quien sostiene el
      aparato, sin enchufarlo a nada. */
+  /* EL CRÉDITO DE LICENCIA, Y ÉSTA ES SU CASA. Vivió al final del panel de la
+     letra, se pidió sacarlo de ahí —«lo incluiremos en otro sitio después»— y
+     estuvo un rato sin enseñarse en ninguna parte, que es un sitio en el que
+     no podía quedarse: la Versión Biblia Libre es CC BY-SA y la atribución es
+     obligatoria.
+
+     Viene aquí y no a cualquiera de los otros tres porque este panel es el que
+     contesta «qué copia tengo entre manos»: de dónde salen tus glosas, cómo se
+     sacan de este navegador y con qué versión del programa las estás leyendo.
+     De qué edición del texto y con qué licencia es la misma pregunta.
+
+     Va ANTES del sello a propósito: el sello se viene a buscar con prisa
+     —normalmente con algo que no funciona en la mano— y tiene que ser lo
+     último y lo más visible del panel. El crédito se lee una vez.
+
+     Hay que quitarle el display:none de la regla del body igual que a los
+     botones de archivo... salvo que aquí no hace falta: aquella regla es
+     `body > #cred` y en cuanto el nodo entra en el panel deja de ser hijo del
+     body. Se anota porque la primera versión de esto le puso un `style` que no
+     servía para nada y escondía el motivo verdadero. */
+  caja.appendChild($('cred'));
   const sello = document.createElement('p');
   sello.className = 'sello-version';
   sello.textContent = 'VERSIÓN ' + window.GLOSS_BUILD;

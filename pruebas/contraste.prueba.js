@@ -177,17 +177,19 @@ async function ponerContraste(pagina, pct){
      era la fila más ancha del panel, justo la que peor cae con el fondo
      transparente. Lo que NO se puede ir es el crédito: la Versión Biblia Libre
      es CC BY-SA y la atribución es obligatoria. */
-  /* EL CRÉDITO SE FUE DE ESTE PANEL, y esta prueba decía lo contrario: «el
-     crédito de licencia sigue a la vista». Lo pidió el dueño del repo —«lo
-     incluiremos en otro sitio después»— así que aquí se afirma lo que hay: que
-     no está en el panel de la letra y que el nodo sigue en el documento con su
-     texto, que es lo que hace que devolverlo sea una línea.
+  /* EL CRÉDITO SE FUE DE ESTE PANEL Y YA TIENE CASA. Esta prueba decía primero
+     «el crédito de licencia sigue a la vista» —cuando vivía aquí—, después que
+     no estaba en ninguna parte mientras se le buscaba sitio, y ahora dice las
+     dos mitades que hacen falta: que NO está en el panel de la letra, que es
+     lo que se pidió, y que SÍ está en el de Share, que es lo que la licencia
+     exige. La primera sola dejaba pasar el estado en que no se enseñaba en
+     ninguna parte; la segunda sola dejaría pasar que volviera aquí.
 
-     Y SE DEJA APUNTADO LO QUE FALTA: la Versión Biblia Libre es CC BY-SA y la
-     atribución es obligatoria, así que mientras el crédito no tenga casa nueva
-     el programa no la enseña en ninguna parte. La prueba no puede exigir un
-     sitio que todavía no se ha elegido, pero sí puede no dejar que se olvide:
-     por eso comprueba que el texto sigue vivo y dice por qué. */
+     Lo de la licencia no es formalismo: la Versión Biblia Libre es CC BY-SA y
+     la atribución es obligatoria, así que un crédito escondido es un fallo del
+     programa aunque no se vea ningún fallo en la pantalla. Lo que se ve de
+     verdad —que se lee, dónde cae, junto a qué— lo mide version.prueba.js, que
+     es la dueña de ese panel. */
   titulo('Formato ya no ofrece versiones, y el crédito salió de aquí');
   const sinVersiones = await pagina.evaluate(() => {
     /* El nodo se busca por su id, no dentro del panel: lo que se quiere saber
@@ -196,6 +198,7 @@ async function ponerContraste(pagina, pct){
     const cred = document.getElementById('cred');
     return {
       credEnPanel: !!document.querySelector('#ajustes .cred'),
+      credEnShare: !!document.querySelector('#respaldo #cred'),
       fila: !!document.getElementById('ctrlVersiones'),
       botones: document.querySelectorAll('#ajustes [data-ver]').length,
       rotulos: [...document.querySelectorAll('#ctrlConfig .ajuste .lbl')]
@@ -212,7 +215,9 @@ async function ponerContraste(pagina, pct){
   vale('ni su rótulo', !sinVersiones.rotulos.includes('versión'), sinVersiones.rotulos);
   vale('EL CRÉDITO YA NO ESTÁ EN ESTE PANEL',
        sinVersiones.credEnPanel === false, sinVersiones.credEnPanel);
-  vale('  pero su texto sigue vivo, a una línea de volver',
+  vale('  SE MUDÓ AL DE SHARE, que es donde la licencia obliga a que esté',
+       sinVersiones.credEnShare === true, sinVersiones.credEnShare);
+  vale('  y dice lo que tiene que decir',
        /CC BY/.test(sinVersiones.credTexto || ''), sinVersiones.credTexto);
   vale('y el globo del pie sigue siendo quien las cambia',
        sinVersiones.globo === true && !!sinVersiones.pie, sinVersiones.pie);

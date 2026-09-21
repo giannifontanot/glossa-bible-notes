@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zaqueo: el hombre que Jericó no quería ver</title>
+<meta name="description" content="Relato dramatizado en tres capítulos basado en Lucas 19:1-10.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400&family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --parchment: #f5eedf;
+    --parchment-deep: #ebe0c8;
+    --paper: #fbf7ee;
+    --ink: #2b2118;
+    --ink-soft: #5a4a3a;
+    --terracotta: #a4502f;
+    --terracotta-soft: #c9825f;
+    --olive: #6b6b3a;
+    --amber: #b8862d;
+    --rule: #d8c9a8;
+    --shadow: rgba(60, 40, 20, 0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --parchment: #1c1712;
+      --parchment-deep: #241d16;
+      --paper: #221b15;
+      --ink: #ece2cf;
+      --ink-soft: #bfae94;
+      --terracotta: #d98560;
+      --terracotta-soft: #b86a48;
+      --olive: #a8a868;
+      --amber: #d9a94f;
+      --rule: #4a3d2e;
+      --shadow: rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--parchment);
+    background-image:
+      radial-gradient(ellipse at top, rgba(255,255,255,0.35), transparent 60%),
+      radial-gradient(ellipse at bottom, var(--parchment-deep), transparent 70%);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: 'Spectral', Georgia, 'Times New Roman', serif;
+    font-size: 1.15rem;
+    line-height: 1.8;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 16px 6rem;
+  }
+
+  /* ---------- Portada ---------- */
+  header.hero {
+    text-align: center;
+    padding: 6rem 0 4rem;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 3rem;
+  }
+  .hero .kicker {
+    font-family: 'Fraunces', serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--terracotta);
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: clamp(3rem, 11vw, 5.5rem);
+    line-height: 1;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+  .hero .subtitle {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(1.2rem, 4vw, 1.6rem);
+    color: var(--ink-soft);
+    margin: 1rem 0 2.5rem;
+  }
+  .hero .ref {
+    display: inline-block;
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 0.4rem 1.5rem;
+    letter-spacing: 0.08em;
+  }
+  .ornament {
+    display: block;
+    text-align: center;
+    color: var(--amber);
+    font-size: 1.4rem;
+    letter-spacing: 0.8em;
+    margin: 2.5rem 0 0;
+    padding-left: 0.8em;
+  }
+
+  /* ---------- Índice ---------- */
+  nav.contents {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 0 auto 4rem;
+    max-width: 480px;
+  }
+  nav.contents a {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    text-decoration: none;
+    color: var(--ink);
+    padding: 0.5rem 0;
+    border-bottom: 1px dotted var(--rule);
+    transition: color 0.2s;
+  }
+  nav.contents a:hover { color: var(--terracotta); }
+  nav.contents .num {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    color: var(--terracotta);
+    min-width: 2.2rem;
+  }
+  nav.contents .name {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+  }
+
+  /* ---------- Capítulos ---------- */
+  section.chapter {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    box-shadow: 0 1px 2px var(--shadow), 0 12px 40px -18px var(--shadow);
+    padding: 3.5rem clamp(1.25rem, 6vw, 4rem);
+    margin-bottom: 3.5rem;
+    position: relative;
+  }
+  section.chapter::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 60px; height: 3px;
+    background: var(--terracotta);
+  }
+  .chapter-head {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+  .chapter-head .roman {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: 3.2rem;
+    color: var(--terracotta);
+    line-height: 1;
+    display: block;
+  }
+  .chapter-head .label {
+    font-family: 'Fraunces', serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    display: block;
+    margin: 0.75rem 0 0.5rem;
+  }
+  .chapter-head h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-style: italic;
+    font-size: clamp(1.7rem, 5vw, 2.3rem);
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .chapter p { margin: 0 0 1.4rem; text-align: left; hyphens: auto; }
+
+  .chapter p.opening::first-letter {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    float: left;
+    font-size: 4.6rem;
+    line-height: 0.85;
+    padding: 0.35rem 0.6rem 0 0;
+    color: var(--terracotta);
+  }
+
+  .dialogue {
+    padding-left: 1rem;
+    border-left: 2px solid var(--rule);
+  }
+
+  .thought {
+    font-style: italic;
+    color: var(--ink-soft);
+    text-align: center !important;
+    font-size: 1.2rem;
+    margin: 2rem 0 !important;
+  }
+
+  blockquote.scripture {
+    margin: 2.2rem 0;
+    padding: 1.4rem 1.6rem;
+    background: color-mix(in srgb, var(--parchment-deep) 60%, transparent);
+    border-left: 4px solid var(--terracotta);
+    border-radius: 0 4px 4px 0;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1.25rem;
+    line-height: 1.6;
+  }
+  blockquote.scripture cite {
+    display: block;
+    font-family: 'Spectral', serif;
+    font-style: normal;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    color: var(--ink-soft);
+    margin-top: 0.75rem;
+  }
+
+  .pause {
+    text-align: center;
+    color: var(--amber);
+    letter-spacing: 0.6em;
+    margin: 2.5rem 0;
+    padding-left: 0.6em;
+  }
+
+  .name-moment {
+    text-align: center !important;
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-style: italic;
+    font-size: clamp(2.2rem, 8vw, 3.2rem);
+    color: var(--terracotta);
+    margin: 2.5rem 0 !important;
+    letter-spacing: 0.02em;
+  }
+
+  .crowd {
+    font-style: italic;
+    color: var(--ink-soft);
+    padding-left: 1.5rem;
+    margin-bottom: 0.6rem !important;
+  }
+
+  .closing {
+    text-align: center !important;
+    font-family: 'Fraunces', serif;
+    font-size: 1.35rem;
+    margin: 0.4rem 0 !important;
+  }
+  .closing.final {
+    font-size: 1.9rem;
+    font-style: italic;
+    color: var(--terracotta);
+    margin-top: 1.2rem !important;
+  }
+
+  /* ---------- Pie ---------- */
+  footer {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    margin-top: 2rem;
+  }
+  footer .verse {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1.15rem;
+    color: var(--ink);
+    max-width: 520px;
+    margin: 1.5rem auto 0.5rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 520px) {
+    body { font-size: 1.05rem; }
+    header.hero { padding: 4rem 0 3rem; }
+    section.chapter { padding: 2.5rem 1.25rem; }
+    .chapter p.opening::first-letter { font-size: 3.8rem; }
+  }
+
+  @media print {
+    body { background: #fff; }
+    section.chapter { box-shadow: none; page-break-before: always; }
+    nav.contents { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="hero">
+    <div class="kicker">Relato en tres capítulos</div>
+    <h1>Zaqueo</h1>
+    <p class="subtitle">el hombre que Jericó no quería ver</p>
+    <span class="ref">Basado en Lucas 19:1-10</span>
+    <span class="ornament">✦ ✦ ✦</span>
+  </header>
+
+  <nav class="contents" aria-label="Capítulos">
+    <a href="#cap1"><span class="num">I</span><span class="name">Las monedas y el silencio</span></a>
+    <a href="#cap2"><span class="num">II</span><span class="name">Un hombre en un árbol</span></a>
+    <a href="#cap3"><span class="num">III</span><span class="name">Hoy, en tu casa</span></a>
+  </nav>
+
+  <!-- ================= CAPÍTULO I ================= -->
+  <section class="chapter" id="cap1">
+    <div class="chapter-head">
+      <span class="roman">I</span>
+      <span class="label">Capítulo primero</span>
+      <h2>Las monedas y el silencio</h2>
+    </div>
+
+    <p class="opening">El sol de Jericó caía temprano sobre la mesa de recaudación. Zaqueo contaba las monedas con dedos rápidos, casi sin mirarlas. Sabía su peso de memoria. Sabía también cuánto de cada montón iría a Roma y cuánto se quedaría en su propio cofre.</p>
+
+    <p>Era el jefe de los cobradores de impuestos de la ciudad. Jericó era rica: pasaban por ella las caravanas del Jordán, los bálsamos, los dátiles, el comercio que subía hacia Jerusalén. Y donde había riqueza, había impuestos. Donde había impuestos, estaba Zaqueo.</p>
+
+    <p>Nadie lo saludaba por la calle. Los hombres cambiaban de acera y las madres apartaban a sus hijos. En la sinagoga, su lugar quedaba vacío, porque hacía años que había dejado de ir. No lo habían expulsado con palabras. Lo expulsaron con miradas.</p>
+
+    <p>Por las noches, en su casa amplia, rodeado de lámparas de aceite fino y alfombras traídas de Damasco, Zaqueo a veces repetía su propio nombre en voz baja: <em>Zakkai</em>. «Puro». «Limpio». Su padre se lo había puesto con esperanza. Ahora le sonaba a burla.</p>
+
+    <p class="dialogue">—Puro —murmuraba, y se reía sin alegría.</p>
+
+    <p>No era ingenuo. Sabía exactamente la vida que llevaba. Conocía el rostro de la viuda a la que le había cobrado de más, el temblor del agricultor que no alcanzaba a pagar. Se había dicho mil veces que así funcionaba el mundo, que si no lo hacía él, otro lo haría. Pero las justificaciones, como las monedas, pesan más cuanto más se acumulan.</p>
+
+    <p>Y tenía otra herida, más pequeña y más vieja: su estatura. Desde niño había mirado el mundo desde abajo, entre codos y espaldas. Quizás por eso aprendió a ser grande de otra manera: con poder, con dinero, con miedo ajeno. Si no podían admirarlo, al menos tendrían que tomarlo en cuenta.</p>
+
+    <p>Aquella mañana, mientras cerraba el libro de cuentas, escuchó a dos comerciantes hablando en voz baja cerca de su mesa.</p>
+
+    <div class="dialogue">
+      <p>—Dicen que viene el rabí de Nazaret.</p>
+      <p>—¿El que sana enfermos?</p>
+      <p>—Ese. Y hay más: dicen que come con cobradores de impuestos. Que uno de ellos, un tal Leví, dejó su mesa en Capernaúm y se fue con él.</p>
+    </div>
+
+    <p>Zaqueo levantó la vista. Los hombres se callaron de inmediato y se alejaron.</p>
+
+    <p>Pero la frase ya se le había quedado clavada:</p>
+
+    <p class="thought">come con cobradores de impuestos.</p>
+  </section>
+
+  <!-- ================= CAPÍTULO II ================= -->
+  <section class="chapter" id="cap2">
+    <div class="chapter-head">
+      <span class="roman">II</span>
+      <span class="label">Capítulo segundo</span>
+      <h2>Un hombre en un árbol</h2>
+    </div>
+
+    <p class="opening">Los rumores crecieron durante el día como agua que sube. A la entrada de la ciudad, decían, un ciego llamado Bartimeo había gritado sin parar: «¡Hijo de David, ten compasión de mí!». La gente lo había mandado callar, pero él gritó más fuerte. Y el rabí se detuvo, lo llamó, y el ciego ahora veía.</p>
+
+    <p>Zaqueo escuchó la historia tres veces, de tres bocas distintas. Cada vez sentía algo extraño en el pecho, algo que no era exactamente curiosidad. Era más parecido a la sed.</p>
+
+    <p class="thought">Un hombre que se detiene por alguien a quien todos mandan callar.</p>
+
+    <p>Dejó la mesa de recaudación a su asistente sin dar explicaciones y salió a la calle principal.</p>
+
+    <p>La multitud era un muro. Hombros, turbantes, niños sobre espaldas, gente que empujaba para ver. Zaqueo intentó abrirse paso, pero cuando lo reconocieron, el muro se cerró todavía más. Nadie iba a hacerle lugar al cobrador. Uno le dio un codazo, «sin querer». Otro se rió.</p>
+
+    <p>Por un momento pensó en volver a casa. Era lo razonable. Un hombre de su posición no debía hacer el ridículo.</p>
+
+    <p>Pero entonces vio, más adelante en el camino, un sicómoro de ramas bajas y anchas.</p>
+
+    <p>Y Zaqueo, el jefe de los cobradores, el hombre rico y temido de Jericó, se recogió la túnica y corrió. Corrió como no corría desde niño, sin importarle que lo vieran. Llegó al árbol, se agarró de una rama, raspándose las palmas, y trepó.</p>
+
+    <p>Desde arriba, escondido entre las hojas, vio llegar la procesión. Y en medio, caminando sin prisa, estaba él.</p>
+
+    <p>No parecía un rey. No tenía guardia ni vestiduras finas. Pero la gente se movía a su alrededor como se mueve el agua alrededor de una piedra. Zaqueo lo observó con el corazón golpeándole las costillas.</p>
+
+    <p class="thought">Solo quiero verlo. Nada más. Verlo y volver a mi vida.</p>
+
+    <p>Jesús se acercaba. Diez pasos. Cinco. Ya estaba casi debajo del sicómoro.</p>
+
+    <div class="pause">· · ·</div>
+
+    <p class="closing final">Y entonces se detuvo.</p>
+  </section>
+
+  <!-- ================= CAPÍTULO III ================= -->
+  <section class="chapter" id="cap3">
+    <div class="chapter-head">
+      <span class="roman">III</span>
+      <span class="label">Capítulo tercero</span>
+      <h2>Hoy, en tu casa</h2>
+    </div>
+
+    <p class="opening">Jesús levantó la mirada. Directo hacia las ramas. Directo hacia él.</p>
+
+    <p>La multitud se quedó en silencio, siguiendo sus ojos. Algunos empezaron a reconocer la figura entre las hojas, y un murmullo incrédulo recorrió la calle.</p>
+
+    <p>Entonces Jesús habló:</p>
+
+    <blockquote class="scripture">
+      —Zaqueo, baja en seguida, porque hoy tengo que quedarme en tu casa.
+      <cite>Lucas 19:5</cite>
+    </blockquote>
+
+    <p class="name-moment">Zaqueo.</p>
+
+    <p>El nombre cayó sobre él como agua fresca. Nadie le había dicho que se conocían. Nadie se lo había presentado. Y sin embargo lo llamó por su nombre, el nombre que significaba «puro», pronunciado sin ironía, sin desprecio, como se llama a un amigo.</p>
+
+    <p>Zaqueo sintió que algo se le rompía por dentro, pero no como se rompe una vasija, sino como se rompe una cáscara. Bajó tan rápido que casi se cae. Aterrizó con las rodillas temblando, y cuando levantó la vista, Jesús le estaba sonriendo.</p>
+
+    <p>Zaqueo se rió. Una risa verdadera, de esas que había olvidado que tenía. Sus ojos se llenaron de lágrimas.</p>
+
+    <p class="dialogue">—¡Sí, Señor! ¡Ven, ven a mi casa!</p>
+
+    <p>Pero detrás de él, la multitud ya había encontrado su voz:</p>
+
+    <p class="crowd">—¿Se va a hospedar en casa de <em>ese</em>?</p>
+    <p class="crowd">—Un pecador. Un ladrón.</p>
+    <p class="crowd" style="margin-bottom:1.4rem !important;">—¿Así es el profeta?</p>
+
+    <p>Zaqueo escuchó cada palabra. Y lo más extraño fue que no le dolieron como antes. Tenían razón en lo que decían de él. Pero Jesús lo sabía también, y aun así lo había llamado.</p>
+
+    <div class="pause">✦</div>
+
+    <p>En su casa, con la mesa servida y las lámparas encendidas, Zaqueo miró a su alrededor: las alfombras, los cofres, las copas. Todo lo que había acumulado para sentirse grande. Y por primera vez lo vio como realmente era: no un tesoro, sino un peso.</p>
+
+    <p>Se puso de pie delante de todos.</p>
+
+    <blockquote class="scripture">
+      —Mira, Señor, voy a dar a los pobres la mitad de todo lo que tengo; y si le he robado algo a alguien, le devolveré cuatro veces más.
+      <cite>Lucas 19:8</cite>
+    </blockquote>
+
+    <p>Nadie se lo había exigido. Jesús no había dado un sermón sobre el dinero. No hubo condición previa ni amenaza. La generosidad brotó sola, como brota el agua cuando se quita la piedra que tapaba el manantial. Zaqueo no estaba comprando su perdón: estaba respondiendo a un amor que ya había recibido.</p>
+
+    <p>Jesús lo miró largamente, y luego dijo, para que todos oyeran:</p>
+
+    <blockquote class="scripture">
+      —Hoy ha llegado la salvación a esta casa, porque este hombre también es descendiente de Abraham. Pues el Hijo del hombre ha venido a buscar y salvar lo que se había perdido.
+      <cite>Lucas 19:9-10</cite>
+    </blockquote>
+
+    <p><em>También es hijo de Abraham.</em> Zaqueo cerró los ojos. Después de años de exilio en su propia ciudad, alguien le devolvía su lugar en el pueblo. No por lo que había hecho, sino por lo que Dios hacía con él.</p>
+
+    <p>Esa noche, cuando los invitados se fueron, Zaqueo salió al patio y miró las estrellas sobre Jericó. Repitió su nombre en voz baja, como tantas otras noches.</p>
+
+    <p class="closing"><em>—Zakkai.</em></p>
+
+    <div class="pause">· · ·</div>
+
+    <p class="closing">Y por primera vez, no le sonó a burla.</p>
+    <p class="closing final">Le sonó a promesa.</p>
+  </section>
+
+  <footer>
+    <span class="ornament" style="margin-top:0;">✦ ✦ ✦</span>
+    <p class="verse">«El Hijo del hombre ha venido a buscar y salvar lo que se había perdido.»</p>
+    <p>Lucas 19:10 · Dios Habla Hoy</p>
+  </footer>
+
+</div>
+</body>
+</html>

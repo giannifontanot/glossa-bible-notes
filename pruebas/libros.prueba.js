@@ -670,7 +670,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        bastó y por eso esto se mide y no se confía: el panel mide lo que mide
        su contenido, así que los dos puntos de abajo y el rótulo del pie
        asomaban POR DEBAJO de él. Nunca hubo nada que se les pusiera encima.
-       Hoy los cuatro paneles llenan la escena y por debajo no asoma nada, así
+       Hoy los cinco paneles llenan la escena y por debajo no asoma nada, así
        que esta comprobación parece de más: no lo es. Lo que vigila es que los
        puntos se apaguen —son del libro y el libro no está—, no que queden
        tapados por geometría; el alto de los paneles ya cambió dos veces en
@@ -923,12 +923,18 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
   await cerrarParcial(ses3, 'el panel por fuera');
 
   /* ================================================================
-     LOS CUATRO PANELES ABREN IGUAL, Y LA SALIDA ESTÁ EN EL MISMO SITIO.
+     LOS CINCO PANELES ABREN IGUAL, Y LA SALIDA ESTÁ EN EL MISMO SITIO.
 
-     Esto es un encargo del dueño del repo y es lo que convierte cuatro
-     paneles en uno con cuatro secciones: si el botón de cerrar aparece a una
+     Esto es un encargo del dueño del repo y es lo que convierte cinco
+     paneles en uno con cinco secciones: si el botón de cerrar aparece a una
      altura distinta según la pestaña que tocaste, el pulgar tiene que buscarlo
      cada vez.
+
+     Y LA LISTA CRECIÓ CON ENCUENTROS, que es el panel que más podía romperla:
+     los otros cuatro llevan dentro renglones de controles y éste lleva un
+     relato entero en un marco. Una caja de las suyas que no sepa encogerse
+     empuja el pie fuera de la pantalla, que es exactamente el fallo que este
+     bloque vino a cazar la primera vez.
 
      Y no salía igual. El alto era un TOPE —max-height— así que LIBROS y GLOSAS
      lo llenaban y AAA y Share medían su contenido: 674 y 335 de 915 en un
@@ -937,13 +943,13 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
      no, y esas dos se llevaban los 17 px del relleno de abajo del panel. Los
      dos arreglos están contados en .rollo y en .pie-cerrar.
 
-     Se miden LOS CUATRO y se comparan entre sí, no contra un número escrito:
+     Se miden LOS CINCO y se comparan entre sí, no contra un número escrito:
      lo que se pidió es que sean iguales, y un número aquí sería otra cosa —y
      encima una que cambia con la pantalla—.
      ================================================================ */
-  titulo('los cuatro paneles abren igual, y la salida no se mueve');
-  const ses4 = await abrir();
-  const cuatro = await ses4.pagina.evaluate(async () => {
+  titulo('los cinco paneles abren igual, y la salida no se mueve');
+  const sesP = await abrir();
+  const paneles = await sesP.pagina.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     /* LA BARRA DEL PANEL QUE SE VE, no la primera del documento: las de los
        paneles cerrados se quedan dentro con display:none y van antes en orden,
@@ -954,6 +960,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     const st = () => document.querySelector('.stage').getBoundingClientRect();
     const salida = {};
     for (const [sec, id] of [['libros','canto'], ['glosas','etiquetas'],
+                             ['encuentros','encuentros'],
                              ['formato','ajustes'], ['respaldo','respaldo']]){
       if (!visible()){ document.getElementById('pgCabeza').click(); await pausa(900); }
       const t = (visible() || document).querySelector('.pestanas [data-sec="' + sec + '"]');
@@ -973,15 +980,15 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     }
     return salida;
   });
-  di('los cuatro', JSON.stringify(cuatro));
-  const secs = ['libros', 'glosas', 'formato', 'respaldo'];
-  const todos = secs.map(k => cuatro[k]);
-  vale('(la prueba es válida) se abrieron los cuatro',
-       todos.every(x => x && !x.falta), JSON.stringify(cuatro));
-  vale('LOS CUATRO MIDEN LA ESCENA ENTERA',
+  di('los cinco', JSON.stringify(paneles));
+  const secs = ['libros', 'glosas', 'encuentros', 'formato', 'respaldo'];
+  const todos = secs.map(k => paneles[k]);
+  vale('(la prueba es válida) se abrieron los cinco',
+       todos.every(x => x && !x.falta), JSON.stringify(paneles));
+  vale('LOS CINCO MIDEN LA ESCENA ENTERA',
        todos.every(x => Math.abs(x.alto - x.escena) <= 1),
        secs.map((k,i) => k + ' ' + todos[i].alto + '/' + todos[i].escena).join(' · '));
-  vale('LA SALIDA CAE EN EL MISMO SITIO EN LOS CUATRO',
+  vale('LA SALIDA CAE EN EL MISMO SITIO EN LOS CINCO',
        todos.every(x => x.abajo === todos[0].abajo),
        secs.map((k,i) => k + ' ' + todos[i].abajo).join(' · '));
   vale('  y con el mismo tamaño',
@@ -989,7 +996,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        secs.map((k,i) => k + ' ' + todos[i].ancho + 'x' + todos[i].grueso).join(' · '));
   vale('  y centrada en la escena', todos.every(x => Math.abs(x.eje) <= 1),
        secs.map((k,i) => k + ' ' + todos[i].eje).join(' · '));
-  await cerrarParcial(ses4, 'los cuatro paneles');
+  await cerrarParcial(sesP, 'los cinco paneles');
 
   await cerrar(sesion);
 })();

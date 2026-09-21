@@ -344,18 +344,20 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo,
     aria: document.getElementById('pgCabeza').getAttribute('aria-expanded'),
     /* SE PREGUNTA POR data-sec Y NO POR LA PALABRA, y no es indiferente: la
        pestaña de la letra ya no dice «Formato», dice tres aes de tamaño
-       decreciente, y la de Respaldo dice «Share». Lo que esta prueba quiere
-       saber es si desde el titulillo se llega a las cuatro secciones —no cómo
-       se llaman hoy—, y eso es justo lo que el identificador contesta sin
-       volver a romperse la próxima vez que cambie un rótulo. */
+       decreciente, y la de Respaldo ya no dice «Share», lleva el punto que se
+       abre en otros dos. Lo que esta prueba quiere saber es si desde el
+       titulillo se llega a TODAS las secciones —no cómo se llaman hoy—, y eso
+       es justo lo que el identificador contesta sin volver a romperse la
+       próxima vez que cambie un rótulo. Ya van dos rótulos que cambian y una
+       sección nueva, Encuentros, y esta línea no se ha movido por ninguno. */
     pestanas: [...document.querySelectorAll('.pestanas button')]
                 .map(b => b.dataset.sec) }));
   di('las secciones que quedan a mano', cabeza.pestanas);
   vale('Enter en el titulillo abre la burbuja',
        cabeza.canto !== 'none' && cabeza.aria === 'true',
        cabeza.canto + ' · ' + cabeza.aria);
-  vale('y desde ahí se llega a las cuatro',
-       ['libros','glosas','formato','respaldo']
+  vale('y desde ahí se llega a las cinco',
+       ['libros','glosas','encuentros','formato','respaldo']
          .every(x => cabeza.pestanas.includes(x)), cabeza.pestanas);
   await p.keyboard.press('Escape');
   await p.waitForTimeout(800);
