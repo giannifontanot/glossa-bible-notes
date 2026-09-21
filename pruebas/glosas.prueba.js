@@ -1708,18 +1708,34 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   const filtros = await abrir(TELEFONO);
   const q = filtros.pagina;
   const alPanelDeGlosas = () => q.evaluate(async () => {
-    if (document.getElementById('etiquetas').classList.contains('abierto')) return;
-    document.getElementById('pgCabeza').click();
-    await new Promise(z => setTimeout(z, 900));
-    /* LA TIRA DEL CANTO, no la primera que haya. Hay DOS: una en #canto —la
-       que abre— y otra dentro de #etiquetas, que es la que cambia de pestaña
-       con el panel ya puesto. La del panel se queda en el documento cuando
-       se cierra, y va ANTES en orden, asi que a la segunda vuelta el
-       querySelectorAll suelto cogia esa y el clic no abria nada: la lista
-       seguia siendo la de antes y la glosa nueva no salia. */
-    const t = document.querySelector('#canto .pestanas button[data-sec="glosas"]');
-    if (t) t.click();
-    await new Promise(z => setTimeout(z, 900));
+    /* Abrir el panel y encender la tira son dos cosas, y la segunda hace falta
+       también cuando el panel ya estaba puesto: la tira nace apagada y su
+       estado no depende de si hubo que abrir nada. Por eso el atajo de abajo
+       sólo se salta la apertura. */
+    if (!document.getElementById('etiquetas').classList.contains('abierto')){
+      document.getElementById('pgCabeza').click();
+      await new Promise(z => setTimeout(z, 900));
+      /* LA TIRA DEL CANTO, no la primera que haya. Hay DOS: una en #canto —la
+         que abre— y otra dentro de #etiquetas, que es la que cambia de pestaña
+         con el panel ya puesto. La del panel se queda en el documento cuando
+         se cierra, y va ANTES en orden, asi que a la segunda vuelta el
+         querySelectorAll suelto cogia esa y el clic no abria nada: la lista
+         seguia siendo la de antes y la glosa nueva no salia. */
+      const t = document.querySelector('#canto .pestanas button[data-sec="glosas"]');
+      if (t) t.click();
+      await new Promise(z => setTimeout(z, 900));
+    }
+    /* Y SE ENCIENDE LA TIRA DE ETIQUETAS, que ahora nace apagada. Lo que este
+       fichero viene a tocar son los chips del filtro, y un .click() sobre un
+       elemento escondido SÍ dispara su oyente: sin esta línea la prueba
+       seguiría en verde tocando algo que el lector no ve, que es la peor
+       clase de verde. Se enciende por su botón, como se enciende con el
+       dedo. */
+    const ver = document.getElementById('btnVerEtiquetas');
+    if (ver && document.getElementById('ctrlEtiquetas').classList.contains('sin-chips')){
+      ver.click();
+      await new Promise(z => setTimeout(z, 420));
+    }
   });
   const escribirGlosa = (nota, desde, hasta) => q.evaluate(async ([abrir, nota, d, h]) => {
     const ok = await eval('(' + abrir + ')')(d, h);

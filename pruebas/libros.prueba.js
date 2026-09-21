@@ -678,9 +678,22 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        mismo eje que las dos pestañas del testamento, no que cada nombre esté
        en un píxel concreto.
      · LA SALIDA ES EL PIE Y YA NO LA EQUIS. Se mira que la equis no esté —si
-       volviera, habría dos salidas diciendo lo mismo— que el botón llegue de
-       canto a canto del panel, y sobre todo QUE CIERRE: un pie bonito que no
+       volviera, habría dos salidas diciendo lo mismo—, que el botón MIDA SU
+       PALABRA y vaya centrado, y sobre todo QUE CIERRE: un pie bonito que no
        cierra es peor que la equis que quitó.
+       Esta línea exigía lo contrario —«de canto a canto»— y era verdad: el pie
+       nació del ancho entero. El dueño del repo lo paró al verlo puesto (una
+       barra de 412 px para seis letras) y pidió un botón del tamaño de su
+       palabra, centrado y unos píxeles por encima del canto. Así que ahora se
+       exige eso, y se exige POR LOS DOS LADOS: que no llegue al ancho del
+       panel y que tampoco se quede en un botón de juguete, porque «estrecho»
+       sin suelo se cumple también con 20 px.
+     · Y LA ESCENA SE APAGA DEBAJO. El panel y el libro son los dos de papel
+       claro y compiten; con un velo apagado detrás, el panel es lo único con
+       luz. Se mira que esté encendido con el panel y apagado sin él, que cubra
+       la escena entera y —lo que de verdad puede romperse— que NO recoja el
+       toque: el «clic fuera» que cierra la burbuja escucha en el papel, y un
+       velo que atrapara los toques dejaría los paneles sin esa salida.
      · Y QUE SE VEA SIEMPRE, que es lo que se pidió con esas palabras. Se
        comprueba donde de verdad puede fallar: con el panel desplazado hasta
        el final. Pegado, sigue apoyado en el canto de abajo; suelto, se habría
@@ -710,14 +723,29 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     /* Las guías nacen encendidas en una instalación nueva, así que esto es
        tal cual lo que ve quien abre el libro por primera vez. */
     const guias = document.querySelector('.stage').classList.contains('guias');
+    /* El velo se lee por su opacidad pintada y no por la clase que lo
+       enciende: la clase es la orden, la opacidad es lo que se ve. */
+    const veloAhora = () => {
+      const v = document.getElementById('veloPanel');
+      if (!v) return { falta:true };
+      const c = getComputedStyle(v), r = v.getBoundingClientRect();
+      const st = document.querySelector('.stage').getBoundingClientRect();
+      return { opacidad: +c.opacity, puntero: c.pointerEvents, capa: +c.zIndex,
+               cubre: Math.abs(r.width - st.width) < 2 &&
+                      Math.abs(r.height - st.height) < 2 };
+    };
     const antes = { puntos: LOS_PUNTOS.filter(visto),
                     cabeza: anillo('#pg .pg-cabeza'),
-                    version: anillo('#pg .pg-version') };
+                    version: anillo('#pg .pg-version'),
+                    velo: veloAhora() };
     await abrirLibros();
     const con = { puntos: LOS_PUNTOS.filter(visto),
                   sello: visto('btnGlosas'),
                   cabeza: anillo('#pg .pg-cabeza'),
-                  version: anillo('#pg .pg-version') };
+                  version: anillo('#pg .pg-version'),
+                  velo: veloAhora(),
+                  /* Y por debajo del panel, que es lo que lo deja limpio. */
+                  capaPanel: +getComputedStyle(document.getElementById('canto')).zIndex };
 
     /* CENTRADOS: el eje del bloque de nombres contra el eje de su caja. */
     const rej = document.querySelector('#canto .rejilla-libros');
@@ -738,6 +766,17 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     const btn = document.querySelector('#canto .pie-cerrar .cerrar-pie');
     const rb = btn ? btn.getBoundingClientRect() : null;
     const equis = document.querySelectorAll('.pestanas .cerrar-x').length;
+    /* CUÁNTO MIDE «CERRAR» DE VERDAD, medido sobre las letras pintadas y no a
+       ojo: un Range sobre el texto del botón devuelve la caja de la palabra
+       con la letra que de verdad le tocó. Se compara contra eso y no contra un
+       número escrito, porque el ancho cambia con --escala-ui y con la letra
+       que tenga instalada la máquina; un número fijo aquí sería una prueba que
+       falla en otro ordenador sin que nada esté mal. */
+    const palabra = (() => {
+      const g = document.createRange();
+      g.selectNodeContents(btn);
+      return g.getBoundingClientRect().width;
+    })();
     /* Con el contenido corrido hasta el final: es donde un pie no pegado se
        habría ido de la pantalla. */
     const cuerpo = document.getElementById('cantoCuerpo');
@@ -764,12 +803,19 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     btn.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, o)));
     await pausa(900);
     const tras = { panel: getComputedStyle(panel).display,
-                   puntos: LOS_PUNTOS.filter(visto) };
+                   puntos: LOS_PUNTOS.filter(visto),
+                   velo: veloAhora() };
 
     return { guias, antes, con, centrados, equis, alFinal, sinGuias, casilla,
              anchoBoton: rb ? Math.round(rb.width) : 0,
              altoBoton: rb ? Math.round(rb.height) : 0,
              anchoPanel: Math.round(rp.width),
+             palabra: Math.round(palabra),
+             /* Centrado contra el eje del panel, y el hueco que le queda por
+                debajo: lo que se pidió es que no vaya aventado al fondo. */
+             descentrado: rb ? Math.round((rb.left + rb.right) / 2 -
+                                          (rp.left + rp.right) / 2) : null,
+             huecoAbajo: rb ? Math.round(rp.bottom - rb.bottom) : null,
              libros: libros.length, enLaFila: fila.length, tras };
   });
   di('sin panel', JSON.stringify(fuera.antes));
@@ -793,9 +839,27 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        fuera.centrados + ' px  (' + fuera.enLaFila + ' en la última fila de ' +
        fuera.libros + ')');
   vale('LA EQUIS YA NO ESTÁ EN LAS PESTAÑAS', fuera.equis === 0, fuera.equis);
-  vale('y el pie cubre el panel de lado a lado',
-       fuera.anchoBoton === fuera.anchoPanel,
-       fuera.anchoBoton + ' de ' + fuera.anchoPanel);
+  di('el botón de cerrar', fuera.anchoBoton + ' px de ' + fuera.anchoPanel +
+     ' · la palabra mide ' + fuera.palabra);
+  /* NI DE CANTO A CANTO NI DE JUGUETE. El techo es la mitad del panel —lo que
+     se quitó es la barra— y el suelo es la palabra más su aire, que es lo que
+     lo distingue de un botón encogido hasta no poder leerse. */
+  vale('EL BOTÓN MIDE SU PALABRA, NO EL PANEL',
+       fuera.anchoBoton < fuera.anchoPanel / 2 &&
+       fuera.anchoBoton >= fuera.palabra + 16,
+       fuera.anchoBoton + ' px  (palabra ' + fuera.palabra +
+       ', panel ' + fuera.anchoPanel + ')');
+  vale('  y va centrado', Math.abs(fuera.descentrado) <= 1,
+       fuera.descentrado + ' px del eje');
+  /* Y NO AVENTADO AL FONDO, que es como se pidió. El techo es ancho a
+     propósito: el hueco sale de 11 px en este panel —que llena su tope y va
+     desplazado, así que el pie se apoya en el canto— y de 28 en los tres que
+     caben enteros, donde el pie se queda al final de su columna con el relleno
+     del panel por debajo. Está contado en .pie-cerrar. Clavar aquí el 11 sería
+     escribir una prueba que sólo vale para el panel que más contenido tiene. */
+  vale('  y le queda aire antes del canto de abajo',
+       fuera.huecoAbajo >= 6 && fuera.huecoAbajo <= 34,
+       fuera.huecoAbajo + ' px');
   vale('  y sigue a la vista con el panel corrido hasta el final',
        fuera.alFinal === true);
   /* EL SUELO DE LA CASA, Y ESTA LÍNEA NACIÓ DE UN FALLO. La regla del alto se
@@ -808,6 +872,24 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
   vale('  y con blanco de dedo, 48 px', fuera.altoBoton >= 48,
        fuera.altoBoton + ' px');
   vale('  y CIERRA', fuera.tras.panel === 'none', fuera.tras.panel);
+  di('el velo', JSON.stringify(fuera.antes.velo) + '  →  ' +
+     JSON.stringify(fuera.con.velo));
+  vale('SIN PANEL LA ESCENA NO ESTÁ VELADA',
+       fuera.antes.velo.opacidad < .02, fuera.antes.velo);
+  vale('Y CON EL PANEL PUESTO, SÍ', fuera.con.velo.opacidad > .9,
+       fuera.con.velo);
+  vale('  cubriendo la escena entera', fuera.con.velo.cubre === true,
+       fuera.con.velo);
+  /* La que de verdad puede romperse: el velo no recoge el toque. Si lo
+     recogiera, tocar la hoja dejaría de cerrar la burbuja. */
+  vale('  sin atrapar el toque', fuera.con.velo.puntero === 'none',
+       fuera.con.velo.puntero);
+  vale('  y por debajo del panel', fuera.con.velo.capa < fuera.con.capaPanel,
+       fuera.con.velo.capa + ' contra ' + fuera.con.capaPanel);
+  /* Y SE VA CON EL PANEL. Un velo que se quedara puesto dejaría el libro
+     apagado para siempre, y eso no lo dice ninguna de las líneas de arriba. */
+  vale('  y se apaga al cerrar', fuera.tras.velo.opacidad < .02,
+       fuera.tras.velo);
   vale('(la prueba es válida) la casilla se lee con las guías apagadas',
        fuera.sinGuias === true);
   vale('EL RECUADRO ROJO DE LA CASILLA ES PERMANENTE',
