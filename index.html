@@ -1183,7 +1183,7 @@
   .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after,
   .stage.guias #btnZoom::after, .stage.guias #btnHistorial::after,
   .stage.guias #pg .pg-version::after,
-  .stage.guias #btnGlosas::after, .stage.guias .flecha-hoja::after{
+  .stage.guias #btnGlosas::after{
             content:var(--guia-dice, "") / "";
             position:absolute; z-index:2; pointer-events:none;
             white-space:nowrap;
@@ -1361,12 +1361,13 @@
      apuntando al mismo sitio hacia el que se jala. */
   .stage.guias #btnGlosas::after{
             right:calc(100% - 6px); top:50%; transform:translateY(-50%); }
-  /* Las flechas se anclan al canto por el que entran y no a su centro: miden
-     20 px pegadas al filo de la pantalla, así que un letrero centrado sobre
-     ellas se saldría por el lado. */
-  .stage.guias .flecha-hoja::after{ bottom:calc(100% + 3px); }
-  .stage.guias .flecha-l::after{ left:0; }
-  .stage.guias .flecha-r::after{ right:0; }
+  /* AQUÍ ESTUVO EL LETRERO DE LAS FLECHAS, y se fue a petición del dueño del
+     repo. Tenía menos que decir que los demás y estorbaba más: la flecha YA ES
+     el letrero —está escrito en su propio comentario, es un dibujo que señala
+     dónde tocar, no un botón— así que «click» al lado repetía en palabras lo
+     que la punta ya decía señalando. Y a cambio era el único de los nueve que
+     caía siempre sobre renglón lleno, a media altura de la columna. Las
+     flechas conservan su rojo, que es lo que las mete en la familia. */
   /* Y LAS PALABRAS. Una línea por gesto, que es como hay que leerlo: lo que
      cambia entre estas puertas no es el sitio, es lo que hay que hacer. */
   /* EL TITULILLO DE ARRIBA SE QUEDA CON SU ANILLO Y SIN PALABRA. Pedido por el
@@ -1381,8 +1382,7 @@
      aire del pie sin tapar nada. */
   .stage.guias #btnPiedras, .stage.guias #btnCintas,
   .stage.guias #btnZoom, .stage.guias #btnHistorial,
-  .stage.guias #pg .pg-version,
-  .stage.guias .flecha-hoja{ --guia-dice:"click"; }
+  .stage.guias #pg .pg-version{ --guia-dice:"click"; }
   .stage.guias #pg .peri{ --guia-dice:"click largo"; }
   .stage.guias #btnGlosas{ --guia-dice:"jalar"; }
   /* UN LETRERO QUE MIENTE ES PEOR QUE NINGUNO, y hay dos sitios donde este
@@ -1415,9 +1415,8 @@
      juntos. */
   .stage.zoom #pg .pg-cabeza, .stage.zoom #pg .pg-version{ box-shadow:none; }
   .stage.zoom #pg .peri::after, .stage.zoom #pg .pg-version::after,
-  .stage.zoom .flecha-hoja::after,
-  .stage.conpanel #pg .peri::after, .stage.conpanel #pg .pg-version::after,
-  .stage.conpanel .flecha-hoja::after{ content:none; }
+  .stage.conpanel #pg .peri::after,
+  .stage.conpanel #pg .pg-version::after{ content:none; }
   /* CON EL PANEL PUESTO, LA HOJA NO ENSEÑA SUS PUERTAS.
 
      Los cuatro puntos son del LIBRO, y el libro está tapado: eso ya se dijo
@@ -4892,7 +4891,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '20-SEP-26 19:13';
+window.GLOSS_BUILD = '20-SEP-26 19:23';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7558,6 +7557,12 @@ function renderPage(){
      hoja venga de donde venga: del filo, del botón o de un salto. */
   if (zoomActivo) refrescarPasos();
   if (typeof encenderG === 'function') encenderG();
+  /* El punto de las cintas se coloca contra el titulillo y la columna de
+     glosas, y las dos cosas acaban de rehacerse. Va aquí y no en
+     pintarSeparador —que sería el sitio natural— porque aquélla se va por
+     varias puertas antes de llegar al final, y este punto tiene que quedar
+     puesto haya cinta o no. Ver colocarPuntoCintas. */
+  if (typeof colocarPuntoCintas === 'function') colocarPuntoCintas();
   return r;
 }
 function renderPageCrudo(){
@@ -16186,6 +16191,51 @@ function aplicarMedidasSeparador(percha){
   percha.style.setProperty('--cinta-ancho', m.ancho + 'px');
   percha.style.setProperty('--cinta-izq', m.izq + 'px');
 }
+/* EL PUNTO DE LAS CINTAS SE COLOCA ENTRE EL TITULILLO Y LA CINTA.
+
+   Vivía pegado al canto derecho de la escena, que es donde viven sus tres
+   hermanos, y ahí quedaba a un dedo de la cinta: en un teléfono de 412 el
+   punto acababa en 402 y la cinta empieza en 415, trece píxeles entre una
+   puerta y otra. Dos cosas que hacen cosas distintas a trece píxeles se tocan
+   la que no era. El dueño del repo pidió ponerlo justo en medio de los dos
+   vecinos de arriba, y en medio es donde ninguno de los dos lo reclama.
+
+   SE MIDE AUNQUE NO HAYA CINTA, que es la otra mitad de lo que se pidió: la
+   posición tiene que ser la misma se esté leyendo una hoja con cinta o sin
+   ella, o el punto bailaría de sitio al pasar hoja. sepMedidas() calcula dónde
+   CABRÍA la cinta a partir de la columna de glosas, que está siempre, así que
+   no hace falta que haya ninguna puesta.
+
+   Y SE NORMALIZA CONTRA EL DESPLAZAMIENTO DEL PAPEL. En teléfono la hoja es
+   más ancha que la pantalla y se corre a mano para ver las glosas, así que la
+   cinta y el titulillo cambian de sitio EN PANTALLA mientras el punto no se
+   mueve —vive en la escena—. Midiendo a pelo, el punto se recolocaría a cada
+   desliz. Sumando pg.scrollLeft se mide siempre la hoja en reposo, que es la
+   única posición que vale para algo fijo.
+
+   CUANDO NO HAY HUECO, NO SE TOCA. En pantalla ancha el titulillo vive en la
+   esquina de arriba a la derecha, o sea a la DERECHA de donde cuelga la cinta:
+   entre los dos no hay «en medio», y la cuenta daría un sitio encima del
+   propio titulillo. Ahí el punto se queda donde lo pone la hoja de estilos,
+   que además es donde no estorba, porque el problema que esto arregla —el
+   punto rozando la cinta— sólo existe cuando la cinta está a su lado. */
+function colocarPuntoCintas(){
+  const b = document.getElementById('btnCintas');
+  const inner = pg && pg.querySelector('.pg-inner');
+  const cab = pg && pg.querySelector('.pg-cabeza');
+  if (!b || !inner || !cab) return;
+  const suelta = () => { b.style.left = ''; b.style.right = ''; };
+  const corrido = pg.scrollLeft || 0;
+  const st = stage.getBoundingClientRect();
+  const cinta = inner.getBoundingClientRect().left + corrido + sepMedidas().izq;
+  const finTitulillo = cab.getBoundingClientRect().right + corrido;
+  const ancho = b.offsetWidth || 34;
+  /* Con menos hueco que el propio punto no hay en medio que valga. */
+  if (!(cinta - finTitulillo > ancho)) return suelta();
+  const centro = (finTitulillo + cinta) / 2 - st.left;
+  b.style.left = Math.round(centro - ancho / 2) + 'px';
+  b.style.right = 'auto';
+}
 function actualizarSeparador(percha, s){
   const t = telaDe(s.color);
   const btn = percha.querySelector('.separador');
@@ -18123,6 +18173,68 @@ function pintarSepMenu(){
      busca una salida.
      Y leído de arriba abajo tiene más sentido así: primero de qué panel es
      esto, después la sección de la cinta que tocaste. */
+  /* DOS PANELES EN UNA CAJA, Y AHORA DE VERDAD DOS.
+
+     Se llega aquí por dos puertas distintas y se viene a hacer dos cosas
+     distintas:
+
+     · POR LA CINTA DE LA HOJA. Tocas la cinta que estás viendo. Lo único que
+       se quiere ahí es cambiarle el color —lo pidió el dueño del repo con esas
+       palabras, «nada más»— y todo lo demás que salía era ruido: el rótulo del
+       panel entero, el botón de poner una cinta nueva y la lista de todas las
+       que hay. Tres cosas que contestan preguntas que no se hicieron, puestas
+       delante de la única que sí. Ahora sale la paleta y la salida, y ya.
+     · POR EL PUNTO DE LA ESQUINA. Ahí no hay «esta cinta»: se viene a ver las
+       que hay, saltar a una, renombrarla o quitarla. Ése panel se queda entero
+       como estaba.
+
+     Quitar una cinta no se pierde con esto: la equis para hacerlo vive EN la
+     propia cinta de la hoja, al lado de la que se está tocando, que es donde
+     se busca. Ver montarSeparador. */
+  if (s){
+    /* LA PREGUNTA DE BORRAR TIENE QUE CABER AQUÍ, y por poco se queda fuera.
+
+       La equis que quita una cinta vive EN la cinta, no en este panel, pero lo
+       que hace es encender sepBorrando y pedirle a este panel que pregunte; y
+       la pregunta se dibujaba dentro de la fila de la lista. Quitando la lista
+       se quitaba también el único sitio donde cabía la pregunta: la equis
+       habría dejado de borrar, sin decir nada. Se descubrió leyendo el oyente
+       de [data-sep-x], no usándolo.
+       Así que en modo cinta la fila vuelve, pero sólo la de ESTA cinta y sólo
+       mientras se está preguntando: es la misma pregunta de siempre, al lado
+       de lo que se va a borrar. */
+    $('sepMenu').innerHTML =
+      '<div class="sp-cabeza"><span class="sp-tit">Color de la cinta</span>' +
+        spCerrarHTML('cintas', 'el panel de la cinta') +
+      '</div>' +
+      '<div class="sp-telas" role="group" aria-label="Color del separador">' +
+      TELAS.map(t => '<button class="sp-tela" data-sep-color="' + t[0] + '"' +
+        ' style="background:' + t[2] + '" aria-pressed="' + (t[0] === s.color) + '"' +
+        ' aria-label="Cinta ' + t[1] + '" title="' + t[1] + '"></button>').join('') +
+      '</div>' +
+      (sepBorrando === s.id ? filaHTML({
+        clase: aqui(s) ? ' aqui' : '',
+        abriendo: false,
+        borrando: true,
+        chip: '<span class="sp-chip" style="background:' + telaDe(s.color)[2] +
+              '" aria-hidden="true"></span>',
+        ref: sepTexto(s),
+        voz: 'cinta en ' + nombreDe(s.libro) + ' ' + s.cap + ':' + s.vers,
+        nombre: s.nombre, tope: 70,
+        irAttr: 'data-sep-ir="' + esc(s.id) + '"',
+        campoAttr: 'data-sep-nombre="' + esc(s.id) + '"',
+        borrarAttr: 'data-sep-borrar="' + esc(s.id) + '"',
+        pedirAttr: 'data-sep-pedir-borrar="' + esc(s.id) + '"',
+        cancelarAttr: 'data-sep-cancelar="1"',
+      }) : '');
+    if (sepBorrando){
+      /* EL FOCO AL «NO», por lo de siempre: quien llega con el teclado y pulsa
+         Intro sin leer no puede borrar de un golpe algo que no se deshace. */
+      const no = $('sepMenu').querySelector('[data-sep-cancelar]');
+      if (no) no.focus({ preventScroll:true });
+    }
+    return;
+  }
   $('sepMenu').innerHTML =
     /* PONER UNA CINTA SE PIDE DESDE AQUÍ, que es donde se está mirando las que
        hay. Estuvo en el renglón del rastro, lejos de esta lista y con el ancho
@@ -18136,15 +18248,6 @@ function pintarSepMenu(){
         '<span class="sp-chip" aria-hidden="true"></span></button>' +
       spCerrarHTML('cintas', 'el panel de cintas') +
     '</div>' +
-    /* Las telas sólo si se vino de una cinta: en modo lista no hay «esta
-       cinta» cuyo color cambiar, y enseñar la paleta apuntando a ninguna
-       sería ofrecer un mando que no manda nada. */
-    (s ? '<span class="sp-tit">Color de la cinta</span>' +
-      '<div class="sp-telas" role="group" aria-label="Color del separador">' +
-      TELAS.map(t => '<button class="sp-tela" data-sep-color="' + t[0] + '"' +
-        ' style="background:' + t[2] + '" aria-pressed="' + (t[0] === s.color) + '"' +
-        ' aria-label="Cinta ' + t[1] + '" title="' + t[1] + '"></button>').join('') +
-      '</div>' : '') +
     (lista.length ? lista.map(x => filaHTML({
       clase: aqui(x) ? ' aqui' : '',
       abriendo: sepEditando === x.id,
@@ -20301,6 +20404,11 @@ window.addEventListener('resize', () => {
   /* renderPage rehace la hoja, así que el trazo —si sobrevivió— está en otro
      sitio de la pantalla y sus bolitas también. */
   colocarTiradores();
+  /* Y el punto de las cintas, por lo mismo: girar cambia el ancho de la
+     columna de glosas, o sea dónde cuelga la cinta, o sea dónde está el medio.
+     renderPage ya lo coloca, pero lo hace ANTES de que medirZoom deje la hoja
+     con sus medidas nuevas. */
+  colocarPuntoCintas();
 });
 })();
 </script>

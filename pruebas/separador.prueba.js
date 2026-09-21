@@ -317,7 +317,19 @@ async function ponerAMano(p){
   vale('se abre al tocar la cinta', !!menu.abierto);
   vale('entero dentro de la escena', menu.abierto && menu.abierto.dentro);
   vale('trae los colores', menu.abierto && menu.abierto.telas >= 3, menu.abierto && menu.abierto.telas);
-  vale('y la lista', menu.abierto && menu.abierto.filas === 1);
+  /* Y NADA MÁS QUE LOS COLORES, que es lo que se pidió con esas palabras.
+
+     Aquí se exigía «y la lista», con una fila. Tocar la cinta que estás
+     viendo sacaba además el rótulo del panel entero, el botón de poner una
+     cinta nueva y la lista de todas las que hay: tres cosas que contestan
+     preguntas que no se hicieron, delante de la única que sí. Ahora esa puerta
+     lleva a la paleta y a la salida.
+     Se afirma que NO hay lista, y no se calla: una prueba que dejara de mirar
+     la lista pasaría igual con la lista puesta, y el encargo era quitarla. La
+     lista sigue existiendo por su propia puerta —el punto de la esquina— y eso
+     lo vigila el bloque de «la lista lleva a la hoja guardada». */
+  vale('y NADA MÁS: ni lista, ni «nueva», ni el rótulo del panel entero',
+       menu.abierto && menu.abierto.filas === 0, menu.abierto && menu.abierto.filas);
   vale('el color cambia en el acto', menu.antes !== menu.despues);
   vale('y queda guardado', menu.guardado === menu.nombre, menu.guardado);
   vale('el color elegido se anuncia', menu.marcado === 'true');
@@ -328,6 +340,62 @@ async function ponerAMano(p){
     await window.__pausa(400);
     return !window.__menu();
   }));
+
+  /* ---------------------------------------------------------------- */
+  /* EL PUNTO DE LAS CINTAS, EN MEDIO DE SUS DOS VECINOS.
+
+     Vivía pegado al canto derecho de la escena, que es donde viven sus tres
+     hermanos, y ahí quedaba a un dedo de la cinta: en un teléfono de 412 el
+     punto acababa en 402 y la cinta empieza en 398. Dos puertas a cuatro
+     píxeles se tocan la que no era. El dueño del repo pidió ponerlo justo en
+     medio del titulillo y la cinta.
+
+     LO QUE DE VERDAD VIGILA ESTE BLOQUE es la segunda mitad del encargo: que
+     esa posición sea LA MISMA haya cinta o no. El punto vive en la escena y la
+     cinta en la hoja, así que es perfectamente posible escribir una cuenta que
+     sólo funcione cuando hay una puesta —y entonces el punto bailaría de sitio
+     al pasar de una hoja con cinta a una sin ella, que es de las cosas que más
+     se notan sin saber decir qué pasó—. Se mide antes y después de poner una,
+     y se exige el mismo píxel.
+
+     El medio se comprueba contra el titulillo y contra la cinta de verdad, no
+     contra un número: dónde caen los dos depende del ancho de la columna de
+     glosas, que cambia con la letra y con la pantalla. */
+  titulo('el punto de las cintas se queda en medio, haya cinta o no');
+  const enMedio = await p.evaluate(async () => {
+    const lee = () => {
+      const b = document.getElementById('btnCintas').getBoundingClientRect();
+      const t = document.querySelector('#pg .pg-cabeza').getBoundingClientRect();
+      const c = document.querySelector('#sepPercha .separador');
+      return { punto: Math.round(b.left) + ',' + Math.round(b.right),
+               centro: (b.left + b.right) / 2,
+               finTitulillo: t.right,
+               cinta: c ? c.getBoundingClientRect().left : null };
+    };
+    /* Sin cinta: en esta hoja no hay ninguna puesta todavía. */
+    const sin = lee();
+    await window.__toque('[data-sep-lista]');
+    await window.__pausa(450);
+    await window.__toque('[data-sep-nuevo]');
+    await window.__pausa(1200);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(600);
+    const con = lee();
+    return { sin, con,
+             desvio: con.cinta == null ? null
+               : Math.round(con.centro - (con.finTitulillo + con.cinta) / 2) };
+  });
+  di('sin cinta', JSON.stringify(enMedio.sin));
+  di('con cinta', JSON.stringify(enMedio.con));
+  vale('(la prueba es válida) se puso una cinta y antes no había',
+       enMedio.sin.cinta === null && enMedio.con.cinta !== null,
+       'antes: ' + enMedio.sin.cinta + ' · después: ' + enMedio.con.cinta);
+  vale('EL PUNTO NO SE MUEVE AL PONER LA CINTA',
+       enMedio.sin.punto === enMedio.con.punto,
+       enMedio.sin.punto + '  vs  ' + enMedio.con.punto);
+  vale('  y cae en medio del titulillo y la cinta',
+       enMedio.desvio !== null && Math.abs(enMedio.desvio) <= 1,
+       enMedio.desvio + ' px del medio');
 
   /* ---------------------------------------------------------------- */
   titulo('la lista lleva a la hoja guardada');
@@ -344,7 +412,12 @@ async function ponerAMano(p){
     await window.__nuevaCinta();
     await window.__pausa(700);
     await window.__abrirCajon();
-    await window.__toque('.separador');
+    /* SE ABRE POR EL PUNTO DE LA ESQUINA Y NO POR LA CINTA, y el cambio no es
+       de comodidad. El panel tiene dos modos y ahora dicen dos cosas
+       distintas: tocando la CINTA sale sólo su paleta de color —pedido así,
+       «nada más»— y tocando el PUNTO sale la lista de todas. Lo que este
+       bloque mira es la lista, así que entra por la puerta de la lista. */
+    await window.__toque('[data-sep-lista]');
     await window.__pausa(450);
     const m = window.__menu();
     /* La referencia lleva pegado el «· aquí» cuando la cinta cae en esta
@@ -1701,10 +1774,17 @@ async function ponerAMano(p){
     const vivo = document.querySelectorAll('#pgBody .v').length > 0;
     const cinta = window.__cinta();
     if (!cinta) return { vivo, cinta:null };
-    await window.__toque('.separador');
+    /* DOS PUERTAS PARA DOS COSAS: las filas están en la lista, que abre el
+       punto de la esquina; la paleta está en el panel de la cinta, que abre la
+       cinta. Antes salían las dos juntas y bastaba con un toque. */
+    await window.__toque('[data-sep-lista]');
     await window.__pausa(450);
     const filas = [...document.querySelectorAll('[data-sep-ir]')]
       .map(f => f.querySelector('.sp-ref').textContent.trim());
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(450);
+    await window.__toque('.separador');
+    await window.__pausa(450);
     /* Un toque en un color reescribe el almacén con lo que de verdad quedó. */
     const otra = [...document.querySelectorAll('[data-sep-color]')]
       .find(t => t.getAttribute('aria-pressed') !== 'true');

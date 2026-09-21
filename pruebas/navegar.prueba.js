@@ -1001,9 +1001,19 @@ const ATERRIZA = 7000;
        'renglón: ' + c.anilloPeri + ' · caja: ' + c.anilloCaja);
   vale('LA G DICE «jalar»', suena(c.g, 'jalar'), c.g);
   vale('y los otros cinco dicen «click»',
-       [c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha]
+       [c.version, c.piedras, c.cintas, c.zoom, c.hist]
          .every(x => suena(x, 'click')),
-       [c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha].join(' · '));
+       [c.version, c.piedras, c.cintas, c.zoom, c.hist].join(' · '));
+  /* LAS FLECHAS SE QUEDARON SIN PALABRA, pedido por el dueño del repo. Tenían
+     menos que decir que las demás y estorbaban más: la flecha YA ES el letrero
+     —es un dibujo que señala dónde tocar, no un botón— así que «click» al lado
+     repetía en palabras lo que la punta decía señalando, y a cambio era el
+     único de los nueve que caía siempre sobre renglón lleno, a media altura de
+     la columna. Se afirma que no dice nada, y no se calla: un letrero vacío
+     dejaría rastro —la regla compartida le pone relleno y anillo— y esta línea
+     es lo que lo caza. */
+  vale('  y las flechas no dicen nada, que ellas ya señalan',
+       c.flecha === 'none', c.flecha);
   /* EL TITULILLO DE ARRIBA SE QUEDÓ CON SU ANILLO Y SIN PALABRA, pedido por el
      dueño del repo: es el único de los nueve sin sitio donde poner el letrero
      —arriba el canto, a los lados los dos puntos con los suyos, debajo el
@@ -1017,9 +1027,9 @@ const ATERRIZA = 7000;
   /* Decorativos: lo que el lector de pantalla necesita ya se lo dicen
      aria-haspopup y aria-expanded, que están puestos desde antes. */
   vale('  y NINGUNO se lee en voz alta',
-       [c.peri, c.g, c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha]
+       [c.peri, c.g, c.version, c.piedras, c.cintas, c.zoom, c.hist]
          .every(mudo),
-       'alternativo vacío en los ocho');
+       'alternativo vacío en los siete');
   vale('DE LEJOS SE APAGAN, que ahí no responde ninguno',
        z.peri === 'none' && z.cabeza === 'none' && z.version === 'none' &&
        z.anilloPeri === 'none' && z.anilloCabeza === 'none',
