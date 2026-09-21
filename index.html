@@ -5177,7 +5177,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 08:15';
+window.GLOSS_BUILD = '21-SEP-26 08:19';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17023,14 +17023,34 @@ function sepLlegada(){
   const sitio = { libro: LIBRO, n: paginaActual };
   const permanencia = sepLlegadaEn ? ahora - sepLlegadaEn : 0;
   const ant = sepHojaAnterior;
-  const salto = sepSalto; sepSalto = false;
+  /* DE LEJOS NO SE LEE, ASÍ QUE LA CINTA NO SE MUEVE.
+
+     La vista de lejos tiene su propio acelerador: se sostiene el tirador y las
+     hojas pasan solas, cada vez más deprisa. Eso es hojear —buscar por la
+     forma de la mancha, contar cuánto falta— y la cinta marca hasta dónde
+     LEÍSTE; arrastrarla con veinte hojas que pasaron en tres segundos la deja
+     donde el lector no ha estado. Es el mismo argumento por el que no se mueve
+     hacia atrás: volver a mirar no es avanzar.
+
+     Se trata como un salto, que es la categoría que ya existe para «llegaste
+     aquí sin leer» y que apaga las tres cosas a la vez —no mueve la cinta, no
+     cuenta hoja leída y no rearma la cuenta que acaba ofreciendo una—. Se
+     pregunta por el ESTADO y no por quién pasó la hoja, igual que
+     cintaSeQuedaDetras pregunta por el sitio y no por el sentido del gesto:
+     así cubre también las teclas y cualquier camino que se añada mañana.
+
+     Y ojo al orden con cerrarZoom, que apaga zoomActivo en su primer renglón:
+     salir de la vista eligiendo hoja llega aquí con el zoom ya apagado, pero
+     por el camino del salto, que tampoco mueve la cinta. */
+  const salto = sepSalto || zoomActivo; sepSalto = false;
   /* Adelante: hoja siguiente del mismo libro, o primera hoja del libro
      siguiente al cruzar leyendo. Atrás: hoja anterior del mismo libro.
      Los dos cuentan como pasar hoja —la cinta de la hoja nueva entra suave en
      los dos casos, y la que el lector traía se adopta igual—, pero MOVER la
      cinta activa solo pasa hacia adelante: de eso se encarga avanzarSeparador,
      que mira dónde queda cada una en vez de fiarse del sentido del gesto. Un
-     salto (índice, glosa, paso atrás del rastro) no mueve nada. */
+     salto (índice, glosa, paso atrás del rastro) no mueve nada, y pasar hoja
+     EN LA VISTA DE LEJOS tampoco: ver el salto de arriba. */
   const adelante = !salto && !!ant &&
                   ((sitio.libro === ant.libro && sitio.n === ant.n + 1) ||
                    (sitio.libro !== ant.libro && sitio.n === 0));

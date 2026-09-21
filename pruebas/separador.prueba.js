@@ -1753,6 +1753,74 @@ async function ponerAMano(p){
   vale('y la nueva sí', vieja.despues.length === 2 &&
        vieja.despues.some(x => !vieja.antes.includes(x)));
 
+  /* ================================================================
+     Y DE LEJOS TAMPOCO ANDA, AUNQUE SE VAYA HACIA ADELANTE.
+
+     Es la misma idea que el bloque de arriba, por el otro lado. La vista de
+     lejos tiene su propio acelerador: se sostiene el tirador y las hojas pasan
+     solas, cada vez más deprisa. Eso es hojear —buscar por la forma de la
+     mancha, ver cuánto falta— y la cinta marca hasta dónde LEÍSTE; arrastrarla
+     con veinte hojas que pasaron en tres segundos la deja donde el lector no
+     ha estado.
+
+     EL CONTROL ES LA MITAD DE ESTA PRUEBA, y sin él no prueba nada: «la cinta
+     no se movió» lo cumple igual de bien una cinta que ya no se mueve NUNCA,
+     que es el fallo más fácil de introducir aquí. Así que se pasa hoja de
+     cerca al terminar y se exige que SÍ se mueva.
+     Y se comprueba que la hoja cambió de verdad de lejos: si los pasos no
+     pasaran hojas, la cinta se quedaría quieta por no haber ido a ninguna
+     parte y esto saldría verde sin haber mirado lo que viene a mirar.
+     ================================================================ */
+  titulo('DE LEJOS LA CINTA TAMPOCO ANDA');
+  const deLejos = await p2.evaluate(async () => {
+    /* LA ACTIVA, que a estas alturas del fichero es la segunda: la primera
+       se quedó atrás a propósito en el bloque de arriba y una cinta quieta no
+       prueba nada aquí —no se movería ni leyendo—. */
+    const id = (window.__cinta() || {}).id;
+    const donde = () => { const c = window.__guardadas().find(x => x.id === id);
+                          return c ? c.cap + ':' + c.vers : '(no está)'; };
+    const salida = { cinta: donde(), hoja: window.__hoja() };
+    document.getElementById('btnZoom').click();
+    await window.__pausa(1600);
+    const paso = document.querySelector('#zoomPasos [data-paso="1"]');
+    if (!paso) return { sinPaso:true, salida };
+    /* Tres hojas hacia adelante, que es el sentido en el que sí se movería
+       leyendo de cerca. */
+    for (let i = 0; i < 3; i++){ paso.click(); await window.__pausa(2200); }
+    const lejos = { cinta: donde(), hoja: window.__hoja(),
+                    enZoom: document.getElementById('pg').classList.contains('zoom') };
+    /* Se sale por el hueco de debajo del libro, que es la salida de verdad. */
+    const r = document.querySelector('#pg .pg-inner').getBoundingClientRect();
+    document.getElementById('pg').dispatchEvent(new MouseEvent('click',
+      { bubbles:true, clientX:Math.round(r.left+r.width/2), clientY:Math.round(r.bottom+60) }));
+    await window.__pausa(2200);
+    const alVolver = { cinta: donde(), hoja: window.__hoja(),
+                       cerca: !document.getElementById('pg').classList.contains('zoom') };
+    /* EL CONTROL: de cerca sí anda. */
+    await window.__pasar('right');
+    await window.__pausa(900);
+    return { salida, lejos, alVolver, control: { cinta: donde(), hoja: window.__hoja() } };
+  });
+  di('la cinta de lejos', JSON.stringify(deLejos));
+  vale('(la prueba es válida) hay una cinta activa que vigilar',
+       !deLejos.sinPaso && deLejos.salida.cinta !== '(no está)', deLejos.salida);
+  vale('(la prueba es válida) se abrió la vista de lejos y pasó hojas',
+       !deLejos.sinPaso && deLejos.lejos.enZoom === true &&
+       deLejos.lejos.hoja !== deLejos.salida.hoja,
+       deLejos.salida.hoja + '  →  ' + (deLejos.lejos || {}).hoja);
+  vale('PASAR HOJA DE LEJOS NO MUEVE LA CINTA',
+       deLejos.lejos.cinta === deLejos.salida.cinta,
+       deLejos.salida.cinta + '  →  ' + deLejos.lejos.cinta);
+  vale('  y al volver de cerca sigue donde estaba',
+       deLejos.alVolver.cerca === true &&
+       deLejos.alVolver.cinta === deLejos.salida.cinta,
+       deLejos.alVolver.cinta);
+  /* La otra mitad: que siga moviéndose cuando toca. */
+  vale('CONTROL: leyendo de cerca sí anda',
+       deLejos.control.cinta !== deLejos.salida.cinta,
+       deLejos.salida.cinta + '  →  ' + deLejos.control.cinta);
+
+
   await cerrarParcial(tres, 'la lectura que dice que sí');
 
   /* ================================================================
