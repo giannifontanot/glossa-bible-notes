@@ -14,7 +14,7 @@
    repintar el panel, porque el panel lleva dentro la caja de escribir y
    repintarlo se llevaría por delante el foco, el cursor y lo escrito. */
 const { abrir, otraPagina, listo, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
-        APP, TELEFONO } = require('./comun');
+        APP, RAIZ, TELEFONO } = require('./comun');
 
 /* Abrir el panel sobre las primeras letras de un versículo, como lo abre un
    dedo: se PINTA y se toca encima. Se seleccionaba, y ya no se puede —el
@@ -894,6 +894,45 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       letra: getComputedStyle(document.querySelector('#pgMargin .gl') || document.body).fontSize }));
   };
 
+  /* NI UN MENOR QUE DENTRO DE PAGE_CSS, y esto se mira en el FICHERO y no en
+     el navegador porque el navegador no se queja: la hoja de la aplicación
+     entra en la página con insertAdjacentHTML, y un menor que suelto dentro de
+     un comentario de CSS le da exactamente igual.
+
+     Donde no da igual es en la foto del pliegue: buildSVG mete PAGE_CSS TAL
+     CUAL dentro de un elemento style de un SVG, y eso lo lee un parser de XML,
+     donde un menor que no es texto sino el principio de una etiqueta. El SVG
+     deja de parsear entero, la imagen dispara onerror, la foto se queda en
+     null y TODAS las hojas pierden la animación de pasar página.
+
+     Está escrito por haber pasado: un comentario nuevo en PAGE_CSS nombraba el
+     elemento wbr entre signos, y la tanda devolvió 0 píxeles de tinta en el
+     lienzo repartidos por tres suites —piedra, zoom y ésta—, ninguna de ellas
+     hablando de CSS ni de etiquetas. El bloque de aquí abajo lo caza de punta a
+     punta, pero lo que dice es «0 píxeles»; esta línea dice qué renglón y por
+     qué. */
+  const enPageCss = (() => {
+    const fs = require('fs'), path = require('path');
+    const fuente = fs.readFileSync(path.join(RAIZ, 'index.html'), 'utf8');
+    const i = fuente.indexOf('const PAGE_CSS = `');
+    const j = i < 0 ? -1 : fuente.indexOf('`;', i);
+    if (i < 0 || j < 0) return { seEncontro:false, malas:[] };
+    const hoja = fuente.slice(i, j).split('\n');
+    const desde = fuente.slice(0, i).split('\n').length;
+    return { seEncontro:true, renglones:hoja.length,
+             malas: hoja.map((l, n) => l.includes('<') ? (desde + n) + ' · ' + l.trim() : null)
+                        .filter(Boolean) };
+  })();
+  di('PAGE_CSS en el fichero',
+     { seEncontro:enPageCss.seEncontro, renglones:enPageCss.renglones,
+       conMenorQue:enPageCss.malas.length });
+  /* La línea de validez: si el corte no encontrara la plantilla, la de abajo
+     saldría verde sobre una cadena vacía. */
+  vale('se encontró la plantilla de PAGE_CSS',
+       enPageCss.seEncontro === true && enPageCss.renglones > 200, enPageCss.renglones);
+  vale('y no lleva ningún menor que, ni en los comentarios',
+       enPageCss.malas.length === 0, enPageCss.malas.join('   |   ') || 'ninguno');
+
   /* QUE LA FOTO DEL PLIEGUE SE HAGA, que es distinto de que la caja mida bien.
 
      Aquí falló mi comprobación anterior y por eso esta prueba existe. Medí el
@@ -961,6 +1000,129 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     vale('el emoji no se parte por la mitad',
          !r.sinEtiqueta && r.parSuplentePartido === false,
          JSON.stringify(r.trozos));
+    return r;
+  }));
+
+  /* QUE UNA ETIQUETA NO SE PARTA TENIENDO EL RENGLÓN DE ABAJO ENTERO.
+
+     Las etiquetas largas llevan un corte cada once grafemas —es obligatorio,
+     está en etiquetaHTML: overflow-wrap rompería la foto del pliegue y la
+     salida fue partir el nodo de texto con un wbr—, y el navegador los usaba
+     como PRIMERA opción y no como última: con «#VolverAquiLuego» empezando a
+     media línea partía por el corte que cabía en el hueco y dejaba
+     «#VolverAquiL» arriba y «uego» abajo, con sitio de sobra en el renglón
+     siguiente para la etiqueta entera. El dueño del repo pidió lo contrario:
+     si no cabe, que baje entera.
+
+     CÓMO SE CUENTAN LOS RENGLONES, que se midió mal TRES veces antes de dar
+     con esto y cada intento parecía razonable:
+
+     · getClientRects() de la etiqueta devuelve UN rectángulo, se parta o no:
+       la caja es inline-block y la caja es una sola.
+     · un Range sobre su contenido devuelve un rectángulo POR TROZO —uno por
+       cada corte—, quepan todos en el mismo renglón o no, así que contarlos
+       tampoco dice nada.
+     · y contar TOPES DISTINTOS redondeados canta fallos que no existen: los
+       trozos de un mismo renglón no comparten el tope al píxel, se separan por
+       centésimas, y basta con que esas centésimas caigan a los dos lados del
+       medio píxel —241,49 y 241,51— para que un renglón cuente como dos. Así
+       cantó fallo «#ParaElEstudioDelDomingo» estando entera en su renglón.
+
+     Lo que vale es agrupar los topes con una tolerancia, y la tolerancia sale
+     de la medida y no del gusto: dos trozos de renglones distintos se separan
+     por un interlineado entero, y dos del mismo por fracciones de píxel, así
+     que medio interlineado los separa sin margen de duda.
+
+     Y ESTAS CUATRO ETIQUETAS NO SON CUATRO CUALESQUIERA. Con otras cuatro que
+     parecían igual de buenas la comprobación salía verde CON el arreglo y
+     TAMBIÉN SIN ÉL: el hueco que quedaba al final del renglón era un pelo más
+     estrecho que el primer trozo de la siguiente, así que no había dónde
+     partir y no se partía nadie. Una prueba así no vigila nada. Por eso el
+     juego se eligió midiendo, y por eso lo de abajo lleva su CONTRAFACTUAL:
+     se deshace el arreglo con un estilo por encima y se exige que entonces SÍ
+     se parta alguna. Si algún día deja de partirse, lo que hay que cambiar es
+     el juego de etiquetas, no la aserción. */
+  di('   de vuelta al principio',
+     await alPrincipio(['Relectura', 'Memorizar', 'VolverAquiLuego', 'MuyInteresante']));
+  di('las etiquetas bajan enteras', await p.evaluate(() => {
+    const renglones = el => {
+      const g = document.createRange(); g.selectNodeContents(el);
+      const tol = Math.max(2, (parseFloat(getComputedStyle(el).lineHeight) || 12) / 2);
+      const topes = [...g.getClientRects()].map(x => x.top).sort((a, b) => a - b);
+      let n = 0, ultimo = -Infinity;
+      for (const t of topes) if (t - ultimo > tol){ n++; ultimo = t; }
+      return n;
+    };
+    const t = document.querySelector('#pgMargin .gl-tag');
+    if (!t) return { sinEtiqueta:true };
+    const col = document.getElementById('pgMargin').getBoundingClientRect();
+    const mirar = () => [...t.querySelectorAll('.gl-t')].map(x => {
+      const r = x.getBoundingClientRect();
+      return { texto:x.textContent, renglones:renglones(x),
+               seSale: Math.round(Math.max(col.left - r.left, r.right - col.right)) > 0 };
+    });
+    const etq = mirar();
+    const caja = getComputedStyle(t.querySelector('.gl-t')).display;
+    const bloque = renglones(t);
+    /* EL CONTRAFACTUAL. Se deshace el arreglo por encima —no se toca el
+       programa: es una hoja de estilos de más, y se quita al salir— y se mide
+       lo mismo. Esto es lo único que distingue «la regla funciona» de «estas
+       cuatro etiquetas caben donde caen». */
+    const s = document.createElement('style');
+    s.textContent = '.gl-tag .gl-t{ display:inline !important; max-width:none !important; }';
+    document.head.appendChild(s);
+    document.body.offsetHeight;
+    const sinArreglo = mirar();
+    s.remove();
+    return { etq, sinArreglo, bloque, caja, cuantas:etq.length };
+  }).then(r => {
+    const comoQuedan = x => x.map(y => y.texto + ': ' + y.renglones).join(' · ');
+    vale('cada etiqueta cabe en un solo renglón',
+         !r.sinEtiqueta && r.cuantas === 4 && r.etq.every(x => x.renglones === 1),
+         r.sinEtiqueta ? 'sin etiqueta' : comoQuedan(r.etq));
+    /* LA LÍNEA DE VALIDEZ, y es ésta y no «el bloque ocupó más de un renglón»:
+       lo que hay que demostrar no es que hubo corte, sino que EN ESTE SITIO
+       había uno que el navegador habría hecho dentro de una etiqueta. */
+    vale('y sin el arreglo alguna SÍ se parte, que es lo que lo hace una prueba',
+         !r.sinEtiqueta && r.sinArreglo.some(x => x.renglones > 1),
+         r.sinEtiqueta ? 'sin etiqueta' : comoQuedan(r.sinArreglo));
+    vale('el bloque ocupa más de un renglón', !r.sinEtiqueta && r.bloque > 1,
+         r.bloque + ' renglones');
+    vale('ninguna se sale de la columna',
+         !r.sinEtiqueta && r.etq.every(x => !x.seSale),
+         r.sinEtiqueta ? 'sin etiqueta' : r.etq.filter(x => x.seSale).map(x => x.texto).join(' ') || 'ninguna');
+    /* La causa, por si alguien quita el display y las de arriba siguen pasando
+       por casualidad en el ancho de este teléfono. */
+    vale('porque la etiqueta es una caja, no un trozo de frase',
+         r.caja === 'inline-block', r.caja);
+    return r;
+  }));
+
+  /* Y EL ÚLTIMO RECURSO SIGUE AHÍ, que es la otra mitad de la misma regla: una
+     etiqueta que no cabe entera NI EN UNA COLUMNA VACÍA tiene que partirse por
+     sus <wbr>. Esto es lo que vigila el max-width:100%: sin él la caja mide lo
+     que mide su contenido, los cortes internos no se usan nunca y vuelve el
+     fallo que vinieron a arreglar —.pg-margin recorta con overflow:hidden y en
+     el teléfono del autor aparecía «#Interesant»—. */
+  di('   de vuelta al principio',
+     await alPrincipio(['EstaEtiquetaEsAbsurdamenteLargaYNoCabeDeNingunaManeraEnLaColumnaDelMargenNiAunqueEstuvieraVaciaDelTodo']));
+  di('la etiqueta imposible sí se parte', await p.evaluate(() => {
+    const t = document.querySelector('#pgMargin .gl-tag .gl-t');
+    if (!t) return { sinEtiqueta:true };
+    const g = document.createRange(); g.selectNodeContents(t);
+    const tol = Math.max(2, (parseFloat(getComputedStyle(t).lineHeight) || 12) / 2);
+    const topes = [...g.getClientRects()].map(x => x.top).sort((a, b) => a - b);
+    let n = 0, ultimo = -Infinity;
+    for (const x of topes) if (x - ultimo > tol){ n++; ultimo = x; }
+    const r = t.getBoundingClientRect();
+    const col = document.getElementById('pgMargin').getBoundingClientRect();
+    return { renglones:n,
+             seSale: Math.round(Math.max(col.left - r.left, r.right - col.right)) };
+  }).then(r => {
+    vale('la que no cabe de ninguna manera usa sus cortes',
+         !r.sinEtiqueta && r.renglones > 1, r.renglones + ' renglones');
+    vale('y aun así no se sale de la columna',
+         !r.sinEtiqueta && r.seSale <= 0, r.seSale + ' px');
     return r;
   }));
 

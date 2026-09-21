@@ -118,7 +118,12 @@ async function ponerContraste(pagina, pct){
   vale('sepia · contraste · brillo',
        JSON.stringify(sitio.orden) === JSON.stringify(['sepia','contraste','brillo']),
        sitio.orden);
-  vale('con las clases de siempre', sitio.clases === 'ajuste ancho', sitio.clases);
+  /* Y LA TERCERA CLASE ES NUEVA Y NO ES DECORACIÓN: riel-fila es la que saca a
+     las tres de tinta del ancho ajustado del modo cristal y las deja al 100%,
+     que es como están al abrir el panel. Sin ella la fila volvería a encogerse
+     al volverse transparente y el pulgar tendría que buscar el riel en otro
+     sitio según el modo. Esta línea la nombra para que quitarla se vea aquí. */
+  vale('con las clases de siempre', sitio.clases === 'ajuste ancho riel-fila', sitio.clases);
   vale('rótulo en minúsculas', sitio.rotulo === 'contraste', sitio.rotulo);
   vale('lleva su .medida', sitio.tieneMedida === true);
   vale('tiene nombre accesible', sitio.aria === 'contraste', sitio.aria);
@@ -172,18 +177,30 @@ async function ponerContraste(pagina, pct){
      era la fila más ancha del panel, justo la que peor cae con el fondo
      transparente. Lo que NO se puede ir es el crédito: la Versión Biblia Libre
      es CC BY-SA y la atribución es obligatoria. */
-  titulo('Formato ya no ofrece versiones, pero el crédito sigue');
+  /* EL CRÉDITO SE FUE DE ESTE PANEL, y esta prueba decía lo contrario: «el
+     crédito de licencia sigue a la vista». Lo pidió el dueño del repo —«lo
+     incluiremos en otro sitio después»— así que aquí se afirma lo que hay: que
+     no está en el panel de la letra y que el nodo sigue en el documento con su
+     texto, que es lo que hace que devolverlo sea una línea.
+
+     Y SE DEJA APUNTADO LO QUE FALTA: la Versión Biblia Libre es CC BY-SA y la
+     atribución es obligatoria, así que mientras el crédito no tenga casa nueva
+     el programa no la enseña en ninguna parte. La prueba no puede exigir un
+     sitio que todavía no se ha elegido, pero sí puede no dejar que se olvide:
+     por eso comprueba que el texto sigue vivo y dice por qué. */
+  titulo('Formato ya no ofrece versiones, y el crédito salió de aquí');
   const sinVersiones = await pagina.evaluate(() => {
-    const cred = document.querySelector('#ajustes .cred');
-    const r = cred ? cred.getBoundingClientRect() : null;
+    /* El nodo se busca por su id, no dentro del panel: lo que se quiere saber
+       es que NO está en el panel y que SÍ sigue en el documento, y para las
+       dos cosas hace falta encontrarlo esté donde esté. */
+    const cred = document.getElementById('cred');
     return {
+      credEnPanel: !!document.querySelector('#ajustes .cred'),
       fila: !!document.getElementById('ctrlVersiones'),
       botones: document.querySelectorAll('#ajustes [data-ver]').length,
       rotulos: [...document.querySelectorAll('#ctrlConfig .ajuste .lbl')]
                  .map(l => l.textContent.trim()),
       credTexto: cred ? cred.textContent.trim() : null,
-      credSeVe: !!r && r.width > 4 && r.height > 4 &&
-                getComputedStyle(cred).display !== 'none',
       /* Y el globo del pie sigue siendo el sitio donde SÍ se cambia. */
       globo: !!document.getElementById('burbujaVersion'),
       pie: (document.getElementById('pgVersion') || {}).textContent
@@ -193,9 +210,10 @@ async function ponerContraste(pagina, pct){
   vale('no queda la fila de versión', sinVersiones.fila === false);
   vale('ni un botón de versión suelto', sinVersiones.botones === 0, sinVersiones.botones);
   vale('ni su rótulo', !sinVersiones.rotulos.includes('versión'), sinVersiones.rotulos);
-  vale('el crédito de licencia sigue a la vista',
-       sinVersiones.credSeVe && /CC BY/.test(sinVersiones.credTexto || ''),
-       sinVersiones.credTexto);
+  vale('EL CRÉDITO YA NO ESTÁ EN ESTE PANEL',
+       sinVersiones.credEnPanel === false, sinVersiones.credEnPanel);
+  vale('  pero su texto sigue vivo, a una línea de volver',
+       /CC BY/.test(sinVersiones.credTexto || ''), sinVersiones.credTexto);
   vale('y el globo del pie sigue siendo quien las cambia',
        sinVersiones.globo === true && !!sinVersiones.pie, sinVersiones.pie);
 
@@ -254,6 +272,13 @@ async function ponerContraste(pagina, pct){
                   no: se le pidió que midiera su palabra, como el de CERRAR, y
                   eso se comprueba aparte más abajo. */
                salida: !!filaSalida && f === filaSalida,
+               /* LAS TRES FILAS DE RIEL TAMPOCO ENCOGEN, y por una razón que
+                  no es la de la salida: encoger la fila ENCOGE EL RIEL, y el
+                  recorrido de un riel es su precisión —cuanto más largo, más
+                  fino el ajuste con el mismo gesto—. Se pidió que no cambien de
+                  largo al volverse transparente, así que estas tres se quedan
+                  del ancho del panel con su tablilla puesta. */
+               riel: f.classList.contains('riel-fila'),
                pct: Math.round(r.width / ancho * 100),
                conFondo: !hueco(cs.backgroundColor),
                redondas: parseFloat(cs.borderRadius) >= 4,
@@ -293,7 +318,8 @@ async function ponerContraste(pagina, pct){
      apartarla y olvidarse: si algún día le ponen tablilla o la encogen, esta
      prueba tiene que enterarse, aunque sea para decir que ahora sobra el
      apaño. */
-  const ajustes = tablillas.filas.filter(f => !f.salida);
+  const ajustes = tablillas.filas.filter(f => !f.salida && !f.riel);
+  const rieles = tablillas.filas.filter(f => f.riel);
   const salidas = tablillas.filas.filter(f => f.salida);
   vale('(la prueba es válida) la fila de la salida está, y es una sola',
        salidas.length === 1, salidas.length);
@@ -333,20 +359,75 @@ async function ponerContraste(pagina, pct){
        ajustes.every(f => f.cabe), ajustes.filter(f => !f.cabe).map(f => f.que));
   /* NINGUNA A TODO LO ANCHO. Ésta es la que se pidió y la que se rompe sola si
      alguien le quita el justify-self o el flex:0 0 auto: con cualquiera de las
-     dos cosas fuera, las filas vuelven a medir la columna entera. */
+     dos cosas fuera, las filas vuelven a medir la columna entera.
+     Las tres del riel quedan fuera de la cuenta a propósito y se vigilan
+     aparte, abajo: ahí lo ancho no es un descuido, es el encargo. */
   vale('NINGUNA ocupa el ancho del panel',
        ajustes.every(f => f.pct <= 90),
        ajustes.filter(f => f.pct > 90).map(f => f.que + ' ' + f.pct + '%'));
-  /* Y la mitad largas es poco: los tres deslizadores no pueden encoger —un
-     riel corto no se atina con el pulgar— pero el resto sí, y si la media se
-     dispara es que algo volvió a estirarse. */
+  /* Y SON TRES, NI MÁS NI MENOS. Sin esta línea, el día que alguien le ponga
+     la clase a media docena de filas la prueba de arriba se quedaría sin nada
+     que mirar y seguiría en verde con el panel entero tapando la hoja. */
+  vale('(la prueba es válida) las filas de riel son exactamente tres',
+       rieles.length === 3, rieles.map(f => f.que).join(' · '));
+  vale('las tres del riel SÍ van anchas, que es lo que se pidió',
+       rieles.every(f => f.pct > 90 && f.conFondo),
+       rieles.map(f => f.que + ' ' + f.pct + '% · tablilla ' + f.conFondo).join(' · '));
+  /* Y la mitad largas es poco: si la media se dispara es que algo volvió a
+     estirarse. Los tres rieles ya no están en esta cuenta —van aparte, arriba—
+     así que aquí se pide de todas las que quedan. */
   vale('y la mayoría son de verdad estrechas',
-       ajustes.filter(f => f.pct <= 70).length >= ajustes.length - 3,
+       ajustes.filter(f => f.pct <= 70).length >= ajustes.length - 1,
        ajustes.map(f => f.pct).join(' '));
   await pagina.evaluate(async () => {
     document.getElementById('btnVidrio').click();
     await new Promise(z => setTimeout(z, 300));
   });
+
+  /* ---------- el largo del riel no cambia de modo ---------- */
+  /* LO QUE SE PIDIÓ, Y LO QUE SE ROMPÍA. Tocar «transparente» dejaba el mismo
+     mando con la mitad del recorrido: medido, el riel pasaba de 242 px a 150
+     en un teléfono y de unos 505 a 150 en pantalla ancha. Y el recorrido no es
+     decoración: cuanto más largo el riel, más fino el ajuste con el mismo
+     gesto, que es la razón por la que estas tres filas son anchas desde que
+     existen.
+
+     SE COMPARAN LOS DOS MODOS ENTRE SÍ, no contra un número: cuánto mide el
+     riel depende del ancho del panel, de la letra y de la pantalla, así que
+     clavar aquí un 242 sería una prueba que falla en otro aparato sin que nada
+     esté mal. Lo que se afirma es que no CAMBIA.
+     Y se vuelve al modo opaco al final para comprobar que la vuelta también
+     deja el riel donde estaba: un largo que va y no vuelve es el mismo fallo
+     mirado desde el otro lado. */
+  titulo('el riel no cambia de largo al volverse transparente');
+  const largos = await pagina.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const lee = () => ['sepia','contraste','brillo'].map(id =>
+      Math.round(document.getElementById(id).getBoundingClientRect().width));
+    const vidrio = () => document.getElementById('btnVidrio');
+    /* Se parte de opaco, sea cual sea el estado en que lo dejó el bloque de
+       arriba: se pregunta por el panel, no se cuentan clics. */
+    if (document.getElementById('ajustes').classList.contains('cristal')){
+      vidrio().click(); await z(400);
+    }
+    const opaco = lee();
+    vidrio().click(); await z(400);
+    const cristal = lee();
+    vidrio().click(); await z(400);
+    return { opaco, cristal, vuelta: lee(),
+             modoFinal: document.getElementById('ajustes').classList.contains('cristal') };
+  });
+  di('los tres rieles', JSON.stringify(largos));
+  vale('(la prueba es válida) los rieles miden algo',
+       largos.opaco.every(n => n > 60), largos.opaco.join(' · '));
+  vale('EL LARGO NO CAMBIA AL VOLVERSE TRANSPARENTE',
+       largos.cristal.every((n, i) => Math.abs(n - largos.opaco[i]) <= 1),
+       largos.opaco.join(' · ') + '  →  ' + largos.cristal.join(' · '));
+  vale('  ni al volver a opaco',
+       largos.vuelta.every((n, i) => Math.abs(n - largos.opaco[i]) <= 1),
+       largos.vuelta.join(' · '));
+  vale('  (y se quedó en opaco, para lo que viene)',
+       largos.modoFinal === false, largos.modoFinal);
 
   /* ---------- los cuatro valores pedidos ---------- */
   titulo('50, 100, 150 y 200');
@@ -637,7 +718,7 @@ async function ponerContraste(pagina, pct){
   vale('va justo debajo del contraste',
        sitioBrillo.orden[0] === 'contraste' && sitioBrillo.orden[1] === 'brillo',
        sitioBrillo.orden);
-  vale('con las clases de siempre', sitioBrillo.clases === 'ajuste ancho', sitioBrillo.clases);
+  vale('con las clases de siempre', sitioBrillo.clases === 'ajuste ancho riel-fila', sitioBrillo.clases);
   vale('rango 50–150 de uno en uno y neutro en 100',
        sitioBrillo.min === '50' && sitioBrillo.max === '150' &&
        sitioBrillo.step === '1' && sitioBrillo.valor === '100',

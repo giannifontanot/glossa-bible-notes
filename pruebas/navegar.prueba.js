@@ -16,6 +16,16 @@
 const { abrir, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
         ESCRITORIO } = require('./comun');
 
+/* EL TELÉFONO MÁS ESTRECHO QUE SE USA, y no está en comun porque sólo hace
+   falta aquí: es el peor caso de los letreros de las guías. Los dos puntos de
+   arriba viven en medio de sus vecinos, así que sus letreros crecen hacia las
+   letras del titulillo, y cuanto más estrecha la pantalla menos hueco hay. A
+   320 fue donde el techo de esos letreros se midió; sin esta pantalla en la
+   lista, el banco los daba por buenos mirando sólo 412, que es donde sobra
+   sitio. */
+const ESTRECHO_DEDO = { viewport:{ width:320, height:700 },
+                        isMobile:true, hasTouch:true, deviceScaleFactor:2 };
+
 const RASTRO = () => JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]')
   .map(h => h.libro + ' ' + h.cap + ':' + h.vers);
 
@@ -1201,8 +1211,83 @@ const ATERRIZA = 7000;
 
      Se mide la caja y no si «se ve»: un pseudo-elemento recortado por un
      ancestro conserva su tamaño y su opacidad. */
+  /* ================================================================
+     EL PUNTO DE LA IZQUIERDA, EN MEDIO DE SUS DOS VECINOS.
+
+     Es el mismo encargo que ya se le hizo al de la derecha, mirado al revés.
+     Vivía pegado al canto izquierdo, a 8 px, y ahí se monta sobre el FILO de
+     pasar hoja: medido en un teléfono de 412, el punto ocupaba de 10 a 54 y el
+     filo de 0 a 30, o sea veinte píxeles compartidos entre «abre las piedras»
+     y «pasa la hoja». Ahora va entre el filo de la hoja y el principio del
+     titulillo.
+
+     SE MIDE CONTRA SUS VECINOS Y NO CONTRA UN NÚMERO: dónde empieza el
+     titulillo depende del ancho de la columna, de la letra y de la pantalla,
+     así que un número escrito aquí sería una prueba que falla en otro aparato
+     sin que nada esté mal.
+
+     Y LLEVA SU CONTROL EN PANTALLA ANCHA, que es la mitad que se rompe sola:
+     allí el titulillo se va a la esquina de arriba a la derecha y «en medio de
+     lo que queda a su izquierda» sería el centro del canto de arriba, un sitio
+     sin sentido. Ahí el punto tiene que quedarse en su esquina, y eso se
+     comprueba, porque una cuenta sin ese guardia pasaría igual de verde en
+     teléfono.
+     ================================================================ */
+  titulo('el punto de las piedras se queda en medio del filo y el titulillo');
+  for (const [comoSeLlama, opciones, enMedio] of [['teléfono', {}, true],
+                                                  ['escritorio', ESCRITORIO, false]]){
+    const ses = await abrir(opciones);
+    const punto = await ses.pagina.evaluate(() => {
+      const pg = document.getElementById('pg');
+      const inner = pg.querySelector('.pg-inner');
+      const cab = pg.querySelector('.pg-cabeza');
+      const st = document.querySelector('.stage').getBoundingClientRect();
+      const b = document.getElementById('btnPiedras');
+      const rb = b.getBoundingClientRect();
+      const rc = cab.getBoundingClientRect();
+      const ri = inner.getBoundingClientRect();
+      const rf = document.getElementById('edgeL').getBoundingClientRect();
+      return { centro: Math.round((rb.left + rb.right) / 2 - st.left),
+               /* Los dos vecinos en coordenadas de la escena, leídos con
+                  rectángulos: es una cuenta distinta de la del programa, que
+                  los mide con desplazamientos. */
+               filo: Math.round(ri.left - st.left),
+               titulillo: Math.round(rc.left - st.left),
+               dedo: Math.round(rb.left - st.left) + '–' + Math.round(rb.right - st.left),
+               filoDePasar: Math.round(rf.left - st.left) + '–' +
+                            Math.round(rf.right - st.left),
+               sobreElFilo: rb.left < rf.right - 1,
+               hoja: Math.round(inner.offsetWidth),
+               enSuEsquina: Math.round(rb.left - st.left) <= 12 };
+    });
+    di('el punto de piedras · ' + comoSeLlama, JSON.stringify(punto));
+    if (enMedio){
+      const medio = Math.round((punto.filo + punto.titulillo) / 2);
+      vale('(la prueba es válida) el titulillo está centrado sobre la columna · ' +
+           comoSeLlama, punto.titulillo > 20 && punto.titulillo < punto.hoja / 2,
+           punto.titulillo + ' de una hoja de ' + punto.hoja);
+      vale('EL PUNTO CAE EN MEDIO DEL FILO Y EL TITULILLO · ' + comoSeLlama,
+           Math.abs(punto.centro - medio) <= 1,
+           punto.centro + ' contra ' + medio);
+      vale('  y ya no se monta sobre el filo de pasar hoja · ' + comoSeLlama,
+           punto.sobreElFilo === false,
+           punto.dedo + ' contra el filo ' + punto.filoDePasar);
+    } else {
+      /* El control: sin él, una cuenta sin guardia pasaría en teléfono y
+         dejaría el punto en mitad del canto de arriba en pantalla ancha. */
+      vale('(la prueba es válida) en pantalla ancha el titulillo se va a la ' +
+           'esquina · ' + comoSeLlama,
+           punto.titulillo > punto.hoja / 2,
+           punto.titulillo + ' de una hoja de ' + punto.hoja);
+      vale('Y AHÍ EL PUNTO SE QUEDA EN SU ESQUINA · ' + comoSeLlama,
+           punto.enSuEsquina === true, punto.dedo);
+    }
+    await cerrarParcial(ses, 'el punto de las piedras, ' + comoSeLlama);
+  }
+
   titulo('con la letra al tope, ningún letrero se sale ni se pisa');
-  for (const [comoSeLlama, opciones] of [['escritorio', ESCRITORIO], ['teléfono', {}]]){
+  for (const [comoSeLlama, opciones] of [['escritorio', ESCRITORIO], ['teléfono', {}],
+                                        ['teléfono estrecho', ESTRECHO_DEDO]]){
     const ses = await abrir(opciones);
     const pp = ses.pagina;
     const borde = await pp.evaluate(async () => {

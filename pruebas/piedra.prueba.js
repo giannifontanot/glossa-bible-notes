@@ -1688,7 +1688,19 @@ async function andamio(p){
     const puerta = b.matches('[data-piedra-lista]');
     const rc = b.getBoundingClientRect();
     const st = document.querySelector('.stage').getBoundingClientRect();
-    const arriba = rc.top - st.top < 24 && rc.left - st.left < 24;
+    /* ARRIBA Y A LA IZQUIERDA, PERO YA NO EN EL CANTO. Esto pedía el canto —a
+       24 px del filo— y era verdad mientras el punto vivía ahí. Se mudó al
+       medio entre el filo de la hoja y el principio del titulillo porque en el
+       canto se montaba sobre el FILO de pasar hoja: medido en un teléfono de
+       412, el punto ocupaba de 10 a 54 y el filo de 0 a 30. Es la misma
+       mudanza que ya hizo el punto de las cintas, y por el mismo motivo.
+       Dejar esta línea como estaba sería pedir por escrito que se deshiciera
+       ese encargo. Lo que sigue siendo cierto —y es lo que dice cuál de los
+       dos puntos de arriba es éste, porque un punto no lleva rótulo— es que
+       vive en la franja de arriba y en la mitad izquierda. Dónde cae
+       exactamente lo vigila navegar, con sus dos vecinos delante. */
+    const arriba = rc.top - st.top < 24 &&
+                   (rc.left + rc.right) / 2 < st.left + st.width / 2;
     await window.__toque(b); await window.__pausa(700);
     const m = document.getElementById('piedraMenu');
     const r = m.getBoundingClientRect();

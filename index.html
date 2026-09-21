@@ -96,7 +96,15 @@
   h1{ font-size:calc(.9rem * var(--escala-ui, 1)); font-weight:600; margin:0; letter-spacing:.03em; }
   /* Los controles de Formato/Glosas nacen en el body y el guion los muda a
      su rollo. Sin esto se ve un instante el panel de Formato al abrir. */
-  body > #ctrlConfig, body > #ctrlEtiquetas{ display:none !important; }
+  /* Y EL CRÉDITO SE APARCA AQUÍ MIENTRAS NO TENGA CASA. Vivía al final del
+     panel de la letra y el dueño del repo pidió sacarlo de ahí; lo que no
+     puede es quedarse suelto al pie del documento, que es donde cae un hijo
+     directo del body. El nodo se queda —con su texto puesto por el programa,
+     ver $('cred')— para que devolverlo a la pantalla sea una línea.
+     OJO A LO QUE ESTO SIGNIFICA MIENTRAS TANTO: la Versión Biblia Libre es CC
+     BY-SA y la atribución es obligatoria, así que el programa está ahora mismo
+     sin enseñarla en ninguna parte. Es un estado de paso, no el sitio nuevo. */
+  body > #ctrlConfig, body > #ctrlEtiquetas, body > #cred{ display:none !important; }
   /* PORTADA. Cubre la mesa hasta que la primera hoja está lista. */
   #portada{ position:fixed; inset:0; z-index:200; display:flex;
             flex-direction:column; align-items:center; justify-content:center;
@@ -1394,9 +1402,31 @@
      esquina. */
   .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after{
             font-size:min(var(--fs-libro, 15px), calc((22px - 3px) / 1.25)); }
+  /* EN TELÉFONO SÍ MIDEN LO QUE MIDE EL LIBRO, PERO CON UN TECHO DE 18.
+
+     Aquí no había ninguno y con la letra al tope el letrero se comía el
+     titulillo. Los dos puntos de arriba viven ahora EN MEDIO de sus vecinos
+     —el de cintas entre el titulillo y la cinta, el de piedras entre el filo y
+     el titulillo— así que sus letreros ya no crecen hacia una esquina vacía:
+     crecen hacia las letras del titulillo. Medido a 26 de libro, con el
+     letrero de «click» en 84 px de ancho: en un teléfono de 390 el de piedras
+     acababa en 143 y las letras empiezan en 141, y en uno de 320 se metían los
+     dos. Lo de 320 ya pasaba antes de mover nada; lo de 390 lo estrenó la
+     mudanza.
+
+     16 px es lo que cabe en el hueco más estrecho, y el número está medido, no
+     elegido: a 18 el letrero medía 65 px contra los 64 del hueco de un
+     teléfono de 320 y se pasaba por uno; a 17 quedaba en 105 contra 106, o sea
+     un píxel, que es lo mismo que nada. A 16 acaba en 103 y deja tres de aire
+     en el peor de los tres anchos probados —412, 390 y 320—, que con el hueco
+     midiendo 64 es todo lo que hay.
+     Y sigue siendo letra del libro mientras el libro no pase de 16: el tamaño
+     de fábrica es 15, así que el techo sólo muerde a quien ya subió la letra
+     por encima de eso, que es justo el caso en el que el letrero se comía el
+     titulillo. */
   @media (max-width: 560px){
     .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after{
-              font-size:var(--fs-libro, 15px); }
+              font-size:min(var(--fs-libro, 15px), 16px); }
   }
   .stage.guias #pg .pg-version::after{
             left:50%; transform:translateX(-50%); bottom:calc(100% + 3px); }
@@ -3031,30 +3061,58 @@
      Se ve de un vistazo que algo pasa, y se sigue distinguiendo de lo que ya
      pasó.
 
-     El latido va desparejo a propósito —sube en un quinto del ciclo, baja en
-     dos y descansa el resto— porque un pulso simétrico se lee como máquina.
+     El latido va desparejo a propósito —sube deprisa, baja más despacio—
+     porque un pulso simétrico se lee como máquina.
      La señal vive en el botón que tocaste, no encima de la pantalla, que es lo
      que haría un aro girando y sería demasiado alto para esto.
      Y si el hilo se traba repaginando, se queda congelado ENCENDIDO, que es
-     justo lo que hay que decir en ese momento. */
+     justo lo que hay que decir en ese momento.
+
+     Y AHORA DESTELLA, QUE ES LO QUE SE PIDIÓ. La primera versión latía entre
+     el 30% y el 62% de ese marrón: era un cambio de tinta, no un destello, y
+     el dueño del repo lo dijo con estas palabras —que se vea mucho más obvio
+     que la aplicación está trabajando y que sólo hay que esperar—. Mirando los
+     números se entiende: entre las dos puntas había 32 centésimas de opacidad
+     sobre un papel claro, o sea una diferencia que hay que estar mirando para
+     ver. Ahora va del 12% al 96% y lleva halo: el botón se apaga casi del todo
+     y se enciende casi macizo, once veces en diez segundos.
+
+     LOS TRES NÚMEROS QUE HACEN EL DESTELLO, para quien venga a ajustarlo:
+     · El RECORRIDO (12 → 96) es lo que se ve de lejos. Con menos de setenta
+       centésimas entre las dos puntas esto vuelve a ser un cambio de tinta.
+     · El CICLO (.9 s) es lo que lo hace legible como latido y no como
+       parpadeo de aviso roto. Por debajo de medio segundo marea y encima de
+       uno y medio parece que se colgó.
+     · Y el HALO (0 → 4 px más el resplandor) es lo que lo saca del botón:
+       sin él, un botón que ya es dorado cuando está cumplido se confunde con
+       uno trabajando en la punta alta del ciclo.
+     No sube hasta el macizo del 100% a propósito: ése es el color de «ya
+     está», y llegar ahí once veces por ciclo sería decir «terminé» once veces
+     mientras no ha terminado. */
   .rollo .btn.obrando, .rollo .chip.obrando{
-    animation:obrandoBorde 1.05s cubic-bezier(.35,0,.5,1) infinite; }
+    animation:obrandoBorde .9s cubic-bezier(.4,0,.6,1) infinite; }
   @keyframes obrandoBorde{
-    0%   { background:rgba(184,137,43,.30); border-color:rgba(150,112,31,.5);
+    0%   { background:rgba(184,137,43,.12); border-color:rgba(150,112,31,.45);
            box-shadow:0 0 0 0 rgba(184,137,43,0); }
-    20%  { background:rgba(184,137,43,.62); border-color:#96701f;
-           box-shadow:0 0 0 1.5px rgba(184,137,43,.58), 0 0 10px 0 rgba(184,137,43,.42); }
-    58%  { background:rgba(184,137,43,.34); border-color:rgba(150,112,31,.55);
-           box-shadow:0 0 0 1px rgba(184,137,43,.15), 0 0 4px 0 rgba(184,137,43,.12); }
-    100% { background:rgba(184,137,43,.30); border-color:rgba(150,112,31,.5);
+    38%  { background:rgba(184,137,43,.96); border-color:#7d5c16;
+           box-shadow:0 0 0 4px rgba(184,137,43,.55),
+                      0 0 18px 3px rgba(201,162,39,.75); }
+    62%  { background:rgba(184,137,43,.72); border-color:#96701f;
+           box-shadow:0 0 0 2px rgba(184,137,43,.35),
+                      0 0 10px 1px rgba(201,162,39,.35); }
+    100% { background:rgba(184,137,43,.12); border-color:rgba(150,112,31,.45);
            box-shadow:0 0 0 0 rgba(184,137,43,0); }
   }
   /* Quieto se queda a media tinta, que es donde más se distingue de las dos
-     puntas: ni el papel de "sin tocar" ni el macizo de "ya está". */
+     puntas: ni el papel de "sin tocar" ni el macizo de "ya está". Con el
+     destello nuevo esto importa más, no menos: quien pidió menos movimiento
+     no puede quedarse sin el aviso, así que se le sube el halo —que no se
+     mueve— para compensar el latido que no va a ver. */
   @media (prefers-reduced-motion: reduce){
     .rollo .btn.obrando, .rollo .chip.obrando{
-      animation:none; background:rgba(184,137,43,.5); border-color:#96701f;
-      box-shadow:0 0 0 1.5px rgba(184,137,43,.55); }
+      animation:none; background:rgba(184,137,43,.58); border-color:#96701f;
+      box-shadow:0 0 0 3px rgba(184,137,43,.45),
+                 0 0 12px 2px rgba(201,162,39,.4); }
   }
   .rollo select, .rollo input{ font-size:calc(.63rem * var(--escala-ui, 1)); padding:3px 5px; color:#3c2f16;
                background:rgba(255,253,247,.85); border-color:rgba(140,116,68,.42); }
@@ -3120,7 +3178,7 @@
      manera de evitarlo: un riel corto no se atina con el pulgar, y son justo
      los que se arrastran mirando la hoja. Se les deja un riel de 150 px, que
      es cómodo sin llegar al borde. */
-  #ajustes.cristal #ctrlConfig .ajuste{
+  #ajustes.cristal #ctrlConfig .ajuste:not(.riel-fila){
     justify-self:start; width:max-content; max-width:100%;
     padding:3px 9px 4px; border-radius:9px;
     background:rgba(255,253,247,.9);
@@ -3135,10 +3193,47 @@
   #ajustes.cristal #ctrlConfig .ajuste.vidrio-fila{
     justify-self:stretch; width:100%;
     background:transparent; box-shadow:none; padding:0; }
-  #ajustes.cristal #ctrlConfig .ajuste > .ctrl{ flex:0 0 auto; }
-  #ajustes.cristal #ctrlConfig .ajuste > .lbl{ flex:0 0 auto; }
-  #ajustes.cristal .rollo input[type=range],
-  #ajustes.cristal input[type=range]{ flex:0 0 150px; }
+  /* Y LAS TRES DEL RIEL TAMPOCO ENCOGEN POR DENTRO. Estas dos líneas ajustan
+     cada pieza a sus letras, que es lo que deja las tablillas estrechas; en
+     una fila de riel hacen lo de siempre por otro camino —el riel se queda en
+     su medida de partida, 140— y el largo vuelve a cambiar al tocar
+     «transparente». Con la fila entera fuera de las tres reglas, el riel mide
+     lo que mide en opaco, que es lo que se pidió. */
+  #ajustes.cristal #ctrlConfig .ajuste:not(.riel-fila) > .ctrl{ flex:0 0 auto; }
+  #ajustes.cristal #ctrlConfig .ajuste:not(.riel-fila) > .lbl{ flex:0 0 auto; }
+  /* LOS TRES RIELES NO CAMBIAN DE LARGO AL VOLVERSE TRANSPARENTE.
+
+     Aquí vivía un `flex:0 0 150px` para el modo cristal y hacía justo lo
+     contrario: el riel pasaba de 242 px a 150 en un teléfono y de unos 505 a
+     150 en pantalla ancha —medido— o sea que tocar «transparente» te dejaba el
+     mismo mando con la mitad del recorrido. Y el recorrido de un riel no es
+     decoración: cuanto más largo, más fino el ajuste con el mismo gesto, que
+     es la razón por la que estas tres filas son `ancho` desde que existen. El
+     dueño del repo pidió que no cambien.
+
+     Se quedan del ancho del panel, que es lo que les devuelve el largo: en
+     cristal las demás filas encogen a lo que miden sus letras —de eso va el
+     modo, dejar ver la hoja entre tablilla y tablilla— y estas tres no pueden,
+     porque encogerlas ES encoger el riel. Su tablilla se queda, y ancha: un
+     riel sin fondo sobre el texto del libro se lee tan mal como un rótulo sin
+     él, y estas tres filas tienen además un número que leer al final.
+
+     El coste está medido y es el que se acepta: tres filas de las diez del
+     panel tapan la hoja de lado a lado en modo transparente. Las otras siete
+     siguen estrechas. */
+  #ajustes.cristal #ctrlConfig .ajuste.riel-fila{
+            justify-self:stretch; width:100%;
+            /* SIN RELLENO A LOS LADOS, y esos dieciocho píxeles son justo el
+               encargo. La tablilla de las demás filas mete 9 px por lado, y en
+               una fila de riel ese relleno sale del riel: medido, 242 en opaco
+               contra 224 en cristal, o sea que «no cambia de largo» se quedaba
+               en «cambia menos». Sin relleno lateral, la caja de contenido de
+               la fila es la misma en los dos modos y el riel mide lo mismo al
+               píxel. El aire de arriba y abajo se queda, que ése no le quita
+               recorrido a nadie. */
+            padding:3px 0 4px; border-radius:9px;
+            background:rgba(255,253,247,.9);
+            box-shadow:0 1px 3px rgba(0,0,0,.26); }
   /* La raya que separaba los anchos cruzaría la hoja de lado a lado, y ya no
      separa nada: con las tablillas sueltas, el hueco entre ellas se ve solo. */
   #ajustes.cristal #ctrlConfig .ajuste.ancho{
@@ -3146,7 +3241,12 @@
   /* Y EL CRÉDITO, que también es letra suelta sobre la hoja. La atribución de
      CC BY-SA tiene que poder leerse, y transparente no se leía. Se le deja su
      tablilla, pero con inline-block para que mida sus renglones y no el panel:
-     un <p> a secas ocupa el ancho entero aunque el texto acabe a la mitad. */
+     un <p> a secas ocupa el ancho entero aunque el texto acabe a la mitad.
+     HOY ESTA REGLA NO PINTA NADA: el crédito salió de este panel —se pidió
+     sacarlo de ahí hasta decidirle sitio, ver la regla del body— así que no
+     hay ningún .cred dentro de #ajustes. Se queda escrita porque el día que
+     vuelva a un panel vuelve a hacer falta, y porque su razón —lo que se
+     intentó y por qué no servía— es la misma dondequiera que acabe. */
   #ajustes.cristal .cred{
     display:inline-block; padding:3px 9px 4px; border-radius:9px;
     background:rgba(255,253,247,.9);
@@ -3754,7 +3854,18 @@
      que lo hace servir: un recuadro que solo aparece cuando ya diste al
      interruptor enseña lo que ya estás viendo. El que hace falta es el de
      antes. */
+  /* CENTRADO Y NO AL FILO. Pedido por el dueño del repo, y va con la mayúscula
+     que estrena el rótulo: encerrado en su anillo rojo y en medio del renglón,
+     el interruptor deja de leerse como una etiqueta arrinconada a la
+     izquierda y se lee como lo que es —el aviso de que esta pantalla puede
+     enseñar dónde se toca—. Es lo mismo que ya se hizo con las dos pestañas
+     del testamento, que están justo debajo y por la misma razón.
+     margin-inline:auto y no justify-content en el padre: el padre lleva
+     también las pestañas, y centrarlo entero movería dos cosas para colocar
+     una. Un margen automático se come el hueco de los dos lados y sólo afecta
+     a este renglón. */
   .canto-opcion{ display:flex; align-items:center; gap:7px; cursor:pointer;
+                 margin-inline:auto;
                  min-height:32px; padding:6px 10px;
                  border-radius:6px;
                  box-shadow:inset 0 0 0 2px var(--rojo-galon, #9b2a2a),
@@ -4789,7 +4900,7 @@
      pulgar: cuanto más largo el riel, más fino el ajuste con el mismo gesto.
      Y va ARRIBA de la versión, que es lo último del panel por ser lo que
      menos se toca. -->
-<div class="ajuste ancho"><span class="lbl">sepia</span><span class="ctrl">
+<div class="ajuste ancho riel-fila"><span class="lbl">sepia</span><span class="ctrl">
   <input type="range" id="sepia" min="0" max="100" step="1" value="100"
          title="Entinta el papel: de blanco de imprenta a papel viejo" />
   <span class="medida" id="sepiaAhora">100</span>
@@ -4803,7 +4914,7 @@
      El rótulo es un <span>, no un <label>, igual que en todo el panel: por
      eso el riel lleva su propio aria-label, o un lector de pantalla anunciaría
      un deslizador sin nombre. -->
-<div class="ajuste ancho"><span class="lbl">contraste</span><span class="ctrl">
+<div class="ajuste ancho riel-fila"><span class="lbl">contraste</span><span class="ctrl">
   <input type="range" id="contraste" min="50" max="200" step="1" value="125"
          aria-label="contraste"
          title="Despega la letra del papel: de tenue a marcada, sin cambiar el color" />
@@ -4816,7 +4927,7 @@
      Arranca en 100, que aquí sí quiere decir "no toques nada": a diferencia
      del contraste, este riel no compensa nada del papel, sólo sube o baja lo
      que ya hay. Mismo aria-label por lo mismo: el rótulo es un <span>. -->
-<div class="ajuste ancho"><span class="lbl">brillo</span><span class="ctrl">
+<div class="ajuste ancho riel-fila"><span class="lbl">brillo</span><span class="ctrl">
   <input type="range" id="brillo" min="50" max="150" step="1" value="100"
          aria-label="brillo"
          title="Sube o baja la luz de la hoja, sin cambiar el color ni la letra" />
@@ -4880,13 +4991,21 @@
      de la hoja y de la lista— así que vive donde viven los filtros y se
      enciende y se apaga con ellos. Va el primero de la tira, delante de las
      etiquetas, porque «qué día» es la pregunta más gruesa de las dos. -->
+<!-- LOS DOS RÓTULOS DICEN LO QUE HACEN, y antes no. «ver» y «cambiar» son dos
+     verbos que en una pantalla de glosas valen para casi todo: ver ¿qué?,
+     cambiar ¿el qué? Y los dos se excluyen —encender uno apaga el otro—, así
+     que el lector necesita entender en un vistazo entre qué dos cosas está
+     eligiendo. FILTRAR enseña la tira y esconde glosas; ACTUALIZAR elige
+     varias y les cambia las etiquetas. Pedido así por el dueño del repo.
+     Los ids se quedan como están: renombrarlos tocaría el guion, las tres
+     suites que los buscan y nada de eso se ve desde la pantalla. -->
 <div class="ajuste fila-etiq">
   <button type="button" class="btn" id="btnVerEtiquetas"
           aria-pressed="false"
-          title="Mostrar u ocultar las etiquetas">ver</button>
+          title="Filtrar las glosas por etiqueta o por día">filtrar</button>
   <button type="button" class="btn" id="btnElegirGlosas"
           aria-pressed="false"
-          title="Elegir varias glosas para cambiarles las etiquetas">cambiar</button>
+          title="Elegir varias glosas para actualizarles las etiquetas">actualizar</button>
 </div>
 
 <!-- SIN RÓTULO Y PEGADA AL FILO IZQUIERDO. Llevaba delante un «ver» en la
@@ -5193,7 +5312,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 09:51';
+window.GLOSS_BUILD = '21-SEP-26 12:26';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5866,7 +5985,39 @@ const PAGE_CSS = `
 .gl-tag{ display:block; margin-top:3px; text-align:right; padding-right:2px;
          font-size:calc(1em * var(--tag-fs, .78));
          line-height:1.25; font-weight:500; letter-spacing:.02em; }
-.gl-tag .gl-t{ padding-left:7px; }
+/* CADA ETIQUETA ES UN BLOQUE, Y POR ESO NO SE PARTE POR LA MITAD.
+
+   (AQUÍ DENTRO NO SE ESCRIBE UN SIGNO DE MENOR QUE, NI EN LOS COMENTARIOS. Esta
+   hoja entera viaja dentro de la foto del pliegue, metida tal cual en un
+   elemento style de un SVG que lee un parser de XML, y ahí un menor que suelto
+   no es texto: abre una etiqueta. Escribí «wbr» entre signos en este mismo
+   comentario, el SVG dejó de parsear, la imagen disparó onerror y TODAS las
+   hojas perdieron la animación de pasar página —0 píxeles de tinta en el
+   lienzo, tres suites en rojo y ni una de ellas hablando de etiquetas—. Los
+   nombres de elemento se escriben pelados: wbr, br, img.)
+
+   Las etiquetas largas llevan un wbr cada once grafemas —está contado en
+   etiquetaHTML: es la única manera de partirlas sin romper la foto del
+   pliegue— y esos puntos de corte se estaban usando SIEMPRE, no como último
+   recurso. Con «#Interesante» empezando a media línea, el navegador partía por
+   el corte que cabía en el hueco y dejaba «#Interes» arriba y «ante» abajo,
+   teniendo sitio de sobra en el renglón siguiente para la etiqueta entera. El
+   dueño del repo pidió lo contrario: si no cabe, que baje entera.
+
+   inline-block lo resuelve sin tocar esos cortes, y el orden en que trabaja es
+   justo el que se pidió: la caja se coloca como una unidad —si no cabe en lo
+   que queda de renglón, baja entera— y sólo cuando ella sola no cabe en la
+   columna se estrecha hasta el tope y entonces sí los usa. Pasan de ser la
+   primera opción a ser la última, que es lo que siempre debieron ser.
+
+   max-width:100% es la mitad que no se puede olvidar: sin él la caja mide lo
+   que mide su contenido y una etiqueta larguísima se saldría de la columna,
+   que es el fallo que los cortes vinieron a arreglar —.pg-margin recorta con
+   overflow:hidden y aparecía «#Interesant»—.
+   Y no rompe la foto del pliegue: medirPalabras recorre NODOS DE TEXTO y mide
+   sus rectángulos en la hoja viva, así que dibuja lo que haya; los trozos que
+   separa un corte siguen siendo nodos distintos con su propio rectángulo. */
+.gl-tag .gl-t{ padding-left:7px; display:inline-block; max-width:100%; }
 /* El contador de citas del índice era también .gl-tag y no es una etiqueta: con
    la etiqueta convertida en bloque a la derecha se habría ido de renglón. */
 .gl-cuenta{ font-size:.78em; padding-left:5px; opacity:.55; }
@@ -7088,8 +7239,17 @@ function etiquetaHTML(t){
    como una frase; separadas, como una lista. */
 function etiquetasHTML(m){
   const e = m.etiquetas || [];
+  /* SE UNEN CON <wbr> Y NO CON NADA, y sin eso lo de arriba no sirve de mucho.
+     Dos spans pegados no dan al navegador dónde cortar: no hay espacio entre
+     ellos, así que con dos etiquetas seguidas el único sitio por donde podía
+     partir la línea era DENTRO de una —por sus cortes de once grafemas— y eso
+     es justo lo que se vino a quitar. El <wbr> de en medio le da el sitio
+     bueno: entre una etiqueta y la siguiente.
+     No se usa un espacio porque se vería: estas etiquetas van pegadas a la
+     derecha con su propio relleno, y un espacio de texto sumaría un hueco que
+     no está en el diseño. */
   return e.length ? '<span class="gl-tag">' +
-    e.map(t => '<span class="gl-t">#' + etiquetaHTML(t) + '</span>').join('') + '</span>' : '';
+    e.map(t => '<span class="gl-t">#' + etiquetaHTML(t) + '</span>').join('<wbr>') + '</span>' : '';
 }
 function glossHTML(m, cls, style){
   const tags = etiquetasHTML(m);
@@ -7898,8 +8058,8 @@ function renderPage(){
      glosas, y las dos cosas acaban de rehacerse. Va aquí y no en
      pintarSeparador —que sería el sitio natural— porque aquélla se va por
      varias puertas antes de llegar al final, y este punto tiene que quedar
-     puesto haya cinta o no. Ver colocarPuntoCintas. */
-  if (typeof colocarPuntoCintas === 'function') colocarPuntoCintas();
+     puesto haya cinta o no. Ver colocarPuntosDeArriba. */
+  if (typeof colocarPuntosDeArriba === 'function') colocarPuntosDeArriba();
   return r;
 }
 function renderPageCrudo(){
@@ -10989,12 +11149,13 @@ function verEtiquetas(on){
   const b = $('btnVerEtiquetas');
   b.classList.toggle('active', on);
   b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  /* VER Y CAMBIAR NO PUEDEN ESTAR LOS DOS PUESTOS. Son dos maneras de usar la
-     misma lista y se estorban: con las dos encendidas, la mitad de arriba del
-     panel pregunta por cuáles quieres VER y la de abajo por cuáles quieres
-     TOCAR, con los mismos chips a la vista para dos cosas distintas. Apagadas
-     las dos sí se puede estar —es el sitio de fábrica, el índice a solas— así
-     que no son un interruptor de dos posiciones: son dos que se excluyen.
+  /* FILTRAR Y ACTUALIZAR NO PUEDEN ESTAR LOS DOS PUESTOS. Son dos maneras de
+     usar la misma lista y se estorban: con las dos encendidas, la mitad de
+     arriba del panel pregunta por cuáles quieres FILTRAR y la de abajo por
+     cuáles quieres TOCAR, con los mismos chips a la vista para dos cosas
+     distintas. Apagadas las dos sí se puede estar —es el sitio de fábrica, el
+     índice a solas— así que no son un interruptor de dos posiciones: son dos
+     que se excluyen.
      Manda el gesto de ahora, como en destaparLaNueva: el que acabas de tocar
      se enciende y el otro se va. */
   if (on && eligiendoGlosas) elegirGlosas(false);
@@ -11077,7 +11238,7 @@ function hayFiltroPuesto(){
    el mando no desaparezcan. El mando es el propio botón de VER —él la vuelve
    a enseñar— así que el aviso se le pone encima: un punto dorado y un rótulo
    hablado que dice que hay filtros puestos. El botón está a la vista también
-   en modo CAMBIAR, que es el otro camino por el que la tira se apaga. */
+   en modo ACTUALIZAR, que es el otro camino por el que la tira se apaga. */
 function marcarFiltroEscondido(){
   const b = $('btnVerEtiquetas');
   if (!b) return;
@@ -11085,10 +11246,10 @@ function marcarFiltroEscondido(){
                     $('ctrlEtiquetas').classList.contains('sin-chips');
   b.classList.toggle('filtrando', escondido);
   b.title = escondido ? 'Hay filtros puestos y no se ven: tócalo para enseñarlos'
-                      : 'Mostrar u ocultar las etiquetas';
+                      : 'Filtrar las glosas por etiqueta o por día';
   b.setAttribute('aria-label', escondido
-    ? 'Ver las etiquetas. Hay filtros puestos que no se están viendo'
-    : 'Mostrar u ocultar las etiquetas');
+    ? 'Filtrar las glosas. Hay filtros puestos que no se están viendo'
+    : 'Filtrar las glosas por etiqueta o por día');
 }
 $('btnVerEtiquetas').onclick = () => {
   verEtiquetas($('ctrlEtiquetas').classList.contains('sin-chips'));
@@ -13114,14 +13275,14 @@ function cerrarZoom(hacia){
       el.style.removeProperty(p);
   /* Y el punto de las cintas se vuelve a colocar, que de lejos no se mide: la
      hoja llevaba escala y las dos medidas que usa hablan en unidades
-     distintas. Ver colocarPuntoCintas.
+     distintas. Ver colocarPuntosDeArriba.
 
      Y aquí mismo vale: desde que esto se mide con desplazamientos y no con
      rectángulos, el sitio es el mismo con la animación de vuelta a medias o
      terminada. Estuvo con trasPintar mientras medía rectángulos, y ni con dos
      cuadros llegaba: lo que estaba a medias no era el pintado, era la
      transición de la escala. */
-  if (typeof colocarPuntoCintas === 'function') colocarPuntoCintas();
+  if (typeof colocarPuntosDeArriba === 'function') colocarPuntosDeArriba();
 }
 function refrescarPasos(){
   const b = $('zoomPasos').querySelectorAll('[data-paso]');
@@ -14618,14 +14779,19 @@ function pintarCanto(){
        disponibles» no vale por dos motivos: las flechas NO son botones —está
        escrito en su propio comentario, son un letrero— y «disponibles» hace
        pensar que hay otros que no lo están, que es otra idea distinta.
-     · ESTA CASA: en minúsculas, y con el verbo de la casa. Aquí se TOCA:
-       «toca dos veces», «un toque». No se «pulsa» ni se «hace clic».
+     · ESTA CASA: con el verbo de la casa. Aquí se TOCA: «toca dos veces», «un
+       toque». No se «pulsa» ni se «hace clic».
+       Estuvo todo en minúsculas —es como habla el resto del cromo— y el dueño
+       del repo pidió la primera en mayúscula. Tiene su lógica ahora que el
+       rótulo va centrado y con su anillo rojo alrededor: dejó de ser una
+       etiqueta al margen de una fila y pasa a leerse como una frase, y una
+       frase empieza como empiezan las frases.
      · EL LECTOR: lo que quiere saber es dónde puede tocar. Eso es lo que dice
        el rótulo, con esas palabras y sin ninguna más. */
   $('cantoCab').innerHTML =
     '<label class="canto-opcion"><input type="checkbox" id="chkFlechas"' +
     (verFlechas ? ' checked' : '') + ' />' +
-    '<span>señalar dónde se puede tocar</span></label>' +
+    '<span>Señalar dónde se puede tocar</span></label>' +
     cantoPestanasHTML();
   const celdas = libros => libros.map(b => {
       const vivo = hayLibro(b.id), aqui = b.id === cantoMarcado();
@@ -16733,12 +16899,15 @@ function aplicarMedidasSeparador(percha){
    propio titulillo. Ahí el punto se queda donde lo pone la hoja de estilos,
    que además es donde no estorba, porque el problema que esto arregla —el
    punto rozando la cinta— sólo existe cuando la cinta está a su lado. */
-function colocarPuntoCintas(){
-  const b = document.getElementById('btnCintas');
+function colocarPuntosDeArriba(){
+  const bd = document.getElementById('btnCintas');
+  const bi = document.getElementById('btnPiedras');
   const inner = pg && pg.querySelector('.pg-inner');
   const cab = pg && pg.querySelector('.pg-cabeza');
-  if (!b || !inner || !cab) return;
-  const suelta = () => { b.style.left = ''; b.style.right = ''; };
+  if (!inner || !cab) return;
+  /* Soltar es devolverle el sitio a la hoja de estilos, que es donde cada
+     punto vive cuando no hay medio que calcular. */
+  const suelta = b => { if (b){ b.style.left = ''; b.style.right = ''; } };
   /* TODO SE MIDE CON DESPLAZAMIENTOS Y NADA CON RECTÁNGULOS, y eso es el
      arreglo entero de dos fallos que esta función tuvo seguidos.
 
@@ -16774,21 +16943,57 @@ function colocarPuntoCintas(){
     const t = getComputedStyle(el).transform;
     return t && t !== 'none' ? new DOMMatrix(t).m41 : 0;
   };
-  /* Los dos vecinos, en coordenadas de la hoja. */
-  const finTitulillo = sumaIzq(cab, inner) + trasladoX(cab) + cab.offsetWidth;
-  const cinta = sepMedidas().izq;
-  const ancho = b.offsetWidth || 34;
-  /* Con menos hueco que el propio punto no hay en medio que valga. En pantalla
-     ancha el titulillo vive en la esquina de arriba a la derecha, o sea a la
-     DERECHA de donde cuelga la cinta: entre los dos no hay «en medio», y la
-     cuenta daría un sitio encima del propio titulillo. Ahí el punto se queda
-     donde lo pone la hoja de estilos, que además es donde no estorba, porque
-     el problema que esto arregla —el punto rozando la cinta— sólo existe
-     cuando la cinta está a su lado. */
-  if (!(cinta - finTitulillo > ancho)) return suelta();
-  const centro = sumaIzq(inner, stage) + (finTitulillo + cinta) / 2;
-  b.style.left = Math.round(centro - ancho / 2) + 'px';
-  b.style.right = 'auto';
+  /* El titulillo, en coordenadas de la hoja: dónde empieza y dónde acaba. Los
+     dos puntos de arriba se colocan contra él, cada uno por su lado. */
+  const iniTitulillo = sumaIzq(cab, inner) + trasladoX(cab);
+  const finTitulillo = iniTitulillo + cab.offsetWidth;
+  const hojaEnEscena = sumaIzq(inner, stage);
+  const pon = (b, centro) => {
+    b.style.left = Math.round(centro - (b.offsetWidth || 34) / 2) + 'px';
+    b.style.right = 'auto';
+  };
+
+  /* EL DE LA DERECHA, ENTRE EL TITULILLO Y LA CINTA. */
+  if (bd){
+    const cinta = sepMedidas().izq;
+    /* Con menos hueco que el propio punto no hay en medio que valga. En
+       pantalla ancha el titulillo vive en la esquina de arriba a la derecha, o
+       sea a la DERECHA de donde cuelga la cinta: entre los dos no hay «en
+       medio», y la cuenta daría un sitio encima del propio titulillo. Ahí el
+       punto se queda donde lo pone la hoja de estilos, que además es donde no
+       estorba, porque el problema que esto arregla —el punto rozando la
+       cinta— sólo existe cuando la cinta está a su lado. */
+    if (cinta - finTitulillo > (bd.offsetWidth || 34))
+      pon(bd, hojaEnEscena + (finTitulillo + cinta) / 2);
+    else suelta(bd);
+  }
+
+  /* Y EL DE LA IZQUIERDA, ENTRE EL FILO DE LA HOJA Y EL TITULILLO, que es el
+     mismo encargo mirado al revés y por el mismo motivo.
+
+     Vivía pegado al canto izquierdo, a 8 px, y ahí se monta sobre el FILO de
+     pasar hoja: medido en un teléfono de 412, el punto ocupaba de 10 a 54 y el
+     filo de 0 a 30, o sea veinte píxeles compartidos entre «abre las piedras»
+     y «pasa la hoja». Es el mismo choque que tenía el de las cintas con el
+     separador, y se arregla igual: en medio de sus dos vecinos no lo reclama
+     ninguno. Con el titulillo empezando en 139, el medio cae en 70 y el punto
+     —que arriba mide 44 de ancho en teléfono— queda de 48 a 92: libre del filo
+     y con cuarenta y siete píxeles de aire hasta las letras.
+
+     EL LÍMITE DE ARRIBA ES LA MITAD DE LA HOJA, y sin él esto se rompe en
+     pantalla ancha: allí el titulillo se va a la esquina de arriba a la
+     derecha —medido, empieza en 517 de una hoja de 584— y «en medio de lo que
+     queda a su izquierda» sería el centro del canto de arriba, que es un sitio
+     sin ningún sentido. Si el titulillo no empieza en la primera mitad de la
+     hoja, no está centrado sobre la columna y no hay medio que calcular: el
+     punto se queda donde lo pone la hoja de estilos, que es su esquina. Es la
+     contrapartida exacta del guardia del otro lado. */
+  if (bi){
+    const ancho = bi.offsetWidth || 34;
+    if (iniTitulillo > ancho && iniTitulillo < inner.offsetWidth / 2)
+      pon(bi, hojaEnEscena + iniTitulillo / 2);
+    else suelta(bi);
+  }
 }
 /* Y SE VUELVE A COLOCAR CUANDO ALGUNO DE LOS DOS VECINOS CAMBIA DE TAMAÑO.
 
@@ -16811,7 +17016,7 @@ function colocarPuntoCintas(){
    No hay riesgo de bucle: mover el punto no cambia el ancho de ninguno de los
    dos, y el punto vive en la escena, fuera de la hoja. */
 if (typeof ResizeObserver === 'function'){
-  const ojo = new ResizeObserver(() => colocarPuntoCintas());
+  const ojo = new ResizeObserver(() => colocarPuntosDeArriba());
   for (const el of [document.getElementById('pgCabeza'), document.getElementById('pgMargin')])
     if (el) ojo.observe(el);
 }
@@ -20192,11 +20397,13 @@ etiquetas.appendChild($('ctrlEtiquetas'));
 etiquetas.appendChild($('indice'));
 etiquetas.appendChild($('barraGrupo'));
 
-/* El crédito de licencia se va al panel de Formato, pegado a la versión que
-   nombra. No es adorno legal: la Versión Biblia Libre es CC BY-SA y exige
-   atribución, así que tiene que estar a la vista en alguna parte. Al lado del
-   selector es donde de verdad significa algo. */
-ajustes.appendChild($('cred'));
+/* AQUÍ SE MUDABA EL CRÉDITO DE LICENCIA AL PANEL DE LA LETRA, y se pidió
+   sacarlo: «lo incluiremos en otro sitio después». Así que el nodo se queda en
+   el documento, escondido por su regla del body, con su texto al día y a una
+   línea de volver a colgarse donde se decida.
+   NO ES ADORNO LEGAL: la Versión Biblia Libre es CC BY-SA y exige atribución.
+   Mientras esa línea no vuelva, el programa no la enseña en ninguna parte, y
+   eso hay que cerrarlo. Queda dicho aquí y en la regla del body. */
 
 /* El panel de Respaldo se arma con los botones que vivían en la barra de
    abajo: exportar e importar, que son las dos cosas que le pasan al archivo
@@ -21031,7 +21238,7 @@ window.addEventListener('resize', () => {
      columna de glosas, o sea dónde cuelga la cinta, o sea dónde está el medio.
      renderPage ya lo coloca, pero lo hace ANTES de que medirZoom deje la hoja
      con sus medidas nuevas. */
-  colocarPuntoCintas();
+  colocarPuntosDeArriba();
 });
 })();
 </script>
