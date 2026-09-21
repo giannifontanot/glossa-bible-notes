@@ -5427,7 +5427,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 13:30';
+window.GLOSS_BUILD = '21-SEP-26 13:37';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -15568,6 +15568,32 @@ function cerrarCanto(alTerminar, disolver){
     if (alTerminar) alTerminar();
   }, disolver ? 340 : 360);
 }
+
+/* EL ESCAPE QUE VIENE DE DENTRO DE UN RELATO.
+
+   Con el foco dentro del marco de un encuentro, el teclado se queda en el
+   documento de dentro: el oyente de Escape de aquí abajo no lo ve pasar, así
+   que leyendo a Zaqueo la tecla que cierra cualquier otro panel no cerraba
+   éste. El relato lo devuelve con un aviso —ver encuentros/salida.js— y esto
+   es quien lo recoge.
+
+   LA COMPROBACIÓN QUE IMPORTA NO ES LA DEL ORIGEN, ES LA DEL REMITENTE. Con
+   file:// el origen de un marco es «null» y no distingue el nuestro de
+   cualquier otro documento local, así que lo que se mira es si quien avisa ES
+   una de nuestras ventanas: contentWindow se puede comparar aunque no se pueda
+   mirar dentro. Cualquier otro aviso se cae aquí sin hacer nada.
+
+   Y se llama a cerrarTodosLosRollos y no se finge una tecla: un Escape
+   despachado a mano haría además todo lo que hace el oyente general —menús,
+   cascada, separador— y desde dentro de un relato no hay nada de eso abierto.
+   Lo que se pidió es salir del panel. */
+addEventListener('message', ev => {
+  if (!ev.data || ev.data.glossa !== 'salir') return;
+  const nuestro = [...document.querySelectorAll('.enc-marco')]
+                    .some(m => m.contentWindow === ev.source);
+  if (!nuestro) return;
+  cerrarTodosLosRollos();
+});
 
 /* Aquí vivía un segundo oyente de "clic fuera" que no exceptuaba el menú
    flotante, así que elegir un libro en el menú del chip cerraba el panel

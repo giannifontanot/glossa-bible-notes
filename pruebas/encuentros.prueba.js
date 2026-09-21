@@ -295,5 +295,47 @@ const IR_A = `async (sec) => {
   vale('  y se quedó donde se estaba leyendo',
        devuelta.aLaVista.join(',') === 'samaritana', devuelta.aLaVista.join(' · '));
 
+  /* ---------------- la salida de teclado ---------------- */
+  titulo('Escape cierra el panel también desde dentro del relato');
+  /* CON EL FOCO DENTRO DEL MARCO, EL TECLADO SE QUEDA ALLÍ. El oyente de
+     Escape del programa vive en el documento de fuera y no ve pasar la tecla,
+     así que leyendo a Zaqueo la tecla que cierra cualquier otro panel dejaba
+     de cerrar éste: quien lee con teclado se quedaba dentro. El relato la
+     devuelve con un aviso —encuentros/salida.js— y el programa lo recoge.
+     Lo levantó la revisión de Codex, y está medido en las dos direcciones:
+     quitando salida.js, el panel se queda abierto.
+
+     EL FOCO SE METE TOCANDO EL TEXTO, que es como entra leyendo, y no con un
+     focus() a mano: lo que se está probando es justo que la tecla nazca en el
+     documento de dentro. */
+  await p.evaluate(async () => {
+    document.querySelector('#encuentros .pestanitas [data-enc="zaqueo"]').click();
+    await new Promise(z => setTimeout(z, 600));
+  });
+  const marcoZaqueo = p.frames().find(x => /zaqueo\.html/.test(x.url() || ''));
+  vale('(la prueba es válida) el relato está a la vista', !!marcoZaqueo);
+  if (marcoZaqueo){
+    await marcoZaqueo.locator('h1').click();
+    const antes = await p.evaluate(() => ({
+      panel:getComputedStyle(document.getElementById('encuentros')).display,
+      foco:(document.activeElement || {}).className }));
+    di('antes de la tecla', antes);
+    /* La otra línea de validez: si el foco no hubiera entrado en el marco,
+       esto sería la prueba de siempre del Escape y no probaría nada nuevo. */
+    vale('(la prueba es válida) el foco entró en el marco',
+         /enc-marco/.test(antes.foco || ''), antes.foco);
+    vale('(la prueba es válida) y el panel estaba abierto',
+         antes.panel !== 'none', antes.panel);
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(900);
+    const luego = await p.evaluate(() => ({
+      panel:getComputedStyle(document.getElementById('encuentros')).display,
+      aria:document.getElementById('pgCabeza').getAttribute('aria-expanded') }));
+    di('tras la tecla', luego);
+    vale('ESCAPE CIERRA EL PANEL DESDE DENTRO DEL RELATO',
+         luego.panel === 'none', luego.panel);
+    vale('  y el titulillo se entera', luego.aria === 'false', luego.aria);
+  }
+
   await cerrar(sesion);
 })();
