@@ -748,6 +748,108 @@ const FUERA = `async () => {
        turnos.apagadaOtraVez.tira === 'none' && turnos.apagadaOtraVez.barra === 'none',
        turnos.apagadaOtraVez);
 
+  /* ================================================================
+     UN FILTRO PUESTO NUNCA SE QUEDA SIN AVISO NI SIN MANDO.
+
+     La tira se apaga a mano —o la apaga CAMBIAR, que se excluye con ella— y
+     los filtros no se van con ella: el índice y la hoja siguen escondiendo lo
+     que escondían y en pantalla no queda nada que lo explique. Con las
+     etiquetas ya pasaba; con el día empezó a pasar al mudar su combo dentro de
+     la tira, que hasta entonces vivía en una fila que no se esconde nunca.
+
+     El mando es el propio botón de VER —él la vuelve a enseñar— así que el
+     aviso se le pone encima. Se comprueban los tres estados que importan:
+     con la tira puesta NO hay punto (el filtro se ve solo, un punto sobraría y
+     enseñaría a no hacerle caso), escondida SÍ, y sin filtro no lo hay aunque
+     la tira esté escondida. La tercera es la que impide que esto se convierta
+     en un adorno permanente.
+
+     Se mira el punto PINTADO —el content del ::after— y no la clase que lo
+     enciende: la clase es la orden, el punto es lo que se ve.
+     ================================================================ */
+  titulo('un filtro escondido se anuncia en el botón');
+  await alPanel();
+  const aviso = await p.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const ver = document.getElementById('btnVerEtiquetas');
+    const cam = document.getElementById('btnElegirGlosas');
+    const foto = () => ({
+      punto: getComputedStyle(ver, '::after').content,
+      voz: ver.getAttribute('aria-label') || '',
+      tira: getComputedStyle(document.getElementById('filaFiltros')).display });
+    /* SE PIDE EL ESTADO, NO SE CUENTA CLICS. Este bloque enciende y apaga la
+       tira seis veces por dos caminos —su botón y CAMBIAR, que se excluyen— y
+       escrito a base de «un clic más» se desincroniza en cuanto uno de los dos
+       caminos cambie de efecto: se mediría el estado de al lado y la prueba
+       diría cosas ciertas sobre el momento equivocado. Pasó al escribirlo. */
+    const ponerVer = async on => {
+      if ((ver.getAttribute('aria-pressed') === 'true') !== on){
+        ver.click(); await z(520);
+      }
+    };
+    await ponerVer(true);
+    /* Un filtro de etiqueta, puesto como lo pone un dedo. */
+    const chip = [...document.querySelectorAll('#filtros .chip')]
+      .find(c => !c.classList.contains('chip-libro') &&
+                 !c.classList.contains('chip-mas'));
+    if (!chip) return { sinChip:true };
+    chip.click(); await z(1200);
+    const alaVista = foto();
+    await ponerVer(false);
+    const escondido = foto();
+    await ponerVer(true);
+    const devuelto = foto();
+    /* Y por el otro camino: CAMBIAR también apaga la tira. */
+    cam.click(); await z(620);
+    const porCambiar = foto();
+    cam.click(); await z(620);
+    /* Se quita el filtro y se esconde la tira: sin filtro, sin punto. */
+    await ponerVer(true);
+    const puesto = [...document.querySelectorAll('#filtros .chip.sel')]
+      .find(c => !c.classList.contains('chip-libro'));
+    if (puesto){ puesto.click(); await z(1200); }
+    await ponerVer(false);
+    const limpio = foto();
+    /* Y el día, que es el que estrenó el agujero al mudarse aquí dentro. */
+    const dia = document.getElementById('selDia');
+    const cual = [...dia.options].map(o => o.value).find(Boolean);
+    let porDia = null;
+    if (cual){
+      await ponerVer(true);
+      dia.value = cual;
+      dia.dispatchEvent(new Event('change', { bubbles:true }));
+      await z(1300);
+      await ponerVer(false);
+      porDia = foto();
+      /* Se deja como estaba: el día puesto escondería glosas a los bloques
+         de abajo, que cuentan cuántas se ven. */
+      await ponerVer(true);
+      dia.value = '';
+      dia.dispatchEvent(new Event('change', { bubbles:true }));
+      await z(1300);
+    }
+    return { alaVista, escondido, devuelto, porCambiar, limpio, porDia };
+  });
+  di('el aviso', JSON.stringify(aviso));
+  const conPunto = f => /•/.test(f.punto);
+  vale('(la prueba es válida) se pudo poner un filtro', !aviso.sinChip, aviso);
+  vale('con la tira a la vista NO hay punto, que el filtro se ve solo',
+       aviso.alaVista.tira !== 'none' && !conPunto(aviso.alaVista), aviso.alaVista);
+  vale('ESCONDER LA TIRA CON UN FILTRO PUESTO LO ANUNCIA EN EL BOTÓN',
+       aviso.escondido.tira === 'none' && conPunto(aviso.escondido) &&
+       /filtro/i.test(aviso.escondido.voz), aviso.escondido);
+  vale('  y el punto se va al volver a enseñarla',
+       !conPunto(aviso.devuelto), aviso.devuelto);
+  vale('CAMBIAR APAGA LA TIRA Y TAMBIÉN LO ANUNCIA',
+       aviso.porCambiar.tira === 'none' && conPunto(aviso.porCambiar),
+       aviso.porCambiar);
+  /* La que impide que el punto se vuelva un adorno permanente. */
+  vale('SIN FILTRO NO HAY PUNTO, aunque la tira esté escondida',
+       aviso.limpio.tira === 'none' && !conPunto(aviso.limpio), aviso.limpio);
+  vale('y el DÍA cuenta como filtro, que para eso se mudó a la tira',
+       !!aviso.porDia && aviso.porDia.tira === 'none' && conPunto(aviso.porDia),
+       aviso.porDia);
+
   titulo('los chips de «ver» filtran');
   await alPanel();
   await encenderEtiquetas();

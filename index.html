@@ -3487,6 +3487,14 @@
   #btnVerEtiquetas, #btnElegirGlosas{ width:auto; flex:0 0 auto; min-height:32px;
                                       padding:0 12px; letter-spacing:.04em; }
   #ctrlEtiquetas.sin-chips #filaFiltros{ display:none; }
+  /* EL PUNTO DE «HAY FILTRO Y NO SE VE». Lo enciende marcarFiltroEscondido,
+     que es quien sabe las dos cosas a la vez. Va después de la palabra y no
+     encima del botón: lo que dice es que ahí dentro queda algo puesto, y el
+     botón sigue siendo el que lo enseña. Dorado, que es el color con el que
+     este programa dice «esto está activo». */
+  #btnVerEtiquetas.filtrando::after{ content:'•'; margin-left:.4em;
+                                     color:#b8892b; font-size:1.3em;
+                                     line-height:0; }
   /* LA TIRA DE ETIQUETAS TIENE TECHO Y SE DESPLAZA POR DENTRO.
 
      No lo tenía, y por eso encenderla se llevaba el panel: la tira crece con
@@ -5169,7 +5177,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 08:10';
+window.GLOSS_BUILD = '21-SEP-26 08:15';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -10947,8 +10955,14 @@ function pintarDias(){
   /* Encendido como un chip marcado cuando filtra: ahora vive entre chips y
      tiene que decir lo mismo que ellos de la misma manera. */
   sel.classList.toggle('sel', !!diaFiltro);
+  /* El día es un filtro más, así que también puede quedarse escondido. */
+  marcarFiltroEscondido();
 }
-$('selDia').onchange = e => { diaFiltro = e.target.value; renderPage(); };
+$('selDia').onchange = e => {
+  diaFiltro = e.target.value;
+  marcarFiltroEscondido();
+  renderPage();
+};
 /* ENSEÑA U OCULTA LA TIRA DE CHIPS, para dejar el índice de glosas a la vista.
 
    Las tres cosas que tienen que decir lo mismo —la clase del panel, el botón
@@ -10971,6 +10985,7 @@ function verEtiquetas(on){
   /* Y el aviso de «hay más» sólo se puede medir con la tira a la vista:
      escondida, su alto es cero y la cuenta diría siempre que no hay más. */
   if (on) avisarMasEtiquetas();
+  marcarFiltroEscondido();
 }
 /* AVISAR DE QUE LA LISTA SIGUE POR DEBAJO.
 
@@ -11002,7 +11017,41 @@ $('filtros').addEventListener('scroll', avisarMasEtiquetas, { passive:true });
    lado. Así que al arrancar manda el filtro: si hay alguno, la tira sale
    puesta aunque su sitio de fábrica sea apagada. Lo levantó la revisión de
    Codex. */
-function hayFiltroPuesto(){ return etiquetasVer.size > 0 || librosFiltro.size > 0; }
+function hayFiltroPuesto(){
+  return etiquetasVer.size > 0 || librosFiltro.size > 0 || !!diaFiltro;
+}
+/* Y SI HAY FILTRO CON LA TIRA ESCONDIDA, EL BOTÓN LO DICE.
+
+   La tira se apaga a mano —o la apaga CAMBIAR, que se excluye con ella— y los
+   filtros no se van con ella: el índice y la hoja siguen escondiendo lo que
+   escondían y en pantalla no queda nada que lo explique. Con las etiquetas ya
+   pasaba; con el día empezó a pasar al mudar su combo aquí dentro, que hasta
+   entonces vivía en una fila que no se esconde nunca. Lo levantó la revisión
+   de Codex.
+
+   Se descartaron las dos salidas obvias. QUITAR EL FILTRO al esconder la tira
+   tira por la borda lo que el lector acababa de elegir —y en este programa un
+   filtro sólo se quita solo cuando choca con algo que el lector está haciendo
+   AHORA, que es lo que hace destaparLaNueva—. Y NO DEJAR ESCONDERLA con
+   filtro puesto convierte un botón en uno que a veces no obedece.
+
+   Lo que queda es lo que pedía la revisión con otras palabras: que el aviso y
+   el mando no desaparezcan. El mando es el propio botón de VER —él la vuelve
+   a enseñar— así que el aviso se le pone encima: un punto dorado y un rótulo
+   hablado que dice que hay filtros puestos. El botón está a la vista también
+   en modo CAMBIAR, que es el otro camino por el que la tira se apaga. */
+function marcarFiltroEscondido(){
+  const b = $('btnVerEtiquetas');
+  if (!b) return;
+  const escondido = hayFiltroPuesto() &&
+                    $('ctrlEtiquetas').classList.contains('sin-chips');
+  b.classList.toggle('filtrando', escondido);
+  b.title = escondido ? 'Hay filtros puestos y no se ven: tócalo para enseñarlos'
+                      : 'Mostrar u ocultar las etiquetas';
+  b.setAttribute('aria-label', escondido
+    ? 'Ver las etiquetas. Hay filtros puestos que no se están viendo'
+    : 'Mostrar u ocultar las etiquetas');
+}
 $('btnVerEtiquetas').onclick = () => {
   verEtiquetas($('ctrlEtiquetas').classList.contains('sin-chips'));
 };
@@ -11075,6 +11124,7 @@ function elegirGlosas(on){
   }
   /* La otra mitad de la exclusión; está contada en verEtiquetas. */
   if (on) verEtiquetas(false);
+  marcarFiltroEscondido();
   pintarBarraGrupo();
 }
 $('btnElegirGlosas').onclick = () => elegirGlosas(!eligiendoGlosas);
