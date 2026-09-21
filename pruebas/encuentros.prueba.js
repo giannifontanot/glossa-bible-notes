@@ -17,7 +17,7 @@
    error y sin aviso, dejando la historia de Zaqueo a la vista y ninguna manera
    de llegar a la otra. Por eso aquí se abre, se cierra y se vuelve a abrir, que
    es el gesto que lo destapa. */
-const { abrir, cerrar, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, cerrarParcial, di, vale, titulo, ESCRITORIO } = require('./comun');
 
 /* Abrir la burbuja y tocar una pestaña de sección, como se hace con un dedo.
    LA BARRA DEL PANEL QUE SE VE, no la primera del documento: los paneles
@@ -631,5 +631,123 @@ const IR_A = `async (sec) => {
     vale('  y el titulillo se entera', luego.aria === 'false', luego.aria);
   }
 
-  await cerrar(sesion);
+  /* ---------------- llegar a lo que queda fuera ---------------- */
+  titulo('la tira recortada se puede alcanzar, y avisa cuando cambia de ancho');
+  /* DOS MANERAS DE QUEDARSE SIN CAMINO, las dos levantadas por la revisión de
+     Codex y las dos medidas aquí:
+
+     · LA RUEDA. Una rueda vertical sobre una caja que solo se desplaza en
+       horizontal no hace nada en la mayoría de los navegadores, y girar la
+       rueda encima es lo primero que hace quien ve una tira recortada. Se
+       traduce a un desplazamiento de lado.
+     · EL CAMBIO DE ANCHO. Las sombras se refrescaban solo al correr la tira o
+       al abrir el panel, así que con Encuentros abierto y el teléfono girando,
+       una tira que antes cabía empezaba a desbordar sin un solo scroll que lo
+       contara: el aviso se quedaba apagado. Y al revés, una que dejaba de
+       desbordar seguía avisando de algo que ya no hay. */
+  await irA('encuentros');
+  const tiraAntes = await p.evaluate(() => {
+    const b = document.getElementById('encuentros').querySelector('.pestanitas');
+    b.scrollLeft = 0;
+    return { sobra:b.scrollWidth - b.clientWidth, scroll:Math.round(b.scrollLeft) };
+  });
+  di('la tira antes de la rueda', JSON.stringify(tiraAntes));
+  /* La línea de validez: sin nada que quede fuera, mover la rueda no tiene por
+     qué hacer nada y lo de abajo no probaría nada. */
+  vale('(la prueba es válida) hay tira fuera de la pantalla',
+       tiraAntes.sobra > 0, tiraAntes.sobra + ' px fuera');
+  const trasRueda = await p.evaluate(async () => {
+    const b = document.getElementById('encuentros').querySelector('.pestanitas');
+    const r = b.getBoundingClientRect();
+    /* La rueda se manda como la manda un ratón: vertical, encima de la tira.
+       Lo que se prueba es justo la traducción, así que un deltaX sería hacer
+       trampa. */
+    b.dispatchEvent(new WheelEvent('wheel', { bubbles:true, cancelable:true,
+      deltaY:120, clientX:Math.round(r.left + 40), clientY:Math.round(r.top + 10) }));
+    await new Promise(z => setTimeout(z, 300));
+    const caja = document.getElementById('encuentros').querySelector('.enc-barra');
+    return { scroll:Math.round(b.scrollLeft),
+             hayIzq:caja.classList.contains('hay-izq') };
+  });
+  di('tras girar la rueda', JSON.stringify(trasRueda));
+  vale('LA RUEDA VERTICAL CORRE LA TIRA DE LADO',
+       trasRueda.scroll > tiraAntes.scroll, tiraAntes.scroll + ' → ' + trasRueda.scroll);
+  vale('  y el aviso del filo se entera',
+       trasRueda.hayIzq === true, trasRueda.hayIzq);
+
+  /* Y AL GIRAR EL TELÉFONO CON EL PANEL ABIERTO. Sin cerrar nada: es justo el
+     caso que se escapaba. */
+  const antesDeGirar = await p.evaluate(() => {
+    const caja = document.getElementById('encuentros').querySelector('.enc-barra');
+    return { hayDer:caja.classList.contains('hay-der') };
+  });
+  await p.setViewportSize({ width:915, height:412 });
+  await p.waitForTimeout(800);
+  const girado = await p.evaluate(() => {
+    const c = document.getElementById('encuentros');
+    const b = c.querySelector('.pestanitas'), caja = c.querySelector('.enc-barra');
+    return { puesto:getComputedStyle(c).display !== 'none',
+             sobra:b.scrollWidth - b.clientWidth,
+             hayIzq:caja.classList.contains('hay-izq'),
+             hayDer:caja.classList.contains('hay-der') };
+  });
+  di('con el teléfono girado', JSON.stringify(girado));
+  vale('(la prueba es válida) el panel siguió abierto al girar',
+       girado.puesto === true);
+  vale('(la prueba es válida) y antes de girar sí avisaba',
+       antesDeGirar.hayDer === true);
+  /* Girado cabe todo, así que el aviso tiene que APAGARSE sin que nadie haya
+     tocado la tira. Si siguiera encendido estaría señalando pestañas que ya
+     se ven. */
+  vale('AL CAMBIAR DE ANCHO, EL AVISO SE VUELVE A MEDIR',
+       girado.sobra === 0 && girado.hayDer === false && girado.hayIzq === false,
+       JSON.stringify(girado));
+  await p.setViewportSize({ width:412, height:915 });
+  await p.waitForTimeout(800);
+
+  /* La sesión del teléfono se cierra AQUÍ y sin pedir la cuenta: abajo se abre
+     otra y el resumen se pide una sola vez, al final. Cerrando con cerrar() se
+     imprimirían dos cuentas y la primera parecería el total. Está contado en
+     comun.js, donde vive fin(). */
+  await cerrarParcial(sesion, 'el teléfono');
+
+  /* ================================================================
+     Y CON RATÓN HAY BARRA, que es la única manera de llegar a lo recortado.
+
+     Un dedo arrastra la tira y un trackpad la empuja; un ratón de rueda no
+     hace ninguna de las dos cosas —por eso la rueda se traduce, arriba— y
+     arrastrar el contenido de una caja con overflow no es algo que hagan los
+     navegadores de escritorio. La barra se esconde en el teléfono, donde es de
+     superposición y el aviso lo dan las sombras, y se enseña con puntero fino.
+
+     SE MIRA scrollbar-width Y NO SI OCUPA SITIO: si la barra roba alto o se
+     pinta encima lo decide el sistema —en este Chromium son de superposición y
+     miden cero— y eso no es cosa de este programa. Lo que sí es cosa suya es
+     pedirla en escritorio y no pedirla en el teléfono.
+     ================================================================ */
+  titulo('con ratón la tira lleva barra; con dedo, no');
+  const ancha = await abrir(ESCRITORIO);
+  const pa = ancha.pagina;
+  await pa.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    document.getElementById('pgCabeza').click(); await z(900);
+    const t = document.querySelector('.rollo:not([style*="none"]) .pestanas [data-sec="encuentros"]');
+    if (t) t.click();
+    await z(1500);
+  });
+  const conRaton = await pa.evaluate(() => {
+    const b = document.getElementById('encuentros').querySelector('.pestanitas');
+    const cs = getComputedStyle(b);
+    return { ancho:cs.scrollbarWidth, color:cs.scrollbarColor,
+             puntero:matchMedia('(pointer:fine)').matches };
+  });
+  di('con ratón', JSON.stringify(conRaton));
+  vale('(la prueba es válida) esta sesión es de puntero fino',
+       conRaton.puntero === true);
+  vale('CON RATÓN, LA TIRA PIDE SU BARRA', conRaton.ancho === 'thin', conRaton.ancho);
+  /* Y del marrón de la casa: una barra azul del sistema encima de un panel de
+     papel se ve como un trozo de otro programa. */
+  vale('  y del color de la casa, no del sistema',
+       /140, *116, *68/.test(conRaton.color || ''), conRaton.color);
+  await cerrar(ancha);
 })();

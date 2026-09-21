@@ -3463,6 +3463,32 @@
                overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain;
                scrollbar-width:none; -ms-overflow-style:none; }
   .pestanitas::-webkit-scrollbar{ display:none; }
+  /* PERO CON RATÓN SÍ HAY BARRA, y esto no es un cambio de gusto sino la única
+     manera de llegar a lo que queda fuera.
+
+     Un dedo arrastra la tira y un trackpad la empuja de lado; un ratón de
+     rueda no hace ninguna de las dos cosas, y arrastrar el contenido de una
+     caja con overflow no es algo que hagan los navegadores de escritorio. Sin
+     barra, quien usa ratón se queda sin camino a las pestañas recortadas
+     —hoy caben en pantalla ancha, pero no con el zoom subido ni cuando entre
+     el sexto encuentro—. Lo levantó la revisión de Codex.
+
+     Se enciende por pointer:fine y hover, que es lo que distingue un ratón de
+     un dedo. En el teléfono la barra sigue escondida: ahí es de superposición,
+     aparece sola al arrastrar y no roba alto, y el aviso lo dan las sombras.
+
+     Va fina y del marrón de la casa, no la del sistema: esta tira vive dentro
+     de un panel de papel y una barra azul de Windows encima se ve como un
+     trozo de otro programa. */
+  @media (hover:hover) and (pointer:fine){
+    .pestanitas{ scrollbar-width:thin; scrollbar-color:rgba(140,116,68,.55) transparent;
+                 padding-bottom:3px; }
+    .pestanitas::-webkit-scrollbar{ display:block; height:7px; }
+    .pestanitas::-webkit-scrollbar-track{ background:transparent; }
+    .pestanitas::-webkit-scrollbar-thumb{ background:rgba(140,116,68,.55);
+                                          border-radius:999px; }
+    .pestanitas::-webkit-scrollbar-thumb:hover{ background:rgba(140,116,68,.8); }
+  }
   /* flex:0 0 auto para que ninguna se encoja: una pestaña apretada hasta que
      su palabra se parte es peor que una tira que se corre. */
   .pestanitas button{ flex:0 0 auto; white-space:nowrap;
@@ -5476,7 +5502,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 18:26';
+window.GLOSS_BUILD = '21-SEP-26 18:35';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -21053,6 +21079,34 @@ const ENCUENTROS = [
     cajaBarra.classList.toggle('hay-der', sobra - barra.scrollLeft > 1);
   };
   barra.addEventListener('scroll', avisarMasEncuentros, { passive:true });
+  /* Y SE VUELVE A MEDIR CUANDO LA TIRA CAMBIA DE ANCHO. Las clases se
+     refrescaban solo al correrla o al abrir el panel, así que con Encuentros
+     abierto y el teléfono girando —o la ventana estrechándose— una tira que
+     antes cabía empezaba a desbordar en scrollLeft 0, sin un solo scroll que
+     lo contara: la sombra de la derecha se quedaba apagada. Y al revés, una
+     que dejaba de desbordar se quedaba avisando de algo que ya no hay. Lo
+     levantó la revisión de Codex.
+     Observa la TIRA y no la ventana: lo que decide es su ancho, y así vale
+     también para lo que estreche el panel sin tocar la ventana. */
+  if (typeof ResizeObserver === 'function')
+    new ResizeObserver(avisarMasEncuentros).observe(barra);
+  /* LA RUEDA DEL RATÓN CORRE LA TIRA DE LADO. Una rueda vertical sobre una
+     caja que solo se desplaza en horizontal no hace nada en la mayoría de los
+     navegadores, y lo primero que hace quien ve una tira recortada es girar la
+     rueda encima. Se traduce.
+     No se traga el gesto cuando la tira ya topó en esa dirección: ahí la rueda
+     vuelve a ser de quien estaba debajo, que es lo que uno espera al final de
+     un recorrido. Por eso el oyente no es pasivo —hay que poder llamar a
+     preventDefault— pero solo se llama cuando de verdad se va a mover algo. */
+  barra.addEventListener('wheel', ev => {
+    if (Math.abs(ev.deltaY) <= Math.abs(ev.deltaX)) return;   /* ya es horizontal */
+    const sobra = barra.scrollWidth - barra.clientWidth;
+    if (sobra <= 0) return;
+    const topa = ev.deltaY > 0 ? barra.scrollLeft >= sobra - 1 : barra.scrollLeft <= 1;
+    if (topa) return;
+    ev.preventDefault();
+    barra.scrollLeft += ev.deltaY;
+  }, { passive:false });
   /* Y LA PESTAÑA ENCENDIDA SE TRAE A LA VISTA. Con la tira corrida, volver a
      abrir Encuentros por la que se estaba leyendo enseñaba el principio de la
      tira y la encendida fuera de pantalla: el panel decía que estás en una
