@@ -1266,7 +1266,20 @@ const ATERRIZA = 7000;
       };
       const contiene = (a, b) => !!a && !!b && a.left <= b.left + 0.5 &&
         a.right >= b.right - 0.5 && a.top <= b.top + 0.5 && a.bottom >= b.bottom - 0.5;
-      const tit = document.querySelector('#pg .pg-cabeza').getBoundingClientRect();
+      /* LO QUE NO SE PUEDE TAPAR SON LAS LETRAS, no la caja. El titulillo lleva
+         13 px de relleno a cada lado —es lo que le da su recuadro— y un
+         letrero que muerde ese relleno no esconde nada: lo que esconde
+         información es meterse en el texto. Medido contra la caja entera, la
+         prueba pedía un hueco que no hace falta y que en un teléfono con la
+         letra al tope no existe; medido contra las letras, pide justo lo que
+         importa. Se descuenta el relleno del propio rótulo y no un número a
+         ojo, que si algún día cambia el relleno esta cuenta se entera sola. */
+      const rt = document.querySelector('#pg .pg-cabeza').getBoundingClientRect();
+      const ct = getComputedStyle(document.querySelector('#pg .pg-cabeza'));
+      const tit = { left: rt.left + parseFloat(ct.paddingLeft),
+                    right: rt.right - parseFloat(ct.paddingRight),
+                    top: rt.top + parseFloat(ct.paddingTop),
+                    bottom: rt.bottom - parseFloat(ct.paddingBottom) };
       const pi = caja('btnPiedras'), ci = caja('btnCintas');
       const zo = caja('btnZoom'), hi = caja('btnHistorial');
       return { tope, cuerpo: getComputedStyle(document.getElementById('pgBody')).fontSize,
@@ -1286,7 +1299,7 @@ const ATERRIZA = 7000;
     vale('NINGÚN LETRERO SE SALE DE LA ESCENA · ' + comoSeLlama,
          !!borde.fuera && borde.fuera.length === 0,
          (borde.fuera || []).join(' · ') || 'ninguno');
-    vale('  y ninguno le cae encima al titulillo · ' + comoSeLlama,
+    vale('  y ninguno le tapa las letras al titulillo · ' + comoSeLlama,
          !!borde.pisan && borde.pisan.length === 0,
          (borde.pisan || []).join(' · ') || 'ninguno');
     vale('  y EL RECUADRO ENCIERRA SU PUNTO · ' + comoSeLlama,

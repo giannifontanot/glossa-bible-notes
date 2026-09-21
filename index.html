@@ -1035,7 +1035,12 @@
      el botón, y el botón está más cerca. */
   #btnZoom::before, #btnHistorial::before,
   #btnPiedras::before, #btnCintas::before{ content:''; display:block;
-            width:11px; height:11px; border-radius:50%;
+            /* EL DIÁMETRO VA EN UNA VARIABLE porque ahora lo lee alguien más:
+               el recuadro de la guía se ciñe al DISCO y no al blanco de toque
+               del botón, que mide cuatro veces más y es invisible. Escrito dos
+               veces se despareja a la primera que alguien retoque el punto.
+               Ver «EL RECUADRO SE CIÑE AL DISCO». */
+            width:var(--punto-d, 11px); height:var(--punto-d, 11px); border-radius:50%;
             background:var(--punto, #a98f57);
             opacity:var(--punto-luz, .62);
             transform:scale(var(--punto-esc, 1));
@@ -1314,10 +1319,33 @@
   .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after,
   .stage.guias #btnZoom::after, .stage.guias #btnHistorial::after{
             border-radius:999px; }
+  /* EL RECUADRO SE CIÑE AL DISCO, NO AL BLANCO DE TOQUE.
+
+     La primera versión arrancaba en el canto del botón —left:0, y el relleno
+     del 100% de su ancho— y eso metía dentro de la cápsula los 44 px del
+     blanco de toque, de los cuales 33 son aire invisible. Salía un recuadro
+     con una lenteja perdida en una punta y la palabra en la otra, que es
+     desperdiciar sitio justo para lo contrario de lo que se pidió: cuanto más
+     lejos queda la palabra del punto, menos se leen como una cosa.
+
+     Ahora la caja empieza cinco píxeles antes del disco y el texto arranca
+     tres después de él. El disco se mide de la misma variable con la que se
+     dibuja y con el aumento que le da la guía —un punto señalado crece un 20%,
+     ver --punto-esc— así que el recuadro se ajusta solo si algún día cambia
+     cualquiera de los dos.
+
+     El 50% es del ANCHO del botón, que es contra lo que se resuelven los
+     porcentajes de left; el disco está centrado ahí, así que medio ancho menos
+     medio disco es su filo izquierdo. */
+  .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after,
+  .stage.guias #btnZoom::after, .stage.guias #btnHistorial::after{
+            --guia-disco:calc(var(--punto-d, 11px) * var(--punto-esc, 1)); }
   .stage.guias #btnPiedras::after, .stage.guias #btnZoom::after{
-            left:0; padding-left:calc(100% + 3px); }
+            left:calc(50% - var(--guia-disco) / 2 - 5px);
+            padding-left:calc(var(--guia-disco) + 8px); }
   .stage.guias #btnCintas::after, .stage.guias #btnHistorial::after{
-            right:0; padding-right:calc(100% + 3px); }
+            right:calc(50% - var(--guia-disco) / 2 - 5px);
+            padding-right:calc(var(--guia-disco) + 8px); }
   /* Y EN PANTALLA ANCHA LOS DOS DE ARRIBA TIENEN UN TECHO, que es lo único de
      todo esto que no mide lo que mide el libro.
 
@@ -1629,8 +1657,7 @@
        se pidieron. */
     #btnPiedras, #btnCintas{ top:10px; height:44px; }
     #btnPiedras{ left:10px; } #btnCintas{ right:10px; }
-    #btnZoom::before, #btnHistorial::before,
-    #btnPiedras::before, #btnCintas::before{ width:9px; height:9px; }
+    #btnZoom, #btnHistorial, #btnPiedras, #btnCintas{ --punto-d:9px; }
     #btnVolver{ bottom:58px; }
     /* 10 de hueco: el mismo aire que hay entre el historial y el borde.
        10 + 44 + 10 = 64. */
@@ -4891,7 +4918,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '20-SEP-26 19:23';
+window.GLOSS_BUILD = '20-SEP-26 19:28';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
