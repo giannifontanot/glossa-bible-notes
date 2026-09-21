@@ -1124,7 +1124,17 @@
 
      El radio es corto —3 px— porque el anillo abraza un renglón de texto y no
      un botón: redondeado de más parecería una pastilla y pediría fondo. */
-  .stage.guias #pg .peri{
+  /* EL ANILLO VA EN EL RENGLÓN QUE SE LEE, no en la caja del titulillo. La
+     caja lleva arriba la banda que hospeda al letrero —ver .peri— y un anillo
+     puesto en ella encerraría también esa banda: un recuadro rojo con un
+     palmo de papel vacío encima del título. Puesto en .peri-dice abraza las
+     letras, y el letrero queda flotando justo por encima del borde, que es lo
+     que se pidió.
+     El hermano invisible del otro idioma comparte celda de rejilla con éste,
+     así que la celda —y por tanto el anillo— mide lo mismo en las cuatro
+     versiones; eso es lo que mantiene la paginación sincronizada y no se toca
+     desde aquí. Ver tituloHTML. */
+  .stage.guias #pg .peri .peri-dice{
             box-shadow:inset 0 0 0 2px var(--rojo-galon, #9b2a2a),
                        var(--halo-guia);
             border-radius:3px; }
@@ -1172,7 +1182,7 @@
   .stage.guias #pg .peri::after,
   .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after,
   .stage.guias #btnZoom::after, .stage.guias #btnHistorial::after,
-  .stage.guias #pg .pg-cabeza::after, .stage.guias #pg .pg-version::after,
+  .stage.guias #pg .pg-version::after,
   .stage.guias #btnGlosas::after, .stage.guias .flecha-hoja::after{
             content:var(--guia-dice, "") / "";
             position:absolute; z-index:2; pointer-events:none;
@@ -1245,34 +1255,20 @@
 
      Hacia DENTRO y no hacia fuera por lo obvio: fuera está el canto de la
      pantalla. */
-  /* EL DE LA PERÍCOPA VA DEBAJO DEL RECUADRO, Y NO ENCIMA COMO SE PIDIÓ.
+  /* EL DE LA PERÍCOPA VUELVE ARRIBA, QUE ES DONDE SE PIDIÓ Y DONDE SE LEE.
 
-     Encima es donde tiene que ir —se pidió así, y es donde un letrero se lee
-     como el nombre de lo que hay debajo— y encima DESAPARECE. La razón es de
-     maquetación y no se ve leyendo esta regla:
+     Estuvo arriba y desaparecía; estuvo abajo y no desaparecía pero nombraba
+     el versículo en vez del titulillo. Ahora está arriba y no desaparece,
+     porque el sitio ya no sale del margen: sale de la BANDA de relleno que
+     .peri lleva dentro de su caja, hecha con el mismo aire de siempre y puesta
+     ahí justamente para esto. Un margen se trunca en un corte de columna; un
+     relleno va donde va la caja. El porqué entero está en .peri.
 
-     Un .peri lleva 1.5em de aire arriba, y ese margen es de donde salía el
-     sitio del letrero. Pero cuando el titulillo cae AL PRINCIPIO de una
-     columna —que pasa a menudo, porque break-after:avoid lo empuja junto con
-     su versículo al fragmento siguiente— el navegador DESCARTA el margen en el
-     corte. El titulillo queda entonces pegado al canto de arriba de #pgBody, y
-     un letrero colgado por encima de su caja cae fuera; #pgBody recorta con
-     overflow:hidden, así que el anillo rojo se queda y la palabra se va sin
-     decir nada.
-
-     Medido en las primeras cuarenta hojas de Mateo: seis perícopas con el
-     letrero cortado, una de cada siete hojas, y todas con el titulillo arrancando
-     columna. Lo levantó la revisión de Codex.
-
-     Debajo está siempre dentro, y no por suerte: break-after:avoid garantiza
-     que el titulillo nunca cierra columna, o sea que SIEMPRE tiene su
-     versículo detrás. El precio es que el letrero se apoya en el primer
-     renglón de ese versículo, que es justo para lo que está el halo de papel
-     de las letras.
-
-     De las dos maneras de perderlo, ésta es la que no se pierde. */
+     top:0 es el canto de arriba de la caja de relleno, o sea el principio
+     exacto de la banda: el letrero la llena y queda apoyado sobre el anillo,
+     que abraza sólo las letras del título. */
   .stage.guias #pg .peri::after{
-            left:50%; transform:translateX(-50%); top:calc(100% + 2px); }
+            left:50%; transform:translateX(-50%); top:0; }
   /* CENTRADOS EN SU PUNTO, PERO NUNCA POR ENCIMA DE ÉL, y esa segunda mitad
      es un arreglo, no un adorno.
 
@@ -1298,10 +1294,30 @@
   .stage.guias #btnZoom::after, .stage.guias #btnHistorial::after{
             --guia-alto:calc(1.25 * var(--fs-libro, 15px) + 3px);
             top:max(0px, calc(50% - var(--guia-alto) / 2)); transform:none; }
+  /* Y EL RECUADRO SE ESTIRA HASTA ABRAZAR EL PUNTO. Pedido por el dueño del
+     repo, y arregla algo que se veía sin saber nombrarlo: un punto beige y, al
+     lado, una pastilla roja con una palabra eran DOS cosas puestas juntas, y
+     el lector tenía que deducir que la segunda hablaba de la primera. Metidos
+     en el mismo borde son UNA: esto es el punto, y esto es lo que se hace con
+     él. Es el mismo argumento por el que la casilla de LIBROS va dentro de su
+     recuadro en vez de llevarlo al lado.
+
+     Se hace estirando el relleno del letrero, no moviéndolo: la caja arranca
+     en el canto del botón —left:0 en vez de left:100%— y el texto se aparta
+     hacia dentro con un relleno del ancho del propio botón. Un porcentaje de
+     relleno se mide contra el ANCHO del bloque contenedor, que aquí es el
+     botón, así que 100% es exactamente lo que mide el punto y su blanco de
+     toque, sin escribir el número dos veces.
+
+     El radio pasa a pastilla: una caja que ahora encierra un disco se lee como
+     una cápsula, y con la esquina de 7 px parecía una etiqueta recortada. */
+  .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after,
+  .stage.guias #btnZoom::after, .stage.guias #btnHistorial::after{
+            border-radius:999px; }
   .stage.guias #btnPiedras::after, .stage.guias #btnZoom::after{
-            left:calc(100% + 2px); }
+            left:0; padding-left:calc(100% + 3px); }
   .stage.guias #btnCintas::after, .stage.guias #btnHistorial::after{
-            right:calc(100% + 2px); }
+            right:0; padding-right:calc(100% + 3px); }
   /* Y EN PANTALLA ANCHA LOS DOS DE ARRIBA TIENEN UN TECHO, que es lo único de
      todo esto que no mide lo que mide el libro.
 
@@ -1334,8 +1350,6 @@
     .stage.guias #btnPiedras::after, .stage.guias #btnCintas::after{
               font-size:var(--fs-libro, 15px); }
   }
-  .stage.guias #pg .pg-cabeza::after{
-            left:50%; transform:translateX(-50%); top:calc(100% + 3px); }
   .stage.guias #pg .pg-version::after{
             left:50%; transform:translateX(-50%); bottom:calc(100% + 3px); }
   /* EL SELLO SACA EL SUYO POR LA IZQUIERDA, y no encima. Pedido por el dueño
@@ -1355,9 +1369,19 @@
   .stage.guias .flecha-r::after{ right:0; }
   /* Y LAS PALABRAS. Una línea por gesto, que es como hay que leerlo: lo que
      cambia entre estas puertas no es el sitio, es lo que hay que hacer. */
+  /* EL TITULILLO DE ARRIBA SE QUEDA CON SU ANILLO Y SIN PALABRA. Pedido por el
+     dueño del repo, y el sitio explica por qué: es el único de los nueve que
+     no tiene dónde poner el letrero sin estorbar. Encima está el canto de la
+     pantalla, a los lados están los dos puntos de las esquinas con los suyos,
+     y debajo empieza el texto —en teléfono el rótulo va centrado sobre la
+     columna, así que «click» caía sobre el primer renglón—. El anillo se queda
+     porque el rótulo sigue abriendo LIBROS; lo que se va es la palabra, que
+     ahí costaba más de lo que valía. El del pie lo conserva: ése tiene debajo
+     el canto de la hoja y encima el final del texto, y su letrero cae en el
+     aire del pie sin tapar nada. */
   .stage.guias #btnPiedras, .stage.guias #btnCintas,
   .stage.guias #btnZoom, .stage.guias #btnHistorial,
-  .stage.guias #pg .pg-cabeza, .stage.guias #pg .pg-version,
+  .stage.guias #pg .pg-version,
   .stage.guias .flecha-hoja{ --guia-dice:"click"; }
   .stage.guias #pg .peri{ --guia-dice:"click largo"; }
   .stage.guias #btnGlosas{ --guia-dice:"jalar"; }
@@ -1379,7 +1403,8 @@
 
      content:none y no un color transparente: un letrero transparente sigue
      ocupando su caja y sigue estando en el árbol de accesibilidad. */
-  .stage.zoom #pg .peri, .stage.conpanel #pg .peri{ box-shadow:none; }
+  .stage.zoom #pg .peri .peri-dice,
+  .stage.conpanel #pg .peri .peri-dice{ box-shadow:none; }
   /* Y DE LEJOS SE APAGAN TAMBIÉN LOS DOS ANILLOS DE LOS RÓTULOS, que es la
      otra mitad de lo mismo. Medido, no supuesto: con el zoom puesto se toca el
      titulillo y el panel de Libros se queda en display:none —ya lo decía el
@@ -1389,10 +1414,9 @@
      frase entera, y media frase apagada es peor que la frase completa. Se van
      juntos. */
   .stage.zoom #pg .pg-cabeza, .stage.zoom #pg .pg-version{ box-shadow:none; }
-  .stage.zoom #pg .peri::after, .stage.zoom #pg .pg-cabeza::after,
-  .stage.zoom #pg .pg-version::after, .stage.zoom .flecha-hoja::after,
-  .stage.conpanel #pg .peri::after, .stage.conpanel #pg .pg-cabeza::after,
-  .stage.conpanel #pg .pg-version::after,
+  .stage.zoom #pg .peri::after, .stage.zoom #pg .pg-version::after,
+  .stage.zoom .flecha-hoja::after,
+  .stage.conpanel #pg .peri::after, .stage.conpanel #pg .pg-version::after,
   .stage.conpanel .flecha-hoja::after{ content:none; }
   /* CON EL PANEL PUESTO, LA HOJA NO ENSEÑA SUS PUERTAS.
 
@@ -4868,7 +4892,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '20-SEP-26 10:21';
+window.GLOSS_BUILD = '20-SEP-26 19:13';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5185,12 +5209,71 @@ const PAGE_CSS = `
    contado el porqué entero. */
 .peri > span{ grid-area:1 / 1; }
 .peri-sombra{ visibility:hidden; }
+/* LA BANDA DE ARRIBA: EL MISMO AIRE, PERO DENTRO DE LA CAJA.
+
+   El aire sobre un titulillo de escena sigue siendo 1.5em. Lo que cambia es de
+   qué está hecho: antes era todo margen, y ahora la parte de arriba es RELLENO
+   y sólo el resto queda de margen. La suma es la misma al píxel —lo que se le
+   quita a uno se le da al otro— así que en el flujo normal no se mueve nada y
+   el libro pagina igual.
+
+   ¿Para qué? Para que el letrero de la guía pueda ir ARRIBA del titulillo, que
+   es donde se pidió, sin desaparecer. Colgado por encima de la caja, su sitio
+   salía del margen, y UN MARGEN NO SOBREVIVE A UN CORTE DE COLUMNA: cuando el
+   titulillo arranca fragmento —break-after:avoid lo empuja con su versículo al
+   siguiente— el navegador lo trunca a cero, el titulillo queda pegado al canto
+   de #pgBody y lo que colgaba encima cae fuera del recorte. Seis de las
+   primeras cuarenta hojas de Mateo se quedaban con el anillo rojo y sin la
+   palabra. El relleno NO se trunca: está dentro de la caja, va donde va la
+   caja, y el letrero puesto ahí no se pierde nunca.
+
+   VA SIEMPRE, CON GUÍAS Y SIN ELLAS, y eso es a propósito. Ponerlo sólo con el
+   interruptor encendido haría que tocar una casilla cambiara el alto de un
+   elemento que el paginador mide: una hoja que cambia de contenido al encender
+   una ayuda. Y como es relleno transparente, con las guías apagadas no se ve
+   ninguna diferencia.
+
+   LO ÚNICO QUE SÍ CAMBIA es el titulillo que arranca columna: antes quedaba a
+   ras del canto —porque su margen se truncaba— y ahora lleva su banda. Es el
+   precio, se paga a sabiendas, y es defendible por su cuenta: un rótulo de
+   sección con algo de aire encima se lee mejor que uno pegado al filo.
+
+   La banda mide exactamente lo que mide el letrero —su interlínea por el
+   cuerpo del libro, más sus dos rellenos— porque de eso se trata: es su sitio.
+   El max(0px, …) del margen es la red por si alguien sube ese cuerpo por
+   encima de lo que el aire da de sí. */
 .peri{ display:grid; break-after:avoid;
+       --peri-banda:calc(1.25 * var(--fs-libro, 15px) + 3px);
        font-family:'Palatino Linotype',Palatino,'Book Antiqua','Iowan Old Style',
                    Georgia,'Noto Serif',serif;
        font-size:1.08em; font-style:normal; font-weight:600;
        line-height:1.25; color:var(--tinta,#241f1a); letter-spacing:.005em;
-       text-align:center; padding:0 .6em; margin:1.5em 0 .3em; }
+       text-align:center;
+       padding:var(--peri-banda) .6em 0;
+       margin:max(0px, calc(1.5em - var(--peri-banda))) 0 .3em; }
+/* Y CUANDO VIENE DETRÁS DEL NÚMERO DE CAPÍTULO, LA BANDA SE PAGA CON MARGEN
+   NEGATIVO. Esto parece un truco y es aritmética de colapso de márgenes:
+
+   El aire de arriba de un titulillo no siempre sale del mismo bolsillo. Detrás
+   de un versículo —que es en línea— el margen del titulillo se aplica entero,
+   así que quitarle a ese margen lo que se le da al relleno deja la cuenta
+   igual y no se mueve nada. Pero el número de capítulo es un bloque con 25.88
+   px de margen ABAJO, y ese margen COLAPSA con el de arriba del titulillo: el
+   hueco no es la suma de los dos, es el mayor. Como el del capítulo ya era el
+   mayor, bajarle el suyo al titulillo no libera ni un píxel, y el relleno se
+   suma encima: ahí, y sólo ahí, la banda engordaba el libro. Medido: 9 de 43
+   perícopas seguían a un número de capítulo, y en esas el título bajaba 21.75
+   px. Basta para mover un versículo de hoja, y se vio: la primera hoja de
+   Mateo pasaba de catorce a trece.
+
+   Un margen negativo del tamaño de la banda lo devuelve: colapsado contra los
+   25.88 del capítulo da 4.13, más la banda son los 25.88 de siempre hasta el
+   texto del título, y el alto total consumido vuelve a ser el mismo al píxel.
+
+   SI ALGÚN DÍA OTRO BLOQUE puede quedar justo delante de un titulillo, tendrá
+   que entrar en este selector: lo que decide no es quién es, es que su margen
+   de abajo colapse con el de arriba de la perícopa. */
+.cap + .peri{ margin-top:calc(-1 * var(--peri-banda)); }
 /* ============================================================
    LAS ESCENAS DEL LIBRO: LA LISTA QUE SALE DEL TITULILLO.
 

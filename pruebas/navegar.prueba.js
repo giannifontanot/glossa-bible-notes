@@ -945,7 +945,15 @@ const ATERRIZA = 7000;
       piedras: dice('#btnPiedras'), cintas: dice('#btnCintas'),
       zoom: dice('#btnZoom'), hist: dice('#btnHistorial'),
       flecha: dice('#flechaDer'), g: dice('#btnGlosas'),
-      anilloPeri: anillo('#pgBody .peri'),
+      /* EL ANILLO SE LEE EN .peri-dice Y NO EN LA CAJA: la caja lleva
+         arriba la banda que hospeda al letrero, y el anillo abraza sólo
+         las letras del título. Ver .peri. */
+      anilloPeri: anillo('#pgBody .peri .peri-dice'),
+      /* La caja NO lleva anillo: si alguien lo devuelve ahí, el recuadro
+         encerraría la banda y saldría un palmo de papel vacío dentro del
+         rojo. */
+      anilloCaja: anillo('#pgBody .peri'),
+      anilloCabeza: anillo('#pg .pg-cabeza'),
       hoja: hoja() };
 
     /* DE LEJOS. Se entra y se sale por donde se entra y se sale de verdad. */
@@ -953,7 +961,7 @@ const ATERRIZA = 7000;
     await pausa(1500);
     const lejos = { peri: dice('#pgBody .peri'), cabeza: dice('#pg .pg-cabeza'),
                     version: dice('#pg .pg-version'),
-                    anilloPeri: anillo('#pgBody .peri'),
+                    anilloPeri: anillo('#pgBody .peri .peri-dice'),
                     anilloCabeza: anillo('#pg .pg-cabeza') };
     const rr = document.querySelector('#pg .pg-inner').getBoundingClientRect();
     document.getElementById('pg').dispatchEvent(new MouseEvent('click',
@@ -973,7 +981,7 @@ const ATERRIZA = 7000;
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await pausa(1200);
     const sin = { guias: guias(), peri: dice('#pgBody .peri'),
-                  anilloPeri: anillo('#pgBody .peri'), hoja: hoja() };
+                  anilloPeri: anillo('#pgBody .peri .peri-dice'), hoja: hoja() };
     return { con, lejos, sin };
   });
   di('con guías', JSON.stringify(letreros.con));
@@ -988,19 +996,30 @@ const ATERRIZA = 7000;
        'perícopa: ' + c.hayPeri + ' · guías: ' + c.guias);
   vale('LA PERÍCOPA DICE «click largo», que es el gesto que de verdad pide',
        suena(c.peri, 'click largo'), c.peri);
-  vale('  y estrena su anillo rojo, como los otros dos rótulos',
-       /rgb\(155,\s*42,\s*42\)/.test(c.anilloPeri || ''), c.anilloPeri);
+  vale('  y su anillo rojo abraza las LETRAS del título, no la caja',
+       /rgb\(155,\s*42,\s*42\)/.test(c.anilloPeri || '') && c.anilloCaja === 'none',
+       'renglón: ' + c.anilloPeri + ' · caja: ' + c.anilloCaja);
   vale('LA G DICE «jalar»', suena(c.g, 'jalar'), c.g);
-  vale('y los otros seis dicen «click»',
-       [c.cabeza, c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha]
+  vale('y los otros cinco dicen «click»',
+       [c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha]
          .every(x => suena(x, 'click')),
-       [c.cabeza, c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha].join(' · '));
+       [c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha].join(' · '));
+  /* EL TITULILLO DE ARRIBA SE QUEDÓ CON SU ANILLO Y SIN PALABRA, pedido por el
+     dueño del repo: es el único de los nueve sin sitio donde poner el letrero
+     —arriba el canto, a los lados los dos puntos con los suyos, debajo el
+     texto—. Se afirma que NO tiene, y no se calla: un letrero vacío sí dejaría
+     rastro —la regla compartida le pone relleno y anillo, así que saldría una
+     pastilla roja del tamaño de nada— y esta línea es lo que lo caza. */
+  vale('  y el titulillo de LIBROS no dice nada',
+       c.cabeza === 'none', c.cabeza);
+  vale('  pero conserva su anillo, que sigue abriendo el panel',
+       /rgb\(155,\s*42,\s*42\)/.test(c.anilloCabeza || ''), c.anilloCabeza);
   /* Decorativos: lo que el lector de pantalla necesita ya se lo dicen
      aria-haspopup y aria-expanded, que están puestos desde antes. */
   vale('  y NINGUNO se lee en voz alta',
-       [c.peri, c.g, c.cabeza, c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha]
+       [c.peri, c.g, c.version, c.piedras, c.cintas, c.zoom, c.hist, c.flecha]
          .every(mudo),
-       'alternativo vacío en los nueve');
+       'alternativo vacío en los ocho');
   vale('DE LEJOS SE APAGAN, que ahí no responde ninguno',
        z.peri === 'none' && z.cabeza === 'none' && z.version === 'none' &&
        z.anilloPeri === 'none' && z.anilloCabeza === 'none',
@@ -1222,6 +1241,21 @@ const ATERRIZA = 7000;
                                 b.left >= st.left - 0.5 && b.right <= st.right + 0.5;
       const pisa = (a, b) => !!a && !!b &&
         !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+      /* Y EL PUNTO TIENE QUE QUEDAR DENTRO DE SU RECUADRO. Se pidió que el
+         borde del letrero alcanzara a contener el punto, para que la palabra y
+         la señal se lean como una cosa y no como dos puestas juntas. Se mide
+         contra el disco —el ::before del botón, 11 px de lenteja centrada en su
+         blanco de toque— y no contra el botón entero: el blanco de toque es
+         invisible y contenerlo no prueba nada de lo que se ve. */
+      const punto = id => {
+        const e = document.getElementById(id);
+        const r = e.getBoundingClientRect(), c = getComputedStyle(e, '::before');
+        const w = parseFloat(c.width), h = parseFloat(c.height);
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        return { left: cx - w / 2, right: cx + w / 2, top: cy - h / 2, bottom: cy + h / 2 };
+      };
+      const contiene = (a, b) => !!a && !!b && a.left <= b.left + 0.5 &&
+        a.right >= b.right - 0.5 && a.top <= b.top + 0.5 && a.bottom >= b.bottom - 0.5;
       const tit = document.querySelector('#pg .pg-cabeza').getBoundingClientRect();
       const pi = caja('btnPiedras'), ci = caja('btnCintas');
       const zo = caja('btnZoom'), hi = caja('btnHistorial');
@@ -1229,7 +1263,11 @@ const ATERRIZA = 7000;
                fuera: [['piedras', pi], ['cintas', ci], ['zoom', zo], ['historial', hi]]
                  .filter(([, b]) => !dentro(b)).map(([n]) => n),
                pisan: [['piedras', pi], ['cintas', ci]]
-                 .filter(([, b]) => pisa(b, tit)).map(([n]) => n) };
+                 .filter(([, b]) => pisa(b, tit)).map(([n]) => n),
+               sueltos: [['piedras', pi], ['cintas', ci], ['zoom', zo], ['historial', hi]]
+                 .filter(([n, b]) => !contiene(b, punto(
+                   n === 'piedras' ? 'btnPiedras' : n === 'cintas' ? 'btnCintas'
+                   : n === 'zoom' ? 'btnZoom' : 'btnHistorial'))).map(([n]) => n) };
     });
     di('con la letra al tope (' + comoSeLlama + ')', JSON.stringify(borde));
     vale('(la prueba es válida) la letra subió al tope · ' + comoSeLlama,
@@ -1241,6 +1279,9 @@ const ATERRIZA = 7000;
     vale('  y ninguno le cae encima al titulillo · ' + comoSeLlama,
          !!borde.pisan && borde.pisan.length === 0,
          (borde.pisan || []).join(' · ') || 'ninguno');
+    vale('  y EL RECUADRO ENCIERRA SU PUNTO · ' + comoSeLlama,
+         !!borde.sueltos && borde.sueltos.length === 0,
+         (borde.sueltos || []).join(' · ') || 'los cuatro');
     await cerrarParcial(ses, 'los letreros con la letra al tope, ' + comoSeLlama);
   }
 
