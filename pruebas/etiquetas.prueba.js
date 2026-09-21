@@ -315,7 +315,7 @@ const FUERA = `async () => {
     }));
   }
 
-  titulo('nombres raros: comillas, espacios dobles y barras');
+  titulo('nombres raros: comillas, espacios y barras');
   /* Una etiqueta la escribe una mano y puede llevar lo que sea, así que cada
      sitio por donde pasa el nombre es un sitio donde puede convertirse en
      sintaxis. Ha pasado tres veces:
@@ -326,10 +326,22 @@ const FUERA = `async () => {
        vaciada, y «promesas\» no tiraba nada pero no encontraba el botón que
        existía, así que metía un chip repetido en silencio.
      La barra invertida está aquí por eso, y las dos formas de fallar con ella
-     van cada una por su lado. */
-  for (const raro of ['oración  diaria', 'la "roca"', 'fe\\esperanza',
-                      'a\\"b', 'promesas\\']){
-    const r = await p.evaluate(async ([abrir, fuera, raro]) => {
+     van cada una por su lado.
+
+     Y CADA NOMBRE VIENE CON EL QUE LE TOCA QUEDAR, que antes era el mismo. Las
+     etiquetas ya no llevan espacios: al crearlas se juntan en jorobas —pedido
+     del dueño del repo— así que «oración  diaria» se guarda «OraciónDiaria».
+     Lo que este bloque vigila sigue siendo lo de siempre, que el nombre
+     SOBREVIVA EL VIAJE por el atributo y por el almacén; lo que cambia es
+     contra qué se compara, y por eso el nombre esperado va escrito al lado y
+     no calculado aquí: una prueba que repite la cuenta del programa aprueba
+     también sus errores. */
+  for (const [raro, queda] of [['oración  diaria', 'OraciónDiaria'],
+                               ['la "roca"', 'La"roca"'],
+                               ['fe\\esperanza', 'fe\\esperanza'],
+                               ['a\\"b', 'a\\"b'],
+                               ['promesas\\', 'promesas\\']]){
+    const r = await p.evaluate(async ([abrir, fuera, raro, queda]) => {
       const despierta = await eval('(' + abrir + ')')(0, 12, 'nota rara');
       if (!despierta) return { sinPanel:true };
       const i = document.getElementById('tagNueva');
@@ -344,7 +356,7 @@ const FUERA = `async () => {
          ser cierta en cuanto el panel puede venir de una glosa con etiquetas
          ya puestas. */
       const chip = [...document.querySelectorAll('#menu .tg')]
-        .find(b => b.dataset.tag === raro);
+        .find(b => b.dataset.tag === queda);
       const seEncuentra = !!chip && chip.classList.contains('on');
       /* volver a crearla NO puede sacar un segundo chip: es la mitad
          silenciosa del fallo del selector */
@@ -353,18 +365,69 @@ const FUERA = `async () => {
       i2.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
       await new Promise(z => setTimeout(z, 300));
       const cuantosChips = [...document.querySelectorAll('#menu .tg')]
-        .filter(b => b.dataset.tag === raro).length;
+        .filter(b => b.dataset.tag === queda).length;
       await eval('(' + fuera + ')')();
       const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
-      const mia = g.find(m => (m.etiquetas||[]).includes(raro));
+      const mia = g.find(m => (m.etiquetas||[]).includes(queda));
       return { seEncuentra, cuantosChips, guardada: !!mia,
                /* ni repetida en la propia marca */
-               vecesEnLaMarca: mia ? mia.etiquetas.filter(x => x === raro).length : 0 };
-    }, [ABRIR, FUERA, raro]);
-    vale('sobrevive «' + raro + '»', !r.sinPanel && r.guardada && r.seEncuentra,
-         JSON.stringify(r));
+               vecesEnLaMarca: mia ? mia.etiquetas.filter(x => x === queda).length : 0,
+               /* y que no haya quedado por ahí el nombre crudo, que sería la
+                  otra manera de pasar esto: guardar las dos versiones */
+               quedaElCrudo: raro !== queda &&
+                 g.some(m => (m.etiquetas||[]).includes(raro)) };
+    }, [ABRIR, FUERA, raro, queda]);
+    vale('sobrevive «' + raro + '» como «' + queda + '»',
+         !r.sinPanel && r.guardada && r.seEncuentra, JSON.stringify(r));
     vale('  y no se duplica el chip', r.cuantosChips === 1 && r.vecesEnLaMarca === 1,
          'chips ' + r.cuantosChips + ' · en la marca ' + r.vecesEnLaMarca);
+    vale('  ni queda el nombre con espacios por ningún lado',
+         r.quedaElCrudo === false, r.quedaElCrudo);
+  }
+
+  /* ================================================================
+     LAS ETIQUETAS NO LLEVAN ESPACIOS: SE JUNTAN EN JOROBAS.
+
+     Pedido por el dueño del repo. Una etiqueta se escribe para volver a
+     encontrarla, y un espacio la rompe por los dos lados: en la hoja
+     «#oración diaria» se lee como una etiqueta y una palabra perdida, y al
+     buscarla nadie recuerda si la escribió con uno o con dos espacios.
+
+     SE JUNTAN EN JOROBAS Y NO SE BORRA EL ESPACIO A SECAS: «oracióndiaria» no
+     se lee, «OraciónDiaria» sí.
+
+     Y UNA SOLA PALABRA NO SE TOCA, que es la mitad que hay que vigilar de
+     verdad: la regla existe para quitar espacios, así que donde no hay
+     espacios no debe pasar nada. Sin esta línea, poner mayúsculas «por
+     coherencia» convertiría «eco» en «Eco» y nadie se enteraría hasta que un
+     filtro guardado dejara de encontrar sus glosas.
+     ================================================================ */
+  titulo('una etiqueta nueva no puede llevar espacios');
+  for (const [crudo, queda] of [['  oración diaria  ', 'OraciónDiaria'],
+                                ['Para  El   Estudio', 'ParaElEstudio'],
+                                ['eco', 'eco'],
+                                ['😀 alegría', '😀Alegría']]){
+    const r = await p.evaluate(async ([abrir, fuera, crudo]) => {
+      const despierta = await eval('(' + abrir + ')')(0, 12, 'nota con etiqueta');
+      if (!despierta) return { sinPanel:true };
+      const i = document.getElementById('tagNueva');
+      i.value = crudo;
+      i.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+      await new Promise(z => setTimeout(z, 350));
+      await eval('(' + fuera + ')')();
+      const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+      /* la última marca tocada es la que acaba de recibirla */
+      const puestas = g.flatMap(m => m.etiquetas || []);
+      return { puestas };
+    }, [ABRIR, FUERA, crudo]);
+    vale('«' + crudo + '» se guarda «' + queda + '»',
+         !r.sinPanel && (r.puestas || []).includes(queda), JSON.stringify(r.puestas));
+    /* El emoji entero, que es lo que se rompe al poner la mayúscula con
+       charAt: media pareja suplente son dos rombos de reemplazo. */
+    vale('  sin partir nada por la mitad',
+         !(r.puestas || []).some(t => /[\uD800-\uDBFF](?![\uDC00-\uDFFF])/.test(t) ||
+                                      /(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(t)),
+         JSON.stringify(r.puestas));
   }
 
   titulo('la última usada sale en negrita');
@@ -1289,6 +1352,189 @@ const FUERA = `async () => {
        conFiltro.riel > .9, conFiltro.riel);
   vale('  y la sombra de «hay más», también', conFiltro.sombra > .9,
        conFiltro.sombra);
+
+  /* ================================================================
+     CAMBIARLE EL NOMBRE A UNA ETIQUETA, DESDE ACTUALIZAR Y SIN NADA ELEGIDO.
+
+     Una etiqueta no es un rótulo por glosa: es la misma cosa escrita en
+     muchas, y hasta ahora no había manera de corregirla. Escribir «Oracion»
+     sin tilde en veinte glosas era vivir con ello o volver a etiquetarlas una
+     por una.
+
+     EL SITIO ESTABA VACÍO Y POR ESO CABE AQUÍ. Con ACTUALIZAR puesto y NINGUNA
+     glosa elegida, el panel no hacía nada: tocar una etiqueta llamaba a una
+     función que se iba por su puerta de atrás —sin glosas elegidas no hay a
+     quién ponérsela— y el botón de crear tampoco tenía a quién. Una pantalla
+     entera sin respuesta. Ahora, sin nada elegido, tocar una etiqueta la baja
+     a la caja y el botón pasa a decir ACTUALIZAR.
+
+     Los dos modos no se solapan y eso es lo que los hace legibles: con glosas
+     elegidas se pone y se quita, sin ellas se renombra. Por eso la última
+     comprobación de aquí es que elegir una glosa CANCELA la edición.
+     ================================================================ */
+  titulo('renombrar una etiqueta la cambia en todas las glosas que la llevan');
+  /* Se siembran tres glosas con etiquetas a mano: hace falta que MÁS DE UNA
+     lleve la misma, que es justo lo que la prueba viene a mirar, y ponerlas
+     una por una desde el panel sería probar otra cosa por el camino. */
+  await p.evaluate(() => {
+    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    if (g.length < 3) return false;
+    g[0].etiquetas = ['Oracion', 'Domingo'];
+    g[1].etiquetas = ['oracion', 'Oracion'];   /* lleva las dos: la fusión no puede duplicar */
+    g[2].etiquetas = ['oracion'];
+    localStorage.setItem('glossa:marcas:v1', JSON.stringify(g));
+    return true;
+  });
+  await p.reload();
+  await p.waitForTimeout(2600);
+  await alPanel();
+  /* Se entra en ACTUALIZAR por su botón, como entra el lector. */
+  const aActualizar = () => p.evaluate(async () => {
+    const b = document.getElementById('btnElegirGlosas');
+    if (b.getAttribute('aria-pressed') !== 'true'){
+      b.click(); await new Promise(z => setTimeout(z, 600));
+    }
+  });
+  await aActualizar();
+  const foto = () => p.evaluate(() => {
+    const caja = document.getElementById('tagboxGrupo');
+    const campo = document.getElementById('tagNuevaGrupo');
+    const bCrear = caja.querySelector('[data-acc="creartag-grupo"]');
+    const bRenom = caja.querySelector('[data-acc="renombrartag"]');
+    return { cuenta:document.getElementById('cuentaGrupo').textContent,
+             tags:[...caja.querySelectorAll('.tg')].map(b => b.textContent),
+             boton:(bRenom || bCrear || {}).textContent,
+             /* el dato duro: qué acción cuelga del botón, que es lo que de
+                verdad va a pasar cuando se pulse. La palabra del botón se mira
+                también, pero una palabra se puede cambiar sin cambiar lo que
+                hace, y al revés. */
+             accion:bRenom ? 'renombrar' : (bCrear ? 'crear' : null),
+             valor:campo ? campo.value : null,
+             foco:(document.activeElement || {}).id,
+             editando:[...caja.querySelectorAll('.tg.editando')].map(b => b.textContent),
+             /* y lo que hay guardado, que es lo que sobrevive a la recarga */
+             enMarcas:JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
+                        .slice(0, 3).map(m => m.etiquetas || []),
+             enHoja:[...document.querySelectorAll('#pgMargin .gl-t')].map(x => x.textContent) };
+  });
+  const antes = await foto();
+  di('con ACTUALIZAR puesto y nada elegido', JSON.stringify(antes));
+  vale('(la prueba es válida) no hay ninguna glosa elegida',
+       antes.cuenta === '0 elegidas', antes.cuenta);
+  /* Y la otra validez, la que le da sentido a «en TODAS»: más de una glosa
+     lleva la etiqueta que se va a renombrar. Con una sola, la comprobación de
+     abajo saldría verde sin haber probado lo que se pidió. */
+  vale('(la prueba es válida) más de una glosa lleva #Oracion',
+       antes.enMarcas.filter(t => t.includes('Oracion')).length >= 2,
+       JSON.stringify(antes.enMarcas));
+  vale('el botón empieza diciendo crear', antes.accion === 'crear', antes.boton);
+
+  /* TOCAR LA ETIQUETA LA BAJA A LA CAJA. */
+  await p.evaluate(() =>
+    document.querySelector('#tagboxGrupo [data-tag-grupo="Oracion"]').click());
+  await p.waitForTimeout(400);
+  const cargada = await foto();
+  di('tras tocar #Oracion', JSON.stringify(cargada));
+  vale('LA ETIQUETA BAJA A LA CAJA DE ESCRIBIR',
+       cargada.valor === 'Oracion', cargada.valor);
+  vale('  y el botón pasa a decir actualizar, no crear',
+       cargada.accion === 'renombrar' && /actualizar/i.test(cargada.boton || ''),
+       cargada.boton);
+  /* El foco en la caja no es comodidad: sin él hay que tocar dos veces para
+     escribir, y la segunda es dentro de un campo que ya tiene texto. */
+  vale('  con el cursor ya dentro', cargada.foco === 'tagNuevaGrupo', cargada.foco);
+  vale('  y la etiqueta marcada en la lista, para saber cuál se está tocando',
+       cargada.editando.length === 1 && cargada.editando[0] === '#Oracion',
+       cargada.editando);
+
+  /* CAMBIAR EL TEXTO Y PULSAR. */
+  await p.evaluate(() => {
+    const c = document.getElementById('tagNuevaGrupo');
+    c.value = 'OraciónDiaria';
+    document.querySelector('#tagboxGrupo [data-acc="renombrartag"]').click();
+  });
+  await p.waitForTimeout(900);
+  const luego = await foto();
+  di('tras actualizar', JSON.stringify(luego));
+  vale('CAMBIA EN TODAS LAS GLOSAS QUE LA LLEVABAN',
+       luego.enMarcas.filter(t => t.includes('OraciónDiaria')).length ===
+       antes.enMarcas.filter(t => t.includes('Oracion')).length &&
+       luego.enMarcas.every(t => !t.includes('Oracion')),
+       JSON.stringify(luego.enMarcas));
+  vale('  la lista enseña el nombre nuevo y no el viejo',
+       luego.tags.includes('#OraciónDiaria') && !luego.tags.includes('#Oracion'),
+       luego.tags.join(' '));
+  /* Y EN LA HOJA, que es donde el lector lo ve. El almacén y la lista podrían
+     estar al día con el papel enseñando lo de antes: son tres pintados
+     distintos y cada uno se puede olvidar por su lado. */
+  vale('  Y LA HOJA LO ENSEÑA YA, sin recargar',
+       luego.enHoja.includes('#OraciónDiaria'), luego.enHoja.join(' '));
+  vale('  y el botón vuelve a ser el de crear',
+       luego.accion === 'crear', luego.boton);
+
+  /* FUNDIR DOS EN UNA, que es la razón por la que esto se pidió: «oracion» y
+     «Oracion» eran dos, y una glosa llevaba las dos a la vez. */
+  await p.evaluate(async () => {
+    document.querySelector('#tagboxGrupo [data-tag-grupo="oracion"]').click();
+    await new Promise(z => setTimeout(z, 300));
+    document.getElementById('tagNuevaGrupo').value = 'OraciónDiaria';
+    document.querySelector('#tagboxGrupo [data-acc="renombrartag"]').click();
+  });
+  await p.waitForTimeout(900);
+  const fundida = await foto();
+  di('tras fundir #oracion con #OraciónDiaria', JSON.stringify(fundida));
+  vale('FUNDIR DOS ETIQUETAS LAS DEJA EN UNA',
+       fundida.tags.includes('#OraciónDiaria') && !fundida.tags.includes('#oracion'),
+       fundida.tags.join(' '));
+  /* LA GLOSA QUE LLEVABA LAS DOS NO ACABA CON LA MISMA DOS VECES. Es el fallo
+     natural de renombrar con un map y sin mirar, y en la hoja se vería como
+     «#OraciónDiaria #OraciónDiaria» una al lado de la otra. */
+  vale('  y la que llevaba las dos no la lleva repetida',
+       fundida.enMarcas.every(t => t.length === new Set(t).size),
+       JSON.stringify(fundida.enMarcas));
+
+  /* CANCELAR NO TOCA NADA. Con Escape, que es la salida de todas las cajas de
+     este programa, y sin que se cierre el panel de paso. */
+  await p.evaluate(() =>
+    document.querySelector('#tagboxGrupo [data-tag-grupo="Domingo"]').click());
+  await p.waitForTimeout(300);
+  const antesDeEscape = await foto();
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(500);
+  const trasEscape = await p.evaluate(() => ({
+    panel:getComputedStyle(document.getElementById('etiquetas')).display,
+    boton:(document.querySelector('#tagboxGrupo [data-acc="creartag-grupo"]') || {}).textContent,
+    editando:document.querySelectorAll('#tagboxGrupo .tg.editando').length,
+    enMarcas:JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
+               .slice(0, 3).map(m => m.etiquetas || []) }));
+  di('tras Escape', JSON.stringify(trasEscape));
+  vale('(la prueba es válida) antes de Escape se estaba editando',
+       antesDeEscape.accion === 'renombrar', antesDeEscape.boton);
+  vale('ESCAPE SUELTA LA ETIQUETA SIN CAMBIARLE NADA',
+       trasEscape.editando === 0 && /crear/i.test(trasEscape.boton || '') &&
+       JSON.stringify(trasEscape.enMarcas) === JSON.stringify(fundida.enMarcas),
+       JSON.stringify(trasEscape.enMarcas));
+  /* Y SIN CERRAR EL PANEL DE PASO: Escape también cierra los rollos, así que
+     sin pararlo aquí la salida de la caja se llevaría por delante la pantalla
+     entera. */
+  vale('  y el panel sigue abierto', trasEscape.panel !== 'none', trasEscape.panel);
+
+  /* ELEGIR UNA GLOSA CANCELA LA EDICIÓN, que es lo que mantiene separados los
+     dos modos: con algo elegido el botón vuelve a ser el de poner etiquetas. */
+  await p.evaluate(async () => {
+    document.querySelector('#tagboxGrupo [data-tag-grupo="Domingo"]').click();
+    await new Promise(z => setTimeout(z, 300));
+    const it = document.querySelector('#indice [data-ir]');
+    if (it) it.click();
+    await new Promise(z => setTimeout(z, 500));
+  });
+  const conElegida = await foto();
+  di('con una glosa elegida', JSON.stringify(conElegida));
+  vale('(la prueba es válida) hay una glosa elegida',
+       conElegida.cuenta === '1 elegida', conElegida.cuenta);
+  vale('ELEGIR UNA GLOSA CANCELA LA EDICIÓN',
+       conElegida.accion === 'crear' && conElegida.editando.length === 0,
+       conElegida.boton + ' · ' + conElegida.editando.join(' '));
 
   await cerrar(sesion);
 
