@@ -5443,7 +5443,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 16:54';
+window.GLOSS_BUILD = '21-SEP-26 16:57';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11530,10 +11530,30 @@ function renombrarEtiqueta(viejo, nuevo){
      panel subraya— y el FILTRO PUESTO, que además se guarda en los ajustes: un
      filtro por una etiqueta inexistente esconde todas las glosas y no hay
      manera de ver por qué. */
-  if (ultimaEtiqueta === viejo) ultimaEtiqueta = nuevo;
-  if (etiquetasVer.has(viejo)){ etiquetasVer.delete(viejo); etiquetasVer.add(nuevo); }
+  let ajustesTocados = false;
+  if (ultimaEtiqueta === viejo){ ultimaEtiqueta = nuevo; ajustesTocados = true; }
+  if (etiquetasVer.has(viejo)){
+    etiquetasVer.delete(viejo); etiquetasVer.add(nuevo); ajustesTocados = true;
+  }
   etiquetaEnEdicion = null;
   save();
+  /* Y LOS AJUSTES APARTE, que save() no los guarda: save() escribe las marcas y
+     estas dos cosas —la última usada y el filtro puesto— viven en el otro
+     almacén, el de guardarAjustes.
+
+     Hoy esto se salvaba de milagro: renderPage acaba llamando a guardarAjustes
+     por su cuenta —va guardando por dónde vas leyendo— así que el filtro
+     renombrado se escribía igual, por un camino que no tiene nada que ver con
+     esto. El día que esa llamada se mueva, renombrar la etiqueta que estás
+     filtrando dejaría el filtro viejo guardado: al recargar vuelve un filtro
+     por una etiqueta que ya no existe, o sea la pantalla en blanco sin decir
+     por qué. Apoyarse en el efecto secundario de otra función es tener el
+     fallo escrito y esperando. Lo levantó la revisión de Codex.
+
+     Va con bandera y no siempre: guardarAjustes serializa el estado entero y
+     no hay por qué pagarlo al renombrar una etiqueta que nadie está filtrando
+     ni acaba de usar. */
+  if (ajustesTocados) guardarAjustes();
   pintarFiltros(); pintarIndice(); pintarBarraGrupo();
   if (typeof renderPage === 'function') renderPage();
   return true;

@@ -1536,6 +1536,72 @@ const FUERA = `async () => {
        conElegida.accion === 'crear' && conElegida.editando.length === 0,
        conElegida.boton + ' · ' + conElegida.editando.join(' '));
 
+  /* EL FILTRO PUESTO SIGUE AL NOMBRE NUEVO, Y SOBREVIVE A LA RECARGA.
+
+     Es la mitad que no se ve en la pantalla y la que más daño hace: el filtro
+     de etiquetas SE GUARDA en los ajustes, así que un filtro por una etiqueta
+     que ya no existe vuelve al recargar y esconde todas las glosas sin decir
+     por qué. Ya pasó una vez en este programa por otro camino —está contado
+     donde se limpian los filtros imposibles— y por eso aquí se comprueba
+     después de recargar y no antes.
+
+     LO QUE ESTA PRUEBA NO DEMUESTRA, dicho para que nadie se confíe: no prueba
+     que la llamada a guardarAjustes del renombrado sea necesaria HOY. Hoy los
+     ajustes se escriben igual por un efecto secundario —renderPage va
+     guardando por dónde vas leyendo— así que esto pasaría en verde con esa
+     llamada quitada. Lo que garantiza es la CONDUCTA: el día que ese efecto
+     secundario se mueva de sitio, esta línea se pone roja y dice dónde.
+     Lo levantó la revisión de Codex. */
+  await p.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    /* se sale de ACTUALIZAR y se pone el filtro por una etiqueta viva */
+    document.getElementById('btnElegirGlosas').click(); await z(500);
+    document.getElementById('btnVerEtiquetas').click(); await z(600);
+    const c = [...document.querySelectorAll('#filtros .chip')]
+      .find(x => x.firstChild && x.firstChild.textContent.trim() === 'OraciónDiaria');
+    if (c) c.click();
+    await z(700);
+    document.getElementById('btnElegirGlosas').click(); await z(700);
+  });
+  const conFiltroPuesto = await p.evaluate(() => ({
+    sel:[...document.querySelectorAll('#filtros .chip.sel')]
+          .map(c => c.firstChild.textContent.trim()),
+    guardado:(JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}')
+                .etiquetasVer) || [] }));
+  di('con el filtro puesto', JSON.stringify(conFiltroPuesto));
+  vale('(la prueba es válida) el filtro está puesto por #OraciónDiaria y guardado',
+       conFiltroPuesto.sel.includes('OraciónDiaria') &&
+       conFiltroPuesto.guardado.includes('OraciónDiaria'),
+       JSON.stringify(conFiltroPuesto));
+  await p.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    document.querySelector('#tagboxGrupo [data-tag-grupo="OraciónDiaria"]').click();
+    await z(300);
+    document.getElementById('tagNuevaGrupo').value = 'Plegaria';
+    document.querySelector('#tagboxGrupo [data-acc="renombrartag"]').click();
+    await z(800);
+  });
+  await p.reload();
+  await p.waitForTimeout(2600);
+  const trasRecargar = await p.evaluate(() => ({
+    guardado:(JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}')
+                .etiquetasVer) || [],
+    enMarcas:JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
+               .flatMap(m => m.etiquetas || []),
+    /* y que la hoja no se haya quedado vacía, que es lo que de verdad se
+       siente cuando un filtro apunta a un fantasma */
+    glosasEnHoja:document.querySelectorAll('#pgMargin .gl').length }));
+  di('tras recargar', JSON.stringify(trasRecargar));
+  vale('EL FILTRO GUARDADO SIGUIÓ AL NOMBRE NUEVO',
+       trasRecargar.guardado.includes('Plegaria') &&
+       !trasRecargar.guardado.includes('OraciónDiaria'),
+       JSON.stringify(trasRecargar.guardado));
+  vale('  y la etiqueta vieja no quedó en ninguna glosa',
+       !trasRecargar.enMarcas.includes('OraciónDiaria'),
+       JSON.stringify(trasRecargar.enMarcas));
+  vale('  y la hoja sigue enseñando glosas, no un filtro fantasma',
+       trasRecargar.glosasEnHoja > 0, trasRecargar.glosasEnHoja + ' glosas');
+
   await cerrar(sesion);
 
   /* ================================================================
