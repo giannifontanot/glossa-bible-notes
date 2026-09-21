@@ -5431,7 +5431,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 15:01';
+window.GLOSS_BUILD = '21-SEP-26 16:29';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -20659,8 +20659,8 @@ etiquetas.appendChild($('barraGrupo'));
    fuerza de reemplazos es un id que cambia el día que alguien corrija el
    rótulo. El rótulo es para leerse; el id, para durar. */
 const ENCUENTROS = [
-  { id:'zaqueo',     nombre:'Zaqueo', historia:'encuentros/zaqueo.html' },
-  { id:'samaritana', nombre:'La mujer Samaritana' },
+  { id:'zaqueo',     nombre:'Zaqueo',              historia:'encuentros/zaqueo.html' },
+  { id:'samaritana', nombre:'La mujer Samaritana', historia:'encuentros/samaritana.html' },
 ];
 (function armarEncuentros(){
   const caja = document.getElementById('encuentros');
@@ -20715,6 +20715,13 @@ const ENCUENTROS = [
          partes. Aquí se dice cuándo: la primera vez que su pestaña se mira. */
       hoja.appendChild(marco);
     } else {
+      /* EL CAMINO DEL ENCUENTRO SIN HISTORIA, y hoy no pasa nadie por aquí:
+         los dos tienen la suya. Se queda porque es el estado natural del
+         siguiente —se abre su pestaña antes de que el relato esté escrito, que
+         es justo lo que pasó con la samaritana durante un día— y porque un
+         panel vacío sin una línea que lo explique se lee como algo que se
+         rompió al cargar. Queda dicho que ninguna prueba lo cubre: no hay
+         manera de cubrirlo sin inventarse un encuentro que no existe. */
       const tit = document.createElement('h3');
       tit.className = 'enc-titulo';
       tit.textContent = e.nombre;

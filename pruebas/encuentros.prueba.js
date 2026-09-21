@@ -49,9 +49,14 @@ const IR_A = `async (sec) => {
     [...document.querySelectorAll('.enc-marco')].map(m => m.getAttribute('src')));
   di('marcos con src al arrancar', alArrancar);
   /* La línea de validez: si no hubiera marcos, la de abajo saldría verde sobre
-     una lista vacía. */
-  vale('(la prueba es válida) hay un marco esperando', alArrancar.length === 1,
-       alArrancar.length);
+     una lista vacía. Son dos, uno por relato, y se cuentan contra la barra de
+     pestañas de dentro y no contra un número escrito: el día que entre el
+     tercer encuentro esto tiene que seguir diciendo la verdad sola. */
+  const cuantasPestanitas = await p.evaluate(() =>
+    document.querySelectorAll('#encuentros .pestanitas button').length);
+  vale('(la prueba es válida) hay un marco por relato',
+       alArrancar.length === cuantasPestanitas && alArrancar.length >= 2,
+       alArrancar.length + ' marcos · ' + cuantasPestanitas + ' pestañas');
   vale('y todavía no ha pedido nada', alArrancar.every(x => x === null),
        JSON.stringify(alArrancar));
 
@@ -174,9 +179,12 @@ const IR_A = `async (sec) => {
                         ancho:Math.round(r.width), alto:Math.round(r.height),
                         sobreElPie:Math.round(pie.top - r.bottom) };
              })(),
-             vacia:(() => {
-               const v = c.querySelector('.enc-hoja[data-enc="samaritana"] .enc-panel');
-               return v ? { hay:true, dice:v.textContent.trim() } : { hay:false };
+             /* Y EL DE LA OTRA SIGUE SIN PEDIR NADA. Cada relato se carga
+                cuando su pestaña se mira, no cuando se abre la sección: abrir
+                Encuentros no puede costar los dos documentos. */
+             otroMarco:(() => {
+               const m = c.querySelector('.enc-hoja[data-enc="samaritana"] .enc-marco');
+               return m ? { hay:true, src:m.getAttribute('src') } : { hay:false };
              })() };
   });
   di('lo que hay dentro', JSON.stringify(dentro));
@@ -250,9 +258,13 @@ const IR_A = `async (sec) => {
 
   /* La otra todavía no tiene historia, y el panel lo dice en vez de estar
      vacío: un hueco sin explicar se lee como algo que se rompió al cargar. */
-  vale('la samaritana tiene su panel esperando',
-       dentro.vacia.hay === true && /historia/i.test(dentro.vacia.dice || ''),
-       dentro.vacia.dice);
+  vale('la samaritana tiene su marco puesto',
+       dentro.otroMarco.hay === true, dentro.otroMarco);
+  /* LA CARGA ES POR RELATO Y NO POR SECCIÓN. Es la línea que se cae el día que
+     alguien mueva el despertar de sitio para «simplificar»: abrir Encuentros
+     traería los dos documentos, y con cinco encuentros serían cinco. */
+  vale('  y todavía sin pedir, que a ella no la están mirando',
+       dentro.otroMarco.src === null, dentro.otroMarco.src);
 
   /* ---------------- cambiar de encuentro ---------------- */
   titulo('cambiar de encuentro cambia la hoja, y no cierra la sección');
