@@ -1245,7 +1245,21 @@ const FUERA = `async () => {
              encendido: b.classList.contains('active'),
              /* Y SE VE CUÁL: enseñar la tira sin marcar el chip que filtra
                 sería enseñar el cuarto sin decir dónde está la luz. */
-             loMarca: marcadas.some(x => x.indexOf(t) === 0), marcadas };
+             loMarca: marcadas.some(x => x.indexOf(t) === 0), marcadas,
+             /* Y EL AVISO DE QUE LA TIRA SIGUE POR DEBAJO, SIN TOCAR NADA.
+                Éste es el camino que se colaba: con un filtro guardado la tira
+                se enciende al ARRANCAR, con el panel todavía en display:none, y
+                ahí scrollHeight y clientHeight valen cero, o sea «no sobra
+                nada». Abrir el panel después repintaba el índice y no los
+                filtros, así que el riel y la sombra se quedaban apagados
+                aunque hubiera treinta etiquetas. Se mide nada más abrir y sin
+                desplazar nada, que es lo que ve el lector que vuelve al día
+                siguiente. */
+             desborda: (() => { const f = document.getElementById('filtros');
+                                return f.scrollHeight > f.clientHeight + 2; })(),
+             riel: +getComputedStyle(document.getElementById('filtrosRiel')).opacity,
+             sombra: +getComputedStyle(document.getElementById('filaFiltros'),
+                                       '::after').opacity };
   }, guardado);
   di('con «' + guardado + '» guardada', JSON.stringify(conFiltro));
   vale('(la prueba es válida) había una etiqueta que guardar', !!guardado, guardado);
@@ -1255,6 +1269,15 @@ const FUERA = `async () => {
        conFiltro.pulsado === 'true' && conFiltro.encendido === true, conFiltro);
   vale('  y se ve CUÁL es el filtro puesto', conFiltro.loMarca === true,
        conFiltro.marcadas);
+  /* Las tres de abajo van juntas: sin desborde no hay nada que avisar, y sin
+     esa validez las dos siguientes pasarían en verde por no haber lista que
+     sobre. Las etiquetas las dejó sembradas el bloque de las treinta. */
+  vale('(la prueba es válida) con las etiquetas sembradas la tira desborda',
+       conFiltro.desborda === true, conFiltro.desborda);
+  vale('Y EL RIEL ESTÁ PUESTO NADA MÁS ABRIR, sin tocar nada',
+       conFiltro.riel > .9, conFiltro.riel);
+  vale('  y la sombra de «hay más», también', conFiltro.sombra > .9,
+       conFiltro.sombra);
 
   await cerrar(sesion);
 

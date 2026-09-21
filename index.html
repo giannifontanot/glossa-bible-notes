@@ -5193,7 +5193,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 09:49';
+window.GLOSS_BUILD = '21-SEP-26 09:51';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -15084,6 +15084,20 @@ function rolloSimple(el){
       el.classList.add('abierto');
       entradaDeSeccion(el);
       marcarCabeza();
+      /* Y LA TIRA DE FILTROS SE VUELVE A MEDIR AL ABRIR, que es el único
+         momento en que sus medidas existen.
+
+         El riel y la sombra salen de una cuenta —cuánto sobra por debajo— y
+         esa cuenta necesita al panel PUESTO: con display:none, scrollHeight y
+         clientHeight valen cero, o sea «no sobra nada». Y hay un camino que
+         pasa justo por ahí: con un filtro guardado, reflejarControles enciende
+         la tira al arrancar, con el panel todavía cerrado. Al abrirlo después,
+         nada volvía a medir —abrir repinta el índice, no los filtros— así que
+         un lector con treinta etiquetas y un filtro puesto de ayer se
+         encontraba la tira cortada sin riel y sin sombra hasta que algo
+         repintara. Medido: 33 pastillas desbordando y las dos apagadas.
+         Lo levantó la revisión de Codex. */
+      if (el === etiquetas) avisarMasEtiquetas();
     },
     /* Tres maneras de cerrarse, y no son intercambiables:
          seco      — cambio de pestaña, sin animación
