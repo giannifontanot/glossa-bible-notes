@@ -118,7 +118,12 @@ async function ponerContraste(pagina, pct){
   vale('sepia · contraste · brillo',
        JSON.stringify(sitio.orden) === JSON.stringify(['sepia','contraste','brillo']),
        sitio.orden);
-  vale('con las clases de siempre', sitio.clases === 'ajuste ancho', sitio.clases);
+  /* Y LA TERCERA CLASE ES NUEVA Y NO ES DECORACIÓN: riel-fila es la que saca a
+     las tres de tinta del ancho ajustado del modo cristal y las deja al 100%,
+     que es como están al abrir el panel. Sin ella la fila volvería a encogerse
+     al volverse transparente y el pulgar tendría que buscar el riel en otro
+     sitio según el modo. Esta línea la nombra para que quitarla se vea aquí. */
+  vale('con las clases de siempre', sitio.clases === 'ajuste ancho riel-fila', sitio.clases);
   vale('rótulo en minúsculas', sitio.rotulo === 'contraste', sitio.rotulo);
   vale('lleva su .medida', sitio.tieneMedida === true);
   vale('tiene nombre accesible', sitio.aria === 'contraste', sitio.aria);
@@ -713,7 +718,7 @@ async function ponerContraste(pagina, pct){
   vale('va justo debajo del contraste',
        sitioBrillo.orden[0] === 'contraste' && sitioBrillo.orden[1] === 'brillo',
        sitioBrillo.orden);
-  vale('con las clases de siempre', sitioBrillo.clases === 'ajuste ancho', sitioBrillo.clases);
+  vale('con las clases de siempre', sitioBrillo.clases === 'ajuste ancho riel-fila', sitioBrillo.clases);
   vale('rango 50–150 de uno en uno y neutro en 100',
        sitioBrillo.min === '50' && sitioBrillo.max === '150' &&
        sitioBrillo.step === '1' && sitioBrillo.valor === '100',

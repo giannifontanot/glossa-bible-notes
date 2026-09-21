@@ -1422,12 +1422,19 @@ async function ponerAMano(p){
       puertas: cintas.matches('[data-sep-lista]') &&
                piedras.matches('[data-piedra-lista]'),
       arriba: (rc.top - st.top) < 24 && (rpi.top - st.top) < 24,
-      /* UNA A CADA LADO, pero la de las cintas ya no toca el canto: se mudó al
-         medio entre el titulillo y el separador, que estaba a cuatro píxeles.
-         Así que aquí se mide el ORDEN y el LADO —que es lo que de verdad dice
-         cuál es cuál cuando ninguna de las dos lleva rótulo— y no la esquina.
-         El sitio exacto de la de cintas lo vigila su propio bloque. */
-      aCadaLado: (rpi.left - st.left) < 24 && rc.left > rpi.right &&
+      /* UNA A CADA LADO, y ya NINGUNA DE LAS DOS toca su canto: la de las
+         cintas se mudó al medio entre el titulillo y el separador —que estaba
+         a cuatro píxeles— y después la de las piedras al medio entre el canto
+         y el titulillo, por lo mismo. Esta línea llegó a medir «a menos de 24
+         del canto izquierdo» y se quedó clavada en el sitio viejo: cuando la
+         de las piedras se mudó, la prueba cantó fallo por estar la aplicación
+         donde se le pidió que estuviera.
+         Así que lo que se mide es el ORDEN y la MITAD —que es lo que de verdad
+         dice cuál es cuál cuando ninguna de las dos lleva rótulo— y no la
+         esquina. El sitio exacto de cada una lo vigila su propio bloque, en
+         navegar y en piedra. */
+      aCadaLado: (rpi.left + rpi.right) / 2 < st.left + st.width / 2 &&
+                 rc.left > rpi.right &&
                  (rc.left + rc.right) / 2 > st.left + st.width / 2,
       /* Y a la misma altura, como los dos de abajo. */
       aLaPar: Math.abs(rc.top - rpi.top) < 2

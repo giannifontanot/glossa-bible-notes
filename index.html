@@ -5312,7 +5312,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 11:47';
+window.GLOSS_BUILD = '21-SEP-26 12:26';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5987,28 +5987,36 @@ const PAGE_CSS = `
          line-height:1.25; font-weight:500; letter-spacing:.02em; }
 /* CADA ETIQUETA ES UN BLOQUE, Y POR ESO NO SE PARTE POR LA MITAD.
 
-   Las etiquetas largas llevan <wbr> cada once grafemas —está contado en
+   (AQUÍ DENTRO NO SE ESCRIBE UN SIGNO DE MENOR QUE, NI EN LOS COMENTARIOS. Esta
+   hoja entera viaja dentro de la foto del pliegue, metida tal cual en un
+   elemento style de un SVG que lee un parser de XML, y ahí un menor que suelto
+   no es texto: abre una etiqueta. Escribí «wbr» entre signos en este mismo
+   comentario, el SVG dejó de parsear, la imagen disparó onerror y TODAS las
+   hojas perdieron la animación de pasar página —0 píxeles de tinta en el
+   lienzo, tres suites en rojo y ni una de ellas hablando de etiquetas—. Los
+   nombres de elemento se escriben pelados: wbr, br, img.)
+
+   Las etiquetas largas llevan un wbr cada once grafemas —está contado en
    etiquetaHTML: es la única manera de partirlas sin romper la foto del
    pliegue— y esos puntos de corte se estaban usando SIEMPRE, no como último
    recurso. Con «#Interesante» empezando a media línea, el navegador partía por
-   el <wbr> que cabía en el hueco y dejaba «#Interes» arriba y «ante» abajo,
+   el corte que cabía en el hueco y dejaba «#Interes» arriba y «ante» abajo,
    teniendo sitio de sobra en el renglón siguiente para la etiqueta entera. El
    dueño del repo pidió lo contrario: si no cabe, que baje entera.
 
-   inline-block lo resuelve sin tocar los <wbr>, y el orden en que trabaja es
+   inline-block lo resuelve sin tocar esos cortes, y el orden en que trabaja es
    justo el que se pidió: la caja se coloca como una unidad —si no cabe en lo
    que queda de renglón, baja entera— y sólo cuando ella sola no cabe en la
-   columna se estrecha hasta el tope y entonces sí usa sus cortes internos. Los
-   <wbr> pasan de ser la primera opción a ser la última, que es lo que siempre
-   debieron ser.
+   columna se estrecha hasta el tope y entonces sí los usa. Pasan de ser la
+   primera opción a ser la última, que es lo que siempre debieron ser.
 
    max-width:100% es la mitad que no se puede olvidar: sin él la caja mide lo
    que mide su contenido y una etiqueta larguísima se saldría de la columna,
-   que es el fallo que los <wbr> vinieron a arreglar —.pg-margin recorta con
+   que es el fallo que los cortes vinieron a arreglar —.pg-margin recorta con
    overflow:hidden y aparecía «#Interesant»—.
    Y no rompe la foto del pliegue: medirPalabras recorre NODOS DE TEXTO y mide
    sus rectángulos en la hoja viva, así que dibuja lo que haya; los trozos que
-   separa un <wbr> siguen siendo nodos distintos con su propio rectángulo. */
+   separa un corte siguen siendo nodos distintos con su propio rectángulo. */
 .gl-tag .gl-t{ padding-left:7px; display:inline-block; max-width:100%; }
 /* El contador de citas del índice era también .gl-tag y no es una etiqueta: con
    la etiqueta convertida en bloque a la derecha se habría ido de renglón. */
