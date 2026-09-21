@@ -3518,26 +3518,38 @@
      de atrás. */
   #filtros{ max-height:calc(var(--alto-escena, 100vh) * .24);
             overflow-y:auto; overscroll-behavior:contain;
-            align-content:flex-start; gap:5px 6px; padding-right:2px; }
-  /* Y LA BARRA DE ESTA TIRA SÍ SE VE, que es lo contrario de lo que hace el
-     resto del programa: .rollo, .fly y el cuerpo de LIBROS las esconden todas
-     —una barra de navegador dentro de un libro de papel es un remiendo— y esta
-     tira estrenó el mismo escondite. Con el techo puesto eso deja una lista
-     cortada sin nada que diga que sigue: el lector ve seis etiquetas y da por
-     hecho que tiene seis. Aquí la barra hace falta porque es el único sitio
-     del panel donde lo que se ve NO es todo lo que hay, así que se pinta ancha
-     y del dorado de la casa en vez de esconderse.
-     Y como una barra de superposición —las de iOS— sólo aparece mientras se
-     desplaza, no se deja sola: la sombra de abajo lo dice también. Ver
-     #filaFiltros.hay-mas. */
-  #filtros{ scrollbar-width:thin;
-            scrollbar-color:#b8892b rgba(140,116,68,.20); }
-  #filtros::-webkit-scrollbar{ width:9px; }
-  #filtros::-webkit-scrollbar-track{ background:rgba(140,116,68,.16);
-                                     border-radius:999px; }
-  #filtros::-webkit-scrollbar-thumb{ background:#b8892b; border-radius:999px;
-                                     border:2px solid transparent;
-                                     background-clip:padding-box; }
+            align-content:flex-start; gap:5px 6px; padding-right:11px; }
+  /* EL RIEL DE LA TIRA, DIBUJADO A MANO Y SIEMPRE A LA VISTA.
+
+     Aquí estuvo la barra del navegador, pintada ancha y dorada en vez de
+     esconderse como las demás del programa. Se quedaba corta por donde no se
+     puede arreglar desde el CSS: en un teléfono las barras son de
+     SUPERPOSICIÓN —aparecen mientras algo se mueve y se van solas— y lo que se
+     pidió es que se vea siempre, para que el lector sepa que hay más etiquetas
+     debajo ANTES de tocar nada. Eso no lo decide la hoja de estilos, lo decide
+     el sistema.
+
+     Así que la barra se dibuja. Es la misma decisión que el resto del
+     programa toma al revés —esconder la del navegador— por la misma razón: el
+     cromo lo pinta la casa. Un carril tenue con su dedo dorado encima, del
+     alto que le toque a lo que se ve contra lo que hay, y puesto donde
+     corresponda según lo desplazado. Lo mueve el guion, porque es una medida:
+     ver avisarMasEtiquetas.
+
+     SÓLO CUANDO SOBRA LISTA. Un riel con el dedo ocupándolo entero no dice
+     «hay más», dice «esto es todo» con un adorno al lado, y enseña a no
+     mirarlo. Con la tira entera a la vista, el riel no está.
+     El dedo tiene alto mínimo: con cuarenta etiquetas, la proporción pura lo
+     dejaría en tres píxeles, que es una mota y no un mando. */
+  #filtros{ scrollbar-width:none; }
+  #filtros::-webkit-scrollbar{ width:0; height:0; display:none; }
+  #filtrosRiel{ position:absolute; right:0; top:5px; bottom:0; width:6px;
+                border-radius:999px; background:rgba(140,116,68,.20);
+                pointer-events:none; opacity:0;
+                transition:opacity .22s ease; }
+  #filaFiltros.hay-riel #filtrosRiel{ opacity:1; }
+  #filtrosRiel i{ position:absolute; left:0; right:0; display:block;
+                  border-radius:999px; background:#b8892b; }
   /* LA SOMBRA DE «HAY MÁS», que es la otra mitad del aviso y la que funciona
      en un teléfono. La pone el guion —ver avisarMasEtiquetas— porque saber si
      falta lista por debajo es una medida, no un estado que el CSS conozca, y
@@ -4890,7 +4902,11 @@
        chip se queda donde está con sus oyentes puestos. El mismo truco con el
        que los controles se mudaron a sus paneles sin volver a conectarlos. -->
   <select id="selDia" aria-label="Filtrar las glosas por día"></select>
-</span></div>
+</span><!-- El riel, fuera de la tira y no dentro: metido en ella se iría con
+     el desplazamiento, que es justo lo que tiene que quedarse quieto. Va
+     aria-hidden porque no dice nada que no diga ya el propio desplazamiento a
+     quien navega sin verlo. Ver #filtrosRiel. -->
+<span id="filtrosRiel" aria-hidden="true"><i></i></span></div>
 </div>
 
 <div class="stage" id="stage">
@@ -5177,7 +5193,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 09:03';
+window.GLOSS_BUILD = '21-SEP-26 09:39';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11002,8 +11018,30 @@ function verEtiquetas(on){
 function avisarMasEtiquetas(){
   const f = $('filtros'), fila = $('filaFiltros');
   if (!f || !fila) return;
-  fila.classList.toggle('hay-mas',
-    f.scrollHeight - f.clientHeight - f.scrollTop > 2);
+  const sobra = f.scrollHeight - f.clientHeight;
+  /* La sombra dice «queda lista POR DEBAJO» y se apaga al llegar al final; el
+     riel dice «esta tira es más larga de lo que se ve» y se queda puesto
+     mientras eso sea verdad. Son dos preguntas distintas y por eso dos
+     cuentas: al final de la lista la primera es no y la segunda sigue siendo
+     sí. */
+  fila.classList.toggle('hay-mas', sobra - f.scrollTop > 2);
+  fila.classList.toggle('hay-riel', sobra > 2);
+  const riel = $('filtrosRiel'), dedo = riel && riel.firstElementChild;
+  if (!dedo || sobra <= 2) return;
+  /* El dedo mide lo que se ve contra lo que hay, con un suelo: con cuarenta
+     etiquetas la proporción pura lo dejaría en tres píxeles, que es una mota y
+     no un mando. Y el sitio se reparte sobre lo que le queda LIBRE al riel, no
+     sobre su alto entero, o el dedo se saldría por abajo al final del
+     recorrido.
+     LAS DOS CUENTAS VAN CONTRA EL ALTO DEL RIEL Y NO CONTRA EL DE LA TIRA,
+     aunque los dos midan casi lo mismo: el riel se estira entre dos filos de
+     su fila y la tira tiene su propio tope, así que difieren en el píxel que
+     deja el redondeo. Medido con el alto de la tira, el dedo acababa un píxel
+     por debajo del riel al llegar al fondo. */
+  const largo = riel.clientHeight || f.clientHeight;
+  const alto = Math.max(16, Math.round(f.clientHeight / f.scrollHeight * largo));
+  dedo.style.height = alto + 'px';
+  dedo.style.top = Math.round(f.scrollTop / sobra * (largo - alto)) + 'px';
 }
 $('filtros').addEventListener('scroll', avisarMasEtiquetas, { passive:true });
 /* Y UN FILTRO PUESTO NO PUEDE QUEDARSE ESCONDIDO. La tira nace apagada —es lo
