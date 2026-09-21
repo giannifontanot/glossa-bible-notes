@@ -248,7 +248,11 @@ async function ponerContraste(pagina, pct){
                   razón —«su tablilla sobra, porque el botón ya trae fondo de
                   papel propio; dos papeles superpuestos solo engordan el
                   borde»—. Se apunta aquí para poder dejarla fuera de las dos
-                  afirmaciones que hablan de tablillas. */
+                  afirmaciones que hablan de tablillas.
+                  OJO A QUÉ SE MIDE AQUÍ: la FILA, no el botón. La fila sigue
+                  ocupando el ancho del panel —es la que centra— y el botón ya
+                  no: se le pidió que midiera su palabra, como el de CERRAR, y
+                  eso se comprueba aparte más abajo. */
                salida: !!filaSalida && f === filaSalida,
                pct: Math.round(r.width / ancho * 100),
                conFondo: !hueco(cs.backgroundColor),
@@ -259,7 +263,21 @@ async function ponerContraste(pagina, pct){
                claseSalida: f.classList.contains('vidrio-fila'),
                clases: f.className };
     });
-    return { opaco, cristal, filas };
+    /* EL BOTÓN DE LA SALIDA, aparte de su fila. Estuvo a todo lo ancho y el
+       dueño del repo lo paró: mide su palabra y va centrado, como el de
+       CERRAR. Se mide contra las LETRAS pintadas —un Range sobre el texto del
+       botón— y no contra un número escrito, que cambia con --escala-ui y con
+       la letra que tenga instalada cada máquina. */
+    const bv = document.getElementById('btnVidrio');
+    const rb = bv.getBoundingClientRect();
+    const rf = bv.closest('.ajuste').getBoundingClientRect();
+    const g = document.createRange(); g.selectNodeContents(bv);
+    const salidaBoton = {
+      ancho: Math.round(rb.width), fila: Math.round(rf.width),
+      palabra: Math.round(g.getBoundingClientRect().width),
+      eje: Math.round((rb.left + rb.right) / 2 - (rf.left + rf.right) / 2),
+      alto: Math.round(rb.height) };
+    return { opaco, cristal, filas, salidaBoton };
   });
   di('lo que mide cada tablilla', tablillas.filas.map(f => f.que + ' ' + f.pct + '%').join(' · '));
   di('el papel del panel', tablillas.opaco.sombra.slice(0,40) + ' → ' + tablillas.cristal.sombra);
@@ -284,9 +302,30 @@ async function ponerContraste(pagina, pct){
      esta comprobación dice algo. */
   vale('  y es ella la que lleva la clase del trato especial',
        salidas.every(f => f.claseSalida), salidas.map(f => f.clases).join(' · '));
-  vale('la salida va a todo lo ancho y sin tablilla, como pide su regla',
+  vale('la FILA de la salida va a todo lo ancho y sin tablilla, como pide su regla',
        salidas.every(f => f.pct > 90 && !f.conFondo),
        salidas.map(f => f.pct + '% · tablilla ' + f.conFondo).join(' · '));
+  /* Y EL BOTÓN, AL REVÉS QUE SU FILA. Esta prueba exigía que la salida fuera
+     ancha y era verdad de las dos cosas: la fila y el botón medían el panel.
+     Se pidió que el botón midiera su palabra —los dos botones de una palabra
+     del programa, éste y el de CERRAR, tenían que verse iguales— y lo que
+     sigue haciéndolo encontrable no es el ancho sino que su fila lo centra y
+     que no comparte renglón con nada. Así que la fila sigue midiendo el panel,
+     arriba, y aquí se exige lo contrario del botón, por los dos lados: ni la
+     barra de antes ni un botón encogido hasta no poder leerse. */
+  di('el botón de la salida', JSON.stringify(tablillas.salidaBoton));
+  vale('EL BOTÓN DE LA SALIDA MIDE SU PALABRA',
+       tablillas.salidaBoton.ancho < tablillas.salidaBoton.fila / 2 &&
+       tablillas.salidaBoton.ancho >= tablillas.salidaBoton.palabra + 16,
+       tablillas.salidaBoton.ancho + ' px  (palabra ' +
+       tablillas.salidaBoton.palabra + ', fila ' + tablillas.salidaBoton.fila + ')');
+  vale('  y va centrado en su fila',
+       Math.abs(tablillas.salidaBoton.eje) <= 1,
+       tablillas.salidaBoton.eje + ' px del eje');
+  /* El blanco de toque no se negocia: es la única salida del modo
+     transparente. */
+  vale('  sin perder el blanco de dedo', tablillas.salidaBoton.alto >= 38,
+       tablillas.salidaBoton.alto + ' px');
   vale('todas las filas llevan su tablilla',
        ajustes.every(f => f.conFondo), ajustes.filter(f => !f.conFondo).map(f => f.que));
   vale('de esquinas redondeadas', ajustes.every(f => f.redondas));

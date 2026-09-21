@@ -538,13 +538,24 @@ const FUERA = `async () => {
     const filo = rp.left + parseFloat(cp.paddingLeft);
     const cajas = [...f.querySelectorAll('.chip')].map(c => c.getBoundingClientRect());
     const chips = cajas.map(r => ({ alto: Math.round(r.height) }));
-    /* La primera del PRIMER RENGLÓN, y por eso se filtra por altura: la tira
-       se parte en varios renglones y la de más a la izquierda de todas podría
-       ser una del segundo. La que dice si la tira arranca en el filo es la
-       primera de arriba. */
-    const arriba = cajas.length ? Math.min(...cajas.map(r => r.top)) : 0;
-    const primera = cajas.filter(r => Math.abs(r.top - arriba) < 3)
+    /* EL PRIMERO DE LA TIRA, sea lo que sea: hasta hace poco era una pastilla
+       y hoy es el combo de los días, que se mudó aquí porque filtra igual que
+       ellas. Se mira lo que hay, no lo que se supone que hay —si esta línea
+       siguiera buscando .chip, mediría la primera pastilla DESPUÉS del combo y
+       diría que la tira no arranca en el filo cuando arranca—.
+       Y del PRIMER RENGLÓN, por eso se filtra por altura: la tira se parte en
+       varios y el de más a la izquierda de todos podría ser del segundo. */
+    const todos = [...f.children].map(c => c.getBoundingClientRect())
+                                 .filter(r => r.width > 0);
+    const arriba = todos.length ? Math.min(...todos.map(r => r.top)) : 0;
+    const primera = todos.filter(r => Math.abs(r.top - arriba) < 3)
                          .sort((a, b) => a.left - b.left)[0];
+    /* EL COMBO DE LOS DÍAS, dentro de la tira y el primero de todo. Vivía en
+       la fila de los botones, entre un rótulo y ellos, como si fuera un ajuste
+       del panel; filtra exactamente igual que un chip —esconde glosas de la
+       hoja y de la lista— y ahora vive donde viven los filtros. */
+    const dia = document.getElementById('selDia');
+    const rd = dia ? dia.getBoundingClientRect() : null;
     const rst = document.querySelector('.stage').getBoundingClientRect();
     return { apagada,
              /* Y DE PASO EL ALTO: este panel es el único con alto fijo —su
@@ -557,7 +568,17 @@ const FUERA = `async () => {
              cuantas: chips.length,
              altoMax: chips.length ? Math.max(...chips.map(c => c.alto)) : 0,
              primeraDesdeElFilo: primera ? Math.round(primera.left - filo) : null,
-             tope: cf.maxHeight, desborde: cf.overflowY };
+             tope: cf.maxHeight, desborde: cf.overflowY,
+             /* Y LA FILA DE LOS BOTONES SE QUEDÓ SIN RÓTULO: decía «etiquetas»
+                dentro del panel que se llama GLOSAS, o sea nada que distinga
+                esa fila de las demás, y cobraba por ello una columna fija. */
+             rotuloFila: !!document.querySelector('.fila-etiq .lbl'),
+             dia: dia ? { enLaTira: dia.parentElement === f,
+                          elPrimero: f.firstElementChild === dia,
+                          alto: Math.round(rd.height),
+                          desdeElFilo: Math.round(rd.left - filo),
+                          enLaFilaVieja: !!document.querySelector('.fila-etiq #selDia') }
+                       : null };
   });
   di('la tira', JSON.stringify(tira));
   vale('(la prueba es válida) hay etiquetas que enseñar', tira.cuantas > 0,
@@ -569,9 +590,26 @@ const FUERA = `async () => {
   vale('y el botón «ver» las enciende',
        tira.encendida.fila !== 'none' && tira.encendida.pulsado === 'true' &&
        tira.encendida.encendido === true, tira.encendida);
-  vale('LA PRIMERA PASTILLA ARRANCA EN EL FILO',
-       Math.abs(tira.primeraDesdeElFilo) <= 1,
+  vale('LA TIRA ARRANCA EN EL FILO', Math.abs(tira.primeraDesdeElFilo) <= 1,
        tira.primeraDesdeElFilo + ' px del filo del contenido');
+  vale('LA FILA DE LOS BOTONES SE QUEDÓ SIN RÓTULO',
+       tira.rotuloFila === false, tira.rotuloFila);
+  /* EL DÍA ES UN FILTRO MÁS Y VIVE CON LOS DEMÁS. Se comprueban las dos
+     mitades: que esté en la tira Y que ya no esté en la fila de antes. Sólo
+     la primera pasaría en verde con el combo duplicado, que es un estado que
+     no se ve mirando una pantalla. */
+  vale('EL DÍA SE FUE CON LAS ETIQUETAS, Y EL PRIMERO',
+       !!tira.dia && tira.dia.enLaTira === true && tira.dia.elPrimero === true &&
+       tira.dia.enLaFilaVieja === false, tira.dia);
+  vale('  arrancando en el filo, como la tira',
+       !!tira.dia && Math.abs(tira.dia.desdeElFilo) <= 1,
+       tira.dia && tira.dia.desdeElFilo + ' px');
+  /* Y VESTIDO DE PASTILLA: si midiera lo que mide un campo de formulario en
+     medio de una fila de pastillas, se leería como un ajuste y no como un
+     filtro, que es la confusión que lo tenía en la otra fila. */
+  vale('  y del alto de una pastilla',
+       !!tira.dia && Math.abs(tira.dia.alto - tira.altoMax) <= 2,
+       tira.dia && (tira.dia.alto + ' px contra ' + tira.altoMax));
   vale('LAS PASTILLAS NO SE COMEN UN RENGLÓN ENTERO',
        tira.altoMax > 0 && tira.altoMax <= 32, tira.altoMax + ' px de alto');
   /* Y sigue siendo un blanco que se acierta: bajarlas era el encargo,
@@ -584,6 +622,67 @@ const FUERA = `async () => {
        tira.tope !== 'none' && parseFloat(tira.tope) > 0 &&
        /auto|scroll/.test(tira.desborde),
        tira.tope + ' · ' + tira.desborde);
+
+  /* ================================================================
+     VER Y CAMBIAR NO PUEDEN ESTAR LOS DOS PUESTOS.
+
+     Son dos maneras de usar la misma lista y se estorban: con las dos
+     encendidas, la mitad de arriba del panel pregunta cuáles quieres VER y la
+     de abajo cuáles quieres TOCAR, con los mismos chips a la vista para dos
+     cosas distintas. Apagadas las dos sí se puede —es el sitio de fábrica, el
+     índice a solas— así que no son un interruptor de dos posiciones: son dos
+     que se excluyen, y eso son tres estados de cuatro. Se recorren los tres.
+     ================================================================ */
+  titulo('ver y cambiar se excluyen, pero las dos pueden estar apagadas');
+  await alPanel();
+  const turnos = await p.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const ver = document.getElementById('btnVerEtiquetas');
+    const cam = document.getElementById('btnElegirGlosas');
+    const foto = () => ({
+      ver: ver.getAttribute('aria-pressed'), cam: cam.getAttribute('aria-pressed'),
+      /* Y lo que cada uno enciende de verdad, no sólo su botón: la tira y la
+         barra de elegir. Un par de aria-pressed bien puestos sobre dos
+         panales abiertos a la vez seguiría siendo el estado que se prohibió. */
+      tira: getComputedStyle(document.getElementById('filaFiltros')).display,
+      barra: getComputedStyle(document.getElementById('barraGrupo')).display });
+    /* Se parte de las dos apagadas, que es como nace el panel; si algún
+       bloque de arriba dejó una puesta, se apaga a mano por su botón. */
+    if (ver.getAttribute('aria-pressed') === 'true'){ ver.click(); await z(420); }
+    if (cam.getAttribute('aria-pressed') === 'true'){ cam.click(); await z(420); }
+    const ninguna = foto();
+    ver.click(); await z(450);
+    const conVer = foto();
+    cam.click(); await z(450);
+    const conCambiar = foto();
+    ver.click(); await z(450);
+    const otraVez = foto();
+    ver.click(); await z(450);
+    const apagadaOtraVez = foto();
+    return { ninguna, conVer, conCambiar, otraVez, apagadaOtraVez };
+  });
+  di('los turnos', JSON.stringify(turnos));
+  vale('(la prueba es válida) se parte con las dos apagadas',
+       turnos.ninguna.ver === 'false' && turnos.ninguna.cam === 'false',
+       turnos.ninguna);
+  vale('  y con las dos apagadas no sale ni la tira ni la barra',
+       turnos.ninguna.tira === 'none' && turnos.ninguna.barra === 'none',
+       turnos.ninguna);
+  vale('VER ENCIENDE LA TIRA Y DEJA CAMBIAR APAGADO',
+       turnos.conVer.ver === 'true' && turnos.conVer.cam === 'false' &&
+       turnos.conVer.tira !== 'none' && turnos.conVer.barra === 'none',
+       turnos.conVer);
+  vale('CAMBIAR APAGA A VER, Y CON ÉL LA TIRA',
+       turnos.conCambiar.cam === 'true' && turnos.conCambiar.ver === 'false' &&
+       turnos.conCambiar.tira === 'none' && turnos.conCambiar.barra !== 'none',
+       turnos.conCambiar);
+  vale('  y VER vuelve a apagar a CAMBIAR',
+       turnos.otraVez.ver === 'true' && turnos.otraVez.cam === 'false' &&
+       turnos.otraVez.barra === 'none', turnos.otraVez);
+  vale('Y LAS DOS PUEDEN QUEDARSE APAGADAS',
+       turnos.apagadaOtraVez.ver === 'false' && turnos.apagadaOtraVez.cam === 'false' &&
+       turnos.apagadaOtraVez.tira === 'none' && turnos.apagadaOtraVez.barra === 'none',
+       turnos.apagadaOtraVez);
 
   titulo('los chips de «ver» filtran');
   await alPanel();
@@ -766,6 +865,15 @@ const FUERA = `async () => {
     const rp = panel.getBoundingClientRect();
     return { chips: f.querySelectorAll('.chip').length,
              tira: Math.round(rf.height),
+             /* EL AVISO DE QUE LA LISTA SIGUE. Un techo sin aviso es una lista
+                cortada: el lector ve seis etiquetas y da por hecho que tiene
+                seis. Se mira la sombra PINTADA —la opacidad del ::after— y no
+                la clase que la enciende: la clase es la orden, la sombra es lo
+                que se ve. La barra va aparte, porque en un teléfono es de las
+                que sólo aparecen mientras algo se mueve. */
+             sombra: +getComputedStyle(document.getElementById('filaFiltros'),
+                                       '::after').opacity,
+             barra: getComputedStyle(f).scrollbarWidth,
              /* Lo que la tira mediría suelta, que es contra lo que se compara
                 el techo: si no la desborda, el techo no se está probando. */
              suelta: Math.round(f.scrollHeight),
@@ -789,6 +897,88 @@ const FUERA = `async () => {
   vale('Y EL ÍNDICE DE GLOSAS SIGUE TENIENDO SITIO',
        muchas.indice > 120 && muchas.indiceDentro === true,
        muchas.indice + ' px de alto');
+  vale('Y SE AVISA DE QUE LA LISTA SIGUE POR DEBAJO', muchas.sombra > .9,
+       'sombra al ' + Math.round(muchas.sombra * 100) + '%');
+  vale('  con la barra a la vista, que aquí no se esconde',
+       muchas.barra !== 'none', muchas.barra);
+  /* Y EL AVISO SE APAGA AL LLEGAR AL FINAL. Es la mitad que se rompe sola:
+     una sombra que no se va deja de decir nada, y además diría que hay más
+     cuando ya no hay. */
+  const alFondo = await p.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const f = document.getElementById('filtros');
+    const fila = document.getElementById('filaFiltros');
+    f.scrollTop = f.scrollHeight;
+    await z(450);
+    const abajo = +getComputedStyle(fila, '::after').opacity;
+    f.scrollTop = 0;
+    await z(450);
+    return { abajo, alVolver: +getComputedStyle(fila, '::after').opacity };
+  });
+  di('la sombra al fondo', JSON.stringify(alFondo));
+  vale('  y se apaga al llegar al final', alFondo.abajo < .1, alFondo.abajo);
+  vale('  y vuelve al subir', alFondo.alVolver > .9, alFondo.alVolver);
+
+  /* ================================================================
+     EL DÍA FILTRA DESDE SU SITIO NUEVO.
+
+     Se mudó de la fila de los botones a la tira de los filtros, y una mudanza
+     de un control con oyente es justo donde se pierde el oyente: se mueve el
+     nodo y el manejador viaja con él, pero basta con que alguien lo recree
+     para que el combo quede de adorno. Así que no se comprueba que esté, se
+     comprueba que FILTRE.
+
+     Hacen falta dos días, y el día sale de la fecha guardada en cada glosa, así
+     que se siembra en el almacén y se recarga —el mismo camino que usa este
+     fichero para el filtro guardado—. Con todas las glosas del mismo día no
+     hay nada que esconder y la comprobación pasaría en verde sin filtrar.
+     ================================================================ */
+  titulo('el día filtra desde la tira, como una etiqueta más');
+  const sembradas = await p.evaluate(() => {
+    const ms = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    const con = ms.filter(m => m.nota);
+    if (con.length < 2) return null;
+    /* La primera se va a un día de hace años; las demás se quedan donde
+       estén. Así hay dos días y se sabe cuál es cuál. */
+    con[0].creada = '2020-01-02';
+    localStorage.setItem('glossa:marcas:v1', JSON.stringify(ms));
+    return { total: con.length, apartada: con[0].nota };
+  });
+  await p.reload();
+  await p.waitForTimeout(2600);
+  await alPanel();
+  await encenderEtiquetas();
+  const porDia = await p.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const dia = document.getElementById('selDia');
+    const cuantas = () => document.querySelectorAll('#indice .ix-item').length;
+    const opcion = [...dia.options].find(o => o.value === '2020-01-02');
+    if (!opcion) return { sinDia: [...dia.options].map(o => o.value) };
+    const antes = cuantas();
+    dia.value = '2020-01-02';
+    dia.dispatchEvent(new Event('change', { bubbles:true }));
+    await z(1400);
+    const filtrado = { n: cuantas(), marcado: dia.classList.contains('sel') };
+    dia.value = '';
+    dia.dispatchEvent(new Event('change', { bubbles:true }));
+    await z(1400);
+    return { antes, filtrado, vuelven: cuantas(),
+             marcadoAlQuitar: dia.classList.contains('sel') };
+  });
+  di('por día', JSON.stringify(porDia));
+  vale('(la prueba es válida) hay glosas de dos días',
+       !!sembradas && !porDia.sinDia && porDia.antes > 1,
+       porDia.sinDia ? JSON.stringify(porDia.sinDia) : porDia.antes + ' glosas');
+  vale('ELEGIR UN DÍA ESCONDE LAS DEMÁS',
+       !porDia.sinDia && porDia.filtrado.n < porDia.antes && porDia.filtrado.n > 0,
+       porDia.antes + ' → ' + (porDia.filtrado || {}).n);
+  vale('  y el combo se enciende como un chip marcado',
+       !porDia.sinDia && porDia.filtrado.marcado === true &&
+       porDia.marcadoAlQuitar === false,
+       JSON.stringify(porDia.filtrado));
+  vale('  y al quitarlo vuelven todas',
+       !porDia.sinDia && porDia.vuelven === porDia.antes,
+       '→ ' + porDia.vuelven);
 
   /* ================================================================
      UN FILTRO GUARDADO NO PUEDE QUEDARSE ESCONDIDO.

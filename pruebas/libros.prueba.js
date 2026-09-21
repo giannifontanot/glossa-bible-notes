@@ -670,10 +670,11 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        bastó y por eso esto se mide y no se confía: el panel mide lo que mide
        su contenido, así que los dos puntos de abajo y el rótulo del pie
        asomaban POR DEBAJO de él. Nunca hubo nada que se les pusiera encima.
-       El tope de los paneles subió del 88% al 100% y esto no cambia: LIBROS
-       —el que abre este bloque— llena ahora la escena, pero FORMATO mide 674
-       de 915 y RESPALDO 335, y por debajo de esos dos asoma lo mismo que
-       antes. Un tope no es un alto. Se comprueba con el interruptor de las guías
+       Hoy los cuatro paneles llenan la escena y por debajo no asoma nada, así
+       que esta comprobación parece de más: no lo es. Lo que vigila es que los
+       puntos se apaguen —son del libro y el libro no está—, no que queden
+       tapados por geometría; el alto de los paneles ya cambió dos veces en
+       este repo y el asomo volvería solo. Se comprueba con el interruptor de las guías
        ENCENDIDO, que es el caso que se vio en pantalla y el único en el que
        hay anillo que apagar.
      · LOS LIBROS, CENTRADOS. Se mide contra el eje de la caja y no contra una
@@ -920,6 +921,75 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
   vale('EL RECUADRO ROJO DE LA CASILLA ES PERMANENTE',
        /rgb\(155,\s*42,\s*42\)/.test(fuera.casilla), fuera.casilla);
   await cerrarParcial(ses3, 'el panel por fuera');
+
+  /* ================================================================
+     LOS CUATRO PANELES ABREN IGUAL, Y LA SALIDA ESTÁ EN EL MISMO SITIO.
+
+     Esto es un encargo del dueño del repo y es lo que convierte cuatro
+     paneles en uno con cuatro secciones: si el botón de cerrar aparece a una
+     altura distinta según la pestaña que tocaste, el pulgar tiene que buscarlo
+     cada vez.
+
+     Y no salía igual. El alto era un TOPE —max-height— así que LIBROS y GLOSAS
+     lo llenaban y AAA y Share medían su contenido: 674 y 335 de 915 en un
+     teléfono, o sea la salida a tres alturas. Con el alto fijo faltaba todavía
+     la mitad: el pie se coloca de dos maneras según si su panel se desplaza o
+     no, y esas dos se llevaban los 17 px del relleno de abajo del panel. Los
+     dos arreglos están contados en .rollo y en .pie-cerrar.
+
+     Se miden LOS CUATRO y se comparan entre sí, no contra un número escrito:
+     lo que se pidió es que sean iguales, y un número aquí sería otra cosa —y
+     encima una que cambia con la pantalla—.
+     ================================================================ */
+  titulo('los cuatro paneles abren igual, y la salida no se mueve');
+  const ses4 = await abrir();
+  const cuatro = await ses4.pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    /* LA BARRA DEL PANEL QUE SE VE, no la primera del documento: las de los
+       paneles cerrados se quedan dentro con display:none y van antes en orden,
+       así que un querySelector suelto toca una barra invisible. Está contado
+       en glosas.prueba.js, donde costó una lista que no se actualizaba. */
+    const visible = () => [...document.querySelectorAll('.rollo')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    const st = () => document.querySelector('.stage').getBoundingClientRect();
+    const salida = {};
+    for (const [sec, id] of [['libros','canto'], ['glosas','etiquetas'],
+                             ['formato','ajustes'], ['respaldo','respaldo']]){
+      if (!visible()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+      const t = (visible() || document).querySelector('.pestanas [data-sec="' + sec + '"]');
+      if (t) t.click();
+      await pausa(1200);
+      const el = document.getElementById(id);
+      const rp = el.getBoundingClientRect(), e = st();
+      const b = el.querySelector(':scope > .pie-cerrar .cerrar-pie');
+      if (!b){ salida[sec] = { falta:true }; continue; }
+      const rb = b.getBoundingClientRect();
+      salida[sec] = { alto: Math.round(rp.height), escena: Math.round(e.height),
+                      ancho: Math.round(rb.width), grueso: Math.round(rb.height),
+                      /* Contra el canto de la ESCENA y no contra el del panel:
+                         lo que el pulgar busca es un sitio de la pantalla. */
+                      abajo: Math.round(e.bottom - rb.bottom),
+                      eje: Math.round((rb.left + rb.right) / 2 - (e.left + e.right) / 2) };
+    }
+    return salida;
+  });
+  di('los cuatro', JSON.stringify(cuatro));
+  const secs = ['libros', 'glosas', 'formato', 'respaldo'];
+  const todos = secs.map(k => cuatro[k]);
+  vale('(la prueba es válida) se abrieron los cuatro',
+       todos.every(x => x && !x.falta), JSON.stringify(cuatro));
+  vale('LOS CUATRO MIDEN LA ESCENA ENTERA',
+       todos.every(x => Math.abs(x.alto - x.escena) <= 1),
+       secs.map((k,i) => k + ' ' + todos[i].alto + '/' + todos[i].escena).join(' · '));
+  vale('LA SALIDA CAE EN EL MISMO SITIO EN LOS CUATRO',
+       todos.every(x => x.abajo === todos[0].abajo),
+       secs.map((k,i) => k + ' ' + todos[i].abajo).join(' · '));
+  vale('  y con el mismo tamaño',
+       todos.every(x => x.ancho === todos[0].ancho && x.grueso === todos[0].grueso),
+       secs.map((k,i) => k + ' ' + todos[i].ancho + 'x' + todos[i].grueso).join(' · '));
+  vale('  y centrada en la escena', todos.every(x => Math.abs(x.eje) <= 1),
+       secs.map((k,i) => k + ' ' + todos[i].eje).join(' · '));
+  await cerrarParcial(ses4, 'los cuatro paneles');
 
   await cerrar(sesion);
 })();
