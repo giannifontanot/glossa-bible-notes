@@ -328,6 +328,12 @@ const IR_A = `async (sec) => {
     if (!f) return { falta:true };
     const dentro = await f.evaluate(() => ({
       raiz:getComputedStyle(document.documentElement).fontSize,
+      /* EL TEXTO COMPUESTO, que es lo que se lee. La raíz sola no basta y esto
+         costó un fallo: el relato recibía la raíz correcta y encima la
+         multiplicaba por 1,05, así que un libro de 15 se leía a 15,75 y la
+         prueba —que miraba la raíz— decía que iban iguales. Lo levantó la
+         revisión de Codex. */
+      texto:getComputedStyle(document.body).fontSize,
       familia:getComputedStyle(document.body).fontFamily,
       familiaTitulo:getComputedStyle(document.querySelector('h1')).fontFamily,
       familiaNum:getComputedStyle(document.querySelector('h2 .num')).fontFamily,
@@ -341,6 +347,9 @@ const IR_A = `async (sec) => {
       const cap = document.querySelector('#pgBody .cap');
       const verso = document.querySelector('#pgBody .v');
       return { letra:v.getPropertyValue('--fs-libro').trim(),
+               /* y el tamaño al que se lee el libro de verdad, para comparar
+                  texto con texto y no variable con raíz */
+               texto:verso ? getComputedStyle(verso).fontSize : null,
                tinta:v.getPropertyValue('--tinta').trim(),
                /* la familia se lee del VERSÍCULO, que es el texto del libro:
                   es lo que el lector ve cuando elige el tipo en AAA */
@@ -369,7 +378,14 @@ const IR_A = `async (sec) => {
   di('de fábrica', antes);
   vale('(la prueba es válida) se pudo mirar dentro del relato', !antes.falta);
   if (!antes.falta){
+    /* SE COMPARA TEXTO CONTRA TEXTO: lo que mide un renglón del relato contra
+       lo que mide un versículo en la hoja. Comparar la raíz del relato con la
+       variable del programa deja pasar cualquier cosa que el relato haga
+       después con ese número, y eso fue justo lo que pasó. */
     vale('LA LETRA DEL RELATO ES LA DEL LIBRO',
+         !!antes.fuera.texto && antes.dentro.texto === antes.fuera.texto,
+         antes.dentro.texto + ' contra ' + antes.fuera.texto);
+    vale('  y le llegó por la raíz, que es de donde cuelga su hoja',
          antes.dentro.raiz === antes.fuera.letra,
          antes.dentro.raiz + ' contra ' + antes.fuera.letra);
     vale('Y EL TIPO DE LETRA, el que esté puesto en AAA',
@@ -434,9 +450,9 @@ const IR_A = `async (sec) => {
   vale('(la prueba es válida) el libro cambió de letra',
        !luegoDeAA.falta && luegoDeAA.fuera.letra !== antes.fuera.letra,
        antes.fuera.letra + ' → ' + (luegoDeAA.falta ? '?' : luegoDeAA.fuera.letra));
-  vale('EL RELATO CRECIÓ CON EL LIBRO',
-       !luegoDeAA.falta && luegoDeAA.dentro.raiz === luegoDeAA.fuera.letra,
-       luegoDeAA.falta ? 'sin marco' : luegoDeAA.dentro.raiz + ' contra ' + luegoDeAA.fuera.letra);
+  vale('EL RELATO CRECIÓ CON EL LIBRO, Y AL MISMO TAMAÑO',
+       !luegoDeAA.falta && luegoDeAA.dentro.texto === luegoDeAA.fuera.texto,
+       luegoDeAA.falta ? 'sin marco' : luegoDeAA.dentro.texto + ' contra ' + luegoDeAA.fuera.texto);
 
   /* Y lo mismo con el TIPO, que viaja por otro camino: el tamaño pasa por
      escalarInterfaz y el tipo no pasa por ahí, así que son dos avisos

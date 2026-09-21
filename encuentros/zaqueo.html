@@ -43,7 +43,14 @@
     background: transparent;
     color: var(--tinta);
     font-family: var(--familia);
-    font-size: 1.05rem;
+    /* 1rem EXACTO Y NO 1.05: lo que llega del programa es el tamaño de letra
+       del libro, y multiplicarlo por un pelo lo convertía en otro tamaño —15
+       del libro se leían aquí a 15,75, y 19 a 19,95—. Se pidió el mismo, y el
+       mismo es el mismo. Lo levantó la revisión de Codex; la prueba no lo vio
+       porque comparaba la raíz y no el texto compuesto, que es lo que se lee.
+       Todo lo demás de esta hoja va en rem, así que cuelga de aquí y guarda su
+       proporción con el libro cuando el lector mueve el riel. */
+    font-size: 1rem;
     line-height: 1.75;
     -webkit-text-size-adjust: none;
   }
