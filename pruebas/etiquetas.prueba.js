@@ -569,6 +569,12 @@ const FUERA = `async () => {
              altoMax: chips.length ? Math.max(...chips.map(c => c.alto)) : 0,
              primeraDesdeElFilo: primera ? Math.round(primera.left - filo) : null,
              tope: cf.maxHeight, desborde: cf.overflowY,
+             /* EL RIEL NO ESTÁ CUANDO NO SOBRA LISTA, que es lo que impide
+                que se vuelva un adorno: un riel con el dedo ocupándolo entero
+                dice «esto es todo» con una barra al lado, y enseña a no
+                mirarla. Aquí hay tres o cuatro etiquetas y caben. */
+             rielSinFalta: +getComputedStyle(document.getElementById('filtrosRiel')).opacity,
+             cabeEntera: f.scrollHeight <= f.clientHeight + 2,
              /* Y LA FILA DE LOS BOTONES SE QUEDÓ SIN RÓTULO: decía «etiquetas»
                 dentro del panel que se llama GLOSAS, o sea nada que distinga
                 esa fila de las demás, y cobraba por ello una columna fija. */
@@ -618,6 +624,10 @@ const FUERA = `async () => {
   vale('EL PANEL DE GLOSAS LLENA LA ESCENA A LO ALTO',
        Math.abs(tira.altoPanel - tira.escena) <= 1,
        tira.altoPanel + ' de ' + tira.escena);
+  vale('(la prueba es válida) con estas pocas etiquetas la tira cabe entera',
+       tira.cabeEntera === true, tira.cabeEntera);
+  vale('Y SIN LISTA QUE SOBRE, EL RIEL NO ESTÁ', tira.rielSinFalta < .02,
+       tira.rielSinFalta);
   vale('la tira tiene techo y se corre por dentro',
        tira.tope !== 'none' && parseFloat(tira.tope) > 0 &&
        /auto|scroll/.test(tira.desborde),
@@ -1039,7 +1049,25 @@ const FUERA = `async () => {
                 que sólo aparecen mientras algo se mueve. */
              sombra: +getComputedStyle(document.getElementById('filaFiltros'),
                                        '::after').opacity,
-             barra: getComputedStyle(f).scrollbarWidth,
+             /* EL RIEL, QUE LO PINTA LA CASA. Aquí se miraba la barra del
+                navegador (scrollbarWidth), y se quitó a propósito: en un
+                teléfono ésas son de superposición —aparecen mientras algo se
+                mueve y se van solas— y lo que se pidió es que se vea SIEMPRE,
+                para saber que hay más etiquetas antes de tocar nada. Así que
+                ahora hay un riel dibujado, y lo que se mide es él. */
+             riel: (() => {
+               const r = document.getElementById('filtrosRiel');
+               if (!r) return null;
+               const dedo = r.firstElementChild;
+               const rr = r.getBoundingClientRect(), rd = dedo.getBoundingClientRect();
+               return { puesto: +getComputedStyle(r).opacity,
+                        alto: Math.round(rr.height),
+                        dedo: Math.round(rd.height),
+                        dentro: rd.top >= rr.top - 1 && rd.bottom <= rr.bottom + 1,
+                        /* Y que no se meta debajo de las pastillas. */
+                        libre: [...f.querySelectorAll('.chip')]
+                                 .every(c => c.getBoundingClientRect().right <= rr.left + 1) };
+             })(),
              /* Lo que la tira mediría suelta, que es contra lo que se compara
                 el techo: si no la desborda, el techo no se está probando. */
              suelta: Math.round(f.scrollHeight),
@@ -1065,8 +1093,17 @@ const FUERA = `async () => {
        muchas.indice + ' px de alto');
   vale('Y SE AVISA DE QUE LA LISTA SIGUE POR DEBAJO', muchas.sombra > .9,
        'sombra al ' + Math.round(muchas.sombra * 100) + '%');
-  vale('  con la barra a la vista, que aquí no se esconde',
-       muchas.barra !== 'none', muchas.barra);
+  vale('EL RIEL SE VE SIN TOCAR NADA', !!muchas.riel && muchas.riel.puesto > .9,
+       muchas.riel);
+  /* Y DICE CUÁNTO FALTA: un dedo que ocupara el riel entero sería un adorno
+     que dice «esto es todo» justo donde no lo es. */
+  vale('  con su dedo más corto que el riel, que es lo que dice cuánto falta',
+       !!muchas.riel && muchas.riel.dedo < muchas.riel.alto - 8 &&
+       muchas.riel.dedo >= 16,
+       muchas.riel && (muchas.riel.dedo + ' de ' + muchas.riel.alto));
+  vale('  sin salirse del riel ni meterse bajo las pastillas',
+       !!muchas.riel && muchas.riel.dentro === true && muchas.riel.libre === true,
+       muchas.riel);
   /* Y EL AVISO SE APAGA AL LLEGAR AL FINAL. Es la mitad que se rompe sola:
      una sombra que no se va deja de decir nada, y además diría que hay más
      cuando ya no hay. */
@@ -1074,16 +1111,39 @@ const FUERA = `async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
     const f = document.getElementById('filtros');
     const fila = document.getElementById('filaFiltros');
+    const riel = document.getElementById('filtrosRiel');
+    const dedo = () => {
+      const rr = riel.getBoundingClientRect();
+      const rd = riel.firstElementChild.getBoundingClientRect();
+      return { sitio: Math.round(rd.top - rr.top),
+               dentro: rd.top >= rr.top - 1 && rd.bottom <= rr.bottom + 1,
+               puesto: +getComputedStyle(riel).opacity };
+    };
+    const arriba = dedo();
     f.scrollTop = f.scrollHeight;
     await z(450);
     const abajo = +getComputedStyle(fila, '::after').opacity;
+    const dedoAbajo = dedo();
     f.scrollTop = 0;
     await z(450);
-    return { abajo, alVolver: +getComputedStyle(fila, '::after').opacity };
+    return { abajo, alVolver: +getComputedStyle(fila, '::after').opacity,
+             arriba, dedoAbajo, dedoAlVolver: dedo() };
   });
   di('la sombra al fondo', JSON.stringify(alFondo));
   vale('  y se apaga al llegar al final', alFondo.abajo < .1, alFondo.abajo);
   vale('  y vuelve al subir', alFondo.alVolver > .9, alFondo.alVolver);
+  /* EL DEDO SÍ SE QUEDA, que es la diferencia entre el riel y la sombra: la
+     sombra dice «queda lista por debajo» y al final es que no; el riel dice
+     «esto es más largo de lo que se ve», y eso sigue siendo verdad. */
+  vale('EL RIEL SIGUE PUESTO AL LLEGAR AL FONDO',
+       alFondo.dedoAbajo.puesto > .9, alFondo.dedoAbajo);
+  vale('  y su dedo se ha ido abajo, sin salirse',
+       alFondo.dedoAbajo.sitio > alFondo.arriba.sitio &&
+       alFondo.dedoAbajo.dentro === true,
+       alFondo.arriba.sitio + '  →  ' + alFondo.dedoAbajo.sitio);
+  vale('  y vuelve arriba con la tira',
+       alFondo.dedoAlVolver.sitio === alFondo.arriba.sitio,
+       alFondo.dedoAlVolver.sitio + ' contra ' + alFondo.arriba.sitio);
 
   /* ================================================================
      EL DÍA FILTRA DESDE SU SITIO NUEVO.
@@ -1185,7 +1245,21 @@ const FUERA = `async () => {
              encendido: b.classList.contains('active'),
              /* Y SE VE CUÁL: enseñar la tira sin marcar el chip que filtra
                 sería enseñar el cuarto sin decir dónde está la luz. */
-             loMarca: marcadas.some(x => x.indexOf(t) === 0), marcadas };
+             loMarca: marcadas.some(x => x.indexOf(t) === 0), marcadas,
+             /* Y EL AVISO DE QUE LA TIRA SIGUE POR DEBAJO, SIN TOCAR NADA.
+                Éste es el camino que se colaba: con un filtro guardado la tira
+                se enciende al ARRANCAR, con el panel todavía en display:none, y
+                ahí scrollHeight y clientHeight valen cero, o sea «no sobra
+                nada». Abrir el panel después repintaba el índice y no los
+                filtros, así que el riel y la sombra se quedaban apagados
+                aunque hubiera treinta etiquetas. Se mide nada más abrir y sin
+                desplazar nada, que es lo que ve el lector que vuelve al día
+                siguiente. */
+             desborda: (() => { const f = document.getElementById('filtros');
+                                return f.scrollHeight > f.clientHeight + 2; })(),
+             riel: +getComputedStyle(document.getElementById('filtrosRiel')).opacity,
+             sombra: +getComputedStyle(document.getElementById('filaFiltros'),
+                                       '::after').opacity };
   }, guardado);
   di('con «' + guardado + '» guardada', JSON.stringify(conFiltro));
   vale('(la prueba es válida) había una etiqueta que guardar', !!guardado, guardado);
@@ -1195,6 +1269,15 @@ const FUERA = `async () => {
        conFiltro.pulsado === 'true' && conFiltro.encendido === true, conFiltro);
   vale('  y se ve CUÁL es el filtro puesto', conFiltro.loMarca === true,
        conFiltro.marcadas);
+  /* Las tres de abajo van juntas: sin desborde no hay nada que avisar, y sin
+     esa validez las dos siguientes pasarían en verde por no haber lista que
+     sobre. Las etiquetas las dejó sembradas el bloque de las treinta. */
+  vale('(la prueba es válida) con las etiquetas sembradas la tira desborda',
+       conFiltro.desborda === true, conFiltro.desborda);
+  vale('Y EL RIEL ESTÁ PUESTO NADA MÁS ABRIR, sin tocar nada',
+       conFiltro.riel > .9, conFiltro.riel);
+  vale('  y la sombra de «hay más», también', conFiltro.sombra > .9,
+       conFiltro.sombra);
 
   await cerrar(sesion);
 

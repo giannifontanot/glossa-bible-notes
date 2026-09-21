@@ -3518,26 +3518,38 @@
      de atrás. */
   #filtros{ max-height:calc(var(--alto-escena, 100vh) * .24);
             overflow-y:auto; overscroll-behavior:contain;
-            align-content:flex-start; gap:5px 6px; padding-right:2px; }
-  /* Y LA BARRA DE ESTA TIRA SÍ SE VE, que es lo contrario de lo que hace el
-     resto del programa: .rollo, .fly y el cuerpo de LIBROS las esconden todas
-     —una barra de navegador dentro de un libro de papel es un remiendo— y esta
-     tira estrenó el mismo escondite. Con el techo puesto eso deja una lista
-     cortada sin nada que diga que sigue: el lector ve seis etiquetas y da por
-     hecho que tiene seis. Aquí la barra hace falta porque es el único sitio
-     del panel donde lo que se ve NO es todo lo que hay, así que se pinta ancha
-     y del dorado de la casa en vez de esconderse.
-     Y como una barra de superposición —las de iOS— sólo aparece mientras se
-     desplaza, no se deja sola: la sombra de abajo lo dice también. Ver
-     #filaFiltros.hay-mas. */
-  #filtros{ scrollbar-width:thin;
-            scrollbar-color:#b8892b rgba(140,116,68,.20); }
-  #filtros::-webkit-scrollbar{ width:9px; }
-  #filtros::-webkit-scrollbar-track{ background:rgba(140,116,68,.16);
-                                     border-radius:999px; }
-  #filtros::-webkit-scrollbar-thumb{ background:#b8892b; border-radius:999px;
-                                     border:2px solid transparent;
-                                     background-clip:padding-box; }
+            align-content:flex-start; gap:5px 6px; padding-right:11px; }
+  /* EL RIEL DE LA TIRA, DIBUJADO A MANO Y SIEMPRE A LA VISTA.
+
+     Aquí estuvo la barra del navegador, pintada ancha y dorada en vez de
+     esconderse como las demás del programa. Se quedaba corta por donde no se
+     puede arreglar desde el CSS: en un teléfono las barras son de
+     SUPERPOSICIÓN —aparecen mientras algo se mueve y se van solas— y lo que se
+     pidió es que se vea siempre, para que el lector sepa que hay más etiquetas
+     debajo ANTES de tocar nada. Eso no lo decide la hoja de estilos, lo decide
+     el sistema.
+
+     Así que la barra se dibuja. Es la misma decisión que el resto del
+     programa toma al revés —esconder la del navegador— por la misma razón: el
+     cromo lo pinta la casa. Un carril tenue con su dedo dorado encima, del
+     alto que le toque a lo que se ve contra lo que hay, y puesto donde
+     corresponda según lo desplazado. Lo mueve el guion, porque es una medida:
+     ver avisarMasEtiquetas.
+
+     SÓLO CUANDO SOBRA LISTA. Un riel con el dedo ocupándolo entero no dice
+     «hay más», dice «esto es todo» con un adorno al lado, y enseña a no
+     mirarlo. Con la tira entera a la vista, el riel no está.
+     El dedo tiene alto mínimo: con cuarenta etiquetas, la proporción pura lo
+     dejaría en tres píxeles, que es una mota y no un mando. */
+  #filtros{ scrollbar-width:none; }
+  #filtros::-webkit-scrollbar{ width:0; height:0; display:none; }
+  #filtrosRiel{ position:absolute; right:0; top:5px; bottom:0; width:6px;
+                border-radius:999px; background:rgba(140,116,68,.20);
+                pointer-events:none; opacity:0;
+                transition:opacity .22s ease; }
+  #filaFiltros.hay-riel #filtrosRiel{ opacity:1; }
+  #filtrosRiel i{ position:absolute; left:0; right:0; display:block;
+                  border-radius:999px; background:#b8892b; }
   /* LA SOMBRA DE «HAY MÁS», que es la otra mitad del aviso y la que funciona
      en un teléfono. La pone el guion —ver avisarMasEtiquetas— porque saber si
      falta lista por debajo es una medida, no un estado que el CSS conozca, y
@@ -4890,7 +4902,11 @@
        chip se queda donde está con sus oyentes puestos. El mismo truco con el
        que los controles se mudaron a sus paneles sin volver a conectarlos. -->
   <select id="selDia" aria-label="Filtrar las glosas por día"></select>
-</span></div>
+</span><!-- El riel, fuera de la tira y no dentro: metido en ella se iría con
+     el desplazamiento, que es justo lo que tiene que quedarse quieto. Va
+     aria-hidden porque no dice nada que no diga ya el propio desplazamiento a
+     quien navega sin verlo. Ver #filtrosRiel. -->
+<span id="filtrosRiel" aria-hidden="true"><i></i></span></div>
 </div>
 
 <div class="stage" id="stage">
@@ -5177,7 +5193,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 09:03';
+window.GLOSS_BUILD = '21-SEP-26 09:51';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11002,8 +11018,30 @@ function verEtiquetas(on){
 function avisarMasEtiquetas(){
   const f = $('filtros'), fila = $('filaFiltros');
   if (!f || !fila) return;
-  fila.classList.toggle('hay-mas',
-    f.scrollHeight - f.clientHeight - f.scrollTop > 2);
+  const sobra = f.scrollHeight - f.clientHeight;
+  /* La sombra dice «queda lista POR DEBAJO» y se apaga al llegar al final; el
+     riel dice «esta tira es más larga de lo que se ve» y se queda puesto
+     mientras eso sea verdad. Son dos preguntas distintas y por eso dos
+     cuentas: al final de la lista la primera es no y la segunda sigue siendo
+     sí. */
+  fila.classList.toggle('hay-mas', sobra - f.scrollTop > 2);
+  fila.classList.toggle('hay-riel', sobra > 2);
+  const riel = $('filtrosRiel'), dedo = riel && riel.firstElementChild;
+  if (!dedo || sobra <= 2) return;
+  /* El dedo mide lo que se ve contra lo que hay, con un suelo: con cuarenta
+     etiquetas la proporción pura lo dejaría en tres píxeles, que es una mota y
+     no un mando. Y el sitio se reparte sobre lo que le queda LIBRE al riel, no
+     sobre su alto entero, o el dedo se saldría por abajo al final del
+     recorrido.
+     LAS DOS CUENTAS VAN CONTRA EL ALTO DEL RIEL Y NO CONTRA EL DE LA TIRA,
+     aunque los dos midan casi lo mismo: el riel se estira entre dos filos de
+     su fila y la tira tiene su propio tope, así que difieren en el píxel que
+     deja el redondeo. Medido con el alto de la tira, el dedo acababa un píxel
+     por debajo del riel al llegar al fondo. */
+  const largo = riel.clientHeight || f.clientHeight;
+  const alto = Math.max(16, Math.round(f.clientHeight / f.scrollHeight * largo));
+  dedo.style.height = alto + 'px';
+  dedo.style.top = Math.round(f.scrollTop / sobra * (largo - alto)) + 'px';
 }
 $('filtros').addEventListener('scroll', avisarMasEtiquetas, { passive:true });
 /* Y UN FILTRO PUESTO NO PUEDE QUEDARSE ESCONDIDO. La tira nace apagada —es lo
@@ -13444,6 +13482,12 @@ window.addEventListener('pointercancel', ev => soltarTiron(ev, false));
    motivo: son las cosas que tienen algo que hacer con tu dedo. */
 const CONTENIDO_DE_HOJA =
   '.v, .vn, .cap, .gl, .ref, .chip, a, button, select, input, textarea';
+/* EL TEXTO DEL LIBRO, QUE DE LEJOS TAMBIÉN ES PUERTA. Es el subconjunto de
+   arriba que el lector reconoce como «la hoja»: el versículo, su número y el
+   número del capítulo. Lo demás de esa lista se queda inerte —una glosa se
+   abre, un enlace lleva a su sitio, un control controla— porque eso no es la
+   hoja, es lo que hay encima de ella. Ver el oyente de la escena. */
+const TEXTO_DEL_LIBRO = '.v, .vn, .cap';
 
 /* EL BLANCO DE LA HOJA ES EL BOTÓN DE VOLVER, y el oyente NO puede colgar de #pg.
 
@@ -13487,23 +13531,45 @@ stage.addEventListener('click', ev => {
   if (!inner) return;
   if (dirZoomAuto || folding || preparandoPliegue){ detenerZoomAuto(); return; }
 
-  /* EL CONTENIDO ES INERTE; EL BLANCO ES LA PUERTA.
+  /* LA HOJA ENTERA ES LA PUERTA; LO QUE SE PONE ENCIMA, NO.
 
-     De lejos la hoja no es una miniatura que solo sirva para mirarla: se sigue
-     usando entera. Una glosa se abre, salta a su pasaje y se edita; el texto
-     se selecciona y de ahí salen Resaltar, Línea y Glosa —comprobado, el menú
-     sale igual de lejos que de cerca—. Nada de eso se puede perder por haber
-     convertido la hoja en un botón.
-     Así que lo que se toca decide: si debajo del dedo hay ALGO —una glosa, un
-     versículo, un número, un enlace—, ese algo se queda con el toque y aquí no
-     pasa nada. La vuelta se pide tocando donde no hay nada puesto.
+     Esto decía lo contrario para el texto, y con su razón escrita: «una
+     palabra suelta tampoco vale, aunque no lleve selección detrás; un toque
+     encima de un renglón es casi siempre el dedo que se apoyó». Lo que se veía
+     usándolo es otra cosa: de lejos el texto es una mancha gris que no se lee,
+     así que nadie apoya el dedo ahí para leer —se toca para volver—, y quedaba
+     una hoja llena de zonas muertas donde el toque no hacía nada y no había
+     manera de saber cuáles eran. El dueño del repo pidió que el texto también
+     devuelva de cerca. Un toque que no hace nada enseña a desconfiar del
+     toque; ése es el accidente que sale caro aquí.
 
-     Y una palabra suelta tampoco vale, aunque no lleve selección detrás. Un
-     toque encima de un renglón es casi siempre el dedo que se apoyó: cobrarle
-     la vista entera por eso sería justo el accidente que se quiso evitar
-     cuando la salida dejó de ser el libro. */
+     LO QUE SE PONE ENCIMA DE LA HOJA SIGUE SIENDO SUYO, que es la otra mitad y
+     la que hay que cuidar: una glosa se abre, salta a su pasaje y se edita; un
+     enlace lleva a su sitio; un control controla. Si eso se pierde, la hoja de
+     lejos deja de ser una hoja y pasa a ser un botón grande. Por eso la puerta
+     es el texto del libro —ver TEXTO_DEL_LIBRO— y no todo lo que hay dentro.
+
+     Y EL TOQUE QUE CIERRA EL PANEL DE UN PASAJE NO SE COBRA. De lejos el texto
+     se elige y de ahí salen Resaltar, Línea y Glosa; el toque que despide ese
+     panel cae casi siempre sobre el propio texto, y sin esto cerrarlo se
+     llevaría por delante la vista entera. Con el panel puesto, el toque es el
+     final de ESE gesto y no una petición de volver.
+     Se pregunta por el panel y no por window.getSelection(), que aquí no dice
+     nada: la hoja lleva user-select:none —medido, de cerca y de lejos— porque
+     la elección de un pasaje la hace el programa con sus propios punteros, no
+     el navegador. Una guarda sobre la selección del navegador habría sido
+     código muerto con un comentario explicando por qué hacía falta.
+     Y hay que decir lo que NO se pudo comprobar: sondeando esto no conseguí
+     abrir el panel de una glosa desde la vista de lejos, ni con un clic ni con
+     un toque de los de la casa, así que esta guarda no se ha visto en marcha.
+     Se queda porque cuesta una comparación y porque el comentario que había
+     aquí afirmaba que de lejos ese panel se abre: si es verdad por algún
+     camino que no encontré, el toque que lo despide no puede llevarse además
+     la vista entera. */
   const t = ev.target;
-  if (t.closest && t.closest(CONTENIDO_DE_HOJA)) return;
+  const enElTexto = t.closest && t.closest(TEXTO_DEL_LIBRO);
+  if (t.closest && t.closest(CONTENIDO_DE_HOJA) && !enElTexto) return;
+  if (enElTexto && menu && menu.style.display !== 'none') return;
 
   /* Ya se sabe que el toque cayó en blanco. Ahora, de qué lado.
      Aquí sí mandan las coordenadas y no el destino, y por dos motivos: el
@@ -15018,6 +15084,20 @@ function rolloSimple(el){
       el.classList.add('abierto');
       entradaDeSeccion(el);
       marcarCabeza();
+      /* Y LA TIRA DE FILTROS SE VUELVE A MEDIR AL ABRIR, que es el único
+         momento en que sus medidas existen.
+
+         El riel y la sombra salen de una cuenta —cuánto sobra por debajo— y
+         esa cuenta necesita al panel PUESTO: con display:none, scrollHeight y
+         clientHeight valen cero, o sea «no sobra nada». Y hay un camino que
+         pasa justo por ahí: con un filtro guardado, reflejarControles enciende
+         la tira al arrancar, con el panel todavía cerrado. Al abrirlo después,
+         nada volvía a medir —abrir repinta el índice, no los filtros— así que
+         un lector con treinta etiquetas y un filtro puesto de ayer se
+         encontraba la tira cortada sin riel y sin sombra hasta que algo
+         repintara. Medido: 33 pastillas desbordando y las dos apagadas.
+         Lo levantó la revisión de Codex. */
+      if (el === etiquetas) avisarMasEtiquetas();
     },
     /* Tres maneras de cerrarse, y no son intercambiables:
          seco      — cambio de pestaña, sin animación
