@@ -5554,7 +5554,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 21:41';
+window.GLOSS_BUILD = '21-SEP-26 21:57';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -15815,6 +15815,10 @@ let encenderHistoriaViva = () => {};
    ============================================================ */
 const MIN_OBRANDO = 320;
 let obrandoEl = null, t0Obrando = 0, relojObrando = null;
+/* Si el borde llegó a pintarse. Nace en cierto porque el caso normal
+   —encender al apoyar el dedo— se pinta en el cuadro siguiente sin que
+   nadie trabaje en medio; solo los desplegables lo ponen en falso. */
+let obrandoPintado = true;
 function apagarObrando(yaMismo){
   clearTimeout(relojObrando); relojObrando = null;
   const el = obrandoEl; if (!el) return;
@@ -15840,14 +15844,39 @@ function apagarObrando(yaMismo){
    los 320 ms del mínimo. Sin glosas el mismo cambio termina en nada y el
    borde se quedaba puesto, que es por qué la primera sonda lo dio por bueno.
    Así que cuando se pide esto, el reloj se pone a cero en el primer cuadro
-   que corre con la clase ya en pantalla. */
+   que corre con la clase ya en pantalla.
+   Y EL RELOJ QUE SE PONE A CERO SON LOS DOS, no solo el mínimo. La red de
+   seguridad de los 1400 ms se armaba en el mismo renglón que la clase, así
+   que un cambio que tardara MÁS de esos 1400 ms la dejaba vencida antes de
+   devolver el hilo: saltaba nada más terminar el trabajo, justo alrededor
+   del primer pintado, y volvía a llevarse el borde. O sea que el arreglo
+   servía para los cambios de medio segundo y se caía otra vez en los de dos,
+   que son los únicos donde el aviso hacía falta de verdad. Lo levantó la
+   revisión de Codex.
+   Así que mientras no se haya pintado, la red no quita nada: se vuelve a
+   armar. No lleva tope de intentos a propósito —en una pestaña de fondo el
+   navegador congela requestAnimationFrame y ese cuadro puede tardar lo que
+   dure la ausencia—, y ahí quedarse esperando es lo correcto: cuando el
+   lector vuelva, el borde se pinta, el reloj arranca y se va a los 320 ms,
+   que es exactamente lo que se le quería enseñar. Un tope solo serviría para
+   que se lo perdiera. */
 function encenderObrando(el, desdeQueSeVea){
   apagarObrando(true);
   obrandoEl = el; t0Obrando = performance.now();
+  obrandoPintado = !desdeQueSeVea;
   el.classList.add('obrando');
+  const red = () => {
+    if (!obrandoPintado){ relojObrando = setTimeout(red, 1400); return; }
+    apagarObrando(true);
+  };
   if (desdeQueSeVea)
-    trasPintar(() => { if (obrandoEl === el) t0Obrando = performance.now(); });
-  relojObrando = setTimeout(() => apagarObrando(true), 1400);
+    trasPintar(() => {
+      if (obrandoEl !== el) return;
+      obrandoPintado = true; t0Obrando = performance.now();
+      clearTimeout(relojObrando);
+      relojObrando = setTimeout(red, 1400);
+    });
+  relojObrando = setTimeout(red, 1400);
 }
 /* DÓNDE SE ESCUCHA, Y QUÉ CUENTA COMO ALGO QUE SE TOCA.
 
@@ -15899,10 +15928,30 @@ for (const el of SUPERFICIES_ACUSE){
     if (!b || !el.contains(b)) return;
     encenderObrando(b);
   });
+  /* EL APAGADO VA EN CAPTURA, y no por simetría con el de los desplegables:
+     porque si no, a la mitad de lo que ahora acusa no le llega nunca.
+
+     Varios manejadores de dentro cortan la subida del click con
+     stopPropagation, y lo hacen por un motivo bueno que no se va a tocar: el
+     panel lleva encima el vigilante del «clic fuera», y dejar subir un clic
+     de dentro es dejar que un día lo cierre. Pero eso deja a un oyente de
+     burbuja sobre el panel sin enterarse de nada. Pasaba en las pestañas de
+     Encuentros —su barra corta todos los clicks— y en el índice de glosas
+     cuando se está eligiendo, que es también lo que hace un clic con Ctrl o
+     con Meta. Ahí el borde no se apagaba a los 320 ms: se quedaba latiendo
+     hasta que lo mataba la red de los 1400, o sea que la señal de «estoy en
+     ello» seguía puesta más de un segundo después de haber terminado.
+     Se veía como lentitud del programa, que es justo lo contrario de lo que
+     el acuse está para decir. Lo levantó la revisión de Codex.
+
+     En captura llega antes que cualquier manejador de dentro, así que ningún
+     stopPropagation puede quitárselo. Y no adelanta el apagado ni un
+     milisegundo: lo único que hace es PEDIRLO —quien decide cuándo se quita
+     es el mínimo de permanencia, contado desde que el borde se encendió. */
   el.addEventListener('click', ev => {
     if (!loQueAcusa(ev.target)) return;
     trasPintar(() => apagarObrando());
-  });
+  }, true);
   /* CANCELAR NO ES SOLTAR, aquí tampoco. Si el navegador se queda con el
      gesto —se puso a desplazar la lista de libros, entró un segundo dedo— no
      va a llegar ningún click, y el borde se quedaba encendido hasta que lo

@@ -366,6 +366,82 @@ const IR_A = `async (sec) => {
   vale('los botones de AAA siguen acusando', enAAA.boton === true);
 
   /* ──────────────────────────────────────────────────────────────
+     UN CAMBIO MÁS LARGO QUE LA RED DE SEGURIDAD.
+
+     El de arriba tarda unas décimas: suficiente para destapar que el mínimo
+     se contaba desde que el acuse se pedía, pero no para lo otro que había
+     debajo —la red de los 1400 ms se armaba en el mismo renglón que la
+     clase, así que un cambio que tardara más que ella la dejaba vencida
+     antes de devolver el hilo y se llevaba el borde alrededor del primer
+     pintado—. O sea: arreglado para los cambios de medio segundo y roto
+     otra vez para los de dos, que son los que de verdad necesitan el aviso.
+
+     PARA LLEGAR AHÍ SE AÑADE UN OYENTE LENTO, NO SE SUSTITUYE NADA. La casa
+     no permite simulacros de código de la aplicación, y aquí no hay ninguno:
+     el onchange de siempre sigue corriendo igual, y a su lado se cuelga otro
+     que ocupa el hilo un segundo y tres cuartos. Es lo que hace un aparato
+     lento con un libro grande, escrito de manera que se pueda repetir. */
+  titulo('un cambio más largo que la red de seguridad sigue enseñando el acuse');
+  await p.evaluate(() => { document.getElementById('pgCabeza').click(); });
+  await p.waitForTimeout(700);
+  di('   a Formato', await irA('formato'));
+  const cambioLargo = await p.evaluate(`(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const sel = document.querySelector('#ajustes select');
+    if (!sel) return { hay:false };
+    const lento = () => { const f = performance.now() + 1750;
+                          while (performance.now() < f){} };
+    sel.addEventListener('change', lento);
+    const t0 = performance.now();
+    sel.value = sel.options[sel.selectedIndex === 0 ? 1 : 0].value;
+    sel.dispatchEvent(new Event('change', { bubbles:true }));
+    const tardo = Math.round(performance.now() - t0);
+    sel.removeEventListener('change', lento);
+    /* Se mira en el cuadro de después, que es donde la red vencida se lo
+       llevaba, y otra vez un poco más tarde por si llega con retraso. */
+    await pausa(60);
+    const trasElCuadro = sel.classList.contains('obrando');
+    await pausa(200);
+    const aLos260 = sel.classList.contains('obrando');
+    /* Y que acabe apagándose: un borde que se queda puesto para siempre es
+       el otro fallo posible del mismo arreglo. */
+    let tardoEnApagarse = -1;
+    for (let k = 0; k < 40; k++){
+      await pausa(50);
+      if (!sel.classList.contains('obrando')){
+        tardoEnApagarse = Math.round(performance.now() - t0); break; }
+    }
+    return { hay:true, tardo, trasElCuadro, aLos260, tardoEnApagarse };
+  })()`);
+  di('el cambio largo', JSON.stringify(cambioLargo));
+  /* Sin un cambio que pase de los 1400 ms, esto no vigila lo que dice. */
+  vale('(la prueba es válida) el cambio pasó de la red de los 1400 ms',
+       cambioLargo.tardo > 1400, cambioLargo.tardo + ' ms');
+  vale('EL BORDE SIGUE PUESTO EN EL CUADRO DE DESPUÉS', cambioLargo.trasElCuadro === true);
+  vale('  y un cuarto de segundo más tarde, que es lo que hay que ver',
+       cambioLargo.aLos260 === true);
+  /* Y la otra mitad: que el reloj se rearmó de verdad y no se quedó colgado.
+     Se cuenta desde el principio del cambio, así que los 1750 del oyente
+     lento van dentro; lo que se afirma es que después del pintado no tardó
+     otra red entera.
+
+     LO QUE ESTE BLOQUE SÍ VIGILA Y LO QUE NO, medido con el código
+     estropeado a mano: quitar el «poner el reloj a cero en el pintado» tira
+     las dos afirmaciones de arriba, así que ésas guardan el arreglo. Quitar
+     en cambio la espera de la red —que no quite nada mientras no se haya
+     pintado— NO tira ninguna: en este Chromium, cuando el hilo se libera
+     después de un bloqueo largo, los avisos de requestAnimationFrame corren
+     antes que los temporizadores ya vencidos, así que la carrera cae del
+     lado bueno sola. Esa espera se queda puesta porque el orden de esa
+     carrera no lo promete ninguna especificación y cuesta tres renglones,
+     pero queda escrito que NO hay prueba que la respalde: si algún día
+     alguien la quita, el banco seguirá verde. */
+  vale('  y acaba apagándose, no se queda encendido para siempre',
+       cambioLargo.tardoEnApagarse > 0 &&
+       cambioLargo.tardoEnApagarse < cambioLargo.tardo + 1200,
+       cambioLargo.tardoEnApagarse + ' ms');
+
+  /* ──────────────────────────────────────────────────────────────
      EL ASA DE ARRASTRAR NO ES UN BOTÓN. */
   titulo('agarrar una glosa para moverla no acusa');
   await p.evaluate(() => { document.getElementById('pgCabeza').click(); });
@@ -403,8 +479,24 @@ const IR_A = `async (sec) => {
     const cs = getComputedStyle(t);
     const r = { hay:true, acusa:t.classList.contains('obrando'),
                 animacion:cs.animationName };
-    dedo(t, 'pointercancel', 214);
-    await pausa(120);
+    /* Y AHORA EL TOQUE COMPLETO, que es donde estaba el segundo fallo. La
+       barra de dentro corta la subida del click con stopPropagation —por el
+       vigilante del «clic fuera»—, así que un oyente de burbuja sobre el
+       panel no se enteraba de que el toque había terminado y el borde se
+       quedaba latiendo hasta la red de los 1400 ms. Se mide CUÁNTO TARDA en
+       apagarse, no si se apaga: apagarse acaba haciéndolo de las dos
+       maneras, y la diferencia entre el arreglo y el fallo es justamente el
+       segundo largo de más. */
+    const t0 = performance.now();
+    dedo(t, 'pointerup', 214);
+    t.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
+    let tardo = -1;
+    for (let k = 0; k < 40; k++){
+      await pausa(50);
+      if (!t.classList.contains('obrando')){ tardo = performance.now() - t0; break; }
+    }
+    r.tardoEnApagarse = Math.round(tardo);
+    await pausa(200);
     return r;
   })()`);
   di('en Encuentros', JSON.stringify(enEncuentros));
@@ -415,6 +507,19 @@ const IR_A = `async (sec) => {
      debajo, y rellenarla borraría justo esa raya. */
   vale('  y con el aro, para no borrarle la raya de encendida',
        enEncuentros.animacion === 'obrandoAro', enEncuentros.animacion);
+  /* LA LÍNEA DE VALIDEZ: llegó a apagarse dentro de la ventana que se miró.
+     Un -1 aquí significaría que se pasaron los dos segundos sin apagarse, y
+     entonces la afirmación de abajo estaría comparando contra un centinela. */
+  vale('(la prueba es válida) llegó a apagarse mientras se miraba',
+       enEncuentros.tardoEnApagarse >= 0, enEncuentros.tardoEnApagarse);
+  /* EL MÍNIMO SON 320 ms Y LA RED 1400. Con el apagado en burbuja, el
+     stopPropagation de la barra se lo comía y mandaba la red: por encima de
+     1400. El umbral se pone en 900 —bien por encima del mínimo y bien por
+     debajo de la red— para que ni el ruido de las pausas de 50 ms ni una
+     máquina lenta lo hagan cantar sin motivo. */
+  vale('Y SE APAGA POR EL MÍNIMO, NO POR LA RED: el stopPropagation de la barra '
+       + 'no se lo come', enEncuentros.tardoEnApagarse < 900,
+       enEncuentros.tardoEnApagarse + ' ms');
 
   await cerrarParcial(sesion, 'el teléfono');
 
