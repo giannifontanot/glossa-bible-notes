@@ -32,6 +32,10 @@
        Son figuras dentro de un blanco de toque de medida fija; creciendo solas
        se saldrían de su caja. Lo que se pidió es la letra que se lee, y un
        aspa no se lee, se acierta.
+     · LA BARRA DE PESTAÑAS DE LAS SECCIONES, desde que sus rótulos dejaron de
+       ser palabras. Es el mismo motivo que el renglón de arriba, llegado más
+       tarde: cuatro de las cinco son dibujos y la quinta son tres aes, y un
+       dibujo no se lee, se reconoce. Va con su cuenta en .pestanas button.
      ============================================================ */
   :root{ --escala-ui:1;
          /* LO QUE MIDE UNA ETIQUETA, EN UN SOLO SITIO. Las etiquetas se ven en
@@ -3379,8 +3383,49 @@
      más estrecha, con 70 px. */
   .pestanas{ flex:0 0 auto; display:flex; flex-wrap:wrap; gap:3px; margin:0 0 5px;
              align-items:stretch; border-bottom:1px solid rgba(140,116,68,.34); padding-bottom:4px; }
+  /* EL TAMAÑO DE ESTA BARRA ES FIJO, Y ES EL ÚNICO NÚMERO QUE LA MIDE.
+
+     Pedido: «que no cambie cuando el font del libro cambia, y que sea grande».
+     Lo primero invierte para esta barra —y solo para ella— lo que se decidió
+     arriba del todo en LA INTERFAZ CRECE CON EL LIBRO, así que conviene decir
+     por qué deja de valer aquí en vez de dejarlo como una excepción a secas:
+     aquello se pidió para LA LETRA QUE SE LEE, y desde que LIBROS, GLOSAS,
+     ENCUENTROS y compartir son dibujos, en esta barra no queda letra que leer.
+     Un dibujo no se lee, se reconoce, y se reconoce igual de bien tenga el
+     lector el libro en 10 o en 26.
+
+     LOS 22 SALEN DE UNA CUENTA Y NO DE UN GUSTO. El signo mide 1.35em, así
+     que 22 lo deja en 29.7 px. Ese número es el techo de lo que la barra daba
+     antes: con el libro en 26 —la letra más grande que se puede pedir— la
+     escala llegaba a 1.44 y el signo a 29. O sea que fijándolo aquí NADIE
+     PIERDE UN PÍXEL, ni siquiera quien tenía el libro al tope, y todos los
+     demás ganan. Era la única objeción seria a congelar el tamaño: el lector
+     que sube la letra porque ve peor perdía con esto su único mando sobre
+     estas cinco pestañas, y por eso el número se eligió pegado a su techo y
+     no al gusto del que lo escribe.
+
+     LO QUE SE GANA, MEDIDO, porque no está repartido por igual:
+
+       con el libro en 15   teléfono 412   signo 20 → 30
+                            ratón 1100     signo 14 → 30   · alto 21 → 39
+       con el libro en 26   teléfono 412   signo 29 → 30
+
+     El caso que de verdad estaba roto es el de en medio: en pantalla ancha la
+     barra medía 10 px de letra, o sea un dibujo de 14 px perdido dentro de un
+     botón de 116 de ancho por 21 de alto. Veintiún píxeles de alto tampoco es
+     un blanco de ratón decente, así que esto arregla de paso algo que nadie
+     había pedido porque en el teléfono no se ve.
+
+     Y ES UN SOLO NÚMERO PARA LAS TRES PANTALLAS, que antes eran tres —10 en
+     ancha, 15 en estrecha, 14 en 320—. Esos tres estaban puestos para que
+     cupieran CINCO PALABRAS en un renglón, y la más larga mandaba: por eso
+     bajaban al estrecharse la pantalla. Con dibujos las cinco miden lo mismo
+     y el renglón deja de estar en disputa —medido a 22 px: en 300 caben las
+     cinco en una línea con 46 px cada una—, así que las tres cuentas sobran.
+     Ver los dos @media de más abajo, que conservan su relleno y ya no tocan
+     la letra. */
   .pestanas button{ flex:1 1 auto; border:0; cursor:pointer; padding:3px 6px;
-                    font:400 calc(10px * var(--escala-ui, 1))/1.4 var(--ui);
+                    font:400 22px/1.4 var(--ui);
                     color:#5c4a24; letter-spacing:.02em;
                     background:rgba(255,253,247,.5); border-radius:3px 3px 0 0;
                     transition:background .34s cubic-bezier(.65,0,.35,1),
@@ -4693,12 +4738,15 @@
                                  flex-basis:calc(96px * var(--escala-ui, 1));
                                  min-width:0; line-height:1.25; }
     .rollo .btn{ font-size:calc(15px * var(--escala-ui, 1)); padding:8px 12px; }
-    /* LAS CUATRO PESTAÑAS Y LA EQUIS COMPARTEN UN SOLO RENGLÓN, y ese
-       renglón es lo que pone el techo aquí. A 15.5 con 11 de relleno la
-       equis se salía por 3 px en un teléfono de 412 —medido, no supuesto—.
-       A 15 con 9 caben las cinco con sitio de sobra, y 15 es la medida del
-       cuerpo de la hoja, que es adonde iba todo esto de todas formas. */
-    .pestanas button{ font-size:calc(15px * var(--escala-ui, 1)); padding:8px 9px; }
+    /* AQUÍ HUBO UNA MEDIDA DE LETRA —15 px por la escala— y se fue con las
+       palabras. La cuenta que la sostenía era «que las cinco quepan en un
+       renglón», con la más larga mandando: a 15.5 con 11 de relleno la
+       pestaña de más a la derecha se salía por 3 px en un teléfono de 412,
+       medido. Hoy las cinco son dibujos del mismo ancho, el renglón sobra por
+       todos lados y el tamaño lo pone .pestanas button de una vez para las
+       tres pantallas. Queda el relleno, que sí es de aquí: nueve píxeles de
+       aire a los lados en una pantalla que los tiene. */
+    .pestanas button{ padding:8px 9px; }
     .rollo .chip{ font-size:calc(15px * var(--escala-ui, 1)); padding:7px 12px; }
 
     /* ============================================================
@@ -5023,16 +5071,21 @@
      por lo que decía el apunte viejo: se acorta el envoltorio antes que el
      texto.
 
-     LO QUE ESTO CUESTA, MEDIDO Y ACEPTADO: en 320 la pestaña del punto queda
-     de 28 px de ancho por 44 de alto. Es la única de las cinco que baja de 30
-     —las otras las sostiene su palabra— y no hay manera de subirla sin perder
-     el renglón único: se probó devolverle sus 9 px de relleno a ella sola y la
-     cuenta se va a 304 contra 302. Se prefiere así porque la otra salida es
-     peor de verdad: un renglón entero de la barra ocupado por un solo dibujo,
-     y 51 px menos de panel en la pantalla que menos tiene. Si algún día hay
-     que subirla, la salida son dos renglones, no una letra más chica. */
+     LO QUE ESTO COSTABA, Y QUIÉN LO PAGÓ: en 320 la pestaña del punto quedaba
+     de 28 px de ancho por 44 de alto, la única de las cinco por debajo de 30
+     —a las otras las sostenía su palabra—, y no había manera de subirla sin
+     perder el renglón único: se probó devolverle sus 9 px de relleno a ella
+     sola y la cuenta se iba a 304 contra 302.
+
+     ESA DEUDA LA SALDARON LOS DIBUJOS, y conviene que quede escrito porque es
+     el motivo de que aquí ya no haya una letra más chica. En cuanto las cinco
+     pasaron a ser signos del mismo ancho, la más larga dejó de mandar: medido
+     a los 22 px fijos de .pestanas button, en 320 las cinco caben en un
+     renglón con 50 px cada una, y en 300 con 46. De 28 a 46 en la pantalla que
+     menos tiene, y sin perder el renglón. Se queda el relleno de 4, que es lo
+     que da ese margen; se fue la letra de 14, que ya no arregla nada. */
   @media (pointer:coarse) and (max-width: 400px){
-    .pestanas button{ font-size:calc(14px * var(--escala-ui, 1)); padding:8px 4px; }
+    .pestanas button{ padding:8px 4px; }
   }
 
   /* PANTALLA BAJA. Agrandar la letra tiene un costo que hay que pagar aquí:
@@ -5615,7 +5668,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-SEP-26 15:05';
+window.GLOSS_BUILD = '22-SEP-26 17:30';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
