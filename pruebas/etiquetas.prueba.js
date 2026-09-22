@@ -1821,8 +1821,17 @@ const FUERA = `async () => {
     const SEMBRADAS = ['Zurdo', 'Ánimo', '😀Alegría', 'Ñandú', 'Clase10',
                        'Clase2', '⭐Zacarías', '🔥'];
     const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
-    if (g.length < SEMBRADAS.length) return { pocas:g.length };
-    SEMBRADAS.forEach((t, i) => { g[i].etiquetas = [t]; });
+    /* SE REPARTEN ENTRE LAS GLOSAS QUE HAYA, no una por glosa.
+       La primera versión pedía ocho glosas y esta sesión trae cuatro: salía
+       en rojo por falta de sitio donde sembrar, no por el orden. Y no es
+       casualidad que sean pocas —esta sesión es la ancha, que se abre al
+       final para mirar el techo de la tira—, así que atarse a cuántas haya
+       es atarse a algo que no tiene por qué quedarse quieto. Una glosa
+       admite varias etiquetas y la lista las junta de todas, así que se
+       reparten en rueda y da igual cuántas glosas haya. */
+    if (g.length < 2) return { pocas:g.length };
+    g.forEach(m => { m.etiquetas = []; });
+    SEMBRADAS.forEach((t, i) => { g[i % g.length].etiquetas.push(t); });
     localStorage.setItem('glossa:marcas:v1', JSON.stringify(g));
     /* El filtro guardado se limpia: un filtro puesto esconde glosas y con
        ellas sus etiquetas, y la lista saldría coja sin que nadie lo dijera.
@@ -1836,7 +1845,7 @@ const FUERA = `async () => {
     return { sembradas: SEMBRADAS };
   });
   di('sembradas', JSON.stringify(orden.sembradas || orden));
-  vale('(la prueba es válida) había glosas donde sembrarlas',
+  vale('(la prueba es válida) había glosas donde repartirlas',
        orden.pocas === undefined, orden.pocas + ' glosas');
   await pa.reload();
   const listas = await pa.evaluate(async () => {
