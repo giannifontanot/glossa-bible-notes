@@ -5593,7 +5593,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-SEP-26 07:10';
+window.GLOSS_BUILD = '22-SEP-26 07:31';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11169,10 +11169,27 @@ function crearTagDeMarca(caja){
     /* La almohadilla va en el texto, como en las demás de la lista: es lo que
        hace que una palabra suelta se lea como etiqueta sin llevar recuadro. */
     btn.className = 'tg'; btn.dataset.tag = t; btn.textContent = '#' + t;
-    /* Al final de la lista. Antes iba «antes del input», y el input no vive
-       ahí: insertBefore con un nodo que no es hijo tira NotFoundError, y lo
-       tiraría DESPUÉS de haber vaciado la caja, o sea perdiendo lo escrito. */
-    box.querySelector('.taglista').appendChild(btn);
+    /* EN SU SITIO DEL ALFABETO, NO AL FINAL.
+
+       Iba con appendChild, y con la lista ya ordenada eso se volvió un fallo
+       visible: con «#Zurdo» puesta, crear «#Alegría» la dejaba detrás, y así
+       se quedaba hasta cerrar y volver a abrir el panel. Una lista ordenada
+       que se desordena en cuanto la tocas no es una lista ordenada; es una
+       que lo parecía. Lo levantó la revisión de Codex.
+
+       Se busca el primer botón que vaya DESPUÉS y se mete delante de él.
+       insertBefore con null es appendChild, así que la que va la última —o la
+       primera de todas, cuando la lista está vacía— cae en su sitio por el
+       mismo camino, sin un caso aparte que mantener.
+
+       Y NO SE REPINTA LA LISTA ENTERA, que sería lo corto. Aquí no se puede:
+       el textarea de la glosa está justo encima y repintar se lo lleva por
+       delante con lo que el lector esté escribiendo. Es la misma razón por la
+       que este camino existe en vez de llamar a tagboxHTML. */
+    const lista = box.querySelector('.taglista');
+    const detras = [...lista.querySelectorAll('.tg')]
+                     .find(b => comparaEtiquetas(b.dataset.tag, t) > 0);
+    lista.insertBefore(btn, detras || null);
   }
   refrescarTags();
   colocarMenu();

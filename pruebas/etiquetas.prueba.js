@@ -1904,5 +1904,83 @@ const FUERA = `async () => {
   vale('  y Clase2 va antes que Clase10, contando y no deletreando',
        chips.indexOf('Clase2') < chips.indexOf('Clase10'), chips.join(' · '));
 
+  /* ================================================================
+     Y LA QUE SE CREA CON EL PANEL ABIERTO CAE EN SU SITIO.
+
+     El orden de arriba se aplica al ARMAR la caja, y eso dejaba un hueco que
+     solo se ve tocando: crear una etiqueta desde dentro de una glosa no
+     rehace la lista —no puede, el textarea está justo encima y repintar se
+     lleva lo que el lector esté escribiendo—, así que el botón nuevo se
+     colgaba al final con appendChild. Con «#Zurdo» ya puesta, crear
+     «#Alegría» la dejaba detrás, y ahí se quedaba hasta cerrar y volver a
+     abrir el panel. Una lista ordenada que se desordena en cuanto la tocas no
+     es una lista ordenada: es una que lo parecía. Lo levantó la revisión de
+     Codex.
+
+     SE CREAN TRES Y EN ESTE ORDEN, que es lo que hace que la prueba
+     distinga:
+
+     · «Zurdo» primero, que va al final del alfabeto. Sola no prueba nada
+       —al final es justo donde la pondría el fallo— pero deja el terreno
+       puesto para las otras dos.
+     · «Alegría» después: tiene que saltar al PRINCIPIO. Es la que se caía.
+     · «Mediana» al final: tiene que quedarse EN MEDIO. Sin ella, meter
+       siempre por delante también pasaría.
+     ================================================================ */
+  titulo('una etiqueta creada con el panel abierto cae en su sitio');
+  const recien = await pa.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const ok = await window.__glosarEn(document.querySelector('#pgBody .v'), 4, 30);
+    if (!ok) return { hay:false, porque: window.__pincelPorque };
+    const ta = document.getElementById('glosaCaja');
+    if (!ta) return { hay:false, porque:'sin caja de escribir' };
+    /* Con nota: la lista nace «dormida» en una glosa vacía y no admite
+       etiquetas nuevas, que es otra decisión del programa y no lo que se
+       viene a probar aquí. */
+    ta.value = 'para probar el orden';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await z(200);
+    const bot = document.querySelector('#menu .mtags');
+    if (bot && !document.querySelector('#menu .tagbox.abierta')){ bot.click(); await z(500); }
+    const campo = document.getElementById('tagNueva');
+    if (!campo) return { hay:false, porque:'sin campo de etiqueta nueva' };
+    const lista = () => [...document.querySelectorAll('#menu .taglista .tg')]
+                          .map(b => b.dataset.tag);
+    const crear = async t => {
+      campo.value = t;
+      campo.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+      await z(450);
+      return lista();
+    };
+    const tras = {};
+    tras.zurdo = await crear('Zurdo');
+    tras.alegria = await crear('Alegría');
+    tras.mediana = await crear('Mediana');
+    return { hay:true, ...tras };
+  });
+  di('la lista al ir creando', JSON.stringify(recien));
+  vale('(la prueba es válida) se pudo abrir una glosa y crear etiquetas',
+       recien.hay === true, recien.porque);
+  if (recien.hay){
+    /* La línea de validez de verdad: «Zurdo» tiene que haber quedado la
+       última. Si no, el terreno no era el que esta prueba cree y lo de abajo
+       mediría otra cosa. */
+    vale('(la prueba es válida) Zurdo quedó la última, que es de donde se parte',
+         recien.zurdo[recien.zurdo.length - 1] === 'Zurdo', recien.zurdo.join(' · '));
+    /* LA QUE SE CAÍA. Con appendChild, «Alegría» quedaba detrás de «Zurdo». */
+    vale('LA NUEVA SALTA AL PRINCIPIO SI LE TOCA',
+         recien.alegria[0] === 'Alegría', recien.alegria.join(' · '));
+    vale('  y no se queda la última, que es donde la dejaba appendChild',
+         recien.alegria[recien.alegria.length - 1] !== 'Alegría',
+         recien.alegria.join(' · '));
+    /* Y LA DEL MEDIO, que es la que descarta «meter siempre por delante». */
+    const i = recien.mediana.indexOf('Mediana');
+    vale('Y LA QUE VA EN MEDIO SE QUEDA EN MEDIO',
+         i > 0 && i < recien.mediana.length - 1, recien.mediana.join(' · '));
+    vale('  con Alegría antes y Zurdo después',
+         recien.mediana.indexOf('Alegría') < i &&
+         i < recien.mediana.indexOf('Zurdo'), recien.mediana.join(' · '));
+  }
+
   await cerrar(ancha);
 })();
