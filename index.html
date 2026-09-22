@@ -3436,6 +3436,25 @@
   .pestanas .compartir circle{ fill:currentColor; }
   .pestanas .compartir path{ fill:none; stroke:currentColor; stroke-width:1.7;
                              stroke-linecap:round; }
+  /* LOS OTROS TRES SIGNOS: el libro abierto, el papelito y los dos cercos.
+
+     Van con la misma caja y el mismo trazo que el de compartir, y eso no es
+     pereza: cinco pestañas en un renglón se leen como cinco cosas del mismo
+     programa o como cinco pegatinas de cinco sitios, y lo que decide cuál de
+     las dos es el grosor de la línea. Si un día se cambia aquí, se cambian
+     los cuatro a la vez, que es justamente lo que se quiere.
+
+     Solo de LÍNEA, sin relleno: el papelito relleno sería una mancha, y
+     macizos los cuatro se pelearían con el fondo dorado de la pestaña
+     encendida en vez de dibujarse encima.
+
+     Y currentColor por lo de siempre —la pestaña abierta se pinta de marrón
+     con la letra clara— más linejoin redondo, que a 19 px una esquina en
+     pico se ve como un defecto de pintado y no como una esquina. */
+  .pestanas .signo{ display:block; width:1.35em; height:1.35em; margin:0 auto;
+                    overflow:visible; }
+  .pestanas .signo path{ fill:none; stroke:currentColor; stroke-width:1.7;
+                         stroke-linecap:round; stroke-linejoin:round; }
   .pestanas button.aqui{ background:#b8892b; color:#fff8e4; }
   /* EL ACUSE DE RECIBO DE LA PESTAÑA. El cambio de color ya decía cuál está
      abierta, pero eso es el resultado, no el recibo: llega junto con el
@@ -4299,6 +4318,26 @@
   #tiradores .tirador::after{
     content:''; position:absolute; left:50%; width:2px; height:9px;
     background:#6d5410; transform:translateX(-50%); bottom:100%; }
+  /* EL DE LA IZQUIERDA MIRA HACIA ARRIBA, pedido por el dueño del repo, y es
+     como lo hacen el telefono y el ordenador: el que abre el tramo va ENCIMA
+     del renglon y el que lo cierra debajo. No es simetria por gusto. Con los
+     dos colgando abajo, los dos pulgares van al mismo sitio a buscar cosas
+     distintas, y para agarrar el de empezar hay que acordarse de cual es;
+     puestos uno arriba y otro abajo, el sitio ya lo dice.
+
+     Se invierten las dos piezas que cuelgan de la bolita, y las dos por el
+     mismo motivo que tenian antes, leido del otro lado:
+
+     · EL TALLO baja en vez de subir (top:100% en vez de bottom:100%), porque
+       el renglon al que senala ahora le queda por debajo.
+     · Y EL HUECO DEL DEDO crece HACIA ARRIBA, nunca hacia el renglon. Esto es
+       lo que costo una medicion la primera vez y no hay que volver a
+       pagarlo: un hueco que se mete en la linea se come el toque que abre la
+       glosa —caretPositionFromPoint devuelve BUTTON en vez del texto— y el
+       programa lo lee como «tocaste en otro sitio» y borra el trazo. Con la
+       bolita arriba, «lejos del renglon» es arriba. */
+  #tiradores .tirador[data-tirador="ini"]::before{ top:auto; bottom:0; }
+  #tiradores .tirador[data-tirador="ini"]::after{ bottom:auto; top:100%; }
   #tiradores .tirador:active{ cursor:grabbing; }
   #tiradores .tirador:focus-visible{ outline:2px solid #e8d5a3; outline-offset:3px; }
   /* Quien pide menos movimiento no quiere que una bolita se deslice sola al
@@ -5554,7 +5593,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 21:57';
+window.GLOSS_BUILD = '22-SEP-26 07:31';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -9102,7 +9141,8 @@ function panelHTML(m){
    natural del mismo gesto. */
 function tagboxHTML(m){
   const tiene = new Set(m.etiquetas || []);
-  const lista = [...new Set([...todasEtiquetas().mapa.keys(), ...tiene])].sort();
+  const lista = [...new Set([...todasEtiquetas().mapa.keys(), ...tiene])]
+                  .sort(comparaEtiquetas);
   return '<div class="tagbox' + ((m.nota||'').trim() ? '' : ' dormida') + '">' +
     '<div class="taglista">' +
     (lista.length
@@ -10365,11 +10405,19 @@ function colocarTiradores(){
     el.style.left = Math.round(x - s.left) + 'px';
     el.style.top = Math.round(y - s.top) + 'px';
   };
-  /* La bolita cuelga por debajo del renglon y se descuelga hacia su lado:
-     la de la izquierda a la izquierda del primer caracter y la de la derecha
-     a la derecha del ultimo, para que ninguna tape la palabra del filo. */
-  poner(tirIni, a.left - 13, a.bottom + 4);
-  poner(tirFin, b.right, b.bottom + 4);
+  /* Cada bolita se descuelga hacia SU lado —la de empezar a la izquierda del
+     primer caracter y la de terminar a la derecha del ultimo— para que
+     ninguna tape la palabra del filo.
+
+     Y en altura van a lados contrarios del renglon: la de EMPEZAR encima y
+     la de TERMINAR debajo. La de arriba se coloca por su borde de abajo, que
+     es lo que hay que dejar a 4 px de la linea, y como top mide desde el
+     borde de arriba hay que restarle tambien su propio alto: de ahi el 17,
+     que son los 13 de la bolita mas los 4 de aire. El 13 es el mismo de
+     .tirador en la hoja de estilos; si alli cambia, aqui tambien. */
+  const ALTO_BOLITA = 13, AIRE_BOLITA = 4;
+  poner(tirIni, a.left - ALTO_BOLITA, a.top - ALTO_BOLITA - AIRE_BOLITA);
+  poner(tirFin, b.right, b.bottom + AIRE_BOLITA);
   tirIni.hidden = !dentro(a);
   tirFin.hidden = !dentro(b);
   tiradores.hidden = false;
@@ -11045,6 +11093,47 @@ function etiquetaLimpia(t){
     return primera.toLocaleUpperCase('es') + resto.join('');
   }).join('');
 }
+/* EL ORDEN DE LAS ETIQUETAS, Y POR QUÉ NO VALE .sort() A SECAS.
+
+   Pedido por el dueño del repo: que la lista vaya en orden alfabético
+   EMPEZANDO POR LAS LETRAS, no por el emoji. Con el .sort() de antes —que
+   compara unidades de UTF-16, una a una— pasaban dos cosas, las dos
+   equivocadas:
+
+   · «😀Alegría» se iba al final de la lista, detrás de todo, porque un emoji
+     vive muy por encima de las letras en la tabla de Unicode. Quien la
+     escribió la archivó mentalmente en la A, y la buscaba en la A.
+   · Y entre letras tampoco ordenaba bien: comparando números, «Ñ» cae
+     después de «Z», y «Ánimo» después de «Zurdo». En una lista en español
+     eso se lee como desorden, porque lo es.
+
+   Así que se compara por una CLAVE: la etiqueta a partir de su primera letra
+   o cifra, con localeCompare en español. numeric:true para que «Clase2» vaya
+   antes que «Clase10» y no al revés, que es lo que hace comparar textos.
+
+   Dos detalles que parecen de borde y no lo son:
+
+   · Se desempata con la etiqueta ENTERA. Sin eso, «😀Alegría» y «Alegría»
+     tienen la misma clave y el orden entre ellas queda a lo que decida el
+     navegador; con el desempate, la lista sale igual siempre, que es lo que
+     hace que buscar con el dedo sea buscar y no rastrear.
+   · Una etiqueta de PURO emoji, sin una sola letra, no tiene clave. Va al
+     final, ordenada entre las suyas: no hay letra bajo la que archivarla, y
+     colarla al principio empujaría toda la A hacia abajo. */
+const claveEtiqueta = t => {
+  const s = String(t == null ? '' : t);
+  const i = s.search(/[\p{L}\p{N}]/u);
+  return i < 0 ? null : s.slice(i);
+};
+function comparaEtiquetas(a, b){
+  const ka = claveEtiqueta(a), kb = claveEtiqueta(b);
+  if (ka === null || kb === null){
+    if (ka === null && kb === null) return String(a).localeCompare(String(b), 'es');
+    return ka === null ? 1 : -1;      /* las de puro emoji, al final */
+  }
+  return ka.localeCompare(kb, 'es', { numeric:true }) ||
+         String(a).localeCompare(String(b), 'es', { numeric:true });
+}
 function crearTagDeMarca(caja){
   if (!caja || !borrador) return;
   /* Dormida se comprueba ANTES de vaciar la caja: vaciarla y luego rendirse
@@ -11080,10 +11169,27 @@ function crearTagDeMarca(caja){
     /* La almohadilla va en el texto, como en las demás de la lista: es lo que
        hace que una palabra suelta se lea como etiqueta sin llevar recuadro. */
     btn.className = 'tg'; btn.dataset.tag = t; btn.textContent = '#' + t;
-    /* Al final de la lista. Antes iba «antes del input», y el input no vive
-       ahí: insertBefore con un nodo que no es hijo tira NotFoundError, y lo
-       tiraría DESPUÉS de haber vaciado la caja, o sea perdiendo lo escrito. */
-    box.querySelector('.taglista').appendChild(btn);
+    /* EN SU SITIO DEL ALFABETO, NO AL FINAL.
+
+       Iba con appendChild, y con la lista ya ordenada eso se volvió un fallo
+       visible: con «#Zurdo» puesta, crear «#Alegría» la dejaba detrás, y así
+       se quedaba hasta cerrar y volver a abrir el panel. Una lista ordenada
+       que se desordena en cuanto la tocas no es una lista ordenada; es una
+       que lo parecía. Lo levantó la revisión de Codex.
+
+       Se busca el primer botón que vaya DESPUÉS y se mete delante de él.
+       insertBefore con null es appendChild, así que la que va la última —o la
+       primera de todas, cuando la lista está vacía— cae en su sitio por el
+       mismo camino, sin un caso aparte que mantener.
+
+       Y NO SE REPINTA LA LISTA ENTERA, que sería lo corto. Aquí no se puede:
+       el textarea de la glosa está justo encima y repintar se lo lleva por
+       delante con lo que el lector esté escribiendo. Es la misma razón por la
+       que este camino existe en vez de llamar a tagboxHTML. */
+    const lista = box.querySelector('.taglista');
+    const detras = [...lista.querySelectorAll('.tg')]
+                     .find(b => comparaEtiquetas(b.dataset.tag, t) > 0);
+    lista.insertBefore(btn, detras || null);
   }
   refrescarTags();
   colocarMenu();
@@ -11382,7 +11488,12 @@ function pintarFiltros(){
     };
     cont.appendChild(b);
   };
-  [...mapa.entries()].sort().forEach(([k,v]) => add(k,v));
+  /* Las tres listas de etiquetas del programa —la de dentro de una glosa, la
+     de GLOSAS/ACTUALIZAR y estos chips de filtrar— van por el mismo orden.
+     Tres listas de lo mismo ordenadas de tres maneras sería el programa
+     contradiciéndose a sí mismo delante del lector. */
+  [...mapa.entries()].sort((x, y) => comparaEtiquetas(x[0], y[0]))
+                     .forEach(([k,v]) => add(k,v));
   if (sin) add('(sin etiqueta)', sin);
 
   /* LOS CHIPS DE LIBRO. El abierto va siempre, con borde, para que se vea
@@ -11591,8 +11702,9 @@ function pintarBarraGrupo(){
   const caja = $('tagboxGrupo');
   if (!caja) return;
   const grupo = marcasElegidas();
-  const todas = [...todasEtiquetas().mapa.keys()].sort();
-  const lista = [...new Set([...todas, ...grupo.flatMap(m => m.etiquetas || [])])].sort();
+  const todas = [...todasEtiquetas().mapa.keys()].sort(comparaEtiquetas);
+  const lista = [...new Set([...todas, ...grupo.flatMap(m => m.etiquetas || [])])]
+                  .sort(comparaEtiquetas);
   const htmlLista = lista.length
     ? lista.map(t => {
         const k = grupo.filter(m => (m.etiquetas || []).includes(t)).length;
@@ -15479,9 +15591,65 @@ function abrirVersiculos(cap, ancla){
    dibujo sin nombre no dice ni eso, así que se le pone al botón el aria-label
    y el title que la palabra daba sola. */
 const SECCIONES = [
-  { id:'libros',     html:'Libros' },
-  { id:'glosas',     html:'Glosas' },
-  { id:'encuentros', html:'Encuentros' },
+  /* UN LIBRO ABIERTO POR LA MITAD. Las dos hojas caen hacia el lomo y el lomo
+     se dibuja entero: es lo que separa un libro abierto de una hoja doblada,
+     que a este tamaño se parecen más de lo que uno cree. */
+  { id:'libros',     html:'<svg class="signo libro" viewBox="0 0 24 24" aria-hidden="true" ' +
+                          'focusable="false"><path d="M12 7.6C10.4 6 8 5.2 3.6 5.2v12.4' +
+                          'c4.4 0 6.8.8 8.4 2.4"/><path d="M12 7.6c1.6-1.6 4-2.4 8.4-2.4' +
+                          'v12.4c-4.4 0-6.8.8-8.4 2.4"/><path d="M12 7.6v12.4"/></svg>',
+                     nombre:'Libros: ir a un pasaje' },
+  /* EL PAPELITO CON LA ESQUINA DOBLADA. La esquina va abajo a la derecha y con
+     su pliegue dibujado: sin el pliegue no es un papelito, es un cuadrado al
+     que le falta un trozo. */
+  { id:'glosas',     html:'<svg class="signo glosa" viewBox="0 0 24 24" aria-hidden="true" ' +
+                          'focusable="false"><path d="M4.4 4.4h15.2v8.8l-6.4 6.4H4.4z"/>' +
+                          '<path d="M19.6 13.2h-6.4v6.4"/></svg>',
+                     nombre:'Glosas: tus notas y sus etiquetas' },
+  /* DOS CAMINOS QUE SE HACEN UNO, que es lo que pasa en cada uno de estos
+     relatos: alguien iba por lo suyo y se cruzó con Cristo.
+
+     LO QUE SE PROBÓ ANTES Y POR QUÉ NO SERVÍA, que es lo que no se puede
+     recuperar leyendo el dibujo:
+
+     · DOS GLOBOS DE DIÁLOGO. Era lo primero que salía —las cinco historias
+       son conversaciones— y es justo lo que no se puede poner: dos globos
+       significan «comentarios» en todas partes, y comentarios es la pestaña
+       de al lado. Dos pestañas vecinas diciendo lo mismo es peor que una sin
+       dibujo.
+     · CÍRCULOS, de cualquier clase. El signo de compartir de esta misma barra
+       ya son tres círculos; repetir la forma dos pestañas más allá las
+       emparenta a la vista sin que tengan nada que ver.
+     · DOS CAMINOS QUE SE CRUZAN, en aspa. A 19 px un aspa es una equis, y una
+       equis en una barra de pestañas se lee como «cerrar».
+     · UNA CRUZ. Dice el libro entero, no una sección suya, y además mete una
+       decisión de credo donde solo hacía falta un rótulo.
+
+     Y TRES QUE SÍ SE DIBUJARON Y SE MIRARON, que es como se acaba esto: los
+     tres puestos en la barra y retratados a 19 px, que es el tamaño al que
+     de verdad vive esta pestaña. Escritos aquí porque el dibujo que quedó no
+     cuenta por qué los otros no valían:
+
+     · Los dos caminos saliendo del filo de abajo y juntándose arriba del
+       todo. En papel era un encuentro; en pantalla era un ARCO —las curvas
+       se cerraban en lo alto y el tallo quedaba dentro, invisible—.
+     · La misma idea corregida, una Y de brazos curvos. Se lee, pero a 19 px
+       se lee como un tirachinas o un diapasón, no como dos que se juntan.
+     · Dos caminos que se juntan y siguen, tumbados. A tamaño grande es el
+       mejor de los tres; a 19 px es un borrón, y ahí se acabó la discusión.
+
+     LO QUE QUEDÓ son DOS CERCOS QUE SE CORTAN: un encuentro es el trozo que
+     dos vidas tienen en común, y eso se dibuja así desde siempre. Es además
+     el único de los cuatro que a 19 px sigue diciendo algo, que era la
+     prueba. De los círculos de compartir no se confunde: aquellos son tres
+     lunares macizos y pequeños con dos varas, y estos dos aros grandes y
+     huecos. Macizo contra hueco es la diferencia que se ve primero. */
+  { id:'encuentros', html:'<svg class="signo encuentro" viewBox="0 0 24 24" aria-hidden="true" ' +
+                          'focusable="false">' +
+                          '<path d="M2.8 12a5.8 5.8 0 1 0 11.6 0 5.8 5.8 0 1 0-11.6 0"/>' +
+                          '<path d="M9.6 12a5.8 5.8 0 1 0 11.6 0 5.8 5.8 0 1 0-11.6 0"/>' +
+                          '</svg>',
+                     nombre:'Encuentros: relatos de quienes se cruzaron con Él' },
   { id:'formato',    html:'<span class="aaa" aria-hidden="true"><i>A</i><i>A</i><i>A</i></span>',
                      nombre:'Tamaño de letra y aspecto de la hoja' },
   /* El dibujo va con los círculos rellenos y las dos varas trazadas, y los dos

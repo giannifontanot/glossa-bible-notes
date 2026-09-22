@@ -2269,6 +2269,89 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
          sostenido.tiradores === true && sostenido.cuantos === 2, sostenido);
   }
 
+  /* ──────────────────────────────────────────────────────────────
+     Y CADA UNO A SU LADO DEL RENGLÓN.
+
+     Pedido por el dueño del repo: el que EMPIEZA el tramo va encima de la
+     línea y el que la TERMINA debajo, como en el teléfono y en el ordenador.
+     Antes colgaban los dos por abajo, y con los dos en el mismo sitio hay que
+     acordarse de cuál es cuál antes de alargar el dedo; puestos uno arriba y
+     otro abajo, el sitio ya lo dice.
+
+     Se mide contra la caja de LO PINTADO, no contra un número escrito aquí:
+     el renglón cambia de alto con el tamaño de letra, y una prueba que clave
+     píxeles se cae el día que alguien toque AAA sin haber roto nada. Lo que
+     se afirma es el lado, que es lo que se pidió. */
+  titulo('el tirador de empezar va encima del renglón y el de terminar debajo');
+  const lados = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const v = document.querySelector('#pgBody .v');
+    const nodo = v && [...v.childNodes]
+      .find(n => n.nodeType === 3 && n.textContent.length > 40);
+    if (!nodo) return { hay:false, motivo:'sin nodo de texto' };
+    if (!await window.__pintarGlosa(nodo, 4, 30))
+      return { hay:false, motivo: window.__pincelPorque };
+    await pausa(500);
+    const h = window.CSS && CSS.highlights && CSS.highlights.get('pintando');
+    const rg = h ? [...h][0] : null;
+    const cajas = rg ? [...rg.getClientRects()].filter(c => c.width > 0) : [];
+    if (!cajas.length) return { hay:false, motivo:'sin caja de lo pintado' };
+    const a = cajas[0], b = cajas[cajas.length - 1];
+    const ini = document.querySelector('#tiradores [data-tirador="ini"]');
+    const fin = document.querySelector('#tiradores [data-tirador="fin"]');
+    if (!ini || !fin) return { hay:false, motivo:'sin tiradores' };
+    const ri = ini.getBoundingClientRect(), rf = fin.getBoundingClientRect();
+    /* El tallo y el hueco del dedo se leen del pseudoelemento: son las dos
+       piezas que tienen que darse la vuelta con la bolita, y la que se
+       olvida es el hueco. */
+    const ps = (el, cual) => { const c = getComputedStyle(el, cual);
+                               return { top:c.top, bottom:c.bottom }; };
+    return { hay:true, alto:Math.round(ri.height),
+             /* cuánto sobra entre bolita y renglón, por cada lado */
+             sobreIni:+(a.top - ri.bottom).toFixed(1),
+             bajoFin:+(rf.top - b.bottom).toFixed(1),
+             talloIni:ps(ini, '::after'), talloFin:ps(fin, '::after'),
+             huecoIni:ps(ini, '::before'), huecoFin:ps(fin, '::before') };
+  });
+  di('los dos tiradores', JSON.stringify(lados));
+  /* Sin trazo pintado no hay nada que medir y todo lo de abajo sería una
+     afirmación sobre undefined. */
+  vale('(la prueba es válida) hay trazo y tiradores que medir',
+       lados.hay === true, lados.motivo);
+  if (lados.hay){
+    vale('EL DE EMPEZAR VA ENCIMA DEL RENGLÓN',
+         lados.sobreIni > 0, lados.sobreIni + ' px por encima');
+    vale('EL DE TERMINAR, DEBAJO', lados.bajoFin > 0,
+         lados.bajoFin + ' px por debajo');
+    /* Y a la misma distancia los dos: es el mismo aire, leído desde cada
+       lado. Si uno se separa más que el otro, la pareja se ve torcida. */
+    vale('  y los dos al mismo aire de la línea',
+         Math.abs(lados.sobreIni - lados.bajoFin) <= 1,
+         lados.sobreIni + ' contra ' + lados.bajoFin);
+    /* EL TALLO SEÑALA AL RENGLÓN, cada uno al suyo. Es la afirmación que se
+       cae si alguien mueve la bolita y se olvida de darle la vuelta a lo que
+       cuelga de ella: quedaría una bolita arriba con el tallo apuntando al
+       cielo. */
+    vale('el tallo del de arriba baja hacia la línea',
+         lados.talloIni.top === '100%' || parseFloat(lados.talloIni.top) > 0,
+         JSON.stringify(lados.talloIni));
+    vale('  y el del de abajo sube hacia la suya',
+         lados.talloFin.bottom === '100%' || parseFloat(lados.talloFin.bottom) > 0,
+         JSON.stringify(lados.talloFin));
+    /* EL HUECO DEL DEDO HUYE DEL RENGLÓN, y esta es la que de verdad protege
+       algo. Un hueco que se mete en la línea se come el toque que abre la
+       glosa —caretPositionFromPoint devuelve BUTTON en vez del texto— y el
+       programa lo lee como «tocaste en otro sitio» y borra el trazo. Costó
+       una medición la primera vez, con la bolita abajo; con la bolita arriba
+       el hueco tiene que crecer hacia arriba, que es el otro lado. */
+    vale('el hueco del de arriba crece hacia arriba, lejos de la línea',
+         parseFloat(lados.huecoIni.top) < 0,
+         JSON.stringify(lados.huecoIni));
+    vale('  y el del de abajo hacia abajo, lejos de la suya',
+         parseFloat(lados.huecoFin.bottom) < 0,
+         JSON.stringify(lados.huecoFin));
+  }
+
   const estirado = await p.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     const trazo = () => {

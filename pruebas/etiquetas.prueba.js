@@ -1788,5 +1788,219 @@ const FUERA = `async () => {
      sirve; lo que se quería es repartir, no cerrar. */
   vale('  y da para dos renglones de pastillas', techo.tope >= 66,
        techo.tope + ' px');
+
+  /* ================================================================
+     EL ORDEN DE LAS ETIQUETAS: ALFABÉTICO, Y EMPEZANDO POR LAS LETRAS.
+
+     Pedido por el dueño del repo. Lo que había era un .sort() a secas, que
+     compara unidades de UTF-16 una a una, y eso fallaba de dos maneras
+     distintas que se ven las dos en esta lista:
+
+     · «😀Alegría» se iba al FINAL, detrás de todo, porque un emoji vive muy
+       por encima de las letras en la tabla de Unicode. Quien la escribió la
+       archivó en la A y la buscaba en la A.
+     · Y entre letras tampoco ordenaba: «Ñ» cae después de «Z» comparando
+       números, y «Clase10» antes que «Clase2» comparando textos.
+
+     LA LISTA DE PRUEBA NO ES UNA LISTA CUALQUIERA. Cada etiqueta está por
+     una razón y es lo que hace que esto distinga algo: dos con emoji delante
+     —una al principio del alfabeto y otra al final, para que no valga con
+     mandarlas todas a un lado—, una con tilde, una con eñe, dos que solo se
+     ordenan bien contando —Clase2 y Clase10—, y una de PURO emoji, que no
+     tiene ninguna letra bajo la que archivarse.
+
+     Y SE COMPRUEBAN LAS TRES LISTAS, no una. El programa enseña las mismas
+     etiquetas en tres sitios —los chips de filtrar, la caja de GLOSAS/
+     ACTUALIZAR y la de dentro de una glosa— y tres listas de lo mismo
+     ordenadas de tres maneras es el programa contradiciéndose delante del
+     lector.
+     ================================================================ */
+  titulo('las etiquetas se ordenan por su primera letra, no por el emoji');
+  const orden = await pa.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const SEMBRADAS = ['Zurdo', 'Ánimo', '😀Alegría', 'Ñandú', 'Clase10',
+                       'Clase2', '⭐Zacarías', '🔥'];
+    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    /* SE REPARTEN ENTRE LAS GLOSAS QUE HAYA, no una por glosa.
+       La primera versión pedía ocho glosas y esta sesión trae cuatro: salía
+       en rojo por falta de sitio donde sembrar, no por el orden. Y no es
+       casualidad que sean pocas —esta sesión es la ancha, que se abre al
+       final para mirar el techo de la tira—, así que atarse a cuántas haya
+       es atarse a algo que no tiene por qué quedarse quieto. Una glosa
+       admite varias etiquetas y la lista las junta de todas, así que se
+       reparten en rueda y da igual cuántas glosas haya. */
+    if (g.length < 2) return { pocas:g.length };
+    g.forEach(m => { m.etiquetas = []; });
+    SEMBRADAS.forEach((t, i) => { g[i % g.length].etiquetas.push(t); });
+    localStorage.setItem('glossa:marcas:v1', JSON.stringify(g));
+    /* El filtro guardado se limpia: un filtro puesto esconde glosas y con
+       ellas sus etiquetas, y la lista saldría coja sin que nadie lo dijera.
+       Es el mismo tropiezo que ya se pagó una vez en esta suite. */
+    try {
+      const A = 'glossa:ajustes:v1';
+      const a = JSON.parse(localStorage.getItem(A) || '{}');
+      a.etiquetasVer = [];
+      localStorage.setItem(A, JSON.stringify(a));
+    } catch(_){}
+    return { sembradas: SEMBRADAS };
+  });
+  di('sembradas', JSON.stringify(orden.sembradas || orden));
+  vale('(la prueba es válida) había glosas donde repartirlas',
+       orden.pocas === undefined, orden.pocas + ' glosas');
+  await pa.reload();
+  const listas = await pa.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    document.getElementById('pgCabeza').click(); await z(900);
+    const t = document.querySelector('.pestanas button[data-sec="glosas"]');
+    if (t) t.click(); await z(1000);
+    const out = {};
+    /* 1. LOS CHIPS DE FILTRAR. Los de libro van detrás y no son etiquetas,
+       así que se cortan por el primero que lleva cuenta de libro. */
+    const ver = [...document.querySelectorAll('#etiquetas .btn')]
+      .find(b => /filtrar/i.test(b.textContent));
+    if (ver){ ver.click(); await z(600); }
+    out.chips = [...document.querySelectorAll('#filtros .chip')]
+      .map(c => (c.firstChild ? c.firstChild.textContent : c.textContent).trim());
+    /* 2. LA CAJA DE GLOSAS/ACTUALIZAR. */
+    const b = document.getElementById('btnElegirGlosas');
+    if (b && b.getAttribute('aria-pressed') !== 'true'){ b.click(); await z(700); }
+    out.grupo = [...document.querySelectorAll('#tagboxGrupo [data-tag-grupo]')]
+      .map(x => x.dataset.tagGrupo);
+    return out;
+  });
+  di('los chips de filtrar', JSON.stringify(listas.chips));
+  di('la caja de actualizar', JSON.stringify(listas.grupo));
+
+  /* El orden pedido, escrito entero: no se calcula aquí con la misma regla
+     que usa el programa, porque entonces la prueba y el programa podrían
+     equivocarse juntos y salir de acuerdo. */
+  const ESPERADO = ['😀Alegría', 'Ánimo', 'Clase2', 'Clase10',
+                    'Ñandú', '⭐Zacarías', 'Zurdo', '🔥'];
+  const soloSembradas = l => (l || []).filter(x => ESPERADO.includes(x));
+  const chips = soloSembradas(listas.chips), grupo = soloSembradas(listas.grupo);
+  vale('(la prueba es válida) las ocho llegaron a las dos listas',
+       chips.length === 8 && grupo.length === 8,
+       chips.length + ' chips · ' + grupo.length + ' en actualizar');
+  vale('LOS CHIPS DE FILTRAR VAN EN ORDEN',
+       chips.join('|') === ESPERADO.join('|'), chips.join(' · '));
+  vale('Y LA CAJA DE ACTUALIZAR, EN EL MISMO',
+       grupo.join('|') === ESPERADO.join('|'), grupo.join(' · '));
+
+  /* EL CONTRAFACTUAL, y aquí es barato: se ordena la misma lista con el
+     .sort() de antes y se exige que salga DISTINTA. Sin esto, un día en que
+     las ocho vinieran ya casi ordenadas la prueba pasaría sin que el
+     comparador hiciera nada. */
+  const aPelo = [...ESPERADO].sort();
+  di('con el .sort() de antes saldría', aPelo.join(' · '));
+  vale('(la prueba es válida) el orden pedido NO es el que salía antes',
+       aPelo.join('|') !== ESPERADO.join('|'), aPelo.join(' · '));
+  /* Y las dos cosas concretas que se pidieron, nombradas, para que si algún
+     día se cae se lea en el renglón QUÉ se rompió y no solo que la lista
+     cambió de orden. */
+  vale('  la del emoji se archiva por su letra, no al final',
+       chips.indexOf('😀Alegría') === 0, chips.join(' · '));
+  vale('  la de puro emoji sí va al final, que no tiene letra',
+       chips[chips.length - 1] === '🔥', chips.join(' · '));
+  vale('  y Clase2 va antes que Clase10, contando y no deletreando',
+       chips.indexOf('Clase2') < chips.indexOf('Clase10'), chips.join(' · '));
+
+  /* ================================================================
+     Y LA QUE SE CREA CON EL PANEL ABIERTO CAE EN SU SITIO.
+
+     El orden de arriba se aplica al ARMAR la caja, y eso dejaba un hueco que
+     solo se ve tocando: crear una etiqueta desde dentro de una glosa no
+     rehace la lista —no puede, el textarea está justo encima y repintar se
+     lleva lo que el lector esté escribiendo—, así que el botón nuevo se
+     colgaba al final con appendChild. Con «#Zurdo» ya puesta, crear
+     «#Alegría» la dejaba detrás, y ahí se quedaba hasta cerrar y volver a
+     abrir el panel. Una lista ordenada que se desordena en cuanto la tocas no
+     es una lista ordenada: es una que lo parecía. Lo levantó la revisión de
+     Codex.
+
+     SE CREAN TRES Y EN ESTE ORDEN, que es lo que hace que la prueba
+     distinga:
+
+     · «Zurdo» primero, que va al final del alfabeto. Sola no prueba nada
+       —al final es justo donde la pondría el fallo— pero deja el terreno
+       puesto para las otras dos.
+     · «Alegría» después: tiene que saltar al PRINCIPIO. Es la que se caía.
+     · «Mediana» al final: tiene que quedarse EN MEDIO. Sin ella, meter
+       siempre por delante también pasaría.
+     ================================================================ */
+  titulo('una etiqueta creada con el panel abierto cae en su sitio');
+  const recien = await pa.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    /* PRIMERO SE CIERRA EL PANEL, y esto no es limpieza: es la trampa.
+
+       El bloque de arriba deja GLOSAS abierto, y su #indice se pone ENCIMA de
+       la hoja. El pincel del andamio busca texto libre donde apoyar el dedo y
+       lo que encuentra debajo es DIV.ix-item, así que no pinta y devuelve el
+       motivo —«encima del texto hay DIV.ix-item»—. Se ve tal cual en los seis
+       fallos que arrastra glosas.prueba.js en su bloque del filtro, que son de
+       lo mismo y vienen de antes.
+       Se cierra por el botón del pie, que es como se cierra con el dedo. */
+    const cerrarPanel = document.querySelector('#etiquetas .btn.cerrar-pie');
+    if (cerrarPanel){ cerrarPanel.click(); await z(700); }
+    const ok = await window.__glosarEn(document.querySelector('#pgBody .v'), 4, 30);
+    if (!ok) return { hay:false, porque: window.__pincelPorque };
+    const ta = document.getElementById('glosaCaja');
+    if (!ta) return { hay:false, porque:'sin caja de escribir' };
+    /* Con nota: la lista nace «dormida» en una glosa vacía y no admite
+       etiquetas nuevas, que es otra decisión del programa y no lo que se
+       viene a probar aquí. */
+    ta.value = 'para probar el orden';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+    await z(200);
+    const bot = document.querySelector('#menu .mtags');
+    if (bot && !document.querySelector('#menu .tagbox.abierta')){ bot.click(); await z(500); }
+    const campo = document.getElementById('tagNueva');
+    if (!campo) return { hay:false, porque:'sin campo de etiqueta nueva' };
+    const lista = () => [...document.querySelectorAll('#menu .taglista .tg')]
+                          .map(b => b.dataset.tag);
+    const crear = async t => {
+      campo.value = t;
+      campo.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+      await z(450);
+      return lista();
+    };
+    const tras = {};
+    tras.zurdo = await crear('Zurdo');
+    tras.alegria = await crear('Alegría');
+    tras.mediana = await crear('Mediana');
+    return { hay:true, ...tras };
+  });
+  di('la lista al ir creando', JSON.stringify(recien));
+  vale('(la prueba es válida) se pudo abrir una glosa y crear etiquetas',
+       recien.hay === true, recien.porque);
+  if (recien.hay){
+    /* LO QUE SE AFIRMA ES POSICIÓN RELATIVA, NO ABSOLUTA, y la primera
+       versión de este bloque se cayó por no hacerlo. Pedía que «Zurdo»
+       quedara la última y que «Alegría» quedara la primera, y las dos son
+       falsas aunque el programa acierte: la sesión llega con las ocho
+       etiquetas del bloque de arriba, así que la última es «🔥» —de puro
+       emoji, que va al final por decisión propia— y delante de «Alegría»
+       está «😀Alegría», que se archiva bajo la misma letra y solo se
+       desempata por la etiqueta entera. Clavar posiciones era atar la prueba
+       a lo que hubiera sembrado el bloque anterior.
+       Lo que sí distingue el fallo de su arreglo es dónde cae la nueva
+       RESPECTO A LAS QUE YA ESTABAN, y eso no depende de cuántas haya. */
+    vale('(la prueba es válida) Zurdo ya estaba puesta antes de crear Alegría',
+         recien.zurdo.includes('Zurdo'), recien.zurdo.join(' · '));
+    /* LA QUE SE CAÍA. Con appendChild, «Alegría» quedaba detrás de «Zurdo». */
+    vale('LA NUEVA SE METE DELANTE DE LA QUE LE TOCA',
+         recien.alegria.indexOf('Alegría') < recien.alegria.indexOf('Zurdo'),
+         recien.alegria.join(' · '));
+    vale('  y no se queda la última, que es donde la dejaba appendChild',
+         recien.alegria[recien.alegria.length - 1] !== 'Alegría',
+         recien.alegria.join(' · '));
+    /* Y LA DEL MEDIO, que es la que descarta «meter siempre por delante». */
+    const i = recien.mediana.indexOf('Mediana');
+    vale('Y LA QUE VA EN MEDIO SE QUEDA EN MEDIO',
+         i > 0 && i < recien.mediana.length - 1, recien.mediana.join(' · '));
+    vale('  con Alegría antes y Zurdo después',
+         recien.mediana.indexOf('Alegría') < i &&
+         i < recien.mediana.indexOf('Zurdo'), recien.mediana.join(' · '));
+  }
+
   await cerrar(ancha);
 })();
