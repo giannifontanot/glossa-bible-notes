@@ -1410,6 +1410,61 @@ const ATERRIZA = 7000;
   }
   await cerrarParcial(conG, 'el viaje con la G');
 
+  /* ================================================================
+     Y EL TOQUE LLEGA AL PUNTO, NO AL FILO DE PASAR HOJA.
+
+     Esta es la que de verdad importa de las tres, y no existía hasta que la
+     revisión de Codex destapó lo que rompía la mudanza.
+
+     Los puntos pasaron a colgar de #pg, y #pg lleva SIEMPRE un filter
+     —brightness(1) contrast(1.25), el del panel de la letra, puesto aunque
+     esté en su valor de fábrica—. Un filter crea contexto de apilamiento: lo
+     que hay dentro de la hoja se pinta al nivel de la hoja, así que el
+     z-index 5 del punto dejó de competir con el 3 del filo. Compite la hoja
+     entera, y pierde.
+
+     Medido en escritorio antes del arreglo: elementFromPoint en el centro del
+     punto de las piedras devolvía #edgeL y el de las cintas #edgeR. Tocar el
+     punto PASABA HOJA en vez de abrir la lista, sin que nada lo enseñara.
+
+     SE PREGUNTA POR EL TOQUE Y NO POR LOS RECTÁNGULOS, y esa es la lección
+     del fallo: el bloque de arriba ya comprobaba que el punto no se solapa
+     con el filo, y con eso no bastaba —en escritorio los dos de arriba
+     estaban en su esquina, donde el solape era de antes y nadie lo miraba—.
+     Lo que el lector hace es TOCAR, así que lo que se pregunta es quién
+     recibe el toque.
+
+     Va en las dos pantallas porque el fallo solo salía en una. */
+  titulo('tocar un punto abre lo suyo y no pasa hoja');
+  for (const [comoSeLlama, opciones] of [['teléfono', {}], ['escritorio', ESCRITORIO]]){
+    const ses = await abrir(opciones);
+    const toque = await ses.pagina.evaluate(() => {
+      const ids = ['btnZoom','btnHistorial','btnPiedras','btnCintas'];
+      const quien = id => {
+        const b = document.getElementById(id).getBoundingClientRect();
+        const x = Math.round(b.left + b.width / 2);
+        const y = Math.round(b.top + b.height / 2);
+        const e = document.elementFromPoint(x, y);
+        return { id,
+                 recibe: e ? (e.id ? '#' + e.id : e.tagName) : 'nada',
+                 suyo: !!(e && (e.id === id || (e.closest && e.closest('#' + id)))) };
+      };
+      return { filtro: getComputedStyle(document.getElementById('pg')).filter,
+               puntos: ids.map(quien) };
+    });
+    di('quién recibe el toque · ' + comoSeLlama, JSON.stringify(toque));
+    /* LA LÍNEA DE VALIDEZ, y aquí es la que explica el fallo: si algún día
+       #pg dejara de llevar filtro no habría contexto de apilamiento, el
+       z-index volvería a valer y esto pasaría sin vigilar nada. */
+    vale('(la prueba es válida) la hoja lleva filtro, o sea contexto de ' +
+         'apilamiento · ' + comoSeLlama,
+         !!toque.filtro && toque.filtro !== 'none', toque.filtro);
+    for (const p of toque.puntos)
+      vale('  el toque en ' + p.id + ' le llega a él · ' + comoSeLlama,
+           p.suyo === true, 'lo recibe ' + p.recibe);
+    await cerrarParcial(ses, 'el toque en los puntos, ' + comoSeLlama);
+  }
+
   titulo('con la letra al tope, ningún letrero se sale ni se pisa');
   for (const [comoSeLlama, opciones] of [['escritorio', ESCRITORIO], ['teléfono', {}],
                                         ['teléfono estrecho', ESTRECHO_DEDO]]){

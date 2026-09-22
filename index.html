@@ -5615,7 +5615,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-SEP-26 14:48';
+window.GLOSS_BUILD = '22-SEP-26 14:58';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17958,6 +17958,63 @@ function colocarLosPuntos(){
       const ancho = bh.offsetWidth || 34;
       if (bordeDerecho - finPie > ancho) pon(bh, (finPie + bordeDerecho) / 2);
       else suelta(bh);
+    }
+  }
+
+  /* ============================================================
+     Y NINGUNO SE MONTA SOBRE LOS FILOS DE PASAR HOJA.
+
+     Esto era antes un lujo y ahora es obligatorio, y la diferencia la trajo
+     la mudanza de los puntos dentro de la hoja.
+
+     ANTES los cuatro eran hermanos de los filos, los dos en la escena, así
+     que su z-index 5 le ganaba al 3 de los filos: el punto se montaba encima
+     —feo, y ya se arregló por lo feo en el de las piedras— pero el toque le
+     llegaba a él. AHORA cuelgan de #pg, y #pg lleva SIEMPRE un filter
+     —brightness(1) contrast(1.25), el del panel de la letra, puesto aunque
+     esté en su valor de fábrica—. Un filter crea contexto de apilamiento, o
+     sea que todo lo que hay dentro de la hoja se pinta al nivel de la hoja y
+     el 5 del punto ya no compite con el 3 del filo: compite la hoja entera,
+     y pierde.
+
+     Medido en escritorio antes de este guardia: elementFromPoint en el centro
+     del punto de las piedras devolvía #edgeL y el de las cintas #edgeR. O sea
+     que tocar el punto PASABA HOJA en vez de abrir la lista. En teléfono no
+     salía porque allí los dos de arriba ya viven lejos de los filos. Lo
+     levantó la revisión de Codex.
+
+     SE ARREGLA APARTANDO EL PUNTO, NO PELEANDO POR EL APILAMIENTO, y es lo
+     correcto por dos razones. La primera es que no hay pelea que ganar:
+     desde dentro de un contexto de apilamiento no se sale, y subir la hoja
+     por encima de los filos dejaría los filos sin recibir un solo toque en
+     todo el papel, que es donde tienen que recibirlos. La segunda es que la
+     regla ya existía: «y ya no se monta sobre el filo de pasar hoja» es
+     literalmente lo que se comprobó cuando se movió el de las piedras. Lo
+     que faltaba era aplicarla a los cuatro y en las dos pantallas.
+
+     Va al final y sobre el sitio ya calculado, venga de la cuenta del medio o
+     de la esquina de la hoja de estilos: así el guardia es uno solo y no hay
+     camino que se lo salte. */
+  const filoIzq = document.getElementById('edgeL');
+  const filoDer = document.getElementById('edgeR');
+  if (filoIzq || filoDer){
+    /* Los filos viven en la escena y la hoja la llena, así que sus anchos
+       valen igual dentro de #pg; se leen del elemento y no de un número,
+       que en teléfono y en escritorio no miden lo mismo. */
+    const anchoIzq = filoIzq ? filoIzq.offsetWidth : 0;
+    const anchoDer = filoDer ? filoDer.offsetWidth : 0;
+    const AIRE = 4;                 /* que se vean separados, no pegados */
+    const derecha = pg.clientWidth;
+    for (const b of [bz, bh, bi, bd]){
+      if (!b) continue;
+      /* El sitio de verdad, sea cual sea el camino que lo puso: si el punto
+         quedó en su esquina no hay style.left que leer. */
+      const izq = b.offsetLeft;
+      const ancho = b.offsetWidth || 34;
+      const min = anchoIzq + AIRE;
+      const max = derecha - anchoDer - AIRE - ancho;
+      if (izq < min) { b.style.left = Math.round(min) + 'px'; b.style.right = 'auto'; }
+      else if (izq > max && max > min) { b.style.left = Math.round(max) + 'px'; b.style.right = 'auto'; }
     }
   }
 }
