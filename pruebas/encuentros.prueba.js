@@ -168,6 +168,98 @@ const IR_A = `async (sec) => {
        encendida.relleno === encendida.letra && encendida.trazo === encendida.letra,
        encendida.relleno + ' / ' + encendida.trazo + ' contra ' + encendida.letra);
 
+  /* ---------------- los otros tres signos ----------------
+
+     Pedido por el dueño del repo, en el mismo encargo y con la misma razón
+     que el de compartir: un libro abierto para Libros, un papelito con la
+     esquina doblada para Glosas, y para Encuentros «la mejor figura que
+     creas». Con eso, la barra entera deja de tener una sola palabra.
+
+     LO QUE SE VIGILA AQUÍ NO ES EL DIBUJO. Un dibujo se cambia y debe poder
+     cambiarse sin que el banco se ponga rojo; atar la prueba a una curva
+     concreta sería atarla a un gusto. Lo que se vigila es lo que hace que un
+     dibujo sirva de rótulo y se rompe solo:
+
+     · que no quede la palabra suelta a medio quitar,
+     · que tenga NOMBRE, porque un dibujo sin nombre no dice nada a quien
+       navega sin verlo, y estas tres pestañas son las tres secciones del
+       programa,
+     · que se pinte con la letra —currentColor—, que es lo que se volvía
+       invisible en la pestaña encendida,
+     · y que se vea, o sea que ocupe algo.
+
+     Y una más, que es de familia: los cuatro signos van con la misma caja y
+     el mismo grosor. Cinco pestañas en un renglón se leen como cinco cosas
+     del mismo programa o como cinco pegatinas de cinco sitios, y lo que
+     decide cuál de las dos es el grosor de la línea. */
+  titulo('las otras tres pestañas también son signos');
+  const tres = await p.evaluate(() => {
+    const v = [...document.querySelectorAll('.rollo')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    const mirar = sec => {
+      const b = v.querySelector('.pestanas [data-sec="' + sec + '"]');
+      const svg = b && b.querySelector('svg.signo');
+      if (!svg) return { falta:true };
+      const r = svg.getBoundingClientRect();
+      const path = svg.querySelector('path');
+      return { texto:b.textContent.trim(), nombre:b.getAttribute('aria-label'),
+               titulo:b.getAttribute('title'),
+               trazos:svg.querySelectorAll('path').length,
+               ancho:Math.round(r.width), alto:Math.round(r.height),
+               trazo:getComputedStyle(path).stroke,
+               grueso:getComputedStyle(path).strokeWidth,
+               relleno:getComputedStyle(path).fill,
+               letra:getComputedStyle(b).color };
+    };
+    const compartir = (() => {
+      const b = v.querySelector('.pestanas [data-sec="respaldo"]');
+      const svg = b.querySelector('svg.compartir');
+      const r = svg.getBoundingClientRect();
+      return { ancho:Math.round(r.width), alto:Math.round(r.height),
+               grueso:getComputedStyle(svg.querySelector('path')).strokeWidth };
+    })();
+    return { libros:mirar('libros'), glosas:mirar('glosas'),
+             encuentros:mirar('encuentros'), compartir };
+  });
+  di('los tres signos', JSON.stringify(tres));
+  for (const [sec, s] of [['Libros', tres.libros], ['Glosas', tres.glosas],
+                          ['Encuentros', tres.encuentros]]){
+    vale(sec + ': es un signo y no una palabra',
+         !s.falta && s.texto === '', s.falta ? 'no hay svg.signo' : '«' + s.texto + '»');
+    vale('  con nombre para quien no lo ve',
+         !s.falta && !!s.nombre && s.nombre === s.titulo, s.nombre);
+    vale('  dibujado y visible',
+         !s.falta && s.trazos >= 1 && s.ancho > 8 && s.alto > 8,
+         s.trazos + ' trazos · ' + s.ancho + 'x' + s.alto);
+    /* De línea y no macizo: relleno, los cuatro se pelearían con el fondo
+       dorado de la pestaña encendida en vez de dibujarse encima. */
+    vale('  de línea, no macizo',
+         !s.falta && s.relleno === 'none', s.relleno);
+    vale('  y con el color de la letra',
+         !s.falta && s.trazo === s.letra, s.trazo + ' contra ' + s.letra);
+  }
+  /* LA FAMILIA. Misma caja y mismo grosor que el de compartir, que es el que
+     ya estaba. Se compara contra él y no contra un número escrito aquí: si
+     un día se decide engordar los signos, se engordan los cuatro y esto
+     sigue en verde; si se engorda uno solo, se cae, que es lo que se quiere. */
+  vale('LOS CUATRO SON DE LA MISMA FAMILIA',
+       [tres.libros, tres.glosas, tres.encuentros].every(s =>
+         !s.falta && s.ancho === tres.compartir.ancho &&
+         s.alto === tres.compartir.alto && s.grueso === tres.compartir.grueso),
+       [tres.libros, tres.glosas, tres.encuentros]
+         .map(s => s.ancho + 'x' + s.alto + ' a ' + s.grueso).join(' · ') +
+       ' contra ' + tres.compartir.ancho + 'x' + tres.compartir.alto +
+       ' a ' + tres.compartir.grueso);
+  /* Y QUE NO SEAN EL MISMO DIBUJO. Cinco pestañas con el mismo signo es peor
+     que cinco con la misma palabra: la palabra al menos se lee. */
+  vale('  y los tres distintos entre sí',
+       new Set([tres.libros.trazos + ':' + tres.libros.ancho,
+                tres.glosas.trazos + ':' + tres.glosas.ancho,
+                tres.encuentros.trazos + ':' + tres.encuentros.ancho]).size >= 2 ||
+       new Set([JSON.stringify(tres.libros), JSON.stringify(tres.glosas),
+                JSON.stringify(tres.encuentros)]).size === 3,
+       'tres dibujos');
+
   /* ---------------- la sección ---------------- */
   titulo('Encuentros trae sus cinco, y la historia de Zaqueo');
   vale('se llega a Encuentros desde la barra', await irA('encuentros'));

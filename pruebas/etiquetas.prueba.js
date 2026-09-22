@@ -1788,5 +1788,112 @@ const FUERA = `async () => {
      sirve; lo que se quería es repartir, no cerrar. */
   vale('  y da para dos renglones de pastillas', techo.tope >= 66,
        techo.tope + ' px');
+
+  /* ================================================================
+     EL ORDEN DE LAS ETIQUETAS: ALFABÉTICO, Y EMPEZANDO POR LAS LETRAS.
+
+     Pedido por el dueño del repo. Lo que había era un .sort() a secas, que
+     compara unidades de UTF-16 una a una, y eso fallaba de dos maneras
+     distintas que se ven las dos en esta lista:
+
+     · «😀Alegría» se iba al FINAL, detrás de todo, porque un emoji vive muy
+       por encima de las letras en la tabla de Unicode. Quien la escribió la
+       archivó en la A y la buscaba en la A.
+     · Y entre letras tampoco ordenaba: «Ñ» cae después de «Z» comparando
+       números, y «Clase10» antes que «Clase2» comparando textos.
+
+     LA LISTA DE PRUEBA NO ES UNA LISTA CUALQUIERA. Cada etiqueta está por
+     una razón y es lo que hace que esto distinga algo: dos con emoji delante
+     —una al principio del alfabeto y otra al final, para que no valga con
+     mandarlas todas a un lado—, una con tilde, una con eñe, dos que solo se
+     ordenan bien contando —Clase2 y Clase10—, y una de PURO emoji, que no
+     tiene ninguna letra bajo la que archivarse.
+
+     Y SE COMPRUEBAN LAS TRES LISTAS, no una. El programa enseña las mismas
+     etiquetas en tres sitios —los chips de filtrar, la caja de GLOSAS/
+     ACTUALIZAR y la de dentro de una glosa— y tres listas de lo mismo
+     ordenadas de tres maneras es el programa contradiciéndose delante del
+     lector.
+     ================================================================ */
+  titulo('las etiquetas se ordenan por su primera letra, no por el emoji');
+  const orden = await pa.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const SEMBRADAS = ['Zurdo', 'Ánimo', '😀Alegría', 'Ñandú', 'Clase10',
+                       'Clase2', '⭐Zacarías', '🔥'];
+    const g = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    if (g.length < SEMBRADAS.length) return { pocas:g.length };
+    SEMBRADAS.forEach((t, i) => { g[i].etiquetas = [t]; });
+    localStorage.setItem('glossa:marcas:v1', JSON.stringify(g));
+    /* El filtro guardado se limpia: un filtro puesto esconde glosas y con
+       ellas sus etiquetas, y la lista saldría coja sin que nadie lo dijera.
+       Es el mismo tropiezo que ya se pagó una vez en esta suite. */
+    try {
+      const A = 'glossa:ajustes:v1';
+      const a = JSON.parse(localStorage.getItem(A) || '{}');
+      a.etiquetasVer = [];
+      localStorage.setItem(A, JSON.stringify(a));
+    } catch(_){}
+    return { sembradas: SEMBRADAS };
+  });
+  di('sembradas', JSON.stringify(orden.sembradas || orden));
+  vale('(la prueba es válida) había glosas donde sembrarlas',
+       orden.pocas === undefined, orden.pocas + ' glosas');
+  await pa.reload();
+  const listas = await pa.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    document.getElementById('pgCabeza').click(); await z(900);
+    const t = document.querySelector('.pestanas button[data-sec="glosas"]');
+    if (t) t.click(); await z(1000);
+    const out = {};
+    /* 1. LOS CHIPS DE FILTRAR. Los de libro van detrás y no son etiquetas,
+       así que se cortan por el primero que lleva cuenta de libro. */
+    const ver = [...document.querySelectorAll('#etiquetas .btn')]
+      .find(b => /filtrar/i.test(b.textContent));
+    if (ver){ ver.click(); await z(600); }
+    out.chips = [...document.querySelectorAll('#filtros .chip')]
+      .map(c => (c.firstChild ? c.firstChild.textContent : c.textContent).trim());
+    /* 2. LA CAJA DE GLOSAS/ACTUALIZAR. */
+    const b = document.getElementById('btnElegirGlosas');
+    if (b && b.getAttribute('aria-pressed') !== 'true'){ b.click(); await z(700); }
+    out.grupo = [...document.querySelectorAll('#tagboxGrupo [data-tag-grupo]')]
+      .map(x => x.dataset.tagGrupo);
+    return out;
+  });
+  di('los chips de filtrar', JSON.stringify(listas.chips));
+  di('la caja de actualizar', JSON.stringify(listas.grupo));
+
+  /* El orden pedido, escrito entero: no se calcula aquí con la misma regla
+     que usa el programa, porque entonces la prueba y el programa podrían
+     equivocarse juntos y salir de acuerdo. */
+  const ESPERADO = ['😀Alegría', 'Ánimo', 'Clase2', 'Clase10',
+                    'Ñandú', '⭐Zacarías', 'Zurdo', '🔥'];
+  const soloSembradas = l => (l || []).filter(x => ESPERADO.includes(x));
+  const chips = soloSembradas(listas.chips), grupo = soloSembradas(listas.grupo);
+  vale('(la prueba es válida) las ocho llegaron a las dos listas',
+       chips.length === 8 && grupo.length === 8,
+       chips.length + ' chips · ' + grupo.length + ' en actualizar');
+  vale('LOS CHIPS DE FILTRAR VAN EN ORDEN',
+       chips.join('|') === ESPERADO.join('|'), chips.join(' · '));
+  vale('Y LA CAJA DE ACTUALIZAR, EN EL MISMO',
+       grupo.join('|') === ESPERADO.join('|'), grupo.join(' · '));
+
+  /* EL CONTRAFACTUAL, y aquí es barato: se ordena la misma lista con el
+     .sort() de antes y se exige que salga DISTINTA. Sin esto, un día en que
+     las ocho vinieran ya casi ordenadas la prueba pasaría sin que el
+     comparador hiciera nada. */
+  const aPelo = [...ESPERADO].sort();
+  di('con el .sort() de antes saldría', aPelo.join(' · '));
+  vale('(la prueba es válida) el orden pedido NO es el que salía antes',
+       aPelo.join('|') !== ESPERADO.join('|'), aPelo.join(' · '));
+  /* Y las dos cosas concretas que se pidieron, nombradas, para que si algún
+     día se cae se lea en el renglón QUÉ se rompió y no solo que la lista
+     cambió de orden. */
+  vale('  la del emoji se archiva por su letra, no al final',
+       chips.indexOf('😀Alegría') === 0, chips.join(' · '));
+  vale('  la de puro emoji sí va al final, que no tiene letra',
+       chips[chips.length - 1] === '🔥', chips.join(' · '));
+  vale('  y Clase2 va antes que Clase10, contando y no deletreando',
+       chips.indexOf('Clase2') < chips.indexOf('Clase10'), chips.join(' · '));
+
   await cerrar(ancha);
 })();
