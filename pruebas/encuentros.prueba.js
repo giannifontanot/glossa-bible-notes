@@ -103,6 +103,70 @@ const IR_A = `async (sec) => {
        barra.renglones === 1 && barra.seSalen === false,
        barra.renglones + ' renglón · se salen: ' + barra.seSalen);
 
+  /* ---------------- y la barra no se mueve con el libro ---------------- */
+  /* SE PIDIÓ QUE ESTA BARRA SE SALGA DE «LA INTERFAZ CRECE CON EL LIBRO», y
+     eso es justo lo que no se puede comprobar mirando la barra sola: si el
+     mando de la letra estuviera roto, la barra tampoco se movería y esto
+     saldría verde sin haber probado nada.
+
+     Por eso cada medida de la barra viene con un TESTIGO al lado —un botón
+     del panel, que sí escala— y las dos afirmaciones se leen juntas: el
+     testigo creció, la barra no. Sin el testigo, esta prueba no vale. */
+  titulo('la barra no crece con la letra del libro, y es grande');
+  const conLaLetra = async (n) => {
+    await irA('formato');
+    await p.evaluate(async (v) => {
+      const s = document.getElementById('fsAhora');
+      s.value = String(v);
+      s.dispatchEvent(new Event('change', { bubbles:true }));
+      await new Promise(z => setTimeout(z, 700));
+    }, n);
+    return p.evaluate(() => {
+      const v = [...document.querySelectorAll('.rollo')]
+        .find(r => getComputedStyle(r).display !== 'none');
+      const b = v.querySelector('.pestanas [data-sec="libros"]');
+      const svg = b && b.querySelector('svg.signo');
+      /* El testigo: un botón del mismo panel, de los que sí crecen. Si algún
+         día se le quita a él la escala, esta prueba se queda sin vara y hay
+         que buscar otro testigo, no borrar la línea. */
+      const testigo = v.querySelector('.rollo-cuerpo .btn, .btn');
+      return { signo: svg ? Math.round(svg.getBoundingClientRect().width) : 0,
+               alto:  b ? Math.round(b.getBoundingClientRect().height) : 0,
+               letraPestana: b ? getComputedStyle(b).fontSize : '?',
+               testigo: testigo ? getComputedStyle(testigo).fontSize : '?',
+               libro: getComputedStyle(document.documentElement)
+                        .getPropertyValue('--fs-libro').trim() };
+    });
+  };
+  const chico  = await conLaLetra(10);
+  const grande = await conLaLetra(26);
+  di('con el libro en 10', chico);
+  di('con el libro en 26', grande);
+  /* LAS DOS LÍNEAS DE VALIDEZ, y son dos porque son dos cosas distintas: que
+     el mando movió el libro, y que el cromo de alrededor se enteró. */
+  vale('(la prueba es válida) el libro cambió de letra',
+       chico.libro !== grande.libro, chico.libro + ' → ' + grande.libro);
+  vale('(la prueba es válida) y el resto del panel creció con él',
+       chico.testigo !== grande.testigo && chico.testigo !== '?',
+       chico.testigo + ' → ' + grande.testigo);
+  vale('LA BARRA MIDE LO MISMO CON EL LIBRO EN 10 QUE EN 26',
+       chico.signo === grande.signo && chico.alto === grande.alto &&
+       chico.letraPestana === grande.letraPestana,
+       'signo ' + chico.signo + '→' + grande.signo +
+       ' · alto ' + chico.alto + '→' + grande.alto +
+       ' · letra ' + chico.letraPestana + '→' + grande.letraPestana);
+  /* Y QUE SEA GRANDE, que es la otra mitad del encargo. El número no es de
+     gusto: 29 px era el techo que daba la barra vieja —el libro en 26, la
+     escala en 1.44— y el tamaño fijo se puso ahí a propósito, para que
+     congelarlo no le quitara nada al lector que subía la letra porque ve
+     peor. Si algún día alguien baja el tamaño fijo por debajo de ese techo,
+     esta línea es la que lo dice. */
+  vale('  y el signo no baja del techo que daba la barra vieja',
+       grande.signo >= 29, grande.signo + ' px');
+  /* Se devuelve la letra a la de fábrica: los bloques de más abajo miden el
+     relato contra el libro y parten de que nadie ha tocado el riel. */
+  await conLaLetra(15);
+
   /* ---------------- el signo de compartir ---------------- */
   titulo('la pestaña de compartir es un signo, no una palabra');
   const signo = await p.evaluate(() => {
