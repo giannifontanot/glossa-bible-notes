@@ -1973,14 +1973,23 @@ const FUERA = `async () => {
   vale('(la prueba es válida) se pudo abrir una glosa y crear etiquetas',
        recien.hay === true, recien.porque);
   if (recien.hay){
-    /* La línea de validez de verdad: «Zurdo» tiene que haber quedado la
-       última. Si no, el terreno no era el que esta prueba cree y lo de abajo
-       mediría otra cosa. */
-    vale('(la prueba es válida) Zurdo quedó la última, que es de donde se parte',
-         recien.zurdo[recien.zurdo.length - 1] === 'Zurdo', recien.zurdo.join(' · '));
+    /* LO QUE SE AFIRMA ES POSICIÓN RELATIVA, NO ABSOLUTA, y la primera
+       versión de este bloque se cayó por no hacerlo. Pedía que «Zurdo»
+       quedara la última y que «Alegría» quedara la primera, y las dos son
+       falsas aunque el programa acierte: la sesión llega con las ocho
+       etiquetas del bloque de arriba, así que la última es «🔥» —de puro
+       emoji, que va al final por decisión propia— y delante de «Alegría»
+       está «😀Alegría», que se archiva bajo la misma letra y solo se
+       desempata por la etiqueta entera. Clavar posiciones era atar la prueba
+       a lo que hubiera sembrado el bloque anterior.
+       Lo que sí distingue el fallo de su arreglo es dónde cae la nueva
+       RESPECTO A LAS QUE YA ESTABAN, y eso no depende de cuántas haya. */
+    vale('(la prueba es válida) Zurdo ya estaba puesta antes de crear Alegría',
+         recien.zurdo.includes('Zurdo'), recien.zurdo.join(' · '));
     /* LA QUE SE CAÍA. Con appendChild, «Alegría» quedaba detrás de «Zurdo». */
-    vale('LA NUEVA SALTA AL PRINCIPIO SI LE TOCA',
-         recien.alegria[0] === 'Alegría', recien.alegria.join(' · '));
+    vale('LA NUEVA SE METE DELANTE DE LA QUE LE TOCA',
+         recien.alegria.indexOf('Alegría') < recien.alegria.indexOf('Zurdo'),
+         recien.alegria.join(' · '));
     vale('  y no se queda la última, que es donde la dejaba appendChild',
          recien.alegria[recien.alegria.length - 1] !== 'Alegría',
          recien.alegria.join(' · '));
