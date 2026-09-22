@@ -179,7 +179,32 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
       carmin, vivo, on: csOn.color,
       tope, final: traza[traza.length-1][1], traza,
       presionada: b.getAttribute('aria-pressed'), abierta: b.classList.contains('abierta'),
-      aLaDerecha: Math.abs(gR.right - hist.right) <= 2,
+      /* DÓNDE VIVE LA G, medido contra la ESCENA y no contra el punto del
+         historial, que es como estaba y dejó de valer.
+
+         Se comparaba el filo derecho de la G con el del punto —iban los dos
+         a la misma distancia del canto y coincidían— pero eso ataba dos cosas
+         que no tienen por qué ir juntas. En cuanto el dueño del repo pidió
+         mover los puntos de abajo «a la mitad del titulillo y el borde», el
+         punto se fue al medio y esta afirmación empezó a cantar un fallo que
+         no lo era: la G no se había movido de donde tiene que estar.
+
+         Lo que se quería decir era que la G vive ABAJO Y A LA DERECHA, y eso
+         se dice contra la escena. La G se queda en su canto a propósito
+         —decisión del dueño del repo al verlo—: es el mando del cajón, no uno
+         de los cuatro puntos, y no comparte con ellos ni el oficio ni el
+         tamaño. */
+      aLaDerecha: (() => {
+        const st = document.querySelector('.stage').getBoundingClientRect();
+        /* En el tercio derecho de la escena y pegada al canto: dos maneras
+           de decir lo mismo, y juntas no dejan pasar «se fue al medio». */
+        return gR.left > st.left + st.width * 2 / 3 &&
+               st.right - gR.right <= 16;
+      })(),
+      /* Y se deja a mano dónde acabó el punto del historial, para que quien
+         lea un fallo aquí vea de un vistazo si lo que cambió fue la G o él. */
+      histDerecha: Math.round(hist.right),
+      gDerecha: Math.round(gR.right),
       hueco,
       funde: /opacity/.test(cs.transition),
       halo: (() => {
@@ -201,7 +226,8 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
        /155,\s*42,\s*42/.test(g.carmin || '') && !g.vivo, g.carmin);
   vale('y más honda cuando está prendida',
        /92,\s*20,\s*20/.test(g.on || '') && g.on !== g.carmin, g.on);
-  vale('a la derecha, con el historial', g.aLaDerecha === true, g.aLaDerecha);
+  vale('abajo y a la derecha, pegada al canto', g.aLaDerecha === true,
+       'la G acaba en ' + g.gDerecha + ' · el punto del historial en ' + g.histDerecha);
   vale('encima del historial, a un aire de la casa',
        g.hueco >= 8 && g.hueco <= 12, g.hueco);
   vale('y al pasar hoja se funde', g.funde === true, g.funde);
