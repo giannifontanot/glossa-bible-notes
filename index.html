@@ -3092,7 +3092,8 @@
      No sube hasta el macizo del 100% a propósito: ése es el color de «ya
      está», y llegar ahí once veces por ciclo sería decir «terminé» once veces
      mientras no ha terminado. */
-  .rollo .btn.obrando, .rollo .chip.obrando{
+  .rollo .btn.obrando, .rollo .chip.obrando,
+  .rollo .tabo.obrando, .fly .num.obrando{
     animation:obrandoBorde .9s cubic-bezier(.4,0,.6,1) infinite; }
   @keyframes obrandoBorde{
     0%   { background:rgba(184,137,43,.12); border-color:rgba(150,112,31,.45);
@@ -3112,10 +3113,61 @@
      no puede quedarse sin el aviso, así que se le sube el halo —que no se
      mueve— para compensar el latido que no va a ver. */
   @media (prefers-reduced-motion: reduce){
-    .rollo .btn.obrando, .rollo .chip.obrando{
+    .rollo .btn.obrando, .rollo .chip.obrando,
+    .rollo .tabo.obrando, .fly .num.obrando{
       animation:none; background:rgba(184,137,43,.58); border-color:#96701f;
       box-shadow:0 0 0 3px rgba(184,137,43,.45),
                  0 0 12px 2px rgba(201,162,39,.4); }
+  }
+  /* EL MISMO ACUSE, PERO SIN RELLENAR: SOLO EL ARO.
+
+     El macizo de arriba le come el fondo al control, y eso sirve mientras lo
+     único que el control tiene que decir sea su rótulo. Hay tres donde no:
+
+     · Una glosa del índice ES su color —amarillo, azul, verde—: pintarla de
+       dorado mientras se salta a ella la convierte en otra glosa durante
+       medio segundo, y el color es justo lo que se estaba mirando.
+     · Una pestaña de Encuentros encendida ya es dorada con letra blanca. El
+       macizo encima de eso no se lee como «estoy en ello» sino como un
+       parpadeo del estado que ya tenía.
+     · Un desplegable enseña el valor elegido, que es la respuesta a lo que
+       acabas de hacer. Taparlo con dorado al 96% para decir que se te oyó
+       borra lo que se te oyó decir.
+
+     Así que en esos tres el latido va por fuera —el aro y el resplandor, que
+     son la parte que de verdad saca el control del papel— y el relleno se
+     queda quieto. No es un segundo idioma: es el mismo que ya hablan las
+     pestañas de sección en acusePestana, escrito aquí para los que no son
+     pestañas de sección.
+
+     Y VA EN outline, NO EN box-shadow, que es donde se torció el primer
+     intento. Las tres piezas ya tienen su box-shadow diciendo algo: la glosa
+     del índice la usa para el aro de elegida y el de hover, y la pestaña de
+     Encuentros para el subrayado dorado que marca cuál es la de ahora. Un
+     latido escrito en box-shadow los apaga a los tres mientras dura, o sea
+     que para decir «te oí» le quitaba la raya a la pestaña que acababas de
+     tocar —justo la respuesta que se estaba dando—. outline es otra
+     propiedad y otra capa: late por encima sin tocar nada de eso, y de paso
+     no hay que ir peleando especificidad contra #indice .ix-item:hover.
+
+     El offset va NEGATIVO —el aro por dentro— por la tira de Encuentros, que
+     tiene desplazamiento horizontal: un contorno dibujado fuera de la caja
+     lo recorta el contenedor, y el latido se vería a medias en la primera y
+     la última pestaña. Por dentro se ve entero en todas. */
+  .rollo .ix-item.obrando, .rollo .pestanitas button.obrando,
+  .rollo select.obrando{
+    outline-style:solid; outline-offset:-2px;
+    animation:obrandoAro .9s cubic-bezier(.4,0,.6,1) infinite; }
+  @keyframes obrandoAro{
+    0%   { outline-width:1px; outline-color:rgba(184,137,43,.15); }
+    38%  { outline-width:3px; outline-color:rgba(150,112,31,.95); }
+    62%  { outline-width:2px; outline-color:rgba(184,137,43,.6); }
+    100% { outline-width:1px; outline-color:rgba(184,137,43,.15); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .rollo .ix-item.obrando, .rollo .pestanitas button.obrando,
+    .rollo select.obrando{
+      animation:none; outline-width:3px; outline-color:rgba(150,112,31,.9); }
   }
   .rollo select, .rollo input{ font-size:calc(.63rem * var(--escala-ui, 1)); padding:3px 5px; color:#3c2f16;
                background:rgba(255,253,247,.85); border-color:rgba(140,116,68,.42); }
@@ -5502,7 +5554,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '21-SEP-26 18:44';
+window.GLOSS_BUILD = '21-SEP-26 21:41';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -15771,24 +15823,118 @@ function apagarObrando(yaMismo){
   if (falta <= 0){ quitar(); return; }
   relojObrando = setTimeout(quitar, falta);
 }
-function encenderObrando(el){
+/* desdeQueSeVea: EL MÍNIMO DE PERMANENCIA SE CUENTA DESDE QUE EL BORDE SE
+   PINTA, no desde que se pide.
+
+   Para un botón da igual —se enciende al apoyar el dedo y el trabajo llega
+   con el click, un turno después, así que para entonces ya se pintó—. Para
+   un desplegable no, y ahí esto no es un detalle sino la diferencia entre
+   verse y no verse: encender y trabajar caen en el MISMO turno, el navegador
+   no pinta nada entre medias, y si el trabajo tarda más que el mínimo el
+   reloj se cumple entero sin que el borde haya existido en pantalla. Se
+   apagaba en el primer cuadro de después: puesto, quitado, jamás visto.
+   Y al revés de como debería: cuanto más tardaba el cambio —que es cuando
+   hace falta el aviso— menos se veía.
+   Medido, no supuesto: con glosas cargadas, cambiar el tamaño de letra
+   repagina el libro entero y los dos cuadros de trasPintar llegaban pasados
+   los 320 ms del mínimo. Sin glosas el mismo cambio termina en nada y el
+   borde se quedaba puesto, que es por qué la primera sonda lo dio por bueno.
+   Así que cuando se pide esto, el reloj se pone a cero en el primer cuadro
+   que corre con la clase ya en pantalla. */
+function encenderObrando(el, desdeQueSeVea){
   apagarObrando(true);
   obrandoEl = el; t0Obrando = performance.now();
   el.classList.add('obrando');
+  if (desdeQueSeVea)
+    trasPintar(() => { if (obrandoEl === el) t0Obrando = performance.now(); });
   relojObrando = setTimeout(() => apagarObrando(true), 1400);
 }
-for (const { el } of LOS_ROLLOS){
+/* DÓNDE SE ESCUCHA, Y QUÉ CUENTA COMO ALGO QUE SE TOCA.
+
+   Las dos listas estaban metidas dentro del bucle —los rollos por un lado y
+   la pareja '.btn, .chip' escrita cuatro veces por otro—, y las dos se
+   quedaron cortas en cuanto el programa creció. Medido sobre la aplicación
+   abierta, y no supuesto: en el panel de LIBROS no acusaba NADA. Ni los 27
+   libros, ni su botón de cerrar, aunque ese último sí case con la regla de
+   CSS —el estilo estaba, el oyente no—. Y el panel de Libros es justo donde
+   más falta hace: tocar un libro despliega su cascada de capítulos, y hasta
+   que aparece no hay nada en pantalla diciendo que el toque entró.
+
+   Libros no está en LOS_ROLLOS por lo que ya explica esa tabla —tiene cabeza
+   y cuerpo propios y lo abren abrirCanto y cerrarCanto—, así que se suma
+   aquí. Y con él las dos cajitas de la cascada, que no son un panel de
+   sección pero son de lo más tocado que hay.
+
+   LO QUE NO ENTRA, y por qué, que es la mitad que se olvida:
+   · Las pestañas de sección tienen acusePestana, que resuelve algo que esto
+     no puede: su barra se rehace entera a media faena, así que el estado no
+     puede vivir en el botón. Y por lo mismo se quedan fuera las dos del
+     testamento, que viajan dentro de cantoCab.innerHTML y mueren con él;
+     darles acuse es generalizar acusePestana, y eso es otro cambio.
+   · Los filos de pasar hoja tienen su huella.
+   · Los rieles de AAA no acusan: mientras se arrastra un riel la hoja se
+     está repintando debajo del dedo, y ésa es una respuesta mejor que
+     cualquier borde. Un aviso que compite con la cosa misma estorba.
+   · La casilla de «señalar dónde se puede tocar» tampoco: la palomita que
+     aparece ES el acuse, y ponerle otro encima es decirlo dos veces.
+   · El asa de arrastrar una glosa no es un botón. Encender el borde al
+     agarrarla diría «estoy trabajando» durante todo un arrastre en el que no
+     se está trabajando en nada.
+   · Un versículo .vacio no lleva a ninguna parte —su manejador se vuelve por
+     donde vino—, y acusar un toque que no hace nada es lo que enseña a
+     desconfiar del aviso donde sí sirve. Es la misma razón por la que los
+     deshabilitados llevan fuera desde el principio. */
+const SUPERFICIES_ACUSE = [...LOS_ROLLOS.map(r => r.el), canto, flyCaps, flyVers];
+const LO_QUE_ACUSA = '.btn, .chip, .tabo, .num, .ix-item, .pestanitas button';
+function loQueAcusa(objetivo){
+  if (!objetivo || !objetivo.closest) return null;
+  if (objetivo.closest('.ix-asa')) return null;
+  const b = objetivo.closest(LO_QUE_ACUSA);
+  if (!b || b.disabled || b.classList.contains('vacio')) return null;
+  return b;
+}
+for (const el of SUPERFICIES_ACUSE){
   el.addEventListener('pointerdown', ev => {
-    const b = ev.target.closest('.btn, .chip');
-    /* Los deshabilitados no acusan nada: no va a pasar nada, y encender el
-       borde ahí enseñaría a desconfiar de la señal donde sí sirve. */
-    if (!b || b.disabled || !el.contains(b)) return;
+    const b = loQueAcusa(ev.target);
+    if (!b || !el.contains(b)) return;
     encenderObrando(b);
   });
   el.addEventListener('click', ev => {
-    if (!ev.target.closest('.btn, .chip')) return;
+    if (!loQueAcusa(ev.target)) return;
     trasPintar(() => apagarObrando());
   });
+  /* CANCELAR NO ES SOLTAR, aquí tampoco. Si el navegador se queda con el
+     gesto —se puso a desplazar la lista de libros, entró un segundo dedo— no
+     va a llegar ningún click, y el borde se quedaba encendido hasta que lo
+     apagara la red de los 1400 ms: más de un segundo prometiendo un trabajo
+     que nadie empezó. */
+  el.addEventListener('pointercancel', () => apagarObrando(true));
+}
+/* LOS DESPLEGABLES ACUSAN AL ELEGIR, no al apoyar el dedo.
+
+   Un desplegable no se toca: se abre, se mira y se elige, y entre lo primero
+   y lo último puede pasar un rato entero con la lista del sistema tapando la
+   pantalla. Encender el borde al apoyar sería encenderlo para toda esa
+   pausa, diciendo «estoy en ello» mientras el lector todavía está decidiendo.
+   Lo que sí hay que acusar es la elección, que es cuando empieza el trabajo
+   de verdad —otra letra son otras medidas y otros cortes, o sea repaginar—.
+
+   Va en CAPTURA para llegar antes que el onchange del propio desplegable y
+   dejar la clase puesta antes de que ese trabajo arranque. Y aun así hay que
+   decir lo que esto NO puede hacer, porque es la parte que se olvida y luego
+   se investiga dos veces: el trabajo corre seguido, en el mismo turno, así
+   que el navegador no pinta nada entre medias y el latido no se va a ver
+   DURANTE la espera por mucho que la clase estuviera puesta antes. Se ve
+   después, y lo que dice entonces es «fue esto lo que tardó».
+   De ahí el segundo argumento de encenderObrando: sin él, un cambio lento se
+   comía el mínimo entero y el borde no llegaba a pintarse nunca. */
+for (const el of SUPERFICIES_ACUSE){
+  el.addEventListener('change', ev => {
+    const sel = ev.target;
+    if (!sel || sel.tagName !== 'SELECT' || sel.disabled) return;
+    encenderObrando(sel, true);
+    trasPintar(() => apagarObrando());
+  }, true);
 }
 /* Todos se excluyen: comparten el mismo filo y la misma superficie. */
 function cerrarOtrosRollos(menos){
@@ -16119,6 +16265,14 @@ canto.addEventListener('click', tocarLibro);
   function engancharse(){
     if (!armado) return;
     armado = false; activo = true;
+    /* Y SE APAGA EL ACUSE DEL LIBRO DONDE EMPEZÓ EL DEDO. Al apoyarse se le
+       encendió el borde, que entonces era verdad: un toque sobre ese libro
+       iba a abrir su cascada. Desde que la lupa engancha ya no lo es —el
+       dedo se va a pasear y el desenlace será el libro sobre el que suelte,
+       que casi nunca es éste— y además el click de ese libro se lo traga
+       arriba(), así que sin esto el borde se quedaría encendido durante todo
+       el paseo, señalando el libro equivocado. */
+    apagarObrando(true);
     /* Se congela el desplazamiento de la lista mientras dura la lupa. */
     if (caja) caja.style.touchAction = 'none';
     poner(libroEn(x0, y0), x0, y0);
