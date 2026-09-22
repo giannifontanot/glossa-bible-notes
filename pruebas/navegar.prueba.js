@@ -1279,8 +1279,28 @@ const ATERRIZA = 7000;
            'esquina · ' + comoSeLlama,
            punto.titulillo > punto.hoja / 2,
            punto.titulillo + ' de una hoja de ' + punto.hoja);
-      vale('Y AHÍ EL PUNTO SE QUEDA EN SU ESQUINA · ' + comoSeLlama,
-           punto.enSuEsquina === true, punto.dedo);
+      /* AQUÍ SE PEDÍA «EN SU ESQUINA» Y YA NO SE PUEDE PEDIR, y no es que la
+         prueba se haya relajado: es que la esquina resultó ser un mal sitio.
+
+         Decía left <= 12, o sea el punto pegado al canto. Ahí se monta sobre
+         el filo de pasar hoja, que mide 30, y mientras los puntos vivían en
+         la escena eso solo era feo —su z-index 5 le ganaba al 3 del filo y el
+         toque le llegaba igual—. Al mudarlos dentro de la hoja dejó de ser
+         feo y pasó a ser roto: #pg lleva filtro, o sea contexto de
+         apilamiento, y el toque se lo quedaba el filo. Está medido y probado
+         en el bloque del toque, más abajo.
+
+         Así que lo que se afirma ya no es «en la esquina» sino lo que la
+         esquina venía a decir: que sin medio que calcular el punto se queda
+         de SU LADO —no se va al centro— y además libre del filo. Lo primero
+         es lo que distingue este caso del de teléfono; lo segundo es la
+         regla nueva. */
+      vale('Y AHÍ EL PUNTO SE QUEDA DE SU LADO, no se va al medio · ' +
+           comoSeLlama,
+           punto.centro < punto.hoja / 4, punto.centro + ' de ' + punto.hoja);
+      vale('  pero libre del filo de pasar hoja · ' + comoSeLlama,
+           punto.sobreElFilo === false,
+           punto.dedo + ' contra el filo ' + punto.filoDePasar);
     }
     await cerrarParcial(ses, 'el punto de las piedras, ' + comoSeLlama);
   }

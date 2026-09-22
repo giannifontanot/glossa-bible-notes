@@ -5615,7 +5615,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-SEP-26 14:58';
+window.GLOSS_BUILD = '22-SEP-26 15:05';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18006,7 +18006,21 @@ function colocarLosPuntos(){
     const AIRE = 4;                 /* que se vean separados, no pegados */
     const derecha = pg.clientWidth;
     for (const b of [bz, bh, bi, bd]){
-      if (!b) continue;
+      /* UN PUNTO QUE NO SE ESTÁ PINTANDO NO SE TOCA, y esto costó verlo con
+         la letra al tope.
+
+         Con un panel abierto los cuatro llevan display:none —lo pone
+         .stage.conpanel— y un elemento oculto mide offsetLeft CERO. El
+         guardia se creía ese cero, decidía que los cuatro estaban encima del
+         filo de la izquierda y los estampaba a los cuatro contra el mismo
+         sitio; y como esto escribe un style.left, el destrozo sobrevivía al
+         cierre del panel hasta que algo volviera a colocarlos. Medido: los
+         cuatro en 34, uno encima de otro.
+
+         offsetParent es null exactamente cuando el elemento no está en el
+         flujo, que es la pregunta que había que hacer antes de creerse
+         ninguna medida. */
+      if (!b || !b.offsetParent) continue;
       /* El sitio de verdad, sea cual sea el camino que lo puso: si el punto
          quedó en su esquina no hay style.left que leer. */
       const izq = b.offsetLeft;
