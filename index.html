@@ -5336,6 +5336,34 @@
       <div class="pg-version" id="pgVersion" tabindex="0" role="button"
            aria-haspopup="dialog" aria-expanded="false"></div>
     </div>
+  <!-- LOS CUATRO PUNTOS VIVEN DENTRO DE LA HOJA, y esto es una mudanza con
+       motivo, no un arreglo de orden.
+
+       Estaban en la ESCENA, hermanos de la hoja, y ahí se quedaban quietos
+       cuando el papel corría: al tirar de la G para abrir las glosas el
+       titulillo se iba con la hoja —medido, de x=169 a x=−82— y los cuatro
+       puntos se quedaban flotando sobre el cajón, que es de lo que se
+       quejó el dueño del repo. Pertenecen al libro —lo decía ya el
+       comentario de su hoja de estilos, cuando se les bajó el z-index para
+       que no flotaran sobre los paneles— y ahora también se van con él.
+
+       VAN DENTRO DE #pg PERO FUERA DE .pg-inner, y esa distinción es todo el
+       truco. #pg es el que lleva el desplazamiento, así que lo que cuelga de
+       él corre con el papel; y su caja de posicionamiento mide exactamente lo
+       mismo que la escena —medido en teléfono y en escritorio: los cuatro no
+       se movieron ni un píxel al mudarlos—, o sea que ni una sola medida de
+       la hoja de estilos hubo que tocar. Colgándolos de .pg-inner sí se
+       habrían movido: esa caja empieza 22 px más abajo y acaba 18 px más
+       arriba, y habría hecho falta compensar con números mágicos.
+
+       Y no se escapan por los filos: en el zoom los cuatro llevan display
+       none, así que el escalado de la hoja no los alcanza. -->
+  <button id="btnPiedras" data-piedra-lista="1"
+          title="Ver tus piedras" aria-label="Ver tus piedras"></button>
+  <button id="btnCintas" data-sep-lista="1"
+          title="Ver tus separadores" aria-label="Ver tus separadores"></button>
+  <button id="btnZoom" title="Ver la hoja entera" aria-label="Ver la hoja entera"></button>
+  <button id="btnHistorial" title="Lo que has visto" aria-label="Lo que has visto"></button>
   </div>
   <div id="flyCaps" class="fly"></div>
   <div id="flyVers" class="fly"></div>
@@ -5431,14 +5459,9 @@
        Y siguen llevando data-piedra-lista y data-sep-lista, que es como las
        nombra todo lo demás —los dos vigilantes del toque de fuera, y las
        pruebas—: lo que se mudó es la puerta, no lo que abre. -->
-  <button id="btnPiedras" data-piedra-lista="1"
-          title="Ver tus piedras" aria-label="Ver tus piedras"></button>
-  <button id="btnCintas" data-sep-lista="1"
-          title="Ver tus separadores" aria-label="Ver tus separadores"></button>
   <!-- Y LA HOJA ENTERA, abajo a la izquierda. Va discreto a propósito: es una
        salida que se busca cuando se necesita, no una que tenga que llamar la
        atención mientras lees. -->
-  <button id="btnZoom" title="Ver la hoja entera" aria-label="Ver la hoja entera"></button>
   <!-- LA G ABRE LAS GLOSAS. Pedido: un sello de cera, como una piedra nueva,
        con la G gótica de un sello de lacre. No es un adorno: es el único
        toque que corre el cajón. El desliz de lado ya no lo abre —pasa hoja—.
@@ -5489,7 +5512,6 @@
     <button data-paso="1" title="Hoja siguiente — arrástralo a la derecha y las hojas pasan mientras lo sostengas; más lejos, más deprisa"
             aria-label="Hoja siguiente. Arrástralo hacia la derecha y las hojas pasan mientras lo sostengas; más lejos, más deprisa.">›</button>
   </div>
-  <button id="btnHistorial" title="Lo que has visto" aria-label="Lo que has visto"></button>
   <div id="historial" role="dialog" aria-label="Escrituras vistas" aria-modal="false"></div>
   <!-- La lista de piedras. Vive en la escena, como el menú de la cinta, y se
        cuelga del botón que la abrió. -->
@@ -5593,7 +5615,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-SEP-26 07:31';
+window.GLOSS_BUILD = '22-SEP-26 14:48';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8371,8 +8393,8 @@ function renderPage(){
      glosas, y las dos cosas acaban de rehacerse. Va aquí y no en
      pintarSeparador —que sería el sitio natural— porque aquélla se va por
      varias puertas antes de llegar al final, y este punto tiene que quedar
-     puesto haya cinta o no. Ver colocarPuntosDeArriba. */
-  if (typeof colocarPuntosDeArriba === 'function') colocarPuntosDeArriba();
+     puesto haya cinta o no. Ver colocarLosPuntos. */
+  if (typeof colocarLosPuntos === 'function') colocarLosPuntos();
   return r;
 }
 function renderPageCrudo(){
@@ -13831,14 +13853,14 @@ function cerrarZoom(hacia){
       el.style.removeProperty(p);
   /* Y el punto de las cintas se vuelve a colocar, que de lejos no se mide: la
      hoja llevaba escala y las dos medidas que usa hablan en unidades
-     distintas. Ver colocarPuntosDeArriba.
+     distintas. Ver colocarLosPuntos.
 
      Y aquí mismo vale: desde que esto se mide con desplazamientos y no con
      rectángulos, el sitio es el mismo con la animación de vuelta a medias o
      terminada. Estuvo con trasPintar mientras medía rectángulos, y ni con dos
      cuadros llegaba: lo que estaba a medias no era el pintado, era la
      transición de la escala. */
-  if (typeof colocarPuntosDeArriba === 'function') colocarPuntosDeArriba();
+  if (typeof colocarLosPuntos === 'function') colocarLosPuntos();
 }
 function refrescarPasos(){
   const b = $('zoomPasos').querySelectorAll('[data-paso]');
@@ -17785,11 +17807,14 @@ function aplicarMedidasSeparador(percha){
    propio titulillo. Ahí el punto se queda donde lo pone la hoja de estilos,
    que además es donde no estorba, porque el problema que esto arregla —el
    punto rozando la cinta— sólo existe cuando la cinta está a su lado. */
-function colocarPuntosDeArriba(){
+function colocarLosPuntos(){
   const bd = document.getElementById('btnCintas');
   const bi = document.getElementById('btnPiedras');
+  const bz = document.getElementById('btnZoom');
+  const bh = document.getElementById('btnHistorial');
   const inner = pg && pg.querySelector('.pg-inner');
   const cab = pg && pg.querySelector('.pg-cabeza');
+  const ver = pg && pg.querySelector('.pg-version');
   if (!inner || !cab) return;
   /* Soltar es devolverle el sitio a la hoja de estilos, que es donde cada
      punto vive cuando no hay medio que calcular. */
@@ -17833,9 +17858,15 @@ function colocarPuntosDeArriba(){
      dos puntos de arriba se colocan contra él, cada uno por su lado. */
   const iniTitulillo = sumaIzq(cab, inner) + trasladoX(cab);
   const finTitulillo = iniTitulillo + cab.offsetWidth;
-  const hojaEnEscena = sumaIzq(inner, stage);
+  /* ANTES ESTO SUMABA HASTA LA ESCENA Y AHORA SOLO HASTA LA HOJA, porque los
+     puntos se mudaron dentro de #pg: ver el comentario del marcado. Su caja
+     de posicionamiento es la de #pg, así que el sitio se escribe en
+     coordenadas de la hoja y el desplazamiento del papel se lo lleva puesto
+     el navegador. Un punto menos que calcular, y el que se quitó era el que
+     había que recalcular en cada cuadro del viaje. */
+  const hojaEnPagina = sumaIzq(inner, pg);
   const pon = (b, centro) => {
-    b.style.left = Math.round(centro - (b.offsetWidth || 34) / 2) + 'px';
+    b.style.left = Math.round(hojaEnPagina + centro - (b.offsetWidth || 34) / 2) + 'px';
     b.style.right = 'auto';
   };
 
@@ -17850,7 +17881,7 @@ function colocarPuntosDeArriba(){
        estorba, porque el problema que esto arregla —el punto rozando la
        cinta— sólo existe cuando la cinta está a su lado. */
     if (cinta - finTitulillo > (bd.offsetWidth || 34))
-      pon(bd, hojaEnEscena + (finTitulillo + cinta) / 2);
+      pon(bd, (finTitulillo + cinta) / 2);
     else suelta(bd);
   }
 
@@ -17877,8 +17908,57 @@ function colocarPuntosDeArriba(){
   if (bi){
     const ancho = bi.offsetWidth || 34;
     if (iniTitulillo > ancho && iniTitulillo < inner.offsetWidth / 2)
-      pon(bi, hojaEnEscena + iniTitulillo / 2);
+      pon(bi, iniTitulillo / 2);
     else suelta(bi);
+  }
+
+  /* ============================================================
+     Y LOS DOS DE ABAJO, CONTRA EL RÓTULO DEL PIE.
+
+     Pedido por el dueño del repo: «a la mitad del titulillo y el borde», que
+     es exactamente lo que ya hacían los dos de arriba contra el de la cabeza.
+     Estaban pegados a las esquinas —medido en un teléfono de 412, el de la
+     hoja entera ocupaba de 10 a 54— y ahí pasa lo mismo que arriba: el filo
+     de pasar hoja va de 0 a 30, o sea veinte píxeles compartidos entre «mira
+     la hoja entera» y «pasa la hoja». Puesto en medio de sus dos vecinos no
+     lo reclama ninguno.
+
+     EL BORDE DE LA DERECHA ES EL QUE SE VE, NO EL ANCHO DE LA HOJA, y esto
+     costó dos prototipos verlo porque las dos pantallas mienten en sentidos
+     contrarios:
+
+     · En TELÉFONO la hoja mide 663 y la pantalla 412: la hoja lleva dentro la
+       columna de glosas, que está fuera esperando a que tires de la G. «La
+       mitad entre el rótulo y el borde de la hoja» dejaba el punto en 453, o
+       sea fuera de la pantalla.
+     · En ESCRITORIO al revés: ahí las glosas SÍ se ven —la hoja va de 258 a
+       842 con el texto hasta 679 y las glosas de 690 en adelante— así que
+       tomar el borde de la columna de texto metía el punto en 624, en mitad
+       del papel, cuando el borde que el lector ve está en 842.
+
+     Lo que vale en las dos es LO QUE ASOMA POR LA VENTANA: el menor entre el
+     ancho de la hoja y lo que de ella cabe en #pg. En teléfono gana la
+     ventana (412) y en escritorio gana la hoja (584), que es exactamente lo
+     que se quería en cada una sin escribir ni un caso aparte.
+
+     Los dos guardias son los mismos de arriba y por lo mismo: si entre el
+     rótulo y el borde no cabe ni el propio punto, no hay medio que calcular y
+     se le devuelve su esquina, que es donde la hoja de estilos lo pone. */
+  if (ver && (bz || bh)){
+    const iniPie = sumaIzq(ver, inner) + trasladoX(ver);
+    const finPie = iniPie + ver.offsetWidth;
+    const bordeDerecho = Math.min(inner.offsetWidth,
+                                  pg.clientWidth - hojaEnPagina);
+    if (bz){
+      const ancho = bz.offsetWidth || 34;
+      if (iniPie > ancho) pon(bz, iniPie / 2);
+      else suelta(bz);
+    }
+    if (bh){
+      const ancho = bh.offsetWidth || 34;
+      if (bordeDerecho - finPie > ancho) pon(bh, (finPie + bordeDerecho) / 2);
+      else suelta(bh);
+    }
   }
 }
 /* Y SE VUELVE A COLOCAR CUANDO ALGUNO DE LOS DOS VECINOS CAMBIA DE TAMAÑO.
@@ -17902,8 +17982,13 @@ function colocarPuntosDeArriba(){
    No hay riesgo de bucle: mover el punto no cambia el ancho de ninguno de los
    dos, y el punto vive en la escena, fuera de la hoja. */
 if (typeof ResizeObserver === 'function'){
-  const ojo = new ResizeObserver(() => colocarPuntosDeArriba());
-  for (const el of [document.getElementById('pgCabeza'), document.getElementById('pgMargin')])
+  const ojo = new ResizeObserver(() => colocarLosPuntos());
+  /* Y el rótulo del pie entra en la lista por lo mismo que el de la cabeza:
+     mide lo que miden sus letras —«RVR» y «NVI» no ocupan igual— y también
+     transiciona al volver de la vista de lejos. */
+  for (const el of [document.getElementById('pgCabeza'),
+                    document.getElementById('pgVersion'),
+                    document.getElementById('pgMargin')])
     if (el) ojo.observe(el);
 }
 function actualizarSeparador(percha, s){
@@ -22369,7 +22454,7 @@ window.addEventListener('resize', () => {
      columna de glosas, o sea dónde cuelga la cinta, o sea dónde está el medio.
      renderPage ya lo coloca, pero lo hace ANTES de que medirZoom deje la hoja
      con sus medidas nuevas. */
-  colocarPuntosDeArriba();
+  colocarLosPuntos();
 });
 })();
 </script>

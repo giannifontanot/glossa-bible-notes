@@ -1285,6 +1285,131 @@ const ATERRIZA = 7000;
     await cerrarParcial(ses, 'el punto de las piedras, ' + comoSeLlama);
   }
 
+  /* ================================================================
+     Y LOS DOS DE ABAJO, CONTRA EL RÓTULO DEL PIE.
+
+     Pedido por el dueño del repo: «a la mitad del titulillo y el borde», que
+     es el mismo encargo que el de arriba mirado desde el pie. Estaban
+     pegados a las esquinas y el de la izquierda se montaba sobre el filo de
+     pasar hoja, igual que le pasaba al de las piedras.
+
+     SE MIDE CONTRA LOS VECINOS, NO CONTRA NÚMEROS ESCRITOS, por lo mismo que
+     el bloque de arriba: dónde cae el rótulo del pie depende del ancho de la
+     columna, de la letra y de la pantalla.
+
+     Y EL BORDE DE LA DERECHA NO ES EL MISMO EN LAS DOS PANTALLAS, que es lo
+     que de verdad vigila este bloque: en teléfono la hoja lleva dentro la
+     columna de glosas, que no se ve, así que el borde es el de la columna de
+     texto; en escritorio las glosas SÍ se ven y el borde es el de la hoja
+     entera. Una cuenta con un solo borde pasa en una pantalla y deja el
+     punto en mitad del papel en la otra, así que se comprueban las dos.
+     ================================================================ */
+  titulo('los dos puntos de abajo caen en medio del rótulo del pie y el borde');
+  for (const [comoSeLlama, opciones] of [['teléfono', {}], ['escritorio', ESCRITORIO]]){
+    const ses = await abrir(opciones);
+    const abajo = await ses.pagina.evaluate(() => {
+      const pg = document.getElementById('pg');
+      const inner = pg.querySelector('.pg-inner');
+      const ver = pg.querySelector('.pg-version');
+      const st = document.querySelector('.stage').getBoundingClientRect();
+      const rb = el => { const r = el.getBoundingClientRect();
+        return { i:Math.round(r.left - st.left), f:Math.round(r.right - st.left),
+                 c:Math.round((r.left + r.right)/2 - st.left) }; };
+      const z = document.getElementById('btnZoom');
+      const h = document.getElementById('btnHistorial');
+      const cuerpo = document.getElementById('pgBody');
+      /* El borde que se ve: lo que de la hoja asoma por la ventana de #pg.
+         Se calcula con rectángulos, que es una cuenta distinta de la del
+         programa —él los suma con desplazamientos—. */
+      const ri = inner.getBoundingClientRect();
+      const rp = pg.getBoundingClientRect();
+      return { zoom:rb(z), hist:rb(h), pie:rb(ver), hoja:rb(inner),
+               cuerpoDer: Math.round(cuerpo.getBoundingClientRect().right - st.left),
+               visibleDer: Math.round(Math.min(ri.right, rp.right) - st.left),
+               filoIzq: rb(document.getElementById('edgeL')),
+               filoDer: rb(document.getElementById('edgeR')) };
+    });
+    di('los puntos de abajo · ' + comoSeLlama, JSON.stringify(abajo));
+    /* La línea de validez: el rótulo del pie tiene que estar centrado y con
+       hueco a los dos lados. Si algún día se va a una esquina, esta cae antes
+       que las otras y avisa de que lo que se mide dejó de existir. */
+    vale('(la prueba es válida) el rótulo del pie tiene hueco a los dos lados · ' +
+         comoSeLlama,
+         abajo.pie.i > 40 && abajo.visibleDer - abajo.pie.f > 40,
+         abajo.pie.i + ' a la izquierda · ' +
+         (abajo.visibleDer - abajo.pie.f) + ' a la derecha');
+    const medioIzq = Math.round((abajo.hoja.i + abajo.pie.i) / 2);
+    const medioDer = Math.round((abajo.pie.f + abajo.visibleDer) / 2);
+    vale('EL DE LA HOJA ENTERA CAE EN MEDIO · ' + comoSeLlama,
+         Math.abs(abajo.zoom.c - medioIzq) <= 1,
+         abajo.zoom.c + ' contra ' + medioIzq);
+    vale('Y EL DEL RASTRO TAMBIÉN · ' + comoSeLlama,
+         Math.abs(abajo.hist.c - medioDer) <= 1,
+         abajo.hist.c + ' contra ' + medioDer);
+    /* Lo que el cambio venía a arreglar: pegado a la esquina, el de la
+       izquierda compartía veinte píxeles con el filo de pasar hoja. */
+    vale('  y ninguno se monta sobre los filos de pasar hoja · ' + comoSeLlama,
+         abajo.zoom.i > abajo.filoIzq.f && abajo.hist.f < abajo.filoDer.i,
+         abajo.zoom.i + '>' + abajo.filoIzq.f + ' · ' +
+         abajo.hist.f + '<' + abajo.filoDer.i);
+    await cerrarParcial(ses, 'los puntos de abajo, ' + comoSeLlama);
+  }
+
+  /* ================================================================
+     Y LOS CUATRO VIAJAN CON LA HOJA CUANDO SE TIRA DE LA G.
+
+     Pedido por el dueño del repo: «que queden anclados y se muevan con el
+     libro cuando abrimos las glosas usando la G». Antes vivían en la escena,
+     hermanos de la hoja, y se quedaban flotando sobre el cajón mientras el
+     papel se iba: medido, el rótulo del pie se corría 251 px y los cuatro
+     puntos no se movían.
+
+     SE COMPARA CONTRA EL RÓTULO DEL PIE y no contra un número: lo que se
+     pidió es que se muevan CON el libro, y el rótulo es una pieza del libro
+     que ya viajaba bien. Cuánto corra el papel depende del ancho de la
+     pantalla, así que un número escrito aquí sería otra prueba de aparato.
+
+     Va solo en teléfono a propósito: en escritorio las glosas se ven sin
+     tirar de nada y el papel no corre —el cajón existe donde no caben las
+     dos columnas—. Eso también se afirma, que es lo que distingue «no se
+     movió porque está anclado» de «no se movió porque no había viaje».
+     ================================================================ */
+  titulo('los cuatro puntos se van con la hoja al abrir el cajón con la G');
+  const conG = await abrir();
+  const viaje = await conG.pagina.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const ids = ['btnZoom','btnHistorial','btnPiedras','btnCintas'];
+    const cx = id => { const r = document.getElementById(id).getBoundingClientRect();
+                       return Math.round((r.left + r.right) / 2); };
+    const pieX = () => Math.round(
+      document.querySelector('#pg .pg-version').getBoundingClientRect().left);
+    const g = document.getElementById('btnGlosas');
+    if (!g || g.hidden) return { sinG:true };
+    const antes = Object.fromEntries(ids.map(i => [i, cx(i)]));
+    const pieAntes = pieX();
+    g.click();
+    await z(2600);
+    const despues = Object.fromEntries(ids.map(i => [i, cx(i)]));
+    return { sinG:false, antes, despues, pieAntes, pieDespues: pieX(),
+             scroll: Math.round(document.getElementById('pg').scrollLeft),
+             ids };
+  });
+  di('el viaje de los cuatro', JSON.stringify(viaje));
+  vale('(la prueba es válida) hay G que tirar', viaje.sinG === false);
+  if (!viaje.sinG){
+    const viajePie = viaje.pieDespues - viaje.pieAntes;
+    /* Sin viaje del papel esto no distingue nada: los cuatro se estarían
+       quietos con razón. */
+    vale('(la prueba es válida) el papel corrió de verdad',
+         viaje.scroll > 100 && viajePie < -100,
+         viaje.scroll + ' de desplazamiento · el rótulo viajó ' + viajePie);
+    for (const id of viaje.ids)
+      vale('  ' + id + ' viaja lo mismo que el rótulo del pie',
+           Math.abs((viaje.despues[id] - viaje.antes[id]) - viajePie) <= 1,
+           (viaje.despues[id] - viaje.antes[id]) + ' contra ' + viajePie);
+  }
+  await cerrarParcial(conG, 'el viaje con la G');
+
   titulo('con la letra al tope, ningún letrero se sale ni se pisa');
   for (const [comoSeLlama, opciones] of [['escritorio', ESCRITORIO], ['teléfono', {}],
                                         ['teléfono estrecho', ESTRECHO_DEDO]]){
