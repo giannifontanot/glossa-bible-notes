@@ -1930,6 +1930,17 @@ const FUERA = `async () => {
   titulo('una etiqueta creada con el panel abierto cae en su sitio');
   const recien = await pa.evaluate(async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
+    /* PRIMERO SE CIERRA EL PANEL, y esto no es limpieza: es la trampa.
+
+       El bloque de arriba deja GLOSAS abierto, y su #indice se pone ENCIMA de
+       la hoja. El pincel del andamio busca texto libre donde apoyar el dedo y
+       lo que encuentra debajo es DIV.ix-item, así que no pinta y devuelve el
+       motivo —«encima del texto hay DIV.ix-item»—. Se ve tal cual en los seis
+       fallos que arrastra glosas.prueba.js en su bloque del filtro, que son de
+       lo mismo y vienen de antes.
+       Se cierra por el botón del pie, que es como se cierra con el dedo. */
+    const cerrarPanel = document.querySelector('#etiquetas .btn.cerrar-pie');
+    if (cerrarPanel){ cerrarPanel.click(); await z(700); }
     const ok = await window.__glosarEn(document.querySelector('#pgBody .v'), 4, 30);
     if (!ok) return { hay:false, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
