@@ -92,23 +92,47 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
       const tope = pg.scrollWidth - pg.clientWidth;
       if (tope < 10) return { sinCarrera:true, tope, asentar };
       const m = document.getElementById('pgMargin').getBoundingClientRect();
-      /* EL MISMO PUNTO DE SIEMPRE —la esquina de abajo de la columna, diez
-         píxeles adentro—, pero metido a la fuerza dentro de la ventana. Un
-         punto fuera no devuelve nada y el toque se pierde; recortado sigue
-         cayendo en la columna mientras la columna se vea, y si no se ve, la
-         afirmación de abajo lo dice en vez de leerlo como un cajón que no
-         quiso moverse. No se cambia por el centro a propósito: ahí viven las
-         notas, y tocar una nota es otra cosa que tocar la columna. */
-      const xIdeal = Math.round(m.left + 10), yIdeal = Math.round(m.bottom - 10);
-      const x = Math.min(Math.max(xIdeal, 2), innerWidth - 2);
-      const y = Math.min(Math.max(yIdeal, 2), innerHeight - 2);
-      const recortado = x !== xIdeal || y !== yIdeal;
-      const enLaVentana = !recortado;
-      const el = document.elementFromPoint(x, y);
-      const quien = el ? (el.id || el.className || el.tagName) : null;
-      const esLaColumna = !!(el && el.closest && el.closest('#pgMargin'));
-      if (!el) return { sinBlanco:true, punto:{ x, y }, enLaVentana, recortado,
-                        tope, asentar, ventana:{ w:innerWidth, h:innerHeight } };
+      /* SE BUSCA UN HUECO DE LA COLUMNA, Y ESTO LO ENSEÑÓ LA CORRIDA.
+
+         El punto de siempre es la esquina de abajo, diez píxeles adentro. En
+         el entorno del dueño del repo ese punto cae encima de una ETIQUETA de
+         una nota —`gl-tag` en 270,681—, y tocar una etiqueta no es tocar la
+         columna: la escena se queda en zoom, el cajón no abre y pintarG
+         esconde el sello. Ahí estaban los seis rojos, y el diagnóstico que se
+         añadió en el commit anterior es lo que lo dijo: `SE QUEDÓ EN ZOOM` y
+         `{oculta:true, enZoom:true, tope:251}`. Aquí no salía porque en esta
+         máquina ese mismo punto cae en el papel de la columna.
+
+         Así que se prueban varios puntos de la columna de abajo arriba y se
+         toca el PRIMERO que sea la columna misma —`el.id === 'pgMargin'`, no
+         un descendiente—, empezando por el de siempre para no cambiar nada
+         donde ya funcionaba. Y si no hay ninguno, se dice qué se encontró en
+         cada uno en vez de leerlo como un cajón que no quiso moverse.
+
+         Tocar la columna y tocar una nota son dos gestos distintos del
+         programa y aquí se prueba el primero; si tocar una etiqueta con el
+         zoom puesto DEBERÍA volver también, eso es otra conversación y otro
+         cambio, y no se decide desde una prueba. */
+      const dentro = (v, lim) => Math.min(Math.max(v, 2), lim - 2);
+      const xTiro = dentro(Math.round(m.left + 10), innerWidth);
+      const candidatos = [dentro(Math.round(m.bottom - 10), innerHeight)];
+      for (const f of [0.9, 0.75, 0.6, 0.45, 0.3, 0.15, 0.03])
+        candidatos.push(dentro(Math.round(m.top + m.height * f), innerHeight));
+      const visto = [];
+      const x = xTiro;
+      let el = null, y = candidatos[0];
+      for (const cy of candidatos){
+        const e = document.elementFromPoint(x, cy);
+        visto.push(cy + ':' + (e ? (e.id || e.className || e.tagName) : 'nada'));
+        if (e && e.id === 'pgMargin'){ el = e; y = cy; break; }
+      }
+      const alPrimerTiro = !!el && visto.length === 1;
+      const quien = el ? el.id : (visto[0] || '').split(':').slice(1).join(':');
+      const esLaColumna = !!el;
+      const recortado = x !== Math.round(m.left + 10);
+      if (!el) return { sinBlanco:true, punto:{ x, y }, visto, recortado,
+                        tope, asentar, ventana:{ w:innerWidth, h:innerHeight },
+                        enZoom: pg.classList.contains('zoom') };
       el.dispatchEvent(new MouseEvent('click', { bubbles:true, clientX:x, clientY:y }));
       /* Un cuadro largo después: con la preferencia puesta ya tiene que estar
          puesto; sin ella tiene que ir todavía por el camino. */
@@ -116,24 +140,27 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
       const pronto = pg.scrollLeft;
       await pausa(900);
       return { fraccionPronto:+(pronto / tope).toFixed(2), final:pg.scrollLeft, tope,
-               quien, esLaColumna, enLaVentana, recortado, punto:{ x, y }, asentar,
-               ventana:{ w:innerWidth, h:innerHeight },
+               quien, esLaColumna, alPrimerTiro, visto, recortado, punto:{ x, y },
+               asentar, ventana:{ w:innerWidth, h:innerHeight },
                enZoom: pg.classList.contains('zoom') };
     });
     di('el cajón al volver', cajon);
     if (cajon.sinBlanco){
-      /* Sin blanco no hay nada que probar, y callarlo sería peor: el bloque
-         entero se saltaba y la suite seguía como si hubiera medido algo. */
-      vale('(la prueba es válida) hay algo que tocar en la columna de glosas',
-           false, JSON.stringify(cajon));
+      /* Sin hueco no hay nada que probar, y callarlo sería peor: el bloque
+         entero se saltaba y la suite seguía como si hubiera medido algo. La
+         lista de lo que se encontró en cada altura va en el detalle: es lo
+         que dice si la columna está tapada de notas o si no está donde se
+         creía. */
+      vale('(la prueba es válida) se encontró un hueco de columna que tocar',
+           false, (cajon.visto || []).join(' · '));
     } else if (!cajon.sinCarrera){
       vale('(la prueba es válida) el vuelo del zoom ya había parado',
            cajon.asentar >= 0, cajon.asentar + ' ms');
-      vale('(la prueba es válida) y el toque cayó en la columna de glosas',
+      vale('(la prueba es válida) y el toque cayó en el papel de la columna',
            cajon.esLaColumna === true,
            cajon.quien + ' en ' + cajon.punto.x + ',' + cajon.punto.y +
-           (cajon.recortado ? ' · RECORTADO A LA VENTANA ' +
-             cajon.ventana.w + 'x' + cajon.ventana.h : ''));
+           (cajon.alPrimerTiro ? '' : ' · tras ' + cajon.visto.length +
+             ' intentos: ' + cajon.visto.join(' · ')));
       if (modo === 'reduce')
         vale('el cajón llega de una vez', cajon.fraccionPronto === 1, cajon.fraccionPronto);
       else
