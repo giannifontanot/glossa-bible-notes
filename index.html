@@ -2033,7 +2033,12 @@
   /* EL MENÚ DE LA CINTA, LA OFERTA Y LA CONFIRMACIÓN se visten como el panel
      del rastro —papel dorado, borde tenue, sombra baja— porque son la misma
      clase de cosa: hojas pequeñas que salen de un sitio concreto y se van. */
-  #sepMenu{ position:absolute; z-index:9; width:min(280px, calc(100% - 16px));
+  /* EL ANCHO VA EN UNA VARIABLE porque hay dos que lo necesitan y tienen que
+     decir lo mismo: el ancho normal del panel, y el TECHO del modo de solo
+     color, que mide lo que mide su contenido pero no puede acabar más ancho
+     que el panel de siempre. Ver #sepMenu.solo-color. */
+  #sepMenu{ position:absolute; z-index:9; --sep-tope:min(280px, calc(100% - 16px));
+            width:var(--sep-tope);
             max-height:64%; display:none; flex-direction:column; overflow-y:auto;
             overscroll-behavior:contain;
             background:linear-gradient(to bottom, #f2e9d6, #e7dbbe);
@@ -2045,6 +2050,44 @@
             transition:opacity .2s ease, transform .28s cubic-bezier(.2,.85,.3,1); }
   #sepMenu::-webkit-scrollbar{ width:0; height:0; display:none; }
   #sepMenu.visible{ opacity:1; transform:translateY(var(--sube, 0px)); }
+  /* Y CUANDO SOLO TRAE LA PALETA, MIDE LO QUE LA PALETA MIDE.
+
+     Esta caja son dos paneles —ver «DOS PANELES EN UNA CAJA» en pintarSepMenu—
+     y el ancho estaba puesto para el de la LISTA, que es el que tiene filas con
+     la referencia y el nombre y por eso se le subió a 330: ahí los 50 px de más
+     son justo lo que dejó de cortarse con puntos suspensivos.
+
+     Tocando la cinta de la hoja no hay filas: hay cuatro discos de color y un
+     rótulo. Medido en un teléfono de 412, el panel salía de 330 para 217 de
+     contenido —113 px de aire, un tercio de la caja— y se leía como lo que
+     era, un panel grande con cuatro botones perdidos arriba a la izquierda.
+
+     Va con max-content y no con un número escrito, que era la otra salida y la
+     peor: el ancho que hace falta aquí depende de cuántos colores haya y de lo
+     que mida el rótulo, y el rótulo crece con --escala-ui —medido: 217 en un
+     teléfono, 196 con el ratón—. Un 220 escrito a mano sería mentira en cuanto
+     alguien añada una tela o suba la letra. Así la caja la miden sus hijos.
+
+     EL TECHO ES EL ANCHO DE SIEMPRE, y no es adorno: estrechar no puede
+     ensanchar nunca. Este modo trae una fila cuando se pide borrar la cinta
+     —la pregunta, con la referencia y el nombre al lado de lo que se va a
+     borrar— y esa fila pide mucho más que la paleta: medido sin techo, el
+     panel se iba a 343 px en un teléfono de 412 y a 329 con el ratón, o sea
+     MÁS ancho que los 330 y los 280 de antes. Con el techo, la paleta sola
+     mide 217 y la pregunta se queda clavada en el ancho de siempre.
+
+     Y el techo va en max-width y NO dentro de un min() junto a max-content.
+     Eso se probó primero y falla en silencio: min() es aritmética y solo
+     admite longitudes, así que `min(max-content, …)` es una declaración
+     inválida y el navegador la tira ENTERA. El panel seguía midiendo 330 y
+     parecía que la regla no llegaba a aplicarse; llegaba y se caía. Las dos
+     propiedades separadas hacen lo mismo y son válidas.
+
+     Y estrecharla no descoloca nada: colocarSepMenu cuelga el panel del borde
+     DERECHO de la cinta —lee offsetWidth después de pintar—, así que lo que se
+     va es el aire de la izquierda y el panel se queda debajo de lo que lo
+     abrió. */
+  #sepMenu.solo-color{ width:max-content; max-width:var(--sep-tope); }
   .sp-tit{ display:block; font:700 calc(10.5px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.14em;
            text-transform:uppercase; color:#8a7746; padding:3px 3px 7px; }
   /* LA PUERTA DE SALIDA, DICHA — la misma que la ventanita y por lo mismo.
@@ -2804,7 +2847,11 @@
        justo lo que se les cortaba con puntos suspensivos. El `calc(100% -
        16px)` sigue mandando por debajo de 346, así que en las pantallas
        estrechas no cambia nada. */
-    #sepMenu, #piedraMenu{ width:min(330px, calc(100% - 16px)); }
+    /* El de la cinta lo dice por su variable, para que el techo del modo de
+       solo color suba con él; el de las piedras no tiene dos modos y lo dice
+       a pelo. */
+    #sepMenu{ --sep-tope:min(330px, calc(100% - 16px)); }
+    #piedraMenu{ width:min(330px, calc(100% - 16px)); }
     /* LAS EQUIS, QUE SON LA SALIDA.
 
        Aquí no se cambia DÓNDE están —arriba a la derecha, que es donde se
@@ -5668,7 +5715,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-SEP-26 17:30';
+window.GLOSS_BUILD = '27-SEP-26 08:00';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -12060,10 +12107,108 @@ function invalidateSnapshot(){
    papel, recuadros y bordes— y cada palabra se dibuja en el lienzo en la
    coordenada exacta donde el navegador la puso en la hoja real.
    Coincide por construcción, no por coincidencia.
+
+   Y HABÍA UN HUECO EN ESO, que es lo que arregla bancoDeLineaBase: de todas
+   las coordenadas, la VERTICAL era la única que no se medía. Se ve en
+   pintarPalabras: la palabra se pinta en p.y + subida, donde p.y sí sale de
+   la hoja —el techo del rectángulo de la palabra— pero `subida` salía de
+   preguntarle AL LIENZO cuánto cree él que sube esa letra sobre su línea
+   base (measureText().fontBoundingBoxAscent).
+
+   Son dos fuentes distintas para el mismo número. El navegador compone el
+   renglón con las métricas que usa para MAQUETAR, y el lienzo contesta con
+   las de la caja envolvente de la tipografía, que son otra tabla del mismo
+   archivo de fuente. Coinciden casi siempre y no tienen por qué: cuando no
+   coinciden, TODAS las palabras se pintan con el mismo desvío, o sea que la
+   foto sale corrida un par de píxeles en vertical, siempre en el mismo
+   sentido, y eso se ve como un brinco al empezar a doblar la hoja y otro al
+   aterrizar.
+
+   Aquí no se reproduce: barridas las dos familias de la hoja por los tamaños
+   de 10 a 56, las dos fuentes dan el MISMO número en las 24 combinaciones. Y
+   es que en este contenedor no están ni Palatino Linotype ni Georgia de
+   verdad, así que lo medido son las sustitutas. Con las de verdad —en un
+   Windows, en un teléfono— no hay nada que garantice el empate.
+   Así que se deja de preguntar y se mide, que es lo que dice el rótulo de
+   arriba y lo que hace ya el resto de esta función.
    ============================================================ */
+/* Dónde cae la línea base respecto del techo del rectángulo, medido en el
+   navegador y no deducido del lienzo.
+
+   SE MIDE EN UN BANCO APARTE Y NO EN LA HOJA, a propósito: la manera directa
+   es meter la sonda dentro del propio renglón que se está midiendo, y eso
+   es mutar el árbol en mitad del recorrido del TreeWalker y a un pelo de los
+   getClientRects de los que depende todo lo demás. El banco lleva el mismo
+   `font` resuelto, y lo que se busca —la distancia del techo del rectángulo
+   a la línea base— depende solo de la tipografía y del tamaño, no de dónde
+   esté el renglón. Comprobado que los dos caminos dan lo mismo.
+
+   La sonda es una caja EN LÍNEA de alto cero: por definición se apoya en la
+   línea base, así que su borde de abajo ES la línea base.
+
+   Y LAS DOS COSAS DEL BANCO DURAN DISTINTO, que es lo que costó un repaso:
+
+   · LA MEMORIA es de cada llamada. Una fuente que termina de cargar después
+     cambiaría el número, y una memoria global se quedaría con el de antes sin
+     que nadie se entere. Por hoja son cinco tipografías, así que guardarla más
+     tiempo no ahorra nada que importe.
+   · LA CAJA es una sola para todo el programa. Aquí estuvo colgando de la
+     llamada igual que la memoria, y era una fuga: cada medirPalabras se hacía
+     la suya, la metía en el cuerpo y no la quitaba nunca. Y no se llama una
+     vez por hoja —makeSnapshot retrata la hoja viva y sus DOS vecinas, y se
+     vuelve a llamar en cada repintado—, así que se acumulaban. Medido en un
+     teléfono: 2 cajas al arrancar, 14 tras pasar tres hojas, 34 tras ocho, y
+     creciendo mientras dure la lectura. Lo levantó la revisión de Codex.
+
+     Se arregla reusándola, y no quitándola al final de cada pasada, que era la
+     otra salida: quitarla y volver a crearla es el mismo trabajo repetido en
+     cada repintado, y lo que hace falta es que haya UNA, no que no haya
+     ninguna entre medias. Se comprueba isConnected por si alguien limpia el
+     cuerpo por debajo. */
+let cajaLineaBase = null;
+function bancoDeLineaBase(){
+  const memoria = new Map();
+  return (tipo, variante) => {
+    const clave = tipo + '|' + (variante || 'normal');
+    if (memoria.has(clave)) return memoria.get(clave);
+    if (!cajaLineaBase || !cajaLineaBase.isConnected){
+      cajaLineaBase = document.createElement('div');
+      /* Con nombre, como #ghost y por lo mismo: es una pieza de andamio que
+         vive en el documento, y sin nombre la única manera de encontrarla —de
+         fuera o desde el banco de pruebas— es adivinarla por su estilo. La
+         afirmación que vigila que haya UNA y no treinta cuelga de esto. */
+      cajaLineaBase.id = 'bancoLinea';
+      cajaLineaBase.setAttribute('aria-hidden', 'true');
+      cajaLineaBase.style.cssText = 'position:fixed;left:-99999px;top:0;white-space:nowrap;' +
+                                    'pointer-events:none;margin:0;padding:0;border:0';
+      document.body.appendChild(cajaLineaBase);
+    }
+    const caja = cajaLineaBase;
+    let v = null;
+    try {
+      caja.textContent = '';
+      caja.style.font = tipo;
+      /* después del atajo `font`, que repone las longhands de su familia */
+      caja.style.fontVariantCaps = variante || 'normal';
+      const sonda = document.createElement('span');
+      sonda.style.cssText = 'display:inline-block;width:0;height:0;padding:0;' +
+                            'margin:0;border:0;vertical-align:baseline';
+      const texto = document.createTextNode('Hxg');
+      caja.appendChild(sonda); caja.appendChild(texto);
+      const rango = document.createRange();
+      rango.setStart(texto, 0); rango.setEnd(texto, 3);
+      const r = rango.getClientRects()[0];
+      const base = sonda.getBoundingClientRect().bottom;
+      if (r && r.height > 0 && isFinite(base)) v = base - r.top;
+    } catch(e){ v = null; }
+    memoria.set(clave, v);
+    return v;
+  };
+}
 function medirPalabras(hostEl){
   const host = hostEl.getBoundingClientRect();
   const salida = [];
+  const lineaBase = bancoDeLineaBase();
   /* Las glosas van torcidas, y un rectángulo de texto girado devuelve su caja
      envolvente, no su posición real: medir así dejaría las letras corridas.
      Se enderezan un instante para medirlas en limpio, se apunta el ángulo y el
@@ -12131,6 +12276,10 @@ function medirPalabras(hostEl){
       salida.push({ t:m[0], x:r.left - host.left, y:r.top - host.top,
                     w:r.width, h:r.height, f:tipo, f0:tipo0, px:est.fontSize,
                     c:est.color, e:esp, vc:vers,
+                    /* la subida hasta la línea base, MEDIDA. Ver
+                       bancoDeLineaBase; nula si no se pudo, y entonces
+                       pintarPalabras vuelve a lo que diga el lienzo. */
+                    base: lineaBase(tipo, vers),
                     a: j ? j.a : 0, gx: j ? j.gx : 0, gy: j ? j.gy : 0 });
     }
   }
@@ -12165,6 +12314,13 @@ function pintarPalabras(g, palabras){
       const m = g.measureText('Hxg');
       subida = m.fontBoundingBoxAscent || m.actualBoundingBoxAscent || p.h * 0.8;
     }
+    /* LA SUBIDA MEDIDA MANDA SOBRE LA DEDUCIDA. p.base es lo que contestó el
+       navegador —ver bancoDeLineaBase— y `subida` lo que cree el lienzo. Los
+       dos dicen lo mismo casi siempre; cuando no, el que acierta es el que
+       compuso el renglón, porque la foto tiene que caer encima de ÉL.
+       El respaldo se queda por si el banco no pudo medir: perder la línea
+       base entera sería mucho peor que confiar en el lienzo. */
+    const sube = (p.base != null && isFinite(p.base)) ? p.base : subida;
     g.fillStyle = p.c;
     /* si la palabra vive en una glosa torcida, se gira el lienzo igual que
        la caja: mismo ángulo y mismo centro que en la hoja viva */
@@ -12178,10 +12334,10 @@ function pintarPalabras(g, palabras){
       g.save();
       g.translate(p.x, 0);
       g.scale(p.w / anchoLienzo, 1);
-      g.fillText(p.t, 0, p.y + subida);
+      g.fillText(p.t, 0, p.y + sube);
       g.restore();
     } else {
-      g.fillText(p.t, p.x, p.y + subida);
+      g.fillText(p.t, p.x, p.y + sube);
     }
     if (p.a) g.restore();
   }
@@ -20090,6 +20246,13 @@ function pintarSepMenu(){
      Quitar una cinta no se pierde con esto: la equis para hacerlo vive EN la
      propia cinta de la hoja, al lado de la que se está tocando, que es donde
      se busca. Ver montarSeparador. */
+  /* Y LOS DOS PANELES NO MIDEN LO MISMO. El de la lista necesita su ancho para
+     las filas; el de la cinta son cuatro discos y sobraba un tercio de caja.
+     La marca va AQUÍ y no en abrirSepMenu porque aquí es donde se decide qué
+     se pinta: pintarSepMenu se vuelve a llamar sola —al borrar, al renombrar,
+     al cambiar de color— y una clase puesta solo al abrir se quedaría vieja en
+     cuanto el panel cambiara de modo sin cerrarse. Ver #sepMenu.solo-color. */
+  $('sepMenu').classList.toggle('solo-color', !!s);
   if (s){
     /* LA PREGUNTA DE BORRAR TIENE QUE CABER AQUÍ, y por poco se queda fuera.
 
