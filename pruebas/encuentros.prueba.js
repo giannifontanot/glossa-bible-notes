@@ -183,6 +183,118 @@ const IR_A = `async (sec) => {
   vale('(la prueba es válida) y la tecla se mandó desde dentro del marco', mandada === true);
   vale('ESCAPE DESDE EL MARCO CIERRA EL PANEL', sigue === false);
 
+  /* ──────────────────────────────────────────────────────────────
+     Y QUE ESA SALIDA NO SE LLEVE POR DELANTE LO QUE ESCRIBE EL LECTOR.
+
+     Dentro del árbol, Escape ya significaba algo antes de que Glossa lo
+     tocara: el texto de una hoja se edita en un <textarea> y esa tecla
+     CANCELA la edición y devuelve el texto de antes. Con el puente puesto tal
+     cual, la misma pulsación hacía las dos cosas —cancelaba la edición Y
+     cerraba la pestaña entera—. Medido antes de arreglarlo: el panel se
+     cerraba; después, sigue abierto. Lo levantó la revisión de Codex.
+
+     TRES COSAS DE CÓMO SE PRUEBA, Y NINGUNA ES CAPRICHO:
+
+     · LA TECLA VA DE VERDAD, con p.keyboard. El bloque de arriba despacha un
+       KeyboardEvent a mano en window, y ése —con el foco en el <body>— pasa
+       igual de verde con el fallo puesto y sin él: no prueba nada de esto. El
+       arreglo se apoya en DÓNDE ESTÁ EL FOCO cuando llega la tecla, así que el
+       foco tiene que ser el de verdad y la tecla tiene que entrar por donde
+       entra la del teclado.
+     · EL DOBLE TOQUE VA CON EL RATÓN DE PLAYWRIGHT y no con PointerEvent
+       hechos a mano, que es lo que pide esta carpeta para los gestos. Aquí
+       sería peor: el árbol llama setPointerCapture(e.pointerId) en su
+       pointerdown, y un pointerId inventado no corresponde a ningún puntero
+       vivo —el navegador tira NotFoundError y el gesto se queda a medias—. El
+       ratón de Playwright manda pulsaciones reales, con su pointerId real, que
+       es justo el camino que la regla de la carpeta quiere recorrer.
+     · Y EL SEGUNDO TOQUE CAE TORCIDO, dos píxeles al lado. Por debajo de
+       dragThreshold (5) sigue siendo un toque; caer dos veces en el mismo
+       píxel exacto es lo que no hace ningún dedo.
+
+     La última afirmación es la que impide arreglar esto de más: si el puente se
+     callara siempre, la pestaña volvería a quedarse sin salida, que es el fallo
+     que el puente vino a arreglar. */
+  titulo('Escape dentro del editor del árbol cancela la edición y NO cierra el panel');
+  await irA('oracion');
+  const mOra = p.frames().find(f => /oracion/.test(f.url()));
+  const hayArbol = !!mOra;
+  if (hayArbol) await mOra.waitForSelector('#add-btn', { timeout:10000 });
+  vale('(la prueba es válida) el árbol está cargado', hayArbol);
+
+  /* El punto medio de algo de dentro del marco, en coordenadas de la ventana:
+     el ratón es de la página de fuera y no sabe nada del marco. */
+  const enPantalla = async (sel) => {
+    const d = await mOra.evaluate(s => {
+      const e = document.querySelector(s); if (!e) return null;
+      const r = e.getBoundingClientRect();
+      return { x:r.x + r.width / 2, y:r.y + r.height / 2 };
+    }, sel);
+    const m = await p.evaluate(() => {
+      const e = document.querySelector('.ora-marco'); const r = e.getBoundingClientRect();
+      return { x:r.x, y:r.y };
+    });
+    return d && { x:m.x + d.x, y:m.y + d.y };
+  };
+  const dobleToque = async (pt) => {
+    await p.mouse.move(pt.x, pt.y);
+    await p.mouse.down(); await p.mouse.up();
+    await p.mouse.move(pt.x + 2, pt.y - 1);
+    await p.mouse.down(); await p.mouse.up();
+    await p.waitForTimeout(500);
+  };
+  const textoHoja = () => mOra.evaluate(() => {
+    const e = document.querySelector('.leaf .leaf-text');
+    return e ? e.textContent.trim() : null;
+  });
+  const editores = () => mOra.evaluate(() => document.querySelectorAll('.leaf-editor').length);
+
+  let guardado = null, trasEscape = null, abiertoAntes = null, sigueAbierto = null;
+  let editoresAlEditar = 0, editoresTrasEscape = 0, cerradoSinEditor = null;
+  if (hayArbol){
+    await mOra.evaluate(() => document.getElementById('add-btn').click());
+    await p.waitForTimeout(400);
+    const hoja = await enPantalla('.leaf');
+
+    /* Primero una hoja CON TEXTO GUARDADO: si se cancelara sobre una hoja
+       vacía, «el texto volvió al de antes» saldría verde sin decir nada. */
+    await dobleToque(hoja);
+    await p.keyboard.type('SEÑOR, ACUÉRDATE');
+    await p.keyboard.press('Enter');          // Intro guarda, Escape cancela
+    await p.waitForTimeout(400);
+    guardado = await textoHoja();
+
+    await dobleToque(hoja);
+    editoresAlEditar = await editores();
+    await p.keyboard.type('ESTO NO SE DEBE GUARDAR');
+    abiertoAntes = await p.evaluate(() => !![...document.querySelectorAll('.rollo, #canto')]
+      .find(r => getComputedStyle(r).display !== 'none'));
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(900);
+    trasEscape = await textoHoja();
+    editoresTrasEscape = await editores();
+    sigueAbierto = await p.evaluate(() => !![...document.querySelectorAll('.rollo, #canto')]
+      .find(r => getComputedStyle(r).display !== 'none'));
+
+    /* Y sin nadie escribiendo, la tecla vuelve a ser la salida. */
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(900);
+    cerradoSinEditor = await p.evaluate(() => ![...document.querySelectorAll('.rollo, #canto')]
+      .find(r => getComputedStyle(r).display !== 'none'));
+  }
+  di('texto guardado / tras Escape', guardado + ' → ' + trasEscape);
+  vale('(la prueba es válida) el doble toque abrió el editor', editoresAlEditar === 1,
+       editoresAlEditar);
+  vale('(la prueba es válida) y había texto guardado que perder',
+       guardado === 'SEÑOR, ACUÉRDATE', String(guardado));
+  vale('(la prueba es válida) el panel estaba abierto', abiertoAntes === true);
+  vale('la edición se canceló', trasEscape === guardado, String(trasEscape));
+  vale('Y EL PANEL NO SE CIERRA CON ESE MISMO ESCAPE', sigueAbierto === true,
+       sigueAbierto ? 'abierto' : 'CERRADO — la tecla hizo dos cosas');
+  vale('  el editor sí se cerró', editoresTrasEscape === 0, editoresTrasEscape);
+  vale('  y sin nadie escribiendo, Escape sigue cerrando el panel',
+       cerradoSinEditor === true);
+
   /* ---------------- y la barra no se mueve con el libro ---------------- */
   /* SE PIDIÓ QUE ESTA BARRA SE SALGA DE «LA INTERFAZ CRECE CON EL LIBRO», y
      eso es justo lo que no se puede comprobar mirando la barra sola: si el
