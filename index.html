@@ -2575,6 +2575,19 @@
      lleva unos 70 px de un renglón que ahora tiene tres botones; en columna se
      queda en la anchura de la palabra y el renglón entra sin estrujar a nadie.
      Y sigue siendo un <label>: el toque en la palabra cuenta igual. */
+  /* LA CASILLA DE NEGRITA, y va EN LÍNEA y no en columna como la de la
+     sombra de la piedra: aquélla vive en un pie de botones donde lo que manda
+     es el centrado vertical; ésta comparte renglón con un desplegable, así que
+     lo que tiene que cuadrar es la línea base. El rótulo va a la derecha de la
+     casilla porque se lee «tipografía tal, y en negrita».
+     Blanco de toque: el renglón entero es <label>, así que se acierta en todo
+     el texto y no solo en el cuadrito de 15 px. */
+  .casilla{ flex:0 0 auto; display:inline-flex; align-items:center; gap:5px;
+            cursor:pointer; white-space:nowrap;
+            font:400 calc(12px * var(--escala-ui, 1))/1 var(--ui); color:#e8dcc0;
+            -webkit-tap-highlight-color:transparent; }
+  .casilla input{ width:15px; height:15px; margin:0; accent-color:#b8892b;
+                  cursor:pointer; flex:0 0 auto; }
   .pm-sombra{ flex:0 0 auto;
               display:flex; flex-direction:column; align-items:center; gap:3px;
               cursor:pointer;
@@ -3923,6 +3936,13 @@
   #btnVerEtiquetas, #btnElegirGlosas{ width:auto; flex:0 0 auto; min-height:32px;
                                       padding:0 12px; letter-spacing:.04em; }
   #ctrlEtiquetas.sin-chips #filaFiltros{ display:none; }
+  /* EL GRUPO DE LETRA, ESCONDIDO HASTA QUE SE PIDE. Misma mecánica que la tira
+     de chips —una clase en el panel, no un display en el nodo— para que las
+     tres puertas se apaguen y se enciendan por el mismo camino y nadie tenga
+     que acordarse de dos maneras distintas de esconder lo mismo. */
+  #ctrlEtiquetas.sin-letra #ctrlLetra{ display:none; }
+  #ctrlLetra{ display:grid; grid-template-columns:1fr; gap:6px; margin-bottom:6px; }
+  #btnLetraGlosas{ width:auto; flex:0 0 auto; min-height:32px; }
   /* EL PUNTO DE «HAY FILTRO Y NO SE VE». Lo enciende marcarFiltroEscondido,
      que es quien sabe las dos cosas a la vez. Va después de la palabra y no
      encima del botón: lo que dice es que ahí dentro queda algo puesto, y el
@@ -4068,7 +4088,28 @@
   #barraGrupo .tagctl.renombrando{ background:rgba(184,137,43,.12);
             border-radius:7px; padding:5px 6px; margin:0 -6px; }
   #barraGrupo .tagctl{ display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
-  #barraGrupo .tagctl input{ flex:1 1 90px; min-width:0; }
+  /* LA CAJA DE ESCRIBIR UNA ETIQUETA, CON LETRA DE VERDAD.
+
+     Heredaba la de `input, select` —.7rem por la escala, o sea 11.2 px— y con
+     eso no se lee lo que uno acaba de teclear. El dueño del repo pidió subirla
+     y los 16 salen de cuatro cosas que apuntan al mismo sitio:
+
+     · EN iOS, UN CAMPO POR DEBAJO DE 16 px HACE QUE LA PÁGINA SE ACERQUE SOLA
+       al enfocarlo. Es el argumento que decide, porque no es de gusto: a 11.2
+       el libro pega un salto de zoom cada vez que se va a escribir una
+       etiqueta, y salir de ahí es cosa del lector.
+     · SU HERMANA YA ESTABA EN 16. La caja de etiquetas del menú de la glosa
+       —#menu .tagbox .tagctl input— se subió a 16 en pantalla de dedo hace
+       tiempo. Dos cajas que hacen lo mismo con dos letras distintas era el
+       defecto, no el tamaño de ésta.
+     · SE LEE. 11.2 px es texto de pie de página para algo que se escribe.
+     · Y CABE: el campo es flex:1 1 90px y la fila envuelve, así que en un panel
+       estrecho se encoge en vez de desbordar.
+
+     Va en las DOS pantallas y no solo en la de dedo, que es donde está su
+     hermana: la queja fue que no se lee, y eso pasa con ratón igual. */
+  #barraGrupo .tagctl input{ flex:1 1 90px; min-width:0;
+                             font-size:calc(16px * var(--escala-ui, 1)); }
   .ajuste{ display:flex; align-items:center; gap:6px; padding:0; min-width:0; }
   /* Y EL [hidden] TIENE QUE GANARLE. El display:none del navegador para
      [hidden] es de la hoja del propio navegador, así que cualquier regla de
@@ -4733,6 +4774,12 @@
                        renglones donde los parte el margen; si esto se queda
                        atrás, el espejo deja de serlo. */
                     font-size:var(--fs-glosa, calc(var(--fs, 15px) * .93)); line-height:1.35;
+                    /* Y el peso y el espaciado de la nota, por lo mismo: el
+                       espejo parte los renglones donde los parte el margen, y
+                       eso deja de ser verdad en cuanto una de las tres medidas
+                       se queda atrás. Los escribe pintarIndice. */
+                    font-weight:var(--peso-glosa, 400);
+                    letter-spacing:var(--esp-glosa, 0em);
                     transition:box-shadow .22s ease, opacity .18s ease,
                                transform .38s cubic-bezier(.2,.85,.3,1); }
   #indice .ix-item:hover{ box-shadow:0 0 0 2px rgba(184,137,43,.55); }
@@ -5245,8 +5292,23 @@
        idénticos— y confuso para quien lo usa: dos filas seguidas con los
        mismos tres botones y un rótulo de una palabra de diferencia. Más de una
        vez se encogió el libro entero queriendo encoger una nota. -->
+  <!-- LA NEGRITA VA EN EL RENGLÓN DE LA TIPOGRAFÍA, pedida así, y encaja:
+       las dos cosas son «con qué letra se compone esto», y el select no
+       llenaba el renglón ni de lejos. La casilla va DESPUÉS del select y no
+       antes, porque se lee «tipografía tal, y en negrita», no al revés. -->
   <div class="ajuste"><span class="lbl">tipografía</span><span class="ctrl">
     <select id="selFuente" title="Tipo de letra"></select>
+    <label class="casilla" for="chkNegrita"><input type="checkbox" id="chkNegrita" />
+      <span>Bold</span></label>
+  </span></div>
+  <!-- EL ESPACIADO, DEBAJO DE LA TIPOGRAFÍA. Riel ancho por lo mismo que el
+       sepia: cuanto más largo, más fino el ajuste con el mismo pulgar. Sus
+       ocho topes y de dónde salen sus límites están contados en ESP_MIN. -->
+  <div class="ajuste ancho riel-fila"><span class="lbl">espaciado</span><span class="ctrl">
+    <input type="range" id="espaciado" min="-2" max="5" step="1" value="0"
+           aria-label="espaciado entre letras"
+           title="Separa o junta las letras del texto, sin tocar las glosas" />
+    <span class="medida" id="espaciadoAhora">0</span>
   </span></div>
   <!-- LOS MÁRGENES SE OCULTAN, PERO SIGUEN AHÍ.
 
@@ -5362,7 +5424,7 @@
      alguna vez— y lo que hay debajo es el índice de glosas, que es a lo que se
      entra a este panel. Quien quiera filtrar lo pide; quien venga a leer sus
      notas no tiene que apartar nada primero. -->
-<div id="ctrlEtiquetas" class="sin-chips">
+<div id="ctrlEtiquetas" class="sin-chips sin-letra">
 <!-- EL TAMAÑO DE LA LETRA DE LAS GLOSAS, Y LO PRIMERO DEL PANEL.
 
      Venía de FORMATO, donde estaba pegado al tamaño de la hoja: dos filas
@@ -5379,11 +5441,32 @@
      El rótulo pasa de «glosa» a «tamaño»: allí nombraba de QUÉ era el tamaño
      —había dos—, y aquí, dentro de GLOSAS, «glosa» sería decir dos veces
      dónde estamos y ninguna qué hace. -->
-<div class="ajuste"><span class="lbl">tamaño</span><span class="ctrl">
-  <button class="btn" id="fsGlosaDown" title="Letra de la glosa, un punto menos">A−</button>
-  <select id="fsGlosaAhora" title="Tamaño de letra de las glosas"></select>
-  <button class="btn" id="fsGlosaUp" title="Letra de la glosa, un punto más">A+</button>
-</span></div>
+<!-- Y AHORA VIVE DENTRO DE «LETRA», que es el tercer modo de este panel.
+
+     Estaba suelto arriba del todo, y eso era lo correcto mientras fuera lo
+     único que había: un solo control no necesita puerta. Con la negrita y el
+     espaciado al lado ya son tres, y tres controles permanentes encima del
+     índice le comen al índice lo que el índice necesita, que es alto. Ahora
+     los tres se abren y se cierran juntos, igual que la tira de filtrar.
+
+     El grupo NO se borra ni se rehace al abrir: se enseña y se esconde con una
+     clase, como la tira de chips, porque dentro hay un desplegable con el
+     tamaño y rehacerlo cerraría la lista desplegada bajo el dedo. -->
+<div id="ctrlLetra">
+  <div class="ajuste"><span class="lbl">tamaño</span><span class="ctrl">
+    <button class="btn" id="fsGlosaDown" title="Letra de la glosa, un punto menos">A−</button>
+    <select id="fsGlosaAhora" title="Tamaño de letra de las glosas"></select>
+    <button class="btn" id="fsGlosaUp" title="Letra de la glosa, un punto más">A+</button>
+    <label class="casilla" for="chkNegritaGlosa"><input type="checkbox" id="chkNegritaGlosa" />
+      <span>Bold</span></label>
+  </span></div>
+  <div class="ajuste ancho riel-fila"><span class="lbl">espaciado</span><span class="ctrl">
+    <input type="range" id="espaciadoGlosa" min="-2" max="5" step="1" value="0"
+           aria-label="espaciado entre letras de las glosas"
+           title="Separa o junta las letras de las glosas" />
+    <span class="medida" id="espaciadoGlosaAhora">0</span>
+  </span></div>
+</div>
 
 <!-- SIN EL RÓTULO «ETIQUETAS», que costaba una columna fija de 96 px en
      teléfono para nombrar lo que los dos botones ya dicen: este panel se llama
@@ -5405,6 +5488,9 @@
      Los ids se quedan como están: renombrarlos tocaría el guion, las tres
      suites que los buscan y nada de eso se ve desde la pantalla. -->
 <div class="ajuste fila-etiq">
+  <button type="button" class="btn" id="btnLetraGlosas"
+          aria-pressed="false"
+          title="Tamaño, negrita y espaciado de las glosas">letra</button>
   <button type="button" class="btn" id="btnVerEtiquetas"
           aria-pressed="false"
           title="Filtrar las glosas por etiqueta o por día">filtrar</button>
@@ -5741,7 +5827,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '27-SEP-26 17:54';
+window.GLOSS_BUILD = '27-SEP-26 18:25';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5810,8 +5896,14 @@ const PAGE_CSS = `
    ve una foto con filtro, no papel viejo. Los valores de fábrica quedan como
    respaldo en el var() —si algún día alguien compone una hoja sin pasar por
    prepararHoja, sale blanca en vez de transparente. */
+/* EL PESO Y EL ESPACIADO VIVEN AQUÍ, en la raíz de la hoja, para que los
+   herede todo el texto de la obra sin ir clase por clase. Y SIN !important a
+   propósito: quien necesite de verdad los 0.12 em del ajuste de texto de su
+   navegador o de su sistema los sigue teniendo, y este riel no se los pisa.
+   Ver ESP_MIN. Las glosas se salen de aquí en .gl, que es lo que se pidió. */
 .pg{ background:var(--papel,#faf7f1); color:var(--tinta,#241f1a);
      font-family:var(--fam, Georgia, 'Times New Roman', serif);
+     font-weight:var(--peso, 400); letter-spacing:var(--esp, 0em);
      padding:22px var(--mx,18px) 18px; height:100%; width:100%; box-sizing:border-box; }
 .pg-inner{ position:relative; display:flex; flex-direction:column; height:100%; box-sizing:border-box; }
 .pg-cols{ display:flex; flex:1 1 auto; min-height:0; box-sizing:border-box; }
@@ -6382,6 +6474,14 @@ const PAGE_CSS = `
 .gl{ font-family:'Segoe UI','Avenir Next',-apple-system,'Noto Sans',Roboto,
                  'Helvetica Neue',Arial,sans-serif;
      font-size:var(--fs-glosa, calc(var(--fs,15px) * .93)); line-height:1.35;
+     /* LA GLOSA SE SALE DEL PESO Y DEL ESPACIADO DE LA HOJA, y esto es el
+        encargo dicho con dos palabras: «excepto las glosas». Como la nota
+        cuelga del papel, sin estas dos líneas heredaría lo del libro. Y no se
+        pone a 400 y 0 a secas: se le dan SUS PROPIAS variables, porque la
+        glosa tiene su propio mando —GLOSAS > LETRA— con su casilla y su riel.
+        Los respaldos del var() son lo de fábrica, así que una hoja compuesta
+        sin pasar por prepararHoja sale con la nota normal. */
+     font-weight:var(--peso-glosa, 400); letter-spacing:var(--esp-glosa, 0em);
      border-radius:3px; padding:2px 6px; white-space:pre-wrap; box-sizing:border-box; }
 /* El hueco de giro: la caja se estrecha 4px por lado para que sus esquinas
    tengan a dónde asomarse. Sin esto, .pg-margin las recorta. */
@@ -6783,6 +6883,53 @@ const guionesOn = false;
    versículo volados encima sin que los renglones se toquen. */
 const AIRES = [['reducida', 1.38], ['normal', 1.62], ['amplia', 1.95]];
 let interlineado = 1.62;
+/* ============================================================
+   LA NEGRITA Y EL ESPACIADO, y de dónde salen sus límites.
+
+   Pedidos los dos: una casilla para «poner el texto un poquito más visible» y
+   un riel de separación entre letras que, con sus palabras, «no es para jugar
+   con el texto, es para darle la oportunidad de ajustar fino».
+
+   EL ESPACIADO VA EN CENTÉSIMAS DE EM, y el riel se mueve de −2 a +5. Cinco
+   opiniones y una que decide:
+
+   · EL TIPÓGRAFO. En texto corrido el ajuste fino vive entre −0.02 y +0.05 em.
+     Por encima de +0.05 las palabras dejan de cohesionar: el ojo empieza a
+     leer letras sueltas en vez de palabras y la lectura se frena, que es lo
+     contrario de lo que se viene a buscar. Por debajo de −0.02, una serif a
+     tamaño pequeño se empasta.
+   · EL DE ACCESIBILIDAD. La regla 1.4.12 de WCAG habla de 0.12 em, y hay
+     lectores con dislexia a los que ese espaciado les sirve de verdad. Pediría
+     un techo mucho más alto.
+   · EL DE LA REPAGINACIÓN. Cada tope repagina el libro entero, y el corte de
+     esta Biblia es SINCRONIZADO entre versiones: más espaciado son menos
+     palabras por hoja y más hojas. Pide pocos topes y no un riel continuo.
+   · EL DE LA UNIDAD. En em y jamás en píxeles. El libro va de 10 a 26 px: un
+     espaciado clavado en píxeles es invisible a 26 y destroza a 10. Esta no
+     se negocia.
+   · Y EL DUEÑO DEL REPO, citado arriba, que es quien desempata: «ajustar
+     fino» descarta el 0.12 como objetivo de diseño. 0.12 em no es un ajuste
+     fino, es otra composición.
+
+   Así que ocho topes de una centésima, de −0.02 a +0.05, con el 0 —lo de
+   fábrica— cayendo en un tope de verdad y no entre dos.
+
+   Y LO DEL DE ACCESIBILIDAD NO SE TIRA: el espaciado se escribe SIN
+   !important, así que quien de verdad necesite los 0.12 em con el ajuste de su
+   navegador o de su sistema los sigue teniendo, y este riel no se los pisa.
+   Ese lector no se atiende estropeando un control de ajuste fino.
+   ============================================================ */
+const ESP_MIN = -2, ESP_MAX = 5;          /* centésimas de em */
+let espaciado = 0;                        /* el libro */
+let espaciadoGlosa = 0;                   /* las glosas, su propio ajuste */
+/* LA NEGRITA PIDE 600 Y NO 700, y con las serifas del libro acaba dando lo
+   mismo: Georgia y Palatino solo traen 400 y 700, y el emparejado de CSS sube
+   al 700 cuando le piden 600. Se pide 600 igualmente porque es lo que se
+   quiso decir —un escalón, no el máximo— y porque el día que aquí entre una
+   fuente variable, 600 será un peso de verdad y esta línea no habrá que
+   volver a pensarla. */
+const PESO_FUERTE = 600;
+let negrita = false, negritaGlosa = false;
 /* Los márgenes SÍ son una variable independiente: cambian el ancho del
    texto sin tocar el número de columnas. El "ancho de columna" no lo es
    —ya lo mueven las columnas, el ancho de hoja y el tamaño de letra. */
@@ -6796,8 +6943,14 @@ let margen = 1;
    firma es lo único que decide si la foto guardada todavía sirve, y una hoja
    del color de antes girando sobre la mesa de ahora se nota igual que si
    cambiara de letra. */
+/* Y LOS CUATRO NUEVOS ENTRAN AQUÍ, que es lo que se olvida. La firma decide
+   si la foto del pliegue sigue sirviendo; una hoja con otra negrita o con otro
+   espaciado corta los renglones en otro sitio, así que una foto tomada antes
+   retrata un texto que ya no es. Sin esto, el pliegue enseñaría la hoja de
+   antes hasta que cambiara cualquier otra cosa. */
 const estiloFirma = () => [fontSize, fontSizeGlosa, columns, fuente, alineacion, guionesOn,
-  interlineado, margen, version, sepia, pg.offsetWidth].join('|');
+  interlineado, margen, version, sepia, negrita, espaciado,
+  negritaGlosa, espaciadoGlosa, pg.offsetWidth].join('|');
 /* Lo que va en el CONTENEDOR de la hoja, no en el cuerpo: tipo de letra y
    márgenes. Va aparte porque son propiedades de .pg, y tiene que llamarse
    en los TRES lugares donde se compone una hoja —la real, el mapa de
@@ -6820,6 +6973,13 @@ function prepararHoja(el, w, h){
      esté donde esté. */
   el.style.setProperty('--fs', fontSize + 'px');
   el.style.setProperty('--fs-glosa', fontSizeGlosa + 'px');
+  /* La negrita y el espaciado, por el mismo sitio y por la misma razón que
+     --fs: los llevan el texto del libro Y las glosas del margen y del pie,
+     que son hermanas suyas y no hijas. Cada familia tiene los suyos. */
+  el.style.setProperty('--peso', negrita ? PESO_FUERTE : 400);
+  el.style.setProperty('--esp', (espaciado / 100) + 'em');
+  el.style.setProperty('--peso-glosa', negritaGlosa ? PESO_FUERTE : 400);
+  el.style.setProperty('--esp-glosa', (espaciadoGlosa / 100) + 'em');
 }
 function aplicarEstilo(bodyEl){
   const v = bodyEl.style;
@@ -6829,6 +6989,10 @@ function aplicarEstilo(bodyEl){
   v.setProperty('--ali', alineacion);
   v.setProperty('--guion', guionesOn ? 'auto' : 'none');
   v.setProperty('--lh', interlineado);
+  v.setProperty('--peso', negrita ? PESO_FUERTE : 400);
+  v.setProperty('--esp', (espaciado / 100) + 'em');
+  v.setProperty('--peso-glosa', negritaGlosa ? PESO_FUERTE : 400);
+  v.setProperty('--esp-glosa', (espaciadoGlosa / 100) + 'em');
 }
 const estiloEnLinea = () =>
   'font-size:' + fontSize + 'px;--fs:' + fontSize + 'px;--fs-glosa:' + fontSizeGlosa + 'px' +
@@ -6836,7 +7000,10 @@ const estiloEnLinea = () =>
   ';text-align:' + alineacion + ';--ali:' + alineacion +
   ';hyphens:' + (guionesOn?'auto':'none') + ';-webkit-hyphens:' + (guionesOn?'auto':'none') +
   ';--guion:' + (guionesOn?'auto':'none') +
-  ';line-height:' + interlineado + ';--lh:' + interlineado;
+  ';line-height:' + interlineado + ';--lh:' + interlineado +
+  ';--peso:' + (negrita ? PESO_FUERTE : 400) + ';--esp:' + (espaciado / 100) + 'em' +
+  ';--peso-glosa:' + (negritaGlosa ? PESO_FUERTE : 400) +
+  ';--esp-glosa:' + (espaciadoGlosa / 100) + 'em';
 let columns = 2, placement = 'margin';   // arranca en hoja ancha, dos columnas, glosa al margen
 let placementTocado = false;
 let plano = [], startIdx = 0, nextIdx = 0;
@@ -9347,6 +9514,11 @@ function vestirVista(m){
      13.95, los renglones partirían en otro sitio y el anticipo mentiría. */
   caja.style.setProperty('--fs', fontSize + 'px');
   caja.style.setProperty('--fs-glosa', fontSizeGlosa + 'px');
+  /* Y el peso y el espaciado de la nota, por lo mismo que la letra: esta caja
+     no cuelga de la hoja, así que no los hereda, y sin ellos el anticipo
+     partiría los renglones donde no los parte el margen. */
+  caja.style.setProperty('--peso-glosa', negritaGlosa ? PESO_FUERTE : 400);
+  caja.style.setProperty('--esp-glosa', (espaciadoGlosa / 100) + 'em');
   caja.style.setProperty('--papel', colorPapel());
   caja.style.width = anchoVista() + 'px';
   opacarVista(caja);
@@ -11723,6 +11895,7 @@ function verEtiquetas(on){
      Manda el gesto de ahora, como en destaparLaNueva: el que acabas de tocar
      se enciende y el otro se va. */
   if (on && eligiendoGlosas) elegirGlosas(false);
+  if (on) verLetraGlosas(false);
   /* Y el aviso de «hay más» sólo se puede medir con la tira a la vista:
      escondida, su alto es cero y la cuenta diría siempre que no hay más. */
   if (on) avisarMasEtiquetas();
@@ -11995,10 +12168,64 @@ function elegirGlosas(on){
     document.querySelectorAll('#indice .ix-item.elegida')
       .forEach(el => el.classList.remove('elegida'));
   }
-  /* La otra mitad de la exclusión; está contada en verEtiquetas. */
-  if (on) verEtiquetas(false);
+  /* Las otras dos partes de la exclusión; está contada en verEtiquetas. */
+  if (on){ verEtiquetas(false); verLetraGlosas(false); }
   marcarFiltroEscondido();
   pintarBarraGrupo();
+}
+/* EL TERCER MODO, y con esto la exclusión pasa de dos a tres.
+
+   Los tres botones abren cosas que ocupan el mismo hueco —encima del índice—
+   y contestan preguntas distintas: LETRA es «cómo se ve una nota», FILTRAR
+   «cuáles quiero ver» y ACTUALIZAR «a cuáles les cambio las etiquetas». Dos
+   abiertos a la vez dejan el panel diciendo dos cosas y el índice sin sitio.
+   Apagados los tres sí se puede estar —es el sitio de fábrica, el índice a
+   solas— así que no es un selector de tres posiciones: son tres que se
+   excluyen. Manda el gesto de ahora: el que acabas de tocar se enciende y los
+   otros se van.
+
+   La guarda de `on` en cada uno es lo que impide que se llamen en círculo:
+   apagar nunca apaga a nadie, así que verLetraGlosas(false) no vuelve aquí. */
+function verLetraGlosas(on){
+  $('ctrlEtiquetas').classList.toggle('sin-letra', !on);
+  const b = $('btnLetraGlosas');
+  if (b){
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  if (on){ verEtiquetas(false); elegirGlosas(false); }
+}
+$('btnLetraGlosas').onclick = () =>
+  verLetraGlosas($('ctrlEtiquetas').classList.contains('sin-letra'));
+/* LA NEGRITA Y EL ESPACIADO DE LA GLOSA.
+
+   MARCAN SUCIO SIEMPRE, y eso merece explicación porque parece de más: una
+   nota al MARGEN no decide dónde corta la hoja, así que ahí repaginar no hace
+   falta. Pero la misma nota puede estar al PIE o DEBAJO del versículo —lo
+   elige el lector— y entonces sí ocupa alto en la columna y sí mueve el corte.
+   Saber en cuál de los tres sitios está exigiría mirarlas todas; equivocarse
+   por el lado de repaginar de más cuesta un instante, y por el otro deja
+   versículos fuera de la hoja. */
+$('chkNegritaGlosa').onchange = e => {
+  negritaGlosa = !!e.target.checked;
+  paginasSucias = true; renderPage();
+  guardarAjustes();
+};
+$('espaciadoGlosa').oninput = e => {
+  const v = Math.round(+e.target.value || 0);
+  espaciadoGlosa = Math.max(ESP_MIN, Math.min(ESP_MAX, v));
+  reflejarEspaciadoGlosa();
+  paginasSucias = true; renderPage();
+  guardarAjustes();
+};
+function reflejarEspaciadoGlosa(){
+  const n = $('espaciadoGlosaAhora');
+  if (n) n.textContent = espaciadoGlosa > 0 ? '+' + espaciadoGlosa
+                       : espaciadoGlosa < 0 ? '−' + Math.abs(espaciadoGlosa) : '0';
+  const r = $('espaciadoGlosa');
+  if (r) r.value = String(espaciadoGlosa);
+  const c = $('chkNegritaGlosa');
+  if (c) c.checked = negritaGlosa;
 }
 $('btnElegirGlosas').onclick = () => elegirGlosas(!eligiendoGlosas);
 $('tagboxGrupo').addEventListener('click', ev => {
@@ -12563,6 +12790,25 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza, hojaN){
              verdad; el día que algo del recuadro use ese tono, ya está. */
           ';--rot-cab:'+colorRotuloCab()+';--rot-pie:'+colorRotuloPie()+
           ';--fs:'+fontSize+'px;--fs-glosa:'+fontSizeGlosa+'px'+
+          /* EL PESO Y EL ESPACIADO VAN AQUÍ, EN LA RAÍZ, y no basta con que
+             estiloEnLinea() los meta en el cuerpo. Es el mismo fallo que ya
+             está contado para --fs unas líneas más arriba, en prepararHoja:
+             las glosas del MARGEN y del PIE son hermanas de .pg-body, no
+             hijas, así que lo que se declare en el cuerpo no les llega.
+
+             Lo levantó la revisión de Codex, y se reprodujo antes de tocar
+             nada armando la misma forma que arma esta función: con el ajuste
+             puesto solo en el cuerpo, la nota del cuerpo sale 600/0.42px y las
+             del margen y del pie 400/normal.
+
+             Lo que eso rompe no es el color de la nota —el SVG va en sin-tinta
+             y las letras las pinta el lienzo— sino su CAJA: el recuadro de la
+             glosa se compone con la tipografía de fábrica mientras los glifos
+             se miden sobre la hoja viva, que sí lleva el ajuste. Caja de un
+             tamaño y letra de otro, y un brinco al pasar hoja. */
+          ';--peso:'+(negrita ? PESO_FUERTE : 400)+';--esp:'+(espaciado / 100)+'em'+
+          ';--peso-glosa:'+(negritaGlosa ? PESO_FUERTE : 400)+
+          ';--esp-glosa:'+(espaciadoGlosa / 100)+'em'+
           ';--mx:'+(med ? 0 : MARGENES[margen][1])+'px'+'">'+
         /* LAS PIEDRAS YA NO VAN AQUÍ, y esto es un arreglo, no una limpieza.
 
@@ -21174,6 +21420,45 @@ $('fsGlosaAhora').onchange = e => ponerTamanoGlosa(+e.target.value);
    No se marca paginasSucias —el color no cambia cuánto texto cabe, así que
    repaginar sería tirar el trabajo para llegar al mismo sitio— pero la firma
    sí lleva el sepia, así que la foto del pliegue se rehace sola. */
+/* LA NEGRITA Y EL ESPACIADO DEL LIBRO.
+
+   LOS DOS REPAGINAN, y ésa es la diferencia con el sepia o el contraste, que
+   están justo debajo y no lo hacen: un filtro no cambia el ancho de una letra
+   y éstos sí. Más peso y más separación son menos palabras por renglón y
+   menos renglones por hoja, así que el mapa de páginas deja de valer. Sin
+   paginasSucias, el libro se repintaría con los cortes de antes y los últimos
+   versículos de cada hoja se saldrían por abajo.
+
+   Y LOS DOS ENTRAN EN LA FIRMA DEL ESTILO —ver estiloFirma—, así que la foto
+   del pliegue se rehace sola: no hay que invalidarla a mano aquí.
+
+   El espaciado va en 'input' y no en 'change', igual que los rieles de abajo:
+   el punto se busca arrastrando. Repagina en cada tope, que son ocho y no
+   sesenta, y eso es lo que hace que se pueda. */
+$('chkNegrita').onchange = e => {
+  negrita = !!e.target.checked;
+  paginasSucias = true; renderPage();
+  guardarAjustes();
+};
+$('espaciado').oninput = e => {
+  const v = Math.round(+e.target.value || 0);
+  espaciado = Math.max(ESP_MIN, Math.min(ESP_MAX, v));
+  reflejarEspaciado();
+  paginasSucias = true; renderPage();
+  guardarAjustes();
+};
+/* El número que se enseña al lado del riel. Se escribe con su signo —«+2»,
+   «−1»— porque el cero está en medio del recorrido y sin signo un «2» no dice
+   de qué lado está. El menos es el de verdad (−), no el guion del teclado. */
+function reflejarEspaciado(){
+  const n = $('espaciadoAhora');
+  if (n) n.textContent = espaciado > 0 ? '+' + espaciado
+                       : espaciado < 0 ? '−' + Math.abs(espaciado) : '0';
+  const r = $('espaciado');
+  if (r) r.value = String(espaciado);
+  const c = $('chkNegrita');
+  if (c) c.checked = negrita;
+}
 $('sepia').oninput = e => {
   sepia = Math.max(0, Math.min(100, +e.target.value || 0));
   $('sepiaAhora').textContent = sepia;
@@ -21351,6 +21636,13 @@ function pintarIndice(){
   cont.style.setProperty('--ancho-glosa', Math.max(60, MARGIN_W() - 8) + 'px');
   cont.style.setProperty('--fs', fontSize + 'px');
   cont.style.setProperty('--fs-glosa', fontSizeGlosa + 'px');
+  /* EL ESPEJO TAMBIÉN COPIA EL PESO Y EL ESPACIADO. Está dicho arriba y en la
+     regla de #indice .ix-item: esta lista existe para partir los renglones
+     donde los parte el margen, y desde que la nota tiene su propia negrita y
+     su propio espaciado, dejarlos fuera es lo mismo que dejar fuera la letra.
+     El espejo casi cuadrando es un espejo que no cuadra. */
+  cont.style.setProperty('--peso-glosa', negritaGlosa ? PESO_FUERTE : 400);
+  cont.style.setProperty('--esp-glosa', (espaciadoGlosa / 100) + 'em');
   cont.innerHTML = lista.map(m => {
     const nb = backDe(m.cap, m.vers).length;
     const letra = (REFS.get(m.id) || '').toString().replace(/^\d+/, '');
@@ -21565,6 +21857,10 @@ function guardarAjustes(){
       v: 1, fontSize, fontSizeGlosa, columns, placement, alineacion,
       interlineado, margen, version, showMarks, sepia, contraste, brillo,
       verFlechas, cantoTesta,
+      /* La negrita y el espaciado, del libro y de las glosas. Los ajustes
+         guardados antes de que existieran no los traen, y cargarAjustes los
+         deja en lo de fábrica; por eso el objeto sigue en v:1. */
+      negrita, espaciado, negritaGlosa, espaciadoGlosa,
       fuente: FUENTES.findIndex(f => f[1] === fuente),
       libro: LIBRO, cap: aqui.cap, vers: aqui.vers,
       /* LA ÚLTIMA ETIQUETA USADA SE GUARDA, y ya no decide nada: solo sale
@@ -21597,6 +21893,18 @@ function cargarAjustes(){
   /* Number.isFinite y no un simple >=: un null guardado por una version
      vieja pasaba la comparacion como 0 y dejaba el sepia mudo sin decirlo. */
   if (Number.isFinite(a.sepia)) sepia = Math.max(0, Math.min(100, a.sepia));
+  /* La negrita y el espaciado, con el mismo cuidado que el contraste y por la
+     misma razón: unos ajustes guardados antes de que existieran NO traen estos
+     campos, y ahí valen undefined. Se comprueba el tipo y se topa el número,
+     así que un archivo manoseado no puede dejar el libro con un espaciado
+     imposible. Los booleanos se leen como booleanos —!!— y no con un
+     `if (a.negrita)`, que dejaría un `false` guardado sin poder volver. */
+  if (typeof a.negrita === 'boolean') negrita = a.negrita;
+  if (typeof a.negritaGlosa === 'boolean') negritaGlosa = a.negritaGlosa;
+  if (Number.isFinite(a.espaciado))
+    espaciado = Math.max(ESP_MIN, Math.min(ESP_MAX, Math.round(a.espaciado)));
+  if (Number.isFinite(a.espaciadoGlosa))
+    espaciadoGlosa = Math.max(ESP_MIN, Math.min(ESP_MAX, Math.round(a.espaciadoGlosa)));
   /* Mismo cuidado, y una razón más: los ajustes guardados antes de que este
      riel existiera NO traen contraste, y ahí `a.contraste` es undefined.
      Number.isFinite lo rechaza y la variable se queda en su 125 de fábrica
@@ -21657,6 +21965,11 @@ function reflejarControles(){
   reflejarTamano();
   $('sepia').value = String(sepia);
   $('sepiaAhora').textContent = sepia;
+  /* Y los cuatro nuevos, por el mismo sitio: este es el reflejo que pone los
+     controles donde dicen los ajustes al arrancar. Sin esto, los rieles salían
+     en cero enseñando un espaciado que no era el que había guardado. */
+  reflejarEspaciado();
+  reflejarEspaciadoGlosa();
   $('contraste').value = String(contraste);
   $('contrasteAhora').textContent = contraste + '%';
   $('brillo').value = String(brillo);
