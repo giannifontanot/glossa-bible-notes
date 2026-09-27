@@ -76,7 +76,7 @@ const IR_A = `async (sec) => {
        alArrancar.pedidos.every(x => x === null), JSON.stringify(alArrancar.pedidos));
 
   /* ---------------- la barra ---------------- */
-  titulo('la barra lleva cinco, y Encuentros va detrás de Glosas');
+  titulo('la barra lleva seis, ORACIÓN primero y Encuentros detrás de Glosas');
   await p.evaluate(() => document.getElementById('pgCabeza').click());
   await p.waitForTimeout(1000);
   const barra = await p.evaluate(() => {
@@ -89,7 +89,14 @@ const IR_A = `async (sec) => {
                                    v.getBoundingClientRect().right + 1) };
   });
   di('las secciones, en su orden', barra.secs);
-  vale('están las cinco', barra.secs.length === 5, barra.secs.length);
+  /* ERAN CINCO Y AHORA SON SEIS, con ORACIÓN delante. El número se afirma
+     igual —no «cinco o más»— porque una pestaña que aparece sola es tan
+     defecto como una que desaparece, y en esta barra ya han entrado dos por
+     encargo: si entra una tercera sin que nadie lo pida, esto lo dice. */
+  vale('están las seis', barra.secs.length === 6, barra.secs.length);
+  /* Y ORACIÓN LA PRIMERA, pedido así. Va delante de LIBROS porque lo que se
+     guarda ahí son oraciones y el encargo fue ponerla al principio. */
+  vale('ORACIÓN VA LA PRIMERA', barra.secs[0] === 'oracion', barra.secs.join(' · '));
   /* El orden se pidió así —«un tab nuevo después de Glosas»— y es lo único de
      la barra que un cambio de rótulo no puede romper sin que se note. */
   vale('ENCUENTROS VA JUSTO DETRÁS DE GLOSAS',
@@ -102,6 +109,79 @@ const IR_A = `async (sec) => {
   vale('en un solo renglón y sin salirse',
        barra.renglones === 1 && barra.seSalen === false,
        barra.renglones + ' renglón · se salen: ' + barra.seSalen);
+
+  /* ──────────────────────────────────────────────────────────────
+     LA PESTAÑA DE ORACIÓN: UN MARCO, Y QUE NO SE CARGUE HASTA QUE SE MIRA.
+
+     Dentro vive una aplicación entera de otro repo, con su estética de neón.
+     Va en un marco por tres motivos contados en .ora-marco, y el que decide es
+     que esa aplicación se cree dueña de la ventana: ancla con position:fixed y
+     mide en vh.
+
+     Lo que se vigila aquí es lo que se rompe en silencio:
+
+     · QUE NO SE CARGUE AL ARRANCAR. Son 116 kB entre marcado, estilos y tres
+       guiones, y lo que importa al abrir el libro es la primera hoja. Se mira
+       que el marco EXISTA y no tenga src todavía: las dos cosas, porque «no
+       hay src» también sale verde si no hay marco.
+     · Y QUE SE CARGUE AL MIRARLA, que es la otra mitad.
+
+     La salida por Escape va en su propio bloque, más abajo. */
+  titulo('la pestaña de oración trae su marco, y dormido');
+  const ora = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const m = () => document.querySelector('.ora-marco');
+    const antes = { hay: !!m(), src: m() && m().getAttribute('src') };
+    const vis = () => [...document.querySelectorAll('.rollo, #canto')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    const t = (vis() || document).querySelector('.pestanas [data-sec="oracion"]');
+    if (!t) return { antes, falta:'no hay pestaña de oración' };
+    t.click();
+    await pausa(1600);
+    const r = m() ? m().getBoundingClientRect() : null;
+    return { antes,
+             despues: { src: m() && m().getAttribute('src'),
+                        alto: r && Math.round(r.height),
+                        ancho: r && Math.round(r.width) } };
+  });
+  di('el marco de oración', JSON.stringify(ora));
+  vale('(la prueba es válida) el marco existe desde el arranque',
+       !ora.falta && ora.antes.hay === true, JSON.stringify(ora.antes));
+  vale('NO SE PIDE HASTA QUE SE MIRA', !ora.falta && !ora.antes.src,
+       String(ora.antes.src));
+  vale('  y al mirarla sí se pide', !ora.falta && !!ora.despues.src,
+       ora.despues && ora.despues.src);
+  vale('  y ocupa el panel, no una rendija',
+       !ora.falta && ora.despues.alto > 200 && ora.despues.ancho > 200,
+       ora.despues && (ora.despues.ancho + ' x ' + ora.despues.alto));
+
+  /* Y LA SALIDA, que es lo único que Glossa le añade a esa aplicación.
+
+     Con el foco dentro de un marco el teclado se queda ahí: el Escape del
+     programa no llega, y sin puente la pestaña se queda sin salida. El puente
+     avisa hacia arriba y el programa comprueba que quien avisa sea uno de SUS
+     marcos —ver el oyente de message—. Esa lista tenía solo los relatos, y por
+     eso al entrar este marco la tecla NO cerraba: comprobado antes de tocarlo.
+
+     La tecla se despacha DENTRO del marco, que es donde está el foco cuando se
+     usa. La línea de validez es la que salva el bloque: si el panel no hubiera
+     estado abierto, «ya no está abierto» saldría verde sin haber probado nada. */
+  titulo('Escape desde dentro del árbol cierra el panel');
+  const salida = await p.evaluate(() => !![...document.querySelectorAll('.rollo, #canto')]
+    .find(r => getComputedStyle(r).display !== 'none'));
+  let mandada = false;
+  for (const f of p.frames()){
+    if (!/oracion/.test(f.url())) continue;
+    await f.evaluate(() =>
+      dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true })));
+    mandada = true;
+  }
+  await p.waitForTimeout(900);
+  const sigue = await p.evaluate(() => !![...document.querySelectorAll('.rollo, #canto')]
+    .find(r => getComputedStyle(r).display !== 'none'));
+  vale('(la prueba es válida) el panel estaba abierto', salida === true);
+  vale('(la prueba es válida) y la tecla se mandó desde dentro del marco', mandada === true);
+  vale('ESCAPE DESDE EL MARCO CIERRA EL PANEL', sigue === false);
 
   /* ---------------- y la barra no se mueve con el libro ---------------- */
   /* SE PIDIÓ QUE ESTA BARRA SE SALGA DE «LA INTERFAZ CRECE CON EL LIBRO», y
