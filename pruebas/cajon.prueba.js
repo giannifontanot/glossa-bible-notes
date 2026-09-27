@@ -292,14 +292,55 @@ const { abrir, cerrar, conGlosas, di, vale, titulo } = require('./comun');
     /* el bloque de body y el de .stage del modo teléfono */
     const bloque = re => { const m = css.match(re); return m ? m[0] : ''; };
     const delCuerpo = bloque(/\bbody\{[^}]*\}/);
-    const deLaEscena = bloque(/\.stage\{[^}]*height:100[sd]vh[^}]*\}/);
-    const unidades = t => [...t.matchAll(/(?:min-)?height:\s*100(vh|svh|dvh)/g)].map(m => m[1]);
+    /* EL ALTO DE LA ESCENA YA NO SE ESCRIBE EN height, Y ESO TUMBÓ ESTO.
+
+       Esta búsqueda pedía `.stage{ … height:100dvh … }` y se quedó sin
+       encontrar nada el día que el alto se mudó a una variable: la regla del
+       teléfono declara ahora --alto-escena dos veces —svh y dvh, la cascada
+       de respaldo— y luego height:var(--alto-escena). El alto es el mismo y
+       la unidad también; lo que cambió es por dónde pasa, porque hay más de
+       uno que lo necesita —#filtros reparte el panel con calc sobre esa misma
+       variable—. Con la búsqueda vieja la escena salía vacía y la prueba
+       cantaba «dvh / ?» contra un programa que estaba bien: 40/42 en el banco.
+
+       Se aceptan las dos escrituras, la directa y la de la variable, porque
+       lo que se vigila no es dónde se escribe el número sino QUE LOS DOS
+       HABLEN EL MISMO IDIOMA.
+
+       Y SE MIRA LA ÚLTIMA DECLARACIÓN DE height, NO SI HAY UNA BUENA. Ésta la
+       levantó Codex sobre la primera versión de este arreglo, que preguntaba
+       si en la regla aparecía height:var(--alto-escena) en algún sitio: con
+       un height:500px escrito DESPUÉS, la variable seguía ahí, la búsqueda de
+       unidades no se enteraba del pisotón y las cuatro afirmaciones salían
+       verdes con la escena midiendo quinientos píxeles fijos. O sea, el
+       defecto que este bloque existe para cazar, con la prueba dando el visto.
+       En CSS manda la última, así que es la última la que hay que mirar: se
+       sacan todas las declaraciones de height de la regla —min-height no
+       cuenta, por eso el ancla de { o ; delante— y se exige que la que gana
+       sea la variable o, si alguien vuelve a escribirlo a pelo, una unidad
+       dinámica. */
+    const deLaEscena = bloque(/\.stage\{[^}]*(?:height:\s*100[sd]vh|--alto-escena:\s*100[sd]vh)[^}]*\}/);
+    const unidades = t => [...t.matchAll(/(?:min-height|height|--alto-escena):\s*100(vh|svh|dvh)/g)]
+                            .map(m => m[1]);
+    const altos = [...deLaEscena.matchAll(/(?:^|[{;])\s*height:\s*([^;}]+)/g)].map(m => m[1].trim());
+    const altoFinal = altos.length ? altos[altos.length - 1] : '';
     return { cuerpo: unidades(delCuerpo), escena: unidades(deLaEscena),
-             textoCuerpo: (delCuerpo.match(/min-height:[^;]*/g) || []).join(' · ') };
+             altoFinal, altos,
+             porLaVariable: /var\(\s*--alto-escena/.test(altoFinal),
+             altoDirectoDinamico: /^100(svh|dvh)$/.test(altoFinal),
+             textoCuerpo: (delCuerpo.match(/min-height:[^;]*/g) || []).join(' · '),
+             textoEscena: (deLaEscena.match(/--alto-escena:[^;]*/g) || []).join(' · ') };
   }).then(r => {
     const dinamica = u => u.includes('dvh') || u.includes('svh');
     vale('el cuerpo mide con unidad dinámica', dinamica(r.cuerpo), r.textoCuerpo);
-    vale('la escena también', dinamica(r.escena), r.escena.join(','));
+    vale('la escena también', dinamica(r.escena), r.textoEscena || r.escena.join(','));
+    /* Que el alto que GANA en la escena sea el que se acaba de medir, y no
+       otro escrito debajo: si no, esto estaría vigilando un número sin mando.
+       Vale la variable —lo de hoy— o la unidad dinámica escrita a pelo, que
+       es la otra manera legítima de decir lo mismo. */
+    vale('  y el alto que gana en la escena es ése',
+         r.porLaVariable || r.altoDirectoDinamico,
+         r.altos.length > 1 ? r.altos.join(' → ') : (r.altoFinal || '(ninguno)'));
     /* LA COMPROBACIÓN QUE IMPORTA: la última que gana tiene que ser la misma
        en los dos. Si el cuerpo vuelve a quedarse en vh, aquí canta aunque la
        pantalla se vea perfecta en un navegador sin barra retráctil. */
