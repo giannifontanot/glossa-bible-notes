@@ -1,0 +1,762 @@
+/* style.css — Sticky Shapes (Árbol de Oración)
+   Estética arcade Donkey Kong 80s: fondo oscuro, contornos de neón.
+   Los colores llegan desde config.js vía variables CSS en :root
+   (script.js las escribe al iniciar — una sola fuente de verdad). */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;              /* iOS/Android: sin rebote */
+  -webkit-tap-highlight-color: transparent; /* iOS: sin flash gris al tocar */
+  background: var(--bg, #0a0018);
+  font-family: var(--font, monospace);
+  /* Sutil textura de scanlines de arcade */
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.02) 0px,
+    rgba(255, 255, 255, 0.02) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* ---------- Lienzo y árbol ---------- */
+
+#canvas {
+  /* absolute (no fixed) para NO crear un contexto de apilamiento propio: así
+     #leaf-layer puede subir por encima de los puntos (#ws-dots) con z-index. */
+  position: absolute;
+  inset: 0;
+  touch-action: none; /* el arrastre táctil no debe hacer scroll */
+}
+
+#tree {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  /* Sube un poco (con árbol y pasto) para dejar espacio abajo a los puntos. */
+  transform: translateY(-28px);
+  transition: opacity var(--ws-fade-ms, 160ms) ease;
+}
+
+/* Al cambiar de escritorio, el árbol se desvanece junto con las hojas
+   (el cofre queda fijo) para un cross-fade completo del escenario. */
+#tree.fading {
+  opacity: 0;
+}
+
+/* Variantes de árbol (easter egg): solo se muestra la activa */
+.tree-variant {
+  display: none;
+}
+
+.tree-variant.active {
+  display: initial;
+}
+
+/* Troncos dibujados a trazo (acacia, bonsái, eucalipto) */
+.tree-bark .trunk-line {
+  fill: none;
+  stroke: var(--tree, #a06a35);
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Fleco colgante del eucalipto */
+.tree-droop path {
+  fill: none;
+  stroke: var(--canopy, #2fbf2f);
+  stroke-width: 1px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.8;
+}
+
+/* Copas de nube: solo brilla el contorno neón; el interior es oscuro */
+.tree-canopy path {
+  fill: var(--canopy-fill, #0e2c12);
+  stroke: var(--canopy, #2fbf2f);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.tree-canopy {
+  filter: drop-shadow(0 0 var(--glow, 4px) var(--canopy, #2fbf2f));
+}
+
+/* Tronco: madera café con vetas de corteza y un leve halo cálido */
+.tree-bark .trunk {
+  fill: var(--tree-fill, rgba(107, 68, 35, 0.16));
+  stroke: var(--tree, #a06a35);
+  stroke-width: 1.6px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.tree-bark {
+  filter: drop-shadow(0 0 calc(var(--glow, 4px) * 0.5) var(--tree, #84582e));
+}
+
+.tree-bark .bark-line {
+  fill: none;
+  stroke: var(--bark-dark, #4a2a10);
+  stroke-width: 1.2px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Pasto neón en la base */
+.tree-grass path {
+  fill: none;
+  stroke: var(--grass, #2fe515);
+  stroke-width: 1.4px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.tree-grass {
+  filter: drop-shadow(0 0 calc(var(--glow, 4px) * 0.6) var(--grass, #2aa818));
+}
+
+/* Etiquetas de zona: discretas, texto arcade */
+#zone-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.zone-label {
+  position: absolute;
+  color: var(--tree, #ff2d95);
+  opacity: 0.5;
+  font-size: var(--zone-label-size, 22px);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-shadow: 0 0 6px var(--tree, #ff2d95);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* Zona resaltada mientras se arrastra una hoja sobre ella */
+.zone-label.active {
+  opacity: 0.9;
+  color: var(--text, #f7ff00);
+  text-shadow: 0 0 8px var(--text, #f7ff00);
+}
+
+/* ---------- Hojas ---------- */
+
+.leaf {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform; /* el arrastre se compone en GPU */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none; /* iOS: sin menú al mantener presionada la hoja */
+  min-width: 44px;  /* área táctil mínima (accesibilidad) */
+  min-height: 44px;
+}
+
+.leaf.dragging {
+  cursor: grabbing;
+  z-index: 1000; /* por encima de las demás mientras se arrastra */
+}
+
+/* Animación de "tragado": la hoja se encoge hacia el cofre y se desvanece */
+.leaf.swallowed {
+  transition: transform var(--swallow-ms, 380ms) cubic-bezier(0.5, -0.2, 0.8, 0.6),
+              opacity var(--swallow-ms, 380ms) ease-in;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1500;
+}
+
+/* Contenedor interno de la hoja: centra el texto. No rota (así el texto
+   se mantiene horizontal); solo el SVG gira con la rotación de la hoja. */
+.leaf-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* El SVG de la hoja llena el elemento; contorno neón cian. Es lo único que
+   gira: transform-origin al centro para rotar la figura sin desplazarla. */
+.leaf svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.leaf svg .leaf-body {
+  fill: var(--leaf-fill, #12203a);
+  stroke: var(--leaf-glow, #00f0ff);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 var(--glow, 6px) var(--leaf-glow, #7dff3a));
+}
+
+.leaf svg .leaf-vein {
+  fill: none;
+  stroke: var(--leaf-glow, #00f0ff);
+  stroke-width: 1.2;
+  opacity: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.leaf.dragging svg .leaf-body {
+  filter:
+    drop-shadow(0 0 var(--glow, 6px) var(--leaf-glow, #7dff3a))
+    drop-shadow(0 0 calc(var(--glow, 6px) * 2) var(--leaf-glow, #7dff3a));
+}
+
+/* Texto de la hoja */
+.leaf-text {
+  position: relative;
+  max-width: 82%;
+  color: var(--leaf-text-color, var(--text, #f7ff00));
+  font-family: var(--leaf-font, var(--font, monospace));
+  font-size: var(--leaf-text-size, 30px);
+  line-height: 1.2;
+  text-align: center;
+  text-shadow: 0 0 8px var(--leaf-text-color, var(--text, #f7ff00));
+  word-break: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  pointer-events: none; /* los gestos los recibe la hoja completa */
+}
+
+/* Campo de edición (doble clic) */
+.leaf-editor {
+  user-select: text;          /* iOS: sin esto el caret/selección fallan */
+  -webkit-user-select: text;
+  position: relative;
+  width: 86%;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--leaf-text-color, var(--text, #f7ff00));
+  border-radius: 4px;
+  color: var(--leaf-text-color, var(--text, #f7ff00));
+  font-family: var(--leaf-font, var(--font, monospace));
+  font-size: var(--leaf-text-size, 30px);
+  text-align: center;
+  padding: 4px;
+  outline: none;
+  resize: none;
+  box-shadow: 0 0 8px var(--leaf-text-color, var(--text, #f7ff00));
+}
+
+/* Botones de tamaño (+ arriba, − abajo) — visibles solo en modo edición */
+.size-btn {
+  touch-action: manipulation; /* iOS: sin zoom por doble toque */
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  /* Cian: controles de edición (el naranja queda reservado a los escritorios) */
+  border: 2px solid var(--edit-ctrl, #38d6ff);
+  background: rgba(10, 0, 24, 0.85);
+  color: var(--edit-ctrl, #38d6ff);
+  font-size: 26px;
+  font-family: var(--font, monospace);
+  line-height: 1;
+  cursor: pointer;
+  z-index: 1100;
+  box-shadow: 0 0 var(--glow, 4px) var(--edit-ctrl, #38d6ff);
+}
+
+/* + y − de tamaño: mismo gris que los A+/A− de la última página (el naranja
+   es de páginas; el cian queda para rotar). */
+.size-btn.plus,
+.size-btn.minus {
+  border-color: #8a8f98;
+  color: #c3c8d0;
+  box-shadow: 0 0 6px rgba(138, 143, 152, 0.5);
+}
+
+.size-btn.plus {
+  top: -52px;
+}
+
+.size-btn.minus {
+  bottom: -52px;
+}
+
+/* Botón de color: a la derecha de la hoja, dorado */
+.size-btn.color {
+  left: auto;
+  right: -52px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-color: var(--treasure, #ffd24a);
+  color: var(--treasure, #ffd24a);
+  box-shadow: 0 0 var(--glow, 4px) var(--treasure, #ffd24a);
+}
+
+/* Botón de rotación: a la izquierda de todos los controles */
+.size-btn.rotate {
+  left: -52px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 24px;
+}
+
+/* ---------- Cofre del tesoro (arrastra una hoja aquí para borrarla) ---------- */
+
+#treasure {
+  position: fixed;
+  left: calc(16px + env(safe-area-inset-left, 0px));
+  bottom: calc(44px + env(safe-area-inset-bottom, 0px));
+  width: 76px;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  opacity: 0.55; /* discreto hasta que se arrastra una hoja */
+  transition: opacity var(--anim-ms, 120ms) ease, transform var(--anim-ms, 120ms) ease;
+}
+
+#treasure svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter:
+    drop-shadow(0 0 3px var(--treasure, #ffd24a))
+    drop-shadow(0 0 calc(var(--glow, 6px) * 1.5) var(--treasure, #ffd24a));
+  transition: filter 600ms ease-out; /* el resplandor se apaga suave */
+}
+
+#treasure .chest-lid,
+#treasure .chest-body {
+  fill: rgba(35, 22, 2, 0.92);
+  stroke: var(--treasure, #ffd24a);
+  stroke-width: 1.3;
+  stroke-linejoin: round;
+}
+
+#treasure .chest-band {
+  fill: none;
+  stroke: var(--treasure, #ffd24a);
+  stroke-width: 0.9;
+}
+
+#treasure .chest-lock {
+  fill: var(--treasure, #ffd24a);
+}
+
+#treasure .chest-keyhole {
+  fill: rgba(35, 22, 2, 0.95);
+}
+
+/* Monedas y joyas asomándose por la rendija */
+#treasure .coin {
+  fill: #ffd24a;
+  stroke: #b8860b;
+  stroke-width: 0.35;
+}
+
+#treasure .gem-red {
+  fill: #ff3b5c;
+  stroke: #ff9fb2;
+  stroke-width: 0.3;
+}
+
+#treasure .gem-green {
+  fill: #2eff8a;
+  stroke: #baffd9;
+  stroke-width: 0.3;
+}
+
+/* Tapa entreabierta: gira sobre la bisagra izquierda */
+#treasure .lid-g {
+  transform-box: fill-box;
+  transform-origin: 4% 94%;
+  transform: rotate(-9deg);
+  transition: transform 220ms ease;
+}
+
+#treasure.open .lid-g,
+#treasure.active .lid-g {
+  transform: rotate(-30deg);
+}
+
+/* Luz del tesoro escapando por la rendija */
+#treasure .chest-light {
+  fill: #ffe98a;
+  opacity: 0.9;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+#treasure.open .chest-light,
+#treasure.active .chest-light {
+  opacity: 1;
+  transform: scale(1.6);
+}
+
+/* Chispas doradas: estallan al guardar una hoja */
+#treasure .spark {
+  fill: #ffe98a;
+  opacity: 0;
+  transform-box: fill-box;
+}
+
+#treasure.burst .spark {
+  animation: sparkfly 750ms ease-out forwards;
+}
+
+@keyframes sparkfly {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+  60%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx, 0), var(--dy, -10px)) scale(2.6); }
+}
+
+/* Destello de luz al tragar: la rendija explota de brillo */
+#treasure.burst .chest-light {
+  animation: lightflash 700ms ease-out;
+}
+
+@keyframes lightflash {
+  0%   { opacity: 1; transform: scale(1); }
+  30%  { opacity: 1; transform: scale(3.4); }
+  100% { opacity: 0.9; transform: scale(1); }
+}
+
+/* Mientras se arrastra una hoja, el cofre se hace visible */
+body.leaf-dragging #treasure {
+  opacity: 0.85;
+}
+
+/* Cuando la hoja está encima: la tapa se abre (arriba) y el brillo se
+   vuelve inmenso — sin agrandar el cofre */
+#treasure.active {
+  opacity: 1;
+}
+
+#treasure.active svg,
+#treasure.burst svg {
+  filter:
+    drop-shadow(0 0 6px var(--treasure, #ffd24a))
+    drop-shadow(0 0 18px var(--treasure, #ffd24a))
+    drop-shadow(0 0 36px var(--treasure, #ffd24a));
+}
+
+/* ---------- Botón flotante + ---------- */
+
+/* Botón de nueva hoja: silueta de hoja verde neón (el verde es de las hojas;
+   el naranja queda reservado para las páginas) con un + amarillo al centro.
+   Nunca más grande que el cofre (76px). */
+#add-btn {
+  touch-action: manipulation; /* iOS: sin zoom por doble toque */
+  position: fixed;
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  /* Alineado con el cofre: mismo bottom + 2px para centrar las alturas
+     (cofre 76px vs hoja 72px). Nunca más grande que el cofre. */
+  bottom: calc(46px + env(safe-area-inset-bottom, 0px));
+  width: 69px;
+  height: 69px;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  z-index: 2000;
+  transition: transform var(--anim-ms, 120ms) ease;
+}
+
+/* Mismo lenguaje sobrio que los botones de la última página: borde delgado,
+   sin brillo, símbolo discreto. */
+#add-btn svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 3px rgba(46, 230, 95, 0.22));
+}
+
+#add-btn .add-leaf-body {
+  /* Verde translúcido de las copas, pero más presente para que se note
+     sobre el fondo oscuro (la copa cubre más área y por eso se ve más). */
+  fill: rgba(46, 230, 95, 0.18);
+  stroke: var(--canopy, #2ee65f);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+#add-btn .add-leaf-stem {
+  fill: none;
+  stroke: var(--canopy, #2ee65f);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+#add-btn .add-leaf-plus {
+  fill: none;
+  stroke: var(--canopy, #2ee65f);
+  stroke-width: 3;      /* mismo grosor visual que el + de los botones */
+  stroke-linecap: round;
+  opacity: 1;
+}
+
+#add-btn:active {
+  transform: scale(0.92);
+}
+
+/* ---------- Escritorios (workspaces) ---------- */
+
+/* Capa de hojas: solo esta hace fade al cambiar de escritorio. */
+#leaf-layer {
+  position: absolute;
+  inset: 0;
+  /* Por encima de los puntos (#ws-dots, z 2000) y de los botones: una hoja
+     que quede sobre un punto gana el toque/arrastre. El vacío no captura
+     (pointer-events:none), así los puntos y botones descubiertos siguen
+     recibiendo clics. */
+  z-index: 2500;
+  pointer-events: none; /* el vacío no captura; las hojas sí (ver .leaf) */
+  transition: opacity var(--ws-fade-ms, 160ms) ease;
+}
+
+#leaf-layer.fading {
+  opacity: 0;
+}
+
+.leaf {
+  pointer-events: auto; /* reactiva la interacción dentro de leaf-layer */
+}
+
+/* Indicador de escritorios: puntos tipo paginación, arriba centro.
+   Cada punto es un BOTÓN grande (área táctil cómoda) y el círculo visible
+   es un span interno pequeño — así se pueden tocar sin picar exacto. */
+/* Barra de puntos: siempre se ven todos. Con muchos escritorios los botones
+   se encogen (--dot-btn / --dot-vis, calculados en JS según dotFit). */
+#ws-dots {
+  position: fixed;
+  bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  z-index: 2000;
+}
+
+.ws-dot {
+  width: var(--dot-btn, 40px);  /* área táctil; se encoge con muchos puntos */
+  height: 40px;                 /* alto fijo generoso para el dedo */
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: none;      /* sin esto, el navegador convierte el arrastre
+                              táctil en scroll y cancela el gesto */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none; /* evita el menú de long-press de iOS */
+}
+
+/* Círculo visible (pequeño) dentro del botón */
+.dot-visual {
+  width: var(--dot-vis, 10px);
+  height: var(--dot-vis, 10px);
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--accent, #ff7a00);
+  opacity: 0.35;
+  transition: opacity var(--anim-ms, 120ms) ease, transform var(--anim-ms, 120ms) ease;
+}
+
+/* El escritorio activo: discreto — mismo color y tamaño, pero solo el contorno
+   (anillo hueco) en vez de relleno. */
+.ws-dot.active .dot-visual {
+  background: transparent;
+  border: 1.5px solid var(--accent, #ff7a00);
+  opacity: 1;
+  box-shadow: none;
+}
+
+/* Los puntos solo despiertan (crecen/brillan) cuando la hoja se acerca */
+body.dots-armed .ws-dot .dot-visual {
+  opacity: 0.85;
+  transform: scale(1.6);
+}
+
+/* El punto bajo el puntero (destino) se enciende fuerte */
+body.dots-armed .ws-dot.drop-target .dot-visual {
+  opacity: 1;
+  transform: scale(2.6);
+  box-shadow:
+    0 0 var(--glow, 6px) var(--accent, #ff7a00),
+    0 0 calc(var(--glow, 6px) * 2.5) var(--accent, #ff7a00);
+}
+
+/* Pulso de confirmación cuando el punto recibe una hoja */
+.ws-dot.received .dot-visual {
+  animation: dotpulse 450ms ease-out;
+}
+
+@keyframes dotpulse {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(2.4); box-shadow: 0 0 12px var(--accent, #ff7a00); }
+  100% { transform: scale(1); }
+}
+
+/* Modo reordenar: los puntos "tiemblan" (temblorcito tipo iOS). Como los
+   círculos no muestran rotación, el temblor es un pequeño desplazamiento. */
+#ws-dots.reordering .ws-dot {
+  animation: jiggle 0.24s ease-in-out infinite;
+}
+
+#ws-dots.reordering .ws-dot:nth-child(even) {
+  animation-delay: -0.12s; /* desfasa el temblor entre puntos */
+}
+
+/* El punto que se está arrastrando no tiembla; sigue al dedo y se agranda */
+#ws-dots.reordering .ws-dot.grabbing {
+  animation: none;
+  z-index: 3;
+  position: relative;
+}
+
+@keyframes jiggle {
+  0%   { transform: translate(1px, -1px); }
+  25%  { transform: translate(-1px, 1px); }
+  50%  { transform: translate(1px, 1px); }
+  75%  { transform: translate(-1px, -1px); }
+  100% { transform: translate(1px, -1px); }
+}
+
+/* Columna de botones grises de la última página (arriba derecha, debajo de
+   los puntos), de arriba a abajo: "+" (crear escritorio) y "−" (borrar el
+   último si está vacío) —pegados a la barra de puntos que también son de
+   páginas—, luego F (fuente), color de letra, A+ y A− (tamaño de letra). */
+#font-btn,
+#font-color-btn,
+#font-plus-btn,
+#font-minus-btn,
+#new-ws-btn,
+#del-ws-btn {
+  touch-action: manipulation; /* iOS: sin zoom por doble toque */
+  position: fixed;
+  right: calc(20px + env(safe-area-inset-right, 0px));
+  top: calc(64px + env(safe-area-inset-top, 0px));
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid #8a8f98;
+  background: var(--bg, #0a0018);
+  color: #c3c8d0;
+  font-size: 24px;
+  font-family: var(--font, monospace);
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2000;
+  box-shadow: 0 0 6px rgba(138, 143, 152, 0.5);
+  transition: transform var(--anim-ms, 120ms) ease;
+}
+
+#font-btn {
+  /* F estilizada: serif clásica en cursiva */
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 26px;
+  padding-bottom: 4px;
+  top: calc(172px + env(safe-area-inset-top, 0px));
+}
+
+#font-color-btn {
+  top: calc(226px + env(safe-area-inset-top, 0px));
+}
+
+/* Muestra del color de letra en uso (relleno del botón de color) */
+#font-color-swatch {
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: var(--leaf-text-color, var(--text, #f7ff00));
+  box-shadow: 0 0 6px var(--leaf-text-color, var(--text, #f7ff00));
+}
+
+/* A+/A−: label más chico para que quepa el par de caracteres */
+#font-plus-btn,
+#font-minus-btn {
+  font-size: 16px;
+}
+
+#font-plus-btn {
+  top: calc(280px + env(safe-area-inset-top, 0px));
+}
+
+#font-minus-btn {
+  top: calc(334px + env(safe-area-inset-top, 0px));
+}
+
+/* Los botones de PÁGINA (+/−) llevan borde naranja —el color de los puntos
+   de las páginas— para distinguirse de los ajustes de letra (grises). */
+#new-ws-btn,
+#del-ws-btn {
+  border-color: var(--accent, #ff7a00);
+  color: var(--accent, #ff7a00);
+  box-shadow: 0 0 6px rgba(255, 122, 0, 0.5);
+}
+
+#new-ws-btn {
+  top: calc(64px + env(safe-area-inset-top, 0px));
+}
+
+#del-ws-btn {
+  top: calc(118px + env(safe-area-inset-top, 0px));
+}
+
+/* Mientras el último escritorio tenga hojas, el "−" se ve pero apagado:
+   se habilita en cuanto queda completamente vacío. */
+#del-ws-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+  box-shadow: none;
+}
+
+#del-ws-btn:disabled:active {
+  transform: none;
+}
+
+#font-btn:active,
+#font-color-btn:active,
+#font-plus-btn:active,
+#font-minus-btn:active,
+#new-ws-btn:active,
+#del-ws-btn:active {
+  transform: scale(0.92);
+}
