@@ -3732,6 +3732,35 @@
      tiene que llevar su body sin fondo, y lo lleva. Los dos o ninguno. */
   .enc-marco{ flex:1 1 auto; width:100%; min-height:0; border:0; display:block;
               background:transparent; }
+  /* EL MARCO DE ORACIÓN, Y POR QUÉ ES UN MARCO Y NO CÓDIGO PEGADO AQUÍ.
+
+     Lo de dentro es una aplicación entera de otro repo —762 líneas de CSS,
+     1101 de guion— y de estética contraria a ésta: neón sobre negro contra
+     papel sepia. Se queda de neón, pedido así.
+
+     Tres razones para el marco, y la tercera sola ya bastaría:
+
+     · SU CSS REESCRIBIRÍA EL LIBRO. Es el mismo motivo que ya tienen los
+       relatos escrito en .enc-marco: un `body{}` y un `*{box-sizing}` ajenos
+       metidos con innerHTML se suben a la hoja de la aplicación.
+     · SUS LLAVES Y SUS GUIONES SON SUYOS. Guarda en `sticky-shapes:v2`, que no
+       choca con `glossa:*` —comprobado—, y sus tres guiones corren enteros sin
+       que haya que trocearlos.
+     · Y LO QUE DE VERDAD DECIDE: ESA APLICACIÓN SE CREE DUEÑA DE LA VENTANA.
+       Ancla con `position:fixed` colgando de un `#world` con transform, y mide
+       en `vh`. Pegada dentro de un panel, sus piezas fijas se saldrían a tapar
+       el cromo de Glossa y su alto sería el de la ventana entera y no el de la
+       pestaña. Dentro de un marco, `innerHeight` es el del marco y todo eso
+       vuelve a ser verdad sin tocarle una línea.
+
+     Va a sangre —sin relleno ni borde— porque ahí dentro no hay papel que
+     enmarcar: el fondo oscuro tiene que llegar hasta el canto. */
+  .ora-marco{ flex:1 1 auto; width:100%; min-height:0; border:0; display:block;
+              background:#0b0d10; border-radius:4px; }
+  /* El panel se enseña y se esconde por donde se esconden los otros rollos
+     —rolloSimple—, así que aquí no va ningún display: solo el acomodo que el
+     marco necesita para llenar el alto. */
+  #oracion{ flex-direction:column; }
   .enc-titulo{ margin:0 0 6px; font:600 calc(12px * var(--escala-ui, 1))/1.3 var(--ui);
                color:#3a2d10; letter-spacing:.02em; }
   /* EL PANEL DONDE IRÁ LA HISTORIA. Va con el borde a rayas y no macizo porque
@@ -5593,6 +5622,7 @@
   <div id="veloPanel" aria-hidden="true"></div>
   <div id="ajustes" class="rollo"></div>
   <div id="etiquetas" class="rollo"></div>
+  <div id="oracion" class="rollo"></div>
   <div id="encuentros" class="rollo"></div>
   <div id="respaldo" class="rollo"></div>
   <div id="canto" class="rollo"><div id="cantoCab"></div><div id="cantoCuerpo"></div>
@@ -5827,7 +5857,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '27-SEP-26 18:25';
+window.GLOSS_BUILD = '27-SEP-26 18:26';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -16094,6 +16124,56 @@ function abrirVersiculos(cap, ancla){
    dibujo sin nombre no dice ni eso, así que se le pone al botón el aria-label
    y el title que la palabra daba sola. */
 const SECCIONES = [
+  /* DOS MANOS ORANDO, Y LO QUE COSTÓ QUE SE LEYERAN.
+
+     Esta es la que más vueltas ha dado de las cinco, y conviene que quede
+     escrito porque el dibujo que quedó no cuenta por qué los otros no valían.
+     Todos se retrataron a 30 px —el tamaño al que de verdad vive esta barra—
+     y dentro de la barra, no sueltos en una página blanca, que es donde se vio
+     lo que engañaba:
+
+     · DE FRENTE, CON LA JUNTURA AL MEDIO. Es lo primero que sale y es lo que
+       de verdad parecen unas manos juntas: un óvalo apuntado con una raya en
+       el centro. A 30 px eso es una BALA. Cuatro variantes, las cuatro iguales.
+     · EL MISMO ÓVALO SIN LA RAYA. Peor: una HOJA de árbol, y este programa ya
+       tiene un árbol dentro de esta misma pestaña.
+     · CON PUÑOS ABAJO, para romper la hoja. Una banda horizontal bajo una
+       punta es una PLUMILLA de estilográfica. Dos variantes.
+     · CON LOS DEDOS EN ABANICO Y LAS MUÑECAS JUNTAS. Ésta se leía de maravilla
+       ampliada, y en la barra se lee como una FLECHA DE DESCARGA. Se descartó
+       por eso: un icono que dice otra cosa es peor que uno que no dice nada, y
+       «descargar» en una barra de pestañas es una promesa falsa.
+
+     LO QUE DESATASCÓ ESTO FUE MIRAR EL EMOJI, y lo dijo el dueño del repo con
+     tres palabras: «fíjate en el emoji de oración». Todos los intentos de
+     arriba parten de la misma idea equivocada —que unas manos juntas son un
+     óvalo APUNTADO— y el 🙏 no es eso: es ANCHO, las yemas son dos lóbulos
+     redondeados y no una punta, y lo que de verdad lo hace reconocible son los
+     PULGARES, que salen hacia fuera por abajo y rompen la silueta.
+
+     Ese último detalle es el que decide. Sin los pulgares, el mismo cuerpo
+     ancho se lee como un ESCUDO —probado, dos variantes—; con ellos, se lee
+     como dos manos. Cuesta dos trazos y es la diferencia entera.
+
+     Se probó además una versión con las rayas de los dedos marcadas en el
+     cuerpo: ampliada se ve mejor, y a 30 px se ensucia. Queda fuera.
+
+     Si aun así en el teléfono no dice «manos», el camino ya no es afinar el
+     dibujo: es aceptar que esto no cabe en 30 px de línea y buscar otra figura
+     para «orar». */
+  { id:'oracion',    html:'<svg class="signo manos" viewBox="0 0 24 24" aria-hidden="true" ' +
+                          'focusable="false">' +
+                          /* las dos palmas, juntas por el centro */
+                          '<path d="M12 6.2a3 3 0 0 0-5.1 2.1v4.9c0 2 .9 3.9 2.5 5.2' +
+                          'l1.4 1.1"/>' +
+                          '<path d="M12 6.2a3 3 0 0 1 5.1 2.1v4.9c0 2-.9 3.9-2.5 5.2' +
+                          'l-1.4 1.1"/>' +
+                          '<path d="M12 6.2v13.3"/>' +
+                          /* y los pulgares, que son los que hacen que esto no
+                             se lea como un escudo */
+                          '<path d="M6.9 13.2 4.6 15a2.2 2.2 0 0 0-.5 2.9l1 1.6"/>' +
+                          '<path d="M17.1 13.2l2.3 1.8a2.2 2.2 0 0 1 .5 2.9l-1 1.6"/></svg>',
+                     nombre:'Oración: tus oraciones colgadas del árbol' },
   /* UN LIBRO ABIERTO POR LA MITAD. Las dos hojas caen hacia el lomo y el lomo
      se dibuja entero: es lo que separa un libro abierto de una hoja doblada,
      que a este tamaño se parecen más de lo que uno cree. */
@@ -16165,8 +16245,8 @@ const SECCIONES = [
                      nombre:'Compartir y respaldar tus glosas' },
 ];
 /* el elemento de cada sección, en un solo sitio para no repetir el mapeo */
-const PANEL = { libros:'canto', glosas:'etiquetas', encuentros:'encuentros',
-                formato:'ajustes', respaldo:'respaldo' };
+const PANEL = { oracion:'oracion', libros:'canto', glosas:'etiquetas',
+                encuentros:'encuentros', formato:'ajustes', respaldo:'respaldo' };
 let seccionViva = 'libros', cambiandoSeccion = false, dirSeccion = 1;
 
 /* EL ACUSE TIENE QUE SOBREVIVIR AL CAMBIO DE BARRA. Abrir una sección vuelve
@@ -16421,6 +16501,7 @@ function rolloSimple(el){
          Encuentros no tiene variable propia —los otros dos la tienen por
          herencia, no por diseño—. */
       if (seccionDe(el) === 'encuentros') encenderHistoriaViva();
+      if (seccionDe(el) === 'oracion') encenderOracion();
     },
     /* Tres maneras de cerrarse, y no son intercambiables:
          seco      — cambio de pestaña, sin animación
@@ -16451,6 +16532,7 @@ function rolloSimple(el){
 }
 const rFormato = rolloSimple(ajustes), rGlosas = rolloSimple(etiquetas),
       rEncuentros = rolloSimple(document.getElementById('encuentros')),
+      rOracion = rolloSimple(document.getElementById('oracion')),
       rRespaldo = rolloSimple(document.getElementById('respaldo'));
 /* LA LISTA DE LOS ROLLOS, EN UN SOLO SITIO. Estaba repartida en cuatro
    —el despacho de abrirSeccion, burbujaAbierta, cerrarOtrosRollos y el oyente
@@ -16459,7 +16541,7 @@ const rFormato = rolloSimple(ajustes), rGlosas = rolloSimple(etiquetas),
    propios y lo abren y cierran abrirCanto y cerrarCanto, así que quien recorra
    esta tabla tiene que acordarse de él aparte. Está dicho en cada sitio donde
    se recorre. */
-const ROLLOS = { glosas:rGlosas, encuentros:rEncuentros,
+const ROLLOS = { oracion:rOracion, glosas:rGlosas, encuentros:rEncuentros,
                  formato:rFormato, respaldo:rRespaldo };
 const LOS_ROLLOS = Object.values(ROLLOS);
 /* El interruptor del relato de Encuentros. Se declara aquí —donde abrir() lo
@@ -16468,6 +16550,10 @@ const LOS_ROLLOS = Object.values(ROLLOS);
    que se armó el panel: si un día su armado se cae, la sección se abre vacía
    en vez de reventar. */
 let encenderHistoriaViva = () => {};
+/* Y el del árbol de oraciones, por lo mismo y con la misma cautela: nace sin
+   hacer nada, así que si su armado se cayera la sección se abriría vacía en
+   vez de reventar. */
+let encenderOracion = () => {};
 
 /* ============================================================
    "TE OÍ, ESTOY EN ELLO" EN EL BOTÓN QUE TOCASTE.
@@ -16739,7 +16825,14 @@ function cerrarCanto(alTerminar, disolver){
    Lo que se pidió es salir del panel. */
 addEventListener('message', ev => {
   if (!ev.data) return;
-  const nuestro = [...document.querySelectorAll('.enc-marco')]
+  /* LOS MARCOS NUESTROS SON DOS FAMILIAS, no una. Estaban solo los relatos, y
+     al entrar el árbol de oraciones —que trae el mismo puente y la misma
+     necesidad— su aviso se caía aquí: la pestaña se quedaba sin salida por
+     Escape, que es exactamente el fallo que este puente vino a arreglar.
+     Se comprobó antes de tocarlo: con el árbol abierto, la tecla no cerraba.
+     La lista va en un selector y no en dos consultas para que el día que entre
+     un tercer marco se vea que hay una lista a la que apuntarse. */
+  const nuestro = [...document.querySelectorAll('.enc-marco, .ora-marco')]
                     .some(m => m.contentWindow === ev.source);
   if (!nuestro) return;
   if (ev.data.glossa === 'salir') cerrarTodosLosRollos();
@@ -22093,6 +22186,37 @@ const ENCUENTROS = [
     rotulo:'Nos dio la espalda', oculto:true,
     historia:'encuentros/la-espalda.html' },
 ];
+/* ============================================================
+   EL ÁRBOL DE ORACIONES, DENTRO DE SU PESTAÑA.
+
+   Lo de dentro viene de otro repo —the-berean-way/sticky-shapes— y entra TAL
+   CUAL, con su estética de neón, pedido así. La única línea que Glossa le
+   añade es la del puente de la tecla Escape; lo demás se puede volver a traer
+   de allí sin ir deshaciendo parches, que era la condición para que esto no se
+   convierta en una copia que se queda vieja.
+
+   Por qué un marco y no código pegado aquí está contado entero en .ora-marco,
+   y la razón que decide es que esa aplicación se cree dueña de la ventana:
+   ancla con position:fixed y mide en vh.
+
+   SE CARGA CUANDO SE MIRA, no al arrancar, por lo mismo que los relatos: son
+   116 kB entre marcado, estilos y tres guiones, y al arrancar lo que importa
+   es que aparezca la primera hoja del libro. Y no se fía de loading="lazy":
+   el panel nace escondido, y lo que hace un marco perezoso dentro de algo con
+   display:none no está escrito igual en todas partes. Aquí se dice cuándo.
+   ============================================================ */
+(function armarOracion(){
+  const caja = document.getElementById('oracion');
+  if (!caja) return;
+  const marco = document.createElement('iframe');
+  marco.className = 'ora-marco';
+  marco.title = 'Tus oraciones';
+  marco.dataset.pagina = 'oracion/index.html';
+  caja.appendChild(marco);
+  encenderOracion = () => {
+    if (!marco.getAttribute('src')) marco.setAttribute('src', marco.dataset.pagina);
+  };
+})();
 (function armarEncuentros(){
   const caja = document.getElementById('encuentros');
   if (!caja) return;
