@@ -557,6 +557,38 @@ async function andamio(p){
   vale('  EN DOS RENGLONES, no en una tira',
        oferta.renglones === 2 && oferta.primeroDeAbajo === true, oferta.renglones);
   vale('  y cada vivo debajo del suyo', oferta.encolumnados === true);
+
+  /* Y SON CUADRADAS, NO TIRAS.
+
+     Aquí las columnas eran 1fr y el alto 19 px: cada mancha salía de 48 por 19
+     en un teléfono, o sea una tira con el lado corto decidiendo lo poco que se
+     ve, y la forma cambiaba sola de una pantalla a otra según lo ancho que
+     fuera el panel. El dueño del repo las pidió cuadradas y algo más grandes.
+
+     Se afirman las dos mitades por separado, que son dos fallos distintos:
+     cuadrada se rompe volviendo a 1fr, y grande se rompe bajando el lado. Un
+     suelo de 28 deja sitio para retocar el tamaño sin tocar esta línea y no
+     deja pasar los 19 de antes.
+
+     El mando de la PORTADA es este mismo panel —una sola pintarPiedraMando, un
+     solo nodo— así que no hace falta repetir aquí su medida: se comprueba allí,
+     en portada.prueba.js, que es donde se abre por el otro camino. Se dice para
+     que nadie venga a añadir aquí un caso que ya está cubierto en otro sitio. */
+  const forma = await p.evaluate(() => {
+    const b = document.querySelector('#piedraMando [data-piedra-color]');
+    if (!b) return null;
+    const r = b.getBoundingClientRect();
+    const rej = b.parentElement.getBoundingClientRect();
+    return { ancho: Math.round(r.width * 10) / 10, alto: Math.round(r.height * 10) / 10,
+             seSale: r.left < rej.left - 1 || r.right > rej.right + 1 };
+  });
+  di('la mancha', forma && (forma.ancho + ' x ' + forma.alto));
+  vale('  CUADRADAS y no tiras',
+       !!forma && Math.abs(forma.ancho - forma.alto) <= 1,
+       forma && (forma.ancho + ' x ' + forma.alto));
+  vale('  y con lado de sobra para verse', !!forma && forma.alto >= 28,
+       forma && forma.alto);
+  vale('  sin salirse de su rejilla', !!forma && forma.seSale === false);
   /* ----------------------------------------------------------------
      LAS DOS FIGURAS QUE SE REHICIERON MIRÁNDOLAS.
 
