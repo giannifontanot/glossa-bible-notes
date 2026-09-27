@@ -190,9 +190,19 @@ async function andamio(p){
       if (getComputedStyle(el).display === 'none' || !el.classList.contains('visible')) return null;
       const r = el.getBoundingClientRect();
       const st = document.getElementById('stage').getBoundingClientRect();
+      /* Lo que el contenido pediría si se le dejara. Sirve para preguntar si
+         el panel mide lo suyo o le sobra caja, sin escribir ningún número:
+         el ancho que hace falta depende de cuántos colores haya y de la letra
+         del rótulo, que crece con --escala-ui. */
+      const previo = el.style.width;
+      el.style.width = 'max-content';
+      const natural = Math.round(el.getBoundingClientRect().width);
+      el.style.width = previo;
       return { telas: el.querySelectorAll('[data-sep-color]').length,
                filas: el.querySelectorAll('[data-sep-ir]').length,
                borrar: !!el.querySelector('[data-sep-borrar]'),
+               ancho: Math.round(r.width), natural,
+               soloColor: el.classList.contains('solo-color'),
                dentro: r.left >= st.left - 1 && r.right <= st.right + 1 &&
                        r.top >= st.top - 1 && r.bottom <= st.bottom + 1 };
     };
@@ -333,6 +343,68 @@ async function ponerAMano(p){
   vale('el color cambia en el acto', menu.antes !== menu.despues);
   vale('y queda guardado', menu.guardado === menu.nombre, menu.guardado);
   vale('el color elegido se anuncia', menu.marcado === 'true');
+
+  /* Y MIDE LO QUE MIDE SU CONTENIDO, que es la otra mitad de «nada más».
+     Quitarle la lista dejó cuatro discos dentro de una caja dimensionada para
+     filas con referencia y nombre: medido en un teléfono de 412, 330 px de
+     panel para 217 de contenido. El encargo del dueño del repo fue que se veía
+     «muy ancha», y eso es literalmente lo que se mide aquí.
+
+     Se compara contra lo que el propio contenido pide y NO contra un número
+     escrito: el ancho depende de cuántas telas haya y de la letra del rótulo,
+     que crece con --escala-ui, así que un 217 clavado aquí fallaría en otra
+     pantalla sin que nada estuviera mal. */
+  vale('(la prueba es válida) el panel está en modo de solo color',
+       menu.abierto && menu.abierto.soloColor === true);
+  vale('LA CAJA MIDE LO QUE MIDE LA PALETA, sin caja de sobra',
+       menu.abierto && menu.abierto.ancho <= menu.abierto.natural + 1,
+       menu.abierto && (menu.abierto.ancho + ' de panel para ' +
+                        menu.abierto.natural + ' de contenido'));
+
+  /* Y ESTRECHAR NO PUEDE ENSANCHAR, que es donde esto casi se tuerce.
+     El modo de color trae UNA fila cuando se pide borrar la cinta —la
+     pregunta, al lado de lo que se va a borrar— y esa fila pide mucho más que
+     cuatro discos: midiendo el panel por su contenido y sin techo, se iba a
+     343 px en un teléfono de 412, o sea MÁS ancho que los 330 de siempre.
+     Se compara contra el panel de la LISTA, que es el ancho normal de esta
+     caja, y no contra un número: los dos se miden en la misma corrida. */
+  const pregunta = await p.evaluate(async () => {
+    await window.__toque('[data-sep-lista]'); await window.__pausa(700);
+    const lista = window.__menu();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(500);
+    await window.__toque('.separador'); await window.__pausa(500);
+    const soloColor = window.__menu();
+    await window.__toque('[data-sep-x]'); await window.__pausa(500);
+    const preguntando = window.__menu();
+    /* se cancela, que los bloques de abajo cuentan con la cinta puesta */
+    const no = document.querySelector('[data-sep-cancelar]');
+    if (no) await window.__toque(no);
+    await window.__pausa(400);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(400);
+    return { lista, soloColor, preguntando, sigueLaCinta: !!document.querySelector('.separador') };
+  });
+  di('el ancho de los tres',
+     'lista ' + (pregunta.lista && pregunta.lista.ancho) +
+     ' · solo color ' + (pregunta.soloColor && pregunta.soloColor.ancho) +
+     ' · preguntando ' + (pregunta.preguntando && pregunta.preguntando.ancho));
+  vale('(la prueba es válida) la pregunta de borrar salió de verdad',
+       !!(pregunta.preguntando && pregunta.preguntando.borrar));
+  vale('  y la cinta sigue puesta, que solo se preguntó',
+       pregunta.sigueLaCinta === true);
+  vale('la paleta sola es MÁS ESTRECHA que la lista',
+       !!(pregunta.soloColor && pregunta.lista &&
+          pregunta.soloColor.ancho < pregunta.lista.ancho),
+       (pregunta.soloColor && pregunta.soloColor.ancho) + ' contra ' +
+       (pregunta.lista && pregunta.lista.ancho));
+  vale('y con la pregunta dentro NO se pasa del ancho de siempre',
+       !!(pregunta.preguntando && pregunta.lista &&
+          pregunta.preguntando.ancho <= pregunta.lista.ancho + 1),
+       (pregunta.preguntando && pregunta.preguntando.ancho) + ' contra ' +
+       (pregunta.lista && pregunta.lista.ancho));
+  vale('  y sigue entera dentro de la escena',
+       !!(pregunta.preguntando && pregunta.preguntando.dentro));
 
   titulo('Escape lo cierra');
   vale('cerrado', await p.evaluate(async () => {
