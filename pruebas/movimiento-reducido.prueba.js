@@ -42,34 +42,106 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        cajón que siguiera animándose se quedaría corriéndose solo delante de
        una hoja ya quieta: el movimiento del que esta preferencia venía a
        librar, servido a solas y encima más visible. */
+    /* DOS COSAS DE CÓMO SE MIDE, Y LAS DOS SON DE UN ROJO QUE NO SE PUDO
+       REPRODUCIR AQUÍ.
+
+       En el entorno del dueño del repo este bloque lleva tiempo saliendo con
+       el cajón en 0 de 251 en los dos modos, y el bloque del sello diciendo
+       «no hay G que jalar». Aquí no pasa: tres sondas, los dos modos, el
+       cajón viaja 69 → 251 sin la preferencia y salta a 251 con ella, y la G
+       está puesta y visible. Mismo tope —251 px— en las dos máquinas, o sea
+       que la hoja mide lo mismo y no es cosa de la letra instalada.
+
+       Así que en vez de inventar un arreglo para algo que no se ve, se le
+       quitan a este bloque las dos maneras que tiene de fallar en silencio:
+
+       · SE ESPERA A QUE EL VUELO PARE, no a que pasen 1300 ms. El zoom dura
+         0.46 s medidos aquí, pero un clic que llega a mitad del viaje no
+         hace nada, y con la máquina cargada 1300 ms de reloj no son 1300 ms
+         de navegador. Se mira el transform cuadro a cuadro hasta que repite
+         tres veces, y se apunta cuánto tardó: si un día eso se acerca al
+         tope, el número lo dirá.
+       · Y SE DICE DÓNDE CAYÓ EL TOQUE. El punto es la esquina de abajo de la
+         columna de glosas, y si por lo que sea cae fuera de la ventana o
+         encima de otra cosa, el cajón se queda quieto con toda la razón y la
+         prueba antes leía ese 0 como un desacuerdo del programa. Ahora lo
+         primero que se afirma es que se tocó lo que se quería tocar.
+
+       Si el rojo vuelve con esto puesto, el detalle dirá cuál de las dos era
+       —o que no era ninguna—, que es más de lo que decía un 0 a secas. */
     const cajon = await p.evaluate(async () => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
       const pg = document.getElementById('pg');
-      if (!pg.classList.contains('zoom')){
-        document.getElementById('btnZoom').click();
-        await new Promise(z => setTimeout(z, 1300));
-      }
+      const inner = document.querySelector('#pg .pg-inner');
+      /* Quieto: el mismo transform tres cuadros seguidos. Devuelve lo que
+         tardó, o -1 si se acabó la paciencia. */
+      const quieto = async (limite = 3000) => {
+        let previo = null, igual = 0;
+        const t0 = performance.now();
+        while (performance.now() - t0 < limite){
+          const ahora = getComputedStyle(inner).transform;
+          igual = (ahora === previo) ? igual + 1 : 0;
+          if (igual >= 3) return Math.round(performance.now() - t0);
+          previo = ahora;
+          await new Promise(r => requestAnimationFrame(r));
+        }
+        return -1;
+      };
+      if (!pg.classList.contains('zoom')) document.getElementById('btnZoom').click();
+      const asentar = await quieto();
       const tope = pg.scrollWidth - pg.clientWidth;
-      if (tope < 10) return { sinCarrera:true };
+      if (tope < 10) return { sinCarrera:true, tope, asentar };
       const m = document.getElementById('pgMargin').getBoundingClientRect();
-      const el = document.elementFromPoint(Math.round(m.left + 10), Math.round(m.bottom - 10));
-      el.dispatchEvent(new MouseEvent('click', { bubbles:true,
-        clientX:Math.round(m.left + 10), clientY:Math.round(m.bottom - 10) }));
+      /* EL MISMO PUNTO DE SIEMPRE —la esquina de abajo de la columna, diez
+         píxeles adentro—, pero metido a la fuerza dentro de la ventana. Un
+         punto fuera no devuelve nada y el toque se pierde; recortado sigue
+         cayendo en la columna mientras la columna se vea, y si no se ve, la
+         afirmación de abajo lo dice en vez de leerlo como un cajón que no
+         quiso moverse. No se cambia por el centro a propósito: ahí viven las
+         notas, y tocar una nota es otra cosa que tocar la columna. */
+      const xIdeal = Math.round(m.left + 10), yIdeal = Math.round(m.bottom - 10);
+      const x = Math.min(Math.max(xIdeal, 2), innerWidth - 2);
+      const y = Math.min(Math.max(yIdeal, 2), innerHeight - 2);
+      const recortado = x !== xIdeal || y !== yIdeal;
+      const enLaVentana = !recortado;
+      const el = document.elementFromPoint(x, y);
+      const quien = el ? (el.id || el.className || el.tagName) : null;
+      const esLaColumna = !!(el && el.closest && el.closest('#pgMargin'));
+      if (!el) return { sinBlanco:true, punto:{ x, y }, enLaVentana, recortado,
+                        tope, asentar, ventana:{ w:innerWidth, h:innerHeight } };
+      el.dispatchEvent(new MouseEvent('click', { bubbles:true, clientX:x, clientY:y }));
       /* Un cuadro largo después: con la preferencia puesta ya tiene que estar
          puesto; sin ella tiene que ir todavía por el camino. */
-      await new Promise(z => setTimeout(z, 60));
+      await pausa(60);
       const pronto = pg.scrollLeft;
-      await new Promise(z => setTimeout(z, 900));
-      return { fraccionPronto:+(pronto / tope).toFixed(2), final:pg.scrollLeft, tope };
+      await pausa(900);
+      return { fraccionPronto:+(pronto / tope).toFixed(2), final:pg.scrollLeft, tope,
+               quien, esLaColumna, enLaVentana, recortado, punto:{ x, y }, asentar,
+               ventana:{ w:innerWidth, h:innerHeight },
+               enZoom: pg.classList.contains('zoom') };
     });
     di('el cajón al volver', cajon);
-    if (!cajon.sinCarrera){
+    if (cajon.sinBlanco){
+      /* Sin blanco no hay nada que probar, y callarlo sería peor: el bloque
+         entero se saltaba y la suite seguía como si hubiera medido algo. */
+      vale('(la prueba es válida) hay algo que tocar en la columna de glosas',
+           false, JSON.stringify(cajon));
+    } else if (!cajon.sinCarrera){
+      vale('(la prueba es válida) el vuelo del zoom ya había parado',
+           cajon.asentar >= 0, cajon.asentar + ' ms');
+      vale('(la prueba es válida) y el toque cayó en la columna de glosas',
+           cajon.esLaColumna === true,
+           cajon.quien + ' en ' + cajon.punto.x + ',' + cajon.punto.y +
+           (cajon.recortado ? ' · RECORTADO A LA VENTANA ' +
+             cajon.ventana.w + 'x' + cajon.ventana.h : ''));
       if (modo === 'reduce')
         vale('el cajón llega de una vez', cajon.fraccionPronto === 1, cajon.fraccionPronto);
       else
         vale('el cajón viaja', cajon.fraccionPronto > 0 && cajon.fraccionPronto < 1,
              cajon.fraccionPronto);
       vale('y acaba en las glosas', cajon.final === cajon.tope,
-           cajon.final + ' de ' + cajon.tope);
+           cajon.final + ' de ' + cajon.tope +
+           (cajon.enZoom ? ' · SE QUEDÓ EN ZOOM' : ''));
     }
     /* EL PANEL NACE CRECIENDO DESDE LO SEÑALADO, y eso también es movimiento.
        Es corto —170ms, solo para que no dé el salto— pero lo crea
@@ -249,7 +321,17 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
       const pausa = ms => new Promise(z => setTimeout(z, ms));
       const g = document.getElementById('btnGlosas');
       const pgEl = document.getElementById('pg');
-      if (!g || g.hidden) return { sinG:true };
+      /* Y SI NO HAY G, POR QUÉ NO LA HAY. Este bloque salía «no hay G que
+         jalar» en el entorno del dueño del repo y ahí se acababa la
+         información. La G se esconde por dos motivos y conviene saber cuál:
+         que la hoja no desborde —sin cajón no hay sello— o que la escena siga
+         en zoom, donde el CSS la quita. Ver pintarG. */
+      if (!g || g.hidden) return { sinG:true,
+        porque: !g ? 'no existe el botón'
+              : JSON.stringify({ oculta:g.hidden,
+                                 enZoom: document.querySelector('.stage')
+                                           .classList.contains('zoom'),
+                                 tope: pgEl.scrollWidth - pgEl.clientWidth }) };
       /* SE CIERRA EL CAJÓN ANTES DE JALAR, y esto no estaba. El bloque de
          arriba lo deja ABIERTO DEL TODO —«y acaba en las glosas», cajón en
          el tope—, y desde el tope un jalón hacia la izquierda no mueve nada:
@@ -287,7 +369,8 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     /* Y esto va FUERA del if: sin él, una sesión sin glosas se saltaba el
        bloque entero en silencio y la suite pasaba sin haber probado nada. */
     vale('(la prueba es válida) el sello de las glosas está puesto',
-         !sello.sinG, sello.sinG ? 'no hay G que jalar' : 'puesto');
+         !sello.sinG,
+         sello.sinG ? 'no hay G que jalar · ' + sello.porque : 'puesto');
     if (!sello.sinG){
       vale('(la prueba es válida) se parte con el cajón cerrado',
            sello.partida === 0, sello.partida + ' px');
