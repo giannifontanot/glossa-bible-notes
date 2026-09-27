@@ -327,6 +327,55 @@ async function ponerAMano(p){
   vale('se abre al tocar la cinta', !!menu.abierto);
   vale('entero dentro de la escena', menu.abierto && menu.abierto.dentro);
   vale('trae los colores', menu.abierto && menu.abierto.telas >= 3, menu.abierto && menu.abierto.telas);
+
+  /* LA CINTA PINTA CON LA PALETA DE LA PIEDRA, y son doce, no cuatro.
+
+     Se pidió porque cuatro colores para las cintas eran pocos. Lo que se
+     afirma no es «hay doce» a secas —un número escrito aquí se queda viejo el
+     día que la paleta crezca— sino que la cinta enseña EXACTAMENTE los mismos
+     que la piedra y en el mismo orden: si alguien vuelve a separar las dos
+     tablas, esto se cae, que es justo lo que hay que vigilar.
+
+     Y en DOS RENGLONES con cada color encima de su versión viva, que es como
+     se pidió: eso es lo que hace que la pareja se entienda sin rótulo. */
+  const paleta = await p.evaluate(() => {
+    const m = document.getElementById('sepMenu');
+    const b = [...m.querySelectorAll('.sp-tela')];
+    const arriba = Math.min(...b.map(x => Math.round(x.getBoundingClientRect().top)));
+    const primera = b.filter(x => Math.round(x.getBoundingClientRect().top) === arriba);
+    return {
+      cinta: b.map(x => x.dataset.sepColor),
+      renglones: [...new Set(b.map(x => Math.round(x.getBoundingClientRect().top)))].length,
+      porRenglon: primera.length,
+      /* los de arriba y los de abajo, para comprobar la pareja */
+      arriba: primera.map(x => x.dataset.sepColor),
+      abajo: b.filter(x => Math.round(x.getBoundingClientRect().top) !== arriba)
+              .map(x => x.dataset.sepColor),
+      /* la paleta de la piedra, leída de su propio mando y no de una copia */
+      piedra: [...document.querySelectorAll('.pm-tinta')].map(x => x.dataset.piedraColor),
+    };
+  });
+  di('la paleta de la cinta', paleta.cinta.join(' · '));
+  vale('(la prueba es válida) hay más de un color que mirar',
+       paleta.cinta.length > 1, paleta.cinta.length);
+  vale('LA CINTA Y LA PIEDRA PINTAN CON LA MISMA PALETA',
+       paleta.piedra.length > 0
+         ? paleta.cinta.join(',') === paleta.piedra.join(',')
+         : paleta.cinta.length >= 12,
+       paleta.piedra.length
+         ? paleta.cinta.length + ' contra ' + paleta.piedra.length
+         : 'sin mando de piedra abierto; se mide solo el tamaño: ' + paleta.cinta.length);
+  vale('en dos renglones, y el mismo número en cada uno',
+       paleta.renglones === 2 && paleta.porRenglon * 2 === paleta.cinta.length,
+       paleta.renglones + ' renglones · ' + paleta.porRenglon + ' por renglón');
+  /* Y LA PAREJA, que es lo que explica los dos renglones: debajo de cada color
+     va ESE MISMO color subido de tono. Se comprueba por el nombre —«oliva» y
+     «oliva-vivo»— y no por el tono pintado, que depende del filtro de sepia y
+     del contraste que tenga puesto el lector. */
+  vale('  y debajo de cada color va su versión viva',
+       paleta.arriba.length === paleta.abajo.length &&
+       paleta.arriba.every((c, i) => paleta.abajo[i] === c + '-vivo'),
+       paleta.arriba.join(',') + '  /  ' + paleta.abajo.join(','));
   /* Y NADA MÁS QUE LOS COLORES, que es lo que se pidió con esas palabras.
 
      Aquí se exigía «y la lista», con una fila. Tocar la cinta que estás

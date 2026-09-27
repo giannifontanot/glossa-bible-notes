@@ -1746,6 +1746,102 @@ const FUERA = `async () => {
   vale('  y la hoja sigue enseñando glosas, no un filtro fantasma',
        trasRecargar.glosasEnHoja > 0, trasRecargar.glosasEnHoja + ' glosas');
 
+  /* ──────────────────────────────────────────────────────────────
+     LOS TRES BOTONES DE GLOSAS, Y QUE SE EXCLUYAN.
+
+     Eran dos —FILTRAR y ACTUALIZAR— y entra un tercero, LETRA, que abre el
+     tamaño, la negrita y el espaciado de la nota. Los tres abren cosas que
+     ocupan el mismo hueco, encima del índice, así que la regla que había entre
+     dos pasa a ser entre tres.
+
+     Lo que se afirma no es «hay tres botones» —un rótulo se puede cambiar sin
+     romper nada— sino la regla: abrir uno cierra los otros dos, y apagados los
+     tres se puede estar, que es el sitio de fábrica. Se recorren los tres en
+     bucle, así que si mañana entra un cuarto y alguien olvida meterlo en la
+     exclusión, esto se cae en el que falte y no en el primero.
+
+     La línea de validez es la que salva el bloque entero: si el botón de LETRA
+     no abriera NADA, «los otros dos están cerrados» saldría verde sin haber
+     probado nada. */
+  titulo('los tres botones de GLOSAS se excluyen');
+  await alPanel();
+  const tres = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const panel = document.getElementById('ctrlEtiquetas');
+    const estado = () => ({
+      letra:  !panel.classList.contains('sin-letra'),
+      filtrar: !panel.classList.contains('sin-chips'),
+      actualizar: document.getElementById('etiquetas').classList.contains('eligiendo'),
+    });
+    const PUERTAS = [['letra','btnLetraGlosas'], ['filtrar','btnVerEtiquetas'],
+                     ['actualizar','btnElegirGlosas']];
+    /* se dejan los tres cerrados antes de empezar, que los bloques de arriba
+       dejan alguno puesto */
+    for (const [k, id] of PUERTAS){ if (estado()[k]){ document.getElementById(id).click(); await pausa(320); } }
+    const deFabrica = estado();
+    const rondas = [];
+    for (const [k, id] of PUERTAS){
+      document.getElementById(id).click();
+      await pausa(420);
+      const e = estado();
+      rondas.push({ abre: k, abierto: e[k],
+                    otros: PUERTAS.filter(x => x[0] !== k).map(x => x[0] + ':' + e[x[0]]) ,
+                    soloUno: PUERTAS.filter(x => e[x[0]]).length });
+    }
+    return { rotulos: [...document.querySelectorAll('#ctrlEtiquetas .fila-etiq .btn')]
+                        .map(b => b.textContent.trim()),
+             deFabrica, rondas,
+             /* dentro de LETRA tienen que estar las tres cosas pedidas */
+             dentro: (() => {
+               const g = document.getElementById('ctrlLetra');
+               if (!g) return null;
+               return { tamano: !!g.querySelector('#fsGlosaAhora'),
+                        bold: !!g.querySelector('#chkNegritaGlosa'),
+                        espaciado: !!g.querySelector('#espaciadoGlosa') };
+             })() };
+  });
+  di('los rótulos', tres.rotulos.join(' · '));
+  di('cada ronda', JSON.stringify(tres.rondas));
+  vale('(la prueba es válida) los tres arrancan cerrados',
+       !tres.deFabrica.letra && !tres.deFabrica.filtrar && !tres.deFabrica.actualizar,
+       JSON.stringify(tres.deFabrica));
+  vale('(la prueba es válida) y cada botón ABRE lo suyo',
+       tres.rondas.every(r => r.abierto === true),
+       tres.rondas.map(r => r.abre + ':' + r.abierto).join(' · '));
+  vale('SON TRES PUERTAS', tres.rotulos.length === 3, tres.rotulos.join(' · '));
+  vale('y abrir una cierra las otras dos',
+       tres.rondas.every(r => r.soloUno === 1),
+       tres.rondas.map(r => r.abre + '→' + r.soloUno).join(' · '));
+  vale('dentro de LETRA están el tamaño, la negrita y el espaciado',
+       !!tres.dentro && tres.dentro.tamano && tres.dentro.bold && tres.dentro.espaciado,
+       JSON.stringify(tres.dentro));
+
+  /* Y LA CAJA DE ESCRIBIR UNA ETIQUETA SE LEE.
+
+     Heredaba .7rem —11.2 px— y con eso no se lee lo que uno acaba de teclear.
+     El suelo son 16 px y no es de gusto: por debajo de 16, iOS acerca la
+     página sola al enfocar un campo, así que el libro pegaba un salto de zoom
+     cada vez que se iba a escribir una etiqueta. Se compara contra ese suelo y
+     no contra el 16 exacto, que se puede subir sin romper nada. */
+  titulo('la caja de escribir una etiqueta se lee');
+  const caja = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const panel = document.getElementById('ctrlEtiquetas');
+    if (!document.getElementById('etiquetas').classList.contains('eligiendo')){
+      document.getElementById('btnElegirGlosas').click();
+      await pausa(500);
+    }
+    const c = document.getElementById('tagNuevaGrupo');
+    if (!c) return null;
+    return { px: parseFloat(getComputedStyle(c).fontSize),
+             escala: parseFloat(getComputedStyle(document.documentElement)
+                       .getPropertyValue('--escala-ui')) || 1 };
+  });
+  di('la letra de la caja', caja && (caja.px + ' px con escala ' + caja.escala));
+  vale('(la prueba es válida) la caja existe y se pudo medir', !!caja && caja.px > 0);
+  vale('NO BAJA DE 16 px, que es donde iOS deja de acercar la página',
+       !!caja && caja.px >= 16 * caja.escala - 0.5, caja && caja.px);
+
   await cerrar(sesion);
 
   /* ================================================================

@@ -230,6 +230,20 @@ async function tocarSinClic(pagina, x, y, pid = 21){
              titulo: (m.querySelector('.sp-tit') || {}).textContent,
              formas: m.querySelectorAll('[data-piedra-forma]').length,
              tintas: m.querySelectorAll('[data-piedra-color]').length,
+             /* LA FORMA DE LA MANCHA, medida AQUÍ y no solo en piedra.prueba.
+                Es el mismo panel, sí, pero se abre por otro camino y dentro de
+                otra caja —la tapa, no la escena—, y lo que se rompió era
+                justamente que el ancho lo ponía el panel de turno: una mancha
+                cuadrada en la hoja podía salir tira en la portada. Medirlo en
+                los dos sitios es lo único que distingue «cuadrada» de
+                «cuadrada donde yo miré». */
+             mancha: (() => {
+               const b = m.querySelector('[data-piedra-color]');
+               if (!b) return null;
+               const r = b.getBoundingClientRect();
+               return { an: Math.round(r.width * 10) / 10,
+                        al: Math.round(r.height * 10) / 10 };
+             })(),
              contador: (m.querySelector('.pm-tam') || {}).textContent,
              salidas: [...m.querySelectorAll('.pm-btn2')].map(x => x.textContent.trim()),
              cerco: !!document.querySelector('.pt-piedra.editando') };
@@ -241,6 +255,13 @@ async function tocarSinClic(pagina, x, y, pid = 21){
   vale('  con el mando de la hoja: catorce figuras, doce colores y su contador',
        nacida.formas === 14 && nacida.tintas === 12 && /\/8$/.test(nacida.contador || ''),
        [nacida.formas, nacida.tintas, nacida.contador].join(' · '));
+  /* Ver el comentario de `mancha` arriba: cuadrada y con lado de sobra, medido
+     también en esta caja y no solo en la de la hoja. */
+  vale('  y sus manchas de color son CUADRADAS, también aquí',
+       !!nacida.mancha && Math.abs(nacida.mancha.an - nacida.mancha.al) <= 1,
+       nacida.mancha && (nacida.mancha.an + ' x ' + nacida.mancha.al));
+  vale('    con lado de sobra para verse',
+       !!nacida.mancha && nacida.mancha.al >= 28, nacida.mancha && nacida.mancha.al);
   /* Y NACE EN EL 8 DE 8, el más grande. En la hoja nace en el 5, y son dos
      números distintos a propósito: en la portada la piedra es adorno y se pone
      para verla, y en la hoja va encima de un renglón que hay que seguir
