@@ -29,8 +29,47 @@
    Escape vuelve a no hacer nada, que es lo que hace en cualquier página. */
 (function () {
   if (parent === window) return;
+
+  /* PERO ESCAPE NO SIEMPRE QUIERE DECIR «SALIR».
+
+     El árbol de oraciones edita el texto de una hoja en un <textarea>, y ahí
+     Escape ya significa algo: cancelar la edición y devolver el texto de
+     antes. Con el puente puesto tal cual, esa misma tecla hacía las DOS cosas
+     —cancelaba la edición Y cerraba la pestaña entera—, porque el aviso salía
+     de aquí sin preguntar. Comprobado con el dedo antes de tocarlo: se crea
+     una hoja, se entra a editarla, se escribe, Escape, y el panel se iba.
+     Lo levantó la revisión de Codex.
+
+     La regla que se aplica es la del navegador: si el foco está en un campo de
+     escritura, la tecla es del campo y aquí no se toca. No se mira qué
+     aplicación es ni qué hace —esto no sabe nada de ella, y así sigue
+     entrando tal cual, con esta única línea añadida—; se mira el foco, que es
+     lo que vale para cualquier relato que un día traiga un formulario.
+
+     Y SE MIRA EN LA CAPTURA, NO AL LLEGAR ARRIBA, que fue el primer intento y
+     no servía: el relato atiende su Escape en el <textarea>, y lo primero que
+     hace es soltarle el foco —blur() y quitar el editor—, todo antes de que el
+     evento termine de subir. Al oyente de abajo el foco ya le llegaba en el
+     <body>, así que preguntar ahí decía siempre «no estaba escribiendo».
+     La marca viaja en el evento mismo y no en una variable de este guion: es
+     el mismo objeto en las dos fases, y así no queda estado que se pueda
+     quedar sucio si una tecla se pierde por el camino. */
+  function enCampo(el){
+    if (!el) return false;
+    if (el.isContentEditable) return true;
+    var t = (el.tagName || '').toLowerCase();
+    return t === 'input' || t === 'textarea' || t === 'select';
+  }
+  addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape') ev.glossaEnCampo = enCampo(document.activeElement);
+  }, true);
+
   addEventListener('keydown', function (ev) {
     if (ev.key !== 'Escape') return;
+    /* El relato se queda la tecla en dos casos: cuando estaba escribiendo
+       —la marca de arriba— y cuando la atendió como se debe, cancelando el
+       gesto por defecto. En los dos, salir sería pasarle por encima. */
+    if (ev.glossaEnCampo || ev.defaultPrevented) return;
     ev.preventDefault();
     /* El asterisco es el único destino posible: con file:// el origen de
        arriba es «null» y nombrarlo no vale. Lo que hace que esto sea seguro

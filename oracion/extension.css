@@ -1,0 +1,154 @@
+/* ================================================================
+   Extensión inferior del escritorio (módulo independiente).
+
+   #world envuelve TODO el escritorio (lienzo, puntos, botones, cofre).
+   Como #world tiene transform, sus descendientes position:fixed se
+   anclan a él: al trasladar #world, el escritorio completo se mueve
+   como un solo póster vertical y revela la extensión #lower-deck que
+   vive pegada a su borde inferior (top: 100%), sin costura.
+   ================================================================ */
+
+#world {
+  position: fixed;
+  inset: 0;
+  transform: translateY(var(--deck-shift, 0px));
+  will-change: transform;
+}
+
+/* El ajuste al soltar (asentarse abierto/cerrado) es la única transición;
+   durante el arrastre el escritorio sigue al dedo sin animación. */
+#world.deck-snapping {
+  transition: transform var(--deck-snap-ms, 280ms) ease;
+}
+
+/* Extensión inferior: continuación natural del escritorio. Fondo blanco,
+   limpio y minimalista; solo imágenes, sin texto. */
+#lower-deck {
+  position: absolute;
+  top: 100%; /* comienza exactamente donde termina el escritorio */
+  left: 0;
+  right: 0;
+  /* Gris suave: no deslumbra ni contrasta tan duro con el fondo oscuro */
+  background: #9aa0a8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36px;
+  padding: 56px 24px calc(56px + env(safe-area-inset-bottom, 0px));
+  touch-action: none;         /* el gesto de cierre no debe hacer scroll */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Área reservada para el código QR: tarjeta blanca con borde, bien
+   presentada (y el fondo blanco garantiza que el QR escanee bien). */
+#qr-container {
+  background: #ffffff;
+  padding: 18px;
+  border: 2px solid #4a4f57;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+#qr-container img {
+  display: block;
+  width: min(220px, 58vw);
+  height: auto;
+  image-rendering: pixelated; /* módulos del QR nítidos a cualquier escala */
+}
+
+/* Instrucciones para guardar la página: texto limpio sobre el gris */
+#qr-instructions {
+  max-width: 320px;
+  color: #23262b;
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  text-align: center;
+}
+
+/* Pestañas de idioma (Español / English): discretas, tipo segmento */
+.deck-tabs {
+  display: inline-flex;
+  gap: 3px;
+  margin-bottom: 18px;
+  padding: 3px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 999px;
+}
+
+.deck-tab {
+  touch-action: manipulation;
+  border: none;
+  background: transparent;
+  color: #3a3f46;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.deck-tab.is-active {
+  background: #ffffff;
+  color: #1c1f24;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.deck-panel[hidden] {
+  display: none;
+}
+
+#qr-instructions .deck-title {
+  margin: 0 0 14px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+/* Subtítulos por plataforma (Android / iPhone) */
+#qr-instructions .deck-subtitle {
+  margin: 18px 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #3a3f46;
+  text-align: left;
+}
+
+#qr-instructions .deck-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: paso;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 16px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+#qr-instructions .deck-steps li {
+  counter-increment: paso;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+/* Numerito en círculo, discreto */
+#qr-instructions .deck-steps li::before {
+  content: counter(paso);
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #4a4f57;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 22px;
+  text-align: center;
+}
