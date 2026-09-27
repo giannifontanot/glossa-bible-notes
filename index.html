@@ -5741,7 +5741,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '27-SEP-26 12:59';
+window.GLOSS_BUILD = '27-SEP-26 17:54';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17818,7 +17818,6 @@ const piedraDibujo = (f, tinta, crudo) => {
    cinta necesitaba de más es el tono del doblez, que ahora vive allí como
    cuarto campo. */
 const TELAS = PIEDRA_TINTAS;
-const telaDe = c => TELAS.find(t => t[0] === c) || TELAS[0];
 /* DÓNDE EMPIEZA LA RUEDA, y por qué no en el primero. El color de una cinta
    nueva va rotando por la paleta, y con la tabla de las piedras el primero
    pasaría a ser SEPIA. Eso es justo lo que las piedras aprendieron a no hacer
@@ -17826,6 +17825,17 @@ const telaDe = c => TELAS.find(t => t[0] === c) || TELAS[0];
    papel, así que una marca sepia recién puesta nace escondida. La rueda sigue
    dando los doce; solo empieza donde empezaba, en carmín. */
 const CINTA_PRIMERA = Math.max(0, TELAS.findIndex(t => t[0] === 'carmin'));
+/* Y EL RESPALDO DE telaDe ES ESE MISMO CARMÍN, NO EL PRIMERO DE LA TABLA.
+
+   Aquí se cae todo lo que no se reconoce: un almacén con un color inventado,
+   uno escrito a mano, uno de una versión futura. Antes la tabla de la cinta
+   empezaba en carmín y `|| TELAS[0]` daba carmín sin que nadie lo pensara;
+   con la tabla de las piedras, TELAS[0] es SEPIA, y una cinta rescatada nacía
+   del color del papel, o sea invisible. Lo destapó el banco: la prueba del
+   almacén dañado —«un color inventado cae en uno real»— vio `fucsia` volverse
+   `sepia`. Va escrito con CINTA_PRIMERA y no con un 'carmin' suelto para que
+   el día que se mueva el sitio de esa primera cinta, esto se mueva con ella. */
+const telaDe = c => TELAS.find(t => t[0] === c) || TELAS[CINTA_PRIMERA];
 
 let separadores = [];
 /* CUÁL ES LA CINTA ACTIVA vive en memoria y no en el almacén, y no es un
