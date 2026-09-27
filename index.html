@@ -2146,7 +2146,16 @@
      renglón del rótulo, esta vez como un hijo más del flex y no flotando por
      encima: «Nueva» le cede los 44 px de su derecha, que es el precio, y el
      panel gana un renglón de alto y una cabecera que se lee de una vez. */
-  .sp-telas{ display:flex; gap:7px; padding:0 3px 9px; }
+  /* DOS RENGLONES DE SEIS, por lo mismo que en el mando de la piedra y con la
+     misma forma de rejilla. En fila, los doce se estrujaban o se salían del
+     panel; en dos renglones de seis cada color cae ENCIMA de su versión viva,
+     y eso explica la pareja sin necesidad de rótulo: arriba los apagados,
+     abajo el mismo color subido de tono. Pedido así.
+     Se centra porque seis círculos de 30 con 7 de hueco son 215 px y el panel
+     da más: una rejilla pegada a la izquierda dentro de un panel más ancho se
+     lee como algo mal puesto. */
+  .sp-telas{ display:grid; grid-template-columns:repeat(6, 30px); gap:7px;
+             justify-content:center; padding:0 3px 9px; }
   .sp-tela{ flex:0 0 auto; width:30px; height:30px; border-radius:50%;
             border:1px solid rgba(90,70,30,.45); cursor:pointer; padding:0;
             -webkit-tap-highlight-color:transparent;
@@ -2493,11 +2502,28 @@
      colores. Con seis columnas fijas, la de abajo cae debajo de la suya —cada
      color encima de su versión viva— que además es lo que explica la fila sin
      necesidad de rótulo. */
-  .pm-tintas{ display:grid; grid-template-columns:repeat(6, 1fr); gap:5px; }
+  /* Y CUADRADAS, NO TIRAS. Aquí las columnas eran 1fr y el alto 19 px, o sea
+     que cada mancha salía de 48 por 19 en un teléfono: una tira, no un cuadro,
+     y con el lado corto decidiendo lo poco que se ve. El dueño del repo las
+     pidió cuadradas y algo más grandes, y ésa es la misma queja dicha por el
+     lado de la forma.
+
+     El lado va escrito y las columnas dejan de ser 1fr, que es lo que hacía
+     rectángulo: con 1fr el ancho lo pone el panel y el alto lo pone esta
+     regla, así que la forma cambiaba sola de una pantalla a otra. Con el lado
+     escrito, un cuadro es un cuadro en las tres.
+
+     Y CABEN, que era el freno: seis columnas de 34 con 5 de hueco son 229 px,
+     y el panel da 266 útiles en la pantalla más estrecha donde se abre (304
+     menos el relleno). Sobran 37. Se centra la rejilla porque ya no llena el
+     ancho, y una rejilla pegada a la izquierda dentro de un panel que sí lo
+     llena se lee como algo mal puesto. */
+  .pm-tintas{ display:grid; grid-template-columns:repeat(6, 34px); gap:5px;
+              justify-content:center; }
   /* Los colores son manchas y no dibujos: lo que se elige es el color, así que
      el botón ES el color. El elegido se marca con un aro por fuera y no con un
      borde por dentro, que sobre una mancha oscura no se ve. */
-  .pm-tinta{ height:19px; padding:0; border-radius:4px;
+  .pm-tinta{ width:34px; height:34px; padding:0; border-radius:4px;
              border:1px solid rgba(60,40,15,.28); cursor:pointer;
              -webkit-tap-highlight-color:transparent; }
   .pm-tinta.on{ box-shadow:0 0 0 2px #f2e9d6, 0 0 0 3.5px rgba(184,137,43,.95); }
@@ -5715,7 +5741,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '27-SEP-26 08:00';
+window.GLOSS_BUILD = '27-SEP-26 17:54';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17199,19 +17225,34 @@ function piedraSombraFiltro(lado, ref){
    El nombre se guarda como cadena y no como índice de la paleta a propósito:
    así sigue valiendo si mañana se reordena PIEDRA_TINTAS. */
 const PIEDRA_COLOR_NUEVA = 'carmin-vivo';
+/* EL CUARTO CAMPO ES EL TONO DE LA SOMBRA, y no lo usan las piedras: lo usa la
+   CINTA, que se dibuja con dos tonos —la tela y el doblez— y desde ahora saca
+   sus colores de aquí. Ver TELAS.
+
+   Los cuatro que ya tenía la cinta —carmín, oliva, índigo y ocre— entran con
+   su sombra COPIADA TAL CUAL de donde estaba, no recalculada: esos cuatro
+   valores se eligieron a mano en su día y recalcularlos habría cambiado de
+   color, sin que nadie lo pidiera, todas las cintas ya puestas.
+
+   Los ocho nuevos siguen la proporción que describen esos cuatro: la sombra
+   ronda el 0.75 de cada canal —medido sobre ellos: .79/.74, .75/.76/.74,
+   .72/.74/.75, .81/.78/.62—. No se calcula en el guion a propósito: una cuenta
+   daría números distintos de los cuatro de la mano, y entonces habría que
+   elegir entre romper los que existen o meter una excepción. Escritos, los doce
+   se leen igual. */
 const PIEDRA_TINTAS = [
-  ['sepia',        'sepia',         '#7a6434'],
-  ['carmin',       'carmín',        '#9b2a2a'],
-  ['oliva',        'oliva',         '#4d6a35'],
-  ['indigo',       'índigo',        '#2f4a78'],
-  ['ocre',         'ocre',          '#a4761d'],
-  ['ciruela',      'ciruela',       '#6b3a63'],
-  ['sepia-vivo',   'sepia vivo',    '#c2880a'],
-  ['carmin-vivo',  'carmín vivo',   '#d80b0b'],
-  ['oliva-vivo',   'oliva vivo',    '#57b409'],
-  ['indigo-vivo',  'índigo vivo',   '#0a4cbc'],
-  ['ocre-vivo',    'ocre vivo',     '#d4900b'],
-  ['ciruela-vivo', 'ciruela vivo',  '#ba0a9d']
+  ['sepia',        'sepia',         '#7a6434', '#5c4b27'],
+  ['carmin',       'carmín',        '#9b2a2a', '#7a1f1f'],
+  ['oliva',        'oliva',         '#4d6a35', '#3a5127'],
+  ['indigo',       'índigo',        '#2f4a78', '#22375a'],
+  ['ocre',         'ocre',          '#a4761d', '#845c12'],
+  ['ciruela',      'ciruela',       '#6b3a63', '#502c4a'],
+  ['sepia-vivo',   'sepia vivo',    '#c2880a', '#926608'],
+  ['carmin-vivo',  'carmín vivo',   '#d80b0b', '#a20808'],
+  ['oliva-vivo',   'oliva vivo',    '#57b409', '#418707'],
+  ['indigo-vivo',  'índigo vivo',   '#0a4cbc', '#08398d'],
+  ['ocre-vivo',    'ocre vivo',     '#d4900b', '#9f6c08'],
+  ['ciruela-vivo', 'ciruela vivo',  '#ba0a9d', '#8c0876']
 ];
 const tintaDe = c => PIEDRA_TINTAS.find(t => t[0] === c) || PIEDRA_TINTAS[0];
 /* EL COLOR SE CORRIGE ANTES DE QUE EL FILTRO LO TOQUE.
@@ -17762,11 +17803,39 @@ const piedraDibujo = (f, tinta, crudo) => {
     (crudo ? con : compensarDibujo(con)) + '</svg>';
 };
 
-const TELAS = [['carmin', 'carmín', '#9b2a2a', '#7a1f1f'],
-               ['oliva',  'oliva',  '#4d6a35', '#3a5127'],
-               ['indigo', 'índigo', '#2f4a78', '#22375a'],
-               ['ocre',   'ocre',   '#a4761d', '#845c12']];
-const telaDe = c => TELAS.find(t => t[0] === c) || TELAS[0];
+/* LAS CINTAS Y LAS PIEDRAS PINTAN CON LA MISMA PALETA, y ya no con dos.
+
+   Aquí había cuatro colores escritos aparte —carmín, oliva, índigo y ocre— y
+   el dueño del repo pidió darle a la cinta los doce que ya tiene la piedra:
+   «creo que son muy pocos los que tenemos para las cintas». No se copian: se
+   apunta a la misma tabla. Dos listas de colores que se quieren iguales acaban
+   distintas el día que alguien retoca una, y eso ya pasó una vez con las tres
+   listas de etiquetas.
+
+   Y no hace falta traducir nada: los cuatro que la cinta tenía están en
+   PIEDRA_TINTAS con el MISMO hexadecimal, hasta la última cifra —comprobado
+   uno a uno—, así que ninguna cinta ya puesta cambia de color. Lo único que la
+   cinta necesitaba de más es el tono del doblez, que ahora vive allí como
+   cuarto campo. */
+const TELAS = PIEDRA_TINTAS;
+/* DÓNDE EMPIEZA LA RUEDA, y por qué no en el primero. El color de una cinta
+   nueva va rotando por la paleta, y con la tabla de las piedras el primero
+   pasaría a ser SEPIA. Eso es justo lo que las piedras aprendieron a no hacer
+   —está contado en PIEDRA_COLOR_NUEVA—: sepia es el color de la letra y del
+   papel, así que una marca sepia recién puesta nace escondida. La rueda sigue
+   dando los doce; solo empieza donde empezaba, en carmín. */
+const CINTA_PRIMERA = Math.max(0, TELAS.findIndex(t => t[0] === 'carmin'));
+/* Y EL RESPALDO DE telaDe ES ESE MISMO CARMÍN, NO EL PRIMERO DE LA TABLA.
+
+   Aquí se cae todo lo que no se reconoce: un almacén con un color inventado,
+   uno escrito a mano, uno de una versión futura. Antes la tabla de la cinta
+   empezaba en carmín y `|| TELAS[0]` daba carmín sin que nadie lo pensara;
+   con la tabla de las piedras, TELAS[0] es SEPIA, y una cinta rescatada nacía
+   del color del papel, o sea invisible. Lo destapó el banco: la prueba del
+   almacén dañado —«un color inventado cae en uno real»— vio `fucsia` volverse
+   `sepia`. Va escrito con CINTA_PRIMERA y no con un 'carmin' suelto para que
+   el día que se mueva el sitio de esa primera cinta, esto se mueva con ella. */
+const telaDe = c => TELAS.find(t => t[0] === c) || TELAS[CINTA_PRIMERA];
 
 let separadores = [];
 /* CUÁL ES LA CINTA ACTIVA vive en memoria y no en el almacén, y no es un
@@ -18438,8 +18507,10 @@ function crearSeparador(){
   const p = puntoActual();
   const s = { id: sepNuevoId(), libro: p.libro, cap: p.ref.cap, vers: p.ref.vers,
               /* El color va rotando: dos cintas seguidas del mismo tono se
-                 confunden en la lista, y elegir uno al azar podía repetirlo. */
-              color: TELAS[separadores.length % TELAS.length][0],
+                 confunden en la lista, y elegir uno al azar podía repetirlo.
+                 Arranca en carmín y no en el primero de la tabla: ver
+                 CINTA_PRIMERA. */
+              color: TELAS[(CINTA_PRIMERA + separadores.length) % TELAS.length][0],
               creado: Date.now(), tocado: Date.now() };
   separadores.unshift(s);
   if (separadores.length > TOPE_SEPARADORES) separadores.length = TOPE_SEPARADORES;
