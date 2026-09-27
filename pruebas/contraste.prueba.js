@@ -277,12 +277,16 @@ async function ponerContraste(pagina, pct){
                   no: se le pidió que midiera su palabra, como el de CERRAR, y
                   eso se comprueba aparte más abajo. */
                salida: !!filaSalida && f === filaSalida,
-               /* LAS TRES FILAS DE RIEL TAMPOCO ENCOGEN, y por una razón que
+               /* LAS FILAS DE RIEL TAMPOCO ENCOGEN, y por una razón que
                   no es la de la salida: encoger la fila ENCOGE EL RIEL, y el
                   recorrido de un riel es su precisión —cuanto más largo, más
                   fino el ajuste con el mismo gesto—. Se pidió que no cambien de
-                  largo al volverse transparente, así que estas tres se quedan
-                  del ancho del panel con su tablilla puesta. */
+                  largo al volverse transparente, así que éstas se quedan
+                  del ancho del panel con su tablilla puesta.
+                  ERAN TRES Y AHORA SON CUATRO: el espaciado entró con el lote
+                  de la tipografía y es un riel como los otros, y de los que
+                  más precisión piden —su recorrido entero son siete pasos de
+                  una centésima de em—, así que le toca el mismo ancho. */
                riel: f.classList.contains('riel-fila'),
                pct: Math.round(r.width / ancho * 100),
                conFondo: !hueco(cs.backgroundColor),
@@ -365,17 +369,21 @@ async function ponerContraste(pagina, pct){
   /* NINGUNA A TODO LO ANCHO. Ésta es la que se pidió y la que se rompe sola si
      alguien le quita el justify-self o el flex:0 0 auto: con cualquiera de las
      dos cosas fuera, las filas vuelven a medir la columna entera.
-     Las tres del riel quedan fuera de la cuenta a propósito y se vigilan
+     Las del riel quedan fuera de la cuenta a propósito y se vigilan
      aparte, abajo: ahí lo ancho no es un descuido, es el encargo. */
   vale('NINGUNA ocupa el ancho del panel',
        ajustes.every(f => f.pct <= 90),
        ajustes.filter(f => f.pct > 90).map(f => f.que + ' ' + f.pct + '%'));
-  /* Y SON TRES, NI MÁS NI MENOS. Sin esta línea, el día que alguien le ponga
+  /* Y SON CUATRO, NI MÁS NI MENOS. Sin esta línea, el día que alguien le ponga
      la clase a media docena de filas la prueba de arriba se quedaría sin nada
-     que mirar y seguiría en verde con el panel entero tapando la hoja. */
-  vale('(la prueba es válida) las filas de riel son exactamente tres',
-       rieles.length === 3, rieles.map(f => f.que).join(' · '));
-  vale('las tres del riel SÍ van anchas, que es lo que se pidió',
+     que mirar y seguiría en verde con el panel entero tapando la hoja.
+     Eran tres —sepia, contraste y brillo— hasta que entró el ESPACIADO con el
+     lote de la tipografía. El número se sube a mano y no se cambia por «tres o
+     más» a propósito: que aparezca una fila ancha que nadie pidió es el mismo
+     defecto que se vigila aquí, solo que por el otro lado. */
+  vale('(la prueba es válida) las filas de riel son exactamente cuatro',
+       rieles.length === 4, rieles.map(f => f.que).join(' · '));
+  vale('las cuatro del riel SÍ van anchas, que es lo que se pidió',
        rieles.every(f => f.pct > 90 && f.conFondo),
        rieles.map(f => f.que + ' ' + f.pct + '% · tablilla ' + f.conFondo).join(' · '));
   /* Y la mitad largas es poco: si la media se dispara es que algo volvió a
@@ -394,8 +402,10 @@ async function ponerContraste(pagina, pct){
      mando con la mitad del recorrido: medido, el riel pasaba de 242 px a 150
      en un teléfono y de unos 505 a 150 en pantalla ancha. Y el recorrido no es
      decoración: cuanto más largo el riel, más fino el ajuste con el mismo
-     gesto, que es la razón por la que estas tres filas son anchas desde que
-     existen.
+     gesto, que es la razón por la que estas filas son anchas desde que
+     existen. Son cuatro desde que el espaciado entró en el panel, y se mide
+     también el suyo: si un riel nuevo se quedara fuera de esta cuenta, el
+     fallo volvería por la puerta que nadie mira.
 
      SE COMPARAN LOS DOS MODOS ENTRE SÍ, no contra un número: cuánto mide el
      riel depende del ancho del panel, de la letra y de la pantalla, así que
@@ -407,7 +417,7 @@ async function ponerContraste(pagina, pct){
   titulo('el riel no cambia de largo al volverse transparente');
   const largos = await pagina.evaluate(async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
-    const lee = () => ['sepia','contraste','brillo'].map(id =>
+    const lee = () => ['espaciado','sepia','contraste','brillo'].map(id =>
       Math.round(document.getElementById(id).getBoundingClientRect().width));
     const vidrio = () => document.getElementById('btnVidrio');
     /* Se parte de opaco, sea cual sea el estado en que lo dejó el bloque de
@@ -422,7 +432,7 @@ async function ponerContraste(pagina, pct){
     return { opaco, cristal, vuelta: lee(),
              modoFinal: document.getElementById('ajustes').classList.contains('cristal') };
   });
-  di('los tres rieles', JSON.stringify(largos));
+  di('los cuatro rieles', JSON.stringify(largos));
   vale('(la prueba es válida) los rieles miden algo',
        largos.opaco.every(n => n > 60), largos.opaco.join(' · '));
   vale('EL LARGO NO CAMBIA AL VOLVERSE TRANSPARENTE',
@@ -852,6 +862,21 @@ async function ponerContraste(pagina, pct){
      «la glosa no cambió» saldría verde sin haber probado nada. */
   titulo('el espaciado y la negrita llegan al libro y NO a la glosa');
   await conGlosas(pagina);
+  /* Y A UNA HOJA QUE DE VERDAD LAS TENGA, que es lo que faltaba y lo tumbó en
+     el banco: `texto true · glosa false`. Poner las glosas de ejemplo en el
+     almacén no las pone delante — el fichero glosa pasajes de Mateo a
+     Apocalipsis, y esta suite estaba leyendo en otro sitio, así que había
+     texto que medir y ninguna nota. Se va a Mateo 1, donde vive la primera
+     (`eco-mat-1-1`), conservando lo demás de los ajustes: el contraste que
+     dejó el bloque de arriba es lo que miden los de abajo. */
+  await pagina.evaluate(() => {
+    const c = 'glossa:ajustes:v1';
+    const a = JSON.parse(localStorage.getItem(c) || '{}') || {};
+    a.v = 1; a.libro = 'MAT'; a.cap = 1; a.vers = 1;
+    localStorage.setItem(c, JSON.stringify(a));
+  });
+  await pagina.reload();
+  await pagina.waitForTimeout(2800);
   const letra = await pagina.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     const vis = () => [...document.querySelectorAll('.rollo, #canto')]
