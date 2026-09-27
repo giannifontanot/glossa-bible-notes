@@ -918,6 +918,67 @@ async function ponerContraste(pagina, pct){
        letra.devuelto.libroEsp === letra.antes.libroEsp,
        letra.devuelto.libroPeso + ' / ' + letra.devuelto.libroEsp);
 
+  /* ──────────────────────────────────────────────────────────────
+     Y LA NOTA LO LLEVA ESTÉ DONDE ESTÉ: al margen, debajo o al pie.
+
+     Ésta nace de un hallazgo de la revisión de Codex, y conviene decir qué
+     mitad cubre y qué mitad no.
+
+     LA MITAD QUE CUBRE: la glosa vive en tres sitios que el lector elige, y
+     los tres cuelgan de sitios distintos de la hoja —.pg-body, .pg-margin y
+     .pg-foot son HERMANOS—. Un ajuste escrito en el cuerpo no llega a los
+     otros dos. Por eso prepararHoja lo escribe en .pg, que es el ancestro
+     común; esto vigila que siga siendo así, recorriendo los tres.
+
+     LA MITAD QUE NO CUBRE, y se dice en vez de disimularla: el mismo fallo en
+     la FOTO del pliegue, que es donde Codex lo encontró. Allí el ajuste
+     viajaba solo en estiloEnLinea(), que cae en .pg-body, y las notas del
+     margen y del pie salían con la tipografía de fábrica: caja de un tamaño y
+     letra de otro. Está arreglado poniéndolo en la raíz del SVG, al lado de
+     --fs-glosa, pero esa cadena se arma dentro de buildSVG y no hay manera de
+     leerla desde aquí. Se reprodujo a mano antes de tocarla —cuerpo 600, y
+     margen y pie 400— y queda anotado que no tiene prueba detrás. */
+  titulo('el ajuste de la glosa la sigue a sus tres sitios');
+  const sitios = await pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const vis = () => [...document.querySelectorAll('.rollo, #canto')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    const irA = async (sec) => {
+      if (!vis()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+      const t = (vis()||document).querySelector('.pestanas [data-sec="'+sec+'"]');
+      if (t){ t.click(); await pausa(950); }
+    };
+    /* se enciende la negrita de la GLOSA por su mando, el de GLOSAS > LETRA */
+    await irA('glosas');
+    const puerta = document.getElementById('btnLetraGlosas');
+    if (puerta && document.getElementById('ctrlEtiquetas').classList.contains('sin-letra')){
+      puerta.click(); await pausa(420);
+    }
+    const c = document.getElementById('chkNegritaGlosa');
+    if (!c) return { falta:'sin mando de letra de glosa' };
+    c.checked = true; c.dispatchEvent(new Event('change', { bubbles:true }));
+    await pausa(900);
+    const out = {};
+    for (const lay of ['margin', 'below', 'foot']){
+      const b = document.querySelector('[data-lay="' + lay + '"]');
+      if (!b){ out[lay] = 'sin botón'; continue; }
+      b.click(); await pausa(1200);
+      const g = document.querySelector('.gl');
+      out[lay] = g ? getComputedStyle(g).fontWeight : 'sin glosa';
+    }
+    /* se devuelve la negrita, que los bloques de abajo no la esperan */
+    c.checked = false; c.dispatchEvent(new Event('change', { bubbles:true }));
+    await pausa(800);
+    return out;
+  });
+  di('el peso de la nota en cada sitio', JSON.stringify(sitios));
+  vale('(la prueba es válida) se pudo mirar la nota en los tres sitios',
+       !sitios.falta && ['margin','below','foot']
+         .every(k => /^[0-9]+$/.test(String(sitios[k]))), JSON.stringify(sitios));
+  vale('LA NEGRITA DE LA GLOSA LA SIGUE A LOS TRES SITIOS',
+       !sitios.falta && ['margin','below','foot']
+         .every(k => Number(sitios[k]) > 400), JSON.stringify(sitios));
+
   await cerrarParcial(sesion, 'teléfono');
 
   /* ---------- y en escritorio, donde .stage SÍ trae filtro propio ---------- */

@@ -5801,7 +5801,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '27-SEP-26 13:13';
+window.GLOSS_BUILD = '27-SEP-26 13:21';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -12764,6 +12764,25 @@ function buildSVG(bodyHTML, marginHTML, footHTML, mw, gap, w, h, cabeza, hojaN){
              verdad; el día que algo del recuadro use ese tono, ya está. */
           ';--rot-cab:'+colorRotuloCab()+';--rot-pie:'+colorRotuloPie()+
           ';--fs:'+fontSize+'px;--fs-glosa:'+fontSizeGlosa+'px'+
+          /* EL PESO Y EL ESPACIADO VAN AQUÍ, EN LA RAÍZ, y no basta con que
+             estiloEnLinea() los meta en el cuerpo. Es el mismo fallo que ya
+             está contado para --fs unas líneas más arriba, en prepararHoja:
+             las glosas del MARGEN y del PIE son hermanas de .pg-body, no
+             hijas, así que lo que se declare en el cuerpo no les llega.
+
+             Lo levantó la revisión de Codex, y se reprodujo antes de tocar
+             nada armando la misma forma que arma esta función: con el ajuste
+             puesto solo en el cuerpo, la nota del cuerpo sale 600/0.42px y las
+             del margen y del pie 400/normal.
+
+             Lo que eso rompe no es el color de la nota —el SVG va en sin-tinta
+             y las letras las pinta el lienzo— sino su CAJA: el recuadro de la
+             glosa se compone con la tipografía de fábrica mientras los glifos
+             se miden sobre la hoja viva, que sí lleva el ajuste. Caja de un
+             tamaño y letra de otro, y un brinco al pasar hoja. */
+          ';--peso:'+(negrita ? PESO_FUERTE : 400)+';--esp:'+(espaciado / 100)+'em'+
+          ';--peso-glosa:'+(negritaGlosa ? PESO_FUERTE : 400)+
+          ';--esp-glosa:'+(espaciadoGlosa / 100)+'em'+
           ';--mx:'+(med ? 0 : MARGENES[margen][1])+'px'+'">'+
         /* LAS PIEDRAS YA NO VAN AQUÍ, y esto es un arreglo, no una limpieza.
 
