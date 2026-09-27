@@ -21,7 +21,7 @@
    guarda de rebote —repagina, y al final de repaginar se guardan los ajustes—
    y éste a propósito NO repagina, así que su guardado es una línea aparte que
    se puede olvidar sin que nada más se entere. */
-const { abrir, cerrar, cerrarParcial, di, vale, titulo,
+const { abrir, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
         ESCRITORIO } = require('./comun');
 
 /* getComputedStyle devuelve 'contrast(1.5)' o 'none'. Sacamos el número para
@@ -833,6 +833,90 @@ async function ponerContraste(pagina, pct){
        sinB.riel === '100' && sinB.medida === '100%' && brilloDe(sinB.filtro) === 1,
        sinB.riel + ' · ' + sinB.filtro);
   vale('sin llevarse el contraste por delante', sinB.rielC === '80', sinB.rielC);
+
+  /* ──────────────────────────────────────────────────────────────
+     EL ESPACIADO Y LA NEGRITA DEL LIBRO, Y DÓNDE NO CAEN.
+
+     Este bloque vive aquí y no en otra suite por lo que esta suite sabe hacer:
+     su asunto es exactamente ése —dónde cae un ajuste del panel de Formato y
+     dónde NO—, que es lo que el encargo dice con dos palabras, «excepto las
+     glosas». Un ajuste que se derrama sobre la nota se rompe en silencio, como
+     se rompía el filtro sobre el propio riel.
+
+     Se miden las DOS direcciones, que son dos fallos distintos: que llegue al
+     texto (se rompe si alguien quita la variable de .pg) y que NO llegue a la
+     glosa (se rompe si alguien borra la línea de .gl que la saca de ahí). Una
+     sola de las dos dejaría pasar la mitad.
+
+     Y la línea de validez es la de siempre: si el riel no hubiera movido nada,
+     «la glosa no cambió» saldría verde sin haber probado nada. */
+  titulo('el espaciado y la negrita llegan al libro y NO a la glosa');
+  await conGlosas(pagina);
+  const letra = await pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const vis = () => [...document.querySelectorAll('.rollo, #canto')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    const irA = async (sec) => {
+      if (!vis()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+      const t = (vis()||document).querySelector('.pestanas [data-sec="'+sec+'"]');
+      if (t){ t.click(); await pausa(950); }
+    };
+    const lee = () => {
+      const v = document.querySelector('#pgBody .v');
+      const g = document.querySelector('.gl');
+      const c = e => e ? getComputedStyle(e) : null;
+      const cv = c(v), cg = c(g);
+      return { hayTexto: !!v, hayGlosa: !!g,
+               libroPeso: cv && cv.fontWeight, libroEsp: cv && cv.letterSpacing,
+               glosaPeso: cg && cg.fontWeight, glosaEsp: cg && cg.letterSpacing };
+    };
+    const antes = lee();
+    await irA('formato');
+    const c = document.getElementById('chkNegrita');
+    c.checked = true; c.dispatchEvent(new Event('change', { bubbles:true }));
+    await pausa(900);
+    const r = document.getElementById('espaciado');
+    r.value = String(r.max);          /* el tope, que es donde más se nota */
+    r.dispatchEvent(new Event('input', { bubbles:true }));
+    await pausa(1100);
+    const despues = lee();
+    /* y se devuelve todo a lo de fábrica, que los bloques de abajo miden
+       colores sobre una hoja que no tiene por qué estar en negrita */
+    c.checked = false; c.dispatchEvent(new Event('change', { bubbles:true }));
+    await pausa(700);
+    r.value = '0'; r.dispatchEvent(new Event('input', { bubbles:true }));
+    await pausa(900);
+    return { antes, despues, devuelto: lee(),
+             topes: { min: document.getElementById('espaciado').min,
+                      max: document.getElementById('espaciado').max } };
+  });
+  di('el libro', letra.antes.libroPeso + ' / ' + letra.antes.libroEsp +
+     '  →  ' + letra.despues.libroPeso + ' / ' + letra.despues.libroEsp);
+  di('la glosa', letra.antes.glosaPeso + ' / ' + letra.antes.glosaEsp +
+     '  →  ' + letra.despues.glosaPeso + ' / ' + letra.despues.glosaEsp);
+  vale('(la prueba es válida) hay texto y hay glosa que mirar',
+       letra.antes.hayTexto && letra.antes.hayGlosa,
+       'texto ' + letra.antes.hayTexto + ' · glosa ' + letra.antes.hayGlosa);
+  vale('(la prueba es válida) el riel movió algo de verdad',
+       letra.antes.libroEsp !== letra.despues.libroEsp,
+       letra.antes.libroEsp + ' → ' + letra.despues.libroEsp);
+  vale('EL TEXTO DEL LIBRO SE PONE EN NEGRITA',
+       letra.despues.libroPeso !== letra.antes.libroPeso &&
+       Number(letra.despues.libroPeso) > Number(letra.antes.libroPeso),
+       letra.antes.libroPeso + ' → ' + letra.despues.libroPeso);
+  vale('Y LA GLOSA NO SE ENTERA, ni del peso ni del espaciado',
+       letra.despues.glosaPeso === letra.antes.glosaPeso &&
+       letra.despues.glosaEsp === letra.antes.glosaEsp,
+       letra.despues.glosaPeso + ' / ' + letra.despues.glosaEsp);
+  /* El riel es de ajuste FINO y sus topes lo dicen: de −2 a +5 centésimas de
+     em. Si alguien lo abre a lo bestia —0.12 em son 12— esto lo canta. */
+  vale('  y el riel sigue siendo de ajuste fino',
+       Number(letra.topes.min) >= -5 && Number(letra.topes.max) <= 8,
+       letra.topes.min + ' … ' + letra.topes.max);
+  vale('  y todo vuelve a lo de fábrica al soltarlo',
+       letra.devuelto.libroPeso === letra.antes.libroPeso &&
+       letra.devuelto.libroEsp === letra.antes.libroEsp,
+       letra.devuelto.libroPeso + ' / ' + letra.devuelto.libroEsp);
 
   await cerrarParcial(sesion, 'teléfono');
 
