@@ -118,5 +118,52 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
   vale('el automático se paró', r.pillado && r.trasParar === r.seisSegundosDespues,
        r.trasParar + ' → ' + r.seisSegundosDespues);
 
+  /* ──────────────────────────────────────────────────────────────
+     EL BANCO DE LA LÍNEA BASE NO SE MULTIPLICA.
+
+     La foto mide en el navegador dónde cae la línea base de cada tipografía, y
+     para eso tiene una caja de andamio fuera de pantalla (#bancoLinea). Esa
+     caja llegó colgando de cada llamada: una nueva por pasada, metida en el
+     cuerpo y nunca quitada. Y no es una pasada por hoja —makeSnapshot retrata
+     la hoja viva y sus DOS vecinas, y se repite en cada repintado—, así que
+     crecía mientras durara la lectura: medido, 2 al arrancar, 14 tras tres
+     hojas y 34 tras ocho. Lo levantó la revisión de Codex.
+
+     Se cuenta por su nombre y no por su estilo: buscarla por «el div raro que
+     está a -99999px» es una prueba que se cae el día que alguien mueva el
+     andamio, no el día que vuelva la fuga.
+
+     Y lleva línea de validez, porque la afirmación es «no crece»: si las hojas
+     no hubieran pasado de verdad, no crecería tampoco y esto saldría verde sin
+     haber probado nada. */
+  titulo('la caja de medir la línea base es UNA, pasen las hojas que pasen');
+  const banco = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const cuantas = () => document.querySelectorAll('[id="bancoLinea"]').length;
+    const cab = () => document.getElementById('pgCabeza').textContent.trim();
+    const e = document.getElementById('edgeR');
+    const antes = { cajas: cuantas(), hoja: cab() };
+    for (let i = 0; i < 6; i++){
+      const r = e.getBoundingClientRect();
+      /* el toque de la casa: PointerEvent con su pointerId y su pointerType */
+      const op = { bubbles:true, cancelable:true, pointerId:60 + i, pointerType:'touch',
+                   isPrimary:true, clientX:r.left + r.width/2 + 1, clientY:430 - i };
+      e.dispatchEvent(new PointerEvent('pointerdown', op));
+      await pausa(70);
+      e.dispatchEvent(new PointerEvent('pointerup', op));
+      await pausa(1700);
+    }
+    return { antes, despues: { cajas: cuantas(), hoja: cab() } };
+  });
+  di('las cajas', banco.antes.cajas + ' → ' + banco.despues.cajas +
+     '   (hoja ' + banco.antes.hoja + ' → ' + banco.despues.hoja + ')');
+  vale('(la prueba es válida) las hojas pasaron de verdad',
+       banco.antes.hoja !== banco.despues.hoja,
+       banco.antes.hoja + ' → ' + banco.despues.hoja);
+  vale('(la prueba es válida) y la caja existe, o sea que la foto la usó',
+       banco.despues.cajas >= 1, banco.despues.cajas);
+  vale('SIGUE HABIENDO UNA SOLA tras seis hojas',
+       banco.despues.cajas === 1, banco.antes.cajas + ' → ' + banco.despues.cajas);
+
   await cerrar(sesion);
 })();

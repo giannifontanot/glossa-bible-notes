@@ -5662,7 +5662,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '27-SEP-26 07:22';
+window.GLOSS_BUILD = '27-SEP-26 07:29';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -12093,23 +12093,44 @@ function invalidateSnapshot(){
    La sonda es una caja EN LÍNEA de alto cero: por definición se apoya en la
    línea base, así que su borde de abajo ES la línea base.
 
-   Y la memoria es de cada llamada, no del programa entero: una fuente que
-   termina de cargar después cambiaría el número, y una memoria global se
-   quedaría con el de antes sin que nadie se entere. Por hoja son cinco
-   tipografías distintas, así que no se gana nada guardándola más tiempo. */
+   Y LAS DOS COSAS DEL BANCO DURAN DISTINTO, que es lo que costó un repaso:
+
+   · LA MEMORIA es de cada llamada. Una fuente que termina de cargar después
+     cambiaría el número, y una memoria global se quedaría con el de antes sin
+     que nadie se entere. Por hoja son cinco tipografías, así que guardarla más
+     tiempo no ahorra nada que importe.
+   · LA CAJA es una sola para todo el programa. Aquí estuvo colgando de la
+     llamada igual que la memoria, y era una fuga: cada medirPalabras se hacía
+     la suya, la metía en el cuerpo y no la quitaba nunca. Y no se llama una
+     vez por hoja —makeSnapshot retrata la hoja viva y sus DOS vecinas, y se
+     vuelve a llamar en cada repintado—, así que se acumulaban. Medido en un
+     teléfono: 2 cajas al arrancar, 14 tras pasar tres hojas, 34 tras ocho, y
+     creciendo mientras dure la lectura. Lo levantó la revisión de Codex.
+
+     Se arregla reusándola, y no quitándola al final de cada pasada, que era la
+     otra salida: quitarla y volver a crearla es el mismo trabajo repetido en
+     cada repintado, y lo que hace falta es que haya UNA, no que no haya
+     ninguna entre medias. Se comprueba isConnected por si alguien limpia el
+     cuerpo por debajo. */
+let cajaLineaBase = null;
 function bancoDeLineaBase(){
   const memoria = new Map();
-  let caja = null;
   return (tipo, variante) => {
     const clave = tipo + '|' + (variante || 'normal');
     if (memoria.has(clave)) return memoria.get(clave);
-    if (!caja){
-      caja = document.createElement('div');
-      caja.setAttribute('aria-hidden', 'true');
-      caja.style.cssText = 'position:fixed;left:-99999px;top:0;white-space:nowrap;' +
-                           'pointer-events:none;margin:0;padding:0;border:0';
-      document.body.appendChild(caja);
+    if (!cajaLineaBase || !cajaLineaBase.isConnected){
+      cajaLineaBase = document.createElement('div');
+      /* Con nombre, como #ghost y por lo mismo: es una pieza de andamio que
+         vive en el documento, y sin nombre la única manera de encontrarla —de
+         fuera o desde el banco de pruebas— es adivinarla por su estilo. La
+         afirmación que vigila que haya UNA y no treinta cuelga de esto. */
+      cajaLineaBase.id = 'bancoLinea';
+      cajaLineaBase.setAttribute('aria-hidden', 'true');
+      cajaLineaBase.style.cssText = 'position:fixed;left:-99999px;top:0;white-space:nowrap;' +
+                                    'pointer-events:none;margin:0;padding:0;border:0';
+      document.body.appendChild(cajaLineaBase);
     }
+    const caja = cajaLineaBase;
     let v = null;
     try {
       caja.textContent = '';
