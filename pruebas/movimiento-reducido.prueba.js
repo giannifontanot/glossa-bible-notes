@@ -6,7 +6,7 @@
    otros sitios: sería raro apagar el giro de un disco y dejar puesto esto.
    Se apaga la TRANSICIÓN, no el zoom: la hoja sigue viéndose entera y llega
    ahí en un cuadro. */
-const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, cerrarParcial, listo, di, vale, titulo } = require('./comun');
 
 (async () => {
   let sesion;
@@ -449,12 +449,29 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        de arriba, esto saldría verde el día que la apertura suave desapareciera
        del todo: «no se mueve con reduce» es verdad también cuando no se mueve
        nunca. */
+    /* SE RECARGA LA PÁGINA ANTES DE ESTO, y no es pereza: es lo que hace que
+       este bloque no dependa de dónde lo dejaron los de arriba.
+
+       La primera versión sólo apagaba el zoom, porque eso era lo que fallaba
+       aquí. En el entorno del dueño del repo siguió saliendo «no hay pestaña de
+       glosas» en los dos modos, y no se pudo reproducir —lo mismo que ya le
+       pasa a este archivo con el cajón, según está contado más arriba—. Así
+       que en vez de adivinar qué deja puesto su máquina, se empieza de cero:
+       una recarga y la tapa pasada. Lo que este bloque mide —que una puerta de
+       GLOSAS crezca, o no, según la preferencia— no tiene nada que ver con el
+       zoom ni con el cajón, así que heredar su estado sólo podía hacer daño.
+
+       La preferencia de movimiento va en el contexto del navegador, no en la
+       página, así que sobrevive a la recarga: se sigue midiendo el modo que
+       toca. */
+    await p.reload();
+    await p.waitForTimeout(2200);
+    await listo(p);
     const puertas = await p.evaluate(async () => {
       const pausa = ms => new Promise(z => setTimeout(z, ms));
-      /* PRIMERO SE QUITA EL ZOOM, que los bloques de arriba lo dejan puesto.
-         Comprobado: con la hoja en zoom, el rótulo de la cabecera no abre la
-         burbuja, así que esto se quedaba sin pestaña de GLOSAS y las dos
-         líneas de abajo salían rojas por el sitio equivocado. */
+      /* Y aun así se mira el zoom, por si una recarga futura lo trajera
+         puesto: con la hoja ampliada, el rótulo de la cabecera no abre la
+         burbuja. Comprobado antes de escribir esto. */
       const pg = document.getElementById('pg');
       if (pg && pg.classList.contains('zoom')){
         document.getElementById('btnZoom').click();
@@ -464,7 +481,17 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
         .find(r => getComputedStyle(r).display !== 'none');
       if (!vis()){ document.getElementById('pgCabeza').click(); await pausa(900); }
       const t = (vis() || document).querySelector('.pestanas [data-sec="glosas"]');
-      if (!t) return { falta:'no hay pestaña de glosas' };
+      /* Y SI NO ESTÁ, SE DICE QUÉ HABÍA. Un «no hay pestaña de glosas» a secas
+         no deja investigar nada desde otra máquina; con esto se sabe si la
+         burbuja no abrió, si abrió otra, o si abrió sin pestañas. */
+      if (!t){
+        const v = vis();
+        return { falta:'no hay pestaña de glosas',
+                 panel: v ? v.id : '(ninguno visible)',
+                 zoom: !!(pg && pg.classList.contains('zoom')),
+                 pestanas: v ? [...v.querySelectorAll('.pestanas [data-sec]')]
+                                 .map(x => x.dataset.sec).join(',') : '' };
+      }
       t.click();
       await pausa(900);
       const panel = document.getElementById('ctrlEtiquetas');
@@ -487,7 +514,8 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     });
     di('la puerta de LETRA', JSON.stringify(puertas));
     vale('(la prueba es válida) la puerta acabó abierta',
-         !puertas.falta && puertas.fin > 0, puertas.falta || (puertas.fin + ' px'));
+         !puertas.falta && puertas.fin > 0,
+         puertas.falta ? JSON.stringify(puertas) : (puertas.fin + ' px'));
     const crece = !puertas.falta &&
                   puertas.muestras.some(h => h > 0 && h < puertas.fin);
     if (modo === 'reduce'){
