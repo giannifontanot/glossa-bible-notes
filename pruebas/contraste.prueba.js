@@ -956,6 +956,87 @@ async function ponerContraste(pagina, pct){
        letra.devuelto.libroPeso + ' / ' + letra.devuelto.libroEsp);
 
   /* ──────────────────────────────────────────────────────────────
+     Y EL ESPACIO ENTRE PALABRAS NO SE LLEVA SU PARTE.
+
+     Encargo del dueño del repo después de probarlo: «que el espaciado afecte
+     solamente las palabras, pero que no agregue letter-spacing al carácter
+     SPACE». El navegador no distingue —letter-spacing se añade DESPUÉS DE CADA
+     CARÁCTER y el espacio es uno más—, así que entre dos palabras entraban dos
+     medidas, la de la última letra y la del espacio, contra una sola entre dos
+     letras: a +5 el texto no se separaba, se deshilachaba. El descuento va en
+     word-spacing con el signo cambiado; está contado en .pg.
+
+     CÓMO SE MIDE, Y POR QUÉ NO CON UN RECTÁNGULO. Medir «el ancho del espacio»
+     no sirve: el rectángulo de un Range no incluye el tracking que va detrás
+     del último carácter, así que da un número que no es el avance y se puede
+     leer al revés —pasó al escribir esto—. Lo que se mide es la CUENTA: un
+     trozo de C caracteres con S espacios, a 0 y al tope. Sin el descuento
+     crecería C·L; con él crece (C−S)·L, y esa diferencia es justo lo que se
+     pidió que no ocurriera.
+
+     El margen es de 2 px sobre unos 24 de crecimiento, y no es holgura de
+     comodidad: son cuarenta caracteres redondeados al subpíxel cada uno.
+     Medido aquí: +25.59 contra los 24.00 de la cuenta, y +31.19 contra 30.00
+     sin el descuento. El nodo se vuelve a buscar en cada medida porque
+     renderPage rehace la hoja y el de antes se queda suelto: la primera
+     versión de esto midió un nodo huérfano y dio cero. */
+  titulo('el espaciado abre las letras y no los huecos entre palabras');
+  const huecos = await pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const N = 40;
+    const buscar = (prefijo) => {
+      const w = document.createTreeWalker(document.getElementById('pgBody'),
+                                          NodeFilter.SHOW_TEXT);
+      let n;
+      while ((n = w.nextNode())){
+        if (prefijo ? n.nodeValue.startsWith(prefijo)
+                    : (n.nodeValue.match(/ /g) || []).length >= 6) return n;
+      }
+      return null;
+    };
+    const primero = buscar(null);
+    if (!primero) return { falta:'sin texto con espacios que medir' };
+    const trozo = primero.nodeValue.slice(0, N);
+    const C = trozo.length, S = (trozo.match(/ /g) || []).length;
+    const ancho = () => {
+      const n = buscar(trozo);
+      if (!n) return null;
+      const r = document.createRange(); r.setStart(n, 0); r.setEnd(n, N);
+      return +[...r.getClientRects()].reduce((a, b) => a + b.width, 0).toFixed(2);
+    };
+    const fs = parseFloat(getComputedStyle(document.querySelector('#pgBody .v')).fontSize);
+    const poner = async (v) => {
+      const s = document.getElementById('espAhora');
+      s.value = String(v); s.dispatchEvent(new Event('change', { bubbles:true }));
+      await pausa(1100);
+    };
+    await poner(0);
+    const cero = ancho();
+    await poner(5);
+    const tope = ancho();
+    await poner(0);
+    return { trozo, C, S, cero, tope, vuelta: ancho(), L: +(fs * 0.05).toFixed(2) };
+  });
+  di('el trozo medido', JSON.stringify(huecos.trozo));
+  di('caracteres · espacios · L', huecos.C + ' · ' + huecos.S + ' · ' + huecos.L + ' px');
+  di('el ancho', huecos.cero + ' → ' + huecos.tope);
+  vale('(la prueba es válida) hay trozo, espacios y ajuste que contar',
+       !huecos.falta && huecos.S >= 5 && huecos.L > 0.3,
+       huecos.falta || (huecos.C + ' caracteres · ' + huecos.S + ' espacios · L ' + huecos.L));
+  vale('(la prueba es válida) el tope ensancha el trozo',
+       !huecos.falta && huecos.tope > huecos.cero + 5,
+       !huecos.falta && ('+' + (huecos.tope - huecos.cero).toFixed(2) + ' px'));
+  vale('EL ESPACIADO NO SE APLICA AL ESPACIO: crece (C−S)·L, no C·L',
+       !huecos.falta &&
+       Math.abs((huecos.tope - huecos.cero) - (huecos.C - huecos.S) * huecos.L) <= 2,
+       !huecos.falta && ('+' + (huecos.tope - huecos.cero).toFixed(2) + ' px · la cuenta sin espacios dice ' +
+         ((huecos.C - huecos.S) * huecos.L).toFixed(2) + ' · con ellos, ' +
+         (huecos.C * huecos.L).toFixed(2)));
+  vale('  y al volver a 0 el trozo mide lo de antes',
+       !huecos.falta && Math.abs(huecos.vuelta - huecos.cero) <= 0.6,
+       !huecos.falta && (huecos.cero + ' → ' + huecos.vuelta));
+
+  /* ──────────────────────────────────────────────────────────────
      Y LA NOTA LO LLEVA ESTÉ DONDE ESTÉ: al margen, debajo o al pie.
 
      Ésta nace de un hallazgo de la revisión de Codex, y conviene decir qué
