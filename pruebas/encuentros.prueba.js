@@ -1119,8 +1119,15 @@ const IR_A = `async (sec) => {
              apagada: parseFloat(cs.opacity) };
   });
   di('el aspa', JSON.stringify(aspa));
-  vale('EL ASPA ES PEQUEÑA, más que el botón con aro del que salió',
-       !!aspa && aspa.tinta <= 20 && aspa.borde === 0, JSON.stringify(aspa));
+  /* EL LISTÓN DEL TAMAÑO SE HA MOVIDO TRES VECES, todas por su ojo: 22 → 14
+     («mucho más pequeña y discreta»), 14 → 18 («no se ve nada») y 18 → 24
+     («todavía muy pequeña»). Por eso lo que se afirma no es un tamaño sino que
+     siga cabiendo holgada en su blanco de toque: el signo es la tinta, el
+     botón son 44 px, y mientras la tinta no se coma el botón, el ajuste fino
+     es suyo y no de esta línea. */
+  vale('EL ASPA ES SÓLO TINTA: cabe holgada en su blanco de toque y no lleva aro',
+       !!aspa && aspa.tinta <= aspa.toque[0] - 12 && aspa.borde === 0,
+       JSON.stringify(aspa));
   vale('  PERO SE VE, que apagarla del todo fue pasarse',
        !!aspa && aspa.apagada >= 0.8, !!aspa && String(aspa.apagada));
   vale('  PERO NO PIERDE SU BLANCO DE TOQUE, que es lo que no se ve',

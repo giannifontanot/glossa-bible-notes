@@ -528,35 +528,42 @@ async function ponerContraste(pagina, pct){
   vale('  (y se quedó en opaco, para lo que viene)',
        largos.modoFinal === false, largos.modoFinal);
 
-  /* ---------- el botón de la salida se queda blanco ---------- */
-  /* LO QUE SE PIDIÓ, en cuanto vio las tablillas sepia puestas: «me gustaría
-     que el botón TRANSPARENTE siempre fuera blanco». El «siempre» es la mitad
-     del encargo y es la que se puede perder sin que se note: el botón se
-     enciende con el modo —lleva .active mientras el panel está transparente—,
-     así que tiene DOS estados y hay que mirarlo en los dos.
+  /* ---------- los dos botones de una palabra van iguales ---------- */
+  /* TRES ENCARGOS SEGUIDOS SOBRE EL MISMO BOTÓN, y el último deshace al
+     primero. Se cuentan porque sin ellos esta prueba parece dar vueltas:
 
-     POR QUÉ ÉSTE SÍ Y LAS TABLILLAS NO: el panel entero se vistió del sepia de
-     la hoja para dejar de ser parches sobre el libro; éste es la puerta de
-     salida del modo transparente y lo que tiene que hacer es encontrarse. Son
-     dos encargos contrarios a propósito, y por eso la afirmación que de verdad
-     guarda esto no es «es blanco» —un blanco se puede clavar y quedarse— sino
-     que NO ES el papel de las tablillas: el día que alguien vuelva a pasarle
-     la regla del sepia por encima, esta línea es la que se entera.
+     · «me gustaría que el botón TRANSPARENTE siempre fuera blanco» — era del
+       sepia de las tablillas y se perdía entre ellas. Se le puso un blanco
+       opaco, y esta prueba afirmaba justamente eso.
+     · «¿lo puedes poner con los mismos valores que el de cerrar? parece más
+       brillante ahorita», al verlo puesto al lado del otro.
 
-     SE LEE COMPUESTO, no de la hoja de estilo: lo que importa es lo que se ve,
-     y un blanco con un cuarto de transparencia encima del panel sepia sale
-     crema. Ésa fue justamente la corrección: estaba a .75 y compuesto daba
-     rgb(248,243,230). */
-  titulo('el botón de la salida no se vuelve sepia');
-  const blanco = await pagina.evaluate(async () => {
+     Y la segunda tiene razón, con el archivo de su parte: los dos botones de
+     UNA PALABRA de este programa —el de volver del modo transparente y el de
+     CERRAR del pie— se ven iguales, y ese parecido es lo que dice que son la
+     misma clase de cosa. El blanco opaco lo rompía.
+
+     ASÍ QUE LO QUE SE AFIRMA AHORA ES LA RELACIÓN, no un color: los dos se
+     leen en el mismo rato y en los dos modos, y tienen que dar lo mismo. Un
+     color escrito aquí volvería a quedarse viejo al tercer encargo; «iguales»
+     no envejece, y de paso caza el fallo por los dos lados —el día que alguien
+     toque uno de los dos y no el otro—.
+
+     Y SIGUEN SIENDO DOS MODOS, que es la mitad que se pierde sin querer: el
+     botón va encendido —.active— mientras el panel es de cristal, así que sin
+     su regla se pondría el dorado de los mandos puestos y sólo se vería en
+     transparente. */
+  titulo('los dos botones de una palabra se ven iguales');
+  const parejos = await pagina.evaluate(async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
     const vidrio = () => document.getElementById('btnVidrio');
     const lee = () => {
-      const cs = getComputedStyle(vidrio());
-      const tabl = document.querySelector('#ctrlConfig .ajuste.riel-fila');
-      return { fondo: cs.backgroundColor, tinta: cs.color,
-               activo: vidrio().classList.contains('active'),
-               tablilla: tabl ? getComputedStyle(tabl).backgroundColor : null };
+      const pinta = (e) => { if (!e) return null; const c = getComputedStyle(e);
+        return { fondo: c.backgroundColor, tinta: c.color,
+                 borde: c.borderTopWidth + ' ' + c.borderTopColor }; };
+      return { salida: pinta(vidrio()),
+               cerrar: pinta(document.querySelector('#ajustes .pie-cerrar .cerrar-pie')),
+               activo: vidrio().classList.contains('active') };
     };
     /* De opaco se parte, se pregunte lo que se pregunte del bloque de arriba. */
     if (document.getElementById('ajustes').classList.contains('cristal')){
@@ -569,44 +576,34 @@ async function ponerContraste(pagina, pct){
     return { opaco, cristal, modoFinal:
              document.getElementById('ajustes').classList.contains('cristal') };
   });
-  const tono = c => { const m = /rgba?\(([^)]+)\)/.exec(c || '');
-                      return m ? m[1].split(',').map(Number) : null; };
-  /* Blanco de verdad: claro por los tres canales Y sin calentar hacia el
-     sepia. Sólo con «claro» pasaría el rgb(248,243,230) de antes, que es el
-     que se vino a quitar; los 18 puntos que tenía entre el rojo y el azul son
-     los que esta línea no deja volver. */
-  const esBlanco = c => { const v = tono(c);
-                          return !!v && v[0] >= 245 && v[1] >= 245 && v[2] >= 240 &&
-                                 (v[0] - v[2]) <= 12 && (v[3] === undefined || v[3] >= .95); };
-  di('el botón en los dos modos', JSON.stringify(blanco));
-  vale('(la prueba es válida) se pudo leer el fondo en los dos modos, y son los dos estados',
-       !!tono(blanco.opaco.fondo) && !!tono(blanco.cristal.fondo) &&
-       blanco.opaco.activo === false && blanco.cristal.activo === true,
-       blanco.opaco.fondo + ' (activo ' + blanco.opaco.activo + ')  ·  ' +
-       blanco.cristal.fondo + ' (activo ' + blanco.cristal.activo + ')');
-  vale('EL BOTÓN DE LA SALIDA ES BLANCO EN OPACO Y EN TRANSPARENTE',
-       esBlanco(blanco.opaco.fondo) && esBlanco(blanco.cristal.fondo),
-       blanco.opaco.fondo + '  →  ' + blanco.cristal.fondo);
-  vale('  y es el mismo blanco en los dos, que es lo que quiere decir «siempre»',
-       blanco.opaco.fondo === blanco.cristal.fondo,
-       blanco.opaco.fondo + '  vs  ' + blanco.cristal.fondo);
-  /* LA QUE GUARDA EL ENCARGO: el papel de las tablillas se lee en el mismo
-     rato y en el mismo modo, así que si algún día vuelven a ser el mismo
-     color, esto sale rojo sin que haya que tocar ningún número de aquí. */
-  vale('  y NO es el papel de las tablillas del panel',
-       !/rgba\([^)]*,\s*0\)/.test(blanco.cristal.tablilla || 'rgba(0,0,0, 0)') &&
-       blanco.cristal.fondo !== blanco.cristal.tablilla,
-       blanco.cristal.fondo + '  contra la tablilla ' + blanco.cristal.tablilla);
-  vale('  con su letra legible encima', (() => {
-         const l = c => { const v = tono(c); if (!v) return null;
-           const f = x => { x /= 255; return x <= .03928 ? x/12.92 : Math.pow((x+.055)/1.055, 2.4); };
-           return .2126*f(v[0]) + .7152*f(v[1]) + .0722*f(v[2]); };
-         const a = l(blanco.cristal.tinta), b = l(blanco.cristal.fondo);
-         return a != null && b != null &&
-                (Math.max(a,b)+.05)/(Math.min(a,b)+.05) >= 4.5; })(),
-       blanco.cristal.tinta + ' sobre ' + blanco.cristal.fondo);
+  const mismo = (x) => !!x.salida && !!x.cerrar &&
+    JSON.stringify(x.salida) === JSON.stringify(x.cerrar);
+  di('los dos botones', JSON.stringify(parejos));
+  vale('(la prueba es válida) los dos botones están, y son los dos estados',
+       !!parejos.opaco.salida && !!parejos.opaco.cerrar &&
+       parejos.opaco.activo === false && parejos.cristal.activo === true,
+       JSON.stringify({ opaco: parejos.opaco.activo, cristal: parejos.cristal.activo }));
+  vale('EN OPACO, EL DE TRANSPARENTE SE PINTA COMO EL DE CERRAR',
+       mismo(parejos.opaco),
+       JSON.stringify(parejos.opaco.salida) + '  vs  ' + JSON.stringify(parejos.opaco.cerrar));
+  vale('Y EN TRANSPARENTE TAMBIÉN, que ahí los dos llevan tablilla',
+       mismo(parejos.cristal),
+       JSON.stringify(parejos.cristal.salida) + '  vs  ' + JSON.stringify(parejos.cristal.cerrar));
+  /* Y QUE NO SEA EL DORADO DE LOS MANDOS PUESTOS. Sin la regla del modo
+     cristal, este botón —que va encendido ahí— se pondría el fondo de
+     .btn.active, y entonces «iguales» se rompería... salvo que alguien se lo
+     pusiera a los dos. Esta línea mira el color por su cuenta: el dorado de la
+     casa es #b8892b, mucho más rojo que verde y que azul. */
+  vale('  y ninguno de los dos se pone el dorado de «encendido»', (() => {
+         const t = c => { const m = /rgba?\(([^)]+)\)/.exec(c || '');
+                          return m ? m[1].split(',').map(Number) : null; };
+         const dorado = c => { const v = t(c);
+           return !!v && v[0] > 150 && v[0] - v[2] > 60; };
+         return !dorado(parejos.cristal.salida.fondo) &&
+                !dorado(parejos.cristal.cerrar.fondo); })(),
+       parejos.cristal.salida.fondo);
   vale('  (y se quedó en opaco, para lo que viene)',
-       blanco.modoFinal === false, blanco.modoFinal);
+       parejos.modoFinal === false, parejos.modoFinal);
 
   /* ---------- el velo se aparta con el panel transparente ---------- */
   /* LO QUE SE PIDIÓ: «los tabs abren y se pone un background transparente-negro

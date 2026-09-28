@@ -981,7 +981,13 @@ body.dots-armed .ws-dot.drop-target .dot-visual {
   color: var(--treasure, #ffd24a);
   opacity: 0.9;
   font-family: var(--font, monospace);
-  font-size: 18px;
+  /* TERCERA VUELTA DE ESTE NÚMERO, y las tres son suyas: «mucho más pequeña y
+     discreta» (22 → 14), «está demasiado discreta, no se ve nada» (14 → 18) y
+     «está todavía muy pequeña» (18 → 24). Aquí se para: 24 es el tamaño del
+     signo, no del botón —que sigue midiendo sus 44 px de blanco de toque— y ya
+     no hay aro, que era lo que hacía que los 22 de la primera versión pesaran
+     como un botón entero en una cabecera sin título. */
+  font-size: 24px;
   line-height: 1;
   /* El resplandor es lo que de verdad la saca del negro: un trazo fino sin
      halo se pierde por mucha opacidad que se le ponga. */

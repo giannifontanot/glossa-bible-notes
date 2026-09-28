@@ -3404,12 +3404,25 @@
      tablillas, porque ahí el borde no es adorno —es lo que dice dónde acaba el
      botón y empieza el libro—. Blanco sobre papel viejo sin canto se derrama.
 
-     QUEDA UNA DESPAREJA A PROPÓSITO: el botón de CERRAR del pie es el otro de
-     una palabra y hasta ahora los dos iban iguales. Se pidió éste y sólo éste;
-     si el de CERRAR tiene que seguirlo, es un encargo aparte. */
-  .rollo .btn.vidrio-btn{ background:#fffdf6; color:#3c2f16; }
-  #ajustes.cristal .vidrio-btn{ background:#fffdf6; color:#3c2f16;
-                                border:1px solid var(--tablilla-borde); }
+     Y AQUÍ SE DESHIZO LO BLANCO, que duró un día. Se pidió que este botón
+     fuera blanco —era sepia y desaparecía entre las tablillas— y se le puso un
+     #fffdf6 opaco. Al verlo puesto al lado del otro: «el botón de transparente
+     ¿lo puedes poner con los mismos valores que el de cerrar? parece más
+     brillante ahorita». Tiene razón y la tenía el archivo antes que yo: los dos
+     botones de una palabra de este programa —éste y el de CERRAR— se ven
+     iguales, y ese parecido es lo que dice que son la misma clase de cosa. El
+     blanco opaco lo rompía, y un botón más brillante que la salida del panel
+     llama más que ella sin tener más que decir.
+
+     ASÍ QUE NO LLEVA REGLA DE COLOR EN OPACO: cae en `.rollo .btn` como el de
+     CERRAR, que tampoco la lleva. Y en transparente sí hace falta una, porque
+     este botón va encendido —.active mientras el panel es de cristal— y sin
+     ella se pondría el dorado de los mandos puestos; lleva la misma tablilla
+     que el pie, palabra por palabra. Ver #ajustes.cristal .pie-cerrar
+     .cerrar-pie: si un día cambia una, cambian las dos. */
+  #ajustes.cristal .vidrio-btn{ background:var(--tablilla);
+                                border:1px solid var(--tablilla-borde);
+                                color:var(--tablilla-tinta); }
   /* CADA CONTROL CON SU PROPIA TABLILLA, Y DEL ANCHO JUSTO.
 
      Con el panel transparente se ve la hoja —que es de lo que se trata— pero
@@ -6119,7 +6132,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-SEP-26 14:04';
+window.GLOSS_BUILD = '28-SEP-26 14:24';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
