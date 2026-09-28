@@ -6119,7 +6119,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-SEP-26 13:53';
+window.GLOSS_BUILD = '28-SEP-26 14:00';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -12275,19 +12275,40 @@ function abrirSuave(el){
   try { quieto = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(_){}
   if (quieto) return;
   clearTimeout(el._relojSuave);
-  const alto = el.scrollHeight;
+  /* EL ALTO SE PREGUNTA A LA CAJA, no a scrollHeight: con box-sizing:border-box
+     —que aquí es global— lo que se le escribe a `height` incluye relleno y
+     borde, y scrollHeight deja el borde fuera. Con un borde de 1 px por lado
+     eso son dos píxeles de menos justo al final del viaje. */
+  const caja = el.getBoundingClientRect();
+  const alto = Math.round(caja.height);
   if (!alto) return;                 // nada que abrir: no se deja a medio hacer
+  /* Y LOS MÁRGENES VAN EN EL VIAJE. Animar sólo el alto deja fuera el hueco de
+     arriba y el de abajo, que aparecen enteros en el primer cuadro: medido, el
+     índice pegaba un salto de 21 px antes de empezar a crecer nada. Lo levantó
+     la revisión de Codex, y la prueba de entonces no podía verlo porque
+     getBoundingClientRect no cuenta los márgenes — por eso la de ahora mira el
+     índice, que es quien recibe el empujón. */
+  const cs = getComputedStyle(el);
+  const mArriba = cs.marginTop, mAbajo = cs.marginBottom;
   el.style.overflow = 'hidden';
   el.style.height = '0px';
+  el.style.marginTop = '0px';
+  el.style.marginBottom = '0px';
   void el.offsetHeight;              // reflujo: la transición arranca desde cero
-  el.style.transition = 'height ' + SUAVE_MS + 'ms cubic-bezier(.22,.72,.24,1)';
+  const curva = SUAVE_MS + 'ms cubic-bezier(.22,.72,.24,1)';
+  el.style.transition = 'height ' + curva + ', margin-top ' + curva +
+                        ', margin-bottom ' + curva;
   el.style.height = alto + 'px';
+  el.style.marginTop = mArriba;
+  el.style.marginBottom = mAbajo;
   /* Se limpia por reloj y no por transitionend: si el lector apaga el mando a
      mitad de camino, ese evento no llega nunca y el alto se quedaría clavado
      en un número que mañana ya no es el suyo. */
   el._relojSuave = setTimeout(() => {
     el.style.transition = '';
     el.style.height = '';
+    el.style.marginTop = '';
+    el.style.marginBottom = '';
     el.style.overflow = '';
   }, SUAVE_MS + 40);
 }

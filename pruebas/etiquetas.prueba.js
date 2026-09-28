@@ -1945,6 +1945,52 @@ const FUERA = `async () => {
        suave.every(x => x.restos === '/'),
        suave.map(x => x.puerta + ' ' + x.restos).join(' · '));
 
+  /* Y LO QUE DE VERDAD SE VE: QUE EL ÍNDICE NO PEGUE UN SALTO.
+
+     Las líneas de arriba miran el mando, y eso deja fuera lo que el lector
+     nota, que es la lista de abajo moviéndose bajo sus ojos. La primera
+     versión de esto animaba sólo el alto y dejaba los márgenes fuera: como no
+     entran en getBoundingClientRect, el mando crecía impecable mientras el
+     índice daba un brinco de 21 px en el primer cuadro. Lo levantó la revisión
+     de Codex.
+
+     LA MEDIDA ES EL PRIMER CUADRO, y el listón sale del propio panel: lo único
+     que puede aparecer de golpe es el HUECO DE LA REJILLA —#ctrlEtiquetas es
+     una rejilla con row-gap, y ese hueco nace con la fila y no hay manera de
+     animarlo desde el hijo—. Cualquier cosa por encima de eso es algo que
+     apareció entero en vez de crecer. Medido: 21 px antes, 9 después, que son
+     exactamente los 9 del row-gap.
+
+     Se prueba con LETRA porque es la que empuja al índice: ACTUALIZAR abre por
+     debajo de él y no lo mueve, así que ahí esta afirmación saldría verde sin
+     probar nada. */
+  const salto = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const panel = document.getElementById('ctrlEtiquetas');
+    if (!panel.classList.contains('sin-letra')){
+      document.getElementById('btnLetraGlosas').click();
+      await pausa(500);
+    }
+    const ind = document.getElementById('indice');
+    if (!ind) return { falta:'no hay índice' };
+    const hueco = parseFloat(getComputedStyle(panel).rowGap) || 0;
+    const antes = ind.getBoundingClientRect().top;
+    document.getElementById('btnLetraGlosas').click();
+    await new Promise(r => requestAnimationFrame(r));
+    const primerCuadro = ind.getBoundingClientRect().top - antes;
+    await pausa(600);
+    const total = ind.getBoundingClientRect().top - antes;
+    return { hueco, primerCuadro: +primerCuadro.toFixed(1),
+             total: +total.toFixed(1) };
+  });
+  di('el empujón del índice', JSON.stringify(salto));
+  vale('(la prueba es válida) abrir LETRA empuja el índice hacia abajo',
+       !salto.falta && salto.total > 40, JSON.stringify(salto));
+  vale('EL ÍNDICE NO PEGA UN SALTO AL ABRIRSE LETRA',
+       !salto.falta && salto.primerCuadro <= salto.hueco + 1,
+       !salto.falta && (salto.primerCuadro + ' px de golpe, con un hueco de rejilla de ' +
+                        salto.hueco + ' y un viaje de ' + salto.total));
+
   /* Y LA CAJA DE ESCRIBIR UNA ETIQUETA SE LEE.
 
      Heredaba .7rem —11.2 px— y con eso no se lee lo que uno acaba de teclear.
