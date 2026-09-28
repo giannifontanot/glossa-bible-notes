@@ -948,21 +948,26 @@ body.dots-armed .ws-dot.drop-target .dot-visual {
   padding: 0;
 }
 
-/* EL ASPA, PEQUEÑA Y DISCRETA, pedido así. Lo que se encoge es LA TINTA, no el
-   blanco de toque: el signo baja de 22 a 14 px y pierde su aro, pero el botón
-   sigue midiendo los 44 px de la casa (CONFIG.minTouchTarget). Ésa es la parte
-   que no se puede regalar —cerrar es lo único que esta ventana tiene que hacer
-   sin fallar, y un blanco de 14 px se falla con el pulgar—, y es justo la que
-   no se ve, así que encogerla no habría hecho la ventana más discreta: sólo
-   más difícil.
+/* EL ASPA: PEQUEÑA, PERO QUE SE VEA. Dos encargos seguidos y el segundo
+   corrige al primero, así que van juntos aquí para que no se pierda el
+   porqué. Se pidió «mucho más pequeña y discreta» y se hizo: 14 px de tinta,
+   sin aro y a media luz. Al verlo puesto: «está demasiado discreta, no se ve
+   nada». Tenía razón — un signo fino, dorado al 50% y sobre negro, a 14 px,
+   se lee a oscuras tanto como no está.
 
-   Y SE APAGA EN VEZ DE DESAPARECER. Con el título fuera, el aspa es lo único
-   que queda arriba, y a pleno dorado competía con las hojas, que es lo que se
-   viene a mirar. A media luz se lee sin llamar; al pasar por encima, al
-   pulsarla o al llegar con el teclado, vuelve entera —quien la busca la
-   encuentra encendida—. Apagarla del todo, o esconderla hasta el roce, habría
-   sido esconder la salida en una ventana que se abre con un gesto que no todo
-   el mundo acierta a la primera. */
+   Dónde queda la raya: 18 px y casi opaca, con el resplandor que lleva todo
+   el neón de esta aplicación, que es lo que despega un trazo fino del fondo
+   negro. Sigue siendo bastante más chica que los 22 px con aro de la primera
+   versión —o sea, sigue siendo lo que se pidió— pero ya no hay que buscarla.
+
+   LO QUE NO SE TOCA, EN NINGUNA DE LAS DOS VUELTAS, ES EL BLANCO DE TOQUE:
+   el botón mide 44 px (CONFIG.minTouchTarget) mida lo que mida su tinta. Es la
+   parte que no se ve, así que encogerla nunca habría hecho la ventana más
+   discreta: sólo más difícil de cerrar. Y cerrar es lo único que esta ventana
+   tiene que hacer sin fallar.
+
+   Y SIGUE ENCENDIÉNDOSE DEL TODO al pasar por encima, al pulsarla o al llegar
+   con el teclado: quien la busca la encuentra entera. */
 .chest-x {
   flex: 0 0 auto;
   width: 44px;
@@ -974,10 +979,13 @@ body.dots-armed .ws-dot.drop-target .dot-visual {
   border: 0;
   background: transparent;
   color: var(--treasure, #ffd24a);
-  opacity: 0.5;
+  opacity: 0.9;
   font-family: var(--font, monospace);
-  font-size: 14px;
+  font-size: 18px;
   line-height: 1;
+  /* El resplandor es lo que de verdad la saca del negro: un trazo fino sin
+     halo se pierde por mucha opacidad que se le ponga. */
+  text-shadow: 0 0 6px rgba(255, 210, 74, 0.6);
   cursor: pointer;
   transition: opacity var(--anim-ms, 120ms) ease,
               transform var(--anim-ms, 120ms) ease;
