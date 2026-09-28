@@ -3083,8 +3083,29 @@
      él, contando el final antes que el principio. */
   #veloPanel{ position:absolute; inset:0; z-index:5; pointer-events:none;
               opacity:0; background:rgba(34,24,8,.44);
-              transition:opacity .5s cubic-bezier(.22,.72,.24,1); }
+              transition:opacity .5s cubic-bezier(.22,.72,.24,1),
+                         background-color .5s cubic-bezier(.22,.72,.24,1); }
   .stage.conpanel #veloPanel{ opacity:1; }
+  /* Y CASI APAGADO CON EL PANEL TRANSPARENTE, que es el único modo donde el
+     velo trabaja contra lo que el lector acaba de pedir.
+
+     El velo existe para que el panel no compita con el libro: son las dos
+     cosas de papel claro encendidas a la vez. Pero al tocar «transparente» lo
+     que se pide es EXACTAMENTE ver el libro mientras se ajusta —para eso está
+     el botón—, y ahí el velo apaga justo lo que se está mirando. Se vio en un
+     retrato del panel en ese modo: el texto de detrás salía marrón oscuro con
+     los mandos encima.
+
+     No se apaga del todo, y es decisión del dueño del repo: «casi, pero no
+     totalmente». Queda un asomo —.12 contra el .44 de siempre— que sigue
+     diciendo que hay algo delante, sin tapar el texto.
+
+     Va con la clase de la ESCENA y no con la del panel: el velo es hermano
+     del panel, no hijo, así que desde #ajustes.cristal no se le puede
+     alcanzar con un selector de descendencia. Podría hacerse con :has(), pero
+     eso pide navegadores de ayer para arriba y esto se lee en teléfonos
+     viejos; la clase la pone el mismo sitio que enciende el modo. */
+  .stage.conpanel.cristal #veloPanel{ background:rgba(34,24,8,.12); }
 
   /* Baja y frena; el último tramo es solo el asentamiento del papel:
      se pasa un pelo del 100% y regresa. Ese medio por ciento es lo que
@@ -5930,7 +5951,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '27-SEP-26 21:46';
+window.GLOSS_BUILD = '28-SEP-26 04:59';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -16544,6 +16565,27 @@ function marcarCabeza(cerrando){
      Se usa la misma cuenta que el atributo —burbujaAbierta()— y no seccionViva,
      que dice CUÁL se está viendo y no SI hay algo puesto. Ver .stage.conpanel. */
   stage.classList.toggle('conpanel', !cerrando && burbujaAbierta());
+  sincronizarVidrio();
+}
+/* LA ESCENA TIENE QUE SABER SI LO QUE SE VE ES EL PANEL TRANSPARENTE, y por
+   eso esto existe en vez de una clase puesta a mano en el botón.
+
+   Quien la necesita es el velo de debajo del panel, que se aclara en ese modo
+   —ver .stage.conpanel.cristal #veloPanel—. El velo es HERMANO del panel, no
+   hijo, así que desde #ajustes.cristal no se le alcanza con un selector de
+   descendencia; con :has() sí, pero eso pide navegadores más nuevos que los
+   que leen esto.
+
+   Y LA CUENTA NO ES «¿tiene el panel la clase?», que fue la primera versión y
+   estaba mal: el modo transparente se queda puesto en Formato aunque cierres
+   y abras GLOSAS, así que la escena se habría quedado con el velo claro
+   delante de un panel que sí es de papel. Son las dos cosas: que el panel
+   VIVO sea Formato y que Formato esté en transparente. */
+function sincronizarVidrio(){
+  const a = $('ajustes');
+  stage.classList.toggle('cristal',
+    burbujaAbierta() && seccionViva === 'formato' &&
+    !!a && a.classList.contains('cristal'));
 }
 function alternarBurbuja(seccion){
   /* Si ya está abierta pero en otra sección, no cierra: cambia. Cerrar sería
@@ -21696,6 +21738,11 @@ $('btnVidrio').onclick = () => {
   const el = $('ajustes');
   const on = !el.classList.contains('cristal');
   el.classList.toggle('cristal', on);
+  /* La escena también se entera: ver sincronizarVidrio, que es quien sabe
+     cuándo toca y por qué. Aquí se llama además de en marcarCabeza porque
+     este botón cambia el modo con el panel YA abierto, y por marcarCabeza no
+     se vuelve a pasar hasta que se abra o se cierre algo. */
+  sincronizarVidrio();
   const b = $('btnVidrio');
   b.setAttribute('aria-pressed', on ? 'true' : 'false');
   b.classList.toggle('active', on);

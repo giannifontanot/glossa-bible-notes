@@ -444,6 +444,101 @@ async function ponerContraste(pagina, pct){
   vale('  (y se quedó en opaco, para lo que viene)',
        largos.modoFinal === false, largos.modoFinal);
 
+  /* ---------- el velo se aparta con el panel transparente ---------- */
+  /* LO QUE SE PIDIÓ: «los tabs abren y se pone un background transparente-negro
+     detrás; ¿podrías hacerlo menos negro?». De las opciones que se le
+     enseñaron eligió la segunda —dejarlo como está en opaco y casi apagarlo en
+     transparente— con el valor .12 contra el .44 de siempre. «Casi, pero no
+     totalmente.»
+
+     POR QUÉ SÓLO EN TRANSPARENTE: el velo está para que el panel no compita
+     con el libro, que son los dos de papel claro. Pero tocar «transparente» es
+     pedir ver el libro mientras se ajusta —para eso está el botón—, y ahí el
+     velo apaga justo lo que se está mirando.
+
+     LAS TRES QUE SE VIGILAN, y las tres se rompen en silencio:
+
+     · EN OPACO NO CAMBIA NADA. Sin esta línea, alguien que aclare el velo de
+       golpe pasa igual de verde y se lleva por delante el encargo de antes.
+     · EN TRANSPARENTE SE ACLARA, PERO SIGUE AHÍ. Los dos lados: un velo al
+       mismo negro no hace nada por lo que se pidió, y uno a cero deja de decir
+       que hay algo delante, que es el «no totalmente» del dueño.
+     · Y VUELVE SOLO AL ABRIR OTRA SECCIÓN. Ésta es la que de verdad puede
+       fallar, y falló en la primera versión: el modo transparente se QUEDA
+       puesto en Formato, así que atar el velo a la clase del panel dejaba la
+       escena con el velo claro delante de GLOSAS, que es de papel. La cuenta
+       buena son las dos cosas a la vez —el panel vivo es Formato y Formato
+       está en transparente—, y eso sólo se ve abriendo otra sección después.
+
+     SE LEE EL COLOR PINTADO, no la clase de la escena: la clase es la orden y
+     el color es lo que ve el lector. Si mañana el modo se enciende por otro
+     camino, esto sigue midiendo lo mismo. */
+  titulo('el velo se aparta cuando el panel se vuelve transparente');
+  const velos = await pagina.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    /* La alfa del fondo pintado. Sin fondo o transparente, 0. */
+    const alfa = () => {
+      const v = document.getElementById('veloPanel');
+      if (!v) return null;
+      const c = getComputedStyle(v).backgroundColor;
+      const m = /rgba?\(([^)]+)\)/.exec(c);
+      if (!m) return null;
+      const t = m[1].split(',');
+      return t.length > 3 ? +t[3] : 1;
+    };
+    const lee = () => ({ alfa: alfa(),
+                         /* el velo encendido: si estuviera a opacidad 0 la
+                            alfa del fondo no diría nada de lo que se ve */
+                         opacidad: +getComputedStyle(
+                           document.getElementById('veloPanel')).opacity });
+    const vidrio = () => document.getElementById('btnVidrio');
+    const irA = async (sec) => {
+      const vis = () => [...document.querySelectorAll('.rollo')]
+        .find(r => getComputedStyle(r).display !== 'none');
+      const t = (vis() || document).querySelector('.pestanas [data-sec="' + sec + '"]');
+      if (t) t.click();
+      await z(800);
+    };
+    if (document.getElementById('ajustes').classList.contains('cristal')){
+      vidrio().click(); await z(500);
+    }
+    const opaco = lee();
+    vidrio().click(); await z(700);
+    const cristal = lee();
+    /* Sin tocar el botón: se cambia de sección, que es lo que hace el lector.
+       Formato se queda en transparente por dentro. */
+    await irA('glosas');
+    const enGlosas = lee();
+    const modoFormato = document.getElementById('ajustes')
+                          .classList.contains('cristal');
+    await irA('formato');
+    const alVolver = lee();
+    vidrio().click(); await z(500);
+    return { opaco, cristal, enGlosas, alVolver, modoFormato,
+             modoFinal: document.getElementById('ajustes')
+                          .classList.contains('cristal') };
+  });
+  di('el velo por modos', JSON.stringify(velos));
+  vale('(la prueba es válida) el velo está encendido en los cuatro momentos',
+       [velos.opaco, velos.cristal, velos.enGlosas, velos.alVolver]
+         .every(v => v && v.opacidad > .9),
+       [velos.opaco, velos.cristal, velos.enGlosas, velos.alVolver]
+         .map(v => v && v.opacidad).join(' · '));
+  vale('EN OPACO EL VELO SIGUE SIENDO EL DE SIEMPRE',
+       Math.abs(velos.opaco.alfa - .44) < .005, velos.opaco.alfa);
+  vale('Y CON EL PANEL TRANSPARENTE SE APARTA',
+       velos.cristal.alfa < velos.opaco.alfa / 2, velos.cristal.alfa);
+  vale('  pero no se apaga del todo, que es lo que se pidió',
+       velos.cristal.alfa > 0, velos.cristal.alfa);
+  vale('(la prueba es válida) Formato se quedó en transparente al irse',
+       velos.modoFormato === true, velos.modoFormato);
+  vale('EL VELO VUELVE ENTERO EN OTRA SECCIÓN, aunque Formato siga transparente',
+       Math.abs(velos.enGlosas.alfa - velos.opaco.alfa) < .005, velos.enGlosas.alfa);
+  vale('  y se vuelve a apartar al volver a Formato',
+       Math.abs(velos.alVolver.alfa - velos.cristal.alfa) < .005, velos.alVolver.alfa);
+  vale('  (y se quedó en opaco, para lo que viene)',
+       velos.modoFinal === false, velos.modoFinal);
+
   /* ---------- los cuatro valores pedidos ---------- */
   titulo('50, 100, 150 y 200');
   for (const [pct, factor] of [[50,.5],[100,1],[150,1.5],[200,2]]){
