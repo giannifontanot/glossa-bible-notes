@@ -605,6 +605,79 @@ async function ponerContraste(pagina, pct){
   vale('  (y se quedó en opaco, para lo que viene)',
        parejos.modoFinal === false, parejos.modoFinal);
 
+  /* Y LO QUE DE VERDAD SE VE, que es otra cosa. Las líneas de arriba comparan
+     lo DECLARADO, y los dos fondos son traslúcidos: el papel del rollo lleva
+     un cuarto de transparencia y la tablilla un 6%, así que lo que se pinta
+     depende de lo que cada botón tenga detrás —el degradado del panel a dos
+     alturas distintas en opaco, y la hoja del libro en cristal—. Dos
+     declaraciones iguales pueden verse distintas, y la queja que trajo este
+     cambio era justamente de las que se ven. Lo levantó la revisión de Codex,
+     y es la segunda vez que el banco se queda corto por mirar la hoja de
+     estilo en vez de la pantalla.
+
+     SE MIDE EL PAPEL, NO LA TINTA: de la captura de cada botón se recorre la
+     fila de en medio y se toma el píxel más claro, que en los dos es el fondo.
+     Un punto fijo cae encima de la palabra en el botón estrecho —probado, daba
+     el color de la letra— y entonces esto compararía letras.
+
+     LA HOLGURA ES DE 16 PUNTOS y sale de lo medido: 4 de diferencia en opaco y
+     11 en cristal, que es lo que aporta el fondo de cada uno y no se puede
+     quitar sin volver los dos opacos —que sería cambiar el material por hacer
+     pasar una prueba—.
+
+     Y SE PROBÓ QUE CAZA: devolviéndole el blanco opaco de ayer con un
+     addStyleTag, la diferencia sube a 19 en opaco y a 77 en cristal. O sea que
+     la línea se entera del cambio que trajo la queja. Queda dicho que en OPACO
+     el margen es estrecho —11 de lo bueno contra 19 de lo malo—: la que caza
+     de verdad es la de cristal, donde hay 66 puntos entre una cosa y la otra.
+     Si algún día el degradado del panel se aclara y esto empieza a rozar el
+     16, el número a mover es éste y no la regla. */
+  const lupa = await sesion.navegador.newPage();
+  await lupa.setContent('<canvas id="c"></canvas>');
+  const papelDe = async (sel) => {
+    const b64 = (await pagina.locator(sel).screenshot()).toString('base64');
+    return lupa.evaluate(async (d) => {
+      const img = new Image();
+      await new Promise(r => { img.onload = r; img.src = 'data:image/png;base64,' + d; });
+      const c = document.getElementById('c');
+      c.width = img.width; c.height = img.height;
+      const cx = c.getContext('2d');
+      cx.drawImage(img, 0, 0);
+      const fila = cx.getImageData(0, Math.round(img.height / 2), img.width, 1).data;
+      let mejor = [0, 0, 0], luz = -1;
+      for (let i = 0; i < fila.length; i += 4){
+        const l = .2126*fila[i] + .7152*fila[i+1] + .0722*fila[i+2];
+        if (l > luz){ luz = l; mejor = [fila[i], fila[i+1], fila[i+2]]; }
+      }
+      return mejor;
+    }, b64);
+  };
+  const pintado = async () => {
+    const a = await papelDe('#btnVidrio');
+    const b = await papelDe('#ajustes .pie-cerrar .cerrar-pie');
+    return { salida: a, cerrar: b,
+             lejos: Math.max(...a.map((v, i) => Math.abs(v - b[i]))) };
+  };
+  const pintadoOpaco = await pintado();
+  await pagina.evaluate(async () => {
+    document.getElementById('btnVidrio').click();
+    await new Promise(z => setTimeout(z, 700));
+  });
+  const pintadoCristal = await pintado();
+  await pagina.evaluate(async () => {
+    document.getElementById('btnVidrio').click();
+    await new Promise(z => setTimeout(z, 700));
+  });
+  await lupa.close();
+  di('lo pintado', JSON.stringify({ opaco: pintadoOpaco, cristal: pintadoCristal }));
+  vale('(la prueba es válida) se leyó papel y no tinta en los cuatro',
+       [pintadoOpaco.salida, pintadoOpaco.cerrar,
+        pintadoCristal.salida, pintadoCristal.cerrar].every(c => c[0] > 150),
+       JSON.stringify([pintadoOpaco.salida, pintadoCristal.salida]));
+  vale('Y PINTADOS SE PARECEN, no sólo declarados',
+       pintadoOpaco.lejos <= 16 && pintadoCristal.lejos <= 16,
+       'opaco ' + pintadoOpaco.lejos + ' · cristal ' + pintadoCristal.lejos);
+
   /* ---------- el velo se aparta con el panel transparente ---------- */
   /* LO QUE SE PIDIÓ: «los tabs abren y se pone un background transparente-negro
      detrás; ¿podrías hacerlo menos negro?». De las opciones que se le
