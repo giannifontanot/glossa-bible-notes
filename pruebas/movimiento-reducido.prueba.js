@@ -439,6 +439,65 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
       }
     }
 
+    /* Y LAS TRES PUERTAS DE GLOSAS, que también se mueven desde que se pidió
+       que abrieran suavemente. LETRA, FILTRAR y ACTUALIZAR crecen de cero a su
+       alto en vez de aparecer de golpe, y eso es exactamente la clase de
+       movimiento del que esta preferencia viene a librar: un trozo de interfaz
+       empujando hacia abajo la lista que estabas leyendo.
+
+       LOS DOS MODOS SE AFIRMAN, y no sólo el de la preferencia. Sin la mitad
+       de arriba, esto saldría verde el día que la apertura suave desapareciera
+       del todo: «no se mueve con reduce» es verdad también cuando no se mueve
+       nunca. */
+    const puertas = await p.evaluate(async () => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      /* PRIMERO SE QUITA EL ZOOM, que los bloques de arriba lo dejan puesto.
+         Comprobado: con la hoja en zoom, el rótulo de la cabecera no abre la
+         burbuja, así que esto se quedaba sin pestaña de GLOSAS y las dos
+         líneas de abajo salían rojas por el sitio equivocado. */
+      const pg = document.getElementById('pg');
+      if (pg && pg.classList.contains('zoom')){
+        document.getElementById('btnZoom').click();
+        await pausa(900);
+      }
+      const vis = () => [...document.querySelectorAll('.rollo')]
+        .find(r => getComputedStyle(r).display !== 'none');
+      if (!vis()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+      const t = (vis() || document).querySelector('.pestanas [data-sec="glosas"]');
+      if (!t) return { falta:'no hay pestaña de glosas' };
+      t.click();
+      await pausa(900);
+      const panel = document.getElementById('ctrlEtiquetas');
+      if (!panel) return { falta:'no hay panel de glosas' };
+      /* Se prueba con LETRA, que es la más simple de las tres: un grupo de dos
+         filas que no depende de que haya etiquetas ni glosas elegidas. */
+      if (!panel.classList.contains('sin-letra')){
+        document.getElementById('btnLetraGlosas').click();
+        await pausa(400);
+      }
+      const el = document.getElementById('ctrlLetra');
+      document.getElementById('btnLetraGlosas').click();
+      const muestras = [];
+      for (let i = 0; i < 12; i++){
+        muestras.push(Math.round(el.getBoundingClientRect().height));
+        await pausa(25);
+      }
+      await pausa(500);
+      return { muestras, fin: Math.round(el.getBoundingClientRect().height) };
+    });
+    di('la puerta de LETRA', JSON.stringify(puertas));
+    vale('(la prueba es válida) la puerta acabó abierta',
+         !puertas.falta && puertas.fin > 0, puertas.falta || (puertas.fin + ' px'));
+    const crece = !puertas.falta &&
+                  puertas.muestras.some(h => h > 0 && h < puertas.fin);
+    if (modo === 'reduce'){
+      vale('LA PUERTA DE GLOSAS SE ABRE DE UN TIRÓN, sin crecer',
+           !crece, JSON.stringify(puertas.muestras));
+    } else {
+      vale('LA PUERTA DE GLOSAS CRECE al abrirse',
+           crece, JSON.stringify(puertas.muestras));
+    }
+
     /* Se revisan los errores de ESTA sesión antes de tirarla: cerrando a pelo,
        una excepción que solo ocurriera con la animación puesta se perdía y la
        prueba terminaba en verde. */

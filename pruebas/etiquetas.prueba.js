@@ -1876,6 +1876,75 @@ const FUERA = `async () => {
                       ', grupo empieza en ' + tres.sitio.grupoEmpieza));
   vale('  y detrás de él en el marcado', !!tres.sitio && tres.sitio.enElDom === true);
 
+  /* Y LAS TRES PUERTAS SE ABREN CRECIENDO, NO DE GOLPE.
+
+     Se pidió que LETRA, FILTRAR y ACTUALIZAR «abran suavemente». Antes se
+     encendían quitándoles el display:none, así que aparecían con su alto
+     entero y el índice —que va debajo y es una lista larga— pegaba un salto
+     seco en el mismo cuadro.
+
+     LO QUE SE AFIRMA ES QUE EL SITIO CRECE, no que haya una animación puesta:
+     una animación se puede declarar y no mover nada —es lo que pasa cuando se
+     recorta la tinta en vez de reservar el hueco—, y entonces el salto del
+     índice sigue ahí con la prueba en verde. Así que se mira el ALTO del
+     mando, varias veces, y se exige que pase por algún valor entre cero y el
+     suyo.
+
+     SE MUESTREA DENTRO DE LA PÁGINA y no desde aquí: una ida y vuelta por
+     cada medida tarda más que la propia apertura, y entonces todas las
+     muestras caen al final y la prueba diría que no creció nunca. Y por eso
+     mismo se toman varias y basta con que UNA caiga en medio: pedir un valor
+     a los 90 ms exactos es pedirle a la máquina que no tenga un mal momento.
+
+     La última línea es la que guarda lo que no se ve: que al terminar no
+     quede un alto escrito a mano en el estilo del elemento. Si se quedara, el
+     mando dejaría de crecer el día que le entren más etiquetas, y eso no lo
+     nota nadie hasta que la lista está cortada. */
+  titulo('las tres puertas de GLOSAS se abren creciendo');
+  const suave = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const panel = document.getElementById('ctrlEtiquetas');
+    const abierto = {
+      letra: () => !panel.classList.contains('sin-letra'),
+      filtrar: () => !panel.classList.contains('sin-chips'),
+      actualizar: () => document.getElementById('etiquetas').classList.contains('eligiendo'),
+    };
+    const PUERTAS = [['letra', 'btnLetraGlosas', 'ctrlLetra'],
+                     ['filtrar', 'btnVerEtiquetas', 'filaFiltros'],
+                     ['actualizar', 'btnElegirGlosas', 'barraGrupo']];
+    const salida = [];
+    for (const [k, boton, caja] of PUERTAS){
+      /* Cerradas las tres antes de cada una: abrir una apaga a las otras, y
+         una que ya estuviera puesta no se abriría —ni crecería— otra vez. */
+      for (const [k2, b2] of PUERTAS)
+        if (abierto[k2]()){ document.getElementById(b2).click(); await pausa(60); }
+      await pausa(120);
+      const el = document.getElementById(caja);
+      const antes = Math.round(el.getBoundingClientRect().height);
+      document.getElementById(boton).click();
+      const muestras = [];
+      for (let i = 0; i < 12; i++){
+        muestras.push(Math.round(el.getBoundingClientRect().height));
+        await pausa(25);
+      }
+      await pausa(500);
+      const fin = Math.round(el.getBoundingClientRect().height);
+      salida.push({ puerta: k, antes, muestras, fin,
+                    restos: (el.style.height || '') + '/' + (el.style.overflow || '') });
+    }
+    return salida;
+  });
+  di('las tres puertas', JSON.stringify(suave));
+  vale('(la prueba es válida) las tres nacen cerradas y acaban abiertas',
+       suave.every(x => x.antes === 0 && x.fin > 0),
+       suave.map(x => x.puerta + ' ' + x.antes + '→' + x.fin).join(' · '));
+  vale('LAS TRES PASAN POR UN ALTO INTERMEDIO, o sea que crecen',
+       suave.every(x => x.muestras.some(h => h > 0 && h < x.fin)),
+       suave.map(x => x.puerta + ' [' + x.muestras.join(',') + '] de ' + x.fin).join(' · '));
+  vale('  y no se quedan con el alto escrito a mano al terminar',
+       suave.every(x => x.restos === '/'),
+       suave.map(x => x.puerta + ' ' + x.restos).join(' · '));
+
   /* Y LA CAJA DE ESCRIBIR UNA ETIQUETA SE LEE.
 
      Heredaba .7rem —11.2 px— y con eso no se lee lo que uno acaba de teclear.
