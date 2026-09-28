@@ -622,6 +622,17 @@ async function ponerContraste(pagina, pct){
     await pausa(500);
     return out;
   });
+  /* EL RIEL SE PONE EN UN VALOR CONOCIDO ANTES DE MIRAR, y esto salió de una
+     tanda roja. El bloque medía con el contraste que hubiera dejado lo de
+     arriba, movía el riel al tope y exigía que el filtro hubiera cambiado; el
+     día que lo de arriba dejó el riel ya en 200, el «antes» y el «después»
+     salieron idénticos —contrast(2) los dos— y el testigo se cantó a sí mismo.
+     La aserción tenía razón: no se había movido nada. Lo que estaba mal era
+     dar por sabido un valor de partida que no pone esta prueba. Ahora los dos
+     extremos los fija ella, y el testigo mide lo que dice medir. */
+  const partida = await ponerContraste(pagina, 100);
+  vale('(la prueba es válida) se parte de un contraste conocido',
+       factorDe(partida.pg) === 1, partida.pg);
   const conFiltro = await porPanel();
   di('el filter de cada panel', JSON.stringify(conFiltro));
   vale('(la prueba es válida) la hoja lleva el filtro puesto',
@@ -642,7 +653,7 @@ async function ponerContraste(pagina, pct){
      arriba sin hacer nada de lo que se pidió. */
   await ponerContraste(pagina, 200);
   const alTope = await porPanel();
-  await ponerContraste(pagina, 125);
+  await ponerContraste(pagina, 125);          /* se devuelve a lo de fábrica */
   di('con el contraste al tope', JSON.stringify({ hoja: alTope.hoja, libros: alTope.libros }));
   vale('(la prueba es válida) mover el riel cambia el filtro de la hoja',
        alTope.hoja !== conFiltro.hoja, conFiltro.hoja + '  →  ' + alTope.hoja);
