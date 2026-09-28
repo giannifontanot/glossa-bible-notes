@@ -840,14 +840,24 @@ const IR_A = `async (sec) => {
     const trasCerrar = await marcoOra.evaluate(() => ({
       abierta: !document.getElementById('chest-list').hidden,
       foco: document.activeElement && document.activeElement.id }));
-    /* Un solo toque, y a esperar más que la ventana del doble clic. */
+    /* Un solo toque, y a esperar más que la ventana del doble clic.
+       Y SE COMPRUEBA QUE EL TOQUE LLEGÓ AL COFRE, que si no esta línea se
+       aprueba sola: las hojas de los bloques de arriba andan sueltas por el
+       tablero —una de ellas tapaba el botón de nueva hoja, que es lo que tiró
+       esta suite la primera vez—, y si una cayera encima del cofre, el toque
+       se lo comería ella, la lista seguiría cerrada y el contrapeso diría
+       «bien» sin haber tocado nada. Lo que lo demuestra es el foco: en
+       Chromium un <button> se queda con él al pulsarlo, así que se aparta
+       primero a otro botón y se mira si vuelve. */
+    await marcoOra.locator('#add-btn').focus();
     const caja = await marcoOra.locator('#treasure').boundingBox();
     if (caja){
       await p.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2);
       await p.waitForTimeout(600);
     }
-    const conUno = await marcoOra.evaluate(() =>
-      !document.getElementById('chest-list').hidden);
+    const conUno = await marcoOra.evaluate(() => ({
+      abierta: !document.getElementById('chest-list').hidden,
+      foco: document.activeElement && document.activeElement.id }));
     teclado = { mando, enfocado, conEnter, trasCerrar, conUno };
   }
   di('el cofre con el teclado', JSON.stringify(teclado));
@@ -868,16 +878,32 @@ const IR_A = `async (sec) => {
        !teclado.falta && teclado.trasCerrar.abierta === false &&
        teclado.trasCerrar.foco === 'treasure',
        !teclado.falta && JSON.stringify(teclado.trasCerrar));
+  vale('  (y la prueba del contrapeso es válida) el toque llegó al cofre',
+       !teclado.falta && teclado.conUno.foco === 'treasure',
+       !teclado.falta && String(teclado.conUno.foco));
   vale('  (y el contrapeso) un solo toque sigue sin abrirla',
-       !teclado.falta && teclado.conUno === false,
-       !teclado.falta && String(teclado.conUno));
+       !teclado.falta && teclado.conUno.abierta === false,
+       !teclado.falta && JSON.stringify(teclado.conUno));
 
   /* Y AHORA CON UNA HOJA DENTRO. Se escribe, se echa al cofre arrastrando, y
      se mira lo que queda: fuera del árbol y dentro del cofre. */
   const ORACION_DE_PRUEBA = 'por el pan de cada día';
   let conHoja = { falta: 'sin marco' };
   if (!vacio.falta){
-    await marcoOra.click('#add-btn');
+    /* LA HOJA NUEVA SE PIDE DESDE EL TECLADO, y no es remilgo: con el ratón
+       esta línea se agotaba. Los bloques de arriba dejan sus hojas por el
+       tablero y una de ellas se queda encima del botón —«<div
+       class="leaf-inner"> … subtree intercepts pointer events», dijo
+       Playwright—, así que el clic espera treinta segundos a un botón que
+       nunca va a estar libre y se lleva por delante la suite entera.
+       Reproducido a mano poniendo una hoja encima a propósito: el clic se
+       agota y el teclado crea la hoja igual.
+       Y NO ES UN APAÑO PARA ESQUIVAR LA PRUEBA: #add-btn es un <button> de
+       verdad, encenderlo con Enter es lo que hace cualquiera que no use el
+       ratón, y lo que este bloque viene a probar es el cofre, no dónde
+       aparcaron su hoja los bloques de antes. */
+    await marcoOra.locator('#add-btn').focus();
+    await p.keyboard.press('Enter');
     await p.waitForTimeout(500);
     const nueva = await marcoOra.locator('.leaf').last().boundingBox();
     if (nueva){
