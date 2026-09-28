@@ -1067,6 +1067,38 @@ const IR_A = `async (sec) => {
        !!entrada && entrada.en[4] <= 1000,
        !!entrada && (entrada.en[4] + ' ms en el turno 12'));
 
+  /* Y LOS SEIS NÚMEROS DE LA CACHÉ, TODOS IGUALES. La dirección del documento
+     del árbol cuelga del sello de compilación, así que el marcado llega
+     siempre fresco; pero su hoja de estilo y sus guiones se piden por su
+     propia dirección, y si ese número no sube, el navegador sirve la copia
+     vieja y queda lo peor de los dos mundos: el marcado nuevo con el guion de
+     antes. Ya pasó —con esta misma aspa, cambiada en la hoja de estilo sin
+     subir el número— y lo levantó la revisión de Codex.
+     LO QUE ESTA LÍNEA PUEDE GUARDAR es la mitad que se puede comprobar desde
+     aquí: que los seis vayan a la una. Un olvido entero no lo ve nadie más que
+     quien escribe el cambio; un olvido a medias —subir la hoja de estilo y
+     dejarse el guion— es el que de verdad despista, porque entonces media
+     aplicación es nueva y la otra media no. */
+  const sellos = conHoja.falta ? null : await marcoOra.evaluate(() => {
+    const de = (u) => { const m = /[?&]v=([^&]+)/.exec(u || ''); return m ? m[1] : null; };
+    /* SÓLO LOS FICHEROS DE ESTA CARPETA. El puente —../encuentros/salida.js—
+       entra sin número y a propósito: es de otro módulo, el mismo para los
+       cinco relatos, y su caché no es cosa del árbol. Sin este filtro la
+       comprobación se caía con todo bien puesto, que es la peor manera de
+       fallar: enseña a no hacer caso de las rojas. */
+    const fuentes = [...document.querySelectorAll('link[href], script[src]')]
+      .map((e) => e.getAttribute('href') || e.getAttribute('src'))
+      .filter((u) => u && !/^https?:/.test(u) && !/^\.\./.test(u));
+    return { versiones: fuentes.map(de), fuentes };
+  });
+  di('los números de la caché', JSON.stringify(sellos && sellos.versiones));
+  vale('(la prueba es válida) el árbol pide hojas de estilo y guiones propios',
+       !!sellos && sellos.fuentes.length >= 4,
+       !!sellos && sellos.fuentes.join(' · '));
+  vale('TODOS LOS FICHEROS DEL ÁRBOL VAN CON EL MISMO NÚMERO DE CACHÉ',
+       !!sellos && sellos.versiones.every((v) => v && v === sellos.versiones[0]),
+       !!sellos && sellos.versiones.join(' · '));
+
   /* EL ASPA: PEQUEÑA, VISIBLE, Y CON SU BLANCO DE TOQUE INTACTO. Tres cosas y
      las tres hacen falta, porque esta ventana ya se pasó de rosca en las dos
      primeras. Se pidió «mucho más pequeña y discreta» y se hizo —14 px, sin
