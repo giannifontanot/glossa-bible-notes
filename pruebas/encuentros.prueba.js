@@ -693,6 +693,287 @@ const IR_A = `async (sec) => {
     await p.waitForTimeout(900);
   }
 
+  /* ---------------- el cofre enseña lo que guarda ---------------- */
+  /* LO QUE SE PIDIÓ: «que al hacer doble clic al cofre en ORACIÓN saliera la
+     lista de todas las hojitas que mandamos al cofre… una lista con la forma
+     de la hojita reducida en tamaño, seguida de una línea con el contenido».
+
+     Y LO QUE HABÍA QUE ARREGLAR PARA PODERLO HACER, que es la mitad que no se
+     ve: el cofre no guardaba nada. Echarle una hoja la BORRABA —el nodo salía
+     del escritorio y se guardaba el estado sin él—, así que «todas las
+     hojitas que mandamos al cofre» no existía como dato en ninguna parte. Por
+     eso la afirmación de abajo tiene dos mitades y las dos hacen falta: que la
+     hoja se va del árbol (lo de siempre) Y que se queda en el cofre (lo nuevo).
+     Comprobar sólo la lista dejaría pasar un cofre que enseña bien lo que
+     guarda mal.
+
+     CON EL RATÓN DE VERDAD Y TORCIDO, por lo de siempre: esta aplicación llama
+     a setPointerCapture sin envolver, así que un PointerEvent despachado a
+     mano le revienta con NotFoundError —y el banco cuenta esas excepciones—; y
+     una recta perfecta no es un dedo.
+
+     LOS COLORES SE AFIRMAN COMO RELACIÓN, no como número: el negro contra el
+     negro del propio árbol y el borde contra el dorado del propio cofre,
+     leídos los dos en el mismo rato. Se pidió «el mismo negro que el
+     background del árbol» y un borde de neón; clavar aquí #0a0018 y #ffd24a
+     sería escribir dos veces lo mismo y que el día que el árbol cambie de
+     noche esta prueba siga verde diciendo que todo va bien. */
+  titulo('ORACIÓN: el cofre guarda lo que se le echa, y lo enseña');
+  const dobleEnElMarco = async (sel) => {
+    const b = await marcoOra.locator(sel).boundingBox();
+    if (!b) return false;
+    await p.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+    await p.waitForTimeout(60);
+    await p.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+    await p.waitForTimeout(450);
+    return true;
+  };
+  const mirarCofre = () => marcoOra.evaluate(() => {
+    const v = document.getElementById('chest-list');
+    const caja = document.querySelector('.chest-box');
+    if (!v || !caja) return { falta: 'no está la ventana del cofre' };
+    const cs = getComputedStyle(caja);
+    const cuerpo = document.querySelector('#treasure .chest-body');
+    const filas = [...document.querySelectorAll('.chest-item')].map((f) => {
+      const fig = f.querySelector('svg.chest-leaf');
+      const cuerpoHoja = fig && fig.querySelector('.leaf-body');
+      const t = f.querySelector('.chest-text');
+      return { texto: t ? t.textContent : null,
+               hoja: !!fig,
+               alto: fig ? Math.round(fig.getBoundingClientRect().height) : 0,
+               neon: cuerpoHoja ? getComputedStyle(cuerpoHoja).stroke : null };
+    });
+    let guardadas = null;
+    try {
+      const st = JSON.parse(localStorage.getItem('sticky-shapes:v2') || 'null');
+      if (st) guardadas = { cofre: (st.chest || []).map((h) => h.text),
+                            enElArbol: (st.workspaces || [])
+                              .flatMap((w) => w.nodes || []).map((n) => n.text) };
+    } catch (_) { /* si el almacén no se deja leer, se queda sin cuentas */ }
+    return { abierta: !v.hidden, vacio: !document.getElementById('chest-empty').hidden,
+             filas, guardadas,
+             negro: cs.backgroundColor,
+             negroDelArbol: getComputedStyle(document.body).backgroundColor,
+             borde: cs.borderTopColor,
+             doradoDelCofre: cuerpo ? getComputedStyle(cuerpo).stroke : null };
+  });
+
+  const hayCofre = marcoOra ? await dobleEnElMarco('#treasure') : false;
+  const vacio = hayCofre ? await mirarCofre() : { falta: 'sin marco' };
+  di('el cofre vacío', JSON.stringify(vacio));
+  vale('(la prueba es válida) el marco está y el cofre se deja tocar',
+       !vacio.falta, vacio.falta || 'sí');
+  vale('DOBLE CLIC EN EL COFRE ABRE SU LISTA',
+       !vacio.falta && vacio.abierta === true, String(vacio.abierta));
+  vale('  y con el cofre vacío lo dice, en vez de enseñar una lista en blanco',
+       !vacio.falta && vacio.vacio === true && vacio.filas.length === 0,
+       !vacio.falta && (vacio.vacio + ' · ' + vacio.filas.length + ' filas'));
+  vale('  la ventana es del negro del propio árbol',
+       !vacio.falta && vacio.negro === vacio.negroDelArbol,
+       !vacio.falta && (vacio.negro + ' contra ' + vacio.negroDelArbol));
+  vale('  y su borde, del dorado del propio cofre',
+       !vacio.falta && !!vacio.doradoDelCofre && vacio.borde === vacio.doradoDelCofre,
+       !vacio.falta && (vacio.borde + ' contra ' + vacio.doradoDelCofre));
+
+  /* ESCAPE ES LA TECLA QUE MUERDE AQUÍ. Glossa enseña esta aplicación dentro
+     de un marco y devuelve el Escape hacia arriba para cerrar la pestaña
+     entera; sin el preventDefault de la lista, un Escape cerraría las DOS
+     cosas de un golpe —la lista y la pestaña— y el lector se quedaría fuera
+     del árbol por haber cerrado una ventanita. Es el mismo defecto que ya
+     tuvo el editor de las hojas, arreglado de la misma manera y probado aquí
+     por la misma razón. */
+  /* SÓLO SI LA LISTA SE ABRIÓ DE VERDAD. Si no llegó a abrirse, esa tecla no
+     tiene nada que cerrar y el puente se la lleva arriba: cerraría la pestaña
+     de ORACIÓN y todo lo que viene después en esta suite se caería detrás,
+     enterrando el fallo de verdad bajo veinte rojas que no son. Una prueba que
+     falla tiene que fallar sola. */
+  let trasEscapeCofre = { falta: 'la lista no llegó a abrirse' };
+  if (!vacio.falta && vacio.abierta === true){
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(500);
+    trasEscapeCofre = {
+      lista: await marcoOra.evaluate(() =>
+        document.getElementById('chest-list').hidden),
+      pestana: await p.evaluate(() => {
+        const r = document.getElementById('oracion');
+        return r ? getComputedStyle(r).display : 'no está';
+      }) };
+  }
+  di('tras Escape', JSON.stringify(trasEscapeCofre));
+  vale('ESCAPE CIERRA LA LISTA',
+       !trasEscapeCofre.falta && trasEscapeCofre.lista === true, String(trasEscapeCofre.lista));
+  vale('  Y NO SE LLEVA POR DELANTE LA PESTAÑA DE ORACIÓN',
+       !trasEscapeCofre.falta && trasEscapeCofre.pestana !== 'none',
+       String(trasEscapeCofre.pestana));
+
+  /* Y CON EL TECLADO, QUE ES LA OTRA MITAD DE «SE ABRE». El cofre era un
+     <div> con una etiqueta: para un dedo, un mando; para el teclado, un
+     conmutador o un lector de pantalla, nada —ni se llega a él ni se sabe que
+     está—. Lo levantó la revisión de Codex y es el mismo defecto que ya tuvo
+     el respaldo del día, que colgaba sólo de un pointerup.
+
+     Y SE PIDE UNA SOLA PULSACIÓN, no dos: el doble toque es un gesto del dedo,
+     y pedirle a quien navega con el teclado que lo repita sería inventarle un
+     gesto que no existe en ninguna otra parte.
+
+     LA ÚLTIMA LÍNEA ES EL CONTRAPESO y sin ella las otras no valen: se puede
+     arreglar el teclado abriendo la lista con un clic simple, y entonces esto
+     saldría todo verde con el gesto del dedo perdido por el camino. Así que se
+     exige también que un solo toque NO abra. */
+  let teclado = { falta: 'la lista no llegó a abrirse' };
+  if (!vacio.falta && vacio.abierta === true){
+    const mando = await marcoOra.evaluate(() => {
+      const c = document.getElementById('treasure');
+      return { etiqueta: c.tagName, nombre: c.getAttribute('aria-label'),
+               anuncia: c.getAttribute('aria-haspopup') };
+    });
+    await marcoOra.locator('#treasure').focus();
+    const enfocado = await marcoOra.evaluate(() =>
+      document.activeElement && document.activeElement.id);
+    await p.keyboard.press('Enter');
+    await p.waitForTimeout(450);
+    const conEnter = await marcoOra.evaluate(() => ({
+      abierta: !document.getElementById('chest-list').hidden,
+      foco: document.activeElement && document.activeElement.id }));
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(450);
+    const trasCerrar = await marcoOra.evaluate(() => ({
+      abierta: !document.getElementById('chest-list').hidden,
+      foco: document.activeElement && document.activeElement.id }));
+    /* Un solo toque, y a esperar más que la ventana del doble clic.
+       Y SE COMPRUEBA QUE EL TOQUE LLEGÓ AL COFRE, que si no esta línea se
+       aprueba sola: las hojas de los bloques de arriba andan sueltas por el
+       tablero —una de ellas tapaba el botón de nueva hoja, que es lo que tiró
+       esta suite la primera vez—, y si una cayera encima del cofre, el toque
+       se lo comería ella, la lista seguiría cerrada y el contrapeso diría
+       «bien» sin haber tocado nada. Lo que lo demuestra es el foco: en
+       Chromium un <button> se queda con él al pulsarlo, así que se aparta
+       primero a otro botón y se mira si vuelve. */
+    await marcoOra.locator('#add-btn').focus();
+    const caja = await marcoOra.locator('#treasure').boundingBox();
+    if (caja){
+      await p.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2);
+      await p.waitForTimeout(600);
+    }
+    const conUno = await marcoOra.evaluate(() => ({
+      abierta: !document.getElementById('chest-list').hidden,
+      foco: document.activeElement && document.activeElement.id }));
+    teclado = { mando, enfocado, conEnter, trasCerrar, conUno };
+  }
+  di('el cofre con el teclado', JSON.stringify(teclado));
+  vale('EL COFRE ES UN MANDO DE VERDAD, con su nombre',
+       !teclado.falta && teclado.mando.etiqueta === 'BUTTON' &&
+       !!teclado.mando.nombre && teclado.mando.anuncia === 'dialog',
+       !teclado.falta && JSON.stringify(teclado.mando));
+  vale('  al que se puede llegar con el teclado',
+       !teclado.falta && teclado.enfocado === 'treasure',
+       !teclado.falta && String(teclado.enfocado));
+  vale('  y ENTER ABRE LA LISTA A LA PRIMERA, sin repetir el gesto del dedo',
+       !teclado.falta && teclado.conEnter.abierta === true,
+       !teclado.falta && String(teclado.conEnter.abierta));
+  vale('  con el foco dentro de la ventana, no detrás de ella',
+       !teclado.falta && teclado.conEnter.foco === 'chest-close',
+       !teclado.falta && String(teclado.conEnter.foco));
+  vale('  y al cerrarla el foco vuelve al cofre',
+       !teclado.falta && teclado.trasCerrar.abierta === false &&
+       teclado.trasCerrar.foco === 'treasure',
+       !teclado.falta && JSON.stringify(teclado.trasCerrar));
+  vale('  (y la prueba del contrapeso es válida) el toque llegó al cofre',
+       !teclado.falta && teclado.conUno.foco === 'treasure',
+       !teclado.falta && String(teclado.conUno.foco));
+  vale('  (y el contrapeso) un solo toque sigue sin abrirla',
+       !teclado.falta && teclado.conUno.abierta === false,
+       !teclado.falta && JSON.stringify(teclado.conUno));
+
+  /* Y AHORA CON UNA HOJA DENTRO. Se escribe, se echa al cofre arrastrando, y
+     se mira lo que queda: fuera del árbol y dentro del cofre. */
+  const ORACION_DE_PRUEBA = 'por el pan de cada día';
+  let conHoja = { falta: 'sin marco' };
+  if (!vacio.falta){
+    /* LA HOJA NUEVA SE PIDE DESDE EL TECLADO, y no es remilgo: con el ratón
+       esta línea se agotaba. Los bloques de arriba dejan sus hojas por el
+       tablero y una de ellas se queda encima del botón —«<div
+       class="leaf-inner"> … subtree intercepts pointer events», dijo
+       Playwright—, así que el clic espera treinta segundos a un botón que
+       nunca va a estar libre y se lleva por delante la suite entera.
+       Reproducido a mano poniendo una hoja encima a propósito: el clic se
+       agota y el teclado crea la hoja igual.
+       Y NO ES UN APAÑO PARA ESQUIVAR LA PRUEBA: #add-btn es un <button> de
+       verdad, encenderlo con Enter es lo que hace cualquiera que no use el
+       ratón, y lo que este bloque viene a probar es el cofre, no dónde
+       aparcaron su hoja los bloques de antes. */
+    await marcoOra.locator('#add-btn').focus();
+    await p.keyboard.press('Enter');
+    await p.waitForTimeout(500);
+    const nueva = await marcoOra.locator('.leaf').last().boundingBox();
+    if (nueva){
+      await p.mouse.click(nueva.x + nueva.width / 2, nueva.y + nueva.height / 2);
+      await p.waitForTimeout(60);
+      await p.mouse.click(nueva.x + nueva.width / 2, nueva.y + nueva.height / 2);
+      await p.waitForTimeout(450);
+      await p.keyboard.type(ORACION_DE_PRUEBA);
+      await p.keyboard.press('Enter');
+      await p.waitForTimeout(900);  // la hoja vuelve volando de la edición
+      /* La caja se vuelve a preguntar: la hoja acaba de viajar y la de antes
+         ya no vale. */
+      const donde = await marcoOra.locator('.leaf').last().boundingBox();
+      const cofre = await marcoOra.locator('#treasure').boundingBox();
+      if (donde && cofre){
+        const x0 = donde.x + donde.width / 2, y0 = donde.y + donde.height / 2;
+        const x1 = cofre.x + cofre.width / 2, y1 = cofre.y + cofre.height / 2;
+        await p.mouse.move(x0, y0);
+        await p.mouse.down();
+        for (let i = 1; i <= 14; i++){
+          const u = i / 14;
+          await p.mouse.move(x0 + (x1 - x0) * u + Math.sin(u * 7) * 6,
+                             y0 + (y1 - y0) * u + Math.cos(u * 5) * 5);
+          await p.waitForTimeout(16);
+        }
+        await p.mouse.up();
+        await p.waitForTimeout(800);   // la tapa, el tragado y el guardado
+        await dobleEnElMarco('#treasure');
+        conHoja = await mirarCofre();
+      }
+    }
+  }
+  di('con una hoja echada', JSON.stringify(conHoja));
+  const cuentas = (conHoja.guardadas) || { cofre: [], enElArbol: [] };
+  vale('(la prueba es válida) se pudo leer el almacén del árbol',
+       !!conHoja.guardadas, conHoja.guardadas ? 'sí' : 'no');
+  vale('LA HOJA ECHADA SE VA DEL ÁRBOL',
+       !!conHoja.guardadas && !cuentas.enElArbol.includes(ORACION_DE_PRUEBA),
+       cuentas.enElArbol.join(' · ') || '(ninguna)');
+  vale('  Y SE QUEDA EN EL COFRE, que antes se perdía para siempre',
+       !!conHoja.guardadas && cuentas.cofre.includes(ORACION_DE_PRUEBA),
+       cuentas.cofre.join(' · ') || '(vacío)');
+  vale('la lista enseña su oración',
+       !conHoja.falta && conHoja.filas.length === 1 &&
+       conHoja.filas[0].texto === ORACION_DE_PRUEBA,
+       !conHoja.falta && JSON.stringify(conHoja.filas.map(f => f.texto)));
+  /* LA FIGURA, NO UN PUNTO DE COLOR: se pidió «la forma de la hojita reducida
+     en tamaño», así que se exige el SVG de la hoja y que su neón sea el de su
+     variante —el verde del roble, que es con la que nace— y no un color
+     cualquiera heredado. */
+  vale('  con la hojita dibujada al lado, y en su neón',
+       !conHoja.falta && conHoja.filas.length === 1 && conHoja.filas[0].hoja &&
+       conHoja.filas[0].neon === 'rgb(61, 255, 87)',
+       !conHoja.falta && JSON.stringify(conHoja.filas[0]));
+  vale('  y reducida: no mide lo que una hoja del árbol',
+       !conHoja.falta && conHoja.filas.length === 1 &&
+       conHoja.filas[0].alto > 0 && conHoja.filas[0].alto <= 60,
+       !conHoja.falta && (conHoja.filas[0].alto + ' px'));
+
+  /* Y SE CIERRA CON LA EQUIS, que es como se pidió y como cierran las demás
+     ventanas del programa. */
+  let cerrada = null;
+  if (!conHoja.falta && conHoja.abierta === true){
+    await marcoOra.click('#chest-close');
+    await p.waitForTimeout(400);
+    cerrada = await marcoOra.evaluate(() =>
+      document.getElementById('chest-list').hidden);
+  }
+  vale('LA EQUIS CIERRA LA LISTA', cerrada === true, String(cerrada));
+
   /* ---------------- y la barra no se mueve con el libro ---------------- */
   /* SE PIDIÓ QUE ESTA BARRA SE SALGA DE «LA INTERFAZ CRECE CON EL LIBRO», y
      eso es justo lo que no se puede comprobar mirando la barra sola: si el

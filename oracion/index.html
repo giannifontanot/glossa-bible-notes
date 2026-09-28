@@ -115,9 +115,22 @@
     </svg>
 
     <!-- Cofre del tesoro neón, entreabierto y con luz saliendo.
-         Arrastra una hoja aquí para guardarla (borrarla): la tapa se abre,
-         la hoja cae adentro y salen chispas doradas. -->
-    <div id="treasure" aria-label="Cofre: suelta una hoja aquí para borrarla">
+         Arrastra una hoja aquí para guardarla: la tapa se abre, la hoja cae
+         adentro y salen chispas doradas. Doble toque encima: se abre la lista
+         de lo que guarda.
+
+         ES UN <button> Y NO UN <div>, que es lo que era. Con el doble toque se
+         volvió un mando de verdad, y un mando que sólo entiende de punteros no
+         existe para quien navega con el teclado, con un conmutador o con un
+         lector de pantalla: no hay manera de llegar a él ni de saber que está.
+         Lo levantó la revisión de Codex. Por eso lleva además aria-haspopup,
+         que dice lo que va a pasar antes de que pase.
+
+         Y EL RÓTULO CAMBIA: decía «suelta una hoja aquí para borrarla» y ya no
+         se borra nada — ése era el nombre de cuando el cofre era una papelera
+         con dibujo de cofre. -->
+    <button type="button" id="treasure" aria-haspopup="dialog"
+            aria-label="El cofre. Suelta una hoja aquí para guardarla; doble toque para ver lo que guarda">
       <svg viewBox="0 0 24 26" aria-hidden="true">
         <!-- Cuerpo del cofre -->
         <path class="chest-body" d="M 3 12 H 21 V 20.4 A 1.6 1.6 0 0 1 19.4 22 H 4.6 A 1.6 1.6 0 0 1 3 20.4 Z" />
@@ -155,7 +168,7 @@
           <circle class="spark" cx="12" cy="10" r="0.8" style="--dx:0px;--dy:-15px" />
         </g>
       </svg>
-    </div>
+    </button>
 
     <!-- Etiquetas de las zonas (texto arcade discreto) -->
     <div id="zone-labels" aria-hidden="true"></div>
@@ -250,6 +263,32 @@
   </section>
 
   </div><!-- /world -->
+
+  <!-- LA LISTA DEL COFRE. Se abre con doble clic sobre el cofre y enseña lo
+       que se le ha echado: la hojita en chico, con su figura y su neón, y al
+       lado la oración que llevaba cuando se fue.
+
+       VA FUERA DE #world A PROPÓSITO. El mundo se desliza entero como un
+       póster para revelar la extensión de abajo, y su transform ancla a los
+       elementos fixed de dentro: metida ahí, la lista se iría de paseo con el
+       cajón. Fuera, se queda quieta encima de todo, que es lo que hace una
+       ventana. -->
+  <div id="chest-list" hidden role="dialog" aria-modal="true"
+       aria-labelledby="chest-list-title">
+    <div class="chest-box">
+      <header class="chest-head">
+        <h2 id="chest-list-title">El cofre</h2>
+        <button type="button" class="chest-x" id="chest-close"
+                title="Cerrar" aria-label="Cerrar la lista del cofre">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </header>
+      <ul class="chest-items" id="chest-items"></ul>
+      <p class="chest-empty" id="chest-empty" hidden>
+        Aqu&iacute; aparecen las hojas que le eches al cofre.
+      </p>
+    </div>
+  </div>
 
   <!-- EL PUENTE CON EL PROGRAMA QUE ENSEÑA ESTA PÁGINA, y es la ÚNICA línea
        que Glossa le añade a esta aplicación: lo demás entra tal cual viene de

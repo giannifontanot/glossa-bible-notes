@@ -96,6 +96,24 @@ const CONFIG = {
   minLeafSize: 90,   // px — tamaño mínimo de hoja
   maxLeafSize: 320,  // px — tamaño máximo de hoja
 
+  // EL COFRE GUARDA LO QUE SE LE ECHA, y su lista se abre con doble clic
+  // encima. Antes borraba y punto: la hoja salía del escritorio, se guardaba
+  // el estado sin ella y no quedaba rastro en ninguna parte.
+  chest: {
+    // Cuántas hojas recuerda. El estado entero vive en un localStorage, que
+    // tiene techo (unos 5 MB), y una hoja larga son cientos de bytes: sin
+    // tope, el día que el almacén se llena lo que falla no es el cofre, es
+    // GUARDAR, o sea el árbol entero. Se quedan las últimas y se van las más
+    // viejas, que es el orden en que se dejan de echar de menos.
+    max: 200,
+    // El tamaño de la hojita en la lista. No es minLeafSize (90): ese es el
+    // suelo de una hoja que hay que AGARRAR con el dedo en el árbol, y aquí
+    // no se agarra nada, sólo se mira. 44 es el blanco de toque de la casa
+    // (minTouchTarget), o sea lo más chico que sigue siendo tocable el día
+    // que la fila quiera hacer algo.
+    miniSize: 44,
+  },
+
   doubleClickDelay: 250, // ms para distinguir clic simple de doble clic
   dragThreshold: 5,      // px de movimiento para considerar arrastre
   minTouchTarget: 44,    // px — área táctil mínima

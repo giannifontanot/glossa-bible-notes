@@ -377,7 +377,23 @@ html, body {
 /* ---------- Cofre del tesoro (arrastra una hoja aquí para borrarla) ---------- */
 
 #treasure {
+  /* ES UN <button> —lo era un <div>— así que hay que quitarle lo que el
+     navegador le pone: el cofre es un dibujo, no una tecla gris. Ver el
+     comentario del marcado, que cuenta por qué dejó de ser un <div>. */
+  -webkit-appearance: none;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   position: fixed;
+  /* Sin esto, el doble toque que abre la lista del cofre es, para iOS, la
+     orden de acercar la pantalla: se abriría la lista con la página
+     ampliada. Es lo mismo que lleva el botón de nueva hoja. */
+  touch-action: manipulation;
   left: calc(16px + env(safe-area-inset-left, 0px));
   bottom: calc(44px + env(safe-area-inset-bottom, 0px));
   width: 76px;
@@ -388,6 +404,17 @@ html, body {
   z-index: 2000;
   opacity: 0.55; /* discreto hasta que se arrastra una hoja */
   transition: opacity var(--anim-ms, 120ms) ease, transform var(--anim-ms, 120ms) ease;
+}
+
+/* EL FOCO SE VE, y sólo cuando hace falta: :focus-visible deja el anillo para
+   quien llega con el teclado y no se lo pone al dedo, que ya sabe dónde tocó.
+   Sin esto, un cofre que ya se puede enfocar no enseña que lo está, y navegar
+   a ciegas por los mandos es casi tan malo como no poder llegar a ellos. */
+#treasure:focus-visible {
+  outline: 2px solid var(--treasure, #ffd24a);
+  outline-offset: 3px;
+  border-radius: 10px;
+  opacity: 1;
 }
 
 #treasure svg {
@@ -806,4 +833,180 @@ body.dots-armed .ws-dot.drop-target .dot-visual {
 #new-ws-btn:active,
 #del-ws-btn:active {
   transform: scale(0.92);
+}
+
+/* ================================================================
+   LA LISTA DEL COFRE
+
+   Se abre con doble clic sobre el cofre y enseña lo que se le ha echado:
+   la hojita en chico, con su figura y su neón, y al lado la oración que
+   llevaba cuando se fue.
+
+   EL NEGRO ES EL DEL ÁRBOL, no uno parecido: se pidió así y además es lo
+   que hace que la ventana se sienta parte del mismo sitio y no una cosa
+   pegada encima. Por eso es var(--bg), la misma variable que pinta el
+   fondo del escritorio, y no un color escrito otra vez aquí: el día que
+   el árbol cambie de negro, esto cambia con él.
+
+   Y EL BORDE ES EL DORADO DEL COFRE, que es var(--treasure). Se pidió
+   elegir un neón y la elección tiene razón, no gusto: en esta paleta cada
+   tono ya significa algo —verde las hojas, dorado el cofre, cian los
+   controles de edición, naranja las páginas («reservado», lo dice
+   config.js), amarillo la letra—. Un sexto tono anunciaría una cosa
+   nueva, y esta ventana no es una cosa nueva: es el cofre por dentro.
+   Vistiendo su dorado, la ventana dice de dónde salió sin escribirlo.
+   ================================================================ */
+#chest-list {
+  position: fixed;
+  inset: 0;
+  z-index: 3000; /* por encima del cofre (2000) y de los botones */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(16px + env(safe-area-inset-top, 0px))
+           calc(16px + env(safe-area-inset-right, 0px))
+           calc(16px + env(safe-area-inset-bottom, 0px))
+           calc(16px + env(safe-area-inset-left, 0px));
+  /* El velo deja ver que el árbol sigue ahí detrás, apagado. */
+  background: rgba(0, 0, 0, 0.55);
+}
+
+#chest-list[hidden] {
+  display: none;
+}
+
+.chest-box {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: 100%;
+  background: var(--bg, #0a0018);
+  border: 2px solid var(--treasure, #ffd24a);
+  border-radius: 14px;
+  box-shadow:
+    0 0 6px var(--treasure, #ffd24a),
+    0 0 18px rgba(255, 210, 74, 0.45);
+  overflow: hidden;
+}
+
+.chest-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 10px 10px 16px;
+  border-bottom: 1px solid rgba(255, 210, 74, 0.35);
+}
+
+.chest-head h2 {
+  margin: 0;
+  font-family: var(--font, monospace);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--treasure, #ffd24a);
+  text-shadow: 0 0 6px rgba(255, 210, 74, 0.55);
+}
+
+/* El aspa, con el blanco de toque de la casa (44px) aunque el signo sea
+   chico: cerrar es lo único que esta ventana tiene que hacer sin fallar. */
+.chest-x {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(255, 210, 74, 0.45);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--treasure, #ffd24a);
+  font-family: var(--font, monospace);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform var(--anim-ms, 120ms) ease;
+}
+
+.chest-x:active {
+  transform: scale(0.92);
+}
+
+.chest-items {
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chest-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px;
+}
+
+/* La hojita, en chico. Lleva las mismas variables que la del árbol
+   (--leaf-fill y --leaf-glow), que es lo que hace que sea LA MISMA hoja y
+   no un dibujo parecido: el color se lo pone el guion desde la variante
+   que tenía guardada. */
+.chest-leaf {
+  flex: 0 0 auto;
+  display: block;
+  width: var(--chest-mini, 44px);
+  height: var(--chest-mini, 44px);
+  overflow: visible;
+}
+
+.chest-leaf .leaf-body {
+  fill: var(--leaf-fill, #1d6b2a);
+  stroke: var(--leaf-glow, #7dff3a);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 3px var(--leaf-glow, #7dff3a));
+}
+
+.chest-leaf .leaf-vein {
+  fill: none;
+  stroke: var(--leaf-glow, #7dff3a);
+  stroke-width: 2;
+  opacity: 0.75;
+}
+
+/* UNA LÍNEA, y de verdad una: la lista es para reconocer la hoja de un
+   vistazo, no para leerla entera. Una oración larga estiraría la fila y
+   dejaría la lista en dos pantallas de nada. */
+.chest-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font, monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text, #f7ff00);
+}
+
+/* Una hoja puede irse al cofre sin texto —se crean vacías—, y esa fila
+   tiene que decir algo o parece rota. */
+.chest-text.is-empty {
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.chest-empty {
+  margin: 0;
+  padding: 22px 16px 26px;
+  text-align: center;
+  font-family: var(--font, monospace);
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--text, #f7ff00);
+  opacity: 0.6;
+}
+
+.chest-empty[hidden] {
+  display: none;
 }
