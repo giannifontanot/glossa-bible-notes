@@ -9,6 +9,22 @@
   box-sizing: border-box;
 }
 
+/* LOS MÁRGENES SEGUROS DEL APARATO, CON NOMBRE. El resto del archivo los usa
+   en calc() donde hacen falta —el cofre, los puntos, las etiquetas—; aquí se
+   les pone nombre para que el guion también pueda leerlos, que en CSS no hay
+   forma de pasarle un env() a JavaScript de otra manera.
+   Los usa sitioDeEdicion: esta página se sirve con viewport-fit=cover, así que
+   en un teléfono con muesca el 0 de arriba queda DEBAJO de la barra de estado,
+   y un control colocado a 8 px del cero se mete bajo la isla. Dentro del marco
+   de Glossa valen cero —los insets son de la ventana, no del iframe— y la
+   cuenta sale igual; sirven cuando esta aplicación corre sola. */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
 html, body {
   width: 100%;
   height: 100%;
@@ -186,6 +202,27 @@ html, body {
 .leaf.dragging {
   cursor: grabbing;
   z-index: 1000; /* por encima de las demás mientras se arrastra */
+}
+
+/* EL VIAJE A EDITARSE Y LA VUELTA. La hoja sube al centro de arriba cuando se
+   abre su edición y regresa al cerrarla; ver startEditing y llevarHoja.
+
+   ES LA ÚNICA VEZ QUE LA HOJA SE MUEVE SOLA, y por eso la transición vive en
+   su propia clase en vez de en .leaf: arrastrando, el transform se reescribe
+   en cada pointermove, y una transición ahí haría que la hoja fuera SIEMPRE
+   detrás del dedo. Se pone al empezar el viaje y se quita al acabar.
+
+   La curva y el tempo son los de la casa —los mismos de .rollo.abierto, el
+   panel que se desenrolla al crear una glosa—: baja y frena, que es lo que se
+   pidió con «un movimiento lento». 600 ms; el guion lleva el mismo número en
+   VIAJE_MS y los dos tienen que decir lo mismo. */
+.leaf.viajando {
+  transition: transform 600ms cubic-bezier(0.22, 0.72, 0.24, 1);
+}
+/* Quien pidió menos movimiento no pierde la función, sólo el viaje: la hoja
+   aparece arriba y vuelve sin recorrido. */
+@media (prefers-reduced-motion: reduce) {
+  .leaf.viajando { transition: none; }
 }
 
 /* Animación de "tragado": la hoja se encoge hacia el cofre y se desvanece */

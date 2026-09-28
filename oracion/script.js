@@ -390,6 +390,11 @@
 
     el.addEventListener("pointerdown", (e) => {
       el.style.zIndex = ++zTop; // la última tocada queda al frente
+      // Si venía volando de vuelta de la edición, el dedo manda: se le quita
+      // la transición ahí mismo. Sin esto, agarrarla en ese medio segundo la
+      // dejaría arrastrándose con retardo detrás del dedo. Ver llevarHoja.
+      clearTimeout(el._relojViaje);
+      el.classList.remove("viajando");
       if (el.querySelector(".leaf-editor")) return; // en edición: no arrastrar
       pointerDown = true;
       dragging = false;
@@ -642,9 +647,92 @@
   // ---------------------------------------------------------------
   // Edición de texto (doble clic). Blur/Enter guarda; Escape cancela.
   // ---------------------------------------------------------------
+  // SUBE A EDITARSE Y VUELVE. Pedido por el dueño del repo: «cuando se haga
+  // doble clic sobre una hojita, esta se va a mover al top center y va a
+  // permitir la edición del texto», con el mismo movimiento lento del resto
+  // del programa. La razón es la misma por la que las hojas NACEN arriba: con
+  // el teclado del teléfono abierto, media pantalla desaparece, y una hojita
+  // que se edita en la mitad de abajo se edita a ciegas.
+  //
+  // Y VUELVE AL TERMINAR, que es la otra mitad y la que no se ve: en esta
+  // aplicación el sitio ES el grupo —lo decide statusAtPoint, y finishDrag lo
+  // reclasifica al soltar—. Si la hojita se quedara arriba, editar el texto de
+  // una de «Derecha» la pasaría a «Centro» sin que nadie lo pidiera, y a la
+  // décima edición todo estaría en la misma rama. Así que el viaje es de ida y
+  // vuelta: node.x/y NO se tocan —son su sitio de verdad—, lo que se mueve es
+  // sólo lo pintado.
+  //
+  // CUÁNTO SE SUBE, y esto se midió antes de escribirlo. Los controles de
+  // edición van FUERA de la hoja: «+» se ancla en top:-52 y mide 44, así que
+  // lo más alto que pinta la edición está 52 px por encima del borde de la
+  // hoja. Con 8 px de respiro, el borde no puede subir de 60.
+  // Medido en el sitio donde NACEN hoy, que era el candidato obvio: el borde
+  // queda en 64 px con la ventana de pie (marco de 773 px de alto) y el «+»
+  // entra justo, pero en cuanto el marco se acorta —598, 528, 338— el borde
+  // baja a 33, 20 y 8 y el «+» se va a −19, −32 y −44. O sea que el sitio de
+  // nacer no vale para editar: hay que contarlo desde arriba, no desde una
+  // fracción del alto.
+  const SALE_CONTROL = 52;  // lo que sobresale un control por su lado
+  const RESPIRO = 8;
+  const AIRE_ARRIBA = SALE_CONTROL + RESPIRO; // 60
+  // Los dos tienen que decir lo mismo; ver .leaf.viajando en style.css.
+  const VIAJE_MS = 600;
+
+  // Los márgenes seguros del aparato, que en CSS son env() y aquí hacen falta
+  // como número. Los declara :root en style.css; ver el comentario de allá.
+  function margenesSeguros() {
+    const cs = getComputedStyle(document.documentElement);
+    const n = (v) => parseFloat(cs.getPropertyValue(v)) || 0;
+    return { arriba: n("--sat"), abajo: n("--sab"),
+             izq: n("--sal"), der: n("--sar") };
+  }
+
+  function sitioDeEdicion(el) {
+    const w = el.offsetWidth, h = el.offsetHeight;
+    const s = margenesSeguros();
+    const ancho = window.innerWidth, alto = window.innerHeight;
+
+    // A LO ANCHO: centrada, que es lo pedido, pero sin que los botones de los
+    // lados —rotar a la izquierda, color a la derecha, 52 px cada uno— se
+    // salgan. Lo levantó la revisión de Codex: la hoja se puede engordar hasta
+    // 320 px, y una de 250 en un marco de 320 queda en x=35, o sea con los dos
+    // botones fuera. Con una hoja tan grande que no quepa ni así, se queda
+    // centrada a secas: es lo único que reparte el recorte entre los dos lados
+    // en vez de perder uno entero.
+    const izqMin = s.izq + AIRE_ARRIBA;
+    const izqMax = ancho - s.der - w - AIRE_ARRIBA;
+    let x = Math.round((ancho - w) / 2);
+    if (izqMax >= izqMin) x = Math.min(Math.max(x, izqMin), izqMax);
+
+    // A LO ALTO MANDA EL DE ARRIBA, que es el encargo: 52 del botón más 8 de
+    // respiro, contados desde el margen seguro del aparato y no desde el cero
+    // —con viewport-fit=cover, el cero queda bajo la barra de estado—.
+    // El único caso que le gana es que la hoja se saliera por abajo: una hoja
+    // recortada no se puede ni leer ni arrastrar, y el botón de arriba, aunque
+    // quede a medias, sigue a mano. El de abajo se pierde antes que el de
+    // arriba a propósito: el de arriba es el que se pidió proteger.
+    const tope = Math.max(s.arriba + RESPIRO, alto - s.abajo - h - RESPIRO);
+    const y = Math.min(s.arriba + AIRE_ARRIBA, tope);
+    return { x, y: Math.round(y) };
+  }
+
+  function llevarHoja(el, x, y) {
+    el.classList.add("viajando");
+    el.style.transform = `translate(${x}px, ${y}px)`;
+    // La clase se quita por tiempo y no con transitionend: si la hoja ya
+    // estaba justo en el destino no hay transición que termine, y el oyente
+    // no llegaría nunca. Dejarla puesta haría que el siguiente arrastre se
+    // arrastrara con retardo, que es el defecto que más se nota de todos.
+    clearTimeout(el._relojViaje);
+    el._relojViaje = setTimeout(() => el.classList.remove("viajando"), VIAJE_MS + 60);
+  }
+
   function startEditing(el) {
     const node = findNode(el.dataset.id);
     if (!node || el.querySelector(".leaf-editor")) return;
+
+    const sitio = sitioDeEdicion(el);
+    llevarHoja(el, sitio.x, sitio.y);
 
     const textEl = el.querySelector(".leaf-text");
     textEl.style.display = "none";
@@ -729,6 +817,10 @@
       minusBtn.remove();
       colorBtn.remove();
       rotateBtn.remove();
+      // Y de vuelta a su sitio, que node.x/y nunca dejó de ser. Después de
+      // quitar los controles: viajan con la hoja y no hay por qué verlos
+      // bajar. Ver el comentario de sitioDeEdicion.
+      llevarHoja(el, node.x, node.y);
     }
 
     editor.addEventListener("blur", finish);
