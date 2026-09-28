@@ -11,11 +11,25 @@
       lo caza ninguna prueba de las otras, porque para ellas la hoja pasa
       igual de bien.
 
-   2. Que NO lo reciba el panel de Formato. Es el peligro real de aplicar el
-      filtro un nivel más arriba: #ajustes, #etiquetas, #canto y el readout
-      son hermanos de la hoja dentro de #stage, y un filtro en el padre se los
-      lleva a todos. El síntoma sería que el propio riel cambia de color
-      mientras lo arrastras.
+   2. Que NO se resuelva un nivel más arriba. Ésta decía «que NO lo reciba el
+      panel de Formato», y dejó de decir eso el día que el dueño del repo pidió
+      lo contrario: «¿podríamos hacer que también afecte a todas las pestañas
+      arriba, excepto ORACIÓN?», y, preguntado por Formato, «FORMATO incluido,
+      excepto cuando está en transparente». Así que hoy los paneles de papel sí
+      lo reciben, y Formato con ellos mientras es opaco.
+
+      LO QUE LA REGLA PROTEGÍA SIGUE EN PIE, y es lo que se vigila ahora: que el
+      filtro se escriba en las piezas que lo necesitan y NO en #stage ni en el
+      body. Ahí dentro están también el readout, el menú, los filos y el marco
+      de ORACIÓN, que no son papel y no deben teñirse; y .stage trae además su
+      propia sombra, que una segunda propiedad filter borraría sin avisar.
+      El síntoma de hacerlo arriba sería que ORACIÓN se tiñe y que en escritorio
+      desaparece la sombra de la hoja: las dos cosas se miran al final.
+
+      Y la excepción de Formato transparente tiene su propia razón, que es la
+      vieja regla sobreviviendo donde todavía vale: en cristal el panel no tapa
+      el libro, así que lo que miras mientras arrastras el riel es la hoja de
+      detrás, y los mandos de delante tienen que quedarse en su color.
 
    Y una tercera que no es de filtros: que sobreviva a la recarga. El sepia se
    guarda de rebote —repagina, y al final de repaginar se guardan los ajustes—
@@ -61,6 +75,10 @@ async function ponerContraste(pagina, pct){
     const lee = id => getComputedStyle(document.getElementById(id)).filter;
     return { pg: lee('pg'), fx: lee('fx'),
              ajustes: lee('ajustes'), stage: lee('stage'),
+             /* EN QUÉ MODO ESTÁ EL PANEL, porque de eso depende si le toca
+                filtro: opaco sí, cristal no. Sin este dato, una aserción sobre
+                #ajustes no sabe cuál de las dos cosas debería estar viendo. */
+             cristal: document.getElementById('ajustes').classList.contains('cristal'),
              raiz: getComputedStyle(document.documentElement)
                      .getPropertyValue('--contraste').trim(),
              medida: document.getElementById('contrasteAhora').textContent,
@@ -502,6 +520,14 @@ async function ponerContraste(pagina, pct){
     if (document.getElementById('ajustes').classList.contains('cristal')){
       vidrio().click(); await z(500);
     }
+    /* SE ESPERA ANTES DE LA PRIMERA LECTURA, y esto costó una tanda roja. El
+       velo cambia de color con una transición de medio segundo, y el bloque de
+       arriba deja el panel recién devuelto a opaco: leer enseguida pilla el
+       color a mitad de camino. Medido en la corrida del dueño: 0,435 donde
+       tenía que decir 0,44, y la diferencia bastaba para tumbar dos líneas.
+       Mi sondeo no lo vio porque empezaba con el panel quieto desde hacía
+       rato: el fallo sólo aparece detrás del bloque que toca el botón. */
+    await z(700);
     const opaco = lee();
     vidrio().click(); await z(700);
     const cristal = lee();
@@ -524,8 +550,14 @@ async function ponerContraste(pagina, pct){
          .every(v => v && v.opacidad > .9),
        [velos.opaco, velos.cristal, velos.enGlosas, velos.alVolver]
          .map(v => v && v.opacidad).join(' · '));
+  /* LA HOLGURA ES DE UN ENTERO DE 255, no de un pelo: el color pintado se
+     redondea a ocho bits por canal, así que .44 se lee a veces como 0,439 y el
+     que compare con igualdad exacta —o con media milésima— se pasa la vida
+     cazando ruido. Un décimo de milésima no distingue nada que importe; lo que
+     estas líneas tienen que distinguir es .44 de .12. */
+  const CERCA = (a, b) => Math.abs(a - b) <= .01;
   vale('EN OPACO EL VELO SIGUE SIENDO EL DE SIEMPRE',
-       Math.abs(velos.opaco.alfa - .44) < .005, velos.opaco.alfa);
+       CERCA(velos.opaco.alfa, .44), velos.opaco.alfa);
   vale('Y CON EL PANEL TRANSPARENTE SE APARTA',
        velos.cristal.alfa < velos.opaco.alfa / 2, velos.cristal.alfa);
   vale('  pero no se apaga del todo, que es lo que se pidió',
@@ -533,9 +565,9 @@ async function ponerContraste(pagina, pct){
   vale('(la prueba es válida) Formato se quedó en transparente al irse',
        velos.modoFormato === true, velos.modoFormato);
   vale('EL VELO VUELVE ENTERO EN OTRA SECCIÓN, aunque Formato siga transparente',
-       Math.abs(velos.enGlosas.alfa - velos.opaco.alfa) < .005, velos.enGlosas.alfa);
+       CERCA(velos.enGlosas.alfa, velos.opaco.alfa), velos.enGlosas.alfa);
   vale('  y se vuelve a apartar al volver a Formato',
-       Math.abs(velos.alVolver.alfa - velos.cristal.alfa) < .005, velos.alVolver.alfa);
+       CERCA(velos.alVolver.alfa, velos.cristal.alfa), velos.alVolver.alfa);
   vale('  (y se quedó en opaco, para lo que viene)',
        velos.modoFinal === false, velos.modoFinal);
 
@@ -630,10 +662,19 @@ async function ponerContraste(pagina, pct){
          factorDe(s.fx) === factorDe(s.pg), s.fx);
     vale('el número dice el % · ' + pct + '%',
          s.medida === pct + '%', s.medida);
-    vale('FORMATO se queda limpio · ' + pct + '%',
-         factorDe(s.ajustes) === 1, s.ajustes);
+    /* FORMATO LO RECIBE IGUAL QUE LA HOJA, y esta línea decía lo contrario
+       hasta que se pidió lo contrario. Ver la regla 2 de la cabecera. Se mira
+       con el modo delante: en cristal la respuesta buena sería 'none', y una
+       aserción que no sepa en qué modo está no está probando nada. */
+    vale('(la prueba es válida) el panel está opaco · ' + pct + '%',
+         s.cristal === false, s.cristal);
+    vale('FORMATO lo recibe igual que la hoja · ' + pct + '%',
+         factorDe(s.ajustes) === factor, s.ajustes);
     /* .stage sí trae filtro propio —la sombra de hoja flotando en
-       escritorio— pero NO puede traer contraste: ahí dentro está #ajustes. */
+       escritorio— pero NO puede traer contraste, y ésta es la línea que de
+       verdad sostiene el bloque desde que los paneles sí se tiñen: es la que
+       separa «se escribió en cada pieza» de «se escribió en el padre y se lo
+       llevó todo por delante», ORACIÓN incluida. */
     vale('#stage no lo lleva · ' + pct + '%',
          !/contrast/.test(s.stage), s.stage);
   }
@@ -709,9 +750,17 @@ async function ponerContraste(pagina, pct){
   const conPanel = await ponerContraste(pagina, 150);
   di('con el panel delante', conPanel);
   vale('la hoja está a 150%', factorDe(conPanel.pg) === 1.5, conPanel.pg);
-  vale('y el panel que lo manda, intacto', factorDe(conPanel.ajustes) === 1, conPanel.ajustes);
-  /* Los colores del panel se miden de verdad, no por el nombre del filtro:
-     un filtro heredado se vería aquí aunque la propiedad dijera 'none'. */
+  /* EL PANEL QUE LO MANDA SE TIÑE CON ÉL, y es lo pedido: opaco, el panel es
+     lo único que se ve, y verlo con el mismo número que la hoja es la señal de
+     lo que el riel está haciendo. Decía «intacto» y era verdad hasta este
+     encargo; ver la regla 2 de la cabecera. */
+  vale('(la prueba es válida) el panel está opaco', conPanel.cristal === false, conPanel.cristal);
+  vale('y el panel que lo manda se tiñe con él',
+       factorDe(conPanel.ajustes) === 1.5, conPanel.ajustes);
+  /* Los colores del panel, apuntados para poder mirarlos en la corrida. Ya no
+     son una aserción: desde que el panel se tiñe con la hoja, su color depende
+     del riel y clavar aquí un número sería escribir a mano lo que el filtro
+     calcula. Lo que se afirma del filtro se afirma arriba, por su propiedad. */
   const colorPanel = await pagina.evaluate(() => {
     const b = document.querySelector('#ajustes .btn');
     return { fondo: getComputedStyle(b).backgroundColor, tinta: getComputedStyle(b).color };
@@ -824,7 +873,9 @@ async function ponerContraste(pagina, pct){
   vale('el riel vuelve en 150', tras.riel === '150', tras.riel);
   vale('el número también', tras.medida === '150%', tras.medida);
   vale('y la hoja nace ya con el filtro', factorDe(tras.pg) === 1.5, tras.pg);
-  vale('FORMATO nunca lo recibió', factorDe(tras.ajustes) === 1, tras.ajustes);
+  /* Y NACE CON ÉL TAMBIÉN EL PANEL. Decía «FORMATO nunca lo recibió»; hoy lo
+     recibe desde el primer pintado, sin esperar a que se abra. */
+  vale('y FORMATO nace con el mismo', factorDe(tras.ajustes) === 1.5, tras.ajustes);
 
   /* ---------- unos ajustes viejos, sin contraste ---------- */
   titulo('unos ajustes de antes de que esto existiera');
@@ -926,7 +977,7 @@ async function ponerContraste(pagina, pct){
     vale('la hoja lo recibe · ' + pct + '%', brilloDe(f.pg) === factor, f.pg);
     vale('y el lienzo el mismo · ' + pct + '%', brilloDe(f.fx) === factor, f.fx);
     vale('el número dice el % · ' + pct + '%', f.medida === pct + '%', f.medida);
-    vale('FORMATO se queda limpio · ' + pct + '%', brilloDe(f.ajustes) === 1, f.ajustes);
+    vale('FORMATO lo recibe igual · ' + pct + '%', brilloDe(f.ajustes) === factor, f.ajustes);
   }
 
   /* LOS TOPES, saltándose el riel a propósito. */
@@ -1307,8 +1358,11 @@ async function ponerContraste(pagina, pct){
   titulo('en escritorio la sombra de .stage no se pierde');
   /* Es el único sitio del programa donde ya vivía un filter, y está justo
      encima de la hoja. Si alguien resolviera el contraste escribiendo el
-     filter en .stage, aquí desaparecería el drop-shadow —y de paso el panel
-     de Formato se teñiría—. Las dos cosas se miran de una vez. */
+     filter en .stage, aquí desaparecería el drop-shadow —y de paso se teñiría
+     ORACIÓN, que es la única pieza pedida expresamente fuera—. Las dos cosas
+     se miran de una vez.
+     El testigo era antes el panel de Formato limpio, y dejó de servir el día
+     que se pidió que los paneles se tiñeran: hoy lo lleva en los dos casos. */
   const escritorio = await abrir(ESCRITORIO);
   const esc = await escritorio.pagina.evaluate(async () => {
     const r = document.getElementById('contraste');
@@ -1317,17 +1371,24 @@ async function ponerContraste(pagina, pct){
     b.value = '150'; b.dispatchEvent(new Event('input', { bubbles:true }));
     await new Promise(z => setTimeout(z, 200));
     const f = id => getComputedStyle(document.getElementById(id)).filter;
-    return { stage: f('stage'), pg: f('pg'), fx: f('fx'), ajustes: f('ajustes') };
+    return { stage: f('stage'), pg: f('pg'), fx: f('fx'), ajustes: f('ajustes'),
+             oracion: f('oracion') };
   });
   di('en escritorio a 200%', esc);
   vale('.stage conserva su sombra', /drop-shadow/.test(esc.stage), esc.stage);
   vale('y no se le pegó el contraste', !/contrast/.test(esc.stage), esc.stage);
   vale('la hoja sí lo lleva', factorDe(esc.pg) === 2, esc.pg);
   vale('el lienzo también', factorDe(esc.fx) === 2, esc.fx);
-  vale('y FORMATO sigue limpio', factorDe(esc.ajustes) === 1, esc.ajustes);
+  vale('y FORMATO lleva el mismo', factorDe(esc.ajustes) === 2, esc.ajustes);
   vale('el brillo también llega en escritorio',
        brilloDe(esc.pg) === 1.5 && brilloDe(esc.fx) === 1.5, esc.pg);
-  vale('y no se le pegó a FORMATO', brilloDe(esc.ajustes) === 1, esc.ajustes);
+  vale('y a FORMATO con él', brilloDe(esc.ajustes) === 1.5, esc.ajustes);
+  /* Y LA QUE AHORA SOSTIENE ESTE BLOQUE: ORACIÓN no se tiñe. Con los paneles
+     dentro del filtro, «el panel de Formato limpio» ya no sirve para distinguir
+     un filtro escrito pieza por pieza de uno escrito en .stage —los dos
+     teñirían Formato—. ORACIÓN sí los distingue: sólo el de arriba se lo
+     llevaría. */
+  vale('y ORACIÓN sigue fuera', esc.oracion === 'none', esc.oracion);
 
   await cerrar(escritorio);
 })();
