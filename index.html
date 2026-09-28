@@ -6119,7 +6119,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-SEP-26 12:00';
+window.GLOSS_BUILD = '28-SEP-26 12:53';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17249,7 +17249,12 @@ addEventListener('message', ev => {
    tonos se separaran un punto. */
 function avisarEstiloALosRelatos(){
   const marcos = document.querySelectorAll('.enc-marco');
-  if (!marcos.length) return;
+  /* AQUÍ ESTABA UN `if (!marcos.length) return;` y se fue porque ahora hay dos
+     destinos: los relatos de Encuentros, que nacen cuando se abren, y el árbol
+     de ORACIÓN, que es otro marco y otro aviso. Con la salida puesta arriba,
+     el árbol se quedaba sin su número siempre que no hubiera ningún relato
+     creado todavía —que es lo normal, porque los relatos no existen hasta que
+     alguien los abre—. */
   const v = getComputedStyle(document.documentElement);
   const estilo = { glossa:'estilo',
                    letra:  v.getPropertyValue('--fs-libro').trim(),
@@ -17262,7 +17267,20 @@ function avisarEstiloALosRelatos(){
                    tinta:  v.getPropertyValue('--tinta').trim(),
                    rotulo: v.getPropertyValue('--rot-cab').trim(),
                    raya:   v.getPropertyValue('--raya').trim() };
-  marcos.forEach(m => { try { m.contentWindow.postMessage(estilo, '*'); } catch (_) {} });
+  if (marcos.length)
+    marcos.forEach(m => { try { m.contentWindow.postMessage(estilo, '*'); } catch (_) {} });
+  /* Y AL ÁRBOL DE ORACIÓN, SÓLO EL TAMAÑO. Ese marco se quedó fuera del
+     reparto de arriba a propósito —«esta aplicación es de neón y se queda de
+     neón, pedido así»— y sigue fuera: lo que se le manda no es el estilo, es
+     un número, en un aviso con otro nombre para que no pueda confundirse con
+     el otro ni de casualidad. Lo pidió el dueño del repo para la lista del
+     cofre: «use same font size que tiene el libro», que es la misma regla que
+     rige en RESPALDO —el size del libro es el que usa toda la aplicación—. Al
+     otro lado lo recoge una variable propia y lo usa una sola regla. */
+  const arboles = document.querySelectorAll('.ora-marco');
+  if (!arboles.length) return;
+  const letra = { glossa:'letra-libro', letra: v.getPropertyValue('--fs-libro').trim() };
+  arboles.forEach(m => { try { m.contentWindow.postMessage(letra, '*'); } catch (_) {} });
 }
 
 /* Aquí vivía un segundo oyente de "clic fuera" que no exceptuaba el menú
@@ -22669,7 +22687,16 @@ const ENCUENTROS = [
   const marco = document.createElement('iframe');
   marco.className = 'ora-marco';
   marco.title = 'Tus oraciones';
-  marco.dataset.pagina = 'oracion/index.html';
+  /* EL SELLO VA EN LA DIRECCIÓN, y no es adorno. El árbol es otra página dentro
+     de un marco, y el navegador se la guarda: cuando el dueño del repo dijo
+     «no funciona el cofre con doble click», lo primero que había que descartar
+     era que su teléfono siguiera enseñando el árbol de antes del cofre —el
+     marcado nuevo y el guion nuevo no llegan si la página vieja sigue en la
+     despensa—. Colgándola del sello de compilación, cada versión pide su
+     propia copia y ninguna otra: mientras el sello no cambia, la caché sirve
+     como siempre. */
+  marco.dataset.pagina = 'oracion/index.html?v=' +
+    encodeURIComponent(window.GLOSS_BUILD || '');
   caja.appendChild(marco);
   encenderOracion = () => {
     if (!marco.getAttribute('src')) marco.setAttribute('src', marco.dataset.pagina);

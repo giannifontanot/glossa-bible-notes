@@ -640,9 +640,16 @@
     // AL REVÉS, la última echada arriba: lo que se acaba de tirar es lo que se
     // viene a buscar, y una lista larga sólo enseña sus primeras filas.
     const guardadas = [...state.chest].reverse();
+    let n = 0;
     for (const h of guardadas) {
       const li = document.createElement("li");
       li.className = "chest-item";
+      /* SU TURNO PARA ENTRAR. Se pidió que la lista no apareciera de golpe, así
+         que cada fila se enciende un poco después que la de arriba y la lista
+         se lee cayendo, como se escribiría. El número se topa a los doce: con
+         un cofre lleno, esperar doscientos turnos para ver el final no es
+         elegante, es una cuenta atrás. */
+      li.style.setProperty("--turno", Math.min(n++, 12));
       const fig = chestLeafSvg(h.shape);
       // El color va en el elemento, como en el árbol: la variante manda, y el
       // borde propio de la hoja gana si lo tenía. Ver applyLeafStyle, que hace
@@ -692,14 +699,44 @@
     try { treasure.focus(); } catch (_) {}
   }
 
-  // DOBLE CLIC SOBRE EL COFRE. Se cuenta a mano, como lo cuenta una hoja (ver
+  // DOBLE TOQUE SOBRE EL COFRE. Se cuenta a mano, como lo cuenta una hoja (ver
   // attachGestures), y no con el evento "dblclick" del navegador: en un
-  // teléfono ese evento es de fiar sólo a ratos, y esta aplicación se maneja
-  // con el dedo. Aquí no hace falta el retardo que sí lleva la hoja —un toque
-  // simple sobre el cofre no hace nada— así que la lista abre en el segundo
-  // toque, sin esperar a ver si viene un tercero.
+  // teléfono ese evento es de fiar sólo a ratos.
+  //
+  // SE CUENTA EL POINTERDOWN, que es el primero de todos y el único que no se
+  // puede perder. Hubo dos intentos antes y los dos se quedaban cortos, y lo
+  // que sigue está MEDIDO en este mismo navegador con el dedo emulado, no
+  // supuesto — que fue el error de la primera vez:
+  //
+  //   un toque limpio  →  pointerdown · pointerup · click
+  //   un toque MOVIDO  →  pointerdown · pointerup            (sin click)
+  //   el ratón         →  pointerdown · pointerup · click
+  //
+  // · click fue el segundo intento, y habría sido peor: el toque movido —que
+  //   es justo el del pulgar que resbala un poco— no produce ninguno. Lo
+  //   levantó la revisión de Codex antes de que llegara a nadie.
+  // · pointerup fue el primero, y en esta medida aguanta el toque movido; lo
+  //   que no aguanta es un gesto que el navegador cancela del todo, donde
+  //   llega pointercancel en su lugar.
+  //
+  // El pointerdown ocurre ANTES de que el navegador tenga que decidir nada de
+  // eso, así que llega pase lo que pase después. Y no hay nada que arrastrar
+  // desde el cofre, o sea que contar el toque por su principio no le quita un
+  // gesto a nadie.
+  //
+  // QUÉ FALLABA EN EL TELÉFONO DEL DUEÑO DEL REPO: no se sabe, y conviene que
+  // quede escrito en vez de inventarlo. El aparato es suyo y aquí no se pudo
+  // reproducir. Lo más probable es que ni siquiera llegara a haber cofre —la
+  // página del árbol vive en un marco y el navegador se la guarda; por eso su
+  // dirección cuelga ahora del sello de compilación—. Esto de aquí no cura una
+  // causa conocida: quita la posibilidad de que el evento se pierda.
+  //
+  // Y LA VENTANA ES MÁS ANCHA que la de las hojas (400 contra 250): un toque
+  // simple sobre el cofre no hace nada, así que esperar de más no cuesta nada,
+  // y el cofre es un blanco de esquina que se toca con el pulgar de lado.
+  const VENTANA_COFRE = 400;
   let cofreReloj = null;
-  treasure.addEventListener("pointerup", () => {
+  treasure.addEventListener("pointerdown", () => {
     // Soltando una hoja encima no es un toque en el cofre: eso lo atiende
     // finishDrag, y llega aquí sólo si el gesto se quedó sin captura.
     if (document.body.classList.contains("leaf-dragging")) return;
@@ -709,7 +746,7 @@
       openChest();
       return;
     }
-    cofreReloj = setTimeout(() => { cofreReloj = null; }, CONFIG.doubleClickDelay);
+    cofreReloj = setTimeout(() => { cofreReloj = null; }, VENTANA_COFRE);
   });
 
   /* Y CON EL TECLADO, DE UNA VEZ. El doble toque es del dedo; pedirle dos
@@ -718,12 +755,67 @@
      barra abren a la primera, que es lo que hace cualquier botón.
      Lo levantó la revisión de Codex, y es el mismo defecto que ya tuvo el
      respaldo del día: un mando que sólo entendía de punteros. */
+  /* Y EL CAMINO DE LAS AYUDAS TÉCNICAS, que no es ninguno de los dos de
+     arriba. Un lector de pantalla o un conmutador no tocan la pantalla ni
+     pulsan teclas sobre el botón: mandan un click a secas, sin puntero
+     detrás. Ese click no trae pointerdown —así que no cuenta para el doble
+     toque— y tampoco es el keydown de aquí abajo, o sea que sin esta línea el
+     cofre volvería a ser inalcanzable para quien lo abre así, que es justo lo
+     que la revisión anterior vino a arreglar.
+     SE DISTINGUE POR LAS DOS SEÑAS A LA VEZ, y las dos están medidas aquí: un
+     click de dedo o de ratón trae detail 1 y su pointerType ("touch",
+     "mouse"); el de una ayuda técnica viene sin puntero y con detail 0. Se
+     piden las dos para no confundir un toque con una activación, que abriría
+     la lista con un solo dedo. */
+  treasure.addEventListener("click", (e) => {
+    if (e.detail === 0 && !e.pointerType) openChest();
+  });
+
   treasure.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    /* El contador no se toca: lo que cuenta es el pointerdown, y una tecla no
+       manda ninguno. Cuando esto contaba clics sí había que apagarlo, porque
+       un <button> pulsado con Enter dispara también un click y quedaba media
+       cuenta puesta. */
     e.preventDefault();  // la barra, si no, mueve la página
     openChest();
   });
+
+  /* LA LETRA DEL LIBRO, que viene de arriba. Se pidió que esta lista se lea con
+     el tamaño de letra del libro —«el font y size del libro es el que usa toda
+     la aplicación»—, y ese número no existe aquí dentro: esto es un marco
+     aparte y el CSS no cruza.
+     LLEGA SÓLO EL TAMAÑO, y a una variable propia, no al font-size de la
+     página: este árbol es de neón y se queda de neón, que es lo que se decidió
+     cuando se dejó fuera del reparto de estilo de los relatos. Lo único que lo
+     usa es la lista del cofre.
+     Y SE COMPRUEBA QUIÉN LO MANDA, como hace el puente con el suyo: quien nos
+     enseña y no cualquiera que tenga el marco a mano. Lo peor que puede hacer
+     un aviso falso es escribir grande, pero mirar es gratis. */
+  addEventListener("message", (ev) => {
+    if (ev.source !== parent) return;
+    const e = ev.data;
+    if (!e || e.glossa !== "letra-libro" || !e.letra) return;
+    document.documentElement.style.setProperty("--fs-libro", String(e.letra));
+  });
+
+  /* Y SE VUELVE A PEDIR, AHORA QUE HAY QUIEN ESCUCHE. El puente (salida.js)
+     avisa «listo» en cuanto se carga, y se carga ANTES que este guion: son dos
+     <script> distintos, y entre uno y otro el navegador puede entregar
+     mensajes mientras espera a que llegue el siguiente fichero. O sea que la
+     respuesta de arriba podía llegar antes de que existiera el oyente de aquí
+     encima, perderse —es de una sola vez— y dejar la lista con su letra de
+     respaldo hasta que el lector tocara el riel de la letra. Más probable
+     cuanto peor va la red, que es justo la primera vez que alguien abre esto.
+     Lo levantó la revisión de Codex.
+     Se arregla desde este lado y no adelantando el aviso del puente: ese
+     fichero es el mismo para todos los relatos y no sabe nada de éste. Pedir
+     dos veces no cuesta nada —la respuesta es un número—, y así el orden de
+     carga deja de importar. */
+  if (parent !== window) {
+    try { parent.postMessage({ glossa: "listo" }, "*"); } catch (_) {}
+  }
 
   chestClose.addEventListener("click", closeChest);
   // Tocar fuera de la caja también cierra: es lo que el dedo intenta primero.

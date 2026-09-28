@@ -875,10 +875,55 @@ body.dots-armed .ws-dot.drop-target .dot-visual {
   display: none;
 }
 
+/* LA VENTANA ENTRA, NO APARECE. Se pidió que la lista de neón no saliera «de
+   una vez»: primero se enciende el marco —sube un poco y el resplandor dorado
+   crece hasta su sitio— y después van cayendo las filas, una detrás de otra.
+   Es lo mismo que hace el cofre al tragarse una hoja: en este árbol las cosas
+   se mueven, no parpadean. */
+@keyframes cofre-caja-entra {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes cofre-velo-entra {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes cofre-fila-entra {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+#chest-list {
+  animation: cofre-velo-entra 160ms ease-out both;
+}
+
+/* EL ANCHO LO MANDA LA ORACIÓN MÁS LARGA, pedido así: la ventana mide lo que
+   mide su contenido y ni un dedo más. Con un ancho fijo —estuvo en 560— una
+   lista de tres oraciones cortas era una caja medio vacía flotando sobre el
+   árbol, y el árbol es lo que se vino a tapar lo menos posible.
+
+   max-content es exactamente eso: la fila más ancha manda. El aire lo ponen el
+   relleno de las filas (16 px a cada lado) y el hueco entre la hojita y su
+   letra, que ya estaban; no hace falta añadir más, y añadirlo sería volver al
+   ancho fijo por la puerta de atrás.
+
+   Y EL TOPE SIGUE SIENDO LA PANTALLA: con una oración muy larga, max-width
+   corta el crecimiento y entonces —y sólo entonces— la fila recorta su línea
+   con puntos suspensivos. El min-width es para el otro extremo: el cofre vacío
+   y una oración de dos letras no pueden dejar una ventana más estrecha que su
+   propia aspa. */
 .chest-box {
   display: flex;
   flex-direction: column;
-  width: min(560px, 100%);
+  width: max-content;
+  /* El suelo es bajo a propósito: sólo está para que el cofre vacío y una
+     oración de dos letras no dejen una ventana más estrecha que su propia
+     aspa. Puesto más alto —estuvo en 180— volvía a sobrar caja a la derecha
+     con las oraciones cortas, que es lo que se vino a quitar. */
+  min-width: 120px;
+  max-width: 100%;
   max-height: 100%;
   background: var(--bg, #0a0018);
   border: 2px solid var(--treasure, #ffd24a);
@@ -887,28 +932,37 @@ body.dots-armed .ws-dot.drop-target .dot-visual {
     0 0 6px var(--treasure, #ffd24a),
     0 0 18px rgba(255, 210, 74, 0.45);
   overflow: hidden;
+  animation: cofre-caja-entra 240ms cubic-bezier(0.22, 0.72, 0.24, 1) both;
 }
 
+/* SIN TÍTULO, pedido así. La cabecera se queda para el aspa y nada más, así
+   que el aspa se va sola a la derecha —flex-end en vez de space-between, que
+   sin hermano a la izquierda dejaría el botón pegado al otro lado— y la raya
+   de abajo se va con el título: separaba dos cosas y ya sólo hay una. */
 .chest-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 10px 10px 16px;
-  border-bottom: 1px solid rgba(255, 210, 74, 0.35);
+  justify-content: flex-end;
+  /* Sin relleno propio: el botón ya trae sus 44 px de blanco de toque, y
+     sumarle margen sólo alejaría el aspa de su esquina. */
+  padding: 0;
 }
 
-.chest-head h2 {
-  margin: 0;
-  font-family: var(--font, monospace);
-  font-size: 13px;
-  letter-spacing: 0.08em;
-  color: var(--treasure, #ffd24a);
-  text-shadow: 0 0 6px rgba(255, 210, 74, 0.55);
-}
+/* EL ASPA, PEQUEÑA Y DISCRETA, pedido así. Lo que se encoge es LA TINTA, no el
+   blanco de toque: el signo baja de 22 a 14 px y pierde su aro, pero el botón
+   sigue midiendo los 44 px de la casa (CONFIG.minTouchTarget). Ésa es la parte
+   que no se puede regalar —cerrar es lo único que esta ventana tiene que hacer
+   sin fallar, y un blanco de 14 px se falla con el pulgar—, y es justo la que
+   no se ve, así que encogerla no habría hecho la ventana más discreta: sólo
+   más difícil.
 
-/* El aspa, con el blanco de toque de la casa (44px) aunque el signo sea
-   chico: cerrar es lo único que esta ventana tiene que hacer sin fallar. */
+   Y SE APAGA EN VEZ DE DESAPARECER. Con el título fuera, el aspa es lo único
+   que queda arriba, y a pleno dorado competía con las hojas, que es lo que se
+   viene a mirar. A media luz se lee sin llamar; al pasar por encima, al
+   pulsarla o al llegar con el teclado, vuelve entera —quien la busca la
+   encuentra encendida—. Apagarla del todo, o esconderla hasta el roce, habría
+   sido esconder la salida en una ventana que se abre con un gesto que no todo
+   el mundo acierta a la primera. */
 .chest-x {
   flex: 0 0 auto;
   width: 44px;
@@ -917,19 +971,32 @@ body.dots-armed .ws-dot.drop-target .dot-visual {
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 1px solid rgba(255, 210, 74, 0.45);
-  border-radius: 50%;
+  border: 0;
   background: transparent;
   color: var(--treasure, #ffd24a);
+  opacity: 0.5;
   font-family: var(--font, monospace);
-  font-size: 22px;
+  font-size: 14px;
   line-height: 1;
   cursor: pointer;
-  transition: transform var(--anim-ms, 120ms) ease;
+  transition: opacity var(--anim-ms, 120ms) ease,
+              transform var(--anim-ms, 120ms) ease;
+}
+
+.chest-x:hover,
+.chest-x:focus-visible {
+  opacity: 1;
+}
+
+.chest-x:focus-visible {
+  outline: 2px solid var(--treasure, #ffd24a);
+  outline-offset: -6px;
+  border-radius: 50%;
 }
 
 .chest-x:active {
-  transform: scale(0.92);
+  opacity: 1;
+  transform: scale(0.88);
 }
 
 .chest-items {
@@ -945,6 +1012,10 @@ body.dots-armed .ws-dot.drop-target .dot-visual {
   align-items: center;
   gap: 12px;
   padding: 6px 16px;
+  /* Cada una espera su turno: el número lo pone el guion al pintarla, y el
+     retardo arranca donde acaba de entrar la caja. */
+  animation: cofre-fila-entra 240ms ease-out both;
+  animation-delay: calc(140ms + var(--turno, 0) * 55ms);
 }
 
 /* La hojita, en chico. Lleva las mismas variables que la del árbol
@@ -984,7 +1055,12 @@ body.dots-armed .ws-dot.drop-target .dot-visual {
   white-space: nowrap;
   text-overflow: ellipsis;
   font-family: var(--font, monospace);
-  font-size: 12px;
+  /* EL TAMAÑO DEL LIBRO, que llega de Glossa por un aviso y se guarda en
+     --fs-libro (ver el oyente de "letra-libro"). Se pidió así: «el font y size
+     del libro es el que usa toda la aplicación». Los 12px se quedan de
+     respaldo, para cuando este árbol se abre solo y no hay libro que preguntar.
+     La familia NO cambia: la letra de arcade es de esta aplicación. */
+  font-size: var(--fs-libro, 12px);
   line-height: 1.5;
   color: var(--text, #f7ff00);
 }
@@ -1009,4 +1085,15 @@ body.dots-armed .ws-dot.drop-target .dot-visual {
 
 .chest-empty[hidden] {
   display: none;
+}
+
+/* Y QUIEN PIDE QUIETO, LO TIENE QUIETO. La entrada es un adorno; el sistema
+   operativo ya sabe cuándo alguien no quiere que las cosas se muevan, y a
+   quien se marea, una lista que cae es una lista que molesta. */
+@media (prefers-reduced-motion: reduce) {
+  #chest-list,
+  .chest-box,
+  .chest-item {
+    animation: none;
+  }
 }
