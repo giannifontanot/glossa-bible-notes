@@ -1876,6 +1876,121 @@ const FUERA = `async () => {
                       ', grupo empieza en ' + tres.sitio.grupoEmpieza));
   vale('  y detrás de él en el marcado', !!tres.sitio && tres.sitio.enElDom === true);
 
+  /* Y LAS TRES PUERTAS SE ABREN CRECIENDO, NO DE GOLPE.
+
+     Se pidió que LETRA, FILTRAR y ACTUALIZAR «abran suavemente». Antes se
+     encendían quitándoles el display:none, así que aparecían con su alto
+     entero y el índice —que va debajo y es una lista larga— pegaba un salto
+     seco en el mismo cuadro.
+
+     LO QUE SE AFIRMA ES QUE EL SITIO CRECE, no que haya una animación puesta:
+     una animación se puede declarar y no mover nada —es lo que pasa cuando se
+     recorta la tinta en vez de reservar el hueco—, y entonces el salto del
+     índice sigue ahí con la prueba en verde. Así que se mira el ALTO del
+     mando, varias veces, y se exige que pase por algún valor entre cero y el
+     suyo.
+
+     SE MUESTREA DENTRO DE LA PÁGINA y no desde aquí: una ida y vuelta por
+     cada medida tarda más que la propia apertura, y entonces todas las
+     muestras caen al final y la prueba diría que no creció nunca. Y por eso
+     mismo se toman varias y basta con que UNA caiga en medio: pedir un valor
+     a los 90 ms exactos es pedirle a la máquina que no tenga un mal momento.
+
+     La última línea es la que guarda lo que no se ve: que al terminar no
+     quede un alto escrito a mano en el estilo del elemento. Si se quedara, el
+     mando dejaría de crecer el día que le entren más etiquetas, y eso no lo
+     nota nadie hasta que la lista está cortada. */
+  titulo('las tres puertas de GLOSAS se abren creciendo');
+  const suave = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const panel = document.getElementById('ctrlEtiquetas');
+    const abierto = {
+      letra: () => !panel.classList.contains('sin-letra'),
+      filtrar: () => !panel.classList.contains('sin-chips'),
+      actualizar: () => document.getElementById('etiquetas').classList.contains('eligiendo'),
+    };
+    const PUERTAS = [['letra', 'btnLetraGlosas', 'ctrlLetra'],
+                     ['filtrar', 'btnVerEtiquetas', 'filaFiltros'],
+                     ['actualizar', 'btnElegirGlosas', 'barraGrupo']];
+    const salida = [];
+    for (const [k, boton, caja] of PUERTAS){
+      /* Cerradas las tres antes de cada una: abrir una apaga a las otras, y
+         una que ya estuviera puesta no se abriría —ni crecería— otra vez. */
+      for (const [k2, b2] of PUERTAS)
+        if (abierto[k2]()){ document.getElementById(b2).click(); await pausa(60); }
+      await pausa(120);
+      const el = document.getElementById(caja);
+      const antes = Math.round(el.getBoundingClientRect().height);
+      document.getElementById(boton).click();
+      const muestras = [];
+      for (let i = 0; i < 12; i++){
+        muestras.push(Math.round(el.getBoundingClientRect().height));
+        await pausa(25);
+      }
+      await pausa(500);
+      const fin = Math.round(el.getBoundingClientRect().height);
+      salida.push({ puerta: k, antes, muestras, fin,
+                    restos: (el.style.height || '') + '/' + (el.style.overflow || '') });
+    }
+    return salida;
+  });
+  di('las tres puertas', JSON.stringify(suave));
+  vale('(la prueba es válida) las tres nacen cerradas y acaban abiertas',
+       suave.every(x => x.antes === 0 && x.fin > 0),
+       suave.map(x => x.puerta + ' ' + x.antes + '→' + x.fin).join(' · '));
+  vale('LAS TRES PASAN POR UN ALTO INTERMEDIO, o sea que crecen',
+       suave.every(x => x.muestras.some(h => h > 0 && h < x.fin)),
+       suave.map(x => x.puerta + ' [' + x.muestras.join(',') + '] de ' + x.fin).join(' · '));
+  vale('  y no se quedan con el alto escrito a mano al terminar',
+       suave.every(x => x.restos === '/'),
+       suave.map(x => x.puerta + ' ' + x.restos).join(' · '));
+
+  /* Y LO QUE DE VERDAD SE VE: QUE EL ÍNDICE NO PEGUE UN SALTO.
+
+     Las líneas de arriba miran el mando, y eso deja fuera lo que el lector
+     nota, que es la lista de abajo moviéndose bajo sus ojos. La primera
+     versión de esto animaba sólo el alto y dejaba los márgenes fuera: como no
+     entran en getBoundingClientRect, el mando crecía impecable mientras el
+     índice daba un brinco de 21 px en el primer cuadro. Lo levantó la revisión
+     de Codex.
+
+     LA MEDIDA ES EL PRIMER CUADRO, y el listón sale del propio panel: lo único
+     que puede aparecer de golpe es el HUECO DE LA REJILLA —#ctrlEtiquetas es
+     una rejilla con row-gap, y ese hueco nace con la fila y no hay manera de
+     animarlo desde el hijo—. Cualquier cosa por encima de eso es algo que
+     apareció entero en vez de crecer. Medido: 21 px antes, 9 después, que son
+     exactamente los 9 del row-gap.
+
+     Se prueba con LETRA porque es la que empuja al índice: ACTUALIZAR abre por
+     debajo de él y no lo mueve, así que ahí esta afirmación saldría verde sin
+     probar nada. */
+  const salto = await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const panel = document.getElementById('ctrlEtiquetas');
+    if (!panel.classList.contains('sin-letra')){
+      document.getElementById('btnLetraGlosas').click();
+      await pausa(500);
+    }
+    const ind = document.getElementById('indice');
+    if (!ind) return { falta:'no hay índice' };
+    const hueco = parseFloat(getComputedStyle(panel).rowGap) || 0;
+    const antes = ind.getBoundingClientRect().top;
+    document.getElementById('btnLetraGlosas').click();
+    await new Promise(r => requestAnimationFrame(r));
+    const primerCuadro = ind.getBoundingClientRect().top - antes;
+    await pausa(600);
+    const total = ind.getBoundingClientRect().top - antes;
+    return { hueco, primerCuadro: +primerCuadro.toFixed(1),
+             total: +total.toFixed(1) };
+  });
+  di('el empujón del índice', JSON.stringify(salto));
+  vale('(la prueba es válida) abrir LETRA empuja el índice hacia abajo',
+       !salto.falta && salto.total > 40, JSON.stringify(salto));
+  vale('EL ÍNDICE NO PEGA UN SALTO AL ABRIRSE LETRA',
+       !salto.falta && salto.primerCuadro <= salto.hueco + 1,
+       !salto.falta && (salto.primerCuadro + ' px de golpe, con un hueco de rejilla de ' +
+                        salto.hueco + ' y un viaje de ' + salto.total));
+
   /* Y LA CAJA DE ESCRIBIR UNA ETIQUETA SE LEE.
 
      Heredaba .7rem —11.2 px— y con eso no se lee lo que uno acaba de teclear.

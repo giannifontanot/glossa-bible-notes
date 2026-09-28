@@ -6119,7 +6119,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-SEP-26 13:34';
+window.GLOSS_BUILD = '28-SEP-26 14:04';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -12241,7 +12241,79 @@ $('selDia').onchange = e => {
    Las tres cosas que tienen que decir lo mismo —la clase del panel, el botón
    encendido y su aria-pressed— viven aquí y no dentro del oyente, porque hay
    más de uno que necesita abrirla: ver abajo. */
+/* ABRIR HACIA ABAJO, MIDIENDO LO QUE HAY QUE ABRIR.
+
+   Se pidió que LETRA, FILTRAR y ACTUALIZAR «abran suavemente». Los tres se
+   encienden con una clase que les quita el display:none, o sea que aparecían
+   de golpe y con su alto entero: lo de abajo —el índice, que es una lista
+   larga— pegaba un salto seco en el mismo cuadro.
+
+   POR QUÉ CON EL ALTO Y NO CON UN RECORTE. La casa ya tiene su manera de
+   descubrir cosas hacia abajo, el clip-path de `desenrollar`, y aquí no vale:
+   recortar no reserva sitio, así que el índice saltaría igual y sólo el mando
+   se iría dibujando encima del hueco. Lo que tiene que moverse es el sitio,
+   no la tinta.
+
+   Y POR QUÉ MIDIENDO Y NO CON UN MÁXIMO ESCRITO. El truco corriente es pasar
+   de max-height:0 a un número grande, y se nota: con 400 px escritos para un
+   mando de 70, el movimiento de verdad acaba en la sexta parte del tiempo y el
+   resto es una espera vacía. Aquí se pregunta el alto real, se va de 0 hasta
+   él, y al terminar se le quita todo de encima para que vuelva a mandar la
+   hoja de estilo —si luego le entran chips, crece solo.
+
+   SÓLO AL ABRIR. Cerrar sigue siendo instantáneo a propósito: los tres se
+   excluyen, así que encender uno apaga otro, y dos animaciones cruzándose
+   —una que se va mientras otra llega— es justo el barullo que esto viene a
+   quitar. El que se va, se va; el que llega, se abre.
+
+   Y quien pide quieto, lo tiene quieto: el sistema operativo ya sabe si a
+   alguien le sientan mal las cosas que se mueven. */
+const SUAVE_MS = 260;
+function abrirSuave(el){
+  if (!el) return;
+  let quieto = false;
+  try { quieto = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(_){}
+  if (quieto) return;
+  clearTimeout(el._relojSuave);
+  /* EL ALTO SE PREGUNTA A LA CAJA, no a scrollHeight: con box-sizing:border-box
+     —que aquí es global— lo que se le escribe a `height` incluye relleno y
+     borde, y scrollHeight deja el borde fuera. Con un borde de 1 px por lado
+     eso son dos píxeles de menos justo al final del viaje. */
+  const caja = el.getBoundingClientRect();
+  const alto = Math.round(caja.height);
+  if (!alto) return;                 // nada que abrir: no se deja a medio hacer
+  /* Y LOS MÁRGENES VAN EN EL VIAJE. Animar sólo el alto deja fuera el hueco de
+     arriba y el de abajo, que aparecen enteros en el primer cuadro: medido, el
+     índice pegaba un salto de 21 px antes de empezar a crecer nada. Lo levantó
+     la revisión de Codex, y la prueba de entonces no podía verlo porque
+     getBoundingClientRect no cuenta los márgenes — por eso la de ahora mira el
+     índice, que es quien recibe el empujón. */
+  const cs = getComputedStyle(el);
+  const mArriba = cs.marginTop, mAbajo = cs.marginBottom;
+  el.style.overflow = 'hidden';
+  el.style.height = '0px';
+  el.style.marginTop = '0px';
+  el.style.marginBottom = '0px';
+  void el.offsetHeight;              // reflujo: la transición arranca desde cero
+  const curva = SUAVE_MS + 'ms cubic-bezier(.22,.72,.24,1)';
+  el.style.transition = 'height ' + curva + ', margin-top ' + curva +
+                        ', margin-bottom ' + curva;
+  el.style.height = alto + 'px';
+  el.style.marginTop = mArriba;
+  el.style.marginBottom = mAbajo;
+  /* Se limpia por reloj y no por transitionend: si el lector apaga el mando a
+     mitad de camino, ese evento no llega nunca y el alto se quedaría clavado
+     en un número que mañana ya no es el suyo. */
+  el._relojSuave = setTimeout(() => {
+    el.style.transition = '';
+    el.style.height = '';
+    el.style.marginTop = '';
+    el.style.marginBottom = '';
+    el.style.overflow = '';
+  }, SUAVE_MS + 40);
+}
 function verEtiquetas(on){
+  const estaba = !$('ctrlEtiquetas').classList.contains('sin-chips');
   $('ctrlEtiquetas').classList.toggle('sin-chips', !on);
   const b = $('btnVerEtiquetas');
   b.classList.toggle('active', on);
@@ -12261,6 +12333,12 @@ function verEtiquetas(on){
      escondida, su alto es cero y la cuenta diría siempre que no hay más. */
   if (on) avisarMasEtiquetas();
   marcarFiltroEscondido();
+  /* Y AL FINAL DEL TODO, la apertura suave: va detrás de avisarMasEtiquetas
+     porque ése mide la tira, y medir una tira que está a cero de alto diría
+     siempre que no hay más. Sólo cuando se enciende viniendo de apagada: sin
+     esa guarda, cualquier repintado con el mando ya abierto lo volvería a
+     abrir delante del lector. */
+  if (on && !estaba) abrirSuave($('filaFiltros'));
 }
 /* AVISAR DE QUE LA LISTA SIGUE POR DEBAJO.
 
@@ -12516,6 +12594,7 @@ function quitarTagGrupo(t){
    botón, su aria-pressed y la clase del panel— no pueden vivir dentro del
    oyente de un botón si otro las va a necesitar. */
 function elegirGlosas(on){
+  const estaba = eligiendoGlosas;
   eligiendoGlosas = on;
   const b = $('btnElegirGlosas');
   b.classList.toggle('active', on);
@@ -12533,6 +12612,9 @@ function elegirGlosas(on){
   if (on){ verEtiquetas(false); verLetraGlosas(false); }
   marcarFiltroEscondido();
   pintarBarraGrupo();
+  /* Detrás de pintarBarraGrupo, que es quien le mete dentro la cuenta y las
+     etiquetas: preguntarle el alto antes sería preguntárselo vacía. */
+  if (on && !estaba) abrirSuave($('barraGrupo'));
 }
 /* EL TERCER MODO, y con esto la exclusión pasa de dos a tres.
 
@@ -12548,6 +12630,7 @@ function elegirGlosas(on){
    La guarda de `on` en cada uno es lo que impide que se llamen en círculo:
    apagar nunca apaga a nadie, así que verLetraGlosas(false) no vuelve aquí. */
 function verLetraGlosas(on){
+  const estaba = !$('ctrlEtiquetas').classList.contains('sin-letra');
   $('ctrlEtiquetas').classList.toggle('sin-letra', !on);
   const b = $('btnLetraGlosas');
   if (b){
@@ -12555,6 +12638,7 @@ function verLetraGlosas(on){
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   }
   if (on){ verEtiquetas(false); elegirGlosas(false); }
+  if (on && !estaba) abrirSuave($('ctrlLetra'));
 }
 $('btnLetraGlosas').onclick = () =>
   verLetraGlosas($('ctrlEtiquetas').classList.contains('sin-letra'));

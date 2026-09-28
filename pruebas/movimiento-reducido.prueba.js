@@ -6,7 +6,7 @@
    otros sitios: sería raro apagar el giro de un disco y dejar puesto esto.
    Se apaga la TRANSICIÓN, no el zoom: la hoja sigue viéndose entera y llega
    ahí en un cuadro. */
-const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, cerrarParcial, listo, di, vale, titulo } = require('./comun');
 
 (async () => {
   let sesion;
@@ -437,6 +437,93 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
              sello.justo.cajon === 0 && Math.abs(sello.justo.sello) <= 1,
              'cajón ' + sello.justo.cajon + ' · sello ' + sello.justo.sello);
       }
+    }
+
+    /* Y LAS TRES PUERTAS DE GLOSAS, que también se mueven desde que se pidió
+       que abrieran suavemente. LETRA, FILTRAR y ACTUALIZAR crecen de cero a su
+       alto en vez de aparecer de golpe, y eso es exactamente la clase de
+       movimiento del que esta preferencia viene a librar: un trozo de interfaz
+       empujando hacia abajo la lista que estabas leyendo.
+
+       LOS DOS MODOS SE AFIRMAN, y no sólo el de la preferencia. Sin la mitad
+       de arriba, esto saldría verde el día que la apertura suave desapareciera
+       del todo: «no se mueve con reduce» es verdad también cuando no se mueve
+       nunca. */
+    /* SE RECARGA LA PÁGINA ANTES DE ESTO, y no es pereza: es lo que hace que
+       este bloque no dependa de dónde lo dejaron los de arriba.
+
+       La primera versión sólo apagaba el zoom, porque eso era lo que fallaba
+       aquí. En el entorno del dueño del repo siguió saliendo «no hay pestaña de
+       glosas» en los dos modos, y no se pudo reproducir —lo mismo que ya le
+       pasa a este archivo con el cajón, según está contado más arriba—. Así
+       que en vez de adivinar qué deja puesto su máquina, se empieza de cero:
+       una recarga y la tapa pasada. Lo que este bloque mide —que una puerta de
+       GLOSAS crezca, o no, según la preferencia— no tiene nada que ver con el
+       zoom ni con el cajón, así que heredar su estado sólo podía hacer daño.
+
+       La preferencia de movimiento va en el contexto del navegador, no en la
+       página, así que sobrevive a la recarga: se sigue midiendo el modo que
+       toca. */
+    await p.reload();
+    await p.waitForTimeout(2200);
+    await listo(p);
+    const puertas = await p.evaluate(async () => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      /* Y aun así se mira el zoom, por si una recarga futura lo trajera
+         puesto: con la hoja ampliada, el rótulo de la cabecera no abre la
+         burbuja. Comprobado antes de escribir esto. */
+      const pg = document.getElementById('pg');
+      if (pg && pg.classList.contains('zoom')){
+        document.getElementById('btnZoom').click();
+        await pausa(900);
+      }
+      const vis = () => [...document.querySelectorAll('.rollo')]
+        .find(r => getComputedStyle(r).display !== 'none');
+      if (!vis()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+      const t = (vis() || document).querySelector('.pestanas [data-sec="glosas"]');
+      /* Y SI NO ESTÁ, SE DICE QUÉ HABÍA. Un «no hay pestaña de glosas» a secas
+         no deja investigar nada desde otra máquina; con esto se sabe si la
+         burbuja no abrió, si abrió otra, o si abrió sin pestañas. */
+      if (!t){
+        const v = vis();
+        return { falta:'no hay pestaña de glosas',
+                 panel: v ? v.id : '(ninguno visible)',
+                 zoom: !!(pg && pg.classList.contains('zoom')),
+                 pestanas: v ? [...v.querySelectorAll('.pestanas [data-sec]')]
+                                 .map(x => x.dataset.sec).join(',') : '' };
+      }
+      t.click();
+      await pausa(900);
+      const panel = document.getElementById('ctrlEtiquetas');
+      if (!panel) return { falta:'no hay panel de glosas' };
+      /* Se prueba con LETRA, que es la más simple de las tres: un grupo de dos
+         filas que no depende de que haya etiquetas ni glosas elegidas. */
+      if (!panel.classList.contains('sin-letra')){
+        document.getElementById('btnLetraGlosas').click();
+        await pausa(400);
+      }
+      const el = document.getElementById('ctrlLetra');
+      document.getElementById('btnLetraGlosas').click();
+      const muestras = [];
+      for (let i = 0; i < 12; i++){
+        muestras.push(Math.round(el.getBoundingClientRect().height));
+        await pausa(25);
+      }
+      await pausa(500);
+      return { muestras, fin: Math.round(el.getBoundingClientRect().height) };
+    });
+    di('la puerta de LETRA', JSON.stringify(puertas));
+    vale('(la prueba es válida) la puerta acabó abierta',
+         !puertas.falta && puertas.fin > 0,
+         puertas.falta ? JSON.stringify(puertas) : (puertas.fin + ' px'));
+    const crece = !puertas.falta &&
+                  puertas.muestras.some(h => h > 0 && h < puertas.fin);
+    if (modo === 'reduce'){
+      vale('LA PUERTA DE GLOSAS SE ABRE DE UN TIRÓN, sin crecer',
+           !crece, JSON.stringify(puertas.muestras));
+    } else {
+      vale('LA PUERTA DE GLOSAS CRECE al abrirse',
+           crece, JSON.stringify(puertas.muestras));
     }
 
     /* Se revisan los errores de ESTA sesión antes de tirarla: cerrando a pelo,
