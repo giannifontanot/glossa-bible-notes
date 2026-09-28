@@ -958,32 +958,38 @@ async function ponerContraste(pagina, pct){
   /* ──────────────────────────────────────────────────────────────
      Y EL ESPACIO ENTRE PALABRAS NO SE LLEVA SU PARTE.
 
-     Encargo del dueño del repo después de probarlo: «que el espaciado afecte
-     solamente las palabras, pero que no agregue letter-spacing al carácter
-     SPACE». El navegador no distingue —letter-spacing se añade DESPUÉS DE CADA
-     CARÁCTER y el espacio es uno más—, así que entre dos palabras entraban dos
-     medidas, la de la última letra y la del espacio, contra una sola entre dos
-     letras: a +5 el texto no se separaba, se deshilachaba. El descuento va en
-     word-spacing con el signo cambiado; está contado en .pg.
+     Encargo del dueño del repo después de probarlo: «no quiero que haya
+     espacio extra entre palabras». El navegador no distingue —letter-spacing
+     se añade DESPUÉS DE CADA CARÁCTER y el espacio es uno más—, así que entre
+     dos palabras entraban DOS medidas, la de la última letra y la del propio
+     espacio, contra una sola entre dos letras: a +5 el texto no se separaba,
+     se deshilachaba. El descuento va en word-spacing y quita las dos; está
+     contado en .pg.
 
      CÓMO SE MIDE, Y POR QUÉ NO CON UN RECTÁNGULO. Medir «el ancho del espacio»
      no sirve: el rectángulo de un Range no incluye el tracking que va detrás
      del último carácter, así que da un número que no es el avance y se puede
      leer al revés —pasó al escribir esto—. Lo que se mide es la CUENTA: un
-     trozo de C caracteres con S espacios, a 0 y al tope. Sin el descuento
-     crecería C·L; con él crece (C−S)·L, y esa diferencia es justo lo que se
-     pidió que no ocurriera.
+     trozo de C caracteres con S espacios, a 0 y al tope. Sin descuento
+     crecería C·L; con el de una medida, (C−S)·L; con el de las dos —el que se
+     pidió— crece (C−2S)·L, que es tanto como decir que los huecos entre
+     palabras no ponen nada.
 
-     El margen es de 2 px sobre unos 24 de crecimiento, y no es holgura de
-     comodidad: son cuarenta caracteres redondeados al subpíxel cada uno.
-     Medido aquí: +25.59 contra los 24.00 de la cuenta, y +31.19 contra 30.00
-     sin el descuento. El nodo se vuelve a buscar en cada medida porque
-     renderPage rehace la hoja y el de antes se queda suelto: la primera
-     versión de esto midió un nodo huérfano y dio cero. */
+     DOS CUIDADOS QUE COSTARON UNA MEDIDA CADA UNO. El nodo se vuelve a buscar
+     en cada medida, porque renderPage rehace la hoja y el de antes se queda
+     suelto: la primera versión midió un nodo huérfano y dio cero. Y el trozo
+     tiene que caber EN UN RENGLÓN en las dos medidas: si parte, el espacio
+     donde parte se colapsa —no ocupa nada y no recibe nada— y la cuenta se va
+     por ese espacio que no está. Por eso se prueba primero con el ajuste al
+     tope, que es cuando más ancho va, y se acorta el trozo hasta que quepa de
+     una pieza; si no se encuentra ninguno, se dice en vez de medir mal.
+
+     El margen es de 1.5 px sobre unos 18 de crecimiento: son treinta y pico
+     caracteres redondeados al subpíxel cada uno. Y separa de sobra las tres
+     cuentas posibles, que en este trozo van de 18 a 30. */
   titulo('el espaciado abre las letras y no los huecos entre palabras');
   const huecos = await pagina.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
-    const N = 40;
     const buscar = (prefijo) => {
       const w = document.createTreeWalker(document.getElementById('pgBody'),
                                           NodeFilter.SHOW_TEXT);
@@ -996,41 +1002,59 @@ async function ponerContraste(pagina, pct){
     };
     const primero = buscar(null);
     if (!primero) return { falta:'sin texto con espacios que medir' };
-    const trozo = primero.nodeValue.slice(0, N);
-    const C = trozo.length, S = (trozo.match(/ /g) || []).length;
-    const ancho = () => {
-      const n = buscar(trozo);
-      if (!n) return null;
-      const r = document.createRange(); r.setStart(n, 0); r.setEnd(n, N);
-      return +[...r.getClientRects()].reduce((a, b) => a + b.width, 0).toFixed(2);
-    };
-    const fs = parseFloat(getComputedStyle(document.querySelector('#pgBody .v')).fontSize);
     const poner = async (v) => {
       const s = document.getElementById('espAhora');
       s.value = String(v); s.dispatchEvent(new Event('change', { bubbles:true }));
       await pausa(1100);
     };
-    await poner(0);
-    const cero = ancho();
+    const cajas = (prefijo, n) => {
+      const nodo = buscar(prefijo);
+      if (!nodo) return null;
+      const r = document.createRange(); r.setStart(nodo, 0); r.setEnd(nodo, n);
+      return [...r.getClientRects()];
+    };
+    /* Se busca el trozo con el ajuste AL TOPE, que es cuando más ancho va: uno
+       que quepa de una pieza ahí, cabe también a cero. */
     await poner(5);
-    const tope = ancho();
+    let N = 0, trozo = '';
+    for (const intento of [40, 34, 28, 22, 16]){
+      const cand = primero.nodeValue.slice(0, intento);
+      if ((cand.match(/ /g) || []).length < 3) continue;
+      const c = cajas(cand, intento);
+      if (c && c.length === 1){ N = intento; trozo = cand; break; }
+    }
+    if (!N) return { falta:'no hay trozo que quepa en un renglón con espacios' };
+    const C = trozo.length, S = (trozo.match(/ /g) || []).length;
+    const ancho = () => {
+      const c = cajas(trozo, N);
+      return c ? { px: +c.reduce((a, b) => a + b.width, 0).toFixed(2), renglones: c.length }
+               : null;
+    };
+    const fs = parseFloat(getComputedStyle(document.querySelector('#pgBody .v')).fontSize);
+    const enTope = ancho();
     await poner(0);
-    return { trozo, C, S, cero, tope, vuelta: ancho(), L: +(fs * 0.05).toFixed(2) };
+    const enCero = ancho();
+    return { trozo, C, S, cero: enCero && enCero.px, tope: enTope && enTope.px,
+             renglones: [enCero && enCero.renglones, enTope && enTope.renglones],
+             vuelta: (ancho() || {}).px, L: +(fs * 0.05).toFixed(2) };
   });
   di('el trozo medido', JSON.stringify(huecos.trozo));
   di('caracteres · espacios · L', huecos.C + ' · ' + huecos.S + ' · ' + huecos.L + ' px');
   di('el ancho', huecos.cero + ' → ' + huecos.tope);
   vale('(la prueba es válida) hay trozo, espacios y ajuste que contar',
-       !huecos.falta && huecos.S >= 5 && huecos.L > 0.3,
+       !huecos.falta && huecos.S >= 3 && huecos.L > 0.3,
        huecos.falta || (huecos.C + ' caracteres · ' + huecos.S + ' espacios · L ' + huecos.L));
+  vale('(la prueba es válida) y el trozo cabe de una pieza en las dos medidas',
+       !huecos.falta && String(huecos.renglones) === '1,1',
+       String(huecos.renglones));
   vale('(la prueba es válida) el tope ensancha el trozo',
        !huecos.falta && huecos.tope > huecos.cero + 5,
        !huecos.falta && ('+' + (huecos.tope - huecos.cero).toFixed(2) + ' px'));
-  vale('EL ESPACIADO NO SE APLICA AL ESPACIO: crece (C−S)·L, no C·L',
+  vale('LOS HUECOS ENTRE PALABRAS NO PONEN NADA: crece (C−2S)·L, no C·L',
        !huecos.falta &&
-       Math.abs((huecos.tope - huecos.cero) - (huecos.C - huecos.S) * huecos.L) <= 2,
-       !huecos.falta && ('+' + (huecos.tope - huecos.cero).toFixed(2) + ' px · la cuenta sin espacios dice ' +
-         ((huecos.C - huecos.S) * huecos.L).toFixed(2) + ' · con ellos, ' +
+       Math.abs((huecos.tope - huecos.cero) - (huecos.C - 2 * huecos.S) * huecos.L) <= 1.5,
+       !huecos.falta && ('+' + (huecos.tope - huecos.cero).toFixed(2) + ' px · la cuenta dice ' +
+         ((huecos.C - 2 * huecos.S) * huecos.L).toFixed(2) + ' · sin descontar nada serían ' +
          (huecos.C * huecos.L).toFixed(2)));
   vale('  y al volver a 0 el trozo mide lo de antes',
        !huecos.falta && Math.abs(huecos.vuelta - huecos.cero) <= 0.6,

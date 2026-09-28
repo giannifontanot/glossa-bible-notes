@@ -4806,7 +4806,7 @@
                        que es justo lo que este espejo existe para no hacer.
                        La cuenta está contada en .pg. */
                     letter-spacing:var(--esp-glosa, 0em);
-                    word-spacing:calc(-1 * var(--esp-glosa, 0em));
+                    word-spacing:calc(-2 * var(--esp-glosa, 0em));
                     transition:box-shadow .22s ease, opacity .18s ease,
                                transform .38s cubic-bezier(.2,.85,.3,1); }
   #indice .ix-item:hover{ box-shadow:0 0 0 2px rgba(184,137,43,.55); }
@@ -5868,7 +5868,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '27-SEP-26 20:10';
+window.GLOSS_BUILD = '27-SEP-26 20:18';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -5943,26 +5943,29 @@ const PAGE_CSS = `
    sistema los sigue teniendo, y este mando no se los pisa. Ver ESP_MIN. Las
    glosas se salen de aquí en .gl, que es lo que se pidió.
 
-   Y EL HUECO ENTRE PALABRAS NO SE TOCA, que es lo que se pidió después:
-   «que el espaciado afecte solamente las palabras, pero que no agregue
-   letter-spacing al carácter SPACE». Hay que decirlo con cuidado porque el
-   navegador no distingue: letter-spacing añade su medida DESPUÉS DE CADA
-   CARÁCTER, y el espacio es un carácter como otro cualquiera. O sea que entre
-   dos palabras se colaban DOS medidas —la de la última letra y la del propio
-   espacio— mientras que entre dos letras solo entra una: a +5 el texto no se
-   separaba, se deshilachaba en palabras sueltas.
+   Y EL HUECO ENTRE PALABRAS NO SE MUEVE. NADA. Es lo que se pidió después de
+   probarlo: «no quiero que haya espacio extra entre palabras».
 
-   El descuento va en word-spacing con el signo cambiado: la suma de lo que
-   recibe un espacio es letter-spacing + word-spacing, así que con −var(--esp)
-   queda en cero y el hueco entre palabras vuelve a ser el que la letra trae de
-   fábrica. Lo que sigue entrando es la medida de la letra que va delante, que
-   es tracking de ESA letra y no del espacio.
+   Hay que contar la cuenta porque el navegador no distingue: letter-spacing
+   añade su medida DESPUÉS DE CADA CARÁCTER, y el espacio es un carácter como
+   otro cualquiera. Entre dos palabras entran por tanto DOS medidas —la de la
+   última letra de la primera y la del propio espacio— mientras que entre dos
+   letras entra una sola. A +5 el texto no se separaba: se deshilachaba en
+   palabras sueltas.
+
+   El descuento va en word-spacing, que se suma a lo que recibe un espacio:
+   letter-spacing + word-spacing. Con −2 veces el ajuste, las dos medidas se
+   van y el hueco entre palabras queda EXACTAMENTE el que la letra trae de
+   fábrica, mientras las letras de dentro de cada palabra siguen abriéndose.
+   Hubo una versión con −1 que quitaba solo la del espacio y dejaba la de la
+   letra de delante; se probó y no era lo pedido — el hueco seguía creciendo,
+   menos, pero creciendo.
    Se escribe con calc y la misma variable, no con un número: dos sitios con el
    mismo valor escrito a mano se separan el día que alguien toque uno. */
 .pg{ background:var(--papel,#faf7f1); color:var(--tinta,#241f1a);
      font-family:var(--fam, Georgia, 'Times New Roman', serif);
      letter-spacing:var(--esp, 0em);
-     word-spacing:calc(-1 * var(--esp, 0em));
+     word-spacing:calc(-2 * var(--esp, 0em));
      padding:22px var(--mx,18px) 18px; height:100%; width:100%; box-sizing:border-box; }
 .pg-inner{ position:relative; display:flex; flex-direction:column; height:100%; box-sizing:border-box; }
 .pg-cols{ display:flex; flex:1 1 auto; min-height:0; box-sizing:border-box; }
@@ -6542,7 +6545,7 @@ const PAGE_CSS = `
      letter-spacing:var(--esp-glosa, 0em);
      /* Y el hueco entre palabras se queda como está, por lo mismo y con la
         misma cuenta que .pg: ver allí, que es donde está contado. */
-     word-spacing:calc(-1 * var(--esp-glosa, 0em));
+     word-spacing:calc(-2 * var(--esp-glosa, 0em));
      border-radius:3px; padding:2px 6px; white-space:pre-wrap; box-sizing:border-box; }
 /* El hueco de giro: la caja se estrecha 4px por lado para que sus esquinas
    tengan a dónde asomarse. Sin esto, .pg-margin las recorta. */
