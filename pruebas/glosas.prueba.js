@@ -3029,170 +3029,114 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        /no es JSON válido/i.test(fallo.renglon.texto || ''), fallo.renglon);
 
   /* ================================================================
-     LA COPIA DEL DÍA.
+     EL RESPALDO DEL DÍA: QUE BAJE EL ARCHIVO, UNA VEZ AL DÍA.
 
-     Lo pidió el dueño del repo: «me gustaría un auto-save del backup, por lo
-     menos una vez al día», y con la razón puesta: al abrir, porque al cerrar
-     no hay control. Se le ofrecieron tres formas y eligió la de casa —una
-     copia dentro del navegador, sin descargar nada y sin avisos—: «esta app
-     está diseñada para que la usen personas que no saben mucho de
-     computadoras».
+     Lo pidió el dueño del repo —«me gustaría un auto-save del backup, por lo
+     menos una vez al día... la única manera de hacerlo consistente es ejecutar
+     cuando la aplicación abre»— y, tras ver una primera versión que guardaba
+     copias DENTRO del navegador, lo corrigió sin rodeos: «si no estás
+     descargando un archivo, entonces ¿para qué sirve todo eso? Lo que quiero
+     es que descargues». Así que lo que se vigila aquí es la descarga, y las
+     copias internas y su botón de devolver se fueron con sus pruebas.
 
-     SE PRUEBA POR LOS TRES GUARDIANES, que es donde esto se rompe:
+     LO QUE SE PRUEBA, Y POR QUÉ CADA COSA:
 
-     · UNA AL DÍA Y NO UNA POR ARRANQUE. Quien abre el lector seis veces en
-       una mañana tendría, sin esto, las tres copias llenas de la misma tarde
-       y ni rastro de ayer: la red se habría comido a sí misma en seis
-       minutos. Se prueba recargando.
-     · UNA COPIA VACÍA NUNCA PISA A UNA LLENA. Éste es el que de verdad da
-       miedo: si el almacén no se deja leer, `marcas` arranca vacío, y sin el
-       guardián tres arranques así se llevarían las tres copias buenas. Se
-       prueba vaciando las marcas a mano —que es lo que ve el programa en ese
-       caso— y volviendo a abrir.
-     · DEVOLVER FUSIONA, NUNCA REEMPLAZA. La misma regla que Importar, y por
-       la misma razón: devolver la copia de ayer no puede costarte lo que
-       escribiste hoy. Se prueba dejando viva UNA marca que la copia no tiene
-       y mirando que siga ahí después de devolver.
+     · QUE BAJE UN ARCHIVO DE VERDAD. No que se llame a una función: se escucha
+       el evento de descarga del navegador, que es lo único que distingue «se
+       intentó» de «el lector tiene su archivo».
+     · Y QUE SALGA DEL PRIMER TOQUE. Ésta es la que guarda la decisión de
+       diseño: una descarga sin gesto del lector es una «descarga automática»
+       que el navegador puede bloquear. Se comprueba las dos mitades —antes del
+       toque no hay nada, después sí—, porque «baja al abrir» y «baja al tocar»
+       se confunden si sólo se mira el final.
+     · UNA AL DÍA Y NO UNA POR ARRANQUE. Quien abre el lector seis veces en una
+       mañana tendría, sin esto, seis archivos iguales en Descargas.
+     · EL NOMBRE LLEVA EL DÍA DE ESTE RELOJ. Con el día en UTC, el archivo de
+       una sesión de noche en Dallas saldría fechado mañana y el del día
+       siguiente lo pisaría. Se mira contra el día local de la página; el
+       testigo de que eso distingue algo está en el bloque de los husos, abajo.
 
-     Y SE PRUEBA POR EL PANEL, no llamando a las funciones: el renglón con su
-     fecha y su cuenta, y el botón que se toca. Una prueba que llamara a
-     devolverCopia() por su nombre pasaría aunque el botón no existiera.
-
-     LO QUE NO SE PRUEBA AQUÍ, dicho para que no se lea como cubierto: que la
-     copia sobreviva a limpiar los datos del sitio. No sobrevive, y no puede:
-     vive en el mismo almacén. Para eso está Exportar, y su nota lo dice. */
-  titulo('la copia del día');
-  const CLAVE_DIARIO = 'glossa:respaldo-diario:v1';
-  const CLAVE_MARCAS = 'glossa:marcas:v1';
-  const verCopias = () => p.evaluate(k => {
-    try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch(e){ return 'ilegible'; }
-  }, CLAVE_DIARIO);
-  const verMarcas = () => p.evaluate(k => {
-    try { return JSON.parse(localStorage.getItem(k) || '[]').length; } catch(e){ return -1; }
-  }, CLAVE_MARCAS);
-  /* Se parte de cero: sin copias y con las glosas que haya el lector. */
-  await p.evaluate(k => localStorage.removeItem(k), CLAVE_DIARIO);
+     LO QUE NO SE PRUEBA, dicho para que no se lea como cubierto: que el
+     archivo llegue a la carpeta de Descargas del teléfono del lector. Eso ya
+     no es de este programa —lo decide el navegador, y iOS además pregunta—, y
+     una prueba no puede contestarlo. */
+  titulo('el respaldo del día baja solo, una vez al día');
+  const CLAVE_BAJADA = 'glossa:respaldo-bajado:v1';
+  const bajadas = [];
+  p.on('download', d => bajadas.push(d.suggestedFilename()));
+  /* Un toque de dedo de verdad, con su PointerEvent: es lo que el navegador
+     cuenta como activación del usuario, y es de lo que cuelga la descarga. */
+  const tocar = (id) => p.evaluate(async n => {
+    const e = document.getElementById('stage');
+    const o = { bubbles:true, cancelable:true, pointerId:n, pointerType:'touch',
+                clientX: 9, clientY: 9 };
+    e.dispatchEvent(new PointerEvent('pointerdown', o));
+    e.dispatchEvent(new PointerEvent('pointerup', o));
+    await new Promise(z => setTimeout(z, 900));
+  }, id);
+  await p.evaluate(k => localStorage.removeItem(k), CLAVE_BAJADA);
   await p.reload(); await p.waitForTimeout(2600);
-  const primera = await verCopias();
-  const cuantasMarcas = await verMarcas();
-  di('tras el primer arranque', JSON.stringify({ copias: primera.length,
-     dia: primera[0] && primera[0].dia, trae: primera[0] && primera[0].marcas.length,
-     marcasVivas: cuantasMarcas }));
-  vale('(la prueba es válida) el lector tiene glosas que copiar',
-       cuantasMarcas > 0, cuantasMarcas);
-  vale('AL ABRIR SE GUARDA UNA COPIA',
-       primera.length === 1, primera.length);
-  vale('  con todas las glosas que había',
-       !!primera[0] && primera[0].marcas.length === cuantasMarcas,
-       (primera[0] && primera[0].marcas.length) + ' de ' + cuantasMarcas);
-  /* EL DÍA ES EL DEL RELOJ DE CASA. Se compara contra el día local de la
-     página, y el testigo de que la comparación dice algo va aparte, abajo:
-     con el día en UTC esto saldría verde en las horas en que los dos
-     coinciden, que son casi todas. */
+  const marcasVivas = await p.evaluate(() => {
+    try { return JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length; }
+    catch(e){ return -1; }
+  });
+  const antesDelToque = { bajadas: bajadas.length,
+    apuntado: await p.evaluate(k => localStorage.getItem(k), CLAVE_BAJADA) };
+  di('antes de tocar', JSON.stringify(antesDelToque));
+  vale('(la prueba es válida) el lector tiene glosas que respaldar',
+       marcasVivas > 0, marcasVivas);
+  vale('ANTES DEL PRIMER TOQUE NO BAJA NADA',
+       antesDelToque.bajadas === 0 && antesDelToque.apuntado === null,
+       JSON.stringify(antesDelToque));
+  await tocar(31);
+  await p.waitForTimeout(900);
   const diaLocalEnPagina = await p.evaluate(() => {
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
            '-' + String(d.getDate()).padStart(2, '0');
   });
-  vale('  fechada con el día de este reloj',
-       !!primera[0] && primera[0].dia === diaLocalEnPagina,
-       (primera[0] && primera[0].dia) + ' contra ' + diaLocalEnPagina);
-
-  /* --- guardián 1: una al día --- */
+  di('tras el primer toque', JSON.stringify(bajadas));
+  vale('AL PRIMER TOQUE BAJA EL ARCHIVO', bajadas.length === 1, bajadas.join(' · '));
+  vale('  con nombre de respaldo y fechado con el día de este reloj',
+       bajadas.length === 1 &&
+       bajadas[0] === 'gloss-bible-respaldo-' + diaLocalEnPagina + '.json',
+       bajadas[0] + ' contra ' + diaLocalEnPagina);
+  vale('  y queda apuntado que hoy ya se hizo',
+       (await p.evaluate(k => localStorage.getItem(k), CLAVE_BAJADA)) === diaLocalEnPagina);
+  /* Y OTRO TOQUE MÁS, EN LA MISMA SESIÓN: el oyente se quita solo, así que ni
+     siquiera se vuelve a preguntar. */
+  await tocar(32);
+  await p.waitForTimeout(600);
+  vale('  y un segundo toque no baja otro', bajadas.length === 1, bajadas.length);
+  /* --- volver a abrir el mismo día --- */
   await p.reload(); await p.waitForTimeout(2600);
-  const trasRecargar = await verCopias();
-  di('tras volver a abrir el mismo día', trasRecargar.length + ' copia(s)');
-  vale('VOLVER A ABRIR EL MISMO DÍA NO APUNTA OTRA',
-       trasRecargar.length === 1, trasRecargar.length);
-
-  /* --- guardián 2: una vacía no pisa a una llena --- */
-  await p.evaluate(k => localStorage.setItem(k, '[]'), CLAVE_MARCAS);
-  /* Y se le cambia el día a la copia buena, para que el arranque QUIERA
-     apuntar una nueva: si se quedara con la de hoy, este guardián no se
-     estaría probando y la línea de abajo saldría verde sola. */
-  await p.evaluate(k => {
-    const c = JSON.parse(localStorage.getItem(k));
-    c[c.length - 1].dia = '2000-01-01';
-    localStorage.setItem(k, JSON.stringify(c));
-  }, CLAVE_DIARIO);
+  await tocar(33);
+  await p.waitForTimeout(900);
+  di('tras volver a abrir el mismo día', JSON.stringify(bajadas));
+  vale('VOLVER A ABRIR EL MISMO DÍA NO BAJA OTRO',
+       bajadas.length === 1, bajadas.join(' · '));
+  /* --- y mañana sí --- */
+  /* Se le cambia el día apuntado, que es la única memoria que tiene esto. No
+     hay forma de adelantar el reloj del navegador sin sustituir Date, y eso no
+     se hace en esta casa: lo que se quiere probar es que la cuenta es POR DÍA
+     y no «una y ya», y para eso basta con que el día apuntado sea otro. */
+  await p.evaluate(k => localStorage.setItem(k, '2000-01-01'), CLAVE_BAJADA);
   await p.reload(); await p.waitForTimeout(2600);
-  const trasVaciar = await verCopias();
-  const vivasTrasVaciar = await verMarcas();
-  di('tras arrancar sin glosas', JSON.stringify({ copias: trasVaciar.length,
-     traeLaUltima: trasVaciar.length && trasVaciar[trasVaciar.length-1].marcas.length,
-     marcasVivas: vivasTrasVaciar }));
-  vale('(la prueba es válida) el lector arrancó de verdad sin glosas',
-       vivasTrasVaciar === 0, vivasTrasVaciar);
-  vale('UNA COPIA VACÍA NO PISA A LA LLENA',
-       trasVaciar.length >= 1 &&
-       trasVaciar.every(c => c.marcas.length > 0),
-       trasVaciar.map(c => c.dia + ':' + c.marcas.length).join(' · '));
-
-  /* --- guardián 3: devolver fusiona, no reemplaza --- */
-  /* Se deja viva UNA marca que la copia NO tiene. Se fabrica clonando una de
-     la copia y cambiándole el id, que es el dato con el que fusionarMarcas
-     decide: así es una marca legítima del programa —no un simulacro— y aun
-     así ajena a la copia. */
-  /* Y a la copia se le devuelve la fecha de HOY antes de recargar. No es un
-     adorno: con la fecha de ayer puesta por el guardián anterior, el arranque
-     apuntaría una copia nueva —la de esa única marca viva— y el panel
-     enseñaría dos renglones, con el de arriba trayendo justo lo que el lector
-     ya tiene. El botón de arriba no devolvería nada y la prueba diría que
-     devolver no funciona, cuando lo que estaría mal es la prueba. */
-  await p.evaluate(([kc, km]) => {
-    const c = JSON.parse(localStorage.getItem(kc));
-    const una = JSON.parse(JSON.stringify(c[c.length - 1].marcas[0]));
-    una.id = 'soloviva';
-    localStorage.setItem(km, JSON.stringify([una]));
-    const d = new Date();
-    c[c.length - 1].dia = d.getFullYear() + '-' +
-      String(d.getMonth() + 1).padStart(2, '0') + '-' +
-      String(d.getDate()).padStart(2, '0');
-    localStorage.setItem(kc, JSON.stringify(c));
-  }, [CLAVE_DIARIO, CLAVE_MARCAS]);
-  await p.reload(); await p.waitForTimeout(2600);
-  const devuelto = await p.evaluate(async () => {
-    const pausa = ms => new Promise(z => setTimeout(z, ms));
-    document.getElementById('pgCabeza').click(); await pausa(800);
-    const vis = () => [...document.querySelectorAll('.rollo')]
-      .find(r => getComputedStyle(r).display !== 'none');
-    const t = (vis() || document).querySelector('.pestanas [data-sec="respaldo"]');
-    if (t) t.click();
-    await pausa(900);
-    const caja = document.getElementById('copiasDia');
-    const renglones = caja ? [...caja.querySelectorAll('.copia-dia .cuando')]
-                               .map(x => x.textContent) : null;
-    const boton = caja && caja.querySelector('button');
-    const antes = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length;
-    if (boton) boton.click();
-    await pausa(1000);
-    const vivas = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
-    return { renglones, habiaBoton: !!boton, antes, despues: vivas.length,
-             sigueLaViva: vivas.some(m => m.id === 'soloviva'),
-             aviso: document.getElementById('readout').textContent.trim() };
-  });
-  di('al devolver una copia', JSON.stringify(devuelto));
-  vale('(la prueba es válida) el panel enseña la copia con su fecha y su cuenta',
-       Array.isArray(devuelto.renglones) && devuelto.renglones.length >= 1 &&
-       /\d+\s+\w+\s·\s\d+\sglosa/.test(devuelto.renglones[0] || ''),
-       JSON.stringify(devuelto.renglones));
-  vale('(la prueba es válida) y un botón que tocar', devuelto.habiaBoton === true);
-  vale('DEVOLVER TRAE LAS GLOSAS DE LA COPIA',
-       devuelto.despues > devuelto.antes,
-       devuelto.antes + ' → ' + devuelto.despues);
-  vale('  Y NO SE LLEVA LA QUE YA ESTABA, que es la regla de Importar',
-       devuelto.sigueLaViva === true, devuelto.sigueLaViva);
-  vale('  y lo dice', /devuelt/i.test(devuelto.aviso || ''), devuelto.aviso);
+  await tocar(34);
+  await p.waitForTimeout(900);
+  di('con el día apuntado en otro día', JSON.stringify(bajadas));
+  vale('CON EL DÍA CAMBIADO SÍ BAJA OTRO', bajadas.length === 2, bajadas.join(' · '));
 
   /* ================================================================
      Y EL DÍA ES EL DE CASA, NO EL DE GREENWICH. Aparte, porque pide dos
      navegadores con husos distintos.
 
      POR QUÉ IMPORTA: con el día en UTC, el de Dallas cambiaría de fecha a las
-     seis o siete de la tarde, y una sesión de noche contaría como el día
-     siguiente. El defecto no se ve casi nunca —las dos fechas coinciden la
-     mayor parte del día— y por eso una prueba en el huso de la máquina que
-     corre las pruebas no vale: saldría verde con el fallo dentro.
+     seis o siete de la tarde, y el archivo de una sesión de noche saldría
+     fechado mañana —y al día siguiente, el de verdad lo pisaría—. El defecto
+     no se ve casi nunca —las dos fechas coinciden la mayor parte del día— y
+     por eso una prueba en el huso de la máquina que corre las pruebas no vale:
+     saldría verde con el fallo dentro.
 
      LOS DOS HUSOS ELEGIDOS SON LOS EXTREMOS del mundo, +14 y −11, y eso es lo
      que hace que esto funcione a cualquier hora: no existe un instante en el
@@ -3201,30 +3145,45 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      hubo alguno: sin esa línea, un día que los dos coincidieran —imposible,
      pero el que lo lea no tiene por qué creerme— dejaría el bloque en verde
      sin haber probado nada. */
-  titulo('la copia se fecha con el reloj de casa');
+  titulo('el archivo se fecha con el reloj de casa');
   const HUSOS = ['Pacific/Kiritimati', 'Pacific/Midway'];
   const fechados = [];
   for (const huso of HUSOS){
     const s2 = await abrir({ timezoneId: huso });
     const p2 = s2.pagina;
+    const bajadas2 = [];
+    p2.on('download', d => bajadas2.push(d.suggestedFilename()));
     await listo(p2);
+    await p2.evaluate(async () => {
+      const e = document.getElementById('stage');
+      const o = { bubbles:true, cancelable:true, pointerId:41, pointerType:'touch',
+                  clientX: 9, clientY: 9 };
+      e.dispatchEvent(new PointerEvent('pointerdown', o));
+      e.dispatchEvent(new PointerEvent('pointerup', o));
+      await new Promise(z => setTimeout(z, 900));
+    });
+    await p2.waitForTimeout(900);
     const r = await p2.evaluate(() => {
-      const c = JSON.parse(localStorage.getItem('glossa:respaldo-diario:v1') || '[]');
       const d = new Date();
       const local = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
                     '-' + String(d.getDate()).padStart(2, '0');
-      return { guardado: c.length ? c[c.length - 1].dia : null,
-               local, utc: new Date().toISOString().slice(0, 10) };
+      return { local, utc: new Date().toISOString().slice(0, 10),
+               apuntado: localStorage.getItem('glossa:respaldo-bajado:v1') };
     });
-    fechados.push({ huso, ...r });
-    di(huso, JSON.stringify(r));
+    fechados.push({ huso, archivo: bajadas2[0] || null, ...r });
+    di(huso, JSON.stringify(fechados[fechados.length - 1]));
     await cerrarParcial(s2, huso);
   }
   vale('(la prueba es válida) en al menos un huso el día local NO es el de UTC',
        fechados.some(f => f.local !== f.utc),
        fechados.map(f => f.huso + ' ' + f.local + '/' + f.utc).join(' · '));
-  vale('LA COPIA SE FECHA CON EL DÍA LOCAL EN LOS DOS HUSOS',
-       fechados.every(f => f.guardado === f.local),
-       fechados.map(f => f.huso + ' ' + f.guardado + ' contra ' + f.local).join(' · '));
+  vale('(la prueba es válida) bajó un archivo en los dos husos',
+       fechados.every(f => !!f.archivo), fechados.map(f => f.archivo).join(' · '));
+  vale('EL ARCHIVO SE FECHA CON EL DÍA LOCAL EN LOS DOS HUSOS',
+       fechados.every(f => f.archivo === 'gloss-bible-respaldo-' + f.local + '.json'),
+       fechados.map(f => f.archivo + ' contra ' + f.local).join(' · '));
+  vale('  y lo apuntado también', fechados.every(f => f.apuntado === f.local),
+       fechados.map(f => f.apuntado).join(' · '));
+
   await cerrar(sesion);
 })();

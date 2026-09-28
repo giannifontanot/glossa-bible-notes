@@ -61,8 +61,38 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
                const a = el.getBoundingClientRect(), b = pie.getBoundingClientRect();
                return a.top + a.height / 2 > b.top;
              })(),
-             notaNormal: parseFloat(getComputedStyle(
-               document.querySelector('#respaldo .nota-respaldo')).fontSize),
+             /* EL PANEL SE QUEDÓ SIN NOTAS. Aquí se medía `.nota-respaldo` para
+                poder decir que el sello era más grande que ellas, y ese
+                elemento ya no existe: el dueño del repo pidió quitar todo el
+                texto de explicación del panel —«solo deben estar los botones
+                para respaldar, el respaldo, la versión y los copyrights»— y de
+                paso subió la letra de lo que queda a la del libro.
+                Así que el sello ya no puede distinguirse por ser más grande
+                que un texto que no está. Lo que lo hace resaltar hoy es su
+                peso y su recuadro, y eso es lo que se mide abajo; del tamaño
+                sólo se exige que no sea MENOR que el resto del panel, que es
+                lo que de verdad lo estropearía. */
+             credTamano: (() => {
+               const c = document.querySelector('#respaldo #cred');
+               return c ? parseFloat(getComputedStyle(c).fontSize) : 0;
+             })(),
+             recuadro: (() => {
+               const f = getComputedStyle(el);
+               const alfa = /rgba?\(([^)]+)\)/.exec(f.backgroundColor);
+               const t = alfa ? alfa[1].split(',') : [];
+               return { fondo: t.length > 3 ? +t[3] : (alfa ? 1 : 0),
+                        borde: parseFloat(f.borderTopWidth) || 0 };
+             })(),
+             /* Y QUE SIGA SIENDO LA DEL LIBRO, que es lo que se pidió del
+                panel entero. Se compara contra la hoja viva y no contra un
+                número: el lector puede tener la letra en 10 o en 22. */
+             letraDeLaHoja: (() => {
+               const b = document.getElementById('pgBody');
+               const c = b && getComputedStyle(b);
+               return c ? { tamano: parseFloat(c.fontSize),
+                            familia: c.fontFamily.split(',')[0].trim() } : null;
+             })(),
+             familia: cs.fontFamily.split(',')[0].trim(),
              /* EL CRÉDITO DE LICENCIA, QUE AHORA VIVE EN ESTE PANEL. No es
                 decoración: la Versión Biblia Libre es CC BY-SA y la atribución
                 es obligatoria, así que esto es lo único de la carpeta que falla
@@ -100,8 +130,25 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
   vale('es lo último que se lee del panel', s.alFinal);
   vale('  y el pie de CERRAR no se lo come', s.tapado === false, s.tapado);
   vale('en negrita', s.grosor >= 700, s.grosor);
-  vale('más grande que las notas', s.tamano > s.notaNormal,
-       s.tamano + ' px contra ' + s.notaNormal);
+  /* SIN NOTAS QUE COMPARAR, lo que se exige es que no encoja por debajo del
+     resto del panel y que conserve el recuadro con el que se encuentra de un
+     vistazo. Ver el comentario de arriba, donde se cuenta por qué cambió. */
+  vale('no más chico que el resto del panel', s.tamano >= s.credTamano,
+       s.tamano + ' px contra ' + s.credTamano);
+  vale('y con su recuadro, que es lo que lo hace encontrable',
+       s.recuadro.fondo > .05 && s.recuadro.borde > 0, JSON.stringify(s.recuadro));
+  /* LA LETRA DEL PANEL ES LA DEL LIBRO, pedido así: «sube el font del respaldo
+     al mismo del libro, recuerda que el font y size del libro es el que usa
+     toda la aplicación». Se compara con la hoja viva, no con un número: quien
+     lea con la letra en 22 tiene que ver este panel en 22. */
+  vale('(la prueba es válida) se pudo medir la letra de la hoja',
+       !!s.letraDeLaHoja && s.letraDeLaHoja.tamano > 0,
+       JSON.stringify(s.letraDeLaHoja));
+  vale('EL SELLO SE LEE CON LA LETRA DEL LIBRO',
+       !!s.letraDeLaHoja && s.tamano === s.letraDeLaHoja.tamano &&
+       s.familia === s.letraDeLaHoja.familia,
+       s.familia + ' ' + s.tamano + ' contra ' +
+       (s.letraDeLaHoja && s.letraDeLaHoja.familia + ' ' + s.letraDeLaHoja.tamano));
 
   titulo('el crédito de licencia, que también vive aquí');
   di('lo que dice el crédito', s.cred);
