@@ -620,6 +620,76 @@ const IR_A = `async (sec) => {
   vale('  y con el texto guardado', !viaje.falta && viaje.texto === 'texto de la prueba',
        !viaje.falta && viaje.texto);
 
+  /* Y UNA HOJA GRANDE, QUE ES DONDE SE ROMPÍA. Lo levantó la revisión de Codex:
+     la hoja se puede engordar hasta 320 px con el botón «+», y centrarla a
+     secas dejaba los botones de los lados —52 px cada uno— fuera del marco.
+     Se engorda por el camino de verdad, con el «+», se cierra la edición y se
+     vuelve a abrir, que es el caso que describe: reabrir una hoja ya hojaGrande.
+
+     LA LÍNEA DE VALIDEZ ES LA DEL SITIO: los controles piden el ancho de la
+     hoja más 120 px, y si el marco no los tiene no hay colocación que los
+     salve —lo único que se puede hacer entonces es centrarla, que reparte el
+     recorte entre los dos lados en vez de perder un botón entero—. Así que la
+     exigencia de abajo sólo significa algo cuando caben, y eso se afirma
+     primero. */
+  const hojaGrande = marcoOra ? await marcoOra.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const antes = new Set([...document.querySelectorAll('.leaf')].map(x => x.dataset.id));
+    document.getElementById('add-btn').click();
+    await z(700);
+    const el = [...document.querySelectorAll('.leaf')].find(x => !antes.has(x.dataset.id));
+    if (!el) return { falta:'no nació la hoja' };
+    const ev = (t, x, y, id) => el.dispatchEvent(new PointerEvent(t,
+      { bubbles:true, cancelable:true, pointerId:id, pointerType:'touch',
+        clientX:Math.round(x), clientY:Math.round(y) }));
+    const abrirEdicion = async (id) => {
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      ev('pointerdown', cx, cy, id); ev('pointerup', cx, cy, id);
+      await z(60);
+      ev('pointerdown', cx, cy, id + 1); ev('pointerup', cx, cy, id + 1);
+      await z(1000);
+    };
+    await abrirEdicion(31);
+    const mas = el.querySelector('.size-btn.plus');
+    if (!mas) return { falta:'sin botón de crecer' };
+    for (let i = 0; i < 4; i++){          /* 4 toques × 25 px = 250 */
+      mas.dispatchEvent(new PointerEvent('pointerdown',
+        { bubbles:true, cancelable:true, pointerId:60 + i, pointerType:'touch' }));
+      await z(80);
+    }
+    await z(200);
+    const ed = el.querySelector('.leaf-editor');
+    if (ed) ed.dispatchEvent(new KeyboardEvent('keydown',
+      { key:'Enter', bubbles:true, cancelable:true }));
+    await z(1100);
+    await abrirEdicion(41);
+    const caja = (sel) => {
+      const b = el.querySelector(sel);
+      if (!b) return null;
+      const r = b.getBoundingClientRect();
+      return { izq: Math.round(r.left), der: Math.round(r.right),
+               top: Math.round(r.top), fondo: Math.round(r.bottom) };
+    };
+    const rb = el.getBoundingClientRect();
+    return { marco: { w: innerWidth, h: innerHeight }, tam: Math.round(rb.width),
+             rotar: caja('.size-btn.rotate'), color: caja('.size-btn.color'),
+             mas: caja('.size-btn.plus'), menos: caja('.size-btn.minus') };
+  }) : { falta:'sin marco' };
+  di('la hoja hojaGrande y sus controles', JSON.stringify(hojaGrande));
+  vale('(la prueba es válida) la hoja creció con el botón',
+       !hojaGrande.falta && hojaGrande.tam > 200, hojaGrande.falta || hojaGrande.tam);
+  vale('(la prueba es válida) en este marco los controles caben',
+       !hojaGrande.falta && hojaGrande.tam + 120 <= hojaGrande.marco.w,
+       !hojaGrande.falta && (hojaGrande.tam + ' + 120 contra ' + hojaGrande.marco.w));
+  vale('CON UNA HOJA GRANDE, LOS BOTONES DE LOS LADOS NO SE SALEN',
+       !hojaGrande.falta && hojaGrande.rotar && hojaGrande.color &&
+       hojaGrande.rotar.izq >= 0 && hojaGrande.color.der <= hojaGrande.marco.w,
+       !hojaGrande.falta && JSON.stringify({ rotar: hojaGrande.rotar, color: hojaGrande.color }));
+  vale('  y el de arriba tampoco',
+       !hojaGrande.falta && hojaGrande.mas && hojaGrande.mas.top >= 0,
+       !hojaGrande.falta && hojaGrande.mas && hojaGrande.mas.top);
+
   /* ---------------- y la barra no se mueve con el libro ---------------- */
   /* SE PIDIÓ QUE ESTA BARRA SE SALGA DE «LA INTERFAZ CRECE CON EL LIBRO», y
      eso es justo lo que no se puede comprobar mirando la barra sola: si el

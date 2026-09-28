@@ -672,20 +672,48 @@
   // baja a 33, 20 y 8 y el «+» se va a −19, −32 y −44. O sea que el sitio de
   // nacer no vale para editar: hay que contarlo desde arriba, no desde una
   // fracción del alto.
-  const AIRE_ARRIBA = 60;
+  const SALE_CONTROL = 52;  // lo que sobresale un control por su lado
+  const RESPIRO = 8;
+  const AIRE_ARRIBA = SALE_CONTROL + RESPIRO; // 60
   // Los dos tienen que decir lo mismo; ver .leaf.viajando en style.css.
   const VIAJE_MS = 600;
 
+  // Los márgenes seguros del aparato, que en CSS son env() y aquí hacen falta
+  // como número. Los declara :root en style.css; ver el comentario de allá.
+  function margenesSeguros() {
+    const cs = getComputedStyle(document.documentElement);
+    const n = (v) => parseFloat(cs.getPropertyValue(v)) || 0;
+    return { arriba: n("--sat"), abajo: n("--sab"),
+             izq: n("--sal"), der: n("--sar") };
+  }
+
   function sitioDeEdicion(el) {
     const w = el.offsetWidth, h = el.offsetHeight;
-    // Centrada a lo ancho, que es lo pedido. A lo alto, los 60 de arriba...
-    const tope = Math.max(8, window.innerHeight - h - 8);
-    // ...salvo que la hoja sea tan grande, o el marco tan corto, que subirla
-    // ahí la saque por abajo. Entonces manda no salirse: una hoja recortada no
-    // se puede ni leer ni arrastrar, y los controles de arriba, aunque queden
-    // a medias, siguen a mano.
-    return { x: Math.round((window.innerWidth - w) / 2),
-             y: Math.min(AIRE_ARRIBA, tope) };
+    const s = margenesSeguros();
+    const ancho = window.innerWidth, alto = window.innerHeight;
+
+    // A LO ANCHO: centrada, que es lo pedido, pero sin que los botones de los
+    // lados —rotar a la izquierda, color a la derecha, 52 px cada uno— se
+    // salgan. Lo levantó la revisión de Codex: la hoja se puede engordar hasta
+    // 320 px, y una de 250 en un marco de 320 queda en x=35, o sea con los dos
+    // botones fuera. Con una hoja tan grande que no quepa ni así, se queda
+    // centrada a secas: es lo único que reparte el recorte entre los dos lados
+    // en vez de perder uno entero.
+    const izqMin = s.izq + AIRE_ARRIBA;
+    const izqMax = ancho - s.der - w - AIRE_ARRIBA;
+    let x = Math.round((ancho - w) / 2);
+    if (izqMax >= izqMin) x = Math.min(Math.max(x, izqMin), izqMax);
+
+    // A LO ALTO MANDA EL DE ARRIBA, que es el encargo: 52 del botón más 8 de
+    // respiro, contados desde el margen seguro del aparato y no desde el cero
+    // —con viewport-fit=cover, el cero queda bajo la barra de estado—.
+    // El único caso que le gana es que la hoja se saliera por abajo: una hoja
+    // recortada no se puede ni leer ni arrastrar, y el botón de arriba, aunque
+    // quede a medias, sigue a mano. El de abajo se pierde antes que el de
+    // arriba a propósito: el de arriba es el que se pidió proteger.
+    const tope = Math.max(s.arriba + RESPIRO, alto - s.abajo - h - RESPIRO);
+    const y = Math.min(s.arriba + AIRE_ARRIBA, tope);
+    return { x, y: Math.round(y) };
   }
 
   function llevarHoja(el, x, y) {
