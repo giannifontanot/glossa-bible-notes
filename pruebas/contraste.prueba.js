@@ -274,6 +274,11 @@ async function ponerContraste(pagina, pct){
                antes: getComputedStyle(panel, '::before').display };
     };
     const opaco = papel();
+    /* EL PAPEL DEL PANEL SE LEE AQUÍ, EN OPACO, y no abajo con lo demás: en
+       cristal el panel se queda sin su papel —de eso va el modo— así que su
+       degradado ya no existe y no habría contra qué comparar. */
+    const tonosDelPanel = (getComputedStyle(panel).backgroundImage
+      .match(/rgba?\([^)]+\)/g) || []).map(c => c.replace(/\s/g, ''));
     document.getElementById('btnVidrio').click();
     await new Promise(z => setTimeout(z, 400));
     const cristal = papel();
@@ -321,6 +326,10 @@ async function ponerContraste(pagina, pct){
                riel: f.classList.contains('riel-fila'),
                pct: Math.round(r.width / ancho * 100),
                conFondo: !hueco(cs.backgroundColor),
+               /* El color y el borde de la tablilla, para la regla nueva: el
+                  sepia del panel en vez del blanco, con su hilo marrón. */
+               papel: cs.backgroundColor,
+               borde: parseFloat(cs.borderTopWidth) || 0,
                redondas: parseFloat(cs.borderRadius) >= 4,
                /* que la tablilla CUBRA lo que sostiene: un fondo estrecho que
                   deje el control fuera no lo hace legible, lo parte. */
@@ -342,7 +351,7 @@ async function ponerContraste(pagina, pct){
       palabra: Math.round(g.getBoundingClientRect().width),
       eje: Math.round((rb.left + rb.right) / 2 - (rf.left + rf.right) / 2),
       alto: Math.round(rb.height) };
-    return { opaco, cristal, filas, salidaBoton };
+    return { opaco, cristal, filas, salidaBoton, tonosDelPanel };
   });
   di('lo que mide cada tablilla', tablillas.filas.map(f => f.que + ' ' + f.pct + '%').join(' · '));
   di('el papel del panel', tablillas.opaco.sombra.slice(0,40) + ' → ' + tablillas.cristal.sombra);
@@ -394,6 +403,39 @@ async function ponerContraste(pagina, pct){
        tablillas.salidaBoton.alto + ' px');
   vale('todas las filas llevan su tablilla',
        ajustes.every(f => f.conFondo), ajustes.filter(f => !f.conFondo).map(f => f.que));
+  /* Y SU PAPEL ES EL DEL PANEL, NO BLANCO. Lo pidió el dueño del repo al verlo
+     puesto: «que en FORMATO transparente los controles no tengan blanco, sino
+     el sepia del panel, tal vez con un pequeño borde para que se distingan».
+     Era rgba(255,253,247,.9) y se notaba: en transparente las tablillas son lo
+     único con fondo, así que eran parches de otro color sobre un libro de
+     papel viejo.
+
+     SE COMPARA CONTRA EL PROPIO DEGRADADO DEL PANEL y no contra un color
+     escrito aquí: lo que hay que afirmar es que son el mismo papel. Y se mira
+     además que NO sea el blanco de antes por su cuenta —un rojo y un azul casi
+     iguales delatan el blanco; el sepia tiene 46 puntos entre ellos—, que es
+     la forma de que esta línea siga sirviendo si algún día el degradado del
+     panel se escribe de otra manera. */
+  const rgbDe = c => { const m = /rgba?\(([^)]+)\)/.exec(c || '');
+                       return m ? m[1].split(',').map(Number) : null; };
+  const sonSepia = f => { const c = rgbDe(f.papel);
+                          return !!c && (c[0] - c[2]) >= 30; };
+  di('el papel de las tablillas', (ajustes[0] || {}).papel + ' · panel: ' +
+     tablillas.tonosDelPanel.join(' '));
+  vale('(la prueba es válida) se pudo leer el papel del panel',
+       tablillas.tonosDelPanel.length > 0, tablillas.tonosDelPanel.join(' '));
+  vale('EL PAPEL DE LAS TABLILLAS ES EL DEL PANEL, no blanco',
+       ajustes.every(sonSepia) && rieles.every(sonSepia),
+       ajustes.concat(rieles).filter(f => !sonSepia(f)).map(f => f.que + ' ' + f.papel)
+         .join(' · ') || (ajustes[0] || {}).papel);
+  vale('  y es uno de los tonos del propio panel',
+       ajustes.every(f => tablillas.tonosDelPanel.some(t =>
+         t.replace(/rgba?\(|\)/g, '').split(',').slice(0,3).join(',') ===
+         (rgbDe(f.papel) || []).slice(0,3).join(','))),
+       (ajustes[0] || {}).papel + ' contra ' + tablillas.tonosDelPanel.join(' '));
+  vale('  con su hilo para distinguirse de la hoja',
+       ajustes.every(f => f.borde >= 1) && rieles.every(f => f.borde >= 1),
+       ajustes.concat(rieles).map(f => f.borde).join(' '));
   vale('de esquinas redondeadas', ajustes.every(f => f.redondas));
   vale('y cada una cubre su control',
        ajustes.every(f => f.cabe), ajustes.filter(f => !f.cabe).map(f => f.que));

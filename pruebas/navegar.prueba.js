@@ -1593,5 +1593,78 @@ const ATERRIZA = 7000;
     await cerrarParcial(ses, 'los letreros con la letra al tope, ' + comoSeLlama);
   }
 
+  /* ================================================================
+     VOLVER A DONDE SE QUEDÓ, Y QUE NO SE PIERDA POR EL CAMINO.
+
+     «¿Por qué comienza en Hechos 1? Debería comenzar donde nos quedamos la
+     última vez.» El sitio se guarda como libro + capítulo + versículo y se
+     recupera al arrancar, y había dos agujeros que juntos lo perdían PARA
+     SIEMPRE, no una vez:
+
+     · El primer renderPage del arranque pinta la hoja 1 —el salto al sitio
+       guardado va al final— y renderPage guarda los ajustes al terminar. O
+       sea que lo primero que hacía el programa al abrir era escribir cap:1
+       encima de donde estabas. Normalmente se reparaba tres líneas después,
+       al saltar; pero si el salto fallaba, lo machacado ya estaba machacado.
+     · Y el salto fallaba en silencio si el versículo exacto no estaba en el
+       plano —otra versificación, un texto que cambió—: se quedaba en la hoja
+       1 sin decir nada.
+
+     Medido en main antes de arreglarlo, con un sitio de Hechos 9 cuyo
+     versículo no existe: abre en Hechos 1:1 y deja guardado ACT 1:1; a la
+     siguiente, otra vez 1:1. Con el arreglo: aterriza en la hoja de Hechos 9
+     y guarda eso.
+
+     SE PRUEBAN LAS DOS MITADES, y la segunda es la que de verdad importa: no
+     basta con aterrizar cerca —hay que mirar QUÉ QUEDÓ GUARDADO, porque el
+     defecto no era dónde abría sino que se comía el sitio de ayer—.
+
+     El sitio imposible se escribe a mano en el almacén: es la única forma de
+     llegar a ese estado sin dos versiones del texto delante. */
+  titulo('volver a donde se quedó, aunque el versículo ya no exista');
+  const sesSitio = await abrir();
+  const pS = sesSitio.pagina;
+  const sitio = () => pS.evaluate(() => {
+    let a = null;
+    try { a = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || 'null'); } catch(e){}
+    return { cabeza: document.getElementById('pgCabeza').textContent.trim(),
+             guardado: a ? (a.libro + ' ' + a.cap + ':' + a.vers) : null };
+  });
+  const sembrar = (cap, vers) => pS.evaluate(([c, v]) => {
+    const k = 'glossa:ajustes:v1';
+    let a = {};
+    try { a = JSON.parse(localStorage.getItem(k) || '{}'); } catch(e){}
+    a.v = 1; a.libro = 'ACT'; a.cap = c; a.vers = v;
+    localStorage.setItem(k, JSON.stringify(a));
+  }, [cap, vers]);
+  /* 1 · un versículo que no existe en el capítulo */
+  await sembrar(9, 999);
+  await pS.reload(); await pS.waitForTimeout(2600);
+  const tras999 = await sitio();
+  di('con ACT 9:999 guardado', JSON.stringify(tras999));
+  vale('(la prueba es válida) el lector abrió en Hechos',
+       /Hechos/i.test(tras999.cabeza), tras999.cabeza);
+  vale('UN VERSÍCULO QUE NO EXISTE ATERRIZA EN SU CAPÍTULO, no en el 1',
+       /Hechos\s+9:/.test(tras999.cabeza) || /Hechos\s+8:/.test(tras999.cabeza),
+       tras999.cabeza);
+  vale('  y lo guardado no se queda en el capítulo 1',
+       !/^ACT 1:/.test(tras999.guardado || ''), tras999.guardado);
+  /* 2 · y al abrir otra vez, sigue donde lo dejó: el sitio no se comió a sí
+     mismo, que es lo que convertía un fallo de una vez en uno de todos los
+     días. */
+  await pS.reload(); await pS.waitForTimeout(2600);
+  const otraVez = await sitio();
+  di('y al abrir otra vez', JSON.stringify(otraVez));
+  vale('Y AL ABRIR OTRA VEZ SIGUE AHÍ',
+       otraVez.cabeza === tras999.cabeza, otraVez.cabeza + ' contra ' + tras999.cabeza);
+  /* 3 · un capítulo que tampoco existe: Hechos tiene 28 */
+  await sembrar(99, 1);
+  await pS.reload(); await pS.waitForTimeout(2600);
+  const tras99 = await sitio();
+  di('con ACT 99:1 guardado', JSON.stringify(tras99));
+  vale('UN CAPÍTULO QUE NO EXISTE ATERRIZA EN EL MÁS CERCANO',
+       /Hechos\s+2[0-8]:/.test(tras99.cabeza), tras99.cabeza);
+  await cerrarParcial(sesSitio, 'el sitio guardado');
+
   await cerrar(sesion);
 })();

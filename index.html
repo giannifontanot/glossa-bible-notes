@@ -3358,7 +3358,31 @@
        .vidrio-btn— y lo que lo mantiene encontrable es que su fila lo centra y
        que no comparte renglón con nada: no es un control más de la reja, es el
        único de su línea. */
-  #ajustes.cristal .vidrio-btn{ background:rgba(255,253,247,.88); color:#000; }
+  /* EL PAPEL DE LAS TABLILLAS DEL MODO TRANSPARENTE, con nombre porque lo
+     usan cinco reglas y tiene que ser el mismo en las cinco.
+
+     ERA BLANCO —rgba(255,253,247,.9)— y el dueño del repo lo paró: «que en
+     FORMATO transparente los controles no tengan blanco, sino el sepia del
+     panel, tal vez con un pequeño borde para que se distingan». Tiene razón y
+     el blanco se notaba justo donde más: en modo transparente las tablillas
+     son lo único con fondo, así que eran cinco parches de otro color flotando
+     sobre un libro de papel viejo. Con el sepia del panel —el 72% de su
+     degradado, que es su tono medio— dejan de ser parches y pasan a ser
+     trozos del mismo panel.
+
+     Y EL BORDE HACE FALTA JUSTO POR ESO: sobre la hoja, papel sepia encima de
+     papel sepia se confunde; el hilo marrón dice dónde acaba el mando y
+     empieza el libro. Es el mismo color de los cantos del panel.
+
+     LA TINTA DEJA DE SER NEGRA. Con el blanco, el negro puro era lo que se
+     leía; sobre este sepia el negro se ve duro y ajeno —el resto del panel
+     escribe en marrón muy oscuro—, así que se usa el de la casa. */
+  #ajustes.cristal{ --tablilla:rgba(226,212,180,.94);
+                    --tablilla-borde:rgba(122,101,56,.55);
+                    --tablilla-tinta:#3c2f16; }
+  #ajustes.cristal .vidrio-btn{ background:var(--tablilla);
+                                border:1px solid var(--tablilla-borde);
+                                color:var(--tablilla-tinta); }
   /* CADA CONTROL CON SU PROPIA TABLILLA, Y DEL ANCHO JUSTO.
 
      Con el panel transparente se ve la hoja —que es de lo que se trata— pero
@@ -3389,7 +3413,7 @@
   #ajustes.cristal #ctrlConfig .ajuste:not(.riel-fila){
     justify-self:start; width:max-content; max-width:100%;
     padding:3px 9px 4px; border-radius:9px;
-    background:rgba(255,253,247,.9);
+    background:var(--tablilla); border:1px solid var(--tablilla-borde);
     box-shadow:0 1px 3px rgba(0,0,0,.26); }
   /* MENOS SU FILA, QUE NO ES UN CONTROL. La regla de arriba encoge cada fila a
      lo que miden sus letras —es lo que deja ver la hoja entre tablilla y
@@ -3440,11 +3464,35 @@
                píxel. El aire de arriba y abajo se queda, que ése no le quita
                recorrido a nadie. */
             padding:3px 0 4px; border-radius:9px;
-            background:rgba(255,253,247,.9);
+            background:var(--tablilla);
+            /* EL BORDE SE COME DOS PÍXELES DE RIEL, y esta fila no puede
+               perderlos: su encargo es medir lo mismo en los dos modos —hay una
+               prueba que lo compara con una holgura de un píxel, y medido daba
+               242 en opaco contra 240 en cristal—. El margen negativo solo no
+               basta: con `width:100%` el ancho sigue siendo el mismo y lo que
+               se pierde es la caja de contenido. Los dos juntos —dos píxeles
+               más de ancho, uno de margen negativo por lado— dejan la tablilla
+               un pelo más ancha y la caja de contenido igual que en opaco. */
+            border:1px solid var(--tablilla-borde);
+            width:calc(100% + 2px); margin:0 -1px;
             box-shadow:0 1px 3px rgba(0,0,0,.26); }
   /* La raya que separaba los anchos cruzaría la hoja de lado a lado, y ya no
      separa nada: con las tablillas sueltas, el hueco entre ellas se ve solo. */
-  #ajustes.cristal #ctrlConfig .ajuste.ancho{
+  /* SIN LA RAYA DE SEPARACIÓN, que cruzaría la hoja de lado a lado y ya no
+     separa nada: con las tablillas sueltas, el hueco entre ellas se ve solo.
+     ANTES ESTO ERA `border-top:0` Y SE LLEVABA POR DELANTE EL BORDE DE LA
+     TABLILLA: desde que las tablillas llevan su hilo marrón por los cuatro
+     lados, apagar el de arriba dejaba las filas anchas con la caja abierta
+     por arriba. Lo que había que quitar era la raya de la fila, no el borde,
+     así que se quita por donde vino —el color de la raya del modo opaco— y el
+     borde de la tablilla se queda entero. */
+  #ajustes.cristal #ctrlConfig .ajuste.ancho:not(.vidrio-fila){
+    border-top-color:var(--tablilla-borde); margin-top:2px; padding-top:3px; }
+  /* LA FILA DE LA SALIDA SÍ SE QUEDA SIN RAYA, porque es la única ancha que no
+     lleva tablilla: sin fondo debajo, ese hilo no es el canto de nada, es una
+     raya suelta cruzando la hoja. Aquí estaban las dos juntas y al darle el
+     borde a las tablillas se le devolvió también a ésta. */
+  #ajustes.cristal #ctrlConfig .ajuste.ancho.vidrio-fila{
     border-top:0; margin-top:2px; padding-top:3px; }
   /* Y EL CRÉDITO, que también es letra suelta sobre la hoja. La atribución de
      CC BY-SA tiene que poder leerse, y transparente no se leía. Se le deja su
@@ -3457,7 +3505,7 @@
      intentó y por qué no servía— es la misma dondequiera que acabe. */
   #ajustes.cristal .cred{
     display:inline-block; padding:3px 9px 4px; border-radius:9px;
-    background:rgba(255,253,247,.9);
+    background:var(--tablilla); border:1px solid var(--tablilla-borde);
     box-shadow:0 1px 3px rgba(0,0,0,.26); }
   /* EL RIEL DEL SEPIA. accent-color en vez de repintar el control entero: el
      nativo ya sabe comportarse con el dedo, con el ratón y con el teclado, y
@@ -4073,7 +4121,9 @@
      sobre papel casi blanco es crema invisible—. Ver #ajustes.cristal
      .vidrio-btn, que es el mismo arreglo y la misma razón. */
   #ajustes.cristal .pie-cerrar{ background:none; }
-  #ajustes.cristal .pie-cerrar .cerrar-pie{ background:rgba(255,253,247,.92); color:#000; }
+  #ajustes.cristal .pie-cerrar .cerrar-pie{ background:var(--tablilla);
+                                            border:1px solid var(--tablilla-borde);
+                                            color:var(--tablilla-tinta); }
   .rollo, .fly, #cantoCuerpo{ scrollbar-width:none; -ms-overflow-style:none; }
   .rollo::-webkit-scrollbar, .fly::-webkit-scrollbar,
   #cantoCuerpo::-webkit-scrollbar{ width:0; height:0; display:none; }
@@ -6037,7 +6087,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-SEP-26 10:29';
+window.GLOSS_BUILD = '28-SEP-26 10:51';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -22294,7 +22344,29 @@ const AJUSTES = 'glossa:ajustes:v1';
    tipografía. Se queda como constante y no viaja a los ajustes guardados. */
 const ANCHO_HOJA = 620;
 
+/* EL ARRANQUE NO PISA EL SITIO GUARDADO HASTA HABERLO USADO.
+
+   Aquí había un agujero de los que no se ven hasta que te muerden, y muerde
+   una sola vez para siempre: el primer renderPage del arranque pinta la hoja 1
+   —todavía no se ha vuelto al sitio guardado, eso pasa al final— y renderPage
+   guarda los ajustes al terminar. O sea que lo primero que hace el programa al
+   abrir es escribir `cap:1, vers:1` encima de donde estabas.
+
+   Normalmente se repara solo tres líneas después: el bloque de «volver a donde
+   te quedaste» ya tiene el sitio bueno en memoria, salta y lo vuelve a
+   guardar. Pero si ese salto NO encuentra el versículo —una versión con otra
+   versificación, un libro que cambió, cualquier cosa— el sitio bueno ya está
+   machacado y lo que queda en el almacén es el capítulo 1. Y a partir de ahí
+   no hay vuelta: cada vez que abres, abres en el capítulo 1 de ese libro y
+   cada vez se vuelve a guardar el capítulo 1. Un fallo de una vez se convierte
+   en uno de todos los días.
+
+   Con esta bandera, hasta que el arranque no ha vuelto a su sitio no se guarda
+   nada. Si el salto falla, lo guardado sigue siendo lo de ayer y mañana se
+   vuelve a intentar. */
+let restaurando = true;
 function guardarAjustes(){
+  if (restaurando) return;
   const aqui = plano[startIdx] || { cap:1, vers:1 };
   try {
     localStorage.setItem(AJUSTES, JSON.stringify({
@@ -23589,11 +23661,39 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) marca
    hecho: la firma dice "lo de ahora ya está contado". */
 firmaCuerpo = firmaDelCuerpo();
 
-/* Volver a donde te quedaste, por referencia y no por número de hoja */
+/* Volver a donde te quedaste, por referencia y no por número de hoja.
+
+   Y SI EL VERSÍCULO EXACTO NO ESTÁ, SE ATERRIZA CERCA en vez de rendirse. El
+   sitio se guarda como capítulo y versículo, y hay maneras de que ese par no
+   exista en el plano de hoy: la versificación no es la misma en todas las
+   versiones —hay versículos que una parte en dos y otra junta—, y el texto de
+   una versión puede cambiar entre dos visitas. Antes, cualquiera de esas cosas
+   dejaba al lector en la hoja 1 del libro sin decir nada, que es justo el
+   síntoma que se reportó: «¿por qué comienza en Hechos 1? Debería comenzar
+   donde nos quedamos».
+
+   Tres intentos, del más fino al más basto: el versículo, el capítulo, y el
+   capítulo más cercano que exista. El último es el que salva el caso raro —un
+   libro que se acortó— y no se nota nunca cuando no hace falta. */
 if (guardado && guardado.cap){
-  const k = plano.findIndex(p => p.cap === guardado.cap && p.vers === guardado.vers);
-  if (k >= 0){ paginaActual = paginaDe(k); renderPage(); }
+  let k = plano.findIndex(p => p.cap === guardado.cap && p.vers === guardado.vers);
+  if (k < 0) k = plano.findIndex(p => p.cap === guardado.cap);
+  if (k < 0){
+    let cerca = -1, dist = Infinity;
+    for (let i = 0; i < plano.length; i++){
+      const d = Math.abs(plano[i].cap - guardado.cap);
+      if (d < dist){ dist = d; cerca = i; }
+    }
+    k = cerca;
+  }
+  if (k >= 0) paginaActual = paginaDe(k);
 }
+/* Y A PARTIR DE AQUÍ SÍ SE GUARDA: el sitio de ayer ya se ha usado. Va antes
+   del renderPage de abajo a propósito, para que ese pintado guarde el sitio
+   bueno; si el salto no encontró nada, lo guardado sigue siendo lo de ayer y
+   mañana se vuelve a intentar. Ver la bandera junto a guardarAjustes. */
+restaurando = false;
+renderPage();
 window.addEventListener('resize', () => {
   sizeCanvas(); ajustarAnchoPanel(); paginasSucias = true; renderPage();
   /* Girar el teléfono cambia el hueco disponible, así que la escala del zoom
