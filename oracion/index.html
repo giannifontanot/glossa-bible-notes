@@ -251,6 +251,32 @@
 
   </div><!-- /world -->
 
+  <!-- LA LISTA DEL COFRE. Se abre con doble clic sobre el cofre y enseña lo
+       que se le ha echado: la hojita en chico, con su figura y su neón, y al
+       lado la oración que llevaba cuando se fue.
+
+       VA FUERA DE #world A PROPÓSITO. El mundo se desliza entero como un
+       póster para revelar la extensión de abajo, y su transform ancla a los
+       elementos fixed de dentro: metida ahí, la lista se iría de paseo con el
+       cajón. Fuera, se queda quieta encima de todo, que es lo que hace una
+       ventana. -->
+  <div id="chest-list" hidden role="dialog" aria-modal="true"
+       aria-labelledby="chest-list-title">
+    <div class="chest-box">
+      <header class="chest-head">
+        <h2 id="chest-list-title">El cofre</h2>
+        <button type="button" class="chest-x" id="chest-close"
+                title="Cerrar" aria-label="Cerrar la lista del cofre">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </header>
+      <ul class="chest-items" id="chest-items"></ul>
+      <p class="chest-empty" id="chest-empty" hidden>
+        Aqu&iacute; aparecen las hojas que le eches al cofre.
+      </p>
+    </div>
+  </div>
+
   <!-- EL PUENTE CON EL PROGRAMA QUE ENSEÑA ESTA PÁGINA, y es la ÚNICA línea
        que Glossa le añade a esta aplicación: lo demás entra tal cual viene de
        su repo, para que se pueda volver a traer de allí sin ir deshaciendo

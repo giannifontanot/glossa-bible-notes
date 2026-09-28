@@ -18,6 +18,10 @@
   const wsDots = document.getElementById("ws-dots");
   const zoneLabels = document.getElementById("zone-labels");
   const treasure = document.getElementById("treasure");
+  const chestList = document.getElementById("chest-list");
+  const chestItems = document.getElementById("chest-items");
+  const chestEmpty = document.getElementById("chest-empty");
+  const chestClose = document.getElementById("chest-close");
 
   // Apilamiento: cada toque trae la hoja al frente. El orden se restaura al
   // recargar usando updatedAt (la última tocada queda hasta arriba).
@@ -95,6 +99,7 @@
     root.setProperty("--leaf-text-size", t.leafTextSize + "px");
     root.setProperty("--zone-label-size", t.zoneLabelSize + "px");
     root.setProperty("--glow", t.glowBlur + "px");
+    root.setProperty("--chest-mini", ((CONFIG.chest || {}).miniSize || 44) + "px");
     root.setProperty("--font", t.fontFamily);
     root.setProperty(
       "--anim-ms",
@@ -181,6 +186,11 @@
     if (typeof s.textSize !== "number") s.textSize = CONFIG.theme.leafTextSize;
     if (typeof s.fontIndex !== "number") s.fontIndex = 0;
     if (typeof s.colorIndex !== "number") s.colorIndex = 0;
+    // EL COFRE, que no existía. Los estados guardados antes de esto no lo
+    // traen, y lo que se echó al cofre entonces no se guardó en ninguna
+    // parte: se borraba y ya. Así que empieza vacío y se llena de aquí en
+    // adelante — lo de antes no hay de dónde sacarlo.
+    if (!Array.isArray(state.chest)) state.chest = [];
   }
 
   // Aplica los ajustes globales de letra (tamaño, fuente, color) como
@@ -592,9 +602,125 @@
     setTimeout(() => el.remove(), ms);
   }
 
+  // ---------------------------------------------------------------
+  // El cofre: lo que se le echa se queda dentro, y se puede mirar.
+  // ---------------------------------------------------------------
+  // GUARDA LA HOJA ANTES DE QUITARLA. Echar una hoja al cofre borraba y
+  // punto: salía del escritorio, se guardaba el estado sin ella y no quedaba
+  // rastro en ninguna parte. Ahora el cofre es lo que su nombre dice.
+  //
+  // DE LA HOJA SE GUARDA LO QUE LA HACE ELLA —el texto, la figura, su color
+  // de borde si lo tenía— y NO dónde estaba ni cuánto medía ni cómo estaba
+  // girada: en la lista todas van del mismo tamaño y derechas, que es lo que
+  // deja leer una columna de un vistazo. En el árbol el sitio significa algo
+  // (statusAtPoint: el sitio ES el grupo); dentro del cofre ya no hay sitio.
+  function archiveNode(node) {
+    const max = (CONFIG.chest || {}).max || 200;
+    state.chest.push({
+      id: node.id,
+      text: node.text || "",
+      shape: node.shape,
+      border: node.border,
+      sentAt: Date.now(),
+    });
+    // El tope, por el techo del almacén: sin él, el día que localStorage se
+    // llena lo que falla no es el cofre, es GUARDAR — y entonces se pierde el
+    // árbol entero, que es mucho peor que perder la hoja más vieja del cofre.
+    if (state.chest.length > max) state.chest = state.chest.slice(-max);
+  }
+
+  function chestLeafSvg(shape) {
+    const svg = leafSvg(shape);           // la MISMA figura de la hoja
+    svg.setAttribute("class", "chest-leaf");
+    return svg;
+  }
+
+  function renderChestList() {
+    chestItems.innerHTML = "";
+    // AL REVÉS, la última echada arriba: lo que se acaba de tirar es lo que se
+    // viene a buscar, y una lista larga sólo enseña sus primeras filas.
+    const guardadas = [...state.chest].reverse();
+    for (const h of guardadas) {
+      const li = document.createElement("li");
+      li.className = "chest-item";
+      const fig = chestLeafSvg(h.shape);
+      // El color va en el elemento, como en el árbol: la variante manda, y el
+      // borde propio de la hoja gana si lo tenía. Ver applyLeafStyle, que hace
+      // exactamente esto para la hoja grande.
+      const style = (CONFIG.leafStyles || {})[h.shape] || {};
+      const custom = (CONFIG.borderColors || []).find((b) => b.id === h.border);
+      fig.style.setProperty("--leaf-fill", style.fill || CONFIG.theme.leafFill);
+      fig.style.setProperty(
+        "--leaf-glow",
+        custom ? custom.color : style.glow || CONFIG.theme.leafGlow
+      );
+      const txt = document.createElement("span");
+      txt.className = "chest-text";
+      const limpio = (h.text || "").trim();
+      if (limpio) {
+        txt.textContent = limpio;
+      } else {
+        // Una hoja se puede crear y echar sin escribirle nada; la fila tiene
+        // que decir algo o parece rota.
+        txt.textContent = "(sin texto)";
+        txt.classList.add("is-empty");
+      }
+      li.appendChild(fig);
+      li.appendChild(txt);
+      chestItems.appendChild(li);
+    }
+    chestEmpty.hidden = guardadas.length > 0;
+  }
+
+  function openChest() {
+    renderChestList();
+    chestList.hidden = false;
+  }
+
+  function closeChest() {
+    chestList.hidden = true;
+  }
+
+  // DOBLE CLIC SOBRE EL COFRE. Se cuenta a mano, como lo cuenta una hoja (ver
+  // attachGestures), y no con el evento "dblclick" del navegador: en un
+  // teléfono ese evento es de fiar sólo a ratos, y esta aplicación se maneja
+  // con el dedo. Aquí no hace falta el retardo que sí lleva la hoja —un toque
+  // simple sobre el cofre no hace nada— así que la lista abre en el segundo
+  // toque, sin esperar a ver si viene un tercero.
+  let cofreReloj = null;
+  treasure.addEventListener("pointerup", () => {
+    // Soltando una hoja encima no es un toque en el cofre: eso lo atiende
+    // finishDrag, y llega aquí sólo si el gesto se quedó sin captura.
+    if (document.body.classList.contains("leaf-dragging")) return;
+    if (cofreReloj) {
+      clearTimeout(cofreReloj);
+      cofreReloj = null;
+      openChest();
+      return;
+    }
+    cofreReloj = setTimeout(() => { cofreReloj = null; }, CONFIG.doubleClickDelay);
+  });
+
+  chestClose.addEventListener("click", closeChest);
+  // Tocar fuera de la caja también cierra: es lo que el dedo intenta primero.
+  chestList.addEventListener("pointerdown", (e) => {
+    if (!e.target.closest(".chest-box")) closeChest();
+  });
+  // Y Escape. LA TECLA SE QUEDA AQUÍ: Glossa enseña esta aplicación dentro de
+  // un marco y devuelve el Escape hacia arriba para cerrar la pestaña entera
+  // —ver encuentros/salida.js—, pero ese puente respeta al que la atiende
+  // (mira defaultPrevented). Sin este preventDefault, un Escape cerraría la
+  // lista Y la pestaña de un golpe.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || chestList.hidden) return;
+    e.preventDefault();
+    closeChest();
+  });
+
   function deleteNode(node, el) {
     // El dato se elimina de inmediato; el DOM se queda solo para la animación.
     const ws = activeWorkspace();
+    archiveNode(node);                     // primero al cofre, luego fuera
     ws.nodes = ws.nodes.filter((n) => n.id !== node.id);
     saveState();
 
