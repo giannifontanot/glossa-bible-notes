@@ -436,6 +436,75 @@ const IR_A = `async (sec) => {
        !tumbado.falta && tumbado.arriba >= 0,
        !tumbado.falta && (tumbado.arriba + ' px del borde'));
 
+  /* ---------------- y el árbol no se sale por arriba ---------------- */
+  /* «Está muy pegado arriba y hay espacio disponible abajo», dijo el dueño, y
+     sus capturas no cuadraban con las mías: en las mías sobraba aire y en su
+     teléfono la copa casi tocaba el filo. La diferencia era la FORMA del
+     marco, no el teléfono. El SVG lleva preserveAspectRatio="xMidYMax meet"
+     sobre un viewBox de 100x170, así que por debajo de una proporción de
+     0,588 el dibujo lo limita el ancho —sobra aire arriba— y por encima lo
+     limita el alto —no sobra nada—. El #tree llevaba entonces
+     transform:translateY(-28px), y esa subida, en los marcos del segundo
+     grupo, no creaba aire: empujaba la copa fuera. Medido antes de arreglarlo,
+     con el mismo sondeo que hay aquí abajo: 107 px de aire en 412x915, pero
+     3 en 412x740 y −4 en un marco aún más corto.
+
+     Por eso el arreglo cambia la CAJA (inset:auto 0 28px 0; height:86%) y no
+     el desplazamiento: reducir el alto actúa sobre la escala, y entonces
+     vale para las dos formas de marco.
+
+     LA MEDIDA ES DEL DIBUJO, no de la caja del SVG: el <g> activo, que es lo
+     que se ve. Y se mide en DOS marcos —uno largo y otro corto— porque en el
+     largo el defecto no aparecía: una prueba de pie sola habría salido verde
+     con el fallo dentro. El marco corto es el testigo de que esta línea
+     prueba algo. */
+  titulo('ORACIÓN: el árbol cabe entero, también en pantalla corta');
+  const mirarArbol = async (marco) => marco ? marco.evaluate(() => {
+    const g = document.querySelector('.tree-variant.active') ||
+              document.querySelector('#tree');
+    if (!g) return { falta:'no hay árbol' };
+    const b = g.getBoundingClientRect();
+    const puntos = document.getElementById('ws-dots');
+    const d = puntos && puntos.getBoundingClientRect();
+    return { aire: Math.round(b.top), base: Math.round(b.bottom),
+             aPuntos: d ? Math.round(d.top - b.bottom) : null,
+             ancho: Math.round(b.width), marcoAncho: innerWidth,
+             alto: innerHeight, proporcion: +(innerWidth / innerHeight).toFixed(3) };
+  }) : { falta:'sin marco' };
+  const arbolLargo = await mirarArbol(marcoOra);
+  await p.setViewportSize({ width: DE_PIE.width, height: 670 });
+  await p.waitForTimeout(900);
+  const arbolCorto = await mirarArbol(marcoOra);
+  await p.setViewportSize(DE_PIE);
+  await p.waitForTimeout(900);
+  di('árbol en marco largo', JSON.stringify(arbolLargo));
+  di('árbol en marco corto', JSON.stringify(arbolCorto));
+  vale('(la prueba es válida) se midió el árbol en los dos marcos',
+       !arbolLargo.falta && !arbolCorto.falta,
+       (arbolLargo.falta || '') + (arbolCorto.falta || '') || 'sí');
+  /* El testigo: si el marco corto no pasa de 0,588 no estamos probando el
+     caso que se rompía, y entonces el verde de abajo no significa nada. */
+  vale('(la prueba es válida) el marco corto es de los que se limitan por alto',
+       !arbolCorto.falta && arbolCorto.proporcion > 0.588,
+       !arbolCorto.falta && String(arbolCorto.proporcion));
+  vale('EL ÁRBOL DEJA AIRE ARRIBA EN PANTALLA CORTA',
+       !arbolCorto.falta && arbolCorto.aire > 0,
+       !arbolCorto.falta && (arbolCorto.aire + ' px sobre la copa'));
+  vale('  y también en la larga',
+       !arbolLargo.falta && arbolLargo.aire > 0,
+       !arbolLargo.falta && (arbolLargo.aire + ' px sobre la copa'));
+  /* Bajarlo no puede llevárselo encima de los puntos: el hueco de abajo es la
+     otra mitad del encargo. */
+  vale('  sin comerse el hueco de los puntos',
+       !arbolCorto.falta && arbolCorto.aPuntos > 0 &&
+       !arbolLargo.falta && arbolLargo.aPuntos > 0,
+       'corto ' + (arbolCorto.aPuntos) + ' px · largo ' + (arbolLargo.aPuntos) + ' px');
+  /* Y a lo ancho: el dibujo mide 374 de 394 en el marco largo, así que un
+     alto mayor lo recortaría por los lados. */
+  vale('  y sin salirse a lo ancho',
+       !arbolLargo.falta && arbolLargo.ancho <= arbolLargo.marcoAncho,
+       !arbolLargo.falta && (arbolLargo.ancho + ' de ' + arbolLargo.marcoAncho));
+
   /* ---------------- y la barra no se mueve con el libro ---------------- */
   /* SE PIDIÓ QUE ESTA BARRA SE SALGA DE «LA INTERFAZ CRECE CON EL LIBRO», y
      eso es justo lo que no se puede comprobar mirando la barra sola: si el

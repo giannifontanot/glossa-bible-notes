@@ -39,12 +39,22 @@ html, body {
 
 #tree {
   position: absolute;
-  inset: 0;
+  /* Caja anclada abajo, 28 px por encima del borde, y con 86 % del alto: el
+     dibujo baja y deja aire arriba sin acercarse al suelo de los puntos.
+
+     Antes esto era una caja completa (inset:0; height:100%) subida con
+     translateY(-28px), y ese era el error: el SVG lleva
+     preserveAspectRatio="xMidYMax meet" sobre un viewBox de 100x170, así que
+     cuando la ventana es más estrecha que 0,588 de su alto —un teléfono de
+     pie, justo el caso del dueño— el dibujo lo limita el ancho y sobra aire
+     abajo, pero cuando es más ancha que eso el dibujo llena el alto entero y
+     la subida de 28 px no crea aire: empuja la copa FUERA por arriba (medido:
+     −4 px de aire en marcos cortos). Reducir el alto de la caja funciona en
+     los dos casos porque actúa sobre la escala, no sobre la posición. */
+  inset: auto 0 28px 0;
   width: 100%;
-  height: 100%;
+  height: 86%;
   pointer-events: none;
-  /* Sube un poco (con árbol y pasto) para dejar espacio abajo a los puntos. */
-  transform: translateY(-28px);
   transition: opacity var(--ws-fade-ms, 160ms) ease;
 }
 

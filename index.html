@@ -638,7 +638,40 @@
      tinta en --papel y --tinta antes de pintarlos, y por eso entinta los dos a
      la vez en vez de teñir una foto ya hecha. Meterlo en esta cadena como
      sepia() sería un tercer efecto encima del suyo, no el mismo. */
-  #pg, #fx, #escenas{ filter:brightness(var(--brillo,1)) contrast(var(--contraste,1)); }
+  /* Y LOS PANELES DE ARRIBA TAMBIÉN, menos ORACIÓN y menos Formato cuando está
+     transparente. Lo pidió el dueño del repo: «podemos cambiar el brillo y el
+     contraste, y eso aplica al tab LIBRO; ¿podríamos hacer que también afecte
+     a todas las pestañas arriba, excepto ORACIÓN?».
+
+     ORACIÓN SE QUEDA FUERA porque no es papel: es la aplicación de las hojas
+     de oración dentro de un marco, con su negro y su neón calibrados aparte.
+     Un contraste pensado para separar tinta de papel sobre ese fondo no
+     aclara nada, lo desarma. Y por la puerta de atrás tampoco entraría: lo
+     que hay dentro de un <iframe> no lo alcanza el filtro del padre.
+
+     Y FORMATO SE QUEDA FUERA MIENTRAS ESTÁ TRANSPARENTE, que es la otra mitad
+     del encargo —«de esta manera los controles brillan normales y el único
+     velo es el que ya tiene aplicado el libro mismo»—. Ahí es donde el párrafo
+     de arriba tenía razón: en modo cristal el panel no tapa el libro, así que
+     lo que estás mirando mientras arrastras el riel es la hoja de detrás, y
+     los mandos de delante tienen que quedarse en su color para no mentir
+     sobre lo que le están haciendo. En opaco sí se tiñe, y es lo pedido: el
+     panel es entonces lo único que se ve, y verlo con el mismo número que la
+     hoja es justamente la señal de lo que el riel está haciendo.
+
+     LA EXCEPCIÓN VA EN EL PROPIO SELECTOR y no en una segunda regla con
+     filter:none. Podría escribirse así —#ajustes.cristal{ filter:none }— pero
+     entonces las dos reglas pesan igual, (1,1,0) las dos, y gana la que esté
+     más abajo: una prueba que pasa hoy y se rompe el día que alguien mueva un
+     bloque de sitio. Con el :not() puesto aquí no hay dos reglas que ordenar.
+     Ya pasó en este archivo con `.cerrar-pie`, y está contado allí.
+
+     SE APUNTA A .rollo Y NO A LOS CINCO IDs para que una pestaña nueva nazca
+     con el filtro puesto en vez de olvidada; el que quiera quedarse fuera
+     tendrá que decirlo, que es el lado bueno del olvido. */
+  #pg, #fx, #escenas,
+  .rollo:not(#oracion):not(.cristal){
+      filter:brightness(var(--brillo,1)) contrast(var(--contraste,1)); }
   /* LAS PIEDRAS SE QUEDAN FUERA DE ESOS DOS RIELES, pero NO con un
      contrafiltro. Se intentó —poner en .piedrero la cadena inversa, contraste
      y brillo al revés— y medido no cancela: con los rieles al tope los canales
@@ -3083,8 +3116,29 @@
      él, contando el final antes que el principio. */
   #veloPanel{ position:absolute; inset:0; z-index:5; pointer-events:none;
               opacity:0; background:rgba(34,24,8,.44);
-              transition:opacity .5s cubic-bezier(.22,.72,.24,1); }
+              transition:opacity .5s cubic-bezier(.22,.72,.24,1),
+                         background-color .5s cubic-bezier(.22,.72,.24,1); }
   .stage.conpanel #veloPanel{ opacity:1; }
+  /* Y CASI APAGADO CON EL PANEL TRANSPARENTE, que es el único modo donde el
+     velo trabaja contra lo que el lector acaba de pedir.
+
+     El velo existe para que el panel no compita con el libro: son las dos
+     cosas de papel claro encendidas a la vez. Pero al tocar «transparente» lo
+     que se pide es EXACTAMENTE ver el libro mientras se ajusta —para eso está
+     el botón—, y ahí el velo apaga justo lo que se está mirando. Se vio en un
+     retrato del panel en ese modo: el texto de detrás salía marrón oscuro con
+     los mandos encima.
+
+     No se apaga del todo, y es decisión del dueño del repo: «casi, pero no
+     totalmente». Queda un asomo —.12 contra el .44 de siempre— que sigue
+     diciendo que hay algo delante, sin tapar el texto.
+
+     Va con la clase de la ESCENA y no con la del panel: el velo es hermano
+     del panel, no hijo, así que desde #ajustes.cristal no se le puede
+     alcanzar con un selector de descendencia. Podría hacerse con :has(), pero
+     eso pide navegadores de ayer para arriba y esto se lee en teléfonos
+     viejos; la clase la pone el mismo sitio que enciende el modo. */
+  .stage.conpanel.cristal #veloPanel{ background:rgba(34,24,8,.12); }
 
   /* Baja y frena; el último tramo es solo el asentamiento del papel:
      se pasa un pelo del 100% y regresa. Ese medio por ciento es lo que
@@ -3414,6 +3468,20 @@
                 opacity:.8; max-width:60ch; }
   .nota-respaldo{ margin:6px 2px 0; font:400 calc(9.5px * var(--escala-ui, 1))/1.5 var(--ui); color:#5c4a24;
                   opacity:.85; max-width:52ch; }
+  /* EL RENGLÓN DE UNA COPIA DEL DÍA: la fecha y la cuenta a la izquierda, el
+     botón a la derecha, y el hueco de en medio elástico.
+
+     NO USA `.ajuste`, Y LA PRIMERA VERSIÓN SÍ. Ese acomodo reparte el renglón
+     en una columna fija de 54 px para el rótulo y el resto para el control
+     —está pensado para nombres de una palabra, «sepia», «brillo»—, y aquí el
+     rótulo es «28 sep · 4 glosas»: se salía de su columna y el botón le caía
+     encima. Se vio en el retrato antes de subirlo. Así que estos renglones
+     traen su propia regla, que es lo que pedían desde el principio. */
+  .copia-dia{ display:flex; align-items:center; gap:10px; margin:7px 2px; }
+  .copia-dia .cuando{ flex:1 1 auto; min-width:0;
+                      font:400 calc(10px * var(--escala-ui, 1))/1.4 var(--ui);
+                      color:#5c4a24; letter-spacing:.03em; }
+  .copia-dia .btn{ flex:0 0 auto; }
   /* EL SELLO DE VERSIÓN VA A GRITAR, y es la única cosa de este panel que lo
      hace. Todo lo demás de aquí se lee una vez y se olvida; esto se viene a
      buscar, y se viene a buscar con prisa y normalmente con el aparato en la
@@ -5930,7 +5998,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '27-SEP-26 21:46';
+window.GLOSS_BUILD = '28-SEP-26 06:29';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7253,12 +7321,131 @@ const save = () => {
     localStorage.setItem(KEY, JSON.stringify(marcas));
     avisoGuardado = false;
   } catch(e){
+    /* NO CABE: LO PRIMERO QUE SE TIRA SON LAS COPIAS DEL DÍA. Son una red, y
+       una red no puede ser la que te tumbe. Ocupan lo mismo que tus glosas
+       multiplicado por las que se guarden, así que en un almacén lleno son
+       justo lo que hay que soltar para que quepa el original —que es el único
+       dato que no se puede volver a fabricar—. Se sueltan y se intenta otra
+       vez; si tampoco así, entonces sí es un fallo de verdad y se avisa. */
+    if (soltarCopias()){
+      try {
+        localStorage.setItem(KEY, JSON.stringify(marcas));
+        avisoGuardado = false;
+        return;
+      } catch(_){}
+    }
     if (!avisoGuardado){
       avisoGuardado = true;
       readout.textContent = 'NO SE PUDO GUARDAR (' + (e.name || 'error') + ') — exporta tus glosas';
     }
   }
 };
+
+/* ============================================================
+   LA COPIA DEL DÍA. Una instantánea de tus glosas guardada en este mismo
+   navegador, al abrir, como mucho una por día, y se conservan las tres
+   últimas.
+
+   QUÉ ES Y QUÉ NO ES. Esto no sustituye a Exportar y no puede: vive en el
+   mismo almacén que las glosas, así que no sobrevive a limpiar los datos del
+   sitio, ni a cambiar de teléfono, ni a perderlo. Lo que sí ataja es lo que
+   pasa de verdad y no tiene vuelta atrás: un borrado en masa, una importación
+   que no era la que creías, un fallo de este programa. De eso te devuelve al
+   día anterior sin que hayas tenido que acordarte de nada.
+
+   POR QUÉ AL ABRIR Y NO AL CERRAR. Porque cerrar no existe: en un teléfono la
+   pestaña se va sin avisar y `beforeunload` no llega. Abrir es el único
+   momento del que se puede depender.
+
+   POR QUÉ NO SE BAJA UN ARCHIVO SOLO. Se consideró y no se puede prometer: un
+   archivo de verdad necesita un gesto tuyo. Lanzado desde el arranque, Chrome
+   lo trata como descarga automática —permiso que se puede bloquear— y Safari
+   pregunta o lo ignora, y de paso te llenaría la carpeta de Descargas con uno
+   al día. Se dejó en la mano del lector, que es donde funciona siempre: el
+   botón de Exportar.
+
+   TRES GUARDIANES, y cada uno tapa un agujero que se ve venir:
+
+   · UNA POR DÍA, por día del CALENDARIO y del reloj de casa. Con el día en
+     UTC, el de Dallas cambiaría de fecha a las seis o siete de la tarde y una
+     sesión de noche contaría como el día siguiente.
+   · SI NADA CAMBIÓ, NO SE APUNTA OTRA. Tres copias idénticas ocupan el triple
+     y valen por una; guardando solo lo distinto, las tres que hay son tres
+     estados de verdad, que es lo que sirve para volver atrás.
+   · Y UNA COPIA VACÍA NUNCA PISA A UNA LLENA. Éste es el importante. Si un
+     día el almacén no se deja leer, `marcas` arranca vacío; sin este guardián
+     bastarían tres arranques así para que las tres copias buenas se fueran
+     una detrás de otra, y la red habría servido para borrarte la red. Un
+     borrado de verdad —tuyo, a propósito— simplemente no se apunta, y eso es
+     exactamente lo que quieres el día que te arrepientas.
+   ============================================================ */
+const CLAVE_DIARIO = 'glossa:respaldo-diario:v1';
+const COPIAS_QUE_SE_GUARDAN = 3;
+const MESES_CORTOS = ['ene','feb','mar','abr','may','jun',
+                      'jul','ago','sep','oct','nov','dic'];
+/* El día de ESTE reloj, no el de Greenwich. Ver el primer guardián. */
+const diaLocal = d => d.getFullYear() + '-' +
+                      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                      String(d.getDate()).padStart(2, '0');
+const diaEnPalabras = dia => {
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dia || '');
+  if (!t) return dia || '';
+  return +t[3] + ' ' + (MESES_CORTOS[+t[2] - 1] || '?');
+};
+function leerCopias(){
+  try {
+    const r = JSON.parse(localStorage.getItem(CLAVE_DIARIO) || '[]');
+    return Array.isArray(r) ? r.filter(c => c && Array.isArray(c.marcas)) : [];
+  } catch(e){ return []; }
+}
+/* Suelta las copias enteras para hacerle sitio a las glosas. Devuelve si
+   había algo que soltar, para que quien llama sepa si vale la pena reintentar.
+   Ver el catch de save(). */
+function soltarCopias(){
+  try {
+    if (!localStorage.getItem(CLAVE_DIARIO)) return false;
+    localStorage.removeItem(CLAVE_DIARIO);
+    return true;
+  } catch(e){ return false; }
+}
+function copiaDelDia(){
+  let copias = leerCopias();
+  const ultima = copias[copias.length - 1];
+  const hoy = diaLocal(new Date());
+  if (ultima && ultima.dia === hoy) return;              /* ya hay una de hoy */
+  const cuerpo = JSON.stringify(marcas);
+  if (ultima && JSON.stringify(ultima.marcas) === cuerpo) return;  /* nada cambió */
+  if (!marcas.length && ultima && ultima.marcas.length) return;    /* el guardián */
+  const nueva = { dia:hoy, cuando:new Date().toISOString(),
+                  total:marcas.length, marcas:JSON.parse(cuerpo) };
+  /* LA MÁS VIEJA SE VA LA PRIMERA SI NO CABE, y la nueva es la última del
+     lote, así que nunca es ella la que se suelta. Si ni sola cabe, se deja lo
+     que ya había: copias viejas valen más que ninguna, y las glosas de verdad
+     tienen su propia red en el catch de save(). */
+  let lote = copias.concat([nueva]).slice(-COPIAS_QUE_SE_GUARDAN);
+  while (lote.length){
+    try { localStorage.setItem(CLAVE_DIARIO, JSON.stringify(lote)); return; }
+    catch(e){ lote = lote.slice(1); }
+  }
+}
+/* FUSIONAR, QUE ES LO QUE HACEN LAS DOS PUERTAS DE ENTRADA. Estaba escrito
+   dentro del importador y ahora lo comparten él y el botón de devolver una
+   copia, porque la regla es la misma y tiene que seguir siéndolo: NUNCA
+   reemplaza. Lo que ya tienes se queda; de lo que entra, solo se añade lo que
+   no estaba. Así devolver una copia no puede costarte lo escrito después. */
+function fusionarMarcas(entrantes){
+  const conocidas = new Set(marcas.map(m => m.id));
+  let nuevas = 0, repetidas = 0, malas = 0;
+  for (const m of entrantes){
+    if (!m || typeof m !== 'object' || !m.libro || !m.cap || !m.vers){ malas++; continue; }
+    if (!m.id) m.id = 'imp' + Math.random().toString(36).slice(2,9);
+    if (conocidas.has(m.id)){ repetidas++; continue; }
+    conocidas.add(m.id);
+    marcas.push(alDia(m));               /* traduce la paleta vieja al entrar */
+    nuevas++;
+  }
+  return { nuevas, repetidas, malas };
+}
 
 const $ = id => document.getElementById(id);
 const stage=$('stage'), pg=$('pg'), pgBody=$('pgBody'), pgMargin=$('pgMargin'), pgFoot=$('pgFoot');
@@ -16544,6 +16731,27 @@ function marcarCabeza(cerrando){
      Se usa la misma cuenta que el atributo —burbujaAbierta()— y no seccionViva,
      que dice CUÁL se está viendo y no SI hay algo puesto. Ver .stage.conpanel. */
   stage.classList.toggle('conpanel', !cerrando && burbujaAbierta());
+  sincronizarVidrio();
+}
+/* LA ESCENA TIENE QUE SABER SI LO QUE SE VE ES EL PANEL TRANSPARENTE, y por
+   eso esto existe en vez de una clase puesta a mano en el botón.
+
+   Quien la necesita es el velo de debajo del panel, que se aclara en ese modo
+   —ver .stage.conpanel.cristal #veloPanel—. El velo es HERMANO del panel, no
+   hijo, así que desde #ajustes.cristal no se le alcanza con un selector de
+   descendencia; con :has() sí, pero eso pide navegadores más nuevos que los
+   que leen esto.
+
+   Y LA CUENTA NO ES «¿tiene el panel la clase?», que fue la primera versión y
+   estaba mal: el modo transparente se queda puesto en Formato aunque cierres
+   y abras GLOSAS, así que la escena se habría quedado con el velo claro
+   delante de un panel que sí es de papel. Son las dos cosas: que el panel
+   VIVO sea Formato y que Formato esté en transparente. */
+function sincronizarVidrio(){
+  const a = $('ajustes');
+  stage.classList.toggle('cristal',
+    burbujaAbierta() && seccionViva === 'formato' &&
+    !!a && a.classList.contains('cristal'));
 }
 function alternarBurbuja(seccion){
   /* Si ya está abierta pero en otra sección, no cierra: cambia. Cerrar sería
@@ -16602,6 +16810,14 @@ function rolloSimple(el){
          herencia, no por diseño—. */
       if (seccionDe(el) === 'encuentros') encenderHistoriaViva();
       if (seccionDe(el) === 'oracion') encenderOracion();
+      /* LA LISTA DE COPIAS SE PINTA AL ABRIR, y no al armar el panel. El panel
+         se arma a media carga del guion, ANTES de que el arranque llame a
+         copiaDelDia, así que armado una sola vez enseñaría la lista de ayer y
+         nunca la de hoy. Aquí se pinta con lo que hay en el almacén cada vez
+         que se mira, que además es lo que hace falta después de devolver una.
+         Es la misma trampa que ya pagaron la tira de filtros y Encuentros, y
+         está contada arriba. */
+      if (seccionDe(el) === 'respaldo') pintarCopias();
     },
     /* Tres maneras de cerrarse, y no son intercambiables:
          seco      — cambio de pestaña, sin animación
@@ -21361,17 +21577,10 @@ $('archivoImp').onchange = ev => {
     }
     /* Se FUSIONA, no se reemplaza: importar nunca debe borrar lo que ya
        tenías. Las repetidas se saltan por id, y a las que les falte id
-       (editadas a mano) se les inventa uno. */
-    const conocidas = new Set(marcas.map(m => m.id));
-    let nuevas = 0, repetidas = 0, malas = 0;
-    for (const m of entrantes){
-      if (!m || typeof m !== 'object' || !m.libro || !m.cap || !m.vers){ malas++; continue; }
-      if (!m.id) m.id = 'imp' + Math.random().toString(36).slice(2,9);
-      if (conocidas.has(m.id)){ repetidas++; continue; }
-      conocidas.add(m.id);
-      marcas.push(alDia(m));               /* traduce la paleta vieja al entrar */
-      nuevas++;
-    }
+       (editadas a mano) se les inventa uno. La cuenta vive ahora en
+       fusionarMarcas, compartida con el botón que devuelve una copia del día:
+       son la misma regla y tienen que seguir siendo la misma. */
+    const { nuevas, repetidas, malas } = fusionarMarcas(entrantes);
     save(); renderPage();
     /* Lo que entró se ve entrar: la hoja se vuelve a pintar con las glosas
        nuevas puestas. Lo que NO entró no se ve por ningún lado, y eso sí hay
@@ -21696,6 +21905,11 @@ $('btnVidrio').onclick = () => {
   const el = $('ajustes');
   const on = !el.classList.contains('cristal');
   el.classList.toggle('cristal', on);
+  /* La escena también se entera: ver sincronizarVidrio, que es quien sabe
+     cuándo toca y por qué. Aquí se llama además de en marcarCabeza porque
+     este botón cambia el modo con el panel YA abierto, y por marcarCabeza no
+     se vuelve a pasar hasta que se abra o se cierre algo. */
+  sincronizarVidrio();
   const b = $('btnVidrio');
   b.setAttribute('aria-pressed', on ? 'true' : 'false');
   b.classList.toggle('active', on);
@@ -22494,6 +22708,66 @@ const ENCUENTROS = [
    abajo: exportar e importar, que son las dos cosas que le pasan al archivo
    de tus glosas, no al texto ni a la página. ("Borrar todo" estuvo aquí y se
    fue del programa entero; la razón está más arriba, donde se quitó.) */
+/* LA LISTA DE COPIAS DEL DÍA, dentro del panel de Respaldo. Ver copiaDelDia.
+
+   SE PINTA CADA VEZ QUE SE ABRE EL PANEL —la llamada está en rolloSimple— y
+   no una vez al armarlo: el panel se arma antes de que el arranque tome la
+   copia de hoy.
+
+   QUÉ DICE CADA RENGLÓN: el día y cuántas glosas tenías ese día. Con eso se
+   elige sin tener que entender nada más. Y el botón dice DEVOLVER y no
+   «restaurar» por lo mismo que Importar no dice «reemplazar»: lo que hace es
+   traer de vuelta lo que falte, nunca quitar lo que hay. */
+function pintarCopias(){
+  const caja = document.getElementById('copiasDia');
+  if (!caja) return;
+  caja.textContent = '';
+  const copias = leerCopias();
+  if (!copias.length){
+    /* Sin ninguna todavía —la primera vez que se abre el programa con esto
+       puesto— el hueco vacío no dice nada. Se dice. */
+    const p = document.createElement('p');
+    p.className = 'nota-respaldo';
+    p.textContent = 'La primera copia se guarda sola la próxima vez que abras.';
+    caja.appendChild(p);
+    return;
+  }
+  /* De la más nueva a la más vieja: la que se busca con prisa es la de ayer. */
+  copias.slice().reverse().forEach(c => {
+    const fila = document.createElement('div');
+    fila.className = 'copia-dia';
+    const cuando = document.createElement('span');
+    cuando.className = 'cuando';
+    cuando.textContent = diaEnPalabras(c.dia) + ' · ' + c.marcas.length +
+                         (c.marcas.length === 1 ? ' glosa' : ' glosas');
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn ghost';
+    b.textContent = 'Devolver';
+    b.onclick = () => devolverCopia(c.dia);
+    fila.appendChild(cuando); fila.appendChild(b);
+    caja.appendChild(fila);
+  });
+}
+/* SE BUSCA POR DÍA Y NO POR POSICIÓN EN LA LISTA. Un índice guardado en el
+   botón apunta a la lista que había cuando se pintó; si entre medias entrara
+   otra copia —o se soltaran por falta de sitio, ver el catch de save— el
+   mismo número señalaría otra cosa. El día es el nombre de la copia. */
+function devolverCopia(dia){
+  const c = leerCopias().find(x => x.dia === dia);
+  if (!c){ readout.textContent = 'esa copia ya no está'; return; }
+  const r = fusionarMarcas(c.marcas);
+  save(); renderPage();
+  /* LO QUE NO ENTRÓ TAMBIÉN SE CUENTA, por lo mismo que en la importación: sin
+     decirlo, «devolver» y no ver aparecer nada se lee como que falló. Casi
+     siempre estarán todas —es tu propia copia— y eso es justo lo que hay que
+     poder decir en voz alta. */
+  readout.textContent = r.nuevas
+    ? r.nuevas + (r.nuevas === 1 ? ' glosa devuelta' : ' glosas devueltas')
+    : 'ya tenías todo lo de esa copia';
+  pintarCopias();
+}
+
 (function armarRespaldo(){
   const caja = document.getElementById('respaldo');
   const fila = document.createElement('div');
@@ -22540,6 +22814,24 @@ const ENCUENTROS = [
     'Exportar es la única copia que sobrevive a limpiar el historial, cambiar de ' +
     'computadora o publicar el lector en otro sitio. Importar fusiona, nunca reemplaza.';
   caja.appendChild(nota);
+  /* LAS COPIAS DEL DÍA, DESPUÉS DE ESA NOTA Y NO ANTES. El orden es el
+     argumento: primero los dos botones y la frase que dice que exportar es la
+     única copia que sale de este navegador, y sólo después la red de casa. Al
+     revés, una lista de copias con fecha arriba del todo se lee como «ya estás
+     respaldado» y es exactamente lo que no hay que hacer creer. Por eso su
+     propia nota dice de qué salva y de qué no. */
+  const rotuloCopias = document.createElement('p');
+  rotuloCopias.className = 'nota-respaldo';
+  rotuloCopias.textContent = 'Copias de seguridad que este lector guarda solo, ' +
+    'una al día, al abrir. Se conservan las tres últimas. Te devuelven lo que ' +
+    'borraste sin querer; no te salvan de perder el aparato — para eso está Exportar.';
+  caja.appendChild(rotuloCopias);
+  const copias = document.createElement('div');
+  copias.id = 'copiasDia';
+  caja.appendChild(copias);
+  /* Se pinta ya con lo que haya, aunque el arranque todavía no haya tomado la
+     de hoy: abrir el panel la vuelve a pintar. Ver pintarCopias. */
+  pintarCopias();
   /* EL SELLO, A LA VISTA. Existía solo en la consola, y eso lo dejaba inútil
      justo para lo que sirve: cuando algo no funciona en un teléfono, la
      primera pregunta es si ese teléfono tiene la versión nueva o una guardada
@@ -23274,6 +23566,14 @@ cargarPiedras();
    y Phares en» y «r de Urías: ». O sea el resaltado sobre trozos sin sentido.
    Lo levantó la revisión de Codex. */
 if (primeraVez) sembrarGlosasDeEstreno();
+/* LA COPIA DEL DÍA, AQUÍ Y NO ANTES. Tiene que ver lo mismo que verá el
+   lector: después de leer el almacén y después de la siembra de estreno, que
+   en una instalación nueva es todo lo que hay. Puesta antes, el primer día se
+   guardaría una copia vacía de un lector que sí tenía cuatro glosas.
+   Y va envuelta porque es una red, no una pieza del arranque: si algo aquí
+   dentro fallara —un almacén que no se deja escribir— no puede llevarse por
+   delante lo que viene después, que es pintar el libro. */
+try { copiaDelDia(); } catch(e){}
 stage.style.transition = 'none';
 stage.style.width = ANCHO_HOJA + 'px';
 void stage.offsetWidth;
