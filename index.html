@@ -638,10 +638,26 @@
      tinta en --papel y --tinta antes de pintarlos, y por eso entinta los dos a
      la vez en vez de teñir una foto ya hecha. Meterlo en esta cadena como
      sepia() sería un tercer efecto encima del suyo, no el mismo. */
-  /* Y LOS PANELES DE ARRIBA TAMBIÉN, menos ORACIÓN y menos Formato cuando está
-     transparente. Lo pidió el dueño del repo: «podemos cambiar el brillo y el
-     contraste, y eso aplica al tab LIBRO; ¿podríamos hacer que también afecte
-     a todas las pestañas arriba, excepto ORACIÓN?».
+  /* Y LOS PANELES DE ARRIBA IMITAN EL BRILLO, PERO NO EL CONTRASTE, menos
+     ORACIÓN y menos Formato cuando está transparente.
+
+     EMPEZÓ SIENDO LOS DOS: «podemos cambiar el brillo y el contraste, y eso
+     aplica al tab LIBRO; ¿podríamos hacer que también afecte a todas las
+     pestañas arriba, excepto ORACIÓN?». Se hizo, lo vio puesto y lo acotó:
+     «para LIBROS, GLOSAS, ENCUENTROS y RESPALDO vamos a imitar el brillo que
+     se escogió para el LIBRO, pero no el contraste», y Formato con ellos.
+
+     Y TIENE SENTIDO ADEMÁS DE SER LO PEDIDO, que es la parte que conviene
+     dejar escrita: el contraste del libro está calibrado para texto corrido
+     sobre papel —separa tinta de fondo en un renglón de lectura— y un panel no
+     es eso: son pastillas, bordes finos y rótulos en versalita, que con
+     contrast(2) se endurecen hasta parecer otro programa. El brillo, en
+     cambio, es la luz de la habitación: si el lector baja la del libro y el
+     panel se queda encendido, lo que salta es el panel.
+
+     SON DOS DECLARACIONES Y NO UNA porque ya no pintan lo mismo. Ojo con
+     juntarlas otra vez: una segunda propiedad filter sobre el mismo selector
+     no se suma, sustituye.
 
      ORACIÓN SE QUEDA FUERA porque no es papel: es la aplicación de las hojas
      de oración dentro de un marco, con su negro y su neón calibrados aparte.
@@ -651,7 +667,8 @@
 
      Y FORMATO SE QUEDA FUERA MIENTRAS ESTÁ TRANSPARENTE, que es la otra mitad
      del encargo —«de esta manera los controles brillan normales y el único
-     velo es el que ya tiene aplicado el libro mismo»—. Ahí es donde el párrafo
+     velo es el que ya tiene aplicado el libro mismo»—. En opaco va con los
+     otros cuatro, brillo y nada más. Ahí es donde el párrafo
      de arriba tenía razón: en modo cristal el panel no tapa el libro, así que
      lo que estás mirando mientras arrastras el riel es la hoja de detrás, y
      los mandos de delante tienen que quedarse en su color para no mentir
@@ -669,9 +686,8 @@
      SE APUNTA A .rollo Y NO A LOS CINCO IDs para que una pestaña nueva nazca
      con el filtro puesto en vez de olvidada; el que quiera quedarse fuera
      tendrá que decirlo, que es el lado bueno del olvido. */
-  #pg, #fx, #escenas,
-  .rollo:not(#oracion):not(.cristal){
-      filter:brightness(var(--brillo,1)) contrast(var(--contraste,1)); }
+  #pg, #fx, #escenas{ filter:brightness(var(--brillo,1)) contrast(var(--contraste,1)); }
+  .rollo:not(#oracion):not(.cristal){ filter:brightness(var(--brillo,1)); }
   /* LAS PIEDRAS SE QUEDAN FUERA DE ESOS DOS RIELES, pero NO con un
      contrafiltro. Se intentó —poner en .piedrero la cadena inversa, contraste
      y brillo al revés— y medido no cancela: con los rieles al tope los canales
@@ -3130,15 +3146,17 @@
      los mandos encima.
 
      No se apaga del todo, y es decisión del dueño del repo: «casi, pero no
-     totalmente». Queda un asomo —.12 contra el .44 de siempre— que sigue
-     diciendo que hay algo delante, sin tapar el texto.
+     totalmente». Queda un asomo —.08 contra el .44 de siempre— que sigue
+     diciendo que hay algo delante, sin tapar el texto. Estuvo en .12 un día:
+     lo vio puesto y lo bajó otra vez. El número es suyo, no hay cuenta que lo
+     dé; lo que esta regla tiene que garantizar es que no llegue a cero.
 
      Va con la clase de la ESCENA y no con la del panel: el velo es hermano
      del panel, no hijo, así que desde #ajustes.cristal no se le puede
      alcanzar con un selector de descendencia. Podría hacerse con :has(), pero
      eso pide navegadores de ayer para arriba y esto se lee en teléfonos
      viejos; la clase la pone el mismo sitio que enciende el modo. */
-  .stage.conpanel.cristal #veloPanel{ background:rgba(34,24,8,.12); }
+  .stage.conpanel.cristal #veloPanel{ background:rgba(34,24,8,.08); }
 
   /* Baja y frena; el último tramo es solo el asentamiento del papel:
      se pasa un pelo del 100% y regresa. Ese medio por ciento es lo que
@@ -3468,20 +3486,41 @@
                 opacity:.8; max-width:60ch; }
   .nota-respaldo{ margin:6px 2px 0; font:400 calc(9.5px * var(--escala-ui, 1))/1.5 var(--ui); color:#5c4a24;
                   opacity:.85; max-width:52ch; }
-  /* EL RENGLÓN DE UNA COPIA DEL DÍA: la fecha y la cuenta a la izquierda, el
-     botón a la derecha, y el hueco de en medio elástico.
+  /* RESPALDO SE LEE CON LA LETRA DEL LIBRO, pedido así: «sube el font del
+     respaldo al mismo del libro, recuerda que el font y size del libro es el
+     que usa toda la aplicación».
 
-     NO USA `.ajuste`, Y LA PRIMERA VERSIÓN SÍ. Ese acomodo reparte el renglón
-     en una columna fija de 54 px para el rótulo y el resto para el control
-     —está pensado para nombres de una palabra, «sepia», «brillo»—, y aquí el
-     rótulo es «28 sep · 4 glosas»: se salía de su columna y el botón le caía
-     encima. Se vio en el retrato antes de subirlo. Así que estos renglones
-     traen su propia regla, que es lo que pedían desde el principio. */
-  .copia-dia{ display:flex; align-items:center; gap:10px; margin:7px 2px; }
-  .copia-dia .cuando{ flex:1 1 auto; min-width:0;
-                      font:400 calc(10px * var(--escala-ui, 1))/1.4 var(--ui);
-                      color:#5c4a24; letter-spacing:.03em; }
-  .copia-dia .btn{ flex:0 0 auto; }
+     Y VA CON LAS DOS VARIABLES DE LA RAÍZ, no con las de la hoja: --fam la
+     escribe prepararHoja en el elemento de #pg y --fs vive en .pg-body, así
+     que desde aquí —el panel cuelga del escenario, no de la hoja— ninguna de
+     las dos llega. --fs-libro ya existía para esto; --fam-libro se añadió con
+     este encargo. Ver reflejarFuenteDelLibro.
+
+     Hay que repetirlo en los hijos que traen `font:` de atajo: esa forma
+     corta escribe la familia y el tamaño de golpe, así que heredar no les
+     sirve de nada. Son los tres del panel —el crédito, el sello y el renglón
+     del fallo— más el rótulo de la fila y los botones, que traen su medida en
+     rem del cromo. Lo que NO se toca de ellos es su peso, su color y su
+     tracking: lo que se pidió es la letra, no el diseño. */
+  #respaldo{ font-family:var(--fam-libro, Georgia, 'Times New Roman', serif);
+             font-size:var(--fs-libro, 15px); }
+  #respaldo .cred, #respaldo .fallo-respaldo, #respaldo .sello-version,
+  #respaldo .lbl, #respaldo .btn:not(.cerrar-pie){
+      font-family:var(--fam-libro, Georgia, 'Times New Roman', serif);
+      font-size:var(--fs-libro, 15px); }
+  /* EL BOTÓN DE CERRAR SE QUEDA FUERA, y no es un descuido: el pie no es
+     contenido de este panel, es el marco que llevan los cinco. Se pidió la
+     letra del libro para lo que RESPALDO dice, no para la salida, que tiene
+     que verse y medir igual en todas las pestañas —hay una prueba que compara
+     los cinco botones entre sí, y con la letra del libro aquí este salía de
+     otro ancho: 112 px contra los 114 de los demás—.
+
+     Y NO BASTA CON DEJARLO FUERA DE LA LISTA, que fue el primer intento: .btn
+     lleva `font:inherit`, así que el botón cogía la familia del panel por
+     herencia y seguía en Georgia. Hay que devolvérsela a mano. El tamaño ya
+     estaba protegido con !important en su propia regla; la familia no, y por
+     ahí se colaba. */
+  #respaldo .pie-cerrar .cerrar-pie{ font-family:var(--ui); }
   /* EL SELLO DE VERSIÓN VA A GRITAR, y es la única cosa de este panel que lo
      hace. Todo lo demás de aquí se lee una vez y se olvida; esto se viene a
      buscar, y se viene a buscar con prisa y normalmente con el aparato en la
@@ -5553,11 +5592,11 @@
 <!-- EL BRILLO, debajo del contraste y por la misma razón que aquél está debajo
      del sepia: los tres se usan seguidos y se corrigen entre ellos. Contraste
      y brillo son además los dos que van por filtro, así que comparten cadena.
-     Arranca en 100, que aquí sí quiere decir "no toques nada": a diferencia
-     del contraste, este riel no compensa nada del papel, sólo sube o baja lo
-     que ya hay. Mismo aria-label por lo mismo: el rótulo es un <span>. -->
+     Arranca en 100, que aquí sí quiere decir "no toques nada", y además es el
+     tope: a diferencia del contraste, este riel no compensa nada del papel,
+     sólo BAJA la luz de lo que ya hay. Ver donde se declara la variable. Mismo aria-label por lo mismo: el rótulo es un <span>. -->
 <div class="ajuste ancho riel-fila"><span class="lbl">brillo</span><span class="ctrl">
-  <input type="range" id="brillo" min="50" max="150" step="1" value="100"
+  <input type="range" id="brillo" min="50" max="100" step="1" value="100"
          aria-label="brillo"
          title="Sube o baja la luz de la hoja, sin cambiar el color ni la letra" />
   <span class="medida" id="brilloAhora">100%</span>
@@ -5998,7 +6037,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-SEP-26 06:29';
+window.GLOSS_BUILD = '28-SEP-26 08:07';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -6980,10 +7019,15 @@ let contraste = 125;
 /* EL BRILLO ARRANCA EN 100, y aquí el 100 sí es el neutro de verdad: el riel
    no compensa nada, sólo sube o baja la luz de lo que ya está pintado. Quien
    no lo toque ve exactamente lo de siempre.
-   50 y 150 son los topes, más estrechos que los del contraste a propósito: por
-   debajo de 50 la hoja se apaga hasta dejar de leerse y por encima de 150 el
-   papel se quema y se lleva la letra con él. Se vuelven a comprobar en el
-   manejador y al cargar los ajustes.
+   50 Y 100 SON LOS TOPES, y el de arriba es el neutro: este riel sólo BAJA la
+   luz. Fue 150 y el dueño del repo lo recortó —«el control de brillo, que
+   varía de 50% a 100% solamente»— después de verlo puesto. Lo que se pierde
+   no se echa de menos: por arriba el papel se quema y se lleva la letra con
+   él, y quien quiera más luz la tiene en el aparato, que además la sube para
+   todo y no sólo para la hoja. Por debajo de 50 la hoja se apaga hasta dejar
+   de leerse. Se vuelven a comprobar en el manejador y al cargar los ajustes,
+   y ahí está lo que de verdad importaba del recorte: un 150 guardado de antes
+   entra por esa puerta y se queda en 100, no se queda fuera del riel.
    NO ENTRA EN estiloFirma, por lo mismo que el contraste: no se hornea en la
    foto del pliegue, cae encima del lienzo por CSS. */
 let brillo = 100;
@@ -7321,19 +7365,6 @@ const save = () => {
     localStorage.setItem(KEY, JSON.stringify(marcas));
     avisoGuardado = false;
   } catch(e){
-    /* NO CABE: LO PRIMERO QUE SE TIRA SON LAS COPIAS DEL DÍA. Son una red, y
-       una red no puede ser la que te tumbe. Ocupan lo mismo que tus glosas
-       multiplicado por las que se guarden, así que en un almacén lleno son
-       justo lo que hay que soltar para que quepa el original —que es el único
-       dato que no se puede volver a fabricar—. Se sueltan y se intenta otra
-       vez; si tampoco así, entonces sí es un fallo de verdad y se avisa. */
-    if (soltarCopias()){
-      try {
-        localStorage.setItem(KEY, JSON.stringify(marcas));
-        avisoGuardado = false;
-        return;
-      } catch(_){}
-    }
     if (!avisoGuardado){
       avisoGuardado = true;
       readout.textContent = 'NO SE PUDO GUARDAR (' + (e.name || 'error') + ') — exporta tus glosas';
@@ -7341,98 +7372,19 @@ const save = () => {
   }
 };
 
-/* ============================================================
-   LA COPIA DEL DÍA. Una instantánea de tus glosas guardada en este mismo
-   navegador, al abrir, como mucho una por día, y se conservan las tres
-   últimas.
-
-   QUÉ ES Y QUÉ NO ES. Esto no sustituye a Exportar y no puede: vive en el
-   mismo almacén que las glosas, así que no sobrevive a limpiar los datos del
-   sitio, ni a cambiar de teléfono, ni a perderlo. Lo que sí ataja es lo que
-   pasa de verdad y no tiene vuelta atrás: un borrado en masa, una importación
-   que no era la que creías, un fallo de este programa. De eso te devuelve al
-   día anterior sin que hayas tenido que acordarte de nada.
-
-   POR QUÉ AL ABRIR Y NO AL CERRAR. Porque cerrar no existe: en un teléfono la
-   pestaña se va sin avisar y `beforeunload` no llega. Abrir es el único
-   momento del que se puede depender.
-
-   POR QUÉ NO SE BAJA UN ARCHIVO SOLO. Se consideró y no se puede prometer: un
-   archivo de verdad necesita un gesto tuyo. Lanzado desde el arranque, Chrome
-   lo trata como descarga automática —permiso que se puede bloquear— y Safari
-   pregunta o lo ignora, y de paso te llenaría la carpeta de Descargas con uno
-   al día. Se dejó en la mano del lector, que es donde funciona siempre: el
-   botón de Exportar.
-
-   TRES GUARDIANES, y cada uno tapa un agujero que se ve venir:
-
-   · UNA POR DÍA, por día del CALENDARIO y del reloj de casa. Con el día en
-     UTC, el de Dallas cambiaría de fecha a las seis o siete de la tarde y una
-     sesión de noche contaría como el día siguiente.
-   · SI NADA CAMBIÓ, NO SE APUNTA OTRA. Tres copias idénticas ocupan el triple
-     y valen por una; guardando solo lo distinto, las tres que hay son tres
-     estados de verdad, que es lo que sirve para volver atrás.
-   · Y UNA COPIA VACÍA NUNCA PISA A UNA LLENA. Éste es el importante. Si un
-     día el almacén no se deja leer, `marcas` arranca vacío; sin este guardián
-     bastarían tres arranques así para que las tres copias buenas se fueran
-     una detrás de otra, y la red habría servido para borrarte la red. Un
-     borrado de verdad —tuyo, a propósito— simplemente no se apunta, y eso es
-     exactamente lo que quieres el día que te arrepientas.
-   ============================================================ */
-const CLAVE_DIARIO = 'glossa:respaldo-diario:v1';
-const COPIAS_QUE_SE_GUARDAN = 3;
-const MESES_CORTOS = ['ene','feb','mar','abr','may','jun',
-                      'jul','ago','sep','oct','nov','dic'];
-/* El día de ESTE reloj, no el de Greenwich. Ver el primer guardián. */
+/* EL DÍA DE ESTE RELOJ, no el de Greenwich. Lo usa el respaldo automático
+   para saber si ya bajó hoy —ver respaldoDelDia—, y tiene que ser el día del
+   aparato: con el día en UTC, el de Dallas cambiaría de fecha a las seis o
+   siete de la tarde y una sesión de noche contaría como la de mañana. */
 const diaLocal = d => d.getFullYear() + '-' +
                       String(d.getMonth() + 1).padStart(2, '0') + '-' +
                       String(d.getDate()).padStart(2, '0');
-const diaEnPalabras = dia => {
-  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dia || '');
-  if (!t) return dia || '';
-  return +t[3] + ' ' + (MESES_CORTOS[+t[2] - 1] || '?');
-};
-function leerCopias(){
-  try {
-    const r = JSON.parse(localStorage.getItem(CLAVE_DIARIO) || '[]');
-    return Array.isArray(r) ? r.filter(c => c && Array.isArray(c.marcas)) : [];
-  } catch(e){ return []; }
-}
-/* Suelta las copias enteras para hacerle sitio a las glosas. Devuelve si
-   había algo que soltar, para que quien llama sepa si vale la pena reintentar.
-   Ver el catch de save(). */
-function soltarCopias(){
-  try {
-    if (!localStorage.getItem(CLAVE_DIARIO)) return false;
-    localStorage.removeItem(CLAVE_DIARIO);
-    return true;
-  } catch(e){ return false; }
-}
-function copiaDelDia(){
-  let copias = leerCopias();
-  const ultima = copias[copias.length - 1];
-  const hoy = diaLocal(new Date());
-  if (ultima && ultima.dia === hoy) return;              /* ya hay una de hoy */
-  const cuerpo = JSON.stringify(marcas);
-  if (ultima && JSON.stringify(ultima.marcas) === cuerpo) return;  /* nada cambió */
-  if (!marcas.length && ultima && ultima.marcas.length) return;    /* el guardián */
-  const nueva = { dia:hoy, cuando:new Date().toISOString(),
-                  total:marcas.length, marcas:JSON.parse(cuerpo) };
-  /* LA MÁS VIEJA SE VA LA PRIMERA SI NO CABE, y la nueva es la última del
-     lote, así que nunca es ella la que se suelta. Si ni sola cabe, se deja lo
-     que ya había: copias viejas valen más que ninguna, y las glosas de verdad
-     tienen su propia red en el catch de save(). */
-  let lote = copias.concat([nueva]).slice(-COPIAS_QUE_SE_GUARDAN);
-  while (lote.length){
-    try { localStorage.setItem(CLAVE_DIARIO, JSON.stringify(lote)); return; }
-    catch(e){ lote = lote.slice(1); }
-  }
-}
-/* FUSIONAR, QUE ES LO QUE HACEN LAS DOS PUERTAS DE ENTRADA. Estaba escrito
-   dentro del importador y ahora lo comparten él y el botón de devolver una
-   copia, porque la regla es la misma y tiene que seguir siéndolo: NUNCA
-   reemplaza. Lo que ya tienes se queda; de lo que entra, solo se añade lo que
-   no estaba. Así devolver una copia no puede costarte lo escrito después. */
+/* FUSIONAR: LA REGLA DE LA PUERTA DE ENTRADA. Importar NUNCA reemplaza. Lo
+   que ya tienes se queda; de lo que entra, sólo se añade lo que no estaba, y
+   las repetidas se reconocen por su id —a las que no lo traigan, editadas a
+   mano, se les inventa uno—. Vive aparte del manejador del archivo por si
+   mañana entra un respaldo por otra puerta: la regla es de las marcas, no del
+   <input type=file>. */
 function fusionarMarcas(entrantes){
   const conocidas = new Set(marcas.map(m => m.id));
   let nuevas = 0, repetidas = 0, malas = 0;
@@ -16810,14 +16762,6 @@ function rolloSimple(el){
          herencia, no por diseño—. */
       if (seccionDe(el) === 'encuentros') encenderHistoriaViva();
       if (seccionDe(el) === 'oracion') encenderOracion();
-      /* LA LISTA DE COPIAS SE PINTA AL ABRIR, y no al armar el panel. El panel
-         se arma a media carga del guion, ANTES de que el arranque llame a
-         copiaDelDia, así que armado una sola vez enseñaría la lista de ayer y
-         nunca la de hoy. Aquí se pinta con lo que hay en el almacén cada vez
-         que se mira, que además es lo que hace falta después de devolver una.
-         Es la misma trampa que ya pagaron la tira de filtros y Encuentros, y
-         está contada arriba. */
-      if (seccionDe(el) === 'respaldo') pintarCopias();
     },
     /* Tres maneras de cerrarse, y no son intercambiables:
          seco      — cambio de pestaña, sin animación
@@ -21535,8 +21479,12 @@ function saltarA(libro, cap, vers, regreso, opciones){
    ============================================================ */
 const FORMATO = 'glossa/marcas';
 
-$('btnExportar').onclick = () => {
-  if (!marcas.length){ readout.textContent = 'no hay nada que exportar todavía'; return; }
+/* BAJAR EL ARCHIVO. Una función y no el cuerpo del botón, porque hay dos
+   maneras de pedirlo: el botón de Exportar y el respaldo del día, que lo hace
+   solo. El archivo es el mismo en los dos casos, y tiene que serlo: uno
+   importa lo que le llega sin mirar de qué puerta salió. */
+function bajarRespaldo(){
+  if (!marcas.length) return false;
   /* El archivo tiene que decir qué es en la primera línea que se ve al
      abrirlo, y también en su nombre. Dentro de un año, entre cincuenta
      archivos, "glossa-2026-08-14.json" no le dice nada a nadie. */
@@ -21553,10 +21501,91 @@ $('btnExportar').onclick = () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'gloss-bible-respaldo-' + new Date().toISOString().slice(0,10) + '.json';
+  /* EL NOMBRE LLEVA EL DÍA DE ESTE RELOJ y no el de Greenwich, por lo mismo
+     que lo lleva la cuenta de respaldoDelDia: si no, el archivo de una sesión
+     de noche en Dallas saldría fechado mañana y el del día siguiente lo
+     pisaría. */
+  a.download = 'gloss-bible-respaldo-' + diaLocal(new Date()) + '.json';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return true;
+}
+
+$('btnExportar').onclick = () => {
+  if (!bajarRespaldo()) readout.textContent = 'no hay nada que exportar todavía';
 };
+
+/* ============================================================
+   EL RESPALDO DEL DÍA. Una vez al día, el lector baja tu archivo solo.
+
+   Lo pidió el dueño del repo: «me gustaría un auto-save del backup, por lo
+   menos una vez al día... la única manera de hacerlo consistente es ejecutar
+   cuando la aplicación abre, porque no podríamos hacerlo cuando cierra ya que
+   no tenemos control sobre eso». Es exacto: en un teléfono la pestaña se va
+   sin avisar y `beforeunload` no llega. Abrir es el único momento del que se
+   puede depender.
+
+   AL PRIMER GESTO, Y NO EN EL ARRANQUE A SECAS. Ésta es la única licencia que
+   se toma este bloque sobre lo que se pidió, y es lo que hace que funcione:
+   una descarga que no sale de un gesto del lector es una «descarga
+   automática» para el navegador —Chrome la trata como permiso aparte, que se
+   puede bloquear, y Safari la ignora o pregunta—. Colgándola del primer gesto
+   de la sesión sale de una activación de usuario de verdad, así que se
+   permite siempre. Y ese gesto llega enseguida: la tapa de la portada se
+   quita tocándola, o sea que el gesto que abre el lector ES el primero.
+   Gesto, no toque: con teclado no hay toque. Ver respaldoAlPrimerGesto.
+
+   SE APUNTA EL DÍA ANTES DE BAJAR, no después. Si el navegador pregunta y el
+   lector dice que no, no se le puede volver a preguntar en cada toque; y si
+   la descarga sale bien, tampoco hay forma de enterarse —una descarga no
+   avisa de vuelta—. Así que la cuenta es «hoy ya se intentó», que es lo único
+   que se puede saber de verdad. Un intento por día, pase lo que pase.
+
+   NO HAY COPIA DENTRO DEL NAVEGADOR, y estuvo un día. Se guardaban tres
+   instantáneas en localStorage con un botón para devolverlas, y el dueño lo
+   paró: «si no estás descargando un archivo, entonces ¿para qué sirve todo
+   eso? Lo que quiero es que descargues». Tenía razón en lo que importa: una
+   copia que vive en el mismo almacén que el original no sobrevive a lo único
+   de lo que hay que salvarse —limpiar los datos del sitio, cambiar de
+   aparato, perderlo—. El archivo sí.
+   ============================================================ */
+const CLAVE_BAJADA = 'glossa:respaldo-bajado:v1';
+function respaldoDelDia(){
+  if (!marcas.length) return;               /* nada que bajar todavía */
+  const hoy = diaLocal(new Date());
+  let ultimo = null;
+  try { ultimo = localStorage.getItem(CLAVE_BAJADA); } catch(e){}
+  if (ultimo === hoy) return;
+  try { localStorage.setItem(CLAVE_BAJADA, hoy); } catch(e){}
+  bajarRespaldo();
+}
+/* EL PRIMER GESTO, Y UN DEDO NO ES EL ÚNICO GESTO QUE HAY. Esto escuchaba
+   sólo `pointerup` y lo levantó la revisión de Codex: quien maneja el lector
+   con el teclado —o con un lector de pantalla— activa los botones con Enter o
+   con la barra, y ahí el navegador manda un `click`, nunca un `pointerup`. El
+   respaldo del día no se hacía en toda la sesión y nadie se enteraba, que es
+   la peor forma de no hacerse. Así que se escuchan los dos.
+
+   NO VALE CUALQUIER TECLA. Una pulsación de Shift sola no cuenta como
+   activación para el navegador, así que gastar en ella el único disparo
+   dejaría la descarga sin permiso. Se saltan los modificadores y Escape.
+
+   EN CAPTURA porque el gesto que hay que aprovechar puede ser el de la tapa de
+   la portada, y ése lo atiende —y a veces lo detiene— quien la quita;
+   escuchando abajo del todo, este oyente llega primero pase lo que pase.
+
+   Y UNA SOLA VEZ, los dos a la vez: su trabajo es de una vez al día —la cuenta
+   de respaldoDelDia ya lo sabría— y un oyente que se queda vivo para no hacer
+   nada en cada gesto de la sesión es un oyente que sobra. */
+const TECLAS_SIN_GESTO = ['Shift', 'Control', 'Alt', 'Meta', 'Escape'];
+function respaldoAlPrimerGesto(ev){
+  if (ev && ev.type === 'keydown' && TECLAS_SIN_GESTO.includes(ev.key)) return;
+  removeEventListener('pointerup', respaldoAlPrimerGesto, true);
+  removeEventListener('keydown', respaldoAlPrimerGesto, true);
+  try { respaldoDelDia(); } catch(e){}
+}
+addEventListener('pointerup', respaldoAlPrimerGesto, true);
+addEventListener('keydown', respaldoAlPrimerGesto, true);
 
 $('btnImportar').onclick = () => $('archivoImp').click();
 $('archivoImp').onchange = ev => {
@@ -21762,6 +21791,18 @@ function reflejarTamano(){
    en 0.83–0.87 del libro, que es la corrección del tipógrafo casi al decimal;
    por abajo NO baja tanto como el libro —12 px con el libro en 10— que es el
    suelo que pedía el de accesibilidad, y sale gratis. */
+/* LA FAMILIA DEL LIBRO, AL ALCANCE DE LO QUE NO CUELGA DE LA HOJA. Es la
+   pareja de --fs-libro y existe por la misma razón: `--fam` lo escribe
+   prepararHoja EN EL ELEMENTO de la hoja, así que un panel —que cuelga del
+   escenario, no de #pg— no lo hereda.
+   Hoy lo usa el panel de RESPALDO, al que se le pidió la letra del libro.
+   Se llama desde dos sitios, y hacen falta los dos: escalarInterfaz, que es
+   por donde pasa un cambio de tamaño y el arranque, y el selector de
+   tipografía, que cambia la familia sin tocar el tamaño y por tanto no pasa
+   por allí. */
+function reflejarFuenteDelLibro(){
+  document.documentElement.style.setProperty('--fam-libro', fuente);
+}
 function escalarInterfaz(){
   const k = 1 + (fontSize - 15) / 15 * 0.6;
   document.documentElement.style.setProperty('--escala-ui', k.toFixed(4));
@@ -21778,6 +21819,7 @@ function escalarInterfaz(){
      esté puesto, y ponerlo en la raíz se las llevaría por delante sin decir
      nada. */
   document.documentElement.style.setProperty('--fs-libro', fontSize + 'px');
+  reflejarFuenteDelLibro();
   /* Y LOS DE LA GLOSA, por la misma razón y para el mismo tipo de cliente: lo
      de fuera de la hoja que tiene que medir lo que mide una glosa. --fs-glosa
      lo llevan la hoja, el fantasma y el índice cada uno en su elemento —son
@@ -21894,7 +21936,7 @@ $('contraste').oninput = e => {
    la foto del pliegue—. Llama a la misma aplicarFiltros, así que mover este
    riel deja el contraste donde estaba y al revés. */
 $('brillo').oninput = e => {
-  brillo = Math.max(50, Math.min(150, +e.target.value || 100));
+  brillo = Math.max(50, Math.min(100, +e.target.value || 100));
   $('brilloAhora').textContent = brillo + '%';
   aplicarFiltros();
   guardarAjustes();
@@ -21950,6 +21992,10 @@ $('selFuente').onchange = e => {
   fuente = FUENTES[+e.target.value][1];
   paginasSucias = true;                 // otra letra, otras medidas, otros cortes
   renderPage();
+  /* Y el panel de RESPALDO, que lee la familia del libro por la raíz y no por
+     la hoja: ver reflejarFuenteDelLibro. Aquí a mano por lo mismo que se avisa
+     a los relatos —el tamaño viaja por escalarInterfaz, que aquí no pasa—. */
+  reflejarFuenteDelLibro();
   /* Y los relatos, que son otro documento y no se enteran de esto: el tipo se
      escribe en la hoja al pintarla y ahí dentro no llega nada. El tamaño viaja
      por escalarInterfaz, que aquí no pasa; por eso se avisa a mano. */
@@ -22318,7 +22364,10 @@ function cargarAjustes(){
   /* Y el brillo igual: unos ajustes de antes de que este riel existiera no
      traen el campo, Number.isFinite lo rechaza y se queda en su 100, que es
      el neutro. El objeto sigue en v:1 por lo mismo que la vez pasada. */
-  if (Number.isFinite(a.brillo)) brillo = Math.max(50, Math.min(150, a.brillo));
+  /* EL TOPE DE ARRIBA BAJÓ A 100, así que un 150 guardado por la versión
+     anterior entra aquí y se queda en 100. Sin esta cuenta, el riel nacería
+     con la manija fuera de su recorrido y el número diciendo 150. */
+  if (Number.isFinite(a.brillo)) brillo = Math.max(50, Math.min(100, a.brillo));
   /* El desvío del panel. Se recorta a un tamaño de pantalla generoso y no al
      de ahora: cuando esto se lee, la hoja todavía no está compuesta. Los topes
      de verdad los pone sitioDelMenu en cada colocación, que es donde se sabe
@@ -22708,66 +22757,6 @@ const ENCUENTROS = [
    abajo: exportar e importar, que son las dos cosas que le pasan al archivo
    de tus glosas, no al texto ni a la página. ("Borrar todo" estuvo aquí y se
    fue del programa entero; la razón está más arriba, donde se quitó.) */
-/* LA LISTA DE COPIAS DEL DÍA, dentro del panel de Respaldo. Ver copiaDelDia.
-
-   SE PINTA CADA VEZ QUE SE ABRE EL PANEL —la llamada está en rolloSimple— y
-   no una vez al armarlo: el panel se arma antes de que el arranque tome la
-   copia de hoy.
-
-   QUÉ DICE CADA RENGLÓN: el día y cuántas glosas tenías ese día. Con eso se
-   elige sin tener que entender nada más. Y el botón dice DEVOLVER y no
-   «restaurar» por lo mismo que Importar no dice «reemplazar»: lo que hace es
-   traer de vuelta lo que falte, nunca quitar lo que hay. */
-function pintarCopias(){
-  const caja = document.getElementById('copiasDia');
-  if (!caja) return;
-  caja.textContent = '';
-  const copias = leerCopias();
-  if (!copias.length){
-    /* Sin ninguna todavía —la primera vez que se abre el programa con esto
-       puesto— el hueco vacío no dice nada. Se dice. */
-    const p = document.createElement('p');
-    p.className = 'nota-respaldo';
-    p.textContent = 'La primera copia se guarda sola la próxima vez que abras.';
-    caja.appendChild(p);
-    return;
-  }
-  /* De la más nueva a la más vieja: la que se busca con prisa es la de ayer. */
-  copias.slice().reverse().forEach(c => {
-    const fila = document.createElement('div');
-    fila.className = 'copia-dia';
-    const cuando = document.createElement('span');
-    cuando.className = 'cuando';
-    cuando.textContent = diaEnPalabras(c.dia) + ' · ' + c.marcas.length +
-                         (c.marcas.length === 1 ? ' glosa' : ' glosas');
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'btn ghost';
-    b.textContent = 'Devolver';
-    b.onclick = () => devolverCopia(c.dia);
-    fila.appendChild(cuando); fila.appendChild(b);
-    caja.appendChild(fila);
-  });
-}
-/* SE BUSCA POR DÍA Y NO POR POSICIÓN EN LA LISTA. Un índice guardado en el
-   botón apunta a la lista que había cuando se pintó; si entre medias entrara
-   otra copia —o se soltaran por falta de sitio, ver el catch de save— el
-   mismo número señalaría otra cosa. El día es el nombre de la copia. */
-function devolverCopia(dia){
-  const c = leerCopias().find(x => x.dia === dia);
-  if (!c){ readout.textContent = 'esa copia ya no está'; return; }
-  const r = fusionarMarcas(c.marcas);
-  save(); renderPage();
-  /* LO QUE NO ENTRÓ TAMBIÉN SE CUENTA, por lo mismo que en la importación: sin
-     decirlo, «devolver» y no ver aparecer nada se lee como que falló. Casi
-     siempre estarán todas —es tu propia copia— y eso es justo lo que hay que
-     poder decir en voz alta. */
-  readout.textContent = r.nuevas
-    ? r.nuevas + (r.nuevas === 1 ? ' glosa devuelta' : ' glosas devueltas')
-    : 'ya tenías todo lo de esa copia';
-  pintarCopias();
-}
-
 (function armarRespaldo(){
   const caja = document.getElementById('respaldo');
   const fila = document.createElement('div');
@@ -22808,30 +22797,18 @@ function devolverCopia(dia){
   fallo.hidden = true;
   caja.appendChild(fallo);
   if (ultimoFallo){ fallo.textContent = ultimoFallo; fallo.hidden = false; }
-  const nota = document.createElement('p');
-  nota.className = 'nota-respaldo';
-  nota.textContent = 'Tus glosas viven en este navegador y en ningún otro lado. ' +
-    'Exportar es la única copia que sobrevive a limpiar el historial, cambiar de ' +
-    'computadora o publicar el lector en otro sitio. Importar fusiona, nunca reemplaza.';
-  caja.appendChild(nota);
-  /* LAS COPIAS DEL DÍA, DESPUÉS DE ESA NOTA Y NO ANTES. El orden es el
-     argumento: primero los dos botones y la frase que dice que exportar es la
-     única copia que sale de este navegador, y sólo después la red de casa. Al
-     revés, una lista de copias con fecha arriba del todo se lee como «ya estás
-     respaldado» y es exactamente lo que no hay que hacer creer. Por eso su
-     propia nota dice de qué salva y de qué no. */
-  const rotuloCopias = document.createElement('p');
-  rotuloCopias.className = 'nota-respaldo';
-  rotuloCopias.textContent = 'Copias de seguridad que este lector guarda solo, ' +
-    'una al día, al abrir. Se conservan las tres últimas. Te devuelven lo que ' +
-    'borraste sin querer; no te salvan de perder el aparato — para eso está Exportar.';
-  caja.appendChild(rotuloCopias);
-  const copias = document.createElement('div');
-  copias.id = 'copiasDia';
-  caja.appendChild(copias);
-  /* Se pinta ya con lo que haya, aunque el arranque todavía no haya tomado la
-     de hoy: abrir el panel la vuelve a pintar. Ver pintarCopias. */
-  pintarCopias();
+  /* AQUÍ VIVÍAN DOS PÁRRAFOS DE EXPLICACIÓN y se fueron los dos, pedido así:
+     «en RESPALDO, quita todo el texto de explicación... solo deben estar los
+     botones para respaldar, el respaldo, la versión y los copyrights».
+
+     Uno contaba que las glosas viven en este navegador y que exportar es la
+     única copia que sale de él; el otro, las copias del día. Ese segundo ya no
+     describe nada —las copias internas se fueron enteras, ver respaldoDelDia—
+     y el primero explicaba un botón que se explica solo apretándolo.
+
+     Lo que NO es explicación se queda: el renglón del fallo de arriba —que no
+     cuenta cómo funciona nada, avisa de que algo se rompió—, el crédito de la
+     licencia, que es obligatorio, y el sello. */
   /* EL SELLO, A LA VISTA. Existía solo en la consola, y eso lo dejaba inútil
      justo para lo que sirve: cuando algo no funciona en un teléfono, la
      primera pregunta es si ese teléfono tiene la versión nueva o una guardada
@@ -23566,14 +23543,6 @@ cargarPiedras();
    y Phares en» y «r de Urías: ». O sea el resaltado sobre trozos sin sentido.
    Lo levantó la revisión de Codex. */
 if (primeraVez) sembrarGlosasDeEstreno();
-/* LA COPIA DEL DÍA, AQUÍ Y NO ANTES. Tiene que ver lo mismo que verá el
-   lector: después de leer el almacén y después de la siembra de estreno, que
-   en una instalación nueva es todo lo que hay. Puesta antes, el primer día se
-   guardaría una copia vacía de un lector que sí tenía cuatro glosas.
-   Y va envuelta porque es una red, no una pieza del arranque: si algo aquí
-   dentro fallara —un almacén que no se deja escribir— no puede llevarse por
-   delante lo que viene después, que es pintar el libro. */
-try { copiaDelDia(); } catch(e){}
 stage.style.transition = 'none';
 stage.style.width = ANCHO_HOJA + 'px';
 void stage.offsetWidth;
