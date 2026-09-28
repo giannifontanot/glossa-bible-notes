@@ -1022,7 +1022,19 @@ const FUERA = `async () => {
       const esc = document.getElementById('stage').getBoundingClientRect();
       filas.push({ pasaje:k, paso, recorrido: Math.abs(tops[tops.length-1] - tops[0]),
                    arribaAntes: tops[0], arriba: tops[tops.length-1],
-                   alto: altos[altos.length-1], escenario: Math.round(esc.height) });
+                   alto: altos[altos.length-1],
+                   /* EL ALTO MÁS GRANDE DE TODO EL CAMINO, no sólo el del
+                      final, y esto es lo que faltaba. La decisión de apartar
+                      el panel se toma MIENTRAS la lista se abre, con el panel
+                      estirado; si después la lista se queda con su tope de
+                      alto y encoge, el último cuadro enseña un panel que cabe
+                      de sobra y la prueba lee «se movió teniendo sitio»
+                      cuando lo que pasó es que no cabía en el momento de
+                      decidir. Salió así en el entorno del dueño del repo:
+                      pasaje 3, de 67 a 10, alto final 455 en una escena de
+                      915 — con ese número, moverse no tenía sentido. */
+                   altoMax: Math.max(...altos, 0),
+                   escenario: Math.round(esc.height) });
     }
     document.getElementById('pgBody').dispatchEvent(new PointerEvent('pointerdown',
       { bubbles:true, clientX:5, clientY:5 }));
@@ -1066,14 +1078,19 @@ const FUERA = `async () => {
 
      Y se imprime la geometría de cada uno que se mueva, porque el rojo de
      «56px» a secas no dejaba distinguir las dos cosas y costó cuatro sondas. */
-  const cabe = f => f.arriba + f.alto + 2 < f.escenario;
+  /* Cabía si cabía CUANDO SE DECIDIÓ, o sea con el panel en su momento más
+     alto; ver altoMax. Con el alto final se excusaba de menos y se acusaba de
+     más, que es la peor mezcla. */
+  const cabe = f => f.arriba + Math.max(f.alto, f.altoMax) + 2 < f.escenario;
   const sospechosos = saltos.filter(f => f.recorrido > 2 && cabe(f));
   for (const f of saltos.filter(f => f.recorrido > 2))
     di('  se movió el pasaje ' + f.pasaje,
        'arriba ' + f.arribaAntes + ' → ' + f.arriba + ' (' + f.recorrido + 'px)' +
-       ' · alto ' + f.alto + ' · escenario ' + f.escenario +
-       ' · fondo ' + (f.arriba + f.alto) + (cabe(f) ? '  ← CABÍA: no tenía por qué moverse'
-                                                    : '  ← topaba con el borde'));
+       ' · alto ' + f.alto + ' (máximo ' + f.altoMax + ')' +
+       ' · escenario ' + f.escenario +
+       ' · fondo ' + (f.arriba + Math.max(f.alto, f.altoMax)) +
+       (cabe(f) ? '  ← CABÍA: no tenía por qué moverse'
+                : '  ← topaba con el borde'));
   vale('el panel se queda, salvo que no quepa', sospechosos.length === 0,
        sospechosos.length ? (sospechosos.length + ' se movieron TENIENDO sitio')
                           : (saltos.filter(f => f.recorrido > 2).length + ' de ' + saltos.length +
