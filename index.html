@@ -6037,7 +6037,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-SEP-26 08:07';
+window.GLOSS_BUILD = '28-SEP-26 09:19';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7372,10 +7372,10 @@ const save = () => {
   }
 };
 
-/* EL DÍA DE ESTE RELOJ, no el de Greenwich. Lo usa el respaldo automático
-   para saber si ya bajó hoy —ver respaldoDelDia—, y tiene que ser el día del
-   aparato: con el día en UTC, el de Dallas cambiaría de fecha a las seis o
-   siete de la tarde y una sesión de noche contaría como la de mañana. */
+/* EL DÍA DE ESTE RELOJ, no el de Greenwich. Lo usa el nombre del archivo de
+   respaldo, y tiene que ser el día del aparato: con el día en UTC, el de
+   Dallas cambiaría de fecha a las seis o siete de la tarde y el respaldo de
+   una sesión de noche saldría fechado mañana. */
 const diaLocal = d => d.getFullYear() + '-' +
                       String(d.getMonth() + 1).padStart(2, '0') + '-' +
                       String(d.getDate()).padStart(2, '0');
@@ -15473,7 +15473,8 @@ document.addEventListener('pointerdown', ev => {
 $('pgCabeza').addEventListener('click', e => {
   e.preventDefault();
   if (zoomActivo) return;
-  alternarBurbuja('libros');
+  /* La última que se dejó abierta, no Libros siempre. Ver seccionDeEntrada. */
+  alternarBurbuja(seccionDeEntrada());
 });
 /* Y la de abajo abre la lista de versiones, que es lo que nombra. */
 /* UN TOQUE ABRE LAS VERSIONES, DOS ABREN LIBROS. El rótulo del pie lleva dos
@@ -15536,7 +15537,7 @@ $('pgVersion').addEventListener('dblclick', e => {
   e.stopPropagation();
   clearTimeout(relojVersion);
   cerrarVersiones();
-  alternarBurbuja('libros');
+  alternarBurbuja(seccionDeEntrada());
 });
 
 /* ENTER Y ESPACIO HACEN LO QUE HACE EL TOQUE, y hacen falta porque estos dos
@@ -15560,7 +15561,7 @@ const conTeclas = (el, hacer) => el.addEventListener('keydown', ev => {
   ev.stopPropagation();
   hacer();
 });
-conTeclas($('pgCabeza'), () => alternarBurbuja('libros'));
+conTeclas($('pgCabeza'), () => alternarBurbuja(seccionDeEntrada()));
 conTeclas($('pgVersion'), () => {
   clearTimeout(relojVersion);
   if (versionAbierta){ cerrarVersiones(); return; }
@@ -16488,6 +16489,37 @@ const PANEL = { oracion:'oracion', libros:'canto', glosas:'etiquetas',
                 encuentros:'encuentros', formato:'ajustes', respaldo:'respaldo' };
 let seccionViva = 'libros', cambiandoSeccion = false, dirSeccion = 1;
 
+/* LA PESTAÑA CON LA QUE SE ABRE ES LA ÚLTIMA QUE SE DEJÓ, y no Libros siempre.
+
+   Lo pidió el dueño del repo después de haber pedido lo contrario: «te pedí
+   por default el tab de LIBROS, pero no, por favor haz que aparezca el último
+   que dejamos abierto». Y tiene su lógica: quien está una tarde poniendo
+   etiquetas abre y cierra ese panel veinte veces, y Libros es justo el que no
+   quería. El programa recuerda dónde estabas en todo lo demás —el libro, la
+   hoja, la versión, los ajustes—; esto es lo mismo.
+
+   EN SU PROPIA CLAVE Y NO EN LOS AJUSTES, por el ritmo: los ajustes se guardan
+   enteros cuando se repagina, y esto cambia cada vez que se toca una pestaña.
+   Metido ahí dentro, cada toque reescribiría el objeto entero —foto de la
+   portada aparte, que ya vive suelta por lo mismo— y un fallo al guardar la
+   pestaña se llevaría por delante los ajustes de verdad. Suelto, lo que falla
+   falla solo.
+
+   SE VALIDA CONTRA LA TABLA al leerlo, no se usa a pelo: en el almacén puede
+   quedar el nombre de una sección que ya no existe —cuando se fue la fila de
+   versión de Formato, por ejemplo— y abrir el lector con una pestaña que no
+   está es un panel que no aparece y una barra sin nada encendido. Si no se
+   reconoce, Libros, que es donde se empieza. */
+const CLAVE_SECCION = 'glossa:seccion:v1';
+function recordarSeccion(id){
+  try { localStorage.setItem(CLAVE_SECCION, id); } catch(_){}
+}
+function seccionDeEntrada(){
+  let id = null;
+  try { id = localStorage.getItem(CLAVE_SECCION); } catch(_){}
+  return SECCIONES.some(x => x.id === id) ? id : 'libros';
+}
+
 /* EL ACUSE TIENE QUE SOBREVIVIR AL CAMBIO DE BARRA. Abrir una sección vuelve
    a poner la barra de pestañas desde cero —ponerBarra la borra y la rehace,
    porque la pestaña encendida cambia—, así que el botón que traía el borde
@@ -16611,6 +16643,9 @@ function abrirSeccion(id, enSeco){
   const previo = panelDe(seccionViva);
   const seVa = enSeco && burbujaAbierta() && previo && previo.style.display !== 'none';
   seccionViva = id;
+  /* Y SE APUNTA AQUÍ, que es el único sitio por el que pasan las cinco: con la
+     pestaña, con el titulillo y con el teclado. Ver seccionDeEntrada. */
+  recordarSeccion(id);
 
   /* QUIÉN ABRE CADA SECCIÓN SALE DE LA TABLA, y esto era una escalera de if
      que terminaba en un `else` suelto. La escalera funcionaba con cuatro y
@@ -21501,10 +21536,9 @@ function bajarRespaldo(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  /* EL NOMBRE LLEVA EL DÍA DE ESTE RELOJ y no el de Greenwich, por lo mismo
-     que lo lleva la cuenta de respaldoDelDia: si no, el archivo de una sesión
-     de noche en Dallas saldría fechado mañana y el del día siguiente lo
-     pisaría. */
+  /* EL NOMBRE LLEVA EL DÍA DE ESTE RELOJ y no el de Greenwich: si no, el
+     archivo de una sesión de noche en Dallas saldría fechado mañana y el del
+     día siguiente lo pisaría. */
   a.download = 'gloss-bible-respaldo-' + diaLocal(new Date()) + '.json';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
@@ -21516,77 +21550,29 @@ $('btnExportar').onclick = () => {
 };
 
 /* ============================================================
-   EL RESPALDO DEL DÍA. Una vez al día, el lector baja tu archivo solo.
+   LO QUE NO HACE: BAJARSE SOLO.
 
-   Lo pidió el dueño del repo: «me gustaría un auto-save del backup, por lo
-   menos una vez al día... la única manera de hacerlo consistente es ejecutar
-   cuando la aplicación abre, porque no podríamos hacerlo cuando cierra ya que
-   no tenemos control sobre eso». Es exacto: en un teléfono la pestaña se va
-   sin avisar y `beforeunload` no llega. Abrir es el único momento del que se
-   puede depender.
+   Aquí vivió dos días un respaldo automático —una vez al día, colgado del
+   botón «continue» de la portada— y se va entero por donde vino: «que no
+   descargue automáticamente el respaldo, no me gusta que salga el mensaje de
+   "acepta el download"».
 
-   AL PRIMER GESTO, Y NO EN EL ARRANQUE A SECAS. Ésta es la única licencia que
-   se toma este bloque sobre lo que se pidió, y es lo que hace que funcione:
-   una descarga que no sale de un gesto del lector es una «descarga
-   automática» para el navegador —Chrome la trata como permiso aparte, que se
-   puede bloquear, y Safari la ignora o pregunta—. Colgándola del primer gesto
-   de la sesión sale de una activación de usuario de verdad, así que se
-   permite siempre. Y ese gesto llega enseguida: la tapa de la portada se
-   quita tocándola, o sea que el gesto que abre el lector ES el primero.
-   Gesto, no toque: con teclado no hay toque. Ver respaldoAlPrimerGesto.
+   Y NO ERA UN DEFECTO DEL APAÑO, ES LA REGLA DEL NAVEGADOR. Una descarga que
+   el lector no pidió con el dedo se bloquea; una que sí, en un teléfono, se
+   confirma. No hay forma de bajar un archivo sin que el aparato pregunte, así
+   que «automático» y «sin preguntar» no pueden ser verdad a la vez. Entre las
+   dos cosas, el dueño del repo eligió la tranquilidad.
 
-   SE APUNTA EL DÍA ANTES DE BAJAR, no después. Si el navegador pregunta y el
-   lector dice que no, no se le puede volver a preguntar en cada toque; y si
-   la descarga sale bien, tampoco hay forma de enterarse —una descarga no
-   avisa de vuelta—. Así que la cuenta es «hoy ya se intentó», que es lo único
-   que se puede saber de verdad. Un intento por día, pase lo que pase.
+   ASÍ QUE EL RESPALDO ES DE LA MANO, y sólo de la mano: el botón Exportar de
+   RESPALDO, que es el que estaba desde el principio. La cuenta del día y el
+   oyente del primer gesto se fueron con él; queda bajarRespaldo, que es lo
+   que el botón llama.
 
-   NO HAY COPIA DENTRO DEL NAVEGADOR, y estuvo un día. Se guardaban tres
-   instantáneas en localStorage con un botón para devolverlas, y el dueño lo
-   paró: «si no estás descargando un archivo, entonces ¿para qué sirve todo
-   eso? Lo que quiero es que descargues». Tenía razón en lo que importa: una
-   copia que vive en el mismo almacén que el original no sobrevive a lo único
-   de lo que hay que salvarse —limpiar los datos del sitio, cambiar de
-   aparato, perderlo—. El archivo sí.
+   SI ALGÚN DÍA SE QUIERE VOLVER A INTENTAR, el camino que no molesta no es
+   descargar solo: es recordar. Un punto en la pestaña de RESPALDO cuando hace
+   mucho que no se exporta deja la decisión —y el diálogo— en manos del lector.
+   Se apunta aquí porque es la pregunta que va a volver.
    ============================================================ */
-const CLAVE_BAJADA = 'glossa:respaldo-bajado:v1';
-function respaldoDelDia(){
-  if (!marcas.length) return;               /* nada que bajar todavía */
-  const hoy = diaLocal(new Date());
-  let ultimo = null;
-  try { ultimo = localStorage.getItem(CLAVE_BAJADA); } catch(e){}
-  if (ultimo === hoy) return;
-  try { localStorage.setItem(CLAVE_BAJADA, hoy); } catch(e){}
-  bajarRespaldo();
-}
-/* EL PRIMER GESTO, Y UN DEDO NO ES EL ÚNICO GESTO QUE HAY. Esto escuchaba
-   sólo `pointerup` y lo levantó la revisión de Codex: quien maneja el lector
-   con el teclado —o con un lector de pantalla— activa los botones con Enter o
-   con la barra, y ahí el navegador manda un `click`, nunca un `pointerup`. El
-   respaldo del día no se hacía en toda la sesión y nadie se enteraba, que es
-   la peor forma de no hacerse. Así que se escuchan los dos.
-
-   NO VALE CUALQUIER TECLA. Una pulsación de Shift sola no cuenta como
-   activación para el navegador, así que gastar en ella el único disparo
-   dejaría la descarga sin permiso. Se saltan los modificadores y Escape.
-
-   EN CAPTURA porque el gesto que hay que aprovechar puede ser el de la tapa de
-   la portada, y ése lo atiende —y a veces lo detiene— quien la quita;
-   escuchando abajo del todo, este oyente llega primero pase lo que pase.
-
-   Y UNA SOLA VEZ, los dos a la vez: su trabajo es de una vez al día —la cuenta
-   de respaldoDelDia ya lo sabría— y un oyente que se queda vivo para no hacer
-   nada en cada gesto de la sesión es un oyente que sobra. */
-const TECLAS_SIN_GESTO = ['Shift', 'Control', 'Alt', 'Meta', 'Escape'];
-function respaldoAlPrimerGesto(ev){
-  if (ev && ev.type === 'keydown' && TECLAS_SIN_GESTO.includes(ev.key)) return;
-  removeEventListener('pointerup', respaldoAlPrimerGesto, true);
-  removeEventListener('keydown', respaldoAlPrimerGesto, true);
-  try { respaldoDelDia(); } catch(e){}
-}
-addEventListener('pointerup', respaldoAlPrimerGesto, true);
-addEventListener('keydown', respaldoAlPrimerGesto, true);
-
 $('btnImportar').onclick = () => $('archivoImp').click();
 $('archivoImp').onchange = ev => {
   const f = ev.target.files && ev.target.files[0];
@@ -22802,9 +22788,8 @@ const ENCUENTROS = [
      botones para respaldar, el respaldo, la versión y los copyrights».
 
      Uno contaba que las glosas viven en este navegador y que exportar es la
-     única copia que sale de él; el otro, las copias del día. Ese segundo ya no
-     describe nada —las copias internas se fueron enteras, ver respaldoDelDia—
-     y el primero explicaba un botón que se explica solo apretándolo.
+     única copia que sale de él; el otro, unas copias del día que ya no
+     existen. El primero explicaba un botón que se explica solo apretándolo.
 
      Lo que NO es explicación se queda: el renglón del fallo de arriba —que no
      cuenta cómo funciona nada, avisa de que algo se rompió—, el crédito de la
