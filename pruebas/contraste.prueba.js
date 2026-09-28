@@ -329,7 +329,14 @@ async function ponerContraste(pagina, pct){
                /* El color y el borde de la tablilla, para la regla nueva: el
                   sepia del panel en vez del blanco, con su hilo marrón. */
                papel: cs.backgroundColor,
-               borde: parseFloat(cs.borderTopWidth) || 0,
+               /* LOS CUATRO LADOS, no sólo el de arriba. Medí borderTopWidth y
+                  se me coló un recuadro entero: la fila de la salida cumple
+                  `:not(.riel-fila)`, así que la regla de las tablillas le daba
+                  borde por los cuatro costados, y la excepción sólo apagaba el
+                  de arriba —que era justo el único que yo miraba—. Lo levantó
+                  la revisión de Codex. */
+               bordes: ['Top','Right','Bottom','Left']
+                 .map(l => parseFloat(cs['border' + l + 'Width']) || 0),
                redondas: parseFloat(cs.borderRadius) >= 4,
                /* que la tablilla CUBRA lo que sostiene: un fondo estrecho que
                   deje el control fuera no lo hace legible, lo parte. */
@@ -433,9 +440,14 @@ async function ponerContraste(pagina, pct){
          t.replace(/rgba?\(|\)/g, '').split(',').slice(0,3).join(',') ===
          (rgbDe(f.papel) || []).slice(0,3).join(','))),
        (ajustes[0] || {}).papel + ' contra ' + tablillas.tonosDelPanel.join(' '));
-  vale('  con su hilo para distinguirse de la hoja',
-       ajustes.every(f => f.borde >= 1) && rieles.every(f => f.borde >= 1),
-       ajustes.concat(rieles).map(f => f.borde).join(' '));
+  vale('  con su hilo por los cuatro lados, para distinguirse de la hoja',
+       ajustes.concat(rieles).every(f => f.bordes.every(n => n >= 1)),
+       ajustes.concat(rieles).map(f => f.que + ' ' + f.bordes.join('/')).join(' · '));
+  /* Y LA SALIDA NO LLEVA NINGUNO, que es la otra mitad: es la única fila ancha
+     sin tablilla, y un recuadro sin fondo debajo no es el canto de nada. */
+  vale('LA FILA DE LA SALIDA SE QUEDA SIN BORDE, como sin tablilla',
+       salidas.every(f => f.bordes.every(n => n === 0)),
+       salidas.map(f => f.bordes.join('/')).join(' · '));
   vale('de esquinas redondeadas', ajustes.every(f => f.redondas));
   vale('y cada una cubre su control',
        ajustes.every(f => f.cabe), ajustes.filter(f => !f.cabe).map(f => f.que));

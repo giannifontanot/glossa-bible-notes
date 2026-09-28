@@ -3488,12 +3488,17 @@
      borde de la tablilla se queda entero. */
   #ajustes.cristal #ctrlConfig .ajuste.ancho:not(.vidrio-fila){
     border-top-color:var(--tablilla-borde); margin-top:2px; padding-top:3px; }
-  /* LA FILA DE LA SALIDA SÍ SE QUEDA SIN RAYA, porque es la única ancha que no
-     lleva tablilla: sin fondo debajo, ese hilo no es el canto de nada, es una
-     raya suelta cruzando la hoja. Aquí estaban las dos juntas y al darle el
-     borde a las tablillas se le devolvió también a ésta. */
+  /* LA FILA DE LA SALIDA SE QUEDA SIN BORDE NINGUNO, porque es la única ancha
+     que no lleva tablilla: sin fondo debajo, ese hilo no es el canto de nada.
+
+     Y VAN LOS CUATRO LADOS, no sólo el de arriba. Aquí puse `border-top:0` y lo
+     levantó la revisión de Codex: esta fila también cumple `:not(.riel-fila)`,
+     o sea que la regla general de las tablillas le daba borde por los cuatro
+     costados, y apagando sólo el de arriba quedaba un recuadro abierto
+     alrededor de una fila que no tiene fondo. Mi sondeo no lo vio porque medía
+     borderTopWidth, que era justo el único que sí estaba apagado. */
   #ajustes.cristal #ctrlConfig .ajuste.ancho.vidrio-fila{
-    border-top:0; margin-top:2px; padding-top:3px; }
+    border:0; margin-top:2px; padding-top:3px; }
   /* Y EL CRÉDITO, que también es letra suelta sobre la hoja. La atribución de
      CC BY-SA tiene que poder leerse, y transparente no se leía. Se le deja su
      tablilla, pero con inline-block para que mida sus renglones y no el panel:
@@ -6087,7 +6092,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-SEP-26 10:51';
+window.GLOSS_BUILD = '28-SEP-26 10:56';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
