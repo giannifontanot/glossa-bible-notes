@@ -505,6 +505,121 @@ const IR_A = `async (sec) => {
        !arbolLargo.falta && arbolLargo.ancho <= arbolLargo.marcoAncho,
        !arbolLargo.falta && (arbolLargo.ancho + ' de ' + arbolLargo.marcoAncho));
 
+  /* ---------------- la hojita sube a editarse, y vuelve ---------------- */
+  /* LO QUE SE PIDIÓ: «cuando se haga doble clic sobre una hojita, esta se va a
+     mover al top center y va a permitir la edición del texto», con el mismo
+     movimiento lento del resto del programa, y «verifica que tenga suficiente
+     aire en el top para que los controles de edición no queden tapados».
+
+     LAS CUATRO COSAS QUE SE VIGILAN:
+
+     · QUE SUBA. El doble toque la lleva arriba del todo y centrada.
+     · QUE LOS CONTROLES QUEPAN, que es la mitad medible del encargo. El «+»
+       vive 52 px por encima del borde de la hoja, así que lo que se afirma no
+       es dónde queda la hoja sino dónde queda EL BOTÓN: dentro del marco.
+       Medido antes de existir esto: en el sitio donde nacen las hojas, el «+»
+       caía en −19, −32 y −44 px en los marcos cortos. Por eso el sitio de
+       editar se cuenta desde arriba y no como fracción del alto.
+     · Y QUE VUELVA A SU SITIO al cerrar la edición. En esta aplicación el
+       sitio ES el grupo —finishDrag reclasifica al soltar—, así que una hoja
+       que se quedara arriba cambiaría de rama cada vez que se edita su texto.
+       Se afirman las dos: que vuelve al píxel de donde salió y que su grupo
+       guardado no cambió.
+     · Y QUE EL TEXTO SE HAYA GUARDADO, sin la cual todo lo anterior describiría
+       un paseo bonito que no edita nada.
+
+     SE ARRASTRA LA HOJA ABAJO ANTES DE EMPEZAR, y no es un adorno: nace arriba,
+     así que sin moverla el viaje sería de cero píxeles y las tres primeras
+     líneas saldrían verdes sin que nada se hubiera movido. El arrastre va
+     torcido, como el de un dedo. */
+  titulo('ORACIÓN: la hojita sube a editarse y vuelve a su sitio');
+  const viaje = marcoOra ? await marcoOra.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const antes = new Set([...document.querySelectorAll('.leaf')].map(x => x.dataset.id));
+    document.getElementById('add-btn').click();
+    await z(700);
+    const el = [...document.querySelectorAll('.leaf')].find(x => !antes.has(x.dataset.id));
+    if (!el) return { falta:'no nació la hoja' };
+    const ev = (t, x, y, id) => el.dispatchEvent(new PointerEvent(t,
+      { bubbles:true, cancelable:true, pointerId:id, pointerType:'touch',
+        clientX:Math.round(x), clientY:Math.round(y) }));
+    /* 1 · abajo, arrastrando */
+    const b0 = el.getBoundingClientRect();
+    const x0 = b0.left + b0.width / 2, y0 = b0.top + b0.height / 2;
+    const destino = innerHeight * 0.72;
+    ev('pointerdown', x0, y0, 21);
+    for (let i = 1; i <= 8; i++)
+      ev('pointermove', x0 + Math.sin(i) * 3, y0 + (destino - y0) * i / 8, 21);
+    ev('pointerup', x0, destino, 21);
+    await z(500);
+    const abajo = el.getBoundingClientRect();
+    const guardado = () => {
+      try {
+        return JSON.parse(localStorage.getItem('sticky-shapes:v2') || '{}')
+          .workspaces.flatMap(w => w.nodes || []).find(n => n.id === el.dataset.id) || {};
+      } catch(e){ return {}; }
+    };
+    const grupoAntes = guardado().status;
+    /* 2 · doble toque */
+    const cx = abajo.left + abajo.width / 2, cy = abajo.top + abajo.height / 2;
+    ev('pointerdown', cx, cy, 22); ev('pointerup', cx, cy, 22);
+    await z(60);
+    ev('pointerdown', cx, cy, 23); ev('pointerup', cx, cy, 23);
+    await z(120);
+    /* En pleno viaje: la clase que lleva la transición tiene que estar puesta.
+       Es lo único que distingue «se mueve despacio» de «aparece arriba». */
+    const enVuelo = el.classList.contains('viajando');
+    await z(900);
+    const arriba = el.getBoundingClientRect();
+    const mas = el.querySelector('.size-btn.plus');
+    const rm = mas ? mas.getBoundingClientRect() : null;
+    const ed = el.querySelector('.leaf-editor');
+    /* 3 · se escribe y se cierra con Enter, como se cierra de verdad */
+    if (ed){
+      ed.value = 'texto de la prueba';
+      ed.dispatchEvent(new KeyboardEvent('keydown',
+        { key:'Enter', bubbles:true, cancelable:true }));
+    }
+    await z(1100);
+    const vuelta = el.getBoundingClientRect();
+    const g = guardado();
+    return { marco: { w: innerWidth, h: innerHeight },
+             abajo: { top: Math.round(abajo.top), izq: Math.round(abajo.left) },
+             enVuelo, hayEditor: !!ed,
+             arriba: { top: Math.round(arriba.top), izq: Math.round(arriba.left),
+                       ancho: Math.round(arriba.width) },
+             masTop: rm ? Math.round(rm.top) : null,
+             vuelta: { top: Math.round(vuelta.top), izq: Math.round(vuelta.left) },
+             grupoAntes, grupoDespues: g.status, texto: g.text };
+  }) : { falta:'sin marco' };
+  di('el viaje de la hojita', JSON.stringify(viaje));
+  vale('(la prueba es válida) se pudo crear, bajar y editar una hoja',
+       !viaje.falta && viaje.hayEditor === true, viaje.falta || viaje.hayEditor);
+  vale('(la prueba es válida) la hoja estaba abajo antes del doble toque',
+       !viaje.falta && viaje.abajo.top > viaje.marco.h / 2,
+       !viaje.falta && (viaje.abajo.top + ' de ' + viaje.marco.h));
+  vale('EL DOBLE TOQUE LA SUBE ARRIBA',
+       !viaje.falta && viaje.arriba.top < viaje.abajo.top &&
+       viaje.arriba.top <= 60, !viaje.falta && (viaje.abajo.top + ' → ' + viaje.arriba.top));
+  vale('  y centrada a lo ancho',
+       !viaje.falta &&
+       Math.abs((viaje.arriba.izq + viaje.arriba.ancho / 2) - viaje.marco.w / 2) <= 2,
+       !viaje.falta && (viaje.arriba.izq + ' de ' + viaje.marco.w));
+  vale('  con el movimiento puesto, no de un salto',
+       !viaje.falta && viaje.enVuelo === true, !viaje.falta && viaje.enVuelo);
+  vale('LOS CONTROLES DE EDICIÓN CABEN: el botón de arriba no se sale',
+       !viaje.falta && viaje.masTop !== null && viaje.masTop >= 0,
+       !viaje.falta && (viaje.masTop + ' px del filo'));
+  vale('Y AL TERMINAR VUELVE A SU SITIO',
+       !viaje.falta && Math.abs(viaje.vuelta.top - viaje.abajo.top) <= 1 &&
+       Math.abs(viaje.vuelta.izq - viaje.abajo.izq) <= 1,
+       !viaje.falta && JSON.stringify(viaje.vuelta) + ' contra ' + JSON.stringify(viaje.abajo));
+  vale('  sin cambiar de grupo, que es lo que el sitio significa aquí',
+       !viaje.falta && !!viaje.grupoAntes && viaje.grupoDespues === viaje.grupoAntes,
+       !viaje.falta && (viaje.grupoAntes + ' → ' + viaje.grupoDespues));
+  vale('  y con el texto guardado', !viaje.falta && viaje.texto === 'texto de la prueba',
+       !viaje.falta && viaje.texto);
+
   /* ---------------- y la barra no se mueve con el libro ---------------- */
   /* SE PIDIÓ QUE ESTA BARRA SE SALGA DE «LA INTERFAZ CRECE CON EL LIBRO», y
      eso es justo lo que no se puede comprobar mirando la barra sola: si el
