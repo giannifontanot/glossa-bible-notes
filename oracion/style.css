@@ -377,6 +377,18 @@ html, body {
 /* ---------- Cofre del tesoro (arrastra una hoja aquí para borrarla) ---------- */
 
 #treasure {
+  /* ES UN <button> —lo era un <div>— así que hay que quitarle lo que el
+     navegador le pone: el cofre es un dibujo, no una tecla gris. Ver el
+     comentario del marcado, que cuenta por qué dejó de ser un <div>. */
+  -webkit-appearance: none;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   position: fixed;
   /* Sin esto, el doble toque que abre la lista del cofre es, para iOS, la
      orden de acercar la pantalla: se abriría la lista con la página
@@ -392,6 +404,17 @@ html, body {
   z-index: 2000;
   opacity: 0.55; /* discreto hasta que se arrastra una hoja */
   transition: opacity var(--anim-ms, 120ms) ease, transform var(--anim-ms, 120ms) ease;
+}
+
+/* EL FOCO SE VE, y sólo cuando hace falta: :focus-visible deja el anillo para
+   quien llega con el teclado y no se lo pone al dedo, que ya sabe dónde tocó.
+   Sin esto, un cofre que ya se puede enfocar no enseña que lo está, y navegar
+   a ciegas por los mandos es casi tan malo como no poder llegar a ellos. */
+#treasure:focus-visible {
+  outline: 2px solid var(--treasure, #ffd24a);
+  outline-offset: 3px;
+  border-radius: 10px;
+  opacity: 1;
 }
 
 #treasure svg {

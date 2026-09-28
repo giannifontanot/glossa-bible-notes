@@ -675,10 +675,21 @@
   function openChest() {
     renderChestList();
     chestList.hidden = false;
+    /* EL FOCO ENTRA CON LA VENTANA. Se anuncia como diálogo (role=dialog,
+       aria-modal) y un diálogo al que el foco no entra es una ventana que un
+       lector de pantalla dice que está abierta mientras sigue leyendo lo de
+       detrás. Va a la equis, que es la salida: quien entre sin querer sale
+       con la primera tecla. */
+    try { chestClose.focus(); } catch (_) {}
   }
 
   function closeChest() {
+    if (chestList.hidden) return;
     chestList.hidden = true;
+    /* Y VUELVE AL COFRE, de donde salió. Sin esto el foco se queda en un botón
+       que acaba de desaparecer y el teclado empieza otra vez desde el
+       principio del documento, que es cómo se pierde a alguien. */
+    try { treasure.focus(); } catch (_) {}
   }
 
   // DOBLE CLIC SOBRE EL COFRE. Se cuenta a mano, como lo cuenta una hoja (ver
@@ -699,6 +710,19 @@
       return;
     }
     cofreReloj = setTimeout(() => { cofreReloj = null; }, CONFIG.doubleClickDelay);
+  });
+
+  /* Y CON EL TECLADO, DE UNA VEZ. El doble toque es del dedo; pedirle dos
+     pulsaciones seguidas a quien navega con el teclado o con un conmutador
+     sería inventarle un gesto que no existe en ninguna parte. Aquí Enter y la
+     barra abren a la primera, que es lo que hace cualquier botón.
+     Lo levantó la revisión de Codex, y es el mismo defecto que ya tuvo el
+     respaldo del día: un mando que sólo entendía de punteros. */
+  treasure.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    e.preventDefault();  // la barra, si no, mueve la página
+    openChest();
   });
 
   chestClose.addEventListener("click", closeChest);

@@ -806,6 +806,72 @@ const IR_A = `async (sec) => {
        !trasEscapeCofre.falta && trasEscapeCofre.pestana !== 'none',
        String(trasEscapeCofre.pestana));
 
+  /* Y CON EL TECLADO, QUE ES LA OTRA MITAD DE «SE ABRE». El cofre era un
+     <div> con una etiqueta: para un dedo, un mando; para el teclado, un
+     conmutador o un lector de pantalla, nada —ni se llega a él ni se sabe que
+     está—. Lo levantó la revisión de Codex y es el mismo defecto que ya tuvo
+     el respaldo del día, que colgaba sólo de un pointerup.
+
+     Y SE PIDE UNA SOLA PULSACIÓN, no dos: el doble toque es un gesto del dedo,
+     y pedirle a quien navega con el teclado que lo repita sería inventarle un
+     gesto que no existe en ninguna otra parte.
+
+     LA ÚLTIMA LÍNEA ES EL CONTRAPESO y sin ella las otras no valen: se puede
+     arreglar el teclado abriendo la lista con un clic simple, y entonces esto
+     saldría todo verde con el gesto del dedo perdido por el camino. Así que se
+     exige también que un solo toque NO abra. */
+  let teclado = { falta: 'la lista no llegó a abrirse' };
+  if (!vacio.falta && vacio.abierta === true){
+    const mando = await marcoOra.evaluate(() => {
+      const c = document.getElementById('treasure');
+      return { etiqueta: c.tagName, nombre: c.getAttribute('aria-label'),
+               anuncia: c.getAttribute('aria-haspopup') };
+    });
+    await marcoOra.locator('#treasure').focus();
+    const enfocado = await marcoOra.evaluate(() =>
+      document.activeElement && document.activeElement.id);
+    await p.keyboard.press('Enter');
+    await p.waitForTimeout(450);
+    const conEnter = await marcoOra.evaluate(() => ({
+      abierta: !document.getElementById('chest-list').hidden,
+      foco: document.activeElement && document.activeElement.id }));
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(450);
+    const trasCerrar = await marcoOra.evaluate(() => ({
+      abierta: !document.getElementById('chest-list').hidden,
+      foco: document.activeElement && document.activeElement.id }));
+    /* Un solo toque, y a esperar más que la ventana del doble clic. */
+    const caja = await marcoOra.locator('#treasure').boundingBox();
+    if (caja){
+      await p.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2);
+      await p.waitForTimeout(600);
+    }
+    const conUno = await marcoOra.evaluate(() =>
+      !document.getElementById('chest-list').hidden);
+    teclado = { mando, enfocado, conEnter, trasCerrar, conUno };
+  }
+  di('el cofre con el teclado', JSON.stringify(teclado));
+  vale('EL COFRE ES UN MANDO DE VERDAD, con su nombre',
+       !teclado.falta && teclado.mando.etiqueta === 'BUTTON' &&
+       !!teclado.mando.nombre && teclado.mando.anuncia === 'dialog',
+       !teclado.falta && JSON.stringify(teclado.mando));
+  vale('  al que se puede llegar con el teclado',
+       !teclado.falta && teclado.enfocado === 'treasure',
+       !teclado.falta && String(teclado.enfocado));
+  vale('  y ENTER ABRE LA LISTA A LA PRIMERA, sin repetir el gesto del dedo',
+       !teclado.falta && teclado.conEnter.abierta === true,
+       !teclado.falta && String(teclado.conEnter.abierta));
+  vale('  con el foco dentro de la ventana, no detrás de ella',
+       !teclado.falta && teclado.conEnter.foco === 'chest-close',
+       !teclado.falta && String(teclado.conEnter.foco));
+  vale('  y al cerrarla el foco vuelve al cofre',
+       !teclado.falta && teclado.trasCerrar.abierta === false &&
+       teclado.trasCerrar.foco === 'treasure',
+       !teclado.falta && JSON.stringify(teclado.trasCerrar));
+  vale('  (y el contrapeso) un solo toque sigue sin abrirla',
+       !teclado.falta && teclado.conUno === false,
+       !teclado.falta && String(teclado.conUno));
+
   /* Y AHORA CON UNA HOJA DENTRO. Se escribe, se echa al cofre arrastrando, y
      se mira lo que queda: fuera del árbol y dentro del cofre. */
   const ORACION_DE_PRUEBA = 'por el pan de cada día';
