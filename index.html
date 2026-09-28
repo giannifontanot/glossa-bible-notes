@@ -6037,7 +6037,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-SEP-26 07:40';
+window.GLOSS_BUILD = '28-SEP-26 07:46';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -21525,14 +21525,15 @@ $('btnExportar').onclick = () => {
    sin avisar y `beforeunload` no llega. Abrir es el único momento del que se
    puede depender.
 
-   AL PRIMER TOQUE, Y NO EN EL ARRANQUE A SECAS. Ésta es la única licencia que
+   AL PRIMER GESTO, Y NO EN EL ARRANQUE A SECAS. Ésta es la única licencia que
    se toma este bloque sobre lo que se pidió, y es lo que hace que funcione:
    una descarga que no sale de un gesto del lector es una «descarga
    automática» para el navegador —Chrome la trata como permiso aparte, que se
-   puede bloquear, y Safari la ignora o pregunta—. Colgándola del primer toque
+   puede bloquear, y Safari la ignora o pregunta—. Colgándola del primer gesto
    de la sesión sale de una activación de usuario de verdad, así que se
-   permite siempre. Y el primer toque llega enseguida: la tapa de la portada
-   se quita tocándola, o sea que el gesto que abre el lector ES ese toque.
+   permite siempre. Y ese gesto llega enseguida: la tapa de la portada se
+   quita tocándola, o sea que el gesto que abre el lector ES el primero.
+   Gesto, no toque: con teclado no hay toque. Ver respaldoAlPrimerGesto.
 
    SE APUNTA EL DÍA ANTES DE BAJAR, no después. Si el navegador pregunta y el
    lector dice que no, no se le puede volver a preguntar en cada toque; y si
@@ -21558,16 +21559,33 @@ function respaldoDelDia(){
   try { localStorage.setItem(CLAVE_BAJADA, hoy); } catch(e){}
   bajarRespaldo();
 }
-/* EN CAPTURA Y UNA SOLA VEZ. En captura porque el toque que hay que aprovechar
-   puede ser el de la tapa de la portada, y ése lo atiende —y a veces lo
-   detiene— quien la quita; escuchando abajo del todo, este oyente llega
-   primero pase lo que pase. Y una sola vez porque su trabajo es de una vez al
-   día: la cuenta de arriba ya lo sabría, pero un oyente que se queda vivo para
-   no hacer nada en cada toque de la sesión es un oyente que sobra. */
-addEventListener('pointerup', function respaldoAlPrimerToque(){
-  removeEventListener('pointerup', respaldoAlPrimerToque, true);
+/* EL PRIMER GESTO, Y UN DEDO NO ES EL ÚNICO GESTO QUE HAY. Esto escuchaba
+   sólo `pointerup` y lo levantó la revisión de Codex: quien maneja el lector
+   con el teclado —o con un lector de pantalla— activa los botones con Enter o
+   con la barra, y ahí el navegador manda un `click`, nunca un `pointerup`. El
+   respaldo del día no se hacía en toda la sesión y nadie se enteraba, que es
+   la peor forma de no hacerse. Así que se escuchan los dos.
+
+   NO VALE CUALQUIER TECLA. Una pulsación de Shift sola no cuenta como
+   activación para el navegador, así que gastar en ella el único disparo
+   dejaría la descarga sin permiso. Se saltan los modificadores y Escape.
+
+   EN CAPTURA porque el gesto que hay que aprovechar puede ser el de la tapa de
+   la portada, y ése lo atiende —y a veces lo detiene— quien la quita;
+   escuchando abajo del todo, este oyente llega primero pase lo que pase.
+
+   Y UNA SOLA VEZ, los dos a la vez: su trabajo es de una vez al día —la cuenta
+   de respaldoDelDia ya lo sabría— y un oyente que se queda vivo para no hacer
+   nada en cada gesto de la sesión es un oyente que sobra. */
+const TECLAS_SIN_GESTO = ['Shift', 'Control', 'Alt', 'Meta', 'Escape'];
+function respaldoAlPrimerGesto(ev){
+  if (ev && ev.type === 'keydown' && TECLAS_SIN_GESTO.includes(ev.key)) return;
+  removeEventListener('pointerup', respaldoAlPrimerGesto, true);
+  removeEventListener('keydown', respaldoAlPrimerGesto, true);
   try { respaldoDelDia(); } catch(e){}
-}, true);
+}
+addEventListener('pointerup', respaldoAlPrimerGesto, true);
+addEventListener('keydown', respaldoAlPrimerGesto, true);
 
 $('btnImportar').onclick = () => $('archivoImp').click();
 $('archivoImp').onchange = ev => {

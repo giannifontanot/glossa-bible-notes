@@ -3115,6 +3115,42 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   di('tras volver a abrir el mismo día', JSON.stringify(bajadas));
   vale('VOLVER A ABRIR EL MISMO DÍA NO BAJA OTRO',
        bajadas.length === 1, bajadas.join(' · '));
+  /* --- y con el teclado también, que es por donde se colaba --- */
+  /* LO LEVANTÓ LA REVISIÓN DE CODEX, y era un agujero de los que no se ven:
+     esto escuchaba sólo `pointerup`, y quien maneja el lector con el teclado
+     —o con un lector de pantalla— activa los botones con Enter o con la barra,
+     que mandan `click` y nunca `pointerup`. El respaldo del día no se hacía en
+     toda la sesión y nadie se enteraba.
+
+     Y SE PRUEBA ANTES QUE NADA QUE UNA TECLA MUERTA NO LO GASTA: una pulsación
+     de Shift sola no cuenta como activación para el navegador, así que si
+     consumiera el único disparo la descarga se quedaría sin permiso. Primero
+     Shift —y nada—, después Enter —y el archivo—, que es el orden en el que
+     esto se rompe de verdad.
+
+     LO QUE ESTA PRUEBA NO PUEDE DECIR, dicho aquí porque la casa lo pide: un
+     evento despachado a mano siempre llega, y además el navegador no le da la
+     activación de usuario que sí da a una tecla de verdad. O sea que esto
+     comprueba EL CABLEADO —que el oyente existe y que la cuenta del día se
+     respeta— y no que Chrome deje bajar el archivo desde el teclado. Eso es
+     del navegador y se mira con las manos. */
+  await p.evaluate(k => localStorage.setItem(k, '2000-01-01'), CLAVE_BAJADA);
+  await p.reload(); await p.waitForTimeout(2600);
+  const conTeclado = async (tecla) => p.evaluate(async t => {
+    document.dispatchEvent(new KeyboardEvent('keydown',
+      { key:t, bubbles:true, cancelable:true }));
+    await new Promise(z => setTimeout(z, 900));
+  }, tecla);
+  await conTeclado('Shift');
+  await p.waitForTimeout(600);
+  di('tras pulsar Shift', JSON.stringify(bajadas.length));
+  vale('UNA TECLA MUERTA NO GASTA EL DISPARO',
+       bajadas.length === 1, bajadas.length);
+  await conTeclado('Enter');
+  await p.waitForTimeout(900);
+  di('tras pulsar Enter', JSON.stringify(bajadas));
+  vale('CON EL TECLADO TAMBIÉN BAJA', bajadas.length === 2, bajadas.join(' · '));
+
   /* --- y mañana sí --- */
   /* Se le cambia el día apuntado, que es la única memoria que tiene esto. No
      hay forma de adelantar el reloj del navegador sin sustituir Date, y eso no
@@ -3125,7 +3161,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   await tocar(34);
   await p.waitForTimeout(900);
   di('con el día apuntado en otro día', JSON.stringify(bajadas));
-  vale('CON EL DÍA CAMBIADO SÍ BAJA OTRO', bajadas.length === 2, bajadas.join(' · '));
+  vale('CON EL DÍA CAMBIADO SÍ BAJA OTRO', bajadas.length === 3, bajadas.join(' · '));
 
   /* ================================================================
      Y EL DÍA ES EL DE CASA, NO EL DE GREENWICH. Aparte, porque pide dos
