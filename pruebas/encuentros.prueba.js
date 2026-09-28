@@ -367,30 +367,37 @@ const IR_A = `async (sec) => {
   vale('LOS OTROS PANELES SIGUEN SIENDO DE PAPEL',
        /linear-gradient/.test(String(pinta.testigo)), String(pinta.testigo).slice(0, 40));
 
-  const hoja = await (async () => {
-    const m = p.frames().find(f => /oracion/.test(f.url()));
-    if (!m) return { falta:'sin marco' };
-    await m.waitForSelector('#add-btn', { timeout:10000 });
-    return m.evaluate(async () => {
-      const pausa = ms => new Promise(z => setTimeout(z, ms));
-      document.getElementById('add-btn').click();
-      await pausa(600);
-      const l = document.querySelector('.leaf');
-      if (!l) return { falta:'no se creó la hoja' };
-      const r = l.getBoundingClientRect();
-      const btn = document.getElementById('font-btn').getBoundingClientRect();
-      let grupos = [];
-      try {
-        grupos = (JSON.parse(localStorage.getItem('sticky-shapes:v2') || '{}')
-                   .workspaces || []).flatMap(w => w.nodes || []).map(n => n.status);
-      } catch(e){ /* si el almacén no se deja leer, la lista queda vacía */ }
-      return { centro: Math.round(r.top + r.height / 2), alto: innerHeight,
-               arriba: Math.round(r.top),
-               eje: Math.round((r.left + r.right) / 2), ancho: innerWidth,
-               pisaBotones: r.right > btn.left && r.top < btn.bottom && r.bottom > btn.top,
-               grupos };
-    });
-  })();
+  /* LA HOJA QUE SE MIDE ES LA QUE CREA ESTE TOQUE, y no «la primera que haya».
+     Lo levantó la revisión de Codex: el bloque de Escape, más arriba, deja una
+     hoja puesta, así que un querySelector('.leaf') a secas encuentra ÉSA —y
+     entonces «se creó» y toda la geometría salen verdes aunque el botón no
+     haya hecho nada—. Se apuntan los identificadores de antes y se busca el
+     que no estaba. */
+  const nacer = async (m) => m.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const antes = new Set([...document.querySelectorAll('.leaf')].map(l => l.dataset.id));
+    document.getElementById('add-btn').click();
+    await pausa(600);
+    const l = [...document.querySelectorAll('.leaf')].find(x => !antes.has(x.dataset.id));
+    if (!l) return { falta:'el toque no creó ninguna hoja nueva',
+                     habia: antes.size };
+    const r = l.getBoundingClientRect();
+    const btn = document.getElementById('font-btn').getBoundingClientRect();
+    let grupo = null;
+    try {
+      grupo = ((JSON.parse(localStorage.getItem('sticky-shapes:v2') || '{}')
+                 .workspaces || []).flatMap(w => w.nodes || [])
+                 .find(n => n.id === l.dataset.id) || {}).status;
+    } catch(e){ /* si el almacén no se deja leer, se queda sin grupo */ }
+    return { centro: Math.round(r.top + r.height / 2), alto: innerHeight,
+             arriba: Math.round(r.top), altoHoja: Math.round(r.height),
+             eje: Math.round((r.left + r.right) / 2), ancho: innerWidth,
+             pisaBotones: r.right > btn.left && r.top < btn.bottom && r.bottom > btn.top,
+             grupo };
+  });
+  const marcoOra = p.frames().find(f => /oracion/.test(f.url()));
+  if (marcoOra) await marcoOra.waitForSelector('#add-btn', { timeout:10000 });
+  const hoja = marcoOra ? await nacer(marcoOra) : { falta:'sin marco' };
   di('la hoja nueva', JSON.stringify(hoja));
   vale('(la prueba es válida) se creó una hoja', !hoja.falta, hoja.falta || 'sí');
   vale('LA HOJA NUEVA NACE EN EL TERCIO DE ARRIBA',
@@ -403,8 +410,31 @@ const IR_A = `async (sec) => {
        hoja.eje + ' de ' + (hoja.ancho / 2));
   vale('  sin pisar la columna de botones', !hoja.falta && hoja.pisaBotones === false);
   vale('  y nace en el grupo del centro, que es lo que dice su sitio',
-       !hoja.falta && (hoja.grupos || []).includes('rama-centro'),
-       JSON.stringify(hoja.grupos));
+       !hoja.falta && hoja.grupo === 'rama-centro', String(hoja.grupo));
+
+  /* Y EN UNA VENTANA BAJA NO SE SALE POR ARRIBA. Otro hallazgo de Codex: con
+     la hoja arriba, 0.18·alto es menos que medio alto de hoja en cuanto la
+     ventana baja de unos 417 px —un teléfono tumbado, o este marco dentro de
+     una pantalla corta—, y como el documento lleva overflow:hidden, ese trozo
+     se recorta y no hay manera de alcanzarlo. Medido antes de arreglarlo:
+     nacía en −14 en un marco de 338. createNode topa ahora el centro contra
+     los dos bordes.
+     Se prueba tumbando la ventana de verdad y devolviéndola después, que es
+     lo que hace un lector girando el teléfono; medir sólo de pie dejaría esto
+     sin red, porque de pie el defecto no se ve. */
+  const DE_PIE = p.viewportSize();
+  await p.setViewportSize({ width:740, height:360 });
+  await p.waitForTimeout(900);
+  const tumbado = marcoOra ? await nacer(marcoOra) : { falta:'sin marco' };
+  await p.setViewportSize(DE_PIE);
+  await p.waitForTimeout(900);
+  di('con la ventana tumbada', JSON.stringify(tumbado));
+  vale('(la prueba es válida) la ventana tumbada deja el marco bajo',
+       !tumbado.falta && tumbado.alto < tumbado.altoHoja * 3,
+       !tumbado.falta && (tumbado.alto + ' px de alto'));
+  vale('CON LA VENTANA BAJA, LA HOJA NO SE SALE POR ARRIBA',
+       !tumbado.falta && tumbado.arriba >= 0,
+       !tumbado.falta && (tumbado.arriba + ' px del borde'));
 
   /* ---------------- y la barra no se mueve con el libro ---------------- */
   /* SE PIDIÓ QUE ESTA BARRA SE SALGA DE «LA INTERFAZ CRECE CON EL LIBRO», y
