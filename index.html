@@ -6037,7 +6037,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-SEP-26 08:07';
+window.GLOSS_BUILD = '28-SEP-26 08:38';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -21525,15 +21525,15 @@ $('btnExportar').onclick = () => {
    sin avisar y `beforeunload` no llega. Abrir es el único momento del que se
    puede depender.
 
-   AL PRIMER GESTO, Y NO EN EL ARRANQUE A SECAS. Ésta es la única licencia que
-   se toma este bloque sobre lo que se pidió, y es lo que hace que funcione:
-   una descarga que no sale de un gesto del lector es una «descarga
-   automática» para el navegador —Chrome la trata como permiso aparte, que se
-   puede bloquear, y Safari la ignora o pregunta—. Colgándola del primer gesto
-   de la sesión sale de una activación de usuario de verdad, así que se
-   permite siempre. Y ese gesto llega enseguida: la tapa de la portada se
-   quita tocándola, o sea que el gesto que abre el lector ES el primero.
-   Gesto, no toque: con teclado no hay toque. Ver respaldoAlPrimerGesto.
+   AL ENTRAR AL LIBRO, Y NO EN EL ARRANQUE A SECAS. Sale del botón «continue»
+   de la portada, y eso es lo que hace que funcione: una descarga que no sale
+   de un gesto del lector es una «descarga automática» para el navegador
+   —Chrome la trata como permiso aparte, que se puede bloquear, y Safari la
+   ignora o pregunta—. Colgándola de ese botón sale de una activación de
+   usuario de verdad, así que se permite siempre, y además cae donde tiene
+   sentido: al abrir el libro. Cuando la tapa no sale —si estabas leyendo hace
+   un momento— lo hace el primer gesto de la sesión. Ver respaldoAlPrimerGesto,
+   donde están las dos puertas y por qué.
 
    SE APUNTA EL DÍA ANTES DE BAJAR, no después. Si el navegador pregunta y el
    lector dice que no, no se le puede volver a preguntar en cada toque; y si
@@ -21559,33 +21559,60 @@ function respaldoDelDia(){
   try { localStorage.setItem(CLAVE_BAJADA, hoy); } catch(e){}
   bajarRespaldo();
 }
-/* EL PRIMER GESTO, Y UN DEDO NO ES EL ÚNICO GESTO QUE HAY. Esto escuchaba
-   sólo `pointerup` y lo levantó la revisión de Codex: quien maneja el lector
-   con el teclado —o con un lector de pantalla— activa los botones con Enter o
-   con la barra, y ahí el navegador manda un `click`, nunca un `pointerup`. El
-   respaldo del día no se hacía en toda la sesión y nadie se enteraba, que es
-   la peor forma de no hacerse. Así que se escuchan los dos.
+/* LA PUERTA ES «CONTINUE», y el primer gesto es sólo el plan B.
+
+   Esto colgaba del primer gesto de la sesión, fuera cual fuera, y el dueño del
+   repo lo puso en su sitio: «el respaldo se hace al hacer click en continue,
+   ¿verdad? Si no, haz que lo haga». No era verdad y ahora lo es. La
+   diferencia se ve en la tapa: quien entra y toca primero «foto» o «Piedras»
+   para decorar su portada estaba disparando ahí la descarga —con la tapa
+   todavía puesta y sin haber entrado al libro—, que no es ni lo pedido ni lo
+   que nadie espera. El botón de continue es la puerta de entrada al libro, y
+   es el gesto que significa «ya estoy dentro». Ver puertaDeLaPortada, que es
+   donde se llama.
+
+   PERO LA TAPA NO SIEMPRE SALE. Si estuviste leyendo hace menos de cinco
+   minutos, el lector se la salta entera —ver PORTADA_RECIENTE— y entonces no
+   hay ningún «continue» que pulsar. Para ese camino, y sólo para ése, queda el
+   oyente de abajo: el primer gesto que llegue. Sin él, quien recarga a menudo
+   no tendría respaldo nunca, que es justo el lector que más lo necesita.
+
+   UN DEDO NO ES EL ÚNICO GESTO QUE HAY, y eso lo levantó la revisión de Codex
+   cuando esto escuchaba sólo `pointerup`: quien maneja el lector con el
+   teclado —o con un lector de pantalla— activa los botones con Enter o con la
+   barra, y ahí el navegador manda un `click`, nunca un `pointerup`. Así que se
+   escuchan los dos. (Por el camino de la tapa esto ya no hace falta —el
+   `click` del botón llega igual venga del dedo o de Enter—, pero el plan B
+   sigue necesitándolo.)
 
    NO VALE CUALQUIER TECLA. Una pulsación de Shift sola no cuenta como
    activación para el navegador, así que gastar en ella el único disparo
    dejaría la descarga sin permiso. Se saltan los modificadores y Escape.
 
-   EN CAPTURA porque el gesto que hay que aprovechar puede ser el de la tapa de
-   la portada, y ése lo atiende —y a veces lo detiene— quien la quita;
-   escuchando abajo del todo, este oyente llega primero pase lo que pase.
-
-   Y UNA SOLA VEZ, los dos a la vez: su trabajo es de una vez al día —la cuenta
-   de respaldoDelDia ya lo sabría— y un oyente que se queda vivo para no hacer
-   nada en cada gesto de la sesión es un oyente que sobra. */
+   EN CAPTURA y UNA SOLA VEZ: en captura para llegar antes que cualquiera que
+   detenga el gesto por el camino, y una sola vez porque su trabajo es de una
+   al día —la cuenta de respaldoDelDia ya lo sabría, pero un oyente que se
+   queda vivo para no hacer nada en cada gesto de la sesión es un oyente que
+   sobra—. */
 const TECLAS_SIN_GESTO = ['Shift', 'Control', 'Alt', 'Meta', 'Escape'];
 function respaldoAlPrimerGesto(ev){
   if (ev && ev.type === 'keydown' && TECLAS_SIN_GESTO.includes(ev.key)) return;
-  removeEventListener('pointerup', respaldoAlPrimerGesto, true);
-  removeEventListener('keydown', respaldoAlPrimerGesto, true);
+  soltarElPlanB();
   try { respaldoDelDia(); } catch(e){}
 }
-addEventListener('pointerup', respaldoAlPrimerGesto, true);
-addEventListener('keydown', respaldoAlPrimerGesto, true);
+function soltarElPlanB(){
+  removeEventListener('pointerup', respaldoAlPrimerGesto, true);
+  removeEventListener('keydown', respaldoAlPrimerGesto, true);
+}
+/* SÓLO CUANDO NO VA A HABER TAPA. Con tapa, el respaldo sale de «continue» y
+   este oyente estorbaría: se lo llevaría el primer toque en la portada.
+   La segunda condición es una red por si algún día la portada no está en el
+   documento: sin ella, ese lector se quedaría sin respaldo y sin quien lo
+   dispare. */
+if (portadaDePaso || !document.getElementById('portada')){
+  addEventListener('pointerup', respaldoAlPrimerGesto, true);
+  addEventListener('keydown', respaldoAlPrimerGesto, true);
+}
 
 $('btnImportar').onclick = () => $('archivoImp').click();
 $('archivoImp').onchange = ev => {
@@ -22985,6 +23012,16 @@ function quitarPortada(){
   b.addEventListener('click', ev => {
     ev.stopPropagation();
     quitarPortada();
+    /* Y AQUÍ SALE EL RESPALDO DEL DÍA, que es lo que se pidió: al entrar al
+       libro, no al primer toque que uno dé decorando la tapa. Va DESPUÉS de
+       quitarPortada y no antes, porque lo primero es abrir —si la descarga
+       fallara o el navegador preguntara, la tapa ya no está en medio— y
+       envuelto porque una red no puede ser la que atranque la puerta.
+       Ver respaldoDelDia. */
+    try { respaldoDelDia(); } catch(e){}
+    /* Y si el plan B estaba armado —no debería, con tapa— se suelta: la
+       descarga ya se hizo por la puerta buena. */
+    try { soltarElPlanB(); } catch(e){}
   });
 })();
 

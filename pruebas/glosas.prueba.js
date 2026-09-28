@@ -13,8 +13,8 @@
    Y una tercera que no se ve pero se rompe sola: poner una etiqueta NO puede
    repintar el panel, porque el panel lleva dentro la caja de escribir y
    repintarlo se llevaría por delante el foco, el cursor y lo escrito. */
-const { abrir, otraPagina, listo, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
-        APP, RAIZ, TELEFONO } = require('./comun');
+const { abrir, abrirEnPortada, otraPagina, listo, cerrar, cerrarParcial, conGlosas,
+        di, vale, titulo, APP, RAIZ, TELEFONO } = require('./comun');
 
 /* Abrir el panel sobre las primeras letras de un versículo, como lo abre un
    dedo: se PINTA y se toca encima. Se seleccionaba, y ya no se puede —el
@@ -3044,11 +3044,21 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
      · QUE BAJE UN ARCHIVO DE VERDAD. No que se llame a una función: se escucha
        el evento de descarga del navegador, que es lo único que distingue «se
        intentó» de «el lector tiene su archivo».
-     · Y QUE SALGA DEL PRIMER TOQUE. Ésta es la que guarda la decisión de
-       diseño: una descarga sin gesto del lector es una «descarga automática»
-       que el navegador puede bloquear. Se comprueba las dos mitades —antes del
-       toque no hay nada, después sí—, porque «baja al abrir» y «baja al tocar»
-       se confunden si sólo se mira el final.
+     · Y QUE SALGA DE ENTRAR AL LIBRO. Ésta es la que guarda la decisión de
+       diseño, y cambió con el encargo: «el respaldo se hace al hacer click en
+       continue, ¿verdad? Si no, haz que lo haga». Hay dos puertas y cada una
+       tiene su bloque:
+         — CON TAPA, el botón «continue», y NADA antes de él: tocar «Piedras»
+           para decorar la portada no puede disparar la descarga. Eso se prueba
+           en su propio bloque, más abajo, porque pide una sesión recién
+           abierta.
+         — SIN TAPA —el lector que estuvo leyendo hace menos de cinco minutos y
+           entra directo— el primer gesto de la sesión, que es lo que se prueba
+           aquí. Sin ese plan B, quien recarga a menudo no tendría respaldo
+           nunca, y es justo quien más lo necesita.
+       En los dos casos se miran las dos mitades —antes no hay nada, después
+       sí—, porque «baja al abrir» y «baja al entrar» se confunden si sólo se
+       mira el final.
      · UNA AL DÍA Y NO UNA POR ARRANQUE. Quien abre el lector seis veces en una
        mañana tendría, sin esto, seis archivos iguales en Descargas.
      · EL NOMBRE LLEVA EL DÍA DE ESTE RELOJ. Con el día en UTC, el archivo de
@@ -3082,10 +3092,21 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   });
   const antesDelToque = { bajadas: bajadas.length,
     apuntado: await p.evaluate(k => localStorage.getItem(k), CLAVE_BAJADA) };
-  di('antes de tocar', JSON.stringify(antesDelToque));
+  /* SIN TAPA, que es la condición de este bloque entero. Con ella, la descarga
+     saldría del botón «continue» y no del toque, y todo lo de aquí abajo
+     estaría midiendo otra cosa. Se recarga después de una sesión larga, así
+     que el sello de la visita es de hace un momento y el lector entra directo
+     —ver PORTADA_RECIENTE—; se afirma en vez de suponerlo. */
+  const huboTapa = await p.evaluate(() => {
+    const t = document.getElementById('portada');
+    return !!t && !t.classList.contains('fuera');
+  });
+  di('antes de tocar', JSON.stringify({ ...antesDelToque, huboTapa }));
   vale('(la prueba es válida) el lector tiene glosas que respaldar',
        marcasVivas > 0, marcasVivas);
-  vale('ANTES DEL PRIMER TOQUE NO BAJA NADA',
+  vale('(la prueba es válida) esta vez no hubo tapa, así que toca el plan B',
+       huboTapa === false, huboTapa);
+  vale('SIN TAPA, ANTES DEL PRIMER GESTO NO BAJA NADA',
        antesDelToque.bajadas === 0 && antesDelToque.apuntado === null,
        JSON.stringify(antesDelToque));
   await tocar(31);
@@ -3096,7 +3117,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
            '-' + String(d.getDate()).padStart(2, '0');
   });
   di('tras el primer toque', JSON.stringify(bajadas));
-  vale('AL PRIMER TOQUE BAJA EL ARCHIVO', bajadas.length === 1, bajadas.join(' · '));
+  vale('Y AL PRIMER GESTO BAJA EL ARCHIVO', bajadas.length === 1, bajadas.join(' · '));
   vale('  con nombre de respaldo y fechado con el día de este reloj',
        bajadas.length === 1 &&
        bajadas[0] === 'gloss-bible-respaldo-' + diaLocalEnPagina + '.json',
@@ -3164,6 +3185,73 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   vale('CON EL DÍA CAMBIADO SÍ BAJA OTRO', bajadas.length === 3, bajadas.join(' · '));
 
   /* ================================================================
+     CON TAPA, LA PUERTA ES «CONTINUE».
+
+     «El respaldo se hace al hacer click en continue, ¿verdad? Si no, haz que
+     lo haga.» No era verdad: colgaba del primer gesto de la sesión, fuera cual
+     fuera, así que quien entraba y tocaba «foto» o «Piedras» para decorar su
+     portada disparaba ahí la descarga, con la tapa todavía puesta.
+
+     ESTE BLOQUE PIDE SU PROPIA SESIÓN, y por eso está aparte: la tapa sólo
+     sale cuando hace más de cinco minutos de la última visita, o sea en un
+     navegador recién abierto. En el resto del fichero el sello está caliente y
+     no hay tapa que pulsar.
+
+     Y SE PRUEBAN LAS DOS MITADES, que es lo que hace que esto signifique algo:
+     primero un toque en la tapa que NO es continue —«Piedras», que no abre
+     ningún diálogo del sistema— y nada baja; después continue, y baja. Con
+     sólo la segunda, la prueba pasaría igual con el defecto puesto. */
+  titulo('con tapa, el respaldo sale del botón de entrar');
+  /* abrirEnPortada Y NO abrir: abrir() pulsa «continue» por su cuenta —para
+     eso está—, así que con ella la descarga habría salido antes de que esta
+     prueba mire nada. Ésta abre y se queda en la tapa, que es lo que hace
+     falta para poder tocar otra cosa primero. */
+  const sesTapa = await abrirEnPortada();
+  const pT = sesTapa.pagina;
+  const bajadasT = [];
+  pT.on('download', d => bajadasT.push(d.suggestedFilename()));
+  /* Se espera a que la hoja esté pintada pero SIN quitar la tapa: listo() la
+     quitaría, y la tapa es justo lo que hay que mirar. */
+  let conTapa = true;
+  try {
+    await pT.waitForFunction(() => {
+      const t = document.getElementById('portada');
+      return !!t && !t.classList.contains('fuera') &&
+             !!document.querySelector('#pgBody .v');
+    }, null, { timeout: 15000 });
+  } catch(e){ conTapa = false; }
+  const antesDeEntrar = await pT.evaluate(async () => {
+    const b = document.getElementById('btnPortadaPiedras');
+    if (b) b.click();
+    await new Promise(z => setTimeout(z, 900));
+    const t = document.getElementById('portada');
+    return { tapaPuesta: !!t && !t.classList.contains('fuera'),
+             apuntado: localStorage.getItem('glossa:respaldo-bajado:v1'),
+             glosas: JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length };
+  });
+  di('con la tapa puesta, tras tocar Piedras', JSON.stringify(
+     { ...antesDeEntrar, bajadas: bajadasT.length }));
+  vale('(la prueba es válida) la sesión nueva sí enseña la tapa',
+       conTapa === true && antesDeEntrar.tapaPuesta === true,
+       conTapa + '/' + antesDeEntrar.tapaPuesta);
+  vale('(la prueba es válida) y hay glosas que respaldar',
+       antesDeEntrar.glosas > 0, antesDeEntrar.glosas);
+  vale('DECORAR LA TAPA NO DISPARA LA DESCARGA',
+       bajadasT.length === 0 && antesDeEntrar.apuntado === null,
+       bajadasT.length + ' · ' + antesDeEntrar.apuntado);
+  await listo(pT);                     /* esto pulsa «continue» */
+  await pT.waitForTimeout(1200);
+  const trasEntrar = await pT.evaluate(() => ({
+    tapaPuesta: (() => { const t = document.getElementById('portada');
+                         return !!t && !t.classList.contains('fuera'); })(),
+    apuntado: localStorage.getItem('glossa:respaldo-bajado:v1') }));
+  di('tras pulsar continue', JSON.stringify({ ...trasEntrar, bajadas: bajadasT }));
+  vale('(la prueba es válida) la tapa se fue', trasEntrar.tapaPuesta === false);
+  vale('Y AL ENTRAR AL LIBRO SÍ BAJA', bajadasT.length === 1, bajadasT.join(' · '));
+  vale('  y queda apuntado el día', !!trasEntrar.apuntado, trasEntrar.apuntado);
+  await cerrarParcial(sesTapa, 'con tapa');
+
+  /* ================================================================
      Y EL DÍA ES EL DE CASA, NO EL DE GREENWICH. Aparte, porque pide dos
      navegadores con husos distintos.
 
@@ -3185,20 +3273,19 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   const HUSOS = ['Pacific/Kiritimati', 'Pacific/Midway'];
   const fechados = [];
   for (const huso of HUSOS){
-    const s2 = await abrir({ timezoneId: huso });
+    /* abrirEnPortada Y NO abrir, y esto costó una medición confusa: abrir()
+       pulsa «continue» por dentro, o sea que la descarga salía ANTES de que
+       hubiera nadie escuchándola —el archivo no aparecía y el día sí quedaba
+       apuntado, que es el síntoma de estar mirando tarde, no de un fallo—.
+       Ésta se queda en la tapa, se engancha el oyente, y entonces se entra. */
+    const s2 = await abrirEnPortada({ timezoneId: huso });
     const p2 = s2.pagina;
     const bajadas2 = [];
     p2.on('download', d => bajadas2.push(d.suggestedFilename()));
+    /* listo() pulsa «continue», que es de donde sale la descarga: no hace
+       falta tocar nada más. */
     await listo(p2);
-    await p2.evaluate(async () => {
-      const e = document.getElementById('stage');
-      const o = { bubbles:true, cancelable:true, pointerId:41, pointerType:'touch',
-                  clientX: 9, clientY: 9 };
-      e.dispatchEvent(new PointerEvent('pointerdown', o));
-      e.dispatchEvent(new PointerEvent('pointerup', o));
-      await new Promise(z => setTimeout(z, 900));
-    });
-    await p2.waitForTimeout(900);
+    await p2.waitForTimeout(1200);
     const r = await p2.evaluate(() => {
       const d = new Date();
       const local = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
