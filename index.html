@@ -3380,9 +3380,36 @@
   #ajustes.cristal{ --tablilla:rgba(226,212,180,.94);
                     --tablilla-borde:rgba(122,101,56,.55);
                     --tablilla-tinta:#3c2f16; }
-  #ajustes.cristal .vidrio-btn{ background:var(--tablilla);
-                                border:1px solid var(--tablilla-borde);
-                                color:var(--tablilla-tinta); }
+  /* PERO EL BOTÓN DE VOLVER SE QUEDA BLANCO, Y EN LOS DOS MODOS. Lo pidió el
+     dueño del repo al ver las tablillas puestas: «me gustaría que el botón
+     TRANSPARENTE siempre fuera blanco». Encaja con lo que dice el párrafo de
+     arriba, mirado del otro lado: lo demás se vistió de sepia para dejar de
+     ser parches sobre la hoja, pero éste no es un mando más de la reja, es la
+     PUERTA DE SALIDA del modo transparente, y lo único que tiene que hacer es
+     encontrarse. En un panel donde todo es del mismo papel, el blanco es lo
+     que lo saca del montón. Estuvo blanco hasta el lote de las tablillas, que
+     se lo llevó por delante sin que nadie lo pidiera.
+
+     VA OPACO, no el rgba(255,253,247,.75) de los demás botones del rollo. Con
+     ese cuarto de transparencia el sepia del panel se le cuela por debajo y en
+     opaco salía rgb(248,243,230) compuesto —medido—, que es crema, no blanco.
+     «Siempre blanco» sólo se cumple si debajo no hay nada que lo tiña.
+
+     Y SON DOS REGLAS POR LA PORFÍA, no por gusto: en opaco le manda
+     `.rollo .btn` (0,2,0), y en transparente el botón lleva además .active
+     —se enciende con el modo—, o sea `.rollo .btn.active` (0,3,0) con su
+     fondo dorado. Un `.vidrio-btn` suelto (0,1,0) pierde contra los dos.
+
+     LO QUE NO CAMBIA ES EL HILO: en transparente sigue siendo el de las
+     tablillas, porque ahí el borde no es adorno —es lo que dice dónde acaba el
+     botón y empieza el libro—. Blanco sobre papel viejo sin canto se derrama.
+
+     QUEDA UNA DESPAREJA A PROPÓSITO: el botón de CERRAR del pie es el otro de
+     una palabra y hasta ahora los dos iban iguales. Se pidió éste y sólo éste;
+     si el de CERRAR tiene que seguirlo, es un encargo aparte. */
+  .rollo .btn.vidrio-btn{ background:#fffdf6; color:#3c2f16; }
+  #ajustes.cristal .vidrio-btn{ background:#fffdf6; color:#3c2f16;
+                                border:1px solid var(--tablilla-borde); }
   /* CADA CONTROL CON SU PROPIA TABLILLA, Y DEL ANCHO JUSTO.
 
      Con el panel transparente se ve la hoja —que es de lo que se trata— pero
@@ -6092,7 +6119,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-SEP-26 10:56';
+window.GLOSS_BUILD = '28-SEP-26 11:24';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
