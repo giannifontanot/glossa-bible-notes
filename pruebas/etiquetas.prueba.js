@@ -1750,9 +1750,17 @@ const FUERA = `async () => {
      LOS TRES BOTONES DE GLOSAS, Y QUE SE EXCLUYAN.
 
      Eran dos —FILTRAR y ACTUALIZAR— y entra un tercero, LETRA, que abre el
-     tamaño, la negrita y el espaciado de la nota. Los tres abren cosas que
-     ocupan el mismo hueco, encima del índice, así que la regla que había entre
-     dos pasa a ser entre tres.
+     tamaño y el espaciado de la nota. Los tres abren cosas que ocupan el mismo
+     hueco, debajo de la fila de botones, así que la regla que había entre dos
+     pasa a ser entre tres.
+
+     Y LO QUE ABRE LETRA NACE DEBAJO DE SU BOTÓN, que es lo que se pidió al
+     verlo: el grupo estaba arriba del panel y el botón abajo con los otros
+     dos, así que tocabas «letra» y lo que aparecía te salía en la otra punta,
+     detrás del dedo. Filtrar no hacía eso. Se mira el orden del marcado Y la
+     posición en pantalla: lo primero se rompe al mover el bloque, lo segundo
+     al darle a alguien un `position` que lo saque del flujo, y son dos
+     maneras distintas de perder lo mismo.
 
      Lo que se afirma no es «hay tres botones» —un rótulo se puede cambiar sin
      romper nada— sino la regla: abrir uno cierra los otros dos, y apagados los
@@ -1788,16 +1796,39 @@ const FUERA = `async () => {
                     otros: PUERTAS.filter(x => x[0] !== k).map(x => x[0] + ':' + e[x[0]]) ,
                     soloUno: PUERTAS.filter(x => e[x[0]]).length });
     }
+    /* El bucle acaba dejando abierto ACTUALIZAR, que es el último; para mirar
+       dónde NACE el grupo de LETRA hay que volver a abrirlo. Medir un grupo
+       cerrado daría ceros y «está debajo» saldría verde sin probar nada. */
+    document.getElementById('btnLetraGlosas').click();
+    await pausa(420);
     return { rotulos: [...document.querySelectorAll('#ctrlEtiquetas .fila-etiq .btn')]
                         .map(b => b.textContent.trim()),
              deFabrica, rondas,
-             /* dentro de LETRA tienen que estar las tres cosas pedidas */
+             /* dentro de LETRA tienen que estar los dos mandos pedidos, y
+                escritos igual: tres piezas cada uno —menos, lista, más—. La
+                negrita que hubo aquí se quitó; se afirma que NO está, porque
+                volver a ponerla sin querer es tan fácil como quitarla. */
              dentro: (() => {
                const g = document.getElementById('ctrlLetra');
                if (!g) return null;
                return { tamano: !!g.querySelector('#fsGlosaAhora'),
-                        bold: !!g.querySelector('#chkNegritaGlosa'),
-                        espaciado: !!g.querySelector('#espaciadoGlosa') };
+                        espaciado: !!g.querySelector('#espGlosaAhora'),
+                        piezasEsp: ['#espGlosaDown','#espGlosaAhora','#espGlosaUp']
+                                     .every(s => !!g.querySelector(s)),
+                        sinBold: !document.getElementById('chkNegritaGlosa') };
+             })(),
+             /* Y dónde nace: detrás del botón en el marcado, y por debajo de
+                él en pantalla. El botón se deja abierto por la última ronda. */
+             sitio: (() => {
+               const b = document.getElementById('btnLetraGlosas');
+               const g = document.getElementById('ctrlLetra');
+               if (!b || !g) return null;
+               const rb = b.getBoundingClientRect(), rg = g.getBoundingClientRect();
+               return { enElDom: !!(b.compareDocumentPosition(g) &
+                                    Node.DOCUMENT_POSITION_FOLLOWING),
+                        visible: getComputedStyle(g).display !== 'none',
+                        debajo: rg.top >= rb.bottom - 1,
+                        botonAcaba: Math.round(rb.bottom), grupoEmpieza: Math.round(rg.top) };
              })() };
   });
   di('los rótulos', tres.rotulos.join(' · '));
@@ -1812,9 +1843,21 @@ const FUERA = `async () => {
   vale('y abrir una cierra las otras dos',
        tres.rondas.every(r => r.soloUno === 1),
        tres.rondas.map(r => r.abre + '→' + r.soloUno).join(' · '));
-  vale('dentro de LETRA están el tamaño, la negrita y el espaciado',
-       !!tres.dentro && tres.dentro.tamano && tres.dentro.bold && tres.dentro.espaciado,
+  vale('dentro de LETRA están el tamaño y el espaciado, los dos con sus tres piezas',
+       !!tres.dentro && tres.dentro.tamano && tres.dentro.espaciado && tres.dentro.piezasEsp,
        JSON.stringify(tres.dentro));
+  vale('  y ya no hay negrita de glosa', !!tres.dentro && tres.dentro.sinBold === true);
+  di('dónde nace el grupo', JSON.stringify(tres.sitio));
+  /* La validez primero: con el grupo cerrado, «está debajo» sale verde con
+     todo a cero y no prueba nada. Por eso la sonda vuelve a abrir LETRA antes
+     de medir: la última ronda del bucle deja abierto ACTUALIZAR. */
+  vale('(la prueba es válida) el grupo de LETRA está a la vista',
+       !!tres.sitio && tres.sitio.visible === true);
+  vale('LO QUE ABRE LETRA NACE DEBAJO DE SU BOTÓN',
+       !!tres.sitio && tres.sitio.debajo === true,
+       tres.sitio && ('botón acaba en ' + tres.sitio.botonAcaba +
+                      ', grupo empieza en ' + tres.sitio.grupoEmpieza));
+  vale('  y detrás de él en el marcado', !!tres.sitio && tres.sitio.enElDom === true);
 
   /* Y LA CAJA DE ESCRIBIR UNA ETIQUETA SE LEE.
 

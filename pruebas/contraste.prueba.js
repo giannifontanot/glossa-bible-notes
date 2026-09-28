@@ -283,10 +283,11 @@ async function ponerContraste(pagina, pct){
                   fino el ajuste con el mismo gesto—. Se pidió que no cambien de
                   largo al volverse transparente, así que éstas se quedan
                   del ancho del panel con su tablilla puesta.
-                  ERAN TRES Y AHORA SON CUATRO: el espaciado entró con el lote
-                  de la tipografía y es un riel como los otros, y de los que
-                  más precisión piden —su recorrido entero son siete pasos de
-                  una centésima de em—, así que le toca el mismo ancho. */
+                  FUERON CUATRO UN RATO: el espaciado entró como riel con el
+                  lote de la tipografía y volvió a salir al cambiarlo por el
+                  mando de tres piezas del tamaño —ocho topes repartidos en el
+                  ancho de un panel son treinta píxeles por tope, que un pulgar
+                  se salta—. Los que quedan son los tres filtros de siempre. */
                riel: f.classList.contains('riel-fila'),
                pct: Math.round(r.width / ancho * 100),
                conFondo: !hueco(cs.backgroundColor),
@@ -374,16 +375,16 @@ async function ponerContraste(pagina, pct){
   vale('NINGUNA ocupa el ancho del panel',
        ajustes.every(f => f.pct <= 90),
        ajustes.filter(f => f.pct > 90).map(f => f.que + ' ' + f.pct + '%'));
-  /* Y SON CUATRO, NI MÁS NI MENOS. Sin esta línea, el día que alguien le ponga
+  /* Y SON TRES, NI MÁS NI MENOS. Sin esta línea, el día que alguien le ponga
      la clase a media docena de filas la prueba de arriba se quedaría sin nada
      que mirar y seguiría en verde con el panel entero tapando la hoja.
-     Eran tres —sepia, contraste y brillo— hasta que entró el ESPACIADO con el
-     lote de la tipografía. El número se sube a mano y no se cambia por «tres o
-     más» a propósito: que aparezca una fila ancha que nadie pidió es el mismo
-     defecto que se vigila aquí, solo que por el otro lado. */
-  vale('(la prueba es válida) las filas de riel son exactamente cuatro',
-       rieles.length === 4, rieles.map(f => f.que).join(' · '));
-  vale('las cuatro del riel SÍ van anchas, que es lo que se pidió',
+     Fueron cuatro mientras el espaciado fue un riel; volvieron a tres al
+     cambiarlo por el mando de tres piezas. El número se escribe a mano y no se
+     cambia por «tres o más» a propósito: que aparezca una fila ancha que nadie
+     pidió es el mismo defecto que se vigila aquí, solo que por el otro lado. */
+  vale('(la prueba es válida) las filas de riel son exactamente tres',
+       rieles.length === 3, rieles.map(f => f.que).join(' · '));
+  vale('las tres del riel SÍ van anchas, que es lo que se pidió',
        rieles.every(f => f.pct > 90 && f.conFondo),
        rieles.map(f => f.que + ' ' + f.pct + '% · tablilla ' + f.conFondo).join(' · '));
   /* Y la mitad largas es poco: si la media se dispara es que algo volvió a
@@ -403,9 +404,8 @@ async function ponerContraste(pagina, pct){
      en un teléfono y de unos 505 a 150 en pantalla ancha. Y el recorrido no es
      decoración: cuanto más largo el riel, más fino el ajuste con el mismo
      gesto, que es la razón por la que estas filas son anchas desde que
-     existen. Son cuatro desde que el espaciado entró en el panel, y se mide
-     también el suyo: si un riel nuevo se quedara fuera de esta cuenta, el
-     fallo volvería por la puerta que nadie mira.
+     existen. Si un riel nuevo se quedara fuera de esta cuenta, el fallo
+     volvería por la puerta que nadie mira.
 
      SE COMPARAN LOS DOS MODOS ENTRE SÍ, no contra un número: cuánto mide el
      riel depende del ancho del panel, de la letra y de la pantalla, así que
@@ -417,7 +417,7 @@ async function ponerContraste(pagina, pct){
   titulo('el riel no cambia de largo al volverse transparente');
   const largos = await pagina.evaluate(async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
-    const lee = () => ['espaciado','sepia','contraste','brillo'].map(id =>
+    const lee = () => ['sepia','contraste','brillo'].map(id =>
       Math.round(document.getElementById(id).getBoundingClientRect().width));
     const vidrio = () => document.getElementById('btnVidrio');
     /* Se parte de opaco, sea cual sea el estado en que lo dejó el bloque de
@@ -432,7 +432,7 @@ async function ponerContraste(pagina, pct){
     return { opaco, cristal, vuelta: lee(),
              modoFinal: document.getElementById('ajustes').classList.contains('cristal') };
   });
-  di('los cuatro rieles', JSON.stringify(largos));
+  di('los tres rieles', JSON.stringify(largos));
   vale('(la prueba es válida) los rieles miden algo',
        largos.opaco.every(n => n > 60), largos.opaco.join(' · '));
   vale('EL LARGO NO CAMBIA AL VOLVERSE TRANSPARENTE',
@@ -845,7 +845,7 @@ async function ponerContraste(pagina, pct){
   vale('sin llevarse el contraste por delante', sinB.rielC === '80', sinB.rielC);
 
   /* ──────────────────────────────────────────────────────────────
-     EL ESPACIADO Y LA NEGRITA DEL LIBRO, Y DÓNDE NO CAEN.
+     EL ESPACIADO DEL LIBRO, Y DÓNDE NO CAE.
 
      Este bloque vive aquí y no en otra suite por lo que esta suite sabe hacer:
      su asunto es exactamente ése —dónde cae un ajuste del panel de Formato y
@@ -858,9 +858,14 @@ async function ponerContraste(pagina, pct){
      glosa (se rompe si alguien borra la línea de .gl que la saca de ahí). Una
      sola de las dos dejaría pasar la mitad.
 
+     AQUÍ SE MEDÍA TAMBIÉN UNA NEGRITA, y se fue del programa: «el bold no
+     ayuda a ver mejor el texto». Lo que queda de ella en este bloque es una
+     línea que exige que el peso NO se mueva — devolver una casilla sin querer
+     es tan fácil como quitarla, y el sitio donde se notaría es justo éste.
+
      Y la línea de validez es la de siempre: si el riel no hubiera movido nada,
      «la glosa no cambió» saldría verde sin haber probado nada. */
-  titulo('el espaciado y la negrita llegan al libro y NO a la glosa');
+  titulo('el espaciado llega al libro y NO a la glosa');
   await conGlosas(pagina);
   /* Y A UNA HOJA QUE DE VERDAD LAS TENGA, que es lo que faltaba y lo tumbó en
      el banco: `texto true · glosa false`. Poner las glosas de ejemplo en el
@@ -897,23 +902,25 @@ async function ponerContraste(pagina, pct){
     };
     const antes = lee();
     await irA('formato');
-    const c = document.getElementById('chkNegrita');
-    c.checked = true; c.dispatchEvent(new Event('change', { bubbles:true }));
-    await pausa(900);
-    const r = document.getElementById('espaciado');
-    r.value = String(r.max);          /* el tope, que es donde más se nota */
-    r.dispatchEvent(new Event('input', { bubbles:true }));
+    /* El mando es el mismo que el del tamaño: menos, lista, más. Se va al tope
+       por la lista —que es donde más se nota— y luego se baja un punto con el
+       botón, que es la otra mitad del mando y se rompe aparte. */
+    const s = document.getElementById('espAhora');
+    const topes = [...s.options].map(o => +o.value);
+    s.value = String(Math.max(...topes));
+    s.dispatchEvent(new Event('change', { bubbles:true }));
     await pausa(1100);
     const despues = lee();
-    /* y se devuelve todo a lo de fábrica, que los bloques de abajo miden
-       colores sobre una hoja que no tiene por qué estar en negrita */
-    c.checked = false; c.dispatchEvent(new Event('change', { bubbles:true }));
-    await pausa(700);
-    r.value = '0'; r.dispatchEvent(new Event('input', { bubbles:true }));
+    document.getElementById('espDown').click();
+    await pausa(1000);
+    const trasElBoton = { ...lee(), valor: +s.value };
+    /* y se devuelve a lo de fábrica, que los bloques de abajo miden colores
+       sobre una hoja que no tiene por qué llevar ajustes encima */
+    s.value = '0'; s.dispatchEvent(new Event('change', { bubbles:true }));
     await pausa(900);
-    return { antes, despues, devuelto: lee(),
-             topes: { min: document.getElementById('espaciado').min,
-                      max: document.getElementById('espaciado').max } };
+    return { antes, despues, trasElBoton, devuelto: lee(),
+             topes: { min: Math.min(...topes), max: Math.max(...topes),
+                      cuantos: topes.length } };
   });
   di('el libro', letra.antes.libroPeso + ' / ' + letra.antes.libroEsp +
      '  →  ' + letra.despues.libroPeso + ' / ' + letra.despues.libroEsp);
@@ -922,22 +929,27 @@ async function ponerContraste(pagina, pct){
   vale('(la prueba es válida) hay texto y hay glosa que mirar',
        letra.antes.hayTexto && letra.antes.hayGlosa,
        'texto ' + letra.antes.hayTexto + ' · glosa ' + letra.antes.hayGlosa);
-  vale('(la prueba es válida) el riel movió algo de verdad',
+  vale('EL ESPACIADO LLEGA AL TEXTO DEL LIBRO',
        letra.antes.libroEsp !== letra.despues.libroEsp,
        letra.antes.libroEsp + ' → ' + letra.despues.libroEsp);
-  vale('EL TEXTO DEL LIBRO SE PONE EN NEGRITA',
-       letra.despues.libroPeso !== letra.antes.libroPeso &&
-       Number(letra.despues.libroPeso) > Number(letra.antes.libroPeso),
-       letra.antes.libroPeso + ' → ' + letra.despues.libroPeso);
-  vale('Y LA GLOSA NO SE ENTERA, ni del peso ni del espaciado',
-       letra.despues.glosaPeso === letra.antes.glosaPeso &&
-       letra.despues.glosaEsp === letra.antes.glosaEsp,
-       letra.despues.glosaPeso + ' / ' + letra.despues.glosaEsp);
-  /* El riel es de ajuste FINO y sus topes lo dicen: de −2 a +5 centésimas de
-     em. Si alguien lo abre a lo bestia —0.12 em son 12— esto lo canta. */
-  vale('  y el riel sigue siendo de ajuste fino',
-       Number(letra.topes.min) >= -5 && Number(letra.topes.max) <= 8,
-       letra.topes.min + ' … ' + letra.topes.max);
+  vale('  y el botón de menos baja un tope, no dos',
+       letra.trasElBoton.valor === letra.topes.max - 1, letra.trasElBoton.valor);
+  vale('Y LA GLOSA NO SE ENTERA',
+       letra.despues.glosaEsp === letra.antes.glosaEsp, letra.despues.glosaEsp);
+  /* Y EL PESO NO SE MUEVE, ni aquí ni en la nota: la negrita se quitó del
+     programa y esta línea es la que se cae el día que alguien la devuelva sin
+     querer. */
+  vale('  y nada de esto engorda la letra',
+       letra.despues.libroPeso === letra.antes.libroPeso &&
+       letra.despues.glosaPeso === letra.antes.glosaPeso,
+       letra.despues.libroPeso + ' / ' + letra.despues.glosaPeso);
+  /* El mando es de ajuste FINO y sus topes lo dicen: de −2 a +5 centésimas de
+     em, ocho en total. Si alguien lo abre a lo bestia —0.12 em son 12— esto lo
+     canta, y si alguien deja la lista a medio armar, también. */
+  vale('  y el mando sigue siendo de ajuste fino',
+       letra.topes.min >= -5 && letra.topes.max <= 8 && letra.topes.cuantos ===
+         letra.topes.max - letra.topes.min + 1,
+       letra.topes.min + ' … ' + letra.topes.max + ' (' + letra.topes.cuantos + ' topes)');
   vale('  y todo vuelve a lo de fábrica al soltarlo',
        letra.devuelto.libroPeso === letra.antes.libroPeso &&
        letra.devuelto.libroEsp === letra.antes.libroEsp,
@@ -961,8 +973,13 @@ async function ponerContraste(pagina, pct){
      margen y del pie salían con la tipografía de fábrica: caja de un tamaño y
      letra de otro. Está arreglado poniéndolo en la raíz del SVG, al lado de
      --fs-glosa, pero esa cadena se arma dentro de buildSVG y no hay manera de
-     leerla desde aquí. Se reprodujo a mano antes de tocarla —cuerpo 600, y
-     margen y pie 400— y queda anotado que no tiene prueba detrás. */
+     leerla desde aquí. Se reprodujo a mano antes de tocarla y queda anotado
+     que no tiene prueba detrás.
+
+     Lo que se recorre es el ESPACIADO. Fue la negrita mientras existió —era
+     más fácil de leer de un vistazo, un 600 contra un 400— y al quitarla el
+     bloque pasa al otro ajuste, que viaja por el mismo camino y se rompe
+     exactamente igual. */
   titulo('el ajuste de la glosa la sigue a sus tres sitios');
   const sitios = await pagina.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
@@ -973,15 +990,15 @@ async function ponerContraste(pagina, pct){
       const t = (vis()||document).querySelector('.pestanas [data-sec="'+sec+'"]');
       if (t){ t.click(); await pausa(950); }
     };
-    /* se enciende la negrita de la GLOSA por su mando, el de GLOSAS > LETRA */
+    /* se separa la letra de la GLOSA por su mando, el de GLOSAS > LETRA */
     await irA('glosas');
     const puerta = document.getElementById('btnLetraGlosas');
     if (puerta && document.getElementById('ctrlEtiquetas').classList.contains('sin-letra')){
       puerta.click(); await pausa(420);
     }
-    const c = document.getElementById('chkNegritaGlosa');
-    if (!c) return { falta:'sin mando de letra de glosa' };
-    c.checked = true; c.dispatchEvent(new Event('change', { bubbles:true }));
+    const s = document.getElementById('espGlosaAhora');
+    if (!s) return { falta:'sin mando de letra de glosa' };
+    s.value = '5'; s.dispatchEvent(new Event('change', { bubbles:true }));
     await pausa(900);
     const out = {};
     for (const lay of ['margin', 'below', 'foot']){
@@ -989,20 +1006,20 @@ async function ponerContraste(pagina, pct){
       if (!b){ out[lay] = 'sin botón'; continue; }
       b.click(); await pausa(1200);
       const g = document.querySelector('.gl');
-      out[lay] = g ? getComputedStyle(g).fontWeight : 'sin glosa';
+      out[lay] = g ? getComputedStyle(g).letterSpacing : 'sin glosa';
     }
-    /* se devuelve la negrita, que los bloques de abajo no la esperan */
-    c.checked = false; c.dispatchEvent(new Event('change', { bubbles:true }));
+    /* se devuelve el ajuste, que los bloques de abajo no lo esperan */
+    s.value = '0'; s.dispatchEvent(new Event('change', { bubbles:true }));
     await pausa(800);
     return out;
   });
-  di('el peso de la nota en cada sitio', JSON.stringify(sitios));
+  di('el espaciado de la nota en cada sitio', JSON.stringify(sitios));
   vale('(la prueba es válida) se pudo mirar la nota en los tres sitios',
        !sitios.falta && ['margin','below','foot']
-         .every(k => /^[0-9]+$/.test(String(sitios[k]))), JSON.stringify(sitios));
-  vale('LA NEGRITA DE LA GLOSA LA SIGUE A LOS TRES SITIOS',
+         .every(k => /px$/.test(String(sitios[k]))), JSON.stringify(sitios));
+  vale('EL ESPACIADO DE LA GLOSA LA SIGUE A LOS TRES SITIOS',
        !sitios.falta && ['margin','below','foot']
-         .every(k => Number(sitios[k]) > 400), JSON.stringify(sitios));
+         .every(k => parseFloat(sitios[k]) > 0), JSON.stringify(sitios));
 
   await cerrarParcial(sesion, 'teléfono');
 
