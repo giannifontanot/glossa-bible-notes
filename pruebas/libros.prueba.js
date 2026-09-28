@@ -998,5 +998,87 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        secs.map((k,i) => k + ' ' + todos[i].eje).join(' · '));
   await cerrarParcial(sesP, 'los cinco paneles');
 
+  /* ================================================================
+     LA BURBUJA ABRE POR DONDE SE CERRÓ.
+
+     «Te pedí por default el tab de LIBROS, pero no, por favor haz que aparezca
+     el último que dejamos abierto.» Lo contrario de lo que se había pedido
+     antes, y con razón: quien está una tarde poniendo etiquetas abre y cierra
+     ese panel veinte veces, y Libros es justo el que no quería.
+
+     TRES COSAS, Y LAS TRES SE ROMPEN SOLAS:
+
+     · QUE RECUERDE. Sin esto, cualquier vuelta al `'libros'` escrito a pelo
+       —había tres puertas que lo hacían— pasa desapercibida.
+     · QUE SOBREVIVA A CERRAR EL LECTOR, que es donde vive la diferencia entre
+       una variable y algo guardado. Se prueba recargando.
+     · Y QUE UNA SECCIÓN QUE NO EXISTE NO DEJE EL PANEL EN BLANCO. En el
+       almacén puede quedar el nombre de una pestaña retirada —ya pasó con la
+       fila de versión de Formato—, y abrir con ella sería un panel que no
+       aparece y una barra sin nada encendido. Se prueba escribiendo una
+       inventada a mano, que es la única forma de llegar a ese estado.
+
+     SE MIRA LO QUE SE VE —qué panel está puesto y qué pestaña está encendida—
+     y no sólo la clave guardada: la clave puede estar perfecta y la burbuja
+     abrir por otro lado, que es justo el fallo que esto vendría a cazar. */
+  titulo('la burbuja abre por la última pestaña que se dejó');
+  const sesM = await abrir();
+  const pM = sesM.pagina;
+  const abrirYver = () => pM.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    document.getElementById('pgCabeza').click();
+    await z(1100);
+    const vis = () => [...document.querySelectorAll('.rollo')]
+      .find(x => getComputedStyle(x).display !== 'none');
+    const v = vis();
+    /* Libros no es un rollo: su panel es #canto y lo abre abrirCanto. */
+    const cantoPuesto = document.getElementById('canto')
+                          .classList.contains('abierto');
+    const aqui = (v || document).querySelector('.pestanas .aqui');
+    return { panel: v ? v.id : (cantoPuesto ? 'canto' : null),
+             encendida: aqui ? aqui.dataset.sec : null,
+             guardado: localStorage.getItem('glossa:seccion:v1') };
+  });
+  const primera = await abrirYver();
+  di('la primera vez', JSON.stringify(primera));
+  vale('(la prueba es válida) de estreno abre por Libros',
+       primera.panel === 'canto' && primera.encendida === 'libros',
+       JSON.stringify(primera));
+  /* Se cambia a GLOSAS y se cierra, que es el gesto del encargo. */
+  await pM.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const vis = () => [...document.querySelectorAll('.rollo')]
+      .find(x => getComputedStyle(x).display !== 'none');
+    (vis() || document).querySelector('.pestanas [data-sec="glosas"]').click();
+    await z(1000);
+    document.getElementById('pgCabeza').click();       /* cerrar */
+    await z(900);
+  });
+  const trasGlosas = await abrirYver();
+  di('tras dejar GLOSAS y cerrar', JSON.stringify(trasGlosas));
+  vale('VUELVE A ABRIR POR DONDE SE CERRÓ',
+       trasGlosas.panel === 'etiquetas' && trasGlosas.encendida === 'glosas',
+       JSON.stringify(trasGlosas));
+  /* Y tras recargar: la variable se pierde, lo guardado no. */
+  await pM.evaluate(async () => {
+    document.getElementById('pgCabeza').click();
+    await new Promise(z => setTimeout(z, 700));
+  });
+  await pM.reload(); await pM.waitForTimeout(2600);
+  const trasVolverAAbrirElLector = await abrirYver();
+  di('tras recargar', JSON.stringify(trasVolverAAbrirElLector));
+  vale('  y también después de cerrar el lector',
+       trasVolverAAbrirElLector.panel === 'etiquetas' && trasVolverAAbrirElLector.encendida === 'glosas',
+       JSON.stringify(trasVolverAAbrirElLector));
+  /* Una sección que no existe: a Libros, y sin dejar la barra apagada. */
+  await pM.evaluate(() => localStorage.setItem('glossa:seccion:v1', 'inventada'));
+  await pM.reload(); await pM.waitForTimeout(2600);
+  const conBasura = await abrirYver();
+  di('con una sección que no existe', JSON.stringify(conBasura));
+  vale('UNA SECCIÓN QUE NO EXISTE CAE EN LIBROS',
+       conBasura.panel === 'canto' && conBasura.encendida === 'libros',
+       JSON.stringify(conBasura));
+  await cerrarParcial(sesM, 'la pestaña recordada');
+
   await cerrar(sesion);
 })();

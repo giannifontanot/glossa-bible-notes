@@ -13,8 +13,8 @@
    Y una tercera que no se ve pero se rompe sola: poner una etiqueta NO puede
    repintar el panel, porque el panel lleva dentro la caja de escribir y
    repintarlo se llevaría por delante el foco, el cursor y lo escrito. */
-const { abrir, otraPagina, listo, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
-        APP, RAIZ, TELEFONO } = require('./comun');
+const { abrir, abrirEnPortada, otraPagina, listo, cerrar, cerrarParcial, conGlosas,
+        di, vale, titulo, APP, RAIZ, TELEFONO } = require('./comun');
 
 /* Abrir el panel sobre las primeras letras de un versículo, como lo abre un
    dedo: se PINTA y se toca encima. Se seleccionaba, y ya no se puede —el
@@ -3029,147 +3029,104 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        /no es JSON válido/i.test(fallo.renglon.texto || ''), fallo.renglon);
 
   /* ================================================================
-     EL RESPALDO DEL DÍA: QUE BAJE EL ARCHIVO, UNA VEZ AL DÍA.
+     EL RESPALDO NO SE BAJA SOLO.
 
-     Lo pidió el dueño del repo —«me gustaría un auto-save del backup, por lo
-     menos una vez al día... la única manera de hacerlo consistente es ejecutar
-     cuando la aplicación abre»— y, tras ver una primera versión que guardaba
-     copias DENTRO del navegador, lo corrigió sin rodeos: «si no estás
-     descargando un archivo, entonces ¿para qué sirve todo eso? Lo que quiero
-     es que descargues». Así que lo que se vigila aquí es la descarga, y las
-     copias internas y su botón de devolver se fueron con sus pruebas.
+     Aquí vivió dos días la prueba de un respaldo automático —una al día, al
+     entrar por «continue»— y se va con él: «que no descargue automáticamente
+     el respaldo, no me gusta que salga el mensaje de "acepta el download"».
 
-     LO QUE SE PRUEBA, Y POR QUÉ CADA COSA:
+     LO QUE QUEDA VIGILADO ES LO CONTRARIO, y hace falta: que abrir el lector no
+     baje nada. Un archivo que aparece solo es exactamente lo que se pidió
+     quitar, y es de las cosas que vuelven sin querer —basta con que alguien
+     cuelgue una llamada a bajarRespaldo de algún arranque—. Se escucha el
+     evento de descarga del navegador durante todo el camino de entrada, que es
+     donde estaba puesto: la tapa, el botón de entrar y los primeros gestos.
 
-     · QUE BAJE UN ARCHIVO DE VERDAD. No que se llame a una función: se escucha
-       el evento de descarga del navegador, que es lo único que distingue «se
-       intentó» de «el lector tiene su archivo».
-     · Y QUE SALGA DEL PRIMER TOQUE. Ésta es la que guarda la decisión de
-       diseño: una descarga sin gesto del lector es una «descarga automática»
-       que el navegador puede bloquear. Se comprueba las dos mitades —antes del
-       toque no hay nada, después sí—, porque «baja al abrir» y «baja al tocar»
-       se confunden si sólo se mira el final.
-     · UNA AL DÍA Y NO UNA POR ARRANQUE. Quien abre el lector seis veces en una
-       mañana tendría, sin esto, seis archivos iguales en Descargas.
-     · EL NOMBRE LLEVA EL DÍA DE ESTE RELOJ. Con el día en UTC, el archivo de
-       una sesión de noche en Dallas saldría fechado mañana y el del día
-       siguiente lo pisaría. Se mira contra el día local de la página; el
-       testigo de que eso distingue algo está en el bloque de los husos, abajo.
-
-     LO QUE NO SE PRUEBA, dicho para que no se lea como cubierto: que el
-     archivo llegue a la carpeta de Descargas del teléfono del lector. Eso ya
-     no es de este programa —lo decide el navegador, y iOS además pregunta—, y
-     una prueba no puede contestarlo. */
-  titulo('el respaldo del día baja solo, una vez al día');
-  const CLAVE_BAJADA = 'glossa:respaldo-bajado:v1';
-  const bajadas = [];
-  p.on('download', d => bajadas.push(d.suggestedFilename()));
-  /* Un toque de dedo de verdad, con su PointerEvent: es lo que el navegador
-     cuenta como activación del usuario, y es de lo que cuelga la descarga. */
-  const tocar = (id) => p.evaluate(async n => {
+     Y SE PRUEBA TAMBIÉN QUE EL BOTÓN SIGUE BAJANDO, que es la otra mitad: sin
+     ella, «no baja nada» se cumpliría igual de bien con un Exportar roto, y el
+     lector se quedaría sin ninguna manera de sacar sus glosas. */
+  titulo('el respaldo no se baja solo, pero el botón sí baja');
+  const sesTapa = await abrirEnPortada();
+  const pT = sesTapa.pagina;
+  const bajadasT = [];
+  pT.on('download', d => bajadasT.push(d.suggestedFilename()));
+  let conTapa = true;
+  try {
+    await pT.waitForFunction(() => {
+      const t = document.getElementById('portada');
+      return !!t && !t.classList.contains('fuera') &&
+             !!document.querySelector('#pgBody .v');
+    }, null, { timeout: 15000 });
+  } catch(e){ conTapa = false; }
+  /* Un toque de dedo en la tapa, con su PointerEvent: es lo que el navegador
+     cuenta como activación del usuario, o sea lo que una descarga necesita
+     para no ser bloqueada. Si algo quedara colgado del primer gesto, éste es
+     el que lo dispararía. */
+  const glosasVivas = await pT.evaluate(async () => {
+    const t = document.getElementById('portada');
+    const r = t.getBoundingClientRect();
+    const o = { bubbles:true, cancelable:true, pointerId:51, pointerType:'touch',
+                clientX: Math.round(r.left + r.width / 2), clientY: Math.round(r.top + 30) };
+    t.dispatchEvent(new PointerEvent('pointerdown', o));
+    t.dispatchEvent(new PointerEvent('pointerup', o));
+    await new Promise(z => setTimeout(z, 900));
+    return JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length;
+  });
+  vale('(la prueba es válida) la sesión nueva enseña la tapa', conTapa === true);
+  vale('(la prueba es válida) y hay glosas que se podrían bajar',
+       glosasVivas > 0, glosasVivas);
+  di('tras un toque en la tapa', JSON.stringify(bajadasT));
+  vale('UN TOQUE EN LA TAPA NO BAJA NADA', bajadasT.length === 0, bajadasT.join(' · '));
+  await listo(pT);                     /* esto pulsa «continue» */
+  await pT.waitForTimeout(1500);
+  di('tras entrar al libro', JSON.stringify(bajadasT));
+  vale('Y ENTRAR AL LIBRO TAMPOCO', bajadasT.length === 0, bajadasT.join(' · '));
+  /* Y un gesto más ya dentro, por si lo colgado fuera del primero de la hoja. */
+  await pT.evaluate(async () => {
     const e = document.getElementById('stage');
-    const o = { bubbles:true, cancelable:true, pointerId:n, pointerType:'touch',
+    const o = { bubbles:true, cancelable:true, pointerId:52, pointerType:'touch',
                 clientX: 9, clientY: 9 };
     e.dispatchEvent(new PointerEvent('pointerdown', o));
     e.dispatchEvent(new PointerEvent('pointerup', o));
     await new Promise(z => setTimeout(z, 900));
-  }, id);
-  await p.evaluate(k => localStorage.removeItem(k), CLAVE_BAJADA);
-  await p.reload(); await p.waitForTimeout(2600);
-  const marcasVivas = await p.evaluate(() => {
-    try { return JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length; }
-    catch(e){ return -1; }
   });
-  const antesDelToque = { bajadas: bajadas.length,
-    apuntado: await p.evaluate(k => localStorage.getItem(k), CLAVE_BAJADA) };
-  di('antes de tocar', JSON.stringify(antesDelToque));
-  vale('(la prueba es válida) el lector tiene glosas que respaldar',
-       marcasVivas > 0, marcasVivas);
-  vale('ANTES DEL PRIMER TOQUE NO BAJA NADA',
-       antesDelToque.bajadas === 0 && antesDelToque.apuntado === null,
-       JSON.stringify(antesDelToque));
-  await tocar(31);
-  await p.waitForTimeout(900);
-  const diaLocalEnPagina = await p.evaluate(() => {
+  vale('  ni el primer toque de la hoja', bajadasT.length === 0, bajadasT.join(' · '));
+  /* EL BOTÓN, EN CAMBIO, SÍ. Se llega a él como se llega con un dedo: pestaña
+     de RESPALDO y toque. */
+  const nombre = await pT.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    document.getElementById('pgCabeza').click(); await z(900);
+    const vis = () => [...document.querySelectorAll('.rollo')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    const t = (vis() || document).querySelector('.pestanas [data-sec="respaldo"]');
+    if (t) t.click();
+    await z(900);
+    const b = document.getElementById('btnExportar');
+    if (!b) return { falta:'el botón de Exportar' };
+    b.click();
+    await z(1200);
     const d = new Date();
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
-           '-' + String(d.getDate()).padStart(2, '0');
+    return { dia: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+                  '-' + String(d.getDate()).padStart(2, '0') };
   });
-  di('tras el primer toque', JSON.stringify(bajadas));
-  vale('AL PRIMER TOQUE BAJA EL ARCHIVO', bajadas.length === 1, bajadas.join(' · '));
-  vale('  con nombre de respaldo y fechado con el día de este reloj',
-       bajadas.length === 1 &&
-       bajadas[0] === 'gloss-bible-respaldo-' + diaLocalEnPagina + '.json',
-       bajadas[0] + ' contra ' + diaLocalEnPagina);
-  vale('  y queda apuntado que hoy ya se hizo',
-       (await p.evaluate(k => localStorage.getItem(k), CLAVE_BAJADA)) === diaLocalEnPagina);
-  /* Y OTRO TOQUE MÁS, EN LA MISMA SESIÓN: el oyente se quita solo, así que ni
-     siquiera se vuelve a preguntar. */
-  await tocar(32);
-  await p.waitForTimeout(600);
-  vale('  y un segundo toque no baja otro', bajadas.length === 1, bajadas.length);
-  /* --- volver a abrir el mismo día --- */
-  await p.reload(); await p.waitForTimeout(2600);
-  await tocar(33);
-  await p.waitForTimeout(900);
-  di('tras volver a abrir el mismo día', JSON.stringify(bajadas));
-  vale('VOLVER A ABRIR EL MISMO DÍA NO BAJA OTRO',
-       bajadas.length === 1, bajadas.join(' · '));
-  /* --- y con el teclado también, que es por donde se colaba --- */
-  /* LO LEVANTÓ LA REVISIÓN DE CODEX, y era un agujero de los que no se ven:
-     esto escuchaba sólo `pointerup`, y quien maneja el lector con el teclado
-     —o con un lector de pantalla— activa los botones con Enter o con la barra,
-     que mandan `click` y nunca `pointerup`. El respaldo del día no se hacía en
-     toda la sesión y nadie se enteraba.
-
-     Y SE PRUEBA ANTES QUE NADA QUE UNA TECLA MUERTA NO LO GASTA: una pulsación
-     de Shift sola no cuenta como activación para el navegador, así que si
-     consumiera el único disparo la descarga se quedaría sin permiso. Primero
-     Shift —y nada—, después Enter —y el archivo—, que es el orden en el que
-     esto se rompe de verdad.
-
-     LO QUE ESTA PRUEBA NO PUEDE DECIR, dicho aquí porque la casa lo pide: un
-     evento despachado a mano siempre llega, y además el navegador no le da la
-     activación de usuario que sí da a una tecla de verdad. O sea que esto
-     comprueba EL CABLEADO —que el oyente existe y que la cuenta del día se
-     respeta— y no que Chrome deje bajar el archivo desde el teclado. Eso es
-     del navegador y se mira con las manos. */
-  await p.evaluate(k => localStorage.setItem(k, '2000-01-01'), CLAVE_BAJADA);
-  await p.reload(); await p.waitForTimeout(2600);
-  const conTeclado = async (tecla) => p.evaluate(async t => {
-    document.dispatchEvent(new KeyboardEvent('keydown',
-      { key:t, bubbles:true, cancelable:true }));
-    await new Promise(z => setTimeout(z, 900));
-  }, tecla);
-  await conTeclado('Shift');
-  await p.waitForTimeout(600);
-  di('tras pulsar Shift', JSON.stringify(bajadas.length));
-  vale('UNA TECLA MUERTA NO GASTA EL DISPARO',
-       bajadas.length === 1, bajadas.length);
-  await conTeclado('Enter');
-  await p.waitForTimeout(900);
-  di('tras pulsar Enter', JSON.stringify(bajadas));
-  vale('CON EL TECLADO TAMBIÉN BAJA', bajadas.length === 2, bajadas.join(' · '));
-
-  /* --- y mañana sí --- */
-  /* Se le cambia el día apuntado, que es la única memoria que tiene esto. No
-     hay forma de adelantar el reloj del navegador sin sustituir Date, y eso no
-     se hace en esta casa: lo que se quiere probar es que la cuenta es POR DÍA
-     y no «una y ya», y para eso basta con que el día apuntado sea otro. */
-  await p.evaluate(k => localStorage.setItem(k, '2000-01-01'), CLAVE_BAJADA);
-  await p.reload(); await p.waitForTimeout(2600);
-  await tocar(34);
-  await p.waitForTimeout(900);
-  di('con el día apuntado en otro día', JSON.stringify(bajadas));
-  vale('CON EL DÍA CAMBIADO SÍ BAJA OTRO', bajadas.length === 3, bajadas.join(' · '));
+  await pT.waitForTimeout(900);
+  di('al tocar Exportar', JSON.stringify({ bajadasT, esperado: nombre.dia }));
+  vale('(la prueba es válida) el botón de Exportar está', !nombre.falta, nombre.falta || 'sí');
+  vale('EL BOTÓN SÍ BAJA EL ARCHIVO', bajadasT.length === 1, bajadasT.join(' · '));
+  vale('  con nombre de respaldo y el día de este reloj',
+       bajadasT.length === 1 &&
+       bajadasT[0] === 'gloss-bible-respaldo-' + nombre.dia + '.json',
+       bajadasT[0] + ' contra ' + nombre.dia);
+  await cerrarParcial(sesTapa, 'sin descarga automática');
 
   /* ================================================================
      Y EL DÍA ES EL DE CASA, NO EL DE GREENWICH. Aparte, porque pide dos
      navegadores con husos distintos.
 
      POR QUÉ IMPORTA: con el día en UTC, el de Dallas cambiaría de fecha a las
-     seis o siete de la tarde, y el archivo de una sesión de noche saldría
-     fechado mañana —y al día siguiente, el de verdad lo pisaría—. El defecto
+     seis o siete de la tarde, y el archivo que exportaras de noche saldría
+     fechado mañana —y al día siguiente, el de verdad lo pisaría en la carpeta
+     de Descargas—. El defecto
      no se ve casi nunca —las dos fechas coinciden la mayor parte del día— y
      por eso una prueba en el huso de la máquina que corre las pruebas no vale:
      saldría verde con el fallo dentro.
@@ -3190,22 +3147,23 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     const bajadas2 = [];
     p2.on('download', d => bajadas2.push(d.suggestedFilename()));
     await listo(p2);
-    await p2.evaluate(async () => {
-      const e = document.getElementById('stage');
-      const o = { bubbles:true, cancelable:true, pointerId:41, pointerType:'touch',
-                  clientX: 9, clientY: 9 };
-      e.dispatchEvent(new PointerEvent('pointerdown', o));
-      e.dispatchEvent(new PointerEvent('pointerup', o));
-      await new Promise(z => setTimeout(z, 900));
-    });
-    await p2.waitForTimeout(900);
-    const r = await p2.evaluate(() => {
+    /* Se baja por donde se baja ahora: el botón. */
+    const r = await p2.evaluate(async () => {
+      const z = ms => new Promise(x => setTimeout(x, ms));
+      document.getElementById('pgCabeza').click(); await z(900);
+      const vis = () => [...document.querySelectorAll('.rollo')]
+        .find(x => getComputedStyle(x).display !== 'none');
+      const t = (vis() || document).querySelector('.pestanas [data-sec="respaldo"]');
+      if (t) t.click();
+      await z(900);
+      document.getElementById('btnExportar').click();
+      await z(1200);
       const d = new Date();
       const local = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
                     '-' + String(d.getDate()).padStart(2, '0');
-      return { local, utc: new Date().toISOString().slice(0, 10),
-               apuntado: localStorage.getItem('glossa:respaldo-bajado:v1') };
+      return { local, utc: new Date().toISOString().slice(0, 10) };
     });
+    await p2.waitForTimeout(900);
     fechados.push({ huso, archivo: bajadas2[0] || null, ...r });
     di(huso, JSON.stringify(fechados[fechados.length - 1]));
     await cerrarParcial(s2, huso);
@@ -3218,8 +3176,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   vale('EL ARCHIVO SE FECHA CON EL DÍA LOCAL EN LOS DOS HUSOS',
        fechados.every(f => f.archivo === 'gloss-bible-respaldo-' + f.local + '.json'),
        fechados.map(f => f.archivo + ' contra ' + f.local).join(' · '));
-  vale('  y lo apuntado también', fechados.every(f => f.apuntado === f.local),
-       fechados.map(f => f.apuntado).join(' · '));
+
 
   await cerrar(sesion);
 })();

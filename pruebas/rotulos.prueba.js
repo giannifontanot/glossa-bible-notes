@@ -63,15 +63,32 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo,
     return r;
   }));
 
-  titulo('el de arriba abre Libros');
-  vale('abre', await p.evaluate(async () => {
+  /* EL TITULILLO ABRE LA BURBUJA POR LA ÚLTIMA PESTAÑA QUE SE DEJÓ, y esto
+     decía «abre Libros» hasta que se pidió lo contrario: «te pedí por default
+     el tab de LIBROS, pero no, por favor haz que aparezca el último que dejamos
+     abierto». En esta prueba la respuesta sigue siendo Libros —este fichero no
+     toca ninguna pestaña, así que no hay otra que recordar—, pero lo que se
+     afirma ya no es el nombre: es que abre por la que está guardada. Si algún
+     día alguien mete un cambio de pestaña más arriba, esta línea sigue
+     diciendo la verdad en vez de ponerse roja por lo que no es.
+     La de más abajo —Enter en el titulillo— pasa por lo mismo y sigue mirando
+     #canto: vale por la misma razón, que aquí no se cambia de pestaña nunca. */
+  titulo('el de arriba abre la burbuja por donde se quedó');
+  const puertaDeArriba = await p.evaluate(async () => {
+    const guardado = localStorage.getItem('glossa:seccion:v1') || 'libros';
     document.getElementById('pgCabeza').click();
     await new Promise(z => setTimeout(z, 900));
-    const ok = document.getElementById('canto').classList.contains('abierto');
+    const DONDE = { libros:'canto', glosas:'etiquetas', encuentros:'encuentros',
+                    formato:'ajustes', respaldo:'respaldo', oracion:'oracion' };
+    const el = document.getElementById(DONDE[guardado]);
+    const abierto = !!el && getComputedStyle(el).display !== 'none';
     document.getElementById('pgCabeza').click();
     await new Promise(z => setTimeout(z, 700));
-    return ok;
-  }));
+    return { guardado, abierto };
+  });
+  di('la sección guardada', JSON.stringify(puertaDeArriba));
+  vale('abre por la guardada', puertaDeArriba.abierto === true,
+       JSON.stringify(puertaDeArriba));
 
   titulo('los dos siguen al sepia');
   /* ERAN LO ÚNICO DE LA HOJA QUE NO SE MOVÍA CON EL SEPIA. El papel y la tinta
