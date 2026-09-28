@@ -3747,7 +3747,69 @@
      Va a sangre —sin relleno ni borde— porque ahí dentro no hay papel que
      enmarcar: el fondo oscuro tiene que llegar hasta el canto. */
   .ora-marco{ flex:1 1 auto; width:100%; min-height:0; border:0; display:block;
-              background:#0b0d10; border-radius:4px; }
+              /* EL MISMO NEGRO QUE EL ÁRBOL, hasta la última cifra. Estuvo en
+                 #0b0d10 —un gris azulado de andar por casa— y se veía: mientras
+                 el marco carga, ese rectángulo es lo único que hay, y al
+                 aparecer el árbol detrás cambiaba de tono. El valor sale de
+                 oracion/config.js, donde se llama «casi negro / violeta
+                 profundo». Si allí cambia, aquí hay que venir. */
+              background:#0a0018; border-radius:4px; }
+  /* ══════════════════════════════════════════════════════════════
+     ORACIÓN SE VISTE DE SU PROPIO NEGRO, Y EL CROMO SE APAGA.
+
+     El encargo: «que el background del panel sea el mismo negro que el del
+     árbol neón, y el de los tabs y el botón cerrar gris oscuro, con la
+     intención de ocultar los sepia y resaltar el neón».
+
+     LO QUE SE DECIDIÓ, Y POR QUÉ, mirándolo como tres problemas distintos:
+
+     · EL PANEL VA AL NEGRO EXACTO DEL ÁRBOL, #0a0018, y no a negro puro. Dos
+       negros parecidos pegados no se leen como un fondo: se leen como una
+       COSTURA, y la costura cae justo en el canto del marco, que es lo único
+       que este cambio venía a disimular. Con el mismo valor no hay canto.
+     · EL CROMO SE VA AL GRIS NEUTRO, sin una gota de color. El neón de dentro
+       ya trae naranja, amarillo y verde; cualquier tono en la pestaña compite
+       con ellos y el ojo tiene que elegir. Un gris no compite: se lee como
+       «esto es el mando», y el color queda entero para lo de dentro. Por eso
+       se va también el oro de la pestaña viva (#b8892b): era el sepia más
+       fuerte de la barra, y encima es el color con el que el árbol pinta sus
+       acentos.
+     · LA PESTAÑA VIVA SE DISTINGUE POR CLARIDAD, no por tono. Sin el oro hay
+       que decir de otra manera cuál está abierta, y en una barra oscura lo
+       que queda es el escalón de luz: 1.43:1 la tablilla en reposo contra el
+       panel, 2.09:1 la viva, y 1.46:1 entre las dos. Poco para texto y de
+       sobra para superficies, que es lo que son.
+
+     LO QUE SE MIDIÓ, porque un gris «que se vea bien» no es una decisión:
+
+         texto en reposo   #cfcbc4 sobre #2a2a2f    8.83:1
+         texto de la viva  #f7f5f1 sobre #43434a    9.01:1
+         cerrar            #dedbd6 sobre #2a2a2f   10.34:1
+
+     Todo muy por encima del 4.5:1 que pide WCAG AA, y con razón: esto se lee
+     en un teléfono, con el pulgar encima y a menudo con el sol de frente.
+
+     Y LOS DOS SEPIAS ESCONDIDOS, que son los que se olvidan porque no son
+     fondos de botón: la raya de debajo de la barra de pestañas y la BANDA del
+     pie, que es un degradado de papel viejo detrás del botón de cerrar. Con
+     el panel en negro, esa banda se veía como una tira de arena en la parte
+     de abajo de la pantalla. Se apagan las dos aquí.
+
+     Sólo dentro de #oracion: los otros cuatro paneles siguen siendo de papel,
+     y eso no se toca. ══════════════════════════════════════════════════ */
+  #oracion{ background:#0a0018; }
+  #oracion .pestanas{ border-bottom-color:rgba(255,255,255,.14); }
+  #oracion .pestanas button{ background:#2a2a2f; color:#cfcbc4; }
+  #oracion .pestanas button:hover{ background:#35353c; color:#f2efe9; }
+  #oracion .pestanas button.aqui{ background:#43434a; color:#f7f5f1; }
+  /* La banda del pie: el mismo negro del panel, con el desvanecido de arriba
+     que ya tenía —sirve para que el contenido no choque de golpe con el
+     botón—, sólo que en negro en vez de en papel. */
+  #oracion .pie-cerrar{ background:linear-gradient(to bottom,
+                          rgba(10,0,24,0) 0%, #0a0018 60%, #0a0018 100%); }
+  #oracion .pie-cerrar .cerrar-pie{ background:#2a2a2f; color:#dedbd6;
+                                    border-color:rgba(255,255,255,.16); }
+  #oracion .pie-cerrar .cerrar-pie:hover{ background:#35353c; color:#f7f5f1; }
   /* El panel se enseña y se esconde por donde se esconden los otros rollos
      —rolloSimple—, así que aquí no va ningún display: solo el acomodo que el
      marco necesita para llenar el alto. */
@@ -5868,7 +5930,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '27-SEP-26 20:23';
+window.GLOSS_BUILD = '27-SEP-26 21:46';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';

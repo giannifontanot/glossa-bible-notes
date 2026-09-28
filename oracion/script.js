@@ -245,12 +245,23 @@
   }
 
   function createNode() {
-    // Centro de la hoja a 2/3 de la pantalla (config newLeafPos); de ahí se
-    // deriva la posición de la esquina (x/y) y el estado según la zona.
+    // Centro de la hoja donde diga config (newLeafPos); de ahí se deriva la
+    // posición de la esquina (x/y) y el estado según la zona.
     const w = CONFIG.defaultWidth;
     const h = CONFIG.defaultHeight;
-    const cx = CONFIG.newLeafPos.x * window.innerWidth;
-    const cy = CONFIG.newLeafPos.y * window.innerHeight;
+    // PERO SIN SALIRSE DE LA PANTALLA. La fracción sola no basta: con la hoja
+    // arriba (y:0.18) y una ventana baja —un teléfono tumbado, o esta
+    // aplicación dentro de un marco corto— 0.18·alto es menos que medio alto
+    // de hoja y el borde de arriba se va a negativo. El documento lleva
+    // overflow:hidden, así que esa parte se recorta y no hay manera de
+    // alcanzarla. Medido en un marco de 338 px: la hoja nacía en −14.
+    // Se topa el centro contra los bordes dejando un margen de dedo.
+    const margen = 8;
+    const tope = (v, medida, limite) =>
+      Math.min(Math.max(v, medida / 2 + margen), Math.max(medida / 2 + margen,
+                                                         limite - medida / 2 - margen));
+    const cx = tope(CONFIG.newLeafPos.x * window.innerWidth, w, window.innerWidth);
+    const cy = tope(CONFIG.newLeafPos.y * window.innerHeight, h, window.innerHeight);
     const node = {
       id: makeId(),
       text: CONFIG.defaultText,
