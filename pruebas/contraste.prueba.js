@@ -47,6 +47,16 @@ const factorDe = css => {
   const m = /contrast\(([\d.]+)\)/.exec(css);
   return m ? +m[1] : null;
 };
+/* Y HAY UN TERCER CASO desde que los paneles llevan brillo sin contraste, que
+   cuando se escribió factorDe no existía: un filtro PUESTO en el que no hay
+   `contrast(...)`. Ahí factorDe devuelve null —no encontró número, y está
+   bien que lo diga— y no 1, que es lo que devuelve para 'none'.
+   Preguntar `factorDe(x) === 1` por «éste no lleva contraste» salió rojo siete
+   veces en la tanda del dueño del repo, con el valor medido delante diciendo
+   `brightness(1)`: la aserción era mía y estaba mal escrita, el programa hacía
+   lo pedido. Para eso está esta función, que pregunta lo que se quiere saber
+   en vez de deducirlo de un número que no existe. */
+const sinContraste = css => !/contrast\(/.test(css || '');
 /* EL BRILLO SE LEE DE LA MISMA CADENA, y por eso se busca aparte en vez de
    comparar la cadena entera: los dos efectos comparten una sola propiedad
    filter —tienen que, o el segundo borra al primero— así que lo que hay que
@@ -652,13 +662,13 @@ async function ponerContraste(pagina, pct){
        DE_PAPEL.every(k => brilloDe(conFiltro[k]) === brilloDe(conFiltro.hoja)),
        DE_PAPEL.map(k => k + ' ' + conFiltro[k]).join(' · '));
   vale('Y NO SU CONTRASTE, que es la otra mitad del encargo',
-       DE_PAPEL.every(k => !/contrast\(/.test(conFiltro[k])),
+       DE_PAPEL.every(k => sinContraste(conFiltro[k])),
        DE_PAPEL.map(k => k + ' ' + conFiltro[k]).join(' · '));
   vale('ORACIÓN, ni uno ni otro',
        conFiltro.oracion === 'none', conFiltro.oracion);
   vale('FORMATO como los otros cuatro, con el panel opaco',
        brilloDe(conFiltro.formato) === brilloDe(conFiltro.hoja) &&
-       !/contrast\(/.test(conFiltro.formato), conFiltro.formato);
+       sinContraste(conFiltro.formato), conFiltro.formato);
   vale('  y limpio del todo cuando se vuelve transparente',
        conFiltro.formatoCristal === 'none', conFiltro.formatoCristal);
   /* EL TESTIGO DEL BLOQUE: se mueve el riel y el número tiene que moverse en
@@ -680,7 +690,7 @@ async function ponerContraste(pagina, pct){
        DE_PAPEL.every(k => brilloDe(alTope[k]) === brilloDe(alTope.hoja)),
        DE_PAPEL.map(k => k + ' ' + alTope[k]).join(' · '));
   vale('  sin estrenar contraste por el camino',
-       DE_PAPEL.every(k => !/contrast\(/.test(alTope[k])),
+       DE_PAPEL.every(k => sinContraste(alTope[k])),
        DE_PAPEL.map(k => k + ' ' + alTope[k]).join(' · '));
   vale('  ni arrastrar a ORACIÓN', alTope.oracion === 'none', alTope.oracion);
 
@@ -707,7 +717,7 @@ async function ponerContraste(pagina, pct){
     vale('(la prueba es válida) el panel está opaco · ' + pct + '%',
          s.cristal === false, s.cristal);
     vale('FORMATO no recibe el contraste · ' + pct + '%',
-         factorDe(s.ajustes) === 1, s.ajustes);
+         sinContraste(s.ajustes), s.ajustes);
     /* .stage sí trae filtro propio —la sombra de hoja flotando en
        escritorio— pero NO puede traer contraste, y ésta es la línea que de
        verdad sostiene el bloque desde que los paneles sí se tiñen: es la que
@@ -792,7 +802,7 @@ async function ponerContraste(pagina, pct){
      de la cabecera: del contraste queda fuera, del brillo no. */
   vale('(la prueba es válida) el panel está opaco', conPanel.cristal === false, conPanel.cristal);
   vale('y el panel que lo manda no se contrasta con él',
-       factorDe(conPanel.ajustes) === 1, conPanel.ajustes);
+       sinContraste(conPanel.ajustes), conPanel.ajustes);
   /* Los colores del panel, apuntados para poder mirarlos en la corrida. Ya no
      son una aserción: desde que el panel se tiñe con la hoja, su color depende
      del riel y clavar aquí un número sería escribir a mano lo que el filtro
@@ -909,7 +919,7 @@ async function ponerContraste(pagina, pct){
   vale('el riel vuelve en 150', tras.riel === '150', tras.riel);
   vale('el número también', tras.medida === '150%', tras.medida);
   vale('y la hoja nace ya con el filtro', factorDe(tras.pg) === 1.5, tras.pg);
-  vale('y FORMATO nace sin contraste', factorDe(tras.ajustes) === 1, tras.ajustes);
+  vale('y FORMATO nace sin contraste', sinContraste(tras.ajustes), tras.ajustes);
 
   /* ---------- unos ajustes viejos, sin contraste ---------- */
   titulo('unos ajustes de antes de que esto existiera');
@@ -1422,7 +1432,7 @@ async function ponerContraste(pagina, pct){
   vale('y no se le pegó el contraste', !/contrast/.test(esc.stage), esc.stage);
   vale('la hoja sí lo lleva', factorDe(esc.pg) === 2, esc.pg);
   vale('el lienzo también', factorDe(esc.fx) === 2, esc.fx);
-  vale('y FORMATO no lo lleva', factorDe(esc.ajustes) === 1, esc.ajustes);
+  vale('y FORMATO no lo lleva', sinContraste(esc.ajustes), esc.ajustes);
   vale('el brillo también llega en escritorio',
        brilloDe(esc.pg) === .6 && brilloDe(esc.fx) === .6, esc.pg);
   vale('y a FORMATO con él, que del brillo sí es', brilloDe(esc.ajustes) === .6, esc.ajustes);
