@@ -640,9 +640,16 @@
     // AL REVÉS, la última echada arriba: lo que se acaba de tirar es lo que se
     // viene a buscar, y una lista larga sólo enseña sus primeras filas.
     const guardadas = [...state.chest].reverse();
+    let n = 0;
     for (const h of guardadas) {
       const li = document.createElement("li");
       li.className = "chest-item";
+      /* SU TURNO PARA ENTRAR. Se pidió que la lista no apareciera de golpe, así
+         que cada fila se enciende un poco después que la de arriba y la lista
+         se lee cayendo, como se escribiría. El número se topa a los doce: con
+         un cofre lleno, esperar doscientos turnos para ver el final no es
+         elegante, es una cuenta atrás. */
+      li.style.setProperty("--turno", Math.min(n++, 12));
       const fig = chestLeafSvg(h.shape);
       // El color va en el elemento, como en el árbol: la variante manda, y el
       // borde propio de la hoja gana si lo tenía. Ver applyLeafStyle, que hace
@@ -692,14 +699,25 @@
     try { treasure.focus(); } catch (_) {}
   }
 
-  // DOBLE CLIC SOBRE EL COFRE. Se cuenta a mano, como lo cuenta una hoja (ver
+  // DOBLE TOQUE SOBRE EL COFRE. Se cuenta a mano, como lo cuenta una hoja (ver
   // attachGestures), y no con el evento "dblclick" del navegador: en un
-  // teléfono ese evento es de fiar sólo a ratos, y esta aplicación se maneja
-  // con el dedo. Aquí no hace falta el retardo que sí lleva la hoja —un toque
-  // simple sobre el cofre no hace nada— así que la lista abre en el segundo
-  // toque, sin esperar a ver si viene un tercero.
+  // teléfono ese evento es de fiar sólo a ratos.
+  //
+  // PERO SE CUENTAN CLICS, NO POINTERUP, y esto costó un viaje: con el ratón
+  // de la prueba funcionaba y en el teléfono del dueño del repo no se abría.
+  // Un dedo nunca se está quieto del todo, y si al tocar se mueve lo bastante,
+  // el navegador decide que aquello era un desplazamiento y en vez de
+  // pointerup manda pointercancel: el contador no llegaba nunca a dos. El
+  // click sí se dispara en ese caso —y también lo dispara el ratón, y el
+  // teclado sobre un <button>—, así que es el único de los tres que llega
+  // siempre.
+  //
+  // Y LA VENTANA ES MÁS ANCHA que la de las hojas (400 contra 250): un toque
+  // simple sobre el cofre no hace nada, así que esperar de más no cuesta nada,
+  // y el cofre es un blanco de esquina que se toca con el pulgar de lado.
+  const VENTANA_COFRE = 400;
   let cofreReloj = null;
-  treasure.addEventListener("pointerup", () => {
+  treasure.addEventListener("click", () => {
     // Soltando una hoja encima no es un toque en el cofre: eso lo atiende
     // finishDrag, y llega aquí sólo si el gesto se quedó sin captura.
     if (document.body.classList.contains("leaf-dragging")) return;
@@ -709,7 +727,7 @@
       openChest();
       return;
     }
-    cofreReloj = setTimeout(() => { cofreReloj = null; }, CONFIG.doubleClickDelay);
+    cofreReloj = setTimeout(() => { cofreReloj = null; }, VENTANA_COFRE);
   });
 
   /* Y CON EL TECLADO, DE UNA VEZ. El doble toque es del dedo; pedirle dos
@@ -721,8 +739,32 @@
   treasure.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    /* Y ADEMÁS APAGA EL CONTADOR DE TOQUES. Un <button> pulsado con Enter
+       dispara también un click, que ahora es lo que cuenta el doble toque: sin
+       esto, abrir con el teclado dejaba media cuenta puesta y el siguiente
+       toque suelto habría abierto la lista él solo. */
     e.preventDefault();  // la barra, si no, mueve la página
+    clearTimeout(cofreReloj);
+    cofreReloj = null;
     openChest();
+  });
+
+  /* LA LETRA DEL LIBRO, que viene de arriba. Se pidió que esta lista se lea con
+     el tamaño de letra del libro —«el font y size del libro es el que usa toda
+     la aplicación»—, y ese número no existe aquí dentro: esto es un marco
+     aparte y el CSS no cruza.
+     LLEGA SÓLO EL TAMAÑO, y a una variable propia, no al font-size de la
+     página: este árbol es de neón y se queda de neón, que es lo que se decidió
+     cuando se dejó fuera del reparto de estilo de los relatos. Lo único que lo
+     usa es la lista del cofre.
+     Y SE COMPRUEBA QUIÉN LO MANDA, como hace el puente con el suyo: quien nos
+     enseña y no cualquiera que tenga el marco a mano. Lo peor que puede hacer
+     un aviso falso es escribir grande, pero mirar es gratis. */
+  addEventListener("message", (ev) => {
+    if (ev.source !== parent) return;
+    const e = ev.data;
+    if (!e || e.glossa !== "letra-libro" || !e.letra) return;
+    document.documentElement.style.setProperty("--fs-libro", String(e.letra));
   });
 
   chestClose.addEventListener("click", closeChest);

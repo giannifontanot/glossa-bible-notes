@@ -963,16 +963,210 @@ const IR_A = `async (sec) => {
        conHoja.filas[0].alto > 0 && conHoja.filas[0].alto <= 60,
        !conHoja.falta && (conHoja.filas[0].alto + ' px'));
 
+  /* SIN TÍTULO, pero con nombre. Se pidió quitarle el rótulo «El cofre» a la
+     ventana, y lo que hay que vigilar al quitar un título es que no se lleve
+     por delante el nombre: un diálogo sin nombre ninguno es, para un lector de
+     pantalla, una ventana que se abre y no dice qué es. El rótulo se mudó al
+     aria-label, así que se comprueban las dos cosas a la vez. */
+  const sinTitulo = conHoja.falta ? null : await marcoOra.evaluate(() => {
+    const v = document.getElementById('chest-list');
+    return { rotulo: !!document.querySelector('.chest-head h2'),
+             nombre: (v.getAttribute('aria-label') || '').trim(),
+             apuntaANadie: v.hasAttribute('aria-labelledby') };
+  });
+  di('el nombre de la ventana', JSON.stringify(sinTitulo));
+  vale('LA VENTANA NO LLEVA TÍTULO ESCRITO',
+       !!sinTitulo && sinTitulo.rotulo === false, JSON.stringify(sinTitulo));
+  vale('  pero SIGUE TENIENDO NOMBRE para quien no ve la pantalla',
+       !!sinTitulo && sinTitulo.nombre.length > 0 && sinTitulo.apuntaANadie === false,
+       !!sinTitulo && (sinTitulo.nombre + ' · aria-labelledby ' + sinTitulo.apuntaANadie));
+
+  /* LA LETRA ES LA DEL LIBRO. «Use same font size que tiene el libro», que es
+     la misma regla que rige en RESPALDO. El número no existe dentro del marco
+     —es otra página— así que Glossa se lo manda; lo que se afirma aquí es la
+     RELACIÓN con el libro de arriba, leída en el mismo rato, y no un tamaño
+     escrito a mano, que se quedaría viejo en cuanto el lector toque el riel de
+     la letra. */
+  const letras = conHoja.falta ? null : {
+    libro: await p.evaluate(() => getComputedStyle(document.documentElement)
+      .getPropertyValue('--fs-libro').trim()),
+    fila: await marcoOra.evaluate(() => {
+      const t = document.querySelector('.chest-item .chest-text');
+      return t ? getComputedStyle(t).fontSize : null; }) };
+  di('la letra', JSON.stringify(letras));
+  vale('(la prueba es válida) el libro tiene un tamaño de letra que leer',
+       !!letras && /^\d/.test(letras.libro || ''), !!letras && letras.libro);
+  vale('LA LISTA SE LEE CON LA LETRA DEL LIBRO',
+       !!letras && letras.fila === letras.libro,
+       !!letras && (letras.fila + ' contra ' + letras.libro));
+
+  /* Y ENTRA POR TURNOS, que es lo que se pidió: «que aparezca bonito, no de una
+     vez». Lo que se puede afirmar de una animación sin cronómetro es su
+     MECANISMO: que cada fila espera más que la de arriba. Y el tope también,
+     porque es lo que separa una entrada elegante de una cuenta atrás: con el
+     cofre lleno, las filas del final no pueden estar esperando doscientos
+     turnos. */
+  const entrada = conHoja.falta ? null : await marcoOra.evaluate(() => {
+    /* Se pintan de mentira veinte filas para ver el tope sin tener que echar
+       veinte hojas al cofre: no se toca el programa, se leen los retardos que
+       el CSS le pone a un elemento con la clase y el turno puestos. */
+    const caja = document.createElement('ul');
+    caja.className = 'chest-items';
+    document.querySelector('.chest-box').appendChild(caja);
+    const retardos = [];
+    for (const n of [0, 1, 2, 5, 12, 19]){
+      const li = document.createElement('li');
+      li.className = 'chest-item';
+      li.style.setProperty('--turno', Math.min(n, 12));
+      caja.appendChild(li);
+      retardos.push([n, getComputedStyle(li).animationDelay]);
+    }
+    caja.remove();
+    const ms = (x) => parseFloat(x) * (/ms$/.test(x) ? 1 : 1000);
+    return { retardos, en: retardos.map(([, d]) => Math.round(ms(d))) };
+  });
+  di('los turnos de entrada', JSON.stringify(entrada && entrada.retardos));
+  vale('CADA FILA ENTRA DESPUÉS DE LA DE ARRIBA',
+       !!entrada && entrada.en[0] < entrada.en[1] && entrada.en[1] < entrada.en[2] &&
+       entrada.en[2] < entrada.en[3],
+       !!entrada && entrada.en.join(' · '));
+  /* Y LA ESPERA MÁS LARGA ES CORTA. Ojo a qué mide esto y qué no: el TOPE de
+     doce está en el guion, al pintar cada fila, y aquí los turnos los pongo yo,
+     así que lo que se afirma no es el tope sino la ESCALA de la regla —que la
+     fila del último turno posible entra antes de un segundo—. Una regla con la
+     escala mal puesta convierte una entrada en una espera aunque el tope
+     funcione. */
+  vale('  y la última en entrar no se hace esperar un segundo',
+       !!entrada && entrada.en[4] <= 1000,
+       !!entrada && (entrada.en[4] + ' ms en el turno 12'));
+
+  /* EL ASPA, PEQUEÑA Y DISCRETA, y el blanco de toque intacto. Se pidió que
+     fuera «mucho más pequeña y discreta», y lo que hay que vigilar al encoger
+     un botón es que no se encoja lo que no se ve: la tinta baja y el aro se va,
+     pero el área que atiende al dedo se queda en los 44 px de la casa
+     (CONFIG.minTouchTarget). Las dos mitades van juntas en la misma lectura
+     porque separar una de otra es exactamente el error que esta línea guarda. */
+  const aspa = conHoja.falta ? null : await marcoOra.evaluate(() => {
+    const x = document.getElementById('chest-close');
+    const r = x.getBoundingClientRect();
+    const cs = getComputedStyle(x);
+    return { toque: [Math.round(r.width), Math.round(r.height)],
+             tinta: parseFloat(cs.fontSize),
+             borde: parseFloat(cs.borderTopWidth) || 0,
+             apagada: parseFloat(cs.opacity) };
+  });
+  di('el aspa', JSON.stringify(aspa));
+  vale('EL ASPA ES PEQUEÑA Y DISCRETA',
+       !!aspa && aspa.tinta <= 16 && aspa.borde === 0 && aspa.apagada < 1,
+       JSON.stringify(aspa));
+  vale('  PERO NO PIERDE SU BLANCO DE TOQUE, que es lo que no se ve',
+       !!aspa && aspa.toque[0] >= 44 && aspa.toque[1] >= 44,
+       !!aspa && aspa.toque.join('x'));
+
+  /* EL ANCHO LO MANDA LA ORACIÓN MÁS LARGA. Estuvo fijo en 560 y se pidió que
+     midiera su contenido «y nada más». Lo que se afirma es la RELACIÓN, en dos
+     mitades que hacen falta las dos:
+     · que con una oración corta la ventana NO llene el marco —un ancho fijo
+       también pasaría la segunda mitad, así que sin ésta no se prueba nada—, y
+     · que al echar una oración más larga, la ventana CREZCA.
+     Y no se clava ningún número: el ancho de una letra depende del tipo y del
+     tamaño, que el lector mueve. */
+  let anchos = null;
+  if (!conHoja.falta && conHoja.abierta === true){
+    const mide = () => marcoOra.evaluate(() => ({
+      caja: Math.round(document.querySelector('.chest-box').getBoundingClientRect().width),
+      marco: window.innerWidth }));
+    const corta = await mide();
+    /* Se cierra, se echa una oración mucho más larga y se vuelve a abrir. */
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(350);
+    await marcoOra.locator('#add-btn').focus();
+    await p.keyboard.press('Enter');
+    await p.waitForTimeout(500);
+    const otra = await marcoOra.locator('.leaf').last().boundingBox();
+    if (otra){
+      await p.mouse.click(otra.x + otra.width / 2, otra.y + otra.height / 2);
+      await p.waitForTimeout(60);
+      await p.mouse.click(otra.x + otra.width / 2, otra.y + otra.height / 2);
+      await p.waitForTimeout(450);
+      await p.keyboard.type('por los que hoy no tienen a nadie que los nombre');
+      await p.keyboard.press('Enter');
+      await p.waitForTimeout(900);
+      const d = await marcoOra.locator('.leaf').last().boundingBox();
+      const c = await marcoOra.locator('#treasure').boundingBox();
+      if (d && c){
+        const x0 = d.x + d.width / 2, y0 = d.y + d.height / 2;
+        const x1 = c.x + c.width / 2, y1 = c.y + c.height / 2;
+        await p.mouse.move(x0, y0);
+        await p.mouse.down();
+        for (let i = 1; i <= 12; i++){
+          const u = i / 12;
+          await p.mouse.move(x0 + (x1 - x0) * u + Math.sin(u * 6) * 5,
+                             y0 + (y1 - y0) * u + Math.cos(u * 4) * 4);
+          await p.waitForTimeout(16);
+        }
+        await p.mouse.up();
+        await p.waitForTimeout(800);
+        await dobleEnElMarco('#treasure');
+        anchos = { corta, larga: await mide() };
+      }
+    }
+  }
+  di('el ancho de la ventana', JSON.stringify(anchos));
+  vale('(la prueba es válida) se midió con las dos, la corta y la larga',
+       !!anchos && anchos.corta.caja > 0 && anchos.larga.caja > 0,
+       JSON.stringify(anchos));
+  vale('CON UNA ORACIÓN CORTA LA VENTANA NO LLENA EL MARCO',
+       !!anchos && anchos.corta.caja < anchos.corta.marco * 0.9,
+       !!anchos && (anchos.corta.caja + ' de ' + anchos.corta.marco));
+  vale('  Y CRECE CON LA ORACIÓN MÁS LARGA',
+       !!anchos && anchos.larga.caja > anchos.corta.caja,
+       !!anchos && (anchos.corta.caja + '  →  ' + anchos.larga.caja));
+
   /* Y SE CIERRA CON LA EQUIS, que es como se pidió y como cierran las demás
      ventanas del programa. */
+  /* SE PREGUNTA POR LA VENTANA AHORA, no por cómo estaba hace veinte líneas:
+     entre medias se cerró y se volvió a abrir para medir el ancho. Pulsar una
+     equis que no está en pantalla es esperar treinta segundos y tirar la suite
+     entera, que ya pasó una vez en este mismo bloque. */
   let cerrada = null;
-  if (!conHoja.falta && conHoja.abierta === true){
+  const sigueAbierta = conHoja.falta ? false : await marcoOra.evaluate(() =>
+    !document.getElementById('chest-list').hidden);
+  if (sigueAbierta){
     await marcoOra.click('#chest-close');
     await p.waitForTimeout(400);
     cerrada = await marcoOra.evaluate(() =>
       document.getElementById('chest-list').hidden);
   }
   vale('LA EQUIS CIERRA LA LISTA', cerrada === true, String(cerrada));
+
+  /* EL DOBLE TOQUE, CON PAUSA DE DEDO. Aquí está la roja que contó el dueño del
+     repo: «no funciona el cofre con doble click». Con el ratón de la prueba iba
+     y en su teléfono no, y eran dos cosas a la vez: el pointerup que un dedo
+     movido nunca llega a mandar —el navegador lo cambia por pointercancel en
+     cuanto sospecha que aquello era un arrastre— y una ventana de 250 ms, que
+     es de reloj y no de pulgar. Por eso esto va con la pausa larga: 300 ms
+     entre los dos toques, que con lo de antes no habría abierto nada.
+     Va detrás de la equis para no dejar la lista cerrada a medias: cierra la
+     equis, abre esto, y al final se cierra con Escape para el bloque siguiente. */
+  let pausaLarga = null;
+  if (cerrada === true){
+    const caja = await marcoOra.locator('#treasure').boundingBox();
+    if (caja){
+      await p.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2);
+      await p.waitForTimeout(300);
+      await p.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2);
+      await p.waitForTimeout(450);
+      pausaLarga = await marcoOra.evaluate(() =>
+        !document.getElementById('chest-list').hidden);
+      if (pausaLarga){
+        await p.keyboard.press('Escape');
+        await p.waitForTimeout(350);
+      }
+    }
+  }
+  vale('DOS TOQUES CON 300 ms DE PAUSA TAMBIÉN ABREN, que un pulgar no es un reloj',
+       pausaLarga === true, String(pausaLarga));
 
   /* ---------------- y la barra no se mueve con el libro ---------------- */
   /* SE PIDIÓ QUE ESTA BARRA SE SALGA DE «LA INTERFAZ CRECE CON EL LIBRO», y

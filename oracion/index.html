@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Prayers</title>
-  <link rel="stylesheet" href="style.css?v=59">
-  <link rel="stylesheet" href="extension.css?v=59">
+  <link rel="stylesheet" href="style.css?v=60">
+  <link rel="stylesheet" href="extension.css?v=60">
 </head>
 <body>
 
@@ -217,7 +217,7 @@
        pegada al borde inferior. Zona del código QR e instrucciones. -->
   <section id="lower-deck" aria-label="Código QR e instrucciones">
     <div id="qr-container">
-      <img src="img/qr.png?v=59" alt="Código QR para abrir Prayers">
+      <img src="img/qr.png?v=60" alt="Código QR para abrir Prayers">
     </div>
     <div id="qr-instructions">
       <!-- Pestañas de idioma: Español (por defecto) / English -->
@@ -274,10 +274,13 @@
        cajón. Fuera, se queda quieta encima de todo, que es lo que hace una
        ventana. -->
   <div id="chest-list" hidden role="dialog" aria-modal="true"
-       aria-labelledby="chest-list-title">
+       aria-label="Lo que guarda el cofre">
     <div class="chest-box">
+      <!-- SIN TÍTULO, pedido así: la ventana sale del cofre y lo que enseña se
+           explica solo. El nombre no se pierde, se muda al aria-label de
+           arriba, que es de donde lo lee quien no ve la pantalla. La cabecera
+           se queda porque el aspa tiene que vivir en algún sitio. -->
       <header class="chest-head">
-        <h2 id="chest-list-title">El cofre</h2>
         <button type="button" class="chest-x" id="chest-close"
                 title="Cerrar" aria-label="Cerrar la lista del cofre">
           <span aria-hidden="true">&times;</span>
@@ -308,8 +311,8 @@
        se queda de neón, pedido así— y por eso el puente se puede reusar
        entero: su mitad de estilo nunca recibe nada. -->
   <script src="../encuentros/salida.js"></script>
-  <script src="config.js?v=59"></script>
-  <script src="script.js?v=59"></script>
-  <script src="extension.js?v=59"></script>
+  <script src="config.js?v=60"></script>
+  <script src="script.js?v=60"></script>
+  <script src="extension.js?v=60"></script>
 </body>
 </html>
