@@ -885,6 +885,33 @@ const IR_A = `async (sec) => {
        !teclado.falta && teclado.conUno.abierta === false,
        !teclado.falta && JSON.stringify(teclado.conUno));
 
+  /* Y EL TERCER CAMINO: una ayuda técnica. Un lector de pantalla o un
+     conmutador no tocan la pantalla ni pulsan teclas sobre el botón: mandan un
+     click a secas, sin puntero detrás, que no cuenta para el doble toque ni es
+     el keydown de arriba. Sin su propia línea, el cofre volvería a ser
+     inalcanzable para quien lo abre así —que es lo que la revisión de Codex
+     hizo arreglar en la entrega anterior— y ninguna de las otras pruebas se
+     enteraría.
+     AQUÍ SÍ SE DESPACHA UN EVENTO A MANO, y es la excepción que confirma la
+     regla de la casa: lo que una ayuda técnica manda ES un click sintético, así
+     que despacharlo no es imitar un dedo —eso sería mentir—, es reproducir
+     exactamente el gesto que se quiere probar. */
+  let ayuda = null;
+  if (!teclado.falta){
+    /* La lista viene cerrada de la línea de arriba —el toque simple no la
+       abrió— así que no hay que apagarla a mano: se activa y se mira. */
+    await marcoOra.evaluate(() => document.getElementById('treasure').click());
+    await p.waitForTimeout(400);
+    ayuda = await marcoOra.evaluate(() =>
+      !document.getElementById('chest-list').hidden);
+    if (ayuda){
+      await p.keyboard.press('Escape');
+      await p.waitForTimeout(350);
+    }
+  }
+  vale('UNA AYUDA TÉCNICA TAMBIÉN ABRE EL COFRE, con una sola activación',
+       ayuda === true, String(ayuda));
+
   /* Y AHORA CON UNA HOJA DENTRO. Se escribe, se echa al cofre arrastrando, y
      se mira lo que queda: fuera del árbol y dentro del cofre. */
   const ORACION_DE_PRUEBA = 'por el pan de cada día';
@@ -1141,12 +1168,20 @@ const IR_A = `async (sec) => {
   vale('LA EQUIS CIERRA LA LISTA', cerrada === true, String(cerrada));
 
   /* EL DOBLE TOQUE, CON PAUSA DE DEDO. Aquí está la roja que contó el dueño del
-     repo: «no funciona el cofre con doble click». Con el ratón de la prueba iba
-     y en su teléfono no, y eran dos cosas a la vez: el pointerup que un dedo
-     movido nunca llega a mandar —el navegador lo cambia por pointercancel en
-     cuanto sospecha que aquello era un arrastre— y una ventana de 250 ms, que
-     es de reloj y no de pulgar. Por eso esto va con la pausa larga: 300 ms
-     entre los dos toques, que con lo de antes no habría abierto nada.
+     repo: «no funciona el cofre con doble click». Lo que de verdad le pasaba a
+     su teléfono no se sabe —el aparato es suyo y aquí no se pudo reproducir—,
+     así que lo que se arregló fue todo lo que podía perderse por el camino: el
+     gesto se cuenta ahora por el pointerdown, que es el primero de todos y no
+     depende de lo que el navegador decida después, y la ventana pasó de 250 ms
+     a 400, que es de pulgar y no de reloj. Esto último es lo que se prueba
+     aquí: 300 ms entre los dos toques, que con la ventana de antes no habrían
+     abierto nada.
+     LO QUE NO SE PRUEBA AQUÍ, y conviene decirlo: el toque movido —el que
+     pierde el click— se sondeó a mano con el dedo emulado, y no entra en el
+     banco porque mandarlo hay que hacerlo por CDP, ida y vuelta por cada
+     movimiento, y esas idas y vueltas se comen la ventana de 400 ms: la prueba
+     saldría roja o verde según lo cargada que esté la máquina, que es la peor
+     clase de prueba.
      Va detrás de la equis para no dejar la lista cerrada a medias: cierra la
      equis, abre esto, y al final se cierra con Escape para el bloque siguiente. */
   let pausaLarga = null;

@@ -703,21 +703,40 @@
   // attachGestures), y no con el evento "dblclick" del navegador: en un
   // teléfono ese evento es de fiar sólo a ratos.
   //
-  // PERO SE CUENTAN CLICS, NO POINTERUP, y esto costó un viaje: con el ratón
-  // de la prueba funcionaba y en el teléfono del dueño del repo no se abría.
-  // Un dedo nunca se está quieto del todo, y si al tocar se mueve lo bastante,
-  // el navegador decide que aquello era un desplazamiento y en vez de
-  // pointerup manda pointercancel: el contador no llegaba nunca a dos. El
-  // click sí se dispara en ese caso —y también lo dispara el ratón, y el
-  // teclado sobre un <button>—, así que es el único de los tres que llega
-  // siempre.
+  // SE CUENTA EL POINTERDOWN, que es el primero de todos y el único que no se
+  // puede perder. Hubo dos intentos antes y los dos se quedaban cortos, y lo
+  // que sigue está MEDIDO en este mismo navegador con el dedo emulado, no
+  // supuesto — que fue el error de la primera vez:
+  //
+  //   un toque limpio  →  pointerdown · pointerup · click
+  //   un toque MOVIDO  →  pointerdown · pointerup            (sin click)
+  //   el ratón         →  pointerdown · pointerup · click
+  //
+  // · click fue el segundo intento, y habría sido peor: el toque movido —que
+  //   es justo el del pulgar que resbala un poco— no produce ninguno. Lo
+  //   levantó la revisión de Codex antes de que llegara a nadie.
+  // · pointerup fue el primero, y en esta medida aguanta el toque movido; lo
+  //   que no aguanta es un gesto que el navegador cancela del todo, donde
+  //   llega pointercancel en su lugar.
+  //
+  // El pointerdown ocurre ANTES de que el navegador tenga que decidir nada de
+  // eso, así que llega pase lo que pase después. Y no hay nada que arrastrar
+  // desde el cofre, o sea que contar el toque por su principio no le quita un
+  // gesto a nadie.
+  //
+  // QUÉ FALLABA EN EL TELÉFONO DEL DUEÑO DEL REPO: no se sabe, y conviene que
+  // quede escrito en vez de inventarlo. El aparato es suyo y aquí no se pudo
+  // reproducir. Lo más probable es que ni siquiera llegara a haber cofre —la
+  // página del árbol vive en un marco y el navegador se la guarda; por eso su
+  // dirección cuelga ahora del sello de compilación—. Esto de aquí no cura una
+  // causa conocida: quita la posibilidad de que el evento se pierda.
   //
   // Y LA VENTANA ES MÁS ANCHA que la de las hojas (400 contra 250): un toque
   // simple sobre el cofre no hace nada, así que esperar de más no cuesta nada,
   // y el cofre es un blanco de esquina que se toca con el pulgar de lado.
   const VENTANA_COFRE = 400;
   let cofreReloj = null;
-  treasure.addEventListener("click", () => {
+  treasure.addEventListener("pointerdown", () => {
     // Soltando una hoja encima no es un toque en el cofre: eso lo atiende
     // finishDrag, y llega aquí sólo si el gesto se quedó sin captura.
     if (document.body.classList.contains("leaf-dragging")) return;
@@ -736,16 +755,30 @@
      barra abren a la primera, que es lo que hace cualquier botón.
      Lo levantó la revisión de Codex, y es el mismo defecto que ya tuvo el
      respaldo del día: un mando que sólo entendía de punteros. */
+  /* Y EL CAMINO DE LAS AYUDAS TÉCNICAS, que no es ninguno de los dos de
+     arriba. Un lector de pantalla o un conmutador no tocan la pantalla ni
+     pulsan teclas sobre el botón: mandan un click a secas, sin puntero
+     detrás. Ese click no trae pointerdown —así que no cuenta para el doble
+     toque— y tampoco es el keydown de aquí abajo, o sea que sin esta línea el
+     cofre volvería a ser inalcanzable para quien lo abre así, que es justo lo
+     que la revisión anterior vino a arreglar.
+     SE DISTINGUE POR LAS DOS SEÑAS A LA VEZ, y las dos están medidas aquí: un
+     click de dedo o de ratón trae detail 1 y su pointerType ("touch",
+     "mouse"); el de una ayuda técnica viene sin puntero y con detail 0. Se
+     piden las dos para no confundir un toque con una activación, que abriría
+     la lista con un solo dedo. */
+  treasure.addEventListener("click", (e) => {
+    if (e.detail === 0 && !e.pointerType) openChest();
+  });
+
   treasure.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    /* Y ADEMÁS APAGA EL CONTADOR DE TOQUES. Un <button> pulsado con Enter
-       dispara también un click, que ahora es lo que cuenta el doble toque: sin
-       esto, abrir con el teclado dejaba media cuenta puesta y el siguiente
-       toque suelto habría abierto la lista él solo. */
+    /* El contador no se toca: lo que cuenta es el pointerdown, y una tecla no
+       manda ninguno. Cuando esto contaba clics sí había que apagarlo, porque
+       un <button> pulsado con Enter dispara también un click y quedaba media
+       cuenta puesta. */
     e.preventDefault();  // la barra, si no, mueve la página
-    clearTimeout(cofreReloj);
-    cofreReloj = null;
     openChest();
   });
 
@@ -766,6 +799,23 @@
     if (!e || e.glossa !== "letra-libro" || !e.letra) return;
     document.documentElement.style.setProperty("--fs-libro", String(e.letra));
   });
+
+  /* Y SE VUELVE A PEDIR, AHORA QUE HAY QUIEN ESCUCHE. El puente (salida.js)
+     avisa «listo» en cuanto se carga, y se carga ANTES que este guion: son dos
+     <script> distintos, y entre uno y otro el navegador puede entregar
+     mensajes mientras espera a que llegue el siguiente fichero. O sea que la
+     respuesta de arriba podía llegar antes de que existiera el oyente de aquí
+     encima, perderse —es de una sola vez— y dejar la lista con su letra de
+     respaldo hasta que el lector tocara el riel de la letra. Más probable
+     cuanto peor va la red, que es justo la primera vez que alguien abre esto.
+     Lo levantó la revisión de Codex.
+     Se arregla desde este lado y no adelantando el aviso del puente: ese
+     fichero es el mismo para todos los relatos y no sabe nada de éste. Pedir
+     dos veces no cuesta nada —la respuesta es un número—, y así el orden de
+     carga deja de importar. */
+  if (parent !== window) {
+    try { parent.postMessage({ glossa: "listo" }, "*"); } catch (_) {}
+  }
 
   chestClose.addEventListener("click", closeChest);
   // Tocar fuera de la caja también cierra: es lo que el dedo intenta primero.
