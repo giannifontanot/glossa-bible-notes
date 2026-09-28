@@ -539,6 +539,86 @@ async function ponerContraste(pagina, pct){
   vale('  (y se quedó en opaco, para lo que viene)',
        velos.modoFinal === false, velos.modoFinal);
 
+  /* ---------- el brillo y el contraste llegan a los paneles ---------- */
+  /* LO QUE SE PIDIÓ: «actualmente podemos cambiar el brillo y el contraste, y
+     eso aplica al tab LIBRO; ¿podríamos hacer que también afecte a todas las
+     pestañas arriba, excepto ORACIÓN?». Y al preguntarle por Formato —que es
+     el panel desde el que se arrastra el riel— eligió que sí, pero no en
+     transparente: «de esta manera los controles brillan normales y el único
+     velo es el que ya tiene aplicado el libro mismo».
+
+     LAS CUATRO COSAS QUE SE VIGILAN, y todas se rompen en silencio:
+
+     · LOS CUATRO PANELES DE PAPEL LO RECIBEN, y con el MISMO número que la
+       hoja. No basta con que tengan algo puesto: si uno se quedara con un
+       filtro viejo, la pestaña se leería de otro color que el libro y nadie
+       sabría por qué.
+     · ORACIÓN NO. Es la única excepción pedida, y es la que un `.rollo` a
+       secas se llevaría por delante sin avisar.
+     · FORMATO SÍ EN OPACO Y NO EN CRISTAL. Las dos mitades, porque cada una
+       cae de un lado distinto del selector: quitar el `:not(.cristal)` rompe
+       la segunda y quitar el `.rollo` rompe la primera.
+     · Y EL NÚMERO SIGUE AL RIEL. Ésta es la que salva al bloque: sin ella,
+       todas las de arriba saldrían verdes con el filtro clavado en un valor
+       fijo, que es lo mismo que no tenerlo. Se mueve el contraste y se mira
+       que el panel se mueva con la hoja.
+
+     SE LEE EL `filter` PINTADO de cada panel, no la hoja de estilos: lo que
+     importa es lo que le llega al elemento, venga del selector que venga. */
+  titulo('el brillo y el contraste también en las pestañas, menos ORACIÓN');
+  const porPanel = async () => pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const vis = () => [...document.querySelectorAll('.rollo')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    const irA = async sec => {
+      const t = (vis() || document).querySelector('.pestanas [data-sec="' + sec + '"]');
+      if (t) t.click();
+      await pausa(800);
+    };
+    const DONDE = { libros:'canto', glosas:'etiquetas', encuentros:'encuentros',
+                    respaldo:'respaldo', oracion:'oracion', formato:'ajustes' };
+    const out = { hoja: getComputedStyle(document.getElementById('pg')).filter };
+    for (const sec of Object.keys(DONDE)){
+      await irA(sec);
+      out[sec] = getComputedStyle(document.getElementById(DONDE[sec])).filter;
+    }
+    /* Y Formato en transparente, sin cambiar de pestaña: se toca su botón. */
+    document.getElementById('btnVidrio').click();
+    await pausa(700);
+    out.formatoCristal = getComputedStyle(document.getElementById('ajustes')).filter;
+    document.getElementById('btnVidrio').click();
+    await pausa(500);
+    return out;
+  });
+  const conFiltro = await porPanel();
+  di('el filter de cada panel', JSON.stringify(conFiltro));
+  vale('(la prueba es válida) la hoja lleva el filtro puesto',
+       /brightness\(/.test(conFiltro.hoja) && /contrast\(/.test(conFiltro.hoja),
+       conFiltro.hoja);
+  const DE_PAPEL = ['libros','glosas','encuentros','respaldo'];
+  vale('LOS CUATRO PANELES DE PAPEL LLEVAN EL MISMO FILTRO QUE LA HOJA',
+       DE_PAPEL.every(k => conFiltro[k] === conFiltro.hoja),
+       DE_PAPEL.map(k => k + ' ' + conFiltro[k]).join(' · '));
+  vale('ORACIÓN NO, que es la excepción que se pidió',
+       conFiltro.oracion === 'none', conFiltro.oracion);
+  vale('FORMATO SÍ, con el panel opaco',
+       conFiltro.formato === conFiltro.hoja, conFiltro.formato);
+  vale('  y NO cuando se vuelve transparente',
+       conFiltro.formatoCristal === 'none', conFiltro.formatoCristal);
+  /* EL TESTIGO DEL BLOQUE: se mueve el riel y el número tiene que moverse en
+     los dos sitios a la vez. Sin esto, un filtro clavado pasaría todo lo de
+     arriba sin hacer nada de lo que se pidió. */
+  await ponerContraste(pagina, 200);
+  const alTope = await porPanel();
+  await ponerContraste(pagina, 125);
+  di('con el contraste al tope', JSON.stringify({ hoja: alTope.hoja, libros: alTope.libros }));
+  vale('(la prueba es válida) mover el riel cambia el filtro de la hoja',
+       alTope.hoja !== conFiltro.hoja, conFiltro.hoja + '  →  ' + alTope.hoja);
+  vale('Y EL DE LOS PANELES SE MUEVE CON ELLA',
+       DE_PAPEL.every(k => alTope[k] === alTope.hoja),
+       DE_PAPEL.map(k => k + ' ' + alTope[k]).join(' · '));
+  vale('  sin arrastrar a ORACIÓN', alTope.oracion === 'none', alTope.oracion);
+
   /* ---------- los cuatro valores pedidos ---------- */
   titulo('50, 100, 150 y 200');
   for (const [pct, factor] of [[50,.5],[100,1],[150,1.5],[200,2]]){
