@@ -528,6 +528,86 @@ async function ponerContraste(pagina, pct){
   vale('  (y se quedó en opaco, para lo que viene)',
        largos.modoFinal === false, largos.modoFinal);
 
+  /* ---------- el botón de la salida se queda blanco ---------- */
+  /* LO QUE SE PIDIÓ, en cuanto vio las tablillas sepia puestas: «me gustaría
+     que el botón TRANSPARENTE siempre fuera blanco». El «siempre» es la mitad
+     del encargo y es la que se puede perder sin que se note: el botón se
+     enciende con el modo —lleva .active mientras el panel está transparente—,
+     así que tiene DOS estados y hay que mirarlo en los dos.
+
+     POR QUÉ ÉSTE SÍ Y LAS TABLILLAS NO: el panel entero se vistió del sepia de
+     la hoja para dejar de ser parches sobre el libro; éste es la puerta de
+     salida del modo transparente y lo que tiene que hacer es encontrarse. Son
+     dos encargos contrarios a propósito, y por eso la afirmación que de verdad
+     guarda esto no es «es blanco» —un blanco se puede clavar y quedarse— sino
+     que NO ES el papel de las tablillas: el día que alguien vuelva a pasarle
+     la regla del sepia por encima, esta línea es la que se entera.
+
+     SE LEE COMPUESTO, no de la hoja de estilo: lo que importa es lo que se ve,
+     y un blanco con un cuarto de transparencia encima del panel sepia sale
+     crema. Ésa fue justamente la corrección: estaba a .75 y compuesto daba
+     rgb(248,243,230). */
+  titulo('el botón de la salida no se vuelve sepia');
+  const blanco = await pagina.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const vidrio = () => document.getElementById('btnVidrio');
+    const lee = () => {
+      const cs = getComputedStyle(vidrio());
+      const tabl = document.querySelector('#ctrlConfig .ajuste.riel-fila');
+      return { fondo: cs.backgroundColor, tinta: cs.color,
+               activo: vidrio().classList.contains('active'),
+               tablilla: tabl ? getComputedStyle(tabl).backgroundColor : null };
+    };
+    /* De opaco se parte, se pregunte lo que se pregunte del bloque de arriba. */
+    if (document.getElementById('ajustes').classList.contains('cristal')){
+      vidrio().click(); await z(400);
+    }
+    const opaco = lee();
+    vidrio().click(); await z(400);
+    const cristal = lee();
+    vidrio().click(); await z(400);
+    return { opaco, cristal, modoFinal:
+             document.getElementById('ajustes').classList.contains('cristal') };
+  });
+  const tono = c => { const m = /rgba?\(([^)]+)\)/.exec(c || '');
+                      return m ? m[1].split(',').map(Number) : null; };
+  /* Blanco de verdad: claro por los tres canales Y sin calentar hacia el
+     sepia. Sólo con «claro» pasaría el rgb(248,243,230) de antes, que es el
+     que se vino a quitar; los 18 puntos que tenía entre el rojo y el azul son
+     los que esta línea no deja volver. */
+  const esBlanco = c => { const v = tono(c);
+                          return !!v && v[0] >= 245 && v[1] >= 245 && v[2] >= 240 &&
+                                 (v[0] - v[2]) <= 12 && (v[3] === undefined || v[3] >= .95); };
+  di('el botón en los dos modos', JSON.stringify(blanco));
+  vale('(la prueba es válida) se pudo leer el fondo en los dos modos, y son los dos estados',
+       !!tono(blanco.opaco.fondo) && !!tono(blanco.cristal.fondo) &&
+       blanco.opaco.activo === false && blanco.cristal.activo === true,
+       blanco.opaco.fondo + ' (activo ' + blanco.opaco.activo + ')  ·  ' +
+       blanco.cristal.fondo + ' (activo ' + blanco.cristal.activo + ')');
+  vale('EL BOTÓN DE LA SALIDA ES BLANCO EN OPACO Y EN TRANSPARENTE',
+       esBlanco(blanco.opaco.fondo) && esBlanco(blanco.cristal.fondo),
+       blanco.opaco.fondo + '  →  ' + blanco.cristal.fondo);
+  vale('  y es el mismo blanco en los dos, que es lo que quiere decir «siempre»',
+       blanco.opaco.fondo === blanco.cristal.fondo,
+       blanco.opaco.fondo + '  vs  ' + blanco.cristal.fondo);
+  /* LA QUE GUARDA EL ENCARGO: el papel de las tablillas se lee en el mismo
+     rato y en el mismo modo, así que si algún día vuelven a ser el mismo
+     color, esto sale rojo sin que haya que tocar ningún número de aquí. */
+  vale('  y NO es el papel de las tablillas del panel',
+       !/rgba\([^)]*,\s*0\)/.test(blanco.cristal.tablilla || 'rgba(0,0,0, 0)') &&
+       blanco.cristal.fondo !== blanco.cristal.tablilla,
+       blanco.cristal.fondo + '  contra la tablilla ' + blanco.cristal.tablilla);
+  vale('  con su letra legible encima', (() => {
+         const l = c => { const v = tono(c); if (!v) return null;
+           const f = x => { x /= 255; return x <= .03928 ? x/12.92 : Math.pow((x+.055)/1.055, 2.4); };
+           return .2126*f(v[0]) + .7152*f(v[1]) + .0722*f(v[2]); };
+         const a = l(blanco.cristal.tinta), b = l(blanco.cristal.fondo);
+         return a != null && b != null &&
+                (Math.max(a,b)+.05)/(Math.min(a,b)+.05) >= 4.5; })(),
+       blanco.cristal.tinta + ' sobre ' + blanco.cristal.fondo);
+  vale('  (y se quedó en opaco, para lo que viene)',
+       blanco.modoFinal === false, blanco.modoFinal);
+
   /* ---------- el velo se aparta con el panel transparente ---------- */
   /* LO QUE SE PIDIÓ: «los tabs abren y se pone un background transparente-negro
      detrás; ¿podrías hacerlo menos negro?». De las opciones que se le
