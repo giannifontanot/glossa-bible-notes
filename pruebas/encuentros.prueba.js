@@ -1067,12 +1067,48 @@ const IR_A = `async (sec) => {
        !!entrada && entrada.en[4] <= 1000,
        !!entrada && (entrada.en[4] + ' ms en el turno 12'));
 
-  /* EL ASPA, PEQUEÑA Y DISCRETA, y el blanco de toque intacto. Se pidió que
-     fuera «mucho más pequeña y discreta», y lo que hay que vigilar al encoger
-     un botón es que no se encoja lo que no se ve: la tinta baja y el aro se va,
-     pero el área que atiende al dedo se queda en los 44 px de la casa
-     (CONFIG.minTouchTarget). Las dos mitades van juntas en la misma lectura
-     porque separar una de otra es exactamente el error que esta línea guarda. */
+  /* Y LOS SEIS NÚMEROS DE LA CACHÉ, TODOS IGUALES. La dirección del documento
+     del árbol cuelga del sello de compilación, así que el marcado llega
+     siempre fresco; pero su hoja de estilo y sus guiones se piden por su
+     propia dirección, y si ese número no sube, el navegador sirve la copia
+     vieja y queda lo peor de los dos mundos: el marcado nuevo con el guion de
+     antes. Ya pasó —con esta misma aspa, cambiada en la hoja de estilo sin
+     subir el número— y lo levantó la revisión de Codex.
+     LO QUE ESTA LÍNEA PUEDE GUARDAR es la mitad que se puede comprobar desde
+     aquí: que los seis vayan a la una. Un olvido entero no lo ve nadie más que
+     quien escribe el cambio; un olvido a medias —subir la hoja de estilo y
+     dejarse el guion— es el que de verdad despista, porque entonces media
+     aplicación es nueva y la otra media no. */
+  const sellos = conHoja.falta ? null : await marcoOra.evaluate(() => {
+    const de = (u) => { const m = /[?&]v=([^&]+)/.exec(u || ''); return m ? m[1] : null; };
+    /* SÓLO LOS FICHEROS DE ESTA CARPETA. El puente —../encuentros/salida.js—
+       entra sin número y a propósito: es de otro módulo, el mismo para los
+       cinco relatos, y su caché no es cosa del árbol. Sin este filtro la
+       comprobación se caía con todo bien puesto, que es la peor manera de
+       fallar: enseña a no hacer caso de las rojas. */
+    const fuentes = [...document.querySelectorAll('link[href], script[src]')]
+      .map((e) => e.getAttribute('href') || e.getAttribute('src'))
+      .filter((u) => u && !/^https?:/.test(u) && !/^\.\./.test(u));
+    return { versiones: fuentes.map(de), fuentes };
+  });
+  di('los números de la caché', JSON.stringify(sellos && sellos.versiones));
+  vale('(la prueba es válida) el árbol pide hojas de estilo y guiones propios',
+       !!sellos && sellos.fuentes.length >= 4,
+       !!sellos && sellos.fuentes.join(' · '));
+  vale('TODOS LOS FICHEROS DEL ÁRBOL VAN CON EL MISMO NÚMERO DE CACHÉ',
+       !!sellos && sellos.versiones.every((v) => v && v === sellos.versiones[0]),
+       !!sellos && sellos.versiones.join(' · '));
+
+  /* EL ASPA: PEQUEÑA, VISIBLE, Y CON SU BLANCO DE TOQUE INTACTO. Tres cosas y
+     las tres hacen falta, porque esta ventana ya se pasó de rosca en las dos
+     primeras. Se pidió «mucho más pequeña y discreta» y se hizo —14 px, sin
+     aro, a media luz—; al verlo puesto, «está demasiado discreta, no se ve
+     nada». Así que ahora se afirma el rango y no un extremo: más chica que los
+     22 px con aro del principio, pero encendida.
+     Y la tercera, que es la que ninguna de las dos vueltas movió: el área que
+     atiende al dedo se queda en los 44 px de la casa (CONFIG.minTouchTarget)
+     mida lo que mida la tinta. Van las tres en la misma lectura porque
+     separarlas es exactamente el error que estas líneas guardan. */
   const aspa = conHoja.falta ? null : await marcoOra.evaluate(() => {
     const x = document.getElementById('chest-close');
     const r = x.getBoundingClientRect();
@@ -1083,9 +1119,10 @@ const IR_A = `async (sec) => {
              apagada: parseFloat(cs.opacity) };
   });
   di('el aspa', JSON.stringify(aspa));
-  vale('EL ASPA ES PEQUEÑA Y DISCRETA',
-       !!aspa && aspa.tinta <= 16 && aspa.borde === 0 && aspa.apagada < 1,
-       JSON.stringify(aspa));
+  vale('EL ASPA ES PEQUEÑA, más que el botón con aro del que salió',
+       !!aspa && aspa.tinta <= 20 && aspa.borde === 0, JSON.stringify(aspa));
+  vale('  PERO SE VE, que apagarla del todo fue pasarse',
+       !!aspa && aspa.apagada >= 0.8, !!aspa && String(aspa.apagada));
   vale('  PERO NO PIERDE SU BLANCO DE TOQUE, que es lo que no se ve',
        !!aspa && aspa.toque[0] >= 44 && aspa.toque[1] >= 44,
        !!aspa && aspa.toque.join('x'));
