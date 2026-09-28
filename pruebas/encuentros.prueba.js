@@ -511,7 +511,7 @@ const IR_A = `async (sec) => {
      movimiento lento del resto del programa, y «verifica que tenga suficiente
      aire en el top para que los controles de edición no queden tapados».
 
-     LAS CUATRO COSAS QUE SE VIGILAN:
+     LAS CINCO COSAS QUE SE VIGILAN:
 
      · QUE SUBA. El doble toque la lleva arriba del todo y centrada.
      · QUE LOS CONTROLES QUEPAN, que es la mitad medible del encargo. El «+»
@@ -520,175 +520,178 @@ const IR_A = `async (sec) => {
        Medido antes de existir esto: en el sitio donde nacen las hojas, el «+»
        caía en −19, −32 y −44 px en los marcos cortos. Por eso el sitio de
        editar se cuenta desde arriba y no como fracción del alto.
-     · Y QUE VUELVA A SU SITIO al cerrar la edición. En esta aplicación el
-       sitio ES el grupo —finishDrag reclasifica al soltar—, así que una hoja
-       que se quedara arriba cambiaría de rama cada vez que se edita su texto.
-       Se afirman las dos: que vuelve al píxel de donde salió y que su grupo
+     · CON UNA HOJA GRANDE TAMBIÉN. Lo levantó la revisión de Codex: la hoja se
+       engorda hasta 320 px con el «+», y centrarla a secas dejaba fuera los
+       botones de los lados. Se engorda por el camino de verdad y se reabre la
+       edición, que es el caso que describe.
+     · QUE VUELVA A SU SITIO al cerrar la edición. En esta aplicación el sitio
+       ES el grupo —finishDrag reclasifica al soltar—, así que una hoja que se
+       quedara arriba cambiaría de rama cada vez que se edita su texto. Se
+       afirman las dos: que vuelve al píxel de donde salió y que su grupo
        guardado no cambió.
      · Y QUE EL TEXTO SE HAYA GUARDADO, sin la cual todo lo anterior describiría
        un paseo bonito que no edita nada.
 
-     SE ARRASTRA LA HOJA ABAJO ANTES DE EMPEZAR, y no es un adorno: nace arriba,
-     así que sin moverla el viaje sería de cero píxeles y las tres primeras
-     líneas saldrían verdes sin que nada se hubiera movido. El arrastre va
-     torcido, como el de un dedo. */
+     LOS GESTOS VAN CON EL RATÓN DE PLAYWRIGHT, no con PointerEvent hechos a
+     mano, y la razón está escrita más arriba en este mismo fichero: el árbol
+     llama setPointerCapture(e.pointerId) en su pointerdown, y un pointerId
+     inventado no corresponde a ningún puntero vivo —el navegador tira
+     NotFoundError—. Lo pagué: la primera versión de este bloque medía bien y
+     dejaba tres excepciones en la consola, y la línea de «sin errores de
+     JavaScript» las cazó. El ratón manda pulsaciones reales, con su pointerId
+     real.
+
+     Y LA HOJA SE ARRASTRA ABAJO ANTES DE EMPEZAR, torcido como un dedo: nace
+     arriba, así que sin moverla el viaje sería de cero píxeles y las primeras
+     líneas saldrían verdes sin que nada se hubiera movido. */
   titulo('ORACIÓN: la hojita sube a editarse y vuelve a su sitio');
-  const viaje = marcoOra ? await marcoOra.evaluate(async () => {
-    const z = ms => new Promise(x => setTimeout(x, ms));
+  const marcoEnPantalla = () => p.evaluate(() => {
+    const e = document.querySelector('.ora-marco');
+    if (!e) return null;
+    const r = e.getBoundingClientRect();
+    return { x:r.x, y:r.y, w:r.width, h:r.height };
+  });
+  const nuevaHoja = marcoOra ? await marcoOra.evaluate(async () => {
     const antes = new Set([...document.querySelectorAll('.leaf')].map(x => x.dataset.id));
     document.getElementById('add-btn').click();
-    await z(700);
+    await new Promise(z => setTimeout(z, 700));
     const el = [...document.querySelectorAll('.leaf')].find(x => !antes.has(x.dataset.id));
-    if (!el) return { falta:'no nació la hoja' };
-    const ev = (t, x, y, id) => el.dispatchEvent(new PointerEvent(t,
-      { bubbles:true, cancelable:true, pointerId:id, pointerType:'touch',
-        clientX:Math.round(x), clientY:Math.round(y) }));
-    /* 1 · abajo, arrastrando */
-    const b0 = el.getBoundingClientRect();
-    const x0 = b0.left + b0.width / 2, y0 = b0.top + b0.height / 2;
-    const destino = innerHeight * 0.72;
-    ev('pointerdown', x0, y0, 21);
-    for (let i = 1; i <= 8; i++)
-      ev('pointermove', x0 + Math.sin(i) * 3, y0 + (destino - y0) * i / 8, 21);
-    ev('pointerup', x0, destino, 21);
-    await z(500);
-    const abajo = el.getBoundingClientRect();
-    const guardado = () => {
-      try {
-        return JSON.parse(localStorage.getItem('sticky-shapes:v2') || '{}')
-          .workspaces.flatMap(w => w.nodes || []).find(n => n.id === el.dataset.id) || {};
-      } catch(e){ return {}; }
+    return el ? el.dataset.id : null;
+  }) : null;
+  const SEL = '.leaf[data-id="' + nuevaHoja + '"]';
+  /* Todo lo que hay que mirar de la hoja, en una sola pasada. */
+  const verHoja = () => marcoOra.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    if (!el) return { falta:'no está la hoja' };
+    const r = el.getBoundingClientRect();
+    const b = (q) => {
+      const x = el.querySelector(q);
+      if (!x) return null;
+      const c = x.getBoundingClientRect();
+      return { izq:Math.round(c.left), der:Math.round(c.right),
+               top:Math.round(c.top), fondo:Math.round(c.bottom) };
     };
-    const grupoAntes = guardado().status;
-    /* 2 · doble toque */
-    const cx = abajo.left + abajo.width / 2, cy = abajo.top + abajo.height / 2;
-    ev('pointerdown', cx, cy, 22); ev('pointerup', cx, cy, 22);
-    await z(60);
-    ev('pointerdown', cx, cy, 23); ev('pointerup', cx, cy, 23);
-    await z(120);
-    /* En pleno viaje: la clase que lleva la transición tiene que estar puesta.
-       Es lo único que distingue «se mueve despacio» de «aparece arriba». */
-    const enVuelo = el.classList.contains('viajando');
-    await z(900);
-    const arriba = el.getBoundingClientRect();
-    const mas = el.querySelector('.size-btn.plus');
-    const rm = mas ? mas.getBoundingClientRect() : null;
-    const ed = el.querySelector('.leaf-editor');
-    /* 3 · se escribe y se cierra con Enter, como se cierra de verdad */
-    if (ed){
-      ed.value = 'texto de la prueba';
-      ed.dispatchEvent(new KeyboardEvent('keydown',
-        { key:'Enter', bubbles:true, cancelable:true }));
-    }
-    await z(1100);
-    const vuelta = el.getBoundingClientRect();
-    const g = guardado();
-    return { marco: { w: innerWidth, h: innerHeight },
-             abajo: { top: Math.round(abajo.top), izq: Math.round(abajo.left) },
-             enVuelo, hayEditor: !!ed,
-             arriba: { top: Math.round(arriba.top), izq: Math.round(arriba.left),
-                       ancho: Math.round(arriba.width) },
-             masTop: rm ? Math.round(rm.top) : null,
-             vuelta: { top: Math.round(vuelta.top), izq: Math.round(vuelta.left) },
-             grupoAntes, grupoDespues: g.status, texto: g.text };
-  }) : { falta:'sin marco' };
+    let nodo = {};
+    try {
+      nodo = JSON.parse(localStorage.getItem('sticky-shapes:v2') || '{}')
+        .workspaces.flatMap(w => w.nodes || []).find(n => n.id === el.dataset.id) || {};
+    } catch(e){ /* sin almacén, se queda sin grupo y la línea de validez lo dirá */ }
+    return { top:Math.round(r.top), izq:Math.round(r.left), ancho:Math.round(r.width),
+             marco:{ w:innerWidth, h:innerHeight },
+             viajando: el.classList.contains('viajando'),
+             editor: !!el.querySelector('.leaf-editor'),
+             mas: b('.size-btn.plus'), menos: b('.size-btn.minus'),
+             rotar: b('.size-btn.rotate'), color: b('.size-btn.color'),
+             grupo: nodo.status, texto: nodo.text };
+  }, SEL);
+
+  let viaje = { falta:'sin marco' };
+  if (marcoOra && nuevaHoja){
+    /* 1 · abajo, arrastrando torcido */
+    const m0 = await marcoEnPantalla();
+    const desde = await enPantalla(SEL);
+    const hastaY = m0.y + m0.h * 0.72;
+    await p.mouse.move(desde.x, desde.y);
+    await p.mouse.down();
+    for (let i = 1; i <= 8; i++)
+      await p.mouse.move(desde.x + Math.sin(i) * 3,
+                         desde.y + (hastaY - desde.y) * i / 8);
+    await p.mouse.up();
+    await p.waitForTimeout(500);
+    const abajo = await verHoja();
+    /* 2 · doble toque: sube */
+    await dobleToque(await enPantalla(SEL));
+    const enVuelo = await verHoja();          /* dobleToque deja 500 ms: el
+                                                 viaje dura 600, así que aquí
+                                                 la clase tiene que seguir */
+    await p.waitForTimeout(700);
+    const arriba = await verHoja();
+    /* 3 · se escribe con el teclado de verdad y se cierra con Intro */
+    await p.keyboard.type('TEXTO DE LA PRUEBA');
+    await p.keyboard.press('Enter');
+    await p.waitForTimeout(1100);
+    const vuelta = await verHoja();
+    viaje = { abajo, enVuelo:enVuelo.viajando, arriba, vuelta };
+  }
   di('el viaje de la hojita', JSON.stringify(viaje));
   vale('(la prueba es válida) se pudo crear, bajar y editar una hoja',
-       !viaje.falta && viaje.hayEditor === true, viaje.falta || viaje.hayEditor);
+       !viaje.falta && viaje.arriba.editor === true,
+       viaje.falta || (viaje.arriba && viaje.arriba.editor));
   vale('(la prueba es válida) la hoja estaba abajo antes del doble toque',
-       !viaje.falta && viaje.abajo.top > viaje.marco.h / 2,
-       !viaje.falta && (viaje.abajo.top + ' de ' + viaje.marco.h));
+       !viaje.falta && viaje.abajo.top > viaje.abajo.marco.h / 2,
+       !viaje.falta && (viaje.abajo.top + ' de ' + viaje.abajo.marco.h));
   vale('EL DOBLE TOQUE LA SUBE ARRIBA',
-       !viaje.falta && viaje.arriba.top < viaje.abajo.top &&
-       viaje.arriba.top <= 60, !viaje.falta && (viaje.abajo.top + ' → ' + viaje.arriba.top));
+       !viaje.falta && viaje.arriba.top < viaje.abajo.top && viaje.arriba.top <= 60,
+       !viaje.falta && (viaje.abajo.top + ' → ' + viaje.arriba.top));
   vale('  y centrada a lo ancho',
        !viaje.falta &&
-       Math.abs((viaje.arriba.izq + viaje.arriba.ancho / 2) - viaje.marco.w / 2) <= 2,
-       !viaje.falta && (viaje.arriba.izq + ' de ' + viaje.marco.w));
+       Math.abs((viaje.arriba.izq + viaje.arriba.ancho / 2) - viaje.arriba.marco.w / 2) <= 2,
+       !viaje.falta && (viaje.arriba.izq + ' de ' + viaje.arriba.marco.w));
   vale('  con el movimiento puesto, no de un salto',
        !viaje.falta && viaje.enVuelo === true, !viaje.falta && viaje.enVuelo);
   vale('LOS CONTROLES DE EDICIÓN CABEN: el botón de arriba no se sale',
-       !viaje.falta && viaje.masTop !== null && viaje.masTop >= 0,
-       !viaje.falta && (viaje.masTop + ' px del filo'));
+       !viaje.falta && viaje.arriba.mas && viaje.arriba.mas.top >= 0,
+       !viaje.falta && viaje.arriba.mas && (viaje.arriba.mas.top + ' px del filo'));
   vale('Y AL TERMINAR VUELVE A SU SITIO',
        !viaje.falta && Math.abs(viaje.vuelta.top - viaje.abajo.top) <= 1 &&
        Math.abs(viaje.vuelta.izq - viaje.abajo.izq) <= 1,
-       !viaje.falta && JSON.stringify(viaje.vuelta) + ' contra ' + JSON.stringify(viaje.abajo));
+       !viaje.falta && (JSON.stringify([viaje.vuelta.top, viaje.vuelta.izq]) +
+                        ' contra ' + JSON.stringify([viaje.abajo.top, viaje.abajo.izq])));
   vale('  sin cambiar de grupo, que es lo que el sitio significa aquí',
-       !viaje.falta && !!viaje.grupoAntes && viaje.grupoDespues === viaje.grupoAntes,
-       !viaje.falta && (viaje.grupoAntes + ' → ' + viaje.grupoDespues));
-  vale('  y con el texto guardado', !viaje.falta && viaje.texto === 'texto de la prueba',
-       !viaje.falta && viaje.texto);
+       !viaje.falta && !!viaje.abajo.grupo && viaje.vuelta.grupo === viaje.abajo.grupo,
+       !viaje.falta && (viaje.abajo.grupo + ' → ' + viaje.vuelta.grupo));
+  vale('  y con el texto guardado',
+       !viaje.falta && viaje.vuelta.texto === 'TEXTO DE LA PRUEBA',
+       !viaje.falta && viaje.vuelta.texto);
 
-  /* Y UNA HOJA GRANDE, QUE ES DONDE SE ROMPÍA. Lo levantó la revisión de Codex:
-     la hoja se puede engordar hasta 320 px con el botón «+», y centrarla a
-     secas dejaba los botones de los lados —52 px cada uno— fuera del marco.
-     Se engorda por el camino de verdad, con el «+», se cierra la edición y se
-     vuelve a abrir, que es el caso que describe: reabrir una hoja ya hojaGrande.
+  /* Y UNA HOJA GRANDE, QUE ES DONDE SE ROMPÍA. Se engorda con el «+» —cuatro
+     toques de 25 px— y se vuelve a abrir la edición, que es el caso que
+     describe Codex: reabrir una hoja ya grande.
 
      LA LÍNEA DE VALIDEZ ES LA DEL SITIO: los controles piden el ancho de la
      hoja más 120 px, y si el marco no los tiene no hay colocación que los
-     salve —lo único que se puede hacer entonces es centrarla, que reparte el
-     recorte entre los dos lados en vez de perder un botón entero—. Así que la
-     exigencia de abajo sólo significa algo cuando caben, y eso se afirma
-     primero. */
-  const hojaGrande = marcoOra ? await marcoOra.evaluate(async () => {
-    const z = ms => new Promise(x => setTimeout(x, ms));
-    const antes = new Set([...document.querySelectorAll('.leaf')].map(x => x.dataset.id));
-    document.getElementById('add-btn').click();
-    await z(700);
-    const el = [...document.querySelectorAll('.leaf')].find(x => !antes.has(x.dataset.id));
-    if (!el) return { falta:'no nació la hoja' };
-    const ev = (t, x, y, id) => el.dispatchEvent(new PointerEvent(t,
-      { bubbles:true, cancelable:true, pointerId:id, pointerType:'touch',
-        clientX:Math.round(x), clientY:Math.round(y) }));
-    const abrirEdicion = async (id) => {
-      const r = el.getBoundingClientRect();
-      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-      ev('pointerdown', cx, cy, id); ev('pointerup', cx, cy, id);
-      await z(60);
-      ev('pointerdown', cx, cy, id + 1); ev('pointerup', cx, cy, id + 1);
-      await z(1000);
-    };
-    await abrirEdicion(31);
-    const mas = el.querySelector('.size-btn.plus');
-    if (!mas) return { falta:'sin botón de crecer' };
-    for (let i = 0; i < 4; i++){          /* 4 toques × 25 px = 250 */
-      mas.dispatchEvent(new PointerEvent('pointerdown',
-        { bubbles:true, cancelable:true, pointerId:60 + i, pointerType:'touch' }));
-      await z(80);
+     salve —lo único que queda entonces es centrarla, que reparte el recorte
+     entre los dos lados en vez de perder un botón entero—. Así que la
+     exigencia sólo significa algo cuando caben, y eso se afirma primero. */
+  let hojaGrande = { falta:'sin marco' };
+  if (marcoOra && nuevaHoja){
+    await dobleToque(await enPantalla(SEL));
+    /* El botón se busca ANTES DE CADA TOQUE, no una vez: va anclado al centro
+       de la hoja, y cada vez que ésta engorda 25 px el botón se corre. Con la
+       posición del primero, los toques siguientes caían al lado y la hoja
+       llegaba a 200 en vez de 250 —medido—. */
+    for (let i = 0; i < 4; i++){
+      const btnMas = await enPantalla(SEL + ' .size-btn.plus');
+      if (!btnMas) break;
+      await p.mouse.move(btnMas.x, btnMas.y);
+      await p.mouse.down(); await p.mouse.up();
+      await p.waitForTimeout(150);
     }
-    await z(200);
-    const ed = el.querySelector('.leaf-editor');
-    if (ed) ed.dispatchEvent(new KeyboardEvent('keydown',
-      { key:'Enter', bubbles:true, cancelable:true }));
-    await z(1100);
-    await abrirEdicion(41);
-    const caja = (sel) => {
-      const b = el.querySelector(sel);
-      if (!b) return null;
-      const r = b.getBoundingClientRect();
-      return { izq: Math.round(r.left), der: Math.round(r.right),
-               top: Math.round(r.top), fondo: Math.round(r.bottom) };
-    };
-    const rb = el.getBoundingClientRect();
-    return { marco: { w: innerWidth, h: innerHeight }, tam: Math.round(rb.width),
-             rotar: caja('.size-btn.rotate'), color: caja('.size-btn.color'),
-             mas: caja('.size-btn.plus'), menos: caja('.size-btn.minus') };
-  }) : { falta:'sin marco' };
-  di('la hoja hojaGrande y sus controles', JSON.stringify(hojaGrande));
+    await p.keyboard.press('Enter');
+    await p.waitForTimeout(1100);
+    await dobleToque(await enPantalla(SEL));
+    await p.waitForTimeout(700);
+    hojaGrande = await verHoja();
+  }
+  di('la hoja grande y sus controles', JSON.stringify(hojaGrande));
   vale('(la prueba es válida) la hoja creció con el botón',
-       !hojaGrande.falta && hojaGrande.tam > 200, hojaGrande.falta || hojaGrande.tam);
+       !hojaGrande.falta && hojaGrande.ancho > 200,
+       hojaGrande.falta || hojaGrande.ancho);
   vale('(la prueba es válida) en este marco los controles caben',
-       !hojaGrande.falta && hojaGrande.tam + 120 <= hojaGrande.marco.w,
-       !hojaGrande.falta && (hojaGrande.tam + ' + 120 contra ' + hojaGrande.marco.w));
+       !hojaGrande.falta && hojaGrande.ancho + 120 <= hojaGrande.marco.w,
+       !hojaGrande.falta && (hojaGrande.ancho + ' + 120 contra ' + hojaGrande.marco.w));
   vale('CON UNA HOJA GRANDE, LOS BOTONES DE LOS LADOS NO SE SALEN',
        !hojaGrande.falta && hojaGrande.rotar && hojaGrande.color &&
        hojaGrande.rotar.izq >= 0 && hojaGrande.color.der <= hojaGrande.marco.w,
-       !hojaGrande.falta && JSON.stringify({ rotar: hojaGrande.rotar, color: hojaGrande.color }));
+       !hojaGrande.falta && JSON.stringify({ rotar:hojaGrande.rotar, color:hojaGrande.color }));
   vale('  y el de arriba tampoco',
        !hojaGrande.falta && hojaGrande.mas && hojaGrande.mas.top >= 0,
        !hojaGrande.falta && hojaGrande.mas && hojaGrande.mas.top);
+  /* Se cierra la edición para no dejarla abierta al bloque siguiente. */
+  if (marcoOra && nuevaHoja){
+    await p.keyboard.press('Enter');
+    await p.waitForTimeout(900);
+  }
 
   /* ---------------- y la barra no se mueve con el libro ---------------- */
   /* SE PIDIÓ QUE ESTA BARRA SE SALGA DE «LA INTERFAZ CRECE CON EL LIBRO», y
