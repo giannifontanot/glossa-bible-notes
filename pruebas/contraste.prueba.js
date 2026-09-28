@@ -608,30 +608,28 @@ async function ponerContraste(pagina, pct){
   /* Y LO QUE DE VERDAD SE VE, que es otra cosa. Las líneas de arriba comparan
      lo DECLARADO, y los dos fondos son traslúcidos: el papel del rollo lleva
      un cuarto de transparencia y la tablilla un 6%, así que lo que se pinta
-     depende de lo que cada botón tenga detrás —el degradado del panel a dos
-     alturas distintas en opaco, y la hoja del libro en cristal—. Dos
-     declaraciones iguales pueden verse distintas, y la queja que trajo este
-     cambio era justamente de las que se ven. Lo levantó la revisión de Codex,
-     y es la segunda vez que el banco se queda corto por mirar la hoja de
-     estilo en vez de la pantalla.
+     depende de lo que cada botón tenga detrás. Dos declaraciones iguales
+     pueden verse distintas, y la queja que trajo este cambio era justamente de
+     las que se ven. Lo levantó la revisión de Codex, y es la segunda vez que
+     el banco se queda corto por mirar la hoja de estilo en vez de la pantalla.
+
+     SÓLO EN OPACO, Y ESO LO ENSEÑÓ UNA ROJA. La primera versión medía también
+     en modo cristal y salió a 23 de distancia en la máquina del dueño del repo
+     contra 11 en ésta. No es que un botón cambiara: en cristal el panel se
+     queda sin papel y lo que hay detrás de cada uno es EL LIBRO —texto
+     distinto bajo cada botón, y distinto según dónde esté leyendo cada uno—.
+     Esa medida habla de la página, no de los botones, y un número ahí sólo
+     mide en qué renglón se quedó la máquina. En opaco lo de detrás es el
+     degradado del propio panel, que es siempre el mismo: 4 aquí, 5 allí.
 
      SE MIDE EL PAPEL, NO LA TINTA: de la captura de cada botón se recorre la
      fila de en medio y se toma el píxel más claro, que en los dos es el fondo.
      Un punto fijo cae encima de la palabra en el botón estrecho —probado, daba
      el color de la letra— y entonces esto compararía letras.
 
-     LA HOLGURA ES DE 16 PUNTOS y sale de lo medido: 4 de diferencia en opaco y
-     11 en cristal, que es lo que aporta el fondo de cada uno y no se puede
-     quitar sin volver los dos opacos —que sería cambiar el material por hacer
-     pasar una prueba—.
-
-     Y SE PROBÓ QUE CAZA: devolviéndole el blanco opaco de ayer con un
-     addStyleTag, la diferencia sube a 19 en opaco y a 77 en cristal. O sea que
-     la línea se entera del cambio que trajo la queja. Queda dicho que en OPACO
-     el margen es estrecho —11 de lo bueno contra 19 de lo malo—: la que caza
-     de verdad es la de cristal, donde hay 66 puntos entre una cosa y la otra.
-     Si algún día el degradado del panel se aclara y esto empieza a rozar el
-     16, el número a mover es éste y no la regla. */
+     LA HOLGURA ES DE 16 y ahora tiene sitio de sobra por los dos lados: lo
+     bueno mide 4 y 5 en las dos máquinas, y lo malo —devolviéndole el blanco
+     opaco de ayer con un addStyleTag— sube a 19. */
   const lupa = await sesion.navegador.newPage();
   await lupa.setContent('<canvas id="c"></canvas>');
   const papelDe = async (sel) => {
@@ -652,31 +650,17 @@ async function ponerContraste(pagina, pct){
       return mejor;
     }, b64);
   };
-  const pintado = async () => {
-    const a = await papelDe('#btnVidrio');
-    const b = await papelDe('#ajustes .pie-cerrar .cerrar-pie');
-    return { salida: a, cerrar: b,
-             lejos: Math.max(...a.map((v, i) => Math.abs(v - b[i]))) };
-  };
-  const pintadoOpaco = await pintado();
-  await pagina.evaluate(async () => {
-    document.getElementById('btnVidrio').click();
-    await new Promise(z => setTimeout(z, 700));
-  });
-  const pintadoCristal = await pintado();
-  await pagina.evaluate(async () => {
-    document.getElementById('btnVidrio').click();
-    await new Promise(z => setTimeout(z, 700));
-  });
+  const pintadoSalida = await papelDe('#btnVidrio');
+  const pintadoCerrar = await papelDe('#ajustes .pie-cerrar .cerrar-pie');
   await lupa.close();
-  di('lo pintado', JSON.stringify({ opaco: pintadoOpaco, cristal: pintadoCristal }));
-  vale('(la prueba es válida) se leyó papel y no tinta en los cuatro',
-       [pintadoOpaco.salida, pintadoOpaco.cerrar,
-        pintadoCristal.salida, pintadoCristal.cerrar].every(c => c[0] > 150),
-       JSON.stringify([pintadoOpaco.salida, pintadoCristal.salida]));
+  const lejosPintado = Math.max(...pintadoSalida.map((v, i) => Math.abs(v - pintadoCerrar[i])));
+  di('lo pintado en opaco', JSON.stringify({ salida: pintadoSalida,
+                                             cerrar: pintadoCerrar, lejos: lejosPintado }));
+  vale('(la prueba es válida) se leyó papel y no tinta en los dos',
+       pintadoSalida[0] > 150 && pintadoCerrar[0] > 150,
+       JSON.stringify([pintadoSalida, pintadoCerrar]));
   vale('Y PINTADOS SE PARECEN, no sólo declarados',
-       pintadoOpaco.lejos <= 16 && pintadoCristal.lejos <= 16,
-       'opaco ' + pintadoOpaco.lejos + ' · cristal ' + pintadoCristal.lejos);
+       lejosPintado <= 16, lejosPintado + ' puntos de diferencia');
 
   /* ---------- el velo se aparta con el panel transparente ---------- */
   /* LO QUE SE PIDIÓ: «los tabs abren y se pone un background transparente-negro
