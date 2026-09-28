@@ -40,8 +40,19 @@ const CONFIG = {
   defaultWidth: 150,
   defaultHeight: 150,
   // Posición del CENTRO de una hoja nueva, como fracción de la pantalla (0..1).
-  // y:0.667 = dos tercios de arriba hacia abajo (bajo el centro, sobre el borde).
-  newLeafPos: { x: 0.5, y: 0.667 },
+  // ARRIBA Y AL CENTRO, y es lo único que Glossa le cambia a esta aplicación
+  // además de la línea del puente de Escape. Estaba en y:0.667 —dos tercios
+  // hacia abajo—, y ahí el teclado del teléfono se come la hoja justo cuando
+  // se va a escribir en ella: se abre el editor, sube el teclado y lo que
+  // estás tecleando queda debajo. Arriba no lo alcanza.
+  // Y UN EFECTO QUE NO ES UN DESCUIDO: en esta aplicación el sitio ES el
+  // grupo —statusAtPoint mira dónde cae el centro—, así que una hoja nueva
+  // nace ahora en «Centro» (la copa) y no en «Derecha». Es coherente con lo
+  // que se ve: lo que está arriba está en el centro del árbol.
+  // 0.18 y no menos: con la hoja de 150 px, su borde de arriba queda dentro
+  // de la pantalla incluso en un marco corto, y no pisa la columna de botones
+  // de la derecha, que empieza en 64 px del borde y mide 44 de ancho.
+  newLeafPos: { x: 0.5, y: 0.18 },
 
   // Paleta arcade Donkey Kong 80s: fondo oscuro + contornos de neón.
   theme: {

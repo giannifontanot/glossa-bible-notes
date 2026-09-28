@@ -295,6 +295,117 @@ const IR_A = `async (sec) => {
   vale('  y sin nadie escribiendo, Escape sigue cerrando el panel',
        cerradoSinEditor === true);
 
+  /* ──────────────────────────────────────────────────────────────
+     EL PANEL DE ORACIÓN SE VISTE DE NEGRO, Y LA HOJA NUEVA NACE ARRIBA.
+
+     Dos encargos del dueño del repo que se prueban juntos porque son la misma
+     pestaña: «que el background del panel sea el mismo negro que el del árbol
+     neón, y el de los tabs y el cerrar gris oscuro, para ocultar los sepia y
+     resaltar el neón», y «que la hoja nueva aparezca top center, así el
+     teclado no estorba cuando uno pone el texto».
+
+     LO QUE SE VIGILA DEL COLOR no es que sea bonito, que no se mide, sino tres
+     cosas que se rompen solas:
+
+     · EL NEGRO ES EL DEL ÁRBOL, #0a0018, el mismo que oracion/config.js. Si
+       alguien lo cambia allí y no aquí, vuelve la costura en el canto del
+       marco, que es lo que este cambio vino a quitar. Por eso se afirma el
+       valor exacto y no «algo oscuro».
+     · LA PESTAÑA VIVA NO ES DE ORO. #b8892b es el sepia más fuerte de la barra
+       y el color con el que el árbol pinta sus acentos; se cambió por un gris
+       más claro que el de reposo. Se afirman las dos cosas —que no es el oro y
+       que se distingue de la de al lado—, porque quitar el oro sin poner nada
+       en su sitio deja la barra sin decir cuál está abierta.
+     · Y EL RESTO DE LOS PANELES SIGUE SIENDO DE PAPEL. Ésta es la que salva el
+       bloque: las reglas van dentro de #oracion, y si alguien las saca de ahí
+       —o las escribe en .rollo— los cinco paneles se van al negro de golpe.
+       Sin esta línea, eso saldría verde.
+
+     Y DE LA HOJA NUEVA, que nazca en el tercio de arriba y centrada, entera
+     dentro de la pantalla y sin pisar la columna de botones de la derecha. Se
+     mira además su GRUPO: en esta aplicación el sitio ES el grupo —lo decide
+     statusAtPoint—, así que moverla arriba la cambia de «Derecha» a «Centro».
+     Eso es una consecuencia querida y dicha, no un descuido, y se afirma para
+     que el día que alguien mueva el punto se entere de que también mueve eso. */
+  titulo('ORACIÓN: el panel en negro y la hoja nueva arriba');
+  await irA('oracion');
+  const pinta = await p.evaluate(() => {
+    const g = e => e ? getComputedStyle(e) : null;
+    const panel = document.getElementById('oracion');
+    if (!panel) return { falta:'no hay panel de oración' };
+    const bs = [...panel.querySelectorAll('.pestanas button')];
+    const viva = bs.find(b => b.classList.contains('aqui'));
+    const otra = bs.find(b => !b.classList.contains('aqui'));
+    const cerrar = panel.querySelector('.cerrar-pie');
+    const marco = panel.querySelector('.ora-marco');
+    /* El canto es el panel de LIBROS: el testigo de que esto va sólo aquí. */
+    const testigo = document.getElementById('canto');
+    return { panel: g(panel).backgroundColor, papel: g(panel).backgroundImage,
+             marco: marco && g(marco).backgroundColor,
+             viva: viva && g(viva).backgroundColor,
+             otra: otra && g(otra).backgroundColor,
+             cerrar: cerrar && g(cerrar).backgroundColor,
+             pie: g(panel.querySelector('.pie-cerrar') || panel).backgroundImage,
+             testigo: testigo && g(testigo).backgroundImage };
+  });
+  di('los colores', JSON.stringify(pinta));
+  const NEGRO = 'rgb(10, 0, 24)';
+  vale('(la prueba es válida) se pudo mirar el panel', !pinta.falta);
+  vale('el panel lleva el negro del árbol', pinta.panel === NEGRO, pinta.panel);
+  vale('  sin el degradado de papel debajo', pinta.papel === 'none', pinta.papel);
+  vale('  y el marco, el mismo negro', pinta.marco === NEGRO, pinta.marco);
+  vale('la pestaña viva ya no es de oro',
+       pinta.viva && pinta.viva !== 'rgb(184, 137, 43)', pinta.viva);
+  vale('  y aun así se distingue de las otras',
+       !!pinta.viva && !!pinta.otra && pinta.viva !== pinta.otra,
+       pinta.viva + ' vs ' + pinta.otra);
+  vale('el botón de cerrar va del mismo gris que las pestañas',
+       pinta.cerrar === pinta.otra, pinta.cerrar);
+  vale('y la banda del pie deja de ser de papel',
+       /rgba?\(10, 0, 24/.test(String(pinta.pie)), String(pinta.pie).slice(0, 48));
+  /* LA LÍNEA QUE SALVA EL BLOQUE. */
+  vale('LOS OTROS PANELES SIGUEN SIENDO DE PAPEL',
+       /linear-gradient/.test(String(pinta.testigo)), String(pinta.testigo).slice(0, 40));
+
+  const hoja = await (async () => {
+    const m = p.frames().find(f => /oracion/.test(f.url()));
+    if (!m) return { falta:'sin marco' };
+    await m.waitForSelector('#add-btn', { timeout:10000 });
+    return m.evaluate(async () => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      document.getElementById('add-btn').click();
+      await pausa(600);
+      const l = document.querySelector('.leaf');
+      if (!l) return { falta:'no se creó la hoja' };
+      const r = l.getBoundingClientRect();
+      const btn = document.getElementById('font-btn').getBoundingClientRect();
+      let grupos = [];
+      try {
+        grupos = (JSON.parse(localStorage.getItem('sticky-shapes:v2') || '{}')
+                   .workspaces || []).flatMap(w => w.nodes || []).map(n => n.status);
+      } catch(e){ /* si el almacén no se deja leer, la lista queda vacía */ }
+      return { centro: Math.round(r.top + r.height / 2), alto: innerHeight,
+               arriba: Math.round(r.top),
+               eje: Math.round((r.left + r.right) / 2), ancho: innerWidth,
+               pisaBotones: r.right > btn.left && r.top < btn.bottom && r.bottom > btn.top,
+               grupos };
+    });
+  })();
+  di('la hoja nueva', JSON.stringify(hoja));
+  vale('(la prueba es válida) se creó una hoja', !hoja.falta, hoja.falta || 'sí');
+  vale('LA HOJA NUEVA NACE EN EL TERCIO DE ARRIBA',
+       !hoja.falta && hoja.centro < hoja.alto / 3,
+       hoja.centro + ' de ' + hoja.alto);
+  vale('  entera dentro de la pantalla', !hoja.falta && hoja.arriba >= 0,
+       hoja.arriba + ' px del borde');
+  vale('  y centrada a lo ancho',
+       !hoja.falta && Math.abs(hoja.eje - hoja.ancho / 2) <= 2,
+       hoja.eje + ' de ' + (hoja.ancho / 2));
+  vale('  sin pisar la columna de botones', !hoja.falta && hoja.pisaBotones === false);
+  vale('  y nace en el grupo del centro, que es lo que dice su sitio',
+       !hoja.falta && (hoja.grupos || []).includes('rama-centro'),
+       JSON.stringify(hoja.grupos));
+
   /* ---------------- y la barra no se mueve con el libro ---------------- */
   /* SE PIDIÓ QUE ESTA BARRA SE SALGA DE «LA INTERFAZ CRECE CON EL LIBRO», y
      eso es justo lo que no se puede comprobar mirando la barra sola: si el
