@@ -6037,7 +6037,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-SEP-26 09:19';
+window.GLOSS_BUILD = '28-SEP-26 09:31';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8983,9 +8983,13 @@ function renderPageCrudo(){
   $('pgCabeza').title = 'Libros, glosas, encuentros, formato y compartir';
   $('pgVersion').textContent = D.versiones[version].abrev || version;
   /* El aviso dice lo que hacen los dos gestos, no lo que hacían: un toque abre
-     la lista de versiones y dos abren Libros. Decía "Formato y versión" desde
-     antes de que ninguna de las dos cosas fuera cierta. */
-  $('pgVersion').title = 'Versiones · doble clic: Libros · versión ' + window.GLOSS_BUILD;
+     la lista de versiones y dos abren el panel. Decía "Formato y versión"
+     desde antes de que ninguna de las dos cosas fuera cierta, y luego
+     "Libros", que dejó de serlo el día que la burbuja pasó a abrir por la
+     última pestaña que se dejó —lo levantó la revisión de Codex—. Ahora no
+     nombra ninguna sección: cuál sea depende de dónde estuviera el lector, y
+     un aviso que promete una pestaña y abre otra es peor que no decir nada. */
+  $('pgVersion').title = 'Versiones · doble clic: el panel · versión ' + window.GLOSS_BUILD;
   /* La pestaña lleva solo el nombre de la aplicación. Le puse el libro un
      rato —'Gloss Bible · Marcos'— y estorba: el libro y el capítulo ya se
      leen en la esquina de la hoja, y en la pestaña solo hacían ruido. Si
@@ -15477,8 +15481,13 @@ $('pgCabeza').addEventListener('click', e => {
   alternarBurbuja(seccionDeEntrada());
 });
 /* Y la de abajo abre la lista de versiones, que es lo que nombra. */
-/* UN TOQUE ABRE LAS VERSIONES, DOS ABREN LIBROS. El rótulo del pie lleva dos
+/* UN TOQUE ABRE LAS VERSIONES, DOS ABREN EL PANEL. El rótulo del pie lleva dos
    puertas: la de todos los días delante y otra detrás.
+
+   Dos abrían LIBROS hasta que se pidió que la burbuja abriera por la última
+   pestaña que se dejó; hoy abren por ahí, igual que el titulillo de arriba.
+   Lo que sigue valiendo es el párrafo de abajo: desde el pie no había forma de
+   llegar a los paneles sin subir a la esquina.
 
    Detrás estaba Formato, por parentesco —la versión se cambia ahí— y era la
    puerta equivocada. Desde que el toque simple abre la lista de versiones en
@@ -15487,7 +15496,8 @@ $('pgCabeza').addEventListener('click', e => {
    lo otro que se busca de verdad estando en una hoja, y desde el pie no había
    forma de llegar sin subir a la esquina de arriba.
    Las dos etiquetas quedan puestas de la misma manera, cada una con su gesto:
-   arriba un toque abre Libros, abajo un toque abre versiones y dos, Libros.
+   arriba un toque abre el panel, abajo un toque abre versiones y dos, el
+   panel.
 
    EL PLAZO DEL DOBLE ES MÁS LARGO AQUÍ QUE EN EL FILO, y a propósito.
 
