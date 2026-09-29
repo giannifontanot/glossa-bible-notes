@@ -1939,12 +1939,21 @@ async function ponerContraste(pagina, pct){
      Segoe—. Ésa es la contestación a la pregunta del dueño del repo, dicha en
      el sitio donde se elige, que en un teléfono es el único sitio donde cabe:
      ahí no hay hover que leer. */
-  const GENEROS = ['Serif', 'Sans', 'Máquina', 'Sistema'];
+  const GENEROS = ['Romana', 'Palo seco', 'Máquina'];
   vale('  y la que el aparato no tiene enseña el género, no el nombre',
        !letras.falta && letras.ofrecidas.every(v =>
          v.tiene === true || GENEROS.includes(v.rotulo)),
        !letras.falta && letras.ofrecidas
          .map(v => v.rotulo + ' (' + (v.nombre || 'genérica') + ': ' + v.tiene + ')').join(' · '));
+  /* Y LA DE MÁQUINA NO SE OFRECE. Se retiró del mando —«se ve horrible»— pero
+     NO del archivo, porque lo guardado es el índice y borrar la entrada le
+     correría el índice a lo que viniera después. Esta línea vigila las dos
+     mitades a la vez: que no aparezca en el menú, y que el mando siga teniendo
+     de dónde elegir —si borrarla hubiera roto la lista, la de validez de arriba
+     lo diría—. */
+  vale('  y la de máquina se retiró del mando',
+       !letras.falta && !letras.ofrecidas.some(v => v.rotulo === 'Máquina'),
+       !letras.falta && letras.ofrecidas.map(v => v.rotulo).join(' · '));
   /* Y CABEN. Esta línea nace de una roja: los rótulos fueron «Segoe · sans del
      aparato» y el desplegable se ensanchó tanto que su tablilla pasó del 70%
      del panel, con lo que saltó «la mayoría son de verdad estrechas» en un
