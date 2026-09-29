@@ -1964,57 +1964,41 @@ async function ponerContraste(pagina, pct){
   /* ──────────────────────────────────────────────────────────────
      LA TARJETA DE LA GLOSA NUNCA ES MÁS OSCURA QUE EL PAPEL.
 
-     Encargo del dueño del repo leyendo en la columna de glosas: «el fondo
-     azul, rojo y verde se ven como oscurecidos». Nombró exactamente las tres
-     que lo estaban, y la cuenta lo confirma: con el sepia al tope, el papel
-     tiene 0.667 de luz relativa y la verde 0.643, la azul 0.640 y la naranja
-     0.631. La amarilla era la única por encima, 0.672, y por eso no la nombró.
+     Encargo del dueño del repo leyendo en la columna de glosas: «el fondo azul,
+     rojo y verde se ven como oscurecidos». Nombró exactamente las tres que lo
+     estaban, y la cuenta lo confirma: con el sepia al tope el papel tiene 0.667
+     de luz relativa y la verde 0.643, la azul 0.640, la naranja 0.631. La
+     amarilla era la única por encima, 0.672, y por eso no la nombró.
 
-     SE MIDE PINTADO, Y AQUÍ NO HAY OTRA MANERA. El fondo de la tarjeta ya no
-     es un color declarado: es var(--papel) con dos capas de gradiente encima,
-     y getComputedStyle devuelve el background-color —o sea el papel— sin
-     enterarse de las capas. Leer la declaración diría «papel» para las cuatro
-     y esta prueba saldría verde con el fallo puesto. Se hace captura y se
-     compara la LUZ de lo pintado.
+     SE VA A BUSCAR LAS TRES, y esto lo enseñó una roja de la línea de validez:
+     la primera versión medía en la hoja donde se hubiera quedado la suite —Mateo
+     1— y allí sólo vive una nota amarilla. La aserción principal salía verde
+     midiendo justo la única que nunca estuvo mal. La línea de validez lo dijo:
+     «hay al menos una de las tres que se quejó» en rojo, con la principal en
+     verde. Es exactamente para eso que está.
 
-     DE CADA CAPTURA SE TOMA EL PÍXEL MÁS CLARO de la fila de en medio, que es
-     la misma técnica que el bloque de los dos botones y por la misma razón: en
-     la tarjeta hay texto, y un punto fijo cae encima de una letra y devuelve
-     la tinta. El más claro es el fondo en las dos.
+     Las notas de ejemplo tienen las cuatro, repartidas por capítulos: Mateo 5
+     lleva amarilla y verde —las dos en la misma hoja, que de paso deja comparar
+     la que no se tocó con la que sí—, Mateo 10 naranja y Mateo 24 azul. Se va a
+     las tres hojas.
 
-     Y LA LÍNEA DE VALIDEZ es la que hace que esto sirva: si en esta hoja no
-     hubiera ninguna nota de las tres que se quejó, «ninguna es más oscura»
-     saldría verde sin haber mirado ninguna. */
+     Y SE COLOCA POR LOS AJUSTES GUARDADOS, no paseando por el panel tres veces:
+     `placement` y `sepia` se guardan igual que la posición, así que escribirlos
+     y recargar deja la hoja puesta antes del primer pintado. Es lo mismo que
+     hace el bloque del espaciado de más arriba, y por lo mismo. Al final se
+     devuelve el objeto entero tal como estaba.
+
+     SE MIDE PINTADO, Y AQUÍ NO HAY OTRA MANERA. El fondo de la tarjeta ya no es
+     un color declarado: es var(--papel) con dos capas de gradiente encima, y
+     getComputedStyle devuelve el background-color —o sea el papel— sin enterarse
+     de las capas. Leer la declaración diría «papel» para las cuatro y esta
+     prueba saldría verde con el fallo puesto. De cada captura se toma el píxel
+     más claro de la fila de en medio, que es la misma técnica que el bloque de
+     los dos botones: en la tarjeta hay texto, y un punto fijo cae encima de una
+     letra y devuelve la tinta. */
   titulo('la tarjeta de la glosa nunca es más oscura que el papel');
-  const puesto = await sesion.pagina.evaluate(async () => {
-    const pausa = ms => new Promise(z => setTimeout(z, ms));
-    const vis = () => [...document.querySelectorAll('.rollo, #canto')]
-      .find(r => getComputedStyle(r).display !== 'none');
-    if (!vis()){ document.getElementById('pgCabeza').click(); await pausa(900); }
-    const t = (vis() || document).querySelector('.pestanas [data-sec="formato"]');
-    if (!t) return { falta:'no hay pestaña de formato' };
-    t.click(); await pausa(900);
-    /* AL MARGEN, que es la columna de la que habla el encargo. */
-    const m = document.querySelector('[data-lay="margin"]');
-    if (!m) return { falta:'no hay botón de margen' };
-    m.click(); await pausa(1400);
-    /* Y EL SEPIA AL TOPE, que es donde se veía el fallo. */
-    const r = document.getElementById('sepia');
-    const sepiaAntes = r.value;
-    r.value = '100'; r.dispatchEvent(new Event('input', { bubbles:true }));
-    await pausa(900);
-    /* Se cierra el panel: en opaco tapa la hoja, y aquí se va a fotografiar. */
-    const c = document.querySelector('#ajustes .pie-cerrar .cerrar-pie');
-    if (c) c.click();
-    await pausa(1200);
-    const tarjetas = [...document.querySelectorAll('#pgMargin .gl')]
-      .map((g, i) => ({ i, color: [...g.classList].find(x => x.startsWith('g-')) || null }))
-      .filter(x => x.color);
-    const sitioAntes = (document.querySelector('[data-lay].active') || {}).dataset;
-    return { sepiaAntes, tarjetas,
-             sitioAntes: sitioAntes ? sitioAntes.lay : null,
-             hayCuerpo: !!document.querySelector('#pgBody .v') };
-  });
+  const guardadoAntes = await sesion.pagina.evaluate(
+    () => localStorage.getItem('glossa:ajustes:v1'));
   const lupaGl = await sesion.navegador.newPage();
   await lupaGl.setContent('<canvas id="c"></canvas>');
   const masClaroDe = async (loc) => {
@@ -2035,57 +2019,74 @@ async function ponerContraste(pagina, pct){
       return mejor;
     }, b64);
   };
-  /* La luz relativa de verdad, con su gamma: la media de los tres canales
-     diría que un amarillo y un azul del mismo promedio pesan lo mismo, y no
-     es así. Es la misma cuenta que usa el contraste de la WCAG. */
+  /* La luz relativa de verdad, con su gamma: la media de los tres canales diría
+     que un amarillo y un azul del mismo promedio pesan lo mismo, y no es así. Es
+     la misma cuenta que usa el contraste de la WCAG. */
   const luzDe = (c) => {
     const f = c.map(v => { v /= 255;
       return v <= .04045 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
     return +(.2126*f[0] + .7152*f[1] + .0722*f[2]).toFixed(3);
   };
-  let papelPintado = null, medidas = [];
-  if (!puesto.falta){
-    papelPintado = await masClaroDe(sesion.pagina.locator('#pgBody'));
-    for (const t of puesto.tarjetas.slice(0, 6)){
+  const medidas = [], papeles = [], sinNota = [];
+  for (const donde of [{ cap:5, vers:5 }, { cap:10, vers:32 }, { cap:24, vers:30 }]){
+    await sesion.pagina.evaluate((d) => {
+      const c = 'glossa:ajustes:v1';
+      const a = JSON.parse(localStorage.getItem(c) || '{}') || {};
+      a.v = 1; a.libro = 'MAT'; a.cap = d.cap; a.vers = d.vers;
+      a.placement = 'margin'; a.sepia = 100;
+      localStorage.setItem(c, JSON.stringify(a));
+    }, donde);
+    await sesion.pagina.reload();
+    await sesion.pagina.waitForTimeout(3000);
+    const hay = await sesion.pagina.evaluate(() =>
+      [...document.querySelectorAll('#pgMargin .gl')]
+        .map((g, i) => ({ i, color: [...g.classList].find(x => x.startsWith('g-')) || null }))
+        .filter(x => x.color));
+    if (!hay.length){ sinNota.push('MAT ' + donde.cap); continue; }
+    /* EL PAPEL SE LEE EN CADA HOJA, no una vez y a cuenta de todas: cada
+       tarjeta se compara con el papel de SU hoja. Con un solo papel de
+       referencia habría que elegir entre el más claro y el más oscuro, y
+       cualquiera de los dos afloja o aprieta la afirmación por el sitio
+       equivocado. */
+    const papelAqui = await masClaroDe(sesion.pagina.locator('#pgBody'));
+    papeles.push(papelAqui);
+    for (const t of hay.slice(0, 4)){
       const px = await masClaroDe(sesion.pagina.locator('#pgMargin .gl').nth(t.i));
-      medidas.push({ color: t.color, px, luz: luzDe(px) });
+      medidas.push({ donde: 'MAT ' + donde.cap, color: t.color, px, luz: luzDe(px),
+                     luzPapel: luzDe(papelAqui) });
     }
   }
   await lupaGl.close();
-  /* Se devuelve el sepia, que los bloques de abajo no tienen por qué heredarlo
-     al tope. */
-  if (!puesto.falta) await sesion.pagina.evaluate(async (a) => {
-    const pausa = ms => new Promise(z => setTimeout(z, ms));
-    const r = document.getElementById('sepia');
-    r.value = a.sepia; r.dispatchEvent(new Event('input', { bubbles:true }));
-    /* y la colocación, que también se movió: el panel está cerrado, así que se
-       vuelve a abrir para tocar el botón por donde lo toca un lector */
-    if (a.sitio){
-      document.getElementById('pgCabeza').click(); await pausa(900);
-      const t = document.querySelector('.pestanas [data-sec="formato"]');
-      if (t){ t.click(); await pausa(900); }
-      const b = document.querySelector('[data-lay="' + a.sitio + '"]');
-      if (b){ b.click(); await pausa(1300); }
-    }
-  }, { sepia: puesto.sepiaAntes, sitio: puesto.sitioAntes });
-  const luzPapel = papelPintado ? luzDe(papelPintado) : null;
-  di('el papel pintado', JSON.stringify({ px: papelPintado, luz: luzPapel }));
-  di('las tarjetas', medidas.map(m => m.color + ' ' + JSON.stringify(m.px) +
-     ' luz ' + m.luz).join('  ·  '));
-  const delasTres = medidas.filter(m => m.color !== 'g-yellow');
+  /* Se devuelven los ajustes enteros como estaban, que los bloques de abajo no
+     tienen por qué heredar el sepia al tope ni las notas al margen. */
+  await sesion.pagina.evaluate((v) => {
+    if (v == null) localStorage.removeItem('glossa:ajustes:v1');
+    else localStorage.setItem('glossa:ajustes:v1', v);
+  }, guardadoAntes);
+  await sesion.pagina.reload();
+  await sesion.pagina.waitForTimeout(2600);
+  di('el papel pintado', JSON.stringify({ papeles, luz: papeles.map(luzDe) }) +
+     (sinNota.length ? '  ·  sin nota al margen en: ' + sinNota.join(', ') : ''));
+  di('las tarjetas', medidas.map(m => m.donde + ' ' + m.color + ' ' +
+     JSON.stringify(m.px) + ' luz ' + m.luz + ' contra papel ' + m.luzPapel)
+     .join('  ·  ') || 'ninguna');
+  const lasTres = medidas.filter(m => m.color !== 'g-yellow');
   vale('(la prueba es válida) se leyó papel y no tinta',
-       !puesto.falta && !!papelPintado && papelPintado[0] > 150,
-       puesto.falta || JSON.stringify(papelPintado));
-  vale('(la prueba es válida) hay al menos una de las tres que se quejó',
-       !puesto.falta && delasTres.length >= 1,
-       puesto.falta || (medidas.map(m => m.color).join(', ') || 'ninguna'));
+       papeles.length > 0 && papeles.every(p => p[0] > 150),
+       JSON.stringify(papeles));
+  /* LA QUE SALTÓ, Y POR ESO ESTÁ. Con la hoja de Mateo 1 —donde se quedaba la
+     suite— sólo había amarilla, así que la principal medía la única que nunca
+     estuvo mal. */
+  vale('(la prueba es válida) se midieron las tres que se quejó, no sólo la amarilla',
+       ['g-green', 'g-blue', 'g-orange'].every(c => lasTres.some(m => m.color === c)),
+       lasTres.map(m => m.color).join(', ') || 'ninguna de las tres');
   /* LA DE VERDAD. Antes de este cambio, con el sepia al tope, las tres daban
      entre 0.631 y 0.643 contra un papel de 0.667: por debajo las tres. */
   vale('NINGUNA TARJETA ES MÁS OSCURA QUE EL PAPEL con el sepia al tope',
-       !puesto.falta && luzPapel !== null && medidas.length > 0 &&
-       medidas.every(m => m.luz >= luzPapel - .005),
-       !puesto.falta && ('papel ' + luzPapel + '  ·  ' +
-         medidas.map(m => m.color + ' ' + m.luz).join(' · ')));
+       medidas.length > 0 &&
+       medidas.every(m => m.luz >= m.luzPapel - .005),
+       medidas.map(m => m.donde + ' ' + m.color + ' ' + m.luz +
+                        ' contra ' + m.luzPapel).join(' · '));
 
   await cerrarParcial(sesion, 'teléfono');
 
