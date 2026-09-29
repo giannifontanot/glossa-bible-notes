@@ -6188,7 +6188,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '29-SEP-26 18:47';
+window.GLOSS_BUILD = '29-SEP-26 18:50';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -22378,6 +22378,10 @@ function aplicarPendientes(){
   if (e != null) espaciado = e;
   if (f != null){
     fuente = f;
+    /* La misma razón que en el mando directo, y el mismo orden: primero se
+       asigna, luego se afina. Con la muestra delante la elección espera aquí,
+       así que éste es el otro sitio —y el único otro— donde `fuente` cambia. */
+    if (typeof afinarListaDeFuentes === 'function') afinarListaDeFuentes();
     if (typeof reflejarFuenteDelLibro === 'function') reflejarFuenteDelLibro();
     if (typeof avisarEstiloALosRelatos === 'function') avisarEstiloALosRelatos();
   }
@@ -22639,6 +22643,14 @@ $('selFuente').onchange = e => {
   const elegida = FUENTES[+e.target.value][1];
   if (hayMuestra()){ pendFuente = elegida; reflejarMuestra(); return; }
   fuente = elegida;
+  /* Y SE VUELVE A AFINAR LA LISTA, que si no la retirada se queda a la vista.
+     Lo encontró Codex: quien tuviera puesta la de máquina la conserva en el
+     menú —la elegida por el lector no se esconde nunca—, pero en cuanto elige
+     otra deja de haber motivo para enseñarla y nadie la volvía a esconder
+     hasta recargar. Va DESPUÉS de asignar `fuente`, no antes, porque la
+     excepción mira lo que está puesto: afinando antes, la que se esconde sería
+     la que el lector acaba de elegir. */
+  afinarListaDeFuentes();
   paginasSucias = true;                 // otra letra, otras medidas, otros cortes
   renderPage();
   /* Y el panel de RESPALDO, que lee la familia del libro por la raíz y no por

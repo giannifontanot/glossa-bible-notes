@@ -1905,12 +1905,32 @@ async function ponerContraste(pagina, pct){
       vistas.push({ rotulo: o.textContent.trim(), valor: o.value, cadena,
                     nombre, tiene, huella: cadena ? huella(cadena) : null });
     }
+    /* LA RETIRADA VUELVE A ESCONDERSE AL DEJAR DE ESTAR PUESTA. La entrada
+       retirada se conserva en el menú mientras sea la del lector —esconderla
+       dejaría el mando enseñando un hueco— y esa excepción tenía un agujero que
+       encontró Codex: al elegir otra, nadie la volvía a esconder hasta recargar.
+       Se comprueba el ciclo entero: se pone, tiene que verse; se quita, tiene
+       que desaparecer. La primera mitad es la que hace que la segunda signifique
+       algo —sin ella, una entrada que nunca se enseña pasaría igual—. */
+    const retirada = [...sel.options].find(o => o.hidden && o.textContent.trim() === 'Máquina');
+    let cicloRetirada = null;
+    if (retirada){
+      sel.value = retirada.value;
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
+      await pausa(700);
+      const puesta = !retirada.hidden;
+      const otra = [...sel.options].find(o => !o.hidden && o.value !== retirada.value);
+      sel.value = otra.value;
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
+      await pausa(700);
+      cicloRetirada = { puesta, trasCambiar: !retirada.hidden };
+    }
     /* y se devuelve la que estaba, que los bloques de abajo no tienen por qué
        heredar una letra elegida aquí */
     sel.value = guardado;
     sel.dispatchEvent(new Event('change', { bubbles:true }));
     await pausa(700);
-    return { todas, ofrecidas: vistas, cadenaDePartida, elegidaVisible:
+    return { todas, ofrecidas: vistas, cadenaDePartida, cicloRetirada, elegidaVisible:
                !([...sel.options].find(o => o.value === guardado) || {}).hidden,
              devuelta: (hoja.style.getPropertyValue('--fam') || '').trim() };
   });
@@ -1954,6 +1974,16 @@ async function ponerContraste(pagina, pct){
   vale('  y la de máquina se retiró del mando',
        !letras.falta && !letras.ofrecidas.some(v => v.rotulo === 'Máquina'),
        !letras.falta && letras.ofrecidas.map(v => v.rotulo).join(' · '));
+  /* El ciclo de la retirada, que encontró Codex: se conserva mientras es la
+     del lector, y vuelve a esconderse en cuanto deja de serlo. Antes se quedaba
+     a la vista —y elegible— hasta recargar la página. */
+  vale('(la prueba es válida) la retirada se deja ver si el lector la tiene puesta',
+       !letras.falta && !!letras.cicloRetirada && letras.cicloRetirada.puesta === true,
+       !letras.falta && JSON.stringify(letras.cicloRetirada));
+  vale('  y VUELVE A ESCONDERSE al elegir otra, sin recargar',
+       !letras.falta && !!letras.cicloRetirada &&
+       letras.cicloRetirada.trasCambiar === false,
+       !letras.falta && JSON.stringify(letras.cicloRetirada));
   /* Y CABEN. Esta línea nace de una roja: los rótulos fueron «Segoe · sans del
      aparato» y el desplegable se ensanchó tanto que su tablilla pasó del 70%
      del panel, con lo que saltó «la mayoría son de verdad estrechas» en un
