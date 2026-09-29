@@ -4184,12 +4184,18 @@
 
      SE ESCONDE EN TRANSPARENTE, que es el encargo y también lo razonable: ahí
      el libro está a la vista y una muestra al lado sería decir dos veces lo
-     mismo, ocupando el sitio por el que se mira. */
+     mismo, ocupando el sitio por el que se mira.
+
+     VA CENTRADA A PROPÓSITO, y no sigue al mando de alineación: es una muestra
+     de la LETRA —cuerpo, tipografía y espaciado—, no del reparto del párrafo.
+     Alineada a la izquierda parecía el primer renglón de un texto, y entonces
+     el ojo la lee como si dijera algo de cómo va a quedar la página, que es
+     justo lo que no dice. Centrada se lee como lo que es: un rótulo. */
   #filaMuestra{ grid-column:1 / -1; display:block; margin-top:6px; padding:10px 12px;
                 background:var(--papel, #e8d3ac); color:var(--tinta, #2b2116);
                 border:1px solid rgba(122,101,56,.45); border-radius:4px; }
   #ajustes.cristal #filaMuestra{ display:none; }
-  #muestraLetra{ display:block; text-align:left;
+  #muestraLetra{ display:block; text-align:center;
                  font-family:var(--fam, Georgia, 'Times New Roman', serif);
                  font-size:var(--fs, 15px); line-height:1.35;
                  letter-spacing:var(--esp, 0em);
@@ -5654,7 +5660,7 @@
        cada medida por qué ésta no cuenta. -->
   <div class="muestra-fila" id="filaMuestra">
     <span class="ctrl" id="muestraLetra" aria-live="polite"
-          aria-label="Muestra de la letra del libro">En Cristo somos más que vencedores</span>
+          aria-label="Muestra de la letra del libro">en Cristo somos más que vencedores</span>
   </div>
   <!-- LOS MÁRGENES SE OCULTAN, PERO SIGUEN AHÍ.
 
@@ -6182,7 +6188,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '29-SEP-26 14:53';
+window.GLOSS_BUILD = '29-SEP-26 14:57';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';

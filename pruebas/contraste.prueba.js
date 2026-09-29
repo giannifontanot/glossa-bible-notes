@@ -1627,6 +1627,21 @@ async function ponerContraste(pagina, pct){
     /* LA HOJA ES #pg y lleva las variables en línea —las escribe prepararHoja—,
        así que se leen de ahí y no del texto pintado: es donde el libro dice
        con qué letra se va a pintar. */
+    /* EL CENTRADO SE MIDE PINTADO, no leyendo `text-align`. Un Range sobre el
+       texto devuelve una caja POR RENGLÓN, así que se toma el último —el que
+       nunca llena el ancho— y se miran los dos huecos hasta los bordes del
+       bloque. Leer la declaración diría lo que pide la hoja de estilos;
+       esto dice dónde quedó la tinta, que es lo que ve el lector. */
+    const huecos = () => {
+      const r = document.createRange();
+      r.selectNodeContents(texto);
+      const cajas = Array.from(r.getClientRects()).filter(c => c.width > 0);
+      if (!cajas.length) return null;
+      const linea = cajas[cajas.length - 1];
+      const bloque = texto.getBoundingClientRect();
+      return { izq: +(linea.left - bloque.left).toFixed(1),
+               der: +(bloque.right - linea.right).toFixed(1) };
+    };
     const hoja = document.getElementById('pg');
     const delLibro = () => ({ fs: hoja.style.getPropertyValue('--fs'),
                               esp: hoja.style.getPropertyValue('--esp'),
@@ -1641,6 +1656,7 @@ async function ponerContraste(pagina, pct){
                     papel: getComputedStyle(fila).backgroundColor,
                     papelDelLibro: getComputedStyle(document.documentElement)
                                      .getPropertyValue('--papel').trim(),
+                    centrado: huecos(),
                     libro: delLibro(), muestra: deLaMuestra() };
     /* Se mueven los tres. La tipografía se elige por una que no sea la puesta. */
     document.getElementById('fsUp').click(); await z(120);
@@ -1699,6 +1715,18 @@ async function ponerContraste(pagina, pct){
   vale('EL RECUADRO ES DEL PAPEL DEL LIBRO, no de un color escrito aparte',
        !muestra.falta && sinAire(muestra.antes.papel) === sinAire(muestra.antes.papelDelLibro),
        !muestra.falta && (muestra.antes.papel + ' contra ' + muestra.antes.papelDelLibro));
+  /* El centrado: dos líneas, y la primera es la que hace que la segunda
+     signifique algo. Si el renglón llenara el bloque los dos huecos serían
+     cero y la comparación daría verde con el texto pegado a la izquierda —una
+     línea que no puede fallar no está midiendo—. Se exige holgura antes de
+     mirar el reparto. */
+  const hue = (!muestra.falta && muestra.antes.centrado) || null;
+  vale('(la prueba es válida) el renglón no llena el recuadro, hay holgura que repartir',
+       !!hue && (hue.izq + hue.der) > 4,
+       JSON.stringify(hue));
+  vale('LA MUESTRA VA CENTRADA: los dos huecos son el mismo',
+       !!hue && Math.abs(hue.izq - hue.der) <= 2,
+       JSON.stringify(hue));
   vale('LOS TRES MANDOS ESCRIBEN EN LA MUESTRA',
        !muestra.falta && muestra.tocado.muestra.fs !== muestra.antes.muestra.fs &&
        muestra.tocado.muestra.esp !== muestra.antes.muestra.esp &&
