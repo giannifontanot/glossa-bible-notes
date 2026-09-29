@@ -1660,13 +1660,19 @@ async function ponerContraste(pagina, pct){
                     libro: delLibro(), muestra: deLaMuestra() };
     /* Se mueven los tres. La tipografía se elige por una que no sea la puesta. */
     document.getElementById('fsUp').click(); await z(120);
+    /* DOS TOQUES, y el de en medio se guarda: con la muestra delante lo
+       elegido espera fuera de `fontSize`, así que un + que contara desde el
+       valor aplicado devolvería el que ya está pendiente y el segundo toque
+       sería un no-hacer-nada. Se mira que el segundo paso también mueva. */
+    const unPaso = deLaMuestra();
     document.getElementById('fsUp').click(); await z(120);
+    const dosPasos = deLaMuestra();
     document.getElementById('espUp').click(); await z(120);
     const sel = document.getElementById('selFuente');
     const otra = String((+guardado.fuente + 1) % sel.options.length);
     sel.value = otra; sel.dispatchEvent(new Event('change', { bubbles:true }));
     await z(400);
-    const tocado = { libro: delLibro(), muestra: deLaMuestra() };
+    const tocado = { libro: delLibro(), muestra: deLaMuestra(), unPaso, dosPasos };
     /* Y se cierra con el botón, que es el gesto del encargo. */
     document.querySelector('#ajustes .pie-cerrar .cerrar-pie').click();
     await z(1000);
@@ -1733,6 +1739,14 @@ async function ponerContraste(pagina, pct){
        soloNombre(muestra.tocado.muestra.fam) !== soloNombre(muestra.antes.muestra.fam),
        !muestra.falta && (JSON.stringify(muestra.antes.muestra) + '  →  ' +
                           JSON.stringify(muestra.tocado.muestra)));
+  /* La que encontró Codex: los + y − son el ajuste fino, y con algo esperando
+     tienen que caminar sobre lo pendiente. Contando desde lo aplicado, el
+     segundo toque devuelve el valor que ya está puesto y no pasa nada. */
+  vale('LOS PASOS CAMINAN SOBRE LO PENDIENTE: el segundo + también mueve',
+       !muestra.falta && muestra.tocado.dosPasos.fs !== muestra.tocado.unPaso.fs,
+       !muestra.falta && (muestra.antes.muestra.fs + '  →  ' +
+                          muestra.tocado.unPaso.fs + '  →  ' +
+                          muestra.tocado.dosPasos.fs));
   vale('  Y EL LIBRO SE QUEDA COMO ESTABA, esperando',
        !muestra.falta &&
        JSON.stringify(muestra.tocado.libro) === JSON.stringify(muestra.antes.libro),

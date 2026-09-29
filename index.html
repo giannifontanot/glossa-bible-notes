@@ -6188,7 +6188,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '29-SEP-26 14:57';
+window.GLOSS_BUILD = '29-SEP-26 15:06';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -22180,8 +22180,16 @@ function ponerTamanoGlosa(n){
   if (placement !== 'margin') paginasSucias = true;
   renderPage();
 }
-$('fsUp').onclick    = () => ponerTamano(fontSize + 1);
-$('fsDown').onclick  = () => ponerTamano(fontSize - 1);
+/* LOS PASOS SE CUENTAN DESDE LO VIVO, no desde lo aplicado. Con la muestra
+   delante, `fontSize` se queda en lo que tiene el libro mientras lo elegido
+   espera en `pendTam`, así que un + que sumara sobre `fontSize` devolvería el
+   valor que ya está pendiente: `ponerTamano` lo ve igual a `tamVivo()`, rebota
+   el select y el segundo toque no hace nada. Peor con el desplegable de por
+   medio: elegido un cuerpo lejano, un − volvería a un paso del de partida y no
+   del elegido. Sumar sobre `tamVivo()` deja que estos dos mandos —que son los
+   del ajuste fino— recorran lo pendiente. Lo mismo vale para el espaciado. */
+$('fsUp').onclick    = () => ponerTamano(tamVivo() + 1);
+$('fsDown').onclick  = () => ponerTamano(tamVivo() - 1);
 $('fsAhora').onchange = e => ponerTamano(+e.target.value);
 $('fsGlosaAhora').innerHTML = TAMANOS.map(n => '<option value="' + n + '">' + n + '</option>').join('');
 $('fsGlosaUp').onclick    = () => ponerTamanoGlosa(fontSizeGlosa + 1);
@@ -22229,8 +22237,8 @@ function reflejarEspaciado(){
   if (s) s.value = String(espVivo());
 }
 $('espAhora').innerHTML = opcionesEsp();
-$('espUp').onclick    = () => ponerEspaciado(espaciado + 1);
-$('espDown').onclick  = () => ponerEspaciado(espaciado - 1);
+$('espUp').onclick    = () => ponerEspaciado(espVivo() + 1);
+$('espDown').onclick  = () => ponerEspaciado(espVivo() - 1);
 $('espAhora').onchange = e => ponerEspaciado(+e.target.value);
 $('sepia').oninput = e => {
   sepia = Math.max(0, Math.min(100, +e.target.value || 0));
