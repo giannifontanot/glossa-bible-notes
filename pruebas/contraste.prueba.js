@@ -1366,6 +1366,17 @@ async function ponerContraste(pagina, pct){
     };
     const antes = lee();
     await irA('formato');
+    /* CADA MEDIDA DEL LIBRO VA DETRÁS DE UN CIERRE, y no es un rodeo: desde
+       que Formato opaco enseña la muestra de la letra, estos tres mandos
+       escriben en la muestra y el libro espera al botón de CERRAR. Medir el
+       libro con el panel delante daba `normal → normal` —el libro, obediente,
+       esperando— y tumbaba estas líneas con todo bien puesto. Así que se hace
+       lo que hace el lector: se elige, se cierra, y entonces se mira. */
+    const confirmar = async () => {
+      const b = document.querySelector('#ajustes .pie-cerrar .cerrar-pie');
+      if (b) b.click();
+      await pausa(1100);
+    };
     /* El mando es el mismo que el del tamaño: menos, lista, más. Se va al tope
        por la lista —que es donde más se nota— y luego se baja un punto con el
        botón, que es la otra mitad del mando y se rompe aparte. */
@@ -1373,15 +1384,21 @@ async function ponerContraste(pagina, pct){
     const topes = [...s.options].map(o => +o.value);
     s.value = String(Math.max(...topes));
     s.dispatchEvent(new Event('change', { bubbles:true }));
-    await pausa(1100);
+    await pausa(400);
+    await confirmar();
     const despues = lee();
+    await irA('formato');
     document.getElementById('espDown').click();
-    await pausa(1000);
-    const trasElBoton = { ...lee(), valor: +s.value };
+    await pausa(500);
+    const valor = +s.value;
+    await confirmar();
+    const trasElBoton = { ...lee(), valor };
     /* y se devuelve a lo de fábrica, que los bloques de abajo miden colores
        sobre una hoja que no tiene por qué llevar ajustes encima */
+    await irA('formato');
     s.value = '0'; s.dispatchEvent(new Event('change', { bubbles:true }));
-    await pausa(900);
+    await pausa(400);
+    await confirmar();
     return { antes, despues, trasElBoton, devuelto: lee(),
              topes: { min: Math.min(...topes), max: Math.max(...topes),
                       cuantos: topes.length } };
@@ -1466,9 +1483,21 @@ async function ponerContraste(pagina, pct){
     };
     const primero = buscar(null);
     if (!primero) return { falta:'sin texto con espacios que medir' };
+    /* SE ELIGE Y SE CIERRA, por lo mismo que en el bloque de arriba: con la
+       muestra delante el libro no recibe el espaciado hasta que se confirma,
+       así que medir sin cerrar mide el libro de antes y la cuenta sale a
+       cero. El panel se abre para tocar el mando y se cierra para mirar. */
+    const vis = () => [...document.querySelectorAll('.rollo, #canto')]
+      .find(r => getComputedStyle(r).display !== 'none');
     const poner = async (v) => {
+      if (!vis()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+      const t = (vis()||document).querySelector('.pestanas [data-sec="formato"]');
+      if (t){ t.click(); await pausa(950); }
       const s = document.getElementById('espAhora');
       s.value = String(v); s.dispatchEvent(new Event('change', { bubbles:true }));
+      await pausa(400);
+      const b = document.querySelector('#ajustes .pie-cerrar .cerrar-pie');
+      if (b) b.click();
       await pausa(1100);
     };
     const cajas = (prefijo, n) => {
