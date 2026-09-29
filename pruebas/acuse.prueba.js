@@ -293,6 +293,25 @@ const IR_A = `async (sec) => {
   await p.evaluate(() => { document.getElementById('pgCabeza').click(); });
   await p.waitForTimeout(700);
   di('   a Formato', await irA('formato'));
+  /* Y EN TRANSPARENTE, QUE ES DONDE EL CAMBIO SIGUE SIENDO CARO. Este bloque
+     vive de que elegir un tamaño repagine el libro entero: es el único caso en
+     el que la afirmación de abajo distingue algo. Desde que Formato OPACO
+     enseña la muestra de la letra, ahí el cambio ya no repagina —escribe en la
+     muestra y el libro espera a CERRAR—, así que el desplegable se volvería
+     barato y la línea de validez «el cambio bloqueó el hilo de verdad» caería
+     con la aplicación haciendo lo correcto. Su propio comentario lo dejó
+     dicho: el día que este cambio se vuelva barato, esa línea avisa de que la
+     prueba dejó de vigilar lo que decía vigilar. Avisó.
+     En transparente el mando va directo al libro, que es el camino donde el
+     acuse hace falta de verdad: ahí el lector está mirando la hoja. */
+  await p.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const panel = document.getElementById('ajustes');
+    if (panel && !panel.classList.contains('cristal')){
+      document.getElementById('btnVidrio').click(); await pausa(700);
+    }
+  });
+  await p.waitForTimeout(300);
   const enAAA = await p.evaluate(`(async () => {
     const dedo = ${DEDO};
     const pausa = ms => new Promise(z => setTimeout(z, ms));
