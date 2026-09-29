@@ -1809,6 +1809,125 @@ async function ponerContraste(pagina, pct){
        !muestra.falta && (JSON.stringify(muestra.antes.libro) + '  →  ' +
                           JSON.stringify(muestra.devuelto)));
 
+  /* ──────────────────────────────────────────────────────────────
+     LA LISTA DE LETRAS NO ENSEÑA DOS VECES LA MISMA.
+
+     Nace de una mirada del dueño del repo: «tenemos 5 fuentes, ¿por qué
+     elegiste ésas? Se parecen». Y era verdad. Cada entrada de la lista no es
+     una letra: es una cadena de recambios, y en el aparato que no tiene la que
+     se nombra la cadena baja hasta el genérico. En un Android sin ninguna de
+     las cuatro serifas, las cuatro acaban en la misma letra: cuatro nombres
+     para una.
+
+     SE MIDE LA LETRA, NO LA LISTA. Se recorre lo que el mando ofrece de
+     verdad, se elige cada una como la elige un lector, y se mide con qué se
+     pinta —la huella sale de medir dos palabras en un lienzo con la cadena que
+     la hoja se acaba de escribir a sí misma—. Leer los nombres de la lista no
+     serviría: el fallo era justamente que los nombres decían seis cosas y la
+     pantalla enseñaba dos.
+
+     VA EN TRANSPARENTE porque ahí los tres mandos van directos al libro y cada
+     elección se ve en el acto. En opaco habría que cerrar entre una y otra, y
+     lo que se mide aquí no tiene nada que ver con lo que espera a cerrar.
+
+     Y la línea de validez es la de siempre, con una vuelta de tuerca: si el
+     mando ofreciera UNA sola letra, «ninguna se repite» saldría verde sin
+     haber probado nada. */
+  titulo('la lista de letras no ofrece dos veces la misma');
+  const letras = await sesion.pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const vis = () => [...document.querySelectorAll('.rollo, #canto')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    if (!vis()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+    const t = (vis() || document).querySelector('.pestanas [data-sec="formato"]');
+    if (!t) return { falta:'no hay pestaña de formato' };
+    t.click(); await pausa(900);
+    /* En transparente, que es donde el mando va directo al libro. */
+    const panel = document.getElementById('ajustes');
+    if (!panel.classList.contains('cristal')){
+      document.getElementById('btnVidrio').click(); await pausa(700);
+    }
+    const sel = document.getElementById('selFuente');
+    const hoja = document.getElementById('pg');
+    if (!sel || !hoja) return { falta:'no hay mando de letra o no hay hoja' };
+    const guardado = sel.value;
+    const cadenaDePartida = (hoja.style.getPropertyValue('--fam') || '').trim();
+    /* LA HUELLA: dos palabras medidas en un lienzo con la cadena que la hoja
+       lleva puesta. Dos y no una, que con una sola colisionan letras de anchos
+       parecidos. Es la misma cuenta que hace el programa, escrita aquí aparte:
+       lo de dentro no se puede llamar desde fuera —y está bien que no—, así
+       que esta prueba mide por su cuenta y no se apoya en ella. */
+    const huella = (cadena) => {
+      const c = document.createElement('canvas').getContext('2d');
+      const mide = x => { c.font = '64px ' + cadena; return Math.round(c.measureText(x).width * 10); };
+      return mide('MMMWWWiiilll') + '·' + mide('en Cristo somos más que vencedores');
+    };
+    const primerNombre = (cadena) => {
+      const G = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|-apple-system|BlinkMacSystemFont)$/i;
+      for (const parte of String(cadena).split(',')){
+        const n = parte.trim().replace(/^['"]|['"]$/g, '');
+        if (!n) continue;
+        return G.test(n) ? null : n;
+      }
+      return null;
+    };
+    const ofrecidas = [...sel.options].filter(o => !o.hidden);
+    const todas = sel.options.length;
+    const vistas = [];
+    for (const o of ofrecidas){
+      sel.value = o.value;
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
+      await pausa(700);
+      const cadena = (hoja.style.getPropertyValue('--fam') || '').trim();
+      const nombre = primerNombre(cadena);
+      let tiene = null;
+      try { tiene = nombre ? document.fonts.check('16px "' + nombre + '"') : null; }
+      catch (e) { tiene = null; }
+      vistas.push({ rotulo: o.textContent.trim(), valor: o.value, cadena,
+                    nombre, tiene, huella: cadena ? huella(cadena) : null });
+    }
+    /* y se devuelve la que estaba, que los bloques de abajo no tienen por qué
+       heredar una letra elegida aquí */
+    sel.value = guardado;
+    sel.dispatchEvent(new Event('change', { bubbles:true }));
+    await pausa(700);
+    return { todas, ofrecidas: vistas, cadenaDePartida, elegidaVisible:
+               !([...sel.options].find(o => o.value === guardado) || {}).hidden,
+             devuelta: (hoja.style.getPropertyValue('--fam') || '').trim() };
+  });
+  di('lo que ofrece el mando', letras.falta ||
+     letras.ofrecidas.map(v => v.rotulo + ' → ' + v.huella).join('  ·  '));
+  di('de las ' + letras.todas + ', escondidas',
+     letras.falta ? '?' : String(letras.todas - letras.ofrecidas.length));
+  vale('(la prueba es válida) el mando ofrece más de una letra que comparar',
+       !letras.falta && letras.ofrecidas.length >= 2,
+       letras.falta || (letras.ofrecidas.length + ' de ' + letras.todas));
+  vale('(la prueba es válida) y todas dicen con qué se pinta la hoja',
+       !letras.falta && letras.ofrecidas.every(v => v.cadena && v.huella),
+       !letras.falta && letras.ofrecidas.filter(v => !v.cadena).length + ' sin cadena');
+  /* LA DE VERDAD. Antes de esto, en un aparato sin las serifas nombradas, esta
+     línea habría cantado cuatro huellas iguales. */
+  vale('NINGUNA DE LAS QUE OFRECE ES LA MISMA LETRA QUE OTRA',
+       !letras.falta &&
+       new Set(letras.ofrecidas.map(v => v.huella)).size === letras.ofrecidas.length,
+       !letras.falta && letras.ofrecidas.map(v => v.rotulo + ':' + v.huella).join(' · '));
+  /* Y EL NOMBRE NO MIENTE: si el aparato no tiene la letra que se nombra, el
+     rótulo lo dice —«Segoe · sans del aparato»—. Ésta es la que contesta la
+     pregunta del dueño del repo en el sitio donde se elige, que en un teléfono
+     es el único sitio donde se puede contestar: ahí no hay hover que leer. */
+  vale('  y la que el aparato no tiene lo dice en el nombre',
+       !letras.falta && letras.ofrecidas.every(v =>
+         v.tiene === true ? true : v.rotulo.includes(' · ')),
+       !letras.falta && letras.ofrecidas
+         .map(v => v.rotulo + ' (' + (v.nombre || 'genérica') + ': ' + v.tiene + ')').join(' · '));
+  vale('  y la letra elegida por el lector nunca se esconde',
+       !letras.falta && letras.elegidaVisible === true,
+       !letras.falta && String(letras.elegidaVisible));
+  vale('(y el bloque devuelve la letra del libro como la encontró)',
+       !letras.falta && !!letras.cadenaDePartida &&
+       letras.devuelta === letras.cadenaDePartida,
+       !letras.falta && (letras.cadenaDePartida + '  →  ' + letras.devuelta));
+
   await cerrarParcial(sesion, 'teléfono');
 
   /* ---------- y en escritorio, donde .stage SÍ trae filtro propio ---------- */
