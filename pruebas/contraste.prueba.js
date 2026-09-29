@@ -1871,6 +1871,27 @@ async function ponerContraste(pagina, pct){
       }
       return null;
     };
+    /* ¿ESTÁ INSTALADA? SE MIDE. La primera versión de esta prueba preguntaba con
+       `document.fonts.check`, igual que la aplicación, y las dos estaban mal:
+       esa función dice «pintar esto no obliga a cargar nada que falte», y un
+       nombre ausente se resuelve por recambio sin cargar nada, así que contesta
+       que sí. Lo encontró Codex. La prueba repetía la pregunta equivocada, o sea
+       que habría dado verde con el mecanismo entero muerto: la peor clase de
+       verde. Aquí se mide, y se mide APARTE de la aplicación —esto no llama a lo
+       de dentro, lo comprueba— con tres recambios, porque una letra puede medir
+       por casualidad lo mismo que uno de ellos. */
+    const instalada = (n) => {
+      if (!n) return null;
+      const c = document.createElement('canvas').getContext('2d');
+      const P = 'mmmiiiWWWlll@#ÁÑ';
+      for (const ref of ['monospace', 'serif', 'sans-serif']){
+        c.font = '72px ' + ref;
+        const solo = c.measureText(P).width;
+        c.font = '72px "' + n + '",' + ref;
+        if (Math.abs(c.measureText(P).width - solo) > 0.5) return true;
+      }
+      return false;
+    };
     const ofrecidas = [...sel.options].filter(o => !o.hidden);
     const todas = sel.options.length;
     const vistas = [];
@@ -1880,9 +1901,7 @@ async function ponerContraste(pagina, pct){
       await pausa(700);
       const cadena = (hoja.style.getPropertyValue('--fam') || '').trim();
       const nombre = primerNombre(cadena);
-      let tiene = null;
-      try { tiene = nombre ? document.fonts.check('16px "' + nombre + '"') : null; }
-      catch (e) { tiene = null; }
+      const tiene = instalada(nombre);
       vistas.push({ rotulo: o.textContent.trim(), valor: o.value, cadena,
                     nombre, tiene, huella: cadena ? huella(cadena) : null });
     }
@@ -1915,11 +1934,25 @@ async function ponerContraste(pagina, pct){
      rótulo lo dice —«Segoe · sans del aparato»—. Ésta es la que contesta la
      pregunta del dueño del repo en el sitio donde se elige, que en un teléfono
      es el único sitio donde se puede contestar: ahí no hay hover que leer. */
-  vale('  y la que el aparato no tiene lo dice en el nombre',
+  /* Y EL RÓTULO NO MIENTE: donde el aparato no tiene la letra que la entrada
+     nombra, el mando enseña el GÉNERO en vez del nombre —«Sans» donde no hay
+     Segoe—. Ésa es la contestación a la pregunta del dueño del repo, dicha en
+     el sitio donde se elige, que en un teléfono es el único sitio donde cabe:
+     ahí no hay hover que leer. */
+  const GENEROS = ['Serif', 'Sans', 'Máquina', 'Sistema'];
+  vale('  y la que el aparato no tiene enseña el género, no el nombre',
        !letras.falta && letras.ofrecidas.every(v =>
-         v.tiene === true ? true : v.rotulo.includes(' · ')),
+         v.tiene === true || GENEROS.includes(v.rotulo)),
        !letras.falta && letras.ofrecidas
          .map(v => v.rotulo + ' (' + (v.nombre || 'genérica') + ': ' + v.tiene + ')').join(' · '));
+  /* Y CABEN. Esta línea nace de una roja: los rótulos fueron «Segoe · sans del
+     aparato» y el desplegable se ensanchó tanto que su tablilla pasó del 70%
+     del panel, con lo que saltó «la mayoría son de verdad estrechas» en un
+     bloque de más arriba. Aquella línea hizo su trabajo, pero señalaba el
+     síntoma a dos pantallas del sitio; ésta señala la causa. */
+  vale('  y ningún rótulo se alarga hasta ensanchar el mando',
+       !letras.falta && letras.ofrecidas.every(v => v.rotulo.length <= 10),
+       !letras.falta && letras.ofrecidas.map(v => v.rotulo + ':' + v.rotulo.length).join(' · '));
   vale('  y la letra elegida por el lector nunca se esconde',
        !letras.falta && letras.elegidaVisible === true,
        !letras.falta && String(letras.elegidaVisible));

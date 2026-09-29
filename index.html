@@ -6188,7 +6188,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '29-SEP-26 17:55';
+window.GLOSS_BUILD = '29-SEP-26 18:00';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7340,31 +7340,75 @@ const FUENTES = [
   ['Máquina',  "ui-monospace,'Courier New',monospace",               'de máquina de escribir']
 ];
 let fuente = FUENTES[0][1];
-/* ¿TIENE ESTE APARATO EL NOMBRE QUE SE PIDE? Se recorre la cadena y se
-   devuelve el primer nombre propio que el navegador dice tener. Al llegar a un
-   genérico se para y devuelve null: `serif` no es una letra, es una promesa de
-   que habrá alguna, y cuál sea no hay manera de preguntarlo. */
-function familiaDelAparato(cadena){
-  const GENERICOS = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|-apple-system|BlinkMacSystemFont)$/i;
+const GENERICOS = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|-apple-system|BlinkMacSystemFont)$/i;
+/* EL PRIMER NOMBRE PROPIO DE LA CADENA. Al llegar a un genérico se para y
+   devuelve null: `serif` no es una letra, es una promesa de que habrá alguna,
+   y cuál sea no hay manera de preguntarlo. */
+function primerNombreDeLaCadena(cadena){
   for (const parte of String(cadena).split(',')){
     const n = parte.trim().replace(/^['"]|['"]$/g, '');
     if (!n) continue;
-    if (GENERICOS.test(n)) return null;
-    try { if (document.fonts && document.fonts.check('16px "' + n + '"')) return n; }
-    catch (e) { /* un nombre que el navegador no sabe parsear: se sigue */ }
+    return GENERICOS.test(n) ? null : n;
   }
   return null;
 }
-/* Y EL GENÉRICO EN QUE ACABA, para poder decirlo en vez de callarlo: «Segoe ·
-   sans del aparato» contesta la pregunta que hizo el dueño del repo —«no sé si
-   acaba siendo roboto en mi android»— en el sitio donde se elige, y sin hover,
-   que en un teléfono no existe. */
+/* ¿ESTÁ INSTALADA ESTA LETRA? SE MIDE, NO SE PREGUNTA.
+
+   Aquí estuvo `document.fonts.check('16px "Georgia"')` y NO SIRVE: lo encontró
+   Codex revisando la PR y es cierto. Esa función no dice «tengo esta letra»,
+   dice «pintar esto no obliga a cargar ninguna @font-face que falte». Un nombre
+   que el aparato no tiene se resuelve por recambio al instante, o sea sin cargar
+   nada, o sea que devuelve `true`. En un Android sin Georgia decía que sí tenía
+   Georgia, y entonces ningún rótulo llegaba a decir la verdad: el mecanismo
+   entero quedaba muerto y la prueba lo aceptaba porque repetía la misma
+   pregunta equivocada.
+
+   Lo que sí distingue es MEDIR: se pinta una palabra de prueba con la cadena
+   `"nombre", recambio` y con el recambio a solas. Si la letra está, manda ella
+   y los dos anchos salen distintos; si no está, manda el recambio en los dos
+   casos y miden igual.
+
+   TRES RECAMBIOS Y NO UNO, porque una letra puede medir por casualidad lo
+   mismo que uno de ellos —pasa con las metrически compatibles, que es media
+   razón de que existan— y con un solo testigo eso se leería como «no está».
+   Con tres tiene que coincidir con los tres para escaparse.
+
+   Y LA PALABRA DE PRUEBA LLEVA DE TODO —anchas, estrechas, acentos y signos—
+   porque una cadena de letras parecidas mide casi igual en cualquier cosa. */
+const PRUEBA_LETRA = 'mmmiiiWWWlll@#ÁÑ';
+function existeFamilia(nombre){
+  if (!nombre) return false;
+  try {
+    const c = document.createElement('canvas').getContext('2d');
+    for (const recambio of ['monospace', 'serif', 'sans-serif']){
+      c.font = '72px ' + recambio;
+      const solo = c.measureText(PRUEBA_LETRA).width;
+      c.font = '72px "' + nombre + '",' + recambio;
+      const con = c.measureText(PRUEBA_LETRA).width;
+      if (Math.abs(con - solo) > 0.5) return true;
+    }
+  } catch (e) { /* si no se puede medir, se da por no encontrada */ }
+  return false;
+}
+function familiaDelAparato(cadena){
+  const n = primerNombreDeLaCadena(cadena);
+  return n && existeFamilia(n) ? n : null;
+}
+/* Y EL GÉNERO EN QUE ACABA, EN UNA PALABRA. Fue «sans del aparato» y costó una
+   roja del banco: el rótulo largo ensanchaba el desplegable, el desplegable
+   ensanchaba su tablilla, y las tablillas de este panel tienen que ser
+   estrechas —se pidió dos veces, y hay una línea que lo vigila: «la mayoría son
+   de verdad estrechas» saltó con dos filas por encima del 70%—.
+   En una palabra dice lo mismo y no cuesta un píxel: donde el aparato no tiene
+   la letra que se nombra, el mando enseña «Sans» o «Serif» en vez de «Segoe» o
+   «Georgia». Eso ES la respuesta, y además cabe. La frase entera sigue estando
+   en el title, para quien lea con ratón. */
 function generoDeLaCadena(cadena){
   const c = String(cadena);
-  if (/monospace/i.test(c)) return 'de máquina';
-  if (/sans-serif|system-ui|-apple-system/i.test(c)) return 'sans del aparato';
-  if (/serif/i.test(c)) return 'serif del aparato';
-  return 'la del aparato';
+  if (/monospace/i.test(c)) return 'Máquina';
+  if (/sans-serif|system-ui|-apple-system/i.test(c)) return 'Sans';
+  if (/serif/i.test(c)) return 'Serif';
+  return 'Sistema';
 }
 /* LA HUELLA, que es lo que agrupa. Dos cadenas que acaban en la misma letra
    miden exactamente igual; se miden en un lienzo y no en el DOM porque ahí no
@@ -22450,6 +22494,12 @@ $('selFuente').title = FUENTES.map(f => f[0] + ': ' + f[2]).join(' · ');
    acaban en letras distintas llegan a dar la misma huella. La lista funciona
    igual si esto no llega a correr —queda la de siempre, con sus seis nombres—,
    que es lo que tiene que pasar cuando una medida no se puede tomar. */
+/* La línea del title, aparte porque se dice dos veces y son dos frases largas
+   que conviene leer juntas. */
+function o_titulo(e){
+  return e.real ? e.real + ': ' + FUENTES[e.i][2]
+       : e.genero + ' del sistema (' + FUENTES[e.i][0] + ' no está)';
+}
 function afinarListaDeFuentes(){
   const sel = $('selFuente');
   if (!sel || sel.options.length !== FUENTES.length) return null;
@@ -22474,10 +22524,17 @@ function afinarListaDeFuentes(){
     const o = sel.options[e.i];
     if (!o) continue;
     o.hidden = !quedan.has(e.i);
-    o.textContent = e.real ? e.nombre : e.nombre + ' · ' + e.genero;
+    /* EL RÓTULO ES EL NOMBRE SI EL APARATO LO TIENE, Y SI NO, EL GÉNERO. Una
+       palabra en los dos casos: ver generoDeLaCadena, donde está contado lo que
+       costó la versión larga. Enseñar «Sans» donde no hay Segoe es la
+       contestación entera, dicha en el sitio donde se elige. */
+    o.textContent = e.real ? e.nombre : e.genero;
+    o.title = e.real ? FUENTES[e.i][2]
+            : FUENTES[e.i][0] + ' no está en este aparato: sale la ' +
+              e.genero.toLowerCase() + ' del sistema';
   }
   sel.title = info.filter(e => quedan.has(e.i))
-                  .map(e => (e.real || e.genero) + ': ' + FUENTES[e.i][2]).join(' · ');
+                  .map(e => o_titulo(e)).join(' · ');
   /* Reescribir las opciones no cambia el valor, pero se vuelve a poner por si
      esto llega después de reflejarAjustes: son dos caminos y no hay orden
      garantizado entre ellos. */
