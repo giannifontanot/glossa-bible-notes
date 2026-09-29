@@ -6188,7 +6188,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '29-SEP-26 17:37';
+window.GLOSS_BUILD = '29-SEP-26 17:55';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -6956,11 +6956,61 @@ const PAGE_CSS = `
 /* El fondo del recuadro es el mismo tono del resaltado al 42% de su alfa
    (ver FILL_ALFA): aquí se necesita menos color porque el borde ya delimita
    la nota. Van escritos a mano y no calculados porque PAGE_CSS se arma antes
-   de que existan las constantes; si tocas FILL_ALFA, toca también estos. */
-.g-yellow{ border:1px solid #c9a227; background:rgba(255,214,64,.19); color:#6d5410; }
-.g-green { border:1px solid #3a8f4f; background:rgba(94,196,110,.08); color:#235c31; }
-.g-blue  { border:1px solid #1d6f9c; background:rgba(86,182,238,.08); color:#0f4b6b; }
-.g-orange{ border:1px solid #9c4708; background:rgba(242,105,20,.07); color:#6e3406; }
+   de que existan las constantes; si tocas FILL_ALFA, toca también estos.
+
+   LA TARJETA NO PUEDE SER MÁS OSCURA QUE EL PAPEL, y esto lo vio el dueño del
+   repo leyendo en la columna: «el fondo azul, rojo y verde se ven como
+   oscurecidos». Nombró exactamente las tres que lo estaban, y se mide:
+
+     con el sepia al 100, papel de luz 0.667
+       amarilla  0.672  más clara      ← la única que estaba bien
+       verde     0.643  MÁS OSCURA
+       azul      0.640  MÁS OSCURA
+       naranja   0.631  MÁS OSCURA
+
+   La causa no es la transparencia en sí, y conviene decirlo porque la primera
+   idea era la contraria: iba a SUBIR el tinte, y lo que hacía falta era
+   aclararlo. Un velo azul al 8% sobre papel tostado no da azul claro, da un
+   gris pardo (220,209,177); el verde da un oliva sucio. Esa mezcla es la que
+   se lee como «oscurecido» en vez de como verde o azul.
+
+   EL ARREGLO: debajo del tinte va un velo BLANCO, y el fondo pasa a ser opaco
+   —var(--papel) declarado, no el papel asomando—. Con el papel casi blanco el
+   velo no hace nada y la nota se ve igual que siempre; con el sepia alto,
+   aclara la base lo justo para que la tarjeta quede POR ENCIMA del papel en
+   vez de por debajo. Medido, con sepia 100: verde de 0.643 a 0.765 de luz
+   relativa al papel, azul igual, naranja casi. Y el texto se lee mejor de
+   paso: la nota verde sube de 5.23 a 6.16 de contraste, la azul de 6.16 a
+   7.28, la naranja de 6.31 a 7.43.
+
+   LA AMARILLA NO LLEVA VELO: ya era más clara que el papel, que es justo lo
+   que se pide, y el dueño del repo no la nombró. Le ponemos el fondo opaco
+   como a las otras tres —el resultado es el mismo píxel que antes, porque
+   detrás sólo había papel— y el tinte se queda intacto. Tocarla habría sido
+   arreglar lo que no estaba roto, y de paso quitarle la fuerza a la única que
+   se distinguía sola.
+
+   POR QUÉ UN VELO Y NO CUATRO COLORES CALCULADOS: la tarjeta tiene que seguir
+   al riel del sepia, así que el color no puede ser fijo. Calcularlos en el
+   guion querría decir llevarlos también a la foto del pliegue, que se dibuja
+   aparte y no pasa por prepararHoja —ese olvido ya costó una vez, ver REVES—.
+   var(--papel) sí viaja: buildSVG lo escribe a mano en la hoja de la foto, así
+   que esto sale igual en la hoja viva y en el pliegue sin una línea más. */
+.g-yellow{ border:1px solid #c9a227; color:#6d5410;
+           background-color:var(--papel, #fffdf6);
+           background-image:linear-gradient(rgba(255,214,64,.19),rgba(255,214,64,.19)); }
+.g-green { border:1px solid #3a8f4f; color:#235c31;
+           background-color:var(--papel, #fffdf6);
+           background-image:linear-gradient(rgba(94,196,110,.08),rgba(94,196,110,.08)),
+                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
+.g-blue  { border:1px solid #1d6f9c; color:#0f4b6b;
+           background-color:var(--papel, #fffdf6);
+           background-image:linear-gradient(rgba(86,182,238,.08),rgba(86,182,238,.08)),
+                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
+.g-orange{ border:1px solid #9c4708; color:#6e3406;
+           background-color:var(--papel, #fffdf6);
+           background-image:linear-gradient(rgba(242,105,20,.07),rgba(242,105,20,.07)),
+                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
 /* LA ETIQUETA SE ACLARA CON UN COLOR, NUNCA CON opacity, y esto arregla además
    un defecto que ya estaba puesto. medirPalabras se lleva al lienzo el color
    calculado pero NO la opacidad, así que .gl-tag{opacity:.62} se veía al 62% en

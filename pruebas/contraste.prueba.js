@@ -1928,6 +1928,132 @@ async function ponerContraste(pagina, pct){
        letras.devuelta === letras.cadenaDePartida,
        !letras.falta && (letras.cadenaDePartida + '  →  ' + letras.devuelta));
 
+  /* ──────────────────────────────────────────────────────────────
+     LA TARJETA DE LA GLOSA NUNCA ES MÁS OSCURA QUE EL PAPEL.
+
+     Encargo del dueño del repo leyendo en la columna de glosas: «el fondo
+     azul, rojo y verde se ven como oscurecidos». Nombró exactamente las tres
+     que lo estaban, y la cuenta lo confirma: con el sepia al tope, el papel
+     tiene 0.667 de luz relativa y la verde 0.643, la azul 0.640 y la naranja
+     0.631. La amarilla era la única por encima, 0.672, y por eso no la nombró.
+
+     SE MIDE PINTADO, Y AQUÍ NO HAY OTRA MANERA. El fondo de la tarjeta ya no
+     es un color declarado: es var(--papel) con dos capas de gradiente encima,
+     y getComputedStyle devuelve el background-color —o sea el papel— sin
+     enterarse de las capas. Leer la declaración diría «papel» para las cuatro
+     y esta prueba saldría verde con el fallo puesto. Se hace captura y se
+     compara la LUZ de lo pintado.
+
+     DE CADA CAPTURA SE TOMA EL PÍXEL MÁS CLARO de la fila de en medio, que es
+     la misma técnica que el bloque de los dos botones y por la misma razón: en
+     la tarjeta hay texto, y un punto fijo cae encima de una letra y devuelve
+     la tinta. El más claro es el fondo en las dos.
+
+     Y LA LÍNEA DE VALIDEZ es la que hace que esto sirva: si en esta hoja no
+     hubiera ninguna nota de las tres que se quejó, «ninguna es más oscura»
+     saldría verde sin haber mirado ninguna. */
+  titulo('la tarjeta de la glosa nunca es más oscura que el papel');
+  const puesto = await sesion.pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const vis = () => [...document.querySelectorAll('.rollo, #canto')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    if (!vis()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+    const t = (vis() || document).querySelector('.pestanas [data-sec="formato"]');
+    if (!t) return { falta:'no hay pestaña de formato' };
+    t.click(); await pausa(900);
+    /* AL MARGEN, que es la columna de la que habla el encargo. */
+    const m = document.querySelector('[data-lay="margin"]');
+    if (!m) return { falta:'no hay botón de margen' };
+    m.click(); await pausa(1400);
+    /* Y EL SEPIA AL TOPE, que es donde se veía el fallo. */
+    const r = document.getElementById('sepia');
+    const sepiaAntes = r.value;
+    r.value = '100'; r.dispatchEvent(new Event('input', { bubbles:true }));
+    await pausa(900);
+    /* Se cierra el panel: en opaco tapa la hoja, y aquí se va a fotografiar. */
+    const c = document.querySelector('#ajustes .pie-cerrar .cerrar-pie');
+    if (c) c.click();
+    await pausa(1200);
+    const tarjetas = [...document.querySelectorAll('#pgMargin .gl')]
+      .map((g, i) => ({ i, color: [...g.classList].find(x => x.startsWith('g-')) || null }))
+      .filter(x => x.color);
+    const sitioAntes = (document.querySelector('[data-lay].active') || {}).dataset;
+    return { sepiaAntes, tarjetas,
+             sitioAntes: sitioAntes ? sitioAntes.lay : null,
+             hayCuerpo: !!document.querySelector('#pgBody .v') };
+  });
+  const lupaGl = await sesion.navegador.newPage();
+  await lupaGl.setContent('<canvas id="c"></canvas>');
+  const masClaroDe = async (loc) => {
+    const b64 = (await loc.screenshot()).toString('base64');
+    return lupaGl.evaluate(async (d) => {
+      const img = new Image();
+      await new Promise(r => { img.onload = r; img.src = 'data:image/png;base64,' + d; });
+      const c = document.getElementById('c');
+      c.width = img.width; c.height = img.height;
+      const cx = c.getContext('2d');
+      cx.drawImage(img, 0, 0);
+      const fila = cx.getImageData(0, Math.round(img.height / 2), img.width, 1).data;
+      let mejor = [0, 0, 0], luz = -1;
+      for (let i = 0; i < fila.length; i += 4){
+        const l = .2126*fila[i] + .7152*fila[i+1] + .0722*fila[i+2];
+        if (l > luz){ luz = l; mejor = [fila[i], fila[i+1], fila[i+2]]; }
+      }
+      return mejor;
+    }, b64);
+  };
+  /* La luz relativa de verdad, con su gamma: la media de los tres canales
+     diría que un amarillo y un azul del mismo promedio pesan lo mismo, y no
+     es así. Es la misma cuenta que usa el contraste de la WCAG. */
+  const luzDe = (c) => {
+    const f = c.map(v => { v /= 255;
+      return v <= .04045 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+    return +(.2126*f[0] + .7152*f[1] + .0722*f[2]).toFixed(3);
+  };
+  let papelPintado = null, medidas = [];
+  if (!puesto.falta){
+    papelPintado = await masClaroDe(sesion.pagina.locator('#pgBody'));
+    for (const t of puesto.tarjetas.slice(0, 6)){
+      const px = await masClaroDe(sesion.pagina.locator('#pgMargin .gl').nth(t.i));
+      medidas.push({ color: t.color, px, luz: luzDe(px) });
+    }
+  }
+  await lupaGl.close();
+  /* Se devuelve el sepia, que los bloques de abajo no tienen por qué heredarlo
+     al tope. */
+  if (!puesto.falta) await sesion.pagina.evaluate(async (a) => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const r = document.getElementById('sepia');
+    r.value = a.sepia; r.dispatchEvent(new Event('input', { bubbles:true }));
+    /* y la colocación, que también se movió: el panel está cerrado, así que se
+       vuelve a abrir para tocar el botón por donde lo toca un lector */
+    if (a.sitio){
+      document.getElementById('pgCabeza').click(); await pausa(900);
+      const t = document.querySelector('.pestanas [data-sec="formato"]');
+      if (t){ t.click(); await pausa(900); }
+      const b = document.querySelector('[data-lay="' + a.sitio + '"]');
+      if (b){ b.click(); await pausa(1300); }
+    }
+  }, { sepia: puesto.sepiaAntes, sitio: puesto.sitioAntes });
+  const luzPapel = papelPintado ? luzDe(papelPintado) : null;
+  di('el papel pintado', JSON.stringify({ px: papelPintado, luz: luzPapel }));
+  di('las tarjetas', medidas.map(m => m.color + ' ' + JSON.stringify(m.px) +
+     ' luz ' + m.luz).join('  ·  '));
+  const delasTres = medidas.filter(m => m.color !== 'g-yellow');
+  vale('(la prueba es válida) se leyó papel y no tinta',
+       !puesto.falta && !!papelPintado && papelPintado[0] > 150,
+       puesto.falta || JSON.stringify(papelPintado));
+  vale('(la prueba es válida) hay al menos una de las tres que se quejó',
+       !puesto.falta && delasTres.length >= 1,
+       puesto.falta || (medidas.map(m => m.color).join(', ') || 'ninguna'));
+  /* LA DE VERDAD. Antes de este cambio, con el sepia al tope, las tres daban
+     entre 0.631 y 0.643 contra un papel de 0.667: por debajo las tres. */
+  vale('NINGUNA TARJETA ES MÁS OSCURA QUE EL PAPEL con el sepia al tope',
+       !puesto.falta && luzPapel !== null && medidas.length > 0 &&
+       medidas.every(m => m.luz >= luzPapel - .005),
+       !puesto.falta && ('papel ' + luzPapel + '  ·  ' +
+         medidas.map(m => m.color + ' ' + m.luz).join(' · ')));
+
   await cerrarParcial(sesion, 'teléfono');
 
   /* ---------- y en escritorio, donde .stage SÍ trae filtro propio ---------- */
