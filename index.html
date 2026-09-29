@@ -4166,9 +4166,40 @@
      sobre papel casi blanco es crema invisible—. Ver #ajustes.cristal
      .vidrio-btn, que es el mismo arreglo y la misma razón. */
   #ajustes.cristal .pie-cerrar{ background:none; }
-  #ajustes.cristal .pie-cerrar .cerrar-pie{ background:var(--tablilla);
-                                            border:1px solid var(--tablilla-borde);
-                                            color:var(--tablilla-tinta); }
+  /* LOS DOS BOTONES DE UNA PALABRA VAN BLANCOS EN TRANSPARENTE, pedido así, y
+     siguen yendo los dos iguales —que es la regla de antes, no una excepción a
+     ella—. En cristal el panel se queda sin papel y todo lo que queda encima
+     de la hoja es sepia sobre sepia: las tablillas se ven porque llevan su
+     hilo, pero estos dos son las dos salidas y tienen que encontrarse sin
+     buscarlas. El hilo se queda para que no se derramen sobre el libro. */
+  #ajustes.cristal .pie-cerrar .cerrar-pie,
+  #ajustes.cristal .vidrio-btn{ background:#fffdf6;
+                                border:1px solid var(--tablilla-borde);
+                                color:#3c2f16; }
+
+  /* LA MUESTRA DE LA LETRA. El rectángulo es del papel del libro y con su
+     tinta —las mismas variables, así que el riel del sepia lo tiñe solo, sin
+     una línea de guion—, y el texto de dentro lleva --fam, --fs y --esp, que
+     es exactamente lo que lleva la hoja.
+
+     SE ESCONDE EN TRANSPARENTE, que es el encargo y también lo razonable: ahí
+     el libro está a la vista y una muestra al lado sería decir dos veces lo
+     mismo, ocupando el sitio por el que se mira.
+
+     VA CENTRADA A PROPÓSITO, y no sigue al mando de alineación: es una muestra
+     de la LETRA —cuerpo, tipografía y espaciado—, no del reparto del párrafo.
+     Alineada a la izquierda parecía el primer renglón de un texto, y entonces
+     el ojo la lee como si dijera algo de cómo va a quedar la página, que es
+     justo lo que no dice. Centrada se lee como lo que es: un rótulo. */
+  #filaMuestra{ grid-column:1 / -1; display:block; margin-top:6px; padding:10px 12px;
+                background:var(--papel, #e8d3ac); color:var(--tinta, #2b2116);
+                border:1px solid rgba(122,101,56,.45); border-radius:4px; }
+  #ajustes.cristal #filaMuestra{ display:none; }
+  #muestraLetra{ display:block; text-align:center;
+                 font-family:var(--fam, Georgia, 'Times New Roman', serif);
+                 font-size:var(--fs, 15px); line-height:1.35;
+                 letter-spacing:var(--esp, 0em);
+                 word-spacing:calc(-2 * var(--esp, 0em)); }
   .rollo, .fly, #cantoCuerpo{ scrollbar-width:none; -ms-overflow-style:none; }
   .rollo::-webkit-scrollbar, .fly::-webkit-scrollbar,
   #cantoCuerpo::-webkit-scrollbar{ width:0; height:0; display:none; }
@@ -5606,6 +5637,31 @@
             aria-label="espaciado entre letras"></select>
     <button class="btn" id="espUp" title="Un punto más de espaciado">+</button>
   </span></div>
+
+  <!-- LA MUESTRA, debajo de los tres mandos que la escriben. Pedida así: un
+       rectángulo del papel del libro con una frase dentro, que cambia con el
+       tamaño, la tipografía y el espaciado.
+
+       PARA QUÉ, que es lo que explica todo lo demás: con el panel opaco el
+       libro está tapado, así que mover la letra era elegir a ciegas y cerrar
+       para ver qué había salido. Con la muestra se elige mirando, y el libro
+       no se toca hasta cerrar. En transparente no hace falta —el libro se ve—
+       y por eso ahí la muestra se esconde y los tres mandos vuelven a ir
+       directos a la hoja, como han ido siempre.
+
+       Y LLEVA LAS MISMAS VARIABLES QUE LA HOJA —--fam, --fs y --esp— en vez de
+       estilos propios: así la muestra no se parece al libro, es el libro. El
+       día que cambie cómo se pinta el texto, esto cambia con él. -->
+  <!-- CLASE PROPIA Y NO `.ajuste ancho`, aunque se le parezca. Las filas de
+       FORMATO tienen un contrato —cada una es un mando, lleva su tablilla en
+       modo transparente y el banco las recoge todas con `#ctrlConfig .ajuste`
+       para medirlas—. La muestra no es un mando: no se toca, sólo se mira. Con
+       la clase de las demás entraba en ese recuento y habría que explicar en
+       cada medida por qué ésta no cuenta. -->
+  <div class="muestra-fila" id="filaMuestra">
+    <span class="ctrl" id="muestraLetra" aria-live="polite"
+          aria-label="Muestra de la letra del libro">en Cristo somos más que vencedores</span>
+  </div>
   <!-- LOS MÁRGENES SE OCULTAN, PERO SIGUEN AHÍ.
 
        Se quita de la vista a petición del dueño del repo, y lo que le hizo
@@ -6132,7 +6188,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '28-SEP-26 14:35';
+window.GLOSS_BUILD = '29-SEP-26 15:06';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -16826,6 +16882,12 @@ const panelDe = id => document.getElementById(PANEL[id]);
 const seccionDe = el => Object.keys(PANEL).find(k => document.getElementById(PANEL[k]) === el);
 
 function abrirSeccion(id, enSeco){
+  /* Irse a otra pestaña también es dejar de ver la muestra, así que confirma:
+     las pestañas cambian lo de en medio sin pasar por cerrarOtrosRollos. Y al
+     entrar en FORMATO la muestra se pone al día, que si no enseñaría la letra
+     de la última vez que se miró. */
+  if (typeof aplicarPendientes === 'function' && id !== 'formato') aplicarPendientes();
+  if (typeof reflejarMuestra === 'function' && id === 'formato') reflejarMuestra();
   const de = SECCIONES.findIndex(x => x.id === seccionViva);
   const a  = SECCIONES.findIndex(x => x.id === id);
   dirSeccion = a >= de ? 1 : -1;              /* de dónde entra el contenido */
@@ -17228,6 +17290,11 @@ for (const el of SUPERFICIES_ACUSE){
 }
 /* Todos se excluyen: comparten el mismo filo y la misma superficie. */
 function cerrarOtrosRollos(menos){
+  /* LO ELEGIDO EN LA MUESTRA PASA AL LIBRO AQUÍ. Por esta función pasan todos
+     los cierres —el botón CERRAR, la tecla Escape y el clic fuera— y también
+     el cambio de un panel a otro, así que es el único sitio donde hace falta
+     ponerlo. Se pidió que cualquier salida confirme. */
+  if (typeof aplicarPendientes === 'function') aplicarPendientes();
   for (const r of LOS_ROLLOS) if (r.el !== menos) r.cerrar();
   if (canto !== menos) cerrarCanto();      /* el de Libros, que no es un rollo simple */
   /* Y los dos globos, que comparten la misma hoja. Se cedían en un solo
@@ -21926,7 +21993,9 @@ $('fsAhora').innerHTML = TAMANOS.map(n => '<option value="' + n + '">' + n + '</
    hace cuando estás leyendo y algo no acaba de caer. Cada uno hace bien lo
    que el otro hace mal, así que no se estorban. */
 function reflejarTamano(){
-  $('fsAhora').value = String(fontSize);
+  /* Lo VIVO y no lo aplicado: mientras hay muestra, el número del select es el
+     que se está eligiendo, no el que el libro tiene todavía puesto. */
+  $('fsAhora').value = String(typeof tamVivo === 'function' ? tamVivo() : fontSize);
   const g = $('fsGlosaAhora');
   if (g) g.value = String(fontSizeGlosa);
 }
@@ -22026,8 +22095,75 @@ function escalarInterfaz(){
   /* Y los relatos, que viven en otro documento y no se enteran solos. */
   if (typeof avisarEstiloALosRelatos === 'function') avisarEstiloALosRelatos();
 }
+/* LOS TRES MANDOS DE LA LETRA ESPERAN MIENTRAS SE VE LA MUESTRA.
+
+   Con el panel opaco el libro está tapado, así que mover la letra era elegir a
+   ciegas: tocar, cerrar, mirar, y volver a abrir si no era eso. Ahora hay una
+   muestra en el panel, y mientras esté a la vista los tres mandos —tamaño,
+   tipografía y espaciado— escriben en ELLA y no en el libro; al cerrar, lo
+   elegido pasa a la hoja de una vez.
+
+   EN TRANSPARENTE NO ESPERA NADA, que es el otro lado del encargo: ahí el
+   libro se ve, la muestra se esconde y los tres vuelven a ir directos, como
+   han ido siempre. Por eso la pregunta no es «¿está abierto el panel?» sino
+   «¿se está viendo la muestra?».
+
+   Y SÓLO ESTOS TRES. El sepia, el contraste, el brillo, la alineación y los
+   márgenes siguen yendo al instante: ésos se ajustan a ojo mirando la hoja, y
+   hacerlos esperar sería quitarles lo único que los hace ajustables.
+
+   LO PENDIENTE VIVE APARTE de lo aplicado, y eso es lo que hace que guardar
+   siga siendo correcto: guardarAjustes lee fontSize, espaciado y fuente, que
+   son lo que el libro tiene puesto. Una elección a medias no se guarda, así
+   que cerrar el programa sin confirmar deja las cosas como estaban. */
+let pendTam = null, pendEsp = null, pendFuente = null;
+function hayMuestra(){
+  const a = document.getElementById('ajustes');
+  if (!a || getComputedStyle(a).display === 'none') return false;
+  return !a.classList.contains('cristal');
+}
+const tamVivo    = () => (pendTam    == null ? fontSize  : pendTam);
+const espVivo    = () => (pendEsp    == null ? espaciado : pendEsp);
+const fuenteViva = () => (pendFuente == null ? fuente    : pendFuente);
+/* La muestra se escribe con las MISMAS variables que la hoja —--fam, --fs y
+   --esp— y con la misma cuenta del espaciado. No se parece al libro: es el
+   libro, en chico. */
+function reflejarMuestra(){
+  const m = document.getElementById('muestraLetra');
+  if (!m) return;
+  m.style.setProperty('--fam', fuenteViva());
+  m.style.setProperty('--fs', tamVivo() + 'px');
+  m.style.setProperty('--esp', (espVivo() / 100) + 'em');
+}
+/* Y AQUÍ PASA AL LIBRO. Se llama desde los tres sitios por los que la muestra
+   deja de estar delante: al cerrar el panel —con el botón, con Escape o
+   tocando fuera, que pasan todos por cerrarOtrosRollos—, al irse a otra
+   pestaña, y al volverse transparente. Se pidió así: cualquier salida
+   confirma, que perder un ajuste por salir por otra puerta es de las cosas que
+   no se entienden mirando la pantalla.
+   Se hace UNA sola repaginada para los tres, en vez de una por mando: es la
+   ventaja de haber esperado. */
+function aplicarPendientes(){
+  if (pendTam == null && pendEsp == null && pendFuente == null) return;
+  const t = pendTam, e = pendEsp, f = pendFuente;
+  pendTam = pendEsp = pendFuente = null;
+  if (t != null){ fontSize = t; escalarInterfaz(); }
+  if (e != null) espaciado = e;
+  if (f != null){
+    fuente = f;
+    if (typeof reflejarFuenteDelLibro === 'function') reflejarFuenteDelLibro();
+    if (typeof avisarEstiloALosRelatos === 'function') avisarEstiloALosRelatos();
+  }
+  paginasSucias = true;
+  renderPage();
+  guardarAjustes();
+}
 function ponerTamano(n){
   const v = Math.max(FS_MIN, Math.min(FS_MAX, Math.round(n)));
+  if (hayMuestra()){
+    if (v === tamVivo()){ reflejarTamano(); return; }  // rebota el select si topó
+    pendTam = v; reflejarTamano(); reflejarMuestra(); return;
+  }
   if (v === fontSize){ reflejarTamano(); return; }   // rebota el select si topó
   fontSize = v; escalarInterfaz(); paginasSucias = true; renderPage();
 }
@@ -22044,8 +22180,16 @@ function ponerTamanoGlosa(n){
   if (placement !== 'margin') paginasSucias = true;
   renderPage();
 }
-$('fsUp').onclick    = () => ponerTamano(fontSize + 1);
-$('fsDown').onclick  = () => ponerTamano(fontSize - 1);
+/* LOS PASOS SE CUENTAN DESDE LO VIVO, no desde lo aplicado. Con la muestra
+   delante, `fontSize` se queda en lo que tiene el libro mientras lo elegido
+   espera en `pendTam`, así que un + que sumara sobre `fontSize` devolvería el
+   valor que ya está pendiente: `ponerTamano` lo ve igual a `tamVivo()`, rebota
+   el select y el segundo toque no hace nada. Peor con el desplegable de por
+   medio: elegido un cuerpo lejano, un − volvería a un paso del de partida y no
+   del elegido. Sumar sobre `tamVivo()` deja que estos dos mandos —que son los
+   del ajuste fino— recorran lo pendiente. Lo mismo vale para el espaciado. */
+$('fsUp').onclick    = () => ponerTamano(tamVivo() + 1);
+$('fsDown').onclick  = () => ponerTamano(tamVivo() - 1);
 $('fsAhora').onchange = e => ponerTamano(+e.target.value);
 $('fsGlosaAhora').innerHTML = TAMANOS.map(n => '<option value="' + n + '">' + n + '</option>').join('');
 $('fsGlosaUp').onclick    = () => ponerTamanoGlosa(fontSizeGlosa + 1);
@@ -22078,6 +22222,10 @@ $('fsGlosaAhora').onchange = e => ponerTamanoGlosa(+e.target.value);
    rótulo se arman arriba, junto a ESP_MIN, y ahí está dicho por qué. */
 function ponerEspaciado(n){
   const v = Math.max(ESP_MIN, Math.min(ESP_MAX, Math.round(n)));
+  if (hayMuestra()){
+    if (v === espVivo()){ reflejarEspaciado(); return; }
+    pendEsp = v; reflejarEspaciado(); reflejarMuestra(); return;
+  }
   if (v === espaciado){ reflejarEspaciado(); return; }
   espaciado = v;
   reflejarEspaciado();
@@ -22086,11 +22234,11 @@ function ponerEspaciado(n){
 }
 function reflejarEspaciado(){
   const s = $('espAhora');
-  if (s) s.value = String(espaciado);
+  if (s) s.value = String(espVivo());
 }
 $('espAhora').innerHTML = opcionesEsp();
-$('espUp').onclick    = () => ponerEspaciado(espaciado + 1);
-$('espDown').onclick  = () => ponerEspaciado(espaciado - 1);
+$('espUp').onclick    = () => ponerEspaciado(espVivo() + 1);
+$('espDown').onclick  = () => ponerEspaciado(espVivo() - 1);
 $('espAhora').onchange = e => ponerEspaciado(+e.target.value);
 $('sepia').oninput = e => {
   sepia = Math.max(0, Math.min(100, +e.target.value || 0));
@@ -22139,12 +22287,25 @@ $('brillo').oninput = e => {
 $('btnVidrio').onclick = () => {
   const el = $('ajustes');
   const on = !el.classList.contains('cristal');
+  /* AL PASAR A TRANSPARENTE, lo que esperaba en la muestra pasa al libro: allí
+     los tres mandos van directos, y dejar algo a medias entre los dos modos
+     sería tener el panel diciendo una letra y la hoja otra. Se pidió así.
+     Va antes de cambiar la clase para que se lea en el mismo orden en que se
+     cuenta: primero se confirma lo de antes, luego se cambia de modo. */
+  if (on && typeof aplicarPendientes === 'function') aplicarPendientes();
   el.classList.toggle('cristal', on);
   /* La escena también se entera: ver sincronizarVidrio, que es quien sabe
      cuándo toca y por qué. Aquí se llama además de en marcarCabeza porque
      este botón cambia el modo con el panel YA abierto, y por marcarCabeza no
      se vuelve a pasar hasta que se abra o se cierre algo. */
   sincronizarVidrio();
+  /* Y AL VOLVER DE TRANSPARENTE, la muestra se pone al día. Sin esto enseñaba
+     la letra que tenía cuando se escondió: en cristal los tres mandos van
+     directos al libro, así que mientras estuvo escondida el libro pudo cambiar
+     por debajo y ella no se enteró. Encontrado sondeando: subir la letra en
+     transparente y volver a opaco dejaba la muestra un punto por detrás de la
+     hoja, que es justo la clase de mentira que una muestra no puede contar. */
+  if (!on && typeof reflejarMuestra === 'function') reflejarMuestra();
   const b = $('btnVidrio');
   b.setAttribute('aria-pressed', on ? 'true' : 'false');
   b.classList.toggle('active', on);
@@ -22182,7 +22343,9 @@ btnA.onclick = () => {
   paginasSucias = true; renderPage();
 };
 $('selFuente').onchange = e => {
-  fuente = FUENTES[+e.target.value][1];
+  const elegida = FUENTES[+e.target.value][1];
+  if (hayMuestra()){ pendFuente = elegida; reflejarMuestra(); return; }
+  fuente = elegida;
   paginasSucias = true;                 // otra letra, otras medidas, otros cortes
   renderPage();
   /* Y el panel de RESPALDO, que lee la familia del libro por la raíz y no por

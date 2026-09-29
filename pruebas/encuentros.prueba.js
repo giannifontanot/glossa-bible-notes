@@ -1259,12 +1259,22 @@ const IR_A = `async (sec) => {
   titulo('la barra no crece con la letra del libro, y es grande');
   const conLaLetra = async (n) => {
     await irA('formato');
+    /* SE ELIGE, SE CIERRA Y SE VUELVE A ABRIR PARA MEDIR. Desde que Formato
+       opaco enseña la muestra de la letra, el riel del cuerpo escribe en la
+       muestra y todo lo demás —el libro y el cromo que escala con él— espera
+       al botón de CERRAR. Sin ese cierre el testigo no crecería y la línea de
+       validez de abajo cantaría un fallo que no es: diría que el panel no
+       escala cuando lo que pasa es que el lector aún no ha confirmado. */
     await p.evaluate(async (v) => {
       const s = document.getElementById('fsAhora');
       s.value = String(v);
       s.dispatchEvent(new Event('change', { bubbles:true }));
-      await new Promise(z => setTimeout(z, 700));
+      await new Promise(z => setTimeout(z, 300));
+      const c = document.querySelector('#ajustes .pie-cerrar .cerrar-pie');
+      if (c) c.click();
+      await new Promise(z => setTimeout(z, 900));
     }, n);
+    await irA('formato');
     return p.evaluate(() => {
       const v = [...document.querySelectorAll('.rollo')]
         .find(r => getComputedStyle(r).display !== 'none');
