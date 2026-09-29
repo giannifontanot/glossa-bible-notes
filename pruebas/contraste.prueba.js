@@ -1905,12 +1905,32 @@ async function ponerContraste(pagina, pct){
       vistas.push({ rotulo: o.textContent.trim(), valor: o.value, cadena,
                     nombre, tiene, huella: cadena ? huella(cadena) : null });
     }
+    /* LA RETIRADA VUELVE A ESCONDERSE AL DEJAR DE ESTAR PUESTA. La entrada
+       retirada se conserva en el menú mientras sea la del lector —esconderla
+       dejaría el mando enseñando un hueco— y esa excepción tenía un agujero que
+       encontró Codex: al elegir otra, nadie la volvía a esconder hasta recargar.
+       Se comprueba el ciclo entero: se pone, tiene que verse; se quita, tiene
+       que desaparecer. La primera mitad es la que hace que la segunda signifique
+       algo —sin ella, una entrada que nunca se enseña pasaría igual—. */
+    const retirada = [...sel.options].find(o => o.hidden && o.textContent.trim() === 'Máquina');
+    let cicloRetirada = null;
+    if (retirada){
+      sel.value = retirada.value;
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
+      await pausa(700);
+      const puesta = !retirada.hidden;
+      const otra = [...sel.options].find(o => !o.hidden && o.value !== retirada.value);
+      sel.value = otra.value;
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
+      await pausa(700);
+      cicloRetirada = { puesta, trasCambiar: !retirada.hidden };
+    }
     /* y se devuelve la que estaba, que los bloques de abajo no tienen por qué
        heredar una letra elegida aquí */
     sel.value = guardado;
     sel.dispatchEvent(new Event('change', { bubbles:true }));
     await pausa(700);
-    return { todas, ofrecidas: vistas, cadenaDePartida, elegidaVisible:
+    return { todas, ofrecidas: vistas, cadenaDePartida, cicloRetirada, elegidaVisible:
                !([...sel.options].find(o => o.value === guardado) || {}).hidden,
              devuelta: (hoja.style.getPropertyValue('--fam') || '').trim() };
   });
@@ -1939,12 +1959,31 @@ async function ponerContraste(pagina, pct){
      Segoe—. Ésa es la contestación a la pregunta del dueño del repo, dicha en
      el sitio donde se elige, que en un teléfono es el único sitio donde cabe:
      ahí no hay hover que leer. */
-  const GENEROS = ['Serif', 'Sans', 'Máquina', 'Sistema'];
+  const GENEROS = ['Romana', 'Palo seco', 'Máquina'];
   vale('  y la que el aparato no tiene enseña el género, no el nombre',
        !letras.falta && letras.ofrecidas.every(v =>
          v.tiene === true || GENEROS.includes(v.rotulo)),
        !letras.falta && letras.ofrecidas
          .map(v => v.rotulo + ' (' + (v.nombre || 'genérica') + ': ' + v.tiene + ')').join(' · '));
+  /* Y LA DE MÁQUINA NO SE OFRECE. Se retiró del mando —«se ve horrible»— pero
+     NO del archivo, porque lo guardado es el índice y borrar la entrada le
+     correría el índice a lo que viniera después. Esta línea vigila las dos
+     mitades a la vez: que no aparezca en el menú, y que el mando siga teniendo
+     de dónde elegir —si borrarla hubiera roto la lista, la de validez de arriba
+     lo diría—. */
+  vale('  y la de máquina se retiró del mando',
+       !letras.falta && !letras.ofrecidas.some(v => v.rotulo === 'Máquina'),
+       !letras.falta && letras.ofrecidas.map(v => v.rotulo).join(' · '));
+  /* El ciclo de la retirada, que encontró Codex: se conserva mientras es la
+     del lector, y vuelve a esconderse en cuanto deja de serlo. Antes se quedaba
+     a la vista —y elegible— hasta recargar la página. */
+  vale('(la prueba es válida) la retirada se deja ver si el lector la tiene puesta',
+       !letras.falta && !!letras.cicloRetirada && letras.cicloRetirada.puesta === true,
+       !letras.falta && JSON.stringify(letras.cicloRetirada));
+  vale('  y VUELVE A ESCONDERSE al elegir otra, sin recargar',
+       !letras.falta && !!letras.cicloRetirada &&
+       letras.cicloRetirada.trasCambiar === false,
+       !letras.falta && JSON.stringify(letras.cicloRetirada));
   /* Y CABEN. Esta línea nace de una roja: los rótulos fueron «Segoe · sans del
      aparato» y el desplegable se ensanchó tanto que su tablilla pasó del 70%
      del panel, con lo que saltó «la mayoría son de verdad estrechas» en un

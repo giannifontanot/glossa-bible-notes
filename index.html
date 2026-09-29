@@ -6188,7 +6188,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '29-SEP-26 18:00';
+window.GLOSS_BUILD = '29-SEP-26 18:50';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -6868,8 +6868,26 @@ const PAGE_CSS = `
      word-spacing:calc(-2 * var(--esp-glosa, 0em));
      border-radius:3px; padding:2px 6px; white-space:pre-wrap; box-sizing:border-box; }
 /* El hueco de giro: la caja se estrecha 4px por lado para que sus esquinas
-   tengan a dónde asomarse. Sin esto, .pg-margin las recorta. */
-.gl-margin{ position:absolute; left:4px; width:calc(100% - 8px); }
+   tengan a dónde asomarse. Sin esto, .pg-margin las recorta.
+
+   Y EL AIRE DE LA DERECHA SE LO PONE ELLA, que nadie más se lo pone. Lo vio el
+   dueño del repo —«la glosa no tiene el mismo aire a la derecha que a la
+   izquierda»— y medido en teléfono era 14.7 contra 3.7. La causa no está en la
+   nota sino en la columna: a su izquierda tiene el hueco que la separa del
+   texto, y a su derecha TERMINA justo en el filo de .pg-inner —medido: 0.0 de
+   distancia—, así que la nota se apoyaba en el borde.
+
+   Se resta el hueco por la derecha en vez de dárselo a la columna, y no es lo
+   mismo: el ancho de .pg-inner en teléfono es una cuenta de tres variables que
+   también se rehace en buildSVG para la foto del pliegue, así que ensanchar la
+   columna pedía tocar los dos sitios y acordarse siempre de los dos. Esto vive
+   en una sola regla, y --mgap ya viaja a la foto porque buildSVG lo escribe en
+   la columna. Cuesta el ancho del hueco —once píxeles de nota— y a cambio la
+   nota deja de ir pegada al filo.
+
+   Donde el hueco es 0 —el escritorio— esta resta no hace nada, que es lo
+   correcto: allí los dos aires ya eran iguales. */
+.gl-margin{ position:absolute; left:4px; width:calc(100% - 8px - var(--mgap, 0px)); }
 .gl-below { margin:4px 5px 5px 14px; }
 .gl-foot  { margin:0 5px 3px 0; break-inside:avoid; }
 /* EL ANCLA Y LA ETIQUETA SALEN DE LA FAMILIA DE LA NOTA, y eso es el cambio.
@@ -6999,18 +7017,46 @@ const PAGE_CSS = `
 .g-yellow{ border:1px solid #c9a227; color:#6d5410;
            background-color:var(--papel, #fffdf6);
            background-image:linear-gradient(rgba(255,214,64,.19),rgba(255,214,64,.19)); }
+/* SEGUNDA VUELTA DE ESTOS TRES NÚMEROS: «hazlos un poquito más intensos, pero
+   cuida que se pueda leer». Se llevó a un panel de tres —legibilidad, color y
+   libro— y dos de los tres coincidieron en lo mismo, que es lo que está puesto.
+
+   LO QUE SE APRENDIÓ Y NO SE VE EN EL CÓDIGO: subir sólo el tinte vuelve a
+   oscurecer la tarjeta —el naranja a .30 cae otra vez por debajo del papel— y
+   al azul le BAJA el color, porque un tinte frío sobre una base cálida se
+   cancela. Hay que subir el velo a la vez: más blanco debajo, más tinte
+   encima. Sube el color sin perder la luz.
+
+   Y UN DATO QUE CAMBIÓ LA DISCUSIÓN: el azul de antes no era azul. En su
+   propio eje marcaba −17.5, o sea que seguía siendo más amarillo que neutro;
+   sólo era menos amarillo que el papel. Ahora marca +22.
+
+   POR QUÉ EL NARANJA SE QUEDA MÁS ABAJO QUE LOS OTROS DOS. No es descuido: es
+   el único que compite contra un papel que ya es naranja (+60 en su eje), y
+   subirlo más lo acerca a la tarjeta AMARILLA. Medido en el eje que le queda a
+   un daltónico deután, con el naranja a .26 las dos se juntan; a .22 el par más
+   confundible de las cuatro pasa de 8 —lo que hay hoy— a 27. O sea que esto,
+   además de dar más color, separa mejor el código de colores que antes.
+
+   LO QUE NO MEJORA, Y SE DICE: con el sepia a 0 la naranja y la amarilla se
+   acercan en ese mismo eje deután (4.5, contra 24 de antes). Ahí los separa el
+   borde, que en las dos es muy distinto. El sepia viene al 100 de fábrica, así
+   que es el extremo raro, pero es una pérdida y no un empate.
+
+   LA AMARILLA SIGUE SIN TOCARSE, por tercera vez: ya era más clara que el
+   papel, y es la que sujeta el extremo cálido del código. */
 .g-green { border:1px solid #3a8f4f; color:#235c31;
            background-color:var(--papel, #fffdf6);
-           background-image:linear-gradient(rgba(94,196,110,.08),rgba(94,196,110,.08)),
-                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
+           background-image:linear-gradient(rgba(94,196,110,.26),rgba(94,196,110,.26)),
+                            linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,.85)); }
 .g-blue  { border:1px solid #1d6f9c; color:#0f4b6b;
            background-color:var(--papel, #fffdf6);
-           background-image:linear-gradient(rgba(86,182,238,.08),rgba(86,182,238,.08)),
-                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
+           background-image:linear-gradient(rgba(86,182,238,.26),rgba(86,182,238,.26)),
+                            linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,.85)); }
 .g-orange{ border:1px solid #9c4708; color:#6e3406;
            background-color:var(--papel, #fffdf6);
-           background-image:linear-gradient(rgba(242,105,20,.07),rgba(242,105,20,.07)),
-                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
+           background-image:linear-gradient(rgba(242,105,20,.22),rgba(242,105,20,.22)),
+                            linear-gradient(rgba(255,255,255,.80),rgba(255,255,255,.80)); }
 /* LA ETIQUETA SE ACLARA CON UN COLOR, NUNCA CON opacity, y esto arregla además
    un defecto que ya estaba puesto. medirPalabras se lleva al lienzo el color
    calculado pero NO la opacidad, así que .gl-tag{opacity:.62} se veía al 62% en
@@ -7339,6 +7385,17 @@ const FUENTES = [
   ['Estrecha', "'Roboto Condensed','Liberation Sans Narrow','Arial Narrow',sans-serif", 'sans estrecha'],
   ['Máquina',  "ui-monospace,'Courier New',monospace",               'de máquina de escribir']
 ];
+/* LA DE MÁQUINA SE RETIRA DEL MANDO, no del archivo. «Se ve horrible», y es
+   verdad: una monoespaciada es un eje que no colapsa, que era la razón de
+   meterla, pero en un libro de lectura no pinta nada.
+
+   NO SE BORRA LA ENTRADA porque lo guardado en los ajustes es el ÍNDICE de
+   FUENTES: quitarla del array le correría el índice a todo lo que hubiera
+   después y le cambiaría la letra a quien ya tuviera una elegida. Se retira del
+   menú y se queda en su sitio, que es lo mismo que se hace con las repetidas.
+   Y si alguien la tenía puesta, la conserva: la elegida por el lector no se
+   esconde nunca. */
+const FUENTES_RETIRADAS = new Set([8]);
 let fuente = FUENTES[0][1];
 const GENERICOS = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|-apple-system|BlinkMacSystemFont)$/i;
 /* EL PRIMER NOMBRE PROPIO DE LA CADENA. Al llegar a un genérico se para y
@@ -7394,21 +7451,25 @@ function familiaDelAparato(cadena){
   const n = primerNombreDeLaCadena(cadena);
   return n && existeFamilia(n) ? n : null;
 }
-/* Y EL GÉNERO EN QUE ACABA, EN UNA PALABRA. Fue «sans del aparato» y costó una
-   roja del banco: el rótulo largo ensanchaba el desplegable, el desplegable
-   ensanchaba su tablilla, y las tablillas de este panel tienen que ser
-   estrechas —se pidió dos veces, y hay una línea que lo vigila: «la mayoría son
-   de verdad estrechas» saltó con dos filas por encima del 70%—.
-   En una palabra dice lo mismo y no cuesta un píxel: donde el aparato no tiene
-   la letra que se nombra, el mando enseña «Sans» o «Serif» en vez de «Segoe» o
-   «Georgia». Eso ES la respuesta, y además cabe. La frase entera sigue estando
-   en el title, para quien lea con ratón. */
+/* Y EL GÉNERO EN QUE ACABA, CON SU NOMBRE DE IMPRENTA.
+
+   Primero fue «sans del aparato» y costó una roja del banco: el rótulo largo
+   ensanchaba el desplegable, el desplegable ensanchaba su tablilla, y las
+   tablillas de este panel tienen que ser estrechas. Luego fue «Sans» y «Serif»,
+   que caben pero son horribles —«qué nombres tan feos», y tenía razón: son
+   jerga inglesa de hoja de estilos en un libro que llama a las cosas por su
+   nombre en español—.
+
+   ROMANA y PALO SECO son como se han llamado siempre en castellano las dos
+   familias, desde mucho antes de que existiera una hoja de estilos. Caben
+   igual, dicen lo mismo, y se leen como algo que alguien escribió y no como
+   algo que se le escapó al programa. */
 function generoDeLaCadena(cadena){
   const c = String(cadena);
   if (/monospace/i.test(c)) return 'Máquina';
-  if (/sans-serif|system-ui|-apple-system/i.test(c)) return 'Sans';
-  if (/serif/i.test(c)) return 'Serif';
-  return 'Sistema';
+  if (/sans-serif|system-ui|-apple-system/i.test(c)) return 'Palo seco';
+  if (/serif/i.test(c)) return 'Romana';
+  return 'Romana';
 }
 /* LA HUELLA, que es lo que agrupa. Dos cadenas que acaban en la misma letra
    miden exactamente igual; se miden en un lienzo y no en el DOM porque ahí no
@@ -22317,6 +22378,10 @@ function aplicarPendientes(){
   if (e != null) espaciado = e;
   if (f != null){
     fuente = f;
+    /* La misma razón que en el mando directo, y el mismo orden: primero se
+       asigna, luego se afina. Con la muestra delante la elección espera aquí,
+       así que éste es el otro sitio —y el único otro— donde `fuente` cambia. */
+    if (typeof afinarListaDeFuentes === 'function') afinarListaDeFuentes();
     if (typeof reflejarFuenteDelLibro === 'function') reflejarFuenteDelLibro();
     if (typeof avisarEstiloALosRelatos === 'function') avisarEstiloALosRelatos();
   }
@@ -22520,6 +22585,7 @@ function afinarListaDeFuentes(){
     porHuella.set(e.huella, gana);
   }
   const quedan = new Set([...porHuella.values()].map(e => e.i));
+  for (const i of FUENTES_RETIRADAS) if (i !== elegida) quedan.delete(i);
   for (const e of info){
     const o = sel.options[e.i];
     if (!o) continue;
@@ -22577,6 +22643,14 @@ $('selFuente').onchange = e => {
   const elegida = FUENTES[+e.target.value][1];
   if (hayMuestra()){ pendFuente = elegida; reflejarMuestra(); return; }
   fuente = elegida;
+  /* Y SE VUELVE A AFINAR LA LISTA, que si no la retirada se queda a la vista.
+     Lo encontró Codex: quien tuviera puesta la de máquina la conserva en el
+     menú —la elegida por el lector no se esconde nunca—, pero en cuanto elige
+     otra deja de haber motivo para enseñarla y nadie la volvía a esconder
+     hasta recargar. Va DESPUÉS de asignar `fuente`, no antes, porque la
+     excepción mira lo que está puesto: afinando antes, la que se esconde sería
+     la que el lector acaba de elegir. */
+  afinarListaDeFuentes();
   paginasSucias = true;                 // otra letra, otras medidas, otros cortes
   renderPage();
   /* Y el panel de RESPALDO, que lee la familia del libro por la raíz y no por
