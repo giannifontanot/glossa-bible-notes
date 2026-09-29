@@ -1590,6 +1590,154 @@ async function ponerContraste(pagina, pct){
        !sitios.falta && ['margin','below','foot']
          .every(k => parseFloat(sitios[k]) > 0), JSON.stringify(sitios));
 
+  /* ---------- la muestra de la letra, y el libro que espera ---------- */
+  /* LO QUE SE PIDIÓ: «un sample de texto abajo de AAA/espaciado, encerrado en
+     un rectángulo sepia del mismo tono que el que tenga el libro… cuando está
+     transparente este rectángulo no está visible y los cambios se aplican
+     directamente al libro; cuando no es transparente, el rectángulo es visible
+     y recibe los cambios. Si está visible, los cambios al libro van a esperar
+     a que apretemos el botón cerrar».
+
+     POR QUÉ, que es lo que hace entendible todo lo demás: con el panel opaco
+     el libro está tapado, así que mover la letra era elegir a ciegas —tocar,
+     cerrar, mirar, y volver a abrir si no era eso—. En transparente el libro se
+     ve, y entonces la muestra sobra y los tres mandos vuelven a ir directos.
+
+     ESTE BLOQUE VA EL ÚLTIMO DE LA SESIÓN DEL TELÉFONO a propósito: mueve el
+     tamaño, la tipografía y el espaciado del libro, que es de lo que viven
+     media docena de bloques de arriba. Y aun así devuelve lo que tocó, que
+     dejar el banco dependiendo del orden es la manera de que un día alguien
+     mueva un bloque y se pase una tarde buscando por qué. */
+  titulo('la muestra de la letra recibe los tres mandos, y el libro espera');
+  const muestra = await pagina.evaluate(async () => {
+    const z = ms => new Promise(x => setTimeout(x, ms));
+    const vis = () => [...document.querySelectorAll('.rollo')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    if (!vis()){ document.getElementById('pgCabeza').click(); await z(900); }
+    const t = (vis() || document).querySelector('.pestanas [data-sec="formato"]');
+    if (!t) return { falta:'no hay pestaña de formato' };
+    t.click(); await z(900);
+    const panel = document.getElementById('ajustes');
+    if (panel.classList.contains('cristal')){
+      document.getElementById('btnVidrio').click(); await z(700);
+    }
+    const fila = document.getElementById('filaMuestra');
+    const texto = document.getElementById('muestraLetra');
+    if (!fila || !texto) return { falta:'no hay muestra' };
+    /* LA HOJA ES #pg y lleva las variables en línea —las escribe prepararHoja—,
+       así que se leen de ahí y no del texto pintado: es donde el libro dice
+       con qué letra se va a pintar. */
+    const hoja = document.getElementById('pg');
+    const delLibro = () => ({ fs: hoja.style.getPropertyValue('--fs'),
+                              esp: hoja.style.getPropertyValue('--esp'),
+                              fam: (hoja.style.getPropertyValue('--fam') || '').split(',')[0] });
+    const deLaMuestra = () => { const c = getComputedStyle(texto);
+      return { fs: c.fontSize, esp: c.letterSpacing,
+               fam: (c.fontFamily || '').split(',')[0] }; };
+    const guardado = { tam: document.getElementById('fsAhora').value,
+                       esp: document.getElementById('espAhora').value,
+                       fuente: document.getElementById('selFuente').value };
+    const antes = { visible: getComputedStyle(fila).display !== 'none',
+                    papel: getComputedStyle(fila).backgroundColor,
+                    papelDelLibro: getComputedStyle(document.documentElement)
+                                     .getPropertyValue('--papel').trim(),
+                    libro: delLibro(), muestra: deLaMuestra() };
+    /* Se mueven los tres. La tipografía se elige por una que no sea la puesta. */
+    document.getElementById('fsUp').click(); await z(120);
+    document.getElementById('fsUp').click(); await z(120);
+    document.getElementById('espUp').click(); await z(120);
+    const sel = document.getElementById('selFuente');
+    const otra = String((+guardado.fuente + 1) % sel.options.length);
+    sel.value = otra; sel.dispatchEvent(new Event('change', { bubbles:true }));
+    await z(400);
+    const tocado = { libro: delLibro(), muestra: deLaMuestra() };
+    /* Y se cierra con el botón, que es el gesto del encargo. */
+    document.querySelector('#ajustes .pie-cerrar .cerrar-pie').click();
+    await z(1000);
+    const traCerrar = { libro: delLibro() };
+    /* Se vuelve a abrir para el resto del bloque. */
+    if (!vis()){ document.getElementById('pgCabeza').click(); await z(900); }
+    (vis() || document).querySelector('.pestanas [data-sec="formato"]').click();
+    await z(900);
+    /* EN TRANSPARENTE: sin muestra, y el mando va directo. */
+    document.getElementById('btnVidrio').click(); await z(700);
+    const enCristal = { visible: getComputedStyle(fila).display !== 'none',
+                        libro: delLibro() };
+    document.getElementById('fsUp').click(); await z(500);
+    const trasSubirEnCristal = { libro: delLibro() };
+    /* Y AL VOLVER A OPACO la muestra tiene que estar al día: mientras estuvo
+       escondida el libro cambió por debajo. */
+    document.getElementById('btnVidrio').click(); await z(700);
+    const deVuelta = { muestra: deLaMuestra(), libro: delLibro() };
+    /* Se devuelve lo que se tocó, por los mismos mandos y con el panel a la
+       vista, que es como lo devolvería un lector. */
+    const s1 = document.getElementById('fsAhora');
+    s1.value = guardado.tam; s1.dispatchEvent(new Event('change', { bubbles:true }));
+    await z(200);
+    const s2 = document.getElementById('espAhora');
+    s2.value = guardado.esp; s2.dispatchEvent(new Event('change', { bubbles:true }));
+    await z(200);
+    sel.value = guardado.fuente; sel.dispatchEvent(new Event('change', { bubbles:true }));
+    await z(200);
+    document.querySelector('#ajustes .pie-cerrar .cerrar-pie').click();
+    await z(1000);
+    return { antes, tocado, traCerrar, enCristal, trasSubirEnCristal, deVuelta,
+             devuelto: delLibro(), guardado };
+  });
+  di('la muestra', JSON.stringify(muestra));
+  /* DOS NORMALIZADORES, y los dos salieron sondeando: el color compuesto viene
+     con espacios —`rgb(232, 211, 172)`— y la variable de la raíz sin ellos; y
+     el nombre de una tipografía de dos palabras vuelve con comillas dobles del
+     estilo calculado y con simples de la variable en línea. Comparar las
+     cadenas tal cual daba rojo con todo bien puesto, que es la peor manera de
+     fallar. Se comparan los colores y los nombres, no su puntuación. */
+  const sinAire = c => String(c || '').replace(/\s+/g, '');
+  const soloNombre = f => String(f || '').replace(/["']/g, '').trim();
+  vale('(la prueba es válida) la muestra está y se ve con el panel opaco',
+       !muestra.falta && muestra.antes.visible === true,
+       muestra.falta || String(muestra.antes && muestra.antes.visible));
+  vale('EL RECUADRO ES DEL PAPEL DEL LIBRO, no de un color escrito aparte',
+       !muestra.falta && sinAire(muestra.antes.papel) === sinAire(muestra.antes.papelDelLibro),
+       !muestra.falta && (muestra.antes.papel + ' contra ' + muestra.antes.papelDelLibro));
+  vale('LOS TRES MANDOS ESCRIBEN EN LA MUESTRA',
+       !muestra.falta && muestra.tocado.muestra.fs !== muestra.antes.muestra.fs &&
+       muestra.tocado.muestra.esp !== muestra.antes.muestra.esp &&
+       soloNombre(muestra.tocado.muestra.fam) !== soloNombre(muestra.antes.muestra.fam),
+       !muestra.falta && (JSON.stringify(muestra.antes.muestra) + '  →  ' +
+                          JSON.stringify(muestra.tocado.muestra)));
+  vale('  Y EL LIBRO SE QUEDA COMO ESTABA, esperando',
+       !muestra.falta &&
+       JSON.stringify(muestra.tocado.libro) === JSON.stringify(muestra.antes.libro),
+       !muestra.falta && (JSON.stringify(muestra.antes.libro) + '  →  ' +
+                          JSON.stringify(muestra.tocado.libro)));
+  vale('AL CERRAR, EL LIBRO RECIBE LOS TRES DE UNA VEZ',
+       !muestra.falta && muestra.traCerrar.libro.fs === muestra.tocado.muestra.fs &&
+       soloNombre(muestra.traCerrar.libro.fam) === soloNombre(muestra.tocado.muestra.fam) &&
+       muestra.traCerrar.libro.esp !== muestra.antes.libro.esp,
+       !muestra.falta && (JSON.stringify(muestra.traCerrar.libro) + '  contra la muestra ' +
+                          JSON.stringify(muestra.tocado.muestra)));
+  vale('EN TRANSPARENTE NO HAY MUESTRA',
+       !muestra.falta && muestra.enCristal.visible === false,
+       !muestra.falta && String(muestra.enCristal.visible));
+  vale('  y ahí el mando va DIRECTO al libro, sin esperar a nada',
+       !muestra.falta &&
+       muestra.trasSubirEnCristal.libro.fs !== muestra.enCristal.libro.fs,
+       !muestra.falta && (muestra.enCristal.libro.fs + '  →  ' +
+                          muestra.trasSubirEnCristal.libro.fs));
+  /* LA QUE ENCONTRÓ EL SONDEO: la muestra estuvo escondida mientras el libro
+     cambiaba, así que al volver tiene que ponerse al día. Sin esta línea se
+     quedaba un punto por detrás de la hoja, que es justo la mentira que una
+     muestra no puede contar. */
+  vale('AL VOLVER DE TRANSPARENTE, LA MUESTRA SE PONE AL DÍA',
+       !muestra.falta && muestra.deVuelta.muestra.fs === muestra.deVuelta.libro.fs,
+       !muestra.falta && (muestra.deVuelta.muestra.fs + ' contra ' +
+                          muestra.deVuelta.libro.fs));
+  vale('(y el bloque devuelve el libro como lo encontró)',
+       !muestra.falta &&
+       JSON.stringify(muestra.devuelto) === JSON.stringify(muestra.antes.libro),
+       !muestra.falta && (JSON.stringify(muestra.antes.libro) + '  →  ' +
+                          JSON.stringify(muestra.devuelto)));
+
   await cerrarParcial(sesion, 'teléfono');
 
   /* ---------- y en escritorio, donde .stage SÍ trae filtro propio ---------- */
