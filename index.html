@@ -6188,7 +6188,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '29-SEP-26 15:06';
+window.GLOSS_BUILD = '29-SEP-26 18:00';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -6956,11 +6956,61 @@ const PAGE_CSS = `
 /* El fondo del recuadro es el mismo tono del resaltado al 42% de su alfa
    (ver FILL_ALFA): aquí se necesita menos color porque el borde ya delimita
    la nota. Van escritos a mano y no calculados porque PAGE_CSS se arma antes
-   de que existan las constantes; si tocas FILL_ALFA, toca también estos. */
-.g-yellow{ border:1px solid #c9a227; background:rgba(255,214,64,.19); color:#6d5410; }
-.g-green { border:1px solid #3a8f4f; background:rgba(94,196,110,.08); color:#235c31; }
-.g-blue  { border:1px solid #1d6f9c; background:rgba(86,182,238,.08); color:#0f4b6b; }
-.g-orange{ border:1px solid #9c4708; background:rgba(242,105,20,.07); color:#6e3406; }
+   de que existan las constantes; si tocas FILL_ALFA, toca también estos.
+
+   LA TARJETA NO PUEDE SER MÁS OSCURA QUE EL PAPEL, y esto lo vio el dueño del
+   repo leyendo en la columna: «el fondo azul, rojo y verde se ven como
+   oscurecidos». Nombró exactamente las tres que lo estaban, y se mide:
+
+     con el sepia al 100, papel de luz 0.667
+       amarilla  0.672  más clara      ← la única que estaba bien
+       verde     0.643  MÁS OSCURA
+       azul      0.640  MÁS OSCURA
+       naranja   0.631  MÁS OSCURA
+
+   La causa no es la transparencia en sí, y conviene decirlo porque la primera
+   idea era la contraria: iba a SUBIR el tinte, y lo que hacía falta era
+   aclararlo. Un velo azul al 8% sobre papel tostado no da azul claro, da un
+   gris pardo (220,209,177); el verde da un oliva sucio. Esa mezcla es la que
+   se lee como «oscurecido» en vez de como verde o azul.
+
+   EL ARREGLO: debajo del tinte va un velo BLANCO, y el fondo pasa a ser opaco
+   —var(--papel) declarado, no el papel asomando—. Con el papel casi blanco el
+   velo no hace nada y la nota se ve igual que siempre; con el sepia alto,
+   aclara la base lo justo para que la tarjeta quede POR ENCIMA del papel en
+   vez de por debajo. Medido, con sepia 100: verde de 0.643 a 0.765 de luz
+   relativa al papel, azul igual, naranja casi. Y el texto se lee mejor de
+   paso: la nota verde sube de 5.23 a 6.16 de contraste, la azul de 6.16 a
+   7.28, la naranja de 6.31 a 7.43.
+
+   LA AMARILLA NO LLEVA VELO: ya era más clara que el papel, que es justo lo
+   que se pide, y el dueño del repo no la nombró. Le ponemos el fondo opaco
+   como a las otras tres —el resultado es el mismo píxel que antes, porque
+   detrás sólo había papel— y el tinte se queda intacto. Tocarla habría sido
+   arreglar lo que no estaba roto, y de paso quitarle la fuerza a la única que
+   se distinguía sola.
+
+   POR QUÉ UN VELO Y NO CUATRO COLORES CALCULADOS: la tarjeta tiene que seguir
+   al riel del sepia, así que el color no puede ser fijo. Calcularlos en el
+   guion querría decir llevarlos también a la foto del pliegue, que se dibuja
+   aparte y no pasa por prepararHoja —ese olvido ya costó una vez, ver REVES—.
+   var(--papel) sí viaja: buildSVG lo escribe a mano en la hoja de la foto, así
+   que esto sale igual en la hoja viva y en el pliegue sin una línea más. */
+.g-yellow{ border:1px solid #c9a227; color:#6d5410;
+           background-color:var(--papel, #fffdf6);
+           background-image:linear-gradient(rgba(255,214,64,.19),rgba(255,214,64,.19)); }
+.g-green { border:1px solid #3a8f4f; color:#235c31;
+           background-color:var(--papel, #fffdf6);
+           background-image:linear-gradient(rgba(94,196,110,.08),rgba(94,196,110,.08)),
+                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
+.g-blue  { border:1px solid #1d6f9c; color:#0f4b6b;
+           background-color:var(--papel, #fffdf6);
+           background-image:linear-gradient(rgba(86,182,238,.08),rgba(86,182,238,.08)),
+                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
+.g-orange{ border:1px solid #9c4708; color:#6e3406;
+           background-color:var(--papel, #fffdf6);
+           background-image:linear-gradient(rgba(242,105,20,.07),rgba(242,105,20,.07)),
+                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
 /* LA ETIQUETA SE ACLARA CON UN COLOR, NUNCA CON opacity, y esto arregla además
    un defecto que ya estaba puesto. medirPalabras se lleva al lienzo el color
    calculado pero NO la opacidad, así que .gl-tag{opacity:.62} se veía al 62% en
@@ -7246,16 +7296,132 @@ const FONDO  = [.956, .943, .913];   /* el respaldo cuando no hay foto debajo */
 const tono = f => rgb(papelRGB().map((v, i) => Math.round(v * f[i])));
 /* Solo tipos de letra del SISTEMA: la hoja se rasteriza dentro de un SVG
    para poder doblarla, y ahí las fuentes web no cargan. Una fuente que se
-   viera bonita en pantalla y distinta en la foto delataría el truco. */
+   viera bonita en pantalla y distinta en la foto delataría el truco.
+
+   SEIS NOMBRES NO SON SEIS LETRAS, y esto lo dijo el dueño del repo mirando
+   la lista: «se parecen». Tenía razón, y la lista misma lo cantaba —cuatro de
+   las seis descripciones empezaban por «serif»—. Cada entrada no es una letra:
+   es una CADENA DE RECAMBIOS, y en el aparato que no tiene la que se nombra la
+   cadena baja hasta `serif` o `sans-serif`. En Android no existe ninguna de
+   las cuatro serifas, así que las cuatro acaban en la misma; Verdana y Segoe
+   acaban las dos en la sans del sistema. Seis nombres, dos letras.
+
+   LO QUE SE HACE CON ESO: la lista se queda como está —no se reordena ni se
+   borra nada, porque lo que se guarda es el ÍNDICE y mover una entrada le
+   cambiaría la letra a quien ya la tenga elegida— y se AÑADEN los ejes que
+   ningún aparato puede colapsar: la del propio aparato, una estrecha y una de
+   máquina. Luego, al arrancar, afinarListaDeFuentes mide cuáles caen en la
+   misma letra en ESTE aparato y esconde las repetidas. La lista es corta donde
+   tiene que ser corta, y no miente en ningún sitio.
+
+   EL CUARTO CAMPO ES EL RANGO: cuando dos entradas dan la misma letra, se
+   queda la de más rango. Segoe lleva 2 y Verdana 1 porque el dueño del repo
+   dijo cuál quiere ver —«me gusta la segoe»—; sin eso ganaría Verdana por
+   estar antes en la lista, y la letra sería la misma con otro nombre. La
+   elegida por el lector gana siempre, por encima del rango. */
 const FUENTES = [
   ['Georgia',  "Georgia,'Times New Roman',serif",                    'serif de pantalla'],
   ['Palatino', "'Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif", 'serif clásico'],
   ['Cambria',  "Cambria,Charter,Georgia,serif",                      'serif para leer'],
   ['Times',    "'Times New Roman',Times,serif",                      'serif tradicional'],
-  ['Verdana',  "Verdana,Geneva,sans-serif",                          'sans muy legible'],
-  ['Segoe',    "'Segoe UI',Tahoma,Geneva,sans-serif",                'sans compacta']
+  ['Verdana',  "Verdana,Geneva,sans-serif",                          'sans muy legible',   1],
+  ['Segoe',    "'Segoe UI',Tahoma,Geneva,sans-serif",                'sans compacta',      2],
+  /* Las tres de abajo son nuevas y van AL FINAL a propósito: añadir no le
+     cambia la letra a nadie, y reordenar sí.
+
+     Y LLEVAN UN NOMBRE PROPIO DETRÁS DEL GENÉRICO, no por adorno: la foto del
+     pliegue se rasteriza en un SVG aparte, y ahí no está dicho que
+     `system-ui` o `ui-monospace` resuelvan igual que en la página. Con el
+     nombre detrás —Roboto, 'Courier New'— la cadena cae en la misma clase de
+     letra en los dos sitios aunque el genérico falle en uno. Es el mismo
+     cuidado que el de arriba, visto desde el otro lado. */
+  ['Sistema',  "system-ui,-apple-system,'Segoe UI',Roboto,sans-serif", 'la del aparato'],
+  ['Estrecha', "'Roboto Condensed','Liberation Sans Narrow','Arial Narrow',sans-serif", 'sans estrecha'],
+  ['Máquina',  "ui-monospace,'Courier New',monospace",               'de máquina de escribir']
 ];
 let fuente = FUENTES[0][1];
+const GENERICOS = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|-apple-system|BlinkMacSystemFont)$/i;
+/* EL PRIMER NOMBRE PROPIO DE LA CADENA. Al llegar a un genérico se para y
+   devuelve null: `serif` no es una letra, es una promesa de que habrá alguna,
+   y cuál sea no hay manera de preguntarlo. */
+function primerNombreDeLaCadena(cadena){
+  for (const parte of String(cadena).split(',')){
+    const n = parte.trim().replace(/^['"]|['"]$/g, '');
+    if (!n) continue;
+    return GENERICOS.test(n) ? null : n;
+  }
+  return null;
+}
+/* ¿ESTÁ INSTALADA ESTA LETRA? SE MIDE, NO SE PREGUNTA.
+
+   Aquí estuvo `document.fonts.check('16px "Georgia"')` y NO SIRVE: lo encontró
+   Codex revisando la PR y es cierto. Esa función no dice «tengo esta letra»,
+   dice «pintar esto no obliga a cargar ninguna @font-face que falte». Un nombre
+   que el aparato no tiene se resuelve por recambio al instante, o sea sin cargar
+   nada, o sea que devuelve `true`. En un Android sin Georgia decía que sí tenía
+   Georgia, y entonces ningún rótulo llegaba a decir la verdad: el mecanismo
+   entero quedaba muerto y la prueba lo aceptaba porque repetía la misma
+   pregunta equivocada.
+
+   Lo que sí distingue es MEDIR: se pinta una palabra de prueba con la cadena
+   `"nombre", recambio` y con el recambio a solas. Si la letra está, manda ella
+   y los dos anchos salen distintos; si no está, manda el recambio en los dos
+   casos y miden igual.
+
+   TRES RECAMBIOS Y NO UNO, porque una letra puede medir por casualidad lo
+   mismo que uno de ellos —pasa con las metrически compatibles, que es media
+   razón de que existan— y con un solo testigo eso se leería como «no está».
+   Con tres tiene que coincidir con los tres para escaparse.
+
+   Y LA PALABRA DE PRUEBA LLEVA DE TODO —anchas, estrechas, acentos y signos—
+   porque una cadena de letras parecidas mide casi igual en cualquier cosa. */
+const PRUEBA_LETRA = 'mmmiiiWWWlll@#ÁÑ';
+function existeFamilia(nombre){
+  if (!nombre) return false;
+  try {
+    const c = document.createElement('canvas').getContext('2d');
+    for (const recambio of ['monospace', 'serif', 'sans-serif']){
+      c.font = '72px ' + recambio;
+      const solo = c.measureText(PRUEBA_LETRA).width;
+      c.font = '72px "' + nombre + '",' + recambio;
+      const con = c.measureText(PRUEBA_LETRA).width;
+      if (Math.abs(con - solo) > 0.5) return true;
+    }
+  } catch (e) { /* si no se puede medir, se da por no encontrada */ }
+  return false;
+}
+function familiaDelAparato(cadena){
+  const n = primerNombreDeLaCadena(cadena);
+  return n && existeFamilia(n) ? n : null;
+}
+/* Y EL GÉNERO EN QUE ACABA, EN UNA PALABRA. Fue «sans del aparato» y costó una
+   roja del banco: el rótulo largo ensanchaba el desplegable, el desplegable
+   ensanchaba su tablilla, y las tablillas de este panel tienen que ser
+   estrechas —se pidió dos veces, y hay una línea que lo vigila: «la mayoría son
+   de verdad estrechas» saltó con dos filas por encima del 70%—.
+   En una palabra dice lo mismo y no cuesta un píxel: donde el aparato no tiene
+   la letra que se nombra, el mando enseña «Sans» o «Serif» en vez de «Segoe» o
+   «Georgia». Eso ES la respuesta, y además cabe. La frase entera sigue estando
+   en el title, para quien lea con ratón. */
+function generoDeLaCadena(cadena){
+  const c = String(cadena);
+  if (/monospace/i.test(c)) return 'Máquina';
+  if (/sans-serif|system-ui|-apple-system/i.test(c)) return 'Sans';
+  if (/serif/i.test(c)) return 'Serif';
+  return 'Sistema';
+}
+/* LA HUELLA, que es lo que agrupa. Dos cadenas que acaban en la misma letra
+   miden exactamente igual; se miden en un lienzo y no en el DOM porque ahí no
+   hay que insertar nada ni esperar a que se pinte. Dos palabras y no una: una
+   sola deja colisiones entre letras de anchos parecidos, y la de mayúsculas y
+   la de minúsculas se rompen por sitios distintos. */
+function huellaDeFuente(cadena){
+  try {
+    const c = document.createElement('canvas').getContext('2d');
+    const mide = t => { c.font = '64px ' + cadena; return Math.round(c.measureText(t).width * 10); };
+    return mide('MMMWWWiiilll') + '·' + mide('en Cristo somos más que vencedores');
+  } catch (e) { return 'sin-medida-' + cadena; }
+}
 /* Los cuatro ajustes de espaciado, cada uno con su interruptor. El
    justificado en columna angosta abre huecos porque no tiene de dónde
    repartir; los guiones son lo que lo salva, por eso van aparte: puedes
@@ -22313,6 +22479,71 @@ $('btnVidrio').onclick = () => {
 $('selFuente').innerHTML = FUENTES.map((f,i) =>
   '<option value="'+i+'" title="'+f[2]+'">'+f[0]+'</option>').join('');
 $('selFuente').title = FUENTES.map(f => f[0] + ': ' + f[2]).join(' · ');
+/* AFINAR LA LISTA A ESTE APARATO. Se esconden las entradas que dan la misma
+   letra que otra y se le pone al nombre en qué acaba cuando el aparato no
+   tiene la que se nombra. Ver FUENTES, donde está contado por qué.
+
+   SE ESCONDEN, NO SE BORRAN, y por una razón concreta: lo guardado es el
+   índice de FUENTES y `option.value` es ese mismo índice. Quitando opciones
+   habría que traducir índices en los dos sentidos, y la primera vez que
+   alguien añadiera una letra al final se traduciría mal. Con `hidden` el
+   índice sigue siendo el sitio en la lista y no hay nada que traducir.
+
+   Y CORRE DETRÁS DE document.fonts.ready porque antes de eso el navegador
+   todavía puede estar decidiendo qué tiene: medido en frío, dos cadenas que
+   acaban en letras distintas llegan a dar la misma huella. La lista funciona
+   igual si esto no llega a correr —queda la de siempre, con sus seis nombres—,
+   que es lo que tiene que pasar cuando una medida no se puede tomar. */
+/* La línea del title, aparte porque se dice dos veces y son dos frases largas
+   que conviene leer juntas. */
+function o_titulo(e){
+  return e.real ? e.real + ': ' + FUENTES[e.i][2]
+       : e.genero + ' del sistema (' + FUENTES[e.i][0] + ' no está)';
+}
+function afinarListaDeFuentes(){
+  const sel = $('selFuente');
+  if (!sel || sel.options.length !== FUENTES.length) return null;
+  const elegida = FUENTES.findIndex(f => f[1] === fuente);
+  const info = FUENTES.map((f, i) => ({
+    i, nombre: f[0], real: familiaDelAparato(f[1]),
+    genero: generoDeLaCadena(f[1]), huella: huellaDeFuente(f[1]),
+    rango: typeof f[3] === 'number' ? f[3] : 0 }));
+  const porHuella = new Map();
+  for (const e of info){
+    const previa = porHuella.get(e.huella);
+    if (!previa){ porHuella.set(e.huella, e); continue; }
+    /* La elegida por el lector gana siempre: esconderla dejaría el mando
+       enseñando un hueco y al libro con una letra sin nombre en la lista. */
+    const gana = e.i === elegida ? e
+               : previa.i === elegida ? previa
+               : (e.rango > previa.rango ? e : previa);
+    porHuella.set(e.huella, gana);
+  }
+  const quedan = new Set([...porHuella.values()].map(e => e.i));
+  for (const e of info){
+    const o = sel.options[e.i];
+    if (!o) continue;
+    o.hidden = !quedan.has(e.i);
+    /* EL RÓTULO ES EL NOMBRE SI EL APARATO LO TIENE, Y SI NO, EL GÉNERO. Una
+       palabra en los dos casos: ver generoDeLaCadena, donde está contado lo que
+       costó la versión larga. Enseñar «Sans» donde no hay Segoe es la
+       contestación entera, dicha en el sitio donde se elige. */
+    o.textContent = e.real ? e.nombre : e.genero;
+    o.title = e.real ? FUENTES[e.i][2]
+            : FUENTES[e.i][0] + ' no está en este aparato: sale la ' +
+              e.genero.toLowerCase() + ' del sistema';
+  }
+  sel.title = info.filter(e => quedan.has(e.i))
+                  .map(e => o_titulo(e)).join(' · ');
+  /* Reescribir las opciones no cambia el valor, pero se vuelve a poner por si
+     esto llega después de reflejarAjustes: son dos caminos y no hay orden
+     garantizado entre ellos. */
+  sel.value = String(Math.max(0, elegida));
+  return { quedan: [...quedan], escondidas: info.filter(e => !quedan.has(e.i)).map(e => e.nombre) };
+}
+if (document.fonts && document.fonts.ready)
+  document.fonts.ready.then(() => { try { afinarListaDeFuentes(); } catch (e) {} });
+else setTimeout(() => { try { afinarListaDeFuentes(); } catch (e) {} }, 0);
 const btnAl = $('btnAli'), btnA = $('btnAire');
 const btnM = $('btnMargen');
 btnM.onclick = () => {

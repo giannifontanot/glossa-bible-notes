@@ -1809,6 +1809,285 @@ async function ponerContraste(pagina, pct){
        !muestra.falta && (JSON.stringify(muestra.antes.libro) + '  →  ' +
                           JSON.stringify(muestra.devuelto)));
 
+  /* ──────────────────────────────────────────────────────────────
+     LA LISTA DE LETRAS NO ENSEÑA DOS VECES LA MISMA.
+
+     Nace de una mirada del dueño del repo: «tenemos 5 fuentes, ¿por qué
+     elegiste ésas? Se parecen». Y era verdad. Cada entrada de la lista no es
+     una letra: es una cadena de recambios, y en el aparato que no tiene la que
+     se nombra la cadena baja hasta el genérico. En un Android sin ninguna de
+     las cuatro serifas, las cuatro acaban en la misma letra: cuatro nombres
+     para una.
+
+     SE MIDE LA LETRA, NO LA LISTA. Se recorre lo que el mando ofrece de
+     verdad, se elige cada una como la elige un lector, y se mide con qué se
+     pinta —la huella sale de medir dos palabras en un lienzo con la cadena que
+     la hoja se acaba de escribir a sí misma—. Leer los nombres de la lista no
+     serviría: el fallo era justamente que los nombres decían seis cosas y la
+     pantalla enseñaba dos.
+
+     VA EN TRANSPARENTE porque ahí los tres mandos van directos al libro y cada
+     elección se ve en el acto. En opaco habría que cerrar entre una y otra, y
+     lo que se mide aquí no tiene nada que ver con lo que espera a cerrar.
+
+     Y la línea de validez es la de siempre, con una vuelta de tuerca: si el
+     mando ofreciera UNA sola letra, «ninguna se repite» saldría verde sin
+     haber probado nada. */
+  titulo('la lista de letras no ofrece dos veces la misma');
+  const letras = await sesion.pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const vis = () => [...document.querySelectorAll('.rollo, #canto')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    if (!vis()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+    const t = (vis() || document).querySelector('.pestanas [data-sec="formato"]');
+    if (!t) return { falta:'no hay pestaña de formato' };
+    t.click(); await pausa(900);
+    /* En transparente, que es donde el mando va directo al libro. */
+    const panel = document.getElementById('ajustes');
+    if (!panel.classList.contains('cristal')){
+      document.getElementById('btnVidrio').click(); await pausa(700);
+    }
+    const sel = document.getElementById('selFuente');
+    const hoja = document.getElementById('pg');
+    if (!sel || !hoja) return { falta:'no hay mando de letra o no hay hoja' };
+    const guardado = sel.value;
+    const cadenaDePartida = (hoja.style.getPropertyValue('--fam') || '').trim();
+    /* LA HUELLA: dos palabras medidas en un lienzo con la cadena que la hoja
+       lleva puesta. Dos y no una, que con una sola colisionan letras de anchos
+       parecidos. Es la misma cuenta que hace el programa, escrita aquí aparte:
+       lo de dentro no se puede llamar desde fuera —y está bien que no—, así
+       que esta prueba mide por su cuenta y no se apoya en ella. */
+    const huella = (cadena) => {
+      const c = document.createElement('canvas').getContext('2d');
+      const mide = x => { c.font = '64px ' + cadena; return Math.round(c.measureText(x).width * 10); };
+      return mide('MMMWWWiiilll') + '·' + mide('en Cristo somos más que vencedores');
+    };
+    const primerNombre = (cadena) => {
+      const G = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|-apple-system|BlinkMacSystemFont)$/i;
+      for (const parte of String(cadena).split(',')){
+        const n = parte.trim().replace(/^['"]|['"]$/g, '');
+        if (!n) continue;
+        return G.test(n) ? null : n;
+      }
+      return null;
+    };
+    /* ¿ESTÁ INSTALADA? SE MIDE. La primera versión de esta prueba preguntaba con
+       `document.fonts.check`, igual que la aplicación, y las dos estaban mal:
+       esa función dice «pintar esto no obliga a cargar nada que falte», y un
+       nombre ausente se resuelve por recambio sin cargar nada, así que contesta
+       que sí. Lo encontró Codex. La prueba repetía la pregunta equivocada, o sea
+       que habría dado verde con el mecanismo entero muerto: la peor clase de
+       verde. Aquí se mide, y se mide APARTE de la aplicación —esto no llama a lo
+       de dentro, lo comprueba— con tres recambios, porque una letra puede medir
+       por casualidad lo mismo que uno de ellos. */
+    const instalada = (n) => {
+      if (!n) return null;
+      const c = document.createElement('canvas').getContext('2d');
+      const P = 'mmmiiiWWWlll@#ÁÑ';
+      for (const ref of ['monospace', 'serif', 'sans-serif']){
+        c.font = '72px ' + ref;
+        const solo = c.measureText(P).width;
+        c.font = '72px "' + n + '",' + ref;
+        if (Math.abs(c.measureText(P).width - solo) > 0.5) return true;
+      }
+      return false;
+    };
+    const ofrecidas = [...sel.options].filter(o => !o.hidden);
+    const todas = sel.options.length;
+    const vistas = [];
+    for (const o of ofrecidas){
+      sel.value = o.value;
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
+      await pausa(700);
+      const cadena = (hoja.style.getPropertyValue('--fam') || '').trim();
+      const nombre = primerNombre(cadena);
+      const tiene = instalada(nombre);
+      vistas.push({ rotulo: o.textContent.trim(), valor: o.value, cadena,
+                    nombre, tiene, huella: cadena ? huella(cadena) : null });
+    }
+    /* y se devuelve la que estaba, que los bloques de abajo no tienen por qué
+       heredar una letra elegida aquí */
+    sel.value = guardado;
+    sel.dispatchEvent(new Event('change', { bubbles:true }));
+    await pausa(700);
+    return { todas, ofrecidas: vistas, cadenaDePartida, elegidaVisible:
+               !([...sel.options].find(o => o.value === guardado) || {}).hidden,
+             devuelta: (hoja.style.getPropertyValue('--fam') || '').trim() };
+  });
+  di('lo que ofrece el mando', letras.falta ||
+     letras.ofrecidas.map(v => v.rotulo + ' → ' + v.huella).join('  ·  '));
+  di('de las ' + letras.todas + ', escondidas',
+     letras.falta ? '?' : String(letras.todas - letras.ofrecidas.length));
+  vale('(la prueba es válida) el mando ofrece más de una letra que comparar',
+       !letras.falta && letras.ofrecidas.length >= 2,
+       letras.falta || (letras.ofrecidas.length + ' de ' + letras.todas));
+  vale('(la prueba es válida) y todas dicen con qué se pinta la hoja',
+       !letras.falta && letras.ofrecidas.every(v => v.cadena && v.huella),
+       !letras.falta && letras.ofrecidas.filter(v => !v.cadena).length + ' sin cadena');
+  /* LA DE VERDAD. Antes de esto, en un aparato sin las serifas nombradas, esta
+     línea habría cantado cuatro huellas iguales. */
+  vale('NINGUNA DE LAS QUE OFRECE ES LA MISMA LETRA QUE OTRA',
+       !letras.falta &&
+       new Set(letras.ofrecidas.map(v => v.huella)).size === letras.ofrecidas.length,
+       !letras.falta && letras.ofrecidas.map(v => v.rotulo + ':' + v.huella).join(' · '));
+  /* Y EL NOMBRE NO MIENTE: si el aparato no tiene la letra que se nombra, el
+     rótulo lo dice —«Segoe · sans del aparato»—. Ésta es la que contesta la
+     pregunta del dueño del repo en el sitio donde se elige, que en un teléfono
+     es el único sitio donde se puede contestar: ahí no hay hover que leer. */
+  /* Y EL RÓTULO NO MIENTE: donde el aparato no tiene la letra que la entrada
+     nombra, el mando enseña el GÉNERO en vez del nombre —«Sans» donde no hay
+     Segoe—. Ésa es la contestación a la pregunta del dueño del repo, dicha en
+     el sitio donde se elige, que en un teléfono es el único sitio donde cabe:
+     ahí no hay hover que leer. */
+  const GENEROS = ['Serif', 'Sans', 'Máquina', 'Sistema'];
+  vale('  y la que el aparato no tiene enseña el género, no el nombre',
+       !letras.falta && letras.ofrecidas.every(v =>
+         v.tiene === true || GENEROS.includes(v.rotulo)),
+       !letras.falta && letras.ofrecidas
+         .map(v => v.rotulo + ' (' + (v.nombre || 'genérica') + ': ' + v.tiene + ')').join(' · '));
+  /* Y CABEN. Esta línea nace de una roja: los rótulos fueron «Segoe · sans del
+     aparato» y el desplegable se ensanchó tanto que su tablilla pasó del 70%
+     del panel, con lo que saltó «la mayoría son de verdad estrechas» en un
+     bloque de más arriba. Aquella línea hizo su trabajo, pero señalaba el
+     síntoma a dos pantallas del sitio; ésta señala la causa. */
+  vale('  y ningún rótulo se alarga hasta ensanchar el mando',
+       !letras.falta && letras.ofrecidas.every(v => v.rotulo.length <= 10),
+       !letras.falta && letras.ofrecidas.map(v => v.rotulo + ':' + v.rotulo.length).join(' · '));
+  vale('  y la letra elegida por el lector nunca se esconde',
+       !letras.falta && letras.elegidaVisible === true,
+       !letras.falta && String(letras.elegidaVisible));
+  vale('(y el bloque devuelve la letra del libro como la encontró)',
+       !letras.falta && !!letras.cadenaDePartida &&
+       letras.devuelta === letras.cadenaDePartida,
+       !letras.falta && (letras.cadenaDePartida + '  →  ' + letras.devuelta));
+
+  /* ──────────────────────────────────────────────────────────────
+     LA TARJETA DE LA GLOSA NUNCA ES MÁS OSCURA QUE EL PAPEL.
+
+     Encargo del dueño del repo leyendo en la columna de glosas: «el fondo azul,
+     rojo y verde se ven como oscurecidos». Nombró exactamente las tres que lo
+     estaban, y la cuenta lo confirma: con el sepia al tope el papel tiene 0.667
+     de luz relativa y la verde 0.643, la azul 0.640, la naranja 0.631. La
+     amarilla era la única por encima, 0.672, y por eso no la nombró.
+
+     SE VA A BUSCAR LAS TRES, y esto lo enseñó una roja de la línea de validez:
+     la primera versión medía en la hoja donde se hubiera quedado la suite —Mateo
+     1— y allí sólo vive una nota amarilla. La aserción principal salía verde
+     midiendo justo la única que nunca estuvo mal. La línea de validez lo dijo:
+     «hay al menos una de las tres que se quejó» en rojo, con la principal en
+     verde. Es exactamente para eso que está.
+
+     Las notas de ejemplo tienen las cuatro, repartidas por capítulos: Mateo 5
+     lleva amarilla y verde —las dos en la misma hoja, que de paso deja comparar
+     la que no se tocó con la que sí—, Mateo 10 naranja y Mateo 24 azul. Se va a
+     las tres hojas.
+
+     Y SE COLOCA POR LOS AJUSTES GUARDADOS, no paseando por el panel tres veces:
+     `placement` y `sepia` se guardan igual que la posición, así que escribirlos
+     y recargar deja la hoja puesta antes del primer pintado. Es lo mismo que
+     hace el bloque del espaciado de más arriba, y por lo mismo. Al final se
+     devuelve el objeto entero tal como estaba.
+
+     SE MIDE PINTADO, Y AQUÍ NO HAY OTRA MANERA. El fondo de la tarjeta ya no es
+     un color declarado: es var(--papel) con dos capas de gradiente encima, y
+     getComputedStyle devuelve el background-color —o sea el papel— sin enterarse
+     de las capas. Leer la declaración diría «papel» para las cuatro y esta
+     prueba saldría verde con el fallo puesto. De cada captura se toma el píxel
+     más claro de la fila de en medio, que es la misma técnica que el bloque de
+     los dos botones: en la tarjeta hay texto, y un punto fijo cae encima de una
+     letra y devuelve la tinta. */
+  titulo('la tarjeta de la glosa nunca es más oscura que el papel');
+  const guardadoAntes = await sesion.pagina.evaluate(
+    () => localStorage.getItem('glossa:ajustes:v1'));
+  const lupaGl = await sesion.navegador.newPage();
+  await lupaGl.setContent('<canvas id="c"></canvas>');
+  const masClaroDe = async (loc) => {
+    const b64 = (await loc.screenshot()).toString('base64');
+    return lupaGl.evaluate(async (d) => {
+      const img = new Image();
+      await new Promise(r => { img.onload = r; img.src = 'data:image/png;base64,' + d; });
+      const c = document.getElementById('c');
+      c.width = img.width; c.height = img.height;
+      const cx = c.getContext('2d');
+      cx.drawImage(img, 0, 0);
+      const fila = cx.getImageData(0, Math.round(img.height / 2), img.width, 1).data;
+      let mejor = [0, 0, 0], luz = -1;
+      for (let i = 0; i < fila.length; i += 4){
+        const l = .2126*fila[i] + .7152*fila[i+1] + .0722*fila[i+2];
+        if (l > luz){ luz = l; mejor = [fila[i], fila[i+1], fila[i+2]]; }
+      }
+      return mejor;
+    }, b64);
+  };
+  /* La luz relativa de verdad, con su gamma: la media de los tres canales diría
+     que un amarillo y un azul del mismo promedio pesan lo mismo, y no es así. Es
+     la misma cuenta que usa el contraste de la WCAG. */
+  const luzDe = (c) => {
+    const f = c.map(v => { v /= 255;
+      return v <= .04045 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+    return +(.2126*f[0] + .7152*f[1] + .0722*f[2]).toFixed(3);
+  };
+  const medidas = [], papeles = [], sinNota = [];
+  for (const donde of [{ cap:5, vers:5 }, { cap:10, vers:32 }, { cap:24, vers:30 }]){
+    await sesion.pagina.evaluate((d) => {
+      const c = 'glossa:ajustes:v1';
+      const a = JSON.parse(localStorage.getItem(c) || '{}') || {};
+      a.v = 1; a.libro = 'MAT'; a.cap = d.cap; a.vers = d.vers;
+      a.placement = 'margin'; a.sepia = 100;
+      localStorage.setItem(c, JSON.stringify(a));
+    }, donde);
+    await sesion.pagina.reload();
+    await sesion.pagina.waitForTimeout(3000);
+    const hay = await sesion.pagina.evaluate(() =>
+      [...document.querySelectorAll('#pgMargin .gl')]
+        .map((g, i) => ({ i, color: [...g.classList].find(x => x.startsWith('g-')) || null }))
+        .filter(x => x.color));
+    if (!hay.length){ sinNota.push('MAT ' + donde.cap); continue; }
+    /* EL PAPEL SE LEE EN CADA HOJA, no una vez y a cuenta de todas: cada
+       tarjeta se compara con el papel de SU hoja. Con un solo papel de
+       referencia habría que elegir entre el más claro y el más oscuro, y
+       cualquiera de los dos afloja o aprieta la afirmación por el sitio
+       equivocado. */
+    const papelAqui = await masClaroDe(sesion.pagina.locator('#pgBody'));
+    papeles.push(papelAqui);
+    for (const t of hay.slice(0, 4)){
+      const px = await masClaroDe(sesion.pagina.locator('#pgMargin .gl').nth(t.i));
+      medidas.push({ donde: 'MAT ' + donde.cap, color: t.color, px, luz: luzDe(px),
+                     luzPapel: luzDe(papelAqui) });
+    }
+  }
+  await lupaGl.close();
+  /* Se devuelven los ajustes enteros como estaban, que los bloques de abajo no
+     tienen por qué heredar el sepia al tope ni las notas al margen. */
+  await sesion.pagina.evaluate((v) => {
+    if (v == null) localStorage.removeItem('glossa:ajustes:v1');
+    else localStorage.setItem('glossa:ajustes:v1', v);
+  }, guardadoAntes);
+  await sesion.pagina.reload();
+  await sesion.pagina.waitForTimeout(2600);
+  di('el papel pintado', JSON.stringify({ papeles, luz: papeles.map(luzDe) }) +
+     (sinNota.length ? '  ·  sin nota al margen en: ' + sinNota.join(', ') : ''));
+  di('las tarjetas', medidas.map(m => m.donde + ' ' + m.color + ' ' +
+     JSON.stringify(m.px) + ' luz ' + m.luz + ' contra papel ' + m.luzPapel)
+     .join('  ·  ') || 'ninguna');
+  const lasTres = medidas.filter(m => m.color !== 'g-yellow');
+  vale('(la prueba es válida) se leyó papel y no tinta',
+       papeles.length > 0 && papeles.every(p => p[0] > 150),
+       JSON.stringify(papeles));
+  /* LA QUE SALTÓ, Y POR ESO ESTÁ. Con la hoja de Mateo 1 —donde se quedaba la
+     suite— sólo había amarilla, así que la principal medía la única que nunca
+     estuvo mal. */
+  vale('(la prueba es válida) se midieron las tres que se quejó, no sólo la amarilla',
+       ['g-green', 'g-blue', 'g-orange'].every(c => lasTres.some(m => m.color === c)),
+       lasTres.map(m => m.color).join(', ') || 'ninguna de las tres');
+  /* LA DE VERDAD. Antes de este cambio, con el sepia al tope, las tres daban
+     entre 0.631 y 0.643 contra un papel de 0.667: por debajo las tres. */
+  vale('NINGUNA TARJETA ES MÁS OSCURA QUE EL PAPEL con el sepia al tope',
+       medidas.length > 0 &&
+       medidas.every(m => m.luz >= m.luzPapel - .005),
+       medidas.map(m => m.donde + ' ' + m.color + ' ' + m.luz +
+                        ' contra ' + m.luzPapel).join(' · '));
+
   await cerrarParcial(sesion, 'teléfono');
 
   /* ---------- y en escritorio, donde .stage SÍ trae filtro propio ---------- */
