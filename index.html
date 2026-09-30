@@ -6188,7 +6188,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '30-SEP-26 14:11';
+window.GLOSS_BUILD = '30-SEP-26 17:51';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7137,10 +7137,13 @@ const FILL_ALFA = {yellow:.45, green:.19, blue:.18, orange:.17};   /* el naranja
    petición —«retira lo que pusiste hace unas PR»—, así que esto es lo que hay.
 
    SI SE TOCA UNA, SE TOCAN DOS: los mismos números están escritos a mano en
-   PAGE_CSS, que se arma antes de que estas constantes existan. Y TINT, más
-   abajo, lee esta tabla para vestir el recuadro de edición: antes calculaba el
-   42% por su cuenta y se quedó desacompasado el día que el CSS subió sin ella.
-   Por eso ahora hay tabla y no cuenta. */
+   PAGE_CSS, que se arma antes de que estas constantes existan.
+
+   Y VALEN TAMBIÉN PARA EL RECUADRO DE EDICIÓN, sin que haya que copiarlas: el
+   recuadro lleva la clase g- de su color y hereda de ahí el tinte entero. Hubo
+   un rato en que lo vestía una función aparte con un alfa suyo, y el día que el
+   CSS cambió de construcción esa función se quedó pintando papel sobre papel.
+   Ver vestirVista. */
 const GLOSA_ALFA = {yellow:.19, green:.20, blue:.16, orange:.18};
 const lavado = c => 'rgba(' + FILL_RGB[c] + ',' + FILL_ALFA[c] + ')';
 const GRUESO_TRAZO = 2.6;
@@ -10197,33 +10200,48 @@ function tagboxHTML(m){
       'title="Crear la etiqueta">+ crear</button>' +
     '</div></div>';
 }
-/* PAPEL DEBAJO, TINTE ENCIMA, EN UNA SOLA PILA DE FONDO.
+/* EL ANTICIPO YA NO SE PINTA APARTE, y aquí estaba el fallo: se veía en papel
+   blanco, sin una gota del color de la glosa.
 
-   El color de la marca vive en background-color, puesto por .g-yellow y sus
-   hermanas, y es translúcido a propósito: al margen la nota tiene la crema de
-   la hoja detrás y con una insinuación basta. Aquí el recuadro está sobre el
-   panel oscuro, así que hace falta papel opaco DEBAJO del tinte —si no, sale
-   letra oscura sobre fondo oscuro y se reporta, con razón, como «no se puede
-   editar»—.
+   Lo que había era opacarVista, y hacía esto: LEER el fondo calculado del
+   recuadro para sacar de ahí el tinte, poner papel opaco de color de fondo y
+   devolver el tinte encima como imagen, con el alfa subido a un mínimo de .42.
+   Tenía su razón —el recuadro flota sobre el panel oscuro, y sin papel opaco
+   debajo salía letra oscura sobre fondo oscuro, que se reportó en su día como
+   «no se puede editar»—.
 
-   Y hay un detalle que cuesta descubrir: un fondo solo tiene UN color, y las
-   imágenes de fondo se pintan ENCIMA de él. Así que el papel va de color y el
-   tinte pasa a ser una imagen —un degradado de un solo tono— sobre el papel.
-   Un pseudoelemento por debajo no sirve: dentro de un contexto de apilado el
-   fondo del propio elemento se pinta primero.
+   POR QUÉ SE ROMPIÓ, que es lo que hay que recordar. Leía el tinte de
+   getComputedStyle(caja).backgroundColor, y eso valía mientras .g-yellow y sus
+   hermanas llevaran el color EN background-color. Desde que llevan
+   `background-color:var(--papel)` con el tinte en background-image —ver esas
+   cuatro reglas—, lo que devuelve esa lectura ya no es el tinte: es el PAPEL.
+   Y como el papel es opaco, el alfa salía 1, el mínimo de .42 no tocaba nada, y
+   la función terminaba pintando un degradado de papel sobre papel que TAPABA el
+   tinte que la clase acababa de poner. Cuatro glosas de cuatro colores y el
+   recuadro de las cuatro igual de blanco.
 
-   El alfa sube a un mínimo legible conservando el matiz: los tintes de la hoja
-   van de .07 a .19 y a .08 el verde y el azul son papel a secas cuando no
-   tienen la hoja detrás para contrastarlos. */
-function opacarVista(caja){
-  const tinte = getComputedStyle(caja).backgroundColor;
-  caja.style.backgroundColor = colorPapel();
-  if (!tinte || tinte === 'rgba(0, 0, 0, 0)' || tinte === 'transparent') return;
-  const n = tinte.match(/[\d.]+/g) || [];
-  const a = n.length > 3 ? parseFloat(n[3]) : 1;
-  const fuerte = 'rgba(' + n[0] + ',' + n[1] + ',' + n[2] + ',' + Math.max(a, 0.42) + ')';
-  caja.style.backgroundImage = 'linear-gradient(' + fuerte + ',' + fuerte + ')';
-}
+   Nadie lo vio porque la avería es silenciosa: el recuadro seguía siendo
+   legible —papel claro, letra oscura— y sólo faltaba el color, que es
+   justamente lo que nadie comprueba al pasar. Se reportó leyéndolo: «que la
+   caja de glosa nueva tenga el color elegido de fondo».
+
+   Y LA MANERA DE ARREGLARLO ES QUITARLA, no repararle la lectura. El trabajo
+   que hacía —papel opaco debajo, tinte encima, en una sola pila de fondo— lo
+   hace hoy la propia clase: background-color es var(--papel) y el tinte es la
+   imagen de encima. Lo único que le faltaba al recuadro era el valor de
+   --papel, porque cuelga del panel y no de la hoja, y ese ya se lo escribe
+   vestirVista tres renglones más abajo. Reparar la lectura habría dejado dos
+   sitios calculando el mismo fondo, que es de dónde vino esto.
+
+   LO QUE CAMBIA A LA VISTA: el recuadro lleva ahora el MISMO alfa que la glosa
+   —GLOSA_ALFA, de .16 a .20— y no el .42 de antes. Es a propósito: esto es un
+   anticipo, y un anticipo con el doble de color miente sobre lo que vas a ver
+   al cerrar. El mínimo de .42 nació cuando los tintes de la glosa iban de .07 a
+   .19 y a .08 el verde y el azul eran papel a secas sin la hoja detrás; con las
+   alfas de ahora esa cuenta ya no se sostiene. Medido sobre el papel con el
+   sepia al tope, que es el de fábrica: las cuatro se separan del papel un ΔE
+   de entre 11.0 y 11.6 —las mismas que en el margen— y la tinta de cada una
+   conserva de 4.9 a 5.9 de contraste, por encima del 4.5 que pide la norma. */
 /* Vestir el anticipo con lo de su marca. cssText borra TODO lo puesto en línea,
    así que la forma se escribe primero y las medidas después: al revés, cambiar
    de color le quitaría el ancho y el cuerpo de letra. */
@@ -10241,9 +10259,14 @@ function vestirVista(m){
      de la hoja, así que no lo hereda, y sin él el anticipo partiría los
      renglones donde no los parte el margen. */
   caja.style.setProperty('--esp-glosa', (espaciadoGlosa / 100) + 'em');
+  /* Y EL PAPEL, QUE ES EL QUE TRAE EL COLOR. Parece el más inocente de los
+     cuatro y es el que sostiene el fondo entero: la clase g- pone
+     `background-color:var(--papel)` con el tinte de imagen encima, así que sin
+     este renglón el recuadro se quedaría con el crema de reserva de la regla y
+     dejaría de seguir al riel del sepia. Cuelga del panel, no de la hoja, de
+     modo que no lo hereda de ningún sitio. */
   caja.style.setProperty('--papel', colorPapel());
   caja.style.width = anchoVista() + 'px';
-  opacarVista(caja);
 }
 /* EL PANEL NACE DE LO QUE SEÑALASTE, no encima de ello.
 
@@ -12476,12 +12499,17 @@ function dobleGlosa(ev){
   el.addEventListener('dblclick', dobleGlosa);
 });
 
-/* El recuadro de edición se viste como la glosa que está reemplazando. Se
-   deriva de las mismas tablas en vez de repetir los valores: así estaba antes
-   y se había quedado con las alfas viejas sin que nadie lo notara. */
-const TEXTO_HEX = {yellow:'#6d5410', green:'#235c31', blue:'#0f4b6b', orange:'#6e3406'};
-const TINT = Object.fromEntries(COLORS.map(c =>
-  [c, [LINE_HEX[c], 'rgba(' + FILL_RGB[c] + ',' + GLOSA_ALFA[c] + ')', TEXTO_HEX[c]]]));
+/* AQUÍ VIVÍAN TINT Y TEXTO_HEX, y se van porque no los leía nadie.
+
+   Decían vestir el recuadro de edición con las mismas tablas de la glosa, que
+   es exactamente lo que hay que hacer; lo que nunca ocurrió es que alguien los
+   usara. El recuadro lo vestía opacarVista por otro camino —leyendo el fondo ya
+   calculado—, y ese camino es el que se rompió. Dos maneras de contestar la
+   misma pregunta y sólo una enchufada: la buena estaba escrita y muerta.
+
+   Hoy no hace falta ninguna de las dos. El recuadro lleva la clase g- de su
+   color, la misma que la glosa del margen, y la clase ya trae el borde, la
+   tinta, el papel y el tinte. Ver vestirVista, que es donde se cuenta entero. */
 
 /* ---------- etiquetas ---------- */
 /* Las etiquetas viven en la marca, no en la glosa: así puedes filtrar

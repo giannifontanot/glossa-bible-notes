@@ -2131,7 +2131,9 @@ async function ponerContraste(pagina, pct){
                      pxPapel: papelAqui, luzPapel: luzDe(papelAqui) });
     }
   }
-  await lupaGl.close();
+  /* LA LUPA NO SE CIERRA TODAVÍA: el bloque de aquí abajo mide con la misma
+     función, y abrir una segunda pestaña idéntica sería duplicar colorDe con
+     ella. Se cierra al final de los dos. */
   /* Se devuelven los ajustes enteros como estaban, que los bloques de abajo no
      tienen por qué heredar el sepia al tope ni las notas al margen. */
   await sesion.pagina.evaluate((v) => {
@@ -2217,6 +2219,191 @@ async function ponerContraste(pagina, pct){
   vale('LAS CUATRO TARJETAS SE SEPARAN DEL PAPEL LO MISMO, como el amarillo',
        reparto !== null && reparto <= 4.5,
        'reparto ' + reparto + ' · ' + separa.map(m => m.color + ' ' + m.dE).join(' · '));
+
+  /* ---------- Y EL RECUADRO DE LA GLOSA NUEVA, que es el que se rompió ----------
+
+     LA AVERÍA QUE ESTE BLOQUE EXISTE PARA CAZAR. El recuadro donde se escribe
+     la glosa —el anticipo, #glVista— se quedó en papel blanco: los cuatro
+     colores daban el mismo recuadro descolorido. Lo vestía una función,
+     opacarVista, que sacaba el tinte de getComputedStyle(caja).backgroundColor
+     y lo devolvía como imagen de fondo con el alfa subido. Eso valía mientras
+     .g-yellow y sus hermanas llevaran el color EN background-color. El día que
+     pasaron a `background-color:var(--papel)` con el tinte de imagen, aquella
+     lectura empezó a devolver el PAPEL, y la función terminaba pintando un
+     degradado de papel sobre papel que tapaba el tinte de la clase.
+
+     NINGUNA PRUEBA LO VIO, y merece la pena decir por qué: el recuadro seguía
+     siendo legible —papel claro, letra oscura—, el anticipo seguía midiendo lo
+     que mide la glosa, y el bloque de aquí arriba mira las tarjetas DEL MARGEN,
+     que estaban bien. Lo único que faltaba era el color, y el color no se le
+     preguntaba a nadie. Lo reportó el dueño del repo mirándolo.
+
+     LOS CUATRO TINTES NO SE COPIAN AQUÍ: se leen de la hoja de estilos, de las
+     propias reglas .g-*, con la CSSOM. Copiarlos sería poner una quinta tabla
+     de los mismos números —ya hay dos, GLOSA_ALFA y PAGE_CSS, y la nota de
+     GLOSA_ALFA avisa de lo que pasa cuando se descompasan—; y sobre todo sería
+     una prueba que se queda con los números viejos el día que cambien y sigue
+     verde. Leyéndolos de la regla, la prueba mide contra lo que el programa
+     dice hoy.
+
+     Y NO SE LEEN DEL PROPIO RECUADRO, que era lo cómodo. Preguntarle a
+     #glVista por su background-image devuelve el valor USADO, o sea el que
+     hubiera puesto en línea la función rota: papel sobre papel. La prueba
+     habría comparado el fallo consigo mismo y habría salido verde. La regla de
+     la hoja de estilos es lo que dice que DEBE ser; el píxel del recuadro es lo
+     que es; y la prueba es la distancia entre las dos.
+
+     EL PAPEL DE REFERENCIA ES EL DECLARADO, y aquí sí es lo correcto. El panel
+     no cuelga de la hoja, así que no pasa por el filtro de contraste; y este
+     bloque deja el brillo en 100, que es la identidad. Con las dos cosas,
+     debajo del tinte hay exactamente el color que declara background-color, y
+     se comprueban las dos antes de usarlo. */
+  titulo('el recuadro de la glosa nueva lleva el color que se elige');
+  await sesion.pagina.evaluate(() => {
+    const c = 'glossa:ajustes:v1';
+    const a = JSON.parse(localStorage.getItem(c) || '{}') || {};
+    a.v = 1; a.libro = 'MAT'; a.cap = 5; a.vers = 5;
+    a.placement = 'margin'; a.sepia = 100; a.contraste = 125; a.brillo = 100;
+    localStorage.setItem(c, JSON.stringify(a));
+  });
+  await sesion.pagina.reload();
+  await sesion.pagina.waitForTimeout(3000);
+  /* LAS CUATRO REGLAS, TAL COMO ESTÁN ESCRITAS. Se recorren las hojas del
+     documento porque PAGE_CSS se cuelga en un <style> aparte del de la cabeza,
+     y cuál de los dos es no le importa a nadie: lo que importa es que la regla
+     .g-verde exista una sola vez y diga lo que dice. */
+  const tintes = await sesion.pagina.evaluate(() => {
+    const out = {};
+    for (const hoja of document.styleSheets){
+      let reglas; try { reglas = hoja.cssRules; } catch(e){ continue; }
+      for (const r of reglas){
+        const m = /^\.g-(yellow|green|blue|orange)\s*$/.exec(r.selectorText || '');
+        if (m && r.style && r.style.backgroundImage) out[m[1]] = r.style.backgroundImage;
+      }
+    }
+    return out;
+  });
+  /* El primer rgba() del degradado. Las cuatro reglas lo repiten dos veces —un
+     degradado de un solo tono es la manera de poner una capa plana sobre el
+     color de fondo— así que con el primero basta. */
+  const tinteDe = (css) => {
+    const m = /rgba?\(([^)]+)\)/.exec(css || '');
+    if (!m) return null;
+    const n = m[1].split(',').map(x => parseFloat(x.trim()));
+    return n.length >= 3 ? { rgb: n.slice(0, 3), a: n.length > 3 ? n[3] : 1 } : null;
+  };
+  /* El tinte sobre el papel, que es lo que el navegador va a pintar: una capa
+     de fondo con alfa sobre un color de fondo opaco es una mezcla y nada más. */
+  const sobrePapel = (t, papel) =>
+    t.rgb.map((v, i) => Math.round(v * t.a + papel[i] * (1 - t.a)));
+  const aNumeros = (css) => (css.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+
+  /* SE ABRE PINTANDO, que es como se abre de verdad: el pasaje lleva
+     user-select:none desde que las glosas se hacen con el dedo, así que no hay
+     selección que valga. El pincel del andamio manda los PointerEvent con su
+     pointerId, torcidos, y toca encima; ver PINCEL en comun.js. */
+  const abrio = await sesion.pagina.evaluate(async () => {
+    const v = document.querySelector('#pgBody .v');
+    return !!(await window.__glosarEn(v, 0, 15));
+  });
+  const porqueNo = abrio ? '' : await sesion.pagina.evaluate(() => window.__pincelPorque);
+  const cajas = [];
+  let papelCaja = null, filtroPanel = null;
+  if (abrio){
+    papelCaja = await sesion.pagina.evaluate(() =>
+      getComputedStyle(document.getElementById('glVista')).backgroundColor);
+    filtroPanel = await sesion.pagina.evaluate(() =>
+      getComputedStyle(document.getElementById('menu')).filter);
+    for (const c of ['yellow', 'green', 'blue', 'orange']){
+      /* EL BOTÓN DE COLOR SE PULSA, no se gestea. La regla de la casa —nada de
+         .click() para los gestos— es para lo que un dedo DIBUJA: pintar,
+         arrastrar, pasar hoja. Esto es un botón de un panel, y el programa lo
+         escucha con un 'click' delegado en #menu; mandarle PointerEvent a mano
+         probaría un camino que el programa no tiene. */
+      const pulso = await sesion.pagina.evaluate((x) => {
+        const b = document.querySelector('#menu .mc[data-color="' + x + '"]');
+        if (!b) return false;
+        b.click();
+        return true;
+      }, c);
+      if (!pulso) continue;
+      await sesion.pagina.waitForTimeout(400);
+      cajas.push({ color: c, px: await colorDe(sesion.pagina.locator('#glVista')) });
+    }
+  }
+  await lupaGl.close();
+  /* Se devuelven los ajustes, otra vez, que este bloque los volvió a mover. El
+     borrador abierto se va con la recarga: una marca sin texto no se guarda. */
+  await sesion.pagina.evaluate((v) => {
+    if (v == null) localStorage.removeItem('glossa:ajustes:v1');
+    else localStorage.setItem('glossa:ajustes:v1', v);
+  }, guardadoAntes);
+  await sesion.pagina.reload();
+  await sesion.pagina.waitForTimeout(2600);
+
+  const papelNum = papelCaja ? aNumeros(papelCaja) : null;
+  const esperado = {};
+  for (const c of ['yellow', 'green', 'blue', 'orange']){
+    const t = tinteDe(tintes[c]);
+    if (t && papelNum) esperado[c] = sobrePapel(t, papelNum);
+  }
+  di('las cuatro reglas de la hoja de estilos',
+     Object.keys(tintes).length
+       ? Object.entries(tintes).map(([c, v]) => c + ' ' + v).join('  ·  ')
+       : 'ninguna' + (abrio ? '' : '  ·  el panel no abrió: ' + porqueNo));
+  di('el papel del recuadro y el filtro del panel',
+     (papelCaja || 'sin recuadro') + '  ·  filter ' + (filtroPanel || 'sin panel'));
+  di('lo pintado contra lo que la regla pide',
+     cajas.map(x => x.color + ' pintado ' + JSON.stringify(x.px) +
+                    ' regla ' + JSON.stringify(esperado[x.color] || null)).join('  ·  ') ||
+     'no se midió ninguno');
+
+  vale('(la prueba es válida) el panel abrió y se leyeron las cuatro reglas',
+       abrio && cajas.length === 4 && Object.keys(esperado).length === 4,
+       'abrió ' + abrio + (porqueNo ? ' (' + porqueNo + ')' : '') +
+       ' · recuadros ' + cajas.length + ' · reglas ' + Object.keys(esperado).length);
+  /* Las dos condiciones que permiten usar el papel DECLARADO de referencia. Si
+     alguna se cayera —al panel le ponen contraste, o este bloque hereda un
+     brillo de otro— lo declarado dejaría de ser lo que hay debajo del tinte y
+     las cuentas de abajo compararían dos papeles distintos. */
+  vale('(la prueba es válida) el papel del recuadro es papel y el panel no lo retoca',
+       !!papelNum && papelNum[0] > 150 && sinContraste(filtroPanel) &&
+       brilloDe(filtroPanel) === 1,
+       JSON.stringify(papelNum) + ' · filter ' + filtroPanel);
+  /* Y LA QUE HABRÍA CANTADO LA AVERÍA SOLA: con la función rota, los cuatro
+     recuadros daban el papel, y por tanto los cuatro daban lo mismo. */
+  vale('(la prueba es válida) los cuatro recuadros dieron cuatro colores distintos',
+       cajas.length === 4 &&
+       new Set(cajas.map(x => x.px.join(','))).size === 4,
+       cajas.map(x => x.color + ' ' + x.px.join(',')).join(' · ') || 'ninguno');
+
+  const dePapel = cajas.map(x => ({ ...x, dE: deltaE(x.px, papelNum || [0,0,0]) }));
+  di('cuánto se separa del papel cada recuadro',
+     dePapel.map(x => x.color + ' ΔE ' + x.dE).join(' · ') || 'ninguno');
+  vale('NINGÚN RECUADRO SE QUEDA EN PAPEL: los cuatro llevan su color',
+       dePapel.length === 4 && dePapel.every(x => x.dE >= 4),
+       dePapel.map(x => x.color + ':' + x.dE).join(' · ') || 'ninguno');
+  /* EL RECUADRO LLEVA EL COLOR ELEGIDO Y NO OTRO. Es lo que se pidió y es más
+     fino que «lleva algún color»: se compara lo pintado con lo que pide la
+     regla de SU color y con las de los otros tres, y tiene que quedarse con la
+     suya. Una avería que pintara los cuatro de amarillo —o que se quedara con
+     el color del anterior por no repintar— pasaría la línea de arriba y caería
+     en ésta. */
+  const acierta = cajas.map(x => {
+    const mio = esperado[x.color] ? deltaE(x.px, esperado[x.color]) : null;
+    const otros = Object.entries(esperado)
+      .filter(([c]) => c !== x.color)
+      .map(([c, v]) => ({ c, dE: deltaE(x.px, v) }));
+    const cerca = otros.length ? Math.min(...otros.map(o => o.dE)) : null;
+    return { ...x, mio, cerca, suyo: mio !== null && cerca !== null && mio < cerca };
+  });
+  di('cada recuadro contra las cuatro reglas',
+     acierta.map(x => x.color + ' la suya ΔE ' + x.mio + ' · la más cercana de las otras ΔE ' +
+                      x.cerca).join('  ·  ') || 'ninguno');
+  vale('CADA RECUADRO PINTA EL COLOR DE SU GLOSA, no el de otra',
+       acierta.length === 4 && acierta.every(x => x.suyo && x.mio <= 3),
+       acierta.map(x => x.color + ' suya ' + x.mio + ' vs otra ' + x.cerca).join(' · ') ||
+       'ninguno');
 
   await cerrarParcial(sesion, 'teléfono');
 
