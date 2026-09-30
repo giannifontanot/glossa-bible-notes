@@ -21,17 +21,29 @@
 
    Dos veces ese «nadie» fue quien escribía el cambio. Esto es la otra mitad.
 
-   CÓMO SE MIDE. Dos preguntas al repositorio y una comparación:
-     · cuál fue el último commit que tocó algo del árbol, y
-     · cuál fue el último que cambió una línea con `?v=` en su portada.
-   Si no son el mismo, hay cambios publicados que no le llegarán a un lector
-   con el árbol guardado.
+   CÓMO SE MIDE. Se busca el último commit que tocó algo del árbol y se compara
+   EL NÚMERO que tenía la portada en ese commit con el que tenía en su padre.
+   Si es el mismo, hay cambios publicados que no le llegarán a un lector con el
+   árbol guardado.
+
+   SE COMPARAN LOS NÚMEROS, NO LAS LÍNEAS, y esto costó una revisión. La
+   primera versión preguntaba con `git log -G` por un commit que hubiera tocado
+   una línea con `?v=`, y eso da un falso verde: cambiar cualquier otro atributo
+   de esa misma línea —`<link href="style.css?v=63" media="...">`— hace que git
+   la cuente como línea cambiada aunque el número siga donde estaba. La prueba
+   habría dicho que sí con el fallo puesto, que es justo lo que esta prueba
+   existe para no dejar pasar. Lo levantó Codex.
+
+   SE EXIGE DISTINTO, NO MAYOR, y a propósito: lo que rompe la caché es que la
+   dirección cambie, no que crezca. Volver de 63 a 62 es feo pero funciona, y
+   una línea que además pidiera orden se caería en una vuelta atrás legítima
+   por una razón que no es la suya.
 
    COMPROBADO CONTRA LA HISTORIA DE VERDAD, que es lo que hace que esta prueba
    valga algo: en `70dc337` —el commit donde el aspa se subió a 40 sin tocar el
-   número— las dos preguntas dan `70dc337` y `58e6829`, o sea ROJA. En
-   `3703ec3` —el que lo arregló— dan las dos `3703ec3`, o sea verde. La línea
-   distingue el fallo del arreglo, que es lo único que se le pide.
+   número— la portada tenía 62 antes y 62 después, o sea ROJA. En `3703ec3` —el
+   que lo arregló— tenía 62 antes y 63 después, o sea verde. La línea distingue
+   el fallo del arreglo, que es lo único que se le pide.
 
    Y TAMBIÉN MIRA LO QUE AÚN NO SE HA CONFIRMADO, que es donde de verdad sirve:
    si hay cambios sin confirmar en el árbol, el número tiene que estar entre
@@ -70,30 +82,48 @@ di('árboles con número de caché', arboles.map(a => a.arbol).join(', ') || 'ni
 vale('(la prueba es válida) hay al menos un árbol que vigilar',
      arboles.length >= 1, String(arboles.length));
 
-for (const { arbol, portada } of arboles){
-  const tocado = git('log', '-1', '--format=%h %s', '--', arbol + '/');
-  const numerado = git('log', '-1', '--format=%h %s', '-G', '\\?v=[0-9]+', '--', portada);
-  di('  ' + arbol + ' · último cambio', tocado || '(ninguno)');
-  di('  ' + arbol + ' · último número', numerado || '(ninguno)');
-  vale('EL ÚLTIMO CAMBIO DE ' + arbol.toUpperCase() + ' SUBIÓ SU NÚMERO DE CACHÉ',
-       !!tocado && tocado === numerado,
-       tocado === numerado ? tocado
-         : 'cambió en ' + (tocado || '?') + ' y el número en ' + (numerado || 'nunca'));
+/* El número que lleva la portada en una revisión dada. Devuelve null si allí
+   no había portada —el commit que la creó— o si no lleva ninguno. */
+const numeroEn = (rev, portada) => {
+  let txt;
+  try { txt = git('show', rev + ':' + portada); } catch (e) { return null; }
+  const m = /\?v=(\d+)/.exec(txt);
+  return m ? m[1] : null;
+};
 
-  /* LO SIN CONFIRMAR, que es donde el aviso llega a tiempo. `git status` no
-     distingue por qué cambió un fichero, así que la portada cuenta como cambio
-     del árbol igual que los demás; lo que se exige es que ENTRE lo cambiado
-     esté una línea con `?v=`. */
+for (const { arbol, portada } of arboles){
+  const tocado = git('log', '-1', '--format=%h', '--', arbol + '/');
+  const asunto = tocado ? git('log', '-1', '--format=%s', tocado) : '';
+  const ahora = tocado ? numeroEn(tocado, portada) : null;
+  /* El padre del commit que tocó el árbol. `git log` por camino se salta las
+     fusiones, así que esto es siempre el commit anterior de verdad. */
+  let antes = null;
+  try { antes = tocado ? numeroEn(git('rev-parse', tocado + '^'), portada) : null; }
+  catch (e) { antes = null; }   /* era el primer commit: no hay con qué comparar */
+  di('  ' + arbol + ' · último cambio', (tocado || '?') + ' ' + asunto);
+  di('  ' + arbol + ' · el número', (antes === null ? '(no había)' : antes) + ' → ' + ahora);
+  vale('EL ÚLTIMO CAMBIO DE ' + arbol.toUpperCase() + ' SUBIÓ SU NÚMERO DE CACHÉ',
+       !!tocado && ahora !== null && antes !== ahora,
+       antes !== ahora ? antes + ' → ' + ahora
+         : 'el árbol cambió en ' + tocado + ' y el número se quedó en ' + ahora);
+
+  /* LO SIN CONFIRMAR, que es donde el aviso llega a tiempo. Se compara el
+     número que hay en HEAD con el que hay en el fichero de trabajo, por lo
+     mismo que arriba: mirar si la LÍNEA cambió daría verde con el número
+     quieto. `git status` no distingue por qué cambió un fichero, así que la
+     portada cuenta como cambio del árbol igual que los demás. */
   const sucio = git('status', '--porcelain', '--', arbol + '/')
     .split('\n').filter(Boolean);
-  const numeroTocado = sucio.length
-    ? /^[+-].*\?v=\d+/m.test(git('diff', 'HEAD', '-U0', '--', portada))
-    : null;
   if (sucio.length){
+    const enHead = numeroEn('HEAD', portada);
+    const m = /\?v=(\d+)/.exec(fs.readFileSync(path.join(RAIZ, portada), 'utf8'));
+    const enDisco = m ? m[1] : null;
     di('  ' + arbol + ' · sin confirmar', sucio.join(' · '));
+    di('  ' + arbol + ' · el número ahí', enHead + ' → ' + enDisco);
     vale('  y lo que hay SIN CONFIRMAR en ' + arbol + ' también lo sube',
-         numeroTocado === true,
-         numeroTocado ? 'sí' : 'hay cambios y el número sigue donde estaba');
+         enDisco !== null && enHead !== enDisco,
+         enHead !== enDisco ? enHead + ' → ' + enDisco
+           : 'hay cambios y el número sigue en ' + enHead);
   } else {
     di('  ' + arbol + ' · sin confirmar', 'nada');
   }
