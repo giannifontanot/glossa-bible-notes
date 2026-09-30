@@ -1978,7 +1978,19 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        'antes ' + marcado.antes + ' · después ' + marcado.despues);
 
   /* Y ahora la glosa nueva, que nace sin etiquetas. */
-  const escribio = await escribirGlosa('la nueva sin etiqueta', 30, 50);
+  /* EL TRAMO ES 0-16 Y NO 30-50, y el número sale de una medida y no del
+     gusto. Pedía 30-50, que necesita un nodo de texto de más de 54 letras, y
+     en esta hoja no hay ninguno: el pincel probó los trece versículos y los
+     trece «se acabaron antes». Por eso este bloque llevaba seis rojas
+     encadenadas, y por eso no decían nada —el retrato de después miraba una
+     glosa que no llegó a existir—.
+
+     16 es lo que pide la primera llamada de aquí arriba, la de «la vieja
+     etiquetada», y ésa sí abre en esta misma hoja: o sea que el tramo está
+     medido contra la hoja de verdad y no elegido a ojo. Que el sitio ya esté
+     marcado no estorba: __glosarEn corre el tramo por el versículo y se pasa
+     al siguiente cuando el gesto abre una marca hecha en vez de pintar. */
+  const escribio = await escribirGlosa('la nueva sin etiqueta', 0, 16);
   /* Y SI ÉSTA SE CAE, LAS DE ABAJO NO DICEN NADA: el retrato mira una glosa
      que no llegó a existir. Se dejan correr igual —callarlas escondería una
      avería distinta que cayera aquí el día que ésta pase— pero el motivo va en
