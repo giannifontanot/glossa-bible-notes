@@ -2027,14 +2027,16 @@ async function ponerContraste(pagina, pct){
      hace el bloque del espaciado de más arriba, y por lo mismo. Al final se
      devuelve el objeto entero tal como estaba.
 
-     SE MIDE PINTADO, Y AQUÍ NO HAY OTRA MANERA. El fondo de la tarjeta ya no es
-     un color declarado: es var(--papel) con dos capas de gradiente encima, y
+     SE MIDE PINTADO, Y AQUÍ NO HAY OTRA MANERA. El fondo de la tarjeta no es un
+     color declarado: es var(--papel) con una capa de gradiente encima, y
      getComputedStyle devuelve el background-color —o sea el papel— sin enterarse
-     de las capas. Leer la declaración diría «papel» para las cuatro y esta
-     prueba saldría verde con el fallo puesto. De cada captura se toma el píxel
-     más claro de la fila de en medio, que es la misma técnica que el bloque de
-     los dos botones: en la tarjeta hay texto, y un punto fijo cae encima de una
-     letra y devuelve la tinta. */
+     de la capa. Leer la declaración diría «papel» para las cuatro y esta prueba
+     saldría verde con el fallo puesto.
+
+     DE CADA CAPTURA SE TOMA EL COLOR MÁS FRECUENTE de la fila de en medio, y no
+     el más claro. Está contado entero unas líneas más abajo, donde vive la
+     función; aquí basta con que quien lea el arranque no se lleve la idea
+     equivocada, porque el más claro es lo que rompió esta prueba una vez. */
   titulo('las cuatro tarjetas de glosa se separan del papel lo mismo');
   const guardadoAntes = await sesion.pagina.evaluate(
     () => localStorage.getItem('glossa:ajustes:v1'));
