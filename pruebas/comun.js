@@ -398,6 +398,23 @@ window.__capasAbiertas = () => {
   if (et && et.classList.contains('abierto')) abiertas.push('etiquetas');
   return abiertas;
 };
+/* QUIEN ESTA ENCIMA DEL TEXTO, preguntado al navegador y no deducido de una
+   clase. Devuelve null cuando el dedo llegaria al texto —el elemento de ese
+   punto cuelga de #pgBody— y el nombre del estorbo cuando no. Es la unica
+   pregunta que de verdad importa para pintar: una capa puede estar «cerrada»
+   por sus clases y seguir ocupando la pantalla. */
+window.__quienTapaElTexto = () => {
+  const v = document.querySelector('#pgBody .v');
+  if (!v) return 'sin hoja';
+  const c = v.getBoundingClientRect();
+  if (!c.width || !c.height) return 'el versiculo no ocupa nada';
+  const el = document.elementFromPoint(Math.round(c.left + c.width / 2),
+                                       Math.round(c.top + c.height / 2));
+  if (!el) return 'nada';
+  if (el.closest('#pgBody')) return null;
+  return el.tagName + (el.id ? '#' + el.id : '') +
+         (el.className ? '.' + String(el.className).split(' ')[0] : '');
+};
 window.__despejar = async () => {
   const habia = window.__capasAbiertas();
   if (!habia.length) return habia;
@@ -412,6 +429,29 @@ window.__despejar = async () => {
       { bubbles:true, clientX:5, clientY:5 }));
     await new Promise(z => setTimeout(z, 600));
   }
+  /* Y SE ESPERA A QUE SE APARTE DE VERDAD, que es lo que faltaba.
+
+     CERRARSE Y DEJAR DE TAPAR SON DOS COSAS, y entre las dos hay una
+     animacion. Hasta aqui esto miraba solo las clases: quitada la clase daba
+     por despejado y volvia en el mismo cuadro. El panel de GLOSAS todavia
+     estaba encima de la hoja.
+
+     Se vio en la tanda del dueno del repo, y el pincel lo dijo con todas las
+     letras en la misma frase: «encima del texto hay DIV#indice; capas
+     abiertas: ninguna». Las dos mitades son ciertas y se contradicen; la que
+     manda para pintar es la primera.
+
+     Se pregunta por el punto, no por el reloj: se mira si el dedo llegaria al
+     texto y se vuelve a mirar cada 60ms hasta 1.5s. Con la capa ya fuera sale
+     a la primera y no cuesta nada. Si se agota, no se inventa nada: se deja
+     escrito quien seguia encima, y el motivo del final lo repite. */
+  const hasta = Date.now() + 1500;
+  let tapa = window.__quienTapaElTexto();
+  while (tapa && Date.now() < hasta){
+    await new Promise(z => setTimeout(z, 60));
+    tapa = window.__quienTapaElTexto();
+  }
+  window.__pincelTapaTrasDespejar = tapa;
   return habia;
 };
 window.__glosarEn = async (v, ini, fin) => {
@@ -505,15 +545,7 @@ window.__glosarEn = async (v, ini, fin) => {
      encima. Se dice cuantos versiculos se probaron, si alguno abrio una
      marca ya hecha, que capas hay puestas y que elemento esta de verdad
      encima del texto. */
-  const v0 = document.querySelector('#pgBody .v');
-  let debajo = 'sin hoja';
-  if (v0){
-    const c = v0.getBoundingClientRect();
-    const el = document.elementFromPoint(Math.round(c.left + c.width / 2),
-                                         Math.round(c.top + c.height / 2));
-    debajo = el ? el.tagName + (el.id ? '#' + el.id : '') +
-                  (el.className ? '.' + String(el.className).split(' ')[0] : '') : 'nada';
-  }
+  const debajo = window.__quienTapaElTexto() || 'nada, el texto esta libre';
   window.__pincelPorque =
     'no se encontro texto libre donde pintar: ' + enOrden.length + ' versiculos probados, ' +
     corto + ' se acabaron antes, ' + fuera + ' estaban fuera de la ventana' +

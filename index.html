@@ -6188,7 +6188,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '30-SEP-26 13:41';
+window.GLOSS_BUILD = '30-SEP-26 17:51';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -9092,6 +9092,34 @@ const anchoGlosaCSS = () => {
 const MARGIN_W = () => enTelefono() ? anchoGlosaCSS()
                      : stage.offsetWidth >= 560 ? 152
                      : stage.offsetWidth >= 420 ? 132 : 104;
+/* EL HUECO DE GIRO, PREGUNTADO Y NO SABIDO.
+
+   MARGIN_W() es el ancho de la COLUMNA del margen. La NOTA que va dentro mide
+   menos: se estrecha 4px por lado para que las esquinas del giro tengan dónde
+   asomarse, y desde que se le quitó además el hueco de giro por la derecha
+   —para que no fuera apoyada en el filo de la hoja— mide `columna − 8 − hueco`.
+   La regla que manda es .gl-margin, y ahí está contado por qué.
+
+   ESTA FUNCIÓN EXISTE PORQUE ESA RESTA SE OLVIDÓ EN DOS SITIOS. El anticipo del
+   panel y el espejo de la lista de GLOSAS estiman el ancho de la nota cuando no
+   hay ninguna pintada que medir, y los dos seguían con la cuenta vieja: en el
+   teléfono daban 232 donde la nota mide 221, los once píxeles del hueco. Se ve
+   en el anticipo como renglones que parten un poco más tarde de lo que van a
+   partir, que es justo lo que el anticipo venía a arreglar; y en la lista, como
+   un espejo que casi cuadra. El aviso ya estaba escrito en los dos comentarios
+   —«la misma medida en dos sitios, y uno se queda atrás»— y se cumplió.
+
+   SE LEE DE LA COLUMNA VIVA y no se escribe aquí el número: la pone layoutInto
+   con setM, y buildSVG la escribe a mano en la foto del pliegue. Un 11 copiado
+   aquí sería la tercera copia del mismo número, que es exactamente la avería
+   que esto viene a cerrar. Sin columna —o con las notas en otro sitio, donde
+   setM la deja en 0— devuelve 0, que es lo correcto: allí no hay hueco que
+   restar. */
+const huecoDeGiro = () => {
+  const el = document.getElementById('pgMargin');
+  const v = el && parseFloat(getComputedStyle(el).getPropertyValue('--mgap'));
+  return Number.isFinite(v) && v > 0 ? v : 0;
+};
 
 function layoutInto(bodyEl, marginEl, footEl, from, hasta){
   const below = placement === 'below';
@@ -10065,7 +10093,7 @@ function anchoVista(){
     const w = anchoContenido(pgBody);
     if (w > 60) return Math.max(120, Math.round((w - cg * (cc - 1)) / cc) - 19);
   }
-  return Math.max(120, MARGIN_W() - 8);
+  return Math.max(120, MARGIN_W() - 8 - huecoDeGiro());
 }
 
 function panelHTML(m){
@@ -22823,8 +22851,14 @@ function pintarIndice(){
      se estrecha 4px por lado para que las esquinas del giro tengan a dónde
      asomarse—. Copiando la columna, la del panel salía 8px más ancha que la de
      la hoja y partía los renglones un poco más tarde: el espejo casi cuadraba,
-     que en un espejo es no cuadrar. */
-  cont.style.setProperty('--ancho-glosa', Math.max(60, MARGIN_W() - 8) + 'px');
+     que en un espejo es no cuadrar.
+
+     Y EL HUECO DE GIRO TAMBIÉN, que se quedó fuera cuando la nota empezó a
+     restárselo por la derecha: eran otros once píxeles, y el espejo volvía a
+     casi cuadrar por el mismo sitio. Ver huecoDeGiro, que lo lee de la columna
+     viva en vez de repetir el número. */
+  cont.style.setProperty('--ancho-glosa',
+                         Math.max(60, MARGIN_W() - 8 - huecoDeGiro()) + 'px');
   cont.style.setProperty('--fs', fontSize + 'px');
   cont.style.setProperty('--fs-glosa', fontSizeGlosa + 'px');
   /* EL ESPEJO TAMBIÉN COPIA EL ESPACIADO. Está dicho arriba y en la regla de

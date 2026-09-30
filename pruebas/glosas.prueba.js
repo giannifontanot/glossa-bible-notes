@@ -1064,28 +1064,102 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     const etq = mirar();
     const caja = getComputedStyle(t.querySelector('.gl-t')).display;
     const bloque = renglones(t);
-    /* EL CONTRAFACTUAL. Se deshace el arreglo por encima —no se toca el
-       programa: es una hoja de estilos de más, y se quita al salir— y se mide
-       lo mismo. Esto es lo único que distingue «la regla funciona» de «estas
-       cuatro etiquetas caben donde caen». */
+    /* EL CONTRAFACTUAL, Y ESTA VEZ SIN DEPENDER DE LA SUERTE.
+
+       LO QUE HABÍA Y POR QUÉ SE CAYÓ. Se deshacía el arreglo con una hoja de
+       estilos de más y se exigía que entonces alguna etiqueta SÍ se partiera,
+       midiendo en el ancho que tocara. Eso dependía de dónde cayera el hueco
+       al final del renglón, y salió verde en un commit y roja en el siguiente
+       sin que cambiara nada de esta geometría —se comprobó: lo único que se
+       tocó fue anchoVista(), que es el recuadro del panel, y --ancho-glosa,
+       que sólo lo lee #indice .ix-item—. O sea que la aserción medía una
+       casualidad. Su propio comentario ya lo avisaba: «con otras cuatro que
+       parecían igual de buenas salía verde CON el arreglo y también SIN él».
+
+       CÓMO SE PARTE UNA ETIQUETA, que es lo que hay que provocar a propósito.
+       etiquetaHTML le mete un wbr cada once grafemas, y SÓLO a las que pasan de
+       once: de estas cuatro, Relectura (9) y Memorizar (9) no tienen por dónde
+       partirse ni queriendo; VolverAquiLuego (15) y MuyInteresante (14) sí. El
+       arreglo —inline-block— hace que esos cortes sean el último recurso en vez
+       del primero: la caja baja entera si no cabe, y sólo se estrecha cuando
+       ella sola no cabe en la columna.
+
+       ASÍ QUE SE BARRE EL ANCHO en vez de esperar a que el hueco caiga bien.
+       Con el arreglo quitado se estrecha la glosa de dos en dos píxeles y se
+       mira en cada paso si alguna etiqueta ocupa más de un renglón. Como una
+       etiqueta partible mide más que su primer trozo, existe por fuerza un
+       ancho donde el hueco da para el trozo y no para la etiqueta: el barrido
+       lo encuentra en vez de rezar por él.
+
+       Y EL BARRIDO SE PARA ANTES DE HACER TRAMPA. No baja del ancho de la
+       etiqueta más gorda: por debajo de eso, una etiqueta no cabe ni en un
+       renglón entero y usaría sus cortes CON el arreglo puesto, que es el caso
+       legítimo y no lo que aquí se compara.
+
+       LO QUE DEJA DEMOSTRADO, y es la pareja: en ESE MISMO ancho, con el
+       arreglo quitado alguna se parte y con el arreglo puesto ninguna. Misma
+       geometría, una sola diferencia. */
+    const glosa = t.closest('.gl');
+    const anchoAntes = glosa.style.width;
     const s = document.createElement('style');
     s.textContent = '.gl-tag .gl-t{ display:inline !important; max-width:none !important; }';
+    /* El ancho natural de cada etiqueta se mide SIN el arreglo y sin estrechar:
+       es el suelo del barrido. */
     document.head.appendChild(s);
     document.body.offsetHeight;
     const sinArreglo = mirar();
+    const anchoSuelto = Math.ceil(Math.max(
+      ...[...t.querySelectorAll('.gl-t')].map(x => x.getBoundingClientRect().width)));
+    const partido = x => x.renglones > 1;
+    const partida = m => m.filter(partido).map(x => x.texto);
+    const barrido = [];
+    let hallado = null;
+    const desde = Math.round(glosa.getBoundingClientRect().width);
+    const suelo = Math.max(60, anchoSuelto + 12);
+    for (let w = desde; w >= suelo && !hallado; w -= 2){
+      glosa.style.width = w + 'px';
+      document.body.offsetHeight;
+      const m = mirar();
+      if (m.some(partido)){ hallado = { w, quien: partida(m), como: m }; break; }
+      if (barrido.length < 6) barrido.push({ w, renglones: m.map(x => x.renglones).join('') });
+    }
+    /* Y LA OTRA MITAD DE LA PAREJA: el arreglo vuelve, el ancho se queda. */
     s.remove();
-    return { etq, sinArreglo, bloque, caja, cuantas:etq.length };
+    document.body.offsetHeight;
+    const conArregloAhi = hallado ? mirar() : null;
+    glosa.style.width = anchoAntes;
+    document.body.offsetHeight;
+    return { etq, sinArreglo, bloque, caja, cuantas:etq.length,
+             hallado, conArregloAhi, anchoSuelto, desde, suelo,
+             barrido, partibles: etq.filter(x => x.texto.length > 12).map(x => x.texto) };
   }).then(r => {
     const comoQuedan = x => x.map(y => y.texto + ': ' + y.renglones).join(' · ');
     vale('cada etiqueta cabe en un solo renglón',
          !r.sinEtiqueta && r.cuantas === 4 && r.etq.every(x => x.renglones === 1),
          r.sinEtiqueta ? 'sin etiqueta' : comoQuedan(r.etq));
     /* LA LÍNEA DE VALIDEZ, y es ésta y no «el bloque ocupó más de un renglón»:
-       lo que hay que demostrar no es que hubo corte, sino que EN ESTE SITIO
-       había uno que el navegador habría hecho dentro de una etiqueta. */
+       lo que hay que demostrar no es que hubo corte, sino que había uno que el
+       navegador habría hecho DENTRO de una etiqueta. Se demuestra en el ancho
+       que encuentra el barrido, no en el que toque. */
+    di('   el barrido', r.sinEtiqueta ? 'sin etiqueta' :
+       'de ' + r.desde + 'px a ' + r.suelo + 'px (la más gorda mide ' + r.anchoSuelto + ')' +
+       ' · partibles: ' + (r.partibles.join(', ') || 'ninguna') +
+       (r.hallado ? ' · se partió a ' + r.hallado.w + 'px: ' + r.hallado.quien.join(', ')
+                  : ' · no se partió ninguna · ' +
+                    r.barrido.map(x => x.w + ':' + x.renglones).join(' ')));
     vale('y sin el arreglo alguna SÍ se parte, que es lo que lo hace una prueba',
-         !r.sinEtiqueta && r.sinArreglo.some(x => x.renglones > 1),
-         r.sinEtiqueta ? 'sin etiqueta' : comoQuedan(r.sinArreglo));
+         !r.sinEtiqueta && !!r.hallado,
+         r.sinEtiqueta ? 'sin etiqueta'
+                       : (r.hallado ? r.hallado.w + 'px · ' + comoQuedan(r.hallado.como)
+                                    : 'ningún ancho entre ' + r.suelo + ' y ' + r.desde));
+    /* Y LA PAREJA CERRADA: en ese mismo ancho, con el arreglo puesto, ninguna.
+       Sin esta línea el barrido sólo probaría que estrechando se parte, que es
+       verdad de cualquier texto y no dice nada del arreglo. */
+    vale('  y en ese mismo ancho, con el arreglo puesto, ninguna se parte',
+         !r.sinEtiqueta && !!r.hallado &&
+         r.conArregloAhi.every(x => x.renglones === 1),
+         r.sinEtiqueta || !r.hallado ? 'no se llegó a comparar'
+                                     : comoQuedan(r.conArregloAhi));
     vale('el bloque ocupa más de un renglón', !r.sinEtiqueta && r.bloque > 1,
          r.bloque + ' renglones');
     vale('ninguna se sale de la columna',
@@ -1899,11 +1973,21 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       await new Promise(z => setTimeout(z, 420));
     }
   });
+  /* DEVUELVE EL MOTIVO, no un false pelado. Este bloque encadena seis
+     aserciones detrás de «se pudo escribir la glosa nueva», así que cuando esa
+     primera se cae salen siete rojas y ninguna dice nada: el retrato de después
+     mira una glosa que no existe y contesta que no está guardada, que no se ve
+     y que el filtro sigue puesto, todo cierto y todo irrelevante. Pasó en una
+     tanda entera, y lo único que se sabía al leerla es que algo no abrió.
+
+     El pincel ya deja escrito por qué no pudo —cuántos versículos probó, si
+     alguno abrió una marca ya hecha, qué capa está encima del texto; ver
+     __glosarEn en comun.js— y aquí se estaba tirando. Ahora sube. */
   const escribirGlosa = (nota, desde, hasta) => q.evaluate(async ([abrir, nota, d, h]) => {
     const ok = await eval('(' + abrir + ')')(d, h);
-    if (!ok) return false;
+    if (!ok) return { ok:false, porque: window.__pincelPorque || 'el pincel no dijo nada' };
     const ta = document.getElementById('glosaCaja');
-    if (!ta) return false;
+    if (!ta) return { ok:false, porque: 'el panel abrió y no traía caja de escribir' };
     ta.value = nota; ta.dispatchEvent(new Event('input', { bubbles:true }));
     await new Promise(z => setTimeout(z, 200));
     /* Tocar fuera DE VERDAD, que es como se cierra: el oyente que cobra lo
@@ -1911,7 +1995,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     document.body.dispatchEvent(new PointerEvent('pointerdown',
       { bubbles:true, clientX:5, clientY:5 }));
     await new Promise(z => setTimeout(z, 900));
-    return true;
+    return { ok:true, porque:'' };
   }, [ABRIR, nota, desde, hasta]);
   const retrato = nota => q.evaluate(nota => {
     const ms = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
@@ -1968,8 +2052,24 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        'antes ' + marcado.antes + ' · después ' + marcado.despues);
 
   /* Y ahora la glosa nueva, que nace sin etiquetas. */
-  const escribio = await escribirGlosa('la nueva sin etiqueta', 30, 50);
-  vale('se pudo escribir la glosa nueva', escribio === true);
+  /* EL TRAMO ES 0-16 Y NO 30-50, y el número sale de una medida y no del
+     gusto. Pedía 30-50, que necesita un nodo de texto de más de 54 letras, y
+     en esta hoja no hay ninguno: el pincel probó los trece versículos y los
+     trece «se acabaron antes». Por eso este bloque llevaba seis rojas
+     encadenadas, y por eso no decían nada —el retrato de después miraba una
+     glosa que no llegó a existir—.
+
+     16 es lo que pide la primera llamada de aquí arriba, la de «la vieja
+     etiquetada», y ésa sí abre en esta misma hoja: o sea que el tramo está
+     medido contra la hoja de verdad y no elegido a ojo. Que el sitio ya esté
+     marcado no estorba: __glosarEn corre el tramo por el versículo y se pasa
+     al siguiente cuando el gesto abre una marca hecha en vez de pintar. */
+  const escribio = await escribirGlosa('la nueva sin etiqueta', 0, 16);
+  /* Y SI ÉSTA SE CAE, LAS DE ABAJO NO DICEN NADA: el retrato mira una glosa
+     que no llegó a existir. Se dejan correr igual —callarlas escondería una
+     avería distinta que cayera aquí el día que ésta pase— pero el motivo va en
+     la primera, que es la única que puede explicarlas. */
+  vale('se pudo escribir la glosa nueva', escribio.ok === true, escribio.porque);
   const r = await retrato('la nueva sin etiqueta');
   di('el aviso', r.aviso);
   di('los chips que quedan', r.chips);
