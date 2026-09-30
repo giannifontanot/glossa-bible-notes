@@ -6188,7 +6188,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '29-SEP-26 19:19';
+window.GLOSS_BUILD = '29-SEP-26 21:41';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7014,52 +7014,50 @@ const PAGE_CSS = `
    aparte y no pasa por prepararHoja —ese olvido ya costó una vez, ver REVES—.
    var(--papel) sí viaja: buildSVG lo escribe a mano en la hoja de la foto, así
    que esto sale igual en la hoja viva y en el pliegue sin una línea más. */
-/* TERCERA VUELTA DE ESTOS TRES NÚMEROS, y ésta los devuelve a su sitio.
+/* CUARTA VUELTA, Y ÉSTA QUITA EL VELO. «El rojo no es rojo suficiente. Que el
+   verde, el azul y el rojo se vean como el amarillo. Retira lo que pusiste hace
+   unas PR, para que tengan el mismo aspecto que antes.»
 
-   La segunda vuelta los subió —«un poquito más intenso»— y al verlos puestos:
-   «el verde está muy brillante y el azul también; me gusta más cómo está el
-   amarillo». El amarillo es justamente el único que no se tocó, y eso no es
-   casualidad: es el único que se quedó en la familia.
+   FUERA EL VELO BLANCO, que es lo que pidió retirar. Lo puse para que con el
+   sepia alto la tarjeta no quedara más oscura que el papel, y hacía eso; pero
+   la construcción de las cuatro vuelve a ser la misma que la de la amarilla,
+   que es la que le gusta: tinte y nada más encima del papel.
 
-   PORQUE ESTO NO ERAN CUATRO NÚMEROS SUELTOS. El fondo de la glosa es el mismo
-   tono del resaltado del texto al 42% de su alfa —ver FILL_ALFA— y de ahí
-   salían los cuatro: .45→.19, .19→.08, .18→.08, .17→.07. Subirlos a mano rompió
-   esa relación, y con ella algo que no se ve desde aquí: TINT, unas líneas más
-   abajo, viste el recuadro de edición derivándolo de las mismas tablas. Al
-   subir sólo la hoja de estilos, editar una glosa enseñaba un color y la glosa
-   otro. El comentario de TINT ya avisaba de esta trampa —«se había quedado con
-   las alfas viejas sin que nadie lo notara»— y volvió a pasar.
+   Y LAS ALFAS YA NO SON UN PORCENTAJE COMÚN. Ver GLOSA_ALFA, donde está la
+   cuenta: el 42% de FILL_ALFA arrastraba la calibración del resaltado, y por
+   eso la amarilla se separaba del papel el doble que las otras tres —ΔE 11.4
+   contra 4.5, 5.6 y 4.5—. Ahora cada una lleva la alfa que le da la MISMA
+   separación que la amarilla: las cuatro a 11.4.
 
-   Así que el encargo de ahora —«que los colores del resaltado sean los mismos
-   que se usan en las glosas»— no es un cambio de gusto: es volver a la regla.
-   Los cuatro son otra vez FILL_ALFA por 0.42.
+   LO QUE NO SE PUEDE IGUALAR, MEDIDO: la amarilla se separa del papel sin
+   oscurecerlo y las otras tres no pueden. Con el sepia al tope, la amarilla
+   queda +0.004 de luz sobre el papel y estas tres entre −0.056 y −0.095. Sobre
+   papel tostado el amarillo se distingue por TONO a la misma claridad; los
+   otros tres sólo tienen la luz. Es el papel, no una elección. Queda dicho
+   porque es exactamente lo que se quejó hace dos vueltas —«se ven como
+   oscurecidos»— y el velo era lo que lo tapaba.
 
-   LO QUE SÍ SE QUEDA ES EL VELO, que es de la primera vuelta y resolvía otra
-   cosa: sin él, con el sepia alto, el verde, el azul y el naranja quedaban más
-   oscuros que el papel y se leían como barro. El velo no cambia el tono, sólo
-   impide que la tarjeta se hunda por debajo del papel. Las dos cosas son
-   compatibles porque atacan cosas distintas: el tono viene del resaltado, la
-   luz la sostiene el velo.
+   EL FONDO SIGUE SIENDO OPACO: var(--papel) debajo del tinte, no el papel
+   asomando. Detrás de una glosa sólo hay papel, así que en pantalla es el mismo
+   píxel; lo que cambia es que la regla queda dicha sin ambigüedad. Y --papel
+   viaja a la foto del pliegue porque buildSVG lo escribe a mano, así que esto
+   sale igual en la hoja viva y en el pliegue.
 
-   SI ALGÚN DÍA SE TOCA FILL_ALFA, HAY QUE TOCAR ESTOS CUATRO. Están escritos a
-   mano y no calculados porque PAGE_CSS se arma antes de que existan las
-   constantes; es la misma advertencia de siempre, y ya se ha desoído dos
-   veces. */
+   SI SE TOCAN ESTOS CUATRO NÚMEROS, SE TOCA GLOSA_ALFA. Están escritos a mano
+   porque PAGE_CSS se arma antes de que existan las constantes; es la misma
+   advertencia de siempre, y ya se ha desoído dos veces. */
 .g-yellow{ border:1px solid #c9a227; color:#6d5410;
            background-color:var(--papel, #fffdf6);
            background-image:linear-gradient(rgba(255,214,64,.19),rgba(255,214,64,.19)); }
 .g-green { border:1px solid #3a8f4f; color:#235c31;
            background-color:var(--papel, #fffdf6);
-           background-image:linear-gradient(rgba(94,196,110,.08),rgba(94,196,110,.08)),
-                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
+           background-image:linear-gradient(rgba(94,196,110,.20),rgba(94,196,110,.20)); }
 .g-blue  { border:1px solid #1d6f9c; color:#0f4b6b;
            background-color:var(--papel, #fffdf6);
-           background-image:linear-gradient(rgba(86,182,238,.08),rgba(86,182,238,.08)),
-                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
+           background-image:linear-gradient(rgba(86,182,238,.16),rgba(86,182,238,.16)); }
 .g-orange{ border:1px solid #9c4708; color:#6e3406;
            background-color:var(--papel, #fffdf6);
-           background-image:linear-gradient(rgba(242,105,20,.07),rgba(242,105,20,.07)),
-                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
+           background-image:linear-gradient(rgba(242,105,20,.18),rgba(242,105,20,.18)); }
 /* LA ETIQUETA SE ACLARA CON UN COLOR, NUNCA CON opacity, y esto arregla además
    un defecto que ya estaba puesto. medirPalabras se lleva al lienzo el color
    calculado pero NO la opacidad, así que .gl-tag{opacity:.62} se veía al 62% en
@@ -7111,6 +7109,39 @@ const TRAZO_HEX = {yellow:'#edb200', green:'#4fb862', blue:'#2b9fd4', orange:'#e
    amarillo a 13:1; ahora los cuatro quedan en 13:1. El recuadro de la glosa
    lleva el 42% de esa alfa: se necesita menos porque el borde ya lo delimita. */
 const FILL_ALFA = {yellow:.45, green:.19, blue:.18, orange:.17};   /* el naranja va a propósito un punto por encima del peso común */
+/* Y LAS DE LA GLOSA, QUE YA NO SON UN PORCENTAJE DE LAS DE ARRIBA.
+
+   Fueron el 42% de FILL_ALFA durante mucho tiempo, y esa regla tenía sentido:
+   el recuadro necesita menos color porque el borde ya lo delimita. Lo que la
+   rompió fue mirarlas puestas. «El rojo no es rojo suficiente; que el verde,
+   el azul y el rojo se vean como el amarillo.»
+
+   POR QUÉ UN PORCENTAJE COMÚN NO PODÍA DAR ESO. Las de arriba están calibradas
+   para que los cuatro resaltados bajen la luz del papel LO MISMO, y para eso el
+   amarillo necesita más del doble de alfa que los demás. Al tomar el 42% de
+   cada una, esa calibración viaja con ellas: el recuadro amarillo se separaba
+   del papel un ΔE de 11.4 y los otros tres la mitad —4.5, 5.6, 4.5—. Es decir
+   que el porcentaje común daba cuatro tarjetas DESIGUALES a la vista, que es
+   exactamente lo que se estaba viendo.
+
+   Estas cuatro están elegidas al revés: cada una es la que le da a su color la
+   MISMA separación del papel que tiene la amarilla, medida en ΔE con el sepia
+   al tope, que es el de fábrica. Salen 11.4 las cuatro.
+
+   LO QUE NO SE PUEDE IGUALAR, Y SE DICE: la amarilla se separa del papel sin
+   oscurecerlo —queda +0.004 de luz por encima— y las otras tres no pueden.
+   Sobre un papel tostado, el amarillo se distingue por tono a la misma
+   claridad; el verde, el azul y el naranja sólo tienen la luz para hacerlo, y
+   a igual separación quedan entre 0.056 y 0.095 por debajo. No es una elección:
+   es el papel. Hubo un velo blanco que las sostenía por encima y se quitó a
+   petición —«retira lo que pusiste hace unas PR»—, así que esto es lo que hay.
+
+   SI SE TOCA UNA, SE TOCAN DOS: los mismos números están escritos a mano en
+   PAGE_CSS, que se arma antes de que estas constantes existan. Y TINT, más
+   abajo, lee esta tabla para vestir el recuadro de edición: antes calculaba el
+   42% por su cuenta y se quedó desacompasado el día que el CSS subió sin ella.
+   Por eso ahora hay tabla y no cuenta. */
+const GLOSA_ALFA = {yellow:.19, green:.20, blue:.16, orange:.18};
 const lavado = c => 'rgba(' + FILL_RGB[c] + ',' + FILL_ALFA[c] + ')';
 const GRUESO_TRAZO = 2.6;
 const LETTERS = 'abcdefgh';
@@ -12422,7 +12453,7 @@ function dobleGlosa(ev){
    y se había quedado con las alfas viejas sin que nadie lo notara. */
 const TEXTO_HEX = {yellow:'#6d5410', green:'#235c31', blue:'#0f4b6b', orange:'#6e3406'};
 const TINT = Object.fromEntries(COLORS.map(c =>
-  [c, [LINE_HEX[c], 'rgba(' + FILL_RGB[c] + ',' + (FILL_ALFA[c]*.42).toFixed(2) + ')', TEXTO_HEX[c]]]));
+  [c, [LINE_HEX[c], 'rgba(' + FILL_RGB[c] + ',' + GLOSA_ALFA[c] + ')', TEXTO_HEX[c]]]));
 
 /* ---------- etiquetas ---------- */
 /* Las etiquetas viven en la marca, no en la glosa: así puedes filtrar
@@ -15049,9 +15080,25 @@ function cerrarZoom(hacia){
   const destino = papelFuera;
   if (papel) papel.style.display = 'block';
   zoomActivo = false; zoomK = 1; zoomFx = { x:0, y:0 };
-  pintarG();
   armarSuave();
   pg.classList.remove('zoom'); stage.classList.remove('zoom');
+  /* LA G SE VUELVE A PINTAR AQUÍ Y NO TRES RENGLONES ANTES, y ese orden era
+     todo el fallo: «la G no vuelve del zoom». pintarG decide si hay G mirando
+     `stage.classList.contains('zoom')` —y lo mira por la CLASE a propósito,
+     está contado en ella—, así que llamándola antes de quitar la clase
+     contesta siempre que no y deja el botón con `hidden`. Al salir ya no queda
+     nadie que lo recalcule: la G no vuelve hasta la siguiente repaginada.
+
+     Medido antes de tocar nada: al salir, `hidden:true` con `.puesta` todavía
+     puesta y opacidad 1. O sea que lo que faltaba no era encenderla —seguía
+     encendida— sino dejar de esconderla.
+
+     Se llama a encenderG y no a pintarG, que es lo que había: pintarG sólo
+     quita el `hidden`, y si algún día otro camino se lleva la `.puesta` por
+     delante, esto la devolvería igual. Es lo que hacen los demás sitios donde
+     la G tiene que reaparecer —el aterrizaje del pliegue y renderPage—, así
+     que de paso son todos el mismo gesto. */
+  encenderG();
   $('btnZoom').classList.remove('abierto');
   /* Aquí no hace falta asentar nada: el papel viene de la entrada con su
      transform ya resuelto en none, así que ese none es el punto de partida y

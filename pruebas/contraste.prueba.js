@@ -2092,7 +2092,7 @@ async function ponerContraste(pagina, pct){
     for (const t of hay.slice(0, 4)){
       const px = await masClaroDe(sesion.pagina.locator('#pgMargin .gl').nth(t.i));
       medidas.push({ donde: 'MAT ' + donde.cap, color: t.color, px, luz: luzDe(px),
-                     luzPapel: luzDe(papelAqui) });
+                     pxPapel: papelAqui, luzPapel: luzDe(papelAqui) });
     }
   }
   await lupaGl.close();
@@ -2119,13 +2119,60 @@ async function ponerContraste(pagina, pct){
   vale('(la prueba es válida) se midieron las tres que se quejó, no sólo la amarilla',
        ['g-green', 'g-blue', 'g-orange'].every(c => lasTres.some(m => m.color === c)),
        lasTres.map(m => m.color).join(', ') || 'ninguna de las tres');
-  /* LA DE VERDAD. Antes de este cambio, con el sepia al tope, las tres daban
-     entre 0.631 y 0.643 contra un papel de 0.667: por debajo las tres. */
-  vale('NINGUNA TARJETA ES MÁS OSCURA QUE EL PAPEL con el sepia al tope',
-       medidas.length > 0 &&
-       medidas.every(m => m.luz >= m.luzPapel - .005),
-       medidas.map(m => m.donde + ' ' + m.color + ' ' + m.luz +
-                        ' contra ' + m.luzPapel).join(' · '));
+  /* AQUÍ VIVIÓ «NINGUNA TARJETA ES MÁS OSCURA QUE EL PAPEL», y se retiró a
+     petición del dueño del repo. Queda escrito porque borrar una línea sin
+     decir por qué es perder el motivo: aquella regla la sostenía un velo
+     blanco debajo del tinte, y el velo se quitó —«retira lo que pusiste hace
+     unas PR»—. Sin velo esa línea saldría roja con la aplicación haciendo
+     exactamente lo que se pidió, que es la peor clase de roja.
+
+     LA REGLA DE AHORA ES OTRA: «que el verde, el azul y el rojo se vean como
+     el amarillo». Se mide la separación de cada tarjeta respecto al papel de
+     su hoja y se exige que las cuatro se separen LO MISMO.
+
+     ΔE Y NO DIFERENCIA DE CANALES, porque la pregunta es perceptual: dos
+     colores pueden estar a la misma distancia en números y a distancias muy
+     distintas para un ojo. Es la cuenta de la CIE del 76, que para esto —
+     colores claros y parecidos entre sí— llega de sobra.
+
+     EL MARGEN ES 4.5 Y TIENE CONTRAEJEMPLO: con las alfas de antes, la
+     amarilla se separaba 11.4 y las otras 4.5, 5.6 y 4.5. Un reparto de 6.9,
+     o sea que esta línea habría estado ROJA todo este tiempo, que es lo que
+     el dueño del repo veía y el banco no. Con las de ahora las cuatro dan
+     11.4 y el reparto es de décimas. */
+  const aLab = (c) => {
+    const l = c.map(v => { v /= 255;
+      return v <= .04045 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+    const X = .4124*l[0] + .3576*l[1] + .1805*l[2];
+    const Y = .2126*l[0] + .7152*l[1] + .0722*l[2];
+    const Z = .0193*l[0] + .1192*l[1] + .9505*l[2];
+    const f = t => t > .008856 ? Math.cbrt(t) : 7.787*t + 16/116;
+    const fx = f(X/.95047), fy = f(Y), fz = f(Z/1.08883);
+    return [116*fy - 16, 500*(fx - fy), 200*(fy - fz)];
+  };
+  const deltaE = (a, b) => {
+    const p = aLab(a), q = aLab(b);
+    return +Math.sqrt(p.reduce((t, v, i) => t + (v - q[i])**2, 0)).toFixed(1);
+  };
+  const separa = medidas.map(m => ({ ...m, dE: deltaE(m.px, m.pxPapel) }));
+  di('cuánto se separa cada una del papel',
+     separa.map(m => m.color + ' ΔE ' + m.dE).join(' · ') || 'ninguna');
+  const reparto = separa.length
+    ? +(Math.max(...separa.map(m => m.dE)) - Math.min(...separa.map(m => m.dE))).toFixed(1)
+    : null;
+  /* EL UMBRAL DE ESTA LÍNEA VA BAJO A PROPÓSITO. Lo pintado pasa por el filtro
+     de brillo y contraste del escenario, que acerca entre sí todos los tonos:
+     el papel se lee (211,194,163) donde la cuenta dice (232,211,172). Los ΔE
+     salen comprimidos frente a la aritmética, así que pedir aquí el 11.4 de la
+     cuenta sería pedir un número que el filtro se come. Lo que esta línea tiene
+     que decir es sólo que hay tarjeta que distinguir; el reparto lo juzga la de
+     abajo, y el filtro no lo altera porque encoge las cuatro igual. */
+  vale('(la prueba es válida) las cuatro se separan del papel algo',
+       separa.length >= 3 && separa.every(m => m.dE >= 4),
+       separa.map(m => m.color + ':' + m.dE).join(' · '));
+  vale('LAS CUATRO TARJETAS SE SEPARAN DEL PAPEL LO MISMO, como el amarillo',
+       reparto !== null && reparto <= 4.5,
+       'reparto ' + reparto + ' · ' + separa.map(m => m.color + ' ' + m.dE).join(' · '));
 
   await cerrarParcial(sesion, 'teléfono');
 
