@@ -973,11 +973,18 @@ body.dots-armed .ws-dot.drop-target .dot-visual {
   /* EL BOTÓN CRECE CON EL SIGNO, y esto es nuevo en la quinta vuelta. Hasta
      los 32 el botón se quedó en 44 —el mínimo de toque— porque el signo cabía
      de sobra. A 40 ya no: quedarían dos píxeles por lado y el aspa parecería
-     apretada dentro de su propia caja. 52 le devuelve el aire que tenía a 24
-     dentro de 44, que es la proporción que se veía bien. El mínimo de toque se
-     respeta por arriba, nunca por abajo: agrandarlo no le quita nada a nadie. */
-  width: 52px;
-  height: 52px;
+     apretada dentro de su propia caja. El mínimo de toque se respeta por
+     arriba, nunca por abajo: agrandarlo no le quita nada a nadie, y como el
+     botón no se ve —sin fondo y sin aro— tampoco pesa más en una cabecera que
+     no tiene título.
+
+     56 Y NO 52, y el número sale del banco: allí se exige que la tinta quepa
+     con doce píxeles de holgura dentro de su blanco de toque. A 40 en 52 la
+     cuenta daba EXACTAMENTE doce —pasaba, pero al filo, y una línea que se
+     aprueba por igualdad no deja sitio para el siguiente ajuste—. A 56 sobran
+     dieciséis, que es holgura de verdad. */
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
