@@ -6188,7 +6188,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '29-SEP-26 18:50';
+window.GLOSS_BUILD = '29-SEP-26 19:15';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7014,49 +7014,52 @@ const PAGE_CSS = `
    aparte y no pasa por prepararHoja —ese olvido ya costó una vez, ver REVES—.
    var(--papel) sí viaja: buildSVG lo escribe a mano en la hoja de la foto, así
    que esto sale igual en la hoja viva y en el pliegue sin una línea más. */
+/* TERCERA VUELTA DE ESTOS TRES NÚMEROS, y ésta los devuelve a su sitio.
+
+   La segunda vuelta los subió —«un poquito más intenso»— y al verlos puestos:
+   «el verde está muy brillante y el azul también; me gusta más cómo está el
+   amarillo». El amarillo es justamente el único que no se tocó, y eso no es
+   casualidad: es el único que se quedó en la familia.
+
+   PORQUE ESTO NO ERAN CUATRO NÚMEROS SUELTOS. El fondo de la glosa es el mismo
+   tono del resaltado del texto al 42% de su alfa —ver FILL_ALFA— y de ahí
+   salían los cuatro: .45→.19, .19→.08, .18→.08, .17→.07. Subirlos a mano rompió
+   esa relación, y con ella algo que no se ve desde aquí: TINT, unas líneas más
+   abajo, viste el recuadro de edición derivándolo de las mismas tablas. Al
+   subir sólo la hoja de estilos, editar una glosa enseñaba un color y la glosa
+   otro. El comentario de TINT ya avisaba de esta trampa —«se había quedado con
+   las alfas viejas sin que nadie lo notara»— y volvió a pasar.
+
+   Así que el encargo de ahora —«que los colores del resaltado sean los mismos
+   que se usan en las glosas»— no es un cambio de gusto: es volver a la regla.
+   Los cuatro son otra vez FILL_ALFA por 0.42.
+
+   LO QUE SÍ SE QUEDA ES EL VELO, que es de la primera vuelta y resolvía otra
+   cosa: sin él, con el sepia alto, el verde, el azul y el naranja quedaban más
+   oscuros que el papel y se leían como barro. El velo no cambia el tono, sólo
+   impide que la tarjeta se hunda por debajo del papel. Las dos cosas son
+   compatibles porque atacan cosas distintas: el tono viene del resaltado, la
+   luz la sostiene el velo.
+
+   SI ALGÚN DÍA SE TOCA FILL_ALFA, HAY QUE TOCAR ESTOS CUATRO. Están escritos a
+   mano y no calculados porque PAGE_CSS se arma antes de que existan las
+   constantes; es la misma advertencia de siempre, y ya se ha desoído dos
+   veces. */
 .g-yellow{ border:1px solid #c9a227; color:#6d5410;
            background-color:var(--papel, #fffdf6);
            background-image:linear-gradient(rgba(255,214,64,.19),rgba(255,214,64,.19)); }
-/* SEGUNDA VUELTA DE ESTOS TRES NÚMEROS: «hazlos un poquito más intensos, pero
-   cuida que se pueda leer». Se llevó a un panel de tres —legibilidad, color y
-   libro— y dos de los tres coincidieron en lo mismo, que es lo que está puesto.
-
-   LO QUE SE APRENDIÓ Y NO SE VE EN EL CÓDIGO: subir sólo el tinte vuelve a
-   oscurecer la tarjeta —el naranja a .30 cae otra vez por debajo del papel— y
-   al azul le BAJA el color, porque un tinte frío sobre una base cálida se
-   cancela. Hay que subir el velo a la vez: más blanco debajo, más tinte
-   encima. Sube el color sin perder la luz.
-
-   Y UN DATO QUE CAMBIÓ LA DISCUSIÓN: el azul de antes no era azul. En su
-   propio eje marcaba −17.5, o sea que seguía siendo más amarillo que neutro;
-   sólo era menos amarillo que el papel. Ahora marca +22.
-
-   POR QUÉ EL NARANJA SE QUEDA MÁS ABAJO QUE LOS OTROS DOS. No es descuido: es
-   el único que compite contra un papel que ya es naranja (+60 en su eje), y
-   subirlo más lo acerca a la tarjeta AMARILLA. Medido en el eje que le queda a
-   un daltónico deután, con el naranja a .26 las dos se juntan; a .22 el par más
-   confundible de las cuatro pasa de 8 —lo que hay hoy— a 27. O sea que esto,
-   además de dar más color, separa mejor el código de colores que antes.
-
-   LO QUE NO MEJORA, Y SE DICE: con el sepia a 0 la naranja y la amarilla se
-   acercan en ese mismo eje deután (4.5, contra 24 de antes). Ahí los separa el
-   borde, que en las dos es muy distinto. El sepia viene al 100 de fábrica, así
-   que es el extremo raro, pero es una pérdida y no un empate.
-
-   LA AMARILLA SIGUE SIN TOCARSE, por tercera vez: ya era más clara que el
-   papel, y es la que sujeta el extremo cálido del código. */
 .g-green { border:1px solid #3a8f4f; color:#235c31;
            background-color:var(--papel, #fffdf6);
-           background-image:linear-gradient(rgba(94,196,110,.26),rgba(94,196,110,.26)),
-                            linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,.85)); }
+           background-image:linear-gradient(rgba(94,196,110,.08),rgba(94,196,110,.08)),
+                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
 .g-blue  { border:1px solid #1d6f9c; color:#0f4b6b;
            background-color:var(--papel, #fffdf6);
-           background-image:linear-gradient(rgba(86,182,238,.26),rgba(86,182,238,.26)),
-                            linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,.85)); }
+           background-image:linear-gradient(rgba(86,182,238,.08),rgba(86,182,238,.08)),
+                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
 .g-orange{ border:1px solid #9c4708; color:#6e3406;
            background-color:var(--papel, #fffdf6);
-           background-image:linear-gradient(rgba(242,105,20,.22),rgba(242,105,20,.22)),
-                            linear-gradient(rgba(255,255,255,.80),rgba(255,255,255,.80)); }
+           background-image:linear-gradient(rgba(242,105,20,.07),rgba(242,105,20,.07)),
+                            linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,.45)); }
 /* LA ETIQUETA SE ACLARA CON UN COLOR, NUNCA CON opacity, y esto arregla además
    un defecto que ya estaba puesto. medirPalabras se lleva al lienzo el color
    calculado pero NO la opacidad, así que .gl-tag{opacity:.62} se veía al 62% en
@@ -7460,14 +7463,17 @@ function familiaDelAparato(cadena){
    jerga inglesa de hoja de estilos en un libro que llama a las cosas por su
    nombre en español—.
 
-   ROMANA y PALO SECO son como se han llamado siempre en castellano las dos
-   familias, desde mucho antes de que existiera una hoja de estilos. Caben
-   igual, dicen lo mismo, y se leen como algo que alguien escribió y no como
-   algo que se le escapó al programa. */
+   ROMANA y LINEAL son los dos nombres de la clasificación de Vox, que es la
+   que usa la imprenta en español: las de remate son romanas y las de trazo sin
+   remate, lineales. Antes de LINEAL estuvo PALO SECO, que es igual de correcto
+   y se descartó por oído —«busca otro nombre»—: son dos palabras donde las
+   demás entradas llevan una, y en una lista de nombres propios cortos se lee
+   como una explicación colada entre ellos. LINEAL cabe en seis letras y hace
+   pareja con ROMANA, que es lo que se quería. */
 function generoDeLaCadena(cadena){
   const c = String(cadena);
   if (/monospace/i.test(c)) return 'Máquina';
-  if (/sans-serif|system-ui|-apple-system/i.test(c)) return 'Palo seco';
+  if (/sans-serif|system-ui|-apple-system/i.test(c)) return 'Lineal';
   if (/serif/i.test(c)) return 'Romana';
   return 'Romana';
 }
