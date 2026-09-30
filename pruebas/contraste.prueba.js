@@ -2001,7 +2001,7 @@ async function ponerContraste(pagina, pct){
        !letras.falta && (letras.cadenaDePartida + '  →  ' + letras.devuelta));
 
   /* ──────────────────────────────────────────────────────────────
-     LA TARJETA DE LA GLOSA NUNCA ES MÁS OSCURA QUE EL PAPEL.
+     LAS CUATRO TARJETAS SE SEPARAN DEL PAPEL LO MISMO.
 
      Encargo del dueño del repo leyendo en la columna de glosas: «el fondo azul,
      rojo y verde se ven como oscurecidos». Nombró exactamente las tres que lo
@@ -2035,12 +2035,36 @@ async function ponerContraste(pagina, pct){
      más claro de la fila de en medio, que es la misma técnica que el bloque de
      los dos botones: en la tarjeta hay texto, y un punto fijo cae encima de una
      letra y devuelve la tinta. */
-  titulo('la tarjeta de la glosa nunca es más oscura que el papel');
+  titulo('las cuatro tarjetas de glosa se separan del papel lo mismo');
   const guardadoAntes = await sesion.pagina.evaluate(
     () => localStorage.getItem('glossa:ajustes:v1'));
   const lupaGl = await sesion.navegador.newPage();
   await lupaGl.setContent('<canvas id="c"></canvas>');
-  const masClaroDe = async (loc) => {
+  /* EL COLOR MÁS FRECUENTE DE LA FILA, Y NO EL MÁS CLARO. Este cambio lo
+     enseñó una roja, y conviene que quede entero porque la roja decía la
+     verdad sobre la prueba y una mentira sobre el programa.
+
+     El resto de esta suite mide «el píxel más claro de la fila de en medio», y
+     allí está bien: un botón sobre el degradado del panel es más claro que lo
+     que tiene detrás, así que el más claro ES el botón. Aquí dejó de valer el
+     día que las tarjetas pasaron a ser MÁS OSCURAS que el papel. Entonces el
+     píxel más claro de la captura de una tarjeta ya no es la tarjeta: es el
+     papel que se cuela por las esquinas redondeadas y por el antialias del
+     borde. Medido:
+
+        papel     más claro (255,232,183)   más frecuente (255,232,183)
+        amarilla  más claro (255,232,183)   más frecuente (255,232,158)
+        verde     más claro (255,229,181)   más frecuente (223,228,168)
+
+     O sea que la prueba comparaba el papel consigo mismo y cantaba ΔE 0.0 y
+     1.5 con los colores bien puestos. Con el más frecuente salen 12.5 y 12.6:
+     iguales, que es justo lo que la regla pide.
+
+     El más frecuente es la respuesta correcta para un fondo: una tarjeta es
+     casi toda fondo, y lo que no lo es —texto, borde, esquinas— es minoría por
+     definición. No depende de si la tarjeta es más clara o más oscura que lo
+     que la rodea, que es lo que hizo caer a la otra. */
+  const colorDe = async (loc) => {
     const b64 = (await loc.screenshot()).toString('base64');
     return lupaGl.evaluate(async (d) => {
       const img = new Image();
@@ -2050,12 +2074,14 @@ async function ponerContraste(pagina, pct){
       const cx = c.getContext('2d');
       cx.drawImage(img, 0, 0);
       const fila = cx.getImageData(0, Math.round(img.height / 2), img.width, 1).data;
-      let mejor = [0, 0, 0], luz = -1;
+      const cuenta = new Map();
       for (let i = 0; i < fila.length; i += 4){
-        const l = .2126*fila[i] + .7152*fila[i+1] + .0722*fila[i+2];
-        if (l > luz){ luz = l; mejor = [fila[i], fila[i+1], fila[i+2]]; }
+        const k = fila[i] + ',' + fila[i+1] + ',' + fila[i+2];
+        cuenta.set(k, (cuenta.get(k) || 0) + 1);
       }
-      return mejor;
+      let moda = null, veces = -1;
+      for (const [k, n] of cuenta) if (n > veces){ veces = n; moda = k; }
+      return moda.split(',').map(Number);
     }, b64);
   };
   /* La luz relativa de verdad, con su gamma: la media de los tres canales diría
@@ -2073,6 +2099,14 @@ async function ponerContraste(pagina, pct){
       const a = JSON.parse(localStorage.getItem(c) || '{}') || {};
       a.v = 1; a.libro = 'MAT'; a.cap = d.cap; a.vers = d.vers;
       a.placement = 'margin'; a.sepia = 100;
+      /* Y LOS DOS RIELES A LO DE FÁBRICA, que este bloque corre el último de
+         la sesión y los de arriba los dejan donde los dejan. Sin esto, lo
+         pintado depende de en qué punto acabó el bloque anterior: en una tanda
+         el papel se leyó a 0.551 de luz y en un sondeo a solas a 0.81, con los
+         mismos colores. La comparación tarjeta contra papel sobrevive a eso
+         —las dos pasan por el mismo filtro— pero los umbrales no, y un umbral
+         que depende del vecino es un umbral que un día salta sin motivo. */
+      a.contraste = 125; a.brillo = 100;
       localStorage.setItem(c, JSON.stringify(a));
     }, donde);
     await sesion.pagina.reload();
@@ -2087,10 +2121,10 @@ async function ponerContraste(pagina, pct){
        referencia habría que elegir entre el más claro y el más oscuro, y
        cualquiera de los dos afloja o aprieta la afirmación por el sitio
        equivocado. */
-    const papelAqui = await masClaroDe(sesion.pagina.locator('#pgBody'));
+    const papelAqui = await colorDe(sesion.pagina.locator('#pgBody'));
     papeles.push(papelAqui);
     for (const t of hay.slice(0, 4)){
-      const px = await masClaroDe(sesion.pagina.locator('#pgMargin .gl').nth(t.i));
+      const px = await colorDe(sesion.pagina.locator('#pgMargin .gl').nth(t.i));
       medidas.push({ donde: 'MAT ' + donde.cap, color: t.color, px, luz: luzDe(px),
                      pxPapel: papelAqui, luzPapel: luzDe(papelAqui) });
     }
@@ -2113,6 +2147,14 @@ async function ponerContraste(pagina, pct){
   vale('(la prueba es válida) se leyó papel y no tinta',
        papeles.length > 0 && papeles.every(p => p[0] > 150),
        JSON.stringify(papeles));
+  /* Y QUE LA TARJETA NO SEA EL PAPEL, que es la trampa en la que cayó la
+     versión anterior de esta medida: si el color leído de una tarjeta fuera
+     idéntico al de su papel, lo que se midió no fue la tarjeta. */
+  vale('(la prueba es válida) y cada tarjeta dio un color propio, no el del papel',
+       medidas.length > 0 &&
+       medidas.every(m => m.px.join(',') !== m.pxPapel.join(',')),
+       medidas.map(m => m.color + ' ' + m.px.join(',') + ' vs papel ' +
+                        m.pxPapel.join(',')).join(' · '));
   /* LA QUE SALTÓ, Y POR ESO ESTÁ. Con la hoja de Mateo 1 —donde se quedaba la
      suite— sólo había amarilla, así que la principal medía la única que nunca
      estuvo mal. */
