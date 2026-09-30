@@ -2001,7 +2001,7 @@ async function ponerContraste(pagina, pct){
        !letras.falta && (letras.cadenaDePartida + '  →  ' + letras.devuelta));
 
   /* ──────────────────────────────────────────────────────────────
-     LA TARJETA DE LA GLOSA NUNCA ES MÁS OSCURA QUE EL PAPEL.
+     LAS CUATRO TARJETAS SE SEPARAN DEL PAPEL LO MISMO.
 
      Encargo del dueño del repo leyendo en la columna de glosas: «el fondo azul,
      rojo y verde se ven como oscurecidos». Nombró exactamente las tres que lo
@@ -2035,12 +2035,36 @@ async function ponerContraste(pagina, pct){
      más claro de la fila de en medio, que es la misma técnica que el bloque de
      los dos botones: en la tarjeta hay texto, y un punto fijo cae encima de una
      letra y devuelve la tinta. */
-  titulo('la tarjeta de la glosa nunca es más oscura que el papel');
+  titulo('las cuatro tarjetas de glosa se separan del papel lo mismo');
   const guardadoAntes = await sesion.pagina.evaluate(
     () => localStorage.getItem('glossa:ajustes:v1'));
   const lupaGl = await sesion.navegador.newPage();
   await lupaGl.setContent('<canvas id="c"></canvas>');
-  const masClaroDe = async (loc) => {
+  /* EL COLOR MÁS FRECUENTE DE LA FILA, Y NO EL MÁS CLARO. Este cambio lo
+     enseñó una roja, y conviene que quede entero porque la roja decía la
+     verdad sobre la prueba y una mentira sobre el programa.
+
+     El resto de esta suite mide «el píxel más claro de la fila de en medio», y
+     allí está bien: un botón sobre el degradado del panel es más claro que lo
+     que tiene detrás, así que el más claro ES el botón. Aquí dejó de valer el
+     día que las tarjetas pasaron a ser MÁS OSCURAS que el papel. Entonces el
+     píxel más claro de la captura de una tarjeta ya no es la tarjeta: es el
+     papel que se cuela por las esquinas redondeadas y por el antialias del
+     borde. Medido:
+
+        papel     más claro (255,232,183)   más frecuente (255,232,183)
+        amarilla  más claro (255,232,183)   más frecuente (255,232,158)
+        verde     más claro (255,229,181)   más frecuente (223,228,168)
+
+     O sea que la prueba comparaba el papel consigo mismo y cantaba ΔE 0.0 y
+     1.5 con los colores bien puestos. Con el más frecuente salen 12.5 y 12.6:
+     iguales, que es justo lo que la regla pide.
+
+     El más frecuente es la respuesta correcta para un fondo: una tarjeta es
+     casi toda fondo, y lo que no lo es —texto, borde, esquinas— es minoría por
+     definición. No depende de si la tarjeta es más clara o más oscura que lo
+     que la rodea, que es lo que hizo caer a la otra. */
+  const colorDe = async (loc) => {
     const b64 = (await loc.screenshot()).toString('base64');
     return lupaGl.evaluate(async (d) => {
       const img = new Image();
@@ -2050,12 +2074,14 @@ async function ponerContraste(pagina, pct){
       const cx = c.getContext('2d');
       cx.drawImage(img, 0, 0);
       const fila = cx.getImageData(0, Math.round(img.height / 2), img.width, 1).data;
-      let mejor = [0, 0, 0], luz = -1;
+      const cuenta = new Map();
       for (let i = 0; i < fila.length; i += 4){
-        const l = .2126*fila[i] + .7152*fila[i+1] + .0722*fila[i+2];
-        if (l > luz){ luz = l; mejor = [fila[i], fila[i+1], fila[i+2]]; }
+        const k = fila[i] + ',' + fila[i+1] + ',' + fila[i+2];
+        cuenta.set(k, (cuenta.get(k) || 0) + 1);
       }
-      return mejor;
+      let moda = null, veces = -1;
+      for (const [k, n] of cuenta) if (n > veces){ veces = n; moda = k; }
+      return moda.split(',').map(Number);
     }, b64);
   };
   /* La luz relativa de verdad, con su gamma: la media de los tres canales diría
@@ -2073,6 +2099,14 @@ async function ponerContraste(pagina, pct){
       const a = JSON.parse(localStorage.getItem(c) || '{}') || {};
       a.v = 1; a.libro = 'MAT'; a.cap = d.cap; a.vers = d.vers;
       a.placement = 'margin'; a.sepia = 100;
+      /* Y LOS DOS RIELES A LO DE FÁBRICA, que este bloque corre el último de
+         la sesión y los de arriba los dejan donde los dejan. Sin esto, lo
+         pintado depende de en qué punto acabó el bloque anterior: en una tanda
+         el papel se leyó a 0.551 de luz y en un sondeo a solas a 0.81, con los
+         mismos colores. La comparación tarjeta contra papel sobrevive a eso
+         —las dos pasan por el mismo filtro— pero los umbrales no, y un umbral
+         que depende del vecino es un umbral que un día salta sin motivo. */
+      a.contraste = 125; a.brillo = 100;
       localStorage.setItem(c, JSON.stringify(a));
     }, donde);
     await sesion.pagina.reload();
@@ -2087,12 +2121,12 @@ async function ponerContraste(pagina, pct){
        referencia habría que elegir entre el más claro y el más oscuro, y
        cualquiera de los dos afloja o aprieta la afirmación por el sitio
        equivocado. */
-    const papelAqui = await masClaroDe(sesion.pagina.locator('#pgBody'));
+    const papelAqui = await colorDe(sesion.pagina.locator('#pgBody'));
     papeles.push(papelAqui);
     for (const t of hay.slice(0, 4)){
-      const px = await masClaroDe(sesion.pagina.locator('#pgMargin .gl').nth(t.i));
+      const px = await colorDe(sesion.pagina.locator('#pgMargin .gl').nth(t.i));
       medidas.push({ donde: 'MAT ' + donde.cap, color: t.color, px, luz: luzDe(px),
-                     luzPapel: luzDe(papelAqui) });
+                     pxPapel: papelAqui, luzPapel: luzDe(papelAqui) });
     }
   }
   await lupaGl.close();
@@ -2113,19 +2147,74 @@ async function ponerContraste(pagina, pct){
   vale('(la prueba es válida) se leyó papel y no tinta',
        papeles.length > 0 && papeles.every(p => p[0] > 150),
        JSON.stringify(papeles));
+  /* Y QUE LA TARJETA NO SEA EL PAPEL, que es la trampa en la que cayó la
+     versión anterior de esta medida: si el color leído de una tarjeta fuera
+     idéntico al de su papel, lo que se midió no fue la tarjeta. */
+  vale('(la prueba es válida) y cada tarjeta dio un color propio, no el del papel',
+       medidas.length > 0 &&
+       medidas.every(m => m.px.join(',') !== m.pxPapel.join(',')),
+       medidas.map(m => m.color + ' ' + m.px.join(',') + ' vs papel ' +
+                        m.pxPapel.join(',')).join(' · '));
   /* LA QUE SALTÓ, Y POR ESO ESTÁ. Con la hoja de Mateo 1 —donde se quedaba la
      suite— sólo había amarilla, así que la principal medía la única que nunca
      estuvo mal. */
   vale('(la prueba es válida) se midieron las tres que se quejó, no sólo la amarilla',
        ['g-green', 'g-blue', 'g-orange'].every(c => lasTres.some(m => m.color === c)),
        lasTres.map(m => m.color).join(', ') || 'ninguna de las tres');
-  /* LA DE VERDAD. Antes de este cambio, con el sepia al tope, las tres daban
-     entre 0.631 y 0.643 contra un papel de 0.667: por debajo las tres. */
-  vale('NINGUNA TARJETA ES MÁS OSCURA QUE EL PAPEL con el sepia al tope',
-       medidas.length > 0 &&
-       medidas.every(m => m.luz >= m.luzPapel - .005),
-       medidas.map(m => m.donde + ' ' + m.color + ' ' + m.luz +
-                        ' contra ' + m.luzPapel).join(' · '));
+  /* AQUÍ VIVIÓ «NINGUNA TARJETA ES MÁS OSCURA QUE EL PAPEL», y se retiró a
+     petición del dueño del repo. Queda escrito porque borrar una línea sin
+     decir por qué es perder el motivo: aquella regla la sostenía un velo
+     blanco debajo del tinte, y el velo se quitó —«retira lo que pusiste hace
+     unas PR»—. Sin velo esa línea saldría roja con la aplicación haciendo
+     exactamente lo que se pidió, que es la peor clase de roja.
+
+     LA REGLA DE AHORA ES OTRA: «que el verde, el azul y el rojo se vean como
+     el amarillo». Se mide la separación de cada tarjeta respecto al papel de
+     su hoja y se exige que las cuatro se separen LO MISMO.
+
+     ΔE Y NO DIFERENCIA DE CANALES, porque la pregunta es perceptual: dos
+     colores pueden estar a la misma distancia en números y a distancias muy
+     distintas para un ojo. Es la cuenta de la CIE del 76, que para esto —
+     colores claros y parecidos entre sí— llega de sobra.
+
+     EL MARGEN ES 4.5 Y TIENE CONTRAEJEMPLO: con las alfas de antes, la
+     amarilla se separaba 11.4 y las otras 4.5, 5.6 y 4.5. Un reparto de 6.9,
+     o sea que esta línea habría estado ROJA todo este tiempo, que es lo que
+     el dueño del repo veía y el banco no. Con las de ahora las cuatro dan
+     11.4 y el reparto es de décimas. */
+  const aLab = (c) => {
+    const l = c.map(v => { v /= 255;
+      return v <= .04045 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+    const X = .4124*l[0] + .3576*l[1] + .1805*l[2];
+    const Y = .2126*l[0] + .7152*l[1] + .0722*l[2];
+    const Z = .0193*l[0] + .1192*l[1] + .9505*l[2];
+    const f = t => t > .008856 ? Math.cbrt(t) : 7.787*t + 16/116;
+    const fx = f(X/.95047), fy = f(Y), fz = f(Z/1.08883);
+    return [116*fy - 16, 500*(fx - fy), 200*(fy - fz)];
+  };
+  const deltaE = (a, b) => {
+    const p = aLab(a), q = aLab(b);
+    return +Math.sqrt(p.reduce((t, v, i) => t + (v - q[i])**2, 0)).toFixed(1);
+  };
+  const separa = medidas.map(m => ({ ...m, dE: deltaE(m.px, m.pxPapel) }));
+  di('cuánto se separa cada una del papel',
+     separa.map(m => m.color + ' ΔE ' + m.dE).join(' · ') || 'ninguna');
+  const reparto = separa.length
+    ? +(Math.max(...separa.map(m => m.dE)) - Math.min(...separa.map(m => m.dE))).toFixed(1)
+    : null;
+  /* EL UMBRAL DE ESTA LÍNEA VA BAJO A PROPÓSITO. Lo pintado pasa por el filtro
+     de brillo y contraste del escenario, que acerca entre sí todos los tonos:
+     el papel se lee (211,194,163) donde la cuenta dice (232,211,172). Los ΔE
+     salen comprimidos frente a la aritmética, así que pedir aquí el 11.4 de la
+     cuenta sería pedir un número que el filtro se come. Lo que esta línea tiene
+     que decir es sólo que hay tarjeta que distinguir; el reparto lo juzga la de
+     abajo, y el filtro no lo altera porque encoge las cuatro igual. */
+  vale('(la prueba es válida) las cuatro se separan del papel algo',
+       separa.length >= 3 && separa.every(m => m.dE >= 4),
+       separa.map(m => m.color + ':' + m.dE).join(' · '));
+  vale('LAS CUATRO TARJETAS SE SEPARAN DEL PAPEL LO MISMO, como el amarillo',
+       reparto !== null && reparto <= 4.5,
+       'reparto ' + reparto + ' · ' + separa.map(m => m.color + ' ' + m.dE).join(' · '));
 
   await cerrarParcial(sesion, 'teléfono');
 

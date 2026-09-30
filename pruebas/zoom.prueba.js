@@ -27,7 +27,7 @@
    el desborde es cero y la razón es uno: todo en orden y nada ocurrido. Un
    veredicto que también se cumple cuando no pasa nada no está comprobando
    nada. */
-const { abrir, cerrar, conGlosas, di, vale, titulo, ESCRITORIO } = require('./comun');
+const { abrir, cerrar, cerrarParcial, conGlosas, di, vale, titulo, ESCRITORIO, TELEFONO } = require('./comun');
 
 (async () => {
   const sesion = await abrir();
@@ -945,6 +945,109 @@ const comoVan = r => {
   di('después de medir', m.despues);
   vale('la medición cancela el suavizado', m.antes.suavizando && !m.despues.suavizando);
   vale('y mide a tamaño natural', m.despues.ancho >= 408, m.antes.ancho + ' → ' + m.despues.ancho);
+
+  /* ──────────────────────────────────────────────────────────────
+     Y LA G VUELVE DEL ZOOM.
+
+     Encargo del dueño del repo: «la G no vuelve del zoom out». Era verdad, y
+     llevaba así desde que la G existe —tres semanas— sin que nada del banco lo
+     viera.
+
+     QUÉ PASABA, medido antes de tocar nada: al salir, el botón quedaba con
+     `hidden:true`, la clase `.puesta` todavía puesta y opacidad 1. O sea que no
+     estaba apagado, estaba escondido. pintarG decide si hay G mirando si el
+     escenario lleva la clase `.zoom`, y se la llamaba TRES RENGLONES ANTES de
+     quitársela: contestaba que no hay G y ponía el `hidden`. Después ya no
+     quedaba nadie que lo recalculara hasta la siguiente repaginada.
+
+     EN TELÉFONO Y NO EN ESCRITORIO, que es donde vive el caso: la G sólo
+     aparece cuando la hoja tiene cajón que abrir —`scrollWidth` mayor que el
+     ancho—, y en escritorio la columna de glosas cabe entera y no lo hay. En la
+     sesión de esta suite el botón no existiría y las tres líneas de abajo
+     pasarían sin mirar nada.
+
+     SE MIRA LO PINTADO Y NO EL `hidden`: lo que importa es si el lector la ve,
+     y por ahí puede esconderla tanto el atributo como el `display:none` que le
+     pone el CSS en zoom como la opacidad de la clase. Se juntan los tres en una
+     sola lectura, que es como los ve un ojo. */
+  titulo('la G vuelve del zoom');
+  const conG = await abrir(TELEFONO);
+  await conGlosas(conG.pagina);
+  await conG.pagina.waitForTimeout(1500);
+  const miraLaG = () => conG.pagina.evaluate(() => {
+    const g = document.getElementById('btnGlosas');
+    if (!g) return { falta:'no hay botón de glosas' };
+    const cs = getComputedStyle(g);
+    return { hidden: g.hidden, display: cs.display, opacidad: +cs.opacity,
+             seVe: !g.hidden && cs.display !== 'none' && +cs.opacity > 0.5 };
+  });
+  const gAntes = await miraLaG();
+  await conG.pagina.evaluate(() => document.getElementById('btnZoom').click());
+  await conG.pagina.waitForTimeout(1400);
+  const gDentro = await miraLaG();
+  await conG.pagina.evaluate(() => document.getElementById('btnZoom').click());
+  await conG.pagina.waitForTimeout(1800);
+  const gDespues = await miraLaG();
+  di('la G antes', JSON.stringify(gAntes));
+  di('la G dentro', JSON.stringify(gDentro));
+  di('la G al salir', JSON.stringify(gDespues));
+  /* La de validez, y aquí hace más falta que en ningún sitio: si la G no se
+     viera de entrada —sin glosas, o en un ancho donde no haya cajón— «vuelve»
+     saldría verde sin haber ido a ninguna parte. */
+  vale('(la prueba es válida) la G se veía antes de entrar al zoom',
+       !gAntes.falta && gAntes.seVe === true, JSON.stringify(gAntes));
+  vale('  y de lejos se quita, que es lo que se pidió',
+       !gDentro.falta && gDentro.seVe === false, JSON.stringify(gDentro));
+  vale('LA G VUELVE AL SALIR DEL ZOOM',
+       !gDespues.falta && gDespues.seVe === true, JSON.stringify(gDespues));
+  /* Y EL CAJÓN ABIERTO SOBREVIVE AL VIAJE, con la G diciéndolo.
+
+     Esta la propuso la revisión de Codex como fallo: al salir del zoom, la G
+     se repinta con el cajón todavía cerrado —abrirZoom lo cierra al entrar— y
+     quien lo devuelve a su sitio es acompanarCajon, que no llama a pintarG. El
+     razonamiento es correcto y la conclusión no: medido, al salir la G queda
+     `abierta:true` y `aria-pressed:"true"`.
+
+     POR QUÉ NO SE DA: `pg` lleva un oyente de `scroll` que llama a pintarG, y
+     acompanarCajon devuelve el cajón animando `scrollLeft` cuadro a cuadro. La
+     G se repinta sola durante todo el viaje y aterriza bien. Los dos atajos de
+     esa función tampoco dejan hueco: con el tramo por debajo de un píxel el
+     cajón ya estaba donde toca —y la G se pintó con ese valor—, y con
+     movimiento reducido la asignación única sí dispara su evento.
+
+     O SEA QUE ESTO FUNCIONA POR UNA CADENA DE TRES, y ninguno de los tres
+     eslabones lo sabe. Por eso la línea: el día que alguien quite ese oyente,
+     o cambie acompanarCajon por algo que no pase por `scrollLeft`, la G se
+     quedará mintiendo sobre un cajón abierto y nadie lo verá. Es exactamente
+     lo que Codex describió, esperando a ser verdad. */
+  await conG.pagina.evaluate(() => document.getElementById('btnGlosas').click());
+  await conG.pagina.waitForTimeout(2500);
+  const gCajon = await conG.pagina.evaluate(() => {
+    const g = document.getElementById('btnGlosas');
+    const pg = document.getElementById('pg');
+    return { abierta: g.classList.contains('abierta'),
+             aria: g.getAttribute('aria-pressed'),
+             alTope: pg.scrollLeft >= pg.scrollWidth - pg.clientWidth - 4 };
+  });
+  await conG.pagina.evaluate(() => document.getElementById('btnZoom').click());
+  await conG.pagina.waitForTimeout(1400);
+  await conG.pagina.evaluate(() => document.getElementById('btnZoom').click());
+  await conG.pagina.waitForTimeout(2200);
+  const gVuelta = await conG.pagina.evaluate(() => {
+    const g = document.getElementById('btnGlosas');
+    const pg = document.getElementById('pg');
+    return { abierta: g.classList.contains('abierta'),
+             aria: g.getAttribute('aria-pressed'),
+             alTope: pg.scrollLeft >= pg.scrollWidth - pg.clientWidth - 4 };
+  });
+  di('con el cajón abierto', JSON.stringify(gCajon));
+  di('y al volver del zoom', JSON.stringify(gVuelta));
+  vale('(la prueba es válida) la G abrió el cajón del todo',
+       gCajon.alTope === true && gCajon.abierta === true, JSON.stringify(gCajon));
+  vale('  y al volver del zoom el cajón sigue abierto Y LA G LO DICE',
+       gVuelta.alTope === true && gVuelta.abierta === true && gVuelta.aria === 'true',
+       JSON.stringify(gVuelta));
+  await cerrarParcial(conG, 'la G y el zoom');
 
   await cerrar(sesion);
 })();
