@@ -1000,6 +1000,53 @@ const comoVan = r => {
        !gDentro.falta && gDentro.seVe === false, JSON.stringify(gDentro));
   vale('LA G VUELVE AL SALIR DEL ZOOM',
        !gDespues.falta && gDespues.seVe === true, JSON.stringify(gDespues));
+  /* Y EL CAJÓN ABIERTO SOBREVIVE AL VIAJE, con la G diciéndolo.
+
+     Esta la propuso la revisión de Codex como fallo: al salir del zoom, la G
+     se repinta con el cajón todavía cerrado —abrirZoom lo cierra al entrar— y
+     quien lo devuelve a su sitio es acompanarCajon, que no llama a pintarG. El
+     razonamiento es correcto y la conclusión no: medido, al salir la G queda
+     `abierta:true` y `aria-pressed:"true"`.
+
+     POR QUÉ NO SE DA: `pg` lleva un oyente de `scroll` que llama a pintarG, y
+     acompanarCajon devuelve el cajón animando `scrollLeft` cuadro a cuadro. La
+     G se repinta sola durante todo el viaje y aterriza bien. Los dos atajos de
+     esa función tampoco dejan hueco: con el tramo por debajo de un píxel el
+     cajón ya estaba donde toca —y la G se pintó con ese valor—, y con
+     movimiento reducido la asignación única sí dispara su evento.
+
+     O SEA QUE ESTO FUNCIONA POR UNA CADENA DE TRES, y ninguno de los tres
+     eslabones lo sabe. Por eso la línea: el día que alguien quite ese oyente,
+     o cambie acompanarCajon por algo que no pase por `scrollLeft`, la G se
+     quedará mintiendo sobre un cajón abierto y nadie lo verá. Es exactamente
+     lo que Codex describió, esperando a ser verdad. */
+  await conG.pagina.evaluate(() => document.getElementById('btnGlosas').click());
+  await conG.pagina.waitForTimeout(2500);
+  const gCajon = await conG.pagina.evaluate(() => {
+    const g = document.getElementById('btnGlosas');
+    const pg = document.getElementById('pg');
+    return { abierta: g.classList.contains('abierta'),
+             aria: g.getAttribute('aria-pressed'),
+             alTope: pg.scrollLeft >= pg.scrollWidth - pg.clientWidth - 4 };
+  });
+  await conG.pagina.evaluate(() => document.getElementById('btnZoom').click());
+  await conG.pagina.waitForTimeout(1400);
+  await conG.pagina.evaluate(() => document.getElementById('btnZoom').click());
+  await conG.pagina.waitForTimeout(2200);
+  const gVuelta = await conG.pagina.evaluate(() => {
+    const g = document.getElementById('btnGlosas');
+    const pg = document.getElementById('pg');
+    return { abierta: g.classList.contains('abierta'),
+             aria: g.getAttribute('aria-pressed'),
+             alTope: pg.scrollLeft >= pg.scrollWidth - pg.clientWidth - 4 };
+  });
+  di('con el cajón abierto', JSON.stringify(gCajon));
+  di('y al volver del zoom', JSON.stringify(gVuelta));
+  vale('(la prueba es válida) la G abrió el cajón del todo',
+       gCajon.alTope === true && gCajon.abierta === true, JSON.stringify(gCajon));
+  vale('  y al volver del zoom el cajón sigue abierto Y LA G LO DICE',
+       gVuelta.alTope === true && gVuelta.abierta === true && gVuelta.aria === 'true',
+       JSON.stringify(gVuelta));
   await cerrarParcial(conG, 'la G y el zoom');
 
   await cerrar(sesion);
