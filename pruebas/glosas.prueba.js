@@ -1899,11 +1899,21 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       await new Promise(z => setTimeout(z, 420));
     }
   });
+  /* DEVUELVE EL MOTIVO, no un false pelado. Este bloque encadena seis
+     aserciones detrás de «se pudo escribir la glosa nueva», así que cuando esa
+     primera se cae salen siete rojas y ninguna dice nada: el retrato de después
+     mira una glosa que no existe y contesta que no está guardada, que no se ve
+     y que el filtro sigue puesto, todo cierto y todo irrelevante. Pasó en una
+     tanda entera, y lo único que se sabía al leerla es que algo no abrió.
+
+     El pincel ya deja escrito por qué no pudo —cuántos versículos probó, si
+     alguno abrió una marca ya hecha, qué capa está encima del texto; ver
+     __glosarEn en comun.js— y aquí se estaba tirando. Ahora sube. */
   const escribirGlosa = (nota, desde, hasta) => q.evaluate(async ([abrir, nota, d, h]) => {
     const ok = await eval('(' + abrir + ')')(d, h);
-    if (!ok) return false;
+    if (!ok) return { ok:false, porque: window.__pincelPorque || 'el pincel no dijo nada' };
     const ta = document.getElementById('glosaCaja');
-    if (!ta) return false;
+    if (!ta) return { ok:false, porque: 'el panel abrió y no traía caja de escribir' };
     ta.value = nota; ta.dispatchEvent(new Event('input', { bubbles:true }));
     await new Promise(z => setTimeout(z, 200));
     /* Tocar fuera DE VERDAD, que es como se cierra: el oyente que cobra lo
@@ -1911,7 +1921,7 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     document.body.dispatchEvent(new PointerEvent('pointerdown',
       { bubbles:true, clientX:5, clientY:5 }));
     await new Promise(z => setTimeout(z, 900));
-    return true;
+    return { ok:true, porque:'' };
   }, [ABRIR, nota, desde, hasta]);
   const retrato = nota => q.evaluate(nota => {
     const ms = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
@@ -1969,7 +1979,11 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
 
   /* Y ahora la glosa nueva, que nace sin etiquetas. */
   const escribio = await escribirGlosa('la nueva sin etiqueta', 30, 50);
-  vale('se pudo escribir la glosa nueva', escribio === true);
+  /* Y SI ÉSTA SE CAE, LAS DE ABAJO NO DICEN NADA: el retrato mira una glosa
+     que no llegó a existir. Se dejan correr igual —callarlas escondería una
+     avería distinta que cayera aquí el día que ésta pase— pero el motivo va en
+     la primera, que es la única que puede explicarlas. */
+  vale('se pudo escribir la glosa nueva', escribio.ok === true, escribio.porque);
   const r = await retrato('la nueva sin etiqueta');
   di('el aviso', r.aviso);
   di('los chips que quedan', r.chips);
