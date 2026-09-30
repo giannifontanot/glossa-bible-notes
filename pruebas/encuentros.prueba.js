@@ -1079,6 +1079,14 @@ const IR_A = `async (sec) => {
      quien escribe el cambio; un olvido a medias —subir la hoja de estilo y
      dejarse el guion— es el que de verdad despista, porque entonces media
      aplicación es nueva y la otra media no. */
+  /* LA OTRA MITAD YA EXISTE, y esta línea deja de estar sola. Lo de arriba se
+     escribió después de la primera vez y decía que el olvido entero no lo ve
+     nadie más que quien escribe el cambio; pasó una segunda vez, con esta
+     misma aspa, y entonces se escribió `cache.prueba.js`: no abre navegador y
+     le pregunta al repositorio si el número subió en el mismo commit en que
+     cambió el árbol. Ésta sigue haciendo falta —mira lo que el navegador PIDE
+     de verdad, que es otra cosa que lo que pone en el fichero— pero ya no es
+     la única guardia. */
   const sellos = conHoja.falta ? null : await marcoOra.evaluate(() => {
     const de = (u) => { const m = /[?&]v=([^&]+)/.exec(u || ''); return m ? m[1] : null; };
     /* SÓLO LOS FICHEROS DE ESTA CARPETA. El puente —../encuentros/salida.js—
