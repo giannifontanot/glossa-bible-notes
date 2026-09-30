@@ -67,6 +67,7 @@ diagnóstico. Salen con código distinto de cero si algo falla.
 | `portada` | la tapa del arranque: que cuente segundo y tres cuartos, que «hold» la pare y «continue» la suelte, y que la foto y las piedras que se le peguen sigan ahí al volver |
 | `version` | el sello del panel de compartir (antes «Respaldo», luego «Share», hoy el signo del punto que se abre en otros dos): que se vea, que tenga la forma pedida, y —lo que de verdad vigila— que la hora sea la de Dallas y no la del aparato; y el crédito de licencia, que vive ahí porque la atribución CC BY-SA es obligatoria |
 | `encuentros` | la quinta sección y el signo de compartir: que Encuentros esté detrás de Glosas y sus relatos en el orden pedido, que su barra de dentro sobreviva a cerrar y volver a abrir —la trampa: si se llamara `.pestanas`, ponerBarra la borraría—, que las pestañas vayan en UN renglón por muchas que sean y la tira avise de lo que queda fuera, que cada relato se pida cuando se mira su pestaña y no al arrancar —ni al abrir la sección: abrir Encuentros no puede costar todos los documentos—, que llene el panel sin comerse el botón de CERRAR, que Escape salga también desde dentro del marco, y que el relato se vista con la ropa del libro: el tipo y el tamaño de letra de AAA, la tinta del sepia, ningún papel propio y el oro del número de capítulo |
+| `cache` | **la única que no abre el navegador**: que el número de caché del árbol de ORACIÓN haya subido en el mismo commit en que cambió cualquiera de sus ficheros, y que si hay cambios sin confirmar el número esté entre ellos. Vive fuera del navegador porque el olvido es invisible desde dentro: una hoja de estilos cargada en limpio siempre es la nueva. Dura un parpadeo |
 | `acuse` | el borde que late al tocar —«te oí, estoy en ello»—: que llegue a lo que se toca (un libro, un capítulo de la cascada, una glosa del índice, una pestaña de Encuentros, un botón, un desplegable) y que NO llegue a lo que no lo necesita (los rieles, la casilla, el asa de arrastrar), que es la mitad sin la cual «acusa todo» pasaría; las dos formas —macizo para un botón, aro para lo que ya dice algo con su color— medidas sobre el fondo, que es donde se diferencian; que la lupa de Libros lo retire del libro de partida y un gesto cancelado no lo deje encendido; y que un cambio CARO en un desplegable lo enseñe, que es donde se caía |
 
 ## Cuatro reglas que costaron caro
@@ -121,6 +122,10 @@ Conviene saberlo antes de confiar de más:
 - **Nada de lo visual.** Que un color quede feo o un botón ocupe media
   pantalla no lo caza ninguna de estas.
 - **El respaldo y la importación**, apenas.
+- **Lo que se le sirve a un lector que ya tenía la página guardada**, salvo el
+  número de caché del árbol de ORACIÓN, que vigila `cache`. El navegador de las
+  pruebas arranca siempre en limpio, así que ninguna de las demás ve lo que ve
+  un teléfono con memoria.
 
 `separador` tarda dos minutos largos y es a propósito: lo que vigila son los
 veinte segundos de permanencia que separan leer de hojear, y el reloj no se
