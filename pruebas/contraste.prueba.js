@@ -1959,7 +1959,7 @@ async function ponerContraste(pagina, pct){
      Segoe—. Ésa es la contestación a la pregunta del dueño del repo, dicha en
      el sitio donde se elige, que en un teléfono es el único sitio donde cabe:
      ahí no hay hover que leer. */
-  const GENEROS = ['Romana', 'Palo seco', 'Máquina'];
+  const GENEROS = ['Romana', 'Lineal', 'Máquina'];
   vale('  y la que el aparato no tiene enseña el género, no el nombre',
        !letras.falta && letras.ofrecidas.every(v =>
          v.tiene === true || GENEROS.includes(v.rotulo)),
