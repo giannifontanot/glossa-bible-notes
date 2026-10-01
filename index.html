@@ -6188,10 +6188,38 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '30-SEP-26 17:51';
+window.GLOSS_BUILD = '01-OCT-26 08:50';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
+
+/* CRONÓMETRO DE GLOSA, TEMPORAL.
+   Mide abrir el panel y guardar, y deja el último tramo a la vista abajo a la
+   izquierda para leerlo en el teléfono sin consola. window.__tiempos guarda el
+   detalle. Se quita cuando ya se sepa dónde se va el tiempo. */
+window.__tiempos = window.__tiempos || [];
+function __crono(nombre, t0){
+  var ms = +(performance.now() - t0).toFixed(1);
+  var fila = {nombre: nombre, ms: ms};
+  window.__tiempos.push(fila);
+  if (window.__tiempos.length > 120) window.__tiempos.splice(0, window.__tiempos.length - 120);
+  var caja = document.getElementById('glosaCrono');
+  if (!caja){
+    caja = document.createElement('div');
+    caja.id = 'glosaCrono';
+    caja.setAttribute('aria-hidden', 'true');
+    caja.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99999;max-width:70vw;' +
+      'pointer-events:none;font:11px/1.35 ui-monospace,monospace;color:#1a140c;' +
+      'background:rgba(244,232,208,.92);border:1px solid #b8892b;border-radius:6px;' +
+      'padding:4px 7px;white-space:pre';
+    document.body.appendChild(caja);
+  }
+  var ult = window.__tiempos.slice(-8).map(function(x){ return x.nombre + ' ' + x.ms + 'ms'; }).join('\n');
+  caja.textContent = ult;
+  try { console.log('[glosa-crono] ' + nombre + ' ' + ms + 'ms'); } catch(e){}
+}
+
+
 
 /* ============================================================
    ¿HAY TAPA, O NO LA HAY? Y ESTO SE DECIDE AQUÍ ARRIBA DEL TODO.
@@ -8062,12 +8090,17 @@ function resolver(m, ver){
   return { ini:0, fin:texto.length, grado:'versiculo' };
 }
 function resolverTodas(){
+  var __t0 = performance.now();
+  try {
+
   RES = new Map();
   for (const m of marcas){
     const r = resolver(m, version);
     if (r) RES.set(m.id, r);
   }
   recalcularTurnos();
+
+  } finally { __crono('resolverTodas', __t0); }
 }
 
 /* El turno de cada glosa dentro de su capítulo, en el orden en que se lee.
@@ -9122,6 +9155,9 @@ const huecoDeGiro = () => {
 };
 
 function layoutInto(bodyEl, marginEl, footEl, from, hasta){
+  var __t0 = performance.now();
+  try {
+
   const below = placement === 'below';
   const setM = o => { marginEl.style.setProperty('--mw', o?MARGIN_W()+'px':'0px');
                       marginEl.style.setProperty('--mgap', o?'11px':'0px'); };
@@ -9161,6 +9197,8 @@ function layoutInto(bodyEl, marginEl, footEl, from, hasta){
   asentarGlosas(bodyEl); asentarGlosas(footEl);   /* las de "abajo" y las del pie */
   colocarMargen(bodyEl, marginEl);
   return out(next);
+
+  } finally { __crono('layoutInto', __t0); }
 }
 
 /* ============================================================
@@ -9395,6 +9433,9 @@ function sinFundido(fn){
 }
 
 function renderPage(){
+  var __t0 = performance.now();
+  try {
+
   const r = sinZoom(renderPageCrudo);
   /* Las piedras se repintan con la hoja y no antes: cuáles tocan depende del
      reparto, que es lo que renderPageCrudo acaba de decidir. */
@@ -9411,8 +9452,13 @@ function renderPage(){
      puesto haya cinta o no. Ver colocarLosPuntos. */
   if (typeof colocarLosPuntos === 'function') colocarLosPuntos();
   return r;
+
+  } finally { __crono('renderPage', __t0); }
 }
 function renderPageCrudo(){
+  var __t0 = performance.now();
+  try {
+
   resolverTodas(); recalcularRefs(); calcularVinculos();
   asegurarPaginas();
   /* Se corta hasta la hoja que toca, y solo si no existe se recula. Con el
@@ -9485,6 +9531,8 @@ function renderPageCrudo(){
      en el SVG del retrato, no en este nodo vivo. */
   if (typeof separadorAlPintar === 'function') separadorAlPintar();
   if (typeof guardarAjustes === 'function') guardarAjustes();
+
+  } finally { __crono('renderPageCrudo', __t0); }
 }
 
 /* ---------- rangos ---------- */
@@ -9514,6 +9562,9 @@ function rangoDe(m, bodyEl){
   return rg;
 }
 function aplicarHighlights(){
+  var __t0 = performance.now();
+  try {
+
   for (const c of COLORS){ CSS.highlights.delete('f-'+c); CSS.highlights.delete('b-'+c); }
   CSS.highlights.delete('aprox');
   const b = {}, dud = [];
@@ -9527,6 +9578,8 @@ function aplicarHighlights(){
   }
   for (const n in b) CSS.highlights.set(n, new Highlight(...b[n]));
   if (dud.length) CSS.highlights.set('aprox', new Highlight(...dud));
+
+  } finally { __crono('aplicarHighlights', __t0); }
 }
 /* La escala del destello vive aquí arriba a la fuerza: el bloque de estilos
    de abajo la usa en el momento en que se carga la página, y un const no
@@ -9768,11 +9821,16 @@ let ultimoRect = null;
    recoge, la cuenta sube; el adiós solo limpia si nadie ha vuelto a tocarlo. */
 let vidaMenu = 0;
 function mostrarMenu(html, rect){
+  var __t0 = performance.now();
+  try {
+
   guardarMenu();                          /* corta un adiós a medias, si lo hay */
   if (rect) ultimoRect = rect;
   menu.innerHTML = html;
   menu.style.display = 'flex';
   colocarMenu();
+
+  } finally { __crono('mostrarMenu', __t0); }
 }
 /* Recoger el panel de verdad: esto es lo que antes hacía ocultarMenu de una
    vez, y ahora es el final de los dos caminos —el instantáneo y el del adiós—.
@@ -9996,6 +10054,9 @@ function sitioDelMenu(w, h, r, s){
   menu.addEventListener('lostpointercapture', soltar);
 })();
 function ocultarMenu(){
+  var __t0 = performance.now();
+  try {
+
   if (menu._teclado) menu._teclado();
   /* El punto del adiós se mide ANTES de cerrar el borrador: cerrarlo repinta
      la hoja, y lo que hace falta es de dónde salió este panel. Y solo para el
@@ -10016,6 +10077,8 @@ function ocultarMenu(){
   if (adios && !volo) morirPanel(adios);
   else if (adios && conLista) morirPanel(adios, true);
   else guardarMenu();
+
+  } finally { __crono('ocultarMenu', __t0); }
 }
 
 /* ---------- lo que se ve ---------- */
@@ -10246,6 +10309,9 @@ function tagboxHTML(m){
    así que la forma se escribe primero y las medidas después: al revés, cambiar
    de color le quitaría el ancho y el cuerpo de letra. */
 function vestirVista(m){
+  var __t0 = performance.now();
+  try {
+
   const caja = menu.querySelector('#glVista'); if (!caja) return;
   caja.className = 'gl gl-vista g-' + m.color;
   caja.style.cssText = formaOrganica(m).css;
@@ -10267,6 +10333,8 @@ function vestirVista(m){
      modo que no lo hereda de ningún sitio. */
   caja.style.setProperty('--papel', colorPapel());
   caja.style.width = anchoVista() + 'px';
+
+  } finally { __crono('vestirVista', __t0); }
 }
 /* EL PANEL NACE DE LO QUE SEÑALASTE, no encima de ello.
 
@@ -10308,12 +10376,17 @@ function origenDelPanel(){
   return Math.round(ox) + 'px ' + Math.round(oy) + 'px';
 }
 function nacerPanel(){
+  var __t0 = performance.now();
+  try {
+
   const origen = origenDelPanel(); if (!origen) return;
   menu.style.transformOrigin = origen;
   menu.animate([
     { transform:'scale(.82)', opacity:0 },
     { transform:'none', opacity:1 }
   ], { duration:170, easing:'cubic-bezier(.2,.75,.35,1)' });
+
+  } finally { __crono('nacerPanel', __t0); }
 }
 /* EL PANEL SE RECOGE POR DONDE SALIÓ.
 
@@ -10676,6 +10749,9 @@ const TAGS_MS = 0;
    una fuente es un número que va a estar mal alguna de esas veces. Medir en
    el momento no se equivoca nunca, y aquí no costaba nada. */
 function calentarTags(){
+  var __t0 = performance.now();
+  try {
+
   const caja = menu.querySelector('.tagbox');
   if (!caja || caja.classList.contains('abierta') || caja._pliegue) return;
   caja.classList.add('abierta');
@@ -10683,6 +10759,8 @@ function calentarTags(){
   /* Se pide el rectángulo para FORZAR la composición, no para guardarlo. */
   caja.getBoundingClientRect();
   caja.classList.remove('abierta');
+
+  } finally { __crono('calentarTags', __t0); }
 }
 function plegarTags(caja, abrir){
   if (!caja) return;
@@ -10848,6 +10926,9 @@ function rotularOk(){
    SIN LA API DE RESALTADO no hay atajo: sin ella las marcas son <span>, y
    meter uno en la hoja es rehacerla. Ahí se sigue repintando, como antes. */
 function pintarMarcaNueva(m){
+  var __t0 = performance.now();
+  try {
+
   if (!HL_API){ renderPage(); return; }
   /* Y SE RESUELVE UNA, NO LAS DOSCIENTAS. resolverTodas rehace el mapa entero,
      y las demás marcas siguen exactamente donde estaban: no ha cambiado ni el
@@ -10860,8 +10941,13 @@ function pintarMarcaNueva(m){
   recalcularTurnos();
   recalcularRefs();         /* su «12a», que pintarAncla necesita ya resuelto */
   aplicarHighlights();
+
+  } finally { __crono('pintarMarcaNueva', __t0); }
 }
 function abrirPanel(m, nueva, rect){
+  var __t0 = performance.now();
+  try {
+
   if (borrador) cerrarBorrador();          /* el anterior se cobra antes */
   /* Lo que traía al abrirse, para saber al cerrar si algo cambió de verdad.
      Sin esto, mirar una glosa y tocar fuera la hacía volar como si la
@@ -10938,6 +11024,8 @@ function abrirPanel(m, nueva, rect){
   /* Al final del todo: crecer hacia un sitio exige saber dónde acabó el panel,
      y eso no se sabe hasta haberlo medido y colocado. */
   nacerPanel();
+
+  } finally { __crono('abrirPanel', __t0); }
 }
 /* LO QUE PASA AL CERRAR, que es lo único que toca el almacén.
 
@@ -10999,6 +11087,9 @@ function destaparLaNueva(m){
     ': escondía la glosa que acabas de escribir';
 }
 function cerrarBorrador(){
+  var __t0 = performance.now();
+  try {
+
   const b = borrador; borrador = null;
   const ta = menu.querySelector('#glosaCaja');
   const nota = ta ? ta.value.trim() : (b.m.nota || '').trim();
@@ -11046,6 +11137,8 @@ function cerrarBorrador(){
   /* Se dice si hubo vuelo para que ocultarMenu sepa si además toca despedir el
      panel encogiéndolo. Con vuelo no: una salida por despedida. */
   return !!viajero;
+
+  } finally { __crono('cerrarBorrador', __t0); }
 }
 /* Y AL GUARDAR, EL RECUADRO SE VA VOLANDO A SU SITIO.
 
@@ -14466,10 +14559,15 @@ function apagarG(){
   if (g) g.classList.remove('puesta');
 }
 function encenderG(){
+  var __t0 = performance.now();
+  try {
+
   pintarG();
   const g = $('btnGlosas');
   if (!g || g.hidden) return;
   g.classList.add('puesta');
+
+  } finally { __crono('encenderG', __t0); }
 }
 (function correrPapel(){
   /* EL DESLIZ DE LADO YA NO ABRE EL CAJÓN. Pedido: ese movimiento pasa hoja,
