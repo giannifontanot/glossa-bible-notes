@@ -173,5 +173,135 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
   vale('el día es un día', dia >= 1 && dia <= 31, dia);
   vale('la hora es una hora', +hm[0] <= 23 && +hm[1] <= 59, hm.join(':'));
 
+  /* ---------- LA CASILLA DE LOS TIEMPOS, vecina del sello ----------
+
+     Pedido: «un checkbox en RESPALDO para que aparezca y desaparezca la caja
+     de PERFORMANCE». La caja es #glosaCrono, el cronómetro temporal que deja
+     los últimos tramos abajo a la izquierda para poder leerlos en el teléfono
+     sin enchufarlo a una consola.
+
+     SE MIRA EL DOCUMENTO Y NO LA VARIABLE. verCrono vive dentro de la IIFE y
+     no se ve desde fuera, que es a propósito; y además lo que hay que vigilar
+     no es la variable sino las dos cosas que el lector percibe: que la casilla
+     se pueda tocar con un dedo y que la caja salga y se vaya.
+
+     ESTE BLOQUE SE VA CON EL CRONÓMETRO. Cuando se quite la caja se quitan la
+     casilla, verCrono, pintarCrono, la clave de los ajustes y esto. Son cinco
+     piezas de lo mismo y están nombradas en el comentario de la fila. */
+  titulo('la casilla que enseña y esconde la caja de los tiempos');
+  const cr = await sesion.pagina.evaluate(() => {
+    const c = document.getElementById('chkCrono');
+    if (!c) return { falta:'la casilla' };
+    const label = c.closest('label');
+    const fila = c.closest('.ajuste');
+    const rl = label.getBoundingClientRect();
+    const rc = c.getBoundingClientRect();
+    return {
+      enElPanel: !!c.closest('#respaldo'),
+      /* Nace apagada, y la caja con ella: una caja de diagnóstico encendida
+         de fábrica sería un adorno encima del libro para todo el mundo. */
+      marcada: c.checked,
+      hayCaja: !!document.getElementById('glosaCrono'),
+      rotulo: (label.textContent || '').trim(),
+      /* EL RENGLÓN ENTERO ES ZONA DE TOQUE, que es la mitad del encargo: con
+         el dedo, un cuadradito de 17px es una lotería. Se mide el LABEL, que
+         es lo que recibe el toque, no el input. */
+      altoLabel: Math.round(rl.height),
+      altoCasilla: Math.round(rc.height),
+      /* Y que el rótulo de la fila diga de qué familia es, como las demás. */
+      lbl: (fila.querySelector('.lbl').textContent || '').trim()
+    };
+  });
+  di('la casilla', JSON.stringify(cr));
+  vale('está en el panel de Share', cr.enElPanel === true, cr.falta || cr.enElPanel);
+  vale('  nace apagada, y sin caja', cr.marcada === false && cr.hayCaja === false,
+       'marcada ' + cr.marcada + ' · caja ' + cr.hayCaja);
+  vale('  el renglón entero se alcanza con el dedo (44px o más)',
+       cr.altoLabel >= 44, cr.altoLabel + 'px de alto, casilla de ' + cr.altoCasilla);
+  vale('  y su rótulo dice lo que hace', /tiempos/i.test(cr.rotulo || ''), cr.rotulo);
+
+  /* SE TOCA EL RÓTULO Y NO EL CUADRADITO, y esa es la razón de medir el label
+     arriba: si el texto no estuviera dentro del label, esto no encendería
+     nada y la aserción del dedo sería una mentira cómoda. */
+  const encendida = await sesion.pagina.evaluate(async () => {
+    const c = document.getElementById('chkCrono');
+    const texto = c.closest('label').querySelector('span');
+    texto.click();
+    await new Promise(z => setTimeout(z, 300));
+    const caja = document.getElementById('glosaCrono');
+    if (!caja) return { marcada: c.checked, hayCaja:false };
+    const cs = getComputedStyle(caja), r = caja.getBoundingClientRect();
+    return { marcada: c.checked, hayCaja:true,
+             seVe: r.width > 4 && r.height > 4 &&
+                   cs.visibility !== 'hidden' && cs.display !== 'none',
+             medida: Math.round(r.width) + 'x' + Math.round(r.height),
+             /* YA TRAE TRAMOS PUESTOS, y esto es la decisión de diseño que se
+                vino a comprobar: el cronómetro sigue contando con la caja
+                escondida, así que al encenderla sale con lo último medido en
+                vez de en blanco esperando a que vuelvas a hacer algo. Si
+                alguien hiciera que apagar la casilla apague la medida, esta
+                línea se cae y dirá por qué. */
+             texto: (caja.textContent || '').trim(),
+             tramos: (caja.textContent || '').trim().split('\n').filter(Boolean).length,
+             /* Y QUE NO SE COMA NINGÚN TOQUE. Está fija en una esquina con
+                z-index 99999: sin pointer-events:none taparía lo que haya
+                debajo, y lo que hay debajo es el libro. */
+             pasaElDedo: cs.pointerEvents === 'none' };
+  });
+  di('con la casilla puesta', JSON.stringify(encendida));
+  vale('TOCANDO EL RÓTULO SALE LA CAJA', encendida.marcada === true && encendida.hayCaja === true,
+       'marcada ' + encendida.marcada + ' · caja ' + encendida.hayCaja);
+  vale('  y se ve de verdad', encendida.hayCaja && encendida.seVe === true, encendida.medida);
+  vale('  con lo ya medido dentro, no en blanco',
+       encendida.tramos >= 1, encendida.tramos + ' tramos · ' + (encendida.texto || 'vacío'));
+  vale('  y no se come los toques del libro que tiene debajo',
+       encendida.pasaElDedo === true, encendida.pasaElDedo);
+
+  const apagada = await sesion.pagina.evaluate(async () => {
+    const c = document.getElementById('chkCrono');
+    c.closest('label').querySelector('span').click();
+    await new Promise(z => setTimeout(z, 300));
+    return { marcada: c.checked, hayCaja: !!document.getElementById('glosaCrono') };
+  });
+  vale('  y volviendo a tocarlo se va del documento, no se esconde',
+       apagada.marcada === false && apagada.hayCaja === false,
+       'marcada ' + apagada.marcada + ' · caja ' + apagada.hayCaja);
+
+  /* Y QUE AGUANTE LA RECARGA, que es lo que la hace servir de algo: medir en
+     un teléfono pasa por recargar —los rieles se aplican recargando— y una
+     casilla que se apaga en cada recarga habría que volver a encenderla justo
+     cuando se está midiendo. */
+  const tras = await sesion.pagina.evaluate(async () => {
+    document.getElementById('chkCrono').closest('label').querySelector('span').click();
+    await new Promise(z => setTimeout(z, 400));
+    return !!document.getElementById('glosaCrono');
+  });
+  await sesion.pagina.reload();
+  await sesion.pagina.waitForTimeout(2600);
+  const vuelta = await sesion.pagina.evaluate(async () => {
+    const antesDeAbrir = !!document.getElementById('glosaCrono');
+    /* La casilla se vuelve a mirar abriendo el panel con el dedo, como la
+       primera vez: la fila se arma al arrancar pero el panel está cerrado. */
+    document.getElementById('pgCabeza').click();
+    await new Promise(z => setTimeout(z, 900));
+    const t = document.querySelector('.pestanas button[data-sec="respaldo"]');
+    if (t) t.click();
+    await new Promise(z => setTimeout(z, 700));
+    const c = document.getElementById('chkCrono');
+    return { antesDeAbrir, marcada: c ? c.checked : null };
+  });
+  di('tras recargar', JSON.stringify({ seEncendio: tras, ...vuelta }));
+  vale('SOBREVIVE A LA RECARGA: la caja vuelve sola',
+       tras === true && vuelta.antesDeAbrir === true, 'antes de recargar ' + tras +
+       ' · después ' + vuelta.antesDeAbrir);
+  vale('  y la casilla vuelve marcada, no sólo la caja',
+       vuelta.marcada === true, vuelta.marcada);
+  /* Se deja apagada: lo guardado viaja a lo que corra después. */
+  await sesion.pagina.evaluate(async () => {
+    const c = document.getElementById('chkCrono');
+    if (c && c.checked) c.closest('label').querySelector('span').click();
+    await new Promise(z => setTimeout(z, 300));
+  });
+
   await cerrar(sesion);
 })();

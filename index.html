@@ -4448,6 +4448,23 @@
                   line-height:1.15; white-space:nowrap; }
   .ajuste > .ctrl{ flex:1 1 auto; min-width:0; display:flex; flex-wrap:wrap;
                    gap:4px; align-items:center; }
+  /* UNA CASILLA DENTRO DE UNA FILA DE AJUSTES.
+
+     No reusa .canto-opcion, que es la otra casilla del programa, y la razón es
+     su anillo rojo: ése es el galón de «aquí se puede tocar» y vale para la
+     opción que precisamente enciende esos galones. Ponérselo a cualquier
+     casilla sería gastar la única señal que el programa tiene para eso.
+
+     El rótulo va DENTRO del label y no en el .lbl de la fila: así el texto
+     entero es zona de toque y no sólo el cuadradito de 17px, que con el dedo
+     es la diferencia entre un control y una lotería. La fila se queda con su
+     .lbl para decir de qué familia es la casilla, como las demás. */
+  .casilla{ display:inline-flex; align-items:center; gap:7px; cursor:pointer;
+            min-height:32px; padding:2px 4px; border-radius:6px;
+            -webkit-tap-highlight-color:transparent; }
+  .casilla input{ flex:0 0 auto; width:17px; height:17px; margin:0;
+                  accent-color:#b8892b; cursor:pointer; }
+  .casilla:focus-within{ outline:2px solid #b8892b; outline-offset:2px; }
 
   /* Menús en cascada: los capítulos salen al lado del libro que tocaste, y
      los versículos al lado del capítulo. Viven en la escena y no dentro del
@@ -5289,6 +5306,10 @@
        casilla crece con él: una casilla de 17px es de ratón. */
     .canto-opcion{ font-size:calc(15px * var(--escala-ui, 1)); min-height:48px; gap:10px; }
     .canto-opcion input{ width:22px; height:22px; }
+    /* Y la de RESPALDO con ella, por lo mismo y con la misma cuenta: el suelo
+       de la casa son 48px y una casilla de 17 es de ratón. */
+    .casilla{ min-height:48px; gap:10px; }
+    .casilla input{ width:22px; height:22px; }
     /* Las rejillas siguen al alto de .num, que es de quien dependen: con
        celdas de 38px y números de 29px volvían a quedar apretados. */
     /* Las rejillas de números siguen al alto de .num, que es de quien
@@ -6188,7 +6209,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '01-OCT-26 08:50';
+window.GLOSS_BUILD = '01-OCT-26 18:49';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -6198,12 +6219,34 @@ console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
    izquierda para leerlo en el teléfono sin consola. window.__tiempos guarda el
    detalle. Se quita cuando ya se sepa dónde se va el tiempo. */
 window.__tiempos = window.__tiempos || [];
-function __crono(nombre, t0){
-  var ms = +(performance.now() - t0).toFixed(1);
-  var fila = {nombre: nombre, ms: ms};
-  window.__tiempos.push(fila);
-  if (window.__tiempos.length > 120) window.__tiempos.splice(0, window.__tiempos.length - 120);
+/* Y AHORA CON INTERRUPTOR, que es lo que pidió el dueño del repo: una casilla
+   en RESPALDO para que la caja aparezca y desaparezca. Nace apagada.
+
+   SE MIDE IGUAL CON LA CAJA ESCONDIDA, y esto no es un descuido: lo que la
+   casilla gobierna es si se VE, no si se cuenta. window.__tiempos se sigue
+   llenando y la consola sigue recibiendo sus renglones, así que al encender la
+   casilla la caja sale ya con los ocho últimos tramos puestos en vez de en
+   blanco esperando a que vuelvas a hacer algo. Apagar la medida para ahorrar
+   nada —son dos restas y un push— habría costado justo eso.
+
+   VA CON var Y NO CON let a propósito. Este bloque vive en el primer renglón
+   del programa, antes de que exista casi nada, y __crono lo lee. Con let, una
+   llamada que llegara antes de que esta línea se ejecute daría ReferenceError
+   por la zona muerta; con var ya está declarada y vale undefined, que es
+   falso, que es «la caja no se ve». Hoy no puede pasar —las llamadas vienen de
+   funciones que corren mucho después— pero el precio de asegurarlo es ninguno
+   y la avería que evita sería un programa que no arranca. */
+var verCrono = false;
+/* PINTAR Y DESPINTAR, en una sola función y con la casilla sincronizada: quien
+   cambie verCrono por cualquier camino —la casilla, los ajustes guardados— no
+   tiene que acordarse de tres cosas. La caja se QUITA del documento al apagar
+   en vez de esconderse: es una caja de diagnóstico temporal, y un nodo fijo
+   con z-index 99999 escondido es un nodo del que hay que acordarse. */
+function pintarCrono(){
+  var c = document.getElementById('chkCrono');
+  if (c) c.checked = verCrono;
   var caja = document.getElementById('glosaCrono');
+  if (!verCrono){ if (caja) caja.remove(); return; }
   if (!caja){
     caja = document.createElement('div');
     caja.id = 'glosaCrono';
@@ -6214,8 +6257,14 @@ function __crono(nombre, t0){
       'padding:4px 7px;white-space:pre';
     document.body.appendChild(caja);
   }
-  var ult = window.__tiempos.slice(-8).map(function(x){ return x.nombre + ' ' + x.ms + 'ms'; }).join('\n');
-  caja.textContent = ult;
+  caja.textContent = window.__tiempos.slice(-8)
+    .map(function(x){ return x.nombre + ' ' + x.ms + 'ms'; }).join('\n');
+}
+function __crono(nombre, t0){
+  var ms = +(performance.now() - t0).toFixed(1);
+  window.__tiempos.push({nombre: nombre, ms: ms});
+  if (window.__tiempos.length > 120) window.__tiempos.splice(0, window.__tiempos.length - 120);
+  pintarCrono();
   try { console.log('[glosa-crono] ' + nombre + ' ' + ms + 'ms'); } catch(e){}
 }
 
@@ -23201,6 +23250,13 @@ function guardarAjustes(){
       v: 1, fontSize, fontSizeGlosa, columns, placement, alineacion,
       interlineado, margen, version, showMarks, sepia, contraste, brillo,
       verFlechas, cantoTesta,
+      /* La casilla de los tiempos se guarda, y es lo que la hace servir de
+         algo: medir en un teléfono pasa por recargar —los rieles se aplican
+         recargando— y una casilla que se apaga en cada recarga habría que
+         volver a encenderla justo cuando se está midiendo. Se va con el
+         cronómetro; cargarAjustes ignora sola cualquier clave que no lea, así
+         que quitarla no deja nada detrás. */
+      verCrono,
       /* El espaciado del libro y el de las glosas. Los ajustes guardados antes
          de que existieran no los traen, y cargarAjustes los deja en lo de
          fábrica; por eso el objeto sigue en v:1. Con ellos se guardaron un
@@ -23284,6 +23340,9 @@ function cargarAjustes(){
   /* === y no !==: apagadas es lo de fábrica, así que solo un true escrito las
      enciende. Un ajuste viejo sin la clave se comporta como hasta ahora. */
   verFlechas = a.verFlechas === true;
+  /* === y no !==, igual que las dos de arriba: la caja de los tiempos nace
+     apagada, así que sólo un true escrito la enciende. */
+  verCrono = a.verCrono === true;
   cantoTesta = a.cantoTesta === 'AT' ? 'AT' : 'NT';
   /* Se acepta cualquier texto porque las etiquetas las escribe quien usa la
      aplicación y no hay lista cerrada que consultar; solo se rechaza lo que no
@@ -23702,6 +23761,43 @@ const ENCUENTROS = [
   fallo.hidden = true;
   caja.appendChild(fallo);
   if (ultimoFallo){ fallo.textContent = ultimoFallo; fallo.hidden = false; }
+  /* LA CASILLA DE LOS TIEMPOS, pedida: «un checkbox en RESPALDO para que
+     aparezca y desaparezca la caja de PERFORMANCE».
+
+     POR QUÉ EN ESTE PANEL Y NO EN FORMATO. Lo de Formato son ajustes de
+     lectura: cómo se ve el libro. Esto no cambia nada de lo que se lee —es un
+     cronómetro de diagnóstico— y la pregunta que contesta es la de este panel:
+     «qué copia tengo entre manos y qué está haciendo». Es vecina del sello por
+     derecho propio.
+
+     Y VA AQUÍ Y NO AL FINAL. El orden del cierre de este panel está elegido y
+     dicho más abajo: el crédito se lee una vez y el sello va lo último porque
+     se viene a buscar con prisa, normalmente con algo que no funciona en la
+     mano. Meter una casilla entre los dos rompería esa pareja, así que entra
+     antes, pegada a la fila de archivo, que es la otra cosa que se TOCA aquí.
+
+     SE VA CUANDO SE VAYA EL CRONÓMETRO. Esta fila, verCrono, pintarCrono y la
+     clave de los ajustes son las cuatro piezas de lo mismo: el día que se sepa
+     dónde se va el tiempo se quitan las cuatro de una vez. */
+  const filaCrono = document.createElement('div');
+  filaCrono.className = 'ajuste ancho';
+  filaCrono.innerHTML = '<span class="lbl">medidas</span>' +
+    '<span class="ctrl"><label class="casilla">' +
+    '<input type="checkbox" id="chkCrono"' + (verCrono ? ' checked' : '') + ' />' +
+    '<span>Ver los tiempos del programa</span></label></span>';
+  caja.appendChild(filaCrono);
+  /* EL OYENTE VA EN EL PANEL Y NO EN LA CASILLA. Hoy esta fila se arma una
+     sola vez y pegárselo a la casilla funcionaría; va en el panel porque es
+     como se escucha la otra casilla del programa —ver #canto y chkFlechas— y
+     porque el día que algo rehaga este panel, un oyente pegado a la casilla se
+     iría con ella sin que nada lo dijera. */
+  caja.addEventListener('change', ev => {
+    const c = ev.target.closest('#chkCrono');
+    if (!c) return;
+    verCrono = c.checked;
+    pintarCrono();
+    guardarAjustes();
+  });
   /* AQUÍ VIVÍAN DOS PÁRRAFOS DE EXPLICACIÓN y se fueron los dos, pedido así:
      «en RESPALDO, quita todo el texto de explicación... solo deben estar los
      botones para respaldar, el respaldo, la versión y los copyrights».
@@ -24460,6 +24556,15 @@ document.documentElement.style.setProperty('--rojo-galon', tintaDe('carmin')[2])
 /* Y el cromo toma el tamaño guardado, que para entonces ya se leyó. */
 escalarInterfaz();
 pintarFlechas();
+/* Y la caja de los tiempos, por lo mismo que las flechas: quien la dejó
+   encendida la quiere encendida al abrir, no después de pasar por RESPALDO.
+
+   Y ESTA LÍNEA NO ES UN POR SI ACASO. armarRespaldo corre MIL LÍNEAS ANTES de
+   que cargarAjustes lea nada, así que el `checked` que esa fila escribe es
+   siempre el de fábrica —apagado— por mucho que lo guardado diga otra cosa.
+   Lo único que pone la casilla donde toca es esto, aquí, después de los dos.
+   Se anota porque leyendo la fila de allá arriba parece que ya se encarga. */
+pintarCrono();
 /* Y la portada recupera su adorno. Va aquí y no antes porque necesita las
    figuras y los colores de las piedras, que se declaran más arriba pero
    después del techo duro. */
