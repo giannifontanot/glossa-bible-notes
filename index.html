@@ -5566,7 +5566,10 @@
      renglón con 50 px cada una, y en 300 con 46. De 28 a 46 en la pantalla que
      menos tiene, y sin perder el renglón. Se queda el relleno de 4, que es lo
      que da ese margen; se fue la letra de 14, que ya no arregla nada. */
-  @media (pointer:coarse) and (max-width: 400px){
+  /* Con siete pestañas hace falta ese aire también con ratón: a 320 px los
+     9 px de relleno dejaban el SVG de las manos fuera del botón por 1.6 px.
+     Decide el ancho de la ventana, no el tipo de puntero. */
+  @media (max-width: 400px){
     .pestanas button{ padding:8px 4px; }
   }
 
@@ -6229,7 +6232,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-OCT-26 11:06';
+window.GLOSS_BUILD = '02-OCT-26 11:12';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';

@@ -1402,8 +1402,8 @@ const IR_A = `async (sec) => {
      relato contra el libro y parten de que nadie ha tocado el riel. */
   await conLaLetra(15);
 
-  /* En 320 con ratón no entra el @media pointer:coarse que baja el relleno.
-     Es una cuenta distinta aunque la ventana mida lo mismo que el teléfono. */
+  /* Antes el relleno bajaba solo con pointer:coarse y las manos se salían en
+     320 con ratón. Se vigilan ambos punteros y los dos estados de color. */
   const sesionRotulos = await abrir(ESCRITORIO);
   const paginaRotulos = sesionRotulos.pagina;
   await paginaRotulos.evaluate(`(${IR_A})('formato')`);
