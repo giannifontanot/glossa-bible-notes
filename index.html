@@ -6226,7 +6226,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-OCT-26 09:57';
+window.GLOSS_BUILD = '02-OCT-26 10:26';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -22294,24 +22294,56 @@ function saltarA(libro, cap, vers, regreso, opciones){
    "¿y si mañana esto no está?".
    ============================================================ */
 const FORMATO = 'glossa/marcas';
+/* El respaldo se hace desde la memoria, también si el almacén falló: leer la
+   clave al exportar rescataría la copia vieja y perdería lo recién escrito. */
+const CLAVE_NOTAS = 'glossa:notas:v1';
+let notas = [];
+let reflejarNotas = () => {};
+const nuevoIdNota = () => 'nota-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
+function guardarNotas(){
+  try {
+    localStorage.setItem(CLAVE_NOTAS, JSON.stringify(notas));
+    return true;
+  } catch(e){
+    readout.textContent = 'NO SE PUDO GUARDAR LAS NOTAS (' + (e.name || 'error') +
+                          ') — exporta tus notas antes de cerrar';
+    return false;
+  }
+}
+function fusionarNotas(entrantes){
+  const conocidas = new Set(notas.map(n => n.id));
+  let nuevas = 0, repetidas = 0, malas = 0;
+  for (const n of entrantes){
+    if (!n || typeof n !== 'object' || typeof n.texto !== 'string' ||
+        typeof n.titulo !== 'string'){ malas++; continue; }
+    const id = typeof n.id === 'string' && n.id ? n.id : nuevoIdNota();
+    if (conocidas.has(id)){ repetidas++; continue; }
+    conocidas.add(id);
+    notas.push({ id, titulo:n.titulo.trim().slice(0, 60) || 'Nota', texto:n.texto });
+    nuevas++;
+  }
+  return { nuevas, repetidas, malas };
+}
 
 /* BAJAR EL ARCHIVO. Una función y no el cuerpo del botón, porque hay dos
    maneras de pedirlo: el botón de Exportar y el respaldo del día, que lo hace
    solo. El archivo es el mismo en los dos casos, y tiene que serlo: uno
    importa lo que le llega sin mirar de qué puerta salió. */
 function bajarRespaldo(){
-  if (!marcas.length) return false;
+  if (!marcas.length && !notas.length) return false;
   /* El archivo tiene que decir qué es en la primera línea que se ve al
      abrirlo, y también en su nombre. Dentro de un año, entre cincuenta
      archivos, "glossa-2026-08-14.json" no le dice nada a nadie. */
   const paquete = {
-    _que_es: 'Respaldo de Gloss Bible: tus subrayados y glosas. ' +
+    _que_es: 'Respaldo de Gloss Bible: tus subrayados, glosas y notas. ' +
              'Se restaura con el botón Importar del lector.',
     formato: FORMATO, version: 1,
     exportado: new Date().toISOString(),
     versionTexto: version,
     totalMarcas: marcas.length,
-    marcas
+    marcas,
+    totalNotas: notas.length,
+    notas
   };
   const blob = new Blob([JSON.stringify(paquete, null, 1)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -22371,6 +22403,12 @@ $('archivoImp').onchange = ev => {
       readout.textContent = 'ese archivo no parece una exportación de Glossa';
       return;
     }
+    const notasEntrantes = !Array.isArray(datos) && datos.notas !== undefined
+      ? datos.notas : [];
+    if (!Array.isArray(notasEntrantes)){
+      readout.textContent = 'ese archivo no parece una exportación de Glossa';
+      return;
+    }
     /* Se FUSIONA, no se reemplaza: importar nunca debe borrar lo que ya
        tenías. Las repetidas se saltan por id, y a las que les falte id
        (editadas a mano) se les inventa uno. La cuenta vive ahora en
@@ -22378,15 +22416,20 @@ $('archivoImp').onchange = ev => {
        son la misma regla y tienen que seguir siendo la misma. */
     const { nuevas, repetidas, malas } = fusionarMarcas(entrantes);
     save(); renderPage();
+    const cuentaNotas = fusionarNotas(notasEntrantes);
+    if (notasEntrantes.length){
+      reflejarNotas();
+      if (!guardarNotas()) return;       /* el resumen no debe tapar el fallo */
+    }
     /* Lo que entró se ve entrar: la hoja se vuelve a pintar con las glosas
        nuevas puestas. Lo que NO entró no se ve por ningún lado, y eso sí hay
        que decirlo: un archivo con veinte notas del que solo aparecen tres se
        lee como una importación completa a menos que alguien cuente las otras
        diecisiete. */
-    if (repetidas || malas)
-      readout.textContent = nuevas + ' importada(s)' +
-        (repetidas ? ' · ' + repetidas + ' ya estaban' : '') +
-        (malas ? ' · ' + malas + ' ilegibles' : '');
+    if (repetidas || malas || cuentaNotas.repetidas || cuentaNotas.malas)
+      readout.textContent = (nuevas + cuentaNotas.nuevas) + ' importada(s)' +
+        (repetidas + cuentaNotas.repetidas ? ' · ' + (repetidas + cuentaNotas.repetidas) + ' ya estaban' : '') +
+        (malas + cuentaNotas.malas ? ' · ' + (malas + cuentaNotas.malas) + ' ilegibles' : '');
   };
   lector.readAsText(f);
 };
@@ -23565,21 +23608,20 @@ const ENCUENTROS = [
 })();
 
 /* LAS NOTAS SON DEL LECTOR, no del libro ni de una glosa: se guardan aparte
-   para que cambiar de pasaje no las mueva ni una copia de seguridad vieja las
-   confunda con anotaciones al versículo. Cada pestaña conserva título y texto;
-   el doble clic nombra, el + abre otra hoja. */
+   para que cambiar de pasaje no las mueva. Viajan junto a las glosas en el
+   respaldo, conservando su propia lista y sus identificadores. */
 (function armarNotas(){
   const caja = document.getElementById('notas');
   if (!caja) return;
-  const CLAVE_NOTAS = 'glossa:notas:v1';
-  let notas;
   try {
     const leidas = JSON.parse(localStorage.getItem(CLAVE_NOTAS) || 'null');
     notas = Array.isArray(leidas) ? leidas.filter(n => n && typeof n.texto === 'string') : null;
   } catch(_){ notas = null; }
-  if (!notas || !notas.length) notas = [{ id:'nota-1', titulo:'Nota 1', texto:'' }];
+  /* No usar nota-1 de fábrica: dos dispositivos tendrían el mismo id y una
+     importación descartaría la primera nota escrita como si ya existiera. */
+  if (!notas || !notas.length) notas = [{ id:nuevoIdNota(), titulo:'Nota 1', texto:'' }];
   notas = notas.map((n, i) => ({
-    id: String(n.id || ('nota-' + (i + 1))),
+    id: String(n.id || nuevoIdNota()),
     titulo: String(n.titulo || ('Nota ' + (i + 1))).slice(0, 60), texto:n.texto
   }));
   let activa = notas[0].id;
@@ -23592,7 +23634,6 @@ const ENCUENTROS = [
   hojas.className = 'nota-hojas';
   caja.appendChild(cajaBarra); caja.appendChild(hojas);
 
-  const guardar = () => { try { localStorage.setItem(CLAVE_NOTAS, JSON.stringify(notas)); } catch(_){} };
   const avisarMas = () => {
     const sobra = barra.scrollWidth - barra.clientWidth;
     cajaBarra.classList.toggle('hay-izq', barra.scrollLeft > 1);
@@ -23616,7 +23657,7 @@ const ENCUENTROS = [
         const titulo = window.prompt('Título de la nota', nota.titulo);
         if (titulo === null) return;
         nota.titulo = titulo.trim().slice(0, 60) || ('Nota ' + (i + 1));
-        guardar(); pintar(false);
+        guardarNotas(); pintar(false);
       });
       barra.appendChild(tab);
       const hoja = document.createElement('section');
@@ -23626,7 +23667,7 @@ const ENCUENTROS = [
       editor.className = 'nota-editor'; editor.value = nota.texto;
       editor.placeholder = 'Escribe aquí…';
       editor.setAttribute('aria-label', 'Contenido de ' + nota.titulo);
-      editor.addEventListener('input', () => { nota.texto = editor.value; guardar(); });
+      editor.addEventListener('input', () => { nota.texto = editor.value; guardarNotas(); });
       hoja.appendChild(editor); hojas.appendChild(hoja);
     });
     const mas = document.createElement('button');
@@ -23642,12 +23683,19 @@ const ENCUENTROS = [
   barra.addEventListener('click', ev => {
     const mas = ev.target.closest('.nota-mas');
     if (mas) {
-      const id = 'nota-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+      const id = nuevoIdNota();
       notas.push({ id, titulo:'Nota ' + (notas.length + 1), texto:'' }); activa = id;
-      guardar(); pintar(true); return;
+      guardarNotas(); pintar(true); return;
     }
     const tab = ev.target.closest('[data-nota]'); if (!tab) return;
-    activa = tab.dataset.nota; pintar(false);
+    /* Los dos clics de un doble toque necesitan el MISMO nodo. Seleccionar
+       sólo cambia qué hoja se ve; reconstruir aquí destruía la pestaña entre
+       el primer clic y el segundo y el navegador perdía el dblclick. */
+    activa = tab.dataset.nota;
+    barra.querySelectorAll('[data-nota]').forEach(t =>
+      t.classList.toggle('aqui', t.dataset.nota === activa));
+    hojas.querySelectorAll('.nota-hoja').forEach(h => h.hidden = h.dataset.nota !== activa);
+    traerActiva();
   });
   barra.addEventListener('scroll', avisarMas, { passive:true });
   barra.addEventListener('wheel', ev => {
@@ -23659,6 +23707,7 @@ const ENCUENTROS = [
   }, { passive:false });
   if (typeof ResizeObserver === 'function') new ResizeObserver(avisarMas).observe(barra);
   pintar(false);
+  reflejarNotas = () => pintar(false);
   encenderNotaViva = traerActiva;
 })();
 (function armarEncuentros(){
