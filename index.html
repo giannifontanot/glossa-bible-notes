@@ -3952,7 +3952,7 @@
   .indice-tab{ display:flex; align-items:center; gap:6px; }
   .indice-tab svg{ width:1.1em; height:1.1em; fill:none; stroke:currentColor;
                     stroke-width:1.7; stroke-linecap:round; }
-  .indice-tab:focus-visible, .indice-item:focus-visible{
+  .indice-tab:focus-visible, .indice-item:focus-visible, .indice-asa:focus-visible{
     outline:2px solid #b8892b; outline-offset:-2px; }
   .indice-pagina{ flex:1 1 auto; min-width:0; min-height:0; overflow-y:auto;
                    box-sizing:border-box; padding:20px 18px 28px;
@@ -3969,13 +3969,16 @@
                         font:400 calc(13px * var(--escala-ui, 1))/1.5 var(--ui); }
   .indice-cuenta{ margin:0; color:#88651d;
                    font:600 calc(11px * var(--escala-ui, 1))/1.4 var(--ui); }
+  .indice-ayuda, .indice-aviso{ margin:9px 0 0; color:#756342;
+    font:400 calc(11px * var(--escala-ui, 1))/1.45 var(--ui); }
+  .indice-aviso:empty{ display:none; }
   .rollo .indice-crear{ margin-top:13px; min-height:40px; padding:8px 12px;
                          font-size:calc(12px * var(--escala-ui, 1)); }
-  .indice-lista{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));
+  .indice-lista{ position:relative; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));
                   align-content:start; gap:10px; margin:0; padding:0; list-style:none; }
-  .indice-lista li{ min-width:0; }
+  .indice-fila{ position:relative; min-width:0; list-style:none; }
   .indice-item{ display:flex; align-items:center; gap:12px; width:100%; min-height:64px;
-                 box-sizing:border-box; padding:13px 12px; text-align:left; cursor:pointer;
+                 box-sizing:border-box; padding:13px 12px 13px 52px; text-align:left; cursor:pointer;
                  border:1px solid rgba(140,116,68,.24); border-radius:7px;
                  background:rgba(255,253,247,.72); color:#493817;
                  transition:background .2s ease,border-color .2s ease; }
@@ -3988,6 +3991,21 @@
   .indice-detalle{ display:block; margin-top:4px; overflow-wrap:anywhere; color:#756342;
                     font:400 calc(11px * var(--escala-ui, 1))/1.45 var(--ui); }
   .indice-flecha{ flex:0 0 auto; color:#a17b2d; font-size:20px; }
+  /* El asa es hermana del enlace, nunca un botón dentro de otro. Sólo ella
+     desactiva el gesto nativo: sobre el texto se puede seguir desplazando la
+     lista con el dedo sin empezar un arrastre. */
+  .indice-asa{ position:absolute; left:4px; top:50%; transform:translateY(-50%);
+    display:grid; place-items:center; width:40px; height:44px; padding:0;
+    border:0; border-radius:5px; background:transparent; color:#9a7a3b;
+    cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
+  .indice-asa:hover{ background:rgba(184,137,43,.1); color:#73561f; }
+  .indice-asa svg{ width:14px; height:22px; fill:currentColor; pointer-events:none; }
+  .indice-fila.arrastrando > .indice-item{ opacity:.35; border-style:dashed; }
+  .indice-fila.arrastrando > .indice-asa{ cursor:grabbing; }
+  .indice-fantasma{ position:fixed; z-index:20000; pointer-events:none; margin:0;
+    transform:scale(1.025); box-shadow:0 8px 24px rgba(73,56,23,.2); border-radius:7px; }
+  .indice-fantasma .indice-item{ background:#fffdf6; border-color:#b8892b; }
+  @media (prefers-reduced-motion:reduce){ .indice-fantasma{ transform:none; } }
   /* EL MARCO DE ORACIÓN, Y POR QUÉ ES UN MARCO Y NO CÓDIGO PEGADO AQUÍ.
 
      Lo de dentro es una aplicación entera de otro repo —762 líneas de CSS,
@@ -6278,7 +6296,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-OCT-26 12:56';
+window.GLOSS_BUILD = '02-OCT-26 14:50';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17746,7 +17764,7 @@ const SUPERFICIES_ACUSE = [...LOS_ROLLOS.map(r => r.el), canto, flyCaps, flyVers
 const LO_QUE_ACUSA = '.btn, .chip, .tabo, .num, .ix-item, .pestanitas button, .indice-tab, .indice-item';
 function loQueAcusa(objetivo){
   if (!objetivo || !objetivo.closest) return null;
-  if (objetivo.closest('.ix-asa')) return null;
+  if (objetivo.closest('.ix-asa, .indice-asa')) return null;
   const b = objetivo.closest(LO_QUE_ACUSA);
   if (!b || b.disabled || b.classList.contains('vacio')) return null;
   return b;
@@ -23737,7 +23755,11 @@ function crearIndiceSeccion(titulo, descripcion, antetitulo){
   const detalle = document.createElement('p');
   detalle.className = 'indice-descripcion'; detalle.textContent = descripcion;
   const cuenta = document.createElement('p'); cuenta.className = 'indice-cuenta';
-  cabecera.append(antes, nombre, detalle, cuenta);
+  const ayuda = document.createElement('p'); ayuda.className = 'indice-ayuda';
+  ayuda.textContent = 'Arrastra las manijas para cambiar el orden de la lista y las pestañas. Con teclado, usa las flechas.';
+  const aviso = document.createElement('p'); aviso.className = 'indice-aviso';
+  aviso.setAttribute('role', 'status'); aviso.setAttribute('aria-atomic', 'true');
+  cabecera.append(antes, nombre, detalle, cuenta, ayuda, aviso);
   const lista = document.createElement('ol');
   lista.className = 'indice-lista'; lista.setAttribute('aria-label', titulo);
   lista.setAttribute('role', 'list');
@@ -23757,7 +23779,8 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
   pagina.querySelector('.indice-cuenta').textContent = cuenta;
   const lista = pagina.querySelector('.indice-lista'); lista.textContent = '';
   elementos.forEach((elemento, i) => {
-    const fila = document.createElement('li');
+    const fila = document.createElement('li'); fila.className = 'indice-fila';
+    fila.dataset.destino = elemento.id;
     const enlace = document.createElement('button');
     enlace.type = 'button'; enlace.className = 'indice-item';
     enlace.dataset.destino = elemento.id;
@@ -23777,8 +23800,170 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
     enlace.addEventListener('click', ev => {
       ev.preventDefault(); ev.stopPropagation(); elegir(elemento.id);
     });
-    fila.appendChild(enlace); lista.appendChild(fila);
+    const asa = document.createElement('button');
+    asa.type = 'button'; asa.className = 'indice-asa';
+    asa.title = 'Arrastra para reordenar; con teclado, usa las flechas';
+    asa.setAttribute('aria-label', 'Mover ' + elemento.nombre + '. Usa las flechas para cambiar de posición');
+    asa.innerHTML = '<svg viewBox="0 0 14 22" aria-hidden="true" focusable="false">' +
+      '<circle cx="4" cy="5" r="1.7"/><circle cx="10" cy="5" r="1.7"/>' +
+      '<circle cx="4" cy="11" r="1.7"/><circle cx="10" cy="11" r="1.7"/>' +
+      '<circle cx="4" cy="17" r="1.7"/><circle cx="10" cy="17" r="1.7"/></svg>';
+    fila.append(enlace, asa); lista.appendChild(fila);
   });
+}
+
+/* La nota guarda su orden en el propio arreglo del respaldo. Encuentros usa
+   una preferencia aparte: no altera el catálogo ni hace visibles los ocultos.
+   Los ids viejos, repetidos o desconocidos no borran entradas nuevas. */
+function ordenarElementosIndice(elementos, ids){
+  const puestos = new Map();
+  (Array.isArray(ids) ? ids : []).forEach(id => {
+    if (typeof id === 'string' && !puestos.has(id)) puestos.set(id, puestos.size);
+  });
+  return elementos.slice().sort((a, b) =>
+    (puestos.get(a.id) ?? puestos.size) - (puestos.get(b.id) ?? puestos.size));
+}
+function armarManijasIndice(pagina, reordenar){
+  const lista = pagina.querySelector('.indice-lista');
+  const aviso = pagina.querySelector('.indice-aviso');
+  const filas = () => [...lista.children];
+  const ids = () => filas().map(f => f.dataset.destino);
+  const numerar = () => filas().forEach((f, i) => {
+    f.querySelector('.indice-numero').textContent = String(i + 1).padStart(2, '0');
+  });
+  const anunciar = (fila, guardado) => {
+    aviso.textContent = fila.querySelector('.indice-nombre').textContent + ', posición ' +
+      (filas().indexOf(fila) + 1) + ' de ' + lista.children.length +
+      (guardado === false ? '. No se pudo guardar el orden.' : '. Orden actualizado.');
+  };
+  let gesto = null;
+  const animaciones = new Map();
+  const mover = (fila, destino) => {
+    const actuales = filas(), desde = actuales.indexOf(fila);
+    if (destino < 0 || destino >= actuales.length || desde === destino) return false;
+    const fotos = new Map(actuales.map(f => [f, f.getBoundingClientRect()]));
+    animaciones.forEach(a => a.cancel()); animaciones.clear();
+    lista.insertBefore(fila, desde < destino ? actuales[destino].nextSibling : actuales[destino]);
+    numerar();
+    /* FLIP anima a las vecinas, no a la pieza que ya sigue al dedo. El mismo
+       nodo conserva el asa y el foco; jamás reconstruir editores ni marcos. */
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
+      actuales.forEach(f => {
+        if (f === fila) return;
+        const antes = fotos.get(f), despues = f.getBoundingClientRect();
+        const x = antes.left - despues.left, y = antes.top - despues.top;
+        if (x || y){
+          const a = f.animate([
+            { transform:'translate(' + x + 'px,' + y + 'px)' }, { transform:'none' }
+          ], { duration:280, easing:'cubic-bezier(.2,.85,.3,1)' });
+          animaciones.set(f, a);
+          a.addEventListener('finish', () => { if (animaciones.get(f) === a) animaciones.delete(f); });
+        }
+      });
+    }
+    return true;
+  };
+  const acabar = confirmar => {
+    if (!gesto) return;
+    const g = gesto; gesto = null;
+    cancelAnimationFrame(g.reloj);
+    g.fantasma?.remove(); g.fila.classList.remove('arrastrando');
+    animaciones.forEach(a => a.cancel()); animaciones.clear();
+    if (g.movido){
+      if (confirmar) anunciar(g.fila, reordenar(ids(), true));
+      else {
+        ordenarElementosIndice(filas().map(f => ({ id:f.dataset.destino, fila:f })), g.orden)
+          .forEach(e => lista.appendChild(e.fila));
+        numerar(); reordenar(g.orden, false); aviso.textContent = 'Movimiento cancelado. Se conserva el orden anterior.';
+      }
+    }
+    try { pagina.releasePointerCapture(g.puntero); } catch(_){}
+    if (pagina.getClientRects().length) g.asa.focus({ preventScroll:true });
+  };
+  /* Se mira la caja en FLUJO, no la que anima FLIP. Comparar contra una
+     vecina que está viajando provocaba intercambios de ida y vuelta. */
+  const reubicar = () => {
+    const g = gesto, r = lista.getBoundingClientRect();
+    const actuales = filas();
+    const destino = actuales.findIndex(f => {
+      const x = r.left + f.offsetLeft, y = r.top + f.offsetTop;
+      return g.x >= x && g.x <= x + f.offsetWidth && g.y >= y && g.y <= y + f.offsetHeight;
+    });
+    if (destino !== -1 && mover(g.fila, destino)){
+      g.movido = true; reordenar(ids(), false); g.asa.focus({ preventScroll:true });
+    }
+  };
+  const seguir = ahora => {
+    const g = gesto; if (!g) return;
+    if (!pagina.getClientRects().length || !lista.contains(g.fila)){ acabar(false); return; }
+    if (g.fantasma){
+      g.fantasma.style.left = (g.x - g.ox) + 'px';
+      g.fantasma.style.top = (g.y - g.oy) + 'px';
+      /* El borde sigue desplazando una lista larga aunque el dedo se quede
+         quieto. Sólo se desplaza la página del índice, no el panel ni el libro. */
+      const r = pagina.getBoundingClientRect(), borde = 48;
+      const velocidad = g.y < r.top + borde ? -Math.min(1, (r.top + borde - g.y) / borde)
+        : g.y > r.bottom - borde ? Math.min(1, (g.y - r.bottom + borde) / borde) : 0;
+      pagina.scrollTop += velocidad * 12 * Math.max(0, Math.min(32, ahora - g.ultimo)) / 16.67;
+      reubicar();
+    }
+    g.ultimo = ahora; g.reloj = requestAnimationFrame(seguir);
+  };
+  lista.addEventListener('pointerdown', ev => {
+    const asa = ev.target.closest('.indice-asa');
+    if (!asa || !lista.contains(asa) || gesto || ev.button !== 0 || !ev.isPrimary) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const fila = asa.closest('.indice-fila'), r = fila.getBoundingClientRect();
+    gesto = { fila, asa, puntero:ev.pointerId, orden:ids(), movido:false, fantasma:null,
+      x:ev.clientX, y:ev.clientY, inicioX:ev.clientX, inicioY:ev.clientY,
+      ox:ev.clientX - r.left, oy:ev.clientY - r.top, ultimo:performance.now(), reloj:null };
+    asa.focus({ preventScroll:true });
+    /* Captura en la página estable. Capturar en el asa que cambia de lugar
+       perdía el puntero en cuanto insertBefore la sacaba del documento. */
+    try { pagina.setPointerCapture(ev.pointerId); } catch(_){}
+    gesto.reloj = requestAnimationFrame(seguir);
+  });
+  pagina.addEventListener('pointermove', ev => {
+    const g = gesto; if (!g || ev.pointerId !== g.puntero) return;
+    ev.preventDefault(); ev.stopPropagation(); g.x = ev.clientX; g.y = ev.clientY;
+    if (!g.fantasma && Math.hypot(g.x - g.inicioX, g.y - g.inicioY) >= 6){
+      const r = g.fila.getBoundingClientRect();
+      g.fantasma = g.fila.cloneNode(true); g.fantasma.classList.add('indice-fantasma');
+      g.fantasma.setAttribute('aria-hidden', 'true'); g.fantasma.inert = true;
+      g.fantasma.style.width = r.width + 'px';
+      for (const nombre of ['--escala-ui', '--fam-libro', '--ui'])
+        g.fantasma.style.setProperty(nombre, getComputedStyle(pagina).getPropertyValue(nombre));
+      document.body.appendChild(g.fantasma); g.fila.classList.add('arrastrando');
+    }
+    if (g.fantasma){
+      g.fantasma.style.left = (g.x - g.ox) + 'px'; g.fantasma.style.top = (g.y - g.oy) + 'px';
+      reubicar();
+    }
+  }, { passive:false });
+  pagina.addEventListener('pointerup', ev => {
+    if (!gesto || ev.pointerId !== gesto.puntero) return;
+    ev.preventDefault(); ev.stopPropagation(); acabar(true);
+  });
+  for (const tipo of ['pointercancel', 'lostpointercapture'])
+    pagina.addEventListener(tipo, ev => { if (gesto && ev.pointerId === gesto.puntero) acabar(false); });
+  lista.addEventListener('click', ev => {
+    if (ev.target.closest('.indice-asa')){ ev.preventDefault(); ev.stopPropagation(); }
+  });
+  pagina.addEventListener('keydown', ev => {
+    if (gesto && ev.key === 'Escape'){
+      ev.preventDefault(); ev.stopPropagation(); acabar(false); return;
+    }
+    const asa = ev.target.closest('.indice-asa'); if (!asa || gesto) return;
+    const fila = asa.closest('.indice-fila'), desde = filas().indexOf(fila);
+    const teclas = { ArrowUp:desde - 1, ArrowLeft:desde - 1, ArrowDown:desde + 1,
+      ArrowRight:desde + 1, Home:0, End:lista.children.length - 1 };
+    if (!(ev.key in teclas)) return;
+    ev.preventDefault(); ev.stopPropagation();
+    if (mover(fila, teclas[ev.key])) anunciar(fila, reordenar(ids(), true));
+    asa.focus({ preventScroll:true }); fila.scrollIntoView({ block:'nearest', inline:'nearest' });
+  });
+  window.addEventListener('blur', () => acabar(false));
+  window.addEventListener('resize', () => acabar(false));
 }
 
 /* LAS NOTAS SON DEL LECTOR, no del libro ni de una glosa: se guardan aparte
@@ -23846,6 +24031,15 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
     /* Al abandonar el índice, el foco no puede quedarse en un botón oculto. */
     if (enfocar) barra.querySelector('.aqui')?.focus({ preventScroll:true });
   };
+  armarManijasIndice(indice, (ids, guardar) => {
+    notas = ordenarElementosIndice(notas, ids);
+    const tabs = new Map([...barra.querySelectorAll('[data-nota]')].map(t => [t.dataset.nota, t]));
+    const mas = barra.querySelector('.nota-mas');
+    notas.forEach(n => barra.insertBefore(tabs.get(n.id), mas));
+    if (activa === null) barra.scrollLeft = 0;
+    traerActiva(false);
+    return guardar ? guardarNotas() : true;
+  });
   tabIndice.addEventListener('click', () => seleccionar(null));
   const pintar = enfocar => {
     barra.textContent = ''; hojas.textContent = '';
@@ -23939,7 +24133,10 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
   /* Los escondidos no llegan a existir: ni pestaña, ni hoja, ni marco. Un
      `hidden` los habría dejado en el documento, y una hoja escondida que
      igualmente pide su relato es peso muerto que nadie va a leer. */
-  const visibles = ENCUENTROS.filter(e => !e.oculto);
+  const claveOrden = 'glossa:encuentros:orden:v1';
+  let ordenGuardado = [];
+  try { ordenGuardado = JSON.parse(localStorage.getItem(claveOrden) || '[]'); } catch(_){}
+  let visibles = ordenarElementosIndice(ENCUENTROS.filter(e => !e.oculto), ordenGuardado);
   visibles.forEach(e => {
     const b = document.createElement('button');
     b.type = 'button';                 /* dentro de nada, pero un <button> sin
@@ -24041,6 +24238,20 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
       detalle:e.historia ? 'Leer el encuentro' : 'Historia en preparación' })),
     visibles.length + (visibles.length === 1 ? ' encuentro' : ' encuentros'),
     id => seleccionar(id, true));
+  armarManijasIndice(indice, (ids, guardar) => {
+    visibles = ordenarElementosIndice(visibles, ids);
+    const tabs = new Map([...barra.querySelectorAll('[data-enc]')].map(t => [t.dataset.enc, t]));
+    const cola = barra.querySelector('.pestanitas-cola');
+    visibles.forEach(e => barra.insertBefore(tabs.get(e.id), cola));
+    if (!barra.querySelector('.aqui')) barra.scrollLeft = 0;
+    centrarPestanita(false);
+    if (!guardar) return true;
+    try { localStorage.setItem(claveOrden, JSON.stringify(visibles.map(e => e.id))); return true; }
+    catch(e){
+      readout.textContent = 'NO SE PUDO GUARDAR EL ORDEN DE ENCUENTROS (' + (e.name || 'error') + ')';
+      return false;
+    }
+  });
   tabIndice.addEventListener('click', () => seleccionar(null));
   /* EL OYENTE VA EN LA BARRA Y NO EN CADA BOTÓN, que es como lo hace la barra
      de arriba: los botones de una lista que puede crecer no tienen por qué
