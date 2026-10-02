@@ -50,6 +50,7 @@ diagnóstico. Salen con código distinto de cero si algo falla.
 | prueba | vigila |
 |---|---|
 | `indices-orden` | las manijas de NOTAS y ENCUENTROS: arrastre con dedo real y ratón, sincronización inmediata con las pestañas, teclado y foco, cancelación sin guardar, desplazamiento automático de listas largas, contenido y orden en el respaldo, errores de almacenamiento y persistencia tras recargar |
+| `notas-filtros` | el historial de filtros propio de cada nota: captura desde GLOSAS, espera en el Índice, visitas repetidas, restauración con teclado, libros y condiciones desaparecidas, glosas que cambian, conservación al renombrar/reordenar y exportar/importar, errores de almacenamiento y persistencia de los libros añadidos |
 | `paginacion` | que el reparto de versículos por hoja no se mueva solo, y que una nota escrita sí empuje el corte |
 | `pliegue` | pasar hoja sin tirar el programa: los dos fallos que lo mataban, más el toque que no llegaba con la hoja en el aire |
 | `filo` | que un toque en el borde nunca se quede sin efecto: el respaldo de los reintentos, la foto que falla y la que no contesta |
