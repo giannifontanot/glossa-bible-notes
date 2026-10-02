@@ -148,14 +148,18 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
     await p.locator('#selDia').inputValue() === '1999-01-02' && await p.locator('#indice .ix-item').count() === 0);
   await ir(p, 'notas');
   await p.locator('#notas .indice-item').filter({ hasText:'Sin etiquetas' }).click();
-  await libro.click(); await p.locator('#notaFiltros .nota-filtro').click();
+  await libro.click();
+  vale('una lectura nueva se añade junto al historial importado de la nota elegida',
+    await p.locator('#notaFiltros .nota-filtro').count() === 2);
+  await p.locator('#notaFiltros .nota-filtro').filter({ hasText:'(sin etiqueta)' }).click();
   await p.locator('#etiquetas').waitFor({ state:'visible' }); await p.waitForTimeout(700);
   await p.reload(); await ir(p, 'glosas');
   vale('el filtro especial sin etiqueta conserva su significado tras recargar',
     (await etiquetas(p)).join().includes('(sin etiqueta)') &&
     !(await etiquetas(p)).join().includes('SinEtiqueta'));
   await ir(p, 'notas'); await p.locator('#notas .indice-item').filter({ hasText:'Apocalipsis' }).click();
-  await libro.click(); await p.locator('#notaFiltros .nota-filtro').click();
+  await libro.click();
+  await p.locator('#notaFiltros .nota-filtro').filter({ hasText:'#LecturaRenombrada' }).click();
   await p.locator('#etiquetas').waitFor({ state:'visible' }); await p.waitForTimeout(900);
   vale('restaurar desde otro libro abre GLOSAS con el libro guardado y sus añadidos',
     (await p.locator('#filtros .chip-libro').first().textContent()).includes('Apocalipsis') &&
