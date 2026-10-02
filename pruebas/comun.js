@@ -28,7 +28,10 @@ const path = require('path');
 const { chromium } = require('playwright');
 
 const RAIZ = path.resolve(__dirname, '..');
-const APP = 'file://' + path.join(RAIZ, 'index.html');
+/* El lector abre el archivo directo normalmente. En entornos que prohíben
+   file:// —como algunos navegadores administrados— se puede pasar una URL
+   local equivalente sin cambiar ninguna prueba. */
+const APP = process.env.GLOSS_APP_URL || ('file://' + path.join(RAIZ, 'index.html'));
 
 /* EL NAVEGADOR, y por qué no basta con dejárselo a Playwright.
 

@@ -76,7 +76,7 @@ const IR_A = `async (sec) => {
        alArrancar.pedidos.every(x => x === null), JSON.stringify(alArrancar.pedidos));
 
   /* ---------------- la barra ---------------- */
-  titulo('la barra lleva seis, ORACIÓN primero y Encuentros detrás de Glosas');
+  titulo('la barra lleva siete, ORACIÓN primero y Notas detrás de Glosas');
   await p.evaluate(() => document.getElementById('pgCabeza').click());
   await p.waitForTimeout(1000);
   const barra = await p.evaluate(() => {
@@ -93,15 +93,18 @@ const IR_A = `async (sec) => {
      igual —no «cinco o más»— porque una pestaña que aparece sola es tan
      defecto como una que desaparece, y en esta barra ya han entrado dos por
      encargo: si entra una tercera sin que nadie lo pida, esto lo dice. */
-  vale('están las seis', barra.secs.length === 6, barra.secs.length);
+  vale('están las siete', barra.secs.length === 7, barra.secs.length);
   /* Y ORACIÓN LA PRIMERA, pedido así. Va delante de LIBROS porque lo que se
      guarda ahí son oraciones y el encargo fue ponerla al principio. */
   vale('ORACIÓN VA LA PRIMERA', barra.secs[0] === 'oracion', barra.secs.join(' · '));
   /* El orden se pidió así —«un tab nuevo después de Glosas»— y es lo único de
      la barra que un cambio de rótulo no puede romper sin que se note. */
-  vale('ENCUENTROS VA JUSTO DETRÁS DE GLOSAS',
-       barra.secs.indexOf('encuentros') === barra.secs.indexOf('glosas') + 1 &&
+  vale('NOTAS VA JUSTO DETRÁS DE GLOSAS',
+       barra.secs.indexOf('notas') === barra.secs.indexOf('glosas') + 1 &&
        barra.secs.indexOf('glosas') >= 0, barra.secs.join(' · '));
+  vale('ENCUENTROS VA JUSTO DETRÁS DE NOTAS',
+       barra.secs.indexOf('encuentros') === barra.secs.indexOf('notas') + 1,
+       barra.secs.join(' · '));
   /* Y que la quinta no haya partido el renglón: en un teléfono de 412 las
      cinco caben en una línea, y si un día dejan de caber es mejor enterarse
      aquí que en una captura. El caso de 320 tiene su propia cuenta escrita en

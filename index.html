@@ -3701,7 +3701,7 @@
      cinco en una línea con 46 px cada una—, así que las tres cuentas sobran.
      Ver los dos @media de más abajo, que conservan su relleno y ya no tocan
      la letra. */
-  .pestanas button{ flex:1 1 auto; border:0; cursor:pointer; padding:3px 6px;
+  .pestanas button{ flex:1 1 0; min-width:0; border:0; cursor:pointer; padding:3px 6px;
                     font:400 22px/1.4 var(--ui);
                     color:#5c4a24; letter-spacing:.02em;
                     background:rgba(255,253,247,.5); border-radius:3px 3px 0 0;
@@ -3923,6 +3923,22 @@
      tiene que llevar su body sin fondo, y lo lleva. Los dos o ninguno. */
   .enc-marco{ flex:1 1 auto; width:100%; min-height:0; border:0; display:block;
               background:transparent; }
+  /* NOTAS USA LA MISMA TIRA QUE ENCUENTROS: una nota nueva no hace bajar la
+     escritura a un segundo renglón. El sombreado de los filos y el arrastre
+     viven en .enc-barra/.pestanitas, que son deliberadamente genéricos aunque
+     nacieran para los relatos. */
+  #notas{ flex-direction:column; }
+  .nota-hojas{ flex:1 1 auto; display:flex; min-height:0; }
+  .nota-hoja{ flex:1 1 auto; display:flex; min-height:0; }
+  .nota-hoja[hidden]{ display:none; }
+  .nota-editor{ flex:1 1 auto; min-height:0; width:100%; resize:none;
+                box-sizing:border-box; border:1px solid rgba(140,116,68,.42);
+                border-radius:7px; background:rgba(255,253,247,.68);
+                color:#30250f; padding:11px 12px;
+                font:400 calc(15px * var(--escala-ui, 1))/1.55 var(--fam-libro, Georgia, serif); }
+  .nota-editor:focus{ outline:2px solid rgba(184,137,43,.55); outline-offset:1px; }
+  .pestanitas .nota-mas{ min-width:32px; padding-left:9px; padding-right:9px;
+                         font-size:1.35em; line-height:1; }
   /* EL MARCO DE ORACIÓN, Y POR QUÉ ES UN MARCO Y NO CÓDIGO PEGADO AQUÍ.
 
      Lo de dentro es una aplicación entera de otro repo —762 líneas de CSS,
@@ -5579,7 +5595,7 @@
      esta línea la primera que se escriba se sale del panel sin manera de
      alcanzarla. */
   @media (max-width: 560px){
-    #ajustes, #etiquetas, #encuentros, #respaldo{ overflow-y:auto; overflow-x:visible;
+    #ajustes, #etiquetas, #encuentros, #notas, #respaldo{ overflow-y:auto; overflow-x:visible;
                                                   overscroll-behavior:contain; }
   }
 </style>
@@ -5976,6 +5992,7 @@
   <div id="etiquetas" class="rollo"></div>
   <div id="oracion" class="rollo"></div>
   <div id="encuentros" class="rollo"></div>
+  <div id="notas" class="rollo"></div>
   <div id="respaldo" class="rollo"></div>
   <div id="canto" class="rollo"><div id="cantoCab"></div><div id="cantoCuerpo"></div>
     <!-- La lupa: dice qué libro hay bajo el dedo mientras se arrastra. -->
@@ -6209,7 +6226,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '01-OCT-26 18:49';
+window.GLOSS_BUILD = '02-OCT-26 09:57';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17157,6 +17174,10 @@ const SECCIONES = [
                           'focusable="false"><path d="M4.4 4.4h15.2v8.8l-6.4 6.4H4.4z"/>' +
                           '<path d="M19.6 13.2h-6.4v6.4"/></svg>',
                      nombre:'Glosas: tus notas y sus etiquetas' },
+  { id:'notas',      html:'<svg class="signo nota" viewBox="0 0 24 24" aria-hidden="true" ' +
+                          'focusable="false"><path d="M5.2 3.8h10.2l3.4 3.4v13H5.2z"/>' +
+                          '<path d="M15.4 3.8v3.6H19M8.3 11h7.4M8.3 14.5h7.4"/></svg>',
+                     nombre:'Notas: escribe tus apuntes' },
   /* DOS CAMINOS QUE SE HACEN UNO, que es lo que pasa en cada uno de estos
      relatos: alguien iba por lo suyo y se cruzó con Cristo.
 
@@ -17213,7 +17234,7 @@ const SECCIONES = [
                      nombre:'Compartir y respaldar tus glosas' },
 ];
 /* el elemento de cada sección, en un solo sitio para no repetir el mapeo */
-const PANEL = { oracion:'oracion', libros:'canto', glosas:'etiquetas',
+const PANEL = { oracion:'oracion', libros:'canto', glosas:'etiquetas', notas:'notas',
                 encuentros:'encuentros', formato:'ajustes', respaldo:'respaldo' };
 let seccionViva = 'libros', cambiandoSeccion = false, dirSeccion = 1;
 
@@ -17530,6 +17551,7 @@ function rolloSimple(el){
          Encuentros no tiene variable propia —los otros dos la tienen por
          herencia, no por diseño—. */
       if (seccionDe(el) === 'encuentros') encenderHistoriaViva();
+      if (seccionDe(el) === 'notas') encenderNotaViva();
       if (seccionDe(el) === 'oracion') encenderOracion();
     },
     /* Tres maneras de cerrarse, y no son intercambiables:
@@ -17561,6 +17583,7 @@ function rolloSimple(el){
 }
 const rFormato = rolloSimple(ajustes), rGlosas = rolloSimple(etiquetas),
       rEncuentros = rolloSimple(document.getElementById('encuentros')),
+      rNotas = rolloSimple(document.getElementById('notas')),
       rOracion = rolloSimple(document.getElementById('oracion')),
       rRespaldo = rolloSimple(document.getElementById('respaldo'));
 /* LA LISTA DE LOS ROLLOS, EN UN SOLO SITIO. Estaba repartida en cuatro
@@ -17570,7 +17593,7 @@ const rFormato = rolloSimple(ajustes), rGlosas = rolloSimple(etiquetas),
    propios y lo abren y cierran abrirCanto y cerrarCanto, así que quien recorra
    esta tabla tiene que acordarse de él aparte. Está dicho en cada sitio donde
    se recorre. */
-const ROLLOS = { oracion:rOracion, glosas:rGlosas, encuentros:rEncuentros,
+const ROLLOS = { oracion:rOracion, glosas:rGlosas, notas:rNotas, encuentros:rEncuentros,
                  formato:rFormato, respaldo:rRespaldo };
 const LOS_ROLLOS = Object.values(ROLLOS);
 /* El interruptor del relato de Encuentros. Se declara aquí —donde abrir() lo
@@ -17579,6 +17602,7 @@ const LOS_ROLLOS = Object.values(ROLLOS);
    que se armó el panel: si un día su armado se cae, la sección se abre vacía
    en vez de reventar. */
 let encenderHistoriaViva = () => {};
+let encenderNotaViva = () => {};
 /* Y el del árbol de oraciones, por lo mismo y con la misma cautela: nace sin
    hacer nada, así que si su armado se cayera la sección se abriría vacía en
    vez de reventar. */
@@ -23538,6 +23562,104 @@ const ENCUENTROS = [
   encenderOracion = () => {
     if (!marco.getAttribute('src')) marco.setAttribute('src', marco.dataset.pagina);
   };
+})();
+
+/* LAS NOTAS SON DEL LECTOR, no del libro ni de una glosa: se guardan aparte
+   para que cambiar de pasaje no las mueva ni una copia de seguridad vieja las
+   confunda con anotaciones al versículo. Cada pestaña conserva título y texto;
+   el doble clic nombra, el + abre otra hoja. */
+(function armarNotas(){
+  const caja = document.getElementById('notas');
+  if (!caja) return;
+  const CLAVE_NOTAS = 'glossa:notas:v1';
+  let notas;
+  try {
+    const leidas = JSON.parse(localStorage.getItem(CLAVE_NOTAS) || 'null');
+    notas = Array.isArray(leidas) ? leidas.filter(n => n && typeof n.texto === 'string') : null;
+  } catch(_){ notas = null; }
+  if (!notas || !notas.length) notas = [{ id:'nota-1', titulo:'Nota 1', texto:'' }];
+  notas = notas.map((n, i) => ({
+    id: String(n.id || ('nota-' + (i + 1))),
+    titulo: String(n.titulo || ('Nota ' + (i + 1))).slice(0, 60), texto:n.texto
+  }));
+  let activa = notas[0].id;
+  const cajaBarra = document.createElement('div');
+  cajaBarra.className = 'enc-barra';
+  const barra = document.createElement('div');
+  barra.className = 'pestanitas';
+  cajaBarra.appendChild(barra);
+  const hojas = document.createElement('div');
+  hojas.className = 'nota-hojas';
+  caja.appendChild(cajaBarra); caja.appendChild(hojas);
+
+  const guardar = () => { try { localStorage.setItem(CLAVE_NOTAS, JSON.stringify(notas)); } catch(_){} };
+  const avisarMas = () => {
+    const sobra = barra.scrollWidth - barra.clientWidth;
+    cajaBarra.classList.toggle('hay-izq', barra.scrollLeft > 1);
+    cajaBarra.classList.toggle('hay-der', sobra - barra.scrollLeft > 1);
+  };
+  const traerActiva = () => {
+    const tab = barra.querySelector('[data-nota="' + CSS.escape(activa) + '"]');
+    if (tab && tab.scrollIntoView) tab.scrollIntoView({ block:'nearest', inline:'nearest' });
+    avisarMas();
+  };
+  const pintar = enfocar => {
+    barra.textContent = ''; hojas.textContent = '';
+    notas.forEach((nota, i) => {
+      const tab = document.createElement('button');
+      tab.type = 'button'; tab.dataset.nota = nota.id; tab.textContent = nota.titulo;
+      tab.title = 'Doble clic para cambiar el título';
+      tab.setAttribute('aria-label', nota.titulo + '. Doble clic para cambiar el título');
+      tab.classList.toggle('aqui', nota.id === activa);
+      tab.addEventListener('dblclick', ev => {
+        ev.preventDefault(); ev.stopPropagation();
+        const titulo = window.prompt('Título de la nota', nota.titulo);
+        if (titulo === null) return;
+        nota.titulo = titulo.trim().slice(0, 60) || ('Nota ' + (i + 1));
+        guardar(); pintar(false);
+      });
+      barra.appendChild(tab);
+      const hoja = document.createElement('section');
+      hoja.className = 'nota-hoja'; hoja.dataset.nota = nota.id;
+      hoja.hidden = nota.id !== activa;
+      const editor = document.createElement('textarea');
+      editor.className = 'nota-editor'; editor.value = nota.texto;
+      editor.placeholder = 'Escribe aquí…';
+      editor.setAttribute('aria-label', 'Contenido de ' + nota.titulo);
+      editor.addEventListener('input', () => { nota.texto = editor.value; guardar(); });
+      hoja.appendChild(editor); hojas.appendChild(hoja);
+    });
+    const mas = document.createElement('button');
+    mas.type = 'button'; mas.className = 'nota-mas'; mas.textContent = '+';
+    mas.title = 'Añadir una nota'; mas.setAttribute('aria-label', 'Añadir una nota');
+    barra.appendChild(mas);
+    traerActiva();
+    if (enfocar) {
+      const editor = hojas.querySelector('.nota-hoja:not([hidden]) .nota-editor');
+      if (editor) editor.focus();
+    }
+  };
+  barra.addEventListener('click', ev => {
+    const mas = ev.target.closest('.nota-mas');
+    if (mas) {
+      const id = 'nota-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+      notas.push({ id, titulo:'Nota ' + (notas.length + 1), texto:'' }); activa = id;
+      guardar(); pintar(true); return;
+    }
+    const tab = ev.target.closest('[data-nota]'); if (!tab) return;
+    activa = tab.dataset.nota; pintar(false);
+  });
+  barra.addEventListener('scroll', avisarMas, { passive:true });
+  barra.addEventListener('wheel', ev => {
+    if (Math.abs(ev.deltaY) <= Math.abs(ev.deltaX)) return;
+    const sobra = barra.scrollWidth - barra.clientWidth;
+    const topa = ev.deltaY > 0 ? barra.scrollLeft >= sobra - 1 : barra.scrollLeft <= 1;
+    if (sobra <= 0 || topa) return;
+    ev.preventDefault(); barra.scrollLeft += ev.deltaY;
+  }, { passive:false });
+  if (typeof ResizeObserver === 'function') new ResizeObserver(avisarMas).observe(barra);
+  pintar(false);
+  encenderNotaViva = traerActiva;
 })();
 (function armarEncuentros(){
   const caja = document.getElementById('encuentros');
