@@ -3954,6 +3954,37 @@
   .indice-tab{ display:flex; align-items:center; gap:6px; }
   .indice-tab svg{ width:1.1em; height:1.1em; fill:none; stroke:currentColor;
                     stroke-width:1.7; stroke-linecap:round; }
+  /* El libro queda fuera de la tira: sigue a mano aunque las notas desborden. */
+  .nota-ver-glosas{ flex:0 0 36px; display:grid; place-items:center; min-height:36px;
+    padding:5px; border:0; border-radius:5px; cursor:pointer; color:#73561f;
+    background:rgba(255,253,247,.55); box-shadow:inset 0 -1px 0 rgba(140,116,68,.34); }
+  .nota-ver-glosas svg{ width:22px; height:22px; fill:none; stroke:currentColor;
+    stroke-width:1.7; stroke-linejoin:round; stroke-linecap:round; pointer-events:none; }
+  .nota-ver-glosas:hover, .nota-ver-glosas[aria-expanded="true"]{ background:rgba(184,137,43,.14); }
+  .nota-ver-glosas:disabled{ opacity:.4; cursor:default; }
+  .nota-ver-glosas:focus-visible, .nota-filtro:focus-visible, .nota-filtros-cerrar:focus-visible{
+    outline:2px solid #b8892b; outline-offset:-2px; }
+  .nota-filtros{ flex:0 1 auto; min-height:0; max-height:45%; overflow-y:auto;
+    margin:0 0 9px; padding:12px; border:1px solid rgba(140,116,68,.32); border-radius:8px;
+    background:rgba(255,253,247,.82); animation:notaFiltrosEntra .46s cubic-bezier(.5,0,.25,1); }
+  .nota-filtros[hidden]{ display:none; }
+  .nota-filtros-cabecera{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .nota-filtros h3{ flex:1; min-width:0; margin:0; overflow-wrap:anywhere;
+    color:#493817; font:600 calc(15px * var(--escala-ui,1))/1.35 var(--fam-libro,Georgia,serif); }
+  .nota-filtros-cerrar{ flex:0 0 36px; height:36px; border:0; border-radius:5px;
+    background:transparent; color:#73561f; cursor:pointer; font-size:22px; }
+  .nota-filtros-lista{ display:grid; gap:7px; margin:0; padding:0; list-style:none; }
+  .nota-filtro{ display:block; width:100%; min-height:52px; padding:9px 11px;
+    text-align:left; border:1px solid rgba(140,116,68,.24); border-radius:6px;
+    background:rgba(255,253,247,.65); color:#493817; cursor:pointer; overflow-wrap:anywhere;
+    font:600 calc(12px * var(--escala-ui,1))/1.4 var(--ui); }
+  .nota-filtro:hover{ background:#fffdf6; border-color:#b8892b; }
+  .nota-filtro:disabled{ opacity:.55; cursor:default; }
+  .nota-filtro small{ display:block; margin-top:4px; color:#756342; font-weight:400; }
+  .nota-filtros-vacio{ margin:0; color:#756342; font:400 calc(12px * var(--escala-ui,1))/1.5 var(--ui); }
+  @keyframes notaFiltrosEntra{ from{ opacity:0; transform:translateY(-7px); }
+    82%{ opacity:1; transform:translateY(2px); } to{ opacity:1; transform:translateY(0); } }
+  @media (prefers-reduced-motion:reduce){ .nota-filtros{ animation:none; } }
   .indice-tab:focus-visible, .indice-item:focus-visible, .indice-asa:focus-visible{
     outline:2px solid #b8892b; outline-offset:-2px; }
   .indice-pagina{ flex:1 1 auto; min-width:0; min-height:0; overflow-y:auto;
@@ -6298,7 +6329,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-OCT-26 16:10';
+window.GLOSS_BUILD = '02-OCT-26 18:08';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -12778,6 +12809,9 @@ function pintarFiltros(){
   const cont = $('filtros');
   cont.querySelectorAll('.chip').forEach(c => c.remove());
   const { mapa, sin } = todasEtiquetas();
+  /* Un filtro recordado puede pedir una etiqueta que ya no existe. Se muestra
+     con cero para poder quitarla: borrarla sola ampliaría la lectura guardada. */
+  for (const t of etiquetasVer) if (t !== '(sin etiqueta)' && !mapa.has(t)) mapa.set(t, 0);
   const add = (nombre, n) => {
     const b = document.createElement('span');
     b.className = 'chip' + (etiquetasVer.has(nombre) ? ' sel' : '');
@@ -12795,7 +12829,7 @@ function pintarFiltros(){
      contradiciéndose a sí mismo delante del lector. */
   [...mapa.entries()].sort((x, y) => comparaEtiquetas(x[0], y[0]))
                      .forEach(([k,v]) => add(k,v));
-  if (sin) add('(sin etiqueta)', sin);
+  if (sin || etiquetasVer.has('(sin etiqueta)')) add('(sin etiqueta)', sin);
 
   /* LOS CHIPS DE LIBRO. El abierto va siempre, con borde, para que se vea
      que la lista ya lo incluye. Los demás se AGREGAN con + libro. */
@@ -12839,7 +12873,9 @@ function pintarFiltros(){
 function pintarDias(){
   const cuenta = new Map();
   for (const m of marcas) cuenta.set(diaDe(m), (cuenta.get(diaDe(m))||0) + 1);
-  if (diaFiltro && !cuenta.has(diaFiltro)) diaFiltro = '';
+  /* Igual que una etiqueta desaparecida: cero coincidencias sigue siendo el
+     filtro elegido, no una invitación a enseñar todos los días. */
+  if (diaFiltro && !cuenta.has(diaFiltro)) cuenta.set(diaFiltro, 0);
   const sel = $('selDia');
   sel.innerHTML = '<option value="">todos los días</option>' +
     [...cuenta.keys()].sort().reverse()
@@ -17425,6 +17461,11 @@ const panelDe = id => document.getElementById(PANEL[id]);
 const seccionDe = el => Object.keys(PANEL).find(k => document.getElementById(PANEL[k]) === el);
 
 function abrirSeccion(id, enSeco){
+  /* Se toma lo que se estaba leyendo antes de esconder GLOSAS. El índice no
+     es una nota: armarNotas espera a una hoja concreta para guardar el filtro. */
+  if (id === 'notas' && seccionViva === 'glosas' && rGlosas.abierto)
+    recibirFiltroNota(capturarFiltroGlosas());
+  else if (id !== 'notas') recibirFiltroNota(null);
   /* Irse a otra pestaña también es dejar de ver la muestra, así que confirma:
      las pestañas cambian lo de en medio sin pasar por cerrarOtrosRollos. Y al
      entrar en FORMATO la muestra se pone al día, que si no enseñaría la letra
@@ -17601,6 +17642,7 @@ function rolloSimple(el){
        "me devuelvo"; disolverse es "ya te entendí, quítate de en medio". */
     cerrar(seco, disolver){
       if (!abierto) return;
+      if (seccionDe(el) === 'notas') cerrarFiltrosNota();
       abierto = false;
       el.classList.remove('cambio', 'saliendo');
       if (seco || cambiandoSeccion){
@@ -17642,6 +17684,8 @@ const LOS_ROLLOS = Object.values(ROLLOS);
    en vez de reventar. */
 let encenderHistoriaViva = () => {};
 let encenderNotaViva = () => {};
+let recibirFiltroNota = () => {};
+let cerrarFiltrosNota = () => {};
 /* Y el del árbol de oraciones, por lo mismo y con la misma cautela: nace sin
    hacer nada, así que si su armado se cayera la sección se abriría vacía en
    vez de reventar. */
@@ -22339,6 +22383,45 @@ const CLAVE_NOTAS = 'glossa:notas:v1';
 let notas = [];
 let reflejarNotas = () => {};
 const nuevoIdNota = () => 'nota-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
+/* Sólo condiciones de lectura, nunca ids ni copias de las glosas. Validar el
+   registro entero impide que un respaldo roto convierta un filtro en «todo».
+   Los libros se comprueban contra el canon, no contra la traducción de hoy. */
+function normalizarFiltroNota(f){
+  const libroValido = id => typeof id === 'string' && CANON.some(b => b.id === id);
+  if (!f || !libroValido(f.libro) || !Array.isArray(f.libros) || !f.libros.every(libroValido) ||
+      !Array.isArray(f.etiquetas) || !f.etiquetas.every(t => typeof t === 'string' && t.length > 0 && t.length <= 120) ||
+      typeof f.dia !== 'string' || f.dia.length > 40 ||
+      typeof f.fecha !== 'string' || !Number.isFinite(Date.parse(f.fecha))) return null;
+  return { libro:f.libro, libros:[...new Set(f.libros)].filter(id => id !== f.libro).sort(),
+    etiquetas:[...new Set(f.etiquetas)].sort(), dia:f.dia, fecha:new Date(f.fecha).toISOString() };
+}
+function normalizarHistorialNota(historial){
+  return Array.isArray(historial) ? historial.map(normalizarFiltroNota).filter(Boolean) : [];
+}
+function capturarFiltroGlosas(){
+  return normalizarFiltroNota({ libro:LIBRO, libros:[...librosFiltro],
+    etiquetas:[...etiquetasVer], dia:diaFiltro, fecha:new Date().toISOString() });
+}
+function restaurarFiltroNota(f){
+  if (!hayLibro(f.libro)){
+    readout.textContent = 'El libro de este filtro no está disponible en la versión actual';
+    return;
+  }
+  mostrarBuscando('restaurando el filtro de glosas…');
+  /* Repaginar otro libro puede costar: primero se pinta el acuse. Se mantiene
+     el panel abierto; saltarA lo cerraba y dejaba al lector fuera de GLOSAS. */
+  trasPintar(() => {
+    try {
+      etiquetasVer = new Set(f.etiquetas); librosFiltro = new Set(f.libros); diaFiltro = f.dia;
+      if (LIBRO !== f.libro){
+        LIBRO = f.libro; volverA = null; paginaActual = 0; paginasSucias = true; rehacerPlano();
+      }
+      renderPage(); guardarAjustes(); verEtiquetas(true);
+      abrirSeccion('glosas', true);
+      setTimeout(() => $('etiquetas').querySelector('.pestanas [data-sec="glosas"]')?.focus({ preventScroll:true }), SALIDA + 20);
+    } finally { quitarBuscando(); }
+  });
+}
 function guardarNotas(){
   try {
     localStorage.setItem(CLAVE_NOTAS, JSON.stringify(notas));
@@ -22358,7 +22441,8 @@ function fusionarNotas(entrantes){
     const id = typeof n.id === 'string' && n.id ? n.id : nuevoIdNota();
     if (conocidas.has(id)){ repetidas++; continue; }
     conocidas.add(id);
-    notas.push({ id, titulo:n.titulo.trim().slice(0, 60) || 'Nota', texto:n.texto });
+    notas.push({ id, titulo:n.titulo.trim().slice(0, 60) || 'Nota', texto:n.texto,
+      filtros:normalizarHistorialNota(n.filtros) });
     nuevas++;
   }
   return { nuevas, repetidas, malas };
@@ -23385,7 +23469,7 @@ function guardarAjustes(){
          antes de que la manija existiera no traen el campo y se quedan en
          cero, que es el sitio de fábrica; por eso el objeto sigue en v:1. */
       menuDesvioX: menuDesvio.x, menuDesvioY: menuDesvio.y,
-      etiquetasVer: [...etiquetasVer]
+      etiquetasVer: [...etiquetasVer], librosFiltro: [...librosFiltro], diaFiltro
     }));
   } catch(e){ /* si no se puede, se arranca con lo de fábrica */ }
 }
@@ -23465,7 +23549,10 @@ function cargarAjustes(){
   if (Array.isArray(a.etiquetasVer))
     etiquetasVer = new Set(a.etiquetasVer
       .filter(t => typeof t === 'string' && t.length <= 120)
-      .map(etiquetaLimpia).filter(Boolean));
+      .map(t => t === '(sin etiqueta)' ? t : etiquetaLimpia(t)).filter(Boolean));
+  if (Array.isArray(a.librosFiltro))
+    librosFiltro = new Set(a.librosFiltro.filter(id => typeof id === 'string' && CANON.some(b => b.id === id)));
+  if (typeof a.diaFiltro === 'string' && a.diaFiltro.length <= 40) diaFiltro = a.diaFiltro;
   if (D.versiones[a.version]) version = a.version;      // antes que el libro:
   if (a.libro && hayLibro(a.libro)) LIBRO = a.libro;    // hayLibro depende de version
   return a;
@@ -23997,11 +24084,12 @@ function armarManijasIndice(pagina, reordenar){
   if (!notas || !notas.length) notas = [{ id:nuevoIdNota(), titulo:'Nota 1', texto:'' }];
   notas = notas.map((n, i) => ({
     id: String(n.id || nuevoIdNota()),
-    titulo: String(n.titulo || ('Nota ' + (i + 1))).slice(0, 60), texto:n.texto
+    titulo: String(n.titulo || ('Nota ' + (i + 1))).slice(0, 60), texto:n.texto,
+    filtros:normalizarHistorialNota(n.filtros)
   }));
   /* null es el índice, no un id reservado: una nota importada llamada
      «indice» sigue siendo una nota. Al recargar se empieza por el índice. */
-  let activa = null;
+  let activa = null, pendiente = null;
   const tira = document.createElement('div'); tira.className = 'indice-barra';
   const tabIndice = crearPestanaIndice('Índice de notas');
   const cajaBarra = document.createElement('div');
@@ -24009,6 +24097,77 @@ function armarManijasIndice(pagina, reordenar){
   const barra = document.createElement('div');
   barra.className = 'pestanitas';
   cajaBarra.appendChild(barra);
+  const verGlosas = document.createElement('button');
+  verGlosas.type = 'button'; verGlosas.className = 'nota-ver-glosas'; verGlosas.disabled = true;
+  verGlosas.title = 'Ver glosas de esta nota';
+  verGlosas.setAttribute('aria-label', 'Ver glosas de esta nota');
+  verGlosas.setAttribute('aria-expanded', 'false'); verGlosas.setAttribute('aria-controls', 'notaFiltros');
+  verGlosas.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path d="M12 5c-3-2-6-2-10-1v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-4-1-7-1-10 1Zm0 0v15"/></svg>';
+  const historial = document.createElement('section');
+  historial.id = 'notaFiltros'; historial.className = 'nota-filtros'; historial.hidden = true;
+  historial.setAttribute('aria-labelledby', 'notaFiltrosTitulo');
+  const cerrarHistorial = (enfocar = false) => {
+    historial.hidden = true; verGlosas.setAttribute('aria-expanded', 'false');
+    if (enfocar) verGlosas.focus({ preventScroll:true });
+  };
+  const registrarPendiente = () => {
+    const nota = notas.find(n => n.id === activa);
+    if (!pendiente || !nota) return;
+    const filtro = pendiente; pendiente = null;
+    const anterior = nota.filtros.at(-1);
+    const igual = anterior && anterior.libro === filtro.libro && anterior.dia === filtro.dia &&
+      JSON.stringify(anterior.libros) === JSON.stringify(filtro.libros) &&
+      JSON.stringify(anterior.etiquetas) === JSON.stringify(filtro.etiquetas);
+    if (igual) anterior.fecha = filtro.fecha; else nota.filtros.push(filtro);
+    guardarNotas();
+  };
+  verGlosas.addEventListener('click', () => {
+    if (!historial.hidden){ cerrarHistorial(); return; }
+    const nota = notas.find(n => n.id === activa); if (!nota) return;
+    historial.textContent = '';
+    const cabecera = document.createElement('div'); cabecera.className = 'nota-filtros-cabecera';
+    const titulo = document.createElement('h3'); titulo.id = 'notaFiltrosTitulo';
+    titulo.textContent = 'Glosas de ' + nota.titulo;
+    const cerrar = document.createElement('button'); cerrar.type = 'button'; cerrar.className = 'nota-filtros-cerrar';
+    cerrar.textContent = '×'; cerrar.setAttribute('aria-label', 'Cerrar filtros guardados');
+    cerrar.addEventListener('click', () => cerrarHistorial(true)); cabecera.append(titulo, cerrar);
+    historial.appendChild(cabecera);
+    if (!nota.filtros.length){
+      const vacio = document.createElement('p'); vacio.className = 'nota-filtros-vacio';
+      vacio.textContent = 'Lee en GLOSAS y vuelve a esta nota para guardar tus filtros.';
+      historial.appendChild(vacio);
+    } else {
+      const lista = document.createElement('ul'); lista.className = 'nota-filtros-lista';
+      [...nota.filtros].reverse().forEach(f => {
+        const fila = document.createElement('li'), boton = document.createElement('button');
+        boton.type = 'button'; boton.className = 'nota-filtro';
+        const nombre = document.createElement('span');
+        nombre.textContent = [f.libro, ...f.libros].map(nombreDe).join(' + ') + ' · ' +
+          (f.etiquetas.length ? f.etiquetas.map(t => t === '(sin etiqueta)' ? t : '#' + t).join(' · ') : 'Todas las etiquetas');
+        const detalle = document.createElement('small');
+        detalle.textContent = (f.dia || 'Todos los días') + ' · ' +
+          new Date(f.fecha).toLocaleString('es', { dateStyle:'medium', timeStyle:'short' });
+        if (!hayLibro(f.libro)){
+          boton.disabled = true;
+          detalle.textContent += ' · Libro no disponible en la versión actual';
+        }
+        boton.append(nombre, detalle);
+        boton.addEventListener('click', () => { cerrarHistorial(); restaurarFiltroNota(f); });
+        fila.appendChild(boton); lista.appendChild(fila);
+      });
+      historial.appendChild(lista);
+    }
+    historial.hidden = false; verGlosas.setAttribute('aria-expanded', 'true');
+    (historial.querySelector('.nota-filtro:not(:disabled)') || historial.querySelector('.nota-filtros-cerrar')).focus({ preventScroll:true });
+  });
+  caja.addEventListener('keydown', ev => {
+    if (ev.key !== 'Escape' || historial.hidden) return;
+    ev.preventDefault(); ev.stopPropagation(); cerrarHistorial(true);
+  });
+  document.addEventListener('pointerdown', ev => {
+    if (!historial.hidden && !historial.contains(ev.target) && !verGlosas.contains(ev.target)) cerrarHistorial();
+  }, { capture:true, passive:true });
   const hojas = document.createElement('div');
   hojas.className = 'nota-hojas';
   const indice = crearIndiceSeccion('Índice de notas',
@@ -24017,7 +24176,7 @@ function armarManijasIndice(pagina, reordenar){
   crear.type = 'button'; crear.className = 'btn indice-crear'; crear.textContent = '+ Nueva nota';
   crear.addEventListener('click', () => agregarNota());
   indice.querySelector('.indice-cabecera').appendChild(crear);
-  tira.append(tabIndice, cajaBarra); caja.append(tira, hojas);
+  tira.append(tabIndice, cajaBarra, verGlosas); caja.append(tira, historial, hojas);
 
   const avisarMas = () => {
     avisarTiraPestanitas(barra, cajaBarra);
@@ -24034,6 +24193,7 @@ function armarManijasIndice(pagina, reordenar){
     notas.length + (notas.length === 1 ? ' nota' : ' notas'), id => seleccionar(id, true));
   const seleccionar = (id, enfocar = false, demora = 0) => {
     activa = id;
+    cerrarHistorial(); verGlosas.disabled = activa === null; registrarPendiente();
     tabIndice.classList.toggle('aqui', activa === null);
     tabIndice.setAttribute('aria-pressed', String(activa === null));
     indice.hidden = activa !== null;
@@ -24098,7 +24258,7 @@ function armarManijasIndice(pagina, reordenar){
   };
   const agregarNota = () => {
     const id = nuevoIdNota();
-    notas.push({ id, titulo:'Nota ' + (notas.length + 1), texto:'' }); activa = id;
+    notas.push({ id, titulo:'Nota ' + (notas.length + 1), texto:'', filtros:[] }); activa = id;
     guardarNotas(); pintar(true);
   };
   barra.addEventListener('click', ev => {
@@ -24126,7 +24286,9 @@ function armarManijasIndice(pagina, reordenar){
     new ResizeObserver(() => movimiento.ajustar(barra.querySelector('.aqui'))).observe(barra);
   pintar(false);
   reflejarNotas = () => pintar(false);
-  encenderNotaViva = traerActiva;
+  encenderNotaViva = () => { registrarPendiente(); traerActiva(); };
+  recibirFiltroNota = filtro => { pendiente = filtro; };
+  cerrarFiltrosNota = () => { cerrarHistorial(); pendiente = null; };
 })();
 (function armarEncuentros(){
   const caja = document.getElementById('encuentros');
