@@ -3844,13 +3844,15 @@
      pregunta que toca —«¿hay más hacia allá?»— en vez de decir siempre que sí.
      Es la misma idea que la tira de filtros y su .hay-mas, ahí en vertical. */
   .enc-barra{ position:relative; flex:0 0 auto; margin:0 0 9px; }
+  /* El recorte contiene el resorte en los topes: no invade el Índice fijo. */
+  .enc-barra{ overflow:hidden; }
   .enc-barra::before, .enc-barra::after{
-            content:''; position:absolute; top:0; bottom:0; width:20px;
+            content:''; position:absolute; top:0; bottom:0; width:12px;
             pointer-events:none; opacity:0; transition:opacity .22s ease; z-index:1; }
   .enc-barra::before{ left:0;
-            background:linear-gradient(to right, rgba(74,58,28,.30), rgba(74,58,28,0)); }
+            background:linear-gradient(to right, rgba(74,58,28,.12), rgba(74,58,28,0)); }
   .enc-barra::after{ right:0;
-            background:linear-gradient(to left, rgba(74,58,28,.30), rgba(74,58,28,0)); }
+            background:linear-gradient(to left, rgba(74,58,28,.12), rgba(74,58,28,0)); }
   .enc-barra.hay-izq::before, .enc-barra.hay-der::after{ opacity:1; }
   /* nowrap Y scroll: sin el nowrap el overflow no tiene nada que desbordar y
      las pestañas se siguen partiendo de renglón. La barra del navegador se
@@ -6296,7 +6298,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-OCT-26 15:02';
+window.GLOSS_BUILD = '02-OCT-26 16:10';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -23663,10 +23665,11 @@ function crearMovimientoPestanitas(barra, avisar){
   cola.className = 'pestanitas-cola'; cola.setAttribute('aria-hidden', 'true');
   const detener = () => {
     cancelAnimationFrame(reloj); clearTimeout(espera); reloj = espera = null;
+    barra.style.removeProperty('transform');
   };
-  /* La misma curva y el mismo peso que entraDeLado: .46 s, se pasa 4 px al
-     82% y se acomoda. scroll-behavior:smooth depende del navegador y no tiene
-     ese resorte; scrollIntoView además podía mover el panel entero. */
+  /* La curva y los .46 s de entraDeLado, con un resorte de hasta 8 px para
+     que se vea al elegir una página. scroll-behavior:smooth depende del
+     navegador y no tiene ese resorte; scrollIntoView movía el panel entero. */
   const curva = k => {
     if (k <= 0 || k >= 1) return k;
     const en = (t, a, b) => 3 * (1-t) * (1-t) * t * a + 3 * (1-t) * t * t * b + t*t*t;
@@ -23690,7 +23693,7 @@ function crearMovimientoPestanitas(barra, avisar){
       const ultima = tabs[tabs.length - 1].getBoundingClientRect();
       const fin = botones[botones.length - 1].getBoundingClientRect().right - r.left + desde;
       const final = ultima.left - r.left + desde;
-      const hueco = final > 1 ? Math.max(0, final + barra.clientWidth + 6 - fin) : 0;
+      const hueco = final > 1 ? Math.max(0, final + barra.clientWidth + 10 - fin) : 0;
       /* Cuatro de esos píxeles son el gap antes de la cola. Se deja margen
          también para el pequeño rebote, sin alterar el ancho de las pestañas. */
       cola.style.display = hueco > 0 ? 'block' : 'none';
@@ -23700,20 +23703,33 @@ function crearMovimientoPestanitas(barra, avisar){
       const meta = Math.max(0, tab.getBoundingClientRect().left -
         barra.getBoundingClientRect().left + barra.scrollLeft);
       const tramo = meta - desde;
-      if (!animar || Math.abs(tramo) < 1 || matchMedia('(prefers-reduced-motion: reduce)').matches){
+      if (!animar || matchMedia('(prefers-reduced-motion: reduce)').matches){
         barra.scrollLeft = meta; avisar(); return;
       }
-      const rebote = Math.sign(tramo) * Math.min(4, Math.abs(tramo) / 4);
+      /* Si ya estaba alineada, elegirla aún acusa con un pequeño resorte.
+         En cero se va hacia el lado libre: scrollLeft no admite negativos. */
+      const rebote = Math.abs(tramo) < 1 ? (meta < 1 ? -8 : 8)
+        : Math.sign(tramo) * Math.min(8, Math.abs(tramo) / 4);
       const t0 = performance.now();
       const paso = ahora => {
         if (!barra.clientWidth){ detener(); return; }
         const k = Math.min(1, (ahora - t0) / 460);
-        barra.scrollLeft = k < .82
+        const posicion = k < .82
           ? desde + (tramo + rebote) * curva(k / .82)
           : meta + rebote * (1 - curva((k - .82) / .18));
+        const tope = Math.max(0, barra.scrollWidth - barra.clientWidth);
+        barra.scrollLeft = Math.max(0, Math.min(tope, posicion));
+        /* En un tope, el navegador recortaba precisamente el rebote. Sólo
+           el tramo que no cabe se expresa como desplazamiento visual; el
+           contenedor lo contiene y detener() lo retira al intervenir. */
+        const exceso = posicion < 0 ? -posicion : posicion > tope ? tope - posicion : 0;
+        if (exceso) barra.style.transform = 'translateX(' + exceso + 'px)';
+        else barra.style.removeProperty('transform');
         avisar();
         if (k < 1) reloj = requestAnimationFrame(paso);
-        else { reloj = null; barra.scrollLeft = meta; avisar(); }
+        else {
+          reloj = null; barra.scrollLeft = meta; barra.style.removeProperty('transform'); avisar();
+        }
       };
       reloj = requestAnimationFrame(paso);
     };
