@@ -178,9 +178,16 @@ let sesion;
   titulo('una lista larga se desplaza al sostener el dedo junto al borde');
   await abrirSeccion('notas');
   const primera = p.locator('#notas .indice-asa').first();
+  /* Las teclas de la prueba anterior dejaron el scroll casi al final: sólo
+     quedaban 28 px y aquí se exigen 40. Preparar un recorrido suficiente, no
+     rebajar el margen ni sustituir el gesto real que se quiere comprobar. */
+  await p.locator('#notas .indice-pagina').evaluate(e => { e.scrollTop = 0; });
   await primera.scrollIntoViewIfNeeded();
   const a = await primera.boundingBox(), caja = await p.locator('#notas .indice-pagina').boundingBox();
   const scrollAntes = await p.locator('#notas .indice-pagina').evaluate(e => e.scrollTop);
+  const disponible = await p.locator('#notas .indice-pagina').evaluate(e => e.scrollHeight - e.clientHeight - e.scrollTop);
+  vale('(la prueba es válida) empieza arriba y tiene recorrido suficiente',
+       scrollAntes <= 1 && disponible > 80, { scrollAntes, disponible });
   const idAntes = (await leer('notas')).lista[0];
   const x = a.x + a.width / 2, y = a.y + a.height / 2;
   await cdp.send('Input.dispatchTouchEvent', { type:'touchStart', touchPoints:[{ x, y, id:1 }] });
