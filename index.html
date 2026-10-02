@@ -3718,32 +3718,31 @@
      La salida es ahora el botón CERRAR del pie, que ocupa el ancho entero y no
      compite con nada. Ver .pie-cerrar. */
   .pestanas button:hover{ background:#fffdf6; color:#1d1608; }
-  /* LAS TRES AES SON EL RÓTULO DEL PANEL DE LA LETRA, y dicen con el dibujo lo
+  /* LAS DOS AES SON EL RÓTULO DEL PANEL DE LA LETRA, y dicen con el dibujo lo
      que «Formato» decía con una palabra que no significaba nada concreto.
 
-     Tres aes de tamaño decreciente es el signo con el que medio mundo enseña
+     Dos aes de tamaño decreciente es el signo con el que medio mundo enseña
      «aquí se cambia el tamaño del texto», y funciona sin traducirse y sin
      leerse: se reconoce la forma. Va de mayor a menor —pedido así— porque en
      ese orden se lee como una escala que baja y no como un tropiezo.
 
-     La barra ya fija su letra en 22 px. Con siete pestañas las aes de antes
-     ocupaban 48 px y se salían del botón: su base baja a .6em (29 px de ancho)
-     sin reducir el blanco de dedo ni los otros dibujos. El bloque flex centra
-     las letras incluso cuando el relleno deja menos sitio que su ancho, como
-     en una ventana estrecha con ratón: usan ese relleno sin salir del botón.
+     Tres aes a .6em cabían, pero quedaron demasiado pequeñas. El lector
+     pidió dos y más grandes: con base .9em miden 26 y 20 px y juntas ocupan
+     32 px, todavía dentro del botón de 37 px de la ventana más estrecha.
+     El bloque flex centra las letras aunque usen parte del relleno del botón;
+     no se recortan ni se reduce el blanco de dedo para hacerlas caber.
 
-     baseline y no center: alineadas por el centro, las tres aes flotan cada
+     baseline y no center: alineadas por el centro, las dos aes flotan cada
      una a su altura y parecen mal puestas; apoyadas en la misma línea se leen
-     como lo que son, tres letras escritas de corrido. */
-  .pestanas .aaa{ display:flex; align-items:baseline; justify-content:center;
-                  font-size:.6em; gap:.04em; line-height:1;
+     como lo que son, dos letras escritas de corrido. */
+  .pestanas .aa{ display:flex; align-items:baseline; justify-content:center;
+                  font-size:.9em; gap:.04em; line-height:1;
                   font-weight:700; letter-spacing:0; }
-  .pestanas .aaa i{ font-style:normal; }
-  .pestanas .aaa i:nth-child(1){ font-size:1.3em; }
-  .pestanas .aaa i:nth-child(2){ font-size:1em; }
-  .pestanas .aaa i:nth-child(3){ font-size:.76em; }
+  .pestanas .aa i{ font-style:normal; }
+  .pestanas .aa i:nth-child(1){ font-size:1.3em; }
+  .pestanas .aa i:nth-child(2){ font-size:1em; }
   /* EL PUNTO QUE SE ABRE EN OTROS DOS: el signo de compartir. Mismo oficio que
-     las tres aes —decir con el dibujo lo que una palabra decía mal— y con dos
+     las dos aes —decir con el dibujo lo que una palabra decía mal— y con dos
      cuidados que no son de gusto:
 
      · CURRENTCOLOR en los dos trazos, relleno y línea. La pestaña encendida se
@@ -6232,7 +6231,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-OCT-26 11:12';
+window.GLOSS_BUILD = '02-OCT-26 12:06';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17094,15 +17093,15 @@ function abrirVersiculos(cap, ancla){
 
    · FORMATO era el nombre del cajón, no el de lo que se va a buscar en él.
      Nadie abre un panel «para formatear»: se abre porque la letra es pequeña,
-     y eso ahora lo dice el propio rótulo con tres aes decrecientes. Es un
+     y eso ahora lo dice el propio rótulo con dos aes decrecientes. Es un
      signo, no una palabra: se reconoce sin leerse y sin traducirse. Ver
-     .pestanas .aaa.
+     .pestanas .aa.
    · RESPALDO decía la mitad del panel. Ahí están exportar e importar, que es
      sacar tus glosas de este navegador y meterlas en otro —o mandárselas a
      alguien—, y eso es compartir tanto como respaldar. Se llamó «Share» un
      tiempo, y ahora no se llama: lleva el punto que se abre en otros dos, que
      es el signo de compartir que reconoce cualquiera que use internet. Mismo
-     motivo que las tres aes: un signo se reconoce sin leerse y sin traducirse,
+     motivo que las dos aes: un signo se reconoce sin leerse y sin traducirse,
      y este panel es el único que hablaba en inglés en un programa que está
      entero en español. Ver .pestanas .compartir.
 
@@ -17111,26 +17110,26 @@ function abrirVersiculos(cap, ancla){
    se tocan—, y las dos de la derecha son las de ajustar y guardar.
 
    El rótulo puede llevar marcado, así que va en `html`. Y cuando lo lleva hace
-   falta `nombre`: un lector de pantalla leyendo «A A A» no dice nada, y un
+   falta `nombre`: un lector de pantalla leyendo «A A» no dice nada, y un
    dibujo sin nombre no dice ni eso, así que se le pone al botón el aria-label
    y el title que la palabra daba sola. */
 const SECCIONES = [
-  /* DOS MANOS COMO EN 🙏, no el óvalo ancho de antes que a 30 px parecía
-     una campana. El panel de tipografía, iconografía y accesibilidad pidió
-     dedos verticales con dos yemas redondas, pulgares exteriores y muñecas
-     que se separan abajo: son esas tres partes las que hacen leer el gesto.
-     Sin rayas interiores ni bandas de puño, que a tamaño real se empastan.
+  /* DOS PALMAS JUNTAS COMO EN EL EMOJI DE REFERENCIA. Los pulgares apenas
+     asoman: los anteriores parecían dos dedos abiertos hacia fuera. La
+     silueta ahora es continua y las mangas diagonales distinguen las muñecas
+     sin depender de esos pulgares. No se añaden rayas finas entre los dedos,
+     porque a 30 px se empastan.
      Conserva la caja y el trazo de los demás signos, también al encenderse. */
   { id:'oracion',    html:'<svg class="signo manos" viewBox="0 0 24 24" aria-hidden="true" ' +
                           'focusable="false">' +
-                          '<path d="M12 16V4.2c0-1-.6-1.5-1.3-1.5S9.4 3.2 9.4 4v6.8"/>' +
-                          '<path d="M12 16V4.2c0-1 .6-1.5 1.3-1.5s1.3.5 1.3 1.3v6.8"/>' +
-                          '<path d="m9.4 10.8-1.5-1.5c-.6-.6-1.5-.2-1.5.7v3.1' +
-                          'c0 2-1.5 3.7-2.7 4.8"/>' +
-                          '<path d="m14.6 10.8 1.5-1.5c.6-.6 1.5-.2 1.5.7v3.1' +
-                          'c0 2 1.5 3.7 2.7 4.8"/>' +
-                          '<path d="M12 16c-.7 2.2-2.1 4-3.8 5.3L3.7 18"/>' +
-                          '<path d="M12 16c.7 2.2 2.1 4 3.8 5.3l4.5-3.3"/></svg>',
+                          '<path d="M12 5.3c0-1.6-2.4-1.6-2.4 0v7.1l-.2-.4' +
+                          'c-.3-.6-1.2-.4-1.2.3v1.2c0 1.4-.8 2.6-2 3.5l3.8 3.1' +
+                          'c1.1-1 2-2.4 2-3.8Z"/>' +
+                          '<path d="M12 5.3c0-1.6 2.4-1.6 2.4 0v7.1l.2-.4' +
+                          'c.3-.6 1.2-.4 1.2.3v1.2c0 1.4.8 2.6 2 3.5l-3.8 3.1' +
+                          'c-1.1-1-2-2.4-2-3.8Z"/>' +
+                          '<path d="M6.2 17 3.2 19.9 7 22.7 10 20.1"/>' +
+                          '<path d="M17.8 17 20.8 19.9 17 22.7 14 20.1"/></svg>',
                      nombre:'Oración: tus oraciones colgadas del árbol' },
   /* UN LIBRO ABIERTO POR LA MITAD. Las dos hojas caen hacia el lomo y el lomo
      se dibuja entero: es lo que separa un libro abierto de una hoja doblada,
@@ -17195,7 +17194,7 @@ const SECCIONES = [
                           '<path d="M9.6 12a5.8 5.8 0 1 0 11.6 0 5.8 5.8 0 1 0-11.6 0"/>' +
                           '</svg>',
                      nombre:'Encuentros: relatos de quienes se cruzaron con Él' },
-  { id:'formato',    html:'<span class="aaa" aria-hidden="true"><i>A</i><i>A</i><i>A</i></span>',
+  { id:'formato',    html:'<span class="aa" aria-hidden="true"><i>A</i><i>A</i></span>',
                      nombre:'Tamaño de letra y aspecto de la hoja' },
   /* El dibujo va con los círculos rellenos y las dos varas trazadas, y los dos
      toman currentColor: la pestaña encendida cambia de color de letra y el

@@ -1304,7 +1304,7 @@ const IR_A = `async (sec) => {
     });
   };
   /* EL BOTÓN CABÍA, PERO LAS AES NO. Medir solo el botón o el span dejaba
-     pasar las letras que se salían por su derecha. Se miden los tres glifos
+     pasar las letras que se salían por su derecha. Se miden los dos glifos
      y las manos contra sus botones, también con el libro en los dos extremos.
      La forma del dibujo se revisa en capturas; no se atan las pruebas a paths. */
   const medirRotulos = () => {
@@ -1313,9 +1313,9 @@ const IR_A = `async (sec) => {
     const bs = v ? [...v.querySelectorAll('.pestanas button')] : [];
     const a = v && v.querySelector('.pestanas [data-sec="formato"]');
     const o = v && v.querySelector('.pestanas [data-sec="oracion"]');
-    const letras = a ? [...a.querySelectorAll('.aaa i')] : [];
+    const letras = a ? [...a.querySelectorAll('.aa i')] : [];
     const manos = o && o.querySelector('svg.manos');
-    if (letras.length !== 3 || !manos) return { falta:true };
+    if (letras.length !== 2 || !manos) return { falta:true };
     const ar = a.getBoundingClientRect(), rectos = letras.map(i => i.getBoundingClientRect());
     const dentro = (el, b) => {
       const r = el.getBoundingClientRect(), s = b.getBoundingClientRect();
@@ -1327,14 +1327,14 @@ const IR_A = `async (sec) => {
       filas:new Set(bs.map(b => Math.round(b.getBoundingClientRect().top))).size,
       enPanel:bs.every(b => dentro(b, v)),
       contenidas:letras.every(i => dentro(i, a)) && dentro(manos, o),
-      centradas:Math.abs((rectos[0].left + rectos[2].right) / 2 -
+      centradas:Math.abs((rectos[0].left + rectos[1].right) / 2 -
                         (ar.left + ar.right) / 2) < 1,
-      ancho:rectos[2].right - rectos[0].left,
+      ancho:rectos[1].right - rectos[0].left,
       tamanos:letras.map(i => parseFloat(getComputedStyle(i).fontSize)),
       altoMinimo:Math.min(...bs.map(b => b.getBoundingClientRect().height)),
       nombres:[a,o].every(b => !!b.getAttribute('aria-label') &&
         b.getAttribute('aria-label') === b.getAttribute('title')),
-      ocultos:a.querySelector('.aaa').getAttribute('aria-hidden') === 'true' &&
+      ocultos:a.querySelector('.aa').getAttribute('aria-hidden') === 'true' &&
         manos.getAttribute('aria-hidden') === 'true' &&
         manos.getAttribute('focusable') === 'false',
       colores:letras.every(i => getComputedStyle(i).color === getComputedStyle(a).color) &&
@@ -1347,13 +1347,14 @@ const IR_A = `async (sec) => {
     await pagina.waitForTimeout(300);
     const r = await pagina.evaluate(medirRotulos);
     const etiqueta = ancho + ' px · ' + contexto;
-    di('AAA y oración · ' + etiqueta, r);
+    di('AA y oración · ' + etiqueta, r);
     vale('las siete siguen dentro y en una fila · ' + etiqueta,
          !r.falta && r.cantidad === 7 && r.filas === 1 && r.enPanel, r);
     vale('las aes y las manos caben en su botón · ' + etiqueta,
          !r.falta && r.contenidas && r.centradas, r);
     vale('las aes conservan la escala y su nombre · ' + etiqueta,
-         !r.falta && r.tamanos[0] > r.tamanos[1] && r.tamanos[1] > r.tamanos[2] &&
+         !r.falta && r.tamanos[0] > r.tamanos[1] &&
+         r.tamanos[0] >= 25 && r.tamanos[1] >= 19 &&
          r.nombres && r.ocultos && r.colores, r);
     if (ancho <= 560)
       vale('el blanco de dedo conserva 44 px · ' + etiqueta,
@@ -1370,7 +1371,7 @@ const IR_A = `async (sec) => {
   for (const ancho of [320,390,412,1100])
     aesGrandes.push(await revisarRotulos(p, ancho, 'letra 26'));
   await p.setViewportSize({ width:412, height:915 });
-  vale('las AAA también son independientes de la letra del libro',
+  vale('las AA también son independientes de la letra del libro',
        aesChicas.every((r, i) => !r.falta && !aesGrandes[i].falta &&
          r.ancho === aesGrandes[i].ancho &&
          JSON.stringify(r.tamanos) === JSON.stringify(aesGrandes[i].tamanos)),
