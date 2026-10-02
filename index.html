@@ -3308,6 +3308,7 @@
      lo recorta el contenedor, y el latido se vería a medias en la primera y
      la última pestaña. Por dentro se ve entero en todas. */
   .rollo .ix-item.obrando, .rollo .pestanitas button.obrando,
+  .rollo .indice-tab.obrando, .rollo .indice-item.obrando,
   .rollo select.obrando{
     outline-style:solid; outline-offset:-2px;
     animation:obrandoAro .9s cubic-bezier(.4,0,.6,1) infinite; }
@@ -3319,6 +3320,7 @@
   }
   @media (prefers-reduced-motion: reduce){
     .rollo .ix-item.obrando, .rollo .pestanitas button.obrando,
+    .rollo .indice-tab.obrando, .rollo .indice-item.obrando,
     .rollo select.obrando{
       animation:none; outline-width:3px; outline-color:rgba(150,112,31,.9); }
   }
@@ -3858,6 +3860,7 @@
                overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain;
                scrollbar-width:none; -ms-overflow-style:none; }
   .pestanitas::-webkit-scrollbar{ display:none; }
+  .pestanitas-cola{ flex:0 0 auto; pointer-events:none; }
   /* PERO CON RATÓN SÍ HAY BARRA, y esto no es un cambio de gusto sino la única
      manera de llegar a lo que queda fuera.
 
@@ -3886,7 +3889,7 @@
   }
   /* flex:0 0 auto para que ninguna se encoja: una pestaña apretada hasta que
      su palabra se parte es peor que una tira que se corre. */
-  .pestanitas button{ flex:0 0 auto; white-space:nowrap;
+  .pestanitas button, .indice-tab{ flex:0 0 auto; white-space:nowrap;
                       border:0; cursor:pointer; padding:4px 8px 3px;
                       border-radius:5px 5px 0 0; background:transparent;
                       color:#5c4a24; letter-spacing:.02em;
@@ -3895,8 +3898,8 @@
                       transition:background .3s cubic-bezier(.65,0,.35,1),
                                  color .3s cubic-bezier(.65,0,.35,1),
                                  box-shadow .26s ease; }
-  .pestanitas button:hover{ background:rgba(255,253,247,.72); color:#1d1608; }
-  .pestanitas button.aqui{ color:#3a2d10; font-weight:600;
+  .pestanitas button:hover, .indice-tab:hover{ background:rgba(255,253,247,.72); color:#1d1608; }
+  .pestanitas button.aqui, .indice-tab.aqui{ color:#3a2d10; font-weight:600;
                            background:rgba(184,137,43,.14);
                            box-shadow:inset 0 -2px 0 #b8892b; }
   /* LA HOJA QUE SE VE OCUPA TODO LO QUE SOBRA, porque lo que lleva dentro es
@@ -3941,6 +3944,68 @@
   .nota-editor:focus{ outline:2px solid rgba(184,137,43,.55); outline-offset:1px; }
   .pestanitas .nota-mas{ min-width:32px; padding-left:9px; padding-right:9px;
                          font-size:1.35em; line-height:1; }
+  /* EL ÍNDICE NO VIAJA CON LA TIRA. Si se fuera con las notas, se perdería
+     justo cuando hace falta: al crecer la lista. Las sombras siguen viviendo
+     solo en la caja que se desplaza, sin oscurecer esta pestaña fija. */
+  .indice-barra{ display:flex; gap:6px; flex:0 0 auto; min-width:0; margin:0 0 9px; }
+  .indice-barra > .enc-barra{ flex:1 1 auto; min-width:0; margin:0; }
+  .indice-tab{ display:flex; align-items:center; gap:6px; }
+  .indice-tab svg{ width:1.1em; height:1.1em; fill:none; stroke:currentColor;
+                    stroke-width:1.7; stroke-linecap:round; }
+  .indice-tab:focus-visible, .indice-item:focus-visible, .indice-asa:focus-visible{
+    outline:2px solid #b8892b; outline-offset:-2px; }
+  .indice-pagina{ flex:1 1 auto; min-width:0; min-height:0; overflow-y:auto;
+                   box-sizing:border-box; padding:20px 18px 28px;
+                   border:1px solid rgba(140,116,68,.24); border-radius:9px;
+                   background:linear-gradient(145deg,rgba(255,253,247,.82),rgba(255,253,247,.3)); }
+  .indice-pagina[hidden]{ display:none; }
+  .indice-cabecera{ padding-bottom:18px; margin-bottom:17px;
+                     border-bottom:1px solid rgba(184,137,43,.35); }
+  .indice-antetitulo{ margin:0 0 7px; color:#88651d; letter-spacing:.17em;
+                       font:600 calc(10px * var(--escala-ui, 1))/1.5 var(--ui); }
+  .indice-cabecera h2{ margin:0 0 7px; color:#493817;
+                        font:400 calc(28px * var(--escala-ui, 1))/1.15 var(--fam-libro, Georgia, serif); }
+  .indice-descripcion{ margin:0 0 10px; color:#695533;
+                        font:400 calc(13px * var(--escala-ui, 1))/1.5 var(--ui); }
+  .indice-cuenta{ margin:0; color:#88651d;
+                   font:600 calc(11px * var(--escala-ui, 1))/1.4 var(--ui); }
+  .indice-ayuda, .indice-aviso{ margin:9px 0 0; color:#756342;
+    font:400 calc(11px * var(--escala-ui, 1))/1.45 var(--ui); }
+  .indice-aviso:empty{ display:none; }
+  .rollo .indice-crear{ margin-top:13px; min-height:40px; padding:8px 12px;
+                         font-size:calc(12px * var(--escala-ui, 1)); }
+  .indice-lista{ position:relative; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));
+                  align-content:start; gap:10px; margin:0; padding:0; list-style:none; }
+  .indice-fila{ position:relative; min-width:0; list-style:none; }
+  .indice-item{ display:flex; align-items:center; gap:12px; width:100%; min-height:64px;
+                 box-sizing:border-box; padding:13px 12px 13px 52px; text-align:left; cursor:pointer;
+                 border:1px solid rgba(140,116,68,.24); border-radius:7px;
+                 background:rgba(255,253,247,.72); color:#493817;
+                 transition:background .2s ease,border-color .2s ease; }
+  .indice-item:hover{ background:#fffdf6; border-color:rgba(184,137,43,.65); }
+  .indice-numero{ flex:0 0 auto; color:#a17b2d;
+                   font:400 calc(20px * var(--escala-ui, 1))/1 var(--fam-libro, Georgia, serif); }
+  .indice-textos{ flex:1 1 auto; min-width:0; }
+  .indice-nombre{ display:block; overflow-wrap:anywhere;
+                   font:600 calc(15px * var(--escala-ui, 1))/1.35 var(--fam-libro, Georgia, serif); }
+  .indice-detalle{ display:block; margin-top:4px; overflow-wrap:anywhere; color:#756342;
+                    font:400 calc(11px * var(--escala-ui, 1))/1.45 var(--ui); }
+  .indice-flecha{ flex:0 0 auto; color:#a17b2d; font-size:20px; }
+  /* El asa es hermana del enlace, nunca un botón dentro de otro. Sólo ella
+     desactiva el gesto nativo: sobre el texto se puede seguir desplazando la
+     lista con el dedo sin empezar un arrastre. */
+  .indice-asa{ position:absolute; left:4px; top:50%; transform:translateY(-50%);
+    display:grid; place-items:center; width:40px; height:44px; padding:0;
+    border:0; border-radius:5px; background:transparent; color:#9a7a3b;
+    cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
+  .indice-asa:hover{ background:rgba(184,137,43,.1); color:#73561f; }
+  .indice-asa svg{ width:14px; height:22px; fill:currentColor; pointer-events:none; }
+  .indice-fila.arrastrando > .indice-item{ opacity:.35; border-style:dashed; }
+  .indice-fila.arrastrando > .indice-asa{ cursor:grabbing; }
+  .indice-fantasma{ position:fixed; z-index:20000; pointer-events:none; margin:0;
+    transform:scale(1.025); box-shadow:0 8px 24px rgba(73,56,23,.2); border-radius:7px; }
+  .indice-fantasma .indice-item{ background:#fffdf6; border-color:#b8892b; }
+  @media (prefers-reduced-motion:reduce){ .indice-fantasma{ transform:none; } }
   /* EL MARCO DE ORACIÓN, Y POR QUÉ ES UN MARCO Y NO CÓDIGO PEGADO AQUÍ.
 
      Lo de dentro es una aplicación entera de otro repo —762 líneas de CSS,
@@ -5262,7 +5327,7 @@
     /* Las de dentro de Encuentros van a 40 y no a 44: son de segundo nivel y
        ya se distinguen por eso, pero siguen siendo blancos de dedo y 40 es el
        alto que tienen aquí los botones del rollo. */
-    .pestanitas button{ min-height:40px; }
+    .pestanitas button, .indice-tab{ min-height:40px; }
     /* El hueco, que es el arreglo de verdad. Va en los dos ejes por si algún
        renglón se parte: dos botones que caen uno debajo de otro necesitan la
        misma separación que dos que caen uno al lado del otro. */
@@ -5300,7 +5365,7 @@
        hoja crece y se encoge con el ajuste de Formato y ésta se quedaba
        quieta. Ahora la manda --fs, como a la de la hoja. */
     .nota-respaldo, .rollo .cred, .enc-vacio{ font-size:calc(13px * var(--escala-ui, 1)); }
-    .pestanitas button{ font-size:calc(14px * var(--escala-ui, 1)); }
+    .pestanitas button, .indice-tab{ font-size:calc(14px * var(--escala-ui, 1)); }
     .enc-titulo{ font-size:calc(16px * var(--escala-ui, 1)); }
     /* En el teléfono sube igual que el resto: es donde de verdad se consulta,
        porque es el aparato del que uno duda si tiene la versión nueva. */
@@ -6231,7 +6296,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-OCT-26 12:06';
+window.GLOSS_BUILD = '02-OCT-26 15:02';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17696,10 +17761,10 @@ function encenderObrando(el, desdeQueSeVea){
      desconfiar del aviso donde sí sirve. Es la misma razón por la que los
      deshabilitados llevan fuera desde el principio. */
 const SUPERFICIES_ACUSE = [...LOS_ROLLOS.map(r => r.el), canto, flyCaps, flyVers];
-const LO_QUE_ACUSA = '.btn, .chip, .tabo, .num, .ix-item, .pestanitas button';
+const LO_QUE_ACUSA = '.btn, .chip, .tabo, .num, .ix-item, .pestanitas button, .indice-tab, .indice-item';
 function loQueAcusa(objetivo){
   if (!objetivo || !objetivo.closest) return null;
-  if (objetivo.closest('.ix-asa')) return null;
+  if (objetivo.closest('.ix-asa, .indice-asa')) return null;
   const b = objetivo.closest(LO_QUE_ACUSA);
   if (!b || b.disabled || b.classList.contains('vacio')) return null;
   return b;
@@ -23579,6 +23644,328 @@ const ENCUENTROS = [
   };
 })();
 
+/* UN MISMO ÍNDICE PARA LOS DOS CUADERNOS. Solo dibuja una lista: elegir una
+   entrada usa la misma navegación que su pestaña, sin duplicar ni cargar
+   relatos ni guardar el índice como si fuera otra nota. Los títulos del lector
+   van siempre en textContent, también si contienen marcado o comillas. */
+/* Las sombras cuentan pestañas, no el espacio de aterrizaje que se añade
+   al final para que incluso la última pueda quedar al lado del Índice. */
+function avisarTiraPestanitas(barra, caja){
+  const botones = barra.querySelectorAll('button'), r = barra.getBoundingClientRect();
+  caja.classList.toggle('hay-izq', !!botones.length &&
+    botones[0].getBoundingClientRect().left < r.left - 1);
+  caja.classList.toggle('hay-der', !!botones.length &&
+    botones[botones.length - 1].getBoundingClientRect().right > r.right + 1);
+}
+function crearMovimientoPestanitas(barra, avisar){
+  let reloj = null, espera = null, ancho = 0;
+  const cola = document.createElement('span');
+  cola.className = 'pestanitas-cola'; cola.setAttribute('aria-hidden', 'true');
+  const detener = () => {
+    cancelAnimationFrame(reloj); clearTimeout(espera); reloj = espera = null;
+  };
+  /* La misma curva y el mismo peso que entraDeLado: .46 s, se pasa 4 px al
+     82% y se acomoda. scroll-behavior:smooth depende del navegador y no tiene
+     ese resorte; scrollIntoView además podía mover el panel entero. */
+  const curva = k => {
+    if (k <= 0 || k >= 1) return k;
+    const en = (t, a, b) => 3 * (1-t) * (1-t) * t * a + 3 * (1-t) * t * t * b + t*t*t;
+    let lo = 0, hi = 1, t = k;
+    for (let i = 0; i < 12; i++){
+      t = (lo + hi) / 2;
+      if (en(t, .5, .25) < k) lo = t; else hi = t;
+    }
+    return en(t, 0, 1);
+  };
+  const ir = (tab, animar = true, demora = 0) => {
+    detener();
+    const empezar = () => {
+      espera = null;
+      if (!barra.clientWidth || (tab && !barra.contains(tab))) return;
+      ancho = barra.clientWidth;
+      const r = barra.getBoundingClientRect(), desde = barra.scrollLeft;
+      const tabs = barra.querySelectorAll('[data-nota], [data-enc]');
+      const botones = barra.querySelectorAll('button');
+      if (!tabs.length || !botones.length) return;
+      const ultima = tabs[tabs.length - 1].getBoundingClientRect();
+      const fin = botones[botones.length - 1].getBoundingClientRect().right - r.left + desde;
+      const final = ultima.left - r.left + desde;
+      const hueco = final > 1 ? Math.max(0, final + barra.clientWidth + 6 - fin) : 0;
+      /* Cuatro de esos píxeles son el gap antes de la cola. Se deja margen
+         también para el pequeño rebote, sin alterar el ancho de las pestañas. */
+      cola.style.display = hueco > 0 ? 'block' : 'none';
+      cola.style.width = Math.max(0, hueco - 4) + 'px';
+      barra.appendChild(cola);
+      if (!tab){ avisar(); return; }
+      const meta = Math.max(0, tab.getBoundingClientRect().left -
+        barra.getBoundingClientRect().left + barra.scrollLeft);
+      const tramo = meta - desde;
+      if (!animar || Math.abs(tramo) < 1 || matchMedia('(prefers-reduced-motion: reduce)').matches){
+        barra.scrollLeft = meta; avisar(); return;
+      }
+      const rebote = Math.sign(tramo) * Math.min(4, Math.abs(tramo) / 4);
+      const t0 = performance.now();
+      const paso = ahora => {
+        if (!barra.clientWidth){ detener(); return; }
+        const k = Math.min(1, (ahora - t0) / 460);
+        barra.scrollLeft = k < .82
+          ? desde + (tramo + rebote) * curva(k / .82)
+          : meta + rebote * (1 - curva((k - .82) / .18));
+        avisar();
+        if (k < 1) reloj = requestAnimationFrame(paso);
+        else { reloj = null; barra.scrollLeft = meta; avisar(); }
+      };
+      reloj = requestAnimationFrame(paso);
+    };
+    if (demora) espera = setTimeout(empezar, demora); else empezar();
+  };
+  /* Un dedo o una rueda mandan sobre el viaje automático. Otro clic empieza
+     desde donde iba la tira, sin dejar que el movimiento anterior vuelva. */
+  barra.addEventListener('pointerdown', detener, { passive:true });
+  barra.addEventListener('wheel', detener, { passive:true });
+  /* Cambiar de hoja puede cambiar la ALTURA de la tira. ResizeObserver lo
+     cuenta también: recolocar entonces cortaba el resorte en su primer
+     fotograma. Sólo un ancho distinto exige calcular otro aterrizaje. */
+  const ajustar = tab => {
+    if (!barra.clientWidth) return;
+    if (barra.clientWidth !== ancho){
+      ir(tab, false);
+      const ultimo = barra.querySelector('button:last-of-type');
+      /* Si al girar cabe todo el renglón, no esconder pestañas detrás de
+         una cola vacía. Elegir de nuevo sí vuelve a poner la activa junto al
+         Índice; redimensionar sólo devuelve lo que ahora cabe a la vista. */
+      if (ultimo && ultimo.getBoundingClientRect().right -
+          barra.getBoundingClientRect().left + barra.scrollLeft <= ancho + 1)
+        barra.scrollLeft = 0;
+    }
+    avisar();
+  };
+  return { ir, ajustar };
+}
+
+function crearIndiceSeccion(titulo, descripcion, antetitulo){
+  const pagina = document.createElement('section');
+  pagina.className = 'indice-pagina';
+  pagina.setAttribute('aria-label', titulo);
+  const cabecera = document.createElement('header');
+  cabecera.className = 'indice-cabecera';
+  const antes = document.createElement('p');
+  antes.className = 'indice-antetitulo'; antes.textContent = antetitulo;
+  const nombre = document.createElement('h2'); nombre.textContent = titulo;
+  const detalle = document.createElement('p');
+  detalle.className = 'indice-descripcion'; detalle.textContent = descripcion;
+  const cuenta = document.createElement('p'); cuenta.className = 'indice-cuenta';
+  const ayuda = document.createElement('p'); ayuda.className = 'indice-ayuda';
+  ayuda.textContent = 'Arrastra las manijas para cambiar el orden de la lista y las pestañas. Con teclado, usa las flechas.';
+  const aviso = document.createElement('p'); aviso.className = 'indice-aviso';
+  aviso.setAttribute('role', 'status'); aviso.setAttribute('aria-atomic', 'true');
+  cabecera.append(antes, nombre, detalle, cuenta, ayuda, aviso);
+  const lista = document.createElement('ol');
+  lista.className = 'indice-lista'; lista.setAttribute('aria-label', titulo);
+  lista.setAttribute('role', 'list');
+  pagina.append(cabecera, lista);
+  return pagina;
+}
+function crearPestanaIndice(nombre){
+  const tab = document.createElement('button');
+  tab.type = 'button'; tab.className = 'indice-tab';
+  tab.setAttribute('aria-label', nombre);
+  tab.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path d="M9 6h11M9 12h11M9 18h11M4 6h.1M4 12h.1M4 18h.1"/></svg>' +
+    '<span>Índice</span>';
+  return tab;
+}
+function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
+  pagina.querySelector('.indice-cuenta').textContent = cuenta;
+  const lista = pagina.querySelector('.indice-lista'); lista.textContent = '';
+  elementos.forEach((elemento, i) => {
+    const fila = document.createElement('li'); fila.className = 'indice-fila';
+    fila.dataset.destino = elemento.id;
+    const enlace = document.createElement('button');
+    enlace.type = 'button'; enlace.className = 'indice-item';
+    enlace.dataset.destino = elemento.id;
+    const numero = document.createElement('span');
+    numero.className = 'indice-numero'; numero.textContent = String(i + 1).padStart(2, '0');
+    numero.setAttribute('aria-hidden', 'true');
+    const textos = document.createElement('span'); textos.className = 'indice-textos';
+    const nombre = document.createElement('span');
+    nombre.className = 'indice-nombre'; nombre.textContent = elemento.nombre;
+    const detalle = document.createElement('span');
+    detalle.className = 'indice-detalle'; detalle.textContent = elemento.detalle;
+    textos.append(nombre, detalle);
+    const flecha = document.createElement('span');
+    flecha.className = 'indice-flecha'; flecha.textContent = '→';
+    flecha.setAttribute('aria-hidden', 'true');
+    enlace.append(numero, textos, flecha);
+    enlace.addEventListener('click', ev => {
+      ev.preventDefault(); ev.stopPropagation(); elegir(elemento.id);
+    });
+    const asa = document.createElement('button');
+    asa.type = 'button'; asa.className = 'indice-asa';
+    asa.title = 'Arrastra para reordenar; con teclado, usa las flechas';
+    asa.setAttribute('aria-label', 'Mover ' + elemento.nombre + '. Usa las flechas para cambiar de posición');
+    asa.innerHTML = '<svg viewBox="0 0 14 22" aria-hidden="true" focusable="false">' +
+      '<circle cx="4" cy="5" r="1.7"/><circle cx="10" cy="5" r="1.7"/>' +
+      '<circle cx="4" cy="11" r="1.7"/><circle cx="10" cy="11" r="1.7"/>' +
+      '<circle cx="4" cy="17" r="1.7"/><circle cx="10" cy="17" r="1.7"/></svg>';
+    fila.append(enlace, asa); lista.appendChild(fila);
+  });
+}
+
+/* La nota guarda su orden en el propio arreglo del respaldo. Encuentros usa
+   una preferencia aparte: no altera el catálogo ni hace visibles los ocultos.
+   Los ids viejos, repetidos o desconocidos no borran entradas nuevas. */
+function ordenarElementosIndice(elementos, ids){
+  const puestos = new Map();
+  (Array.isArray(ids) ? ids : []).forEach(id => {
+    if (typeof id === 'string' && !puestos.has(id)) puestos.set(id, puestos.size);
+  });
+  return elementos.slice().sort((a, b) =>
+    (puestos.get(a.id) ?? puestos.size) - (puestos.get(b.id) ?? puestos.size));
+}
+function armarManijasIndice(pagina, reordenar){
+  const lista = pagina.querySelector('.indice-lista');
+  const aviso = pagina.querySelector('.indice-aviso');
+  const filas = () => [...lista.children];
+  const ids = () => filas().map(f => f.dataset.destino);
+  const numerar = () => filas().forEach((f, i) => {
+    f.querySelector('.indice-numero').textContent = String(i + 1).padStart(2, '0');
+  });
+  const anunciar = (fila, guardado) => {
+    aviso.textContent = fila.querySelector('.indice-nombre').textContent + ', posición ' +
+      (filas().indexOf(fila) + 1) + ' de ' + lista.children.length +
+      (guardado === false ? '. No se pudo guardar el orden.' : '. Orden actualizado.');
+  };
+  let gesto = null;
+  const animaciones = new Map();
+  const mover = (fila, destino) => {
+    const actuales = filas(), desde = actuales.indexOf(fila);
+    if (destino < 0 || destino >= actuales.length || desde === destino) return false;
+    const fotos = new Map(actuales.map(f => [f, f.getBoundingClientRect()]));
+    animaciones.forEach(a => a.cancel()); animaciones.clear();
+    lista.insertBefore(fila, desde < destino ? actuales[destino].nextSibling : actuales[destino]);
+    numerar();
+    /* FLIP anima a las vecinas, no a la pieza que ya sigue al dedo. El mismo
+       nodo conserva el asa y el foco; jamás reconstruir editores ni marcos. */
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
+      actuales.forEach(f => {
+        if (f === fila) return;
+        const antes = fotos.get(f), despues = f.getBoundingClientRect();
+        const x = antes.left - despues.left, y = antes.top - despues.top;
+        if (x || y){
+          const a = f.animate([
+            { transform:'translate(' + x + 'px,' + y + 'px)' }, { transform:'none' }
+          ], { duration:280, easing:'cubic-bezier(.2,.85,.3,1)' });
+          animaciones.set(f, a);
+          a.addEventListener('finish', () => { if (animaciones.get(f) === a) animaciones.delete(f); });
+        }
+      });
+    }
+    return true;
+  };
+  const acabar = confirmar => {
+    if (!gesto) return;
+    const g = gesto; gesto = null;
+    cancelAnimationFrame(g.reloj);
+    g.fantasma?.remove(); g.fila.classList.remove('arrastrando');
+    animaciones.forEach(a => a.cancel()); animaciones.clear();
+    if (g.movido){
+      if (confirmar) anunciar(g.fila, reordenar(ids(), true));
+      else {
+        ordenarElementosIndice(filas().map(f => ({ id:f.dataset.destino, fila:f })), g.orden)
+          .forEach(e => lista.appendChild(e.fila));
+        numerar(); reordenar(g.orden, false); aviso.textContent = 'Movimiento cancelado. Se conserva el orden anterior.';
+      }
+    }
+    try { pagina.releasePointerCapture(g.puntero); } catch(_){}
+    if (pagina.getClientRects().length) g.asa.focus({ preventScroll:true });
+  };
+  /* Se mira la caja en FLUJO, no la que anima FLIP. Comparar contra una
+     vecina que está viajando provocaba intercambios de ida y vuelta. */
+  const reubicar = () => {
+    const g = gesto, r = lista.getBoundingClientRect();
+    const actuales = filas();
+    const destino = actuales.findIndex(f => {
+      const x = r.left + f.offsetLeft, y = r.top + f.offsetTop;
+      return g.x >= x && g.x <= x + f.offsetWidth && g.y >= y && g.y <= y + f.offsetHeight;
+    });
+    if (destino !== -1 && mover(g.fila, destino)){
+      g.movido = true; reordenar(ids(), false); g.asa.focus({ preventScroll:true });
+    }
+  };
+  const seguir = ahora => {
+    const g = gesto; if (!g) return;
+    if (!pagina.getClientRects().length || !lista.contains(g.fila)){ acabar(false); return; }
+    if (g.fantasma){
+      g.fantasma.style.left = (g.x - g.ox) + 'px';
+      g.fantasma.style.top = (g.y - g.oy) + 'px';
+      /* El borde sigue desplazando una lista larga aunque el dedo se quede
+         quieto. Sólo se desplaza la página del índice, no el panel ni el libro. */
+      const r = pagina.getBoundingClientRect(), borde = 48;
+      const velocidad = g.y < r.top + borde ? -Math.min(1, (r.top + borde - g.y) / borde)
+        : g.y > r.bottom - borde ? Math.min(1, (g.y - r.bottom + borde) / borde) : 0;
+      pagina.scrollTop += velocidad * 12 * Math.max(0, Math.min(32, ahora - g.ultimo)) / 16.67;
+      reubicar();
+    }
+    g.ultimo = ahora; g.reloj = requestAnimationFrame(seguir);
+  };
+  lista.addEventListener('pointerdown', ev => {
+    const asa = ev.target.closest('.indice-asa');
+    if (!asa || !lista.contains(asa) || gesto || ev.button !== 0 || !ev.isPrimary) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const fila = asa.closest('.indice-fila'), r = fila.getBoundingClientRect();
+    gesto = { fila, asa, puntero:ev.pointerId, orden:ids(), movido:false, fantasma:null,
+      x:ev.clientX, y:ev.clientY, inicioX:ev.clientX, inicioY:ev.clientY,
+      ox:ev.clientX - r.left, oy:ev.clientY - r.top, ultimo:performance.now(), reloj:null };
+    asa.focus({ preventScroll:true });
+    /* Captura en la página estable. Capturar en el asa que cambia de lugar
+       perdía el puntero en cuanto insertBefore la sacaba del documento. */
+    try { pagina.setPointerCapture(ev.pointerId); } catch(_){}
+    gesto.reloj = requestAnimationFrame(seguir);
+  });
+  pagina.addEventListener('pointermove', ev => {
+    const g = gesto; if (!g || ev.pointerId !== g.puntero) return;
+    ev.preventDefault(); ev.stopPropagation(); g.x = ev.clientX; g.y = ev.clientY;
+    if (!g.fantasma && Math.hypot(g.x - g.inicioX, g.y - g.inicioY) >= 6){
+      const r = g.fila.getBoundingClientRect();
+      g.fantasma = g.fila.cloneNode(true); g.fantasma.classList.add('indice-fantasma');
+      g.fantasma.setAttribute('aria-hidden', 'true'); g.fantasma.inert = true;
+      g.fantasma.style.width = r.width + 'px';
+      for (const nombre of ['--escala-ui', '--fam-libro', '--ui'])
+        g.fantasma.style.setProperty(nombre, getComputedStyle(pagina).getPropertyValue(nombre));
+      document.body.appendChild(g.fantasma); g.fila.classList.add('arrastrando');
+    }
+    if (g.fantasma){
+      g.fantasma.style.left = (g.x - g.ox) + 'px'; g.fantasma.style.top = (g.y - g.oy) + 'px';
+      reubicar();
+    }
+  }, { passive:false });
+  pagina.addEventListener('pointerup', ev => {
+    if (!gesto || ev.pointerId !== gesto.puntero) return;
+    ev.preventDefault(); ev.stopPropagation(); acabar(true);
+  });
+  for (const tipo of ['pointercancel', 'lostpointercapture'])
+    pagina.addEventListener(tipo, ev => { if (gesto && ev.pointerId === gesto.puntero) acabar(false); });
+  lista.addEventListener('click', ev => {
+    if (ev.target.closest('.indice-asa')){ ev.preventDefault(); ev.stopPropagation(); }
+  });
+  pagina.addEventListener('keydown', ev => {
+    if (gesto && ev.key === 'Escape'){
+      ev.preventDefault(); ev.stopPropagation(); acabar(false); return;
+    }
+    const asa = ev.target.closest('.indice-asa'); if (!asa || gesto) return;
+    const fila = asa.closest('.indice-fila'), desde = filas().indexOf(fila);
+    const teclas = { ArrowUp:desde - 1, ArrowLeft:desde - 1, ArrowDown:desde + 1,
+      ArrowRight:desde + 1, Home:0, End:lista.children.length - 1 };
+    if (!(ev.key in teclas)) return;
+    ev.preventDefault(); ev.stopPropagation();
+    if (mover(fila, teclas[ev.key])) anunciar(fila, reordenar(ids(), true));
+    asa.focus({ preventScroll:true }); fila.scrollIntoView({ block:'nearest', inline:'nearest' });
+  });
+  window.addEventListener('blur', () => acabar(false));
+  window.addEventListener('resize', () => acabar(false));
+}
+
 /* LAS NOTAS SON DEL LECTOR, no del libro ni de una glosa: se guardan aparte
    para que cambiar de pasaje no las mueva. Viajan junto a las glosas en el
    respaldo, conservando su propia lista y sus identificadores. */
@@ -23596,7 +23983,11 @@ const ENCUENTROS = [
     id: String(n.id || nuevoIdNota()),
     titulo: String(n.titulo || ('Nota ' + (i + 1))).slice(0, 60), texto:n.texto
   }));
-  let activa = notas[0].id;
+  /* null es el índice, no un id reservado: una nota importada llamada
+     «indice» sigue siendo una nota. Al recargar se empieza por el índice. */
+  let activa = null;
+  const tira = document.createElement('div'); tira.className = 'indice-barra';
+  const tabIndice = crearPestanaIndice('Índice de notas');
   const cajaBarra = document.createElement('div');
   cajaBarra.className = 'enc-barra';
   const barra = document.createElement('div');
@@ -23604,26 +23995,62 @@ const ENCUENTROS = [
   cajaBarra.appendChild(barra);
   const hojas = document.createElement('div');
   hojas.className = 'nota-hojas';
-  caja.appendChild(cajaBarra); caja.appendChild(hojas);
+  const indice = crearIndiceSeccion('Índice de notas',
+    'Un lugar para encontrar tus ideas y volver a lo que escribiste.', 'TU CUADERNO');
+  const crear = document.createElement('button');
+  crear.type = 'button'; crear.className = 'btn indice-crear'; crear.textContent = '+ Nueva nota';
+  crear.addEventListener('click', () => agregarNota());
+  indice.querySelector('.indice-cabecera').appendChild(crear);
+  tira.append(tabIndice, cajaBarra); caja.append(tira, hojas);
 
   const avisarMas = () => {
-    const sobra = barra.scrollWidth - barra.clientWidth;
-    cajaBarra.classList.toggle('hay-izq', barra.scrollLeft > 1);
-    cajaBarra.classList.toggle('hay-der', sobra - barra.scrollLeft > 1);
+    avisarTiraPestanitas(barra, cajaBarra);
   };
-  const traerActiva = () => {
-    const tab = barra.querySelector('[data-nota="' + CSS.escape(activa) + '"]');
-    if (tab && tab.scrollIntoView) tab.scrollIntoView({ block:'nearest', inline:'nearest' });
-    avisarMas();
+  const movimiento = crearMovimientoPestanitas(barra, avisarMas);
+  const traerActiva = (animar = true, demora = 0) => {
+    const tab = activa === null ? null :
+      barra.querySelector('[data-nota="' + CSS.escape(activa) + '"]');
+    movimiento.ir(tab, animar, demora);
   };
+  const pintarIndice = () => pintarIndiceSeccion(indice,
+    notas.map(n => ({ id:n.id, nombre:n.titulo,
+      detalle:n.texto.trim().replace(/\s+/g, ' ').slice(0, 100) || 'Una página en blanco para tus ideas.' })),
+    notas.length + (notas.length === 1 ? ' nota' : ' notas'), id => seleccionar(id, true));
+  const seleccionar = (id, enfocar = false, demora = 0) => {
+    activa = id;
+    tabIndice.classList.toggle('aqui', activa === null);
+    tabIndice.setAttribute('aria-pressed', String(activa === null));
+    indice.hidden = activa !== null;
+    barra.querySelectorAll('[data-nota]').forEach(t => {
+      t.classList.toggle('aqui', t.dataset.nota === activa);
+      t.setAttribute('aria-pressed', String(t.dataset.nota === activa));
+    });
+    hojas.querySelectorAll('.nota-hoja').forEach(h => h.hidden = h.dataset.nota !== activa);
+    if (activa === null) pintarIndice();
+    traerActiva(true, demora);
+    /* Al abandonar el índice, el foco no puede quedarse en un botón oculto. */
+    if (enfocar) barra.querySelector('.aqui')?.focus({ preventScroll:true });
+  };
+  armarManijasIndice(indice, (ids, guardar) => {
+    notas = ordenarElementosIndice(notas, ids);
+    const tabs = new Map([...barra.querySelectorAll('[data-nota]')].map(t => [t.dataset.nota, t]));
+    const mas = barra.querySelector('.nota-mas');
+    notas.forEach(n => barra.insertBefore(tabs.get(n.id), mas));
+    if (activa === null) barra.scrollLeft = 0;
+    traerActiva(false);
+    return guardar ? guardarNotas() : true;
+  });
+  tabIndice.addEventListener('click', () => seleccionar(null));
   const pintar = enfocar => {
     barra.textContent = ''; hojas.textContent = '';
+    hojas.appendChild(indice);
     notas.forEach((nota, i) => {
       const tab = document.createElement('button');
       tab.type = 'button'; tab.dataset.nota = nota.id; tab.textContent = nota.titulo;
       tab.title = 'Doble clic para cambiar el título';
       tab.setAttribute('aria-label', nota.titulo + '. Doble clic para cambiar el título');
       tab.classList.toggle('aqui', nota.id === activa);
+      tab.setAttribute('aria-pressed', String(nota.id === activa));
       tab.addEventListener('dblclick', ev => {
         ev.preventDefault(); ev.stopPropagation();
         const titulo = window.prompt('Título de la nota', nota.titulo);
@@ -23646,28 +24073,30 @@ const ENCUENTROS = [
     mas.type = 'button'; mas.className = 'nota-mas'; mas.textContent = '+';
     mas.title = 'Añadir una nota'; mas.setAttribute('aria-label', 'Añadir una nota');
     barra.appendChild(mas);
-    traerActiva();
+    if (activa !== null) pintarIndice();
+    seleccionar(activa);
     if (enfocar) {
       const editor = hojas.querySelector('.nota-hoja:not([hidden]) .nota-editor');
       if (editor) editor.focus();
     }
   };
+  const agregarNota = () => {
+    const id = nuevoIdNota();
+    notas.push({ id, titulo:'Nota ' + (notas.length + 1), texto:'' }); activa = id;
+    guardarNotas(); pintar(true);
+  };
   barra.addEventListener('click', ev => {
     const mas = ev.target.closest('.nota-mas');
     if (mas) {
-      const id = nuevoIdNota();
-      notas.push({ id, titulo:'Nota ' + (notas.length + 1), texto:'' }); activa = id;
-      guardarNotas(); pintar(true); return;
+      agregarNota(); return;
     }
     const tab = ev.target.closest('[data-nota]'); if (!tab) return;
     /* Los dos clics de un doble toque necesitan el MISMO nodo. Seleccionar
        sólo cambia qué hoja se ve; reconstruir aquí destruía la pestaña entre
        el primer clic y el segundo y el navegador perdía el dblclick. */
-    activa = tab.dataset.nota;
-    barra.querySelectorAll('[data-nota]').forEach(t =>
-      t.classList.toggle('aqui', t.dataset.nota === activa));
-    hojas.querySelectorAll('.nota-hoja').forEach(h => h.hidden = h.dataset.nota !== activa);
-    traerActiva();
+    /* Dar tiempo al segundo clic antes de mover su blanco. Desde el índice
+       no hay renombrado y el viaje arranca sin esta espera. */
+    seleccionar(tab.dataset.nota, false, ev.detail === 1 ? 500 : 0);
   });
   barra.addEventListener('scroll', avisarMas, { passive:true });
   barra.addEventListener('wheel', ev => {
@@ -23677,7 +24106,8 @@ const ENCUENTROS = [
     if (sobra <= 0 || topa) return;
     ev.preventDefault(); barra.scrollLeft += ev.deltaY;
   }, { passive:false });
-  if (typeof ResizeObserver === 'function') new ResizeObserver(avisarMas).observe(barra);
+  if (typeof ResizeObserver === 'function')
+    new ResizeObserver(() => movimiento.ajustar(barra.querySelector('.aqui'))).observe(barra);
   pintar(false);
   reflejarNotas = () => pintar(false);
   encenderNotaViva = traerActiva;
@@ -23685,6 +24115,9 @@ const ENCUENTROS = [
 (function armarEncuentros(){
   const caja = document.getElementById('encuentros');
   if (!caja) return;
+  const tira = document.createElement('div'); tira.className = 'indice-barra';
+  const tabIndice = crearPestanaIndice('Índice de encuentros');
+  tabIndice.classList.add('aqui'); tabIndice.setAttribute('aria-pressed', 'true');
   const barra = document.createElement('div');
   barra.className = 'pestanitas';
   /* La caja de fuera es la que lleva las sombras de «hay más»: ver .enc-barra.
@@ -23694,10 +24127,17 @@ const ENCUENTROS = [
   cajaBarra.appendChild(barra);
   const hojas = document.createElement('div');
   hojas.className = 'enc-hojas';
+  const indice = crearIndiceSeccion('Índice de encuentros',
+    'Historias de quienes se encontraron con Jesús y se fueron distintos.', 'CAMINOS QUE SE CRUZAN');
+  hojas.appendChild(indice);
   /* Los escondidos no llegan a existir: ni pestaña, ni hoja, ni marco. Un
      `hidden` los habría dejado en el documento, y una hoja escondida que
      igualmente pide su relato es peso muerto que nadie va a leer. */
-  ENCUENTROS.filter(e => !e.oculto).forEach((e, i) => {
+  const claveOrden = 'glossa:encuentros:orden:v1';
+  let ordenGuardado = [];
+  try { ordenGuardado = JSON.parse(localStorage.getItem(claveOrden) || '[]'); } catch(_){}
+  let visibles = ordenarElementosIndice(ENCUENTROS.filter(e => !e.oculto), ordenGuardado);
+  visibles.forEach(e => {
     const b = document.createElement('button');
     b.type = 'button';                 /* dentro de nada, pero un <button> sin
                                           tipo es submit en cuanto alguien lo
@@ -23711,13 +24151,13 @@ const ENCUENTROS = [
        nombre: los que caben no necesitan dos. */
     b.textContent = e.rotulo || e.nombre;
     if (e.rotulo) b.title = e.nombre;
-    if (!i) b.classList.add('aqui');
+    b.setAttribute('aria-pressed', 'false');
     barra.appendChild(b);
 
     const hoja = document.createElement('section');
     hoja.className = 'enc-hoja';
     hoja.dataset.enc = e.id;
-    if (i) hoja.hidden = true;
+    hoja.hidden = true;
     if (e.historia){
       /* LA HISTORIA VA EN UN MARCO Y NO PEGADA DENTRO DEL PANEL, y no es por
          comodidad: cada relato es un documento entero, con su tipografía, su
@@ -23778,6 +24218,41 @@ const ENCUENTROS = [
     const m = hoja && hoja.querySelector('.enc-marco');
     if (m && !m.getAttribute('src')) m.setAttribute('src', m.dataset.historia);
   };
+  const seleccionar = (id, enfocar = false) => {
+    tabIndice.classList.toggle('aqui', id === null);
+    tabIndice.setAttribute('aria-pressed', String(id === null));
+    indice.hidden = id !== null;
+    barra.querySelectorAll('[data-enc]').forEach(x => {
+      x.classList.toggle('aqui', x.dataset.enc === id);
+      x.setAttribute('aria-pressed', String(x.dataset.enc === id));
+    });
+    hojas.querySelectorAll('.enc-hoja').forEach(h => {
+      h.hidden = h.dataset.enc !== id;
+      if (!h.hidden) despertar(h);
+    });
+    centrarPestanita();
+    if (enfocar) barra.querySelector('.aqui')?.focus({ preventScroll:true });
+  };
+  pintarIndiceSeccion(indice,
+    visibles.map(e => ({ id:e.id, nombre:e.nombre,
+      detalle:e.historia ? 'Leer el encuentro' : 'Historia en preparación' })),
+    visibles.length + (visibles.length === 1 ? ' encuentro' : ' encuentros'),
+    id => seleccionar(id, true));
+  armarManijasIndice(indice, (ids, guardar) => {
+    visibles = ordenarElementosIndice(visibles, ids);
+    const tabs = new Map([...barra.querySelectorAll('[data-enc]')].map(t => [t.dataset.enc, t]));
+    const cola = barra.querySelector('.pestanitas-cola');
+    visibles.forEach(e => barra.insertBefore(tabs.get(e.id), cola));
+    if (!barra.querySelector('.aqui')) barra.scrollLeft = 0;
+    centrarPestanita(false);
+    if (!guardar) return true;
+    try { localStorage.setItem(claveOrden, JSON.stringify(visibles.map(e => e.id))); return true; }
+    catch(e){
+      readout.textContent = 'NO SE PUDO GUARDAR EL ORDEN DE ENCUENTROS (' + (e.name || 'error') + ')';
+      return false;
+    }
+  });
+  tabIndice.addEventListener('click', () => seleccionar(null));
   /* EL OYENTE VA EN LA BARRA Y NO EN CADA BOTÓN, que es como lo hace la barra
      de arriba: los botones de una lista que puede crecer no tienen por qué
      llevar cada uno su oyente colgado. */
@@ -23787,23 +24262,16 @@ const ENCUENTROS = [
        vigilante del «clic fuera», y aunque un clic de dentro no cierra nada,
        dejarlo subir es dejar que un día lo cierre. */
     ev.preventDefault(); ev.stopPropagation();
-    barra.querySelectorAll('[data-enc]').forEach(x =>
-      x.classList.toggle('aqui', x === t));
-    hojas.querySelectorAll('.enc-hoja').forEach(h => {
-      h.hidden = h.dataset.enc !== t.dataset.enc;
-      if (!h.hidden) despertar(h);
-    });
-    centrarPestanita();
+    seleccionar(t.dataset.enc);
   });
   /* LAS SOMBRAS DE LOS DOS FILOS, y se preguntan al pintar, no al escribirlas:
      si hay más a la izquierda es que ya se corrió, y si hay más a la derecha
      es que sobra tira. Los dos márgenes de un píxel son por el redondeo del
      desplazamiento, que con el zoom del navegador no cae en enteros. */
   const avisarMasEncuentros = () => {
-    const sobra = barra.scrollWidth - barra.clientWidth;
-    cajaBarra.classList.toggle('hay-izq', barra.scrollLeft > 1);
-    cajaBarra.classList.toggle('hay-der', sobra - barra.scrollLeft > 1);
+    avisarTiraPestanitas(barra, cajaBarra);
   };
+  const movimiento = crearMovimientoPestanitas(barra, avisarMasEncuentros);
   barra.addEventListener('scroll', avisarMasEncuentros, { passive:true });
   /* Y SE VUELVE A MEDIR CUANDO LA TIRA CAMBIA DE ANCHO. Las clases se
      refrescaban solo al correrla o al abrir el panel, así que con Encuentros
@@ -23815,7 +24283,7 @@ const ENCUENTROS = [
      Observa la TIRA y no la ventana: lo que decide es su ancho, y así vale
      también para lo que estreche el panel sin tocar la ventana. */
   if (typeof ResizeObserver === 'function')
-    new ResizeObserver(avisarMasEncuentros).observe(barra);
+    new ResizeObserver(() => movimiento.ajustar(barra.querySelector('.aqui'))).observe(barra);
   /* LA RUEDA DEL RATÓN CORRE LA TIRA DE LADO. Una rueda vertical sobre una
      caja que solo se desplaza en horizontal no hace nada en la mayoría de los
      navegadores, y lo primero que hace quien ve una tira recortada es girar la
@@ -23836,16 +24304,14 @@ const ENCUENTROS = [
   /* Y LA PESTAÑA ENCENDIDA SE TRAE A LA VISTA. Con la tira corrida, volver a
      abrir Encuentros por la que se estaba leyendo enseñaba el principio de la
      tira y la encendida fuera de pantalla: el panel decía que estás en una
-     historia y no se veía cuál. inline:'nearest' para que no la centre a la
-     fuerza cuando ya se ve —mover algo que está bien también es un tic—. */
-  const centrarPestanita = () => {
+     historia y no se veía cuál. Ahora aterriza junto al Índice, incluso si
+     antes se veía en otra posición de la tira. */
+  const centrarPestanita = (animar = true) => {
     const viva = barra.querySelector('.aqui');
-    if (viva && viva.scrollIntoView)
-      viva.scrollIntoView({ block:'nearest', inline:'nearest' });
-    avisarMasEncuentros();
+    movimiento.ir(viva, animar);
   };
-  caja.appendChild(cajaBarra);
-  caja.appendChild(hojas);
+  tira.append(tabIndice, cajaBarra);
+  caja.append(tira, hojas);
   /* Y LA PRIMERA SE ENCIENDE CUANDO SE ABRE LA SECCIÓN, no aquí: aquí todavía
      estamos armando el panel y el programa está arrancando. Se engancha al
      primer toque de la pestaña de Encuentros, que es el momento en que el
