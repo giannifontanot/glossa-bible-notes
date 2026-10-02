@@ -1573,6 +1573,29 @@ const IR_A = `async (sec) => {
   /* ---------------- la sección ---------------- */
   titulo('Encuentros trae sus cinco, y la historia de Zaqueo');
   vale('se llega a Encuentros desde la barra', await irA('encuentros'));
+  titulo('Encuentros empieza por su índice sin pedir relatos');
+  const indiceInicial = await p.evaluate(() => {
+    const c = document.getElementById('encuentros');
+    return { primero:c.querySelector('.indice-barra').firstElementChild.classList.contains('indice-tab'),
+      activo:c.querySelector('.indice-tab').getAttribute('aria-pressed'),
+      visible:!c.querySelector('.indice-pagina').hidden,
+      nombres:[...c.querySelectorAll('.indice-nombre')].map(n => n.textContent),
+      pedidos:[...c.querySelectorAll('.enc-marco')].map(m => m.getAttribute('src')) };
+  });
+  vale('Índice es la primera pestaña y la página inicial',
+       indiceInicial.primero && indiceInicial.activo === 'true' && indiceInicial.visible,
+       indiceInicial);
+  vale('lista los nombres completos y no incluye el encuentro oculto',
+       indiceInicial.nombres.join('|') === 'Zaqueo|La mujer samaritana|Sobre el agua|El centurión',
+       indiceInicial.nombres);
+  vale('abrir el índice no solicita ninguna historia',
+       indiceInicial.pedidos.every(s => s === null), indiceInicial.pedidos);
+  await p.locator('#encuentros .indice-item').first().press('Enter');
+  await p.waitForTimeout(700);
+  vale('el índice abre Zaqueo con teclado y lleva el foco a su pestaña',
+       await p.locator('#encuentros .pestanitas [data-enc="zaqueo"]').evaluate(t =>
+         t === document.activeElement && t.getAttribute('aria-pressed') === 'true') &&
+       await p.locator('#encuentros .indice-pagina').isHidden());
   const dentro = await p.evaluate(() => {
     const c = document.getElementById('encuentros');
     const hojas = [...c.querySelectorAll('.enc-hoja')];
@@ -1831,6 +1854,31 @@ const IR_A = `async (sec) => {
   vale('  Y LA PESTAÑA ENCENDIDA SE VE, con la tira corrida o sin ella',
        !!devuelta.vivaALaVista && devuelta.vivaALaVista.dentro === true,
        JSON.stringify(devuelta.vivaALaVista));
+
+  titulo('el índice fijo alcanza también el último encuentro de la tira');
+  await p.locator('#encuentros .pestanitas [data-enc="centurion"]').click();
+  const indiceFijo = await p.locator('#encuentros .indice-tab').evaluate(t => {
+    const r = t.getBoundingClientRect(), b = document.querySelector('#encuentros .pestanitas');
+    return { dentro:r.left >= 0 && r.right <= innerWidth, corrida:b.scrollLeft };
+  });
+  vale('el índice sigue visible cuando la tira se desplaza al final',
+       indiceFijo.dentro && indiceFijo.corrida > 0, indiceFijo);
+  await p.locator('#encuentros .indice-tab').click();
+  vale('volver al índice oculta el relato y conserva las cuatro entradas',
+       await p.locator('#encuentros .indice-pagina').isVisible() &&
+       await p.locator('#encuentros .enc-hoja:visible').count() === 0 &&
+       await p.locator('#encuentros .indice-item').count() === 4);
+  await p.locator('#encuentros .indice-item').last().click();
+  vale('la última entrada abre exactamente El centurión',
+       await p.locator('#encuentros .enc-hoja:visible').getAttribute('data-enc') === 'centurion');
+  await p.locator('#encuentros .indice-tab').click();
+  await p.locator('#encuentros > .pie-cerrar .cerrar-pie').click();
+  await p.waitForTimeout(900);
+  await irA('encuentros');
+  vale('cerrar y reabrir conserva la página del índice y su lista',
+       await p.locator('#encuentros .indice-pagina').isVisible() &&
+       await p.locator('#encuentros .indice-item').count() === 4);
+  await p.locator('#encuentros .indice-item').nth(1).click();
 
   /* ---------------- el relato se viste con la ropa del libro ---------------- */
   titulo('el relato toma la letra, la tinta y el papel del libro');

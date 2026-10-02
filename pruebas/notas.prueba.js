@@ -19,9 +19,26 @@ const IR_A = `async sec => {
 (async () => {
   const sesion = await abrir();
   const p = sesion.pagina;
+  const abrirNotas = async pagina => {
+    await pagina.evaluate(`(${IR_A})('notas')`);
+    if (await pagina.locator('#notas .indice-pagina').isVisible())
+      await pagina.locator('#notas .pestanitas [data-nota]').first().click();
+  };
   titulo('una nota nueva conserva su título y su texto');
   const llego = await p.evaluate(`(${IR_A})('notas')`);
   vale('(la prueba es válida) existe la pestaña NOTAS', llego === true);
+  titulo('el cuaderno empieza por su índice, que no es una nota');
+  vale('Índice es la primera pestaña y empieza seleccionada',
+       await p.locator('#notas .indice-barra > button').first().textContent() === 'Índice' &&
+       await p.locator('#notas .indice-tab').getAttribute('aria-pressed') === 'true');
+  vale('la página de índice lista la nota de fábrica y oculta los editores',
+       await p.locator('#notas .indice-pagina').isVisible() &&
+       await p.locator('#notas .indice-item').count() === 1 &&
+       await p.locator('#notas .nota-editor:visible').count() === 0);
+  await p.locator('#notas .indice-item').first().press('Enter');
+  vale('la entrada abre la nota con teclado y lleva el foco a su pestaña',
+       await p.locator('#notas .nota-editor:visible').count() === 1 &&
+       await p.locator('#notas .pestanitas [data-nota]').first().evaluate(t => t === document.activeElement));
   const antes = await p.evaluate(() => ({
     pestañas:document.querySelectorAll('#notas .enc-barra [data-nota]').length,
     editor:!!document.querySelector('#notas .nota-editor:enabled')
@@ -73,7 +90,7 @@ const IR_A = `async sec => {
        await primera.textContent() === 'Lectura');
   await p.locator('#notas .nota-editor:visible').fill('Texto de la primera nota.');
   await p.reload();
-  await p.evaluate(`(${IR_A})('notas')`);
+  await abrirNotas(p);
   vale('las dos notas sobreviven a recargar',
        await p.locator('#notas .enc-barra [data-nota]').count() === 2);
   vale('y la primera conserva su título y texto',
@@ -107,13 +124,13 @@ const IR_A = `async sec => {
        respaldo.notas[1].texto === 'Memoria para la próxima lectura.');
   const destino = await abrir();
   const q = destino.pagina;
-  await q.evaluate(`(${IR_A})('notas')`);
+  await abrirNotas(q);
   await q.locator('#notas .nota-editor:visible').fill('Esta nota ya estaba en el destino.');
   const existentes = await q.evaluate(() => JSON.parse(localStorage.getItem('glossa:notas:v1')));
   vale('las notas de fábrica de dos dispositivos tienen ids distintos',
        existentes[0].id !== respaldo.notas[0].id);
   await importar(q, respaldo);
-  await q.evaluate(`(${IR_A})('notas')`);
+  await abrirNotas(q);
   const restauradas = await q.evaluate(() => JSON.parse(localStorage.getItem('glossa:notas:v1')));
   vale('importar añade ambas notas y mantiene la que ya estaba',
        restauradas.length === 3 && restauradas[0].texto === existentes[0].texto &&
@@ -125,7 +142,7 @@ const IR_A = `async sec => {
   vale('reimportar no duplica las notas',
        await q.evaluate(() => JSON.parse(localStorage.getItem('glossa:notas:v1')).length) === 3);
   await q.reload();
-  await q.evaluate(`(${IR_A})('notas')`);
+  await abrirNotas(q);
   vale('el respaldo restaurado también sobrevive a recargar',
        await q.locator('#notas .enc-barra [data-nota]').count() === 3);
 
@@ -167,7 +184,7 @@ const IR_A = `async sec => {
         return window.__guardarStorageOriginal.call(this, clave, valor);
       };
     }, error);
-    await q.evaluate(`(${IR_A})('notas')`);
+    await abrirNotas(q);
     const texto = 'Texto aún no guardado: ' + error;
     await q.locator('#notas .nota-editor:visible').fill(texto);
     const aviso = await q.locator('#readout').textContent();
@@ -186,7 +203,7 @@ const IR_A = `async sec => {
       Storage.prototype.setItem = window.__guardarStorageOriginal;
       delete window.__guardarStorageOriginal;
     });
-    await q.evaluate(`(${IR_A})('notas')`);
+    await abrirNotas(q);
     await q.locator('#notas .nota-editor:visible').fill('Guardado tras recuperar el almacén.');
     vale(error + ': al recuperarse el almacén vuelve a guardar',
          await q.evaluate(() => JSON.parse(localStorage.getItem('glossa:notas:v1'))[0].texto) ===
@@ -195,5 +212,61 @@ const IR_A = `async sec => {
   await destino.navegador.close();
   vale('el navegador de destino no tuvo errores de JavaScript', destino.errores.length === 0,
        destino.errores);
+
+  titulo('el índice permite llegar a notas que quedaron fuera de la tira');
+  const adicionales = Array.from({ length:18 }, (_, i) => ({
+    id:i === 17 ? 'indice' : 'nota-del-indice-' + i,
+    titulo:i === 17 ? '<b>Una nota llamada índice</b>' : 'Apunte de lectura ' + (i + 1),
+    texto:'Contenido conservado del apunte ' + (i + 1)
+  }));
+  await importar(p, { ...respaldo, notas:adicionales });
+  await abrirNotas(p);
+  const ultima = p.locator('#notas .pestanitas [data-nota="indice"]');
+  await ultima.click();
+  const tira = await p.evaluate(() => {
+    const b = document.querySelector('#notas .pestanitas');
+    const indice = document.querySelector('#notas .indice-tab').getBoundingClientRect();
+    return { sobra:b.scrollWidth - b.clientWidth, corrida:b.scrollLeft,
+      indiceVisible:indice.left >= 0 && indice.right <= innerWidth };
+  });
+  vale('(la prueba es válida) las veinte notas desbordan y la tira se corrió',
+       tira.sobra > 0 && tira.corrida > 0, tira);
+  vale('la pestaña Índice sigue visible al final de la tira', tira.indiceVisible, tira);
+  await p.locator('#notas .indice-tab').click();
+  vale('el índice se actualizó tras importar y enumera todas las notas',
+       await p.locator('#notas .indice-item').count() === 20);
+  vale('los títulos con marcado se muestran como texto, no como HTML',
+       await p.locator('#notas .indice-nombre').last().textContent() === adicionales[17].titulo &&
+       await p.locator('#notas .indice-lista b').count() === 0);
+  vale('el índice tiene desplazamiento vertical para alcanzar la última entrada',
+       await p.locator('#notas .indice-pagina').evaluate(i => i.scrollHeight > i.clientHeight));
+  await p.locator('#notas .indice-item').last().click();
+  vale('la última entrada abre la nota correcta, aunque su id sea indice',
+       await p.locator('#notas .nota-editor:visible').inputValue() === adicionales[17].texto &&
+       await ultima.getAttribute('aria-pressed') === 'true' &&
+       await p.locator('#notas .indice-tab').getAttribute('aria-pressed') === 'false');
+  p.once('dialog', d => d.accept('Última nota renombrada'));
+  await ultima.dblclick();
+  await p.locator('#notas .nota-editor:visible').fill('Texto actualizado desde la nota.');
+  await p.locator('#notas .indice-tab').click();
+  vale('el índice refleja el cambio de título y el nuevo texto',
+       await p.locator('#notas .indice-nombre').last().textContent() === 'Última nota renombrada' &&
+       await p.locator('#notas .indice-detalle').last().textContent() === 'Texto actualizado desde la nota.');
+  await p.locator('#notas .indice-crear').click();
+  vale('Nueva nota crea y abre una nota desde el índice',
+       await p.locator('#notas .pestanitas [data-nota]').count() === 21 &&
+       await p.locator('#notas .nota-editor:visible').inputValue() === '');
+  await p.locator('#notas .indice-tab').click();
+  vale('el índice se actualiza también después de crear',
+       await p.locator('#notas .indice-item').count() === 21);
+  const actualizado = await descargar(p);
+  vale('el respaldo incluye solo notas, nunca la página del índice',
+       actualizado.totalNotas === 21 && actualizado.notas.length === 21);
+  await p.reload();
+  await p.evaluate(`(${IR_A})('notas')`);
+  vale('al recargar vuelve al índice completo sin perder lo escrito',
+       await p.locator('#notas .indice-pagina').isVisible() &&
+       await p.locator('#notas .indice-item').count() === 21 &&
+       await p.locator('#notas .indice-detalle').nth(19).textContent() === 'Texto actualizado desde la nota.');
   await cerrar(sesion);
 })();

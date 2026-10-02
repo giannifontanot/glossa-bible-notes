@@ -3308,6 +3308,7 @@
      lo recorta el contenedor, y el latido se vería a medias en la primera y
      la última pestaña. Por dentro se ve entero en todas. */
   .rollo .ix-item.obrando, .rollo .pestanitas button.obrando,
+  .rollo .indice-tab.obrando, .rollo .indice-item.obrando,
   .rollo select.obrando{
     outline-style:solid; outline-offset:-2px;
     animation:obrandoAro .9s cubic-bezier(.4,0,.6,1) infinite; }
@@ -3319,6 +3320,7 @@
   }
   @media (prefers-reduced-motion: reduce){
     .rollo .ix-item.obrando, .rollo .pestanitas button.obrando,
+    .rollo .indice-tab.obrando, .rollo .indice-item.obrando,
     .rollo select.obrando{
       animation:none; outline-width:3px; outline-color:rgba(150,112,31,.9); }
   }
@@ -3886,7 +3888,7 @@
   }
   /* flex:0 0 auto para que ninguna se encoja: una pestaña apretada hasta que
      su palabra se parte es peor que una tira que se corre. */
-  .pestanitas button{ flex:0 0 auto; white-space:nowrap;
+  .pestanitas button, .indice-tab{ flex:0 0 auto; white-space:nowrap;
                       border:0; cursor:pointer; padding:4px 8px 3px;
                       border-radius:5px 5px 0 0; background:transparent;
                       color:#5c4a24; letter-spacing:.02em;
@@ -3895,8 +3897,8 @@
                       transition:background .3s cubic-bezier(.65,0,.35,1),
                                  color .3s cubic-bezier(.65,0,.35,1),
                                  box-shadow .26s ease; }
-  .pestanitas button:hover{ background:rgba(255,253,247,.72); color:#1d1608; }
-  .pestanitas button.aqui{ color:#3a2d10; font-weight:600;
+  .pestanitas button:hover, .indice-tab:hover{ background:rgba(255,253,247,.72); color:#1d1608; }
+  .pestanitas button.aqui, .indice-tab.aqui{ color:#3a2d10; font-weight:600;
                            background:rgba(184,137,43,.14);
                            box-shadow:inset 0 -2px 0 #b8892b; }
   /* LA HOJA QUE SE VE OCUPA TODO LO QUE SOBRA, porque lo que lleva dentro es
@@ -3941,6 +3943,50 @@
   .nota-editor:focus{ outline:2px solid rgba(184,137,43,.55); outline-offset:1px; }
   .pestanitas .nota-mas{ min-width:32px; padding-left:9px; padding-right:9px;
                          font-size:1.35em; line-height:1; }
+  /* EL ÍNDICE NO VIAJA CON LA TIRA. Si se fuera con las notas, se perdería
+     justo cuando hace falta: al crecer la lista. Las sombras siguen viviendo
+     solo en la caja que se desplaza, sin oscurecer esta pestaña fija. */
+  .indice-barra{ display:flex; gap:6px; flex:0 0 auto; min-width:0; margin:0 0 9px; }
+  .indice-barra > .enc-barra{ flex:1 1 auto; min-width:0; margin:0; }
+  .indice-tab{ display:flex; align-items:center; gap:6px; }
+  .indice-tab svg{ width:1.1em; height:1.1em; fill:none; stroke:currentColor;
+                    stroke-width:1.7; stroke-linecap:round; }
+  .indice-tab:focus-visible, .indice-item:focus-visible{
+    outline:2px solid #b8892b; outline-offset:-2px; }
+  .indice-pagina{ flex:1 1 auto; min-width:0; min-height:0; overflow-y:auto;
+                   box-sizing:border-box; padding:20px 18px 28px;
+                   border:1px solid rgba(140,116,68,.24); border-radius:9px;
+                   background:linear-gradient(145deg,rgba(255,253,247,.82),rgba(255,253,247,.3)); }
+  .indice-pagina[hidden]{ display:none; }
+  .indice-cabecera{ padding-bottom:18px; margin-bottom:17px;
+                     border-bottom:1px solid rgba(184,137,43,.35); }
+  .indice-antetitulo{ margin:0 0 7px; color:#88651d; letter-spacing:.17em;
+                       font:600 calc(10px * var(--escala-ui, 1))/1.5 var(--ui); }
+  .indice-cabecera h2{ margin:0 0 7px; color:#493817;
+                        font:400 calc(28px * var(--escala-ui, 1))/1.15 var(--fam-libro, Georgia, serif); }
+  .indice-descripcion{ margin:0 0 10px; color:#695533;
+                        font:400 calc(13px * var(--escala-ui, 1))/1.5 var(--ui); }
+  .indice-cuenta{ margin:0; color:#88651d;
+                   font:600 calc(11px * var(--escala-ui, 1))/1.4 var(--ui); }
+  .rollo .indice-crear{ margin-top:13px; min-height:40px; padding:8px 12px;
+                         font-size:calc(12px * var(--escala-ui, 1)); }
+  .indice-lista{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));
+                  align-content:start; gap:10px; margin:0; padding:0; list-style:none; }
+  .indice-lista li{ min-width:0; }
+  .indice-item{ display:flex; align-items:center; gap:12px; width:100%; min-height:64px;
+                 box-sizing:border-box; padding:13px 12px; text-align:left; cursor:pointer;
+                 border:1px solid rgba(140,116,68,.24); border-radius:7px;
+                 background:rgba(255,253,247,.72); color:#493817;
+                 transition:background .2s ease,border-color .2s ease; }
+  .indice-item:hover{ background:#fffdf6; border-color:rgba(184,137,43,.65); }
+  .indice-numero{ flex:0 0 auto; color:#a17b2d;
+                   font:400 calc(20px * var(--escala-ui, 1))/1 var(--fam-libro, Georgia, serif); }
+  .indice-textos{ flex:1 1 auto; min-width:0; }
+  .indice-nombre{ display:block; overflow-wrap:anywhere;
+                   font:600 calc(15px * var(--escala-ui, 1))/1.35 var(--fam-libro, Georgia, serif); }
+  .indice-detalle{ display:block; margin-top:4px; overflow-wrap:anywhere; color:#756342;
+                    font:400 calc(11px * var(--escala-ui, 1))/1.45 var(--ui); }
+  .indice-flecha{ flex:0 0 auto; color:#a17b2d; font-size:20px; }
   /* EL MARCO DE ORACIÓN, Y POR QUÉ ES UN MARCO Y NO CÓDIGO PEGADO AQUÍ.
 
      Lo de dentro es una aplicación entera de otro repo —762 líneas de CSS,
@@ -5262,7 +5308,7 @@
     /* Las de dentro de Encuentros van a 40 y no a 44: son de segundo nivel y
        ya se distinguen por eso, pero siguen siendo blancos de dedo y 40 es el
        alto que tienen aquí los botones del rollo. */
-    .pestanitas button{ min-height:40px; }
+    .pestanitas button, .indice-tab{ min-height:40px; }
     /* El hueco, que es el arreglo de verdad. Va en los dos ejes por si algún
        renglón se parte: dos botones que caen uno debajo de otro necesitan la
        misma separación que dos que caen uno al lado del otro. */
@@ -5300,7 +5346,7 @@
        hoja crece y se encoge con el ajuste de Formato y ésta se quedaba
        quieta. Ahora la manda --fs, como a la de la hoja. */
     .nota-respaldo, .rollo .cred, .enc-vacio{ font-size:calc(13px * var(--escala-ui, 1)); }
-    .pestanitas button{ font-size:calc(14px * var(--escala-ui, 1)); }
+    .pestanitas button, .indice-tab{ font-size:calc(14px * var(--escala-ui, 1)); }
     .enc-titulo{ font-size:calc(16px * var(--escala-ui, 1)); }
     /* En el teléfono sube igual que el resto: es donde de verdad se consulta,
        porque es el aparato del que uno duda si tiene la versión nueva. */
@@ -6231,7 +6277,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-OCT-26 12:06';
+window.GLOSS_BUILD = '02-OCT-26 12:38';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17696,7 +17742,7 @@ function encenderObrando(el, desdeQueSeVea){
      desconfiar del aviso donde sí sirve. Es la misma razón por la que los
      deshabilitados llevan fuera desde el principio. */
 const SUPERFICIES_ACUSE = [...LOS_ROLLOS.map(r => r.el), canto, flyCaps, flyVers];
-const LO_QUE_ACUSA = '.btn, .chip, .tabo, .num, .ix-item, .pestanitas button';
+const LO_QUE_ACUSA = '.btn, .chip, .tabo, .num, .ix-item, .pestanitas button, .indice-tab, .indice-item';
 function loQueAcusa(objetivo){
   if (!objetivo || !objetivo.closest) return null;
   if (objetivo.closest('.ix-asa')) return null;
@@ -23579,6 +23625,66 @@ const ENCUENTROS = [
   };
 })();
 
+/* UN MISMO ÍNDICE PARA LOS DOS CUADERNOS. Solo dibuja una lista: elegir una
+   entrada usa la misma navegación que su pestaña, sin duplicar ni cargar
+   relatos ni guardar el índice como si fuera otra nota. Los títulos del lector
+   van siempre en textContent, también si contienen marcado o comillas. */
+function crearIndiceSeccion(titulo, descripcion, antetitulo){
+  const pagina = document.createElement('section');
+  pagina.className = 'indice-pagina';
+  pagina.setAttribute('aria-label', titulo);
+  const cabecera = document.createElement('header');
+  cabecera.className = 'indice-cabecera';
+  const antes = document.createElement('p');
+  antes.className = 'indice-antetitulo'; antes.textContent = antetitulo;
+  const nombre = document.createElement('h2'); nombre.textContent = titulo;
+  const detalle = document.createElement('p');
+  detalle.className = 'indice-descripcion'; detalle.textContent = descripcion;
+  const cuenta = document.createElement('p'); cuenta.className = 'indice-cuenta';
+  cabecera.append(antes, nombre, detalle, cuenta);
+  const lista = document.createElement('ol');
+  lista.className = 'indice-lista'; lista.setAttribute('aria-label', titulo);
+  lista.setAttribute('role', 'list');
+  pagina.append(cabecera, lista);
+  return pagina;
+}
+function crearPestanaIndice(nombre){
+  const tab = document.createElement('button');
+  tab.type = 'button'; tab.className = 'indice-tab';
+  tab.setAttribute('aria-label', nombre);
+  tab.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path d="M9 6h11M9 12h11M9 18h11M4 6h.1M4 12h.1M4 18h.1"/></svg>' +
+    '<span>Índice</span>';
+  return tab;
+}
+function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
+  pagina.querySelector('.indice-cuenta').textContent = cuenta;
+  const lista = pagina.querySelector('.indice-lista'); lista.textContent = '';
+  elementos.forEach((elemento, i) => {
+    const fila = document.createElement('li');
+    const enlace = document.createElement('button');
+    enlace.type = 'button'; enlace.className = 'indice-item';
+    enlace.dataset.destino = elemento.id;
+    const numero = document.createElement('span');
+    numero.className = 'indice-numero'; numero.textContent = String(i + 1).padStart(2, '0');
+    numero.setAttribute('aria-hidden', 'true');
+    const textos = document.createElement('span'); textos.className = 'indice-textos';
+    const nombre = document.createElement('span');
+    nombre.className = 'indice-nombre'; nombre.textContent = elemento.nombre;
+    const detalle = document.createElement('span');
+    detalle.className = 'indice-detalle'; detalle.textContent = elemento.detalle;
+    textos.append(nombre, detalle);
+    const flecha = document.createElement('span');
+    flecha.className = 'indice-flecha'; flecha.textContent = '→';
+    flecha.setAttribute('aria-hidden', 'true');
+    enlace.append(numero, textos, flecha);
+    enlace.addEventListener('click', ev => {
+      ev.preventDefault(); ev.stopPropagation(); elegir(elemento.id);
+    });
+    fila.appendChild(enlace); lista.appendChild(fila);
+  });
+}
+
 /* LAS NOTAS SON DEL LECTOR, no del libro ni de una glosa: se guardan aparte
    para que cambiar de pasaje no las mueva. Viajan junto a las glosas en el
    respaldo, conservando su propia lista y sus identificadores. */
@@ -23596,7 +23702,11 @@ const ENCUENTROS = [
     id: String(n.id || nuevoIdNota()),
     titulo: String(n.titulo || ('Nota ' + (i + 1))).slice(0, 60), texto:n.texto
   }));
-  let activa = notas[0].id;
+  /* null es el índice, no un id reservado: una nota importada llamada
+     «indice» sigue siendo una nota. Al recargar se empieza por el índice. */
+  let activa = null;
+  const tira = document.createElement('div'); tira.className = 'indice-barra';
+  const tabIndice = crearPestanaIndice('Índice de notas');
   const cajaBarra = document.createElement('div');
   cajaBarra.className = 'enc-barra';
   const barra = document.createElement('div');
@@ -23604,7 +23714,13 @@ const ENCUENTROS = [
   cajaBarra.appendChild(barra);
   const hojas = document.createElement('div');
   hojas.className = 'nota-hojas';
-  caja.appendChild(cajaBarra); caja.appendChild(hojas);
+  const indice = crearIndiceSeccion('Índice de notas',
+    'Un lugar para encontrar tus ideas y volver a lo que escribiste.', 'TU CUADERNO');
+  const crear = document.createElement('button');
+  crear.type = 'button'; crear.className = 'btn indice-crear'; crear.textContent = '+ Nueva nota';
+  crear.addEventListener('click', () => agregarNota());
+  indice.querySelector('.indice-cabecera').appendChild(crear);
+  tira.append(tabIndice, cajaBarra); caja.append(tira, hojas);
 
   const avisarMas = () => {
     const sobra = barra.scrollWidth - barra.clientWidth;
@@ -23612,18 +23728,41 @@ const ENCUENTROS = [
     cajaBarra.classList.toggle('hay-der', sobra - barra.scrollLeft > 1);
   };
   const traerActiva = () => {
-    const tab = barra.querySelector('[data-nota="' + CSS.escape(activa) + '"]');
+    const tab = activa === null ? null :
+      barra.querySelector('[data-nota="' + CSS.escape(activa) + '"]');
     if (tab && tab.scrollIntoView) tab.scrollIntoView({ block:'nearest', inline:'nearest' });
     avisarMas();
   };
+  const pintarIndice = () => pintarIndiceSeccion(indice,
+    notas.map(n => ({ id:n.id, nombre:n.titulo,
+      detalle:n.texto.trim().replace(/\s+/g, ' ').slice(0, 100) || 'Una página en blanco para tus ideas.' })),
+    notas.length + (notas.length === 1 ? ' nota' : ' notas'), id => seleccionar(id, true));
+  const seleccionar = (id, enfocar = false) => {
+    activa = id;
+    tabIndice.classList.toggle('aqui', activa === null);
+    tabIndice.setAttribute('aria-pressed', String(activa === null));
+    indice.hidden = activa !== null;
+    barra.querySelectorAll('[data-nota]').forEach(t => {
+      t.classList.toggle('aqui', t.dataset.nota === activa);
+      t.setAttribute('aria-pressed', String(t.dataset.nota === activa));
+    });
+    hojas.querySelectorAll('.nota-hoja').forEach(h => h.hidden = h.dataset.nota !== activa);
+    if (activa === null) pintarIndice();
+    traerActiva();
+    /* Al abandonar el índice, el foco no puede quedarse en un botón oculto. */
+    if (enfocar) barra.querySelector('.aqui')?.focus({ preventScroll:true });
+  };
+  tabIndice.addEventListener('click', () => seleccionar(null));
   const pintar = enfocar => {
     barra.textContent = ''; hojas.textContent = '';
+    hojas.appendChild(indice);
     notas.forEach((nota, i) => {
       const tab = document.createElement('button');
       tab.type = 'button'; tab.dataset.nota = nota.id; tab.textContent = nota.titulo;
       tab.title = 'Doble clic para cambiar el título';
       tab.setAttribute('aria-label', nota.titulo + '. Doble clic para cambiar el título');
       tab.classList.toggle('aqui', nota.id === activa);
+      tab.setAttribute('aria-pressed', String(nota.id === activa));
       tab.addEventListener('dblclick', ev => {
         ev.preventDefault(); ev.stopPropagation();
         const titulo = window.prompt('Título de la nota', nota.titulo);
@@ -23646,28 +23785,28 @@ const ENCUENTROS = [
     mas.type = 'button'; mas.className = 'nota-mas'; mas.textContent = '+';
     mas.title = 'Añadir una nota'; mas.setAttribute('aria-label', 'Añadir una nota');
     barra.appendChild(mas);
-    traerActiva();
+    if (activa !== null) pintarIndice();
+    seleccionar(activa);
     if (enfocar) {
       const editor = hojas.querySelector('.nota-hoja:not([hidden]) .nota-editor');
       if (editor) editor.focus();
     }
   };
+  const agregarNota = () => {
+    const id = nuevoIdNota();
+    notas.push({ id, titulo:'Nota ' + (notas.length + 1), texto:'' }); activa = id;
+    guardarNotas(); pintar(true);
+  };
   barra.addEventListener('click', ev => {
     const mas = ev.target.closest('.nota-mas');
     if (mas) {
-      const id = nuevoIdNota();
-      notas.push({ id, titulo:'Nota ' + (notas.length + 1), texto:'' }); activa = id;
-      guardarNotas(); pintar(true); return;
+      agregarNota(); return;
     }
     const tab = ev.target.closest('[data-nota]'); if (!tab) return;
     /* Los dos clics de un doble toque necesitan el MISMO nodo. Seleccionar
        sólo cambia qué hoja se ve; reconstruir aquí destruía la pestaña entre
        el primer clic y el segundo y el navegador perdía el dblclick. */
-    activa = tab.dataset.nota;
-    barra.querySelectorAll('[data-nota]').forEach(t =>
-      t.classList.toggle('aqui', t.dataset.nota === activa));
-    hojas.querySelectorAll('.nota-hoja').forEach(h => h.hidden = h.dataset.nota !== activa);
-    traerActiva();
+    seleccionar(tab.dataset.nota);
   });
   barra.addEventListener('scroll', avisarMas, { passive:true });
   barra.addEventListener('wheel', ev => {
@@ -23685,6 +23824,9 @@ const ENCUENTROS = [
 (function armarEncuentros(){
   const caja = document.getElementById('encuentros');
   if (!caja) return;
+  const tira = document.createElement('div'); tira.className = 'indice-barra';
+  const tabIndice = crearPestanaIndice('Índice de encuentros');
+  tabIndice.classList.add('aqui'); tabIndice.setAttribute('aria-pressed', 'true');
   const barra = document.createElement('div');
   barra.className = 'pestanitas';
   /* La caja de fuera es la que lleva las sombras de «hay más»: ver .enc-barra.
@@ -23694,10 +23836,14 @@ const ENCUENTROS = [
   cajaBarra.appendChild(barra);
   const hojas = document.createElement('div');
   hojas.className = 'enc-hojas';
+  const indice = crearIndiceSeccion('Índice de encuentros',
+    'Historias de quienes se encontraron con Jesús y se fueron distintos.', 'CAMINOS QUE SE CRUZAN');
+  hojas.appendChild(indice);
   /* Los escondidos no llegan a existir: ni pestaña, ni hoja, ni marco. Un
      `hidden` los habría dejado en el documento, y una hoja escondida que
      igualmente pide su relato es peso muerto que nadie va a leer. */
-  ENCUENTROS.filter(e => !e.oculto).forEach((e, i) => {
+  const visibles = ENCUENTROS.filter(e => !e.oculto);
+  visibles.forEach(e => {
     const b = document.createElement('button');
     b.type = 'button';                 /* dentro de nada, pero un <button> sin
                                           tipo es submit en cuanto alguien lo
@@ -23711,13 +23857,13 @@ const ENCUENTROS = [
        nombre: los que caben no necesitan dos. */
     b.textContent = e.rotulo || e.nombre;
     if (e.rotulo) b.title = e.nombre;
-    if (!i) b.classList.add('aqui');
+    b.setAttribute('aria-pressed', 'false');
     barra.appendChild(b);
 
     const hoja = document.createElement('section');
     hoja.className = 'enc-hoja';
     hoja.dataset.enc = e.id;
-    if (i) hoja.hidden = true;
+    hoja.hidden = true;
     if (e.historia){
       /* LA HISTORIA VA EN UN MARCO Y NO PEGADA DENTRO DEL PANEL, y no es por
          comodidad: cada relato es un documento entero, con su tipografía, su
@@ -23778,6 +23924,27 @@ const ENCUENTROS = [
     const m = hoja && hoja.querySelector('.enc-marco');
     if (m && !m.getAttribute('src')) m.setAttribute('src', m.dataset.historia);
   };
+  const seleccionar = (id, enfocar = false) => {
+    tabIndice.classList.toggle('aqui', id === null);
+    tabIndice.setAttribute('aria-pressed', String(id === null));
+    indice.hidden = id !== null;
+    barra.querySelectorAll('[data-enc]').forEach(x => {
+      x.classList.toggle('aqui', x.dataset.enc === id);
+      x.setAttribute('aria-pressed', String(x.dataset.enc === id));
+    });
+    hojas.querySelectorAll('.enc-hoja').forEach(h => {
+      h.hidden = h.dataset.enc !== id;
+      if (!h.hidden) despertar(h);
+    });
+    centrarPestanita();
+    if (enfocar) barra.querySelector('.aqui')?.focus({ preventScroll:true });
+  };
+  pintarIndiceSeccion(indice,
+    visibles.map(e => ({ id:e.id, nombre:e.nombre,
+      detalle:e.historia ? 'Leer el encuentro' : 'Historia en preparación' })),
+    visibles.length + (visibles.length === 1 ? ' encuentro' : ' encuentros'),
+    id => seleccionar(id, true));
+  tabIndice.addEventListener('click', () => seleccionar(null));
   /* EL OYENTE VA EN LA BARRA Y NO EN CADA BOTÓN, que es como lo hace la barra
      de arriba: los botones de una lista que puede crecer no tienen por qué
      llevar cada uno su oyente colgado. */
@@ -23787,13 +23954,7 @@ const ENCUENTROS = [
        vigilante del «clic fuera», y aunque un clic de dentro no cierra nada,
        dejarlo subir es dejar que un día lo cierre. */
     ev.preventDefault(); ev.stopPropagation();
-    barra.querySelectorAll('[data-enc]').forEach(x =>
-      x.classList.toggle('aqui', x === t));
-    hojas.querySelectorAll('.enc-hoja').forEach(h => {
-      h.hidden = h.dataset.enc !== t.dataset.enc;
-      if (!h.hidden) despertar(h);
-    });
-    centrarPestanita();
+    seleccionar(t.dataset.enc);
   });
   /* LAS SOMBRAS DE LOS DOS FILOS, y se preguntan al pintar, no al escribirlas:
      si hay más a la izquierda es que ya se corrió, y si hay más a la derecha
@@ -23844,8 +24005,8 @@ const ENCUENTROS = [
       viva.scrollIntoView({ block:'nearest', inline:'nearest' });
     avisarMasEncuentros();
   };
-  caja.appendChild(cajaBarra);
-  caja.appendChild(hojas);
+  tira.append(tabIndice, cajaBarra);
+  caja.append(tira, hojas);
   /* Y LA PRIMERA SE ENCIENDE CUANDO SE ABRE LA SECCIÓN, no aquí: aquí todavía
      estamos armando el panel y el programa está arrancando. Se engancha al
      primer toque de la pestaña de Encuentros, que es el momento en que el
