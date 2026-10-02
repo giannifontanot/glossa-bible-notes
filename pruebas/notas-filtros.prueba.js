@@ -231,5 +231,16 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
   await ir(q, 'glosas'); await ir(q, 'notas');
   vale('al recuperar el almacén se guarda sin duplicar la visita fallida',
     (await guardadas(q)).find(n => n.id === idPrimera).filtros.length === fuente.filtros.length + 1);
+
+  titulo('cambiar los libros de un filtro restaurado también se guarda');
+  await ir(q, 'glosas');
+  await q.locator('#filtros .chip-libro').filter({ hasText:'Apocalipsis' }).click();
+  await q.reload(); await ir(q, 'glosas');
+  vale('quitar un libro no lo resucita al recargar', await q.locator('#filtros .chip-libro').count() === 1);
+  await q.locator('#filtros .chip-mas').click();
+  await q.locator('#menu [data-libfil="REV"]').click();
+  await q.reload(); await ir(q, 'glosas');
+  vale('añadir un libro queda guardado sin necesitar otro cambio de filtro',
+    await q.locator('#filtros .chip-libro').count() === 2);
   await cerrar(destino); await cerrar(sesion);
 })().catch(e => { console.error(e); process.exit(1); });

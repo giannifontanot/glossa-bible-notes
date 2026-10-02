@@ -6329,7 +6329,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-OCT-26 18:09';
+window.GLOSS_BUILD = '02-OCT-26 18:23';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -12848,7 +12848,7 @@ function pintarFiltros(){
     b.className = 'chip chip-libro';
     b.innerHTML = esc(nombreDe(id)) + '<span class="n">' + n + '</span><span class="x">×</span>';
     b.title = 'Quitar ' + nombreDe(id) + ' de la lista';
-    b.onclick = () => { librosFiltro.delete(id); pintarFiltros(); pintarIndice(); };
+    b.onclick = () => { librosFiltro.delete(id); guardarAjustes(); pintarFiltros(); pintarIndice(); };
     cont.appendChild(b);
   }
   const mas = document.createElement('span');
@@ -23235,6 +23235,7 @@ menu.addEventListener('click', ev => {
   const b = ev.target.closest('[data-libfil]'); if (!b) return;
   ev.stopPropagation();
   librosFiltro.add(b.dataset.libfil);
+  guardarAjustes();
   /* Y SE ENSEÑA LA TIRA, porque este filtro se pone desde el menú de una glosa
      y no desde ella: sin esto, tocar «ver en otro libro» escondería media
      lista y dejaría la única manera de deshacerlo detrás de un botón apagado
