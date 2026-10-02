@@ -3726,15 +3726,18 @@
      leerse: se reconoce la forma. Va de mayor a menor —pedido así— porque en
      ese orden se lee como una escala que baja y no como un tropiezo.
 
-     Las medidas van en em y no en píxeles: esta pestaña vive dentro de un
-     renglón que ya escala dos veces —con el ancho de la pantalla y con
-     --escala-ui— y clavar píxeles aquí la dejaría fuera de las dos.
+     La barra ya fija su letra en 22 px. Con siete pestañas las aes de antes
+     ocupaban 48 px y se salían del botón: su base baja a .6em (29 px de ancho)
+     sin reducir el blanco de dedo ni los otros dibujos. El bloque flex centra
+     las letras incluso cuando el relleno deja menos sitio que su ancho, como
+     en una ventana estrecha con ratón: usan ese relleno sin salir del botón.
 
      baseline y no center: alineadas por el centro, las tres aes flotan cada
      una a su altura y parecen mal puestas; apoyadas en la misma línea se leen
      como lo que son, tres letras escritas de corrido. */
-  .pestanas .aaa{ display:inline-flex; align-items:baseline; justify-content:center;
-                  gap:.04em; line-height:1; font-weight:700; letter-spacing:0; }
+  .pestanas .aaa{ display:flex; align-items:baseline; justify-content:center;
+                  font-size:.6em; gap:.04em; line-height:1;
+                  font-weight:700; letter-spacing:0; }
   .pestanas .aaa i{ font-style:normal; }
   .pestanas .aaa i:nth-child(1){ font-size:1.3em; }
   .pestanas .aaa i:nth-child(2){ font-size:1em; }
@@ -5563,7 +5566,10 @@
      renglón con 50 px cada una, y en 300 con 46. De 28 a 46 en la pantalla que
      menos tiene, y sin perder el renglón. Se queda el relleno de 4, que es lo
      que da ese margen; se fue la letra de 14, que ya no arregla nada. */
-  @media (pointer:coarse) and (max-width: 400px){
+  /* Con siete pestañas hace falta ese aire también con ratón: a 320 px los
+     9 px de relleno dejaban el SVG de las manos fuera del botón por 1.6 px.
+     Decide el ancho de la ventana, no el tipo de puntero. */
+  @media (max-width: 400px){
     .pestanas button{ padding:8px 4px; }
   }
 
@@ -6226,7 +6232,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-OCT-26 10:43';
+window.GLOSS_BUILD = '02-OCT-26 11:12';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17109,55 +17115,22 @@ function abrirVersiculos(cap, ancla){
    dibujo sin nombre no dice ni eso, así que se le pone al botón el aria-label
    y el title que la palabra daba sola. */
 const SECCIONES = [
-  /* DOS MANOS ORANDO, Y LO QUE COSTÓ QUE SE LEYERAN.
-
-     Esta es la que más vueltas ha dado de las cinco, y conviene que quede
-     escrito porque el dibujo que quedó no cuenta por qué los otros no valían.
-     Todos se retrataron a 30 px —el tamaño al que de verdad vive esta barra—
-     y dentro de la barra, no sueltos en una página blanca, que es donde se vio
-     lo que engañaba:
-
-     · DE FRENTE, CON LA JUNTURA AL MEDIO. Es lo primero que sale y es lo que
-       de verdad parecen unas manos juntas: un óvalo apuntado con una raya en
-       el centro. A 30 px eso es una BALA. Cuatro variantes, las cuatro iguales.
-     · EL MISMO ÓVALO SIN LA RAYA. Peor: una HOJA de árbol, y este programa ya
-       tiene un árbol dentro de esta misma pestaña.
-     · CON PUÑOS ABAJO, para romper la hoja. Una banda horizontal bajo una
-       punta es una PLUMILLA de estilográfica. Dos variantes.
-     · CON LOS DEDOS EN ABANICO Y LAS MUÑECAS JUNTAS. Ésta se leía de maravilla
-       ampliada, y en la barra se lee como una FLECHA DE DESCARGA. Se descartó
-       por eso: un icono que dice otra cosa es peor que uno que no dice nada, y
-       «descargar» en una barra de pestañas es una promesa falsa.
-
-     LO QUE DESATASCÓ ESTO FUE MIRAR EL EMOJI, y lo dijo el dueño del repo con
-     tres palabras: «fíjate en el emoji de oración». Todos los intentos de
-     arriba parten de la misma idea equivocada —que unas manos juntas son un
-     óvalo APUNTADO— y el 🙏 no es eso: es ANCHO, las yemas son dos lóbulos
-     redondeados y no una punta, y lo que de verdad lo hace reconocible son los
-     PULGARES, que salen hacia fuera por abajo y rompen la silueta.
-
-     Ese último detalle es el que decide. Sin los pulgares, el mismo cuerpo
-     ancho se lee como un ESCUDO —probado, dos variantes—; con ellos, se lee
-     como dos manos. Cuesta dos trazos y es la diferencia entera.
-
-     Se probó además una versión con las rayas de los dedos marcadas en el
-     cuerpo: ampliada se ve mejor, y a 30 px se ensucia. Queda fuera.
-
-     Si aun así en el teléfono no dice «manos», el camino ya no es afinar el
-     dibujo: es aceptar que esto no cabe en 30 px de línea y buscar otra figura
-     para «orar». */
+  /* DOS MANOS COMO EN 🙏, no el óvalo ancho de antes que a 30 px parecía
+     una campana. El panel de tipografía, iconografía y accesibilidad pidió
+     dedos verticales con dos yemas redondas, pulgares exteriores y muñecas
+     que se separan abajo: son esas tres partes las que hacen leer el gesto.
+     Sin rayas interiores ni bandas de puño, que a tamaño real se empastan.
+     Conserva la caja y el trazo de los demás signos, también al encenderse. */
   { id:'oracion',    html:'<svg class="signo manos" viewBox="0 0 24 24" aria-hidden="true" ' +
                           'focusable="false">' +
-                          /* las dos palmas, juntas por el centro */
-                          '<path d="M12 6.2a3 3 0 0 0-5.1 2.1v4.9c0 2 .9 3.9 2.5 5.2' +
-                          'l1.4 1.1"/>' +
-                          '<path d="M12 6.2a3 3 0 0 1 5.1 2.1v4.9c0 2-.9 3.9-2.5 5.2' +
-                          'l-1.4 1.1"/>' +
-                          '<path d="M12 6.2v13.3"/>' +
-                          /* y los pulgares, que son los que hacen que esto no
-                             se lea como un escudo */
-                          '<path d="M6.9 13.2 4.6 15a2.2 2.2 0 0 0-.5 2.9l1 1.6"/>' +
-                          '<path d="M17.1 13.2l2.3 1.8a2.2 2.2 0 0 1 .5 2.9l-1 1.6"/></svg>',
+                          '<path d="M12 16V4.2c0-1-.6-1.5-1.3-1.5S9.4 3.2 9.4 4v6.8"/>' +
+                          '<path d="M12 16V4.2c0-1 .6-1.5 1.3-1.5s1.3.5 1.3 1.3v6.8"/>' +
+                          '<path d="m9.4 10.8-1.5-1.5c-.6-.6-1.5-.2-1.5.7v3.1' +
+                          'c0 2-1.5 3.7-2.7 4.8"/>' +
+                          '<path d="m14.6 10.8 1.5-1.5c.6-.6 1.5-.2 1.5.7v3.1' +
+                          'c0 2 1.5 3.7 2.7 4.8"/>' +
+                          '<path d="M12 16c-.7 2.2-2.1 4-3.8 5.3L3.7 18"/>' +
+                          '<path d="M12 16c.7 2.2 2.1 4 3.8 5.3l4.5-3.3"/></svg>',
                      nombre:'Oración: tus oraciones colgadas del árbol' },
   /* UN LIBRO ABIERTO POR LA MITAD. Las dos hojas caen hacia el lomo y el lomo
      se dibuja entero: es lo que separa un libro abierto de una hoja doblada,

@@ -1303,8 +1303,78 @@ const IR_A = `async (sec) => {
                         .getPropertyValue('--fs-libro').trim() };
     });
   };
+  /* EL BOTÓN CABÍA, PERO LAS AES NO. Medir solo el botón o el span dejaba
+     pasar las letras que se salían por su derecha. Se miden los tres glifos
+     y las manos contra sus botones, también con el libro en los dos extremos.
+     La forma del dibujo se revisa en capturas; no se atan las pruebas a paths. */
+  const medirRotulos = () => {
+    const v = [...document.querySelectorAll('.rollo')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    const bs = v ? [...v.querySelectorAll('.pestanas button')] : [];
+    const a = v && v.querySelector('.pestanas [data-sec="formato"]');
+    const o = v && v.querySelector('.pestanas [data-sec="oracion"]');
+    const letras = a ? [...a.querySelectorAll('.aaa i')] : [];
+    const manos = o && o.querySelector('svg.manos');
+    if (letras.length !== 3 || !manos) return { falta:true };
+    const ar = a.getBoundingClientRect(), rectos = letras.map(i => i.getBoundingClientRect());
+    const dentro = (el, b) => {
+      const r = el.getBoundingClientRect(), s = b.getBoundingClientRect();
+      return r.left >= s.left && r.right <= s.right &&
+             r.top >= s.top && r.bottom <= s.bottom;
+    };
+    return {
+      cantidad:bs.length,
+      filas:new Set(bs.map(b => Math.round(b.getBoundingClientRect().top))).size,
+      enPanel:bs.every(b => dentro(b, v)),
+      contenidas:letras.every(i => dentro(i, a)) && dentro(manos, o),
+      centradas:Math.abs((rectos[0].left + rectos[2].right) / 2 -
+                        (ar.left + ar.right) / 2) < 1,
+      ancho:rectos[2].right - rectos[0].left,
+      tamanos:letras.map(i => parseFloat(getComputedStyle(i).fontSize)),
+      altoMinimo:Math.min(...bs.map(b => b.getBoundingClientRect().height)),
+      nombres:[a,o].every(b => !!b.getAttribute('aria-label') &&
+        b.getAttribute('aria-label') === b.getAttribute('title')),
+      ocultos:a.querySelector('.aaa').getAttribute('aria-hidden') === 'true' &&
+        manos.getAttribute('aria-hidden') === 'true' &&
+        manos.getAttribute('focusable') === 'false',
+      colores:letras.every(i => getComputedStyle(i).color === getComputedStyle(a).color) &&
+        [...manos.querySelectorAll('path')].every(t =>
+          getComputedStyle(t).stroke === getComputedStyle(o).color),
+    };
+  };
+  const revisarRotulos = async (pagina, ancho, contexto) => {
+    await pagina.setViewportSize({ width:ancho, height:915 });
+    await pagina.waitForTimeout(300);
+    const r = await pagina.evaluate(medirRotulos);
+    const etiqueta = ancho + ' px · ' + contexto;
+    di('AAA y oración · ' + etiqueta, r);
+    vale('las siete siguen dentro y en una fila · ' + etiqueta,
+         !r.falta && r.cantidad === 7 && r.filas === 1 && r.enPanel, r);
+    vale('las aes y las manos caben en su botón · ' + etiqueta,
+         !r.falta && r.contenidas && r.centradas, r);
+    vale('las aes conservan la escala y su nombre · ' + etiqueta,
+         !r.falta && r.tamanos[0] > r.tamanos[1] && r.tamanos[1] > r.tamanos[2] &&
+         r.nombres && r.ocultos && r.colores, r);
+    if (ancho <= 560)
+      vale('el blanco de dedo conserva 44 px · ' + etiqueta,
+           !r.falta && r.altoMinimo >= 44, r.altoMinimo);
+    return r;
+  };
   const chico  = await conLaLetra(10);
+  const aesChicas = [];
+  for (const ancho of [320,390,412,1100])
+    aesChicas.push(await revisarRotulos(p, ancho, 'letra 10'));
+  await p.setViewportSize({ width:412, height:915 });
   const grande = await conLaLetra(26);
+  const aesGrandes = [];
+  for (const ancho of [320,390,412,1100])
+    aesGrandes.push(await revisarRotulos(p, ancho, 'letra 26'));
+  await p.setViewportSize({ width:412, height:915 });
+  vale('las AAA también son independientes de la letra del libro',
+       aesChicas.every((r, i) => !r.falta && !aesGrandes[i].falta &&
+         r.ancho === aesGrandes[i].ancho &&
+         JSON.stringify(r.tamanos) === JSON.stringify(aesGrandes[i].tamanos)),
+       aesChicas.map(r => r.ancho) + ' → ' + aesGrandes.map(r => r.ancho));
   di('con el libro en 10', chico);
   di('con el libro en 26', grande);
   /* LAS DOS LÍNEAS DE VALIDEZ, y son dos porque son dos cosas distintas: que
@@ -1331,6 +1401,16 @@ const IR_A = `async (sec) => {
   /* Se devuelve la letra a la de fábrica: los bloques de más abajo miden el
      relato contra el libro y parten de que nadie ha tocado el riel. */
   await conLaLetra(15);
+
+  /* Antes el relleno bajaba solo con pointer:coarse y las manos se salían en
+     320 con ratón. Se vigilan ambos punteros y los dos estados de color. */
+  const sesionRotulos = await abrir(ESCRITORIO);
+  const paginaRotulos = sesionRotulos.pagina;
+  await paginaRotulos.evaluate(`(${IR_A})('formato')`);
+  await revisarRotulos(paginaRotulos, 320, 'ratón · Formato activo');
+  await paginaRotulos.evaluate(`(${IR_A})('oracion')`);
+  await revisarRotulos(paginaRotulos, 320, 'ratón · Oración activa');
+  await cerrarParcial(sesionRotulos);
 
   /* ---------------- el signo de compartir ---------------- */
   titulo('la pestaña de compartir es un signo, no una palabra');
