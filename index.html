@@ -6231,7 +6231,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-OCT-26 12:00';
+window.GLOSS_BUILD = '02-OCT-26 12:06';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17114,21 +17114,22 @@ function abrirVersiculos(cap, ancla){
    dibujo sin nombre no dice ni eso, así que se le pone al botón el aria-label
    y el title que la palabra daba sola. */
 const SECCIONES = [
-  /* DOS MANOS COMO EN 🙏. Los dedos de antes eran demasiado largos frente a
-     los pulgares: se acortan y se ensanchan las palmas, y los pulgares suben
-     y ganan recorrido. Así la silueta no depende de dos varillas verticales.
-     Sin rayas interiores ni bandas de puño, que a tamaño real se empastan.
+  /* DOS PALMAS JUNTAS COMO EN EL EMOJI DE REFERENCIA. Los pulgares apenas
+     asoman: los anteriores parecían dos dedos abiertos hacia fuera. La
+     silueta ahora es continua y las mangas diagonales distinguen las muñecas
+     sin depender de esos pulgares. No se añaden rayas finas entre los dedos,
+     porque a 30 px se empastan.
      Conserva la caja y el trazo de los demás signos, también al encenderse. */
   { id:'oracion',    html:'<svg class="signo manos" viewBox="0 0 24 24" aria-hidden="true" ' +
                           'focusable="false">' +
-                          '<path d="M12 16V6.2c0-1-.7-1.6-1.5-1.6S9 5.2 9 6v5.2"/>' +
-                          '<path d="M12 16V6.2c0-1 .7-1.6 1.5-1.6S15 5.2 15 6v5.2"/>' +
-                          '<path d="M9 11.2 7.8 8.6c-.4-.8-1.7-.7-1.7.5v4.2' +
-                          'c0 1.8-1.2 3.3-2.5 4.7"/>' +
-                          '<path d="M15 11.2 16.2 8.6c.4-.8 1.7-.7 1.7.5v4.2' +
-                          'c0 1.8 1.2 3.3 2.5 4.7"/>' +
-                          '<path d="M12 16c-.7 2-2.1 3.8-3.8 5L3.6 18"/>' +
-                          '<path d="M12 16c.7 2 2.1 3.8 3.8 5l4.6-3"/></svg>',
+                          '<path d="M12 5.3c0-1.6-2.4-1.6-2.4 0v7.1l-.2-.4' +
+                          'c-.3-.6-1.2-.4-1.2.3v1.2c0 1.4-.8 2.6-2 3.5l3.8 3.1' +
+                          'c1.1-1 2-2.4 2-3.8Z"/>' +
+                          '<path d="M12 5.3c0-1.6 2.4-1.6 2.4 0v7.1l.2-.4' +
+                          'c.3-.6 1.2-.4 1.2.3v1.2c0 1.4.8 2.6 2 3.5l-3.8 3.1' +
+                          'c-1.1-1-2-2.4-2-3.8Z"/>' +
+                          '<path d="M6.2 17 3.2 19.9 7 22.7 10 20.1"/>' +
+                          '<path d="M17.8 17 20.8 19.9 17 22.7 14 20.1"/></svg>',
                      nombre:'Oración: tus oraciones colgadas del árbol' },
   /* UN LIBRO ABIERTO POR LA MITAD. Las dos hojas caen hacia el lomo y el lomo
      se dibuja entero: es lo que separa un libro abierto de una hoja doblada,
