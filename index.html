@@ -3860,6 +3860,7 @@
                overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain;
                scrollbar-width:none; -ms-overflow-style:none; }
   .pestanitas::-webkit-scrollbar{ display:none; }
+  .pestanitas-cola{ flex:0 0 auto; pointer-events:none; }
   /* PERO CON RATÓN SÍ HAY BARRA, y esto no es un cambio de gusto sino la única
      manera de llegar a lo que queda fuera.
 
@@ -6277,7 +6278,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-OCT-26 12:38';
+window.GLOSS_BUILD = '02-OCT-26 12:56';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -23629,6 +23630,101 @@ const ENCUENTROS = [
    entrada usa la misma navegación que su pestaña, sin duplicar ni cargar
    relatos ni guardar el índice como si fuera otra nota. Los títulos del lector
    van siempre en textContent, también si contienen marcado o comillas. */
+/* Las sombras cuentan pestañas, no el espacio de aterrizaje que se añade
+   al final para que incluso la última pueda quedar al lado del Índice. */
+function avisarTiraPestanitas(barra, caja){
+  const botones = barra.querySelectorAll('button'), r = barra.getBoundingClientRect();
+  caja.classList.toggle('hay-izq', !!botones.length &&
+    botones[0].getBoundingClientRect().left < r.left - 1);
+  caja.classList.toggle('hay-der', !!botones.length &&
+    botones[botones.length - 1].getBoundingClientRect().right > r.right + 1);
+}
+function crearMovimientoPestanitas(barra, avisar){
+  let reloj = null, espera = null, ancho = 0;
+  const cola = document.createElement('span');
+  cola.className = 'pestanitas-cola'; cola.setAttribute('aria-hidden', 'true');
+  const detener = () => {
+    cancelAnimationFrame(reloj); clearTimeout(espera); reloj = espera = null;
+  };
+  /* La misma curva y el mismo peso que entraDeLado: .46 s, se pasa 4 px al
+     82% y se acomoda. scroll-behavior:smooth depende del navegador y no tiene
+     ese resorte; scrollIntoView además podía mover el panel entero. */
+  const curva = k => {
+    if (k <= 0 || k >= 1) return k;
+    const en = (t, a, b) => 3 * (1-t) * (1-t) * t * a + 3 * (1-t) * t * t * b + t*t*t;
+    let lo = 0, hi = 1, t = k;
+    for (let i = 0; i < 12; i++){
+      t = (lo + hi) / 2;
+      if (en(t, .5, .25) < k) lo = t; else hi = t;
+    }
+    return en(t, 0, 1);
+  };
+  const ir = (tab, animar = true, demora = 0) => {
+    detener();
+    const empezar = () => {
+      espera = null;
+      if (!barra.clientWidth || (tab && !barra.contains(tab))) return;
+      ancho = barra.clientWidth;
+      const r = barra.getBoundingClientRect(), desde = barra.scrollLeft;
+      const tabs = barra.querySelectorAll('[data-nota], [data-enc]');
+      const botones = barra.querySelectorAll('button');
+      if (!tabs.length || !botones.length) return;
+      const ultima = tabs[tabs.length - 1].getBoundingClientRect();
+      const fin = botones[botones.length - 1].getBoundingClientRect().right - r.left + desde;
+      const final = ultima.left - r.left + desde;
+      const hueco = final > 1 ? Math.max(0, final + barra.clientWidth + 6 - fin) : 0;
+      /* Cuatro de esos píxeles son el gap antes de la cola. Se deja margen
+         también para el pequeño rebote, sin alterar el ancho de las pestañas. */
+      cola.style.display = hueco > 0 ? 'block' : 'none';
+      cola.style.width = Math.max(0, hueco - 4) + 'px';
+      barra.appendChild(cola);
+      if (!tab){ avisar(); return; }
+      const meta = Math.max(0, tab.getBoundingClientRect().left -
+        barra.getBoundingClientRect().left + barra.scrollLeft);
+      const tramo = meta - desde;
+      if (!animar || Math.abs(tramo) < 1 || matchMedia('(prefers-reduced-motion: reduce)').matches){
+        barra.scrollLeft = meta; avisar(); return;
+      }
+      const rebote = Math.sign(tramo) * Math.min(4, Math.abs(tramo) / 4);
+      const t0 = performance.now();
+      const paso = ahora => {
+        if (!barra.clientWidth){ detener(); return; }
+        const k = Math.min(1, (ahora - t0) / 460);
+        barra.scrollLeft = k < .82
+          ? desde + (tramo + rebote) * curva(k / .82)
+          : meta + rebote * (1 - curva((k - .82) / .18));
+        avisar();
+        if (k < 1) reloj = requestAnimationFrame(paso);
+        else { reloj = null; barra.scrollLeft = meta; avisar(); }
+      };
+      reloj = requestAnimationFrame(paso);
+    };
+    if (demora) espera = setTimeout(empezar, demora); else empezar();
+  };
+  /* Un dedo o una rueda mandan sobre el viaje automático. Otro clic empieza
+     desde donde iba la tira, sin dejar que el movimiento anterior vuelva. */
+  barra.addEventListener('pointerdown', detener, { passive:true });
+  barra.addEventListener('wheel', detener, { passive:true });
+  /* Cambiar de hoja puede cambiar la ALTURA de la tira. ResizeObserver lo
+     cuenta también: recolocar entonces cortaba el resorte en su primer
+     fotograma. Sólo un ancho distinto exige calcular otro aterrizaje. */
+  const ajustar = tab => {
+    if (!barra.clientWidth) return;
+    if (barra.clientWidth !== ancho){
+      ir(tab, false);
+      const ultimo = barra.querySelector('button:last-of-type');
+      /* Si al girar cabe todo el renglón, no esconder pestañas detrás de
+         una cola vacía. Elegir de nuevo sí vuelve a poner la activa junto al
+         Índice; redimensionar sólo devuelve lo que ahora cabe a la vista. */
+      if (ultimo && ultimo.getBoundingClientRect().right -
+          barra.getBoundingClientRect().left + barra.scrollLeft <= ancho + 1)
+        barra.scrollLeft = 0;
+    }
+    avisar();
+  };
+  return { ir, ajustar };
+}
+
 function crearIndiceSeccion(titulo, descripcion, antetitulo){
   const pagina = document.createElement('section');
   pagina.className = 'indice-pagina';
@@ -23723,21 +23819,19 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
   tira.append(tabIndice, cajaBarra); caja.append(tira, hojas);
 
   const avisarMas = () => {
-    const sobra = barra.scrollWidth - barra.clientWidth;
-    cajaBarra.classList.toggle('hay-izq', barra.scrollLeft > 1);
-    cajaBarra.classList.toggle('hay-der', sobra - barra.scrollLeft > 1);
+    avisarTiraPestanitas(barra, cajaBarra);
   };
-  const traerActiva = () => {
+  const movimiento = crearMovimientoPestanitas(barra, avisarMas);
+  const traerActiva = (animar = true, demora = 0) => {
     const tab = activa === null ? null :
       barra.querySelector('[data-nota="' + CSS.escape(activa) + '"]');
-    if (tab && tab.scrollIntoView) tab.scrollIntoView({ block:'nearest', inline:'nearest' });
-    avisarMas();
+    movimiento.ir(tab, animar, demora);
   };
   const pintarIndice = () => pintarIndiceSeccion(indice,
     notas.map(n => ({ id:n.id, nombre:n.titulo,
       detalle:n.texto.trim().replace(/\s+/g, ' ').slice(0, 100) || 'Una página en blanco para tus ideas.' })),
     notas.length + (notas.length === 1 ? ' nota' : ' notas'), id => seleccionar(id, true));
-  const seleccionar = (id, enfocar = false) => {
+  const seleccionar = (id, enfocar = false, demora = 0) => {
     activa = id;
     tabIndice.classList.toggle('aqui', activa === null);
     tabIndice.setAttribute('aria-pressed', String(activa === null));
@@ -23748,7 +23842,7 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
     });
     hojas.querySelectorAll('.nota-hoja').forEach(h => h.hidden = h.dataset.nota !== activa);
     if (activa === null) pintarIndice();
-    traerActiva();
+    traerActiva(true, demora);
     /* Al abandonar el índice, el foco no puede quedarse en un botón oculto. */
     if (enfocar) barra.querySelector('.aqui')?.focus({ preventScroll:true });
   };
@@ -23806,7 +23900,9 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
     /* Los dos clics de un doble toque necesitan el MISMO nodo. Seleccionar
        sólo cambia qué hoja se ve; reconstruir aquí destruía la pestaña entre
        el primer clic y el segundo y el navegador perdía el dblclick. */
-    seleccionar(tab.dataset.nota);
+    /* Dar tiempo al segundo clic antes de mover su blanco. Desde el índice
+       no hay renombrado y el viaje arranca sin esta espera. */
+    seleccionar(tab.dataset.nota, false, ev.detail === 1 ? 500 : 0);
   });
   barra.addEventListener('scroll', avisarMas, { passive:true });
   barra.addEventListener('wheel', ev => {
@@ -23816,7 +23912,8 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
     if (sobra <= 0 || topa) return;
     ev.preventDefault(); barra.scrollLeft += ev.deltaY;
   }, { passive:false });
-  if (typeof ResizeObserver === 'function') new ResizeObserver(avisarMas).observe(barra);
+  if (typeof ResizeObserver === 'function')
+    new ResizeObserver(() => movimiento.ajustar(barra.querySelector('.aqui'))).observe(barra);
   pintar(false);
   reflejarNotas = () => pintar(false);
   encenderNotaViva = traerActiva;
@@ -23961,10 +24058,9 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
      es que sobra tira. Los dos márgenes de un píxel son por el redondeo del
      desplazamiento, que con el zoom del navegador no cae en enteros. */
   const avisarMasEncuentros = () => {
-    const sobra = barra.scrollWidth - barra.clientWidth;
-    cajaBarra.classList.toggle('hay-izq', barra.scrollLeft > 1);
-    cajaBarra.classList.toggle('hay-der', sobra - barra.scrollLeft > 1);
+    avisarTiraPestanitas(barra, cajaBarra);
   };
+  const movimiento = crearMovimientoPestanitas(barra, avisarMasEncuentros);
   barra.addEventListener('scroll', avisarMasEncuentros, { passive:true });
   /* Y SE VUELVE A MEDIR CUANDO LA TIRA CAMBIA DE ANCHO. Las clases se
      refrescaban solo al correrla o al abrir el panel, así que con Encuentros
@@ -23976,7 +24072,7 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
      Observa la TIRA y no la ventana: lo que decide es su ancho, y así vale
      también para lo que estreche el panel sin tocar la ventana. */
   if (typeof ResizeObserver === 'function')
-    new ResizeObserver(avisarMasEncuentros).observe(barra);
+    new ResizeObserver(() => movimiento.ajustar(barra.querySelector('.aqui'))).observe(barra);
   /* LA RUEDA DEL RATÓN CORRE LA TIRA DE LADO. Una rueda vertical sobre una
      caja que solo se desplaza en horizontal no hace nada en la mayoría de los
      navegadores, y lo primero que hace quien ve una tira recortada es girar la
@@ -23997,13 +24093,11 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
   /* Y LA PESTAÑA ENCENDIDA SE TRAE A LA VISTA. Con la tira corrida, volver a
      abrir Encuentros por la que se estaba leyendo enseñaba el principio de la
      tira y la encendida fuera de pantalla: el panel decía que estás en una
-     historia y no se veía cuál. inline:'nearest' para que no la centre a la
-     fuerza cuando ya se ve —mover algo que está bien también es un tic—. */
-  const centrarPestanita = () => {
+     historia y no se veía cuál. Ahora aterriza junto al Índice, incluso si
+     antes se veía en otra posición de la tira. */
+  const centrarPestanita = (animar = true) => {
     const viva = barra.querySelector('.aqui');
-    if (viva && viva.scrollIntoView)
-      viva.scrollIntoView({ block:'nearest', inline:'nearest' });
-    avisarMasEncuentros();
+    movimiento.ir(viva, animar);
   };
   tira.append(tabIndice, cajaBarra);
   caja.append(tira, hojas);

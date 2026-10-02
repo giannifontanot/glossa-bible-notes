@@ -1878,6 +1878,7 @@ const IR_A = `async (sec) => {
   vale('cerrar y reabrir conserva la página del índice y su lista',
        await p.locator('#encuentros .indice-pagina').isVisible() &&
        await p.locator('#encuentros .indice-item').count() === 4);
+  await require('./tira-indice').probarMovimientoIndice(p, 'encuentros');
   await p.locator('#encuentros .indice-item').nth(1).click();
 
   /* ---------------- el relato se viste con la ropa del libro ---------------- */
@@ -2149,8 +2150,12 @@ const IR_A = `async (sec) => {
   const girado = await p.evaluate(() => {
     const c = document.getElementById('encuentros');
     const b = c.querySelector('.pestanitas'), caja = c.querySelector('.enc-barra');
+    const botones = b.querySelectorAll('button'), r = b.getBoundingClientRect();
     return { puesto:getComputedStyle(c).display !== 'none',
-             sobra:b.scrollWidth - b.clientWidth,
+             /* La cola permite aterrizar junto al índice, pero no es una
+                pestaña escondida: aquí se cuenta lo que realmente se ve. */
+             cabenTodos:botones[0].getBoundingClientRect().left >= r.left - 1 &&
+               botones[botones.length - 1].getBoundingClientRect().right <= r.right + 1,
              hayIzq:caja.classList.contains('hay-izq'),
              hayDer:caja.classList.contains('hay-der') };
   });
@@ -2163,7 +2168,7 @@ const IR_A = `async (sec) => {
      tocado la tira. Si siguiera encendido estaría señalando pestañas que ya
      se ven. */
   vale('AL CAMBIAR DE ANCHO, EL AVISO SE VUELVE A MEDIR',
-       girado.sobra === 0 && girado.hayDer === false && girado.hayIzq === false,
+       girado.cabenTodos && girado.hayDer === false && girado.hayIzq === false,
        JSON.stringify(girado));
   await p.setViewportSize({ width:412, height:915 });
   await p.waitForTimeout(800);

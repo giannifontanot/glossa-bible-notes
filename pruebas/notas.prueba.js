@@ -5,6 +5,7 @@
    las dos piezas. Una prueba que sólo mira el textarea no caza el fallo más
    probable: que la tira se redibuje al renombrar y se lleve el texto. */
 const { abrir, cerrar, di, vale, titulo } = require('./comun');
+const { probarMovimientoIndice } = require('./tira-indice');
 
 const IR_A = `async sec => {
   const pausa = ms => new Promise(z => setTimeout(z, ms));
@@ -268,5 +269,6 @@ const IR_A = `async sec => {
        await p.locator('#notas .indice-pagina').isVisible() &&
        await p.locator('#notas .indice-item').count() === 21 &&
        await p.locator('#notas .indice-detalle').nth(19).textContent() === 'Texto actualizado desde la nota.');
+  await probarMovimientoIndice(p, 'notas');
   await cerrar(sesion);
 })();
