@@ -6329,7 +6329,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-OCT-26 18:23';
+window.GLOSS_BUILD = '04-OCT-26 09:22';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -22414,7 +22414,36 @@ function restaurarFiltroNota(f){
     try {
       etiquetasVer = new Set(f.etiquetas); librosFiltro = new Set(f.libros); diaFiltro = f.dia;
       if (LIBRO !== f.libro){
-        LIBRO = f.libro; volverA = null; paginaActual = 0; paginasSucias = true; rehacerPlano();
+        /* AL RASTRO TAMBIÉN, que es lo que se le olvidó a este camino.
+
+           Esto no se escribió con saltarA porque saltarA cierra el panel al
+           viajar, y aquí el encargo es lo contrario —quedarse en GLOSAS con el
+           libro ya puesto—; se vio arriba, en el comentario de mostrarBuscando.
+           Pero al resolver «cómo me quedo en el panel» se perdió de vista la
+           otra mitad de lo que hace un salto de verdad: apuntar a dónde fuiste
+           y de dónde saliste. Esto no es pasar hojas ni recuperar el sitio al
+           abrir —las dos excepciones que de verdad no cuentan—: es «quiero ver
+           las glosas de este otro libro», dicho a propósito, con un botón. Es
+           justo la clase de viaje que «lo que has visto» existe para guardar.
+
+           Se mide ANTES de tocar LIBRO: puntoActual() lee el libro y la hoja
+           de los que nos vamos, y después de la línea de abajo ya serían los
+           del libro nuevo. El destino es su primera hoja, que es donde
+           aterriza siempre un filtro restaurado —paginaActual se deja en 0 a
+           propósito, tres líneas más abajo—.
+
+           Y volverA TAMBIÉN, por la misma razón: es un salto como cualquier
+           otro —como tocar una referencia o una fila del historial— y merece
+           el mismo paso atrás rápido que ellos, no el null que cancela el
+           regreso y que hasta ahora llevaba sin que hiciera falta cancelar
+           nada. */
+        const antes = puntoActual();
+        LIBRO = f.libro; volverA = antes; paginaActual = 0; paginasSucias = true; rehacerPlano();
+        const p0 = plano[0];
+        if (p0){
+          apuntarDeDonde({ libro: antes.libro, cap: antes.ref.cap, vers: antes.ref.vers });
+          apuntarVisto(LIBRO, p0.cap, p0.vers);
+        }
       }
       renderPage(); guardarAjustes(); verEtiquetas(true);
       abrirSeccion('glosas', true);
