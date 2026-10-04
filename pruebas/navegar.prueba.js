@@ -173,6 +173,96 @@ const ATERRIZA = 7000;
     return r;
   }));
 
+  titulo('dos pasos atrás seguidos no se columpian ni se repiten');
+  /* LO QUE CAZÓ CODEX en la revisión de la PR que arregla restaurarFiltroNota:
+     el primer «atrás» consume volverA y vuelve bien, pero ATERRIZAR de ese
+     mismo paso atrás volvía a ESCRIBIR volverA con el sitio del que se
+     salía —en irA y en saltarA, los dos por el mismo defecto—. El segundo
+     «atrás» entonces no seguía bajando por el rastro: ofrecía otra vez el
+     sitio del que se acababa de volver, como un columpio. Arreglado eso,
+     quedaba una segunda mitad del mismo fallo: darUnPasoAtras subía la
+     cuenta de atrasEn SOLO cuando no había volverA, así que consumir un
+     volverA no contaba como un paso del camino y el segundo «atrás» repetía
+     el mismo destino del primero en vez de seguir bajando.
+
+     Se prueba con un salto ENTRE LIBROS, que es donde Codex lo encontró —JHN
+     no aparece en ningún otro salto de esta tanda, así que el viaje es de
+     verdad entre libros sea cual sea el libro en el que esta prueba nos haya
+     dejado—.
+
+     EL RASTRO QUEDA ASÍ TRAS EL SALTO, de arriba abajo:
+       0. JHN 3:16   — el destino, lo que acabamos de apuntarVisto
+       1. el origen  — dinámico: el libro real del que salimos, lo apunta
+                        apuntarDeDonde, y por eso esta prueba no afirma SOBRE
+                        ÉL, solo que el primer «atrás» lo ofrece
+       2. JHN 3:16   — fabricado, conocido de antemano
+       3. LUK 2:1    — fabricado, conocido de antemano
+     Así que el primer «atrás» tiene que dar la fila 1 (dinámica, se compara
+     por números), el segundo la fila 2, el tercero la fila 3, y el cuarto ya
+     no encuentra nada: ahí se acaba el rastro fabricado. Las filas 2 y 3 no
+     dependen de en qué libro empezara la prueba, y son las que de verdad
+     demuestran que la cuenta sigue bajando sin saltarse ni repetir ninguna. */
+  di('salto a JHN y los pasos atrás hasta el final del rastro', await p.evaluate(async (espera) => {
+    localStorage.setItem('glossa:historial:v1', JSON.stringify([
+      { libro:'JHN', cap:3, vers:16, t:3 },
+      { libro:'LUK', cap:2, vers:1, t:1 }
+    ]));
+    document.getElementById('btnHistorial').click();
+    await new Promise(z => setTimeout(z, 500));
+    const fila = document.querySelector('#historial .hs-fila');
+    if (!fila) return { sinFila:true };
+    fila.click();                                  /* abre la ventanita de JHN 3:16 */
+    await new Promise(z => setTimeout(z, 500));
+    const vp = document.querySelector('#versoPleno .vp-txt');
+    if (!vp) return { sinVentanita:true };
+    vp.click();                                     /* SALTO REAL: deja volverA puesto */
+    await new Promise(z => setTimeout(z, espera));
+
+    const atras = async () => {
+      document.getElementById('btnHistorial').click();
+      await new Promise(z => setTimeout(z, 500));
+      const b = document.querySelector('#historial [data-atras]');
+      if (!b) return { sinBoton:true };
+      const rotulo = b.textContent.trim();
+      b.click();
+      await new Promise(z => setTimeout(z, espera));
+      return { rotulo };
+    };
+    const uno = await atras();           /* consume volverA: el origen dinámico */
+    const dos = await atras();           /* fila 2: JHN 3:16 fabricado */
+    const tres = await atras();          /* fila 3: LUK 2:1 fabricado */
+    const cuatro = await atras();        /* fila 4: no existe, se acabó el rastro */
+    return { uno, dos, tres, cuatro,
+             rastro: JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]')
+               .map(h => h.libro + ' ' + h.cap + ':' + h.vers) };
+  }, ATERRIZA).then(r => {
+    const listo = !r.sinFila && !r.sinVentanita && !r.uno.sinBoton;
+    vale('(la prueba es válida) hubo ventanita, salto y primer botón de atrás',
+         listo, JSON.stringify(r));
+    /* EL PRIMERO no se compara por el texto del libro —es dinámico, el real
+       de salida— sino por los números, contra la fila 1 del rastro guardado,
+       que es de donde salió este salto. */
+    const numeros = s => (s.match(/\d+:\d+/) || [])[0];
+    vale('EL PRIMER ATRÁS vuelve al origen del salto, que es la fila 1 del rastro',
+         listo && !!numeros(r.uno.rotulo) && numeros(r.uno.rotulo) === numeros(r.rastro[1] || ''),
+         JSON.stringify(r.uno) + ' · rastro ' + JSON.stringify(r.rastro));
+    /* ÉSTAS DOS SON LAS QUE DEMUESTRAN EL ARREGLO. Sin él, «dos» repetía
+       «uno» —darUnPasoAtras no subía atrasEn al consumir volverA— o volvía a
+       ofrecer Juan 3:16 —irA/saltarA reescribían volverA al aterrizar—. */
+    vale('EL SEGUNDO ATRÁS SIGUE BAJANDO: Juan 3:16, y no repite el primero',
+         listo && !r.dos.sinBoton && /\bJn\.?\s*3:16\b/i.test(r.dos.rotulo) &&
+         numeros(r.dos.rotulo) !== numeros(r.uno.rotulo),
+         r.uno.rotulo + '  →  ' + (r.dos && r.dos.rotulo));
+    vale('  Y EL TERCERO SIGUE BAJANDO: Lucas 2:1',
+         listo && !r.tres.sinBoton && /\bLc\.?\s*2:1\b/i.test(r.tres.rotulo),
+         r.tres && r.tres.rotulo);
+    /* Y AHÍ SE ACABA EL RASTRO FABRICADO: un cuarto botón sería la prueba de
+       que algo se está repitiendo en vez de agotarse. */
+    vale('  Y EL CUARTO YA NO TIENE A DÓNDE IR: se acabó el rastro',
+         listo && r.cuatro.sinBoton === true, JSON.stringify(r.cuatro));
+    return r;
+  }));
+
   titulo('una escritura dentro de la caja de escribir');
   /* En la hoja las referencias son spans y se tocan; dentro del panel lo que
      hay es un textarea, que no deja marcar nada por dentro. Se mira en qué

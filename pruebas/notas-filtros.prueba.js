@@ -159,11 +159,34 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
     !(await etiquetas(p)).join().includes('SinEtiqueta'));
   await ir(p, 'notas'); await p.locator('#notas .indice-item').filter({ hasText:'Apocalipsis' }).click();
   await libro.click();
+  /* EL RASTRO, DESDE AQUÍ: este clic cruza de MAT —donde ha estado toda la
+     prueba, sin que nada lo haya movido— a REV, y cruzar de libro a propósito
+     es justo lo que «lo que has visto» existe para guardar. */
+  const rastroAntesDeCruzar = await p.evaluate(() =>
+    JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]'));
+  /* Y LOS DOS FILTROS DE MAT A MAT DE MÁS ARRIBA NO DEBIERON APUNTAR NADA:
+     quedarse en el mismo libro no es un salto, es ajustar qué glosas se ven.
+     Se limpia después de comprobarlo para que la fila de abajo mida solo este
+     cruce y no herede nada de los dos anteriores. */
+  vale('  restaurar un filtro del MISMO libro no toca el rastro',
+    rastroAntesDeCruzar.length === 0, rastroAntesDeCruzar);
+  await p.evaluate(() => localStorage.setItem('glossa:historial:v1', '[]'));
   await p.locator('#notaFiltros .nota-filtro').filter({ hasText:'#LecturaRenombrada' }).click();
   await p.locator('#etiquetas').waitFor({ state:'visible' }); await p.waitForTimeout(900);
   vale('restaurar desde otro libro abre GLOSAS con el libro guardado y sus añadidos',
     (await p.locator('#filtros .chip-libro').first().textContent()).includes('Apocalipsis') &&
     await p.locator('#indice .ix-item').count() === 3);
+  const rastroTrasRestaurar = await p.evaluate(() =>
+    JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]')
+      .map(h => h.libro + ' ' + h.cap + ':' + h.vers));
+  /* DOS FILAS, COMO CUALQUIER SALTO: el destino arriba —la primera hoja de
+     Apocalipsis, que es donde aterriza siempre un filtro restaurado— y el
+     libro del que se salió debajo. Antes de este arreglo esta lista se
+     quedaba vacía: restaurar un filtro de otro libro era invisible para «lo
+     que has visto», y el botón de atrás no sabía que habías pasado por aquí. */
+  vale('  y RESTAURARLO DESDE OTRO LIBRO QUEDA EN EL RASTRO, que es lo que se le olvidaba',
+    rastroTrasRestaurar.length === 2 && rastroTrasRestaurar[0].startsWith('REV ') &&
+    rastroTrasRestaurar[1].startsWith('MAT '), rastroTrasRestaurar.join('  ←  '));
   await ir(p, 'notas'); await p.locator('#notas .indice-tab').click();
   await p.locator('#notas .indice-item').filter({ hasText:'<b>Nota íntegra</b>' }).click();
   await libro.click();
