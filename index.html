@@ -6329,7 +6329,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '04-OCT-26 09:22';
+window.GLOSS_BUILD = '04-OCT-26 09:43';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -12644,7 +12644,21 @@ function irA(libro, cap, vers, letra, opciones){
     if (typeof sepTrasPliegue === 'function') sepTrasPliegue();
     return;
   }
-  volverA = puntoActual();                  // de dónde veníamos, para el botón de regreso
+  /* SIN VOLVERA EN UN PASO ATRÁS, que es la otra mitad de «sinApuntar no se
+     apunta»: sinApuntar dice que este viaje es deshacer el de antes, y
+     dejarle puesto su propio botón de vuelta es el columpio que el
+     comentario de opciones ya avisa que no se quiere —«apuntar el sitio de
+     atrás lo pondría el primero, y el siguiente atrás volvería al de
+     delante»—. Aquí es el mismo columpio por otra puerta: ATERRIZAR de un
+     paso atrás escribía volverA con el sitio del que se salía, así que el
+     siguiente atrás ya no seguía bajando por el rastro, volvía adelante. Lo
+     cazó Codex en el camino de las notas, y el mismo defecto vivía aquí, en
+     cualquier atrás dentro del mismo libro: con un volverA puesto de antes
+     hacía falta encadenar dos. Se deja en null a propósito y no en lo que ya
+     traía volverA: sinApuntar sólo lo usa darUnPasoAtras, y para cuando llama
+     aquí ya lo dejó en null él mismo —por eso null es seguro y no un
+     accidente de quién llamó primero—. */
+  volverA = op.sinApuntar ? null : puntoActual();
   sepSalto = true;                          /* ver sepSalto: esto es saltar */
   animarSalto(destino, () => destacar(cap, vers, letra));
 }
@@ -16081,7 +16095,20 @@ function darUnPasoAtras(){
   const h = destinoAtras();
   if (!h) return;
   if (volverA) volverA = null;
-  else atrasEn++;
+  /* Y SIEMPRE SUBE LA CUENTA, también al consumir volverA, y esto es nuevo:
+     antes sólo subía cuando NO había volverA, como si deshacer el último
+     salto no contara como un paso del camino. Y sí cuenta: cuando hay un
+     salto real de por medio —apuntarVisto deja atrasEn en 0 en el mismo
+     instante en que deja volverA puesto, los dos a la vez— volverA apunta
+     exactamente a lo que hay en rastroVisible()[1]. Consumirlo sin subir la
+     cuenta dejaba el siguiente «atrás» preguntando otra vez por
+     rastroVisible()[0+1], el mismo sitio al que se acababa de llegar: el
+     botón no avisaba de nada raro —ya no apunta al columpio que cazó Codex,
+     eso se arregló arriba, en irA y en saltarA— pero tocarlo una segunda vez
+     no movía nada, que es la otra cara de la misma moneda. Subiendo la cuenta
+     aquí también, el segundo «atrás» sigue bajando por el rastro en vez de
+     repetir el primero. */
+  atrasEn++;
   cerrarHistorial();
   trasPintar(() => irA(h.libro, h.cap, h.vers, '', { sinApuntar:true }));
 }
@@ -22310,7 +22337,15 @@ function saltarA(libro, cap, vers, regreso, opciones){
      Lo levantó Codex y no hay razón para devolverlo. */
   const viajar = () => trasPintar(() => {
     LIBRO = libro;
-    volverA = regreso || null; paginasSucias = true;
+    /* Y AQUÍ EL MISMO COLUMPIO, por el camino entre libros: ver el comentario
+       de volverA en irA, que es donde está contada la regla entera. sinApuntar
+       sólo lo manda darUnPasoAtras, así que un salto con esa bandera es
+       siempre un paso atrás, y un paso atrás no debe dejar su propio botón de
+       vuelta apuntando a donde se estaba. Medido: sin esto, volver de REV a
+       MAT dejaba volverA en REV, y el siguiente «atrás» en vez de seguir
+       bajando por el rastro saltaba otra vez a REV —el mismo sitio del que
+       se acababa de volver—. */
+    volverA = op.sinApuntar ? null : (regreso || null); paginasSucias = true;
     rehacerPlano();
     resolverTodas(); recalcularRefs(); calcularVinculos();
     asegurarPaginas();
