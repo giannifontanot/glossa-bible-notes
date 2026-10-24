@@ -222,10 +222,10 @@ let sesion;
     await p.evaluate(v => localStorage.setItem('glossa:encuentros:orden:v1', v), valor);
     await p.reload(); await abrirSeccion('encuentros');
     const listas = await leer('encuentros');
-    const esperado = valor.startsWith('[') ? ['agua', 'zaqueo', 'samaritana', 'centurion'] :
-      ['zaqueo', 'samaritana', 'agua', 'centurion'];
-    vale('se conservan los cuatro visibles ante ' + valor,
-         igual(listas.lista, esperado) && new Set(listas.lista).size === 4 &&
+    const esperado = valor.startsWith('[') ? ['agua', 'zaqueo', 'samaritana', 'centurion', 'tabernaculo'] :
+      ['zaqueo', 'samaritana', 'agua', 'centurion', 'tabernaculo'];
+    vale('se conservan los cinco visibles ante ' + valor,
+         igual(listas.lista, esperado) && new Set(listas.lista).size === 5 &&
          !listas.lista.includes('espalda') && igual(listas.lista, listas.tabs), listas);
   }
   titulo('el arrastre funciona también entre columnas en pantalla ancha');
