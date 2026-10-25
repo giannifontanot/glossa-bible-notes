@@ -215,10 +215,15 @@ button.cita, button.palabra {
      línea, no bajo la letra, y con el interlineado de 1.75 quedaba flotando
      entre dos renglones. Se pidió que fuera el subrayado de la palabra.
      Así que es un text-decoration: se apoya en la línea base, a tres
-     píxeles, sea cual sea el interlineado. Oro de los capítulos, dos
-     píxeles, de puntos: dice «se puede tocar» sin parecer un enlace. */
+     píxeles, sea cual sea el interlineado. Oro de los capítulos y de
+     puntos: dice «se puede tocar» sin parecer un enlace.
+     GROSOR EN em Y NO EN PÍXELES. Con dos píxeles fijos, en el teléfono
+     —donde el lector suele subir la letra— el punteado se veía delgadito y
+     el dueño del repo lo pidió más grueso. Un octavo de la letra son dos
+     píxeles a 16 y casi tres a 22: crece con el texto que subraya. El
+     desplazamiento crece con él para que los puntos no toquen la letra. */
   color: inherit; text-decoration: underline dotted var(--oro);
-  text-decoration-thickness: 2px; text-underline-offset: 3px;
+  text-decoration-thickness: max(3px, .14em); text-underline-offset: max(4px, .22em);
   -webkit-tap-highlight-color: transparent;
 }
 button.cita { white-space: nowrap; }
