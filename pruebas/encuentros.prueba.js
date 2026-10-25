@@ -1586,7 +1586,7 @@ const IR_A = `async (sec) => {
        indiceInicial.primero && indiceInicial.activo === 'true' && indiceInicial.visible,
        indiceInicial);
   vale('lista los nombres completos y no incluye el encuentro oculto',
-       indiceInicial.nombres.join('|') === 'Zaqueo|La mujer samaritana|Sobre el agua|El centurión|El tabernáculo',
+       indiceInicial.nombres.join('|') === 'Zaqueo|La mujer samaritana|Sobre el agua|El centurión|El tabernáculo|Las cuatro de la tarde',
        indiceInicial.nombres);
   vale('abrir el índice no solicita ninguna historia',
        indiceInicial.pedidos.every(s => s === null), indiceInicial.pedidos);
@@ -1653,13 +1653,13 @@ const IR_A = `async (sec) => {
   di('lo que hay dentro', JSON.stringify(dentro));
   vale('el panel está puesto', dentro.puesto === true);
   /* EL ORDEN SE PIDIÓ ENTERO Y POR ESO SE ESCRIBE ENTERO: primero Zaqueo,
-     luego la samaritana, el agua, el centurión, el tabernáculo, y AL FINAL el de la espalda,
+     luego la samaritana, el agua, el centurión, el tabernáculo, las cuatro de la tarde, y AL FINAL el de la espalda,
      que es el único que no es un encuentro sino el día en que ya no lo hay. Un
      orden pedido a mano no se puede comprobar «de alguna manera»: o es ése o
      no es. */
   vale('con una pestaña por encuentro, en el orden pedido',
        dentro.pestanitas.map(x => x.enc).join(',') ===
-         'zaqueo,samaritana,agua,centurion,tabernaculo',
+         'zaqueo,samaritana,agua,centurion,tabernaculo,cuatro',
        dentro.pestanitas.map(x => x.rotulo).join(' · '));
   /* EL ESCONDIDO NO EXISTE, y esto es lo que se pidió del de la espalda: que
      se quite de la vista sin borrarlo. Se comprueba por los tres sitios donde
@@ -1843,7 +1843,7 @@ const IR_A = `async (sec) => {
   });
   di('al volver', devuelta);
   vale('LAS PESTAÑAS SIGUEN AHÍ, TODAS Y EN SU ORDEN',
-       devuelta.pestanitas.join(',') === 'zaqueo,samaritana,agua,centurion,tabernaculo',
+       devuelta.pestanitas.join(',') === 'zaqueo,samaritana,agua,centurion,tabernaculo,cuatro',
        devuelta.pestanitas.join(' · '));
   vale('  y sigue habiendo una hoja por encuentro',
        devuelta.hojas === devuelta.pestanitas.length, devuelta.hojas);
@@ -1856,7 +1856,7 @@ const IR_A = `async (sec) => {
        JSON.stringify(devuelta.vivaALaVista));
 
   titulo('el índice fijo alcanza también el último encuentro de la tira');
-  await p.locator('#encuentros .pestanitas [data-enc="tabernaculo"]').click();
+  await p.locator('#encuentros .pestanitas [data-enc="cuatro"]').click();
   const indiceFijo = await p.locator('#encuentros .indice-tab').evaluate(t => {
     const r = t.getBoundingClientRect(), b = document.querySelector('#encuentros .pestanitas');
     return { dentro:r.left >= 0 && r.right <= innerWidth, corrida:b.scrollLeft };
@@ -1864,20 +1864,20 @@ const IR_A = `async (sec) => {
   vale('el índice sigue visible cuando la tira se desplaza al final',
        indiceFijo.dentro && indiceFijo.corrida > 0, indiceFijo);
   await p.locator('#encuentros .indice-tab').click();
-  vale('volver al índice oculta el relato y conserva las cinco entradas',
+  vale('volver al índice oculta el relato y conserva las seis entradas',
        await p.locator('#encuentros .indice-pagina').isVisible() &&
        await p.locator('#encuentros .enc-hoja:visible').count() === 0 &&
-       await p.locator('#encuentros .indice-item').count() === 5);
+       await p.locator('#encuentros .indice-item').count() === 6);
   await p.locator('#encuentros .indice-item').last().click();
-  vale('la última entrada abre exactamente El tabernáculo',
-       await p.locator('#encuentros .enc-hoja:visible').getAttribute('data-enc') === 'tabernaculo');
+  vale('la última entrada abre exactamente Las cuatro de la tarde',
+       await p.locator('#encuentros .enc-hoja:visible').getAttribute('data-enc') === 'cuatro');
   await p.locator('#encuentros .indice-tab').click();
   await p.locator('#encuentros > .pie-cerrar .cerrar-pie').click();
   await p.waitForTimeout(900);
   await irA('encuentros');
   vale('cerrar y reabrir conserva la página del índice y su lista',
        await p.locator('#encuentros .indice-pagina').isVisible() &&
-       await p.locator('#encuentros .indice-item').count() === 5);
+       await p.locator('#encuentros .indice-item').count() === 6);
   await require('./tira-indice').probarMovimientoIndice(p, 'encuentros');
   await p.locator('#encuentros .indice-item').nth(1).click();
 
