@@ -2135,7 +2135,8 @@ const IR_A = `async (sec) => {
     await new Promise(z => setTimeout(z, 300));
     const caja = document.getElementById('encuentros').querySelector('.enc-barra');
     return { scroll:Math.round(b.scrollLeft),
-             hayIzq:caja.classList.contains('hay-izq') };
+             hayIzq:caja.classList.contains('hay-izq'),
+             hayDer:caja.classList.contains('hay-der') };
   });
   di('tras girar la rueda', JSON.stringify(trasRueda));
   vale('LA RUEDA VERTICAL CORRE LA TIRA DE LADO',
@@ -2157,18 +2158,37 @@ const IR_A = `async (sec) => {
              cabenTodos:botones[0].getBoundingClientRect().left >= r.left - 1 &&
                botones[botones.length - 1].getBoundingClientRect().right <= r.right + 1,
              hayIzq:caja.classList.contains('hay-izq'),
-             hayDer:caja.classList.contains('hay-der') };
+             hayDer:caja.classList.contains('hay-der'),
+             /* LO QUE DE VERDAD QUEDA FUERA, medido aquí con la misma regla
+                que usa el programa: la primera pestaña antes del filo
+                izquierdo, la última después del derecho. */
+             realIzq:botones[0].getBoundingClientRect().left < r.left - 1,
+             realDer:botones[botones.length - 1].getBoundingClientRect().right > r.right + 1 };
   });
   di('con el teléfono girado', JSON.stringify(girado));
   vale('(la prueba es válida) el panel siguió abierto al girar',
        girado.puesto === true);
   vale('(la prueba es válida) y en vertical sí avisaba',
        tiraAntes.hayDer === true);
-  /* Girado cabe todo, así que el aviso tiene que APAGARSE sin que nadie haya
-     tocado la tira. Si siguiera encendido estaría señalando pestañas que ya
-     se ven. */
+  /* EL AVISO TIENE QUE DECIR LO QUE HAY, NO LO QUE HABÍA. La primera versión
+     daba por hecho que girado cabía todo y exigía las dos sombras apagadas.
+     Con cinco pestañas era verdad; con la sexta —las cuatro de la tarde— y la
+     letra subida cuatro puntos más arriba, el panel acostado llega a su ancho
+     máximo y la última pestaña sigue fuera: la sombra derecha seguía
+     encendida con toda razón y la prueba cantaba fallo con el programa
+     haciendo lo correcto. Ensanchar la ventana no lo arregla, porque el panel
+     no pasa de su ancho.
+     Lo que se vigila es que el aviso se vuelva a medir al cambiar de ancho,
+     así que se compara con lo que de verdad queda fuera después del giro. Y
+     para que eso pruebe algo, la línea de validez exige que el giro haya
+     cambiado al menos uno de los dos filos: si nada cambió, un aviso viejo
+     también coincidiría. */
+  vale('(la prueba es válida) el giro cambia lo que queda fuera',
+       girado.realIzq !== trasRueda.hayIzq || girado.realDer !== trasRueda.hayDer,
+       JSON.stringify({ antes:{ izq:trasRueda.hayIzq, der:trasRueda.hayDer },
+                        despues:{ izq:girado.realIzq, der:girado.realDer } }));
   vale('AL CAMBIAR DE ANCHO, EL AVISO SE VUELVE A MEDIR',
-       girado.cabenTodos && girado.hayDer === false && girado.hayIzq === false,
+       girado.hayIzq === girado.realIzq && girado.hayDer === girado.realDer,
        JSON.stringify(girado));
   await p.setViewportSize({ width:412, height:915 });
   await p.waitForTimeout(800);
