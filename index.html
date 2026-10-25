@@ -3996,7 +3996,8 @@
               color:#5c4a24; border-radius:999px; padding:3px 9px; font:600 11px/1.2 system-ui, sans-serif;
               letter-spacing:.04em; cursor:pointer; }
   .ventanita .versiones button[aria-pressed="true"]{ background:#b8892b; border-color:#b8892b; color:#fffdf6; }
-  .ventanita button:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
+  .ventanita button:focus-visible, .ventanita .texto:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
+  .ventanita .texto:focus-visible{ outline-offset:-3px; }
   @media (max-width:520px){ .ventanita{ place-items:end center; padding:10px; }
     .ventanita .tarjeta{ max-height:72vh; } }
   @keyframes ventanita-sube{ from{ opacity:0; transform:translateY(24px); } to{ opacity:1; transform:none; } }
@@ -6400,7 +6401,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-OCT-26 08:08';
+window.GLOSS_BUILD = '25-OCT-26 08:12';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18176,7 +18177,12 @@ function armarVentanita(){
   ventanita.innerHTML =
     '<div class="tarjeta" role="dialog" aria-modal="true">' +
       '<header><h2></h2><button type="button" class="x" aria-label="Cerrar">×</button></header>' +
-      '<div class="texto"></div>' +
+      /* EL TEXTO TAMBIÉN RECIBE EL FOCO. Un tramo largo —Juan 19:16-37 en
+         un teléfono— no cabe en la tarjeta y se desplaza dentro de ella; sin
+         tabindex, el tabulador se lo saltaba y quien lee con teclado no podía
+         bajar por el pasaje. Lo levantó la revisión de Codex. Entra en la
+         vuelta del tabulador porque tabuladorDentro ya cuenta [tabindex]. */
+      '<div class="texto" tabindex="0"></div>' +
       '<footer><span class="nombre"></span><span class="versiones"></span></footer>' +
     '</div>';
   ventanita.querySelector('.x').addEventListener('click', quitarVentanita);
@@ -18296,6 +18302,15 @@ addEventListener('keydown', ev => {
     tabuladorDentro(ev, lamina ? laminaGrande : ventanita.querySelector('.tarjeta'));
     return;
   }
+  /* LAS DEMÁS TECLAS NO LLEGAN AL LIBRO mientras hay una capa encima. Con la
+     ventanita abierta, las flechas de lado seguían llegando al oyente general
+     y pasaban la hoja de debajo sin que se viera: al cerrar, el lector ya no
+     estaba donde la había abierto. Lo levantó la revisión de Codex. Se corta
+     la propagación y NO el gesto por defecto, para que las flechas de arriba
+     y abajo sigan desplazando el texto de la ventanita cuando tiene el foco,
+     y Enter y la barra sigan pulsando sus botones. Escape se atiende abajo
+     para la ventanita y en su propio oyente para la lámina. */
+  if ((abierta || lamina) && ev.key !== 'Escape'){ ev.stopImmediatePropagation(); return; }
   if (ev.key !== 'Escape' || !abierta) return;
   ev.preventDefault(); ev.stopImmediatePropagation();
   quitarVentanita();
