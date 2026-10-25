@@ -199,3 +199,35 @@ blockquote cite {
 @media (prefers-reduced-motion: reduce) {
   .lamina-enlace { transition: none; }
 }
+
+/* ---------- las citas y las palabras que se abren ---------- */
+/* SON BOTONES QUE NO PARECEN BOTONES: se leen como el texto que son —la
+   referencia en su versalita, la palabra en su renglón— y solo un subrayado
+   de puntos, del marrón de la raya, dice que se pueden tocar. Es la misma
+   señal que llevan las referencias de las glosas en el libro (.ref), así que
+   el lector ya la conoce. Lo que abren está en ventanitas.js. */
+button.cita, button.palabra {
+  all: unset; cursor: pointer; font: inherit; letter-spacing: inherit;
+  color: inherit; border-bottom: 1px dotted var(--raya);
+  -webkit-tap-highlight-color: transparent;
+}
+button.cita { white-space: nowrap; }
+button.cita:hover, button.palabra:hover { border-bottom-style: solid; color: var(--oro); }
+button.cita:focus-visible, button.palabra:focus-visible {
+  outline: 2px solid var(--oro); outline-offset: 2px; border-radius: 2px;
+}
+/* En la portada la referencia ya es oro; el subrayado lo acompaña. */
+.ref button.cita { border-bottom-color: currentColor; }
+
+/* La ventanita de cuando el relato se abre solo. Dentro del programa la
+   pinta el programa (.ventanita en index.html). */
+.ventanita {
+  border: 1px solid var(--raya); border-radius: 8px; padding: 0;
+  width: min(32rem, calc(100% - 2rem)); background: #faf3e3; color: var(--tinta);
+}
+.ventanita::backdrop { background: rgba(43,33,24,.42); }
+.ventanita-cabeza { display: flex; justify-content: space-between; align-items: baseline;
+  padding: .9rem 1rem .5rem; border-bottom: 1px solid var(--raya); }
+.ventanita-cabeza h2 { margin: 0; font-size: 1.15rem; color: var(--oro); }
+.ventanita-x { border: 0; background: none; font-size: 1.4rem; color: var(--rotulo); cursor: pointer; }
+.ventanita-texto { padding: .8rem 1rem 1rem; line-height: 1.65; }
