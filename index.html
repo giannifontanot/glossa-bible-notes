@@ -3956,6 +3956,51 @@
                   background:rgba(0,0,0,.35); color:rgba(255,255,255,.8);
                   font:400 26px/1 Georgia, serif; cursor:pointer; }
   .lamina-grande button:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
+  /* LA VENTANITA DE UN RELATO: la cita o la palabra difícil, encima del libro.
+
+     Pedida «igual que en cover-to-cover»: una tarjeta de papel sobre un velo
+     tenue, el título arriba con su aspa, el texto, y abajo las versiones para
+     cambiar de traducción sin cerrar. La pinta el programa y no el relato por
+     lo mismo que la lámina —un marco no pinta fuera de sí— y porque el texto
+     de la Biblia lo tiene el programa. En el teléfono sube desde abajo, que es
+     donde está el pulgar. */
+  .ventanita{ position:fixed; inset:0; z-index:100000; display:none;
+              place-items:center; padding:16px;
+              background:rgba(43,33,24,.42); }
+  .ventanita.puesta{ display:grid; }
+  .ventanita .tarjeta{ width:min(560px,100%); max-height:min(78vh,640px);
+              display:grid; grid-template-rows:auto 1fr auto; overflow:hidden;
+              /* El papel de #versoPleno, la ventanita del versículo del
+                 libro: dos ventanitas del mismo programa, del mismo papel. */
+              background:linear-gradient(to bottom, #f7f0dd, #ece0c2);
+              color:var(--tinta,#3b2b18);
+              border:1px solid rgba(140,116,68,.55); border-radius:7px;
+              box-shadow:0 16px 34px -10px rgba(0,0,0,.6);
+              animation:ventanita-sube .26s cubic-bezier(.2,.7,.2,1); }
+  .ventanita header{ display:flex; justify-content:space-between; align-items:baseline;
+              gap:12px; padding:14px 16px 9px; border-bottom:1px solid rgba(140,116,68,.3); }
+  .ventanita h2{ margin:0; font:600 1.15rem/1.25 'Palatino Linotype', Palatino,
+              'Book Antiqua', Georgia, serif; color:#b0873a; }
+  .ventanita .x{ border:0; background:none; padding:2px 8px; font:400 22px/1 Georgia, serif;
+              color:#8c7444; cursor:pointer; border-radius:4px; }
+  .ventanita .x:hover{ background:rgba(184,137,43,.14); color:var(--tinta,#3b2b18); }
+  .ventanita .texto{ overflow:auto; padding:12px 16px 14px; font-size:1.02rem;
+              line-height:1.7; font-family:Georgia, 'Times New Roman', serif; }
+  .ventanita .texto sup{ font-size:.66em; font-weight:600; color:#b0873a; margin-right:3px; }
+  .ventanita footer{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+              gap:8px; padding:8px 16px 12px; border-top:1px solid rgba(140,116,68,.3);
+              font:12px/1.3 system-ui, sans-serif; color:#8c7444; }
+  .ventanita footer[hidden]{ display:none; }
+  .ventanita .versiones{ display:flex; flex-wrap:wrap; gap:4px; }
+  .ventanita .versiones button{ border:1px solid rgba(140,116,68,.4); background:transparent;
+              color:#5c4a24; border-radius:999px; padding:3px 9px; font:600 11px/1.2 system-ui, sans-serif;
+              letter-spacing:.04em; cursor:pointer; }
+  .ventanita .versiones button[aria-pressed="true"]{ background:#b8892b; border-color:#b8892b; color:#fffdf6; }
+  .ventanita button:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
+  @media (max-width:520px){ .ventanita{ place-items:end center; padding:10px; }
+    .ventanita .tarjeta{ max-height:72vh; } }
+  @keyframes ventanita-sube{ from{ opacity:0; transform:translateY(24px); } to{ opacity:1; transform:none; } }
+  @media (prefers-reduced-motion:reduce){ .ventanita .tarjeta{ animation:none; } }
   /* NOTAS USA LA MISMA TIRA QUE ENCUENTROS: una nota nueva no hace bajar la
      escritura a un segundo renglón. El sombreado de los filos y el arrastre
      viven en .enc-barra/.pestanitas, que son deliberadamente genéricos aunque
@@ -6355,7 +6400,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-OCT-26 07:32';
+window.GLOSS_BUILD = '25-OCT-26 07:38';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18036,6 +18081,11 @@ addEventListener('message', ev => {
   else if (ev.data.glossa === 'listo') avisarEstiloALosRelatos();
   /* «Lámina» es un relato pidiendo enseñar su imagen en grande. Solo los
      relatos: el árbol de oraciones no trae láminas. */
+  /* «Cita» y «palabra» son un relato pidiendo su ventanita. Solo los
+     relatos, como la lámina. */
+  else if ((ev.data.glossa === 'cita' || ev.data.glossa === 'palabra') &&
+           [...document.querySelectorAll('.enc-marco')].some(m => m.contentWindow === ev.source))
+    ponerVentanita(ev.data);
   else if (ev.data.glossa === 'lamina' &&
            [...document.querySelectorAll('.enc-marco')].some(m => m.contentWindow === ev.source))
     ponerLaminaGrande(ev.data.src, ev.data.alt);
@@ -18101,6 +18151,123 @@ function quitarLaminaGrande(){
   try { laminaVolver?.focus?.({ preventScroll:true }); } catch (_) {}
   laminaVolver = null;
 }
+/* LA VENTANITA: lo que el programa pinta cuando un relato le pide una cita o
+   una palabra. El porqué de que viva aquí está en .ventanita.
+
+   LA CITA LLEGA COMO CLAVE, NO COMO TEXTO: «JHN.1.29» o «JHN.1.29-39». El
+   relato no tiene la Biblia; el programa sí, y la enseña en la versión que el
+   lector tiene puesta, con las demás a un toque abajo para cambiar sin
+   cerrar. Se comprueba todo antes de pintar —que el libro esté en los datos,
+   que el capítulo exista, que el tramo tenga sentido— y un tramo se recorta a
+   lo que el capítulo tiene: una clave mal escrita en un relato abre una
+   ventanita que lo dice, no un error.
+
+   LA PALABRA LLEGA CON SU DEFINICIÓN, que es del relato. Va en textContent y
+   nunca en innerHTML: es texto de otro documento.
+
+   Las citas de los relatos van en la Dios Habla Hoy, y esta ventanita enseña
+   las versiones que trae el programa, que son de licencia libre. El texto
+   puede no coincidir palabra por palabra, y es a propósito: se abre el pasaje
+   en la Biblia que se está leyendo. */
+let ventanita = null, ventanitaVolver = null, ventanitaCita = null, ventanitaVersion = null;
+function armarVentanita(){
+  ventanita = document.createElement('div');
+  ventanita.className = 'ventanita';
+  ventanita.innerHTML =
+    '<div class="tarjeta" role="dialog" aria-modal="true">' +
+      '<header><h2></h2><button type="button" class="x" aria-label="Cerrar">×</button></header>' +
+      '<div class="texto"></div>' +
+      '<footer><span class="nombre"></span><span class="versiones"></span></footer>' +
+    '</div>';
+  ventanita.querySelector('.x').addEventListener('click', quitarVentanita);
+  /* Tocar el velo cierra; tocar la tarjeta no. */
+  ventanita.addEventListener('click', ev => { if (ev.target === ventanita) quitarVentanita(); });
+  ventanita.querySelector('.versiones').addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-v]'); if (!b) return;
+    ventanitaVersion = b.dataset.v; pintarCitaVentanita();
+  });
+  document.body.appendChild(ventanita);
+}
+function leerCita(clave){
+  const m = /^([1-3]?[A-Z]{2,3})\.(\d{1,3})\.(\d{1,3})(?:-(\d{1,3}))?$/.exec(String(clave || ''));
+  if (!m) return null;
+  const desde = +m[3], hasta = m[4] ? +m[4] : desde;
+  if (hasta < desde || hasta - desde > 80) return null;
+  return { libro:m[1], cap:+m[2], desde, hasta };
+}
+function pintarCitaVentanita(){
+  const c = ventanitaCita, txt = ventanita.querySelector('.texto');
+  const vs = Object.keys(D.versiones).filter(v => D.versiones[v].texto[c.libro]);
+  if (!vs.includes(ventanitaVersion)) ventanitaVersion = vs.includes(version) ? version : vs[0];
+  const caps = ventanitaVersion && capsDe(ventanitaVersion, c.libro);
+  const versos = caps && caps[c.cap];
+  txt.textContent = '';
+  if (!versos){
+    txt.textContent = 'Este pasaje no está en los libros que trae la aplicación.';
+  } else {
+    const hasta = Math.min(c.hasta, versos.length);
+    for (let n = c.desde; n <= hasta; n++){
+      const sup = document.createElement('sup'); sup.textContent = n;
+      txt.append(sup, (versos[n-1] || '') + ' ');
+    }
+    if (c.desde > versos.length) txt.textContent = 'Este versículo no está en los datos cargados.';
+  }
+  txt.scrollTop = 0;
+  const pie = ventanita.querySelector('footer');
+  pie.hidden = !vs.length;
+  pie.querySelector('.nombre').textContent = ventanitaVersion ? D.versiones[ventanitaVersion].nombre : '';
+  const vb = pie.querySelector('.versiones'); vb.textContent = '';
+  for (const v of vs){
+    const b = document.createElement('button');
+    b.type = 'button'; b.dataset.v = v; b.textContent = D.versiones[v].abrev;
+    b.title = D.versiones[v].nombre;
+    b.setAttribute('aria-pressed', String(v === ventanitaVersion));
+    vb.appendChild(b);
+  }
+}
+function ponerVentanita(datos){
+  if (!ventanita) armarVentanita();
+  const h2 = ventanita.querySelector('h2'), txt = ventanita.querySelector('.texto');
+  const pie = ventanita.querySelector('footer');
+  if (datos.glossa === 'cita'){
+    const c = leerCita(datos.cita);
+    if (c){
+      ventanitaCita = c;
+      h2.textContent = nombreDe(c.libro) + ' ' + c.cap + ':' + c.desde +
+                       (c.hasta > c.desde ? '-' + c.hasta : '');
+      pintarCitaVentanita();
+    } else {
+      ventanitaCita = null;
+      h2.textContent = String(datos.rotulo || 'Cita');
+      txt.textContent = 'No se pudo leer esta cita.';
+      pie.hidden = true;
+    }
+  } else {
+    ventanitaCita = null;
+    h2.textContent = String(datos.titulo || '');
+    txt.textContent = String(datos.texto || '');
+    txt.scrollTop = 0;
+    pie.hidden = true;
+  }
+  ventanita.querySelector('.tarjeta').setAttribute('aria-label', h2.textContent);
+  ventanitaVolver = document.activeElement;
+  ventanita.classList.add('puesta');
+  ventanita.querySelector('.x').focus({ preventScroll:true });
+}
+function quitarVentanita(){
+  if (!ventanita || !ventanita.classList.contains('puesta')) return;
+  ventanita.classList.remove('puesta');
+  /* El foco vuelve al marco del relato, como con la lámina: el siguiente
+     Escape vuelve a ser del relato. */
+  try { ventanitaVolver?.focus?.({ preventScroll:true }); } catch (_) {}
+  ventanitaVolver = null;
+}
+addEventListener('keydown', ev => {
+  if (ev.key !== 'Escape' || !ventanita || !ventanita.classList.contains('puesta')) return;
+  ev.preventDefault(); ev.stopImmediatePropagation();
+  quitarVentanita();
+}, true);
+
 /* ESCAPE CON LA LÁMINA PUESTA CIERRA LA LÁMINA Y NADA MÁS. Va en la captura
    de la ventana para llegar antes que el oyente general de teclado, que con
    la misma tecla cierra el panel de Encuentros entero. */
@@ -18457,7 +18624,14 @@ function cantoMarcarLibro(lib){
    quitar de en medio lo que tapa el panel se llevaba el panel.
    Lo levantó el dueño del repo usándolo. Ver también los dos comentarios de
    los oyentes de #menu y de #historial, que dicen lo mismo en su sitio. */
-const FUERA_NO = '.rollo, .fly, #menu, #versoPleno, #pgCabeza, #pgVersion';
+/* Y LO MISMO LA LÁMINA Y LA VENTANITA DE LOS RELATOS, por la misma razón y
+   con la misma cara del fallo: las dos salen POR ENCIMA del panel de
+   Encuentros, y son lo que ese panel acaba de enseñar. Sin esto, tocar una
+   versión en la ventanita de una cita —o tocar la lámina para cerrarla—
+   era un toque fuera de la burbuja y se llevaba el panel entero: se cerraba
+   la ventanita y el lector caía al libro, fuera del relato. Se vio al probar
+   la ventanita antes de subirla. */
+const FUERA_NO = '.rollo, .fly, #menu, #versoPleno, #pgCabeza, #pgVersion, .lamina-grande, .ventanita';
 document.addEventListener('pointerdown', ev => {
   if (!burbujaAbierta()) return;
   if (ev.target.closest(FUERA_NO)) return;

@@ -200,20 +200,34 @@ blockquote cite {
   .lamina-enlace { transition: none; }
 }
 
-/* ---------- las ligas a la escritura ---------- */
-/* LA CITA SE PUEDE ABRIR: cada referencia lleva su liga al pasaje en la Dios
-   Habla Hoy, que es la versión de las citas, así que lo que se abre es el
-   mismo texto que se está leyendo, con su contexto. Se abre aparte
-   (target="_blank"): el relato vive en un marco, y navegar dentro de él
-   dejaría al lector fuera de la historia sin camino de vuelta.
-   No cambia de color: sigue siendo la referencia de siempre, con un
-   subrayado fino que dice que se puede tocar. Ni azul, ni negrita. */
-.ref a, blockquote cite a {
-  color: inherit; text-decoration: underline;
-  text-decoration-color: var(--raya); text-decoration-thickness: 1px;
-  text-underline-offset: .2em;
+/* ---------- las citas y las palabras que se abren ---------- */
+/* SON BOTONES QUE NO PARECEN BOTONES: se leen como el texto que son —la
+   referencia en su versalita, la palabra en su renglón— y solo un subrayado
+   de puntos, del marrón de la raya, dice que se pueden tocar. Es la misma
+   señal que llevan las referencias de las glosas en el libro (.ref), así que
+   el lector ya la conoce. Lo que abren está en ventanitas.js. */
+button.cita, button.palabra {
+  all: unset; cursor: pointer; font: inherit; letter-spacing: inherit;
+  color: inherit; border-bottom: 1px dotted var(--raya);
+  -webkit-tap-highlight-color: transparent;
 }
-.ref a:hover, blockquote cite a:hover,
-.ref a:focus-visible, blockquote cite a:focus-visible {
-  color: var(--oro); text-decoration-color: currentColor;
+button.cita { white-space: nowrap; }
+button.cita:hover, button.palabra:hover { border-bottom-style: solid; color: var(--oro); }
+button.cita:focus-visible, button.palabra:focus-visible {
+  outline: 2px solid var(--oro); outline-offset: 2px; border-radius: 2px;
 }
+/* En la portada la referencia ya es oro; el subrayado lo acompaña. */
+.ref button.cita { border-bottom-color: currentColor; }
+
+/* La ventanita de cuando el relato se abre solo. Dentro del programa la
+   pinta el programa (.ventanita en index.html). */
+.ventanita {
+  border: 1px solid var(--raya); border-radius: 8px; padding: 0;
+  width: min(32rem, calc(100% - 2rem)); background: #faf3e3; color: var(--tinta);
+}
+.ventanita::backdrop { background: rgba(43,33,24,.42); }
+.ventanita-cabeza { display: flex; justify-content: space-between; align-items: baseline;
+  padding: .9rem 1rem .5rem; border-bottom: 1px solid var(--raya); }
+.ventanita-cabeza h2 { margin: 0; font-size: 1.15rem; color: var(--oro); }
+.ventanita-x { border: 0; background: none; font-size: 1.4rem; color: var(--rotulo); cursor: pointer; }
+.ventanita-texto { padding: .8rem 1rem 1rem; line-height: 1.65; }
