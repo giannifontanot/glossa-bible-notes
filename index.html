@@ -6400,7 +6400,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-OCT-26 07:38';
+window.GLOSS_BUILD = '25-OCT-26 08:08';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18233,6 +18233,15 @@ function ponerVentanita(datos){
     const c = leerCita(datos.cita);
     if (c){
       ventanitaCita = c;
+      /* CADA CITA NUEVA ABRE EN LA VERSIÓN DEL LIBRO. ventanitaVersion
+         sobrevivía al cierre, y pintarCitaVentanita solo miraba `version`
+         cuando la guardada no traía el libro: con las cuatro versiones
+         completas, eso no pasa nunca, así que la primera elección se quedaba
+         para siempre aunque el lector cambiara de versión en el libro. Lo
+         levantó la revisión de Codex. Se olvida aquí, al abrir; los botones
+         de abajo la ponen después y esa elección sí dura mientras la
+         ventanita sigue abierta. */
+      ventanitaVersion = null;
       h2.textContent = nombreDe(c.libro) + ' ' + c.cap + ':' + c.desde +
                        (c.hasta > c.desde ? '-' + c.hasta : '');
       pintarCitaVentanita();
@@ -18262,8 +18271,32 @@ function quitarVentanita(){
   try { ventanitaVolver?.focus?.({ preventScroll:true }); } catch (_) {}
   ventanitaVolver = null;
 }
+/* EL TABULADOR SE QUEDA DENTRO, en la ventanita y en la lámina. Poner el
+   foco en el aspa al abrir no basta para que una capa sea modal: Mayús+Tab
+   salía de la tarjeta al primer toque y, pasando los botones de versión, el
+   foco llegaba a los mandos del panel de debajo, que seguían respondiendo con
+   la ventanita encima. Lo levantó la revisión de Codex. El puntero ya no
+   pasa —el velo lo cubre todo—, así que lo que faltaba era el teclado: el
+   foco da la vuelta dentro de lo que se ve. */
+function tabuladorDentro(ev, caja){
+  const ok = [...caja.querySelectorAll('button, [href], [tabindex]:not([tabindex="-1"])')]
+               .filter(el => !el.disabled && el.offsetParent !== null);
+  if (!ok.length){ ev.preventDefault(); return; }
+  const i = ok.indexOf(document.activeElement);
+  const sig = ev.shiftKey ? (i <= 0 ? ok.length - 1 : i - 1)
+                          : (i < 0 || i === ok.length - 1 ? 0 : i + 1);
+  ev.preventDefault();
+  ok[sig].focus({ preventScroll:true });
+}
 addEventListener('keydown', ev => {
-  if (ev.key !== 'Escape' || !ventanita || !ventanita.classList.contains('puesta')) return;
+  const abierta = ventanita && ventanita.classList.contains('puesta');
+  const lamina = laminaGrande && laminaGrande.classList.contains('puesta');
+  if (ev.key === 'Tab' && (abierta || lamina)){
+    ev.stopImmediatePropagation();
+    tabuladorDentro(ev, lamina ? laminaGrande : ventanita.querySelector('.tarjeta'));
+    return;
+  }
+  if (ev.key !== 'Escape' || !abierta) return;
   ev.preventDefault(); ev.stopImmediatePropagation();
   quitarVentanita();
 }, true);
