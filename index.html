@@ -3979,12 +3979,17 @@
               animation:ventanita-sube .26s cubic-bezier(.2,.7,.2,1); }
   .ventanita header{ display:flex; justify-content:space-between; align-items:baseline;
               gap:12px; padding:14px 16px 9px; border-bottom:1px solid rgba(140,116,68,.3); }
-  .ventanita h2{ margin:0; font:600 1.15rem/1.25 'Palatino Linotype', Palatino,
+  .ventanita h2{ margin:0; font:600 calc(var(--fs-libro, 16px) * 1.12)/1.25 'Palatino Linotype', Palatino,
               'Book Antiqua', Georgia, serif; color:#b0873a; }
   .ventanita .x{ border:0; background:none; padding:2px 8px; font:400 22px/1 Georgia, serif;
               color:#8c7444; cursor:pointer; border-radius:4px; }
   .ventanita .x:hover{ background:rgba(184,137,43,.14); color:var(--tinta,#3b2b18); }
-  .ventanita .texto{ overflow:auto; padding:12px 16px 14px; font-size:1.02rem;
+  /* LA LETRA ES LA DEL LIBRO. Iba a 1.02rem fijo, y quien había subido el
+     tamaño en AAA leía el relato grande y el pasaje que abría, chico: el
+     ajuste mueve --fs-libro y no la raíz. Lo levantó la revisión de Codex.
+     Es la misma variable que avisarEstiloALosRelatos manda a los relatos, así
+     que el relato y su ventanita crecen juntos. */
+  .ventanita .texto{ overflow:auto; padding:12px 16px 14px; font-size:var(--fs-libro, 1.02rem);
               line-height:1.7; font-family:Georgia, 'Times New Roman', serif; }
   .ventanita .texto sup{ font-size:.66em; font-weight:600; color:#b0873a; margin-right:3px; }
   .ventanita footer{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
@@ -6401,7 +6406,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-OCT-26 08:18';
+window.GLOSS_BUILD = '25-OCT-26 08:20';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
