@@ -6418,7 +6418,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-OCT-26 16:01';
+window.GLOSS_BUILD = '25-OCT-26 16:04';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18171,10 +18171,26 @@ function zoomLamina(capa){
   const dedos = new Map();
   let inicio = null;
   const MAX = 5;
+  /* LOS BORDES SON LOS DE LA FOTO, NO LOS DE LA CAJA. La imagen ocupa la
+     ventana entera con object-fit:contain, así que dentro de su caja quedan
+     franjas negras a los lados o arriba y abajo. Se ataba contra la caja, y
+     con una foto vertical en una pantalla ancha se podía arrastrar la foto
+     ampliada hasta sacarla de la pantalla y quedarse mirando el negro. Lo
+     levantó la revisión de Codex. Ahora se calcula dónde está la foto de
+     verdad dentro de la caja, y por cada eje: si la foto ampliada todavía
+     cabe, se centra; si no cabe, sus bordes no pueden despegarse de los de
+     la pantalla. */
+  const atarEje = (t, lado, foto, margen, s) => {
+    if (s * foto <= lado) return (lado - s * foto) / 2 - s * margen;
+    return Math.min(-s * margen, Math.max(lado - s * (margen + foto), t));
+  };
   const atar = () => {
     const w = capa.clientWidth, h = capa.clientHeight, z = laminaZoom;
-    z.x = Math.min(0, Math.max(w - w * z.s, z.x));
-    z.y = Math.min(0, Math.max(h - h * z.s, z.y));
+    if (z.s === 1){ z.x = 0; z.y = 0; return; }
+    const nw = img.naturalWidth || w, nh = img.naturalHeight || h;
+    const k = Math.min(w / nw, h / nh), cw = nw * k, ch = nh * k;
+    z.x = atarEje(z.x, w, cw, (w - cw) / 2, z.s);
+    z.y = atarEje(z.y, h, ch, (h - ch) / 2, z.s);
   };
   const pintar = () => {
     atar();
