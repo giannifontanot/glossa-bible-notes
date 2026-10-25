@@ -3930,6 +3930,32 @@
      tiene que llevar su body sin fondo, y lo lleva. Los dos o ninguno. */
   .enc-marco{ flex:1 1 auto; width:100%; min-height:0; border:0; display:block;
               background:transparent; }
+  /* LA LÁMINA DE UN RELATO, EN GRANDE Y FUERA DEL MARCO.
+
+     Vivió dentro del relato: un <dialog> en el documento del marco, y por
+     eso nunca pasaba del marco —se veía metida en el panel, con la barra de
+     arriba y el CERRAR de abajo alrededor—. El dueño del repo la pidió «lo
+     más grande que se pueda, sin bordes, sin nada», y un marco no puede
+     pintar fuera de sí mismo. Así que el relato avisa y la enseña el
+     programa, encima de todo: negro de lado a lado, la imagen entera y nada
+     más. Ni pie, ni sombra, ni esquinas redondas.
+     dvh y no vh: en el teléfono vh cuenta la barra del navegador como si no
+     estuviera, y la imagen se cortaba por abajo. */
+  .lamina-grande{ position:fixed; inset:0; z-index:100000; display:none;
+                  background:#000; cursor:zoom-out; touch-action:pinch-zoom; }
+  .lamina-grande.puesta{ display:block; }
+  .lamina-grande img{ display:block; width:100vw; height:100vh; height:100dvh;
+                      object-fit:contain; }
+  /* EL ASPA ES LO ÚNICO QUE SE PINTA ENCIMA, y casi no se ve: tocar en
+     cualquier sitio ya cierra, así que el aspa está para quien no lo sabe y
+     para el teclado. Respeta la muesca del teléfono. */
+  .lamina-grande button{ position:absolute;
+                  top:calc(env(safe-area-inset-top, 0px) + 10px);
+                  right:calc(env(safe-area-inset-right, 0px) + 10px);
+                  width:40px; height:40px; border-radius:50%; border:0;
+                  background:rgba(0,0,0,.35); color:rgba(255,255,255,.8);
+                  font:400 26px/1 Georgia, serif; cursor:pointer; }
+  .lamina-grande button:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
   /* NOTAS USA LA MISMA TIRA QUE ENCUENTROS: una nota nueva no hace bajar la
      escritura a un segundo renglón. El sombreado de los filos y el arrastre
      viven en .enc-barra/.pestanitas, que son deliberadamente genéricos aunque
@@ -6329,7 +6355,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-OCT-26 06:48';
+window.GLOSS_BUILD = '25-OCT-26 06:57';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18008,7 +18034,81 @@ addEventListener('message', ev => {
      él: el programa no sabe cuándo terminó de cargar un documento que no es
      suyo, y avisar antes de tiempo es avisar al vacío. */
   else if (ev.data.glossa === 'listo') avisarEstiloALosRelatos();
+  /* «Lámina» es un relato pidiendo enseñar su imagen en grande. Solo los
+     relatos: el árbol de oraciones no trae láminas. */
+  else if (ev.data.glossa === 'lamina' &&
+           [...document.querySelectorAll('.enc-marco')].some(m => m.contentWindow === ev.source))
+    ponerLaminaGrande(ev.data.src, ev.data.alt);
 });
+
+/* LA LÁMINA EN GRANDE: lo que pinta el programa cuando un relato se la pide.
+   El porqué de que viva aquí y no dentro del relato está en .lamina-grande.
+
+   LA DIRECCIÓN SE COMPRUEBA ANTES DE PINTARLA. El aviso llega de uno de
+   nuestros marcos —ya se miró arriba—, pero aun así solo se enseña lo que
+   cuelga de encuentros/: el programa no abre a pantalla completa nada que no
+   sea de sus relatos, venga de donde venga la dirección.
+
+   PANTALLA COMPLETA DE VERDAD SI EL APARATO LA DA. El toque fue dentro del
+   marco, y la activación de un toque sube a las ventanas de arriba, así que
+   el programa todavía puede pedirla. Donde no se puede —el iPhone no la da
+   para otra cosa que vídeo— queda la capa negra a toda la ventana, que es lo
+   más grande que hay. Se pide sin esperar respuesta: si el navegador dice
+   que no, no pasa nada que haya que contar. */
+let laminaGrande = null, laminaVolver = null;
+function ponerLaminaGrande(src, alt){
+  let url;
+  try { url = new URL(src, location.href); } catch (_) { return; }
+  if (!url.href.startsWith(new URL('encuentros/', location.href).href)) return;
+  if (!laminaGrande){
+    laminaGrande = document.createElement('div');
+    laminaGrande.className = 'lamina-grande';
+    laminaGrande.setAttribute('role', 'dialog');
+    laminaGrande.setAttribute('aria-modal', 'true');
+    laminaGrande.innerHTML = '<img alt=""><button type="button" aria-label="Cerrar la imagen">×</button>';
+    /* Tocar en cualquier sitio cierra, la imagen incluida: aquí no hay nada
+       más que hacer que mirarla, y buscar el aspa con el pulgar es justo lo
+       que no se quiere en una imagen a pantalla completa. */
+    laminaGrande.addEventListener('click', quitarLaminaGrande);
+    /* Si el lector sale de la pantalla completa con el gesto del sistema, la
+       capa negra se va con ella: quedarse a medias es lo único peor. */
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement && laminaGrande.classList.contains('puesta') &&
+          laminaGrande.dataset.completa === '1') quitarLaminaGrande();
+    });
+    document.body.appendChild(laminaGrande);
+  }
+  const img = laminaGrande.querySelector('img');
+  img.src = url.href; img.alt = String(alt || '');
+  laminaGrande.setAttribute('aria-label', img.alt || 'Imagen');
+  laminaVolver = document.activeElement;
+  laminaGrande.classList.add('puesta');
+  laminaGrande.dataset.completa = '';
+  laminaGrande.querySelector('button').focus({ preventScroll:true });
+  if (laminaGrande.requestFullscreen){
+    laminaGrande.requestFullscreen({ navigationUI:'hide' })
+      .then(() => { laminaGrande.dataset.completa = '1'; })
+      .catch(() => {});
+  }
+}
+function quitarLaminaGrande(){
+  if (!laminaGrande || !laminaGrande.classList.contains('puesta')) return;
+  laminaGrande.classList.remove('puesta');
+  laminaGrande.dataset.completa = '';
+  if (document.fullscreenElement === laminaGrande) document.exitFullscreen().catch(() => {});
+  /* El foco vuelve al marco del relato, que es desde donde se pidió: así el
+     siguiente Escape vuelve a ser del relato y cierra el panel, como antes. */
+  try { laminaVolver?.focus?.({ preventScroll:true }); } catch (_) {}
+  laminaVolver = null;
+}
+/* ESCAPE CON LA LÁMINA PUESTA CIERRA LA LÁMINA Y NADA MÁS. Va en la captura
+   de la ventana para llegar antes que el oyente general de teclado, que con
+   la misma tecla cierra el panel de Encuentros entero. */
+addEventListener('keydown', ev => {
+  if (ev.key !== 'Escape' || !laminaGrande || !laminaGrande.classList.contains('puesta')) return;
+  ev.preventDefault(); ev.stopImmediatePropagation();
+  quitarLaminaGrande();
+}, true);
 
 /* LA LETRA Y LOS MARRONES DEL LIBRO, HACIA DENTRO DE LOS RELATOS.
 

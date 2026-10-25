@@ -176,33 +176,26 @@ blockquote cite {
 }
 
 /* ---------- el visor: la lámina en grande ---------- */
-/* Va a oscuras y no sobre el papel: lo que se mira aquí es la imagen, y un
-   fondo claro alrededor de una foto llena de sol la apaga. */
+/* SOLO CUANDO EL RELATO SE ABRE SOLO. Dentro del programa la imagen grande
+   la pinta el programa, encima de todo y a pantalla completa (ver visor.js y
+   .lamina-grande en index.html); esto es lo mismo para cuando no hay programa.
+   Negro de lado a lado y la imagen entera: ni pie, ni sombra, ni esquinas,
+   que es como se pidió. */
 .visor {
   border: 0; padding: 0; margin: 0; max-width: none; max-height: none;
-  width: 100%; height: 100%; background: transparent;
-  display: none; place-items: center;
+  width: 100vw; height: 100vh; height: 100dvh; background: #000;
+  cursor: zoom-out;
 }
-.visor[open] { display: grid; }
-.visor::backdrop { background: rgba(18,12,4,.9); }
-.visor-img {
-  display: block; max-width: calc(100% - 1.6rem); max-height: calc(100% - 5.5rem);
-  width: auto; height: auto; object-fit: contain; border-radius: 3px;
-  box-shadow: 0 18px 50px -12px rgba(0,0,0,.8);
-  animation: visor-entra .28s ease;
-}
-.visor-pie {
-  margin: .7rem 1.2rem 0; max-width: 32rem; text-align: center;
-  font-size: .82rem; line-height: 1.5; font-style: italic; color: #e9dcc0;
-}
+.visor::backdrop { background: #000; }
+.visor-img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .visor-cerrar {
-  position: fixed; top: .6rem; right: .7rem; width: 2.6rem; height: 2.6rem;
-  border: 1px solid rgba(233,220,192,.45); border-radius: 50%;
-  background: rgba(18,12,4,.55); color: #f3e8cf;
-  font: 400 1.6rem/1 Georgia, serif; cursor: pointer;
+  position: fixed; top: calc(env(safe-area-inset-top, 0px) + 10px);
+  right: calc(env(safe-area-inset-right, 0px) + 10px);
+  width: 40px; height: 40px; border: 0; border-radius: 50%;
+  background: rgba(0,0,0,.35); color: rgba(255,255,255,.8);
+  font: 400 26px/1 Georgia, serif; cursor: pointer;
 }
-.visor-cerrar:hover, .visor-cerrar:focus-visible { background: rgba(176,135,58,.85); color: #1d1608; }
-@keyframes visor-entra { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+.visor-cerrar:focus-visible { outline: 2px solid var(--oro); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
-  .visor-img, .lamina-enlace { animation: none; transition: none; }
+  .lamina-enlace { transition: none; }
 }

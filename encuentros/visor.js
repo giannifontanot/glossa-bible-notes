@@ -1,50 +1,46 @@
 /* EL VISOR DE LAS LÁMINAS DE UN RELATO: la imagen chica dentro del texto y,
-   al tocarla, la misma imagen en grande encima de todo.
+   al tocarla, la misma imagen en grande.
 
    Va suelto, como relato.css y salida.js, por la misma razón: el día que otro
    encuentro traiga su lámina tiene que bastar con el marcado —un <figure
    class="lamina"> con su enlace— y esta línea, sin copiar ni una regla.
 
+   DENTRO DEL PROGRAMA, LA IMAGEN GRANDE LA PINTA EL PROGRAMA. La primera
+   versión abría aquí un <dialog>, y un marco no pinta fuera de sí mismo: la
+   imagen salía metida en el panel de Encuentros, con la barra de arriba y el
+   CERRAR de abajo alrededor. Se pidió «lo más grande que se pueda, sin
+   bordes, sin nada». Así que, leyéndose dentro de un marco, el relato solo
+   avisa hacia arriba con la dirección de la imagen —el mismo camino que
+   «salir» y «listo»— y el programa la enseña a pantalla completa. Está en
+   index.html, en ponerLaminaGrande.
+
+   ABIERTO SOLO, EL RELATO SE LAS ARREGLA: no hay programa que la pinte, así
+   que la enseña él, igual de negra y sin nada alrededor, en un <dialog> que
+   ocupa toda la ventana.
+
    POR QUÉ UN ENLACE Y NO SOLO UNA IMAGEN QUE SE PUEDA TOCAR. Sin este guion
-   —un relato abierto solo, o un navegador que no lo cargue— el enlace sigue
-   llevando a la imagen entera, que es lo que se pidió. El guion lo único que
-   hace es quedarse con ese toque y enseñarla dentro del relato, sin perder el
-   sitio donde se estaba leyendo.
+   —un navegador que no lo cargue— el enlace sigue llevando a la imagen
+   entera, que es lo que se pidió.
 
-   UN <dialog> MODAL, porque trae gratis lo que a mano se olvida: el foco no se
-   escapa a la página de detrás, el lector de pantalla sabe que es una ventana,
-   y el resto del relato queda inerte mientras está abierta.
-
-   LA TECLA ESCAPE ES LA PARTE DELICADA. salida.js escucha Escape para cerrar
-   el panel entero de Encuentros, y con la lámina abierta eso sería pasarle por
-   encima: el lector quiere cerrar la imagen, no salir del relato. Ese puente
-   ya deja la puerta puesta —si la tecla llega con defaultPrevented, no
-   avisa arriba—, así que aquí se atiende en la CAPTURA del documento, que
-   corre antes que su oyente de la ventana en burbuja, se cierra la lámina y
-   se cancela el gesto por defecto. Un Escape con la lámina cerrada sigue
-   siendo de salida.js, como siempre. */
+   LA TECLA ESCAPE, CON EL VISOR DE AQUÍ ABIERTO, ES DEL VISOR. salida.js
+   escucha Escape para cerrar el panel entero, y esa puerta ya está puesta:
+   si la tecla llega con defaultPrevented, no avisa arriba. Así que se atiende
+   en la captura del documento, que corre antes que su oyente en burbuja. */
 (function () {
-  var visor = null, grande = null, pie = null, deDonde = null;
+  var enMarco = parent !== window;
+  var visor = null, grande = null, deDonde = null;
 
   function armar() {
     visor = document.createElement('dialog');
     visor.className = 'visor';
     visor.setAttribute('aria-label', 'Imagen ampliada');
     visor.innerHTML =
-      '<button type="button" class="visor-cerrar" aria-label="Cerrar la imagen">×</button>' +
       '<img class="visor-img" alt="">' +
-      '<p class="visor-pie"></p>';
+      '<button type="button" class="visor-cerrar" aria-label="Cerrar la imagen">×</button>';
     grande = visor.querySelector('.visor-img');
-    pie = visor.querySelector('.visor-pie');
-    visor.querySelector('.visor-cerrar').addEventListener('click', cerrar);
-    /* Tocar fuera de la imagen también cierra: en un teléfono el aspa queda
-       en una esquina, y lo natural es tocar el oscuro. La imagen misma no
-       cierra, para que pellizcar o mirar de cerca no la haga desaparecer. */
-    visor.addEventListener('click', function (ev) {
-      if (ev.target === visor || ev.target === pie) cerrar();
-    });
-    /* El cierre que no pasa por cerrar() —el del propio navegador— también
-       tiene que devolver el foco a la miniatura. */
+    /* Tocar en cualquier sitio cierra, la imagen incluida: no hay nada más
+       que hacer en ella que mirarla. */
+    visor.addEventListener('click', cerrar);
     visor.addEventListener('close', function () {
       if (deDonde) { try { deDonde.focus({ preventScroll: true }); } catch (_) {} }
       deDonde = null;
@@ -53,23 +49,18 @@
   }
 
   function abrir(enlace) {
-    if (!visor) armar();
     var chica = enlace.querySelector('img');
-    var leyenda = enlace.closest('figure');
-    leyenda = leyenda && leyenda.querySelector('figcaption');
-    grande.src = enlace.getAttribute('href');
-    grande.alt = chica ? chica.alt : '';
-    /* El pie de la grande es el de la chica SIN la pista de «toca para
-       ampliar», que ahí ya no dice nada: la imagen ya está ampliada. */
-    var texto = '';
-    if (leyenda) {
-      var copia = leyenda.cloneNode(true);
-      Array.prototype.forEach.call(copia.querySelectorAll('.ampliar'),
-        function (n) { n.remove(); });
-      texto = copia.textContent.trim();
+    var alt = chica ? chica.alt : '';
+    /* La dirección va entera y no relativa: arriba se resuelve contra el
+       programa, no contra este relato, y «img/…» apuntaría a otro sitio. */
+    var src = new URL(enlace.getAttribute('href'), location.href).href;
+    if (enMarco) {
+      try { parent.postMessage({ glossa: 'lamina', src: src, alt: alt }, '*'); return; }
+      catch (_) { /* si no se pudo avisar, que la enseñe el relato */ }
     }
-    pie.textContent = texto;
-    pie.hidden = !pie.textContent;
+    if (!visor) armar();
+    grande.src = src;
+    grande.alt = alt;
     deDonde = enlace;
     if (typeof visor.showModal === 'function') visor.showModal();
     else visor.setAttribute('open', '');
