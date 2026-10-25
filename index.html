@@ -6406,7 +6406,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-OCT-26 08:20';
+window.GLOSS_BUILD = '25-OCT-26 08:23';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18196,6 +18196,13 @@ function armarVentanita(){
   ventanita.querySelector('.versiones').addEventListener('click', ev => {
     const b = ev.target.closest('button[data-v]'); if (!b) return;
     ventanitaVersion = b.dataset.v; pintarCitaVentanita();
+    /* EL FOCO SE QUEDA EN EL BOTÓN QUE SE PULSÓ. pintarCitaVentanita rehace
+       los botones de versión, y el que tenía el foco desaparecía con él: el
+       foco caía al documento, Enter ya no volvía a pulsar nada y el
+       siguiente Tab empezaba desde el aspa. Lo levantó la revisión de Codex.
+       Se le devuelve al botón nuevo de la misma versión. */
+    ventanita.querySelector('.versiones button[data-v="' + ventanitaVersion + '"]')
+      ?.focus({ preventScroll:true });
   });
   document.body.appendChild(ventanita);
 }
