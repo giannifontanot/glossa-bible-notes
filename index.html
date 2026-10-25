@@ -3941,9 +3941,14 @@
      más. Ni pie, ni sombra, ni esquinas redondas.
      dvh y no vh: en el teléfono vh cuenta la barra del navegador como si no
      estuviera, y la imagen se cortaba por abajo. */
-  .lamina-grande{ position:fixed; inset:0; z-index:100000; display:none;
-                  background:#000; cursor:zoom-out; touch-action:pinch-zoom; }
+  /* touch-action:none porque el pellizco lo lleva el programa (ver
+     zoomLamina): con pinch-zoom el navegador ampliaba LA PÁGINA entera, y
+     al soltar quedaba el libro ampliado por debajo con la lámina encima. */
+  .lamina-grande{ position:fixed; inset:0; z-index:100000; display:none; overflow:hidden;
+                  background:#000; cursor:zoom-out; touch-action:none; }
   .lamina-grande.puesta{ display:block; }
+  .lamina-grande img{ transform-origin:0 0; will-change:transform; user-select:none;
+                      -webkit-user-drag:none; pointer-events:none; }
   .lamina-grande img{ display:block; width:100vw; height:100vh; height:100dvh;
                       object-fit:contain; }
   /* EL ASPA ES LO ÚNICO QUE SE PINTA ENCIMA, y casi no se ve: tocar en
@@ -6413,7 +6418,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-OCT-26 08:39';
+window.GLOSS_BUILD = '25-OCT-26 16:09';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18112,12 +18117,12 @@ addEventListener('message', ev => {
    cuelga de encuentros/: el programa no abre a pantalla completa nada que no
    sea de sus relatos, venga de donde venga la dirección.
 
-   PANTALLA COMPLETA DE VERDAD SI EL APARATO LA DA. El toque fue dentro del
-   marco, y la activación de un toque sube a las ventanas de arriba, así que
-   el programa todavía puede pedirla. Donde no se puede —el iPhone no la da
-   para otra cosa que vídeo— queda la capa negra a toda la ventana, que es lo
-   más grande que hay. Se pide sin esperar respuesta: si el navegador dice
-   que no, no pasa nada que haya que contar. */
+   SIN PANTALLA COMPLETA DEL NAVEGADOR, Y A PROPÓSITO. Se pedía con
+   requestFullscreen, y el navegador, al darla, pinta encima su propio aviso
+   —«pulsa Esc para salir», «desliza para salir»— que el programa no puede
+   quitar. El dueño del repo no quiere ningún mensaje sobre la imagen: «la
+   persona ya sabe». Así que se queda la capa negra a toda la ventana, que
+   ya ocupa la pantalla entera del teléfono y no trae avisos de nadie. */
 let laminaGrande = null, laminaVolver = null;
 function ponerLaminaGrande(src, alt){
   let url;
@@ -18132,33 +18137,147 @@ function ponerLaminaGrande(src, alt){
     /* Tocar en cualquier sitio cierra, la imagen incluida: aquí no hay nada
        más que hacer que mirarla, y buscar el aspa con el pulgar es justo lo
        que no se quiere en una imagen a pantalla completa. */
-    laminaGrande.addEventListener('click', quitarLaminaGrande);
-    /* Si el lector sale de la pantalla completa con el gesto del sistema, la
-       capa negra se va con ella: quedarse a medias es lo único peor. */
-    document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement && laminaGrande.classList.contains('puesta') &&
-          laminaGrande.dataset.completa === '1') quitarLaminaGrande();
+    laminaGrande.addEventListener('click', ev => {
+      /* Un pellizco o un arrastre también terminan en click; ese no cierra.
+         Solo cierra el toque de verdad, sin gesto. El aspa sí cierra siempre. */
+      if (laminaZoom.hubo && !ev.target.closest('button')){ laminaZoom.hubo = false; return; }
+      quitarLaminaGrande();
     });
+    zoomLamina(laminaGrande);
     document.body.appendChild(laminaGrande);
   }
   const img = laminaGrande.querySelector('img');
   img.src = url.href; img.alt = String(alt || '');
   laminaGrande.setAttribute('aria-label', img.alt || 'Imagen');
   laminaVolver = document.activeElement;
+  laminaZoom.poner(1, 0, 0);
   laminaGrande.classList.add('puesta');
-  laminaGrande.dataset.completa = '';
   laminaGrande.querySelector('button').focus({ preventScroll:true });
-  if (laminaGrande.requestFullscreen){
-    laminaGrande.requestFullscreen({ navigationUI:'hide' })
-      .then(() => { laminaGrande.dataset.completa = '1'; })
-      .catch(() => {});
-  }
+}
+/* EL ZOOM CON LOS DEDOS, pedido por el dueño del repo: pellizcar la lámina
+   para acercarse, y con ella ampliada arrastrar con un dedo para recorrerla.
+   Lo lleva el programa con eventos de puntero y un transform sobre la imagen,
+   y no el navegador: el pellizco del navegador amplía la página entera, no la
+   imagen. En escritorio, la rueda hace lo mismo. Con la imagen a su tamaño
+   no hay arrastre; tocar sin gesto la cierra, como siempre.
+
+   El punto entre los dos dedos se queda quieto mientras se pellizca, que es
+   lo que hace cualquier visor de fotos: se acerca hacia donde se mira y no
+   hacia el centro. Y el recorrido se ata a los bordes: con la imagen
+   ampliada no se puede arrastrar hasta dejar la pantalla en negro. */
+const laminaZoom = { s:1, x:0, y:0, hubo:false, poner(){} };
+function zoomLamina(capa){
+  const img = capa.querySelector('img');
+  const dedos = new Map();
+  let inicio = null;
+  const MAX = 5;
+  /* LOS BORDES SON LOS DE LA FOTO, NO LOS DE LA CAJA. La imagen ocupa la
+     ventana entera con object-fit:contain, así que dentro de su caja quedan
+     franjas negras a los lados o arriba y abajo. Se ataba contra la caja, y
+     con una foto vertical en una pantalla ancha se podía arrastrar la foto
+     ampliada hasta sacarla de la pantalla y quedarse mirando el negro. Lo
+     levantó la revisión de Codex. Ahora se calcula dónde está la foto de
+     verdad dentro de la caja, y por cada eje: si la foto ampliada todavía
+     cabe, se centra; si no cabe, sus bordes no pueden despegarse de los de
+     la pantalla. */
+  const atarEje = (t, lado, foto, margen, s) => {
+    if (s * foto <= lado) return (lado - s * foto) / 2 - s * margen;
+    return Math.min(-s * margen, Math.max(lado - s * (margen + foto), t));
+  };
+  const atar = () => {
+    const w = capa.clientWidth, h = capa.clientHeight, z = laminaZoom;
+    if (z.s === 1){ z.x = 0; z.y = 0; return; }
+    const nw = img.naturalWidth || w, nh = img.naturalHeight || h;
+    const k = Math.min(w / nw, h / nh), cw = nw * k, ch = nh * k;
+    z.x = atarEje(z.x, w, cw, (w - cw) / 2, z.s);
+    z.y = atarEje(z.y, h, ch, (h - ch) / 2, z.s);
+  };
+  const pintar = () => {
+    atar();
+    img.style.transform = laminaZoom.s === 1 ? '' :
+      'translate(' + laminaZoom.x + 'px,' + laminaZoom.y + 'px) scale(' + laminaZoom.s + ')';
+  };
+  laminaZoom.poner = (s, x, y) => {
+    laminaZoom.s = s; laminaZoom.x = x; laminaZoom.y = y; laminaZoom.hubo = false;
+    dedos.clear(); inicio = null; pintar();
+  };
+  /* Acercar o alejar dejando quieto el punto (px, py) de la pantalla. */
+  /* Calcula y NO pinta: quien llama suma lo que falte y pinta una sola vez.
+     El pellizco pintaba aquí, a medio camino —escala sí, desplazamiento del
+     punto medio todavía no—, y pintar es atar a los bordes: cerca de un
+     borde, la atadura se comía parte del gesto y la foto se escurría de
+     debajo de los dedos. Lo levantó la revisión de Codex. Ahora se ata una
+     vez, con el gesto entero. */
+  const escalarEn = (nueva, px, py, base) => {
+    const b = base || laminaZoom;
+    const s = Math.min(MAX, Math.max(1, nueva));
+    laminaZoom.x = px - (px - b.x) * (s / b.s);
+    laminaZoom.y = py - (py - b.y) * (s / b.s);
+    laminaZoom.s = s;
+  };
+  const foto = () => {
+    const p = [...dedos.values()];
+    const r = capa.getBoundingClientRect();
+    if (p.length >= 2){
+      return { s:laminaZoom.s, x:laminaZoom.x, y:laminaZoom.y,
+               d:Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1,
+               mx:(p[0].x + p[1].x) / 2 - r.left, my:(p[0].y + p[1].y) / 2 - r.top };
+    }
+    return { s:laminaZoom.s, x:laminaZoom.x, y:laminaZoom.y, px:p[0].x, py:p[0].y };
+  };
+  capa.addEventListener('pointerdown', ev => {
+    if (ev.target.closest('button')) return;
+    /* Un gesto nuevo empieza limpio: si el anterior acabó sin click —un
+       arrastre no siempre lo da—, su marca se quedaba y se comía el
+       siguiente toque, que entonces no cerraba. */
+    if (!dedos.size) laminaZoom.hubo = false;
+    dedos.set(ev.pointerId, { x:ev.clientX, y:ev.clientY });
+    try { capa.setPointerCapture(ev.pointerId); } catch (_) {}
+    inicio = foto();
+  });
+  capa.addEventListener('pointermove', ev => {
+    if (!dedos.has(ev.pointerId)) return;
+    dedos.set(ev.pointerId, { x:ev.clientX, y:ev.clientY });
+    const p = [...dedos.values()];
+    if (p.length >= 2 && inicio && inicio.d){
+      const d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+      const r = capa.getBoundingClientRect();
+      const mx = (p[0].x + p[1].x) / 2 - r.left, my = (p[0].y + p[1].y) / 2 - r.top;
+      escalarEn(inicio.s * d / inicio.d, inicio.mx, inicio.my, inicio);
+      /* y lo que se movió el punto medio, como arrastre; se ata al final */
+      laminaZoom.x += mx - inicio.mx; laminaZoom.y += my - inicio.my; pintar();
+      laminaZoom.hubo = true;
+    } else if (p.length === 1 && inicio && inicio.px !== undefined){
+      const dx = p[0].x - inicio.px, dy = p[0].y - inicio.py;
+      if (Math.abs(dx) + Math.abs(dy) > 6) laminaZoom.hubo = true;
+      if (laminaZoom.s > 1){ laminaZoom.x = inicio.x + dx; laminaZoom.y = inicio.y + dy; pintar(); }
+    }
+  });
+  const soltar = ev => {
+    if (!dedos.delete(ev.pointerId)) return;
+    /* Al quedar un dedo después de pellizcar, el arrastre arranca de nuevo
+       desde donde está ese dedo, sin salto. */
+    inicio = dedos.size ? foto() : null;
+  };
+  capa.addEventListener('pointerup', soltar);
+  capa.addEventListener('pointercancel', soltar);
+  /* AL GIRAR EL TELÉFONO SE VUELVE A ATAR. La caja de la imagen es la
+     ventana entera, así que al girar cambia de forma y la foto cambia de
+     sitio dentro de ella; el desplazamiento guardado era el de antes y podía
+     dejar la foto ampliada fuera de la pantalla, en negro, hasta el próximo
+     gesto. Lo levantó la revisión de Codex. Se repinta con los bordes nuevos;
+     el zoom se conserva. */
+  addEventListener('resize', () => { if (capa.classList.contains('puesta')) pintar(); });
+  capa.addEventListener('wheel', ev => {
+    ev.preventDefault();
+    const r = capa.getBoundingClientRect();
+    escalarEn(laminaZoom.s * Math.exp(-ev.deltaY / 400), ev.clientX - r.left, ev.clientY - r.top);
+    pintar();
+  }, { passive:false });
 }
 function quitarLaminaGrande(){
   if (!laminaGrande || !laminaGrande.classList.contains('puesta')) return;
   laminaGrande.classList.remove('puesta');
-  laminaGrande.dataset.completa = '';
-  if (document.fullscreenElement === laminaGrande) document.exitFullscreen().catch(() => {});
   /* El foco vuelve al marco del relato, que es desde donde se pidió: así el
      siguiente Escape vuelve a ser del relato y cierra el panel, como antes. */
   try { laminaVolver?.focus?.({ preventScroll:true }); } catch (_) {}

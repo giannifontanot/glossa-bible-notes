@@ -163,12 +163,9 @@ blockquote cite {
   margin-top: .5rem; font-size: .72rem; line-height: 1.45;
   font-style: italic; color: var(--rotulo); text-align: center;
 }
-/* La pista de que se puede ampliar, en versalitas de oro como la referencia
-   de la portada: se ve, pero no compite con el pie. */
-.lamina figcaption .ampliar {
-  display: block; margin-top: .25rem; font-style: normal;
-  font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: var(--oro);
-}
+/* SIN PISTA DE «TOCA PARA AMPLIAR». La hubo, en versalitas de oro bajo el
+   pie, y el dueño del repo la quitó: «la persona ya sabe». Una imagen chica
+   en el texto se toca; no hace falta decirlo. */
 /* En una columna muy estrecha la lámina al lado dejaría renglones de dos
    palabras: ahí se centra y el texto sigue debajo. */
 @media (max-width: 22rem) {
@@ -215,10 +212,15 @@ button.cita, button.palabra {
      línea, no bajo la letra, y con el interlineado de 1.75 quedaba flotando
      entre dos renglones. Se pidió que fuera el subrayado de la palabra.
      Así que es un text-decoration: se apoya en la línea base, a tres
-     píxeles, sea cual sea el interlineado. Oro de los capítulos, dos
-     píxeles, de puntos: dice «se puede tocar» sin parecer un enlace. */
+     píxeles, sea cual sea el interlineado. Oro de los capítulos y de
+     puntos: dice «se puede tocar» sin parecer un enlace.
+     GROSOR EN em Y NO EN PÍXELES. Con dos píxeles fijos, en el teléfono
+     —donde el lector suele subir la letra— el punteado se veía delgadito y
+     el dueño del repo lo pidió más grueso. Un octavo de la letra son dos
+     píxeles a 16 y casi tres a 22: crece con el texto que subraya. El
+     desplazamiento crece con él para que los puntos no toquen la letra. */
   color: inherit; text-decoration: underline dotted var(--oro);
-  text-decoration-thickness: 2px; text-underline-offset: 3px;
+  text-decoration-thickness: max(3px, .14em); text-underline-offset: max(4px, .22em);
   -webkit-tap-highlight-color: transparent;
 }
 button.cita { white-space: nowrap; }
