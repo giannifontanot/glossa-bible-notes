@@ -6418,7 +6418,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-OCT-26 16:07';
+window.GLOSS_BUILD = '25-OCT-26 16:09';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18202,14 +18202,18 @@ function zoomLamina(capa){
     dedos.clear(); inicio = null; pintar();
   };
   /* Acercar o alejar dejando quieto el punto (px, py) de la pantalla. */
+  /* Calcula y NO pinta: quien llama suma lo que falte y pinta una sola vez.
+     El pellizco pintaba aquí, a medio camino —escala sí, desplazamiento del
+     punto medio todavía no—, y pintar es atar a los bordes: cerca de un
+     borde, la atadura se comía parte del gesto y la foto se escurría de
+     debajo de los dedos. Lo levantó la revisión de Codex. Ahora se ata una
+     vez, con el gesto entero. */
   const escalarEn = (nueva, px, py, base) => {
     const b = base || laminaZoom;
     const s = Math.min(MAX, Math.max(1, nueva));
     laminaZoom.x = px - (px - b.x) * (s / b.s);
     laminaZoom.y = py - (py - b.y) * (s / b.s);
     laminaZoom.s = s;
-    if (s === 1){ laminaZoom.x = 0; laminaZoom.y = 0; }
-    pintar();
   };
   const foto = () => {
     const p = [...dedos.values()];
@@ -18240,7 +18244,7 @@ function zoomLamina(capa){
       const r = capa.getBoundingClientRect();
       const mx = (p[0].x + p[1].x) / 2 - r.left, my = (p[0].y + p[1].y) / 2 - r.top;
       escalarEn(inicio.s * d / inicio.d, inicio.mx, inicio.my, inicio);
-      /* y lo que se movió el punto medio, como arrastre */
+      /* y lo que se movió el punto medio, como arrastre; se ata al final */
       laminaZoom.x += mx - inicio.mx; laminaZoom.y += my - inicio.my; pintar();
       laminaZoom.hubo = true;
     } else if (p.length === 1 && inicio && inicio.px !== undefined){
@@ -18268,6 +18272,7 @@ function zoomLamina(capa){
     ev.preventDefault();
     const r = capa.getBoundingClientRect();
     escalarEn(laminaZoom.s * Math.exp(-ev.deltaY / 400), ev.clientX - r.left, ev.clientY - r.top);
+    pintar();
   }, { passive:false });
 }
 function quitarLaminaGrande(){
