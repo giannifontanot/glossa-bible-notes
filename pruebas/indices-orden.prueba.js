@@ -244,16 +244,25 @@ let sesion;
        guardadoOrden(anchoDespues, 'encuentros'), anchoDespues);
   titulo('reordenar no recarga un relato que ya estaba abierto');
   await p.locator('#encuentros .indice-item').first().click();
-  await p.waitForFunction(() => {
-    const m = document.querySelector('#encuentros .enc-hoja:not([hidden]) .enc-marco');
-    return m?.contentDocument?.URL !== 'about:blank' && m?.contentDocument?.readyState === 'complete';
-  });
+  /* AL MARCO SE LE PREGUNTA POR PLAYWRIGHT, NO POR contentDocument. La
+     primera versión esperaba a que m.contentDocument estuviera «complete», y
+     eso con file:// no llega nunca: Chromium da a cada fichero su propio
+     origen, contentDocument vuelve null desde fuera —es lo mismo que cuenta
+     encuentros/salida.js— y la espera se iba a los treinta segundos fuera cual
+     fuera el relato. Lo destapó la tanda de Codex al entrar el tabernáculo.
+     Playwright sí entra en un marco de otro origen: se le deja una marca al
+     documento, se reordena, y si la marca sigue ahí es que no se recargó. */
+  await p.waitForFunction(() =>
+    !!document.querySelector('#encuentros .enc-hoja:not([hidden]) .enc-marco')?.getAttribute('src'));
   const marco = await p.locator('#encuentros .enc-hoja:visible .enc-marco').elementHandle();
-  const documento = await marco.evaluateHandle(m => m.contentDocument);
+  const frame = await marco.contentFrame();
+  await frame.waitForLoadState('load');
+  await frame.evaluate(() => { window.__mismaVisita = true; });
   await p.locator('#encuentros .indice-tab').click();
   await p.locator('#encuentros .indice-asa').first().press('ArrowDown');
   vale('el marco conserva el mismo documento tras mover su pestaña',
-       await marco.evaluate((m, d) => m.isConnected && m.contentDocument === d, documento));
-  await documento.dispose(); await marco.dispose();
+       await marco.evaluate(m => m.isConnected) &&
+       await frame.evaluate(() => window.__mismaVisita === true).catch(() => false));
+  await marco.dispose();
   await cerrar(sesion);
 })().catch(async e => { console.error(e); await sesion?.navegador.close(); process.exitCode = 1; });
