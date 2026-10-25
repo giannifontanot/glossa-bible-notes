@@ -6418,7 +6418,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-OCT-26 16:04';
+window.GLOSS_BUILD = '25-OCT-26 16:07';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18257,6 +18257,13 @@ function zoomLamina(capa){
   };
   capa.addEventListener('pointerup', soltar);
   capa.addEventListener('pointercancel', soltar);
+  /* AL GIRAR EL TELÉFONO SE VUELVE A ATAR. La caja de la imagen es la
+     ventana entera, así que al girar cambia de forma y la foto cambia de
+     sitio dentro de ella; el desplazamiento guardado era el de antes y podía
+     dejar la foto ampliada fuera de la pantalla, en negro, hasta el próximo
+     gesto. Lo levantó la revisión de Codex. Se repinta con los bordes nuevos;
+     el zoom se conserva. */
+  addEventListener('resize', () => { if (capa.classList.contains('puesta')) pintar(); });
   capa.addEventListener('wheel', ev => {
     ev.preventDefault();
     const r = capa.getBoundingClientRect();
