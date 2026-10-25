@@ -3941,9 +3941,14 @@
      más. Ni pie, ni sombra, ni esquinas redondas.
      dvh y no vh: en el teléfono vh cuenta la barra del navegador como si no
      estuviera, y la imagen se cortaba por abajo. */
-  .lamina-grande{ position:fixed; inset:0; z-index:100000; display:none;
-                  background:#000; cursor:zoom-out; touch-action:pinch-zoom; }
+  /* touch-action:none porque el pellizco lo lleva el programa (ver
+     zoomLamina): con pinch-zoom el navegador ampliaba LA PÁGINA entera, y
+     al soltar quedaba el libro ampliado por debajo con la lámina encima. */
+  .lamina-grande{ position:fixed; inset:0; z-index:100000; display:none; overflow:hidden;
+                  background:#000; cursor:zoom-out; touch-action:none; }
   .lamina-grande.puesta{ display:block; }
+  .lamina-grande img{ transform-origin:0 0; will-change:transform; user-select:none;
+                      -webkit-user-drag:none; pointer-events:none; }
   .lamina-grande img{ display:block; width:100vw; height:100vh; height:100dvh;
                       object-fit:contain; }
   /* EL ASPA ES LO ÚNICO QUE SE PINTA ENCIMA, y casi no se ve: tocar en
@@ -6413,7 +6418,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-OCT-26 16:00';
+window.GLOSS_BUILD = '25-OCT-26 16:01';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18132,15 +18137,115 @@ function ponerLaminaGrande(src, alt){
     /* Tocar en cualquier sitio cierra, la imagen incluida: aquí no hay nada
        más que hacer que mirarla, y buscar el aspa con el pulgar es justo lo
        que no se quiere en una imagen a pantalla completa. */
-    laminaGrande.addEventListener('click', quitarLaminaGrande);
+    laminaGrande.addEventListener('click', ev => {
+      /* Un pellizco o un arrastre también terminan en click; ese no cierra.
+         Solo cierra el toque de verdad, sin gesto. El aspa sí cierra siempre. */
+      if (laminaZoom.hubo && !ev.target.closest('button')){ laminaZoom.hubo = false; return; }
+      quitarLaminaGrande();
+    });
+    zoomLamina(laminaGrande);
     document.body.appendChild(laminaGrande);
   }
   const img = laminaGrande.querySelector('img');
   img.src = url.href; img.alt = String(alt || '');
   laminaGrande.setAttribute('aria-label', img.alt || 'Imagen');
   laminaVolver = document.activeElement;
+  laminaZoom.poner(1, 0, 0);
   laminaGrande.classList.add('puesta');
   laminaGrande.querySelector('button').focus({ preventScroll:true });
+}
+/* EL ZOOM CON LOS DEDOS, pedido por el dueño del repo: pellizcar la lámina
+   para acercarse, y con ella ampliada arrastrar con un dedo para recorrerla.
+   Lo lleva el programa con eventos de puntero y un transform sobre la imagen,
+   y no el navegador: el pellizco del navegador amplía la página entera, no la
+   imagen. En escritorio, la rueda hace lo mismo. Con la imagen a su tamaño
+   no hay arrastre; tocar sin gesto la cierra, como siempre.
+
+   El punto entre los dos dedos se queda quieto mientras se pellizca, que es
+   lo que hace cualquier visor de fotos: se acerca hacia donde se mira y no
+   hacia el centro. Y el recorrido se ata a los bordes: con la imagen
+   ampliada no se puede arrastrar hasta dejar la pantalla en negro. */
+const laminaZoom = { s:1, x:0, y:0, hubo:false, poner(){} };
+function zoomLamina(capa){
+  const img = capa.querySelector('img');
+  const dedos = new Map();
+  let inicio = null;
+  const MAX = 5;
+  const atar = () => {
+    const w = capa.clientWidth, h = capa.clientHeight, z = laminaZoom;
+    z.x = Math.min(0, Math.max(w - w * z.s, z.x));
+    z.y = Math.min(0, Math.max(h - h * z.s, z.y));
+  };
+  const pintar = () => {
+    atar();
+    img.style.transform = laminaZoom.s === 1 ? '' :
+      'translate(' + laminaZoom.x + 'px,' + laminaZoom.y + 'px) scale(' + laminaZoom.s + ')';
+  };
+  laminaZoom.poner = (s, x, y) => {
+    laminaZoom.s = s; laminaZoom.x = x; laminaZoom.y = y; laminaZoom.hubo = false;
+    dedos.clear(); inicio = null; pintar();
+  };
+  /* Acercar o alejar dejando quieto el punto (px, py) de la pantalla. */
+  const escalarEn = (nueva, px, py, base) => {
+    const b = base || laminaZoom;
+    const s = Math.min(MAX, Math.max(1, nueva));
+    laminaZoom.x = px - (px - b.x) * (s / b.s);
+    laminaZoom.y = py - (py - b.y) * (s / b.s);
+    laminaZoom.s = s;
+    if (s === 1){ laminaZoom.x = 0; laminaZoom.y = 0; }
+    pintar();
+  };
+  const foto = () => {
+    const p = [...dedos.values()];
+    const r = capa.getBoundingClientRect();
+    if (p.length >= 2){
+      return { s:laminaZoom.s, x:laminaZoom.x, y:laminaZoom.y,
+               d:Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1,
+               mx:(p[0].x + p[1].x) / 2 - r.left, my:(p[0].y + p[1].y) / 2 - r.top };
+    }
+    return { s:laminaZoom.s, x:laminaZoom.x, y:laminaZoom.y, px:p[0].x, py:p[0].y };
+  };
+  capa.addEventListener('pointerdown', ev => {
+    if (ev.target.closest('button')) return;
+    /* Un gesto nuevo empieza limpio: si el anterior acabó sin click —un
+       arrastre no siempre lo da—, su marca se quedaba y se comía el
+       siguiente toque, que entonces no cerraba. */
+    if (!dedos.size) laminaZoom.hubo = false;
+    dedos.set(ev.pointerId, { x:ev.clientX, y:ev.clientY });
+    try { capa.setPointerCapture(ev.pointerId); } catch (_) {}
+    inicio = foto();
+  });
+  capa.addEventListener('pointermove', ev => {
+    if (!dedos.has(ev.pointerId)) return;
+    dedos.set(ev.pointerId, { x:ev.clientX, y:ev.clientY });
+    const p = [...dedos.values()];
+    if (p.length >= 2 && inicio && inicio.d){
+      const d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+      const r = capa.getBoundingClientRect();
+      const mx = (p[0].x + p[1].x) / 2 - r.left, my = (p[0].y + p[1].y) / 2 - r.top;
+      escalarEn(inicio.s * d / inicio.d, inicio.mx, inicio.my, inicio);
+      /* y lo que se movió el punto medio, como arrastre */
+      laminaZoom.x += mx - inicio.mx; laminaZoom.y += my - inicio.my; pintar();
+      laminaZoom.hubo = true;
+    } else if (p.length === 1 && inicio && inicio.px !== undefined){
+      const dx = p[0].x - inicio.px, dy = p[0].y - inicio.py;
+      if (Math.abs(dx) + Math.abs(dy) > 6) laminaZoom.hubo = true;
+      if (laminaZoom.s > 1){ laminaZoom.x = inicio.x + dx; laminaZoom.y = inicio.y + dy; pintar(); }
+    }
+  });
+  const soltar = ev => {
+    if (!dedos.delete(ev.pointerId)) return;
+    /* Al quedar un dedo después de pellizcar, el arrastre arranca de nuevo
+       desde donde está ese dedo, sin salto. */
+    inicio = dedos.size ? foto() : null;
+  };
+  capa.addEventListener('pointerup', soltar);
+  capa.addEventListener('pointercancel', soltar);
+  capa.addEventListener('wheel', ev => {
+    ev.preventDefault();
+    const r = capa.getBoundingClientRect();
+    escalarEn(laminaZoom.s * Math.exp(-ev.deltaY / 400), ev.clientX - r.left, ev.clientY - r.top);
+  }, { passive:false });
 }
 function quitarLaminaGrande(){
   if (!laminaGrande || !laminaGrande.classList.contains('puesta')) return;
