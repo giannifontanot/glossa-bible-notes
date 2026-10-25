@@ -163,12 +163,9 @@ blockquote cite {
   margin-top: .5rem; font-size: .72rem; line-height: 1.45;
   font-style: italic; color: var(--rotulo); text-align: center;
 }
-/* La pista de que se puede ampliar, en versalitas de oro como la referencia
-   de la portada: se ve, pero no compite con el pie. */
-.lamina figcaption .ampliar {
-  display: block; margin-top: .25rem; font-style: normal;
-  font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: var(--oro);
-}
+/* SIN PISTA DE «TOCA PARA AMPLIAR». La hubo, en versalitas de oro bajo el
+   pie, y el dueño del repo la quitó: «la persona ya sabe». Una imagen chica
+   en el texto se toca; no hace falta decirlo. */
 /* En una columna muy estrecha la lámina al lado dejaría renglones de dos
    palabras: ahí se centra y el texto sigue debajo. */
 @media (max-width: 22rem) {

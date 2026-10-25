@@ -6413,7 +6413,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '25-OCT-26 15:59';
+window.GLOSS_BUILD = '25-OCT-26 16:00';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18112,12 +18112,12 @@ addEventListener('message', ev => {
    cuelga de encuentros/: el programa no abre a pantalla completa nada que no
    sea de sus relatos, venga de donde venga la dirección.
 
-   PANTALLA COMPLETA DE VERDAD SI EL APARATO LA DA. El toque fue dentro del
-   marco, y la activación de un toque sube a las ventanas de arriba, así que
-   el programa todavía puede pedirla. Donde no se puede —el iPhone no la da
-   para otra cosa que vídeo— queda la capa negra a toda la ventana, que es lo
-   más grande que hay. Se pide sin esperar respuesta: si el navegador dice
-   que no, no pasa nada que haya que contar. */
+   SIN PANTALLA COMPLETA DEL NAVEGADOR, Y A PROPÓSITO. Se pedía con
+   requestFullscreen, y el navegador, al darla, pinta encima su propio aviso
+   —«pulsa Esc para salir», «desliza para salir»— que el programa no puede
+   quitar. El dueño del repo no quiere ningún mensaje sobre la imagen: «la
+   persona ya sabe». Así que se queda la capa negra a toda la ventana, que
+   ya ocupa la pantalla entera del teléfono y no trae avisos de nadie. */
 let laminaGrande = null, laminaVolver = null;
 function ponerLaminaGrande(src, alt){
   let url;
@@ -18133,12 +18133,6 @@ function ponerLaminaGrande(src, alt){
        más que hacer que mirarla, y buscar el aspa con el pulgar es justo lo
        que no se quiere en una imagen a pantalla completa. */
     laminaGrande.addEventListener('click', quitarLaminaGrande);
-    /* Si el lector sale de la pantalla completa con el gesto del sistema, la
-       capa negra se va con ella: quedarse a medias es lo único peor. */
-    document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement && laminaGrande.classList.contains('puesta') &&
-          laminaGrande.dataset.completa === '1') quitarLaminaGrande();
-    });
     document.body.appendChild(laminaGrande);
   }
   const img = laminaGrande.querySelector('img');
@@ -18146,19 +18140,11 @@ function ponerLaminaGrande(src, alt){
   laminaGrande.setAttribute('aria-label', img.alt || 'Imagen');
   laminaVolver = document.activeElement;
   laminaGrande.classList.add('puesta');
-  laminaGrande.dataset.completa = '';
   laminaGrande.querySelector('button').focus({ preventScroll:true });
-  if (laminaGrande.requestFullscreen){
-    laminaGrande.requestFullscreen({ navigationUI:'hide' })
-      .then(() => { laminaGrande.dataset.completa = '1'; })
-      .catch(() => {});
-  }
 }
 function quitarLaminaGrande(){
   if (!laminaGrande || !laminaGrande.classList.contains('puesta')) return;
   laminaGrande.classList.remove('puesta');
-  laminaGrande.dataset.completa = '';
-  if (document.fullscreenElement === laminaGrande) document.exitFullscreen().catch(() => {});
   /* El foco vuelve al marco del relato, que es desde donde se pidió: así el
      siguiente Escape vuelve a ser del relato y cierra el panel, como antes. */
   try { laminaVolver?.focus?.({ preventScroll:true }); } catch (_) {}
