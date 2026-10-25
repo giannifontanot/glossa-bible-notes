@@ -208,16 +208,26 @@ blockquote cite {
    el lector ya la conoce. Lo que abren está en ventanitas.js. */
 button.cita, button.palabra {
   all: unset; cursor: pointer; font: inherit; letter-spacing: inherit;
-  color: inherit; border-bottom: 1px dotted var(--raya);
+  /* EL SUBRAYADO SE TIENE QUE VER, Y PEGADO A LA PALABRA. Era de un píxel y
+     del marrón de la raya, al 38 %, y casi no se distinguía; el dueño del
+     repo lo pidió más obvio. La primera vez se engordó el borde de abajo, y
+     entonces se vio el otro defecto: un borde va al pie de la caja de la
+     línea, no bajo la letra, y con el interlineado de 1.75 quedaba flotando
+     entre dos renglones. Se pidió que fuera el subrayado de la palabra.
+     Así que es un text-decoration: se apoya en la línea base, a tres
+     píxeles, sea cual sea el interlineado. Oro de los capítulos, dos
+     píxeles, de puntos: dice «se puede tocar» sin parecer un enlace. */
+  color: inherit; text-decoration: underline dotted var(--oro);
+  text-decoration-thickness: 2px; text-underline-offset: 3px;
   -webkit-tap-highlight-color: transparent;
 }
 button.cita { white-space: nowrap; }
-button.cita:hover, button.palabra:hover { border-bottom-style: solid; color: var(--oro); }
+button.cita:hover, button.palabra:hover { text-decoration-style: solid; color: var(--oro); }
 button.cita:focus-visible, button.palabra:focus-visible {
   outline: 2px solid var(--oro); outline-offset: 2px; border-radius: 2px;
 }
 /* En la portada la referencia ya es oro; el subrayado lo acompaña. */
-.ref button.cita { border-bottom-color: currentColor; }
+.ref button.cita { text-decoration-color: currentColor; }
 
 /* La ventanita de cuando el relato se abre solo. Dentro del programa la
    pinta el programa (.ventanita en index.html). */
