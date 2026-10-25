@@ -133,3 +133,76 @@ blockquote cite {
   margin-top: 2.8rem; padding-top: 1rem; border-top: 1px solid var(--raya);
   font-size: .8rem; letter-spacing: .06em; color: var(--rotulo);
 }
+
+/* ---------- las láminas: una imagen chica en el texto ---------- */
+/* LA LÁMINA VA A UN LADO Y EL TEXTO LA RODEA, como en un libro ilustrado, y
+   no a todo lo ancho: una imagen de lado a lado parte el relato en dos y
+   obliga a bajar un pantallazo entero sin leer. Chica aquí, y grande al
+   tocarla, que es lo que hace visor.js.
+   El ancho va en porcentaje con un tope en rem: en el teléfono queda en algo
+   menos de la mitad de la columna, y en una pantalla ancha no crece más allá
+   de lo que pide una ilustración al margen. */
+.lamina {
+  float: right; width: 42%; max-width: 13rem;
+  margin: .35rem 0 1rem 1.2rem;
+}
+.lamina-enlace {
+  display: block; cursor: zoom-in; border-radius: 3px;
+  /* El mismo marrón de la raya, para que el marco de la imagen sea de la
+     familia del papel y no un recuadro gris de otro programa. */
+  box-shadow: 0 0 0 1px var(--raya), 0 6px 18px -8px rgba(40,28,10,.55);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.lamina-enlace:hover, .lamina-enlace:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px var(--oro), 0 10px 22px -8px rgba(40,28,10,.6);
+}
+.lamina-enlace:focus-visible { outline: 2px solid var(--oro); outline-offset: 3px; }
+.lamina img { display: block; width: 100%; height: auto; border-radius: 3px; }
+.lamina figcaption {
+  margin-top: .5rem; font-size: .72rem; line-height: 1.45;
+  font-style: italic; color: var(--rotulo); text-align: center;
+}
+/* La pista de que se puede ampliar, en versalitas de oro como la referencia
+   de la portada: se ve, pero no compite con el pie. */
+.lamina figcaption .ampliar {
+  display: block; margin-top: .25rem; font-style: normal;
+  font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: var(--oro);
+}
+/* En una columna muy estrecha la lámina al lado dejaría renglones de dos
+   palabras: ahí se centra y el texto sigue debajo. */
+@media (max-width: 22rem) {
+  .lamina { float: none; width: 62%; max-width: none; margin: .4rem auto 1.4rem; }
+}
+
+/* ---------- el visor: la lámina en grande ---------- */
+/* Va a oscuras y no sobre el papel: lo que se mira aquí es la imagen, y un
+   fondo claro alrededor de una foto llena de sol la apaga. */
+.visor {
+  border: 0; padding: 0; margin: 0; max-width: none; max-height: none;
+  width: 100%; height: 100%; background: transparent;
+  display: none; place-items: center;
+}
+.visor[open] { display: grid; }
+.visor::backdrop { background: rgba(18,12,4,.9); }
+.visor-img {
+  display: block; max-width: calc(100% - 1.6rem); max-height: calc(100% - 5.5rem);
+  width: auto; height: auto; object-fit: contain; border-radius: 3px;
+  box-shadow: 0 18px 50px -12px rgba(0,0,0,.8);
+  animation: visor-entra .28s ease;
+}
+.visor-pie {
+  margin: .7rem 1.2rem 0; max-width: 32rem; text-align: center;
+  font-size: .82rem; line-height: 1.5; font-style: italic; color: #e9dcc0;
+}
+.visor-cerrar {
+  position: fixed; top: .6rem; right: .7rem; width: 2.6rem; height: 2.6rem;
+  border: 1px solid rgba(233,220,192,.45); border-radius: 50%;
+  background: rgba(18,12,4,.55); color: #f3e8cf;
+  font: 400 1.6rem/1 Georgia, serif; cursor: pointer;
+}
+.visor-cerrar:hover, .visor-cerrar:focus-visible { background: rgba(176,135,58,.85); color: #1d1608; }
+@keyframes visor-entra { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .visor-img, .lamina-enlace { animation: none; transition: none; }
+}
