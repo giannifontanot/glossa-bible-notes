@@ -199,3 +199,21 @@ blockquote cite {
 @media (prefers-reduced-motion: reduce) {
   .lamina-enlace { transition: none; }
 }
+
+/* ---------- las ligas a la escritura ---------- */
+/* LA CITA SE PUEDE ABRIR: cada referencia lleva su liga al pasaje en la Dios
+   Habla Hoy, que es la versión de las citas, así que lo que se abre es el
+   mismo texto que se está leyendo, con su contexto. Se abre aparte
+   (target="_blank"): el relato vive en un marco, y navegar dentro de él
+   dejaría al lector fuera de la historia sin camino de vuelta.
+   No cambia de color: sigue siendo la referencia de siempre, con un
+   subrayado fino que dice que se puede tocar. Ni azul, ni negrita. */
+.ref a, blockquote cite a {
+  color: inherit; text-decoration: underline;
+  text-decoration-color: var(--raya); text-decoration-thickness: 1px;
+  text-underline-offset: .2em;
+}
+.ref a:hover, blockquote cite a:hover,
+.ref a:focus-visible, blockquote cite a:focus-visible {
+  color: var(--oro); text-decoration-color: currentColor;
+}
