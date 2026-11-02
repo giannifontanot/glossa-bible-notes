@@ -952,7 +952,23 @@ const ATERRIZA = 7000;
      Se compara CONTRA EL FILO y no contra un libro escrito a mano: cuál es la
      primera hoja depende de qué biblias estén cargadas —hoy los datos empiezan
      en Mateo, no en Génesis— y una prueba que diga «Génesis» se cae sola el
-     día que alguien baje el Antiguo Testamento. */
+     día que alguien baje el Antiguo Testamento.
+
+     Y ESE DÍA LLEGÓ, y lo que se cayó fue el tope de seis toques: desde Mateo
+     ya no se llega al principio de seis hojas, porque detrás está Malaquías y
+     detrás de Malaquías hay treinta y ocho libros. Así que primero se abre en
+     el capítulo 1 del primer libro de los datos —por los ajustes, el mismo
+     camino que usa la app para volver a donde te quedaste, y fundiéndolos con
+     lo guardado para no pisar el verFlechas de arriba— y de ahí los seis
+     toques hacen lo que hacían: terminar de llegar al borde. El libro sigue
+     sin ir escrito a mano: sale de los datos. */
+  await pf.evaluate(() => {
+    const aj = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
+    aj.v = 1; aj.libro = window.GLOSSA_DATA.libros[0].id; aj.cap = 1; aj.vers = 1;
+    localStorage.setItem('glossa:ajustes:v1', JSON.stringify(aj));
+  });
+  await pf.reload();
+  await pf.waitForTimeout(3200);
   const extremos = await pf.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     /* SE VUELVE AL PRINCIPIO A PROPÓSITO: el bloque de arriba dejó la lectura

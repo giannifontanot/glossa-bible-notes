@@ -6418,7 +6418,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-NOV-26 12:41';
+window.GLOSS_BUILD = '02-NOV-26 14:06';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7367,7 +7367,15 @@ document.head.insertAdjacentHTML('beforeend', '<style>' + PAGE_CSS + '</style>')
 const D = window.GLOSSA_DATA;
 if (!D){ document.body.innerHTML = '<p style="padding:40px;font:14px sans-serif">Falta <b>bibles-included.js</b>. Genéralo con <code>python ebible-a-glossa.py</code>.</p>'; return; }
 
-let LIBRO = D.libros[0].id;                 // el libro abierto; cambia con el canto
+/* EL LIBRO CON QUE SE ABRE ES MATEO, Y VA ESCRITO, no se toma del orden del
+   archivo. Antes era D.libros[0], y daba lo mismo mientras el archivo solo
+   traía el Nuevo Testamento: el primero era Mateo. Con el Antiguo dentro, el
+   primero pasa a ser Génesis, y la app habría abierto ahí sin que nadie lo
+   decidiera —arrastrando además las glosas de estreno, que hablan de Mateo 1,
+   a Génesis 1—. Se queda en Mateo por decisión del dueño del repo. Si un
+   archivo no lo trae, se cae al primero, como antes. */
+const LIBRO_INICIAL = D.libros.some(b => b.id === 'MAT') ? 'MAT' : D.libros[0].id;
+let LIBRO = LIBRO_INICIAL;                  // el libro abierto; cambia con el canto
 /* El rojo salió de la paleta: se lo quedó, en exclusiva, el subrayado
    punteado del anclaje dudoso. Un color que solo significa una cosa avisa
    mejor que uno que además es decorativo. En su lugar entra el naranja, a
@@ -25230,9 +25238,10 @@ function sembrarGlosasDeEstreno(){
   /* EL LIBRO VA ESCRITO EN CADA UNA, no se toma del que esté abierto. Estas
      notas hablan de un sitio concreto: en otro libro no dirían nada, y peor,
      la frase podría encontrarse por casualidad en otro 1:1 y marcar lo que no
-     es. Tres son de Mateo y por eso el primero del archivo sigue siendo el
-     valor por defecto; la de Juan trae el suyo. */
-  const porDefecto = D.libros[0] && D.libros[0].id;
+     es. Tres son de Mateo y por eso el libro inicial —LIBRO_INICIAL, que es
+     Mateo— es el valor por defecto; la de Juan trae el suyo. Antes era el
+     primero del archivo, y con el Antiguo Testamento dentro ese es Génesis. */
+  const porDefecto = LIBRO_INICIAL;
   if (!porDefecto) return;
   const hoy = new Date().toISOString().slice(0,10);
   const nuevas = [];
