@@ -745,4 +745,4 @@ async function cerrar(sesion){
 }
 
 module.exports = { abrir, abrirEnPortada, otraPagina, listo, cerrar, cerrarParcial, fin, conGlosas, di, vale, titulo,
-                   APP, RAIZ, TELEFONO, ESCRITORIO, ESTRECHO_RATON };
+                   APP, RAIZ, TELEFONO, ESCRITORIO, ESTRECHO_RATON, EJECUTABLE };

@@ -4,6 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Gloss Bible</title>
+<!-- LA GLOSSA SE INSTALA COMO APP. El manifiesto dice su nombre, sus íconos y
+     que se abre a pantalla completa; el color es el del escritorio de la app,
+     para que la barra del teléfono y la pantalla de arranque no desentonen.
+     El service worker que la deja abrir sin red está en sw.js. -->
+<link rel="manifest" href="glossa.webmanifest" />
+<meta name="theme-color" content="#362c20" />
+<link rel="icon" type="image/png" href="iconos/glossa-48.png" />
+<link rel="apple-touch-icon" href="iconos/glossa-180.png" />
 <style>
   /* ============================================================
      LA INTERFAZ CRECE CON EL LIBRO.
@@ -6418,7 +6426,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-NOV-26 16:51';
+window.GLOSS_BUILD = '02-NOV-26 17:22';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -26001,6 +26009,18 @@ window.addEventListener('resize', () => {
   colocarLosPuntos();
 });
 })();
+</script>
+<script>
+/* EL SERVICE WORKER SE REGISTRA AQUÍ, fuera de la IIFE del programa, porque no
+   tiene nada que ver con él: es del navegador. Solo sobre http(s): abierto como
+   archivo, que es como corre el banco de pruebas, el navegador no lo permite, y
+   el intento no debe ensuciar la consola. Se espera a que la página termine de
+   cargar para que guardar los 16 MB de la Biblia no compita con el arranque. */
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(e => console.warn('service worker:', e));
+  });
+}
 </script>
 </body>
 </html>

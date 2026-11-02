@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Fondo: el escritorio oscuro de la app (desk), a sangre para el ícono maskable -->
+  <rect width="512" height="512" fill="#362c20"/>
+  <g id="hoja">
+    <!-- Sombra de la hoja -->
+    <rect x="134" y="112" width="256" height="304" rx="14" fill="#000" opacity="0.28"/>
+    <!-- La hoja: el papel de la app (papel) -->
+    <rect x="128" y="104" width="256" height="304" rx="14" fill="#e8d3ac"/>
+    <!-- Columna de texto: la tinta del libro (tinta) -->
+    <g fill="#3b2b18">
+      <rect x="156" y="164" width="140" height="13" rx="6.5"/>
+      <rect x="156" y="196" width="140" height="13" rx="6.5"/>
+      <rect x="156" y="228" width="140" height="13" rx="6.5"/>
+      <rect x="156" y="260" width="140" height="13" rx="6.5"/>
+      <rect x="156" y="292" width="140" height="13" rx="6.5"/>
+      <rect x="156" y="324" width="96"  height="13" rx="6.5"/>
+    </g>
+    <!-- La glosa: una nota en el margen, con el dorado de la app (punto) -->
+    <g fill="#b8892b">
+      <rect x="314" y="260" width="44" height="9" rx="4.5"/>
+      <rect x="314" y="280" width="34" height="9" rx="4.5"/>
+      <rect x="314" y="300" width="40" height="9" rx="4.5"/>
+    </g>
+    <!-- El subrayado que ancla la glosa al texto -->
+    <rect x="200" y="276" width="96" height="6" rx="3" fill="#b8892b"/>
+    <!-- La cinta: el separador que cuelga de la hoja, en el carmín vivo de la
+         paleta de cintas. Gruesa y larga para que se vea aun en tamaño chico. -->
+    <path d="M304 104 h60 v140 l-30 -26 l-30 26 z" fill="#d80b0b"/>
+  </g>
+</svg>
