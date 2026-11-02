@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "Biblia Glosa · Gloss Bible",
+  "short_name": "Biblia Glosa",
+  "description": "Lee la Biblia en varias versiones y escribe tus glosas en el margen.",
+  "lang": "es-MX",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#362c20",
+  "theme_color": "#362c20",
+  "icons": [
+    { "src": "iconos/glossa-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "iconos/glossa-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "iconos/glossa-mask-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
