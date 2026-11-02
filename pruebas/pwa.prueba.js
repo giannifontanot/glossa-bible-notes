@@ -101,6 +101,24 @@ function servir(){
   vale('ABRE SIN RED, en su hoja y con texto', !!sinRed.hoja && sinRed.versiculos > 0, sinRed.hoja);
   vale('  con la Biblia entera', sinRed.libros === 66, sinRed.libros);
   vale('  y sus perícopas', sinRed.pericopas === 66, sinRed.pericopas);
+  /* UNA PÁGINA QUE NO SE GUARDÓ NO RECIBE LA BIBLIA. Es lo que levantó Codex:
+     el panel de oración y los Encuentros se abren en un iframe, y sin red el
+     respaldo de la Biblia les metía la app entera dentro. Se pide una página
+     de esa carpeta que nunca se abrió, que es exactamente el caso. */
+  const otra = await p.evaluate(async () => {
+    const f = document.createElement('iframe');
+    f.src = 'encuentros/no-se-guardo.html';
+    document.body.appendChild(f);
+    await new Promise(z => { f.onload = z; setTimeout(z, 5000); });
+    let d = null; try { d = f.contentDocument; } catch(e){}
+    const r = { esLaBiblia: !!(d && d.getElementById('pgCabeza')),
+                aviso: d ? (d.body ? d.body.textContent.trim().slice(0, 40) : '') : '(sin acceso)' };
+    f.remove();
+    return r;
+  });
+  di('una página sin guardar', otra);
+  vale('UNA PÁGINA SIN GUARDAR NO RECIBE LA BIBLIA', otra.esLaBiblia === false, otra);
+  vale('  sino el aviso de que falta conexión', /Sin conexión/.test(otra.aviso), otra.aviso);
   await ctx.setOffline(false);
 
   vale('sin errores de JavaScript', errores.length === 0, errores.length ? errores : 'ninguno');

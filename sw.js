@@ -20,7 +20,7 @@
 
    Solo los archivos de este mismo sitio pasan por aquí; las ligas a otras
    páginas siguen su camino de siempre. */
-const CACHE = 'glossa-v1';
+const CACHE = 'glossa-v2';
 const BASICOS = [
   './', 'index.html', 'bibles-included.js', 'pericopas.js', 'portada-temprana.js',
   'glossa.webmanifest', 'iconos/glossa-192.png', 'iconos/glossa-512.png'
@@ -44,6 +44,16 @@ self.addEventListener('activate', e => {
   })());
 });
 
+/* EL AVISO PARA UNA PÁGINA QUE NUNCA SE ABRIÓ CON RED. Sin fondo ni colores
+   propios, como los relatos: hereda los de la ventanita donde aparezca. */
+function sinConexion(){
+  return new Response(
+    '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<style>body{margin:0;padding:32px 20px;background:transparent;color:inherit;font:17px/1.5 Georgia,serif;text-align:center}</style>' +
+    '<p>Sin conexión.</p><p>Esta página se guarda la primera vez que se abre con internet.</p>',
+    { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+}
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -58,9 +68,20 @@ self.addEventListener('fetch', e => {
     } catch (err) {
       const guardada = await cache.match(req) || await cache.match(req, { ignoreSearch:true });
       if (guardada) return guardada;
-      /* Sin red y sin copia de esa página exacta: si es la app, se abre la
-         última index.html que se guardó. */
-      if (req.mode === 'navigate') return (await cache.match('index.html')) || (await cache.match('./')) || Response.error();
+      if (req.mode === 'navigate'){
+        /* LA BIBLIA DE RESPALDO, SOLO PARA LA BIBLIA. Antes cualquier página
+           sin copia recibía index.html, y eso rompía las ventanitas: el panel
+           de oración y los Encuentros se cargan en un iframe la primera vez que
+           se abren, y sin red recibían la Biblia entera dentro, con sus guiones
+           buscados bajo oracion/ o encuentros/, donde no existen. Lo levantó la
+           revisión de Codex. Ahora la Biblia solo sale cuando lo que se abre es
+           la página principal; lo demás recibe un aviso. */
+        const raiz = new URL('./', self.registration.scope).pathname;
+        const esLaBiblia = req.destination === 'document' &&
+                           (url.pathname === raiz || url.pathname === raiz + 'index.html');
+        if (esLaBiblia) return (await cache.match('index.html')) || (await cache.match('./')) || Response.error();
+        return sinConexion();
+      }
       throw err;
     }
   })());
