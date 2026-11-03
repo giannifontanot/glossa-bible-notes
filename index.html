@@ -6490,7 +6490,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 02:18';
+window.GLOSS_BUILD = '03-NOV-26 02:26';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -20060,7 +20060,13 @@ const PIEDRA_SVG = {
     '</g>',
   /* Al racimo hay que pegarle el rabo AL GRANO DE ARRIBA: suelto en el aire
      parecía un gusano al lado de unas bolas. Y una hoja, que es lo que dice
-     «uvas» y no «bolas». */
+     «uvas» y no «bolas».
+     LOS GRANOS VAN CHICOS Y EN TRIÁNGULO. Eran seis bolas gordas de radio 3
+     sueltas en un rombo, y el dueño del repo no entendía qué era: «si son
+     uvas, hazle más uvitas, más chicas, así como en un triángulo». Ahora son
+     diez, en filas de cuatro, tres, dos y una, apretadas como en un racimo de
+     verdad; cada una lleva un filo oscuro finito, que es lo que las separa
+     cuando todas son del mismo color, y su brillito arriba a la izquierda. */
   uvas:
     /* LAS HOJAS VAN VERDES Y NO EN LA TINTA DE LA PIEDRA, y es la única figura
        que rompe la regla. Todas las demás se pintan enteras del color que
@@ -20070,19 +20076,34 @@ const PIEDRA_SVG = {
        color que le pongas, que es lo que distingue una uva de una ciruela.
        El verde va escrito a pelo y no en currentColor a propósito: una hoja
        carmín no es una hoja. */
-    '<path d="M12 5.2V2.6" fill="none" stroke="#4d6a35" stroke-width="1.8"' +
+    '<path d="M12 6.9V2.6" fill="none" stroke="#4d6a35" stroke-width="1.6"' +
     ' stroke-linecap="round"/>' +
     '<path d="M12.6 2.9c1.4-1.6 3.4-2.2 5.9-1.8.2 2.5-.6 4.3-2.4 5.2-1.8.9-3.3.4-4.5-1.4' +
     ' .2-.8.5-1.5 1-2z" fill="#4d6a35"/>' +
     '<path d="M13.2 3.6c1-.9 2.3-1.4 3.9-1.4" fill="none" stroke="#7fa35c"' +
     ' stroke-opacity=".8" stroke-width=".9" stroke-linecap="round"/>' +
-    '<circle cx="12" cy="8.2" r="3" fill="currentColor"/>' +
-    '<circle cx="6.7" cy="11.4" r="3" fill="currentColor"/>' +
-    '<circle cx="17.3" cy="11.4" r="3" fill="currentColor"/>' +
-    '<circle cx="12" cy="14.4" r="3" fill="currentColor"/>' +
-    '<circle cx="8.9" cy="19.4" r="2.9" fill="currentColor"/>' +
-    '<circle cx="15.1" cy="19.4" r="2.9" fill="currentColor"/>' +
-    '<circle cx="10.9" cy="7.1" r=".95" fill="#fff" fill-opacity=".35"/>',
+    /* Diez granos chicos en triángulo, cuatro-tres-dos-uno: de abajo arriba,
+       para que cada fila monte sobre la de abajo como en un racimo. */
+    '<circle cx="12" cy="18.5" r="1.95" fill="currentColor" stroke="#000" stroke-opacity=".28" stroke-width=".55"/>' +
+    '<circle cx="13.9" cy="15.2" r="1.95" fill="currentColor" stroke="#000" stroke-opacity=".28" stroke-width=".55"/>' +
+    '<circle cx="10.1" cy="15.2" r="1.95" fill="currentColor" stroke="#000" stroke-opacity=".28" stroke-width=".55"/>' +
+    '<circle cx="15.8" cy="11.9" r="1.95" fill="currentColor" stroke="#000" stroke-opacity=".28" stroke-width=".55"/>' +
+    '<circle cx="12" cy="11.9" r="1.95" fill="currentColor" stroke="#000" stroke-opacity=".28" stroke-width=".55"/>' +
+    '<circle cx="8.2" cy="11.9" r="1.95" fill="currentColor" stroke="#000" stroke-opacity=".28" stroke-width=".55"/>' +
+    '<circle cx="17.7" cy="8.6" r="1.95" fill="currentColor" stroke="#000" stroke-opacity=".28" stroke-width=".55"/>' +
+    '<circle cx="13.9" cy="8.6" r="1.95" fill="currentColor" stroke="#000" stroke-opacity=".28" stroke-width=".55"/>' +
+    '<circle cx="10.1" cy="8.6" r="1.95" fill="currentColor" stroke="#000" stroke-opacity=".28" stroke-width=".55"/>' +
+    '<circle cx="6.3" cy="8.6" r="1.95" fill="currentColor" stroke="#000" stroke-opacity=".28" stroke-width=".55"/>' +
+    '<circle cx="5.7" cy="7.95" r=".55" fill="#fff" fill-opacity=".4"/>' +
+    '<circle cx="9.5" cy="7.95" r=".55" fill="#fff" fill-opacity=".4"/>' +
+    '<circle cx="13.3" cy="7.95" r=".55" fill="#fff" fill-opacity=".4"/>' +
+    '<circle cx="17.1" cy="7.95" r=".55" fill="#fff" fill-opacity=".4"/>' +
+    '<circle cx="7.6" cy="11.25" r=".55" fill="#fff" fill-opacity=".4"/>' +
+    '<circle cx="11.4" cy="11.25" r=".55" fill="#fff" fill-opacity=".4"/>' +
+    '<circle cx="15.2" cy="11.25" r=".55" fill="#fff" fill-opacity=".4"/>' +
+    '<circle cx="9.5" cy="14.55" r=".55" fill="#fff" fill-opacity=".4"/>' +
+    '<circle cx="13.3" cy="14.55" r=".55" fill="#fff" fill-opacity=".4"/>' +
+    '<circle cx="11.4" cy="17.85" r=".55" fill="#fff" fill-opacity=".4"/>',
   /* LA LÁMPARA DE ACEITE, con el pico LARGO. Dos versiones anteriores la
      dejaron en un bulto con rabo y en una taza: el cuenco solo no dice nada,
      porque un cuenco es cualquier cosa. Lo que la nombra es el pico por donde
