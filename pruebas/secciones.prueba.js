@@ -57,6 +57,15 @@ const MEDIR = `(grupos) => {
   const orillas = svg.querySelectorAll('path.orilla').length;
   const de = {};
   for (const f of fondos) de[f.dataset.seccion] = f;
+  /* Con decimales, como dibuja la aplicación: offsetLeft redondea, y una
+     prueba que mide más gordo que lo medido ve rendijas que no existen o deja
+     pasar las que sí. */
+  const base = r.getBoundingClientRect();
+  const caja = b => {
+    const q = b.getBoundingClientRect();
+    return { x: q.left - base.left + r.scrollLeft, y: q.top - base.top + r.scrollTop,
+             w: q.width, h: q.height };
+  };
   const dentro = (f, x, y) => {
     const pt = svg.createSVGPoint(); pt.x = x; pt.y = y;
     return f.isPointInFill(pt);
@@ -70,26 +79,29 @@ const MEDIR = `(grupos) => {
       if (!b){ fuera.push(id + ' (no está)'); continue; }
       /* Las cuatro esquinas, metidas 3 px: que el botón entero quede sobre su
          fondo y no solo el centro. */
-      const pts = [[b.offsetLeft + 3, b.offsetTop + 3],
-                   [b.offsetLeft + b.offsetWidth - 3, b.offsetTop + 3],
-                   [b.offsetLeft + 3, b.offsetTop + b.offsetHeight - 3],
-                   [b.offsetLeft + b.offsetWidth - 3, b.offsetTop + b.offsetHeight - 3],
-                   [b.offsetLeft + b.offsetWidth / 2, b.offsetTop + b.offsetHeight / 2]];
+      const c = caja(b);
+      const pts = [[c.x + 3, c.y + 3], [c.x + c.w - 3, c.y + 3],
+                   [c.x + 3, c.y + c.h - 3], [c.x + c.w - 3, c.y + c.h - 3],
+                   [c.x + c.w / 2, c.y + c.h / 2]];
       if (!de[nombre] || !pts.every(([x, y]) => dentro(de[nombre], x, y))) fuera.push(id);
       for (const [otro, f] of Object.entries(de))
-        if (otro !== nombre && dentro(f, b.offsetLeft + b.offsetWidth / 2, b.offsetTop + b.offsetHeight / 2))
+        if (otro !== nombre && dentro(f, c.x + c.w / 2, c.y + c.h / 2))
           ajenos.push(id + ' en ' + otro);
     }
   }
-  /* El hueco entre dos libros seguidos del mismo renglón: papel no. */
+  /* El hueco entre dos libros seguidos del MISMO renglón: papel no. El
+     renglón se reconoce por la altura, no porque el segundo quede a la
+     derecha del primero: un libro solo en el renglón de abajo —Apocalipsis—
+     va centrado y puede caer a la derecha del último de arriba. */
   const bots = [...r.querySelectorAll('.tabo')];
   const huecos = [];
   for (let i = 1; i < bots.length; i++){
-    const a = bots[i - 1], b = bots[i];
-    if (b.offsetLeft <= a.offsetLeft) continue;
-    const x = (a.offsetLeft + a.offsetWidth + b.offsetLeft) / 2;
-    const y = a.offsetTop + a.offsetHeight / 2;
-    if (!fondos.some(f => dentro(f, x, y))) huecos.push(a.dataset.libro + '|' + b.dataset.libro);
+    const a = caja(bots[i - 1]), b = caja(bots[i]);
+    if (Math.abs(a.y - b.y) > a.h / 2) continue;
+    const x = (a.x + a.w + b.x) / 2;
+    const y = a.y + a.h / 2;
+    const ida = bots[i - 1].dataset.libro, idb = bots[i].dataset.libro;
+    if (!fondos.some(f => dentro(f, x, y))) huecos.push(ida + '|' + idb);
   }
   /* Una figura por sección: el camino tiene un solo «M». */
   const partidas = fondos.filter(f => (f.getAttribute('d').match(/M/g) || []).length !== 1)
@@ -99,7 +111,9 @@ const MEDIR = `(grupos) => {
      nada. Lo de abajo del todo es el aire final, que ya es parte de la lista. */
   const aire = r.querySelector('.aire-final');
   const fondoLista = aire ? aire.offsetTop + aire.offsetHeight : 0;
-  const sobra = { alto: Math.round(svg.getAttribute('height') - fondoLista),
+  /* Si la lista es más corta que el panel —el Nuevo de pie—, la rejilla
+     mide lo que mide el panel y el dibujo con ella: eso no es estirar. */
+  const sobra = { alto: Math.round(svg.getAttribute('height') - Math.max(fondoLista, r.clientHeight)),
                   ancho: Math.round(svg.getAttribute('width') - r.clientWidth),
                   desplazaDeLado: r.scrollWidth > r.clientWidth };
   return { secciones: fondos.map(f => f.dataset.seccion), orillas, fuera, ajenos, huecos, partidas,

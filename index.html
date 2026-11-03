@@ -6462,7 +6462,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-NOV-26 20:15';
+window.GLOSS_BUILD = '02-NOV-26 20:24';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17217,9 +17217,20 @@ function seccionesDibujar(){
    dos renglones seguidos, ya ensanchados por el respiro. */
 function seccionFigura(r, ids){
   const bots = ids.map(id => r.querySelector('.tabo[data-libro="' + id + '"]')).filter(Boolean);
+  /* MEDIDAS CON DECIMALES, no offsetLeft/offsetWidth. Esos redondean al
+     píxel, y los botones miden lo que mide su nombre, que casi nunca es un
+     número entero: dos vecinos a 12 px de verdad salían a 13 en la cuenta, y
+     entre los dos fondos —que se tocan justo en la mitad del hueco— quedaba
+     una rendija de papel. La cazó el banco con Juan y Hechos, acostado. */
+  const base = r.getBoundingClientRect();
+  const caja = b => {
+    const q = b.getBoundingClientRect();
+    return { x: q.left - base.left - r.clientLeft + r.scrollLeft,
+             y: q.top - base.top - r.clientTop + r.scrollTop, w: q.width, h: q.height };
+  };
   const tramos = [];
   for (const b of bots){
-    const x = b.offsetLeft, y = b.offsetTop, w = b.offsetWidth, h = b.offsetHeight;
+    const { x, y, w, h } = caja(b);
     const t = tramos[tramos.length - 1];
     /* Renglón nuevo cuando el botón vuelve a la izquierda del anterior. */
     /* ¿Es el último de su renglón en la rejilla entera? Se mira al vecino,
