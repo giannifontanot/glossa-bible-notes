@@ -4885,6 +4885,30 @@
      El respiro de los fondos —SECCION_RESPIRO— es la mitad de 14.4. */
   .rejilla-libros.con-secciones{ gap:14.4px 12px; padding:8px 8px 0; position:relative; }
   .rejilla-libros.con-secciones .tabo.inicia-seccion{ margin-left:2.4px; }
+  /* LOS RENGLONES QUE NO CRUZA NINGUNA ORILLA SE ARRIMAN. Cuando un renglón
+     y el de abajo son enteros de la misma sección, entre los dos no pasa
+     ninguna línea, y los 14.4 px de hueco —que están ahí para que quepa una
+     orilla con su respiro— se veían como un hueco de más. El dueño del repo lo
+     vio así: «parece como si estuviera demasiado separado. No es verdad, pero
+     es lo que parece». Lo miraron cuatro oficios:
+     · EL TIPÓGRAFO: es la ley de la proximidad. Dentro de un renglón dos
+       libros de la misma sección están a 12; si entre renglones de la misma
+       sección hay más, el ojo los lee como grupos distintos aunque el color
+       diga que son uno. Tiene que haber MENOS aire entre renglones que entre
+       libros, no más, como el interlineado de un párrafo es menor que el
+       espacio entre párrafos.
+     · EL DE INTERACCIÓN: los botones miden 52 de alto en el teléfono, así
+       que 9 px entre dos sigue dejando el dedo sin dudas. Por debajo de 8 se
+       empezaría a tocar el de al lado con el borde del dedo.
+     · EL DE ACCESIBILIDAD: la separación entre secciones no se toca; es la
+       que dice dónde cambia el color, y ahí sigue con sus 14.4.
+     · EL DE ESTA CASA: que sea solo donde no hay orilla. Arrimar todos los
+       renglones rompería el respiro alrededor de las líneas, que es lo que se
+       pidió antes.
+     Así que 9 px: se le quitan 5.4 al renglón de abajo con un margen negativo.
+     Lo pone seccionesDibujar, que es quien sabe qué renglones son de una
+     sola sección, en cada redibujo. */
+  .rejilla-libros.con-secciones .tabo.junta{ margin-top:-5.4px; }
   /* EL LIBRO ELEGIDO VA EN EL TONO OSCURO DE SU SECCIÓN, no en el sepia de
      siempre. Pedido por el dueño del repo: sobre fondos de color, un botón
      marrón no decía de qué sección era; ahora el elegido en los Proféticos es
@@ -4893,7 +4917,10 @@
      LA PRIMERA TANDA FUE DEMASIADO HONDA. Se eligió para pasar de 4.5 de
      contraste con el blanco, y el dueño del repo la vio en pantalla: sobre
      fondos pastel, tonos tan oscuros «distraen muchísimo». Se bajaron «un
-     poquitito nada más», y siguen leyendo mejor que el sepia de antes (3.16):
+     poquitito nada más», y siguen leyendo mejor que el sepia de antes (3.16).
+     Y el del Pentateuco y Pablo dejó de ser terracota: sobre su fondo se veía
+     rosa, y el dueño del repo lo pidió naranja (#c0622a, 4.2 con el blanco).
+     Los cinco, medidos con la primera tanda:
      terracota 5.0, azul 4.9, verde 4.5, malva 5.6, mostaza 4.2.
      Vale también para el libro bajo el dedo, que enseña de antemano cómo va a
      quedar. El sepia sigue siendo el respaldo si un libro no tiene sección. */
@@ -6490,7 +6517,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 02:26';
+window.GLOSS_BUILD = '03-NOV-26 06:19';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17154,7 +17181,7 @@ function cruzarLibro(s, clientY, sinAnimar){
    ============================================================ */
 const GRUPOS_LIBROS = {
   AT: [
-    { nombre:'Pentateuco',   fondo:'#e0b29e', filo:'#c4917b', oscuro:'#a35c47',
+    { nombre:'Pentateuco',   fondo:'#e0b29e', filo:'#c4917b', oscuro:'#c0622a',
       libros:['GEN','EXO','LEV','NUM','DEU'] },
     { nombre:'Históricos',   fondo:'#b4c6d1', filo:'#93aab8', oscuro:'#51758d',
       libros:['JOS','JDG','RUT','1SA','2SA','1KI','2KI','1CH','2CH','EZR','NEH','EST'] },
@@ -17176,7 +17203,7 @@ const GRUPOS_LIBROS = {
     { nombre:'Evangelios',   fondo:'#ecd98a', filo:'#cdb860', oscuro:'#947922',
       libros:['MAT','MRK','LUK','JHN'] },
     { nombre:'Hechos',       fondo:'#b4c6d1', filo:'#93aab8', oscuro:'#51758d', libros:['ACT'] },
-    { nombre:'Pablo',        fondo:'#e0b29e', filo:'#c4917b', oscuro:'#a35c47',
+    { nombre:'Pablo',        fondo:'#e0b29e', filo:'#c4917b', oscuro:'#c0622a',
       libros:['ROM','1CO','2CO','GAL','EPH','PHP','COL','1TH','2TH','1TI','2TI','TIT','PHM'] },
     { nombre:'Generales',    fondo:'#c5d1a2', filo:'#a5b580', oscuro:'#6b7e45',
       libros:['HEB','JAS','1PE','2PE','1JN','2JN','3JN','JUD'] },
@@ -17230,6 +17257,29 @@ function seccionesDibujar(){
     svg.setAttribute('class', 'secciones-fondo');
     svg.setAttribute('aria-hidden', 'true');
     r.insertBefore(svg, r.firstChild);
+  }
+  /* PRIMERO, QUÉ RENGLONES SE ARRIMAN —ver .tabo.junta—. Se quitan todas
+     las marcas, se leen los renglones como han quedado y se marca el renglón
+     de abajo de cada par en que los dos son enteros de una sola sección.
+     Mover un renglón hacia arriba no cambia qué libros caben en él, así que
+     esto no se persigue la cola: los cortes de renglón son los mismos con la
+     marca y sin ella. */
+  const seccionDe = new Map();
+  lista.forEach((s, i) => s.libros.forEach(id => seccionDe.set(id, i)));
+  const bots = [...r.querySelectorAll('.tabo')];
+  bots.forEach(b => b.classList.remove('junta'));
+  const renglones = [];
+  for (const b of bots){
+    const ult = renglones[renglones.length - 1];
+    if (ult && b.offsetTop < ult.arriba + ult.alto / 2) ult.libros.push(b);
+    else renglones.push({ arriba: b.offsetTop, alto: b.offsetHeight, libros: [b] });
+  }
+  const deUna = g => new Set(g.libros.map(b => seccionDe.get(b.dataset.libro))).size === 1;
+  for (let i = 1; i < renglones.length; i++){
+    const a = renglones[i - 1], b = renglones[i];
+    if (deUna(a) && deUna(b) &&
+        seccionDe.get(a.libros[0].dataset.libro) === seccionDe.get(b.libros[0].dataset.libro))
+      b.libros.forEach(x => x.classList.add('junta'));
   }
   /* SE ENCOGE A CERO ANTES DE MEDIR. El dibujo cuelga dentro de la rejilla, y
      aunque vaya en absolute CUENTA para el desplazamiento de ella: medido con
