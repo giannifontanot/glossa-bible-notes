@@ -4838,6 +4838,42 @@
      testamento, que sí están en medio. Centrando, el sobrante se reparte a los
      dos lados y la columna entera cae bajo el mismo eje. */
   .rejilla-libros{ display:flex; flex-wrap:wrap; justify-content:center; gap:3px; }
+  /* LOS LIBROS AGRUPADOS POR SECCIONES, CADA UNA SOBRE SU FONDO. El dueño del
+     repo pidió darle orden a la lista sin mover ningún libro de su sitio: en el
+     Antiguo, Pentateuco, Históricos, Poéticos y Proféticos; en el Nuevo,
+     Evangelios, Hechos, cartas de Pablo, cartas generales y Apocalipsis. Cada
+     sección va sobre un fondo de color que sigue el contorno escalonado de sus
+     botones.
+
+     ESTO DIO VARIAS VUELTAS, Y SE QUEDAN ESCRITAS PARA NO REPETIRLAS:
+     · Estambre de colores trenzado alrededor de cada sección, que era la idea
+       de partida. Descartado: «hilos de colores no le van».
+     · Cinta de registro, la tela de color que marca la página en una Biblia y
+       que esta casa ya usa en el separador. Más de la casa, pero seguía siendo
+       una raya alrededor de los botones. Descartada: «no me gusta».
+     · Un FONDO por sección, que es lo que quedó. Primero en tonos tan pálidos
+       que «casi no se ven»; luego más intensos, que es lo de ahora.
+     · Con la orilla marcada en un tono más oscuro. Descartada por lo que pasa
+       donde dos secciones se tocan: dos orillas paralelas con una tira de
+       papel en medio, y eso «no se ve bien».
+     · Y la que quedó: la orilla fina y suave, y las secciones PEGADAS, sin
+       papel entre una y otra. Donde dos se tocan, la orilla de la que viene
+       después se monta sobre la de la anterior y queda una sola línea.
+
+     LOS TONOS SON DE PERGAMINO Y NO DE PALETA: terracota, azul grisáceo,
+     salvia, malva y ocre, todos apagados. Al lado de los chiclets blancos y del
+     dorado del libro elegido, un color saturado se come la pantalla. Y el
+     color no es lo único que separa: el contorno de cada sección ya dice dónde
+     empieza la siguiente aunque no se distingan los tonos.
+
+     EL HUECO ENTRE BOTONES SE ABRE de 5 a 12 px, y solo aquí: es el sitio del
+     fondo alrededor de cada botón, y en 5 px no se ve. Se eligió esto frente a
+     empezar cada sección en su propio renglón, que alargaba la lista. El
+     relleno de los lados es para que el fondo del filo no se corte. */
+  .rejilla-libros.con-secciones{ gap:12px 12px; padding:6px 6px 0; position:relative; }
+  .secciones-fondo{ position:absolute; left:0; top:0; pointer-events:none; overflow:visible;
+                    z-index:0; }
+  .rejilla-libros.con-secciones .tabo{ z-index:1; }
   #cantoCuerpo.rejilla{ display:grid; grid-template-columns:repeat(auto-fill,minmax(32px,1fr));
                         gap:2px; align-content:start; }
 
@@ -6426,7 +6462,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-NOV-26 18:04';
+window.GLOSS_BUILD = '02-NOV-26 20:27';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17065,6 +17101,259 @@ function cruzarLibro(s, clientY, sinAnimar){
   return true;
 }
 
+/* ============================================================
+   EL FONDO DE CADA SECCIÓN. Ver .con-secciones para el porqué del aspecto.
+
+   CÓMO SE DIBUJA, en cuatro pasos:
+   1. Se mide cada botón donde ESTÁ —offsetLeft/Top dentro de la rejilla—, no
+      donde se supone que debería estar. La rejilla envuelve, y dónde se parte
+      cada renglón depende del ancho, de la letra y de la escala.
+   2. Cada sección se reduce a un tramo por renglón: del primer botón suyo al
+      último. Los libros van en orden canónico, así que lo de una sección en un
+      renglón siempre es seguido.
+   3. Esos tramos, más un puente entre renglones, se ensanchan lo que mide el
+      respiro y se juntan en UNA figura. Juntar rectángulos alineados a los
+      ejes es contar celdas: se cortan por todas sus x y sus y, se marca qué
+      celdas quedan dentro y el borde es lo que separa una celda llena de una
+      vacía.
+   4. Ese borde, con las esquinas redondeadas, es el fondo de la sección.
+
+   SE REHACE CUANDO ALGO CAMBIA DE TAMAÑO, sea lo que sea: girar el teléfono,
+   la escala del cromo, abrir el panel —cerrado mide cero—, o el libro bajo el
+   dedo que crece y empuja a sus vecinos. Un observador de tamaño en la rejilla
+   y en cada botón lo dice; uno solo para todo, que se vuelve a apuntar cada
+   vez que pintarCanto rehace la lista.
+   ============================================================ */
+const GRUPOS_LIBROS = {
+  AT: [
+    { nombre:'Pentateuco',   fondo:'#e0b29e', filo:'#c4917b',
+      libros:['GEN','EXO','LEV','NUM','DEU'] },
+    { nombre:'Históricos',   fondo:'#b4c6d1', filo:'#93aab8',
+      libros:['JOS','JDG','RUT','1SA','2SA','1KI','2KI','1CH','2CH','EZR','NEH','EST'] },
+    { nombre:'Poéticos',     fondo:'#c5d1a2', filo:'#a5b580',
+      libros:['JOB','PSA','PRO','ECC','SNG'] },
+    { nombre:'Proféticos',   fondo:'#d2b6ca', filo:'#b494ab',
+      libros:['ISA','JER','LAM','EZK','DAN','HOS','JOL','AMO','OBA','JON',
+              'MIC','NAM','HAB','ZEP','HAG','ZEC','MAL'] }
+  ],
+  /* EL NUEVO REPITE LOS TONOS DONDE EL GÉNERO SE REPITE: Hechos es historia y
+     va en el azul de los Históricos; Apocalipsis es profecía y va en el malva
+     de los Proféticos. Los Evangelios no tienen pareja en el Antiguo y llevan
+     un ocre propio. Pablo y las generales toman los dos que quedan. */
+  NT: [
+    { nombre:'Evangelios',   fondo:'#e3cc94', filo:'#c9ad6c',
+      libros:['MAT','MRK','LUK','JHN'] },
+    { nombre:'Hechos',       fondo:'#b4c6d1', filo:'#93aab8', libros:['ACT'] },
+    { nombre:'Pablo',        fondo:'#e0b29e', filo:'#c4917b',
+      libros:['ROM','1CO','2CO','GAL','EPH','PHP','COL','1TH','2TH','1TI','2TI','TIT','PHM'] },
+    { nombre:'Generales',    fondo:'#c5d1a2', filo:'#a5b580',
+      libros:['HEB','JAS','1PE','2PE','1JN','2JN','3JN','JUD'] },
+    { nombre:'Apocalipsis',  fondo:'#d2b6ca', filo:'#b494ab', libros:['REV'] }
+  ]
+};
+/* EL RESPIRO ES LA MITAD DEL HUECO, Y ESA ES TODA LA GRACIA. Con el hueco de 12
+   entre botones, cada fondo se ensancha 6 alrededor de los suyos: dos
+   secciones vecinas llegan justo a la mitad del hueco y sus orillas caen en la
+   misma línea. Con menos respiro asomaba papel entre las dos; con más, una se
+   metía en la otra. Si cambia el gap de .con-secciones, cambia esto. */
+const SECCION_RESPIRO = 6, SECCION_ESQUINA = 15;
+let seccionesOjo = null, seccionesRejilla = null, seccionesLista = null, seccionesPendiente = 0;
+function seccionesVigilar(rejilla, lista){
+  if (seccionesOjo) seccionesOjo.disconnect();
+  seccionesRejilla = rejilla; seccionesLista = lista;
+  if (!rejilla || !lista) return;
+  /* El primer dibujo va al cuadro siguiente y no aquí mismo: recién puesta la
+     lista, los botones todavía no tienen sitio asignado. */
+  requestAnimationFrame(seccionesDibujar);
+  if (typeof ResizeObserver !== 'function') return;
+  if (!seccionesOjo) seccionesOjo = new ResizeObserver(() => {
+    /* Un cuadro de retraso: durante el estirón del libro bajo el dedo llegan
+       varios avisos por cuadro, y con dibujar una vez basta. */
+    if (seccionesPendiente) return;
+    seccionesPendiente = requestAnimationFrame(() => { seccionesPendiente = 0; seccionesDibujar(); });
+  });
+  seccionesOjo.observe(rejilla);
+  rejilla.querySelectorAll('.tabo').forEach(b => seccionesOjo.observe(b));
+}
+function seccionesDibujar(){
+  const r = seccionesRejilla, lista = seccionesLista;
+  if (!r || !r.isConnected || !lista) return;
+  let svg = r.querySelector(':scope > svg.secciones-fondo');
+  if (!r.offsetWidth){ if (svg) svg.innerHTML = ''; return; }
+  if (!svg){
+    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'secciones-fondo');
+    svg.setAttribute('aria-hidden', 'true');
+    r.insertBefore(svg, r.firstChild);
+  }
+  /* SE ENCOGE A CERO ANTES DE MEDIR. El dibujo cuelga dentro de la rejilla, y
+     aunque vaya en absolute CUENTA para el desplazamiento de ella: medido con
+     el dibujo viejo puesto, el scrollHeight es el del dibujo viejo. Y como se
+     le devuelve esa misma medida, la lista ya no podía encogerse nunca: al
+     girar el teléfono, o al soltar el libro que había crecido bajo el dedo,
+     quedaba papel en blanco debajo de los libros. Lo cazó Codex en revisión. */
+  svg.setAttribute('width', 0); svg.setAttribute('height', 0);
+  const ancho = r.scrollWidth, alto = r.scrollHeight;
+  svg.setAttribute('width', ancho); svg.setAttribute('height', alto);
+  svg.setAttribute('viewBox', '0 0 ' + ancho + ' ' + alto);
+  let out = '';
+  /* PRIMERO TODOS LOS FONDOS Y LUEGO TODAS LAS ORILLAS. Dos secciones vecinas
+     comparten la orilla —ver SECCION_RESPIRO—, y así la de encima tapa a la de
+     debajo y entre las dos queda UNA sola línea. Pintando fondo y orilla de
+     cada sección seguidos, el fondo de la siguiente se comía media orilla de
+     la anterior. */
+  const caminos = lista.map(s => ({ s, d: seccionCamino(seccionFigura(r, s.libros)) }))
+                              .filter(x => x.d);
+  /* El nombre va en el fondo para quien lo mire desde fuera —el banco de
+     pruebas, el inspector—: sin él, cinco caminos iguales no dicen cuál es
+     cuál. */
+  for (const { s, d } of caminos)
+    out += '<path class="fondo" data-seccion="' + s.nombre + '" d="' + d + '" fill="' + s.fondo + '"/>';
+  for (const { s, d } of caminos)
+    out += '<path class="orilla" d="' + d + '" fill="none" stroke="' + s.filo + '" stroke-width="1"/>';
+  svg.innerHTML = out;
+}
+/* Los rectángulos de una sección: un tramo por renglón y un puente entre cada
+   dos renglones seguidos, ya ensanchados por el respiro. */
+function seccionFigura(r, ids){
+  const bots = ids.map(id => r.querySelector('.tabo[data-libro="' + id + '"]')).filter(Boolean);
+  /* MEDIDAS CON DECIMALES, no offsetLeft/offsetWidth. Esos redondean al
+     píxel, y los botones miden lo que mide su nombre, que casi nunca es un
+     número entero: dos vecinos a 12 px de verdad salían a 13 en la cuenta, y
+     entre los dos fondos —que se tocan justo en la mitad del hueco— quedaba
+     una rendija de papel. La cazó el banco con Juan y Hechos, acostado. */
+  /* Y SIN LA ESCALA DE LOS PADRES. getBoundingClientRect mide lo que se VE,
+     transformaciones incluidas, y el panel entra desenrollándose —.rollo va de
+     scaleY(.985) a 1—. El primer dibujo cae en esos cuadros, así que salía
+     aplastado, cada renglón un poco más arriba que el anterior, y como un
+     transform no cambia ningún tamaño el observador no avisaba al terminar:
+     se quedaba torcido. Se divide por la escala que tiene la rejilla en ese
+     momento —lo que se ve entre lo que mide—. Lo cazó Codex en revisión. */
+  const base = r.getBoundingClientRect();
+  const ex = base.width / r.offsetWidth || 1, ey = base.height / r.offsetHeight || 1;
+  const caja = b => {
+    const q = b.getBoundingClientRect();
+    return { x: (q.left - base.left) / ex - r.clientLeft + r.scrollLeft,
+             y: (q.top - base.top) / ey - r.clientTop + r.scrollTop,
+             w: q.width / ex, h: q.height / ey };
+  };
+  const tramos = [];
+  for (const b of bots){
+    const { x, y, w, h } = caja(b);
+    const t = tramos[tramos.length - 1];
+    /* Renglón nuevo cuando el botón vuelve a la izquierda del anterior. */
+    /* ¿Es el último de su renglón en la rejilla entera? Se mira al vecino,
+       sea de la sección que sea. */
+    const sig = b.nextElementSibling;
+    const finRenglon = !sig || !sig.classList.contains('tabo') || sig.offsetLeft <= x;
+    if (t && x > t.x2 - 1){ t.x2 = x + w; t.y1 = Math.min(t.y1, y); t.y2 = Math.max(t.y2, y + h);
+                           t.finRenglon = finRenglon; }
+    else {
+      const ant = b.previousElementSibling;
+      tramos.push({ x1:x, x2:x + w, y1:y, y2:y + h, finRenglon,
+                    inicioRenglon: !ant || !ant.classList.contains('tabo') || ant.offsetLeft >= x });
+    }
+  }
+  /* LOS ESCALONES DE NADA SE ALISAN. La rejilla va centrada, así que dos
+     renglones casi nunca empiezan en el mismo píxel: Génesis y Deuteronomio
+     se llevan cuatro. Dibujado tal cual, eso es un diente minúsculo con dos
+     curvas de radio recortado, y se ve como un tropiezo del fondo, no como
+     un contorno. Por debajo de 12 px se toma el filo de más afuera.
+     PERO SOLO EN LOS FILOS DE LA REJILLA: donde el renglón acaba y no sigue
+     otra sección. En medio de un renglón, estirar un tramo es meterlo en el
+     hueco de la sección vecina, que es justo el sitio de su fondo. */
+  for (let i = 1; i < tramos.length; i++){
+    const a = tramos[i - 1], b = tramos[i];
+    if (a.inicioRenglon && b.inicioRenglon && Math.abs(a.x1 - b.x1) < 12)
+      a.x1 = b.x1 = Math.min(a.x1, b.x1);
+    if (a.finRenglon && b.finRenglon && Math.abs(a.x2 - b.x2) < 12)
+      a.x2 = b.x2 = Math.max(a.x2, b.x2);
+  }
+  const m = SECCION_RESPIRO, rects = tramos.map(t => [t.x1 - m, t.y1 - m, t.x2 + m, t.y2 + m]);
+  for (let i = 1; i < tramos.length; i++){
+    const a = tramos[i - 1], b = tramos[i];
+    const iz = Math.max(a.x1, b.x1), de = Math.min(a.x2, b.x2);
+    if (de > iz) rects.push([iz - m, a.y2 - m, de + m, b.y1 + m]);
+    /* Sin solape: la sección acaba a la derecha de un renglón y sigue a la
+       izquierda del de abajo. El puente va por el hueco entre los dos, de
+       lado a lado; ahí el fondo roza a los vecinos, pero sigue siendo uno. */
+    else {
+      const medio = (a.y2 + b.y1) / 2;
+      rects.push([Math.min(b.x2, a.x1) - m, medio - m, Math.max(b.x2, a.x1) + m, medio + m]);
+    }
+  }
+  return rects;
+}
+/* La unión de los rectángulos, como lista de lazos de esquinas. */
+function seccionLazos(rects){
+  if (!rects.length) return [];
+  const xs = [...new Set(rects.flatMap(q => [q[0], q[2]]))].sort((a, b) => a - b);
+  const ys = [...new Set(rects.flatMap(q => [q[1], q[3]]))].sort((a, b) => a - b);
+  const nx = xs.length - 1, ny = ys.length - 1;
+  const lleno = (i, j) => {
+    if (i < 0 || j < 0 || i >= nx || j >= ny) return false;
+    const cx = (xs[i] + xs[i + 1]) / 2, cy = (ys[j] + ys[j + 1]) / 2;
+    return rects.some(q => cx > q[0] && cx < q[2] && cy > q[1] && cy < q[3]);
+  };
+  const celdas = [];
+  for (let j = 0; j < ny; j++){ celdas.push([]); for (let i = 0; i < nx; i++) celdas[j].push(lleno(i, j)); }
+  const en = (i, j) => i >= 0 && j >= 0 && i < nx && j < ny && celdas[j][i];
+  /* Aristas en el sentido de las agujas, con el relleno a la derecha. */
+  const salen = new Map(), clave = (i, j) => i + ',' + j;
+  const arista = (a, b) => {
+    const k = clave(a[0], a[1]);
+    if (!salen.has(k)) salen.set(k, []);
+    salen.get(k).push(b);
+  };
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++){
+    if (!celdas[j][i]) continue;
+    if (!en(i, j - 1)) arista([i, j], [i + 1, j]);
+    if (!en(i + 1, j)) arista([i + 1, j], [i + 1, j + 1]);
+    if (!en(i, j + 1)) arista([i + 1, j + 1], [i, j + 1]);
+    if (!en(i - 1, j)) arista([i, j + 1], [i, j]);
+  }
+  const lazos = [];
+  for (const [k0] of salen){
+    while (salen.get(k0) && salen.get(k0).length){
+      const lazo = [];
+      let k = k0;
+      while (salen.get(k) && salen.get(k).length){
+        const [i, j] = k.split(',').map(Number);
+        lazo.push([xs[i], ys[j]]);
+        const sig = salen.get(k).pop();
+        k = clave(sig[0], sig[1]);
+      }
+      /* Fuera los puntos que no doblan: entre dos aristas en línea. */
+      const limpio = lazo.filter((p, n) => {
+        const a = lazo[(n - 1 + lazo.length) % lazo.length], b = lazo[(n + 1) % lazo.length];
+        return !((a[0] === p[0] && p[0] === b[0]) || (a[1] === p[1] && p[1] === b[1]));
+      });
+      if (limpio.length >= 4) lazos.push(limpio);
+    }
+  }
+  return lazos;
+}
+/* El contorno de la sección: cada lazo con sus esquinas redondeadas, el radio
+   recortado a la mitad del lado más corto que toca para que dos curvas
+   seguidas no se monten. */
+function seccionCamino(rects){
+  const f = n => Math.round(n * 10) / 10;
+  return seccionLazos(rects).map(p => {
+    const L = p.length, pts = [];
+    for (let n = 0; n < L; n++){
+      const a = p[(n - 1 + L) % L], c = p[n], b = p[(n + 1) % L];
+      const la = Math.hypot(c[0] - a[0], c[1] - a[1]), lb = Math.hypot(b[0] - c[0], b[1] - c[1]);
+      const rr = Math.min(SECCION_ESQUINA, la / 2, lb / 2);
+      pts.push({ ent:[c[0] + (a[0] - c[0]) / la * rr, c[1] + (a[1] - c[1]) / la * rr], c,
+                 sal:[c[0] + (b[0] - c[0]) / lb * rr, c[1] + (b[1] - c[1]) / lb * rr] });
+    }
+    return 'M' + f(pts[0].sal[0]) + ' ' + f(pts[0].sal[1]) +
+           pts.slice(1).concat(pts[0]).map(q =>
+             'L' + f(q.ent[0]) + ' ' + f(q.ent[1]) + 'Q' + f(q.c[0]) + ' ' + f(q.c[1]) + ' ' +
+             f(q.sal[0]) + ' ' + f(q.sal[1])).join('') + 'Z';
+  }).join('');
+}
+
 function pintarCanto(){
   /* LA CABECERA YA NO ESTÁ VACÍA: aquí va el interruptor de las flechas.
 
@@ -17140,10 +17429,12 @@ function pintarCanto(){
      su propio renglón dentro de la rejilla y ocupa alto de verdad. */
   const c = $('cantoCuerpo');
   c.classList.add('testamentos');
-  c.innerHTML = '<div class="rejilla-libros">' +
+  c.innerHTML = '<div class="rejilla-libros con-secciones">' +
                   celdas(CANON.filter(b => !!b.nt === (cantoTesta === 'NT'))) +
                   '<div class="aire-final"></div></div>';
+  seccionesVigilar(c.querySelector('.rejilla-libros'), GRUPOS_LIBROS[cantoTesta]);
 }
+
 /* LAS DOS PESTAÑAS, en la cabecera y centradas. Van con role=tab y no como
    botones sueltos: lo que hacen es cambiar de qué va la lista de abajo, que es
    exactamente lo que un lector de pantalla espera oír de una pestaña. */
