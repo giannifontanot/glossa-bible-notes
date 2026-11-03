@@ -6545,7 +6545,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 17:15';
+window.GLOSS_BUILD = '03-NOV-26 17:18';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17725,6 +17725,15 @@ function cantoFinDeEntrada(ev){
     if (!g || ev.pointerId !== g.id) return;
     const dx = ev.clientX - g.x0, dy = ev.clientY - g.y0;
     if (!g.nuestro){
+      /* SI LA LUPA YA ENGANCHÓ, EL GESTO ES SUYO. Un dedo que se quedó quieto
+         200 ms y luego se mueve de lado está recorriendo libros con la lupa,
+         no pasando de testamento: la lupa sigue mandando y al soltar abre el
+         libro que haya debajo. Sin esto la lista se corría bajo el globo y,
+         pasado un cuarto del ancho, cambiaba de testamento y se llevaba por
+         delante los capítulos que la lupa acababa de abrir. Lo cazó Codex en
+         revisión. La lupa vive en su propio cierre, así que se pregunta a lo
+         que ella pinta: el globo vivo o un libro bajo el dedo. */
+      if (document.querySelector('#lupaLibro.viva, #canto .tabo.bajoeldedo')){ soltar(); return; }
       if (Math.hypot(dx, dy) < DECIDE) return;
       if (Math.abs(dx) < Math.abs(dy) * LADO){ soltar(); return; }   /* era desplazar */
       g.nuestro = true;

@@ -34,15 +34,19 @@ const IR_A = `async (testa) => {
 /* Un desliz desde el centro de un libro. «click» decide si detrás llega el
    click que manda el navegador al soltar sobre el mismo botón: en el gesto
    de lado llega, y es justo el que no debe abrir los capítulos. */
-const DESLIZ = `async ({ dx, dy, pasos, ms, click }) => {
+const DESLIZ = `async ({ dx, dy, pasos, ms, click, quieto, libro }) => {
   const pausa = t => new Promise(z => setTimeout(z, t));
-  const el = document.querySelector('#canto .rejilla-libros .tabo.viva');
+  const el = document.querySelector(libro ? '#canto .tabo[data-libro="' + libro + '"]'
+                                          : '#canto .rejilla-libros .tabo.viva');
   if (!el) return { sinLibro: true };
   const q = el.getBoundingClientRect();
   const x0 = q.left + q.width / 2 + 1, y0 = q.top + q.height / 2 - 1;
   const o = (x, y) => ({ bubbles:true, cancelable:true, pointerId:11, pointerType:'touch',
                          isPrimary:true, clientX:x, clientY:y });
   el.dispatchEvent(new PointerEvent('pointerdown', o(x0, y0)));
+  /* «quieto»: el dedo se posa y espera antes de moverse, que es como se
+     engancha la lupa. */
+  if (quieto) await pausa(quieto);
   let mitad = null;
   for (let i = 1; i <= pasos; i++){
     await pausa(ms);
@@ -110,6 +114,25 @@ const DESLIZ = `async ({ dx, dy, pasos, ms, click }) => {
   di('el gesto', vertical);
   vale('no cambia de testamento', vertical.testa === 'AT', vertical.testa);
   vale('  ni mueve la lista de lado', !vertical.mitad, vertical.mitad);
+
+  titulo('con la lupa enganchada, el gesto es de la lupa');
+  /* Dedo quieto 350 ms —la lupa engancha a los 200— y luego de lado, de
+     sobra para pasar de testamento si el gesto fuera nuestro. Lo que tiene
+     que pasar es lo de la lupa: la lista no se mueve, el testamento no
+     cambia y al soltar se abren los capítulos del libro de debajo. */
+  /* Desde Números, que está al final del primer renglón: 200 px a la
+     izquierda caen sobre otro libro, que es el que la lupa tiene que abrir. */
+  const conLupa = await desliz({ dx:-200, dy:4, pasos:10, ms:30, click:true, quieto:350, libro:'NUM' });
+  di('el gesto', conLupa);
+  vale('no cambia de testamento', conLupa.testa === 'AT', conLupa.testa);
+  vale('  ni corre la lista bajo el globo', !conLupa.mitad, conLupa.mitad);
+  vale('  y la lupa abre los capítulos al soltar', conLupa.cascada === true, conLupa.cascada);
+  /* Y se cierra la cascada para dejar la lista como estaba. */
+  await p.evaluate(async () => {
+    const c = document.querySelector('#canto .canto-tab.aqui');
+    if (c) c.click();
+    await new Promise(z => setTimeout(z, 600));
+  });
 
   titulo('y las pestañas siguen valiendo');
   await p.evaluate(async () => {
