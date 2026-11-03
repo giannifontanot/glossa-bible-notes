@@ -329,10 +329,16 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
      lee como un salto y no como «se abrió otra cosa». Se reusa entraDeLado, la
      animación que ya tenían LIBROS/GLOSAS/FORMATO/RESPALDO, con el sentido
      puesto en --dir: el Antiguo viene por la izquierda y el Nuevo por la
-     derecha, que es como están las dos pestañas. */
+     derecha, que es como están las dos pestañas.
+     DESDE QUE SE PUEDE DESLIZAR, la lista ya no usa entraDeLado sino
+     entraConRebote: la misma entrada con más recorrido y un segundo rebote,
+     pedida por el dueño del repo para el gesto del dedo y puesta también en
+     las pestañas para que los dos caminos se sientan iguales. Lo que esta
+     prueba vigila sigue siendo lo mismo: que entre con movimiento, por su
+     lado, y que acabe entera. */
   di('la entrada', JSON.stringify(tabs.entrando));
-  vale('LA LISTA ENTRA CON LA MISMA ANIMACIÓN QUE LAS SECCIONES',
-       tabs.entrando.anim === 'entraDeLado', tabs.entrando.anim);
+  vale('LA LISTA ENTRA CON MOVIMIENTO: la entrada con rebote',
+       tabs.entrando.anim === 'entraConRebote', tabs.entrando.anim);
   vale('  y por el lado de su pestaña: el Antiguo, desde la izquierda',
        tabs.entrando.dir === '-1', tabs.entrando.dir);
   vale('  y acaba entera, sin quedarse a medio fundir',
