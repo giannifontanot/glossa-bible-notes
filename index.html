@@ -4870,7 +4870,21 @@
      fondo alrededor de cada botón, y en 5 px no se ve. Se eligió esto frente a
      empezar cada sección en su propio renglón, que alargaba la lista. El
      relleno de los lados es para que el fondo del filo no se corte. */
-  .rejilla-libros.con-secciones{ gap:12px 12px; padding:6px 6px 0; position:relative; }
+  /* DONDE SE TOCAN DOS SECCIONES, UN 20% MÁS DE AIRE. Con el mismo hueco en
+     todas partes, la orilla entre dos secciones parte en dos los 12 px que
+     separan a dos libros de distinto color, y de cada lado quedan 6: se veían
+     más apretados que dos libros de la misma sección, que tienen los 12
+     enteros de fondo liso. Pedido por el dueño del repo: un 20% más entre el
+     botón y la orilla justo ahí, o sea 7.2 de cada lado y 14.4 de hueco.
+     · Entre renglones, el hueco sube a 14.4 en todos: casi todos los saltos
+       de renglón tienen una orilla en algún tramo, y un hueco por renglón no
+       se puede pedir.
+     · Dentro del renglón, el hueco se queda en 12 y el primer libro de cada
+       sección se aparta 2.4 más con un margen —.inicia-seccion—. Así dos
+       libros de la misma sección no se separan de más.
+     El respiro de los fondos —SECCION_RESPIRO— es la mitad de 14.4. */
+  .rejilla-libros.con-secciones{ gap:14.4px 12px; padding:8px 8px 0; position:relative; }
+  .rejilla-libros.con-secciones .tabo.inicia-seccion{ margin-left:2.4px; }
   .secciones-fondo{ position:absolute; left:0; top:0; pointer-events:none; overflow:visible;
                     z-index:0; }
   .rejilla-libros.con-secciones .tabo{ z-index:1; }
@@ -6462,7 +6476,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-NOV-26 20:27';
+window.GLOSS_BUILD = '03-NOV-26 01:32';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17151,17 +17165,24 @@ const GRUPOS_LIBROS = {
     { nombre:'Apocalipsis',  fondo:'#d2b6ca', filo:'#b494ab', libros:['REV'] }
   ]
 };
-/* EL RESPIRO ES LA MITAD DEL HUECO, Y ESA ES TODA LA GRACIA. Con el hueco de 12
-   entre botones, cada fondo se ensancha 6 alrededor de los suyos: dos
-   secciones vecinas llegan justo a la mitad del hueco y sus orillas caen en la
-   misma línea. Con menos respiro asomaba papel entre las dos; con más, una se
-   metía en la otra. Si cambia el gap de .con-secciones, cambia esto. */
-const SECCION_RESPIRO = 6, SECCION_ESQUINA = 15;
+/* EL RESPIRO ES LA MITAD DEL HUECO ENTRE SECCIONES, Y ESA ES TODA LA GRACIA.
+   Entre dos libros de secciones distintas hay 14.4 —ver .con-secciones—, y
+   cada fondo se ensancha 7.2 alrededor de los suyos: dos secciones vecinas
+   llegan justo a la mitad del hueco y sus orillas caen en la misma línea. Con
+   menos respiro asomaba papel entre las dos; con más, una se metía en la
+   otra. Si cambian el gap o el margen de .con-secciones, cambia esto. */
+const SECCION_RESPIRO = 7.2, SECCION_ESQUINA = 15;
 let seccionesOjo = null, seccionesRejilla = null, seccionesLista = null, seccionesPendiente = 0;
 function seccionesVigilar(rejilla, lista){
   if (seccionesOjo) seccionesOjo.disconnect();
   seccionesRejilla = rejilla; seccionesLista = lista;
   if (!rejilla || !lista) return;
+  /* El primero de cada sección, menos el de la primera, lleva el margen que
+     aparta a dos secciones vecinas en el renglón. */
+  lista.slice(1).forEach(s => {
+    const b = rejilla.querySelector('.tabo[data-libro="' + s.libros[0] + '"]');
+    if (b) b.classList.add('inicia-seccion');
+  });
   /* El primer dibujo va al cuadro siguiente y no aquí mismo: recién puesta la
      lista, los botones todavía no tienen sitio asignado. */
   requestAnimationFrame(seccionesDibujar);
@@ -17202,8 +17223,21 @@ function seccionesDibujar(){
      debajo y entre las dos queda UNA sola línea. Pintando fondo y orilla de
      cada sección seguidos, el fondo de la siguiente se comía media orilla de
      la anterior. */
-  const caminos = lista.map(s => ({ s, d: seccionCamino(seccionFigura(r, s.libros)) }))
-                              .filter(x => x.d);
+  /* EL MISMO RADIO EN LAS DOS ORILLAS QUE SE TOCAN. Donde dos secciones
+     comparten una esquina, cada una la curvaba con su propio radio —el radio
+     se recorta a la mitad del lado más corto que toca, y los lados de dos
+     vecinas no miden igual—, así que ahí las dos orillas se separaban y la
+     línea, que tenía que ser una, se veía doble. Se pide a todas las que
+     pasan por esa esquina el radio que cada una le daría y se usa el menor:
+     así las dos curvas son la misma y la de encima tapa a la de debajo. */
+  const lazos = lista.map(s => seccionLazos(seccionFigura(r, s.libros)));
+  const radios = new Map(), clave = c => Math.round(c[0] * 10) + ',' + Math.round(c[1] * 10);
+  for (const ls of lazos) for (const p of ls) p.forEach((c, n) => {
+    const rr = seccionRadio(p, n), k = clave(c);
+    radios.set(k, Math.min(rr, radios.has(k) ? radios.get(k) : Infinity));
+  });
+  const caminos = lista.map((s, i) => ({ s, d: seccionCamino(lazos[i], c => radios.get(clave(c))) }))
+                       .filter(x => x.d);
   /* El nombre va en el fondo para quien lo mire desde fuera —el banco de
      pruebas, el inspector—: sin él, cinco caminos iguales no dicen cuál es
      cuál. */
@@ -17335,15 +17369,21 @@ function seccionLazos(rects){
 }
 /* El contorno de la sección: cada lazo con sus esquinas redondeadas, el radio
    recortado a la mitad del lado más corto que toca para que dos curvas
-   seguidas no se monten. */
-function seccionCamino(rects){
+   seguidas no se monten —seccionRadio—. Quien dibuja puede imponer otro con
+   radioDe: ver seccionesDibujar. */
+function seccionRadio(p, n){
+  const L = p.length, a = p[(n - 1 + L) % L], c = p[n], b = p[(n + 1) % L];
+  return Math.min(SECCION_ESQUINA, Math.hypot(c[0] - a[0], c[1] - a[1]) / 2,
+                  Math.hypot(b[0] - c[0], b[1] - c[1]) / 2);
+}
+function seccionCamino(lazos, radioDe){
   const f = n => Math.round(n * 10) / 10;
-  return seccionLazos(rects).map(p => {
+  return lazos.map(p => {
     const L = p.length, pts = [];
     for (let n = 0; n < L; n++){
       const a = p[(n - 1 + L) % L], c = p[n], b = p[(n + 1) % L];
       const la = Math.hypot(c[0] - a[0], c[1] - a[1]), lb = Math.hypot(b[0] - c[0], b[1] - c[1]);
-      const rr = Math.min(SECCION_ESQUINA, la / 2, lb / 2);
+      const rr = radioDe ? radioDe(c) : seccionRadio(p, n);
       pts.push({ ent:[c[0] + (a[0] - c[0]) / la * rr, c[1] + (a[1] - c[1]) / la * rr], c,
                  sal:[c[0] + (b[0] - c[0]) / lb * rr, c[1] + (b[1] - c[1]) / lb * rr] });
     }
