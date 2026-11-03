@@ -5879,7 +5879,7 @@
   <div id="portadaPie">
     <button type="button" class="pt-btn" id="btnPortadaFoto">foto</button>
     <button type="button" class="pt-btn pt-seguir" id="btnPortadaSeguir">continue</button>
-    <button type="button" class="pt-btn" id="btnPortadaPiedras">Piedras</button>
+    <button type="button" class="pt-btn" id="btnPortadaPiedras">Perlas</button>
   </div>
   <!-- El selector del sistema. Oculto: lo dispara el botón de arriba. -->
   <input type="file" id="portadaArchivo" accept="image/*" hidden />
@@ -6218,7 +6218,7 @@
        Y no se escapan por los filos: en el zoom los cuatro llevan display
        none, así que el escalado de la hoja no los alcanza. -->
   <button id="btnPiedras" data-piedra-lista="1"
-          title="Ver tus piedras" aria-label="Ver tus piedras"></button>
+          title="Ver tus perlas" aria-label="Ver tus perlas"></button>
   <button id="btnCintas" data-sep-lista="1"
           title="Ver tus separadores" aria-label="Ver tus separadores"></button>
   <button id="btnZoom" title="Ver la hoja entera" aria-label="Ver la hoja entera"></button>
@@ -6376,13 +6376,13 @@
   <div id="historial" role="dialog" aria-label="Escrituras vistas" aria-modal="false"></div>
   <!-- La lista de piedras. Vive en la escena, como el menú de la cinta, y se
        cuelga del botón que la abrió. -->
-  <div id="piedraMenu" role="dialog" aria-label="Tus piedras" aria-modal="false"></div>
+  <div id="piedraMenu" role="dialog" aria-label="Tus perlas" aria-modal="false"></div>
   <!-- El mando de la piedra en edición. Vive en la escena y NO colgado de la
        piedra, que es donde estaba: una parrilla de trece formas colgada de una
        piedra que puede medir media hoja se sale de la pantalla y no hay a qué
        recortarla dentro del papel. Aquí se coloca cerca y encajada, igual que
        el menú de la cinta. -->
-  <div id="piedraMando" role="dialog" aria-label="Cambiar esta piedra" aria-modal="false"></div>
+  <div id="piedraMando" role="dialog" aria-label="Cambiar esta perla" aria-modal="false"></div>
   <!-- El menú de la cinta y la oferta de ponerla. Viven en la escena y no
        dentro del papel a propósito: la columna de glosas recorta lo que
        asoma —que es justo lo que mantiene la cinta dentro de su sitio— y un
@@ -6476,7 +6476,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 01:39';
+window.GLOSS_BUILD = '03-NOV-26 01:54';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -19792,6 +19792,16 @@ const piedraRef = x => nombreDe(x.libro) + ' ' + x.cap + ':' + x.vers;
 const piedraTexto = x =>
   (x.nombre ? abrevDe(x.libro) + ' ' + x.cap + ':' + x.vers + ' · ' + x.nombre
             : piedraRef(x)) + (piedraAqui(x) ? ' · aquí' : '');
+/* SE LLAMAN PERLAS, AUNQUE EL CÓDIGO DIGA PIEDRA. Nacieron como «piedras»
+   —las que se dejan para volver a un sitio— y el dueño del repo les cambió
+   el nombre: «piedras» no le gustaba. Entre hitos, tesoros y perlas eligió
+   perlas, por la de gran precio de Mateo 13. Cambió lo que se VE y se OYE:
+   el botón de la portada, el menú del punto, el mando, los avisos y los
+   rótulos para el lector de pantalla. Los nombres de dentro —piedras,
+   piedraMenu, data-piedra-*, la clave del almacén— se quedan como están, a
+   propósito: no los ve nadie, y cambiar la clave dejaba sin sus perlas a
+   quien ya las tenía puestas. Y la figura que se llama «piedra» sigue
+   siéndolo: es una de las catorce formas que puede tener una perla. */
 /* CÓMO SE NOMBRA A UNA PIEDRA EN VOZ ALTA, para los rótulos de accesibilidad:
    la figura, su color si no es el de por defecto, y dónde está. */
 const piedraVoz = x =>
@@ -21274,8 +21284,8 @@ function pintarPiedraMando(){
       (apagado ? ' disabled' : '') +
       ' aria-label="' + rot + '" title="' + rot + '">' + dib + '</button>';
   el.innerHTML =
-    spCerrarHTML('piedra', 'el mando de la piedra') +
-    '<span class="sp-tit">Esta piedra</span>' +
+    spCerrarHTML('piedra', 'el mando de la perla') +
+    '<span class="sp-tit">Esta perla</span>' +
     '<div class="pm-formas" role="group" aria-label="Figura">' + formas + '</div>' +
     '<div class="pm-tintas" role="group" aria-label="Color">' + tintas + '</div>' +
     '<div class="pm-pie">' +
@@ -21448,7 +21458,7 @@ function ponerPiedra(){
   piedraEditando = x.id;
   pintarPiedras();
   abrirPiedraMando();
-  readout.textContent = 'piedra puesta · arrástrala para moverla, o cámbiala en el mando';
+  readout.textContent = 'perla puesta · arrástrala para moverla, o cámbiala en el mando';
   return x;
 }
 function quitarPiedra(id){
@@ -21460,7 +21470,7 @@ function quitarPiedra(id){
   piedrasGuardar();
   pintarPiedras();
   if (typeof pintarPiedrero === 'function') pintarPiedrero();
-  readout.textContent = 'piedra quitada';
+  readout.textContent = 'perla quitada';
 }
 /* DESHACER: la piedra vuelve a como estaba y se cierra. Si por lo que sea no
    hay copia —una edición que empezó antes de este código, un id que ya no
@@ -21626,7 +21636,7 @@ function piedraAbrirEdicion(id){
   piedraEditando = id;
   pintarPiedras();
   abrirPiedraMando();
-  readout.textContent = 'piedra en edición · arrástrala para moverla, o cámbiala en el mando';
+  readout.textContent = 'perla en edición · arrástrala para moverla, o cámbiala en el mando';
   return true;
 }
 stage.addEventListener('dblclick', ev => {
@@ -22308,23 +22318,23 @@ function vigilarTecladoPanel(el, buscarFila){
 function soltarTecladoPanel(el){ if (el && el._teclado) el._teclado(); }
 const piedraNuevaHTML = () =>
   '<button type="button" class="sp-nueva" data-piedra-nueva="1"' +
-    ' title="Dejar una piedra en esta hoja"' +
-    ' aria-label="Dejar una piedra en la hoja que estás leyendo">Nueva' +
+    ' title="Dejar una perla en esta hoja"' +
+    ' aria-label="Dejar una perla en la hoja que estás leyendo">Nueva' +
     '<span class="sp-chip-forma" aria-hidden="true">' +
       piedraDibujo('piedra', null, true) + '</span></button>';
 function pintarPiedraMenu(){
   const el = $('piedraMenu');
   if (!piedras.length){
     el.innerHTML =
-       '<div class="sp-cabeza"><span class="sp-tit">Tus piedras</span>' +
-       piedraNuevaHTML() + spCerrarHTML('piedras', 'la lista de piedras') + '</div>' +
+       '<div class="sp-cabeza"><span class="sp-tit">Tus perlas</span>' +
+       piedraNuevaHTML() + spCerrarHTML('piedras', 'la lista de perlas') + '</div>' +
       '<p class="sp-vacio">Todavía no has dejado ninguna. El botón de arriba' +
       ' deja una en la hoja que estés leyendo.</p>';
     return;
   }
   el.innerHTML =
-    '<div class="sp-cabeza"><span class="sp-tit">Tus piedras</span>' +
-    piedraNuevaHTML() + spCerrarHTML('piedras', 'la lista de piedras') + '</div>' +
+    '<div class="sp-cabeza"><span class="sp-tit">Tus perlas</span>' +
+    piedraNuevaHTML() + spCerrarHTML('piedras', 'la lista de perlas') + '</div>' +
     piedras.map(x => filaHTML({
       clase: piedraAqui(x) ? ' aqui' : '',
       abriendo: piedraNombrando === x.id,
@@ -25910,7 +25920,7 @@ function portadaPiedraNueva(){
   if (!p) return null;
   portadaCerrarMandos();
   if (portadaAdorno.piedras.length >= 40){
-    readout.textContent = 'la portada ya está llena de piedras';
+    readout.textContent = 'la portada ya está llena de perlas';
     return null;
   }
   /* Y EL PASO DE LA DIAGONAL SE SACA DEL TAMAÑO DE LA PIEDRA, no de un número
