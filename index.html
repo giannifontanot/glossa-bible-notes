@@ -6462,7 +6462,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-NOV-26 20:24';
+window.GLOSS_BUILD = '02-NOV-26 20:27';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17222,11 +17222,20 @@ function seccionFigura(r, ids){
      número entero: dos vecinos a 12 px de verdad salían a 13 en la cuenta, y
      entre los dos fondos —que se tocan justo en la mitad del hueco— quedaba
      una rendija de papel. La cazó el banco con Juan y Hechos, acostado. */
+  /* Y SIN LA ESCALA DE LOS PADRES. getBoundingClientRect mide lo que se VE,
+     transformaciones incluidas, y el panel entra desenrollándose —.rollo va de
+     scaleY(.985) a 1—. El primer dibujo cae en esos cuadros, así que salía
+     aplastado, cada renglón un poco más arriba que el anterior, y como un
+     transform no cambia ningún tamaño el observador no avisaba al terminar:
+     se quedaba torcido. Se divide por la escala que tiene la rejilla en ese
+     momento —lo que se ve entre lo que mide—. Lo cazó Codex en revisión. */
   const base = r.getBoundingClientRect();
+  const ex = base.width / r.offsetWidth || 1, ey = base.height / r.offsetHeight || 1;
   const caja = b => {
     const q = b.getBoundingClientRect();
-    return { x: q.left - base.left - r.clientLeft + r.scrollLeft,
-             y: q.top - base.top - r.clientTop + r.scrollTop, w: q.width, h: q.height };
+    return { x: (q.left - base.left) / ex - r.clientLeft + r.scrollLeft,
+             y: (q.top - base.top) / ey - r.clientTop + r.scrollTop,
+             w: q.width / ex, h: q.height / ey };
   };
   const tramos = [];
   for (const b of bots){

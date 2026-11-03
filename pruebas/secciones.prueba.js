@@ -61,10 +61,11 @@ const MEDIR = `(grupos) => {
      prueba que mide más gordo que lo medido ve rendijas que no existen o deja
      pasar las que sí. */
   const base = r.getBoundingClientRect();
+  const ex = base.width / r.offsetWidth || 1, ey = base.height / r.offsetHeight || 1;
   const caja = b => {
     const q = b.getBoundingClientRect();
-    return { x: q.left - base.left + r.scrollLeft, y: q.top - base.top + r.scrollTop,
-             w: q.width, h: q.height };
+    return { x: (q.left - base.left) / ex + r.scrollLeft, y: (q.top - base.top) / ey + r.scrollTop,
+             w: q.width / ex, h: q.height / ey };
   };
   const dentro = (f, x, y) => {
     const pt = svg.createSVGPoint(); pt.x = x; pt.y = y;
@@ -144,6 +145,22 @@ async function revisar(p, grupos, cuando){
   vale('se llega a Libros · AT', await p.evaluate(`(${IR_A})('AT')`));
   await p.waitForTimeout(300);
   await revisar(p, AT, 'AT de pie');
+
+  /* ABRIR EL PANEL DESDE CERRADO, que es cuando el primer dibujo cae en
+     plena animación de entrada: el panel se desenrolla con un scaleY, y un
+     dibujo medido ahí sin descontar la escala salía aplastado y se quedaba
+     así, porque un transform no cambia tamaños y nadie avisa al terminar. Se
+     cierra con el botón del pie y se vuelve a abrir. */
+  titulo('abrir el panel desde cerrado');
+  vale('se cierra el panel', await p.evaluate(async () => {
+    const b = document.querySelector('#canto .btn.cerrar-pie');
+    if (!b) return false;
+    b.click();
+    await new Promise(z => setTimeout(z, 900));
+    return getComputedStyle(document.getElementById('canto')).display === 'none';
+  }));
+  vale('y se vuelve a abrir en Libros · AT', await p.evaluate(`(${IR_A})('AT')`));
+  await revisar(p, AT, 'AT recién abierto');
 
   titulo('el Nuevo');
   vale('se llega a Libros · NT', await p.evaluate(`(${IR_A})('NT')`));
