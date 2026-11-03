@@ -374,7 +374,8 @@ async function ponerAMano(p){
      del contraste que tenga puesto el lector. */
   vale('  y debajo de cada color va su versión viva',
        paleta.arriba.length === paleta.abajo.length &&
-       paleta.arriba.every((c, i) => paleta.abajo[i] === c + '-vivo'),
+       /* Menos debajo del sepia, que ahí va el blanco perla. */
+       paleta.arriba.every((c, i) => paleta.abajo[i] === (c === 'sepia' ? 'perla' : c + '-vivo')),
        paleta.arriba.join(',') + '  /  ' + paleta.abajo.join(','));
   /* Y NADA MÁS QUE LOS COLORES, que es lo que se pidió con esas palabras.
 

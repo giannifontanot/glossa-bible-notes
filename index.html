@@ -6517,7 +6517,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 06:19';
+window.GLOSS_BUILD = '03-NOV-26 12:55';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17181,9 +17181,9 @@ function cruzarLibro(s, clientY, sinAnimar){
    ============================================================ */
 const GRUPOS_LIBROS = {
   AT: [
-    { nombre:'Pentateuco',   fondo:'#e0b29e', filo:'#c4917b', oscuro:'#c0622a',
+    { nombre:'Pentateuco',   fondo:'#b4c6d1', filo:'#93aab8', oscuro:'#51758d',
       libros:['GEN','EXO','LEV','NUM','DEU'] },
-    { nombre:'Históricos',   fondo:'#b4c6d1', filo:'#93aab8', oscuro:'#51758d',
+    { nombre:'Históricos',   fondo:'#e0b29e', filo:'#c4917b', oscuro:'#c0622a',
       libros:['JOS','JDG','RUT','1SA','2SA','1KI','2KI','1CH','2CH','EZR','NEH','EST'] },
     { nombre:'Poéticos',     fondo:'#c5d1a2', filo:'#a5b580', oscuro:'#6b7e45',
       libros:['JOB','PSA','PRO','ECC','SNG'] },
@@ -17191,7 +17191,12 @@ const GRUPOS_LIBROS = {
       libros:['ISA','JER','LAM','EZK','DAN','HOS','JOL','AMO','OBA','JON',
               'MIC','NAM','HAB','ZEP','HAG','ZEC','MAL'] }
   ],
-  /* EL NUEVO REPITE LOS TONOS DONDE EL GÉNERO SE REPITE: Hechos es historia y
+  /* EL TERRACOTA Y EL AZUL SE CAMBIARON DE SITIO, fondo y todo. El elegido
+     del Pentateuco y de Pablo era naranja sobre terracota, y no se alcanzaba
+     a ver: el mismo matiz, poco más oscuro. El dueño del repo pidió cambiar
+     los fondos enteros: ahora el Pentateuco y Pablo van en azul, y los
+     Históricos y Hechos en terracota con su naranja.
+     EL NUEVO REPITE LOS TONOS DONDE EL GÉNERO SE REPITE: Hechos es historia y
      va en el azul de los Históricos; Apocalipsis es profecía y va en el malva
      de los Proféticos. Los Evangelios no tienen pareja en el Antiguo y llevan
      un amarillo propio. Pablo y las generales toman los dos que quedan.
@@ -17202,8 +17207,8 @@ const GRUPOS_LIBROS = {
   NT: [
     { nombre:'Evangelios',   fondo:'#ecd98a', filo:'#cdb860', oscuro:'#947922',
       libros:['MAT','MRK','LUK','JHN'] },
-    { nombre:'Hechos',       fondo:'#b4c6d1', filo:'#93aab8', oscuro:'#51758d', libros:['ACT'] },
-    { nombre:'Pablo',        fondo:'#e0b29e', filo:'#c4917b', oscuro:'#c0622a',
+    { nombre:'Hechos',       fondo:'#e0b29e', filo:'#c4917b', oscuro:'#c0622a', libros:['ACT'] },
+    { nombre:'Pablo',        fondo:'#b4c6d1', filo:'#93aab8', oscuro:'#51758d',
       libros:['ROM','1CO','2CO','GAL','EPH','PHP','COL','1TH','2TH','1TI','2TI','TIT','PHM'] },
     { nombre:'Generales',    fondo:'#c5d1a2', filo:'#a5b580', oscuro:'#6b7e45',
       libros:['HEB','JAS','1PE','2PE','1JN','2JN','3JN','JUD'] },
@@ -19669,14 +19674,24 @@ const PIEDRA_TINTAS = [
   ['indigo',       'índigo',        '#2f4a78', '#22375a'],
   ['ocre',         'ocre',          '#a4761d', '#845c12'],
   ['ciruela',      'ciruela',       '#6b3a63', '#502c4a'],
-  ['sepia-vivo',   'sepia vivo',    '#c2880a', '#926608'],
+  ['perla',        'blanco perla',  '#f1ebdd', '#bdb19a'],
   ['carmin-vivo',  'carmín vivo',   '#d80b0b', '#a20808'],
   ['oliva-vivo',   'oliva vivo',    '#57b409', '#418707'],
   ['indigo-vivo',  'índigo vivo',   '#0a4cbc', '#08398d'],
   ['ocre-vivo',    'ocre vivo',     '#d4900b', '#9f6c08'],
   ['ciruela-vivo', 'ciruela vivo',  '#ba0a9d', '#8c0876']
 ];
-const tintaDe = c => PIEDRA_TINTAS.find(t => t[0] === c) || PIEDRA_TINTAS[0];
+/* EL SEPIA VIVO SE VOLVIÓ BLANCO PERLA. Era el primero de la fila de los vivos
+   y el dueño del repo lo cambió: un dorado fuerte más, cuando ya está el ocre
+   vivo al lado, no aportaba; un blanco nacarado sí, y le va a las perlas. Lo
+   guardado con el nombre viejo se lee con el nuevo —una perla o una cinta en
+   sepia vivo pasa a blanco perla— en vez de caer al color de respaldo, que
+   sería cambiarle el color a escondidas a lo que el lector ya había puesto.
+   Su sombra va bastante más oscura que la de los demás a propósito: es la
+   que dibuja el canto de un blanco sobre el papel crema. */
+const TINTA_VIEJA = { 'sepia-vivo':'perla' };
+const tintaVigente = c => TINTA_VIEJA[c] || c;
+const tintaDe = c => PIEDRA_TINTAS.find(t => t[0] === tintaVigente(c)) || PIEDRA_TINTAS[0];
 /* EL COLOR SE CORRIGE ANTES DE QUE EL FILTRO LO TOQUE.
 
    Brillo y contraste existen para la LECTURA: aclaran el papel y separan la
@@ -19779,7 +19794,7 @@ function piedraSanear(x){
            : (FORMA_VIEJA[x.forma] || FORMAS[0]),
     tam: (Number.isInteger(+x.tam) && +x.tam >= 0 && +x.tam < PIEDRA_TAMS.length)
            ? +x.tam : PIEDRA_TAM_POR,
-    color: PIEDRA_TINTAS.some(t => t[0] === x.color) ? x.color : PIEDRA_TINTAS[0][0],
+    color: PIEDRA_TINTAS.some(t => t[0] === tintaVigente(x.color)) ? tintaVigente(x.color) : PIEDRA_TINTAS[0][0],
     creado: +x.creado || Date.now(), tocado: +x.tocado || Date.now()
   };
   /* LA SOMBRA SOLO EXISTE SI ESTÁ PUESTA, igual que el nombre y por lo mismo:
@@ -20288,7 +20303,7 @@ const CINTA_PRIMERA = Math.max(0, TELAS.findIndex(t => t[0] === 'carmin'));
    almacén dañado —«un color inventado cae en uno real»— vio `fucsia` volverse
    `sepia`. Va escrito con CINTA_PRIMERA y no con un 'carmin' suelto para que
    el día que se mueva el sitio de esa primera cinta, esto se mueva con ella. */
-const telaDe = c => TELAS.find(t => t[0] === c) || TELAS[CINTA_PRIMERA];
+const telaDe = c => TELAS.find(t => t[0] === tintaVigente(c)) || TELAS[CINTA_PRIMERA];
 
 let separadores = [];
 /* CUÁL ES LA CINTA ACTIVA vive en memoria y no en el almacén, y no es un
@@ -25873,7 +25888,7 @@ function portadaCargar(){
              volvía una piedra y la del libro un corazón. */
           forma: FORMAS.includes(p.forma) ? p.forma
                  : (FORMA_VIEJA[p.forma] || FORMAS[0]),
-          color: PIEDRA_TINTAS.some(t => t[0] === p.color) ? p.color : PIEDRA_TINTAS[0][0],
+          color: PIEDRA_TINTAS.some(t => t[0] === tintaVigente(p.color)) ? tintaVigente(p.color) : PIEDRA_TINTAS[0][0],
           /* EL TAMAÑO ES UN ESCALÓN, como en la hoja, para que el mando —que
              es el mismo— cuente «3/8» y se apague en los extremos. Lo guardado
              por la versión anterior venía en píxeles sueltos: si el número es

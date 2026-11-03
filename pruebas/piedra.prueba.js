@@ -550,9 +550,12 @@ async function andamio(p){
   vale('está la corona', oferta.formas.includes('corona'), oferta.formas);
   vale('  y la lámpara ya no', !oferta.formas.includes('lampara'), oferta.formas);
   vale('la paleta tiene DOCE colores', oferta.colores.length === 12, oferta.colores.length);
-  vale('  seis de siempre y seis vivos',
-       ['sepia','carmin','oliva','indigo','ocre','ciruela']
-         .every(c => oferta.colores.includes(c) && oferta.colores.includes(c + '-vivo')),
+  /* El sepia vivo se volvió blanco perla, a pedido del dueño del repo: ahí,
+     debajo del sepia, va la perla y no su versión viva. */
+  vale('  seis de siempre, cinco vivos y el blanco perla',
+       ['sepia','carmin','oliva','indigo','ocre','ciruela'].every(c => oferta.colores.includes(c)) &&
+       ['carmin','oliva','indigo','ocre','ciruela'].every(c => oferta.colores.includes(c + '-vivo')) &&
+       oferta.colores.includes('perla') && !oferta.colores.includes('sepia-vivo'),
        oferta.colores);
   vale('  EN DOS RENGLONES, no en una tira',
        oferta.renglones === 2 && oferta.primeroDeAbajo === true, oferta.renglones);
