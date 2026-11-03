@@ -4889,9 +4889,12 @@
      siempre. Pedido por el dueño del repo: sobre fondos de color, un botón
      marrón no decía de qué sección era; ahora el elegido en los Proféticos es
      un malva oscuro, en los Poéticos un verde oscuro, y así. Cada tono es el
-     de su fondo llevado a oscuro, con la letra blanca encima, y ninguno baja
-     de 4.5 de contraste con ella —medidos: terracota 5.9, azul 6.1, verde
-     5.3, malva 7.0, mostaza 4.9—, que es más de lo que daba el sepia (3.16).
+     de su fondo llevado a oscuro, con la letra blanca encima.
+     LA PRIMERA TANDA FUE DEMASIADO HONDA. Se eligió para pasar de 4.5 de
+     contraste con el blanco, y el dueño del repo la vio en pantalla: sobre
+     fondos pastel, tonos tan oscuros «distraen muchísimo». Se bajaron «un
+     poquitito nada más», y siguen leyendo mejor que el sepia de antes (3.16):
+     terracota 5.0, azul 4.9, verde 4.5, malva 5.6, mostaza 4.2.
      Vale también para el libro bajo el dedo, que enseña de antemano cómo va a
      quedar. El sepia sigue siendo el respaldo si un libro no tiene sección. */
   .rejilla-libros.con-secciones .tabo.aqui,
@@ -6487,7 +6490,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 01:59';
+window.GLOSS_BUILD = '03-NOV-26 02:04';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17151,13 +17154,13 @@ function cruzarLibro(s, clientY, sinAnimar){
    ============================================================ */
 const GRUPOS_LIBROS = {
   AT: [
-    { nombre:'Pentateuco',   fondo:'#e0b29e', filo:'#c4917b', oscuro:'#9a4f3a',
+    { nombre:'Pentateuco',   fondo:'#e0b29e', filo:'#c4917b', oscuro:'#a35c47',
       libros:['GEN','EXO','LEV','NUM','DEU'] },
-    { nombre:'Históricos',   fondo:'#b4c6d1', filo:'#93aab8', oscuro:'#3f6680',
+    { nombre:'Históricos',   fondo:'#b4c6d1', filo:'#93aab8', oscuro:'#51758d',
       libros:['JOS','JDG','RUT','1SA','2SA','1KI','2KI','1CH','2CH','EZR','NEH','EST'] },
-    { nombre:'Poéticos',     fondo:'#c5d1a2', filo:'#a5b580', oscuro:'#5e7238',
+    { nombre:'Poéticos',     fondo:'#c5d1a2', filo:'#a5b580', oscuro:'#6b7e45',
       libros:['JOB','PSA','PRO','ECC','SNG'] },
-    { nombre:'Proféticos',   fondo:'#d2b6ca', filo:'#b494ab', oscuro:'#7a4a6c',
+    { nombre:'Proféticos',   fondo:'#d2b6ca', filo:'#b494ab', oscuro:'#855a7a',
       libros:['ISA','JER','LAM','EZK','DAN','HOS','JOL','AMO','OBA','JON',
               'MIC','NAM','HAB','ZEP','HAG','ZEC','MAL'] }
   ],
@@ -17170,14 +17173,14 @@ const GRUPOS_LIBROS = {
      confundía con el azul de Hechos, que va pegado. Entre rosa, amarillo y
      lila, el dueño del repo eligió el amarillo. */
   NT: [
-    { nombre:'Evangelios',   fondo:'#ecd98a', filo:'#cdb860', oscuro:'#8a6d14',
+    { nombre:'Evangelios',   fondo:'#ecd98a', filo:'#cdb860', oscuro:'#947922',
       libros:['MAT','MRK','LUK','JHN'] },
-    { nombre:'Hechos',       fondo:'#b4c6d1', filo:'#93aab8', oscuro:'#3f6680', libros:['ACT'] },
-    { nombre:'Pablo',        fondo:'#e0b29e', filo:'#c4917b', oscuro:'#9a4f3a',
+    { nombre:'Hechos',       fondo:'#b4c6d1', filo:'#93aab8', oscuro:'#51758d', libros:['ACT'] },
+    { nombre:'Pablo',        fondo:'#e0b29e', filo:'#c4917b', oscuro:'#a35c47',
       libros:['ROM','1CO','2CO','GAL','EPH','PHP','COL','1TH','2TH','1TI','2TI','TIT','PHM'] },
-    { nombre:'Generales',    fondo:'#c5d1a2', filo:'#a5b580', oscuro:'#5e7238',
+    { nombre:'Generales',    fondo:'#c5d1a2', filo:'#a5b580', oscuro:'#6b7e45',
       libros:['HEB','JAS','1PE','2PE','1JN','2JN','3JN','JUD'] },
-    { nombre:'Apocalipsis',  fondo:'#d2b6ca', filo:'#b494ab', oscuro:'#7a4a6c', libros:['REV'] }
+    { nombre:'Apocalipsis',  fondo:'#d2b6ca', filo:'#b494ab', oscuro:'#855a7a', libros:['REV'] }
   ]
 };
 /* EL RESPIRO ES LA MITAD DEL HUECO ENTRE SECCIONES, Y ESA ES TODA LA GRACIA.
