@@ -102,11 +102,11 @@ async function tocarSinClic(pagina, x, y, pid = 21){
   di('los tres botones', JSON.stringify(bot));
   vale('«foto» a la mitad de la izquierda', Math.abs(bot.foto.centro - 17) <= 4, bot.foto.centro + '%');
   vale('«continue» en el centro', Math.abs(bot.hold.centro - 50) <= 2, bot.hold.centro + '%');
-  vale('«Piedras» a la mitad de la derecha', Math.abs(bot.piedras.centro - 83) <= 4, bot.piedras.centro + '%');
+  vale('«Perlas» a la mitad de la derecha', Math.abs(bot.piedras.centro - 83) <= 4, bot.piedras.centro + '%');
   /* El del medio dice siempre lo mismo, que es la gracia: ya no cuenta nada. */
   vale('y dicen lo suyo',
        bot.foto.t === 'foto' && bot.hold.t === 'continue' &&
-       bot.piedras.t === 'Piedras',
+       bot.piedras.t === 'Perlas',
        [bot.foto.t, bot.hold.t, bot.piedras.t].join(' | '));
   /* 48 px es el suelo de esta aplicación: por encima de los 44 de la WCAG 2.5.5
      y de los 44 de Apple, al nivel de Material 3. */
@@ -275,7 +275,7 @@ async function tocarSinClic(pagina, x, y, pid = 21){
   vale('  y con «Quitar», que en la hoja no hace falta',
        ['Quitar','Cancelar','OK'].every(x => nacida.salidas.includes(x)), nacida.salidas);
   vale('  y el botón no cambia de nombre: no hay modo que apagar',
-       nacida.dice === 'Piedras', nacida.dice);
+       nacida.dice === 'Perlas', nacida.dice);
 
   /* EL PIE SIGUE SIENDO DEL PIE. La capa de las piedras cubre la tapa entera;
      cuando recibía toques —el modo de decorar— se comía los tres botones,
