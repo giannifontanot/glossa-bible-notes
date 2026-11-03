@@ -4760,9 +4760,37 @@
      La dirección la pone el guion: viniendo del Antiguo entra por la
      izquierda, del Nuevo por la derecha. */
   #cantoCuerpo.cambia{
-    animation:entraDeLado .46s cubic-bezier(.5,0,.25,1) both; }
+    animation:entraConRebote .56s cubic-bezier(.3,0,.25,1) both; }
+  /* EL TESTAMENTO ENTRA CON REBOTE. Desde que se puede cambiar deslizando el
+     dedo —ver testamentoDeslizar—, el dueño del repo pidió «ese movimiento
+     suave de rebote»: la lista nueva llega, se pasa de su sitio un poco más
+     que las secciones del panel y vuelve en dos tiempos, como algo que se
+     lanzó con la mano y no como algo que aparece. Es entraDeLado con más
+     recorrido y un segundo rebote chico; las secciones del panel siguen con
+     la suya, que no se lanzan con el dedo. */
+  @keyframes entraConRebote{
+    0%  { opacity:0; transform:translateX(calc(60px * var(--dir, 1))); }
+    45% { opacity:1; }
+    68% { transform:translateX(calc(-10px * var(--dir, 1))); }
+    86% { transform:translateX(calc(3px * var(--dir, 1))); }
+    100%{ opacity:1; transform:none; }
+  }
+  /* Mientras el dedo arrastra, la lista va pegada a él; al soltar sin llegar,
+     vuelve a su sitio con un resorte que se pasa un pelín —la curva con el
+     1.56—. Es el mismo rebote, contado al revés. */
+  #cantoCuerpo .rejilla-libros.volviendo{
+    transition:transform .42s cubic-bezier(.34,1.56,.64,1), opacity .25s linear; }
+  #cantoCuerpo .rejilla-libros.yendose{
+    transition:transform .16s cubic-bezier(.4,0,1,1), opacity .16s linear; }
+  /* pan-y: el desplazamiento de arriba abajo sigue siendo del navegador, y el
+     de lado nos lo deja a nosotros. Sin esto, en Android el gesto de lado se
+     lo queda el navegador —para el sobredesplazamiento o para volver atrás— y
+     aquí llega un pointercancel a medio camino. */
+  #cantoCuerpo.testamentos .rejilla-libros{ touch-action:pan-y; }
   @media (prefers-reduced-motion: reduce){
     #cantoCuerpo.cambia{ animation:none; }
+    #cantoCuerpo .rejilla-libros.volviendo,
+    #cantoCuerpo .rejilla-libros.yendose{ transition:none; }
   }
   /* Con el dedo, al suelo de la casa: son dos blancos y nada más en su
      renglón, así que no hay razón para dejarlos en 24 px. */
@@ -6517,7 +6545,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 15:09';
+window.GLOSS_BUILD = '03-NOV-26 17:15';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17629,9 +17657,120 @@ function cantoVerTestamento(id){
 $('cantoCuerpo').addEventListener('animationend', cantoFinDeEntrada);
 $('cantoCuerpo').addEventListener('animationcancel', cantoFinDeEntrada);
 function cantoFinDeEntrada(ev){
-  if (ev.target !== ev.currentTarget || ev.animationName !== 'entraDeLado') return;
+  if (ev.target !== ev.currentTarget ||
+      (ev.animationName !== 'entraDeLado' && ev.animationName !== 'entraConRebote')) return;
   ev.currentTarget.classList.remove('cambia');
 }
+
+/* ============================================================
+   CAMBIAR DE TESTAMENTO DESLIZANDO EL DEDO. Pedido por el dueño del repo:
+   además de las dos pestañas, pasar del Antiguo al Nuevo con un desliz de
+   lado, y que entre «con ese movimiento suave de rebote».
+
+   EL SENTIDO ES EL DE LAS PESTAÑAS. El Antiguo está a la izquierda y el
+   Nuevo a la derecha, así que se desliza como se pasa una hoja: hacia la
+   izquierda para ir al Nuevo, hacia la derecha para volver al Antiguo.
+
+   CÓMO CONVIVE CON LO QUE YA HABÍA EN LA LISTA:
+   · El desplazamiento vertical sigue siendo del navegador (touch-action
+     pan-y). Un gesto se decide por su primera dirección clara: si el dedo
+     se va más de lado que de arriba abajo —1.4 veces—, es nuestro; si no, es
+     un desplazamiento y no se toca.
+   · La lupa espera el dedo quieto 200 ms; un desliz se mueve antes y la
+     lupa se retira sola. No hay que avisarle.
+   · El toque: un desliz que empezó sobre un libro no debe abrir sus
+     capítulos al soltar. Se traga el click que llega detrás, como hace la
+     lupa, y se apaga el acuse del libro donde se posó el dedo.
+
+   EL GESTO SIGUE AL DEDO. Mientras arrastra, la lista va con él; si en ese
+   sentido no hay otro testamento —el Antiguo hacia la derecha, el Nuevo hacia
+   la izquierda—, se resiste: avanza a un tercio. Al soltar se cambia si se
+   pasó de un cuarto del ancho o si se lanzó rápido; si no, vuelve a su sitio
+   con un resorte. Y el testamento nuevo entra con entraConRebote.
+   ============================================================ */
+(function testamentoDeslizar(){
+  const cuerpo = $('cantoCuerpo');
+  const DECIDE = 14, LADO = 1.4, UMBRAL = .25, LANZA = .45;
+  let g = null;
+  const lista = () => cuerpo.querySelector('.rejilla-libros');
+  const sinMovimiento = () =>
+    window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const soltar = () => {
+    document.removeEventListener('pointermove', mueve, true);
+    document.removeEventListener('pointerup', arriba, true);
+    document.removeEventListener('pointercancel', cancela, true);
+    g = null;
+  };
+  const destino = dx => dx < 0 ? (cantoTesta === 'AT' ? 'NT' : null)
+                               : (cantoTesta === 'NT' ? 'AT' : null);
+  const aSuSitio = r => {
+    if (!r) return;
+    r.classList.remove('yendose');
+    r.classList.add('volviendo');
+    r.style.transform = ''; r.style.opacity = '';
+    const fin = () => r.classList.remove('volviendo');
+    r.addEventListener('transitionend', fin, { once:true });
+    setTimeout(fin, 500);
+  };
+  cuerpo.addEventListener('pointerdown', ev => {
+    if (!cuerpo.classList.contains('testamentos') || !lista()) return;
+    if (g || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+    g = { id: ev.pointerId, x0: ev.clientX, y0: ev.clientY, t0: performance.now(),
+          dx: 0, nuestro: false, ancho: cuerpo.clientWidth || 1 };
+    document.addEventListener('pointermove', mueve, true);
+    document.addEventListener('pointerup', arriba, true);
+    document.addEventListener('pointercancel', cancela, true);
+  });
+  function mueve(ev){
+    if (!g || ev.pointerId !== g.id) return;
+    const dx = ev.clientX - g.x0, dy = ev.clientY - g.y0;
+    if (!g.nuestro){
+      if (Math.hypot(dx, dy) < DECIDE) return;
+      if (Math.abs(dx) < Math.abs(dy) * LADO){ soltar(); return; }   /* era desplazar */
+      g.nuestro = true;
+      if (typeof apagarObrando === 'function') apagarObrando(true);
+      const r = lista();
+      if (r) r.classList.remove('volviendo', 'yendose');
+    }
+    ev.preventDefault();
+    g.dx = dx;
+    const r = lista();
+    if (!r || sinMovimiento()) return;
+    const x = destino(dx) ? dx : dx / 3;
+    r.style.transform = 'translateX(' + Math.round(x) + 'px)';
+    r.style.opacity = String(Math.max(.35, 1 - Math.abs(x) / g.ancho * .8));
+  }
+  function cancela(ev){
+    if (!g || ev.pointerId !== g.id) return;
+    const era = g.nuestro;
+    soltar();
+    if (era) aSuSitio(lista());
+  }
+  function arriba(ev){
+    if (!g || ev.pointerId !== g.id) return;
+    const { dx, nuestro, ancho, t0 } = g;
+    soltar();
+    if (!nuestro) return;
+    /* Fue un desliz: el click que viene detrás no es un toque sobre el libro
+       donde empezó. */
+    const tragar = e => { e.stopPropagation(); e.preventDefault(); };
+    document.addEventListener('click', tragar, { capture:true, once:true });
+    setTimeout(() => document.removeEventListener('click', tragar, true), 350);
+    const a = destino(dx), r = lista();
+    const rapido = Math.abs(dx) / Math.max(1, performance.now() - t0) > LANZA && Math.abs(dx) > 30;
+    if (!a || !(Math.abs(dx) > ancho * UMBRAL || rapido)){ aSuSitio(r); return; }
+    if (!r || sinMovimiento()){ cantoVerTestamento(a); return; }
+    /* Lo que está se va hacia donde lo llevaba el dedo, y al terminar entra el
+       otro desde el lado contrario, con su rebote. */
+    r.classList.add('yendose');
+    r.style.transform = 'translateX(' + Math.round(Math.sign(dx) * ancho * .45) + 'px)';
+    r.style.opacity = '0';
+    let hecho = false;
+    const sigue = () => { if (hecho) return; hecho = true; cantoVerTestamento(a); };
+    r.addEventListener('transitionend', sigue, { once:true });
+    setTimeout(sigue, 220);
+  }
+})();
 
 /* ============================================================
    MENÚS EN CASCADA. Los capítulos salen pegados al libro que tocaste y
