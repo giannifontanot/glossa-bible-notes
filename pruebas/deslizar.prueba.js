@@ -34,7 +34,7 @@ const IR_A = `async (testa) => {
 /* Un desliz desde el centro de un libro. «click» decide si detrás llega el
    click que manda el navegador al soltar sobre el mismo botón: en el gesto
    de lado llega, y es justo el que no debe abrir los capítulos. */
-const DESLIZ = `async ({ dx, dy, pasos, ms, click, quieto, libro }) => {
+const DESLIZ = `async ({ dx, dy, pasos, ms, click, libro }) => {
   const pausa = t => new Promise(z => setTimeout(z, t));
   const el = document.querySelector(libro ? '#canto .tabo[data-libro="' + libro + '"]'
                                           : '#canto .rejilla-libros .tabo.viva');
@@ -44,21 +44,6 @@ const DESLIZ = `async ({ dx, dy, pasos, ms, click, quieto, libro }) => {
   const o = (x, y) => ({ bubbles:true, cancelable:true, pointerId:11, pointerType:'touch',
                          isPrimary:true, clientX:x, clientY:y });
   el.dispatchEvent(new PointerEvent('pointerdown', o(x0, y0)));
-  /* «quieto»: el dedo se posa y espera antes de moverse, que es como se
-     engancha la lupa. */
-  /* Y SE ESPERA A QUE LA LUPA ENGANCHE DE VERDAD, no un rato fijo. La lupa
-     se arma con un setTimeout de 200 ms, y en una máquina cargada ese reloj
-     llega tarde: con una pausa fija el dedo empezaba a moverse antes de que
-     enganchara, la lupa se retiraba por el movimiento y la prueba culpaba a
-     la app de no abrir los capítulos. Pasó en una corrida del banco. */
-  let lupa = null;
-  if (quieto){
-    await pausa(quieto);
-    const t0 = performance.now();
-    while (performance.now() - t0 < 1500 && !document.querySelector('#lupaLibro.viva'))
-      await pausa(30);
-    lupa = !!document.querySelector('#lupaLibro.viva');
-  }
   let mitad = null;
   for (let i = 1; i <= pasos; i++){
     await pausa(ms);
@@ -77,16 +62,9 @@ const DESLIZ = `async ({ dx, dy, pasos, ms, click, quieto, libro }) => {
   if (click) el.dispatchEvent(new MouseEvent('click', o(x0 + dx, y0 + dy)));
   await pausa(900);
   const caps = document.getElementById('flyCaps');
-  /* Con lupa, la cascada puede tardar un poco más en salir: se espera a que
-     salga, con tope, en vez de mirar una sola vez. */
-  if (quieto){
-    const t1 = performance.now();
-    while (performance.now() - t1 < 2000 && !(caps && getComputedStyle(caps).display !== 'none'))
-      await pausa(50);
-  }
   const r = document.querySelector('#canto .rejilla-libros');
   return { testa: (document.querySelector('#canto .canto-tab.aqui') || {}).dataset.testa,
-           mitad, lupa, debajo: debajo && debajo.libro, cascada: !!caps && getComputedStyle(caps).display !== 'none',
+           mitad, debajo: debajo && debajo.libro, cascada: !!caps && getComputedStyle(caps).display !== 'none',
            quieta: r ? (r.style.transform || 'none') : null };
 }`;
 
@@ -122,15 +100,12 @@ const DESLIZ = `async ({ dx, dy, pasos, ms, click, quieto, libro }) => {
   vale('cambia al Antiguo', alAntiguo.testa === 'AT', alAntiguo.testa);
 
   titulo('un desliz corto no cambia');
-  /* CORTO, Y QUE ARRANQUE ENSEGUIDA. Estuvo a 45 px en 720 ms —doce pasos de
-     60—, y eso deja el dedo casi quieto los primeros 200 ms: en el tercer paso
-     apenas lleva 11 px, uno más que lo que la lupa perdona. Según cuándo
-     llegara su reloj, unas veces era desliz y otras enganchaba la lupa y
-     abría capítulos, que es exactamente lo que debe hacer un dedo que se
-     posa. Una corrida del banco cayó del lado de la lupa. Lo que esta prueba
-     quiere ver es un desliz que no llega: arranca ya —15 px en el primer
-     paso, fuera del alcance de la lupa— y se queda en 45, a 0.3 px/ms, por
-     debajo del umbral de lanzar (0.45) y lejos del cuarto de ancho. */
+  /* CORTO, Y QUE ARRANCA ENSEGUIDA: 15 px en el primer paso y se queda en
+     45, a 0.3 px/ms, por debajo del umbral de lanzar (0.45) y lejos del
+     cuarto de ancho. Antes estuvo a 45 px en 720 ms, y con la lupa viva eso
+     dejaba el dedo casi quieto lo bastante para engancharla según cuándo
+     llegara su reloj; la lupa ya no está, pero un desliz que no llega se
+     sigue probando así, que es lo que se quiere ver y nada más. */
   const corto = await desliz({ dx:-45, dy:4, pasos:3, ms:50, click:true });
   di('el desliz', corto);
   vale('se queda en el Antiguo', corto.testa === 'AT', corto.testa);
@@ -145,26 +120,8 @@ const DESLIZ = `async ({ dx, dy, pasos, ms, click, quieto, libro }) => {
   vale('no cambia de testamento', vertical.testa === 'AT', vertical.testa);
   vale('  ni mueve la lista de lado', !vertical.mitad, vertical.mitad);
 
-  titulo('con la lupa enganchada, el gesto es de la lupa');
-  /* Dedo quieto 350 ms —la lupa engancha a los 200— y luego de lado, de
-     sobra para pasar de testamento si el gesto fuera nuestro. Lo que tiene
-     que pasar es lo de la lupa: la lista no se mueve, el testamento no
-     cambia y al soltar se abren los capítulos del libro de debajo. */
-  /* Desde Números, que está al final del primer renglón: 200 px a la
-     izquierda caen sobre otro libro, que es el que la lupa tiene que abrir. */
-  const conLupa = await desliz({ dx:-200, dy:4, pasos:10, ms:30, click:true, quieto:350, libro:'NUM' });
-  di('el gesto', conLupa);
-  vale('(la prueba es válida) la lupa enganchó antes de mover el dedo', conLupa.lupa === true, conLupa.lupa);
-  vale('(la prueba es válida) al soltar hay un libro debajo del dedo', !!conLupa.debajo, conLupa.debajo);
-  vale('no cambia de testamento', conLupa.testa === 'AT', conLupa.testa);
-  vale('  ni corre la lista bajo el globo', !conLupa.mitad, conLupa.mitad);
-  vale('  y la lupa abre los capítulos al soltar', conLupa.cascada === true, conLupa.cascada);
-  /* Y se cierra la cascada para dejar la lista como estaba. */
-  await p.evaluate(async () => {
-    const c = document.querySelector('#canto .canto-tab.aqui');
-    if (c) c.click();
-    await new Promise(z => setTimeout(z, 600));
-  });
+  /* AQUÍ ESTABA «CON LA LUPA ENGANCHADA, EL GESTO ES DE LA LUPA», y se fue
+     con la lupa, que el dueño del repo pidió quitar. */
 
   titulo('y las pestañas siguen valiendo');
   await p.evaluate(async () => {

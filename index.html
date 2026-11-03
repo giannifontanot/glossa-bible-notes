@@ -4747,7 +4747,7 @@
      otra en el mismo panel, y dos maneras de decir «ésta es la abierta» en la
      misma pantalla son dos cosas que aprender. El tono va escrito una vez aquí
      y otra en .tabo.aqui porque son dos reglas; si algún día cambia, cambian
-     las tres a la vez —ésta, la de los libros y la de bajoeldedo—. */
+     las dos a la vez —ésta y la de los libros—. */
   .canto-tab.aqui{ background:#b8892b; color:#fff; }
   .canto-tab:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
   /* Y LA LISTA ENTRA COMO ENTRAN LAS SECCIONES. Cambiar de testamento cambia
@@ -4950,10 +4950,8 @@
      rosa, y el dueño del repo lo pidió naranja (#c0622a, 4.2 con el blanco).
      Los cinco, medidos con la primera tanda:
      terracota 5.0, azul 4.9, verde 4.5, malva 5.6, mostaza 4.2.
-     Vale también para el libro bajo el dedo, que enseña de antemano cómo va a
-     quedar. El sepia sigue siendo el respaldo si un libro no tiene sección. */
-  .rejilla-libros.con-secciones .tabo.aqui,
-  .rejilla-libros.con-secciones .tabo.bajoeldedo{ background:var(--seccion-oscuro, #b8892b); color:#fff; }
+     El sepia sigue siendo el respaldo si un libro no tiene sección. */
+  .rejilla-libros.con-secciones .tabo.aqui{ background:var(--seccion-oscuro, #b8892b); color:#fff; }
   .secciones-fondo{ position:absolute; left:0; top:0; pointer-events:none; overflow:visible;
                     z-index:0; }
   .rejilla-libros.con-secciones .tabo{ z-index:1; }
@@ -4963,19 +4961,21 @@
   /* Las cuatro medidas de la caja van en la transición además del color: son
      las que hacen que el libro bajo el dedo crezca en vez de dar un salto, y
      las que hacen que sus vecinos se aparten poco a poco en lugar de
-     teletransportarse. Ver .tabo.bajoeldedo. */
-  /* AQUÍ HUBO UN user-select:none SOBRE LA REJILLA Y LOS BOTONES, y se ha
-     quitado a petición del dueño del repo: no funcionaba bien.
+     teletransportarse. */
+  /* LOS NOMBRES DE LOS LIBROS NO SE SELECCIONAN. Son botones, no texto para
+     copiar: un toque largo sobre «Génesis» no tiene que pintarlo de azul ni
+     sacar el menú de copiar, y arrastrar el dedo de lado para cambiar de
+     testamento no tiene que ir dejando nombres subrayados.
 
-     Se puso para que arrastrar el dedo por la lista —el gesto de la lupa— no
-     fuera dejando nombres en azul de selección. El problema que resolvía era
-     real, pero el remedio salió peor que la enfermedad en el aparato de
-     verdad, que es donde se juzga esto.
-
-     Queda escrito para que no se vuelva a poner sin más: si el subrayado azul
-     vuelve a molestar, hay que atacarlo por otro lado —cancelar la selección
-     al empezar el gesto de la lupa, y solo mientras dure— y no apagando la
-     selección de toda la lista, que es lo que aquí no valió. */
+     Hubo aquí un user-select:none que se QUITÓ porque «no funcionaba bien»,
+     y la razón era la lupa: aquel gesto vivía del dedo quieto sobre el
+     nombre, y apagar la selección se peleaba con él en el aparato de verdad.
+     La lupa ya no está —ver la nota donde estaba lupaDeLibros— y el dueño
+     del repo pide ahora expresamente que los nombres no se puedan
+     seleccionar, así que vuelve. -webkit-touch-callout quita además el
+     globo de copiar de Safari en iOS, que no hace caso de user-select. */
+  .rejilla-libros, .rejilla-libros .tabo{ -webkit-user-select:none; user-select:none;
+                                          -webkit-touch-callout:none; }
   /* AL DOBLE DE ALTO, de 18 a 36. Se puede desde que el panel enseña UN
      testamento y no dos: antes la lista tenía media pantalla y cada píxel de
      alto se pagaba en libros que dejaban de verse. Con la lista entera para
@@ -5694,55 +5694,6 @@
                                               scrollbar-width:none; }
     #cantoCuerpo.testamentos .rejilla-libros::-webkit-scrollbar{
                                               width:0; height:0; display:none; }
-    /* EL LIBRO QUE HAY DEBAJO DEL DEDO. Con renglones de 26px el dedo tapa el
-       nombre justo cuando hay que leerlo, así que el nombre sale AFUERA: un
-       globo encima del dedo que va cambiando conforme te mueves. Es lo que
-       hace que se pueda apretar el tamaño sin perder la puntería —eliges
-       mirando el globo, no adivinando entre dos nombres—.
-       No captura el puntero a propósito: capturar redirige el click y mata el
-       toque simple, que es la lección que costó los dos rótulos de la hoja. */
-    #lupaLibro{ position:absolute; z-index:11; display:none; pointer-events:none;
-                transform:translate(-50%, -100%);
-                background:#3a2f18; color:#f6eeda; border-radius:7px;
-                padding:7px 13px; white-space:nowrap;
-                font:600 calc(16px * var(--escala-ui, 1))/1.2 var(--ui); letter-spacing:.01em;
-                box-shadow:0 8px 20px -6px rgba(0,0,0,.6);
-                opacity:0; transition:opacity .12s linear; }
-    #lupaLibro.viva{ display:block; opacity:1; }
-    #lupaLibro.muerto{ background:#5c4a24; color:#cbbf9f; }
-    /* EL LIBRO BAJO EL DEDO CRECE, y crece de VERDAD: no con un transform,
-       que no ocupa sitio y dejaría al de al lado tapado por debajo, sino de
-       caja —letra, alto y relleno— para que la fila se reacomode alrededor y
-       los vecinos se aparten solos. Es lo pedido, y es también lo honesto: lo
-       que se ve grande es lo que se va a abrir al soltar.
-
-       CRECE POCO, Y ESA ES LA MEDIDA. La rejilla envuelve, así que un libro
-       que crezca demasiado empuja al último de su renglón al siguiente y eso
-       se ve como un salto, no como que algo creció. De 13 a 17 y de 26 a 36 la
-       fila casi siempre absorbe el estirón; cuando no, salta uno solo.
-
-       El z-index lo pone por encima de sus vecinos mientras dura: sin él, el
-       que viene después lo recorta por el filo al reacomodarse. */
-    /* Bajo el dedo se enseña ya el aspecto de elegido —sepia con letra
-       blanca—, que es lo honesto: lo que se ve es lo que va a quedar al
-       soltar. Antes era dorado con la letra en crema, o sea un tercer aspecto
-       para un estado que dura medio segundo. */
-    .tabo.bajoeldedo{ background:#b8892b; color:#fff; z-index:10;
-                      font-size:calc(17px * var(--escala-ui, 1)); height:64px; line-height:64px;
-                      padding:0 14px; font-weight:600; border-radius:15px;
-                      /* La pastilla se levanta del papel mientras el dedo la
-                         sostiene: la sombra de fuera crece y se separa, y las
-                         de dentro se quedan para que siga siendo una pastilla
-                         y no una tarjeta. La esquina sube de 12 a 15 porque el
-                         botón crece de 52 a 64: con 12 fijos se vería más
-                         cuadrado justo cuando más grande está. */
-                      box-shadow:inset 0 1px 0 rgba(255,255,255,.5),
-                                 inset 0 -1.5px 0 rgba(60,40,15,.22),
-                                 0 5px 12px -4px rgba(60,40,15,.6); }
-    @media (prefers-reduced-motion: reduce){
-      .tabo.bajoeldedo{ font-size:calc(13px * var(--escala-ui, 1)); height:52px; line-height:52px;
-                        padding:0 9px; font-weight:400; box-shadow:none; }
-    }
 
     /* COLUMNAS EN CIFRAS. "una / dos / tres" son tres palabras de distinto
        largo peleando por el sitio más apretado del panel; 1, 2 y 3 dicen lo
@@ -6314,8 +6265,7 @@
   <div id="notas" class="rollo"></div>
   <div id="respaldo" class="rollo"></div>
   <div id="canto" class="rollo"><div id="cantoCab"></div><div id="cantoCuerpo"></div>
-    <!-- La lupa: dice qué libro hay bajo el dedo mientras se arrastra. -->
-    <div id="lupaLibro" aria-hidden="true"></div></div>
+    </div>
   <canvas id="fx"></canvas>
   <!-- El canto del libro: se enciende en la primera y en la última hoja. Va en
        la escena y no en la hoja, porque en teléfono el papel es más ancho que
@@ -6545,7 +6495,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 17:46';
+window.GLOSS_BUILD = '03-NOV-26 17:52';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -9316,13 +9266,13 @@ function abrirEscenas(h2){
 }
 /* EL TOQUE LARGO ABRE LAS ESCENAS. Un toque corto no: el titulillo vive
    encima del texto y un clic suelto es leer, pasar hoja o glosar. El gesto
-   es el de la lupa de los libros —ver lupaDeLibros—: el dedo se posa y
-   espera, y si se mueve era otra cosa.
+   es el que tenía la lupa de los libros, que ya no está: el dedo se posa
+   y espera, y si se mueve era otra cosa.
 
    ESPERA y RUIDO son los mismos números. Un desliz para pasar hoja arranca
    enseguida; quien quiere las escenas se queda quieto. Si se suelta antes,
    no pasa nada: era un toque. */
-const PERI_ESPERA = 200;   /* ms de dedo quieto, igual que la lupa */
+const PERI_ESPERA = 200;   /* ms de dedo quieto, los que tenía la lupa */
 const PERI_RUIDO  = 10;    /* px que se le perdonan al dedo mientras espera */
 let periGesto = null;
 function periLimpiar(){
@@ -9388,8 +9338,8 @@ escenas.addEventListener('click', ev => {
 });
 /* Y tampoco se arranca una selección: user-select:none tapa el caso común,
    pero un arrastre a pelo todavía dispara selectstart en algunos aparatos.
-   Cancelarlo aquí es lo que se pidió para la lupa de los libros cuando el
-   CSS no valió —ver .rejilla-libros. */
+   Cancelarlo aquí es el remedio que se pensó para la lupa de los libros
+   cuando allí el CSS no valió —ver .rejilla-libros—. */
 escenas.addEventListener('selectstart', ev => ev.preventDefault());
 /* LO QUE EL DEDO ESTÁ PINTANDO AHORA MISMO: { k, ini, fin } mientras no se
    toque otra cosa. Se declara aquí arriba, y no junto al gesto que lo mueve
@@ -17676,11 +17626,8 @@ function cantoFinDeEntrada(ev){
      pan-y). Un gesto se decide por su primera dirección clara: si el dedo
      se va más de lado que de arriba abajo —1.4 veces—, es nuestro; si no, es
      un desplazamiento y no se toca.
-   · La lupa espera el dedo quieto 200 ms; un desliz se mueve antes y la
-     lupa se retira sola. No hay que avisarle.
    · El toque: un desliz que empezó sobre un libro no debe abrir sus
-     capítulos al soltar. Se traga el click que llega detrás, como hace la
-     lupa, y se apaga el acuse del libro donde se posó el dedo.
+     capítulos al soltar. Se traga el click que llega detrás, y se apaga el acuse del libro donde se posó el dedo.
 
    EL GESTO SIGUE AL DEDO. Mientras arrastra, la lista va con él; si en ese
    sentido no hay otro testamento —el Antiguo hacia la derecha, el Nuevo hacia
@@ -17734,15 +17681,6 @@ function cantoFinDeEntrada(ev){
     if (!g || ev.pointerId !== g.id) return;
     const dx = ev.clientX - g.x0, dy = ev.clientY - g.y0;
     if (!g.nuestro){
-      /* SI LA LUPA YA ENGANCHÓ, EL GESTO ES SUYO. Un dedo que se quedó quieto
-         200 ms y luego se mueve de lado está recorriendo libros con la lupa,
-         no pasando de testamento: la lupa sigue mandando y al soltar abre el
-         libro que haya debajo. Sin esto la lista se corría bajo el globo y,
-         pasado un cuarto del ancho, cambiaba de testamento y se llevaba por
-         delante los capítulos que la lupa acababa de abrir. Lo cazó Codex en
-         revisión. La lupa vive en su propio cierre, así que se pregunta a lo
-         que ella pinta: el globo vivo o un libro bajo el dedo. */
-      if (document.querySelector('#lupaLibro.viva, #canto .tabo.bajoeldedo')){ soltar(); return; }
       if (Math.hypot(dx, dy) < DECIDE) return;
       if (Math.abs(dx) < Math.abs(dy) * LADO){ soltar(); return; }   /* era desplazar */
       g.nuestro = true;
@@ -19207,150 +19145,16 @@ function tocarLibro(ev){
 }
 canto.addEventListener('click', tocarLibro);
 
-/* ============================================================
-   LA LUPA DEL PANEL DE LIBROS.
-
-   Con los renglones apretados a 26px, el dedo tapa el nombre justo cuando hay
-   que leerlo. Así que el nombre sale afuera: se apoya el dedo sobre la lista,
-   un globo encima dice qué libro hay debajo, y arrastrando se va cambiando
-   hasta soltar sobre el que se quería. Un blanco chico con confirmación se
-   atina mejor que uno grande a ciegas.
-
-   NO captura el puntero. Capturar redirigiría el click al contenedor y mataría
-   el toque simple —es exactamente lo que dejó muertos los dos rótulos de la
-   hoja con ratón, y no vamos a repetirlo—. Los movimientos se escuchan en el
-   documento mientras dura el gesto y se sueltan al terminar.
-
-   Y solo actúa si el dedo SE MUEVE. Un toque limpio sigue siendo un toque
-   limpio, que lo atiende tocarLibro por la vía de siempre; la lupa se mete en
-   medio únicamente cuando el gesto pasó a ser un arrastre, y entonces sí se
-   queda ella con el desenlace y anula el click que vendría detrás.
-   ============================================================ */
-(function lupaDeLibros(){
-  const lupa = $('lupaLibro');
-  if (!lupa) return;
-  /* LA LUPA SE GANA CON UNA PAUSA, no con un movimiento.
-
-     La primera versión la disparaba cualquier arrastre de más de 7px, y eso
-     chocaba de frente con lo único que la lista también necesita: poder
-     DESPLAZARSE. Cada testamento es una caja con desplazamiento propio y casi
-     toda su superficie son libros, así que no quedaba por dónde agarrar para
-     correrla: cualquier desliz vertical se leía como lupa, se le llamaba
-     preventDefault y al soltar se abría un libro que nadie había pedido.
-     Y el eje no sirve para separarlos, porque la rejilla envuelve: ir de
-     Génesis a Deuteronomio es moverse hacia abajo, igual que desplazar.
-
-     Lo que sí los separa es el TIEMPO. Un desliz para correr la lista arranca
-     enseguida; un dedo que quiere mirar se posa y espera. Así que la lupa pide
-     que el dedo se quede quieto 200 ms: si se mueve antes, era un
-     desplazamiento y la lupa se retira sin haber estorbado.
-
-     Una vez enganchada se apaga touch-action en la caja, que es lo único que
-     de verdad impide que el navegador se ponga a desplazar a media lupa:
-     preventDefault sobre pointermove ya no sirve si el desplazamiento
-     arrancó, y aquí no habrá arrancado porque el dedo estuvo quieto.
-     Lo encontró la revisión de Codex. */
-  const ESPERA = 200;     /* ms de dedo quieto para que sea lupa */
-  const RUIDO = 10;       /* px que se le perdonan al dedo mientras espera */
-  let armado = false, activo = false, x0 = 0, y0 = 0;
-  let ultimo = null, reloj = null, pid = null, caja = null;
-
-  const libroEn = (x, y) => {
-    const el = document.elementFromPoint(x, y);
-    return el && el.closest ? el.closest('.tabo') : null;
-  };
-  const marcar = t => {
-    if (ultimo === t) return;
-    if (ultimo) ultimo.classList.remove('bajoeldedo');
-    ultimo = t;
-    if (t) t.classList.add('bajoeldedo');
-  };
-  const poner = (t, x, y) => {
-    marcar(t);
-    if (!t){ lupa.classList.remove('viva'); return; }
-    const vivo = hayLibro(t.dataset.libro);
-    lupa.textContent = t.textContent + (vivo ? '' : ' — no está');
-    lupa.classList.toggle('muerto', !vivo);
-    const r = canto.getBoundingClientRect();
-    /* El globo va sobre el dedo y pegado al canto del panel si no cabe: un
-       aviso que se sale de la pantalla no avisa. */
-    const mitad = lupa.offsetWidth / 2 || 60;
-    const cx = Math.min(Math.max(x - r.left, mitad + 4), r.width - mitad - 4);
-    lupa.style.left = Math.round(cx) + 'px';
-    lupa.style.top  = Math.round(y - r.top - 12) + 'px';
-    lupa.classList.add('viva');
-  };
-  const limpiar = () => {
-    clearTimeout(reloj); reloj = null;
-    armado = false; activo = false; pid = null;
-    lupa.classList.remove('viva');
-    if (caja){ caja.style.removeProperty('touch-action'); caja = null; }
-    document.removeEventListener('pointermove', mueve, true);
-    document.removeEventListener('pointerup', arriba, true);
-    document.removeEventListener('pointercancel', aborta, true);
-  };
-  /* CANCELAR NO ES SOLTAR. Si el navegador se queda con el gesto —porque
-     decidió desplazar, o porque entró otro dedo— llega un pointercancel, y eso
-     NO es "he elegido este libro": es "aquí no ha pasado nada". Antes los dos
-     caminos terminaban en el mismo sitio y una cancelación abría un libro al
-     azar. */
-  function aborta(){ marcar(null); limpiar(); }
-  function arriba(){
-    const t = activo ? ultimo : null;
-    marcar(null);
-    const eraLupa = activo;
-    limpiar();
-    if (!eraLupa) return;          /* fue un toque o un desliz: no es cosa nuestra */
-    /* Fue lupa: el desenlace es suyo, y el click que viene detrás sobra
-       —abriría los capítulos del libro donde EMPEZÓ el dedo, no del que
-       elegiste—. Se traga uno solo, y en captura para llegar antes. */
-    const tragar = e => { e.stopPropagation(); e.preventDefault(); };
-    document.addEventListener('click', tragar, { capture:true, once:true });
-    setTimeout(() => document.removeEventListener('click', tragar, true), 350);
-    if (t) abrirCapitulosDe(t);
-  }
-  function mueve(ev){
-    if (ev.pointerId !== pid) return;
-    if (!activo){
-      /* Todavía esperando: si el dedo se va, era para desplazar. */
-      if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > RUIDO) limpiar();
-      return;
-    }
-    ev.preventDefault();
-    poner(libroEn(ev.clientX, ev.clientY), ev.clientX, ev.clientY);
-  }
-  function engancharse(){
-    if (!armado) return;
-    armado = false; activo = true;
-    /* Y SE APAGA EL ACUSE DEL LIBRO DONDE EMPEZÓ EL DEDO. Al apoyarse se le
-       encendió el borde, que entonces era verdad: un toque sobre ese libro
-       iba a abrir su cascada. Desde que la lupa engancha ya no lo es —el
-       dedo se va a pasear y el desenlace será el libro sobre el que suelte,
-       que casi nunca es éste— y además el click de ese libro se lo traga
-       arriba(), así que sin esto el borde se quedaría encendido durante todo
-       el paseo, señalando el libro equivocado. */
-    apagarObrando(true);
-    /* Se congela el desplazamiento de la lista mientras dura la lupa. */
-    if (caja) caja.style.touchAction = 'none';
-    poner(libroEn(x0, y0), x0, y0);
-  }
-  canto.addEventListener('pointerdown', ev => {
-    const t = ev.target.closest && ev.target.closest('.tabo');
-    if (!t || !ev.target.closest('.rejilla-libros')) return;
-    limpiar();
-    armado = true; pid = ev.pointerId;
-    x0 = ev.clientX; y0 = ev.clientY;
-    caja = ev.target.closest('.rejilla-libros');
-    reloj = setTimeout(engancharse, ESPERA);
-    document.addEventListener('pointermove', mueve, true);
-    document.addEventListener('pointerup', arriba, true);
-    document.addEventListener('pointercancel', aborta, true);
-  });
-})();
-/* El mismo desenlace que un toque, para que la lupa y el click no cuenten dos
-   historias distintas de lo que pasa al elegir un libro.
-
-   TOCAR EL LIBRO LO MARCA Y ABRE SUS CAPÍTULOS. NI UNA HOJA SE MUEVE.
+/* AQUÍ ESTABA LA LUPA DEL PANEL DE LIBROS, y se quitó a petición del dueño
+   del repo: «quita la lupa, no la necesitamos». Era un globo que salía sobre
+   el dedo cuando se dejaba quieto 200 ms encima de un libro, y que al
+   arrastrar iba diciendo qué libro había debajo; el de debajo crecía
+   (.tabo.bajoeldedo) y al soltar se abrían sus capítulos. Nació cuando los
+   renglones medían 26 px y el dedo tapaba el nombre; con los botones a 52 px
+   y separados por sección ya no hacía falta, y estorbaba al desliz de lado
+   para cambiar de testamento, que la confundía consigo. Ahora un libro se
+   elige como cualquier botón: tocándolo. */
+/* TOCAR EL LIBRO LO MARCA Y ABRE SUS CAPÍTULOS. NI UNA HOJA SE MUEVE.
 
    Aquí hubo un viaje y se ha ido, y las dos mitades de esa historia valen la
    pena. El problema original era real: el toque no acusaba nada —la marca la
