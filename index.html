@@ -6545,7 +6545,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 17:18';
+window.GLOSS_BUILD = '03-NOV-26 17:21';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17708,8 +17708,17 @@ function cantoFinDeEntrada(ev){
     r.classList.remove('yendose');
     r.classList.add('volviendo');
     r.style.transform = ''; r.style.opacity = '';
-    const fin = () => r.classList.remove('volviendo');
-    r.addEventListener('transitionend', fin, { once:true });
+    /* SE ESPERA AL TRANSFORM DE LA PROPIA LISTA, no al primer transitionend
+       que llegue. La opacidad acaba antes (.25 s contra .42 s) y su aviso
+       quitaba la clase con el resorte a medio camino: la lista saltaba a su
+       sitio sin rebotar. Y los libros de dentro tienen sus transiciones, cuyos
+       avisos suben hasta aquí. Lo cazó Codex en revisión. */
+    const fin = ev => {
+      if (ev && (ev.target !== r || ev.propertyName !== 'transform')) return;
+      r.removeEventListener('transitionend', fin);
+      r.classList.remove('volviendo');
+    };
+    r.addEventListener('transitionend', fin);
     setTimeout(fin, 500);
   };
   cuerpo.addEventListener('pointerdown', ev => {
@@ -17775,8 +17784,14 @@ function cantoFinDeEntrada(ev){
     r.style.transform = 'translateX(' + Math.round(Math.sign(dx) * ancho * .45) + 'px)';
     r.style.opacity = '0';
     let hecho = false;
-    const sigue = () => { if (hecho) return; hecho = true; cantoVerTestamento(a); };
-    r.addEventListener('transitionend', sigue, { once:true });
+    /* Lo mismo al irse: solo cuenta el transform de la lista. */
+    const sigue = ev => {
+      if (ev && (ev.target !== r || ev.propertyName !== 'transform')) return;
+      if (hecho) return; hecho = true;
+      r.removeEventListener('transitionend', sigue);
+      cantoVerTestamento(a);
+    };
+    r.addEventListener('transitionend', sigue);
     setTimeout(sigue, 220);
   }
 })();
