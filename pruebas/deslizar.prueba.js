@@ -46,7 +46,19 @@ const DESLIZ = `async ({ dx, dy, pasos, ms, click, quieto, libro }) => {
   el.dispatchEvent(new PointerEvent('pointerdown', o(x0, y0)));
   /* «quieto»: el dedo se posa y espera antes de moverse, que es como se
      engancha la lupa. */
-  if (quieto) await pausa(quieto);
+  /* Y SE ESPERA A QUE LA LUPA ENGANCHE DE VERDAD, no un rato fijo. La lupa
+     se arma con un setTimeout de 200 ms, y en una máquina cargada ese reloj
+     llega tarde: con una pausa fija el dedo empezaba a moverse antes de que
+     enganchara, la lupa se retiraba por el movimiento y la prueba culpaba a
+     la app de no abrir los capítulos. Pasó en una corrida del banco. */
+  let lupa = null;
+  if (quieto){
+    await pausa(quieto);
+    const t0 = performance.now();
+    while (performance.now() - t0 < 1500 && !document.querySelector('#lupaLibro.viva'))
+      await pausa(30);
+    lupa = !!document.querySelector('#lupaLibro.viva');
+  }
   let mitad = null;
   for (let i = 1; i <= pasos; i++){
     await pausa(ms);
@@ -60,12 +72,21 @@ const DESLIZ = `async ({ dx, dy, pasos, ms, click, quieto, libro }) => {
     }
   }
   el.dispatchEvent(new PointerEvent('pointerup', o(x0 + dx, y0 + dy)));
+  const debajo = (document.elementFromPoint(x0 + dx, y0 + dy) || {}).closest
+    ? (document.elementFromPoint(x0 + dx, y0 + dy).closest('.tabo') || {}).dataset : null;
   if (click) el.dispatchEvent(new MouseEvent('click', o(x0 + dx, y0 + dy)));
   await pausa(900);
   const caps = document.getElementById('flyCaps');
+  /* Con lupa, la cascada puede tardar un poco más en salir: se espera a que
+     salga, con tope, en vez de mirar una sola vez. */
+  if (quieto){
+    const t1 = performance.now();
+    while (performance.now() - t1 < 2000 && !(caps && getComputedStyle(caps).display !== 'none'))
+      await pausa(50);
+  }
   const r = document.querySelector('#canto .rejilla-libros');
   return { testa: (document.querySelector('#canto .canto-tab.aqui') || {}).dataset.testa,
-           mitad, cascada: !!caps && getComputedStyle(caps).display !== 'none',
+           mitad, lupa, debajo: debajo && debajo.libro, cascada: !!caps && getComputedStyle(caps).display !== 'none',
            quieta: r ? (r.style.transform || 'none') : null };
 }`;
 
@@ -124,6 +145,8 @@ const DESLIZ = `async ({ dx, dy, pasos, ms, click, quieto, libro }) => {
      izquierda caen sobre otro libro, que es el que la lupa tiene que abrir. */
   const conLupa = await desliz({ dx:-200, dy:4, pasos:10, ms:30, click:true, quieto:350, libro:'NUM' });
   di('el gesto', conLupa);
+  vale('(la prueba es válida) la lupa enganchó antes de mover el dedo', conLupa.lupa === true, conLupa.lupa);
+  vale('(la prueba es válida) al soltar hay un libro debajo del dedo', !!conLupa.debajo, conLupa.debajo);
   vale('no cambia de testamento', conLupa.testa === 'AT', conLupa.testa);
   vale('  ni corre la lista bajo el globo', !conLupa.mitad, conLupa.mitad);
   vale('  y la lupa abre los capítulos al soltar', conLupa.cascada === true, conLupa.cascada);
