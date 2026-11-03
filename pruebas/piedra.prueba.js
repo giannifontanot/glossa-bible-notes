@@ -259,7 +259,7 @@ async function andamio(p){
   vale('la lista trae el botón, y dice «Nueva»',
        (puesta.rotulo || '').trim() === 'Nueva', puesta.falta || puesta.rotulo);
   vale('  y el rótulo hablado sí dice lo que deja y dónde',
-       /piedra/i.test(puesta.voz || '') && /hoja/i.test(puesta.voz || ''),
+       /perla/i.test(puesta.voz || '') && /hoja/i.test(puesta.voz || ''),
        puesta.voz);
   vale('deja una guardada', (puesta.guardadas || []).length === puesta.antes + 1,
        (puesta.guardadas || []).length);
@@ -277,7 +277,7 @@ async function andamio(p){
   vale('se ve en la hoja', !!puesta.piedra, puesta.piedra);
   di('el aviso de ponerla', puesta.aviso);
   vale('SE ESCRIBIÓ UN AVISO, para que el control valga algo',
-       /piedra puesta/i.test((puesta.aviso || {}).dice || ''), puesta.aviso);
+       /perla puesta/i.test((puesta.aviso || {}).dice || ''), puesta.aviso);
   vale('  y NO sale en pantalla', (puesta.aviso || {}).sale === false, puesta.aviso);
   /* NACE EN EDICIÓN, y eso es media explicación de cómo funciona: aparece con
      su mando puesto, así que se ve de entrada que se puede mover y cambiar. */
