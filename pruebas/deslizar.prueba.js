@@ -121,8 +121,17 @@ const DESLIZ = `async ({ dx, dy, pasos, ms, click, quieto, libro }) => {
   di('el desliz', alAntiguo);
   vale('cambia al Antiguo', alAntiguo.testa === 'AT', alAntiguo.testa);
 
-  titulo('un desliz corto y lento no cambia');
-  const corto = await desliz({ dx:-45, dy:4, pasos:12, ms:60, click:true });
+  titulo('un desliz corto no cambia');
+  /* CORTO, Y QUE ARRANQUE ENSEGUIDA. Estuvo a 45 px en 720 ms —doce pasos de
+     60—, y eso deja el dedo casi quieto los primeros 200 ms: en el tercer paso
+     apenas lleva 11 px, uno más que lo que la lupa perdona. Según cuándo
+     llegara su reloj, unas veces era desliz y otras enganchaba la lupa y
+     abría capítulos, que es exactamente lo que debe hacer un dedo que se
+     posa. Una corrida del banco cayó del lado de la lupa. Lo que esta prueba
+     quiere ver es un desliz que no llega: arranca ya —15 px en el primer
+     paso, fuera del alcance de la lupa— y se queda en 45, a 0.3 px/ms, por
+     debajo del umbral de lanzar (0.45) y lejos del cuarto de ancho. */
+  const corto = await desliz({ dx:-45, dy:4, pasos:3, ms:50, click:true });
   di('el desliz', corto);
   vale('se queda en el Antiguo', corto.testa === 'AT', corto.testa);
   vale('  y la lista vuelve a su sitio', corto.quieta === 'none' || corto.quieta === '', corto.quieta);
