@@ -6517,7 +6517,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 12:55';
+window.GLOSS_BUILD = '03-NOV-26 15:09';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -19674,7 +19674,7 @@ const PIEDRA_TINTAS = [
   ['indigo',       'índigo',        '#2f4a78', '#22375a'],
   ['ocre',         'ocre',          '#a4761d', '#845c12'],
   ['ciruela',      'ciruela',       '#6b3a63', '#502c4a'],
-  ['perla',        'blanco perla',  '#f1ebdd', '#bdb19a'],
+  ['perla',        'perla',         '#ecdccb', '#b49c86'],
   ['carmin-vivo',  'carmín vivo',   '#d80b0b', '#a20808'],
   ['oliva-vivo',   'oliva vivo',    '#57b409', '#418707'],
   ['indigo-vivo',  'índigo vivo',   '#0a4cbc', '#08398d'],
@@ -19688,7 +19688,11 @@ const PIEDRA_TINTAS = [
    sepia vivo pasa a blanco perla— en vez de caer al color de respaldo, que
    sería cambiarle el color a escondidas a lo que el lector ya había puesto.
    Su sombra va bastante más oscura que la de los demás a propósito: es la
-   que dibuja el canto de un blanco sobre el papel crema. */
+   que dibuja el canto de un blanco sobre el papel crema.
+   Y NO ES BLANCO. Lo fue primero —#f1ebdd— y el dueño del repo lo vio:
+   «las perlas no son así». Entre marfil rosado, crema nacarada, gris perla
+   y champán eligió el marfil rosado, que es la perla de collar que imagina
+   cualquiera. Por eso se llama «perla» a secas y no «blanco perla». */
 const TINTA_VIEJA = { 'sepia-vivo':'perla' };
 const tintaVigente = c => TINTA_VIEJA[c] || c;
 const tintaDe = c => PIEDRA_TINTAS.find(t => t[0] === tintaVigente(c)) || PIEDRA_TINTAS[0];
