@@ -6462,7 +6462,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '02-NOV-26 20:12';
+window.GLOSS_BUILD = '02-NOV-26 20:15';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17186,6 +17186,13 @@ function seccionesDibujar(){
     svg.setAttribute('aria-hidden', 'true');
     r.insertBefore(svg, r.firstChild);
   }
+  /* SE ENCOGE A CERO ANTES DE MEDIR. El dibujo cuelga dentro de la rejilla, y
+     aunque vaya en absolute CUENTA para el desplazamiento de ella: medido con
+     el dibujo viejo puesto, el scrollHeight es el del dibujo viejo. Y como se
+     le devuelve esa misma medida, la lista ya no podía encogerse nunca: al
+     girar el teléfono, o al soltar el libro que había crecido bajo el dedo,
+     quedaba papel en blanco debajo de los libros. Lo cazó Codex en revisión. */
+  svg.setAttribute('width', 0); svg.setAttribute('height', 0);
   const ancho = r.scrollWidth, alto = r.scrollHeight;
   svg.setAttribute('width', ancho); svg.setAttribute('height', alto);
   svg.setAttribute('viewBox', '0 0 ' + ancho + ' ' + alto);

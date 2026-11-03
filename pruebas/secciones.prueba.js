@@ -94,8 +94,16 @@ const MEDIR = `(grupos) => {
   /* Una figura por sección: el camino tiene un solo «M». */
   const partidas = fondos.filter(f => (f.getAttribute('d').match(/M/g) || []).length !== 1)
                          .map(f => f.dataset.seccion);
+  /* El dibujo no puede ser más grande que la lista: si lo es, la estira y
+     deja papel en blanco debajo o un desplazamiento de lado que no lleva a
+     nada. Lo de abajo del todo es el aire final, que ya es parte de la lista. */
+  const aire = r.querySelector('.aire-final');
+  const fondoLista = aire ? aire.offsetTop + aire.offsetHeight : 0;
+  const sobra = { alto: Math.round(svg.getAttribute('height') - fondoLista),
+                  ancho: Math.round(svg.getAttribute('width') - r.clientWidth),
+                  desplazaDeLado: r.scrollWidth > r.clientWidth };
   return { secciones: fondos.map(f => f.dataset.seccion), orillas, fuera, ajenos, huecos, partidas,
-           renglones: new Set(bots.map(b => b.offsetTop)).size };
+           sobra, renglones: new Set(bots.map(b => b.offsetTop)).size };
 }`;
 
 async function revisar(p, grupos, cuando){
@@ -110,6 +118,8 @@ async function revisar(p, grupos, cuando){
   vale('ningún libro sobre el fondo de otra', m.ajenos.length === 0, m.ajenos);
   vale('entre dos libros vecinos no asoma papel', m.huecos.length === 0, m.huecos);
   vale('cada sección es una sola figura', m.partidas.length === 0, m.partidas);
+  vale('el dibujo no estira la lista', m.sobra.alto <= 1 && m.sobra.ancho <= 1 && !m.sobra.desplazaDeLado,
+       m.sobra);
 }
 
 (async () => {
@@ -141,6 +151,17 @@ async function revisar(p, grupos, cuando){
   vale('de vuelta al AT', await p.evaluate(`(${IR_A})('AT')`));
   await p.waitForTimeout(300);
   await revisar(p, AT, 'AT acostado');
+
+  /* Y DE VUELTA A DE PIE, que es el caso que se rompía: acostado la lista es
+     más baja que de pie, pero al volver es al revés y el dibujo de antes ya no
+     sirve de medida. Se gira dos veces para pasar por los dos sentidos. */
+  titulo('y de vuelta a de pie');
+  await p.setViewportSize(v);
+  await p.waitForTimeout(700);
+  await revisar(p, AT, 'AT otra vez de pie');
+  await p.setViewportSize({ width: v.height, height: v.width });
+  await p.waitForTimeout(700);
+  await revisar(p, AT, 'AT acostado otra vez');
 
   await cerrar(sesion);
 })();
