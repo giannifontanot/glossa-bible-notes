@@ -6476,7 +6476,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 01:37';
+window.GLOSS_BUILD = '03-NOV-26 01:39';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17245,6 +17245,20 @@ function seccionesDibujar(){
   /* El nombre va en el fondo para quien lo mire desde fuera —el banco de
      pruebas, el inspector—: sin él, cinco caminos iguales no dicen cuál es
      cuál. */
+  /* Y LA SILUETA DE TODAS JUNTAS, un borde más oscuro alrededor del bloque
+     entero de libros. Pedido por el dueño del repo, para que el bloque se lea
+     como una pieza.
+     No se calcula: se dibuja la orilla de CADA sección al doble de grueso y
+     POR DEBAJO de los fondos. Cada fondo tapa la mitad de dentro de su
+     orilla, así que lo que queda a la vista es la mitad de fuera; y donde dos
+     secciones se tocan, la mitad de fuera de una cae debajo del fondo de la
+     otra y no se ve nada. Lo que asoma es justo el contorno de fuera.
+     Se probó antes juntando todas las figuras en una y trazando su borde, y
+     no valía: esa figura tiene escalones que no tiene ninguna sección —dos
+     renglones que acaban a pocos píxeles uno del otro—, y sus esquinas no
+     caían sobre las de las secciones: salían espolones. */
+  for (const { d } of caminos)
+    out += '<path class="silueta" d="' + d + '" fill="none" stroke="#8c7449" stroke-width="3"/>';
   for (const { s, d } of caminos)
     out += '<path class="fondo" data-seccion="' + s.nombre + '" d="' + d + '" fill="' + s.fondo + '"/>';
   for (const { s, d } of caminos)
