@@ -471,7 +471,10 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
      diciendo lo que tiene que decir. */
   const luz = c => { const m = (String(c).match(/[\d.]+/g) || []).map(Number);
                      return m.length >= 3 ? (m[0] + m[1] + m[2]) / 3 : null; };
-  vale('  EL ELEGIDO VA EN SEPIA, oscuro, y los demás en blanco',
+  /* Desde los fondos por sección el elegido no va en sepia sino en el tono
+     oscuro de SU sección. Lo que esta prueba pide no cambia: oscuro el
+     elegido, claros los demás, y la letra al revés de su fondo. */
+  vale('  EL ELEGIDO VA OSCURO, y los demás en blanco',
        luz(salto.fondo) < 150 && luz(salto.sinElegir.fondo) > 230,
        'elegido ' + salto.fondo + ' · suelto ' + salto.sinElegir.fondo);
   vale('  Y SU LETRA VA EN BLANCO, que es lo que lo hace legible',
