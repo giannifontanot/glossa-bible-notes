@@ -169,6 +169,57 @@ const DESLIZ = `async ({ dx, dy, pasos, ms, click, libro }) => {
   /* Y de vuelta al Antiguo para lo que sigue. */
   await desliz({ dx:200, dy:-5, pasos:10, ms:20, click:true });
 
+  titulo('un desliz encima de otro va con el dedo');
+  /* Dos deslices seguidos, sin la pausa de las demás pruebas: el segundo
+     empieza mientras la lista nueva todavía está entrando. La entrada es una
+     animación de CSS, y una animación manda sobre el transform que pone el
+     dedo; si no se quita, la lista sigue entrando medio segundo y no va con
+     el dedo. Se mira a mitad del segundo gesto que lo que se ve (el
+     transform calculado) es lo que el dedo pidió (el de la línea). */
+  const encima = await p.evaluate(async () => {
+    const pausa = t => new Promise(z => setTimeout(z, t));
+    const c = document.getElementById('cantoCuerpo');
+    const gesto = async (dx, id, mirarEn) => {
+      const el = c.querySelector('.rejilla-libros .tabo.viva');
+      if (!el) return { sinLibro: true };
+      const q = el.getBoundingClientRect();
+      const x0 = q.left + q.width / 2 + 1, y0 = q.top + q.height / 2 - 1;
+      const o = (x, y) => ({ bubbles:true, cancelable:true, pointerId:id, pointerType:'touch',
+                             isPrimary:true, clientX:x, clientY:y });
+      el.dispatchEvent(new PointerEvent('pointerdown', o(x0, y0)));
+      let visto = null;
+      for (let i = 1; i <= 10; i++){
+        await pausa(18);
+        el.dispatchEvent(new PointerEvent('pointermove', o(x0 + dx * i / 10 + (i % 2 ? .8 : -.6), y0 + (i % 2 ? 1.1 : -.8))));
+        if (i === mirarEn){
+          const r = c.querySelector('.rejilla-libros');
+          const m = /translateX\((-?[\d.]+)px\)/.exec(r.style.transform || '');
+          visto = { linea: m ? +m[1] : null,
+                    calculado: new DOMMatrix(getComputedStyle(r).transform).m41,
+                    llega: r.classList.contains('llega') };
+        }
+      }
+      el.dispatchEvent(new PointerEvent('pointerup', o(x0 + dx, y0)));
+      el.dispatchEvent(new MouseEvent('click', o(x0 + dx, y0)));
+      return visto;
+    };
+    await gesto(-210, 13, 0);
+    /* El irse dura .16 s; a los 260 ms la nueva lleva unos 100 ms entrando. */
+    await pausa(260);
+    const enLlegada = !!c.querySelector('.rejilla-libros.llega');
+    const visto = await gesto(200, 14, 6);
+    await pausa(1100);
+    return { enLlegada, visto,
+             testa: (document.querySelector('#canto .canto-tab.aqui') || {}).dataset.testa };
+  });
+  di('dos seguidos', encima);
+  vale('(la prueba es válida) el segundo empezó con la nueva todavía entrando', encima.enLlegada === true, encima.enLlegada);
+  vale('(la prueba es válida) a mitad del segundo, el dedo ya mandaba en la línea',
+       encima.visto && encima.visto.linea > 40, encima.visto);
+  vale('LA LISTA VA CON EL DEDO, no con su entrada',
+       encima.visto && Math.abs(encima.visto.calculado - encima.visto.linea) < 3, encima.visto);
+  vale('  y vuelve al Antiguo', encima.testa === 'AT', encima.testa);
+
   /* AQUÍ ESTABA «CON LA LUPA ENGANCHADA, EL GESTO ES DE LA LUPA», y se fue
      con la lupa, que el dueño del repo pidió quitar. */
 

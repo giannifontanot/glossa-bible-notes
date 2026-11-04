@@ -6520,7 +6520,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 19:58';
+window.GLOSS_BUILD = '03-NOV-26 20:00';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17734,7 +17734,11 @@ function cantoFinDeEntrada(ev){
       g.nuestro = true;
       if (typeof apagarObrando === 'function') apagarObrando(true);
       const r = lista();
-      if (r) r.classList.remove('volviendo', 'yendose');
+      /* Y también .llega: un desliz nuevo puede empezar con la lista de antes
+         todavía entrando, y una animación de CSS manda sobre el transform en
+         línea que pone el dedo. Sin quitarla, la lista seguía su entrada medio
+         segundo en vez de ir con el dedo. Lo cazó Codex en revisión. */
+      if (r) r.classList.remove('volviendo', 'yendose', 'llega');
     }
     ev.preventDefault();
     g.dx = dx;
