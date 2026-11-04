@@ -4782,6 +4782,30 @@
     transition:transform .42s cubic-bezier(.34,1.56,.64,1), opacity .25s linear; }
   #cantoCuerpo .rejilla-libros.yendose{
     transition:transform .16s cubic-bezier(.4,0,1,1), opacity .16s linear; }
+  /* EL DESLIZ NO SE APAGA. La primera versión, al soltar, dejaba la lista
+     donde estaba y la desvanecía hasta cero; luego el panel entero volvía a
+     encenderse desde cero con entraConRebote. Medido cuadro a cuadro: unos
+     170 ms bajando a negro, un cuadro vacío y 250 ms subiendo. El dueño del
+     repo lo vio así: «se desliza, se apaga y se prende».
+
+     Ahora es un movimiento y no un fundido: la lista que se va sigue de largo
+     hasta salir por el lado al que la llevaba el dedo, sin apagarse, y la
+     nueva entra deslizándose ENTERA desde el lado contrario, con su rebote y
+     a opacidad plena. La pestaña sigue usando entraConRebote: un toque no
+     trae inercia que continuar, y ahí el fundido corto no molesta.
+
+     Se anima la rejilla y no #cantoCuerpo: el cuerpo tiene desbordamiento,
+     así que recorta a su hija mientras entra por fuera del borde. Animando
+     el cuerpo, la lista se pintaba sobre lo que hubiera al lado del panel. */
+  #cantoCuerpo.testamentos{ overflow-x:hidden; }
+  #cantoCuerpo .rejilla-libros.llega{
+    animation:entraDeslizando .5s cubic-bezier(.2,.7,.3,1) both; }
+  @keyframes entraDeslizando{
+    0%  { transform:translateX(calc(100% * var(--dir, 1))); }
+    62% { transform:translateX(calc(-12px * var(--dir, 1))); }
+    84% { transform:translateX(calc(4px * var(--dir, 1))); }
+    100%{ transform:none; }
+  }
   /* pan-y: el desplazamiento de arriba abajo sigue siendo del navegador, y el
      de lado nos lo deja a nosotros. Sin esto, en Android el gesto de lado se
      lo queda el navegador —para el sobredesplazamiento o para volver atrás— y
@@ -4791,6 +4815,7 @@
     #cantoCuerpo.cambia{ animation:none; }
     #cantoCuerpo .rejilla-libros.volviendo,
     #cantoCuerpo .rejilla-libros.yendose{ transition:none; }
+    #cantoCuerpo .rejilla-libros.llega{ animation:none; }
   }
   /* Con el dedo, al suelo de la casa: son dos blancos y nada más en su
      renglón, así que no hay razón para dejarlos en 24 px. */
@@ -6495,7 +6520,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 17:52';
+window.GLOSS_BUILD = '03-NOV-26 20:00';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17563,7 +17588,7 @@ function cantoPestanasHTML(){
 /* Cambiar de pestaña rehace la lista, así que se lleva por delante la cascada
    de capítulos: estaba colgada de un botón que ya no existe, y una cajita
    flotando junto a un libro de otro testamento no dice nada. */
-function cantoVerTestamento(id){
+function cantoVerTestamento(id, deslizado){
   if (id !== 'AT' && id !== 'NT') return;
   if (cantoTesta === id) return;
   /* De dónde viene lo nuevo: del Antiguo se entra por la izquierda, del Nuevo
@@ -17578,6 +17603,29 @@ function cantoVerTestamento(id){
   ocultarCascada();
   pintarCanto();
   const c = $('cantoCuerpo');
+  /* DESDE EL DESLIZ, la que entra es la rejilla nueva, deslizándose entera
+     —ver entraDeslizando—. Los fondos de sección se dibujan YA y no en el
+     cuadro siguiente: con la lista a opacidad plena desde el primer cuadro,
+     ese cuadro de espera se veía como un parpadeo de los colores. Aquí el
+     panel está a la vista, así que los botones ya tienen sitio. */
+  const r = deslizado && c.querySelector('.rejilla-libros');
+  if (r){
+    c.classList.remove('cambia');
+    if (typeof seccionesDibujar === 'function') seccionesDibujar();
+    r.style.setProperty('--dir', dir);
+    /* La clase se quita al terminar, por lo mismo que .cambia: puesta para
+       siempre, reabrir el panel rearrancaría la entrada. */
+    const fin = ev => {
+      if (ev.target !== r) return;
+      r.removeEventListener('animationend', fin);
+      r.removeEventListener('animationcancel', fin);
+      r.classList.remove('llega');
+    };
+    r.addEventListener('animationend', fin);
+    r.addEventListener('animationcancel', fin);
+    r.classList.add('llega');
+    return;
+  }
   /* Se quita y se vuelve a poner en el mismo tirón: sin quitarla, cambiar dos
      veces seguidas de pestaña no reinicia la animación —ya está puesta— y la
      segunda entra sin moverse. El offsetWidth de en medio es lo que obliga al
@@ -17686,7 +17734,11 @@ function cantoFinDeEntrada(ev){
       g.nuestro = true;
       if (typeof apagarObrando === 'function') apagarObrando(true);
       const r = lista();
-      if (r) r.classList.remove('volviendo', 'yendose');
+      /* Y también .llega: un desliz nuevo puede empezar con la lista de antes
+         todavía entrando, y una animación de CSS manda sobre el transform en
+         línea que pone el dedo. Sin quitarla, la lista seguía su entrada medio
+         segundo en vez de ir con el dedo. Lo cazó Codex en revisión. */
+      if (r) r.classList.remove('volviendo', 'yendose', 'llega');
     }
     ev.preventDefault();
     g.dx = dx;
@@ -17694,7 +17746,10 @@ function cantoFinDeEntrada(ev){
     if (!r || sinMovimiento()) return;
     const x = destino(dx) ? dx : dx / 3;
     r.style.transform = 'translateX(' + Math.round(x) + 'px)';
-    r.style.opacity = String(Math.max(.35, 1 - Math.abs(x) / g.ancho * .8));
+    /* Se atenúa poco y nunca a menos de .7: un desliz es mover la lista, no
+       irla apagando. Llegó a bajar hasta .35, y sumado al fundido de salida
+       era la mitad del parpadeo. */
+    r.style.opacity = String(Math.max(.7, 1 - Math.abs(x) / g.ancho * .4));
   }
   function cancela(ev){
     if (!g || ev.pointerId !== g.id) return;
@@ -17716,18 +17771,19 @@ function cantoFinDeEntrada(ev){
     const rapido = Math.abs(dx) / Math.max(1, performance.now() - t0) > LANZA && Math.abs(dx) > 30;
     if (!a || !(Math.abs(dx) > ancho * UMBRAL || rapido)){ aSuSitio(r); return; }
     if (!r || sinMovimiento()){ cantoVerTestamento(a); return; }
-    /* Lo que está se va hacia donde lo llevaba el dedo, y al terminar entra el
-       otro desde el lado contrario, con su rebote. */
+    /* Lo que está se va hacia donde lo llevaba el dedo, HASTA SALIR, y al
+       terminar entra el otro desde el lado contrario, con su rebote. Antes se
+       paraba en el 45 % del ancho —casi donde ya la tenía el dedo— y se
+       apagaba allí: no se iba, se desvanecía. */
     r.classList.add('yendose');
-    r.style.transform = 'translateX(' + Math.round(Math.sign(dx) * ancho * .45) + 'px)';
-    r.style.opacity = '0';
+    r.style.transform = 'translateX(' + Math.round(Math.sign(dx) * ancho) + 'px)';
     let hecho = false;
     /* Lo mismo al irse: solo cuenta el transform de la lista. */
     const sigue = ev => {
       if (ev && (ev.target !== r || ev.propertyName !== 'transform')) return;
       if (hecho) return; hecho = true;
       r.removeEventListener('transitionend', sigue);
-      cantoVerTestamento(a);
+      cantoVerTestamento(a, true);
     };
     r.addEventListener('transitionend', sigue);
     setTimeout(sigue, 220);
