@@ -195,15 +195,15 @@ const IR_A = `async (sec) => {
      estar diciendo solamente que en esta sesión no se anima nada.
 
      Y NO SE MIDE SOBRE UN LIBRO, que fue el primer intento y salió verde por
-     el motivo equivocado. Un dedo apoyado en un libro y quieto 200 ms gana
-     la lupa, y la lupa apaga el acuse a propósito —es lo que se comprueba
-     unas líneas más abajo—: para cuando la medición llevaba un ciclo, el
-     borde estaba apagado desde hacía rato y los seis fondos distintos que
-     contaba eran los de bajoeldedo, no los del latido. Contaba movimiento
-     de verdad, del sitio equivocado. La línea de validez es la que lo
-     destapó. Así que se mide sobre el botón de cerrar, que está en el mismo
-     panel y no lo toca la lupa —solo se arma dentro de .rejilla-libros—.
-     Se suelta con pointercancel para no cerrar el panel de paso. */
+     el motivo equivocado. Entonces había una lupa: un dedo apoyado en un
+     libro y quieto 200 ms la enganchaba, y la lupa apagaba el acuse a
+     propósito. Para cuando la medición llevaba un ciclo, el borde estaba
+     apagado desde hacía rato y los seis fondos distintos que contaba eran
+     los del libro bajo el dedo, no los del latido. Contaba movimiento de
+     verdad, del sitio equivocado. La lupa ya no está, pero se sigue midiendo
+     sobre el botón de cerrar, que está en el mismo panel y no depende de lo
+     que haga la lista. Se suelta con pointercancel para no cerrar el panel
+     de paso. */
   await p.evaluate(() => { document.getElementById('pgCabeza').click(); });
   await p.waitForTimeout(700);
   di('   a Libros', await irA('libros'));
@@ -230,41 +230,8 @@ const IR_A = `async (sec) => {
   vale('EL MACIZO SÍ MUEVE EL FONDO (el contrafactual del aro)',
        fondoMacizo.fondos.length > 1, fondoMacizo.fondos.join(' · '));
 
-  /* ──────────────────────────────────────────────────────────────
-     LA LUPA APAGA EL ACUSE DEL LIBRO DONDE EMPEZÓ EL DEDO.
-
-     Y las dos mitades van en el MISMO gesto, que es lo que lo convierte en
-     una prueba y no en dos medias: primero se ve encendido, y después, sin
-     levantar el dedo, apagado. Medido así, «estaba apagado» no puede
-     significar «nunca llegó a encenderse». */
-  titulo('la lupa retira el acuse del libro de partida');
-  const conLupa = await p.evaluate(`(async () => {
-    const pausa = ms => new Promise(z => setTimeout(z, ms));
-    const libro = document.querySelector('#canto .rejilla-libros .tabo.viva');
-    if (!libro) return { hay:false };
-    const b = libro.getBoundingClientRect();
-    const x = b.left + b.width/2 + 1, y = b.top + b.height/2 - 1;
-    libro.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true,
-      cancelable:true, pointerId:208, pointerType:'touch', isPrimary:true,
-      clientX:x, clientY:y }));
-    await pausa(45);
-    const antes = libro.classList.contains('obrando');
-    /* La lupa se gana con 200 ms de dedo QUIETO; se espera un poco más. */
-    await pausa(280);
-    const despues = libro.classList.contains('obrando');
-    const lupa = !!document.querySelector('#lupaLibro.viva');
-    document.dispatchEvent(new PointerEvent('pointerup', { bubbles:true,
-      pointerId:208, pointerType:'touch', clientX:x, clientY:y }));
-    await pausa(400);
-    return { hay:true, antes, despues, lupa };
-  })()`);
-  di('con la lupa', JSON.stringify(conLupa));
-  vale('(la prueba es válida) la lupa llegó a engancharse',
-       conLupa.lupa === true);
-  vale('(la prueba es válida) al apoyar el dedo el libro SÍ acusaba',
-       conLupa.antes === true);
-  vale('CON LA LUPA PUESTA YA NO ACUSA: el desenlace será otro libro',
-       conLupa.despues === false);
+  /* AQUÍ ESTABA «LA LUPA RETIRA EL ACUSE DEL LIBRO DE PARTIDA», y se fue con
+     la lupa, que el dueño del repo pidió quitar. */
 
   /* ──────────────────────────────────────────────────────────────
      CANCELAR NO ES SOLTAR. */

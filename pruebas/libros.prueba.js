@@ -103,114 +103,70 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
   }));
 
   /* ================================================================
-     EL LIBRO BAJO EL DEDO CRECE, Y LOS VECINOS SE APARTAN.
+     LOS NOMBRES DE LOS LIBROS NO SE SELECCIONAN.
 
-     La lista de libros son cuadritos de 26px con el nombre dentro, y con el
-     dedo encima el nombre queda tapado justo cuando hay que leerlo. Ya había
-     una lupa —un globo que dice qué hay debajo— y se pidió además que el
-     cuadrito CREZCA: se arrastra el dedo por la lista y el de debajo se hace
-     grande, el anterior vuelve a su tamaño, y los demás se corren un poco para
-     dejarle sitio.
+     Aquí estuvo la prueba de la lupa —el libro bajo el dedo crecía—, y se fue
+     con ella: el dueño del repo la quitó. En su sitio, lo que pidió a la vez:
+     que los nombres no se puedan seleccionar. Son botones, no texto.
 
-     CRECE DE CAJA Y NO CON UN transform, y ahí está la diferencia que se
-     prueba. Un transform no ocupa sitio: el cuadrito se vería grande pero
-     encima de sus vecinos, tapándolos, y nadie se apartaría. Creciendo de
-     caja —letra, alto y relleno— la fila se reacomoda sola, que es justo lo
-     que se pidió. Por eso la prueba no mira solo el que crece: mira que el
-     de al lado SE MUEVA. Sin esa segunda mitad, un transform pasaría.
+     SE MIRA getSelection(), NO LA PROPIEDAD CSS. La regla puede estar puesta
+     y no cubrir el hueco entre botones, que es justo por donde entra la
+     selección: un arrastre que EMPIEZA en el hueco, sobre la rejilla, y cruza
+     renglones se lleva los nombres de todos. Medido con la regla quitada, se
+     llevaba «Lucas, Juan, Hechos, Romanos…». Esa es la contraprueba, y por
+     eso se arranca en el hueco y no sobre un botón.
 
-     EL GESTO ES EL DE VERDAD, con su pausa. La lupa no se gana moviéndose sino
-     quedándose quieto 200 ms —si no, cualquier desliz para desplazar la lista
-     la dispararía— así que el dedo se posa, espera, y solo entonces se
-     arrastra. Y se arrastra TORCIDO, que una línea recta no es un dedo. */
-  titulo('el libro bajo el dedo crece');
-  const lup = await abrir();
-  const pl = lup.pagina;
-  const crecer = await pl.evaluate(async () => {
+     ES RATÓN DE VERDAD, page.mouse, y no eventos despachados a mano: una
+     selección solo la arranca la entrada del navegador, y un PointerEvent
+     fabricado no selecciona nada aunque no haya regla, así que con él la
+     prueba saldría verde siempre. Y de arriba abajo, torcido: de lado sería
+     el desliz que cambia de testamento, y esto no va de eso. */
+  titulo('los nombres de los libros no se seleccionan');
+  const raton = await abrir({ viewport:{ width:390, height:844 }, isMobile:false, hasTouch:false });
+  const pr = raton.pagina;
+  await pr.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
-    document.getElementById('pgCabeza').click(); await pausa(700);
-    const pest = document.querySelector('.pestanas button[data-sec="libros"]');
-    if (pest) pest.click();
-    await pausa(700);
-    const libros = [...document.querySelectorAll('#canto .rejilla-libros .tabo')];
-    if (libros.length < 6) return { pocos: libros.length };
-    const med = e => { const r = e.getBoundingClientRect();
-      return { t:e.textContent.trim(), x:Math.round(r.left), y:Math.round(r.top),
-               w:Math.round(r.width), h:Math.round(r.height),
-               fs: parseFloat(getComputedStyle(e).fontSize) }; };
-    /* El tercero y el cuarto: en medio de su renglón, con vecinos a los dos
-       lados. El primero de una fila no probaría que nadie se aparta. */
-    const uno = libros[2], dos = libros[3];
-    const antes = { uno: med(uno), dos: med(dos) };
-    const r1 = uno.getBoundingClientRect();
-    const op = { bubbles:true, cancelable:true, pointerId:73, pointerType:'touch',
-                 isPrimary:true, clientX: Math.round(r1.left + r1.width/2),
-                 clientY: Math.round(r1.top + r1.height/2) };
-    uno.dispatchEvent(new PointerEvent('pointerdown', op));
-    await pausa(340);                       /* el dedo quieto: eso es la lupa */
-    /* Y ahora se mueve, torcido, sin salir del mismo cuadrito. */
-    document.dispatchEvent(new PointerEvent('pointermove',
-      Object.assign({}, op, { clientX: op.clientX + 2, clientY: op.clientY + 1 })));
-    await pausa(60);
-    document.dispatchEvent(new PointerEvent('pointermove',
-      Object.assign({}, op, { clientX: op.clientX + 3, clientY: op.clientY - 1 })));
-    await pausa(420);                       /* que termine de crecer */
-    const conDedo = { uno: med(uno), dos: med(dos),
-                      marcado: uno.classList.contains('bajoeldedo'),
-                      lupa: (document.getElementById('lupaLibro') || {}).textContent };
-    /* Y el dedo sigue hasta el de al lado. */
-    const r2 = dos.getBoundingClientRect();
-    document.dispatchEvent(new PointerEvent('pointermove',
-      Object.assign({}, op, { clientX: Math.round(r2.left + r2.width/2) + 1,
-                              clientY: Math.round(r2.top + r2.height/2) - 1 })));
-    await pausa(450);
-    const movido = { uno: med(uno), dos: med(dos),
-                     marcadoUno: uno.classList.contains('bajoeldedo'),
-                     marcadoDos: dos.classList.contains('bajoeldedo') };
-    /* Cancelar y no soltar: soltar abriría los capítulos y esto no va de eso. */
-    document.dispatchEvent(new PointerEvent('pointercancel', op));
-    await pausa(400);
-    return { antes, conDedo, movido,
-             enReposo: uno.classList.contains('bajoeldedo') ||
-                       dos.classList.contains('bajoeldedo') };
+    const visible = () => [...document.querySelectorAll('.rollo, #canto')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    if (!visible()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+    const t = (visible() || document).querySelector('.pestanas [data-sec="libros"]');
+    if (t) t.click();
+    await pausa(1100);
   });
-  di('antes', crecer.antes);
-  di('con el dedo encima', crecer.conDedo);
-  di('al pasar al de al lado', crecer.movido);
-  vale('(la prueba es válida) la lupa se enganchó',
-       crecer.pocos === undefined && crecer.conDedo.marcado === true,
-       crecer.pocos !== undefined ? crecer.pocos + ' libros' : crecer.conDedo);
-  vale('EL LIBRO BAJO EL DEDO CRECE',
-       crecer.conDedo.uno.h > crecer.antes.uno.h + 4 &&
-       crecer.conDedo.uno.w > crecer.antes.uno.w + 4 &&
-       crecer.conDedo.uno.fs > crecer.antes.uno.fs,
-       crecer.antes.uno.w + 'x' + crecer.antes.uno.h + ' → ' +
-       crecer.conDedo.uno.w + 'x' + crecer.conDedo.uno.h);
-  vale('  Y EL VECINO SE APARTA, o sea que crece de caja y no de transform',
-       crecer.conDedo.dos.x !== crecer.antes.dos.x ||
-       crecer.conDedo.dos.y !== crecer.antes.dos.y,
-       crecer.antes.dos.x + ',' + crecer.antes.dos.y + ' → ' +
-       crecer.conDedo.dos.x + ',' + crecer.conDedo.dos.y);
-  vale('al pasar al siguiente, el primero vuelve a su tamaño',
-       crecer.movido.marcadoUno === false &&
-       crecer.movido.uno.h <= crecer.antes.uno.h + 1, crecer.movido.uno);
-  vale('  y el nuevo es el que crece',
-       crecer.movido.marcadoDos === true &&
-       crecer.movido.dos.h > crecer.antes.dos.h + 4, crecer.movido.dos);
-  vale('y al levantar el dedo no queda ninguno grande',
-       crecer.enReposo === false, crecer.enReposo);
-
-  /* AQUÍ ESTABA LA PRUEBA DE QUE ARRASTRAR POR LOS LIBROS NO SELECCIONABA SUS
-     NOMBRES, y se va con la regla que vigilaba: el dueño del repo pidió deshacer
-     el user-select:none de la rejilla porque en el aparato de verdad no
-     funcionaba bien. Una prueba que exige lo contrario de lo que se decidió no
-     es una red, es un obstáculo.
-     Si algún día se vuelve a atacar el subrayado azul —por otro camino, ver el
-     comentario de .rejilla-libros en index.html— la prueba que hace falta es la
-     de aquí abajo: arrastre de ratón TORCIDO y mirar getSelection() al final,
-     no la propiedad CSS, que puede estar puesta en un sitio que no cubra el
-     hueco entre botones. */
-  await cerrarParcial(lup, 'la lupa');
+  const trazo = await pr.evaluate(() => {
+    const t = [...document.querySelectorAll('#canto .rejilla-libros .tabo')];
+    if (t.length < 16) return { pocos: t.length };
+    const a = t[1].getBoundingClientRect(), b = t[2].getBoundingClientRect(),
+          z = t[14].getBoundingClientRect();
+    return { x:(a.right + b.left) / 2, y:a.top + a.height / 2,
+             x2:z.left + z.width / 2, y2:z.top + z.height / 2,
+             testa:(document.querySelector('#canto .canto-tab.aqui') || {}).dataset.testa };
+  });
+  di('el trazo', trazo);
+  vale('(la prueba es válida) hay libros para cruzar', trazo.pocos === undefined, trazo.pocos);
+  /* Y el arranque cae de verdad en el hueco: si cayera sobre un botón, la
+     prueba estaría mirando el caso fácil. */
+  const enHueco = await pr.evaluate(({ x, y }) => {
+    const e = document.elementFromPoint(x, y);
+    return !!e && !e.closest('.tabo') && !!e.closest('#canto');
+  }, trazo);
+  vale('(la prueba es válida) el arrastre empieza en el hueco entre dos libros', enHueco);
+  await pr.mouse.move(trazo.x, trazo.y);
+  await pr.mouse.down();
+  for (let i = 1; i <= 12; i++){
+    await pr.mouse.move(trazo.x + (trazo.x2 - trazo.x) * i / 12 + (i % 2 ? 2 : -1.5),
+                        trazo.y + (trazo.y2 - trazo.y) * i / 12 + (i % 2 ? 1 : -1));
+    await pr.waitForTimeout(20);
+  }
+  await pr.mouse.up();
+  await pr.waitForTimeout(300);
+  const tras = await pr.evaluate(() => ({
+    sel: String(getSelection()),
+    testa: (document.querySelector('#canto .canto-tab.aqui') || {}).dataset.testa }));
+  di('después del arrastre', tras);
+  vale('(la prueba es válida) el arrastre no cambió de testamento', tras.testa === trazo.testa, tras.testa);
+  vale('ARRASTRAR POR LA LISTA NO SELECCIONA NINGÚN NOMBRE', tras.sel === '', JSON.stringify(tras.sel));
+  await cerrarParcial(raton, 'el ratón');
 
   /* ================================================================
      LAS DOS PESTAÑAS DEL TESTAMENTO.
@@ -329,10 +285,16 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
      lee como un salto y no como «se abrió otra cosa». Se reusa entraDeLado, la
      animación que ya tenían LIBROS/GLOSAS/FORMATO/RESPALDO, con el sentido
      puesto en --dir: el Antiguo viene por la izquierda y el Nuevo por la
-     derecha, que es como están las dos pestañas. */
+     derecha, que es como están las dos pestañas.
+     DESDE QUE SE PUEDE DESLIZAR, la lista ya no usa entraDeLado sino
+     entraConRebote: la misma entrada con más recorrido y un segundo rebote,
+     pedida por el dueño del repo para el gesto del dedo y puesta también en
+     las pestañas para que los dos caminos se sientan iguales. Lo que esta
+     prueba vigila sigue siendo lo mismo: que entre con movimiento, por su
+     lado, y que acabe entera. */
   di('la entrada', JSON.stringify(tabs.entrando));
-  vale('LA LISTA ENTRA CON LA MISMA ANIMACIÓN QUE LAS SECCIONES',
-       tabs.entrando.anim === 'entraDeLado', tabs.entrando.anim);
+  vale('LA LISTA ENTRA CON MOVIMIENTO: la entrada con rebote',
+       tabs.entrando.anim === 'entraConRebote', tabs.entrando.anim);
   vale('  y por el lado de su pestaña: el Antiguo, desde la izquierda',
        tabs.entrando.dir === '-1', tabs.entrando.dir);
   vale('  y acaba entera, sin quedarse a medio fundir',
