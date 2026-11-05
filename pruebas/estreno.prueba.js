@@ -283,5 +283,52 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
     await p2.close();
   }
 
+  /* ================================================================
+     AL ESTRENAR DE VERDAD: LA BEREAN, Y SUS TRES GLOSAS EN INGLÉS.
+
+     El resto de esta suite —y del banco— arranca en la Biblia Libre, como
+     alguien que ya la eligió: ver bibliaDeCasa en comun.js. Este bloque no:
+     abre con `biblia: null`, sin nada sembrado, que es el teléfono recién
+     estrenado. Pidió el dueño del repo dos cosas para él: que abra en la
+     Berean, y que en la página donde cae —Mateo 1— haya tres glosas que digan
+     algo de la escritura. En inglés, porque el texto lo es: las frases en
+     español no están en la Berean y la hoja salía sin ninguna.
+     Y el anclaje se exige igual que arriba: el trozo de ini a fin tiene que
+     ser la frase citada, en el texto de la Berean. */
+  titulo('al estrenar en la Berean');
+  const sesB = await abrir({ biblia: null });
+  const pB = sesB.pagina;
+  const enB = await pB.evaluate(() => {
+    const M = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    const D = window.GLOSSA_DATA;
+    const trozo = m => {
+      const ver = D && D.versiones[m.versionOrigen];
+      const c = ver && ver.texto[m.libro] && ver.texto[m.libro][String(m.cap)];
+      const t = (c && c[m.vers - 1]) || null;
+      return t ? t.slice(m.ini, m.fin) : null;
+    };
+    return { version: document.getElementById('pgVersion').textContent.trim(),
+             guardada: (JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}')).version,
+             mateo: M.filter(m => m.libro === 'MAT' && m.cap === 1)
+                     .map(m => ({ cita: m.cita, origen: m.versionOrigen, etiquetas: m.etiquetas,
+                                  nota: m.nota || '', bien: trozo(m) === m.cita })),
+             enElMargen: document.querySelectorAll('#pgMargin .gl').length };
+  });
+  di('estrenada', enB);
+  vale('ABRE EN LA BEREAN', enB.version === 'BSB', enB.version);
+  vale('  y la guarda como su versión', enB.guardada === 'bsb', enB.guardada);
+  vale('EN MATEO 1 HAY TRES GLOSAS', enB.mateo.length === 3, enB.mateo.length);
+  vale('  en inglés, ancladas al texto de la Berean',
+       enB.mateo.every(m => m.origen === 'bsb' && m.bien && /[a-z]/i.test(m.cita) &&
+                            !/[áéíóúñ¿¡]/i.test(m.nota)),
+       enB.mateo.map(m => m.cita + (m.bien ? '' : ' (mal anclada)')).join(' · '));
+  vale('  cada una con algo que decir de la escritura',
+       enB.mateo.every(m => m.nota.length > 60), enB.mateo.map(m => m.nota.length).join(', '));
+  vale('  con su etiqueta en inglés',
+       enB.mateo.every(m => (m.etiquetas || []).join() === 'Interesting'),
+       enB.mateo.map(m => (m.etiquetas || []).join()).join(' · '));
+  vale('  y se ven en el margen de la primera hoja', enB.enElMargen === 3, enB.enElMargen);
+  await cerrarParcial(sesB, 'el estreno en la Berean');
+
   await cerrar(sesion);
 })();

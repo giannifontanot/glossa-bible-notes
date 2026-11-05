@@ -6520,7 +6520,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 20:00';
+window.GLOSS_BUILD = '05-NOV-26 07:01';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7560,7 +7560,14 @@ let marcas = [];                 // ver el modelo en crearMarca()
 /* La versión que arranca abierta es la primera del archivo de datos, no una
    escrita a mano: si mañana bajas otras cuatro y ninguna se llama 'vbl', el
    lector no debe quedarse pidiendo algo que no existe. */
-let version = Object.keys(D.versiones)[0];
+/* LA BEREAN, SI ESTÁ. El dueño del repo pidió que quien entra por primera
+   vez abra en la Berean Standard Bible: la portada y la casilla de las guías
+   ya hablan inglés, y abrir en una Biblia española era la última pieza
+   desentonando. Si un día el archivo de datos no la trae, se cae a lo de
+   antes —la primera que haya— en vez de pedir una que no existe.
+   Solo decide el arranque de una instalación nueva: quien ya tenía una
+   versión guardada la sigue teniendo, que la restaura cargarAjustes. */
+let version = D.versiones.bsb ? 'bsb' : Object.keys(D.versiones)[0];
 /* La última etiqueta usada se guarda entre sesiones para poder salir en
    negrita en el panel de la marca. No etiqueta nada por su cuenta: la
    declara el panel, aquí solo se deja dicho que sobrevive al cierre. */
@@ -25716,15 +25723,35 @@ function armarManijasIndice(pagina, reordenar){
    todavía no existe. */
 /* LAS TRES PRIMERAS SON DE LA GENEALOGÍA DE MATEO y la cuarta no, así que el
    libro dejó de ir fijo y viaja con cada una. Ver sembrarGlosasDeEstreno. */
+/* CADA UNA EN LOS DOS IDIOMAS. Desde que la Berean es la versión de arranque,
+   el usuario nuevo cae en Mateo 1 en INGLÉS, y las frases en español no
+   aparecen en ese texto: sin la otra mitad, la primera hoja salía sin una
+   sola glosa. El dueño del repo pidió tres glosas en esa página «que digan
+   algo acerca de la escritura». `en` lleva la frase tal como está en la
+   Berean —y en la World English, que coincide en las cuatro— y su nota.
+   Cuál se usa lo decide el idioma de la versión abierta: ver idiomaVersion. */
 const GLOSAS_DE_ESTRENO = [
   { cap:1, vers:1, frase:'Hijo de David', color:'yellow',
     nota:'El título real, de entrada. El último libro lo cierra con el mismo, ' +
-         'dicho por él: Ap 22:16' },
+         'dicho por él: Ap 22:16',
+    en:{ frase:'the son of David',
+         nota:'The royal title comes first, even before Abraham. Matthew does not ' +
+              'open with a family tree but with a claim: this is the King promised ' +
+              'to David (2 Sam 7:12–16). The Bible closes with the same title, in ' +
+              'Jesus’ own mouth: Rev 22:16.' } },
   { cap:1, vers:3, frase:'su madre fue Tamar', color:'blue',
-    nota:'La genealogía nombra mujeres, y no las que uno esperaría.' },
+    nota:'La genealogía nombra mujeres, y no las que uno esperaría.',
+    en:{ frase:'by Tamar',
+         nota:'The genealogy names women — and not the ones you would expect. ' +
+              'Tamar had to fight for the justice Judah denied her (Gen 38). ' +
+              'The Messiah’s line runs through a story no family would choose to tell.' } },
   { cap:1, vers:6, frase:'la esposa de Urías', color:'green',
     nota:'No la nombra: la llama por el marido. Betsabé entra en el linaje sin ' +
-         'su nombre propio.' },
+         'su nombre propio.',
+    en:{ frase:'Uriah’s wife',
+         nota:'Matthew does not say her name; he names the man David wronged. ' +
+              'The sin stays written in the family record: the King’s line does ' +
+              'not hide what grace had to cover.' } },
   /* Y JUAN 3:16, que es el versículo que todo el mundo sabe de memoria y por
      eso mismo el que menos se lee. La nota no lo explica —no hace falta— sino
      que señala lo único que la costumbre se come: que ese «así» no es una
@@ -25732,7 +25759,11 @@ const GLOSAS_DE_ESTRENO = [
   { libro:'JHN', cap:3, vers:16, frase:'lo hizo de esta manera', color:'orange',
     nota:'No dice cuánto amó: dice cómo. El «así» de este versículo no mide el ' +
          'amor, señala la manera —y la manera viene justo después, en lo que ' +
-         'entregó—. Se aprende de memoria como una medida y es una dirección.' },
+         'entregó—. Se aprende de memoria como una medida y es una dirección.',
+    en:{ frase:'so loved the world',
+         nota:'“So” here is not how much but how: God loved the world in this way — ' +
+              'and the way comes right after, in what He gave. We memorize it as ' +
+              'a measure; it is a direction.' } },
 ];
 function sembrarGlosasDeEstreno(){
   /* EL LIBRO VA ESCRITO EN CADA UNA, no se toma del que esté abierto. Estas
@@ -25745,7 +25776,12 @@ function sembrarGlosasDeEstreno(){
   if (!porDefecto) return;
   const hoy = new Date().toISOString().slice(0,10);
   const nuevas = [];
-  for (const e of GLOSAS_DE_ESTRENO){
+  const enIngles = idiomaVersion(version) === 'en';
+  for (const e0 of GLOSAS_DE_ESTRENO){
+    /* En una versión inglesa, la mitad inglesa; si a alguna le faltara, se
+       salta: una nota en español sobre un texto en inglés no diría nada. */
+    if (enIngles && !e0.en) continue;
+    const e = enIngles ? Object.assign({}, e0, e0.en) : e0;
     const libro = e.libro || porDefecto;
     let texto = '';
     try { texto = versoTexto(version, e.cap, e.vers, libro) || ''; } catch(err){ continue; }
@@ -25768,7 +25804,7 @@ function sembrarGlosasDeEstreno(){
       despues: texto.slice(fin, fin+24),
       ini, fin, versionOrigen: version,
       estilo: 'fill', color: e.color,
-      nota: e.nota, etiquetas: ['Interesante'],
+      nota: e.nota, etiquetas: [enIngles ? 'Interesting' : 'Interesante'],
       creada: hoy
     });
   }

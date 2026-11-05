@@ -627,20 +627,50 @@ async function listo(pagina, tope = 12000){
    bloque, lejos de donde está la causa. Se envuelve aquí para que no haya que
    acordarse. */
 async function otraPagina(navegador, opciones = {}){
-  const pagina = await navegador.newPage({ ...TELEFONO, ...opciones });
+  const { biblia, ...deNavegador } = opciones;
+  const pagina = await navegador.newPage({ ...TELEFONO, ...deNavegador });
   await pagina.addInitScript(PINCEL);
+  await bibliaDeCasa(pagina, biblia);
   return pagina;
+}
+
+/* EL BANCO ARRANCA EN LA BIBLIA LIBRE, aunque la aplicación ya no.
+
+   Desde que una instalación nueva abre en la Berean —lo pidió el dueño del
+   repo—, la aplicación estrena en inglés. El banco entero se escribió contra
+   el texto español de la Biblia Libre: frases que se glosan, titulillos que se
+   leen, anclajes que se comparan. Reescribirlo todo para el inglés sería
+   cambiar cientos de comprobaciones que no tratan del idioma.
+
+   Así que cada página arranca como alguien que YA ELIGIÓ la Biblia Libre:
+   unos ajustes guardados con esa versión, sembrados antes de que el documento
+   arranque y solo si no hay ajustes —una prueba que guarda los suyos manda—.
+   No es un simulacro de la aplicación: es el estado de un usuario de verdad,
+   el que cambió de versión una vez.
+
+   Y lo que sí trata del estreno de verdad lo pide con `biblia: null`: abre
+   sin sembrar nada, como un teléfono recién estrenado. Ver estreno.prueba.js,
+   «al estrenar en la Berean». */
+const AJUSTES_LLAVE = 'glossa:ajustes:v1';
+async function bibliaDeCasa(pagina, biblia){
+  if (biblia === null) return;
+  await pagina.addInitScript(([k, v]) => {
+    try { if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify({ v:1, version:v })); }
+    catch(_){}
+  }, [AJUSTES_LLAVE, biblia || 'vbl']);
 }
 
 /* Abre la aplicación y devuelve la página, con los errores de JavaScript ya
    recogidos: que el programa no tire una excepción es parte de cada prueba y
    no algo que haya que acordarse de mirar. */
 async function abrir(opciones = {}){
+  const { biblia, ...deNavegador } = opciones;
   const navegador = await chromium.launch({ executablePath: EJECUTABLE });
-  const pagina = await navegador.newPage({ ...TELEFONO, ...opciones });
+  const pagina = await navegador.newPage({ ...TELEFONO, ...deNavegador });
   const errores = [];
   pagina.on('pageerror', e => errores.push(String(e).split('\n')[0]));
   await pagina.addInitScript(PINCEL);
+  await bibliaDeCasa(pagina, biblia);
   /* Toda recarga espera también: las pruebas recargan en veinte sitios y
      ninguna tiene por qué acordarse de la portada. */
   const recargar = pagina.reload.bind(pagina);
@@ -667,12 +697,13 @@ async function abrirEnPortada(opciones = {}){
      página ya cargada se llega tarde. Poniéndolo desde la página tampoco
      valdría para una recarga: al irse, la página sella la visita otra vez y lo
      sembrado se pierde. */
-  const { visitaHace, url, ...deNavegador } = opciones;
+  const { visitaHace, url, biblia, ...deNavegador } = opciones;
   const navegador = await chromium.launch({ executablePath: EJECUTABLE });
   const pagina = await navegador.newPage({ ...TELEFONO, ...deNavegador });
   const errores = [];
   pagina.on('pageerror', e => errores.push(String(e).split('\n')[0]));
   await pagina.addInitScript(PINCEL);
+  await bibliaDeCasa(pagina, biblia);
   if (visitaHace != null)
     await pagina.addInitScript(([k, t]) => {
       try { localStorage.setItem(k, String(t)); } catch(_){}
