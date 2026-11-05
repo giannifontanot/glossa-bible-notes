@@ -6528,7 +6528,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '05-NOV-26 07:05';
+window.GLOSS_BUILD = '05-NOV-26 09:37';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25861,6 +25861,55 @@ function sembrarGlosasDeEstreno(){
   marcas = nuevas;
   save();
 }
+/* LO DEMÁS QUE TRAE UNA INSTALACIÓN NUEVA: una perla, una cinta y un rastro.
+
+   Lo pidió el dueño del repo, a la par de las glosas de estreno y por la misma
+   razón: un lector recién abierto no enseña lo que sabe hacer. Con una perla
+   puesta, una cinta colgada y un historial con algo dentro, los tres paneles
+   que si no saldrían vacíos se explican solos.
+
+   · UNA PERLA ROJA EN 1 CORINTIOS 13:4, «el amor es paciente». Roja de las
+     vivas —la misma con la que nace una perla nueva, PIEDRA_COLOR_NUEVA— y
+     abajo hacia el centro, donde el capítulo 13 acaba y la hoja suele tener
+     blanco. Estuvo en el .82 arriba, y en un teléfono se salía de la pantalla:
+     la capa de las perlas es más ancha que lo que se ve —663 px contra 412—.
+   · UNA CINTA EN JUAN 3:16, del color con que nace la primera —CINTA_PRIMERA—.
+   · UN RASTRO DE ESCRITURAS CONOCIDAS, del más nuevo al más viejo como lo
+     apunta la aplicación, con un minuto entre una y otra para que el orden
+     sea el de la lista.
+
+   LAS MISMAS DOS REGLAS QUE LAS GLOSAS. Solo al estrenar —primeraVez, la
+   clave de las glosas nunca existió— y, además, solo si la clave de ESE cajón
+   tampoco existió nunca: si por lo que sea ya hay perlas, cintas o rastro
+   guardados, no se pisan. Y se guardan enseguida, así que desde el primer
+   momento son del lector: se mueven, se quitan y se borran como las suyas. */
+const RASTRO_DE_ESTRENO = [
+  ['JHN', 3, 16], ['PSA', 23, 1], ['1CO', 13, 4], ['PHP', 4, 13], ['ROM', 8, 28],
+  ['ISA', 40, 31], ['JER', 29, 11], ['PRO', 3, 5], ['MAT', 11, 28], ['JHN', 14, 6],
+  ['HEB', 11, 1], ['GEN', 1, 1]
+];
+function sembrarAdornosDeEstreno(){
+  const nunca = k => { try { return localStorage.getItem(k) === null; } catch(e){ return false; } };
+  const hay = (libro, cap, vers) => { try { return !!versoTexto(version, cap, vers, libro); } catch(e){ return false; } };
+  const ahora = Date.now();
+  if (nunca(PIEDRAS) && hay('1CO', 13, 4)){
+    piedras = [{ id: piedraNuevoId(), libro:'1CO', cap:13, vers:4,
+                 x:.45, y:.62, forma: FORMAS[0], tam: PIEDRA_TAM_NUEVA,
+                 color: PIEDRA_COLOR_NUEVA, sombra: true,
+                 creado: ahora, tocado: ahora }];
+    piedrasGuardar();
+  }
+  if (nunca(SEPARADORES) && hay('JHN', 3, 16)){
+    separadores = [{ id: sepNuevoId(), libro:'JHN', cap:3, vers:16,
+                     color: TELAS[CINTA_PRIMERA][0], creado: ahora, tocado: ahora }];
+    try { localStorage.setItem(SEPARADORES, JSON.stringify(separadores)); } catch(e){}
+  }
+  if (nunca(HISTORIAL)){
+    historial = RASTRO_DE_ESTRENO.filter(([l, c, v]) => hay(l, c, v))
+      .map(([libro, cap, vers], i) => ({ libro, cap, vers, t: ahora - i * 60000 }));
+    try { localStorage.setItem(HISTORIAL, JSON.stringify(historial)); } catch(e){}
+  }
+}
 /* La portada se va cuando la primera hoja ya está pintada, con un mínimo
    de tiempo para que el letrero se lea y no parpadee. */
 function quitarPortada(){
@@ -26476,6 +26525,7 @@ cargarPiedras();
    y Phares en» y «r de Urías: ». O sea el resaltado sobre trozos sin sentido.
    Lo levantó la revisión de Codex. */
 if (primeraVez) sembrarGlosasDeEstreno();
+if (primeraVez) sembrarAdornosDeEstreno();
 stage.style.transition = 'none';
 stage.style.width = ANCHO_HOJA + 'px';
 void stage.offsetWidth;

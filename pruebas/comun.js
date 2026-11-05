@@ -651,13 +651,24 @@ async function otraPagina(navegador, opciones = {}){
    Y lo que sí trata del estreno de verdad lo pide con `biblia: null`: abre
    sin sembrar nada, como un teléfono recién estrenado. Ver estreno.prueba.js,
    «al estrenar en la Berean». */
+/* Y SIN LOS ADORNOS DE ESTRENO. Una instalación nueva trae ahora una perla en
+   1 Corintios 13, una cinta en Juan 3:16 y un rastro de escrituras conocidas
+   —ver sembrarAdornosDeEstreno—. Las suites de perlas, cintas y rastro
+   cuentan lo que ponen ellas («se pusieron dos y quedó una»), y con una de
+   regalo cada cuenta saldría corrida en uno. Así que esos tres cajones
+   arrancan vacíos —'[]', que para la aplicación es «el lector ya los tuvo y
+   los vació», y por eso no siembra—. Las glosas de estreno sí se siembran,
+   como siempre: el banco se escribió con ellas puestas. */
 const AJUSTES_LLAVE = 'glossa:ajustes:v1';
+const CAJONES_SIN_ADORNO = ['glossa:piedras:v1', 'glossa:separadores:v1', 'glossa:historial:v1'];
 async function bibliaDeCasa(pagina, biblia){
   if (biblia === null) return;
-  await pagina.addInitScript(([k, v]) => {
-    try { if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify({ v:1, version:v })); }
-    catch(_){}
-  }, [AJUSTES_LLAVE, biblia || 'vbl']);
+  await pagina.addInitScript(([k, v, vacios]) => {
+    try {
+      if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify({ v:1, version:v }));
+      for (const c of vacios) if (localStorage.getItem(c) === null) localStorage.setItem(c, '[]');
+    } catch(_){}
+  }, [AJUSTES_LLAVE, biblia || 'vbl', CAJONES_SIN_ADORNO]);
 }
 
 /* Abre la aplicación y devuelve la página, con los errores de JavaScript ya
