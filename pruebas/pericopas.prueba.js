@@ -44,8 +44,14 @@ const andamio = p => p.evaluate(() => {
   };
 });
 
+/* LA VERSIÓN VA ESCRITA, LA BIBLIA LIBRE si no se dice otra. Estos ajustes
+   REEMPLAZAN los que hubiera, y desde que la aplicación estrena en la Berean,
+   unos ajustes sin versión abren en inglés: los titulillos salían «Prologue …
+   Jesus’ ascension» y la prueba los cotejaba contra el español de
+   pericopas.js. Ver bibliaDeCasa en comun.js. */
 const abrirEn = async (p, donde) => {
-  await p.evaluate(a => localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a)), donde);
+  await p.evaluate(a => localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a)),
+                   Object.assign({ version:'vbl' }, donde));
   await p.reload();
   await p.waitForTimeout(3200);
   await andamio(p);

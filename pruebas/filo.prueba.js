@@ -332,7 +332,13 @@ async function pasar(p, lado, espera){
 
   /* ---------------------------------------------------------------- */
   titulo('la primera hoja del primer libro');
-  await abrirEn(p, 'MAT', 1, 1);
+  /* EL PRIMER LIBRO SALE DE LOS DATOS, no va escrito. Estuvo escrito Mateo,
+     que era el primero cuando solo estaba el Nuevo; desde que entró el
+     Antiguo, delante de Mateo está Malaquías y el filo de la izquierda de
+     Mateo 1 SÍ tiene a dónde ir —y hace bien en ir—. La prueba seguía
+     pidiéndole que estuviera apagado. Ahora va al primero de verdad. */
+  const primerLibro = await p.evaluate(() => window.GLOSSA_DATA.libros[0].id);
+  await abrirEn(p, primerLibro, 1, 1);
   const primera = await p.evaluate(async () => {
     const partida = window.__hoja();
     const apagado = document.getElementById('edgeL').classList.contains('off');
