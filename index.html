@@ -6528,7 +6528,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '05-NOV-26 09:37';
+window.GLOSS_BUILD = '05-NOV-26 12:05';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25776,28 +25776,36 @@ function armarManijasIndice(pagina, reordenar){
    el usuario nuevo cae en Mateo 1 en INGLÉS, y las frases en español no
    aparecen en ese texto: sin la otra mitad, la primera hoja salía sin una
    sola glosa. El dueño del repo pidió tres glosas en esa página «que digan
-   algo acerca de la escritura». `en` lleva la frase tal como está en la
-   Berean —y en la World English, que coincide en las cuatro— y su nota.
+   algo acerca de la escritura». `en` lleva su nota y la frase en `frases`:
+   la de la Berean primero y, si dice otra cosa, la de la World English
+   después; se queda la primera que aparezca en el versículo.
+
+   SUBRAYAN UNA FRASE ENTERA y no dos palabras. Empezaron marcando «the son
+   of David», «by Tamar» y «Uriah’s wife», y el dueño del repo pidió más
+   texto: en la hoja, un subrayado de dos palabras casi no se ve, y la glosa
+   de estreno existe justamente para que se vea.
    Cuál se usa lo decide el idioma de la versión abierta: ver idiomaVersion. */
 const GLOSAS_DE_ESTRENO = [
   { cap:1, vers:1, frase:'Hijo de David', color:'yellow',
     nota:'El título real, de entrada. El último libro lo cierra con el mismo, ' +
          'dicho por él: Ap 22:16',
-    en:{ frase:'the son of David',
+    en:{ frases:['the genealogy of Jesus Christ, the son of David'],
          nota:'The royal title comes first, even before Abraham. Matthew does not ' +
               'open with a family tree but with a claim: this is the King promised ' +
               'to David (2 Sam 7:12–16). The Bible closes with the same title, in ' +
               'Jesus’ own mouth: Rev 22:16.' } },
   { cap:1, vers:3, frase:'su madre fue Tamar', color:'blue',
     nota:'La genealogía nombra mujeres, y no las que uno esperaría.',
-    en:{ frase:'by Tamar',
+    en:{ frases:['Judah was the father of Perez and Zerah by Tamar',
+                 'Judah became the father of Perez and Zerah by Tamar'],
          nota:'The genealogy names women — and not the ones you would expect. ' +
               'Tamar had to fight for the justice Judah denied her (Gen 38). ' +
               'The Messiah’s line runs through a story no family would choose to tell.' } },
   { cap:1, vers:6, frase:'la esposa de Urías', color:'green',
     nota:'No la nombra: la llama por el marido. Betsabé entra en el linaje sin ' +
          'su nombre propio.',
-    en:{ frase:'Uriah’s wife',
+    en:{ frases:['David was the father of Solomon by Uriah’s wife',
+                 'David the king became the father of Solomon by her who had been Uriah’s wife'],
          nota:'Matthew does not say her name; he names the man David wronged. ' +
               'The sin stays written in the family record: the King’s line does ' +
               'not hide what grace had to cover.' } },
@@ -25809,7 +25817,8 @@ const GLOSAS_DE_ESTRENO = [
     nota:'No dice cuánto amó: dice cómo. El «así» de este versículo no mide el ' +
          'amor, señala la manera —y la manera viene justo después, en lo que ' +
          'entregó—. Se aprende de memoria como una medida y es una dirección.',
-    en:{ frase:'so loved the world',
+    en:{ frases:['For God so loved the world that He gave His one and only Son',
+                 'For God so loved the world, that he gave his only born Son'],
          nota:'“So” here is not how much but how: God loved the world in this way — ' +
               'and the way comes right after, in what He gave. We memorize it as ' +
               'a measure; it is a direction.' } },
@@ -25832,17 +25841,20 @@ function sembrarGlosasDeEstreno(){
     if (enIngles && !e0.en) continue;
     const e = enIngles ? Object.assign({}, e0, e0.en) : e0;
     const libro = e.libro || porDefecto;
+    const frases = e.frases || [e.frase];
     let texto = '';
     try { texto = versoTexto(version, e.cap, e.vers, libro) || ''; } catch(err){ continue; }
     /* Sin distinguir mayúsculas: hay versiones que escriben «hijo de David» en
        minúscula y por lo demás dicen lo mismo. */
-    const ini = texto.toLowerCase().indexOf(e.frase.toLowerCase());
+    const bajo = texto.toLowerCase();
+    const frase = frases.find(f => bajo.includes(f.toLowerCase())) || '';
+    const ini = frase ? bajo.indexOf(frase.toLowerCase()) : -1;
     /* MEJOR NINGUNA QUE UNA MAL PUESTA. Si el lector abre en otra versión y
        ahí la frase no está —otra traducción, otras palabras—, esta glosa
        simplemente no se siembra. Una nota en español sobre un texto en inglés
        tampoco tendría sentido. */
     if (ini < 0) continue;
-    const fin = ini + e.frase.length;
+    const fin = ini + frase.length;
     nuevas.push({
       /* El libro entra en el id: sin él, un 3:16 de otro libro chocaría con
          éste el día que se siembre otra. */
@@ -25868,8 +25880,11 @@ function sembrarGlosasDeEstreno(){
    puesta, una cinta colgada y un historial con algo dentro, los tres paneles
    que si no saldrían vacíos se explican solos.
 
-   · UNA PERLA ROJA EN 1 CORINTIOS 13:4, «el amor es paciente». Roja de las
-     vivas —la misma con la que nace una perla nueva, PIEDRA_COLOR_NUEVA— y
+   · UN FUEGO ROJO EN 1 CORINTIOS 13:4, «el amor es paciente». Es la figura
+     «llama» del mando de las perlas —la misma que elige cualquiera ahí— y no
+     un dibujo aparte; nació como la perla lisa y el dueño del repo la pidió
+     fuego. Roja de las vivas —la misma con la que nace una perla nueva,
+     PIEDRA_COLOR_NUEVA— y
      abajo hacia el centro, donde el capítulo 13 acaba y la hoja suele tener
      blanco. Estuvo en el .82 arriba, y en un teléfono se salía de la pantalla:
      la capa de las perlas es más ancha que lo que se ve —663 px contra 412—.
@@ -25894,7 +25909,7 @@ function sembrarAdornosDeEstreno(){
   const ahora = Date.now();
   if (nunca(PIEDRAS) && hay('1CO', 13, 4)){
     piedras = [{ id: piedraNuevoId(), libro:'1CO', cap:13, vers:4,
-                 x:.45, y:.62, forma: FORMAS[0], tam: PIEDRA_TAM_NUEVA,
+                 x:.45, y:.62, forma: 'llama', tam: PIEDRA_TAM_NUEVA,
                  color: PIEDRA_COLOR_NUEVA, sombra: true,
                  creado: ahora, tocado: ahora }];
     piedrasGuardar();
