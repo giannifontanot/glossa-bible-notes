@@ -855,9 +855,12 @@ const ATERRIZA = 7000;
      página» cuando encendía una sola cosa; ahora enciende también los cuatro
      puntos de las esquinas y los dos rótulos de la hoja, y nombrar sólo las
      flechas escondería tres cuartas partes. El porqué de estas palabras está
-     escrito donde se escriben, en pintarCanto. */
+     escrito donde se escriben, en pintarCanto.
+     Y PASÓ A INGLÉS a petición del dueño del repo: «Show where you can tap».
+     Se busca la misma idea en el idioma nuevo —dónde se toca—, no la frase
+     entera: lo que importa es que diga lo que hace. */
   vale('la casilla está en LIBROS y dice lo que hace',
-       !flechas.sinCasilla && /se puede tocar/i.test(flechas.rotulo || ''),
+       !flechas.sinCasilla && /where you can tap/i.test(flechas.rotulo || ''),
        flechas.sinCasilla ? 'no hay casilla' : flechas.rotulo);
   vale('  con blanco de toque de dedo', flechas.blanco >= 44, flechas.blanco);
   vale('NACEN ENCENDIDAS, que es lo que ve quien abre por primera vez',
