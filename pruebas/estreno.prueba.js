@@ -322,6 +322,11 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
        enB.mateo.every(m => m.origen === 'bsb' && m.bien && /[a-z]/i.test(m.cita) &&
                             !/[áéíóúñ¿¡]/i.test(m.nota)),
        enB.mateo.map(m => m.cita + (m.bien ? '' : ' (mal anclada)')).join(' · '));
+  /* Y QUE SE VEAN: el dueño del repo pidió subrayar más texto, que dos
+     palabras —«by Tamar»— casi no se distinguían en la hoja. */
+  vale('  subrayando una frase entera, no dos palabras',
+       enB.mateo.every(m => m.cita.split(/\s+/).length >= 6),
+       enB.mateo.map(m => m.cita).join(' · '));
   vale('  cada una con algo que decir de la escritura',
        enB.mateo.every(m => m.nota.length > 60), enB.mateo.map(m => m.nota.length).join(', '));
   vale('  con su etiqueta en inglés',
@@ -344,9 +349,10 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
   di('los adornos', { piedras: adornos.piedras.map(x => x.libro + ' ' + x.cap + ':' + x.vers + ' ' + x.color),
                       cintas: adornos.cintas.map(x => x.libro + ' ' + x.cap + ':' + x.vers),
                       rastro: adornos.rastro.map(x => x.libro + ' ' + x.cap + ':' + x.vers).join(', ') });
-  vale('UNA PERLA ROJA EN 1 CORINTIOS 13',
+  vale('UN FUEGO ROJO EN 1 CORINTIOS 13 (la figura «llama» del mando)',
        adornos.piedras.length === 1 && adornos.piedras[0].libro === '1CO' &&
-       adornos.piedras[0].cap === 13 && /^carmin/.test(adornos.piedras[0].color),
+       adornos.piedras[0].cap === 13 && adornos.piedras[0].forma === 'llama' &&
+       /^carmin/.test(adornos.piedras[0].color),
        JSON.stringify(adornos.piedras));
   vale('UNA CINTA EN JUAN 3:16',
        adornos.cintas.length === 1 && adornos.cintas[0].libro === 'JHN' &&
