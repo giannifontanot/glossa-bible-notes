@@ -6528,7 +6528,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '05-NOV-26 06:10';
+window.GLOSS_BUILD = '05-NOV-26 06:13';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8264,6 +8264,13 @@ const AVISOS_QUE_FALLAN = [
   /no es JSON válido/i,
   /no parece una exportación/i,
   /no hay nada que exportar/i,
+  /* Los mismos fallos, dichos en inglés: los de la portada pasaron a inglés
+     con el resto de la portada, y sin estas líneas el filtro de arriba los
+     callaría —un fallo al guardar la foto se quedaría sin decir—. */
+  /COULD NOT SAVE/i,
+  /not an image/i,
+  /broken image/i,
+  /could not read the file/i,
 ];
 /* El último fallo, guardado aparte: el panel de Respaldo se arma al final del
    guion, así que un fallo de los primeros milisegundos no tendría dónde
@@ -21411,35 +21418,58 @@ const TALLER_PORTADA = {
 };
 let piedraTaller = TALLER_HOJA;
 
+/* EN LA PORTADA, EL MANDO HABLA INGLÉS. Lo pidió el dueño del repo: la
+   portada entera va en inglés —«Gloss Bible», «photo», «continue»,
+   «Pearls»— y los mensajes de adentro también. En la hoja el mando sigue en
+   español: es EL MISMO mando —ver TALLER_PORTADA— y lo que cambia es solo el
+   idioma según dónde esté abierto. Por eso aquí y no en un diccionario de
+   toda la aplicación, que no se pidió. */
+const FORMA_NOMBRE_EN = {
+  piedra:'stone', avion:'paper plane', hoja:'leaf', pez:'fish', paloma:'dove',
+  cofre:'treasure chest', uvas:'grapes', corona:'crown', llave:'key', ancla:'anchor',
+  estrella:'star', corazon:'heart', llama:'flame', cinta:'ribbon'
+};
+const TINTA_NOMBRE_EN = {
+  sepia:'sepia', carmin:'crimson', oliva:'olive', indigo:'indigo', ocre:'ochre',
+  ciruela:'plum', perla:'pearl', 'carmin-vivo':'bright crimson',
+  'oliva-vivo':'bright olive', 'indigo-vivo':'bright indigo',
+  'ocre-vivo':'bright ochre', 'ciruela-vivo':'bright plum'
+};
 function pintarPiedraMando(){
   const el = $('piedraMando');
   const x = piedraEditando ? piedraTaller.de(piedraEditando) : null;
   if (!x){ el.innerHTML = ''; return; }
+  const en = piedraTaller === TALLER_PORTADA;
+  const di = (es, ing) => en ? ing : es;
+  const nomForma = f => en ? (FORMA_NOMBRE_EN[f] || f) : FORMA_NOMBRE[f];
+  const nomTinta = t => en ? (TINTA_NOMBRE_EN[t[0]] || t[1]) : t[1];
   const formas = FORMAS.map(f =>
     '<button type="button" class="pm-forma' + (f === x.forma ? ' on' : '') + '"' +
       ' data-piedra-forma="' + f + '" aria-pressed="' + (f === x.forma) + '"' +
-      ' aria-label="' + FORMA_NOMBRE[f] + '" title="' + FORMA_NOMBRE[f] + '">' +
+      ' aria-label="' + nomForma(f) + '" title="' + nomForma(f) + '">' +
       piedraDibujo(f, null, true) + '</button>').join('');
   const tintas = PIEDRA_TINTAS.map(t =>
     '<button type="button" class="pm-tinta' + (t[0] === x.color ? ' on' : '') + '"' +
       ' data-piedra-color="' + t[0] + '" aria-pressed="' + (t[0] === x.color) + '"' +
       ' style="background:' + t[2] + '"' +
-      ' aria-label="' + t[1] + '" title="' + t[1] + '"></button>').join('');
+      ' aria-label="' + nomTinta(t) + '" title="' + nomTinta(t) + '"></button>').join('');
   const b = (acc, rot, dib, apagado) =>
     '<button type="button" class="pm-btn" data-piedra-acc="' + acc + '"' +
       (apagado ? ' disabled' : '') +
       ' aria-label="' + rot + '" title="' + rot + '">' + dib + '</button>';
   el.innerHTML =
-    spCerrarHTML('piedra', 'el mando de la perla') +
-    '<span class="sp-tit">Esta perla</span>' +
-    '<div class="pm-formas" role="group" aria-label="Figura">' + formas + '</div>' +
+    (en ? '<button type="button" class="sp-x" data-sp-cerrar="piedra" title="Close"' +
+            ' aria-label="Close the pearl controls"><span aria-hidden="true">\u00d7</span></button>'
+        : spCerrarHTML('piedra', 'el mando de la perla')) +
+    '<span class="sp-tit">' + di('Esta perla', 'This pearl') + '</span>' +
+    '<div class="pm-formas" role="group" aria-label="' + di('Figura', 'Shape') + '">' + formas + '</div>' +
     '<div class="pm-tintas" role="group" aria-label="Color">' + tintas + '</div>' +
     '<div class="pm-pie">' +
-      b('menos', 'Más pequeña', '<svg viewBox="0 0 12 12" aria-hidden="true">' +
+      b('menos', di('Más pequeña', 'Smaller'), '<svg viewBox="0 0 12 12" aria-hidden="true">' +
         '<path d="M2.5 6h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
         x.tam <= 0) +
       '<span class="pm-tam" aria-hidden="true">' + (x.tam + 1) + '/' + piedraTaller.pasos() + '</span>' +
-      b('mas', 'Más grande', '<svg viewBox="0 0 12 12" aria-hidden="true">' +
+      b('mas', di('Más grande', 'Larger'), '<svg viewBox="0 0 12 12" aria-hidden="true">' +
         '<path d="M2.5 6h7M6 2.5v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
         x.tam >= piedraTaller.pasos() - 1) +
       /* EL NOMBRE NO SE ESCRIBE AQUÍ, y este campo se quitó habiéndolo usado.
@@ -21465,12 +21495,14 @@ function pintarPiedraMando(){
        deshacer, que es el reparto de siempre. */
     '<div class="pm-abajo">' +
       '<label class="pm-sombra"><input type="checkbox" data-piedra-sombra="1"' +
-        (x.sombra ? ' checked' : '') + ' /><span>sombra</span></label>' +
+        (x.sombra ? ' checked' : '') + ' /><span>' + di('sombra', 'shadow') + '</span></label>' +
       '<span class="pm-salidas">' +
         (piedraTaller.quitar
-          ? '<button type="button" class="pm-btn2 pm-quita" data-piedra-acc="quitar">Quitar</button>'
+          ? '<button type="button" class="pm-btn2 pm-quita" data-piedra-acc="quitar">' +
+              di('Quitar', 'Remove') + '</button>'
           : '') +
-        '<button type="button" class="pm-btn2" data-piedra-acc="cancelar">Cancelar</button>' +
+        '<button type="button" class="pm-btn2" data-piedra-acc="cancelar">' +
+          di('Cancelar', 'Cancel') + '</button>' +
         '<button type="button" class="pm-btn2 pm-ok" data-piedra-acc="ok">OK</button>' +
       '</span>' +
     '</div>';
@@ -25973,8 +26005,8 @@ function portadaGuardar(){
   } catch(e){
     /* Y SE DICE. Es de los que sí salen: el lector acaba de elegir una foto y
        si no se guarda, mañana no está y nadie le avisó. Ver AVISOS_QUE_FALLAN. */
-    readout.textContent = 'NO SE PUDO GUARDAR la portada (' + (e.name || 'error') +
-                          ') — quizá la foto pesa demasiado';
+    readout.textContent = 'COULD NOT SAVE the cover (' + (e.name || 'error') +
+                          ') — the photo may be too large';
     return false;
   }
 }
@@ -26070,7 +26102,7 @@ function portadaPiedraNueva(){
   if (!p) return null;
   portadaCerrarMandos();
   if (portadaAdorno.piedras.length >= 40){
-    readout.textContent = 'la portada ya está llena de perlas';
+    readout.textContent = 'the cover is already full of pearls';
     return null;
   }
   /* Y EL PASO DE LA DIAGONAL SE SACA DEL TAMAÑO DE LA PIEDRA, no de un número
@@ -26161,17 +26193,17 @@ function portadaMandoFoto(){
   el.innerHTML =
     '<div class="pt-fila">' +
       '<button type="button" class="pt-mini" data-pt-estilo="1">' +
-        (esPol ? 'cambiar a normal' : 'cambiar a Polaroid') + '</button>' +
+        (esPol ? 'switch to normal' : 'switch to Polaroid') + '</button>' +
     '</div>' +
     '<div class="pt-fila">' +
       '<button type="button" class="pt-mini" data-pt-giro="-3"' +
-        ' aria-label="Girar a la izquierda">\u21ba</button>' +
+        ' aria-label="Rotate left">\u21ba</button>' +
       '<button type="button" class="pt-mini" data-pt-giro="3"' +
-        ' aria-label="Girar a la derecha">\u21bb</button>' +
-      '<button type="button" class="pt-mini quita" data-pt-quitar="1">Quitar</button>' +
+        ' aria-label="Rotate right">\u21bb</button>' +
+      '<button type="button" class="pt-mini quita" data-pt-quitar="1">Remove</button>' +
       '<button type="button" class="pt-mini" data-pt-mover="1">' +
-        (portadaMandoArriba ? 'bajar' : 'subir') + '</button>' +
-      '<button type="button" class="pt-mini listo" data-pt-listo="1">Listo</button>' +
+        (portadaMandoArriba ? 'move down' : 'move up') + '</button>' +
+      '<button type="button" class="pt-mini listo" data-pt-listo="1">Done</button>' +
     '</div>';
 }
 
@@ -26190,14 +26222,14 @@ const PORTADA_LADO = 1200;
 function portadaTomarArchivo(file){
   if (!file) return;
   if (!/^image\//.test(file.type || '')){
-    readout.textContent = 'no se pudo leer el archivo — eso no es una imagen';
+    readout.textContent = 'could not read the file — that is not an image';
     return;
   }
   const lector = new FileReader();
-  lector.onerror = () => { readout.textContent = 'no se pudo leer el archivo'; };
+  lector.onerror = () => { readout.textContent = 'could not read the file'; };
   lector.onload = () => {
     const img = new Image();
-    img.onerror = () => { readout.textContent = 'no se pudo leer el archivo — imagen rota'; };
+    img.onerror = () => { readout.textContent = 'could not read the file — broken image'; };
     img.onload = () => {
       const k = Math.min(1, PORTADA_LADO / Math.max(img.naturalWidth, img.naturalHeight));
       const w = Math.max(1, Math.round(img.naturalWidth * k));
@@ -26207,7 +26239,7 @@ function portadaTomarArchivo(file){
       c.getContext('2d').drawImage(img, 0, 0, w, h);
       let src;
       try { src = c.toDataURL('image/jpeg', .82); }
-      catch(e){ readout.textContent = 'no se pudo leer el archivo'; return; }
+      catch(e){ readout.textContent = 'could not read the file'; return; }
       portadaAdorno.foto = { src, estilo:'normal', giro:0 };
       portadaPintarFoto();
       portadaGuardar();

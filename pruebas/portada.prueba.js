@@ -174,7 +174,7 @@ async function tocarSinClic(pagina, x, y, pid = 21){
   /* La misma sombra que lleva una piedra con «sombra» marcada. */
   vale('  con la sombra de las piedras', /5px 5px 10px/.test(f1.sombra || ''), f1.sombra);
   vale('  y ya en modo edición, con sus mandos', Array.isArray(f1.mando) && f1.mando.length >= 4, f1.mando);
-  vale('  el botón dice «cambiar a Polaroid»', (f1.mando || [])[0] === 'cambiar a Polaroid', (f1.mando || [])[0]);
+  vale('  el botón dice «switch to Polaroid»', (f1.mando || [])[0] === 'switch to Polaroid', (f1.mando || [])[0]);
   vale('  y queda guardada', f1.guardada === true, f1.guardada);
 
   await p.click('[data-pt-estilo]'); await p.waitForTimeout(300);
@@ -184,14 +184,14 @@ async function tocarSinClic(pagina, x, y, pid = 21){
     rotulo: document.querySelector('[data-pt-estilo]').textContent.trim() }));
   di('en polaroid', JSON.stringify(f2));
   vale('CAMBIA A POLAROID', f2.polaroid === true, f2.polaroid);
-  vale('  y el botón dice «cambiar a normal»', f2.rotulo === 'cambiar a normal', f2.rotulo);
+  vale('  y el botón dice «switch to normal»', f2.rotulo === 'switch to normal', f2.rotulo);
 
   await p.click('[data-pt-estilo]'); await p.waitForTimeout(300);
   const f3 = await p.evaluate(() => ({
     polaroid: document.querySelector('.pt-foto').classList.contains('polaroid'),
     rotulo: document.querySelector('[data-pt-estilo]').textContent.trim() }));
   vale('Y VUELVE A NORMAL', f3.polaroid === false, f3.polaroid);
-  vale('  con el botón otra vez en «cambiar a Polaroid»', f3.rotulo === 'cambiar a Polaroid', f3.rotulo);
+  vale('  con el botón otra vez en «switch to Polaroid»', f3.rotulo === 'switch to Polaroid', f3.rotulo);
 
   /* «Poquito a poquito»: tres grados por toque. Se comprueba lo guardado Y lo
      pintado, que no es lo mismo —el número puede subir sin que la foto gire—. */
@@ -272,8 +272,8 @@ async function tocarSinClic(pagina, x, y, pid = 21){
   vale('  mudado encima de la tapa', nacida.padre === 'portada', nacida.padre);
   /* La única diferencia con la hoja, y por una razón: la portada no tiene lista
      de piedras de donde borrar, así que la salida de borrar vive en el mando. */
-  vale('  y con «Quitar», que en la hoja no hace falta',
-       ['Quitar','Cancelar','OK'].every(x => nacida.salidas.includes(x)), nacida.salidas);
+  vale('  y con «Remove», que en la hoja no hace falta (en inglés: es la portada)',
+       ['Remove','Cancel','OK'].every(x => nacida.salidas.includes(x)), nacida.salidas);
   vale('  y el botón no cambia de nombre: no hay modo que apagar',
        nacida.dice === 'Pearls', nacida.dice);
 
