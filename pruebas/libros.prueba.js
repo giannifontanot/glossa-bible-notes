@@ -1055,7 +1055,10 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
      arrancaban con la casilla apagada. Y un tercero de control: quien la
      apagó la sigue teniendo apagada. */
   titulo('la casilla de las guías, para quien llega');
-  const sesN = await abrir();
+  /* biblia: null — sin los ajustes que el banco siembra para arrancar en la
+     Biblia Libre (ver bibliaDeCasa en comun.js): esto va del teléfono recién
+     estrenado, y con ajustes sembrados ya no lo sería. */
+  const sesN = await abrir({ biblia: null });
   const pN = sesN.pagina;
   const casilla = () => pN.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
