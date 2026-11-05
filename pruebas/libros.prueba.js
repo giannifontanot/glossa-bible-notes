@@ -1045,5 +1045,56 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
        JSON.stringify(conBasura));
   await cerrarParcial(sesM, 'la pestaña recordada');
 
+  /* ================================================================
+     QUIEN ENTRA POR PRIMERA VEZ ENCUENTRA LA CASILLA PUESTA.
+
+     Lo pidió el dueño del repo: «Show where you can tap» marcada para el
+     usuario nuevo, que es justo quien no sabe dónde se toca. Dos casos, y el
+     segundo es el que estaba roto: la instalación estrenada —sin ajustes— y
+     unos ajustes guardados SIN la clave verFlechas, que con el === de antes
+     arrancaban con la casilla apagada. Y un tercero de control: quien la
+     apagó la sigue teniendo apagada. */
+  titulo('la casilla de las guías, para quien llega');
+  /* biblia: null — sin los ajustes que el banco siembra para arrancar en la
+     Biblia Libre (ver bibliaDeCasa en comun.js): esto va del teléfono recién
+     estrenado, y con ajustes sembrados ya no lo sería. */
+  const sesN = await abrir({ biblia: null });
+  const pN = sesN.pagina;
+  const casilla = () => pN.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const visible = () => [...document.querySelectorAll('.rollo, #canto')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    if (!visible()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+    const t = (visible() || document).querySelector('.pestanas [data-sec="libros"]');
+    if (t) t.click();
+    await pausa(900);
+    const c = document.getElementById('chkFlechas');
+    return c ? { marcada: c.checked, rotulo: c.parentElement.textContent.trim(),
+                 guias: document.querySelector('.stage').classList.contains('guias') } : null;
+  });
+  const estreno = await casilla();
+  di('estrenada', estreno);
+  vale('SIN AJUSTES, LA CASILLA ESTÁ MARCADA', !!estreno && estreno.marcada === true, estreno);
+  vale('  y dice en inglés dónde se toca', !!estreno && estreno.rotulo === 'Show where you can tap', estreno && estreno.rotulo);
+  await pN.evaluate(() => {
+    const aj = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
+    delete aj.verFlechas;
+    localStorage.setItem('glossa:ajustes:v1', JSON.stringify(aj));
+  });
+  await pN.reload(); await pN.waitForTimeout(2600);
+  const sinClave = await casilla();
+  di('ajustes sin la clave', sinClave);
+  vale('CON AJUSTES QUE NO LA NOMBRAN, TAMBIÉN MARCADA', !!sinClave && sinClave.marcada === true, sinClave);
+  await pN.evaluate(() => {
+    const aj = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
+    aj.verFlechas = false;
+    localStorage.setItem('glossa:ajustes:v1', JSON.stringify(aj));
+  });
+  await pN.reload(); await pN.waitForTimeout(2600);
+  const apagada = await casilla();
+  di('quien la apagó', apagada);
+  vale('  y quien la apagó la sigue teniendo apagada', !!apagada && apagada.marcada === false, apagada);
+  await cerrarParcial(sesN, 'la casilla para quien llega');
+
   await cerrar(sesion);
 })();
