@@ -4832,7 +4832,7 @@
 
      La casilla enciende las guías rojas —los puntos, los dos rótulos de la
      hoja— y hasta ahora no había manera de saber eso antes de tocarla: el
-     rótulo lo dice con palabras («señalar dónde se puede tocar») y las
+     rótulo lo dice con palabras («Show where you can tap») y las
      palabras no dicen de qué color. Quien la encendía descubría el rojo
      después, que es justo al revés de como debe ir un interruptor.
 
@@ -5908,7 +5908,7 @@
      abierta el tiempo que haga falta; «continue» la reanuda desde donde se
      quedó, no desde el principio. Los otros dos botones la paran solos, que
      abrir la caja de piedras contra un reloj sería una broma. -->
-<div id="portada" role="status" aria-live="polite" aria-label="Biblia Glosa">
+<div id="portada" role="status" aria-live="polite" aria-label="Gloss Bible">
   <!-- LAS PIEDRAS VAN EN SU CAPA Y POR ENCIMA DE TODO, la foto no: la foto
        entra en la columna, entre el borde de arriba y el rótulo, y así no lo
        tapa nunca. Las piedras sí pueden caer donde sea —son adornos que se
@@ -5916,8 +5916,12 @@
   <div id="portadaPiedras" aria-hidden="true"></div>
   <div id="portadaFoto"></div>
   <script src="portada-temprana.js"></script>
-  <p class="portada-marca">Biblia Glosa</p>
-  <p class="portada-sub">Gloss Bible</p>
+  <!-- EL NOMBRE EN INGLÉS VA GRANDE Y EL ESPAÑOL CHICO. Estuvo al revés, y el
+       dueño del repo pidió darle la vuelta: «Gloss Bible» es el nombre de la
+       aplicación —el de la pestaña, el del icono, el del respaldo—, y la
+       portada tiene que decir el mismo que dice todo lo demás. -->
+  <p class="portada-marca">Gloss Bible</p>
+  <p class="portada-sub">Biblia Glosa</p>
   <!-- EL PIE: foto al centro de la mitad izquierda, hold en medio, piedras al
        centro de la mitad derecha. O sea a un cuarto, a la mitad y a tres
        cuartos del ancho, que es lo pedido y además se reparte solo. -->
@@ -6520,7 +6524,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '03-NOV-26 20:00';
+window.GLOSS_BUILD = '05-NOV-26 06:09';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -17526,11 +17530,16 @@ function pintarCanto(){
        etiqueta al margen de una fila y pasa a leerse como una frase, y una
        frase empieza como empiezan las frases.
      · EL LECTOR: lo que quiere saber es dónde puede tocar. Eso es lo que dice
-       el rótulo, con esas palabras y sin ninguna más. */
+       el rótulo, con esas palabras y sin ninguna más.
+
+     Y AHORA EN INGLÉS, a petición del dueño del repo: «Show where you can
+     tap». Las mismas reglas de arriba, pasadas al otro idioma: lo que
+     recibes y no lo que hace el programa, y el verbo de la casa —«tap», que
+     es el toque, no «click» ni «press»—. */
   $('cantoCab').innerHTML =
     '<label class="canto-opcion"><input type="checkbox" id="chkFlechas"' +
     (verFlechas ? ' checked' : '') + ' />' +
-    '<span>Señalar dónde se puede tocar</span></label>' +
+    '<span>Show where you can tap</span></label>' +
     cantoPestanasHTML();
   const celdas = libros => libros.map(b => {
       const vivo = hayLibro(b.id), aqui = b.id === cantoMarcado();
@@ -18510,7 +18519,7 @@ function encenderObrando(el, desdeQueSeVea){
    · Los rieles de AAA no acusan: mientras se arrastra un riel la hoja se
      está repintando debajo del dedo, y ésa es una respuesta mejor que
      cualquier borde. Un aviso que compite con la cosa misma estorba.
-   · La casilla de «señalar dónde se puede tocar» tampoco: la palomita que
+   · La casilla de «Show where you can tap» tampoco: la palomita que
      aparece ES el acuse, y ponerle otro encima es decirlo dos veces.
    · El asa de arrastrar una glosa no es un botón. Encender el borde al
      agarrarla diría «estoy trabajando» durante todo un arrastre en el que no
@@ -24562,9 +24571,13 @@ function cargarAjustes(){
   if (AIRES.some(x => x[1] === a.interlineado)) interlineado = a.interlineado;
   if (MARGENES[a.margen]) margen = a.margen;
   showMarks = a.showMarks !== false;
-  /* === y no !==: apagadas es lo de fábrica, así que solo un true escrito las
-     enciende. Un ajuste viejo sin la clave se comporta como hasta ahora. */
-  verFlechas = a.verFlechas === true;
+  /* !== y no ===: ENCENDIDAS ES LO DE FÁBRICA —ver let verFlechas—, así que
+     solo un false escrito las apaga. Estuvo con ===, de cuando nacían
+     apagadas, y quedó contradiciendo a su propia declaración: un ajuste
+     guardado sin la clave —una instalación de antes de existir la casilla—
+     arrancaba con ella apagada. El dueño del repo pidió que quien entra por
+     primera vez la encuentre puesta, y quien la apagó sigue con su false. */
+  verFlechas = a.verFlechas !== false;
   /* === y no !==, igual que las dos de arriba: la caja de los tiempos nace
      apagada, así que sólo un true escrito la enciende. */
   verCrono = a.verCrono === true;
