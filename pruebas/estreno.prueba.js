@@ -328,6 +328,52 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
        enB.mateo.every(m => (m.etiquetas || []).join() === 'Interesting'),
        enB.mateo.map(m => (m.etiquetas || []).join()).join(' · '));
   vale('  y se ven en el margen de la primera hoja', enB.enElMargen === 3, enB.enElMargen);
+
+  /* LOS ADORNOS DE ESTRENO: una perla roja en el capítulo del amor, una
+     cinta en Juan 3:16 y un rastro de escrituras conocidas. Pedidos por el
+     dueño del repo para que los paneles de perlas, cintas e historial no
+     salgan vacíos la primera vez. Se mira lo guardado, que es lo que la
+     aplicación vuelve a leer mañana, y que la perla de verdad salga en la
+     hoja de 1 Corintios 13. */
+  titulo('y con su perla, su cinta y su rastro');
+  const adornos = await pB.evaluate(() => ({
+    piedras: JSON.parse(localStorage.getItem('glossa:piedras:v1') || '[]'),
+    cintas: JSON.parse(localStorage.getItem('glossa:separadores:v1') || '[]'),
+    rastro: JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]')
+  }));
+  di('los adornos', { piedras: adornos.piedras.map(x => x.libro + ' ' + x.cap + ':' + x.vers + ' ' + x.color),
+                      cintas: adornos.cintas.map(x => x.libro + ' ' + x.cap + ':' + x.vers),
+                      rastro: adornos.rastro.map(x => x.libro + ' ' + x.cap + ':' + x.vers).join(', ') });
+  vale('UNA PERLA ROJA EN 1 CORINTIOS 13',
+       adornos.piedras.length === 1 && adornos.piedras[0].libro === '1CO' &&
+       adornos.piedras[0].cap === 13 && /^carmin/.test(adornos.piedras[0].color),
+       JSON.stringify(adornos.piedras));
+  vale('UNA CINTA EN JUAN 3:16',
+       adornos.cintas.length === 1 && adornos.cintas[0].libro === 'JHN' &&
+       adornos.cintas[0].cap === 3 && adornos.cintas[0].vers === 16,
+       JSON.stringify(adornos.cintas));
+  vale('UN RASTRO DE ESCRITURAS CONOCIDAS, y Juan 3:16 entre ellas',
+       adornos.rastro.length >= 8 &&
+       adornos.rastro.some(x => x.libro === 'JHN' && x.cap === 3 && x.vers === 16),
+       adornos.rastro.length);
+  vale('  del más nuevo al más viejo',
+       adornos.rastro.every((x, i, a) => i === 0 || a[i - 1].t > x.t));
+  /* La perla se ve donde se puso: se va a 1 Corintios 13:4 por los ajustes
+     —el mismo camino que usa la aplicación para volver a donde te quedaste—,
+     fundiéndolos con lo guardado para no perder la versión. */
+  await pB.evaluate(() => {
+    const aj = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
+    Object.assign(aj, { v:1, libro:'1CO', cap:13, vers:4 });
+    localStorage.setItem('glossa:ajustes:v1', JSON.stringify(aj));
+  });
+  await pB.reload(); await pB.waitForTimeout(2600);
+  const enCorintios = await pB.evaluate(() => ({
+    perla: !!document.querySelector('#piedrero .piedra'),
+    sigue: (JSON.parse(localStorage.getItem('glossa:piedras:v1') || '[]')).length
+  }));
+  di('en 1 Corintios 13', enCorintios);
+  vale('  y la perla sale en su hoja', enCorintios.perla === true, enCorintios);
+  vale('  sin sembrarse otra al recargar', enCorintios.sigue === 1, enCorintios.sigue);
   await cerrarParcial(sesB, 'el estreno en la Berean');
 
   await cerrar(sesion);
