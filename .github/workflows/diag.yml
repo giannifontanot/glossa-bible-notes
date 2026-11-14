@@ -1,0 +1,20 @@
+name: diag
+on:
+  push:
+    branches: [diag-almacen]
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        vuelta: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          export CHROMIUM="$(node -e 'console.log(require("playwright").chromium.executablePath())')"
+          node diag/almacen.js
