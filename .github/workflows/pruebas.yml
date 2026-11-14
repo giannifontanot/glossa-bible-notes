@@ -74,7 +74,13 @@ jobs:
       matrix:
         suite: ${{ fromJSON(needs.lista.outputs.suites) }}
     steps:
+      # LA HISTORIA ENTERA, no un commit solo. `cache` busca el último commit que
+      # tocó oracion/ y su padre para comparar el número de caché; con el
+      # checkout de un solo commit, ese padre no existe, la comparación se
+      # rinde en silencio y la prueba aprueba cualquier número. Lo cazó Codex.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
