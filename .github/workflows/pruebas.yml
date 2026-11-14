@@ -91,8 +91,17 @@ jobs:
       - run: npx playwright install --with-deps chromium
       # Se lanza la suite directo y no por correr.js: su filtro es «contiene»,
       # y un nombre podría arrastrar a otra suite que lo lleve dentro.
+      # EL CHROMIUM ENTERO, no el «headless shell». Sin ruta, Playwright lanza
+      # en modo sin ventana un Chromium recortado —chrome-headless-shell—, que
+      # no es el navegador que corre en ningún teléfono ni el que usaban las
+      # corridas a mano (CHROMIUM apuntando al Chromium completo). En la
+      # primera corrida aquí, con el recortado, cuatro suites que pasan en local
+      # se quedaron sin ver lo que escribían antes de recargar.
       - name: node pruebas/${{ matrix.suite }}
-        run: node pruebas/${{ matrix.suite }}
+        run: |
+          export CHROMIUM="$(node -e 'console.log(require("playwright").chromium.executablePath())')"
+          echo "Chromium: $CHROMIUM"
+          node pruebas/${{ matrix.suite }}
 
   pruebas:
     name: pruebas
