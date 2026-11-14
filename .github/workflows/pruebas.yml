@@ -98,9 +98,22 @@ jobs:
       # primera corrida aquí, con el recortado, cuatro suites que pasan en local
       # se quedaron sin ver lo que escribían antes de recargar.
       - name: node pruebas/${{ matrix.suite }}
+        # SERVIDA POR HTTP, NO ABIERTA COMO file://. Medido aquí mismo, con
+        # un diagnóstico de ida y vuelta: escribir en el almacén y recargar,
+        # doce veces seguidas. Con file:// la página nueva veía de vez en
+        # cuando el almacén VACÍO —en 2 de cada 12 vueltas en una de las
+        # máquinas—, la aplicación creía estrenar, sembraba sus glosas de
+        # regalo encima y la escritura de la prueba se perdía. Con http, 0 de
+        # 36. Chromium da a cada fichero file:// su propio origen y sus
+        # almacenes andan con otras reglas; la aplicación de verdad se sirve
+        # por https, así que http es además lo más parecido al teléfono.
+        # comun.js ya sabía abrir otra dirección: GLOSS_APP_URL.
         run: |
           export CHROMIUM="$(node -e 'console.log(require("playwright").chromium.executablePath())')"
           echo "Chromium: $CHROMIUM"
+          python3 -m http.server 8787 --bind 127.0.0.1 >/dev/null 2>&1 &
+          until curl -sf http://127.0.0.1:8787/index.html >/dev/null; do sleep 0.2; done
+          export GLOSS_APP_URL=http://127.0.0.1:8787/index.html
           node pruebas/${{ matrix.suite }}
 
   pruebas:
