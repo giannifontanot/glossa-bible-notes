@@ -25,6 +25,13 @@ dentro**:
 
 ## Correr
 
+**En GitHub corren solas**: cada push a una PR lanza las 28 suites en
+paralelo —una máquina por suite— y deja en la PR una casilla, «pruebas», verde
+o roja. Ver `.github/workflows/pruebas.yml`. A mano, desde la pestaña Actions,
+con el mismo filtro de palabras que abajo.
+
+En local:
+
 ```sh
 npm install                      # una vez
 npx playwright install chromium  # una vez
