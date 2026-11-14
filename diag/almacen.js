@@ -1,7 +1,7 @@
 // Diagnóstico temporal: ¿qué pisa lo que se escribe justo antes de recargar?
 const { chromium } = require('playwright');
 const path = require('path');
-const APP = 'file://' + path.resolve(__dirname, '..', 'index.html');
+const APP = process.env.GLOSS_APP_URL || ('file://' + path.resolve(__dirname, '..', 'index.html'));
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined });
   const p = await (await b.newContext({ viewport:{width:412,height:915}, isMobile:true, hasTouch:true })).newPage();
@@ -20,7 +20,7 @@ const APP = 'file://' + path.resolve(__dirname, '..', 'index.html');
   await p.evaluate(() => { const b = document.getElementById('btnPortadaSeguir'); if (b) b.click(); });
   await p.waitForTimeout(1500);
   let mal = 0;
-  for (let i = 0; i < 8; i++){
+  for (let i = 0; i < 12; i++){
     console.log('--- vuelta ' + i);
     await p.evaluate((i) => {
       const M = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
@@ -33,6 +33,6 @@ const APP = 'file://' + path.resolve(__dirname, '..', 'index.html');
     console.log('leído: ' + n);
     if (n !== 'MARCA ' + i) mal++;
   }
-  console.log('MAL ' + mal + ' de 8');
+  console.log('MAL ' + mal + ' de 12');
   await b.close();
 })();
