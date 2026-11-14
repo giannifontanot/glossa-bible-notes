@@ -580,8 +580,18 @@ const ATERRIZA = 7000;
     await new Promise(z => setTimeout(z, 1200));
     const it = [...document.querySelectorAll('#indice .ix-item')];
     if (!it.length) return { sinItems:true };
-    /* la última de la lista, que es la que más lejos cae de donde estamos */
-    it[it.length - 1].click();
+    /* LA ÚLTIMA DE LA LISTA QUE NO ESTÉ DONDE YA ESTAMOS. Se cogía la última
+       a secas, «que es la que más lejos cae de donde estamos», y eso dependía
+       de dónde hubieran dejado la hoja los pasos de antes: en GitHub —otra
+       máquina, otra letra, otras hojas— el paso anterior acababa justo en
+       Lucas 1:79, que es la última glosa, y el salto iba de un sitio a ese
+       mismo sitio. El rastro apuntaba dos veces lo mismo y la prueba lo leía
+       como un fallo de la aplicación. Ahora se elige una de otro capítulo. */
+    const aj = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
+    const aqui = (aj.libro || '') + ':' + (aj.cap || '');
+    const otra = it.filter(x => !(x.dataset.ir || '').startsWith(aqui + ':'));
+    if (!otra.length) return { cabeza, sinOtra:true };
+    otra[otra.length - 1].click();
     await new Promise(z => setTimeout(z, 900));
     /* PRIMERO SE LEE, LUEGO SE VA. Elegir del índice ya no salta de golpe:
        saca la ventanita con el versículo, y el salto es tocar su texto —lo
@@ -596,6 +606,7 @@ const ATERRIZA = 7000;
     return { cabeza, rastro: JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]')
       .map(h => h.libro + ' ' + h.cap + ':' + h.vers) };
   }).then(r => {
+    vale('(la prueba es válida) había una glosa en otro capítulo', !r.sinOtra, r.cabeza);
     vale('el salto apunta dos escrituras', !r.sinItems && !r.sinPestana &&
          !r.sinVentanita && (r.rastro || []).length === 2, JSON.stringify(r.rastro));
     vale('  y la de debajo es de donde salimos',
