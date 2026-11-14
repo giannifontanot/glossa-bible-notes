@@ -1,8 +1,8 @@
 # Glossa · notas para quien toque este código
 
 > **Las dos que no se saltan:** subir el sello de la versión en el mismo commit
-> que el cambio, y **avisar antes de correr cualquier prueba** en vez de
-> lanzarla. Las dos están explicadas abajo.
+> que el cambio, y **no fundir una PR sin la casilla «pruebas» en verde** en
+> GitHub. Las dos están explicadas abajo.
 
 ## SIEMPRE: el sello de la versión
 
@@ -50,43 +50,38 @@ Y una cuarta, aprendida con el arreglo de la selección: **un evento despachado
 a mano siempre llega, y el de un teléfono no.** Si un arreglo se apoya en ver
 un `pointerdown`, escribe la prueba que lo manda *sin* él.
 
-### SIEMPRE: avisar antes de correr las pruebas
+### SIEMPRE: las pruebas las corre GitHub
 
-**No se lanza ninguna prueba sin avisar primero.** Se dice qué hace falta
-correr y por qué, y ahí se para. La decisión de quién las corre es del dueño
-del repo, no de quien escribió el cambio: puede correrlas él, o pasárselas a
-otro LLM que las ejecute y devuelva el resultado de la manera que sea.
+**Cada push a una PR corre el banco entero en GitHub Actions**
+(`.github/workflows/pruebas.yml`): las 28 suites a la vez, una por máquina, y
+al final una sola casilla, **«pruebas»**, verde o roja. El repo es público y los
+minutos son gratis. Lo pidió así el dueño del repo.
 
-Así que el orden es este, sin saltarse pasos:
+Antes las corría él a mano, o se las pasaba a otro LLM, y había que avisar
+antes, escribir el encargo en la PR con el commit exacto y esperar. Todo eso
+sobra: el commit lo pone GitHub y el resultado sale en la PR.
 
-1. Se termina el cambio y se dice **qué pruebas hacen falta y por qué**, con
-   el comando exacto y a ojo cuánto tardan.
-2. Se **espera**. No se lanza nada mientras tanto.
-3. Llega el resultado —lo corra quien lo corra— y se sigue desde ahí.
+Así que el orden es este:
 
-Y dos cosas de forma que no son de forma:
+1. Se sube el cambio a la PR.
+2. Se **espera la casilla «pruebas»**. Si sale roja, se abre la suite que
+   falló —cada una es su propio trabajo, con su nombre— y se arregla.
+3. Con «pruebas» en verde en el HEAD de la PR, se puede fundir.
 
-- **Las suites y el HEAD van en la ÚLTIMA línea del mensaje**, solos, sin nada
-  detrás. El dueño del repo lee el final de la conversación para saber qué
-  lanzar; si eso queda enterrado en medio de una explicación, hay que ir a
-  buscarlo. La explicación va antes; el comando y el commit, al final y en un
-  solo sitio.
-- **Y se pide por escrito en la PR**, en un comentario nuevo, nombrando las
-  mismas suites y el mismo commit. El chat es de dos; la PR es donde queda.
-  Quien corre las pruebas —Codex, hoy— trabaja desde ahí, y un encargo que solo
-  existe en una conversación es un encargo que hay que copiar a mano, con lo
-  que eso tiene de equivocarse de commit.
+Lo que **sigue sin hacerse** es lanzar el banco en la máquina de nadie sin
+avisar: en local son minutos por suite y la tanda pasa de los 45. Para mirar
+algo concreto en local está el filtro (`npm test -- libros`), y se dice antes.
 
-El comando:
+Para lanzarlas a mano en GitHub —en `main`, o solo unas cuantas— está la
+pestaña Actions → «pruebas» → *Run workflow*, con el mismo filtro de palabras
+que `npm test`.
+
+El comando local, para cuando haga falta:
 
 ```sh
 npm test                    # todas
 npm test -- glosas filo     # solo las que contengan eso en el nombre
 ```
-
-Son lentas: minutos por suite, y la tanda entera pasa de la hora. Esa es
-justamente la razón de avisar antes en vez de ponerse a correrlas: el tiempo
-de máquina es de quien lo paga.
 
 ## Git
 

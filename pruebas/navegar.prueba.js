@@ -569,6 +569,20 @@ const ATERRIZA = 7000;
      la ventanita, y el salto es tocar su texto. La regla que se vigila aquí
      es la misma —dos escrituras, destino arriba y de dónde debajo—, solo que
      el camino lleva un toque más. */
+  /* SE SALE DE MATEO 5, escrito. Antes se salía de donde hubieran dejado la
+     hoja los pasos de arriba, y en GitHub —otra máquina, otra letra, otras
+     hojas— eso era justo Lucas 1:79, la última glosa: el salto iba de un
+     sitio a ese mismo sitio, el rastro apuntaba dos veces lo mismo y la
+     prueba lo leía como un fallo de la aplicación. Se va por los ajustes y
+     recargando, el camino de la aplicación para volver a donde te quedaste,
+     fundiéndolos con lo guardado. */
+  await p.evaluate(() => {
+    const a = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
+    Object.assign(a, { v:1, libro:'MAT', cap:5, vers:1 });
+    localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a));
+  });
+  await p.reload();
+  await p.waitForTimeout(1500);
   di('desde el índice de glosas', await p.evaluate(async () => {
     localStorage.setItem('glossa:historial:v1', '[]');
     const cabeza = document.getElementById('pgCabeza').textContent.trim();
@@ -596,6 +610,8 @@ const ATERRIZA = 7000;
     return { cabeza, rastro: JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]')
       .map(h => h.libro + ' ' + h.cap + ':' + h.vers) };
   }).then(r => {
+    vale('(la prueba es válida) el salto sale de otro sitio, no de donde va',
+         !!r.cabeza && !/Lucas\s+1:/.test(r.cabeza), r.cabeza);
     vale('el salto apunta dos escrituras', !r.sinItems && !r.sinPestana &&
          !r.sinVentanita && (r.rastro || []).length === 2, JSON.stringify(r.rastro));
     vale('  y la de debajo es de donde salimos',

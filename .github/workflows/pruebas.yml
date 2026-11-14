@@ -1,0 +1,131 @@
+# LAS PRUEBAS, EN GITHUB.
+#
+# Hasta aquí las corría a mano el dueño del repo —o se las pasaba a otro
+# LLM— cada vez que una PR las pedía, con el commit copiado de la
+# conversación. Pidió que las corra GitHub, y que sea solo: en cada PR, en
+# cada push. El repo es público y los minutos de Actions son gratis, así que
+# el «tiempo de máquina es de quien lo paga» de CLAUDE.md ya no frena nada.
+#
+# CADA SUITE EN SU PROPIA MÁQUINA, A LA VEZ. La tanda entera, una detrás de
+# otra, pasa de los 45 minutos; repartida en 28 trabajos paralelos tarda lo que
+# tarde la más lenta. Es lo mismo que hace correr.js —un proceso por prueba,
+# para que el localStorage de una no se filtre en la siguiente—, llevado un
+# paso más allá: una máquina por prueba.
+#
+# Y UN SOLO VEREDICTO AL FINAL («pruebas»), para que la PR muestre una
+# casilla verde o roja y no veintiocho.
+
+name: pruebas
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  # A mano, desde la pestaña Actions, con un filtro opcional igual al de
+  # `npm test -- libros navegar`.
+  workflow_dispatch:
+    inputs:
+      filtro:
+        description: 'Solo las suites que contengan esto (separadas por espacios). Vacío = todas.'
+        required: false
+        default: ''
+
+# Un push nuevo a la misma PR deja sin sentido la corrida anterior: se cancela
+# en vez de gastar media hora en un commit que ya no es el HEAD.
+concurrency:
+  group: pruebas-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lista:
+    name: qué suites
+    runs-on: ubuntu-latest
+    outputs:
+      suites: ${{ steps.lista.outputs.suites }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: lista
+        env:
+          FILTRO: ${{ github.event.inputs.filtro }}
+        # La misma regla que correr.js: el archivo entra si contiene alguna de
+        # las palabras del filtro, o todas si no hay filtro.
+        run: |
+          node -e '
+            const fs = require("fs");
+            const filtro = (process.env.FILTRO || "").split(/\s+/).filter(Boolean);
+            const s = fs.readdirSync("pruebas").filter(f => f.endsWith(".prueba.js"))
+              .filter(f => !filtro.length || filtro.some(x => f.includes(x))).sort();
+            if (!s.length){ console.error("Ninguna suite con ese filtro"); process.exit(1); }
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, "suites=" + JSON.stringify(s) + "\n");
+            console.log(s.length + " suites: " + s.join(", "));
+          '
+
+  suite:
+    name: ${{ matrix.suite }}
+    needs: lista
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      # Que una roja no cancele las demás: se quiere saber cuáles fallan, todas.
+      fail-fast: false
+      matrix:
+        suite: ${{ fromJSON(needs.lista.outputs.suites) }}
+    steps:
+      # LA HISTORIA ENTERA, no un commit solo. `cache` busca el último commit que
+      # tocó oracion/ y su padre para comparar el número de caché; con el
+      # checkout de un solo commit, ese padre no existe, la comparación se
+      # rinde en silencio y la prueba aprueba cualquier número. Lo cazó Codex.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # El Chromium que trae la versión de Playwright del package-lock, con las
+      # bibliotecas del sistema que pide.
+      - run: npx playwright install --with-deps chromium
+      # Se lanza la suite directo y no por correr.js: su filtro es «contiene»,
+      # y un nombre podría arrastrar a otra suite que lo lleve dentro.
+      # EL CHROMIUM ENTERO, no el «headless shell». Sin ruta, Playwright lanza
+      # en modo sin ventana un Chromium recortado —chrome-headless-shell—, que
+      # no es el navegador que corre en ningún teléfono ni el que usaban las
+      # corridas a mano (CHROMIUM apuntando al Chromium completo). En la
+      # primera corrida aquí, con el recortado, cuatro suites que pasan en local
+      # se quedaron sin ver lo que escribían antes de recargar.
+      - name: node pruebas/${{ matrix.suite }}
+        # SERVIDA POR HTTP, NO ABIERTA COMO file://. Medido aquí mismo, con
+        # un diagnóstico de ida y vuelta: escribir en el almacén y recargar,
+        # doce veces seguidas. Con file:// la página nueva veía de vez en
+        # cuando el almacén VACÍO —en 2 de cada 12 vueltas en una de las
+        # máquinas—, la aplicación creía estrenar, sembraba sus glosas de
+        # regalo encima y la escritura de la prueba se perdía. Con http, 0 de
+        # 36. Chromium da a cada fichero file:// su propio origen y sus
+        # almacenes andan con otras reglas; la aplicación de verdad se sirve
+        # por https, así que http es además lo más parecido al teléfono.
+        # comun.js ya sabía abrir otra dirección: GLOSS_APP_URL.
+        run: |
+          export CHROMIUM="$(node -e 'console.log(require("playwright").chromium.executablePath())')"
+          echo "Chromium: $CHROMIUM"
+          python3 -m http.server 8787 --bind 127.0.0.1 >/dev/null 2>&1 &
+          until curl -sf http://127.0.0.1:8787/index.html >/dev/null; do sleep 0.2; done
+          export GLOSS_APP_URL=http://127.0.0.1:8787/index.html
+          node pruebas/${{ matrix.suite }}
+
+  pruebas:
+    name: pruebas
+    needs: suite
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: veredicto
+        run: |
+          if [ "${{ needs.suite.result }}" != "success" ]; then
+            echo "Alguna suite falló (${{ needs.suite.result }}). Mira las casillas rojas de arriba."
+            exit 1
+          fi
+          echo "Todas las suites pasaron."

@@ -2095,7 +2095,23 @@ async function ponerContraste(pagina, pct){
     return +(.2126*f[0] + .7152*f[1] + .0722*f[2]).toFixed(3);
   };
   const medidas = [], papeles = [], sinNota = [];
-  for (const donde of [{ cap:5, vers:5 }, { cap:10, vers:32 }, { cap:24, vers:30 }]){
+  /* LAS HOJAS SE ELIGEN POR LAS GLOSAS, no por números escritos. Estuvieron
+     fijas —Mateo 5:5, 10:32 y 24:30— porque en las máquinas donde se corría
+     esas tres hojas traían entre todas una tarjeta de cada color. En GitHub,
+     con otra letra, las hojas parten en otro sitio, y una tanda se quedó sin
+     la naranja y otra sin la verde: la validez de abajo saltaba sin que la
+     aplicación hubiera cambiado. Ahora se va a la hoja de la primera glosa de
+     Mateo de cada color que hace falta, esté donde esté. */
+  const lugares = await sesion.pagina.evaluate(() => {
+    const M = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
+    const vistos = new Set(), out = [];
+    for (const m of M){
+      if (m.libro !== 'MAT' || !m.color || vistos.has(m.color)) continue;
+      vistos.add(m.color); out.push({ cap: m.cap, vers: m.vers });
+    }
+    return out;
+  });
+  for (const donde of (lugares.length ? lugares : [{ cap:5, vers:5 }, { cap:10, vers:32 }, { cap:24, vers:30 }])){
     await sesion.pagina.evaluate((d) => {
       const c = 'glossa:ajustes:v1';
       const a = JSON.parse(localStorage.getItem(c) || '{}') || {};
