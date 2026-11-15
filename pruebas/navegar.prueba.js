@@ -1791,5 +1791,108 @@ const ATERRIZA = 7000;
        /Hechos\s+2[0-8]:/.test(tras99.cabeza), tras99.cabeza);
   await cerrarParcial(sesSitio, 'el sitio guardado');
 
+  /* ============================================================
+     LA LECTURA EN EL RASTRO: UN RENGLÓN QUE SE ESTIRA.
+
+     Pasar hojas no apuntaba nada, y el dueño del repo lo notó: leía de
+     corrido con la cinta avanzando y «lo que has visto» no se enteraba. Ahora
+     pasar hoja abre UN renglón de lectura y lo estira; no añade uno por hoja,
+     que es el ruido que el rastro existe para no tener. Se prueba:
+       1. tres hojas → un renglón, de lectura, con su principio y su final;
+       2. una hoja atrás → sigue siendo uno, con el final movido;
+       3. recargar y pasar otra → el mismo renglón sigue estirándose: el
+          teléfono cierra la aplicación cuando quiere, y no por eso empezaste
+          otra lectura;
+       4. un salto de verdad lo CIERRA: la hoja siguiente abre otro, y el
+          primero se queda como estaba;
+       5. se pinta distinto: con su librito y el tramo.
+     Las hojas se pasan por el filo, con su pointerId, como un dedo. */
+  const sesLec = await abrir();
+  const pL = sesLec.pagina;
+  await pL.evaluate(() => {
+    localStorage.setItem('glossa:historial:v1', JSON.stringify([{ libro:'JHN', cap:3, vers:16, t:1 }]));
+    const a = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
+    Object.assign(a, { v:1, version:'vbl', libro:'MAT', cap:5, vers:1 });
+    localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a));
+  });
+  await pL.reload(); await pL.waitForTimeout(2600);
+  const rastroL = () => pL.evaluate(() =>
+    JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]'));
+  const pasarL = lado => pL.evaluate(async lado => {
+    window.__pidL = (window.__pidL || 900) + 1;
+    const e = document.getElementById(lado === 'left' ? 'edgeL' : 'edgeR');
+    const r = e.getBoundingClientRect();
+    /* Torcido: el dedo entra un poco más abajo de donde sale. */
+    const op = { bubbles:true, pointerId: window.__pidL, pointerType:'touch', isPrimary:true };
+    e.dispatchEvent(new PointerEvent('pointerdown', { ...op, clientX: r.left + r.width/2, clientY: 418 }));
+    await new Promise(z => setTimeout(z, 60));
+    e.dispatchEvent(new PointerEvent('pointerup', { ...op, clientX: r.left + r.width/2 + 2, clientY: 423 }));
+    await new Promise(z => setTimeout(z, 1700));
+  }, lado);
+  const lecturas = r => r.filter(h => h.lectura);
+  const tramo = h => h ? h.libro + ' ' + h.desde.cap + ':' + h.desde.vers + '→' + h.cap + ':' + h.vers : '—';
+
+  for (let i = 0; i < 3; i++) await pasarL('right');
+  const hojas3 = await rastroL();
+  di('tras tres hojas', JSON.stringify(hojas3.map(h => (h.lectura ? 'L ' : '') + h.libro + ' ' + h.cap + ':' + h.vers)));
+  vale('TRES HOJAS SON UN SOLO RENGLÓN DE LECTURA',
+       lecturas(hojas3).length === 1 && hojas3.length === 2 && hojas3[0].lectura, JSON.stringify(hojas3));
+  vale('  de Mateo, y su final va por delante de su principio',
+       hojas3[0].libro === 'MAT' &&
+       (hojas3[0].cap > hojas3[0].desde.cap || (hojas3[0].cap === hojas3[0].desde.cap && hojas3[0].vers > hojas3[0].desde.vers)),
+       tramo(hojas3[0]));
+  const finHojas3 = hojas3[0].cap + ':' + hojas3[0].vers;
+
+  await pasarL('left');
+  const hojaAtras = await rastroL();
+  vale('UNA HOJA ATRÁS NO AÑADE OTRO: mueve el final',
+       lecturas(hojaAtras).length === 1 && hojaAtras[0].cap + ':' + hojaAtras[0].vers !== finHojas3 &&
+       hojaAtras[0].desde.cap === hojas3[0].desde.cap && hojaAtras[0].desde.vers === hojas3[0].desde.vers,
+       tramo(hojaAtras[0]));
+
+  await pL.reload(); await pL.waitForTimeout(2600);
+  await pasarL('right');
+  const trasRecarga = await rastroL();
+  vale('RECARGAR Y SEGUIR LEYENDO ESTIRA EL MISMO RENGLÓN',
+       lecturas(trasRecarga).length === 1 && trasRecarga[0].cap + ':' + trasRecarga[0].vers === finHojas3,
+       tramo(trasRecarga[0]));
+
+  /* 4 · un salto de verdad: la fila de JHN 3:16, su ventanita y su texto. */
+  const saltoL = await pL.evaluate(async () => {
+    document.getElementById('btnHistorial').click();
+    await new Promise(z => setTimeout(z, 600));
+    const fila = document.querySelector('#historial .hs-fila[data-hs="JHN:3:16"]');
+    if (!fila) return { sinFila:true };
+    fila.click();
+    await new Promise(z => setTimeout(z, 500));
+    const vp = document.querySelector('#versoPleno .vp-txt');
+    if (!vp) return { sinVentanita:true };
+    vp.click();
+    await new Promise(z => setTimeout(z, 2600));
+    return { ok:true };
+  });
+  vale('(la prueba es válida) se saltó a Juan 3:16 desde el rastro', saltoL.ok, JSON.stringify(saltoL));
+  await pasarL('right');
+  const trasSalto = await rastroL();
+  di('tras el salto y una hoja', JSON.stringify(trasSalto.map(h => (h.lectura ? 'L ' : '') + h.libro + ' ' + h.cap + ':' + h.vers)));
+  vale('UN SALTO CIERRA LA LECTURA: la hoja siguiente abre otra, en Juan',
+       lecturas(trasSalto).length === 2 && trasSalto[0].lectura && trasSalto[0].libro === 'JHN', JSON.stringify(trasSalto.slice(0, 4)));
+  const mateoL = lecturas(trasSalto).find(h => h.libro === 'MAT');
+  vale('  y la de Mateo se queda como estaba',
+       mateoL && mateoL.cap + ':' + mateoL.vers === finHojas3, tramo(mateoL));
+
+  const pintaL = await pL.evaluate(async () => {
+    const hs = document.getElementById('historial');
+    if (!hs.classList.contains('visible')){
+      document.getElementById('btnHistorial').click();
+      await new Promise(z => setTimeout(z, 600));
+    }
+    const f = document.querySelector('#historial .hs-lectura');
+    return f ? { librito: !!f.querySelector('.hs-librito'), ref: f.querySelector('.hs-ref').textContent } : null;
+  });
+  vale('SE PINTA CON SU LIBRITO Y EL TRAMO',
+       pintaL && pintaL.librito && /\d+:\d+–(\d+:)?\d+/.test(pintaL.ref), JSON.stringify(pintaL));
+  await cerrarParcial(sesLec, 'la lectura en el rastro');
+
   await cerrar(sesion);
 })();

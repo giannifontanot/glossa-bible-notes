@@ -1972,6 +1972,12 @@
   .hs-fila.aqui{ box-shadow:inset 0 0 0 1.5px rgba(184,137,43,.7); }
   .hs-ref{ flex:0 0 auto; min-width:64px; font:700 calc(13px * var(--escala-ui, 1))/1.35 var(--ui);
            color:#6d5c33; letter-spacing:.02em; white-space:nowrap; }
+  /* El renglón de lectura: su librito y el tramo, en la misma columna de la
+     referencia, que crece lo que haga falta —«Mt 5:1–9:13» no cabe en 64 px—. */
+  .hs-lectura .hs-ref{ display:inline-flex; align-items:center; gap:6px; }
+  .hs-librito{ flex:0 0 auto; width:calc(16px * var(--escala-ui, 1)); height:calc(16px * var(--escala-ui, 1));
+               fill:none; stroke:currentColor; stroke-width:1.5; stroke-linejoin:round;
+               align-self:center; }
   .hs-txt{ flex:1 1 auto; min-width:0; font:400 calc(13px * var(--escala-ui, 1))/1.35 var(--ui);
            color:#4a3a1c; white-space:nowrap; overflow:hidden;
            text-overflow:ellipsis; }
@@ -6553,7 +6559,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 04:22';
+window.GLOSS_BUILD = '15-NOV-26 14:00';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -16334,9 +16340,10 @@ function pintarHistorial(){
     cont.innerHTML = cabezaHistorial() +
       '<span class="hs-vacio">' +
       T('Todavía nada. Aquí van quedando los pasajes a los ' +
-        'que saltas desde el panel de libros o desde una referencia de una glosa.',
+        'que saltas desde el panel de libros o desde una referencia de una glosa, ' +
+        'y lo que vas leyendo hoja a hoja.',
         'Nothing yet. The passages you jump to from the books panel, or from a ' +
-        'reference in a gloss, gather here.') + '</span>';
+        'reference in a gloss, gather here, along with what you read page by page.') + '</span>';
     return;
   }
   /* "Estás aquí" se pregunta contra la HOJA ENTERA, no contra su primer
@@ -16357,6 +16364,18 @@ function pintarHistorial(){
        y el texto se busca al pintarlo. Cambiar de versión en Formato cambia lo
        que dice esta lista, que es lo correcto —es la misma escritura—. */
     const t = versoTexto(version, h.cap, h.vers, h.libro);
+    /* EL RENGLÓN DE LECTURA lleva su librito delante y el tramo entero; el
+       texto es el del sitio donde lo dejaste, que es a donde lleva tocarlo. */
+    if (h.lectura && h.desde){
+      const tramo = esc(abrevDe(h.libro)) + ' ' + h.desde.cap + ':' + h.desde.vers + '–' +
+        (h.desde.cap === h.cap ? '' : h.cap + ':') + h.vers;
+      const dice = T('Leíste ', 'You read ') + tramo;
+      return '<button class="hs-fila hs-lectura' + (enEstaHoja(h) ? ' aqui' : '') +
+        '" data-hs="' + h.libro + ':' + h.cap + ':' + h.vers + '" title="' + dice + '"' +
+        ' aria-label="' + dice + '. ' + esc(t || '') + '">' +
+        '<span class="hs-ref">' + LIBRITO + tramo + '</span>' +
+        '<span class="hs-txt">' + esc(t || T('(no está en esta versión)', '(not in this version)')) + '</span></button>';
+    }
     return '<button class="hs-fila' + (enEstaHoja(h) ? ' aqui' : '') +
       '" data-hs="' + h.libro + ':' + h.cap + ':' + h.vers + '">' +
       '<span class="hs-ref">' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '</span>' +
@@ -16397,6 +16416,12 @@ function rastroVisible(){
    atrás del navegador.
    Sin sitio a donde volver no se pinta: un botón que no lleva a ninguna parte
    enseña a no fiarse del que sí. */
+/* El librito abierto de los renglones de lectura: dos páginas y un lomo, con
+   el trazo de la flecha de atrás para que los dos dibujos del panel sean de la
+   misma mano. */
+const LIBRITO =
+  '<svg class="hs-librito" viewBox="0 0 16 16" aria-hidden="true" focusable="false">' +
+  '<path d="M8 4.2C6.6 3.2 4.6 2.9 2.2 3.1v9.1c2.4-.2 4.4.1 5.8 1.1 1.4-1 3.4-1.3 5.8-1.1V3.1C11.4 2.9 9.4 3.2 8 4.2zM8 4.2v9.1"/></svg>';
 const FLECHA_ATRAS =
   '<svg class="hs-flecha" viewBox="0 0 16 16" aria-hidden="true" focusable="false">' +
   '<path d="M13.2 8H3.6M7.4 3.9 3.3 8l4.1 4.1"/></svg>';
@@ -19556,6 +19581,8 @@ function quitarBuscando(){
    hojas es seguir leyendo, saltar es haber ido a buscar algo. Un historial
    que apunta cada hoja se llena de ruido en diez minutos y deja de servir
    para lo único que sirve, que es reencontrar aquello a lo que fuiste.
+   (Pasar hojas ya deja algo, pero no así: un solo renglón de lectura que se
+   estira, ver apuntarLectura.)
 
    Se guarda en el almacén del navegador porque un rastro que se borra al
    cerrar la pestaña no es un rastro; es una lista de la sesión. Y va aparte
@@ -19576,6 +19603,10 @@ function cargarHistorial(){
     const a = JSON.parse(localStorage.getItem(HISTORIAL) || '[]');
     if (Array.isArray(a)) historial = a
       .filter(h => h && typeof h.libro === 'string' && h.cap > 0 && h.vers > 0)
+      /* Un renglón de lectura con el principio estropeado se queda como
+         renglón normal: el sitio donde ibas sigue valiendo. */
+      .map(h => h.lectura && !(h.desde && h.desde.cap > 0 && h.desde.vers > 0)
+                ? { libro: h.libro, cap: h.cap, vers: h.vers, t: h.t } : h)
       .slice(0, TOPE_HISTORIAL);
   } catch(e){ historial = []; }
 }
@@ -19625,6 +19656,63 @@ function apuntarVisto(libro, cap, vers){
      cuenta de una tanda anterior de pasos atrás. */
   atrasEn = 0;
   if (historial.length > TOPE_HISTORIAL) historial.length = TOPE_HISTORIAL;
+  try { localStorage.setItem(HISTORIAL, JSON.stringify(historial)); } catch(e){}
+  if (histAbierto) pintarHistorial();
+}
+
+/* LA LECTURA TAMBIÉN DEJA RASTRO, PERO COMO UN SOLO RENGLÓN QUE CRECE.
+
+   Arriba se cuenta por qué pasar hojas no apuntaba nada: un historial con una
+   entrada por hoja se llena de ruido en diez minutos. Eso sigue siendo verdad,
+   pero dejaba un hueco que el dueño del repo vio usándolo: leías de Mateo 5 a
+   Mateo 9 hoja a hoja, con la cinta avanzando, y el rastro no se enteraba
+   hasta el siguiente salto —y si no saltabas, nunca—. Pidió que la lectura
+   aparezca, con su propio dibujito para distinguirla de los saltos.
+
+   Así que pasar hoja no AÑADE renglones: ESTIRA uno. La primera hoja que
+   pasas abre un renglón de lectura —desde la hoja que dejaste hasta la que
+   llegas— y cada hoja siguiente solo le mueve el final. Diez hojas son un
+   renglón, «Mt 5:1–9:13», no diez.
+
+   El renglón lleva libro, cap y vers DEL SITIO DONDE VAS, igual que cualquier
+   otro, y `desde` con el principio. Por eso todo lo que ya lee el rastro —el
+   salto al tocar la fila, el paso atrás, el «estás aquí», la fusión de
+   repetidos— funciona sin enterarse: tocar la fila te lleva a donde lo
+   dejaste, que es lo que se viene a buscar.
+
+   ¿CUÁNDO SE ESTIRA Y CUÁNDO SE ABRE OTRO? Se estira si el de arriba del
+   rastro es de lectura, del mismo libro, termina justo en la hoja que acabas
+   de dejar y no lleva más de LECTURA_PAUSA quieto. Cualquier salto pone otro
+   renglón encima y eso solo ya lo cierra; lo mismo cambiar de libro leyendo o
+   volver al día siguiente. Se pregunta al almacén y no a una variable de esta
+   pestaña a propósito: el teléfono cierra la aplicación cuando quiere, y al
+   reabrirla y seguir pasando hojas, el renglón de antes sigue siendo el tuyo.
+
+   Sin la vista de lejos ni los saltos: a esto solo llega lo que sepLlegada
+   llama pasar hoja, que ya los deja fuera —hojear no es leer—. */
+const LECTURA_PAUSA = 3 * 60 * 60 * 1000;
+function apuntarLectura(antes, aqui){
+  if (!antes || !aqui || !aqui.libro || !(aqui.cap > 0) || !(aqui.vers > 0)) return;
+  if (antes.libro === aqui.libro && antes.cap === aqui.cap && antes.vers === aqui.vers) return;
+  cargarHistorial();
+  const arriba = historial[0];
+  const ahora = Date.now();
+  if (arriba && arriba.lectura && arriba.libro === aqui.libro &&
+      arriba.cap === antes.cap && arriba.vers === antes.vers &&
+      ahora - (arriba.t || 0) <= LECTURA_PAUSA){
+    arriba.cap = aqui.cap; arriba.vers = aqui.vers; arriba.t = ahora;
+  } else {
+    /* Al cruzar de libro leyendo, el renglón nuevo empieza donde llegas: la
+       hoja que dejaste es de otro libro y un tramo no puede ir de uno a otro. */
+    const desde = antes.libro === aqui.libro ? { cap: antes.cap, vers: antes.vers }
+                                             : { cap: aqui.cap, vers: aqui.vers };
+    historial.unshift({ libro: aqui.libro, cap: aqui.cap, vers: aqui.vers,
+                        desde, lectura: true, t: ahora });
+    if (historial.length > TOPE_HISTORIAL) historial.length = TOPE_HISTORIAL;
+  }
+  /* Como en apuntarVisto: un sitio nuevo en el camino deja el atrás al
+     principio. */
+  atrasEn = 0;
   try { localStorage.setItem(HISTORIAL, JSON.stringify(historial)); } catch(e){}
   if (histAbierto) pintarHistorial();
 }
@@ -21308,6 +21396,9 @@ function borrarSeparador(id){
    eso sigue contando como lo que es: la hoja siguiente.
    Lo levantó la revisión de Codex. */
 let sepSalto = false;
+/* La hoja de la llegada anterior, en referencia: el principio de un renglón de
+   lectura cuando el que pasa hoja lo abre. */
+let lecturaAntes = null;
 function sepTerminarSesion(){
   sepLeidasSeguidas = 0;
   sepOfrecido = false;
@@ -21357,6 +21448,12 @@ function sepLlegada(){
   else sepLeidasSeguidas = 0;
   sepHojaAnterior = sitio;
   sepLlegadaEn = ahora;
+  /* Al rastro, como lectura: ver apuntarLectura. Se guarda en cada llegada,
+     salto o no, para que la próxima hoja pasada sepa de dónde venía. */
+  const aquiLeo = puntoActual();
+  const aquiRef = { libro: aquiLeo.libro, cap: aquiLeo.ref.cap, vers: aquiLeo.ref.vers };
+  if (pasandoHoja) apuntarLectura(lecturaAntes, aquiRef);
+  lecturaAntes = aquiRef;
   if (pasandoHoja){
     /* Si no hay activa (recarga, sesión nueva) pero la hoja que dejas
        tenía cinta, ésa es la que el lector está usando: se viene con él. */
