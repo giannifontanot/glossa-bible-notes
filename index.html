@@ -6660,7 +6660,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 17:30';
+window.GLOSS_BUILD = '15-NOV-26 17:38';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11577,7 +11577,14 @@ function abrirPanel(m, nueva, rect){
                /* Y la marca entera tal como llegó, para que Cancelar la deje
                   así: nota, etiquetas, color y trazo, con su «no lo tenía»
                   cuando no lo tenía. Ver cancelarBorrador. */
-               antes: ['nota', 'etiquetas', 'color', 'estilo'].reduce((o, k) => {
+               /* Y EL ANCLA TAMBIÉN: cita, contexto, posiciones y versión de
+                  origen. Cambiar color o trazo llama a reanclar(), que reescribe
+                  todo eso con la traducción que está en pantalla; si la glosa
+                  se hizo en otra y aquí cayó al versículo entero, cancelar
+                  dejaba el ancla fino cambiado por el versículo. Lo levantó la
+                  revisión de Codex. */
+               antes: ['nota', 'etiquetas', 'color', 'estilo',
+                       'cita', 'antes', 'despues', 'ini', 'fin', 'versionOrigen'].reduce((o, k) => {
                  o[k] = Object.prototype.hasOwnProperty.call(m, k)
                    ? { v: Array.isArray(m[k]) ? m[k].slice() : m[k] } : null;
                  return o;
@@ -11778,8 +11785,8 @@ function cerrarBorrador(){
    No hay nada que deshacer en el almacén: mientras el panel está abierto
    save() no se toca —todo se cobra en cerrarBorrador—, así que cancelar es
    devolver la marca en memoria a como llegó y repintar. Una glosa nueva no
-   llega a existir; una vieja recupera su nota, sus etiquetas, su color y su
-   trazo. Las etiquetas que se hayan CREADO entretanto se quedan en la lista
+   llega a existir; una vieja recupera su nota, sus etiquetas, su color, su
+   trazo y su ancla. Las etiquetas que se hayan CREADO entretanto se quedan en la lista
    de etiquetas: crear una es otra cosa, y ya está dicha. */
 function cancelarBorrador(){
   const b = borrador; if (!b) return;
@@ -11792,7 +11799,12 @@ function cancelarBorrador(){
       if (b.antes[k]) m[k] = Array.isArray(b.antes[k].v) ? b.antes[k].v.slice() : b.antes[k].v;
       else delete m[k];
     }
-    reanclar(m);
+    /* NO SE REANCLA: el ancla vuelve tal cual estaba, y lo que sí hay que
+       rehacer es dónde cae en ESTA traducción, que es lo que guarda RES. Se
+       reanclaba, y eso reescribía cita y posiciones con la traducción de
+       pantalla aunque no se hubiera tocado nada. */
+    const r = resolver(m, version);
+    if (r) RES.set(m.id, r); else RES.delete(m.id);
   }
   renderPage();
 }
