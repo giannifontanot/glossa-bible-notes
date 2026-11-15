@@ -416,7 +416,15 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
       dias: ((document.querySelector('#selDia option') || {}).textContent) || null,
       /* Y los puntos de la hoja, que son la puerta de perlas, cintas y rastro. */
       puntos: ['btnPiedras', 'btnCintas', 'btnHistorial']
-        .map(id => (document.getElementById(id) || {}).title || null)
+        .map(id => (document.getElementById(id) || {}).title || null),
+      /* FORMATO, NOTAS y RESPALDO: un testigo de cada camino. La alineación la
+         escribe rotularFormato; el «+ Nueva nota» y la primera nota nacen
+         ANTES de leer los ajustes —ahí estaba la trampa—; y Exportar viene del
+         marcado, por la tabla. */
+      formato: (document.getElementById('btnAli') || {}).textContent || null,
+      nota: ((document.querySelector('#notas .indice-crear') || {}).textContent || '').trim() || null,
+      primeraNota: ((document.querySelector('#notas [data-nota]') || {}).textContent || '').trim() || null,
+      exportar: (document.getElementById('btnExportar') || {}).textContent || null
     };
   });
   const ui = await leerUI();
@@ -434,6 +442,9 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
   vale('  y el filtro de días: all days', ui.dias === 'all days', ui.dias);
   vale('  los puntos de la hoja: pearls · bookmarks · seen',
        ui.puntos.join('|') === 'See your pearls|See your bookmarks|What you have seen', ui.puntos.join('|'));
+  vale('  FORMATO, NOTAS y RESPALDO: left · + New note · Note 1 · Export',
+       [ui.formato, ui.nota, ui.primeraNota, ui.exportar].join('|') === 'left|+ New note|Note 1|Export',
+       [ui.formato, ui.nota, ui.primeraNota, ui.exportar].join('|'));
   await pB.evaluate(() => {
     const a = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
     Object.assign(a, { v:1, version:'vbl', libro:'MAT', cap:1, vers:1 });
@@ -454,6 +465,11 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
   vale('  y el filtro de días: todos los días', uiEs.dias === 'todos los días', uiEs.dias);
   vale('  los puntos de la hoja: perlas · separadores · visto',
        uiEs.puntos.join('|') === 'Ver tus perlas|Ver tus separadores|Lo que has visto', uiEs.puntos.join('|'));
+  /* La primera nota NO se comprueba aquí: se estrenó en la Berean, así que se
+     llama «Note 1» y así se queda —es un título del lector, no un rótulo—. */
+  vale('  FORMATO, NOTAS y RESPALDO: izquierda · + Nueva nota · Exportar',
+       [uiEs.formato, uiEs.nota, uiEs.exportar].join('|') === 'izquierda|+ Nueva nota|Exportar',
+       [uiEs.formato, uiEs.nota, uiEs.exportar].join('|'));
   await cerrarParcial(sesB, 'el estreno en la Berean');
 
   await cerrar(sesion);
