@@ -6528,7 +6528,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '05-NOV-26 12:05';
+window.GLOSS_BUILD = '15-NOV-26 03:27';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -20345,8 +20345,14 @@ const TELAS = PIEDRA_TINTAS;
    pasaría a ser SEPIA. Eso es justo lo que las piedras aprendieron a no hacer
    —está contado en PIEDRA_COLOR_NUEVA—: sepia es el color de la letra y del
    papel, así que una marca sepia recién puesta nace escondida. La rueda sigue
-   dando los doce; solo empieza donde empezaba, en carmín. */
-const CINTA_PRIMERA = Math.max(0, TELAS.findIndex(t => t[0] === 'carmin'));
+   dando los doce; solo empieza donde empezaba, en carmín.
+
+   Y AHORA EN EL CARMÍN VIVO, el rojo brillante. Lo pidió el dueño del repo: la
+   primera cinta que uno cuelga, de un rojo brillante. Es el mismo rojo con el
+   que nace una perla nueva —PIEDRA_COLOR_NUEVA—, así que las dos marcas que uno
+   pone primero salen del mismo color. La rueda sigue desde ahí por la tabla:
+   ver colorDeCintaNueva. */
+const CINTA_PRIMERA = Math.max(0, TELAS.findIndex(t => t[0] === 'carmin-vivo'));
 /* Y EL RESPALDO DE telaDe ES ESE MISMO CARMÍN, NO EL PRIMERO DE LA TABLA.
 
    Aquí se cae todo lo que no se reconoce: un almacén con un color inventado,
@@ -21025,14 +21031,29 @@ function pintarSeparador(){
 }
 
 /* ---------- poner, mover y quitar ---------- */
+/* EL COLOR DE UNA CINTA NUEVA: el primero de la rueda que no esté ya colgado.
+
+   La rueda arranca en CINTA_PRIMERA, el rojo brillante. Antes el color salía
+   de contar las cintas —la tercera que ponías, el tercero de la rueda—, y eso
+   dejó de valer cuando la instalación nueva empezó a traer una cinta de
+   regalo en Juan 3:16: con ella ya colgada, la primera cinta que ponía el
+   lector salía del SEGUNDO color, y el dueño del repo pidió justo lo
+   contrario: que la primera que uno crea sea la roja brillante. Buscando el
+   primer color libre, la de regalo —que no es roja— no le quita el sitio, y
+   de paso dos cintas no repiten tono mientras quede alguno sin usar. Con las
+   doce colgadas, vuelve a contar como antes. */
+function colorDeCintaNueva(){
+  const usados = new Set(separadores.map(x => x.color));
+  for (let i = 0; i < TELAS.length; i++){
+    const t = TELAS[(CINTA_PRIMERA + i) % TELAS.length];
+    if (!usados.has(t[0])) return t[0];
+  }
+  return TELAS[(CINTA_PRIMERA + separadores.length) % TELAS.length][0];
+}
 function crearSeparador(){
   const p = puntoActual();
   const s = { id: sepNuevoId(), libro: p.libro, cap: p.ref.cap, vers: p.ref.vers,
-              /* El color va rotando: dos cintas seguidas del mismo tono se
-                 confunden en la lista, y elegir uno al azar podía repetirlo.
-                 Arranca en carmín y no en el primero de la tabla: ver
-                 CINTA_PRIMERA. */
-              color: TELAS[(CINTA_PRIMERA + separadores.length) % TELAS.length][0],
+              color: colorDeCintaNueva(),
               creado: Date.now(), tocado: Date.now() };
   separadores.unshift(s);
   if (separadores.length > TOPE_SEPARADORES) separadores.length = TOPE_SEPARADORES;
@@ -25888,7 +25909,9 @@ function sembrarGlosasDeEstreno(){
      abajo hacia el centro, donde el capítulo 13 acaba y la hoja suele tener
      blanco. Estuvo en el .82 arriba, y en un teléfono se salía de la pantalla:
      la capa de las perlas es más ancha que lo que se ve —663 px contra 412—.
-   · UNA CINTA EN JUAN 3:16, del color con que nace la primera —CINTA_PRIMERA—.
+   · UNA CINTA EN JUAN 3:16, AZUL —índigo vivo— y no roja: el rojo brillante
+     queda para la primera cinta que cuelgue el propio lector, que es lo que
+     pidió el dueño del repo. Ver colorDeCintaNueva.
    · UN RASTRO DE ESCRITURAS CONOCIDAS, del más nuevo al más viejo como lo
      apunta la aplicación, con un minuto entre una y otra para que el orden
      sea el de la lista.
@@ -25916,7 +25939,7 @@ function sembrarAdornosDeEstreno(){
   }
   if (nunca(SEPARADORES) && hay('JHN', 3, 16)){
     separadores = [{ id: sepNuevoId(), libro:'JHN', cap:3, vers:16,
-                     color: TELAS[CINTA_PRIMERA][0], creado: ahora, tocado: ahora }];
+                     color: 'indigo-vivo', creado: ahora, tocado: ahora }];
     try { localStorage.setItem(SEPARADORES, JSON.stringify(separadores)); } catch(e){}
   }
   if (nunca(HISTORIAL)){

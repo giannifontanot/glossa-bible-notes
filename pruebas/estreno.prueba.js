@@ -354,9 +354,10 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
        adornos.piedras[0].cap === 13 && adornos.piedras[0].forma === 'llama' &&
        /^carmin/.test(adornos.piedras[0].color),
        JSON.stringify(adornos.piedras));
-  vale('UNA CINTA EN JUAN 3:16',
+  vale('UNA CINTA EN JUAN 3:16, y no roja',
        adornos.cintas.length === 1 && adornos.cintas[0].libro === 'JHN' &&
-       adornos.cintas[0].cap === 3 && adornos.cintas[0].vers === 16,
+       adornos.cintas[0].cap === 3 && adornos.cintas[0].vers === 16 &&
+       !/^carmin/.test(adornos.cintas[0].color),
        JSON.stringify(adornos.cintas));
   vale('UN RASTRO DE ESCRITURAS CONOCIDAS, y Juan 3:16 entre ellas',
        adornos.rastro.length >= 8 &&
