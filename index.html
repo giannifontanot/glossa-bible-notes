@@ -2703,6 +2703,26 @@
   #piedraMenu::-webkit-scrollbar{ width:0; height:0; display:none; }
   .sp-chip-forma{ flex:0 0 auto; display:block; width:15px; height:15px; color:#7a6434; }
   .sp-chip-forma svg{ display:block; width:100%; height:100%; }
+  /* EL DIBUJITO DE CADA FILA, A LA ESTATURA DE SU RENGLÓN. Medían 15 px la
+     perla y 11×20 la cinta, menos que la propia letra en el teléfono: se leían
+     como viñetas, y una paloma y una piedra a 15 px son la misma mancha. El
+     dueño del repo pidió agrandarlos; se compararon 15, 20, 24 y 28 lado a
+     lado en un teléfono, con la lista de verdad, y se escogió por tres
+     razones que apuntaban al mismo sitio:
+       · un dibujo que encabeza un renglón se lee como su par cuando mide
+         alrededor de vez y media la letra —15 px de letra, 24 de dibujo en el
+         teléfono; 13 y 20 en la computadora—, que es también el 24 de los
+         iconos de lista de Android;
+       · a 24 la paloma, el corazón y la estrella ya se distinguen sin mirar el
+         color; a 20 todavía se confunden;
+       · a 28 el dibujo le gana a la referencia, que es lo que se viene a buscar,
+         y la fila empieza a leerse como una galería.
+     La cinta va a la misma estatura visual: es alta y estrecha, así que 15×28
+     pesa lo que un cuadrado de 24. Escalan con --escala-ui, como la letra que
+     acompañan. Solo dentro de la fila: el dibujito del botón «Nueva» es de un
+     botón y se queda a la medida del botón. */
+  .sp-fila .sp-chip-forma{ width:calc(20px * var(--escala-ui, 1)); height:calc(20px * var(--escala-ui, 1)); }
+  .sp-fila .sp-chip{ width:calc(13px * var(--escala-ui, 1)); height:calc(24px * var(--escala-ui, 1)); }
   .sp-vacio{ margin:4px 2px 2px; font:400 calc(12.5px * var(--escala-ui, 1))/1.45 var(--ui); color:#6d5a2c; }
 
   /* QUIEN PIDIÓ MENOS MOVIMIENTO NO RECIBE NINGUNO DE ÉSTOS. Aparecer y
@@ -2911,7 +2931,9 @@
        versalita, y una más chica es una más chica. */
     .sp-tit{ font-size:calc(12px * var(--escala-ui, 1)); letter-spacing:.08em; }
     .sp-fila{ min-height:48px; padding:5px 5px 5px 10px; }
-    .sp-ir{ min-height:44px; }
+    .sp-ir{ min-height:44px; gap:10px; }
+    .sp-fila .sp-chip-forma{ width:calc(24px * var(--escala-ui, 1)); height:calc(24px * var(--escala-ui, 1)); }
+    .sp-fila .sp-chip{ width:calc(15px * var(--escala-ui, 1)); height:calc(28px * var(--escala-ui, 1)); }
     .sp-ref{ font-size:calc(15px * var(--escala-ui, 1)); }
     /* Los tres van a la par a propósito: comparten renglón, y una fila con
        tres tamaños distintos se lee como tres cosas. */
@@ -6559,7 +6581,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 14:05';
+window.GLOSS_BUILD = '15-NOV-26 14:07';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
