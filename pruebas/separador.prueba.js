@@ -2176,8 +2176,10 @@ async function ponerAMano(p){
   vale('y completa lo que falta', tras2.guardadas && tras2.guardadas.length === 2 &&
        tras2.guardadas.every(x => x && x.id && x.color && x.creado > 0 && x.tocado > 0),
        tras2.guardadas);
+  /* Cae en el color con que nace la primera cinta —CINTA_PRIMERA—, que desde
+     que el dueño del repo la pidió en rojo brillante es el carmín vivo. */
   vale('un color inventado cae en uno real',
-       !!tras2.guardadas && (tras2.guardadas.find(x => x.id === 'raro') || {}).color === 'carmin');
+       !!tras2.guardadas && (tras2.guardadas.find(x => x.id === 'raro') || {}).color === 'carmin-vivo');
 
   titulo('una cinta cuyo versículo ya no existe');
   /* Pasa de verdad: cambiar de versión en Formato cambia la numeración y hay

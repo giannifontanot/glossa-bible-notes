@@ -6528,7 +6528,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '05-NOV-26 12:05';
+window.GLOSS_BUILD = '15-NOV-26 03:25';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -20345,8 +20345,13 @@ const TELAS = PIEDRA_TINTAS;
    pasaría a ser SEPIA. Eso es justo lo que las piedras aprendieron a no hacer
    —está contado en PIEDRA_COLOR_NUEVA—: sepia es el color de la letra y del
    papel, así que una marca sepia recién puesta nace escondida. La rueda sigue
-   dando los doce; solo empieza donde empezaba, en carmín. */
-const CINTA_PRIMERA = Math.max(0, TELAS.findIndex(t => t[0] === 'carmin'));
+   dando los doce; solo empieza donde empezaba, en carmín.
+
+   Y AHORA EN EL CARMÍN VIVO, el rojo brillante. Lo pidió el dueño del repo: la
+   primera cinta que uno cuelga, de un rojo brillante. Es el mismo rojo con el
+   que nace una perla nueva —PIEDRA_COLOR_NUEVA—, así que las dos marcas que uno
+   pone primero salen del mismo color. La rueda sigue desde ahí por la tabla. */
+const CINTA_PRIMERA = Math.max(0, TELAS.findIndex(t => t[0] === 'carmin-vivo'));
 /* Y EL RESPALDO DE telaDe ES ESE MISMO CARMÍN, NO EL PRIMERO DE LA TABLA.
 
    Aquí se cae todo lo que no se reconoce: un almacén con un color inventado,
