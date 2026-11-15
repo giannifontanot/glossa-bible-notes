@@ -2435,5 +2435,165 @@ async function ponerAMano(p){
   vale('ACEPTAR EL SALTO SÍ CIERRA LA LISTA', mirarIrse.trasSaltar === false, mirarIrse);
   vale('  y la ventanita se va con él', mirarIrse.pleno === false, mirarIrse);
 
+  /* ============================================================
+     NOMBRAR CON ACEPTAR Y CANCELAR, Y LA PISTA DE CÓMO SE ABRE.
+
+     Lo pidió el dueño del repo: la fila dice suave cómo se abre —«click
+     largo» con el dedo— y al abrirse trae, además de Borrar, Cancelar y
+     Aceptar. Lo delicado es Cancelar: salir del campo YA GUARDA lo escrito, y
+     en un teléfono tocar Cancelar es salir del campo, con el focusout por
+     DELANTE del click. Un click despachado a mano no mueve el foco y se
+     saltaría justo esa mitad —la cuarta regla de la casa—, así que aquí el
+     campo se suelta primero, como lo suelta el dedo, y después llega el click.
+     La fila se abre por el menú contextual, que es lo que manda Android con
+     el toque largo. */
+  const conBotones = await vp.evaluate(async () => {
+    const sm = document.getElementById('sepMenu');
+    if (!sm.classList.contains('visible')){
+      await window.__toque('[data-sep-lista]'); await window.__pausa(700);
+    }
+    const dedo = matchMedia('(pointer:coarse)').matches;
+    const fila = () => sm.querySelector('[data-sep-ir="c1"]');
+    const f0 = fila();
+    if (!f0) return { sinFila:true };
+    const pistas = [...f0.querySelectorAll('.sp-pista > span')]
+      .filter(x => getComputedStyle(x).display !== 'none').map(x => x.textContent);
+    const tono = getComputedStyle(f0.querySelector('.sp-pista')).color;
+    const abrir = async () => {
+      const f = fila(); const r = f.getBoundingClientRect();
+      f.dispatchEvent(new MouseEvent('contextmenu', { bubbles:true, cancelable:true,
+        clientX: r.left + 30, clientY: r.top + r.height / 2 }));
+      await window.__pausa(500);
+      return sm.querySelector('[data-sep-nombre="c1"]');
+    };
+    const guardado = () => (window.__guardadas().find(x => x.id === 'c1') || {}).nombre || '';
+    /* 1 · escribir y CANCELAR: el nombre de antes se queda. */
+    let campo = await abrir();
+    if (!campo) return { sinCampo:true };
+    const botones = [...campo.closest('.sp-fila').querySelectorAll('.sp-btn')]
+      .map(b => ({ dice: b.textContent.trim(), x: Math.round(b.getBoundingClientRect().left) }));
+    campo.value = 'garabato';
+    campo.dispatchEvent(new Event('input', { bubbles:true }));
+    /* EL TOQUE COMO LO DA UN DEDO, en el peor navegador: su mousedown, y si
+       nadie lo impide, el foco se va a ninguna parte —Safari— antes del
+       click, con una pausa en medio en la que corre el repintado aplazado.
+       Lo vio Codex: con el campo soltado así, Cancelar desaparecía antes de
+       que llegara su click. La aplicación impide ese mousedown y el campo
+       sigue con el foco; esto comprueba las dos cosas. */
+    const tocarComoDedo = async sel => {
+      const b = sm.querySelector(sel);
+      if (!b) return false;
+      const siguio = b.dispatchEvent(new MouseEvent('mousedown', { bubbles:true, cancelable:true }));
+      if (siguio && document.activeElement) document.activeElement.blur();
+      await window.__pausa(60);
+      return await window.__toque(sel);
+    };
+    const campoConFoco = () => document.activeElement === sm.querySelector('[data-sep-nombre="c1"]');
+    const md = new MouseEvent('mousedown', { bubbles:true, cancelable:true });
+    sm.querySelector('[data-sep-anular="c1"]').dispatchEvent(md);
+    const trasSoltar = md.defaultPrevented && campoConFoco();
+    const llego = await tocarComoDedo('[data-sep-anular="c1"]');
+    await window.__pausa(300);
+    const trasCancelar = guardado();
+    const cerradaCancelar = !sm.querySelector('[data-sep-nombre]');
+    /* 2 · escribir y ACEPTAR: se queda lo escrito. */
+    campo = await abrir();
+    if (!campo) return { sinCampo2:true };
+    campo.value = 'principio';
+    campo.dispatchEvent(new Event('input', { bubbles:true }));
+    await tocarComoDedo('[data-sep-aceptar="c1"]');
+    await window.__pausa(300);
+    const trasAceptar = guardado(), cerradaAceptar = !sm.querySelector('[data-sep-nombre]');
+    /* 3 · CON EL TECLADO: el foco pasa del campo a Cancelar —lo que hace el
+       tabulador— y la fila tiene que seguir ahí, con sus botones, para poder
+       pulsarlo. Lo levantó Codex: el focusout guardaba y repintaba, y
+       Cancelar desaparecía antes de llegar a él. */
+    campo = await abrir();
+    if (!campo) return { sinCampo3:true };
+    campo.value = 'otra cosa';
+    campo.dispatchEvent(new Event('input', { bubbles:true }));
+    const btnCancelar = sm.querySelector('[data-sep-anular="c1"]');
+    btnCancelar.focus();
+    await window.__pausa(80);
+    const sigueAbierta = !!sm.querySelector('[data-sep-anular="c1"]') &&
+                         document.activeElement === sm.querySelector('[data-sep-anular="c1"]');
+    btnCancelar.click();                            /* Intro sobre el botón enfocado */
+    await window.__pausa(300);
+    const trasTabular = guardado();
+    return { dedo, pistas, tono, botones, trasSoltar, llego, trasCancelar, cerradaCancelar,
+             trasAceptar, cerradaAceptar, sigueAbierta, trasTabular };
+  });
+  di('nombrar', JSON.stringify(conBotones));
+  vale('LA FILA DICE CÓMO SE ABRE, con la palabra de este aparato',
+       Array.isArray(conBotones.pistas) && conBotones.pistas.length === 1 &&
+       conBotones.pistas[0] === (conBotones.dedo ? 'click largo' : 'doble click'),
+       JSON.stringify(conBotones.pistas));
+  vale('  en el sepia de los rótulos, no en un gris lavado',
+       conBotones.tono === 'rgb(138, 119, 70)', conBotones.tono);
+  const ordenBotones = (conBotones.botones || []).map(b => b.dice).join(' · ');
+  vale('BORRAR, CANCELAR Y ACEPTAR, en ese orden de izquierda a derecha',
+       ordenBotones === 'Borrar · Cancelar · Aceptar' &&
+       conBotones.botones[0].x < conBotones.botones[1].x && conBotones.botones[1].x < conBotones.botones[2].x,
+       ordenBotones);
+  vale('TOCAR UN BOTÓN DE LA FILA NO LE QUITA EL FOCO AL CAMPO',
+       conBotones.trasSoltar === true, conBotones.trasSoltar);
+  vale('  y el toque llega a Cancelar', conBotones.llego === true, conBotones.llego);
+  vale('CANCELAR DEVUELVE EL NOMBRE DE ANTES aunque el campo ya lo hubiera guardado',
+       conBotones.trasCancelar === '', JSON.stringify(conBotones.trasCancelar));
+  vale('  y cierra la fila', conBotones.cerradaCancelar === true);
+  vale('ACEPTAR SE QUEDA CON LO ESCRITO', conBotones.trasAceptar === 'principio', conBotones.trasAceptar);
+  vale('  y cierra la fila', conBotones.cerradaAceptar === true);
+  vale('CON EL TABULADOR, LA FILA SIGUE ABIERTA AL LLEGAR A CANCELAR',
+       conBotones.sigueAbierta === true, conBotones);
+  vale('  y Cancelar deja el nombre que había', conBotones.trasTabular === 'principio',
+       conBotones.trasTabular);
+
+  /* TAB FUERA DE LA FILA Y F2 EN OTRA: lo escrito en la primera no se pierde.
+     Lo levantó Codex: pasar del campo a sus botones ya no guarda —y está
+     bien—, pero el foco puede seguir hasta otra cinta y abrirla con F2, y
+     abrir la segunda tiraba lo escrito en la primera. */
+  await vp.evaluate(() => {
+    const h = Date.now();
+    localStorage.setItem('glossa:separadores:v1', JSON.stringify([
+      { id:'c1', libro:'MAT', cap:1, vers:6, color:'indigo', creado:h, tocado:h },
+      { id:'c2', libro:'MAT', cap:5, vers:1, color:'oliva', creado:h - 5, tocado:h - 5 }]));
+  });
+  await vp.reload(); await vp.waitForTimeout(3000);
+  await andamio(vp);
+  const dosFilas = await vp.evaluate(async () => {
+    await window.__toque('[data-sep-lista]'); await window.__pausa(700);
+    const sm = document.getElementById('sepMenu');
+    const f1 = sm.querySelector('[data-sep-ir="c1"]');
+    if (!f1) return { sinFila:true };
+    const r = f1.getBoundingClientRect();
+    f1.dispatchEvent(new MouseEvent('contextmenu', { bubbles:true, cancelable:true,
+      clientX: r.left + 30, clientY: r.top + r.height / 2 }));
+    await window.__pausa(500);
+    const campo = sm.querySelector('[data-sep-nombre="c1"]');
+    if (!campo) return { sinCampo:true };
+    campo.value = 'tabulado';
+    campo.dispatchEvent(new Event('input', { bubbles:true }));
+    sm.querySelector('[data-sep-aceptar="c1"]').focus();   /* Tab: a sus botones */
+    await window.__pausa(60);
+    const f2 = sm.querySelector('[data-sep-ir="c2"]');
+    if (!f2) return { sinFila2:true };
+    f2.focus();                                           /* Tab: a otra cinta */
+    await window.__pausa(60);
+    /* El F2 va a QUIEN TENGA EL FOCO, como lo manda un teclado, no a la fila
+       que se enfocó: salir de la fila cobra lo escrito y repinta la lista, y
+       lo que se vigila también es que el foco siga en la cinta 2 después. */
+    const conFoco = document.activeElement;
+    const focoEnLa2 = !!(conFoco && conFoco.matches && conFoco.matches('[data-sep-ir="c2"]'));
+    conFoco.dispatchEvent(new KeyboardEvent('keydown', { key:'F2', bubbles:true, cancelable:true }));
+    await window.__pausa(400);
+    return { primera: (window.__guardadas().find(x => x.id === 'c1') || {}).nombre || '',
+             focoEnLa2, abierta2: !!sm.querySelector('[data-sep-nombre="c2"]') };
+  });
+  di('tab fuera y F2', JSON.stringify(dosFilas));
+  vale('EL FOCO SIGUE EN LA SEGUNDA CINTA tras cobrar y repintar', dosFilas.focoEnLa2 === true, dosFilas);
+  vale('  y F2 la abre', dosFilas.abierta2 === true, dosFilas);
+  vale('LO ESCRITO EN LA PRIMERA SE GUARDA al abrir la segunda',
+       dosFilas.primera === 'tabulado', dosFilas.primera);
+
   await cerrar(viaje);
 })();
