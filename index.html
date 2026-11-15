@@ -5356,7 +5356,10 @@
   #menu .mmodos, #menu .macciones{
                  display:grid; grid-template-columns:repeat(2, minmax(0, 1fr));
                  gap:5px; }
-  #menu .macciones{ align-items:stretch; }
+  /* Tres en el renglón de las acciones: etiquetas, Cancelar y OK. Etiquetas
+     lleva más ancho porque lleva más palabra —«▸ etiquetas · 3»—; las dos
+     salidas, el mismo. */
+  #menu .macciones{ align-items:stretch; grid-template-columns:minmax(0, 1.3fr) repeat(2, minmax(0, 1fr)); }
   /* Los dos llevan recuadro, puesto o no. Sin él, el que no está elegido no
      se lee como algo que se pueda tocar —parecía un rótulo al lado de un
      botón— y la mitad de la decisión quedaba escondida. */
@@ -5472,6 +5475,12 @@
                 color:#e6dcc4; background:rgba(255,255,255,.05);
                 border-color:rgba(255,255,255,.22); padding:6px 8px; }
   #menu .mtags:hover{ background:rgba(255,255,255,.13); }
+  /* Cancelar, con el mismo contorno que etiquetas: las dos son las que no son
+     OK. El único macizo del renglón sigue siendo OK, que es lo que se viene a
+     hacer; Cancelar se distingue por la palabra y por su sitio. */
+  #menu .mcancelar{ text-align:center; color:#e6dcc4; background:rgba(255,255,255,.05);
+                    border-color:rgba(255,255,255,.22); padding:6px 8px; }
+  #menu .mcancelar:hover{ background:rgba(255,255,255,.13); }
   .tagbox{ display:flex; flex-wrap:wrap; gap:3px; align-items:center; }
   /* LA LISTA VIVE CERRADA. Lo que la nota lleva puesto ya se lee dentro de la
      glosa; esta lista es para cambiarlo, y eso no se hace en cada nota. */
@@ -5857,6 +5866,11 @@
        los de abajo son de un renglón y se quedaban en 38, que para un pulgar
        es poco. Se les pone suelo, el mismo de la casa. */
     #menu .macciones button{ min-height:48px; }
+    /* Y con el dedo, menos relleno a los lados: a 16px «▾ etiquetas · 25» no
+       cabía en su columna en un teléfono de 390 y se partía en dos renglones.
+       El alto ya lo da el suelo de 48; el aire de los lados no hace falta. */
+    #menu .macciones button{ padding-left:4px; padding-right:4px; }
+    #menu .macciones{ grid-template-columns:minmax(0, 1.5fr) repeat(2, minmax(0, 1fr)); }
     #menu input{ font-size:calc(16px * var(--escala-ui, 1)); padding:11px 13px; width:auto; flex:1 1 120px;
                  min-height:48px; }
     .tagbox{ gap:6px; }
@@ -5890,7 +5904,13 @@
     #menu .tagbox .tagctl button[data-acc]{ flex:0 0 auto; text-align:center;
                                             padding:11px 15px; font-size:calc(16px * var(--escala-ui, 1));
                                             min-height:48px; }
-    #menu .mtags{ font-size:calc(16px * var(--escala-ui, 1)); }
+    #menu .mtags, #menu .mcancelar{ font-size:calc(16px * var(--escala-ui, 1)); }
+    /* En los teléfonos más estrechos (320) ni así: «Cancelar» llegaba a los
+       bordes de su botón. Dos puntos menos bastan y siguen por encima de lo
+       que se lee bien con el pulgar. */
+    @media (max-width: 360px){
+      #menu .mtags, #menu .mcancelar{ font-size:calc(14px * var(--escala-ui, 1)); }
+    }
 
     /* EL AVISO DE ABAJO. Iba en 10.5px, más pequeño que cualquier otra cosa
        de la pantalla, y aparece lejos de donde estás mirando. Un aviso que
@@ -6640,7 +6660,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 17:19';
+window.GLOSS_BUILD = '15-NOV-26 17:30';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -10796,8 +10816,19 @@ function panelHTML(m){
     /* LA LISTA DE ETIQUETAS YA NO VIVE ABIERTA. Las que lleva puestas se leen
        arriba, dentro de la glosa, que es donde van a estar para siempre; abrir
        la lista es para CAMBIARLAS, y eso no se hace en cada nota. */
+    /* TRES, Y EN ESTE ORDEN: etiquetas · Cancelar · OK. Etiquetas va primero
+       porque no es una salida sino un cajón —abre la lista, el panel se
+       queda—, y lo que despliega va arriba-izquierda, donde empieza la
+       lectura. Las dos salidas, juntas al otro lado y en el orden de Android,
+       que es el teléfono en que se usa: la que confirma en el extremo, donde
+       cae el pulgar, y la que se arrepiente a su lado. El mismo orden que
+       Cancelar · Aceptar en las filas de perlas y cintas: dos sitios del
+       programa que dicen lo mismo lo dicen igual. */
     '<div class="macciones">' +
       '<button class="mtags" data-acc="vertags"></button>' +
+      '<button type="button" class="mcancelar" data-acc="cancelar"' +
+        ' aria-label="' + T('Cancelar: dejar la glosa como estaba', 'Cancel: leave the gloss as it was') + '">' +
+        T('Cancelar', 'Cancel') + '</button>' +
       '<button type="button" class="mok" data-acc="ok"' +
         ' aria-label="' + T('Terminar y guardar la glosa','Finish and save the gloss') + '">OK</button>' +
     '</div>' +
@@ -10817,20 +10848,37 @@ function tagboxHTML(m){
   const tiene = new Set(m.etiquetas || []);
   const lista = [...new Set([...todasEtiquetas().mapa.keys(), ...tiene])]
                   .sort(comparaEtiquetas);
+  /* EL CAMPO DE «NUEVA…» VA ARRIBA, NO DEBAJO DE LA LISTA.
+
+     Iba al final, y con muchas etiquetas desaparecía: la lista mide hasta
+     34vh, el panel entero tiene tope de alto (100% menos un respiro) y lo que
+     no cabe se corta por abajo. Lo de abajo era justo el campo para crear
+     una nueva y su «+ crear». No quedaba fuera de la pantalla sino dentro del
+     panel, tapado, y nada avisaba de que había que desplazar el panel para
+     encontrarlo. Con 40 etiquetas en un teléfono de 412×915 ya no se veía; con
+     25 en uno de 390×700, tampoco. Lo contó Gianni.
+
+     Se pensó en bajarle el tope a la lista, pero eso solo mueve el número de
+     etiquetas a partir del cual vuelve a pasar. Arriba, pegado a los botones
+     que abren la lista, el campo está siempre a la vista, y lo que se recorta
+     si no cabe es la cola de la lista, que se desplaza con el dedo y que
+     cualquiera entiende que sigue. El pliegue (plegarTags) anima el alto de la
+     caja entera y no depende del orden de sus hijos; insertBefore en
+     ponerEtiqueta busca la lista por su clase, así que tampoco. */
   return '<div class="tagbox' + ((m.nota||'').trim() ? '' : ' dormida') + '">' +
-    '<div class="taglista">' +
-    (lista.length
-      ? lista.map(t => '<button class="tg' + (tiene.has(t) ? ' on' : '') +
-          (t && t === ultimaEtiqueta ? ' ultima' : '') +
-          '" data-tag="' + esc(t) + '">#' + esc(t) + '</button>').join('')
-      : '<span class="vacio">' + T('sin etiquetas todavía','no tags yet') + '</span>') +
-    '</div><div class="tagctl">' +
+    '<div class="tagctl">' +
     '<input id="tagNueva" placeholder="' + T('nueva…','new…') + '" enterkeyhint="done" ' +
       'autocapitalize="none" autocomplete="off" />' +
     /* EL + DICE LO QUE HACE. Era un signo suelto de menos de un centímetro
        al lado de una caja de texto, y un signo no se lee: se adivina. */
     '<button class="crear" data-acc="creartag" ' +
       'title="' + T('Crear la etiqueta','Create the tag') + '">' + T('+ crear','+ create') + '</button>' +
+    '</div><div class="taglista">' +
+    (lista.length
+      ? lista.map(t => '<button class="tg' + (tiene.has(t) ? ' on' : '') +
+          (t && t === ultimaEtiqueta ? ' ultima' : '') +
+          '" data-tag="' + esc(t) + '">#' + esc(t) + '</button>').join('')
+      : '<span class="vacio">' + T('sin etiquetas todavía','no tags yet') + '</span>') +
     '</div></div>';
 }
 /* EL ANTICIPO YA NO SE PINTA APARTE, y aquí estaba el fallo: se veía en papel
@@ -11525,7 +11573,15 @@ function abrirPanel(m, nueva, rect){
      Lo levantó Codex. */
   borrador = { m, nueva, teniaNota: !!(m.nota||'').trim(),
                notaAntes: (m.nota || '').trim(),
-               tagsAntes: (m.etiquetas || []).join('\u0001') };
+               tagsAntes: (m.etiquetas || []).join('\u0001'),
+               /* Y la marca entera tal como llegó, para que Cancelar la deje
+                  así: nota, etiquetas, color y trazo, con su «no lo tenía»
+                  cuando no lo tenía. Ver cancelarBorrador. */
+               antes: ['nota', 'etiquetas', 'color', 'estilo'].reduce((o, k) => {
+                 o[k] = Object.prototype.hasOwnProperty.call(m, k)
+                   ? { v: Array.isArray(m[k]) ? m[k].slice() : m[k] } : null;
+                 return o;
+               }, {}) };
   /* La marca provisional entra en la lista para poder VERLA mientras
      decides —el subrayado bajo el texto es la mitad de la decisión— y
      sale de ella al cerrar si no llegaste a escribir nada. Lo que no se
@@ -11710,6 +11766,37 @@ function cerrarBorrador(){
 
   } finally { __crono('cerrarBorrador', __t0); }
 }
+/* CANCELAR: LA GLOSA SE QUEDA COMO ESTABA AL ABRIRLA.
+
+   Lo pidió el dueño del repo. Hasta aquí este panel no tenía camino de
+   abandono —salir era terminar, se saliera por donde se saliera, y vaciar la
+   caja era la forma de borrar—, y eso sigue siendo verdad para TODAS las
+   salidas menos ésta: tocar fuera, OK y Escape guardan, como siempre. Cancelar
+   es la única que no, y por eso es un botón con su nombre y no un gesto: un
+   gesto destructivo escondido es justo lo que se evitó con Escape.
+
+   No hay nada que deshacer en el almacén: mientras el panel está abierto
+   save() no se toca —todo se cobra en cerrarBorrador—, así que cancelar es
+   devolver la marca en memoria a como llegó y repintar. Una glosa nueva no
+   llega a existir; una vieja recupera su nota, sus etiquetas, su color y su
+   trazo. Las etiquetas que se hayan CREADO entretanto se quedan en la lista
+   de etiquetas: crear una es otra cosa, y ya está dicha. */
+function cancelarBorrador(){
+  const b = borrador; if (!b) return;
+  borrador = null;
+  const m = b.m;
+  if (b.nueva){
+    marcas = marcas.filter(x => x !== m);
+  } else {
+    for (const k in b.antes){
+      if (b.antes[k]) m[k] = Array.isArray(b.antes[k].v) ? b.antes[k].v.slice() : b.antes[k].v;
+      else delete m[k];
+    }
+    reanclar(m);
+  }
+  renderPage();
+}
+
 /* Y AL GUARDAR, EL RECUADRO SE VA VOLANDO A SU SITIO.
 
    Sin esto la nota desaparece de un lado y aparece en el otro: dos cosas, no
@@ -12629,6 +12716,15 @@ menu.addEventListener('click', ev => {
      más falta hace tener una salida a la vista. */
   if (b.dataset.acc === 'ok'){
     ev.stopPropagation();
+    ocultarMenu();
+    return;
+  }
+  /* Cancelar: se suelta el borrador sin cobrarlo y se cierra. ocultarMenu,
+     sin borrador, ya no tiene nada que guardar ni que hacer volar: solo
+     recoge el panel. Ver cancelarBorrador. */
+  if (b.dataset.acc === 'cancelar'){
+    ev.stopPropagation();
+    cancelarBorrador();
     ocultarMenu();
     return;
   }

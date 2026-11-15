@@ -3220,6 +3220,111 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   await cerrarParcial(sesTapa, 'sin descarga automática');
 
   /* ================================================================
+     CANCELAR: LA ÚNICA SALIDA QUE NO GUARDA.
+
+     Todas las demás salidas del panel cobran lo escrito —OK, tocar fuera, la
+     X del sistema—, y esa es la regla buena: lo que se escribe no se pierde
+     por un dedo que se escapa. Cancelar es la excepción a propósito, y por
+     eso hay que vigilar las dos mitades que tiene:
+     · sobre una glosa NUEVA, no deja ni la marca —como si no se hubiera
+       pintado nada—;
+     · sobre una que YA EXISTÍA, la deja como estaba ANTES DE ABRIR: nota,
+       color, estilo y etiquetas. No «sin nota», que sería borrarla.
+     Y el orden de los tres botones, que se decidió y no debe moverse solo:
+     etiquetas · Cancelar · OK.
+     ================================================================ */
+  titulo('cancelar deja la glosa como estaba');
+  {
+    const pc = await otraPagina(sesion.navegador);
+    const fallosC = [];
+    pc.on('pageerror', e => fallosC.push(String(e).split('\n')[0]));
+    await pc.goto(APP);
+    await listo(pc);
+    const r = await pc.evaluate(async ([abrir, fuera, tocar]) => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      const lee = () => { try { return JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]'); }
+                          catch(e){ return []; } };
+      const menu = document.getElementById('menu');
+      const abierto = () => getComputedStyle(menu).display !== 'none' &&
+                            !menu.hidden && menu.getBoundingClientRect().height > 0;
+      const boton = acc => menu.querySelector('.macciones [data-acc="' + acc + '"]');
+      const escribir = t => { const ta = document.getElementById('glosaCaja');
+        ta.value = t; ta.dispatchEvent(new Event('input', { bubbles:true })); };
+      const out = {};
+
+      /* 1 · NUEVA. Se pinta, se escribe y se cancela. */
+      const base = lee().length;
+      if (!await eval('(' + abrir + ')')(0, 14)) return { error:'no abrió: ' + window.__pincelPorque };
+      out.orden = [...menu.querySelectorAll('.macciones button')].map(b => b.dataset.acc).join(' · ');
+      escribir('esto no se queda');
+      await pausa(200);
+      boton('cancelar').click();
+      await pausa(500);
+      out.nuevaDespues = lee().length;
+      out.base = base;
+      out.cerroNueva = !abierto();
+      out.enHoja = document.querySelectorAll('#pgBody mark, #pgBody .mk').length;
+
+      /* 2 · EXISTENTE. Se guarda con una nota y una etiqueta; se reabre, se
+         cambia todo y se cancela. */
+      if (!await eval('(' + abrir + ')')(0, 14)) return { ...out, error:'no reabrió: ' + window.__pincelPorque };
+      escribir('la de antes');
+      await pausa(200);
+      const g = lee();
+      boton('ok').click();
+      await pausa(3300);
+      const antes = lee().find(m => m.nota === 'la de antes');
+      if (!antes) return { ...out, error:'no se guardó la de antes' };
+      out.antes = { nota: antes.nota, color: antes.color, estilo: antes.estilo,
+                    etiquetas: (antes.etiquetas || []).join(',') };
+      if (!await eval('(' + tocar + ')')(3, 11) || !abierto())
+        return { ...out, error:'no se pudo reabrir tocándola' };
+      escribir('cambiada y arrepentida');
+      /* Otro color y el otro estilo: los dos se aplican en vivo, que es
+         justo por lo que hay que poder deshacerlos. */
+      const otroColor = [...menu.querySelectorAll('.mc')].find(b => !b.classList.contains('on') &&
+                          !b.classList.contains('sel') && b.getAttribute('aria-pressed') !== 'true');
+      if (otroColor) otroColor.click();
+      await pausa(200);
+      const otroModo = [...menu.querySelectorAll('.mmodos button')].find(b =>
+                          !b.classList.contains('on') && b.getAttribute('aria-pressed') !== 'true');
+      if (otroModo) otroModo.click();
+      await pausa(200);
+      boton('vertags').click(); await pausa(700);
+      const campo = document.getElementById('tagNueva');
+      if (campo){ campo.value = 'arrepentida';
+        menu.querySelector('[data-acc="creartag"]').click(); await pausa(300); }
+      const enVivo = lee().find(m => m.id === antes.id) || {};
+      out.cambioAlgo = !!otroColor || !!otroModo;
+      boton('cancelar').click();
+      await pausa(500);
+      const despues = lee().find(m => m.id === antes.id) ||
+                      lee().find(m => m.nota === 'la de antes') || null;
+      out.despues = despues && { nota: despues.nota, color: despues.color, estilo: despues.estilo,
+                                 etiquetas: (despues.etiquetas || []).join(',') };
+      out.cuantas = lee().length;
+      out.cerroExistente = !abierto();
+      return out;
+    }, [ABRIR, FUERA, TOCAR]);
+    di('cancelar', JSON.stringify(r));
+    vale('los tres botones en su orden: etiquetas · Cancelar · OK',
+         r.orden === 'vertags · cancelar · ok', r.orden || r.error);
+    vale('cancelar una glosa NUEVA no deja marca guardada',
+         !r.error && r.nuevaDespues === r.base, r.error || (r.base + ' → ' + r.nuevaDespues));
+    vale('  y cierra el panel', r.cerroNueva === true, r.cerroNueva);
+    vale('(la prueba es válida) se pudo cambiar color o estilo antes de cancelar',
+         r.cambioAlgo === true, r.cambioAlgo);
+    vale('cancelar una glosa que YA EXISTÍA la deja como estaba',
+         !r.error && JSON.stringify(r.despues) === JSON.stringify(r.antes),
+         r.error || (JSON.stringify(r.antes) + ' contra ' + JSON.stringify(r.despues)));
+    vale('  y no la borra ni crea otra', r.cuantas === r.base + 1, r.base + ' + 1 contra ' + r.cuantas);
+    vale('  y cierra el panel', r.cerroExistente === true, r.cerroExistente);
+    vale('sin errores de JavaScript (cancelar)', fallosC.length === 0,
+         fallosC.length ? fallosC : 'ninguno');
+    await pc.close();
+  }
+
+  /* ================================================================
      Y EL DÍA ES EL DE CASA, NO EL DE GREENWICH. Aparte, porque pide dos
      navegadores con husos distintos.
 
