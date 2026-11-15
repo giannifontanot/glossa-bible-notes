@@ -283,8 +283,14 @@ const abrirEn = async (p, donde) => {
   vale('(la prueba es válida) se recorrieron varias versiones',
        !!versiones.out && versiones.out.length >= 2,
        versiones.sinGlobo ? 'no se abrió el globo' : (versiones.cuales || []).join(', '));
+  /* SE COMPARAN LOS VERSÍCULOS, NO EL NOMBRE DEL LIBRO. La cabeza habla el
+     idioma de la Biblia elegida —«Lucas 10:21–10:31» en las españolas, «Luke
+     10:21–10:31» en las inglesas—, así que la cadena entera ya no puede ser
+     igual en las cuatro. Lo que promete la hoja es el tramo, y eso es lo que se
+     coteja: lo que va desde el primer «cap:vers». */
+  const tramo = h => String(h || '').replace(/^.*?(?=\d+:\d+)/, '');
   vale('LA HOJA ES LA MISMA EN TODAS',
-       new Set((versiones.out || []).map(x => x.hoja)).size === 1,
+       new Set((versiones.out || []).map(x => tramo(x.hoja))).size === 1,
        (versiones.out || []).map(x => x.v + ': ' + x.hoja));
   vale('  Y EL TITULILLO TAMBIÉN',
        new Set((versiones.out || []).map(x => x.titulillos)).size === 1,
