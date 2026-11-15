@@ -381,6 +381,62 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
   di('en 1 Corintios 13', enCorintios);
   vale('  y la perla sale en su hoja', enCorintios.perla === true, enCorintios);
   vale('  sin sembrarse otra al recargar', enCorintios.sigue === 1, enCorintios.sigue);
+  /* ================================================================
+     LA INTERFAZ HABLA EL IDIOMA DE LA BIBLIA ABIERTA.
+     Lo pidió el dueño del repo: con la Berean, todo en inglés; con una Biblia
+     española, todo en español. Esta es la primera parte —la portada, los
+     nombres de los libros, el encabezado, las pestañas, el panel de Libros y
+     el pie de CERRAR—; las demás llegan panel por panel. Se mira en la misma
+     instalación estrenada y luego, cambiando la versión guardada y
+     recargando, en español. */
+  titulo('la interfaz en inglés al estrenar, y en español con una Biblia española');
+  const leerUI = () => pB.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const vis = () => [...document.querySelectorAll('.rollo, #canto')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    if (!vis()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+    const t = (vis() || document).querySelector('.pestanas [data-sec="libros"]');
+    if (t) t.click();
+    await pausa(1000);
+    const q = sel => { const e = document.querySelector(sel); return e ? e.textContent.trim() : null; };
+    return {
+      lang: document.documentElement.lang,
+      portada: [q('#btnPortadaFoto'), q('#btnPortadaSeguir'), q('#btnPortadaPiedras')],
+      cabeza: q('#pgCabeza'),
+      pestana: (document.querySelector('#canto .pestanas [data-sec="libros"]') || {}).title || null,
+      casilla: (document.getElementById('chkFlechas') || {}).parentElement ? document.getElementById('chkFlechas').parentElement.textContent.trim() : null,
+      libros: [...document.querySelectorAll('#canto .rejilla-libros .tabo')].slice(0, 4).map(b => b.textContent.trim()),
+      testa: [...document.querySelectorAll('#canto .canto-tab')].map(b => b.textContent.trim()),
+      cerrar: q('#canto .cerrar-pie')
+    };
+  });
+  const ui = await leerUI();
+  di('en la Berean', ui);
+  vale('EN LA BEREAN, EL DOCUMENTO DICE QUE ES INGLÉS', ui.lang === 'en', ui.lang);
+  vale('  la portada: photo · continue · Pearls', ui.portada.join('|') === 'photo|continue|Pearls', ui.portada.join('|'));
+  /* La hoja está donde la dejó el bloque de arriba, en 1 Corintios 13. */
+  vale('  el encabezado nombra el libro en inglés', /^1 Corinthians\s/.test(ui.cabeza || ''), ui.cabeza);
+  vale('  la pestaña de Libros habla inglés', ui.pestana === 'Books: go to a passage', ui.pestana);
+  vale('  la casilla también', ui.casilla === 'Show where you can tap', ui.casilla);
+  vale('  los libros se llaman en inglés', ui.libros.includes('Matthew') && ui.libros.includes('Mark'), ui.libros.join(', '));
+  vale('  las pestañas del testamento: OT y NT', ui.testa.join('|') === 'OT|NT', ui.testa.join('|'));
+  vale('  y el pie dice CLOSE', ui.cerrar === 'CLOSE', ui.cerrar);
+  await pB.evaluate(() => {
+    const a = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
+    Object.assign(a, { v:1, version:'vbl', libro:'MAT', cap:1, vers:1 });
+    localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a));
+  });
+  await pB.reload(); await pB.waitForTimeout(2600);
+  const uiEs = await leerUI();
+  di('en la Biblia Libre', uiEs);
+  vale('EN LA BIBLIA LIBRE, TODO EN ESPAÑOL', uiEs.lang === 'es', uiEs.lang);
+  vale('  la portada: foto · continuar · Perlas', uiEs.portada.join('|') === 'foto|continuar|Perlas', uiEs.portada.join('|'));
+  vale('  el encabezado dice Mateo', /^Mateo\s/.test(uiEs.cabeza || ''), uiEs.cabeza);
+  vale('  la pestaña: Libros', uiEs.pestana === 'Libros: ir a un pasaje', uiEs.pestana);
+  vale('  la casilla en español', uiEs.casilla === 'Señalar dónde se puede tocar', uiEs.casilla);
+  vale('  los libros en español', uiEs.libros.includes('Mateo'), uiEs.libros.join(', '));
+  vale('  AT y NT', uiEs.testa.join('|') === 'AT|NT', uiEs.testa.join('|'));
+  vale('  y el pie dice CERRAR', uiEs.cerrar === 'CERRAR', uiEs.cerrar);
   await cerrarParcial(sesB, 'el estreno en la Berean');
 
   await cerrar(sesion);

@@ -1070,7 +1070,7 @@ async function ponerAMano(p){
     /* Entrar a un libro nuevo obliga a rearmarlo entero: se espera a que
        llegue, no un rato fijo. */
     const t0 = performance.now();
-    while (performance.now() - t0 < 25000 && window.__hoja().indexOf('Marcos') !== 0)
+    while (performance.now() - t0 < 25000 && !/^(Marcos|Mark)\s/.test(window.__hoja()))
       await window.__pausa(200);
     await window.__pausa(900);
     return { antes, dice, hoja: window.__hoja(),
@@ -1078,7 +1078,7 @@ async function ponerAMano(p){
   });
   di('el salto', salto.dice + '  →  ' + salto.hoja);
   di('las cintas', salto.antes + '  →  ' + salto.despues);
-  vale('el salto llega a otro libro', salto.hoja.indexOf('Marcos') === 0, salto.hoja);
+  vale('el salto llega a otro libro', /^(Marcos|Mark)\s/.test(salto.hoja), salto.hoja);
   vale('y la cinta no se movió', salto.antes.join('|') === salto.despues.join('|'),
        salto.antes + '  vs  ' + salto.despues);
 
@@ -2276,7 +2276,7 @@ async function ponerAMano(p){
     const quieto = window.__hoja();
     await window.__toque('#versoPleno .vp-txt');
     const t0 = performance.now();
-    while (performance.now() - t0 < 25000 && window.__hoja().indexOf('Marcos') !== 0)
+    while (performance.now() - t0 < 25000 && !/^(Marcos|Mark)\s/.test(window.__hoja()))
       await window.__pausa(200);
     await window.__pausa(900);
     return { dice, ventana, hayTexto, quieto,
@@ -2286,11 +2286,11 @@ async function ponerAMano(p){
      '  →  ' + otroLibro.hoja);
   vale('la lista la enseña igual', otroLibro.dice !== '(no está)', otroLibro.dice);
   vale('la ventanita ya trae el respaldo por capítulo',
-       (otroLibro.ventana || '').indexOf('Marcos') === 0 && otroLibro.hayTexto === true,
+       /^(Marcos|Mark)\s/.test(otroLibro.ventana || '') && otroLibro.hayTexto === true,
        otroLibro.ventana);
   vale('y mirar todavía no mueve la hoja',
-       (otroLibro.quieto || '').indexOf('Marcos') !== 0, otroLibro.quieto);
-  vale('y el salto llega a su capítulo', otroLibro.hoja.indexOf('Marcos') === 0,
+       !/^(Marcos|Mark)\s/.test(otroLibro.quieto || ''), otroLibro.quieto);
+  vale('y el salto llega a su capítulo', /^(Marcos|Mark)\s/.test(otroLibro.hoja),
        otroLibro.hoja);
 
   titulo('otra pestaña abierta no se pierde al guardar');
