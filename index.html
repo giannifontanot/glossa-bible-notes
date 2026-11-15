@@ -2368,9 +2368,13 @@
   /* LA PISTA, MÁS QUEDA, Y SOLO DONDE HACE FALTA. Al verla puesta, el dueño
      del repo la quiso menos visible, y solo en las filas que todavía no
      tienen nombre: quien ya nombró una perla sabe cómo se hace, y la pista
-     repetida en todas las filas era ruido. Así que baja de 4,0:1 a 2,5:1
-     —se lee si se busca, no se ve si no— y un punto de letra; y filaHTML no
-     la pinta si la fila ya tiene nombre. Lo de abajo cuenta de dónde salía el
+     repetida en todas las filas era ruido. Así que filaHTML no la pinta si la
+     fila ya tiene nombre, y lo que la calla es el COLOR, no el tamaño: se
+     probó primero achicarla y el dueño del repo la quiso del mismo tamaño que
+     la referencia —letra chica es letra que cuesta, no letra que calla—,
+     solo más gris y más apagada. Es un gris tibio, #b1aa9c, 2,1:1 sobre la
+     fila: se lee si se busca, y el peso normal contra la negrita de la
+     referencia hace el resto. Lo de abajo cuenta de dónde salía el
      4,0:1, y sigue valiendo para el color de los rótulos. */
   /* LA PISTA DE LA FILA: visible y quieta.
      · EL COLOR es el de los rótulos del panel, «TUS PERLAS»: la voz que ya
@@ -2385,13 +2389,13 @@
      · A LA DERECHA, al final de la fila: la columna de referencias de la
        izquierda se sigue recorriendo con el ojo sin tropezar con ella. */
   .sp-pista{ flex:0 0 auto; margin-left:auto; padding-left:8px;
-             font:400 calc(10px * var(--escala-ui, 1))/1.2 var(--ui);
-             color:#ab9c72; letter-spacing:.02em; white-space:nowrap; }
+             font:400 calc(13px * var(--escala-ui, 1))/1.2 var(--ui);
+             color:#b1aa9c; letter-spacing:.02em; white-space:nowrap; }
   .sp-pista-dedo{ display:none; }
   @media (pointer:coarse){
     .sp-pista-dedo{ display:inline; }
     .sp-pista-raton{ display:none; }
-    .sp-pista{ font-size:calc(11.5px * var(--escala-ui, 1)); }
+    .sp-pista{ font-size:calc(15px * var(--escala-ui, 1)); }
   }
   .sp-fila-pregunta{ flex-wrap:wrap; gap:7px;
                      background:rgba(155,42,42,.1);
@@ -6641,7 +6645,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 17:14';
+window.GLOSS_BUILD = '15-NOV-26 17:17';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';

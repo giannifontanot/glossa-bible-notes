@@ -2531,10 +2531,10 @@ async function ponerAMano(p){
        Array.isArray(conBotones.pistas) && conBotones.pistas.length === 1 &&
        conBotones.pistas[0] === (conBotones.dedo ? 'click largo' : 'doble click'),
        JSON.stringify(conBotones.pistas));
-  /* El tono, más quedo de lo que fue: el dueño del repo la pidió menos
-     visible. #ab9c72, 2,5:1 sobre la fila. */
-  vale('  en un sepia quedo, que se lee si se busca',
-       conBotones.tono === 'rgb(171, 156, 114)', conBotones.tono);
+  /* El tono, más quedo de lo que fue: el dueño del repo la pidió del tamaño
+     de la referencia pero más gris y apagada. #b1aa9c, 2,1:1 sobre la fila. */
+  vale('  en un gris apagado, que se lee si se busca',
+       conBotones.tono === 'rgb(177, 170, 156)', conBotones.tono);
   const ordenBotones = (conBotones.botones || []).map(b => b.dice).join(' · ');
   vale('BORRAR, CANCELAR Y ACEPTAR, en ese orden de izquierda a derecha',
        ordenBotones === 'Borrar · Cancelar · Aceptar' &&
