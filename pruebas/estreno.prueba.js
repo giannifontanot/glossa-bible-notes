@@ -413,7 +413,10 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
          Los dos caminos, cada uno con su testigo. */
       glosas: ['btnLetraGlosas', 'btnVerEtiquetas', 'btnElegirGlosas']
         .map(id => (document.getElementById(id) || {}).textContent || null),
-      dias: ((document.querySelector('#selDia option') || {}).textContent) || null
+      dias: ((document.querySelector('#selDia option') || {}).textContent) || null,
+      /* Y los puntos de la hoja, que son la puerta de perlas, cintas y rastro. */
+      puntos: ['btnPiedras', 'btnCintas', 'btnHistorial']
+        .map(id => (document.getElementById(id) || {}).title || null)
     };
   });
   const ui = await leerUI();
@@ -429,6 +432,8 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
   vale('  y el pie dice CLOSE', ui.cerrar === 'CLOSE', ui.cerrar);
   vale('  GLOSAS: font · filter · update', ui.glosas.join('|') === 'font|filter|update', ui.glosas.join('|'));
   vale('  y el filtro de días: all days', ui.dias === 'all days', ui.dias);
+  vale('  los puntos de la hoja: pearls · bookmarks · seen',
+       ui.puntos.join('|') === 'See your pearls|See your bookmarks|What you have seen', ui.puntos.join('|'));
   await pB.evaluate(() => {
     const a = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
     Object.assign(a, { v:1, version:'vbl', libro:'MAT', cap:1, vers:1 });
@@ -447,6 +452,8 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
   vale('  y el pie dice CERRAR', uiEs.cerrar === 'CERRAR', uiEs.cerrar);
   vale('  GLOSAS: letra · filtrar · actualizar', uiEs.glosas.join('|') === 'letra|filtrar|actualizar', uiEs.glosas.join('|'));
   vale('  y el filtro de días: todos los días', uiEs.dias === 'todos los días', uiEs.dias);
+  vale('  los puntos de la hoja: perlas · separadores · visto',
+       uiEs.puntos.join('|') === 'Ver tus perlas|Ver tus separadores|Lo que has visto', uiEs.puntos.join('|'));
   await cerrarParcial(sesB, 'el estreno en la Berean');
 
   await cerrar(sesion);
