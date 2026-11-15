@@ -1516,7 +1516,6 @@ async function ponerAMano(p){
     const panel = document.getElementById('historial');
     const cab = panel.querySelector('.hs-cab');
     const tit = panel.querySelector('.hs-tit');
-    const acciones = panel.querySelector('.hs-acciones');
     const atras = panel.querySelector('.hs-atras');
     if (!atras) return { falta:true, atras:false };
     const st = document.querySelector('.stage').getBoundingClientRect();
@@ -1534,9 +1533,14 @@ async function ponerAMano(p){
          comparten renglón a propósito, así que son dos y lo que se vigila es
          que no se cuele un tercero: este renglón es el nombre del panel y su
          salida, y cualquier otra cosa aquí arriba compite con la lista. */
-      soloRotuloYEquis: cab.children.length === 2 &&
-                        cab.firstElementChild === tit &&
-                        cab.lastElementChild.matches('[data-sp-cerrar]'),
+      /* Y AHORA TRES: el paso atrás volvió a este renglón, entre el rótulo y
+         la equis, como el «Nueva» de las listas de perlas y de cintas —lo
+         pidió el dueño del repo para que los tres paneles se vieran iguales—.
+         Lo que se sigue vigilando es que no se cuele un cuarto. */
+      rotuloAtrasYEquis: cab.children.length === 3 &&
+                         cab.firstElementChild === tit &&
+                         cab.children[1] === atras &&
+                         cab.lastElementChild.matches('[data-sp-cerrar]'),
       /* LA EQUIS DEL RASTRO. Se cerraba tocando fuera o volviendo a tocar el
          botón que lo abrió: las dos hay que saberlas de antes y ninguna se ve.
          Arriba a la derecha es donde se busca. Se mide contra la ESQUINA del
@@ -1557,8 +1561,7 @@ async function ponerAMano(p){
          «vuelve por donde viniste» y «deja algo aquí». Los dos de poner se
          mudaron DENTRO de sus listas, que es donde se está mirando las que
          hay; aquí queda el paso atrás y nada más. */
-      soloElAtras: [...acciones.children].length === 1 &&
-                   atras.parentElement === acciones,
+      soloElAtras: atras.parentElement === cab && !panel.querySelector('.hs-acciones'),
       sinLosDePoner: !panel.querySelector('[data-sep-nuevo]') &&
                      !panel.querySelector('[data-piedra-nueva]'),
       /* NI PIE NI PUERTAS DENTRO DEL RASTRO. Lo primero que se rompería si
@@ -1595,8 +1598,8 @@ async function ponerAMano(p){
   });
   di('el rastro y las dos puertas', renglon);
   vale('están el paso atrás y los dos puntos', renglon.falta !== true, renglon);
-  vale('arriba, el rótulo y su equis y nada más',
-       renglon.soloRotuloYEquis === true, renglon);
+  vale('arriba, el rótulo, el paso atrás y la equis, y nada más',
+       renglon.rotuloAtrasYEquis === true, renglon);
   vale('EL RASTRO TIENE SU EQUIS, arriba a la derecha',
        !!renglon.aspa && renglon.aspa.arriba <= 12 && renglon.aspa.derecha <= 12,
        renglon.aspa);
