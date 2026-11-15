@@ -1527,6 +1527,14 @@
   .stage.guias #pg .pg-version{ --guia-dice:"click"; }
   .stage.guias #pg .peri{ --guia-dice:"click largo"; }
   .stage.guias #btnGlosas{ --guia-dice:"jalar"; }
+  /* IDIOMA: las mismas tres palabras en inglés, según la Biblia abierta —ver
+     aplicarIdioma, que pone el lang del documento—. «tap» y no «click»: en
+     inglés el dedo toca. */
+  :root[lang="en"] .stage.guias #btnPiedras, :root[lang="en"] .stage.guias #btnCintas,
+  :root[lang="en"] .stage.guias #btnZoom, :root[lang="en"] .stage.guias #btnHistorial,
+  :root[lang="en"] .stage.guias #pg .pg-version{ --guia-dice:"tap"; }
+  :root[lang="en"] .stage.guias #pg .peri{ --guia-dice:"long press"; }
+  :root[lang="en"] .stage.guias #btnGlosas{ --guia-dice:"pull"; }
   /* UN LETRERO QUE MIENTE ES PEOR QUE NINGUNO, y hay dos sitios donde este
      mentiría si no se apagara.
 
@@ -5930,10 +5938,27 @@
          dueño del repo. «photo» en minúscula igual que estaba «foto»; «Pearls»
          con mayúscula igual que «Perlas», porque es el nombre de una cosa de la
          casa y no un verbo. -->
-    <button type="button" class="pt-btn" id="btnPortadaFoto">photo</button>
-    <button type="button" class="pt-btn pt-seguir" id="btnPortadaSeguir">continue</button>
-    <button type="button" class="pt-btn" id="btnPortadaPiedras">Pearls</button>
+    <button type="button" class="pt-btn" id="btnPortadaFoto" data-es="foto" data-en="photo">photo</button>
+    <button type="button" class="pt-btn pt-seguir" id="btnPortadaSeguir" data-es="continuar" data-en="continue">continue</button>
+    <button type="button" class="pt-btn" id="btnPortadaPiedras" data-es="Perlas" data-en="Pearls">Pearls</button>
   </div>
+  <!-- LA PORTADA EN SU IDIOMA DESDE EL PRIMER CUADRO. Los botones nacen en
+       inglés —es el idioma de una instalación nueva, que abre en la Berean— y
+       el programa los pone en su idioma con aplicarIdioma(), pero eso llega
+       al final del arranque, detrás de 16 MB de biblias: quien lee en español
+       vería «photo» y luego «foto». Esto lee la versión guardada y les da la
+       vuelta aquí mismo. Las versiones españolas son las de IDIOMA_VERSION. -->
+  <script>
+    (function(){
+      try {
+        var a = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || 'null');
+        if (!a || (a.version !== 'vbl' && a.version !== 'rv1909')) return;
+        document.documentElement.lang = 'es';
+        var b = document.querySelectorAll('#portadaPie [data-es]');
+        for (var i = 0; i < b.length; i++) b[i].textContent = b[i].getAttribute('data-es');
+      } catch (e) {}
+    })();
+  </script>
   <!-- El selector del sistema. Oculto: lo dispara el botón de arriba. -->
   <input type="file" id="portadaArchivo" accept="image/*" hidden />
   <!-- Los dos mandos de la decoración, cada uno con lo suyo. Nacen vacíos. -->
@@ -6528,7 +6553,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 03:27';
+window.GLOSS_BUILD = '15-NOV-26 03:41';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -9079,6 +9104,18 @@ function mapaPericopas(pl){
    cambiar sola. */
 const IDIOMA_VERSION = { vbl:'es', rv1909:'es', bsb:'en', web:'en' };
 const idiomaVersion = v => IDIOMA_VERSION[v] || 'es';
+/* EL IDIOMA DE LA INTERFAZ ES EL DE LA BIBLIA ABIERTA. Lo pidió el dueño del
+   repo: quien lee en inglés ve la aplicación en inglés, quien lee en español la
+   ve en español, y cambiar de versión cambia también los rótulos. Solo hay dos.
+
+   T(español, inglés) es toda la maquinaria a propósito: cada texto se escribe
+   donde se usa, con sus dos versiones una al lado de la otra, en vez de en un
+   diccionario lejano con claves que hay que ir a buscar. Lo que se pinta con
+   JavaScript lo pregunta al pintarse; lo que está escrito en el HTML lleva
+   data-es y data-en, y aplicarIdioma() lo pone al arrancar y en cada cambio de
+   versión. Se hace por partes: ver los comentarios «IDIOMA» de cada panel. */
+const idiomaUI = () => idiomaVersion(version);
+const T = (es, en) => idiomaUI() === 'en' ? en : es;
 /* Y con respaldo al otro idioma: una perícopa a la que le falte el inglés se
    enseña en español antes que en blanco. Devuelve las DOS cosas —el texto y en
    qué idioma salió— porque quien lo pinta tiene que declararlo: ver tituloHTML.
@@ -16991,8 +17028,34 @@ const CANON = Object.keys(LIBROS_ES).map((id, i) => {
     nt: i >= Object.keys(LIBROS_ES).indexOf('MAT')
   };
 });
-const nombreDe = id => (CANON.find(b => b.id === id) || {nombre:id}).nombre;
-const abrevDe  = id => (CANON.find(b => b.id === id) || {corto:id}).corto || id;
+/* LOS NOMBRES EN INGLÉS, con su abreviatura. LIBROS_ES sigue mandando para
+   entender referencias escritas —«Mt 5:3» dentro de una glosa—; esto es solo
+   cómo se ENSEÑA el libro cuando la Biblia abierta es inglesa: el encabezado,
+   la lista de Libros, las referencias de perlas y cintas. Las abreviaturas son
+   las de uso corriente en inglés (SBL), no una traducción de las españolas. */
+const LIBROS_EN = {
+  GEN:['Genesis','Gen'], EXO:['Exodus','Exod'], LEV:['Leviticus','Lev'], NUM:['Numbers','Num'],
+  DEU:['Deuteronomy','Deut'], JOS:['Joshua','Josh'], JDG:['Judges','Judg'], RUT:['Ruth','Ruth'],
+  '1SA':['1 Samuel','1Sam'], '2SA':['2 Samuel','2Sam'], '1KI':['1 Kings','1Kgs'], '2KI':['2 Kings','2Kgs'],
+  '1CH':['1 Chronicles','1Chr'], '2CH':['2 Chronicles','2Chr'], EZR:['Ezra','Ezra'], NEH:['Nehemiah','Neh'],
+  EST:['Esther','Esth'], JOB:['Job','Job'], PSA:['Psalms','Ps'], PRO:['Proverbs','Prov'],
+  ECC:['Ecclesiastes','Eccl'], SNG:['Song of Songs','Song'], ISA:['Isaiah','Isa'], JER:['Jeremiah','Jer'],
+  LAM:['Lamentations','Lam'], EZK:['Ezekiel','Ezek'], DAN:['Daniel','Dan'], HOS:['Hosea','Hos'],
+  JOL:['Joel','Joel'], AMO:['Amos','Amos'], OBA:['Obadiah','Obad'], JON:['Jonah','Jonah'],
+  MIC:['Micah','Mic'], NAM:['Nahum','Nah'], HAB:['Habakkuk','Hab'], ZEP:['Zephaniah','Zeph'],
+  HAG:['Haggai','Hag'], ZEC:['Zechariah','Zech'], MAL:['Malachi','Mal'],
+  MAT:['Matthew','Matt'], MRK:['Mark','Mark'], LUK:['Luke','Luke'], JHN:['John','John'],
+  ACT:['Acts','Acts'], ROM:['Romans','Rom'], '1CO':['1 Corinthians','1Cor'], '2CO':['2 Corinthians','2Cor'],
+  GAL:['Galatians','Gal'], EPH:['Ephesians','Eph'], PHP:['Philippians','Phil'], COL:['Colossians','Col'],
+  '1TH':['1 Thessalonians','1Thess'], '2TH':['2 Thessalonians','2Thess'], '1TI':['1 Timothy','1Tim'],
+  '2TI':['2 Timothy','2Tim'], TIT:['Titus','Titus'], PHM:['Philemon','Phlm'], HEB:['Hebrews','Heb'],
+  JAS:['James','Jas'], '1PE':['1 Peter','1Pet'], '2PE':['2 Peter','2Pet'], '1JN':['1 John','1John'],
+  '2JN':['2 John','2John'], '3JN':['3 John','3John'], JUD:['Jude','Jude'], REV:['Revelation','Rev']
+};
+const nombreDe = id => (idiomaUI() === 'en' && LIBROS_EN[id]) ? LIBROS_EN[id][0]
+  : (CANON.find(b => b.id === id) || {nombre:id}).nombre;
+const abrevDe  = id => (idiomaUI() === 'en' && LIBROS_EN[id]) ? LIBROS_EN[id][1]
+  : ((CANON.find(b => b.id === id) || {corto:id}).corto || id);
 
 const canto = $('canto');
 let cantoAbierto = false, relojCanto = null;
@@ -17557,13 +17620,14 @@ function pintarCanto(){
   $('cantoCab').innerHTML =
     '<label class="canto-opcion"><input type="checkbox" id="chkFlechas"' +
     (verFlechas ? ' checked' : '') + ' />' +
-    '<span>Show where you can tap</span></label>' +
+    '<span>' + T('Señalar dónde se puede tocar', 'Show where you can tap') + '</span></label>' +
     cantoPestanasHTML();
   const celdas = libros => libros.map(b => {
       const vivo = hayLibro(b.id), aqui = b.id === cantoMarcado();
       return '<button class="tabo ' + (aqui ? 'aqui' : vivo ? 'viva' : 'muerta') +
-             '" data-libro="' + b.id + '" title="' + b.nombre +
-             (vivo ? '' : ' — no está en estos datos') + '">' + b.nombre + '</button>';
+             '" data-libro="' + b.id + '" title="' + nombreDe(b.id) +
+             (vivo ? '' : T(' — no está en estos datos', ' — not in this data')) + '">' +
+             nombreDe(b.id) + '</button>';
     }).join('');
   /* UN TESTAMENTO A LA VEZ, CON DOS PESTAÑAS. Y son la tercera forma que toma
      esta lista, así que conviene dejar por qué:
@@ -17607,9 +17671,9 @@ function cantoPestanasHTML(){
       ' data-testa="' + id + '" role="tab"' +
       ' aria-selected="' + (cantoTesta === id) + '"' +
       ' title="' + largo + '" aria-label="' + largo + '">' + corto + '</button>';
-  return '<div class="canto-tabs" role="tablist" aria-label="Testamento">' +
-           uno('AT', 'AT', 'Antiguo Testamento') +
-           uno('NT', 'NT', 'Nuevo Testamento') +
+  return '<div class="canto-tabs" role="tablist" aria-label="' + T('Testamento', 'Testament') + '">' +
+           uno('AT', T('AT', 'OT'), T('Antiguo Testamento', 'Old Testament')) +
+           uno('NT', 'NT', T('Nuevo Testamento', 'New Testament')) +
          '</div>';
 }
 /* Cambiar de pestaña rehace la lista, así que se lleva por delante la cascada
@@ -17894,9 +17958,9 @@ function abrirCapitulos(libro, ancla){
   ocultarFly(flyVers);
   const caps = capitulosDe(libro);
   flyCaps.innerHTML = '<span class="fly-tit">' + esc(nombreDe(libro)) + ' · ' +
-    caps.length + ' cap</span><div class="fly-rejilla">' +
+    caps.length + T(' cap', ' ch') + '</span><div class="fly-rejilla">' +
     caps.map(c => '<button class="num" data-cap="' + c + '" title="' +
-      versiculosDe(libro, c) + ' versículos">' + c + '</button>').join('') + '</div>';
+      versiculosDe(libro, c) + T(' versículos', ' verses') + '">' + c + '</button>').join('') + '</div>';
   colocarFly(flyCaps, ancla, 'abajo');
 }
 function abrirVersiculos(cap, ancla){
@@ -17973,7 +18037,7 @@ const SECCIONES = [
                           'c-1.1-1-2-2.4-2-3.8Z"/>' +
                           '<path d="M6.2 17 3.2 19.9 7 22.7 10 20.1"/>' +
                           '<path d="M17.8 17 20.8 19.9 17 22.7 14 20.1"/></svg>',
-                     nombre:'Oración: tus oraciones colgadas del árbol' },
+                     nombre:'Oración: tus oraciones colgadas del árbol', nombreEn:'Prayer: your prayers hung on the tree' },
   /* UN LIBRO ABIERTO POR LA MITAD. Las dos hojas caen hacia el lomo y el lomo
      se dibuja entero: es lo que separa un libro abierto de una hoja doblada,
      que a este tamaño se parecen más de lo que uno cree. */
@@ -17981,18 +18045,18 @@ const SECCIONES = [
                           'focusable="false"><path d="M12 7.6C10.4 6 8 5.2 3.6 5.2v12.4' +
                           'c4.4 0 6.8.8 8.4 2.4"/><path d="M12 7.6c1.6-1.6 4-2.4 8.4-2.4' +
                           'v12.4c-4.4 0-6.8.8-8.4 2.4"/><path d="M12 7.6v12.4"/></svg>',
-                     nombre:'Libros: ir a un pasaje' },
+                     nombre:'Libros: ir a un pasaje', nombreEn:'Books: go to a passage' },
   /* EL PAPELITO CON LA ESQUINA DOBLADA. La esquina va abajo a la derecha y con
      su pliegue dibujado: sin el pliegue no es un papelito, es un cuadrado al
      que le falta un trozo. */
   { id:'glosas',     html:'<svg class="signo glosa" viewBox="0 0 24 24" aria-hidden="true" ' +
                           'focusable="false"><path d="M4.4 4.4h15.2v8.8l-6.4 6.4H4.4z"/>' +
                           '<path d="M19.6 13.2h-6.4v6.4"/></svg>',
-                     nombre:'Glosas: tus notas y sus etiquetas' },
+                     nombre:'Glosas: tus notas y sus etiquetas', nombreEn:'Glosses: your notes and their tags' },
   { id:'notas',      html:'<svg class="signo nota" viewBox="0 0 24 24" aria-hidden="true" ' +
                           'focusable="false"><path d="M5.2 3.8h10.2l3.4 3.4v13H5.2z"/>' +
                           '<path d="M15.4 3.8v3.6H19M8.3 11h7.4M8.3 14.5h7.4"/></svg>',
-                     nombre:'Notas: escribe tus apuntes' },
+                     nombre:'Notas: escribe tus apuntes', nombreEn:'Notes: write your notes' },
   /* DOS CAMINOS QUE SE HACEN UNO, que es lo que pasa en cada uno de estos
      relatos: alguien iba por lo suyo y se cruzó con Cristo.
 
@@ -18036,9 +18100,9 @@ const SECCIONES = [
                           '<path d="M2.8 12a5.8 5.8 0 1 0 11.6 0 5.8 5.8 0 1 0-11.6 0"/>' +
                           '<path d="M9.6 12a5.8 5.8 0 1 0 11.6 0 5.8 5.8 0 1 0-11.6 0"/>' +
                           '</svg>',
-                     nombre:'Encuentros: relatos de quienes se cruzaron con Él' },
+                     nombre:'Encuentros: relatos de quienes se cruzaron con Él', nombreEn:'Encounters: stories of those who crossed paths with Him' },
   { id:'formato',    html:'<span class="aa" aria-hidden="true"><i>A</i><i>A</i></span>',
-                     nombre:'Tamaño de letra y aspecto de la hoja' },
+                     nombre:'Tamaño de letra y aspecto de la hoja', nombreEn:'Text size and page look' },
   /* El dibujo va con los círculos rellenos y las dos varas trazadas, y los dos
      toman currentColor: la pestaña encendida cambia de color de letra y el
      signo tiene que irse con ella. Ver .pestanas .compartir. */
@@ -18046,7 +18110,7 @@ const SECCIONES = [
                           'focusable="false"><path d="M8.7 13.2l6.6 3.9M15.3 6.9l-6.6 3.9"/>' +
                           '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/>' +
                           '<circle cx="18" cy="19" r="3"/></svg>',
-                     nombre:'Compartir y respaldar tus glosas' },
+                     nombre:'Compartir y respaldar tus glosas', nombreEn:'Share and back up your glosses' },
 ];
 /* el elemento de cada sección, en un solo sitio para no repetir el mapeo */
 const PANEL = { oracion:'oracion', libros:'canto', glosas:'etiquetas', notas:'notas',
@@ -18121,7 +18185,8 @@ function barraPestanas(activa){
   b.className = 'pestanas';
   b.innerHTML = SECCIONES.map(x =>
     '<button data-sec="' + x.id + '"' + (x.id === activa ? ' class="aqui"' : '') +
-    (x.nombre ? ' title="' + x.nombre + '" aria-label="' + x.nombre + '"' : '') +
+    (x.nombre ? ' title="' + T(x.nombre, x.nombreEn || x.nombre) + '" aria-label="' +
+                T(x.nombre, x.nombreEn || x.nombre) + '"' : '') +
     '>' + x.html + '</button>').join('');
   /* El acuse se enciende AL APOYAR EL DEDO, y también cuando tocas la pestaña
      que ya está abierta: ahí no va a pasar nada más —abrirSeccion no se llama—
@@ -18182,7 +18247,10 @@ function ponerPie(el){
   if (!pie){
     pie = document.createElement('div');
     pie.className = 'pie-cerrar';
-    pie.innerHTML = '<button type="button" class="btn cerrar-pie">CERRAR</button>';
+    /* IDIOMA: con data-es/data-en, para que aplicarIdioma lo cambie en los
+       pies que ya existen dentro de los paneles cerrados. */
+    pie.innerHTML = '<button type="button" class="btn cerrar-pie" data-es="CERRAR" data-en="CLOSE">' +
+                    T('CERRAR', 'CLOSE') + '</button>';
     /* stopPropagation porque el panel entero lleva encima el vigilante del
        "clic fuera": sin esto el clic sube, el vigilante lo ve llegar desde
        dentro y no pasa nada malo, pero el acuse de obrando —que escucha en el
@@ -21467,7 +21535,7 @@ function pintarPiedraMando(){
   const el = $('piedraMando');
   const x = piedraEditando ? piedraTaller.de(piedraEditando) : null;
   if (!x){ el.innerHTML = ''; return; }
-  const en = piedraTaller === TALLER_PORTADA;
+  const en = idiomaUI() === 'en';
   const di = (es, ing) => en ? ing : es;
   const nomForma = f => en ? (FORMA_NOMBRE_EN[f] || f) : FORMA_NOMBRE[f];
   const nomTinta = t => en ? (TINTA_NOMBRE_EN[t[0]] || t[1]) : t[1];
@@ -23677,12 +23745,33 @@ $('archivoImp').onchange = ev => {
 
 
 /* ---------- controles ---------- */
+/* PONE LA INTERFAZ EN EL IDIOMA DE LA BIBLIA ABIERTA. Al arrancar y en cada
+   cambio de versión. Lo escrito en el HTML con data-es/data-en se cambia aquí;
+   lo que se pinta con JavaScript se vuelve a pintar si está a la vista —la
+   lista de Libros—, y lo demás se pinta ya en su idioma la próxima vez que se
+   abra. Las pestañas, que se quedan dentro de sus paneles cerrados, se ponen
+   al día aquí mismo para que un panel que se reabre no hable el idioma viejo. */
+function aplicarIdioma(){
+  document.documentElement.lang = idiomaUI();
+  document.querySelectorAll('[data-es][data-en]').forEach(el => {
+    el.textContent = T(el.dataset.es, el.dataset.en);
+  });
+  document.querySelectorAll('.pestanas [data-sec]').forEach(b => {
+    const x = SECCIONES.find(s => s.id === b.dataset.sec);
+    if (!x || !x.nombre) return;
+    const t = T(x.nombre, x.nombreEn || x.nombre);
+    b.title = t; b.setAttribute('aria-label', t);
+  });
+  if (cantoAbierto) pintarCanto();
+}
 function setVersion(v){
   /* Conservar el lugar por REFERENCIA, no por número de hoja: los textos de
      dos versiones tienen largos distintos, así que la hoja 3 de una no es la
      hoja 3 de la otra. Estabas en 1:35 y aparecías en 1:40. */
   const donde = plano[startIdx];
+  const idiomaAntes = idiomaUI();
   version = v; paginasSucias = true;
+  if (idiomaUI() !== idiomaAntes) aplicarIdioma();
   rehacerPlano();
   renderPage();
   if (donde){
@@ -26128,8 +26217,9 @@ function portadaGuardar(){
   } catch(e){
     /* Y SE DICE. Es de los que sí salen: el lector acaba de elegir una foto y
        si no se guarda, mañana no está y nadie le avisó. Ver AVISOS_QUE_FALLAN. */
-    readout.textContent = 'COULD NOT SAVE the cover (' + (e.name || 'error') +
-                          ') — the photo may be too large';
+    readout.textContent = T('NO SE PUDO GUARDAR la portada (', 'COULD NOT SAVE the cover (') +
+                          (e.name || 'error') +
+                          T(') — quizá la foto pesa demasiado', ') — the photo may be too large');
     return false;
   }
 }
@@ -26225,7 +26315,7 @@ function portadaPiedraNueva(){
   if (!p) return null;
   portadaCerrarMandos();
   if (portadaAdorno.piedras.length >= 40){
-    readout.textContent = 'the cover is already full of pearls';
+    readout.textContent = T('la portada ya está llena de perlas', 'the cover is already full of pearls');
     return null;
   }
   /* Y EL PASO DE LA DIAGONAL SE SACA DEL TAMAÑO DE LA PIEDRA, no de un número
@@ -26316,17 +26406,18 @@ function portadaMandoFoto(){
   el.innerHTML =
     '<div class="pt-fila">' +
       '<button type="button" class="pt-mini" data-pt-estilo="1">' +
-        (esPol ? 'switch to normal' : 'switch to Polaroid') + '</button>' +
+        (esPol ? T('cambiar a normal', 'switch to normal')
+               : T('cambiar a Polaroid', 'switch to Polaroid')) + '</button>' +
     '</div>' +
     '<div class="pt-fila">' +
       '<button type="button" class="pt-mini" data-pt-giro="-3"' +
-        ' aria-label="Rotate left">\u21ba</button>' +
+        ' aria-label="' + T('Girar a la izquierda', 'Rotate left') + '">\u21ba</button>' +
       '<button type="button" class="pt-mini" data-pt-giro="3"' +
-        ' aria-label="Rotate right">\u21bb</button>' +
-      '<button type="button" class="pt-mini quita" data-pt-quitar="1">Remove</button>' +
+        ' aria-label="' + T('Girar a la derecha', 'Rotate right') + '">\u21bb</button>' +
+      '<button type="button" class="pt-mini quita" data-pt-quitar="1">' + T('Quitar', 'Remove') + '</button>' +
       '<button type="button" class="pt-mini" data-pt-mover="1">' +
-        (portadaMandoArriba ? 'move down' : 'move up') + '</button>' +
-      '<button type="button" class="pt-mini listo" data-pt-listo="1">Done</button>' +
+        (portadaMandoArriba ? T('bajar', 'move down') : T('subir', 'move up')) + '</button>' +
+      '<button type="button" class="pt-mini listo" data-pt-listo="1">' + T('Listo', 'Done') + '</button>' +
     '</div>';
 }
 
@@ -26345,14 +26436,16 @@ const PORTADA_LADO = 1200;
 function portadaTomarArchivo(file){
   if (!file) return;
   if (!/^image\//.test(file.type || '')){
-    readout.textContent = 'could not read the file — that is not an image';
+    readout.textContent = T('no se pudo leer el archivo — eso no es una imagen',
+                            'could not read the file — that is not an image');
     return;
   }
   const lector = new FileReader();
-  lector.onerror = () => { readout.textContent = 'could not read the file'; };
+  lector.onerror = () => { readout.textContent = T('no se pudo leer el archivo', 'could not read the file'); };
   lector.onload = () => {
     const img = new Image();
-    img.onerror = () => { readout.textContent = 'could not read the file — broken image'; };
+    img.onerror = () => { readout.textContent = T('no se pudo leer el archivo — imagen rota',
+                                                  'could not read the file — broken image'); };
     img.onload = () => {
       const k = Math.min(1, PORTADA_LADO / Math.max(img.naturalWidth, img.naturalHeight));
       const w = Math.max(1, Math.round(img.naturalWidth * k));
@@ -26362,7 +26455,7 @@ function portadaTomarArchivo(file){
       c.getContext('2d').drawImage(img, 0, 0, w, h);
       let src;
       try { src = c.toDataURL('image/jpeg', .82); }
-      catch(e){ readout.textContent = 'could not read the file'; return; }
+      catch(e){ readout.textContent = T('no se pudo leer el archivo', 'could not read the file'); return; }
       portadaAdorno.foto = { src, estilo:'normal', giro:0 };
       portadaPintarFoto();
       portadaGuardar();
@@ -26562,6 +26655,7 @@ cargarPiedras();
    sembraban con citas de VBL y sus anclajes caían en «David, hijo d», « Zara:
    y Phares en» y «r de Urías: ». O sea el resaltado sobre trozos sin sentido.
    Lo levantó la revisión de Codex. */
+aplicarIdioma();
 if (primeraVez) sembrarGlosasDeEstreno();
 if (primeraVez) sembrarAdornosDeEstreno();
 stage.style.transition = 'none';
