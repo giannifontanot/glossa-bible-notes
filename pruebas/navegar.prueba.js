@@ -1858,7 +1858,7 @@ const ATERRIZA = 7000;
        tramo(trasRecarga[0]));
 
   /* 4 · un salto de verdad: la fila de JHN 3:16, su ventanita y su texto. */
-  const saltoL = await pL.evaluate(async () => {
+  const saltoL = await pL.evaluate(async (espera) => {
     document.getElementById('btnHistorial').click();
     await new Promise(z => setTimeout(z, 600));
     const fila = document.querySelector('#historial .hs-fila[data-hs="JHN:3:16"]');
@@ -1868,10 +1868,14 @@ const ATERRIZA = 7000;
     const vp = document.querySelector('#versoPleno .vp-txt');
     if (!vp) return { sinVentanita:true };
     vp.click();
-    await new Promise(z => setTimeout(z, 2600));
-    return { ok:true };
-  });
-  vale('(la prueba es válida) se saltó a Juan 3:16 desde el rastro', saltoL.ok, JSON.stringify(saltoL));
+    /* ATERRIZA y no un número corto: saltar de libro es un viaje con su
+       animación, y la hoja que se pase antes de aterrizar no es la de Juan. Con
+       2,6 s la prueba se cayó en CI justo por eso. */
+    await new Promise(z => setTimeout(z, espera));
+    return { ok:true, cabeza: (document.getElementById('pgCabeza') || {}).textContent || '' };
+  }, ATERRIZA);
+  vale('(la prueba es válida) se saltó a Juan 3:16 desde el rastro',
+       saltoL.ok && /Juan|John/.test(saltoL.cabeza), JSON.stringify(saltoL));
   await pasarL('right');
   const trasSalto = await rastroL();
   di('tras el salto y una hoja', JSON.stringify(trasSalto.map(h => (h.lectura ? 'L ' : '') + h.libro + ' ' + h.cap + ':' + h.vers)));
