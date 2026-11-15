@@ -19708,6 +19708,17 @@ function apuntarLectura(antes, aqui){
       ahora - (arriba.t || 0) <= LECTURA_PAUSA){
     arriba.cap = aqui.cap; arriba.vers = aqui.vers; arriba.t = ahora;
   } else {
+    /* SI VENÍAS DE DAR PASOS ATRÁS, LO QUE ENCABEZA LA LISTA NO ES DE DONDE
+       VIENES. Con [Juan 3:16, Mateo 5:1], volver atrás a Mateo y pasar una
+       hoja dejaba [lectura de Mateo, Juan 3:16, Mateo 5:1]: el renglón de
+       lectura encima, y el «atrás» siguiente —que se pone a cero aquí abajo—
+       te mandaba ADELANTE a Juan, no a Mateo, que es de donde saliste. Así que
+       antes de abrir el renglón se apunta el sitio de verdad, como hace
+       apuntarDeDonde con un salto. Con la cuenta a cero no hace falta: lo de
+       arriba ya es donde estabas. Lo encontró Codex. */
+    if (atrasEn > 0){
+      historial.unshift({ libro: antes.libro, cap: antes.cap, vers: antes.vers, t: ahora - 1 });
+    }
     historial.unshift({ libro: aqui.libro, cap: aqui.cap, vers: aqui.vers,
                         desde: { cap: antes.cap, vers: antes.vers }, lectura: true, t: ahora });
     if (historial.length > TOPE_HISTORIAL) historial.length = TOPE_HISTORIAL;
