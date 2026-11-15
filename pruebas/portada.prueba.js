@@ -74,8 +74,10 @@ async function tocarSinClic(pagina, x, y, pid = 21){
        (muestras.find(m => !m.viva) || {}).t
          ? 'se fue sola a los ' + muestras.find(m => !m.viva).t + ' ms'
          : 'no se movió');
-  vale('  y el botón dice «continue» todo el rato, sin contar nada',
-       muestras.every(m => m.rot === 'continue'),
+  /* «continuar»: el banco arranca en la Biblia Libre y la portada habla su
+     idioma. En la Berean diría «continue» —lo mira estreno—. */
+  vale('  y el botón dice «continuar» todo el rato, sin contar nada',
+       muestras.every(m => m.rot === 'continuar'),
        [...new Set(muestras.map(m => m.rot))].join(' '));
 
   await p.reload();
