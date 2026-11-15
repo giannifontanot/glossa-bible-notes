@@ -332,9 +332,15 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       altosAbajo: acciones.map(b => Math.round(b.getBoundingClientRect().height)),
       anchosAbajo: acciones.map(b => Math.round(b.getBoundingClientRect().width)),
       /* Y que sean dos renglones de verdad: el de abajo, debajo. */
-      dosRenglones: acciones.length === 2 && modos.length === 2 &&
+      dosRenglones: acciones.length === 3 && modos.length === 2 &&
         acciones[0].getBoundingClientRect().top > modos[0].getBoundingClientRect().top,
       hueco: fila ? parseFloat(getComputedStyle(fila).gap) : -1,
+      /* Lo que ocupa cada renglón de punta a punta: los dos tienen que llenar
+         el mismo ancho, aunque abajo sean tres. */
+      anchoFilaArriba: modos.length ? Math.round(modos[modos.length-1].getBoundingClientRect().right -
+                                                 modos[0].getBoundingClientRect().left) : 0,
+      anchoFilaAbajo: acciones.length ? Math.round(acciones[acciones.length-1].getBoundingClientRect().right -
+                                                   acciones[0].getBoundingClientRect().left) : 0,
       /* SIN TEXTO EL OK SIGUE ACTIVO. Apagarlo sería mentir: sin texto,
          terminar es lo que borra la glosa, y ése es un camino que existe. */
       okApagado: ok ? (ok.disabled === true ||
@@ -363,14 +369,23 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     vale('el OK está en la fila', r.hayOk === true);
     vale('los dos trazos siguen midiendo lo mismo',
          r.anchos.length === 2 && Math.abs(r.anchos[0] - r.anchos[1]) <= 1, r.anchos);
-    /* EL OK BAJÓ A LA FILA DE ABAJO, junto a las etiquetas, y sigue midiendo
-       lo mismo que todos: lo que lo distingue es el color, no el tamaño. */
-    vale('DOS ARRIBA Y DOS ABAJO', r.dosRenglones === true,
+    /* EL OK BAJÓ A LA FILA DE ABAJO, junto a las etiquetas, y desde que hay
+       Cancelar abajo van TRES: etiquetas · Cancelar · OK. Ya no pueden medir
+       lo mismo que los dos de arriba —eran «las cuatro celdas iguales»—; lo
+       que se pide ahora es que las dos salidas sean gemelas, que etiquetas
+       no sea menos que ellas (lleva más palabra) y que los dos renglones
+       llenen el mismo ancho. Lo que distingue al OK sigue siendo el color. */
+    vale('DOS ARRIBA Y TRES ABAJO', r.dosRenglones === true,
          r.anchos.length + ' arriba, ' + r.anchosAbajo.length + ' abajo');
-    vale('y las cuatro celdas miden lo mismo de ancho',
-         Math.max(...r.anchos, ...r.anchosAbajo) -
-         Math.min(...r.anchos, ...r.anchosAbajo) <= 1,
-         [...r.anchos, ...r.anchosAbajo].join(' / '));
+    vale('Cancelar y OK miden lo mismo de ancho',
+         r.anchosAbajo.length === 3 && Math.abs(r.anchosAbajo[1] - r.anchosAbajo[2]) <= 1,
+         r.anchosAbajo.join(' / '));
+    vale('  y etiquetas no es más estrecho que ellos',
+         r.anchosAbajo.length === 3 && r.anchosAbajo[0] >= r.anchosAbajo[2] - 1,
+         r.anchosAbajo.join(' / '));
+    vale('los dos renglones llenan el mismo ancho',
+         r.anchoFilaArriba > 0 && Math.abs(r.anchoFilaArriba - r.anchoFilaAbajo) <= 1,
+         r.anchoFilaArriba + ' contra ' + r.anchoFilaAbajo);
     vale('cada pareja, del mismo alto',
          new Set(r.altosArriba).size === 1 && new Set(r.altosAbajo).size === 1,
          r.altosArriba.join('/') + '  ·  ' + r.altosAbajo.join('/'));
@@ -3218,6 +3233,162 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        bajadasT[0] === 'gloss-bible-respaldo-' + nombre.dia + '.json',
        bajadasT[0] + ' contra ' + nombre.dia);
   await cerrarParcial(sesTapa, 'sin descarga automática');
+
+  /* ================================================================
+     CANCELAR: LA ÚNICA SALIDA QUE NO GUARDA.
+
+     Todas las demás salidas del panel cobran lo escrito —OK, tocar fuera, la
+     X del sistema—, y esa es la regla buena: lo que se escribe no se pierde
+     por un dedo que se escapa. Cancelar es la excepción a propósito, y por
+     eso hay que vigilar las dos mitades que tiene:
+     · sobre una glosa NUEVA, no deja ni la marca —como si no se hubiera
+       pintado nada—;
+     · sobre una que YA EXISTÍA, la deja como estaba ANTES DE ABRIR: nota,
+       color, estilo y etiquetas. No «sin nota», que sería borrarla.
+     Y el orden de los tres botones, que se decidió y no debe moverse solo:
+     etiquetas · Cancelar · OK.
+     ================================================================ */
+  titulo('cancelar deja la glosa como estaba');
+  {
+    const pc = await otraPagina(sesion.navegador);
+    const fallosC = [];
+    pc.on('pageerror', e => fallosC.push(String(e).split('\n')[0]));
+    await pc.goto(APP);
+    await listo(pc);
+    const r = await pc.evaluate(async ([abrir, fuera, tocar]) => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      const lee = () => { try { return JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]'); }
+                          catch(e){ return []; } };
+      const menu = document.getElementById('menu');
+      const abierto = () => getComputedStyle(menu).display !== 'none' &&
+                            !menu.hidden && menu.getBoundingClientRect().height > 0;
+      const boton = acc => menu.querySelector('.macciones [data-acc="' + acc + '"]');
+      const escribir = t => { const ta = document.getElementById('glosaCaja');
+        ta.value = t; ta.dispatchEvent(new Event('input', { bubbles:true })); };
+      const out = {};
+
+      /* 1 · NUEVA. Se pinta, se escribe y se cancela. */
+      const base = lee().length;
+      if (!await eval('(' + abrir + ')')(0, 14)) return { error:'no abrió: ' + window.__pincelPorque };
+      out.orden = [...menu.querySelectorAll('.macciones button')].map(b => b.dataset.acc).join(' · ');
+      escribir('esto no se queda');
+      await pausa(200);
+      boton('cancelar').click();
+      await pausa(500);
+      out.nuevaDespues = lee().length;
+      out.base = base;
+      out.cerroNueva = !abierto();
+      out.enHoja = document.querySelectorAll('#pgBody mark, #pgBody .mk').length;
+
+      /* 2 · EXISTENTE. Se guarda con una nota y una etiqueta; se reabre, se
+         cambia todo y se cancela. */
+      if (!await eval('(' + abrir + ')')(0, 14)) return { ...out, error:'no reabrió: ' + window.__pincelPorque };
+      escribir('la de antes');
+      await pausa(200);
+      const g = lee();
+      boton('ok').click();
+      await pausa(3300);
+      const antes = lee().find(m => m.nota === 'la de antes');
+      if (!antes) return { ...out, error:'no se guardó la de antes' };
+      out.antes = { nota: antes.nota, color: antes.color, estilo: antes.estilo,
+                    cita: antes.cita, ini: antes.ini, fin: antes.fin, origen: antes.versionOrigen,
+                    etiquetas: (antes.etiquetas || []).join(',') };
+      /* La foto de TODAS, no solo de ésta: en la otra traducción el toque
+         puede caer en otra glosa del mismo versículo —las de bienvenida
+         viven ahí—, y la regla vale igual para cualquiera que se abra. */
+      const foto = lista => JSON.stringify(lista.map(m => ({ id: m.id, nota: m.nota,
+                     color: m.color, estilo: m.estilo, cita: m.cita, ini: m.ini, fin: m.fin,
+                     origen: m.versionOrigen, etiquetas: (m.etiquetas || []).join(',') }))
+                     .sort((x, y) => String(x.id).localeCompare(String(y.id))));
+      const fotoAntes = foto(lee());
+      if (!await eval('(' + tocar + ')')(3, 11) || !abierto())
+        return { ...out, error:'no se pudo reabrir tocándola' };
+      escribir('cambiada y arrepentida');
+      /* Otro color y el otro estilo: los dos se aplican en vivo, que es
+         justo por lo que hay que poder deshacerlos. */
+      const otroColor = [...menu.querySelectorAll('.mc')].find(b => !b.classList.contains('on') &&
+                          !b.classList.contains('sel') && b.getAttribute('aria-pressed') !== 'true');
+      if (otroColor) otroColor.click();
+      await pausa(200);
+      const otroModo = [...menu.querySelectorAll('.mmodos button')].find(b =>
+                          !b.classList.contains('on') && b.getAttribute('aria-pressed') !== 'true');
+      if (otroModo) otroModo.click();
+      await pausa(200);
+      boton('vertags').click(); await pausa(700);
+      const campo = document.getElementById('tagNueva');
+      if (campo){ campo.value = 'arrepentida';
+        menu.querySelector('[data-acc="creartag"]').click(); await pausa(300); }
+      const enVivo = lee().find(m => m.id === antes.id) || {};
+      out.cambioAlgo = !!otroColor || !!otroModo;
+      boton('cancelar').click();
+      await pausa(500);
+      out.cerroExistente = !abierto();
+      /* 3 · EN OTRA TRADUCCIÓN, Y SIN TOCAR NADA. Abrirla en una versión que
+         no es la suya la deja anclada al versículo entero, y cancelar no
+         puede quedarse con ese ancla de prestado: cuando se vuelva a la suya,
+         tiene que seguir subrayando sus palabras. Lo levantó Codex. */
+      document.getElementById('pgVersion').click(); await pausa(600);
+      /* La inglesa si está: su primer versículo es de un solo trozo de texto
+         largo, que es lo que TOCAR necesita para dar en él (en RV1909 el
+         primero viene partido y el toque no encuentra dónde caer). */
+      const hay = [...document.querySelectorAll('[data-bv]')].map(x => x.dataset.bv);
+      const otra = hay.includes('bsb') ? 'bsb' : hay.find(v => v !== antes.versionOrigen);
+      out.otraVersion = otra || null;
+      if (otra){
+        document.querySelector('[data-bv="' + otra + '"]').click();
+        await pausa(2600);
+        out.tocado = await eval('(' + tocar + ')')(3, 11);
+        out.ab = abierto();
+        if (out.tocado && out.ab){
+          out.abrioEnOtra = true;
+          boton('cancelar').click();
+          await pausa(500);
+        }
+      }
+      /* LO GUARDADO NO BASTA PARA SABERLO: cancelar no llama a save(), así que
+         el almacén dice lo de antes aunque la marca en memoria se hubiera
+         quedado cambiada, y lo cambiado se escribiría con el siguiente
+         guardado de cualquier otra cosa. Así que se fuerza ese guardado: otra
+         glosa, en otro sitio, con su OK. */
+      if (!await eval('(' + abrir + ')')(20, 40)) return { ...out, error:'no abrió la tercera' };
+      escribir('otra cualquiera');
+      await pausa(200);
+      boton('ok').click();
+      await pausa(3300);
+      const despues = lee().find(m => m.id === antes.id) ||
+                      lee().find(m => m.nota === 'la de antes') || null;
+      out.despues = despues && { nota: despues.nota, color: despues.color, estilo: despues.estilo,
+                    cita: despues.cita, ini: despues.ini, fin: despues.fin, origen: despues.versionOrigen,
+                                 etiquetas: (despues.etiquetas || []).join(',') };
+      out.cuantas = lee().length - 1;
+      out.todasIgual = foto(lee().filter(m => m.nota !== 'otra cualquiera')) === fotoAntes;
+      if (!out.todasIgual) out.difieren = lee().filter(m => m.nota !== 'otra cualquiera' &&
+          !fotoAntes.includes('"cita":' + JSON.stringify(m.cita) + ',"ini":' + m.ini))
+          .map(m => m.versionOrigen + ' «' + String(m.cita).slice(0, 30) + '»');
+      return out;
+    }, [ABRIR, FUERA, TOCAR]);
+    di('cancelar', JSON.stringify(r));
+    vale('los tres botones en su orden: etiquetas · Cancelar · OK',
+         r.orden === 'vertags · cancelar · ok', r.orden || r.error);
+    vale('cancelar una glosa NUEVA no deja marca guardada',
+         !r.error && r.nuevaDespues === r.base, r.error || (r.base + ' → ' + r.nuevaDespues));
+    vale('  y cierra el panel', r.cerroNueva === true, r.cerroNueva);
+    vale('(la prueba es válida) se pudo cambiar color o estilo antes de cancelar',
+         r.cambioAlgo === true, r.cambioAlgo);
+    vale('cancelar una glosa que YA EXISTÍA la deja como estaba',
+         !r.error && JSON.stringify(r.despues) === JSON.stringify(r.antes),
+         r.error || (JSON.stringify(r.antes) + ' contra ' + JSON.stringify(r.despues)));
+    vale('(la prueba es válida) se reabrió en otra traducción',
+         r.abrioEnOtra === true, (r.otraVersion || 'sin otra') + ' · ' + r.abrioEnOtra);
+    vale('  y ahí cancelar tampoco le cambia el ancla a ninguna',
+         !r.error && r.todasIgual === true,
+         r.error || (r.difieren || []).join(' · ') || 'todas iguales');
+    vale('  y no la borra ni crea otra', r.cuantas === r.base + 1, r.base + ' + 1 contra ' + r.cuantas);
+    vale('  y cierra el panel', r.cerroExistente === true, r.cerroExistente);
+    vale('sin errores de JavaScript (cancelar)', fallosC.length === 0,
+         fallosC.length ? fallosC : 'ninguno');
+    await pc.close();
+  }
 
   /* ================================================================
      Y EL DÍA ES EL DE CASA, NO EL DE GREENWICH. Aparte, porque pide dos
