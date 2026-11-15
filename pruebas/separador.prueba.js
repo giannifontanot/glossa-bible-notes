@@ -2579,13 +2579,19 @@ async function ponerAMano(p){
     if (!f2) return { sinFila2:true };
     f2.focus();                                           /* Tab: a otra cinta */
     await window.__pausa(60);
-    f2.dispatchEvent(new KeyboardEvent('keydown', { key:'F2', bubbles:true, cancelable:true }));
+    /* El F2 va a QUIEN TENGA EL FOCO, como lo manda un teclado, no a la fila
+       que se enfocó: salir de la fila cobra lo escrito y repinta la lista, y
+       lo que se vigila también es que el foco siga en la cinta 2 después. */
+    const conFoco = document.activeElement;
+    const focoEnLa2 = !!(conFoco && conFoco.matches && conFoco.matches('[data-sep-ir="c2"]'));
+    conFoco.dispatchEvent(new KeyboardEvent('keydown', { key:'F2', bubbles:true, cancelable:true }));
     await window.__pausa(400);
     return { primera: (window.__guardadas().find(x => x.id === 'c1') || {}).nombre || '',
-             abierta2: !!sm.querySelector('[data-sep-nombre="c2"]') };
+             focoEnLa2, abierta2: !!sm.querySelector('[data-sep-nombre="c2"]') };
   });
   di('tab fuera y F2', JSON.stringify(dosFilas));
-  vale('(la prueba es válida) F2 abrió la segunda cinta', dosFilas.abierta2 === true, dosFilas);
+  vale('EL FOCO SIGUE EN LA SEGUNDA CINTA tras cobrar y repintar', dosFilas.focoEnLa2 === true, dosFilas);
+  vale('  y F2 la abre', dosFilas.abierta2 === true, dosFilas);
   vale('LO ESCRITO EN LA PRIMERA SE GUARDA al abrir la segunda',
        dosFilas.primera === 'tabulado', dosFilas.primera);
 

@@ -6634,7 +6634,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 15:35';
+window.GLOSS_BUILD = '15-NOV-26 15:40';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -22518,6 +22518,8 @@ let piedraBorrando = null;
    mismo que sepEditando para las cintas, y de ahí sale todo lo de abajo. */
 let piedraNombrando = null;
 function abrirPiedraMenu(ancla){
+  /* Lo mismo que abrirSepMenu: repintar entero no se lleva lo escrito. */
+  piedraCobrarNombreLista();
   /* Los hermanos, fuera: ver «LOS TRES PANELES DE LA ESCENA» en abrirHistorial. */
   cerrarHistorial(); cerrarSepMenu();
   piedraMenuAbierto = true;
@@ -22994,14 +22996,50 @@ const noSoltarElCampo = ev => {
 };
 $('piedraMenu').addEventListener('mousedown', noSoltarElCampo);
 $('sepMenu').addEventListener('mousedown', noSoltarElCampo);
+/* LO QUE SE VIGILA ES LA FILA, NO EL CAMPO. Al principio se miraba solo el
+   focusout del campo; desde que ir a sus botones no cuenta como salir, el
+   foco puede salir de la fila DESDE UN BOTÓN —Tab desde Aceptar hasta
+   «Nueva», hasta otra perla, hasta la equis— y ese focusout no lo miraba
+   nadie: lo escrito se quedaba en el campo y el repintado siguiente lo
+   tiraba. Codex fue encontrando las puertas una a una; ésta las cierra
+   todas: salga el foco de la fila abierta por donde salga, se cobra lo
+   escrito en ella. */
+/* Y EL FOCO NO SE PIERDE EN EL REPINTADO. Cobrar lo escrito repinta la lista
+   un turno después, y repintar rehace todos sus botones: el que acababa de
+   recibir el foco —la fila siguiente a la que se llegó con Tab— deja de
+   existir, y el foco cae al cuerpo de la página. El F2 siguiente ya no
+   abría nada. Se apunta a qué se fue el foco y, repintado, se le devuelve a
+   su gemelo nuevo. */
+const ATRS_DE_FOCO = ['data-sep-ir', 'data-piedra-ir', 'data-sep-nuevo', 'data-piedra-nueva',
+                      'data-sp-cerrar', 'data-sep-color'];
+const selectorDeFoco = el => {
+  if (!el || !el.getAttribute) return null;
+  for (const a of ATRS_DE_FOCO)
+    if (el.hasAttribute(a)) return '[' + a + '="' + CSS.escape(el.getAttribute(a)) + '"]';
+  return null;
+};
+const devolverFoco = (menu, sel) => {
+  if (!sel) return;
+  const a = document.activeElement;
+  if (a && a !== document.body && menu.contains(a)) return;   /* ya lo tiene alguien */
+  const b = menu.querySelector(sel);
+  if (b) b.focus({ preventScroll:true });
+};
+const campoDeLaFila = (ev, sel) => {
+  const fila = ev.target.closest('.sp-fila-abierta');
+  return fila ? fila.querySelector(sel) : null;
+};
 $('piedraMenu').addEventListener('focusout', ev => {
-  const campo = ev.target.closest('[data-piedra-nombre]');
+  const campo = campoDeLaFila(ev, '[data-piedra-nombre]');
   if (!campo || piedraNombrando !== campo.dataset.piedraNombre) return;
   if (focoSigueEnLaFila(ev)) return;
   piedraPonerNombre(campo.dataset.piedraNombre, campo.value, true);
   piedraNombrando = null;
+  const aDonde = selectorDeFoco(ev.relatedTarget);
   setTimeout(() => {
-    if (piedraMenuAbierto && !piedraNombrando){ pintarPiedraMenu(); colocarPiedraMenu(); }
+    if (piedraMenuAbierto && !piedraNombrando){
+      pintarPiedraMenu(); colocarPiedraMenu(); devolverFoco($('piedraMenu'), aDonde);
+    }
   }, 0);
 });
 function colocarPiedraMenu(){
@@ -23226,6 +23264,10 @@ document.addEventListener('pointerdown', ev => {
    confundir los dos dejaría el menú abierto sin que nadie supiera cerrarlo. */
 function abrirSepMenu(id, ancla){
   if (id && !sepDe(id)) return;
+  /* Reabrir el menú —«Nueva» con la hoja ya marcada lo hace— lo repinta
+     entero: si había una fila abierta, lo escrito en ella se cobra antes.
+     Lo levantó Codex. */
+  sepCobrarNombre();
   cerrarOferta();
   /* Los hermanos, fuera: ver «LOS TRES PANELES DE LA ESCENA» en abrirHistorial. */
   cerrarHistorial(); cerrarPiedraMenu();
@@ -23591,13 +23633,17 @@ $('sepMenu').addEventListener('focusin', ev => {
 });
 $('sepMenu').addEventListener('focusout', ev => {
   if (ev.target.closest('[data-sep-nombre]')) soltarTecladoPanel($('sepMenu'));
-  const campo = ev.target.closest('[data-sep-nombre]');
+  /* La fila, no el campo: ver campoDeLaFila, en #piedraMenu. */
+  const campo = campoDeLaFila(ev, '[data-sep-nombre]');
   if (!campo || sepEditando !== campo.dataset.sepNombre) return;
   /* Ver focoSigueEnLaFila, en #piedraMenu. */
   if (focoSigueEnLaFila(ev)) return;
   sepDecirNombre(sepPonerNombre(campo.dataset.sepNombre, campo.value));
+  const aDonde = selectorDeFoco(ev.relatedTarget);
   setTimeout(() => {
-    if (sepMenuAbierto && !sepEditando){ pintarSepMenu(); colocarSepMenu(); }
+    if (sepMenuAbierto && !sepEditando){
+      pintarSepMenu(); colocarSepMenu(); devolverFoco($('sepMenu'), aDonde);
+    }
   }, 0);
 });
 /* EL DOBLE TOQUE ABRE LA VENTANITA DE LA FILA, igual que en las piedras y por
