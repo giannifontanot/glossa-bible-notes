@@ -2721,7 +2721,15 @@
      pesa lo que un cuadrado de 24. Escalan con --escala-ui, como la letra que
      acompañan. Solo dentro de la fila: el dibujito del botón «Nueva» es de un
      botón y se queda a la medida del botón. */
-  .sp-fila .sp-chip-forma{ width:calc(20px * var(--escala-ui, 1)); height:calc(20px * var(--escala-ui, 1)); }
+  /* LA PERLA, OTRO ESCALÓN: 26 Y 32. Con 20 y 24 la cinta quedó bien, pero el
+     dueño del repo, en su teléfono, seguía sin distinguir las perlas: una
+     cinta es una cinta de cualquier color, y una perla es una forma —paloma,
+     ancla, corazón— que hay que reconocer. Se compararon 24, 32 y 36 en la
+     lista de verdad: a 32 la paloma y el ancla se leen sin entornar los ojos y
+     la fila no crece ni un píxel —sus 54 de alto ya tenían sitio—; a 36 las
+     filas empiezan a estirarse y la lista cabe peor. Así que la regla de «vez
+     y media la letra» se queda para la cinta, y la perla va a dos veces. */
+  .sp-fila .sp-chip-forma{ width:calc(26px * var(--escala-ui, 1)); height:calc(26px * var(--escala-ui, 1)); }
   .sp-fila .sp-chip{ width:calc(13px * var(--escala-ui, 1)); height:calc(24px * var(--escala-ui, 1)); }
   .sp-vacio{ margin:4px 2px 2px; font:400 calc(12.5px * var(--escala-ui, 1))/1.45 var(--ui); color:#6d5a2c; }
 
@@ -2932,7 +2940,7 @@
     .sp-tit{ font-size:calc(12px * var(--escala-ui, 1)); letter-spacing:.08em; }
     .sp-fila{ min-height:48px; padding:5px 5px 5px 10px; }
     .sp-ir{ min-height:44px; gap:10px; }
-    .sp-fila .sp-chip-forma{ width:calc(24px * var(--escala-ui, 1)); height:calc(24px * var(--escala-ui, 1)); }
+    .sp-fila .sp-chip-forma{ width:calc(32px * var(--escala-ui, 1)); height:calc(32px * var(--escala-ui, 1)); }
     .sp-fila .sp-chip{ width:calc(15px * var(--escala-ui, 1)); height:calc(28px * var(--escala-ui, 1)); }
     .sp-ref{ font-size:calc(15px * var(--escala-ui, 1)); }
     /* Los tres van a la par a propósito: comparten renglón, y una fila con
@@ -6581,7 +6589,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 14:07';
+window.GLOSS_BUILD = '15-NOV-26 14:57';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
