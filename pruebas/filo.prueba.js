@@ -117,7 +117,7 @@ const enReposo = r => r.lienzo === 'none' && r.hojaVisible && !r.huella && r.ver
    mismo camino que usa `conGlosas` para sembrar notas. */
 async function abrirEn(p, libro, cap, vers){
   await p.evaluate(a => localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a)),
-                   { v:1, libro, cap, vers });
+                   { v:1, version:'vbl', libro, cap, vers });
   await p.reload();
   await p.waitForTimeout(3200);
   await andamio(p);
