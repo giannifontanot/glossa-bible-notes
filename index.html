@@ -2350,10 +2350,42 @@
                     padding:8px 14px; }
   .sp-fila-abierta{ flex-wrap:wrap; gap:6px; }
   .sp-fila-abierta .sp-edit{ flex:1 1 100%; }
-  .sp-btn-borrar{ margin-left:auto; color:#7d2323;
+  .sp-btn-borrar{ margin-right:auto; color:#7d2323;
                   border-color:rgba(155,42,42,.4);
                   background:rgba(155,42,42,.08); }
   .sp-btn-borrar:hover{ background:rgba(155,42,42,.16); }
+  /* Aceptar, macizo en el sepia oscuro de la letra: el único botón lleno de
+     la fila, porque es lo que se viene a hacer. Cancelar va con el vestido de
+     siempre de .sp-btn. */
+  /* Con .sp-fila delante a propósito: .sp-btn se escribe más abajo y, a igual
+     peso, su vestido pisaba a éstos —Borrar salía sepia como los demás y
+     Aceptar sin rellenar, visto puesto—. */
+  .sp-fila .sp-btn-aceptar{ color:#fbf6ea; background:#6d5a2c; border-color:#6d5a2c; }
+  .sp-fila .sp-btn-aceptar:hover{ background:#5a4a24; color:#fff; }
+  .sp-fila .sp-btn-borrar{ color:#7d2323; border-color:rgba(155,42,42,.4);
+                           background:rgba(155,42,42,.08); }
+  .sp-fila .sp-btn-borrar:hover{ background:rgba(155,42,42,.16); }
+  /* LA PISTA DE LA FILA: visible y quieta.
+     · EL COLOR es el de los rótulos del panel, «TUS PERLAS»: la voz que ya
+       usa el panel para lo que no es contenido. Medido sobre la fila, 4,0:1
+       —se lee sin esfuerzo, que es lo que se pidió— contra el 10:1 de la
+       referencia, así que no le disputa la mirada. Se probaron tonos más
+       claros: a 3,1:1 ya cuesta leerla en un teléfono al sol, y a 2,8:1 no
+       pasa ni el mínimo para texto auxiliar.
+     · LA LETRA, de peso normal frente a la negrita de la referencia y unos dos
+       puntos más chica: la diferencia la hacen el peso y el tamaño, no un gris
+       lavado.
+     · A LA DERECHA, al final de la fila: la columna de referencias de la
+       izquierda se sigue recorriendo con el ojo sin tropezar con ella. */
+  .sp-pista{ flex:0 0 auto; margin-left:auto; padding-left:8px;
+             font:400 calc(11px * var(--escala-ui, 1))/1.2 var(--ui);
+             color:#8a7746; letter-spacing:.02em; white-space:nowrap; }
+  .sp-pista-dedo{ display:none; }
+  @media (pointer:coarse){
+    .sp-pista-dedo{ display:inline; }
+    .sp-pista-raton{ display:none; }
+    .sp-pista{ font-size:calc(12.5px * var(--escala-ui, 1)); }
+  }
   .sp-fila-pregunta{ flex-wrap:wrap; gap:7px;
                      background:rgba(155,42,42,.1);
                      border-color:rgba(155,42,42,.35); }
@@ -2718,6 +2750,14 @@
      pesa lo que un cuadrado de 24. Escalan con --escala-ui, como la letra que
      acompañan. Solo dentro de la fila: el dibujito del botón «Nueva» es de un
      botón y se queda a la medida del botón. */
+  /* Y EL TERCER ESCALÓN, HACIA ABAJO: 28 la perla y 13×24 la cinta en el
+     teléfono (23 y 11×20 en la computadora). Con la pista «click largo» en
+     cada fila, a 32 la figura y la pista se comían el nombre —«Mt 5:3 ·
+     bienaventur…»— y el dueño del repo las vio demasiado grandes. Se
+     compararon 32, 28 y 24 con la pista puesta: a 24 el corazón vuelve a ser
+     una mancha; a 28 la forma se reconoce y al nombre le queda sitio. La cinta
+     baja con ella para que las dos listas pesen lo mismo. Lo de abajo cuenta
+     cómo se llegó a 32. */
   /* LA PERLA, OTRO ESCALÓN: 26 Y 32. Con 20 y 24 la cinta quedó bien, pero el
      dueño del repo, en su teléfono, seguía sin distinguir las perlas: una
      cinta es una cinta de cualquier color, y una perla es una forma —paloma,
@@ -2726,8 +2766,8 @@
      la fila no crece ni un píxel —sus 54 de alto ya tenían sitio—; a 36 las
      filas empiezan a estirarse y la lista cabe peor. Así que la regla de «vez
      y media la letra» se queda para la cinta, y la perla va a dos veces. */
-  .sp-fila .sp-chip-forma{ width:calc(26px * var(--escala-ui, 1)); height:calc(26px * var(--escala-ui, 1)); }
-  .sp-fila .sp-chip{ width:calc(13px * var(--escala-ui, 1)); height:calc(24px * var(--escala-ui, 1)); }
+  .sp-fila .sp-chip-forma{ width:calc(23px * var(--escala-ui, 1)); height:calc(23px * var(--escala-ui, 1)); }
+  .sp-fila .sp-chip{ width:calc(11px * var(--escala-ui, 1)); height:calc(20px * var(--escala-ui, 1)); }
   .sp-vacio{ margin:4px 2px 2px; font:400 calc(12.5px * var(--escala-ui, 1))/1.45 var(--ui); color:#6d5a2c; }
 
   /* QUIEN PIDIÓ MENOS MOVIMIENTO NO RECIBE NINGUNO DE ÉSTOS. Aparecer y
@@ -2936,8 +2976,8 @@
     .sp-tit{ font-size:calc(12px * var(--escala-ui, 1)); letter-spacing:.08em; }
     .sp-fila{ min-height:48px; padding:5px 5px 5px 10px; }
     .sp-ir{ min-height:44px; gap:10px; }
-    .sp-fila .sp-chip-forma{ width:calc(32px * var(--escala-ui, 1)); height:calc(32px * var(--escala-ui, 1)); }
-    .sp-fila .sp-chip{ width:calc(15px * var(--escala-ui, 1)); height:calc(28px * var(--escala-ui, 1)); }
+    .sp-fila .sp-chip-forma{ width:calc(28px * var(--escala-ui, 1)); height:calc(28px * var(--escala-ui, 1)); }
+    .sp-fila .sp-chip{ width:calc(13px * var(--escala-ui, 1)); height:calc(24px * var(--escala-ui, 1)); }
     .sp-ref{ font-size:calc(15px * var(--escala-ui, 1)); }
     /* Los tres van a la par a propósito: comparten renglón, y una fila con
        tres tamaños distintos se lee como tres cosas. */
@@ -3012,6 +3052,13 @@
      teléfono normal, y el rótulo se partía. De 360 para arriba sobra sitio,
      y un botón más holgado se toca mejor. */
   @media (pointer:coarse) and (max-width: 360px){
+    /* LOS TRES BOTONES DE LA FILA ABIERTA EN UN RENGLÓN. En 320 el panel de
+       perlas deja 258 px y Borrar, Cancelar y Aceptar con su holgura de
+       teléfono pedían más: Aceptar se bajaba solo a otro renglón, separado
+       de Cancelar —visto puesto—. Se recorta el relleno, no la letra ni el
+       alto, que es lo que se toca. */
+    .sp-fila-abierta{ gap:5px; }
+    .sp-fila .sp-btn{ padding:8px 10px; }
     /* El rastro: rótulo, atrás y equis en un renglón, como las listas de aquí
        abajo, y con el mismo apretón para que el rótulo no se parta. */
     .hs-cab{ gap:6px; }
@@ -6587,7 +6634,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 14:59';
+window.GLOSS_BUILD = '15-NOV-26 15:28';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -20098,6 +20145,7 @@ const compensarDibujo = d =>
 const PIEDRA_NOMBRE_TOPE = 40;
 let piedras = [];
 let piedraEditando = null;             /* id de la que está en modo edición */
+let piedraNombreAntes = null;          /* {id, nombre} al abrir su fila en la lista */
 let piedraBorradas = new Set();        /* ver sepBorrados: mismo motivo */
 
 const piedraNuevoId = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -22547,8 +22595,22 @@ function filaHTML(o){
           ' autocomplete="off" enterkeyhint="done" placeholder="' + T('nombre…', 'name…') + '"' +
           ' aria-label="' + T('Nombre de la ', 'Name of the ') + esc(o.voz) + '" />' +
       '</div>' +
+      /* TRES BOTONES, Y EN ESTE ORDEN: Borrar solo a la izquierda, Cancelar y
+         Aceptar juntos a la derecha. Lo pidió el dueño del repo —antes solo
+         estaba Borrar, y el nombre se guardaba al salir del campo sin que nada
+         lo dijera— y el orden es el de Android, que es el teléfono en que se
+         usa: la acción que confirma va en el extremo derecho, donde cae el
+         pulgar, y la que se arrepiente a su lado. Borrar NO va junto a Aceptar:
+         es lo único de los tres que no se deshace, y ponerlo pegado a la
+         confirmación es invitar al dedo a fallar por un botón. Se aparta al
+         otro extremo y conserva su carmín. Aceptar es el único macizo: es lo
+         que se viene a hacer. */
       '<button type="button" class="sp-btn sp-btn-borrar" ' + o.pedirAttr +
         ' aria-label="' + T('Borrar la ', 'Delete the ') + esc(o.voz) + '">' + T('Borrar', 'Delete') + '</button>' +
+      '<button type="button" class="sp-btn sp-btn-anular" ' + o.anularAttr + '>' +
+        T('Cancelar', 'Cancel') + '</button>' +
+      '<button type="button" class="sp-btn sp-btn-aceptar" ' + o.aceptarAttr + '>' +
+        T('Aceptar', 'OK') + '</button>' +
     '</div>';
   return '<div class="sp-fila' + o.clase + '">' +
     '<button class="sp-ir" ' + o.irAttr +
@@ -22556,7 +22618,18 @@ function filaHTML(o){
       T('. Toca dos veces, o pulsa F2, para cambiarle el nombre o borrarla.',
         '. Tap twice, or press F2, to rename or delete it.') + '"' +
       ' title="' + esc(o.ref) + '">' + o.chip +
-      '<span class="sp-ref">' + esc(o.ref) + '</span></button>' +
+      '<span class="sp-ref">' + esc(o.ref) + '</span>' +
+      /* LA PISTA DE CÓMO SE NOMBRA. Nombrar y borrar viven detrás de un gesto
+         que no se ve, y el dueño del repo pidió decirlo en la propia fila,
+         suave. Dice el gesto de ESTE aparato —«click largo» con el dedo,
+         «doble click» con ratón, que en una computadora no hay toque largo—
+         y la palabra es la de la casa: la guía de las perícopas ya dice
+         «click largo». aria-hidden porque quien usa lector de pantalla ya
+         oye su camino en el rótulo de la fila. */
+      '<span class="sp-pista" aria-hidden="true">' +
+        '<span class="sp-pista-dedo">' + T('click largo', 'long press') + '</span>' +
+        '<span class="sp-pista-raton">' + T('doble click', 'double-click') + '</span>' +
+      '</span></button>' +
   '</div>';
 }
 /* EL ASPA DE CERRAR, la misma para los dos paneles. `acc` dice cuál cierra:
@@ -22847,6 +22920,8 @@ function pintarPiedraMenu(){
       borrarAttr: 'data-piedra-borrar="' + esc(x.id) + '"',
       pedirAttr: 'data-piedra-pedir-borrar="' + esc(x.id) + '"',
       cancelarAttr: 'data-piedra-cancelar="1"',
+      aceptarAttr: 'data-piedra-aceptar="' + esc(x.id) + '"',
+      anularAttr: 'data-piedra-anular="' + esc(x.id) + '"',
     })).join('');
 }
 /* NOMBRAR DESDE LA LISTA. El campo del mando de edición se queda —ahí se
@@ -22961,6 +23036,30 @@ $('piedraMenu').addEventListener('click', ev => {
     trasPintar(() => ponerPiedra());
     return;
   }
+  /* ACEPTAR Y CANCELAR LA FILA ABIERTA. Cuando llega este clic, el focusout
+     del campo YA guardó lo escrito —llega antes que el clic, ver arriba—, así
+     que Aceptar solo tiene que asegurarlo y cerrar, y Cancelar tiene que
+     reponer el nombre que había al abrir. */
+  const aceptar = ev.target.closest('[data-piedra-aceptar]');
+  if (aceptar){
+    ev.preventDefault(); ev.stopPropagation();
+    const id = aceptar.dataset.piedraAceptar;
+    const campo = $('piedraMenu').querySelector('[data-piedra-nombre="' + id + '"]');
+    if (campo) piedraPonerNombre(id, campo.value, true);
+    piedraNombrando = null; piedraNombreAntes = null;
+    pintarPiedraMenu(); colocarPiedraMenu();
+    return;
+  }
+  const anular = ev.target.closest('[data-piedra-anular]');
+  if (anular){
+    ev.preventDefault(); ev.stopPropagation();
+    const id = anular.dataset.piedraAnular;
+    if (piedraNombreAntes && piedraNombreAntes.id === id)
+      piedraPonerNombre(id, piedraNombreAntes.nombre, true);
+    piedraNombrando = null; piedraNombreAntes = null;
+    pintarPiedraMenu(); colocarPiedraMenu();
+    return;
+  }
   /* PEDIR BORRAR, BORRAR DE VERDAD Y ARREPENTIRSE. Son tres toques distintos y
      el de en medio es el que importa: una piedra es el sitio donde el lector la
      dejó y no hay deshacer, así que nunca se borra al primero. */
@@ -23025,6 +23124,11 @@ function piedraAbrirFila(id){
   piedraCobrarNombreLista();
   piedraBorrando = null;
   piedraNombrando = id;
+  /* Lo que se llamaba al abrir, para que Cancelar lo devuelva: salir del
+     campo ya guarda lo escrito —y tocar Cancelar es salir del campo—, así
+     que arrepentirse es reponer esto. */
+  const x0 = piedraDe(id);
+  piedraNombreAntes = x0 ? { id, nombre: x0.nombre || '' } : null;
   pintarPiedraMenu(); colocarPiedraMenu();
   const campo = $('piedraMenu').querySelector('[data-piedra-nombre]');
   if (campo){ campo.focus(); campo.setSelectionRange(campo.value.length, campo.value.length); }
@@ -23260,6 +23364,8 @@ function pintarSepMenu(){
       borrarAttr: 'data-sep-borrar="' + esc(x.id) + '"',
       pedirAttr: 'data-sep-pedir-borrar="' + esc(x.id) + '"',
       cancelarAttr: 'data-sep-cancelar="1"',
+      aceptarAttr: 'data-sep-aceptar="' + esc(x.id) + '"',
+      anularAttr: 'data-sep-anular="' + esc(x.id) + '"',
     })).join('') : '<span class="sp-vacio">' + T('Todavía ninguno.', 'None yet.') + '</span>');
   if (sepBorrando){
     /* EL FOCO AL «NO», no al «sí». Quien llega aquí con el teclado y pulsa
@@ -23400,10 +23506,13 @@ function sepCobrarNombre(){
   if (!campo || campo.dataset.sepNombre !== id){ sepEditando = null; return; }
   sepDecirNombre(sepPonerNombre(id, campo.value));
 }
+/* Lo que se llamaba al abrir: ver piedraNombreAntes, por lo mismo. */
+let sepNombreAntes = null;
 function sepEditarNombre(id){
   if (!sepDe(id)) return;
   sepBorrando = null;
   sepEditando = id;
+  sepNombreAntes = { id, nombre: sepDe(id).nombre || '' };
   pintarSepMenu(); colocarSepMenu();
 }
 /* Enter cierra y guarda; Escape sale sin tocar nada. Y el foco que se va
@@ -23521,6 +23630,26 @@ $('sepMenu').addEventListener('click', ev => {
     s.color = telaDe(color.dataset.sepColor)[0];
     s.tocado = Date.now();
     sepGuardar(); pintarSepMenu(); pintarSeparador();
+    return;
+  }
+  /* ACEPTAR Y CANCELAR LA FILA ABIERTA: ver el mismo bloque en #piedraMenu. */
+  const aceptar = ev.target.closest('[data-sep-aceptar]');
+  if (aceptar){
+    ev.preventDefault(); ev.stopPropagation();
+    const id = aceptar.dataset.sepAceptar;
+    const campo = $('sepMenu').querySelector('[data-sep-nombre="' + id + '"]');
+    if (campo) sepDecirNombre(sepPonerNombre(id, campo.value));
+    sepEditando = null; sepNombreAntes = null;
+    pintarSepMenu(); colocarSepMenu();
+    return;
+  }
+  const anular = ev.target.closest('[data-sep-anular]');
+  if (anular){
+    ev.preventDefault(); ev.stopPropagation();
+    const id = anular.dataset.sepAnular;
+    if (sepNombreAntes && sepNombreAntes.id === id) sepPonerNombre(id, sepNombreAntes.nombre);
+    sepEditando = null; sepNombreAntes = null;
+    pintarSepMenu(); colocarSepMenu();
     return;
   }
   const pedirBorrar = ev.target.closest('[data-sep-pedir-borrar]');

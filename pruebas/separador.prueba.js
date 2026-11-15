@@ -2435,5 +2435,83 @@ async function ponerAMano(p){
   vale('ACEPTAR EL SALTO SÍ CIERRA LA LISTA', mirarIrse.trasSaltar === false, mirarIrse);
   vale('  y la ventanita se va con él', mirarIrse.pleno === false, mirarIrse);
 
+  /* ============================================================
+     NOMBRAR CON ACEPTAR Y CANCELAR, Y LA PISTA DE CÓMO SE ABRE.
+
+     Lo pidió el dueño del repo: la fila dice suave cómo se abre —«click
+     largo» con el dedo— y al abrirse trae, además de Borrar, Cancelar y
+     Aceptar. Lo delicado es Cancelar: salir del campo YA GUARDA lo escrito, y
+     en un teléfono tocar Cancelar es salir del campo, con el focusout por
+     DELANTE del click. Un click despachado a mano no mueve el foco y se
+     saltaría justo esa mitad —la cuarta regla de la casa—, así que aquí el
+     campo se suelta primero, como lo suelta el dedo, y después llega el click.
+     La fila se abre por el menú contextual, que es lo que manda Android con
+     el toque largo. */
+  const conBotones = await vp.evaluate(async () => {
+    const sm = document.getElementById('sepMenu');
+    if (!sm.classList.contains('visible')){
+      await window.__toque('[data-sep-lista]'); await window.__pausa(700);
+    }
+    const dedo = matchMedia('(pointer:coarse)').matches;
+    const fila = () => sm.querySelector('[data-sep-ir="c1"]');
+    const f0 = fila();
+    if (!f0) return { sinFila:true };
+    const pistas = [...f0.querySelectorAll('.sp-pista > span')]
+      .filter(x => getComputedStyle(x).display !== 'none').map(x => x.textContent);
+    const tono = getComputedStyle(f0.querySelector('.sp-pista')).color;
+    const abrir = async () => {
+      const f = fila(); const r = f.getBoundingClientRect();
+      f.dispatchEvent(new MouseEvent('contextmenu', { bubbles:true, cancelable:true,
+        clientX: r.left + 30, clientY: r.top + r.height / 2 }));
+      await window.__pausa(500);
+      return sm.querySelector('[data-sep-nombre="c1"]');
+    };
+    const guardado = () => (window.__guardadas().find(x => x.id === 'c1') || {}).nombre || '';
+    /* 1 · escribir y CANCELAR: el nombre de antes se queda. */
+    let campo = await abrir();
+    if (!campo) return { sinCampo:true };
+    const botones = [...campo.closest('.sp-fila').querySelectorAll('.sp-btn')]
+      .map(b => ({ dice: b.textContent.trim(), x: Math.round(b.getBoundingClientRect().left) }));
+    campo.value = 'garabato';
+    campo.dispatchEvent(new Event('input', { bubbles:true }));
+    campo.blur();                                   /* el dedo suelta el campo… */
+    await window.__pausa(30);
+    const trasSoltar = guardado();                  /* …y eso ya guardó */
+    await window.__toque('[data-sep-anular="c1"]'); /* …y luego llega el click */
+    await window.__pausa(300);
+    const trasCancelar = guardado();
+    const cerradaCancelar = !sm.querySelector('[data-sep-nombre]');
+    /* 2 · escribir y ACEPTAR: se queda lo escrito. */
+    campo = await abrir();
+    if (!campo) return { sinCampo2:true };
+    campo.value = 'principio';
+    campo.dispatchEvent(new Event('input', { bubbles:true }));
+    campo.blur();
+    await window.__pausa(30);
+    await window.__toque('[data-sep-aceptar="c1"]');
+    await window.__pausa(300);
+    return { dedo, pistas, tono, botones, trasSoltar, trasCancelar, cerradaCancelar,
+             trasAceptar: guardado(), cerradaAceptar: !sm.querySelector('[data-sep-nombre]') };
+  });
+  di('nombrar', JSON.stringify(conBotones));
+  vale('LA FILA DICE CÓMO SE ABRE, con la palabra de este aparato',
+       Array.isArray(conBotones.pistas) && conBotones.pistas.length === 1 &&
+       conBotones.pistas[0] === (conBotones.dedo ? 'click largo' : 'doble click'),
+       JSON.stringify(conBotones.pistas));
+  vale('  en el sepia de los rótulos, no en un gris lavado',
+       conBotones.tono === 'rgb(138, 119, 70)', conBotones.tono);
+  const ordenBotones = (conBotones.botones || []).map(b => b.dice).join(' · ');
+  vale('BORRAR, CANCELAR Y ACEPTAR, en ese orden de izquierda a derecha',
+       ordenBotones === 'Borrar · Cancelar · Aceptar' &&
+       conBotones.botones[0].x < conBotones.botones[1].x && conBotones.botones[1].x < conBotones.botones[2].x,
+       ordenBotones);
+  vale('(la prueba es válida) soltar el campo ya guardó lo escrito',
+       conBotones.trasSoltar === 'garabato', conBotones.trasSoltar);
+  vale('CANCELAR DEVUELVE EL NOMBRE DE ANTES aunque el campo ya lo hubiera guardado',
+       conBotones.trasCancelar === '', JSON.stringify(conBotones.trasCancelar));
+  vale('  y cierra la fila', conBotones.cerradaCancelar === true);
+  vale('ACEPTAR SE QUEDA CON LO ESCRITO', conBotones.trasAceptar === 'principio', conBotones.trasAceptar);
+  vale('  y cierra la fila', conBotones.cerradaAceptar === true);
+
   await cerrar(viaje);
 })();
