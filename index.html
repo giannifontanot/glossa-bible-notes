@@ -6634,7 +6634,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 15:28';
+window.GLOSS_BUILD = '15-NOV-26 15:31';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -22969,9 +22969,22 @@ $('piedraMenu').addEventListener('keydown', ev => {
    atendió. Si ese clic hizo algo que repinta por su cuenta —abrir otro nombre,
    ir a la piedra, cerrar la lista— el aplazado se encuentra el trabajo hecho y
    se aparta. */
+/* Y SI EL FOCO SE QUEDA EN LA MISMA FILA, NO ES SALIR. Con Aceptar y
+   Cancelar al lado del campo, ir a ellos —con el tabulador, o con un toque
+   que les dé el foco— es seguir en la fila, no terminar. Guardar y repintar
+   aquí borraba los tres botones antes de poder pulsar Cancelar, y lo escrito
+   se quedaba guardado sin manera de arrepentirse. Lo levantó Codex. Así que
+   si el foco va a otro control de la fila abierta, aquí no se hace nada: lo
+   decide el botón que se pulse, y si nadie pulsa nada, lo cobra el cierre del
+   panel como siempre. */
+const focoSigueEnLaFila = ev => {
+  const fila = ev.target.closest('.sp-fila-abierta');
+  return !!(fila && ev.relatedTarget && fila.contains(ev.relatedTarget));
+};
 $('piedraMenu').addEventListener('focusout', ev => {
   const campo = ev.target.closest('[data-piedra-nombre]');
   if (!campo || piedraNombrando !== campo.dataset.piedraNombre) return;
+  if (focoSigueEnLaFila(ev)) return;
   piedraPonerNombre(campo.dataset.piedraNombre, campo.value, true);
   piedraNombrando = null;
   setTimeout(() => {
@@ -23066,6 +23079,9 @@ $('piedraMenu').addEventListener('click', ev => {
   const pedir = ev.target.closest('[data-piedra-pedir-borrar]');
   if (pedir){
     ev.preventDefault(); ev.stopPropagation();
+    /* Lo escrito se cobra antes de preguntar, como en las cintas: si el foco
+       llegó a Borrar desde el campo, el focusout ya no lo guardó. */
+    piedraCobrarNombreLista();
     piedraNombrando = null;
     piedraBorrando = pedir.dataset.piedraPedirBorrar;
     pintarPiedraMenu(); colocarPiedraMenu();
@@ -23559,6 +23575,8 @@ $('sepMenu').addEventListener('focusout', ev => {
   if (ev.target.closest('[data-sep-nombre]')) soltarTecladoPanel($('sepMenu'));
   const campo = ev.target.closest('[data-sep-nombre]');
   if (!campo || sepEditando !== campo.dataset.sepNombre) return;
+  /* Ver focoSigueEnLaFila, en #piedraMenu. */
+  if (focoSigueEnLaFila(ev)) return;
   sepDecirNombre(sepPonerNombre(campo.dataset.sepNombre, campo.value));
   setTimeout(() => {
     if (sepMenuAbierto && !sepEditando){ pintarSepMenu(); colocarSepMenu(); }

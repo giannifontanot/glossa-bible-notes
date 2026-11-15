@@ -2490,8 +2490,24 @@ async function ponerAMano(p){
     await window.__pausa(30);
     await window.__toque('[data-sep-aceptar="c1"]');
     await window.__pausa(300);
+    const trasAceptar = guardado(), cerradaAceptar = !sm.querySelector('[data-sep-nombre]');
+    /* 3 · CON EL TECLADO: el foco pasa del campo a Cancelar —lo que hace el
+       tabulador— y la fila tiene que seguir ahí, con sus botones, para poder
+       pulsarlo. Lo levantó Codex: el focusout guardaba y repintaba, y
+       Cancelar desaparecía antes de llegar a él. */
+    campo = await abrir();
+    if (!campo) return { sinCampo3:true };
+    campo.value = 'otra cosa';
+    campo.dispatchEvent(new Event('input', { bubbles:true }));
+    const btnCancelar = sm.querySelector('[data-sep-anular="c1"]');
+    btnCancelar.focus();
+    await window.__pausa(80);
+    const sigueAbierta = !!sm.querySelector('[data-sep-anular="c1"]') &&
+                         document.activeElement === sm.querySelector('[data-sep-anular="c1"]');
+    btnCancelar.click();                            /* Intro sobre el botón enfocado */
+    await window.__pausa(300);
     return { dedo, pistas, tono, botones, trasSoltar, trasCancelar, cerradaCancelar,
-             trasAceptar: guardado(), cerradaAceptar: !sm.querySelector('[data-sep-nombre]') };
+             trasAceptar, cerradaAceptar, sigueAbierta, trasTabular: guardado() };
   });
   di('nombrar', JSON.stringify(conBotones));
   vale('LA FILA DICE CÓMO SE ABRE, con la palabra de este aparato',
@@ -2512,6 +2528,10 @@ async function ponerAMano(p){
   vale('  y cierra la fila', conBotones.cerradaCancelar === true);
   vale('ACEPTAR SE QUEDA CON LO ESCRITO', conBotones.trasAceptar === 'principio', conBotones.trasAceptar);
   vale('  y cierra la fila', conBotones.cerradaAceptar === true);
+  vale('CON EL TABULADOR, LA FILA SIGUE ABIERTA AL LLEGAR A CANCELAR',
+       conBotones.sigueAbierta === true, conBotones);
+  vale('  y Cancelar deja el nombre que había', conBotones.trasTabular === 'principio',
+       conBotones.trasTabular);
 
   await cerrar(viaje);
 })();
