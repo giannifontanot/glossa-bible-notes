@@ -6553,7 +6553,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 04:09';
+window.GLOSS_BUILD = '15-NOV-26 04:15';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -16255,8 +16255,8 @@ function cabezaHistorial(){
      las dos maneras que hay que saberse de antes; arriba a la derecha es donde
      se busca, y ahora está. En el renglón del rótulo y a su altura, ver .sp-x. */
   const atras = pieAtras();
-  return '<div class="hs-cab"><span class="hs-tit">Lo que has visto</span>' +
-      spCerrarHTML('rastro', 'lo que has visto') + '</div>' +
+  return '<div class="hs-cab"><span class="hs-tit">' + T('Lo que has visto', 'What you have seen') + '</span>' +
+      spCerrarHTML('rastro', 'lo que has visto', 'what you have seen') + '</div>' +
     (atras ? '<div class="hs-acciones">' + atras + '</div>' : '');
 }
 /* AQUÍ ESTUVO EL PIE DEL RASTRO, con las dos puertas —«piedras» y «cintas»—.
@@ -16283,8 +16283,11 @@ function pintarHistorial(){
   const cont = $('historial');
   if (!historial.length){
     cont.innerHTML = cabezaHistorial() +
-      '<span class="hs-vacio">Todavía nada. Aquí van quedando los pasajes a los ' +
-      'que saltas desde el panel de libros o desde una referencia de una glosa.</span>';
+      '<span class="hs-vacio">' +
+      T('Todavía nada. Aquí van quedando los pasajes a los ' +
+        'que saltas desde el panel de libros o desde una referencia de una glosa.',
+        'Nothing yet. The passages you jump to from the books panel, or from a ' +
+        'reference in a gloss, gather here.') + '</span>';
     return;
   }
   /* "Estás aquí" se pregunta contra la HOJA ENTERA, no contra su primer
@@ -16308,7 +16311,7 @@ function pintarHistorial(){
     return '<button class="hs-fila' + (enEstaHoja(h) ? ' aqui' : '') +
       '" data-hs="' + h.libro + ':' + h.cap + ':' + h.vers + '">' +
       '<span class="hs-ref">' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '</span>' +
-      '<span class="hs-txt">' + esc(t || '(no está en esta versión)') + '</span></button>';
+      '<span class="hs-txt">' + esc(t || T('(no está en esta versión)', '(not in this version)')) + '</span></button>';
     }).join('');
 }
 /* EL RASTRO SIN REPETICIONES SEGUIDAS.
@@ -16360,9 +16363,9 @@ function destinoAtras(){
 function pieAtras(){
   const h = destinoAtras();
   if (!h) return '';
-  return '<button class="hs-atras" data-atras="1" title="Volver a ' +
-    esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '"' +
-    ' aria-label="Volver a ' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers + '">' +
+  const volver = T('Volver a ', 'Back to ') + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers;
+  return '<button class="hs-atras" data-atras="1" title="' + volver + '"' +
+    ' aria-label="' + volver + '">' +
     '<span class="hs-atras-ref">' + esc(abrevDe(h.libro)) + ' ' + h.cap + ':' + h.vers +
     '</span>' + FLECHA_ATRAS + '</button>';
 }
@@ -20016,7 +20019,7 @@ const piedraRef = x => nombreDe(x.libro) + ' ' + x.cap + ':' + x.vers;
    nombre y el sitio se lee después. */
 const piedraTexto = x =>
   (x.nombre ? abrevDe(x.libro) + ' ' + x.cap + ':' + x.vers + ' · ' + x.nombre
-            : piedraRef(x)) + (piedraAqui(x) ? ' · aquí' : '');
+            : piedraRef(x)) + (piedraAqui(x) ? T(' · aquí', ' · here') : '');
 /* SE LLAMAN PERLAS, AUNQUE EL CÓDIGO DIGA PIEDRA. Nacieron como «piedras»
    —las que se dejan para volver a un sitio— y el dueño del repo les cambió
    el nombre: «piedras» no le gustaba. Entre hitos, tesoros y perlas eligió
@@ -20029,10 +20032,17 @@ const piedraTexto = x =>
    siéndolo: es una de las catorce formas que puede tener una perla. */
 /* CÓMO SE NOMBRA A UNA PIEDRA EN VOZ ALTA, para los rótulos de accesibilidad:
    la figura, su color si no es el de por defecto, y dónde está. */
-const piedraVoz = x =>
-  FORMA_NOMBRE[x.forma] + (x.color && x.color !== PIEDRA_TINTAS[0][0]
-                             ? ' ' + tintaDe(x.color)[1] : '') +
-  (x.nombre ? ' «' + x.nombre + '»' : '') + ' en ' + piedraRef(x);
+/* En inglés el color va DELANTE —«bright crimson flame»— y no detrás; por eso
+   son dos frases y no una con las palabras cambiadas. */
+const piedraVoz = x => {
+  const tinta = x.color && x.color !== PIEDRA_TINTAS[0][0];
+  if (idiomaUI() === 'en')
+    return (tinta ? (TINTA_NOMBRE_EN[tintaVigente(x.color)] || tintaDe(x.color)[1]) + ' ' : '') +
+      (FORMA_NOMBRE_EN[x.forma] || x.forma) +
+      (x.nombre ? ' “' + x.nombre + '”' : '') + ' at ' + piedraRef(x);
+  return FORMA_NOMBRE[x.forma] + (tinta ? ' ' + tintaDe(x.color)[1] : '') +
+    (x.nombre ? ' «' + x.nombre + '»' : '') + ' en ' + piedraRef(x);
+};
 
 /* LOS DIBUJOS. Trazados a mano en un lienzo de 24x24, con currentColor para
    que tomen el color de su piedra: cada una lleva el suyo, y un color escrito a
@@ -20556,7 +20566,7 @@ const sepDe = id => separadores.find(x => x.id === id) || null;
 const sepRef = (x, corta) => (corta ? abrevDe(x.libro) : nombreDe(x.libro)) + ' ' + x.cap + ':' + x.vers;
 function sepTexto(x){
   const ref = sepRef(x, !!x.nombre);
-  return ref + (x.nombre ? ' · ' + x.nombre : '') + (sepAqui(x) ? ' · aquí' : '');
+  return ref + (x.nombre ? ' · ' + x.nombre : '') + (sepAqui(x) ? T(' · aquí', ' · here') : '');
 }
 
 /* ¿QUÉ CINTA TOCA PINTAR EN ESTA HOJA? La misma pregunta que el «estás aquí»
@@ -21572,9 +21582,7 @@ function pintarPiedraMando(){
       (apagado ? ' disabled' : '') +
       ' aria-label="' + rot + '" title="' + rot + '">' + dib + '</button>';
   el.innerHTML =
-    (en ? '<button type="button" class="sp-x" data-sp-cerrar="piedra" title="Close"' +
-            ' aria-label="Close the pearl controls"><span aria-hidden="true">\u00d7</span></button>'
-        : spCerrarHTML('piedra', 'el mando de la perla')) +
+    spCerrarHTML('piedra', 'el mando de la perla', 'the pearl controls') +
     '<span class="sp-tit">' + di('Esta perla', 'This pearl') + '</span>' +
     '<div class="pm-formas" role="group" aria-label="' + di('Figura', 'Shape') + '">' + formas + '</div>' +
     '<div class="pm-tintas" role="group" aria-label="Color">' + tintas + '</div>' +
@@ -22333,8 +22341,9 @@ function filaHTML(o){
   const base = esc(o.ref.split('·')[0].trim());
   if (o.borrando)
     return '<div class="sp-fila sp-fila-pregunta">' +
-      '<span class="sp-pregunta">¿Borrar ' + esc(o.nombre || base) + '?</span>' +
-      '<button type="button" class="sp-btn sp-btn-si" ' + o.borrarAttr + '>Sí, borrar</button>' +
+      '<span class="sp-pregunta">' + T('¿Borrar ', 'Delete ') + esc(o.nombre || base) + '?</span>' +
+      '<button type="button" class="sp-btn sp-btn-si" ' + o.borrarAttr + '>' +
+        T('Sí, borrar', 'Yes, delete') + '</button>' +
       '<button type="button" class="sp-btn" ' + o.cancelarAttr + '>No</button>' +
     '</div>';
   if (o.abriendo)
@@ -22343,25 +22352,29 @@ function filaHTML(o){
         '<span class="sp-edit-base">' + base + ' ·</span>' +
         '<input class="sp-nombre" ' + o.campoAttr +
           ' value="' + esc(o.nombre || '') + '" maxlength="' + o.tope + '"' +
-          ' autocomplete="off" enterkeyhint="done" placeholder="nombre…"' +
-          ' aria-label="Nombre de la ' + esc(o.voz) + '" />' +
+          ' autocomplete="off" enterkeyhint="done" placeholder="' + T('nombre…', 'name…') + '"' +
+          ' aria-label="' + T('Nombre de la ', 'Name of the ') + esc(o.voz) + '" />' +
       '</div>' +
       '<button type="button" class="sp-btn sp-btn-borrar" ' + o.pedirAttr +
-        ' aria-label="Borrar la ' + esc(o.voz) + '">Borrar</button>' +
+        ' aria-label="' + T('Borrar la ', 'Delete the ') + esc(o.voz) + '">' + T('Borrar', 'Delete') + '</button>' +
     '</div>';
   return '<div class="sp-fila' + o.clase + '">' +
     '<button class="sp-ir" ' + o.irAttr +
-      ' aria-label="Ver el versículo de la ' + esc(o.voz) +
-      '. Toca dos veces, o pulsa F2, para cambiarle el nombre o borrarla."' +
+      ' aria-label="' + T('Ver el versículo de la ', 'Go to the verse of the ') + esc(o.voz) +
+      T('. Toca dos veces, o pulsa F2, para cambiarle el nombre o borrarla.',
+        '. Tap twice, or press F2, to rename or delete it.') + '"' +
       ' title="' + esc(o.ref) + '">' + o.chip +
       '<span class="sp-ref">' + esc(o.ref) + '</span></button>' +
   '</div>';
 }
 /* EL ASPA DE CERRAR, la misma para los dos paneles. `acc` dice cuál cierra:
    son dos cierres distintos y cada uno tiene su estado que apagar. */
-const spCerrarHTML = (acc, que) =>
+/* `queEn` es lo mismo dicho en inglés; sin él se oye el español, que es mejor
+   que un «Close» sin decir qué. */
+const spCerrarHTML = (acc, que, queEn) =>
   '<button type="button" class="sp-x" data-sp-cerrar="' + acc + '"' +
-    ' title="Cerrar" aria-label="Cerrar ' + que + '">' +
+    ' title="' + T('Cerrar', 'Close') + '" aria-label="' +
+    T('Cerrar ' + que, 'Close ' + (queEn || que)) + '">' +
     '<span aria-hidden="true">\u00d7</span></button>';
 /* AQUÍ ESTUVO spCierreHTML, que envolvía la equis en un renglón suyo.
    Ya no hay tal renglón: la equis va dentro del de la cabecera, al nivel del
@@ -22610,23 +22623,25 @@ function vigilarTecladoPanel(el, buscarFila){
 function soltarTecladoPanel(el){ if (el && el._teclado) el._teclado(); }
 const piedraNuevaHTML = () =>
   '<button type="button" class="sp-nueva" data-piedra-nueva="1"' +
-    ' title="Dejar una perla en esta hoja"' +
-    ' aria-label="Dejar una perla en la hoja que estás leyendo">Nueva' +
+    ' title="' + T('Dejar una perla en esta hoja', 'Leave a pearl on this page') + '"' +
+    ' aria-label="' + T('Dejar una perla en la hoja que estás leyendo',
+                        'Leave a pearl on the page you are reading') + '">' + T('Nueva', 'New') +
     '<span class="sp-chip-forma" aria-hidden="true">' +
       piedraDibujo('piedra', null, true) + '</span></button>';
 function pintarPiedraMenu(){
   const el = $('piedraMenu');
   if (!piedras.length){
     el.innerHTML =
-       '<div class="sp-cabeza"><span class="sp-tit">Tus perlas</span>' +
-       piedraNuevaHTML() + spCerrarHTML('piedras', 'la lista de perlas') + '</div>' +
-      '<p class="sp-vacio">Todavía no has dejado ninguna. El botón de arriba' +
-      ' deja una en la hoja que estés leyendo.</p>';
+       '<div class="sp-cabeza"><span class="sp-tit">' + T('Tus perlas', 'Your pearls') + '</span>' +
+       piedraNuevaHTML() + spCerrarHTML('piedras', 'la lista de perlas', 'the list of pearls') + '</div>' +
+      '<p class="sp-vacio">' + T('Todavía no has dejado ninguna. El botón de arriba' +
+      ' deja una en la hoja que estés leyendo.',
+      'You have not left any yet. The button above leaves one on the page you are reading.') + '</p>';
     return;
   }
   el.innerHTML =
-    '<div class="sp-cabeza"><span class="sp-tit">Tus perlas</span>' +
-    piedraNuevaHTML() + spCerrarHTML('piedras', 'la lista de perlas') + '</div>' +
+    '<div class="sp-cabeza"><span class="sp-tit">' + T('Tus perlas', 'Your pearls') + '</span>' +
+    piedraNuevaHTML() + spCerrarHTML('piedras', 'la lista de perlas', 'the list of pearls') + '</div>' +
     piedras.map(x => filaHTML({
       clase: piedraAqui(x) ? ' aqui' : '',
       abriendo: piedraNombrando === x.id,
@@ -22991,13 +23006,16 @@ function pintarSepMenu(){
        mientras se está preguntando: es la misma pregunta de siempre, al lado
        de lo que se va a borrar. */
     $('sepMenu').innerHTML =
-      '<div class="sp-cabeza"><span class="sp-tit">Color de la cinta</span>' +
-        spCerrarHTML('cintas', 'el panel de la cinta') +
+      '<div class="sp-cabeza"><span class="sp-tit">' + T('Color de la cinta', 'Bookmark color') + '</span>' +
+        spCerrarHTML('cintas', 'el panel de la cinta', 'the bookmark panel') +
       '</div>' +
-      '<div class="sp-telas" role="group" aria-label="Color del separador">' +
-      TELAS.map(t => '<button class="sp-tela" data-sep-color="' + t[0] + '"' +
+      '<div class="sp-telas" role="group" aria-label="' + T('Color del separador', 'Bookmark color') + '">' +
+      TELAS.map(t => {
+        const nom = T(t[1], TINTA_NOMBRE_EN[t[0]] || t[1]);
+        return '<button class="sp-tela" data-sep-color="' + t[0] + '"' +
         ' style="background:' + t[2] + '" aria-pressed="' + (t[0] === s.color) + '"' +
-        ' aria-label="Cinta ' + t[1] + '" title="' + t[1] + '"></button>').join('') +
+        ' aria-label="' + T('Cinta ' + nom, nom + ' bookmark') + '" title="' + nom + '"></button>';
+      }).join('') +
       '</div>' +
       (sepBorrando === s.id ? filaHTML({
         clase: aqui(s) ? ' aqui' : '',
@@ -23006,7 +23024,7 @@ function pintarSepMenu(){
         chip: '<span class="sp-chip" style="background:' + telaDe(s.color)[2] +
               '" aria-hidden="true"></span>',
         ref: sepTexto(s),
-        voz: 'cinta en ' + nombreDe(s.libro) + ' ' + s.cap + ':' + s.vers,
+        voz: T('cinta en ', 'bookmark at ') + nombreDe(s.libro) + ' ' + s.cap + ':' + s.vers,
         nombre: s.nombre, tope: 70,
         irAttr: 'data-sep-ir="' + esc(s.id) + '"',
         campoAttr: 'data-sep-nombre="' + esc(s.id) + '"',
@@ -23028,12 +23046,13 @@ function pintarSepMenu(){
        del panel entre las dos; ver cabezaHistorial. Y va EN EL RENGLÓN DEL
        RÓTULO, a la derecha: el título se lee y el botón espera al final, en vez
        de partir la lista por la mitad. */
-    '<div class="sp-cabeza"><span class="sp-tit">Tus separadores</span>' +
+    '<div class="sp-cabeza"><span class="sp-tit">' + T('Tus separadores', 'Your bookmarks') + '</span>' +
       '<button type="button" class="sp-nueva" data-sep-nuevo="1"' +
-        ' title="Dejar un separador en esta hoja"' +
-        ' aria-label="Dejar un separador en la hoja que estás leyendo">Nueva' +
+        ' title="' + T('Dejar un separador en esta hoja', 'Leave a bookmark on this page') + '"' +
+        ' aria-label="' + T('Dejar un separador en la hoja que estás leyendo',
+                            'Leave a bookmark on the page you are reading') + '">' + T('Nueva', 'New') +
         '<span class="sp-chip" aria-hidden="true"></span></button>' +
-      spCerrarHTML('cintas', 'el panel de cintas') +
+      spCerrarHTML('cintas', 'el panel de cintas', 'the bookmarks panel') +
     '</div>' +
     (lista.length ? lista.map(x => filaHTML({
       clase: aqui(x) ? ' aqui' : '',
@@ -23042,14 +23061,14 @@ function pintarSepMenu(){
       chip: '<span class="sp-chip" style="background:' + telaDe(x.color)[2] +
             '" aria-hidden="true"></span>',
       ref: sepTexto(x),
-      voz: 'cinta en ' + nombreDe(x.libro) + ' ' + x.cap + ':' + x.vers,
+      voz: T('cinta en ', 'bookmark at ') + nombreDe(x.libro) + ' ' + x.cap + ':' + x.vers,
       nombre: x.nombre, tope: 70,
       irAttr: 'data-sep-ir="' + esc(x.id) + '"',
       campoAttr: 'data-sep-nombre="' + esc(x.id) + '"',
       borrarAttr: 'data-sep-borrar="' + esc(x.id) + '"',
       pedirAttr: 'data-sep-pedir-borrar="' + esc(x.id) + '"',
       cancelarAttr: 'data-sep-cancelar="1"',
-    })).join('') : '<span class="sp-vacio">Todavía ninguno.</span>');
+    })).join('') : '<span class="sp-vacio">' + T('Todavía ninguno.', 'None yet.') + '</span>');
   if (sepBorrando){
     /* EL FOCO AL «NO», no al «sí». Quien llega aquí con el teclado y pulsa
        Intro sin leer no puede borrar de un golpe algo que no se deshace. */
@@ -23802,6 +23821,14 @@ const UI_EN = {
   '#selDia':           { aria:'Filter the glosses by day' },
   '#btnGlosas':        { title:'glosses', aria:'glosses' },
   '#cuentaGrupo':      { t:'0 picked' },
+  /* Los cuatro puntos de la hoja y los tres cuadros que abren. */
+  '#btnPiedras':       { title:'See your pearls', aria:'See your pearls' },
+  '#btnCintas':        { title:'See your bookmarks', aria:'See your bookmarks' },
+  '#btnZoom':          { title:'See the whole page', aria:'See the whole page' },
+  '#btnHistorial':     { title:'What you have seen', aria:'What you have seen' },
+  '#historial':        { aria:'Passages you have seen' },
+  '#piedraMenu':       { aria:'Your pearls' },
+  '#sepMenu':          { aria:'Bookmark options' },
 };
 const ES_DEL_MARCADO = new WeakMap();
 const ATRIBUTO_DE = { title:'title', aria:'aria-label', ph:'placeholder' };

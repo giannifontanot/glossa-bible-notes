@@ -2473,7 +2473,7 @@ async function andamio(p){
       { id:'z', libro:'MAT', cap:1, vers:6, x:.3, y:.3, forma:'piedra',
         tam:3, color:'carmin', creado:hoy, tocado:hoy }]));
     localStorage.setItem('glossa:ajustes:v1',
-      JSON.stringify({ v:1, libro:'MAT', cap:1, vers:1 }));
+      JSON.stringify({ v:1, version:'vbl', libro:'MAT', cap:1, vers:1 }));
   });
   await vj.reload();
   await vj.waitForTimeout(3000);
