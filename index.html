@@ -6634,7 +6634,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 15:31';
+window.GLOSS_BUILD = '15-NOV-26 15:35';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -22981,6 +22981,19 @@ const focoSigueEnLaFila = ev => {
   const fila = ev.target.closest('.sp-fila-abierta');
   return !!(fila && ev.relatedTarget && fila.contains(ev.relatedTarget));
 };
+/* Y TOCAR UN BOTÓN DE LA FILA NO LE QUITA EL FOCO AL CAMPO. Lo de arriba
+   cubre al teclado y a los navegadores que enfocan el botón tocado; los que
+   no lo hacen —Safari, por ejemplo— mandan el foco a ninguna parte, el
+   focusout llega sin relatedTarget, guarda, y el repintado aplazado puede
+   correr entre el mousedown y el click: Cancelar desaparecía bajo el dedo.
+   Lo vio Codex en la propia prueba. Impedir el mousedown de esos botones
+   deja el foco donde estaba —el click llega igual— y entonces el focusout
+   ni siquiera ocurre: decide el botón, y nada más. */
+const noSoltarElCampo = ev => {
+  if (ev.target.closest('.sp-fila-abierta .sp-btn')) ev.preventDefault();
+};
+$('piedraMenu').addEventListener('mousedown', noSoltarElCampo);
+$('sepMenu').addEventListener('mousedown', noSoltarElCampo);
 $('piedraMenu').addEventListener('focusout', ev => {
   const campo = ev.target.closest('[data-piedra-nombre]');
   if (!campo || piedraNombrando !== campo.dataset.piedraNombre) return;
@@ -23526,6 +23539,11 @@ function sepCobrarNombre(){
 let sepNombreAntes = null;
 function sepEditarNombre(id){
   if (!sepDe(id)) return;
+  /* SI HABÍA OTRA FILA ABIERTA, SE COBRA ANTES. Desde que pasar del campo a
+     sus botones no guarda, el teclado puede salir de la fila sin que nadie lo
+     cobre —Tab hasta otra cinta y F2— y abrir la siguiente lo tiraba. Lo
+     levantó Codex. Las perlas ya lo hacían: ver piedraAbrirFila. */
+  if (sepEditando && sepEditando !== id) sepCobrarNombre();
   sepBorrando = null;
   sepEditando = id;
   sepNombreAntes = { id, nombre: sepDe(id).nombre || '' };
