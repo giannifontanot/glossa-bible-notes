@@ -104,17 +104,21 @@ const ATERRIZA = 7000;
        borde y relleno, y estar centrado en su renglón es justo lo que no se ve
        comparando bordes. */
     const tit = document.querySelector('#historial .hs-tit');
-    const acciones = document.querySelector('#historial .hs-acciones');
     const tb = tit ? tit.getBoundingClientRect() : null;
     const cab = document.querySelector('#historial .hs-cab');
-    const juntos = (tb && acciones) ? {
-      /* SOLO ÉL en el renglón: los de poner ya no viven aquí. */
-      soloElAtras: [...acciones.children].length === 1 &&
-                   b.parentElement === acciones,
+    const equis = cab ? cab.querySelector('[data-sp-cerrar]') : null;
+    /* Y LA CUARTA MUDANZA: el paso atrás vuelve al renglón del rótulo, entre
+       él y la equis, como el «Nueva» de las listas de perlas y de cintas. Lo
+       pidió el dueño del repo para que los tres paneles se vieran iguales. */
+    const juntos = (tb && cab && equis) ? {
+      /* rótulo, atrás y equis, en ese orden, y nada más */
+      enLaCabeza: b.parentElement === cab && cab.children.length === 3 &&
+                  cab.firstElementChild === tit && cab.lastElementChild === equis,
+      sinRenglonAparte: !document.querySelector('#historial .hs-acciones'),
       sinLosDePoner: !document.querySelector('#historial [data-sep-nuevo]') &&
                      !document.querySelector('#historial [data-piedra-nueva]'),
-      /* el rótulo, entero por encima del renglón */
-      bajoElRotulo: tb.bottom <= suyo.top + 1,
+      /* al nivel del rótulo, medido por los centros */
+      alNivel: Math.abs((tb.top + tb.height / 2) - (suyo.top + suyo.height / 2)) <= 2,
       /* EL HUECO DE ARRIBA, Y ESTA LÍNEA YA LLEVA DOS MUDANZAS.
 
          Se midió contra el filo del panel hasta que la equis se puso en un
@@ -136,8 +140,8 @@ const ATERRIZA = 7000;
          vigilan el doble: vigilan lo mismo y hacen creer que no. Se queda una,
          con el margen de la más estricta. */
       cabezaEntera: cab ? Math.round(tb.top - panel.top) : null,
-      /* Y PEGADO AL FILO DERECHO. */
-      alFilo: Math.round(panel.right - suyo.right)
+      /* Y PEGADO A LA EQUIS, que es la que va al filo. */
+      hastaLaEquis: Math.round(equis.getBoundingClientRect().left - suyo.right)
     } : null;
     const antes = JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]');
     b.click();
@@ -153,13 +157,15 @@ const ATERRIZA = 7000;
              creció: despues.length - antes.length, aqui };
   }, ATERRIZA).then(r => {
     vale('hay paso atrás y dice a dónde', !r.sinBoton && /\d+:\d+/.test(r.rotulo || ''), r.rotulo);
-    vale('  y su renglón va pegado al filo derecho',
-         !!r.juntos && r.juntos.alFilo <= 16, r.juntos && r.juntos.alFilo + 'px del filo');
-    vale('  y SOLO ÉL en su renglón', !!r.juntos && r.juntos.soloElAtras, r.juntos);
+    vale('  EN EL RENGLÓN DEL RÓTULO, entre él y la equis, como el «Nueva» de las listas',
+         !!r.juntos && r.juntos.enLaCabeza, r.juntos);
+    vale('  y sin renglón aparte debajo', !!r.juntos && r.juntos.sinRenglonAparte, r.juntos);
+    vale('  al nivel del rótulo', !!r.juntos && r.juntos.alNivel, r.juntos);
+    vale('  y pegado a la equis',
+         !!r.juntos && r.juntos.hastaLaEquis >= 0 && r.juntos.hastaLaEquis <= 16,
+         r.juntos && r.juntos.hastaLaEquis + 'px hasta la equis');
     vale('  los de poner se fueron a sus listas',
          !!r.juntos && r.juntos.sinLosDePoner, r.juntos);
-    vale('  con el rótulo entero por encima',
-         !!r.juntos && r.juntos.bajoElRotulo, r.juntos);
     vale('  y con el hueco de arriba de siempre, sin hincharse',
          !!r.juntos && r.juntos.cabezaEntera !== null &&
          r.juntos.cabezaEntera >= 1 && r.juntos.cabezaEntera <= 30,

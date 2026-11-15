@@ -1901,13 +1901,12 @@
   #historial.visible{ opacity:1; transform:none; }
   /* EL RÓTULO, SOLO EN SU RENGLÓN.
 
-     Aquí vivió también el paso atrás, y se ha bajado al renglón de los botones
-     —ver .hs-acciones—. Se queda el renglón propio aunque ahora lleve un solo
-     hijo: el relleno de arriba del panel es éste, y disolverlo obligaría a
-     devolvérselo al rótulo, que es de donde vino. */
+     Aquí vivió el paso atrás, luego se bajó a un renglón propio, y ha
+     vuelto: rótulo, atrás y equis, como la cabecera de las listas de perlas
+     y de cintas. Ver cabezaHistorial. */
   /* El rótulo se queda con lo que sobra para que la equis se vaya al filo
      derecho, a su misma altura. Ver .sp-x. */
-  .hs-cab{ display:flex; align-items:center; gap:8px; padding:3px 3px 6px; }
+  .hs-cab{ display:flex; align-items:center; gap:8px; padding:3px 3px 8px; }
   .hs-cab .hs-tit{ flex:1 1 auto; min-width:0; }
   .hs-tit{ font:700 calc(10.5px * var(--escala-ui, 1))/1 var(--ui);
            letter-spacing:.14em; text-transform:uppercase; color:#8a7746; }
@@ -1925,10 +1924,8 @@
      salto a otra escritura, que es lo contrario de volver. Ahora mide 34px de
      alto —38 en pantalla chica—, que es el mínimo con el que se acierta, y la
      letra sube a la de las filas para que no parezca un rótulo. */
-  /* Ya no lleva margin-left:auto: vive en .hs-acciones, que empuja a sus dos
-     hijos al filo derecho con justify-content. Con el auto puesto se habría
-     separado del botón de al lado hasta el otro extremo del renglón, que es
-     justo lo contrario de tenerlos juntos. */
+  /* Sin margin-left:auto: el rótulo, con flex:1, ya lo empuja contra la
+     equis. */
   .hs-atras{ flex:0 0 auto;
              display:inline-flex; align-items:center; justify-content:center;
              gap:7px; min-height:34px;
@@ -2441,8 +2438,8 @@
      menos que el panel. Se deja flex-wrap:wrap de todas formas —no para que
      parta, sino para que si algún día no cupieran bajara uno en vez de
      desbordarse el panel por el lado—. */
-  .hs-acciones{ display:flex; align-items:center; justify-content:flex-end;
-                flex-wrap:wrap; gap:8px; padding:0 3px 7px; }
+  /* (.hs-acciones, el renglón propio del paso atrás, se fue: el atrás vive
+     ahora en .hs-cab, entre el rótulo y la equis.) */
 /* ---------- las piedras ---------- */
   /* LA CAPA NO TOCA NADA. Cubre el papel entero para poder colocar por
      porcentaje, y deja pasar todo: sin pointer-events:none se comería el
@@ -2721,7 +2718,15 @@
      pesa lo que un cuadrado de 24. Escalan con --escala-ui, como la letra que
      acompañan. Solo dentro de la fila: el dibujito del botón «Nueva» es de un
      botón y se queda a la medida del botón. */
-  .sp-fila .sp-chip-forma{ width:calc(20px * var(--escala-ui, 1)); height:calc(20px * var(--escala-ui, 1)); }
+  /* LA PERLA, OTRO ESCALÓN: 26 Y 32. Con 20 y 24 la cinta quedó bien, pero el
+     dueño del repo, en su teléfono, seguía sin distinguir las perlas: una
+     cinta es una cinta de cualquier color, y una perla es una forma —paloma,
+     ancla, corazón— que hay que reconocer. Se compararon 24, 32 y 36 en la
+     lista de verdad: a 32 la paloma y el ancla se leen sin entornar los ojos y
+     la fila no crece ni un píxel —sus 54 de alto ya tenían sitio—; a 36 las
+     filas empiezan a estirarse y la lista cabe peor. Así que la regla de «vez
+     y media la letra» se queda para la cinta, y la perla va a dos veces. */
+  .sp-fila .sp-chip-forma{ width:calc(26px * var(--escala-ui, 1)); height:calc(26px * var(--escala-ui, 1)); }
   .sp-fila .sp-chip{ width:calc(13px * var(--escala-ui, 1)); height:calc(24px * var(--escala-ui, 1)); }
   .sp-vacio{ margin:4px 2px 2px; font:400 calc(12.5px * var(--escala-ui, 1))/1.45 var(--ui); color:#6d5a2c; }
 
@@ -2864,7 +2869,6 @@
        se quedó con UNO. Apretar un botón solo contra un borde que ya no
        existe es pagar dos veces por una mudanza. El alto y la letra suben con
        todo lo demás, en el bloque del dedo. */
-    .hs-acciones{ gap:6px; }
   }
   /* ============================================================
      LA MEDIDA DEL DEDO NO DEPENDE DEL ANCHO DE LA PANTALLA.
@@ -2932,7 +2936,7 @@
     .sp-tit{ font-size:calc(12px * var(--escala-ui, 1)); letter-spacing:.08em; }
     .sp-fila{ min-height:48px; padding:5px 5px 5px 10px; }
     .sp-ir{ min-height:44px; gap:10px; }
-    .sp-fila .sp-chip-forma{ width:calc(24px * var(--escala-ui, 1)); height:calc(24px * var(--escala-ui, 1)); }
+    .sp-fila .sp-chip-forma{ width:calc(32px * var(--escala-ui, 1)); height:calc(32px * var(--escala-ui, 1)); }
     .sp-fila .sp-chip{ width:calc(15px * var(--escala-ui, 1)); height:calc(28px * var(--escala-ui, 1)); }
     .sp-ref{ font-size:calc(15px * var(--escala-ui, 1)); }
     /* Los tres van a la par a propósito: comparten renglón, y una fila con
@@ -3003,14 +3007,16 @@
     .bv-nombre{ font-size:calc(14.5px * var(--escala-ui, 1)); }
   }
   /* Y EN LO MÁS ANGOSTO, UN PELO MÁS APRETADO. Esto sí es del ancho, y por
-     eso es lo único que se queda aquí. Medido en 320 px: al renglón le quedan
-     288 útiles —el panel mide 308, menos su relleno y el de .hs-acciones— y
-     con 10 px a los lados los tres piden 291. Tres píxeles, y por tres se
-     bajaba uno de renglón. Aquí van a 8 y el hueco a 5: 279, con nueve de
-     sobra. No se aprieta en todos los tamaños porque no hace falta: de 360
-     para arriba sobra sitio, y un botón más holgado se toca mejor. */
+     eso es lo único que se queda aquí: en 320 px las cabeceras de los tres
+     paneles —rótulo, su botón y la equis— no caben con las holguras de un
+     teléfono normal, y el rótulo se partía. De 360 para arriba sobra sitio,
+     y un botón más holgado se toca mejor. */
   @media (pointer:coarse) and (max-width: 360px){
-    .hs-acciones{ gap:5px; }
+    /* El rastro: rótulo, atrás y equis en un renglón, como las listas de aquí
+       abajo, y con el mismo apretón para que el rótulo no se parta. */
+    .hs-cab{ gap:6px; }
+    .hs-tit{ letter-spacing:.04em; }
+    .hs-atras{ padding-left:10px; padding-right:9px; gap:5px; }
     /* Y LA CABECERA DE LAS LISTAS SE APRIETA, por lo mismo que todo lo de este
        bloque: en 320 px el panel se queda en 304 por el calc y sus útiles no
        dan para el rótulo, «Nueva» y la equis con sus huecos. El rótulo se
@@ -6581,7 +6587,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 14:07';
+window.GLOSS_BUILD = '15-NOV-26 14:59';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -16331,10 +16337,15 @@ function cabezaHistorial(){
      cerraba tocando fuera o volviendo a tocar el botón que lo abrió, que son
      las dos maneras que hay que saberse de antes; arriba a la derecha es donde
      se busca, y ahora está. En el renglón del rótulo y a su altura, ver .sp-x. */
-  const atras = pieAtras();
+  /* Y AHORA LOS TRES EN UN RENGLÓN: rótulo, paso atrás y equis, igual que las
+     listas de perlas y de cintas llevan rótulo, «Nueva» y equis. El paso
+     atrás vivía en un renglón propio debajo del rótulo, y el dueño del repo
+     pidió que el rastro se viera como sus dos vecinos: tres paneles de la
+     misma familia, abiertos desde las mismas esquinas, con la cabecera armada
+     de dos maneras, se leían como dos familias. El atrás ocupa el sitio del
+     «Nueva»: es la acción del panel, al lado de su salida. */
   return '<div class="hs-cab"><span class="hs-tit">' + T('Lo que has visto', 'What you have seen') + '</span>' +
-      spCerrarHTML('rastro', 'lo que has visto', 'what you have seen') + '</div>' +
-    (atras ? '<div class="hs-acciones">' + atras + '</div>' : '');
+      pieAtras() + spCerrarHTML('rastro', 'lo que has visto', 'what you have seen') + '</div>';
 }
 /* AQUÍ ESTUVO EL PIE DEL RASTRO, con las dos puertas —«piedras» y «cintas»—.
    Se fue a las dos esquinas de arriba de la escena: ver #btnPiedras y
