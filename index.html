@@ -2365,6 +2365,13 @@
   .sp-fila .sp-btn-borrar{ color:#7d2323; border-color:rgba(155,42,42,.4);
                            background:rgba(155,42,42,.08); }
   .sp-fila .sp-btn-borrar:hover{ background:rgba(155,42,42,.16); }
+  /* LA PISTA, MÁS QUEDA, Y SOLO DONDE HACE FALTA. Al verla puesta, el dueño
+     del repo la quiso menos visible, y solo en las filas que todavía no
+     tienen nombre: quien ya nombró una perla sabe cómo se hace, y la pista
+     repetida en todas las filas era ruido. Así que baja de 4,0:1 a 2,5:1
+     —se lee si se busca, no se ve si no— y un punto de letra; y filaHTML no
+     la pinta si la fila ya tiene nombre. Lo de abajo cuenta de dónde salía el
+     4,0:1, y sigue valiendo para el color de los rótulos. */
   /* LA PISTA DE LA FILA: visible y quieta.
      · EL COLOR es el de los rótulos del panel, «TUS PERLAS»: la voz que ya
        usa el panel para lo que no es contenido. Medido sobre la fila, 4,0:1
@@ -2378,13 +2385,13 @@
      · A LA DERECHA, al final de la fila: la columna de referencias de la
        izquierda se sigue recorriendo con el ojo sin tropezar con ella. */
   .sp-pista{ flex:0 0 auto; margin-left:auto; padding-left:8px;
-             font:400 calc(11px * var(--escala-ui, 1))/1.2 var(--ui);
-             color:#8a7746; letter-spacing:.02em; white-space:nowrap; }
+             font:400 calc(10px * var(--escala-ui, 1))/1.2 var(--ui);
+             color:#ab9c72; letter-spacing:.02em; white-space:nowrap; }
   .sp-pista-dedo{ display:none; }
   @media (pointer:coarse){
     .sp-pista-dedo{ display:inline; }
     .sp-pista-raton{ display:none; }
-    .sp-pista{ font-size:calc(12.5px * var(--escala-ui, 1)); }
+    .sp-pista{ font-size:calc(11.5px * var(--escala-ui, 1)); }
   }
   .sp-fila-pregunta{ flex-wrap:wrap; gap:7px;
                      background:rgba(155,42,42,.1);
@@ -6634,7 +6641,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 15:40';
+window.GLOSS_BUILD = '15-NOV-26 17:14';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -22628,10 +22635,12 @@ function filaHTML(o){
          y la palabra es la de la casa: la guía de las perícopas ya dice
          «click largo». aria-hidden porque quien usa lector de pantalla ya
          oye su camino en el rótulo de la fila. */
+      /* Solo si la fila no tiene nombre todavía: ver .sp-pista. */
+      (o.nombre ? '' :
       '<span class="sp-pista" aria-hidden="true">' +
         '<span class="sp-pista-dedo">' + T('click largo', 'long press') + '</span>' +
         '<span class="sp-pista-raton">' + T('doble click', 'double-click') + '</span>' +
-      '</span></button>' +
+      '</span>') + '</button>' +
   '</div>';
 }
 /* EL ASPA DE CERRAR, la misma para los dos paneles. `acc` dice cuál cierra:
