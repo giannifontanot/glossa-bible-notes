@@ -6553,7 +6553,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 04:15';
+window.GLOSS_BUILD = '15-NOV-26 04:22';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7869,6 +7869,15 @@ const FUENTES = [
    Y si alguien la tenía puesta, la conserva: la elegida por el lector no se
    esconde nunca. */
 const FUENTES_RETIRADAS = new Set([8]);
+/* Lo que dice cada letra de sí misma, en inglés, por el mismo orden que la
+   tercera columna de FUENTES. Se busca por nombre y no por posición, para que
+   una letra nueva sin traducir diga su español en vez de la de al lado. */
+const FUENTE_DICE_EN = {
+  'serif de pantalla':'screen serif', 'serif clásico':'classic serif',
+  'serif para leer':'serif for reading', 'serif tradicional':'traditional serif',
+  'sans muy legible':'very legible sans', 'sans compacta':'compact sans',
+};
+const fuenteDice = i => T(FUENTES[i][2], FUENTE_DICE_EN[FUENTES[i][2]] || FUENTES[i][2]);
 let fuente = FUENTES[0][1];
 const GENERICOS = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|-apple-system|BlinkMacSystemFont)$/i;
 /* EL PRIMER NOMBRE PROPIO DE LA CADENA. Al llegar a un genérico se para y
@@ -7942,10 +7951,12 @@ function familiaDelAparato(cadena){
    pareja con ROMANA, que es lo que se quería. */
 function generoDeLaCadena(cadena){
   const c = String(cadena);
-  if (/monospace/i.test(c)) return 'Máquina';
-  if (/sans-serif|system-ui|-apple-system/i.test(c)) return 'Lineal';
-  if (/serif/i.test(c)) return 'Romana';
-  return 'Romana';
+  /* En inglés no hay Vox que valga: son los nombres de siempre de la imprenta
+     inglesa, Serif, Sans y Mono, igual de cortos. */
+  if (/monospace/i.test(c)) return T('Máquina', 'Mono');
+  if (/sans-serif|system-ui|-apple-system/i.test(c)) return T('Lineal', 'Sans');
+  if (/serif/i.test(c)) return T('Romana', 'Serif');
+  return T('Romana', 'Serif');
 }
 /* LA HUELLA, que es lo que agrupa. Dos cadenas que acaban en la misma letra
    miden exactamente igual; se miden en un lienzo y no en el DOM porque ahí no
@@ -8042,6 +8053,15 @@ const opcionesEsp = () => ESPACIADOS
    —ya lo mueven las columnas, el ancho de hoja y el tamaño de letra. */
 const MARGENES = [['angostos',10], ['normales',18], ['amplios',40]];
 let margen = 1;
+/* LOS NOMBRES DE LOS TRES QUE VAN ROTANDO, en inglés. Las tablas AIRES y
+   MARGENES se quedan con su palabra española dentro: es la que se guardaba en
+   su día y no cuesta nada dejarla. Lo que se lee pasa por aquí.
+   Viven aquí arriba, junto a sus tablas, y no junto a los botones: aplicarIdioma
+   corre al arrancar, antes de que el guion llegue allí abajo. */
+const ROTA_EN = { reducida:'tight', normal:'normal', amplia:'loose',
+                  angostos:'narrow', normales:'normal', amplios:'wide',
+                  izquierda:'left', justificado:'justified' };
+const rota = w => T(w, ROTA_EN[w] || w);
 
 /* UNA sola firma con todo lo que afecta al acomodo. Antes había seis
    variables sueltas y dos veces se me olvidó copiar una a la foto; con la
@@ -8221,7 +8241,8 @@ const save = () => {
   } catch(e){
     if (!avisoGuardado){
       avisoGuardado = true;
-      readout.textContent = 'NO SE PUDO GUARDAR (' + (e.name || 'error') + ') — exporta tus glosas';
+      readout.textContent = T('NO SE PUDO GUARDAR (', 'COULD NOT SAVE (') + (e.name || 'error') +
+                            T(') — exporta tus glosas', ') — export your glosses');
     }
   }
 };
@@ -8308,6 +8329,10 @@ const AVISOS_QUE_FALLAN = [
   /not an image/i,
   /broken image/i,
   /could not read the file/i,
+  /* Y los del respaldo, que hablan inglés con la Berean y la WEB. */
+  /not valid JSON/i,
+  /does not look like a Glossa export/i,
+  /nothing to export/i,
 ];
 /* El último fallo, guardado aparte: el panel de Respaldo se arma al final del
    guion, así que un fallo de los primeros milisegundos no tendría dónde
@@ -9121,6 +9146,30 @@ const idiomaVersion = v => IDIOMA_VERSION[v] || 'es';
    versión. Se hace por partes: ver los comentarios «IDIOMA» de cada panel. */
 const idiomaUI = () => idiomaVersion(version);
 const T = (es, en) => idiomaUI() === 'en' ? en : es;
+/* PARA LO QUE SE CREA UNA VEZ Y SE QUEDA. Notas, Respaldo y los índices se
+   arman al arrancar y nadie los vuelve a escribir; con T() saldrían en el
+   idioma de ese momento y ahí se quedarían al cambiar de Biblia. Esto deja
+   los dos idiomas colgados del propio nodo —data-es y data-en, como la
+   portada, y sus parientes para title, aria-label y placeholder— y
+   aplicarIdioma los cambia todos de una pasada. Cada clave lleva [es, en]. */
+const ATR_DOS = { title:['esTitle','enTitle','title'], aria:['esAria','enAria','aria-label'],
+                  ph:['esPh','enPh','placeholder'] };
+/* Un texto llega como [es, en]; uno suelto vale para los dos. */
+const parDe = x => Array.isArray(x) ? x : [x, x];
+/* LA LICENCIA VIENE DE LOS DATOS, en español, y solo cambian tres palabras:
+   «Dominio público», «desde» y la «y». Los nombres de los autores de la Libre no se
+   tocan. */
+const licenciaDe = lic => T(lic || '', String(lic || '')
+  .replace('Dominio público', 'Public domain').replace(' desde ', ' since ').replace(' y ', ' and '));
+function dosIdiomas(el, o){
+  if (o.t){ el.dataset.es = o.t[0]; el.dataset.en = o.t[1]; el.textContent = T(o.t[0], o.t[1]); }
+  for (const k in ATR_DOS) if (o[k]){
+    const [de, di, atr] = ATR_DOS[k];
+    el.dataset[de] = o[k][0]; el.dataset[di] = o[k][1];
+    el.setAttribute(atr, T(o[k][0], o[k][1]));
+  }
+  return el;
+}
 /* Y con respaldo al otro idioma: una perícopa a la que le falte el inglés se
    enseña en español antes que en blanco. Devuelve las DOS cosas —el texto y en
    qué idioma salió— porque quien lo pinta tiene que declararlo: ver tituloHTML.
@@ -16747,7 +16796,7 @@ function pintarVersiones(){
   $('burbujaVersion').innerHTML = '<span class="bv-tit">Versión</span>' +
     Object.entries(D.versiones).map(([k, v]) =>
       '<button class="bv-fila' + (k === version ? ' aqui' : '') + '" data-bv="' + esc(k) + '"' +
-      ' title="' + esc(v.licencia || '') + '">' +
+      ' title="' + esc(licenciaDe(v.licencia)) + '">' +
       '<span class="bv-abrev">' + esc(v.abrev || k) + '</span>' +
       '<span class="bv-nombre">' + esc(v.nombre || k) + '</span></button>').join('');
 }
@@ -23639,8 +23688,8 @@ function guardarNotas(){
     localStorage.setItem(CLAVE_NOTAS, JSON.stringify(notas));
     return true;
   } catch(e){
-    readout.textContent = 'NO SE PUDO GUARDAR LAS NOTAS (' + (e.name || 'error') +
-                          ') — exporta tus notas antes de cerrar';
+    readout.textContent = T('NO SE PUDO GUARDAR LAS NOTAS (', 'COULD NOT SAVE THE NOTES (') + (e.name || 'error') +
+                          T(') — exporta tus notas antes de cerrar', ') — export your notes before closing');
     return false;
   }
 }
@@ -23694,7 +23743,7 @@ function bajarRespaldo(){
 }
 
 $('btnExportar').onclick = () => {
-  if (!bajarRespaldo()) readout.textContent = 'no hay nada que exportar todavía';
+  if (!bajarRespaldo()) readout.textContent = T('no hay nada que exportar todavía', 'nothing to export yet');
 };
 
 /* ============================================================
@@ -23727,21 +23776,21 @@ $('archivoImp').onchange = ev => {
   ev.target.value = '';                       // permite reimportar el mismo archivo
   if (!f) return;
   const lector = new FileReader();
-  lector.onerror = () => { readout.textContent = 'no se pudo leer el archivo'; };
+  lector.onerror = () => { readout.textContent = T('no se pudo leer el archivo', 'could not read the file'); };
   lector.onload = () => {
     let datos;
     try { datos = JSON.parse(lector.result); }
-    catch(e){ readout.textContent = 'ese archivo no es JSON válido'; return; }
+    catch(e){ readout.textContent = T('ese archivo no es JSON válido', 'that file is not valid JSON'); return; }
     const entrantes = Array.isArray(datos) ? datos
                     : (datos && datos.formato === FORMATO ? datos.marcas : null);
     if (!Array.isArray(entrantes)){
-      readout.textContent = 'ese archivo no parece una exportación de Glossa';
+      readout.textContent = T('ese archivo no parece una exportación de Glossa', 'that file does not look like a Glossa export');
       return;
     }
     const notasEntrantes = !Array.isArray(datos) && datos.notas !== undefined
       ? datos.notas : [];
     if (!Array.isArray(notasEntrantes)){
-      readout.textContent = 'ese archivo no parece una exportación de Glossa';
+      readout.textContent = T('ese archivo no parece una exportación de Glossa', 'that file does not look like a Glossa export');
       return;
     }
     /* Se FUSIONA, no se reemplaza: importar nunca debe borrar lo que ya
@@ -23829,6 +23878,36 @@ const UI_EN = {
   '#historial':        { aria:'Passages you have seen' },
   '#piedraMenu':       { aria:'Your pearls' },
   '#sepMenu':          { aria:'Bookmark options' },
+  /* FORMATO. `lbl` es el rótulo de la fila donde vive el control: los rótulos
+     son <span> sin nombre propio, y por el control de su fila se encuentran
+     sin depender de en qué puesto está cada fila. */
+  '#fsDown':           { title:'One point smaller', lbl:'size' },
+  '#fsUp':             { title:'One point larger' },
+  '#fsAhora':          { title:'Pick the size in one go' },
+  '#selFuente':        { lbl:'typeface' },
+  '#espDown':          { title:'One point less spacing', lbl:'spacing' },
+  '#espUp':            { title:'One point more spacing' },
+  '#espAhora':         { title:'Pick the spacing in one go', aria:'letter spacing' },
+  '#muestraLetra':     { t:'in Christ we are more than conquerors', aria:'Sample of the book’s type' },
+  '#btnMargen':        { lbl:'margins' },
+  '#btnAli':           { lbl:'alignment' },
+  '#btnAire':          { lbl:'line spacing' },
+  '[data-cols="1"] .largo': { t:'one' },
+  '[data-cols="2"] .largo': { t:'two' },
+  '[data-cols="3"] .largo': { t:'three' },
+  '[data-cols="1"]':   { lbl:'columns' },
+  '[data-lay="below"]':  { t:'below', lbl:'gloss' },
+  '[data-lay="margin"]': { t:'margin' },
+  '[data-lay="foot"]':   { t:'footer' },
+  '#sepia':            { title:'Tints the paper: from printer’s white to old paper', lbl:'sepia' },
+  '#contraste':        { title:'Lifts the type off the paper: from faint to bold, without changing color',
+                         aria:'contrast', lbl:'contrast' },
+  '#brillo':           { title:'Raises or lowers the light of the page, without changing color or type',
+                         aria:'brightness', lbl:'brightness' },
+  '#btnVidrio':        { t:'see-through', title:'See-through panel, to watch the page while adjusting' },
+  /* RESPALDO. */
+  '#btnExportar':      { t:'Export' },
+  '#btnImportar':      { t:'Import' },
 };
 const ES_DEL_MARCADO = new WeakMap();
 const ATRIBUTO_DE = { title:'title', aria:'aria-label', ph:'placeholder' };
@@ -23841,12 +23920,28 @@ function aplicarIdioma(){
       aria: el.getAttribute('aria-label'), ph: el.getAttribute('placeholder') });
     const es = ES_DEL_MARCADO.get(el);
     if (en.t !== undefined) el.textContent = ing ? en.t : es.t;
+    if (en.lbl !== undefined){
+      const fila = el.closest('.ajuste');
+      const lbl = fila && fila.querySelector('.lbl');
+      if (lbl){
+        if (!ES_DEL_MARCADO.has(lbl)) ES_DEL_MARCADO.set(lbl, { t: lbl.textContent });
+        lbl.textContent = ing ? en.lbl : ES_DEL_MARCADO.get(lbl).t;
+      }
+    }
     for (const k of ['title', 'aria', 'ph'])
       if (en[k] !== undefined && es[k] !== null) el.setAttribute(ATRIBUTO_DE[k], ing ? en[k] : es[k]);
   });
   document.querySelectorAll('[data-es][data-en]').forEach(el => {
     el.textContent = T(el.dataset.es, el.dataset.en);
   });
+  /* Y sus parientes: data-es-title, data-es-aria y data-es-ph, que es lo que
+     escribe dosIdiomas. */
+  for (const k in ATR_DOS){
+    const [de, di, atr] = ATR_DOS[k];
+    document.querySelectorAll('[data-es-' + k + ']').forEach(el => {
+      if (el.dataset[di] != null) el.setAttribute(atr, T(el.dataset[de], el.dataset[di]));
+    });
+  }
   document.querySelectorAll('.pestanas [data-sec]').forEach(b => {
     const x = SECCIONES.find(s => s.id === b.dataset.sec);
     if (!x || !x.nombre) return;
@@ -23859,6 +23954,15 @@ function aplicarIdioma(){
      ACTUALIZAR no la toca nadie más, y si está puesta se quedaría hablando el
      idioma de antes. */
   if (etiquetas.classList.contains('eligiendo')) pintarBarraGrupo();
+  /* FORMATO: los tres botones que rotan y la lista de letras. La lista se
+     afina al llegar las fuentes; si todavía no llegaron, esto no hace nada y
+     ya la afinará aquello en el idioma de ahora. */
+  rotularFormato();
+  try {
+    const sel = $('selFuente');
+    if (sel) [...sel.options].forEach((o, i) => { if (FUENTES[i]) o.title = fuenteDice(i); });
+    afinarListaDeFuentes();
+  } catch (e) { /* la lista se queda como estaba */ }
 }
 function setVersion(v){
   /* Conservar el lugar por REFERENCIA, no por número de hoja: los textos de
@@ -23892,7 +23996,7 @@ function setVersion(v){
       if (!igual) destacar(donde.cap, donde.vers, '');
     }
   }
-  $('cred').textContent = D.versiones[v].nombre + ' — ' + D.versiones[v].licencia + ' · vía eBible.org';
+  $('cred').textContent = D.versiones[v].nombre + ' — ' + licenciaDe(D.versiones[v].licencia) + T(' · vía eBible.org', ' · via eBible.org');
 }
 /* CAMBIAR DE VERSIÓN ES LO MÁS CARO QUE HACE EL PROGRAMA, y hasta ahora no lo
    decía. Rehace el plano del libro entero y lo vuelve a paginar: con la CPU
@@ -24280,8 +24384,8 @@ $('btnVidrio').onclick = () => {
   b.classList.toggle('active', on);
 };
 $('selFuente').innerHTML = FUENTES.map((f,i) =>
-  '<option value="'+i+'" title="'+f[2]+'">'+f[0]+'</option>').join('');
-$('selFuente').title = FUENTES.map(f => f[0] + ': ' + f[2]).join(' · ');
+  '<option value="'+i+'" title="'+fuenteDice(i)+'">'+f[0]+'</option>').join('');
+$('selFuente').title = FUENTES.map((f,i) => f[0] + ': ' + fuenteDice(i)).join(' · ');
 /* AFINAR LA LISTA A ESTE APARATO. Se esconden las entradas que dan la misma
    letra que otra y se le pone al nombre en qué acaba cuando el aparato no
    tiene la que se nombra. Ver FUENTES, donde está contado por qué.
@@ -24300,8 +24404,9 @@ $('selFuente').title = FUENTES.map(f => f[0] + ': ' + f[2]).join(' · ');
 /* La línea del title, aparte porque se dice dos veces y son dos frases largas
    que conviene leer juntas. */
 function o_titulo(e){
-  return e.real ? e.real + ': ' + FUENTES[e.i][2]
-       : e.genero + ' del sistema (' + FUENTES[e.i][0] + ' no está)';
+  return e.real ? e.real + ': ' + fuenteDice(e.i)
+       : T(e.genero + ' del sistema (' + FUENTES[e.i][0] + ' no está)',
+           'System ' + e.genero.toLowerCase() + ' (' + FUENTES[e.i][0] + ' not found)');
 }
 function afinarListaDeFuentes(){
   const sel = $('selFuente');
@@ -24333,9 +24438,11 @@ function afinarListaDeFuentes(){
        costó la versión larga. Enseñar «Sans» donde no hay Segoe es la
        contestación entera, dicha en el sitio donde se elige. */
     o.textContent = e.real ? e.nombre : e.genero;
-    o.title = e.real ? FUENTES[e.i][2]
-            : FUENTES[e.i][0] + ' no está en este aparato: sale la ' +
-              e.genero.toLowerCase() + ' del sistema';
+    o.title = e.real ? fuenteDice(e.i)
+            : T(FUENTES[e.i][0] + ' no está en este aparato: sale la ' +
+                e.genero.toLowerCase() + ' del sistema',
+                FUENTES[e.i][0] + ' is not on this device: the system ' +
+                e.genero.toLowerCase() + ' is used');
   }
   sel.title = info.filter(e => quedan.has(e.i))
                   .map(e => o_titulo(e)).join(' · ');
@@ -24352,7 +24459,7 @@ const btnAl = $('btnAli'), btnA = $('btnAire');
 const btnM = $('btnMargen');
 btnM.onclick = () => {
   margen = (margen + 1) % MARGENES.length;
-  btnM.textContent = MARGENES[margen][0];
+  btnM.textContent = rota(MARGENES[margen][0]);
   btnM.classList.toggle('active', margen !== 1);
   paginasSucias = true; renderPage();
 };
@@ -24362,7 +24469,7 @@ btnM.onclick = () => {
 btnAl.onclick = () => {
   alineacion = alineacion === 'left' ? 'justify' : 'left';
   const just = alineacion === 'justify';
-  btnAl.textContent = just ? 'justificado' : 'izquierda';
+  btnAl.textContent = rota(just ? 'justificado' : 'izquierda');
   btnAl.classList.toggle('active', just);
   paginasSucias = true; renderPage();
 };
@@ -24373,7 +24480,7 @@ btnA.onclick = () => {
   const i = AIRES.findIndex(a => a[1] === interlineado);
   const sig = AIRES[(i < 0 ? 1 : i + 1) % AIRES.length];
   interlineado = sig[1];
-  btnA.textContent = sig[0];
+  btnA.textContent = rota(sig[0]);
   btnA.classList.toggle('active', interlineado !== AIRES[1][1]);
   paginasSucias = true; renderPage();
 };
@@ -24858,6 +24965,19 @@ function cargarAjustes(){
 
 /* Un solo lugar que pone los controles a decir lo que el estado dice.
    Sin esto, restaurar ajustes deja botones mintiendo. */
+/* Los tres botones que dicen su estado con una palabra, en un sitio: los llama
+   reflejarControles al arrancar y aplicarIdioma al cambiar de Biblia. */
+function rotularFormato(){
+  /* Por id y no por btnAl y compañía: esas constantes se declaran más abajo, y
+     aplicarIdioma llama aquí al arrancar, antes de llegar a ellas. */
+  const btnAl = $('btnAli'), btnA = $('btnAire'), btnM = $('btnMargen');
+  if (!btnAl || !btnA || !btnM) return;
+  const poner = (b, txt, on) => { b.textContent = txt; b.classList.toggle('active', on); };
+  poner(btnAl, rota(alineacion === 'justify' ? 'justificado' : 'izquierda'), alineacion === 'justify');
+  const aire = AIRES.find(a => a[1] === interlineado) || AIRES[1];
+  poner(btnA,  rota(aire[0]), interlineado !== AIRES[1][1]);
+  poner(btnM,  rota(MARGENES[margen][0]), margen !== 1);
+}
 function reflejarControles(){
   reflejarTamano();
   $('sepia').value = String(sepia);
@@ -24881,10 +25001,7 @@ function reflejarControles(){
   marcar('[data-cols]', x => +x.dataset.cols === columns);
   marcar('[data-lay]',  x => x.dataset.lay === placement);
   const poner = (b, txt, on) => { b.textContent = txt; b.classList.toggle('active', on); };
-  poner(btnAl, alineacion === 'justify' ? 'justificado' : 'izquierda', alineacion === 'justify');
-  const aire = AIRES.find(a => a[1] === interlineado) || AIRES[1];
-  poner(btnA,  aire[0], interlineado !== AIRES[1][1]);
-  poner(btnM,  MARGENES[margen][0], margen !== 1);
+  rotularFormato();
   marksBtn.textContent = 'Marcas: ' + (showMarks ? 'ON' : 'OFF');
   /* La tira de etiquetas: apagada de fábrica, puesta si el filtro guardado
      esconde algo. Ver hayFiltroPuesto. */
@@ -25039,7 +25156,7 @@ const ENCUENTROS = [
   if (!caja) return;
   const marco = document.createElement('iframe');
   marco.className = 'ora-marco';
-  marco.title = 'Tus oraciones';
+  dosIdiomas(marco, { title: ['Tus oraciones', 'Your prayers'] });
   /* EL SELLO VA EN LA DIRECCIÓN, y no es adorno. El árbol es otra página dentro
      de un marco, y el navegador se la guarda: cuando el dueño del repo dijo
      «no funciona el cofre con doble click», lo primero que había que descartar
@@ -25170,24 +25287,26 @@ function crearMovimientoPestanitas(barra, avisar){
 }
 
 function crearIndiceSeccion(titulo, descripcion, antetitulo){
+  titulo = parDe(titulo); descripcion = parDe(descripcion); antetitulo = parDe(antetitulo);
   const pagina = document.createElement('section');
   pagina.className = 'indice-pagina';
-  pagina.setAttribute('aria-label', titulo);
+  dosIdiomas(pagina, { aria: titulo });
   const cabecera = document.createElement('header');
   cabecera.className = 'indice-cabecera';
   const antes = document.createElement('p');
-  antes.className = 'indice-antetitulo'; antes.textContent = antetitulo;
-  const nombre = document.createElement('h2'); nombre.textContent = titulo;
+  antes.className = 'indice-antetitulo'; dosIdiomas(antes, { t: antetitulo });
+  const nombre = document.createElement('h2'); dosIdiomas(nombre, { t: titulo });
   const detalle = document.createElement('p');
-  detalle.className = 'indice-descripcion'; detalle.textContent = descripcion;
+  detalle.className = 'indice-descripcion'; dosIdiomas(detalle, { t: descripcion });
   const cuenta = document.createElement('p'); cuenta.className = 'indice-cuenta';
   const ayuda = document.createElement('p'); ayuda.className = 'indice-ayuda';
-  ayuda.textContent = 'Arrastra las manijas para cambiar el orden de la lista y las pestañas. Con teclado, usa las flechas.';
+  dosIdiomas(ayuda, { t: ['Arrastra las manijas para cambiar el orden de la lista y las pestañas. Con teclado, usa las flechas.',
+                         'Drag the handles to change the order of the list and the tabs. With a keyboard, use the arrows.'] });
   const aviso = document.createElement('p'); aviso.className = 'indice-aviso';
   aviso.setAttribute('role', 'status'); aviso.setAttribute('aria-atomic', 'true');
   cabecera.append(antes, nombre, detalle, cuenta, ayuda, aviso);
   const lista = document.createElement('ol');
-  lista.className = 'indice-lista'; lista.setAttribute('aria-label', titulo);
+  lista.className = 'indice-lista'; dosIdiomas(lista, { aria: titulo });
   lista.setAttribute('role', 'list');
   pagina.append(cabecera, lista);
   return pagina;
@@ -25195,14 +25314,14 @@ function crearIndiceSeccion(titulo, descripcion, antetitulo){
 function crearPestanaIndice(nombre){
   const tab = document.createElement('button');
   tab.type = 'button'; tab.className = 'indice-tab';
-  tab.setAttribute('aria-label', nombre);
+  dosIdiomas(tab, { aria: parDe(nombre) });
   tab.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
     '<path d="M9 6h11M9 12h11M9 18h11M4 6h.1M4 12h.1M4 18h.1"/></svg>' +
-    '<span>Índice</span>';
+    '<span data-es="Índice" data-en="Index">' + T('Índice', 'Index') + '</span>';
   return tab;
 }
 function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
-  pagina.querySelector('.indice-cuenta').textContent = cuenta;
+  dosIdiomas(pagina.querySelector('.indice-cuenta'), { t: parDe(cuenta) });
   const lista = pagina.querySelector('.indice-lista'); lista.textContent = '';
   elementos.forEach((elemento, i) => {
     const fila = document.createElement('li'); fila.className = 'indice-fila';
@@ -25217,7 +25336,12 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
     const nombre = document.createElement('span');
     nombre.className = 'indice-nombre'; nombre.textContent = elemento.nombre;
     const detalle = document.createElement('span');
-    detalle.className = 'indice-detalle'; detalle.textContent = elemento.detalle;
+    /* El detalle puede llegar como [es, en]: los índices se pintan al
+       arrancar, antes de saber qué Biblia lee el lector, y un texto suelto se
+       quedaría en el idioma equivocado. */
+    detalle.className = 'indice-detalle';
+    if (Array.isArray(elemento.detalle)) dosIdiomas(detalle, { t: elemento.detalle });
+    else detalle.textContent = elemento.detalle;
     textos.append(nombre, detalle);
     const flecha = document.createElement('span');
     flecha.className = 'indice-flecha'; flecha.textContent = '→';
@@ -25228,8 +25352,10 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
     });
     const asa = document.createElement('button');
     asa.type = 'button'; asa.className = 'indice-asa';
-    asa.title = 'Arrastra para reordenar; con teclado, usa las flechas';
-    asa.setAttribute('aria-label', 'Mover ' + elemento.nombre + '. Usa las flechas para cambiar de posición');
+    dosIdiomas(asa, {
+      title: ['Arrastra para reordenar; con teclado, usa las flechas', 'Drag to reorder; with a keyboard, use the arrows'],
+      aria: ['Mover ' + elemento.nombre + '. Usa las flechas para cambiar de posición',
+             'Move ' + elemento.nombre + '. Use the arrows to change its position'] });
     asa.innerHTML = '<svg viewBox="0 0 14 22" aria-hidden="true" focusable="false">' +
       '<circle cx="4" cy="5" r="1.7"/><circle cx="10" cy="5" r="1.7"/>' +
       '<circle cx="4" cy="11" r="1.7"/><circle cx="10" cy="11" r="1.7"/>' +
@@ -25404,7 +25530,20 @@ function armarManijasIndice(pagina, reordenar){
   } catch(_){ notas = null; }
   /* No usar nota-1 de fábrica: dos dispositivos tendrían el mismo id y una
      importación descartaría la primera nota escrita como si ya existiera. */
-  if (!notas || !notas.length) notas = [{ id:nuevoIdNota(), titulo:'Nota 1', texto:'' }];
+  /* EL TÍTULO DE LA PRIMERA NOTA SE GUARDA, y esto corre ANTES de que se lean
+     los ajustes: idiomaUI() todavía contesta por la Biblia de estreno, no por
+     la del lector. Así que aquí se lee la Biblia guardada directamente. Sin
+     esto, quien lee la Libre estrenaba su cuaderno con un «Note 1» que ya se
+     le quedaba. */
+  const idiomaGuardado = (() => {
+    try {
+      const a = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || 'null');
+      if (a && D.versiones[a.version]) return idiomaVersion(a.version);
+    } catch (e) { /* sin ajustes, la de estreno */ }
+    return idiomaUI();
+  })();
+  if (!notas || !notas.length)
+    notas = [{ id:nuevoIdNota(), titulo: idiomaGuardado === 'en' ? 'Note 1' : 'Nota 1', texto:'' }];
   notas = notas.map((n, i) => ({
     id: String(n.id || nuevoIdNota()),
     titulo: String(n.titulo || ('Nota ' + (i + 1))).slice(0, 60), texto:n.texto,
@@ -25414,7 +25553,7 @@ function armarManijasIndice(pagina, reordenar){
      «indice» sigue siendo una nota. Al recargar se empieza por el índice. */
   let activa = null, pendiente = null;
   const tira = document.createElement('div'); tira.className = 'indice-barra';
-  const tabIndice = crearPestanaIndice('Índice de notas');
+  const tabIndice = crearPestanaIndice(['Índice de notas', 'Index of notes']);
   const cajaBarra = document.createElement('div');
   cajaBarra.className = 'enc-barra';
   const barra = document.createElement('div');
@@ -25422,8 +25561,8 @@ function armarManijasIndice(pagina, reordenar){
   cajaBarra.appendChild(barra);
   const verGlosas = document.createElement('button');
   verGlosas.type = 'button'; verGlosas.className = 'nota-ver-glosas'; verGlosas.disabled = true;
-  verGlosas.title = 'Ver glosas de esta nota';
-  verGlosas.setAttribute('aria-label', 'Ver glosas de esta nota');
+  dosIdiomas(verGlosas, { title: ['Ver glosas de esta nota', 'See the glosses of this note'],
+                         aria:  ['Ver glosas de esta nota', 'See the glosses of this note'] });
   verGlosas.setAttribute('aria-expanded', 'false'); verGlosas.setAttribute('aria-controls', 'notaFiltros');
   verGlosas.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
     '<path d="M12 5c-3-2-6-2-10-1v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-4-1-7-1-10 1Zm0 0v15"/></svg>';
@@ -25451,14 +25590,15 @@ function armarManijasIndice(pagina, reordenar){
     historial.textContent = '';
     const cabecera = document.createElement('div'); cabecera.className = 'nota-filtros-cabecera';
     const titulo = document.createElement('h3'); titulo.id = 'notaFiltrosTitulo';
-    titulo.textContent = 'Glosas de ' + nota.titulo;
+    titulo.textContent = T('Glosas de ', 'Glosses of ') + nota.titulo;
     const cerrar = document.createElement('button'); cerrar.type = 'button'; cerrar.className = 'nota-filtros-cerrar';
-    cerrar.textContent = '×'; cerrar.setAttribute('aria-label', 'Cerrar filtros guardados');
+    cerrar.textContent = '×'; cerrar.setAttribute('aria-label', T('Cerrar filtros guardados', 'Close saved filters'));
     cerrar.addEventListener('click', () => cerrarHistorial(true)); cabecera.append(titulo, cerrar);
     historial.appendChild(cabecera);
     if (!nota.filtros.length){
       const vacio = document.createElement('p'); vacio.className = 'nota-filtros-vacio';
-      vacio.textContent = 'Lee en GLOSAS y vuelve a esta nota para guardar tus filtros.';
+      vacio.textContent = T('Lee en GLOSAS y vuelve a esta nota para guardar tus filtros.',
+                            'Read in GLOSSES and come back to this note to save your filters.');
       historial.appendChild(vacio);
     } else {
       const lista = document.createElement('ul'); lista.className = 'nota-filtros-lista';
@@ -25467,13 +25607,14 @@ function armarManijasIndice(pagina, reordenar){
         boton.type = 'button'; boton.className = 'nota-filtro';
         const nombre = document.createElement('span');
         nombre.textContent = [f.libro, ...f.libros].map(nombreDe).join(' + ') + ' · ' +
-          (f.etiquetas.length ? f.etiquetas.map(t => t === '(sin etiqueta)' ? t : '#' + t).join(' · ') : 'Todas las etiquetas');
+          (f.etiquetas.length ? f.etiquetas.map(t => t === '(sin etiqueta)' ? T(t, '(untagged)') : '#' + t).join(' · ')
+                              : T('Todas las etiquetas', 'All tags'));
         const detalle = document.createElement('small');
-        detalle.textContent = (f.dia || 'Todos los días') + ' · ' +
-          new Date(f.fecha).toLocaleString('es', { dateStyle:'medium', timeStyle:'short' });
+        detalle.textContent = (f.dia || T('Todos los días', 'All days')) + ' · ' +
+          new Date(f.fecha).toLocaleString(idiomaUI(), { dateStyle:'medium', timeStyle:'short' });
         if (!hayLibro(f.libro)){
           boton.disabled = true;
-          detalle.textContent += ' · Libro no disponible en la versión actual';
+          detalle.textContent += T(' · Libro no disponible en la versión actual', ' · Book not available in this version');
         }
         boton.append(nombre, detalle);
         boton.addEventListener('click', () => { cerrarHistorial(); restaurarFiltroNota(f); });
@@ -25493,10 +25634,13 @@ function armarManijasIndice(pagina, reordenar){
   }, { capture:true, passive:true });
   const hojas = document.createElement('div');
   hojas.className = 'nota-hojas';
-  const indice = crearIndiceSeccion('Índice de notas',
-    'Un lugar para encontrar tus ideas y volver a lo que escribiste.', 'TU CUADERNO');
+  const indice = crearIndiceSeccion(['Índice de notas', 'Index of notes'],
+    ['Un lugar para encontrar tus ideas y volver a lo que escribiste.',
+     'A place to find your ideas and come back to what you wrote.'],
+    ['TU CUADERNO', 'YOUR NOTEBOOK']);
   const crear = document.createElement('button');
-  crear.type = 'button'; crear.className = 'btn indice-crear'; crear.textContent = '+ Nueva nota';
+  crear.type = 'button'; crear.className = 'btn indice-crear';
+  dosIdiomas(crear, { t: ['+ Nueva nota', '+ New note'] });
   crear.addEventListener('click', () => agregarNota());
   indice.querySelector('.indice-cabecera').appendChild(crear);
   tira.append(tabIndice, cajaBarra, verGlosas); caja.append(tira, historial, hojas);
@@ -25512,8 +25656,10 @@ function armarManijasIndice(pagina, reordenar){
   };
   const pintarIndice = () => pintarIndiceSeccion(indice,
     notas.map(n => ({ id:n.id, nombre:n.titulo,
-      detalle:n.texto.trim().replace(/\s+/g, ' ').slice(0, 100) || 'Una página en blanco para tus ideas.' })),
-    notas.length + (notas.length === 1 ? ' nota' : ' notas'), id => seleccionar(id, true));
+      detalle:n.texto.trim().replace(/\s+/g, ' ').slice(0, 100) || ['Una página en blanco para tus ideas.',
+                                                                  'A blank page for your ideas.'] })),
+    [notas.length + (notas.length === 1 ? ' nota' : ' notas'),
+     notas.length + (notas.length === 1 ? ' note' : ' notes')], id => seleccionar(id, true));
   const seleccionar = (id, enfocar = false, demora = 0) => {
     activa = id;
     cerrarHistorial(); verGlosas.disabled = activa === null; registrarPendiente();
@@ -25546,15 +25692,16 @@ function armarManijasIndice(pagina, reordenar){
     notas.forEach((nota, i) => {
       const tab = document.createElement('button');
       tab.type = 'button'; tab.dataset.nota = nota.id; tab.textContent = nota.titulo;
-      tab.title = 'Doble clic para cambiar el título';
-      tab.setAttribute('aria-label', nota.titulo + '. Doble clic para cambiar el título');
+      dosIdiomas(tab, { title: ['Doble clic para cambiar el título', 'Double-click to change the title'],
+                        aria:  [nota.titulo + '. Doble clic para cambiar el título',
+                                nota.titulo + '. Double-click to change the title'] });
       tab.classList.toggle('aqui', nota.id === activa);
       tab.setAttribute('aria-pressed', String(nota.id === activa));
       tab.addEventListener('dblclick', ev => {
         ev.preventDefault(); ev.stopPropagation();
-        const titulo = window.prompt('Título de la nota', nota.titulo);
+        const titulo = window.prompt(T('Título de la nota', 'Title of the note'), nota.titulo);
         if (titulo === null) return;
-        nota.titulo = titulo.trim().slice(0, 60) || ('Nota ' + (i + 1));
+        nota.titulo = titulo.trim().slice(0, 60) || (T('Nota ', 'Note ') + (i + 1));
         guardarNotas(); pintar(false);
       });
       barra.appendChild(tab);
@@ -25563,14 +25710,14 @@ function armarManijasIndice(pagina, reordenar){
       hoja.hidden = nota.id !== activa;
       const editor = document.createElement('textarea');
       editor.className = 'nota-editor'; editor.value = nota.texto;
-      editor.placeholder = 'Escribe aquí…';
-      editor.setAttribute('aria-label', 'Contenido de ' + nota.titulo);
+      dosIdiomas(editor, { ph: ['Escribe aquí…', 'Write here…'],
+                           aria: ['Contenido de ' + nota.titulo, 'Contents of ' + nota.titulo] });
       editor.addEventListener('input', () => { nota.texto = editor.value; guardarNotas(); });
       hoja.appendChild(editor); hojas.appendChild(hoja);
     });
     const mas = document.createElement('button');
     mas.type = 'button'; mas.className = 'nota-mas'; mas.textContent = '+';
-    mas.title = 'Añadir una nota'; mas.setAttribute('aria-label', 'Añadir una nota');
+    dosIdiomas(mas, { title: ['Añadir una nota', 'Add a note'], aria: ['Añadir una nota', 'Add a note'] });
     barra.appendChild(mas);
     if (activa !== null) pintarIndice();
     seleccionar(activa);
@@ -25581,7 +25728,9 @@ function armarManijasIndice(pagina, reordenar){
   };
   const agregarNota = () => {
     const id = nuevoIdNota();
-    notas.push({ id, titulo:'Nota ' + (notas.length + 1), texto:'', filtros:[] }); activa = id;
+    /* El título nace en el idioma de ahora y se queda: es del lector, como
+       cualquier título que él escriba, y no cambia al cambiar de Biblia. */
+    notas.push({ id, titulo:T('Nota ', 'Note ') + (notas.length + 1), texto:'', filtros:[] }); activa = id;
     guardarNotas(); pintar(true);
   };
   barra.addEventListener('click', ev => {
@@ -25617,7 +25766,7 @@ function armarManijasIndice(pagina, reordenar){
   const caja = document.getElementById('encuentros');
   if (!caja) return;
   const tira = document.createElement('div'); tira.className = 'indice-barra';
-  const tabIndice = crearPestanaIndice('Índice de encuentros');
+  const tabIndice = crearPestanaIndice(['Índice de encuentros', 'Index of encounters']);
   tabIndice.classList.add('aqui'); tabIndice.setAttribute('aria-pressed', 'true');
   const barra = document.createElement('div');
   barra.className = 'pestanitas';
@@ -25628,8 +25777,13 @@ function armarManijasIndice(pagina, reordenar){
   cajaBarra.appendChild(barra);
   const hojas = document.createElement('div');
   hojas.className = 'enc-hojas';
-  const indice = crearIndiceSeccion('Índice de encuentros',
-    'Historias de quienes se encontraron con Jesús y se fueron distintos.', 'CAMINOS QUE SE CRUZAN');
+  /* LAS HISTORIAS SE QUEDAN EN ESPAÑOL —están escritas así y no tienen otra
+     versión—; lo que cambia es lo de alrededor: el índice, su ayuda y su
+     cuenta. */
+  const indice = crearIndiceSeccion(['Índice de encuentros', 'Index of encounters'],
+    ['Historias de quienes se encontraron con Jesús y se fueron distintos.',
+     'Stories of those who met Jesus and left changed.'],
+    ['CAMINOS QUE SE CRUZAN', 'CROSSING PATHS']);
   hojas.appendChild(indice);
   /* Los escondidos no llegan a existir: ni pestaña, ni hoja, ni marco. Un
      `hidden` los habría dejado en el documento, y una hoja escondida que
@@ -25736,8 +25890,10 @@ function armarManijasIndice(pagina, reordenar){
   };
   pintarIndiceSeccion(indice,
     visibles.map(e => ({ id:e.id, nombre:e.nombre,
-      detalle:e.historia ? 'Leer el encuentro' : 'Historia en preparación' })),
-    visibles.length + (visibles.length === 1 ? ' encuentro' : ' encuentros'),
+      detalle:e.historia ? ['Leer el encuentro', 'Read the encounter']
+                         : ['Historia en preparación', 'Story in preparation'] })),
+    [visibles.length + (visibles.length === 1 ? ' encuentro' : ' encuentros'),
+     visibles.length + (visibles.length === 1 ? ' encounter' : ' encounters')],
     id => seleccionar(id, true));
   armarManijasIndice(indice, (ids, guardar) => {
     visibles = ordenarElementosIndice(visibles, ids);
@@ -25749,7 +25905,8 @@ function armarManijasIndice(pagina, reordenar){
     if (!guardar) return true;
     try { localStorage.setItem(claveOrden, JSON.stringify(visibles.map(e => e.id))); return true; }
     catch(e){
-      readout.textContent = 'NO SE PUDO GUARDAR EL ORDEN DE ENCUENTROS (' + (e.name || 'error') + ')';
+      readout.textContent = T('NO SE PUDO GUARDAR EL ORDEN DE ENCUENTROS (', 'COULD NOT SAVE THE ORDER OF ENCOUNTERS (') +
+                            (e.name || 'error') + ')';
       return false;
     }
   });
@@ -25835,7 +25992,7 @@ function armarManijasIndice(pagina, reordenar){
   const caja = document.getElementById('respaldo');
   const fila = document.createElement('div');
   fila.className = 'ajuste ancho';
-  fila.innerHTML = '<span class="lbl">archivo</span>';
+  fila.innerHTML = '<span class="lbl" data-es="archivo" data-en="file">' + T('archivo', 'file') + '</span>';
   const ctrl = document.createElement('span');
   ctrl.className = 'ctrl';
   /* HAY QUE QUITARLES EL display:none AL TRAERLOS, y no es un detalle: los
@@ -25891,10 +26048,11 @@ function armarManijasIndice(pagina, reordenar){
      dónde se va el tiempo se quitan las cuatro de una vez. */
   const filaCrono = document.createElement('div');
   filaCrono.className = 'ajuste ancho';
-  filaCrono.innerHTML = '<span class="lbl">medidas</span>' +
+  filaCrono.innerHTML = '<span class="lbl" data-es="medidas" data-en="timing">' + T('medidas', 'timing') + '</span>' +
     '<span class="ctrl"><label class="casilla">' +
     '<input type="checkbox" id="chkCrono"' + (verCrono ? ' checked' : '') + ' />' +
-    '<span>Ver los tiempos del programa</span></label></span>';
+    '<span data-es="Ver los tiempos del programa" data-en="Show the program’s timings">' +
+      T('Ver los tiempos del programa', 'Show the program’s timings') + '</span></label></span>';
   caja.appendChild(filaCrono);
   /* EL OYENTE VA EN EL PANEL Y NO EN LA CASILLA. Hoy esta fila se arma una
      sola vez y pegárselo a la casilla funcionaría; va en el panel porque es
@@ -25947,7 +26105,7 @@ function armarManijasIndice(pagina, reordenar){
   caja.appendChild($('cred'));
   const sello = document.createElement('p');
   sello.className = 'sello-version';
-  sello.textContent = 'VERSIÓN ' + window.GLOSS_BUILD;
+  dosIdiomas(sello, { t: ['VERSIÓN ' + window.GLOSS_BUILD, 'VERSION ' + window.GLOSS_BUILD] });
   caja.appendChild(sello);
 })();
 
@@ -26783,7 +26941,7 @@ pintarCrono();
 portadaCargar(); portadaPintarFoto(); portadaPintarPiedras();
 rehacerPlano();
 sizeCanvas();
-$('cred').textContent = D.versiones[version].nombre + ' — ' + D.versiones[version].licencia + ' · vía eBible.org';
+$('cred').textContent = D.versiones[version].nombre + ' — ' + licenciaDe(D.versiones[version].licencia) + T(' · vía eBible.org', ' · via eBible.org');
 renderPage();
 /* Aquí se armaba el reloj que quitaba la tapa. Ya no: la hoja está lista y la
    tapa sigue puesta, esperando. La quita el lector.
