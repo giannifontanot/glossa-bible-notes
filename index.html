@@ -6559,7 +6559,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 14:00';
+window.GLOSS_BUILD = '15-NOV-26 14:05';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -19694,6 +19694,12 @@ const LECTURA_PAUSA = 3 * 60 * 60 * 1000;
 function apuntarLectura(antes, aqui){
   if (!antes || !aqui || !aqui.libro || !(aqui.cap > 0) || !(aqui.vers > 0)) return;
   if (antes.libro === aqui.libro && antes.cap === aqui.cap && antes.vers === aqui.vers) return;
+  /* CRUZAR DE LIBRO LEYENDO NO ABRE NADA TODAVÍA. Un tramo no puede ir de un
+     libro a otro, y empezarlo en la primera hoja del libro nuevo daría un
+     renglón de un solo sitio, «Mt 1:1–1:1». Se espera a la hoja siguiente:
+     ésa ya tiene de dónde venir dentro del mismo libro y abre el renglón con
+     su principio de verdad. */
+  if (antes.libro !== aqui.libro) return;
   cargarHistorial();
   const arriba = historial[0];
   const ahora = Date.now();
@@ -19702,12 +19708,8 @@ function apuntarLectura(antes, aqui){
       ahora - (arriba.t || 0) <= LECTURA_PAUSA){
     arriba.cap = aqui.cap; arriba.vers = aqui.vers; arriba.t = ahora;
   } else {
-    /* Al cruzar de libro leyendo, el renglón nuevo empieza donde llegas: la
-       hoja que dejaste es de otro libro y un tramo no puede ir de uno a otro. */
-    const desde = antes.libro === aqui.libro ? { cap: antes.cap, vers: antes.vers }
-                                             : { cap: aqui.cap, vers: aqui.vers };
     historial.unshift({ libro: aqui.libro, cap: aqui.cap, vers: aqui.vers,
-                        desde, lectura: true, t: ahora });
+                        desde: { cap: antes.cap, vers: antes.vers }, lectura: true, t: ahora });
     if (historial.length > TOPE_HISTORIAL) historial.length = TOPE_HISTORIAL;
   }
   /* Como en apuntarVisto: un sitio nuevo en el camino deja el atrás al
@@ -23768,6 +23770,14 @@ function restaurarFiltroNota(f){
            nada. */
         const antes = puntoActual();
         LIBRO = f.libro; volverA = antes; paginaActual = 0; paginasSucias = true; rehacerPlano();
+        /* ES UN SALTO, Y LA LLEGADA TIENE QUE SABERLO. Sin esto, sepLlegada veía
+           «otro libro, hoja 0» —que es exactamente cruzar de libro leyendo— y
+           lo trataba como pasar hoja: la cinta activa podía mudarse a un libro
+           al que el lector no llegó leyendo, y el rastro abría un renglón de
+           lectura en Apocalipsis 1:1. Lo destapó la prueba de notas-filtros
+           al llegar la lectura al rastro. saltarA y irA ya lo encendían; este
+           camino se escribió aparte y se le pasó. */
+        sepSalto = true;
         const p0 = plano[0];
         if (p0){
           apuntarDeDonde({ libro: antes.libro, cap: antes.ref.cap, vers: antes.ref.vers });
