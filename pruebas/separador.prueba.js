@@ -211,8 +211,13 @@ async function andamio(p){
 /* Abrir en una hoja concreta: el programa vuelve a donde te quedaste por
    referencia, y eso se siembra en los ajustes. Igual que en filo.prueba.js. */
 async function abrirEn(p, libro, cap, vers){
+  /* CON SU BIBLIA DENTRO. Este renglón escribe los ajustes enteros y borra lo
+     que sembró el banco; sin `version`, la aplicación toma la de estreno, que
+     ahora es la Berean, y desde que la interfaz sigue al idioma de la Biblia
+     este bloque se ponía a hablar inglés —«New», «Delete Matthew 1:1?»—. El
+     banco corre en la Libre, y estos ajustes también. */
   await p.evaluate(a => localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a)),
-                   { v:1, libro, cap, vers });
+                   { v:1, version:'vbl', libro, cap, vers });
   await p.reload();
   await p.waitForTimeout(3200);
   await andamio(p);
@@ -2215,7 +2220,7 @@ async function ponerAMano(p){
     JSON.stringify([{ id:'perdida', libro:'MAT', cap:1, vers:99, color:'indigo',
                       creado:Date.now(), tocado:Date.now() }])));
   await w.evaluate(a => localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a)),
-                   { v:1, libro:'MAT', cap:1, vers:1 });
+                   { v:1, version:'vbl', libro:'MAT', cap:1, vers:1 });
   await w.reload();
   await w.waitForTimeout(3200);
   await andamio(w);
@@ -2246,7 +2251,7 @@ async function ponerAMano(p){
                     { id:'lejos', libro:'MRK', cap:1, vers:999, color:'oliva',
                       creado:Date.now()-1, tocado:Date.now()-1 }])));
   await w.evaluate(a => localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a)),
-                   { v:1, libro:'MAT', cap:1, vers:1 });
+                   { v:1, version:'vbl', libro:'MAT', cap:1, vers:1 });
   await w.reload();
   await w.waitForTimeout(3200);
   await andamio(w);
@@ -2298,7 +2303,7 @@ async function ponerAMano(p){
      exactamente qué hay en el almacén después de cada escritura. */
   await w.evaluate(() => localStorage.removeItem('glossa:separadores:v1'));
   await w.evaluate(a => localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a)),
-                   { v:1, libro:'MAT', cap:1, vers:1 });
+                   { v:1, version:'vbl', libro:'MAT', cap:1, vers:1 });
   await w.reload();
   await w.waitForTimeout(3200);
   await andamio(w);
@@ -2398,7 +2403,7 @@ async function ponerAMano(p){
     localStorage.setItem('glossa:separadores:v1', JSON.stringify([
       { id:'c1', libro:'MAT', cap:1, vers:6, color:'indigo', creado:hoy, tocado:hoy }]));
     localStorage.setItem('glossa:ajustes:v1',
-      JSON.stringify({ v:1, libro:'MAT', cap:1, vers:1 }));
+      JSON.stringify({ v:1, version:'vbl', libro:'MAT', cap:1, vers:1 }));
   });
   await vp.reload();
   await vp.waitForTimeout(3000);
