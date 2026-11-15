@@ -6553,7 +6553,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 03:41';
+window.GLOSS_BUILD = '15-NOV-26 04:09';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8287,7 +8287,12 @@ const fx=$('fx'), ctx=fx.getContext('2d'), readout=$('readout');
    versículo, y quizá merezcan volver; no se tocan aquí porque no es lo que se
    pidió y devolver diez carteles por mi cuenta sería deshacer el encargo. */
 const AVISOS_QUE_SALEN = [/no puede cruzar de vers/i,
-                          /lo marcado se queda en esta hoja/i];
+                          /lo marcado se queda en esta hoja/i,
+                          /* Los mismos dos, en inglés: con la Berean o la
+                             WEB salen así, y sin estas líneas el filtro los
+                             callaría. */
+                          /cannot cross into another verse/i,
+                          /marking stays on this page/i];
 const AVISOS_QUE_FALLAN = [
   /NO SE PUDO GUARDAR/i,
   /no es una imagen/i,
@@ -10607,8 +10612,10 @@ function panelHTML(m){
      tape el pasaje. Lo levantó la revisión de Codex. Como botón se alcanza con
      el tabulador, se anuncia solo, y las flechas lo mueven. */
   return '<button type="button" class="mmanija" data-manija' +
-      ' aria-label="Mover el panel: arrastra, o con las flechas del teclado"' +
-      ' title="Arrastra para mover el panel · flechas para moverlo · Inicio para devolverlo"></button>' +
+      ' aria-label="' + T('Mover el panel: arrastra, o con las flechas del teclado',
+                          'Move the panel: drag it, or use the arrow keys') + '"' +
+      ' title="' + T('Arrastra para mover el panel · flechas para moverlo · Inicio para devolverlo',
+                     'Drag to move the panel · arrows to move it · Home to put it back') + '"></button>' +
     '<div class="mcolores">' +
       COLORS.map(c => '<button class="mc" data-color="' + c + '" style="background:' +
         LINE_HEX[c] + '"' + (m.color===c ? ' data-on="1"' : '') + '></button>').join('') +
@@ -10627,9 +10634,9 @@ function panelHTML(m){
        Ver .mmodos, .macciones y .mok. */
     '<div class="mmodos">' +
       '<button data-modo="fill" class="modo' + (m.estilo!=='border' ? ' on' : '') +
-        '"><span class="mg" aria-hidden="true">▮</span>resaltado</button>' +
+        '"><span class="mg" aria-hidden="true">▮</span>' + T('resaltado','highlight') + '</button>' +
       '<button data-modo="border" class="modo' + (m.estilo==='border' ? ' on' : '') +
-        '"><span class="mg" aria-hidden="true">▁</span>línea</button>' +
+        '"><span class="mg" aria-hidden="true">▁</span>' + T('línea','underline') + '</button>' +
     '</div>' +
     /* El valor NO va aquí dentro. Un textarea con el texto metido en el
        HTML obliga a escapar bien lo que escribió una mano, y basta un
@@ -10647,7 +10654,7 @@ function panelHTML(m){
          justo encima. Va aquí, antes del textarea, para que no le quite el
          sitio a nadie: se coloca por medida, no por flujo. */
       '<div class="gl-eco" aria-hidden="true"></div>' +
-      '<textarea id="glosaCaja" rows="2" placeholder="glosa…" spellcheck="false"></textarea>' +
+      '<textarea id="glosaCaja" rows="2" placeholder="' + T('glosa…','gloss…') + '" spellcheck="false"></textarea>' +
       '<span class="gl-tags"></span>' +
     '</div>' +
     /* LA LISTA DE ETIQUETAS YA NO VIVE ABIERTA. Las que lleva puestas se leen
@@ -10656,7 +10663,7 @@ function panelHTML(m){
     '<div class="macciones">' +
       '<button class="mtags" data-acc="vertags"></button>' +
       '<button type="button" class="mok" data-acc="ok"' +
-        ' aria-label="Terminar y guardar la glosa">OK</button>' +
+        ' aria-label="' + T('Terminar y guardar la glosa','Finish and save the gloss') + '">OK</button>' +
     '</div>' +
     tagboxHTML(m);
 }
@@ -10680,14 +10687,14 @@ function tagboxHTML(m){
       ? lista.map(t => '<button class="tg' + (tiene.has(t) ? ' on' : '') +
           (t && t === ultimaEtiqueta ? ' ultima' : '') +
           '" data-tag="' + esc(t) + '">#' + esc(t) + '</button>').join('')
-      : '<span class="vacio">sin etiquetas todavía</span>') +
+      : '<span class="vacio">' + T('sin etiquetas todavía','no tags yet') + '</span>') +
     '</div><div class="tagctl">' +
-    '<input id="tagNueva" placeholder="nueva…" enterkeyhint="done" ' +
+    '<input id="tagNueva" placeholder="' + T('nueva…','new…') + '" enterkeyhint="done" ' +
       'autocapitalize="none" autocomplete="off" />' +
     /* EL + DICE LO QUE HACE. Era un signo suelto de menos de un centímetro
        al lado de una caja de texto, y un signo no se lee: se adivina. */
     '<button class="crear" data-acc="creartag" ' +
-      'title="Crear la etiqueta">+ crear</button>' +
+      'title="' + T('Crear la etiqueta','Create the tag') + '">' + T('+ crear','+ create') + '</button>' +
     '</div></div>';
 }
 /* EL ANTICIPO YA NO SE PINTA APARTE, y aquí estaba el fallo: se veía en papel
@@ -11087,7 +11094,7 @@ function refrescarTags(){
    —el repintado y el pliegue— y con la cuenta escrita dos veces una de las dos
    se queda atrás. */
 const rotuloTags = (abierta, cuantas) =>
-  (abierta ? '▾ ' : '▸ ') + 'etiquetas' + (cuantas ? ' · ' + cuantas : '');
+  (abierta ? '▾ ' : '▸ ') + T('etiquetas','tags') + (cuantas ? ' · ' + cuantas : '');
 
 /* ABRIR Y CERRAR LA LISTA, SIN DAR UN SALTO.
 
@@ -11323,9 +11330,9 @@ function rotularOk(){
   const ok = menu.querySelector('.mok'), ta = menu.querySelector('#glosaCaja');
   if (!ok || !ta) return;
   ok.setAttribute('aria-label',
-    ta.value.trim()          ? 'Terminar y guardar la glosa' :
-    (borrador && borrador.teniaNota) ? 'Terminar y borrar la glosa'
-                                     : 'Terminar sin escribir glosa');
+    ta.value.trim()          ? T('Terminar y guardar la glosa','Finish and save the gloss') :
+    (borrador && borrador.teniaNota) ? T('Terminar y borrar la glosa','Finish and delete the gloss')
+                                     : T('Terminar sin escribir glosa','Finish without writing a gloss'));
 }
 /* ---------- abrir y cerrar ---------- */
 
@@ -11876,7 +11883,8 @@ function avisarHojaAtada(){
      siquiera está a la vista, pero en pantalla ancha sí—, así que un cartel
      que dijera «toca fuera» estaría dando una salida que no siempre existe, y
      un mando que promete y no cumple enseña a desconfiar del que sí cumple. */
-  readout.textContent = 'lo marcado se queda en esta hoja · toca el pasaje para soltarlo';
+  readout.textContent = T('lo marcado se queda en esta hoja · toca el pasaje para soltarlo',
+                          'the marking stays on this page · tap the passage to let it go');
 }
 function limpiarPintado(){
   if (!pintado) return;
@@ -12056,7 +12064,8 @@ function colocarTiradores(){
       off = p.k > pintado.k ? versoTexto(version, it.cap, it.vers).length : 0;
       if (!arrastre.aviso){
         arrastre.aviso = true;
-        readout.textContent = 'por ahora una marca no puede cruzar de versículo';
+        readout.textContent = T('por ahora una marca no puede cruzar de versículo',
+                                'for now a mark cannot cross into another verse');
       }
     }
     const lado = mover(arrastre.lado, off);
@@ -12281,7 +12290,8 @@ function colocarTiradores(){
       hasta = p.k > gesto.k ? texto.length : 0;
       if (!gesto.aviso){
         gesto.aviso = true;
-        readout.textContent = 'por ahora una marca no puede cruzar de versículo';
+        readout.textContent = T('por ahora una marca no puede cruzar de versículo',
+                                'for now a mark cannot cross into another verse');
       }
     }
     gesto.pinto = true;
@@ -13067,7 +13077,7 @@ function menuDeLibros(rect){
     if (m.nota && m.libro !== LIBRO && !librosFiltro.has(m.libro))
       conGlosas.set(m.libro, (conGlosas.get(m.libro) || 0) + 1);
   if (!conGlosas.size){
-    readout.textContent = 'no hay glosas en otros libros';
+    readout.textContent = T('no hay glosas en otros libros','no glosses in other books');
     return;
   }
   const orden = [...conGlosas.keys()].sort((a,b) =>
@@ -13087,7 +13097,11 @@ function pintarFiltros(){
   const add = (nombre, n) => {
     const b = document.createElement('span');
     b.className = 'chip' + (etiquetasVer.has(nombre) ? ' sel' : '');
-    b.innerHTML = esc(nombre) + '<span class="n">' + n + '</span>';
+    /* «(sin etiqueta)» es la LLAVE guardada en los ajustes, no solo un rótulo:
+       se queda en español por dentro para que un filtro recordado siga
+       valiendo al cambiar de Biblia, y solo lo que se lee cambia. */
+    const dice = nombre === '(sin etiqueta)' ? T('(sin etiqueta)','(untagged)') : nombre;
+    b.innerHTML = esc(dice) + '<span class="n">' + n + '</span>';
     b.onclick = () => {
       etiquetasVer.has(nombre) ? etiquetasVer.delete(nombre) : etiquetasVer.add(nombre);
       guardarAjustes();
@@ -13110,7 +13124,8 @@ function pintarFiltros(){
     const b = document.createElement('span');
     b.className = 'chip chip-libro sel';
     b.innerHTML = esc(nombreDe(LIBRO)) + '<span class="n">' + n + '</span>';
-    b.title = 'Libro abierto: sus glosas ya están en la lista';
+    b.title = T('Libro abierto: sus glosas ya están en la lista',
+                'Open book: its glosses are already in the list');
     cont.appendChild(b);
   }
   for (const id of [...librosFiltro].filter(id => id !== LIBRO)
@@ -13119,14 +13134,14 @@ function pintarFiltros(){
     const b = document.createElement('span');
     b.className = 'chip chip-libro';
     b.innerHTML = esc(nombreDe(id)) + '<span class="n">' + n + '</span><span class="x">×</span>';
-    b.title = 'Quitar ' + nombreDe(id) + ' de la lista';
+    b.title = T('Quitar ' + nombreDe(id) + ' de la lista', 'Remove ' + nombreDe(id) + ' from the list');
     b.onclick = () => { librosFiltro.delete(id); guardarAjustes(); pintarFiltros(); pintarIndice(); };
     cont.appendChild(b);
   }
   const mas = document.createElement('span');
   mas.className = 'chip chip-mas';
-  mas.textContent = '+ libro';
-  mas.title = 'Sumar a la lista las glosas de otro libro';
+  mas.textContent = T('+ libro','+ book');
+  mas.title = T('Sumar a la lista las glosas de otro libro','Add the glosses of another book to the list');
   mas.onclick = ev => { ev.stopPropagation(); menuDeLibros(mas.getBoundingClientRect()); };
   cont.appendChild(mas);
   pintarDias();
@@ -13149,7 +13164,7 @@ function pintarDias(){
      filtro elegido, no una invitación a enseñar todos los días. */
   if (diaFiltro && !cuenta.has(diaFiltro)) cuenta.set(diaFiltro, 0);
   const sel = $('selDia');
-  sel.innerHTML = '<option value="">todos los días</option>' +
+  sel.innerHTML = '<option value="">' + T('todos los días','all days') + '</option>' +
     [...cuenta.keys()].sort().reverse()
       .map(d => '<option value="'+esc(d)+'">'+esc(d)+' ('+cuenta.get(d)+')</option>').join('');
   sel.value = diaFiltro;
@@ -13349,11 +13364,14 @@ function marcarFiltroEscondido(){
   const escondido = hayFiltroPuesto() &&
                     $('ctrlEtiquetas').classList.contains('sin-chips');
   b.classList.toggle('filtrando', escondido);
-  b.title = escondido ? 'Hay filtros puestos y no se ven: tócalo para enseñarlos'
-                      : 'Filtrar las glosas por etiqueta o por día';
+  b.title = escondido ? T('Hay filtros puestos y no se ven: tócalo para enseñarlos',
+                        'Filters are on but hidden: tap to show them')
+                      : T('Filtrar las glosas por etiqueta o por día',
+                          'Filter the glosses by tag or by day');
   b.setAttribute('aria-label', escondido
-    ? 'Filtrar las glosas. Hay filtros puestos que no se están viendo'
-    : 'Filtrar las glosas por etiqueta o por día');
+    ? T('Filtrar las glosas. Hay filtros puestos que no se están viendo',
+        'Filter the glosses. Some filters are on and not showing')
+    : T('Filtrar las glosas por etiqueta o por día', 'Filter the glosses by tag or by day'));
 }
 $('btnVerEtiquetas').onclick = () => {
   verEtiquetas($('ctrlEtiquetas').classList.contains('sin-chips'));
@@ -13386,7 +13404,7 @@ function pintarBarraGrupo(){
      ACTUALIZAR que ya no está. */
   if (n) etiquetaEnEdicion = null;
   const cuenta = $('cuentaGrupo');
-  if (cuenta) cuenta.textContent = n === 1 ? '1 elegida' : n + ' elegidas';
+  if (cuenta) cuenta.textContent = n === 1 ? T('1 elegida','1 picked') : n + T(' elegidas',' picked');
   const caja = $('tagboxGrupo');
   if (!caja) return;
   const grupo = marcasElegidas();
@@ -13403,7 +13421,7 @@ function pintarBarraGrupo(){
         return '<button type="button" class="tg' + cls + ultima + enEdicion +
           '" data-tag-grupo="' + esc(t) + '">#' + esc(t) + '</button>';
       }).join('')
-    : '<span class="vacio">sin etiquetas todavía</span>';
+    : '<span class="vacio">' + T('sin etiquetas todavía','no tags yet') + '</span>';
   /* LOS DOS MODOS DE LA MISMA CAJA. Un solo renglón de control, y lo que dice
      el botón es lo único que cambia entre poner una etiqueta nueva y cambiarle
      el nombre a una que ya existe. Dos cajas distintas habrían sido dos sitios
@@ -13413,17 +13431,17 @@ function pintarBarraGrupo(){
     '<div class="taglista">' + htmlLista + '</div>' +
     '<div class="tagctl' + (renombrando ? ' renombrando' : '') + '">' +
       '<input id="tagNuevaGrupo" enterkeyhint="done" autocapitalize="none" ' +
-        'autocomplete="off" placeholder="' + (renombrando ? 'nuevo nombre…' : 'nueva…') + '" ' +
-        'aria-label="' + (renombrando ? 'Nuevo nombre de #' + esc(etiquetaEnEdicion)
-                                      : 'Etiqueta nueva') + '" ' +
+        'autocomplete="off" placeholder="' + (renombrando ? T('nuevo nombre…','new name…') : T('nueva…','new…')) + '" ' +
+        'aria-label="' + (renombrando ? T('Nuevo nombre de #','New name for #') + esc(etiquetaEnEdicion)
+                                      : T('Etiqueta nueva','New tag')) + '" ' +
         'value="' + (renombrando ? esc(etiquetaEnEdicion) : '') + '" />' +
       (renombrando
-        ? '<button type="button" class="btn crear" data-acc="renombrartag">actualizar</button>' +
+        ? '<button type="button" class="btn crear" data-acc="renombrartag">' + T('actualizar','update') + '</button>' +
           /* La salida, que si no la única manera de volver a crear sería
              acertarle otra vez a la misma etiqueta. */
           '<button type="button" class="btn" data-acc="dejartag" ' +
-            'title="Dejar de cambiarle el nombre">cancelar</button>'
-        : '<button type="button" class="btn crear" data-acc="creartag-grupo">+ crear</button>') +
+            'title="' + T('Dejar de cambiarle el nombre','Stop renaming it') + '">' + T('cancelar','cancel') + '</button>'
+        : '<button type="button" class="btn crear" data-acc="creartag-grupo">' + T('+ crear','+ create') + '</button>') +
     '</div>';
 }
 /* BAJAR UNA ETIQUETA A LA CAJA. Se repinta y DESPUÉS se busca el campo: el
@@ -23751,8 +23769,54 @@ $('archivoImp').onchange = ev => {
    lista de Libros—, y lo demás se pinta ya en su idioma la próxima vez que se
    abra. Las pestañas, que se quedan dentro de sus paneles cerrados, se ponen
    al día aquí mismo para que un panel que se reabre no hable el idioma viejo. */
+/* LO QUE VIENE ESCRITO EN EL MARCADO, EN INGLÉS.
+
+   Lo que pinta el programa —el menú de la glosa, la lista, los avisos— ya se
+   escribe en el idioma que toca al pintarse, con T(). Pero hay rótulos que
+   nacen en el HTML y no los vuelve a escribir nadie: los tres botones de
+   GLOSAS, los títulos de los A− y A+, el nombre del grupo de filtros. Para
+   esos está esta tabla, por selector, con lo que dicen en inglés.
+
+   EL ESPAÑOL NO SE ESCRIBE AQUÍ DOS VECES: se lee del propio marcado la
+   primera vez que se pasa por cada nodo y se guarda en ES_DEL_MARCADO. Así el
+   texto español sigue viviendo donde siempre vivió, junto a su comentario, y
+   cambiarlo allí basta. Se probó primero con data-es y data-en en cada nodo,
+   como la portada; para tres botones vale, para veinte rótulos con su title
+   y su aria-label cada uno el marcado se volvía ilegible.
+
+   Claves: t = el texto, title, aria = aria-label, ph = placeholder. Solo se
+   toca lo que la entrada nombra. */
+const UI_EN = {
+  '#btnLetraGlosas':   { t:'font',   title:'Size and spacing of the glosses' },
+  '#btnVerEtiquetas':  { t:'filter', title:'Filter the glosses by tag or by day' },
+  '#btnElegirGlosas':  { t:'update', title:'Pick several glosses to update their tags' },
+  '#ctrlLetra > .ajuste:nth-child(1) > .lbl': { t:'size' },
+  '#ctrlLetra > .ajuste:nth-child(2) > .lbl': { t:'spacing' },
+  '#fsGlosaDown':      { title:'Gloss text, one point smaller' },
+  '#fsGlosaUp':        { title:'Gloss text, one point larger' },
+  '#fsGlosaAhora':     { title:'Font size of the glosses' },
+  '#espGlosaDown':     { title:'Gloss spacing, one point less' },
+  '#espGlosaUp':       { title:'Gloss spacing, one point more' },
+  '#espGlosaAhora':    { title:'Pick the spacing of the glosses', aria:'letter spacing of the glosses' },
+  '#filtros':          { aria:'Gloss filters: the day and the tags' },
+  '#selDia':           { aria:'Filter the glosses by day' },
+  '#btnGlosas':        { title:'glosses', aria:'glosses' },
+  '#cuentaGrupo':      { t:'0 picked' },
+};
+const ES_DEL_MARCADO = new WeakMap();
+const ATRIBUTO_DE = { title:'title', aria:'aria-label', ph:'placeholder' };
 function aplicarIdioma(){
   document.documentElement.lang = idiomaUI();
+  const ing = idiomaUI() === 'en';
+  for (const [sel, en] of Object.entries(UI_EN)) document.querySelectorAll(sel).forEach(el => {
+    if (!ES_DEL_MARCADO.has(el)) ES_DEL_MARCADO.set(el, {
+      t: el.textContent, title: el.getAttribute('title'),
+      aria: el.getAttribute('aria-label'), ph: el.getAttribute('placeholder') });
+    const es = ES_DEL_MARCADO.get(el);
+    if (en.t !== undefined) el.textContent = ing ? en.t : es.t;
+    for (const k of ['title', 'aria', 'ph'])
+      if (en[k] !== undefined && es[k] !== null) el.setAttribute(ATRIBUTO_DE[k], ing ? en[k] : es[k]);
+  });
   document.querySelectorAll('[data-es][data-en]').forEach(el => {
     el.textContent = T(el.dataset.es, el.dataset.en);
   });
@@ -23763,6 +23827,11 @@ function aplicarIdioma(){
     b.title = t; b.setAttribute('aria-label', t);
   });
   if (cantoAbierto) pintarCanto();
+  /* Los chips y la lista de GLOSAS no hacen falta aquí: setVersion repinta la
+     hoja justo después, y renderPage los repinta a los dos. La barra de
+     ACTUALIZAR no la toca nadie más, y si está puesta se quedaría hablando el
+     idioma de antes. */
+  if (etiquetas.classList.contains('eligiendo')) pintarBarraGrupo();
 }
 function setVersion(v){
   /* Conservar el lugar por REFERENCIA, no por número de hoja: los textos de
@@ -24419,7 +24488,8 @@ function pintarIndice(){
          espejo que no cuadra. */
       etiquetasHTML(m) +
       (nb ? '<span class="gl-cuenta">‹' + nb + '</span>' : '') +
-      '<button type="button" class="ix-asa" aria-label="Reordenar glosa" title="Arrastra para reordenar">' +
+      '<button type="button" class="ix-asa" aria-label="' + T('Reordenar glosa','Reorder gloss') +
+        '" title="' + T('Arrastra para reordenar','Drag to reorder') + '">' +
         '<span></span><span></span><span></span><span></span><span></span><span></span>' +
       '</button></div>';
   }).join('');

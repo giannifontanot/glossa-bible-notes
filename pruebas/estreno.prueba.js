@@ -407,7 +407,13 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
       casilla: (document.getElementById('chkFlechas') || {}).parentElement ? document.getElementById('chkFlechas').parentElement.textContent.trim() : null,
       libros: [...document.querySelectorAll('#canto .rejilla-libros .tabo')].slice(0, 4).map(b => b.textContent.trim()),
       testa: [...document.querySelectorAll('#canto .canto-tab')].map(b => b.textContent.trim()),
-      cerrar: q('#canto .cerrar-pie')
+      cerrar: q('#canto .cerrar-pie'),
+      /* Los tres botones de GLOSAS nacen en el marcado y los traduce la tabla
+         UI_EN; el primer renglón del combo de los días lo pinta pintarDias.
+         Los dos caminos, cada uno con su testigo. */
+      glosas: ['btnLetraGlosas', 'btnVerEtiquetas', 'btnElegirGlosas']
+        .map(id => (document.getElementById(id) || {}).textContent || null),
+      dias: ((document.querySelector('#selDia option') || {}).textContent) || null
     };
   });
   const ui = await leerUI();
@@ -421,6 +427,8 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
   vale('  los libros se llaman en inglés', ui.libros.includes('Matthew') && ui.libros.includes('Mark'), ui.libros.join(', '));
   vale('  las pestañas del testamento: OT y NT', ui.testa.join('|') === 'OT|NT', ui.testa.join('|'));
   vale('  y el pie dice CLOSE', ui.cerrar === 'CLOSE', ui.cerrar);
+  vale('  GLOSAS: font · filter · update', ui.glosas.join('|') === 'font|filter|update', ui.glosas.join('|'));
+  vale('  y el filtro de días: all days', ui.dias === 'all days', ui.dias);
   await pB.evaluate(() => {
     const a = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
     Object.assign(a, { v:1, version:'vbl', libro:'MAT', cap:1, vers:1 });
@@ -437,6 +445,8 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
   vale('  los libros en español', uiEs.libros.includes('Mateo'), uiEs.libros.join(', '));
   vale('  AT y NT', uiEs.testa.join('|') === 'AT|NT', uiEs.testa.join('|'));
   vale('  y el pie dice CERRAR', uiEs.cerrar === 'CERRAR', uiEs.cerrar);
+  vale('  GLOSAS: letra · filtrar · actualizar', uiEs.glosas.join('|') === 'letra|filtrar|actualizar', uiEs.glosas.join('|'));
+  vale('  y el filtro de días: todos los días', uiEs.dias === 'todos los días', uiEs.dias);
   await cerrarParcial(sesB, 'el estreno en la Berean');
 
   await cerrar(sesion);
