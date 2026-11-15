@@ -2350,21 +2350,27 @@
                     padding:8px 14px; }
   .sp-fila-abierta{ flex-wrap:wrap; gap:6px; }
   .sp-fila-abierta .sp-edit{ flex:1 1 100%; }
-  .sp-btn-borrar{ margin-right:auto; color:#7d2323;
-                  border-color:rgba(155,42,42,.4);
-                  background:rgba(155,42,42,.08); }
-  .sp-btn-borrar:hover{ background:rgba(155,42,42,.16); }
-  /* Aceptar, macizo en el sepia oscuro de la letra: el único botón lleno de
-     la fila, porque es lo que se viene a hacer. Cancelar va con el vestido de
-     siempre de .sp-btn. */
-  /* Con .sp-fila delante a propósito: .sp-btn se escribe más abajo y, a igual
-     peso, su vestido pisaba a éstos —Borrar salía sepia como los demás y
-     Aceptar sin rellenar, visto puesto—. */
-  .sp-fila .sp-btn-aceptar{ color:#fbf6ea; background:#6d5a2c; border-color:#6d5a2c; }
-  .sp-fila .sp-btn-aceptar:hover{ background:#5a4a24; color:#fff; }
-  .sp-fila .sp-btn-borrar{ color:#7d2323; border-color:rgba(155,42,42,.4);
-                           background:rgba(155,42,42,.08); }
-  .sp-fila .sp-btn-borrar:hover{ background:rgba(155,42,42,.16); }
+  /* LOS TRES BOTONES DE LA FILA ABIERTA: JUNTOS, IGUALES Y DEL MISMO VESTIDO.
+     Primero se apartó Borrar a la izquierda, en carmín, y Aceptar se rellenó
+     de sepia oscuro —el orden de Android, con lo que no se deshace lejos del
+     pulgar—. Puesto, el dueño del repo lo vio mal: tres botones de la misma
+     fila, cada uno en su sitio y con su color, se leían como tres cosas
+     sueltas. Los quiere en un renglón y sin esos colores. Así que van los
+     tres a partes iguales, llenando el renglón, con el vestido de siempre
+     de .sp-btn. El orden se queda —Borrar, Cancelar, Aceptar—, y Borrar
+     sigue preguntando antes de borrar, que es lo que de verdad protege. */
+  .sp-fila-abierta > .sp-btn{ flex:1 1 0; min-width:0; padding-left:8px; padding-right:8px; }
+  /* LA PISTA, MÁS QUEDA, Y SOLO DONDE HACE FALTA. Al verla puesta, el dueño
+     del repo la quiso menos visible, y solo en las filas que todavía no
+     tienen nombre: quien ya nombró una perla sabe cómo se hace, y la pista
+     repetida en todas las filas era ruido. Así que filaHTML no la pinta si la
+     fila ya tiene nombre, y lo que la calla es el COLOR, no el tamaño: se
+     probó primero achicarla y el dueño del repo la quiso del mismo tamaño que
+     la referencia —letra chica es letra que cuesta, no letra que calla—,
+     solo más gris y más apagada. Es un gris tibio, #b1aa9c, 2,1:1 sobre la
+     fila: se lee si se busca, y el peso normal contra la negrita de la
+     referencia hace el resto. Lo de abajo cuenta de dónde salía el
+     4,0:1, y sigue valiendo para el color de los rótulos. */
   /* LA PISTA DE LA FILA: visible y quieta.
      · EL COLOR es el de los rótulos del panel, «TUS PERLAS»: la voz que ya
        usa el panel para lo que no es contenido. Medido sobre la fila, 4,0:1
@@ -2378,13 +2384,13 @@
      · A LA DERECHA, al final de la fila: la columna de referencias de la
        izquierda se sigue recorriendo con el ojo sin tropezar con ella. */
   .sp-pista{ flex:0 0 auto; margin-left:auto; padding-left:8px;
-             font:400 calc(11px * var(--escala-ui, 1))/1.2 var(--ui);
-             color:#8a7746; letter-spacing:.02em; white-space:nowrap; }
+             font:400 calc(13px * var(--escala-ui, 1))/1.2 var(--ui);
+             color:#b1aa9c; letter-spacing:.02em; white-space:nowrap; }
   .sp-pista-dedo{ display:none; }
   @media (pointer:coarse){
     .sp-pista-dedo{ display:inline; }
     .sp-pista-raton{ display:none; }
-    .sp-pista{ font-size:calc(12.5px * var(--escala-ui, 1)); }
+    .sp-pista{ font-size:calc(15px * var(--escala-ui, 1)); }
   }
   .sp-fila-pregunta{ flex-wrap:wrap; gap:7px;
                      background:rgba(155,42,42,.1);
@@ -6634,7 +6640,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 15:40';
+window.GLOSS_BUILD = '15-NOV-26 17:19';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -22597,16 +22603,11 @@ function filaHTML(o){
           ' autocomplete="off" enterkeyhint="done" placeholder="' + T('nombre…', 'name…') + '"' +
           ' aria-label="' + T('Nombre de la ', 'Name of the ') + esc(o.voz) + '" />' +
       '</div>' +
-      /* TRES BOTONES, Y EN ESTE ORDEN: Borrar solo a la izquierda, Cancelar y
-         Aceptar juntos a la derecha. Lo pidió el dueño del repo —antes solo
-         estaba Borrar, y el nombre se guardaba al salir del campo sin que nada
-         lo dijera— y el orden es el de Android, que es el teléfono en que se
-         usa: la acción que confirma va en el extremo derecho, donde cae el
-         pulgar, y la que se arrepiente a su lado. Borrar NO va junto a Aceptar:
-         es lo único de los tres que no se deshace, y ponerlo pegado a la
-         confirmación es invitar al dedo a fallar por un botón. Se aparta al
-         otro extremo y conserva su carmín. Aceptar es el único macizo: es lo
-         que se viene a hacer. */
+      /* TRES BOTONES, EN ESTE ORDEN Y EN UN RENGLÓN: Borrar, Cancelar,
+         Aceptar. Lo pidió el dueño del repo —antes solo estaba Borrar, y el
+         nombre se guardaba al salir del campo sin que nada lo dijera—. Van a
+         partes iguales y con el mismo vestido: ver .sp-fila-abierta > .sp-btn,
+         que cuenta por qué ya no hay colores ni Borrar apartado. */
       '<button type="button" class="sp-btn sp-btn-borrar" ' + o.pedirAttr +
         ' aria-label="' + T('Borrar la ', 'Delete the ') + esc(o.voz) + '">' + T('Borrar', 'Delete') + '</button>' +
       '<button type="button" class="sp-btn sp-btn-anular" ' + o.anularAttr + '>' +
@@ -22628,10 +22629,12 @@ function filaHTML(o){
          y la palabra es la de la casa: la guía de las perícopas ya dice
          «click largo». aria-hidden porque quien usa lector de pantalla ya
          oye su camino en el rótulo de la fila. */
+      /* Solo si la fila no tiene nombre todavía: ver .sp-pista. */
+      (o.nombre ? '' :
       '<span class="sp-pista" aria-hidden="true">' +
         '<span class="sp-pista-dedo">' + T('click largo', 'long press') + '</span>' +
         '<span class="sp-pista-raton">' + T('doble click', 'double-click') + '</span>' +
-      '</span></button>' +
+      '</span>') + '</button>' +
   '</div>';
 }
 /* EL ASPA DE CERRAR, la misma para los dos paneles. `acc` dice cuál cierra:

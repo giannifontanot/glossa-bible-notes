@@ -2504,6 +2504,9 @@ async function ponerAMano(p){
     await tocarComoDedo('[data-sep-aceptar="c1"]');
     await window.__pausa(300);
     const trasAceptar = guardado(), cerradaAceptar = !sm.querySelector('[data-sep-nombre]');
+    /* Con nombre ya puesto, la fila deja de llevar la pista: quien nombró
+       sabe cómo se nombra. */
+    const pistaConNombre = !!(fila() && fila().querySelector('.sp-pista'));
     /* 3 · CON EL TECLADO: el foco pasa del campo a Cancelar —lo que hace el
        tabulador— y la fila tiene que seguir ahí, con sus botones, para poder
        pulsarlo. Lo levantó Codex: el focusout guardaba y repintaba, y
@@ -2521,15 +2524,17 @@ async function ponerAMano(p){
     await window.__pausa(300);
     const trasTabular = guardado();
     return { dedo, pistas, tono, botones, trasSoltar, llego, trasCancelar, cerradaCancelar,
-             trasAceptar, cerradaAceptar, sigueAbierta, trasTabular };
+             trasAceptar, cerradaAceptar, pistaConNombre, sigueAbierta, trasTabular };
   });
   di('nombrar', JSON.stringify(conBotones));
   vale('LA FILA DICE CÓMO SE ABRE, con la palabra de este aparato',
        Array.isArray(conBotones.pistas) && conBotones.pistas.length === 1 &&
        conBotones.pistas[0] === (conBotones.dedo ? 'click largo' : 'doble click'),
        JSON.stringify(conBotones.pistas));
-  vale('  en el sepia de los rótulos, no en un gris lavado',
-       conBotones.tono === 'rgb(138, 119, 70)', conBotones.tono);
+  /* El tono, más quedo de lo que fue: el dueño del repo la pidió del tamaño
+     de la referencia pero más gris y apagada. #b1aa9c, 2,1:1 sobre la fila. */
+  vale('  en un gris apagado, que se lee si se busca',
+       conBotones.tono === 'rgb(177, 170, 156)', conBotones.tono);
   const ordenBotones = (conBotones.botones || []).map(b => b.dice).join(' · ');
   vale('BORRAR, CANCELAR Y ACEPTAR, en ese orden de izquierda a derecha',
        ordenBotones === 'Borrar · Cancelar · Aceptar' &&
@@ -2543,6 +2548,8 @@ async function ponerAMano(p){
   vale('  y cierra la fila', conBotones.cerradaCancelar === true);
   vale('ACEPTAR SE QUEDA CON LO ESCRITO', conBotones.trasAceptar === 'principio', conBotones.trasAceptar);
   vale('  y cierra la fila', conBotones.cerradaAceptar === true);
+  vale('CON NOMBRE PUESTO, LA FILA YA NO LLEVA LA PISTA', conBotones.pistaConNombre === false,
+       conBotones.pistaConNombre);
   vale('CON EL TABULADOR, LA FILA SIGUE ABIERTA AL LLEGAR A CANCELAR',
        conBotones.sigueAbierta === true, conBotones);
   vale('  y Cancelar deja el nombre que había', conBotones.trasTabular === 'principio',
