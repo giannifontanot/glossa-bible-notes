@@ -231,6 +231,27 @@ async function ponerAMano(p){
   const p = sesion.pagina;
   await abrirEn(p, 'MAT', 1, 1);
 
+  /* ----------------------------------------------------------------
+     CON LA CINTA DE REGALO YA COLGADA, LA PRIMERA DEL LECTOR SIGUE ROJA.
+     Una instalación nueva trae una cinta en Juan 3:16 —azul, ver
+     sembrarAdornosDeEstreno—. Cuando el color salía de contar las cintas, esa
+     de regalo le quitaba el primer puesto a la del lector, que nacía del
+     segundo color. Se cuelga una azul en el almacén, se recarga, se pone una
+     a mano, y tiene que salir la roja. Luego se vacía para lo que sigue. */
+  titulo('con una cinta de regalo, la primera del lector sigue roja');
+  await p.evaluate(() => localStorage.setItem('glossa:separadores:v1', JSON.stringify([
+    { id:'regalo', libro:'JHN', cap:3, vers:16, color:'indigo-vivo', creado:1, tocado:1 }])));
+  await abrirEn(p, 'MAT', 1, 1);
+  const conRegalo = await ponerAMano(p);
+  di('con regalo', conRegalo.guardadas);
+  vale('(la prueba es válida) la de regalo estaba colgada',
+       !!conRegalo.guardadas && conRegalo.guardadas.some(x => x.id === 'regalo'));
+  vale('LA QUE PONE EL LECTOR NACE ROJA',
+       !!conRegalo.guardadas && (conRegalo.guardadas.find(x => x.id !== 'regalo') || {}).color === 'carmin-vivo',
+       conRegalo.guardadas && JSON.stringify(conRegalo.guardadas.map(x => x.color)));
+  await p.evaluate(() => localStorage.setItem('glossa:separadores:v1', '[]'));
+  await abrirEn(p, 'MAT', 1, 1);
+
   /* ---------------------------------------------------------------- */
   titulo('sin separadores, la columna está limpia');
   vale('no hay cinta al abrir', await p.evaluate(() => !document.querySelector('.separador')));
@@ -277,6 +298,11 @@ async function ponerAMano(p){
   vale('  y el rótulo hablado sí dice qué deja y dónde',
        /separador/i.test(mano.voz || '') && /hoja/i.test(mano.voz || ''), mano.voz);
   vale('pone un separador', mano.guardadas.length === 1, mano.guardadas);
+  /* La primera cinta que uno cuelga, en rojo brillante: lo pidió el dueño
+     del repo. Ver CINTA_PRIMERA y colorDeCintaNueva. */
+  vale('  y la primera nace en rojo brillante (carmín vivo)',
+       mano.guardadas.length === 1 && mano.guardadas[0].color === 'carmin-vivo',
+       mano.guardadas[0] && mano.guardadas[0].color);
   vale('y sale la cinta', !!mano.cinta);
   vale('cuelga en el borde izquierdo de la columna', mano.cinta && mano.cinta.dentro);
   /* EL ASOMO: eran 19, se doblaron a 38 a petición del dueño del repo, y al
