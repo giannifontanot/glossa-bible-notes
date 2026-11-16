@@ -2761,5 +2761,78 @@ async function andamio(p){
   vale('  CONTROL: la que no la tiene sigue plana', enLaFoto.planas >= 1, enLaFoto.planas);
   await cerrarParcial(foto, 'la sombra en la foto');
 
+  /* CON LA LISTA LLENA, LOS BOTONES DE LA FILA SE VEN Y SE TOCAN.
+     Con el click largo la fila se abre en dos renglones —el nombre arriba,
+     Borrar · Cancelar · Aceptar abajo—. En los separadores se veía bien y en
+     las perlas no: lo vio Gianni con las doce de estreno. La lista es una
+     columna flexible con tope de alto, y cuando las filas no caben el
+     navegador las ENCOGE para meterlas; la fila tiene min-height escrito, que
+     anula el mínimo automático de su contenido, así que se quedaba en 48 px y
+     sus botones caían debajo, tapados por la perla siguiente. Con una o dos
+     cintas no pasaba porque cabían. Se mira con catorce, que no caben en
+     ningún teléfono, y no se pregunta si el botón existe —existía— sino si un
+     dedo en su centro le da a él. */
+  titulo('con muchas perlas, los botones de la fila abierta se ven');
+  const llena = await abrir();
+  const pll = llena.pagina;
+  await pll.evaluate(llave => {
+    const formas = ['piedra','hoja','pez','paloma','cofre','uvas','corona','llave','ancla',
+                    'estrella','corazon','llama','avion','cinta'];
+    const t = Date.now();
+    localStorage.setItem(llave, JSON.stringify(formas.map((f, i) => ({
+      id:'llena' + i, libro:'MAT', cap: i + 1, vers:1, x:.5, y:.4, forma:f,
+      color:'sepia', tam:3, creado: t - i * 60000, tocado: t - i * 60000 }))));
+  }, LLAVE);
+  await pll.reload();
+  await pll.waitForTimeout(2400);
+  await andamio(pll);
+  const enLaLista = await pll.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const boton = document.getElementById('btnPiedras');
+    const rb = boton.getBoundingClientRect();
+    const o = { bubbles:true, cancelable:true, pointerId:651, pointerType:'touch', isPrimary:true,
+                clientX: rb.left + rb.width/2 + 1, clientY: rb.top + rb.height/2 - 1 };
+    boton.dispatchEvent(new PointerEvent('pointerdown', o));
+    boton.dispatchEvent(new PointerEvent('pointerup', o));
+    boton.click();
+    await pausa(700);
+    const menu = document.getElementById('piedraMenu');
+    const filas = [...menu.querySelectorAll('[data-piedra-ir]')];
+    const desborda = menu.scrollHeight > menu.clientHeight + 4;
+    const f = filas[1];
+    if (!f) return { sinFilas:true, filas: filas.length };
+    /* El click largo del teléfono llega como contextmenu. */
+    const q = f.getBoundingClientRect();
+    f.dispatchEvent(new MouseEvent('contextmenu', { bubbles:true, cancelable:true,
+                                                    clientX: q.left + 40, clientY: q.top + 12 }));
+    await pausa(500);
+    const fila = menu.querySelector('.sp-fila-abierta');
+    if (!fila) return { sinFilaAbierta:true, desborda };
+    fila.scrollIntoView({ block:'nearest' });
+    await pausa(200);
+    const rf = fila.getBoundingClientRect();
+    const botones = [...fila.querySelectorAll('.sp-btn')].map(b => {
+      const r = b.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const alli = document.elementFromPoint(cx, cy);
+      return { t: b.textContent.trim(),
+               dentro: r.top >= rf.top - 1 && r.bottom <= rf.bottom + 1,
+               tocable: !!alli && (alli === b || b.contains(alli)) };
+    });
+    return { filas: filas.length, desborda, alto: Math.round(rf.height), botones };
+  });
+  di('la fila abierta en una lista llena', enLaLista);
+  vale('(la prueba es válida) la lista no cabe y se desplaza',
+       enLaLista.desborda === true && enLaLista.filas === 14, enLaLista.filas + ' filas');
+  vale('LA FILA SE ABRE CON EL CLICK LARGO', !enLaLista.sinFilaAbierta && !enLaLista.sinFilas);
+  vale('  y crece para que le quepan sus tres botones',
+       (enLaLista.botones || []).length === 3 && enLaLista.botones.every(b => b.dentro),
+       'alto ' + enLaLista.alto + ' · ' +
+       (enLaLista.botones || []).map(b => b.t + (b.dentro ? '' : ' (fuera)')).join(' · '));
+  vale('  y un dedo en cada uno le da a él, no a la perla de debajo',
+       (enLaLista.botones || []).length === 3 && enLaLista.botones.every(b => b.tocable),
+       (enLaLista.botones || []).map(b => b.t + (b.tocable ? ' ✓' : ' tapado')).join(' · '));
+  await cerrarParcial(llena, 'la lista llena');
+
   fin();
 })();

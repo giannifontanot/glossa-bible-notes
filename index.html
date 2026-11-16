@@ -2231,7 +2231,17 @@
   .sp-tela:hover{ transform:scale(1.08); }
   .sp-tela[aria-pressed="true"]{ box-shadow:0 0 0 2px #f2e9d6, 0 0 0 3.5px #6d5a2c; }
   .sp-tela:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
-  .sp-fila{ display:flex; align-items:center; gap:4px; width:100%;
+  /* flex-shrink:0, Y NO ES UN DETALLE. Las listas de cintas y de perlas son
+     columnas flexibles con tope de alto, y cuando las filas no caben el
+     navegador las encoge para meterlas. Una fila normal no se dejaba encoger
+     por debajo de su contenido; la abierta —nombre arriba, Borrar · Cancelar ·
+     Aceptar abajo— tampoco debería, pero el min-height escrito aquí sustituye
+     al mínimo automático del contenido, y se quedaba en 48 px con sus tres
+     botones cayendo debajo, tapados por la fila siguiente. Lo vio Gianni en
+     las perlas, que con las doce de estreno ya no caben; en las cintas no
+     pasaba solo porque casi nunca hay tantas. Sin encoger, lo que no cabe se
+     desplaza, que para eso la lista tiene scroll. */
+  .sp-fila{ display:flex; align-items:center; gap:4px; width:100%; flex-shrink:0;
             background:rgba(255,253,247,.62); padding:4px 4px 4px 9px;
             border-radius:4px; margin-bottom:5px; min-height:38px;
             transition:background .28s cubic-bezier(.65,0,.35,1); }
@@ -6722,7 +6732,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 17:14';
+window.GLOSS_BUILD = '16-NOV-26 17:18';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
