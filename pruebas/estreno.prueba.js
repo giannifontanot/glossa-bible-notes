@@ -1,7 +1,7 @@
-/* LAS TRES GLOSAS DE ESTRENO.
+/* LAS GLOSAS DE ESTRENO.
 
    Un lector recién abierto no enseña para qué sirve: hoja de Biblia y nada
-   más. Con tres notas puestas se ve de un vistazo qué es una glosa, dónde
+   más. Con unas notas puestas se ve de un vistazo qué es una glosa, dónde
    vive, que llevan color y que se pueden etiquetar.
 
    LO QUE DE VERDAD VIGILA ESTA PRUEBA NO ES QUE APAREZCAN, sino que NO
@@ -17,24 +17,63 @@
 const { abrir, listo, cerrar, cerrarParcial, di, vale, titulo,
         APP, TELEFONO } = require('./comun');
 
-/* LAS DE ESTRENO YA NO SON TODAS DE MATEO, así que cada una trae su libro.
-   Tres son de la genealogía y la cuarta es Juan 3:16, que se sembró porque es
-   el versículo que todo el mundo sabe de memoria y por eso mismo el que menos
-   se lee. Las comprobaciones de aquí abajo dejaron de contar «tres» y de dar
-   Mateo por supuesto: contar a mano lo que ya está escrito en una lista es
-   tener que acordarse dos veces. */
+/* LAS DE ESTRENO, UNA POR PERLA Y JUAN 3:16. Fueron tres de la genealogía de
+   Mateo y Juan 3:16; Gianni quitó las de Mateo y pidió una glosa esperanzadora
+   en cada versículo con perla, con pocas etiquetas de emoji que se repiten.
+   La cita es la de la Biblia Libre, que es donde corre el banco. Ver
+   GLOSAS_DE_ESTRENO y PERLAS_DE_ESTRENO en index.html. */
 const ESPERADAS = [
-  { libro:'MAT', cap:1, vers:1, cita:'Hijo de David',          color:'yellow' },
-  { libro:'MAT', cap:1, vers:3, cita:'su madre fue Tamar',     color:'blue'   },
-  { libro:'MAT', cap:1, vers:6, cita:'la esposa de Urías',     color:'green'  },
-  { libro:'JHN', cap:3, vers:16, cita:'lo hizo de esta manera', color:'orange' },
+  { libro:'GEN', cap:8,   vers:11, cita:'trajo en su pico una hoja fresca de olivo',             etiqueta:'🌅Esperanza' },
+  { libro:'GEN', cap:15,  vers:5,  cita:'Mira al cielo, y dime si puedes contar las estrellas',  etiqueta:'📜Promesa' },
+  { libro:'PSA', cap:118, vers:22, cita:'La piedra rechazada por los constructores ha llegado a ser la piedra angular', etiqueta:'🌅Esperanza' },
+  { libro:'ISA', cap:40,  vers:8,  cita:'la palabra de nuestro Dios perdurará para siempre',     etiqueta:'⚓FeFirme' },
+  { libro:'EZK', cap:36,  vers:26, cita:'Te daré una mente nueva y pondré un espíritu nuevo dentro de ti', etiqueta:'🌱VidaNueva' },
+  { libro:'JON', cap:2,   vers:1,  cita:'Jonás oró al Señor su Dios desde el vientre del pez',   etiqueta:'🌅Esperanza' },
+  { libro:'MAT', cap:13,  vers:44, cita:'lleno de alegría se fue y vendió todo lo que tenía',    etiqueta:'🌱VidaNueva' },
+  { libro:'MAT', cap:16,  vers:19, cita:'Te daré las llaves del reino de los cielos',            etiqueta:'⚓FeFirme' },
+  { libro:'JHN', cap:15,  vers:5,  cita:'Yo soy la vid y ustedes las ramas',                     etiqueta:'❤️AmorDeDios' },
+  { libro:'1CO', cap:13,  vers:4,  cita:'El amor es paciente y amable',                          etiqueta:'❤️AmorDeDios' },
+  { libro:'HEB', cap:6,   vers:19, cita:'Esta esperanza es nuestra ancla espiritual',            etiqueta:'⚓FeFirme' },
+  { libro:'REV', cap:2,   vers:10, cita:'yo te daré la corona de la vida',                       etiqueta:'📜Promesa' },
+  { libro:'JHN', cap:3,   vers:16, cita:'Porque Dios amó al mundo',                              etiqueta:'❤️AmorDeDios' },
 ];
-/* Las que se ven en la hoja de arranque, que es la primera de Mateo. La de
-   Juan está guardada igual, pero su margen es el de otro libro. */
-const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
+/* LAS PERLAS: doce, una figura distinta cada una, y cada una sobre un
+   versículo que también lleva glosa. */
+const PERLAS = [
+  ['GEN',8,11,'paloma'], ['GEN',15,5,'estrella'], ['PSA',118,22,'piedra'], ['ISA',40,8,'hoja'],
+  ['EZK',36,26,'corazon'], ['JON',2,1,'pez'], ['MAT',13,44,'cofre'], ['MAT',16,19,'llave'],
+  ['JHN',15,5,'uvas'], ['1CO',13,4,'llama'], ['HEB',6,19,'ancla'], ['REV',2,10,'corona']
+];
+/* RECARGAR TRAS ESCRIBIR, Y COMPROBAR QUE LA PÁGINA NUEVA LO VE.
+
+   Esta suite escribe en el almacén por debajo de la aplicación y recarga.
+   Antes recargaba con location.reload() y esperaba un tiempo fijo; ahora
+   recarga con page.reload() —que espera a la navegación entera y a que la
+   portada se vaya— y comprueba en el almacén que lo escrito sigue ahí.
+
+   Salía a veces una página «un paso atrás» —la versión anterior, la nota
+   sin editar, la sepia sin poner— y se persiguió hasta el banco: su
+   initScript, en algunas recargas, veía el almacén vacío y escribía encima
+   sus valores de arranque. Eso se arregló donde estaba —ver bibliaDeCasa en
+   comun.js— y esta comprobación se queda como red: si algún día vuelve a
+   pasar, se repite la escritura y se cuenta, en vez de leer lo de antes y
+   cantar un fallo de la aplicación que no lo es. */
+async function recargarTras(p, escribir, arg, quedo){
+  for (let i = 0; i < 4; i++){
+    await p.evaluate(escribir, arg);
+    await p.waitForTimeout(300);
+    await p.reload();
+    if (await p.evaluate(quedo, arg)) return i;
+  }
+  return -1;
+}
+const ETIQUETAS_ES = ['🌅Esperanza', '📜Promesa', '⚓FeFirme', '🌱VidaNueva', '❤️AmorDeDios'];
+const ETIQUETAS_EN = ['🌅Hope', '📜Promise', '⚓FirmFaith', '🌱NewLife', '❤️GodsLove'];
 
 (async () => {
-  const sesion = await abrir();
+  /* Sin las glosas del banco: esta suite es la que mira la siembra de verdad
+     —ver GLOSAS_DE_CASA en comun.js—. */
+  const sesion = await abrir({ glosasDeCasa: false });
   const p = sesion.pagina;
 
   titulo('al estrenar');
@@ -53,17 +92,25 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
   for (const e of ESPERADAS){
     const m = puestas.guardadas.find(x => x.libro === e.libro && x.cap === e.cap &&
                                           x.vers === e.vers);
-    vale(e.libro + ' ' + e.cap + ':' + e.vers + ' · ' + e.color,
-         !!m && m.cita === e.cita && m.color === e.color,
-         m ? m.cita + ' / ' + m.color : 'no está');
+    vale(e.libro + ' ' + e.cap + ':' + e.vers + ' · ' + e.etiqueta,
+         !!m && m.cita === e.cita, m ? m.cita : 'no está');
     vale('   con su etiqueta y su nota',
-         !!m && (m.etiquetas||[]).join() === 'Interesante' && m.tieneNota);
+         !!m && (m.etiquetas||[]).join() === e.etiqueta && m.tieneNota,
+         m ? (m.etiquetas||[]).join() : '');
   }
-  /* En el margen sólo las de este libro: la hoja de arranque es Mateo 1. */
-  vale('las de Mateo se ven en el margen',
-       puestas.enElMargen === EN_LA_PRIMERA_HOJA.length, puestas.enElMargen);
-  vale('y todas llevan etiqueta',
-       puestas.conEtiqueta === EN_LA_PRIMERA_HOJA.length, puestas.conEtiqueta);
+  /* POCAS ETIQUETAS QUE SE REPITEN, que es lo que Gianni pidió: cinco para
+     trece glosas, cada una con su emoji delante. */
+  const usadas = [...new Set(puestas.guardadas.flatMap(m => m.etiquetas || []))];
+  vale('CINCO ETIQUETAS, TODAS CON EMOJI, que se repiten',
+       usadas.length === 5 && usadas.every(t => ETIQUETAS_ES.includes(t)) &&
+       usadas.every(t => puestas.guardadas.filter(m => (m.etiquetas||[]).includes(t)).length >= 2),
+       usadas.join(' '));
+  /* LAS TRES DE LA GENEALOGÍA YA NO ESTÁN. El banco abre en Mateo 1 —ver
+     bibliaDeCasa—, que es justo donde vivían: su margen tiene que salir
+     vacío. */
+  vale('LAS TRES DE MATEO 1 SE FUERON',
+       !puestas.guardadas.some(m => m.libro === 'MAT' && m.cap === 1) &&
+       puestas.enElMargen === 0, puestas.enElMargen + ' en el margen de Mateo 1');
 
   titulo('el anclaje señala la frase que dice citar');
   /* Se compara el trozo que va de ini a fin con la cita. Si los números
@@ -101,14 +148,13 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
   }));
 
   titulo('al volver NO se siembra otra vez');
-  di('con una editada a mano', await p.evaluate(async () => {
+  di('con una editada a mano', await recargarTras(p, () => {
     const M = JSON.parse(localStorage.getItem('glossa:marcas:v1'));
     M[0].nota = 'ESTA LA CAMBIÉ YO';
     M[0].color = 'orange';
     localStorage.setItem('glossa:marcas:v1', JSON.stringify(M));
-    location.reload();
-  }).then(async () => {
-    await p.waitForTimeout(2900);
+  }, null, () => (JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')[0] || {}).nota ===
+                 'ESTA LA CAMBIÉ YO').then(async () => {
     return p.evaluate(() => {
       const M = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
       return { cuantas:M.length, nota:M[0] && M[0].nota, color:M[0] && M[0].color };
@@ -125,11 +171,9 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
   /* La diferencia entre «la clave nunca existió» y «no hay marcas». Borrarlas
      a propósito deja la clave en '[]', y devolverlas sería deshacer lo que
      acabas de hacer. */
-  di('con la clave vacía', await p.evaluate(async () => {
+  di('con la clave vacía', await recargarTras(p, () => {
     localStorage.setItem('glossa:marcas:v1', '[]');
-    location.reload();
-  }).then(async () => {
-    await p.waitForTimeout(2900);
+  }, null, () => localStorage.getItem('glossa:marcas:v1') === '[]').then(async () => {
     return p.evaluate(() => ({
       guardadas: JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length,
       enElMargen: document.querySelectorAll('#pgMargin .gl').length }));
@@ -169,13 +213,11 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
     return r;
   }));
 
-  di('con el cero guardado a propósito', await p.evaluate(async () => {
+  di('con el cero guardado a propósito', await recargarTras(p, () => {
     const c = 'glossa:ajustes:v1';
     const a = JSON.parse(localStorage.getItem(c) || '{}');
     a.v = 1; a.sepia = 0; localStorage.setItem(c, JSON.stringify(a));
-    location.reload();
-  }).then(async () => {
-    await p.waitForTimeout(2900);
+  }, null, () => JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}').sepia === 0).then(async () => {
     return p.evaluate(() => ({
       deslizador: +document.getElementById('sepia').value,
       tinta: getComputedStyle(document.getElementById('pgBody')).color }));
@@ -204,16 +246,18 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
      correcta —una nota en español sobre un texto en inglés tampoco diría
      nada—, y lo que nunca vale es una marca señalando lo que no es.
      El mínimo de la versión de casa sale de ESPERADAS y no de un número
-     escrito aquí: el día que se siembre otra, esta línea ya lo sabe. */
-  for (const [v, minimo] of [['rv1909', 0], ['bsb', 0], ['vbl', ESPERADAS.length]]){
-    di('guardado en ' + v, await p.evaluate(async v => {
+     escrito aquí: el día que se siembre otra, esta línea ya lo sabe.
+     Y DESDE QUE CADA GLOSA TRAE SU FRASE DE CADA VERSIÓN, las cuatro siembran
+     todas: la RV1909 con las suyas, la Berean con las inglesas. Antes la
+     RV1909 se quedaba en cero. */
+  for (const [v, minimo] of [['rv1909', ESPERADAS.length], ['bsb', ESPERADAS.length],
+                             ['vbl', ESPERADAS.length]]){
+    di('guardado en ' + v, await recargarTras(p, v => {
       localStorage.removeItem('glossa:marcas:v1');
       const c = 'glossa:ajustes:v1';
       const a = JSON.parse(localStorage.getItem(c) || '{}');
       a.v = 1; a.version = v; localStorage.setItem(c, JSON.stringify(a));
-      location.reload();
-    }, v).then(async () => {
-      await p.waitForTimeout(3200);
+    }, v, v => JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}').version === v).then(async () => {
       return p.evaluate(() => {
         const M = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
         /* Del archivo de datos y no de la hoja abierta, por lo mismo que en
@@ -240,7 +284,7 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
            r.malPuestas.length ? r.malPuestas.join(' ') : r.sembradas + ' bien puestas');
       vale('y salen de la versión abierta · ' + v,
            r.sembradas === 0 || r.origen.join() === v, r.origen.join() || '(ninguna)');
-      if (minimo) vale('en la versión de casa sí se siembran · ' + v,
+      if (minimo) vale('y se siembran todas · ' + v,
                        r.sembradas === minimo, r.sembradas);
       return r;
     }));
@@ -284,15 +328,16 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
   }
 
   /* ================================================================
-     AL ESTRENAR DE VERDAD: LA BEREAN, Y SUS TRES GLOSAS EN INGLÉS.
+     AL ESTRENAR DE VERDAD: LA BEREAN, EN JUAN 1, Y LAS GLOSAS EN INGLÉS.
 
      El resto de esta suite —y del banco— arranca en la Biblia Libre, como
      alguien que ya la eligió: ver bibliaDeCasa en comun.js. Este bloque no:
      abre con `biblia: null`, sin nada sembrado, que es el teléfono recién
-     estrenado. Pidió el dueño del repo dos cosas para él: que abra en la
-     Berean, y que en la página donde cae —Mateo 1— haya tres glosas que digan
-     algo de la escritura. En inglés, porque el texto lo es: las frases en
-     español no están en la Berean y la hoja salía sin ninguna.
+     estrenado. Que abra en la Berean lo pidió el dueño del repo; que abra en
+     JUAN 1, Gianni, que además cambió las glosas de estreno: ya no tres en
+     Mateo 1 sino una esperanzadora en cada versículo con perla, y Juan 3:16.
+     En inglés, porque el texto lo es: las frases en español no están en la
+     Berean.
      Y el anclaje se exige igual que arriba: el trozo de ini a fin tiene que
      ser la frase citada, en el texto de la Berean. */
   titulo('al estrenar en la Berean');
@@ -309,38 +354,40 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
     };
     return { version: document.getElementById('pgVersion').textContent.trim(),
              guardada: (JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}')).version,
-             mateo: M.filter(m => m.libro === 'MAT' && m.cap === 1)
-                     .map(m => ({ cita: m.cita, origen: m.versionOrigen, etiquetas: m.etiquetas,
-                                  nota: m.nota || '', bien: trozo(m) === m.cita })),
-             enElMargen: document.querySelectorAll('#pgMargin .gl').length };
+             cabeza: document.getElementById('pgCabeza').textContent.replace(/\s+/g, ' ').trim(),
+             glosas: M.map(m => ({ donde: m.libro + ' ' + m.cap + ':' + m.vers,
+                                   cita: m.cita, origen: m.versionOrigen, etiquetas: m.etiquetas,
+                                   nota: m.nota || '', bien: trozo(m) === m.cita })) };
   });
   di('estrenada', enB);
   vale('ABRE EN LA BEREAN', enB.version === 'BSB', enB.version);
   vale('  y la guarda como su versión', enB.guardada === 'bsb', enB.guardada);
-  vale('EN MATEO 1 HAY TRES GLOSAS', enB.mateo.length === 3, enB.mateo.length);
+  vale('ABRE EN JUAN 1', /^John 1\b/.test(enB.cabeza), enB.cabeza);
+  vale('TRECE GLOSAS DE ESTRENO', enB.glosas.length === ESPERADAS.length,
+       enB.glosas.map(m => m.donde).join(', '));
   vale('  en inglés, ancladas al texto de la Berean',
-       enB.mateo.every(m => m.origen === 'bsb' && m.bien && /[a-z]/i.test(m.cita) &&
-                            !/[áéíóúñ¿¡]/i.test(m.nota)),
-       enB.mateo.map(m => m.cita + (m.bien ? '' : ' (mal anclada)')).join(' · '));
+       enB.glosas.every(m => m.origen === 'bsb' && m.bien && /[a-z]/i.test(m.cita) &&
+                             !/[áéíóúñ¿¡]/i.test(m.nota)),
+       enB.glosas.filter(m => !m.bien).map(m => m.donde + ' mal anclada').join(' · ') || 'todas bien');
   /* Y QUE SE VEAN: el dueño del repo pidió subrayar más texto, que dos
-     palabras —«by Tamar»— casi no se distinguían en la hoja. */
+     palabras casi no se distinguen en la hoja. */
   vale('  subrayando una frase entera, no dos palabras',
-       enB.mateo.every(m => m.cita.split(/\s+/).length >= 6),
-       enB.mateo.map(m => m.cita).join(' · '));
-  vale('  cada una con algo que decir de la escritura',
-       enB.mateo.every(m => m.nota.length > 60), enB.mateo.map(m => m.nota.length).join(', '));
-  vale('  con su etiqueta en inglés',
-       enB.mateo.every(m => (m.etiquetas || []).join() === 'Interesting'),
-       enB.mateo.map(m => (m.etiquetas || []).join()).join(' · '));
-  vale('  y se ven en el margen de la primera hoja', enB.enElMargen === 3, enB.enElMargen);
+       enB.glosas.every(m => m.cita.split(/\s+/).length >= 5),
+       enB.glosas.filter(m => m.cita.split(/\s+/).length < 5).map(m => m.cita).join(' · ') || 'todas');
+  vale('  cada una con algo que decir',
+       enB.glosas.every(m => m.nota.length > 100), enB.glosas.map(m => m.nota.length).join(', '));
+  vale('  con su etiqueta en inglés, de cinco que se repiten',
+       enB.glosas.every(m => (m.etiquetas || []).length === 1 && ETIQUETAS_EN.includes(m.etiquetas[0])) &&
+       new Set(enB.glosas.map(m => m.etiquetas[0])).size === 5,
+       [...new Set(enB.glosas.map(m => (m.etiquetas || []).join()))].join(' '));
 
-  /* LOS ADORNOS DE ESTRENO: una perla roja en el capítulo del amor, una
-     cinta en Juan 3:16 y un rastro de escrituras conocidas. Pedidos por el
-     dueño del repo para que los paneles de perlas, cintas e historial no
-     salgan vacíos la primera vez. Se mira lo guardado, que es lo que la
-     aplicación vuelve a leer mañana, y que la perla de verdad salga en la
-     hoja de 1 Corintios 13. */
-  titulo('y con su perla, su cinta y su rastro');
+  /* LOS ADORNOS DE ESTRENO: doce perlas por la Biblia, una cinta en Juan
+     3:16 y un rastro de escrituras conocidas. Pedidos para que los paneles de
+     perlas, cintas e historial no salgan vacíos la primera vez —las doce
+     perlas, por Gianni—. Se mira lo guardado, que es lo que la aplicación
+     vuelve a leer mañana, y que la perla de verdad salga en la hoja de 1
+     Corintios 13. */
+  titulo('y con sus perlas, su cinta y su rastro');
   const adornos = await pB.evaluate(() => ({
     piedras: JSON.parse(localStorage.getItem('glossa:piedras:v1') || '[]'),
     cintas: JSON.parse(localStorage.getItem('glossa:separadores:v1') || '[]'),
@@ -349,11 +396,18 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
   di('los adornos', { piedras: adornos.piedras.map(x => x.libro + ' ' + x.cap + ':' + x.vers + ' ' + x.color),
                       cintas: adornos.cintas.map(x => x.libro + ' ' + x.cap + ':' + x.vers),
                       rastro: adornos.rastro.map(x => x.libro + ' ' + x.cap + ':' + x.vers).join(', ') });
-  vale('UN FUEGO ROJO EN 1 CORINTIOS 13 (la figura «llama» del mando)',
-       adornos.piedras.length === 1 && adornos.piedras[0].libro === '1CO' &&
-       adornos.piedras[0].cap === 13 && adornos.piedras[0].forma === 'llama' &&
-       /^carmin/.test(adornos.piedras[0].color),
-       JSON.stringify(adornos.piedras));
+  const lasPerlas = adornos.piedras.map(x => [x.libro, x.cap, x.vers, x.forma].join(' '));
+  vale('DOCE PERLAS, CADA UNA CON SU FIGURA, de Génesis a Apocalipsis',
+       JSON.stringify(lasPerlas) === JSON.stringify(PERLAS.map(x => x.join(' '))),
+       lasPerlas.join(' · '));
+  vale('  ninguna figura repetida', new Set(adornos.piedras.map(x => x.forma)).size === 12);
+  vale('  y cada perla tiene su glosa en el mismo versículo',
+       adornos.piedras.every(x => enB.glosas.some(m => m.donde === x.libro + ' ' + x.cap + ':' + x.vers)));
+  vale('  el fuego rojo de 1 Corintios 13 sigue siendo rojo',
+       adornos.piedras.some(x => x.libro === '1CO' && x.forma === 'llama' && /^carmin/.test(x.color)));
+  vale('  todas dentro de lo que un teléfono ve de la hoja',
+       adornos.piedras.every(x => x.x >= .3 && x.x <= .58 && x.y >= .2 && x.y <= .75),
+       adornos.piedras.map(x => x.x + ',' + x.y).join(' '));
   vale('UNA CINTA EN JUAN 3:16, y no roja',
        adornos.cintas.length === 1 && adornos.cintas[0].libro === 'JHN' &&
        adornos.cintas[0].cap === 3 && adornos.cintas[0].vers === 16 &&
@@ -380,7 +434,7 @@ const EN_LA_PRIMERA_HOJA = ESPERADAS.filter(e => e.libro === 'MAT');
   }));
   di('en 1 Corintios 13', enCorintios);
   vale('  y la perla sale en su hoja', enCorintios.perla === true, enCorintios);
-  vale('  sin sembrarse otra al recargar', enCorintios.sigue === 1, enCorintios.sigue);
+  vale('  sin sembrarse otras al recargar', enCorintios.sigue === 12, enCorintios.sigue);
   /* ================================================================
      LA INTERFAZ HABLA EL IDIOMA DE LA BIBLIA ABIERTA.
      Lo pidió el dueño del repo: con la Berean, todo en inglés; con una Biblia
