@@ -6698,7 +6698,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 20:40';
+window.GLOSS_BUILD = '15-NOV-26 20:54';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -10679,7 +10679,13 @@ function sitioDelMenu(w, h, r, s){
   menu.addEventListener('pointercancel', soltar);
   menu.addEventListener('lostpointercapture', soltar);
 })();
-function ocultarMenu(){
+/* comoCancelar: la misma salida, pero soltando el borrador sin cobrarlo.
+   Cancelar llamaba antes a cancelarBorrador() y DESPUÉS a ocultarMenu(); para
+   entonces ya no había borrador, así que no se medía el adiós y el panel se
+   apagaba de golpe, mientras que tocar fuera lo recoge hacia su pasaje. Lo vio
+   Gianni: «que la ventana nueva se cierre suave». Ahora el adiós se mide aquí,
+   antes de soltar nada, y Cancelar se va igual que cualquier otra salida. */
+function ocultarMenu(comoCancelar){
   var __t0 = performance.now();
   try {
 
@@ -10693,7 +10699,9 @@ function ocultarMenu(){
      eso cambia cómo tiene que irse: se mira ANTES de cerrar el borrador, que
      es lo que vacía el panel. */
   const conLista = !!menu.querySelector('.tagbox.abierta');
-  const volo = borrador ? cerrarBorrador() : false;
+  const volo = !borrador ? false
+             : comoCancelar === true ? (cancelarBorrador(), false)
+             : cerrarBorrador();
   ultimoRect = null;
   /* Si lo escrito se fue volando a su sitio, no hay nada más que despedir: el
      vuelo ya cuenta la salida, y encoger el panel además sería contarla dos
@@ -12769,13 +12777,12 @@ menu.addEventListener('click', ev => {
     ocultarMenu();
     return;
   }
-  /* Cancelar: se suelta el borrador sin cobrarlo y se cierra. ocultarMenu,
-     sin borrador, ya no tiene nada que guardar ni que hacer volar: solo
-     recoge el panel. Ver cancelarBorrador. */
+  /* Cancelar: se suelta el borrador sin cobrarlo y el panel se recoge hacia
+     su pasaje, como en cualquier otra salida. Por eso va DENTRO de
+     ocultarMenu y no antes: ver ahí. */
   if (b.dataset.acc === 'cancelar'){
     ev.stopPropagation();
-    cancelarBorrador();
-    ocultarMenu();
+    ocultarMenu(true);
     return;
   }
 });
