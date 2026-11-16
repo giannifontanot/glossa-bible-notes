@@ -348,8 +348,12 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
                        getComputedStyle(ok).pointerEvents === 'none') : null,
       /* El OK es macizo y los trazos van de contorno: se distinguen a un metro
          sin leerlos, que es de lo que sirve un botón de terminar. */
-      okMacizo: ok ? getComputedStyle(ok).backgroundColor : '',
-      modoMacizo: modos[0] ? getComputedStyle(modos[0]).backgroundColor : '',
+      /* Color Y degradado: desde que los botones tienen cuerpo, casi todos
+         llevan el relleno en background-image y el backgroundColor sale
+         transparente en todos, así que solo el color ya no distinguía nada. */
+      okMacizo: ok ? getComputedStyle(ok).backgroundColor + ' ' + getComputedStyle(ok).backgroundImage : '',
+      modoMacizo: modos[0] ? getComputedStyle(modos[0]).backgroundColor + ' ' +
+                             getComputedStyle(modos[0]).backgroundImage : '',
       /* Lo que el botón PROMETE. Sobre una marca nueva y sin texto no se
          guarda nada, y decir «guardar» ahí es lo que oía quien no ve la
          pantalla. */

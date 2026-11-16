@@ -5481,6 +5481,44 @@
   #menu .mcancelar{ text-align:center; color:#e6dcc4; background:rgba(255,255,255,.05);
                     border-color:rgba(255,255,255,.22); padding:6px 8px; }
   #menu .mcancelar:hover{ background:rgba(255,255,255,.13); }
+  /* BOTONES CON CUERPO. Etiquetas, Cancelar, el modo que no está puesto y
+     «+ crear» eran un contorno fino con un 5% de blanco por dentro: sobre el
+     marrón del panel se leían como texto en un recuadro, no como algo que se
+     pulsa. Gianni lo pidió así: «que se vean como botones, con color de
+     fondo». Llevan ahora un relleno propio —un tostado claramente más claro
+     que el panel, con un degradado corto; un pardo apenas más claro se probó
+     primero y seguía pareciendo un recuadro—, un filo de luz arriba y una sombra debajo, que
+     es lo que hace que un rectángulo parezca levantado y se lea como tecla.
+
+     El OK sigue siendo el único en bronce: el resto gana cuerpo, pero no
+     color de acción, para que lo que se viene a hacer siga encontrándose sin
+     buscarlo. Y nada de rojo en Cancelar: los colores en Borrar y Aceptar de
+     las filas de perlas se quitaron por pedido suyo, y aquí vale lo mismo. */
+  #menu .mtags, #menu .mcancelar,
+  #menu .mmodos button:not(.on), #menu .tagctl .crear{
+        color:#f3e9d0;
+        background:linear-gradient(to bottom, #6c5739, #56442d);
+        border-color:#8a7350;
+        box-shadow:inset 0 1px 0 rgba(255,240,210,.22), 0 1px 3px rgba(0,0,0,.45); }
+  #menu .mtags:hover, #menu .mcancelar:hover,
+  #menu .mmodos button:not(.on):hover, #menu .tagctl .crear:hover{
+        background:linear-gradient(to bottom, #7b6442, #634f34); border-color:#a08660; }
+  #menu .mtags:active, #menu .mcancelar:active,
+  #menu .mmodos button:active, #menu .tagctl .crear:active{
+        transform:translateY(1px); box-shadow:inset 0 1px 3px rgba(0,0,0,.45); }
+  /* EL MODO PUESTO SE ENCIENDE. Con el tostado de los otros, el dorado
+     apagado que tenía antes se veía MÁS oscuro que el modo sin poner, y el ojo
+     leía al revés cuál de los dos estaba elegido. Ahora es el más claro de los
+     dos —dorado vivo con filo de oro— y va hundido, que es como una tecla dice
+     «estoy puesta». Del OK lo separan el tono (dorado limpio, no bronce), el
+     sitio y que el OK va en mayúsculas y negrita. */
+  #menu .mmodos button.on{ color:#fff7df;
+        background:linear-gradient(to bottom, #a8862f, #8c6d22);
+        border-color:#e2bd52;
+        box-shadow:inset 0 1px 3px rgba(0,0,0,.30), 0 0 0 1px rgba(226,189,82,.35); }
+  /* «+ crear» crea algo, así que lleva el filo dorado del OK sobre el mismo
+     cuerpo que los demás: se lee como acción sin competir con él. */
+  #menu .tagctl .crear{ border-color:#9a7a34; color:#f6e3ad; }
   .tagbox{ display:flex; flex-wrap:wrap; gap:3px; align-items:center; }
   /* LA LISTA VIVE CERRADA. Lo que la nota lleva puesto ya se lee dentro de la
      glosa; esta lista es para cambiarlo, y eso no se hace en cada nota. */
@@ -6660,7 +6698,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 17:38';
+window.GLOSS_BUILD = '15-NOV-26 20:40';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
