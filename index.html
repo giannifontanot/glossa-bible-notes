@@ -2231,7 +2231,17 @@
   .sp-tela:hover{ transform:scale(1.08); }
   .sp-tela[aria-pressed="true"]{ box-shadow:0 0 0 2px #f2e9d6, 0 0 0 3.5px #6d5a2c; }
   .sp-tela:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
-  .sp-fila{ display:flex; align-items:center; gap:4px; width:100%;
+  /* flex-shrink:0, Y NO ES UN DETALLE. Las listas de cintas y de perlas son
+     columnas flexibles con tope de alto, y cuando las filas no caben el
+     navegador las encoge para meterlas. Una fila normal no se dejaba encoger
+     por debajo de su contenido; la abierta —nombre arriba, Borrar · Cancelar ·
+     Aceptar abajo— tampoco debería, pero el min-height escrito aquí sustituye
+     al mínimo automático del contenido, y se quedaba en 48 px con sus tres
+     botones cayendo debajo, tapados por la fila siguiente. Lo vio Gianni en
+     las perlas, que con las doce de estreno ya no caben; en las cintas no
+     pasaba solo porque casi nunca hay tantas. Sin encoger, lo que no cabe se
+     desplaza, que para eso la lista tiene scroll. */
+  .sp-fila{ display:flex; align-items:center; gap:4px; width:100%; flex-shrink:0;
             background:rgba(255,253,247,.62); padding:4px 4px 4px 9px;
             border-radius:4px; margin-bottom:5px; min-height:38px;
             transition:background .28s cubic-bezier(.65,0,.35,1); }
@@ -6722,7 +6732,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 12:06';
+window.GLOSS_BUILD = '16-NOV-26 17:18';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -20556,14 +20566,24 @@ const PIEDRA_SVG = {
     ' stroke-width="1.5" stroke-linecap="round"/>',
   /* La hoja lleva nervio y rabillo: sin ellos el contorno es una gota y se
      confunde con la piedra a tamaño chico. Lo que dice «hoja» no es la
-     silueta, es la raya de en medio. */
+     silueta, es la raya de en medio.
+
+     REHECHA: «TIENE UNA RAYA QUE NO LE VA», dijo Gianni, y tenía dos. El
+     nervio blanco seguía de largo fuera de la hoja para hacer de rabillo, y
+     sobre el papel era una raya pálida suelta, no un tallo. Y los dos
+     nervios chicos no salían del central: formaban una crucecita aparte en
+     medio de la hoja. Ahora el nervio blanco se queda DENTRO, el rabillo es
+     del mismo color que la hoja —un tallo es de la planta, no un brillo— y
+     los nervios chicos se fueron: se probaron saliendo del central y a 28 px
+     eran ruido; la hoja se lee igual con uno solo. Mirada a 160, 56 y 28 px,
+     con sombra y sin ella. */
   hoja:
     '<path d="M21.4 2.3c1 7.2-1.3 12.3-5.2 15.1-3.7 2.7-8.4 2.5-10.8.2C3.1 15.4 3 11.2 5.6 8' +
     ' 8.3 4.6 13.5 2 21.4 2.3z" fill="currentColor"/>' +
-    '<path d="M19.9 3.9C14.4 7.3 9.2 12.6 5.4 21.6" fill="none" stroke="#fff"' +
-    ' stroke-opacity=".5" stroke-width="1.6" stroke-linecap="round"/>' +
-    '<path d="M13.9 7.4c.6 1.6.8 3.2.7 4.9M17.4 11.1c-1.8.4-3.4 1.2-4.8 2.3" fill="none"' +
-    ' stroke="#fff" stroke-opacity=".3" stroke-width="1.2" stroke-linecap="round"/>',
+    '<path d="M6.4 16.9 2.9 21.6" fill="none" stroke="currentColor"' +
+    ' stroke-width="1.9" stroke-linecap="round"/>' +
+    '<path d="M19.6 4.1C15.2 6.9 10.6 11.2 6.6 16.6" fill="none" stroke="#fff"' +
+    ' stroke-opacity=".5" stroke-width="1.5" stroke-linecap="round"/>',
   /* EL PEZ NECESITA SU COLA, y la primera no la tenía: el cuerpo solo se leía
      como un limón con un ojo. La cola va aparte y en triángulo, que es lo que
      dice «pez» de lejos; el cuerpo se estrecha hacia ella para que las dos
@@ -27061,7 +27081,14 @@ function sembrarAdornosDeEstreno(){
         const t = ahora - i * 60000;
         return { id: piedraNuevoId(), libro: p.libro, cap: p.cap, vers: p.vers,
                  x: p.x, y: p.y, forma: p.forma, tam: PIEDRA_TAM_NUEVA,
-                 color: p.color, sombra: true, creado: t, tocado: t };
+                 /* SIN SOMBRA, por pedido de Gianni. Las de estreno se
+                    reparten por hojas ya escritas y la sombra las despegaba
+                    del papel como pegatinas encima del texto; planas se
+                    leen como parte de la hoja. La que pone el lector sigue
+                    naciendo con la suya: esto es solo para las sembradas.
+                    «Sin sombra» es SIN LA CLAVE, no `sombra: false`: así la
+                    escriben el mando y piedraSanear, que solo guarda un true. */
+                 color: p.color, creado: t, tocado: t };
       });
     if (piedras.length) piedrasGuardar();
   }
