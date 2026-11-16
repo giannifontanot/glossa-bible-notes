@@ -401,6 +401,9 @@ const ETIQUETAS_EN = ['🌅Hope', '📜Promise', '⚓FirmFaith', '🌱NewLife', 
        JSON.stringify(lasPerlas) === JSON.stringify(PERLAS.map(x => x.join(' '))),
        lasPerlas.join(' · '));
   vale('  ninguna figura repetida', new Set(adornos.piedras.map(x => x.forma)).size === 12);
+  /* Sin sombra: planas sobre el papel, pedido de Gianni. */
+  vale('  y ninguna con sombra', adornos.piedras.every(x => !x.sombra),
+       adornos.piedras.filter(x => x.sombra).map(x => x.forma).join(' ') || 'ninguna');
   vale('  y cada perla tiene su glosa en el mismo versículo',
        adornos.piedras.every(x => enB.glosas.some(m => m.donde === x.libro + ' ' + x.cap + ':' + x.vers)));
   vale('  el fuego rojo de 1 Corintios 13 sigue siendo rojo',
