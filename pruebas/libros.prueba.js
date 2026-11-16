@@ -231,23 +231,58 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
     /* Y SE CUENTAN LOS ARRANQUES, que es lo que caza el fallo de abajo sin
        depender del reloj: un cambio de testamento tiene que valer UNA
        entrada, ni cero ni dos. */
+    /* Desde que la pestaña entra como el desliz, lo que se anima es la
+       REJILLA, no el cuerpo; se cuentan los arranques de cualquier rejilla de
+       libros que no sea la copia que se va. */
     const arranques = [];
     cuerpo.addEventListener('animationstart', e => {
-      if (e.target === cuerpo) arranques.push(e.animationName);
+      const r = e.target;
+      if (r.classList && r.classList.contains('rejilla-libros') &&
+          !r.classList.contains('fantasma')) arranques.push(e.animationName);
     });
-    await toque(bAT); await pausa(60);
-    const entrando = { anim: getComputedStyle(cuerpo).animationName,
-                       dir: cuerpo.style.getPropertyValue('--dir') };
+    /* NI UN CUADRO EN BLANCO. Se mira en el primer cuadro tras el toque y en
+       los siguientes: tiene que haber libros a la vista dentro del panel y
+       nada a opacidad baja. Antes, al tocar la pestaña, el panel se quedaba
+       vacío —la lista vieja quitada, la nueva a opacidad 0— y luego se iba
+       encendiendo: un destello al ir y otro al volver. Lo vio Gianni. */
+    const cuadro = () => new Promise(z => requestAnimationFrame(() => z()));
+    const aLaVista = () => {
+      const rc = cuerpo.getBoundingClientRect();
+      const libs = [...cuerpo.querySelectorAll('.tabo')].filter(t => {
+        const q = t.getBoundingClientRect();
+        return q.right > rc.left + 4 && q.left < rc.right - 4 && q.bottom > rc.top && q.top < rc.bottom;
+      });
+      let op = 1;
+      for (let e = libs[0]; e && e !== document.body; e = e.parentElement)
+        op = Math.min(op, parseFloat(getComputedStyle(e).opacity));
+      return { libros: libs.length, op };
+    };
+    await toque(bAT);
+    const primeros = [];
+    for (let i = 0; i < 8; i++){ await cuadro(); primeros.push(aLaVista()); }
+    await pausa(10);
+    const rej = cuerpo.querySelector('.rejilla-libros');
+    const entrando = { anim: rej ? getComputedStyle(rej).animationName : '',
+                       dir: rej ? rej.style.getPropertyValue('--dir') : '',
+                       cuerpo: getComputedStyle(cuerpo).animationName,
+                       sinLibros: primeros.filter(x => x.libros === 0).length,
+                       opMin: Math.min(...primeros.map(x => x.op)),
+                       fantasmas: cuerpo.querySelectorAll('.rejilla-libros.fantasma').length };
     await pausa(600);
     const enAT = lee();
+    const rej2 = cuerpo.querySelector('.rejilla-libros');
     const reposo = { opacidad: getComputedStyle(cuerpo).opacity,
-                     clase: cuerpo.classList.contains('cambia'),
+                     clase: cuerpo.classList.contains('cambia') ||
+                            !!(rej2 && rej2.classList.contains('llega')),
+                     fantasmas: cuerpo.querySelectorAll('.rejilla-libros.fantasma').length,
                      arranques: arranques.length };
     /* Y AHORA SE CIERRA Y SE VUELVE A ABRIR SIN TOCAR LAS PESTAÑAS. */
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
     await pausa(900);
     await abrirLibros();
-    const alVolver = { clase: cuerpo.classList.contains('cambia'),
+    const rej3 = cuerpo.querySelector('.rejilla-libros');
+    const alVolver = { clase: cuerpo.classList.contains('cambia') ||
+                              !!(rej3 && rej3.classList.contains('llega')),
                        arranques: arranques.length };
     return { enNT, enAT, entrando, reposo, alVolver,
              marcadaNT: enNT.marcada && enNT.marcada.testa,
@@ -292,11 +327,23 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
      las pestañas para que los dos caminos se sientan iguales. Lo que esta
      prueba vigila sigue siendo lo mismo: que entre con movimiento, por su
      lado, y que acabe entera. */
+  /* Y DESDE EL DESTELLO, la pestaña entra como el desliz: la rejilla nueva
+     llega deslizándose entera (entraDeslizando) mientras la vieja sale por el
+     otro lado, sin fundido. entraConRebote sobre el cuerpo arrancaba en
+     opacidad 0, y con la lista vieja ya quitada eso era medio segundo de
+     panel apagándose y prendiéndose. */
   di('la entrada', JSON.stringify(tabs.entrando));
-  vale('LA LISTA ENTRA CON MOVIMIENTO: la entrada con rebote',
-       tabs.entrando.anim === 'entraConRebote', tabs.entrando.anim);
+  vale('LA LISTA ENTRA CON MOVIMIENTO: deslizándose, como con el dedo',
+       tabs.entrando.anim === 'entraDeslizando' && tabs.entrando.cuerpo === 'none',
+       tabs.entrando.anim + ' · cuerpo ' + tabs.entrando.cuerpo);
   vale('  y por el lado de su pestaña: el Antiguo, desde la izquierda',
        tabs.entrando.dir === '-1', tabs.entrando.dir);
+  vale('NI UN CUADRO CON EL PANEL VACÍO al tocar la pestaña',
+       tabs.entrando.sinLibros === 0, tabs.entrando.sinLibros + ' de 8 cuadros sin libros');
+  vale('  ni la lista apagada: no hay destello',
+       tabs.entrando.opMin >= 0.99, 'opacidad mínima ' + tabs.entrando.opMin);
+  vale('  y la de antes se va de lado mientras tanto',
+       tabs.entrando.fantasmas === 1, tabs.entrando.fantasmas + ' copia(s) saliendo');
   vale('  y acaba entera, sin quedarse a medio fundir',
        tabs.reposo.opacidad === '1', tabs.reposo.opacidad);
   /* Y NO SE QUEDA ANIMANDO PARA SIEMPRE. La clase se ponía y no se quitaba
@@ -310,7 +357,8 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
      pasaría por casualidad según lo que tardara el panel en abrirse. */
   di('al reabrir sin tocar pestañas', JSON.stringify(tabs.alVolver));
   vale('UN CAMBIO DE TESTAMENTO VALE UNA ENTRADA, Y SE LIMPIA AL ACABAR',
-       tabs.reposo.arranques === 1 && tabs.reposo.clase === false,
+       tabs.reposo.arranques === 1 && tabs.reposo.clase === false &&
+       tabs.reposo.fantasmas === 0,
        tabs.reposo.arranques + ' arranques, clase puesta: ' + tabs.reposo.clase);
   vale('  y REABRIR EL PANEL no vuelve a animar la lista',
        tabs.alVolver.arranques === 1 && tabs.alVolver.clase === false,

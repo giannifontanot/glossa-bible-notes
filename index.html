@@ -4886,13 +4886,14 @@
      Ahora es un movimiento y no un fundido: la lista que se va sigue de largo
      hasta salir por el lado al que la llevaba el dedo, sin apagarse, y la
      nueva entra deslizándose ENTERA desde el lado contrario, con su rebote y
-     a opacidad plena. La pestaña sigue usando entraConRebote: un toque no
-     trae inercia que continuar, y ahí el fundido corto no molesta.
+     a opacidad plena. La pestaña entra igual desde que se vio que el fundido
+     también se notaba ahí: apagarse y prenderse es un destello, venga del
+     dedo o del toque —ver cantoVerTestamento—.
 
      Se anima la rejilla y no #cantoCuerpo: el cuerpo tiene desbordamiento,
      así que recorta a su hija mientras entra por fuera del borde. Animando
      el cuerpo, la lista se pintaba sobre lo que hubiera al lado del panel. */
-  #cantoCuerpo.testamentos{ overflow-x:hidden; }
+  #cantoCuerpo.testamentos{ overflow-x:hidden; position:relative; }
   #cantoCuerpo .rejilla-libros.llega{
     animation:entraDeslizando .5s cubic-bezier(.2,.7,.3,1) both; }
   @keyframes entraDeslizando{
@@ -6698,7 +6699,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '15-NOV-26 20:54';
+window.GLOSS_BUILD = '16-NOV-26 04:42';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18026,14 +18027,76 @@ function cantoVerTestamento(id, deslizado){
   cantoTesta = id;
   guardarAjustes();
   ocultarCascada();
+  /* LA DE ANTES SE VA DE LADO MIENTRAS LLEGA LA NUEVA, como una hoja.
+     Haciendo entrar la nueva a opacidad plena ya no se apagaba nada, pero
+     quedaba un cuadro vacío: pintarCanto quita la lista vieja de golpe y la
+     nueva arranca fuera, al otro lado del borde. Filmado, el primer cuadro
+     tras el toque seguía siendo el panel en blanco. Se copia la rejilla vieja
+     antes de repintar —la copia lleva sus fondos de sección, que son un svg
+     de dentro— y se pone encima, en su mismo sitio, saliendo hacia el lado
+     contrario al que entra la nueva. Es una copia muerta: inert, sin dueño
+     en los oyentes, y se quita sola al acabar (o con el siguiente repintado,
+     que vacía el cuerpo).
+     Solo con la pestaña: en el desliz la vieja ya se fue con el dedo —ver
+     .yendose—, y con movimiento reducido no hay entrada que acompañar. */
+  const c0 = $('cantoCuerpo');
+  const vieja = !deslizado && c0 && c0.querySelector('.rejilla-libros:not(.fantasma)');
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let fantasma = null, sitio = null;
+  if (vieja && vieja.offsetWidth && !quieto){
+    const rv = vieja.getBoundingClientRect(), rc = c0.getBoundingClientRect();
+    sitio = { top: rv.top - rc.top - c0.clientTop + c0.scrollTop,
+              left: rv.left - rc.left - c0.clientLeft + c0.scrollLeft,
+              w: rv.width, h: rv.height, scroll: vieja.scrollTop };
+    fantasma = vieja.cloneNode(true);
+  }
   pintarCanto();
   const c = $('cantoCuerpo');
-  /* DESDE EL DESLIZ, la que entra es la rejilla nueva, deslizándose entera
-     —ver entraDeslizando—. Los fondos de sección se dibujan YA y no en el
-     cuadro siguiente: con la lista a opacidad plena desde el primer cuadro,
-     ese cuadro de espera se veía como un parpadeo de los colores. Aquí el
-     panel está a la vista, así que los botones ya tienen sitio. */
-  const r = deslizado && c.querySelector('.rejilla-libros');
+  if (fantasma && c){
+    fantasma.classList.add('fantasma');
+    fantasma.classList.remove('llega');
+    fantasma.setAttribute('aria-hidden', 'true');
+    fantasma.inert = true;
+    Object.assign(fantasma.style, {
+      position:'absolute', top: sitio.top + 'px', left: sitio.left + 'px',
+      width: sitio.w + 'px', height: sitio.h + 'px', margin:'0',
+      boxSizing:'border-box', pointerEvents:'none', transform:'', zIndex:'0' });
+    /* DEBAJO DE LA NUEVA. Va después en el árbol —así querySelector sigue
+       encontrando primero la de verdad—, y sin z-index se pintaba encima: la
+       que llegaba se metía por debajo de la que se iba. */
+    const nueva = c.querySelector('.rejilla-libros');
+    if (nueva) nueva.style.zIndex = '1';
+    c.appendChild(fantasma);
+    fantasma.scrollTop = sitio.scroll;
+    const dir0 = id === 'AT' ? -1 : 1;
+    const a = fantasma.animate(
+      [{ transform:'none' }, { transform:'translateX(' + (-100 * dir0) + '%)' }],
+      /* Arranca ya, sin la espera de una curva de aceleración: con ease-in
+         se quedaba quieta los primeros cuadros, tapando a la que entra. */
+      { duration:320, easing:'cubic-bezier(.2,.6,.4,1)', fill:'forwards' });
+    const quitar = () => { fantasma.remove(); if (nueva) nueva.style.zIndex = ''; };
+    a.onfinish = quitar; a.oncancel = quitar;
+  }
+  /* LA QUE ENTRA ES LA REJILLA NUEVA, deslizándose entera —ver
+     entraDeslizando—, venga del dedo o de la pestaña. Los fondos de sección
+     se dibujan YA y no en el cuadro siguiente: con la lista a opacidad plena
+     desde el primer cuadro, ese cuadro de espera se veía como un parpadeo de
+     los colores. Aquí el panel está a la vista, así que los botones ya tienen
+     sitio.
+
+     LA PESTAÑA TAMBIÉN, Y ESO FUE UN ARREGLO. Hasta aquí solo el desliz
+     tomaba este camino; la pestaña seguía con entraConRebote sobre
+     #cantoCuerpo, que arranca en opacidad 0. Filmado cuadro a cuadro: al
+     tocar «NT» el panel se quedaba en blanco —la lista de antes ya no
+     estaba y la nueva todavía invisible— y luego se iba encendiendo medio
+     segundo. Gianni lo vio como un destello al ir y otro al volver. Es el
+     mismo «se apaga y se prende» que ya se le había quitado al desliz, y se
+     arregla igual: la lista no se apaga nunca, se mueve. (El comentario de
+     la regla .llega decía que en la pestaña «el fundido corto no molesta».
+     Molestaba.) `deslizado` queda solo para quien quiera saber de dónde vino
+     el cambio; la entrada es la misma. */
+  void deslizado;
+  const r = c.querySelector('.rejilla-libros');
   if (r){
     c.classList.remove('cambia');
     if (typeof seccionesDibujar === 'function') seccionesDibujar();
