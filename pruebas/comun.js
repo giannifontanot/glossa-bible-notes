@@ -650,38 +650,169 @@ async function otraPagina(navegador, opciones = {}){
 
    Y lo que sí trata del estreno de verdad lo pide con `biblia: null`: abre
    sin sembrar nada, como un teléfono recién estrenado. Ver estreno.prueba.js,
-   «al estrenar en la Berean». */
-/* Y SIN LOS ADORNOS DE ESTRENO. Una instalación nueva trae ahora una perla en
-   1 Corintios 13, una cinta en Juan 3:16 y un rastro de escrituras conocidas
+   «al estrenar en la Berean».
+
+   Y EN MATEO 1, por la misma razón. El estreno abre ahora en Juan 1 —lo pidió
+   Gianni—, pero el banco entero se escribió contra la primera hoja de Mateo:
+   versículos que se pintan, alturas que se miden, saltos que se cuentan. Los
+   ajustes sembrados llevan `libro: 'MAT'`, que es el estado de alguien que
+   estaba leyendo Mateo, y lo que trata de dónde abre una instalación nueva lo
+   mira estreno.prueba.js con `biblia: null`. */
+/* Y SIN LOS ADORNOS DE ESTRENO. Una instalación nueva trae ahora doce perlas
+   por la Biblia, una cinta en Juan 3:16 y un rastro de escrituras conocidas
    —ver sembrarAdornosDeEstreno—. Las suites de perlas, cintas y rastro
    cuentan lo que ponen ellas («se pusieron dos y quedó una»), y con una de
    regalo cada cuenta saldría corrida en uno. Así que esos tres cajones
    arrancan vacíos —'[]', que para la aplicación es «el lector ya los tuvo y
-   los vació», y por eso no siembra—. Las glosas de estreno sí se siembran,
-   como siempre: el banco se escribió con ellas puestas. */
+   los vació», y por eso no siembra—. Las glosas tampoco son las de estreno:
+   ver GLOSAS_DE_CASA. */
+/* Y CON LAS CUATRO GLOSAS DE SIEMPRE, que ya no son las de estreno.
+
+   El banco entero se escribió con las glosas que sembraba una instalación
+   nueva: tres en la genealogía de Mateo 1 y Juan 3:16, todas «Interesante».
+   Las pruebas filtran por su día, las renombran, cuentan cuántas se ven en
+   la primera hoja, borran la clave para tener «la hoja limpia» sabiendo que
+   vuelven esas cuatro… Gianni cambió el estreno —trece glosas esperanzadoras
+   repartidas por la Biblia, ninguna en Mateo 1—, y reescribir el banco para
+   eso sería cambiar cientos de comprobaciones que no tratan del estreno.
+
+   Así que el banco siembra ÉL esas cuatro, tal cual las dejaba la aplicación
+   —capturadas de main antes del cambio, con su ancla calculada sobre la
+   Biblia Libre—, y solo cuando la clave no existe: es el estado de alguien
+   que ya las tenía guardadas, no un simulacro de la aplicación. Al encontrar
+   la clave, la aplicación no siembra las suyas. Como antes, borrarla y
+   recargar las devuelve. La fecha es la de hoy, como la ponía la siembra.
+   Lo que sí trata del estreno —estreno.prueba.js— abre con
+   `glosasDeCasa: false` y ve la siembra de verdad. */
+const GLOSAS_DE_CASA = [
+   {
+    "id": "estreno-MAT-1-1",
+    "libro": "MAT",
+    "cap": 1,
+    "vers": 1,
+    "cita": "Hijo de David",
+    "antes": "tro de Jesús el Mesías, ",
+    "despues": ", Hijo de Abraham, comen",
+    "ini": 46,
+    "fin": 59,
+    "versionOrigen": "vbl",
+    "estilo": "fill",
+    "color": "yellow",
+    "nota": "El título real, de entrada. El último libro lo cierra con el mismo, dicho por él: Ap 22:16",
+    "etiquetas": [
+     "Interesante"
+    ]
+   },
+   {
+    "id": "estreno-MAT-1-3",
+    "libro": "MAT",
+    "cap": 1,
+    "vers": 3,
+    "cita": "su madre fue Tamar",
+    "antes": "adre de Fares y Zarah ( ",
+    "despues": "); y Fares fue el padre ",
+    "ini": 39,
+    "fin": 57,
+    "versionOrigen": "vbl",
+    "estilo": "fill",
+    "color": "blue",
+    "nota": "La genealogía nombra mujeres, y no las que uno esperaría.",
+    "etiquetas": [
+     "Interesante"
+    ]
+   },
+   {
+    "id": "estreno-MAT-1-6",
+    "libro": "MAT",
+    "cap": 1,
+    "vers": 6,
+    "cita": "la esposa de Urías",
+    "antes": "n ( su madre había sido ",
+    "despues": " );",
+    "ini": 83,
+    "fin": 101,
+    "versionOrigen": "vbl",
+    "estilo": "fill",
+    "color": "green",
+    "nota": "No la nombra: la llama por el marido. Betsabé entra en el linaje sin su nombre propio.",
+    "etiquetas": [
+     "Interesante"
+    ]
+   },
+   {
+    "id": "estreno-JHN-3-16",
+    "libro": "JHN",
+    "cap": 3,
+    "vers": 16,
+    "cita": "lo hizo de esta manera",
+    "antes": "ue Dios amó al mundo, y ",
+    "despues": ": entregó a su único Hij",
+    "ini": 29,
+    "fin": 51,
+    "versionOrigen": "vbl",
+    "estilo": "fill",
+    "color": "orange",
+    "nota": "No dice cuánto amó: dice cómo. El «así» de este versículo no mide el amor, señala la manera —y la manera viene justo después, en lo que entregó—. Se aprende de memoria como una medida y es una dirección.",
+    "etiquetas": [
+     "Interesante"
+    ]
+   }
+  ];
+const MARCAS_LLAVE = 'glossa:marcas:v1';
 const AJUSTES_LLAVE = 'glossa:ajustes:v1';
 const CAJONES_SIN_ADORNO = ['glossa:piedras:v1', 'glossa:separadores:v1', 'glossa:historial:v1'];
-async function bibliaDeCasa(pagina, biblia){
+/* LO DE CASA SE SIEMBRA UNA VEZ POR PÁGINA, EN SU PRIMERA CARGA, Y NO EN
+   CADA RECARGA.
+
+   Era un initScript para siempre —«si falta la clave, se pone»— y eso
+   escondía un fallo del banco que salía como pruebas «un paso atrás»: tras
+   escribir en el almacén y recargar, la página nueva traía la versión de
+   antes, la sepia de antes, las glosas de antes. Se midió poniendo un
+   chivato en el initScript: en algunas recargas corre en el documento de la
+   aplicación, todavía cargando, y ve el almacén con CERO claves aunque lo
+   tenga lleno —medio paso después ya ve las cinco—. Creyéndolo vacío,
+   escribía encima sus valores de arranque: la Biblia Libre, la sepia de
+   fábrica, las glosas de casa. En main pasaba igual —4, 7 y 5 de cada 15
+   recargas de una secuencia como la de estreno— y no se veía porque lo que
+   reponía era casi idéntico a lo que había. Con el initScript sin escribir,
+   0 de 15.
+
+   Así que se retira en cuanto la página carga la aplicación por primera
+   vez: siembra el estado de partida y ya no vuelve a tocar nada. Borrar una
+   clave y recargar deja que la aplicación decida qué hace con ella, que es
+   lo que hace un teléfono de verdad. */
+async function bibliaDeCasa(pagina, biblia, glosasDeCasa = true){
   if (biblia === null) return;
-  await pagina.addInitScript(([k, v, vacios]) => {
+  const siembra = await pagina.addInitScript(([k, v, vacios, km, glosas]) => {
     try {
-      if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify({ v:1, version:v }));
+      if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify({ v:1, version:v, libro:'MAT' }));
       for (const c of vacios) if (localStorage.getItem(c) === null) localStorage.setItem(c, '[]');
+      if (glosas && localStorage.getItem(km) === null){
+        const hoy = new Date().toISOString().slice(0, 10);
+        localStorage.setItem(km, JSON.stringify(glosas.map(m => Object.assign({}, m, { creada: hoy }))));
+      }
     } catch(_){}
-  }, [AJUSTES_LLAVE, biblia || 'vbl', CAJONES_SIN_ADORNO]);
+  }, [AJUSTES_LLAVE, biblia || 'vbl', CAJONES_SIN_ADORNO, MARCAS_LLAVE,
+      glosasDeCasa ? GLOSAS_DE_CASA : null]);
+  const retirar = () => {
+    if (!/^file:/.test(pagina.url())) return;
+    pagina.off('domcontentloaded', retirar);
+    siembra.dispose().catch(() => {});
+  };
+  pagina.on('domcontentloaded', retirar);
 }
 
 /* Abre la aplicación y devuelve la página, con los errores de JavaScript ya
    recogidos: que el programa no tire una excepción es parte de cada prueba y
    no algo que haya que acordarse de mirar. */
 async function abrir(opciones = {}){
-  const { biblia, ...deNavegador } = opciones;
+  const { biblia, glosasDeCasa = true, ...deNavegador } = opciones;
   const navegador = await chromium.launch({ executablePath: EJECUTABLE });
   const pagina = await navegador.newPage({ ...TELEFONO, ...deNavegador });
   const errores = [];
   pagina.on('pageerror', e => errores.push(String(e).split('\n')[0]));
   await pagina.addInitScript(PINCEL);
-  await bibliaDeCasa(pagina, biblia);
+  await bibliaDeCasa(pagina, biblia, glosasDeCasa);
   /* Toda recarga espera también: las pruebas recargan en veinte sitios y
      ninguna tiene por qué acordarse de la portada. */
   const recargar = pagina.reload.bind(pagina);

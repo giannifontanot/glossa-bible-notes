@@ -5354,11 +5354,17 @@
      hueco. Lo que las distingue es el peso —contorno para lo que es un estado,
      macizo para lo que termina— y no el tamaño, que es lo que hacía que la
      fila de tres se leyera como dos botones y un apéndice. */
+  /* MÁS AIRE ENTRE LOS BOTONES. Iban a 5px y Gianni los vio «demasiado
+     pegados, principalmente los de abajo»: desde que tienen cuerpo y sombra,
+     dos rectángulos a 5px se leen como uno partido. Abajo va más que arriba
+     porque abajo están las salidas, y Cancelar y OK juntos son justo los dos
+     que no se pueden confundir. */
   #menu .mmodos, #menu .macciones{
                  display:grid; grid-template-columns:repeat(2, minmax(0, 1fr));
-                 gap:5px; }
+                 gap:8px; }
+  #menu .macciones{ gap:10px; margin-top:4px; }
   /* Tres en el renglón de las acciones: etiquetas, Cancelar y OK. Etiquetas
-     lleva más ancho porque lleva más palabra —«▸ etiquetas · 3»—; las dos
+     lleva algo más de ancho porque lleva más palabra —«▸ etiquetas»—; las dos
      salidas, el mismo. */
   #menu .macciones{ align-items:stretch; grid-template-columns:minmax(0, 1.3fr) repeat(2, minmax(0, 1fr)); }
   /* Los dos llevan recuadro, puesto o no. Sin él, el que no está elegido no
@@ -5571,6 +5577,18 @@
   #menu .tagctl input{ flex:1 1 90px; min-width:0; width:auto; }
   #menu .tagctl .crear{ flex:0 0 auto; border-color:rgba(201,162,39,.55);
                         color:#f0dda6; }
+  /* «+ CREAR» MÁS GRANDE Y EL CAMPO MÁS CHICO. Lo pidió Gianni: el campo se
+     comía el renglón y el botón quedaba de apéndice. Una etiqueta es una
+     palabra —sin espacios, ver etiquetaLimpia—, así que el campo no necesita
+     más de media fila; el botón, que es lo que se toca, se lleva la otra
+     mitad y el mismo alto que los botones de abajo. */
+  /* Y EL RENGLÓN MIDE LO QUE SU CAJA. Sin partir renglón, tomaba el ancho
+     natural del campo —un input pide sus 20 letras— más el del botón, y se
+     salía del panel: medido, 356 px dentro de una caja de 268 en un teléfono
+     de 320, con «+ crear» cortado por el filo. */
+  #menu .tagctl{ gap:8px; flex-wrap:nowrap; width:100%; box-sizing:border-box; }
+  #menu .tagctl input{ flex:1 1 0; }
+  #menu .tagctl .crear{ flex:0 0 46%; text-align:center; font-weight:600; }
   .tagbox .vacio{ font-size:calc(.65rem * var(--escala-ui, 1)); opacity:.45; padding:0 4px; }
   /* DORMIDA: se ve, y no responde. Sin nota no hay nada que guardar, así que
      una etiqueta puesta ahora se perdería al cerrar. Apagarla del todo sería
@@ -5899,7 +5917,8 @@
     #menu .mcolores{ justify-content:center; gap:16px; padding:4px 0 6px; }
     #menu .mc{ width:40px; height:40px; border-width:3px; }
     /* Con el dedo, los tres siguen siendo tercios y solo crece el alto. */
-    #menu .mmodos, #menu .macciones{ gap:6px; }
+    #menu .mmodos{ gap:10px; }
+    #menu .macciones{ gap:12px; margin-top:6px; }
     #menu .mmodos button, #menu .macciones button{ padding:13px 8px; }
     /* Los de arriba llegan solos porque llevan la marca en su propio renglón;
        los de abajo son de un renglón y se quedaban en 38, que para un pulgar
@@ -5909,7 +5928,7 @@
        cabía en su columna en un teléfono de 390 y se partía en dos renglones.
        El alto ya lo da el suelo de 48; el aire de los lados no hace falta. */
     #menu .macciones button{ padding-left:4px; padding-right:4px; }
-    #menu .macciones{ grid-template-columns:minmax(0, 1.5fr) repeat(2, minmax(0, 1fr)); }
+    #menu .macciones{ grid-template-columns:minmax(0, 1.3fr) repeat(2, minmax(0, 1fr)); }
     #menu input{ font-size:calc(16px * var(--escala-ui, 1)); padding:11px 13px; width:auto; flex:1 1 120px;
                  min-height:48px; }
     .tagbox{ gap:6px; }
@@ -5938,9 +5957,13 @@
     #menu .gl-vista textarea{ min-height:4.6em; }
     /* Los mandos no son etiquetas: sin esto heredan los 13/15 de #menu button
        y el renglón se come alto por nada. */
+    /* El campo y «+ crear» se reparten el renglón a medias —ver «+ CREAR» MÁS
+       GRANDE—; estas dos reglas son las que mandan con el dedo, y por eso el
+       reparto se escribe aquí: puesto solo arriba, el flex:1 1 90px de aquí
+       lo pisaba y el campo seguía comiéndose el renglón. */
     #menu .tagbox .tagctl input{ font-size:calc(16px * var(--escala-ui, 1)); padding:11px 13px; width:auto;
-                                 flex:1 1 90px; min-width:0; min-height:48px; }
-    #menu .tagbox .tagctl button[data-acc]{ flex:0 0 auto; text-align:center;
+                                 flex:1 1 0; min-width:0; min-height:48px; }
+    #menu .tagbox .tagctl button[data-acc]{ flex:0 0 46%; text-align:center;
                                             padding:11px 15px; font-size:calc(16px * var(--escala-ui, 1));
                                             min-height:48px; }
     #menu .mtags, #menu .mcancelar{ font-size:calc(16px * var(--escala-ui, 1)); }
@@ -6699,7 +6722,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 04:42';
+window.GLOSS_BUILD = '16-NOV-26 12:06';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7648,14 +7671,16 @@ document.head.insertAdjacentHTML('beforeend', '<style>' + PAGE_CSS + '</style>')
 const D = window.GLOSSA_DATA;
 if (!D){ document.body.innerHTML = '<p style="padding:40px;font:14px sans-serif">Falta <b>bibles-included.js</b>. Genéralo con <code>python ebible-a-glossa.py</code>.</p>'; return; }
 
-/* EL LIBRO CON QUE SE ABRE ES MATEO, Y VA ESCRITO, no se toma del orden del
+/* EL LIBRO CON QUE SE ABRE ES JUAN, Y VA ESCRITO, no se toma del orden del
    archivo. Antes era D.libros[0], y daba lo mismo mientras el archivo solo
    traía el Nuevo Testamento: el primero era Mateo. Con el Antiguo dentro, el
    primero pasa a ser Génesis, y la app habría abierto ahí sin que nadie lo
-   decidiera —arrastrando además las glosas de estreno, que hablan de Mateo 1,
-   a Génesis 1—. Se queda en Mateo por decisión del dueño del repo. Si un
-   archivo no lo trae, se cae al primero, como antes. */
-const LIBRO_INICIAL = D.libros.some(b => b.id === 'MAT') ? 'MAT' : D.libros[0].id;
+   decidiera. Fue Mateo hasta que Gianni pidió que el estreno abriera en
+   Juan 1: «En el principio era el Verbo» es mejor primera hoja que una
+   genealogía. Las glosas de estreno de Mateo 1 llevan ahora su libro escrito
+   —ver GLOSAS_DE_ESTRENO—, porque tomaban éste por defecto y se habrían
+   mudado a Juan. Si un archivo no lo trae, se cae al primero, como antes. */
+const LIBRO_INICIAL = D.libros.some(b => b.id === 'JHN') ? 'JHN' : D.libros[0].id;
 let LIBRO = LIBRO_INICIAL;                  // el libro abierto; cambia con el canto
 /* El rojo salió de la paleta: se lo quedó, en exclusiva, el subrayado
    punteado del anclaje dudoso. Un color que solo significa una cosa avisa
@@ -11324,8 +11349,13 @@ function refrescarTags(){
 /* El rótulo del botón de las etiquetas, en un solo sitio: lo escriben dos
    —el repintado y el pliegue— y con la cuenta escrita dos veces una de las dos
    se queda atrás. */
+/* SIN LA CUENTA. Decía «▸ etiquetas · 3», y Gianni pidió quitar el número:
+   no hacía falta —las puestas se ven dentro de la glosa— y solo agrandaba
+   el botón, que con Cancelar al lado ya iba justo. La flecha se queda: es lo
+   que dice si la lista está abierta. `cuantas` se sigue recibiendo para no
+   tocar a los dos que lo llaman. */
 const rotuloTags = (abierta, cuantas) =>
-  (abierta ? '▾ ' : '▸ ') + T('etiquetas','tags') + (cuantas ? ' · ' + cuantas : '');
+  (void cuantas, (abierta ? '▾ ' : '▸ ') + T('etiquetas','tags'));
 
 /* ABRIR Y CERRAR LA LISTA, SIN DAR UN SALTO.
 
@@ -26699,7 +26729,7 @@ function armarManijasIndice(pagina, reordenar){
 /* TRES GLOSAS DE ESTRENO, y solo al estrenar.
 
    Un lector recién abierto no enseña para qué sirve: hoja de Biblia y nada
-   más. Con tres notas puestas se ve de un vistazo qué es una glosa, dónde
+   más. Con unas notas puestas se ve de un vistazo qué es una glosa, dónde
    vive, que llevan color y que se pueden etiquetar.
 
    SE SIEMBRAN UNA SOLA VEZ, y la condición es «la clave nunca existió», no
@@ -26716,66 +26746,181 @@ function armarManijasIndice(pagina, reordenar){
    Van después de cargarAjustes porque necesitan versoTexto, que se define
    bastante más arriba pero como const: en el sitio donde se leen las marcas
    todavía no existe. */
-/* LAS TRES PRIMERAS SON DE LA GENEALOGÍA DE MATEO y la cuarta no, así que el
-   libro dejó de ir fijo y viaja con cada una. Ver sembrarGlosasDeEstreno. */
-/* CADA UNA EN LOS DOS IDIOMAS. Desde que la Berean es la versión de arranque,
-   el usuario nuevo cae en Mateo 1 en INGLÉS, y las frases en español no
-   aparecen en ese texto: sin la otra mitad, la primera hoja salía sin una
-   sola glosa. El dueño del repo pidió tres glosas en esa página «que digan
-   algo acerca de la escritura». `en` lleva su nota y la frase en `frases`:
-   la de la Berean primero y, si dice otra cosa, la de la World English
-   después; se queda la primera que aparezca en el versículo.
+/* LAS GLOSAS DE ESTRENO: UNA POR PERLA, Y JUAN 3:16.
 
-   SUBRAYAN UNA FRASE ENTERA y no dos palabras. Empezaron marcando «the son
-   of David», «by Tamar» y «Uriah’s wife», y el dueño del repo pidió más
-   texto: en la hoja, un subrayado de dos palabras casi no se ve, y la glosa
-   de estreno existe justamente para que se vea.
-   Cuál se usa lo decide el idioma de la versión abierta: ver idiomaVersion. */
+   Fueron tres de la genealogía de Mateo —«Hijo de David», Tamar, la esposa de
+   Urías— más Juan 3:16. Gianni quitó las tres de Mateo: «no tienen nada que
+   ver» con lo que un lector nuevo necesita encontrarse, y además el estreno ya
+   no abre en Mateo sino en Juan 1. En su lugar va una glosa en cada versículo
+   que lleva perla —ver PERLAS_DE_ESTRENO—, así que perla y nota se encuentran
+   juntas: la figura dice dónde mirar y la glosa dice por qué.
+
+   TODAS ESPERANZADORAS. También lo pidió él: lo que se siembra en una
+   instalación nueva es lo primero que el lector lee escrito por otro en su
+   Biblia, y tiene que dejarle algo bueno. La de Juan 3:16 se reescribió por lo
+   mismo: antes explicaba que ese «así» no es una cantidad, que es cierto pero
+   es una lección; ahora dice que «el mundo» le incluye a él.
+
+   CADA UNA CON UNA ETIQUETA, Y LAS ETIQUETAS SON POCAS. Cinco, con un emoji
+   delante, para trece glosas: se repiten a propósito, que es lo que enseña
+   para qué sirve una etiqueta —tocarla y ver juntas las que la comparten—.
+   Sin espacios, como cualquier otra (ver etiquetaLimpia): «AmorDeDios».
+
+   CADA UNA EN LOS DOS IDIOMAS, y en cada idioma con UNA FRASE POR VERSIÓN:
+   primero la de la Biblia Libre o la Berean, después la de la RV1909 o la
+   World English cuando dicen otra cosa. Se queda la primera que aparezca en
+   el versículo, y si ninguna aparece, esa glosa no se siembra. `en` lleva la
+   mitad inglesa —nota, frases y etiqueta—. Cuál se usa lo decide el idioma de
+   la versión abierta: ver idiomaVersion.
+
+   SUBRAYAN UNA FRASE ENTERA y no dos palabras: en la hoja un subrayado de dos
+   palabras casi no se ve, y la glosa de estreno existe para que se vea. */
 const GLOSAS_DE_ESTRENO = [
-  { cap:1, vers:1, frase:'Hijo de David', color:'yellow',
-    nota:'El título real, de entrada. El último libro lo cierra con el mismo, ' +
-         'dicho por él: Ap 22:16',
-    en:{ frases:['the genealogy of Jesus Christ, the son of David'],
-         nota:'The royal title comes first, even before Abraham. Matthew does not ' +
-              'open with a family tree but with a claim: this is the King promised ' +
-              'to David (2 Sam 7:12–16). The Bible closes with the same title, in ' +
-              'Jesus’ own mouth: Rev 22:16.' } },
-  { cap:1, vers:3, frase:'su madre fue Tamar', color:'blue',
-    nota:'La genealogía nombra mujeres, y no las que uno esperaría.',
-    en:{ frases:['Judah was the father of Perez and Zerah by Tamar',
-                 'Judah became the father of Perez and Zerah by Tamar'],
-         nota:'The genealogy names women — and not the ones you would expect. ' +
-              'Tamar had to fight for the justice Judah denied her (Gen 38). ' +
-              'The Messiah’s line runs through a story no family would choose to tell.' } },
-  { cap:1, vers:6, frase:'la esposa de Urías', color:'green',
-    nota:'No la nombra: la llama por el marido. Betsabé entra en el linaje sin ' +
-         'su nombre propio.',
-    en:{ frases:['David was the father of Solomon by Uriah’s wife',
-                 'David the king became the father of Solomon by her who had been Uriah’s wife'],
-         nota:'Matthew does not say her name; he names the man David wronged. ' +
-              'The sin stays written in the family record: the King’s line does ' +
-              'not hide what grace had to cover.' } },
-  /* Y JUAN 3:16, que es el versículo que todo el mundo sabe de memoria y por
-     eso mismo el que menos se lee. La nota no lo explica —no hace falta— sino
-     que señala lo único que la costumbre se come: que ese «así» no es una
-     cantidad. */
-  { libro:'JHN', cap:3, vers:16, frase:'lo hizo de esta manera', color:'orange',
-    nota:'No dice cuánto amó: dice cómo. El «así» de este versículo no mide el ' +
-         'amor, señala la manera —y la manera viene justo después, en lo que ' +
-         'entregó—. Se aprende de memoria como una medida y es una dirección.',
-    en:{ frases:['For God so loved the world that He gave His one and only Son',
-                 'For God so loved the world, that he gave his only born Son'],
-         nota:'“So” here is not how much but how: God loved the world in this way — ' +
-              'and the way comes right after, in what He gave. We memorize it as ' +
-              'a measure; it is a direction.' } },
+  { libro:'GEN', cap:8, vers:11, color:'green', etiqueta:'🌅Esperanza',
+    frases:['trajo en su pico una hoja fresca de olivo', 'traía una hoja de oliva tomada en su pico'],
+    nota:'Después del diluvio, lo primero que vuelve es una hoja verde. Dios no anuncia ' +
+         'el final de la tormenta con un trueno, sino con algo pequeño y vivo. Fíjate en ' +
+         'las hojas pequeñas: también hoy anuncian tierra firme.',
+    en:{ etiqueta:'🌅Hope',
+         frases:['with a freshly plucked olive leaf in her beak', 'in her mouth was a freshly plucked olive leaf'],
+         nota:'After the flood, the first thing to come back is a green leaf. God does not ' +
+              'announce the end of the storm with thunder but with something small and alive. ' +
+              'Watch for the small leaves: they still announce dry ground.' } },
+  { libro:'GEN', cap:15, vers:5, color:'yellow', etiqueta:'📜Promesa',
+    frases:['Mira al cielo, y dime si puedes contar las estrellas', 'Mira ahora á los cielos, y cuenta las estrellas'],
+    nota:'Abram no tenía ni un hijo, y Dios lo saca de la tienda a mirar el cielo. Cuando ' +
+         'la promesa parece imposible, Dios no te pide que la entiendas: te invita a ' +
+         'levantar la vista. Las estrellas siguen ahí.',
+    en:{ etiqueta:'📜Promise',
+         frases:['Now look to the heavens and count the stars', 'Look now toward the sky, and count the stars'],
+         nota:'Abram had no child, and God takes him outside to look at the sky. When a ' +
+              'promise looks impossible, God does not ask you to figure it out: He invites ' +
+              'you to look up. The stars are still there.' } },
+  { libro:'PSA', cap:118, vers:22, color:'orange', etiqueta:'🌅Esperanza',
+    frases:['La piedra rechazada por los constructores ha llegado a ser la piedra angular',
+            'La piedra que desecharon los edificadores, ha venido á ser cabeza del ángulo'],
+    nota:'Lo que otros descartaron, Dios lo pone en el centro. Jesús se aplicó este ' +
+         'versículo a sí mismo (Mt 21:42). Si alguna vez te sentiste descartado, estás en ' +
+         'buena compañía: con piedras así construye Dios.',
+    en:{ etiqueta:'🌅Hope',
+         frases:['The stone the builders rejected has become the cornerstone',
+                 'The stone which the builders rejected has become the cornerstone'],
+         nota:'What others threw away, God sets at the center. Jesus took this verse for ' +
+              'Himself (Matt 21:42). If you have ever felt rejected, you are in good company: ' +
+              'these are the stones God builds with.' } },
+  { libro:'ISA', cap:40, vers:8, color:'blue', etiqueta:'⚓FeFirme',
+    frases:['la palabra de nuestro Dios perdurará para siempre', 'la palabra del Dios nuestro permanece para siempre'],
+    nota:'Todo lo que ves se marchita, también lo que hoy te preocupa. Lo que Dios ha ' +
+         'dicho no se marchita. Puedes apoyar todo tu peso en una promesa que dura más ' +
+         'que tus problemas.',
+    en:{ etiqueta:'⚓FirmFaith',
+         frases:['the word of our God stands forever'],
+         nota:'Everything you see withers, including what worries you today. What God has ' +
+              'said does not wither. You can lean your whole weight on a promise that ' +
+              'outlasts your troubles.' } },
+  { libro:'EZK', cap:36, vers:26, color:'green', etiqueta:'🌱VidaNueva',
+    frases:['Te daré una mente nueva y pondré un espíritu nuevo dentro de ti',
+            'Y os daré corazón nuevo, y pondré espíritu nuevo dentro de vosotros'],
+    nota:'Dios no te pide que te arregles el corazón tú solo: promete darte uno nuevo. Lo ' +
+         'que en ti se endureció no tiene la última palabra, y él no deja a medias lo que ' +
+         'empieza (Fil 1:6).',
+    en:{ etiqueta:'🌱NewLife',
+         frases:['I will give you a new heart and put a new spirit within you',
+                 'I will also give you a new heart, and I will put a new spirit within you'],
+         nota:'God does not ask you to fix your heart on your own: He promises to give you a ' +
+              'new one. What hardened in you does not get the last word, and He does not ' +
+              'leave unfinished what He starts (Phil 1:6).' } },
+  /* El 2:1 y no el 1:17: ver PERLAS_DE_ESTRENO. En la RV1909 este versículo es
+     el del pez que se traga a Jonás y no el de la oración, así que la nota
+     habla de las dos cosas y vale para las dos. */
+  { libro:'JON', cap:2, vers:1, color:'blue', etiqueta:'🌅Esperanza',
+    frases:['Jonás oró al Señor su Dios desde el vientre del pez',
+            'estuvo Jonás en el vientre del pez tres días y tres noches'],
+    nota:'Jonás huía de Dios y acabó en el sitio más oscuro posible: el vientre de un pez. ' +
+         'Y desde ahí oró, y Dios lo escuchó. No hay fondo tan hondo que una oración no ' +
+         'llegue desde él.',
+    en:{ etiqueta:'🌅Hope',
+         frases:['From inside the fish, Jonah prayed to the LORD his God',
+                 'Jonah prayed to the LORD, his God, out of the fish’s belly'],
+         nota:'Jonah was running from God and ended up in the darkest place imaginable: the ' +
+              'belly of a fish. From there he prayed, and God heard him. There is no pit so ' +
+              'deep that a prayer cannot rise from it.' } },
+  { libro:'MAT', cap:13, vers:44, color:'yellow', etiqueta:'🌱VidaNueva',
+    frases:['lleno de alegría se fue y vendió todo lo que tenía', 'de gozo de ello va, y vende todo lo que tiene'],
+    nota:'El hombre no lo vende todo con tristeza, sino «lleno de alegría». Encontrar a ' +
+         'Dios no es perder: es dar con algo que vale más que todo lo demás. Y ese tesoro ' +
+         'sigue ahí para quien lo busca.',
+    en:{ etiqueta:'🌱NewLife',
+         frases:['in his joy he went and sold all he had', 'In his joy, he goes and sells all that he has'],
+         nota:'The man does not sell everything in sorrow but “in his joy.” Finding God is not ' +
+              'losing: it is finding something worth more than everything else. And the ' +
+              'treasure is still there for whoever looks.' } },
+  { libro:'MAT', cap:16, vers:19, color:'orange', etiqueta:'⚓FeFirme',
+    frases:['Te daré las llaves del reino de los cielos', 'á ti daré las llaves del reino de los cielos'],
+    nota:'Jesús le da las llaves a Pedro, el mismo que poco después lo negaría tres veces. ' +
+         'Dios confía en gente imperfecta. Tus tropiezos no le cierran la puerta que él ' +
+         'quiere abrir contigo.',
+    en:{ etiqueta:'⚓FirmFaith',
+         frases:['I will give you the keys of the kingdom of heaven', 'I will give to you the keys of the Kingdom of Heaven'],
+         nota:'Jesus hands the keys to Peter, the same man who would soon deny Him three times. ' +
+              'God trusts imperfect people. Your stumbles do not shut the door He wants to ' +
+              'open with you.' } },
+  { libro:'JHN', cap:15, vers:5, color:'green', etiqueta:'❤️AmorDeDios',
+    frases:['Yo soy la vid y ustedes las ramas', 'Yo soy la vid, vosotros los pámpanos'],
+    nota:'Una rama no se esfuerza para dar fruto: se queda unida a la vid. Lo que Jesús te ' +
+         'pide no es más fuerza, sino quedarte cerca. El fruto es cosa suya.',
+    en:{ etiqueta:'❤️GodsLove',
+         frases:['I am the vine and you are the branches', 'I am the vine. You are the branches'],
+         nota:'A branch does not strain to bear fruit: it stays joined to the vine. What Jesus ' +
+              'asks of you is not more strength but staying close. The fruit is His doing.' } },
+  { libro:'1CO', cap:13, vers:4, color:'yellow', etiqueta:'❤️AmorDeDios',
+    frases:['El amor es paciente y amable', 'La caridad es sufrida, es benigna'],
+    nota:'Antes de ser lo que tú tienes que hacer, es lo que Dios ya hace contigo: es ' +
+         'paciente contigo, es amable contigo. Lee el versículo poniendo su nombre donde ' +
+         'dice «amor», y escucha cómo te trata.',
+    en:{ etiqueta:'❤️GodsLove',
+         frases:['Love is patient, love is kind', 'Love is patient and is kind'],
+         nota:'Before it is what you must do, it is what God already does with you: He is ' +
+              'patient with you, He is kind to you. Read the verse with His name where it says ' +
+              '“love,” and hear how He treats you.' } },
+  { libro:'HEB', cap:6, vers:19, color:'blue', etiqueta:'⚓FeFirme',
+    frases:['Esta esperanza es nuestra ancla espiritual', 'segura y firme ancla del alma'],
+    nota:'Un ancla no detiene la tormenta: impide que el barco se pierda en ella. La ' +
+         'esperanza en Cristo no te promete un mar en calma; te promete que estás sujeto a ' +
+         'algo que no se mueve.',
+    en:{ etiqueta:'⚓FirmFaith',
+         frases:['We have this hope as an anchor for the soul', 'This hope we have as an anchor of the soul'],
+         nota:'An anchor does not stop the storm: it keeps the ship from being lost in it. Hope ' +
+              'in Christ does not promise you a calm sea; it promises you are held by something ' +
+              'that does not move.' } },
+  { libro:'REV', cap:2, vers:10, color:'orange', etiqueta:'📜Promesa',
+    frases:['yo te daré la corona de la vida'],
+    nota:'La prueba tiene fecha de caducidad —«diez días»—; la corona, no. El sufrimiento ' +
+         'es real, pero tiene final, y lo que Dios da al final es vida.',
+    en:{ etiqueta:'📜Promise',
+         frases:['I will give you the crown of life'],
+         nota:'The trial has an end date, “ten days”; the crown does not. The suffering is ' +
+              'real, but it ends, and what God gives at the end is life.' } },
+  /* JUAN 3:16, más esperanzadora que antes —ver arriba—. Subraya el
+     principio de la frase, que es donde está «el mundo». */
+  { libro:'JHN', cap:3, vers:16, color:'orange', etiqueta:'❤️AmorDeDios',
+    frases:['Porque Dios amó al mundo', 'de tal manera amó Dios al mundo'],
+    nota:'Tú cabes en «el mundo». No hay nadie a quien este amor deje fuera, y la frase no ' +
+         'termina en pérdida sino en «vida eterna». La historia que Dios escribe contigo ' +
+         'acaba en vida.',
+    en:{ etiqueta:'❤️GodsLove',
+         frases:['For God so loved the world'],
+         nota:'“The world” includes you. There is no one this love leaves out, and the ' +
+              'sentence does not end in perishing but in eternal life. The story God writes ' +
+              'with you ends in life.' } },
 ];
 function sembrarGlosasDeEstreno(){
   /* EL LIBRO VA ESCRITO EN CADA UNA, no se toma del que esté abierto. Estas
      notas hablan de un sitio concreto: en otro libro no dirían nada, y peor,
      la frase podría encontrarse por casualidad en otro 1:1 y marcar lo que no
-     es. Tres son de Mateo y por eso el libro inicial —LIBRO_INICIAL, que es
-     Mateo— es el valor por defecto; la de Juan trae el suyo. Antes era el
-     primero del archivo, y con el Antiguo Testamento dentro ese es Génesis. */
+     es. Todas lo llevan escrito; LIBRO_INICIAL queda solo de respaldo para
+     una que algún día se añada sin él. Antes era el primero del archivo, y
+     con el Antiguo Testamento dentro ese es Génesis. */
   const porDefecto = LIBRO_INICIAL;
   if (!porDefecto) return;
   const hoy = new Date().toISOString().slice(0,10);
@@ -26811,7 +26956,8 @@ function sembrarGlosasDeEstreno(){
       despues: texto.slice(fin, fin+24),
       ini, fin, versionOrigen: version,
       estilo: 'fill', color: e.color,
-      nota: e.nota, etiquetas: [enIngles ? 'Interesting' : 'Interesante'],
+      /* La suya, que es una de cinco: ver GLOSAS_DE_ESTRENO. */
+      nota: e.nota, etiquetas: [e.etiqueta],
       creada: hoy
     });
   }
@@ -26826,6 +26972,8 @@ function sembrarGlosasDeEstreno(){
    puesta, una cinta colgada y un historial con algo dentro, los tres paneles
    que si no saldrían vacíos se explican solos.
 
+   · DOCE PERLAS POR LA BIBLIA —ver PERLAS_DE_ESTRENO—. Empezó siendo una
+     sola, la que sigue aquí abajo:
    · UN FUEGO ROJO EN 1 CORINTIOS 13:4, «el amor es paciente». Es la figura
      «llama» del mando de las perlas —la misma que elige cualquiera ahí— y no
      un dibujo aparte; nació como la perla lisa y el dueño del repo la pidió
@@ -26846,6 +26994,52 @@ function sembrarGlosasDeEstreno(){
    tampoco existió nunca: si por lo que sea ya hay perlas, cintas o rastro
    guardados, no se pisan. Y se guardan enseguida, así que desde el primer
    momento son del lector: se mueven, se quitan y se borran como las suyas. */
+/* LAS PERLAS DE ESTRENO: DOCE, seis del Antiguo y seis del Nuevo. Gianni
+   pidió «escrituras bien representativas» de los dos testamentos, con la
+   figura que mejor les corresponda, y «ni pocas ni muchas». Doce es una por
+   figura sin repetir ninguna —quedan fuera el avioncito, que no sale de
+   ningún versículo, y la cinta, que en la hoja se confundiría con un
+   separador—, y repartidas por la Biblia se encuentran hojeando, no se
+   amontonan: casi ninguna hoja tiene dos.
+
+   EL CRITERIO ES QUE EL VERSÍCULO NOMBRE LA FIGURA. No se buscó un símbolo
+   que «vaya» con el pasaje: la paloma trae la hoja de olivo, Abram cuenta las
+   estrellas, la piedra es la que desecharon los edificadores, la hierba se
+   seca y la palabra no, el corazón nuevo, el pez de Jonás, el tesoro del
+   campo, las llaves del reino, la vid, el ancla del alma y la corona de la
+   vida. Quien la ve en la hoja la reconoce leyendo el versículo de al lado.
+   La llama de 1 Corintios 13:4 ya estaba y se queda tal cual —el fuego rojo
+   lo pidió el dueño del repo—.
+
+   JONÁS 2:1 Y NO 1:17. El gran pez está en 1:17 en casi todas, pero la
+   RV1909 numera como el hebreo y ahí ese versículo es el 2:1, y su 1:17 no
+   existe. El 2:1 es «desde el vientre del pez» en las cuatro versiones
+   incluidas, así que la perla cae en un versículo que habla del pez sea cual
+   sea la que se abra.
+
+   EL SITIO, x e y, ES DE LA HOJA y no del versículo —así son las perlas: ver
+   ponerPiedra—, y al sembrar todavía no hay hoja que medir. Se reparten por
+   la zona que un teléfono ve entera —la capa es más ancha que la pantalla, y
+   pasado el .6 se sale—, cada una en un sitio distinto para que, si dos
+   caen en la misma hoja, no se tapen. Los colores salen de las doce tintas,
+   eligiendo el que la cosa tiene: perla para la paloma, oro para la estrella
+   y la corona, verde para la hoja, morado para las uvas. */
+const PERLAS_DE_ESTRENO = [
+  /* Antiguo Testamento */
+  { libro:'GEN', cap:8,   vers:11, forma:'paloma',   color:'perla',        x:.40, y:.30 },
+  { libro:'GEN', cap:15,  vers:5,  forma:'estrella', color:'ocre-vivo',    x:.52, y:.52 },
+  { libro:'PSA', cap:118, vers:22, forma:'piedra',   color:'sepia',        x:.34, y:.66 },
+  { libro:'ISA', cap:40,  vers:8,  forma:'hoja',     color:'oliva-vivo',   x:.50, y:.36 },
+  { libro:'EZK', cap:36,  vers:26, forma:'corazon',  color:'carmin-vivo',  x:.42, y:.58 },
+  { libro:'JON', cap:2,   vers:1,  forma:'pez',      color:'indigo-vivo',  x:.48, y:.24 },
+  /* Nuevo Testamento */
+  { libro:'MAT', cap:13,  vers:44, forma:'cofre',    color:'ocre',         x:.38, y:.44 },
+  { libro:'MAT', cap:16,  vers:19, forma:'llave',    color:'sepia',        x:.54, y:.70 },
+  { libro:'JHN', cap:15,  vers:5,  forma:'uvas',     color:'ciruela-vivo', x:.44, y:.40 },
+  { libro:'1CO', cap:13,  vers:4,  forma:'llama',    color: PIEDRA_COLOR_NUEVA, x:.45, y:.62 },
+  { libro:'HEB', cap:6,   vers:19, forma:'ancla',    color:'indigo',       x:.36, y:.34 },
+  { libro:'REV', cap:2,   vers:10, forma:'corona',   color:'ocre-vivo',    x:.50, y:.48 }
+];
 const RASTRO_DE_ESTRENO = [
   ['JHN', 3, 16], ['PSA', 23, 1], ['1CO', 13, 4], ['PHP', 4, 13], ['ROM', 8, 28],
   ['ISA', 40, 31], ['JER', 29, 11], ['PRO', 3, 5], ['MAT', 11, 28], ['JHN', 14, 6],
@@ -26855,12 +27049,21 @@ function sembrarAdornosDeEstreno(){
   const nunca = k => { try { return localStorage.getItem(k) === null; } catch(e){ return false; } };
   const hay = (libro, cap, vers) => { try { return !!versoTexto(version, cap, vers, libro); } catch(e){ return false; } };
   const ahora = Date.now();
-  if (nunca(PIEDRAS) && hay('1CO', 13, 4)){
-    piedras = [{ id: piedraNuevoId(), libro:'1CO', cap:13, vers:4,
-                 x:.45, y:.62, forma: 'llama', tam: PIEDRA_TAM_NUEVA,
-                 color: PIEDRA_COLOR_NUEVA, sombra: true,
-                 creado: ahora, tocado: ahora }];
-    piedrasGuardar();
+  if (nunca(PIEDRAS)){
+    /* EN EL ORDEN DE LA BIBLIA. La lista de perlas va de la última tocada a
+       la más vieja —piedrasGuardar las ordena así al guardar—, de modo que
+       el orden lo deciden las fechas y no el del arreglo. Se dan un minuto
+       separadas y la MÁS RECIENTE ES GÉNESIS: así la lista sale de Génesis a
+       Apocalipsis. Se escribió primero al revés, pensando que la lista
+       seguía el orden guardado, y salía empezando por Apocalipsis. */
+    piedras = PERLAS_DE_ESTRENO.filter(p => hay(p.libro, p.cap, p.vers))
+      .map((p, i) => {
+        const t = ahora - i * 60000;
+        return { id: piedraNuevoId(), libro: p.libro, cap: p.cap, vers: p.vers,
+                 x: p.x, y: p.y, forma: p.forma, tam: PIEDRA_TAM_NUEVA,
+                 color: p.color, sombra: true, creado: t, tocado: t };
+      });
+    if (piedras.length) piedrasGuardar();
   }
   if (nunca(SEPARADORES) && hay('JHN', 3, 16)){
     separadores = [{ id: sepNuevoId(), libro:'JHN', cap:3, vers:16,

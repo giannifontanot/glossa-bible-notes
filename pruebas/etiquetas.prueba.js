@@ -135,15 +135,30 @@ const FUERA = `async () => {
     bot.click(); await new Promise(z => setTimeout(z, 200));
     const abierta = getComputedStyle(caja).display;
     const rotuloAbierta = bot.textContent;
-    bot.click(); await new Promise(z => setTimeout(z, 200));
-    const cerrada = getComputedStyle(caja).display;
+    /* SIN LA CUENTA: con una etiqueta puesta el botón decía «▾ etiquetas · 1»,
+       y Gianni pidió quitar el número —solo agrandaba el botón—. Se pone una,
+       se lee el rótulo y se quita, para dejar la glosa como estaba. */
+    const tg = caja.querySelector('.tg');
+    let rotuloConUna = null;
+    if (tg){
+      tg.click(); await new Promise(z => setTimeout(z, 200));
+      rotuloConUna = document.querySelector('#menu .mtags').textContent;
+      const otra = document.querySelector('#menu .tagbox .tg[data-tag="' + tg.dataset.tag + '"]');
+      if (otra) otra.click();
+      await new Promise(z => setTimeout(z, 200));
+    }
+    document.querySelector('#menu .mtags').click(); await new Promise(z => setTimeout(z, 200));
+    const cerrada = getComputedStyle(document.querySelector('#menu .tagbox')).display;
     await eval('(' + fuera + ')')();
-    return { alNacer, abierta, cerrada, rotuloAbierta };
+    return { alNacer, abierta, cerrada, rotuloAbierta, rotuloConUna };
   }, [ABRIR, FUERA]).then(r => {
     vale('cerrada de nacimiento', !r.sinPanel && r.alNacer === 'none', r.alNacer);
     vale('el botón la abre', r.abierta !== 'none', r.abierta);
     vale('y la vuelve a cerrar', r.cerrada === 'none', r.cerrada);
     vale('el rótulo dice que está abierta', /▾/.test(r.rotuloAbierta || ''), r.rotuloAbierta);
+    vale('  y con una etiqueta puesta no lleva número',
+         r.rotuloConUna !== null && /etiquetas/.test(r.rotuloConUna) && !/\d/.test(r.rotuloConUna),
+         r.rotuloConUna);
     return r;
   }));
 
