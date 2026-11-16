@@ -1875,6 +1875,52 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   }));
   await p.waitForTimeout(2700);              /* que aterrice antes de seguir */
 
+  /* CANCELAR TAMBIÉN SE RECOGE. Soltaba el borrador antes de llamar a
+     ocultarMenu, y ocultarMenu sin borrador no mide de dónde salió el panel:
+     se apagaba de golpe, la única salida que lo hacía. Lo vio Gianni. Se
+     prueba con texto escrito, que es el caso que engaña: con texto, OK y
+     tocar fuera hacen volar la nota y NO encogen el panel; Cancelar no guarda
+     nada, así que no hay vuelo que cuente la salida y tiene que encogerse. */
+  for (const conTexto of [false, true]) {
+    di('cancelar ' + (conTexto ? 'con' : 'sin') + ' texto', await p.evaluate(async ([abrir, conTexto]) => {
+      const menu = document.getElementById('menu');
+      if (!await eval('(' + abrir + ')')(50, 66)) return { sinTexto:true, porque: window.__pincelPorque };
+      if (conTexto){
+        const ta = document.getElementById('glosaCaja');
+        ta.value = 'esto se cancela y no vuela';
+        ta.dispatchEvent(new Event('input', { bubbles:true }));
+      }
+      const m = menu.getBoundingClientRect();
+      const b = menu.querySelector('.macciones [data-acc="cancelar"]');
+      if (!b) return { sinBoton:true };
+      b.click();
+      await new Promise(z => setTimeout(z, 40));
+      const an = menu.getAnimations()[0];
+      const org = getComputedStyle(menu).transformOrigin.split(' ').map(parseFloat);
+      const res = {
+        animando: !!an,
+        duracion: an ? an.effect.getTiming().duration : null,
+        aunPuesto: getComputedStyle(menu).display !== 'none',
+        dentro: org[0] >= -1 && org[0] <= m.width + 1 && org[1] >= -1 && org[1] <= m.height + 1,
+        calcos: [...document.body.children].filter(e =>
+                  e.classList && e.classList.contains('gl-vista')).length
+      };
+      await new Promise(z => setTimeout(z, 400));
+      res.cerrado = getComputedStyle(menu).display === 'none';
+      res.vacio = menu.innerHTML === '';
+      return res;
+    }, [ABRIR, conTexto]).then(r => {
+      const qué = conTexto ? 'con texto' : 'sin texto';
+      vale('Cancelar ' + qué + ' se recoge, no se apaga de golpe',
+           !r.sinTexto && !r.sinBoton && r.animando && r.duracion === 140 && r.aunPuesto,
+           r.sinBoton ? 'sin botón' : (r.duracion + ' ms, puesto ' + r.aunPuesto));
+      vale('  hacia el pasaje del que salió', r.dentro === true);
+      vale('  sin hacer volar nada', r.calcos === 0, r.calcos + ' calco(s)');
+      vale('  y acaba recogido del todo', r.cerrado && r.vacio);
+      return r;
+    }));
+  }
+
   /* LA REGRESIÓN QUE COSTÓ ENCONTRAR. Aplazar el vaciado abre una rendija:
      reabrir el panel en el instante justo en que la despedida termina. Con
      fill:'forwards' el relleno se quedaba puesto y el panel nuevo salía a
