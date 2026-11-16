@@ -397,10 +397,15 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        marca en su renglón; los de abajo son de un renglón y se quedaban en 38. */
     vale('y los de abajo caben bajo un dedo',
          Math.min(...r.altosAbajo) >= 44, r.altosAbajo.join(' / '));
-    /* Separados por unos pocos píxeles: pegados se leen como un solo bloque
-       partido, y con mucho hueco «▮ resaltado» ya no cabe sin partirse. */
-    vale('separados por unos pocos píxeles',
-         r.hueco > 0 && r.hueco <= 8, r.hueco + 'px');
+    /* SEPARADOS, CON AIRE. Pegados se leen como un solo bloque partido. El
+       tope era 8 px, pensando en que con mucho hueco «▮ resaltado» no cabía
+       sin partirse; Gianni pidió más aire —«están demasiado pegados»— y se
+       subió a 10 (12 abajo con el dedo). El tope se queda en 14: pasado eso
+       los botones dejan de leerse como un grupo. El otro lado —que con el
+       aire un rótulo se parta— lo vigila «cada pareja, del mismo alto»: un
+       rótulo partido crece y deja a su pareja más baja. */
+    vale('separados con aire, sin desperdigarse',
+         r.hueco >= 8 && r.hueco <= 14, r.hueco + 'px');
     vale('SIN TEXTO EL OK SIGUE ACTIVO', r.okApagado === false, r.okApagado);
     vale('macizo, y los trazos de contorno', r.okMacizo !== r.modoMacizo,
          r.okMacizo + '  vs  ' + r.modoMacizo);
