@@ -3484,7 +3484,19 @@
   /* Fondo transparente de Formato: para ver la hoja mientras se ajusta. */
   #ajustes.cristal{ background:transparent; box-shadow:none; }
   #ajustes.cristal::before, #ajustes.cristal::after{ display:none; }
-  .vidrio-fila{ display:flex; justify-content:center; width:100%; margin:2px 0 4px; }
+  /* TRANSPARENTE Y AJUSTES FINOS, LOS DOS EN UN RENGLÓN Y EN SU BANDEJA.
+     Iban uno debajo del otro, a lo ancho, y Gianni los pidió juntos: «dos
+     botones en el mismo renglón, pero que sea claro que no son opciones como
+     las de arriba». Lo que lo dice es la bandeja: una franja más oscura que el
+     papel que los envuelve a los dos, como una barra de herramientas. Los
+     presets son tarjetas claras sueltas, cada una una elección; esto son dos
+     mandos oscuros sobre su propia franja, que no eligen nada —uno deja ver la
+     hoja, el otro abre un cajón—. Mitad y mitad: ninguno de los dos manda
+     sobre el otro. */
+  .vidrio-fila{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px;
+                width:100%; margin:10px 0 6px; padding:7px; box-sizing:border-box;
+                border-radius:14px; background:rgba(74,59,23,.16);
+                box-shadow:inset 0 1px 3px rgba(60,40,15,.28); }
   /* MIDE SU PALABRA, COMO EL DE CERRAR. Estuvo a todo lo ancho, y la razón
      escrita aquí era que es la puerta de salida del modo transparente: «a todo
      lo ancho está donde uno mira». El dueño del repo lo paró con el mismo
@@ -3629,9 +3641,12 @@
      demás filas son ajustes, y ésta es la salida. Además su tablilla sobra,
      porque el botón ya trae fondo de papel propio; dos papeles superpuestos
      solo engordan el borde. */
+  /* Y DESDE QUE LLEVA LOS DOS BOTONES, SU BANDEJA SE QUEDA: es lo que dice
+     que esos dos van aparte de los presets, y en transparente hace más falta,
+     no menos. Va del color de las tablillas, para leerse sobre la hoja. */
   #ajustes.cristal #ctrlConfig .ajuste.vidrio-fila{
     justify-self:stretch; width:100%;
-    background:transparent; box-shadow:none; padding:0; }
+    background:var(--tablilla); box-shadow:none; padding:7px; }
   /* Y LAS TRES DEL RIEL TAMPOCO ENCOGEN POR DENTRO. Estas dos líneas ajustan
      cada pieza a sus letras, que es lo que deja las tablillas estrechas; en
      una fila de riel hacen lo de siempre por otro camino —el riel se queda en
@@ -3705,7 +3720,7 @@
      alrededor de una fila que no tiene fondo. Mi sondeo no lo vio porque medía
      borderTopWidth, que era justo el único que sí estaba apagado. */
   #ajustes.cristal #ctrlConfig .ajuste.ancho.vidrio-fila{
-    border:0; margin-top:2px; padding-top:3px; }
+    border:1px solid var(--tablilla-borde); margin-top:10px; padding:7px; }
   /* Y EL CRÉDITO, que también es letra suelta sobre la hoja. La atribución de
      CC BY-SA tiene que poder leerse, y transparente no se leía. Se le deja su
      tablilla, pero con inline-block para que mida sus renglones y no el panel:
@@ -4696,7 +4711,7 @@
                     color:#fff7df; border-color:#e2bd52;
                     background:linear-gradient(to bottom, #a8862f, #8c6d22);
                     box-shadow:inset 0 1px 3px rgba(0,0,0,.3), 0 0 0 2px rgba(226,189,82,.45); }
-  .vidrio-fila .btn-largo{ margin:4px 0 0; }
+  .vidrio-fila .btn-largo{ margin:0; padding:0 8px; }
   .finos-flecha{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2.2;
                  stroke-linecap:round; stroke-linejoin:round;
                  transition:transform .45s cubic-bezier(.2,.8,.25,1); }
@@ -6350,15 +6365,15 @@
   <button type="button" class="btn btn-largo" id="btnVidrio"
           aria-pressed="false"
           title="Panel transparente para ver la hoja al ajustar">Transparente</button>
+  <!-- AJUSTES FINOS: el panel de siempre, plegado detrás de un botón largo. Al
+       abrirse se despliega con suavidad y CERRAR baja con él —lo pidió así: que
+       se note que el botón de cerrar se fue hacia abajo—. Ver alternarFinos.
+       VA EN LA MISMA FILA QUE TRANSPARENTE: ver .vidrio-fila. -->
+  <button type="button" class="btn btn-largo btn-finos" id="btnFinos" aria-expanded="false"
+          aria-controls="ajustesFinos"><span data-es="Ajustes finos" data-en="Fine-tuning">Ajustes finos</span><svg
+          class="finos-flecha" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path
+          d="M6 9l6 6 6-6"/></svg></button>
 </div>
-
-<!-- AJUSTES FINOS: el panel de siempre, plegado detrás de un botón largo. Al
-     abrirse se despliega con suavidad y CERRAR baja con él —lo pidió así: que
-     se note que el botón de cerrar se fue hacia abajo—. Ver alternarFinos. -->
-<button type="button" class="btn btn-largo btn-finos" id="btnFinos" aria-expanded="false"
-        aria-controls="ajustesFinos"><span data-es="Ajustes finos" data-en="Fine-tuning">Ajustes finos</span><svg
-        class="finos-flecha" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path
-        d="M6 9l6 6 6-6"/></svg></button>
 <div id="ajustesFinos">
 
 <!-- SEPIA, CONTRASTE Y BRILLO, LO PRIMERO DE LOS FINOS. Iban al fondo, debajo
@@ -6952,7 +6967,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 20:16';
+window.GLOSS_BUILD = '16-NOV-26 20:37';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25219,18 +25234,22 @@ $('brillo').oninput = e => {
    computadora, «leer» y «estudiar» en cada uno— y no le gustaron; los cambió
    por UNA lista de cuatro, armada en un mock y afinada a mano preset por
    preset:
-     · LEGIBLE: letra 22 en una columna, la LINEAL —la sin remates, la más
+     · LEGIBLE: letra 24 en una columna, la LINEAL —la sin remates, la más
        clara que hay—, espaciado +5, interlínea normal, contraste 140 y brillo
        85. El brillo bajo le quita deslumbre a la hoja, y el contraste alto le
-       devuelve a la letra lo que la luz le quita. Estuvo en 24 y Gianni lo
-       bajó dos puntos.
-     · LETRA GRANDE: 24, en una columna, romana, con interlínea amplia. Tiene
-       que ser la más grande de la lista o el nombre miente: estuvo en 20 con
-       Legible en 24, se subió a 26 —el tope de la app— y Gianni bajó los dos
-       dos puntos, así que sigue dos por encima. Lleva la misma luz que
-       Legible —contraste 140, brillo 85—, que Gianni se la pidió igual: los
-       dos de una columna son los de leer largo, y ahí es donde cansa la hoja.
-       Las columnas no tocan ni tinta ni luz, decidido así con él.
+       devuelve a la letra lo que la luz le quita. Estuvo en 24, Gianni lo
+       bajó a 22 y, después de leer con él en el teléfono, lo volvió a 24 con
+       una captura de los ajustes que quería: ésos son estos números.
+     · LEGIBLE COMPACTA: la misma receta que Legible —Lineal, espaciado +5,
+       interlínea normal, una columna, contraste 140, brillo 85— con letra
+       20, para que quepa más en la pantalla sin perder lo que la hace clara.
+       Gianni la armó en su teléfono y mandó la captura. Antes este sitio era
+       LETRA GRANDE (romana, interlínea amplia), y al quedarse con una letra
+       más chica que la de Legible el nombre mentía; por eso se cambió el
+       nombre, que lo pidió él, y también el id del preset. La luz es la de
+       Legible, igual que la tenía Letra grande: los dos de una columna son
+       los de leer largo, y ahí es donde cansa la hoja. Las columnas no tocan
+       ni tinta ni luz, decidido así con él.
      · DOS COLUMNAS: 18 en dos columnas, romana, interlínea normal. 18 es lo
        más grande que aguanta una columna de teléfono sin bajar de unos 25
        caracteres por renglón, que es donde la lectura empieza a ir a saltos.
@@ -25264,9 +25283,9 @@ $('brillo').oninput = e => {
    pregunta misma rompería el arranque. */
 var PRESETS_FORMATO = [
   { id:'legible', es:'Legible', en:'Clear',
-    tam:22, fuente:4, esp:5, aire:1.62, cols:1, contraste:140, brillo:85 },
-  { id:'grande', es:'Letra grande', en:'Large type',
-    tam:24, fuente:0, esp:0, aire:1.95, cols:1, contraste:140, brillo:85 },
+    tam:24, fuente:4, esp:5, aire:1.62, cols:1, contraste:140, brillo:85 },
+  { id:'compacta', es:'Legible compacta', en:'Clear compact',
+    tam:20, fuente:4, esp:5, aire:1.62, cols:1, contraste:140, brillo:85 },
   { id:'dos', es:'Dos columnas', en:'Two columns',
     tam:18, fuente:0, esp:0, aire:1.62, cols:2 },
   { id:'tres', es:'Tres columnas', en:'Three columns',

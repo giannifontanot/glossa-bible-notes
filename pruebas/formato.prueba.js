@@ -1,7 +1,7 @@
 /* FORMATO CON PRESETS.
 
    La pestaña AA abre con una lista «Para leer» de cuatro presets —Legible,
-   Letra grande, Dos columnas, Tres columnas— que ponen de un toque letra,
+   Legible compacta, Dos columnas, Tres columnas— que ponen de un toque letra,
    tamaño, espaciado, interlínea, columnas y glosa, y pliega los mandos de
    siempre detrás de «Ajustes finos». Fueron primero dos grupos por aparato;
    Gianni los cambió por la lista. Se mira aquí:
@@ -77,13 +77,18 @@ const AJUSTES = 'glossa:ajustes:v1';
                                 altoF: Math.round(f.offsetHeight), anchoF: Math.round(f.offsetWidth),
                                 fondo: getComputedStyle(b).backgroundImage === getComputedStyle(f).backgroundImage }; })(),
       muestraEnFinos: !!document.querySelector('#ajustesFinos #filaMuestra'),
+      juntos: (() => { const f = document.querySelector('.vidrio-fila');
+                       return !!f && f.contains(document.getElementById('btnVidrio')) &&
+                              f.contains(document.getElementById('btnFinos')) &&
+                              Math.abs(document.getElementById('btnVidrio').getBoundingClientRect().top -
+                                       document.getElementById('btnFinos').getBoundingClientRect().top) <= 1; })(),
       primerosFinos: [...document.querySelectorAll('#ajustesFinos .ajuste .lbl')].slice(0, 4).map(l => l.textContent.trim())
     };
   }, [ABRIR_AA]);
   di('al nacer', nace);
   vale('(la prueba es válida) se abrió la pestaña AA', nace.ok === true);
-  vale('UNA LISTA DE CUATRO: Legible, Letra grande, Dos columnas, Tres columnas',
-       nace.presets.join(' · ') === 'Legible · Letra grande · Dos columnas · Tres columnas', nace.presets.join(' · '));
+  vale('UNA LISTA DE CUATRO: Legible, Legible compacta, Dos columnas, Tres columnas',
+       nace.presets.join(' · ') === 'Legible · Legible compacta · Dos columnas · Tres columnas', nace.presets.join(' · '));
   /* Las tuvieron, y Gianni las quitó para que los botones quedaran juntos. */
   vale('  sin explicación debajo, para que queden juntos', nace.dices === 0, nace.dices);
   vale('  bajo un solo rótulo, «Para leer», oscuro y de 13 px o más',
@@ -91,8 +96,11 @@ const AJUSTES = 'glossa:ajustes:v1';
          /rgb\((\d+), (\d+), (\d+)\)/.test(g.color) &&
          g.color.match(/\d+/g).slice(0, 3).every(n => +n < 110)),
        nace.grupos.map(g => g.t + ' ' + g.fs + 'px ' + g.color).join(' · '));
-  vale('EL ORDEN: presets, transparente, ajustes finos —sin la frase de muestra arriba—',
-       nace.hijos.join(' ') === 'presetsFormato ajuste btnFinos ajustesFinos', nace.hijos.join(' '));
+  /* Transparente y Ajustes finos van en la misma fila —su bandeja, la
+     .vidrio-fila—, así que el panel ya no los ve como dos hijos sueltos. */
+  vale('EL ORDEN: presets, la bandeja de transparente y ajustes finos, y los finos —sin la frase de muestra arriba—',
+       nace.hijos.join(' ') === 'presetsFormato ajuste ajustesFinos' && nace.juntos === true,
+       nace.hijos.join(' ') + ' · juntos: ' + nace.juntos);
   vale('  y la muestra vive ahora dentro de los finos', nace.muestraEnFinos === true);
   vale('  y transparente no está dentro de los finos', nace.vidrioDentro === false);
   vale('TRANSPARENTE ES UN BOTÓN COMO «AJUSTES FINOS»: mismo alto, mismo ancho, mismo fondo',
@@ -125,8 +133,8 @@ const AJUSTES = 'glossa:ajustes:v1';
   vale('(la prueba es válida) el panel estaba opaco', opaco.esCristal === false);
   vale('EL PRESET TOCADO SE ENCIENDE', opaco.encendido.join() === 'legible' && opaco.pulsado === 'true',
        opaco.encendido.join() + ' · ' + opaco.pulsado);
-  vale('LEGIBLE LLEGA A LA HOJA SIN CERRAR: 22, Lineal, espaciado +5, interlínea normal, una columna, al margen',
-       a.fontSize === 22 && a.fuente === 4 && a.espaciado === 5 && a.interlineado === 1.62 &&
+  vale('LEGIBLE LLEGA A LA HOJA SIN CERRAR: 24, Lineal, espaciado +5, interlínea normal, una columna, al margen',
+       a.fontSize === 24 && a.fuente === 4 && a.espaciado === 5 && a.interlineado === 1.62 &&
        a.columns === 1 && a.placement === 'margin' && a.alineacion === 'left',
        [a.fontSize, a.fuente, a.espaciado, a.interlineado, a.columns, a.placement, a.alineacion].join(' · '));
   vale('  y sube el contraste y baja el brillo',
@@ -183,11 +191,12 @@ const AJUSTES = 'glossa:ajustes:v1';
   vale('  y se van cuando el preset ya está puesto', espera.despues === false && espera.cols === 2,
        JSON.stringify(espera));
 
-  /* LETRA GRANDE LLEVA LA LUZ DE LEGIBLE, que Gianni se la pidió igual. Se
+  /* LEGIBLE COMPACTA ES LEGIBLE CON LETRA 20, armada por Gianni en su
+     teléfono —antes este sitio era Letra grande—. Se
      devuelven antes los dos rieles a mano —con su evento de input, como un
      dedo— para que el 140 y el 85 que se lean sean suyos y no lo que dejó
      Legible. */
-  titulo('Letra grande trae la misma luz que Legible');
+  titulo('Legible compacta: la receta de Legible con letra 20');
   const grande = await p.evaluate(async ([tocar]) => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     for (const [id, v] of [['contraste', '110'], ['brillo', '100']]){
@@ -196,19 +205,21 @@ const AJUSTES = 'glossa:ajustes:v1';
     }
     await pausa(120);
     const antes = JSON.parse(localStorage.getItem('glossa:ajustes:v1'));
-    await eval('(' + tocar + ')')('[data-preset="grande"]');
+    await eval('(' + tocar + ')')('[data-preset="compacta"]');
     await pausa(400);
     return { antes: [antes.contraste, antes.brillo],
              a: JSON.parse(localStorage.getItem('glossa:ajustes:v1')),
              encendido: [...document.querySelectorAll('[data-preset].active')].map(b => b.dataset.preset) };
   }, [TOCAR]);
-  di('tras «Letra grande»', grande);
+  di('tras «Legible compacta»', grande);
   vale('(la prueba es válida) los rieles quedaron en otra parte', grande.antes.join() === '110,100',
        grande.antes.join());
-  vale('LETRA GRANDE: 24 en una columna, contraste 140 y brillo 85, y se enciende',
-       grande.a.fontSize === 24 && grande.a.columns === 1 && grande.a.contraste === 140 &&
-       grande.a.brillo === 85 && grande.encendido.join() === 'grande',
-       [grande.a.fontSize, grande.a.columns, grande.a.contraste, grande.a.brillo, grande.encendido.join()].join(' · '));
+  vale('LEGIBLE COMPACTA: 20, Lineal, espaciado +5, interlínea normal, una columna, contraste 140 y brillo 85, y se enciende',
+       grande.a.fontSize === 20 && grande.a.fuente === 4 && grande.a.espaciado === 5 &&
+       grande.a.interlineado === 1.62 && grande.a.columns === 1 && grande.a.contraste === 140 &&
+       grande.a.brillo === 85 && grande.encendido.join() === 'compacta',
+       [grande.a.fontSize, grande.a.fuente, grande.a.espaciado, grande.a.interlineado, grande.a.columns,
+        grande.a.contraste, grande.a.brillo, grande.encendido.join()].join(' · '));
 
   titulo('los ajustes finos se abren suave y CERRAR baja con ellos');
   const finos = await p.evaluate(async () => {

@@ -358,7 +358,11 @@ async function ponerContraste(pagina, pct){
       palabra: Math.round(g.getBoundingClientRect().width),
       eje: Math.round((rb.left + rb.right) / 2 - (rf.left + rf.right) / 2),
       alto: Math.round(rb.height),
-      anchoFinos: Math.round(document.getElementById('btnFinos').getBoundingClientRect().width) };
+      anchoFinos: Math.round(document.getElementById('btnFinos').getBoundingClientRect().width),
+      /* Lo que separa a los dos en su renglón: cuánto se desvían de altura y
+         dónde empieza el otro. */
+      desnivel: Math.round(rb.top - document.getElementById('btnFinos').getBoundingClientRect().top),
+      finosDespues: document.getElementById('btnFinos').getBoundingClientRect().left >= rb.right };
     return { opaco, cristal, filas, salidaBoton, tonosDelPanel };
   });
   di('lo que mide cada tablilla', tablillas.filas.map(f => f.que + ' ' + f.pct + '%').join(' · '));
@@ -390,8 +394,13 @@ async function ponerContraste(pagina, pct){
      esta comprobación dice algo. */
   vale('  y es ella la que lleva la clase del trato especial',
        salidas.every(f => f.claseSalida), salidas.map(f => f.clases).join(' · '));
-  vale('la FILA de la salida va a todo lo ancho y sin tablilla, como pide su regla',
-       salidas.every(f => f.pct > 90 && !f.conFondo),
+  /* CON BANDEJA, DESDE QUE LLEVA LOS DOS BOTONES. Iba sin tablilla porque era
+     la fila de un solo botón con papel propio; Gianni pidió Transparente y
+     Ajustes finos en un renglón, y que se viera que no son opciones como los
+     presets. Lo que lo dice es la bandeja que los envuelve, y en transparente
+     se queda, así que ahora se exige al revés: ancha y CON su tablilla. */
+  vale('la FILA de la salida va a todo lo ancho y con su bandeja, como pide su regla',
+       salidas.every(f => f.pct > 90 && f.conFondo),
        salidas.map(f => f.pct + '% · tablilla ' + f.conFondo).join(' · '));
   /* Y EL BOTÓN, AL REVÉS QUE SU FILA. Esta prueba exigía que la salida fuera
      ancha y era verdad de las dos cosas: la fila y el botón medían el panel.
@@ -411,9 +420,12 @@ async function ponerContraste(pagina, pct){
        tablillas.salidaBoton.ancho >= tablillas.salidaBoton.palabra + 16,
        tablillas.salidaBoton.ancho + ' px  (ajustes finos ' + tablillas.salidaBoton.anchoFinos +
        ', palabra ' + tablillas.salidaBoton.palabra + ')');
-  vale('  y va centrado en su fila',
-       Math.abs(tablillas.salidaBoton.eje) <= 1,
-       tablillas.salidaBoton.eje + ' px del eje');
+  /* Y COMPARTE RENGLÓN CON «AJUSTES FINOS». Aquí se exigía que fuera
+     centrado y solo en su fila; Gianni pidió los dos en el mismo renglón,
+     mitad y mitad, en una bandeja aparte de los presets. */
+  vale('  y va en el mismo renglón que «Ajustes finos», a su izquierda',
+       Math.abs(tablillas.salidaBoton.desnivel) <= 1 && tablillas.salidaBoton.finosDespues,
+       tablillas.salidaBoton.desnivel + ' px de desnivel · finos después: ' + tablillas.salidaBoton.finosDespues);
   /* El blanco de toque no se negocia: es la única salida del modo
      transparente. */
   vale('  sin perder el blanco de dedo', tablillas.salidaBoton.alto >= 38,
@@ -453,10 +465,10 @@ async function ponerContraste(pagina, pct){
   vale('  con su hilo por los cuatro lados, para distinguirse de la hoja',
        ajustes.concat(rieles).every(f => f.bordes.every(n => n >= 1)),
        ajustes.concat(rieles).map(f => f.que + ' ' + f.bordes.join('/')).join(' · '));
-  /* Y LA SALIDA NO LLEVA NINGUNO, que es la otra mitad: es la única fila ancha
-     sin tablilla, y un recuadro sin fondo debajo no es el canto de nada. */
-  vale('LA FILA DE LA SALIDA SE QUEDA SIN BORDE, como sin tablilla',
-       salidas.every(f => f.bordes.every(n => n === 0)),
+  /* Y LA BANDEJA LLEVA EL MISMO HILO: tiene fondo, así que su canto dice
+     dónde acaba ella y empieza la hoja, como en las demás tablillas. */
+  vale('LA BANDEJA DE LA SALIDA LLEVA SU HILO, como cualquier tablilla',
+       salidas.every(f => f.bordes.every(n => n >= 1)),
        salidas.map(f => f.bordes.join('/')).join(' · '));
   vale('de esquinas redondeadas', ajustes.every(f => f.redondas));
   vale('y cada una cubre su control',
