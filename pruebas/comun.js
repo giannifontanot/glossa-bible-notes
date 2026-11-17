@@ -657,7 +657,13 @@ async function otraPagina(navegador, opciones = {}){
    versículos que se pintan, alturas que se miden, saltos que se cuentan. Los
    ajustes sembrados llevan `libro: 'MAT'`, que es el estado de alguien que
    estaba leyendo Mateo, y lo que trata de dónde abre una instalación nueva lo
-   mira estreno.prueba.js con `biblia: null`. */
+   mira estreno.prueba.js con `biblia: null`.
+
+   Y CON LOS AJUSTES FINOS ABIERTOS, por lo mismo. FORMATO estrenó presets y
+   pliega sus mandos de siempre detrás de «Ajustes finos»; las suites que
+   miden esas filas —tablillas, rieles, la muestra— se escribieron con todo a
+   la vista. `finos: true` es el estado de quien los abrió una vez, que la
+   aplicación recuerda; lo plegado y los presets los mira formato.prueba.js. */
 /* Y SIN LOS ADORNOS DE ESTRENO. Una instalación nueva trae ahora doce perlas
    por la Biblia, una cinta en Juan 3:16 y un rastro de escrituras conocidas
    —ver sembrarAdornosDeEstreno—. Las suites de perlas, cintas y rastro
@@ -785,7 +791,7 @@ async function bibliaDeCasa(pagina, biblia, glosasDeCasa = true){
   if (biblia === null) return;
   const siembra = await pagina.addInitScript(([k, v, vacios, km, glosas]) => {
     try {
-      if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify({ v:1, version:v, libro:'MAT' }));
+      if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify({ v:1, version:v, libro:'MAT', finos:true }));
       for (const c of vacios) if (localStorage.getItem(c) === null) localStorage.setItem(c, '[]');
       if (glosas && localStorage.getItem(km) === null){
         const hoy = new Date().toISOString().slice(0, 10);
