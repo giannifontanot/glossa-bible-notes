@@ -7124,7 +7124,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 11:07';
+window.GLOSS_BUILD = '17-NOV-26 12:10';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7905,6 +7905,14 @@ const PAGE_CSS = `
    desbordarse por la derecha.
    Sin pastilla: las pastillas de este programa son los chips del filtro, o sea
    «esto se toca». Un rótulo que se consulta no debe vestirse de control. */
+/* EL CONTORNO DE LOS EMOJI DE LAS ETIQUETAS (ver emojiHTML). Dos sombras
+   finas, oscuras y sin desplazar dibujan un filo de algo más de un píxel
+   alrededor del dibujo, siga la forma que siga: sobre amarillo, un 😀
+   amarillo vuelve a tener borde. inline-block porque es lo que le deja al
+   filtro su propia caja en todos los navegadores; no parte renglones
+   distintos, que un grafema ya no se partía. */
+.emo{ display:inline-block;
+      filter:drop-shadow(0 0 .55px rgba(45,30,8,.95)) drop-shadow(0 0 .55px rgba(45,30,8,.95)); }
 .gl-tag{ display:block; margin-top:3px; text-align:right; padding-right:2px;
          font-size:calc(1em * var(--tag-fs, .78));
          line-height:1.25; font-weight:500; letter-spacing:.02em; }
@@ -9607,12 +9615,29 @@ function grafemas(t){
   } catch(e){ /* a la red de abajo */ }
   return Array.from(t);
 }
+/* LOS EMOJI DE LAS ETIQUETAS, CADA UNO EN SU CAJITA CON BORDE. Pedido por
+   Gianni: un 😀 o un ⭐ —amarillos— sobre una glosa amarilla se perdían. El
+   emoji lo dibuja el sistema con sus colores y no hay color de letra que lo
+   salve, así que se le da un contorno oscuro fino (ver .emo): se ve igual
+   sobre amarillo, verde, naranja, azul o el papel. Se reconoce por grafema,
+   no por carácter, para no partir un emoji compuesto —una familia, una
+   bandera, un tono de piel— en pedazos con borde cada uno. */
+const ES_EMOJI = (() => {
+  try { return new RegExp('\\p{Extended_Pictographic}|\\p{Regional_Indicator}', 'u'); }
+  catch(e){ return null; }
+})();
+function emojiHTML(g){
+  return ES_EMOJI && ES_EMOJI.test(g) ? '<span class="emo">' + esc(g) + '</span>' : esc(g);
+}
+function escEmoji(t){
+  return ES_EMOJI && ES_EMOJI.test(t) ? grafemas(t).map(emojiHTML).join('') : esc(t);
+}
 function etiquetaHTML(t){
   const g = grafemas(t);
-  if (g.length <= CORTE_ETIQUETA) return esc(t);
+  if (g.length <= CORTE_ETIQUETA) return escEmoji(t);
   const trozos = [];
   for (let i = 0; i < g.length; i += CORTE_ETIQUETA)
-    trozos.push(esc(g.slice(i, i + CORTE_ETIQUETA).join('')));
+    trozos.push(g.slice(i, i + CORTE_ETIQUETA).map(emojiHTML).join(''));
   return trozos.join('<wbr>');
 }
 /* Una etiqueta por span, no todas en una cadena unida con ' #'. Unidas se leen
@@ -11413,7 +11438,7 @@ function tagboxHTML(m){
     (lista.length
       ? lista.map(t => '<button class="tg' + (tiene.has(t) ? ' on' : '') +
           (t && t === ultimaEtiqueta ? ' ultima' : '') +
-          '" data-tag="' + esc(t) + '">#' + esc(t) + '</button>').join('')
+          '" data-tag="' + esc(t) + '">#' + escEmoji(t) + '</button>').join('')
       : '<span class="vacio">' + T('sin etiquetas todavía','no tags yet') + '</span>') +
     '</div></div>';
 }
@@ -13604,7 +13629,7 @@ function crearTagDeMarca(caja){
     const btn = document.createElement('button');
     /* La almohadilla va en el texto, como en las demás de la lista: es lo que
        hace que una palabra suelta se lea como etiqueta sin llevar recuadro. */
-    btn.className = 'tg'; btn.dataset.tag = t; btn.textContent = '#' + t;
+    btn.className = 'tg'; btn.dataset.tag = t; btn.innerHTML = '#' + escEmoji(t);
     /* EN SU SITIO DEL ALFABETO, NO AL FINAL.
 
        Iba con appendChild, y con la lista ya ordenada eso se volvió un fallo
@@ -13951,7 +13976,7 @@ function pintarFiltros(){
        se queda en español por dentro para que un filtro recordado siga
        valiendo al cambiar de Biblia, y solo lo que se lee cambia. */
     const dice = nombre === '(sin etiqueta)' ? T('(sin etiqueta)','(untagged)') : nombre;
-    b.innerHTML = esc(dice) + '<span class="n">' + n + '</span>';
+    b.innerHTML = escEmoji(dice) + '<span class="n">' + n + '</span>';
     b.onclick = () => {
       etiquetasVer.has(nombre) ? etiquetasVer.delete(nombre) : etiquetasVer.add(nombre);
       guardarAjustes();
@@ -14280,7 +14305,7 @@ function pintarBarraGrupo(){
         const ultima = t && t === ultimaEtiqueta ? ' ultima' : '';
         const enEdicion = t && t === etiquetaEnEdicion ? ' editando' : '';
         return '<button type="button" class="tg' + cls + ultima + enEdicion +
-          '" data-tag-grupo="' + esc(t) + '">#' + esc(t) + '</button>';
+          '" data-tag-grupo="' + esc(t) + '">#' + escEmoji(t) + '</button>';
       }).join('')
     : '<span class="vacio">' + T('sin etiquetas todavía','no tags yet') + '</span>';
   /* LOS DOS MODOS DE LA MISMA CAJA. Un solo renglón de control, y lo que dice
