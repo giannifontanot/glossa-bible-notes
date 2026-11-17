@@ -3541,6 +3541,19 @@
   #ajustes.cristal .vidrio-btn{ background:var(--tablilla);
                                 border:1px solid var(--tablilla-borde);
                                 color:var(--tablilla-tinta); }
+  /* LOS BOTONES NO SE VUELVEN DE CRISTAL. Lo transparente es el PAPEL del
+     panel, para ver la hoja; los botones no. Los del rollo llevan papel al
+     75% (y los desplegables al 85%, las pestañas al 50%), que en opaco no se
+     nota porque debajo hay más papel; en transparente debajo hay renglones, y
+     la letra de la hoja se les colaba por dentro —el «MATEO 1:1» de la
+     cabecera se leía a través de las pestañas—. Gianni: «cuando tenemos
+     transparente, los botones no los hagas transparentes porque si no, no se
+     ve bien». Así que en cristal llevan el mismo papel, pero macizo.
+     Fuera quedan los que ya traen fondo propio y opaco: los encendidos
+     (dorado), los presets y los dos largos (degradado). */
+  #ajustes.cristal .pestanas button:not(.aqui),
+  #ajustes.cristal #ctrlConfig .btn:not(.active):not(.btn-largo):not(.pf-btn),
+  #ajustes.cristal #ctrlConfig select{ background-color:#fffdf6; }
   /* CADA CONTROL CON SU PROPIA TABLILLA, Y DEL ANCHO JUSTO.
 
      Con el panel transparente se ve la hoja —que es de lo que se trata— pero
@@ -6903,7 +6916,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 19:40';
+window.GLOSS_BUILD = '16-NOV-26 19:57';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';

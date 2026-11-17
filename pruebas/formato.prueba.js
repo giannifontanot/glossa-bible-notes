@@ -261,6 +261,14 @@ const AJUSTES = 'glossa:ajustes:v1';
     const res = { esCristal, fontSize: a.fontSize, columns: a.columns, placement: a.placement,
                   encendido: [...document.querySelectorAll('[data-preset].active')].map(b => b.dataset.preset),
                   tablilla: getComputedStyle(document.querySelector('#presetsFormato .pf-grupo')).backgroundColor,
+                  /* Los botones y desplegables que se ven, con fondo de
+                     color y no de degradado, y que dejan pasar la hoja. */
+                  colados: [...document.querySelectorAll('#ajustes button, #ajustes select')]
+                    .filter(e => e.offsetParent && !e.classList.contains('obrando') &&
+                                 getComputedStyle(e).backgroundImage === 'none')
+                    .filter(e => { const m = /rgba\([^)]*,\s*([\d.]+)\)/.exec(getComputedStyle(e).backgroundColor);
+                                   return m && +m[1] < 1; })
+                    .map(e => (e.id || e.className.split(' ')[0] || e.tagName) + ' ' + getComputedStyle(e).backgroundColor),
                   vidrioOn: document.getElementById('btnVidrio').classList.contains('active') &&
                             document.getElementById('btnVidrio').getAttribute('aria-pressed') === 'true' };
     await eval('(' + tocar + ')')('#btnVidrio');
@@ -274,6 +282,10 @@ const AJUSTES = 'glossa:ajustes:v1';
        cristal.fontSize + ' · ' + cristal.columns + ' · ' + cristal.placement);
   vale('  y se enciende', cristal.encendido.join() === 'dos', cristal.encendido.join() || 'ninguno');
   vale('  y «Transparente» sale encendido mientras lo está', cristal.vidrioOn === true);
+  /* Lo transparente es el papel del panel, no los botones: con fondo al 75%
+     la letra de la hoja se les colaba por dentro. Lo pidió Gianni. */
+  vale('  y LOS BOTONES NO SE VUELVEN DE CRISTAL: ninguno deja pasar la hoja',
+       cristal.colados.length === 0, cristal.colados.join(' · ') || 'ninguno');
   vale('  y los rótulos llevan su tablilla para leerse sobre la hoja',
        cristal.tablilla !== 'rgba(0, 0, 0, 0)', cristal.tablilla);
 
