@@ -48,7 +48,7 @@ const AJUSTES = 'glossa:ajustes:v1';
   await p.evaluate(k => {
     const a = JSON.parse(localStorage.getItem(k) || '{}');
     a.finos = false; a.fontSize = 15; a.columns = 2; a.placement = 'margin';
-    a.interlineado = 1.62; a.contraste = 125; a.fuente = 0; a.espaciado = 0;
+    a.interlineado = 1.62; a.contraste = 125; a.brillo = 100; a.fuente = 0; a.espaciado = 0;
     localStorage.setItem(k, JSON.stringify(a));
   }, AJUSTES);
   await p.reload();
@@ -84,7 +84,8 @@ const AJUSTES = 'glossa:ajustes:v1';
   vale('(la prueba es válida) se abrió la pestaña AA', nace.ok === true);
   vale('UNA LISTA DE CUATRO: Legible, Letra grande, Dos columnas, Tres columnas',
        nace.presets.join(' · ') === 'Legible · Letra grande · Dos columnas · Tres columnas', nace.presets.join(' · '));
-  vale('  cada uno con su explicación debajo', nace.dices === 4, nace.dices);
+  /* Las tuvieron, y Gianni las quitó para que los botones quedaran juntos. */
+  vale('  sin explicación debajo, para que queden juntos', nace.dices === 0, nace.dices);
   vale('  bajo un solo rótulo, «Para leer», oscuro y de 13 px o más',
        nace.grupos.length === 1 && /para leer/i.test(nace.grupos[0].t) && nace.grupos.every(g => g.fs >= 13 &&
          /rgb\((\d+), (\d+), (\d+)\)/.test(g.color) &&
@@ -124,11 +125,12 @@ const AJUSTES = 'glossa:ajustes:v1';
   vale('(la prueba es válida) el panel estaba opaco', opaco.esCristal === false);
   vale('EL PRESET TOCADO SE ENCIENDE', opaco.encendido.join() === 'legible' && opaco.pulsado === 'true',
        opaco.encendido.join() + ' · ' + opaco.pulsado);
-  vale('LEGIBLE LLEGA A LA HOJA SIN CERRAR: 24, Lineal, espaciado +5, interlínea normal, una columna, al margen',
-       a.fontSize === 24 && a.fuente === 4 && a.espaciado === 5 && a.interlineado === 1.62 &&
+  vale('LEGIBLE LLEGA A LA HOJA SIN CERRAR: 22, Lineal, espaciado +5, interlínea normal, una columna, al margen',
+       a.fontSize === 22 && a.fuente === 4 && a.espaciado === 5 && a.interlineado === 1.62 &&
        a.columns === 1 && a.placement === 'margin' && a.alineacion === 'left',
        [a.fontSize, a.fuente, a.espaciado, a.interlineado, a.columns, a.placement, a.alineacion].join(' · '));
-  vale('  y sube el contraste, que es el único que lo toca', a.contraste === 140, a.contraste);
+  vale('  y sube el contraste y baja el brillo',
+       a.contraste === 140 && a.brillo === 85, a.contraste + ' · brillo ' + a.brillo);
 
   titulo('tocar a mano apaga el preset; los otros no tocan la tinta');
   const aMano = await p.evaluate(async ([abrirAA, tocar]) => {
@@ -152,12 +154,39 @@ const AJUSTES = 'glossa:ajustes:v1';
   vale('AL VOLVER A LA PESTAÑA SIGUE ENCENDIDO', aMano.encendidoAlVolver.join() === 'legible',
        aMano.encendidoAlVolver.join() || 'ninguno');
   vale('UN A+ A MANO LO APAGA', aMano.trasA.length === 0, aMano.trasA.join() || 'ninguno');
-  vale('OTRO PRESET SE ENCIENDE Y NO TOCA EL CONTRASTE',
-       aMano.trasPc.join() === 'tres' && aMano.a.contraste === 140,
-       aMano.trasPc.join() + ' · contraste ' + aMano.a.contraste);
+  vale('OTRO PRESET SE ENCIENDE Y NO TOCA NI EL CONTRASTE NI EL BRILLO',
+       aMano.trasPc.join() === 'tres' && aMano.a.contraste === 140 && aMano.a.brillo === 85,
+       aMano.trasPc.join() + ' · contraste ' + aMano.a.contraste + ' · brillo ' + aMano.a.brillo);
   vale('  y pone lo suyo: 16 en tres columnas, romana, sin espaciado',
        aMano.a.fontSize === 16 && aMano.a.columns === 3 && aMano.a.fuente === 0 && aMano.a.espaciado === 0,
        [aMano.a.fontSize, aMano.a.columns, aMano.a.fuente, aMano.a.espaciado].join(' · '));
+
+  /* LETRA GRANDE LLEVA LA LUZ DE LEGIBLE, que Gianni se la pidió igual. Se
+     devuelven antes los dos rieles a mano —con su evento de input, como un
+     dedo— para que el 140 y el 85 que se lean sean suyos y no lo que dejó
+     Legible. */
+  titulo('Letra grande trae la misma luz que Legible');
+  const grande = await p.evaluate(async ([tocar]) => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    for (const [id, v] of [['contraste', '110'], ['brillo', '100']]){
+      const r = document.getElementById(id);
+      r.value = v; r.dispatchEvent(new Event('input', { bubbles:true }));
+    }
+    await pausa(120);
+    const antes = JSON.parse(localStorage.getItem('glossa:ajustes:v1'));
+    await eval('(' + tocar + ')')('[data-preset="grande"]');
+    await pausa(400);
+    return { antes: [antes.contraste, antes.brillo],
+             a: JSON.parse(localStorage.getItem('glossa:ajustes:v1')),
+             encendido: [...document.querySelectorAll('[data-preset].active')].map(b => b.dataset.preset) };
+  }, [TOCAR]);
+  di('tras «Letra grande»', grande);
+  vale('(la prueba es válida) los rieles quedaron en otra parte', grande.antes.join() === '110,100',
+       grande.antes.join());
+  vale('LETRA GRANDE: 24 en una columna, contraste 140 y brillo 85, y se enciende',
+       grande.a.fontSize === 24 && grande.a.columns === 1 && grande.a.contraste === 140 &&
+       grande.a.brillo === 85 && grande.encendido.join() === 'grande',
+       [grande.a.fontSize, grande.a.columns, grande.a.contraste, grande.a.brillo, grande.encendido.join()].join(' · '));
 
   titulo('los ajustes finos se abren suave y CERRAR baja con ellos');
   const finos = await p.evaluate(async () => {
@@ -225,6 +254,56 @@ const AJUSTES = 'glossa:ajustes:v1';
   vale('  y «Transparente» sale encendido mientras lo está', cristal.vidrioOn === true);
   vale('  y los rótulos llevan su tablilla para leerse sobre la hoja',
        cristal.tablilla !== 'rgba(0, 0, 0, 0)', cristal.tablilla);
+
+  /* LA RAYA A MEDIA HOJA. El canto del papel (.rollo::before y ::after) iba
+     pegado a bottom:0, y en un panel que se desplaza eso es el fondo de la
+     primera pantalla: con los finos abiertos Formato ya no cabe, y la rayita
+     de luz quedaba cruzando la fila de ESPACIADO. Se mira en píxeles, en la
+     tira del relleno de la derecha, donde no hay más que papel: el degradado
+     del fondo es suave, así que entre dos renglones vecinos no puede haber un
+     salto de luz. El pie (CERRAR) y la sombra de dentro del canto se dejan
+     fuera; con eso, cualquier raya que quede en la tira es la del canto. */
+  titulo('con los finos abiertos no cruza ninguna raya el panel');
+  const tira = await p.evaluate(async ([abrirAA]) => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    await eval('(' + abrirAA + ')')();
+    if (document.getElementById('btnFinos').getAttribute('aria-expanded') !== 'true'){
+      document.getElementById('btnFinos').click();
+      await pausa(900);
+    }
+    const aj = document.getElementById('ajustes');
+    aj.scrollTop = Math.min(aj.scrollHeight - aj.clientHeight, Math.round(aj.clientHeight / 2));
+    await pausa(300);
+    const r = aj.getBoundingClientRect();
+    const pie = aj.querySelector('.pie-cerrar').getBoundingClientRect();
+    return { desborda: aj.scrollHeight - aj.clientHeight,
+             costura: Math.round(r.top + aj.clientHeight - aj.scrollTop),
+             x: Math.round(r.right - 7), y0: Math.round(r.top + 60), y1: Math.round(pie.top - 12) };
+  }, [ABRIR_AA]);
+  di('la tira', tira);
+  vale('(la prueba es válida) el panel se desplaza y la costura cae dentro de la tira',
+       tira.desborda > 0 && tira.costura > tira.y0 + 4 && tira.costura < tira.y1 - 4,
+       JSON.stringify(tira));
+  const png = await p.screenshot({ clip: { x: tira.x, y: tira.y0, width: 4, height: tira.y1 - tira.y0 } });
+  const salto = await p.evaluate(async (d) => {
+    const img = new Image();
+    await new Promise(z => { img.onload = z; img.src = 'data:image/png;base64,' + d; });
+    const c = document.createElement('canvas');
+    c.width = img.width; c.height = img.height;
+    const cx = c.getContext('2d');
+    cx.drawImage(img, 0, 0);
+    const px = cx.getImageData(1, 0, 1, img.height).data;
+    const luz = i => .2126 * px[i] + .7152 * px[i + 1] + .0722 * px[i + 2];
+    let peor = 0, donde = -1;
+    for (let y = 1; y < img.height; y++){
+      const d2 = Math.abs(luz(y * 4) - luz((y - 1) * 4));
+      if (d2 > peor){ peor = d2; donde = y; }
+    }
+    return { peor: Math.round(peor * 10) / 10, donde };
+  }, png.toString('base64'));
+  di('el salto de luz más grande', salto);
+  vale('NINGUNA RAYA CRUZA EL PANEL: el papel no salta de luz entre dos renglones',
+       salto.peor < 6, salto.peor + ' en el renglón ' + salto.donde);
 
   await cerrar(sesion);
 })();
