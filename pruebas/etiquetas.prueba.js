@@ -743,33 +743,41 @@ const FUERA = `async () => {
      GLOSAS, que es por donde lo mueve el lector.
      ================================================================ */
   titulo('la pastilla mide lo que mide la etiqueta de la glosa');
-  const letras = await p.evaluate(async () => {
-    const z = ms => new Promise(x => setTimeout(x, ms));
-    const mide = () => {
+  /* LA LETRA DE LA GLOSA SE PONE EN LOS AJUSTES GUARDADOS Y SE RECARGA. Se
+     ponía con el desplegable de GLOSAS > LETRA, y ese mando se mudó a la
+     ventanita de la glosa, con botones de un punto. Lo que se mide aquí es la
+     pastilla contra la etiqueta, no el mando; los extremos son los de la
+     aplicación, 10 y 26. */
+  const letras = await (async () => {
+    const mide = () => p.evaluate(() => {
       const enLaHoja = document.querySelector('#pgMargin .gl .gl-tag, #pgBody .gl .gl-tag');
       const chip = document.querySelector('#filtros .chip');
       return { glosa: enLaHoja ? +parseFloat(getComputedStyle(enLaHoja).fontSize).toFixed(2) : null,
                pastilla: chip ? +parseFloat(getComputedStyle(chip).fontSize).toFixed(2) : null,
                alto: chip ? Math.round(chip.getBoundingClientRect().height) : null };
-    };
-    const sel = document.getElementById('fsGlosaAhora');
-    const antes = sel.value;
-    const tamanos = [...sel.options].map(o => +o.value);
+    });
+    const K = 'glossa:ajustes:v1';
+    const antes = await p.evaluate(K => JSON.parse(localStorage.getItem(K) || '{}').fontSizeGlosa, K);
     const poner = async n => {
-      sel.value = String(n);
-      sel.dispatchEvent(new Event('change', { bubbles:true }));
-      await z(2500);
+      await p.evaluate(([K, n]) => {
+        const a = JSON.parse(localStorage.getItem(K) || '{}');
+        if (n == null) delete a.fontSizeGlosa; else a.fontSizeGlosa = n;
+        localStorage.setItem(K, JSON.stringify(a));
+      }, [K, n]);
+      await p.reload();
+      await alPanel(); await encenderEtiquetas();
+      await p.waitForTimeout(1500);
     };
-    await poner(Math.max(...tamanos));
-    const grande = mide();
-    await poner(Math.min(...tamanos));
-    const chica = mide();
+    const tope = 26, suelo = 10;
+    await poner(tope);
+    const grande = await mide();
+    await poner(suelo);
+    const chica = await mide();
     /* Se deja como estaba: los bloques de abajo cuentan glosas y no tienen
        por qué heredar la letra al mínimo. */
-    await poner(+antes);
-    return { grande, chica, tope: Math.max(...tamanos), suelo: Math.min(...tamanos),
-             vuelta: mide() };
-  });
+    await poner(antes);
+    return { grande, chica, tope, suelo, vuelta: await mide() };
+  })();
   di('las dos letras', JSON.stringify(letras));
   vale('(la prueba es válida) se ve una etiqueta en la hoja y una pastilla',
        letras.grande.glosa !== null && letras.grande.pastilla !== null, letras.grande);
@@ -1780,44 +1788,26 @@ const FUERA = `async () => {
        trasRecargar.glosasEnHoja > 0, trasRecargar.glosasEnHoja + ' glosas');
 
   /* ──────────────────────────────────────────────────────────────
-     LOS TRES BOTONES DE GLOSAS, Y QUE SE EXCLUYAN.
+     LOS BOTONES DE GLOSAS, Y QUE SE EXCLUYAN.
 
-     Eran dos —FILTRAR y ACTUALIZAR— y entra un tercero, LETRA, que abre el
-     tamaño y el espaciado de la nota. Los tres abren cosas que ocupan el mismo
-     hueco, debajo de la fila de botones, así que la regla que había entre dos
-     pasa a ser entre tres.
+     Fueron tres —LETRA (AA), FILTRAR y EDITAR— y LETRA se fue: Gianni mudó el
+     tamaño y el espaciado de la glosa a la ventanita donde se escribe, a los
+     dos lados del anticipo. Quedan dos, que abren cosas en el mismo hueco, y
+     la regla sigue: abrir uno cierra el otro, y apagados los dos se puede
+     estar, que es el sitio de fábrica.
 
-     Y LO QUE ABRE LETRA NACE DEBAJO DE SU BOTÓN, que es lo que se pidió al
-     verlo: el grupo estaba arriba del panel y el botón abajo con los otros
-     dos, así que tocabas «letra» y lo que aparecía te salía en la otra punta,
-     detrás del dedo. Filtrar no hacía eso. Se mira el orden del marcado Y la
-     posición en pantalla: lo primero se rompe al mover el bloque, lo segundo
-     al darle a alguien un `position` que lo saque del flujo, y son dos
-     maneras distintas de perder lo mismo.
-
-     Lo que se afirma no es «hay tres botones» —un rótulo se puede cambiar sin
-     romper nada— sino la regla: abrir uno cierra los otros dos, y apagados los
-     tres se puede estar, que es el sitio de fábrica. Se recorren los tres en
-     bucle, así que si mañana entra un cuarto y alguien olvida meterlo en la
-     exclusión, esto se cae en el que falte y no en el primero.
-
-     La línea de validez es la que salva el bloque entero: si el botón de LETRA
-     no abriera NADA, «los otros dos están cerrados» saldría verde sin haber
-     probado nada. */
-  titulo('los tres botones de GLOSAS se excluyen');
+     La línea de validez es la que salva el bloque: si un botón no abriera
+     NADA, «el otro está cerrado» saldría verde sin haber probado nada. */
+  titulo('los botones de GLOSAS se excluyen');
   await alPanel();
   const tres = await p.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     const panel = document.getElementById('ctrlEtiquetas');
     const estado = () => ({
-      letra:  !panel.classList.contains('sin-letra'),
       filtrar: !panel.classList.contains('sin-chips'),
       actualizar: document.getElementById('etiquetas').classList.contains('eligiendo'),
     });
-    const PUERTAS = [['letra','btnLetraGlosas'], ['filtrar','btnVerEtiquetas'],
-                     ['actualizar','btnElegirGlosas']];
-    /* se dejan los tres cerrados antes de empezar, que los bloques de arriba
-       dejan alguno puesto */
+    const PUERTAS = [['filtrar','btnVerEtiquetas'], ['actualizar','btnElegirGlosas']];
     for (const [k, id] of PUERTAS){ if (estado()[k]){ document.getElementById(id).click(); await pausa(320); } }
     const deFabrica = estado();
     const rondas = [];
@@ -1829,68 +1819,24 @@ const FUERA = `async () => {
                     otros: PUERTAS.filter(x => x[0] !== k).map(x => x[0] + ':' + e[x[0]]) ,
                     soloUno: PUERTAS.filter(x => e[x[0]]).length });
     }
-    /* El bucle acaba dejando abierto ACTUALIZAR, que es el último; para mirar
-       dónde NACE el grupo de LETRA hay que volver a abrirlo. Medir un grupo
-       cerrado daría ceros y «está debajo» saldría verde sin probar nada. */
-    document.getElementById('btnLetraGlosas').click();
-    await pausa(420);
     return { rotulos: [...document.querySelectorAll('#ctrlEtiquetas .fila-etiq .btn')]
                         .map(b => b.textContent.trim()),
              deFabrica, rondas,
-             /* dentro de LETRA tienen que estar los dos mandos pedidos, y
-                escritos igual: tres piezas cada uno —menos, lista, más—. La
-                negrita que hubo aquí se quitó; se afirma que NO está, porque
-                volver a ponerla sin querer es tan fácil como quitarla. */
-             dentro: (() => {
-               const g = document.getElementById('ctrlLetra');
-               if (!g) return null;
-               return { tamano: !!g.querySelector('#fsGlosaAhora'),
-                        espaciado: !!g.querySelector('#espGlosaAhora'),
-                        piezasEsp: ['#espGlosaDown','#espGlosaAhora','#espGlosaUp']
-                                     .every(s => !!g.querySelector(s)),
-                        sinBold: !document.getElementById('chkNegritaGlosa') };
-             })(),
-             /* Y dónde nace: detrás del botón en el marcado, y por debajo de
-                él en pantalla. El botón se deja abierto por la última ronda. */
-             sitio: (() => {
-               const b = document.getElementById('btnLetraGlosas');
-               const g = document.getElementById('ctrlLetra');
-               if (!b || !g) return null;
-               const rb = b.getBoundingClientRect(), rg = g.getBoundingClientRect();
-               return { enElDom: !!(b.compareDocumentPosition(g) &
-                                    Node.DOCUMENT_POSITION_FOLLOWING),
-                        visible: getComputedStyle(g).display !== 'none',
-                        debajo: rg.top >= rb.bottom - 1,
-                        botonAcaba: Math.round(rb.bottom), grupoEmpieza: Math.round(rg.top) };
-             })() };
+             sinLetra: !document.getElementById('btnLetraGlosas') && !document.getElementById('ctrlLetra') };
   });
   di('los rótulos', tres.rotulos.join(' · '));
   di('cada ronda', JSON.stringify(tres.rondas));
-  vale('(la prueba es válida) los tres arrancan cerrados',
-       !tres.deFabrica.letra && !tres.deFabrica.filtrar && !tres.deFabrica.actualizar,
+  vale('(la prueba es válida) los dos arrancan cerrados',
+       !tres.deFabrica.filtrar && !tres.deFabrica.actualizar,
        JSON.stringify(tres.deFabrica));
   vale('(la prueba es válida) y cada botón ABRE lo suyo',
        tres.rondas.every(r => r.abierto === true),
        tres.rondas.map(r => r.abre + ':' + r.abierto).join(' · '));
-  vale('SON TRES PUERTAS', tres.rotulos.length === 3, tres.rotulos.join(' · '));
-  vale('y abrir una cierra las otras dos',
+  vale('SON DOS PUERTAS: el AA se fue a la ventanita de la glosa',
+       tres.rotulos.length === 2 && tres.sinLetra, tres.rotulos.join(' · '));
+  vale('y abrir una cierra la otra',
        tres.rondas.every(r => r.soloUno === 1),
        tres.rondas.map(r => r.abre + '→' + r.soloUno).join(' · '));
-  vale('dentro de LETRA están el tamaño y el espaciado, los dos con sus tres piezas',
-       !!tres.dentro && tres.dentro.tamano && tres.dentro.espaciado && tres.dentro.piezasEsp,
-       JSON.stringify(tres.dentro));
-  vale('  y ya no hay negrita de glosa', !!tres.dentro && tres.dentro.sinBold === true);
-  di('dónde nace el grupo', JSON.stringify(tres.sitio));
-  /* La validez primero: con el grupo cerrado, «está debajo» sale verde con
-     todo a cero y no prueba nada. Por eso la sonda vuelve a abrir LETRA antes
-     de medir: la última ronda del bucle deja abierto ACTUALIZAR. */
-  vale('(la prueba es válida) el grupo de LETRA está a la vista',
-       !!tres.sitio && tres.sitio.visible === true);
-  vale('LO QUE ABRE LETRA NACE DEBAJO DE SU BOTÓN',
-       !!tres.sitio && tres.sitio.debajo === true,
-       tres.sitio && ('botón acaba en ' + tres.sitio.botonAcaba +
-                      ', grupo empieza en ' + tres.sitio.grupoEmpieza));
-  vale('  y detrás de él en el marcado', !!tres.sitio && tres.sitio.enElDom === true);
 
   /* Y LAS TRES PUERTAS SE ABREN CRECIENDO, NO DE GOLPE.
 
@@ -1916,17 +1862,15 @@ const FUERA = `async () => {
      quede un alto escrito a mano en el estilo del elemento. Si se quedara, el
      mando dejaría de crecer el día que le entren más etiquetas, y eso no lo
      nota nadie hasta que la lista está cortada. */
-  titulo('las tres puertas de GLOSAS se abren creciendo');
+  titulo('las puertas de GLOSAS se abren creciendo');
   const suave = await p.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     const panel = document.getElementById('ctrlEtiquetas');
     const abierto = {
-      letra: () => !panel.classList.contains('sin-letra'),
       filtrar: () => !panel.classList.contains('sin-chips'),
       actualizar: () => document.getElementById('etiquetas').classList.contains('eligiendo'),
     };
-    const PUERTAS = [['letra', 'btnLetraGlosas', 'ctrlLetra'],
-                     ['filtrar', 'btnVerEtiquetas', 'filaFiltros'],
+    const PUERTAS = [['filtrar', 'btnVerEtiquetas', 'filaFiltros'],
                      ['actualizar', 'btnElegirGlosas', 'barraGrupo']];
     const salida = [];
     for (const [k, boton, caja] of PUERTAS){
@@ -1950,11 +1894,11 @@ const FUERA = `async () => {
     }
     return salida;
   });
-  di('las tres puertas', JSON.stringify(suave));
-  vale('(la prueba es válida) las tres nacen cerradas y acaban abiertas',
+  di('las puertas', JSON.stringify(suave));
+  vale('(la prueba es válida) nacen cerradas y acaban abiertas',
        suave.every(x => x.antes === 0 && x.fin > 0),
        suave.map(x => x.puerta + ' ' + x.antes + '→' + x.fin).join(' · '));
-  vale('LAS TRES PASAN POR UN ALTO INTERMEDIO, o sea que crecen',
+  vale('PASAN POR UN ALTO INTERMEDIO, o sea que crecen',
        suave.every(x => x.muestras.some(h => h > 0 && h < x.fin)),
        suave.map(x => x.puerta + ' [' + x.muestras.join(',') + '] de ' + x.fin).join(' · '));
   vale('  y no se quedan con el alto escrito a mano al terminar',
@@ -1977,9 +1921,10 @@ const FUERA = `async () => {
      apareció entero en vez de crecer. Medido: 21 px antes, 9 después, que son
      exactamente los 9 del row-gap.
 
-     Se prueba con LETRA porque es la que empuja al índice desde arriba.
+     SE PRUEBA CON EDITAR, que empuja el índice desde arriba. Era con LETRA
+     (AA), que se fue a la ventanita de la glosa.
 
-     Y SE EMPIEZA CON LAS TRES CERRADAS. EDITAR —antes ACTUALIZAR— abría por
+     Y SE EMPIEZA CON LAS DOS CERRADAS. EDITAR —antes ACTUALIZAR— abría por
      debajo del índice; Gianni pidió su barra ARRIBA, como en la glosa nueva,
      y ahora también está encima. El bloque de arriba la deja abierta, y
      abrir LETRA la cierra: el índice SUBÍA por la barra que se iba en vez de
@@ -1996,15 +1941,11 @@ const FUERA = `async () => {
       document.getElementById('btnVerEtiquetas').click();
       await pausa(500);
     }
-    if (!panel.classList.contains('sin-letra')){
-      document.getElementById('btnLetraGlosas').click();
-      await pausa(500);
-    }
     const ind = document.getElementById('indice');
     if (!ind) return { falta:'no hay índice' };
     const hueco = parseFloat(getComputedStyle(panel).rowGap) || 0;
     const antes = ind.getBoundingClientRect().top;
-    document.getElementById('btnLetraGlosas').click();
+    document.getElementById('btnElegirGlosas').click();
     await new Promise(r => requestAnimationFrame(r));
     const primerCuadro = ind.getBoundingClientRect().top - antes;
     await pausa(600);
@@ -2013,9 +1954,9 @@ const FUERA = `async () => {
              total: +total.toFixed(1) };
   });
   di('el empujón del índice', JSON.stringify(salto));
-  vale('(la prueba es válida) abrir LETRA empuja el índice hacia abajo',
+  vale('(la prueba es válida) abrir EDITAR empuja el índice hacia abajo',
        !salto.falta && salto.total > 40, JSON.stringify(salto));
-  vale('EL ÍNDICE NO PEGA UN SALTO AL ABRIRSE LETRA',
+  vale('EL ÍNDICE NO PEGA UN SALTO AL ABRIRSE EDITAR',
        !salto.falta && salto.primerCuadro <= salto.hueco + 1,
        !salto.falta && (salto.primerCuadro + ' px de golpe, con un hueco de rejilla de ' +
                         salto.hueco + ' y un viaje de ' + salto.total));

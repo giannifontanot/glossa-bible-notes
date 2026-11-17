@@ -3504,5 +3504,95 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        fechados.map(f => f.archivo + ' contra ' + f.local).join(' · '));
 
 
+  /* ================================================================
+     LOS MANDOS DE LA LETRA, A LOS LADOS DE LA GLOSA QUE SE ESCRIBE.
+
+     Pedido por Gianni: el botón «AA» del panel GLOSAS se fue y sus mandos
+     viven ahora en la ventanita de la glosa, en los dos huecos que el
+     anticipo dejaba a cada lado. A la IZQUIERDA el espaciado y a la DERECHA
+     el tamaño; ARRIBA más y ABAJO menos. Redondos, para no confundirse con
+     los botones de la ventana, que son rectángulos.
+
+     Se mira el SITIO, no solo que existan —el pedido entero es de sitio—, y
+     que de verdad cambien la letra y el espaciado guardados. Y que tocarlos
+     NO le quite el foco a la caja: en el teléfono eso bajaría el teclado a
+     media frase. El toque va con su pointerdown, que es por donde el
+     navegador mueve el foco; sin él la prueba no probaría nada.
+     ================================================================ */
+  titulo('los mandos de la letra van a los lados de la glosa');
+  {
+    const pl = await otraPagina(sesion.navegador);
+    const fallosL = [];
+    pl.on('pageerror', e => fallosL.push(String(e).split('\n')[0]));
+    await pl.goto(APP);
+    await listo(pl);
+    const r = await pl.evaluate(async ([abrir]) => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      if (!await eval('(' + abrir + ')')(0, 14)) return { error:'no abrió: ' + window.__pincelPorque };
+      const menu = document.getElementById('menu');
+      const ta = document.getElementById('glosaCaja');
+      ta.focus();
+      const vista = document.getElementById('glVista').getBoundingClientRect();
+      const caja = sel => { const e = menu.querySelector(sel); if (!e) return null;
+        const r = e.getBoundingClientRect();
+        return { x: r.left + r.width/2, y: r.top + r.height/2, w: r.width, h: r.height,
+                 radio: getComputedStyle(e).borderTopLeftRadius }; };
+      const sitios = { espMas: caja('[data-acc="espmas"]'), espMenos: caja('[data-acc="espmenos"]'),
+                       fsMas: caja('[data-acc="fsmas"]'), fsMenos: caja('[data-acc="fsmenos"]') };
+      const ajustes = () => JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
+      const leer = () => ({ fs: +document.getElementById('fsGlosaAhora').value,
+                            esp: +document.getElementById('espGlosaAhora').value });
+      const tocar = async acc => {
+        const b = menu.querySelector('[data-acc="' + acc + '"]');
+        const r = b.getBoundingClientRect();
+        const op = { bubbles:true, cancelable:true, pointerId:31, pointerType:'touch', isPrimary:true,
+                     clientX: r.left + r.width/2 + 1, clientY: r.top + r.height/2 - 1 };
+        const dejo = b.dispatchEvent(new PointerEvent('pointerdown', op));
+        /* Si el pointerdown no se cancela, el navegador movería el foco al
+           botón; aquí se hace lo que haría él, para que la prueba lo vea. */
+        if (dejo) b.focus();
+        b.dispatchEvent(new PointerEvent('pointerup', op));
+        b.click();
+        await pausa(450);
+      };
+      const antes = leer();
+      await tocar('fsmas'); await tocar('fsmas');
+      await tocar('espmas');
+      const subido = leer();
+      const foco = document.activeElement && document.activeElement.id;
+      await tocar('fsmenos'); await tocar('espmenos');
+      const bajado = leer();
+      return { vista: { izq: vista.left, der: vista.right, arriba: vista.top, abajo: vista.bottom },
+               sitios, antes, subido, bajado, foco, abierto: getComputedStyle(menu).display !== 'none',
+               guardado: { fs: ajustes().fontSizeGlosa, esp: ajustes().espaciadoGlosa } };
+    }, [ABRIR]);
+    di('los mandos', JSON.stringify(r));
+    const s4 = r.sitios || {};
+    vale('(la prueba es válida) se abrió la ventanita y están los cuatro',
+         !r.error && !!(s4.espMas && s4.espMenos && s4.fsMas && s4.fsMenos), r.error || JSON.stringify(s4));
+    if (!r.error && s4.espMas && s4.fsMas){
+      vale('EL ESPACIADO A LA IZQUIERDA DE LA GLOSA Y EL TAMAÑO A LA DERECHA',
+           s4.espMas.x < r.vista.izq && s4.espMenos.x < r.vista.izq &&
+           s4.fsMas.x > r.vista.der && s4.fsMenos.x > r.vista.der,
+           [s4.espMas.x, r.vista.izq, r.vista.der, s4.fsMas.x].map(Math.round).join(' · '));
+      vale('  MÁS ARRIBA Y MENOS ABAJO, en los dos lados',
+           s4.espMas.y < s4.espMenos.y && s4.fsMas.y < s4.fsMenos.y);
+      vale('  y redondos, distintos de los rectángulos de la ventana',
+           ['espMas','espMenos','fsMas','fsMenos'].every(k => parseFloat(s4[k].radio) >= s4[k].w / 2 - 1),
+           ['espMas','fsMas'].map(k => s4[k].radio + ' de ' + Math.round(s4[k].w)).join(' · '));
+      vale('SUBEN LA LETRA Y EL ESPACIADO DE LAS GLOSAS',
+           r.subido.fs === r.antes.fs + 2 && r.subido.esp === r.antes.esp + 1,
+           JSON.stringify([r.antes, r.subido]));
+      vale('  y BAJAN con los de abajo', r.bajado.fs === r.antes.fs + 1 && r.bajado.esp === r.antes.esp,
+           JSON.stringify(r.bajado));
+      vale('  y queda guardado', r.guardado.fs === r.bajado.fs && r.guardado.esp === r.bajado.esp,
+           JSON.stringify(r.guardado));
+      vale('TOCARLOS NO LE QUITA EL FOCO A LA CAJA DE ESCRIBIR', r.foco === 'glosaCaja', r.foco);
+      vale('  y la ventanita sigue abierta', r.abierto === true);
+    }
+    vale('  sin errores de JavaScript', fallosL.length === 0, fallosL.join(' | '));
+    await pl.close();
+  }
+
   await cerrar(sesion);
 })();

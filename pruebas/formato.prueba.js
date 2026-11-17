@@ -132,7 +132,6 @@ const AJUSTES = 'glossa:ajustes:v1';
         return { id: b.dataset.preset, se: c ? +getComputedStyle(c).opacity : -1,
                  fondo: c ? getComputedStyle(c).backgroundColor : '', x: c ? Math.round(b.getBoundingClientRect().left + c.offsetLeft) : null,
                  boton: getComputedStyle(b).backgroundImage }; }),
-      mandosGlosa: [document.getElementById('fsGlosaAhora').value, document.getElementById('espGlosaAhora').value],
       a: JSON.parse(localStorage.getItem('glossa:ajustes:v1'))
     };
   }, [TOCAR]);
@@ -160,12 +159,12 @@ const AJUSTES = 'glossa:ajustes:v1';
        a.columns === 1 && a.placement === 'margin' && a.alineacion === 'left',
        [a.fontSize, a.fuente, a.espaciado, a.interlineado, a.columns, a.placement, a.alineacion].join(' · '));
   /* Y LAS GLOSAS VAN CON ÉL: dos puntos menos que el libro —lo pidió Gianni:
-     son apuntes, no el texto— y su mismo espaciado, guardados y escritos en
-     sus propios mandos, que es donde él los mira. */
-  vale('  y LAS GLOSAS TOMAN DOS PUNTOS MENOS Y EL MISMO ESPACIADO, y sus mandos lo dicen',
-       a.fontSizeGlosa === 22 && a.espaciadoGlosa === 5 &&
-       opaco.mandosGlosa.join() === '22,5',
-       [a.fontSizeGlosa, a.espaciadoGlosa, 'mandos ' + opaco.mandosGlosa.join('/')].join(' · '));
+     son apuntes, no el texto— y su mismo espaciado, guardados. Sus mandos
+     viven ahora en la ventanita de la glosa y se leen al abrirla; eso lo
+     mira glosas.prueba.js. */
+  vale('  y LAS GLOSAS TOMAN DOS PUNTOS MENOS Y EL MISMO ESPACIADO',
+       a.fontSizeGlosa === 22 && a.espaciadoGlosa === 5,
+       [a.fontSizeGlosa, a.espaciadoGlosa].join(' · '));
   vale('  y pone su luz: contraste 140, brillo 85, sepia 100',
        a.contraste === 140 && a.brillo === 85 && a.sepia === 100,
        a.contraste + ' · brillo ' + a.brillo + ' · sepia ' + a.sepia);

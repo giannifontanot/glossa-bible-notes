@@ -1612,6 +1612,21 @@ async function ponerContraste(pagina, pct){
      bloque pasa al otro ajuste, que viaja por el mismo camino y se rompe
      exactamente igual. */
   titulo('el ajuste de la glosa la sigue a sus tres sitios');
+  /* EL ESPACIADO SE PONE EN LOS AJUSTES GUARDADOS Y SE RECARGA. Se ponía con
+     su mando del panel GLOSAS > LETRA, y ese mando se mudó a la ventanita de
+     la glosa —que hay que pintar una para abrir—; lo que este bloque mide es
+     que el ajuste viaje a los tres sitios, no el mando, que tiene su prueba
+     en glosas.prueba.js. */
+  const espDeGlosa = async n => {
+    await pagina.evaluate(n => {
+      const k = 'glossa:ajustes:v1';
+      const a = JSON.parse(localStorage.getItem(k) || '{}');
+      a.espaciadoGlosa = n; localStorage.setItem(k, JSON.stringify(a));
+    }, n);
+    await pagina.reload();
+    await pagina.waitForTimeout(600);
+  };
+  await espDeGlosa(5);
   const sitios = await pagina.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     const vis = () => [...document.querySelectorAll('.rollo, #canto')]
@@ -1622,16 +1637,7 @@ async function ponerContraste(pagina, pct){
       if (t){ t.click(); await pausa(950); }
       { const f = document.getElementById('btnFinos'); if (f && f.getAttribute('aria-expanded') !== 'true'){ f.click(); await new Promise(z => setTimeout(z, 1600)); } }
     };
-    /* se separa la letra de la GLOSA por su mando, el de GLOSAS > LETRA */
-    await irA('glosas');
-    const puerta = document.getElementById('btnLetraGlosas');
-    if (puerta && document.getElementById('ctrlEtiquetas').classList.contains('sin-letra')){
-      puerta.click(); await pausa(420);
-    }
-    const s = document.getElementById('espGlosaAhora');
-    if (!s) return { falta:'sin mando de letra de glosa' };
-    s.value = '5'; s.dispatchEvent(new Event('change', { bubbles:true }));
-    await pausa(900);
+    await irA('formato');
     const out = {};
     for (const lay of ['margin', 'below', 'foot']){
       const b = document.querySelector('[data-lay="' + lay + '"]');
@@ -1640,11 +1646,10 @@ async function ponerContraste(pagina, pct){
       const g = document.querySelector('.gl');
       out[lay] = g ? getComputedStyle(g).letterSpacing : 'sin glosa';
     }
-    /* se devuelve el ajuste, que los bloques de abajo no lo esperan */
-    s.value = '0'; s.dispatchEvent(new Event('change', { bubbles:true }));
-    await pausa(800);
     return out;
   });
+  /* se devuelve el ajuste, que los bloques de abajo no lo esperan */
+  await espDeGlosa(0);
   di('el espaciado de la nota en cada sitio', JSON.stringify(sitios));
   vale('(la prueba es válida) se pudo mirar la nota en los tres sitios',
        !sitios.falta && ['margin','below','foot']

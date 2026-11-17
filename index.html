@@ -4773,20 +4773,9 @@
      de chips —una clase en el panel, no un display en el nodo— para que las
      tres puertas se apaguen y se enciendan por el mismo camino y nadie tenga
      que acordarse de dos maneras distintas de esconder lo mismo. */
-  #ctrlEtiquetas.sin-letra #ctrlLetra{ display:none; }
   /* Nace debajo de su botón, así que el aire va arriba y abajo: entre los
      tres botones y él, y entre él y lo que venga —la tira de filtros o,
      con ella apagada, el índice—. */
-  #ctrlLetra{ display:grid; grid-template-columns:1fr; gap:6px; margin:6px 0; }
-  #btnLetraGlosas{ width:auto; flex:0 0 auto; min-height:32px; padding:0 12px; }
-  /* LAS DOS AES, las mismas de la pestaña de Formato —ver .pestanas .aa— y por
-     lo mismo: es el signo de «tamaño de letra», y aquí dice lo mismo para las
-     glosas. */
-  #btnLetraGlosas .aa{ display:flex; align-items:baseline; justify-content:center;
-                       gap:.04em; line-height:1; font-weight:700; letter-spacing:0; }
-  #btnLetraGlosas .aa i{ font-style:normal; }
-  #btnLetraGlosas .aa i:nth-child(1){ font-size:1.3em; }
-  #btnLetraGlosas .aa i:nth-child(2){ font-size:1em; }
   /* EL SIGNO DELANTE DE LA PALABRA: embudo en filtrar, lápiz en editar. Trazo
      y no relleno, del color de la letra, para que se lea como parte del rótulo
      y no como un dibujo pegado encima. */
@@ -5652,6 +5641,30 @@
      este recuadro y no de la hoja. */
   #menu .gl-vista{ align-self:center; max-width:100%; box-sizing:border-box;
                    position:relative; }
+  /* LA FILA DEL ANTICIPO CON SUS DOS COLUMNAS DE MANDOS. Tres columnas, las de
+     los lados iguales (1fr) y la del medio a la medida del anticipo: así el
+     anticipo queda centrado y cada columna de botones cae en medio de su hueco.
+     Los botones van arriba y abajo del todo —más arriba, menos abajo— y el
+     número entre ellos. */
+  #menu .gl-fila{ display:grid; grid-template-columns:minmax(44px, 1fr) auto minmax(44px, 1fr);
+                  position:relative;
+                  align-items:stretch; gap:6px; }
+  #menu .gl-fila .gl-vista{ align-self:center; }
+  #menu .gl-lado{ display:flex; flex-direction:column; align-items:center;
+                  justify-content:space-between; gap:4px; min-height:96px; }
+  #menu .glado{ width:36px; height:36px; display:grid; place-items:center; padding:0;
+                border-radius:50%; cursor:pointer; color:rgba(243,231,200,.72);
+                border:1.5px solid rgba(233,199,116,.32); background:transparent;
+                font:500 20px/1 var(--ui); letter-spacing:0; }
+  /* Blanco de dedo de 44 aunque el círculo mida 36: un ::before invisible
+     que sobresale, para que lo discreto no sea también difícil de atinar. */
+  #menu .glado{ position:relative; }
+  #menu .glado::before{ content:""; position:absolute; inset:-4px; border-radius:50%; }
+  #menu .glado:active{ background:rgba(233,199,116,.14); }
+  #menu .glado:focus-visible{ outline:2px solid #e9c774; outline-offset:2px; }
+  #menu .gl-sena{ font:700 17px/1 var(--fam-libro, Georgia, serif); color:rgba(217,201,162,.6); }
+  #menu .gl-num{ position:absolute; width:1px; height:1px; overflow:hidden;
+                 clip:rect(0 0 0 0); white-space:nowrap; }
   /* EL ANCLA, EN SU POSICIÓN ESTÁTICA. Sin left ni top: así queda donde la
      habría puesto el flujo —el principio del contenido— que es exactamente
      donde la pinta la hoja. Y al salir del flujo deja el sitio libre para que
@@ -6589,38 +6602,11 @@
      alguna vez— y lo que hay debajo es el índice de glosas, que es a lo que se
      entra a este panel. Quien quiera filtrar lo pide; quien venga a leer sus
      notas no tiene que apartar nada primero. -->
-<div id="ctrlEtiquetas" class="sin-chips sin-letra">
-<!-- EL TAMAÑO DE LA LETRA DE LAS GLOSAS, Y LO PRIMERO DEL PANEL.
-
-     Venía de FORMATO, donde estaba pegado al tamaño de la hoja: dos filas
-     seguidas con los mismos tres botones —A−, la lista, A+— y como toda
-     diferencia un rótulo de una palabra. Se confundían, y equivocarse ahí no
-     es un detalle: se repagina el libro entero por querer agrandar una nota.
-
-     Aquí no hay nada con qué confundirlo. Y va ARRIBA DEL TODO y no al final,
-     por lo mismo que el interruptor de las flechas está arriba en LIBROS: este
-     panel lleva debajo el índice de glosas, que es una lista larga con
-     desplazamiento, y un control al fondo de una lista con desplazamiento es
-     un control que no existe.
-
-     El rótulo pasa de «glosa» a «tamaño»: allí nombraba de QUÉ era el tamaño
-     —había dos—, y aquí, dentro de GLOSAS, «glosa» sería decir dos veces
-     dónde estamos y ninguna qué hace. -->
-<!-- Y AHORA VIVE DENTRO DE «LETRA», que es el tercer modo de este panel, y
-     SE ABRE DEBAJO DE SU BOTÓN —ver #ctrlLetra, unas líneas más abajo, detrás
-     de la fila de los tres—.
-
-     Estuvo suelto arriba del todo, y eso era lo correcto mientras fuera lo
-     único que había: un solo control no necesita puerta. Al ganar vecinos se
-     le puso puerta, pero el grupo se quedó ARRIBA y el botón que lo abre
-     ABAJO, con los otros dos: tocabas «letra» y lo que aparecía te salía
-     detrás del dedo, en la otra punta del panel. Filtrar no hace eso —su tira
-     nace justo debajo de los botones— y el dueño del repo pidió que éste se
-     comportara igual. Así que el grupo bajó a su sitio.
-
-     El grupo NO se borra ni se rehace al abrir: se enseña y se esconde con una
-     clase, como la tira de chips, porque dentro hay dos desplegables y
-     rehacerlos cerraría la lista desplegada bajo el dedo. -->
+<div id="ctrlEtiquetas" class="sin-chips">
+<!-- EL TAMAÑO Y EL ESPACIADO DE LAS GLOSAS vivieron aquí: primero arriba del
+     todo, después dentro de un tercer modo, «LETRA» (AA). Ahora van a los
+     lados de la ventanita donde se escribe la glosa —ver panelHTML—, donde lo
+     que cambian se ve en la nota misma. -->
 
 <!-- SIN EL RÓTULO «ETIQUETAS», que costaba una columna fija de 96 px en
      teléfono para nombrar lo que los dos botones ya dicen: este panel se llama
@@ -6649,9 +6635,6 @@
      verbo que cualquiera reconoce para «cambiarle algo a esto», y con el lápiz
      al lado se lee antes de leerse. -->
 <div class="ajuste fila-etiq">
-  <button type="button" class="btn" id="btnLetraGlosas"
-          aria-pressed="false" aria-label="Tamaño y espaciado de las glosas"
-          title="Tamaño y espaciado de las glosas"><span class="aa" aria-hidden="true"><i>A</i><i>A</i></span></button>
   <button type="button" class="btn btn-signo" id="btnVerEtiquetas"
           aria-pressed="false"
           title="Filtrar las glosas por etiqueta o por día"><svg class="signo" viewBox="0 0 24 24"
@@ -6665,24 +6648,10 @@
           d="M8 8.6v6.8M16.5 8.6v6.8"/><path d="M2.5 12l2.6-1.6v3.2z" fill="currentColor"/></g></svg><span data-es="editar" data-en="edit">editar</span></button>
 </div>
 
-<!-- LOS DOS MANDOS DE LA LETRA DE LA GLOSA, debajo de su botón. El tamaño y el
-     espaciado se escriben igual —tres piezas, menos, lista, más— porque son la
-     misma clase de ajuste y el dedo aprende uno y sabe el otro. La negrita que
-     hubo aquí se fue por lo que está contado en FORMATO: engordar el trazo no
-     ayuda a leer. -->
-<div id="ctrlLetra">
-  <div class="ajuste"><span class="lbl">tamaño</span><span class="ctrl">
-    <button class="btn" id="fsGlosaDown" title="Letra de la glosa, un punto menos">A−</button>
-    <select id="fsGlosaAhora" title="Tamaño de letra de las glosas"></select>
-    <button class="btn" id="fsGlosaUp" title="Letra de la glosa, un punto más">A+</button>
-  </span></div>
-  <div class="ajuste"><span class="lbl">espaciado</span><span class="ctrl">
-    <button class="btn" id="espGlosaDown" title="Espaciado de la glosa, un punto menos">−</button>
-    <select id="espGlosaAhora" title="Elige el espaciado de las glosas"
-            aria-label="espaciado entre letras de las glosas"></select>
-    <button class="btn" id="espGlosaUp" title="Espaciado de la glosa, un punto más">+</button>
-  </span></div>
-</div>
+<!-- LOS MANDOS DE LA LETRA DE LA GLOSA YA NO VIVEN AQUÍ. Iban debajo de un
+     botón «AA» en esta fila, y Gianni los mudó a la ventanita donde se escribe
+     la glosa, a los dos lados del anticipo: es ahí donde se ve lo que hacen, en
+     la nota que tienes delante. Ver panelHTML, .gl-fila. -->
 
 <!-- SIN RÓTULO Y PEGADA AL FILO IZQUIERDO. Llevaba delante un «ver» en la
      columna fija de los rótulos —96 px en teléfono, alineados a la derecha—
@@ -7015,7 +6984,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 05:11';
+window.GLOSS_BUILD = '17-NOV-26 06:14';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -10923,6 +10892,14 @@ function sitioDelMenu(w, h, r, s){
              y: arr - MENU_ARRIBA };
   }
   let gesto = null;
+  /* LOS MANDOS DE LA LETRA NO SE LLEVAN EL FOCO. Tocar un botón le quita el
+     foco a la caja de escribir, y en el teléfono eso baja el teclado: subir un
+     punto la letra costaría volver a tocar la caja para seguir escribiendo.
+     Se pide en el pointerdown, que es donde el navegador mueve el foco; el
+     click llega igual. */
+  menu.addEventListener('pointerdown', ev => {
+    if (ev.target.closest && ev.target.closest('.glado')) ev.preventDefault();
+  });
   menu.addEventListener('pointerdown', ev => {
     const m = ev.target.closest && ev.target.closest('[data-manija]');
     if (!m || ev.button > 0) return;
@@ -11116,6 +11093,35 @@ function anchoVista(){
   return Math.max(120, MARGIN_W() - 8 - huecoDeGiro());
 }
 
+/* UNA COLUMNA DE MANDOS DE LA LETRA DE LA GLOSA: más arriba, de qué se trata
+   en medio, menos abajo. 'esp' es el espaciado entre letras (izquierda) y 'fs'
+   el tamaño (derecha).
+   REDONDOS Y DISCRETOS, pedido por Gianni: redondos para que no se confundan
+   con los botones de la ventana —colores, modos, OK—, que son rectángulos y
+   dicen «haz esto con la glosa»; y apagados, sin el relleno de los demás,
+   porque se tocan una vez, cuando eliges tu letra, y después ya no. Tienen que
+   estar enfrente, no gritar.
+   En medio, una sola seña: «A» para el tamaño y «↔» para el espaciado. No hay
+   sitio para más. El número va en un <output> que no se ve —lo lee quien usa
+   lector de pantalla, y se lee con .value como el desplegable que había—. */
+function ladoLetra(cual){
+  const fs = cual === 'fs';
+  const btn = (mas) => '<button type="button" class="glado" data-acc="' + cual + (mas ? 'mas' : 'menos') + '"' +
+    ' id="' + cual + 'Glosa' + (mas ? 'Up' : 'Down') + '"' +
+    ' aria-label="' + (fs ? (mas ? T('Letra de las glosas, un punto más', 'Gloss text, one point larger')
+                                 : T('Letra de las glosas, un punto menos', 'Gloss text, one point smaller'))
+                          : (mas ? T('Espaciado de las glosas, un punto más', 'Gloss spacing, one point more')
+                                 : T('Espaciado de las glosas, un punto menos', 'Gloss spacing, one point less'))) + '"' +
+    ' title="' + (fs ? T('Tamaño de la letra de las glosas', 'Gloss text size')
+                     : T('Espaciado entre letras de las glosas', 'Gloss letter spacing')) + '">' +
+    (mas ? '+' : '−') + '</button>';
+  return '<div class="gl-lado gl-lado-' + cual + '" role="group" aria-label="' +
+    (fs ? T('Tamaño de las glosas', 'Gloss size') : T('Espaciado de las glosas', 'Gloss spacing')) + '">' +
+    btn(true) +
+    '<span class="gl-sena" aria-hidden="true">' + (fs ? 'A' : '↔') + '</span>' +
+    '<output class="gl-num" id="' + cual + 'GlosaAhora">' + (fs ? fontSizeGlosa : espaciadoGlosa) + '</output>' +
+    btn(false) + '</div>';
+}
 function panelHTML(m){
   const forma = formaOrganica(m);
   /* LA MANIJA, Y POR QUÉ ES UNA MANIJA Y NO EL PANEL ENTERO.
@@ -11171,6 +11177,16 @@ function panelHTML(m){
        nota un «12·» que ocupa sitio en el PRIMER RENGLÓN y por tanto decide
        dónde parte. Sin ella, el anticipo acertaba el ancho y erraba el corte,
        que es la mitad de lo que se venía a copiar. Lo levantó Codex. */
+    /* A LOS DOS LADOS DEL ANTICIPO, LOS MANDOS DE LA LETRA DE LAS GLOSAS.
+       Pedido por Gianni: el anticipo mide lo que mide la columna de glosas y
+       en el teléfono le sobraban dos huecos vacíos, uno a cada lado. Ahí van:
+       a la IZQUIERDA el espaciado, a la DERECHA el tamaño; ARRIBA más y ABAJO
+       menos. Sin rótulos —no caben, y el sitio lo dice—, con el número de
+       ahora entre los dos botones. Vivían en el panel de GLOSAS detrás de un
+       botón «AA», lejos de la nota cuyo aspecto cambiaban; aquí el efecto se ve
+       en la nota que estás escribiendo. Ver ladoLetra y .gl-fila. */
+    '<div class="gl-fila">' +
+    ladoLetra('esp') +
     '<div class="gl gl-vista g-' + m.color + '" id="glVista" style="' + forma.css + '">' +
       '<span class="gl-ref"></span>' +
       /* EL ECO: el mismo texto, calcado encima y sin tinta, solo para poder
@@ -11181,6 +11197,8 @@ function panelHTML(m){
       '<div class="gl-eco" aria-hidden="true"></div>' +
       '<textarea id="glosaCaja" rows="2" placeholder="' + T('glosa…','gloss…') + '" spellcheck="false"></textarea>' +
       '<span class="gl-tags"></span>' +
+    '</div>' +
+    ladoLetra('fs') +
     '</div>' +
     /* LA LISTA DE ETIQUETAS YA NO VIVE ABIERTA. Las que lleva puestas se leen
        arriba, dentro de la glosa, que es donde van a estar para siempre; abrir
@@ -11474,6 +11492,19 @@ function morirPanel(origen, soloFundido){
    glosa depende de la disposición y del tamaño de letra, y eso solo se sabe
    aquí. Y se quita al cerrar, porque el mismo #menu lo reusa la lista de
    «citado desde», que no es una glosa y no tiene por qué medir como una. */
+/* DESPUÉS DE CAMBIAR LA LETRA CON EL PANEL ABIERTO: el anticipo se viste con
+   la letra nueva, el panel se vuelve a medir —ancho primero, alto después, por
+   lo contado en abrirMenu— y se recoloca. Los números de los lados se
+   refrescan aquí también, porque ponerTamanoGlosa no los toca si no hay
+   cambio (tope de la escala) y entonces deben quedarse como están. */
+function rehacerVistaLetra(m){
+  vestirVista(m);
+  anchoPanelComoGlosa();
+  pintarAncla(m);
+  ajustarAlto(menu.querySelector('#glosaCaja'));
+  reflejarTamano(); reflejarEspaciadoGlosa();
+  colocarMenu();
+}
 function anchoPanelComoGlosa(){
   const cs = getComputedStyle(menu);
   const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
@@ -11513,14 +11544,19 @@ function anchoPanelComoGlosa(){
      mismo #menu lo reusa la lista de «citado desde», y un ancho pegado de la
      vez anterior es de los que se descubren tarde. */
   const caja = menu.querySelector('.gl-vista');
+  /* LAS DOS COLUMNAS DE MANDOS (ver .gl-fila): 44 de botón y 6 de separación
+     a cada lado. En el teléfono caben en los huecos que ya sobraban; en
+     pantalla ancha, donde el panel medía justo la glosa, el panel se ensancha
+     eso. El anticipo conserva SU ancho en los dos casos, que es la promesa. */
+  const lados = menu.querySelector('.gl-fila') ? 2 * (44 + 6) : 0;
   if (enTelefono()){
     const ancho = Math.min(Math.round(stage.getBoundingClientRect().width * .92), 400);
     menu.style.width = Math.round(Math.min(ancho, tope)) + 'px';
-    if (caja) caja.style.width = Math.round(Math.min(glosa, tope - pad - bor)) + 'px';
+    if (caja) caja.style.width = Math.round(Math.min(glosa, tope - pad - bor - lados)) + 'px';
     return;
   }
-  if (caja) caja.style.width = '';
-  menu.style.width = Math.round(Math.min(glosa + pad + bor, tope)) + 'px';
+  if (caja) caja.style.width = lados ? Math.round(Math.min(glosa, tope - pad - bor - lados)) + 'px' : '';
+  menu.style.width = Math.round(Math.min(glosa + pad + bor + lados, tope)) + 'px';
 }
 /* EL ANCLA DEL ANTICIPO, con la misma cuenta que glossHTML: la señal de
    aproximación cuando el anclaje no es exacto, y la referencia que le toca.
@@ -13050,6 +13086,25 @@ menu.addEventListener('click', ev => {
   if (!borrador) return;                   /* el menú de vínculos no tiene más */
   const m = borrador.m;
 
+  /* LOS MANDOS DE LA LETRA, a los lados del anticipo (ver ladoLetra). Cambian
+     la letra de TODAS las glosas, como lo hacían desde el panel de GLOSAS, y
+     después se vuelve a vestir el anticipo con la letra nueva y a medir el
+     panel: el ancho del anticipo depende del tamaño y el alto del texto. */
+  const accLetra = b.dataset.acc;
+  if (accLetra === 'fsmas' || accLetra === 'fsmenos' ||
+      accLetra === 'espmas' || accLetra === 'espmenos'){
+    if (accLetra === 'fsmas')    ponerTamanoGlosa(fontSizeGlosa + 1);
+    if (accLetra === 'fsmenos')  ponerTamanoGlosa(fontSizeGlosa - 1);
+    if (accLetra === 'espmas')   ponerEspaciadoGlosa(espaciadoGlosa + 1);
+    if (accLetra === 'espmenos') ponerEspaciadoGlosa(espaciadoGlosa - 1);
+    /* Guardado aquí también: ponerTamanoGlosa no guarda por su cuenta —desde
+       el panel viejo lo cobraba el repintado— y estos números no pueden
+       depender de que la hoja llegue a repintarse. */
+    guardarAjustes();
+    if (borrador && borrador.m === m) rehacerVistaLetra(m);
+    return;
+  }
+
   if (b.dataset.color){
     m.color = b.dataset.color; reanclar(m);
     menu.querySelectorAll('.mc').forEach(x =>
@@ -13888,7 +13943,6 @@ function verEtiquetas(on){
      Manda el gesto de ahora, como en destaparLaNueva: el que acabas de tocar
      se enciende y el otro se va. */
   if (on && eligiendoGlosas) elegirGlosas(false);
-  if (on) verLetraGlosas(false);
   /* Y el aviso de «hay más» sólo se puede medir con la tira a la vista:
      escondida, su alto es cero y la cuenta diría siempre que no hay más. */
   if (on) avisarMasEtiquetas();
@@ -14176,39 +14230,17 @@ function elegirGlosas(on){
       .forEach(el => el.classList.remove('elegida'));
   }
   /* Las otras dos partes de la exclusión; está contada en verEtiquetas. */
-  if (on){ verEtiquetas(false); verLetraGlosas(false); }
+  if (on) verEtiquetas(false);
   marcarFiltroEscondido();
   pintarBarraGrupo();
   /* Detrás de pintarBarraGrupo, que es quien le mete dentro la cuenta y las
      etiquetas: preguntarle el alto antes sería preguntárselo vacía. */
   if (on && !estaba) abrirSuave($('barraGrupo'));
 }
-/* EL TERCER MODO, y con esto la exclusión pasa de dos a tres.
-
-   Los tres botones abren cosas que ocupan el mismo hueco —encima del índice—
-   y contestan preguntas distintas: LETRA es «cómo se ve una nota», FILTRAR
-   «cuáles quiero ver» y ACTUALIZAR «a cuáles les cambio las etiquetas». Dos
-   abiertos a la vez dejan el panel diciendo dos cosas y el índice sin sitio.
-   Apagados los tres sí se puede estar —es el sitio de fábrica, el índice a
-   solas— así que no es un selector de tres posiciones: son tres que se
-   excluyen. Manda el gesto de ahora: el que acabas de tocar se enciende y los
-   otros se van.
-
-   La guarda de `on` en cada uno es lo que impide que se llamen en círculo:
-   apagar nunca apaga a nadie, así que verLetraGlosas(false) no vuelve aquí. */
-function verLetraGlosas(on){
-  const estaba = !$('ctrlEtiquetas').classList.contains('sin-letra');
-  $('ctrlEtiquetas').classList.toggle('sin-letra', !on);
-  const b = $('btnLetraGlosas');
-  if (b){
-    b.classList.toggle('active', on);
-    b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  }
-  if (on){ verEtiquetas(false); elegirGlosas(false); }
-  if (on && !estaba) abrirSuave($('ctrlLetra'));
-}
-$('btnLetraGlosas').onclick = () =>
-  verLetraGlosas($('ctrlEtiquetas').classList.contains('sin-letra'));
+/* HUBO UN TERCER MODO, «LETRA» (el botón AA), que abría aquí el tamaño y el
+   espaciado de las glosas y se excluía con FILTRAR y EDITAR. Se fue: Gianni
+   mudó esos mandos a los lados de la ventanita de la glosa, donde se ve lo que
+   hacen. Quedan dos modos, y su exclusión está contada en verEtiquetas. */
 /* EL ESPACIADO DE LA GLOSA, el mismo mando y en su panel.
 
    MARCA SUCIO SIEMPRE, y eso merece explicación porque parece de más: una nota
@@ -14227,13 +14259,9 @@ function ponerEspaciadoGlosa(n){
   guardarAjustes();
 }
 function reflejarEspaciadoGlosa(){
-  const s = $('espGlosaAhora');
+  const s = menu.querySelector('#espGlosaAhora');
   if (s) s.value = String(espaciadoGlosa);
 }
-$('espGlosaAhora').innerHTML = opcionesEsp();
-$('espGlosaUp').onclick    = () => ponerEspaciadoGlosa(espaciadoGlosa + 1);
-$('espGlosaDown').onclick  = () => ponerEspaciadoGlosa(espaciadoGlosa - 1);
-$('espGlosaAhora').onchange = e => ponerEspaciadoGlosa(+e.target.value);
 $('btnElegirGlosas').onclick = () => elegirGlosas(!eligiendoGlosas);
 $('tagboxGrupo').addEventListener('click', ev => {
   if (ev.target.closest('[data-acc="creartag-grupo"]')){
@@ -24793,17 +24821,8 @@ const UI_EN = {
   /* Sin `t`: los tres llevan signo dentro, y `t` reescribe el textContent
      entero —se llevaría el embudo, el lápiz y las dos aes—. La palabra va en
      un <span data-es data-en>, que es lo que se traduce. */
-  '#btnLetraGlosas':   { title:'Size and spacing of the glosses', aria:'Size and spacing of the glosses' },
   '#btnVerEtiquetas':  { title:'Filter the glosses by tag or by day' },
   '#btnElegirGlosas':  { title:'Pick several glosses to edit their tags' },
-  '#ctrlLetra > .ajuste:nth-child(1) > .lbl': { t:'size' },
-  '#ctrlLetra > .ajuste:nth-child(2) > .lbl': { t:'spacing' },
-  '#fsGlosaDown':      { title:'Gloss text, one point smaller' },
-  '#fsGlosaUp':        { title:'Gloss text, one point larger' },
-  '#fsGlosaAhora':     { title:'Font size of the glosses' },
-  '#espGlosaDown':     { title:'Gloss spacing, one point less' },
-  '#espGlosaUp':       { title:'Gloss spacing, one point more' },
-  '#espGlosaAhora':    { title:'Pick the spacing of the glosses', aria:'letter spacing of the glosses' },
   '#filtros':          { aria:'Gloss filters: the day and the tags' },
   '#selDia':           { aria:'Filter the glosses by day' },
   '#btnGlosas':        { title:'glosses', aria:'glosses' },
@@ -25004,7 +25023,7 @@ function reflejarTamano(){
   /* Lo VIVO y no lo aplicado: mientras hay muestra, el número del select es el
      que se está eligiendo, no el que el libro tiene todavía puesto. */
   $('fsAhora').value = String(typeof tamVivo === 'function' ? tamVivo() : fontSize);
-  const g = $('fsGlosaAhora');
+  const g = menu.querySelector('#fsGlosaAhora');
   if (g) g.value = String(fontSizeGlosa);
 }
 /* LA ESCALA DEL CROMO, escrita en un solo sitio. Ver --escala-ui en la hoja de
@@ -25206,10 +25225,6 @@ function ponerTamanoGlosa(n){
 $('fsUp').onclick    = () => ponerTamano(tamVivo() + 1);
 $('fsDown').onclick  = () => ponerTamano(tamVivo() - 1);
 $('fsAhora').onchange = e => ponerTamano(+e.target.value);
-$('fsGlosaAhora').innerHTML = TAMANOS.map(n => '<option value="' + n + '">' + n + '</option>').join('');
-$('fsGlosaUp').onclick    = () => ponerTamanoGlosa(fontSizeGlosa + 1);
-$('fsGlosaDown').onclick  = () => ponerTamanoGlosa(fontSizeGlosa - 1);
-$('fsGlosaAhora').onchange = e => ponerTamanoGlosa(+e.target.value);
 
 /* EL SEPIA. En 'input' y no en 'change' para que el papel se entinte mientras
    arrastras: elegir un color a ciegas y verlo al soltar es elegir dos veces.
