@@ -3922,6 +3922,16 @@
   .qr-liga{ margin:0; font:500 calc(12px * var(--escala-ui, 1))/1.3 var(--ui); color:#7a6638; }
   .mapa-estado{ margin:6px 2px 0; white-space:pre-line;
                 font:500 calc(12.5px * var(--escala-ui, 1))/1.4 var(--ui); color:#5c4a24; }
+  /* EN PANTALLA ANCHA, EL PANEL DE COMPARTIR TAMBIÉN SE DESPLAZA. La escena
+     de escritorio mide 470 de alto y el mapa cuadrado más el QR no caben: sin
+     esto no había manera de llegar al QR ni al botón de cerrar —el scroll de
+     los paneles solo estaba puesto en el teléfono—. Lo levantó Codex. Y sin
+     canto, por lo mismo que en el teléfono (ver la regla de max-width:560px):
+     en una caja que se desplaza, el canto se iría con el texto. */
+  @media (min-width: 561px){
+    #respaldo{ overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; }
+    #respaldo::before, #respaldo::after{ display:none; }
+  }
   .sello-version{ margin:13px 2px 3px; padding:9px 11px 8px;
                   border:1px solid rgba(140,116,68,.42); border-radius:7px;
                   background:rgba(184,137,43,.12);
@@ -7126,7 +7136,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 06:14';
+window.GLOSS_BUILD = '17-NOV-26 06:15';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -27507,9 +27517,18 @@ function armarMapaLectores(caja){
     }
     mapa.fitBounds(MAPA_TIERRA, { animate: false });
   }
+  /* A PANTALLA COMPLETA, EL MAPA SE MUDA AL <body>. position:fixed no basta:
+     el panel abierto conserva un transform y un clip-path, y la escena lleva
+     filter y overflow:hidden; cualquiera de ellos hace de caja contenedora
+     del fixed, así que el mapa «a pantalla completa» salía recortado al panel
+     y en escritorio la ✕ quedaba fuera de lo visible. Lo levantó Codex. Se
+     deja un marcador en su sitio para devolverlo exactamente ahí. */
+  const marcador = document.createComment('mapa de lectores');
   function pantallaCompleta(si){
     if (si === completo || !mapa) return;
     completo = si;
+    if (si){ lienzo.before(marcador); document.body.appendChild(lienzo); }
+    else if (marcador.parentNode){ marcador.replaceWith(lienzo); }
     lienzo.classList.toggle('mapa-completo', si);
     document.body.classList.toggle('con-mapa-completo', si);
     if (si) lienzo.append(cerrar); else cerrar.remove();
