@@ -6984,7 +6984,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 06:14';
+window.GLOSS_BUILD = '17-NOV-26 06:16';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11551,8 +11551,13 @@ function anchoPanelComoGlosa(){
   const lados = menu.querySelector('.gl-fila') ? 2 * (44 + 6) : 0;
   if (enTelefono()){
     const ancho = Math.min(Math.round(stage.getBoundingClientRect().width * .92), 400);
-    menu.style.width = Math.round(Math.min(ancho, tope)) + 'px';
-    if (caja) caja.style.width = Math.round(Math.min(glosa, tope - pad - bor - lados)) + 'px';
+    const panel = Math.round(Math.min(ancho, tope));
+    menu.style.width = panel + 'px';
+    /* CONTRA EL PANEL QUE DE VERDAD SE ASIGNÓ, no contra la escena: el panel
+       mide el 92% (tope 400) y con las dos columnas de mandos una glosa al
+       pie —más ancha que la del margen— empujaba los de la derecha fuera del
+       panel. Lo levantó Codex. */
+    if (caja) caja.style.width = Math.round(Math.min(glosa, panel - pad - bor - lados)) + 'px';
     return;
   }
   if (caja) caja.style.width = lados ? Math.round(Math.min(glosa, tope - pad - bor - lados)) + 'px' : '';
