@@ -5654,23 +5654,30 @@
      a todo lo ancho y, debajo, el espaciado a la izquierda y el tamaño a la
      derecha, en renglón: menos, la seña, más —el más a la derecha, que es
      hacia donde crece una cuenta—. */
-  #menu .gl-fila.apretada{ grid-template-columns:1fr 1fr; row-gap:4px; }
+  /* auto-fit: en una ventana angostísima los dos renglones de mandos no caben
+     lado a lado y se apilan, en vez de ensanchar la rejilla y sacar el
+     anticipo del panel. */
+  #menu .gl-fila.apretada{ grid-template-columns:repeat(auto-fit, minmax(min(100%, 120px), 1fr));
+                           row-gap:6px; }
   #menu .gl-fila.apretada .gl-vista{ grid-column:1 / -1; grid-row:1; justify-self:center; }
-  #menu .gl-fila.apretada .gl-lado{ grid-row:2; flex-direction:row-reverse; min-height:0;
+  #menu .gl-fila.apretada .gl-lado{ flex-direction:row-reverse; min-height:0;
                                     justify-content:center; gap:10px; }
   #menu .gl-lado{ display:flex; flex-direction:column; align-items:center;
-                  justify-content:space-between; gap:4px; min-height:96px; }
-  #menu .glado{ width:36px; height:36px; display:grid; place-items:center; padding:0;
+                  justify-content:space-between; gap:2px; }
+  #menu .glado{ width:32px; height:32px; display:grid; place-items:center; padding:0;
                 border-radius:50%; cursor:pointer; color:rgba(243,231,200,.72);
                 border:1.5px solid rgba(233,199,116,.32); background:transparent;
-                font:500 20px/1 var(--ui); letter-spacing:0; }
-  /* Blanco de dedo de 44 aunque el círculo mida 36: un ::before invisible
-     que sobresale, para que lo discreto no sea también difícil de atinar. */
+                font:500 19px/1 var(--ui); letter-spacing:0; }
+  /* Blanco de dedo de 44 aunque el círculo mida 32: un ::before invisible
+     que sobresale, para que lo discreto no sea también difícil de atinar.
+     Y 32 y no más para que la columna —más, seña, menos— no pase del alto de
+     una nota corta: si la pasara, el renglón crecería por los botones y no
+     por la nota, y el panel no se movería al crecerle la nota por dentro. */
   #menu .glado{ position:relative; }
-  #menu .glado::before{ content:""; position:absolute; inset:-4px; border-radius:50%; }
+  #menu .glado::before{ content:""; position:absolute; inset:-6px; border-radius:50%; }
   #menu .glado:active{ background:rgba(233,199,116,.14); }
   #menu .glado:focus-visible{ outline:2px solid #e9c774; outline-offset:2px; }
-  #menu .gl-sena{ font:700 17px/1 var(--fam-libro, Georgia, serif); color:rgba(217,201,162,.6); }
+  #menu .gl-sena{ font:700 15px/1 var(--fam-libro, Georgia, serif); color:rgba(217,201,162,.6); }
   #menu .gl-num{ position:absolute; width:1px; height:1px; overflow:hidden;
                  clip:rect(0 0 0 0); white-space:nowrap; }
   /* EL ANCLA, EN SU POSICIÓN ESTÁTICA. Sin left ni top: así queda donde la
