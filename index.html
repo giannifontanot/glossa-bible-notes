@@ -5814,6 +5814,8 @@
   #menu .tagctl{ gap:8px; flex-wrap:nowrap; width:100%; box-sizing:border-box; }
   #menu .tagctl input{ flex:1 1 0; }
   #menu .tagctl .crear{ flex:0 0 46%; text-align:center; font-weight:600; }
+  /* GRIS MIENTRAS EL CAMPO ESTÁ VACÍO: ver tagboxHTML. */
+  .tagctl .crear[aria-disabled="true"]{ opacity:.42; filter:grayscale(1); cursor:default; }
   .tagbox .vacio{ font-size:calc(.65rem * var(--escala-ui, 1)); opacity:.45; padding:0 4px; }
   /* DORMIDA: se ve, y no responde. Sin nota no hay nada que guardar, así que
      una etiqueta puesta ahora se perdería al cerrar. Apagarla del todo sería
@@ -7015,7 +7017,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 06:12';
+window.GLOSS_BUILD = '17-NOV-26 09:43';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11240,8 +11242,14 @@ function tagboxHTML(m){
       'autocapitalize="none" autocomplete="off" />' +
     /* EL + DICE LO QUE HACE. Era un signo suelto de menos de un centímetro
        al lado de una caja de texto, y un signo no se lee: se adivina. */
-    '<button class="crear" data-acc="creartag" ' +
-      'title="' + T('Crear la etiqueta','Create the tag') + '">' + T('+ crear','+ create') + '</button>' +
+    /* «+ NUEVA» Y APAGADO HASTA QUE HAYA ALGO ESCRITO. Decía «+ crear» y
+       estaba siempre encendido, invitando a crear una etiqueta sin nombre.
+       Gianni lo vio —«es básico, no sé por qué no lo habíamos visto»—: el
+       botón sale gris y se enciende en cuanto el campo tiene algo. Es
+       aria-disabled y no disabled: el clic sigue llegando, y quien decide es
+       crearTagDeMarca, que ya no crea nada con el campo vacío. */
+    '<button class="crear" data-acc="creartag" aria-disabled="true" ' +
+      'title="' + T('Crear la etiqueta','Create the tag') + '">' + T('+ nueva','+ new') + '</button>' +
     '</div><div class="taglista">' +
     (lista.length
       ? lista.map(t => '<button class="tg' + (tiene.has(t) ? ' on' : '') +
@@ -13354,6 +13362,9 @@ function crearTagDeMarca(caja){
   if (menu.querySelector('.tagbox').classList.contains('dormida')) return;
   const t = etiquetaLimpia(caja.value); if (!t) return;
   caja.value = '';
+  /* Vaciar el campo desde aquí no dispara `input`, así que el botón se
+     quedaba encendido con el campo vacío. Lo levantó Codex. */
+  encenderNueva(caja);
   const actuales = borrador.m.etiquetas || [];
   if (!actuales.includes(t)) borrador.m.etiquetas = actuales.concat(t);
   ultimaEtiqueta = t;
@@ -13457,6 +13468,15 @@ menu.addEventListener('beforeinput', ev => {
 menu.addEventListener('change', ev => {
   if (ev.target.id === 'tagNueva') crearTagDeMarca(ev.target);
 });
+/* EL BOTÓN «+ NUEVA» SE ENCIENDE CON LO ESCRITO, en las dos cajas de
+   etiquetas: la de la glosa y la de editar varias. */
+function encenderNueva(campo){
+  const b = campo && campo.closest('.tagctl') &&
+            campo.closest('.tagctl').querySelector('[data-acc="creartag"], [data-acc="creartag-grupo"]');
+  if (b) b.setAttribute('aria-disabled', campo.value.trim() ? 'false' : 'true');
+}
+menu.addEventListener('input', ev => { if (ev.target.id === 'tagNueva') encenderNueva(ev.target); });
+document.addEventListener('input', ev => { if (ev.target.id === 'tagNuevaGrupo') encenderNueva(ev.target); });
 /* ============================================================
    NAVEGACIÓN POR VÍNCULOS. Saltar apila la hoja de origen, así que
    "volver por donde viniste" es el borde izquierdo de siempre: uno
@@ -14061,7 +14081,8 @@ function pintarBarraGrupo(){
              acertarle otra vez a la misma etiqueta. */
           '<button type="button" class="btn" data-acc="dejartag" ' +
             'title="' + T('Dejar de cambiarle el nombre','Stop renaming it') + '">' + T('cancelar','cancel') + '</button>'
-        : '<button type="button" class="btn crear" data-acc="creartag-grupo">' + T('+ crear','+ create') + '</button>') +
+        : '<button type="button" class="btn crear" data-acc="creartag-grupo" aria-disabled="true">' +
+            T('+ nueva','+ new') + '</button>') +
     '</div>' +
     '<div class="taglista">' + htmlLista + '</div>';
 }
@@ -14239,7 +14260,7 @@ $('tagboxGrupo').addEventListener('click', ev => {
   if (ev.target.closest('[data-acc="creartag-grupo"]')){
     const caja = $('tagNuevaGrupo');
     ponerTagGrupo(caja && caja.value);
-    if (caja) caja.value = '';
+    if (caja){ caja.value = ''; encenderNueva(caja); }
     return;
   }
   if (ev.target.closest('[data-acc="renombrartag"]')){
