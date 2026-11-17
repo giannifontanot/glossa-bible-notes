@@ -894,27 +894,35 @@
      aviso existe—. Las bolitas no se animan una por una: cada una tiene su
      tinta fija y lo que gira es el corro entero.
 
-     Cada bolita lleva un filo de papel alrededor, por lo mismo que lo llevaba
-     el aro: sin él la letra de la hoja se le cruza por debajo y cuesta
-     leerla. Es una sombra quieta, así que no le pide nada al compositor. */
+     EL COLOR ES EL CAFÉ OSCURO DE LA TINTA, con un filo casi negro. Primero
+     llevaron el marrón dorado de los mandos con un filo de papel blanco
+     alrededor, y Gianni dijo que no se notaba: el filo blanco aclaraba cada
+     bolita y la fundía con el crema de la hoja. Se probaron tres verdes y un
+     azul petróleo —«no me gusta nadita»—: un color frío es ajeno a esta
+     casa, que es toda papel, sepia y dorado, y en vez de leerse como aviso se
+     leía como otra cosa. El panel de expertos se quedó con el café de siempre,
+     pero oscuro (#6b4a14, el tono de la tinta) para despegarse del dorado,
+     y con un filo de 1.5 px casi negro que recorta la bolita contra la
+     letra y contra el panel. Sin filo se perdía sobre el sepia. Es una
+     sombra quieta, así que no le pide nada al compositor. */
   #buscando .bolitas{ position:absolute; left:50%; top:50%;
                       width:72px; height:72px; margin:-36px 0 0 -36px;
                       animation:giroBuscando 1s linear infinite;
                       will-change:transform; }
   #buscando .bolitas i{ position:absolute; left:50%; top:50%;
                         width:14px; height:14px; margin:-7px 0 0 -7px;
-                        border-radius:50%; background:#8a6418;
-                        box-shadow:0 0 0 3px rgba(253,251,246,.9); }
+                        border-radius:50%; background:#6b4a14;
+                        box-shadow:0 0 0 1.5px #2a1c06; }
   /* La primera es la de delante: entera y grande. Las demás se van achicando
      y apagando hacia atrás, y eso es la cola que hace leer el giro. */
   #buscando .bolitas i:nth-child(1){ transform:rotate(0deg)   translateY(-28px) scale(1);   opacity:1; }
   #buscando .bolitas i:nth-child(2){ transform:rotate(-45deg)  translateY(-28px) scale(.92); opacity:.86; }
   #buscando .bolitas i:nth-child(3){ transform:rotate(-90deg)  translateY(-28px) scale(.84); opacity:.72; }
   #buscando .bolitas i:nth-child(4){ transform:rotate(-135deg) translateY(-28px) scale(.76); opacity:.58; }
-  #buscando .bolitas i:nth-child(5){ transform:rotate(-180deg) translateY(-28px) scale(.68); opacity:.46; }
-  #buscando .bolitas i:nth-child(6){ transform:rotate(-225deg) translateY(-28px) scale(.6);  opacity:.36; }
-  #buscando .bolitas i:nth-child(7){ transform:rotate(-270deg) translateY(-28px) scale(.54); opacity:.28; }
-  #buscando .bolitas i:nth-child(8){ transform:rotate(-315deg) translateY(-28px) scale(.5);  opacity:.22; }
+  #buscando .bolitas i:nth-child(5){ transform:rotate(-180deg) translateY(-28px) scale(.68); opacity:.52; }
+  #buscando .bolitas i:nth-child(6){ transform:rotate(-225deg) translateY(-28px) scale(.6);  opacity:.46; }
+  #buscando .bolitas i:nth-child(7){ transform:rotate(-270deg) translateY(-28px) scale(.54); opacity:.4; }
+  #buscando .bolitas i:nth-child(8){ transform:rotate(-315deg) translateY(-28px) scale(.5);  opacity:.34; }
   @keyframes giroBuscando{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
   /* La frase que lee el lector de pantalla. Se esconde a la vista sin salir
      del árbol de accesibilidad, que es justo lo que display:none y
@@ -6916,7 +6924,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 19:57';
+window.GLOSS_BUILD = '16-NOV-26 20:01';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
