@@ -1977,12 +1977,25 @@ const FUERA = `async () => {
      apareció entero en vez de crecer. Medido: 21 px antes, 9 después, que son
      exactamente los 9 del row-gap.
 
-     Se prueba con LETRA porque es la que empuja al índice: ACTUALIZAR abre por
-     debajo de él y no lo mueve, así que ahí esta afirmación saldría verde sin
-     probar nada. */
+     Se prueba con LETRA porque es la que empuja al índice desde arriba.
+
+     Y SE EMPIEZA CON LAS TRES CERRADAS. EDITAR —antes ACTUALIZAR— abría por
+     debajo del índice; Gianni pidió su barra ARRIBA, como en la glosa nueva,
+     y ahora también está encima. El bloque de arriba la deja abierta, y
+     abrir LETRA la cierra: el índice SUBÍA por la barra que se iba en vez de
+     bajar por la letra que llegaba, y la medida salía negativa sin que nada
+     estuviera mal. */
   const salto = await p.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     const panel = document.getElementById('ctrlEtiquetas');
+    if (document.getElementById('etiquetas').classList.contains('eligiendo')){
+      document.getElementById('btnElegirGlosas').click();
+      await pausa(500);
+    }
+    if (!panel.classList.contains('sin-chips')){
+      document.getElementById('btnVerEtiquetas').click();
+      await pausa(500);
+    }
     if (!panel.classList.contains('sin-letra')){
       document.getElementById('btnLetraGlosas').click();
       await pausa(500);

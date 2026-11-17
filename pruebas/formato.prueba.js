@@ -126,6 +126,12 @@ const AJUSTES = 'glossa:ajustes:v1';
       esCristal,
       encendido: [...document.querySelectorAll('#presetsFormato [data-preset].active')].map(b => b.dataset.preset),
       pulsado: document.querySelector('[data-preset="legible"]').getAttribute('aria-pressed'),
+      /* El puesto lo dice un check verde a la derecha, no un botón dorado. */
+      checks: [...document.querySelectorAll('#presetsFormato [data-preset]')].map(b => {
+        const c = b.querySelector('.pf-check'), r = c ? c.getBoundingClientRect() : null;
+        return { id: b.dataset.preset, se: c ? +getComputedStyle(c).opacity : -1,
+                 fondo: c ? getComputedStyle(c).backgroundColor : '', x: c ? Math.round(b.getBoundingClientRect().left + c.offsetLeft) : null,
+                 boton: getComputedStyle(b).backgroundImage }; }),
       mandosGlosa: [document.getElementById('fsGlosaAhora').value, document.getElementById('espGlosaAhora').value],
       a: JSON.parse(localStorage.getItem('glossa:ajustes:v1'))
     };
@@ -135,6 +141,20 @@ const AJUSTES = 'glossa:ajustes:v1';
   vale('(la prueba es válida) el panel estaba opaco', opaco.esCristal === false);
   vale('EL PRESET TOCADO SE ENCIENDE', opaco.encendido.join() === 'legible' && opaco.pulsado === 'true',
        opaco.encendido.join() + ' · ' + opaco.pulsado);
+  /* Y LO DICE CON UN CHECK VERDE, no tiñéndose de café: Gianni no quería que
+     el botón «se pusiera medio café». Sólo el puesto lo enseña, y los cuatro
+     huecos caen en la misma columna. */
+  {
+    const ck = opaco.checks, puesto = ck.find(c => c.id === 'legible');
+    const verde = m => { const v = (m || '').match(/\d+/g); return !!v && +v[1] > +v[0] + 40 && +v[1] > +v[2] + 20; };
+    vale('  CON UN CHECK VERDE A LA DERECHA, y sólo en el puesto',
+         !!puesto && puesto.se > .9 && verde(puesto.fondo) && ck.filter(c => c.id !== 'legible').every(c => c.se < .1),
+         ck.map(c => c.id + ' ' + c.se + ' ' + c.fondo).join(' · '));
+    vale('  los checks, todos en la misma columna',
+         ck.every(c => c.x != null && Math.abs(c.x - ck[0].x) <= 1), ck.map(c => c.x).join(' · '));
+    const dorado = m => { const v = (m || '').match(/\d+/g); return !!v && +v[0] > 130 && +v[0] - +v[2] > 70; };
+    vale('  y el botón puesto no se pone dorado', !dorado(puesto && puesto.boton), puesto && puesto.boton);
+  }
   vale('LEGIBLE LLEGA A LA HOJA SIN CERRAR: 24, Lineal, espaciado +5, interlínea normal, una columna, al margen',
        a.fontSize === 24 && a.fuente === 4 && a.espaciado === 5 && a.interlineado === 1.62 &&
        a.columns === 1 && a.placement === 'margin' && a.alineacion === 'left',
@@ -247,12 +267,14 @@ const AJUSTES = 'glossa:ajustes:v1';
     await pausa(30);
     const animando = caja.getAnimations().length > 0;
     const ys = [];
-    for (let i = 0; i < 10; i++){ ys.push(cerrarY()); await pausa(60); }
-    await pausa(200);
-    return { antes, animando, ys, despues: cerrarY(),
+    /* Se abre en 1100 ms —más despacio, pedido por Gianni—: se muestrea el
+       primer segundo y se espera a que termine. */
+    for (let i = 0; i < 16; i++){ ys.push(cerrarY()); await pausa(60); }
+    await pausa(500);
+    const tarda = ys.filter((y, i) => i > 0 && y !== ys[i - 1]).length;
+    return { antes, animando, ys, tarda, despues: cerrarY(),
              display: getComputedStyle(caja).display,
-             expandido: document.getElementById('btnFinos').getAttribute('aria-expanded'),
-             guardado: JSON.parse(localStorage.getItem('glossa:ajustes:v1')).finos };
+             expandido: document.getElementById('btnFinos').getAttribute('aria-expanded') };
   });
   di('CERRAR mientras se abren', finos);
   vale('SE DESPLIEGAN CON ANIMACIÓN, no de golpe', finos.animando === true);
@@ -260,18 +282,37 @@ const AJUSTES = 'glossa:ajustes:v1';
   /* De a poco: entre el primer cuadro y el último hay pasos intermedios. Un
      salto de golpe saldría con todos los valores en el de antes o el de
      después. */
+  /* DESPACIO: a 60 ms por muestra, CERRAR sigue moviéndose pasado el medio
+     segundo. A 520 ms —lo de antes— se quedaba quieto a la novena muestra. */
+  vale('  y SE ABREN DESPACIO: CERRAR sigue bajando pasado el medio segundo',
+       finos.ys.slice(9, 15).some((y, i, a) => i > 0 && y !== a[i - 1]), finos.ys.join(' → '));
   vale('  y baja de a poco, no de un salto',
        finos.ys.some(y => y > finos.antes + 5 && y < finos.despues - 5), finos.ys.join(' → '));
   vale('  y quedan abiertos', finos.display === 'grid' && finos.expandido === 'true',
        finos.display + ' · ' + finos.expandido);
-  vale('  y se recuerda', finos.guardado === true, finos.guardado);
+  /* PERO AL VOLVER A LA PESTAÑA, PLEGADOS. Se recordaban entre visitas y
+     entre recargas; Gianni los quiere siempre cerrados al entrar: «puede ser
+     que lo dejamos abierto, pero cuando regresamos a ese tab siempre lo vamos
+     a encontrar cerrado». Se cierra el panel con CERRAR, se vuelve, y luego
+     se recarga. */
+  const alVolver = await p.evaluate(async ([abrirAA]) => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    document.querySelector('#ajustes .cerrar-pie').click();
+    await pausa(1200);
+    await eval('(' + abrirAA + ')')();
+    return { display: getComputedStyle(document.getElementById('ajustesFinos')).display,
+             expandido: document.getElementById('btnFinos').getAttribute('aria-expanded') };
+  }, [ABRIR_AA]);
+  vale('AL VOLVER A LA PESTAÑA, LOS FINOS ESTÁN PLEGADOS',
+       alVolver.display === 'none' && alVolver.expandido === 'false',
+       alVolver.display + ' · ' + alVolver.expandido);
   await p.reload();
   await p.waitForTimeout(2200);
   const trasRecargar = await p.evaluate(async ([abrirAA]) => {
     await eval('(' + abrirAA + ')')();
     return getComputedStyle(document.getElementById('ajustesFinos')).display;
   }, [ABRIR_AA]);
-  vale('  también al recargar', trasRecargar === 'grid', trasRecargar);
+  vale('  y también después de recargar', trasRecargar === 'none', trasRecargar);
 
   titulo('en transparente también, y el botón se enciende');
   const cristal = await p.evaluate(async ([tocar]) => {
@@ -334,6 +375,24 @@ const AJUSTES = 'glossa:ajustes:v1';
        cristal.destello.length === 0, cristal.destello.join(' · ') || 'macizo');
   vale('  y LOS BOTONES NO SE VUELVEN DE CRISTAL: ninguno deja pasar la hoja',
        cristal.colados.length === 0, cristal.colados.join(' · ') || 'ninguno');
+  /* TRANSPARENTE, APAGADO AL VOLVER. Como los finos: Gianni lo quiere en off
+     cada vez que se abre el panel. Se enciende, se cierra el panel con
+     CERRAR y se vuelve a la pestaña. */
+  const vidrioAlVolver = await p.evaluate(async ([abrirAA, tocar]) => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    await eval('(' + tocar + ')')('#btnVidrio');
+    await pausa(500);
+    const encendido = document.getElementById('ajustes').classList.contains('cristal');
+    document.querySelector('#ajustes .cerrar-pie').click();
+    await pausa(1200);
+    await eval('(' + abrirAA + ')')();
+    const b = document.getElementById('btnVidrio');
+    return { encendido, cristal: document.getElementById('ajustes').classList.contains('cristal'),
+             boton: b.classList.contains('active') || b.getAttribute('aria-pressed') === 'true' };
+  }, [ABRIR_AA, TOCAR]);
+  vale('(la prueba es válida) transparente se encendió', vidrioAlVolver.encendido === true);
+  vale('AL VOLVER A LA PESTAÑA, TRANSPARENTE ESTÁ APAGADO, y su botón también',
+       vidrioAlVolver.cristal === false && vidrioAlVolver.boton === false, JSON.stringify(vidrioAlVolver));
   vale('  y los rótulos llevan su tablilla para leerse sobre la hoja',
        cristal.tablilla !== 'rgba(0, 0, 0, 0)', cristal.tablilla);
 
@@ -349,9 +408,15 @@ const AJUSTES = 'glossa:ajustes:v1';
   const tira = await p.evaluate(async ([abrirAA]) => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     await eval('(' + abrirAA + ')')();
+    /* Con LEGIBLE puesto: su letra de 24 agranda también el cromo del panel,
+       y así Formato desborda lo bastante para que la costura caiga a media
+       hoja. Con los presets ya sin explicación, a letra chica el panel casi
+       cabe, y la costura quedaba debajo de CERRAR, fuera de la tira. */
+    document.querySelector('[data-preset="legible"]').click();
+    await pausa(900);
     if (document.getElementById('btnFinos').getAttribute('aria-expanded') !== 'true'){
       document.getElementById('btnFinos').click();
-      await pausa(900);
+      await pausa(1500);
     }
     const aj = document.getElementById('ajustes');
     aj.scrollTop = Math.min(aj.scrollHeight - aj.clientHeight, Math.round(aj.clientHeight / 2));

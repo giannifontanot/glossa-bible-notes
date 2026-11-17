@@ -4670,21 +4670,40 @@
                     box-shadow:inset 0 1px 0 #fff, 0 2px 3px rgba(60,40,15,.22); }
   /* El nombre centrado en el botón aunque lleve el dibujito a la izquierda:
      se le resta al nombre lo que ocupa el dibujito por el otro lado. */
-  #ctrlConfig .pf-btn .pf-nombre{ flex:1 1 auto; text-align:center; padding-right:34px; }
+  #ctrlConfig .pf-btn{ position:relative; }
+  #ctrlConfig .pf-btn .pf-nombre{ flex:1 1 auto; text-align:center; }
   #ctrlConfig:not(.estrecho) .pf-btn{ flex-direction:column; justify-content:center; gap:5px; padding:8px 6px; }
-  #ctrlConfig:not(.estrecho) .pf-btn .pf-nombre{ padding-right:0; flex:0 0 auto; }
+  #ctrlConfig:not(.estrecho) .pf-btn .pf-nombre{ flex:0 0 auto; }
   #ctrlConfig .pf-btn:hover{ background:linear-gradient(to bottom, #fffbf1, #f3ead4); }
   #ctrlConfig .pf-btn:active{ transform:translateY(1px);
                     box-shadow:inset 0 1px 3px rgba(60,40,15,.3); }
-  #ctrlConfig .pf-btn.active{ color:#fff7df;
-                    background:linear-gradient(to bottom, #a8862f, #8c6d22);
-                    border-color:#e2bd52;
-                    box-shadow:inset 0 1px 3px rgba(0,0,0,.3), 0 0 0 2px rgba(226,189,82,.45); }
+  /* EL PUESTO, CON UN CHECK VERDE Y APENAS HUNDIDO. Se encendía entero en
+     el dorado del programa, y a Gianni no le gustó: «no me gusta que hagan
+     clic y se pongan medio cafés». Lo que dice si está puesto es el check
+     verde de la derecha; el botón sólo baja un poco el tono y se hunde, que
+     se note que está apretado sin cambiar de color. */
+  #ctrlConfig .pf-btn.active{ color:#3f3416;
+                    background:linear-gradient(to bottom, #f1e8d1, #e6d8b4);
+                    border-color:#b9a374;
+                    box-shadow:inset 0 2px 4px rgba(60,40,15,.25); transform:translateY(1px); }
+  /* EL HUECO DEL CHECK ESTÁ SIEMPRE, puesto o no, y mide lo mismo que el
+     dibujito de la izquierda: así el nombre queda centrado y los cuatro checks
+     caen en la misma columna, como pidió —«todos bien alineaditos»—. */
+  .pf-check{ flex:0 0 auto; width:24px; height:24px; border-radius:50%; display:grid; place-items:center;
+             opacity:0; transform:scale(.6); transition:opacity .18s, transform .18s; }
+  .pf-check svg{ width:15px; height:15px; fill:none; stroke:#fff; stroke-width:3;
+                 stroke-linecap:round; stroke-linejoin:round; }
+  .pf-btn.active .pf-check{ opacity:1; transform:none; background:#2f9a5a;
+                            box-shadow:0 1px 2px rgba(0,0,0,.25); }
+  /* En pantalla ancha los cuatro van en fila, con el dibujito arriba del
+     nombre: el check se va a la esquina, a la misma altura en los cuatro. */
+  #ctrlConfig:not(.estrecho) .pf-check{ position:absolute; top:8px; right:8px; }
+  @media (prefers-reduced-motion: reduce){ .pf-check{ transition:none; } }
   /* EL DIBUJITO DE LAS COLUMNAS: una hoja chica con tantas tiras de renglones
      como columnas pone el preset. Se lee antes que el nombre. */
   .pf-hoja{ flex:0 0 auto; display:grid; gap:3px; width:24px; padding:5px; border-radius:4px;
             background:#efe6d0; color:#8a7444; }
-  .pf-btn.active .pf-hoja{ background:rgba(255,247,223,.2); color:#fff7df; }
+
   .pf-hoja i{ display:flex; flex-direction:column; gap:3px; }
   .pf-hoja i::before, .pf-hoja i::after, .pf-hoja b{ content:''; display:block; height:3px;
             border-radius:2px; background:currentColor; opacity:.6; }
@@ -6996,7 +7015,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 04:51';
+window.GLOSS_BUILD = '17-NOV-26 05:11';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18989,6 +19008,19 @@ function abrirSeccion(id, enSeco){
      de la última vez que se miró. */
   if (typeof aplicarPendientes === 'function' && id !== 'formato') aplicarPendientes();
   if (typeof reflejarMuestra === 'function' && id === 'formato') reflejarMuestra();
+  /* AJUSTES FINOS, SIEMPRE PLEGADOS AL ENTRAR. Gianni: «siempre va a aparecer
+     off; puede ser que hace un rato lo dejamos abierto, pero cuando
+     regresamos a ese tab siempre lo vamos a encontrar cerrado». Se pliegan en
+     seco —sin la animación de cerrar—, que el panel está entrando y lo que se
+     tiene que ver es el panel ya armado, no un cajón cerrándose. Se recordó
+     un tiempo entre visitas y entre recargas; ya no. */
+  if (id === 'formato' && typeof alternarFinos === 'function') alternarFinos(false, true);
+  /* Y TRANSPARENTE, APAGADO TAMBIÉN, por lo mismo: Gianni lo quiere en off
+     cada vez que se abre el panel —«ya si el usuario lo quiere poner
+     transparente en ese momento, está bien»—. Se apaga por el mismo botón
+     que lo apaga a mano, para que la escena y la muestra se enteren igual. */
+  if (id === 'formato' && document.getElementById('ajustes')?.classList.contains('cristal'))
+    document.getElementById('btnVidrio')?.click();
   const de = SECCIONES.findIndex(x => x.id === seccionViva);
   const a  = SECCIONES.findIndex(x => x.id === id);
   dirSeccion = a >= de ? 1 : -1;              /* de dónde entra el contenido */
@@ -25314,6 +25346,9 @@ $('brillo').oninput = e => {
      · tablet: una, dos y tres columnas.
      · computadora: DOS y TRES columnas, nada de una.
 
+   EN INGLÉS, «EASY READING» Y NO «CLEAR». Se llamó Clear, y Gianni lo vio
+   ambiguo: suena a «borrar la pantalla», no a «se lee fácil».
+
    LAS GLOSAS, DOS PUNTOS MENOS QUE EL TEXTO. Al principio el preset les ponía
    el mismo cuerpo que al libro; Gianni vio que necesitan por lo menos dos
    puntos menos —son apuntes al lado del texto, no el texto— y así quedó
@@ -25333,9 +25368,9 @@ $('brillo').oninput = e => {
    pregunta misma rompería el arranque. */
 var PRESETS_POR_PANTALLA = {
   tel: [
-    { id:'legible', es:'Legible', en:'Clear',
+    { id:'legible', es:'Legible', en:'Easy reading',
       tam:24, fuente:4, esp:5, aire:1.62, cols:1, contraste:140, brillo:85, sepia:100 },
-    { id:'compacta', es:'Legible compacta', en:'Clear compact',
+    { id:'compacta', es:'Legible compacta', en:'Easy reading, compact',
       tam:20, fuente:4, esp:5, aire:1.62, cols:1, contraste:140, brillo:85, sepia:100 },
     { id:'noche', es:'Para la noche', en:'For the night',
       tam:22, fuente:4, esp:4, aire:1.62, cols:1, contraste:120, brillo:70, sepia:100 },
@@ -25343,7 +25378,7 @@ var PRESETS_POR_PANTALLA = {
       tam:16, fuente:0, esp:0, aire:1.62, cols:2, contraste:135, brillo:85, sepia:100 }
   ],
   tab: [
-    { id:'legible', es:'Legible', en:'Clear',
+    { id:'legible', es:'Legible', en:'Easy reading',
       tam:22, fuente:4, esp:4, aire:1.62, cols:1, contraste:135, brillo:85, sepia:100 },
     { id:'clasica', es:'Clásica', en:'Classic',
       tam:20, fuente:0, esp:0, aire:1.62, cols:1, contraste:130, brillo:90, sepia:100 },
@@ -25411,7 +25446,8 @@ function pintarPresetsFormato(){
         '<button type="button" class="btn pf-btn" data-preset="' + p.id + '" aria-pressed="false">' +
           '<span class="pf-hoja" aria-hidden="true" style="grid-template-columns:repeat(' + p.cols +
             ', minmax(0, 1fr))">' + '<i><b></b></i>'.repeat(p.cols) + '</span>' +
-          '<span class="pf-nombre">' + T(p.es, p.en) + '</span></button>' +
+          '<span class="pf-nombre">' + T(p.es, p.en) + '</span>' +
+          '<span class="pf-check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></button>' +
       '</div>').join('');
   reflejarPresets();
 }
@@ -25529,20 +25565,24 @@ function alternarFinos(abrir, enSeco){
     caja._anim = caja.animate(
       [{ height:'0px', opacity:0, transform:'translateY(-6px)' },
        { height:h + 'px', opacity:1, transform:'none' }],
-      { duration:520, easing:'cubic-bezier(.2,.8,.25,1)' });
+      /* MÁS DESPACIO, pedido por Gianni: a 520 ms el cajón se abría de golpe y
+         el lector no alcanzaba a ver qué había pasado —«el usuario puede
+         confundirse»—. Y no bastaba con alargarlo: la curva de antes corría al
+         principio, y en el teléfono CERRAR llega al fondo de la pantalla con
+         poco más de medio cajón abierto, así que en 360 ms ya no se movía
+         nada. Con una curva que arranca suave y 1300 ms, CERRAR se ve bajar
+         casi un segundo. */
+      { duration:1300, easing:'cubic-bezier(.45,.05,.3,1)' });
     caja._anim.onfinish = () => { caja._anim = null; };
   } else {
     const h = caja.offsetHeight;
     caja._anim = caja.animate(
       [{ height:h + 'px', opacity:1 }, { height:'0px', opacity:0 }],
-      { duration:380, easing:'cubic-bezier(.4,0,.6,1)' });
+      { duration:700, easing:'cubic-bezier(.4,0,.6,1)' });
     caja._anim.onfinish = () => { caja._anim = null; cfg.classList.add('plegado'); };
   }
 }
-$('btnFinos').addEventListener('click', () => {
-  alternarFinos(!finosAbiertos);
-  guardarAjustes();
-});
+$('btnFinos').addEventListener('click', () => alternarFinos(!finosAbiertos));
 alternarFinos(finosAbiertos === true, true);
 pintarPresetsFormato();
 /* ON: el panel de Formato (debajo de LIBROS/GLOSAS/FORMATO/RESPALDO)
@@ -26031,8 +26071,6 @@ function guardarAjustes(){
       v: 1, fontSize, fontSizeGlosa, columns, placement, alineacion,
       interlineado, margen, version, showMarks, sepia, contraste, brillo,
       verFlechas, cantoTesta,
-      /* Los ajustes finos de FORMATO, abiertos o plegados: ver alternarFinos. */
-      finos: finosAbiertos === true,
       /* La casilla de los tiempos se guarda, y es lo que la hace servir de
          algo: medir en un teléfono pasa por recargar —los rieles se aplican
          recargando— y una casilla que se apaga en cada recarga habría que
@@ -26103,7 +26141,8 @@ function cargarAjustes(){
      anterior entra aquí y se queda en 100. Sin esta cuenta, el riel nacería
      con la manija fuera de su recorrido y el número diciendo 150. */
   if (Number.isFinite(a.brillo)) brillo = Math.max(50, Math.min(100, a.brillo));
-  if (typeof a.finos === 'boolean') finosAbiertos = a.finos;
+  /* `finos` ya no se lee: los finos nacen plegados siempre —ver abrirSeccion—.
+     Lo guardado antes se ignora solo. */
   /* El desvío del panel. Se recorta a un tamaño de pantalla generoso y no al
      de ahora: cuando esto se lee, la hoja todavía no está compuesta. Los topes
      de verdad los pone sitioDelMenu en cada colocación, que es donde se sabe
