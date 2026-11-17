@@ -496,14 +496,16 @@ const { abrir, cerrar, cerrarParcial, listo, di, vale, titulo } = require('./com
       await pausa(900);
       const panel = document.getElementById('ctrlEtiquetas');
       if (!panel) return { falta:'no hay panel de glosas' };
-      /* Se prueba con LETRA, que es la más simple de las tres: un grupo de dos
-         filas que no depende de que haya etiquetas ni glosas elegidas. */
-      if (!panel.classList.contains('sin-letra')){
-        document.getElementById('btnLetraGlosas').click();
+      /* Se prueba con EDITAR. Era con LETRA (AA), la más simple, y LETRA se
+         fue: sus mandos viven ahora en la ventanita de la glosa. EDITAR abre
+         su barra con el mismo abrirSuave. */
+      const puerta = document.getElementById('btnElegirGlosas');
+      if (puerta.getAttribute('aria-pressed') === 'true'){
+        puerta.click();
         await pausa(400);
       }
-      const el = document.getElementById('ctrlLetra');
-      document.getElementById('btnLetraGlosas').click();
+      const el = document.getElementById('barraGrupo');
+      puerta.click();
       const muestras = [];
       for (let i = 0; i < 12; i++){
         muestras.push(Math.round(el.getBoundingClientRect().height));
@@ -512,7 +514,7 @@ const { abrir, cerrar, cerrarParcial, listo, di, vale, titulo } = require('./com
       await pausa(500);
       return { muestras, fin: Math.round(el.getBoundingClientRect().height) };
     });
-    di('la puerta de LETRA', JSON.stringify(puertas));
+    di('la puerta de EDITAR', JSON.stringify(puertas));
     vale('(la prueba es válida) la puerta acabó abierta',
          !puertas.falta && puertas.fin > 0,
          puertas.falta ? JSON.stringify(puertas) : (puertas.fin + ' px'));

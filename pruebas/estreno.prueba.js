@@ -468,7 +468,7 @@ const ETIQUETAS_EN = ['🌅Hope', '📜Promise', '⚓FirmFaith', '🌱NewLife', 
       /* Los tres botones de GLOSAS nacen en el marcado y los traduce la tabla
          UI_EN; el primer renglón del combo de los días lo pinta pintarDias.
          Los dos caminos, cada uno con su testigo. */
-      glosas: ['btnLetraGlosas', 'btnVerEtiquetas', 'btnElegirGlosas']
+      glosas: ['btnVerEtiquetas', 'btnElegirGlosas']
         .map(id => (document.getElementById(id) || {}).textContent || null),
       dias: ((document.querySelector('#selDia option') || {}).textContent) || null,
       /* Y los puntos de la hoja, que son la puerta de perlas, cintas y rastro. */
@@ -495,8 +495,8 @@ const ETIQUETAS_EN = ['🌅Hope', '📜Promise', '⚓FirmFaith', '🌱NewLife', 
   vale('  los libros se llaman en inglés', ui.libros.includes('Matthew') && ui.libros.includes('Mark'), ui.libros.join(', '));
   vale('  las pestañas del testamento: OT y NT', ui.testa.join('|') === 'OT|NT', ui.testa.join('|'));
   vale('  y el pie dice CLOSE', ui.cerrar === 'CLOSE', ui.cerrar);
-  /* «letra» es ahora el signo AA —no se traduce— y «update» pasó a «edit». */
-  vale('  GLOSAS: AA · filter · edit', ui.glosas.join('|') === 'AA|filter|edit', ui.glosas.join('|'));
+  /* «letra» (AA) se fue a la ventanita de la glosa; quedan filtrar y editar. */
+  vale('  GLOSAS: filter · edit', ui.glosas.join('|') === 'filter|edit', ui.glosas.join('|'));
   vale('  y el filtro de días: all days', ui.dias === 'all days', ui.dias);
   vale('  los puntos de la hoja: pearls · bookmarks · seen',
        ui.puntos.join('|') === 'See your pearls|See your bookmarks|What you have seen', ui.puntos.join('|'));
@@ -519,7 +519,7 @@ const ETIQUETAS_EN = ['🌅Hope', '📜Promise', '⚓FirmFaith', '🌱NewLife', 
   vale('  los libros en español', uiEs.libros.includes('Mateo'), uiEs.libros.join(', '));
   vale('  AT y NT', uiEs.testa.join('|') === 'AT|NT', uiEs.testa.join('|'));
   vale('  y el pie dice CERRAR', uiEs.cerrar === 'CERRAR', uiEs.cerrar);
-  vale('  GLOSAS: AA · filtrar · editar', uiEs.glosas.join('|') === 'AA|filtrar|editar', uiEs.glosas.join('|'));
+  vale('  GLOSAS: filtrar · editar', uiEs.glosas.join('|') === 'filtrar|editar', uiEs.glosas.join('|'));
   vale('  y el filtro de días: todos los días', uiEs.dias === 'todos los días', uiEs.dias);
   vale('  los puntos de la hoja: perlas · separadores · visto',
        uiEs.puntos.join('|') === 'Ver tus perlas|Ver tus separadores|Lo que has visto', uiEs.puntos.join('|'));
