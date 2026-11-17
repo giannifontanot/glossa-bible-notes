@@ -363,9 +363,14 @@ async function ponerContraste(pagina, pct){
   });
   di('lo que mide cada tablilla', tablillas.filas.map(f => f.que + ' ' + f.pct + '%').join(' · '));
   di('el papel del panel', tablillas.opaco.sombra.slice(0,40) + ' → ' + tablillas.cristal.sombra);
+  /* El canto (::before) ya no cuenta como papel del panel opaco en el
+     teléfono: ahí el panel se desplaza, el canto se iba con el texto y
+     quedaba como una raya a media hoja —Gianni la vio—, así que en los
+     paneles que se desplazan se quitó también en opaco. Lo que se vigila es
+     que en transparente siga sin estar. */
   vale('el panel pierde su papel al volverse transparente',
        tablillas.opaco.sombra !== 'none' && tablillas.cristal.sombra === 'none' &&
-       tablillas.opaco.antes !== 'none' && tablillas.cristal.antes === 'none',
+       tablillas.cristal.antes === 'none',
        JSON.stringify(tablillas.opaco) + ' → ' + JSON.stringify(tablillas.cristal));
   /* LOS AJUSTES DE VERDAD, sin la fila de la salida. Sin este filtro estas dos
      afirmaciones llamaban fallo a algo que el programa hace a propósito y
