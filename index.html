@@ -6952,7 +6952,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 20:16';
+window.GLOSS_BUILD = '16-NOV-26 20:29';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25219,15 +25219,18 @@ $('brillo').oninput = e => {
    computadora, «leer» y «estudiar» en cada uno— y no le gustaron; los cambió
    por UNA lista de cuatro, armada en un mock y afinada a mano preset por
    preset:
-     · LEGIBLE: letra 22 en una columna, la LINEAL —la sin remates, la más
+     · LEGIBLE: letra 24 en una columna, la LINEAL —la sin remates, la más
        clara que hay—, espaciado +5, interlínea normal, contraste 140 y brillo
        85. El brillo bajo le quita deslumbre a la hoja, y el contraste alto le
-       devuelve a la letra lo que la luz le quita. Estuvo en 24 y Gianni lo
-       bajó dos puntos.
+       devuelve a la letra lo que la luz le quita. Estuvo en 24, Gianni lo
+       bajó a 22 y, después de leer con él en el teléfono, lo volvió a 24 con
+       una captura de los ajustes que quería: ésos son estos números.
      · LETRA GRANDE: 24, en una columna, romana, con interlínea amplia. Tiene
        que ser la más grande de la lista o el nombre miente: estuvo en 20 con
        Legible en 24, se subió a 26 —el tope de la app— y Gianni bajó los dos
-       dos puntos, así que sigue dos por encima. Lleva la misma luz que
+       dos puntos. Luego Legible volvió a 24 y quedaron iguales de cuerpo; aun
+       así Letra grande se ve más grande por su interlínea amplia, y Legible
+       se ve más clara por la Lineal y el espaciado. Lleva la misma luz que
        Legible —contraste 140, brillo 85—, que Gianni se la pidió igual: los
        dos de una columna son los de leer largo, y ahí es donde cansa la hoja.
        Las columnas no tocan ni tinta ni luz, decidido así con él.
@@ -25264,7 +25267,7 @@ $('brillo').oninput = e => {
    pregunta misma rompería el arranque. */
 var PRESETS_FORMATO = [
   { id:'legible', es:'Legible', en:'Clear',
-    tam:22, fuente:4, esp:5, aire:1.62, cols:1, contraste:140, brillo:85 },
+    tam:24, fuente:4, esp:5, aire:1.62, cols:1, contraste:140, brillo:85 },
   { id:'grande', es:'Letra grande', en:'Large type',
     tam:24, fuente:0, esp:0, aire:1.95, cols:1, contraste:140, brillo:85 },
   { id:'dos', es:'Dos columnas', en:'Two columns',

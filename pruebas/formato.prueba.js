@@ -125,8 +125,8 @@ const AJUSTES = 'glossa:ajustes:v1';
   vale('(la prueba es válida) el panel estaba opaco', opaco.esCristal === false);
   vale('EL PRESET TOCADO SE ENCIENDE', opaco.encendido.join() === 'legible' && opaco.pulsado === 'true',
        opaco.encendido.join() + ' · ' + opaco.pulsado);
-  vale('LEGIBLE LLEGA A LA HOJA SIN CERRAR: 22, Lineal, espaciado +5, interlínea normal, una columna, al margen',
-       a.fontSize === 22 && a.fuente === 4 && a.espaciado === 5 && a.interlineado === 1.62 &&
+  vale('LEGIBLE LLEGA A LA HOJA SIN CERRAR: 24, Lineal, espaciado +5, interlínea normal, una columna, al margen',
+       a.fontSize === 24 && a.fuente === 4 && a.espaciado === 5 && a.interlineado === 1.62 &&
        a.columns === 1 && a.placement === 'margin' && a.alineacion === 'left',
        [a.fontSize, a.fuente, a.espaciado, a.interlineado, a.columns, a.placement, a.alineacion].join(' · '));
   vale('  y sube el contraste y baja el brillo',
