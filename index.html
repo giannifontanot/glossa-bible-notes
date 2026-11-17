@@ -4894,7 +4894,7 @@
     border-width:2.6px !important; border-color:#5a3d0e !important;
     box-shadow:0 0 0 3px rgba(90,61,14,.55), 0 2px 0 #5a3d0e; }
   #barraGrupo{ display:none; flex-direction:column; align-items:stretch; gap:6px;
-               margin-top:6px; padding:7px 8px; background:rgba(255,253,247,.78);
+               margin:6px 0; padding:7px 8px; background:rgba(255,253,247,.78);
                border:1px solid rgba(140,116,68,.34); border-radius:4px; }
   #etiquetas.eligiendo #barraGrupo{ display:flex; }
   #barraGrupo .bg-cuenta{ font:600 calc(11px * var(--escala-ui, 1))/1.3 var(--ui); color:#5c4a24; }
@@ -6640,8 +6640,8 @@
   <button type="button" class="btn btn-signo" id="btnElegirGlosas"
           aria-pressed="false"
           title="Elegir varias glosas para editarles las etiquetas"><svg class="signo" viewBox="0 0 24 24"
-          aria-hidden="true" focusable="false"><path d="M8 8.5h11.2a2.3 2.3 0 0 1 2.3 2.3v2.4a2.3 2.3 0 0 1-2.3 2.3H8L2.5 12z"/><path
-          d="M8 8.5v7M17.5 8.5v7"/></svg><span data-es="editar" data-en="edit">editar</span></button>
+          aria-hidden="true" focusable="false"><path d="M9 6.5h10a2.5 2.5 0 0 1 2.5 2.5v6a2.5 2.5 0 0 1-2.5 2.5H9L2 12z"/><path
+          d="M9 6.5v11M17 6.5v11"/><path d="M2 12l3-2v4z" fill="currentColor"/></svg><span data-es="editar" data-en="edit">editar</span></button>
 </div>
 
 <!-- LOS DOS MANDOS DE LA LETRA DE LA GLOSA, debajo de su botón. El tamaño y el
@@ -6957,8 +6957,10 @@
 <input id="archivoImp" type="file" accept="application/json,.json" style="display:none">
 <div id="indice"></div>
 <div id="barraGrupo">
-  <span class="bg-cuenta" id="cuentaGrupo">0 elegidas</span>
+  <!-- La caja primero —campo arriba, como en la glosa nueva— y la cuenta
+       debajo, que es un dato y no un mando. -->
   <div class="tagbox" id="tagboxGrupo"></div>
+  <span class="bg-cuenta" id="cuentaGrupo">0 elegidas</span>
 </div>
 <p class="cred" id="cred"></p>
 
@@ -6992,7 +6994,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 04:46';
+window.GLOSS_BUILD = '17-NOV-26 04:48';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -14017,8 +14019,11 @@ function pintarBarraGrupo(){
      el nombre a una que ya existe. Dos cajas distintas habrían sido dos sitios
      donde escribir lo mismo, y el panel ya es estrecho. */
   const renombrando = !n && !!etiquetaEnEdicion;
+  /* EL CAMPO ARRIBA Y LA LISTA DEBAJO, como en la caja de la glosa nueva —ver
+     tagboxHTML, donde está contado por qué el campo no puede ir al final—.
+     Aquí iba al revés, y Gianni pidió que se viera «igualito» a la de la
+     glosa nueva: lo primero que se encuentra es dónde escribir. */
   caja.innerHTML =
-    '<div class="taglista">' + htmlLista + '</div>' +
     '<div class="tagctl' + (renombrando ? ' renombrando' : '') + '">' +
       '<input id="tagNuevaGrupo" enterkeyhint="done" autocapitalize="none" ' +
         'autocomplete="off" placeholder="' + (renombrando ? T('nuevo nombre…','new name…') : T('nueva…','new…')) + '" ' +
@@ -14032,7 +14037,8 @@ function pintarBarraGrupo(){
           '<button type="button" class="btn" data-acc="dejartag" ' +
             'title="' + T('Dejar de cambiarle el nombre','Stop renaming it') + '">' + T('cancelar','cancel') + '</button>'
         : '<button type="button" class="btn crear" data-acc="creartag-grupo">' + T('+ crear','+ create') + '</button>') +
-    '</div>';
+    '</div>' +
+    '<div class="taglista">' + htmlLista + '</div>';
 }
 /* BAJAR UNA ETIQUETA A LA CAJA. Se repinta y DESPUÉS se busca el campo: el
    repintado rehace el renglón entero, así que el que había antes ya no existe
@@ -26245,8 +26251,12 @@ etiquetas.appendChild($('ctrlEtiquetas'));
   fila.style.display = 'none';
   $('ctrlEtiquetas').appendChild(fila);
 })();
-etiquetas.appendChild($('indice'));
+/* LA BARRA DE EDITAR VA ENCIMA DE LA LISTA, no debajo. Gianni lo pidió como
+   en la glosa nueva: al tocar «editar», lo primero que se ve arriba es el
+   campo para escribir la etiqueta y las etiquetas, y debajo las glosas que se
+   van eligiendo. Abajo, con muchas glosas, la barra quedaba lejos del dedo. */
 etiquetas.appendChild($('barraGrupo'));
+etiquetas.appendChild($('indice'));
 
 /* ENCUENTROS: las historias de quien se topó con Jesús y se fue distinto.
 
