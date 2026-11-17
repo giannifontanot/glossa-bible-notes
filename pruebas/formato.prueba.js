@@ -77,6 +77,11 @@ const AJUSTES = 'glossa:ajustes:v1';
                                 altoF: Math.round(f.offsetHeight), anchoF: Math.round(f.offsetWidth),
                                 fondo: getComputedStyle(b).backgroundImage === getComputedStyle(f).backgroundImage }; })(),
       muestraEnFinos: !!document.querySelector('#ajustesFinos #filaMuestra'),
+      juntos: (() => { const f = document.querySelector('.vidrio-fila');
+                       return !!f && f.contains(document.getElementById('btnVidrio')) &&
+                              f.contains(document.getElementById('btnFinos')) &&
+                              Math.abs(document.getElementById('btnVidrio').getBoundingClientRect().top -
+                                       document.getElementById('btnFinos').getBoundingClientRect().top) <= 1; })(),
       primerosFinos: [...document.querySelectorAll('#ajustesFinos .ajuste .lbl')].slice(0, 4).map(l => l.textContent.trim())
     };
   }, [ABRIR_AA]);
@@ -91,8 +96,11 @@ const AJUSTES = 'glossa:ajustes:v1';
          /rgb\((\d+), (\d+), (\d+)\)/.test(g.color) &&
          g.color.match(/\d+/g).slice(0, 3).every(n => +n < 110)),
        nace.grupos.map(g => g.t + ' ' + g.fs + 'px ' + g.color).join(' · '));
-  vale('EL ORDEN: presets, transparente, ajustes finos —sin la frase de muestra arriba—',
-       nace.hijos.join(' ') === 'presetsFormato ajuste btnFinos ajustesFinos', nace.hijos.join(' '));
+  /* Transparente y Ajustes finos van en la misma fila —su bandeja, la
+     .vidrio-fila—, así que el panel ya no los ve como dos hijos sueltos. */
+  vale('EL ORDEN: presets, la bandeja de transparente y ajustes finos, y los finos —sin la frase de muestra arriba—',
+       nace.hijos.join(' ') === 'presetsFormato ajuste ajustesFinos' && nace.juntos === true,
+       nace.hijos.join(' ') + ' · juntos: ' + nace.juntos);
   vale('  y la muestra vive ahora dentro de los finos', nace.muestraEnFinos === true);
   vale('  y transparente no está dentro de los finos', nace.vidrioDentro === false);
   vale('TRANSPARENTE ES UN BOTÓN COMO «AJUSTES FINOS»: mismo alto, mismo ancho, mismo fondo',

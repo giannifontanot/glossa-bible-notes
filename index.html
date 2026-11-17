@@ -3484,7 +3484,19 @@
   /* Fondo transparente de Formato: para ver la hoja mientras se ajusta. */
   #ajustes.cristal{ background:transparent; box-shadow:none; }
   #ajustes.cristal::before, #ajustes.cristal::after{ display:none; }
-  .vidrio-fila{ display:flex; justify-content:center; width:100%; margin:2px 0 4px; }
+  /* TRANSPARENTE Y AJUSTES FINOS, LOS DOS EN UN RENGLÓN Y EN SU BANDEJA.
+     Iban uno debajo del otro, a lo ancho, y Gianni los pidió juntos: «dos
+     botones en el mismo renglón, pero que sea claro que no son opciones como
+     las de arriba». Lo que lo dice es la bandeja: una franja más oscura que el
+     papel que los envuelve a los dos, como una barra de herramientas. Los
+     presets son tarjetas claras sueltas, cada una una elección; esto son dos
+     mandos oscuros sobre su propia franja, que no eligen nada —uno deja ver la
+     hoja, el otro abre un cajón—. Mitad y mitad: ninguno de los dos manda
+     sobre el otro. */
+  .vidrio-fila{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px;
+                width:100%; margin:10px 0 6px; padding:7px; box-sizing:border-box;
+                border-radius:14px; background:rgba(74,59,23,.16);
+                box-shadow:inset 0 1px 3px rgba(60,40,15,.28); }
   /* MIDE SU PALABRA, COMO EL DE CERRAR. Estuvo a todo lo ancho, y la razón
      escrita aquí era que es la puerta de salida del modo transparente: «a todo
      lo ancho está donde uno mira». El dueño del repo lo paró con el mismo
@@ -3629,9 +3641,12 @@
      demás filas son ajustes, y ésta es la salida. Además su tablilla sobra,
      porque el botón ya trae fondo de papel propio; dos papeles superpuestos
      solo engordan el borde. */
+  /* Y DESDE QUE LLEVA LOS DOS BOTONES, SU BANDEJA SE QUEDA: es lo que dice
+     que esos dos van aparte de los presets, y en transparente hace más falta,
+     no menos. Va del color de las tablillas, para leerse sobre la hoja. */
   #ajustes.cristal #ctrlConfig .ajuste.vidrio-fila{
     justify-self:stretch; width:100%;
-    background:transparent; box-shadow:none; padding:0; }
+    background:var(--tablilla); box-shadow:none; padding:7px; }
   /* Y LAS TRES DEL RIEL TAMPOCO ENCOGEN POR DENTRO. Estas dos líneas ajustan
      cada pieza a sus letras, que es lo que deja las tablillas estrechas; en
      una fila de riel hacen lo de siempre por otro camino —el riel se queda en
@@ -3705,7 +3720,7 @@
      alrededor de una fila que no tiene fondo. Mi sondeo no lo vio porque medía
      borderTopWidth, que era justo el único que sí estaba apagado. */
   #ajustes.cristal #ctrlConfig .ajuste.ancho.vidrio-fila{
-    border:0; margin-top:2px; padding-top:3px; }
+    border:1px solid var(--tablilla-borde); margin-top:10px; padding:7px; }
   /* Y EL CRÉDITO, que también es letra suelta sobre la hoja. La atribución de
      CC BY-SA tiene que poder leerse, y transparente no se leía. Se le deja su
      tablilla, pero con inline-block para que mida sus renglones y no el panel:
@@ -4696,7 +4711,7 @@
                     color:#fff7df; border-color:#e2bd52;
                     background:linear-gradient(to bottom, #a8862f, #8c6d22);
                     box-shadow:inset 0 1px 3px rgba(0,0,0,.3), 0 0 0 2px rgba(226,189,82,.45); }
-  .vidrio-fila .btn-largo{ margin:4px 0 0; }
+  .vidrio-fila .btn-largo{ margin:0; padding:0 8px; }
   .finos-flecha{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2.2;
                  stroke-linecap:round; stroke-linejoin:round;
                  transition:transform .45s cubic-bezier(.2,.8,.25,1); }
@@ -6350,15 +6365,15 @@
   <button type="button" class="btn btn-largo" id="btnVidrio"
           aria-pressed="false"
           title="Panel transparente para ver la hoja al ajustar">Transparente</button>
+  <!-- AJUSTES FINOS: el panel de siempre, plegado detrás de un botón largo. Al
+       abrirse se despliega con suavidad y CERRAR baja con él —lo pidió así: que
+       se note que el botón de cerrar se fue hacia abajo—. Ver alternarFinos.
+       VA EN LA MISMA FILA QUE TRANSPARENTE: ver .vidrio-fila. -->
+  <button type="button" class="btn btn-largo btn-finos" id="btnFinos" aria-expanded="false"
+          aria-controls="ajustesFinos"><span data-es="Ajustes finos" data-en="Fine-tuning">Ajustes finos</span><svg
+          class="finos-flecha" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path
+          d="M6 9l6 6 6-6"/></svg></button>
 </div>
-
-<!-- AJUSTES FINOS: el panel de siempre, plegado detrás de un botón largo. Al
-     abrirse se despliega con suavidad y CERRAR baja con él —lo pidió así: que
-     se note que el botón de cerrar se fue hacia abajo—. Ver alternarFinos. -->
-<button type="button" class="btn btn-largo btn-finos" id="btnFinos" aria-expanded="false"
-        aria-controls="ajustesFinos"><span data-es="Ajustes finos" data-en="Fine-tuning">Ajustes finos</span><svg
-        class="finos-flecha" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path
-        d="M6 9l6 6 6-6"/></svg></button>
 <div id="ajustesFinos">
 
 <!-- SEPIA, CONTRASTE Y BRILLO, LO PRIMERO DE LOS FINOS. Iban al fondo, debajo
@@ -6952,7 +6967,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 20:33';
+window.GLOSS_BUILD = '16-NOV-26 20:37';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';

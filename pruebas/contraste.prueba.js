@@ -358,7 +358,11 @@ async function ponerContraste(pagina, pct){
       palabra: Math.round(g.getBoundingClientRect().width),
       eje: Math.round((rb.left + rb.right) / 2 - (rf.left + rf.right) / 2),
       alto: Math.round(rb.height),
-      anchoFinos: Math.round(document.getElementById('btnFinos').getBoundingClientRect().width) };
+      anchoFinos: Math.round(document.getElementById('btnFinos').getBoundingClientRect().width),
+      /* Lo que separa a los dos en su renglón: cuánto se desvían de altura y
+         dónde empieza el otro. */
+      desnivel: Math.round(rb.top - document.getElementById('btnFinos').getBoundingClientRect().top),
+      finosDespues: document.getElementById('btnFinos').getBoundingClientRect().left >= rb.right };
     return { opaco, cristal, filas, salidaBoton, tonosDelPanel };
   });
   di('lo que mide cada tablilla', tablillas.filas.map(f => f.que + ' ' + f.pct + '%').join(' · '));
@@ -411,9 +415,12 @@ async function ponerContraste(pagina, pct){
        tablillas.salidaBoton.ancho >= tablillas.salidaBoton.palabra + 16,
        tablillas.salidaBoton.ancho + ' px  (ajustes finos ' + tablillas.salidaBoton.anchoFinos +
        ', palabra ' + tablillas.salidaBoton.palabra + ')');
-  vale('  y va centrado en su fila',
-       Math.abs(tablillas.salidaBoton.eje) <= 1,
-       tablillas.salidaBoton.eje + ' px del eje');
+  /* Y COMPARTE RENGLÓN CON «AJUSTES FINOS». Aquí se exigía que fuera
+     centrado y solo en su fila; Gianni pidió los dos en el mismo renglón,
+     mitad y mitad, en una bandeja aparte de los presets. */
+  vale('  y va en el mismo renglón que «Ajustes finos», a su izquierda',
+       Math.abs(tablillas.salidaBoton.desnivel) <= 1 && tablillas.salidaBoton.finosDespues,
+       tablillas.salidaBoton.desnivel + ' px de desnivel · finos después: ' + tablillas.salidaBoton.finosDespues);
   /* El blanco de toque no se negocia: es la única salida del modo
      transparente. */
   vale('  sin perder el blanco de dedo', tablillas.salidaBoton.alto >= 38,
