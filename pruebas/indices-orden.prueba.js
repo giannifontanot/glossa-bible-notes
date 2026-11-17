@@ -153,6 +153,9 @@ let sesion;
     });
     if (sec === 'notas'){
       await abrirSeccion('respaldo');
+      /* Exportar vive en «Herramientas»: el panel abre en Compartir. */
+      await p.locator('#respaldo [data-sub="tools"]').click();
+      await p.waitForTimeout(300);
       const esperando = p.waitForEvent('download');
       await p.locator('#btnExportar').click();
       const descarga = await esperando;

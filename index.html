@@ -3817,41 +3817,77 @@
      herramientas no se fueron: viven en su pestaña, la segunda. Se parecen a
      las pestañas de arriba en el dorado del que está puesto, pero son más
      bajas y van a lo ancho: son de este panel, no del programa. */
-  #respaldo .sub-pestanas{ display:grid; grid-template-columns:1fr 1fr; gap:6px;
-                           margin:2px 0 12px; }
-  #respaldo .sub-pestanas button{ min-height:40px; border-radius:9px; cursor:pointer;
-            border:1px solid rgba(140,116,68,.45); background:#fffdf6; color:#4a3a18;
-            font:600 calc(14px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.02em; }
-  #respaldo .sub-pestanas button.aqui{ background:linear-gradient(to bottom, #a8862f, #8c6d22);
-            color:#fff7df; border-color:#8c6d22; }
+  /* COMO LAS PESTAÑAS DE UNA CARPETA, EN EL FILO DERECHO. Pedido por Gianni:
+     Compartir y Herramientas iban arriba, a lo ancho, como dos botones más; ahora
+     cuelgan del lado derecho de la hoja, de arriba hacia abajo, y se leen de
+     abajo hacia arriba, como el lomo de una carpeta. Cada una mide lo que mide
+     su palabra, así que caben muchas más que las dos de hoy.
+     La puesta es del MISMO sepia que el panel —es la hoja que tienes delante,
+     sale de ella sin costura— y tapa la raya que separa la hoja de las
+     pestañas; las otras van un poco más oscuras y con la sombra de la hoja
+     encima, que es como se lee «esta está debajo».
+     EL GIRO ES rotate(180deg) SOBRE vertical-rl, y no sideways-lr, que lo haría
+     sin girar pero hay Safari que todavía no lo entiende. Al girar media vuelta
+     se voltean también los lados: el filo de AFUERA (derecha en pantalla) es la
+     izquierda de la caja y la sombra «hacia abajo y a la derecha» se escribe
+     con desplazamientos negativos. Están así a propósito. */
+  #respaldo .carpeta{ display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:start; }
+  #respaldo .carpeta-hoja{ min-width:0; padding-right:10px;
+            border-right:1px solid rgba(120,92,40,.5); min-height:62vh; }
+  #respaldo .sub-pestanas{ display:flex; flex-direction:column; align-items:stretch; gap:5px;
+            position:sticky; top:4px; padding:10px 0 0; }
+  #respaldo .sub-pestanas button{ writing-mode:vertical-rl; transform:rotate(180deg);
+            position:relative; margin-left:-1px; padding:16px 8px; cursor:pointer;
+            border:1px solid rgba(120,92,40,.5); border-left-width:1px; border-right:0;
+            border-radius:10px 0 0 10px;
+            background:linear-gradient(to left, #c9b68c, #d4c39c);
+            color:#6b5630; letter-spacing:.05em;
+            font:600 calc(13px * var(--escala-ui, 1))/1 var(--ui);
+            box-shadow:inset -5px 0 6px -4px rgba(60,40,15,.45), -1px -1px 3px rgba(60,40,15,.18);
+            transition:background .2s, color .2s; }
+  #respaldo .sub-pestanas button.aqui{ background:#e9ddc3; color:#3d2f12; z-index:1;
+            box-shadow:-2px -2px 5px rgba(60,40,15,.28); }
+  #respaldo .sub-pestanas button:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
   #respaldo .sub-panel[hidden]{ display:none; }
   /* EL MAPA DE LECTORES, calcado del de Reveal —el app de maestros de
      Gianni—: la Tierra entera en una caja cuadrada, doble toque para pantalla
      completa, y en el teléfono dos dedos para moverlo, que un dedo mueve el
      panel. Lo único que se trae de sus mandos es la casilla de compartir la
      tuya; los de Reveal para elegir maestro o iglesia aquí no aplican. */
-  .mapa-cabeza{ display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin:0 0 8px; }
-  .mapa-cabeza .mapa-leyenda{ flex:1 1 auto; margin:0 0 10px; }
-  .mapa-ctl{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:2px;
-             width:76px; text-align:center; }
-  .mapa-ctl-tit{ font:700 calc(11px * var(--escala-ui, 1))/1.2 var(--ui); color:#5c4a24;
-                 text-wrap:balance; }
-  .chk-ubic{ position:relative; display:grid; place-items:center; width:44px; height:44px; cursor:pointer; }
-  .chk-ubic input{ position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
-  .chk-ubic span{ width:30px; height:30px; border-radius:9px; border:2px solid rgba(140,116,68,.55);
+  /* EL MAPA MIDE LO QUE MIDE EL QR, pedido por Gianni: «para que se vean
+     bonitos». La misma cuenta que .qr-glossa svg —min(44vh, 82%)— contra la
+     misma caja, así que los dos cuadros caen uno encima del otro con los
+     mismos filos. El renglón de arriba va dentro del marco por lo mismo. */
+  .mapa-marco{ width:min(44vh, 82%); margin:0 auto; }
+  .mapa-cabeza{ display:flex; align-items:center; justify-content:space-between; gap:6px 10px;
+                flex-wrap:wrap; margin:0 0 6px; }
+  .mapa-cabeza .mapa-leyenda{ flex:1 1 auto; margin:0; }
+  /* LA CASILLA LLEVA SU PALABRA A LA DERECHA, Y ES UNA SOLA: «¡Yo!». Iba un
+     «Compartir la mía» encima, en dos renglones, y se comía el alto de la
+     cabeza; Gianni la quiso así, confiando en que el sitio y el destello digan
+     lo demás. Toda la etiqueta es zona de toque, con su alto de dedo. */
+  .chk-ubic{ position:relative; display:inline-flex; align-items:center; gap:7px; min-height:44px;
+             padding:0 4px; margin-left:auto; cursor:pointer;
+             font:800 calc(14px * var(--escala-ui, 1))/1 var(--ui); color:#3d2f12; }
+  .chk-ubic input{ position:absolute; inset:0; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+  .chk-ubic .caja{ width:28px; height:28px; border-radius:9px; border:2px solid rgba(140,116,68,.55);
                   background:#fffdf6; display:grid; place-items:center;
                   transition:background .15s, border-color .15s; }
-  .chk-ubic input:checked + span{ background:#3a8f5c; border-color:#3a8f5c; }
-  .chk-ubic input:checked + span::after{ content:""; width:8px; height:14px; border:solid #fff;
+  .chk-ubic input:checked + .caja{ background:#3a8f5c; border-color:#3a8f5c; }
+  .chk-ubic input:checked + .caja::after{ content:""; width:8px; height:14px; border:solid #fff;
             border-width:0 3px 3px 0; transform:translateY(-2px) rotate(45deg); }
-  .chk-ubic input:focus-visible + span{ outline:2px solid #b8892b; outline-offset:2px; }
-  .chk-ubic input:disabled + span{ opacity:.5; }
-  /* Sin marcar, brilla despacio: invita a compartir sin escribir nada más. */
+  .chk-ubic input:focus-visible + .caja{ outline:2px solid #b8892b; outline-offset:2px; }
+  /* SIN MARCAR, UN HALO AMARILLO QUE DESTELLA SIN PARAR, como en los otros
+     programas de Gianni: es lo que hace que «¡Yo!» se entienda como «tócame».
+     Era un brillo dorado lento y apenas se notaba sobre el sepia. Marcada, el
+     destello se va y queda la palomita verde, quieta. */
   @keyframes casillaInvita{
-    0%, 100%{ box-shadow:0 0 0 0 rgba(184,137,43,0); }
-    50%{ box-shadow:0 0 0 7px rgba(184,137,43,.35); } }
-  .chk-ubic input:not(:checked) + span{ animation:casillaInvita 2.8s ease-in-out infinite; }
-  @media (prefers-reduced-motion: reduce){ .chk-ubic input:not(:checked) + span{ animation:none; } }
+    0%, 100%{ box-shadow:0 0 0 0 rgba(255,214,0,0), 0 0 0 0 rgba(255,196,0,0); }
+    50%{ box-shadow:0 0 0 5px rgba(255,214,0,.95), 0 0 16px 7px rgba(255,196,0,.7); } }
+  .chk-ubic input:not(:checked) + .caja{ animation:casillaInvita 1.1s ease-in-out infinite;
+                                         border-color:#d9a400; }
+  @media (prefers-reduced-motion: reduce){
+    .chk-ubic input:not(:checked) + .caja{ animation:none; box-shadow:0 0 0 4px rgba(255,214,0,.9); } }
   .mapa-lienzo{ position:relative; width:100%; aspect-ratio:1 / 1; border-radius:12px; overflow:hidden;
                 border:1px solid rgba(140,116,68,.45); background:#aad3df; }
   .mapa-lienzo.leaflet-container, .mapa-completo.leaflet-container{ background:#0f1a33; }
@@ -7090,7 +7126,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 05:46';
+window.GLOSS_BUILD = '17-NOV-26 06:14';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -27427,19 +27463,18 @@ function armarMapaLectores(caja){
      ahorrar espacio: las etiquetas de colores van en su lugar y dicen lo
      mismo con menos. */
   caja.innerHTML =
+    '<div class="mapa-marco">' +
     '<div class="mapa-cabeza">' +
       '<p class="mapa-leyenda" aria-hidden="true"><span class="ley yo"></span><span data-es="Tú" data-en="You">' + T('Tú', 'You') + '</span>' +
         '<span class="ley vivo"></span><span data-es="Leyendo ahora" data-en="Reading now">' + T('Leyendo ahora', 'Reading now') + '</span>' +
         '<span class="ley antes"></span><span data-es="Ha leído" data-en="Has read">' + T('Ha leído', 'Has read') + '</span></p>' +
-      '<div class="mapa-ctl"><span class="mapa-ctl-tit" data-es="Compartir la mía" data-en="Share mine">' +
-        T('Compartir la mía', 'Share mine') + '</span>' +
-        '<label class="chk-ubic"><input type="checkbox" id="chkMapa"' + (mapaYo().comparto ? ' checked' : '') +
-          (MAPA_FB ? '' : ' disabled') +
-          ' aria-label="' + T('Compartir mi ciudad en el mapa', 'Share my city on the map') + '"><span aria-hidden="true"></span></label>' +
-      '</div>' +
+      '<label class="chk-ubic"><input type="checkbox" id="chkMapa"' + (mapaYo().comparto ? ' checked' : '') +
+          ' aria-label="' + T('Compartir mi ciudad en el mapa', 'Share my city on the map') + '"><span class="caja" aria-hidden="true"></span>' +
+          '<span aria-hidden="true" data-es="¡Yo!" data-en="Me!">' + T('¡Yo!', 'Me!') + '</span></label>' +
     '</div>' +
     '<div class="mapa-lienzo" id="mapaLectores" aria-label="' + T('Mapa de lectores', 'Readers map') + '"></div>' +
     '<p class="mapa-estado" id="mapaEstado"></p>' +
+    '</div>' +
     /* EL QR, LA MITAD DE ABAJO. Pedido por Gianni: debajo del mapa, un QR de
        media pantalla en el teléfono con la liga a la Biblia Glossa, para que
        quien está al lado la abra en el suyo y la descargue. Va DIBUJADO aquí
@@ -27565,6 +27600,16 @@ function armarMapaLectores(caja){
   }).observe(lienzo);
   caja.querySelector('#chkMapa').addEventListener('change', async ev => {
     const c = ev.target;
+    /* SIN PROYECTO, LA CASILLA SIGUE VIVA. Estuvo apagada, y apagada no
+       destellaba ni se dejaba tocar: el halo invitaba a algo imposible. Ahora
+       se toca, dice que el mapa todavía no está conectado y vuelve a su sitio,
+       sin pedir la ubicación —preguntar dónde estás para nada es lo peor que
+       puede hacer una casilla—. */
+    if (!MAPA_FB){
+      c.checked = false;
+      decir(T('El mapa todavía no está conectado.', 'The map is not connected yet.'));
+      return;
+    }
     c.disabled = true;
     try {
       if (!c.checked){
@@ -27625,16 +27670,26 @@ function armarMapaLectores(caja){
       '<span data-es="Compartir" data-en="Share">' + T('Compartir', 'Share') + '</span></button>' +
     '<button type="button" role="tab" data-sub="tools" aria-selected="false">' +
       '<span data-es="Herramientas" data-en="Tools">' + T('Herramientas', 'Tools') + '</span></button>';
-  panel.appendChild(nav);
+  /* LA CARPETA: la hoja a la izquierda y las pestañas colgando de su filo
+     derecho (ver #respaldo .carpeta). La navegación va DESPUÉS de la hoja en
+     el documento para que quede a la derecha sin trucos de orden. */
+  const carpeta = document.createElement('div');
+  carpeta.className = 'carpeta';
+  const hoja = document.createElement('div');
+  hoja.className = 'carpeta-hoja';
+  carpeta.appendChild(hoja);
+  carpeta.appendChild(nav);
+  nav.setAttribute('aria-orientation', 'vertical');
+  panel.appendChild(carpeta);
   const compartir = document.createElement('div');
   compartir.className = 'sub-panel';
   compartir.id = 'respCompartir';
-  panel.appendChild(compartir);
+  hoja.appendChild(compartir);
   const caja = document.createElement('div');
   caja.className = 'sub-panel';
   caja.id = 'respTools';
   caja.hidden = true;
-  panel.appendChild(caja);
+  hoja.appendChild(caja);
   nav.addEventListener('click', ev => {
     const b = ev.target.closest('[data-sub]');
     if (b) verSubRespaldo(b.dataset.sub);

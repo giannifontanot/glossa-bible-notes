@@ -14,7 +14,14 @@ const IR_A = `async sec => {
   if (!visible()){ document.getElementById('pgCabeza').click(); await pausa(900); }
   const t = (visible() || document).querySelector('.pestanas [data-sec="' + sec + '"]');
   if (!t) return false;
-  t.click(); await pausa(1200); return true;
+  t.click(); await pausa(1200);
+  /* Exportar e Importar viven en la pestaña «Herramientas» del panel: el
+     panel abre en Compartir, con el mapa. Se toca como un dedo. */
+  if (sec === 'respaldo'){
+    const h = document.querySelector('#respaldo [data-sub="tools"]');
+    if (h){ h.click(); await pausa(300); }
+  }
+  return true;
 }`;
 
 (async () => {
