@@ -3560,11 +3560,16 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       await tocar('fsmas'); await tocar('fsmas');
       await tocar('espmas');
       const subido = leer();
+      /* LO QUE SE ESCRIBE TAMBIÉN SE ESPACÍA. El textarea no heredaba el
+         espaciado —el navegador le pone el suyo— y el botón ↔ parecía no
+         hacer nada. */
+      const espaciado = { caja: getComputedStyle(ta).letterSpacing,
+                          vista: getComputedStyle(document.getElementById('glVista')).letterSpacing };
       const foco = document.activeElement && document.activeElement.id;
       await tocar('fsmenos'); await tocar('espmenos');
       const bajado = leer();
       return { vista: { izq: vista.left, der: vista.right, arriba: vista.top, abajo: vista.bottom },
-               sitios, antes, subido, bajado, foco, abierto: getComputedStyle(menu).display !== 'none',
+               sitios, antes, subido, bajado, foco, espaciado, abierto: getComputedStyle(menu).display !== 'none',
                guardado: { fs: ajustes().fontSizeGlosa, esp: ajustes().espaciadoGlosa } };
     }, [ABRIR]);
     di('los mandos', JSON.stringify(r));
@@ -3588,6 +3593,9 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
            JSON.stringify(r.bajado));
       vale('  y queda guardado', r.guardado.fs === r.bajado.fs && r.guardado.esp === r.bajado.esp,
            JSON.stringify(r.guardado));
+      vale('LO QUE SE ESCRIBE LLEVA EL ESPACIADO DE LA GLOSA',
+           r.espaciado.caja === r.espaciado.vista && r.espaciado.caja !== 'normal',
+           r.espaciado.caja + ' contra ' + r.espaciado.vista);
       vale('TOCARLOS NO LE QUITA EL FOCO A LA CAJA DE ESCRIBIR', r.foco === 'glosaCaja', r.foco);
       vale('  y la ventanita sigue abierta', r.abierto === true);
     }

@@ -5817,7 +5817,15 @@
   #menu .gl-vista textarea{ width:100%; display:block; border:0; background:transparent;
                             padding:0; margin:0; box-shadow:none; resize:none;
                             outline:none; color:inherit; font:inherit;
-                            line-height:inherit; overflow:hidden; min-height:2.7em; }
+                            line-height:inherit; overflow:hidden; min-height:2.7em;
+                            /* EL ESPACIADO, HEREDADO A MANO. `font:inherit` no lo
+                               trae: el navegador le pone a todo textarea su
+                               letter-spacing:normal, así que el anticipo vestía
+                               el espaciado de la glosa y lo que escribías no lo
+                               veía. El botón ↔ cambiaba la hoja y aquí no se
+                               movía nada —«no funciona», dijo Gianni, y con
+                               razón—. El eco es un div y sí lo heredaba. */
+                            letter-spacing:inherit; word-spacing:inherit; }
   /* EL ECO, CALCADO SOBRE EL TEXTAREA.
 
      Las mismas medidas de letra y el mismo modo de partir renglones, porque
@@ -7124,7 +7132,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 11:07';
+window.GLOSS_BUILD = '17-NOV-26 12:08';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -13259,10 +13267,10 @@ menu.addEventListener('click', ev => {
   const accLetra = b.dataset.acc;
   if (accLetra === 'fsmas' || accLetra === 'fsmenos' ||
       accLetra === 'espmas' || accLetra === 'espmenos'){
-    if (accLetra === 'fsmas')    ponerTamanoGlosa(fontSizeGlosa + 1);
-    if (accLetra === 'fsmenos')  ponerTamanoGlosa(fontSizeGlosa - 1);
-    if (accLetra === 'espmas')   ponerEspaciadoGlosa(espaciadoGlosa + 1);
-    if (accLetra === 'espmenos') ponerEspaciadoGlosa(espaciadoGlosa - 1);
+    if (accLetra === 'fsmas')    ponerTamanoGlosa(fontSizeGlosa + 1, true);
+    if (accLetra === 'fsmenos')  ponerTamanoGlosa(fontSizeGlosa - 1, true);
+    if (accLetra === 'espmas')   ponerEspaciadoGlosa(espaciadoGlosa + 1, true);
+    if (accLetra === 'espmenos') ponerEspaciadoGlosa(espaciadoGlosa - 1, true);
     /* Guardado aquí también: ponerTamanoGlosa no guarda por su cuenta —desde
        el panel viejo lo cobraba el repintado— y estos números no pueden
        depender de que la hoja llegue a repintarse. */
@@ -14441,13 +14449,30 @@ function elegirGlosas(on){
    Saber en cuál de los tres sitios está exigiría mirarlas todas; equivocarse
    por el lado de repaginar de más cuesta un instante, y por el otro deja
    versículos fuera de la hoja. */
-function ponerEspaciadoGlosa(n){
+function ponerEspaciadoGlosa(n, diferir){
   const v = Math.max(ESP_MIN, Math.min(ESP_MAX, Math.round(n)));
   if (v === espaciadoGlosa){ reflejarEspaciadoGlosa(); return; }
   espaciadoGlosa = v;
   reflejarEspaciadoGlosa();
-  paginasSucias = true; renderPage();
+  /* SOLO SE REPAGINA SI LA GLOSA VIVE EN EL CUERPO. Repaginaba siempre, y es
+     lo más caro que hace la aplicación: rehacer el libro entero. Con las
+     glosas al margen el espaciado no mueve el texto, así que basta repintar;
+     es la misma cuenta que ya hacía ponerTamanoGlosa. */
+  if (placement !== 'margin') paginasSucias = true;
+  repintarLetraGlosa(diferir);
   guardarAjustes();
+}
+/* EL REPINTADO DE LA HOJA, APLAZADO MIENTRAS SE TOCAN LOS MANDOS. Desde la
+   ventanita de la glosa cada toque de + o − repintaba la hoja entera antes de
+   soltar el dedo, y en el teléfono eso se nota: el botón tardaba en responder
+   y tres toques seguidos eran tres repintados. Con `diferir`, el anticipo
+   cambia al instante (lo viste rehacerVistaLetra) y la hoja se repinta una
+   sola vez, cuando el dedo deja de tocar. */
+let relojLetraGlosa = 0;
+function repintarLetraGlosa(diferir){
+  clearTimeout(relojLetraGlosa);
+  if (!diferir){ renderPage(); return; }
+  relojLetraGlosa = setTimeout(() => { relojLetraGlosa = 0; renderPage(); }, 450);
 }
 function reflejarEspaciadoGlosa(){
   const s = menu.querySelector('#espGlosaAhora');
@@ -25514,7 +25539,7 @@ function ponerTamano(n){
   if (v === fontSize){ reflejarTamano(); return; }   // rebota el select si topó
   fontSize = v; escalarInterfaz(); paginasSucias = true; renderPage();
 }
-function ponerTamanoGlosa(n){
+function ponerTamanoGlosa(n, diferir){
   const v = Math.max(FS_MIN, Math.min(FS_MAX, Math.round(n)));
   if (v === fontSizeGlosa){ reflejarTamano(); return; }
   fontSizeGlosa = v;
@@ -25525,7 +25550,7 @@ function ponerTamanoGlosa(n){
      de la hoja y dejaba las de la tira quietas. */
   escalarInterfaz();
   if (placement !== 'margin') paginasSucias = true;
-  renderPage();
+  repintarLetraGlosa(diferir);
 }
 /* LOS PASOS SE CUENTAN DESDE LO VIVO, no desde lo aplicado. Con la muestra
    delante, `fontSize` se queda en lo que tiene el libro mientras lo elegido
