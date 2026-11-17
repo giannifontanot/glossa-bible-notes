@@ -3396,6 +3396,34 @@
       box-shadow:0 0 0 3px rgba(184,137,43,.45),
                  0 0 12px 2px rgba(201,162,39,.4); }
   }
+  /* Y EN TRANSPARENTE, EL MISMO DESTELLO PERO MACIZO. El de arriba pinta un
+     dorado con transparencia —del 12% al 96%— y lo pinta con `background`,
+     que de paso borra el degradado de los presets y de los botones largos.
+     Sobre el papel del panel opaco no se nota, porque debajo hay más papel;
+     en transparente debajo están los renglones, y al tocar un botón la hoja
+     se le veía por dentro durante todo el destello. Gianni: «cuando le hago
+     clic a un botón, puedo ver el fondo, y eso no debe ser». Es el mismo
+     arreglo que el de los botones en reposo (ver «LOS BOTONES NO SE VUELVEN
+     DE CRISTAL»), llevado a la animación: aquí no basta un background-color,
+     porque la animación le gana a cualquier regla, así que se escribe otra
+     igual con cada dorado ya mezclado sobre el papel #fffdf6. Mismos puntos,
+     mismo ritmo, mismos halos: sólo cambia que no deja pasar nada. */
+  #ajustes.cristal .btn.obrando{ animation-name:obrandoBordeMacizo; }
+  @keyframes obrandoBordeMacizo{
+    0%   { background:rgb(246,239,222); border-color:rgba(150,112,31,.45);
+           box-shadow:0 0 0 0 rgba(184,137,43,0); }
+    38%  { background:rgb(187,142,51); border-color:#7d5c16;
+           box-shadow:0 0 0 4px rgba(184,137,43,.55),
+                      0 0 18px 3px rgba(201,162,39,.75); }
+    62%  { background:rgb(204,170,100); border-color:#96701f;
+           box-shadow:0 0 0 2px rgba(184,137,43,.35),
+                      0 0 10px 1px rgba(201,162,39,.35); }
+    100% { background:rgb(246,239,222); border-color:rgba(150,112,31,.45);
+           box-shadow:0 0 0 0 rgba(184,137,43,0); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    #ajustes.cristal .btn.obrando{ background:rgb(214,186,128); }
+  }
   /* EL MISMO ACUSE, PERO SIN RELLENAR: SOLO EL ARO.
 
      El macizo de arriba le come el fondo al control, y eso sirve mientras lo
@@ -6924,7 +6952,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 20:01';
+window.GLOSS_BUILD = '16-NOV-26 20:16';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
