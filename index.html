@@ -5650,6 +5650,14 @@
                   position:relative;
                   align-items:stretch; gap:6px; }
   #menu .gl-fila .gl-vista{ align-self:center; }
+  /* APRETADA: no caben a los lados (ver anchoPanelComoGlosa). El anticipo arriba
+     a todo lo ancho y, debajo, el espaciado a la izquierda y el tamaño a la
+     derecha, en renglón: menos, la seña, más —el más a la derecha, que es
+     hacia donde crece una cuenta—. */
+  #menu .gl-fila.apretada{ grid-template-columns:1fr 1fr; row-gap:4px; }
+  #menu .gl-fila.apretada .gl-vista{ grid-column:1 / -1; grid-row:1; justify-self:center; }
+  #menu .gl-fila.apretada .gl-lado{ grid-row:2; flex-direction:row-reverse; min-height:0;
+                                    justify-content:center; gap:10px; }
   #menu .gl-lado{ display:flex; flex-direction:column; align-items:center;
                   justify-content:space-between; gap:4px; min-height:96px; }
   #menu .glado{ width:36px; height:36px; display:grid; place-items:center; padding:0;
@@ -6984,7 +6992,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 06:16';
+window.GLOSS_BUILD = '17-NOV-26 06:28';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -11548,20 +11556,32 @@ function anchoPanelComoGlosa(){
      a cada lado. En el teléfono caben en los huecos que ya sobraban; en
      pantalla ancha, donde el panel medía justo la glosa, el panel se ensancha
      eso. El anticipo conserva SU ancho en los dos casos, que es la promesa. */
-  const lados = menu.querySelector('.gl-fila') ? 2 * (44 + 6) : 0;
+  /* SI A LOS LADOS NO CABEN, LOS MANDOS BAJAN DEBAJO DEL ANTICIPO. Pasa con
+     las glosas al pie o debajo del versículo en el teléfono: miden casi lo que
+     la hoja, y con las dos columnas al lado había que escoger entre encoger el
+     anticipo —que dejaría de partir los renglones donde los parte la hoja, la
+     promesa de arriba— o sacar los botones del panel, que lo levantó Codex.
+     Ninguna de las dos: los mandos pasan a un renglón debajo, cada uno en su
+     lado, y el anticipo conserva su ancho. Ver .gl-fila.apretada. */
+  const fila = menu.querySelector('.gl-fila');
+  const lados = fila ? 2 * (44 + 6) : 0;
   if (enTelefono()){
     const ancho = Math.min(Math.round(stage.getBoundingClientRect().width * .92), 400);
     const panel = Math.round(Math.min(ancho, tope));
     menu.style.width = panel + 'px';
-    /* CONTRA EL PANEL QUE DE VERDAD SE ASIGNÓ, no contra la escena: el panel
-       mide el 92% (tope 400) y con las dos columnas de mandos una glosa al
-       pie —más ancha que la del margen— empujaba los de la derecha fuera del
-       panel. Lo levantó Codex. */
-    if (caja) caja.style.width = Math.round(Math.min(glosa, panel - pad - bor - lados)) + 'px';
+    /* Contra el panel que de verdad se asignó, no contra la escena: el panel
+       mide el 92% (tope 400). */
+    const util = panel - pad - bor;
+    const apretada = !!fila && glosa > util - lados;
+    if (fila) fila.classList.toggle('apretada', apretada);
+    if (caja) caja.style.width = Math.round(Math.min(glosa, apretada ? util : util - lados)) + 'px';
     return;
   }
-  if (caja) caja.style.width = lados ? Math.round(Math.min(glosa, tope - pad - bor - lados)) + 'px' : '';
-  menu.style.width = Math.round(Math.min(glosa + pad + bor + lados, tope)) + 'px';
+  const apretada = !!fila && glosa + pad + bor + lados > tope;
+  if (fila) fila.classList.toggle('apretada', apretada);
+  const conLados = apretada ? 0 : lados;
+  if (caja) caja.style.width = fila ? Math.round(Math.min(glosa, tope - pad - bor - conLados)) + 'px' : '';
+  menu.style.width = Math.round(Math.min(glosa + pad + bor + conLados, tope)) + 'px';
 }
 /* EL ANCLA DEL ANTICIPO, con la misma cuenta que glossHTML: la señal de
    aproximación cuando el anclaje no es exacto, y la referencia que le toca.
@@ -13910,17 +13930,27 @@ function abrirSuave(el){
      índice, que es quien recibe el empujón. */
   const cs = getComputedStyle(el);
   const mArriba = cs.marginTop, mAbajo = cs.marginBottom;
+  /* Y EL RELLENO TAMBIÉN. Con border-box un alto de cero no baja del relleno:
+     la barra de EDITAR —8 px arriba y 8 abajo— nacía con 16 px en el primer
+     cuadro y el índice pegaba un salto de 21. Pasó a verse cuando EDITAR quedó
+     como la puerta que empuja el índice desde arriba, al irse LETRA. */
+  const pArriba = cs.paddingTop, pAbajo = cs.paddingBottom;
   el.style.overflow = 'hidden';
   el.style.height = '0px';
   el.style.marginTop = '0px';
   el.style.marginBottom = '0px';
+  el.style.paddingTop = '0px';
+  el.style.paddingBottom = '0px';
   void el.offsetHeight;              // reflujo: la transición arranca desde cero
   const curva = SUAVE_MS + 'ms cubic-bezier(.22,.72,.24,1)';
   el.style.transition = 'height ' + curva + ', margin-top ' + curva +
-                        ', margin-bottom ' + curva;
+                        ', margin-bottom ' + curva + ', padding-top ' + curva +
+                        ', padding-bottom ' + curva;
   el.style.height = alto + 'px';
   el.style.marginTop = mArriba;
   el.style.marginBottom = mAbajo;
+  el.style.paddingTop = pArriba;
+  el.style.paddingBottom = pAbajo;
   /* Se limpia por reloj y no por transitionend: si el lector apaga el mando a
      mitad de camino, ese evento no llega nunca y el alto se quedaría clavado
      en un número que mañana ya no es el suyo. */
@@ -13929,6 +13959,8 @@ function abrirSuave(el){
     el.style.height = '';
     el.style.marginTop = '';
     el.style.marginBottom = '';
+    el.style.paddingTop = '';
+    el.style.paddingBottom = '';
     el.style.overflow = '';
   }, SUAVE_MS + 40);
 }

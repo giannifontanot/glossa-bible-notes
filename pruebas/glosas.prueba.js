@@ -1610,7 +1610,13 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     ok = await eval('(' + abrir + ')')(30, 46);
     if (!ok) return { sinTexto:true, porque: window.__pincelPorque };
     const ta = document.getElementById('glosaCaja');
-    ta.value = 'corta'; ta.dispatchEvent(new Event('input', { bubbles:true }));
+    /* NO «CORTA»: UNA QUE YA SEA MÁS ALTA QUE LOS MANDOS DE LOS LADOS. Desde
+       que el tamaño y el espaciado viven a los lados del anticipo, el renglón
+       mide por lo menos lo que esas dos columnas; una nota corta crece por
+       dentro de ese alto y el panel no cambia, con razón. Lo que se mide aquí
+       es que el panel se recoloque cuando SÍ crece. */
+    ta.value = 'una nota bastante más larga, de las que ocupan tres o cuatro renglones en el anticipo';
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
     await new Promise(z => setTimeout(z, 200));
     document.querySelector('#menu .mtags').click();
     await new Promise(z => setTimeout(z, 250));
