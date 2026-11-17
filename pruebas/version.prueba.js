@@ -109,7 +109,11 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
                 eso vuelva a pasar sin avisar.
                 Se mide igual que el sello —rectángulo, visibilidad y display—
                 porque «está en el DOM» no es «se lee». */
-             cred: (() => {
+             /* EL CRÉDITO VIVE EN SU PESTAÑA, ATRIBUCIONES, pedida por Gianni.
+                Se toca como un dedo y se mide con ella a la vista. */
+             cred: await (async () => {
+               const at = document.querySelector('#respaldo [data-sub="creditos"]');
+               if (at){ at.click(); await new Promise(z => setTimeout(z, 300)); }
                const c = document.querySelector('#respaldo #cred');
                if (!c) return { hay:false };
                const cs = getComputedStyle(c), r = c.getBoundingClientRect();
@@ -118,9 +122,9 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
                         seVe: r.width > 4 && r.height > 4 &&
                               cs.visibility !== 'hidden' && cs.display !== 'none',
                         medida: Math.round(r.width) + 'x' + Math.round(r.height),
-                        /* y ANTES del sello, que es lo último que se lee */
-                        antesDelSello: !!s && c.compareDocumentPosition(s) &
-                                       Node.DOCUMENT_POSITION_FOLLOWING ? true : false };
+                        /* y en su propia pestaña, no en Herramientas, que
+                           es donde se queda el sello */
+                        suPestana: !!c.closest('#respCreditos') && !!s && !s.closest('#respCreditos') };
              })() };
   });
 
@@ -157,7 +161,7 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
        s.familia + ' ' + s.tamano + ' contra ' +
        (s.letraDeLaHoja && s.letraDeLaHoja.familia + ' ' + s.letraDeLaHoja.tamano));
 
-  titulo('el crédito de licencia, que también vive aquí');
+  titulo('el crédito de licencia, en la pestaña de atribuciones');
   di('lo que dice el crédito', s.cred);
   vale('ESTÁ EN EL PANEL DE SHARE', s.cred.hay === true);
   /* Que esté no es que se vea, y la licencia pide que se vea. */
@@ -169,8 +173,8 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
      crédito se lee una vez. Si algún día se cuelan en el orden contrario, el
      sello deja de ser lo último y eso ya lo vigila la línea de arriba —esta
      dice por qué—. */
-  vale('  y va antes del sello, que es lo último que se lee',
-       s.cred.hay && s.cred.antesDelSello === true, s.cred.antesDelSello);
+  vale('  y vive en ATRIBUCIONES, aparte del sello',
+       s.cred.hay && s.cred.suPestana === true, s.cred.suPestana);
 
   titulo('la forma pedida: VERSIÓN DD-MMM-YY HH:MM');
   const t = s.texto || '';
