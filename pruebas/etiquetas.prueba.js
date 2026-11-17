@@ -2103,8 +2103,12 @@ const FUERA = `async () => {
     const ver = [...document.querySelectorAll('#etiquetas .btn')]
       .find(b => /filtrar/i.test(b.textContent));
     if (ver){ ver.click(); await z(600); }
+    /* El nombre del chip es todo menos su cuenta (.n). Se leía el primer
+       nodo, y desde que los emoji van en su propio span (.emo, con su
+       contorno) el primer nodo de «🔥Fuego» es solo el 🔥. */
     out.chips = [...document.querySelectorAll('#filtros .chip')]
-      .map(c => (c.firstChild ? c.firstChild.textContent : c.textContent).trim());
+      .map(c => { const k = c.cloneNode(true); k.querySelectorAll('.n').forEach(n => n.remove());
+                  return k.textContent.trim(); });
     /* 2. LA CAJA DE GLOSAS/ACTUALIZAR. */
     const b = document.getElementById('btnElegirGlosas');
     if (b && b.getAttribute('aria-pressed') !== 'true'){ b.click(); await z(700); }
