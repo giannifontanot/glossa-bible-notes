@@ -114,7 +114,7 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
   await ir(p, 'glosas');
   vale('una glosa nueva que coincide aparece sin cambiar el historial', await p.locator('#indice .ix-item').count() === 3);
   await p.locator('#btnElegirGlosas').click();
-  await p.locator('#tagboxGrupo [data-tag-grupo="LecturaUno"]').click();
+  await p.locator('#filtros [data-tag-grupo="LecturaUno"]').click();
   await p.locator('#tagNuevaGrupo').fill('LecturaRenombrada');
   await p.locator('#tagboxGrupo [data-acc="renombrartag"]').click();
   await ir(p, 'notas'); await libro.click();

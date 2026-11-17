@@ -1485,7 +1485,7 @@ const FUERA = `async () => {
     }
     const b = document.getElementById('btnElegirGlosas');
     if (b.getAttribute('aria-pressed') !== 'true'){ b.click(); await z(600); }
-    document.querySelector('#tagboxGrupo [data-tag-grupo="Domingo"]').click();
+    document.querySelector('#filtros [data-tag-grupo="Domingo"]').click();
     await z(300);
     document.getElementById('tagNuevaGrupo').value = 'DomingoDeRamos';
     document.querySelector('#tagboxGrupo [data-acc="renombrartag"]').click();
@@ -1597,7 +1597,7 @@ const FUERA = `async () => {
 
   /* TOCAR LA ETIQUETA LA BAJA A LA CAJA. */
   await p.evaluate(() =>
-    document.querySelector('#tagboxGrupo [data-tag-grupo="Oracion"]').click());
+    document.querySelector('#filtros [data-tag-grupo="Oracion"]').click());
   await p.waitForTimeout(400);
   const cargada = await foto();
   di('tras tocar #Oracion', JSON.stringify(cargada));
@@ -1655,7 +1655,7 @@ const FUERA = `async () => {
   /* FUNDIR DOS EN UNA, que es la razón por la que esto se pidió: «oracion» y
      «Oracion» eran dos, y una glosa llevaba las dos a la vez. */
   await p.evaluate(async () => {
-    document.querySelector('#tagboxGrupo [data-tag-grupo="oracion"]').click();
+    document.querySelector('#filtros [data-tag-grupo="oracion"]').click();
     await new Promise(z => setTimeout(z, 300));
     document.getElementById('tagNuevaGrupo').value = 'OraciónDiaria';
     document.querySelector('#tagboxGrupo [data-acc="renombrartag"]').click();
@@ -1676,7 +1676,7 @@ const FUERA = `async () => {
   /* CANCELAR NO TOCA NADA. Con Escape, que es la salida de todas las cajas de
      este programa, y sin que se cierre el panel de paso. */
   await p.evaluate(() =>
-    document.querySelector('#tagboxGrupo [data-tag-grupo="Domingo"]').click());
+    document.querySelector('#filtros [data-tag-grupo="Domingo"]').click());
   await p.waitForTimeout(300);
   const antesDeEscape = await foto();
   await p.keyboard.press('Escape');
@@ -1710,7 +1710,7 @@ const FUERA = `async () => {
   vale('(la prueba es válida) el índice tiene glosas que elegir',
        fundida.cuantasEnIndice > 0, fundida.cuantasEnIndice + ' en el índice');
   await p.evaluate(async () => {
-    document.querySelector('#tagboxGrupo [data-tag-grupo="Domingo"]').click();
+    document.querySelector('#filtros [data-tag-grupo="Domingo"]').click();
     await new Promise(z => setTimeout(z, 300));
     const it = document.querySelector('#indice [data-ir]');
     if (it) it.click();
@@ -1763,7 +1763,7 @@ const FUERA = `async () => {
        JSON.stringify(conFiltroPuesto));
   await p.evaluate(async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
-    document.querySelector('#tagboxGrupo [data-tag-grupo="OraciónDiaria"]').click();
+    document.querySelector('#filtros [data-tag-grupo="OraciónDiaria"]').click();
     await z(300);
     document.getElementById('tagNuevaGrupo').value = 'Plegaria';
     document.querySelector('#tagboxGrupo [data-acc="renombrartag"]').click();
@@ -2114,7 +2114,7 @@ const FUERA = `async () => {
     /* 2. LA CAJA DE GLOSAS/ACTUALIZAR. */
     const b = document.getElementById('btnElegirGlosas');
     if (b && b.getAttribute('aria-pressed') !== 'true'){ b.click(); await z(700); }
-    out.grupo = [...document.querySelectorAll('#tagboxGrupo [data-tag-grupo]')]
+    out.grupo = [...document.querySelectorAll('#filtros [data-tag-grupo]')]
       .map(x => x.dataset.tagGrupo);
     return out;
   });
