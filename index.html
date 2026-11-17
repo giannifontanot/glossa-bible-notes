@@ -6952,7 +6952,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 20:29';
+window.GLOSS_BUILD = '16-NOV-26 20:33';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25225,15 +25225,16 @@ $('brillo').oninput = e => {
        devuelve a la letra lo que la luz le quita. Estuvo en 24, Gianni lo
        bajó a 22 y, después de leer con él en el teléfono, lo volvió a 24 con
        una captura de los ajustes que quería: ésos son estos números.
-     · LETRA GRANDE: 24, en una columna, romana, con interlínea amplia. Tiene
-       que ser la más grande de la lista o el nombre miente: estuvo en 20 con
-       Legible en 24, se subió a 26 —el tope de la app— y Gianni bajó los dos
-       dos puntos. Luego Legible volvió a 24 y quedaron iguales de cuerpo; aun
-       así Letra grande se ve más grande por su interlínea amplia, y Legible
-       se ve más clara por la Lineal y el espaciado. Lleva la misma luz que
-       Legible —contraste 140, brillo 85—, que Gianni se la pidió igual: los
-       dos de una columna son los de leer largo, y ahí es donde cansa la hoja.
-       Las columnas no tocan ni tinta ni luz, decidido así con él.
+     · LEGIBLE COMPACTA: la misma receta que Legible —Lineal, espaciado +5,
+       interlínea normal, una columna, contraste 140, brillo 85— con letra
+       20, para que quepa más en la pantalla sin perder lo que la hace clara.
+       Gianni la armó en su teléfono y mandó la captura. Antes este sitio era
+       LETRA GRANDE (romana, interlínea amplia), y al quedarse con una letra
+       más chica que la de Legible el nombre mentía; por eso se cambió el
+       nombre, que lo pidió él, y también el id del preset. La luz es la de
+       Legible, igual que la tenía Letra grande: los dos de una columna son
+       los de leer largo, y ahí es donde cansa la hoja. Las columnas no tocan
+       ni tinta ni luz, decidido así con él.
      · DOS COLUMNAS: 18 en dos columnas, romana, interlínea normal. 18 es lo
        más grande que aguanta una columna de teléfono sin bajar de unos 25
        caracteres por renglón, que es donde la lectura empieza a ir a saltos.
@@ -25268,8 +25269,8 @@ $('brillo').oninput = e => {
 var PRESETS_FORMATO = [
   { id:'legible', es:'Legible', en:'Clear',
     tam:24, fuente:4, esp:5, aire:1.62, cols:1, contraste:140, brillo:85 },
-  { id:'grande', es:'Letra grande', en:'Large type',
-    tam:24, fuente:0, esp:0, aire:1.95, cols:1, contraste:140, brillo:85 },
+  { id:'compacta', es:'Legible compacta', en:'Clear compact',
+    tam:20, fuente:4, esp:5, aire:1.62, cols:1, contraste:140, brillo:85 },
   { id:'dos', es:'Dos columnas', en:'Two columns',
     tam:18, fuente:0, esp:0, aire:1.62, cols:2 },
   { id:'tres', es:'Tres columnas', en:'Three columns',
