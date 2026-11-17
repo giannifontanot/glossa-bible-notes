@@ -4001,7 +4001,11 @@
      libro entera, las tres explicaciones, los botones y la casilla llenaban
      la pestaña. Se queda al 85 % de esa letra —sigue creciendo y encogiendo
      con ella—; el sello no, que se pidió grande y se viene a buscar. */
-  #respTools .herr-dice, #respTools .btn, #respTools .casilla, #respTools .fallo-respaldo,
+  /* #respaldo delante: la regla que le pone la letra del libro a los botones
+     del panel es #respaldo .btn:not(.cerrar-pie), y sin esto le ganaba a los
+     de aquí —Exportar e Importar se quedaban grandes—. Lo levantó Codex. */
+  #respaldo #respTools .herr-dice, #respaldo #respTools .btn, #respaldo #respTools .casilla,
+  #respaldo #respTools .fallo-respaldo,
   #respCreditos .cred, #respCreditos .atrib-lista li{
     font-size:calc(var(--fs-libro, 15px) * .85); }
   .herr-dice{ margin:0 0 12px; line-height:1.45; color:#5c4a24; font-size:.93em; }
@@ -7286,7 +7290,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 17:02';
+window.GLOSS_BUILD = '17-NOV-26 17:12';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -28044,10 +28048,9 @@ function armarMapaLectores(caja){
           ' aria-label="' + T('Compartir mi ciudad en el mapa', 'Share my city on the map') + '"><span class="caja" aria-hidden="true"></span>' +
           /* SIN EL «¡YO!», pedido por Gianni: la invitación ya lo dice todo y
              la palabra suelta costaba un renglón. */
+          /* Y sin el «solo se ve tu ciudad» de debajo: Gianni lo quitó. */
           '<span class="yo yo-dice" aria-hidden="true"><span data-es="Enciende tu lucecita en el mapa" data-en="Light up your spot on the map">' +
-            T('Enciende tu lucecita en el mapa', 'Light up your spot on the map') + '</span>' +
-          '<small data-es="solo se ve tu ciudad" data-en="only your city shows">' +
-            T('solo se ve tu ciudad', 'only your city shows') + '</small></span></label>' +
+            T('Enciende tu lucecita en el mapa', 'Light up your spot on the map') + '</span></span></label>' +
     '</div>' +
     '<div class="mapa-lienzo" id="mapaLectores" aria-label="' + T('Mapa de lectores', 'Readers map') + '"></div>' +
     '<p class="mapa-estado" id="mapaEstado"></p>' +
