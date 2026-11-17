@@ -629,6 +629,7 @@ async function listo(pagina, tope = 12000){
 async function otraPagina(navegador, opciones = {}){
   const { biblia, ...deNavegador } = opciones;
   const pagina = await navegador.newPage({ ...TELEFONO, ...deNavegador });
+  await sinRedDelMapa(pagina);
   await pagina.addInitScript(PINCEL);
   await bibliaDeCasa(pagina, biblia);
   return pagina;
@@ -814,12 +815,26 @@ async function bibliaDeCasa(pagina, biblia, glosasDeCasa = true){
 /* Abre la aplicación y devuelve la página, con los errores de JavaScript ya
    recogidos: que el programa no tire una excepción es parte de cada prueba y
    no algo que haya que acordarse de mirar. */
+/* SIN LA RED DEL MAPA DE LECTORES. El panel de compartir abre con un mapa
+   que pide Leaflet a cdnjs, Firebase a gstatic, los puntos a la base de datos
+   de Reveal y los mosaicos a OpenStreetMap. En las pruebas nada de eso tiene
+   que salir: en GitHub hay red y el banco acabaría leyendo —o escribiendo— en
+   la base de datos de verdad, y aquí no la hay y cada suite tardaría lo que
+   tarda en rendirse. Se corta en el navegador, que es una pieza del
+   navegador y no del programa: el mapa vive lo mismo que vive un teléfono sin
+   cobertura, y eso dice en su renglón. */
+async function sinRedDelMapa(pagina){
+  await pagina.route(/cdnjs\.cloudflare\.com|gstatic\.com|firebaseio\.com|googleapis\.com|openstreetmap\.org/,
+                     r => r.abort());
+}
+
 async function abrir(opciones = {}){
   const { biblia, glosasDeCasa = true, ...deNavegador } = opciones;
   const navegador = await chromium.launch({ executablePath: EJECUTABLE });
   const pagina = await navegador.newPage({ ...TELEFONO, ...deNavegador });
   const errores = [];
   pagina.on('pageerror', e => errores.push(String(e).split('\n')[0]));
+  await sinRedDelMapa(pagina);
   await pagina.addInitScript(PINCEL);
   await bibliaDeCasa(pagina, biblia, glosasDeCasa);
   /* Toda recarga espera también: las pruebas recargan en veinte sitios y
@@ -853,6 +868,7 @@ async function abrirEnPortada(opciones = {}){
   const pagina = await navegador.newPage({ ...TELEFONO, ...deNavegador });
   const errores = [];
   pagina.on('pageerror', e => errores.push(String(e).split('\n')[0]));
+  await sinRedDelMapa(pagina);
   await pagina.addInitScript(PINCEL);
   await bibliaDeCasa(pagina, biblia);
   if (visitaHace != null)

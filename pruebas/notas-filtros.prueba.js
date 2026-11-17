@@ -12,6 +12,11 @@ async function ir(p, seccion){
   await p.locator('.rollo:visible .pestanas [data-sec="' + seccion + '"]').click();
   await p.locator('#' + paneles[seccion]).waitFor({ state:'visible' });
   await p.waitForTimeout(650);
+  /* Exportar e Importar viven en «Herramientas»: el panel abre en Compartir. */
+  if (seccion === 'respaldo'){
+    await p.locator('#respaldo [data-sub="tools"]').click();
+    await p.waitForTimeout(300);
+  }
 }
 async function importar(p, datos){
   await ir(p, 'respaldo');

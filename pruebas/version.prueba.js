@@ -26,6 +26,13 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
     if (!t) return { falta:'la pestaña de Respaldo' };
     t.click();
     await new Promise(z => setTimeout(z, 700));
+    /* EL SELLO VIVE EN «HERRAMIENTAS». El panel abre en Compartir, con el
+       mapa de lectores —lo pidió Gianni—, y lo que el panel tenía antes se
+       mudó a su segunda pestaña. Se toca como la toca un dedo. */
+    const sub = document.querySelector('#respaldo [data-sub="tools"]');
+    if (!sub) return { falta:'la pestaña de Herramientas' };
+    sub.click();
+    await new Promise(z => setTimeout(z, 300));
     const el = document.querySelector('#respaldo .sello-version');
     if (!el) return { falta:'el sello' };
     const cs = getComputedStyle(el), r = el.getBoundingClientRect();
@@ -287,6 +294,9 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
     const t = document.querySelector('.pestanas button[data-sec="respaldo"]');
     if (t) t.click();
     await new Promise(z => setTimeout(z, 700));
+    const sub = document.querySelector('#respaldo [data-sub="tools"]');
+    if (sub) sub.click();
+    await new Promise(z => setTimeout(z, 300));
     const c = document.getElementById('chkCrono');
     return { antesDeAbrir, marcada: c ? c.checked : null };
   });
