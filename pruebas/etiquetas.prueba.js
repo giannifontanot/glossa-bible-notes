@@ -686,8 +686,9 @@ const FUERA = `async () => {
        tira.primeraDesdeElFilo + ' px del filo del contenido');
   vale('LA FILA DE LOS BOTONES SE QUEDÓ SIN RÓTULO',
        tira.rotuloFila === false, tira.rotuloFila);
-  vale('LOS BOTONES DICEN FILTRAR Y ACTUALIZAR',
-       tira.rotulos[0] === 'filtrar' && tira.rotulos[1] === 'actualizar',
+  /* «actualizar» pasó a «editar», con su lápiz, a petición de Gianni. */
+  vale('LOS BOTONES DICEN FILTRAR Y EDITAR',
+       tira.rotulos[0] === 'filtrar' && tira.rotulos[1] === 'editar',
        tira.rotulos.join(' · '));
   /* EL DÍA ES UN FILTRO MÁS Y VIVE CON LOS DEMÁS. Se comprueban las dos
      mitades: que esté en la tira Y que ya no esté en la fila de antes. Sólo
@@ -801,7 +802,7 @@ const FUERA = `async () => {
   const turnos = await p.evaluate(async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
     const ver = document.getElementById('btnVerEtiquetas');   /* dice «filtrar» */
-    const cam = document.getElementById('btnElegirGlosas');   /* dice «actualizar» */
+    const cam = document.getElementById('btnElegirGlosas');   /* dice «editar» */
     const foto = () => ({
       ver: ver.getAttribute('aria-pressed'), cam: cam.getAttribute('aria-pressed'),
       /* Y lo que cada uno enciende de verdad, no sólo su botón: la tira y la
@@ -871,7 +872,7 @@ const FUERA = `async () => {
   const aviso = await p.evaluate(async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
     const ver = document.getElementById('btnVerEtiquetas');   /* dice «filtrar» */
-    const cam = document.getElementById('btnElegirGlosas');   /* dice «actualizar» */
+    const cam = document.getElementById('btnElegirGlosas');   /* dice «editar» */
     const foto = () => ({
       punto: getComputedStyle(ver, '::after').content,
       voz: ver.getAttribute('aria-label') || '',
