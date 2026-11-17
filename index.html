@@ -6996,7 +6996,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 04:50';
+window.GLOSS_BUILD = '17-NOV-26 04:51';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25291,6 +25291,12 @@ $('brillo').oninput = e => {
        Lineal ≈ 41; dos de 16–17 romana ≈ 30; tres de 14 ≈ 24.
    La romana va en las columnas porque es más estrecha que la Lineal: en
    columnas de 130–200 px caben más palabras por renglón con la misma letra.
+   LA INTERLÍNEA, SOLO DE LAS TRES QUE TIENE LA APP —ver AIRES: reducida,
+   normal, amplia—. Hubo aquí 1.55, 1.5 y 1.45, afinadas a ojo, y lo levantó
+   la revisión de Codex: cargarAjustes sólo acepta una interlínea de AIRES, así
+   que al recargar volvía a «normal» y el preset se apagaba solo; y el mando
+   de interlínea decía «normal» con otra cosa puesta. Normal en casi todos, y
+   reducida en «Tres, compacta», que es justo lo que pide su nombre.
 
    LA LUZ, POR PANTALLA. Todos dejan el papel en sepia 100 —el de la casa: el
    tono cálido quita el azul y el deslumbre del blanco puro— salvo la
@@ -25334,7 +25340,7 @@ var PRESETS_POR_PANTALLA = {
     { id:'noche', es:'Para la noche', en:'For the night',
       tam:22, fuente:4, esp:4, aire:1.62, cols:1, contraste:120, brillo:70, sepia:100 },
     { id:'dos', es:'Dos columnas', en:'Two columns',
-      tam:16, fuente:0, esp:0, aire:1.55, cols:2, contraste:135, brillo:85, sepia:100 }
+      tam:16, fuente:0, esp:0, aire:1.62, cols:2, contraste:135, brillo:85, sepia:100 }
   ],
   tab: [
     { id:'legible', es:'Legible', en:'Clear',
@@ -25342,19 +25348,19 @@ var PRESETS_POR_PANTALLA = {
     { id:'clasica', es:'Clásica', en:'Classic',
       tam:20, fuente:0, esp:0, aire:1.62, cols:1, contraste:130, brillo:90, sepia:100 },
     { id:'dos', es:'Dos columnas', en:'Two columns',
-      tam:16, fuente:0, esp:0, aire:1.55, cols:2, contraste:135, brillo:90, sepia:100 },
+      tam:16, fuente:0, esp:0, aire:1.62, cols:2, contraste:135, brillo:90, sepia:100 },
     { id:'tres', es:'Tres columnas', en:'Three columns',
-      tam:14, fuente:0, esp:0, aire:1.5, cols:3, contraste:140, brillo:90, sepia:100 }
+      tam:14, fuente:0, esp:0, aire:1.62, cols:3, contraste:140, brillo:90, sepia:100 }
   ],
   pc: [
     { id:'dos', es:'Dos columnas', en:'Two columns',
-      tam:17, fuente:0, esp:0, aire:1.6, cols:2, contraste:130, brillo:95, sepia:90 },
+      tam:17, fuente:0, esp:0, aire:1.62, cols:2, contraste:130, brillo:95, sepia:90 },
     { id:'dosGrande', es:'Dos, letra grande', en:'Two, large type',
-      tam:19, fuente:0, esp:0, aire:1.6, cols:2, contraste:130, brillo:95, sepia:90 },
+      tam:19, fuente:0, esp:0, aire:1.62, cols:2, contraste:130, brillo:95, sepia:90 },
     { id:'tres', es:'Tres columnas', en:'Three columns',
-      tam:14, fuente:0, esp:0, aire:1.5, cols:3, contraste:135, brillo:95, sepia:90 },
+      tam:14, fuente:0, esp:0, aire:1.62, cols:3, contraste:135, brillo:95, sepia:90 },
     { id:'tresCompacta', es:'Tres, compacta', en:'Three, compact',
-      tam:13, fuente:0, esp:0, aire:1.45, cols:3, contraste:135, brillo:95, sepia:90 }
+      tam:13, fuente:0, esp:0, aire:1.38, cols:3, contraste:135, brillo:95, sepia:90 }
   ]
 };
 /* QUÉ PANTALLA ES ÉSTA. Teléfono es lo mismo que pregunta todo el programa

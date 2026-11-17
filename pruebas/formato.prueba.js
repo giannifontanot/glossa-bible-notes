@@ -395,7 +395,7 @@ const AJUSTES = 'glossa:ajustes:v1';
   const PANTALLAS = [
     { que:'tablet', nav:{ viewport:{ width:820, height:1180 }, hasTouch:true, isMobile:true, deviceScaleFactor:2 },
       lista:'Legible · Clásica · Dos columnas · Tres columnas', columnas:'1,1,2,3',
-      tocar:'tres', espera:{ fontSize:14, columns:3, fontSizeGlosa:12, sepia:100, brillo:90 } },
+      tocar:'tres', espera:{ fontSize:14, columns:3, fontSizeGlosa:12, sepia:100, brillo:90, interlineado:1.62 } },
     { que:'computadora', nav:{ viewport:{ width:1440, height:900 }, hasTouch:false, isMobile:false, deviceScaleFactor:1 },
       lista:'Dos columnas · Dos, letra grande · Tres columnas · Tres, compacta', columnas:'2,2,3,3',
       tocar:'dosGrande', espera:{ fontSize:19, columns:2, fontSizeGlosa:17, sepia:90, brillo:95 } },
@@ -422,6 +422,15 @@ const AJUSTES = 'glossa:ajustes:v1';
     vale('  y «' + pt.tocar + '» pone lo suyo, con las glosas dos puntos menos y su luz',
          falla.length === 0 && r.encendido === pt.tocar,
          falla.map(k => k + ' ' + r.a[k] + '≠' + e[k]).join(' · ') || 'todo · ' + r.encendido);
+    /* Y SOBREVIVE A UNA RECARGA. Lo levantó Codex: un preset con una
+       interlínea que no es de AIRES volvía a «normal» al recargar y se
+       apagaba solo. Se mira encendido después de abrir otra vez. */
+    await q.reload();
+    const tras = await q.evaluate(async ([abrirAA]) => {
+      await eval('(' + abrirAA + ')')();
+      return [...document.querySelectorAll('[data-preset].active')].map(b => b.dataset.preset).join();
+    }, [ABRIR_AA]);
+    vale('  y SIGUE ENCENDIDO DESPUÉS DE RECARGAR', tras === pt.tocar, tras || 'ninguno');
     await cerrar(ses);
   }
 })();
