@@ -877,41 +877,52 @@
              width:92px; height:92px; margin:-46px 0 0 -46px;
              pointer-events:none; opacity:0; transition:opacity .16s linear; }
   #buscando.viva{ opacity:1; }
-  /* EL ARO. Un anillo tenue con un arco dorado que da vueltas, y se acabó.
+  /* LAS BOLITAS. Ocho puntos en corro, de más a menos, dando vueltas.
 
-     Aquí hubo antes un halo elíptico con estela de cometa, y el problema no
-     era que estuviera mal hecho: era que había que DESCIFRARLO. Una figura que
-     pide un instante para entenderse no sirve como aviso de espera, porque el
-     aviso de espera se mira de reojo mientras piensas en otra cosa. Un aro
-     girando no se interpreta, se reconoce.
+     Aquí estuvo antes un aro: anillo tenue con un arco dorado girando. Y
+     antes que él un halo con estela de cometa, que se quitó porque había que
+     descifrarlo. El aro se reconocía, pero no se VEÍA: cuatro píxeles de
+     línea sobre el papel, del mismo marrón que la letra, y con un panel
+     encima se perdía. Gianni lo dijo así —«no me gusta, que sea más visible,
+     me gusta el que es como unas bolitas que dan vuelta»—. Las bolitas
+     tienen más tinta que una raya del mismo tamaño, y la cola que se apaga
+     dice hacia dónde giran sin tener que mirarlas.
 
-     Lo único que no se negocia es cómo se anima: transform y nada más. Esas
-     las lleva el compositor, que es otro hilo, así que el aro sigue girando
-     mientras el principal está trabado —que es exactamente cuando este aviso
-     existe—. Cualquier cosa que pidiera repintar el borde o el color se
-     congelaría con él, y un aviso de espera congelado dice "colgado".
+     Lo que no se negocia sigue igual: se anima transform y nada más. Esas las
+     lleva el compositor, que es otro hilo, así que las bolitas siguen girando
+     mientras el principal está trabado repaginando —que es justo cuando este
+     aviso existe—. Las bolitas no se animan una por una: cada una tiene su
+     tinta fija y lo que gira es el corro entero.
 
-     El arco cubre un cuarto de vuelta: menos parece un punto suelto y más deja
-     de leerse como algo que gira. El resto del anillo se queda puesto y tenue,
-     para que el arco tenga un camino visible que recorrer. */
-  #buscando .aro{ position:absolute; left:50%; top:50%;
-                  width:52px; height:52px; margin:-26px 0 0 -26px;
-                  border-radius:50%; border:4px solid rgba(122,96,42,.28);
-                  border-top-color:#b8892b;
-                  /* UN FILO DE PAPEL A CADA LADO DEL ANILLO, y nada más. Sin
-                     fondo, el aro cae encima de los renglones y las letras se
-                     le cruzan por debajo: se lee, pero cuesta. Con un disco
-                     entero tapando el texto se leería de sobra y volveríamos a
-                     lo que ya se descartó.
-                     Dos sombras —una por fuera y otra por dentro— despejan una
-                     banda de tres píxeles pegada al anillo. Es lo justo para
-                     que el círculo se recorte contra algo y siga sin tapar la
-                     hoja. Son sombras estáticas: no animan nada, así que no le
-                     quitan al compositor lo que se le vino a dar. */
-                  box-shadow:0 0 0 3px rgba(253,251,246,.78),
-                             inset 0 0 0 3px rgba(253,251,246,.78);
-                  animation:giroBuscando .85s linear infinite;
-                  will-change:transform; }
+     EL COLOR ES EL CAFÉ OSCURO DE LA TINTA, con un filo casi negro. Primero
+     llevaron el marrón dorado de los mandos con un filo de papel blanco
+     alrededor, y Gianni dijo que no se notaba: el filo blanco aclaraba cada
+     bolita y la fundía con el crema de la hoja. Se probaron tres verdes y un
+     azul petróleo —«no me gusta nadita»—: un color frío es ajeno a esta
+     casa, que es toda papel, sepia y dorado, y en vez de leerse como aviso se
+     leía como otra cosa. El panel de expertos se quedó con el café de siempre,
+     pero oscuro (#6b4a14, el tono de la tinta) para despegarse del dorado,
+     y con un filo de 1.5 px casi negro que recorta la bolita contra la
+     letra y contra el panel. Sin filo se perdía sobre el sepia. Es una
+     sombra quieta, así que no le pide nada al compositor. */
+  #buscando .bolitas{ position:absolute; left:50%; top:50%;
+                      width:72px; height:72px; margin:-36px 0 0 -36px;
+                      animation:giroBuscando 1s linear infinite;
+                      will-change:transform; }
+  #buscando .bolitas i{ position:absolute; left:50%; top:50%;
+                        width:14px; height:14px; margin:-7px 0 0 -7px;
+                        border-radius:50%; background:#6b4a14;
+                        box-shadow:0 0 0 1.5px #2a1c06; }
+  /* La primera es la de delante: entera y grande. Las demás se van achicando
+     y apagando hacia atrás, y eso es la cola que hace leer el giro. */
+  #buscando .bolitas i:nth-child(1){ transform:rotate(0deg)   translateY(-28px) scale(1);   opacity:1; }
+  #buscando .bolitas i:nth-child(2){ transform:rotate(-45deg)  translateY(-28px) scale(.92); opacity:.86; }
+  #buscando .bolitas i:nth-child(3){ transform:rotate(-90deg)  translateY(-28px) scale(.84); opacity:.72; }
+  #buscando .bolitas i:nth-child(4){ transform:rotate(-135deg) translateY(-28px) scale(.76); opacity:.58; }
+  #buscando .bolitas i:nth-child(5){ transform:rotate(-180deg) translateY(-28px) scale(.68); opacity:.52; }
+  #buscando .bolitas i:nth-child(6){ transform:rotate(-225deg) translateY(-28px) scale(.6);  opacity:.46; }
+  #buscando .bolitas i:nth-child(7){ transform:rotate(-270deg) translateY(-28px) scale(.54); opacity:.4; }
+  #buscando .bolitas i:nth-child(8){ transform:rotate(-315deg) translateY(-28px) scale(.5);  opacity:.34; }
   @keyframes giroBuscando{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
   /* La frase que lee el lector de pantalla. Se esconde a la vista sin salir
      del árbol de accesibilidad, que es justo lo que display:none y
@@ -920,12 +931,12 @@
   #buscando .dice{ position:absolute; width:1px; height:1px; margin:-1px;
                    padding:0; border:0; overflow:hidden; white-space:nowrap;
                    clip-path:inset(50%); }
-  /* Quien pidió menos movimiento no se queda sin aviso: se queda con el aro
-     puesto, entero y quieto, que sigue diciendo "estoy en ello". */
+  /* Quien pidió menos movimiento no se queda sin aviso: se queda con las
+     bolitas puestas y quietas, que siguen diciendo "estoy en ello". */
   @media (prefers-reduced-motion: reduce){
-    /* Quieto se queda el aro entero encendido: sigue diciendo "estoy en ello"
-       sin moverse. */
-    #buscando .aro{ animation:none; border-color:#c9a227; opacity:.6; }
+    /* Quieto se queda el corro entero: sigue diciendo "estoy en ello" sin
+       moverse. */
+    #buscando .bolitas{ animation:none; }
   }
   /* ============================================================
      LA HOJA ENTERA, DESDE LEJOS.
@@ -3538,6 +3549,19 @@
   #ajustes.cristal .vidrio-btn{ background:var(--tablilla);
                                 border:1px solid var(--tablilla-borde);
                                 color:var(--tablilla-tinta); }
+  /* LOS BOTONES NO SE VUELVEN DE CRISTAL. Lo transparente es el PAPEL del
+     panel, para ver la hoja; los botones no. Los del rollo llevan papel al
+     75% (y los desplegables al 85%, las pestañas al 50%), que en opaco no se
+     nota porque debajo hay más papel; en transparente debajo hay renglones, y
+     la letra de la hoja se les colaba por dentro —el «MATEO 1:1» de la
+     cabecera se leía a través de las pestañas—. Gianni: «cuando tenemos
+     transparente, los botones no los hagas transparentes porque si no, no se
+     ve bien». Así que en cristal llevan el mismo papel, pero macizo.
+     Fuera quedan los que ya traen fondo propio y opaco: los encendidos
+     (dorado), los presets y los dos largos (degradado). */
+  #ajustes.cristal .pestanas button:not(.aqui),
+  #ajustes.cristal #ctrlConfig .btn:not(.active):not(.btn-largo):not(.pf-btn),
+  #ajustes.cristal #ctrlConfig select{ background-color:#fffdf6; }
   /* CADA CONTROL CON SU PROPIA TABLILLA, Y DEL ANCHO JUSTO.
 
      Con el panel transparente se ve la hoja —que es de lo que se trata— pero
@@ -4485,10 +4509,9 @@
      .vidrio-btn, que es el mismo arreglo y la misma razón. */
   #ajustes.cristal .pie-cerrar{ background:none; }
   /* LOS PRESETS EN TRANSPARENTE, con su tablilla como cualquier fila: el
-     rótulo y la explicación son letra suelta sobre la hoja, y sin fondo no se
-     leen. Los botones ya traen el suyo. */
-  #ajustes.cristal .presets-formato .pf-grupo,
-  #ajustes.cristal .presets-formato .pf-dice{
+     rótulo es letra suelta sobre la hoja, y sin fondo no se lee. Los botones
+     ya traen el suyo. */
+  #ajustes.cristal .presets-formato .pf-grupo{
     background:var(--tablilla, rgba(226,212,180,.94)); border-radius:6px;
     border:1px solid var(--tablilla-borde, rgba(140,116,68,.45)); padding:3px 6px; }
   /* LOS DOS BOTONES DE UNA PALABRA VAN BLANCOS EN TRANSPARENTE, pedido así, y
@@ -4623,8 +4646,6 @@
   .pf-hoja i::before, .pf-hoja i::after, .pf-hoja b{ content:''; display:block; height:3px;
             border-radius:2px; background:currentColor; opacity:.6; }
   .pf-hoja b{ width:80%; }
-  .presets-formato .pf-dice{ font:calc(12px * var(--escala-ui, 1))/1.35 var(--ui);
-                    color:#5b4a22; text-align:center; padding:0 2px; }
   /* EL BOTÓN DE LOS AJUSTES FINOS: largo, que es lo que lo separa de los
      presets —esos ponen algo; éste abre una puerta—, y oscuro con cuerpo, como
      los de la glosa. La flecha gira al abrir para decir que también cierra. */
@@ -6196,6 +6217,20 @@
   @media (max-width: 560px){
     #ajustes, #etiquetas, #encuentros, #notas, #respaldo{ overflow-y:auto; overflow-x:visible;
                                                   overscroll-behavior:contain; }
+    /* Y SIN CANTO. El canto de la hoja (.rollo::before y ::after) va con
+       position:absolute pegado a bottom:0, y en una caja que se desplaza eso
+       quiere decir «abajo de la PRIMERA pantalla», no abajo de lo que se ve:
+       la rayita de luz y su sombra se iban con el texto y quedaban cruzando
+       el panel a media hoja. Gianni la vio al abrir los ajustes finos, que es
+       cuando Formato dejó de caber —«una raya bien fea ahí a la mitad»—.
+       Aquí el panel ocupa la pantalla de arriba abajo, así que su canto es el
+       canto del teléfono y no hay hoja debajo a la que proyectar sombra; lo
+       que queda del borde lo pone la sombra de dentro de .rollo, que sí se
+       queda quieta. Se quita, no se recoloca: el ::after además, al colgar
+       16 px por debajo de la caja, le añadía al panel 16 px de scroll vacío. */
+    #ajustes::before, #ajustes::after, #etiquetas::before, #etiquetas::after,
+    #encuentros::before, #encuentros::after, #notas::before, #notas::after,
+    #respaldo::before, #respaldo::after{ display:none; }
   }
 </style>
 </head>
@@ -6678,8 +6713,8 @@
        mostrarBuscando escribe la frase y quitarBuscando la borra, que es lo
        que de verdad dispara el anuncio. Lo encontró la revisión de Codex. -->
   <div id="buscando" role="status" aria-live="polite">
-    <!-- Un aro y ya: anillo tenue, arco dorado girando. -->
-    <div class="aro"></div>
+    <!-- Ocho bolitas en corro, de más a menos, dando vueltas. -->
+    <div class="bolitas"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <span class="dice"></span>
   </div>
   <div class="edge edge-l" id="edgeL" title="Clic: hoja anterior · Arrastra: pliega"></div>
@@ -6889,7 +6924,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 18:54';
+window.GLOSS_BUILD = '16-NOV-26 20:01';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25156,23 +25191,34 @@ $('brillo').oninput = e => {
    computadora, «leer» y «estudiar» en cada uno— y no le gustaron; los cambió
    por UNA lista de cuatro, armada en un mock y afinada a mano preset por
    preset:
-     · LEGIBLE: letra 24 en una columna, la LINEAL —la sin remates, la más
-       clara que hay—, espaciado +5, interlínea normal y contraste 140. Es el
-       único que toca la tinta, decidido así con él.
-     · LETRA GRANDE: 26, el tope de la app, en una columna, romana, con
-       interlínea amplia. Tiene que ser la más grande de la lista o el nombre
-       miente: estuvo en 20 y Legible en 24, y se subió.
+     · LEGIBLE: letra 22 en una columna, la LINEAL —la sin remates, la más
+       clara que hay—, espaciado +5, interlínea normal, contraste 140 y brillo
+       85. El brillo bajo le quita deslumbre a la hoja, y el contraste alto le
+       devuelve a la letra lo que la luz le quita. Estuvo en 24 y Gianni lo
+       bajó dos puntos.
+     · LETRA GRANDE: 24, en una columna, romana, con interlínea amplia. Tiene
+       que ser la más grande de la lista o el nombre miente: estuvo en 20 con
+       Legible en 24, se subió a 26 —el tope de la app— y Gianni bajó los dos
+       dos puntos, así que sigue dos por encima. Lleva la misma luz que
+       Legible —contraste 140, brillo 85—, que Gianni se la pidió igual: los
+       dos de una columna son los de leer largo, y ahí es donde cansa la hoja.
+       Las columnas no tocan ni tinta ni luz, decidido así con él.
      · DOS COLUMNAS: 18 en dos columnas, romana, interlínea normal. 18 es lo
        más grande que aguanta una columna de teléfono sin bajar de unos 25
        caracteres por renglón, que es donde la lectura empieza a ir a saltos.
      · TRES COLUMNAS: 16 en tres, romana, interlínea normal. En un teléfono
-       queda apretado; es para pantallas anchas, y su explicación lo dice.
+       queda apretado; es para pantallas anchas.
    La escala la ordenó un panel de cuatro miradas —tipógrafo, accesibilidad,
    columnas y un lector—: alrededor de Legible, escalones que se noten y, de
    arriba abajo, la letra bajando y las columnas subiendo, para que la lista se
    entienda sin leerla. Todos ponen el texto a la izquierda —justificar abre
    ríos de blanco en columnas estrechas— y LA GLOSA AL MARGEN, que también se
    pidió para los cuatro.
+
+   SIN EXPLICACIÓN DEBAJO. Cada uno llevó una frase que contaba lo que
+   ponía; Gianni las quitó «para que esos botones queden más juntos». El
+   nombre y el dibujito de las columnas ya dicen lo que hace falta, y lo
+   demás se ve en la hoja al tocarlo, que para eso van directos.
 
    VAN DIRECTOS A LA HOJA, aunque el panel esté opaco. Los mandos de letra de
    los finos esperan en la muestra y pasan al cerrar; los presets no, porque la
@@ -25190,20 +25236,12 @@ $('brillo').oninput = e => {
    pregunta misma rompería el arranque. */
 var PRESETS_FORMATO = [
   { id:'legible', es:'Legible', en:'Clear',
-    dice:'Letra grande y separada en una columna, la tipografía más clara y contraste más alto.',
-    diceEn:'Large, spaced letters in one column, the clearest typeface and stronger contrast.',
-    tam:24, fuente:4, esp:5, aire:1.62, cols:1, contraste:140 },
+    tam:22, fuente:4, esp:5, aire:1.62, cols:1, contraste:140, brillo:85 },
   { id:'grande', es:'Letra grande', en:'Large type',
-    dice:'La letra más grande, en una columna, con aire entre renglones.',
-    diceEn:'The largest type, in one column, with room between lines.',
-    tam:26, fuente:0, esp:0, aire:1.95, cols:1 },
+    tam:24, fuente:0, esp:0, aire:1.95, cols:1, contraste:140, brillo:85 },
   { id:'dos', es:'Dos columnas', en:'Two columns',
-    dice:'Letra mediana en dos columnas: más texto a la vista.',
-    diceEn:'Medium type in two columns: more text in view.',
     tam:18, fuente:0, esp:0, aire:1.62, cols:2 },
   { id:'tres', es:'Tres columnas', en:'Three columns',
-    dice:'Letra más chica en tres columnas: para pantallas anchas o para ver mucho de un vistazo.',
-    diceEn:'Smaller type in three columns: for wide screens or to see a lot at a glance.',
     tam:16, fuente:0, esp:0, aire:1.62, cols:3 }
 ];
 function presetVivo(){
@@ -25212,7 +25250,8 @@ function presetVivo(){
   return PRESETS_FORMATO.find(p =>
     tamVivo() === p.tam && espVivo() === p.esp && f === FUENTES[p.fuente][1] &&
     alineacion === 'left' && interlineado === p.aire && columns === p.cols &&
-    placement === 'margin' && (p.contraste == null || contraste === p.contraste)) || null;
+    placement === 'margin' && (p.contraste == null || contraste === p.contraste) &&
+    (p.brillo == null || brillo === p.brillo)) || null;
 }
 function reflejarPresets(){
   if (!PRESETS_FORMATO) return;
@@ -25229,12 +25268,10 @@ function pintarPresetsFormato(){
   caja.innerHTML = '<div class="pf-grupo">' + T('Para leer', 'For reading') + '</div>' +
     PRESETS_FORMATO.map(p =>
       '<div class="pf-celda">' +
-        '<button type="button" class="btn pf-btn" data-preset="' + p.id + '" aria-pressed="false"' +
-          ' aria-describedby="pfd-' + p.id + '">' +
+        '<button type="button" class="btn pf-btn" data-preset="' + p.id + '" aria-pressed="false">' +
           '<span class="pf-hoja" aria-hidden="true" style="grid-template-columns:repeat(' + p.cols +
             ', minmax(0, 1fr))">' + '<i><b></b></i>'.repeat(p.cols) + '</span>' +
           '<span class="pf-nombre">' + T(p.es, p.en) + '</span></button>' +
-        '<span class="pf-dice" id="pfd-' + p.id + '">' + T(p.dice, p.diceEn) + '</span>' +
       '</div>').join('');
   reflejarPresets();
 }
@@ -25264,17 +25301,36 @@ function ponerPreset(id){
     contraste = p.contraste;
     $('contraste').value = String(contraste);
     $('contrasteAhora').textContent = contraste + '%';
-    aplicarFiltros();
   }
+  /* El brillo va con el contraste y por la misma aplicarFiltros: los dos
+     son la luz de la hoja, y los presets de una columna los piden juntos. */
+  if (p.brillo != null){
+    brillo = p.brillo;
+    $('brillo').value = String(brillo);
+    $('brilloAhora').textContent = brillo + '%';
+  }
+  if (p.contraste != null || p.brillo != null) aplicarFiltros();
   rotularFormato();
   paginasSucias = true;
   renderPage();
   guardarAjustes();
   reflejarPresets();
 }
+/* CON LAS BOLITAS, Y DEJÁNDOLAS PINTAR ANTES. Poner un preset repagina el
+   libro entero —letra, columnas y glosas al margen de una vez—, y en un
+   teléfono eso son segundos de hilo trabado. Gianni lo notó: «se tarda en
+   pasar de uno al otro». El latido del botón (.obrando) no basta para eso:
+   es un acuse de «te oí», y en un panel opaco que tapa la hoja no dice que
+   se esté rehaciendo nada. Así que el preset espera dos cuadros —trasPintar,
+   ver allí por qué uno no alcanza— para que las bolitas ya estén girando
+   cuando el hilo se trabe; giran por el compositor, así que siguen girando
+   mientras tanto. */
 $('presetsFormato').addEventListener('click', ev => {
   const b = ev.target.closest('[data-preset]');
-  if (b) ponerPreset(b.dataset.preset);
+  if (!b) return;
+  const id = b.dataset.preset;
+  mostrarBuscando(T('cambiando el formato…', 'changing the layout…'));
+  trasPintar(() => { ponerPreset(id); quitarBuscando(); });
 });
 /* Cualquier otro mando del panel puede apagar o encender un preset —tocar a
    mano es salirse—, así que después de cada uno se vuelve a mirar. Después y
