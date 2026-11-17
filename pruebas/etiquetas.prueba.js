@@ -1835,8 +1835,10 @@ const FUERA = `async () => {
   vale('(la prueba es válida) y cada botón ABRE lo suyo',
        tres.rondas.every(r => r.abierto === true),
        tres.rondas.map(r => r.abre + ':' + r.abierto).join(' · '));
-  vale('SON DOS PUERTAS: el AA se fue a la ventanita de la glosa',
-       tres.rotulos.length === 2 && tres.sinLetra, tres.rotulos.join(' · '));
+  /* Dos puertas que se excluyen y, a su lado, GUARDAR, que no abre nada en
+     ese hueco (su oficio está por decidir). El AA se fue a la ventanita. */
+  vale('DOS PUERTAS Y GUARDAR: el AA se fue a la ventanita de la glosa',
+       tres.rotulos.join('|') === 'filtrar|editar|guardar' && tres.sinLetra, tres.rotulos.join(' · '));
   vale('y abrir una cierra la otra',
        tres.rondas.every(r => r.soloUno === 1),
        tres.rondas.map(r => r.abre + '→' + r.soloUno).join(' · '));

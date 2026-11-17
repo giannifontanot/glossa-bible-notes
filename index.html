@@ -3842,12 +3842,16 @@
      queda llena a la altura de las pestañas y se apaga después, con lo que
      el filo de la derecha pasa a ser el del panel, igual que el de la
      izquierda: el marco vuelve a ser simétrico y el centro se lee centro. */
-  #respaldo .carpeta-hoja{ min-width:0; padding-right:10px; min-height:62vh; position:relative; }
-  #respaldo .carpeta-hoja::after{ content:""; position:absolute; top:0; right:0; bottom:0; width:1px;
-            pointer-events:none;
+  /* LA RAYA VIVE EN LAS PESTAÑAS, no en la hoja: la columna de las pestañas
+     mide justo lo que ellas, así que la raya llena dura lo que duran ellas y
+     su cola desvanecida sigue 90 px más, sin que nadie tenga que medir dónde
+     terminan. Antes la hoja la pintaba con un alto que se medía al aparecer
+     el panel, y esa medida tardía era uno de los reacomodos que se veían. */
+  #respaldo .carpeta-hoja{ min-width:0; padding-right:10px; min-height:62vh; }
+  #respaldo .sub-pestanas::before{ content:""; position:absolute; top:0; left:-1px; width:1px;
+            height:calc(100% + 90px); pointer-events:none;
             background:linear-gradient(to bottom, rgba(120,92,40,.5) 0,
-                         rgba(120,92,40,.5) var(--lomo-alto, 260px),
-                         rgba(120,92,40,0) calc(var(--lomo-alto, 260px) + 90px)); }
+                         rgba(120,92,40,.5) calc(100% - 90px), rgba(120,92,40,0) 100%); }
   #respaldo .sub-pestanas{ display:flex; flex-direction:column; align-items:stretch; gap:5px;
             position:sticky; top:4px; padding:10px 0 0; }
   #respaldo .sub-pestanas button{ writing-mode:vertical-rl; transform:rotate(180deg);
@@ -3873,24 +3877,43 @@
      misma caja, así que los dos cuadros caen uno encima del otro con los
      mismos filos. El renglón de arriba va dentro del marco por lo mismo. */
   .mapa-marco{ width:min(44vh, 82%); margin:0 auto; }
-  /* EL RENGLÓN DE ARRIBA, A FILO CON EL MAPA. Los colores empiezan donde
-     empieza el mapa y «¡Yo!» termina donde termina: el renglón es tan ancho
-     como el cuadro y no se carga a ningún lado. Si en una pantalla angosta no
-     cabe en uno, se parte en dos renglones CENTRADOS (clase .partida, la pone
-     centrarEnPantalla al medir), que alineados a la izquierda y a la derecha
-     volvían a descuadrar el conjunto. */
-  .mapa-cabeza{ display:flex; align-items:center; justify-content:space-between; gap:4px 8px;
-                flex-wrap:wrap; margin:0 0 6px; }
-  .mapa-cabeza.partida{ justify-content:center; }
-  .mapa-cabeza .mapa-leyenda{ flex:0 1 auto; margin:0; flex-wrap:nowrap; white-space:nowrap; gap:0 9px; }
-  .mapa-cabeza.partida .mapa-leyenda{ flex-wrap:wrap; justify-content:center; white-space:normal; }
+  /* CENTRADOS EN LA PANTALLA SIN MEDIR NADA, y por eso sin brincar. Se
+     medía con JavaScript al aparecer el panel y se empujaba: el mapa y el QR
+     se pintaban primero centrados en la hoja y medio centímetro después
+     saltaban a su sitio, a la vista —lo vio Gianni—. Aquí la cuenta va en el
+     CSS, así que nacen ya en su sitio:
+       · la hoja es el panel menos las pestañas y su hueco, así que su centro
+         queda a la izquierda del de la pantalla la mitad de eso:
+         (grueso de las pestañas + 10 px de hueco) / 2;
+       · menos la corrección óptica de siempre, un octavo del grueso de las
+         pestañas hacia la izquierda, por su masa oscura (ver la nota del
+         Partenón en el historial);
+       · y con tope del 8 % de la hoja, que es lo que le sobra al cuadro a
+         cada lado: nunca se echa encima de la raya.
+     El grueso de una pestaña es su letra más su relleno (8 + 8) y su borde. */
+  #respaldo .carpeta{ --lomo:calc(13px * var(--escala-ui, 1) + 17px); }
+  #respaldo .mapa-marco, #respaldo .qr-glossa > *{ position:relative;
+            left:min(calc((var(--lomo) + 10px) / 2 - var(--lomo) / 8), 8%); }
+  /* EL RENGLÓN DE ARRIBA, CENTRADO. Los colores en un renglón y la casilla
+     con su invitación en el siguiente, los dos al centro del mapa: ningún
+     renglón se carga a un lado. Antes se medía si cabía todo en uno y se
+     escogía entre las dos maneras al aparecer el panel; esa decisión tardía
+     movía las cosas a la vista de quien abría la pestaña. */
+  .mapa-cabeza{ display:flex; flex-direction:column; align-items:center; gap:2px; margin:0 0 6px; }
+  .mapa-cabeza .mapa-leyenda{ margin:0; flex-wrap:wrap; justify-content:center; gap:0 9px; }
   /* LA CASILLA LLEVA SU PALABRA A LA DERECHA, Y ES UNA SOLA: «¡Yo!». Iba un
      «Compartir la mía» encima, en dos renglones, y se comía el alto de la
      cabeza; Gianni la quiso así, confiando en que el sitio y el destello digan
      lo demás. Toda la etiqueta es zona de toque, con su alto de dedo. */
-  .chk-ubic{ position:relative; display:inline-flex; align-items:center; gap:7px; min-height:44px;
+  .chk-ubic{ position:relative; display:inline-flex; align-items:center; gap:9px; min-height:44px;
              padding:0 2px; cursor:pointer;
              font:800 calc(14px * var(--escala-ui, 1))/1 var(--ui); color:#3d2f12; }
+  /* LA INVITACIÓN DE «¡YO!». Pedida por Gianni, que vio que sobraba sitio:
+     una frase cálida que diga qué pasa si la marcas, y la tranquilidad de que
+     solo se ve la ciudad —que es lo que más frena a quien duda en tocarla—. */
+  .chk-ubic .yo{ display:flex; flex-direction:column; gap:2px; text-align:left; }
+  .chk-ubic .yo-dice{ font:500 calc(12.5px * var(--escala-ui, 1))/1.25 var(--ui); color:#5c4a24; }
+  .chk-ubic .yo-dice small{ display:block; font-size:.88em; color:#7a6638; }
   .chk-ubic input{ position:absolute; inset:0; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
   .chk-ubic .caja{ width:28px; height:28px; border-radius:9px; border:2px solid rgba(140,116,68,.55);
                   background:#fffdf6; display:grid; place-items:center;
@@ -3945,7 +3968,7 @@
                   padding:8px; background:#fff; border-radius:12px;
                   border:1px solid rgba(140,116,68,.45); box-shadow:0 2px 6px rgba(60,40,15,.18); }
   /* El texto no pasa del ancho del dibujo: así, al centrar el QR en la
-     pantalla (ver centrarEnPantalla), se mueven juntos y ninguno se sale. */
+     pantalla, se mueven juntos y ninguno se sale. */
   .qr-dice{ margin:4px 0 0; max-width:min(44vh, 82%); text-align:center;
             font:600 calc(14px * var(--escala-ui, 1))/1.35 var(--ui); color:#3d2f12; }
   .qr-liga{ margin:0; font:500 calc(12px * var(--escala-ui, 1))/1.3 var(--ui); color:#7a6638; }
@@ -4600,6 +4623,21 @@
     82% { transform:translateX(calc(-4px * var(--dir, 1))); }
     100%{ opacity:1; transform:none; }
   }
+  /* COMPARTIR ENTRA SIN MOVERSE, solo apareciendo. Pedido por Gianni: al
+     tocar la pestaña, el mapa y el QR llegaban corriéndose desde la derecha,
+     se pasaban y volvían —son 26 px de viaje y 4 de rebote, medio
+     centímetro en el teléfono—, y con dos cuadros grandes y centrados eso no
+     se lee como «llegó» sino como «se está acomodando». En las otras
+     pestañas el texto corre y el gesto se siente; aquí lo que se ve son dos
+     cajas que no encuentran su sitio. Entra en el mismo tiempo, desde
+     transparente, ya en su lugar. */
+  #respaldo.rollo.cambio > *:not(.pestanas):not(.pie-cerrar){
+    animation-name:entraEnSuSitio; }
+  @keyframes entraEnSuSitio{
+    0%  { opacity:0; }
+    55% { opacity:1; }
+    100%{ opacity:1; }
+  }
   /* ============================================================
      EL PIE DEL PANEL: UN SOLO BOTÓN, DE LADO A LADO Y SIEMPRE A LA VISTA.
 
@@ -4914,10 +4952,17 @@
                                 padding-top:4px; border-top:1px solid rgba(140,116,68,.3); }
   /* Los dos botones y nada más: el rótulo se fue y el combo de los días se
      fue con los filtros, que es de lo que es. Ver el marcado. */
-  #ctrlEtiquetas .fila-etiq{ display:flex; align-items:center; gap:6px;
-                             flex-wrap:wrap; grid-column:1 / -1; }
-  #btnVerEtiquetas, #btnElegirGlosas{ width:auto; flex:0 0 auto; min-height:32px;
-                                      padding:0 12px; letter-spacing:.04em; }
+  /* TRES BOTONES DE VERDAD, A LO ANCHO. Pedido por Gianni: filtrar y editar
+     eran dos pastillitas de 32 px a la izquierda y no se leían como los
+     botones del resto de la aplicación. Ahora son tres iguales —filtrar,
+     editar, guardar— repartidos a lo ancho del panel, con el alto de dedo de
+     44 px y la letra y el signo un punto más grandes, como los de FORMATO. */
+  #ctrlEtiquetas .fila-etiq{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr));
+                             gap:8px; grid-column:1 / -1; }
+  #btnVerEtiquetas, #btnElegirGlosas, #btnGuardarGlosas{ width:100%; min-height:44px;
+          padding:0 8px; justify-content:center; letter-spacing:.04em;
+          font-size:calc(15px * var(--escala-ui, 1)); }
+  #ctrlEtiquetas .fila-etiq .btn-signo .signo{ width:19px; height:19px; }
   #ctrlEtiquetas.sin-chips #filaFiltros{ display:none; }
   /* EL GRUPO DE LETRA, ESCONDIDO HASTA QUE SE PIDE. Misma mecánica que la tira
      de chips —una clase en el panel, no un display en el nodo— para que las
@@ -6821,6 +6866,13 @@
           aria-hidden="true" focusable="false"><!-- inclinado, con la punta abajo a la izquierda: pedido así por Gianni --><g
           transform="rotate(-45 12 12)"><path d="M8 8.6h10.5a2 2 0 0 1 2 2v2.8a2 2 0 0 1-2 2H8L2.5 12z"/><path
           d="M8 8.6v6.8M16.5 8.6v6.8"/><path d="M2.5 12l2.6-1.6v3.2z" fill="currentColor"/></g></svg><span data-es="editar" data-en="edit">editar</span></button>
+  <!-- GUARDAR: pedido por Gianni junto a los otros dos, con su oficio por
+       decidir («ese al rato lo revisamos»). Por ahora está y no hace nada; no
+       se le inventa uno. -->
+  <button type="button" class="btn btn-signo" id="btnGuardarGlosas"
+          title="Guardar (por definir)"><svg class="signo" viewBox="0 0 24 24"
+          aria-hidden="true" focusable="false"><path d="M5 3.5h11.5L20.5 7.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V5A1.5 1.5 0 0 1 5 3.5z"/><path
+          d="M8 3.5v5h7.5v-5M7.5 20.5v-6.5h9v6.5"/></svg><span data-es="guardar" data-en="save">guardar</span></button>
 </div>
 
 <!-- LOS MANDOS DE LA LETRA DE LA GLOSA YA NO VIVEN AQUÍ. Iban debajo de un
@@ -7159,7 +7211,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 12:22';
+window.GLOSS_BUILD = '17-NOV-26 12:44';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25213,6 +25265,7 @@ const UI_EN = {
      un <span data-es data-en>, que es lo que se traduce. */
   '#btnVerEtiquetas':  { title:'Filter the glosses by tag or by day' },
   '#btnElegirGlosas':  { title:'Pick several glosses to edit their tags' },
+  '#btnGuardarGlosas': { title:'Save (to be decided)' },
   '#filtros':          { aria:'Gloss filters: the day and the tags' },
   '#selDia':           { aria:'Filter the glosses by day' },
   '#btnGlosas':        { title:'glosses', aria:'glosses' },
@@ -27761,7 +27814,11 @@ function armarMapaLectores(caja){
         '<span class="ley antes"></span><span data-es="Ha leído" data-en="Has read">' + T('Ha leído', 'Has read') + '</span></p>' +
       '<label class="chk-ubic"><input type="checkbox" id="chkMapa"' + (mapaYo().comparto ? ' checked' : '') +
           ' aria-label="' + T('Compartir mi ciudad en el mapa', 'Share my city on the map') + '"><span class="caja" aria-hidden="true"></span>' +
-          '<span aria-hidden="true" data-es="¡Yo!" data-en="Me!">' + T('¡Yo!', 'Me!') + '</span></label>' +
+          '<span class="yo" aria-hidden="true"><span data-es="¡Yo!" data-en="Me!">' + T('¡Yo!', 'Me!') + '</span>' +
+          '<span class="yo-dice"><span data-es="Enciende tu lucecita en el mapa" data-en="Light up your spot on the map">' +
+            T('Enciende tu lucecita en el mapa', 'Light up your spot on the map') + '</span>' +
+          '<small data-es="solo se ve tu ciudad" data-en="only your city shows">' +
+            T('solo se ve tu ciudad', 'only your city shows') + '</small></span></span></label>' +
     '</div>' +
     '<div class="mapa-lienzo" id="mapaLectores" aria-label="' + T('Mapa de lectores', 'Readers map') + '"></div>' +
     '<p class="mapa-estado" id="mapaEstado"></p>' +
@@ -27906,70 +27963,8 @@ function armarMapaLectores(caja){
      mal una caja de cero píxeles. Cada vez que vuelve a verse, se repinta con
      los lectores de ese momento. */
   new IntersectionObserver(entradas => {
-    if (entradas.some(e => e.isIntersecting)){
-      pintar(); centrarEnPantalla();
-      /* y otra vez cuando el panel termina de desenrollarse, por si se midió
-         a media animación */
-      setTimeout(centrarEnPantalla, 900);
-    }
+    if (entradas.some(e => e.isIntersecting)) pintar();
   }).observe(lienzo);
-  /* EL MAPA Y EL QR, CENTRADOS EN LA PANTALLA Y NO EN EL PANEL. Pedido por
-     Gianni: la hoja de Compartir queda a la izquierda de las pestañas de
-     carpeta, así que centrados en ella se veían cargados a la izquierda de la
-     pantalla. Se mide cuánto le falta a cada uno para caer en el centro de la
-     ventana y se le empuja eso con `left` —no con transform: Leaflet mide sus
-     toques con el rectángulo de la caja y un left sí lo mueve de verdad—.
-     Con tope: nunca más allá de la raya de la hoja, que se le echaría encima
-     a las pestañas. El texto del QR se mueve con el dibujo, para que no se
-     despeguen. Se vuelve a medir al girar el teléfono o cambiar la ventana. */
-  const marcoMapa = caja.querySelector('.mapa-marco');
-  const bloqueQr = caja.querySelector('.qr-glossa');
-  function centrarEnPantalla(){
-    const hoja = caja.closest('.carpeta-hoja');
-    if (!hoja || !hoja.offsetWidth || completo) return;
-    const h = hoja.getBoundingClientRect();
-    /* La raya de la hoja se apaga al terminar las pestañas: se le dice dónde. */
-    const nav = hoja.parentElement && hoja.parentElement.querySelector('.sub-pestanas');
-    if (nav){
-      const n = nav.getBoundingClientRect();
-      hoja.style.setProperty('--lomo-alto', Math.max(0, Math.round(n.bottom - h.top)) + 'px');
-    }
-    /* CORRECCIÓN ÓPTICA, como las del Partenón —las columnas que se inclinan
-       hacia dentro y el estilóbato curvado para que el templo se VEA recto—:
-       las pestañas son una masa oscura a la derecha, y un bloque centrado de
-       verdad junto a una masa así se lee corrido hacia ella. Se le quitan unos
-       pocos píxeles —una octava parte del grueso de las pestañas— hacia la
-       izquierda. No se nota como desvío; se nota que deja de pesar. */
-    const optico = nav ? Math.round(nav.getBoundingClientRect().width / 8) : 0;
-    const centro = (document.documentElement.clientWidth || innerWidth) / 2 - optico;
-    const empujar = (els, medida) => {
-      els.forEach(e => { e.style.position = 'relative'; e.style.left = '0px'; });
-      const m = medida.getBoundingClientRect();
-      if (!m.width) return;
-      const quiere = centro - (m.left + m.width / 2);
-      const tope = Math.max(0, h.right - 6 - m.right);
-      const suelo = Math.min(0, h.left - m.left);
-      const dx = Math.round(Math.max(suelo, Math.min(tope, quiere)));
-      els.forEach(e => { e.style.left = dx + 'px'; });
-    };
-    if (marcoMapa){
-      empujar([marcoMapa], marcoMapa);
-      const cabeza = marcoMapa.querySelector('.mapa-cabeza');
-      if (cabeza){
-        cabeza.classList.remove('partida');
-        const hijos = [...cabeza.children];
-        if (hijos.length > 1 && hijos[hijos.length - 1].offsetTop > hijos[0].offsetTop + 4)
-          cabeza.classList.add('partida');
-      }
-    }
-    const qr = bloqueQr && bloqueQr.querySelector('svg');
-    if (qr) empujar([...bloqueQr.children], qr);
-  }
-  let relojCentro = 0;
-  addEventListener('resize', () => {
-    clearTimeout(relojCentro);
-    relojCentro = setTimeout(centrarEnPantalla, 150);
-  });
   caja.querySelector('#chkMapa').addEventListener('change', async ev => {
     const c = ev.target;
     /* SIN PROYECTO, LA CASILLA SIGUE VIVA. Estuvo apagada, y apagada no
