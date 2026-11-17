@@ -125,6 +125,7 @@ const AJUSTES = 'glossa:ajustes:v1';
       esCristal,
       encendido: [...document.querySelectorAll('#presetsFormato [data-preset].active')].map(b => b.dataset.preset),
       pulsado: document.querySelector('[data-preset="legible"]').getAttribute('aria-pressed'),
+      mandosGlosa: [document.getElementById('fsGlosaAhora').value, document.getElementById('espGlosaAhora').value],
       a: JSON.parse(localStorage.getItem('glossa:ajustes:v1'))
     };
   }, [TOCAR]);
@@ -137,6 +138,12 @@ const AJUSTES = 'glossa:ajustes:v1';
        a.fontSize === 24 && a.fuente === 4 && a.espaciado === 5 && a.interlineado === 1.62 &&
        a.columns === 1 && a.placement === 'margin' && a.alineacion === 'left',
        [a.fontSize, a.fuente, a.espaciado, a.interlineado, a.columns, a.placement, a.alineacion].join(' · '));
+  /* Y LAS GLOSAS VAN CON ÉL: mismo cuerpo y mismo espaciado que el libro,
+     guardados y escritos en sus propios mandos, que es donde Gianni los mira. */
+  vale('  y LAS GLOSAS TOMAN EL MISMO TAMAÑO Y ESPACIADO, y sus mandos lo dicen',
+       a.fontSizeGlosa === 24 && a.espaciadoGlosa === 5 &&
+       opaco.mandosGlosa.join() === '24,5',
+       [a.fontSizeGlosa, a.espaciadoGlosa, 'mandos ' + opaco.mandosGlosa.join('/')].join(' · '));
   vale('  y sube el contraste y baja el brillo',
        a.contraste === 140 && a.brillo === 85, a.contraste + ' · brillo ' + a.brillo);
 
@@ -217,7 +224,8 @@ const AJUSTES = 'glossa:ajustes:v1';
   vale('LEGIBLE COMPACTA: 20, Lineal, espaciado +5, interlínea normal, una columna, contraste 140 y brillo 85, y se enciende',
        grande.a.fontSize === 20 && grande.a.fuente === 4 && grande.a.espaciado === 5 &&
        grande.a.interlineado === 1.62 && grande.a.columns === 1 && grande.a.contraste === 140 &&
-       grande.a.brillo === 85 && grande.encendido.join() === 'compacta',
+       grande.a.brillo === 85 && grande.encendido.join() === 'compacta' &&
+       grande.a.fontSizeGlosa === 20 && grande.a.espaciadoGlosa === 5,
        [grande.a.fontSize, grande.a.fuente, grande.a.espaciado, grande.a.interlineado, grande.a.columns,
         grande.a.contraste, grande.a.brillo, grande.encendido.join()].join(' · '));
 

@@ -6967,7 +6967,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 20:37';
+window.GLOSS_BUILD = '16-NOV-26 21:48';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25330,13 +25330,26 @@ function ponerPreset(id){
   const p = PRESETS_FORMATO && PRESETS_FORMATO.find(x => x.id === id);
   if (!p) return;
   pendTam = pendEsp = pendFuente = null;
-  fontSize = Math.max(FS_MIN, Math.min(FS_MAX, p.tam)); escalarInterfaz();
+  fontSize = Math.max(FS_MIN, Math.min(FS_MAX, p.tam));
+  /* LAS GLOSAS VAN CON EL PRESET. Tienen su propio tamaño y espaciado —sus
+     mandos viven en el panel de glosas— y el preset no los tocaba: ponías
+     Legible y la hoja quedaba en 24 con las glosas en 14. Gianni: «el ajuste
+     que se haga al hacer clic al botón es el mismo que se hará a los ajustes
+     de la glosa, y es lo que deben mostrar los controles de las glosas». Así
+     que el preset les pone el mismo cuerpo y el mismo espaciado que al libro,
+     y reflejarTamano y reflejarEspaciadoGlosa los dejan escritos en sus
+     mandos. Después cada una se puede afinar a mano en su panel, como antes.
+     Va antes de escalarInterfaz porque ahí se escribe también el píxel de la
+     glosa que mide el cromo —ver ponerTamanoGlosa—. */
+  fontSizeGlosa = fontSize;
+  escalarInterfaz();
   espaciado = Math.max(ESP_MIN, Math.min(ESP_MAX, p.esp));
+  espaciadoGlosa = espaciado;
   fuente = FUENTES[p.fuente][1];
   afinarListaDeFuentes();
   reflejarFuenteDelLibro();
   avisarEstiloALosRelatos();
-  reflejarTamano(); reflejarEspaciado();
+  reflejarTamano(); reflejarEspaciado(); reflejarEspaciadoGlosa();
   $('selFuente').value = String(p.fuente);
   reflejarMuestra();
   alineacion = 'left';
