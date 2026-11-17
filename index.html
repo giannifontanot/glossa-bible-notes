@@ -7136,7 +7136,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 06:17';
+window.GLOSS_BUILD = '17-NOV-26 06:19';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -27540,7 +27540,16 @@ function armarMapaLectores(caja){
     setTimeout(() => { mapa.invalidateSize(); verTierra(); }, 60);
   }
   cerrar.addEventListener('click', ev => { ev.stopPropagation(); pantallaCompleta(false); });
-  addEventListener('keydown', ev => { if (ev.key === 'Escape') pantallaCompleta(false); });
+  /* ESCAPE EN CAPTURA, Y SE QUEDA AQUÍ. El oyente del documento cierra los
+     rollos con Escape, y llegaba antes que éste: cerraba Compartir y luego
+     esto devolvía el mapa a un panel ya escondido —el lector caía al libro—.
+     Con el mapa ampliado, Escape solo sale de pantalla completa; igual que la
+     lámina grande de los relatos. Lo levantó Codex. */
+  addEventListener('keydown', ev => {
+    if (ev.key !== 'Escape' || !completo) return;
+    ev.stopImmediatePropagation(); ev.preventDefault();
+    pantallaCompleta(false);
+  }, true);
   async function pintar(){
     try { await cargarLeaflet(); }
     catch(_){ decir(T('No se pudo cargar el mapa (¿sin conexión?).', 'The map could not load (offline?).')); return; }
