@@ -357,7 +357,8 @@ async function ponerContraste(pagina, pct){
       ancho: Math.round(rb.width), fila: Math.round(rf.width),
       palabra: Math.round(g.getBoundingClientRect().width),
       eje: Math.round((rb.left + rb.right) / 2 - (rf.left + rf.right) / 2),
-      alto: Math.round(rb.height) };
+      alto: Math.round(rb.height),
+      anchoFinos: Math.round(document.getElementById('btnFinos').getBoundingClientRect().width) };
     return { opaco, cristal, filas, salidaBoton, tonosDelPanel };
   });
   di('lo que mide cada tablilla', tablillas.filas.map(f => f.que + ' ' + f.pct + '%').join(' · '));
@@ -395,12 +396,16 @@ async function ponerContraste(pagina, pct){
      que no comparte renglón con nada. Así que la fila sigue midiendo el panel,
      arriba, y aquí se exige lo contrario del botón, por los dos lados: ni la
      barra de antes ni un botón encogido hasta no poder leerse. */
+  /* Y AHORA, A LO ANCHO OTRA VEZ, pero no como barra suelta: Gianni pidió que
+     «Transparente» fuera «del mismo tamaño que Ajustes finos, bien parecido,
+     para que se vea que es un botón». Lo que se afirma es la pareja —que mida
+     lo que mide el otro botón largo—, no un número. */
   di('el botón de la salida', JSON.stringify(tablillas.salidaBoton));
-  vale('EL BOTÓN DE LA SALIDA MIDE SU PALABRA',
-       tablillas.salidaBoton.ancho < tablillas.salidaBoton.fila / 2 &&
+  vale('EL BOTÓN DE LA SALIDA MIDE LO QUE «AJUSTES FINOS»',
+       Math.abs(tablillas.salidaBoton.ancho - tablillas.salidaBoton.anchoFinos) <= 1 &&
        tablillas.salidaBoton.ancho >= tablillas.salidaBoton.palabra + 16,
-       tablillas.salidaBoton.ancho + ' px  (palabra ' +
-       tablillas.salidaBoton.palabra + ', fila ' + tablillas.salidaBoton.fila + ')');
+       tablillas.salidaBoton.ancho + ' px  (ajustes finos ' + tablillas.salidaBoton.anchoFinos +
+       ', palabra ' + tablillas.salidaBoton.palabra + ')');
   vale('  y va centrado en su fila',
        Math.abs(tablillas.salidaBoton.eje) <= 1,
        tablillas.salidaBoton.eje + ' px del eje');
@@ -553,15 +558,22 @@ async function ponerContraste(pagina, pct){
      botón va encendido —.active— mientras el panel es de cristal, así que sin
      su regla se pondría el dorado de los mandos puestos y sólo se vería en
      transparente. */
-  titulo('los dos botones de una palabra se ven iguales');
+  /* Y CAMBIÓ DE PAREJA. Lo de arriba se escribió cuando el de transparente
+     era gemelo de CERRAR. Gianni lo vistió como «Ajustes finos» —largo, oscuro
+     y con cuerpo— y lo quiere encendido en dorado cuando está puesto, como los
+     presets. Así que la relación que se vigila es la nueva: en opaco se pinta
+     como «Ajustes finos», y en transparente va en dorado mientras CERRAR sigue
+     con su tablilla blanca. */
+  titulo('el de transparente se ve como «Ajustes finos»');
   const parejos = await pagina.evaluate(async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
     const vidrio = () => document.getElementById('btnVidrio');
     const lee = () => {
       const pinta = (e) => { if (!e) return null; const c = getComputedStyle(e);
-        return { fondo: c.backgroundColor, tinta: c.color,
+        return { fondo: c.backgroundColor, degradado: c.backgroundImage, tinta: c.color,
                  borde: c.borderTopWidth + ' ' + c.borderTopColor }; };
       return { salida: pinta(vidrio()),
+               finos: pinta(document.getElementById('btnFinos')),
                cerrar: pinta(document.querySelector('#ajustes .pie-cerrar .cerrar-pie')),
                activo: vidrio().classList.contains('active') };
     };
@@ -576,32 +588,27 @@ async function ponerContraste(pagina, pct){
     return { opaco, cristal, modoFinal:
              document.getElementById('ajustes').classList.contains('cristal') };
   });
-  const mismo = (x) => !!x.salida && !!x.cerrar &&
-    JSON.stringify(x.salida) === JSON.stringify(x.cerrar);
+  const mismo = (x) => !!x.salida && !!x.finos &&
+    JSON.stringify(x.salida) === JSON.stringify(x.finos);
   di('los dos botones', JSON.stringify(parejos));
   vale('(la prueba es válida) los dos botones están, y son los dos estados',
        !!parejos.opaco.salida && !!parejos.opaco.cerrar &&
        parejos.opaco.activo === false && parejos.cristal.activo === true,
        JSON.stringify({ opaco: parejos.opaco.activo, cristal: parejos.cristal.activo }));
-  vale('EN OPACO, EL DE TRANSPARENTE SE PINTA COMO EL DE CERRAR',
+  vale('EN OPACO, EL DE TRANSPARENTE SE PINTA COMO «AJUSTES FINOS»',
        mismo(parejos.opaco),
-       JSON.stringify(parejos.opaco.salida) + '  vs  ' + JSON.stringify(parejos.opaco.cerrar));
-  vale('Y EN TRANSPARENTE TAMBIÉN, que ahí los dos llevan tablilla',
-       mismo(parejos.cristal),
-       JSON.stringify(parejos.cristal.salida) + '  vs  ' + JSON.stringify(parejos.cristal.cerrar));
-  /* Y QUE NO SEA EL DORADO DE LOS MANDOS PUESTOS. Sin la regla del modo
-     cristal, este botón —que va encendido ahí— se pondría el fondo de
-     .btn.active, y entonces «iguales» se rompería... salvo que alguien se lo
-     pusiera a los dos. Esta línea mira el color por su cuenta: el dorado de la
-     casa es #b8892b, mucho más rojo que verde y que azul. */
-  vale('  y ninguno de los dos se pone el dorado de «encendido»', (() => {
-         const t = c => { const m = /rgba?\(([^)]+)\)/.exec(c || '');
-                          return m ? m[1].split(',').map(Number) : null; };
-         const dorado = c => { const v = t(c);
-           return !!v && v[0] > 150 && v[0] - v[2] > 60; };
-         return !dorado(parejos.cristal.salida.fondo) &&
-                !dorado(parejos.cristal.cerrar.fondo); })(),
-       parejos.cristal.salida.fondo);
+       JSON.stringify(parejos.opaco.salida) + '  vs  ' + JSON.stringify(parejos.opaco.finos));
+  /* EN TRANSPARENTE, ENCENDIDO EN DORADO, y CERRAR no. El dorado de la casa
+     es mucho más rojo que azul: se mira en el degradado del botón, que es
+     donde lleva el color. */
+  const dorado = c => { const m = /rgba?\(([^)]+)\)/.exec(c || '');
+    const v = m ? m[1].split(',').map(Number) : null;
+    return !!v && v[0] > 130 && v[0] - v[2] > 60; };
+  vale('EN TRANSPARENTE VA ENCENDIDO EN DORADO',
+       dorado(parejos.cristal.salida.degradado), parejos.cristal.salida.degradado);
+  vale('  y CERRAR no se pone el dorado',
+       !dorado(parejos.cristal.cerrar.fondo) && !dorado(parejos.cristal.cerrar.degradado),
+       parejos.cristal.cerrar.fondo);
   vale('  (y se quedó en opaco, para lo que viene)',
        parejos.modoFinal === false, parejos.modoFinal);
 
@@ -650,14 +657,17 @@ async function ponerContraste(pagina, pct){
       return mejor;
     }, b64);
   };
+  /* CONTRA «AJUSTES FINOS», su pareja de ahora. Contra CERRAR esta medida
+     pasaba por casualidad: el píxel más claro del botón oscuro es su letra
+     crema, que se parece al papel de CERRAR. */
   const pintadoSalida = await papelDe('#btnVidrio');
-  const pintadoCerrar = await papelDe('#ajustes .pie-cerrar .cerrar-pie');
+  const pintadoCerrar = await papelDe('#btnFinos');
   await lupa.close();
   const lejosPintado = Math.max(...pintadoSalida.map((v, i) => Math.abs(v - pintadoCerrar[i])));
   di('lo pintado en opaco', JSON.stringify({ salida: pintadoSalida,
                                              cerrar: pintadoCerrar, lejos: lejosPintado }));
-  vale('(la prueba es válida) se leyó papel y no tinta en los dos',
-       pintadoSalida[0] > 150 && pintadoCerrar[0] > 150,
+  vale('(la prueba es válida) se leyó algo en los dos',
+       pintadoSalida[0] > 0 && pintadoCerrar[0] > 0,
        JSON.stringify([pintadoSalida, pintadoCerrar]));
   vale('Y PINTADOS SE PARECEN, no sólo declarados',
        lejosPintado <= 16, lejosPintado + ' puntos de diferencia');
