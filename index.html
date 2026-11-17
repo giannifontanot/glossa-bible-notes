@@ -6625,7 +6625,8 @@
 <!-- Y AHORA CON SIGNOS, pedido por Gianni. LETRA es las dos aes de la pestaña
      de Formato —el mismo signo para la misma idea, tamaño de letra—, sin
      palabra. FILTRAR lleva su embudo delante. ACTUALIZAR pasó a llamarse
-     EDITAR, con un lápiz que apunta a la izquierda, hacia la palabra: es el
+     EDITAR, con un lápiz inclinado que apunta abajo a la izquierda, como
+     quien va a escribir: es el
      verbo que cualquiera reconoce para «cambiarle algo a esto», y con el lápiz
      al lado se lee antes de leerse. -->
 <div class="ajuste fila-etiq">
@@ -6640,8 +6641,9 @@
   <button type="button" class="btn btn-signo" id="btnElegirGlosas"
           aria-pressed="false"
           title="Elegir varias glosas para editarles las etiquetas"><svg class="signo" viewBox="0 0 24 24"
-          aria-hidden="true" focusable="false"><path d="M9 6.5h10a2.5 2.5 0 0 1 2.5 2.5v6a2.5 2.5 0 0 1-2.5 2.5H9L2 12z"/><path
-          d="M9 6.5v11M17 6.5v11"/><path d="M2 12l3-2v4z" fill="currentColor"/></svg><span data-es="editar" data-en="edit">editar</span></button>
+          aria-hidden="true" focusable="false"><!-- inclinado, con la punta abajo a la izquierda: pedido así por Gianni --><g
+          transform="rotate(-45 12 12)"><path d="M8 8.6h10.5a2 2 0 0 1 2 2v2.8a2 2 0 0 1-2 2H8L2.5 12z"/><path
+          d="M8 8.6v6.8M16.5 8.6v6.8"/><path d="M2.5 12l2.6-1.6v3.2z" fill="currentColor"/></g></svg><span data-es="editar" data-en="edit">editar</span></button>
 </div>
 
 <!-- LOS DOS MANDOS DE LA LETRA DE LA GLOSA, debajo de su botón. El tamaño y el
@@ -6994,7 +6996,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 04:49';
+window.GLOSS_BUILD = '17-NOV-26 04:50';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
