@@ -7136,7 +7136,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 06:15';
+window.GLOSS_BUILD = '17-NOV-26 06:17';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -20242,7 +20242,11 @@ function cantoMarcarLibro(lib){
    era un toque fuera de la burbuja y se llevaba el panel entero: se cerraba
    la ventanita y el lector caía al libro, fuera del relato. Se vio al probar
    la ventanita antes de subirla. */
-const FUERA_NO = '.rollo, .fly, #menu, #versoPleno, #pgCabeza, #pgVersion, .lamina-grande, .ventanita';
+/* .mapa-completo: el mapa de lectores a pantalla completa se muda al <body>
+   (ver pantallaCompleta), fuera de su .rollo; sin esta excepción, tocarlo
+   —o tocar su ✕— cerraba el panel de Compartir que quedó debajo. Lo levantó
+   Codex. */
+const FUERA_NO = '.rollo, .fly, #menu, #versoPleno, #pgCabeza, #pgVersion, .lamina-grande, .ventanita, .mapa-completo';
 document.addEventListener('pointerdown', ev => {
   if (!burbujaAbierta()) return;
   if (ev.target.closest(FUERA_NO)) return;
