@@ -3917,7 +3917,9 @@
   .qr-glossa svg{ width:min(44vh, 82%); height:auto; aspect-ratio:1 / 1; display:block;
                   padding:8px; background:#fff; border-radius:12px;
                   border:1px solid rgba(140,116,68,.45); box-shadow:0 2px 6px rgba(60,40,15,.18); }
-  .qr-dice{ margin:4px 8px 0; text-align:center;
+  /* El texto no pasa del ancho del dibujo: así, al centrar el QR en la
+     pantalla (ver centrarEnPantalla), se mueven juntos y ninguno se sale. */
+  .qr-dice{ margin:4px 0 0; max-width:min(44vh, 82%); text-align:center;
             font:600 calc(14px * var(--escala-ui, 1))/1.35 var(--ui); color:#3d2f12; }
   .qr-liga{ margin:0; font:500 calc(12px * var(--escala-ui, 1))/1.3 var(--ui); color:#7a6638; }
   .mapa-estado{ margin:6px 2px 0; white-space:pre-line;
@@ -7122,7 +7124,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 10:01';
+window.GLOSS_BUILD = '17-NOV-26 11:07';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -27826,8 +27828,48 @@ function armarMapaLectores(caja){
      mal una caja de cero píxeles. Cada vez que vuelve a verse, se repinta con
      los lectores de ese momento. */
   new IntersectionObserver(entradas => {
-    if (entradas.some(e => e.isIntersecting)) pintar();
+    if (entradas.some(e => e.isIntersecting)){
+      pintar(); centrarEnPantalla();
+      /* y otra vez cuando el panel termina de desenrollarse, por si se midió
+         a media animación */
+      setTimeout(centrarEnPantalla, 900);
+    }
   }).observe(lienzo);
+  /* EL MAPA Y EL QR, CENTRADOS EN LA PANTALLA Y NO EN EL PANEL. Pedido por
+     Gianni: la hoja de Compartir queda a la izquierda de las pestañas de
+     carpeta, así que centrados en ella se veían cargados a la izquierda de la
+     pantalla. Se mide cuánto le falta a cada uno para caer en el centro de la
+     ventana y se le empuja eso con `left` —no con transform: Leaflet mide sus
+     toques con el rectángulo de la caja y un left sí lo mueve de verdad—.
+     Con tope: nunca más allá de la raya de la hoja, que se le echaría encima
+     a las pestañas. El texto del QR se mueve con el dibujo, para que no se
+     despeguen. Se vuelve a medir al girar el teléfono o cambiar la ventana. */
+  const marcoMapa = caja.querySelector('.mapa-marco');
+  const bloqueQr = caja.querySelector('.qr-glossa');
+  function centrarEnPantalla(){
+    const hoja = caja.closest('.carpeta-hoja');
+    if (!hoja || !hoja.offsetWidth || completo) return;
+    const h = hoja.getBoundingClientRect();
+    const centro = (document.documentElement.clientWidth || innerWidth) / 2;
+    const empujar = (els, medida) => {
+      els.forEach(e => { e.style.position = 'relative'; e.style.left = '0px'; });
+      const m = medida.getBoundingClientRect();
+      if (!m.width) return;
+      const quiere = centro - (m.left + m.width / 2);
+      const tope = Math.max(0, h.right - 6 - m.right);
+      const suelo = Math.min(0, h.left - m.left);
+      const dx = Math.round(Math.max(suelo, Math.min(tope, quiere)));
+      els.forEach(e => { e.style.left = dx + 'px'; });
+    };
+    if (marcoMapa) empujar([marcoMapa], marcoMapa);
+    const qr = bloqueQr && bloqueQr.querySelector('svg');
+    if (qr) empujar([...bloqueQr.children], qr);
+  }
+  let relojCentro = 0;
+  addEventListener('resize', () => {
+    clearTimeout(relojCentro);
+    relojCentro = setTimeout(centrarEnPantalla, 150);
+  });
   caja.querySelector('#chkMapa').addEventListener('change', async ev => {
     const c = ev.target;
     /* SIN PROYECTO, LA CASILLA SIGUE VIVA. Estuvo apagada, y apagada no
