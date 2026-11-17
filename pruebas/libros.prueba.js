@@ -979,6 +979,15 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
       const t = (visible() || document).querySelector('.pestanas [data-sec="' + sec + '"]');
       if (t) t.click();
       await pausa(1200);
+      /* FORMATO, CON SUS FINOS ABIERTOS. Nacen plegados cada vez que se entra
+         —pedido por Gianni— y ese panel lleva CERRAR detrás del contenido, no
+         pegado al fondo: con los finos plegados queda a media pantalla, a
+         propósito, y baja cuando se abren. Abiertos llena la escena como los
+         otros cuatro, que es lo que aquí se compara. */
+      if (sec === 'formato'){
+        const f = document.getElementById('btnFinos');
+        if (f && f.getAttribute('aria-expanded') !== 'true'){ f.click(); await pausa(1700); }
+      }
       const el = document.getElementById(id);
       const rp = el.getBoundingClientRect(), e = st();
       const b = el.querySelector(':scope > .pie-cerrar .cerrar-pie');
