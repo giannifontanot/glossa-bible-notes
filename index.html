@@ -3997,6 +3997,12 @@
      para ganarle a la que le pone a todo el panel la letra del libro. */
   #respaldo .sello-version{ font-size:calc(var(--fs-libro, 15px) * 1.32); text-align:center;
                             padding:12px 11px 11px; }
+  /* HERRAMIENTAS, UN PUNTO MÁS CHICA. Pedido por Gianni: con la letra del
+     libro entera, las tres explicaciones, los botones y la casilla llenaban
+     la pestaña. Se queda al 85 % de esa letra —sigue creciendo y encogiendo
+     con ella—; el sello no, que se pidió grande y se viene a buscar. */
+  #respTools .herr-dice, #respTools .btn, #respTools .casilla, #respTools .fallo-respaldo{
+    font-size:calc(var(--fs-libro, 15px) * .85); }
   .herr-dice{ margin:0 0 12px; line-height:1.45; color:#5c4a24; font-size:.93em; }
   .herr-botones{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
   #respaldo .herr-botones .btn{ width:100%; min-height:46px; justify-content:center; }
@@ -7279,7 +7285,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 16:22';
+window.GLOSS_BUILD = '17-NOV-26 17:02';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
