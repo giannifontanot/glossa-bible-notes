@@ -1,10 +1,11 @@
 /* FORMATO CON PRESETS.
 
-   La pestaña AA abre con una lista «Para leer» de cuatro presets —Legible,
-   Legible compacta, Dos columnas, Tres columnas— que ponen de un toque letra,
-   tamaño, espaciado, interlínea, columnas y glosa, y pliega los mandos de
-   siempre detrás de «Ajustes finos». Fueron primero dos grupos por aparato;
-   Gianni los cambió por la lista. Se mira aquí:
+   La pestaña AA abre con una lista «Para leer» de cuatro presets que ponen
+   de un toque letra, tamaño, espaciado, interlínea, columnas, luz y glosa,
+   y pliega los mandos de siempre detrás de «Ajustes finos». Son cuatro POR
+   PANTALLA —teléfono, tablet y computadora—, pedido por Gianni: en el
+   teléfono Legible, Legible compacta, Para la noche y Dos columnas; en la
+   tablet una, dos y tres columnas; en la computadora dos y tres. Se mira aquí:
      · que un preset ponga TODO lo que dice y vaya directo a la hoja, también
        con el panel opaco —la muestra ya no está a su lado—;
      · que el preset puesto se vea encendido y que tocar algo a mano lo apague;
@@ -87,8 +88,8 @@ const AJUSTES = 'glossa:ajustes:v1';
   }, [ABRIR_AA]);
   di('al nacer', nace);
   vale('(la prueba es válida) se abrió la pestaña AA', nace.ok === true);
-  vale('UNA LISTA DE CUATRO: Legible, Legible compacta, Dos columnas, Tres columnas',
-       nace.presets.join(' · ') === 'Legible · Legible compacta · Dos columnas · Tres columnas', nace.presets.join(' · '));
+  vale('EN EL TELÉFONO, CUATRO: Legible, Legible compacta, Para la noche, Dos columnas',
+       nace.presets.join(' · ') === 'Legible · Legible compacta · Para la noche · Dos columnas', nace.presets.join(' · '));
   /* Las tuvieron, y Gianni las quitó para que los botones quedaran juntos. */
   vale('  sin explicación debajo, para que queden juntos', nace.dices === 0, nace.dices);
   vale('  bajo un solo rótulo, «Para leer», oscuro y de 13 px o más',
@@ -125,6 +126,12 @@ const AJUSTES = 'glossa:ajustes:v1';
       esCristal,
       encendido: [...document.querySelectorAll('#presetsFormato [data-preset].active')].map(b => b.dataset.preset),
       pulsado: document.querySelector('[data-preset="legible"]').getAttribute('aria-pressed'),
+      /* El puesto lo dice un check verde a la derecha, no un botón dorado. */
+      checks: [...document.querySelectorAll('#presetsFormato [data-preset]')].map(b => {
+        const c = b.querySelector('.pf-check'), r = c ? c.getBoundingClientRect() : null;
+        return { id: b.dataset.preset, se: c ? +getComputedStyle(c).opacity : -1,
+                 fondo: c ? getComputedStyle(c).backgroundColor : '', x: c ? Math.round(b.getBoundingClientRect().left + c.offsetLeft) : null,
+                 boton: getComputedStyle(b).backgroundImage }; }),
       mandosGlosa: [document.getElementById('fsGlosaAhora').value, document.getElementById('espGlosaAhora').value],
       a: JSON.parse(localStorage.getItem('glossa:ajustes:v1'))
     };
@@ -134,20 +141,36 @@ const AJUSTES = 'glossa:ajustes:v1';
   vale('(la prueba es válida) el panel estaba opaco', opaco.esCristal === false);
   vale('EL PRESET TOCADO SE ENCIENDE', opaco.encendido.join() === 'legible' && opaco.pulsado === 'true',
        opaco.encendido.join() + ' · ' + opaco.pulsado);
+  /* Y LO DICE CON UN CHECK VERDE, no tiñéndose de café: Gianni no quería que
+     el botón «se pusiera medio café». Sólo el puesto lo enseña, y los cuatro
+     huecos caen en la misma columna. */
+  {
+    const ck = opaco.checks, puesto = ck.find(c => c.id === 'legible');
+    const verde = m => { const v = (m || '').match(/\d+/g); return !!v && +v[1] > +v[0] + 40 && +v[1] > +v[2] + 20; };
+    vale('  CON UN CHECK VERDE A LA DERECHA, y sólo en el puesto',
+         !!puesto && puesto.se > .9 && verde(puesto.fondo) && ck.filter(c => c.id !== 'legible').every(c => c.se < .1),
+         ck.map(c => c.id + ' ' + c.se + ' ' + c.fondo).join(' · '));
+    vale('  los checks, todos en la misma columna',
+         ck.every(c => c.x != null && Math.abs(c.x - ck[0].x) <= 1), ck.map(c => c.x).join(' · '));
+    const dorado = m => { const v = (m || '').match(/\d+/g); return !!v && +v[0] > 130 && +v[0] - +v[2] > 70; };
+    vale('  y el botón puesto no se pone dorado', !dorado(puesto && puesto.boton), puesto && puesto.boton);
+  }
   vale('LEGIBLE LLEGA A LA HOJA SIN CERRAR: 24, Lineal, espaciado +5, interlínea normal, una columna, al margen',
        a.fontSize === 24 && a.fuente === 4 && a.espaciado === 5 && a.interlineado === 1.62 &&
        a.columns === 1 && a.placement === 'margin' && a.alineacion === 'left',
        [a.fontSize, a.fuente, a.espaciado, a.interlineado, a.columns, a.placement, a.alineacion].join(' · '));
-  /* Y LAS GLOSAS VAN CON ÉL: mismo cuerpo y mismo espaciado que el libro,
-     guardados y escritos en sus propios mandos, que es donde Gianni los mira. */
-  vale('  y LAS GLOSAS TOMAN EL MISMO TAMAÑO Y ESPACIADO, y sus mandos lo dicen',
-       a.fontSizeGlosa === 24 && a.espaciadoGlosa === 5 &&
-       opaco.mandosGlosa.join() === '24,5',
+  /* Y LAS GLOSAS VAN CON ÉL: dos puntos menos que el libro —lo pidió Gianni:
+     son apuntes, no el texto— y su mismo espaciado, guardados y escritos en
+     sus propios mandos, que es donde él los mira. */
+  vale('  y LAS GLOSAS TOMAN DOS PUNTOS MENOS Y EL MISMO ESPACIADO, y sus mandos lo dicen',
+       a.fontSizeGlosa === 22 && a.espaciadoGlosa === 5 &&
+       opaco.mandosGlosa.join() === '22,5',
        [a.fontSizeGlosa, a.espaciadoGlosa, 'mandos ' + opaco.mandosGlosa.join('/')].join(' · '));
-  vale('  y sube el contraste y baja el brillo',
-       a.contraste === 140 && a.brillo === 85, a.contraste + ' · brillo ' + a.brillo);
+  vale('  y pone su luz: contraste 140, brillo 85, sepia 100',
+       a.contraste === 140 && a.brillo === 85 && a.sepia === 100,
+       a.contraste + ' · brillo ' + a.brillo + ' · sepia ' + a.sepia);
 
-  titulo('tocar a mano apaga el preset; los otros no tocan la tinta');
+  titulo('tocar a mano apaga el preset; cada preset pone su luz');
   const aMano = await p.evaluate(async ([abrirAA, tocar]) => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     document.querySelector('#ajustes .cerrar-pie').click();
@@ -159,8 +182,8 @@ const AJUSTES = 'glossa:ajustes:v1';
     document.getElementById('fsUp').click();
     await pausa(80);
     const trasA = [...document.querySelectorAll('[data-preset].active')].map(b => b.dataset.preset);
-    await eval('(' + tocar + ')')('[data-preset="tres"]');
-    await pausa(300);
+    await eval('(' + tocar + ')')('[data-preset="noche"]');
+    await pausa(400);
     return { encendidoAlVolver, trasA,
              trasPc: [...document.querySelectorAll('[data-preset].active')].map(b => b.dataset.preset),
              a: JSON.parse(localStorage.getItem('glossa:ajustes:v1')) };
@@ -169,12 +192,14 @@ const AJUSTES = 'glossa:ajustes:v1';
   vale('AL VOLVER A LA PESTAÑA SIGUE ENCENDIDO', aMano.encendidoAlVolver.join() === 'legible',
        aMano.encendidoAlVolver.join() || 'ninguno');
   vale('UN A+ A MANO LO APAGA', aMano.trasA.length === 0, aMano.trasA.join() || 'ninguno');
-  vale('OTRO PRESET SE ENCIENDE Y NO TOCA NI EL CONTRASTE NI EL BRILLO',
-       aMano.trasPc.join() === 'tres' && aMano.a.contraste === 140 && aMano.a.brillo === 85,
+  /* «Para la noche» es el que más baja la luz: brillo 70, contraste 120. */
+  vale('«PARA LA NOCHE» SE ENCIENDE Y BAJA LA LUZ: brillo 70, contraste 120',
+       aMano.trasPc.join() === 'noche' && aMano.a.contraste === 120 && aMano.a.brillo === 70,
        aMano.trasPc.join() + ' · contraste ' + aMano.a.contraste + ' · brillo ' + aMano.a.brillo);
-  vale('  y pone lo suyo: 16 en tres columnas, romana, sin espaciado',
-       aMano.a.fontSize === 16 && aMano.a.columns === 3 && aMano.a.fuente === 0 && aMano.a.espaciado === 0,
-       [aMano.a.fontSize, aMano.a.columns, aMano.a.fuente, aMano.a.espaciado].join(' · '));
+  vale('  y pone lo suyo: 22 en una columna, Lineal, espaciado +4, glosas en 20',
+       aMano.a.fontSize === 22 && aMano.a.columns === 1 && aMano.a.fuente === 4 && aMano.a.espaciado === 4 &&
+       aMano.a.fontSizeGlosa === 20,
+       [aMano.a.fontSize, aMano.a.columns, aMano.a.fuente, aMano.a.espaciado, aMano.a.fontSizeGlosa].join(' · '));
 
   /* LAS BOLITAS AL CAMBIAR DE PRESET. Poner uno repagina el libro entero,
      y Gianni notó que tarda: pidió el aviso de espera. Se toca SOLO con el
@@ -225,7 +250,7 @@ const AJUSTES = 'glossa:ajustes:v1';
        grande.a.fontSize === 20 && grande.a.fuente === 4 && grande.a.espaciado === 5 &&
        grande.a.interlineado === 1.62 && grande.a.columns === 1 && grande.a.contraste === 140 &&
        grande.a.brillo === 85 && grande.encendido.join() === 'compacta' &&
-       grande.a.fontSizeGlosa === 20 && grande.a.espaciadoGlosa === 5,
+       grande.a.fontSizeGlosa === 18 && grande.a.espaciadoGlosa === 5,
        [grande.a.fontSize, grande.a.fuente, grande.a.espaciado, grande.a.interlineado, grande.a.columns,
         grande.a.contraste, grande.a.brillo, grande.encendido.join()].join(' · '));
 
@@ -242,12 +267,14 @@ const AJUSTES = 'glossa:ajustes:v1';
     await pausa(30);
     const animando = caja.getAnimations().length > 0;
     const ys = [];
-    for (let i = 0; i < 10; i++){ ys.push(cerrarY()); await pausa(60); }
-    await pausa(200);
-    return { antes, animando, ys, despues: cerrarY(),
+    /* Se abre en 1100 ms —más despacio, pedido por Gianni—: se muestrea el
+       primer segundo y se espera a que termine. */
+    for (let i = 0; i < 16; i++){ ys.push(cerrarY()); await pausa(60); }
+    await pausa(500);
+    const tarda = ys.filter((y, i) => i > 0 && y !== ys[i - 1]).length;
+    return { antes, animando, ys, tarda, despues: cerrarY(),
              display: getComputedStyle(caja).display,
-             expandido: document.getElementById('btnFinos').getAttribute('aria-expanded'),
-             guardado: JSON.parse(localStorage.getItem('glossa:ajustes:v1')).finos };
+             expandido: document.getElementById('btnFinos').getAttribute('aria-expanded') };
   });
   di('CERRAR mientras se abren', finos);
   vale('SE DESPLIEGAN CON ANIMACIÓN, no de golpe', finos.animando === true);
@@ -255,18 +282,37 @@ const AJUSTES = 'glossa:ajustes:v1';
   /* De a poco: entre el primer cuadro y el último hay pasos intermedios. Un
      salto de golpe saldría con todos los valores en el de antes o el de
      después. */
+  /* DESPACIO: a 60 ms por muestra, CERRAR sigue moviéndose pasado el medio
+     segundo. A 520 ms —lo de antes— se quedaba quieto a la novena muestra. */
+  vale('  y SE ABREN DESPACIO: CERRAR sigue bajando pasado el medio segundo',
+       finos.ys.slice(9, 15).some((y, i, a) => i > 0 && y !== a[i - 1]), finos.ys.join(' → '));
   vale('  y baja de a poco, no de un salto',
        finos.ys.some(y => y > finos.antes + 5 && y < finos.despues - 5), finos.ys.join(' → '));
   vale('  y quedan abiertos', finos.display === 'grid' && finos.expandido === 'true',
        finos.display + ' · ' + finos.expandido);
-  vale('  y se recuerda', finos.guardado === true, finos.guardado);
+  /* PERO AL VOLVER A LA PESTAÑA, PLEGADOS. Se recordaban entre visitas y
+     entre recargas; Gianni los quiere siempre cerrados al entrar: «puede ser
+     que lo dejamos abierto, pero cuando regresamos a ese tab siempre lo vamos
+     a encontrar cerrado». Se cierra el panel con CERRAR, se vuelve, y luego
+     se recarga. */
+  const alVolver = await p.evaluate(async ([abrirAA]) => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    document.querySelector('#ajustes .cerrar-pie').click();
+    await pausa(1200);
+    await eval('(' + abrirAA + ')')();
+    return { display: getComputedStyle(document.getElementById('ajustesFinos')).display,
+             expandido: document.getElementById('btnFinos').getAttribute('aria-expanded') };
+  }, [ABRIR_AA]);
+  vale('AL VOLVER A LA PESTAÑA, LOS FINOS ESTÁN PLEGADOS',
+       alVolver.display === 'none' && alVolver.expandido === 'false',
+       alVolver.display + ' · ' + alVolver.expandido);
   await p.reload();
   await p.waitForTimeout(2200);
   const trasRecargar = await p.evaluate(async ([abrirAA]) => {
     await eval('(' + abrirAA + ')')();
     return getComputedStyle(document.getElementById('ajustesFinos')).display;
   }, [ABRIR_AA]);
-  vale('  también al recargar', trasRecargar === 'grid', trasRecargar);
+  vale('  y también después de recargar', trasRecargar === 'none', trasRecargar);
 
   titulo('en transparente también, y el botón se enciende');
   const cristal = await p.evaluate(async ([tocar]) => {
@@ -295,7 +341,7 @@ const AJUSTES = 'glossa:ajustes:v1';
        y se para la animación en cada punto clave para leer el fondo. Es el
        momento en que Gianni veía la hoja a través del botón. */
     const opacoAl = [];
-    for (const sel of ['[data-preset="tres"]', '#btnFinos']){
+    for (const sel of ['[data-preset="noche"]', '#btnFinos']){
       const b = document.querySelector(sel), r = b.getBoundingClientRect();
       b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, cancelable:true, pointerId:733,
         pointerType:'touch', isPrimary:true, clientX:r.left + r.width / 2 + 3, clientY:r.top + r.height / 2 - 2 }));
@@ -319,7 +365,7 @@ const AJUSTES = 'glossa:ajustes:v1';
   di('en transparente', cristal);
   vale('(la prueba es válida) el panel se volvió transparente', cristal.esCristal === true);
   vale('EL PRESET LLEGA AL LIBRO SIN CERRAR',
-       cristal.fontSize === 18 && cristal.columns === 2 && cristal.placement === 'margin',
+       cristal.fontSize === 16 && cristal.columns === 2 && cristal.placement === 'margin',
        cristal.fontSize + ' · ' + cristal.columns + ' · ' + cristal.placement);
   vale('  y se enciende', cristal.encendido.join() === 'dos', cristal.encendido.join() || 'ninguno');
   vale('  y «Transparente» sale encendido mientras lo está', cristal.vidrioOn === true);
@@ -329,6 +375,24 @@ const AJUSTES = 'glossa:ajustes:v1';
        cristal.destello.length === 0, cristal.destello.join(' · ') || 'macizo');
   vale('  y LOS BOTONES NO SE VUELVEN DE CRISTAL: ninguno deja pasar la hoja',
        cristal.colados.length === 0, cristal.colados.join(' · ') || 'ninguno');
+  /* TRANSPARENTE, APAGADO AL VOLVER. Como los finos: Gianni lo quiere en off
+     cada vez que se abre el panel. Se enciende, se cierra el panel con
+     CERRAR y se vuelve a la pestaña. */
+  const vidrioAlVolver = await p.evaluate(async ([abrirAA, tocar]) => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    await eval('(' + tocar + ')')('#btnVidrio');
+    await pausa(500);
+    const encendido = document.getElementById('ajustes').classList.contains('cristal');
+    document.querySelector('#ajustes .cerrar-pie').click();
+    await pausa(1200);
+    await eval('(' + abrirAA + ')')();
+    const b = document.getElementById('btnVidrio');
+    return { encendido, cristal: document.getElementById('ajustes').classList.contains('cristal'),
+             boton: b.classList.contains('active') || b.getAttribute('aria-pressed') === 'true' };
+  }, [ABRIR_AA, TOCAR]);
+  vale('(la prueba es válida) transparente se encendió', vidrioAlVolver.encendido === true);
+  vale('AL VOLVER A LA PESTAÑA, TRANSPARENTE ESTÁ APAGADO, y su botón también',
+       vidrioAlVolver.cristal === false && vidrioAlVolver.boton === false, JSON.stringify(vidrioAlVolver));
   vale('  y los rótulos llevan su tablilla para leerse sobre la hoja',
        cristal.tablilla !== 'rgba(0, 0, 0, 0)', cristal.tablilla);
 
@@ -344,9 +408,15 @@ const AJUSTES = 'glossa:ajustes:v1';
   const tira = await p.evaluate(async ([abrirAA]) => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     await eval('(' + abrirAA + ')')();
+    /* Con LEGIBLE puesto: su letra de 24 agranda también el cromo del panel,
+       y así Formato desborda lo bastante para que la costura caiga a media
+       hoja. Con los presets ya sin explicación, a letra chica el panel casi
+       cabe, y la costura quedaba debajo de CERRAR, fuera de la tira. */
+    document.querySelector('[data-preset="legible"]').click();
+    await pausa(900);
     if (document.getElementById('btnFinos').getAttribute('aria-expanded') !== 'true'){
       document.getElementById('btnFinos').click();
-      await pausa(900);
+      await pausa(1500);
     }
     const aj = document.getElementById('ajustes');
     aj.scrollTop = Math.min(aj.scrollHeight - aj.clientHeight, Math.round(aj.clientHeight / 2));
@@ -383,4 +453,49 @@ const AJUSTES = 'glossa:ajustes:v1';
        salto.peor < 6, salto.peor + ' en el renglón ' + salto.donde);
 
   await cerrar(sesion);
+
+  /* LAS OTRAS DOS PANTALLAS. Cada una con su lista, y un preset de cada una
+     tocado de verdad. La tablet se reconoce por el dedo (pointer: coarse) en
+     una pantalla de más de 560; la computadora, por lo contrario. */
+  const PANTALLAS = [
+    { que:'tablet', nav:{ viewport:{ width:820, height:1180 }, hasTouch:true, isMobile:true, deviceScaleFactor:2 },
+      lista:'Legible · Clásica · Dos columnas · Tres columnas', columnas:'1,1,2,3',
+      tocar:'tres', espera:{ fontSize:14, columns:3, fontSizeGlosa:12, sepia:100, brillo:90, interlineado:1.62 } },
+    { que:'computadora', nav:{ viewport:{ width:1440, height:900 }, hasTouch:false, isMobile:false, deviceScaleFactor:1 },
+      lista:'Dos columnas · Dos, letra grande · Tres columnas · Tres, compacta', columnas:'2,2,3,3',
+      tocar:'dosGrande', espera:{ fontSize:19, columns:2, fontSizeGlosa:17, sepia:90, brillo:95 } },
+  ];
+  for (const pt of PANTALLAS){
+    titulo('en la ' + pt.que + ', su propia lista');
+    const ses = await abrir(pt.nav);
+    const q = ses.pagina;
+    const r = await q.evaluate(async ([abrirAA, tocar, id]) => {
+      const pausa = ms => new Promise(z => setTimeout(z, ms));
+      await eval('(' + abrirAA + ')')();
+      const lista = [...document.querySelectorAll('#presetsFormato [data-preset]')];
+      const nombres = lista.map(b => b.textContent.trim()).join(' · ');
+      const columnas = lista.map(b => b.querySelectorAll('.pf-hoja i').length).join();
+      await eval('(' + tocar + ')')('[data-preset="' + id + '"]');
+      await pausa(800);
+      return { nombres, columnas, a: JSON.parse(localStorage.getItem('glossa:ajustes:v1')),
+               encendido: [...document.querySelectorAll('[data-preset].active')].map(b => b.dataset.preset).join() };
+    }, [ABRIR_AA, TOCAR, pt.tocar]);
+    di('en la ' + pt.que, { nombres: r.nombres, columnas: r.columnas, encendido: r.encendido });
+    vale('LA ' + pt.que.toUpperCase() + ' TIENE SUS CUATRO: ' + pt.lista,
+         r.nombres === pt.lista && r.columnas === pt.columnas, r.nombres + ' · columnas ' + r.columnas);
+    const e = pt.espera, falla = Object.keys(e).filter(k => r.a[k] !== e[k]);
+    vale('  y «' + pt.tocar + '» pone lo suyo, con las glosas dos puntos menos y su luz',
+         falla.length === 0 && r.encendido === pt.tocar,
+         falla.map(k => k + ' ' + r.a[k] + '≠' + e[k]).join(' · ') || 'todo · ' + r.encendido);
+    /* Y SOBREVIVE A UNA RECARGA. Lo levantó Codex: un preset con una
+       interlínea que no es de AIRES volvía a «normal» al recargar y se
+       apagaba solo. Se mira encendido después de abrir otra vez. */
+    await q.reload();
+    const tras = await q.evaluate(async ([abrirAA]) => {
+      await eval('(' + abrirAA + ')')();
+      return [...document.querySelectorAll('[data-preset].active')].map(b => b.dataset.preset).join();
+    }, [ABRIR_AA]);
+    vale('  y SIGUE ENCENDIDO DESPUÉS DE RECARGAR', tras === pt.tocar, tras || 'ninguno');
+    await cerrar(ses);
+  }
 })();

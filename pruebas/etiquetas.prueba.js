@@ -686,8 +686,9 @@ const FUERA = `async () => {
        tira.primeraDesdeElFilo + ' px del filo del contenido');
   vale('LA FILA DE LOS BOTONES SE QUEDÓ SIN RÓTULO',
        tira.rotuloFila === false, tira.rotuloFila);
-  vale('LOS BOTONES DICEN FILTRAR Y ACTUALIZAR',
-       tira.rotulos[0] === 'filtrar' && tira.rotulos[1] === 'actualizar',
+  /* «actualizar» pasó a «editar», con su lápiz, a petición de Gianni. */
+  vale('LOS BOTONES DICEN FILTRAR Y EDITAR',
+       tira.rotulos[0] === 'filtrar' && tira.rotulos[1] === 'editar',
        tira.rotulos.join(' · '));
   /* EL DÍA ES UN FILTRO MÁS Y VIVE CON LOS DEMÁS. Se comprueban las dos
      mitades: que esté en la tira Y que ya no esté en la fila de antes. Sólo
@@ -801,7 +802,7 @@ const FUERA = `async () => {
   const turnos = await p.evaluate(async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
     const ver = document.getElementById('btnVerEtiquetas');   /* dice «filtrar» */
-    const cam = document.getElementById('btnElegirGlosas');   /* dice «actualizar» */
+    const cam = document.getElementById('btnElegirGlosas');   /* dice «editar» */
     const foto = () => ({
       ver: ver.getAttribute('aria-pressed'), cam: cam.getAttribute('aria-pressed'),
       /* Y lo que cada uno enciende de verdad, no sólo su botón: la tira y la
@@ -871,7 +872,7 @@ const FUERA = `async () => {
   const aviso = await p.evaluate(async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
     const ver = document.getElementById('btnVerEtiquetas');   /* dice «filtrar» */
-    const cam = document.getElementById('btnElegirGlosas');   /* dice «actualizar» */
+    const cam = document.getElementById('btnElegirGlosas');   /* dice «editar» */
     const foto = () => ({
       punto: getComputedStyle(ver, '::after').content,
       voz: ver.getAttribute('aria-label') || '',
@@ -1976,12 +1977,25 @@ const FUERA = `async () => {
      apareció entero en vez de crecer. Medido: 21 px antes, 9 después, que son
      exactamente los 9 del row-gap.
 
-     Se prueba con LETRA porque es la que empuja al índice: ACTUALIZAR abre por
-     debajo de él y no lo mueve, así que ahí esta afirmación saldría verde sin
-     probar nada. */
+     Se prueba con LETRA porque es la que empuja al índice desde arriba.
+
+     Y SE EMPIEZA CON LAS TRES CERRADAS. EDITAR —antes ACTUALIZAR— abría por
+     debajo del índice; Gianni pidió su barra ARRIBA, como en la glosa nueva,
+     y ahora también está encima. El bloque de arriba la deja abierta, y
+     abrir LETRA la cierra: el índice SUBÍA por la barra que se iba en vez de
+     bajar por la letra que llegaba, y la medida salía negativa sin que nada
+     estuviera mal. */
   const salto = await p.evaluate(async () => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     const panel = document.getElementById('ctrlEtiquetas');
+    if (document.getElementById('etiquetas').classList.contains('eligiendo')){
+      document.getElementById('btnElegirGlosas').click();
+      await pausa(500);
+    }
+    if (!panel.classList.contains('sin-chips')){
+      document.getElementById('btnVerEtiquetas').click();
+      await pausa(500);
+    }
     if (!panel.classList.contains('sin-letra')){
       document.getElementById('btnLetraGlosas').click();
       await pausa(500);

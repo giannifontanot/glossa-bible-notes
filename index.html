@@ -4670,21 +4670,40 @@
                     box-shadow:inset 0 1px 0 #fff, 0 2px 3px rgba(60,40,15,.22); }
   /* El nombre centrado en el botón aunque lleve el dibujito a la izquierda:
      se le resta al nombre lo que ocupa el dibujito por el otro lado. */
-  #ctrlConfig .pf-btn .pf-nombre{ flex:1 1 auto; text-align:center; padding-right:34px; }
+  #ctrlConfig .pf-btn{ position:relative; }
+  #ctrlConfig .pf-btn .pf-nombre{ flex:1 1 auto; text-align:center; }
   #ctrlConfig:not(.estrecho) .pf-btn{ flex-direction:column; justify-content:center; gap:5px; padding:8px 6px; }
-  #ctrlConfig:not(.estrecho) .pf-btn .pf-nombre{ padding-right:0; flex:0 0 auto; }
+  #ctrlConfig:not(.estrecho) .pf-btn .pf-nombre{ flex:0 0 auto; }
   #ctrlConfig .pf-btn:hover{ background:linear-gradient(to bottom, #fffbf1, #f3ead4); }
   #ctrlConfig .pf-btn:active{ transform:translateY(1px);
                     box-shadow:inset 0 1px 3px rgba(60,40,15,.3); }
-  #ctrlConfig .pf-btn.active{ color:#fff7df;
-                    background:linear-gradient(to bottom, #a8862f, #8c6d22);
-                    border-color:#e2bd52;
-                    box-shadow:inset 0 1px 3px rgba(0,0,0,.3), 0 0 0 2px rgba(226,189,82,.45); }
+  /* EL PUESTO, CON UN CHECK VERDE Y APENAS HUNDIDO. Se encendía entero en
+     el dorado del programa, y a Gianni no le gustó: «no me gusta que hagan
+     clic y se pongan medio cafés». Lo que dice si está puesto es el check
+     verde de la derecha; el botón sólo baja un poco el tono y se hunde, que
+     se note que está apretado sin cambiar de color. */
+  #ctrlConfig .pf-btn.active{ color:#3f3416;
+                    background:linear-gradient(to bottom, #f1e8d1, #e6d8b4);
+                    border-color:#b9a374;
+                    box-shadow:inset 0 2px 4px rgba(60,40,15,.25); transform:translateY(1px); }
+  /* EL HUECO DEL CHECK ESTÁ SIEMPRE, puesto o no, y mide lo mismo que el
+     dibujito de la izquierda: así el nombre queda centrado y los cuatro checks
+     caen en la misma columna, como pidió —«todos bien alineaditos»—. */
+  .pf-check{ flex:0 0 auto; width:24px; height:24px; border-radius:50%; display:grid; place-items:center;
+             opacity:0; transform:scale(.6); transition:opacity .18s, transform .18s; }
+  .pf-check svg{ width:15px; height:15px; fill:none; stroke:#fff; stroke-width:3;
+                 stroke-linecap:round; stroke-linejoin:round; }
+  .pf-btn.active .pf-check{ opacity:1; transform:none; background:#2f9a5a;
+                            box-shadow:0 1px 2px rgba(0,0,0,.25); }
+  /* En pantalla ancha los cuatro van en fila, con el dibujito arriba del
+     nombre: el check se va a la esquina, a la misma altura en los cuatro. */
+  #ctrlConfig:not(.estrecho) .pf-check{ position:absolute; top:8px; right:8px; }
+  @media (prefers-reduced-motion: reduce){ .pf-check{ transition:none; } }
   /* EL DIBUJITO DE LAS COLUMNAS: una hoja chica con tantas tiras de renglones
      como columnas pone el preset. Se lee antes que el nombre. */
   .pf-hoja{ flex:0 0 auto; display:grid; gap:3px; width:24px; padding:5px; border-radius:4px;
             background:#efe6d0; color:#8a7444; }
-  .pf-btn.active .pf-hoja{ background:rgba(255,247,223,.2); color:#fff7df; }
+
   .pf-hoja i{ display:flex; flex-direction:column; gap:3px; }
   .pf-hoja i::before, .pf-hoja i::after, .pf-hoja b{ content:''; display:block; height:3px;
             border-radius:2px; background:currentColor; opacity:.6; }
@@ -4759,7 +4778,22 @@
      tres botones y él, y entre él y lo que venga —la tira de filtros o,
      con ella apagada, el índice—. */
   #ctrlLetra{ display:grid; grid-template-columns:1fr; gap:6px; margin:6px 0; }
-  #btnLetraGlosas{ width:auto; flex:0 0 auto; min-height:32px; }
+  #btnLetraGlosas{ width:auto; flex:0 0 auto; min-height:32px; padding:0 12px; }
+  /* LAS DOS AES, las mismas de la pestaña de Formato —ver .pestanas .aa— y por
+     lo mismo: es el signo de «tamaño de letra», y aquí dice lo mismo para las
+     glosas. */
+  #btnLetraGlosas .aa{ display:flex; align-items:baseline; justify-content:center;
+                       gap:.04em; line-height:1; font-weight:700; letter-spacing:0; }
+  #btnLetraGlosas .aa i{ font-style:normal; }
+  #btnLetraGlosas .aa i:nth-child(1){ font-size:1.3em; }
+  #btnLetraGlosas .aa i:nth-child(2){ font-size:1em; }
+  /* EL SIGNO DELANTE DE LA PALABRA: embudo en filtrar, lápiz en editar. Trazo
+     y no relleno, del color de la letra, para que se lea como parte del rótulo
+     y no como un dibujo pegado encima. */
+  .btn-signo{ display:inline-flex; align-items:center; gap:6px; }
+  .btn-signo .signo{ width:16px; height:16px; flex:0 0 auto; fill:none;
+                     stroke:currentColor; stroke-width:2; stroke-linejoin:round;
+                     stroke-linecap:round; }
   /* EL PUNTO DE «HAY FILTRO Y NO SE VE». Lo enciende marcarFiltroEscondido,
      que es quien sabe las dos cosas a la vez. Va después de la palabra y no
      encima del botón: lo que dice es que ahí dentro queda algo puesto, y el
@@ -4879,7 +4913,7 @@
     border-width:2.6px !important; border-color:#5a3d0e !important;
     box-shadow:0 0 0 3px rgba(90,61,14,.55), 0 2px 0 #5a3d0e; }
   #barraGrupo{ display:none; flex-direction:column; align-items:stretch; gap:6px;
-               margin-top:6px; padding:7px 8px; background:rgba(255,253,247,.78);
+               margin:6px 0; padding:7px 8px; background:rgba(255,253,247,.78);
                border:1px solid rgba(140,116,68,.34); border-radius:4px; }
   #etiquetas.eligiendo #barraGrupo{ display:flex; }
   #barraGrupo .bg-cuenta{ font:600 calc(11px * var(--escala-ui, 1))/1.3 var(--ui); color:#5c4a24; }
@@ -6607,16 +6641,28 @@
      varias y les cambia las etiquetas. Pedido así por el dueño del repo.
      Los ids se quedan como están: renombrarlos tocaría el guion, las tres
      suites que los buscan y nada de eso se ve desde la pantalla. -->
+<!-- Y AHORA CON SIGNOS, pedido por Gianni. LETRA es las dos aes de la pestaña
+     de Formato —el mismo signo para la misma idea, tamaño de letra—, sin
+     palabra. FILTRAR lleva su embudo delante. ACTUALIZAR pasó a llamarse
+     EDITAR, con un lápiz inclinado que apunta abajo a la izquierda, como
+     quien va a escribir: es el
+     verbo que cualquiera reconoce para «cambiarle algo a esto», y con el lápiz
+     al lado se lee antes de leerse. -->
 <div class="ajuste fila-etiq">
   <button type="button" class="btn" id="btnLetraGlosas"
+          aria-pressed="false" aria-label="Tamaño y espaciado de las glosas"
+          title="Tamaño y espaciado de las glosas"><span class="aa" aria-hidden="true"><i>A</i><i>A</i></span></button>
+  <button type="button" class="btn btn-signo" id="btnVerEtiquetas"
           aria-pressed="false"
-          title="Tamaño y espaciado de las glosas">letra</button>
-  <button type="button" class="btn" id="btnVerEtiquetas"
+          title="Filtrar las glosas por etiqueta o por día"><svg class="signo" viewBox="0 0 24 24"
+          aria-hidden="true" focusable="false"><path d="M3.5 5h17l-6.5 7.6V19l-4-2v-4.4z"/></svg><span
+          data-es="filtrar" data-en="filter">filtrar</span></button>
+  <button type="button" class="btn btn-signo" id="btnElegirGlosas"
           aria-pressed="false"
-          title="Filtrar las glosas por etiqueta o por día">filtrar</button>
-  <button type="button" class="btn" id="btnElegirGlosas"
-          aria-pressed="false"
-          title="Elegir varias glosas para actualizarles las etiquetas">actualizar</button>
+          title="Elegir varias glosas para editarles las etiquetas"><svg class="signo" viewBox="0 0 24 24"
+          aria-hidden="true" focusable="false"><!-- inclinado, con la punta abajo a la izquierda: pedido así por Gianni --><g
+          transform="rotate(-45 12 12)"><path d="M8 8.6h10.5a2 2 0 0 1 2 2v2.8a2 2 0 0 1-2 2H8L2.5 12z"/><path
+          d="M8 8.6v6.8M16.5 8.6v6.8"/><path d="M2.5 12l2.6-1.6v3.2z" fill="currentColor"/></g></svg><span data-es="editar" data-en="edit">editar</span></button>
 </div>
 
 <!-- LOS DOS MANDOS DE LA LETRA DE LA GLOSA, debajo de su botón. El tamaño y el
@@ -6932,8 +6978,10 @@
 <input id="archivoImp" type="file" accept="application/json,.json" style="display:none">
 <div id="indice"></div>
 <div id="barraGrupo">
-  <span class="bg-cuenta" id="cuentaGrupo">0 elegidas</span>
+  <!-- La caja primero —campo arriba, como en la glosa nueva— y la cuenta
+       debajo, que es un dato y no un mando. -->
   <div class="tagbox" id="tagboxGrupo"></div>
+  <span class="bg-cuenta" id="cuentaGrupo">0 elegidas</span>
 </div>
 <p class="cred" id="cred"></p>
 
@@ -6967,7 +7015,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 21:48';
+window.GLOSS_BUILD = '17-NOV-26 05:11';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8041,9 +8089,13 @@ let showMarks = true, fontSize = 15, fontSizeGlosa = 14;
    dos rótulos de la hoja—, y ésas son justamente las que alguien que abre por
    primera vez no tiene manera de descubrir.
    Quien las quiera quitar las quita en Libros, y su decisión se guarda; lo que
-   no se puede es enseñarle a alguien una puerta que no ve. Sólo afecta a la
-   instalación recién estrenada: cargarAjustes respeta el `false` guardado. */
-let verFlechas = true;
+   no se puede es enseñarle a alguien una puerta que no ve.
+   Y VUELVEN A NACER APAGADAS, a petición de Gianni: quien entra por primera
+   vez y descarga la Biblia la encuentra sin el rojo de las guías, que sobre
+   el papel limpio de la primera lectura pesa más de lo que ayuda. La casilla
+   sigue en Libros para quien las quiera, y su decisión se guarda. Sólo afecta
+   a la instalación recién estrenada: cargarAjustes respeta lo guardado. */
+let verFlechas = false;
 /* QUÉ TESTAMENTO ENSEÑA EL PANEL DE LIBROS, y se guarda con los ajustes: quien
    está leyendo el Antiguo vuelve al Antiguo. Arranca en el Nuevo porque ahí es
    donde arranca la lectura —y donde están los datos que vienen incluidos—, no
@@ -13992,8 +14044,11 @@ function pintarBarraGrupo(){
      el nombre a una que ya existe. Dos cajas distintas habrían sido dos sitios
      donde escribir lo mismo, y el panel ya es estrecho. */
   const renombrando = !n && !!etiquetaEnEdicion;
+  /* EL CAMPO ARRIBA Y LA LISTA DEBAJO, como en la caja de la glosa nueva —ver
+     tagboxHTML, donde está contado por qué el campo no puede ir al final—.
+     Aquí iba al revés, y Gianni pidió que se viera «igualito» a la de la
+     glosa nueva: lo primero que se encuentra es dónde escribir. */
   caja.innerHTML =
-    '<div class="taglista">' + htmlLista + '</div>' +
     '<div class="tagctl' + (renombrando ? ' renombrando' : '') + '">' +
       '<input id="tagNuevaGrupo" enterkeyhint="done" autocapitalize="none" ' +
         'autocomplete="off" placeholder="' + (renombrando ? T('nuevo nombre…','new name…') : T('nueva…','new…')) + '" ' +
@@ -14007,7 +14062,8 @@ function pintarBarraGrupo(){
           '<button type="button" class="btn" data-acc="dejartag" ' +
             'title="' + T('Dejar de cambiarle el nombre','Stop renaming it') + '">' + T('cancelar','cancel') + '</button>'
         : '<button type="button" class="btn crear" data-acc="creartag-grupo">' + T('+ crear','+ create') + '</button>') +
-    '</div>';
+    '</div>' +
+    '<div class="taglista">' + htmlLista + '</div>';
 }
 /* BAJAR UNA ETIQUETA A LA CAJA. Se repinta y DESPUÉS se busca el campo: el
    repintado rehace el renglón entero, así que el que había antes ya no existe
@@ -18952,6 +19008,19 @@ function abrirSeccion(id, enSeco){
      de la última vez que se miró. */
   if (typeof aplicarPendientes === 'function' && id !== 'formato') aplicarPendientes();
   if (typeof reflejarMuestra === 'function' && id === 'formato') reflejarMuestra();
+  /* AJUSTES FINOS, SIEMPRE PLEGADOS AL ENTRAR. Gianni: «siempre va a aparecer
+     off; puede ser que hace un rato lo dejamos abierto, pero cuando
+     regresamos a ese tab siempre lo vamos a encontrar cerrado». Se pliegan en
+     seco —sin la animación de cerrar—, que el panel está entrando y lo que se
+     tiene que ver es el panel ya armado, no un cajón cerrándose. Se recordó
+     un tiempo entre visitas y entre recargas; ya no. */
+  if (id === 'formato' && typeof alternarFinos === 'function') alternarFinos(false, true);
+  /* Y TRANSPARENTE, APAGADO TAMBIÉN, por lo mismo: Gianni lo quiere en off
+     cada vez que se abre el panel —«ya si el usuario lo quiere poner
+     transparente en ese momento, está bien»—. Se apaga por el mismo botón
+     que lo apaga a mano, para que la escena y la muestra se enteren igual. */
+  if (id === 'formato' && document.getElementById('ajustes')?.classList.contains('cristal'))
+    document.getElementById('btnVidrio')?.click();
   const de = SECCIONES.findIndex(x => x.id === seccionViva);
   const a  = SECCIONES.findIndex(x => x.id === id);
   dirSeccion = a >= de ? 1 : -1;              /* de dónde entra el contenido */
@@ -24721,9 +24790,12 @@ $('archivoImp').onchange = ev => {
    Claves: t = el texto, title, aria = aria-label, ph = placeholder. Solo se
    toca lo que la entrada nombra. */
 const UI_EN = {
-  '#btnLetraGlosas':   { t:'font',   title:'Size and spacing of the glosses' },
-  '#btnVerEtiquetas':  { t:'filter', title:'Filter the glosses by tag or by day' },
-  '#btnElegirGlosas':  { t:'update', title:'Pick several glosses to update their tags' },
+  /* Sin `t`: los tres llevan signo dentro, y `t` reescribe el textContent
+     entero —se llevaría el embudo, el lápiz y las dos aes—. La palabra va en
+     un <span data-es data-en>, que es lo que se traduce. */
+  '#btnLetraGlosas':   { title:'Size and spacing of the glosses', aria:'Size and spacing of the glosses' },
+  '#btnVerEtiquetas':  { title:'Filter the glosses by tag or by day' },
+  '#btnElegirGlosas':  { title:'Pick several glosses to edit their tags' },
   '#ctrlLetra > .ajuste:nth-child(1) > .lbl': { t:'size' },
   '#ctrlLetra > .ajuste:nth-child(2) > .lbl': { t:'spacing' },
   '#fsGlosaDown':      { title:'Gloss text, one point smaller' },
@@ -25227,70 +25299,126 @@ $('brillo').oninput = e => {
 };
 
 /* ---------- los presets de FORMATO ---------- */
-/* LOS PRESETS: UNA LISTA PARA LEER, DE UN TOQUE.
+/* LOS PRESETS: CUATRO PARA LEER, DE UN TOQUE, Y DISTINTOS EN CADA PANTALLA.
 
    Pedidos por Gianni: casi nadie quiere decidir tamaño, letra, espaciado,
-   interlínea y columnas uno por uno. Fueron primero dos grupos —teléfono y
-   computadora, «leer» y «estudiar» en cada uno— y no le gustaron; los cambió
-   por UNA lista de cuatro, armada en un mock y afinada a mano preset por
-   preset:
-     · LEGIBLE: letra 24 en una columna, la LINEAL —la sin remates, la más
-       clara que hay—, espaciado +5, interlínea normal, contraste 140 y brillo
-       85. El brillo bajo le quita deslumbre a la hoja, y el contraste alto le
-       devuelve a la letra lo que la luz le quita. Estuvo en 24, Gianni lo
-       bajó a 22 y, después de leer con él en el teléfono, lo volvió a 24 con
-       una captura de los ajustes que quería: ésos son estos números.
-     · LEGIBLE COMPACTA: la misma receta que Legible —Lineal, espaciado +5,
-       interlínea normal, una columna, contraste 140, brillo 85— con letra
-       20, para que quepa más en la pantalla sin perder lo que la hace clara.
-       Gianni la armó en su teléfono y mandó la captura. Antes este sitio era
-       LETRA GRANDE (romana, interlínea amplia), y al quedarse con una letra
-       más chica que la de Legible el nombre mentía; por eso se cambió el
-       nombre, que lo pidió él, y también el id del preset. La luz es la de
-       Legible, igual que la tenía Letra grande: los dos de una columna son
-       los de leer largo, y ahí es donde cansa la hoja. Las columnas no tocan
-       ni tinta ni luz, decidido así con él.
-     · DOS COLUMNAS: 18 en dos columnas, romana, interlínea normal. 18 es lo
-       más grande que aguanta una columna de teléfono sin bajar de unos 25
-       caracteres por renglón, que es donde la lectura empieza a ir a saltos.
-     · TRES COLUMNAS: 16 en tres, romana, interlínea normal. En un teléfono
-       queda apretado; es para pantallas anchas.
-   La escala la ordenó un panel de cuatro miradas —tipógrafo, accesibilidad,
-   columnas y un lector—: alrededor de Legible, escalones que se noten y, de
-   arriba abajo, la letra bajando y las columnas subiendo, para que la lista se
-   entienda sin leerla. Todos ponen el texto a la izquierda —justificar abre
-   ríos de blanco en columnas estrechas— y LA GLOSA AL MARGEN, que también se
-   pidió para los cuatro.
+   interlínea, columnas y luz uno por uno. Fueron dos grupos (teléfono y
+   computadora), luego UNA lista de cuatro afinada a mano en su teléfono, y
+   ahora son cuatro POR PANTALLA: los del teléfono se ven en el teléfono, los
+   de la tablet en la tablet y los de la computadora en la computadora. Una
+   sola lista obligaba a meter en el teléfono tres columnas que ahí no caben,
+   y a ofrecer en la computadora la letra de 24 pensada para leer a palmo.
 
-   SIN EXPLICACIÓN DEBAJO. Cada uno llevó una frase que contaba lo que
-   ponía; Gianni las quitó «para que esos botones queden más juntos». El
-   nombre y el dibujito de las columnas ya dicen lo que hace falta, y lo
-   demás se ve en la hoja al tocarlo, que para eso van directos.
+   CÓMO SE ESCOGIERON LOS NÚMEROS. El ancla es el teléfono de Gianni: Legible
+   —24, Lineal, +5, interlínea normal, contraste 140, brillo 85— es el que
+   mejor se ve, y lo armó él. Lo demás se midió en la app con las recetas
+   candidatas, contando caracteres por renglón, contra lo que recomienda la
+   literatura de lectura en pantalla: 30–50 en teléfono, 40–65 en tablet y
+   45–75 en computadora, y nunca por debajo de unos 13, que es donde la lectura
+   empieza a ir a saltos (Atilgan, Xiong y Legge, 2020). Medido:
+     · teléfono (393 px): Legible 24 ≈ 35 por renglón; Compacta 20 ≈ 42;
+       dos columnas de 16 romana ≈ 30 cada una.
+     · tablet y computadora: la hoja mide 620 px —ANCHO_HOJA— y, con las
+       glosas al margen, al texto le quedan unos 420. Una columna de 22
+       Lineal ≈ 41; dos de 16–17 romana ≈ 30; tres de 14 ≈ 24.
+   La romana va en las columnas porque es más estrecha que la Lineal: en
+   columnas de 130–200 px caben más palabras por renglón con la misma letra.
+   LA INTERLÍNEA, SOLO DE LAS TRES QUE TIENE LA APP —ver AIRES: reducida,
+   normal, amplia—. Hubo aquí 1.55, 1.5 y 1.45, afinadas a ojo, y lo levantó
+   la revisión de Codex: cargarAjustes sólo acepta una interlínea de AIRES, así
+   que al recargar volvía a «normal» y el preset se apagaba solo; y el mando
+   de interlínea decía «normal» con otra cosa puesta. Normal en casi todos, y
+   reducida en «Tres, compacta», que es justo lo que pide su nombre.
 
-   VAN DIRECTOS A LA HOJA, aunque el panel esté opaco. Los mandos de letra de
-   los finos esperan en la muestra y pasan al cerrar; los presets no, porque la
-   muestra ya no está a su lado —Gianni la quitó de arriba— y elegir un preset
-   para no ver nada hasta cerrar sería elegir a ciegas. Para verlo sin cerrar
-   está «Transparente», justo debajo.
+   LA LUZ, POR PANTALLA. Todos dejan el papel en sepia 100 —el de la casa: el
+   tono cálido quita el azul y el deslumbre del blanco puro— salvo la
+   computadora, que se lee de más lejos y con luz de oficina y aguanta un
+   papel menos teñido (90). El brillo baja en el teléfono y la tablet, que se
+   leen de cerca y a menudo en cuartos oscuros (85), y casi no en la
+   computadora (95). El contraste sube a 130–140 para devolverle a la letra lo
+   que la luz baja le quita. «Para la noche» es el que más baja la luz —brillo
+   70— y sube poco el contraste (120): de noche el contraste alto hace que la
+   letra clara «brille» sobre el fondo oscuro de la pupila abierta.
 
-   NO SE GUARDA CUÁL ESTÁ PUESTO: se mira. El que sale encendido es el que
-   coincide con lo que hay —ver presetVivo—, así que tocar cualquier ajuste a
-   mano lo apaga solo, que es lo que se acordó, y no hay un «preset elegido»
-   guardado aparte que pueda quedarse diciendo algo que ya no es verdad.
+   QUÉ LLEVA CADA PANTALLA, como lo pidió él:
+     · teléfono: dos de una columna en Lineal (Legible y Compacta, los
+       suyos), uno para la noche y uno de DOS columnas. Tres no cabe.
+     · tablet: una, dos y tres columnas.
+     · computadora: DOS y TRES columnas, nada de una.
+
+   EN INGLÉS, «EASY READING» Y NO «CLEAR». Se llamó Clear, y Gianni lo vio
+   ambiguo: suena a «borrar la pantalla», no a «se lee fácil».
+
+   LAS GLOSAS, DOS PUNTOS MENOS QUE EL TEXTO. Al principio el preset les ponía
+   el mismo cuerpo que al libro; Gianni vio que necesitan por lo menos dos
+   puntos menos —son apuntes al lado del texto, no el texto— y así quedó
+   para todos. El mismo espaciado sí.
+
+   Todos ponen el texto a la izquierda —justificar abre ríos de blanco en
+   columnas estrechas— y LA GLOSA AL MARGEN, que se pidió para todos.
+
+   SIN EXPLICACIÓN DEBAJO: Gianni las quitó «para que esos botones queden más
+   juntos». VAN DIRECTOS A LA HOJA, aunque el panel esté opaco: la muestra ya
+   no está a su lado y elegir sin ver sería elegir a ciegas. NO SE GUARDA
+   CUÁL ESTÁ PUESTO: se mira —ver presetVivo—, así que tocar cualquier ajuste
+   a mano lo apaga solo.
 
    `var` Y NO `const`, a propósito: aplicarIdioma y reflejarControles corren al
    arrancar, antes de llegar aquí, y preguntan por esto. Con const, la
    pregunta misma rompería el arranque. */
-var PRESETS_FORMATO = [
-  { id:'legible', es:'Legible', en:'Clear',
-    tam:24, fuente:4, esp:5, aire:1.62, cols:1, contraste:140, brillo:85 },
-  { id:'compacta', es:'Legible compacta', en:'Clear compact',
-    tam:20, fuente:4, esp:5, aire:1.62, cols:1, contraste:140, brillo:85 },
-  { id:'dos', es:'Dos columnas', en:'Two columns',
-    tam:18, fuente:0, esp:0, aire:1.62, cols:2 },
-  { id:'tres', es:'Tres columnas', en:'Three columns',
-    tam:16, fuente:0, esp:0, aire:1.62, cols:3 }
-];
+var PRESETS_POR_PANTALLA = {
+  tel: [
+    { id:'legible', es:'Legible', en:'Easy reading',
+      tam:24, fuente:4, esp:5, aire:1.62, cols:1, contraste:140, brillo:85, sepia:100 },
+    { id:'compacta', es:'Legible compacta', en:'Easy reading, compact',
+      tam:20, fuente:4, esp:5, aire:1.62, cols:1, contraste:140, brillo:85, sepia:100 },
+    { id:'noche', es:'Para la noche', en:'For the night',
+      tam:22, fuente:4, esp:4, aire:1.62, cols:1, contraste:120, brillo:70, sepia:100 },
+    { id:'dos', es:'Dos columnas', en:'Two columns',
+      tam:16, fuente:0, esp:0, aire:1.62, cols:2, contraste:135, brillo:85, sepia:100 }
+  ],
+  tab: [
+    { id:'legible', es:'Legible', en:'Easy reading',
+      tam:22, fuente:4, esp:4, aire:1.62, cols:1, contraste:135, brillo:85, sepia:100 },
+    { id:'clasica', es:'Clásica', en:'Classic',
+      tam:20, fuente:0, esp:0, aire:1.62, cols:1, contraste:130, brillo:90, sepia:100 },
+    { id:'dos', es:'Dos columnas', en:'Two columns',
+      tam:16, fuente:0, esp:0, aire:1.62, cols:2, contraste:135, brillo:90, sepia:100 },
+    { id:'tres', es:'Tres columnas', en:'Three columns',
+      tam:14, fuente:0, esp:0, aire:1.62, cols:3, contraste:140, brillo:90, sepia:100 }
+  ],
+  pc: [
+    { id:'dos', es:'Dos columnas', en:'Two columns',
+      tam:17, fuente:0, esp:0, aire:1.62, cols:2, contraste:130, brillo:95, sepia:90 },
+    { id:'dosGrande', es:'Dos, letra grande', en:'Two, large type',
+      tam:19, fuente:0, esp:0, aire:1.62, cols:2, contraste:130, brillo:95, sepia:90 },
+    { id:'tres', es:'Tres columnas', en:'Three columns',
+      tam:14, fuente:0, esp:0, aire:1.62, cols:3, contraste:135, brillo:95, sepia:90 },
+    { id:'tresCompacta', es:'Tres, compacta', en:'Three, compact',
+      tam:13, fuente:0, esp:0, aire:1.38, cols:3, contraste:135, brillo:95, sepia:90 }
+  ]
+};
+/* QUÉ PANTALLA ES ÉSTA. Teléfono es lo mismo que pregunta todo el programa
+   —enTelefono, el umbral de 560 px que comparte con la hoja de estilos—. Entre
+   lo que queda, la tablet se distingue de la computadora por el dedo: un
+   puntero grueso (pointer: coarse) es una pantalla que se toca. Un iPad
+   apaisado mide 1180 px y una laptop 1280; por ancho no se separan, por el
+   dedo sí. */
+function pantallaDePresets(){
+  if (enTelefono()) return 'tel';
+  return window.matchMedia('(pointer: coarse)').matches ? 'tab' : 'pc';
+}
+var PRESETS_FORMATO = PRESETS_POR_PANTALLA[pantallaDePresets()];
+/* AL GIRAR O CAMBIAR DE VENTANA, LA LISTA DE ESA PANTALLA. Una tablet que
+   pasa a vertical sigue siendo tablet, pero una ventana de escritorio que se
+   estrecha por debajo de 560 pasa a hoja de teléfono, y entonces le tocan los
+   presets del teléfono. Se repinta sólo si cambió la lista. */
+function cambiarPresetsSiCambioLaPantalla(){
+  const lista = PRESETS_POR_PANTALLA[pantallaDePresets()];
+  if (lista === PRESETS_FORMATO) return;
+  PRESETS_FORMATO = lista;
+  pintarPresetsFormato();
+}
 function presetVivo(){
   if (!PRESETS_FORMATO) return null;
   const f = fuenteViva();
@@ -25298,7 +25426,7 @@ function presetVivo(){
     tamVivo() === p.tam && espVivo() === p.esp && f === FUENTES[p.fuente][1] &&
     alineacion === 'left' && interlineado === p.aire && columns === p.cols &&
     placement === 'margin' && (p.contraste == null || contraste === p.contraste) &&
-    (p.brillo == null || brillo === p.brillo)) || null;
+    (p.brillo == null || brillo === p.brillo) && (p.sepia == null || sepia === p.sepia)) || null;
 }
 function reflejarPresets(){
   if (!PRESETS_FORMATO) return;
@@ -25318,7 +25446,8 @@ function pintarPresetsFormato(){
         '<button type="button" class="btn pf-btn" data-preset="' + p.id + '" aria-pressed="false">' +
           '<span class="pf-hoja" aria-hidden="true" style="grid-template-columns:repeat(' + p.cols +
             ', minmax(0, 1fr))">' + '<i><b></b></i>'.repeat(p.cols) + '</span>' +
-          '<span class="pf-nombre">' + T(p.es, p.en) + '</span></button>' +
+          '<span class="pf-nombre">' + T(p.es, p.en) + '</span>' +
+          '<span class="pf-check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></button>' +
       '</div>').join('');
   reflejarPresets();
 }
@@ -25336,12 +25465,13 @@ function ponerPreset(id){
      Legible y la hoja quedaba en 24 con las glosas en 14. Gianni: «el ajuste
      que se haga al hacer clic al botón es el mismo que se hará a los ajustes
      de la glosa, y es lo que deben mostrar los controles de las glosas». Así
-     que el preset les pone el mismo cuerpo y el mismo espaciado que al libro,
-     y reflejarTamano y reflejarEspaciadoGlosa los dejan escritos en sus
+     que el preset les pone el cuerpo del libro —dos puntos menos, que lo
+     pidió luego— y su mismo espaciado, y reflejarTamano y reflejarEspaciadoGlosa los dejan escritos en sus
      mandos. Después cada una se puede afinar a mano en su panel, como antes.
      Va antes de escalarInterfaz porque ahí se escribe también el píxel de la
      glosa que mide el cromo —ver ponerTamanoGlosa—. */
-  fontSizeGlosa = fontSize;
+  /* Y DOS PUNTOS MENOS: ver «LAS GLOSAS, DOS PUNTOS MENOS» en la lista. */
+  fontSizeGlosa = Math.max(FS_MIN, fontSize - 2);
   escalarInterfaz();
   espaciado = Math.max(ESP_MIN, Math.min(ESP_MAX, p.esp));
   espaciadoGlosa = espaciado;
@@ -25368,6 +25498,15 @@ function ponerPreset(id){
     brillo = p.brillo;
     $('brillo').value = String(brillo);
     $('brilloAhora').textContent = brillo + '%';
+  }
+  /* Y EL SEPIA, que es la tercera luz de la hoja y la que el preset de la
+     computadora deja un poco más baja. Va por aplicarTintaHoja, como su riel:
+     la lista de escenas lee --papel de la raíz. */
+  if (p.sepia != null){
+    sepia = p.sepia;
+    $('sepia').value = String(sepia);
+    $('sepiaAhora').textContent = sepia;
+    aplicarTintaHoja();
   }
   if (p.contraste != null || p.brillo != null) aplicarFiltros();
   rotularFormato();
@@ -25426,20 +25565,24 @@ function alternarFinos(abrir, enSeco){
     caja._anim = caja.animate(
       [{ height:'0px', opacity:0, transform:'translateY(-6px)' },
        { height:h + 'px', opacity:1, transform:'none' }],
-      { duration:520, easing:'cubic-bezier(.2,.8,.25,1)' });
+      /* MÁS DESPACIO, pedido por Gianni: a 520 ms el cajón se abría de golpe y
+         el lector no alcanzaba a ver qué había pasado —«el usuario puede
+         confundirse»—. Y no bastaba con alargarlo: la curva de antes corría al
+         principio, y en el teléfono CERRAR llega al fondo de la pantalla con
+         poco más de medio cajón abierto, así que en 360 ms ya no se movía
+         nada. Con una curva que arranca suave y 1300 ms, CERRAR se ve bajar
+         casi un segundo. */
+      { duration:1300, easing:'cubic-bezier(.45,.05,.3,1)' });
     caja._anim.onfinish = () => { caja._anim = null; };
   } else {
     const h = caja.offsetHeight;
     caja._anim = caja.animate(
       [{ height:h + 'px', opacity:1 }, { height:'0px', opacity:0 }],
-      { duration:380, easing:'cubic-bezier(.4,0,.6,1)' });
+      { duration:700, easing:'cubic-bezier(.4,0,.6,1)' });
     caja._anim.onfinish = () => { caja._anim = null; cfg.classList.add('plegado'); };
   }
 }
-$('btnFinos').addEventListener('click', () => {
-  alternarFinos(!finosAbiertos);
-  guardarAjustes();
-});
+$('btnFinos').addEventListener('click', () => alternarFinos(!finosAbiertos));
 alternarFinos(finosAbiertos === true, true);
 pintarPresetsFormato();
 /* ON: el panel de Formato (debajo de LIBROS/GLOSAS/FORMATO/RESPALDO)
@@ -25928,8 +26071,6 @@ function guardarAjustes(){
       v: 1, fontSize, fontSizeGlosa, columns, placement, alineacion,
       interlineado, margen, version, showMarks, sepia, contraste, brillo,
       verFlechas, cantoTesta,
-      /* Los ajustes finos de FORMATO, abiertos o plegados: ver alternarFinos. */
-      finos: finosAbiertos === true,
       /* La casilla de los tiempos se guarda, y es lo que la hace servir de
          algo: medir en un teléfono pasa por recargar —los rieles se aplican
          recargando— y una casilla que se apaga en cada recarga habría que
@@ -26000,7 +26141,8 @@ function cargarAjustes(){
      anterior entra aquí y se queda en 100. Sin esta cuenta, el riel nacería
      con la manija fuera de su recorrido y el número diciendo 150. */
   if (Number.isFinite(a.brillo)) brillo = Math.max(50, Math.min(100, a.brillo));
-  if (typeof a.finos === 'boolean') finosAbiertos = a.finos;
+  /* `finos` ya no se lee: los finos nacen plegados siempre —ver abrirSeccion—.
+     Lo guardado antes se ignora solo. */
   /* El desvío del panel. Se recorta a un tamaño de pantalla generoso y no al
      de ahora: cuando esto se lee, la hoja todavía no está compuesta. Los topes
      de verdad los pone sitioDelMenu en cada colocación, que es donde se sabe
@@ -26018,13 +26160,12 @@ function cargarAjustes(){
   if (AIRES.some(x => x[1] === a.interlineado)) interlineado = a.interlineado;
   if (MARGENES[a.margen]) margen = a.margen;
   showMarks = a.showMarks !== false;
-  /* !== y no ===: ENCENDIDAS ES LO DE FÁBRICA —ver let verFlechas—, así que
-     solo un false escrito las apaga. Estuvo con ===, de cuando nacían
-     apagadas, y quedó contradiciendo a su propia declaración: un ajuste
-     guardado sin la clave —una instalación de antes de existir la casilla—
-     arrancaba con ella apagada. El dueño del repo pidió que quien entra por
-     primera vez la encuentre puesta, y quien la apagó sigue con su false. */
-  verFlechas = a.verFlechas !== false;
+  /* === y no !==: APAGADAS ES LO DE FÁBRICA OTRA VEZ —ver let verFlechas—,
+     así que sólo un true escrito las enciende. Fue al revés un tiempo, cuando
+     nacían encendidas; lo que se cuida es lo mismo de entonces: que la regla
+     de aquí diga lo mismo que la declaración. Quien las encendió sigue con su
+     true, porque guardarAjustes siempre escribe la clave. */
+  verFlechas = a.verFlechas === true;
   /* === y no !==, igual que las dos de arriba: la caja de los tiempos nace
      apagada, así que sólo un true escrito la enciende. */
   verCrono = a.verCrono === true;
@@ -26160,8 +26301,12 @@ etiquetas.appendChild($('ctrlEtiquetas'));
   fila.style.display = 'none';
   $('ctrlEtiquetas').appendChild(fila);
 })();
-etiquetas.appendChild($('indice'));
+/* LA BARRA DE EDITAR VA ENCIMA DE LA LISTA, no debajo. Gianni lo pidió como
+   en la glosa nueva: al tocar «editar», lo primero que se ve arriba es el
+   campo para escribir la etiqueta y las etiquetas, y debajo las glosas que se
+   van eligiendo. Abajo, con muchas glosas, la barra quedaba lejos del dedo. */
 etiquetas.appendChild($('barraGrupo'));
+etiquetas.appendChild($('indice'));
 
 /* ENCUENTROS: las historias de quien se topó con Jesús y se fue distinto.
 
@@ -28283,7 +28428,8 @@ if (guardado && guardado.cap){
 restaurando = false;
 renderPage();
 window.addEventListener('resize', () => {
-  sizeCanvas(); ajustarAnchoPanel(); paginasSucias = true; renderPage();
+  sizeCanvas(); ajustarAnchoPanel(); cambiarPresetsSiCambioLaPantalla();
+  paginasSucias = true; renderPage();
   /* Girar el teléfono cambia el hueco disponible, así que la escala del zoom
      se vuelve a calcular. Va DESPUÉS de renderPage, que es quien deja la hoja
      con sus medidas nuevas: medir antes daría la escala de la orientación que

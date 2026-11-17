@@ -115,6 +115,7 @@ async function ponerContraste(pagina, pct){
     if (!t) return false;
     t.click();
     await new Promise(z => setTimeout(z, 800));
+    /* Los finos nacen plegados al entrar a Formato —pedido por Gianni— y los mandos viven dentro: se despliegan. */ { const f = document.getElementById('btnFinos'); if (f && f.getAttribute('aria-expanded') !== 'true'){ f.click(); await new Promise(z => setTimeout(z, 1600)); } }
     return getComputedStyle(document.getElementById('ajustes')).display !== 'none';
   });
   vale('el panel de Formato abre', abrioAlPrincipio === true);
@@ -770,7 +771,6 @@ async function ponerContraste(pagina, pct){
                           .classList.contains('cristal');
     await irA('formato');
     const alVolver = lee();
-    vidrio().click(); await z(500);
     return { opaco, cristal, enGlosas, alVolver, modoFormato,
              modoFinal: document.getElementById('ajustes')
                           .classList.contains('cristal') };
@@ -797,8 +797,11 @@ async function ponerContraste(pagina, pct){
        velos.modoFormato === true, velos.modoFormato);
   vale('EL VELO VUELVE ENTERO EN OTRA SECCIÓN, aunque Formato siga transparente',
        CERCA(velos.enGlosas.alfa, velos.opaco.alfa), velos.enGlosas.alfa);
-  vale('  y se vuelve a apartar al volver a Formato',
-       CERCA(velos.alVolver.alfa, velos.cristal.alfa), velos.alVolver.alfa);
+  /* AL VOLVER A FORMATO, TRANSPARENTE YA ESTÁ APAGADO: Gianni lo quiere en
+     off cada vez que se entra al panel. Así que el velo vuelve el de opaco, y
+     ya no hace falta apagarlo a mano para lo que viene. */
+  vale('  y al volver a Formato el panel ya está opaco, y el velo con él',
+       CERCA(velos.alVolver.alfa, velos.opaco.alfa), velos.alVolver.alfa);
   vale('  (y se quedó en opaco, para lo que viene)',
        velos.modoFinal === false, velos.modoFinal);
 
@@ -1003,6 +1006,7 @@ async function ponerContraste(pagina, pct){
     if (!t) return { falta:'la pestaña de Formato' };
     t.click();
     await new Promise(z => setTimeout(z, 800));
+    /* Los finos nacen plegados al entrar a Formato —pedido por Gianni— y los mandos viven dentro: se despliegan. */ { const f = document.getElementById('btnFinos'); if (f && f.getAttribute('aria-expanded') !== 'true'){ f.click(); await new Promise(z => setTimeout(z, 1600)); } }
     const p = document.getElementById('ajustes');
     return { visible: getComputedStyle(p).display !== 'none',
              veElRiel: !!p.querySelector('#contraste') ||
@@ -1381,6 +1385,7 @@ async function ponerContraste(pagina, pct){
       if (!vis()){ document.getElementById('pgCabeza').click(); await pausa(900); }
       const t = (vis()||document).querySelector('.pestanas [data-sec="'+sec+'"]');
       if (t){ t.click(); await pausa(950); }
+      { const f = document.getElementById('btnFinos'); if (f && f.getAttribute('aria-expanded') !== 'true'){ f.click(); await new Promise(z => setTimeout(z, 1600)); } }
     };
     const lee = () => {
       const v = document.querySelector('#pgBody .v');
@@ -1520,6 +1525,7 @@ async function ponerContraste(pagina, pct){
       if (!vis()){ document.getElementById('pgCabeza').click(); await pausa(900); }
       const t = (vis()||document).querySelector('.pestanas [data-sec="formato"]');
       if (t){ t.click(); await pausa(950); }
+      { const f = document.getElementById('btnFinos'); if (f && f.getAttribute('aria-expanded') !== 'true'){ f.click(); await new Promise(z => setTimeout(z, 1600)); } }
       const s = document.getElementById('espAhora');
       s.value = String(v); s.dispatchEvent(new Event('change', { bubbles:true }));
       await pausa(400);
@@ -1614,6 +1620,7 @@ async function ponerContraste(pagina, pct){
       if (!vis()){ document.getElementById('pgCabeza').click(); await pausa(900); }
       const t = (vis()||document).querySelector('.pestanas [data-sec="'+sec+'"]');
       if (t){ t.click(); await pausa(950); }
+      { const f = document.getElementById('btnFinos'); if (f && f.getAttribute('aria-expanded') !== 'true'){ f.click(); await new Promise(z => setTimeout(z, 1600)); } }
     };
     /* se separa la letra de la GLOSA por su mando, el de GLOSAS > LETRA */
     await irA('glosas');
@@ -1673,6 +1680,7 @@ async function ponerContraste(pagina, pct){
     const t = (vis() || document).querySelector('.pestanas [data-sec="formato"]');
     if (!t) return { falta:'no hay pestaña de formato' };
     t.click(); await z(900);
+    /* Los finos nacen plegados al entrar a Formato —pedido por Gianni— y los mandos viven dentro: se despliegan. */ { const f = document.getElementById('btnFinos'); if (f && f.getAttribute('aria-expanded') !== 'true'){ f.click(); await new Promise(z => setTimeout(z, 1600)); } }
     const panel = document.getElementById('ajustes');
     if (panel.classList.contains('cristal')){
       document.getElementById('btnVidrio').click(); await z(700);
@@ -1737,6 +1745,7 @@ async function ponerContraste(pagina, pct){
     if (!vis()){ document.getElementById('pgCabeza').click(); await z(900); }
     (vis() || document).querySelector('.pestanas [data-sec="formato"]').click();
     await z(900);
+    { const f = document.getElementById('btnFinos'); if (f && f.getAttribute('aria-expanded') !== 'true'){ f.click(); await new Promise(z => setTimeout(z, 1600)); } }
     /* EN TRANSPARENTE: sin muestra, y el mando va directo. */
     document.getElementById('btnVidrio').click(); await z(700);
     const enCristal = { visible: getComputedStyle(fila).display !== 'none',
@@ -1869,6 +1878,7 @@ async function ponerContraste(pagina, pct){
     const t = (vis() || document).querySelector('.pestanas [data-sec="formato"]');
     if (!t) return { falta:'no hay pestaña de formato' };
     t.click(); await pausa(900);
+    /* Los finos nacen plegados al entrar a Formato —pedido por Gianni— y los mandos viven dentro: se despliegan. */ { const f = document.getElementById('btnFinos'); if (f && f.getAttribute('aria-expanded') !== 'true'){ f.click(); await new Promise(z => setTimeout(z, 1600)); } }
     /* En transparente, que es donde el mando va directo al libro. */
     const panel = document.getElementById('ajustes');
     if (!panel.classList.contains('cristal')){
