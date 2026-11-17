@@ -1094,14 +1094,13 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
   await cerrarParcial(sesM, 'la pestaña recordada');
 
   /* ================================================================
-     QUIEN ENTRA POR PRIMERA VEZ ENCUENTRA LA CASILLA PUESTA.
+     QUIEN ENTRA POR PRIMERA VEZ ENCUENTRA LA CASILLA QUITADA.
 
-     Lo pidió el dueño del repo: «Show where you can tap» marcada para el
-     usuario nuevo, que es justo quien no sabe dónde se toca. Dos casos, y el
-     segundo es el que estaba roto: la instalación estrenada —sin ajustes— y
-     unos ajustes guardados SIN la clave verFlechas, que con el === de antes
-     arrancaban con la casilla apagada. Y un tercero de control: quien la
-     apagó la sigue teniendo apagada. */
+     Estuvo al revés —marcada para el usuario nuevo— y Gianni la pidió
+     apagada: la primera lectura, sin el rojo de las guías encima. Dos casos:
+     la instalación estrenada —sin ajustes— y unos ajustes guardados SIN la
+     clave verFlechas. Y un tercero de control: quien la encendió la sigue
+     teniendo encendida. */
   titulo('la casilla de las guías, para quien llega');
   /* biblia: null — sin los ajustes que el banco siembra para arrancar en la
      Biblia Libre (ver bibliaDeCasa en comun.js): esto va del teléfono recién
@@ -1122,7 +1121,8 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
   });
   const estreno = await casilla();
   di('estrenada', estreno);
-  vale('SIN AJUSTES, LA CASILLA ESTÁ MARCADA', !!estreno && estreno.marcada === true, estreno);
+  vale('SIN AJUSTES, LA CASILLA ESTÁ QUITADA, y la hoja sin guías',
+       !!estreno && estreno.marcada === false && estreno.guias === false, estreno);
   vale('  y dice en inglés dónde se toca', !!estreno && estreno.rotulo === 'Show where you can tap', estreno && estreno.rotulo);
   await pN.evaluate(() => {
     const aj = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
@@ -1132,16 +1132,16 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo } = require('./comun');
   await pN.reload(); await pN.waitForTimeout(2600);
   const sinClave = await casilla();
   di('ajustes sin la clave', sinClave);
-  vale('CON AJUSTES QUE NO LA NOMBRAN, TAMBIÉN MARCADA', !!sinClave && sinClave.marcada === true, sinClave);
+  vale('CON AJUSTES QUE NO LA NOMBRAN, TAMBIÉN QUITADA', !!sinClave && sinClave.marcada === false, sinClave);
   await pN.evaluate(() => {
     const aj = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
-    aj.verFlechas = false;
+    aj.verFlechas = true;
     localStorage.setItem('glossa:ajustes:v1', JSON.stringify(aj));
   });
   await pN.reload(); await pN.waitForTimeout(2600);
   const apagada = await casilla();
-  di('quien la apagó', apagada);
-  vale('  y quien la apagó la sigue teniendo apagada', !!apagada && apagada.marcada === false, apagada);
+  di('quien la encendió', apagada);
+  vale('  y quien la encendió la sigue teniendo encendida', !!apagada && apagada.marcada === true, apagada);
   await cerrarParcial(sesN, 'la casilla para quien llega');
 
   await cerrar(sesion);

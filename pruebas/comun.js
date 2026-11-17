@@ -791,7 +791,10 @@ async function bibliaDeCasa(pagina, biblia, glosasDeCasa = true){
   if (biblia === null) return;
   const siembra = await pagina.addInitScript(([k, v, vacios, km, glosas]) => {
     try {
-      if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify({ v:1, version:v, libro:'MAT', finos:true }));
+      /* verFlechas:true porque las suites de libros, navegar y acuse miran
+         las guías rojas encendidas. De fábrica nacen apagadas —lo pidió
+         Gianni—, y eso se mira en libros con biblia:null, sin siembra. */
+      if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify({ v:1, version:v, libro:'MAT', finos:true, verFlechas:true }));
       for (const c of vacios) if (localStorage.getItem(c) === null) localStorage.setItem(c, '[]');
       if (glosas && localStorage.getItem(km) === null){
         const hoy = new Date().toISOString().slice(0, 10);
