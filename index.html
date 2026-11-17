@@ -14151,6 +14151,17 @@ function pintarFiltros(){
        se puede editar: en EDITAR se esconde. */
     if (nombre === '(sin etiqueta)') b.classList.add('chip-sin');
     else b.dataset.tagGrupo = nombre;
+    /* Y SE ALCANZA CON EL TECLADO: la lista que tenía EDITAR era de botones,
+       y estas pastillas eran spans fuera del recorrido del tabulador —quien
+       no usa dedo ni ratón se quedaba sin poder renombrar ni poner etiquetas
+       existentes—. Rol de botón, foco y Enter o Espacio. Lo levantó Codex. */
+    b.tabIndex = 0;
+    b.setAttribute('role', 'button');
+    b.addEventListener('keydown', ev => {
+      if (ev.key !== 'Enter' && ev.key !== ' ') return;
+      ev.preventDefault();
+      b.click();
+    });
     b.onclick = () => {
       if (eligiendoGlosas){
         if (nombre !== '(sin etiqueta)') tocarEtiquetaEditar(nombre);
