@@ -364,6 +364,77 @@ async function andamio(p){
        gesto.guardada && gesto.guardada.x);
 
   /* ---------------------------------------------------------------- */
+  /* ANCLADA AL VERSÍCULO. Gianni las quiso «por libro y versículo, para que
+     siempre fueran jaladas al mismo versículo, no importando la hoja». Se
+     suelta la perla sobre el TERCER versículo de la hoja —no el primero: así
+     no vale el ancla vieja, que era el primero de la hoja—, se sube la letra
+     tres puntos y se mira que siga junto a ESE versículo, a la misma
+     distancia medida en letras. Con el ancla vieja se quedaba en el mismo
+     punto del papel, encima de otro texto. */
+  titulo('la perla sigue a su versículo al cambiar la letra');
+  const ancla = await p.evaluate(async () => {
+    const versos = [...document.querySelectorAll('#pgBody .v[data-k]')];
+    const meta = versos[2];
+    if (!meta) return { falta:'no hay tres versículos en la hoja' };
+    const rv = meta.getClientRects()[0];
+    const b = document.querySelector('.piedra'), r = b.getBoundingClientRect();
+    const x0 = r.left + r.width/2, y0 = r.top + r.height/2;
+    const x1 = rv.left + 40, y1 = rv.top + rv.height/2;
+    const ev = (t, ax, ay) => b.dispatchEvent(new PointerEvent(t,
+      { bubbles:true, cancelable:true, pointerId:77, pointerType:'touch',
+        isPrimary:true, clientX:ax, clientY:ay }));
+    ev('pointerdown', x0, y0);
+    ev('pointermove', x0 + (x1 - x0) * .4 + 3, y0 + (y1 - y0) * .35);
+    ev('pointermove', x0 + (x1 - x0) * .8 - 2, y0 + (y1 - y0) * .85);
+    ev('pointermove', x1, y1);
+    ev('pointerup', x1, y1);
+    await window.__pausa(400);
+    const em = () => parseFloat(getComputedStyle(document.getElementById('pgBody')).fontSize);
+    /* La distancia de la perla al comienzo de su versículo, en letras. */
+    const medir = (k) => {
+      const v = document.querySelector('#pgBody .v[data-k="' + k + '"]');
+      const s = document.querySelector('.piedra-sitio');
+      if (!v || !s) return null;
+      const a = v.getClientRects()[0], c = s.getBoundingClientRect();
+      return { dx: +(((c.left + c.width/2) - a.left) / em()).toFixed(2),
+               dy: +(((c.top + c.height/2) - a.top) / em()).toFixed(2) };
+    };
+    const k = meta.dataset.k;
+    const g0 = window.__guardadas()[0];
+    const antes = { em: em(), lejos: medir(k) };
+    /* Fuera de la edición, que es como se lee: se cierra con un toque fuera. */
+    document.getElementById('pgBody').click();
+    await window.__pausa(300);
+    for (let i = 0; i < 3; i++){ document.getElementById('fsUp').click(); await window.__pausa(500); }
+    await window.__pausa(800);
+    const g1 = window.__guardadas()[0];
+    const despues = { em: em(), lejos: medir(k), hay: window.__hayPiedra(),
+                      verso: g1 && (g1.cap + ':' + g1.vers) };
+    /* Y LA LETRA SE DEVUELVE. Esta hoja sigue en uso más abajo, y con tres
+       puntos de más la interfaz entera crece con ella: el renglón del mando
+       —sombra, Cancelar, OK— ya no cabía en uno y su prueba fallaba por algo
+       que no era suyo. Lo cazó CI. */
+    for (let i = 0; i < 3; i++){ document.getElementById('fsDown').click(); await window.__pausa(500); }
+    await window.__pausa(800);
+    return { k, verso: g0 && (g0.cap + ':' + g0.vers), dxdy: g0 && [g0.dx, g0.dy],
+             antes, despues, primero: versos[0].dataset.k };
+  });
+  di('la perla y su versículo', JSON.stringify(ancla));
+  vale('(la prueba es válida) se soltó en el tercer versículo y la letra creció',
+       !ancla.falta && ancla.k !== ancla.primero && ancla.despues.em > ancla.antes.em,
+       ancla.falta || (ancla.antes.em + ' → ' + ancla.despues.em));
+  vale('LA PERLA GUARDA SU VERSÍCULO Y SU DISTANCIA, no el primero de la hoja',
+       Array.isArray(ancla.dxdy) && ancla.dxdy.every(Number.isFinite) && !!ancla.verso,
+       ancla.verso + ' · ' + JSON.stringify(ancla.dxdy));
+  vale('Y CON OTRA LETRA SIGUE JUNTO A ÉL, a la misma distancia en letras',
+       ancla.despues.hay && !!ancla.antes.lejos && !!ancla.despues.lejos &&
+       Math.abs(ancla.antes.lejos.dx - ancla.despues.lejos.dx) < .35 &&
+       Math.abs(ancla.antes.lejos.dy - ancla.despues.lejos.dy) < .35,
+       JSON.stringify(ancla.antes.lejos) + ' → ' + JSON.stringify(ancla.despues.lejos));
+  vale('  y su versículo no cambió', ancla.despues.verso === ancla.verso,
+       ancla.verso + ' → ' + ancla.despues.verso);
+
+  /* ---------------------------------------------------------------- */
   titulo('el tamaño: de una mota a media hoja');
   /* LA PROMESA QUE SE MIDE AQUÍ NO ES «CRECE», ES CUÁNTO. Lo que se pidió fue
      que se vieran DE LEJOS, con la vista alejada puesta, y eso es un salto de

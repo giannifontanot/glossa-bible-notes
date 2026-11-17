@@ -3811,6 +3811,127 @@
                    border:1px solid rgba(155,42,42,.45); border-radius:6px;
                    background:rgba(155,42,42,.09);
                    font:600 calc(12px * var(--escala-ui, 1))/1.45 var(--ui); color:#7c2020; }
+  /* LAS DOS PESTAÑAS DE DENTRO: COMPARTIR Y HERRAMIENTAS. Pedidas por Gianni:
+     el panel de compartir era sólo de herramientas —importar, exportar, el
+     crédito y la versión—, y ahora abre con el mapa de lectores. Las
+     herramientas no se fueron: viven en su pestaña, la segunda. Se parecen a
+     las pestañas de arriba en el dorado del que está puesto, pero son más
+     bajas y van a lo ancho: son de este panel, no del programa. */
+  /* COMO LAS PESTAÑAS DE UNA CARPETA, EN EL FILO DERECHO. Pedido por Gianni:
+     Compartir y Herramientas iban arriba, a lo ancho, como dos botones más; ahora
+     cuelgan del lado derecho de la hoja, de arriba hacia abajo, y se leen de
+     abajo hacia arriba, como el lomo de una carpeta. Cada una mide lo que mide
+     su palabra, así que caben muchas más que las dos de hoy.
+     La puesta es del MISMO sepia que el panel —es la hoja que tienes delante,
+     sale de ella sin costura— y tapa la raya que separa la hoja de las
+     pestañas; las otras van un poco más oscuras y con la sombra de la hoja
+     encima, que es como se lee «esta está debajo».
+     EL GIRO ES rotate(180deg) SOBRE vertical-rl, y no sideways-lr, que lo haría
+     sin girar pero hay Safari que todavía no lo entiende. Al girar media vuelta
+     se voltean también los lados: el filo de AFUERA (derecha en pantalla) es la
+     izquierda de la caja y la sombra «hacia abajo y a la derecha» se escribe
+     con desplazamientos negativos. Están así a propósito. */
+  #respaldo .carpeta{ display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:start; }
+  #respaldo .carpeta-hoja{ min-width:0; padding-right:10px;
+            border-right:1px solid rgba(120,92,40,.5); min-height:62vh; }
+  #respaldo .sub-pestanas{ display:flex; flex-direction:column; align-items:stretch; gap:5px;
+            position:sticky; top:4px; padding:10px 0 0; }
+  #respaldo .sub-pestanas button{ writing-mode:vertical-rl; transform:rotate(180deg);
+            position:relative; margin-left:-1px; padding:16px 8px; cursor:pointer;
+            border:1px solid rgba(120,92,40,.5); border-left-width:1px; border-right:0;
+            border-radius:10px 0 0 10px;
+            background:linear-gradient(to left, #c9b68c, #d4c39c);
+            color:#6b5630; letter-spacing:.05em;
+            font:600 calc(13px * var(--escala-ui, 1))/1 var(--ui);
+            box-shadow:inset -5px 0 6px -4px rgba(60,40,15,.45), -1px -1px 3px rgba(60,40,15,.18);
+            transition:background .2s, color .2s; }
+  #respaldo .sub-pestanas button.aqui{ background:#e9ddc3; color:#3d2f12; z-index:1;
+            box-shadow:-2px -2px 5px rgba(60,40,15,.28); }
+  #respaldo .sub-pestanas button:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
+  #respaldo .sub-panel[hidden]{ display:none; }
+  /* EL MAPA DE LECTORES, calcado del de Reveal —el app de maestros de
+     Gianni—: la Tierra entera en una caja cuadrada, doble toque para pantalla
+     completa, y en el teléfono dos dedos para moverlo, que un dedo mueve el
+     panel. Lo único que se trae de sus mandos es la casilla de compartir la
+     tuya; los de Reveal para elegir maestro o iglesia aquí no aplican. */
+  /* EL MAPA MIDE LO QUE MIDE EL QR, pedido por Gianni: «para que se vean
+     bonitos». La misma cuenta que .qr-glossa svg —min(44vh, 82%)— contra la
+     misma caja, así que los dos cuadros caen uno encima del otro con los
+     mismos filos. El renglón de arriba va dentro del marco por lo mismo. */
+  .mapa-marco{ width:min(44vh, 82%); margin:0 auto; }
+  .mapa-cabeza{ display:flex; align-items:center; justify-content:space-between; gap:6px 10px;
+                flex-wrap:wrap; margin:0 0 6px; }
+  .mapa-cabeza .mapa-leyenda{ flex:1 1 auto; margin:0; }
+  /* LA CASILLA LLEVA SU PALABRA A LA DERECHA, Y ES UNA SOLA: «¡Yo!». Iba un
+     «Compartir la mía» encima, en dos renglones, y se comía el alto de la
+     cabeza; Gianni la quiso así, confiando en que el sitio y el destello digan
+     lo demás. Toda la etiqueta es zona de toque, con su alto de dedo. */
+  .chk-ubic{ position:relative; display:inline-flex; align-items:center; gap:7px; min-height:44px;
+             padding:0 4px; margin-left:auto; cursor:pointer;
+             font:800 calc(14px * var(--escala-ui, 1))/1 var(--ui); color:#3d2f12; }
+  .chk-ubic input{ position:absolute; inset:0; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+  .chk-ubic .caja{ width:28px; height:28px; border-radius:9px; border:2px solid rgba(140,116,68,.55);
+                  background:#fffdf6; display:grid; place-items:center;
+                  transition:background .15s, border-color .15s; }
+  .chk-ubic input:checked + .caja{ background:#3a8f5c; border-color:#3a8f5c; }
+  .chk-ubic input:checked + .caja::after{ content:""; width:8px; height:14px; border:solid #fff;
+            border-width:0 3px 3px 0; transform:translateY(-2px) rotate(45deg); }
+  .chk-ubic input:focus-visible + .caja{ outline:2px solid #b8892b; outline-offset:2px; }
+  /* SIN MARCAR, UN HALO AMARILLO QUE DESTELLA SIN PARAR, como en los otros
+     programas de Gianni: es lo que hace que «¡Yo!» se entienda como «tócame».
+     Era un brillo dorado lento y apenas se notaba sobre el sepia. Marcada, el
+     destello se va y queda la palomita verde, quieta. */
+  @keyframes casillaInvita{
+    0%, 100%{ box-shadow:0 0 0 0 rgba(255,214,0,0), 0 0 0 0 rgba(255,196,0,0); }
+    50%{ box-shadow:0 0 0 5px rgba(255,214,0,.95), 0 0 16px 7px rgba(255,196,0,.7); } }
+  .chk-ubic input:not(:checked) + .caja{ animation:casillaInvita 1.1s ease-in-out infinite;
+                                         border-color:#d9a400; }
+  @media (prefers-reduced-motion: reduce){
+    .chk-ubic input:not(:checked) + .caja{ animation:none; box-shadow:0 0 0 4px rgba(255,214,0,.9); } }
+  .mapa-lienzo{ position:relative; width:100%; aspect-ratio:1 / 1; border-radius:12px; overflow:hidden;
+                border:1px solid rgba(140,116,68,.45); background:#aad3df; }
+  .mapa-lienzo.leaflet-container, .mapa-completo.leaflet-container{ background:#0f1a33; }
+  .mapa-completo{ position:fixed !important; inset:0; z-index:5000;
+                  width:100vw !important; height:100vh !important; height:100dvh !important;
+                  aspect-ratio:auto !important; border-radius:0 !important; border:0 !important; }
+  body.con-mapa-completo{ overflow:hidden; }
+  .mapa-cerrar{ position:absolute; z-index:1001; top:max(12px, env(safe-area-inset-top)); right:12px;
+                width:44px; height:44px; border-radius:999px; border:0; cursor:pointer;
+                background:rgba(17,21,43,.85); color:#fff; font-size:20px;
+                box-shadow:0 2px 10px rgba(0,0,0,.35); }
+  .mapa-dos-dedos{ position:absolute; inset:0; z-index:900; display:grid; place-items:center; padding:20px;
+                   background:rgba(10,12,26,.55); color:#fff; font:700 16px/1.3 var(--ui); text-align:center;
+                   opacity:0; pointer-events:none; transition:opacity .25s; }
+  .mapa-dos-dedos.ver{ opacity:1; }
+  .mapa-leyenda{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; margin:8px 2px 0;
+                 font:500 calc(12.5px * var(--escala-ui, 1))/1.3 var(--ui); color:#5c4a24; }
+  .mapa-leyenda .ley{ width:11px; height:11px; border-radius:50%; display:inline-block; margin-left:4px; }
+  .mapa-leyenda .ley.yo{ background:#3ddc84; }
+  .mapa-leyenda .ley.vivo{ background:#ff3b30; box-shadow:0 0 6px #ff3b30; }
+  .mapa-leyenda .ley.antes{ background:#e0787c; opacity:.75; }
+  .leaflet-interactive.punto-vivo{ filter:drop-shadow(0 0 4px rgba(255,59,48,.85)); }
+  /* EL QR: media pantalla de teléfono, cuadrado, en su tarjeta blanca —un QR
+     necesita su margen claro alrededor para que la cámara lo encuentre—. */
+  .qr-glossa{ display:flex; flex-direction:column; align-items:center; gap:6px;
+              margin:16px 0 4px; padding-top:14px; border-top:1px solid rgba(140,116,68,.35); }
+  .qr-glossa svg{ width:min(44vh, 82%); height:auto; aspect-ratio:1 / 1; display:block;
+                  padding:8px; background:#fff; border-radius:12px;
+                  border:1px solid rgba(140,116,68,.45); box-shadow:0 2px 6px rgba(60,40,15,.18); }
+  .qr-dice{ margin:4px 8px 0; text-align:center;
+            font:600 calc(14px * var(--escala-ui, 1))/1.35 var(--ui); color:#3d2f12; }
+  .qr-liga{ margin:0; font:500 calc(12px * var(--escala-ui, 1))/1.3 var(--ui); color:#7a6638; }
+  .mapa-estado{ margin:6px 2px 0; white-space:pre-line;
+                font:500 calc(12.5px * var(--escala-ui, 1))/1.4 var(--ui); color:#5c4a24; }
+  /* EN PANTALLA ANCHA, EL PANEL DE COMPARTIR TAMBIÉN SE DESPLAZA. La escena
+     de escritorio mide 470 de alto y el mapa cuadrado más el QR no caben: sin
+     esto no había manera de llegar al QR ni al botón de cerrar —el scroll de
+     los paneles solo estaba puesto en el teléfono—. Lo levantó Codex. Y sin
+     canto, por lo mismo que en el teléfono (ver la regla de max-width:560px):
+     en una caja que se desplaza, el canto se iría con el texto. */
+  @media (min-width: 561px){
+    #respaldo{ overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; }
+    #respaldo::before, #respaldo::after{ display:none; }
+  }
   .sello-version{ margin:13px 2px 3px; padding:9px 11px 8px;
                   border:1px solid rgba(140,116,68,.42); border-radius:7px;
                   background:rgba(184,137,43,.12);
@@ -7001,7 +7122,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 09:45';
+window.GLOSS_BUILD = '17-NOV-26 10:01';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8798,6 +8919,9 @@ function apuntarFallo(t){
   if (!p) return;
   p.textContent = t;
   p.hidden = false;
+  /* El fallo vive en Herramientas: se enseña esa pestaña, que si no el aviso
+     quedaría escrito detrás del mapa. */
+  if (typeof verSubRespaldo === 'function') verSubRespaldo('tools');
 }
 (function avisoQueSeVa(){
   const dentro = document.createElement('span');
@@ -14749,7 +14873,13 @@ function htmlCintaFoto(hojaN){
    de la foto solo trae PAGE_CSS y no ve la hoja de la aplicación. El sitio va
    en porcentaje igual que en vivo, así que la foto y la hoja coinciden sin
    tener que medir nada. Lo levantó la revisión de Codex. */
-function htmlPiedrasFoto(hojaN){
+/* `cuerpo` es el texto ya acomodado de la hoja que se retrata: pgBody para la
+   de la vista, ghostBody para la de antes o la de después, recién pasada por
+   layoutInto. Las piedras se anclan a su versículo, y el sitio se resuelve
+   contra ESE acomodo. Iba x.x/x.y a pelo y la foto ponía la piedra donde
+   estaba la última vez que se guardó, no junto a su versículo: con la letra
+   cambiada, la piedra brincaba al aterrizar la hoja. Lo levantó Codex. */
+function htmlPiedrasFoto(hojaN, cuerpo){
   if (hojaN == null || typeof piedras === 'undefined' || !piedras.length) return '';
   const desde = paginas[hojaN] || 0, hasta = finDe(hojaN);
   const mias = piedras.filter(x => {
@@ -14757,8 +14887,10 @@ function htmlPiedrasFoto(hojaN){
     return k >= 0 && k >= desde && k < hasta;
   });
   if (!mias.length) return '';
+  const inner = cuerpo && cuerpo.closest('.pg-inner');
   return '<div style="position:absolute;inset:0;z-index:4;pointer-events:none">' +
     mias.map(x => {
+      const sitio = inner ? piedraSitio(x, inner, cuerpo) : { fx: x.x, fy: x.y };
       /* EL TAMAÑO VA EN PORCENTAJE, igual que en la hoja viva, y por eso la
          foto y la hoja coinciden sin medir nada: el mismo número contra el
          mismo papel. Estuvo escrito como píxeles —PIEDRA_TAMS[x.tam] + 'px'—
@@ -14784,8 +14916,8 @@ function htmlPiedrasFoto(hojaN){
          Con el contraste de fábrica —125%— ya no es neutro, así que la piedra
          de la foto salía de otro color que la de la hoja en cuanto se volteaba
          una página. Lo levantó Codex. */
-      return '<div style="position:absolute;left:' + (x.x * 100).toFixed(3) + '%;' +
-        'top:' + (x.y * 100).toFixed(3) + '%;width:' + por + '%;aspect-ratio:1;' +
+      return '<div style="position:absolute;left:' + (sitio.fx * 100).toFixed(3) + '%;' +
+        'top:' + (sitio.fy * 100).toFixed(3) + '%;width:' + por + '%;aspect-ratio:1;' +
         /* Y LA SOMBRA VIAJA A LA FOTO, o la piedra se aplanaría durante el
            giro y volvería a levantarse al aterrizar: es el mismo brinco que
            este archivo lleva media docena de comentarios evitando. Escrita a
@@ -14815,8 +14947,8 @@ function htmlPiedrasFoto(hojaN){
    Devuelve cadena vacía si esta hoja no tiene piedras, y entonces no se carga
    ninguna segunda imagen: el volteo de una hoja sin piedras cuesta hoy
    exactamente lo que costaba antes. */
-function svgPiedrasSolas(w, h, hojaN){
-  const capa = htmlPiedrasFoto(hojaN);
+function svgPiedrasSolas(w, h, hojaN, cuerpo){
+  const capa = htmlPiedrasFoto(hojaN, cuerpo);
   if (!capa) return '';
   const med = enTelefono() ? { texto:pgBody.offsetWidth, glosa:pgMargin.offsetWidth,
                                hueco:11 } : null;
@@ -15032,7 +15164,7 @@ function fotoDeHojaCrudo(p, asignar){
   const palabras = medirPalabras(ghost);
   cargarFotoYPiedras(
     buildSVG(cuerpoHTML(from, hasta), r.marginHTML, r.footHTML, r.mw, r.gap, w, h, cabezaDe(from), p),
-    svgPiedrasSolas(w, h, p),
+    svgPiedrasSolas(w, h, p, ghostBody),
     (img, ip) => {
       /* Componer puede reventar —un lienzo enorme no siempre se reserva— y si
          revienta aquí, `asignar` no se llama nunca y quien esperaba la foto se
@@ -15060,7 +15192,7 @@ function makeSnapshotCrudo(){
   const palabras = medirPalabras(pg);
   cargarFotoYPiedras(
     buildSVG(cuerpoHTML(startIdx, nextIdx), curMarginHTML, curFootHTML, curMW, curGap, w, h, cabezaDe(startIdx), paginaActual),
-    svgPiedrasSolas(w, h, paginaActual),
+    svgPiedrasSolas(w, h, paginaActual, pgBody),
     (img, ip) => { if (mia !== rondaFoto) return;
              pageImg = componer(img, ms, palabras, w, h, ip); if (folding){ pg.classList.add('hidden'); drawFold(); } },
     () => { if (mia !== rondaFoto) return;
@@ -20211,7 +20343,11 @@ function cantoMarcarLibro(lib){
    era un toque fuera de la burbuja y se llevaba el panel entero: se cerraba
    la ventanita y el lector caía al libro, fuera del relato. Se vio al probar
    la ventanita antes de subirla. */
-const FUERA_NO = '.rollo, .fly, #menu, #versoPleno, #pgCabeza, #pgVersion, .lamina-grande, .ventanita';
+/* .mapa-completo: el mapa de lectores a pantalla completa se muda al <body>
+   (ver pantallaCompleta), fuera de su .rollo; sin esta excepción, tocarlo
+   —o tocar su ✕— cerraba el panel de Compartir que quedó debajo. Lo levantó
+   Codex. */
+const FUERA_NO = '.rollo, .fly, #menu, #versoPleno, #pgCabeza, #pgVersion, .lamina-grande, .ventanita, .mapa-completo';
 document.addEventListener('pointerdown', ev => {
   if (!burbujaAbierta()) return;
   if (ev.target.closest(FUERA_NO)) return;
@@ -20834,6 +20970,13 @@ function piedraSanear(x){
      una piedra sin sombra no guarda la clave, así que el archivo de quien no
      usa la sombra —que es como nacen todas— sigue siendo el de siempre. */
   if (x.sombra === true) r.sombra = true;
+  /* EL SITIO JUNTO A SU VERSÍCULO, en letras (em) desde donde empieza el
+     versículo —ver piedraAnclar—. Sólo lo tienen las que ya se anclaron; una
+     piedra de antes no lo trae y se ancla sola la primera vez que se ve. */
+  if (Number.isFinite(+x.dx) && Number.isFinite(+x.dy) && x.dx !== null && x.dy !== null){
+    r.dx = Math.max(-400, Math.min(400, +x.dx));
+    r.dy = Math.max(-400, Math.min(400, +x.dy));
+  }
   /* EL NOMBRE SOLO EXISTE SI LO HAY. Una piedra sin nombre no guarda la clave
      vacía: es como nacen todas, y así el archivo de quien no nombra ninguna
      sigue siendo el de siempre. Igual que las cintas. */
@@ -20893,6 +21036,86 @@ const piedraAqui = x => {
   return k >= 0 && k >= (paginas[paginaActual] || 0) && k < finDe(paginaActual);
 };
 const piedrasDeLaHoja = () => piedras.filter(piedraAqui);
+/* ANCLADAS AL VERSÍCULO, NO A LA HOJA. Pedido por Gianni: «que se guardaran
+   por libro y versículo, para que siempre fueran jaladas al mismo versículo,
+   no importando la hoja».
+
+   ANTES una piedra guardaba el PRIMER versículo de la hoja donde se puso y su
+   sitio como fracción del papel. Eso la devolvía a la hoja correcta, pero al
+   mismo PUNTO del papel: cambias la letra, las columnas o la versión, el
+   texto se reparte de otra manera, y la piedra se quedaba encima de otra
+   cosa. Ahora guarda el versículo que tiene DEBAJO y la distancia desde donde
+   ese versículo empieza, medida en letras del libro (em): con letra más
+   grande la distancia crece con ella, y si el versículo se va a la otra
+   columna o a otra hoja, la piedra se va con él.
+
+   x/y siguen guardados: son lo que usa una piedra hasta anclarse, y lo que
+   lee quien abra este archivo con una versión vieja del programa. */
+function piedraEscala(inner){
+  /* La vista de lejos encoge la hoja con transform: los rectángulos llegan
+     encogidos y el cuerpo de letra no. Esto los pone en la misma unidad. */
+  const w = inner.offsetWidth;
+  return w ? inner.getBoundingClientRect().width / w : 1;
+}
+function piedraLetra(inner, cuerpo){
+  return (parseFloat(getComputedStyle(cuerpo || pgBody).fontSize) || 15) * piedraEscala(inner);
+}
+/* DÓNDE EMPIEZA UN VERSÍCULO EN ESTA HOJA, en píxeles desde la esquina del
+   papel. Su primer rectángulo: el versículo puede partirse en dos renglones o
+   en dos columnas, y lo que no se mueve es dónde empieza. */
+function piedraVersoEnPapel(k, inner, cuerpo){
+  const el = (cuerpo || pgBody).querySelector('.v[data-k="' + k + '"]');
+  const r = el && el.getClientRects()[0];
+  if (!r) return null;
+  const c = inner.getBoundingClientRect();
+  return { x: r.left - c.left, y: r.top - c.top };
+}
+/* QUÉ VERSÍCULO HAY DEBAJO DE UN PUNTO DE LA PANTALLA. El que lo cubre; si el
+   punto cae en blanco —el margen, entre columnas, debajo del último renglón—,
+   el más cercano. */
+function piedraVersoEnPunto(cx, cy){
+  let mejor = -1, dist = Infinity;
+  for (const el of pgBody.querySelectorAll('.v[data-k]')){
+    for (const r of el.getClientRects()){
+      if (r.width < 1) continue;
+      const dx = cx < r.left ? r.left - cx : cx > r.right ? cx - r.right : 0;
+      const dy = cy < r.top ? r.top - cy : cy > r.bottom ? cy - r.bottom : 0;
+      const d = dx * dx + dy * dy;
+      if (d < dist){ dist = d; mejor = +el.dataset.k; }
+      if (d === 0) return mejor;
+    }
+  }
+  return mejor;
+}
+/* ANCLAR: con la piedra en (fx, fy) del papel, buscar su versículo y escribir
+   la distancia. Se llama al ponerla, al soltarla y al moverla con flechas. */
+function piedraAnclar(x, fx, fy){
+  const inner = pg.querySelector('.pg-inner');
+  if (!inner || x.libro !== LIBRO) return false;
+  const c = inner.getBoundingClientRect();
+  const k = piedraVersoEnPunto(c.left + fx * c.width, c.top + fy * c.height);
+  const it = k >= 0 && plano[k];
+  const v = it && piedraVersoEnPapel(k, inner);
+  if (!v) return false;
+  const em = piedraLetra(inner);
+  x.cap = it.cap; x.vers = it.vers;
+  x.dx = +((fx * c.width - v.x) / em).toFixed(3);
+  x.dy = +((fy * c.height - v.y) / em).toFixed(3);
+  return true;
+}
+/* EL SITIO DE UNA PIEDRA EN ESTA HOJA, en fracciones del papel. Anclada, sale
+   de su versículo; sin anclar, de lo guardado de siempre.
+   `cuerpo` es el texto contra el que se busca el versículo: el de la hoja viva
+   si no se dice otro, y el del fantasma cuando se retrata una hoja que no es
+   la que está a la vista (ver htmlPiedrasFoto). */
+function piedraSitio(x, inner, cuerpo){
+  if (x.dx == null || x.dy == null || !inner) return { fx: x.x, fy: x.y };
+  const v = piedraVersoEnPapel(piedraK(x), inner, cuerpo);
+  if (!v) return { fx: x.x, fy: x.y };
+  const c = inner.getBoundingClientRect(), em = piedraLetra(inner, cuerpo);
+  return { fx: Math.min(Math.max((v.x + x.dx * em) / c.width, 0), 1),
+           fy: Math.min(Math.max((v.y + x.dy * em) / c.height, 0), 1) };
+}
 /* EL VERSÍCULO AL QUE SE ANCLA UNA PIEDRA NUEVA: el primero de esta hoja. Es
    el único que no se mueve dentro de la hoja pase lo que pase con el reparto
    —el último sí se mueve, porque de él depende cuántos quepan— así que es el
@@ -22346,8 +22569,16 @@ function pintarPiedras(){
   } else if (capa.parentElement !== inner){
     inner.appendChild(capa);
   }
+  /* LAS DE ANTES SE ANCLAN LA PRIMERA VEZ QUE SE VEN: su punto de siempre en
+     este papel dice qué versículo tienen debajo, y desde ahí ya lo siguen.
+     EN MEMORIA, SIN GUARDAR: leer no escribe —es la regla de la casa, y la
+     vigila la prueba de la piedra que era una lámpara—. El ancla llega al
+     disco con el siguiente guardado de verdad, que guarda lo que hay en
+     memoria, igual que la figura vieja traducida. */
+  for (const x of mias) if (x.dx == null) piedraAnclar(x, x.x, x.y);
   capa.innerHTML = mias.map(x => {
     const edita = piedraEditando === x.id;
+    const sitio = piedraSitio(x, inner);
     /* EL TAMAÑO SE ESCRIBE EN PORCENTAJE DEL PAPEL y no en píxeles, que es
        como se guarda: así la piedra mide lo mismo de la hoja en cualquier
        pantalla y se encoge sola con la vista de lejos, sin que nadie recalcule
@@ -22356,7 +22587,7 @@ function pintarPiedras(){
        no tenía contra qué medir. */
     const por = (PIEDRA_TAMS[x.tam] * 100).toFixed(2);
     return '<div class="piedra-sitio' + (edita ? ' editando' : '') + '"' +
-        ' style="left:' + (x.x * 100).toFixed(3) + '%;top:' + (x.y * 100).toFixed(3) + '%' +
+        ' style="left:' + (sitio.fx * 100).toFixed(3) + '%;top:' + (sitio.fy * 100).toFixed(3) + '%' +
         ';--piedra-tam:' + por + '%"' +
         ' data-piedra="' + esc(x.id) + '">' +
       '<button type="button" class="piedra' + (x.sombra ? ' con-sombra' : '') +
@@ -22603,7 +22834,9 @@ let piedraComoEstaba = null;
 function abrirPiedraMando(){
   const x0 = piedraTaller.de(piedraEditando);
   piedraComoEstaba = x0 ? { id: piedraEditando, forma:x0.forma, color:x0.color,
-                            tam:x0.tam, x:x0.x, y:x0.y, sombra: x0.sombra === true }
+                            tam:x0.tam, x:x0.x, y:x0.y, sombra: x0.sombra === true,
+                            /* y su ancla, que también se mueve al soltarla */
+                            cap:x0.cap, vers:x0.vers, dx:x0.dx, dy:x0.dy }
                         : null;
   const el = $('piedraMando');
   pintarPiedraMando();
@@ -22660,6 +22893,8 @@ function ponerPiedra(){
               sombra: true,
               creado: ahora, tocado: ahora };
   piedras.unshift(x);
+  /* Nace junto al versículo que le toca debajo de su punto de salida. */
+  piedraAnclar(x, x.x, x.y);
   piedrasGuardar();
   /* NACE YA EN EDICIÓN, y eso es media explicación de cómo funciona: aparece
      con su mando puesto, así que se ve de entrada que se puede mover, cambiar
@@ -22692,6 +22927,8 @@ function piedraCancelarEdicion(){
   if (x){
     x.forma = c.forma; x.color = c.color; x.tam = c.tam;
     x.x = c.x; x.y = c.y;
+    if (c.cap != null){ x.cap = c.cap; x.vers = c.vers; }
+    if (c.dx != null){ x.dx = c.dx; x.dy = c.dy; } else { delete x.dx; delete x.dy; }
     if (c.sombra) x.sombra = true; else delete x.sombra;
     x.tocado = Date.now();
     t.guardar();
@@ -22916,6 +23153,9 @@ function piedraSoltar(ev){
   if (!x) return;
   if (g.movio){
     x.x = g.fx; x.y = g.fy; x.tocado = Date.now();
+    /* Y SE ANCLA AL VERSÍCULO SOBRE EL QUE SE SOLTÓ: si cayó en otro, ahora
+       es de ése. */
+    piedraAnclar(x, g.fx, g.fy);
     piedrasGuardar();
     pintarPiedras();                       /* y con él, colocarPiedraMando */
     /* El clic que manda el dedo al levantarse apagaría la edición en el oyente
@@ -23123,9 +23363,15 @@ document.addEventListener('keydown', ev => {
   const x = piedraTaller.de(piedraEditando);
   if (!x) return;
   ev.preventDefault(); ev.stopPropagation();
+  /* En la hoja, el paso sale de donde la piedra SE VE —que para una anclada
+     es junto a su versículo, no su x/y guardado— y al acabar se vuelve a
+     anclar, por si el paso la llevó encima de otro versículo. */
+  const enHoja = piedraTaller === TALLER_HOJA;
+  if (enHoja){ const s0 = piedraSitio(x, pg.querySelector('.pg-inner')); x.x = s0.fx; x.y = s0.fy; }
   x.x = Math.min(Math.max(x.x + paso[0] * PIEDRA_PASO, 0), 1);
   x.y = Math.min(Math.max(x.y + paso[1] * PIEDRA_PASO, 0), 1);
   x.tocado = Date.now();
+  if (enHoja) piedraAnclar(x, x.x, x.y);
   piedraTaller.guardar();
   /* Se mueve el nodo a mano y no se repinta la capa: repintando se pierde el
      foco, y quien mueve con flechas lo tiene puesto. Cada taller sabe cuál es
@@ -27305,12 +27551,380 @@ function armarManijasIndice(pagina, reordenar){
   };
 })();
 
+/* ---------- el mapa de lectores ---------- */
+/* QUÉ PESTAÑA DE COMPARTIR SE VE. Una u otra, nunca las dos. */
+function verSubRespaldo(cual){
+  const panel = document.getElementById('respaldo');
+  if (!panel) return;
+  panel.querySelectorAll('.sub-pestanas [data-sub]').forEach(b => {
+    const si = b.dataset.sub === cual;
+    b.classList.toggle('aqui', si);
+    b.setAttribute('aria-selected', String(si));
+  });
+  const c = document.getElementById('respCompartir'), t = document.getElementById('respTools');
+  if (c) c.hidden = cual !== 'compartir';
+  if (t) t.hidden = cual !== 'tools';
+}
+
+/* EL MAPA DE LECTORES, como el de Reveal —el app de maestros de Gianni—:
+   Leaflet con los mosaicos de OpenStreetMap, y los puntos en una base de
+   datos en tiempo real de Firebase.
+
+   EN SU PROPIO PROYECTO DE FIREBASE, NO EN EL DE REVEAL. Un primer borrador
+   apuntaba al proyecto de Reveal (berean-revelar), y Gianni lo paró antes de
+   que saliera: «no quiero que revuelvas las cosas». Glossa lleva su proyecto
+   aparte, que se crea en la consola de Firebase con su cuenta; mientras
+   MAPA_FB esté vacío, el mapa se ve —la Tierra, sin puntos— y la casilla
+   dice que todavía no está conectado. No se escribe nada en ninguna parte.
+
+   QUÉ SE GUARDA, y es poco a propósito: el CENTRO DE LA CIUDAD —redondeado a
+   dos decimales, ~1 km—, su nombre, si está leyendo ahora y cuándo se le vio.
+   Nada de nombres de persona: Glossa no tiene cuentas, y quien comparte entra
+   con una sesión anónima de Firebase que sólo sirve para que su punto sea
+   suyo —nadie más puede moverlo ni borrarlo—. Leer el mapa no pide sesión.
+   Sólo aparece quien marca la casilla, y desmarcarla borra el punto.
+
+   SE CARGA SÓLO CUANDO SE VE. Leaflet y Firebase pesan, y este programa abre
+   sin red: nada de esto se pide hasta que la pestaña de Compartir se enseña
+   en pantalla (IntersectionObserver), y si no hay red el mapa lo dice en su
+   renglón y el resto del programa ni se entera. */
+/* La configuración del proyecto de Firebase DE GLOSSA —apiKey, authDomain,
+   databaseURL, projectId, appId—. Vacía hasta que el proyecto exista. */
+const MAPA_FB = null;
+const MAPA_SDK = 'https://www.gstatic.com/firebasejs/12.17.0/';
+const MAPA_RAMA = 'lectores';
+const MAPA_LEAFLET = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min';
+const MAPA_TIERRA = [[-58, -170], [78, 180]];   // el mundo habitado, sin los polos
+const MAPA_CLAVE = 'glossa:mapa:v1';            // { comparto:true } si este lector aparece
+let mapaFb = null, mapaLeaflet = null;
+function mapaYo(){ try { return JSON.parse(localStorage.getItem(MAPA_CLAVE) || '{}'); } catch(_){ return {}; } }
+function mapaGuardarYo(o){ try { localStorage.setItem(MAPA_CLAVE, JSON.stringify(o)); } catch(_){} }
+function cargarLeaflet(){
+  if (window.L) return Promise.resolve();
+  mapaLeaflet = mapaLeaflet || new Promise((ok, no) => {
+    const css = document.createElement('link');
+    css.rel = 'stylesheet'; css.href = MAPA_LEAFLET + '.css';
+    document.head.append(css);
+    const js = document.createElement('script');
+    js.src = MAPA_LEAFLET + '.js';
+    js.onload = ok;
+    js.onerror = () => { mapaLeaflet = null; no(new Error('leaflet')); };
+    document.head.append(js);
+  });
+  return mapaLeaflet;
+}
+async function mapaBase(){
+  if (!MAPA_FB) throw new Error('sin-config');
+  if (!mapaFb){
+    const [app, db] = await Promise.all([import(MAPA_SDK + 'firebase-app.js'),
+                                         import(MAPA_SDK + 'firebase-database.js')]);
+    const a = app.initializeApp(MAPA_FB, 'glossa-mapa');
+    mapaFb = { app: a, db: db.getDatabase(a), dbm: db };
+  }
+  return mapaFb;
+}
+/* La sesión anónima se pide sólo para escribir el punto propio, y Firebase la
+   recuerda en este navegador: el mismo lector es el mismo punto mañana. */
+async function mapaUid(){
+  const f = await mapaBase();
+  if (!f.auth){
+    const am = await import(MAPA_SDK + 'firebase-auth.js');
+    f.am = am; f.auth = am.getAuth(f.app);
+    await f.auth.authStateReady();
+  }
+  if (!f.auth.currentUser) await f.am.signInAnonymously(f.auth);
+  return f.auth.currentUser.uid;
+}
+/* LA CIUDAD, NO LA CASA. Se pregunta a OpenStreetMap qué ciudad hay en ese
+   punto con el zoom de ciudad, y lo que se guarda es el centro de esa ciudad,
+   no la posición del aparato: todos los de una ciudad caen en el mismo punto. */
+async function mapaCiudad(pos){
+  const lat = pos.coords.latitude.toFixed(3), lng = pos.coords.longitude.toFixed(3);
+  try {
+    const j = await (await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10' +
+      '&addressdetails=1&lat=' + lat + '&lon=' + lng + '&accept-language=' + (idiomaUI() === 'en' ? 'en' : 'es'))).json();
+    const a = j.address || {};
+    const nombre = a.city || a.town || a.village || a.municipality || a.county || a.state || '';
+    const pais = (a.country_code || '').toUpperCase();
+    if (isFinite(+j.lat)) return { lat: Math.round(+j.lat * 100) / 100, lng: Math.round(+j.lon * 100) / 100,
+      ciudad: [nombre, a.state && a.state !== nombre ? a.state : '', pais].filter(Boolean).join(', ').slice(0, 60) };
+  } catch(_){}
+  return { lat: Math.round(+lat * 10) / 10, lng: Math.round(+lng * 10) / 10 };
+}
+/* LEYENDO AHORA: mientras el programa está abierto, el punto propio dice
+   enLinea, y Firebase lo apaga solo al cerrarse (onDisconnect). Sólo para
+   quien comparte. */
+async function mapaMarcarEnLinea(){
+  if (!MAPA_FB || !mapaYo().comparto) return;
+  try {
+    const uid = await mapaUid(), f = mapaFb, d = f.dbm;
+    const r = d.ref(f.db, MAPA_RAMA + '/' + uid);
+    d.onValue(d.ref(f.db, '.info/connected'), async s => {
+      if (!s.val()) return;
+      try {
+        await d.onDisconnect(r).update({ enLinea: false, visto: d.serverTimestamp() });
+        await d.update(r, { enLinea: true, visto: Date.now() });
+      } catch(_){}
+    });
+  } catch(_){}
+}
+function armarMapaLectores(caja){
+  /* ARRIBA DEL MAPA, UN SOLO RENGLÓN: lo que significa cada color y, a la
+     derecha, la casilla de compartir la tuya. Hubo aquí un letrero que
+     invitaba —«muéstranos desde qué ciudad lees»— y Gianni lo quitó para
+     ahorrar espacio: las etiquetas de colores van en su lugar y dicen lo
+     mismo con menos. */
+  caja.innerHTML =
+    '<div class="mapa-marco">' +
+    '<div class="mapa-cabeza">' +
+      '<p class="mapa-leyenda" aria-hidden="true"><span class="ley yo"></span><span data-es="Tú" data-en="You">' + T('Tú', 'You') + '</span>' +
+        '<span class="ley vivo"></span><span data-es="Leyendo ahora" data-en="Reading now">' + T('Leyendo ahora', 'Reading now') + '</span>' +
+        '<span class="ley antes"></span><span data-es="Ha leído" data-en="Has read">' + T('Ha leído', 'Has read') + '</span></p>' +
+      '<label class="chk-ubic"><input type="checkbox" id="chkMapa"' + (mapaYo().comparto ? ' checked' : '') +
+          ' aria-label="' + T('Compartir mi ciudad en el mapa', 'Share my city on the map') + '"><span class="caja" aria-hidden="true"></span>' +
+          '<span aria-hidden="true" data-es="¡Yo!" data-en="Me!">' + T('¡Yo!', 'Me!') + '</span></label>' +
+    '</div>' +
+    '<div class="mapa-lienzo" id="mapaLectores" aria-label="' + T('Mapa de lectores', 'Readers map') + '"></div>' +
+    '<p class="mapa-estado" id="mapaEstado"></p>' +
+    '</div>' +
+    /* EL QR, LA MITAD DE ABAJO. Pedido por Gianni: debajo del mapa, un QR de
+       media pantalla en el teléfono con la liga a la Biblia Glossa, para que
+       quien está al lado la abra en el suyo y la descargue. Va DIBUJADO aquí
+       —una ruta de SVG ya calculada— y no generado al vuelo: la dirección no
+       cambia, y así se ve aunque no haya red, que es justo cuando uno está
+       con alguien enseñándole el teléfono. Si la app se muda, se vuelve a
+       calcular este dibujo. */
+    '<div class="qr-glossa">' +
+      '<svg viewBox="0 0 37 37" role="img" aria-label="' +
+        T('Código QR para abrir la Biblia Glossa', 'QR code to open the Gloss Bible') + '" shape-rendering="crispEdges">' +
+        '<rect width="37" height="37" fill="#fff"/><path fill="#1d1a16" d="M2 2h7v1h-7zM11 2h3v1h-3zM15 2h1v1h-1zM19 2h1v1h-1zM21 2h3v1h-3zM25 2h1v1h-1zM28 2h7v1h-7zM2 3h1v1h-1zM8 3h1v1h-1zM11 3h2v1h-2zM14 3h4v1h-4zM19 3h1v1h-1zM22 3h3v1h-3zM26 3h1v1h-1zM28 3h1v1h-1zM34 3h1v1h-1zM2 4h1v1h-1zM4 4h3v1h-3zM8 4h1v1h-1zM10 4h1v1h-1zM12 4h4v1h-4zM19 4h7v1h-7zM28 4h1v1h-1zM30 4h3v1h-3zM34 4h1v1h-1zM2 5h1v1h-1zM4 5h3v1h-3zM8 5h1v1h-1zM10 5h2v1h-2zM16 5h3v1h-3zM21 5h1v1h-1zM25 5h2v1h-2zM28 5h1v1h-1zM30 5h3v1h-3zM34 5h1v1h-1zM2 6h1v1h-1zM4 6h3v1h-3zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h2v1h-2zM15 6h1v1h-1zM17 6h1v1h-1zM20 6h1v1h-1zM25 6h1v1h-1zM28 6h1v1h-1zM30 6h3v1h-3zM34 6h1v1h-1zM2 7h1v1h-1zM8 7h1v1h-1zM10 7h4v1h-4zM15 7h4v1h-4zM22 7h2v1h-2zM26 7h1v1h-1zM28 7h1v1h-1zM34 7h1v1h-1zM2 8h7v1h-7zM10 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM24 8h1v1h-1zM26 8h1v1h-1zM28 8h7v1h-7zM10 9h1v1h-1zM14 9h1v1h-1zM17 9h1v1h-1zM20 9h5v1h-5zM2 10h1v1h-1zM4 10h5v1h-5zM11 10h1v1h-1zM15 10h3v1h-3zM19 10h3v1h-3zM24 10h3v1h-3zM28 10h5v1h-5zM2 11h1v1h-1zM5 11h2v1h-2zM10 11h2v1h-2zM13 11h1v1h-1zM18 11h1v1h-1zM20 11h3v1h-3zM25 11h1v1h-1zM28 11h2v1h-2zM31 11h2v1h-2zM34 11h1v1h-1zM5 12h2v1h-2zM8 12h2v1h-2zM12 12h2v1h-2zM17 12h2v1h-2zM20 12h1v1h-1zM23 12h2v1h-2zM26 12h1v1h-1zM30 12h1v1h-1zM32 12h2v1h-2zM3 13h3v1h-3zM9 13h1v1h-1zM12 13h1v1h-1zM16 13h3v1h-3zM21 13h5v1h-5zM27 13h1v1h-1zM30 13h5v1h-5zM2 14h1v1h-1zM4 14h1v1h-1zM8 14h2v1h-2zM13 14h1v1h-1zM17 14h1v1h-1zM20 14h2v1h-2zM24 14h3v1h-3zM29 14h3v1h-3zM33 14h2v1h-2zM2 15h2v1h-2zM6 15h2v1h-2zM9 15h2v1h-2zM12 15h8v1h-8zM21 15h1v1h-1zM23 15h1v1h-1zM25 15h1v1h-1zM28 15h1v1h-1zM31 15h4v1h-4zM2 16h4v1h-4zM7 16h2v1h-2zM10 16h1v1h-1zM12 16h1v1h-1zM15 16h2v1h-2zM19 16h1v1h-1zM22 16h1v1h-1zM24 16h1v1h-1zM26 16h3v1h-3zM30 16h2v1h-2zM33 16h1v1h-1zM4 17h2v1h-2zM9 17h5v1h-5zM16 17h1v1h-1zM18 17h1v1h-1zM20 17h2v1h-2zM23 17h1v1h-1zM25 17h5v1h-5zM31 17h2v1h-2zM2 18h3v1h-3zM6 18h4v1h-4zM12 18h5v1h-5zM18 18h2v1h-2zM24 18h1v1h-1zM26 18h2v1h-2zM29 18h2v1h-2zM34 18h1v1h-1zM2 19h2v1h-2zM7 19h1v1h-1zM9 19h1v1h-1zM13 19h1v1h-1zM16 19h1v1h-1zM18 19h5v1h-5zM25 19h1v1h-1zM28 19h2v1h-2zM31 19h2v1h-2zM34 19h1v1h-1zM3 20h1v1h-1zM5 20h2v1h-2zM8 20h1v1h-1zM10 20h1v1h-1zM12 20h1v1h-1zM14 20h2v1h-2zM17 20h1v1h-1zM19 20h1v1h-1zM22 20h1v1h-1zM24 20h1v1h-1zM27 20h4v1h-4zM32 20h1v1h-1zM2 21h2v1h-2zM9 21h5v1h-5zM15 21h3v1h-3zM19 21h2v1h-2zM23 21h1v1h-1zM26 21h2v1h-2zM29 21h6v1h-6zM4 22h2v1h-2zM8 22h3v1h-3zM13 22h3v1h-3zM18 22h1v1h-1zM22 22h1v1h-1zM24 22h1v1h-1zM26 22h2v1h-2zM30 22h2v1h-2zM33 22h2v1h-2zM2 23h3v1h-3zM6 23h1v1h-1zM9 23h2v1h-2zM12 23h3v1h-3zM16 23h2v1h-2zM20 23h3v1h-3zM25 23h1v1h-1zM28 23h1v1h-1zM31 23h1v1h-1zM34 23h1v1h-1zM2 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM13 24h2v1h-2zM17 24h3v1h-3zM22 24h1v1h-1zM24 24h1v1h-1zM27 24h1v1h-1zM30 24h1v1h-1zM32 24h2v1h-2zM2 25h1v1h-1zM6 25h1v1h-1zM9 25h2v1h-2zM12 25h1v1h-1zM16 25h2v1h-2zM22 25h3v1h-3zM26 25h4v1h-4zM31 25h2v1h-2zM2 26h1v1h-1zM4 26h1v1h-1zM7 26h2v1h-2zM10 26h3v1h-3zM15 26h1v1h-1zM17 26h1v1h-1zM19 26h1v1h-1zM24 26h7v1h-7zM33 26h1v1h-1zM10 27h2v1h-2zM14 27h2v1h-2zM18 27h1v1h-1zM20 27h3v1h-3zM26 27h1v1h-1zM30 27h1v1h-1zM32 27h1v1h-1zM34 27h1v1h-1zM2 28h7v1h-7zM11 28h1v1h-1zM13 28h2v1h-2zM17 28h1v1h-1zM20 28h1v1h-1zM24 28h3v1h-3zM28 28h1v1h-1zM30 28h1v1h-1zM32 28h2v1h-2zM2 29h1v1h-1zM8 29h1v1h-1zM10 29h3v1h-3zM14 29h1v1h-1zM16 29h3v1h-3zM22 29h5v1h-5zM30 29h4v1h-4zM2 30h1v1h-1zM4 30h3v1h-3zM8 30h1v1h-1zM10 30h1v1h-1zM12 30h1v1h-1zM15 30h1v1h-1zM17 30h1v1h-1zM20 30h1v1h-1zM24 30h1v1h-1zM26 30h6v1h-6zM34 30h1v1h-1zM2 31h1v1h-1zM4 31h3v1h-3zM8 31h1v1h-1zM10 31h5v1h-5zM17 31h3v1h-3zM21 31h2v1h-2zM24 31h4v1h-4zM30 31h2v1h-2zM33 31h2v1h-2zM2 32h1v1h-1zM4 32h3v1h-3zM8 32h1v1h-1zM10 32h1v1h-1zM20 32h1v1h-1zM24 32h1v1h-1zM28 32h2v1h-2zM31 32h1v1h-1zM2 33h1v1h-1zM8 33h1v1h-1zM14 33h1v1h-1zM16 33h1v1h-1zM18 33h1v1h-1zM22 33h2v1h-2zM30 33h3v1h-3zM2 34h7v1h-7zM10 34h1v1h-1zM12 34h1v1h-1zM15 34h1v1h-1zM18 34h2v1h-2zM22 34h1v1h-1zM24 34h3v1h-3zM28 34h2v1h-2zM31 34h1v1h-1zM33 34h1v1h-1z"/></svg>' +
+      '<p class="qr-dice"><span data-es="Escanéalo con otro teléfono para abrir la Biblia Glossa" ' +
+        'data-en="Scan it with another phone to open the Gloss Bible">' +
+        T('Escanéalo con otro teléfono para abrir la Biblia Glossa', 'Scan it with another phone to open the Gloss Bible') + '</span></p>' +
+      '<p class="qr-liga">giannifontanot.github.io/glossa-bible-notes</p>' +
+    '</div>';
+  const lienzo = caja.querySelector('#mapaLectores'), estado = caja.querySelector('#mapaEstado');
+  let mapa = null, capa = null, completo = false, tactil = false;
+  const decir = t => { estado.textContent = t; };
+  const cerrar = document.createElement('button');
+  cerrar.type = 'button'; cerrar.className = 'mapa-cerrar'; cerrar.textContent = '✕';
+  cerrar.setAttribute('aria-label', T('Cerrar', 'Close'));
+  /* TODA LA TIERRA SIN FRANJAS, la cuenta de Reveal: en la caja cuadrada el
+     mundo llena el alto; en pantalla completa vertical se ve todo el ancho. */
+  function verTierra(){
+    const { x: w, y: h } = mapa.getSize();
+    if (h <= w * 1.15){
+      mapa.setView([0, 0], Math.ceil(Math.log2(h / 256) * 4) / 4, { animate: false });
+      return;
+    }
+    mapa.fitBounds(MAPA_TIERRA, { animate: false });
+  }
+  /* A PANTALLA COMPLETA, EL MAPA SE MUDA AL <body>. position:fixed no basta:
+     el panel abierto conserva un transform y un clip-path, y la escena lleva
+     filter y overflow:hidden; cualquiera de ellos hace de caja contenedora
+     del fixed, así que el mapa «a pantalla completa» salía recortado al panel
+     y en escritorio la ✕ quedaba fuera de lo visible. Lo levantó Codex. Se
+     deja un marcador en su sitio para devolverlo exactamente ahí. */
+  const marcador = document.createComment('mapa de lectores');
+  function pantallaCompleta(si){
+    if (si === completo || !mapa) return;
+    completo = si;
+    if (si){ lienzo.before(marcador); document.body.appendChild(lienzo); }
+    else if (marcador.parentNode){ marcador.replaceWith(lienzo); }
+    lienzo.classList.toggle('mapa-completo', si);
+    document.body.classList.toggle('con-mapa-completo', si);
+    if (si) lienzo.append(cerrar); else cerrar.remove();
+    if (tactil){ si ? mapa.dragging.enable() : mapa.dragging.disable(); }
+    setTimeout(() => { mapa.invalidateSize(); verTierra(); }, 60);
+  }
+  cerrar.addEventListener('click', ev => { ev.stopPropagation(); pantallaCompleta(false); });
+  /* ESCAPE EN CAPTURA, Y SE QUEDA AQUÍ. El oyente del documento cierra los
+     rollos con Escape, y llegaba antes que éste: cerraba Compartir y luego
+     esto devolvía el mapa a un panel ya escondido —el lector caía al libro—.
+     Con el mapa ampliado, Escape solo sale de pantalla completa; igual que la
+     lámina grande de los relatos. Lo levantó Codex. */
+  addEventListener('keydown', ev => {
+    if (ev.key !== 'Escape' || !completo) return;
+    ev.stopImmediatePropagation(); ev.preventDefault();
+    pantallaCompleta(false);
+  }, true);
+  async function pintar(){
+    try { await cargarLeaflet(); }
+    catch(_){ decir(T('No se pudo cargar el mapa (¿sin conexión?).', 'The map could not load (offline?).')); return; }
+    const L = window.L;
+    if (!mapa){
+      /* En el teléfono un dedo mueve el panel, no el mapa; con dos se mueve y
+         se acerca. En pantalla completa un dedo sí lo mueve. */
+      tactil = L.Browser.mobile || matchMedia('(pointer: coarse)').matches;
+      mapa = L.map(lienzo, { worldCopyJump: true, scrollWheelZoom: false, doubleClickZoom: false,
+                             zoomSnap: .25, minZoom: 0, dragging: !tactil, touchZoom: true, zoomControl: false });
+      if (tactil){
+        const aviso = document.createElement('div');
+        aviso.className = 'mapa-dos-dedos';
+        aviso.textContent = T('Usa dos dedos para mover el mapa', 'Use two fingers to move the map');
+        lienzo.append(aviso);
+        let t = 0;
+        lienzo.addEventListener('touchstart', e => {
+          if (completo || e.touches.length !== 1){ aviso.classList.remove('ver'); return; }
+          clearTimeout(t); t = setTimeout(() => aviso.classList.add('ver'), 250);
+        }, { passive: true });
+        lienzo.addEventListener('touchmove', e => {
+          if (e.touches.length > 1){ clearTimeout(t); aviso.classList.remove('ver'); }
+        }, { passive: true });
+        lienzo.addEventListener('touchend', () => {
+          clearTimeout(t); setTimeout(() => aviso.classList.remove('ver'), 1200);
+        }, { passive: true });
+      }
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  { maxZoom: 12, attribution: '© OpenStreetMap' }).addTo(mapa);
+      capa = L.layerGroup().addTo(mapa);
+      verTierra();
+      mapa.on('dblclick', () => pantallaCompleta(!completo));
+    }
+    let puntos = {};
+    if (!MAPA_FB){
+      capa.clearLayers();
+      decir(T('El mapa de lectores todavía no está conectado: muy pronto podrás aparecer aquí.',
+              'The readers map is not connected yet: soon you’ll be able to appear here.'));
+      setTimeout(() => { if (mapa){ mapa.invalidateSize(); verTierra(); } }, 60);
+      return;
+    }
+    try {
+      const f = await mapaBase();
+      puntos = (await f.dbm.get(f.dbm.ref(f.db, MAPA_RAMA))).val() || {};
+    } catch(_){
+      decir(T('No se pudieron leer los lectores del mapa.', 'Could not read the readers on the map.'));
+    }
+    const yoUid = mapaFb && mapaFb.auth && mapaFb.auth.currentUser ? mapaFb.auth.currentUser.uid : null;
+    const lista = Object.entries(puntos).map(([uid, p]) => ({ uid, ...p }))
+      .filter(p => isFinite(p.lat) && isFinite(p.lng));
+    capa.clearLayers();
+    /* Por capas: los que leyeron antes abajo, los que leen ahora encima, y el
+       tuyo arriba de todos. */
+    const nivel = p => p.uid === yoUid ? 2 : p.enLinea ? 1 : 0;
+    for (const p of lista.sort((a, b) => nivel(a) - nivel(b))){
+      const yo = p.uid === yoUid, vivo = !yo && p.enLinea === true;
+      const color = yo ? '#3ddc84' : vivo ? '#ff3b30' : '#e0787c';
+      const dias = p.visto ? Math.floor((Date.now() - p.visto) / 864e5) : null;
+      const cuando = yo ? T('Tú', 'You') : vivo ? T('Leyendo ahora', 'Reading now')
+        : dias == null ? '' : dias < 1 ? T('Hoy', 'Today') : T('Hace ' + dias + ' días', dias + ' days ago');
+      const esc2 = t => String(t || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+      L.circleMarker([p.lat, p.lng], { radius: yo ? 9 : 8, color, weight: 2, opacity: vivo || yo ? 1 : .6,
+                                        fillColor: color, fillOpacity: vivo || yo ? .85 : .5,
+                                        className: vivo ? 'punto-vivo' : '' })
+        .bindPopup('<b>' + esc2(p.ciudad || T('Un lector', 'A reader')) + '</b>' + (cuando ? '<br>' + esc2(cuando) : ''))
+        .addTo(capa);
+    }
+    const n = lista.length;
+    if (!estado.textContent || /lector|reader/i.test(estado.textContent))
+      decir(n === 0 ? T('Aún no hay lectores en el mapa: sé el primero.', 'No readers on the map yet: be the first.')
+          : n === 1 ? T('1 lector en el mapa.', '1 reader on the map.')
+          : T(n + ' lectores en el mapa.', n + ' readers on the map.'));
+    setTimeout(() => { if (mapa){ mapa.invalidateSize(); verTierra(); } }, 60);
+  }
+  /* SE PINTA AL VERSE, no al armarse: el panel nace escondido y Leaflet mide
+     mal una caja de cero píxeles. Cada vez que vuelve a verse, se repinta con
+     los lectores de ese momento. */
+  new IntersectionObserver(entradas => {
+    if (entradas.some(e => e.isIntersecting)) pintar();
+  }).observe(lienzo);
+  caja.querySelector('#chkMapa').addEventListener('change', async ev => {
+    const c = ev.target;
+    /* SIN PROYECTO, LA CASILLA SIGUE VIVA. Estuvo apagada, y apagada no
+       destellaba ni se dejaba tocar: el halo invitaba a algo imposible. Ahora
+       se toca, dice que el mapa todavía no está conectado y vuelve a su sitio,
+       sin pedir la ubicación —preguntar dónde estás para nada es lo peor que
+       puede hacer una casilla—. */
+    if (!MAPA_FB){
+      c.checked = false;
+      decir(T('El mapa todavía no está conectado.', 'The map is not connected yet.'));
+      return;
+    }
+    c.disabled = true;
+    try {
+      if (!c.checked){
+        try {
+          const uid = await mapaUid(), f = mapaFb;
+          try { await f.dbm.onDisconnect(f.dbm.ref(f.db, MAPA_RAMA + '/' + uid)).cancel(); } catch(_){}
+          await f.dbm.remove(f.dbm.ref(f.db, MAPA_RAMA + '/' + uid));
+          mapaGuardarYo({});
+          decir(T('Listo: tu ciudad ya no está en el mapa.', 'Done: your city is no longer on the map.'));
+        } catch(_){
+          c.checked = true;
+          decir(T('No se pudo quitar tu ciudad. Inténtalo otra vez.', 'Could not remove your city. Try again.'));
+        }
+        return;
+      }
+      if (!navigator.geolocation){
+        c.checked = false;
+        decir(T('Este aparato no puede decir dónde está.', 'This device cannot tell where it is.'));
+        return;
+      }
+      decir(T('Buscando tu ciudad…', 'Finding your city…'));
+      const pos = await new Promise((ok, no) => navigator.geolocation.getCurrentPosition(ok, no,
+                                    { maximumAge: 3600e3, timeout: 15000 }));
+      const u = await mapaCiudad(pos);
+      const uid = await mapaUid(), f = mapaFb;
+      await f.dbm.set(f.dbm.ref(f.db, MAPA_RAMA + '/' + uid), { ...u, enLinea: true, visto: Date.now() });
+      mapaGuardarYo({ comparto: true });
+      mapaMarcarEnLinea();
+      decir(T('Listo: apareces en el mapa', 'Done: you appear on the map') + (u.ciudad ? ' (' + u.ciudad + ')' : '') + '.');
+      pintar();
+    } catch(_){
+      c.checked = false;
+      decir(T('No se pudo compartir tu ciudad. Revisa el permiso de ubicación.',
+              'Could not share your city. Check the location permission.'));
+    } finally { c.disabled = false; }
+  });
+  /* Quien ya comparte, al abrir el programa se marca «leyendo ahora». Va
+     tarde a propósito: el arranque es del libro, no del mapa. */
+  if (mapaYo().comparto) setTimeout(mapaMarcarEnLinea, 4000);
+}
+
 /* El panel de Respaldo se arma con los botones que vivían en la barra de
    abajo: exportar e importar, que son las dos cosas que le pasan al archivo
    de tus glosas, no al texto ni a la página. ("Borrar todo" estuvo aquí y se
    fue del programa entero; la razón está más arriba, donde se quitó.) */
 (function armarRespaldo(){
-  const caja = document.getElementById('respaldo');
+  /* DOS PESTAÑAS DENTRO DEL PANEL: COMPARTIR, la de inicio, con el mapa de
+     lectores; y HERRAMIENTAS, con todo lo que este panel tenía —importar y
+     exportar, la casilla de los tiempos, el crédito y la versión—. Lo pidió
+     Gianni. Todo lo de abajo se arma igual que antes, sólo que dentro de
+     Herramientas: `caja` es ahora esa pestaña y no el panel. */
+  const panel = document.getElementById('respaldo');
+  const nav = document.createElement('div');
+  nav.className = 'sub-pestanas';
+  nav.setAttribute('role', 'tablist');
+  nav.innerHTML =
+    '<button type="button" role="tab" data-sub="compartir" class="aqui" aria-selected="true">' +
+      '<span data-es="Compartir" data-en="Share">' + T('Compartir', 'Share') + '</span></button>' +
+    '<button type="button" role="tab" data-sub="tools" aria-selected="false">' +
+      '<span data-es="Herramientas" data-en="Tools">' + T('Herramientas', 'Tools') + '</span></button>';
+  /* LA CARPETA: la hoja a la izquierda y las pestañas colgando de su filo
+     derecho (ver #respaldo .carpeta). La navegación va DESPUÉS de la hoja en
+     el documento para que quede a la derecha sin trucos de orden. */
+  const carpeta = document.createElement('div');
+  carpeta.className = 'carpeta';
+  const hoja = document.createElement('div');
+  hoja.className = 'carpeta-hoja';
+  carpeta.appendChild(hoja);
+  carpeta.appendChild(nav);
+  nav.setAttribute('aria-orientation', 'vertical');
+  panel.appendChild(carpeta);
+  const compartir = document.createElement('div');
+  compartir.className = 'sub-panel';
+  compartir.id = 'respCompartir';
+  hoja.appendChild(compartir);
+  const caja = document.createElement('div');
+  caja.className = 'sub-panel';
+  caja.id = 'respTools';
+  caja.hidden = true;
+  hoja.appendChild(caja);
+  nav.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-sub]');
+    if (b) verSubRespaldo(b.dataset.sub);
+  });
+  armarMapaLectores(compartir);
   const fila = document.createElement('div');
   fila.className = 'ajuste ancho';
   fila.innerHTML = '<span class="lbl" data-es="archivo" data-en="file">' + T('archivo', 'file') + '</span>';
