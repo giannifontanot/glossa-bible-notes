@@ -877,41 +877,44 @@
              width:92px; height:92px; margin:-46px 0 0 -46px;
              pointer-events:none; opacity:0; transition:opacity .16s linear; }
   #buscando.viva{ opacity:1; }
-  /* EL ARO. Un anillo tenue con un arco dorado que da vueltas, y se acabó.
+  /* LAS BOLITAS. Ocho puntos en corro, de más a menos, dando vueltas.
 
-     Aquí hubo antes un halo elíptico con estela de cometa, y el problema no
-     era que estuviera mal hecho: era que había que DESCIFRARLO. Una figura que
-     pide un instante para entenderse no sirve como aviso de espera, porque el
-     aviso de espera se mira de reojo mientras piensas en otra cosa. Un aro
-     girando no se interpreta, se reconoce.
+     Aquí estuvo antes un aro: anillo tenue con un arco dorado girando. Y
+     antes que él un halo con estela de cometa, que se quitó porque había que
+     descifrarlo. El aro se reconocía, pero no se VEÍA: cuatro píxeles de
+     línea sobre el papel, del mismo marrón que la letra, y con un panel
+     encima se perdía. Gianni lo dijo así —«no me gusta, que sea más visible,
+     me gusta el que es como unas bolitas que dan vuelta»—. Las bolitas
+     tienen más tinta que una raya del mismo tamaño, y la cola que se apaga
+     dice hacia dónde giran sin tener que mirarlas.
 
-     Lo único que no se negocia es cómo se anima: transform y nada más. Esas
-     las lleva el compositor, que es otro hilo, así que el aro sigue girando
-     mientras el principal está trabado —que es exactamente cuando este aviso
-     existe—. Cualquier cosa que pidiera repintar el borde o el color se
-     congelaría con él, y un aviso de espera congelado dice "colgado".
+     Lo que no se negocia sigue igual: se anima transform y nada más. Esas las
+     lleva el compositor, que es otro hilo, así que las bolitas siguen girando
+     mientras el principal está trabado repaginando —que es justo cuando este
+     aviso existe—. Las bolitas no se animan una por una: cada una tiene su
+     tinta fija y lo que gira es el corro entero.
 
-     El arco cubre un cuarto de vuelta: menos parece un punto suelto y más deja
-     de leerse como algo que gira. El resto del anillo se queda puesto y tenue,
-     para que el arco tenga un camino visible que recorrer. */
-  #buscando .aro{ position:absolute; left:50%; top:50%;
-                  width:52px; height:52px; margin:-26px 0 0 -26px;
-                  border-radius:50%; border:4px solid rgba(122,96,42,.28);
-                  border-top-color:#b8892b;
-                  /* UN FILO DE PAPEL A CADA LADO DEL ANILLO, y nada más. Sin
-                     fondo, el aro cae encima de los renglones y las letras se
-                     le cruzan por debajo: se lee, pero cuesta. Con un disco
-                     entero tapando el texto se leería de sobra y volveríamos a
-                     lo que ya se descartó.
-                     Dos sombras —una por fuera y otra por dentro— despejan una
-                     banda de tres píxeles pegada al anillo. Es lo justo para
-                     que el círculo se recorte contra algo y siga sin tapar la
-                     hoja. Son sombras estáticas: no animan nada, así que no le
-                     quitan al compositor lo que se le vino a dar. */
-                  box-shadow:0 0 0 3px rgba(253,251,246,.78),
-                             inset 0 0 0 3px rgba(253,251,246,.78);
-                  animation:giroBuscando .85s linear infinite;
-                  will-change:transform; }
+     Cada bolita lleva un filo de papel alrededor, por lo mismo que lo llevaba
+     el aro: sin él la letra de la hoja se le cruza por debajo y cuesta
+     leerla. Es una sombra quieta, así que no le pide nada al compositor. */
+  #buscando .bolitas{ position:absolute; left:50%; top:50%;
+                      width:72px; height:72px; margin:-36px 0 0 -36px;
+                      animation:giroBuscando 1s linear infinite;
+                      will-change:transform; }
+  #buscando .bolitas i{ position:absolute; left:50%; top:50%;
+                        width:14px; height:14px; margin:-7px 0 0 -7px;
+                        border-radius:50%; background:#8a6418;
+                        box-shadow:0 0 0 3px rgba(253,251,246,.9); }
+  /* La primera es la de delante: entera y grande. Las demás se van achicando
+     y apagando hacia atrás, y eso es la cola que hace leer el giro. */
+  #buscando .bolitas i:nth-child(1){ transform:rotate(0deg)   translateY(-28px) scale(1);   opacity:1; }
+  #buscando .bolitas i:nth-child(2){ transform:rotate(-45deg)  translateY(-28px) scale(.92); opacity:.86; }
+  #buscando .bolitas i:nth-child(3){ transform:rotate(-90deg)  translateY(-28px) scale(.84); opacity:.72; }
+  #buscando .bolitas i:nth-child(4){ transform:rotate(-135deg) translateY(-28px) scale(.76); opacity:.58; }
+  #buscando .bolitas i:nth-child(5){ transform:rotate(-180deg) translateY(-28px) scale(.68); opacity:.46; }
+  #buscando .bolitas i:nth-child(6){ transform:rotate(-225deg) translateY(-28px) scale(.6);  opacity:.36; }
+  #buscando .bolitas i:nth-child(7){ transform:rotate(-270deg) translateY(-28px) scale(.54); opacity:.28; }
+  #buscando .bolitas i:nth-child(8){ transform:rotate(-315deg) translateY(-28px) scale(.5);  opacity:.22; }
   @keyframes giroBuscando{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
   /* La frase que lee el lector de pantalla. Se esconde a la vista sin salir
      del árbol de accesibilidad, que es justo lo que display:none y
@@ -920,12 +923,12 @@
   #buscando .dice{ position:absolute; width:1px; height:1px; margin:-1px;
                    padding:0; border:0; overflow:hidden; white-space:nowrap;
                    clip-path:inset(50%); }
-  /* Quien pidió menos movimiento no se queda sin aviso: se queda con el aro
-     puesto, entero y quieto, que sigue diciendo "estoy en ello". */
+  /* Quien pidió menos movimiento no se queda sin aviso: se queda con las
+     bolitas puestas y quietas, que siguen diciendo "estoy en ello". */
   @media (prefers-reduced-motion: reduce){
-    /* Quieto se queda el aro entero encendido: sigue diciendo "estoy en ello"
-       sin moverse. */
-    #buscando .aro{ animation:none; border-color:#c9a227; opacity:.6; }
+    /* Quieto se queda el corro entero: sigue diciendo "estoy en ello" sin
+       moverse. */
+    #buscando .bolitas{ animation:none; }
   }
   /* ============================================================
      LA HOJA ENTERA, DESDE LEJOS.
@@ -6689,8 +6692,8 @@
        mostrarBuscando escribe la frase y quitarBuscando la borra, que es lo
        que de verdad dispara el anuncio. Lo encontró la revisión de Codex. -->
   <div id="buscando" role="status" aria-live="polite">
-    <!-- Un aro y ya: anillo tenue, arco dorado girando. -->
-    <div class="aro"></div>
+    <!-- Ocho bolitas en corro, de más a menos, dando vueltas. -->
+    <div class="bolitas"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <span class="dice"></span>
   </div>
   <div class="edge edge-l" id="edgeL" title="Clic: hoja anterior · Arrastra: pliega"></div>
@@ -6900,7 +6903,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 19:38';
+window.GLOSS_BUILD = '16-NOV-26 19:40';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25292,9 +25295,21 @@ function ponerPreset(id){
   guardarAjustes();
   reflejarPresets();
 }
+/* CON LAS BOLITAS, Y DEJÁNDOLAS PINTAR ANTES. Poner un preset repagina el
+   libro entero —letra, columnas y glosas al margen de una vez—, y en un
+   teléfono eso son segundos de hilo trabado. Gianni lo notó: «se tarda en
+   pasar de uno al otro». El latido del botón (.obrando) no basta para eso:
+   es un acuse de «te oí», y en un panel opaco que tapa la hoja no dice que
+   se esté rehaciendo nada. Así que el preset espera dos cuadros —trasPintar,
+   ver allí por qué uno no alcanza— para que las bolitas ya estén girando
+   cuando el hilo se trabe; giran por el compositor, así que siguen girando
+   mientras tanto. */
 $('presetsFormato').addEventListener('click', ev => {
   const b = ev.target.closest('[data-preset]');
-  if (b) ponerPreset(b.dataset.preset);
+  if (!b) return;
+  const id = b.dataset.preset;
+  mostrarBuscando(T('cambiando el formato…', 'changing the layout…'));
+  trasPintar(() => { ponerPreset(id); quitarBuscando(); });
 });
 /* Cualquier otro mando del panel puede apagar o encender un preset —tocar a
    mano es salirse—, así que después de cada uno se vuelve a mirar. Después y

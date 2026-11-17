@@ -161,6 +161,28 @@ const AJUSTES = 'glossa:ajustes:v1';
        aMano.a.fontSize === 16 && aMano.a.columns === 3 && aMano.a.fuente === 0 && aMano.a.espaciado === 0,
        [aMano.a.fontSize, aMano.a.columns, aMano.a.fuente, aMano.a.espaciado].join(' · '));
 
+  /* LAS BOLITAS AL CAMBIAR DE PRESET. Poner uno repagina el libro entero,
+     y Gianni notó que tarda: pidió el aviso de espera. Se toca SOLO con el
+     click, sin pointerdown, que es lo que llega de un teléfono cuando el
+     navegador se come el resto —el aviso no puede depender de él—. Y se mira
+     en el cuadro siguiente: que las bolitas estén puestas cuando el
+     navegador pinta, que es lo único que el lector ve. */
+  titulo('al cambiar de preset salen las bolitas, y se van');
+  const espera = await p.evaluate(async () => {
+    const bu = document.getElementById('buscando');
+    document.querySelector('[data-preset="dos"]').click();
+    const enElCuadro = await new Promise(z => requestAnimationFrame(() => z(bu.classList.contains('viva'))));
+    const bolitas = bu.querySelectorAll('.bolitas i').length;
+    await new Promise(z => setTimeout(z, 1200));
+    return { enElCuadro, bolitas, despues: bu.classList.contains('viva'),
+             cols: JSON.parse(localStorage.getItem('glossa:ajustes:v1')).columns };
+  });
+  di('la espera', espera);
+  vale('LAS BOLITAS SE PINTAN ANTES DE REPAGINAR', espera.enElCuadro === true && espera.bolitas === 8,
+       JSON.stringify(espera));
+  vale('  y se van cuando el preset ya está puesto', espera.despues === false && espera.cols === 2,
+       JSON.stringify(espera));
+
   /* LETRA GRANDE LLEVA LA LUZ DE LEGIBLE, que Gianni se la pidió igual. Se
      devuelven antes los dos rieles a mano —con su evento de input, como un
      dedo— para que el 140 y el 85 que se lean sean suyos y no lo que dejó
