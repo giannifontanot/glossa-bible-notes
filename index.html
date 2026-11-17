@@ -3912,7 +3912,7 @@
      una frase cálida que diga qué pasa si la marcas, y la tranquilidad de que
      solo se ve la ciudad —que es lo que más frena a quien duda en tocarla—. */
   .chk-ubic .yo{ display:flex; flex-direction:column; gap:2px; text-align:left; }
-  .chk-ubic .yo-dice{ font:500 calc(12.5px * var(--escala-ui, 1))/1.25 var(--ui); color:#5c4a24; }
+  .chk-ubic .yo-dice{ font:600 calc(13px * var(--escala-ui, 1))/1.25 var(--ui); color:#3d2f12; }
   .chk-ubic .yo-dice small{ display:block; font-size:.88em; color:#7a6638; }
   .chk-ubic input{ position:absolute; inset:0; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
   .chk-ubic .caja{ width:28px; height:28px; border-radius:9px; border:2px solid rgba(140,116,68,.55);
@@ -3984,6 +3984,28 @@
     #respaldo{ overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; }
     #respaldo::before, #respaldo::after{ display:none; }
   }
+  /* LAS SECCIONES DE HERRAMIENTAS Y ATRIBUCIONES. Un título pequeño en
+     versalitas, la sección debajo, y 22 px de aire hasta la siguiente: el ojo
+     ve bloques y no una lista de cosas sueltas. */
+  .herr-sec{ margin:6px 2px 22px; }
+  .herr-tit{ margin:0 0 10px; padding-bottom:6px; border-bottom:1px solid rgba(140,116,68,.3);
+             font:700 calc(11.5px * var(--escala-ui, 1))/1.2 var(--ui); letter-spacing:.12em;
+             text-transform:uppercase; color:#7a6538; }
+  /* EL SELLO, MÁS GRANDE: un tercio más que la letra del libro, pedido por
+     Gianni («la quiero más grande, la quiero visible»). Es lo que se lee de
+     prisa y desde lejos cuando algo falla. La regla va con #respaldo delante
+     para ganarle a la que le pone a todo el panel la letra del libro. */
+  #respaldo .sello-version{ font-size:calc(var(--fs-libro, 15px) * 1.32); text-align:center;
+                            padding:12px 11px 11px; }
+  .herr-dice{ margin:0 0 12px; line-height:1.45; color:#5c4a24; font-size:.93em; }
+  .herr-botones{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
+  #respaldo .herr-botones .btn{ width:100%; min-height:46px; justify-content:center; }
+  #respaldo .herr-crono .casilla{ color:#3d2f12; min-height:44px; }
+  .atrib-lista{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; }
+  .atrib-lista li{ padding-left:14px; position:relative; color:#3d2f12; line-height:1.4; }
+  .atrib-lista li::before{ content:''; position:absolute; left:2px; top:.62em; width:5px; height:5px;
+                           border-radius:50%; background:rgba(140,116,68,.6); }
+  #respCreditos .cred{ color:#3d2f12; line-height:1.4; }
   .sello-version{ margin:13px 2px 3px; padding:9px 11px 8px;
                   border:1px solid rgba(140,116,68,.42); border-radius:7px;
                   background:rgba(184,137,43,.12);
@@ -4957,13 +4979,42 @@
      botones del resto de la aplicación. Ahora son tres iguales —filtrar,
      editar, guardar— repartidos a lo ancho del panel, con el alto de dedo de
      44 px y la letra y el signo un punto más grandes, como los de FORMATO. */
+  /* CON AIRE ARRIBA Y ABAJO, pedido por Gianni: «están demasiado echados
+     arriba». Pegados a la barra de pestañas se leían como parte de ella;
+     con su hueco propio, encima y debajo, son la entrada del panel. */
   #ctrlEtiquetas .fila-etiq{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr));
-                             gap:8px; grid-column:1 / -1; }
+                             gap:8px; grid-column:1 / -1; margin:12px 0 10px; }
   #btnVerEtiquetas, #btnElegirGlosas, #btnGuardarGlosas{ width:100%; min-height:44px;
           padding:0 8px; justify-content:center; letter-spacing:.04em;
           font-size:calc(15px * var(--escala-ui, 1)); }
   #ctrlEtiquetas .fila-etiq .btn-signo .signo{ width:19px; height:19px; }
   #ctrlEtiquetas.sin-chips #filaFiltros{ display:none; }
+  #panelGuardar{ display:none; }
+  #ctrlEtiquetas.guardando #panelGuardar{ display:block; }
+  #panelGuardar .guardar-pronto{ margin:10px 4px 12px; text-align:center;
+            font:500 calc(13px * var(--escala-ui, 1))/1.4 var(--ui); color:#7a6638; font-style:italic; }
+  /* LA MANIJA DEL ALTO DE LA LISTA DE ETIQUETAS. Pedida por Gianni: el filo
+     de abajo de la lista se toma y se arrastra para hacerla más chica o más
+     grande, y se queda así la próxima vez que abra FILTRAR o EDITAR —las dos
+     listas comparten el alto, que es la misma pregunta: cuántas etiquetas
+     quiero ver de un vistazo—. Se ve como las manijas de la casa: una rayita
+     de 4 px; se toca en 22, que con el relleno de la fila llega a dedo. */
+  /* Con un alto escogido, la lista MIDE eso —no «hasta» eso—: si se agranda
+     con pocas etiquetas, se agranda de verdad, que es lo que se ve en la
+     manija; con muchas, se desplaza por dentro como siempre. */
+  #etiquetas.alto-propio #filtros,
+  #etiquetas.alto-propio #barraGrupo .taglista{ height:var(--alto-etiquetas); max-height:none; }
+  /* La fila de FILTRAR es un .ajuste —flex en renglón—: sin esto la manija
+     caía en una columna a la derecha de las pastillas y no debajo de ellas.
+     Lo levantó Codex. */
+  #filaFiltros{ flex-wrap:wrap; }
+  #filaFiltros > .manija-alto{ flex:0 0 100%; }
+  .manija-alto{ display:flex; justify-content:center; align-items:center; height:22px;
+                margin:2px 0 -4px; cursor:ns-resize; touch-action:none; user-select:none; }
+  .manija-alto::before{ content:''; width:42px; height:4px; border-radius:999px;
+                        background:rgba(140,116,68,.45); transition:background .15s; }
+  .manija-alto:hover::before, .manija-alto.tirando::before{ background:rgba(110,85,40,.75); }
+  .manija-alto:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; border-radius:6px; }
   /* EL GRUPO DE LETRA, ESCONDIDO HASTA QUE SE PIDE. Misma mecánica que la tira
      de chips —una clase en el panel, no un display en el nodo— para que las
      tres puertas se apaguen y se enciendan por el mismo camino y nadie tenga
@@ -5844,7 +5895,14 @@
   #menu .gl-fila{ display:grid; grid-template-columns:minmax(44px, 1fr) auto minmax(44px, 1fr);
                   position:relative;
                   align-items:stretch; gap:6px; }
-  #menu .gl-fila .gl-vista{ align-self:center; }
+  /* PEGADA ARRIBA Y CRECIENDO HACIA ABAJO, pedido por Gianni: «la glosa debe
+     tener más o menos el mismo tamaño y crecer hacia abajo». Iba centrada en
+     su renglón, y el renglón mide por lo menos lo que la columna de mandos de
+     los lados: mientras la nota era más baja que ellos, cada renglón nuevo la
+     hacía crecer por arriba y por abajo a la vez —la nota subía—. Arriba del
+     todo, lo nuevo solo baja. El ancho no se mueve: es el de la columna de
+     glosas de la hoja, medido de una nota ya puesta (ver anchoVista). */
+  #menu .gl-fila .gl-vista{ align-self:start; }
   /* APRETADA: no caben a los lados (ver anchoPanelComoGlosa). El anticipo arriba
      a todo lo ancho y, debajo, el espaciado a la izquierda y el tamaño a la
      derecha, en renglón: menos, la seña, más —el más a la derecha, que es
@@ -6897,7 +6955,17 @@
      el desplazamiento, que es justo lo que tiene que quedarse quieto. Va
      aria-hidden porque no dice nada que no diga ya el propio desplazamiento a
      quien navega sin verlo. Ver #filtrosRiel. -->
-<span id="filtrosRiel" aria-hidden="true"><i></i></span></div>
+<span id="filtrosRiel" aria-hidden="true"><i></i></span>
+  <!-- La manija del alto de la lista: ver manijaAlto. -->
+  <div class="manija-alto" role="separator" aria-orientation="horizontal" tabindex="0"
+       aria-label="Cambiar el alto de la lista de etiquetas"
+       data-en-aria="Change the height of the tag list"></div></div>
+<!-- EL PANEL DE GUARDAR, todavía vacío. Pedido por Gianni: «cuando clique
+     guardar, abre un panel y ya después vemos qué ponemos». Abre y cierra
+     suave como los de filtrar y editar, y se excluye con ellos. -->
+<div class="ajuste ancho" id="panelGuardar">
+  <p class="guardar-pronto" data-es="Aquí vivirá lo que decidamos guardar." data-en="What we decide to save will live here.">Aquí vivirá lo que decidamos guardar.</p>
+</div>
 </div>
 
 <div class="stage" id="stage">
@@ -7211,7 +7279,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 12:44';
+window.GLOSS_BUILD = '17-NOV-26 16:22';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -14178,8 +14246,12 @@ function abrirSuave(el){
   if (!el) return;
   let quieto = false;
   try { quieto = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(_){}
-  if (quieto) return;
   clearTimeout(el._relojSuave);
+  /* Si venía cerrándose (ver cerrarSuave), se le quita lo que el cierre le
+     había puesto: sin esto se mediría a media bajada —o en cero— y se
+     quedaría ahí. */
+  limpiarSuave(el);
+  if (quieto) return;
   /* EL ALTO SE PREGUNTA A LA CAJA, no a scrollHeight: con box-sizing:border-box
      —que aquí es global— lo que se le escribe a `height` incluye relleno y
      borde, y scrollHeight deja el borde fuera. Con un borde de 1 px por lado
@@ -14219,18 +14291,55 @@ function abrirSuave(el){
   /* Se limpia por reloj y no por transitionend: si el lector apaga el mando a
      mitad de camino, ese evento no llega nunca y el alto se quedaría clavado
      en un número que mañana ya no es el suyo. */
-  el._relojSuave = setTimeout(() => {
-    el.style.transition = '';
-    el.style.height = '';
-    el.style.marginTop = '';
-    el.style.marginBottom = '';
-    el.style.paddingTop = '';
-    el.style.paddingBottom = '';
-    el.style.overflow = '';
-  }, SUAVE_MS + 40);
+  el._relojSuave = setTimeout(() => limpiarSuave(el), SUAVE_MS + 40);
+}
+function limpiarSuave(el){
+  el.style.transition = '';
+  el.style.height = '';
+  el.style.marginTop = '';
+  el.style.marginBottom = '';
+  el.style.paddingTop = '';
+  el.style.paddingBottom = '';
+  el.style.overflow = '';
+  el.style.display = '';
+}
+/* Y AHORA TAMBIÉN CIERRA SUAVE. Pedido por Gianni: «que abra suave y también
+   cierre suave». Arriba se explica por qué el cierre era seco —dos
+   animaciones cruzándose cuando un modo apaga a otro—; visto, no es barullo:
+   el que se va baja mientras el que llega sube, y el índice de abajo apenas se
+   mueve en vez de pegar un salto.
+   Se llama ANTES de quitarle la clase que lo enseña: guarda su display en
+   línea para que la clase no lo esconda de golpe, baja a cero su alto, sus
+   márgenes y su relleno, y al terminar se lo quita todo y la clase manda. Si
+   alguien lo vuelve a abrir a media bajada, abrirSuave limpia y empieza
+   desde donde estaba la hoja de estilo. */
+function cerrarSuave(el){
+  if (!el) return;
+  clearTimeout(el._relojSuave);
+  limpiarSuave(el);
+  let quieto = false;
+  try { quieto = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(_){}
+  const cs = getComputedStyle(el);
+  const alto = Math.round(el.getBoundingClientRect().height);
+  if (quieto || cs.display === 'none' || !alto) return;
+  el.style.display = cs.display;
+  el.style.overflow = 'hidden';
+  el.style.height = alto + 'px';
+  void el.offsetHeight;
+  const curva = SUAVE_MS + 'ms cubic-bezier(.4,0,.6,1)';
+  el.style.transition = 'height ' + curva + ', margin-top ' + curva +
+                        ', margin-bottom ' + curva + ', padding-top ' + curva +
+                        ', padding-bottom ' + curva;
+  el.style.height = '0px';
+  el.style.marginTop = '0px';
+  el.style.marginBottom = '0px';
+  el.style.paddingTop = '0px';
+  el.style.paddingBottom = '0px';
+  el._relojSuave = setTimeout(() => limpiarSuave(el), SUAVE_MS + 40);
 }
 function verEtiquetas(on){
   const estaba = !$('ctrlEtiquetas').classList.contains('sin-chips');
+  if (!on && estaba) cerrarSuave($('filaFiltros'));
   $('ctrlEtiquetas').classList.toggle('sin-chips', !on);
   const b = $('btnVerEtiquetas');
   b.classList.toggle('active', on);
@@ -14245,6 +14354,7 @@ function verEtiquetas(on){
      Manda el gesto de ahora, como en destaparLaNueva: el que acabas de tocar
      se enciende y el otro se va. */
   if (on && eligiendoGlosas) elegirGlosas(false);
+  if (on && guardandoGlosas) verGuardar(false);
   /* Y el aviso de «hay más» sólo se puede medir con la tira a la vista:
      escondida, su alto es cero y la cuenta diría siempre que no hay más. */
   if (on) avisarMasEtiquetas();
@@ -14350,6 +14460,9 @@ $('btnVerEtiquetas').onclick = () => {
   verEtiquetas($('ctrlEtiquetas').classList.contains('sin-chips'));
 };
 let eligiendoGlosas = false;
+/* GUARDAR, el tercer modo del panel GLOSAS (ver verGuardar). Se declara aquí,
+   junto a EDITAR, porque verEtiquetas lo consulta y se llama al arrancar. */
+let guardandoGlosas = false;
 const glosasElegidas = new Set();
 /* QUÉ ETIQUETA SE ESTÁ RENOMBRANDO, o null si no hay ninguna.
 
@@ -14420,7 +14533,11 @@ function pintarBarraGrupo(){
         : '<button type="button" class="btn crear" data-acc="creartag-grupo" aria-disabled="true">' +
             T('+ nueva','+ new') + '</button>') +
     '</div>' +
-    '<div class="taglista">' + htmlLista + '</div>';
+    '<div class="taglista">' + htmlLista + '</div>' +
+    /* La misma manija que la tira de filtrar: el alto que pongas en una
+       vale en la otra (ver manijaAlto). */
+    '<div class="manija-alto" role="separator" aria-orientation="horizontal" tabindex="0" ' +
+      'aria-label="' + T('Cambiar el alto de la lista de etiquetas', 'Change the height of the tag list') + '"></div>';
 }
 /* BAJAR UNA ETIQUETA A LA CAJA. Se repinta y DESPUÉS se busca el campo: el
    repintado rehace el renglón entero, así que el que había antes ya no existe
@@ -14519,6 +14636,7 @@ function quitarTagGrupo(t){
    oyente de un botón si otro las va a necesitar. */
 function elegirGlosas(on){
   const estaba = eligiendoGlosas;
+  if (!on && estaba) cerrarSuave($('barraGrupo'));
   eligiendoGlosas = on;
   const b = $('btnElegirGlosas');
   b.classList.toggle('active', on);
@@ -14532,14 +14650,115 @@ function elegirGlosas(on){
     document.querySelectorAll('#indice .ix-item.elegida')
       .forEach(el => el.classList.remove('elegida'));
   }
-  /* Las otras dos partes de la exclusión; está contada en verEtiquetas. */
-  if (on) verEtiquetas(false);
+  /* Las otras partes de la exclusión; está contada en verEtiquetas. */
+  if (on){ verEtiquetas(false); if (guardandoGlosas) verGuardar(false); }
   marcarFiltroEscondido();
   pintarBarraGrupo();
   /* Detrás de pintarBarraGrupo, que es quien le mete dentro la cuenta y las
      etiquetas: preguntarle el alto antes sería preguntárselo vacía. */
   if (on && !estaba) abrirSuave($('barraGrupo'));
 }
+/* GUARDAR: el tercer modo, por ahora un panel vacío que abre y cierra suave
+   y se excluye con FILTRAR y EDITAR, igual que ellos entre sí. Lo que vaya
+   dentro está por decidir con Gianni. */
+function verGuardar(on){
+  const estaba = guardandoGlosas;
+  if (!on && estaba) cerrarSuave($('panelGuardar'));
+  guardandoGlosas = on;
+  $('ctrlEtiquetas').classList.toggle('guardando', on);
+  const b = $('btnGuardarGlosas');
+  b.classList.toggle('active', on);
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  if (on){ verEtiquetas(false); if (eligiendoGlosas) elegirGlosas(false); }
+  if (on && !estaba) abrirSuave($('panelGuardar'));
+}
+$('btnGuardarGlosas').setAttribute('aria-pressed', 'false');
+$('btnGuardarGlosas').onclick = () => verGuardar(!guardandoGlosas);
+
+/* LA MANIJA DEL ALTO DE LA LISTA DE ETIQUETAS (ver .manija-alto). Un solo
+   alto para la tira de FILTRAR y para la lista de EDITAR, guardado en su
+   propia llave: es una preferencia de vista, no un ajuste de lectura.
+   Se arrastra con el dedo —puntero capturado, para que el dedo pueda salirse
+   de la rayita sin soltarla— o con las flechas desde el teclado. El alto va
+   de unos dos renglones de pastillas hasta el 70 % de la escena. */
+const LLAVE_ALTO_ETIQ = 'glossa:altoEtiquetas:v1';
+function topesAltoEtiq(){
+  const escena = $('stage') ? $('stage').getBoundingClientRect().height : innerHeight;
+  return [40, Math.max(120, Math.round((escena || innerHeight) * .7))];
+}
+function ponerAltoEtiq(px, guardar){
+  const [min, max] = topesAltoEtiq();
+  const v = Math.round(Math.max(min, Math.min(max, px)));
+  $('etiquetas').style.setProperty('--alto-etiquetas', v + 'px');
+  $('etiquetas').classList.add('alto-propio');
+  if (guardar){ try { localStorage.setItem(LLAVE_ALTO_ETIQ, String(v)); } catch(_){} }
+  if (typeof avisarMasEtiquetas === 'function') avisarMasEtiquetas();
+  return v;
+}
+/* EL ALTO GUARDADO SE TOPA CONTRA LA ESCENA DE AHORA, no contra la de
+   cuando se guardó: agrandada en un teléfono alto y abierta después en
+   horizontal o en una ventana baja, la lista podía pasar del alto de la escena
+   entera, aplastar el índice y dejar la manija fuera del panel. Se topa al
+   arrancar —con la escena ya medida— y cada vez que cambia el tamaño, sin
+   tocar lo guardado: si la pantalla vuelve a crecer, vuelve el alto pedido.
+   Lo levantó Codex. */
+function altoEtiqGuardado(){
+  let v = null;
+  try { v = parseFloat(localStorage.getItem(LLAVE_ALTO_ETIQ)); } catch(_){}
+  return v > 0 ? v : null;
+}
+function toparAltoEtiq(){
+  const v = altoEtiqGuardado();
+  if (v) ponerAltoEtiq(v, false);
+}
+requestAnimationFrame(toparAltoEtiq);
+addEventListener('resize', () => {
+  clearTimeout(toparAltoEtiq._reloj);
+  toparAltoEtiq._reloj = setTimeout(toparAltoEtiq, 150);
+});
+/* La lista a la que sirve una manija es la que tiene justo encima. */
+function listaDeManija(m){
+  const fila = m.closest('#filaFiltros');
+  return fila ? $('filtros') : (m.parentElement && m.parentElement.querySelector('.taglista'));
+}
+(function manijaAlto(){
+  const panel = $('etiquetas');
+  let tiro = null;
+  panel.addEventListener('pointerdown', ev => {
+    const m = ev.target.closest && ev.target.closest('.manija-alto');
+    if (!m || ev.button > 0) return;
+    const lista = listaDeManija(m);
+    if (!lista) return;
+    ev.preventDefault();
+    tiro = { m, id: ev.pointerId, y: ev.clientY, alto: lista.getBoundingClientRect().height };
+    m.classList.add('tirando');
+    try { m.setPointerCapture(ev.pointerId); } catch(_){}
+  });
+  panel.addEventListener('pointermove', ev => {
+    if (!tiro || ev.pointerId !== tiro.id) return;
+    ev.preventDefault();
+    ponerAltoEtiq(tiro.alto + (ev.clientY - tiro.y), false);
+  });
+  const soltar = ev => {
+    if (!tiro || ev.pointerId !== tiro.id) return;
+    const lista = listaDeManija(tiro.m);
+    tiro.m.classList.remove('tirando');
+    if (ev.type === 'pointerup' && lista)
+      ponerAltoEtiq(tiro.alto + (ev.clientY - tiro.y), true);
+    tiro = null;
+  };
+  panel.addEventListener('pointerup', soltar);
+  panel.addEventListener('pointercancel', soltar);
+  panel.addEventListener('keydown', ev => {
+    const m = ev.target.closest && ev.target.closest('.manija-alto');
+    if (!m || (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown')) return;
+    const lista = listaDeManija(m);
+    if (!lista) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    ponerAltoEtiq(lista.getBoundingClientRect().height + (ev.key === 'ArrowDown' ? 24 : -24), true);
+  });
+})();
 /* HUBO UN TERCER MODO, «LETRA» (el botón AA), que abría aquí el tamaño y el
    espaciado de las glosas y se excluía con FILTRAR y EDITAR. Se fue: Gianni
    mudó esos mandos a los lados de la ventanita de la glosa, donde se ve lo que
@@ -27693,9 +27912,11 @@ function verSubRespaldo(cual){
     b.classList.toggle('aqui', si);
     b.setAttribute('aria-selected', String(si));
   });
-  const c = document.getElementById('respCompartir'), t = document.getElementById('respTools');
+  const c = document.getElementById('respCompartir'), t = document.getElementById('respTools'),
+        a = document.getElementById('respCreditos');
   if (c) c.hidden = cual !== 'compartir';
   if (t) t.hidden = cual !== 'tools';
+  if (a) a.hidden = cual !== 'creditos';
 }
 
 /* EL MAPA DE LECTORES, como el de Reveal —el app de maestros de Gianni—:
@@ -27814,11 +28035,12 @@ function armarMapaLectores(caja){
         '<span class="ley antes"></span><span data-es="Ha leído" data-en="Has read">' + T('Ha leído', 'Has read') + '</span></p>' +
       '<label class="chk-ubic"><input type="checkbox" id="chkMapa"' + (mapaYo().comparto ? ' checked' : '') +
           ' aria-label="' + T('Compartir mi ciudad en el mapa', 'Share my city on the map') + '"><span class="caja" aria-hidden="true"></span>' +
-          '<span class="yo" aria-hidden="true"><span data-es="¡Yo!" data-en="Me!">' + T('¡Yo!', 'Me!') + '</span>' +
-          '<span class="yo-dice"><span data-es="Enciende tu lucecita en el mapa" data-en="Light up your spot on the map">' +
+          /* SIN EL «¡YO!», pedido por Gianni: la invitación ya lo dice todo y
+             la palabra suelta costaba un renglón. */
+          '<span class="yo yo-dice" aria-hidden="true"><span data-es="Enciende tu lucecita en el mapa" data-en="Light up your spot on the map">' +
             T('Enciende tu lucecita en el mapa', 'Light up your spot on the map') + '</span>' +
           '<small data-es="solo se ve tu ciudad" data-en="only your city shows">' +
-            T('solo se ve tu ciudad', 'only your city shows') + '</small></span></span></label>' +
+            T('solo se ve tu ciudad', 'only your city shows') + '</small></span></label>' +
     '</div>' +
     '<div class="mapa-lienzo" id="mapaLectores" aria-label="' + T('Mapa de lectores', 'Readers map') + '"></div>' +
     '<p class="mapa-estado" id="mapaEstado"></p>' +
@@ -27921,8 +28143,9 @@ function armarMapaLectores(caja){
     let puntos = {};
     if (!MAPA_FB){
       capa.clearLayers();
-      decir(T('El mapa de lectores todavía no está conectado: muy pronto podrás aparecer aquí.',
-              'The readers map is not connected yet: soon you’ll be able to appear here.'));
+      /* Sin letrero: decía que el mapa todavía no estaba conectado, y Gianni
+         lo quitó —cuando se conecte, el mapa se explica solo—. */
+      decir('');
       setTimeout(() => { if (mapa){ mapa.invalidateSize(); verTierra(); } }, 60);
       return;
     }
@@ -28022,6 +28245,54 @@ function armarMapaLectores(caja){
    abajo: exportar e importar, que son las dos cosas que le pasan al archivo
    de tus glosas, no al texto ni a la página. ("Borrar todo" estuvo aquí y se
    fue del programa entero; la razón está más arriba, donde se quitó.) */
+/* ATRIBUCIONES: todo lo que hay que reconocer, en su pestaña. Pedido por
+   Gianni: «abre otra pestaña donde fueran las atribuciones... todos los
+   copyrights». Arriba, el crédito de la versión que estás leyendo (#cred, el
+   mismo nodo de siempre: lo pide la licencia CC BY-SA de la Libre y lo vigila
+   una prueba); debajo, las cuatro Biblias con su licencia, sacadas de los
+   datos —si se añade una, sale sola—, y lo que usa el mapa de lectores. */
+function armarAtribuciones(sitio){
+  const sec = (es, en) => {
+    const s = document.createElement('section');
+    s.className = 'herr-sec';
+    const h = document.createElement('h3');
+    h.className = 'herr-tit';
+    dosIdiomas(h, { t: [es, en] });
+    s.appendChild(h);
+    sitio.appendChild(s);
+    return s;
+  };
+  const lista = (s, filas) => {
+    const ul = document.createElement('ul');
+    ul.className = 'atrib-lista';
+    filas.forEach(([es, en]) => {
+      const li = document.createElement('li');
+      dosIdiomas(li, { t: [es, en] });
+      ul.appendChild(li);
+    });
+    s.appendChild(ul);
+  };
+  const ahora = sec('Lo que estás leyendo', 'What you are reading');
+  ahora.appendChild($('cred'));
+  const biblias = sec('Las Biblias', 'The Bibles');
+  lista(biblias, Object.keys(D.versiones).map(k => {
+    const v = D.versiones[k];
+    return [v.nombre + ' — ' + v.licencia + ' · vía eBible.org',
+            v.nombre + ' — ' + String(v.licencia || '').replace('Dominio público', 'Public domain')
+              .replace(' desde ', ' since ').replace(' y ', ' and ') + ' · via eBible.org'];
+  }));
+  const mapa = sec('El mapa de lectores', 'The readers map');
+  lista(mapa, [
+    ['Mapa: © colaboradores de OpenStreetMap, datos con licencia ODbL',
+     'Map: © OpenStreetMap contributors, data under the ODbL'],
+    ['Ciudad a partir de la ubicación: Nominatim, de OpenStreetMap',
+     'City from location: Nominatim, by OpenStreetMap'],
+    ['Leaflet © Volodymyr Agafonkin y colaboradores · licencia BSD-2',
+     'Leaflet © Volodymyr Agafonkin and contributors · BSD-2 license'],
+    ['Lectores en tiempo real: Firebase, de Google',
+     'Live readers: Firebase, by Google'],
+  ]);
+}
 (function armarRespaldo(){
   /* DOS PESTAÑAS DENTRO DEL PANEL: COMPARTIR, la de inicio, con el mapa de
      lectores; y HERRAMIENTAS, con todo lo que este panel tenía —importar y
@@ -28036,7 +28307,11 @@ function armarMapaLectores(caja){
     '<button type="button" role="tab" data-sub="compartir" class="aqui" aria-selected="true">' +
       '<span data-es="Compartir" data-en="Share">' + T('Compartir', 'Share') + '</span></button>' +
     '<button type="button" role="tab" data-sub="tools" aria-selected="false">' +
-      '<span data-es="Herramientas" data-en="Tools">' + T('Herramientas', 'Tools') + '</span></button>';
+      '<span data-es="Herramientas" data-en="Tools">' + T('Herramientas', 'Tools') + '</span></button>' +
+    /* ATRIBUCIONES, pedida por Gianni: los créditos y licencias tienen su
+       propia pestaña y dejan Herramientas para lo que se toca. */
+    '<button type="button" role="tab" data-sub="creditos" aria-selected="false">' +
+      '<span data-es="Atribuciones" data-en="Credits">' + T('Atribuciones', 'Credits') + '</span></button>';
   /* LA CARPETA: la hoja a la izquierda y las pestañas colgando de su filo
      derecho (ver #respaldo .carpeta). La navegación va DESPUÉS de la hoja en
      el documento para que quede a la derecha sin trucos de orden. */
@@ -28057,16 +28332,50 @@ function armarMapaLectores(caja){
   caja.id = 'respTools';
   caja.hidden = true;
   hoja.appendChild(caja);
+  const creditos = document.createElement('div');
+  creditos.className = 'sub-panel';
+  creditos.id = 'respCreditos';
+  creditos.hidden = true;
+  hoja.appendChild(creditos);
   nav.addEventListener('click', ev => {
     const b = ev.target.closest('[data-sub]');
     if (b) verSubRespaldo(b.dataset.sub);
   });
   armarMapaLectores(compartir);
+  /* HERRAMIENTAS, REARREGLADA CON PANEL DE EXPERTOS. Pedido por Gianni: «se
+     ve todo muy amontonado». Eran filas sueltas con un rótulo de 54 px a la
+     izquierda, botones de su palabra, una casilla cuyo texto casi no se leía
+     y el crédito pegado al sello. Ahora son secciones con título —TUS GLOSAS
+     y DIAGNÓSTICO—, aire entre ellas, los dos botones de archivo iguales y a
+     lo ancho con su alto de dedo, la casilla legible y el sello solo, al
+     final. Los créditos se fueron a su pestaña, ATRIBUCIONES. */
+  /* CADA SECCIÓN DICE PARA QUÉ SIRVE, pedido por Gianni: «una explicación
+     para cada uno, así bonito para el usuario». Una frase o dos, debajo del
+     título y antes de lo que se toca. (Hubo un tiempo en que se pidió quitar
+     todo texto de este panel; ahora se pide lo contrario, y manda lo último.) */
+  const seccion = (es, en, dES, dEN) => {
+    const sec = document.createElement('section');
+    sec.className = 'herr-sec';
+    const h = document.createElement('h3');
+    h.className = 'herr-tit';
+    dosIdiomas(h, { t: [es, en] });
+    sec.appendChild(h);
+    if (dES){
+      const d = document.createElement('p');
+      d.className = 'herr-dice';
+      dosIdiomas(d, { t: [dES, dEN] });
+      sec.appendChild(d);
+    }
+    caja.appendChild(sec);
+    return sec;
+  };
+  const secGlosas = seccion('Tus glosas', 'Your glosses',
+    'Tus glosas viven en este aparato. Exportar las guarda todas en un archivo: tu copia de seguridad, o la manera de llevarlas a otro teléfono o computadora. Importar las trae de vuelta desde ese archivo.',
+    'Your glosses live on this device. Export saves them all in a file: your backup, or the way to take them to another phone or computer. Import brings them back from that file.');
   const fila = document.createElement('div');
-  fila.className = 'ajuste ancho';
-  fila.innerHTML = '<span class="lbl" data-es="archivo" data-en="file">' + T('archivo', 'file') + '</span>';
-  const ctrl = document.createElement('span');
-  ctrl.className = 'ctrl';
+  fila.className = 'herr-archivo';
+  const ctrl = document.createElement('div');
+  ctrl.className = 'herr-botones';
   /* HAY QUE QUITARLES EL display:none AL TRAERLOS, y no es un detalle: los
      tres nacen ocultos en el HTML para que no se vean un instante al pie de
      la página antes de que el guion los mude a su panel. Al mudarlos hay que
@@ -28088,7 +28397,7 @@ function armarMapaLectores(caja){
      sistema, y se dispara desde el botón de Importar. Ese sí vive oculto. */
   ctrl.appendChild($('archivoImp'));
   fila.appendChild(ctrl);
-  caja.appendChild(fila);
+  secGlosas.appendChild(fila);
   /* LO QUE FALLÓ, ESCRITO Y QUIETO. El cartel de abajo dura nueve segundos y
      se lo puede comer cualquier cosa; la respuesta a «no se pudo guardar» es
      exportar, y eso se hace aquí. Así que el mismo texto se queda puesto junto
@@ -28098,7 +28407,7 @@ function armarMapaLectores(caja){
   fallo.id = 'respaldoFallo';
   fallo.className = 'fallo-respaldo';
   fallo.hidden = true;
-  caja.appendChild(fallo);
+  secGlosas.appendChild(fallo);
   if (ultimoFallo){ fallo.textContent = ultimoFallo; fallo.hidden = false; }
   /* LA CASILLA DE LOS TIEMPOS, pedida: «un checkbox en RESPALDO para que
      aparezca y desaparezca la caja de PERFORMANCE».
@@ -28118,14 +28427,17 @@ function armarMapaLectores(caja){
      SE VA CUANDO SE VAYA EL CRONÓMETRO. Esta fila, verCrono, pintarCrono y la
      clave de los ajustes son las cuatro piezas de lo mismo: el día que se sepa
      dónde se va el tiempo se quitan las cuatro de una vez. */
+  const secDiag = seccion('Diagnóstico', 'Diagnostics',
+    'Enseña en una esquina cuánto tarda cada parte del programa. Sirve para encontrar lo que va lento; si todo va bien, déjalo apagado.',
+    'Shows in a corner how long each part of the program takes. It helps find what is slow; if all is well, leave it off.');
   const filaCrono = document.createElement('div');
-  filaCrono.className = 'ajuste ancho';
-  filaCrono.innerHTML = '<span class="lbl" data-es="medidas" data-en="timing">' + T('medidas', 'timing') + '</span>' +
+  filaCrono.className = 'herr-crono';
+  filaCrono.innerHTML =
     '<span class="ctrl"><label class="casilla">' +
     '<input type="checkbox" id="chkCrono"' + (verCrono ? ' checked' : '') + ' />' +
     '<span data-es="Ver los tiempos del programa" data-en="Show the program’s timings">' +
       T('Ver los tiempos del programa', 'Show the program’s timings') + '</span></label></span>';
-  caja.appendChild(filaCrono);
+  secDiag.appendChild(filaCrono);
   /* EL OYENTE VA EN EL PANEL Y NO EN LA CASILLA. Hoy esta fila se arma una
      sola vez y pegárselo a la casilla funcionaría; va en el panel porque es
      como se escucha la otra casilla del programa —ver #canto y chkFlechas— y
@@ -28174,11 +28486,16 @@ function armarMapaLectores(caja){
      `body > #cred` y en cuanto el nodo entra en el panel deja de ser hijo del
      body. Se anota porque la primera versión de esto le puso un `style` que no
      servía para nada y escondía el motivo verdadero. */
-  caja.appendChild($('cred'));
+  armarAtribuciones(creditos);
+  /* LA VERSIÓN, CON SU RAYA Y SU EXPLICACIÓN COMO LAS OTRAS, y el sello más
+     grande, pedido por Gianni. Sigue siendo lo último del panel. */
+  const secVersion = seccion('Versión', 'Version',
+    'La fecha y la hora en que se hizo esta copia de Glossa. Si algo no funciona, dásela a quien te ayude: así sabe si ya tienes el último arreglo.',
+    'The date and time this copy of Glossa was made. If something isn’t working, give it to whoever helps you: that way they know if you have the latest fix.');
   const sello = document.createElement('p');
   sello.className = 'sello-version';
   dosIdiomas(sello, { t: ['VERSIÓN ' + window.GLOSS_BUILD, 'VERSION ' + window.GLOSS_BUILD] });
-  caja.appendChild(sello);
+  secVersion.appendChild(sello);
 })();
 
 /* ---------- arranque ---------- */
