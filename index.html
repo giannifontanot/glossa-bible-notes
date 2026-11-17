@@ -3900,7 +3900,8 @@
      escogía entre las dos maneras al aparecer el panel; esa decisión tardía
      movía las cosas a la vista de quien abría la pestaña. */
   .mapa-cabeza{ display:flex; flex-direction:column; align-items:center; gap:2px; margin:0 0 6px; }
-  .mapa-cabeza .mapa-leyenda{ margin:0; flex-wrap:wrap; justify-content:center; gap:0 9px; }
+  .mapa-marco > .mapa-leyenda{ justify-content:center; gap:4px 12px; margin:14px 0 2px;
+            color:#6b5630; }
   /* LA CASILLA LLEVA SU PALABRA A LA DERECHA, Y ES UNA SOLA: «¡Yo!». Iba un
      «Compartir la mía» encima, en dos renglones, y se comía el alto de la
      cabeza; Gianni la quiso así, confiando en que el sitio y el destello digan
@@ -7290,7 +7291,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 17:12';
+window.GLOSS_BUILD = '17-NOV-26 17:43';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -28041,9 +28042,6 @@ function armarMapaLectores(caja){
   caja.innerHTML =
     '<div class="mapa-marco">' +
     '<div class="mapa-cabeza">' +
-      '<p class="mapa-leyenda" aria-hidden="true"><span class="ley yo"></span><span data-es="Tú" data-en="You">' + T('Tú', 'You') + '</span>' +
-        '<span class="ley vivo"></span><span data-es="Leyendo ahora" data-en="Reading now">' + T('Leyendo ahora', 'Reading now') + '</span>' +
-        '<span class="ley antes"></span><span data-es="Ha leído" data-en="Has read">' + T('Ha leído', 'Has read') + '</span></p>' +
       '<label class="chk-ubic"><input type="checkbox" id="chkMapa"' + (mapaYo().comparto ? ' checked' : '') +
           ' aria-label="' + T('Compartir mi ciudad en el mapa', 'Share my city on the map') + '"><span class="caja" aria-hidden="true"></span>' +
           /* SIN EL «¡YO!», pedido por Gianni: la invitación ya lo dice todo y
@@ -28053,6 +28051,16 @@ function armarMapaLectores(caja){
             T('Enciende tu lucecita en el mapa', 'Light up your spot on the map') + '</span></span></label>' +
     '</div>' +
     '<div class="mapa-lienzo" id="mapaLectores" aria-label="' + T('Mapa de lectores', 'Readers map') + '"></div>' +
+    /* LOS COLORES, AL PIE DEL MAPA, pedido por Gianni con panel de expertos.
+       Arriba competían con la invitación —dos renglones de cosas pequeñas
+       antes de llegar al mapa— y se leían antes de saber a qué se referían.
+       Debajo son lo que son en cualquier mapa impreso: la clave, que se
+       consulta después de mirar. Con aire encima para que no parezca una
+       etiqueta pegada al borde del cuadro, centrada como él, y un tono más
+       callado que la invitación, que es lo que se tiene que leer primero. */
+      '<p class="mapa-leyenda" aria-hidden="true"><span class="ley yo"></span><span data-es="Tú" data-en="You">' + T('Tú', 'You') + '</span>' +
+        '<span class="ley vivo"></span><span data-es="Leyendo ahora" data-en="Reading now">' + T('Leyendo ahora', 'Reading now') + '</span>' +
+        '<span class="ley antes"></span><span data-es="Ha leído" data-en="Has read">' + T('Ha leído', 'Has read') + '</span></p>' +
     '<p class="mapa-estado" id="mapaEstado"></p>' +
     '</div>' +
     /* EL QR, LA MITAD DE ABAJO. Pedido por Gianni: debajo del mapa, un QR de
