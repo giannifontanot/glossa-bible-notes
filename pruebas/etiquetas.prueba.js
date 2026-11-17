@@ -844,9 +844,12 @@ const FUERA = `async () => {
        turnos.conVer.ver === 'true' && turnos.conVer.cam === 'false' &&
        turnos.conVer.tira !== 'none' && turnos.conVer.barra === 'none',
        turnos.conVer);
-  vale('ACTUALIZAR APAGA A FILTRAR, Y CON ÉL LA TIRA',
+  /* LA TIRA SE QUEDA: desde que EDITAR usa las mismas pastillas que
+     FILTRAR (pedido por Gianni), pasar de uno al otro apaga el FILTRO pero
+     deja la lista, que ahora edita en vez de filtrar. */
+  vale('ACTUALIZAR APAGA A FILTRAR Y SE QUEDA CON LA MISMA TIRA',
        turnos.conCambiar.cam === 'true' && turnos.conCambiar.ver === 'false' &&
-       turnos.conCambiar.tira === 'none' && turnos.conCambiar.barra !== 'none',
+       turnos.conCambiar.tira !== 'none' && turnos.conCambiar.barra !== 'none',
        turnos.conCambiar);
   vale('  y FILTRAR vuelve a apagar a ACTUALIZAR',
        turnos.otraVez.ver === 'true' && turnos.otraVez.cam === 'false' &&
@@ -948,9 +951,11 @@ const FUERA = `async () => {
        /filtro/i.test(aviso.escondido.voz), aviso.escondido);
   vale('  y el punto se va al volver a enseñarla',
        !conPunto(aviso.devuelto), aviso.devuelto);
-  vale('ACTUALIZAR APAGA LA TIRA Y TAMBIÉN LO ANUNCIA',
-       aviso.porCambiar.tira === 'none' && conPunto(aviso.porCambiar),
-       aviso.porCambiar);
+  /* En EDITAR la tira se ve pero no enseña el filtro —sus pastillas dicen
+     lo de las glosas elegidas—, así que el filtro puesto sigue escondido y el
+     botón lo tiene que seguir diciendo. */
+  vale('EN ACTUALIZAR EL FILTRO NO SE VE, Y SE ANUNCIA',
+       conPunto(aviso.porCambiar), aviso.porCambiar);
   /* La que impide que el punto se vuelva un adorno permanente. */
   vale('SIN FILTRO NO HAY PUNTO, aunque la tira esté escondida',
        aviso.limpio.tira === 'none' && !conPunto(aviso.limpio), aviso.limpio);
@@ -1485,7 +1490,7 @@ const FUERA = `async () => {
     }
     const b = document.getElementById('btnElegirGlosas');
     if (b.getAttribute('aria-pressed') !== 'true'){ b.click(); await z(600); }
-    document.querySelector('#tagboxGrupo [data-tag-grupo="Domingo"]').click();
+    document.querySelector('#filtros [data-tag-grupo="Domingo"]').click();
     await z(300);
     document.getElementById('tagNuevaGrupo').value = 'DomingoDeRamos';
     document.querySelector('#tagboxGrupo [data-acc="renombrartag"]').click();
@@ -1560,7 +1565,10 @@ const FUERA = `async () => {
     const bCrear = caja.querySelector('[data-acc="creartag-grupo"]');
     const bRenom = caja.querySelector('[data-acc="renombrartag"]');
     return { cuenta:document.getElementById('cuentaGrupo').textContent,
-             tags:[...caja.querySelectorAll('.tg')].map(b => b.textContent),
+             /* La lista de EDITAR son las pastillas de FILTRAR (ver
+                tocarEtiquetaEditar): se leen por su llave. */
+             tags:[...document.querySelectorAll('#filtros .chip[data-tag-grupo]')]
+                    .map(b => '#' + b.dataset.tagGrupo),
              boton:(bRenom || bCrear || {}).textContent,
              /* el dato duro: qué acción cuelga del botón, que es lo que de
                 verdad va a pasar cuando se pulse. La palabra del botón se mira
@@ -1569,7 +1577,8 @@ const FUERA = `async () => {
              accion:bRenom ? 'renombrar' : (bCrear ? 'crear' : null),
              valor:campo ? campo.value : null,
              foco:(document.activeElement || {}).id,
-             editando:[...caja.querySelectorAll('.tg.editando')].map(b => b.textContent),
+             editando:[...document.querySelectorAll('#filtros .chip.editando')]
+                        .map(b => '#' + b.dataset.tagGrupo),
              /* y lo que hay guardado, que es lo que sobrevive a la recarga */
              enMarcas:JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
                         .slice(0, 3).map(m => m.etiquetas || []),
@@ -1597,7 +1606,7 @@ const FUERA = `async () => {
 
   /* TOCAR LA ETIQUETA LA BAJA A LA CAJA. */
   await p.evaluate(() =>
-    document.querySelector('#tagboxGrupo [data-tag-grupo="Oracion"]').click());
+    document.querySelector('#filtros [data-tag-grupo="Oracion"]').click());
   await p.waitForTimeout(400);
   const cargada = await foto();
   di('tras tocar #Oracion', JSON.stringify(cargada));
@@ -1655,7 +1664,7 @@ const FUERA = `async () => {
   /* FUNDIR DOS EN UNA, que es la razón por la que esto se pidió: «oracion» y
      «Oracion» eran dos, y una glosa llevaba las dos a la vez. */
   await p.evaluate(async () => {
-    document.querySelector('#tagboxGrupo [data-tag-grupo="oracion"]').click();
+    document.querySelector('#filtros [data-tag-grupo="oracion"]').click();
     await new Promise(z => setTimeout(z, 300));
     document.getElementById('tagNuevaGrupo').value = 'OraciónDiaria';
     document.querySelector('#tagboxGrupo [data-acc="renombrartag"]').click();
@@ -1676,7 +1685,7 @@ const FUERA = `async () => {
   /* CANCELAR NO TOCA NADA. Con Escape, que es la salida de todas las cajas de
      este programa, y sin que se cierre el panel de paso. */
   await p.evaluate(() =>
-    document.querySelector('#tagboxGrupo [data-tag-grupo="Domingo"]').click());
+    document.querySelector('#filtros [data-tag-grupo="Domingo"]').click());
   await p.waitForTimeout(300);
   const antesDeEscape = await foto();
   await p.keyboard.press('Escape');
@@ -1710,7 +1719,7 @@ const FUERA = `async () => {
   vale('(la prueba es válida) el índice tiene glosas que elegir',
        fundida.cuantasEnIndice > 0, fundida.cuantasEnIndice + ' en el índice');
   await p.evaluate(async () => {
-    document.querySelector('#tagboxGrupo [data-tag-grupo="Domingo"]').click();
+    document.querySelector('#filtros [data-tag-grupo="Domingo"]').click();
     await new Promise(z => setTimeout(z, 300));
     const it = document.querySelector('#indice [data-ir]');
     if (it) it.click();
@@ -1763,7 +1772,7 @@ const FUERA = `async () => {
        JSON.stringify(conFiltroPuesto));
   await p.evaluate(async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
-    document.querySelector('#tagboxGrupo [data-tag-grupo="OraciónDiaria"]').click();
+    document.querySelector('#filtros [data-tag-grupo="OraciónDiaria"]').click();
     await z(300);
     document.getElementById('tagNuevaGrupo').value = 'Plegaria';
     document.querySelector('#tagboxGrupo [data-acc="renombrartag"]').click();
@@ -1880,9 +1889,10 @@ const FUERA = `async () => {
     const salida = [];
     for (const [k, boton, caja] of PUERTAS){
       /* Cerradas las tres antes de cada una: abrir una apaga a las otras, y
-         una que ya estuviera puesta no se abriría —ni crecería— otra vez. */
+         una que ya estuviera puesta no se abriría —ni crecería— otra vez. Y
+         con tiempo para que CIERREN, que ahora también cierran suave. */
       for (const [k2, b2] of PUERTAS)
-        if (abierto[k2]()){ document.getElementById(b2).click(); await pausa(60); }
+        if (abierto[k2]()){ document.getElementById(b2).click(); await pausa(400); }
       await pausa(120);
       const el = document.getElementById(caja);
       const antes = Math.round(el.getBoundingClientRect().height);
@@ -1961,8 +1971,13 @@ const FUERA = `async () => {
   di('el empujón del índice', JSON.stringify(salto));
   vale('(la prueba es válida) abrir EDITAR empuja el índice hacia abajo',
        !salto.falta && salto.total > 40, JSON.stringify(salto));
+  /* EDITAR ABRE DOS RENGLONES DE LA REJILLA: su renglón de escribir y la
+     lista de pastillas, que comparte con FILTRAR. Cada uno trae su hueco de
+     rejilla y su raya de 1 px —eso no se puede animar desde el alto—, así que
+     el primer cuadro puede bajar dos huecos y unos píxeles de borde; lo que
+     no puede es bajar el alto del contenido de golpe, que son decenas. */
   vale('EL ÍNDICE NO PEGA UN SALTO AL ABRIRSE EDITAR',
-       !salto.falta && salto.primerCuadro <= salto.hueco + 1,
+       !salto.falta && salto.primerCuadro <= 2 * salto.hueco + 4,
        !salto.falta && (salto.primerCuadro + ' px de golpe, con un hueco de rejilla de ' +
                         salto.hueco + ' y un viaje de ' + salto.total));
 
@@ -2114,7 +2129,7 @@ const FUERA = `async () => {
     /* 2. LA CAJA DE GLOSAS/ACTUALIZAR. */
     const b = document.getElementById('btnElegirGlosas');
     if (b && b.getAttribute('aria-pressed') !== 'true'){ b.click(); await z(700); }
-    out.grupo = [...document.querySelectorAll('#tagboxGrupo [data-tag-grupo]')]
+    out.grupo = [...document.querySelectorAll('#filtros [data-tag-grupo]')]
       .map(x => x.dataset.tagGrupo);
     return out;
   });
