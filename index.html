@@ -3830,12 +3830,10 @@
      completa, y en el teléfono dos dedos para moverlo, que un dedo mueve el
      panel. Lo único que se trae de sus mandos es la casilla de compartir la
      tuya; los de Reveal para elegir maestro o iglesia aquí no aplican. */
-  .mapa-cabeza{ display:flex; align-items:center; gap:10px; margin:0 0 10px; }
-  .mapa-invita{ flex:1 1 auto; margin:0; padding:10px 12px; border-radius:12px;
-                background:rgba(184,137,43,.12); border:1px solid rgba(184,137,43,.45);
-                color:#3d2f12; font:500 calc(14px * var(--escala-ui, 1))/1.38 var(--ui); }
-  .mapa-ctl{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:4px;
-             width:82px; text-align:center; }
+  .mapa-cabeza{ display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin:0 0 8px; }
+  .mapa-cabeza .mapa-leyenda{ flex:1 1 auto; margin:0 0 10px; }
+  .mapa-ctl{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:2px;
+             width:76px; text-align:center; }
   .mapa-ctl-tit{ font:700 calc(11px * var(--escala-ui, 1))/1.2 var(--ui); color:#5c4a24;
                  text-wrap:balance; }
   .chk-ubic{ position:relative; display:grid; place-items:center; width:44px; height:44px; cursor:pointer; }
@@ -7073,7 +7071,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 05:14';
+window.GLOSS_BUILD = '17-NOV-26 05:37';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -27384,13 +27382,16 @@ async function mapaMarcarEnLinea(){
   } catch(_){}
 }
 function armarMapaLectores(caja){
+  /* ARRIBA DEL MAPA, UN SOLO RENGLÓN: lo que significa cada color y, a la
+     derecha, la casilla de compartir la tuya. Hubo aquí un letrero que
+     invitaba —«muéstranos desde qué ciudad lees»— y Gianni lo quitó para
+     ahorrar espacio: las etiquetas de colores van en su lugar y dicen lo
+     mismo con menos. */
   caja.innerHTML =
     '<div class="mapa-cabeza">' +
-      '<p class="mapa-invita"><span data-es="🌎 Muéstranos desde qué ciudad lees la Biblia. Marca la casilla y aparecerás en el mapa junto a los demás lectores." ' +
-        'data-en="🌎 Show us which city you read the Bible from. Tick the box and you’ll appear on the map with the other readers.">' +
-        T('🌎 Muéstranos desde qué ciudad lees la Biblia. Marca la casilla y aparecerás en el mapa junto a los demás lectores.',
-          '🌎 Show us which city you read the Bible from. Tick the box and you’ll appear on the map with the other readers.') +
-      '</span></p>' +
+      '<p class="mapa-leyenda" aria-hidden="true"><span class="ley yo"></span><span data-es="Tú" data-en="You">' + T('Tú', 'You') + '</span>' +
+        '<span class="ley vivo"></span><span data-es="Leyendo ahora" data-en="Reading now">' + T('Leyendo ahora', 'Reading now') + '</span>' +
+        '<span class="ley antes"></span><span data-es="Ha leído" data-en="Has read">' + T('Ha leído', 'Has read') + '</span></p>' +
       '<div class="mapa-ctl"><span class="mapa-ctl-tit" data-es="Compartir la mía" data-en="Share mine">' +
         T('Compartir la mía', 'Share mine') + '</span>' +
         '<label class="chk-ubic"><input type="checkbox" id="chkMapa"' + (mapaYo().comparto ? ' checked' : '') +
@@ -27399,9 +27400,6 @@ function armarMapaLectores(caja){
       '</div>' +
     '</div>' +
     '<div class="mapa-lienzo" id="mapaLectores" aria-label="' + T('Mapa de lectores', 'Readers map') + '"></div>' +
-    '<p class="mapa-leyenda" aria-hidden="true"><span class="ley yo"></span><span data-es="Tú" data-en="You">' + T('Tú', 'You') + '</span>' +
-      '<span class="ley vivo"></span><span data-es="Leyendo ahora" data-en="Reading now">' + T('Leyendo ahora', 'Reading now') + '</span>' +
-      '<span class="ley antes"></span><span data-es="Ha leído" data-en="Has read">' + T('Ha leído', 'Has read') + '</span></p>' +
     '<p class="mapa-estado" id="mapaEstado"></p>' +
     /* EL QR, LA MITAD DE ABAJO. Pedido por Gianni: debajo del mapa, un QR de
        media pantalla en el teléfono con la liga a la Biblia Glossa, para que
