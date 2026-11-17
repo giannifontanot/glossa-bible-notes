@@ -5001,6 +5001,19 @@
           font-size:calc(15px * var(--escala-ui, 1)); }
   #ctrlEtiquetas .fila-etiq .btn-signo .signo{ width:19px; height:19px; }
   #ctrlEtiquetas.sin-chips #filaFiltros{ display:none; }
+  /* EN EDITAR, LA MISMA LISTA. Se enseña aunque FILTRAR esté apagado, y sin
+     lo que es solo de filtrar: el día, los libros, «+ libro» y «(sin
+     etiqueta)». Las pastillas dicen el estado de las glosas elegidas: llena,
+     la llevan todas; punteada, algunas; dorada, la que se renombra. Y lo que
+     encendió el filtro no se pinta aquí, que en EDITAR no quiere decir nada. */
+  #etiquetas.eligiendo #ctrlEtiquetas.sin-chips #filaFiltros{ display:flex; }
+  #etiquetas.eligiendo #filtros #selDia, #etiquetas.eligiendo #filtros .chip-libro,
+  #etiquetas.eligiendo #filtros .chip-mas, #etiquetas.eligiendo #filtros .chip-sin{ display:none; }
+  #etiquetas.eligiendo #filtros .chip.sel{ border-color:rgba(140,116,68,.45); border-width:1px;
+            background:rgba(255,255,255,.05); box-shadow:none; }
+  #etiquetas.eligiendo #filtros .chip.on{ background:#e9d9ad; border-color:#8a6416; }
+  #etiquetas.eligiendo #filtros .chip.mix{ border-style:dashed; border-color:#8a6416; }
+  #etiquetas.eligiendo #filtros .chip.editando{ background:#b8892b; border-color:#8a6416; color:#fff8e4; }
   #panelGuardar{ display:none; }
   #ctrlEtiquetas.guardando #panelGuardar{ display:block; }
   #panelGuardar .guardar-pronto{ margin:10px 4px 12px; text-align:center;
@@ -7291,7 +7304,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 17:43';
+window.GLOSS_BUILD = '17-NOV-26 17:50';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -14144,7 +14157,28 @@ function pintarFiltros(){
        valiendo al cambiar de Biblia, y solo lo que se lee cambia. */
     const dice = nombre === '(sin etiqueta)' ? T('(sin etiqueta)','(untagged)') : nombre;
     b.innerHTML = escEmoji(dice) + '<span class="n">' + n + '</span>';
+    /* LA MISMA PASTILLA SIRVE A LOS DOS MODOS (ver tocarEtiquetaEditar): en
+       FILTRAR enciende y apaga el filtro; en EDITAR edita la que tocas. Por eso
+       lleva también la llave de EDITAR, data-tag-grupo. «(sin etiqueta)» no
+       se puede editar: en EDITAR se esconde. */
+    if (nombre === '(sin etiqueta)') b.classList.add('chip-sin');
+    else b.dataset.tagGrupo = nombre;
+    /* Y SE ALCANZA CON EL TECLADO: la lista que tenía EDITAR era de botones,
+       y estas pastillas eran spans fuera del recorrido del tabulador —quien
+       no usa dedo ni ratón se quedaba sin poder renombrar ni poner etiquetas
+       existentes—. Rol de botón, foco y Enter o Espacio. Lo levantó Codex. */
+    b.tabIndex = 0;
+    b.setAttribute('role', 'button');
+    b.addEventListener('keydown', ev => {
+      if (ev.key !== 'Enter' && ev.key !== ' ') return;
+      ev.preventDefault();
+      b.click();
+    });
     b.onclick = () => {
+      if (eligiendoGlosas){
+        if (nombre !== '(sin etiqueta)') tocarEtiquetaEditar(nombre);
+        return;
+      }
       etiquetasVer.has(nombre) ? etiquetasVer.delete(nombre) : etiquetasVer.add(nombre);
       guardarAjustes();
       renderPage();
@@ -14187,6 +14221,7 @@ function pintarFiltros(){
   mas.onclick = ev => { ev.stopPropagation(); menuDeLibros(mas.getBoundingClientRect()); };
   cont.appendChild(mas);
   pintarDias();
+  marcarChipsEditar();
   /* La tira acaba de cambiar de alto: hay que volver a preguntar si sigue
      habiendo lista por debajo. */
   avisarMasEtiquetas();
@@ -14349,9 +14384,16 @@ function cerrarSuave(el){
   el.style.paddingBottom = '0px';
   el._relojSuave = setTimeout(() => limpiarSuave(el), SUAVE_MS + 40);
 }
+/* LA LISTA DE PASTILLAS SE VE EN FILTRAR Y EN EDITAR: es la misma para los
+   dos (ver marcarChipsEditar). Pasar de uno al otro no la cierra ni la vuelve
+   a abrir; solo se abre o se cierra suave cuando de verdad aparece o se va. */
+function listaEtiqVisible(){
+  return !$('ctrlEtiquetas').classList.contains('sin-chips') || eligiendoGlosas;
+}
 function verEtiquetas(on){
   const estaba = !$('ctrlEtiquetas').classList.contains('sin-chips');
-  if (!on && estaba) cerrarSuave($('filaFiltros'));
+  const seVeia = listaEtiqVisible();
+  if (!on && estaba && !eligiendoGlosas) cerrarSuave($('filaFiltros'));
   $('ctrlEtiquetas').classList.toggle('sin-chips', !on);
   const b = $('btnVerEtiquetas');
   b.classList.toggle('active', on);
@@ -14376,7 +14418,7 @@ function verEtiquetas(on){
      siempre que no hay más. Sólo cuando se enciende viniendo de apagada: sin
      esa guarda, cualquier repintado con el mando ya abierto lo volvería a
      abrir delante del lector. */
-  if (on && !estaba) abrirSuave($('filaFiltros'));
+  if (on && !seVeia) abrirSuave($('filaFiltros'));
 }
 /* AVISAR DE QUE LA LISTA SIGUE POR DEBAJO.
 
@@ -14505,21 +14547,6 @@ function pintarBarraGrupo(){
   if (cuenta) cuenta.textContent = n === 1 ? T('1 elegida','1 picked') : n + T(' elegidas',' picked');
   const caja = $('tagboxGrupo');
   if (!caja) return;
-  const grupo = marcasElegidas();
-  const todas = [...todasEtiquetas().mapa.keys()].sort(comparaEtiquetas);
-  const lista = [...new Set([...todas, ...grupo.flatMap(m => m.etiquetas || [])])]
-                  .sort(comparaEtiquetas);
-  const htmlLista = lista.length
-    ? lista.map(t => {
-        const k = grupo.filter(m => (m.etiquetas || []).includes(t)).length;
-        const cls = k === grupo.length && grupo.length ? ' on' :
-                    k > 0 ? ' mix' : '';
-        const ultima = t && t === ultimaEtiqueta ? ' ultima' : '';
-        const enEdicion = t && t === etiquetaEnEdicion ? ' editando' : '';
-        return '<button type="button" class="tg' + cls + ultima + enEdicion +
-          '" data-tag-grupo="' + esc(t) + '">#' + escEmoji(t) + '</button>';
-      }).join('')
-    : '<span class="vacio">' + T('sin etiquetas todavía','no tags yet') + '</span>';
   /* LOS DOS MODOS DE LA MISMA CAJA. Un solo renglón de control, y lo que dice
      el botón es lo único que cambia entre poner una etiqueta nueva y cambiarle
      el nombre a una que ya existe. Dos cajas distintas habrían sido dos sitios
@@ -14528,7 +14555,8 @@ function pintarBarraGrupo(){
   /* EL CAMPO ARRIBA Y LA LISTA DEBAJO, como en la caja de la glosa nueva —ver
      tagboxHTML, donde está contado por qué el campo no puede ir al final—.
      Aquí iba al revés, y Gianni pidió que se viera «igualito» a la de la
-     glosa nueva: lo primero que se encuentra es dónde escribir. */
+     glosa nueva: lo primero que se encuentra es dónde escribir. Y la lista
+     ya no es suya: son las pastillas de FILTRAR, justo debajo. */
   caja.innerHTML =
     '<div class="tagctl' + (renombrando ? ' renombrando' : '') + '">' +
       '<input id="tagNuevaGrupo" enterkeyhint="done" autocapitalize="none" ' +
@@ -14545,11 +14573,11 @@ function pintarBarraGrupo(){
         : '<button type="button" class="btn crear" data-acc="creartag-grupo" aria-disabled="true">' +
             T('+ nueva','+ new') + '</button>') +
     '</div>' +
-    '<div class="taglista">' + htmlLista + '</div>' +
-    /* La misma manija que la tira de filtrar: el alto que pongas en una
-       vale en la otra (ver manijaAlto). */
-    '<div class="manija-alto" role="separator" aria-orientation="horizontal" tabindex="0" ' +
-      'aria-label="' + T('Cambiar el alto de la lista de etiquetas', 'Change the height of the tag list') + '"></div>';
+    /* SIN LISTA PROPIA: EDITAR usa las pastillas de FILTRAR, que se quedan
+       abiertas al pasar de un modo al otro (ver marcarChipsEditar). Aquí solo
+       queda el renglón de escribir. */
+    '';
+  marcarChipsEditar();
 }
 /* BAJAR UNA ETIQUETA A LA CAJA. Se repinta y DESPUÉS se busca el campo: el
    repintado rehace el renglón entero, así que el que había antes ya no existe
@@ -14648,7 +14676,12 @@ function quitarTagGrupo(t){
    oyente de un botón si otro las va a necesitar. */
 function elegirGlosas(on){
   const estaba = eligiendoGlosas;
-  if (!on && estaba) cerrarSuave($('barraGrupo'));
+  const seVeia = listaEtiqVisible();
+  if (!on && estaba){
+    cerrarSuave($('barraGrupo'));
+    /* La lista se va con EDITAR solo si FILTRAR no la está usando. */
+    if ($('ctrlEtiquetas').classList.contains('sin-chips')) cerrarSuave($('filaFiltros'));
+  }
   eligiendoGlosas = on;
   const b = $('btnElegirGlosas');
   b.classList.toggle('active', on);
@@ -14669,6 +14702,7 @@ function elegirGlosas(on){
   /* Detrás de pintarBarraGrupo, que es quien le mete dentro la cuenta y las
      etiquetas: preguntarle el alto antes sería preguntárselo vacía. */
   if (on && !estaba) abrirSuave($('barraGrupo'));
+  if (on && !seVeia){ avisarMasEtiquetas(); abrirSuave($('filaFiltros')); }
 }
 /* GUARDAR: el tercer modo, por ahora un panel vacío que abre y cierra suave
    y se excluye con FILTRAR y EDITAR, igual que ellos entre sí. Lo que vaya
@@ -14832,12 +14866,15 @@ $('tagboxGrupo').addEventListener('click', ev => {
     return;
   }
   if (ev.target.closest('[data-acc="dejartag"]')){ editarEtiqueta(null); return; }
-  const b = ev.target.closest('[data-tag-grupo]'); if (!b) return;
-  const t = b.dataset.tagGrupo;
-  /* SIN GLOSAS ELEGIDAS, TOCAR UNA ETIQUETA ES ABRIRLA PARA RENOMBRARLA. Antes
-     no era nada: ponerTagGrupo se iba por su puerta de atrás y el toque se
-     perdía. Volver a tocar la misma la suelta, que es lo que espera el dedo
-     que se equivocó de etiqueta. */
+});
+/* TOCAR UNA ETIQUETA EN EDITAR. Era el oyente de la lista propia de EDITAR;
+   esa lista se fue —EDITAR usa ahora las mismas pastillas que FILTRAR, pedido
+   por Gianni— y la regla se quedó, para que la llamen ellas:
+   SIN GLOSAS ELEGIDAS, TOCAR UNA ETIQUETA ES ABRIRLA PARA RENOMBRARLA. Volver a
+   tocar la misma la suelta, que es lo que espera el dedo que se equivocó.
+   CON GLOSAS ELEGIDAS, se la pone a todas o, si ya la tienen todas, se la
+   quita. */
+function tocarEtiquetaEditar(t){
   if (!glosasElegidas.size){
     editarEtiqueta(t === etiquetaEnEdicion ? null : t);
     return;
@@ -14846,7 +14883,25 @@ $('tagboxGrupo').addEventListener('click', ev => {
   const todasLaTienen = grupo.length && grupo.every(m => (m.etiquetas || []).includes(t));
   if (todasLaTienen) quitarTagGrupo(t);
   else ponerTagGrupo(t);
-});
+}
+/* EL ESTADO DE EDITAR, PINTADO EN LAS PASTILLAS: .on la llevan todas las
+   elegidas, .mix solo algunas, .editando es la que se renombra. Fuera de
+   EDITAR se borra todo y las pastillas vuelven a decir solo lo del filtro. */
+function marcarChipsEditar(){
+  const chips = document.querySelectorAll('#filtros .chip[data-tag-grupo]');
+  if (!eligiendoGlosas){
+    chips.forEach(c => c.classList.remove('on', 'mix', 'editando'));
+    return;
+  }
+  const grupo = marcasElegidas();
+  chips.forEach(c => {
+    const t = c.dataset.tagGrupo;
+    const k = grupo.filter(m => (m.etiquetas || []).includes(t)).length;
+    c.classList.toggle('on', !!grupo.length && k === grupo.length);
+    c.classList.toggle('mix', k > 0 && k < grupo.length);
+    c.classList.toggle('editando', t === etiquetaEnEdicion);
+  });
+}
 $('tagboxGrupo').addEventListener('keydown', ev => {
   if (ev.target.id !== 'tagNuevaGrupo') return;
   /* Escape suelta la etiqueta sin cambiarle nada, como en todas las cajas de
@@ -26994,7 +27049,10 @@ etiquetas.appendChild($('ctrlEtiquetas'));
    en la glosa nueva: al tocar «editar», lo primero que se ve arriba es el
    campo para escribir la etiqueta y las etiquetas, y debajo las glosas que se
    van eligiendo. Abajo, con muchas glosas, la barra quedaba lejos del dedo. */
-etiquetas.appendChild($('barraGrupo'));
+/* Y AHORA DENTRO DEL MANDO, JUSTO ENCIMA DE LAS PASTILLAS: EDITAR usa la
+   misma lista que FILTRAR (pedido por Gianni), así que su renglón de escribir
+   va pegado a ella, arriba, y no suelto entre la lista y el índice. */
+$('ctrlEtiquetas').insertBefore($('barraGrupo'), $('filaFiltros'));
 etiquetas.appendChild($('indice'));
 
 /* ENCUENTROS: las historias de quien se topó con Jesús y se fue distinto.
