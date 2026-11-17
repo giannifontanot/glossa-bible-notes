@@ -271,6 +271,28 @@ const AJUSTES = 'glossa:ajustes:v1';
                     .map(e => (e.id || e.className.split(' ')[0] || e.tagName) + ' ' + getComputedStyle(e).backgroundColor),
                   vidrioOn: document.getElementById('btnVidrio').classList.contains('active') &&
                             document.getElementById('btnVidrio').getAttribute('aria-pressed') === 'true' };
+    /* EL DESTELLO DE «TE OÍ», CONGELADO EN SUS PUNTAS. Se apoya el dedo sin
+       soltarlo —sólo pointerdown: así el botón destella y no se pone nada—,
+       y se para la animación en cada punto clave para leer el fondo. Es el
+       momento en que Gianni veía la hoja a través del botón. */
+    const opacoAl = [];
+    for (const sel of ['[data-preset="tres"]', '#btnFinos']){
+      const b = document.querySelector(sel), r = b.getBoundingClientRect();
+      b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, cancelable:true, pointerId:733,
+        pointerType:'touch', isPrimary:true, clientX:r.left + r.width / 2 + 3, clientY:r.top + r.height / 2 - 2 }));
+      await pausa(30);
+      const an = b.getAnimations().find(x => /obrando/.test(x.animationName || ''));
+      if (!an){ opacoAl.push(sel + ' sin destello'); continue; }
+      an.pause();
+      for (const t of [0, .38, .62]){
+        an.currentTime = t * 900;
+        const c = getComputedStyle(b).backgroundColor, m = /rgba\([^)]*,\s*([\d.]+)\)/.exec(c);
+        if (m && +m[1] < 1) opacoAl.push(sel + ' @' + t + ' ' + c);
+      }
+      an.play();
+      b.dispatchEvent(new PointerEvent('pointercancel', { bubbles:true, pointerId:733, pointerType:'touch' }));
+    }
+    res.destello = opacoAl;
     await eval('(' + tocar + ')')('#btnVidrio');
     await pausa(400);
     return res;
@@ -284,6 +306,8 @@ const AJUSTES = 'glossa:ajustes:v1';
   vale('  y «Transparente» sale encendido mientras lo está', cristal.vidrioOn === true);
   /* Lo transparente es el papel del panel, no los botones: con fondo al 75%
      la letra de la hoja se les colaba por dentro. Lo pidió Gianni. */
+  vale('  y AL TOCARLOS TAMPOCO: el destello de «te oí» va macizo',
+       cristal.destello.length === 0, cristal.destello.join(' · ') || 'macizo');
   vale('  y LOS BOTONES NO SE VUELVEN DE CRISTAL: ninguno deja pasar la hoja',
        cristal.colados.length === 0, cristal.colados.join(' · ') || 'ninguno');
   vale('  y los rótulos llevan su tablilla para leerse sobre la hoja',
