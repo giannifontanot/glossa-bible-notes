@@ -6857,7 +6857,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 17:54';
+window.GLOSS_BUILD = '16-NOV-26 18:07';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25133,11 +25133,17 @@ $('brillo').oninput = e => {
    QUÉ PONE CADA UNO, todo con valores que el panel ya tiene:
      · Teléfono · Leer cómodo: una columna, letra 19, LINEAL —la sin remates,
        la más legible que hay; a ésa se refería «la letra súper visible»—,
-       interlínea amplia y la glosa abajo del versículo. Y sube el contraste a
-       140: es el único preset que toca la tinta, decidido así con Gianni —los
-       demás no tocan el color del papel—.
-     · Teléfono · Estudiar: una columna, letra 16, romana, interlínea normal y
-       las glosas al pie, que dejan el texto de corrido y las notas juntas.
+       interlínea amplia y la glosa al margen. Y sube el contraste a 140: es
+       el único preset que toca la tinta, decidido así con Gianni —los demás
+       no tocan el color del papel—.
+     · Teléfono · Estudiar: DOS columnas, letra 15, romana, interlínea normal
+       y la glosa al margen —es el arreglo de fábrica de la hoja en teléfono—.
+
+   TODAS LAS GLOSAS AL MARGEN. Empezaron repartidas —abajo en «Leer cómodo»,
+   al pie en «Estudiar» del teléfono— y Gianni pidió el margen en las cuatro.
+   Y quiso una opción de teléfono con dos columnas: en vez de un quinto botón,
+   que dejaba la cuadrícula coja, la lleva «Estudiar», que de una columna con
+   letra 16 a dos con letra 15 es justo eso, ver más texto a la vez.
      · Computadora · Leer: dos columnas, letra 18, romana, interlínea amplia y
        la glosa al margen.
      · Computadora · Estudiar: tres columnas, letra 16, romana, interlínea
@@ -25155,13 +25161,13 @@ $('brillo').oninput = e => {
    pregunta misma rompería el arranque. */
 var PRESETS_FORMATO = [
   { id:'tel-leer', grupo:'tel', es:'Leer cómodo', en:'Easy reading',
-    dice:'Una columna, letra grande y sin remates; glosa abajo.',
-    diceEn:'One column, large plain letters; notes below.',
-    tam:19, fuente:4, esp:0, aire:1.95, cols:1, glosa:'below', contraste:140 },
+    dice:'Una columna, letra grande y sin remates; glosa al margen.',
+    diceEn:'One column, large plain letters; notes in the margin.',
+    tam:19, fuente:4, esp:0, aire:1.95, cols:1, glosa:'margin', contraste:140 },
   { id:'tel-estudiar', grupo:'tel', es:'Estudiar', en:'Study',
-    dice:'Una columna, más texto a la vista; glosas al pie.',
-    diceEn:'One column, more text in view; notes at the foot.',
-    tam:16, fuente:0, esp:0, aire:1.62, cols:1, glosa:'foot' },
+    dice:'Dos columnas, más texto a la vista; glosa al margen.',
+    diceEn:'Two columns, more text in view; notes in the margin.',
+    tam:15, fuente:0, esp:0, aire:1.62, cols:2, glosa:'margin' },
   { id:'pc-leer', grupo:'pc', es:'Leer', en:'Read',
     dice:'Dos columnas, letra 18 y aire; glosa al margen.',
     diceEn:'Two columns, size 18 with room; notes in the margin.',

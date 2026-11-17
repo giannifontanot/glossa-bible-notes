@@ -70,6 +70,7 @@ const AJUSTES = 'glossa:ajustes:v1';
       finos: getComputedStyle(document.getElementById('ajustesFinos')).display,
       expandido: document.getElementById('btnFinos').getAttribute('aria-expanded'),
       vidrioDentro: !!document.querySelector('#ajustesFinos #btnVidrio'),
+      encendidoAlNacer: [...document.querySelectorAll('#presetsFormato [data-preset].active')].map(b => b.dataset.preset),
       grupos
     };
   }, [ABRIR_AA]);
@@ -86,6 +87,11 @@ const AJUSTES = 'glossa:ajustes:v1';
   vale('EL ORDEN: presets, muestra, transparente, ajustes finos',
        nace.hijos.join(' ') === 'presetsFormato filaMuestra ajuste btnFinos ajustesFinos', nace.hijos.join(' '));
   vale('  y transparente ya no está dentro de los finos', nace.vidrioDentro === false);
+  /* El arreglo de fábrica del teléfono —dos columnas, letra 15, glosa al
+     margen— es exactamente «Estudiar», así que nace encendido: dice la verdad
+     de lo que hay puesto. */
+  vale('LO DE FÁBRICA ES «ESTUDIAR» DEL TELÉFONO, y sale encendido',
+       nace.encendidoAlNacer.join() === 'tel-estudiar', nace.encendidoAlNacer.join() || 'ninguno');
   vale('LOS FINOS NACEN PLEGADOS', nace.finos === 'none' && nace.expandido === 'false',
        nace.finos + ' · aria-expanded ' + nace.expandido);
 
@@ -124,7 +130,7 @@ const AJUSTES = 'glossa:ajustes:v1';
   di('guardado al cerrar', alCerrar);
   vale('AL CERRAR PASA AL LIBRO TODO LO QUE DICE',
        alCerrar.fontSize === 19 && alCerrar.fuente === 4 && alCerrar.columns === 1 &&
-       alCerrar.placement === 'below' && alCerrar.interlineado === 1.95 &&
+       alCerrar.placement === 'margin' && alCerrar.interlineado === 1.95 &&
        alCerrar.alineacion === 'left' && alCerrar.espaciado === 0,
        [alCerrar.fontSize, alCerrar.fuente, alCerrar.columns, alCerrar.placement,
         alCerrar.interlineado, alCerrar.alineacion, alCerrar.espaciado].join(' · '));
