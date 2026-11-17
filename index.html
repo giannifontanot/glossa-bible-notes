@@ -7017,7 +7017,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 05:45';
+window.GLOSS_BUILD = '17-NOV-26 05:47';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -13362,6 +13362,9 @@ function crearTagDeMarca(caja){
   if (menu.querySelector('.tagbox').classList.contains('dormida')) return;
   const t = etiquetaLimpia(caja.value); if (!t) return;
   caja.value = '';
+  /* Vaciar el campo desde aquí no dispara `input`, así que el botón se
+     quedaba encendido con el campo vacío. Lo levantó Codex. */
+  encenderNueva(caja);
   const actuales = borrador.m.etiquetas || [];
   if (!actuales.includes(t)) borrador.m.etiquetas = actuales.concat(t);
   ultimaEtiqueta = t;
@@ -14257,7 +14260,7 @@ $('tagboxGrupo').addEventListener('click', ev => {
   if (ev.target.closest('[data-acc="creartag-grupo"]')){
     const caja = $('tagNuevaGrupo');
     ponerTagGrupo(caja && caja.value);
-    if (caja) caja.value = '';
+    if (caja){ caja.value = ''; encenderNueva(caja); }
     return;
   }
   if (ev.target.closest('[data-acc="renombrartag"]')){
