@@ -408,10 +408,16 @@ async function andamio(p){
     for (let i = 0; i < 3; i++){ document.getElementById('fsUp').click(); await window.__pausa(500); }
     await window.__pausa(800);
     const g1 = window.__guardadas()[0];
+    const despues = { em: em(), lejos: medir(k), hay: window.__hayPiedra(),
+                      verso: g1 && (g1.cap + ':' + g1.vers) };
+    /* Y LA LETRA SE DEVUELVE. Esta hoja sigue en uso más abajo, y con tres
+       puntos de más la interfaz entera crece con ella: el renglón del mando
+       —sombra, Cancelar, OK— ya no cabía en uno y su prueba fallaba por algo
+       que no era suyo. Lo cazó CI. */
+    for (let i = 0; i < 3; i++){ document.getElementById('fsDown').click(); await window.__pausa(500); }
+    await window.__pausa(800);
     return { k, verso: g0 && (g0.cap + ':' + g0.vers), dxdy: g0 && [g0.dx, g0.dy],
-             antes, despues: { em: em(), lejos: medir(k), hay: window.__hayPiedra(),
-                               verso: g1 && (g1.cap + ':' + g1.vers) },
-             primero: versos[0].dataset.k };
+             antes, despues, primero: versos[0].dataset.k };
   });
   di('la perla y su versículo', JSON.stringify(ancla));
   vale('(la prueba es válida) se soltó en el tercer versículo y la letra creció',
