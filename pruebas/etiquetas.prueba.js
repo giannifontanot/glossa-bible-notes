@@ -1676,6 +1676,7 @@ const FUERA = `async () => {
   const trasEscape = await p.evaluate(() => ({
     panel:getComputedStyle(document.getElementById('etiquetas')).display,
     boton:(document.querySelector('#tagboxGrupo [data-acc="creartag-grupo"]') || {}).textContent,
+    hayCrear:!!document.querySelector('#tagboxGrupo [data-acc="creartag-grupo"]'),
     editando:document.querySelectorAll('#tagboxGrupo .tg.editando').length,
     enMarcas:JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
                .slice(0, 3).map(m => m.etiquetas || []) }));
@@ -1683,7 +1684,9 @@ const FUERA = `async () => {
   vale('(la prueba es válida) antes de Escape se estaba editando',
        antesDeEscape.accion === 'renombrar', antesDeEscape.boton);
   vale('ESCAPE SUELTA LA ETIQUETA SIN CAMBIARLE NADA',
-       trasEscape.editando === 0 && /crear/i.test(trasEscape.boton || '') &&
+       /* el de crear se llama «+ nueva» desde que lo pidió Gianni; se busca
+          por su acción y no por su palabra, que ya cambió una vez */
+       trasEscape.editando === 0 && trasEscape.hayCrear &&
        JSON.stringify(trasEscape.enMarcas) === JSON.stringify(fundida.enMarcas),
        JSON.stringify(trasEscape.enMarcas));
   /* Y SIN CERRAR EL PANEL DE PASO: Escape también cierra los rollos, así que
