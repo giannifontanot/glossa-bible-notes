@@ -4579,37 +4579,34 @@
      El vestido es el de los botones con cuerpo del panel de glosa —relleno,
      filo de luz, sombra— en claro, y el puesto se enciende en el dorado del
      programa y se hunde, que es como aquí se dice «está puesto». */
-  .presets-formato{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr));
-                    column-gap:10px; row-gap:8px; margin:2px 0 6px; }
-  .presets-formato .pf-grupo{ grid-column:1 / -1; display:flex; align-items:center; gap:8px;
-                    margin-top:4px; padding:4px 2px 5px;
+  /* UNA SOLA LISTA, «PARA LEER». Hubo dos grupos —teléfono y computadora, dos
+     botones cada uno— y no gustaron; Gianni los cambió por una lista de cuatro
+     que van de la letra más clara a la que más texto enseña. En el teléfono
+     uno debajo de otro, cada botón con un dibujito de cuántas columnas pone y
+     su explicación debajo; en pantalla ancha, los cuatro en una fila, que el
+     panel de la computadora tiene el alto de la escena y no el de la pantalla
+     —ver ajustarAnchoPanel—. */
+  .presets-formato{ display:grid; grid-template-columns:minmax(0, 1fr); row-gap:9px; margin:2px 0 6px; }
+  #ctrlConfig:not(.estrecho) .presets-formato{ grid-template-columns:repeat(4, minmax(0, 1fr));
+                                              column-gap:10px; }
+  #ctrlConfig:not(.estrecho) .presets-formato .pf-grupo{ grid-column:1 / -1; }
+  .presets-formato .pf-grupo{ display:flex; align-items:center; gap:8px; margin-top:4px; padding:4px 2px 5px;
                     font:700 calc(13px * var(--escala-ui, 1))/1.2 var(--ui);
                     letter-spacing:.1em; text-transform:uppercase; color:#4a3b17;
                     border-bottom:1px solid rgba(140,116,68,.42); }
-  .presets-formato .pf-grupo svg{ width:18px; height:18px; flex:0 0 auto; fill:none;
-                    stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .presets-formato .pf-celda{ display:flex; flex-direction:column; gap:5px; min-width:0; }
-  /* EN PANTALLA ANCHA, LOS DOS GRUPOS LADO A LADO. El panel de la computadora
-     tiene alto fijo —el de la escena— y no el de la pantalla: con los presets
-     en dos filas no cabía lo de arriba, CERRAR se quedaba pegado al fondo
-     desde el principio, pisaba «Ajustes finos» y abrirlos no lo movía. En una
-     sola fila de cuatro, el panel plegado cabe y CERRAR vuelve a ir detrás del
-     contenido. Se coloca cada pieza a mano porque el orden del marcado es
-     grupo, celda, celda, grupo, celda, celda, y en una fila los dos rótulos
-     tienen que ir arriba. «No estrecho» es la misma pregunta que reparte los
-     finos en dos columnas: ver ajustarAnchoPanel. */
-  #ctrlConfig:not(.estrecho) .presets-formato{ grid-template-columns:repeat(4, minmax(0, 1fr));
-                                              column-gap:10px; }
-  #ctrlConfig:not(.estrecho) .presets-formato .pf-grupo{ grid-row:1; }
-  #ctrlConfig:not(.estrecho) .presets-formato .pf-grupo.g-tel{ grid-column:1 / 3; }
-  #ctrlConfig:not(.estrecho) .presets-formato .pf-grupo.g-pc{ grid-column:3 / 5; }
-  #ctrlConfig:not(.estrecho) .presets-formato .pf-celda{ grid-row:2; }
-  #ctrlConfig .pf-btn{ width:100%; min-height:44px; padding:6px 8px; border-radius:9px;
-                    font:700 calc(15px * var(--escala-ui, 1))/1.15 var(--ui); color:#3f3416;
-                    text-align:center; letter-spacing:.01em;
+  #ctrlConfig .pf-btn{ width:100%; min-height:52px; padding:6px 12px; border-radius:10px;
+                    display:flex; align-items:center; gap:10px;
+                    font:700 calc(16px * var(--escala-ui, 1))/1.15 var(--ui); color:#3f3416;
+                    letter-spacing:.01em;
                     background:linear-gradient(to bottom, #fbf7ec, #efe5cc);
                     border:1px solid #c9b78c;
                     box-shadow:inset 0 1px 0 #fff, 0 2px 3px rgba(60,40,15,.22); }
+  /* El nombre centrado en el botón aunque lleve el dibujito a la izquierda:
+     se le resta al nombre lo que ocupa el dibujito por el otro lado. */
+  #ctrlConfig .pf-btn .pf-nombre{ flex:1 1 auto; text-align:center; padding-right:34px; }
+  #ctrlConfig:not(.estrecho) .pf-btn{ flex-direction:column; justify-content:center; gap:5px; padding:8px 6px; }
+  #ctrlConfig:not(.estrecho) .pf-btn .pf-nombre{ padding-right:0; flex:0 0 auto; }
   #ctrlConfig .pf-btn:hover{ background:linear-gradient(to bottom, #fffbf1, #f3ead4); }
   #ctrlConfig .pf-btn:active{ transform:translateY(1px);
                     box-shadow:inset 0 1px 3px rgba(60,40,15,.3); }
@@ -4617,19 +4614,40 @@
                     background:linear-gradient(to bottom, #a8862f, #8c6d22);
                     border-color:#e2bd52;
                     box-shadow:inset 0 1px 3px rgba(0,0,0,.3), 0 0 0 2px rgba(226,189,82,.45); }
-  .presets-formato .pf-dice{ font:calc(11.5px * var(--escala-ui, 1))/1.35 var(--ui);
+  /* EL DIBUJITO DE LAS COLUMNAS: una hoja chica con tantas tiras de renglones
+     como columnas pone el preset. Se lee antes que el nombre. */
+  .pf-hoja{ flex:0 0 auto; display:grid; gap:3px; width:24px; padding:5px; border-radius:4px;
+            background:#efe6d0; color:#8a7444; }
+  .pf-btn.active .pf-hoja{ background:rgba(255,247,223,.2); color:#fff7df; }
+  .pf-hoja i{ display:flex; flex-direction:column; gap:3px; }
+  .pf-hoja i::before, .pf-hoja i::after, .pf-hoja b{ content:''; display:block; height:3px;
+            border-radius:2px; background:currentColor; opacity:.6; }
+  .pf-hoja b{ width:80%; }
+  .presets-formato .pf-dice{ font:calc(12px * var(--escala-ui, 1))/1.35 var(--ui);
                     color:#5b4a22; text-align:center; padding:0 2px; }
   /* EL BOTÓN DE LOS AJUSTES FINOS: largo, que es lo que lo separa de los
      presets —esos ponen algo; éste abre una puerta—, y oscuro con cuerpo, como
      los de la glosa. La flecha gira al abrir para decir que también cierra. */
-  #ctrlConfig .btn-finos{ display:flex; align-items:center; justify-content:center; gap:10px;
+  /* .btn-largo lo llevan los dos: «Ajustes finos» y, desde que Gianni lo
+     pidió «bien parecido para que se vea que es un botón», también
+     «Transparente». */
+  #ctrlConfig .btn-largo{ display:flex; align-items:center; justify-content:center; gap:10px;
                     width:100%; min-height:48px; margin:8px 0 4px; border-radius:10px;
                     font:600 calc(15px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.02em;
                     color:#f3e9d0; border:1px solid #8a7350;
                     background:linear-gradient(to bottom, #6c5739, #56442d);
                     box-shadow:inset 0 1px 0 rgba(255,240,210,.22), 0 1px 3px rgba(0,0,0,.35); }
-  #ctrlConfig .btn-finos:hover{ background:linear-gradient(to bottom, #7b6442, #634f34); }
-  #ctrlConfig .btn-finos:active{ transform:translateY(1px); box-shadow:inset 0 1px 3px rgba(0,0,0,.45); }
+  #ctrlConfig .btn-largo:hover{ background:linear-gradient(to bottom, #7b6442, #634f34); }
+  #ctrlConfig .btn-largo:active{ transform:translateY(1px); box-shadow:inset 0 1px 3px rgba(0,0,0,.45); }
+  /* TRANSPARENTE PUESTO, EN DORADO. Es un interruptor, y aquí lo puesto se
+     enciende así —los presets, las columnas, la glosa—. Va también en el modo
+     de cristal, que es justo cuando está encendido: el dorado se lee sobre la
+     hoja sin tablilla. */
+  #ctrlConfig .btn-largo.active, #ajustes.cristal #ctrlConfig .btn-largo.active{
+                    color:#fff7df; border-color:#e2bd52;
+                    background:linear-gradient(to bottom, #a8862f, #8c6d22);
+                    box-shadow:inset 0 1px 3px rgba(0,0,0,.3), 0 0 0 2px rgba(226,189,82,.45); }
+  .vidrio-fila .btn-largo{ margin:4px 0 0; }
   .finos-flecha{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2.2;
                  stroke-linecap:round; stroke-linejoin:round;
                  transition:transform .45s cubic-bezier(.2,.8,.25,1); }
@@ -6253,30 +6271,6 @@
      cada uno—. Los pinta pintarPresetsFormato, que es quien sabe el idioma. -->
 <div id="presetsFormato" class="presets-formato"></div>
 
-  <!-- LA MUESTRA, debajo de los tres mandos que la escriben. Pedida así: un
-       rectángulo del papel del libro con una frase dentro, que cambia con el
-       tamaño, la tipografía y el espaciado.
-
-       PARA QUÉ, que es lo que explica todo lo demás: con el panel opaco el
-       libro está tapado, así que mover la letra era elegir a ciegas y cerrar
-       para ver qué había salido. Con la muestra se elige mirando, y el libro
-       no se toca hasta cerrar. En transparente no hace falta —el libro se ve—
-       y por eso ahí la muestra se esconde y los tres mandos vuelven a ir
-       directos a la hoja, como han ido siempre.
-
-       Y LLEVA LAS MISMAS VARIABLES QUE LA HOJA —--fam, --fs y --esp— en vez de
-       estilos propios: así la muestra no se parece al libro, es el libro. El
-       día que cambie cómo se pinta el texto, esto cambia con él. -->
-  <!-- CLASE PROPIA Y NO `.ajuste ancho`, aunque se le parezca. Las filas de
-       FORMATO tienen un contrato —cada una es un mando, lleva su tablilla en
-       modo transparente y el banco las recoge todas con `#ctrlConfig .ajuste`
-       para medirlas—. La muestra no es un mando: no se toca, sólo se mira. Con
-       la clase de las demás entraba en ese recuento y habría que explicar en
-       cada medida por qué ésta no cuenta. -->
-<div class="muestra-fila" id="filaMuestra">
-    <span class="ctrl" id="muestraLetra" aria-live="polite"
-          aria-label="Muestra de la letra del libro">en Cristo somos más que vencedores</span>
-</div>
 
 <!-- TRANSPARENTE, DESPUÉS DE LOS PRESETS Y ANTES DE LOS AJUSTES FINOS. Vivía al
      fondo del panel, debajo de los rieles. Gianni lo pidió aquí: con los
@@ -6285,19 +6279,67 @@
      del cajón de los finos. En transparente los presets van directos a la hoja
      —no hay muestra que esperar— y se ve el cambio en vivo detrás del panel. -->
 <div class="ajuste ancho vidrio-fila">
-  <button type="button" class="btn vidrio-btn" id="btnVidrio"
+  <!-- CON EL VESTIDO DE «AJUSTES FINOS», pedido por Gianni: largo, oscuro y con
+       cuerpo, que se vea que es un botón. Fue una pastilla blanca del ancho de
+       su palabra, gemela de CERRAR —ver .vidrio-btn, que se queda escrita con
+       su historia por si vuelve—. Encendido va en dorado, como todo lo que
+       aquí está puesto. -->
+  <button type="button" class="btn btn-largo" id="btnVidrio"
           aria-pressed="false"
-          title="Panel transparente para ver la hoja al ajustar">transparente</button>
+          title="Panel transparente para ver la hoja al ajustar">Transparente</button>
 </div>
 
 <!-- AJUSTES FINOS: el panel de siempre, plegado detrás de un botón largo. Al
      abrirse se despliega con suavidad y CERRAR baja con él —lo pidió así: que
      se note que el botón de cerrar se fue hacia abajo—. Ver alternarFinos. -->
-<button type="button" class="btn btn-finos" id="btnFinos" aria-expanded="false"
+<button type="button" class="btn btn-largo btn-finos" id="btnFinos" aria-expanded="false"
         aria-controls="ajustesFinos"><span data-es="Ajustes finos" data-en="Fine-tuning">Ajustes finos</span><svg
         class="finos-flecha" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path
         d="M6 9l6 6 6-6"/></svg></button>
 <div id="ajustesFinos">
+
+<!-- SEPIA, CONTRASTE Y BRILLO, LO PRIMERO DE LOS FINOS. Iban al fondo, debajo
+     de la letra y las columnas; Gianni los pidió arriba: son los que se tocan
+     mirando la hoja y los que más se vuelven a tocar. -->
+<!-- El sepia va a lo ancho porque un deslizador corto no se atina con el
+     pulgar: cuanto más largo el riel, más fino el ajuste con el mismo gesto.
+     Y va ARRIBA de la versión, que es lo último del panel por ser lo que
+     menos se toca. -->
+<div class="ajuste ancho riel-fila"><span class="lbl">sepia</span><span class="ctrl">
+  <input type="range" id="sepia" min="0" max="100" step="1" value="100"
+         title="Entinta el papel: de blanco de imprenta a papel viejo" />
+  <span class="medida" id="sepiaAhora">100</span>
+</span></div>
+
+<!-- EL CONTRASTE, PEGADO AL SEPIA. Son los dos ajustes de tinta y se usan
+     seguidos: uno elige el color del papel, el otro cuánto se despega la
+     letra de él. Van a lo ancho por el mismo motivo que aquél —riel largo,
+     pulgar contento— y en este orden porque la versión sigue siendo lo
+     último del panel, que es lo que menos se toca.
+     El rótulo es un <span>, no un <label>, igual que en todo el panel: por
+     eso el riel lleva su propio aria-label, o un lector de pantalla anunciaría
+     un deslizador sin nombre. -->
+<div class="ajuste ancho riel-fila"><span class="lbl">contraste</span><span class="ctrl">
+  <input type="range" id="contraste" min="50" max="200" step="1" value="125"
+         aria-label="contraste"
+         title="Despega la letra del papel: de tenue a marcada, sin cambiar el color" />
+  <span class="medida" id="contrasteAhora">125%</span>
+</span></div>
+
+<!-- EL BRILLO, debajo del contraste y por la misma razón que aquél está debajo
+     del sepia: los tres se usan seguidos y se corrigen entre ellos. Contraste
+     y brillo son además los dos que van por filtro, así que comparten cadena.
+     Arranca en 100, que aquí sí quiere decir "no toques nada", y además es el
+     tope: a diferencia del contraste, este riel no compensa nada del papel,
+     sólo BAJA la luz de lo que ya hay. Ver donde se declara la variable. Mismo aria-label por lo mismo: el rótulo es un <span>. -->
+<div class="ajuste ancho riel-fila"><span class="lbl">brillo</span><span class="ctrl">
+  <input type="range" id="brillo" min="50" max="100" step="1" value="100"
+         aria-label="brillo"
+         title="Sube o baja la luz de la hoja, sin cambiar el color ni la letra" />
+  <span class="medida" id="brilloAhora">100%</span>
+</span></div>
+
+
 
 <div class="grupo-simple">
   <div class="ajuste"><span class="lbl">tamaño</span><span class="ctrl">
@@ -6334,6 +6376,35 @@
             aria-label="espaciado entre letras"></select>
     <button class="btn" id="espUp" title="Un punto más de espaciado">+</button>
   </span></div>
+
+  <!-- LA MUESTRA VOLVIÓ AQUÍ. Estuvo arriba de todo, debajo de los presets, y
+       Gianni la quitó de ahí: los presets van directos a la hoja y la frase
+       sobraba. Dentro de los finos sigue sirviendo para lo que nació —elegir
+       letra, tamaño y espaciado mirando, con el libro tapado—.
+       LA MUESTRA, debajo de los tres mandos que la escriben. Pedida así: un
+       rectángulo del papel del libro con una frase dentro, que cambia con el
+       tamaño, la tipografía y el espaciado.
+
+       PARA QUÉ, que es lo que explica todo lo demás: con el panel opaco el
+       libro está tapado, así que mover la letra era elegir a ciegas y cerrar
+       para ver qué había salido. Con la muestra se elige mirando, y el libro
+       no se toca hasta cerrar. En transparente no hace falta —el libro se ve—
+       y por eso ahí la muestra se esconde y los tres mandos vuelven a ir
+       directos a la hoja, como han ido siempre.
+
+       Y LLEVA LAS MISMAS VARIABLES QUE LA HOJA —--fam, --fs y --esp— en vez de
+       estilos propios: así la muestra no se parece al libro, es el libro. El
+       día que cambie cómo se pinta el texto, esto cambia con él. -->
+  <!-- CLASE PROPIA Y NO `.ajuste ancho`, aunque se le parezca. Las filas de
+       FORMATO tienen un contrato —cada una es un mando, lleva su tablilla en
+       modo transparente y el banco las recoge todas con `#ctrlConfig .ajuste`
+       para medirlas—. La muestra no es un mando: no se toca, sólo se mira. Con
+       la clase de las demás entraba en ese recuento y habría que explicar en
+       cada medida por qué ésta no cuenta. -->
+  <div class="muestra-fila" id="filaMuestra">
+    <span class="ctrl" id="muestraLetra" aria-live="polite"
+          aria-label="Muestra de la letra del libro">en Cristo somos más que vencedores</span>
+  </div>
 
   <!-- LOS MÁRGENES SE OCULTAN, PERO SIGUEN AHÍ.
 
@@ -6387,45 +6458,6 @@
     <button class="btn" data-lay="foot">al pie</button>
   </span></div>
 </div>
-
-<!-- El sepia va a lo ancho porque un deslizador corto no se atina con el
-     pulgar: cuanto más largo el riel, más fino el ajuste con el mismo gesto.
-     Y va ARRIBA de la versión, que es lo último del panel por ser lo que
-     menos se toca. -->
-<div class="ajuste ancho riel-fila"><span class="lbl">sepia</span><span class="ctrl">
-  <input type="range" id="sepia" min="0" max="100" step="1" value="100"
-         title="Entinta el papel: de blanco de imprenta a papel viejo" />
-  <span class="medida" id="sepiaAhora">100</span>
-</span></div>
-
-<!-- EL CONTRASTE, PEGADO AL SEPIA. Son los dos ajustes de tinta y se usan
-     seguidos: uno elige el color del papel, el otro cuánto se despega la
-     letra de él. Van a lo ancho por el mismo motivo que aquél —riel largo,
-     pulgar contento— y en este orden porque la versión sigue siendo lo
-     último del panel, que es lo que menos se toca.
-     El rótulo es un <span>, no un <label>, igual que en todo el panel: por
-     eso el riel lleva su propio aria-label, o un lector de pantalla anunciaría
-     un deslizador sin nombre. -->
-<div class="ajuste ancho riel-fila"><span class="lbl">contraste</span><span class="ctrl">
-  <input type="range" id="contraste" min="50" max="200" step="1" value="125"
-         aria-label="contraste"
-         title="Despega la letra del papel: de tenue a marcada, sin cambiar el color" />
-  <span class="medida" id="contrasteAhora">125%</span>
-</span></div>
-
-<!-- EL BRILLO, debajo del contraste y por la misma razón que aquél está debajo
-     del sepia: los tres se usan seguidos y se corrigen entre ellos. Contraste
-     y brillo son además los dos que van por filtro, así que comparten cadena.
-     Arranca en 100, que aquí sí quiere decir "no toques nada", y además es el
-     tope: a diferencia del contraste, este riel no compensa nada del papel,
-     sólo BAJA la luz de lo que ya hay. Ver donde se declara la variable. Mismo aria-label por lo mismo: el rótulo es un <span>. -->
-<div class="ajuste ancho riel-fila"><span class="lbl">brillo</span><span class="ctrl">
-  <input type="range" id="brillo" min="50" max="100" step="1" value="100"
-         aria-label="brillo"
-         title="Sube o baja la luz de la hoja, sin cambiar el color ni la letra" />
-  <span class="medida" id="brilloAhora">100%</span>
-</span></div>
-
 
 <!-- AQUÍ VIVÍA LA FILA DE VERSIÓN, y se fue por duplicada. El rótulo del pie
      de la hoja (#pgVersion) abre el globo #burbujaVersion, que lista las
@@ -6857,7 +6889,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '16-NOV-26 18:07';
+window.GLOSS_BUILD = '16-NOV-26 18:54';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -24660,7 +24692,7 @@ const UI_EN = {
                          aria:'contrast', lbl:'contrast' },
   '#brillo':           { title:'Raises or lowers the light of the page, without changing color or type',
                          aria:'brightness', lbl:'brightness' },
-  '#btnVidrio':        { t:'see-through', title:'See-through panel, to watch the page while adjusting' },
+  '#btnVidrio':        { t:'See-through', title:'See-through panel, to watch the page while adjusting' },
   /* RESPALDO. */
   '#btnExportar':      { t:'Export' },
   '#btnImportar':      { t:'Import' },
@@ -25117,65 +25149,62 @@ $('brillo').oninput = e => {
 };
 
 /* ---------- los presets de FORMATO ---------- */
-/* LOS PRESETS: LO MEJOR PARA CADA PANTALLA, DE UN TOQUE.
+/* LOS PRESETS: UNA LISTA PARA LEER, DE UN TOQUE.
 
    Pedidos por Gianni: casi nadie quiere decidir tamaño, letra, espaciado,
-   interlínea, columnas y glosa uno por uno; quiere «déjamelo bien para el
-   teléfono». Se pasó por un panel de cuatro miradas —diseño de lectura,
-   accesibilidad, interfaz y un lector que prepara clases— y salieron CUATRO,
-   dos por aparato, y no tres:
-     · la diferencia que el lector entiende no es teléfono contra tableta, es
-       LEER contra ESTUDIAR. Leer pide letra grande y nada que distraiga;
-       estudiar pide más texto a la vista y las glosas cerca;
-     · tres botones obligan a adivinar qué es «el de en medio»; cuatro en dos
-       grupos rotulados se entienden de un vistazo y caben sin desplazar.
+   interlínea y columnas uno por uno. Fueron primero dos grupos —teléfono y
+   computadora, «leer» y «estudiar» en cada uno— y no le gustaron; los cambió
+   por UNA lista de cuatro, armada en un mock y afinada a mano preset por
+   preset:
+     · LEGIBLE: letra 24 en una columna, la LINEAL —la sin remates, la más
+       clara que hay—, espaciado +5, interlínea normal y contraste 140. Es el
+       único que toca la tinta, decidido así con él.
+     · LETRA GRANDE: 26, el tope de la app, en una columna, romana, con
+       interlínea amplia. Tiene que ser la más grande de la lista o el nombre
+       miente: estuvo en 20 y Legible en 24, y se subió.
+     · DOS COLUMNAS: 18 en dos columnas, romana, interlínea normal. 18 es lo
+       más grande que aguanta una columna de teléfono sin bajar de unos 25
+       caracteres por renglón, que es donde la lectura empieza a ir a saltos.
+     · TRES COLUMNAS: 16 en tres, romana, interlínea normal. En un teléfono
+       queda apretado; es para pantallas anchas, y su explicación lo dice.
+   La escala la ordenó un panel de cuatro miradas —tipógrafo, accesibilidad,
+   columnas y un lector—: alrededor de Legible, escalones que se noten y, de
+   arriba abajo, la letra bajando y las columnas subiendo, para que la lista se
+   entienda sin leerla. Todos ponen el texto a la izquierda —justificar abre
+   ríos de blanco en columnas estrechas— y LA GLOSA AL MARGEN, que también se
+   pidió para los cuatro.
 
-   QUÉ PONE CADA UNO, todo con valores que el panel ya tiene:
-     · Teléfono · Leer cómodo: una columna, letra 19, LINEAL —la sin remates,
-       la más legible que hay; a ésa se refería «la letra súper visible»—,
-       interlínea amplia y la glosa al margen. Y sube el contraste a 140: es
-       el único preset que toca la tinta, decidido así con Gianni —los demás
-       no tocan el color del papel—.
-     · Teléfono · Estudiar: DOS columnas, letra 15, romana, interlínea normal
-       y la glosa al margen —es el arreglo de fábrica de la hoja en teléfono—.
+   VAN DIRECTOS A LA HOJA, aunque el panel esté opaco. Los mandos de letra de
+   los finos esperan en la muestra y pasan al cerrar; los presets no, porque la
+   muestra ya no está a su lado —Gianni la quitó de arriba— y elegir un preset
+   para no ver nada hasta cerrar sería elegir a ciegas. Para verlo sin cerrar
+   está «Transparente», justo debajo.
 
-   TODAS LAS GLOSAS AL MARGEN. Empezaron repartidas —abajo en «Leer cómodo»,
-   al pie en «Estudiar» del teléfono— y Gianni pidió el margen en las cuatro.
-   Y quiso una opción de teléfono con dos columnas: en vez de un quinto botón,
-   que dejaba la cuadrícula coja, la lleva «Estudiar», que de una columna con
-   letra 16 a dos con letra 15 es justo eso, ver más texto a la vez.
-     · Computadora · Leer: dos columnas, letra 18, romana, interlínea amplia y
-       la glosa al margen.
-     · Computadora · Estudiar: tres columnas, letra 16, romana, interlínea
-       normal y la glosa al margen.
-   Todos dejan el espaciado en 0 y el texto a la izquierda: justificar abre
-   ríos de blanco en columnas estrechas, y ninguno de los cuatro los quiere.
-
-   NO SE GUARDA CUÁL ESTÁ PUESTO: se mira. El preset que sale encendido es el
-   que coincide con lo que hay —ver presetVivo—, así que tocar cualquier ajuste
-   a mano lo apaga solo, que es lo que se acordó, y no hay un «preset elegido»
+   NO SE GUARDA CUÁL ESTÁ PUESTO: se mira. El que sale encendido es el que
+   coincide con lo que hay —ver presetVivo—, así que tocar cualquier ajuste a
+   mano lo apaga solo, que es lo que se acordó, y no hay un «preset elegido»
    guardado aparte que pueda quedarse diciendo algo que ya no es verdad.
 
    `var` Y NO `const`, a propósito: aplicarIdioma y reflejarControles corren al
    arrancar, antes de llegar aquí, y preguntan por esto. Con const, la
    pregunta misma rompería el arranque. */
 var PRESETS_FORMATO = [
-  { id:'tel-leer', grupo:'tel', es:'Leer cómodo', en:'Easy reading',
-    dice:'Una columna, letra grande y sin remates; glosa al margen.',
-    diceEn:'One column, large plain letters; notes in the margin.',
-    tam:19, fuente:4, esp:0, aire:1.95, cols:1, glosa:'margin', contraste:140 },
-  { id:'tel-estudiar', grupo:'tel', es:'Estudiar', en:'Study',
-    dice:'Dos columnas, más texto a la vista; glosa al margen.',
-    diceEn:'Two columns, more text in view; notes in the margin.',
-    tam:15, fuente:0, esp:0, aire:1.62, cols:2, glosa:'margin' },
-  { id:'pc-leer', grupo:'pc', es:'Leer', en:'Read',
-    dice:'Dos columnas, letra 18 y aire; glosa al margen.',
-    diceEn:'Two columns, size 18 with room; notes in the margin.',
-    tam:18, fuente:0, esp:0, aire:1.95, cols:2, glosa:'margin' },
-  { id:'pc-estudiar', grupo:'pc', es:'Estudiar', en:'Study',
-    dice:'Tres columnas para ver mucho; glosa al margen.',
-    diceEn:'Three columns to see a lot; notes in the margin.',
-    tam:16, fuente:0, esp:0, aire:1.62, cols:3, glosa:'margin' }
+  { id:'legible', es:'Legible', en:'Clear',
+    dice:'Letra grande y separada en una columna, la tipografía más clara y contraste más alto.',
+    diceEn:'Large, spaced letters in one column, the clearest typeface and stronger contrast.',
+    tam:24, fuente:4, esp:5, aire:1.62, cols:1, contraste:140 },
+  { id:'grande', es:'Letra grande', en:'Large type',
+    dice:'La letra más grande, en una columna, con aire entre renglones.',
+    diceEn:'The largest type, in one column, with room between lines.',
+    tam:26, fuente:0, esp:0, aire:1.95, cols:1 },
+  { id:'dos', es:'Dos columnas', en:'Two columns',
+    dice:'Letra mediana en dos columnas: más texto a la vista.',
+    diceEn:'Medium type in two columns: more text in view.',
+    tam:18, fuente:0, esp:0, aire:1.62, cols:2 },
+  { id:'tres', es:'Tres columnas', en:'Three columns',
+    dice:'Letra más chica en tres columnas: para pantallas anchas o para ver mucho de un vistazo.',
+    diceEn:'Smaller type in three columns: for wide screens or to see a lot at a glance.',
+    tam:16, fuente:0, esp:0, aire:1.62, cols:3 }
 ];
 function presetVivo(){
   if (!PRESETS_FORMATO) return null;
@@ -25183,7 +25212,7 @@ function presetVivo(){
   return PRESETS_FORMATO.find(p =>
     tamVivo() === p.tam && espVivo() === p.esp && f === FUENTES[p.fuente][1] &&
     alineacion === 'left' && interlineado === p.aire && columns === p.cols &&
-    placement === p.glosa && (p.contraste == null || contraste === p.contraste)) || null;
+    placement === 'margin' && (p.contraste == null || contraste === p.contraste)) || null;
 }
 function reflejarPresets(){
   if (!PRESETS_FORMATO) return;
@@ -25194,47 +25223,35 @@ function reflejarPresets(){
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
 }
-const PF_SIGNO = {
-  tel: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>',
-  pc:  '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M9 21h6M12 17v4"/></svg>'
-};
 function pintarPresetsFormato(){
   const caja = document.getElementById('presetsFormato');
   if (!caja || !PRESETS_FORMATO) return;
-  const grupo = (g, es, en) =>
-    '<div class="pf-grupo g-' + g + '">' + PF_SIGNO[g] + '<span>' + T(es, en) + '</span></div>' +
-    PRESETS_FORMATO.filter(p => p.grupo === g).map(p =>
-      '<div class="pf-celda g-' + g + '">' +
+  caja.innerHTML = '<div class="pf-grupo">' + T('Para leer', 'For reading') + '</div>' +
+    PRESETS_FORMATO.map(p =>
+      '<div class="pf-celda">' +
         '<button type="button" class="btn pf-btn" data-preset="' + p.id + '" aria-pressed="false"' +
-          ' aria-describedby="pfd-' + p.id + '">' + T(p.es, p.en) + '</button>' +
+          ' aria-describedby="pfd-' + p.id + '">' +
+          '<span class="pf-hoja" aria-hidden="true" style="grid-template-columns:repeat(' + p.cols +
+            ', minmax(0, 1fr))">' + '<i><b></b></i>'.repeat(p.cols) + '</span>' +
+          '<span class="pf-nombre">' + T(p.es, p.en) + '</span></button>' +
         '<span class="pf-dice" id="pfd-' + p.id + '">' + T(p.dice, p.diceEn) + '</span>' +
       '</div>').join('');
-  caja.innerHTML = grupo('tel', 'Teléfono', 'Phone') + grupo('pc', 'Computadora', 'Computer');
   reflejarPresets();
 }
-/* PONER UN PRESET ES TOCAR LOS MISMOS MANDOS, no un camino aparte. Con el panel
-   opaco el tamaño, la letra y el espaciado esperan en la muestra y pasan al
-   libro al cerrar —ver aplicarPendientes—, exactamente como si se hubieran
-   tocado a mano; en transparente van directos y se ven detrás del panel. Lo
-   demás —interlínea, columnas, glosa, contraste— va al instante en los dos
-   modos, como va siempre con sus botones. */
+/* PONER UN PRESET ES TOCAR LOS MISMOS VALORES QUE LOS MANDOS, y directo a la
+   hoja: ver arriba por qué no espera en la muestra. Si había algo esperando en
+   ella —se tocó la letra en los finos y no se cerró—, el preset lo sustituye:
+   es lo último que se pidió. */
 function ponerPreset(id){
   const p = PRESETS_FORMATO && PRESETS_FORMATO.find(x => x.id === id);
   if (!p) return;
-  const f = FUENTES[p.fuente][1];
-  const tam = Math.max(FS_MIN, Math.min(FS_MAX, p.tam));
-  const esp = Math.max(ESP_MIN, Math.min(ESP_MAX, p.esp));
-  if (hayMuestra()){
-    pendTam = tam; pendEsp = esp; pendFuente = f;
-  } else {
-    pendTam = pendEsp = pendFuente = null;
-    fontSize = tam; escalarInterfaz();
-    espaciado = esp;
-    fuente = f;
-    afinarListaDeFuentes();
-    reflejarFuenteDelLibro();
-    avisarEstiloALosRelatos();
-  }
+  pendTam = pendEsp = pendFuente = null;
+  fontSize = Math.max(FS_MIN, Math.min(FS_MAX, p.tam)); escalarInterfaz();
+  espaciado = Math.max(ESP_MIN, Math.min(ESP_MAX, p.esp));
+  fuente = FUENTES[p.fuente][1];
+  afinarListaDeFuentes();
+  reflejarFuenteDelLibro();
+  avisarEstiloALosRelatos();
   reflejarTamano(); reflejarEspaciado();
   $('selFuente').value = String(p.fuente);
   reflejarMuestra();
@@ -25242,7 +25259,7 @@ function ponerPreset(id){
   interlineado = p.aire;
   setColumns(p.cols);
   placementTocado = true;
-  setPlacement(p.glosa);
+  setPlacement('margin');
   if (p.contraste != null){
     contraste = p.contraste;
     $('contraste').value = String(contraste);

@@ -1,12 +1,12 @@
 /* FORMATO CON PRESETS.
 
-   La pestaña AA estrenó cuatro botones —dos para teléfono, dos para
-   computadora— que ponen de un toque los mejores ajustes de cada pantalla, y
-   pliega los mandos de siempre detrás de «Ajustes finos». Lo pidió Gianni, y
-   pidió tres cosas que se miran aquí:
-     · que un preset ponga TODO lo que dice —letra, tamaño, interlínea,
-       columnas, glosa— y que con el panel opaco espere en la muestra y pase al
-       libro al cerrar, como cualquier mando de letra;
+   La pestaña AA abre con una lista «Para leer» de cuatro presets —Legible,
+   Letra grande, Dos columnas, Tres columnas— que ponen de un toque letra,
+   tamaño, espaciado, interlínea, columnas y glosa, y pliega los mandos de
+   siempre detrás de «Ajustes finos». Fueron primero dos grupos por aparato;
+   Gianni los cambió por la lista. Se mira aquí:
+     · que un preset ponga TODO lo que dice y vaya directo a la hoja, también
+       con el panel opaco —la muestra ya no está a su lado—;
      · que el preset puesto se vea encendido y que tocar algo a mano lo apague;
      · que los finos se abran SUAVE y que se note que CERRAR se va hacia abajo.
 
@@ -71,75 +71,70 @@ const AJUSTES = 'glossa:ajustes:v1';
       expandido: document.getElementById('btnFinos').getAttribute('aria-expanded'),
       vidrioDentro: !!document.querySelector('#ajustesFinos #btnVidrio'),
       encendidoAlNacer: [...document.querySelectorAll('#presetsFormato [data-preset].active')].map(b => b.dataset.preset),
-      grupos
+      grupos,
+      vidrio: (() => { const b = document.getElementById('btnVidrio'), f = document.getElementById('btnFinos');
+                       return { t: b.textContent.trim(), alto: Math.round(b.offsetHeight), ancho: Math.round(b.offsetWidth),
+                                altoF: Math.round(f.offsetHeight), anchoF: Math.round(f.offsetWidth),
+                                fondo: getComputedStyle(b).backgroundImage === getComputedStyle(f).backgroundImage }; })(),
+      muestraEnFinos: !!document.querySelector('#ajustesFinos #filaMuestra'),
+      primerosFinos: [...document.querySelectorAll('#ajustesFinos .ajuste .lbl')].slice(0, 4).map(l => l.textContent.trim())
     };
   }, [ABRIR_AA]);
   di('al nacer', nace);
   vale('(la prueba es válida) se abrió la pestaña AA', nace.ok === true);
-  vale('CUATRO PRESETS: Leer cómodo, Estudiar, Leer, Estudiar',
-       nace.presets.join(' · ') === 'Leer cómodo · Estudiar · Leer · Estudiar', nace.presets.join(' · '));
+  vale('UNA LISTA DE CUATRO: Legible, Letra grande, Dos columnas, Tres columnas',
+       nace.presets.join(' · ') === 'Legible · Letra grande · Dos columnas · Tres columnas', nace.presets.join(' · '));
   vale('  cada uno con su explicación debajo', nace.dices === 4, nace.dices);
-  vale('  con los rótulos del grupo a la vista: oscuros y de 13 px o más',
-       nace.grupos.length === 2 && nace.grupos.every(g => g.fs >= 13 &&
+  vale('  bajo un solo rótulo, «Para leer», oscuro y de 13 px o más',
+       nace.grupos.length === 1 && /para leer/i.test(nace.grupos[0].t) && nace.grupos.every(g => g.fs >= 13 &&
          /rgb\((\d+), (\d+), (\d+)\)/.test(g.color) &&
          g.color.match(/\d+/g).slice(0, 3).every(n => +n < 110)),
        nace.grupos.map(g => g.t + ' ' + g.fs + 'px ' + g.color).join(' · '));
-  vale('EL ORDEN: presets, muestra, transparente, ajustes finos',
-       nace.hijos.join(' ') === 'presetsFormato filaMuestra ajuste btnFinos ajustesFinos', nace.hijos.join(' '));
-  vale('  y transparente ya no está dentro de los finos', nace.vidrioDentro === false);
-  /* El arreglo de fábrica del teléfono —dos columnas, letra 15, glosa al
-     margen— es exactamente «Estudiar», así que nace encendido: dice la verdad
-     de lo que hay puesto. */
-  vale('LO DE FÁBRICA ES «ESTUDIAR» DEL TELÉFONO, y sale encendido',
-       nace.encendidoAlNacer.join() === 'tel-estudiar', nace.encendidoAlNacer.join() || 'ninguno');
+  vale('EL ORDEN: presets, transparente, ajustes finos —sin la frase de muestra arriba—',
+       nace.hijos.join(' ') === 'presetsFormato ajuste btnFinos ajustesFinos', nace.hijos.join(' '));
+  vale('  y la muestra vive ahora dentro de los finos', nace.muestraEnFinos === true);
+  vale('  y transparente no está dentro de los finos', nace.vidrioDentro === false);
+  vale('TRANSPARENTE ES UN BOTÓN COMO «AJUSTES FINOS»: mismo alto, mismo ancho, mismo fondo',
+       nace.vidrio.t === 'Transparente' && nace.vidrio.alto === nace.vidrio.altoF &&
+       nace.vidrio.ancho === nace.vidrio.anchoF && nace.vidrio.fondo,
+       JSON.stringify(nace.vidrio));
+  vale('SEPIA, CONTRASTE Y BRILLO, LO PRIMERO DE LOS FINOS',
+       nace.primerosFinos.slice(0, 3).join(' ') === 'sepia contraste brillo', nace.primerosFinos.join(' · '));
+  /* Lo de fábrica —letra 15 en dos columnas— no es ninguno de los cuatro. */
+  vale('LO DE FÁBRICA NO ENCIENDE NINGUNO', nace.encendidoAlNacer.length === 0,
+       nace.encendidoAlNacer.join() || 'ninguno');
   vale('LOS FINOS NACEN PLEGADOS', nace.finos === 'none' && nace.expandido === 'false',
        nace.finos + ' · aria-expanded ' + nace.expandido);
 
-  titulo('un preset con el panel opaco espera en la muestra');
+  titulo('un preset va directo a la hoja, también con el panel opaco');
   const opaco = await p.evaluate(async ([tocar]) => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
-    const fsLibroAntes = getComputedStyle(document.documentElement).getPropertyValue('--fs-libro').trim();
-    await eval('(' + tocar + ')')('[data-preset="tel-leer"]');
-    await pausa(300);
-    const m = document.getElementById('muestraLetra');
+    const esCristal = document.getElementById('ajustes').classList.contains('cristal');
+    await eval('(' + tocar + ')')('[data-preset="legible"]');
+    await pausa(400);
     return {
+      esCristal,
       encendido: [...document.querySelectorAll('#presetsFormato [data-preset].active')].map(b => b.dataset.preset),
-      pulsado: document.querySelector('[data-preset="tel-leer"]').getAttribute('aria-pressed'),
-      muestraFs: getComputedStyle(m).fontSize,
-      muestraFam: getComputedStyle(m).fontFamily,
-      fsLibroAntes,
-      fsLibroAhora: getComputedStyle(document.documentElement).getPropertyValue('--fs-libro').trim(),
-      guardadoFs: JSON.parse(localStorage.getItem('glossa:ajustes:v1')).fontSize
+      pulsado: document.querySelector('[data-preset="legible"]').getAttribute('aria-pressed'),
+      a: JSON.parse(localStorage.getItem('glossa:ajustes:v1'))
     };
   }, [TOCAR]);
-  di('tras «Leer cómodo»', opaco);
-  vale('EL PRESET TOCADO SE ENCIENDE', opaco.encendido.join() === 'tel-leer' && opaco.pulsado === 'true',
+  di('tras «Legible»', opaco);
+  const a = opaco.a;
+  vale('(la prueba es válida) el panel estaba opaco', opaco.esCristal === false);
+  vale('EL PRESET TOCADO SE ENCIENDE', opaco.encendido.join() === 'legible' && opaco.pulsado === 'true',
        opaco.encendido.join() + ' · ' + opaco.pulsado);
-  vale('  la muestra ya enseña la letra grande y sin remates',
-       opaco.muestraFs === '19px' && /verdana/i.test(opaco.muestraFam), opaco.muestraFs + ' ' + opaco.muestraFam);
-  vale('  y el libro espera: el tamaño todavía no está guardado',
-       opaco.guardadoFs === 15, opaco.guardadoFs);
-
-  const alCerrar = await p.evaluate(async () => {
-    const pausa = ms => new Promise(z => setTimeout(z, ms));
-    const b = document.querySelector('#ajustes .cerrar-pie');
-    if (b) b.click();
-    await pausa(1400);
-    return JSON.parse(localStorage.getItem('glossa:ajustes:v1'));
-  });
-  di('guardado al cerrar', alCerrar);
-  vale('AL CERRAR PASA AL LIBRO TODO LO QUE DICE',
-       alCerrar.fontSize === 19 && alCerrar.fuente === 4 && alCerrar.columns === 1 &&
-       alCerrar.placement === 'margin' && alCerrar.interlineado === 1.95 &&
-       alCerrar.alineacion === 'left' && alCerrar.espaciado === 0,
-       [alCerrar.fontSize, alCerrar.fuente, alCerrar.columns, alCerrar.placement,
-        alCerrar.interlineado, alCerrar.alineacion, alCerrar.espaciado].join(' · '));
-  vale('  y sube el contraste, que es el único preset que lo toca',
-       alCerrar.contraste === 140, alCerrar.contraste);
+  vale('LEGIBLE LLEGA A LA HOJA SIN CERRAR: 24, Lineal, espaciado +5, interlínea normal, una columna, al margen',
+       a.fontSize === 24 && a.fuente === 4 && a.espaciado === 5 && a.interlineado === 1.62 &&
+       a.columns === 1 && a.placement === 'margin' && a.alineacion === 'left',
+       [a.fontSize, a.fuente, a.espaciado, a.interlineado, a.columns, a.placement, a.alineacion].join(' · '));
+  vale('  y sube el contraste, que es el único que lo toca', a.contraste === 140, a.contraste);
 
   titulo('tocar a mano apaga el preset; los otros no tocan la tinta');
   const aMano = await p.evaluate(async ([abrirAA, tocar]) => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
+    document.querySelector('#ajustes .cerrar-pie').click();
+    await pausa(1200);
     await eval('(' + abrirAA + ')')();
     const encendidoAlVolver = [...document.querySelectorAll('[data-preset].active')].map(b => b.dataset.preset);
     /* A+ está dentro de los finos, plegados: se toca igual, que el manejador
@@ -147,19 +142,22 @@ const AJUSTES = 'glossa:ajustes:v1';
     document.getElementById('fsUp').click();
     await pausa(80);
     const trasA = [...document.querySelectorAll('[data-preset].active')].map(b => b.dataset.preset);
-    await eval('(' + tocar + ')')('[data-preset="pc-estudiar"]');
-    await pausa(200);
+    await eval('(' + tocar + ')')('[data-preset="tres"]');
+    await pausa(300);
     return { encendidoAlVolver, trasA,
              trasPc: [...document.querySelectorAll('[data-preset].active')].map(b => b.dataset.preset),
-             contraste: JSON.parse(localStorage.getItem('glossa:ajustes:v1')).contraste };
+             a: JSON.parse(localStorage.getItem('glossa:ajustes:v1')) };
   }, [ABRIR_AA, TOCAR]);
   di('a mano', aMano);
-  vale('AL VOLVER A LA PESTAÑA SIGUE ENCENDIDO', aMano.encendidoAlVolver.join() === 'tel-leer',
+  vale('AL VOLVER A LA PESTAÑA SIGUE ENCENDIDO', aMano.encendidoAlVolver.join() === 'legible',
        aMano.encendidoAlVolver.join() || 'ninguno');
   vale('UN A+ A MANO LO APAGA', aMano.trasA.length === 0, aMano.trasA.join() || 'ninguno');
   vale('OTRO PRESET SE ENCIENDE Y NO TOCA EL CONTRASTE',
-       aMano.trasPc.join() === 'pc-estudiar' && aMano.contraste === 140,
-       aMano.trasPc.join() + ' · contraste ' + aMano.contraste);
+       aMano.trasPc.join() === 'tres' && aMano.a.contraste === 140,
+       aMano.trasPc.join() + ' · contraste ' + aMano.a.contraste);
+  vale('  y pone lo suyo: 16 en tres columnas, romana, sin espaciado',
+       aMano.a.fontSize === 16 && aMano.a.columns === 3 && aMano.a.fuente === 0 && aMano.a.espaciado === 0,
+       [aMano.a.fontSize, aMano.a.columns, aMano.a.fuente, aMano.a.espaciado].join(' · '));
 
   titulo('los ajustes finos se abren suave y CERRAR baja con ellos');
   const finos = await p.evaluate(async () => {
@@ -200,18 +198,20 @@ const AJUSTES = 'glossa:ajustes:v1';
   }, [ABRIR_AA]);
   vale('  también al recargar', trasRecargar === 'grid', trasRecargar);
 
-  titulo('en transparente el preset va directo a la hoja');
+  titulo('en transparente también, y el botón se enciende');
   const cristal = await p.evaluate(async ([tocar]) => {
     const pausa = ms => new Promise(z => setTimeout(z, ms));
     await eval('(' + tocar + ')')('#btnVidrio');
     await pausa(500);
     const esCristal = document.getElementById('ajustes').classList.contains('cristal');
-    await eval('(' + tocar + ')')('[data-preset="pc-leer"]');
+    await eval('(' + tocar + ')')('[data-preset="dos"]');
     await pausa(600);
     const a = JSON.parse(localStorage.getItem('glossa:ajustes:v1'));
     const res = { esCristal, fontSize: a.fontSize, columns: a.columns, placement: a.placement,
                   encendido: [...document.querySelectorAll('[data-preset].active')].map(b => b.dataset.preset),
-                  tablilla: getComputedStyle(document.querySelector('#presetsFormato .pf-grupo')).backgroundColor };
+                  tablilla: getComputedStyle(document.querySelector('#presetsFormato .pf-grupo')).backgroundColor,
+                  vidrioOn: document.getElementById('btnVidrio').classList.contains('active') &&
+                            document.getElementById('btnVidrio').getAttribute('aria-pressed') === 'true' };
     await eval('(' + tocar + ')')('#btnVidrio');
     await pausa(400);
     return res;
@@ -221,7 +221,8 @@ const AJUSTES = 'glossa:ajustes:v1';
   vale('EL PRESET LLEGA AL LIBRO SIN CERRAR',
        cristal.fontSize === 18 && cristal.columns === 2 && cristal.placement === 'margin',
        cristal.fontSize + ' · ' + cristal.columns + ' · ' + cristal.placement);
-  vale('  y se enciende', cristal.encendido.join() === 'pc-leer', cristal.encendido.join() || 'ninguno');
+  vale('  y se enciende', cristal.encendido.join() === 'dos', cristal.encendido.join() || 'ninguno');
+  vale('  y «Transparente» sale encendido mientras lo está', cristal.vidrioOn === true);
   vale('  y los rótulos llevan su tablilla para leerse sobre la hoja',
        cristal.tablilla !== 'rgba(0, 0, 0, 0)', cristal.tablilla);
 
