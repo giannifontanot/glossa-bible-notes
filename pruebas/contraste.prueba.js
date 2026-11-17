@@ -394,8 +394,13 @@ async function ponerContraste(pagina, pct){
      esta comprobación dice algo. */
   vale('  y es ella la que lleva la clase del trato especial',
        salidas.every(f => f.claseSalida), salidas.map(f => f.clases).join(' · '));
-  vale('la FILA de la salida va a todo lo ancho y sin tablilla, como pide su regla',
-       salidas.every(f => f.pct > 90 && !f.conFondo),
+  /* CON BANDEJA, DESDE QUE LLEVA LOS DOS BOTONES. Iba sin tablilla porque era
+     la fila de un solo botón con papel propio; Gianni pidió Transparente y
+     Ajustes finos en un renglón, y que se viera que no son opciones como los
+     presets. Lo que lo dice es la bandeja que los envuelve, y en transparente
+     se queda, así que ahora se exige al revés: ancha y CON su tablilla. */
+  vale('la FILA de la salida va a todo lo ancho y con su bandeja, como pide su regla',
+       salidas.every(f => f.pct > 90 && f.conFondo),
        salidas.map(f => f.pct + '% · tablilla ' + f.conFondo).join(' · '));
   /* Y EL BOTÓN, AL REVÉS QUE SU FILA. Esta prueba exigía que la salida fuera
      ancha y era verdad de las dos cosas: la fila y el botón medían el panel.
@@ -460,10 +465,10 @@ async function ponerContraste(pagina, pct){
   vale('  con su hilo por los cuatro lados, para distinguirse de la hoja',
        ajustes.concat(rieles).every(f => f.bordes.every(n => n >= 1)),
        ajustes.concat(rieles).map(f => f.que + ' ' + f.bordes.join('/')).join(' · '));
-  /* Y LA SALIDA NO LLEVA NINGUNO, que es la otra mitad: es la única fila ancha
-     sin tablilla, y un recuadro sin fondo debajo no es el canto de nada. */
-  vale('LA FILA DE LA SALIDA SE QUEDA SIN BORDE, como sin tablilla',
-       salidas.every(f => f.bordes.every(n => n === 0)),
+  /* Y LA BANDEJA LLEVA EL MISMO HILO: tiene fondo, así que su canto dice
+     dónde acaba ella y empieza la hoja, como en las demás tablillas. */
+  vale('LA BANDEJA DE LA SALIDA LLEVA SU HILO, como cualquier tablilla',
+       salidas.every(f => f.bordes.every(n => n >= 1)),
        salidas.map(f => f.bordes.join('/')).join(' · '));
   vale('de esquinas redondeadas', ajustes.every(f => f.redondas));
   vale('y cada una cubre su control',
