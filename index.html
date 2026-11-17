@@ -3991,6 +3991,13 @@
   .herr-tit{ margin:0 0 10px; padding-bottom:6px; border-bottom:1px solid rgba(140,116,68,.3);
              font:700 calc(11.5px * var(--escala-ui, 1))/1.2 var(--ui); letter-spacing:.12em;
              text-transform:uppercase; color:#7a6538; }
+  /* EL SELLO, MÁS GRANDE: un tercio más que la letra del libro, pedido por
+     Gianni («la quiero más grande, la quiero visible»). Es lo que se lee de
+     prisa y desde lejos cuando algo falla. La regla va con #respaldo delante
+     para ganarle a la que le pone a todo el panel la letra del libro. */
+  #respaldo .sello-version{ font-size:calc(var(--fs-libro, 15px) * 1.32); text-align:center;
+                            padding:12px 11px 11px; }
+  .herr-dice{ margin:0 0 12px; line-height:1.45; color:#5c4a24; font-size:.93em; }
   .herr-botones{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
   #respaldo .herr-botones .btn{ width:100%; min-height:46px; justify-content:center; }
   #respaldo .herr-crono .casilla{ color:#3d2f12; min-height:44px; }
@@ -4997,6 +5004,11 @@
      manija; con muchas, se desplaza por dentro como siempre. */
   #etiquetas.alto-propio #filtros,
   #etiquetas.alto-propio #barraGrupo .taglista{ height:var(--alto-etiquetas); max-height:none; }
+  /* La fila de FILTRAR es un .ajuste —flex en renglón—: sin esto la manija
+     caía en una columna a la derecha de las pastillas y no debajo de ellas.
+     Lo levantó Codex. */
+  #filaFiltros{ flex-wrap:wrap; }
+  #filaFiltros > .manija-alto{ flex:0 0 100%; }
   .manija-alto{ display:flex; justify-content:center; align-items:center; height:22px;
                 margin:2px 0 -4px; cursor:ns-resize; touch-action:none; user-select:none; }
   .manija-alto::before{ content:''; width:42px; height:4px; border-radius:999px;
@@ -7267,7 +7279,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 16:18';
+window.GLOSS_BUILD = '17-NOV-26 16:22';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -14683,14 +14695,27 @@ function ponerAltoEtiq(px, guardar){
   if (typeof avisarMasEtiquetas === 'function') avisarMasEtiquetas();
   return v;
 }
-(function cargarAltoEtiq(){
+/* EL ALTO GUARDADO SE TOPA CONTRA LA ESCENA DE AHORA, no contra la de
+   cuando se guardó: agrandada en un teléfono alto y abierta después en
+   horizontal o en una ventana baja, la lista podía pasar del alto de la escena
+   entera, aplastar el índice y dejar la manija fuera del panel. Se topa al
+   arrancar —con la escena ya medida— y cada vez que cambia el tamaño, sin
+   tocar lo guardado: si la pantalla vuelve a crecer, vuelve el alto pedido.
+   Lo levantó Codex. */
+function altoEtiqGuardado(){
   let v = null;
   try { v = parseFloat(localStorage.getItem(LLAVE_ALTO_ETIQ)); } catch(_){}
-  if (v > 0){
-    $('etiquetas').style.setProperty('--alto-etiquetas', Math.round(v) + 'px');
-    $('etiquetas').classList.add('alto-propio');
-  }
-})();
+  return v > 0 ? v : null;
+}
+function toparAltoEtiq(){
+  const v = altoEtiqGuardado();
+  if (v) ponerAltoEtiq(v, false);
+}
+requestAnimationFrame(toparAltoEtiq);
+addEventListener('resize', () => {
+  clearTimeout(toparAltoEtiq._reloj);
+  toparAltoEtiq._reloj = setTimeout(toparAltoEtiq, 150);
+});
 /* La lista a la que sirve una manija es la que tiene justo encima. */
 function listaDeManija(m){
   const fila = m.closest('#filaFiltros');
@@ -28324,17 +28349,29 @@ function armarAtribuciones(sitio){
      y DIAGNÓSTICO—, aire entre ellas, los dos botones de archivo iguales y a
      lo ancho con su alto de dedo, la casilla legible y el sello solo, al
      final. Los créditos se fueron a su pestaña, ATRIBUCIONES. */
-  const seccion = (es, en) => {
+  /* CADA SECCIÓN DICE PARA QUÉ SIRVE, pedido por Gianni: «una explicación
+     para cada uno, así bonito para el usuario». Una frase o dos, debajo del
+     título y antes de lo que se toca. (Hubo un tiempo en que se pidió quitar
+     todo texto de este panel; ahora se pide lo contrario, y manda lo último.) */
+  const seccion = (es, en, dES, dEN) => {
     const sec = document.createElement('section');
     sec.className = 'herr-sec';
     const h = document.createElement('h3');
     h.className = 'herr-tit';
     dosIdiomas(h, { t: [es, en] });
     sec.appendChild(h);
+    if (dES){
+      const d = document.createElement('p');
+      d.className = 'herr-dice';
+      dosIdiomas(d, { t: [dES, dEN] });
+      sec.appendChild(d);
+    }
     caja.appendChild(sec);
     return sec;
   };
-  const secGlosas = seccion('Tus glosas', 'Your glosses');
+  const secGlosas = seccion('Tus glosas', 'Your glosses',
+    'Tus glosas viven en este aparato. Exportar las guarda todas en un archivo: tu copia de seguridad, o la manera de llevarlas a otro teléfono o computadora. Importar las trae de vuelta desde ese archivo.',
+    'Your glosses live on this device. Export saves them all in a file: your backup, or the way to take them to another phone or computer. Import brings them back from that file.');
   const fila = document.createElement('div');
   fila.className = 'herr-archivo';
   const ctrl = document.createElement('div');
@@ -28390,7 +28427,9 @@ function armarAtribuciones(sitio){
      SE VA CUANDO SE VAYA EL CRONÓMETRO. Esta fila, verCrono, pintarCrono y la
      clave de los ajustes son las cuatro piezas de lo mismo: el día que se sepa
      dónde se va el tiempo se quitan las cuatro de una vez. */
-  const secDiag = seccion('Diagnóstico', 'Diagnostics');
+  const secDiag = seccion('Diagnóstico', 'Diagnostics',
+    'Enseña en una esquina cuánto tarda cada parte del programa. Sirve para encontrar lo que va lento; si todo va bien, déjalo apagado.',
+    'Shows in a corner how long each part of the program takes. It helps find what is slow; if all is well, leave it off.');
   const filaCrono = document.createElement('div');
   filaCrono.className = 'herr-crono';
   filaCrono.innerHTML =
@@ -28448,10 +28487,15 @@ function armarAtribuciones(sitio){
      body. Se anota porque la primera versión de esto le puso un `style` que no
      servía para nada y escondía el motivo verdadero. */
   armarAtribuciones(creditos);
+  /* LA VERSIÓN, CON SU RAYA Y SU EXPLICACIÓN COMO LAS OTRAS, y el sello más
+     grande, pedido por Gianni. Sigue siendo lo último del panel. */
+  const secVersion = seccion('Versión', 'Version',
+    'La fecha y la hora en que se hizo esta copia de Glossa. Si algo no funciona, dásela a quien te ayude: así sabe si ya tienes el último arreglo.',
+    'The date and time this copy of Glossa was made. If something isn’t working, give it to whoever helps you: that way they know if you have the latest fix.');
   const sello = document.createElement('p');
   sello.className = 'sello-version';
   dosIdiomas(sello, { t: ['VERSIÓN ' + window.GLOSS_BUILD, 'VERSION ' + window.GLOSS_BUILD] });
-  caja.appendChild(sello);
+  secVersion.appendChild(sello);
 })();
 
 /* ---------- arranque ---------- */
