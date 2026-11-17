@@ -20741,6 +20741,13 @@ function piedraSanear(x){
      una piedra sin sombra no guarda la clave, así que el archivo de quien no
      usa la sombra —que es como nacen todas— sigue siendo el de siempre. */
   if (x.sombra === true) r.sombra = true;
+  /* EL SITIO JUNTO A SU VERSÍCULO, en letras (em) desde donde empieza el
+     versículo —ver piedraAnclar—. Sólo lo tienen las que ya se anclaron; una
+     piedra de antes no lo trae y se ancla sola la primera vez que se ve. */
+  if (Number.isFinite(+x.dx) && Number.isFinite(+x.dy) && x.dx !== null && x.dy !== null){
+    r.dx = Math.max(-400, Math.min(400, +x.dx));
+    r.dy = Math.max(-400, Math.min(400, +x.dy));
+  }
   /* EL NOMBRE SOLO EXISTE SI LO HAY. Una piedra sin nombre no guarda la clave
      vacía: es como nacen todas, y así el archivo de quien no nombra ninguna
      sigue siendo el de siempre. Igual que las cintas. */
@@ -20800,6 +20807,83 @@ const piedraAqui = x => {
   return k >= 0 && k >= (paginas[paginaActual] || 0) && k < finDe(paginaActual);
 };
 const piedrasDeLaHoja = () => piedras.filter(piedraAqui);
+/* ANCLADAS AL VERSÍCULO, NO A LA HOJA. Pedido por Gianni: «que se guardaran
+   por libro y versículo, para que siempre fueran jaladas al mismo versículo,
+   no importando la hoja».
+
+   ANTES una piedra guardaba el PRIMER versículo de la hoja donde se puso y su
+   sitio como fracción del papel. Eso la devolvía a la hoja correcta, pero al
+   mismo PUNTO del papel: cambias la letra, las columnas o la versión, el
+   texto se reparte de otra manera, y la piedra se quedaba encima de otra
+   cosa. Ahora guarda el versículo que tiene DEBAJO y la distancia desde donde
+   ese versículo empieza, medida en letras del libro (em): con letra más
+   grande la distancia crece con ella, y si el versículo se va a la otra
+   columna o a otra hoja, la piedra se va con él.
+
+   x/y siguen guardados: son lo que usa una piedra hasta anclarse, y lo que
+   lee quien abra este archivo con una versión vieja del programa. */
+function piedraEscala(inner){
+  /* La vista de lejos encoge la hoja con transform: los rectángulos llegan
+     encogidos y el cuerpo de letra no. Esto los pone en la misma unidad. */
+  const w = inner.offsetWidth;
+  return w ? inner.getBoundingClientRect().width / w : 1;
+}
+function piedraLetra(inner){
+  return (parseFloat(getComputedStyle(pgBody).fontSize) || 15) * piedraEscala(inner);
+}
+/* DÓNDE EMPIEZA UN VERSÍCULO EN ESTA HOJA, en píxeles desde la esquina del
+   papel. Su primer rectángulo: el versículo puede partirse en dos renglones o
+   en dos columnas, y lo que no se mueve es dónde empieza. */
+function piedraVersoEnPapel(k, inner){
+  const el = pgBody.querySelector('.v[data-k="' + k + '"]');
+  const r = el && el.getClientRects()[0];
+  if (!r) return null;
+  const c = inner.getBoundingClientRect();
+  return { x: r.left - c.left, y: r.top - c.top };
+}
+/* QUÉ VERSÍCULO HAY DEBAJO DE UN PUNTO DE LA PANTALLA. El que lo cubre; si el
+   punto cae en blanco —el margen, entre columnas, debajo del último renglón—,
+   el más cercano. */
+function piedraVersoEnPunto(cx, cy){
+  let mejor = -1, dist = Infinity;
+  for (const el of pgBody.querySelectorAll('.v[data-k]')){
+    for (const r of el.getClientRects()){
+      if (r.width < 1) continue;
+      const dx = cx < r.left ? r.left - cx : cx > r.right ? cx - r.right : 0;
+      const dy = cy < r.top ? r.top - cy : cy > r.bottom ? cy - r.bottom : 0;
+      const d = dx * dx + dy * dy;
+      if (d < dist){ dist = d; mejor = +el.dataset.k; }
+      if (d === 0) return mejor;
+    }
+  }
+  return mejor;
+}
+/* ANCLAR: con la piedra en (fx, fy) del papel, buscar su versículo y escribir
+   la distancia. Se llama al ponerla, al soltarla y al moverla con flechas. */
+function piedraAnclar(x, fx, fy){
+  const inner = pg.querySelector('.pg-inner');
+  if (!inner || x.libro !== LIBRO) return false;
+  const c = inner.getBoundingClientRect();
+  const k = piedraVersoEnPunto(c.left + fx * c.width, c.top + fy * c.height);
+  const it = k >= 0 && plano[k];
+  const v = it && piedraVersoEnPapel(k, inner);
+  if (!v) return false;
+  const em = piedraLetra(inner);
+  x.cap = it.cap; x.vers = it.vers;
+  x.dx = +((fx * c.width - v.x) / em).toFixed(3);
+  x.dy = +((fy * c.height - v.y) / em).toFixed(3);
+  return true;
+}
+/* EL SITIO DE UNA PIEDRA EN ESTA HOJA, en fracciones del papel. Anclada, sale
+   de su versículo; sin anclar, de lo guardado de siempre. */
+function piedraSitio(x, inner){
+  if (x.dx == null || x.dy == null || !inner) return { fx: x.x, fy: x.y };
+  const v = piedraVersoEnPapel(piedraK(x), inner);
+  if (!v) return { fx: x.x, fy: x.y };
+  const c = inner.getBoundingClientRect(), em = piedraLetra(inner);
+  return { fx: Math.min(Math.max((v.x + x.dx * em) / c.width, 0), 1),
+           fy: Math.min(Math.max((v.y + x.dy * em) / c.height, 0), 1) };
+}
 /* EL VERSÍCULO AL QUE SE ANCLA UNA PIEDRA NUEVA: el primero de esta hoja. Es
    el único que no se mueve dentro de la hoja pase lo que pase con el reparto
    —el último sí se mueve, porque de él depende cuántos quepan— así que es el
@@ -22253,8 +22337,16 @@ function pintarPiedras(){
   } else if (capa.parentElement !== inner){
     inner.appendChild(capa);
   }
+  /* LAS DE ANTES SE ANCLAN LA PRIMERA VEZ QUE SE VEN: su punto de siempre en
+     este papel dice qué versículo tienen debajo, y desde ahí ya lo siguen.
+     EN MEMORIA, SIN GUARDAR: leer no escribe —es la regla de la casa, y la
+     vigila la prueba de la piedra que era una lámpara—. El ancla llega al
+     disco con el siguiente guardado de verdad, que guarda lo que hay en
+     memoria, igual que la figura vieja traducida. */
+  for (const x of mias) if (x.dx == null) piedraAnclar(x, x.x, x.y);
   capa.innerHTML = mias.map(x => {
     const edita = piedraEditando === x.id;
+    const sitio = piedraSitio(x, inner);
     /* EL TAMAÑO SE ESCRIBE EN PORCENTAJE DEL PAPEL y no en píxeles, que es
        como se guarda: así la piedra mide lo mismo de la hoja en cualquier
        pantalla y se encoge sola con la vista de lejos, sin que nadie recalcule
@@ -22263,7 +22355,7 @@ function pintarPiedras(){
        no tenía contra qué medir. */
     const por = (PIEDRA_TAMS[x.tam] * 100).toFixed(2);
     return '<div class="piedra-sitio' + (edita ? ' editando' : '') + '"' +
-        ' style="left:' + (x.x * 100).toFixed(3) + '%;top:' + (x.y * 100).toFixed(3) + '%' +
+        ' style="left:' + (sitio.fx * 100).toFixed(3) + '%;top:' + (sitio.fy * 100).toFixed(3) + '%' +
         ';--piedra-tam:' + por + '%"' +
         ' data-piedra="' + esc(x.id) + '">' +
       '<button type="button" class="piedra' + (x.sombra ? ' con-sombra' : '') +
@@ -22510,7 +22602,9 @@ let piedraComoEstaba = null;
 function abrirPiedraMando(){
   const x0 = piedraTaller.de(piedraEditando);
   piedraComoEstaba = x0 ? { id: piedraEditando, forma:x0.forma, color:x0.color,
-                            tam:x0.tam, x:x0.x, y:x0.y, sombra: x0.sombra === true }
+                            tam:x0.tam, x:x0.x, y:x0.y, sombra: x0.sombra === true,
+                            /* y su ancla, que también se mueve al soltarla */
+                            cap:x0.cap, vers:x0.vers, dx:x0.dx, dy:x0.dy }
                         : null;
   const el = $('piedraMando');
   pintarPiedraMando();
@@ -22567,6 +22661,8 @@ function ponerPiedra(){
               sombra: true,
               creado: ahora, tocado: ahora };
   piedras.unshift(x);
+  /* Nace junto al versículo que le toca debajo de su punto de salida. */
+  piedraAnclar(x, x.x, x.y);
   piedrasGuardar();
   /* NACE YA EN EDICIÓN, y eso es media explicación de cómo funciona: aparece
      con su mando puesto, así que se ve de entrada que se puede mover, cambiar
@@ -22599,6 +22695,8 @@ function piedraCancelarEdicion(){
   if (x){
     x.forma = c.forma; x.color = c.color; x.tam = c.tam;
     x.x = c.x; x.y = c.y;
+    if (c.cap != null){ x.cap = c.cap; x.vers = c.vers; }
+    if (c.dx != null){ x.dx = c.dx; x.dy = c.dy; } else { delete x.dx; delete x.dy; }
     if (c.sombra) x.sombra = true; else delete x.sombra;
     x.tocado = Date.now();
     t.guardar();
@@ -22823,6 +22921,9 @@ function piedraSoltar(ev){
   if (!x) return;
   if (g.movio){
     x.x = g.fx; x.y = g.fy; x.tocado = Date.now();
+    /* Y SE ANCLA AL VERSÍCULO SOBRE EL QUE SE SOLTÓ: si cayó en otro, ahora
+       es de ése. */
+    piedraAnclar(x, g.fx, g.fy);
     piedrasGuardar();
     pintarPiedras();                       /* y con él, colocarPiedraMando */
     /* El clic que manda el dedo al levantarse apagaría la edición en el oyente
@@ -23030,9 +23131,15 @@ document.addEventListener('keydown', ev => {
   const x = piedraTaller.de(piedraEditando);
   if (!x) return;
   ev.preventDefault(); ev.stopPropagation();
+  /* En la hoja, el paso sale de donde la piedra SE VE —que para una anclada
+     es junto a su versículo, no su x/y guardado— y al acabar se vuelve a
+     anclar, por si el paso la llevó encima de otro versículo. */
+  const enHoja = piedraTaller === TALLER_HOJA;
+  if (enHoja){ const s0 = piedraSitio(x, pg.querySelector('.pg-inner')); x.x = s0.fx; x.y = s0.fy; }
   x.x = Math.min(Math.max(x.x + paso[0] * PIEDRA_PASO, 0), 1);
   x.y = Math.min(Math.max(x.y + paso[1] * PIEDRA_PASO, 0), 1);
   x.tocado = Date.now();
+  if (enHoja) piedraAnclar(x, x.x, x.y);
   piedraTaller.guardar();
   /* Se mueve el nodo a mano y no se repinta la capa: repintando se pierde el
      foco, y quien mueve con flechas lo tiene puesto. Cada taller sabe cuál es
