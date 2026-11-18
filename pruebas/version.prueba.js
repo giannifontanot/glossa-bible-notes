@@ -325,5 +325,92 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
     await new Promise(z => setTimeout(z, 300));
   });
 
+  titulo('las pestañas entran apareciendo, sin correrse');
+  /* Pedido por Gianni: «un fade in suavecito». Antes el contenido de cada
+     pestaña llegaba corriéndose 26 px y rebotaba; ahora solo aparece, ya en su
+     sitio. Se cambia de pestaña tocando el botón, como un dedo, y se mira el
+     contenido del panel que llega cuadro a cuadro: la opacidad tiene que subir
+     de a poco y la posición no puede moverse ni un píxel en todo el camino. */
+  const fundido = await sesion.pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const visible = () => [...document.querySelectorAll('.rollo')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    if (!visible()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+    const ir = async sec => {
+      const t = (visible() || document).querySelector('.pestanas [data-sec="' + sec + '"]');
+      if (!t) return null;
+      t.click();
+      const muestras = [];
+      const t0 = performance.now();
+      while (performance.now() - t0 < 1000){
+        await new Promise(z => requestAnimationFrame(z));
+        const r = visible();
+        const hijo = r && [...r.children].find(c => !c.matches('.pestanas, .pie-cerrar') &&
+                                                    getComputedStyle(c).display !== 'none');
+        if (!hijo) continue;
+        const cs = getComputedStyle(hijo);
+        muestras.push({ panel: r.id, op: +cs.opacity, tr: cs.transform,
+                        x: Math.round(hijo.getBoundingClientRect().left * 10) / 10 });
+      }
+      return muestras;
+    };
+    const res = {};
+    for (const sec of ['formato', 'glosas', 'respaldo']){
+      const m = await ir(sec);
+      if (!m) { res[sec] = { falta:true }; continue; }
+      const suyas = m.filter(x => x.panel === m[m.length - 1].panel);
+      res[sec] = {
+        cuadros: suyas.length,
+        minOp: Math.min(...suyas.map(x => x.op)),
+        finOp: suyas.length ? suyas[suyas.length - 1].op : null,
+        movidas: suyas.filter(x => x.tr !== 'none').length,
+        xs: [...new Set(suyas.map(x => x.x))]
+      };
+    }
+    return res;
+  });
+  di('cuadro a cuadro', JSON.stringify(fundido));
+  for (const [sec, r] of Object.entries(fundido)){
+    vale(sec + ': entra desde transparente y termina entera',
+         !r.falta && r.minOp < 0.5 && r.finOp === 1, JSON.stringify(r));
+    vale('  y no se corre de su sitio en ningún cuadro',
+         !r.falta && r.movidas === 0 && r.xs.length === 1, 'transform en ' + r.movidas +
+         ' cuadros · posiciones ' + JSON.stringify(r.xs));
+  }
+
+  titulo('la clave de colores del mapa, en un solo renglón');
+  /* Pedido por Gianni: «siempre en una sola línea». Se mira en el teléfono más
+     angosto que se sigue viendo —320 px— y en uno de escritorio: los tres
+     puntos con su palabra a la misma altura y todo dentro del ancho del mapa,
+     con el mismo aire a los dos lados. */
+  /* Las pruebas de arriba dejaron el panel en Herramientas; el mapa vive en
+     Compartir, y se vuelve a ella tocando su pestaña. */
+  await sesion.pagina.evaluate(async () => {
+    const c = document.querySelector('#respaldo [data-sub="compartir"]');
+    if (c) c.click();
+    await new Promise(z => setTimeout(z, 700));
+  });
+  for (const ancho of [320, 1280]){
+    await sesion.pagina.setViewportSize({ width: ancho, height: ancho > 700 ? 900 : 640 });
+    await sesion.pagina.waitForTimeout(500);
+    const ley = await sesion.pagina.evaluate(() => {
+      const l = document.querySelector('#respaldo .mapa-leyenda');
+      const m = document.querySelector('#respaldo .mapa-marco');
+      if (!l || !m) return { falta:true };
+      const mitades = [...l.children].map(c => { const b = c.getBoundingClientRect();
+                                                 return (b.top + b.bottom) / 2; });
+      const mb = m.getBoundingClientRect();
+      const izq = l.firstElementChild.getBoundingClientRect().left - mb.left;
+      const der = mb.right - l.lastElementChild.getBoundingClientRect().right;
+      return { ancho: Math.round(mb.width), desnivel: Math.max(...mitades) - Math.min(...mitades),
+               izq: Math.round(izq), der: Math.round(der),
+               abierto: getComputedStyle(document.getElementById('respaldo')).display };
+    });
+    di(ancho + ' px', JSON.stringify(ley));
+    vale(ancho + ' px: un solo renglón', !ley.falta && ley.ancho > 100 && ley.desnivel < 2, JSON.stringify(ley));
+    vale('  y cabe en el mapa, centrada', !ley.falta && ley.ancho > 100 && ley.izq >= 0 && ley.der >= 0 &&
+         Math.abs(ley.izq - ley.der) <= 2, JSON.stringify(ley));
+  }
+
   await cerrar(sesion);
 })();

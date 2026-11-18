@@ -3900,8 +3900,20 @@
      escogía entre las dos maneras al aparecer el panel; esa decisión tardía
      movía las cosas a la vista de quien abría la pestaña. */
   .mapa-cabeza{ display:flex; flex-direction:column; align-items:center; gap:2px; margin:0 0 6px; }
-  .mapa-marco > .mapa-leyenda{ justify-content:center; gap:4px 12px; margin:14px 0 2px;
-            color:#6b5630; }
+  /* LA CLAVE VA SIEMPRE EN UN SOLO RENGLÓN. Pedido por Gianni: con
+     flex-wrap, en un teléfono angosto «Ha leído» caía sola abajo y la clave
+     dejaba de leerse como una fila. Ahora no se parte nunca: si el mapa es
+     angosto, se encoge la letra (y con ella el hueco), medida contra el
+     ancho del propio marco con unidades de contenedor —el marco ya tiene su
+     ancho fijo, así que contenerlo no cambia nada de su tamaño—. */
+  .mapa-marco{ container-type:inline-size; }
+  .mapa-marco > .mapa-leyenda{ justify-content:center; flex-wrap:nowrap; white-space:nowrap;
+            gap:4px min(12px, 2.6cqi); margin:14px 0 2px; color:#6b5630;
+            font-size:min(calc(12.5px * var(--escala-ui, 1)), 4.6cqi); }
+  .mapa-marco > .mapa-leyenda .ley{ flex:none; width:min(11px, 3.6cqi); height:min(11px, 3.6cqi); }
+  /* El primer punto no lleva su margen: sin nada a su izquierda, esos 4 px
+     solo corrían la fila entera y el centro quedaba cargado a la derecha. */
+  .mapa-marco > .mapa-leyenda .ley:first-child{ margin-left:0; }
   /* LA CASILLA LLEVA SU PALABRA A LA DERECHA, Y ES UNA SOLA: «¡Yo!». Iba un
      «Compartir la mía» encima, en dos renglones, y se comía el alto de la
      cabeza; Gianni la quiso así, confiando en que el sitio y el destello digan
@@ -4634,11 +4646,15 @@
      seco era lo que se sentía mal: no hay transición, hay sustitución. Ahora
      lo que está se desvanece corriéndose un poco hacia el lado contrario del
      que viene lo nuevo, y solo cuando terminó, entra el otro. */
+  /* Y SE VA SIN MOVERSE. Antes se corría 11 px hacia el lado contrario
+     mientras se apagaba; desde que Gianni pidió que las pestañas entren con
+     un «fade in suavecito», la salida es solo apagarse también: si lo viejo
+     se desliza y lo nuevo no, el panel se siente torcido justo en el corte. */
   .rollo.saliendo > *:not(.pestanas):not(.pie-cerrar){
-    animation:saleDeLado .18s cubic-bezier(.4,0,.9,.6) both; }
+    animation:saleDeLado .18s ease-in both; }
   @keyframes saleDeLado{
-    from{ opacity:1; transform:none; }
-    to  { opacity:0; transform:translateX(calc(-11px * var(--dir, 1))); }
+    from{ opacity:1; }
+    to  { opacity:0; }
   }
   /* Y la entrada tiene peso, como la cortina: llega, se pasa un pelín de su
      sitio y se acomoda. En la cortina eso es el scaleY(1.006) del 86%; aquí
@@ -4649,28 +4665,20 @@
      cambia lo de en medio; la salida y las pestañas se quedan quietas, que es
      lo que hace que se sienta un solo sitio con secciones y no cuatro paneles
      distintos abriéndose uno tras otro. */
+  /* TODAS LAS PESTAÑAS ENTRAN APARECIENDO, YA EN SU SITIO. Pedido por
+     Gianni: «un fade in suavecito». Antes el contenido llegaba corriéndose
+     26 px desde el lado de la pestaña, se pasaba 4 px y volvía (entraDeLado
+     con rebote); primero se le quitó a Compartir, porque el mapa y el QR se
+     veían como cajas buscando su sitio, y luego se vio que en las demás el
+     viaje tampoco aportaba: el texto se lee mejor si no se mueve. Se queda el
+     nombre entraDeLado y su tiempo —el guion espera su animationend—, pero
+     ahora es solo opacidad, con una curva que arranca despacio y termina
+     más despacio, para que no se note el instante en que empieza. */
   .rollo.cambio > *:not(.pestanas):not(.pie-cerrar){
-    animation:entraDeLado .46s cubic-bezier(.5,0,.25,1) both; }
+    animation:entraDeLado .46s cubic-bezier(.4,0,.2,1) both; }
   @keyframes entraDeLado{
-    0%  { opacity:0; transform:translateX(calc(26px * var(--dir, 1))); }
-    55% { opacity:1; }
-    82% { transform:translateX(calc(-4px * var(--dir, 1))); }
-    100%{ opacity:1; transform:none; }
-  }
-  /* COMPARTIR ENTRA SIN MOVERSE, solo apareciendo. Pedido por Gianni: al
-     tocar la pestaña, el mapa y el QR llegaban corriéndose desde la derecha,
-     se pasaban y volvían —son 26 px de viaje y 4 de rebote, medio
-     centímetro en el teléfono—, y con dos cuadros grandes y centrados eso no
-     se lee como «llegó» sino como «se está acomodando». En las otras
-     pestañas el texto corre y el gesto se siente; aquí lo que se ve son dos
-     cajas que no encuentran su sitio. Entra en el mismo tiempo, desde
-     transparente, ya en su lugar. */
-  #respaldo.rollo.cambio > *:not(.pestanas):not(.pie-cerrar){
-    animation-name:entraEnSuSitio; }
-  @keyframes entraEnSuSitio{
-    0%  { opacity:0; }
-    55% { opacity:1; }
-    100%{ opacity:1; }
+    from{ opacity:0; }
+    to  { opacity:1; }
   }
   /* ============================================================
      EL PIE DEL PANEL: UN SOLO BOTÓN, DE LADO A LADO Y SIEMPRE A LA VISTA.
@@ -7304,7 +7312,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 17:50';
+window.GLOSS_BUILD = '17-NOV-26 18:26';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
