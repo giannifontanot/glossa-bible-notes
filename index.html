@@ -4010,6 +4010,17 @@
      para ganarle a la que le pone a todo el panel la letra del libro. */
   #respaldo .sello-version{ font-size:calc(var(--fs-libro, 15px) * 1.32); text-align:center;
                             padding:12px 11px 11px; }
+  /* Y EN UN SOLO RENGLÓN, HASTA ARRIBA, CON LETRA GRANDE. Pedido por Gianni.
+     «VERSIÓN 17-NOV-26 18:26» a un tercio más que el libro no cabe en un
+     teléfono de 320 px y partía la hora abajo; ahora no se parte nunca. La
+     letra se queda en su tamaño grande mientras quepa, y solo cuando el panel
+     es angosto se encoge lo justo, medida contra el ancho de su propia
+     sección (unidades de contenedor). Se le quita también el espaciado de
+     letras, que en una cadena de 23 caracteres costaba casi una letra entera. */
+  #respaldo .herr-version{ container-type:inline-size; }
+  #respaldo .herr-version .sello-version{ white-space:nowrap; overflow:hidden; letter-spacing:.02em;
+    padding-left:8px; padding-right:8px;
+    font-size:min(calc(var(--fs-libro, 15px) * 1.32), calc((100cqi - 18px) / 13.2)); }
   /* HERRAMIENTAS Y ATRIBUCIONES, UN PUNTO MÁS CHICAS. Pedido por Gianni: con la letra del
      libro entera, las tres explicaciones, los botones y la casilla llenaban
      la pestaña. Se queda al 85 % de esa letra —sigue creciendo y encogiendo
@@ -7312,7 +7323,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 18:26';
+window.GLOSS_BUILD = '17-NOV-26 18:30';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -28572,7 +28583,9 @@ function armarAtribuciones(sitio){
      servía para nada y escondía el motivo verdadero. */
   armarAtribuciones(creditos);
   /* LA VERSIÓN, CON SU RAYA Y SU EXPLICACIÓN COMO LAS OTRAS, y el sello más
-     grande, pedido por Gianni. Sigue siendo lo último del panel. */
+     grande, pedido por Gianni. Iba al final del panel; Gianni la pidió
+     «hasta arriba», que es donde se mira primero cuando algo falla, así que
+     se arma al último pero se pone la primera. */
   const secVersion = seccion('Versión', 'Version',
     'La fecha y la hora en que se hizo esta copia de Glossa. Si algo no funciona, dásela a quien te ayude: así sabe si ya tienes el último arreglo.',
     'The date and time this copy of Glossa was made. If something isn’t working, give it to whoever helps you: that way they know if you have the latest fix.');
@@ -28580,6 +28593,8 @@ function armarAtribuciones(sitio){
   sello.className = 'sello-version';
   dosIdiomas(sello, { t: ['VERSIÓN ' + window.GLOSS_BUILD, 'VERSION ' + window.GLOSS_BUILD] });
   secVersion.appendChild(sello);
+  secVersion.classList.add('herr-version');
+  caja.insertBefore(secVersion, caja.firstChild);
 })();
 
 /* ---------- arranque ---------- */

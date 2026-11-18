@@ -57,6 +57,14 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
                             .filter(x => !x.classList.contains('pie-cerrar'));
                return el === hs[hs.length - 1];
              })(),
+             /* HASTA ARRIBA Y EN UN RENGLÓN, pedido por Gianni. Su sección es
+                la primera de Herramientas, y el texto del sello da una sola
+                caja de línea: si la hora cayera abajo, serían dos. */
+             primera: (() => { const sec = el.closest('section');
+                               return !!sec && sec.parentElement.firstElementChild === sec; })(),
+             renglones: (() => { const rg = document.createRange(); rg.selectNodeContents(el);
+                                 return new Set([...rg.getClientRects()].map(q => Math.round(q.top))).size; })(),
+             cabe: el.scrollWidth <= el.clientWidth + 1,
              tapado: (() => {
                /* Y QUE EL PIE NO SE LO COMA. Un pie pegado al canto de abajo
                   puede quedar ENCIMA del último renglón del contenido, y el
@@ -142,7 +150,10 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
   /* Y opaco: el sello anterior estaba al 60%, o sea puesto para no molestar,
      que para este dato es justo lo contrario de lo que hace falta. */
   vale('sin atenuar', s.opacidad >= 0.9, s.opacidad);
-  vale('es lo último que se lee del panel', s.alFinal);
+  vale('es lo último de su sección', s.alFinal);
+  vale('su sección va hasta arriba de Herramientas', s.primera === true, s.primera);
+  vale('  en un solo renglón, sin cortarse', s.renglones === 1 && s.cabe === true,
+       s.renglones + ' renglones · cabe ' + s.cabe);
   vale('  y el pie de CERRAR no se lo come', s.tapado === false, s.tapado);
   vale('en negrita', s.grosor >= 700, s.grosor);
   /* SIN NOTAS QUE COMPARAR, lo que se exige es que no encoja por debajo del
