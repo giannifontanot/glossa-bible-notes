@@ -3900,8 +3900,20 @@
      escogía entre las dos maneras al aparecer el panel; esa decisión tardía
      movía las cosas a la vista de quien abría la pestaña. */
   .mapa-cabeza{ display:flex; flex-direction:column; align-items:center; gap:2px; margin:0 0 6px; }
-  .mapa-marco > .mapa-leyenda{ justify-content:center; gap:4px 12px; margin:14px 0 2px;
-            color:#6b5630; }
+  /* LA CLAVE VA SIEMPRE EN UN SOLO RENGLÓN. Pedido por Gianni: con
+     flex-wrap, en un teléfono angosto «Ha leído» caía sola abajo y la clave
+     dejaba de leerse como una fila. Ahora no se parte nunca: si el mapa es
+     angosto, se encoge la letra (y con ella el hueco), medida contra el
+     ancho del propio marco con unidades de contenedor —el marco ya tiene su
+     ancho fijo, así que contenerlo no cambia nada de su tamaño—. */
+  .mapa-marco{ container-type:inline-size; }
+  .mapa-marco > .mapa-leyenda{ justify-content:center; flex-wrap:nowrap; white-space:nowrap;
+            gap:4px min(12px, 2.6cqi); margin:14px 0 2px; color:#6b5630;
+            font-size:min(calc(12.5px * var(--escala-ui, 1)), 4.6cqi); }
+  .mapa-marco > .mapa-leyenda .ley{ flex:none; width:min(11px, 3.6cqi); height:min(11px, 3.6cqi); }
+  /* El primer punto no lleva su margen: sin nada a su izquierda, esos 4 px
+     solo corrían la fila entera y el centro quedaba cargado a la derecha. */
+  .mapa-marco > .mapa-leyenda .ley:first-child{ margin-left:0; }
   /* LA CASILLA LLEVA SU PALABRA A LA DERECHA, Y ES UNA SOLA: «¡Yo!». Iba un
      «Compartir la mía» encima, en dos renglones, y se comía el alto de la
      cabeza; Gianni la quiso así, confiando en que el sitio y el destello digan
@@ -3998,6 +4010,17 @@
      para ganarle a la que le pone a todo el panel la letra del libro. */
   #respaldo .sello-version{ font-size:calc(var(--fs-libro, 15px) * 1.32); text-align:center;
                             padding:12px 11px 11px; }
+  /* Y EN UN SOLO RENGLÓN, HASTA ARRIBA, CON LETRA GRANDE. Pedido por Gianni.
+     «VERSIÓN 17-NOV-26 18:26» a un tercio más que el libro no cabe en un
+     teléfono de 320 px y partía la hora abajo; ahora no se parte nunca. La
+     letra se queda en su tamaño grande mientras quepa, y solo cuando el panel
+     es angosto se encoge lo justo, medida contra el ancho de su propia
+     sección (unidades de contenedor). Se le quita también el espaciado de
+     letras, que en una cadena de 23 caracteres costaba casi una letra entera. */
+  #respaldo .herr-version{ container-type:inline-size; }
+  #respaldo .herr-version .sello-version{ white-space:nowrap; overflow:hidden; letter-spacing:.02em;
+    padding-left:8px; padding-right:8px;
+    font-size:min(calc(var(--fs-libro, 15px) * 1.32), calc((100cqi - 18px) / 13.2)); }
   /* HERRAMIENTAS Y ATRIBUCIONES, UN PUNTO MÁS CHICAS. Pedido por Gianni: con la letra del
      libro entera, las tres explicaciones, los botones y la casilla llenaban
      la pestaña. Se queda al 85 % de esa letra —sigue creciendo y encogiendo
@@ -4634,11 +4657,15 @@
      seco era lo que se sentía mal: no hay transición, hay sustitución. Ahora
      lo que está se desvanece corriéndose un poco hacia el lado contrario del
      que viene lo nuevo, y solo cuando terminó, entra el otro. */
+  /* Y SE VA SIN MOVERSE. Antes se corría 11 px hacia el lado contrario
+     mientras se apagaba; desde que Gianni pidió que las pestañas entren con
+     un «fade in suavecito», la salida es solo apagarse también: si lo viejo
+     se desliza y lo nuevo no, el panel se siente torcido justo en el corte. */
   .rollo.saliendo > *:not(.pestanas):not(.pie-cerrar){
-    animation:saleDeLado .18s cubic-bezier(.4,0,.9,.6) both; }
+    animation:saleDeLado .18s ease-in both; }
   @keyframes saleDeLado{
-    from{ opacity:1; transform:none; }
-    to  { opacity:0; transform:translateX(calc(-11px * var(--dir, 1))); }
+    from{ opacity:1; }
+    to  { opacity:0; }
   }
   /* Y la entrada tiene peso, como la cortina: llega, se pasa un pelín de su
      sitio y se acomoda. En la cortina eso es el scaleY(1.006) del 86%; aquí
@@ -4649,28 +4676,20 @@
      cambia lo de en medio; la salida y las pestañas se quedan quietas, que es
      lo que hace que se sienta un solo sitio con secciones y no cuatro paneles
      distintos abriéndose uno tras otro. */
+  /* TODAS LAS PESTAÑAS ENTRAN APARECIENDO, YA EN SU SITIO. Pedido por
+     Gianni: «un fade in suavecito». Antes el contenido llegaba corriéndose
+     26 px desde el lado de la pestaña, se pasaba 4 px y volvía (entraDeLado
+     con rebote); primero se le quitó a Compartir, porque el mapa y el QR se
+     veían como cajas buscando su sitio, y luego se vio que en las demás el
+     viaje tampoco aportaba: el texto se lee mejor si no se mueve. Se queda el
+     nombre entraDeLado y su tiempo —el guion espera su animationend—, pero
+     ahora es solo opacidad, con una curva que arranca despacio y termina
+     más despacio, para que no se note el instante en que empieza. */
   .rollo.cambio > *:not(.pestanas):not(.pie-cerrar){
-    animation:entraDeLado .46s cubic-bezier(.5,0,.25,1) both; }
+    animation:entraDeLado .46s cubic-bezier(.4,0,.2,1) both; }
   @keyframes entraDeLado{
-    0%  { opacity:0; transform:translateX(calc(26px * var(--dir, 1))); }
-    55% { opacity:1; }
-    82% { transform:translateX(calc(-4px * var(--dir, 1))); }
-    100%{ opacity:1; transform:none; }
-  }
-  /* COMPARTIR ENTRA SIN MOVERSE, solo apareciendo. Pedido por Gianni: al
-     tocar la pestaña, el mapa y el QR llegaban corriéndose desde la derecha,
-     se pasaban y volvían —son 26 px de viaje y 4 de rebote, medio
-     centímetro en el teléfono—, y con dos cuadros grandes y centrados eso no
-     se lee como «llegó» sino como «se está acomodando». En las otras
-     pestañas el texto corre y el gesto se siente; aquí lo que se ve son dos
-     cajas que no encuentran su sitio. Entra en el mismo tiempo, desde
-     transparente, ya en su lugar. */
-  #respaldo.rollo.cambio > *:not(.pestanas):not(.pie-cerrar){
-    animation-name:entraEnSuSitio; }
-  @keyframes entraEnSuSitio{
-    0%  { opacity:0; }
-    55% { opacity:1; }
-    100%{ opacity:1; }
+    from{ opacity:0; }
+    to  { opacity:1; }
   }
   /* ============================================================
      EL PIE DEL PANEL: UN SOLO BOTÓN, DE LADO A LADO Y SIEMPRE A LA VISTA.
@@ -7304,7 +7323,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 17:50';
+window.GLOSS_BUILD = '17-NOV-26 18:34';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -28564,7 +28583,9 @@ function armarAtribuciones(sitio){
      servía para nada y escondía el motivo verdadero. */
   armarAtribuciones(creditos);
   /* LA VERSIÓN, CON SU RAYA Y SU EXPLICACIÓN COMO LAS OTRAS, y el sello más
-     grande, pedido por Gianni. Sigue siendo lo último del panel. */
+     grande, pedido por Gianni. Iba al final del panel; Gianni la pidió
+     «hasta arriba», que es donde se mira primero cuando algo falla, así que
+     se arma al último pero se pone la primera. */
   const secVersion = seccion('Versión', 'Version',
     'La fecha y la hora en que se hizo esta copia de Glossa. Si algo no funciona, dásela a quien te ayude: así sabe si ya tienes el último arreglo.',
     'The date and time this copy of Glossa was made. If something isn’t working, give it to whoever helps you: that way they know if you have the latest fix.');
@@ -28572,6 +28593,30 @@ function armarAtribuciones(sitio){
   sello.className = 'sello-version';
   dosIdiomas(sello, { t: ['VERSIÓN ' + window.GLOSS_BUILD, 'VERSION ' + window.GLOSS_BUILD] });
   secVersion.appendChild(sello);
+  secVersion.classList.add('herr-version');
+  caja.insertBefore(secVersion, caja.firstChild);
+  /* Y SE MIDE DE VERDAD SI CABE. La regla de CSS calcula el tamaño
+     suponiendo que la cadena entera mide 13.2 em, y eso vale para las letras
+     de lectura pero no para la de máquina —retirada del menú, pero quien la
+     tenía la conserva—: sus 23 caracteres de ancho fijo piden casi 14 em, y
+     con nowrap y overflow:hidden se cortaban las puntas. Lo levantó Codex.
+     En vez de una cota para la letra más ancha, que achicaría la versión a
+     todos los demás, se mide el texto ya pintado con la letra que esté
+     puesta y, si se sale, se encoge en la proporción exacta. El observador
+     salta cada vez que la pestaña pasa de escondida a visible y cada vez que
+     cambia el ancho, así que una letra elegida en Formato se vuelve a medir
+     al regresar aquí; y fonts.ready cubre la letra que llega tarde. */
+  const ajustarSello = () => {
+    sello.style.removeProperty('font-size');
+    const ancho = sello.clientWidth, mide = sello.scrollWidth;
+    if (!ancho || mide <= ancho) return;
+    const cs = getComputedStyle(sello);
+    const relleno = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    sello.style.fontSize = (parseFloat(cs.fontSize) * (ancho - relleno) / (mide - relleno) * .98)
+                             .toFixed(2) + 'px';
+  };
+  if ('ResizeObserver' in window) new ResizeObserver(ajustarSello).observe(sello);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(ajustarSello);
 })();
 
 /* ---------- arranque ---------- */

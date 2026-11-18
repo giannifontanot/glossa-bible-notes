@@ -57,6 +57,14 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
                             .filter(x => !x.classList.contains('pie-cerrar'));
                return el === hs[hs.length - 1];
              })(),
+             /* HASTA ARRIBA Y EN UN RENGLÓN, pedido por Gianni. Su sección es
+                la primera de Herramientas, y el texto del sello da una sola
+                caja de línea: si la hora cayera abajo, serían dos. */
+             primera: (() => { const sec = el.closest('section');
+                               return !!sec && sec.parentElement.firstElementChild === sec; })(),
+             renglones: (() => { const rg = document.createRange(); rg.selectNodeContents(el);
+                                 return new Set([...rg.getClientRects()].map(q => Math.round(q.top))).size; })(),
+             cabe: el.scrollWidth <= el.clientWidth + 1,
              tapado: (() => {
                /* Y QUE EL PIE NO SE LO COMA. Un pie pegado al canto de abajo
                   puede quedar ENCIMA del último renglón del contenido, y el
@@ -142,7 +150,10 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
   /* Y opaco: el sello anterior estaba al 60%, o sea puesto para no molestar,
      que para este dato es justo lo contrario de lo que hace falta. */
   vale('sin atenuar', s.opacidad >= 0.9, s.opacidad);
-  vale('es lo último que se lee del panel', s.alFinal);
+  vale('es lo último de su sección', s.alFinal);
+  vale('su sección va hasta arriba de Herramientas', s.primera === true, s.primera);
+  vale('  en un solo renglón, sin cortarse', s.renglones === 1 && s.cabe === true,
+       s.renglones + ' renglones · cabe ' + s.cabe);
   vale('  y el pie de CERRAR no se lo come', s.tapado === false, s.tapado);
   vale('en negrita', s.grosor >= 700, s.grosor);
   /* SIN NOTAS QUE COMPARAR, lo que se exige es que no encoja por debajo del
@@ -324,6 +335,132 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
     if (c && c.checked) c.closest('label').querySelector('span').click();
     await new Promise(z => setTimeout(z, 300));
   });
+
+  titulo('el sello cabe entero con la letra de máquina, en el teléfono más angosto');
+  /* Lo levantó Codex: la regla de CSS supone que la cadena mide 13.2 em, y la
+     de máquina —retirada del menú, pero quien la tenía la conserva— pide casi
+     14; con nowrap se cortaban las puntas. Se elige en Formato como la elige
+     el lector, se vuelve a Herramientas y se mira que el texto quepa entero. */
+  await sesion.pagina.setViewportSize({ width: 320, height: 640 });
+  const maquina = await sesion.pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const visible = () => [...document.querySelectorAll('.rollo')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    if (!visible()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+    const tab = sec => (visible() || document).querySelector('.pestanas [data-sec="' + sec + '"]');
+    tab('formato').click(); await pausa(800);
+    const sel = document.getElementById('selFuente');
+    if (!sel) return { falta:'el selector de letra' };
+    const antes = sel.value;
+    sel.value = '8'; sel.dispatchEvent(new Event('change', { bubbles:true }));
+    await pausa(500);
+    tab('respaldo').click(); await pausa(800);
+    document.querySelector('#respaldo [data-sub="tools"]').click(); await pausa(800);
+    const el = document.querySelector('#respaldo .sello-version');
+    const cs = getComputedStyle(el);
+    const r = { familia: cs.fontFamily, letra: parseFloat(cs.fontSize),
+                mide: el.scrollWidth, ancho: el.clientWidth };
+    /* Se deja la letra como estaba: lo guardado viaja a lo que corra después. */
+    tab('formato').click(); await pausa(800);
+    sel.value = antes; sel.dispatchEvent(new Event('change', { bubbles:true }));
+    await pausa(500);
+    tab('respaldo').click(); await pausa(800);
+    return r;
+  });
+  di('con la de máquina', JSON.stringify(maquina));
+  vale('(la prueba es válida) el sello quedó con la letra de máquina',
+       !maquina.falta && /monospace/i.test(maquina.familia), maquina.falta || maquina.familia);
+  vale('  y cabe entero, sin cortarse las puntas',
+       !maquina.falta && maquina.mide <= maquina.ancho + 1, maquina.mide + ' de ' + maquina.ancho);
+  vale('  sin dejar de ser grande', !maquina.falta && maquina.letra >= 14, maquina.letra + ' px');
+  await sesion.pagina.setViewportSize({ width: 390, height: 844 });
+
+  titulo('las pestañas entran apareciendo, sin correrse');
+  /* Pedido por Gianni: «un fade in suavecito». Antes el contenido de cada
+     pestaña llegaba corriéndose 26 px y rebotaba; ahora solo aparece, ya en su
+     sitio. Se cambia de pestaña tocando el botón, como un dedo, y se mira el
+     contenido del panel que llega cuadro a cuadro: la opacidad tiene que subir
+     de a poco y la posición no puede moverse ni un píxel en todo el camino. */
+  const fundido = await sesion.pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const visible = () => [...document.querySelectorAll('.rollo')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    if (!visible()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+    const ir = async sec => {
+      const t = (visible() || document).querySelector('.pestanas [data-sec="' + sec + '"]');
+      if (!t) return null;
+      t.click();
+      const muestras = [];
+      const t0 = performance.now();
+      while (performance.now() - t0 < 1000){
+        await new Promise(z => requestAnimationFrame(z));
+        const r = visible();
+        const hijo = r && [...r.children].find(c => !c.matches('.pestanas, .pie-cerrar') &&
+                                                    getComputedStyle(c).display !== 'none');
+        if (!hijo) continue;
+        const cs = getComputedStyle(hijo);
+        muestras.push({ panel: r.id, op: +cs.opacity, tr: cs.transform,
+                        x: Math.round(hijo.getBoundingClientRect().left * 10) / 10 });
+      }
+      return muestras;
+    };
+    const res = {};
+    for (const sec of ['formato', 'glosas', 'respaldo']){
+      const m = await ir(sec);
+      if (!m) { res[sec] = { falta:true }; continue; }
+      const suyas = m.filter(x => x.panel === m[m.length - 1].panel);
+      res[sec] = {
+        cuadros: suyas.length,
+        minOp: Math.min(...suyas.map(x => x.op)),
+        finOp: suyas.length ? suyas[suyas.length - 1].op : null,
+        movidas: suyas.filter(x => x.tr !== 'none').length,
+        xs: [...new Set(suyas.map(x => x.x))]
+      };
+    }
+    return res;
+  });
+  di('cuadro a cuadro', JSON.stringify(fundido));
+  for (const [sec, r] of Object.entries(fundido)){
+    vale(sec + ': entra desde transparente y termina entera',
+         !r.falta && r.minOp < 0.5 && r.finOp === 1, JSON.stringify(r));
+    vale('  y no se corre de su sitio en ningún cuadro',
+         !r.falta && r.movidas === 0 && r.xs.length === 1, 'transform en ' + r.movidas +
+         ' cuadros · posiciones ' + JSON.stringify(r.xs));
+  }
+
+  titulo('la clave de colores del mapa, en un solo renglón');
+  /* Pedido por Gianni: «siempre en una sola línea». Se mira en el teléfono más
+     angosto que se sigue viendo —320 px— y en uno de escritorio: los tres
+     puntos con su palabra a la misma altura y todo dentro del ancho del mapa,
+     con el mismo aire a los dos lados. */
+  /* Las pruebas de arriba dejaron el panel en Herramientas; el mapa vive en
+     Compartir, y se vuelve a ella tocando su pestaña. */
+  await sesion.pagina.evaluate(async () => {
+    const c = document.querySelector('#respaldo [data-sub="compartir"]');
+    if (c) c.click();
+    await new Promise(z => setTimeout(z, 700));
+  });
+  for (const ancho of [320, 1280]){
+    await sesion.pagina.setViewportSize({ width: ancho, height: ancho > 700 ? 900 : 640 });
+    await sesion.pagina.waitForTimeout(500);
+    const ley = await sesion.pagina.evaluate(() => {
+      const l = document.querySelector('#respaldo .mapa-leyenda');
+      const m = document.querySelector('#respaldo .mapa-marco');
+      if (!l || !m) return { falta:true };
+      const mitades = [...l.children].map(c => { const b = c.getBoundingClientRect();
+                                                 return (b.top + b.bottom) / 2; });
+      const mb = m.getBoundingClientRect();
+      const izq = l.firstElementChild.getBoundingClientRect().left - mb.left;
+      const der = mb.right - l.lastElementChild.getBoundingClientRect().right;
+      return { ancho: Math.round(mb.width), desnivel: Math.max(...mitades) - Math.min(...mitades),
+               izq: Math.round(izq), der: Math.round(der),
+               abierto: getComputedStyle(document.getElementById('respaldo')).display };
+    });
+    di(ancho + ' px', JSON.stringify(ley));
+    vale(ancho + ' px: un solo renglón', !ley.falta && ley.ancho > 100 && ley.desnivel < 2, JSON.stringify(ley));
+    vale('  y cabe en el mapa, centrada', !ley.falta && ley.ancho > 100 && ley.izq >= 0 && ley.der >= 0 &&
+         Math.abs(ley.izq - ley.der) <= 2, JSON.stringify(ley));
+  }
 
   await cerrar(sesion);
 })();
