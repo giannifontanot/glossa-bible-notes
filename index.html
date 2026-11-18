@@ -7323,7 +7323,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 18:30';
+window.GLOSS_BUILD = '17-NOV-26 18:34';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -28595,6 +28595,28 @@ function armarAtribuciones(sitio){
   secVersion.appendChild(sello);
   secVersion.classList.add('herr-version');
   caja.insertBefore(secVersion, caja.firstChild);
+  /* Y SE MIDE DE VERDAD SI CABE. La regla de CSS calcula el tamaño
+     suponiendo que la cadena entera mide 13.2 em, y eso vale para las letras
+     de lectura pero no para la de máquina —retirada del menú, pero quien la
+     tenía la conserva—: sus 23 caracteres de ancho fijo piden casi 14 em, y
+     con nowrap y overflow:hidden se cortaban las puntas. Lo levantó Codex.
+     En vez de una cota para la letra más ancha, que achicaría la versión a
+     todos los demás, se mide el texto ya pintado con la letra que esté
+     puesta y, si se sale, se encoge en la proporción exacta. El observador
+     salta cada vez que la pestaña pasa de escondida a visible y cada vez que
+     cambia el ancho, así que una letra elegida en Formato se vuelve a medir
+     al regresar aquí; y fonts.ready cubre la letra que llega tarde. */
+  const ajustarSello = () => {
+    sello.style.removeProperty('font-size');
+    const ancho = sello.clientWidth, mide = sello.scrollWidth;
+    if (!ancho || mide <= ancho) return;
+    const cs = getComputedStyle(sello);
+    const relleno = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    sello.style.fontSize = (parseFloat(cs.fontSize) * (ancho - relleno) / (mide - relleno) * .98)
+                             .toFixed(2) + 'px';
+  };
+  if ('ResizeObserver' in window) new ResizeObserver(ajustarSello).observe(sello);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(ajustarSello);
 })();
 
 /* ---------- arranque ---------- */

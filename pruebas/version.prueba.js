@@ -336,6 +336,45 @@ const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV'
     await new Promise(z => setTimeout(z, 300));
   });
 
+  titulo('el sello cabe entero con la letra de máquina, en el teléfono más angosto');
+  /* Lo levantó Codex: la regla de CSS supone que la cadena mide 13.2 em, y la
+     de máquina —retirada del menú, pero quien la tenía la conserva— pide casi
+     14; con nowrap se cortaban las puntas. Se elige en Formato como la elige
+     el lector, se vuelve a Herramientas y se mira que el texto quepa entero. */
+  await sesion.pagina.setViewportSize({ width: 320, height: 640 });
+  const maquina = await sesion.pagina.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const visible = () => [...document.querySelectorAll('.rollo')]
+      .find(r => getComputedStyle(r).display !== 'none');
+    if (!visible()){ document.getElementById('pgCabeza').click(); await pausa(900); }
+    const tab = sec => (visible() || document).querySelector('.pestanas [data-sec="' + sec + '"]');
+    tab('formato').click(); await pausa(800);
+    const sel = document.getElementById('selFuente');
+    if (!sel) return { falta:'el selector de letra' };
+    const antes = sel.value;
+    sel.value = '8'; sel.dispatchEvent(new Event('change', { bubbles:true }));
+    await pausa(500);
+    tab('respaldo').click(); await pausa(800);
+    document.querySelector('#respaldo [data-sub="tools"]').click(); await pausa(800);
+    const el = document.querySelector('#respaldo .sello-version');
+    const cs = getComputedStyle(el);
+    const r = { familia: cs.fontFamily, letra: parseFloat(cs.fontSize),
+                mide: el.scrollWidth, ancho: el.clientWidth };
+    /* Se deja la letra como estaba: lo guardado viaja a lo que corra después. */
+    tab('formato').click(); await pausa(800);
+    sel.value = antes; sel.dispatchEvent(new Event('change', { bubbles:true }));
+    await pausa(500);
+    tab('respaldo').click(); await pausa(800);
+    return r;
+  });
+  di('con la de máquina', JSON.stringify(maquina));
+  vale('(la prueba es válida) el sello quedó con la letra de máquina',
+       !maquina.falta && /monospace/i.test(maquina.familia), maquina.falta || maquina.familia);
+  vale('  y cabe entero, sin cortarse las puntas',
+       !maquina.falta && maquina.mide <= maquina.ancho + 1, maquina.mide + ' de ' + maquina.ancho);
+  vale('  sin dejar de ser grande', !maquina.falta && maquina.letra >= 14, maquina.letra + ' px');
+  await sesion.pagina.setViewportSize({ width: 390, height: 844 });
+
   titulo('las pestañas entran apareciendo, sin correrse');
   /* Pedido por Gianni: «un fade in suavecito». Antes el contenido de cada
      pestaña llegaba corriéndose 26 px y rebotaba; ahora solo aparece, ya en su
