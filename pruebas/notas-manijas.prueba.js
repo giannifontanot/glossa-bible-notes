@@ -272,9 +272,12 @@ const negritas = p => p.evaluate(() =>
   titulo('la brocha copia el formato y lo pinta a toques');
   await verFormato.tap();
   await p.locator('#notaFormato').waitFor({ state:'hidden', timeout:2000 });
-  await editor.tap();
-  await editor.fill('');
-  await p.keyboard.type('Gracia sobre gracia para todo aquel que cree');
+  /* El texto se pone sin estilo desde el DOM y no tecleado: tras vaciar
+     una nota que empezaba en negrita, el navegador sigue escribiendo en
+     negrita, y lo tecleado salía todo en negrita (pasó en la primera vuelta
+     de esta prueba). */
+  await editor.evaluate(e => { e.textContent = 'Gracia sobre gracia para todo aquel que cree';
+                               e.dispatchEvent(new Event('input', { bubbles:true })); });
   await p.waitForTimeout(150);
   await verFormato.tap(); await p.waitForTimeout(400);
   const brocha = boton(p, 'brocha');
@@ -293,6 +296,9 @@ const negritas = p => p.evaluate(() =>
     const dato = d => { const e = n.parentElement.closest('[' + d + ']'); return e && ed.contains(e) ? e.getAttribute(d) : null; };
     return [de('b, strong') ? 'B' : '', de('i, em') ? 'I' : '', dato('data-resalte') || '', dato('data-color') || ''].join('/');
   }, palabra);
+  vale('(la prueba es válida) la nota empieza sin ningún estilo',
+       await editor.evaluate(e => e.innerHTML) === 'Gracia sobre gracia para todo aquel que cree',
+       await editor.evaluate(e => e.innerHTML));
   await brocha.tap();
   vale('sin nada marcado, la brocha no se pone', await brocha.getAttribute('aria-pressed') === 'false');
   await tocarPalabra(p, 'Gracia');
