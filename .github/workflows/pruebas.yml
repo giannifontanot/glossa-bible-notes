@@ -7,7 +7,7 @@
 # el «tiempo de máquina es de quien lo paga» de CLAUDE.md ya no frena nada.
 #
 # CADA SUITE EN SU PROPIA MÁQUINA, A LA VEZ. La tanda entera, una detrás de
-# otra, pasa de los 45 minutos; repartida en 28 trabajos paralelos tarda lo que
+# otra, pasa de los 45 minutos; repartida en 30 trabajos paralelos tarda lo que
 # tarde la más lenta. Es lo mismo que hace correr.js —un proceso por prueba,
 # para que el localStorage de una no se filtre en la siguiente—, llevado un
 # paso más allá: una máquina por prueba.

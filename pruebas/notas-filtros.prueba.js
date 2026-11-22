@@ -55,6 +55,9 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
     await p.locator('.nota-filtros-vacio').isVisible() &&
     await p.locator('#notaFiltros .nota-filtro').count() === 0);
   await p.keyboard.press('Escape');
+  /* La lista ya no se va de golpe: se encoge suave, y hasta que termina
+     sigue en pantalla. Se espera a que acabe de irse. */
+  await p.locator('#notaFiltros').waitFor({ state:'hidden', timeout:2000 }).catch(() => {});
   vale('Escape cierra sólo la lista y devuelve el foco al libro',
     await p.locator('#notas').isVisible() && await p.locator('#notaFiltros').isHidden() &&
     await libro.evaluate(b => document.activeElement === b));
@@ -197,17 +200,24 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
   await libro.click();
   vale('registros dañados se descartan sin perder título o texto ni interpretar marcado',
     await p.locator('.nota-filtros-vacio').isVisible() &&
-    await p.locator('#notas .nota-editor:visible').inputValue() === 'El texto se conserva.' &&
+    await p.locator('#notas .nota-editor:visible').innerText() === 'El texto se conserva.' &&
     (await p.locator('#notaFiltros h3').textContent()).includes('<b>Nota íntegra</b>') &&
     await p.locator('#notaFiltros b').count() === 0);
   await p.keyboard.press('Escape');
+  /* Se mide con la lista YA ida. Mientras se encoge sigue ocupando su alto,
+     y con ella abierta la hoja puede llevar barra de desplazamiento, que le
+     quita ancho a la fila y corre el libro unos píxeles a la izquierda: se
+     estaría comparando la fila con barra contra la fila sin ella. */
+  await p.locator('#notaFiltros').waitFor({ state:'hidden', timeout:2000 }).catch(() => {});
   const posicion = await libro.boundingBox();
   await p.locator('#notas .indice-tab').click();
   await p.locator('#notas .indice-item').last().click(); await p.waitForTimeout(650);
   const final = await libro.boundingBox();
+  const corrida = await p.locator('#notas .pestanitas').evaluate(b => b.scrollLeft);
   vale('el libro sigue al extremo derecho cuando la tira se desplaza',
-    Math.abs(posicion.x - final.x) <= 1 && final.x + final.width <= 412 &&
-    await p.locator('#notas .pestanitas').evaluate(b => b.scrollLeft > 0));
+    Math.abs(posicion.x - final.x) <= 1 && final.x + final.width <= 412 && corrida > 0,
+    'antes x=' + Math.round(posicion.x) + ' · después x=' + Math.round(final.x) +
+    ' ancho=' + Math.round(final.width) + ' · tira corrida ' + Math.round(corrida));
 
   titulo('el historial acompaña a la nota al renombrar, reordenar y respaldar');
   await p.locator('#notas .indice-tab').click();
