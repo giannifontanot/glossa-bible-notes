@@ -4545,6 +4545,11 @@
   .nota-grupo[data-grupo="foto"]::before{ display:none; }
   .nota-renglon .nota-orden{ flex-basis:40px; width:40px; height:40px; }
   @media (max-width:359px){ .nota-renglon .nota-orden{ flex-basis:36px; width:36px; height:36px; } }
+  /* La paleta abre como tercer renglón. En la barra de antes —en fila— su
+     flex:1 0 100% era «todo el ancho»; ahora la barra va en columna, y ese
+     100% sería del alto: la paleta no contaba en lo que mide la barra y se
+     quedaba debajo de la nota, que se tragaba los toques a los colores. */
+  .nota-formato > .nota-paleta{ flex:0 0 auto; }
   .nota-paleta{ flex:1 0 100%; display:flex; flex-wrap:wrap; gap:6px; align-items:center;
     padding:6px 2px 2px; margin-top:2px; border-top:1px solid rgba(140,116,68,.22); }
   .nota-paleta[hidden]{ display:none; }
@@ -7469,7 +7474,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-NOV-26 15:12';
+window.GLOSS_BUILD = '22-NOV-26 15:17';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
