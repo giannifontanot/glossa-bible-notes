@@ -264,6 +264,42 @@ const comoSeVe = (p, palabra) => p.evaluate(palabra => {
   vale('solo pasa el valor que está en la lista, sin más atributos',
        rara === 'uno <span data-resalte="amarillo">dos</span> tres cuatro', rara);
 
+  /* LA PALABRA PARTIDA: «amor» con media negrita son dos nodos de texto, y
+     el toque tiene que marcar la palabra entera, caiga donde caiga. Y lo de
+     otro renglón no se pega aunque no haya espacio de por medio. */
+  titulo('una palabra con media negrita se marca entera');
+  await importar(p, { formato:'glossa/marcas', marcas:[], notas:[{ id:'nota-partida', titulo:'Partida',
+    texto:'Su amor\nfiel', html:'Su <b>am</b>or<div>fiel</div>' }] });
+  await ir(p, 'notas');
+  await p.locator('#notas .pestanitas [data-nota="nota-partida"]').click();
+  await verFormato.tap(); await p.waitForTimeout(350);
+  await tocarPalabra(p, 'am');
+  vale('tocando la parte en negrita se marca «amor»', await marcado(p) === 'amor', await marcado(p));
+  await tocarPalabra(p, 'am');
+  await tocarPalabra(p, 'or');
+  vale('y tocando la otra parte, también', await marcado(p) === 'amor', await marcado(p));
+  await tocarPalabra(p, 'or');
+  await tocarPalabra(p, 'fiel');
+  vale('la palabra del renglón de abajo se marca sola', await marcado(p) === 'fiel', await marcado(p));
+  await verFormato.tap();
+  await p.locator('#notaFormato').waitFor({ state:'hidden', timeout:2000 });
+
+  /* Un bloque vacío en medio también parte: «uno<p></p>dos» son dos
+     renglones aunque los dos textos cuelguen del mismo editor. */
+  titulo('un bloque vacío entre dos palabras no las junta');
+  await importar(p, { formato:'glossa/marcas', marcas:[], notas:[{ id:'nota-hueco', titulo:'Hueco',
+    texto:'uno\ndos', html:'uno<p></p>dos' }] });
+  await ir(p, 'notas');
+  await p.locator('#notas .pestanitas [data-nota="nota-hueco"]').click();
+  await verFormato.tap(); await p.waitForTimeout(350);
+  await tocarPalabra(p, 'uno');
+  vale('tocando «uno» se marca solo «uno»', await marcado(p) === 'uno', await marcado(p));
+  await tocarPalabra(p, 'uno');
+  await tocarPalabra(p, 'dos');
+  vale('y tocando «dos», solo «dos»', await marcado(p) === 'dos', await marcado(p));
+  await verFormato.tap();
+  await p.locator('#notaFormato').waitFor({ state:'hidden', timeout:2000 });
+
   titulo('una nota de antes, sin formato, se sigue viendo igual');
   await importar(p, { formato:'glossa/marcas', marcas:[], notas:[{ id:'nota-vieja', titulo:'Vieja',
     texto:'Línea uno\n  con dos espacios' }] });

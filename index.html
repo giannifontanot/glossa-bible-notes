@@ -4583,6 +4583,9 @@
   .nota-editor.en-formato{ cursor:pointer; border-style:dashed;
     -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
   .nota-editor.en-formato:focus{ outline:none; }
+  /* Sin CSS.highlights, lo marcado se enseña como selección (ver
+     pintarMarcado), y para eso la nota tiene que dejarse seleccionar. */
+  .nota-editor.en-formato.sin-hl{ -webkit-user-select:text; user-select:text; }
   ::highlight(nota-marcada){ background-color:rgba(52,118,214,.34); }
   .nota-filtros-cabecera{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
   .nota-filtros h3{ flex:1; min-width:0; margin:0; overflow-wrap:anywhere;
@@ -7437,7 +7440,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-NOV-26 08:38';
+window.GLOSS_BUILD = '22-NOV-26 08:52';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -28314,6 +28317,21 @@ function armarManijasIndice(pagina, reordenar){
     return r;
   };
   const LETRA_DE_PALABRA = /[\p{L}\p{N}\p{M}'’_-]/u;
+  /* LA PALABRA ENTERA, AUNQUE ESTÉ PARTIDA EN VARIOS NODOS. Una palabra con
+     media negrita —<b>am</b>or— son dos nodos de texto, y buscando solo en el
+     tocado se marcaba «am» o «or» según dónde cayera el dedo. Lo cazó Codex.
+     Así que la palabra sigue al nodo de al lado mientras estén en el mismo
+     renglón: mismo bloque y sin un <br>, una foto ni otro bloque en medio. El
+     bloque cuenta aunque esté vacío: en «uno<p></p>dos» los dos textos
+     tienen el mismo bloque más cercano —el editor— y el <p> vacío no trae ni
+     <br> ni foto, así que mirando solo eso se marcaban «uno» y «dos» juntos,
+     de un renglón al otro. También lo cazó Codex. */
+  const bloqueDe = n => n.parentElement.closest('div, p, li');
+  const pegados = (a, b) => {
+    if (bloqueDe(a) !== bloqueDe(b)) return false;
+    const r = document.createRange(); r.setStartAfter(a); r.setEndBefore(b);
+    return !r.cloneContents().querySelector('br, img, div, p, li, ul, ol');
+  };
   const palabraEn = (ed, x, y) => {
     let nodo = null, off = 0;
     if (document.caretPositionFromPoint){
@@ -28327,11 +28345,30 @@ function armarManijasIndice(pagina, reordenar){
        antes antes de rendirse. */
     if (!LETRA_DE_PALABRA.test(s[off] || '') && LETRA_DE_PALABRA.test(s[off - 1] || '')) off--;
     if (!LETRA_DE_PALABRA.test(s[off] || '')) return null;
-    let i = off, f = off + 1;
-    while (i > 0 && LETRA_DE_PALABRA.test(s[i - 1])) i--;
-    while (f < s.length && LETRA_DE_PALABRA.test(s[f])) f++;
-    const base = letraDe(ed, nodo, 0);
-    return base === null ? null : { ini:base + i, fin:base + f };
+    const lista = textosDe(ed), bases = [];
+    let acc = 0; for (const t of lista){ bases.push(acc); acc += t.nodeValue.length; }
+    let k = lista.indexOf(nodo); if (k < 0) return null;
+    let ki = k, i = off;
+    for (;;){
+      const v = lista[ki].nodeValue;
+      if (i > 0 && LETRA_DE_PALABRA.test(v[i - 1])){ i--; continue; }
+      if (i === 0 && ki > 0 && pegados(lista[ki - 1], lista[ki])){
+        const ant = lista[ki - 1].nodeValue;
+        if (!ant.length || LETRA_DE_PALABRA.test(ant[ant.length - 1])){ ki--; i = ant.length; continue; }
+      }
+      break;
+    }
+    let kf = k, f = off + 1;
+    for (;;){
+      const v = lista[kf].nodeValue;
+      if (f < v.length && LETRA_DE_PALABRA.test(v[f])){ f++; continue; }
+      if (f === v.length && kf < lista.length - 1 && pegados(lista[kf], lista[kf + 1])){
+        const sig = lista[kf + 1].nodeValue;
+        if (!sig.length || LETRA_DE_PALABRA.test(sig[0])){ kf++; f = 0; continue; }
+      }
+      break;
+    }
+    return { ini:bases[ki] + i, fin:bases[kf] + f };
   };
   const pintarMarcado = () => {
     const ed = editorVivo();
@@ -28341,6 +28378,13 @@ function armarManijasIndice(pagina, reordenar){
     if (HL_API){
       if (r) CSS.highlights.set('nota-marcada', new Highlight(r));
       else CSS.highlights.delete('nota-marcada');
+    } else {
+      /* SIN CSS.highlights —navegadores de antes de 2023— lo marcado se
+         enseña como una selección del navegador puesta desde aquí: la nota
+         sigue sin escribirse, así que no sube el teclado. Sin esto se daría
+         formato a algo que no se ve. Lo cazó Codex. */
+      const sel = getSelection(); sel.removeAllRanges();
+      if (r) sel.addRange(r);
     }
   };
   const soltarMarcado = () => { marcado = null; ancla = null; pintarMarcado(); };
@@ -28352,6 +28396,7 @@ function armarManijasIndice(pagina, reordenar){
     hojas.querySelectorAll('.nota-editor').forEach(ed => {
       ed.contentEditable = si ? 'false' : 'true';
       ed.classList.toggle('en-formato', si);
+      ed.classList.toggle('sin-hl', si && !HL_API);
       if (si) ed.setAttribute('inputmode', 'none'); else ed.removeAttribute('inputmode');
       if (si && document.activeElement === ed) ed.blur();
     });
