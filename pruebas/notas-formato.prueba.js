@@ -15,7 +15,7 @@
    verdad —el que abre el botón—, no metiéndola por debajo; el formato se da
    con el dedo en la barra y escribiendo con el teclado, y lo único que se
    sustituye alguna vez es una pieza del navegador (el almacén lleno). */
-const { abrir, cerrar, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, di, vale, titulo, arrastrarManija } = require('./comun');
 
 const paneles = { notas:'notas', glosas:'etiquetas', respaldo:'respaldo' };
 async function ir(p, seccion){
@@ -165,8 +165,10 @@ async function subirFoto(p, base64){
   vale('crece pasando por alturas de en medio, no de golpe', intermedios(alturas) >= 2, intermedios(alturas));
   vale('y termina abierta', alturas.at(-1) > 20 && alturas.at(-1) === Math.max(...alturas), alturas.at(-1));
   vale('el botón dice que está abierta', await formato.getAttribute('aria-expanded') === 'true');
-  vale('trae los once botones', await p.locator('#notaFormato .nota-orden').count() === 11,
+  vale('trae los trece botones', await p.locator('#notaFormato .nota-orden').count() === 13,
        await p.locator('#notaFormato .nota-orden').count());
+  vale('y el interruptor del estilo, encendido',
+       await p.locator('#notaFormato .nota-interruptor').getAttribute('aria-checked') === 'true');
   m = muestrear(p, '#notaFormato');
   await formato.tap();
   alturas = await m;
@@ -243,8 +245,8 @@ async function subirFoto(p, base64){
        await editor.evaluate(e => !!e.querySelector('i u, u i') && /doble/.test((e.querySelector('i u, u i') || {}).textContent || '')),
        await editor.innerHTML());
   await tocarPalabra(p, 'uno');
-  await tocarPalabra(p, 'dos');
-  vale('un segundo toque marca todo lo que hay entre las dos', /^uno\s*dos$/.test(await marcado(p)),
+  await arrastrarManija(p, 'fin', 'dos');
+  vale('la manija lleva lo marcado al renglón de abajo', /^uno\s*dos$/.test(await marcado(p)),
        JSON.stringify(await marcado(p)));
   await p.locator('#notaFormato [data-orden="insertUnorderedList"]').tap();
   vale('el botón de la lista se ve hundido dentro de la lista',

@@ -20,7 +20,7 @@
      siempre llega, y el de un teléfono no—.
 
    Todo con el dedo: toques de verdad sobre las palabras y sobre la barra. */
-const { abrir, cerrar, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, di, vale, titulo, arrastrarManija } = require('./comun');
 
 const paneles = { notas:'notas', respaldo:'respaldo' };
 async function ir(p, seccion){
@@ -132,7 +132,10 @@ const comoSeVe = (p, palabra) => p.evaluate(palabra => {
   vale('y su menú se cancela: no sale copiar, pegar y cortar', cancelado);
   vale('la nota sigue sin foco', await editor.evaluate(e => document.activeElement !== e));
   await tocarPalabra(p, 'luz');
-  vale('un toque en otra palabra marca todo lo de en medio', await marcado(p) === 'amor y luz', await marcado(p));
+  vale('un toque en otra palabra marca solo esa, no lo de en medio', await marcado(p) === 'luz', await marcado(p));
+  await tocarPalabra(p, 'amor');
+  await arrastrarManija(p, 'fin', 'luz');
+  vale('y la manija de detrás estira lo marcado hasta «luz»', await marcado(p) === 'amor y luz', await marcado(p));
 
   titulo('resaltar con los cinco colores');
   await boton(p, 'resaltar').tap();
