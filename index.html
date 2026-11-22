@@ -7362,7 +7362,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-NOV-26 07:53';
+window.GLOSS_BUILD = '22-NOV-26 08:01';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25762,12 +25762,17 @@ $('archivoImp').onchange = ev => {
     /* Las fotos ANTES que las notas: cuando la nota se pinte, su foto ya
        tiene que estar. Si el almacén no las aguanta se quedan en memoria
        —como las notas— y el aviso pide exportar: nada se pierde sin decirlo. */
-    if (!Array.isArray(datos) && fusionarFotos(datos.fotos)) guardarFotos();
+    const fotosFallaron = !Array.isArray(datos) && fusionarFotos(datos.fotos) && !guardarFotos();
     const cuentaNotas = fusionarNotas(notasEntrantes);
     if (notasEntrantes.length){
       reflejarNotas();
       if (!guardarNotas()) return;       /* el resumen no debe tapar el fallo */
     }
+    /* Tampoco el de las fotos. Las notas, que pesan poco, pueden guardarse
+       bien aunque las fotos no quepan, y entonces el resumen de abajo pisaba
+       el aviso: el lector veía sus fotos en pantalla sin saber que al cerrar
+       se iban. El aviso de guardarFotos se queda puesto. */
+    if (fotosFallaron) return;
     /* Lo que entró se ve entrar: la hoja se vuelve a pintar con las glosas
        nuevas puestas. Lo que NO entró no se ve por ningún lado, y eso sí hay
        que decirlo: un archivo con veinte notas del que solo aparecen tres se
@@ -27784,9 +27789,18 @@ function armarManijasIndice(pagina, reordenar){
 (function armarNotas(){
   const caja = document.getElementById('notas');
   if (!caja) return;
+  /* Si las notas se leyeron enteras, se apunta AQUÍ, antes de que la nota de
+     estreno de abajo rellene el hueco: después de eso `notas` siempre es una
+     lista y ya no se distingue «no había nada» de «estaba roto». Lo primero
+     que se escribió miraba Array.isArray(notas) tras el relleno, salía
+     siempre verdadero y un almacén de notas dañado se llevaba todas las fotos
+     al arrancar. Una lista con registros descartados tampoco cuenta: el
+     descartado podía ser justo el que usaba la foto. */
+  let notasLeidas = false;
   try {
     const leidas = JSON.parse(localStorage.getItem(CLAVE_NOTAS) || 'null');
     notas = Array.isArray(leidas) ? leidas.filter(n => n && typeof n.texto === 'string') : null;
+    notasLeidas = Array.isArray(leidas) && notas.length === leidas.length;
   } catch(_){ notas = null; }
   /* No usar nota-1 de fábrica: dos dispositivos tendrían el mismo id y una
      importación descartaría la primera nota escrita como si ya existiera. */
@@ -27804,7 +27818,6 @@ function armarManijasIndice(pagina, reordenar){
   })();
   if (!notas || !notas.length)
     notas = [{ id:nuevoIdNota(), titulo: idiomaGuardado === 'en' ? 'Note 1' : 'Nota 1', texto:'' }];
-  const notasLeidas = Array.isArray(notas);
   notas = notas.map((n, i) => {
     const limpia = { id: String(n.id || nuevoIdNota()),
       titulo: String(n.titulo || ('Nota ' + (i + 1))).slice(0, 60), texto:n.texto,

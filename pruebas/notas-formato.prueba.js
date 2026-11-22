@@ -317,6 +317,20 @@ async function subirFoto(p, base64){
   await p.reload();
   vale('la foto que ya no usa nadie se va al arrancar', Object.keys(await fotos(p)).length === 0);
 
+  /* Y AL REVÉS: CON LAS NOTAS ROTAS NO SE TIRA NINGUNA. Si no se pudieron
+     leer las notas, nadie sabe qué fotos usaban, y «ninguna nota la usa»
+     sería mentira. Se escribe a mano una foto válida y unas notas que no son
+     JSON, y se arranca. */
+  titulo('con las notas ilegibles, las fotos se quedan');
+  await p.evaluate(() => {
+    localStorage.setItem('glossa:notas:fotos:v1', JSON.stringify({ 'foto-de-prueba': 'data:image/png;base64,iVBORw0KGgo=' }));
+    localStorage.setItem('glossa:notas:v1', '{esto no es json');
+  });
+  await p.reload();
+  await p.locator('#notas').waitFor({ state:'attached' });
+  vale('la foto sigue en su sitio', Object.keys(await fotos(p)).includes('foto-de-prueba'),
+    Object.keys(await fotos(p)));
+
   vale('sin errores de JavaScript', sesion.errores.length === 0, sesion.errores);
   await sesion.navegador.close();
 
