@@ -4503,8 +4503,6 @@
   .nota-orden svg circle{ fill:currentColor; stroke:none; }
   .nota-orden svg text{ fill:currentColor; stroke:none; font:600 6.5px/1 var(--ui, sans-serif); }
   .nota-orden[data-orden="foto"] svg circle{ fill:none; stroke:currentColor; }
-  /* La foto va aparte de los de escribir: es otra clase de cosa. */
-  .nota-orden[data-orden="foto"]{ margin-left:auto; }
   .nota-orden:hover{ background:rgba(184,137,43,.12); }
   .nota-orden[aria-pressed="true"]{ background:rgba(184,137,43,.22); color:#3b2b10;
     box-shadow:inset 0 1px 2px rgba(60,40,10,.18); }
@@ -4526,32 +4524,27 @@
      tocándose —y un toque lo dice con palabras, en la línea de avisos—. */
   .nota-formato.sin-marca .nota-orden:not([data-orden="foto"]):not([data-paleta]):not([data-orden="deshacer"]):not([data-orden="rehacer"]),
   .nota-formato.sin-marca .nota-tinta{ opacity:.45; }
-  /* Con el estilo apagado se escribe: los botones de dar formato se apagan
-     todos —también los de las paletas—, y la foto, deshacer y rehacer no. */
-  .nota-formato.escribiendo .nota-orden:not([data-orden="foto"]):not([data-orden="deshacer"]):not([data-orden="rehacer"]){ opacity:.35; }
   /* Deshacer y rehacer, sin nada que deshacer o rehacer. */
   .nota-orden:disabled{ opacity:.3; cursor:default; }
   .nota-orden:disabled:hover{ background:transparent; }
-  /* EL INTERRUPTOR «ESTILO»: una pista con su bolita, como los de los
-     ajustes del teléfono. Encendido, la bolita a la derecha y la pista del
-     azul de lo marcado; apagado, a la izquierda y en gris. */
-  .nota-interruptor{ flex:0 0 auto; height:38px; display:flex; align-items:center; gap:7px;
-    padding:0 9px 0 6px; margin-right:4px; border:0; border-radius:19px; background:transparent;
-    color:#5c4520; cursor:pointer; -webkit-tap-highlight-color:transparent;
-    font:600 calc(13px * var(--escala-ui,1))/1 var(--ui, sans-serif); }
-  .nota-interruptor .pista{ position:relative; width:34px; height:20px; border-radius:10px;
-    background:#bdb4a2; transition:background .18s; pointer-events:none; }
-  .nota-interruptor .bolita{ position:absolute; top:2px; left:2px; width:16px; height:16px;
-    border-radius:50%; background:#fffdf7; box-shadow:0 1px 2px rgba(60,40,10,.35); transition:transform .18s; }
-  .nota-interruptor[aria-checked="true"] .pista{ background:#3476d6; }
-  .nota-interruptor[aria-checked="true"] .bolita{ transform:translateX(14px); }
-  .nota-interruptor .rotulo{ pointer-events:none; }
-  .nota-interruptor:hover{ background:rgba(184,137,43,.12); }
-  .nota-interruptor:focus-visible{ outline:2px solid #b8892b; outline-offset:-2px; }
-  @media (prefers-reduced-motion:reduce){ .nota-interruptor .pista, .nota-interruptor .bolita{ transition:none; } }
-  /* En dos renglones si no caben, en vez de esconder botones a un lado: con
-     once, en un teléfono no caben en uno. */
-  .nota-formato{ flex-wrap:wrap; overflow-x:visible; }
+  /* DOS RENGLONES PENSADOS, NO AMONTONADOS. Antes los trece botones se
+     partían donde dejaba el ancho, y Gianni los veía «amontonados». Se le
+     preguntó a un panel —uno de uso en el teléfono, uno de diseño y uno de
+     accesibilidad— y coincidieron: arriba lo que se usa sobre la palabra
+     marcada (deshacer y rehacer, B I U, resaltar y color), abajo tamaño y
+     letra, las listas, y la foto sola a la derecha, que no da estilo sino
+     que añade. Cada grupo con su rayita fina entre medias, botones de 40 px
+     y un respiro entre renglones. */
+  .nota-formato{ flex-direction:column; align-items:stretch; flex-wrap:nowrap; overflow-x:visible;
+    gap:6px; padding:6px 8px; }
+  .nota-renglon{ display:flex; flex-wrap:wrap; align-items:center; row-gap:4px; }
+  .nota-grupo{ display:flex; align-items:center; gap:4px; }
+  .nota-grupo + .nota-grupo::before{ content:''; flex:0 0 1px; height:22px; margin:0 3px 0 5px;
+    background:rgba(140,116,68,.3); }
+  .nota-grupo[data-grupo="foto"]{ margin-left:auto; }
+  .nota-grupo[data-grupo="foto"]::before{ display:none; }
+  .nota-renglon .nota-orden{ flex-basis:40px; width:40px; height:40px; }
+  @media (max-width:359px){ .nota-renglon .nota-orden{ flex-basis:36px; width:36px; height:36px; } }
   .nota-paleta{ flex:1 0 100%; display:flex; flex-wrap:wrap; gap:6px; align-items:center;
     padding:6px 2px 2px; margin-top:2px; border-top:1px solid rgba(140,116,68,.22); }
   .nota-paleta[hidden]{ display:none; }
@@ -7476,7 +7469,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-NOV-26 09:17';
+window.GLOSS_BUILD = '22-NOV-26 15:12';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -28081,7 +28074,6 @@ function armarManijasIndice(pagina, reordenar){
     verFormato.setAttribute('aria-expanded', 'false');
     /* Cerrar la barra es salir del modo formato: la nota se vuelve a escribir. */
     soltarMarcado(); cerrarPaleta(); ponerModo(false);
-    estilo = true; interruptor.setAttribute('aria-checked', 'true'); formato.classList.remove('escribiendo');
     if (enfocar) verFormato.focus({ preventScroll:true });
   };
   const registrarPendiente = () => {
@@ -28243,24 +28235,39 @@ function armarManijasIndice(pagina, reordenar){
   elegirFoto.type = 'file'; elegirFoto.accept = 'image/*'; elegirFoto.hidden = true;
   elegirFoto.className = 'nota-elegir-foto';
   formato.appendChild(elegirFoto);
-  /* EL INTERRUPTOR va primero, solo: es lo que dice qué hacen los demás. */
-  const interruptor = document.createElement('button');
-  interruptor.type = 'button'; interruptor.className = 'nota-interruptor';
-  interruptor.setAttribute('role', 'switch'); interruptor.setAttribute('aria-checked', 'true');
-  interruptor.innerHTML = '<span class="pista" aria-hidden="true"><span class="bolita"></span></span><span class="rotulo"></span>';
-  dosIdiomas(interruptor.querySelector('.rotulo'), { t:['Estilo', 'Style'] });
-  dosIdiomas(interruptor, { title:['Encendido: tocas palabras para darles estilo. Apagado: escribes.',
-                                   'On: tap words to style them. Off: you type.'] });
-  formato.appendChild(interruptor);
+  /* LOS DOS RENGLONES Y SUS GRUPOS (ver «DOS RENGLONES PENSADOS» en el CSS).
+     Ya no hay interruptor «Estilo»: lo pidió Gianni, el lápiz que abre esta
+     barra es el interruptor. Abierta, se da estilo a toques; cerrada, se
+     escribe. Un interruptor dentro de la barra decía lo mismo dos veces. */
+  const RENGLONES = [
+    [ { grupo:'deshacer', es:'Deshacer y rehacer', en:'Undo and redo', ordenes:['deshacer', 'rehacer'] },
+      { grupo:'letra', es:'Negrita, cursiva y subrayado', en:'Bold, italic and underline', ordenes:['bold', 'italic', 'underline'] },
+      { grupo:'color', es:'Color', en:'Color', ordenes:['resaltar', 'colorear'] } ],
+    [ { grupo:'tamano', es:'Tamaño y tipo de letra', en:'Size and font', ordenes:['achicar', 'agrandar', 'tipo'] },
+      { grupo:'listas', es:'Listas', en:'Lists', ordenes:['insertUnorderedList', 'insertOrderedList'] },
+      { grupo:'foto', es:'Foto', en:'Photo', ordenes:['foto'] } ]
+  ];
+  const grupoDe = {};
+  for (const renglon of RENGLONES){
+    const r = document.createElement('div'); r.className = 'nota-renglon';
+    for (const g of renglon){
+      const caja = document.createElement('div');
+      caja.className = 'nota-grupo'; caja.dataset.grupo = g.grupo; caja.setAttribute('role', 'group');
+      dosIdiomas(caja, { aria:[g.es, g.en] });
+      g.ordenes.forEach(o => grupoDe[o] = caja);
+      r.appendChild(caja);
+    }
+    formato.appendChild(r);
+  }
   for (const o of ORDENES){
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'nota-orden'; b.dataset.orden = o.orden;
     b.innerHTML = o.cara;
     dosIdiomas(b, { title:[o.es, o.en], aria:[o.es, o.en] });
-    if (o.paleta){ b.dataset.paleta = o.paleta; b.setAttribute('aria-expanded', 'false'); }
+    if (o.paleta){ b.dataset.paleta = o.paleta; b.setAttribute('aria-expanded', 'false'); b.setAttribute('aria-haspopup', 'true'); }
     else if (!['foto', 'achicar', 'agrandar', 'deshacer', 'rehacer'].includes(o.orden)) b.setAttribute('aria-pressed', 'false');
     if (o.orden === 'deshacer' || o.orden === 'rehacer') b.disabled = true;
-    formato.appendChild(b);
+    grupoDe[o.orden].appendChild(b);
   }
   /* EL RENGLÓN DE LA PALETA vive dentro de la barra, debajo de los botones,
      y solo hay una abierta a la vez: la del botón que se tocó. */
@@ -28354,7 +28361,7 @@ function armarManijasIndice(pagina, reordenar){
      el gesto que Gianni ya tiene en el dedo—. Se cancela, para que no salga
      ningún menú, y se marca con él.
      ============================================================ */
-  let marcado = null, ancla = null, ultimoLargo = null, estilo = true, manijas = null;
+  let marcado = null, ancla = null, ultimoLargo = null, manijas = null;
   const textosDe = ed => {
     const w = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
     const r = []; for (let n = w.nextNode(); n; n = w.nextNode()) r.push(n);
@@ -28476,7 +28483,7 @@ function armarManijasIndice(pagina, reordenar){
   const ponerManijas = () => {
     if (!manijas) return;
     const ed = editorVivo();
-    const ok = marcado && ed && abierto(formato) && estilo;
+    const ok = marcado && ed && abierto(formato);
     const a = ok ? rangoDe(ed, marcado.ini, marcado.ini + 1) : null;
     const b = ok ? rangoDe(ed, marcado.fin - 1, marcado.fin) : null;
     const ca = a && a.getClientRects()[0], cb = b && b.getClientRects()[0];
@@ -28509,23 +28516,29 @@ function armarManijasIndice(pagina, reordenar){
      mover una manija ya no hay ancla, y un toque en lo marcado vuelve a
      marcar esa palabra —así dos toques de color seguidos no se pisan—. */
   const tocarEnFormato = ev => {
-    if (!abierto(formato) || !estilo) return false;
+    if (!abierto(formato)) return false;
     /* Un toque que cae en una manija sin arrastrarla es un toque a la
        palabra de debajo: la caja de la manija es grande para el dedo y
        tapa el renglón siguiente. Lo cazó Codex. */
     const ed = ev.target.closest && (ev.target.closest('.nota-editor') ||
                                      (ev.target.closest('.nota-manija') && editorVivo()));
     if (!ed || ed !== editorVivo()) return false;
+    /* Solo cuenta la palabra si el dedo está de verdad encima de ella. Al
+       final de un renglón, entre dos palabras o bajo la última línea, el
+       navegador da la letra más cercana: sin esta cuenta, tocar el espacio
+       en blanco —o la manija— marcaba una palabra que nadie tocó. */
     const p = palabraEn(ed, ev.clientX, ev.clientY);
-    if (!p) return true;
-    /* Pero solo si el dedo está de verdad encima de esa palabra. Bajo la
-       última línea no hay renglón, y el navegador da la letra más cercana:
-       sin esta cuenta, tocar la manija marcaba una palabra que no se tocó. */
-    if (ed !== ev.target.closest('.nota-editor')){
-      const r = rangoDe(ed, p.ini, p.fin);
-      const encima = r && [...r.getClientRects()].some(c =>
-        ev.clientX >= c.left - 2 && ev.clientX <= c.right + 2 && ev.clientY >= c.top - 2 && ev.clientY <= c.bottom + 2);
-      if (!encima) return true;
+    const r = p && rangoDe(ed, p.ini, p.fin);
+    const encima = !!r && [...r.getClientRects()].some(c =>
+      ev.clientX >= c.left - 2 && ev.clientX <= c.right + 2 && ev.clientY >= c.top - 3 && ev.clientY <= c.bottom + 3);
+    if (!encima){
+      /* En la manija sin palabra debajo, nada: es para agarrarla. En el
+         espacio en blanco de la nota, se suelta lo marcado. Lo pidió así
+         Gianni: «un toque en un lugar donde hay espacio en blanco quita la
+         selección». Solo eso: ni cursor ni teclado, que con el lápiz
+         abierto se está dando estilo. */
+      if (ed === ev.target.closest('.nota-editor') && marcado){ cerrarPaleta(); soltarMarcado(); refrescarBotones(); }
+      return true;
     }
     if (ancla && marcado && p.ini === marcado.ini && p.fin === marcado.fin){ marcado = null; ancla = null; }
     else { marcado = p; ancla = p; }
@@ -28694,37 +28707,31 @@ function armarManijasIndice(pagina, reordenar){
     }
     refrescarDeshacer();
   };
-  /* ENCENDER Y APAGAR EL ESTILO. Encendido, lo que ya estuviera seleccionado
-     con el ratón entra marcado: en la computadora se selecciona primero y se
-     enciende después. Apagado, la nota se vuelve a escribir y la barra se
-     queda abierta. */
-  const ponerEstilo = si => {
-    estilo = si;
-    interruptor.setAttribute('aria-checked', String(si));
-    formato.classList.toggle('escribiendo', !si);
+  /* ENTRAR EN EL ESTILO, al abrir la barra con el lápiz. Lo que ya estuviera
+     seleccionado con el ratón entra marcado: en la computadora se selecciona
+     primero y se abre la barra después. Salir es cerrar la barra
+     (cerrarFormato), que devuelve la nota a escribirse. */
+  const entrarEnEstilo = () => {
     cerrarPaleta();
     marcado = null; ancla = null;
     const ed = editorVivo(), sel = getSelection();
-    if (si && ed && sel.rangeCount && !sel.isCollapsed && ed.contains(sel.getRangeAt(0).commonAncestorContainer)){
+    if (ed && sel.rangeCount && !sel.isCollapsed && ed.contains(sel.getRangeAt(0).commonAncestorContainer)){
       const q = sel.getRangeAt(0);
       const ini = q.startContainer.nodeType === 3 ? letraDe(ed, q.startContainer, q.startOffset) : null;
       const fin = q.endContainer.nodeType === 3 ? letraDe(ed, q.endContainer, q.endOffset) : null;
       if (ini !== null && fin !== null && fin > ini) marcado = { ini, fin };
     }
-    ponerModo(si);
-    if (si) sel.removeAllRanges();
+    ponerModo(true);
+    sel.removeAllRanges();
     pintarMarcado(); refrescarBotones();
-    readout.textContent = si ? T(...AYUDA_MARCAR)
-                             : T('escribe normal; enciende Estilo para marcar palabras',
-                                 'type as usual; turn Style on to mark words');
+    readout.textContent = T(...AYUDA_MARCAR);
   };
-  interruptor.addEventListener('click', () => ponerEstilo(!estilo));
   /* DÓNDE ESTABA EL CURSOR antes de abrir la barra: es donde entra la foto
      si no hay nada marcado. */
   let rango = null;
   document.addEventListener('selectionchange', () => {
     const ed = editorVivo(); const sel = getSelection();
-    if (!ed || !sel.rangeCount || (abierto(formato) && estilo)) return;
+    if (!ed || !sel.rangeCount || abierto(formato)) return;
     const r = sel.getRangeAt(0);
     if (!ed.contains(r.commonAncestorContainer)) return;
     rango = r.cloneRange();
@@ -28732,7 +28739,7 @@ function armarManijasIndice(pagina, reordenar){
   /* EL BOTÓN NO SE QUEDA CON EL FOCO, para que un toque a la barra no mueva
      nada de sitio. Se cancela el gesto por defecto al apoyar el dedo —que es
      lo que mueve el foco— y el clic llega igual. */
-  const esBoton = ev => ev.target.closest('.nota-orden, .nota-tinta, .nota-interruptor');
+  const esBoton = ev => ev.target.closest('.nota-orden, .nota-tinta');
   formato.addEventListener('pointerdown', ev => { if (esBoton(ev)) ev.preventDefault(); });
   formato.addEventListener('mousedown', ev => { if (esBoton(ev)) ev.preventDefault(); });
   formato.addEventListener('click', ev => {
@@ -28754,10 +28761,6 @@ function armarManijasIndice(pagina, reordenar){
       if (orden === 'deshacer') deshacer(ed, pila.atras, pila.adelante);
       else deshacer(ed, pila.adelante, pila.atras);
       pintarMarcado(); refrescarBotones();
-      return;
-    }
-    if (!estilo){
-      readout.textContent = T('enciende Estilo para dar formato', 'turn Style on to format');
       return;
     }
     if (b.dataset.paleta){ abrirPaleta(b.dataset.paleta); return; }
@@ -28812,8 +28815,8 @@ function armarManijasIndice(pagina, reordenar){
     if (activa === null) return;
     cerrarHistorial();
     deslizar(formato, true); verFormato.setAttribute('aria-expanded', 'true');
-    /* La barra abre siempre con el estilo encendido, como pidió Gianni. */
-    ponerEstilo(true);
+    /* Abrir la barra es entrar en el estilo: el lápiz es el interruptor. */
+    entrarEnEstilo();
   });
 
   const hojas = document.createElement('div');
@@ -28923,7 +28926,7 @@ function armarManijasIndice(pagina, reordenar){
     });
     /* Las hojas nuevas nacen como estén las demás: quietas si la barra está
        abierta. */
-    ponerModo(abierto(formato) && estilo);
+    ponerModo(abierto(formato));
     if (manijas) manijas.forEach(m => hojas.appendChild(m));
     const mas = document.createElement('button');
     mas.type = 'button'; mas.className = 'nota-mas'; mas.textContent = '+';
@@ -28979,12 +28982,12 @@ function armarManijasIndice(pagina, reordenar){
       if (!(arrastre && arrastre.movido) && tocarEnFormato(ev)) ultimoLargo = { t:performance.now(), x:ev.clientX, y:ev.clientY };
       return;
     }
-    if (!abierto(formato) || !estilo || !ev.target.closest('.nota-editor')) return;
+    if (!abierto(formato) || !ev.target.closest('.nota-editor')) return;
     ev.preventDefault();
     if (tocarEnFormato(ev)) ultimoLargo = { t:performance.now(), x:ev.clientX, y:ev.clientY };
   });
   hojas.addEventListener('click', ev => {
-    if (!abierto(formato) || !estilo) return;
+    if (!abierto(formato)) return;
     /* El click que a veces sigue a un arrastre de manija no es un toque. */
     if (ev.target.closest('.nota-manija') && performance.now() - finArrastre < 400) return;
     const l = ultimoLargo; ultimoLargo = null;

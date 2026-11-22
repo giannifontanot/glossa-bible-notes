@@ -167,8 +167,25 @@ async function subirFoto(p, base64){
   vale('el botón dice que está abierta', await formato.getAttribute('aria-expanded') === 'true');
   vale('trae los trece botones', await p.locator('#notaFormato .nota-orden').count() === 13,
        await p.locator('#notaFormato .nota-orden').count());
-  vale('y el interruptor del estilo, encendido',
-       await p.locator('#notaFormato .nota-interruptor').getAttribute('aria-checked') === 'true');
+  const renglones = await p.evaluate(() => [...document.querySelectorAll('#notaFormato .nota-renglon')]
+    .map(r => [...r.querySelectorAll('.nota-grupo')].map(g =>
+      [...g.querySelectorAll('.nota-orden')].map(b => b.dataset.orden).join(' ')).join(' | ')));
+  di('los dos renglones', renglones);
+  vale('en dos renglones, como dijo el panel',
+       renglones.length === 2 &&
+       renglones[0] === 'deshacer rehacer | bold italic underline | resaltar colorear' &&
+       renglones[1] === 'achicar agrandar tipo | insertUnorderedList insertOrderedList | foto', JSON.stringify(renglones));
+  const caben = await p.evaluate(() => [...document.querySelectorAll('#notaFormato .nota-renglon')].map(r => {
+    const tops = new Set([...r.querySelectorAll('.nota-orden')].map(b => Math.round(b.getBoundingClientRect().top)));
+    const f = r.querySelector('[data-orden="foto"]'), u = r.querySelector('.nota-orden');
+    return { lineas:tops.size, fotoALaDerecha: !f || f.getBoundingClientRect().right > r.getBoundingClientRect().right - 2,
+             primeroALaIzquierda: u.getBoundingClientRect().left - r.getBoundingClientRect().left < 2 };
+  }));
+  vale('cada renglón cabe entero en el teléfono, sin partirse', caben.every(c => c.lineas === 1), JSON.stringify(caben));
+  vale('deshacer a la izquierda y la foto sola a la derecha',
+       caben.every(c => c.primeroALaIzquierda && c.fotoALaDerecha), JSON.stringify(caben));
+  vale('ya no hay interruptor «Estilo»: el lápiz lo es',
+       await p.locator('#notaFormato .nota-interruptor').count() === 0);
   m = muestrear(p, '#notaFormato');
   await formato.tap();
   alturas = await m;
