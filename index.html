@@ -7476,7 +7476,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-NOV-26 09:13';
+window.GLOSS_BUILD = '22-NOV-26 09:17';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -29043,7 +29043,11 @@ function armarManijasIndice(pagina, reordenar){
     const m = document.createElement('div');
     m.className = 'nota-manija'; m.dataset.punta = punta; m.hidden = true;
     m.setAttribute('aria-hidden', 'true');
-    m.addEventListener('pointerdown', ev => { ev.preventDefault(); empezarArrastre(ev, m); });
+    /* Un dedo que baja de nuevo empieza un gesto nuevo: el click que traiga
+       ya no es el de un arrastre de antes, por pronto que llegue. Sin esto,
+       tocar una palabra tapada por la manija justo después de arrastrarla
+       no marcaba nada (lo cazó notas-formato). */
+    m.addEventListener('pointerdown', ev => { ev.preventDefault(); finArrastre = -1e9; empezarArrastre(ev, m); });
     m.addEventListener('pointermove', ev => {
       if (!arrastre){
         if (!(ev.buttons || ev.pointerType === 'touch')) return;
