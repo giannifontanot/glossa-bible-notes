@@ -7440,7 +7440,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-NOV-26 08:49';
+window.GLOSS_BUILD = '22-NOV-26 08:52';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -28321,12 +28321,16 @@ function armarManijasIndice(pagina, reordenar){
      media negrita —<b>am</b>or— son dos nodos de texto, y buscando solo en el
      tocado se marcaba «am» o «or» según dónde cayera el dedo. Lo cazó Codex.
      Así que la palabra sigue al nodo de al lado mientras estén en el mismo
-     renglón: mismo bloque y sin un <br> ni una foto en medio. */
+     renglón: mismo bloque y sin un <br>, una foto ni otro bloque en medio. El
+     bloque cuenta aunque esté vacío: en «uno<p></p>dos» los dos textos
+     tienen el mismo bloque más cercano —el editor— y el <p> vacío no trae ni
+     <br> ni foto, así que mirando solo eso se marcaban «uno» y «dos» juntos,
+     de un renglón al otro. También lo cazó Codex. */
   const bloqueDe = n => n.parentElement.closest('div, p, li');
   const pegados = (a, b) => {
     if (bloqueDe(a) !== bloqueDe(b)) return false;
     const r = document.createRange(); r.setStartAfter(a); r.setEndBefore(b);
-    return !r.cloneContents().querySelector('br, img');
+    return !r.cloneContents().querySelector('br, img, div, p, li, ul, ol');
   };
   const palabraEn = (ed, x, y) => {
     let nodo = null, off = 0;
