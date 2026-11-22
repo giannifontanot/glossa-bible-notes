@@ -2,7 +2,7 @@
 
    Se vigila el recorrido entero: abrir la sección, crear una pestaña, escribir
    en ella, ponerle nombre con doble clic y comprobar que el almacén conserva
-   las dos piezas. Una prueba que sólo mira el textarea no caza el fallo más
+   las dos piezas. Una prueba que sólo mira el recuadro no caza el fallo más
    probable: que la tira se redibuje al renombrar y se lleve el texto. */
 const { abrir, cerrar, di, vale, titulo } = require('./comun');
 const { probarMovimientoIndice } = require('./tira-indice');
@@ -49,7 +49,7 @@ const IR_A = `async sec => {
        await p.locator('#notas .pestanitas [data-nota]').first().evaluate(t => t === document.activeElement));
   const antes = await p.evaluate(() => ({
     pestañas:document.querySelectorAll('#notas .enc-barra [data-nota]').length,
-    editor:!!document.querySelector('#notas .nota-editor:enabled')
+    editor:!!document.querySelector('#notas .nota-editor[contenteditable="true"]')
   }));
   di('la nota que nace', antes);
   vale('(la prueba es válida) trae una pestaña y un área para escribir',
@@ -66,7 +66,7 @@ const IR_A = `async sec => {
       .filter(h => !h.hidden);
     return { pestañas:[...document.querySelectorAll('#notas .enc-barra [data-nota]')]
                         .map(x => x.textContent),
-             texto:visibles[0] && visibles[0].querySelector('.nota-editor').value,
+             texto:visibles[0] && visibles[0].querySelector('.nota-editor').innerText,
              guardadas };
   });
   di('la nota renombrada', despues);
@@ -103,7 +103,7 @@ const IR_A = `async sec => {
        await p.locator('#notas .enc-barra [data-nota]').count() === 2);
   vale('y la primera conserva su título y texto',
        await p.locator('#notas .enc-barra [data-nota]').first().textContent() === 'Lectura' &&
-       await p.locator('#notas .nota-editor:visible').inputValue() === 'Texto de la primera nota.');
+       await p.locator('#notas .nota-editor:visible').innerText() === 'Texto de la primera nota.');
 
   /* Descargas y selector reales: no se llama a ninguna función de la app.
      El contenido se lee del archivo que exportó el navegador en esta corrida. */
@@ -250,7 +250,7 @@ const IR_A = `async sec => {
        await p.locator('#notas .indice-pagina').evaluate(i => i.scrollHeight > i.clientHeight));
   await p.locator('#notas .indice-item').last().click();
   vale('la última entrada abre la nota correcta, aunque su id sea indice',
-       await p.locator('#notas .nota-editor:visible').inputValue() === adicionales[17].texto &&
+       await p.locator('#notas .nota-editor:visible').innerText() === adicionales[17].texto &&
        await ultima.getAttribute('aria-pressed') === 'true' &&
        await p.locator('#notas .indice-tab').getAttribute('aria-pressed') === 'false');
   p.once('dialog', d => d.accept('Última nota renombrada'));
@@ -263,7 +263,7 @@ const IR_A = `async sec => {
   await p.locator('#notas .indice-crear').click();
   vale('Nueva nota crea y abre una nota desde el índice',
        await p.locator('#notas .pestanitas [data-nota]').count() === 21 &&
-       await p.locator('#notas .nota-editor:visible').inputValue() === '');
+       await p.locator('#notas .nota-editor:visible').innerText() === '');
   await p.locator('#notas .indice-tab').click();
   vale('el índice se actualiza también después de crear',
        await p.locator('#notas .indice-item').count() === 21);

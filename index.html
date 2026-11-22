@@ -4437,12 +4437,27 @@
   .nota-hojas{ flex:1 1 auto; display:flex; min-height:0; }
   .nota-hoja{ flex:1 1 auto; display:flex; min-height:0; }
   .nota-hoja[hidden]{ display:none; }
-  .nota-editor{ flex:1 1 auto; min-height:0; width:100%; resize:none;
+  /* EL RECUADRO DE LA NOTA YA NO ES UN TEXTAREA, y por eso lleva escrito lo
+     que el textarea traía de serie: pre-wrap —para que los saltos y los
+     espacios de las notas viejas se vean exactamente como se veían—, su
+     propio desplazamiento, el cursor de texto y la selección, que algunos
+     paneles de alrededor apagan. */
+  .nota-editor{ flex:1 1 auto; min-height:0; width:100%; resize:none; position:relative;
                 box-sizing:border-box; border:1px solid rgba(140,116,68,.42);
                 border-radius:7px; background:rgba(255,253,247,.68);
-                color:#30250f; padding:11px 12px;
+                color:#30250f; padding:11px 12px; overflow-y:auto; overflow-x:hidden;
+                white-space:pre-wrap; overflow-wrap:anywhere; cursor:text;
+                -webkit-user-select:text; user-select:text;
                 font:400 calc(15px * var(--escala-ui, 1))/1.55 var(--fam-libro, Georgia, serif); }
   .nota-editor:focus{ outline:2px solid rgba(184,137,43,.55); outline-offset:1px; }
+  .nota-editor.vacia::before{ content:attr(placeholder); position:absolute; left:12px; top:11px;
+                color:rgba(48,37,15,.42); pointer-events:none; }
+  .nota-editor ul, .nota-editor ol{ margin:.25em 0; padding-left:1.5em; }
+  .nota-editor li{ margin:.1em 0; }
+  /* La foto ocupa el ancho de la nota y no más: en una columna de teléfono
+     una foto de 1080 px a su tamaño se saldría por la derecha. */
+  .nota-editor img{ display:block; max-width:100%; height:auto; margin:.45em 0;
+                border-radius:5px; box-shadow:0 1px 3px rgba(60,40,10,.25); }
   .pestanitas .nota-mas{ min-width:32px; padding-left:9px; padding-right:9px;
                          font-size:1.35em; line-height:1; }
   /* EL ÍNDICE NO VIAJA CON LA TIRA. Si se fuera con las notas, se perdería
@@ -4454,19 +4469,46 @@
   .indice-tab svg{ width:1.1em; height:1.1em; fill:none; stroke:currentColor;
                     stroke-width:1.7; stroke-linecap:round; }
   /* El libro queda fuera de la tira: sigue a mano aunque las notas desborden. */
-  .nota-ver-glosas{ flex:0 0 36px; display:grid; place-items:center; min-height:36px;
+  .nota-ver-glosas, .nota-ver-formato{ flex:0 0 36px; display:grid; place-items:center; min-height:36px;
     padding:5px; border:0; border-radius:5px; cursor:pointer; color:#73561f;
     background:rgba(255,253,247,.55); box-shadow:inset 0 -1px 0 rgba(140,116,68,.34); }
-  .nota-ver-glosas svg{ width:22px; height:22px; fill:none; stroke:currentColor;
+  .nota-ver-glosas svg, .nota-ver-formato svg{ width:22px; height:22px; fill:none; stroke:currentColor;
     stroke-width:1.7; stroke-linejoin:round; stroke-linecap:round; pointer-events:none; }
-  .nota-ver-glosas:hover, .nota-ver-glosas[aria-expanded="true"]{ background:rgba(184,137,43,.14); }
-  .nota-ver-glosas:disabled{ opacity:.4; cursor:default; }
-  .nota-ver-glosas:focus-visible, .nota-filtro:focus-visible, .nota-filtros-cerrar:focus-visible{
+  .nota-ver-glosas:hover, .nota-ver-glosas[aria-expanded="true"],
+  .nota-ver-formato:hover, .nota-ver-formato[aria-expanded="true"]{ background:rgba(184,137,43,.14); }
+  .nota-ver-glosas:disabled, .nota-ver-formato:disabled{ opacity:.4; cursor:default; }
+  .nota-ver-glosas:focus-visible, .nota-ver-formato:focus-visible, .nota-filtro:focus-visible, .nota-filtros-cerrar:focus-visible{
     outline:2px solid #b8892b; outline-offset:-2px; }
+  /* LOS DOS PANELITOS —el de las glosas y el del formato— abren y cierran
+     suave desde el programa (ver deslizar en armarNotas), y por eso aquí ya no
+     hay animación de entrada. border-box para que el alto que se anima sea el
+     alto que se ve, con su relleno y su borde dentro. */
+  .nota-panelito{ box-sizing:border-box; }
+  .nota-panelito[hidden]{ display:none; }
   .nota-filtros{ flex:0 1 auto; min-height:0; max-height:45%; overflow-y:auto;
     margin:0 0 9px; padding:12px; border:1px solid rgba(140,116,68,.32); border-radius:8px;
-    background:rgba(255,253,247,.82); animation:notaFiltrosEntra .46s cubic-bezier(.5,0,.25,1); }
-  .nota-filtros[hidden]{ display:none; }
+    background:rgba(255,253,247,.82); }
+  /* LA BARRA DEL FORMATO: un renglón de botones y nada más. Que se pueda
+     correr de lado si un día no caben, en vez de partirse en dos. */
+  .nota-formato{ flex:0 0 auto; display:flex; gap:4px; align-items:center; overflow-x:auto;
+    margin:0 0 9px; padding:5px; border:1px solid rgba(140,116,68,.32); border-radius:8px;
+    background:rgba(255,253,247,.82); scrollbar-width:none; }
+  .nota-orden{ flex:0 0 38px; height:38px; display:grid; place-items:center; padding:0;
+    border:0; border-radius:5px; background:transparent; color:#5c4520; cursor:pointer;
+    font:400 calc(17px * var(--escala-ui,1))/1 var(--fam-libro, Georgia, serif);
+    -webkit-tap-highlight-color:transparent; }
+  .nota-orden b, .nota-orden i, .nota-orden u{ pointer-events:none; }
+  .nota-orden svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7;
+    stroke-linecap:round; stroke-linejoin:round; pointer-events:none; }
+  .nota-orden svg circle{ fill:currentColor; stroke:none; }
+  .nota-orden svg text{ fill:currentColor; stroke:none; font:600 6.5px/1 var(--ui, sans-serif); }
+  .nota-orden[data-orden="foto"] svg circle{ fill:none; stroke:currentColor; }
+  /* La foto va aparte de los de escribir: es otra clase de cosa. */
+  .nota-orden[data-orden="foto"]{ margin-left:auto; }
+  .nota-orden:hover{ background:rgba(184,137,43,.12); }
+  .nota-orden[aria-pressed="true"]{ background:rgba(184,137,43,.22); color:#3b2b10;
+    box-shadow:inset 0 1px 2px rgba(60,40,10,.18); }
+  .nota-orden:focus-visible{ outline:2px solid #b8892b; outline-offset:-2px; }
   .nota-filtros-cabecera{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
   .nota-filtros h3{ flex:1; min-width:0; margin:0; overflow-wrap:anywhere;
     color:#493817; font:600 calc(15px * var(--escala-ui,1))/1.35 var(--fam-libro,Georgia,serif); }
@@ -4481,9 +4523,6 @@
   .nota-filtro:disabled{ opacity:.55; cursor:default; }
   .nota-filtro small{ display:block; margin-top:4px; color:#756342; font-weight:400; }
   .nota-filtros-vacio{ margin:0; color:#756342; font:400 calc(12px * var(--escala-ui,1))/1.5 var(--ui); }
-  @keyframes notaFiltrosEntra{ from{ opacity:0; transform:translateY(-7px); }
-    82%{ opacity:1; transform:translateY(2px); } to{ opacity:1; transform:translateY(0); } }
-  @media (prefers-reduced-motion:reduce){ .nota-filtros{ animation:none; } }
   .indice-tab:focus-visible, .indice-item:focus-visible, .indice-asa:focus-visible{
     outline:2px solid #b8892b; outline-offset:-2px; }
   .indice-pagina{ flex:1 1 auto; min-width:0; min-height:0; overflow-y:auto;
@@ -7323,7 +7362,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '17-NOV-26 18:34';
+window.GLOSS_BUILD = '22-NOV-26 07:53';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -20669,7 +20708,11 @@ document.addEventListener('keydown', ev => {
   /* Las flechas pasan hoja. Antes había botones y ahora no, así que el teclado
      deja de ser un lujo: sin él, quien no descubra los filos se queda encerrado
      en una hoja. Se ignoran si estás escribiendo en un campo. */
-  const escribiendo = /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName || '');
+  /* Y el recuadro de la nota, que ya no es un textarea sino un recuadro
+     editable: sin el isContentEditable, cada flecha que movía el cursor por
+     la nota pasaba además la hoja de detrás. */
+  const activo = document.activeElement || {};
+  const escribiendo = /^(INPUT|TEXTAREA|SELECT)$/.test(activo.tagName || '') || !!activo.isContentEditable;
   if (escribiendo || folding) return;
   /* Desde el teclado no hay dedo ni esquina, así que se agarra por el mismo
      sitio que un chevrón: el canto de abajo. */
@@ -25412,11 +25455,211 @@ function fusionarNotas(entrantes){
     const id = typeof n.id === 'string' && n.id ? n.id : nuevoIdNota();
     if (conocidas.has(id)){ repetidas++; continue; }
     conocidas.add(id);
-    notas.push({ id, titulo:n.titulo.trim().slice(0, 60) || 'Nota', texto:n.texto,
-      filtros:normalizarHistorialNota(n.filtros) });
+    const nueva = { id, titulo:n.titulo.trim().slice(0, 60) || 'Nota', texto:n.texto,
+      filtros:normalizarHistorialNota(n.filtros) };
+    if (typeof n.html === 'string') nueva.html = limpiarHtmlNota(n.html);
+    notas.push(nueva);
     nuevas++;
   }
   return { nuevas, repetidas, malas };
+}
+
+/* ============================================================
+   LA NOTA CON FORMATO, Y SUS FOTOS.
+
+   La nota era texto plano en un textarea. Gianni pidió una barra sencilla
+   —negrita, cursiva, subrayado, las dos listas y una foto— y eso ya no cabe
+   en un textarea, que no deja marcar nada por dentro. Así que la nota se
+   escribe ahora en un recuadro editable y se guarda CON FORMATO.
+
+   LO QUE SE GUARDA SON DOS COSAS, Y LAS DOS A PROPÓSITO:
+   - `texto`, el texto plano, como siempre. Es lo que enseña el índice, lo
+     que leen los respaldos viejos y lo que se ve si el formato faltara.
+   - `html`, el formato, solo si la nota se tocó después de este cambio. Una
+     nota vieja no lo tiene y se pinta con su texto tal cual —con sus saltos
+     de renglón y sus espacios: el recuadro va en pre-wrap, como iba el
+     textarea—, o sea que se ve exactamente igual que antes.
+
+   EL HTML NO SE CREE NUNCA, venga de donde venga: del almacén, de un
+   respaldo o del propio recuadro. Pasa por una lista de etiquetas permitidas
+   y sale sin un solo atributo, salvo el número de la foto. Un respaldo
+   editado a mano con un <script> o un onerror dentro llega como texto
+   inofensivo. Lo que no está en la lista se desenvuelve (se queda su texto),
+   y lo que no tiene texto que salvar —un script, un estilo, un marco— se va
+   entero.
+
+   LAS FOTOS VIVEN APARTE, en su propia clave, y la nota solo lleva su número
+   (<img data-foto="…">). Si la foto fuera dentro de la nota, cada letra
+   tecleada reescribiría en el almacén todas las fotos de todas las notas:
+   megas por pulsación. Así cada foto se escribe una vez, al subirla.
+
+   Y VIVEN EN EL TELÉFONO por ahora, que es lo que se decidió: más adelante
+   irán a Firebase. Mientras tanto el navegador da unos 5 MB para todo el
+   programa, así que cada foto se achica al subirla —ver fotoParaTelefono— y
+   se deja siempre un hueco libre para las glosas, que importan más que una
+   foto: ver guardarFotoNueva.
+   ============================================================ */
+const CLAVE_FOTOS = 'glossa:notas:fotos:v1';
+let fotosNotas = {};
+const ID_FOTO = /^foto-[a-z0-9-]{4,60}$/;
+const DATOS_FOTO = /^data:image\/(jpeg|webp|png);base64,[a-z0-9+/=]+$/i;
+const ETIQUETAS_NOTA = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'UL', 'OL', 'LI', 'BR', 'DIV', 'P', 'IMG']);
+const FUERA_DE_LA_NOTA = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'TEMPLATE', 'SVG',
+  'MATH', 'NOSCRIPT', 'TITLE', 'HEAD', 'META', 'LINK', 'TEXTAREA', 'SELECT', 'BUTTON', 'INPUT', 'VIDEO',
+  'AUDIO', 'CANVAS', 'FORM']);
+/* Copia un árbol a otro dejando solo lo permitido. Sirve para las dos
+   puertas: el texto que llega de fuera (limpiarHtmlNota) y el recuadro vivo
+   (htmlDeNodo), que también se limpia al guardar porque el navegador mete lo
+   suyo al editar —un <span style> al juntar dos renglones, por ejemplo—. */
+function copiarLimpio(de, a){
+  for (const n of de.childNodes){
+    if (n.nodeType === 3){ a.appendChild(document.createTextNode(n.nodeValue)); continue; }
+    if (n.nodeType !== 1) continue;
+    const tag = String(n.tagName).toUpperCase();
+    if (FUERA_DE_LA_NOTA.has(tag)) continue;
+    if (!ETIQUETAS_NOTA.has(tag)){ copiarLimpio(n, a); continue; }
+    if (tag === 'IMG'){
+      const id = n.getAttribute('data-foto');
+      if (id && ID_FOTO.test(id)){
+        const img = document.createElement('img');
+        img.setAttribute('data-foto', id); img.setAttribute('alt', '');
+        a.appendChild(img);
+      }
+      continue;
+    }
+    const e = document.createElement(tag.toLowerCase());
+    copiarLimpio(n, e); a.appendChild(e);
+  }
+  return a;
+}
+/* Un <template> no carga nada de lo que lleva dentro: ni imágenes ni guiones.
+   Es la única manera de leer HTML ajeno sin que el HTML haga cosas. */
+function limpiarHtmlNota(html){
+  const t = document.createElement('template');
+  t.innerHTML = String(html || '');
+  return copiarLimpio(t.content, document.createElement('div')).innerHTML;
+}
+const htmlDeNodo = nodo => copiarLimpio(nodo, document.createElement('div')).innerHTML;
+const fotosDeHtml = html => [...String(html || '').matchAll(/data-foto="(foto-[a-z0-9-]+)"/g)].map(m => m[1]);
+/* Las fotos que alguna nota usa de verdad. Una foto borrada de la nota se
+   queda en el almacén hasta el próximo arranque —por si se deshace el
+   borrado con Ctrl+Z—, pero no viaja al respaldo. */
+function fotosUsadas(){
+  const usadas = {};
+  for (const n of notas) for (const id of fotosDeHtml(n.html))
+    if (fotosNotas[id]) usadas[id] = fotosNotas[id];
+  return usadas;
+}
+function guardarFotos(){
+  try {
+    localStorage.setItem(CLAVE_FOTOS, JSON.stringify(fotosNotas));
+    return true;
+  } catch(e){
+    readout.textContent = T('NO SE PUDO GUARDAR LAS FOTOS (', 'COULD NOT SAVE THE PHOTOS (') + (e.name || 'error') +
+                          T(') — exporta tus notas antes de cerrar', ') — export your notes before closing');
+    return false;
+  }
+}
+/* EL HUECO QUE NO SE TOCA. Si las fotos llenaran el almacén hasta el último
+   byte, la siguiente glosa ya no se podría guardar, y una glosa vale más que
+   una foto. Así que después de guardar una foto nueva se prueba a escribir un
+   bloque de relleno del tamaño del hueco que se quiere dejar: si no cabe, la
+   foto se devuelve y se dice. No hay manera de preguntarle al navegador
+   cuánto queda; probar es la única medida honesta. */
+const HUECO_LIBRE = 400000;
+function guardarFotoNueva(id, datos){
+  const antes = fotosNotas;
+  fotosNotas = { ...fotosNotas, [id]:datos };
+  try {
+    localStorage.setItem(CLAVE_FOTOS, JSON.stringify(fotosNotas));
+    try {
+      localStorage.setItem('glossa:hueco', 'x'.repeat(HUECO_LIBRE));
+    } finally { try { localStorage.removeItem('glossa:hueco'); } catch(_){} }
+    return true;
+  } catch(e){
+    fotosNotas = antes;
+    try { localStorage.setItem(CLAVE_FOTOS, JSON.stringify(fotosNotas)); } catch(_){}
+    const cuantas = Object.keys(antes).length;
+    readout.textContent = T('YA NO CABEN MÁS FOTOS EN ESTE TELÉFONO (' + cuantas + ' guardadas). ' +
+                            'Quita alguna de tus notas para hacer sitio.',
+                            'NO ROOM FOR MORE PHOTOS ON THIS PHONE (' + cuantas + ' saved). ' +
+                            'Remove one from your notes to make room.');
+    return false;
+  }
+}
+/* Las fotos de un respaldo se suman a las que hay; una que ya está, se deja.
+   Solo entra lo que tiene cara de foto: un número válido y una imagen en
+   base64 de los tres tipos que este programa escribe. */
+function fusionarFotos(entrantes){
+  let nuevas = 0;
+  if (!entrantes || typeof entrantes !== 'object' || Array.isArray(entrantes)) return 0;
+  for (const [id, datos] of Object.entries(entrantes)){
+    if (!ID_FOTO.test(id) || typeof datos !== 'string' || datos.length > 3000000 ||
+        !DATOS_FOTO.test(datos) || fotosNotas[id]) continue;
+    fotosNotas[id] = datos; nuevas++;
+  }
+  return nuevas;
+}
+
+/* ACHICAR LA FOTO PARA EL TELÉFONO.
+
+   Lo pidió así: «si pesa mucho le va a reducir un poquito la calidad para que
+   sea teléfono». Una foto de cámara pesa entre 3 y 8 MB y mide 4000 px; en una
+   nota se ve en una columna de 400. Se deja el lado largo en 1080 px —nítida
+   en cualquier pantalla de teléfono— y se busca que pese unos 140 KB, bajando
+   primero la calidad y, si no basta, el tamaño.
+
+   SIEMPRE SE VUELVE A CODIFICAR, aunque ya sea pequeña: así se le caen los
+   datos de dentro de la foto —el GPS de dónde se tomó, entre ellos—, que no
+   tienen por qué viajar en un respaldo.
+
+   WebP si el navegador sabe escribirlo (pesa menos a la misma vista) y JPEG
+   si no: Safari devuelve un PNG cuando se le pide WebP, y eso se nota en el
+   tipo del resultado. El fondo se pinta de papel antes de dibujar, porque una
+   imagen con transparencia pasada a JPEG sale con el fondo negro. */
+const FOTO_LADO = 1080, FOTO_PESO = 140 * 1024;
+function cargarImagenDe(archivo){
+  return new Promise((bien, mal) => {
+    const url = URL.createObjectURL(archivo);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); bien(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); mal(new Error('no es una imagen')); };
+    img.src = url;
+  });
+}
+const lienzoABlob = (c, tipo, q) => new Promise(z => c.toBlob(z, tipo, q));
+const blobADatos = blob => new Promise((bien, mal) => {
+  const r = new FileReader();
+  r.onload = () => bien(r.result); r.onerror = () => mal(r.error);
+  r.readAsDataURL(blob);
+});
+async function fotoParaTelefono(archivo){
+  const img = await cargarImagenDe(archivo);
+  const w0 = img.naturalWidth, h0 = img.naturalHeight;
+  if (!w0 || !h0) throw new Error('no es una imagen');
+  let escala = Math.min(1, FOTO_LADO / Math.max(w0, h0));
+  let tipo = 'image/webp', mejor = null;
+  const lienzo = document.createElement('canvas');
+  for (let vuelta = 0; vuelta < 7; vuelta++){
+    lienzo.width = Math.max(1, Math.round(w0 * escala));
+    lienzo.height = Math.max(1, Math.round(h0 * escala));
+    const ctx = lienzo.getContext('2d');
+    ctx.fillStyle = '#fffdf6'; ctx.fillRect(0, 0, lienzo.width, lienzo.height);
+    ctx.drawImage(img, 0, 0, lienzo.width, lienzo.height);
+    for (const q of [.82, .72, .62, .52]){
+      let blob = await lienzoABlob(lienzo, tipo, q);
+      if (blob && blob.type !== tipo && tipo === 'image/webp'){
+        tipo = 'image/jpeg'; blob = await lienzoABlob(lienzo, tipo, q);
+      }
+      if (!blob) continue;
+      if (!mejor || blob.size < mejor.blob.size)
+        mejor = { blob, ancho:lienzo.width, alto:lienzo.height };
+      if (blob.size <= FOTO_PESO) return { datos:await blobADatos(blob), ancho:lienzo.width, alto:lienzo.height };
+    }
+    escala *= .8;
+  }
+  if (!mejor) throw new Error('no se pudo achicar');
+  return { datos:await blobADatos(mejor.blob), ancho:mejor.ancho, alto:mejor.alto };
 }
 
 /* BAJAR EL ARCHIVO. Una función y no el cuerpo del botón, porque hay dos
@@ -25437,8 +25680,14 @@ function bajarRespaldo(){
     totalMarcas: marcas.length,
     marcas,
     totalNotas: notas.length,
-    notas
+    notas,
+    /* LAS FOTOS DE LAS NOTAS VIAJAN EN EL MISMO ARCHIVO. Se pidió así: un
+       respaldo que dejara las fotos atrás no sería un respaldo de la nota.
+       Solo van las que alguna nota usa, y el archivo pesa lo que pesen. */
+    totalFotos: 0,
+    fotos: {}
   };
+  paquete.fotos = fotosUsadas(); paquete.totalFotos = Object.keys(paquete.fotos).length;
   const blob = new Blob([JSON.stringify(paquete, null, 1)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -25510,6 +25759,10 @@ $('archivoImp').onchange = ev => {
        son la misma regla y tienen que seguir siendo la misma. */
     const { nuevas, repetidas, malas } = fusionarMarcas(entrantes);
     save(); renderPage();
+    /* Las fotos ANTES que las notas: cuando la nota se pinte, su foto ya
+       tiene que estar. Si el almacén no las aguanta se quedan en memoria
+       —como las notas— y el aviso pide exportar: nada se pierde sin decirlo. */
+    if (!Array.isArray(datos) && fusionarFotos(datos.fotos)) guardarFotos();
     const cuentaNotas = fusionarNotas(notasEntrantes);
     if (notasEntrantes.length){
       reflejarNotas();
@@ -27551,11 +27804,32 @@ function armarManijasIndice(pagina, reordenar){
   })();
   if (!notas || !notas.length)
     notas = [{ id:nuevoIdNota(), titulo: idiomaGuardado === 'en' ? 'Note 1' : 'Nota 1', texto:'' }];
-  notas = notas.map((n, i) => ({
-    id: String(n.id || nuevoIdNota()),
-    titulo: String(n.titulo || ('Nota ' + (i + 1))).slice(0, 60), texto:n.texto,
-    filtros:normalizarHistorialNota(n.filtros)
-  }));
+  const notasLeidas = Array.isArray(notas);
+  notas = notas.map((n, i) => {
+    const limpia = { id: String(n.id || nuevoIdNota()),
+      titulo: String(n.titulo || ('Nota ' + (i + 1))).slice(0, 60), texto:n.texto,
+      filtros:normalizarHistorialNota(n.filtros) };
+    if (typeof n.html === 'string') limpia.html = limpiarHtmlNota(n.html);
+    return limpia;
+  });
+  /* LAS FOTOS, de su propia clave y con la misma desconfianza que un
+     respaldo: lo que no tiene cara de foto no entra. */
+  try {
+    const leidas = JSON.parse(localStorage.getItem(CLAVE_FOTOS) || 'null');
+    if (leidas && typeof leidas === 'object' && !Array.isArray(leidas))
+      for (const [id, d] of Object.entries(leidas))
+        if (ID_FOTO.test(id) && typeof d === 'string' && DATOS_FOTO.test(d)) fotosNotas[id] = d;
+  } catch(_){}
+  /* LAS QUE YA NO USA NINGUNA NOTA SE VAN AL ARRANCAR, y solo al arrancar:
+     dentro de la sesión una foto quitada puede volver con Ctrl+Z, y tiene que
+     encontrar su imagen. Y solo si las notas se leyeron de verdad: con el
+     almacén de notas roto, «ninguna nota la usa» sería mentira y se tirarían
+     todas las fotos. */
+  if (notasLeidas){
+    const usadas = new Set(notas.flatMap(n => fotosDeHtml(n.html)));
+    const sobran = Object.keys(fotosNotas).filter(id => !usadas.has(id));
+    if (sobran.length){ sobran.forEach(id => delete fotosNotas[id]); guardarFotos(); }
+  }
   /* null es el índice, no un id reservado: una nota importada llamada
      «indice» sigue siendo una nota. Al recargar se empieza por el índice. */
   let activa = null, pendiente = null;
@@ -27573,12 +27847,86 @@ function armarManijasIndice(pagina, reordenar){
   verGlosas.setAttribute('aria-expanded', 'false'); verGlosas.setAttribute('aria-controls', 'notaFiltros');
   verGlosas.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
     '<path d="M12 5c-3-2-6-2-10-1v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-4-1-7-1-10 1Zm0 0v15"/></svg>';
+  /* EL BOTÓN DEL FORMATO, AL LADO DEL LIBRO Y CON LA MISMA ROPA. Abre la
+     barra de botones —no un editor: la nota ya se escribe en su sitio— y va a
+     la izquierda del libro para que el libro siga en el extremo derecho, que
+     es donde el lector ya lo busca. */
+  const verFormato = document.createElement('button');
+  verFormato.type = 'button'; verFormato.className = 'nota-ver-formato'; verFormato.disabled = true;
+  dosIdiomas(verFormato, { title: ['Dar formato a la nota', 'Format the note'],
+                          aria:  ['Dar formato a la nota', 'Format the note'] });
+  verFormato.setAttribute('aria-expanded', 'false'); verFormato.setAttribute('aria-controls', 'notaFormato');
+  verFormato.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path d="M4 20h4L19 9l-4-4L4 16v4Zm9-13 4 4"/></svg>';
   const historial = document.createElement('section');
-  historial.id = 'notaFiltros'; historial.className = 'nota-filtros'; historial.hidden = true;
+  historial.id = 'notaFiltros'; historial.className = 'nota-filtros nota-panelito'; historial.hidden = true;
   historial.setAttribute('aria-labelledby', 'notaFiltrosTitulo');
-  const cerrarHistorial = (enfocar = false) => {
-    historial.hidden = true; verGlosas.setAttribute('aria-expanded', 'false');
+  const formato = document.createElement('div');
+  formato.id = 'notaFormato'; formato.className = 'nota-formato nota-panelito'; formato.hidden = true;
+  formato.setAttribute('role', 'toolbar');
+  dosIdiomas(formato, { aria: ['Formato de la nota', 'Note formatting'] });
+
+  /* ABRIR Y CERRAR SUAVECITO, LOS DOS PANELITOS.
+
+     Así lo pidió: «los dos abren suavecito y los dos cierran suavecito». El de
+     las glosas ya entraba con una animación, pero se iba de golpe —un hidden y
+     ya—, y al irse el recuadro de la nota pegaba un brinco hacia arriba. Ahora
+     el panelito crece desde cero hasta su alto y se encoge hasta cero al
+     cerrar, así que la nota de debajo baja y sube acompañándolo en vez de
+     saltar.
+
+     Se anima el ALTO, y no solo la opacidad o un desplazamiento: lo que se
+     movía de golpe era la nota de debajo, y esa solo se mueve con el alto. Se
+     hace con la animación del navegador (animate) y no con una transición de
+     CSS porque el alto final no se sabe hasta que el panelito tiene su
+     contenido, y «height:auto» no se interpola.
+
+     El estado vive en data-estado y no en hidden: mientras se cierra el
+     panelito sigue en pantalla, y un segundo toque a su botón tiene que
+     saber que ya está cerrado para volver a abrirlo. Mientras se va, inert:
+     que no se le quede dentro ni el foco ni un toque.
+
+     Quien pidió menos movimiento lo recibe puesto y quitado, sin viaje. */
+  const DURA_PANELITO = 260;
+  const deslizar = (el, abrir, alInstante = false) => {
+    const viva = el._anim; el._anim = null;
+    const desde = el.hidden ? 0 : el.getBoundingClientRect().height;
+    if (viva) viva.cancel();
+    el.dataset.estado = abrir ? 'abierto' : 'cerrado';
+    el.style.overflow = '';
+    const quieto = alInstante || !el.animate ||
+      matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (abrir){ el.hidden = false; el.inert = false; }
+    else el.inert = true;
+    if (quieto){ if (!abrir){ el.hidden = true; el.inert = false; } return; }
+    if (!abrir && el.hidden) return;
+    const cs = getComputedStyle(el);
+    const lleno = { height:(abrir ? el.getBoundingClientRect().height : desde) + 'px', opacity:1,
+      paddingTop:cs.paddingTop, paddingBottom:cs.paddingBottom, marginBottom:cs.marginBottom,
+      borderTopWidth:cs.borderTopWidth, borderBottomWidth:cs.borderBottomWidth };
+    const vacio = { height:'0px', opacity:0, paddingTop:'0px', paddingBottom:'0px',
+      marginBottom:'0px', borderTopWidth:'0px', borderBottomWidth:'0px' };
+    if (abrir && desde > 0) vacio.height = desde + 'px';
+    el.style.overflow = 'hidden';
+    const anim = el.animate(abrir ? [vacio, lleno] : [lleno, vacio],
+      { duration:DURA_PANELITO, easing:'cubic-bezier(.4,0,.2,1)' });
+    el._anim = anim;
+    anim.onfinish = () => {
+      if (el._anim !== anim) return;
+      el._anim = null; el.style.overflow = '';
+      if (!abrir){ el.hidden = true; el.inert = false; }
+    };
+  };
+  const abierto = el => el.dataset.estado === 'abierto';
+  const cerrarHistorial = (enfocar = false, alInstante = false) => {
+    if (abierto(historial) || alInstante) deslizar(historial, false, alInstante);
+    verGlosas.setAttribute('aria-expanded', 'false');
     if (enfocar) verGlosas.focus({ preventScroll:true });
+  };
+  const cerrarFormato = (enfocar = false, alInstante = false) => {
+    if (abierto(formato) || alInstante) deslizar(formato, false, alInstante);
+    verFormato.setAttribute('aria-expanded', 'false');
+    if (enfocar) verFormato.focus({ preventScroll:true });
   };
   const registrarPendiente = () => {
     const nota = notas.find(n => n.id === activa);
@@ -27592,8 +27940,10 @@ function armarManijasIndice(pagina, reordenar){
     guardarNotas();
   };
   verGlosas.addEventListener('click', () => {
-    if (!historial.hidden){ cerrarHistorial(); return; }
+    if (abierto(historial)){ cerrarHistorial(); return; }
     const nota = notas.find(n => n.id === activa); if (!nota) return;
+    /* Uno solo a la vez, como se pidió: abrir este cierra el del formato. */
+    cerrarFormato();
     historial.textContent = '';
     const cabecera = document.createElement('div'); cabecera.className = 'nota-filtros-cabecera';
     const titulo = document.createElement('h3'); titulo.id = 'notaFiltrosTitulo';
@@ -27629,16 +27979,187 @@ function armarManijasIndice(pagina, reordenar){
       });
       historial.appendChild(lista);
     }
-    historial.hidden = false; verGlosas.setAttribute('aria-expanded', 'true');
+    deslizar(historial, true); verGlosas.setAttribute('aria-expanded', 'true');
     (historial.querySelector('.nota-filtro:not(:disabled)') || historial.querySelector('.nota-filtros-cerrar')).focus({ preventScroll:true });
   });
   caja.addEventListener('keydown', ev => {
-    if (ev.key !== 'Escape' || historial.hidden) return;
-    ev.preventDefault(); ev.stopPropagation(); cerrarHistorial(true);
+    if (ev.key !== 'Escape') return;
+    if (abierto(historial)){ ev.preventDefault(); ev.stopPropagation(); cerrarHistorial(true); return; }
+    /* Escape cierra la barra solo si el foco está en ella: escribiendo en la
+       nota, la barra es justo lo que se está usando. */
+    if (abierto(formato) && formato.contains(ev.target)){
+      ev.preventDefault(); ev.stopPropagation(); cerrarFormato(true);
+    }
   });
+  /* TOCAR FUERA CIERRA EL DE LAS GLOSAS, Y NO EL DEL FORMATO. El de las
+     glosas es una consulta: se mira y se sale. La barra del formato es una
+     herramienta de escribir, y «fuera» de ella es casi siempre la nota en la
+     que se está escribiendo: cerrarla ahí la quitaría a cada toque. */
   document.addEventListener('pointerdown', ev => {
-    if (!historial.hidden && !historial.contains(ev.target) && !verGlosas.contains(ev.target)) cerrarHistorial();
+    if (abierto(historial) && !historial.contains(ev.target) && !verGlosas.contains(ev.target)) cerrarHistorial();
   }, { capture:true, passive:true });
+  /* ============================================================
+     EL RECUADRO DE LA NOTA Y SU BARRA.
+     ============================================================ */
+  /* Pintar una nota en su recuadro. Con formato, el formato ya limpio y cada
+     foto con su imagen —la que falte se quita, para no dejar un marco roto—.
+     Sin formato, el texto tal cual, que con el pre-wrap del recuadro se ve
+     igual que se veía en el textarea. */
+  const pintarEditor = (editor, nota) => {
+    if (typeof nota.html === 'string'){
+      editor.innerHTML = limpiarHtmlNota(nota.html);
+      editor.querySelectorAll('img[data-foto]').forEach(img => {
+        const datos = fotosNotas[img.dataset.foto];
+        if (datos) img.src = datos; else img.remove();
+      });
+    } else editor.textContent = nota.texto;
+    marcarVacio(editor);
+  };
+  /* EL TEXTO PLANO SE SACA CON innerText, que es el que sabe que un renglón
+     nuevo o un punto de lista es un salto: textContent los pegaría todos. Los
+     espacios duros que mete el navegador se vuelven espacios normales. */
+  const leerEditor = (editor, nota) => {
+    nota.html = htmlDeNodo(editor);
+    nota.texto = editor.innerText.replace(/\u00a0/g, ' ');
+  };
+  /* El aviso de «Escribe aquí…» de un recuadro editable no lo pone el
+     navegador: lo pinta el CSS mientras el recuadro esté vacío. No sirve
+     :empty, porque al borrarlo todo el navegador deja un <br> dentro. */
+  const marcarVacio = editor => editor.classList.toggle('vacia',
+    !editor.textContent.trim() && !editor.querySelector('img, li'));
+  const editorVivo = () => hojas.querySelector('.nota-hoja:not([hidden]) .nota-editor');
+
+  /* LOS BOTONES. Los más sencillos que hay, que es lo que se pidió: «las
+     páginas de notas son notas, no van a ser carteles con gran diseño». Si
+     algún día se añade otro, va en esta lista y nada más. */
+  const ORDENES = [
+    { orden:'bold', es:'Negrita', en:'Bold', cara:'<b>B</b>' },
+    { orden:'italic', es:'Cursiva', en:'Italic', cara:'<i>I</i>' },
+    { orden:'underline', es:'Subrayado', en:'Underline', cara:'<u>U</u>' },
+    { orden:'insertUnorderedList', es:'Lista con viñetas', en:'Bulleted list',
+      cara:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6h11M9 12h11M9 18h11"/>' +
+           '<circle cx="4.5" cy="6" r="1.3"/><circle cx="4.5" cy="12" r="1.3"/><circle cx="4.5" cy="18" r="1.3"/></svg>' },
+    { orden:'insertOrderedList', es:'Lista numerada', en:'Numbered list',
+      cara:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10 6h10M10 12h10M10 18h10"/>' +
+           '<text x="2.5" y="8.2">1</text><text x="2.5" y="14.2">2</text><text x="2.5" y="20.2">3</text></svg>' },
+    { orden:'foto', es:'Subir una foto', en:'Upload a photo',
+      cara:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/>' +
+           '<circle cx="9" cy="10" r="1.8"/><path d="m4 18 5-5 3 3 3-4 5 6"/></svg>' }
+  ];
+  const elegirFoto = document.createElement('input');
+  elegirFoto.type = 'file'; elegirFoto.accept = 'image/*'; elegirFoto.hidden = true;
+  elegirFoto.className = 'nota-elegir-foto';
+  formato.appendChild(elegirFoto);
+  for (const o of ORDENES){
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'nota-orden'; b.dataset.orden = o.orden;
+    b.innerHTML = o.cara;
+    dosIdiomas(b, { title:[o.es, o.en], aria:[o.es, o.en] });
+    if (o.orden !== 'foto') b.setAttribute('aria-pressed', 'false');
+    formato.appendChild(b);
+  }
+  /* DÓNDE ESTABA EL CURSOR. Tocar un botón le quita la selección al recuadro
+     en algunos aparatos —y elegir una foto se la quita siempre, porque abre
+     otra ventana—, así que se apunta la última selección que hubo DENTRO de
+     la nota y se devuelve antes de cada orden. Sin esto la negrita caía en
+     ningún sitio, o la foto al principio de la nota. */
+  /* Solo se devuelve si se perdió: volver a poner una selección que ya está
+     borra lo que el navegador tenía apuntado para lo próximo que se teclee, y
+     tocar B y luego I con el cursor quieto se quedaba solo en cursiva. */
+  let rango = null;
+  const ponerCursor = editor => {
+    const sel = getSelection();
+    const dentro = sel.rangeCount && editor.contains(sel.getRangeAt(0).commonAncestorContainer);
+    if (document.activeElement !== editor) editor.focus({ preventScroll:true });
+    if (dentro) return;
+    const r = rango && editor.contains(rango.commonAncestorContainer) ? rango : document.createRange();
+    if (r !== rango){ r.selectNodeContents(editor); r.collapse(false); }
+    sel.removeAllRanges(); sel.addRange(r);
+  };
+  /* Los botones dicen si lo que hay bajo el cursor ya va en negrita, en
+     lista…: aria-pressed, que el CSS pinta como botón hundido. */
+  const refrescarBotones = () => {
+    const ed = editorVivo();
+    const sel = getSelection();
+    const dentro = ed && sel.rangeCount && ed.contains(sel.getRangeAt(0).commonAncestorContainer);
+    formato.querySelectorAll('.nota-orden[aria-pressed]').forEach(b => {
+      let si = false;
+      try { si = !!dentro && document.queryCommandState(b.dataset.orden); } catch(_){}
+      b.setAttribute('aria-pressed', String(si));
+    });
+  };
+  document.addEventListener('selectionchange', () => {
+    const ed = editorVivo(); const sel = getSelection();
+    if (!ed || !sel.rangeCount) return;
+    const r = sel.getRangeAt(0);
+    if (!ed.contains(r.commonAncestorContainer)) return;
+    rango = r.cloneRange();
+    if (abierto(formato)) refrescarBotones();
+  });
+  /* EL BOTÓN NO SE QUEDA CON EL FOCO. Si el toque al botón le quitara el
+     foco a la nota, en el teléfono se cerraría el teclado a cada negrita. Se
+     cancela el gesto por defecto al apoyar el dedo —que es lo que mueve el
+     foco— y el clic llega igual. */
+  formato.addEventListener('pointerdown', ev => { if (ev.target.closest('.nota-orden')) ev.preventDefault(); });
+  formato.addEventListener('mousedown', ev => { if (ev.target.closest('.nota-orden')) ev.preventDefault(); });
+  formato.addEventListener('click', ev => {
+    const b = ev.target.closest('.nota-orden'); if (!b) return;
+    const ed = editorVivo(); if (!ed) return;
+    if (b.dataset.orden === 'foto'){ elegirFoto.click(); return; }
+    ponerCursor(ed);
+    /* Etiquetas y no estilos: <b>, <i>, <u>. Es lo que pasa la limpieza; un
+       <span style="font-weight:bold"> se quedaría sin su negrita al guardar. */
+    try { document.execCommand('styleWithCSS', false, false); } catch(_){}
+    document.execCommand(b.dataset.orden, false, null);
+    refrescarBotones();
+  });
+  /* LA FOTO. Se achica para el teléfono, se guarda aparte —con su hueco de
+     respeto para las glosas— y solo entonces entra en la nota, donde estaba
+     el cursor. Si no cabe no entra: una foto que se ve en la nota pero no se
+     guardó desaparecería al recargar sin decir nada. */
+  let subiendo = false;
+  elegirFoto.addEventListener('change', async () => {
+    const archivo = elegirFoto.files && elegirFoto.files[0];
+    elegirFoto.value = '';
+    const ed = editorVivo();
+    if (!archivo || !ed || subiendo) return;
+    const nota = notas.find(n => n.id === activa); if (!nota) return;
+    subiendo = true;
+    mostrarBuscando(T('preparando la foto…', 'preparing the photo…'));
+    try {
+      let lista;
+      try { lista = await fotoParaTelefono(archivo); }
+      catch(_){
+        readout.textContent = T('no se pudo leer el archivo — eso no es una imagen',
+                                'could not read the file — that is not an image');
+        return;
+      }
+      const id = 'foto-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 9);
+      if (!guardarFotoNueva(id, lista.datos)) return;
+      /* La nota pudo cambiar mientras se achicaba la foto. */
+      if (editorVivo() !== ed) return;
+      ponerCursor(ed);
+      const html = '<img data-foto="' + id + '" alt="" src="' + lista.datos + '">';
+      if (!document.execCommand('insertHTML', false, html) || !ed.querySelector('[data-foto="' + id + '"]')){
+        const img = document.createElement('img');
+        img.setAttribute('data-foto', id); img.alt = ''; img.src = lista.datos;
+        const sel = getSelection();
+        const r = sel.rangeCount && ed.contains(sel.getRangeAt(0).commonAncestorContainer)
+          ? sel.getRangeAt(0) : null;
+        if (r){ r.deleteContents(); r.insertNode(img); r.setStartAfter(img); r.collapse(true); }
+        else ed.appendChild(img);
+        ed.dispatchEvent(new Event('input', { bubbles:true }));
+      }
+    } finally { subiendo = false; quitarBuscando(); }
+  });
+  verFormato.addEventListener('click', () => {
+    if (abierto(formato)){ cerrarFormato(); return; }
+    if (activa === null) return;
+    cerrarHistorial();
+    deslizar(formato, true); verFormato.setAttribute('aria-expanded', 'true');
+    refrescarBotones();
+  });
+
   const hojas = document.createElement('div');
   hojas.className = 'nota-hojas';
   const indice = crearIndiceSeccion(['Índice de notas', 'Index of notes'],
@@ -27650,7 +28171,7 @@ function armarManijasIndice(pagina, reordenar){
   dosIdiomas(crear, { t: ['+ Nueva nota', '+ New note'] });
   crear.addEventListener('click', () => agregarNota());
   indice.querySelector('.indice-cabecera').appendChild(crear);
-  tira.append(tabIndice, cajaBarra, verGlosas); caja.append(tira, historial, hojas);
+  tira.append(tabIndice, cajaBarra, verFormato, verGlosas); caja.append(tira, historial, formato, hojas);
 
   const avisarMas = () => {
     avisarTiraPestanitas(barra, cajaBarra);
@@ -27663,13 +28184,19 @@ function armarManijasIndice(pagina, reordenar){
   };
   const pintarIndice = () => pintarIndiceSeccion(indice,
     notas.map(n => ({ id:n.id, nombre:n.titulo,
-      detalle:n.texto.trim().replace(/\s+/g, ' ').slice(0, 100) || ['Una página en blanco para tus ideas.',
-                                                                  'A blank page for your ideas.'] })),
+      detalle:n.texto.trim().replace(/\s+/g, ' ').slice(0, 100) ||
+        /* Una nota que solo tiene una foto no está en blanco. */
+        (fotosDeHtml(n.html).length ? ['Una nota con fotos.', 'A note with photos.']
+                                    : ['Una página en blanco para tus ideas.', 'A blank page for your ideas.']) })),
     [notas.length + (notas.length === 1 ? ' nota' : ' notas'),
      notas.length + (notas.length === 1 ? ' note' : ' notes')], id => seleccionar(id, true));
   const seleccionar = (id, enfocar = false, demora = 0) => {
     activa = id;
     cerrarHistorial(); verGlosas.disabled = activa === null; registrarPendiente();
+    /* La barra se queda abierta al cambiar de nota —se sigue escribiendo—,
+       pero en el índice no hay nota a la que darle formato. */
+    verFormato.disabled = activa === null;
+    if (activa === null) cerrarFormato();
     tabIndice.classList.toggle('aqui', activa === null);
     tabIndice.setAttribute('aria-pressed', String(activa === null));
     indice.hidden = activa !== null;
@@ -27715,11 +28242,26 @@ function armarManijasIndice(pagina, reordenar){
       const hoja = document.createElement('section');
       hoja.className = 'nota-hoja'; hoja.dataset.nota = nota.id;
       hoja.hidden = nota.id !== activa;
-      const editor = document.createElement('textarea');
-      editor.className = 'nota-editor'; editor.value = nota.texto;
+      const editor = document.createElement('div');
+      editor.className = 'nota-editor';
+      editor.contentEditable = 'true';
+      editor.setAttribute('role', 'textbox'); editor.setAttribute('aria-multiline', 'true');
+      editor.spellcheck = true;
+      pintarEditor(editor, nota);
       dosIdiomas(editor, { ph: ['Escribe aquí…', 'Write here…'],
                            aria: ['Contenido de ' + nota.titulo, 'Contents of ' + nota.titulo] });
-      editor.addEventListener('input', () => { nota.texto = editor.value; guardarNotas(); });
+      editor.addEventListener('input', () => {
+        leerEditor(editor, nota); marcarVacio(editor); guardarNotas();
+      });
+      /* LO QUE SE PEGA ENTRA COMO TEXTO. Pegar desde una página web traería
+         sus letras, sus colores y sus tamaños, y la nota dejaría de parecer
+         una nota. Lo mismo lo que se arrastra encima. */
+      editor.addEventListener('paste', ev => {
+        const dato = ev.clipboardData && ev.clipboardData.getData('text/plain');
+        ev.preventDefault();
+        if (dato) document.execCommand('insertText', false, dato);
+      });
+      editor.addEventListener('drop', ev => ev.preventDefault());
       hoja.appendChild(editor); hojas.appendChild(hoja);
     });
     const mas = document.createElement('button');
@@ -27767,7 +28309,7 @@ function armarManijasIndice(pagina, reordenar){
   reflejarNotas = () => pintar(false);
   encenderNotaViva = () => { registrarPendiente(); traerActiva(); };
   recibirFiltroNota = filtro => { pendiente = filtro; };
-  cerrarFiltrosNota = () => { cerrarHistorial(); pendiente = null; };
+  cerrarFiltrosNota = () => { cerrarHistorial(false, true); pendiente = null; };
 })();
 (function armarEncuentros(){
   const caja = document.getElementById('encuentros');

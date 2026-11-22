@@ -55,6 +55,9 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
     await p.locator('.nota-filtros-vacio').isVisible() &&
     await p.locator('#notaFiltros .nota-filtro').count() === 0);
   await p.keyboard.press('Escape');
+  /* La lista ya no se va de golpe: se encoge suave, y hasta que termina
+     sigue en pantalla. Se espera a que acabe de irse. */
+  await p.locator('#notaFiltros').waitFor({ state:'hidden', timeout:2000 }).catch(() => {});
   vale('Escape cierra sólo la lista y devuelve el foco al libro',
     await p.locator('#notas').isVisible() && await p.locator('#notaFiltros').isHidden() &&
     await libro.evaluate(b => document.activeElement === b));
@@ -197,7 +200,7 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
   await libro.click();
   vale('registros dañados se descartan sin perder título o texto ni interpretar marcado',
     await p.locator('.nota-filtros-vacio').isVisible() &&
-    await p.locator('#notas .nota-editor:visible').inputValue() === 'El texto se conserva.' &&
+    await p.locator('#notas .nota-editor:visible').innerText() === 'El texto se conserva.' &&
     (await p.locator('#notaFiltros h3').textContent()).includes('<b>Nota íntegra</b>') &&
     await p.locator('#notaFiltros b').count() === 0);
   await p.keyboard.press('Escape');
