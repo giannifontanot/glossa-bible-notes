@@ -942,5 +942,53 @@ async function cerrar(sesion){
   fin();
 }
 
+/* ARRASTRAR UNA MANIJA DE LO MARCADO EN UNA NOTA, con el dedo: PointerEvent
+   de tipo touch, con su pointerId, y un camino torcido —un dedo no va
+   derecho—. Se lleva la punta de la manija («ini» o «fin») a la palabra
+   pedida: un poco dentro de su primera letra o de su última, en su renglón.
+   Con sinApoyo no se manda el pointerdown, que es lo que a veces no llega de
+   un teléfono. */
+async function arrastrarManija(pagina, punta, palabra, { cual = 0, sinApoyo = false } = {}){
+  const hecho = await pagina.evaluate(async ({ punta, palabra, cual, sinApoyo }) => {
+    const m = document.querySelector('#notas .nota-manija[data-punta="' + punta + '"]');
+    if (!m || m.hidden) return 'no se ve la manija «' + punta + '»';
+    const ed = document.querySelector('#notas .nota-hoja:not([hidden]) .nota-editor');
+    const w = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
+    let caja = null, vistos = 0;
+    busca: for (let n = w.nextNode(); n; n = w.nextNode()){
+      const re = new RegExp('(^|[^\\p{L}])' + palabra + '(?![\\p{L}])', 'gu'); let x;
+      while ((x = re.exec(n.nodeValue))){
+        if (vistos++ < cual) continue;
+        const i = x.index + x[1].length;
+        const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + palabra.length);
+        caja = r.getClientRects()[0]; break busca;
+      }
+    }
+    if (!caja) return 'no encuentro «' + palabra + '» en la nota';
+    const c = m.getBoundingClientRect();
+    const desdeX = c.left + 22 + (punta === 'ini' ? -9 : 9), desdeY = c.top + 12;
+    const puntaX = c.left + 22, puntaY = c.top;
+    const aX = punta === 'ini' ? caja.left + 2 : caja.right - 2, aY = caja.bottom;
+    const hastaX = desdeX + (aX - puntaX), hastaY = desdeY + (aY - puntaY);
+    const op = (x, y) => ({ bubbles:true, cancelable:true, composed:true, pointerId:41, pointerType:'touch',
+      isPrimary:true, buttons:1, pressure:.5, clientX:x, clientY:y });
+    const espera = () => new Promise(r => requestAnimationFrame(() => r()));
+    if (!sinApoyo) m.dispatchEvent(new PointerEvent('pointerdown', op(desdeX, desdeY)));
+    /* El primer paso es corto: sin pointerdown, la manija se agarra donde
+       llega el primer movimiento, como pasa con el dedo de verdad. */
+    for (const t of [.02, .14, .28, .42, .56, .7, .84, 1]){
+      const torcido = t < 1 ? Math.sin(t * Math.PI) * 5 : 0;
+      m.dispatchEvent(new PointerEvent('pointermove',
+        op(desdeX + (hastaX - desdeX) * t + torcido * .6, desdeY + (hastaY - desdeY) * t - torcido)));
+      await espera();
+    }
+    m.dispatchEvent(new PointerEvent('pointerup', { ...op(hastaX, hastaY), buttons:0, pressure:0 }));
+    await espera();
+    return '';
+  }, { punta, palabra, cual, sinApoyo });
+  if (hecho) throw new Error(hecho);
+  await pagina.waitForTimeout(80);
+}
+
 module.exports = { abrir, abrirEnPortada, otraPagina, listo, cerrar, cerrarParcial, fin, conGlosas, di, vale, titulo,
-                   APP, RAIZ, TELEFONO, ESCRITORIO, ESTRECHO_RATON, EJECUTABLE };
+                   arrastrarManija, APP, RAIZ, TELEFONO, ESCRITORIO, ESTRECHO_RATON, EJECUTABLE };
