@@ -12,6 +12,7 @@
       Y con la barra abierta, un toque en el espacio en blanco suelta lo
       marcado, sin cursor ni teclado.
    4. Deshacer y rehacer, cinco pasos, «solo el estilo»: lo escrito no entra.
+   5. La brocha de copiar formato, como la de Word, que cuenta para deshacer.
 
    Todo con el dedo: toques de verdad sobre las palabras, y las manijas
    arrastradas con PointerEvent de tipo touch y un camino torcido. Una de
@@ -263,6 +264,88 @@ const negritas = p => p.evaluate(() =>
   await p.touchscreen.tap(punto.x, punto.y);
   await p.waitForTimeout(150);
   vale('y marca «dos», la palabra de debajo', await marcado(p) === 'dos', await marcado(p));
+
+  /* LA BROCHA, como la de Word: se marca una palabra con el estilo que
+     gusta, se toca la brocha, y cada palabra que se toca después sale con
+     ese estilo hasta que se vuelve a tocar la brocha. Pintar pone ESE
+     estilo, no lo suma: lo que sobra se quita. */
+  titulo('la brocha copia el formato y lo pinta a toques');
+  await verFormato.tap();
+  await p.locator('#notaFormato').waitFor({ state:'hidden', timeout:2000 });
+  /* El texto se pone sin estilo desde el DOM y no tecleado: tras vaciar
+     una nota que empezaba en negrita, el navegador sigue escribiendo en
+     negrita, y lo tecleado salía todo en negrita (pasó en la primera vuelta
+     de esta prueba). */
+  await editor.evaluate(e => { e.textContent = 'Gracia sobre gracia para todo aquel que cree';
+                               e.dispatchEvent(new Event('input', { bubbles:true })); });
+  await p.waitForTimeout(150);
+  await verFormato.tap(); await p.waitForTimeout(400);
+  const brocha = boton(p, 'brocha');
+  const estiloDe = palabra => p.evaluate(palabra => {
+    const ed = document.querySelector('#notas .nota-hoja:not([hidden]) .nota-editor');
+    const w = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
+    let letras = [];
+    for (let n = w.nextNode(); n; n = w.nextNode()){
+      const re = new RegExp('(^|[^\\p{L}])(' + palabra + ')(?![\\p{L}])', 'u');
+      if (!re.test(n.nodeValue) && !letras.length) continue;
+      letras.push(n);
+      if (re.test(n.nodeValue)) break;
+    }
+    const n = letras.at(-1); if (!n) return null;
+    const de = sel => !!n.parentElement.closest(sel) && ed.contains(n.parentElement.closest(sel));
+    const dato = d => { const e = n.parentElement.closest('[' + d + ']'); return e && ed.contains(e) ? e.getAttribute(d) : null; };
+    return [de('b, strong') ? 'B' : '', de('i, em') ? 'I' : '', dato('data-resalte') || '', dato('data-color') || ''].join('/');
+  }, palabra);
+  vale('(la prueba es válida) la nota empieza sin ningún estilo',
+       await editor.evaluate(e => e.innerHTML) === 'Gracia sobre gracia para todo aquel que cree',
+       await editor.evaluate(e => e.innerHTML));
+  await brocha.tap();
+  vale('sin nada marcado, la brocha no se pone', await brocha.getAttribute('aria-pressed') === 'false');
+  await tocarPalabra(p, 'Gracia');
+  await boton(p, 'bold').tap();
+  await boton(p, 'resaltar').tap();
+  await p.locator('#notaFormato .nota-tinta[data-valor="amarillo"]').tap();
+  await boton(p, 'resaltar').tap();
+  vale('«Gracia» en negrita y amarilla', await estiloDe('Gracia') === 'B//amarillo/', await estiloDe('Gracia'));
+  await brocha.tap();
+  vale('tocar la brocha la pone: se ve hundida', await brocha.getAttribute('aria-pressed') === 'true');
+  vale('y suelta lo marcado, para que lo próximo se pinte', await marcado(p) === '', await marcado(p));
+  await tocarPalabra(p, 'todo');
+  vale('un toque en «todo» le pone el mismo estilo', await estiloDe('todo') === 'B//amarillo/', await estiloDe('todo'));
+  await tocarPalabra(p, 'cree');
+  vale('y otro en «cree», también: la brocha sigue puesta',
+       await estiloDe('cree') === 'B//amarillo/' && await brocha.getAttribute('aria-pressed') === 'true', await estiloDe('cree'));
+  vale('lo de en medio no se tocó', await estiloDe('aquel') === '///', await estiloDe('aquel'));
+  await boton(p, 'deshacer').tap();
+  vale('pintar cuenta para deshacer: «cree» vuelve a estar sin estilo', await estiloDe('cree') === '///', await estiloDe('cree'));
+  vale('y «todo» sigue pintado', await estiloDe('todo') === 'B//amarillo/', await estiloDe('todo'));
+  await brocha.tap();
+  vale('tocar la brocha otra vez la quita', await brocha.getAttribute('aria-pressed') === 'false');
+  await tocarPalabra(p, 'para');
+  vale('y ya un toque solo marca, sin pintar',
+       await marcado(p) === 'para' && await estiloDe('para') === '///', await estiloDe('para'));
+
+  titulo('la brocha pone el estilo exacto: lo que sobra se quita');
+  await tocarPalabra(p, 'aquel');
+  await brocha.tap();
+  await tocarPalabra(p, 'todo');
+  vale('copiado de una palabra sin nada, «todo» pierde la negrita y el amarillo',
+       await estiloDe('todo') === '///', await estiloDe('todo'));
+  await brocha.tap();
+  await p.waitForTimeout(150);
+  const html = (await guardadas(p))[0].html;
+  vale('lo pintado se guarda', (html.match(/<b>/g) || []).length === 1 && /data-resalte="amarillo"/.test(html), html);
+
+  titulo('cerrar el lápiz suelta la brocha');
+  await tocarPalabra(p, 'Gracia');
+  await brocha.tap();
+  vale('puesta', await brocha.getAttribute('aria-pressed') === 'true');
+  await verFormato.tap();
+  await p.locator('#notaFormato').waitFor({ state:'hidden', timeout:2000 });
+  await verFormato.tap(); await p.waitForTimeout(400);
+  vale('al volver a abrir, la brocha está quitada', await brocha.getAttribute('aria-pressed') === 'false');
+  await tocarPalabra(p, 'cree');
+  vale('y un toque solo marca', await marcado(p) === 'cree' && await estiloDe('cree') === '///', await estiloDe('cree'));
 
   await cerrar(sesion);
 })().catch(e => { console.error(e); process.exit(1); });
