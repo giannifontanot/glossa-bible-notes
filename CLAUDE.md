@@ -53,7 +53,7 @@ un `pointerdown`, escribe la prueba que lo manda *sin* él.
 ### SIEMPRE: las pruebas las corre GitHub
 
 **Cada push a una PR corre el banco entero en GitHub Actions**
-(`.github/workflows/pruebas.yml`): las 30 suites a la vez, una por máquina, y
+(`.github/workflows/pruebas.yml`): las 31 suites a la vez, una por máquina, y
 al final una sola casilla, **«pruebas»**, verde o roja. El repo es público y los
 minutos son gratis. Lo pidió así el dueño del repo.
 
