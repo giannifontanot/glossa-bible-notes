@@ -6,8 +6,11 @@
       Ahora cada toque marca su palabra y nada más.
    2. Manijas en las puntas de lo marcado, para estirarlo o encogerlo, como
       las del teléfono, sin teclado ni menú de copiar.
-   3. Un interruptor dentro de la barra: encendido se da estilo a toques,
-      apagado se escribe con la barra abierta. Al abrir la barra, encendido.
+   3. El lápiz es el interruptor: con la barra abierta se da estilo a
+      toques, con la barra cerrada se escribe. (Hubo un interruptor «Estilo»
+      dentro de la barra; Gianni pidió quitarlo, decía lo mismo dos veces.)
+      Y con la barra abierta, un toque en el espacio en blanco suelta lo
+      marcado, sin cursor ni teclado.
    4. Deshacer y rehacer, cinco pasos, «solo el estilo»: lo escrito no entra.
 
    Todo con el dedo: toques de verdad sobre las palabras, y las manijas
@@ -64,7 +67,6 @@ const negritas = p => p.evaluate(() =>
   const sesion = await abrir(), p = sesion.pagina;
   const editor = p.locator('#notas .nota-editor:visible');
   const verFormato = p.locator('#notas .nota-ver-formato');
-  const interruptor = p.locator('#notaFormato .nota-interruptor');
 
   await ir(p, 'notas');
   await p.locator('#notas .indice-item').first().click();
@@ -137,40 +139,57 @@ const negritas = p => p.evaluate(() =>
   vale('la nota sigue sin escribirse y sin foco',
        await editor.evaluate(e => !e.isContentEditable && document.activeElement !== e));
 
-  titulo('el interruptor del estilo');
+  titulo('el lápiz es el interruptor del estilo');
+  vale('ya no hay interruptor dentro de la barra', await p.locator('#notaFormato .nota-interruptor').count() === 0);
+  await tocarPalabra(p, 'Bendito');
   await verFormato.tap();
   await p.locator('#notaFormato').waitFor({ state:'hidden', timeout:2000 });
-  await verFormato.tap(); await p.waitForTimeout(400);
-  vale('al abrir la barra nace encendido', await interruptor.getAttribute('aria-checked') === 'true');
-  vale('y con él encendido la nota no se escribe', await editor.evaluate(e => !e.isContentEditable));
-  await tocarPalabra(p, 'Bendito');
-  await interruptor.tap(); await p.waitForTimeout(150);
-  const apagado = await editor.evaluate(e => ({ editable:e.isContentEditable, teclado:e.getAttribute('inputmode'),
+  const cerrada = await editor.evaluate(e => ({ editable:e.isContentEditable, teclado:e.getAttribute('inputmode'),
     seleccion:getComputedStyle(e).userSelect }));
-  di('con el estilo apagado', apagado);
-  vale('apagado, la nota se escribe y pide teclado otra vez',
-       apagado.editable && apagado.teclado === null && apagado.seleccion !== 'none', JSON.stringify(apagado));
-  vale('la barra sigue abierta', await p.locator('#notaFormato').isVisible());
+  di('con el lápiz cerrado', cerrada);
+  vale('lápiz cerrado: la nota se escribe y pide teclado otra vez',
+       cerrada.editable && cerrada.teclado === null && cerrada.seleccion !== 'none', JSON.stringify(cerrada));
   vale('lo marcado se suelta y las manijas se van',
        await marcado(p) === '' && !await manija(p, 'ini') && !await manija(p, 'fin'));
-  vale('los botones del estilo se ven apagados',
-       await p.locator('#notaFormato').evaluate(f => f.classList.contains('escribiendo')));
   await editor.tap();
   await p.keyboard.press('Control+End');
   await p.keyboard.type(' y amén');
   await p.waitForTimeout(150);
-  vale('se escribe con la barra abierta', /paz y amén$/.test(await editor.evaluate(e => e.innerText.trim())),
+  vale('se escribe', /paz y amén$/.test(await editor.evaluate(e => e.innerText.trim())),
        await editor.evaluate(e => e.innerText));
-  const conNegrita = await negritas(p);
-  await boton(p, 'bold').tap();
-  vale('apagado, la negrita no da formato', await negritas(p) === conNegrita, await negritas(p));
-  vale('apagado, tocar una palabra no la marca', (await tocarPalabra(p, 'amén'), await marcado(p)) === '');
-  await interruptor.tap(); await p.waitForTimeout(150);
-  vale('encendido otra vez, la nota vuelve a no escribirse',
+  await verFormato.tap(); await p.waitForTimeout(400);
+  vale('lápiz abierto: la nota vuelve a no escribirse',
        await editor.evaluate(e => !e.isContentEditable && e.getAttribute('inputmode') === 'none' &&
                                  document.activeElement !== e));
   await tocarPalabra(p, 'amén');
   vale('y se marca a toques', await marcado(p) === 'amén', await marcado(p));
+
+  /* Lo que pidió Gianni: «un toque en un lugar donde hay espacio en blanco
+     quita la selección». Solo la quita: ni cursor ni teclado. */
+  titulo('un toque en el espacio en blanco suelta lo marcado');
+  await tocarPalabra(p, 'guía');
+  vale('«guía» marcada', await marcado(p) === 'guía', await marcado(p));
+  const blanco = await editor.evaluate(e => {
+    const c = e.getBoundingClientRect();
+    const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); let ultimo = null;
+    for (let n = w.nextNode(); n; n = w.nextNode()) if (n.nodeValue.trim()) ultimo = n;
+    const r = document.createRange(); r.selectNodeContents(ultimo);
+    const fin = [...r.getClientRects()].at(-1);
+    return { x:Math.round(Math.min(c.right - 8, fin.right + 40)), y:Math.round(fin.top + fin.height / 2),
+             hueco:c.right - fin.right };
+  });
+  di('el toque en blanco, a la derecha del último renglón', blanco);
+  vale('(la prueba es válida) queda hueco a la derecha', blanco.hueco > 50, blanco.hueco);
+  await p.touchscreen.tap(blanco.x, blanco.y);
+  await p.waitForTimeout(150);
+  vale('suelta lo marcado y las manijas se van',
+       await marcado(p) === '' && !await manija(p, 'ini') && !await manija(p, 'fin'), await marcado(p));
+  vale('y no pone cursor ni sube el teclado',
+       await editor.evaluate(e => !e.isContentEditable && document.activeElement !== e &&
+                                 e.getAttribute('inputmode') === 'none'));
+  vale('la barra sigue abierta', await p.locator('#notaFormato').isVisible());
+  await tocarPalabra(p, 'guía');
+  vale('y otro toque en una palabra la marca otra vez', await marcado(p) === 'guía', await marcado(p));
 
   titulo('deshacer y rehacer, cinco pasos, solo el estilo');
   await verFormato.tap();
@@ -206,11 +225,13 @@ const negritas = p => p.evaluate(() =>
   vale('y deshacer quita ese estilo nuevo', await editor.evaluate(e => !e.querySelector('i')));
   vale('lo escrito no se toca: el texto sigue entero',
        await editor.evaluate(e => e.innerText.trim()) === 'uno dos tres cuatro cinco seis');
-  await interruptor.tap(); await p.waitForTimeout(150);
+  await verFormato.tap();
+  await p.locator('#notaFormato').waitFor({ state:'hidden', timeout:2000 });
   await editor.tap();
   await p.keyboard.press('Control+End');
   await p.keyboard.type(' siete');
   await p.waitForTimeout(150);
+  await verFormato.tap(); await p.waitForTimeout(400);
   vale('escribir vacía deshacer y rehacer: no se puede volver a antes de lo escrito',
        await boton(p, 'deshacer').isDisabled() && await boton(p, 'rehacer').isDisabled());
   vale('y lo escrito se queda', /seis siete$/.test(await editor.evaluate(e => e.innerText.trim())));
