@@ -48,6 +48,42 @@ const guardadas = p => p.evaluate(() => JSON.parse(localStorage.getItem('glossa:
 const fotos = p => p.evaluate(() => JSON.parse(localStorage.getItem('glossa:notas:fotos:v1') || '{}'));
 const bytesDe = datos => Math.floor(datos.split(',')[1].length * 3 / 4);
 
+/* TOCAR UNA PALABRA DE LA NOTA CON EL DEDO, donde se ve: se busca en qué
+   renglón quedó, y se toca un poco a un lado del centro, como un dedo. */
+const tocarPalabra = async (p, palabra, cual = 0) => {
+  const donde = await p.evaluate(([palabra, cual]) => {
+    const ed = document.querySelector('#notas .nota-hoja:not([hidden]) .nota-editor');
+    const w = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
+    let vistos = 0;
+    for (let n = w.nextNode(); n; n = w.nextNode()){
+      const re = new RegExp('(^|[^\\p{L}])' + palabra + '(?![\\p{L}])', 'gu'); let m;
+      while ((m = re.exec(n.nodeValue))){
+        if (vistos++ < cual) continue;
+        const i = m.index + m[1].length;
+        const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + palabra.length);
+        const c = r.getClientRects()[0];
+        return { x:c.left + c.width * .55, y:c.top + c.height * .48 };
+      }
+    }
+    return null;
+  }, [palabra, cual]);
+  if (!donde) throw new Error('no encuentro «' + palabra + '» en la nota');
+  await p.touchscreen.tap(Math.round(donde.x), Math.round(donde.y));
+  await p.waitForTimeout(120);
+};
+/* Lo que está marcado, leído del trazo pintado: es lo que el lector ve. */
+const marcado = p => p.evaluate(() => {
+  const h = window.CSS && CSS.highlights && CSS.highlights.get('nota-marcada');
+  const r = h && [...h][0];
+  return r ? r.toString() : '';
+});
+async function cerrarBarra(p){
+  if (await p.locator('#notaFormato').isVisible()){
+    await p.locator('#notas .nota-ver-formato').tap();
+    await p.locator('#notaFormato').waitFor({ state:'hidden', timeout:2000 });
+  }
+}
+
 /* EL ALTO DE UN PANELITO, CUADRO A CUADRO. Se arranca ANTES del toque y se
    recoge después: así se ve el viaje entero, no lo que quedó al final. */
 const muestrear = (p, sel, ms = 650) => p.evaluate(([sel, ms]) => new Promise(z => {
@@ -129,7 +165,8 @@ async function subirFoto(p, base64){
   vale('crece pasando por alturas de en medio, no de golpe', intermedios(alturas) >= 2, intermedios(alturas));
   vale('y termina abierta', alturas.at(-1) > 20 && alturas.at(-1) === Math.max(...alturas), alturas.at(-1));
   vale('el botón dice que está abierta', await formato.getAttribute('aria-expanded') === 'true');
-  vale('trae los seis botones', await p.locator('#notaFormato .nota-orden').count() === 6);
+  vale('trae los once botones', await p.locator('#notaFormato .nota-orden').count() === 11,
+       await p.locator('#notaFormato .nota-orden').count());
   m = muestrear(p, '#notaFormato');
   await formato.tap();
   alturas = await m;
@@ -165,28 +202,58 @@ async function subirFoto(p, base64){
        await p.locator('#notaFormato').isVisible() && alturas.at(-1) === Math.max(...alturas) && alturas.at(-1) > 20,
        alturas.join(' '));
 
-  titulo('los botones dan formato sin quitarle el foco a la nota');
-  await editor.fill('Texto normal ');
+  /* EL MODO FORMATO: con la barra abierta la nota no se escribe, se marca
+     con el dedo. Antes esta parte escribía con la barra abierta —tocar B y
+     seguir tecleando—, y eso es justo lo que Gianni pidió quitar: el toque
+     largo sacaba el teclado y el menú de copiar. Ahora se escribe con la
+     barra cerrada, y se da formato con ella abierta. */
+  titulo('con la barra abierta la nota no se escribe: se marca tocando palabras');
+  await cerrarBarra(p);
+  await editor.tap();
+  await editor.fill('');
+  await p.keyboard.type('Texto normal negrita doble'); await p.keyboard.press('Enter');
+  await p.keyboard.type('uno'); await p.keyboard.press('Enter');
+  await p.keyboard.type('dos'); await p.keyboard.press('Enter');
+  await p.keyboard.type('primero');
+  await formato.tap(); await p.waitForTimeout(350);
+  const enModo = await editor.evaluate(e => ({ editable:e.isContentEditable, foco:document.activeElement === e,
+    teclado:e.getAttribute('inputmode'), seleccion:getComputedStyle(e).userSelect }));
+  di('la nota con la barra abierta', enModo);
+  vale('no se puede escribir, no tiene el foco y no pide teclado',
+       !enModo.editable && !enModo.foco && enModo.teclado === 'none', JSON.stringify(enModo));
+  vale('y no se selecciona (no sale el menú de copiar)', enModo.seleccion === 'none', enModo.seleccion);
+  vale('sin nada marcado, los botones se ven apagados',
+       await p.locator('#notaFormato').evaluate(f => f.classList.contains('sin-marca')));
+  await tocarPalabra(p, 'negrita');
+  vale('un toque marca la palabra entera', await marcado(p) === 'negrita', await marcado(p));
   await p.locator('#notaFormato [data-orden="bold"]').tap();
-  vale('tocar la negrita no le quita el foco a la nota (en el teléfono, el teclado no se cierra)',
-       await editor.evaluate(e => document.activeElement === e));
-  await p.keyboard.type('negrita');
-  await p.locator('#notaFormato [data-orden="bold"]').tap();
+  const trasNegrita = await editor.evaluate(e => ({ foco:document.activeElement === e, editable:e.isContentEditable,
+    sel:String(getSelection()), html:e.innerHTML }));
+  di('tras la negrita', trasNegrita);
+  vale('la negrita cae en lo marcado', /<b>negrita<\/b>/.test(trasNegrita.html), trasNegrita.html);
+  vale('y la nota sigue quieta: sin foco, sin escribir, sin selección del navegador',
+       !trasNegrita.foco && !trasNegrita.editable && trasNegrita.sel === '', JSON.stringify(trasNegrita));
+  vale('lo marcado sigue marcado para darle más formato', await marcado(p) === 'negrita', await marcado(p));
+  vale('el botón de la negrita se ve hundido',
+       await p.locator('#notaFormato [data-orden="bold"]').getAttribute('aria-pressed') === 'true');
+  await tocarPalabra(p, 'doble');
   await p.locator('#notaFormato [data-orden="italic"]').tap();
   await p.locator('#notaFormato [data-orden="underline"]').tap();
-  await p.keyboard.type(' doble');
-  vale('cursiva y subrayado juntos, tocados con el cursor quieto, se quedan los dos',
-       await editor.evaluate(e => !!e.querySelector('i u, u i')), await editor.innerHTML());
-  await p.locator('#notaFormato [data-orden="italic"]').tap();
-  await p.locator('#notaFormato [data-orden="underline"]').tap();
-  await p.keyboard.press('Enter');
+  vale('cursiva y subrayado, uno detrás de otro, se quedan los dos',
+       await editor.evaluate(e => !!e.querySelector('i u, u i') && /doble/.test((e.querySelector('i u, u i') || {}).textContent || '')),
+       await editor.innerHTML());
+  await tocarPalabra(p, 'uno');
+  await tocarPalabra(p, 'dos');
+  vale('un segundo toque marca todo lo que hay entre las dos', /^uno\s*dos$/.test(await marcado(p)),
+       JSON.stringify(await marcado(p)));
   await p.locator('#notaFormato [data-orden="insertUnorderedList"]').tap();
-  await p.keyboard.type('uno'); await p.keyboard.press('Enter'); await p.keyboard.type('dos');
   vale('el botón de la lista se ve hundido dentro de la lista',
        await p.locator('#notaFormato [data-orden="insertUnorderedList"]').getAttribute('aria-pressed') === 'true');
-  await p.keyboard.press('Enter'); await p.keyboard.press('Enter');
+  await tocarPalabra(p, 'primero');
   await p.locator('#notaFormato [data-orden="insertOrderedList"]').tap();
-  await p.keyboard.type('primero');
+  await tocarPalabra(p, 'normal');
+  await tocarPalabra(p, 'normal');
+  vale('tocar otra vez la palabra marcada sola la suelta', await marcado(p) === '', await marcado(p));
   await p.waitForTimeout(150);
   let nota = (await guardadas(p))[0];
   di('lo guardado', nota.html);
@@ -196,6 +263,10 @@ async function subirFoto(p, base64){
   vale('el texto plano sigue al día, con sus saltos', /Texto normal negrita/.test(nota.texto) &&
        /uno\ndos/.test(nota.texto), JSON.stringify(nota.texto));
   vale('nada de estilos ni atributos en lo guardado', !/style=|class=|<span/.test(nota.html), nota.html);
+  await cerrarBarra(p);
+  vale('cerrar la barra devuelve la nota a escribirse',
+       await editor.evaluate(e => e.isContentEditable && !e.hasAttribute('inputmode')));
+  vale('y suelta lo marcado', await marcado(p) === '');
   await p.reload(); await ir(p, 'notas');
   await p.locator('#notas .indice-item').first().click();
   vale('al recargar la nota vuelve con su formato',
@@ -312,6 +383,7 @@ async function subirFoto(p, base64){
   await p.evaluate(() => { Storage.prototype.setItem = window.__setItemOriginal; delete window.__setItemOriginal; });
 
   titulo('quitar la foto de la nota la quita del almacén al volver');
+  await cerrarBarra(p);
   await editor.fill('Sin foto ya.');
   await p.waitForTimeout(150);
   await p.reload();

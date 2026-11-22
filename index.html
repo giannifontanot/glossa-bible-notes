@@ -4509,6 +4509,81 @@
   .nota-orden[aria-pressed="true"]{ background:rgba(184,137,43,.22); color:#3b2b10;
     box-shadow:inset 0 1px 2px rgba(60,40,10,.18); }
   .nota-orden:focus-visible{ outline:2px solid #b8892b; outline-offset:-2px; }
+  /* LOS BOTONES NUEVOS: el resaltador y la «A» llevan debajo una barrita del
+     color, el tamaño son dos «A» de distinto alto y la letra es «Aa». */
+  .nota-orden svg .barra-tinta{ fill:currentColor; stroke:none; opacity:.55; }
+  .nota-orden[data-orden="resaltar"] svg .barra-tinta{ fill:#f2c94c; opacity:1; }
+  .nota-orden[data-orden="colorear"] svg .barra-tinta{ fill:#b3261e; opacity:1; }
+  .nota-orden .cara-tam{ pointer-events:none; font-weight:600; line-height:1; }
+  .nota-orden .cara-tam.chica{ font-size:.72em; }
+  .nota-orden .cara-tam.grande{ font-size:1.12em; }
+  .nota-orden .cara-tam.chica::after{ content:'−'; font-size:.8em; margin-left:1px; }
+  .nota-orden .cara-tam.grande::after{ content:'+'; font-size:.62em; margin-left:1px; vertical-align:top; }
+  .nota-orden .cara-tipo{ pointer-events:none; font-size:.92em; }
+  .nota-orden[aria-expanded="true"]{ background:rgba(184,137,43,.22); color:#3b2b10; }
+  /* SIN NADA MARCADO, los botones de dar formato se ven apagados: dicen sin
+     palabras «primero marca algo». La foto no, que entra igual. Siguen
+     tocándose —y un toque lo dice con palabras, en la línea de avisos—. */
+  .nota-formato.sin-marca .nota-orden:not([data-orden="foto"]):not([data-paleta]),
+  .nota-formato.sin-marca .nota-tinta{ opacity:.45; }
+  /* En dos renglones si no caben, en vez de esconder botones a un lado: con
+     once, en un teléfono no caben en uno. */
+  .nota-formato{ flex-wrap:wrap; overflow-x:visible; }
+  .nota-paleta{ flex:1 0 100%; display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+    padding:6px 2px 2px; margin-top:2px; border-top:1px solid rgba(140,116,68,.22); }
+  .nota-paleta[hidden]{ display:none; }
+  .nota-tinta{ flex:0 0 auto; min-width:38px; height:38px; display:grid; place-items:center; padding:0 6px;
+    border:0; border-radius:19px; background:transparent; color:#5c4520; cursor:pointer;
+    -webkit-tap-highlight-color:transparent; }
+  .nota-tinta .gota{ width:24px; height:24px; border-radius:50%; pointer-events:none;
+    box-shadow:inset 0 0 0 1px rgba(60,40,10,.25); }
+  .nota-tinta[aria-pressed="true"]{ background:rgba(184,137,43,.22); }
+  .nota-tinta:focus-visible{ outline:2px solid #b8892b; outline-offset:-2px; }
+  .nota-tinta.con-nombre{ padding:0 12px; border-radius:6px;
+    font:400 calc(16px * var(--escala-ui,1))/1 var(--fam-libro, Georgia, serif); }
+  .nota-tinta.con-nombre[data-letra="caveat"]{ font-size:calc(20px * var(--escala-ui,1)); }
+  .nota-paleta[data-paleta="resalte"] [data-valor="amarillo"] .gota{ background:#ffe36e; }
+  .nota-paleta[data-paleta="resalte"] [data-valor="verde"] .gota{ background:#bfe7a6; }
+  .nota-paleta[data-paleta="resalte"] [data-valor="azul"] .gota{ background:#b6d8f5; }
+  .nota-paleta[data-paleta="resalte"] [data-valor="rosa"] .gota{ background:#f7c3d9; }
+  .nota-paleta[data-paleta="resalte"] [data-valor="naranja"] .gota{ background:#ffc98c; }
+  .nota-paleta[data-paleta="color"] [data-valor="rojo"] .gota{ background:#b3261e; }
+  .nota-paleta[data-paleta="color"] [data-valor="azul"] .gota{ background:#1f5fa8; }
+  .nota-paleta[data-paleta="color"] [data-valor="verde"] .gota{ background:#2e7d32; }
+  .nota-paleta[data-paleta="color"] [data-valor="morado"] .gota{ background:#6a3d9a; }
+  .nota-paleta[data-paleta="color"] [data-valor="gris"] .gota{ background:#6f6a62; }
+  /* La que quita: una gota vacía cruzada. */
+  .nota-paleta [data-valor=""] .gota{ background:linear-gradient(135deg, transparent 45%, #b3261e 45%, #b3261e 55%, transparent 55%), #fffdf7; }
+  /* LO QUE SE PINTA EN LA NOTA. Mismos valores que las gotas. El resaltado
+     lleva un poco de relleno de lado para que no se vea cortado a ras de la
+     letra, y se parte bien entre renglones. */
+  .nota-editor [data-resalte]{ border-radius:3px; padding:0 .08em;
+    -webkit-box-decoration-break:clone; box-decoration-break:clone; }
+  .nota-editor [data-resalte="amarillo"]{ background:#ffe36e; }
+  .nota-editor [data-resalte="verde"]{ background:#bfe7a6; }
+  .nota-editor [data-resalte="azul"]{ background:#b6d8f5; }
+  .nota-editor [data-resalte="rosa"]{ background:#f7c3d9; }
+  .nota-editor [data-resalte="naranja"]{ background:#ffc98c; }
+  .nota-editor [data-color="rojo"]{ color:#b3261e; }
+  .nota-editor [data-color="azul"]{ color:#1f5fa8; }
+  .nota-editor [data-color="verde"]{ color:#2e7d32; }
+  .nota-editor [data-color="morado"]{ color:#6a3d9a; }
+  .nota-editor [data-color="gris"]{ color:#6f6a62; }
+  .nota-editor [data-tam="-2"]{ font-size:.75em; }
+  .nota-editor [data-tam="-1"]{ font-size:.87em; }
+  .nota-editor [data-tam="1"]{ font-size:1.18em; }
+  .nota-editor [data-tam="2"]{ font-size:1.4em; }
+  .nota-editor [data-tam="3"]{ font-size:1.7em; }
+  .nota-editor [data-letra="literata"], .nota-tinta[data-letra="literata"]{ font-family:'Literata', Georgia, serif; }
+  .nota-editor [data-letra="caveat"], .nota-tinta[data-letra="caveat"]{ font-family:'Caveat', 'Segoe Print', 'Bradley Hand', cursive; }
+  /* EL MODO FORMATO: la nota no se escribe ni se selecciona —ni sale el menú
+     de copiar del toque largo—, y el borde punteado lo dice. Lo marcado se
+     pinta de azul, el azul de una selección, para que se lea como «esto es
+     lo que vas a cambiar» y no como un resaltado más. */
+  .nota-editor.en-formato{ cursor:pointer; border-style:dashed;
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  .nota-editor.en-formato:focus{ outline:none; }
+  ::highlight(nota-marcada){ background-color:rgba(52,118,214,.34); }
   .nota-filtros-cabecera{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
   .nota-filtros h3{ flex:1; min-width:0; margin:0; overflow-wrap:anywhere;
     color:#493817; font:600 calc(15px * var(--escala-ui,1))/1.35 var(--fam-libro,Georgia,serif); }
@@ -7362,7 +7437,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-NOV-26 08:01';
+window.GLOSS_BUILD = '22-NOV-26 08:38';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25482,7 +25557,9 @@ function fusionarNotas(entrantes){
 
    EL HTML NO SE CREE NUNCA, venga de donde venga: del almacén, de un
    respaldo o del propio recuadro. Pasa por una lista de etiquetas permitidas
-   y sale sin un solo atributo, salvo el número de la foto. Un respaldo
+   y sale sin un solo atributo, salvo el número de la foto y los cuatro datos
+   del formato de color, tamaño y letra (ver DATOS_SPAN_NOTA), cada uno con
+   un valor de su lista. Un respaldo
    editado a mano con un <script> o un onerror dentro llega como texto
    inofensivo. Lo que no está en la lista se desenvuelve (se queda su texto),
    y lo que no tiene texto que salvar —un script, un estilo, un marco— se va
@@ -25503,7 +25580,20 @@ const CLAVE_FOTOS = 'glossa:notas:fotos:v1';
 let fotosNotas = {};
 const ID_FOTO = /^foto-[a-z0-9-]{4,60}$/;
 const DATOS_FOTO = /^data:image\/(jpeg|webp|png);base64,[a-z0-9+/=]+$/i;
-const ETIQUETAS_NOTA = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'UL', 'OL', 'LI', 'BR', 'DIV', 'P', 'IMG']);
+const ETIQUETAS_NOTA = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'UL', 'OL', 'LI', 'BR', 'DIV', 'P', 'IMG', 'SPAN']);
+/* LOS COLORES, EL TAMAÑO Y LA LETRA VAN EN UN <span> CON UN DATO, NO CON UN
+   ESTILO. Un style="" es justo lo que la limpieza tira —y tiene que tirarlo:
+   es lo que mete el navegador al juntar renglones y lo que trae lo pegado—,
+   así que el formato nuevo no podía vivir ahí. Cada span lleva uno de estos
+   cuatro datos, con un valor de esta lista y ningún otro, y el CSS pinta cada
+   valor. Un span sin un dato bueno se desenvuelve como cualquier otra
+   etiqueta desconocida: queda su texto. */
+const DATOS_SPAN_NOTA = {
+  'data-resalte': new Set(['amarillo', 'verde', 'azul', 'rosa', 'naranja']),
+  'data-color':   new Set(['rojo', 'azul', 'verde', 'morado', 'gris']),
+  'data-tam':     new Set(['-2', '-1', '1', '2', '3']),
+  'data-letra':   new Set(['literata', 'caveat'])
+};
 const FUERA_DE_LA_NOTA = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'TEMPLATE', 'SVG',
   'MATH', 'NOSCRIPT', 'TITLE', 'HEAD', 'META', 'LINK', 'TEXTAREA', 'SELECT', 'BUTTON', 'INPUT', 'VIDEO',
   'AUDIO', 'CANVAS', 'FORM']);
@@ -25525,6 +25615,17 @@ function copiarLimpio(de, a){
         img.setAttribute('data-foto', id); img.setAttribute('alt', '');
         a.appendChild(img);
       }
+      continue;
+    }
+    if (tag === 'SPAN'){
+      const datos = Object.keys(DATOS_SPAN_NOTA).filter(d => DATOS_SPAN_NOTA[d].has(n.getAttribute(d)));
+      if (!datos.length){ copiarLimpio(n, a); continue; }
+      const s = document.createElement('span');
+      for (const d of datos) s.setAttribute(d, n.getAttribute(d));
+      copiarLimpio(n, s);
+      /* Un span vacío —lo deja el navegador al borrar lo que llevaba— no
+         pinta nada y solo ensucia lo guardado. */
+      if (s.firstChild) a.appendChild(s);
       continue;
     }
     const e = document.createElement(tag.toLowerCase());
@@ -27939,6 +28040,8 @@ function armarManijasIndice(pagina, reordenar){
   const cerrarFormato = (enfocar = false, alInstante = false) => {
     if (abierto(formato) || alInstante) deslizar(formato, false, alInstante);
     verFormato.setAttribute('aria-expanded', 'false');
+    /* Cerrar la barra es salir del modo formato: la nota se vuelve a escribir. */
+    soltarMarcado(); cerrarPaleta(); ponerModo(false);
     if (enfocar) verFormato.focus({ preventScroll:true });
   };
   const registrarPendiente = () => {
@@ -28006,8 +28109,8 @@ function armarManijasIndice(pagina, reordenar){
   });
   /* TOCAR FUERA CIERRA EL DE LAS GLOSAS, Y NO EL DEL FORMATO. El de las
      glosas es una consulta: se mira y se sale. La barra del formato es una
-     herramienta de escribir, y «fuera» de ella es casi siempre la nota en la
-     que se está escribiendo: cerrarla ahí la quitaría a cada toque. */
+     herramienta, y «fuera» de ella es casi siempre la nota en la que se están
+     marcando palabras: cerrarla ahí la quitaría a cada toque. */
   document.addEventListener('pointerdown', ev => {
     if (abierto(historial) && !historial.contains(ev.target) && !verGlosas.contains(ev.target)) cerrarHistorial();
   }, { capture:true, passive:true });
@@ -28021,6 +28124,7 @@ function armarManijasIndice(pagina, reordenar){
   const pintarEditor = (editor, nota) => {
     if (typeof nota.html === 'string'){
       editor.innerHTML = limpiarHtmlNota(nota.html);
+      if (editor.querySelector('[data-letra]')) pedirLetrasNota();
       editor.querySelectorAll('img[data-foto]').forEach(img => {
         const datos = fotosNotas[img.dataset.foto];
         if (datos) img.src = datos; else img.remove();
@@ -28044,11 +28148,23 @@ function armarManijasIndice(pagina, reordenar){
 
   /* LOS BOTONES. Los más sencillos que hay, que es lo que se pidió: «las
      páginas de notas son notas, no van a ser carteles con gran diseño». Si
-     algún día se añade otro, va en esta lista y nada más. */
+     algún día se añade otro, va en esta lista y nada más.
+
+     Los de color y el de la letra no dan formato al tocarlos: abren debajo
+     un renglón con sus opciones (ver PALETAS), y es la opción la que lo da. */
   const ORDENES = [
     { orden:'bold', es:'Negrita', en:'Bold', cara:'<b>B</b>' },
     { orden:'italic', es:'Cursiva', en:'Italic', cara:'<i>I</i>' },
     { orden:'underline', es:'Subrayado', en:'Underline', cara:'<u>U</u>' },
+    { orden:'resaltar', es:'Resaltar', en:'Highlight', paleta:'resalte',
+      cara:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 15 3 3 9-9-3-3-9 9Zm0 0-2 4 4-1"/>' +
+           '<rect class="barra-tinta" x="3" y="20" width="18" height="2.6" rx="1"/></svg>' },
+    { orden:'colorear', es:'Color de la letra', en:'Text color', paleta:'color',
+      cara:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6.5 17 5.5-13 5.5 13M8.5 12.5h7"/>' +
+           '<rect class="barra-tinta" x="3" y="20" width="18" height="2.6" rx="1"/></svg>' },
+    { orden:'achicar', es:'Letra más chica', en:'Smaller text', cara:'<span class="cara-tam chica">A</span>' },
+    { orden:'agrandar', es:'Letra más grande', en:'Bigger text', cara:'<span class="cara-tam grande">A</span>' },
+    { orden:'tipo', es:'Tipo de letra', en:'Font', paleta:'letra', cara:'<span class="cara-tipo">Aa</span>' },
     { orden:'insertUnorderedList', es:'Lista con viñetas', en:'Bulleted list',
       cara:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6h11M9 12h11M9 18h11"/>' +
            '<circle cx="4.5" cy="6" r="1.3"/><circle cx="4.5" cy="12" r="1.3"/><circle cx="4.5" cy="18" r="1.3"/></svg>' },
@@ -28059,6 +28175,24 @@ function armarManijasIndice(pagina, reordenar){
       cara:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/>' +
            '<circle cx="9" cy="10" r="1.8"/><path d="m4 18 5-5 3 3 3-4 5 6"/></svg>' }
   ];
+  /* LAS OPCIONES DE CADA PALETA, con los colores que se eligieron. Cada una
+     termina —o empieza, la de la letra— con la que QUITA: sin ella, poner un
+     color por error no tendría vuelta atrás en el teléfono, que no tiene
+     Ctrl+Z a mano. Los valores son los que deja pasar la limpieza
+     (DATOS_SPAN_NOTA) y los que pinta el CSS. */
+  const PALETAS = {
+    resalte: { dato:'data-resalte', es:'Resaltado', en:'Highlight', opciones:[
+      ['amarillo', 'Amarillo', 'Yellow'], ['verde', 'Verde', 'Green'], ['azul', 'Azul', 'Blue'],
+      ['rosa', 'Rosa', 'Pink'], ['naranja', 'Naranja', 'Orange'], [null, 'Sin resaltado', 'No highlight']] },
+    color: { dato:'data-color', es:'Color de la letra', en:'Text color', opciones:[
+      ['rojo', 'Rojo', 'Red'], ['azul', 'Azul', 'Blue'], ['verde', 'Verde', 'Green'],
+      ['morado', 'Morado', 'Purple'], ['gris', 'Gris', 'Gray'], [null, 'Color normal', 'Normal color']] },
+    letra: { dato:'data-letra', es:'Tipo de letra', en:'Font', opciones:[
+      [null, 'La de la nota', 'The note font'], ['literata', 'Literata', 'Literata'], ['caveat', 'Caveat', 'Caveat']] }
+  };
+  /* Los cinco escalones del tamaño, de menos a más, con el normal en medio
+     —que no lleva span—. Uno por toque, y se para en los extremos. */
+  const TAMANOS = ['-2', '-1', null, '1', '2', '3'];
   const elegirFoto = document.createElement('input');
   elegirFoto.type = 'file'; elegirFoto.accept = 'image/*'; elegirFoto.hidden = true;
   elegirFoto.className = 'nota-elegir-foto';
@@ -28068,68 +28202,337 @@ function armarManijasIndice(pagina, reordenar){
     b.type = 'button'; b.className = 'nota-orden'; b.dataset.orden = o.orden;
     b.innerHTML = o.cara;
     dosIdiomas(b, { title:[o.es, o.en], aria:[o.es, o.en] });
-    if (o.orden !== 'foto') b.setAttribute('aria-pressed', 'false');
+    if (o.paleta){ b.dataset.paleta = o.paleta; b.setAttribute('aria-expanded', 'false'); }
+    else if (o.orden !== 'foto' && o.orden !== 'achicar' && o.orden !== 'agrandar') b.setAttribute('aria-pressed', 'false');
     formato.appendChild(b);
   }
-  /* DÓNDE ESTABA EL CURSOR. Tocar un botón le quita la selección al recuadro
-     en algunos aparatos —y elegir una foto se la quita siempre, porque abre
-     otra ventana—, así que se apunta la última selección que hubo DENTRO de
-     la nota y se devuelve antes de cada orden. Sin esto la negrita caía en
-     ningún sitio, o la foto al principio de la nota. */
-  /* Solo se devuelve si se perdió: volver a poner una selección que ya está
-     borra lo que el navegador tenía apuntado para lo próximo que se teclee, y
-     tocar B y luego I con el cursor quieto se quedaba solo en cursiva. */
-  let rango = null;
-  const ponerCursor = editor => {
-    const sel = getSelection();
-    const dentro = sel.rangeCount && editor.contains(sel.getRangeAt(0).commonAncestorContainer);
-    if (document.activeElement !== editor) editor.focus({ preventScroll:true });
-    if (dentro) return;
-    const r = rango && editor.contains(rango.commonAncestorContainer) ? rango : document.createRange();
-    if (r !== rango){ r.selectNodeContents(editor); r.collapse(false); }
-    sel.removeAllRanges(); sel.addRange(r);
+  /* EL RENGLÓN DE LA PALETA vive dentro de la barra, debajo de los botones,
+     y solo hay una abierta a la vez: la del botón que se tocó. */
+  const paleta = document.createElement('div');
+  paleta.className = 'nota-paleta'; paleta.hidden = true;
+  paleta.setAttribute('role', 'group');
+  formato.appendChild(paleta);
+  let paletaViva = null;
+  const cerrarPaleta = () => {
+    paletaViva = null; paleta.hidden = true; paleta.textContent = '';
+    formato.querySelectorAll('.nota-orden[data-paleta]').forEach(b => b.setAttribute('aria-expanded', 'false'));
   };
-  /* Los botones dicen si lo que hay bajo el cursor ya va en negrita, en
-     lista…: aria-pressed, que el CSS pinta como botón hundido. */
-  const refrescarBotones = () => {
+  const abrirPaleta = nombre => {
+    if (paletaViva === nombre){ cerrarPaleta(); return; }
+    cerrarPaleta();
+    const pal = PALETAS[nombre];
+    paletaViva = nombre; paleta.dataset.paleta = nombre;
+    paleta.setAttribute('aria-label', T(pal.es, pal.en));
+    if (nombre === 'letra') pedirLetrasNota();
+    for (const [valor, es, en] of pal.opciones){
+      const t = document.createElement('button');
+      t.type = 'button'; t.className = 'nota-tinta';
+      t.dataset.valor = valor || '';
+      t.setAttribute('aria-pressed', 'false');
+      dosIdiomas(t, { title:[es, en], aria:[es, en] });
+      /* La letra se enseña con su nombre escrito EN ESA LETRA; los colores,
+         con una gotita de su color. */
+      if (nombre === 'letra'){ t.classList.add('con-nombre'); t.textContent = T(es, en);
+        if (valor) t.setAttribute('data-letra', valor); }
+      else t.innerHTML = '<span class="gota" aria-hidden="true"></span>';
+      paleta.appendChild(t);
+    }
+    paleta.hidden = false;
+    formato.querySelector('.nota-orden[data-paleta="' + nombre + '"]').setAttribute('aria-expanded', 'true');
+    refrescarBotones();
+  };
+  /* LAS DOS LETRAS DE FUERA SE PIDEN CUANDO HACEN FALTA, NO AL ARRANCAR: al
+     abrir su paleta o al pintar una nota que ya las usa. Al arrancar lo que
+     importa es la primera hoja del libro. Sin red se quedan en su recambio
+     —una con remates, una de mano— y la nota se sigue leyendo. */
+  let letrasPedidas = false;
+  const pedirLetrasNota = () => {
+    if (letrasPedidas) return; letrasPedidas = true;
+    const l = document.createElement('link'); l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;600' +
+             '&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap';
+    document.head.appendChild(l);
+  };
+
+  /* ============================================================
+     EL MODO FORMATO.
+
+     Lo pidió Gianni así: con un toque largo en una palabra el teléfono la
+     seleccionaba, sí, pero sacaba también el teclado y el menú de copiar,
+     pegar y cortar, «y eso es demasiado cosas en la pantalla. Yo lo único que
+     quiero es ponerlo bold». En un recuadro que se puede escribir, Android no
+     deja quitar ese menú. Así que se eligió la salida de la Biblia: MIENTRAS
+     LA BARRA ESTÁ ABIERTA, LA NOTA NO SE ESCRIBE. Se marca con el dedo:
+
+     · un toque en una palabra la marca entera;
+     · un toque en otra marca todo lo que hay entre las dos;
+     · un toque en la misma palabra marcada sola la suelta.
+
+     Lo marcado no es una selección del navegador —sería otra vez el menú—
+     sino un trazo pintado con la misma herramienta que el pincel de la
+     Biblia (CSS.highlights). Cerrar la barra devuelve la nota a escribirse.
+
+     LO MARCADO SE GUARDA EN LETRAS, no como un Range: el número de letra donde
+     empieza y donde acaba dentro de la nota. Dar formato parte nodos de texto
+     y los mete en etiquetas nuevas, y un Range vivo sobre eso se encoge o se
+     queda señalando a nodos que ya no están; las letras no se mueven, porque
+     dar formato no cambia el texto.
+
+     LOS TOQUES SE LEEN DEL click Y DEL contextmenu, no del pointerdown. Lo
+     aprendido con el arreglo de la selección: un evento despachado a mano
+     siempre llega y el de un teléfono no, y el toque largo de Android puede
+     acabar en un pointercancel sin pointerup. El click llega de cualquier
+     toque corto, y el contextmenu es justo lo que manda el toque largo —que es
+     el gesto que Gianni ya tiene en el dedo—. Se cancela, para que no salga
+     ningún menú, y se marca con él.
+     ============================================================ */
+  let marcado = null, ancla = null, ultimoLargo = null;
+  const textosDe = ed => {
+    const w = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
+    const r = []; for (let n = w.nextNode(); n; n = w.nextNode()) r.push(n);
+    return r;
+  };
+  const letraDe = (ed, nodo, off) => {
+    let acc = 0;
+    for (const t of textosDe(ed)){ if (t === nodo) return acc + off; acc += t.nodeValue.length; }
+    return null;
+  };
+  /* El principio cae en el nodo que EMPIEZA ahí y el final en el que ACABA
+     ahí: así ninguno de los dos queda en la orilla de un nodo vecino, que
+     obligaría a partir un nodo para nada. */
+  const rangoDe = (ed, ini, fin) => {
+    let acc = 0, a = null, b = null;
+    for (const t of textosDe(ed)){
+      const n = t.nodeValue.length;
+      if (!a && ini < acc + n) a = [t, ini - acc];
+      if (!b && fin <= acc + n && fin > acc) b = [t, fin - acc];
+      acc += n;
+    }
+    if (!a || !b) return null;
+    const r = document.createRange();
+    r.setStart(a[0], a[1]); r.setEnd(b[0], b[1]);
+    return r;
+  };
+  const LETRA_DE_PALABRA = /[\p{L}\p{N}\p{M}'’_-]/u;
+  const palabraEn = (ed, x, y) => {
+    let nodo = null, off = 0;
+    if (document.caretPositionFromPoint){
+      const q = document.caretPositionFromPoint(x, y); if (q){ nodo = q.offsetNode; off = q.offset; }
+    } else if (document.caretRangeFromPoint){
+      const q = document.caretRangeFromPoint(x, y); if (q){ nodo = q.startContainer; off = q.startOffset; }
+    }
+    if (!nodo || nodo.nodeType !== 3 || !ed.contains(nodo)) return null;
+    const s = nodo.nodeValue;
+    /* El dedo cae a veces justo detrás de la última letra: se mira la de
+       antes antes de rendirse. */
+    if (!LETRA_DE_PALABRA.test(s[off] || '') && LETRA_DE_PALABRA.test(s[off - 1] || '')) off--;
+    if (!LETRA_DE_PALABRA.test(s[off] || '')) return null;
+    let i = off, f = off + 1;
+    while (i > 0 && LETRA_DE_PALABRA.test(s[i - 1])) i--;
+    while (f < s.length && LETRA_DE_PALABRA.test(s[f])) f++;
+    const base = letraDe(ed, nodo, 0);
+    return base === null ? null : { ini:base + i, fin:base + f };
+  };
+  const pintarMarcado = () => {
     const ed = editorVivo();
-    const sel = getSelection();
-    const dentro = ed && sel.rangeCount && ed.contains(sel.getRangeAt(0).commonAncestorContainer);
-    formato.querySelectorAll('.nota-orden[aria-pressed]').forEach(b => {
-      let si = false;
-      try { si = !!dentro && document.queryCommandState(b.dataset.orden); } catch(_){}
-      b.setAttribute('aria-pressed', String(si));
+    const r = marcado && ed ? rangoDe(ed, marcado.ini, marcado.fin) : null;
+    if (!r) marcado = null;
+    formato.classList.toggle('sin-marca', !marcado);
+    if (HL_API){
+      if (r) CSS.highlights.set('nota-marcada', new Highlight(r));
+      else CSS.highlights.delete('nota-marcada');
+    }
+  };
+  const soltarMarcado = () => { marcado = null; ancla = null; pintarMarcado(); };
+  /* PONER Y QUITAR EL MODO, en todas las hojas: la barra se queda abierta al
+     cambiar de nota, y la de al lado tiene que estar igual de quieta. El
+     inputmode="none" es el cinturón con los tirantes: aunque algo llegara a
+     darle el foco a la nota, el teclado del teléfono no sube. */
+  const ponerModo = si => {
+    hojas.querySelectorAll('.nota-editor').forEach(ed => {
+      ed.contentEditable = si ? 'false' : 'true';
+      ed.classList.toggle('en-formato', si);
+      if (si) ed.setAttribute('inputmode', 'none'); else ed.removeAttribute('inputmode');
+      if (si && document.activeElement === ed) ed.blur();
     });
   };
-  document.addEventListener('selectionchange', () => {
-    const ed = editorVivo(); const sel = getSelection();
-    if (!ed || !sel.rangeCount) return;
-    const r = sel.getRangeAt(0);
-    if (!ed.contains(r.commonAncestorContainer)) return;
-    rango = r.cloneRange();
-    if (abierto(formato)) refrescarBotones();
-  });
-  /* EL BOTÓN NO SE QUEDA CON EL FOCO. Si el toque al botón le quitara el
-     foco a la nota, en el teléfono se cerraría el teclado a cada negrita. Se
-     cancela el gesto por defecto al apoyar el dedo —que es lo que mueve el
-     foco— y el clic llega igual. */
-  formato.addEventListener('pointerdown', ev => { if (ev.target.closest('.nota-orden')) ev.preventDefault(); });
-  formato.addEventListener('mousedown', ev => { if (ev.target.closest('.nota-orden')) ev.preventDefault(); });
-  formato.addEventListener('click', ev => {
-    const b = ev.target.closest('.nota-orden'); if (!b) return;
-    const ed = editorVivo(); if (!ed) return;
-    if (b.dataset.orden === 'foto'){ elegirFoto.click(); return; }
-    ponerCursor(ed);
+  const tocarEnFormato = ev => {
+    if (!abierto(formato)) return false;
+    const ed = ev.target.closest && ev.target.closest('.nota-editor');
+    if (!ed || ed !== editorVivo()) return false;
+    const p = palabraEn(ed, ev.clientX, ev.clientY);
+    if (!p) return true;
+    if (ancla && marcado && marcado.ini === ancla.ini && marcado.fin === ancla.fin){
+      if (p.ini === ancla.ini && p.fin === ancla.fin) marcado = null;
+      else marcado = { ini:Math.min(ancla.ini, p.ini), fin:Math.max(ancla.fin, p.fin) };
+      ancla = null;
+    } else { marcado = p; ancla = p; }
+    pintarMarcado(); refrescarBotones();
+    return true;
+  };
+  const sinMarca = () => {
+    readout.textContent = T('primero toca una palabra de la nota', 'first tap a word in the note');
+  };
+
+  /* LAS ÓRDENES DEL NAVEGADOR —negrita, cursiva, subrayado y las listas—
+     necesitan un recuadro que se pueda escribir, y una selección dentro. Se
+     le da las dos cosas solo durante la orden y se le quitan al terminar: la
+     nota es escribible un instante, sin foco y con el teclado apagado por el
+     inputmode, y lo marcado vuelve a ser trazo. */
+  const ordenDelNavegador = (ed, orden) => {
+    const r = rangoDe(ed, marcado.ini, marcado.fin); if (!r) return;
+    const sel = getSelection();
+    ed.contentEditable = 'true';
+    sel.removeAllRanges(); sel.addRange(r);
     /* Etiquetas y no estilos: <b>, <i>, <u>. Es lo que pasa la limpieza; un
        <span style="font-weight:bold"> se quedaría sin su negrita al guardar. */
     try { document.execCommand('styleWithCSS', false, false); } catch(_){}
-    document.execCommand(b.dataset.orden, false, null);
-    refrescarBotones();
+    document.execCommand(orden, false, null);
+    /* Una lista puede mover dónde empieza y acaba lo marcado —le suma o le
+       quita renglones—: se lee de vuelta de la selección que deja. */
+    if (sel.rangeCount && ed.contains(sel.getRangeAt(0).commonAncestorContainer)){
+      const q = sel.getRangeAt(0);
+      const ini = q.startContainer.nodeType === 3 ? letraDe(ed, q.startContainer, q.startOffset) : null;
+      const fin = q.endContainer.nodeType === 3 ? letraDe(ed, q.endContainer, q.endOffset) : null;
+      if (ini !== null && fin !== null && fin > ini) marcado = { ini, fin };
+    }
+    sel.removeAllRanges();
+    ed.contentEditable = 'false';
+    if (document.activeElement === ed) ed.blur();
+  };
+  /* EL SPAN DE UN DATO, alrededor de cada trozo de texto marcado.
+
+     Cada trozo se SACA primero de cualquier span del mismo dato que lo
+     envuelva —partiéndolo en lo de antes, el trozo y lo de después— y
+     después se mete en el suyo. Así nunca hay un rojo dentro de un azul ni un
+     «más grande» dentro de otro, que se multiplicarían; y quitar el color de
+     media palabra roja deja roja la otra media. */
+  const partirAlrededor = (A, t, dato) => {
+    for (const [desde, hasta] of [[() => { const r = document.createRange(); r.setStart(A, 0); r.setEndBefore(t); return r; }, 'antes'],
+                                  [() => { const r = document.createRange(); r.setStartAfter(t); r.setEnd(A, A.childNodes.length); return r; }, 'despues']]){
+      const r = desde(); const trozo = r.extractContents();
+      if (!trozo.textContent && !trozo.querySelector('img')) continue;
+      const copia = A.cloneNode(false); copia.appendChild(trozo);
+      if (hasta === 'antes') A.before(copia); else A.after(copia);
+    }
+    A.removeAttribute(dato);
+    if (!A.attributes.length){ while (A.firstChild) A.before(A.firstChild); A.remove(); }
+  };
+  const valorEncima = (t, ed, dato) => {
+    for (let a = t.parentNode; a && a !== ed; a = a.parentNode)
+      if (a.tagName === 'SPAN' && a.hasAttribute(dato)) return a.getAttribute(dato);
+    return null;
+  };
+  const ponerDato = (ed, dato, nuevoValor) => {
+    const r = rangoDe(ed, marcado.ini, marcado.fin); if (!r) return;
+    const sc = r.startContainer, ec = r.endContainer;
+    let primero = sc;
+    if (sc === ec){
+      if (r.endOffset < sc.nodeValue.length) sc.splitText(r.endOffset);
+      if (r.startOffset > 0) primero = sc.splitText(r.startOffset);
+    } else {
+      if (r.endOffset < ec.nodeValue.length) ec.splitText(r.endOffset);
+      if (r.startOffset > 0) primero = sc.splitText(r.startOffset);
+    }
+    const ultimo = sc === ec ? primero : ec;
+    const todos = textosDe(ed);
+    const trozos = todos.slice(todos.indexOf(primero), todos.indexOf(ultimo) + 1)
+      .filter(t => t.nodeValue.length);
+    for (const t of trozos){
+      const nuevo = nuevoValor(valorEncima(t, ed, dato));
+      for (let a = t.parentNode; a && a !== ed; ){
+        const arriba = a.parentNode;
+        if (a.tagName === 'SPAN' && a.hasAttribute(dato)) partirAlrededor(a, t, dato);
+        a = arriba;
+      }
+      if (nuevo !== null){
+        const s = document.createElement('span'); s.setAttribute(dato, nuevo);
+        t.before(s); s.appendChild(t);
+      }
+    }
+    /* Dos spans iguales pegados son uno: que lo guardado no crezca a cada
+       toque de color sobre lo que ya tenía ese color. */
+    const firma = e => [...e.attributes].map(x => x.name + '=' + x.value).sort().join('&');
+    ed.querySelectorAll('span[' + dato + ']').forEach(s => {
+      if (!s.isConnected) return;
+      let v = s.nextSibling;
+      while (v && v.nodeType === 1 && v.tagName === 'SPAN' && firma(v) === firma(s)){
+        while (v.firstChild) s.appendChild(v.firstChild);
+        v.remove(); v = s.nextSibling;
+      }
+    });
+    ed.querySelectorAll('span').forEach(s => { if (!s.textContent && !s.querySelector('img, br')) s.remove(); });
+    ed.normalize();
+    ed.dispatchEvent(new Event('input', { bubbles:true }));
+  };
+
+  /* Los botones dicen cómo está lo marcado —negrita, lista…— con
+     aria-pressed, que el CSS pinta como botón hundido. Se mira el principio
+     de lo marcado, que es donde está mirando quien marcó. */
+  const refrescarBotones = () => {
+    const ed = editorVivo();
+    const r = ed && marcado ? rangoDe(ed, marcado.ini, marcado.fin) : null;
+    const nodo = r && r.startContainer;
+    const bajo = tags => { for (let a = nodo && nodo.parentNode; a && a !== ed; a = a.parentNode)
+      if (tags.includes(a.tagName)) return true; return false; };
+    const ESTADO = { bold:['B', 'STRONG'], italic:['I', 'EM'], underline:['U'],
+                     insertUnorderedList:['UL'], insertOrderedList:['OL'] };
+    formato.querySelectorAll('.nota-orden[aria-pressed]').forEach(b => {
+      b.setAttribute('aria-pressed', String(!!nodo && bajo(ESTADO[b.dataset.orden] || [])));
+    });
+    if (paletaViva){
+      const actual = nodo ? valorEncima(nodo, ed, PALETAS[paletaViva].dato) : null;
+      paleta.querySelectorAll('.nota-tinta').forEach(t =>
+        t.setAttribute('aria-pressed', String(!!nodo && (t.dataset.valor || null) === actual)));
+    }
+  };
+  /* DÓNDE ESTABA EL CURSOR antes de abrir la barra: es donde entra la foto
+     si no hay nada marcado. */
+  let rango = null;
+  document.addEventListener('selectionchange', () => {
+    const ed = editorVivo(); const sel = getSelection();
+    if (!ed || !sel.rangeCount || abierto(formato)) return;
+    const r = sel.getRangeAt(0);
+    if (!ed.contains(r.commonAncestorContainer)) return;
+    rango = r.cloneRange();
+  });
+  /* EL BOTÓN NO SE QUEDA CON EL FOCO, para que un toque a la barra no mueva
+     nada de sitio. Se cancela el gesto por defecto al apoyar el dedo —que es
+     lo que mueve el foco— y el clic llega igual. */
+  const esBoton = ev => ev.target.closest('.nota-orden, .nota-tinta');
+  formato.addEventListener('pointerdown', ev => { if (esBoton(ev)) ev.preventDefault(); });
+  formato.addEventListener('mousedown', ev => { if (esBoton(ev)) ev.preventDefault(); });
+  formato.addEventListener('click', ev => {
+    const ed = editorVivo(); if (!ed) return;
+    const tinta = ev.target.closest('.nota-tinta');
+    if (tinta){
+      if (!marcado){ sinMarca(); return; }
+      const pal = PALETAS[paletaViva]; if (!pal) return;
+      const valor = tinta.dataset.valor || null;
+      if (pal.dato === 'data-letra' && valor) pedirLetrasNota();
+      ponerDato(ed, pal.dato, () => valor);
+      ancla = null; pintarMarcado(); refrescarBotones();
+      return;
+    }
+    const b = ev.target.closest('.nota-orden'); if (!b) return;
+    const orden = b.dataset.orden;
+    if (orden === 'foto'){ elegirFoto.click(); return; }
+    if (b.dataset.paleta){ abrirPaleta(b.dataset.paleta); return; }
+    if (!marcado){ sinMarca(); return; }
+    if (orden === 'achicar' || orden === 'agrandar'){
+      const paso = orden === 'agrandar' ? 1 : -1;
+      ponerDato(ed, 'data-tam', actual => {
+        const i = Math.max(0, TAMANOS.indexOf(actual));
+        return TAMANOS[Math.min(TAMANOS.length - 1, Math.max(0, i + paso))];
+      });
+    } else ordenDelNavegador(ed, orden);
+    ancla = null; pintarMarcado(); refrescarBotones();
   });
   /* LA FOTO. Se achica para el teléfono, se guarda aparte —con su hueco de
-     respeto para las glosas— y solo entonces entra en la nota, donde estaba
-     el cursor. Si no cabe no entra: una foto que se ve en la nota pero no se
-     guardó desaparecería al recargar sin decir nada. */
+     respeto para las glosas— y solo entonces entra en la nota: detrás de lo
+     marcado, o donde estaba el cursor antes de abrir la barra, o al final.
+     Si no cabe no entra: una foto que se ve en la nota pero no se guardó
+     desaparecería al recargar sin decir nada. */
   let subiendo = false;
   elegirFoto.addEventListener('change', async () => {
     const archivo = elegirFoto.files && elegirFoto.files[0];
@@ -28151,18 +28554,14 @@ function armarManijasIndice(pagina, reordenar){
       if (!guardarFotoNueva(id, lista.datos)) return;
       /* La nota pudo cambiar mientras se achicaba la foto. */
       if (editorVivo() !== ed) return;
-      ponerCursor(ed);
-      const html = '<img data-foto="' + id + '" alt="" src="' + lista.datos + '">';
-      if (!document.execCommand('insertHTML', false, html) || !ed.querySelector('[data-foto="' + id + '"]')){
-        const img = document.createElement('img');
-        img.setAttribute('data-foto', id); img.alt = ''; img.src = lista.datos;
-        const sel = getSelection();
-        const r = sel.rangeCount && ed.contains(sel.getRangeAt(0).commonAncestorContainer)
-          ? sel.getRangeAt(0) : null;
-        if (r){ r.deleteContents(); r.insertNode(img); r.setStartAfter(img); r.collapse(true); }
-        else ed.appendChild(img);
-        ed.dispatchEvent(new Event('input', { bubbles:true }));
-      }
+      const img = document.createElement('img');
+      img.setAttribute('data-foto', id); img.alt = ''; img.src = lista.datos;
+      let r = marcado ? rangoDe(ed, marcado.ini, marcado.fin) : null;
+      if (r) r.collapse(false);
+      else if (rango && ed.contains(rango.commonAncestorContainer)){ r = rango.cloneRange(); r.collapse(false); }
+      if (r){ r.insertNode(img); } else ed.appendChild(img);
+      ed.dispatchEvent(new Event('input', { bubbles:true }));
+      pintarMarcado();
     } finally { subiendo = false; quitarBuscando(); }
   });
   verFormato.addEventListener('click', () => {
@@ -28170,7 +28569,20 @@ function armarManijasIndice(pagina, reordenar){
     if (activa === null) return;
     cerrarHistorial();
     deslizar(formato, true); verFormato.setAttribute('aria-expanded', 'true');
-    refrescarBotones();
+    ponerModo(true);
+    /* Lo que ya estaba seleccionado con el ratón entra marcado: en la
+       computadora se selecciona primero y se abre la barra después. */
+    const ed = editorVivo(), sel = getSelection();
+    if (ed && sel.rangeCount && !sel.isCollapsed && ed.contains(sel.getRangeAt(0).commonAncestorContainer)){
+      const q = sel.getRangeAt(0);
+      const ini = q.startContainer.nodeType === 3 ? letraDe(ed, q.startContainer, q.startOffset) : null;
+      const fin = q.endContainer.nodeType === 3 ? letraDe(ed, q.endContainer, q.endOffset) : null;
+      if (ini !== null && fin !== null && fin > ini) marcado = { ini, fin };
+    }
+    sel.removeAllRanges();
+    pintarMarcado(); refrescarBotones();
+    if (!marcado) readout.textContent = T('toca una palabra para marcarla, y otra para marcar lo de en medio',
+                                         'tap a word to mark it, and another to mark everything between');
   });
 
   const hojas = document.createElement('div');
@@ -28206,10 +28618,11 @@ function armarManijasIndice(pagina, reordenar){
   const seleccionar = (id, enfocar = false, demora = 0) => {
     activa = id;
     cerrarHistorial(); verGlosas.disabled = activa === null; registrarPendiente();
-    /* La barra se queda abierta al cambiar de nota —se sigue escribiendo—,
-       pero en el índice no hay nota a la que darle formato. */
+    /* La barra se queda abierta al cambiar de nota —se sigue dando formato,
+       ahora a la otra—, pero en el índice no hay nota a la que darle formato.
+       Lo marcado era de la nota de antes y se suelta. */
     verFormato.disabled = activa === null;
-    if (activa === null) cerrarFormato();
+    if (activa === null) cerrarFormato(); else soltarMarcado();
     tabIndice.classList.toggle('aqui', activa === null);
     tabIndice.setAttribute('aria-pressed', String(activa === null));
     indice.hidden = activa !== null;
@@ -28277,6 +28690,9 @@ function armarManijasIndice(pagina, reordenar){
       editor.addEventListener('drop', ev => ev.preventDefault());
       hoja.appendChild(editor); hojas.appendChild(hoja);
     });
+    /* Las hojas nuevas nacen como estén las demás: quietas si la barra está
+       abierta. */
+    ponerModo(abierto(formato));
     const mas = document.createElement('button');
     mas.type = 'button'; mas.className = 'nota-mas'; mas.textContent = '+';
     dosIdiomas(mas, { title: ['Añadir una nota', 'Add a note'], aria: ['Añadir una nota', 'Add a note'] });
@@ -28293,6 +28709,8 @@ function armarManijasIndice(pagina, reordenar){
     /* El título nace en el idioma de ahora y se queda: es del lector, como
        cualquier título que él escriba, y no cambia al cambiar de Biblia. */
     notas.push({ id, titulo:T('Nota ', 'Note ') + (notas.length + 1), texto:'', filtros:[] }); activa = id;
+    /* Una nota nueva es para escribirla: se sale del modo formato. */
+    if (abierto(formato)) cerrarFormato(false, true);
     guardarNotas(); pintar(true);
   };
   barra.addEventListener('click', ev => {
@@ -28318,6 +28736,22 @@ function armarManijasIndice(pagina, reordenar){
   }, { passive:false });
   if (typeof ResizeObserver === 'function')
     new ResizeObserver(() => movimiento.ajustar(barra.querySelector('.aqui'))).observe(barra);
+  /* LOS TOQUES DEL MODO FORMATO, ver «EL MODO FORMATO». El toque largo
+     marca y se come su menú; el click que a veces lo sigue —en el mismo
+     sitio y enseguida— se ignora, para que la misma palabra no se marque y
+     se suelte en un solo gesto. Un toque en OTRA palabra sí cuenta, por
+     pronto que llegue: es el segundo toque de marcar lo de en medio. */
+  hojas.addEventListener('contextmenu', ev => {
+    if (!abierto(formato) || !ev.target.closest('.nota-editor')) return;
+    ev.preventDefault();
+    if (tocarEnFormato(ev)) ultimoLargo = { t:performance.now(), x:ev.clientX, y:ev.clientY };
+  });
+  hojas.addEventListener('click', ev => {
+    if (!abierto(formato)) return;
+    const l = ultimoLargo; ultimoLargo = null;
+    if (l && performance.now() - l.t < 700 && Math.hypot(ev.clientX - l.x, ev.clientY - l.y) < 24) return;
+    if (tocarEnFormato(ev)) ev.preventDefault();
+  });
   pintar(false);
   reflejarNotas = () => pintar(false);
   encenderNotaViva = () => { registrarPendiente(); traerActiva(); };
