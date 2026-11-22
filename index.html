@@ -7476,7 +7476,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-NOV-26 09:08';
+window.GLOSS_BUILD = '22-NOV-26 09:13';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -28397,14 +28397,20 @@ function armarManijasIndice(pagina, reordenar){
     const r = document.createRange(); r.setStartAfter(a); r.setEndBefore(b);
     return !r.cloneContents().querySelector('br, img, div, p, li, ul, ol');
   };
-  /* El nodo de texto y la letra que hay bajo un punto de la pantalla. */
+  /* El nodo de texto y la letra que hay bajo un punto de la pantalla. Las
+     manijas se vuelven invisibles mientras se mira: cuelgan sobre el renglón
+     de abajo, y sin esto el punto caía en una manija y no en la letra. */
   const puntoEn = (ed, x, y) => {
     let nodo = null, off = 0;
-    if (document.caretPositionFromPoint){
-      const q = document.caretPositionFromPoint(x, y); if (q){ nodo = q.offsetNode; off = q.offset; }
-    } else if (document.caretRangeFromPoint){
-      const q = document.caretRangeFromPoint(x, y); if (q){ nodo = q.startContainer; off = q.startOffset; }
-    }
+    const encima = manijas ? manijas.filter(m => !m.hidden) : [];
+    encima.forEach(m => m.style.visibility = 'hidden');
+    try {
+      if (document.caretPositionFromPoint){
+        const q = document.caretPositionFromPoint(x, y); if (q){ nodo = q.offsetNode; off = q.offset; }
+      } else if (document.caretRangeFromPoint){
+        const q = document.caretRangeFromPoint(x, y); if (q){ nodo = q.startContainer; off = q.startOffset; }
+      }
+    } finally { encima.forEach(m => m.style.visibility = ''); }
     if (!nodo || nodo.nodeType !== 3 || !ed.contains(nodo)) return null;
     return { nodo, off };
   };
@@ -28504,10 +28510,23 @@ function armarManijasIndice(pagina, reordenar){
      marcar esa palabra —así dos toques de color seguidos no se pisan—. */
   const tocarEnFormato = ev => {
     if (!abierto(formato) || !estilo) return false;
-    const ed = ev.target.closest && ev.target.closest('.nota-editor');
+    /* Un toque que cae en una manija sin arrastrarla es un toque a la
+       palabra de debajo: la caja de la manija es grande para el dedo y
+       tapa el renglón siguiente. Lo cazó Codex. */
+    const ed = ev.target.closest && (ev.target.closest('.nota-editor') ||
+                                     (ev.target.closest('.nota-manija') && editorVivo()));
     if (!ed || ed !== editorVivo()) return false;
     const p = palabraEn(ed, ev.clientX, ev.clientY);
     if (!p) return true;
+    /* Pero solo si el dedo está de verdad encima de esa palabra. Bajo la
+       última línea no hay renglón, y el navegador da la letra más cercana:
+       sin esta cuenta, tocar la manija marcaba una palabra que no se tocó. */
+    if (ed !== ev.target.closest('.nota-editor')){
+      const r = rangoDe(ed, p.ini, p.fin);
+      const encima = r && [...r.getClientRects()].some(c =>
+        ev.clientX >= c.left - 2 && ev.clientX <= c.right + 2 && ev.clientY >= c.top - 2 && ev.clientY <= c.bottom + 2);
+      if (!encima) return true;
+    }
     if (ancla && marcado && p.ini === marcado.ini && p.fin === marcado.fin){ marcado = null; ancla = null; }
     else { marcado = p; ancla = p; }
     pintarMarcado(); refrescarBotones();
@@ -28955,13 +28974,19 @@ function armarManijasIndice(pagina, reordenar){
      se suelte en un solo gesto. Un toque en OTRA palabra sí cuenta, por
      pronto que llegue: marca esa otra. */
   hojas.addEventListener('contextmenu', ev => {
-    if (ev.target.closest('.nota-manija')){ ev.preventDefault(); return; }
+    if (ev.target.closest('.nota-manija')){
+      ev.preventDefault();
+      if (!(arrastre && arrastre.movido) && tocarEnFormato(ev)) ultimoLargo = { t:performance.now(), x:ev.clientX, y:ev.clientY };
+      return;
+    }
     if (!abierto(formato) || !estilo || !ev.target.closest('.nota-editor')) return;
     ev.preventDefault();
     if (tocarEnFormato(ev)) ultimoLargo = { t:performance.now(), x:ev.clientX, y:ev.clientY };
   });
   hojas.addEventListener('click', ev => {
     if (!abierto(formato) || !estilo) return;
+    /* El click que a veces sigue a un arrastre de manija no es un toque. */
+    if (ev.target.closest('.nota-manija') && performance.now() - finArrastre < 400) return;
     const l = ultimoLargo; ultimoLargo = null;
     if (l && performance.now() - l.t < 700 && Math.hypot(ev.clientX - l.x, ev.clientY - l.y) < 24) return;
     if (tocarEnFormato(ev)) ev.preventDefault();
@@ -28984,17 +29009,18 @@ function armarManijasIndice(pagina, reordenar){
      arreglo de la selección: un evento despachado a mano siempre llega, y el
      de un teléfono no. Un dedo que se mueve sobre una manija la arrastra
      igual, con o sin el pointerdown de antes. */
-  let arrastre = null;
+  let arrastre = null, finArrastre = -1e9;
   const empezarArrastre = (ev, m) => {
     const c = m.getBoundingClientRect(), alto = parseFloat(m.dataset.alto) || 20;
     const puntaX = parseFloat(m.style.left) + hojas.getBoundingClientRect().left;
-    arrastre = { punta:m.dataset.punta, id:ev.pointerId, dx:ev.clientX - puntaX,
+    arrastre = { punta:m.dataset.punta, id:ev.pointerId, x0:ev.clientX, y0:ev.clientY, dx:ev.clientX - puntaX,
                  dy:ev.clientY - c.top + alto / 2 };
     m.classList.add('arrastrando');
     try { m.setPointerCapture(ev.pointerId); } catch(_){}
   };
   const moverManija = (x, y) => {
     const ed = editorVivo(); if (!ed || !marcado) return;
+    arrastre.movido = true;
     const q = puntoEn(ed, x - arrastre.dx, y - arrastre.dy); if (!q) return;
     const letra = letraDe(ed, q.nodo, q.off); if (letra === null) return;
     const w = palabraEnNodo(ed, q.nodo, q.off);
@@ -29009,6 +29035,7 @@ function armarManijasIndice(pagina, reordenar){
   };
   const soltarManija = ev => {
     if (!arrastre || (ev && ev.pointerId !== arrastre.id)) return;
+    if (arrastre.movido) finArrastre = performance.now();
     arrastre = null;
     if (manijas) manijas.forEach(m => m.classList.remove('arrastrando'));
   };
@@ -29023,7 +29050,11 @@ function armarManijasIndice(pagina, reordenar){
         empezarArrastre(ev, m);
       }
       if (ev.pointerId !== arrastre.id) return;
-      ev.preventDefault(); moverManija(ev.clientX, ev.clientY);
+      ev.preventDefault();
+      /* Lo que tiembla un dedo al tocar no es arrastrar: hasta 6 px, la
+         manija no se mueve, y el toque sigue siendo un toque. */
+      if (!arrastre.movido && Math.hypot(ev.clientX - arrastre.x0, ev.clientY - arrastre.y0) < 6) return;
+      moverManija(ev.clientX, ev.clientY);
     });
     for (const fin of ['pointerup', 'pointercancel', 'lostpointercapture']) m.addEventListener(fin, soltarManija);
     return m;

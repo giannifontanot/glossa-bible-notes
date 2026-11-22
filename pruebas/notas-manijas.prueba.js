@@ -122,8 +122,10 @@ const negritas = p => p.evaluate(() =>
 
   titulo('tocar una manija no marca nada ni saca el menú');
   const antes = await marcado(p);
-  const deLaManija = await manija(p, 'ini');
-  await p.touchscreen.tap(Math.round(deLaManija.x), Math.round(deLaManija.y + 12));
+  /* La de detrás de «paz», que es lo último de la nota: debajo y a la derecha
+     no hay ninguna palabra, así que el toque solo da en la manija. */
+  const deLaManija = await manija(p, 'fin');
+  await p.touchscreen.tap(Math.round(deLaManija.x + 14), Math.round(deLaManija.y + 14));
   await p.waitForTimeout(150);
   vale('un toque en la manija deja lo marcado como estaba', await marcado(p) === antes, await marcado(p));
   const sinMenu = await p.evaluate(() => {
@@ -212,6 +214,34 @@ const negritas = p => p.evaluate(() =>
   vale('escribir vacía deshacer y rehacer: no se puede volver a antes de lo escrito',
        await boton(p, 'deshacer').isDisabled() && await boton(p, 'rehacer').isDisabled());
   vale('y lo escrito se queda', /seis siete$/.test(await editor.evaluate(e => e.innerText.trim())));
+
+  /* La caja de la manija es grande, para el dedo, y cae sobre la línea de
+     abajo. Un toque en una palabra de esa línea daba en la manija y no
+     marcaba nada (lo vio la revisión de la PR). Ahora la manija deja pasar
+     el toque a la palabra que tiene debajo. */
+  titulo('un toque en la palabra que tapa la manija la marca');
+  await verFormato.tap();
+  await p.locator('#notaFormato').waitFor({ state:'hidden', timeout:2000 });
+  await editor.tap();
+  await editor.fill('');
+  await p.keyboard.type('uno');
+  await p.keyboard.press('Enter');
+  await p.keyboard.type('dos');
+  await p.waitForTimeout(150);
+  await verFormato.tap(); await p.waitForTimeout(400);
+  await tocarPalabra(p, 'uno');
+  vale('marca «uno»', await marcado(p) === 'uno', await marcado(p));
+  const dos = await dondeEsta(p, 'dos');
+  const punto = { x:Math.round(dos.izq + 5), y:Math.round(dos.abajo - 6) };
+  const debajo = await p.evaluate(({ x, y }) => {
+    const e = document.elementFromPoint(x, y);
+    return e && e.closest('.nota-manija') ? 'manija' : (e ? e.className : '');
+  }, punto);
+  di('lo que hay bajo el dedo, encima de «dos»', debajo);
+  vale('el toque cae en la caja de la manija', debajo === 'manija', debajo);
+  await p.touchscreen.tap(punto.x, punto.y);
+  await p.waitForTimeout(150);
+  vale('y marca «dos», la palabra de debajo', await marcado(p) === 'dos', await marcado(p));
 
   await cerrar(sesion);
 })().catch(e => { console.error(e); process.exit(1); });
