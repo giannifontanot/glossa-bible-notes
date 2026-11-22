@@ -165,7 +165,7 @@ async function subirFoto(p, base64){
   vale('crece pasando por alturas de en medio, no de golpe', intermedios(alturas) >= 2, intermedios(alturas));
   vale('y termina abierta', alturas.at(-1) > 20 && alturas.at(-1) === Math.max(...alturas), alturas.at(-1));
   vale('el botón dice que está abierta', await formato.getAttribute('aria-expanded') === 'true');
-  vale('trae los trece botones', await p.locator('#notaFormato .nota-orden').count() === 13,
+  vale('trae los catorce botones', await p.locator('#notaFormato .nota-orden').count() === 14,
        await p.locator('#notaFormato .nota-orden').count());
   const renglones = await p.evaluate(() => [...document.querySelectorAll('#notaFormato .nota-renglon')]
     .map(r => [...r.querySelectorAll('.nota-grupo')].map(g =>
@@ -174,16 +174,27 @@ async function subirFoto(p, base64){
   vale('en dos renglones, como dijo el panel',
        renglones.length === 2 &&
        renglones[0] === 'deshacer rehacer | bold italic underline | resaltar colorear' &&
-       renglones[1] === 'achicar agrandar tipo | insertUnorderedList insertOrderedList | foto', JSON.stringify(renglones));
+       renglones[1] === 'brocha | achicar agrandar tipo | insertUnorderedList insertOrderedList | foto', JSON.stringify(renglones));
   const caben = await p.evaluate(() => [...document.querySelectorAll('#notaFormato .nota-renglon')].map(r => {
     const tops = new Set([...r.querySelectorAll('.nota-orden')].map(b => Math.round(b.getBoundingClientRect().top)));
-    const f = r.querySelector('[data-orden="foto"]'), u = r.querySelector('.nota-orden');
-    return { lineas:tops.size, fotoALaDerecha: !f || f.getBoundingClientRect().right > r.getBoundingClientRect().right - 2,
-             primeroALaIzquierda: u.getBoundingClientRect().left - r.getBoundingClientRect().left < 2 };
+    const bs = [...r.querySelectorAll('.nota-orden')], u = bs[0], z = bs.at(-1), caja = r.getBoundingClientRect();
+    /* Los huecos entre lo que hay en el renglón —grupo, rayita, grupo…— */
+    const hijos = [...r.children].map(h => h.getBoundingClientRect());
+    const huecos = hijos.slice(1).map((h, i) => Math.round((h.left - hijos[i].right) * 10) / 10);
+    return { lineas:tops.size, ancho:Math.round(caja.width), huecos,
+             primeroALaIzquierda: u.getBoundingClientRect().left - caja.left < 2,
+             ultimoALaDerecha: caja.right - z.getBoundingClientRect().right < 2 };
   }));
   vale('cada renglón cabe entero en el teléfono, sin partirse', caben.every(c => c.lineas === 1), JSON.stringify(caben));
-  vale('deshacer a la izquierda y la foto sola a la derecha',
-       caben.every(c => c.primeroALaIzquierda && c.fotoALaDerecha), JSON.stringify(caben));
+  /* Repartidos a lo ancho, lo eligió Gianni: los dos renglones del mismo
+     ancho, de orilla a orilla, y el mismo hueco entre grupos. */
+  vale('repartidos: cada renglón va de la orilla izquierda a la derecha',
+       caben.every(c => c.primeroALaIzquierda && c.ultimoALaDerecha), JSON.stringify(caben));
+  vale('los dos renglones miden lo mismo', caben.length === 2 && caben[0].ancho === caben[1].ancho, JSON.stringify(caben));
+  vale('dentro de cada renglón, el mismo hueco a cada lado de cada rayita',
+       caben.every(c => Math.max(...c.huecos) - Math.min(...c.huecos) <= 1.5), JSON.stringify(caben.map(c => c.huecos)));
+  vale('(la prueba es válida) los huecos son más que el mínimo: de verdad se repartieron',
+       caben.every(c => Math.min(...c.huecos) > 5), JSON.stringify(caben.map(c => c.huecos)));
   vale('ya no hay interruptor «Estilo»: el lápiz lo es',
        await p.locator('#notaFormato .nota-interruptor').count() === 0);
   m = muestrear(p, '#notaFormato');

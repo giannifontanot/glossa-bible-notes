@@ -4522,7 +4522,7 @@
   /* SIN NADA MARCADO, los botones de dar formato se ven apagados: dicen sin
      palabras «primero marca algo». La foto no, que entra igual. Siguen
      tocándose —y un toque lo dice con palabras, en la línea de avisos—. */
-  .nota-formato.sin-marca .nota-orden:not([data-orden="foto"]):not([data-paleta]):not([data-orden="deshacer"]):not([data-orden="rehacer"]),
+  .nota-formato.sin-marca .nota-orden:not([data-orden="foto"]):not([data-paleta]):not([data-orden="deshacer"]):not([data-orden="rehacer"]):not([aria-pressed="true"]),
   .nota-formato.sin-marca .nota-tinta{ opacity:.45; }
   /* Deshacer y rehacer, sin nada que deshacer o rehacer. */
   .nota-orden:disabled{ opacity:.3; cursor:default; }
@@ -4532,19 +4532,24 @@
      preguntó a un panel —uno de uso en el teléfono, uno de diseño y uno de
      accesibilidad— y coincidieron: arriba lo que se usa sobre la palabra
      marcada (deshacer y rehacer, B I U, resaltar y color), abajo tamaño y
-     letra, las listas, y la foto sola a la derecha, que no da estilo sino
-     que añade. Cada grupo con su rayita fina entre medias, botones de 40 px
+     letra, las listas, y la foto al final, que no da estilo sino que añade.
+     Después llegó la brocha de copiar formato, al principio del de abajo. Cada grupo con su rayita fina entre medias, botones de 40 px
      y un respiro entre renglones. */
   .nota-formato{ flex-direction:column; align-items:stretch; flex-wrap:nowrap; overflow-x:visible;
     gap:6px; padding:6px 8px; }
-  .nota-renglon{ display:flex; flex-wrap:wrap; align-items:center; row-gap:4px; }
+  /* REPARTIDOS A LO ANCHO, lo eligió Gianni. Se le propuso centrarlos y no:
+     los dos renglones tienen distintos grupos, y centrados quedaban de
+     anchos distintos, chuecos. Repartidos, los dos ocupan toda la barra, el
+     primer botón en la orilla izquierda y el último en la derecha, y el
+     hueco entre grupos —con su rayita en medio— es el mismo dentro de cada
+     renglón. El gap es el mínimo, para que en un teléfono angosto no se
+     toquen. */
+  .nota-renglon{ display:flex; flex-wrap:nowrap; align-items:center; justify-content:space-between; gap:5px; }
   .nota-grupo{ display:flex; align-items:center; gap:4px; }
-  .nota-grupo + .nota-grupo::before{ content:''; flex:0 0 1px; height:22px; margin:0 3px 0 5px;
-    background:rgba(140,116,68,.3); }
-  .nota-grupo[data-grupo="foto"]{ margin-left:auto; }
-  .nota-grupo[data-grupo="foto"]::before{ display:none; }
+  .nota-raya{ flex:0 0 1px; height:22px; background:rgba(140,116,68,.3); }
   .nota-renglon .nota-orden{ flex-basis:40px; width:40px; height:40px; }
-  @media (max-width:359px){ .nota-renglon .nota-orden{ flex-basis:36px; width:36px; height:36px; } }
+  @media (max-width:359px){ .nota-renglon .nota-orden{ flex-basis:36px; width:36px; height:36px; }
+                            .nota-renglon{ gap:3px; } }
   /* La paleta abre como tercer renglón. En la barra de antes —en fila— su
      flex:1 0 100% era «todo el ancho»; ahora la barra va en columna, y ese
      100% sería del alto: la paleta no contaba en lo que mide la barra y se
@@ -7474,7 +7479,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '22-NOV-26 15:17';
+window.GLOSS_BUILD = '22-NOV-26 16:22';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -28077,7 +28082,9 @@ function armarManijasIndice(pagina, reordenar){
   const cerrarFormato = (enfocar = false, alInstante = false) => {
     if (abierto(formato) || alInstante) deslizar(formato, false, alInstante);
     verFormato.setAttribute('aria-expanded', 'false');
-    /* Cerrar la barra es salir del modo formato: la nota se vuelve a escribir. */
+    /* Cerrar la barra es salir del modo formato: la nota se vuelve a escribir.
+       Y la brocha se suelta: con la nota escribiéndose no hay qué pintar. */
+    brocha = null; formato.querySelector('[data-orden="brocha"]').setAttribute('aria-pressed', 'false');
     soltarMarcado(); cerrarPaleta(); ponerModo(false);
     if (enfocar) verFormato.focus({ preventScroll:true });
   };
@@ -28205,6 +28212,12 @@ function armarManijasIndice(pagina, reordenar){
     { orden:'colorear', es:'Color de la letra', en:'Text color', paleta:'color',
       cara:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6.5 17 5.5-13 5.5 13M8.5 12.5h7"/>' +
            '<rect class="barra-tinta" x="3" y="20" width="18" height="2.6" rx="1"/></svg>' },
+    /* LA BROCHA, como la de Word: copia el estilo de lo marcado y lo pone en
+       cada palabra que se toca, hasta que se vuelve a tocar. El dibujo es un
+       rodillo, que en un botón de 22 px se lee mejor que un pincel. */
+    { orden:'brocha', es:'Copiar formato', en:'Copy formatting',
+      cara:'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="3" width="13" height="5.5" rx="1.2"/>' +
+           '<path d="M17 5.75h2.5v5H11.5v2.5"/><rect x="10" y="13.25" width="3" height="7.5" rx="1"/></svg>' },
     { orden:'achicar', es:'Letra más chica', en:'Smaller text', cara:'<span class="cara-tam chica">A</span>' },
     { orden:'agrandar', es:'Letra más grande', en:'Bigger text', cara:'<span class="cara-tam grande">A</span>' },
     { orden:'tipo', es:'Tipo de letra', en:'Font', paleta:'letra', cara:'<span class="cara-tipo">Aa</span>' },
@@ -28248,20 +28261,31 @@ function armarManijasIndice(pagina, reordenar){
     [ { grupo:'deshacer', es:'Deshacer y rehacer', en:'Undo and redo', ordenes:['deshacer', 'rehacer'] },
       { grupo:'letra', es:'Negrita, cursiva y subrayado', en:'Bold, italic and underline', ordenes:['bold', 'italic', 'underline'] },
       { grupo:'color', es:'Color', en:'Color', ordenes:['resaltar', 'colorear'] } ],
-    [ { grupo:'tamano', es:'Tamaño y tipo de letra', en:'Size and font', ordenes:['achicar', 'agrandar', 'tipo'] },
+    /* La brocha abre el renglón de abajo, en su propio grupo y debajo de
+       deshacer: es donde Word la tiene —junto a lo de copiar y pegar— y deja
+       siete botones en cada renglón, que repartidos a lo ancho quedan
+       parejos. */
+    [ { grupo:'copiar', es:'Copiar formato', en:'Copy formatting', ordenes:['brocha'] },
+      { grupo:'tamano', es:'Tamaño y tipo de letra', en:'Size and font', ordenes:['achicar', 'agrandar', 'tipo'] },
       { grupo:'listas', es:'Listas', en:'Lists', ordenes:['insertUnorderedList', 'insertOrderedList'] },
       { grupo:'foto', es:'Foto', en:'Photo', ordenes:['foto'] } ]
   ];
   const grupoDe = {};
   for (const renglon of RENGLONES){
     const r = document.createElement('div'); r.className = 'nota-renglon';
-    for (const g of renglon){
+    renglon.forEach((g, i) => {
+      /* La rayita entre grupos es un elemento y no un ::before del grupo:
+         con los grupos repartidos a lo ancho, un elemento de por medio queda
+         justo en el centro del hueco; un ::before se quedaba pegado al grupo
+         de su derecha. */
+      if (i){ const raya = document.createElement('span'); raya.className = 'nota-raya';
+        raya.setAttribute('aria-hidden', 'true'); r.appendChild(raya); }
       const caja = document.createElement('div');
       caja.className = 'nota-grupo'; caja.dataset.grupo = g.grupo; caja.setAttribute('role', 'group');
       dosIdiomas(caja, { aria:[g.es, g.en] });
       g.ordenes.forEach(o => grupoDe[o] = caja);
       r.appendChild(caja);
-    }
+    });
     formato.appendChild(r);
   }
   for (const o of ORDENES){
@@ -28343,10 +28367,9 @@ function armarManijasIndice(pagina, reordenar){
      palabras de las que yo elegí». Ahora cada toque marca su palabra y nada
      más, y para marcar de más están las manijas, como en cualquier teléfono.
 
-     EL INTERRUPTOR «ESTILO», dentro de la barra, dice en qué modo se está sin
-     tener que mirar el lápiz: encendido es lo de arriba; apagado, la nota se
-     escribe normal con la barra abierta. Al abrir la barra nace encendido,
-     como pidió Gianni.
+     EL LÁPIZ ES EL INTERRUPTOR: barra abierta, se da estilo a toques; barra
+     cerrada, se escribe. Hubo un interruptor «Estilo» dentro de la barra, y
+     Gianni lo quitó porque decía lo mismo dos veces.
 
      Lo marcado no es una selección del navegador —sería otra vez el menú—
      sino un trazo pintado con la misma herramienta que el pincel de la
@@ -28367,6 +28390,8 @@ function armarManijasIndice(pagina, reordenar){
      ningún menú, y se marca con él.
      ============================================================ */
   let marcado = null, ancla = null, ultimoLargo = null, manijas = null;
+  /* El estilo que lleva la brocha mientras está puesta (ver «LA BROCHA»). */
+  let brocha = null;
   const textosDe = ed => {
     const w = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
     const r = []; for (let n = w.nextNode(); n; n = w.nextNode()) r.push(n);
@@ -28545,6 +28570,15 @@ function armarManijasIndice(pagina, reordenar){
       if (ed === ev.target.closest('.nota-editor') && marcado){ cerrarPaleta(); soltarMarcado(); refrescarBotones(); }
       return true;
     }
+    /* Con la brocha puesta, el toque pinta: la palabra se marca y recibe el
+       estilo copiado. No se suelta con un segundo toque —volver a pintarla
+       no le hace nada—, que la brocha se suelta en su botón. */
+    if (brocha){
+      marcado = p; ancla = null;
+      conDeshacer(ed, () => pintarConBrocha(ed));
+      pintarMarcado(); refrescarBotones();
+      return true;
+    }
     if (ancla && marcado && p.ini === marcado.ini && p.fin === marcado.fin){ marcado = null; ancla = null; }
     else { marcado = p; ancla = p; }
     pintarMarcado(); refrescarBotones();
@@ -28691,6 +28725,57 @@ function armarManijasIndice(pagina, reordenar){
     ed.dispatchEvent(new Event('input', { bubbles:true }));
   };
 
+  /* LA BROCHA. Lo pidió Gianni como la de Word: se marca una palabra con el
+     estilo que gusta, se toca la brocha, y cada palabra que se toca después
+     sale con ese estilo, hasta que se vuelve a tocar la brocha.
+
+     Se copia el estilo DE LA LETRA —negrita, cursiva, subrayado, resaltado,
+     color, tamaño y tipo—, leído al principio de lo marcado, que es lo mismo
+     que enseñan los botones hundidos. Las listas no: son del renglón entero,
+     y pintar una palabra no debe meter su renglón en una lista.
+
+     Pintar es PONER EXACTAMENTE ESE ESTILO, no sumarlo: lo que la palabra
+     tuviera de más se le quita. Copiar de una palabra sin nada y pintar una
+     en negrita y amarilla la deja sin nada, como en Word. Cada palabra
+     pintada es un paso de deshacer. */
+  const ETIQUETAS_BROCHA = { bold:['B', 'STRONG'], italic:['I', 'EM'], underline:['U'] };
+  const DATOS_BROCHA = ['data-resalte', 'data-color', 'data-tam', 'data-letra'];
+  const bajoEtiqueta = (t, ed, tags) => {
+    for (let a = t.parentNode; a && a !== ed; a = a.parentNode) if (tags.includes(a.tagName)) return true;
+    return false;
+  };
+  const trozosMarcados = ed => {
+    const r = marcado && rangoDe(ed, marcado.ini, marcado.fin);
+    return r ? textosDe(ed).filter(t => t.nodeValue.length && r.intersectsNode(t)) : [];
+  };
+  const copiarEstilo = ed => {
+    const r = rangoDe(ed, marcado.ini, marcado.fin); if (!r) return null;
+    const t = r.startContainer, estilo = {};
+    for (const [orden, tags] of Object.entries(ETIQUETAS_BROCHA)) estilo[orden] = bajoEtiqueta(t, ed, tags);
+    for (const dato of DATOS_BROCHA) estilo[dato] = valorEncima(t, ed, dato);
+    return estilo;
+  };
+  /* Negrita, cursiva y subrayado se ponen y se quitan con la orden del
+     navegador, que da la vuelta: pone si falta en algún trozo, quita si está
+     en todos. Por eso se mira antes y después, y se repite una vez: un trozo
+     a medias en negrita que se quiere sin ella pasa primero a todo negrita y
+     luego a nada. */
+  const ponerEtiqueta = (ed, orden, quiero) => {
+    const tags = ETIQUETAS_BROCHA[orden];
+    const como = () => { const ts = trozosMarcados(ed), bajo = ts.filter(t => bajoEtiqueta(t, ed, tags)).length;
+      return !ts.length ? quiero : bajo === ts.length ? true : bajo ? null : false; };
+    for (let k = 0; k < 2 && como() !== quiero; k++) ordenDelNavegador(ed, orden);
+  };
+  const pintarConBrocha = ed => {
+    for (const orden of Object.keys(ETIQUETAS_BROCHA)) ponerEtiqueta(ed, orden, brocha[orden]);
+    for (const dato of DATOS_BROCHA){
+      if (brocha[dato] && dato === 'data-letra') pedirLetrasNota();
+      ponerDato(ed, dato, () => brocha[dato]);
+    }
+  };
+  const AYUDA_BROCHA = ['toca las palabras que quieras con ese estilo; toca la brocha otra vez para terminar',
+                       'tap the words you want in that style; tap the brush again to stop'];
+
   /* Los botones dicen cómo está lo marcado —negrita, lista…— con
      aria-pressed, que el CSS pinta como botón hundido. Se mira el principio
      de lo marcado, que es donde está mirando quien marcó. */
@@ -28703,7 +28788,8 @@ function armarManijasIndice(pagina, reordenar){
     const ESTADO = { bold:['B', 'STRONG'], italic:['I', 'EM'], underline:['U'],
                      insertUnorderedList:['UL'], insertOrderedList:['OL'] };
     formato.querySelectorAll('.nota-orden[aria-pressed]').forEach(b => {
-      b.setAttribute('aria-pressed', String(!!nodo && bajo(ESTADO[b.dataset.orden] || [])));
+      b.setAttribute('aria-pressed', String(b.dataset.orden === 'brocha' ? !!brocha
+                                            : !!nodo && bajo(ESTADO[b.dataset.orden] || [])));
     });
     if (paletaViva){
       const actual = nodo ? valorEncima(nodo, ed, PALETAS[paletaViva].dato) : null;
@@ -28769,6 +28855,19 @@ function armarManijasIndice(pagina, reordenar){
       return;
     }
     if (b.dataset.paleta){ abrirPaleta(b.dataset.paleta); return; }
+    if (orden === 'brocha'){
+      if (brocha){ brocha = null; readout.textContent = T(...AYUDA_MARCAR); }
+      else {
+        if (!marcado){ sinMarca(); return; }
+        brocha = copiarEstilo(ed); if (!brocha) return;
+        /* Se suelta lo marcado: lo que se toque ahora se pinta, y la palabra
+           de donde salió el estilo no tiene por qué seguir marcada. */
+        cerrarPaleta(); soltarMarcado();
+        readout.textContent = T(...AYUDA_BROCHA);
+      }
+      refrescarBotones();
+      return;
+    }
     if (!marcado){ sinMarca(); return; }
     if (orden === 'achicar' || orden === 'agrandar'){
       const paso = orden === 'agrandar' ? 1 : -1;
@@ -29044,6 +29143,10 @@ function armarManijasIndice(pagina, reordenar){
   const soltarManija = ev => {
     if (!arrastre || (ev && ev.pointerId !== arrastre.id)) return;
     if (arrastre.movido) finArrastre = performance.now();
+    /* Con la brocha puesta, lo que se estira con la manija se pinta al soltar,
+       igual que en Word se pinta lo que se selecciona. */
+    const ed = editorVivo();
+    if (arrastre.movido && brocha && marcado && ed){ conDeshacer(ed, () => pintarConBrocha(ed)); pintarMarcado(); refrescarBotones(); }
     arrastre = null;
     if (manijas) manijas.forEach(m => m.classList.remove('arrastrando'));
   };
