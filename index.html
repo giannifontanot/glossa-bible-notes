@@ -985,6 +985,18 @@
         animation:luzFija 1s linear infinite;
         will-change:rotate; }
   @keyframes luzFija{ from{ rotate:0deg; } to{ rotate:-360deg; } }
+  /* LAS CUATRO DE LA COLA, SIN BRILLO. Lo vio Gianni: «los últimos
+     circulitos no se ven porque tienen el brillo que se confunde con… el
+     sepia del fondo». Lo que se veía de ellas era la chispa crema, y la chispa
+     es casi del color del papel; achicadas y apagadas como van, no quedaba
+     bronce alrededor que las recortara. Pidió un panel que dijera cuántas, y
+     el panel dijo cuatro: de la quinta a la octava, que son las que bajan de
+     .52 de opacidad y de 10 px de tamaño. Las cuatro de delante son lo bastante
+     grandes y enteras para que la chispa se lea como brillo; las de atrás no.
+     A estas solo les queda el cuerpo, en el bronce hondo, que sí se distingue
+     del papel. */
+  #buscando .bolitas i:nth-child(n+5)::before{
+        background:radial-gradient(circle at 50% 32%, #8a5a1c 0, #5e3a12 100%); }
   #buscando .bolitas i:nth-child(1){ --luz:0deg; }
   #buscando .bolitas i:nth-child(2){ --luz:45deg; }
   #buscando .bolitas i:nth-child(3){ --luz:90deg; }
@@ -7622,7 +7634,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 07:06';
+window.GLOSS_BUILD = '23-NOV-26 07:15';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
