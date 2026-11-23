@@ -134,56 +134,34 @@
      hay medio segundo de tapa desvaneciéndose delante de quien acaba de
      estar aquí. Ver portadaDePaso. */
   #portada.de-paso{ transition:none; }
-  /* LOS DOS NOMBRES VAN EN BRONCE, metido DENTRO de las letras con
-     background-clip:text. Primero fue el dorado claro de Go Epic (#f5d77a a
-     #c9a227) y Gianni lo vio en su teléfono: «no se aprecia absolutamente
-     nada… ese dorado es demasiado claro. Si pudiéramos hacer un dorado que
-     pareciera un bronce oscuro». Aquí va la parte más clara del bronce
-     —#d9a24a a #9a6424— porque la letra va sobre la mesa café, y el bronce
-     más hondo se fundiría con ella; en la hoja, con el papel claro detrás,
-     va el bronce oscuro (ver los rótulos).
-
+  /* LOS DOS NOMBRES VUELVEN A SU CREMA SEPIA, CON UN FILO DE LUZ QUIETO.
+     Estuvieron en oro y luego en bronce, metido dentro de las letras con
+     background-clip:text y una franja de brillo en medio. Gianni lo vio y no:
+     «no me gusta nadita el bronce… ese brillo es demasiado. Solamente pone
+     brillo en el mero bordecito… Regresa las letras como estaban. Y con el
+     mismo tono sepia». Así que el color y la sombra son otra vez los de antes
+     del oro, y lo único nuevo es el filo: un text-shadow crema claro corrido
+     medio píxel hacia arriba y a la izquierda, como luz que entra por la
+     esquina superior izquierda («el brillito empieza en la esquina superior
+     izquierda… se queda quieto»). Va primero en la lista para que quede
+     encima de la sombra oscura de abajo. Nada se mueve.
      LA LETRA SE QUEDA: Georgia en versales espaciadas. Se miró la Cinzel
      Decorative de Go Epic y no: es la marca de otra casa, y traerla aquí
-     sería un archivo más que bajar antes de que la portada pueda pintarse,
-     que es justo lo que esta tapa no puede permitirse.
-
-     LA SOMBRA ES UN FILTRO Y NO UN text-shadow, y esto no es gusto. Con el
-     relleno en el fondo, el text-shadow se pinta ENCIMA del oro —el fondo va
-     antes que el texto, y la sombra es del texto— y lo apaga entero. El
-     drop-shadow se calcula sobre lo ya pintado, o sea sobre las letras de oro,
-     y queda debajo como debe. El color de antes se queda como red: quien no
-     sepa recortar el fondo a la letra sigue viendo el crema dorado. */
+     sería un archivo más que bajar antes de que la portada pueda pintarse. */
   #portada .portada-marca{
     font-family:Georgia, 'Palatino Linotype', 'Times New Roman', serif;
     font-weight:700; font-size:clamp(2.1rem, 9vw, 3.6rem);
     letter-spacing:.22em; text-transform:uppercase;
-    color:#e8d5a3;
+    color:#e8d5a3; text-shadow:-0.6px -0.6px 0 rgba(255,246,222,.55),
+                               0 2px 0 rgba(0,0,0,.35),
+                               0 0 28px rgba(201,162,39,.18);
     margin:0; line-height:1.15; text-align:center; }
+  /* El chico, con un filo más tenue: es el subtítulo y va más apagado. */
   #portada .portada-sub{
     font-family:var(--ui); font-size:clamp(.72rem, 2.4vw, .9rem);
     letter-spacing:.28em; text-transform:uppercase;
-    color:#d8c08a; margin:0; }
-  @supports ((-webkit-background-clip:text) or (background-clip:text)){
-    /* UNA FRANJA DE LUZ QUIETA EN MEDIO. Lo pidió Gianni: «¿dónde está el
-       brillo de las letras?… no lo veo». El bronce iba solo de claro a
-       oscuro, y así se ve plano, como pintura. El metal se reconoce por el
-       reflejo: una banda angosta, casi blanca y cálida, entre dos bronces.
-       Quieta («franja quieta»), sin animación. Los extremos no bajan de
-       #a06a28, que sobre la mesa café se sigue leyendo con la sombra de
-       abajo. */
-    #portada .portada-marca, #portada .portada-sub{
-      background-image:linear-gradient(100deg, #a06a28, #c08638 32%, #e8c27a 44%,
-                                       #fff1cf 50%, #e8c27a 56%, #c08638 68%, #a06a28);
-      -webkit-background-clip:text; background-clip:text;
-      color:transparent; -webkit-text-fill-color:transparent; }
-    #portada .portada-marca{
-      filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))
-             drop-shadow(0 0 14px rgba(176,122,42,.25)); }
-    /* El chico, sin halo y un punto más quieto: es el subtítulo. */
-    #portada .portada-sub{ opacity:.82;
-      filter:drop-shadow(0 1px 0 rgba(0,0,0,.35)); }
-  }
+    color:rgba(238,231,216,.55); margin:0;
+    text-shadow:-0.5px -0.5px 0 rgba(255,246,222,.3); }
 
   /* ===== LA PORTADA QUE SE DECORA ===================================== */
 
@@ -7678,7 +7656,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 07:50';
+window.GLOSS_BUILD = '23-NOV-26 07:55';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
