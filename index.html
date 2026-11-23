@@ -923,78 +923,29 @@
      letra y contra el panel. Sin filo se perdía sobre el sepia. Es una
      sombra quieta, así que no le pide nada al compositor.
 
-     Y AHORA SON ESFERAS DE ORO, pedido por Gianni: «ese spinner me encantaría
-     verlo dorado, pero fíjate que esas bolitas, en cada momento que cambien de
-     posición, el dorado también cambiaría de posición». Eligió LUZ FIJA ARRIBA:
-     gire lo que gire el corro, el brillo de cada bolita mira siempre al techo
-     de la pantalla, como una perla de verdad bajo una lámpara.
+     Luego fueron ESFERAS: primero de oro y después del bronce de las
+     esquinas, con una chispa de luz fija arriba que giraba al revés que el
+     corro para quedarse quieta, y sin brillo en las cuatro de la cola porque
+     ahí la chispa se confundía con el sepia del papel.
 
-     Cómo se consigue sin animar más que transform: la bolita es un disco de
-     oro liso —eso es simétrico, girarlo no cambia nada— y el brillo y la
-     sombra van en su ::before, que gira AL REVÉS que el corro. Cada bolita
-     lleva su ángulo de partida en --luz (lo contrario del rotate con que se
-     coloca), puesto en transform, y la vuelta en contra va en la propiedad
-     `rotate`, que se suma a transform. Las dos animaciones duran lo mismo,
-     son lineales y arrancan en el mismo cuadro, así que la suma da cero en
-     todo momento: el brillo no se mueve de arriba. Las nueve las lleva el
-     compositor, como antes la una.
-
-     SIN FILO Y EN BRONCE. Llevaron un filo casi negro y un oro claro, y
-     Gianni dijo que no se apreciaba nada: «hay que quitarle el filito negro»
-     y que el dorado pareciera «un bronce oscuro». El bronce no necesita filo
-     sobre el crema: su borde de abajo ya es casi café, y eso lo recorta. */
+     Y AL FINAL, LISAS. A Gianni las esferas le parecieron de mal gusto: «el
+     spinner no se ve bien». En algo tan chico y tan rápido, dos clases de
+     bolita se leen como un error y no como un adorno, y el brillo de joya
+     no va con una app de papel y tinta. Se quedan las ocho LISAS, de un solo
+     bronce hondo y plano —el tono oscuro de la receta de las esquinas—, sin
+     degradado ni brillo, y con eso se van también el ::before y su giro en
+     contra. Lo que hace leer la vuelta sigue igual: el corro que gira y la
+     cola que se achica y se apaga. La primera línea del fondo es la red para
+     quien no entienda color-mix. */
   #buscando .bolitas{ position:absolute; left:50%; top:50%;
                       width:72px; height:72px; margin:-36px 0 0 -36px;
                       animation:giroBuscando 1s linear infinite;
                       will-change:transform; }
   #buscando .bolitas i{ position:absolute; left:50%; top:50%;
                         width:14px; height:14px; margin:-7px 0 0 -7px;
-                        border-radius:50%; background:#9a6424; }
-  /* EL BRILLO Y LA SOMBRA. Dos degradados redondos: el de arriba es la
-     chispa blanca de la lámpara, el de abajo es el cuerpo de la esfera, claro
-     arriba y hondo abajo. La luz cae a 50% 28%, o sea arriba del centro. */
-  #buscando .bolitas i::before{ content:''; position:absolute; inset:0;
-        border-radius:50%;
-        /* EL MISMO BRONCE DE LAS CUATRO ESFERITAS DE LAS ESQUINAS, receta
-           entera: Gianni vio que estas seguían doradas —#e0a955 arriba— y
-           las de las esquinas ya eran bronce. Misma chispa, mismo cuerpo
-           sacado de #9a6424 con color-mix. La primera línea es la red para
-           quien no entienda color-mix. */
-        background:radial-gradient(circle at 50% 32%, #b8823e 0, #9a6424 45%, #5e3a12 100%);
-        background:radial-gradient(circle at 50% 24%, rgba(255,236,196,.9) 0,
-                                   rgba(255,222,160,.35) 24%, rgba(255,222,160,0) 44%),
-                   radial-gradient(circle at 50% 32%,
-                                   color-mix(in srgb, #9a6424 60%, #ffd896) 0,
-                                   #9a6424 45%,
-                                   color-mix(in srgb, #9a6424 55%, #2a1806) 100%);
-        transform:rotate(var(--luz, 0deg));
-        animation:luzFija 1s linear infinite;
-        will-change:rotate; }
-  @keyframes luzFija{ from{ rotate:0deg; } to{ rotate:-360deg; } }
-  /* LAS CUATRO DE LA COLA, SIN BRILLO. Lo vio Gianni: «los últimos
-     circulitos no se ven porque tienen el brillo que se confunde con… el
-     sepia del fondo». Lo que se veía de ellas era la chispa crema, y la chispa
-     es casi del color del papel; achicadas y apagadas como van, no quedaba
-     bronce alrededor que las recortara. Pidió un panel que dijera cuántas, y
-     el panel dijo cuatro: de la quinta a la octava, que son las que bajan de
-     .52 de opacidad y de 10 px de tamaño. Las cuatro de delante son lo bastante
-     grandes y enteras para que la chispa se lea como brillo; las de atrás no.
-     A estas solo les queda el cuerpo, en el bronce hondo, que sí se distingue
-     del papel. */
-  /* Y el bronce hondo es el de esa misma receta: del #9a6424 del medio al
-     hondo de abajo, sin la parte clara de arriba ni la chispa. */
-  #buscando .bolitas i:nth-child(n+5)::before{
-        background:radial-gradient(circle at 50% 32%, #9a6424 0, #5e3a12 100%);
-        background:radial-gradient(circle at 50% 32%, #9a6424 0,
-                                   color-mix(in srgb, #9a6424 55%, #2a1806) 100%); }
-  #buscando .bolitas i:nth-child(1){ --luz:0deg; }
-  #buscando .bolitas i:nth-child(2){ --luz:45deg; }
-  #buscando .bolitas i:nth-child(3){ --luz:90deg; }
-  #buscando .bolitas i:nth-child(4){ --luz:135deg; }
-  #buscando .bolitas i:nth-child(5){ --luz:180deg; }
-  #buscando .bolitas i:nth-child(6){ --luz:225deg; }
-  #buscando .bolitas i:nth-child(7){ --luz:270deg; }
-  #buscando .bolitas i:nth-child(8){ --luz:315deg; }
+                        border-radius:50%;
+                        background:#6a4318;
+                        background:color-mix(in srgb, #9a6424 70%, #2a1806); }
   /* La primera es la de delante: entera y grande. Las demás se van achicando
      y apagando hacia atrás, y eso es la cola que hace leer el giro. */
   #buscando .bolitas i:nth-child(1){ transform:rotate(0deg)   translateY(-28px) scale(1);   opacity:1; }
@@ -1019,9 +970,6 @@
     /* Quieto se queda el corro entero: sigue diciendo "estoy en ello" sin
        moverse. */
     #buscando .bolitas{ animation:none; }
-    /* Y el brillo tampoco gira: con el corro quieto, el ángulo de partida
-       de --luz ya lo deja mirando arriba. */
-    #buscando .bolitas i::before{ animation:none; }
   }
   /* ============================================================
      LA HOJA ENTERA, DESDE LEJOS.
@@ -7656,7 +7604,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 08:24';
+window.GLOSS_BUILD = '23-NOV-26 08:29';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -24559,6 +24507,22 @@ function rectoDeEscribir(el){
       q.collapse(false);
       const rs = q.getClientRects();
       let c = rs.length ? rs[rs.length - 1] : null;
+      /* EL CURSOR PUESTO ENTRE NODOS no tiene caja: con el foco en el propio
+         editor y el desplazamiento al final, el rango colapsado no devuelve
+         ningún rectángulo. Se mide entonces lo que tiene justo antes —el
+         último trozo de texto, o el renglón— que es donde está el cursor. */
+      if ((!c || !c.height) && sel.focusNode.nodeType === 1 && sel.focusNode.childNodes.length){
+        let k = sel.focusNode.childNodes[Math.max(0, sel.focusOffset - 1)];
+        while (k && k.nodeType === 1 && k.lastChild && k.tagName !== 'BR') k = k.lastChild;
+        if (k && k.nodeType === 3 && k.length){
+          const t = document.createRange(); t.selectNodeContents(k);
+          const tr = t.getClientRects();
+          if (tr.length) c = tr[tr.length - 1];
+        } else if (k && k.nodeType === 1){
+          const b = k.getBoundingClientRect();
+          if (b.height) c = b;
+        }
+      }
       if (!c || !c.height){
         const n = sel.focusNode.nodeType === 1 ? sel.focusNode : sel.focusNode.parentElement;
         if (n && n !== el && el.contains(n)){
@@ -24616,14 +24580,27 @@ function panelDeEscribir(el){
 /* La transición del subir se AÑADE a las que el panel ya tenga —la de
    aparecer, la de cerrarse—: escrita a pelo en la línea de estilo las
    borraría mientras dura el teclado. */
+/* LO QUE SUBE SE CUENTA DESDE DONDE ESTÁ DE VERDAD, no desde la meta del
+   deslizamiento anterior. Cada cuenta de tecladoRevelar mide el campo tal como
+   se ve en este instante, a medio camino si el panel todavía va subiendo; si
+   aquí se sumara lo que falta a la meta vieja, el trecho que aún no se ha
+   recorrido se contaría dos veces, y dos teclas seguidas durante la subida
+   mandaban el panel al doble de alto (lo vio la revisión de Codex). Así que la
+   meta nueva es lo ya subido, leído del estilo calculado, más lo que falta. */
+const subidoAhora = el => {
+  const t = getComputedStyle(el).translate;
+  if (!t || t === 'none') return 0;
+  const y = parseFloat(t.split(/\s+/)[1]);
+  return isFinite(y) ? -y : 0;
+};
 function tecladoSubir(el, cuanto){
   let rec = tecladoSubidos.get(el);
   if (!rec){
     const suya = getComputedStyle(el).transition || '';
     rec = { translate: el.style.translate, transition: el.style.transition, sube: 0,
-            base: /^all 0s/.test(suya) ? '' : suya };
+            base: /^all 0s/.test(suya) ? '' : suya, desde: subidoAhora(el) };
   }
-  rec.sube += cuanto;
+  rec.sube = Math.max(0, subidoAhora(el) - rec.desde) + cuanto;
   tecladoSubidos.set(el, rec);
   el.style.transition = tecladoQuieto() ? rec.transition
     : [rec.base, 'translate ' + TECLADO_MS + 'ms cubic-bezier(.2,0,0,1)'].filter(Boolean).join(', ');

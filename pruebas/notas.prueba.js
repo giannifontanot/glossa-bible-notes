@@ -310,8 +310,13 @@ const IR_A = `async sec => {
     ed.innerText = Array.from({ length:60 }, (_, i) => 'Renglón ' + (i + 1)).join('\n');
     ed.dispatchEvent(new Event('input', { bubbles:true }));
     ed.focus();
+    /* El cursor, al final del último trozo de texto: un rango colapsado
+       DENTRO de un texto tiene caja que medir, y uno puesto entre nodos no. */
+    const textos = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
+    let ultimo = null; while (textos.nextNode()) if (textos.currentNode.length) ultimo = textos.currentNode;
     const sel = getSelection(); const q = document.createRange();
-    q.selectNodeContents(ed); q.collapse(false); sel.removeAllRanges(); sel.addRange(q);
+    if (ultimo) q.setStart(ultimo, ultimo.length); else { q.selectNodeContents(ed); q.collapse(false); }
+    q.collapse(true); sel.removeAllRanges(); sel.addRange(q);
     ed.scrollTop = ed.scrollHeight;
     await pausa(200);
     const rollo = ed.closest('.rollo');
@@ -319,8 +324,7 @@ const IR_A = `async sec => {
     const cursor = () => {
       const r = getSelection().getRangeAt(0).cloneRange(); r.collapse(false);
       const rs = r.getClientRects();
-      const c = rs.length ? rs[rs.length - 1] : ed.lastChild && ed.lastChild.nodeType === 1
-        ? ed.lastChild.getBoundingClientRect() : null;
+      const c = rs.length ? rs[rs.length - 1] : null;
       return c ? { top: Math.round(c.top), bottom: Math.round(c.bottom) } : null;
     };
     const antes = cursor();
