@@ -165,8 +165,16 @@
     letter-spacing:.28em; text-transform:uppercase;
     color:#d8c08a; margin:0; }
   @supports ((-webkit-background-clip:text) or (background-clip:text)){
+    /* UNA FRANJA DE LUZ QUIETA EN MEDIO. Lo pidió Gianni: «¿dónde está el
+       brillo de las letras?… no lo veo». El bronce iba solo de claro a
+       oscuro, y así se ve plano, como pintura. El metal se reconoce por el
+       reflejo: una banda angosta, casi blanca y cálida, entre dos bronces.
+       Quieta («franja quieta»), sin animación. Los extremos no bajan de
+       #a06a28, que sobre la mesa café se sigue leyendo con la sombra de
+       abajo. */
     #portada .portada-marca, #portada .portada-sub{
-      background-image:linear-gradient(100deg, #d9a24a, #b8812f 55%, #9a6424);
+      background-image:linear-gradient(100deg, #a06a28, #c08638 32%, #e8c27a 44%,
+                                       #fff1cf 50%, #e8c27a 56%, #c08638 68%, #a06a28);
       -webkit-background-clip:text; background-clip:text;
       color:transparent; -webkit-text-fill-color:transparent; }
     #portada .portada-marca{
@@ -7574,7 +7582,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 06:46';
+window.GLOSS_BUILD = '23-NOV-26 07:04';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7881,7 +7889,14 @@ const PAGE_CSS = `
    100, por debajo del 4.5 que pide rotulos.prueba; lo levantó la revisión de
    Codex, y la prueba daba verde porque medía color, que ya no pinta. Con
    estas paradas el peor punto del recorrido queda en 5.2:1 y Lc 62, y la
-   prueba mide ahora las tres paradas de verdad, no solo la tinta.
+   prueba mide ahora las paradas de verdad, no solo la tinta.
+
+   Y CON SU FRANJA DE LUZ, quieta, en medio, como la de la portada: Gianni
+   pidió el mismo brillo aquí. Sobre la hoja crema la luz no puede ser casi
+   blanca, o la letra se pierde en el papel; así que es un bronce dorado más
+   claro y casi puro (#764b16 con solo 10 % de tinta), justo lo más claro que
+   aguanta el suelo de Lc 60 en el peor sepia (61.5), entre lo hondo de los
+   dos lados.
 
    ABIERTO NO CAMBIA: fondo de oro macizo y letra crema, como un botón
    cumplido. Ahí el relleno vuelve a ser la tinta. */
@@ -7889,8 +7904,10 @@ const PAGE_CSS = `
           (color:color-mix(in srgb, red 50%, blue)){
   .pg-cabeza, .pg-version{
     background-image:linear-gradient(100deg,
-                       color-mix(in srgb, currentColor 30%, #734a17),
-                       color-mix(in srgb, currentColor 40%, #633e13) 55%,
+                       color-mix(in srgb, currentColor 50%, #4a2c0b),
+                       color-mix(in srgb, currentColor 40%, #633e13) 38%,
+                       color-mix(in srgb, currentColor 10%, #764b16) 50%,
+                       color-mix(in srgb, currentColor 40%, #633e13) 62%,
                        color-mix(in srgb, currentColor 50%, #4a2c0b)), none;
     -webkit-background-clip:text, padding-box; background-clip:text, padding-box;
     -webkit-text-fill-color:transparent; }
@@ -15534,7 +15551,8 @@ function medirPalabras(hostEl){
    aterriza otro. */
 /* Cada parada: dónde cae, el bronce y cuánto de la tinta del rótulo lleva
    mezclado, igual que el color-mix de la hoja. */
-const ORO_ROTULO = { ang:100, paradas:[[0, '#734a17', .30], [.55, '#633e13', .40], [1, '#4a2c0b', .50]] };
+const ORO_ROTULO = { ang:100, paradas:[[0, '#4a2c0b', .50], [.38, '#633e13', .40], [.5, '#764b16', .10],
+                                       [.62, '#633e13', .40], [1, '#4a2c0b', .50]] };
 /* color-mix(in srgb, tinta t, bronce) hecho a mano: la tinta llega como
    «rgb(r, g, b)» de getComputedStyle y el bronce como hex. */
 function mezclaBronce(tinta, hex, t){
