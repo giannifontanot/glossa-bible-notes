@@ -134,11 +134,14 @@
      hay medio segundo de tapa desvaneciéndose delante de quien acaba de
      estar aquí. Ver portadaDePaso. */
   #portada.de-paso{ transition:none; }
-  /* LOS DOS NOMBRES VAN EN ORO, pedido por Gianni: el dorado de Go Epic
-     —#f5d77a, #e2b84a, #c9a227 a 100°— metido DENTRO de las letras con
-     background-clip:text. Es el brillante y no el hondo porque aquí la letra
-     va sobre la mesa café, no sobre el papel; en la hoja, con el papel
-     claro detrás, va la mitad honda del mismo oro (ver los rótulos).
+  /* LOS DOS NOMBRES VAN EN BRONCE, metido DENTRO de las letras con
+     background-clip:text. Primero fue el dorado claro de Go Epic (#f5d77a a
+     #c9a227) y Gianni lo vio en su teléfono: «no se aprecia absolutamente
+     nada… ese dorado es demasiado claro. Si pudiéramos hacer un dorado que
+     pareciera un bronce oscuro». Aquí va la parte más clara del bronce
+     —#d9a24a a #9a6424— porque la letra va sobre la mesa café, y el bronce
+     más hondo se fundiría con ella; en la hoja, con el papel claro detrás,
+     va el bronce oscuro (ver los rótulos).
 
      LA LETRA SE QUEDA: Georgia en versales espaciadas. Se miró la Cinzel
      Decorative de Go Epic y no: es la marca de otra casa, y traerla aquí
@@ -163,12 +166,12 @@
     color:#d8c08a; margin:0; }
   @supports ((-webkit-background-clip:text) or (background-clip:text)){
     #portada .portada-marca, #portada .portada-sub{
-      background-image:linear-gradient(100deg, #f5d77a, #e2b84a 55%, #c9a227);
+      background-image:linear-gradient(100deg, #d9a24a, #b8812f 55%, #9a6424);
       -webkit-background-clip:text; background-clip:text;
       color:transparent; -webkit-text-fill-color:transparent; }
     #portada .portada-marca{
       filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))
-             drop-shadow(0 0 14px rgba(201,162,39,.22)); }
+             drop-shadow(0 0 14px rgba(176,122,42,.25)); }
     /* El chico, sin halo y un punto más quieto: es el subtítulo. */
     #portada .portada-sub{ opacity:.82;
       filter:drop-shadow(0 1px 0 rgba(0,0,0,.35)); }
@@ -950,26 +953,26 @@
      todo momento: el brillo no se mueve de arriba. Las nueve las lleva el
      compositor, como antes la una.
 
-     El filo casi negro se queda, Gianni dijo que sí: es lo que recorta el oro
-     contra el crema de la hoja. Un dorado claro sin él se pierde en el papel,
-     que es por lo que estas bolitas fueron café oscuro hasta hoy. */
+     SIN FILO Y EN BRONCE. Llevaron un filo casi negro y un oro claro, y
+     Gianni dijo que no se apreciaba nada: «hay que quitarle el filito negro»
+     y que el dorado pareciera «un bronce oscuro». El bronce no necesita filo
+     sobre el crema: su borde de abajo ya es casi café, y eso lo recorta. */
   #buscando .bolitas{ position:absolute; left:50%; top:50%;
                       width:72px; height:72px; margin:-36px 0 0 -36px;
                       animation:giroBuscando 1s linear infinite;
                       will-change:transform; }
   #buscando .bolitas i{ position:absolute; left:50%; top:50%;
                         width:14px; height:14px; margin:-7px 0 0 -7px;
-                        border-radius:50%; background:#c9a227;
-                        box-shadow:0 0 0 1.5px #2a1c06; }
+                        border-radius:50%; background:#8a5a1c; }
   /* EL BRILLO Y LA SOMBRA. Dos degradados redondos: el de arriba es la
      chispa blanca de la lámpara, el de abajo es el cuerpo de la esfera, claro
      arriba y hondo abajo. La luz cae a 50% 28%, o sea arriba del centro. */
   #buscando .bolitas i::before{ content:''; position:absolute; inset:0;
         border-radius:50%;
-        background:radial-gradient(circle at 50% 24%, rgba(255,253,240,.95) 0,
-                                   rgba(255,248,215,.45) 22%, rgba(255,248,215,0) 42%),
-                   radial-gradient(circle at 50% 32%, #f7e08c 0, #e2b84a 38%,
-                                   #c9a227 62%, #8a6414 100%);
+        background:radial-gradient(circle at 50% 24%, rgba(255,236,196,.9) 0,
+                                   rgba(255,222,160,.4) 22%, rgba(255,222,160,0) 42%),
+                   radial-gradient(circle at 50% 32%, #e0a955 0, #b07a2a 36%,
+                                   #8a5a1c 64%, #5e3a12 100%);
         transform:rotate(var(--luz, 0deg));
         animation:luzFija 1s linear infinite;
         will-change:rotate; }
@@ -1216,27 +1219,25 @@
                veces se despareja a la primera que alguien retoque el punto.
                Ver «EL RECUADRO SE CIÑE AL DISCO». */
             width:var(--punto-d, 11px); height:var(--punto-d, 11px); border-radius:50%;
-            /* UNA ESFERITA DE ORO, pedida por Gianni, con la luz fija arriba
+            /* UNA ESFERITA DE BRONCE, pedida por Gianni, con la luz fija arriba
                como las bolitas de la espera: la chispa blanca cae en lo alto
                y el cuerpo va de claro arriba a hondo abajo. Las dos capas
                salen de --punto, así que la guía la vuelve una esfera roja y
                abierto una de oro macizo sin tocar nada aquí. La primera
                línea es la red para quien no entienda color-mix: el disco
                liso de antes, del mismo color. */
-            background:var(--punto, #e2b84a);
-            background:radial-gradient(circle at 50% 24%, rgba(255,253,240,.95) 0,
-                                       rgba(255,248,215,.4) 24%, rgba(255,248,215,0) 44%),
+            background:var(--punto, #9a6424);
+            background:radial-gradient(circle at 50% 24%, rgba(255,236,196,.9) 0,
+                                       rgba(255,222,160,.35) 24%, rgba(255,222,160,0) 44%),
                        radial-gradient(circle at 50% 32%,
-                                       color-mix(in srgb, var(--punto, #e2b84a) 55%, #fff6cf) 0,
-                                       var(--punto, #e2b84a) 45%,
-                                       color-mix(in srgb, var(--punto, #e2b84a) 62%, #2a1c06) 100%);
+                                       color-mix(in srgb, var(--punto, #9a6424) 60%, #ffd896) 0,
+                                       var(--punto, #9a6424) 45%,
+                                       color-mix(in srgb, var(--punto, #9a6424) 55%, #2a1806) 100%);
             opacity:var(--punto-luz, .9);
             transform:scale(var(--punto-esc, 1));
-            /* EL FILO CASI NEGRO VA SIEMPRE, el mismo de las bolitas: es lo
-               que recorta el oro contra el papel crema. Por eso --punto-halo
-               ya no vale nunca `none` —un none metido en una lista de sombras
-               la anula entera, filo incluido—: el vacío es una sombra a cero. */
-            box-shadow:0 0 0 1px #2a1c06, var(--punto-halo, 0 0 #0000);
+            /* SIN FILO NEGRO, como las bolitas: Gianni lo pidió quitar. El
+               borde de abajo de la esfera, casi café, es lo que la recorta. */
+            box-shadow:var(--punto-halo, 0 0 #0000);
             transition:opacity .28s cubic-bezier(.65,0,.35,1),
                        background .28s cubic-bezier(.65,0,.35,1),
                        box-shadow .28s cubic-bezier(.65,0,.35,1),
@@ -1247,13 +1248,13 @@
   #btnZoom:active::before, #btnHistorial:active::before,
   #btnPiedras:active::before, #btnCintas:active::before{
             transform:scale(calc(var(--punto-esc, 1) * .9)); }
-  /* Abierto, la esfera se pone de oro macizo, entera y más grande, con un aro
-     de oro tenue alrededor: «éste es el que tienes abierto». En reposo es la
+  /* Abierto, la esfera se pone de bronce hondo, entera y más grande, con un
+     aro de bronce tenue alrededor: «éste es el que tienes abierto». En reposo es la
      misma esfera, más chica y un pelo apagada; señalada por la guía, roja. */
   #btnZoom.abierto, #btnHistorial.abierto,
   #btnPiedras.abierto, #btnCintas.abierto{
-            --punto:#c9a227; --punto-luz:1; --punto-esc:1.25;
-            --punto-halo:0 0 0 3px rgba(226,184,74,.38); }
+            --punto:#7a4a16; --punto-luz:1; --punto-esc:1.25;
+            --punto-halo:0 0 0 3px rgba(176,122,42,.38); }
   /* ============================================================
      LAS GUÍAS: DÓNDE SE PUEDE TOCAR, DICHO EN ROJO.
 
@@ -7570,7 +7571,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 05:41';
+window.GLOSS_BUILD = '23-NOV-26 06:19';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7841,22 +7842,20 @@ const PAGE_CSS = `
   .pg-cabeza:hover{ color:#6d5c33; }
 }
 .pg-cabeza.abierta, .pg-cabeza.abierta:hover{ background:#b8892b; color:#fff8e4; }
-/* LOS DOS RÓTULOS VAN EN ORO, CON FILO OSCURO. Lo pidió Gianni: el título
-   del libro y la versión «en ese dorado», el de la portada, «y sí, ponle el
-   filo oscuro para que se puedan ver».
+/* LOS DOS RÓTULOS VAN EN BRONCE OSCURO. Lo pidió Gianni: el título del libro
+   y la versión en dorado. Primero fueron un oro claro con filo oscuro, y lo
+   vio en su teléfono: «no se aprecia absolutamente nada… hay que quitarle el
+   filito negro… ese dorado es demasiado claro. Si pudiéramos hacer un dorado
+   que pareciera un bronce oscuro». Así que sin filo, y en bronce.
 
-   EL ORO ES LA MITAD HONDA DEL DE LA PORTADA. Allí va sobre la mesa café y
-   luce el brillante; aquí va sobre el papel crema, y #f5d77a sobre crema es
-   crema sobre crema. El degradado arranca en el #e2b84a del medio de aquel y
-   baja hasta un oro viejo: el mismo metal, con la luz que este fondo deja.
-
-   EL FILO ES LA TINTA DE SIEMPRE, y eso es lo que mantiene todo lo de antes en
-   pie. El rótulo sigue teniendo su color —--rot-cab y --rot-pie, que van con
-   el sepia y de los que sale el contraste que mide rotulos.prueba—, pero ya no
-   rellena la letra: dibuja su contorno, -webkit-text-stroke en currentColor.
-   El relleno es el oro, recortado a las letras con background-clip:text. Lo
-   que se lee contra el papel es ese contorno oscuro, o sea lo mismo que se
-   leía antes, solo que ahora por fuera de un oro.
+   EL BRONCE SE MEZCLA CON LA TINTA DE SIEMPRE, y eso es lo que mantiene todo
+   lo de antes en pie. El rótulo sigue teniendo su color —--rot-cab y
+   --rot-pie, que van con el sepia y de los que sale el contraste que mide
+   rotulos.prueba—, y cada parada del degradado es ese color mezclado con un
+   bronce (color-mix con currentColor): más bronce en la luz de la izquierda,
+   más tinta en lo hondo. Así el metal oscurece con el sepia igual que se
+   oscurecía la letra, y el del pie, que lleva una tinta más clara, sigue
+   pesando menos que el de arriba.
 
    EL PAPEL SE QUEDA DETRÁS, y por eso hay dos capas y no una. El rótulo
    lleva fondo de papel para tapar lo que pase por debajo; con una sola capa
@@ -7867,32 +7866,34 @@ const PAGE_CSS = `
 
    LA FOTO DEL PLIEGUE LO SABE. El SVG pinta los rótulos transparentes y es el
    lienzo quien pone cada letra; medirPalabras ve el relleno transparente y le
-   pasa a pintarPalabras el oro (ORO_ROTULO, el mismo degradado escrito en el
-   guion) y el grueso del filo. Sin eso la hoja que se voltea llevaría los
+   pasa a pintarPalabras el bronce (ORO_ROTULO, el mismo degradado escrito en
+   el guion, que hace la misma mezcla con la tinta de cada palabra). Sin eso la hoja que se voltea llevaría los
    rótulos en café y aterrizaría en oro: el brinco de siempre, de color. Y en
    el SVG el oro se apaga, para que no se pinte dos veces.
 
    ABIERTO NO CAMBIA: fondo de oro macizo y letra crema, como un botón
    cumplido. Ahí el relleno vuelve a ser la tinta. */
-@supports ((-webkit-background-clip:text) or (background-clip:text)){
+@supports ((-webkit-background-clip:text) or (background-clip:text)) and
+          (color:color-mix(in srgb, red 50%, blue)){
   .pg-cabeza, .pg-version{
-    background-image:linear-gradient(100deg, #e2b84a, #c9a227 55%, #9a7414), none;
+    background-image:linear-gradient(100deg,
+                       color-mix(in srgb, currentColor 30%, #b07a2a),
+                       color-mix(in srgb, currentColor 45%, #8a5a1c) 55%,
+                       color-mix(in srgb, currentColor 60%, #5e3a12)), none;
     -webkit-background-clip:text, padding-box; background-clip:text, padding-box;
-    -webkit-text-fill-color:transparent;
-    -webkit-text-stroke:.045em currentColor; }
+    -webkit-text-fill-color:transparent; }
   .pg-cabeza.abierta, .pg-version.abierta{
-    background-image:none; -webkit-text-fill-color:currentColor;
-    -webkit-text-stroke:0 transparent; }
+    background-image:none; -webkit-text-fill-color:currentColor; }
   /* Las dos capas se quitan juntas y el recorte vuelve a la caja: con una
      sola capa y el recorte en text, el papel del rótulo se recortaría a unas
      letras que aquí son transparentes, y la foto lo perdería. */
-  /* EL ORO NO SE HEREDA A LOS LETREROS. El relleno transparente y el filo son
-     propiedades que heredan, y los rótulos tienen hijos que no son letra suya:
+  /* EL ORO NO SE HEREDA A LOS LETREROS. El relleno transparente es una
+     propiedad que hereda, y los rótulos tienen hijos que no son letra suya:
      el letrero «click»/«tap» de la guía es un ::after del de la versión. Sin
      esto se quedaba en un contorno rojo hueco, sin oro detrás que lo
      rellenara. Lo levantó la revisión de Codex. */
   .pg-cabeza::before, .pg-cabeza::after, .pg-version::before, .pg-version::after{
-    -webkit-text-fill-color:currentColor; -webkit-text-stroke:0 transparent; }
+    -webkit-text-fill-color:currentColor; }
   .sin-tinta .pg-cabeza, .sin-tinta .pg-version{ background-image:none !important;
     -webkit-background-clip:padding-box !important; background-clip:padding-box !important; }
 }
@@ -15519,18 +15520,27 @@ function medirPalabras(hostEl){
    otra vez porque el lienzo no sabe leer un background-image. Si se toca
    uno, se toca el otro: si no, la hoja que se voltea lleva un oro y la que
    aterriza otro. */
-const ORO_ROTULO = { ang:100, paradas:[[0, '#e2b84a'], [.55, '#c9a227'], [1, '#9a7414']] };
+/* Cada parada: dónde cae, el bronce y cuánto de la tinta del rótulo lleva
+   mezclado, igual que el color-mix de la hoja. */
+const ORO_ROTULO = { ang:100, paradas:[[0, '#b07a2a', .30], [.55, '#8a5a1c', .45], [1, '#5e3a12', .60]] };
+/* color-mix(in srgb, tinta t, bronce) hecho a mano: la tinta llega como
+   «rgb(r, g, b)» de getComputedStyle y el bronce como hex. */
+function mezclaBronce(tinta, hex, t){
+  const a = (String(tinta).match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number);
+  const b = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  return 'rgb(' + a.map((v, i) => Math.round(v * t + b[i] * (1 - t))).join(',') + ')';
+}
 /* La línea del degradado se traza como la traza CSS: por el centro de la
    caja, con el largo que hace que las esquinas caigan justo en la primera y
    la última parada. tx y sx deshacen el estirado con que pintarPalabras
    ajusta el ancho de una palabra, para que el oro caiga donde cae en la hoja. */
-function degradadoOro(g, o, tx, sx){
+function degradadoOro(g, o, tx, sx, tinta){
   const a = ORO_ROTULO.ang * Math.PI / 180, dx = Math.sin(a), dy = -Math.cos(a);
   const largo = Math.abs(o.w * dx) + Math.abs(o.h * dy);
   const cx = o.x + o.w / 2, cy = o.y + o.h / 2;
   const gr = g.createLinearGradient((cx - dx * largo / 2 - tx) / sx, cy - dy * largo / 2,
                                     (cx + dx * largo / 2 - tx) / sx, cy + dy * largo / 2);
-  for (const [s, c] of ORO_ROTULO.paradas) gr.addColorStop(s, c);
+  for (const [s, c, t] of ORO_ROTULO.paradas) gr.addColorStop(s, mezclaBronce(tinta, c, t));
   return gr;
 }
 function pintarPalabras(g, palabras){
@@ -15581,7 +15591,7 @@ function pintarPalabras(g, palabras){
        en ese orden: es el orden en que la pinta la hoja —el fondo recortado
        a la letra primero, el contorno del texto después—. */
     const pinta = (x, tx, sx) => {
-      if (p.oro) g.fillStyle = degradadoOro(g, p.oro, tx, sx);
+      if (p.oro) g.fillStyle = degradadoOro(g, p.oro, tx, sx, p.c);
       g.fillText(p.t, x, p.y + sube);
       if (p.oro && p.oro.filo > 0){
         g.strokeStyle = p.c; g.lineWidth = p.oro.filo; g.lineJoin = 'round';
