@@ -7570,7 +7570,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 05:38';
+window.GLOSS_BUILD = '23-NOV-26 05:41';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7886,6 +7886,13 @@ const PAGE_CSS = `
   /* Las dos capas se quitan juntas y el recorte vuelve a la caja: con una
      sola capa y el recorte en text, el papel del rótulo se recortaría a unas
      letras que aquí son transparentes, y la foto lo perdería. */
+  /* EL ORO NO SE HEREDA A LOS LETREROS. El relleno transparente y el filo son
+     propiedades que heredan, y los rótulos tienen hijos que no son letra suya:
+     el letrero «click»/«tap» de la guía es un ::after del de la versión. Sin
+     esto se quedaba en un contorno rojo hueco, sin oro detrás que lo
+     rellenara. Lo levantó la revisión de Codex. */
+  .pg-cabeza::before, .pg-cabeza::after, .pg-version::before, .pg-version::after{
+    -webkit-text-fill-color:currentColor; -webkit-text-stroke:0 transparent; }
   .sin-tinta .pg-cabeza, .sin-tinta .pg-version{ background-image:none !important;
     -webkit-background-clip:padding-box !important; background-clip:padding-box !important; }
 }
