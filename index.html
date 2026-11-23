@@ -2393,6 +2393,26 @@
             border-radius:1px; }
   .sp-ref{ flex:1 1 auto; min-width:0; font:700 calc(13px * var(--escala-ui, 1))/1.3 var(--ui); color:#4a3a1c;
            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* LA FILA EN DOS RENGLONES —ver filaHTML—. La columna se queda con lo que
+     sobra al lado del dibujito; arriba la cita, chiquita, en negrita y en el
+     sepia suave de la casa; abajo el nombre, en letra de leer, sin negrita,
+     que puede ocupar dos renglones antes de cortarse.
+     LA FILA SIN NOMBRE TIENE LA MISMA FORMA. En el renglón del nombre va la
+     pista, «click largo», en su gris claro y a la misma letra que tendría el
+     nombre: así todas las filas miden lo mismo de ancho y de alto, y la lista
+     no se lee como dos clases de cosa. Lo pidió Gianni. */
+  .sp-col{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column;
+           align-items:flex-start; gap:2px; text-align:left; }
+  .sp-ref.sp-dos{ flex:0 0 auto; width:100%; display:flex; flex-direction:column;
+                  align-items:flex-start; gap:2px; white-space:normal; overflow:visible; }
+  .sp-cita{ max-width:100%; font:700 calc(11.5px * var(--escala-ui, 1))/1.25 var(--ui);
+            color:#6b5936; letter-spacing:.02em;
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sp-desc{ max-width:100%; font:400 calc(13px * var(--escala-ui, 1))/1.3 var(--ui);
+            color:#4a3a1c; overflow-wrap:anywhere;
+            display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
+            line-clamp:2; overflow:hidden; }
+  .sp-col .sp-pista{ margin-left:0; padding-left:0; line-height:1.3; }
   /* EL NOMBRE, EN LA MISMA FILA Y CON LA MISMA LETRA. La referencia se queda
      delante y encogida a su abreviatura —«Mt 1:1 -»— porque cuando hay nombre
      el nombre es lo que se busca; el sitio exacto se lee después. Editando, la
@@ -3128,6 +3148,8 @@
     .sp-fila .sp-chip-forma{ width:calc(28px * var(--escala-ui, 1)); height:calc(28px * var(--escala-ui, 1)); }
     .sp-fila .sp-chip{ width:calc(13px * var(--escala-ui, 1)); height:calc(24px * var(--escala-ui, 1)); }
     .sp-ref{ font-size:calc(15px * var(--escala-ui, 1)); }
+    .sp-cita{ font-size:calc(12.5px * var(--escala-ui, 1)); }
+    .sp-desc{ font-size:calc(15px * var(--escala-ui, 1)); }
     /* Los tres van a la par a propósito: comparten renglón, y una fila con
        tres tamaños distintos se lee como tres cosas. */
     .sp-edit-base, .sp-edit-aqui{ font-size:calc(15px * var(--escala-ui, 1)); }
@@ -3166,8 +3188,13 @@
     /* El de la cinta lo dice por su variable, para que el techo del modo de
        solo color suba con él; el de las piedras no tiene dos modos y lo dice
        a pelo. */
-    #sepMenu{ --sep-tope:min(330px, calc(100% - 16px)); }
-    #piedraMenu{ width:min(330px, calc(100% - 16px)); }
+    /* Y AHORA CASI TODO EL ANCHO. Con la fila en dos renglones el nombre
+       tiene dónde acomodarse, pero en 330 px seguía quedándose corto: Gianni
+       pidió la cajita más ancha. Casi todo el teléfono —8 px de margen a
+       cada lado— con un tope de 440 para que en una tableta no se vuelva una
+       sábana. */
+    #sepMenu{ --sep-tope:min(440px, calc(100% - 16px)); }
+    #piedraMenu{ width:min(440px, calc(100% - 16px)); }
     /* LAS EQUIS, QUE SON LA SALIDA.
 
        Aquí no se cambia DÓNDE están —arriba a la derecha, que es donde se
@@ -7639,7 +7666,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 07:31';
+window.GLOSS_BUILD = '23-NOV-26 07:43';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -24412,7 +24439,20 @@ function filaHTML(o){
       T('. Toca dos veces, o pulsa F2, para cambiarle el nombre o borrarla.',
         '. Tap twice, or press F2, to rename or delete it.') + '"' +
       ' title="' + esc(o.ref) + '">' + o.chip +
-      '<span class="sp-ref">' + esc(o.ref) + '</span>' +
+      /* DOS RENGLONES: ARRIBA LA CITA, ABAJO LO QUE LE PUSISTE.
+         Estaba todo en un renglón —«Mt 5:3 · lo del monte»— con la cita en
+         negrita delante, y en el teléfono el nombre se cortaba con «…» justo
+         donde empezaba a decir algo. Gianni lo vio en las perlas: la
+         descripción no se leía. Ahora la cita va chiquita arriba, a la
+         izquierda, y el nombre debajo en letra normal, con dos renglones para
+         acomodarse antes de cortarse.
+         La cita y el nombre viven DENTRO de .sp-ref, y la pista FUERA: las
+         pruebas leen el textContent de .sp-ref para saber qué dice la fila,
+         y la pista no es lo que la fila dice sino cómo se abre. */
+      '<span class="sp-col">' +
+      '<span class="sp-ref sp-dos"><span class="sp-cita">' + esc(o.cita) + '</span>' +
+        (o.nombre ? '<span class="sp-desc">' + esc(o.nombre) + '</span>' : '') +
+      '</span>' +
       /* LA PISTA DE CÓMO SE NOMBRA. Nombrar y borrar viven detrás de un gesto
          que no se ve, y el dueño del repo pidió decirlo en la propia fila,
          suave. Dice el gesto de ESTE aparato —«click largo» con el dedo,
@@ -24425,7 +24465,7 @@ function filaHTML(o){
       '<span class="sp-pista" aria-hidden="true">' +
         '<span class="sp-pista-dedo">' + T('click largo', 'long press') + '</span>' +
         '<span class="sp-pista-raton">' + T('doble click', 'double-click') + '</span>' +
-      '</span>') + '</button>' +
+      '</span>') + '</span></button>' +
   '</div>';
 }
 /* EL ASPA DE CERRAR, la misma para los dos paneles. `acc` dice cuál cierra:
@@ -24710,6 +24750,7 @@ function pintarPiedraMenu(){
       chip: '<span class="sp-chip-forma" style="color:' + tintaDe(x.color)[2] + '"' +
             ' aria-hidden="true">' + piedraDibujo(x.forma, null, true) + '</span>',
       ref: piedraTexto(x), voz: piedraVoz(x), nombre: x.nombre,
+      cita: abrevDe(x.libro) + ' ' + x.cap + ':' + x.vers + (piedraAqui(x) ? T(' · aquí', ' · here') : ''),
       tope: PIEDRA_NOMBRE_TOPE,
       irAttr: 'data-piedra-ir="' + esc(x.id) + '"',
       campoAttr: 'data-piedra-nombre="' + esc(x.id) + '"',
@@ -25222,6 +25263,7 @@ function pintarSepMenu(){
       chip: '<span class="sp-chip" style="background:' + telaDe(x.color)[2] +
             '" aria-hidden="true"></span>',
       ref: sepTexto(x),
+      cita: sepRef(x, true) + (sepAqui(x) ? T(' · aquí', ' · here') : ''),
       voz: T('cinta en ', 'bookmark at ') + nombreDe(x.libro) + ' ' + x.cap + ':' + x.vers,
       nombre: x.nombre, tope: 70,
       irAttr: 'data-sep-ir="' + esc(x.id) + '"',
