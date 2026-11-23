@@ -4207,6 +4207,11 @@
             -webkit-tap-highlight-color:transparent; }
   .ventana-qr .btn.cerrar-pie:hover{ background:#fffdf6; color:#1d1608; }
   @media (pointer:coarse){ .ventana-qr .btn.cerrar-pie{ min-height:48px; } }
+  /* Los dos CERRAR van uno al lado del otro y, si no caben —en casi todos los
+     teléfonos VOLVER A LA LECTURA es largo—, uno encima del otro, a lo ancho
+     los dos, para que no queden de anchos distintos. */
+  .vqr-pie{ margin-top:6px; display:flex; flex-wrap:wrap; justify-content:center; gap:10px; width:100%; }
+  .vqr-pie .btn.cerrar-pie{ margin-top:0; flex:1 1 auto; }
   .ventana-qr .btn.cerrar-pie:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; }
   @media (prefers-reduced-motion: reduce){
     .ventana-qr, .ventana-qr.puesta, .vqr-tarjeta, .ventana-qr.puesta .vqr-tarjeta{ transition:none; }
@@ -7713,7 +7718,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 10:59';
+window.GLOSS_BUILD = '23-NOV-26 11:00';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -30282,6 +30287,8 @@ const QR_GLOSSA = '<svg class="qr-dibujo" viewBox="0 0 37 37" role="img" aria-la
    ventana saldría recortada al panel. Se arma una sola vez. Tocar el velo
    también cierra, y Escape, que se queda aquí sin llegar a cerrar Compartir. */
 let ventanaQr = null, qrDevuelve = null;
+/* Lo que tarda la tarjeta en volver al botón: el .58 s del CSS (.ventana-qr). */
+const VIAJE_QR = 580;
 /* EL PUNTO DEL QUE NACE Y AL QUE VUELVE: el centro del botón, como distancia
    desde el centro de la tarjeta. Se mide con offsetLeft/offsetTop, que no
    cuentan la transformación, así que da lo mismo si la tarjeta está crecida o
@@ -30322,12 +30329,26 @@ function abrirVentanaQr(desde){
           'data-en="Scan it with another phone to open the Gloss Bible">' +
           T('Escanéalo con otro teléfono para abrir la Biblia Glossa', 'Scan it with another phone to open the Gloss Bible') + '</p>' +
         '<p class="qr-liga">giannifontanot.github.io/glossa-bible-notes</p>' +
-        '<button type="button" class="btn cerrar-pie vqr-cerrar" data-es="CERRAR" data-en="CLOSE">' + T('CERRAR', 'CLOSE') + '</button>' +
+        '<div class="vqr-pie">' +
+          '<button type="button" class="btn cerrar-pie vqr-cerrar" data-es="CERRAR" data-en="CLOSE">' + T('CERRAR', 'CLOSE') + '</button>' +
+          '<button type="button" class="btn cerrar-pie vqr-leer" data-es="VOLVER A LA LECTURA" data-en="BACK TO READING">' +
+            T('VOLVER A LA LECTURA', 'BACK TO READING') + '</button>' +
+        '</div>' +
       '</div>';
     ventanaQr.setAttribute('aria-label', T('Código QR', 'QR code'));
     ventanaQr.addEventListener('click', ev => {
       ev.stopPropagation();
       if (ev.target === ventanaQr || ev.target.closest('.vqr-cerrar')) cerrarVentanaQr();
+      /* DOS SALIDAS, pedidas por Gianni: CERRAR deja a la persona en
+         Compartir, y VOLVER A LA LECTURA cierra también el panel para seguir
+         leyendo la Biblia. El panel se cierra después de que el QR haya
+         vuelto a su botón: cerrarlos a la vez lo dejaba encogiéndose hacia un
+         botón que ya se estaba yendo. */
+      else if (ev.target.closest('.vqr-leer')){
+        cerrarVentanaQr();
+        const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        setTimeout(cerrarTodosLosRollos, quieto ? 0 : VIAJE_QR);
+      }
     });
     /* EL TECLADO SE QUEDA EN LA VENTANA mientras está abierta: el tabulador
        da la vuelta dentro de ella y ninguna tecla llega al libro —con las
