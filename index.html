@@ -7751,7 +7751,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 09:13';
+window.GLOSS_BUILD = '23-NOV-26 09:14';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -30018,6 +30018,11 @@ function abrirVentanaQr(desde){
       if (ev.key === 'Escape'){ ev.preventDefault(); cerrarVentanaQr(); }
     }, true);
     document.body.appendChild(ventanaQr);
+    /* SE LEE SU MEDIDA ANTES DE PONERLA, para que el navegador fije primero
+       el estado escondido: sin esto, la primera vez no había un «antes» desde
+       el que fundir y la ventana salía de golpe; solo las siguientes
+       entraban suaves. Lo levantó la revisión de Codex. */
+    void ventanaQr.offsetWidth;
   }
   qrDevuelve = desde || null;
   ventanaQr.setAttribute('aria-label', T('Código QR', 'QR code'));
