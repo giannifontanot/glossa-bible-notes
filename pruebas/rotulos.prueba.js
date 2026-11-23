@@ -130,11 +130,46 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo,
     };
     const mando = document.getElementById('sepia');
     const antes = mando.value;
+    /* LO QUE DE VERDAD PINTA LA LETRA. Desde que los rótulos van en bronce,
+       color ya no llega a la pantalla: la letra es transparente y lo que se
+       ve es el degradado recortado a ella. Medir solo color daba verde con
+       una parada de 3.1:1 (lo levantó la revisión de Codex). Así que se leen
+       las paradas del background-image calculado —con currentColor cambiado
+       por la tinta del rótulo— y cada una se resuelve a rgb pintándola en un
+       lienzo de un píxel, que entiende cualquier forma en que el navegador
+       escriba el color. */
+    const sonda = document.createElement('i');
+    document.body.appendChild(sonda);
+    const lienzo = document.createElement('canvas').getContext('2d', { willReadFrequently:true });
+    const aRgb = expr => {
+      sonda.style.color = ''; sonda.style.color = expr;
+      const cc = getComputedStyle(sonda).color;
+      lienzo.clearRect(0, 0, 1, 1); lienzo.fillStyle = '#000'; lienzo.fillStyle = cc;
+      lienzo.fillRect(0, 0, 1, 1);
+      const [r, g, b] = lienzo.getImageData(0, 0, 1, 1).data;
+      return 'rgb(' + r + ', ' + g + ', ' + b + ')'; };
+    const paradas = c => {
+      const bi = c.backgroundImage, i = bi.indexOf('linear-gradient(');
+      if (i < 0) return [];
+      let d = 0, j = i + 'linear-gradient('.length, arg = '', args = [];
+      for (; j < bi.length; j++){
+        const ch = bi[j];
+        if (ch === '(') d++;
+        if (ch === ')'){ if (d === 0) break; d--; }
+        if (ch === ',' && d === 0){ args.push(arg.trim()); arg = ''; } else arg += ch;
+      }
+      args.push(arg.trim());
+      return args.filter(a => !/^(-?[\d.]+(deg|turn|rad|grad)|to )/.test(a))
+                 .map(a => a.replace(/\s+-?[\d.]+%$/, '').replace(/currentcolor/gi, c.color))
+                 .map(aRgb); };
     const q = id => { const c = getComputedStyle(document.getElementById(id));
       const L = lum(c.color), f = lum(c.backgroundColor);
+      const metal = paradas(c).map(t => { const l = lum(t);
+        return { tinta:t, contraste:+((Math.max(l,f)+.05)/(Math.min(l,f)+.05)).toFixed(2),
+                 lc:Lc(t, c.backgroundColor) }; });
       return { tinta:c.color, papel:c.backgroundColor,
                contraste:+((Math.max(L,f)+.05)/(Math.min(L,f)+.05)).toFixed(2),
-               lc:Lc(c.color, c.backgroundColor) }; };
+               lc:Lc(c.color, c.backgroundColor), metal }; };
     const paso = [];
     for (const v of [0, 6, 25, 50, 75, 100]){
       mando.value = String(v);
@@ -150,8 +185,21 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo,
     mando.value = antes;
     mando.dispatchEvent(new Event('input', { bubbles:true }));
     await new Promise(z => setTimeout(z, 460));
+    sonda.remove();
     return paso;
   }).then(paso => {
+    /* EL BRONCE, PARADA POR PARADA, con los mismos suelos que la tinta. Y que
+       haya bronce: si el degradado desapareciera, la lista vendría vacía y
+       esto daría verde sin mirar nada. */
+    vale('los rótulos pintan su bronce',
+         paso.every(x => x.cabeza.metal.length === 3 && x.version.metal.length === 3),
+         paso.map(x => x.cabeza.metal.length + '/' + x.version.metal.length).join(' '));
+    const metalFlojo = paso.filter(x => [x.cabeza, x.version].some(r =>
+      r.metal.some(m => m.contraste < 4.5 || m.lc < 60)));
+    vale('y cada parada del bronce se lee sobre el papel', metalFlojo.length === 0,
+         (metalFlojo.length ? metalFlojo : paso).map(x => x.sepia + ': ' +
+           x.cabeza.metal.map(m => m.contraste + '/Lc' + m.lc).join(' ') + ' · ' +
+           x.version.metal.map(m => m.contraste + '/Lc' + m.lc).join(' ')).join('  |  '));
     const flojo = paso.filter(x => x.cabeza.contraste < 4.5 || x.version.contraste < 4.5);
     vale('legibles en todo el recorrido', flojo.length === 0,
          flojo.length ? flojo.map(x => x.sepia + ': ' + x.cabeza.contraste +

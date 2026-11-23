@@ -7571,7 +7571,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 06:19';
+window.GLOSS_BUILD = '23-NOV-26 06:24';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -7871,15 +7871,24 @@ const PAGE_CSS = `
    rótulos en café y aterrizaría en oro: el brinco de siempre, de color. Y en
    el SVG el oro se apaga, para que no se pinte dos veces.
 
+   LA PARADA MÁS CLARA MANDA EN EL CONTRASTE, y por eso el bronce es este y no
+   uno más vivo. Sin el filo ya no hay nada oscuro alrededor de la letra que
+   la sostenga: lo que se lee es el propio metal sobre el papel. El primer
+   bronce (#b07a2a a la izquierda) se quedaba en 3.1:1 con el pie en sepia
+   100, por debajo del 4.5 que pide rotulos.prueba; lo levantó la revisión de
+   Codex, y la prueba daba verde porque medía color, que ya no pinta. Con
+   estas paradas el peor punto del recorrido queda en 5.2:1 y Lc 62, y la
+   prueba mide ahora las tres paradas de verdad, no solo la tinta.
+
    ABIERTO NO CAMBIA: fondo de oro macizo y letra crema, como un botón
    cumplido. Ahí el relleno vuelve a ser la tinta. */
 @supports ((-webkit-background-clip:text) or (background-clip:text)) and
           (color:color-mix(in srgb, red 50%, blue)){
   .pg-cabeza, .pg-version{
     background-image:linear-gradient(100deg,
-                       color-mix(in srgb, currentColor 30%, #b07a2a),
-                       color-mix(in srgb, currentColor 45%, #8a5a1c) 55%,
-                       color-mix(in srgb, currentColor 60%, #5e3a12)), none;
+                       color-mix(in srgb, currentColor 30%, #734a17),
+                       color-mix(in srgb, currentColor 40%, #633e13) 55%,
+                       color-mix(in srgb, currentColor 50%, #4a2c0b)), none;
     -webkit-background-clip:text, padding-box; background-clip:text, padding-box;
     -webkit-text-fill-color:transparent; }
   .pg-cabeza.abierta, .pg-version.abierta{
@@ -15522,7 +15531,7 @@ function medirPalabras(hostEl){
    aterriza otro. */
 /* Cada parada: dónde cae, el bronce y cuánto de la tinta del rótulo lleva
    mezclado, igual que el color-mix de la hoja. */
-const ORO_ROTULO = { ang:100, paradas:[[0, '#b07a2a', .30], [.55, '#8a5a1c', .45], [1, '#5e3a12', .60]] };
+const ORO_ROTULO = { ang:100, paradas:[[0, '#734a17', .30], [.55, '#633e13', .40], [1, '#4a2c0b', .50]] };
 /* color-mix(in srgb, tinta t, bronce) hecho a mano: la tinta llega como
    «rgb(r, g, b)» de getComputedStyle y el bronce como hex. */
 function mezclaBronce(tinta, hex, t){
