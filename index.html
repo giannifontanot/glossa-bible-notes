@@ -4152,24 +4152,28 @@
      nace del botón Código QR y crece hasta su sitio, y al cerrar se encoge de
      vuelta a ese mismo punto. Primero crecía un poco desde abajo en .3 s y
      Gianni pidió más lento todavía y que saliera de un punto y volviera a él;
-     ahora son .75 s, con la curva de salida al abrir y la misma al revés al
-     cerrar. El punto lo pone el programa en --vqr-dx/--vqr-dy (la distancia
+     luego .75 s, y ahora .58 —lo pidió un poco más rápido—, con la curva de
+     salida al abrir y la misma al revés al cerrar. El punto lo pone el programa en --vqr-dx/--vqr-dy (la distancia
      del centro de la tarjeta al del botón), medido al abrir y otra vez al
      cerrar, por si el panel se movió mientras tanto.
      SIN FUNDIDO, pedido por Gianni: «no fade in/fade out». La tarjeta va
-     opaca todo el viaje, crece y se encoge, y nada más; el velo aparece y se
-     va con ella, sin transparencias de por medio. Antes el conjunto se fundía
-     a la vez que crecía y la tarjeta se veía lavada a medio camino.
+     opaca todo el viaje, crece y se encoge, y nada más. Antes el conjunto se
+     fundía a la vez que crecía y la tarjeta se veía lavada a medio camino.
+     EL VELO, EN CAMBIO, SÍ LLEGA SUAVE: al quitar el fundido aparecía de
+     golpe, y Gianni pidió que el gris de detrás entrara y saliera suave, a la
+     ida y a la vuelta. Por eso lo que se funde es el color del velo, no la
+     ventana: la tarjeta, que va dentro, no se entera. Y un poco más rápido
+     que los .75 s de antes, también pedido: .58 s los dos.
      No se apaga con display:none —eso corta en seco y no deja ver la salida—,
      sino con visibility, que espera a que la tarjeta acabe de volver al
      botón para esconderla del todo (y del tabulador). Sin movimiento para
      quien lo pidió del sistema. */
   .ventana-qr{ position:fixed; inset:0; z-index:100000; display:grid;
-            place-items:center; padding:16px; background:rgba(43,33,24,.5);
+            place-items:center; padding:16px; background:rgba(43,33,24,0);
             visibility:hidden; pointer-events:none;
-            transition:visibility 0s linear .75s; }
-  .ventana-qr.puesta{ visibility:visible; pointer-events:auto;
-            transition:visibility 0s; }
+            transition:background-color .58s cubic-bezier(.4,0,1,1), visibility 0s linear .58s; }
+  .ventana-qr.puesta{ visibility:visible; pointer-events:auto; background:rgba(43,33,24,.5);
+            transition:background-color .58s cubic-bezier(0,0,.6,1), visibility 0s; }
   .vqr-tarjeta{ width:min(440px, 100%); max-height:calc(100dvh - 32px); overflow:auto;
             display:flex; flex-direction:column; align-items:center; gap:10px;
             padding:18px 18px 16px; box-sizing:border-box;
@@ -4177,8 +4181,8 @@
             border:1px solid rgba(140,116,68,.55); border-radius:14px;
             box-shadow:0 16px 34px -10px rgba(0,0,0,.6);
             transform:translate(var(--vqr-dx, 0px), var(--vqr-dy, 0px)) scale(.08);
-            transition:transform .75s cubic-bezier(.4,0,1,1); }
-  .ventana-qr.puesta .vqr-tarjeta{ transform:none; transition:transform .75s cubic-bezier(0,0,.6,1); }
+            transition:transform .58s cubic-bezier(.4,0,1,1); }
+  .ventana-qr.puesta .vqr-tarjeta{ transform:none; transition:transform .58s cubic-bezier(0,0,.6,1); }
   .ventana-qr .vqr-tarjeta.sin-viaje{ transition:none; }
   .vqr-titulo{ margin:0; font:700 calc(18px * var(--escala-ui, 1))/1.2 var(--ui); color:#b0873a; }
   .vqr-tarjeta .qr-dibujo{ width:min(78vw, 56vh, 360px); height:auto; aspect-ratio:1 / 1; display:block;
@@ -7709,7 +7713,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 10:41';
+window.GLOSS_BUILD = '23-NOV-26 10:59';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
