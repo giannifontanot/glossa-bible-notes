@@ -4107,23 +4107,90 @@
   .mapa-leyenda .ley.vivo{ background:#ff3b30; box-shadow:0 0 6px #ff3b30; }
   .mapa-leyenda .ley.antes{ background:#e0787c; opacity:.75; }
   .leaflet-interactive.punto-vivo{ filter:drop-shadow(0 0 4px rgba(255,59,48,.85)); }
-  /* EL QR: media pantalla de teléfono, cuadrado, en su tarjeta blanca —un QR
-     necesita su margen claro alrededor para que la cámara lo encuentre—. */
-  /* La raya entre el mapa y el QR mide lo que ellos, no lo que la hoja: una
-     raya de lado a lado de la hoja era otro filo descentrado respecto a la
-     pantalla, y el ojo también medía contra él. */
+  /* La raya entre el mapa y los botones mide lo que ellos, no lo que la
+     hoja: una raya de lado a lado de la hoja era otro filo descentrado
+     respecto a la pantalla, y el ojo también medía contra él. */
   .qr-glossa{ display:flex; flex-direction:column; align-items:center; gap:6px;
               margin:16px 0 4px; }
   .qr-raya{ width:min(44vh, 82%); height:0; margin:0 0 10px; border:0;
             border-top:1px solid rgba(140,116,68,.35); }
-  .qr-glossa svg{ width:min(44vh, 82%); height:auto; aspect-ratio:1 / 1; display:block;
-                  padding:8px; background:#fff; border-radius:12px;
-                  border:1px solid rgba(140,116,68,.45); box-shadow:0 2px 6px rgba(60,40,15,.18); }
-  /* El texto no pasa del ancho del dibujo: así, al centrar el QR en la
-     pantalla, se mueven juntos y ninguno se sale. */
-  .qr-dice{ margin:4px 0 0; max-width:min(44vh, 82%); text-align:center;
+  /* LOS TRES BOTONES OCUPAN EXACTAMENTE EL CUADRO DEL QR, pedido por Gianni:
+     el mismo ancho que el mapa —min(44vh, 82%)— y el mismo alto, que era el
+     de un cuadrado. Tres filas iguales.
+     EL COLOR: azul de tinta con la letra crema y los iconos en oro, como el
+     lomo de una Biblia empastada sobre el sepia de la hoja. Se escogió por
+     eso: tenía que verse distinto del papel sin pelearse con él, y el azul
+     es el que más se aparta del sepia sin desentonar —el rojo y el verde se
+     leían como aviso—. Es además el azul de la noche del mapa ampliado.
+     CENTRADOS PERO A LA IZQUIERDA. Lo pidió así: los tres botones, y lo de
+     dentro alineado a la izquierda para que los iconos queden en columna,
+     derechitos, uno debajo del otro. Con un subgrid los tres comparten las
+     mismas columnas —margen, icono, texto, margen—: la columna del icono es
+     la misma en los tres, y los dos márgenes iguales centran el conjunto.
+     Donde no hay subgrid cada botón se centra solo, que es casi lo mismo. */
+  .compartir-botones{ width:min(44vh, 82%); aspect-ratio:1 / 1; display:grid;
+            grid-template-rows:repeat(3, minmax(0, 1fr)); row-gap:12px;
+            grid-template-columns:minmax(0, 1fr) auto minmax(0, auto) minmax(0, 1fr); }
+  .compartir-boton{ grid-column:1 / -1; min-width:0; min-height:0; margin:0;
+            display:grid; align-items:center;
+            grid-template-columns:minmax(0, 1fr) auto minmax(0, auto) minmax(0, 1fr);
+            grid-template-columns:subgrid;
+            padding:0 14px; border-radius:16px; cursor:pointer; text-align:left;
+            border:1px solid #121c38;
+            background:linear-gradient(to bottom, #2e4170, #1d2b50);
+            color:#fbf3df; font-family:var(--ui);
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 3px 9px rgba(50,32,10,.3);
+            -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+            transition:transform .12s ease, filter .15s ease, background .25s ease; }
+  .compartir-boton:hover{ filter:brightness(1.08); }
+  .compartir-boton:active{ transform:translateY(1px) scale(.985); filter:brightness(1.12); }
+  .compartir-boton:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; }
+  /* El icono en su medallón de oro: el mismo tamaño en los tres, así que la
+     columna se lee como columna. */
+  .compartir-boton .cb-icono{ grid-column:2; display:grid; place-items:center;
+            width:44px; height:44px; margin-right:14px; border-radius:50%;
+            color:#ecc66e; background:rgba(236,198,110,.13);
+            border:1px solid rgba(236,198,110,.38); }
+  .compartir-boton .cb-icono svg{ width:24px; height:24px; display:block; }
+  .compartir-boton .cb-texto{ grid-column:3; min-width:0; display:flex; flex-direction:column; gap:3px; }
+  .compartir-boton .cb-que{ font:700 calc(17px * var(--escala-ui, 1))/1.15 var(--ui); letter-spacing:.01em; }
+  .compartir-boton .cb-para{ font:500 calc(12.5px * var(--escala-ui, 1))/1.3 var(--ui); color:#cfc8b6; }
+  /* COPIADO: el botón se vuelve verde un par de segundos, con su palomita. */
+  .compartir-boton.copiado{ background:linear-gradient(to bottom, #348a58, #26693f); border-color:#1d5232; }
+  .compartir-boton.copiado .cb-icono{ color:#fff; background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.45); }
+  .compartir-boton.copiado .cb-para{ color:#e2f1e6; }
+  .compartir-aviso{ position:absolute !important; width:1px; height:1px; margin:-1px; padding:0;
+            overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+  @media (prefers-reduced-motion: reduce){
+    .compartir-boton{ transition:none; }
+    .compartir-boton:active{ transform:none; } }
+  /* LA VENTANA DEL QR, del mismo papel que la ventanita de los relatos: un
+     velo tenue y la tarjeta encima, con el QR tan grande como cabe —un QR
+     necesita su margen blanco alrededor para que la cámara lo encuentre— y el
+     CERRAR abajo, al alcance del pulgar. */
+  .ventana-qr{ position:fixed; inset:0; z-index:100000; display:none;
+            place-items:center; padding:16px; background:rgba(43,33,24,.5); }
+  .ventana-qr.puesta{ display:grid; }
+  .vqr-tarjeta{ width:min(440px, 100%); max-height:calc(100dvh - 32px); overflow:auto;
+            display:flex; flex-direction:column; align-items:center; gap:10px;
+            padding:18px 18px 16px; box-sizing:border-box;
+            background:linear-gradient(to bottom, #f7f0dd, #ece0c2); color:#3b2b18;
+            border:1px solid rgba(140,116,68,.55); border-radius:14px;
+            box-shadow:0 16px 34px -10px rgba(0,0,0,.6);
+            animation:ventanita-sube .26s cubic-bezier(.2,.7,.2,1); }
+  .vqr-titulo{ margin:0; font:700 calc(18px * var(--escala-ui, 1))/1.2 var(--ui); color:#b0873a; }
+  .vqr-tarjeta .qr-dibujo{ width:min(78vw, 56vh, 360px); height:auto; aspect-ratio:1 / 1; display:block;
+            padding:10px; background:#fff; border-radius:12px; box-sizing:border-box;
+            border:1px solid rgba(140,116,68,.45); box-shadow:0 2px 6px rgba(60,40,15,.18); }
+  .qr-dice{ margin:4px 0 0; max-width:min(78vw, 360px); text-align:center;
             font:600 calc(14px * var(--escala-ui, 1))/1.35 var(--ui); color:#3d2f12; }
   .qr-liga{ margin:0; font:500 calc(12px * var(--escala-ui, 1))/1.3 var(--ui); color:#7a6638; }
+  .vqr-cerrar{ margin-top:6px; min-height:48px; padding:0 34px; border-radius:999px; cursor:pointer;
+            border:1px solid #121c38; background:linear-gradient(to bottom, #2e4170, #1d2b50);
+            color:#fbf3df; font:700 calc(13px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.12em;
+            -webkit-tap-highlight-color:transparent; }
+  .vqr-cerrar:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; }
+  @media (prefers-reduced-motion: reduce){ .vqr-tarjeta{ animation:none; } }
   .mapa-estado{ margin:6px 2px 0; white-space:pre-line; text-align:center; text-wrap:balance;
                 font:500 calc(12.5px * var(--escala-ui, 1))/1.4 var(--ui); color:#5c4a24; }
   /* EN PANTALLA ANCHA, EL PANEL DE COMPARTIR TAMBIÉN SE DESPLAZA. La escena
@@ -7656,7 +7723,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 08:14';
+window.GLOSS_BUILD = '23-NOV-26 08:52';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -21245,8 +21312,9 @@ function cantoMarcarLibro(lib){
 /* .mapa-completo: el mapa de lectores a pantalla completa se muda al <body>
    (ver pantallaCompleta), fuera de su .rollo; sin esta excepción, tocarlo
    —o tocar su ✕— cerraba el panel de Compartir que quedó debajo. Lo levantó
-   Codex. */
-const FUERA_NO = '.rollo, .fly, #menu, #versoPleno, #pgCabeza, #pgVersion, .lamina-grande, .ventanita, .mapa-completo';
+   Codex. .ventana-qr, por lo mismo: la ventana del QR de Compartir vive en el
+   <body>, y tocarla —o su CERRAR— no puede cerrar el panel de debajo. */
+const FUERA_NO = '.rollo, .fly, #menu, #versoPleno, #pgCabeza, #pgVersion, .lamina-grande, .ventanita, .mapa-completo, .ventana-qr';
 document.addEventListener('pointerdown', ev => {
   if (!burbujaAbierta()) return;
   if (ev.target.closest(FUERA_NO)) return;
@@ -29856,7 +29924,118 @@ async function mapaMarcarEnLinea(){
     });
   } catch(_){}
 }
+/* COMPARTIR LA BIBLIA GLOSSA: la dirección, los tres iconos y el dibujo del
+   QR. Los iconos son trazos, no letras ni emojis: así salen iguales en
+   Android y en iPhone, del mismo grueso y del color que les toque. */
+const LIGA_GLOSSA = 'https://giannifontanot.github.io/glossa-bible-notes/';
+const ICONO_QR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">' +
+  '<rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/>' +
+  '<rect x="3" y="14" width="7" height="7" rx="1.2"/>' +
+  '<path d="M6 6.2h1M17 6.2h1M6 17.2h1" stroke-width="2.4" stroke-linecap="round"/>' +
+  '<path d="M14 14h3v3h-3zM18.5 18.5H21V21h-2.5zM14 19.5V21M20.5 14v2" stroke-linecap="round"/></svg>';
+const ICONO_ENVIAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">' +
+  '<path d="M21.5 2.5 10.6 13.4"/><path d="M21.5 2.5 14.6 21.5l-4-8.1-8.1-4z"/></svg>';
+const ICONO_LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">' +
+  '<path d="M10 13.5a4.5 4.5 0 0 0 6.4.4l2.9-2.9a4.5 4.5 0 0 0-6.4-6.4l-1.6 1.6"/>' +
+  '<path d="M14 10.5a4.5 4.5 0 0 0-6.4-.4l-2.9 2.9a4.5 4.5 0 0 0 6.4 6.4l1.6-1.6"/></svg>';
+const ICONO_LISTO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">' +
+  '<path d="M4.5 12.5l5 5 10-11"/></svg>';
+const QR_GLOSSA = '<svg class="qr-dibujo" viewBox="0 0 37 37" role="img" aria-label="' +
+        T('Código QR para abrir la Biblia Glossa', 'QR code to open the Gloss Bible') + '" shape-rendering="crispEdges">' +
+        '<rect width="37" height="37" fill="#fff"/><path fill="#1d1a16" d="M2 2h7v1h-7zM11 2h3v1h-3zM15 2h1v1h-1zM19 2h1v1h-1zM21 2h3v1h-3zM25 2h1v1h-1zM28 2h7v1h-7zM2 3h1v1h-1zM8 3h1v1h-1zM11 3h2v1h-2zM14 3h4v1h-4zM19 3h1v1h-1zM22 3h3v1h-3zM26 3h1v1h-1zM28 3h1v1h-1zM34 3h1v1h-1zM2 4h1v1h-1zM4 4h3v1h-3zM8 4h1v1h-1zM10 4h1v1h-1zM12 4h4v1h-4zM19 4h7v1h-7zM28 4h1v1h-1zM30 4h3v1h-3zM34 4h1v1h-1zM2 5h1v1h-1zM4 5h3v1h-3zM8 5h1v1h-1zM10 5h2v1h-2zM16 5h3v1h-3zM21 5h1v1h-1zM25 5h2v1h-2zM28 5h1v1h-1zM30 5h3v1h-3zM34 5h1v1h-1zM2 6h1v1h-1zM4 6h3v1h-3zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h2v1h-2zM15 6h1v1h-1zM17 6h1v1h-1zM20 6h1v1h-1zM25 6h1v1h-1zM28 6h1v1h-1zM30 6h3v1h-3zM34 6h1v1h-1zM2 7h1v1h-1zM8 7h1v1h-1zM10 7h4v1h-4zM15 7h4v1h-4zM22 7h2v1h-2zM26 7h1v1h-1zM28 7h1v1h-1zM34 7h1v1h-1zM2 8h7v1h-7zM10 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM24 8h1v1h-1zM26 8h1v1h-1zM28 8h7v1h-7zM10 9h1v1h-1zM14 9h1v1h-1zM17 9h1v1h-1zM20 9h5v1h-5zM2 10h1v1h-1zM4 10h5v1h-5zM11 10h1v1h-1zM15 10h3v1h-3zM19 10h3v1h-3zM24 10h3v1h-3zM28 10h5v1h-5zM2 11h1v1h-1zM5 11h2v1h-2zM10 11h2v1h-2zM13 11h1v1h-1zM18 11h1v1h-1zM20 11h3v1h-3zM25 11h1v1h-1zM28 11h2v1h-2zM31 11h2v1h-2zM34 11h1v1h-1zM5 12h2v1h-2zM8 12h2v1h-2zM12 12h2v1h-2zM17 12h2v1h-2zM20 12h1v1h-1zM23 12h2v1h-2zM26 12h1v1h-1zM30 12h1v1h-1zM32 12h2v1h-2zM3 13h3v1h-3zM9 13h1v1h-1zM12 13h1v1h-1zM16 13h3v1h-3zM21 13h5v1h-5zM27 13h1v1h-1zM30 13h5v1h-5zM2 14h1v1h-1zM4 14h1v1h-1zM8 14h2v1h-2zM13 14h1v1h-1zM17 14h1v1h-1zM20 14h2v1h-2zM24 14h3v1h-3zM29 14h3v1h-3zM33 14h2v1h-2zM2 15h2v1h-2zM6 15h2v1h-2zM9 15h2v1h-2zM12 15h8v1h-8zM21 15h1v1h-1zM23 15h1v1h-1zM25 15h1v1h-1zM28 15h1v1h-1zM31 15h4v1h-4zM2 16h4v1h-4zM7 16h2v1h-2zM10 16h1v1h-1zM12 16h1v1h-1zM15 16h2v1h-2zM19 16h1v1h-1zM22 16h1v1h-1zM24 16h1v1h-1zM26 16h3v1h-3zM30 16h2v1h-2zM33 16h1v1h-1zM4 17h2v1h-2zM9 17h5v1h-5zM16 17h1v1h-1zM18 17h1v1h-1zM20 17h2v1h-2zM23 17h1v1h-1zM25 17h5v1h-5zM31 17h2v1h-2zM2 18h3v1h-3zM6 18h4v1h-4zM12 18h5v1h-5zM18 18h2v1h-2zM24 18h1v1h-1zM26 18h2v1h-2zM29 18h2v1h-2zM34 18h1v1h-1zM2 19h2v1h-2zM7 19h1v1h-1zM9 19h1v1h-1zM13 19h1v1h-1zM16 19h1v1h-1zM18 19h5v1h-5zM25 19h1v1h-1zM28 19h2v1h-2zM31 19h2v1h-2zM34 19h1v1h-1zM3 20h1v1h-1zM5 20h2v1h-2zM8 20h1v1h-1zM10 20h1v1h-1zM12 20h1v1h-1zM14 20h2v1h-2zM17 20h1v1h-1zM19 20h1v1h-1zM22 20h1v1h-1zM24 20h1v1h-1zM27 20h4v1h-4zM32 20h1v1h-1zM2 21h2v1h-2zM9 21h5v1h-5zM15 21h3v1h-3zM19 21h2v1h-2zM23 21h1v1h-1zM26 21h2v1h-2zM29 21h6v1h-6zM4 22h2v1h-2zM8 22h3v1h-3zM13 22h3v1h-3zM18 22h1v1h-1zM22 22h1v1h-1zM24 22h1v1h-1zM26 22h2v1h-2zM30 22h2v1h-2zM33 22h2v1h-2zM2 23h3v1h-3zM6 23h1v1h-1zM9 23h2v1h-2zM12 23h3v1h-3zM16 23h2v1h-2zM20 23h3v1h-3zM25 23h1v1h-1zM28 23h1v1h-1zM31 23h1v1h-1zM34 23h1v1h-1zM2 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM13 24h2v1h-2zM17 24h3v1h-3zM22 24h1v1h-1zM24 24h1v1h-1zM27 24h1v1h-1zM30 24h1v1h-1zM32 24h2v1h-2zM2 25h1v1h-1zM6 25h1v1h-1zM9 25h2v1h-2zM12 25h1v1h-1zM16 25h2v1h-2zM22 25h3v1h-3zM26 25h4v1h-4zM31 25h2v1h-2zM2 26h1v1h-1zM4 26h1v1h-1zM7 26h2v1h-2zM10 26h3v1h-3zM15 26h1v1h-1zM17 26h1v1h-1zM19 26h1v1h-1zM24 26h7v1h-7zM33 26h1v1h-1zM10 27h2v1h-2zM14 27h2v1h-2zM18 27h1v1h-1zM20 27h3v1h-3zM26 27h1v1h-1zM30 27h1v1h-1zM32 27h1v1h-1zM34 27h1v1h-1zM2 28h7v1h-7zM11 28h1v1h-1zM13 28h2v1h-2zM17 28h1v1h-1zM20 28h1v1h-1zM24 28h3v1h-3zM28 28h1v1h-1zM30 28h1v1h-1zM32 28h2v1h-2zM2 29h1v1h-1zM8 29h1v1h-1zM10 29h3v1h-3zM14 29h1v1h-1zM16 29h3v1h-3zM22 29h5v1h-5zM30 29h4v1h-4zM2 30h1v1h-1zM4 30h3v1h-3zM8 30h1v1h-1zM10 30h1v1h-1zM12 30h1v1h-1zM15 30h1v1h-1zM17 30h1v1h-1zM20 30h1v1h-1zM24 30h1v1h-1zM26 30h6v1h-6zM34 30h1v1h-1zM2 31h1v1h-1zM4 31h3v1h-3zM8 31h1v1h-1zM10 31h5v1h-5zM17 31h3v1h-3zM21 31h2v1h-2zM24 31h4v1h-4zM30 31h2v1h-2zM33 31h2v1h-2zM2 32h1v1h-1zM4 32h3v1h-3zM8 32h1v1h-1zM10 32h1v1h-1zM20 32h1v1h-1zM24 32h1v1h-1zM28 32h2v1h-2zM31 32h1v1h-1zM2 33h1v1h-1zM8 33h1v1h-1zM14 33h1v1h-1zM16 33h1v1h-1zM18 33h1v1h-1zM22 33h2v1h-2zM30 33h3v1h-3zM2 34h7v1h-7zM10 34h1v1h-1zM12 34h1v1h-1zM15 34h1v1h-1zM18 34h2v1h-2zM22 34h1v1h-1zM24 34h3v1h-3zM28 34h2v1h-2zM31 34h1v1h-1zM33 34h1v1h-1z"/></svg>';
+/* LA VENTANA DEL QR. Pedida por Gianni: el QR que vivía debajo del mapa se
+   abre ahora aquí, a buen tamaño, con un CERRAR abajo. Va en el <body> y no
+   en el panel por lo mismo que el mapa a pantalla completa: el panel abierto
+   lleva transform y clip-path, que harían de caja del position:fixed y la
+   ventana saldría recortada al panel. Se arma una sola vez. Tocar el velo
+   también cierra, y Escape, que se queda aquí sin llegar a cerrar Compartir. */
+let ventanaQr = null, qrDevuelve = null;
+function cerrarVentanaQr(){
+  if (!ventanaQr || !ventanaQr.classList.contains('puesta')) return;
+  ventanaQr.classList.remove('puesta');
+  if (qrDevuelve && qrDevuelve.isConnected) qrDevuelve.focus({ preventScroll: true });
+  qrDevuelve = null;
+}
+function abrirVentanaQr(desde){
+  if (!ventanaQr){
+    ventanaQr = document.createElement('div');
+    ventanaQr.className = 'ventana-qr';
+    ventanaQr.setAttribute('role', 'dialog');
+    ventanaQr.setAttribute('aria-modal', 'true');
+    ventanaQr.innerHTML =
+      '<div class="vqr-tarjeta">' +
+        '<h2 class="vqr-titulo" data-es="Código QR" data-en="QR code">' + T('Código QR', 'QR code') + '</h2>' +
+        QR_GLOSSA +
+        '<p class="qr-dice" data-es="Escanéalo con otro teléfono para abrir la Biblia Glossa" ' +
+          'data-en="Scan it with another phone to open the Gloss Bible">' +
+          T('Escanéalo con otro teléfono para abrir la Biblia Glossa', 'Scan it with another phone to open the Gloss Bible') + '</p>' +
+        '<p class="qr-liga">giannifontanot.github.io/glossa-bible-notes</p>' +
+        '<button type="button" class="vqr-cerrar" data-es="CERRAR" data-en="CLOSE">' + T('CERRAR', 'CLOSE') + '</button>' +
+      '</div>';
+    ventanaQr.setAttribute('aria-label', T('Código QR', 'QR code'));
+    ventanaQr.addEventListener('click', ev => {
+      ev.stopPropagation();
+      if (ev.target === ventanaQr || ev.target.closest('.vqr-cerrar')) cerrarVentanaQr();
+    });
+    /* EL TECLADO SE QUEDA EN LA VENTANA mientras está abierta: el tabulador
+       da la vuelta dentro de ella y ninguna tecla llega al libro —con las
+       flechas de lado se pasaba la hoja de debajo sin verse—. Lo mismo que
+       hace la ventanita de los relatos. Lo levantó la revisión de Codex. Se
+       corta la propagación y no el gesto, para que Enter y la barra sigan
+       pulsando CERRAR; Escape la cierra. */
+    addEventListener('keydown', ev => {
+      if (!ventanaQr.classList.contains('puesta')) return;
+      ev.stopImmediatePropagation();
+      if (ev.key === 'Tab'){ tabuladorDentro(ev, ventanaQr.querySelector('.vqr-tarjeta')); return; }
+      if (ev.key === 'Escape'){ ev.preventDefault(); cerrarVentanaQr(); }
+    }, true);
+    document.body.appendChild(ventanaQr);
+  }
+  qrDevuelve = desde || null;
+  ventanaQr.setAttribute('aria-label', T('Código QR', 'QR code'));
+  ventanaQr.classList.add('puesta');
+  ventanaQr.querySelector('.vqr-cerrar').focus({ preventScroll: true });
+}
+/* COPIAR AL PORTAPAPELES, con la vieja manera de respaldo: navigator.clipboard
+   pide página segura y que el navegador lo tenga, y hay WebView que no. */
+async function copiarTexto(t){
+  try { if (navigator.clipboard && window.isSecureContext){ await navigator.clipboard.writeText(t); return true; } }
+  catch(_){}
+  try {
+    const a = document.createElement('textarea');
+    a.value = t; a.setAttribute('readonly', '');
+    a.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
+    document.body.appendChild(a);
+    a.select(); a.setSelectionRange(0, t.length);
+    const ok = document.execCommand('copy');
+    a.remove();
+    return ok;
+  } catch(_){ return false; }
+}
+/* ENVIAR: el menú de compartir del propio teléfono —Gianni lo prefirió a ir
+   directo a WhatsApp, porque ahí sale todo lo que la persona usa—. Donde no
+   existe (casi todos los navegadores de escritorio), se abre WhatsApp con la
+   liga ya escrita, que es lo que se pidió de respaldo. Si la persona cierra el
+   menú sin elegir, no pasa nada. */
+async function enviarGlossa(){
+  const texto = T('Te comparto la Biblia Glossa', 'Here is the Gloss Bible');
+  if (navigator.share){
+    try { await navigator.share({ title: T('Biblia Glossa', 'Gloss Bible'), text: texto, url: LIGA_GLOSSA }); return; }
+    catch(e){ if (e && e.name === 'AbortError') return; }
+  }
+  window.open('https://wa.me/?text=' + encodeURIComponent(texto + ' ' + LIGA_GLOSSA), '_blank', 'noopener');
+}
 function armarMapaLectores(caja){
+  /* UN BOTÓN DE COMPARTIR: el icono en su columna y, a su derecha, lo que
+     hace en grande y para qué sirve debajo, en chico. Las dos palabras llevan
+     data-es/data-en para que el cambio de idioma las alcance. */
+  const boton = (que, icono, es, en, dEs, dEn) =>
+    '<button type="button" class="compartir-boton" data-compartir="' + que + '">' +
+      '<span class="cb-icono" aria-hidden="true">' + icono + '</span>' +
+      '<span class="cb-texto">' +
+        '<span class="cb-que" data-es="' + es + '" data-en="' + en + '">' + T(es, en) + '</span>' +
+        '<span class="cb-para" data-es="' + dEs + '" data-en="' + dEn + '">' + T(dEs, dEn) + '</span>' +
+      '</span></button>';
   /* ARRIBA DEL MAPA, UN SOLO RENGLÓN: lo que significa cada color y, a la
      derecha, la casilla de compartir la tuya. Hubo aquí un letrero que
      invitaba —«muéstranos desde qué ciudad lees»— y Gianni lo quitó para
@@ -29886,24 +30065,57 @@ function armarMapaLectores(caja){
         '<span class="ley antes"></span><span data-es="Ha leído" data-en="Has read">' + T('Ha leído', 'Has read') + '</span></p>' +
     '<p class="mapa-estado" id="mapaEstado"></p>' +
     '</div>' +
-    /* EL QR, LA MITAD DE ABAJO. Pedido por Gianni: debajo del mapa, un QR de
-       media pantalla en el teléfono con la liga a la Biblia Glossa, para que
-       quien está al lado la abra en el suyo y la descargue. Va DIBUJADO aquí
-       —una ruta de SVG ya calculada— y no generado al vuelo: la dirección no
-       cambia, y así se ve aunque no haya red, que es justo cuando uno está
-       con alguien enseñándole el teléfono. Si la app se muda, se vuelve a
-       calcular este dibujo. */
+    /* LOS TRES BOTONES DE COMPARTIR, EN EL SITIO DEL QR. Pedido por Gianni:
+       el QR de media pantalla quedó muy bonito, pero no es la única manera
+       de pasarle la Biblia a alguien, y casi nunca la más a mano. Así que el
+       cuadro que medía el QR lo llenan ahora tres botones iguales, uno encima
+       del otro: el QR (que se abre en su ventana, a buen tamaño), Enviar (el
+       menú de compartir del teléfono: WhatsApp, Mensajes, lo que tenga) y
+       Copiar link. Le dolió quitar el QR de la vista; por eso sigue siendo el
+       primero. El dibujo del QR sigue aquí, DIBUJADO —una ruta de SVG ya
+       calculada, no generada al vuelo—: la dirección no cambia y así se ve
+       aunque no haya red, que es justo cuando uno está con alguien
+       enseñándole el teléfono. Si la app se muda, se vuelve a calcular. */
     '<div class="qr-glossa">' +
       '<hr class="qr-raya">' +
-      '<svg viewBox="0 0 37 37" role="img" aria-label="' +
-        T('Código QR para abrir la Biblia Glossa', 'QR code to open the Gloss Bible') + '" shape-rendering="crispEdges">' +
-        '<rect width="37" height="37" fill="#fff"/><path fill="#1d1a16" d="M2 2h7v1h-7zM11 2h3v1h-3zM15 2h1v1h-1zM19 2h1v1h-1zM21 2h3v1h-3zM25 2h1v1h-1zM28 2h7v1h-7zM2 3h1v1h-1zM8 3h1v1h-1zM11 3h2v1h-2zM14 3h4v1h-4zM19 3h1v1h-1zM22 3h3v1h-3zM26 3h1v1h-1zM28 3h1v1h-1zM34 3h1v1h-1zM2 4h1v1h-1zM4 4h3v1h-3zM8 4h1v1h-1zM10 4h1v1h-1zM12 4h4v1h-4zM19 4h7v1h-7zM28 4h1v1h-1zM30 4h3v1h-3zM34 4h1v1h-1zM2 5h1v1h-1zM4 5h3v1h-3zM8 5h1v1h-1zM10 5h2v1h-2zM16 5h3v1h-3zM21 5h1v1h-1zM25 5h2v1h-2zM28 5h1v1h-1zM30 5h3v1h-3zM34 5h1v1h-1zM2 6h1v1h-1zM4 6h3v1h-3zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h2v1h-2zM15 6h1v1h-1zM17 6h1v1h-1zM20 6h1v1h-1zM25 6h1v1h-1zM28 6h1v1h-1zM30 6h3v1h-3zM34 6h1v1h-1zM2 7h1v1h-1zM8 7h1v1h-1zM10 7h4v1h-4zM15 7h4v1h-4zM22 7h2v1h-2zM26 7h1v1h-1zM28 7h1v1h-1zM34 7h1v1h-1zM2 8h7v1h-7zM10 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM24 8h1v1h-1zM26 8h1v1h-1zM28 8h7v1h-7zM10 9h1v1h-1zM14 9h1v1h-1zM17 9h1v1h-1zM20 9h5v1h-5zM2 10h1v1h-1zM4 10h5v1h-5zM11 10h1v1h-1zM15 10h3v1h-3zM19 10h3v1h-3zM24 10h3v1h-3zM28 10h5v1h-5zM2 11h1v1h-1zM5 11h2v1h-2zM10 11h2v1h-2zM13 11h1v1h-1zM18 11h1v1h-1zM20 11h3v1h-3zM25 11h1v1h-1zM28 11h2v1h-2zM31 11h2v1h-2zM34 11h1v1h-1zM5 12h2v1h-2zM8 12h2v1h-2zM12 12h2v1h-2zM17 12h2v1h-2zM20 12h1v1h-1zM23 12h2v1h-2zM26 12h1v1h-1zM30 12h1v1h-1zM32 12h2v1h-2zM3 13h3v1h-3zM9 13h1v1h-1zM12 13h1v1h-1zM16 13h3v1h-3zM21 13h5v1h-5zM27 13h1v1h-1zM30 13h5v1h-5zM2 14h1v1h-1zM4 14h1v1h-1zM8 14h2v1h-2zM13 14h1v1h-1zM17 14h1v1h-1zM20 14h2v1h-2zM24 14h3v1h-3zM29 14h3v1h-3zM33 14h2v1h-2zM2 15h2v1h-2zM6 15h2v1h-2zM9 15h2v1h-2zM12 15h8v1h-8zM21 15h1v1h-1zM23 15h1v1h-1zM25 15h1v1h-1zM28 15h1v1h-1zM31 15h4v1h-4zM2 16h4v1h-4zM7 16h2v1h-2zM10 16h1v1h-1zM12 16h1v1h-1zM15 16h2v1h-2zM19 16h1v1h-1zM22 16h1v1h-1zM24 16h1v1h-1zM26 16h3v1h-3zM30 16h2v1h-2zM33 16h1v1h-1zM4 17h2v1h-2zM9 17h5v1h-5zM16 17h1v1h-1zM18 17h1v1h-1zM20 17h2v1h-2zM23 17h1v1h-1zM25 17h5v1h-5zM31 17h2v1h-2zM2 18h3v1h-3zM6 18h4v1h-4zM12 18h5v1h-5zM18 18h2v1h-2zM24 18h1v1h-1zM26 18h2v1h-2zM29 18h2v1h-2zM34 18h1v1h-1zM2 19h2v1h-2zM7 19h1v1h-1zM9 19h1v1h-1zM13 19h1v1h-1zM16 19h1v1h-1zM18 19h5v1h-5zM25 19h1v1h-1zM28 19h2v1h-2zM31 19h2v1h-2zM34 19h1v1h-1zM3 20h1v1h-1zM5 20h2v1h-2zM8 20h1v1h-1zM10 20h1v1h-1zM12 20h1v1h-1zM14 20h2v1h-2zM17 20h1v1h-1zM19 20h1v1h-1zM22 20h1v1h-1zM24 20h1v1h-1zM27 20h4v1h-4zM32 20h1v1h-1zM2 21h2v1h-2zM9 21h5v1h-5zM15 21h3v1h-3zM19 21h2v1h-2zM23 21h1v1h-1zM26 21h2v1h-2zM29 21h6v1h-6zM4 22h2v1h-2zM8 22h3v1h-3zM13 22h3v1h-3zM18 22h1v1h-1zM22 22h1v1h-1zM24 22h1v1h-1zM26 22h2v1h-2zM30 22h2v1h-2zM33 22h2v1h-2zM2 23h3v1h-3zM6 23h1v1h-1zM9 23h2v1h-2zM12 23h3v1h-3zM16 23h2v1h-2zM20 23h3v1h-3zM25 23h1v1h-1zM28 23h1v1h-1zM31 23h1v1h-1zM34 23h1v1h-1zM2 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM13 24h2v1h-2zM17 24h3v1h-3zM22 24h1v1h-1zM24 24h1v1h-1zM27 24h1v1h-1zM30 24h1v1h-1zM32 24h2v1h-2zM2 25h1v1h-1zM6 25h1v1h-1zM9 25h2v1h-2zM12 25h1v1h-1zM16 25h2v1h-2zM22 25h3v1h-3zM26 25h4v1h-4zM31 25h2v1h-2zM2 26h1v1h-1zM4 26h1v1h-1zM7 26h2v1h-2zM10 26h3v1h-3zM15 26h1v1h-1zM17 26h1v1h-1zM19 26h1v1h-1zM24 26h7v1h-7zM33 26h1v1h-1zM10 27h2v1h-2zM14 27h2v1h-2zM18 27h1v1h-1zM20 27h3v1h-3zM26 27h1v1h-1zM30 27h1v1h-1zM32 27h1v1h-1zM34 27h1v1h-1zM2 28h7v1h-7zM11 28h1v1h-1zM13 28h2v1h-2zM17 28h1v1h-1zM20 28h1v1h-1zM24 28h3v1h-3zM28 28h1v1h-1zM30 28h1v1h-1zM32 28h2v1h-2zM2 29h1v1h-1zM8 29h1v1h-1zM10 29h3v1h-3zM14 29h1v1h-1zM16 29h3v1h-3zM22 29h5v1h-5zM30 29h4v1h-4zM2 30h1v1h-1zM4 30h3v1h-3zM8 30h1v1h-1zM10 30h1v1h-1zM12 30h1v1h-1zM15 30h1v1h-1zM17 30h1v1h-1zM20 30h1v1h-1zM24 30h1v1h-1zM26 30h6v1h-6zM34 30h1v1h-1zM2 31h1v1h-1zM4 31h3v1h-3zM8 31h1v1h-1zM10 31h5v1h-5zM17 31h3v1h-3zM21 31h2v1h-2zM24 31h4v1h-4zM30 31h2v1h-2zM33 31h2v1h-2zM2 32h1v1h-1zM4 32h3v1h-3zM8 32h1v1h-1zM10 32h1v1h-1zM20 32h1v1h-1zM24 32h1v1h-1zM28 32h2v1h-2zM31 32h1v1h-1zM2 33h1v1h-1zM8 33h1v1h-1zM14 33h1v1h-1zM16 33h1v1h-1zM18 33h1v1h-1zM22 33h2v1h-2zM30 33h3v1h-3zM2 34h7v1h-7zM10 34h1v1h-1zM12 34h1v1h-1zM15 34h1v1h-1zM18 34h2v1h-2zM22 34h1v1h-1zM24 34h3v1h-3zM28 34h2v1h-2zM31 34h1v1h-1zM33 34h1v1h-1z"/></svg>' +
-      '<p class="qr-dice"><span data-es="Escanéalo con otro teléfono para abrir la Biblia Glossa" ' +
-        'data-en="Scan it with another phone to open the Gloss Bible">' +
-        T('Escanéalo con otro teléfono para abrir la Biblia Glossa', 'Scan it with another phone to open the Gloss Bible') + '</span></p>' +
-      '<p class="qr-liga">giannifontanot.github.io/glossa-bible-notes</p>' +
+      '<div class="compartir-botones">' +
+        boton('qr', ICONO_QR, 'Código QR', 'QR code',
+              'Para escanear con otro teléfono', 'To scan with another phone') +
+        boton('enviar', ICONO_ENVIAR, 'Enviar', 'Send',
+              'WhatsApp, Mensajes y más', 'WhatsApp, Messages and more') +
+        boton('copiar', ICONO_LINK, 'Copiar link', 'Copy link',
+              'Para pegarlo donde quieras', 'To paste it anywhere') +
+      '</div>' +
+      '<p class="compartir-aviso" aria-live="polite"></p>' +
     '</div>';
   const lienzo = caja.querySelector('#mapaLectores'), estado = caja.querySelector('#mapaEstado');
+  /* LOS TRES BOTONES. Copiar avisa en el mismo botón —la palomita y «¡Link
+     copiado!» durante dos segundos— y lo repite para el lector de pantalla
+     en la línea viva de debajo. */
+  const aviso = caja.querySelector('.compartir-aviso');
+  let copiadoHasta = 0;
+  caja.querySelector('.compartir-botones').addEventListener('click', async ev => {
+    const b = ev.target.closest('[data-compartir]');
+    if (!b) return;
+    const que = b.dataset.compartir;
+    if (que === 'qr'){ abrirVentanaQr(b); return; }
+    if (que === 'enviar'){ enviarGlossa(); return; }
+    const ok = await copiarTexto(LIGA_GLOSSA);
+    const tit = b.querySelector('.cb-que'), ico = b.querySelector('.cb-icono');
+    const dice = ok ? T('¡Link copiado!', 'Link copied!') : T('No se pudo copiar', 'Could not copy');
+    tit.textContent = dice;
+    if (ok) ico.innerHTML = ICONO_LISTO;
+    b.classList.toggle('copiado', ok);
+    aviso.textContent = dice;
+    const hasta = copiadoHasta = Date.now() + 2200;
+    setTimeout(() => {
+      if (hasta !== copiadoHasta) return;
+      tit.textContent = T(tit.dataset.es, tit.dataset.en);
+      ico.innerHTML = ICONO_LINK;
+      b.classList.remove('copiado');
+      aviso.textContent = '';
+    }, 2200);
+  });
   let mapa = null, capa = null, completo = false, tactil = false;
   const decir = t => { estado.textContent = t; };
   const cerrar = document.createElement('button');
