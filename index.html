@@ -4084,12 +4084,15 @@
   /* LOS TRES BOTONES OCUPAN EXACTAMENTE EL CUADRO DEL QR, pedido por Gianni:
      el mismo ancho que el mapa —min(44vh, 82%)— y el mismo alto, que era el
      de un cuadrado. Tres filas iguales.
-     EL COLOR: el bronce hondo de los cuatro botones redondos (--punto, y el
-     tono de cuando están abiertos), con la letra crema y los iconos en oro
-     claro. Estrenaron azul de tinta y Gianni lo paró: «siento que compite
-     con el mapa». Era verdad: el azul era lo único frío de la pantalla
-     además del mar, y la vista se iba a él. El bronce es de la casa, se
-     distingue del sepia por lo hondo y deja que el mapa sea lo que luce.
+     EL COLOR: pergamino, un poco más oscuro que el papel del panel, con un
+     filo fino de bronce, los iconos en bronce y la letra en sepia oscuro.
+     Llevan dos vueltas. Estrenaron azul de tinta y Gianni lo paró: «siento
+     que compite con el mapa» —el azul era lo único frío de la pantalla además
+     del mar y la vista se iba a él—. Luego bronce hondo, el de los cuatro
+     botones redondos, y tampoco: «demasiado subido otra vez». Un botón
+     oscuro y lleno pesa más que el mapa, sea del color que sea. Un panel
+     escogió el pergamino: claros, de la misma familia que la hoja, se ven
+     como botones por el filo y el medallón, y el mapa queda de protagonista.
      CENTRADOS PERO A LA IZQUIERDA. Lo pidió así: los tres botones, y lo de
      dentro alineado a la izquierda para que los iconos queden en columna,
      derechitos, uno debajo del otro. Con un subgrid los tres comparten las
@@ -4112,28 +4115,28 @@
             grid-template-columns:minmax(18px, 1fr) auto minmax(0, auto) minmax(14px, 1fr);
             grid-template-columns:subgrid;
             padding:0; border-radius:16px; cursor:pointer; text-align:left;
-            border:1px solid #4e300e;
-            background:linear-gradient(to bottom, #8a5820, #6a4318);
-            color:#fbf3df; font-family:var(--ui);
-            box-shadow:inset 0 1px 0 rgba(255,236,196,.2), 0 3px 9px rgba(50,32,10,.3);
+            border:1px solid #9a6424;
+            background:linear-gradient(to bottom, #e2d2ad, #d6c398);
+            color:#3b2b18; font-family:var(--ui);
+            box-shadow:inset 0 1px 0 rgba(255,250,236,.55), 0 2px 5px rgba(60,40,15,.16);
             -webkit-tap-highlight-color:transparent; touch-action:manipulation;
             transition:transform .12s ease, filter .15s ease, background .25s ease; }
-  .compartir-boton:hover{ filter:brightness(1.08); }
-  .compartir-boton:active{ transform:translateY(1px) scale(.985); filter:brightness(1.12); }
+  .compartir-boton:hover{ filter:brightness(1.03); }
+  .compartir-boton:active{ transform:translateY(1px) scale(.985); filter:brightness(.96); }
   .compartir-boton:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; }
   /* El icono en su medallón de oro: el mismo tamaño en los tres, así que la
      columna se lee como columna. Su aire de la izquierda lo dan las columnas
      de .compartir-botones (arriba está por qué no el padding). */
   .compartir-boton .cb-icono{ grid-column:2; display:grid; place-items:center;
             width:44px; height:44px; margin-right:14px; border-radius:50%;
-            color:#f6dc9e; background:rgba(255,232,186,.14);
-            border:1px solid rgba(246,220,158,.42); }
+            color:#7f4f1a; background:rgba(154,100,36,.1);
+            border:1px solid rgba(154,100,36,.45); }
   .compartir-boton .cb-icono svg{ width:24px; height:24px; display:block; }
   .compartir-boton .cb-texto{ grid-column:3; min-width:0; display:flex; flex-direction:column; gap:3px; }
   .compartir-boton .cb-que{ font:700 calc(17px * var(--escala-ui, 1))/1.15 var(--ui); letter-spacing:.01em; }
-  .compartir-boton .cb-para{ font:500 calc(12.5px * var(--escala-ui, 1))/1.3 var(--ui); color:#ecdcbc; }
+  .compartir-boton .cb-para{ font:500 calc(12.5px * var(--escala-ui, 1))/1.3 var(--ui); color:#5c4a24; }
   /* COPIADO: el botón se vuelve verde un par de segundos, con su palomita. */
-  .compartir-boton.copiado{ background:linear-gradient(to bottom, #348a58, #26693f); border-color:#1d5232; }
+  .compartir-boton.copiado{ background:linear-gradient(to bottom, #348a58, #26693f); border-color:#1d5232; color:#fbf3df; }
   .compartir-boton.copiado .cb-icono{ color:#fff; background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.45); }
   .compartir-boton.copiado .cb-para{ color:#e2f1e6; }
   .compartir-aviso{ position:absolute !important; width:1px; height:1px; margin:-1px; padding:0;
@@ -7707,7 +7710,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 10:00';
+window.GLOSS_BUILD = '23-NOV-26 10:02';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
