@@ -7723,7 +7723,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 08:50';
+window.GLOSS_BUILD = '23-NOV-26 08:52';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -29977,10 +29977,17 @@ function abrirVentanaQr(desde){
       ev.stopPropagation();
       if (ev.target === ventanaQr || ev.target.closest('.vqr-cerrar')) cerrarVentanaQr();
     });
+    /* EL TECLADO SE QUEDA EN LA VENTANA mientras está abierta: el tabulador
+       da la vuelta dentro de ella y ninguna tecla llega al libro —con las
+       flechas de lado se pasaba la hoja de debajo sin verse—. Lo mismo que
+       hace la ventanita de los relatos. Lo levantó la revisión de Codex. Se
+       corta la propagación y no el gesto, para que Enter y la barra sigan
+       pulsando CERRAR; Escape la cierra. */
     addEventListener('keydown', ev => {
-      if (ev.key !== 'Escape' || !ventanaQr.classList.contains('puesta')) return;
-      ev.stopImmediatePropagation(); ev.preventDefault();
-      cerrarVentanaQr();
+      if (!ventanaQr.classList.contains('puesta')) return;
+      ev.stopImmediatePropagation();
+      if (ev.key === 'Tab'){ tabuladorDentro(ev, ventanaQr.querySelector('.vqr-tarjeta')); return; }
+      if (ev.key === 'Escape'){ ev.preventDefault(); cerrarVentanaQr(); }
     }, true);
     document.body.appendChild(ventanaQr);
   }
