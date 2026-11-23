@@ -1723,6 +1723,13 @@
      gustó nadita. Regrésala como estaba». Así que la G es otra vez la de
      antes, crema, en el disco liso. */
   #btnGlosas .sello-g{ fill:none; stroke:#f0d4a0; }
+  /* Y UN FILO DE 1 PX, del mismo carmín un tono más hondo y sin brillo: le da
+     canto al disco sin ponerle marco. 1 px de pantalla y no de dibujo —el
+     non-scaling-stroke—, que si no la escala de 24 a 42 lo engordaría. Al
+     prensarlo sigue el color del disco, porque sale de currentColor. */
+  #btnGlosas .sello-cera{ stroke:#7a2020;
+                          stroke:color-mix(in srgb, currentColor 78%, #2a0606);
+                          stroke-width:1px; vector-effect:non-scaling-stroke; }
   /* MARGEN INVISIBLE. El sello se ve de 42 px; el toque llega 14 px más
      allá, para que gane a lo que hay al lado —el historial, el filo, el
      texto—. El z-index 8 le gana al 7 del historial en el recubrimiento.
@@ -7501,13 +7508,23 @@
           aria-label="glosas" aria-pressed="false"
           title="glosas">
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <!-- Disco irregular: cera, no círculo de compás. -->
+      <!-- Disco irregular: cera, no círculo de compás.
+
+           UN PELÍN MÁS GRANDE QUE LA LETRA LE PIDE. Gianni quería «un poquito
+           más de espacio a la G» —muy, muy poquito, que no llame la atención,
+           solo que se vea balanceada—. La G se queda como está y el disco
+           crece un 5 % alrededor del centro de la letra (12.3, 10.1), así que
+           el aire que gana es parejo por los cuatro lados: unos 0.8 px por
+           lado a 42 px. Crecen juntos el disco, su brillo y su puntito, para
+           que la luz no se quede en otro sitio. -->
+      <g transform="translate(12.3 10.1) scale(1.05) translate(-12.3 -10.1)">
       <path class="sello-cera" fill="currentColor"
             d="M12.1 2.05c2.9-.15 5.55 1.05 7.1 3.2 1.55 2.15 1.95 5.1.9 7.55-1.05 2.45-3.3 4.4-6.05 5.1-2.7.7-5.7.15-7.85-1.7C4.05 14.45 2.8 11.55 3.15 8.5 3.5 5.5 5.7 3.05 8.55 2.3c1.15-.3 2.35-.35 3.55-.25z"/>
       <path fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="1.45"
             stroke-linecap="round"
             d="M7.35 9.7c1.65-2.05 4.15-3.25 6.7-3.05"/>
       <circle cx="15.55" cy="15.15" r="1.3" fill="#fff" fill-opacity=".14"/>
+      </g>
       <!-- LA G VA DE TRAZO Y NO DE RELLENO, y no es un capricho de dibujo.
 
            La de antes se construía a mano —tallo, diamante, panza— y salían
@@ -7648,7 +7665,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 09:10';
+window.GLOSS_BUILD = '23-NOV-26 09:33';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
