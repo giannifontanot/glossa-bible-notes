@@ -7647,7 +7647,7 @@
   <div id="burbujaVersion" role="dialog" aria-label="Versión de la Biblia"></div>
 </div>
 
-<div id="deshacer">Marca borrada <button class="btn" id="btnDeshacer">Deshacer</button></div>
+<div id="deshacer"><span data-es="Marca borrada" data-en="Mark deleted">Marca borrada</span> <button class="btn" id="btnDeshacer" data-es="Deshacer" data-en="Undo">Deshacer</button></div>
 
 <div id="ghost" class="pg" aria-hidden="true">
   <div class="pg-inner">
@@ -7729,7 +7729,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 11:32';
+window.GLOSS_BUILD = '23-NOV-26 12:06';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -10086,7 +10086,7 @@ function enlazar(texto){
     const vivo = refExiste(r);
     const destino = nombreDe(r.libro) + ' ' + r.cap + ':' + r.vers +
                     (r.letra ? ' (glosa ' + r.letra + ')' : '') +
-                    (vivo ? '' : ' — no está en los datos cargados');
+                    (vivo ? '' : T(' — no está en los datos cargados', ' — not in the loaded data'));
     out += '<span class="ref' + (vivo ? '' : ' muerta') + '" data-ref="' +
            r.libro + ':' + r.cap + ':' + r.vers + ':' + r.letra + '"' +
            ' title="' + esc(destino) + '">' +
@@ -12981,13 +12981,15 @@ function abrirPanel(m, nueva, rect){
    tiene nada que enseñar, así que no hay filtro que estorbe. */
 function destaparLaNueva(m){
   const quitados = [];
-  if (!pasaDia(m)){ diaFiltro = ''; quitados.push('el filtro de día'); }
-  if (!pasaEtiquetas(m)){ etiquetasVer.clear(); quitados.push('el filtro de etiquetas'); }
+  /* Cada cosa quitada va en sus dos idiomas, [es, en]: el aviso habla el
+     idioma de la Biblia abierta, como todos. */
+  if (!pasaDia(m)){ diaFiltro = ''; quitados.push(['el filtro de día', 'the day filter']); }
+  if (!pasaEtiquetas(m)){ etiquetasVer.clear(); quitados.push(['el filtro de etiquetas', 'the tag filter']); }
   if (!showMarks){
     showMarks = true;
     const b = $('marksBtn'); if (b) b.textContent = 'Marcas: ON';
     paginasSucias = true;                  /* con las marcas puestas los cortes cambian */
-    quitados.push('las marcas apagadas');
+    quitados.push(['las marcas apagadas', 'the marks being off']);
   }
   if (!quitados.length) return;
   guardarAjustes();
@@ -12995,8 +12997,9 @@ function destaparLaNueva(m){
      haber abierto nunca el panel de Glosas, y entonces sus trozos no existen. */
   try { pintarFiltros(); } catch(e){}
   try { pintarIndice(); } catch(e){}
-  readout.textContent = 'se quitó ' + quitados.join(' y ') +
-    ': escondía la glosa que acabas de escribir';
+  readout.textContent = T(
+    'se quitó ' + quitados.map(q => q[0]).join(' y ') + ': escondía la glosa que acabas de escribir',
+    'removed ' + quitados.map(q => q[1]).join(' and ') + ': it was hiding the gloss you just wrote');
 }
 function cerrarBorrador(){
   var __t0 = performance.now();
@@ -14426,11 +14429,12 @@ function irA(libro, cap, vers, letra, opciones){
      si de verdad no está, y si está, se salta como desde el menú de libros. */
   if (libro !== LIBRO){
     if (!D.versiones[version].texto[libro]){
-      readout.textContent = 'ese libro no está en los datos cargados';
+      readout.textContent = T('ese libro no está en los datos cargados', 'that book is not in the loaded data');
       return;
     }
     if (!versoTexto(version, cap, vers, libro)){
-      readout.textContent = 'referencia fuera de rango: ' + nombreDe(libro) + ' ' + cap + ':' + vers;
+      readout.textContent = T('referencia fuera de rango: ', 'reference out of range: ') +
+                            nombreDe(libro) + ' ' + cap + ':' + vers;
       return;
     }
     ocultarMenu();
@@ -14446,7 +14450,7 @@ function irA(libro, cap, vers, letra, opciones){
     return;
   }
   const k = plano.findIndex(p => p.cap === cap && p.vers === vers);
-  if (k < 0){ readout.textContent = 'referencia fuera de rango: ' + cap + ':' + vers; return; }
+  if (k < 0){ readout.textContent = T('referencia fuera de rango: ', 'reference out of range: ') + cap + ':' + vers; return; }
   ocultarMenu();
   /* Al rastro. Va DESPUÉS de las dos comprobaciones de arriba a propósito: una
      referencia que no lleva a ningún sitio no es un pasaje que hayas visto, y
@@ -14554,7 +14558,7 @@ function deQueGlosa(el){
     abrirPleno(lib, +c, +v, letra || '', deQueGlosa(r));
     return;
   }
-  if (r){ readout.textContent = 'esa referencia no está en los datos cargados'; return; }
+  if (r){ readout.textContent = T('esa referencia no está en los datos cargados', 'that reference is not in the loaded data'); return; }
   const b = ev.target.closest('.back');
   if (b){
     ev.preventDefault(); ev.stopPropagation();
@@ -18301,14 +18305,17 @@ function abrirPleno(libro, cap, vers, letra, origen){
      recuadro y nada más. Lo encontró Codex. */
   const cuerpo = t
     ? '<button class="vp-txt" data-ir="' + libro + ':' + cap + ':' + vers + '">' + esc(t) + '</button>'
-    : '<div class="vp-txt vp-mudo">Este versículo no está en la versión que tienes puesta.</div>';
+    : '<div class="vp-txt vp-mudo">' + T('Este versículo no está en la versión que tienes puesta.',
+                                         'This verse is not in the version you have on.') + '</div>';
   el.innerHTML = '<div class="vp-cab">' +
       '<span class="vp-ref">' + esc(nombreDe(libro)) + ' ' + cap + ':' + vers + '</span>' +
-      '<button class="vp-x" data-cerrar-pleno="1" title="Cerrar" ' +
-      'aria-label="Cerrar"><span aria-hidden="true">\u00d7</span></button>' +
+      '<button class="vp-x" data-cerrar-pleno="1" title="' + T('Cerrar', 'Close') + '" ' +
+      'aria-label="' + T('Cerrar', 'Close') + '"><span aria-hidden="true">\u00d7</span></button>' +
     '</div>' +
     cuerpo +
-    '<span class="vp-pie">' + (t ? 'Toca el versículo para ir ahí.' : 'Cambia de versión en Formato para leerlo.') + '</span>';
+    '<span class="vp-pie">' + (t ? T('Toca el versículo para ir ahí.', 'Tap the verse to go there.')
+                                 : T('Cambia de versión en Formato para leerlo.', 'Change the version in Format to read it.')) +
+    '</span>';
   el.style.display = 'flex';
   void el.offsetWidth;
   el.classList.add('visible');
@@ -19060,8 +19067,8 @@ function cruzarLibro(s, clientY, sinAnimar){
   const anclaY = Math.min(Math.max(y, 0), H);
   side = s;
   preparandoPliegue = true;
-  mostrarBuscando(s === 'right' ? 'pasando al libro siguiente…'
-                                : 'pasando al libro anterior…');
+  mostrarBuscando(s === 'right' ? T('pasando al libro siguiente…', 'going on to the next book…')
+                                : T('pasando al libro anterior…', 'going back to the previous book…'));
   const armar = () => {
     LIBRO = destinoLibro;
     volverA = null;                    /* pasar hojas a mano cancela el regreso */
@@ -20978,14 +20985,16 @@ function pintarCitaVentanita(){
   const versos = caps && caps[c.cap];
   txt.textContent = '';
   if (!versos){
-    txt.textContent = 'Este pasaje no está en los libros que trae la aplicación.';
+    txt.textContent = T('Este pasaje no está en los libros que trae la aplicación.',
+                        'This passage is not in the books the app comes with.');
   } else {
     const hasta = Math.min(c.hasta, versos.length);
     for (let n = c.desde; n <= hasta; n++){
       const sup = document.createElement('sup'); sup.textContent = n;
       txt.append(sup, (versos[n-1] || '') + ' ');
     }
-    if (c.desde > versos.length) txt.textContent = 'Este versículo no está en los datos cargados.';
+    if (c.desde > versos.length) txt.textContent = T('Este versículo no está en los datos cargados.',
+                                                     'This verse is not in the loaded data.');
   }
   txt.scrollTop = 0;
   const pie = ventanita.querySelector('footer');
@@ -21023,7 +21032,7 @@ function ponerVentanita(datos){
     } else {
       ventanitaCita = null;
       h2.textContent = String(datos.rotulo || 'Cita');
-      txt.textContent = 'No se pudo leer esta cita.';
+      txt.textContent = T('No se pudo leer esta cita.', 'This reference could not be read.');
       pie.hidden = true;
     }
   } else {
@@ -21267,7 +21276,8 @@ canto.addEventListener('click', tocarLibro);
 function abrirCapitulosDe(lib){
   const id = lib.dataset.libro;
   if (!hayLibro(id)){
-    readout.textContent = nombreDe(id) + ' no está en estos datos — genéralo con el convertidor';
+    readout.textContent = nombreDe(id) + T(' no está en estos datos — genéralo con el convertidor',
+                                           ' is not in this data — generate it with the converter');
     return;
   }
   /* SE PINTA PRIMERO, Y ESTO NO ES ADORNO. El salto entre libros lejanos tarda
@@ -21413,7 +21423,7 @@ function mostrarBuscando(frase){
   clearTimeout(relojBuscando); relojBuscando = null;
   t0Buscando = performance.now();
   $('buscando').classList.add('viva');
-  dice(frase || 'buscando el pasaje…');
+  dice(frase || T('buscando el pasaje…', 'finding the passage…'));
 }
 function quitarBuscando(){
   const el = $('buscando');
@@ -23474,9 +23484,13 @@ function ofrecerSeparador(){
      panel abierto encima. La lectura sigue y se preguntará en la siguiente. */
   if (folding || preparandoPliegue || zoomActivo || borrador || cantoAbierto) return;
   const el = $('sepOferta');
-  el.innerHTML = '<span class="so-dice" id="soDice">¿Pongo un separador aquí?</span>' +
-    '<button class="so-btn si" data-sep-si="1">Sí</button>' +
-    '<button class="so-btn" data-sep-no="1">No</button>';
+  /* EN EL IDIOMA DE LA BIBLIA, y con los dos colgados del nodo —data-es y
+     data-en— para que aplicarIdioma la cambie si se cambia de versión con la
+     pregunta todavía puesta. */
+  const dos = (es, en) => ' data-es="' + es + '" data-en="' + en + '">' + T(es, en);
+  el.innerHTML = '<span class="so-dice" id="soDice"' + dos('¿Pongo un separador aquí?', 'Shall I put a bookmark here?') + '</span>' +
+    '<button class="so-btn si" data-sep-si="1"' + dos('Sí', 'Yes') + '</button>' +
+    '<button class="so-btn" data-sep-no="1"' + dos('No', 'No') + '</button>';
   el.setAttribute('aria-describedby', 'soDice');
   el.style.display = 'flex';
   void el.offsetWidth;
@@ -23851,7 +23865,7 @@ function cerrarPiedraMando(){
 }
 function ponerPiedra(){
   const a = piedraAncla();
-  if (!a){ readout.textContent = 'aquí no hay hoja donde dejarla'; return null; }
+  if (!a){ readout.textContent = T('aquí no hay hoja donde dejarla', 'there is no page here to leave it on'); return null; }
   const ahora = Date.now();
   /* NO NACEN UNA ENCIMA DE OTRA. Todas caían en el mismo punto, así que la
      segunda de una hoja aparecía tapada por la primera y parecía que no se
@@ -23880,7 +23894,8 @@ function ponerPiedra(){
   piedraEditando = x.id;
   pintarPiedras();
   abrirPiedraMando();
-  readout.textContent = 'perla puesta · arrástrala para moverla, o cámbiala en el mando';
+  readout.textContent = T('perla puesta · arrástrala para moverla, o cámbiala en el mando',
+                          'pearl placed · drag it to move it, or change it in the controls');
   return x;
 }
 function quitarPiedra(id){
@@ -23892,7 +23907,7 @@ function quitarPiedra(id){
   piedrasGuardar();
   pintarPiedras();
   if (typeof pintarPiedrero === 'function') pintarPiedrero();
-  readout.textContent = 'perla quitada';
+  readout.textContent = T('perla quitada', 'pearl removed');
 }
 /* DESHACER: la piedra vuelve a como estaba y se cierra. Si por lo que sea no
    hay copia —una edición que empezó antes de este código, un id que ya no
@@ -23978,7 +23993,7 @@ function piedraPonerForma(id, forma){
   piedraTaller.pintar();
   piedraTaller.eco();
   refrescarPiedraMando();
-  readout.textContent = FORMA_NOMBRE[x.forma];
+  readout.textContent = T(FORMA_NOMBRE[x.forma], FORMA_NOMBRE_EN[x.forma] || FORMA_NOMBRE[x.forma]);
 }
 function piedraPonerColor(id, color){
   const x = piedraTaller.de(id);
@@ -23989,7 +24004,7 @@ function piedraPonerColor(id, color){
   piedraTaller.pintar();
   piedraTaller.eco();
   refrescarPiedraMando();
-  readout.textContent = tintaDe(color)[1];
+  readout.textContent = T(tintaDe(color)[1], TINTA_NOMBRE_EN[tintaDe(color)[0]] || tintaDe(color)[1]);
 }
 function piedraTamano(id, paso){
   const x = piedraTaller.de(id);
@@ -24060,7 +24075,8 @@ function piedraAbrirEdicion(id){
   piedraEditando = id;
   pintarPiedras();
   abrirPiedraMando();
-  readout.textContent = 'perla en edición · arrástrala para moverla, o cámbiala en el mando';
+  readout.textContent = T('perla en edición · arrástrala para moverla, o cámbiala en el mando',
+                          'pearl being edited · drag it to move it, or change it in the controls');
   return true;
 }
 stage.addEventListener('dblclick', ev => {
@@ -25806,7 +25822,8 @@ function sepPonerNombre(id, valor){
    cambio, y avisar de él enseñaría a no leer los avisos. */
 function sepDecirNombre(r){
   if (r && r.cambio)
-    readout.textContent = r.nombre ? 'separador nombrado' : 'nombre del separador borrado';
+    readout.textContent = r.nombre ? T('separador nombrado', 'bookmark named')
+                                   : T('nombre del separador borrado', 'bookmark name cleared');
 }
 function sepGuardarNombre(id, valor){
   const r = sepPonerNombre(id, valor);
@@ -26013,7 +26030,7 @@ $('sepMenu').addEventListener('click', ev => {
   if (borrar){
     ev.preventDefault(); ev.stopPropagation();
     borrarSeparador(borrar.dataset.sepBorrar);
-    readout.textContent = 'separador eliminado';
+    readout.textContent = T('separador eliminado', 'bookmark deleted');
     return;
   }
   const ir = ev.target.closest('[data-sep-ir]');
@@ -26247,10 +26264,11 @@ function capturarFiltroGlosas(){
 }
 function restaurarFiltroNota(f){
   if (!hayLibro(f.libro)){
-    readout.textContent = 'El libro de este filtro no está disponible en la versión actual';
+    readout.textContent = T('El libro de este filtro no está disponible en la versión actual',
+                            'The book of this filter is not available in the current version');
     return;
   }
-  mostrarBuscando('restaurando el filtro de glosas…');
+  mostrarBuscando(T('restaurando el filtro de glosas…', 'restoring the gloss filter…'));
   /* Repaginar otro libro puede costar: primero se pinta el acuse. Se mantiene
      el panel abierto; saltarA lo cerraba y dejaba al lector fuera de GLOSAS. */
   trasPintar(() => {
@@ -26671,9 +26689,9 @@ $('archivoImp').onchange = ev => {
        lee como una importación completa a menos que alguien cuente las otras
        diecisiete. */
     if (repetidas || malas || cuentaNotas.repetidas || cuentaNotas.malas)
-      readout.textContent = (nuevas + cuentaNotas.nuevas) + ' importada(s)' +
-        (repetidas + cuentaNotas.repetidas ? ' · ' + (repetidas + cuentaNotas.repetidas) + ' ya estaban' : '') +
-        (malas + cuentaNotas.malas ? ' · ' + (malas + cuentaNotas.malas) + ' ilegibles' : '');
+      readout.textContent = (nuevas + cuentaNotas.nuevas) + T(' importada(s)', ' imported') +
+        (repetidas + cuentaNotas.repetidas ? ' · ' + (repetidas + cuentaNotas.repetidas) + T(' ya estaban', ' already there') : '') +
+        (malas + cuentaNotas.malas ? ' · ' + (malas + cuentaNotas.malas) + T(' ilegibles', ' unreadable') : '');
   };
   lector.readAsText(f);
 };
@@ -26733,6 +26751,8 @@ const UI_EN = {
   '#historial':        { aria:'Passages you have seen' },
   '#piedraMenu':       { aria:'Your pearls' },
   '#sepMenu':          { aria:'Bookmark options' },
+  '#sepOferta':        { aria:'Put a bookmark' },
+  '#versoPleno':       { aria:'Full verse' },
   /* FORMATO. `lbl` es el rótulo de la fila donde vive el control: los rótulos
      son <span> sin nombre propio, y por el control de su fila se encuentran
      sin depender de en qué puesto está cada fila. */
@@ -26877,7 +26897,9 @@ function setVersion(v){
    girando para siempre encima de la hoja. */
 function cambiarVersion(v){
   if (!v || v === version) return;
-  mostrarBuscando('cambiando de versión…');
+  /* En el idioma de la versión a la que se va, no de la que se deja: es la
+     que el lector acaba de elegir, y en lo que tarde ya está leyendo en ella. */
+  mostrarBuscando(idiomaVersion(v) === 'en' ? 'changing the version…' : 'cambiando de versión…');
   trasPintar(() => {
     try { setVersion(v); }
     finally { quitarBuscando(); }
@@ -28541,9 +28563,13 @@ function armarManijasIndice(pagina, reordenar){
     f.querySelector('.indice-numero').textContent = String(i + 1).padStart(2, '0');
   });
   const anunciar = (fila, guardado) => {
-    aviso.textContent = fila.querySelector('.indice-nombre').textContent + ', posición ' +
-      (filas().indexOf(fila) + 1) + ' de ' + lista.children.length +
-      (guardado === false ? '. No se pudo guardar el orden.' : '. Orden actualizado.');
+    const nombre = fila.querySelector('.indice-nombre').textContent;
+    const pos = filas().indexOf(fila) + 1, total = lista.children.length;
+    aviso.textContent = T(
+      nombre + ', posición ' + pos + ' de ' + total +
+        (guardado === false ? '. No se pudo guardar el orden.' : '. Orden actualizado.'),
+      nombre + ', position ' + pos + ' of ' + total +
+        (guardado === false ? '. Could not save the order.' : '. Order updated.'));
   };
   let gesto = null;
   const animaciones = new Map();
@@ -28583,7 +28609,7 @@ function armarManijasIndice(pagina, reordenar){
       else {
         ordenarElementosIndice(filas().map(f => ({ id:f.dataset.destino, fila:f })), g.orden)
           .forEach(e => lista.appendChild(e.fila));
-        numerar(); reordenar(g.orden, false); aviso.textContent = 'Movimiento cancelado. Se conserva el orden anterior.';
+        numerar(); reordenar(g.orden, false); aviso.textContent = T('Movimiento cancelado. Se conserva el orden anterior.', 'Move cancelled. The previous order is kept.');
       }
     }
     try { pagina.releasePointerCapture(g.puntero); } catch(_){}
