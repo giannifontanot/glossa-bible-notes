@@ -7581,7 +7581,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 08:44';
+window.GLOSS_BUILD = '23-NOV-26 08:54';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25139,17 +25139,21 @@ function colocarPiedraMenu(){
      instante, y las dos cuentas hablan del mismo panel. */
   const vvp = window.visualViewport;
   const cabeAlto = vvp ? areaVisible().alto - 16 : Infinity;
-  /* EL MISMO ANCHO QUE LA DE CINTAS, CON LA MISMA CUENTA Y EN ESPEJO. La de
-     cintas no pasa de lo que hay entre el filo izquierdo y el canto derecho
-     de su punto, que está en la esquina de la derecha a 10 px: le quedan 18
-     menos que la escena. Ésta cuelga del punto de la izquierda, a 10 px del
-     otro filo, así que la cuenta es la misma de espejo: lo que hay entre el
-     canto izquierdo del punto y el filo derecho, menos 8. Mismo número, la
-     misma caja, sin copiar una cifra que se desafinaría el día que alguien
-     mueva un punto. Y el mismo suelo de 280 que la de cintas. */
-  const rr = piedraMenuAncla;
-  el.style.maxWidth = rr ? Math.max(Math.min(280, st.width - 16),
-                                    Math.floor(st.right - rr.left - 8)) + 'px' : '';
+  /* EL MISMO ANCHO QUE LA DE CINTAS, MEDIDO CONTRA SU PUNTO. La de cintas no
+     pasa de lo que hay entre el filo izquierdo y el canto derecho de su
+     punto, menos 8, con un suelo de 280 (ver colocarSepMenu). Se probó antes
+     la misma cuenta en espejo, contra el punto de las perlas, y salió casi
+     igual pero no igual —356 contra 350 en el teléfono de 412—, porque los
+     dos puntos no están a la misma distancia de su filo. Gianni las quiere
+     hermanas, así que se mide contra el punto de las cintas: misma cuenta,
+     mismo número. Y como esta cuelga de la izquierda y no cabe a la izquierda
+     de su punto, se pega al filo de 8, que es justo donde empieza la otra:
+     las dos cajas ocupan el mismo sitio. Si el punto de las cintas no está a
+     la vista (con la lupa se esconden los dos), se queda en su ancho de CSS,
+     que es el mismo tope que el de ella. */
+  const pc = $('btnCintas').getBoundingClientRect();
+  el.style.maxWidth = pc.width ? Math.max(Math.min(280, st.width - 16),
+                                          Math.floor(pc.right - st.left - 8)) + 'px' : '';
   const w = el.offsetWidth, h = Math.min(el.offsetHeight, cabeAlto);
   let izq = st.width - w - 8, arr = 44;
   const r = piedraMenuAncla;

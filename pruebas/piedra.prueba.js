@@ -1293,7 +1293,7 @@ async function andamio(p){
   });
   di('al nombrarla desde la lista', lapiz);
   /* LA DE CINTAS, ABIERTA POR SU PUNTO, que es con la que Gianni compara:
-     misma caja que la de perlas, en espejo. Se cierra la de perlas antes,
+     misma caja que la de perlas, en el mismo sitio. Se cierra la de perlas antes,
      porque abrir una cierra la otra y medir con las dos a medio irse sería
      medir una animación. */
   const cintas = await p.evaluate(async () => {
@@ -1304,7 +1304,7 @@ async function andamio(p){
     if (!m.classList.contains('visible')) return { sinLista:true };
     const r = m.getBoundingClientRect(), c = getComputedStyle(m);
     const st = document.getElementById('stage').getBoundingClientRect();
-    const fuera = { izq: Math.round(r.left), ancho: Math.round(r.width),
+    const fuera = { izq: Math.round(r.left - st.left), ancho: Math.round(r.width),
                     der: Math.round(st.right - r.right),
                     relleno: c.padding, radio: c.borderRadius, sombra: c.boxShadow };
     document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
@@ -1316,9 +1316,9 @@ async function andamio(p){
   vale('LA CAJITA DE LAS PERLAS MIDE LO MISMO QUE LA LISTA DE CINTAS',
        !cintas.sinLista && Math.abs(cajaP.ancho - cintas.ancho) <= 1,
        cajaP.ancho + ' contra ' + cintas.ancho);
-  vale('  y en espejo: su margen izquierdo es el derecho de la otra',
-       !cintas.sinLista && Math.abs(cajaP.izq - cintas.der) <= 3,
-       cajaP.izq + ' contra ' + cintas.der);
+  vale('  y en el mismo sitio: el mismo margen al filo izquierdo',
+       !cintas.sinLista && Math.abs(cajaP.izq - cintas.izq) <= 1,
+       cajaP.izq + ' contra ' + cintas.izq);
   vale('  y viste igual: relleno, radio y sombra',
        cajaP.relleno === cintas.relleno && cajaP.radio === cintas.radio && cajaP.sombra === cintas.sombra,
        { perlas: [cajaP.relleno, cajaP.radio], cintas: [cintas.relleno, cintas.radio] });
