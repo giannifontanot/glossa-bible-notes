@@ -1256,11 +1256,15 @@
             opacity:var(--punto-luz, .9);
             transform:scale(var(--punto-esc, 1));
             /* SIN FILO NEGRO, como las bolitas: Gianni lo pidió quitar. El
-               borde de abajo de la esfera, casi café, es lo que la recorta. */
-            box-shadow:var(--punto-halo, 0 0 #0000);
+               borde de abajo de la esfera, casi café, es lo que la recorta.
+               Y SIN HALO, ni abierta ni señalada por la guía. Lo pidió Gianni
+               al apretarlas: «le pones un halo alrededor. No me gusta ese
+               halo… Veo que las haces grandes cuando las aprieto. Eso está muy
+               bien. Pero quítale el halo». Lo que dice «ésta es la abierta» es
+               que crece y se pone de bronce hondo; el aro sobraba. */
+            box-shadow:none;
             transition:opacity .28s cubic-bezier(.65,0,.35,1),
                        background .28s cubic-bezier(.65,0,.35,1),
-                       box-shadow .28s cubic-bezier(.65,0,.35,1),
                        transform .28s cubic-bezier(.3,.8,.4,1); }
   #btnZoom:hover::before, #btnHistorial:hover::before,
   #btnPiedras:hover::before, #btnCintas:hover::before{
@@ -1268,13 +1272,12 @@
   #btnZoom:active::before, #btnHistorial:active::before,
   #btnPiedras:active::before, #btnCintas:active::before{
             transform:scale(calc(var(--punto-esc, 1) * .9)); }
-  /* Abierto, la esfera se pone de bronce hondo, entera y más grande, con un
-     aro de bronce tenue alrededor: «éste es el que tienes abierto». En reposo es la
-     misma esfera, más chica y un pelo apagada; señalada por la guía, roja. */
+  /* Abierto, la esfera se pone de bronce hondo, entera y más grande: «éste
+     es el que tienes abierto». Sin aro alrededor (ver arriba). En reposo es
+     la misma esfera, más chica y un pelo apagada; señalada por la guía, roja. */
   #btnZoom.abierto, #btnHistorial.abierto,
   #btnPiedras.abierto, #btnCintas.abierto{
-            --punto:#7a4a16; --punto-luz:1; --punto-esc:1.25;
-            --punto-halo:0 0 0 3px rgba(176,122,42,.38); }
+            --punto:#7a4a16; --punto-luz:1; --punto-esc:1.25; }
   /* ============================================================
      LAS GUÍAS: DÓNDE SE PUEDE TOCAR, DICHO EN ROJO.
 
@@ -1305,10 +1308,12 @@
      permanente de la casilla de LIBROS: ese anillo se pinta con el interruptor
      apagado —es lo que enseña qué va a pasar si lo enciendes— así que necesita
      el halo fuera de la clase que enciende las guías. Escrito aquí lo heredan
-     los dos, y sigue habiendo un solo sitio donde tocarlo. */
+     los dos, y sigue habiendo un solo sitio donde tocarlo.
+     LOS PUNTOS YA NO LO LLEVAN: Gianni pidió quitarles el halo. Los rótulos
+     sí lo siguen llevando. */
   .stage{ --halo-guia:0 0 0 3px rgba(155,42,42,.20); }
   .stage.guias{ --punto:var(--rojo-galon, #9b2a2a); --punto-luz:1;
-                --punto-esc:1.2; --punto-halo:var(--halo-guia); }
+                --punto-esc:1.2; }
   /* EL ANILLO DE LOS RÓTULOS, MÁS GRUESO Y CON EL MISMO HALO QUE LOS PUNTOS.
 
      Iba a 1 px y el dueño del repo lo dijo mirándolo: «no parece que el rojo
@@ -7634,7 +7639,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 07:15';
+window.GLOSS_BUILD = '23-NOV-26 07:31';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
