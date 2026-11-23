@@ -971,16 +971,24 @@
                       will-change:transform; }
   #buscando .bolitas i{ position:absolute; left:50%; top:50%;
                         width:14px; height:14px; margin:-7px 0 0 -7px;
-                        border-radius:50%; background:#8a5a1c; }
+                        border-radius:50%; background:#9a6424; }
   /* EL BRILLO Y LA SOMBRA. Dos degradados redondos: el de arriba es la
      chispa blanca de la lámpara, el de abajo es el cuerpo de la esfera, claro
      arriba y hondo abajo. La luz cae a 50% 28%, o sea arriba del centro. */
   #buscando .bolitas i::before{ content:''; position:absolute; inset:0;
         border-radius:50%;
+        /* EL MISMO BRONCE DE LAS CUATRO ESFERITAS DE LAS ESQUINAS, receta
+           entera: Gianni vio que estas seguían doradas —#e0a955 arriba— y
+           las de las esquinas ya eran bronce. Misma chispa, mismo cuerpo
+           sacado de #9a6424 con color-mix. La primera línea es la red para
+           quien no entienda color-mix. */
+        background:radial-gradient(circle at 50% 32%, #b8823e 0, #9a6424 45%, #5e3a12 100%);
         background:radial-gradient(circle at 50% 24%, rgba(255,236,196,.9) 0,
-                                   rgba(255,222,160,.4) 22%, rgba(255,222,160,0) 42%),
-                   radial-gradient(circle at 50% 32%, #e0a955 0, #b07a2a 36%,
-                                   #8a5a1c 64%, #5e3a12 100%);
+                                   rgba(255,222,160,.35) 24%, rgba(255,222,160,0) 44%),
+                   radial-gradient(circle at 50% 32%,
+                                   color-mix(in srgb, #9a6424 60%, #ffd896) 0,
+                                   #9a6424 45%,
+                                   color-mix(in srgb, #9a6424 55%, #2a1806) 100%);
         transform:rotate(var(--luz, 0deg));
         animation:luzFija 1s linear infinite;
         will-change:rotate; }
@@ -995,8 +1003,12 @@
      grandes y enteras para que la chispa se lea como brillo; las de atrás no.
      A estas solo les queda el cuerpo, en el bronce hondo, que sí se distingue
      del papel. */
+  /* Y el bronce hondo es el de esa misma receta: del #9a6424 del medio al
+     hondo de abajo, sin la parte clara de arriba ni la chispa. */
   #buscando .bolitas i:nth-child(n+5)::before{
-        background:radial-gradient(circle at 50% 32%, #8a5a1c 0, #5e3a12 100%); }
+        background:radial-gradient(circle at 50% 32%, #9a6424 0, #5e3a12 100%);
+        background:radial-gradient(circle at 50% 32%, #9a6424 0,
+                                   color-mix(in srgb, #9a6424 55%, #2a1806) 100%); }
   #buscando .bolitas i:nth-child(1){ --luz:0deg; }
   #buscando .bolitas i:nth-child(2){ --luz:45deg; }
   #buscando .bolitas i:nth-child(3){ --luz:90deg; }
@@ -7666,7 +7678,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 07:43';
+window.GLOSS_BUILD = '23-NOV-26 07:50';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
