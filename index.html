@@ -3388,13 +3388,24 @@
      viejos; la clase la pone el mismo sitio que enciende el modo. */
   .stage.conpanel.cristal #veloPanel{ background:rgba(34,24,8,.08); }
 
-  /* Baja y frena; el último tramo es solo el asentamiento del papel:
-     se pasa un pelo del 100% y regresa. Ese medio por ciento es lo que
-     hace que se sienta materia y no una persiana. */
+  /* Baja y frena, y AL LLEGAR SE QUEDA QUIETO.
+     Hubo aquí un «asentamiento del papel»: al 86 % el panel se pasaba un pelo
+     de su alto —scaleY(1.006)— y en el último tramo regresaba al 100 %. La
+     idea era que se sintiera materia y no persiana, pero ese regreso es un
+     encogerse a la vista: con el origen arriba, lo que está a media hoja sube
+     dos o tres píxeles justo cuando el panel ya parecía puesto. En el texto
+     no se nota; en Compartir sí, porque el mapa y el QR son cuadros grandes
+     con filo y el ojo ve cómo se aplastan. Lo vio Gianni: «se mueve
+     achicándose como 2 pixels, y es molesto a la vista».
+     Ahora la escala solo crece, de .985 a 1, a lo largo de toda la bajada,
+     con la misma curva que frena sin pasarse; la cortina es la de siempre y
+     lo último que hace es pararse, no corregirse. Es el mismo arreglo que ya
+     tuvo el cambio de pestaña: primero se le quitó el rebote a Compartir y
+     luego a todas (ver entraDeLado). */
   @keyframes desenrollar{
     0%   { clip-path:inset(0 0 100% 0); opacity:0; transform:scaleY(.985); }
     12%  { opacity:1; }
-    86%  { clip-path:inset(0 0 0% 0);   transform:scaleY(1.006); }
+    86%  { clip-path:inset(0 0 0% 0); }
     100% { clip-path:inset(0 0 0% 0); opacity:1; transform:scaleY(1); }
   }
   @keyframes enrollar{
@@ -5054,10 +5065,10 @@
     from{ opacity:1; }
     to  { opacity:0; }
   }
-  /* Y la entrada tiene peso, como la cortina: llega, se pasa un pelín de su
-     sitio y se acomoda. En la cortina eso es el scaleY(1.006) del 86%; aquí
-     es pasarse 4px y volver. Es el mismo gesto contado en otro eje: una cosa
-     con masa no se detiene exactamente donde debía. */
+  /* (Aquí se contaba que la entrada «tenía peso, como la cortina»: se pasaba
+     4 px y volvía, el mismo gesto que el scaleY(1.006) de desenrollar. Los
+     dos rebotes ya no están: el de aquí se fue con el fade in que pidió
+     Gianni, el de la cortina porque al regresar se veía encoger el mapa.) */
   /* El pie queda fuera de las dos animaciones por lo mismo que la barra de
      pestañas: son el marco del panel, no su contenido. Cambiar de sección
      cambia lo de en medio; la salida y las pestañas se quedan quietas, que es
@@ -7718,7 +7729,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 11:00';
+window.GLOSS_BUILD = '23-NOV-26 11:32';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
