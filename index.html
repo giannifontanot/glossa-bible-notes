@@ -7553,42 +7553,37 @@
           aria-label="glosas" aria-pressed="false"
           title="glosas">
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <!-- Disco irregular: cera, no círculo de compás.
+      <!-- UN CÍRCULO DE COMPÁS, Y SE ACABÓ LA CERA.
 
-           UN PELÍN MÁS GRANDE QUE LA LETRA LE PIDE. Gianni quería «un poquito
-           más de espacio a la G» —muy, muy poquito, que no llame la atención,
-           solo que se vea balanceada—. La G se queda como está y el disco
-           crece un 5 % alrededor del centro de la letra (12.3, 10.1), así que
-           el aire que gana es parejo por los cuatro lados: unos 0.8 px por
-           lado a 42 px. Crecen juntos el disco, su brillo y su puntito, para
-           que la luz no se quede en otro sitio. -->
-      <g transform="translate(12.3 10.1) scale(1.05) translate(-12.3 -10.1)">
-      <path class="sello-cera" fill="currentColor"
-            d="M12.1 2.05c2.9-.15 5.55 1.05 7.1 3.2 1.55 2.15 1.95 5.1.9 7.55-1.05 2.45-3.3 4.4-6.05 5.1-2.7.7-5.7.15-7.85-1.7C4.05 14.45 2.8 11.55 3.15 8.5 3.5 5.5 5.7 3.05 8.55 2.3c1.15-.3 2.35-.35 3.55-.25z"/>
-      <path fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="1.45"
-            stroke-linecap="round"
-            d="M7.35 9.7c1.65-2.05 4.15-3.25 6.7-3.05"/>
-      <circle cx="15.55" cy="15.15" r="1.3" fill="#fff" fill-opacity=".14"/>
-      </g>
+           Aquí hubo un disco irregular «de cera», con un brillo blanco en
+           arco y un puntito de luz abajo a la derecha. Eran restos del sello
+           de lacre: al deshacer la G de cera se quedaron, y en el teléfono se
+           veían como una mancha rosada encima de la panza de la G y un
+           circulito claro en su pie. El disco, además, pesaba hacia arriba y
+           era más ancho que alto, así que la letra nunca quedaba en su centro.
+           Gianni lo vio en su teléfono: «con razón la G se ve toda rara».
+
+           Ahora es un círculo de verdad, centrado en (12,12), plano, sin
+           brillos, y la G va CONCÉNTRICA: el anillo de la letra y el círculo
+           comparten centro, que es lo que hace que un círculo dentro de otro
+           se vea en su sitio. El radio, 9.6, deja 3.3 de aire alrededor del
+           anillo (unos 6 px a 42), un pelín más que antes, como pidió. El filo
+           de 1 px lo pone .sello-cera en el CSS. -->
+      <circle class="sello-cera" cx="12" cy="12" r="9.6" fill="currentColor"/>
       <!-- LA G VA DE TRAZO Y NO DE RELLENO, y no es un capricho de dibujo.
 
            La de antes se construía a mano —tallo, diamante, panza— y salían
-           tres cosas mal a la vez: medía más que la cera (la letra llegaba a
-           y=21.8 con el disco acabando en 18.2, o sea que el palo colgaba por
-           debajo del lacre), no se leía como una G a ningún tamaño, y a 26 px
-           era un borrón. Una G es un anillo abierto por la derecha con su
-           barra: eso es UN arco y dos segmentos, y sale exacta.
-
-           El centro no es (12,12) sino (12.3,10.1): la cera está dibujada a
-           mano y pesa hacia arriba, así que la letra se centra contra el
-           DISCO y no contra el lienzo. Barrido y medido: desvío del centro
-           0.01 / 0.00, con 3.09 de holgura hasta el borde de la cera.
+           tres cosas mal a la vez: medía más que el disco, no se leía como una
+           G a ningún tamaño, y a 26 px era un borrón. Una G es un anillo
+           abierto por la derecha con su barra: eso es UN arco y dos segmentos,
+           y sale exacta. El anillo tiene radio 5 y centro (12,12), el mismo
+           del círculo.
 
            El grueso 2.55 sale de mirarla a 26 px, que es donde vive: más fina
            se deshace y más gorda se le cierra el ojo. -->
       <path class="sello-g" fill="none"
             stroke-width="2.55" stroke-linecap="butt" stroke-linejoin="miter"
-            d="M15.24 6.05A5 5 0 1 0 16.45 12.90L16.45 10.40L12.90 10.40"/>
+            d="M14.93 7.95A5 5 0 1 0 16.14 14.80L16.14 12.30L12.59 12.30"/>
     </svg>
   </button>
   <!-- Los chevrones vuelven: aquí son un par que se usa seguido y hay que
@@ -7710,7 +7705,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 10:02';
+window.GLOSS_BUILD = '23-NOV-26 10:21';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
