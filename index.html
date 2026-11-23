@@ -7656,7 +7656,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 08:04';
+window.GLOSS_BUILD = '23-NOV-26 08:14';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25310,9 +25310,14 @@ function colocarSepMenu(){
      delante de lo que lo abrió. Se le pone de tope el sitio que hay entre el
      filo izquierdo y el canto derecho del ancla, y así sigue colgando de ella.
      El tope se pone ANTES de medir, para que el ancho medido sea ya el de
-     verdad. */
+     verdad. Y nunca baja de los 280 px que medía antes de ensancharse: una
+     cinta pegada al filo izquierdo dejaría casi nada a su izquierda, y la
+     lista se quedaría más estrecha que su propia paleta de colores (eso lo
+     cazó «la paleta sola es MÁS ESTRECHA que la lista»). Ahí manda lo de
+     siempre, correrse hacia dentro. */
   const ra = de ? (typeof de.getBoundingClientRect === 'function' ? de.getBoundingClientRect() : de) : null;
-  el.style.maxWidth = ra ? Math.max(200, Math.floor(ra.right - st.left - 8)) + 'px' : '';
+  el.style.maxWidth = ra ? Math.max(Math.min(280, st.width - 16),
+                                    Math.floor(ra.right - st.left - 8)) + 'px' : '';
   const w = el.offsetWidth, h = Math.min(el.offsetHeight, cabeAlto);
   let izq = st.width - w - 8, arr = 44;
   if (de){
