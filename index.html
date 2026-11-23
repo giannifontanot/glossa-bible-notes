@@ -923,78 +923,29 @@
      letra y contra el panel. Sin filo se perdía sobre el sepia. Es una
      sombra quieta, así que no le pide nada al compositor.
 
-     Y AHORA SON ESFERAS DE ORO, pedido por Gianni: «ese spinner me encantaría
-     verlo dorado, pero fíjate que esas bolitas, en cada momento que cambien de
-     posición, el dorado también cambiaría de posición». Eligió LUZ FIJA ARRIBA:
-     gire lo que gire el corro, el brillo de cada bolita mira siempre al techo
-     de la pantalla, como una perla de verdad bajo una lámpara.
+     Luego fueron ESFERAS: primero de oro y después del bronce de las
+     esquinas, con una chispa de luz fija arriba que giraba al revés que el
+     corro para quedarse quieta, y sin brillo en las cuatro de la cola porque
+     ahí la chispa se confundía con el sepia del papel.
 
-     Cómo se consigue sin animar más que transform: la bolita es un disco de
-     oro liso —eso es simétrico, girarlo no cambia nada— y el brillo y la
-     sombra van en su ::before, que gira AL REVÉS que el corro. Cada bolita
-     lleva su ángulo de partida en --luz (lo contrario del rotate con que se
-     coloca), puesto en transform, y la vuelta en contra va en la propiedad
-     `rotate`, que se suma a transform. Las dos animaciones duran lo mismo,
-     son lineales y arrancan en el mismo cuadro, así que la suma da cero en
-     todo momento: el brillo no se mueve de arriba. Las nueve las lleva el
-     compositor, como antes la una.
-
-     SIN FILO Y EN BRONCE. Llevaron un filo casi negro y un oro claro, y
-     Gianni dijo que no se apreciaba nada: «hay que quitarle el filito negro»
-     y que el dorado pareciera «un bronce oscuro». El bronce no necesita filo
-     sobre el crema: su borde de abajo ya es casi café, y eso lo recorta. */
+     Y AL FINAL, LISAS. A Gianni las esferas le parecieron de mal gusto: «el
+     spinner no se ve bien». En algo tan chico y tan rápido, dos clases de
+     bolita se leen como un error y no como un adorno, y el brillo de joya
+     no va con una app de papel y tinta. Se quedan las ocho LISAS, de un solo
+     bronce hondo y plano —el tono oscuro de la receta de las esquinas—, sin
+     degradado ni brillo, y con eso se van también el ::before y su giro en
+     contra. Lo que hace leer la vuelta sigue igual: el corro que gira y la
+     cola que se achica y se apaga. La primera línea del fondo es la red para
+     quien no entienda color-mix. */
   #buscando .bolitas{ position:absolute; left:50%; top:50%;
                       width:72px; height:72px; margin:-36px 0 0 -36px;
                       animation:giroBuscando 1s linear infinite;
                       will-change:transform; }
   #buscando .bolitas i{ position:absolute; left:50%; top:50%;
                         width:14px; height:14px; margin:-7px 0 0 -7px;
-                        border-radius:50%; background:#9a6424; }
-  /* EL BRILLO Y LA SOMBRA. Dos degradados redondos: el de arriba es la
-     chispa blanca de la lámpara, el de abajo es el cuerpo de la esfera, claro
-     arriba y hondo abajo. La luz cae a 50% 28%, o sea arriba del centro. */
-  #buscando .bolitas i::before{ content:''; position:absolute; inset:0;
-        border-radius:50%;
-        /* EL MISMO BRONCE DE LAS CUATRO ESFERITAS DE LAS ESQUINAS, receta
-           entera: Gianni vio que estas seguían doradas —#e0a955 arriba— y
-           las de las esquinas ya eran bronce. Misma chispa, mismo cuerpo
-           sacado de #9a6424 con color-mix. La primera línea es la red para
-           quien no entienda color-mix. */
-        background:radial-gradient(circle at 50% 32%, #b8823e 0, #9a6424 45%, #5e3a12 100%);
-        background:radial-gradient(circle at 50% 24%, rgba(255,236,196,.9) 0,
-                                   rgba(255,222,160,.35) 24%, rgba(255,222,160,0) 44%),
-                   radial-gradient(circle at 50% 32%,
-                                   color-mix(in srgb, #9a6424 60%, #ffd896) 0,
-                                   #9a6424 45%,
-                                   color-mix(in srgb, #9a6424 55%, #2a1806) 100%);
-        transform:rotate(var(--luz, 0deg));
-        animation:luzFija 1s linear infinite;
-        will-change:rotate; }
-  @keyframes luzFija{ from{ rotate:0deg; } to{ rotate:-360deg; } }
-  /* LAS CUATRO DE LA COLA, SIN BRILLO. Lo vio Gianni: «los últimos
-     circulitos no se ven porque tienen el brillo que se confunde con… el
-     sepia del fondo». Lo que se veía de ellas era la chispa crema, y la chispa
-     es casi del color del papel; achicadas y apagadas como van, no quedaba
-     bronce alrededor que las recortara. Pidió un panel que dijera cuántas, y
-     el panel dijo cuatro: de la quinta a la octava, que son las que bajan de
-     .52 de opacidad y de 10 px de tamaño. Las cuatro de delante son lo bastante
-     grandes y enteras para que la chispa se lea como brillo; las de atrás no.
-     A estas solo les queda el cuerpo, en el bronce hondo, que sí se distingue
-     del papel. */
-  /* Y el bronce hondo es el de esa misma receta: del #9a6424 del medio al
-     hondo de abajo, sin la parte clara de arriba ni la chispa. */
-  #buscando .bolitas i:nth-child(n+5)::before{
-        background:radial-gradient(circle at 50% 32%, #9a6424 0, #5e3a12 100%);
-        background:radial-gradient(circle at 50% 32%, #9a6424 0,
-                                   color-mix(in srgb, #9a6424 55%, #2a1806) 100%); }
-  #buscando .bolitas i:nth-child(1){ --luz:0deg; }
-  #buscando .bolitas i:nth-child(2){ --luz:45deg; }
-  #buscando .bolitas i:nth-child(3){ --luz:90deg; }
-  #buscando .bolitas i:nth-child(4){ --luz:135deg; }
-  #buscando .bolitas i:nth-child(5){ --luz:180deg; }
-  #buscando .bolitas i:nth-child(6){ --luz:225deg; }
-  #buscando .bolitas i:nth-child(7){ --luz:270deg; }
-  #buscando .bolitas i:nth-child(8){ --luz:315deg; }
+                        border-radius:50%;
+                        background:#6a4318;
+                        background:color-mix(in srgb, #9a6424 70%, #2a1806); }
   /* La primera es la de delante: entera y grande. Las demás se van achicando
      y apagando hacia atrás, y eso es la cola que hace leer el giro. */
   #buscando .bolitas i:nth-child(1){ transform:rotate(0deg)   translateY(-28px) scale(1);   opacity:1; }
@@ -1019,9 +970,6 @@
     /* Quieto se queda el corro entero: sigue diciendo "estoy en ello" sin
        moverse. */
     #buscando .bolitas{ animation:none; }
-    /* Y el brillo tampoco gira: con el corro quieto, el ángulo de partida
-       de --luz ya lo deja mirando arriba. */
-    #buscando .bolitas i::before{ animation:none; }
   }
   /* ============================================================
      LA HOJA ENTERA, DESDE LEJOS.
@@ -1736,8 +1684,7 @@
        textura, no en Segoe.
      · El colorista: apagado, el carmín de las piedras —#9b2a2a, el que se
        eligió, no el vivo—. Encendido, la cera recién prensada, más honda
-       —#5c1414—. La letra, blanca y en relieve (pedido de Gianni), con su
-       sombra abajo; ver el SVG.
+       —#5c1414— y la letra en crema, que es el hueco de la impresión.
      · Esta casa: vive en la escena, no en la hoja, o al abrir el cajón se
        iría con el papel y no habría con qué cerrarlo.
 
@@ -1771,9 +1718,11 @@
      —el fill="none" del path— PIERDE contra una regla de CSS, así que un
      fill puesto aquí rellena el anillo y la G se vuelve un disco mordido.
      Pasó al probarla en el panel. */
-  #btnGlosas .sello-g{ fill:none; stroke:#fff; }
-  /* La sombra de la G en relieve: carmín casi negro, a medio tono. */
-  #btnGlosas .sello-g-sombra{ fill:none; stroke:#2a0606; stroke-opacity:.6; }
+  /* SE PROBÓ UN SELLITO DE CERA y no: G blanca en relieve con su sombra,
+     rebaba ondulada alrededor y luz fija arriba. Gianni lo vio y «no me
+     gustó nadita. Regrésala como estaba». Así que la G es otra vez la de
+     antes, crema, en el disco liso. */
+  #btnGlosas .sello-g{ fill:none; stroke:#f0d4a0; }
   /* MARGEN INVISIBLE. El sello se ve de 42 px; el toque llega 14 px más
      allá, para que gane a lo que hay al lado —el historial, el filo, el
      texto—. El z-index 8 le gana al 7 del historial en el recubrimiento.
@@ -1787,8 +1736,6 @@
   #btnGlosas.abierta{ color:#5c1414;
                       filter:drop-shadow(2px 3px 4px rgba(40,10,8,.5)); }
   #btnGlosas.abierta .sello-g{ stroke:#fff8e4; }
-  /* Prensada, la letra se hunde: la sombra se acorta. */
-  #btnGlosas.abierta .sello-g-sombra{ stroke-opacity:.35; }
   .stage.zoom #btnGlosas{ display:none !important; }
   @media (prefers-reduced-motion: reduce){
     #btnGlosas{ transition:none; }
@@ -2878,14 +2825,22 @@
 
   /* La lista de piedras se viste igual que la de cintas: es la misma clase de
      panel y aprender dos aspectos para lo mismo sería gratuito. */
+  /* HERMANA GEMELA DE LA DE CINTAS, CAJA POR CAJA. Gianni las quería
+     armónicas, y lo eran a medias: el mismo fondo y el mismo borde, pero
+     esta tenía otro relleno —9 y 10 contra 7—, un radio de 7 contra 6,
+     otra sombra y un hueco de 3 entre filas que la otra no tiene. Ahora la
+     caja copia a #sepMenu en todo, y el ancho lo dice colocarPiedraMenu con
+     la misma cuenta que colocarSepMenu. Lo de dentro —la cita a la
+     izquierda y la frase— no se toca. */
   #piedraMenu{ position:absolute; z-index:9; width:min(280px, calc(100% - 16px));
                max-height:64%; display:none; flex-direction:column; overflow-y:auto;
                overscroll-behavior:contain;
                background:linear-gradient(to bottom, #f2e9d6, #e7dbbe);
-               border:1px solid rgba(140,116,68,.5); border-radius:7px;
-               padding:9px 10px 10px; gap:3px;
-               box-shadow:0 12px 26px -14px rgba(60,40,15,.85);
-               opacity:0; transform:translateY(7px) scale(.98);
+               border:1px solid rgba(140,116,68,.5); border-radius:6px;
+               padding:7px;
+               box-shadow:0 12px 26px -9px rgba(0,0,0,.55);
+               opacity:0; transform:translateY(-8px) scale(.97);
+               transform-origin:top left;
                transition:opacity .2s ease, transform .28s cubic-bezier(.2,.85,.3,1); }
   #piedraMenu.visible{ opacity:1; transform:translateY(var(--sube, 0px)); }
   #piedraMenu::-webkit-scrollbar{ width:0; height:0; display:none; }
@@ -3184,6 +3139,11 @@
        cada lado— con un tope de 440 para que en una tableta no se vuelva una
        sábana. */
     #sepMenu{ --sep-tope:min(440px, calc(100% - 16px)); }
+    /* AQUÍ ESTUVO UN «4/5 de la pantalla» un rato. Gianni lo pidió para
+       quitarle a las perlas el blanco de la derecha, y luego dijo lo que de
+       verdad quería: que se vieran igual que la lista de cintas. Así que el
+       ancho es el de ella, con su mismo tope, y el blanco de la derecha es
+       solo el margen que la deja despegada del borde. */
     #piedraMenu{ width:min(440px, calc(100% - 16px)); }
     /* LAS EQUIS, QUE SON LA SALIDA.
 
@@ -4117,11 +4077,12 @@
   /* LOS TRES BOTONES OCUPAN EXACTAMENTE EL CUADRO DEL QR, pedido por Gianni:
      el mismo ancho que el mapa —min(44vh, 82%)— y el mismo alto, que era el
      de un cuadrado. Tres filas iguales.
-     EL COLOR: azul de tinta con la letra crema y los iconos en oro, como el
-     lomo de una Biblia empastada sobre el sepia de la hoja. Se escogió por
-     eso: tenía que verse distinto del papel sin pelearse con él, y el azul
-     es el que más se aparta del sepia sin desentonar —el rojo y el verde se
-     leían como aviso—. Es además el azul de la noche del mapa ampliado.
+     EL COLOR: el bronce hondo de los cuatro botones redondos (--punto, y el
+     tono de cuando están abiertos), con la letra crema y los iconos en oro
+     claro. Estrenaron azul de tinta y Gianni lo paró: «siento que compite
+     con el mapa». Era verdad: el azul era lo único frío de la pantalla
+     además del mar, y la vista se iba a él. El bronce es de la casa, se
+     distingue del sepia por lo hondo y deja que el mapa sea lo que luce.
      CENTRADOS PERO A LA IZQUIERDA. Lo pidió así: los tres botones, y lo de
      dentro alineado a la izquierda para que los iconos queden en columna,
      derechitos, uno debajo del otro. Con un subgrid los tres comparten las
@@ -4136,10 +4097,10 @@
             grid-template-columns:minmax(0, 1fr) auto minmax(0, auto) minmax(0, 1fr);
             grid-template-columns:subgrid;
             padding:0 16px 0 24px; border-radius:16px; cursor:pointer; text-align:left;
-            border:1px solid #121c38;
-            background:linear-gradient(to bottom, #2e4170, #1d2b50);
+            border:1px solid #4e300e;
+            background:linear-gradient(to bottom, #8a5820, #6a4318);
             color:#fbf3df; font-family:var(--ui);
-            box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 3px 9px rgba(50,32,10,.3);
+            box-shadow:inset 0 1px 0 rgba(255,236,196,.2), 0 3px 9px rgba(50,32,10,.3);
             -webkit-tap-highlight-color:transparent; touch-action:manipulation;
             transition:transform .12s ease, filter .15s ease, background .25s ease; }
   .compartir-boton:hover{ filter:brightness(1.08); }
@@ -4152,12 +4113,12 @@
      ese lado, y 16 al otro, donde solo llega la letra. */
   .compartir-boton .cb-icono{ grid-column:2; display:grid; place-items:center;
             width:44px; height:44px; margin-right:14px; border-radius:50%;
-            color:#ecc66e; background:rgba(236,198,110,.13);
-            border:1px solid rgba(236,198,110,.38); }
+            color:#f6dc9e; background:rgba(255,232,186,.14);
+            border:1px solid rgba(246,220,158,.42); }
   .compartir-boton .cb-icono svg{ width:24px; height:24px; display:block; }
   .compartir-boton .cb-texto{ grid-column:3; min-width:0; display:flex; flex-direction:column; gap:3px; }
   .compartir-boton .cb-que{ font:700 calc(17px * var(--escala-ui, 1))/1.15 var(--ui); letter-spacing:.01em; }
-  .compartir-boton .cb-para{ font:500 calc(12.5px * var(--escala-ui, 1))/1.3 var(--ui); color:#cfc8b6; }
+  .compartir-boton .cb-para{ font:500 calc(12.5px * var(--escala-ui, 1))/1.3 var(--ui); color:#ecdcbc; }
   /* COPIADO: el botón se vuelve verde un par de segundos, con su palomita. */
   .compartir-boton.copiado{ background:linear-gradient(to bottom, #348a58, #26693f); border-color:#1d5232; }
   .compartir-boton.copiado .cb-icono{ color:#fff; background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.45); }
@@ -7569,43 +7530,13 @@
           aria-label="glosas" aria-pressed="false"
           title="glosas">
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <!-- UN SELLITO DE CERA DE VERDAD. Lo pidió Gianni: «que estuviera
-           embossed, que fuera como si fuera un sellito de cera. Por supuesto,
-           la G blanca», en el mismo rojo de siempre. Va en tres capas:
-
-           · LA REBABA: la cera que se escurre por fuera del sello al
-             prensarlo, una orilla ondulada (cinco, nueve y trece ondas
-             mezcladas, para que no se vea de compás) en el mismo carmín y
-             oscurecida, como cera que se enfrió más delgada.
-           · EL DISCO, el de siempre, encima, con la luz FIJA ARRIBA, como las
-             esferas: un brillo cálido arriba y lo hondo abajo. Los dos son
-             capas de luz encima del currentColor, así que el rojo sigue
-             siendo el que mide cajon.prueba (#9b2a2a, y #5c1414 prendida).
-           · LA G EN RELIEVE, blanca, con su sombra un pelo abajo y a la
-             derecha: la luz viene de arriba, así que lo que sobresale tira
-             sombra hacia abajo. Eso es lo que la hace parecer levantada. -->
-      <defs>
-        <radialGradient id="ceraLuz" cx="50%" cy="22%" r="62%">
-          <stop offset="0" stop-color="#ffe9d6" stop-opacity=".55"/>
-          <stop offset=".45" stop-color="#ffd8c0" stop-opacity=".12"/>
-          <stop offset="1" stop-color="#ffd8c0" stop-opacity="0"/>
-        </radialGradient>
-        <radialGradient id="ceraHondo" cx="50%" cy="88%" r="70%">
-          <stop offset="0" stop-color="#1a0404" stop-opacity=".42"/>
-          <stop offset="1" stop-color="#1a0404" stop-opacity="0"/>
-        </radialGradient>
-      </defs>
-      <path class="sello-rebaba" fill="currentColor"
-            d="M22.50 10.20C22.59 10.63 22.52 11.11 22.37 11.53C22.21 11.94 21.79 12.30 21.57 12.69C21.36 13.07 21.19 13.43 21.05 13.82C20.91 14.22 20.94 14.71 20.75 15.08C20.56 15.45 20.24 15.78 19.89 16.02C19.54 16.27 19.00 16.34 18.64 16.54C18.27 16.74 17.97 16.93 17.68 17.22C17.40 17.50 17.23 17.92 16.95 18.25C16.67 18.58 16.37 18.92 16.03 19.20C15.69 19.48 15.30 19.73 14.91 19.93C14.51 20.13 14.08 20.35 13.64 20.39C13.21 20.43 12.73 20.31 12.30 20.15C11.87 19.98 11.48 19.58 11.09 19.39C10.70 19.20 10.34 19.08 9.94 19.01C9.54 18.94 9.07 19.06 8.67 18.95C8.28 18.84 7.90 18.63 7.59 18.36C7.28 18.10 7.10 17.63 6.81 17.35C6.52 17.07 6.21 16.87 5.83 16.67C5.45 16.47 4.91 16.40 4.52 16.17C4.12 15.94 3.74 15.65 3.47 15.30C3.21 14.95 3.06 14.50 2.93 14.08C2.80 13.66 2.70 13.21 2.70 12.77C2.70 12.33 2.80 11.86 2.92 11.44C3.04 11.01 3.32 10.60 3.40 10.20C3.49 9.80 3.48 9.44 3.43 9.03C3.38 8.62 3.13 8.16 3.13 7.74C3.12 7.32 3.22 6.88 3.41 6.52C3.59 6.15 3.99 5.88 4.21 5.53C4.43 5.18 4.58 4.81 4.74 4.40C4.89 3.98 4.91 3.42 5.13 3.03C5.35 2.64 5.68 2.28 6.06 2.06C6.44 1.84 6.96 1.80 7.40 1.71C7.84 1.63 8.29 1.59 8.72 1.55C9.15 1.51 9.56 1.50 9.96 1.48C10.37 1.46 10.76 1.53 11.15 1.45C11.54 1.38 11.89 1.21 12.30 1.05C12.71 0.88 13.15 0.53 13.58 0.45C14.01 0.37 14.48 0.42 14.88 0.56C15.28 0.70 15.61 1.10 15.98 1.31C16.36 1.52 16.73 1.67 17.14 1.82C17.55 1.97 18.07 1.98 18.44 2.20C18.81 2.42 19.13 2.77 19.34 3.16C19.54 3.56 19.56 4.12 19.67 4.55C19.78 4.98 19.86 5.38 20.01 5.75C20.16 6.12 20.38 6.43 20.57 6.77C20.76 7.12 20.94 7.47 21.15 7.83C21.36 8.19 21.63 8.55 21.86 8.94C22.08 9.34 22.42 9.77 22.50 10.20Z"/>
-      <path fill="#1a0404" fill-opacity=".28"
-            d="M22.50 10.20C22.59 10.63 22.52 11.11 22.37 11.53C22.21 11.94 21.79 12.30 21.57 12.69C21.36 13.07 21.19 13.43 21.05 13.82C20.91 14.22 20.94 14.71 20.75 15.08C20.56 15.45 20.24 15.78 19.89 16.02C19.54 16.27 19.00 16.34 18.64 16.54C18.27 16.74 17.97 16.93 17.68 17.22C17.40 17.50 17.23 17.92 16.95 18.25C16.67 18.58 16.37 18.92 16.03 19.20C15.69 19.48 15.30 19.73 14.91 19.93C14.51 20.13 14.08 20.35 13.64 20.39C13.21 20.43 12.73 20.31 12.30 20.15C11.87 19.98 11.48 19.58 11.09 19.39C10.70 19.20 10.34 19.08 9.94 19.01C9.54 18.94 9.07 19.06 8.67 18.95C8.28 18.84 7.90 18.63 7.59 18.36C7.28 18.10 7.10 17.63 6.81 17.35C6.52 17.07 6.21 16.87 5.83 16.67C5.45 16.47 4.91 16.40 4.52 16.17C4.12 15.94 3.74 15.65 3.47 15.30C3.21 14.95 3.06 14.50 2.93 14.08C2.80 13.66 2.70 13.21 2.70 12.77C2.70 12.33 2.80 11.86 2.92 11.44C3.04 11.01 3.32 10.60 3.40 10.20C3.49 9.80 3.48 9.44 3.43 9.03C3.38 8.62 3.13 8.16 3.13 7.74C3.12 7.32 3.22 6.88 3.41 6.52C3.59 6.15 3.99 5.88 4.21 5.53C4.43 5.18 4.58 4.81 4.74 4.40C4.89 3.98 4.91 3.42 5.13 3.03C5.35 2.64 5.68 2.28 6.06 2.06C6.44 1.84 6.96 1.80 7.40 1.71C7.84 1.63 8.29 1.59 8.72 1.55C9.15 1.51 9.56 1.50 9.96 1.48C10.37 1.46 10.76 1.53 11.15 1.45C11.54 1.38 11.89 1.21 12.30 1.05C12.71 0.88 13.15 0.53 13.58 0.45C14.01 0.37 14.48 0.42 14.88 0.56C15.28 0.70 15.61 1.10 15.98 1.31C16.36 1.52 16.73 1.67 17.14 1.82C17.55 1.97 18.07 1.98 18.44 2.20C18.81 2.42 19.13 2.77 19.34 3.16C19.54 3.56 19.56 4.12 19.67 4.55C19.78 4.98 19.86 5.38 20.01 5.75C20.16 6.12 20.38 6.43 20.57 6.77C20.76 7.12 20.94 7.47 21.15 7.83C21.36 8.19 21.63 8.55 21.86 8.94C22.08 9.34 22.42 9.77 22.50 10.20Z"/>
       <!-- Disco irregular: cera, no círculo de compás. -->
       <path class="sello-cera" fill="currentColor"
             d="M12.1 2.05c2.9-.15 5.55 1.05 7.1 3.2 1.55 2.15 1.95 5.1.9 7.55-1.05 2.45-3.3 4.4-6.05 5.1-2.7.7-5.7.15-7.85-1.7C4.05 14.45 2.8 11.55 3.15 8.5 3.5 5.5 5.7 3.05 8.55 2.3c1.15-.3 2.35-.35 3.55-.25z"/>
-      <path fill="url(#ceraHondo)"
-            d="M12.1 2.05c2.9-.15 5.55 1.05 7.1 3.2 1.55 2.15 1.95 5.1.9 7.55-1.05 2.45-3.3 4.4-6.05 5.1-2.7.7-5.7.15-7.85-1.7C4.05 14.45 2.8 11.55 3.15 8.5 3.5 5.5 5.7 3.05 8.55 2.3c1.15-.3 2.35-.35 3.55-.25z"/>
-      <path fill="url(#ceraLuz)"
-            d="M12.1 2.05c2.9-.15 5.55 1.05 7.1 3.2 1.55 2.15 1.95 5.1.9 7.55-1.05 2.45-3.3 4.4-6.05 5.1-2.7.7-5.7.15-7.85-1.7C4.05 14.45 2.8 11.55 3.15 8.5 3.5 5.5 5.7 3.05 8.55 2.3c1.15-.3 2.35-.35 3.55-.25z"/>
+      <path fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="1.45"
+            stroke-linecap="round"
+            d="M7.35 9.7c1.65-2.05 4.15-3.25 6.7-3.05"/>
+      <circle cx="15.55" cy="15.15" r="1.3" fill="#fff" fill-opacity=".14"/>
       <!-- LA G VA DE TRAZO Y NO DE RELLENO, y no es un capricho de dibujo.
 
            La de antes se construía a mano —tallo, diamante, panza— y salían
@@ -7622,11 +7553,6 @@
 
            El grueso 2.55 sale de mirarla a 26 px, que es donde vive: más fina
            se deshace y más gorda se le cierra el ojo. -->
-      <!-- La sombra va primero, debajo, y con su propia clase: las pruebas
-           buscan .sello-g y tienen que encontrar la letra, no su sombra. -->
-      <path class="sello-g-sombra" fill="none" transform="translate(.32 .5)"
-            stroke-width="2.55" stroke-linecap="butt" stroke-linejoin="miter"
-            d="M15.24 6.05A5 5 0 1 0 16.45 12.90L16.45 10.40L12.90 10.40"/>
       <path class="sello-g" fill="none"
             stroke-width="2.55" stroke-linecap="butt" stroke-linejoin="miter"
             d="M15.24 6.05A5 5 0 1 0 16.45 12.90L16.45 10.40L12.90 10.40"/>
@@ -7751,7 +7677,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 09:14';
+window.GLOSS_BUILD = '23-NOV-26 09:22';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -14200,11 +14126,16 @@ function vigilarTeclado(){
        cambio del alto de la ventana, y a media animación de cierre la clase
        todavía dice «abierta» —volvería a plegar lo que ya se está plegando, y
        cada salto reiniciaría el doblez desde el principio. */
-    if (vv.height < window.innerHeight - 80 && tagsAbiertas(caja))
+    /* tecladoArriba y no el encogido de visualViewport: con el teclado puesto
+       encima de la página —ver «EL TECLADO SUBE Y BAJA SUAVE»— la ventana
+       visual ya no encoge y la lista no se plegaría nunca. */
+    if (tecladoArriba() && tagsAbiertas(caja))
       plegarTags(caja, false);
   };
   vv.addEventListener('resize', mirar);
-  menu._teclado = () => { vv.removeEventListener('resize', mirar); menu._teclado = null; };
+  window.addEventListener(TECLADO_EVENTO, mirar);
+  menu._teclado = () => { vv.removeEventListener('resize', mirar);
+                          window.removeEventListener(TECLADO_EVENTO, mirar); menu._teclado = null; };
   mirar();
 }
 menu.addEventListener('focusin', ev => {
@@ -24566,6 +24497,321 @@ const spCerrarHTML = (acc, que, queEn) =>
 /* AQUÍ ESTUVO spCierreHTML, que envolvía la equis en un renglón suyo.
    Ya no hay tal renglón: la equis va dentro del de la cabecera, al nivel del
    rótulo. Está contado en .sp-x, con lo que se gana y lo que se paga. */
+/* EL TECLADO SUBE Y BAJA SUAVE, EN TODOS LOS SITIOS DONDE SE ESCRIBE.
+
+   Lo pidió Gianni, copiado de Go Epic: que al aparecer el teclado lo que se
+   escribe no pegue un brinco hacia arriba, sino que suba despacio, y que al
+   irse el teclado la pantalla baje igual de despacio. Allí está en
+   core/soft-keyboard.ts, y esto es la misma idea traída a esta casa: notas,
+   glosas, etiquetas y cualquier campo.
+
+   EN ANDROID (Chrome y Edge: la VirtualKeyboard API) el teclado se pone POR
+   ENCIMA de la página —overlaysContent— en vez de dejar que el navegador
+   empuje todo hacia arriba de golpe, y el que mueve las cosas es el
+   programa, con su propio deslizamiento de 680 ms:
+   · si lo que se escribe vive en un rollo —notas, etiquetas—, el rollo se
+     acorta suave hasta el borde del teclado y su lista rueda lo justo para
+     que se vea el cursor. Se ACORTA y no se sube: el rollo ocupa la escena
+     entera, subirlo sacaría su cabecera de la pantalla, y acortado, cuando
+     escribes renglones nuevos el navegador sigue el cursor dentro de lo que
+     se ve, no detrás del teclado.
+   · si vive en un panel suelto —la glosa—, primero rueda su lista, y si no
+     basta el panel sube, sin pasar del borde de arriba.
+   · los dos paneles de listas —perlas y cintas— ya sabían seguir al teclado
+     por su cuenta, con vigilarTecladoPanel; aquí solo se les dice cuánto tapa
+     el teclado, que con el teclado encima de la página ya no se deduce de
+     visualViewport.
+   Al bajar el teclado todo vuelve suave a su sitio, salvo lo que el lector
+   haya movido con el dedo mientras tanto, que se queda donde lo dejó.
+
+   EN IPHONE NO HAY ESA API. Safari no deja que una página se encargue del
+   teclado: al tocar un campo, es él quien corre la pantalla para enseñarlo,
+   y eso no se puede quitar sin pelearse con él —y pelearse con Safari es
+   peor que el brinco—. Lo que sí se hace allí es la vuelta: si al irse el
+   teclado la página se quedó corrida, baja suave a su sitio en vez de
+   quedarse así o volver de golpe.
+
+   Quien pidió menos movimiento recibe lo mismo sin deslizamiento. */
+const TECLADO_MS = 680, TECLADO_MARGEN = 16;
+const TECLADO_EVENTO = 'glossa-teclado';
+let tecladoAlto = 0;            // lo que tapa el teclado puesto ENCIMA de la página
+let tecladoEncima = false;      // ¿la VirtualKeyboard API está en marcha?
+const tecladoRodados = new Map();   // scroller → { desde, hasta }
+const tecladoSubidos = new Map();   // panel → { translate, transition, sube }
+const tecladoRollos = new Map();    // rollo → { v, height }
+const tecladoAnim = new WeakMap();
+const tecladoQuieto = () => !!(window.matchMedia &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const tecladoCurva = t => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+/* LO QUE SE VE DE LA PANTALLA, el teclado fuera. Con el teclado encima de la
+   página, visualViewport ya no encoge por él, así que quien quiera quedarse
+   por encima del teclado tiene que preguntar aquí y no a visualViewport. */
+function areaVisible(){
+  const vv = window.visualViewport;
+  const arriba = vv ? vv.offsetTop : 0;
+  const entero = vv ? vv.height : window.innerHeight;
+  const alto = tecladoAlto
+    ? Math.max(120, Math.min(entero, window.innerHeight - tecladoAlto - arriba))
+    : entero;
+  return { arriba, alto };
+}
+function tecladoArriba(){
+  if (tecladoAlto > 0) return true;
+  const vv = window.visualViewport;
+  return !!vv && vv.height < window.innerHeight - 80;
+}
+const TIPOS_DE_ESCRIBIR = /^(|text|search|email|url|tel|password|number)$/;
+function seEscribe(el){
+  if (!el || el.nodeType !== 1) return false;
+  if (el.isContentEditable) return true;
+  if (el.disabled || el.readOnly) return false;
+  if (el.tagName === 'TEXTAREA') return true;
+  return el.tagName === 'INPUT' &&
+         TIPOS_DE_ESCRIBIR.test((el.getAttribute('type') || '').toLowerCase());
+}
+/* DÓNDE ESTÁ EL CURSOR. En una nota larga la caja ocupa la pantalla entera y
+   lo que hay que dejar a la vista no es la caja sino el renglón donde se
+   escribe. */
+function rectoDeEscribir(el){
+  const r = el.getBoundingClientRect();
+  if (el.isContentEditable){
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount && el.contains(sel.focusNode)){
+      const q = sel.getRangeAt(0).cloneRange();
+      q.collapse(false);
+      const rs = q.getClientRects();
+      let c = rs.length ? rs[rs.length - 1] : null;
+      /* EL CURSOR PUESTO ENTRE NODOS no tiene caja: con el foco en el propio
+         editor y el desplazamiento al final, el rango colapsado no devuelve
+         ningún rectángulo. Se mide entonces lo que tiene justo antes —el
+         último trozo de texto, o el renglón— que es donde está el cursor. */
+      if ((!c || !c.height) && sel.focusNode.nodeType === 1 && sel.focusNode.childNodes.length){
+        let k = sel.focusNode.childNodes[Math.max(0, sel.focusOffset - 1)];
+        while (k && k.nodeType === 1 && k.lastChild && k.tagName !== 'BR') k = k.lastChild;
+        if (k && k.nodeType === 3 && k.length){
+          const t = document.createRange(); t.selectNodeContents(k);
+          const tr = t.getClientRects();
+          if (tr.length) c = tr[tr.length - 1];
+        } else if (k && k.nodeType === 1){
+          const b = k.getBoundingClientRect();
+          if (b.height) c = b;
+        }
+      }
+      if (!c || !c.height){
+        const n = sel.focusNode.nodeType === 1 ? sel.focusNode : sel.focusNode.parentElement;
+        if (n && n !== el && el.contains(n)){
+          const b = n.getBoundingClientRect();
+          c = { top: b.top, bottom: Math.min(b.bottom, b.top + 26), height: 1 };
+        }
+      }
+      if (c && c.height) return { top: c.top - 6, bottom: c.bottom + 6 };
+    }
+    return { top: r.top, bottom: Math.min(r.bottom, r.top + 52) };
+  }
+  return { top: r.top, bottom: r.bottom };
+}
+/* EL DESLIZAMIENTO, uno para todo: un número que va de donde está a donde
+   tiene que ir, con la curva de Go Epic. */
+function tecladoDeslizar(clave, desde, hasta, poner, fin){
+  cancelAnimationFrame(tecladoAnim.get(clave) || 0);
+  tecladoAnim.delete(clave);
+  if (tecladoQuieto() || Math.abs(hasta - desde) < 1){ poner(hasta); if (fin) fin(); return; }
+  const t0 = performance.now();
+  const paso = ahora => {
+    const t = Math.min(1, (ahora - t0) / TECLADO_MS);
+    poner(desde + (hasta - desde) * tecladoCurva(t));
+    if (t < 1) tecladoAnim.set(clave, requestAnimationFrame(paso));
+    else { tecladoAnim.delete(clave); if (fin) fin(); }
+  };
+  tecladoAnim.set(clave, requestAnimationFrame(paso));
+}
+/* `sinTope` para la lista de un rollo que se está acortando: su tope de
+   rodadura crece mientras el rollo encoge, y acotarlo al de ahora dejaría el
+   cursor detrás del teclado justo al final de una nota larga. */
+function tecladoRodar(el, cuanto, sinTope){
+  const previo = tecladoRodados.get(el);
+  const hasta = Math.max(0, sinTope ? el.scrollTop + cuanto
+                                    : Math.min(el.scrollTop + cuanto, el.scrollHeight - el.clientHeight));
+  tecladoRodados.set(el, { desde: previo ? previo.desde : el.scrollTop, hasta });
+  tecladoDeslizar(el, el.scrollTop, hasta, v => { el.scrollTop = v; });
+}
+const rueda = el => {
+  const y = getComputedStyle(el).overflowY;
+  return (y === 'auto' || y === 'scroll') && el.clientHeight > 0;
+};
+/* El panel suelto que lo contiene: el antepasado colocado a mano MÁS DE
+   FUERA, sin salir de la escena. El de más fuera y no el primero: dentro de
+   un panel hay piezas colocadas a mano —la lista de etiquetas de la glosa—, y
+   subir una de ellas dejaría el panel quieto y la pieza flotando fuera. */
+function panelDeEscribir(el){
+  let panel = null;
+  for (let n = el.parentElement; n && n !== stage && n !== document.body; n = n.parentElement){
+    const p = getComputedStyle(n).position;
+    if (p === 'absolute' || p === 'fixed') panel = n;
+  }
+  return panel;
+}
+/* La transición del subir se AÑADE a las que el panel ya tenga —la de
+   aparecer, la de cerrarse—: escrita a pelo en la línea de estilo las
+   borraría mientras dura el teclado. */
+/* LO QUE SUBE SE CUENTA DESDE DONDE ESTÁ DE VERDAD, no desde la meta del
+   deslizamiento anterior. Cada cuenta de tecladoRevelar mide el campo tal como
+   se ve en este instante, a medio camino si el panel todavía va subiendo; si
+   aquí se sumara lo que falta a la meta vieja, el trecho que aún no se ha
+   recorrido se contaría dos veces, y dos teclas seguidas durante la subida
+   mandaban el panel al doble de alto (lo vio la revisión de Codex). Así que la
+   meta nueva es lo ya subido, leído del estilo calculado, más lo que falta. */
+const subidoAhora = el => {
+  const t = getComputedStyle(el).translate;
+  if (!t || t === 'none') return 0;
+  const y = parseFloat(t.split(/\s+/)[1]);
+  return isFinite(y) ? -y : 0;
+};
+function tecladoSubir(el, cuanto){
+  let rec = tecladoSubidos.get(el);
+  if (!rec){
+    const suya = getComputedStyle(el).transition || '';
+    rec = { translate: el.style.translate, transition: el.style.transition, sube: 0,
+            base: /^all 0s/.test(suya) ? '' : suya, desde: subidoAhora(el) };
+  }
+  rec.sube = Math.max(0, subidoAhora(el) - rec.desde) + cuanto;
+  tecladoSubidos.set(el, rec);
+  el.style.transition = tecladoQuieto() ? rec.transition
+    : [rec.base, 'translate ' + TECLADO_MS + 'ms cubic-bezier(.2,0,0,1)'].filter(Boolean).join(', ');
+  el.style.translate = '0 ' + (-rec.sube) + 'px';
+}
+/* EL ROLLO SE ACORTA hasta el borde del teclado. Ver el comentario de arriba. */
+function tecladoAcortar(rollo, hasta){
+  const rec = tecladoRollos.get(rollo) || { v: 0, height: rollo.style.height };
+  tecladoRollos.set(rollo, rec);
+  tecladoDeslizar(rollo, rec.v, hasta, v => {
+    rec.v = v;
+    rollo.style.height = 'calc(100% - ' + v.toFixed(1) + 'px)';
+  });
+}
+function tecladoRevelar(){
+  if (!tecladoAlto) return;
+  const caja = document.activeElement;
+  if (!seEscribe(caja)) return;
+  /* Las listas de perlas y cintas se suben solas: ver vigilarTecladoPanel. */
+  if (caja.closest('#piedraMenu, #sepMenu')) return;
+  const suelo = window.innerHeight - tecladoAlto - TECLADO_MARGEN;
+  const r = rectoDeEscribir(caja);
+  const rollo = caja.closest('.rollo');
+  if (rollo){
+    const rr = rollo.getBoundingClientRect();
+    const rec = tecladoRollos.get(rollo);
+    const ya = rec ? rec.v : 0;
+    const acorte = Math.max(0, Math.round(rr.bottom + ya - (window.innerHeight - tecladoAlto)));
+    const mas = acorte - ya;
+    if (Math.abs(mas) >= 1) tecladoAcortar(rollo, acorte);
+    /* Y la lista de dentro rueda lo que le falte al cursor, contando ya con
+       que su pie va a subir lo que se acorta el rollo. */
+    for (let n = caja.isContentEditable || caja.tagName === 'TEXTAREA' ? caja : caja.parentElement;
+         n && n !== rollo.parentElement; n = n.parentElement){
+      if (!rueda(n)) continue;
+      const rn = n.getBoundingClientRect();
+      const pie = Math.min(rn.bottom - Math.max(0, mas), suelo + TECLADO_MARGEN) - TECLADO_MARGEN;
+      const falta = Math.min(r.bottom - pie, r.top - Math.max(rn.top, 0) - TECLADO_MARGEN);
+      if (falta > .5) tecladoRodar(n, falta, true);
+      break;
+    }
+    return;
+  }
+  let falta = Math.min(r.bottom - suelo, r.top - TECLADO_MARGEN);
+  if (falta <= .5) return;
+  const panel = panelDeEscribir(caja);
+  let arriba = r.top;
+  for (let n = caja.parentElement; n && falta > .5 && n !== stage && n !== document.body; n = n.parentElement){
+    if (rueda(n)){
+      const tope = n.getBoundingClientRect().top;
+      const cabe = Math.min(falta, arriba - Math.max(tope, 0) - TECLADO_MARGEN,
+                            n.scrollHeight - n.clientHeight - n.scrollTop);
+      if (cabe > .5){ tecladoRodar(n, cabe); falta -= cabe; arriba -= cabe; }
+    }
+    if (n === panel) break;
+  }
+  if (falta <= .5) return;
+  if (panel){
+    const sube = Math.min(falta, panel.getBoundingClientRect().top - TECLADO_MARGEN);
+    if (sube > .5){ tecladoSubir(panel, sube); falta -= sube; }
+  }
+  /* Y si el panel ya no puede subir más sin salirse por arriba, sube la
+     escena entera lo que falte: es lo que hacía el navegador, pero despacio. */
+  if (falta > .5) tecladoSubir(stage, falta);
+}
+/* Se fue el teclado: todo vuelve a su sitio, despacio. */
+function tecladoDevolver(){
+  for (const [el, rec] of tecladoSubidos){
+    el.style.translate = rec.translate;
+    setTimeout(() => { if (!tecladoSubidos.has(el)) el.style.transition = rec.transition; },
+               TECLADO_MS + 40);
+  }
+  tecladoSubidos.clear();
+  for (const [el, rec] of tecladoRollos){
+    tecladoDeslizar(el, rec.v, 0, v => {
+      rec.v = v;
+      el.style.height = 'calc(100% - ' + v.toFixed(1) + 'px)';
+    }, () => { if (!tecladoRollos.has(el) || !tecladoAlto){ el.style.height = rec.height; tecladoRollos.delete(el); } });
+  }
+  for (const [el, rec] of tecladoRodados){
+    /* Un deslizamiento que va subiendo todavía es nuestro y se da la vuelta;
+       uno ya parado solo se devuelve si nadie lo movió con el dedo. */
+    const aMedias = tecladoAnim.has(el);
+    if (aMedias || Math.abs(el.scrollTop - rec.hasta) < 6)
+      tecladoDeslizar(el, el.scrollTop, rec.desde, v => { el.scrollTop = v; });
+  }
+  tecladoRodados.clear();
+}
+let tecladoEspera = 0;
+function tecladoMirarPronto(){
+  requestAnimationFrame(tecladoRevelar);
+  /* Y otra vez cuando todo se ha asentado: plegar las etiquetas de la glosa
+     o recolocar su panel cambian lo que hay que subir. */
+  clearTimeout(tecladoEspera);
+  tecladoEspera = setTimeout(tecladoRevelar, TECLADO_MS + 80);
+}
+function arrancarTecladoSuave(){
+  const vk = navigator.virtualKeyboard;
+  const dedo = !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
+  if (vk && dedo && typeof vk.addEventListener === 'function'){
+    try { vk.overlaysContent = true; } catch(_){}
+    tecladoEncima = !!vk.overlaysContent;
+  }
+  if (tecladoEncima){
+    vk.addEventListener('geometrychange', () => {
+      const r = vk.boundingRect;
+      const alto = Math.max(0, Math.round(r ? r.height : 0));
+      if (alto === tecladoAlto) return;
+      const habia = tecladoAlto;
+      tecladoAlto = alto;
+      window.dispatchEvent(new Event(TECLADO_EVENTO));
+      if (alto > 0) tecladoMirarPronto();
+      else if (habia > 0){ clearTimeout(tecladoEspera); tecladoDevolver(); }
+    });
+    /* Otro campo con el teclado puesto, o un renglón más que hace crecer la
+       caja de la glosa. */
+    document.addEventListener('focusin', () => { if (tecladoAlto) tecladoMirarPronto(); });
+    document.addEventListener('input', () => { if (tecladoAlto) requestAnimationFrame(tecladoRevelar); }, true);
+    return;
+  }
+  /* IPHONE, Y CUALQUIERA SIN LA API: solo la vuelta. Ver arriba. */
+  const vv = window.visualViewport;
+  if (!vv) return;
+  let estaba = tecladoArriba();
+  vv.addEventListener('resize', () => {
+    const esta = tecladoArriba();
+    if (estaba && !esta){
+      const pag = document.scrollingElement || document.documentElement;
+      setTimeout(() => {
+        if (tecladoArriba() || pag.scrollTop < 1) return;
+        tecladoDeslizar(pag, pag.scrollTop, 0, v => { pag.scrollTop = v; });
+      }, 60);
+    }
+    estaba = esta;
+  });
+}
+arrancarTecladoSuave();
 /* EL TECLADO TAPA JUSTO LO QUE SE ESTÁ ESCRIBIENDO.
 
    Los dos paneles se cuelgan de lo que los abrió y ahí se quedan. En un
@@ -24645,7 +24891,11 @@ function vigilarTecladoPanel(el, buscarFila){
        medidas de mitad de camino y la cuenta saldría mal; además el recorte
        pasa justo cuando el teclado está subiendo y tapándolo. */
     el.style.removeProperty('max-height');
-    const sitio = vv.height - 16;
+    /* LO QUE SE VE, Y NO visualViewport A SECAS: con el teclado puesto encima
+       de la página —ver «EL TECLADO SUBE Y BAJA SUAVE»— la ventana visual ya
+       no encoge por él, y este panel se quedaría detrás. */
+    const area = areaVisible();
+    const sitio = area.alto - 16;
     if (el.getBoundingClientRect().height > sitio) el.style.maxHeight = sitio + 'px';
     /* Lo ya subido se descuenta de las dos medidas: getBoundingClientRect
        devuelve dónde está AHORA, desplazamiento incluido, y sumar sobre eso
@@ -24670,9 +24920,9 @@ function vigilarTecladoPanel(el, buscarFila){
        se mueve. Lo levantó Codex, dos veces. */
     const puesto = trasladoDe(el);
     const d = parseFloat(el.style.getPropertyValue('--sube')) || 0;
-    const suelo = vv.offsetTop + vv.height - 10;
+    const suelo = area.arriba + area.alto - 10;
     const tapado = (fila.getBoundingClientRect().bottom - puesto) - suelo;
-    const techo = (el.getBoundingClientRect().top - puesto) - (vv.offsetTop + 8);
+    const techo = (el.getBoundingClientRect().top - puesto) - (area.arriba + 8);
     /* Y EL TECHO PUEDE PEDIR QUE BAJE, no solo que suba menos.
 
        «techo» es cuánto le cabe subir antes de que la cabecera se salga; si el
@@ -24755,7 +25005,8 @@ function vigilarTecladoPanel(el, buscarFila){
     el._asientos = 0;
     const asentar = () => {
       if (++el._asientos > 4) return;
-      const arriba = vv.offsetTop + 8;
+      const ahora = areaVisible();
+      const arriba = ahora.arriba + 8;
       const r = el.getBoundingClientRect();
       if (r.top < arriba - 1){
         el.style.setProperty('--sube', (trasladoDe(el) + (arriba - r.top)) + 'px');
@@ -24765,7 +25016,7 @@ function vigilarTecladoPanel(el, buscarFila){
       }
       const f = buscarFila();
       if (!f) return;
-      const falta = f.getBoundingClientRect().bottom - (vv.offsetTop + vv.height - 10);
+      const falta = f.getBoundingClientRect().bottom - (ahora.arriba + ahora.alto - 10);
       if (falta <= 1) return;
       if (el.scrollHeight - el.clientHeight - el.scrollTop <= 1) return;
       const quieto = window.matchMedia &&
@@ -24788,6 +25039,7 @@ function vigilarTecladoPanel(el, buscarFila){
   };
   vv.addEventListener('resize', mirar);
   vv.addEventListener('scroll', mirar);
+  window.addEventListener(TECLADO_EVENTO, mirar);
   /* Y SE DEJA LLAMAR DESDE FUERA. Quien mueve el panel —colocarPiedraMenu,
      colocarSepMenu— tiene que poder decir «lo he movido, vuelve a echar la
      cuenta»: el desplazamiento se calcula contra el sitio, y un sitio nuevo
@@ -24796,6 +25048,7 @@ function vigilarTecladoPanel(el, buscarFila){
   el._teclado = () => {
     vv.removeEventListener('resize', mirar);
     vv.removeEventListener('scroll', mirar);
+    window.removeEventListener(TECLADO_EVENTO, mirar);
     clearTimeout(el._recorte); el._recorte = null; el._asientos = 0;
     el._mirarTeclado = null;
     el.style.removeProperty('--sube');
@@ -24982,7 +25235,22 @@ function colocarPiedraMenu(){
      Midiendo el alto ya recortado, el sitio es el mismo lo esté o no en este
      instante, y las dos cuentas hablan del mismo panel. */
   const vvp = window.visualViewport;
-  const cabeAlto = vvp ? vvp.height - 16 : Infinity;
+  const cabeAlto = vvp ? areaVisible().alto - 16 : Infinity;
+  /* EL MISMO ANCHO QUE LA DE CINTAS, MEDIDO CONTRA SU PUNTO. La de cintas no
+     pasa de lo que hay entre el filo izquierdo y el canto derecho de su
+     punto, menos 8, con un suelo de 280 (ver colocarSepMenu). Se probó antes
+     la misma cuenta en espejo, contra el punto de las perlas, y salió casi
+     igual pero no igual —356 contra 350 en el teléfono de 412—, porque los
+     dos puntos no están a la misma distancia de su filo. Gianni las quiere
+     hermanas, así que se mide contra el punto de las cintas: misma cuenta,
+     mismo número. Y como esta cuelga de la izquierda y no cabe a la izquierda
+     de su punto, se pega al filo de 8, que es justo donde empieza la otra:
+     las dos cajas ocupan el mismo sitio. Si el punto de las cintas no está a
+     la vista (con la lupa se esconden los dos), se queda en su ancho de CSS,
+     que es el mismo tope que el de ella. */
+  const pc = $('btnCintas').getBoundingClientRect();
+  el.style.maxWidth = pc.width ? Math.max(Math.min(280, st.width - 16),
+                                          Math.floor(pc.right - st.left - 8)) + 'px' : '';
   const w = el.offsetWidth, h = Math.min(el.offsetHeight, cabeAlto);
   let izq = st.width - w - 8, arr = 44;
   const r = piedraMenuAncla;
@@ -25398,7 +25666,7 @@ function colocarSepMenu(){
      mismo fallo.) Midiendo el alto ya recortado, el sitio es el mismo lo esté o no en este
      instante, y las dos cuentas hablan del mismo panel. */
   const vvp = window.visualViewport;
-  const cabeAlto = vvp ? vvp.height - 16 : Infinity;
+  const cabeAlto = vvp ? areaVisible().alto - 16 : Infinity;
   /* NUNCA MÁS ANCHO QUE LO QUE HAY A LA IZQUIERDA DE SU ANCLA. La lista se
      ensanchó a 440 px en el teléfono para que se lea la descripción, y el
      punto que la abre no está en el canto sino en medio: con todo el ancho,
