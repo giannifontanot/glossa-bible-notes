@@ -4084,50 +4084,59 @@
   /* LOS TRES BOTONES OCUPAN EXACTAMENTE EL CUADRO DEL QR, pedido por Gianni:
      el mismo ancho que el mapa —min(44vh, 82%)— y el mismo alto, que era el
      de un cuadrado. Tres filas iguales.
-     EL COLOR: el bronce hondo de los cuatro botones redondos (--punto, y el
-     tono de cuando están abiertos), con la letra crema y los iconos en oro
-     claro. Estrenaron azul de tinta y Gianni lo paró: «siento que compite
-     con el mapa». Era verdad: el azul era lo único frío de la pantalla
-     además del mar, y la vista se iba a él. El bronce es de la casa, se
-     distingue del sepia por lo hondo y deja que el mapa sea lo que luce.
+     EL COLOR: pergamino, un poco más oscuro que el papel del panel, con un
+     filo fino de bronce, los iconos en bronce y la letra en sepia oscuro.
+     Llevan dos vueltas. Estrenaron azul de tinta y Gianni lo paró: «siento
+     que compite con el mapa» —el azul era lo único frío de la pantalla además
+     del mar y la vista se iba a él—. Luego bronce hondo, el de los cuatro
+     botones redondos, y tampoco: «demasiado subido otra vez». Un botón
+     oscuro y lleno pesa más que el mapa, sea del color que sea. Un panel
+     escogió el pergamino: claros, de la misma familia que la hoja, se ven
+     como botones por el filo y el medallón, y el mapa queda de protagonista.
      CENTRADOS PERO A LA IZQUIERDA. Lo pidió así: los tres botones, y lo de
      dentro alineado a la izquierda para que los iconos queden en columna,
      derechitos, uno debajo del otro. Con un subgrid los tres comparten las
      mismas columnas —margen, icono, texto, margen—: la columna del icono es
      la misma en los tres, y los dos márgenes iguales centran el conjunto.
-     Donde no hay subgrid cada botón se centra solo, que es casi lo mismo. */
+     Donde no hay subgrid cada botón se centra solo, que es casi lo mismo.
+     EL AIRE DE LA IZQUIERDA VA EN ESTAS COLUMNAS, NO EN EL PADDING DEL BOTÓN.
+     Se puso primero como padding (14 px, luego 24) y en el teléfono de Gianni
+     el medallón seguía tocando la orilla: con subgrid, el padding del botón
+     solo se le suma a lo que cae en sus columnas de las orillas, y ahí no hay
+     nada —son los márgenes vacíos del centrado—. Cuando el texto es largo esos
+     márgenes se encogen a cero y el icono queda pegado al filo, con padding o
+     sin él. Por eso las dos columnas de margen tienen aquí su mínimo: 18 px a
+     la izquierda, antes del icono, y 14 a la derecha, después de la letra. */
   .compartir-botones{ width:min(44vh, 82%); aspect-ratio:1 / 1; display:grid;
             grid-template-rows:repeat(3, minmax(0, 1fr)); row-gap:12px;
-            grid-template-columns:minmax(0, 1fr) auto minmax(0, auto) minmax(0, 1fr); }
+            grid-template-columns:minmax(18px, 1fr) auto minmax(0, auto) minmax(14px, 1fr); }
   .compartir-boton{ grid-column:1 / -1; min-width:0; min-height:0; margin:0;
             display:grid; align-items:center;
-            grid-template-columns:minmax(0, 1fr) auto minmax(0, auto) minmax(0, 1fr);
+            grid-template-columns:minmax(18px, 1fr) auto minmax(0, auto) minmax(14px, 1fr);
             grid-template-columns:subgrid;
-            padding:0 16px 0 24px; border-radius:16px; cursor:pointer; text-align:left;
-            border:1px solid #4e300e;
-            background:linear-gradient(to bottom, #8a5820, #6a4318);
-            color:#fbf3df; font-family:var(--ui);
-            box-shadow:inset 0 1px 0 rgba(255,236,196,.2), 0 3px 9px rgba(50,32,10,.3);
+            padding:0; border-radius:16px; cursor:pointer; text-align:left;
+            border:1px solid #9a6424;
+            background:linear-gradient(to bottom, #e2d2ad, #d6c398);
+            color:#3b2b18; font-family:var(--ui);
+            box-shadow:inset 0 1px 0 rgba(255,250,236,.55), 0 2px 5px rgba(60,40,15,.16);
             -webkit-tap-highlight-color:transparent; touch-action:manipulation;
             transition:transform .12s ease, filter .15s ease, background .25s ease; }
-  .compartir-boton:hover{ filter:brightness(1.08); }
-  .compartir-boton:active{ transform:translateY(1px) scale(.985); filter:brightness(1.12); }
+  .compartir-boton:hover{ filter:brightness(1.03); }
+  .compartir-boton:active{ transform:translateY(1px) scale(.985); filter:brightness(.96); }
   .compartir-boton:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; }
   /* El icono en su medallón de oro: el mismo tamaño en los tres, así que la
-     columna se lee como columna. CON AIRE A LA IZQUIERDA, pedido por Gianni:
-     con 14 px el medallón se pegaba a la orilla del botón cuando el texto
-     largo se comía los márgenes del centrado; ahora el botón lleva 24 px a
-     ese lado, y 16 al otro, donde solo llega la letra. */
+     columna se lee como columna. Su aire de la izquierda lo dan las columnas
+     de .compartir-botones (arriba está por qué no el padding). */
   .compartir-boton .cb-icono{ grid-column:2; display:grid; place-items:center;
             width:44px; height:44px; margin-right:14px; border-radius:50%;
-            color:#f6dc9e; background:rgba(255,232,186,.14);
-            border:1px solid rgba(246,220,158,.42); }
+            color:#7f4f1a; background:rgba(154,100,36,.1);
+            border:1px solid rgba(154,100,36,.45); }
   .compartir-boton .cb-icono svg{ width:24px; height:24px; display:block; }
   .compartir-boton .cb-texto{ grid-column:3; min-width:0; display:flex; flex-direction:column; gap:3px; }
   .compartir-boton .cb-que{ font:700 calc(17px * var(--escala-ui, 1))/1.15 var(--ui); letter-spacing:.01em; }
-  .compartir-boton .cb-para{ font:500 calc(12.5px * var(--escala-ui, 1))/1.3 var(--ui); color:#ecdcbc; }
+  .compartir-boton .cb-para{ font:500 calc(12.5px * var(--escala-ui, 1))/1.3 var(--ui); color:#5c4a24; }
   /* COPIADO: el botón se vuelve verde un par de segundos, con su palomita. */
-  .compartir-boton.copiado{ background:linear-gradient(to bottom, #348a58, #26693f); border-color:#1d5232; }
+  .compartir-boton.copiado{ background:linear-gradient(to bottom, #348a58, #26693f); border-color:#1d5232; color:#fbf3df; }
   .compartir-boton.copiado .cb-icono{ color:#fff; background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.45); }
   .compartir-boton.copiado .cb-para{ color:#e2f1e6; }
   .compartir-aviso{ position:absolute !important; width:1px; height:1px; margin:-1px; padding:0;
@@ -4139,8 +4148,14 @@
      velo tenue y la tarjeta encima, con el QR tan grande como cabe —un QR
      necesita su margen blanco alrededor para que la cámara lo encuentre— y el
      CERRAR abajo, al alcance del pulgar.
-     ABRE Y CIERRA SUAVE, pedido por Gianni: el velo se funde y la tarjeta
-     crece un poco desde abajo al abrir, y hace lo mismo al revés al cerrar.
+     ABRE Y CIERRA SUAVE, pedido por Gianni, y DESDE EL BOTÓN: la tarjeta
+     nace del botón Código QR y crece hasta su sitio, y al cerrar se encoge de
+     vuelta a ese mismo punto. Primero crecía un poco desde abajo en .3 s y
+     Gianni pidió más lento todavía y que saliera de un punto y volviera a él;
+     ahora son .75 s, con la curva de salida al abrir y la misma al revés al
+     cerrar. El punto lo pone el programa en --vqr-dx/--vqr-dy (la distancia
+     del centro de la tarjeta al del botón), medido al abrir y otra vez al
+     cerrar, por si el panel se movió mientras tanto.
      Por eso no se apaga con display:none —eso corta en seco y no deja ver la
      salida—, sino con opacity y visibility: la visibility espera a que acabe
      el fundido para esconderla del todo (y del tabulador). Sin movimiento
@@ -4148,18 +4163,19 @@
   .ventana-qr{ position:fixed; inset:0; z-index:100000; display:grid;
             place-items:center; padding:16px; background:rgba(43,33,24,.5);
             opacity:0; visibility:hidden; pointer-events:none;
-            transition:opacity .28s ease, visibility 0s linear .28s; }
+            transition:opacity .75s cubic-bezier(.4,0,1,1), visibility 0s linear .75s; }
   .ventana-qr.puesta{ opacity:1; visibility:visible; pointer-events:auto;
-            transition:opacity .28s ease, visibility 0s; }
+            transition:opacity .75s cubic-bezier(0,0,.6,1), visibility 0s; }
   .vqr-tarjeta{ width:min(440px, 100%); max-height:calc(100dvh - 32px); overflow:auto;
             display:flex; flex-direction:column; align-items:center; gap:10px;
             padding:18px 18px 16px; box-sizing:border-box;
             background:linear-gradient(to bottom, #f7f0dd, #ece0c2); color:#3b2b18;
             border:1px solid rgba(140,116,68,.55); border-radius:14px;
             box-shadow:0 16px 34px -10px rgba(0,0,0,.6);
-            transform:translateY(14px) scale(.95);
-            transition:transform .3s cubic-bezier(.2,.7,.2,1); }
-  .ventana-qr.puesta .vqr-tarjeta{ transform:none; }
+            transform:translate(var(--vqr-dx, 0px), var(--vqr-dy, 0px)) scale(.08);
+            transition:transform .75s cubic-bezier(.4,0,1,1); }
+  .ventana-qr.puesta .vqr-tarjeta{ transform:none; transition:transform .75s cubic-bezier(0,0,.6,1); }
+  .ventana-qr .vqr-tarjeta.sin-viaje{ transition:none; }
   .vqr-titulo{ margin:0; font:700 calc(18px * var(--escala-ui, 1))/1.2 var(--ui); color:#b0873a; }
   .vqr-tarjeta .qr-dibujo{ width:min(78vw, 56vh, 360px); height:auto; aspect-ratio:1 / 1; display:block;
             padding:10px; background:#fff; border-radius:12px; box-sizing:border-box;
@@ -4185,7 +4201,7 @@
   @media (pointer:coarse){ .ventana-qr .btn.cerrar-pie{ min-height:48px; } }
   .ventana-qr .btn.cerrar-pie:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; }
   @media (prefers-reduced-motion: reduce){
-    .ventana-qr, .ventana-qr.puesta, .vqr-tarjeta{ transition:none; }
+    .ventana-qr, .ventana-qr.puesta, .vqr-tarjeta, .ventana-qr.puesta .vqr-tarjeta{ transition:none; }
     .vqr-tarjeta{ transform:none; } }
   .mapa-estado{ margin:6px 2px 0; white-space:pre-line; text-align:center; text-wrap:balance;
                 font:500 calc(12.5px * var(--escala-ui, 1))/1.4 var(--ui); color:#5c4a24; }
@@ -7689,7 +7705,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 10:05';
+window.GLOSS_BUILD = '23-NOV-26 10:21';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -30258,8 +30274,28 @@ const QR_GLOSSA = '<svg class="qr-dibujo" viewBox="0 0 37 37" role="img" aria-la
    ventana saldría recortada al panel. Se arma una sola vez. Tocar el velo
    también cierra, y Escape, que se queda aquí sin llegar a cerrar Compartir. */
 let ventanaQr = null, qrDevuelve = null;
+/* EL PUNTO DEL QUE NACE Y AL QUE VUELVE: el centro del botón, como distancia
+   desde el centro de la tarjeta. Se mide con offsetLeft/offsetTop, que no
+   cuentan la transformación, así que da lo mismo si la tarjeta está crecida o
+   encogida; la ventana es position:fixed a pantalla entera, de modo que eso es
+   ya la posición en pantalla. Sin botón, o con el botón fuera de la vista,
+   nace del centro. */
+function puntoVentanaQr(){
+  const t = ventanaQr.querySelector('.vqr-tarjeta');
+  let dx = 0, dy = 0;
+  if (qrDevuelve && qrDevuelve.isConnected){
+    const r = qrDevuelve.getBoundingClientRect();
+    if (r.width && r.height){
+      dx = Math.round(r.left + r.width / 2 - (t.offsetLeft + t.offsetWidth / 2));
+      dy = Math.round(r.top + r.height / 2 - (t.offsetTop + t.offsetHeight / 2));
+    }
+  }
+  t.style.setProperty('--vqr-dx', dx + 'px');
+  t.style.setProperty('--vqr-dy', dy + 'px');
+}
 function cerrarVentanaQr(){
   if (!ventanaQr || !ventanaQr.classList.contains('puesta')) return;
+  puntoVentanaQr();
   ventanaQr.classList.remove('puesta');
   if (qrDevuelve && qrDevuelve.isConnected) qrDevuelve.focus({ preventScroll: true });
   qrDevuelve = null;
@@ -30306,6 +30342,14 @@ function abrirVentanaQr(desde){
   }
   qrDevuelve = desde || null;
   ventanaQr.setAttribute('aria-label', T('Código QR', 'QR code'));
+  /* Se lleva la tarjeta encogida al botón SIN VIAJE (sin transición), se fija
+     ese estado, y solo entonces se pone: si no, la tarjeta escondida iría
+     primero desde el punto de la vez anterior, y a ratos nacía de otro lado. */
+  const tarjeta = ventanaQr.querySelector('.vqr-tarjeta');
+  tarjeta.classList.add('sin-viaje');
+  puntoVentanaQr();
+  void tarjeta.offsetWidth;
+  tarjeta.classList.remove('sin-viaje');
   ventanaQr.classList.add('puesta');
   ventanaQr.querySelector('.vqr-cerrar').focus({ preventScroll: true });
 }
