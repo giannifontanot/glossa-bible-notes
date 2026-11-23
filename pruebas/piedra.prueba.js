@@ -1280,9 +1280,18 @@ async function andamio(p){
                         alineados: Math.abs(rd.left - rc.left) <= 1,
                         pesoDesc: getComputedStyle(d).fontWeight };
              })(),
+             /* CUATRO QUINTOS DE LA PANTALLA, fijo, lo diga la fila que lo
+                diga: lo pidió Gianni así, porque las descripciones suelen
+                ser cortas y casi todo el ancho las dejaba con media fila en
+                blanco. */
+             ancho: { panel: document.getElementById('piedraMenu').getBoundingClientRect().width,
+                      pantalla: innerWidth },
              cerroElCampo: !document.querySelector('#piedraMenu [data-piedra-nombre]') };
   });
   di('al nombrarla desde la lista', lapiz);
+  vale('LA CAJITA DE LAS PERLAS MIDE 4/5 DE LA PANTALLA',
+       !!lapiz.ancho && Math.abs(lapiz.ancho.panel - lapiz.ancho.pantalla * .8) <= 1.5,
+       lapiz.ancho && (Math.round(lapiz.ancho.panel) + ' de ' + lapiz.ancho.pantalla));
   vale('EL DOBLE TOQUE ABRE EL CAMPO Y SE LO LLEVA EL FOCO',
        lapiz.conFoco === true, lapiz);
   vale('Intro guarda el nombre', lapiz.guardado === 'la del monte', lapiz.guardado);

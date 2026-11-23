@@ -3131,7 +3131,16 @@
        cada lado— con un tope de 440 para que en una tableta no se vuelva una
        sábana. */
     #sepMenu{ --sep-tope:min(440px, calc(100% - 16px)); }
-    #piedraMenu{ width:min(440px, calc(100% - 16px)); }
+    /* Y LUEGO, CUATRO QUINTOS. Con casi todo el ancho las perlas de siempre
+       —«Yo soy el pan de vida»— dejaban media fila vacía a la derecha, y a
+       Gianni no le gustó: las descripciones suelen ser cortas. Probó un
+       ancho que se ajustara a la frase más larga y dijo que no, que fijo y
+       igual para todas; luego tres cuartos, y se quedó con cuatro quintos de
+       la pantalla. Lo que no quepa se va a su segundo renglón, que para eso
+       la fila tiene dos. El suelo de 300 es solo para los teléfonos de 320 o
+       menos, donde 4/5 ya no deja la cabecera en un renglón; el tope de 440
+       sigue siendo el de la tableta. Las cintas no cambian: no las pidió. */
+    #piedraMenu{ width:min(440px, calc(100% - 16px), max(300px, 80vw)); }
     /* LAS EQUIS, QUE SON LA SALIDA.
 
        Aquí no se cambia DÓNDE están —arriba a la derecha, que es donde se
@@ -7568,7 +7577,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 08:33';
+window.GLOSS_BUILD = '23-NOV-26 08:36';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
