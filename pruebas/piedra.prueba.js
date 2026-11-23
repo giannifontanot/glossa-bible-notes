@@ -1280,18 +1280,48 @@ async function andamio(p){
                         alineados: Math.abs(rd.left - rc.left) <= 1,
                         pesoDesc: getComputedStyle(d).fontWeight };
              })(),
-             /* CUATRO QUINTOS DE LA PANTALLA, fijo, lo diga la fila que lo
-                diga: lo pidió Gianni así, porque las descripciones suelen
-                ser cortas y casi todo el ancho las dejaba con media fila en
-                blanco. */
-             ancho: { panel: document.getElementById('piedraMenu').getBoundingClientRect().width,
-                      pantalla: innerWidth },
+             /* LA CAJA, para compararla luego con la de cintas: las quiere
+                Gianni hermanas, y hermanas es medir lo mismo y vestir igual. */
+             caja: (() => {
+               const m = document.getElementById('piedraMenu');
+               const r = m.getBoundingClientRect(), c = getComputedStyle(m);
+               const st = document.getElementById('stage').getBoundingClientRect();
+               return { izq: Math.round(r.left - st.left), ancho: Math.round(r.width),
+                        relleno: c.padding, radio: c.borderRadius, sombra: c.boxShadow };
+             })(),
              cerroElCampo: !document.querySelector('#piedraMenu [data-piedra-nombre]') };
   });
   di('al nombrarla desde la lista', lapiz);
-  vale('LA CAJITA DE LAS PERLAS MIDE 4/5 DE LA PANTALLA',
-       !!lapiz.ancho && Math.abs(lapiz.ancho.panel - lapiz.ancho.pantalla * .8) <= 1.5,
-       lapiz.ancho && (Math.round(lapiz.ancho.panel) + ' de ' + lapiz.ancho.pantalla));
+  /* LA DE CINTAS, ABIERTA POR SU PUNTO, que es con la que Gianni compara:
+     misma caja que la de perlas, en espejo. Se cierra la de perlas antes,
+     porque abrir una cierra la otra y medir con las dos a medio irse sería
+     medir una animación. */
+  const cintas = await p.evaluate(async () => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(400);
+    await window.__toque('[data-sep-lista]'); await window.__pausa(700);
+    const m = document.getElementById('sepMenu');
+    if (!m.classList.contains('visible')) return { sinLista:true };
+    const r = m.getBoundingClientRect(), c = getComputedStyle(m);
+    const st = document.getElementById('stage').getBoundingClientRect();
+    const fuera = { izq: Math.round(r.left), ancho: Math.round(r.width),
+                    der: Math.round(st.right - r.right),
+                    relleno: c.padding, radio: c.borderRadius, sombra: c.boxShadow };
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await window.__pausa(400);
+    return fuera;
+  });
+  di('la caja de perlas contra la de cintas', { perlas: lapiz.caja, cintas });
+  const cajaP = lapiz.caja || {};
+  vale('LA CAJITA DE LAS PERLAS MIDE LO MISMO QUE LA LISTA DE CINTAS',
+       !cintas.sinLista && Math.abs(cajaP.ancho - cintas.ancho) <= 1,
+       cajaP.ancho + ' contra ' + cintas.ancho);
+  vale('  y en espejo: su margen izquierdo es el derecho de la otra',
+       !cintas.sinLista && Math.abs(cajaP.izq - cintas.der) <= 3,
+       cajaP.izq + ' contra ' + cintas.der);
+  vale('  y viste igual: relleno, radio y sombra',
+       cajaP.relleno === cintas.relleno && cajaP.radio === cintas.radio && cajaP.sombra === cintas.sombra,
+       { perlas: [cajaP.relleno, cajaP.radio], cintas: [cintas.relleno, cintas.radio] });
   vale('EL DOBLE TOQUE ABRE EL CAMPO Y SE LO LLEVA EL FOCO',
        lapiz.conFoco === true, lapiz);
   vale('Intro guarda el nombre', lapiz.guardado === 'la del monte', lapiz.guardado);
