@@ -192,7 +192,7 @@ const { abrir, cerrar, cerrarParcial, di, vale, titulo,
        haya bronce: si el degradado desapareciera, la lista vendría vacía y
        esto daría verde sin mirar nada. */
     vale('los rótulos pintan su bronce',
-         paso.every(x => x.cabeza.metal.length === 3 && x.version.metal.length === 3),
+         paso.every(x => x.cabeza.metal.length === 5 && x.version.metal.length === 5),
          paso.map(x => x.cabeza.metal.length + '/' + x.version.metal.length).join(' '));
     const metalFlojo = paso.filter(x => [x.cabeza, x.version].some(r =>
       r.metal.some(m => m.contraste < 4.5 || m.lc < 60)));
