@@ -4135,7 +4135,7 @@
             display:grid; align-items:center;
             grid-template-columns:minmax(0, 1fr) auto minmax(0, auto) minmax(0, 1fr);
             grid-template-columns:subgrid;
-            padding:0 14px; border-radius:16px; cursor:pointer; text-align:left;
+            padding:0 16px 0 24px; border-radius:16px; cursor:pointer; text-align:left;
             border:1px solid #121c38;
             background:linear-gradient(to bottom, #2e4170, #1d2b50);
             color:#fbf3df; font-family:var(--ui);
@@ -4146,7 +4146,10 @@
   .compartir-boton:active{ transform:translateY(1px) scale(.985); filter:brightness(1.12); }
   .compartir-boton:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; }
   /* El icono en su medallón de oro: el mismo tamaño en los tres, así que la
-     columna se lee como columna. */
+     columna se lee como columna. CON AIRE A LA IZQUIERDA, pedido por Gianni:
+     con 14 px el medallón se pegaba a la orilla del botón cuando el texto
+     largo se comía los márgenes del centrado; ahora el botón lleva 24 px a
+     ese lado, y 16 al otro, donde solo llega la letra. */
   .compartir-boton .cb-icono{ grid-column:2; display:grid; place-items:center;
             width:44px; height:44px; margin-right:14px; border-radius:50%;
             color:#ecc66e; background:rgba(236,198,110,.13);
@@ -4167,17 +4170,28 @@
   /* LA VENTANA DEL QR, del mismo papel que la ventanita de los relatos: un
      velo tenue y la tarjeta encima, con el QR tan grande como cabe —un QR
      necesita su margen blanco alrededor para que la cámara lo encuentre— y el
-     CERRAR abajo, al alcance del pulgar. */
-  .ventana-qr{ position:fixed; inset:0; z-index:100000; display:none;
-            place-items:center; padding:16px; background:rgba(43,33,24,.5); }
-  .ventana-qr.puesta{ display:grid; }
+     CERRAR abajo, al alcance del pulgar.
+     ABRE Y CIERRA SUAVE, pedido por Gianni: el velo se funde y la tarjeta
+     crece un poco desde abajo al abrir, y hace lo mismo al revés al cerrar.
+     Por eso no se apaga con display:none —eso corta en seco y no deja ver la
+     salida—, sino con opacity y visibility: la visibility espera a que acabe
+     el fundido para esconderla del todo (y del tabulador). Sin movimiento
+     para quien lo pidió del sistema. */
+  .ventana-qr{ position:fixed; inset:0; z-index:100000; display:grid;
+            place-items:center; padding:16px; background:rgba(43,33,24,.5);
+            opacity:0; visibility:hidden; pointer-events:none;
+            transition:opacity .28s ease, visibility 0s linear .28s; }
+  .ventana-qr.puesta{ opacity:1; visibility:visible; pointer-events:auto;
+            transition:opacity .28s ease, visibility 0s; }
   .vqr-tarjeta{ width:min(440px, 100%); max-height:calc(100dvh - 32px); overflow:auto;
             display:flex; flex-direction:column; align-items:center; gap:10px;
             padding:18px 18px 16px; box-sizing:border-box;
             background:linear-gradient(to bottom, #f7f0dd, #ece0c2); color:#3b2b18;
             border:1px solid rgba(140,116,68,.55); border-radius:14px;
             box-shadow:0 16px 34px -10px rgba(0,0,0,.6);
-            animation:ventanita-sube .26s cubic-bezier(.2,.7,.2,1); }
+            transform:translateY(14px) scale(.95);
+            transition:transform .3s cubic-bezier(.2,.7,.2,1); }
+  .ventana-qr.puesta .vqr-tarjeta{ transform:none; }
   .vqr-titulo{ margin:0; font:700 calc(18px * var(--escala-ui, 1))/1.2 var(--ui); color:#b0873a; }
   .vqr-tarjeta .qr-dibujo{ width:min(78vw, 56vh, 360px); height:auto; aspect-ratio:1 / 1; display:block;
             padding:10px; background:#fff; border-radius:12px; box-sizing:border-box;
@@ -4185,12 +4199,26 @@
   .qr-dice{ margin:4px 0 0; max-width:min(78vw, 360px); text-align:center;
             font:600 calc(14px * var(--escala-ui, 1))/1.35 var(--ui); color:#3d2f12; }
   .qr-liga{ margin:0; font:500 calc(12px * var(--escala-ui, 1))/1.3 var(--ui); color:#7a6638; }
-  .vqr-cerrar{ margin-top:6px; min-height:48px; padding:0 34px; border-radius:999px; cursor:pointer;
-            border:1px solid #121c38; background:linear-gradient(to bottom, #2e4170, #1d2b50);
-            color:#fbf3df; font:700 calc(13px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.12em;
+  /* EL CERRAR ES EL DE TODA LA APP, pedido por Gianni: lo estrenó en azul,
+     como los tres botones, y no era eso —una salida es una salida y se ve
+     igual en todas partes—. Lleva las mismas clases que el pie de los
+     paneles (.btn.cerrar-pie), pero la ventana vive fuera de .rollo y esas
+     reglas no la alcanzan, así que aquí se repiten tal cual: el papel, el
+     filo, la tinta y las medidas de .rollo .btn y .rollo .pie-cerrar
+     .cerrar-pie. Si un día cambian aquéllas, cambian éstas. */
+  .ventana-qr .btn.cerrar-pie{ margin-top:6px; display:inline-flex; width:auto;
+            align-items:center; justify-content:center;
+            min-height:38px; padding:0 26px; border-radius:999px;
+            font-family:var(--ui); letter-spacing:.12em; font-weight:700; line-height:1;
+            font-size:calc(.72rem * var(--escala-ui, 1)) !important;
+            color:#4a3a1c; background:rgba(255,253,247,.75); border:1px solid rgba(140,116,68,.42);
             -webkit-tap-highlight-color:transparent; }
-  .vqr-cerrar:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; }
-  @media (prefers-reduced-motion: reduce){ .vqr-tarjeta{ animation:none; } }
+  .ventana-qr .btn.cerrar-pie:hover{ background:#fffdf6; color:#1d1608; }
+  @media (pointer:coarse){ .ventana-qr .btn.cerrar-pie{ min-height:48px; } }
+  .ventana-qr .btn.cerrar-pie:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; }
+  @media (prefers-reduced-motion: reduce){
+    .ventana-qr, .ventana-qr.puesta, .vqr-tarjeta{ transition:none; }
+    .vqr-tarjeta{ transform:none; } }
   .mapa-estado{ margin:6px 2px 0; white-space:pre-line; text-align:center; text-wrap:balance;
                 font:500 calc(12.5px * var(--escala-ui, 1))/1.4 var(--ui); color:#5c4a24; }
   /* EN PANTALLA ANCHA, EL PANEL DE COMPARTIR TAMBIÉN SE DESPLAZA. La escena
@@ -7723,7 +7751,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 08:52';
+window.GLOSS_BUILD = '23-NOV-26 09:13';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -29970,7 +29998,7 @@ function abrirVentanaQr(desde){
           'data-en="Scan it with another phone to open the Gloss Bible">' +
           T('Escanéalo con otro teléfono para abrir la Biblia Glossa', 'Scan it with another phone to open the Gloss Bible') + '</p>' +
         '<p class="qr-liga">giannifontanot.github.io/glossa-bible-notes</p>' +
-        '<button type="button" class="vqr-cerrar" data-es="CERRAR" data-en="CLOSE">' + T('CERRAR', 'CLOSE') + '</button>' +
+        '<button type="button" class="btn cerrar-pie vqr-cerrar" data-es="CERRAR" data-en="CLOSE">' + T('CERRAR', 'CLOSE') + '</button>' +
       '</div>';
     ventanaQr.setAttribute('aria-label', T('Código QR', 'QR code'));
     ventanaQr.addEventListener('click', ev => {
