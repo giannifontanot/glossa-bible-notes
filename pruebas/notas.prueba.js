@@ -277,5 +277,83 @@ const IR_A = `async sec => {
        await p.locator('#notas .indice-item').count() === 21 &&
        await p.locator('#notas .indice-detalle').nth(19).textContent() === 'Texto actualizado desde la nota.');
   await probarMovimientoIndice(p, 'notas');
+
+  /* ----------------------------------------------------------------
+     EL TECLADO SUBE Y BAJA SUAVE, Y NO TAPA LO QUE SE ESCRIBE.
+
+     Lo pidió Gianni, copiado de Go Epic. En un navegador sin pantalla no hay
+     teclado, así que se sustituye la pieza del navegador que lo cuenta —la
+     VirtualKeyboard API, navigator.virtualKeyboard— por una que dice el alto
+     que se le pida y avisa con su geometrychange, igual que la de verdad.
+     El programa no se toca. Se mira lo que Gianni ve: que el renglón donde
+     escribe quede por encima del teclado, que el cuaderno se acorte DESPACIO
+     y no de golpe, y que al irse el teclado vuelva a su sitio. */
+  titulo('el teclado sube y baja suave en las notas');
+  await p.addInitScript(() => {
+    const vk = new EventTarget();
+    let encima = false, alto = 0;
+    Object.defineProperty(vk, 'overlaysContent', { get: () => encima, set: v => { encima = !!v; } });
+    Object.defineProperty(vk, 'boundingRect',
+      { get: () => new DOMRect(0, innerHeight - alto, innerWidth, alto) });
+    Object.defineProperty(Navigator.prototype, 'virtualKeyboard', { configurable:true, get: () => vk });
+    window.__teclado = a => { alto = a; vk.dispatchEvent(new Event('geometrychange')); };
+  });
+  await p.reload();
+  await abrirNotas(p);
+  const TECLADO = 380;
+  const suave = await p.evaluate(async TECLADO => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    const ed = [...document.querySelectorAll('#notas .nota-editor')]
+      .find(e => e.getClientRects().length);
+    if (!ed) return { sinEditor:true };
+    if (!navigator.virtualKeyboard.overlaysContent) return { sinEncima:true };
+    ed.innerText = Array.from({ length:60 }, (_, i) => 'Renglón ' + (i + 1)).join('\n');
+    ed.dispatchEvent(new Event('input', { bubbles:true }));
+    ed.focus();
+    const sel = getSelection(); const q = document.createRange();
+    q.selectNodeContents(ed); q.collapse(false); sel.removeAllRanges(); sel.addRange(q);
+    ed.scrollTop = ed.scrollHeight;
+    await pausa(200);
+    const rollo = ed.closest('.rollo');
+    const pieAntes = rollo.getBoundingClientRect().bottom;
+    const cursor = () => {
+      const r = getSelection().getRangeAt(0).cloneRange(); r.collapse(false);
+      const rs = r.getClientRects();
+      const c = rs.length ? rs[rs.length - 1] : ed.lastChild && ed.lastChild.nodeType === 1
+        ? ed.lastChild.getBoundingClientRect() : null;
+      return c ? { top: Math.round(c.top), bottom: Math.round(c.bottom) } : null;
+    };
+    const antes = cursor();
+    window.__teclado(TECLADO);
+    await pausa(170);
+    const aMedias = rollo.getBoundingClientRect().bottom;
+    await pausa(900);
+    const borde = innerHeight - TECLADO;
+    const arriba = { pie: Math.round(rollo.getBoundingClientRect().bottom), cursor: cursor(), borde };
+    window.__teclado(0);
+    await pausa(170);
+    const bajando = rollo.getBoundingClientRect().bottom;
+    await pausa(900);
+    return { antes, pieAntes: Math.round(pieAntes), aMedias: Math.round(aMedias), arriba,
+             bajando: Math.round(bajando), pieDespues: Math.round(rollo.getBoundingClientRect().bottom),
+             alto: rollo.style.height };
+  }, TECLADO);
+  di('el cuaderno con el teclado', suave);
+  vale('(la prueba es válida) hay cuaderno y el teclado va encima de la página',
+       !suave.sinEditor && !suave.sinEncima, suave);
+  vale('(la prueba es válida) sin teclado el cursor caería detrás de él',
+       !!suave.antes && suave.antes.bottom > suave.arriba.borde, suave.antes);
+  vale('CON TECLADO, EL RENGLÓN DONDE SE ESCRIBE QUEDA POR ENCIMA',
+       !!suave.arriba.cursor && suave.arriba.cursor.bottom <= suave.arriba.borde &&
+       suave.arriba.cursor.top >= 0, suave.arriba);
+  vale('  porque el cuaderno se acortó hasta el borde del teclado',
+       Math.abs(suave.arriba.pie - suave.arriba.borde) <= 2, suave.arriba);
+  vale('  y se acortó DESPACIO, no de golpe',
+       suave.aMedias < suave.pieAntes - 2 && suave.aMedias > suave.arriba.pie + 2,
+       suave.pieAntes + ' → ' + suave.aMedias + ' → ' + suave.arriba.pie);
+  vale('AL IRSE EL TECLADO, VUELVE DESPACIO A SU SITIO',
+       suave.bajando > suave.arriba.pie + 2 && suave.bajando < suave.pieAntes - 2 &&
+       Math.abs(suave.pieDespues - suave.pieAntes) <= 1 && !suave.alto,
+       suave.arriba.pie + ' → ' + suave.bajando + ' → ' + suave.pieDespues + ' (' + suave.alto + ')');
   await cerrar(sesion);
 })();
