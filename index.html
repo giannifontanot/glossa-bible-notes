@@ -4084,11 +4084,12 @@
   /* LOS TRES BOTONES OCUPAN EXACTAMENTE EL CUADRO DEL QR, pedido por Gianni:
      el mismo ancho que el mapa —min(44vh, 82%)— y el mismo alto, que era el
      de un cuadrado. Tres filas iguales.
-     EL COLOR: azul de tinta con la letra crema y los iconos en oro, como el
-     lomo de una Biblia empastada sobre el sepia de la hoja. Se escogió por
-     eso: tenía que verse distinto del papel sin pelearse con él, y el azul
-     es el que más se aparta del sepia sin desentonar —el rojo y el verde se
-     leían como aviso—. Es además el azul de la noche del mapa ampliado.
+     EL COLOR: el bronce hondo de los cuatro botones redondos (--punto, y el
+     tono de cuando están abiertos), con la letra crema y los iconos en oro
+     claro. Estrenaron azul de tinta y Gianni lo paró: «siento que compite
+     con el mapa». Era verdad: el azul era lo único frío de la pantalla
+     además del mar, y la vista se iba a él. El bronce es de la casa, se
+     distingue del sepia por lo hondo y deja que el mapa sea lo que luce.
      CENTRADOS PERO A LA IZQUIERDA. Lo pidió así: los tres botones, y lo de
      dentro alineado a la izquierda para que los iconos queden en columna,
      derechitos, uno debajo del otro. Con un subgrid los tres comparten las
@@ -4102,26 +4103,29 @@
             display:grid; align-items:center;
             grid-template-columns:minmax(0, 1fr) auto minmax(0, auto) minmax(0, 1fr);
             grid-template-columns:subgrid;
-            padding:0 14px; border-radius:16px; cursor:pointer; text-align:left;
-            border:1px solid #121c38;
-            background:linear-gradient(to bottom, #2e4170, #1d2b50);
+            padding:0 16px 0 24px; border-radius:16px; cursor:pointer; text-align:left;
+            border:1px solid #4e300e;
+            background:linear-gradient(to bottom, #8a5820, #6a4318);
             color:#fbf3df; font-family:var(--ui);
-            box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 3px 9px rgba(50,32,10,.3);
+            box-shadow:inset 0 1px 0 rgba(255,236,196,.2), 0 3px 9px rgba(50,32,10,.3);
             -webkit-tap-highlight-color:transparent; touch-action:manipulation;
             transition:transform .12s ease, filter .15s ease, background .25s ease; }
   .compartir-boton:hover{ filter:brightness(1.08); }
   .compartir-boton:active{ transform:translateY(1px) scale(.985); filter:brightness(1.12); }
   .compartir-boton:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; }
   /* El icono en su medallón de oro: el mismo tamaño en los tres, así que la
-     columna se lee como columna. */
+     columna se lee como columna. CON AIRE A LA IZQUIERDA, pedido por Gianni:
+     con 14 px el medallón se pegaba a la orilla del botón cuando el texto
+     largo se comía los márgenes del centrado; ahora el botón lleva 24 px a
+     ese lado, y 16 al otro, donde solo llega la letra. */
   .compartir-boton .cb-icono{ grid-column:2; display:grid; place-items:center;
             width:44px; height:44px; margin-right:14px; border-radius:50%;
-            color:#ecc66e; background:rgba(236,198,110,.13);
-            border:1px solid rgba(236,198,110,.38); }
+            color:#f6dc9e; background:rgba(255,232,186,.14);
+            border:1px solid rgba(246,220,158,.42); }
   .compartir-boton .cb-icono svg{ width:24px; height:24px; display:block; }
   .compartir-boton .cb-texto{ grid-column:3; min-width:0; display:flex; flex-direction:column; gap:3px; }
   .compartir-boton .cb-que{ font:700 calc(17px * var(--escala-ui, 1))/1.15 var(--ui); letter-spacing:.01em; }
-  .compartir-boton .cb-para{ font:500 calc(12.5px * var(--escala-ui, 1))/1.3 var(--ui); color:#cfc8b6; }
+  .compartir-boton .cb-para{ font:500 calc(12.5px * var(--escala-ui, 1))/1.3 var(--ui); color:#ecdcbc; }
   /* COPIADO: el botón se vuelve verde un par de segundos, con su palomita. */
   .compartir-boton.copiado{ background:linear-gradient(to bottom, #348a58, #26693f); border-color:#1d5232; }
   .compartir-boton.copiado .cb-icono{ color:#fff; background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.45); }
@@ -4134,17 +4138,28 @@
   /* LA VENTANA DEL QR, del mismo papel que la ventanita de los relatos: un
      velo tenue y la tarjeta encima, con el QR tan grande como cabe —un QR
      necesita su margen blanco alrededor para que la cámara lo encuentre— y el
-     CERRAR abajo, al alcance del pulgar. */
-  .ventana-qr{ position:fixed; inset:0; z-index:100000; display:none;
-            place-items:center; padding:16px; background:rgba(43,33,24,.5); }
-  .ventana-qr.puesta{ display:grid; }
+     CERRAR abajo, al alcance del pulgar.
+     ABRE Y CIERRA SUAVE, pedido por Gianni: el velo se funde y la tarjeta
+     crece un poco desde abajo al abrir, y hace lo mismo al revés al cerrar.
+     Por eso no se apaga con display:none —eso corta en seco y no deja ver la
+     salida—, sino con opacity y visibility: la visibility espera a que acabe
+     el fundido para esconderla del todo (y del tabulador). Sin movimiento
+     para quien lo pidió del sistema. */
+  .ventana-qr{ position:fixed; inset:0; z-index:100000; display:grid;
+            place-items:center; padding:16px; background:rgba(43,33,24,.5);
+            opacity:0; visibility:hidden; pointer-events:none;
+            transition:opacity .28s ease, visibility 0s linear .28s; }
+  .ventana-qr.puesta{ opacity:1; visibility:visible; pointer-events:auto;
+            transition:opacity .28s ease, visibility 0s; }
   .vqr-tarjeta{ width:min(440px, 100%); max-height:calc(100dvh - 32px); overflow:auto;
             display:flex; flex-direction:column; align-items:center; gap:10px;
             padding:18px 18px 16px; box-sizing:border-box;
             background:linear-gradient(to bottom, #f7f0dd, #ece0c2); color:#3b2b18;
             border:1px solid rgba(140,116,68,.55); border-radius:14px;
             box-shadow:0 16px 34px -10px rgba(0,0,0,.6);
-            animation:ventanita-sube .26s cubic-bezier(.2,.7,.2,1); }
+            transform:translateY(14px) scale(.95);
+            transition:transform .3s cubic-bezier(.2,.7,.2,1); }
+  .ventana-qr.puesta .vqr-tarjeta{ transform:none; }
   .vqr-titulo{ margin:0; font:700 calc(18px * var(--escala-ui, 1))/1.2 var(--ui); color:#b0873a; }
   .vqr-tarjeta .qr-dibujo{ width:min(78vw, 56vh, 360px); height:auto; aspect-ratio:1 / 1; display:block;
             padding:10px; background:#fff; border-radius:12px; box-sizing:border-box;
@@ -4152,12 +4167,26 @@
   .qr-dice{ margin:4px 0 0; max-width:min(78vw, 360px); text-align:center;
             font:600 calc(14px * var(--escala-ui, 1))/1.35 var(--ui); color:#3d2f12; }
   .qr-liga{ margin:0; font:500 calc(12px * var(--escala-ui, 1))/1.3 var(--ui); color:#7a6638; }
-  .vqr-cerrar{ margin-top:6px; min-height:48px; padding:0 34px; border-radius:999px; cursor:pointer;
-            border:1px solid #121c38; background:linear-gradient(to bottom, #2e4170, #1d2b50);
-            color:#fbf3df; font:700 calc(13px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.12em;
+  /* EL CERRAR ES EL DE TODA LA APP, pedido por Gianni: lo estrenó en azul,
+     como los tres botones, y no era eso —una salida es una salida y se ve
+     igual en todas partes—. Lleva las mismas clases que el pie de los
+     paneles (.btn.cerrar-pie), pero la ventana vive fuera de .rollo y esas
+     reglas no la alcanzan, así que aquí se repiten tal cual: el papel, el
+     filo, la tinta y las medidas de .rollo .btn y .rollo .pie-cerrar
+     .cerrar-pie. Si un día cambian aquéllas, cambian éstas. */
+  .ventana-qr .btn.cerrar-pie{ margin-top:6px; display:inline-flex; width:auto;
+            align-items:center; justify-content:center;
+            min-height:38px; padding:0 26px; border-radius:999px;
+            font-family:var(--ui); letter-spacing:.12em; font-weight:700; line-height:1;
+            font-size:calc(.72rem * var(--escala-ui, 1)) !important;
+            color:#4a3a1c; background:rgba(255,253,247,.75); border:1px solid rgba(140,116,68,.42);
             -webkit-tap-highlight-color:transparent; }
-  .vqr-cerrar:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; }
-  @media (prefers-reduced-motion: reduce){ .vqr-tarjeta{ animation:none; } }
+  .ventana-qr .btn.cerrar-pie:hover{ background:#fffdf6; color:#1d1608; }
+  @media (pointer:coarse){ .ventana-qr .btn.cerrar-pie{ min-height:48px; } }
+  .ventana-qr .btn.cerrar-pie:focus-visible{ outline:2px solid #b8892b; outline-offset:3px; }
+  @media (prefers-reduced-motion: reduce){
+    .ventana-qr, .ventana-qr.puesta, .vqr-tarjeta{ transition:none; }
+    .vqr-tarjeta{ transform:none; } }
   .mapa-estado{ margin:6px 2px 0; white-space:pre-line; text-align:center; text-wrap:balance;
                 font:500 calc(12.5px * var(--escala-ui, 1))/1.4 var(--ui); color:#5c4a24; }
   /* EN PANTALLA ANCHA, EL PANEL DE COMPARTIR TAMBIÉN SE DESPLAZA. La escena
@@ -7665,7 +7694,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 09:33';
+window.GLOSS_BUILD = '23-NOV-26 09:44';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -30254,7 +30283,7 @@ function abrirVentanaQr(desde){
           'data-en="Scan it with another phone to open the Gloss Bible">' +
           T('Escanéalo con otro teléfono para abrir la Biblia Glossa', 'Scan it with another phone to open the Gloss Bible') + '</p>' +
         '<p class="qr-liga">giannifontanot.github.io/glossa-bible-notes</p>' +
-        '<button type="button" class="vqr-cerrar" data-es="CERRAR" data-en="CLOSE">' + T('CERRAR', 'CLOSE') + '</button>' +
+        '<button type="button" class="btn cerrar-pie vqr-cerrar" data-es="CERRAR" data-en="CLOSE">' + T('CERRAR', 'CLOSE') + '</button>' +
       '</div>';
     ventanaQr.setAttribute('aria-label', T('Código QR', 'QR code'));
     ventanaQr.addEventListener('click', ev => {
@@ -30274,6 +30303,11 @@ function abrirVentanaQr(desde){
       if (ev.key === 'Escape'){ ev.preventDefault(); cerrarVentanaQr(); }
     }, true);
     document.body.appendChild(ventanaQr);
+    /* SE LEE SU MEDIDA ANTES DE PONERLA, para que el navegador fije primero
+       el estado escondido: sin esto, la primera vez no había un «antes» desde
+       el que fundir y la ventana salía de golpe; solo las siguientes
+       entraban suaves. Lo levantó la revisión de Codex. */
+    void ventanaQr.offsetWidth;
   }
   qrDevuelve = desde || null;
   ventanaQr.setAttribute('aria-label', T('Código QR', 'QR code'));
