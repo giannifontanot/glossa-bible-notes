@@ -7656,7 +7656,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 07:55';
+window.GLOSS_BUILD = '23-NOV-26 08:04';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25303,10 +25303,20 @@ function colocarSepMenu(){
      instante, y las dos cuentas hablan del mismo panel. */
   const vvp = window.visualViewport;
   const cabeAlto = vvp ? vvp.height - 16 : Infinity;
+  /* NUNCA MÁS ANCHO QUE LO QUE HAY A LA IZQUIERDA DE SU ANCLA. La lista se
+     ensanchó a 440 px en el teléfono para que se lea la descripción, y el
+     punto que la abre no está en el canto sino en medio: con todo el ancho,
+     el panel ya no cabía a su izquierda y se corría hacia la derecha, por
+     delante de lo que lo abrió. Se le pone de tope el sitio que hay entre el
+     filo izquierdo y el canto derecho del ancla, y así sigue colgando de ella.
+     El tope se pone ANTES de medir, para que el ancho medido sea ya el de
+     verdad. */
+  const ra = de ? (typeof de.getBoundingClientRect === 'function' ? de.getBoundingClientRect() : de) : null;
+  el.style.maxWidth = ra ? Math.max(200, Math.floor(ra.right - st.left - 8)) + 'px' : '';
   const w = el.offsetWidth, h = Math.min(el.offsetHeight, cabeAlto);
   let izq = st.width - w - 8, arr = 44;
   if (de){
-    const r = typeof de.getBoundingClientRect === 'function' ? de.getBoundingClientRect() : de;
+    const r = ra;
     izq = r.right - st.left - w;
     arr = r.bottom - st.top + 8;
     /* Y SI NO CABE DEBAJO, SE PONE ENCIMA. Nació por el botón del pie del
