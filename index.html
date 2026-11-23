@@ -134,56 +134,34 @@
      hay medio segundo de tapa desvaneciéndose delante de quien acaba de
      estar aquí. Ver portadaDePaso. */
   #portada.de-paso{ transition:none; }
-  /* LOS DOS NOMBRES VAN EN BRONCE, metido DENTRO de las letras con
-     background-clip:text. Primero fue el dorado claro de Go Epic (#f5d77a a
-     #c9a227) y Gianni lo vio en su teléfono: «no se aprecia absolutamente
-     nada… ese dorado es demasiado claro. Si pudiéramos hacer un dorado que
-     pareciera un bronce oscuro». Aquí va la parte más clara del bronce
-     —#d9a24a a #9a6424— porque la letra va sobre la mesa café, y el bronce
-     más hondo se fundiría con ella; en la hoja, con el papel claro detrás,
-     va el bronce oscuro (ver los rótulos).
-
+  /* LOS DOS NOMBRES VUELVEN A SU CREMA SEPIA, CON UN FILO DE LUZ QUIETO.
+     Estuvieron en oro y luego en bronce, metido dentro de las letras con
+     background-clip:text y una franja de brillo en medio. Gianni lo vio y no:
+     «no me gusta nadita el bronce… ese brillo es demasiado. Solamente pone
+     brillo en el mero bordecito… Regresa las letras como estaban. Y con el
+     mismo tono sepia». Así que el color y la sombra son otra vez los de antes
+     del oro, y lo único nuevo es el filo: un text-shadow crema claro corrido
+     medio píxel hacia arriba y a la izquierda, como luz que entra por la
+     esquina superior izquierda («el brillito empieza en la esquina superior
+     izquierda… se queda quieto»). Va primero en la lista para que quede
+     encima de la sombra oscura de abajo. Nada se mueve.
      LA LETRA SE QUEDA: Georgia en versales espaciadas. Se miró la Cinzel
      Decorative de Go Epic y no: es la marca de otra casa, y traerla aquí
-     sería un archivo más que bajar antes de que la portada pueda pintarse,
-     que es justo lo que esta tapa no puede permitirse.
-
-     LA SOMBRA ES UN FILTRO Y NO UN text-shadow, y esto no es gusto. Con el
-     relleno en el fondo, el text-shadow se pinta ENCIMA del oro —el fondo va
-     antes que el texto, y la sombra es del texto— y lo apaga entero. El
-     drop-shadow se calcula sobre lo ya pintado, o sea sobre las letras de oro,
-     y queda debajo como debe. El color de antes se queda como red: quien no
-     sepa recortar el fondo a la letra sigue viendo el crema dorado. */
+     sería un archivo más que bajar antes de que la portada pueda pintarse. */
   #portada .portada-marca{
     font-family:Georgia, 'Palatino Linotype', 'Times New Roman', serif;
     font-weight:700; font-size:clamp(2.1rem, 9vw, 3.6rem);
     letter-spacing:.22em; text-transform:uppercase;
-    color:#e8d5a3;
+    color:#e8d5a3; text-shadow:-0.6px -0.6px 0 rgba(255,246,222,.55),
+                               0 2px 0 rgba(0,0,0,.35),
+                               0 0 28px rgba(201,162,39,.18);
     margin:0; line-height:1.15; text-align:center; }
+  /* El chico, con un filo más tenue: es el subtítulo y va más apagado. */
   #portada .portada-sub{
     font-family:var(--ui); font-size:clamp(.72rem, 2.4vw, .9rem);
     letter-spacing:.28em; text-transform:uppercase;
-    color:#d8c08a; margin:0; }
-  @supports ((-webkit-background-clip:text) or (background-clip:text)){
-    /* UNA FRANJA DE LUZ QUIETA EN MEDIO. Lo pidió Gianni: «¿dónde está el
-       brillo de las letras?… no lo veo». El bronce iba solo de claro a
-       oscuro, y así se ve plano, como pintura. El metal se reconoce por el
-       reflejo: una banda angosta, casi blanca y cálida, entre dos bronces.
-       Quieta («franja quieta»), sin animación. Los extremos no bajan de
-       #a06a28, que sobre la mesa café se sigue leyendo con la sombra de
-       abajo. */
-    #portada .portada-marca, #portada .portada-sub{
-      background-image:linear-gradient(100deg, #a06a28, #c08638 32%, #e8c27a 44%,
-                                       #fff1cf 50%, #e8c27a 56%, #c08638 68%, #a06a28);
-      -webkit-background-clip:text; background-clip:text;
-      color:transparent; -webkit-text-fill-color:transparent; }
-    #portada .portada-marca{
-      filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))
-             drop-shadow(0 0 14px rgba(176,122,42,.25)); }
-    /* El chico, sin halo y un punto más quieto: es el subtítulo. */
-    #portada .portada-sub{ opacity:.82;
-      filter:drop-shadow(0 1px 0 rgba(0,0,0,.35)); }
-  }
+    color:rgba(238,231,216,.55); margin:0;
+    text-shadow:-0.5px -0.5px 0 rgba(255,246,222,.3); }
 
   /* ===== LA PORTADA QUE SE DECORA ===================================== */
 
@@ -971,16 +949,24 @@
                       will-change:transform; }
   #buscando .bolitas i{ position:absolute; left:50%; top:50%;
                         width:14px; height:14px; margin:-7px 0 0 -7px;
-                        border-radius:50%; background:#8a5a1c; }
+                        border-radius:50%; background:#9a6424; }
   /* EL BRILLO Y LA SOMBRA. Dos degradados redondos: el de arriba es la
      chispa blanca de la lámpara, el de abajo es el cuerpo de la esfera, claro
      arriba y hondo abajo. La luz cae a 50% 28%, o sea arriba del centro. */
   #buscando .bolitas i::before{ content:''; position:absolute; inset:0;
         border-radius:50%;
+        /* EL MISMO BRONCE DE LAS CUATRO ESFERITAS DE LAS ESQUINAS, receta
+           entera: Gianni vio que estas seguían doradas —#e0a955 arriba— y
+           las de las esquinas ya eran bronce. Misma chispa, mismo cuerpo
+           sacado de #9a6424 con color-mix. La primera línea es la red para
+           quien no entienda color-mix. */
+        background:radial-gradient(circle at 50% 32%, #b8823e 0, #9a6424 45%, #5e3a12 100%);
         background:radial-gradient(circle at 50% 24%, rgba(255,236,196,.9) 0,
-                                   rgba(255,222,160,.4) 22%, rgba(255,222,160,0) 42%),
-                   radial-gradient(circle at 50% 32%, #e0a955 0, #b07a2a 36%,
-                                   #8a5a1c 64%, #5e3a12 100%);
+                                   rgba(255,222,160,.35) 24%, rgba(255,222,160,0) 44%),
+                   radial-gradient(circle at 50% 32%,
+                                   color-mix(in srgb, #9a6424 60%, #ffd896) 0,
+                                   #9a6424 45%,
+                                   color-mix(in srgb, #9a6424 55%, #2a1806) 100%);
         transform:rotate(var(--luz, 0deg));
         animation:luzFija 1s linear infinite;
         will-change:rotate; }
@@ -995,8 +981,12 @@
      grandes y enteras para que la chispa se lea como brillo; las de atrás no.
      A estas solo les queda el cuerpo, en el bronce hondo, que sí se distingue
      del papel. */
+  /* Y el bronce hondo es el de esa misma receta: del #9a6424 del medio al
+     hondo de abajo, sin la parte clara de arriba ni la chispa. */
   #buscando .bolitas i:nth-child(n+5)::before{
-        background:radial-gradient(circle at 50% 32%, #8a5a1c 0, #5e3a12 100%); }
+        background:radial-gradient(circle at 50% 32%, #9a6424 0, #5e3a12 100%);
+        background:radial-gradient(circle at 50% 32%, #9a6424 0,
+                                   color-mix(in srgb, #9a6424 55%, #2a1806) 100%); }
   #buscando .bolitas i:nth-child(1){ --luz:0deg; }
   #buscando .bolitas i:nth-child(2){ --luz:45deg; }
   #buscando .bolitas i:nth-child(3){ --luz:90deg; }
@@ -2393,6 +2383,26 @@
             border-radius:1px; }
   .sp-ref{ flex:1 1 auto; min-width:0; font:700 calc(13px * var(--escala-ui, 1))/1.3 var(--ui); color:#4a3a1c;
            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* LA FILA EN DOS RENGLONES —ver filaHTML—. La columna se queda con lo que
+     sobra al lado del dibujito; arriba la cita, chiquita, en negrita y en el
+     sepia suave de la casa; abajo el nombre, en letra de leer, sin negrita,
+     que puede ocupar dos renglones antes de cortarse.
+     LA FILA SIN NOMBRE TIENE LA MISMA FORMA. En el renglón del nombre va la
+     pista, «click largo», en su gris claro y a la misma letra que tendría el
+     nombre: así todas las filas miden lo mismo de ancho y de alto, y la lista
+     no se lee como dos clases de cosa. Lo pidió Gianni. */
+  .sp-col{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column;
+           align-items:flex-start; gap:2px; text-align:left; }
+  .sp-ref.sp-dos{ flex:0 0 auto; width:100%; display:flex; flex-direction:column;
+                  align-items:flex-start; gap:2px; white-space:normal; overflow:visible; }
+  .sp-cita{ max-width:100%; font:700 calc(11.5px * var(--escala-ui, 1))/1.25 var(--ui);
+            color:#6b5936; letter-spacing:.02em;
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sp-desc{ max-width:100%; font:400 calc(13px * var(--escala-ui, 1))/1.3 var(--ui);
+            color:#4a3a1c; overflow-wrap:anywhere;
+            display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
+            line-clamp:2; overflow:hidden; }
+  .sp-col .sp-pista{ margin-left:0; padding-left:0; line-height:1.3; }
   /* EL NOMBRE, EN LA MISMA FILA Y CON LA MISMA LETRA. La referencia se queda
      delante y encogida a su abreviatura —«Mt 1:1 -»— porque cuando hay nombre
      el nombre es lo que se busca; el sitio exacto se lee después. Editando, la
@@ -3128,6 +3138,8 @@
     .sp-fila .sp-chip-forma{ width:calc(28px * var(--escala-ui, 1)); height:calc(28px * var(--escala-ui, 1)); }
     .sp-fila .sp-chip{ width:calc(13px * var(--escala-ui, 1)); height:calc(24px * var(--escala-ui, 1)); }
     .sp-ref{ font-size:calc(15px * var(--escala-ui, 1)); }
+    .sp-cita{ font-size:calc(12.5px * var(--escala-ui, 1)); }
+    .sp-desc{ font-size:calc(15px * var(--escala-ui, 1)); }
     /* Los tres van a la par a propósito: comparten renglón, y una fila con
        tres tamaños distintos se lee como tres cosas. */
     .sp-edit-base, .sp-edit-aqui{ font-size:calc(15px * var(--escala-ui, 1)); }
@@ -3166,8 +3178,13 @@
     /* El de la cinta lo dice por su variable, para que el techo del modo de
        solo color suba con él; el de las piedras no tiene dos modos y lo dice
        a pelo. */
-    #sepMenu{ --sep-tope:min(330px, calc(100% - 16px)); }
-    #piedraMenu{ width:min(330px, calc(100% - 16px)); }
+    /* Y AHORA CASI TODO EL ANCHO. Con la fila en dos renglones el nombre
+       tiene dónde acomodarse, pero en 330 px seguía quedándose corto: Gianni
+       pidió la cajita más ancha. Casi todo el teléfono —8 px de margen a
+       cada lado— con un tope de 440 para que en una tableta no se vuelva una
+       sábana. */
+    #sepMenu{ --sep-tope:min(440px, calc(100% - 16px)); }
+    #piedraMenu{ width:min(440px, calc(100% - 16px)); }
     /* LAS EQUIS, QUE SON LA SALIDA.
 
        Aquí no se cambia DÓNDE están —arriba a la derecha, que es donde se
@@ -7639,7 +7656,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 07:31';
+window.GLOSS_BUILD = '23-NOV-26 08:14';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -24412,7 +24429,20 @@ function filaHTML(o){
       T('. Toca dos veces, o pulsa F2, para cambiarle el nombre o borrarla.',
         '. Tap twice, or press F2, to rename or delete it.') + '"' +
       ' title="' + esc(o.ref) + '">' + o.chip +
-      '<span class="sp-ref">' + esc(o.ref) + '</span>' +
+      /* DOS RENGLONES: ARRIBA LA CITA, ABAJO LO QUE LE PUSISTE.
+         Estaba todo en un renglón —«Mt 5:3 · lo del monte»— con la cita en
+         negrita delante, y en el teléfono el nombre se cortaba con «…» justo
+         donde empezaba a decir algo. Gianni lo vio en las perlas: la
+         descripción no se leía. Ahora la cita va chiquita arriba, a la
+         izquierda, y el nombre debajo en letra normal, con dos renglones para
+         acomodarse antes de cortarse.
+         La cita y el nombre viven DENTRO de .sp-ref, y la pista FUERA: las
+         pruebas leen el textContent de .sp-ref para saber qué dice la fila,
+         y la pista no es lo que la fila dice sino cómo se abre. */
+      '<span class="sp-col">' +
+      '<span class="sp-ref sp-dos"><span class="sp-cita">' + esc(o.cita) + '</span>' +
+        (o.nombre ? '<span class="sp-desc">' + esc(o.nombre) + '</span>' : '') +
+      '</span>' +
       /* LA PISTA DE CÓMO SE NOMBRA. Nombrar y borrar viven detrás de un gesto
          que no se ve, y el dueño del repo pidió decirlo en la propia fila,
          suave. Dice el gesto de ESTE aparato —«click largo» con el dedo,
@@ -24425,7 +24455,7 @@ function filaHTML(o){
       '<span class="sp-pista" aria-hidden="true">' +
         '<span class="sp-pista-dedo">' + T('click largo', 'long press') + '</span>' +
         '<span class="sp-pista-raton">' + T('doble click', 'double-click') + '</span>' +
-      '</span>') + '</button>' +
+      '</span>') + '</span></button>' +
   '</div>';
 }
 /* EL ASPA DE CERRAR, la misma para los dos paneles. `acc` dice cuál cierra:
@@ -24710,6 +24740,7 @@ function pintarPiedraMenu(){
       chip: '<span class="sp-chip-forma" style="color:' + tintaDe(x.color)[2] + '"' +
             ' aria-hidden="true">' + piedraDibujo(x.forma, null, true) + '</span>',
       ref: piedraTexto(x), voz: piedraVoz(x), nombre: x.nombre,
+      cita: abrevDe(x.libro) + ' ' + x.cap + ':' + x.vers + (piedraAqui(x) ? T(' · aquí', ' · here') : ''),
       tope: PIEDRA_NOMBRE_TOPE,
       irAttr: 'data-piedra-ir="' + esc(x.id) + '"',
       campoAttr: 'data-piedra-nombre="' + esc(x.id) + '"',
@@ -25222,6 +25253,7 @@ function pintarSepMenu(){
       chip: '<span class="sp-chip" style="background:' + telaDe(x.color)[2] +
             '" aria-hidden="true"></span>',
       ref: sepTexto(x),
+      cita: sepRef(x, true) + (sepAqui(x) ? T(' · aquí', ' · here') : ''),
       voz: T('cinta en ', 'bookmark at ') + nombreDe(x.libro) + ' ' + x.cap + ':' + x.vers,
       nombre: x.nombre, tope: 70,
       irAttr: 'data-sep-ir="' + esc(x.id) + '"',
@@ -25271,10 +25303,25 @@ function colocarSepMenu(){
      instante, y las dos cuentas hablan del mismo panel. */
   const vvp = window.visualViewport;
   const cabeAlto = vvp ? vvp.height - 16 : Infinity;
+  /* NUNCA MÁS ANCHO QUE LO QUE HAY A LA IZQUIERDA DE SU ANCLA. La lista se
+     ensanchó a 440 px en el teléfono para que se lea la descripción, y el
+     punto que la abre no está en el canto sino en medio: con todo el ancho,
+     el panel ya no cabía a su izquierda y se corría hacia la derecha, por
+     delante de lo que lo abrió. Se le pone de tope el sitio que hay entre el
+     filo izquierdo y el canto derecho del ancla, y así sigue colgando de ella.
+     El tope se pone ANTES de medir, para que el ancho medido sea ya el de
+     verdad. Y nunca baja de los 280 px que medía antes de ensancharse: una
+     cinta pegada al filo izquierdo dejaría casi nada a su izquierda, y la
+     lista se quedaría más estrecha que su propia paleta de colores (eso lo
+     cazó «la paleta sola es MÁS ESTRECHA que la lista»). Ahí manda lo de
+     siempre, correrse hacia dentro. */
+  const ra = de ? (typeof de.getBoundingClientRect === 'function' ? de.getBoundingClientRect() : de) : null;
+  el.style.maxWidth = ra ? Math.max(Math.min(280, st.width - 16),
+                                    Math.floor(ra.right - st.left - 8)) + 'px' : '';
   const w = el.offsetWidth, h = Math.min(el.offsetHeight, cabeAlto);
   let izq = st.width - w - 8, arr = 44;
   if (de){
-    const r = typeof de.getBoundingClientRect === 'function' ? de.getBoundingClientRect() : de;
+    const r = ra;
     izq = r.right - st.left - w;
     arr = r.bottom - st.top + 8;
     /* Y SI NO CABE DEBAJO, SE PONE ENCIMA. Nació por el botón del pie del

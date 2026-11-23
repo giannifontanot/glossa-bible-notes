@@ -1268,6 +1268,18 @@ async function andamio(p){
     await window.__pausa(500);
     return { conFoco, teclado, guardado: window.__guardadas()[0].nombre,
              fila: (document.querySelector('#piedraMenu .sp-ref') || {}).textContent,
+             /* LA FILA EN DOS RENGLONES: la cita arriba y el nombre debajo,
+                los dos empezando en el mismo borde izquierdo. Ver filaHTML. */
+             dos: (() => {
+               const c = document.querySelector('#piedraMenu .sp-cita');
+               const d = document.querySelector('#piedraMenu .sp-desc');
+               if (!c || !d) return null;
+               const rc = c.getBoundingClientRect(), rd = d.getBoundingClientRect();
+               return { cita: c.textContent, desc: d.textContent,
+                        debajo: rd.top >= rc.bottom - 1,
+                        alineados: Math.abs(rd.left - rc.left) <= 1,
+                        pesoDesc: getComputedStyle(d).fontWeight };
+             })(),
              cerroElCampo: !document.querySelector('#piedraMenu [data-piedra-nombre]') };
   });
   di('al nombrarla desde la lista', lapiz);
@@ -1275,6 +1287,11 @@ async function andamio(p){
        lapiz.conFoco === true, lapiz);
   vale('Intro guarda el nombre', lapiz.guardado === 'la del monte', lapiz.guardado);
   vale('  y la fila lo enseña', /la del monte/.test(lapiz.fila || ''), lapiz.fila);
+  vale('  en su renglón, debajo de la cita y alineado con ella',
+       !!lapiz.dos && lapiz.dos.desc === 'la del monte' && /\d+:\d+/.test(lapiz.dos.cita) &&
+       lapiz.dos.debajo && lapiz.dos.alineados, lapiz.dos);
+  vale('  y en letra normal, sin negrita',
+       !!lapiz.dos && Number(lapiz.dos.pesoDesc) < 600, lapiz.dos && lapiz.dos.pesoDesc);
   vale('  y el campo se cierra', lapiz.cerroElCampo === true);
   di('el desplazamiento del teclado', lapiz.teclado);
   vale('SIN TECLADO el panel no se desplaza',
