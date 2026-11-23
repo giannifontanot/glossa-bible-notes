@@ -1684,8 +1684,7 @@
        textura, no en Segoe.
      · El colorista: apagado, el carmín de las piedras —#9b2a2a, el que se
        eligió, no el vivo—. Encendido, la cera recién prensada, más honda
-       —#5c1414—. La letra, blanca y en relieve (pedido de Gianni), con su
-       sombra abajo; ver el SVG.
+       —#5c1414— y la letra en crema, que es el hueco de la impresión.
      · Esta casa: vive en la escena, no en la hoja, o al abrir el cajón se
        iría con el papel y no habría con qué cerrarlo.
 
@@ -1719,9 +1718,11 @@
      —el fill="none" del path— PIERDE contra una regla de CSS, así que un
      fill puesto aquí rellena el anillo y la G se vuelve un disco mordido.
      Pasó al probarla en el panel. */
-  #btnGlosas .sello-g{ fill:none; stroke:#fff; }
-  /* La sombra de la G en relieve: carmín casi negro, a medio tono. */
-  #btnGlosas .sello-g-sombra{ fill:none; stroke:#2a0606; stroke-opacity:.6; }
+  /* SE PROBÓ UN SELLITO DE CERA y no: G blanca en relieve con su sombra,
+     rebaba ondulada alrededor y luz fija arriba. Gianni lo vio y «no me
+     gustó nadita. Regrésala como estaba». Así que la G es otra vez la de
+     antes, crema, en el disco liso. */
+  #btnGlosas .sello-g{ fill:none; stroke:#f0d4a0; }
   /* MARGEN INVISIBLE. El sello se ve de 42 px; el toque llega 14 px más
      allá, para que gane a lo que hay al lado —el historial, el filo, el
      texto—. El z-index 8 le gana al 7 del historial en el recubrimiento.
@@ -1735,8 +1736,6 @@
   #btnGlosas.abierta{ color:#5c1414;
                       filter:drop-shadow(2px 3px 4px rgba(40,10,8,.5)); }
   #btnGlosas.abierta .sello-g{ stroke:#fff8e4; }
-  /* Prensada, la letra se hunde: la sombra se acorta. */
-  #btnGlosas.abierta .sello-g-sombra{ stroke-opacity:.35; }
   .stage.zoom #btnGlosas{ display:none !important; }
   @media (prefers-reduced-motion: reduce){
     #btnGlosas{ transition:none; }
@@ -7422,43 +7421,13 @@
           aria-label="glosas" aria-pressed="false"
           title="glosas">
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <!-- UN SELLITO DE CERA DE VERDAD. Lo pidió Gianni: «que estuviera
-           embossed, que fuera como si fuera un sellito de cera. Por supuesto,
-           la G blanca», en el mismo rojo de siempre. Va en tres capas:
-
-           · LA REBABA: la cera que se escurre por fuera del sello al
-             prensarlo, una orilla ondulada (cinco, nueve y trece ondas
-             mezcladas, para que no se vea de compás) en el mismo carmín y
-             oscurecida, como cera que se enfrió más delgada.
-           · EL DISCO, el de siempre, encima, con la luz FIJA ARRIBA, como las
-             esferas: un brillo cálido arriba y lo hondo abajo. Los dos son
-             capas de luz encima del currentColor, así que el rojo sigue
-             siendo el que mide cajon.prueba (#9b2a2a, y #5c1414 prendida).
-           · LA G EN RELIEVE, blanca, con su sombra un pelo abajo y a la
-             derecha: la luz viene de arriba, así que lo que sobresale tira
-             sombra hacia abajo. Eso es lo que la hace parecer levantada. -->
-      <defs>
-        <radialGradient id="ceraLuz" cx="50%" cy="22%" r="62%">
-          <stop offset="0" stop-color="#ffe9d6" stop-opacity=".55"/>
-          <stop offset=".45" stop-color="#ffd8c0" stop-opacity=".12"/>
-          <stop offset="1" stop-color="#ffd8c0" stop-opacity="0"/>
-        </radialGradient>
-        <radialGradient id="ceraHondo" cx="50%" cy="88%" r="70%">
-          <stop offset="0" stop-color="#1a0404" stop-opacity=".42"/>
-          <stop offset="1" stop-color="#1a0404" stop-opacity="0"/>
-        </radialGradient>
-      </defs>
-      <path class="sello-rebaba" fill="currentColor"
-            d="M22.50 10.20C22.59 10.63 22.52 11.11 22.37 11.53C22.21 11.94 21.79 12.30 21.57 12.69C21.36 13.07 21.19 13.43 21.05 13.82C20.91 14.22 20.94 14.71 20.75 15.08C20.56 15.45 20.24 15.78 19.89 16.02C19.54 16.27 19.00 16.34 18.64 16.54C18.27 16.74 17.97 16.93 17.68 17.22C17.40 17.50 17.23 17.92 16.95 18.25C16.67 18.58 16.37 18.92 16.03 19.20C15.69 19.48 15.30 19.73 14.91 19.93C14.51 20.13 14.08 20.35 13.64 20.39C13.21 20.43 12.73 20.31 12.30 20.15C11.87 19.98 11.48 19.58 11.09 19.39C10.70 19.20 10.34 19.08 9.94 19.01C9.54 18.94 9.07 19.06 8.67 18.95C8.28 18.84 7.90 18.63 7.59 18.36C7.28 18.10 7.10 17.63 6.81 17.35C6.52 17.07 6.21 16.87 5.83 16.67C5.45 16.47 4.91 16.40 4.52 16.17C4.12 15.94 3.74 15.65 3.47 15.30C3.21 14.95 3.06 14.50 2.93 14.08C2.80 13.66 2.70 13.21 2.70 12.77C2.70 12.33 2.80 11.86 2.92 11.44C3.04 11.01 3.32 10.60 3.40 10.20C3.49 9.80 3.48 9.44 3.43 9.03C3.38 8.62 3.13 8.16 3.13 7.74C3.12 7.32 3.22 6.88 3.41 6.52C3.59 6.15 3.99 5.88 4.21 5.53C4.43 5.18 4.58 4.81 4.74 4.40C4.89 3.98 4.91 3.42 5.13 3.03C5.35 2.64 5.68 2.28 6.06 2.06C6.44 1.84 6.96 1.80 7.40 1.71C7.84 1.63 8.29 1.59 8.72 1.55C9.15 1.51 9.56 1.50 9.96 1.48C10.37 1.46 10.76 1.53 11.15 1.45C11.54 1.38 11.89 1.21 12.30 1.05C12.71 0.88 13.15 0.53 13.58 0.45C14.01 0.37 14.48 0.42 14.88 0.56C15.28 0.70 15.61 1.10 15.98 1.31C16.36 1.52 16.73 1.67 17.14 1.82C17.55 1.97 18.07 1.98 18.44 2.20C18.81 2.42 19.13 2.77 19.34 3.16C19.54 3.56 19.56 4.12 19.67 4.55C19.78 4.98 19.86 5.38 20.01 5.75C20.16 6.12 20.38 6.43 20.57 6.77C20.76 7.12 20.94 7.47 21.15 7.83C21.36 8.19 21.63 8.55 21.86 8.94C22.08 9.34 22.42 9.77 22.50 10.20Z"/>
-      <path fill="#1a0404" fill-opacity=".28"
-            d="M22.50 10.20C22.59 10.63 22.52 11.11 22.37 11.53C22.21 11.94 21.79 12.30 21.57 12.69C21.36 13.07 21.19 13.43 21.05 13.82C20.91 14.22 20.94 14.71 20.75 15.08C20.56 15.45 20.24 15.78 19.89 16.02C19.54 16.27 19.00 16.34 18.64 16.54C18.27 16.74 17.97 16.93 17.68 17.22C17.40 17.50 17.23 17.92 16.95 18.25C16.67 18.58 16.37 18.92 16.03 19.20C15.69 19.48 15.30 19.73 14.91 19.93C14.51 20.13 14.08 20.35 13.64 20.39C13.21 20.43 12.73 20.31 12.30 20.15C11.87 19.98 11.48 19.58 11.09 19.39C10.70 19.20 10.34 19.08 9.94 19.01C9.54 18.94 9.07 19.06 8.67 18.95C8.28 18.84 7.90 18.63 7.59 18.36C7.28 18.10 7.10 17.63 6.81 17.35C6.52 17.07 6.21 16.87 5.83 16.67C5.45 16.47 4.91 16.40 4.52 16.17C4.12 15.94 3.74 15.65 3.47 15.30C3.21 14.95 3.06 14.50 2.93 14.08C2.80 13.66 2.70 13.21 2.70 12.77C2.70 12.33 2.80 11.86 2.92 11.44C3.04 11.01 3.32 10.60 3.40 10.20C3.49 9.80 3.48 9.44 3.43 9.03C3.38 8.62 3.13 8.16 3.13 7.74C3.12 7.32 3.22 6.88 3.41 6.52C3.59 6.15 3.99 5.88 4.21 5.53C4.43 5.18 4.58 4.81 4.74 4.40C4.89 3.98 4.91 3.42 5.13 3.03C5.35 2.64 5.68 2.28 6.06 2.06C6.44 1.84 6.96 1.80 7.40 1.71C7.84 1.63 8.29 1.59 8.72 1.55C9.15 1.51 9.56 1.50 9.96 1.48C10.37 1.46 10.76 1.53 11.15 1.45C11.54 1.38 11.89 1.21 12.30 1.05C12.71 0.88 13.15 0.53 13.58 0.45C14.01 0.37 14.48 0.42 14.88 0.56C15.28 0.70 15.61 1.10 15.98 1.31C16.36 1.52 16.73 1.67 17.14 1.82C17.55 1.97 18.07 1.98 18.44 2.20C18.81 2.42 19.13 2.77 19.34 3.16C19.54 3.56 19.56 4.12 19.67 4.55C19.78 4.98 19.86 5.38 20.01 5.75C20.16 6.12 20.38 6.43 20.57 6.77C20.76 7.12 20.94 7.47 21.15 7.83C21.36 8.19 21.63 8.55 21.86 8.94C22.08 9.34 22.42 9.77 22.50 10.20Z"/>
       <!-- Disco irregular: cera, no círculo de compás. -->
       <path class="sello-cera" fill="currentColor"
             d="M12.1 2.05c2.9-.15 5.55 1.05 7.1 3.2 1.55 2.15 1.95 5.1.9 7.55-1.05 2.45-3.3 4.4-6.05 5.1-2.7.7-5.7.15-7.85-1.7C4.05 14.45 2.8 11.55 3.15 8.5 3.5 5.5 5.7 3.05 8.55 2.3c1.15-.3 2.35-.35 3.55-.25z"/>
-      <path fill="url(#ceraHondo)"
-            d="M12.1 2.05c2.9-.15 5.55 1.05 7.1 3.2 1.55 2.15 1.95 5.1.9 7.55-1.05 2.45-3.3 4.4-6.05 5.1-2.7.7-5.7.15-7.85-1.7C4.05 14.45 2.8 11.55 3.15 8.5 3.5 5.5 5.7 3.05 8.55 2.3c1.15-.3 2.35-.35 3.55-.25z"/>
-      <path fill="url(#ceraLuz)"
-            d="M12.1 2.05c2.9-.15 5.55 1.05 7.1 3.2 1.55 2.15 1.95 5.1.9 7.55-1.05 2.45-3.3 4.4-6.05 5.1-2.7.7-5.7.15-7.85-1.7C4.05 14.45 2.8 11.55 3.15 8.5 3.5 5.5 5.7 3.05 8.55 2.3c1.15-.3 2.35-.35 3.55-.25z"/>
+      <path fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="1.45"
+            stroke-linecap="round"
+            d="M7.35 9.7c1.65-2.05 4.15-3.25 6.7-3.05"/>
+      <circle cx="15.55" cy="15.15" r="1.3" fill="#fff" fill-opacity=".14"/>
       <!-- LA G VA DE TRAZO Y NO DE RELLENO, y no es un capricho de dibujo.
 
            La de antes se construía a mano —tallo, diamante, panza— y salían
@@ -7475,11 +7444,6 @@
 
            El grueso 2.55 sale de mirarla a 26 px, que es donde vive: más fina
            se deshace y más gorda se le cierra el ojo. -->
-      <!-- La sombra va primero, debajo, y con su propia clase: las pruebas
-           buscan .sello-g y tienen que encontrar la letra, no su sombra. -->
-      <path class="sello-g-sombra" fill="none" transform="translate(.32 .5)"
-            stroke-width="2.55" stroke-linecap="butt" stroke-linejoin="miter"
-            d="M15.24 6.05A5 5 0 1 0 16.45 12.90L16.45 10.40L12.90 10.40"/>
       <path class="sello-g" fill="none"
             stroke-width="2.55" stroke-linecap="butt" stroke-linejoin="miter"
             d="M15.24 6.05A5 5 0 1 0 16.45 12.90L16.45 10.40L12.90 10.40"/>
@@ -7604,7 +7568,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 08:29';
+window.GLOSS_BUILD = '23-NOV-26 08:33';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
