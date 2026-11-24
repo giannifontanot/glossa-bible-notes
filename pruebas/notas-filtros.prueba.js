@@ -32,7 +32,19 @@ async function exportar(p){
   return JSON.parse(texto);
 }
 const guardadas = p => p.evaluate(() => JSON.parse(localStorage.getItem('glossa:notas:v1')));
-const etiquetas = p => p.locator('#filtros .chip.sel:not(.chip-libro)').allTextContents();
+const etiquetas = p => p.locator('#pillsEtiq .chip.sel').allTextContents();
+/* Los días y los libros son ahora pastillas, como las etiquetas: se leen las
+   puestas. El texto de cada una lleva pegada su cuenta («2020-01-021»). */
+const diasPuestos = p => p.locator('#pillsDias .chip.sel').allTextContents();
+const librosPuestos = p => p.locator('#pillsLibros .chip.sel').count();
+/* CADA SECCIÓN NACE EN «TODOS» y sus pastillas escondidas: para elegir hay que
+   apagar su botón, como lo haría el dedo. Se espera a que la fila acabe de
+   abrirse suave —260 ms— antes de tocar dentro. */
+async function apagarTodos(p, cual){
+  const b = p.locator('#filtros [data-todos="' + cual + '"]');
+  if (await b.getAttribute('aria-pressed') === 'true'){ await b.click(); await p.waitForTimeout(420); }
+}
+const pastilla = (p, fila, texto) => p.locator('#' + fila + ' .chip').filter({ hasText:texto });
 const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, dia, fecha:'2026-10-02T20:00:00.000Z' });
 
 (async () => {
@@ -62,20 +74,30 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
     await p.locator('#notas').isVisible() && await p.locator('#notaFiltros').isHidden() &&
     await libro.evaluate(b => document.activeElement === b));
 
-  titulo('GLOSAS guarda libro, libros añadidos, etiquetas y día en la nota abierta');
+  titulo('GLOSAS guarda libro, libros elegidos, etiquetas y días en la nota abierta');
   await ir(p, 'glosas');
   await p.locator('#btnVerEtiquetas').click();
-  await p.locator('#filtros .chip').filter({ hasText:'LecturaUno' }).click();
-  await p.locator('#filtros .chip-mas').click();
-  await p.locator('#menu [data-libfil="REV"]').click();
-  await p.locator('#selDia').selectOption('2020-01-02');
+  await apagarTodos(p, 'etiq');
+  await pastilla(p, 'pillsEtiq', 'LecturaUno').click();
+  /* Apagar «Todos los libros» deja puesto el abierto, Mateo; se añade
+     Apocalipsis. */
+  await apagarTodos(p, 'libros');
+  vale('apagar «Todos los libros» deja puesto el libro abierto',
+    await librosPuestos(p) === 1 &&
+    (await p.locator('#pillsLibros .chip.sel').textContent()).includes('Mateo'));
+  await pastilla(p, 'pillsLibros', 'Apocalipsis').click();
+  await apagarTodos(p, 'dias');
+  await pastilla(p, 'pillsDias', '2020-01-02').click();
   vale('el filtro de partida muestra las dos glosas previstas', await p.locator('#indice .ix-item').count() === 2);
   await ir(p, 'notas');
   let historial = (await guardadas(p))[0].filtros;
   vale('se guarda sólo el filtro y su fecha, sin copias ni ids de glosas',
-    historial.length === 1 && historial[0].libro === 'MAT' && historial[0].libros.join() === 'REV' &&
-    historial[0].etiquetas.join() === 'LecturaUno' && historial[0].dia === '2020-01-02' &&
-    Object.keys(historial[0]).sort().join() === 'dia,etiquetas,fecha,libro,libros');
+    historial.length === 1 && historial[0].libro === 'MAT' && historial[0].libros.join() === 'MAT,REV' &&
+    historial[0].todosLibros === false &&
+    historial[0].etiquetas.join() === 'LecturaUno' && historial[0].dias.join() === '2020-01-02' &&
+    historial[0].dia === '2020-01-02' &&
+    Object.keys(historial[0]).sort().join() === 'dia,dias,etiquetas,fecha,libro,libros,todosLibros',
+    JSON.stringify(historial[0]));
   const fecha = historial[0].fecha;
   await ir(p, 'glosas'); await ir(p, 'notas');
   historial = (await guardadas(p))[0].filtros;
@@ -95,10 +117,11 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
   vale('pasar por el Índice espera a elegir una nota y evita duplicados',
     (await guardadas(p))[0].filtros.length === 1 && (await guardadas(p))[1].filtros.length === 1);
   await ir(p, 'glosas');
-  await p.locator('#filtros .chip').filter({ hasText:'LecturaUno' }).click();
-  await p.locator('#filtros .chip').filter({ hasText:'LecturaDos' }).click();
-  await p.locator('#filtros .chip-libro').filter({ hasText:'Apocalipsis' }).click();
-  await p.locator('#selDia').selectOption('2020-01-03');
+  await pastilla(p, 'pillsEtiq', 'LecturaUno').click();
+  await pastilla(p, 'pillsEtiq', 'LecturaDos').click();
+  await pastilla(p, 'pillsLibros', 'Apocalipsis').click();
+  await pastilla(p, 'pillsDias', '2020-01-02').click();
+  await pastilla(p, 'pillsDias', '2020-01-03').click();
   await ir(p, 'notas'); await libro.click();
   vale('la lista ofrece ambos filtros, con el más reciente primero',
     await p.locator('#notaFiltros .nota-filtro').count() === 2 &&
@@ -109,8 +132,8 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
   vale('elegir con teclado abre GLOSAS y aplica el filtro completo',
     await p.locator('#etiquetas .pestanas [data-sec="glosas"]').getAttribute('class') === 'aqui' &&
     (await etiquetas(p)).join().includes('LecturaUno') &&
-    await p.locator('#selDia').inputValue() === '2020-01-02' &&
-    await p.locator('#filtros .chip-libro').count() === 2 && await p.locator('#indice .ix-item').count() === 2);
+    (await diasPuestos(p)).length === 1 && (await diasPuestos(p))[0].startsWith('2020-01-02') &&
+    await librosPuestos(p) === 2 && await p.locator('#indice .ix-item').count() === 2);
 
   titulo('los filtros recuperados consultan las glosas de ahora');
   await importar(p, { formato:'glossa/marcas', marcas:[{ ...marcas[0], id:'lectura-filtro-nueva', nota:'Glosa incorporada después.' }] });
@@ -127,9 +150,9 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
     await p.locator('#indice .ix-item').count() === 0 && (await etiquetas(p)).join().includes('LecturaUno0'));
   await p.reload(); await ir(p, 'glosas');
   vale('libros, etiqueta ausente y día restaurados sobreviven a recargar',
-    await p.locator('#filtros .chip-libro').count() === 2 &&
+    await librosPuestos(p) === 2 &&
     (await etiquetas(p)).join().includes('LecturaUno0') &&
-    await p.locator('#selDia').inputValue() === '2020-01-02' && await p.locator('#indice .ix-item').count() === 0);
+    (await diasPuestos(p)).join() === '2020-01-020' && await p.locator('#indice .ix-item').count() === 0);
 
   titulo('historial importado, datos dañados y condiciones sin coincidencias');
   const notasImportadas = [
@@ -148,12 +171,17 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
   await ir(p, 'notas'); await p.locator('#notas .indice-item').filter({ hasText:'Lectura ausente' }).click();
   await libro.click(); await p.locator('#notaFiltros .nota-filtro').click();
   await p.locator('#etiquetas').waitFor({ state:'visible' }); await p.waitForTimeout(700);
+  /* Este registro es de los de antes —`libros` eran los AÑADIDOS al abierto—:
+     se lee como Mateo más Apocalipsis, no como «Apocalipsis solo». */
+  vale('un registro viejo se traduce: el libro abierto más los añadidos',
+    await librosPuestos(p) === 2 &&
+    await p.locator('#filtros [data-todos="libros"]').getAttribute('aria-pressed') === 'false');
   vale('día y etiqueta desaparecidos se muestran con cero y no se eliminan',
-    await p.locator('#selDia').inputValue() === '1999-01-02' &&
+    (await diasPuestos(p)).join() === '1999-01-020' &&
     (await etiquetas(p)).join().includes('EtiquetaAusente0') && await p.locator('#indice .ix-item').count() === 0);
   await p.reload(); await ir(p, 'glosas');
   vale('un día sin glosas tampoco desaparece al recargar',
-    await p.locator('#selDia').inputValue() === '1999-01-02' && await p.locator('#indice .ix-item').count() === 0);
+    (await diasPuestos(p)).join() === '1999-01-020' && await p.locator('#indice .ix-item').count() === 0);
   await ir(p, 'notas');
   await p.locator('#notas .indice-item').filter({ hasText:'Sin etiquetas' }).click();
   await libro.click();
@@ -182,8 +210,8 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
   await p.locator('#notaFiltros .nota-filtro').filter({ hasText:'#LecturaRenombrada' }).click();
   await p.locator('#etiquetas').waitFor({ state:'visible' }); await p.waitForTimeout(900);
   vale('restaurar desde otro libro abre GLOSAS con el libro guardado y sus añadidos',
-    (await p.locator('#filtros .chip-libro').first().textContent()).includes('Apocalipsis') &&
-    await p.locator('#indice .ix-item').count() === 3);
+    (await p.locator('#pillsLibros .chip.abierto').textContent()).includes('Apocalipsis') &&
+    await librosPuestos(p) === 2 && await p.locator('#indice .ix-item').count() === 3);
   const rastroTrasRestaurar = await p.evaluate(() =>
     JSON.parse(localStorage.getItem('glossa:historial:v1') || '[]')
       .map(h => h.libro + ' ' + h.cap + ':' + h.vers));
@@ -250,7 +278,14 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
   titulo('un fallo del almacén conserva el historial en memoria y permite rescatarlo');
   await q.locator('#notaFiltros .nota-filtro').first().click();
   await q.locator('#etiquetas').waitFor({ state:'visible' }); await q.waitForTimeout(700);
-  await q.locator('#selDia').selectOption('');
+  /* Se cambia el filtro de días, sea cual sea el que trajo el registro: si
+     venía con días, se enciende «Todos los días»; si no, se elige uno. */
+  {
+    const tDias = q.locator('#filtros [data-todos="dias"]');
+    await tDias.click(); await q.waitForTimeout(420);
+    if (await tDias.getAttribute('aria-pressed') === 'false')
+      await q.locator('#pillsDias .chip').first().click();
+  }
   await q.evaluate(() => {
     window.__guardarNotasOriginal = Storage.prototype.setItem;
     Storage.prototype.setItem = function(clave, valor){
@@ -272,13 +307,43 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
 
   titulo('cambiar los libros de un filtro restaurado también se guarda');
   await ir(q, 'glosas');
-  await q.locator('#filtros .chip-libro').filter({ hasText:'Apocalipsis' }).click();
+  await pastilla(q, 'pillsLibros', 'Apocalipsis').click();
   await q.reload(); await ir(q, 'glosas');
-  vale('quitar un libro no lo resucita al recargar', await q.locator('#filtros .chip-libro').count() === 1);
-  await q.locator('#filtros .chip-mas').click();
-  await q.locator('#menu [data-libfil="REV"]').click();
+  vale('quitar un libro no lo resucita al recargar', await librosPuestos(q) === 1);
+  await pastilla(q, 'pillsLibros', 'Apocalipsis').click();
   await q.reload(); await ir(q, 'glosas');
   vale('añadir un libro queda guardado sin necesitar otro cambio de filtro',
-    await q.locator('#filtros .chip-libro').count() === 2);
+    await librosPuestos(q) === 2);
+
+  titulo('«Todos los libros» enciende la Biblia entera y se guarda así');
+  await q.locator('#filtros [data-todos="libros"]').click(); await q.waitForTimeout(420);
+  vale('encender «Todos los libros» suelta los elegidos y esconde sus pastillas',
+    await librosPuestos(q) === 0 && await q.locator('#pillsLibros').isHidden());
+  await q.reload(); await ir(q, 'glosas');
+  vale('y al recargar sigue siendo la Biblia entera',
+    await q.locator('#filtros [data-todos="libros"]').getAttribute('aria-pressed') === 'true' &&
+    await librosPuestos(q) === 0);
+
+  titulo('los ajustes de antes se traducen a las tres secciones');
+  /* Una instalación de antes guardaba los libros AÑADIDOS al abierto
+     (librosFiltro) y un solo día (diaFiltro). Al abrir con esta versión, los
+     libros son el abierto más los añadidos y el día queda como el elegido, con
+     sus dos «todos» apagados. Se siembra en el almacén y se recarga, que es el
+     camino real: abrir el programa al día siguiente de actualizarlo. */
+  await q.evaluate(() => {
+    const a = JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}');
+    for (const k of ['librosVer', 'diasVer', 'todosLibros', 'todosDias', 'todasEtiquetas']) delete a[k];
+    Object.assign(a, { libro:'MAT', cap:1, vers:1, librosFiltro:['REV'], diaFiltro:'2020-01-02', etiquetasVer:[] });
+    localStorage.setItem('glossa:ajustes:v1', JSON.stringify(a));
+  });
+  await q.reload(); await ir(q, 'glosas');
+  const viejos = await q.evaluate(() => ({
+    libros: [...document.querySelectorAll('#pillsLibros .chip.sel')].map(c => c.dataset.clave),
+    dias: [...document.querySelectorAll('#pillsDias .chip.sel')].map(c => c.dataset.clave),
+    todos: [...document.querySelectorAll('#filtros .fsec-todos')]
+             .map(b => b.dataset.todos + ':' + b.getAttribute('aria-pressed')) }));
+  vale('los libros añadidos se suman al abierto y el día queda elegido',
+    viejos.libros.join() === 'libro:MAT,libro:REV' && viejos.dias.join() === 'dia:2020-01-02' &&
+    viejos.todos.join() === 'dias:false,libros:false,etiq:true', JSON.stringify(viejos));
   await cerrar(destino); await cerrar(sesion);
 })().catch(e => { console.error(e); process.exit(1); });
