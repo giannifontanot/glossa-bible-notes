@@ -1166,16 +1166,14 @@ async function ponerAMano(p){
                 debajo de su ancla y tiene que caber entero de todas formas. */
              cabe: r.top >= st.top - 1 && r.bottom <= st.bottom + 1 &&
                    r.left >= st.left - 1 && r.right <= st.right + 1,
-             /* Y COLGADO DE SU PUNTO, no del canto de la escena. Medía la
-                distancia al filo derecho, que valía mientras el punto estaba
-                pegado a él; ahora el punto está en medio y el filo no dice
-                nada de quién abrió el panel. Lo que se pide es lo que hace
-                colocarSepMenu: el panel alinea su canto derecho con el del
-                ancla, y si no cabe se corre hacia dentro —nunca más a la
-                derecha que ella—. Un menú que saliera del otro extremo de la
-                pantalla seguiría señalando a lo que no lo abrió. */
-             bajoSuPunto: r.right <= rb.right + 1 && r.right > rb.left,
-             sobra: Math.round(rb.right - r.right) };
+             /* PEGADO AL FILO DERECHO, con su margen de 8, y debajo de su
+                punto. Hasta aquí se pedía que alineara su canto derecho con
+                el del punto, que vive en medio de la franja de arriba, y el
+                panel quedaba suelto a media hoja. Gianni lo quiso al filo, así
+                que lo que se mide es el aire hasta el canto de la escena. */
+             alFilo: Math.abs((st.right - r.right) - 8) <= 1,
+             debajo: r.top >= rb.bottom - 1,
+             aire: Math.round(st.right - r.right) };
   });
   di('el menú desde el punto', puerta);
   vale('el punto de arriba a la derecha es la puerta',
@@ -1183,7 +1181,8 @@ async function ponerAMano(p){
        puerta.arribaYDerecha === true, puerta);
   vale('y abre el menú', puerta.visible === true);
   vale('y el punto se enciende con él', puerta.encendido === true, puerta);
-  vale('y el menú sale de su punto', puerta.bajoSuPunto === true, puerta);
+  vale('y el menú va pegado al filo derecho', puerta.alFilo === true, puerta);
+  vale('  y cae debajo de su punto', puerta.debajo === true, puerta);
   /* En modo lista no hay «esta cinta» cuyo color cambiar: enseñar la paleta
      sería ofrecer un mando que no manda nada. */
   vale('sin paleta de color, que no se vino de una cinta', puerta.telas === 0, puerta.telas);

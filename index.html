@@ -2191,7 +2191,9 @@
             box-shadow:0 12px 26px -9px rgba(0,0,0,.55);
             padding:7px; scrollbar-width:none;
             opacity:0; transform:translateY(-8px) scale(.97);
-            transform-origin:top left;
+            /* Crece desde arriba a la derecha, que es donde vive: va pegado al
+               filo derecho (ver colocarSepMenu). */
+            transform-origin:top right;
             transition:opacity .2s ease, transform .28s cubic-bezier(.2,.85,.3,1); }
   #sepMenu::-webkit-scrollbar{ width:0; height:0; display:none; }
   #sepMenu.visible{ opacity:1; transform:translateY(var(--sube, 0px)); }
@@ -2228,10 +2230,9 @@
      parecía que la regla no llegaba a aplicarse; llegaba y se caía. Las dos
      propiedades separadas hacen lo mismo y son válidas.
 
-     Y estrecharla no descoloca nada: colocarSepMenu cuelga el panel del borde
-     DERECHO de la cinta —lee offsetWidth después de pintar—, así que lo que se
-     va es el aire de la izquierda y el panel se queda debajo de lo que lo
-     abrió. */
+     Y estrecharla no descoloca nada: colocarSepMenu pega el panel al filo
+     DERECHO de la escena —lee offsetWidth después de pintar—, así que lo que
+     se va es el aire de la izquierda y el panel se queda en su sitio. */
   #sepMenu.solo-color{ width:max-content; max-width:var(--sep-tope); }
   .sp-tit{ display:block; font:700 calc(10.5px * var(--escala-ui, 1))/1 var(--ui); letter-spacing:.14em;
            text-transform:uppercase; color:#8a7746; padding:3px 3px 7px; }
@@ -7729,7 +7730,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 21:32';
+window.GLOSS_BUILD = '24-NOV-26 04:32';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -25722,8 +25723,9 @@ function pintarSepMenu(){
     if (campo){ campo.focus({ preventScroll:true }); campo.select(); }
   }
 }
-/* El menú se cuelga de la cinta —debajo y alineado por su borde derecho— y de
-   ahí no se sale de la escena: si no cabe debajo, sube. Nunca se recorta. */
+/* El menú cae debajo de la cinta que lo abre y PEGADO AL FILO DERECHO de la
+   escena, con su margen de 8 —lo pidió Gianni—; de ahí no se sale: si no
+   cabe debajo, sube. Nunca se recorta. */
 function colocarSepMenu(){
   const el = $('sepMenu');
   if (el.style.display === 'none') return;
@@ -25760,15 +25762,24 @@ function colocarSepMenu(){
      cinta pegada al filo izquierdo dejaría casi nada a su izquierda, y la
      lista se quedaría más estrecha que su propia paleta de colores (eso lo
      cazó «la paleta sola es MÁS ESTRECHA que la lista»). Ahí manda lo de
-     siempre, correrse hacia dentro. */
+     siempre, correrse hacia dentro.
+     (Desde que el panel va pegado al filo derecho ya no cuelga del canto de
+     la cinta, pero el tope se queda: es el ancho que comparte con la lista de
+     perlas, que lo mide con esta misma cuenta.) */
   const ra = de ? (typeof de.getBoundingClientRect === 'function' ? de.getBoundingClientRect() : de) : null;
   el.style.maxWidth = ra ? Math.max(Math.min(280, st.width - 16),
                                     Math.floor(ra.right - st.left - 8)) + 'px' : '';
   const w = el.offsetWidth, h = Math.min(el.offsetHeight, cabeAlto);
-  let izq = st.width - w - 8, arr = 44;
+  /* PEGADO AL FILO DERECHO, siempre. Antes alineaba su canto derecho con el
+     de la cinta que lo abría, y como el punto de arriba no vive en el canto
+     sino en medio, el panel quedaba suelto a media hoja, ni a un lado ni al
+     otro. Gianni lo quiso al filo: ahí se busca y ahí no estorba. De la cinta
+     sigue tomando solo la altura, para caer justo debajo de ella. El ancho se
+     queda en su tope de arriba, el mismo que mide la lista de perlas. */
+  const izq = st.width - w - 8;
+  let arr = 44;
   if (de){
     const r = ra;
-    izq = r.right - st.left - w;
     arr = r.bottom - st.top + 8;
     /* Y SI NO CABE DEBAJO, SE PONE ENCIMA. Nació por el botón del pie del
        rastro, que vivía abajo del todo: colgando el menú debajo de él no cabía
@@ -25778,10 +25789,9 @@ function colocarSepMenu(){
        de la hoja, incluido el último. */
     if (arr + h > st.height - 8) arr = r.top - st.top - h - 8;
   }
-  izq = Math.min(Math.max(8, izq), Math.max(8, st.width - w - 8));
   if (arr + h > st.height - 8) arr = Math.max(8, st.height - h - 8);
   arr = Math.max(8, arr);
-  el.style.left = Math.round(izq) + 'px';
+  el.style.left = Math.round(Math.max(8, izq)) + 'px';
   el.style.top = Math.round(arr) + 'px';
   /* Y SI HAY TECLADO, SE RECALCULA LO QUE SUBE. Es la otra mitad: mover el
      panel invalida un --sube que se calculó contra el sitio anterior, y nadie
