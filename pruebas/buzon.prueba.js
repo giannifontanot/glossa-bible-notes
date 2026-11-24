@@ -107,6 +107,10 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
         texto:'Pascua\nPanes sin levadura\nPrimicias\nPentecostés\nTrompetas\nExpiación\nTabernáculos' },
       { id:'nota-otra', titulo:'Otra nota', texto:'Sin carta.', filtros:[] }]));
     localStorage.removeItem(prueba);
+    /* Las de goma y pluma de prueba tienen su propia suite
+       (buzon-materiales): aquí se dan por vistas hace rato, para que no caigan
+       encima de las que esta suite cuenta. */
+    localStorage.setItem('glossa:buzon:prueba-materiales:v1', JSON.stringify({ t:1, abiertas:[] }));
   }, [CLAVE, PRUEBA]);
   await p.addInitScript(VIGIA);
   await p.reload();
