@@ -152,7 +152,11 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
   vale('libros, etiqueta ausente y día restaurados sobreviven a recargar',
     await librosPuestos(p) === 2 &&
     (await etiquetas(p)).join().includes('LecturaUno0') &&
-    (await diasPuestos(p)).join() === '2020-01-020' && await p.locator('#indice .ix-item').count() === 0);
+    /* El día sigue elegido aunque ya no coincida nada: su pastilla cuenta las
+       glosas de ese día, no las que pasan el filtro, así que se mira solo que
+       sea ese y nada más. */
+    (await diasPuestos(p)).length === 1 && (await diasPuestos(p))[0].startsWith('2020-01-02') &&
+    await p.locator('#indice .ix-item').count() === 0);
 
   titulo('historial importado, datos dañados y condiciones sin coincidencias');
   const notasImportadas = [

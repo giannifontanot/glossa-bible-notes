@@ -5741,8 +5741,16 @@
      repartir: 220 px en un teléfono de 915 y 113 en pantalla ancha.
      Lo levantó la revisión de Codex.
      Y contain para que llegar al final de la tira no empiece a correr el panel
-     de atrás. */
-  #filtros{ max-height:calc(var(--alto-escena, 100vh) * .24);
+     de atrás.
+     Y DE .24 A .29, al llegar las tres secciones. Sus tres botones de «todos»
+     miden 40 px cada uno y se llevaban 130 de los 220: con apagar una sola
+     sección y sus cuatro etiquetas de estreno la tira ya no cabía y había que
+     correrla por dentro para ver la última. Con .29 son 265 px en un teléfono
+     de 915 —la sección abierta cabe entera— y el índice sigue teniendo más de
+     dos terceras partes del panel. No .30 redondo: la prueba de pantalla
+     ancha pide el techo por debajo del 30 % de la escena, y en el filo un
+     redondeo de medio píxel la tumbaría. */
+  #filtros{ max-height:calc(var(--alto-escena, 100vh) * .29);
             overflow-y:auto; overscroll-behavior:contain;
             align-content:flex-start; gap:5px 6px; padding-right:11px; }
   /* EL RIEL DE LA TIRA, DIBUJADO A MANO Y SIEMPRE A LA VISTA.
@@ -8030,7 +8038,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 15:58';
+window.GLOSS_BUILD = '24-NOV-26 16:06';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -15148,6 +15156,13 @@ function ponerTodos(cual, on){
   guardarAjustes();
   if (cual === 'libros'){ pintarFiltros(); pintarIndice(); }
   else renderPage();
+  /* EL RIEL SE PREGUNTA OTRA VEZ AL ACABAR EL VIAJE. pintarFiltros ya lo
+     pregunta, pero en el primer cuadro de la apertura suave, con la fila en
+     cero: «no sobra nada», y al terminar de abrirse sí sobraba y nadie lo
+     volvía a mirar. Al cerrar pasa lo contrario: el riel se quedaba puesto
+     sobre una tira que ya cabía. */
+  clearTimeout(ponerTodos._riel);
+  ponerTodos._riel = setTimeout(avisarMasEtiquetas, SUAVE_MS + 40);
 }
 $('filtros').addEventListener('click', ev => {
   const b = ev.target.closest('.fsec-todos');
