@@ -3138,11 +3138,37 @@ async function delDedoSostenidoEnAdelante(sesion, p){
        por gesto por mucho que el dedo siga yendo y viniendo. */
     const vs = [...document.querySelectorAll('#pgBody .v')];
     if (vs.length < 2) return { versiculos: vs.length };
-    const a = texto(vs[0]), b = texto(vs[1]);
-    if (!a || !b) return { sinTexto:true, porque: window.__pincelPorque };
     const caja = (nodo, i, j) => { const r = document.createRange();
       r.setStart(nodo, i); r.setEnd(nodo, j); return r.getBoundingClientRect(); };
-    const A = caja(a, 3, 4), B = caja(b, 9, 10);
+    /* DOS VERSÍCULOS QUE ESTÉN UNO DEBAJO DEL OTRO, no los dos primeros.
+
+       Antes se tomaban siempre el primero y el segundo de la hoja, y eso
+       dependía de en qué hoja dejaran el lector los bloques de arriba. En la
+       corrida entera caían bien; corrido el bloque en su propio tramo, la hoja
+       abría en Mateo 5:9, a dos columnas, y el aviso no salía nunca. Así que
+       se busca el primer par seguido que sirva para el gesto de verdad: que
+       el dedo baje más de lo que se ladea —de lado sobre el texto se pasa la
+       hoja, es el reparto con correrPapel, y eso no pinta—.
+
+       Y QUE LOS DOS PUNTOS SEAN TEXTO A LA VISTA. En esa misma hoja la letra
+       9 del versículo de abajo caía a 19 px del borde, bajo la flecha de pasar hoja:
+       el dedo que llega ahí no está sobre el versículo, puntoA no encuentra
+       letra y el trazo se queda sin final. Se mira lo que hay de verdad bajo
+       cada punto, que es lo que ve el dedo. */
+    let A = null, B = null;
+    const centro = r => [r.left + r.width/2, r.top + r.height/2];
+    const sobre = (r, v) => { const e = document.elementFromPoint(...centro(r));
+      return !!e && e.closest('.v') === v; };
+    for (let i = 0; i + 1 < vs.length && !B; i++){
+      const a = texto(vs[i]), b = texto(vs[i+1]);
+      if (!a || !b || a.textContent.length < 5 || b.textContent.length < 11) continue;
+      const ca = caja(a, 3, 4), cb = caja(b, 9, 10);
+      const dx = cb.left - ca.left, dy = cb.top - ca.top;
+      if (dy > 0 && dy > 1.5 * Math.abs(dx) && sobre(ca, vs[i]) && sobre(cb, vs[i+1])){
+        A = ca; B = cb;
+      }
+    }
+    if (!B) return { sinPar:true, versiculos: vs.length };
     const pgBody = document.getElementById('pgBody');
     const op = (x, y) => ({ bubbles:true, cancelable:true, pointerId:71,
                             pointerType:'touch', isPrimary:true, clientX:x, clientY:y });

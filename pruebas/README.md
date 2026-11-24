@@ -25,20 +25,23 @@ dentro**:
 
 ## Correr
 
-**En GitHub corren solas**: cada push a una PR lanza las 36 suites en
-paralelo —una máquina por suite— y deja en la PR una casilla, «pruebas», verde
-o roja. Ver `.github/workflows/pruebas.yml`. A mano, desde la pestaña Actions,
-con el mismo filtro de palabras que abajo.
+**En GitHub corren solas**: cada push a una PR lanza las 36 suites
+repartidas en dieciocho máquinas a la vez y deja en la PR una casilla,
+«pruebas», verde o roja. Ver `.github/workflows/pruebas.yml`. A mano, desde la
+pestaña Actions, con el mismo filtro de palabras que abajo.
 
-**La tanda tarda lo que tarda la suite más lenta**, así que dos cosas la
+**La tanda tarda lo que tarda la máquina más cargada**, así que dos cosas la
 acortan:
 
-- **Las más largas salen primero.** GitHub da veinte máquinas a la vez y las
-  demás esperan turno en el orden de la lista; la lista se ordena por
-  `tiempos.json`, lo que tardó cada suite la última vez que se midió. Una
-  suite nueva que no esté ahí cuenta como de minuto y medio; si es larga, se
+- **Dieciocho máquinas, ni una más.** GitHub da veinte a la vez, y las que
+  sobran esperan turno sin respetar el orden de la lista: con una máquina por
+  suite, una de las largas llegó a arrancar seis minutos tarde. Las suites se
+  reparten por `tiempos.json`, lo que tardó cada una la última vez que se
+  midió: de la más larga a la más corta, cada una a la máquina menos cargada.
+  Las cortas comparten máquina, cada una en su propio proceso. Una suite nueva
+  que no esté en `tiempos.json` cuenta como de minuto y medio; si es larga, se
   apunta.
-- **Las cuatro más largas van en dos tramos**, cada uno en su máquina:
+- **Las cuatro más largas van en dos tramos**, que se reparten por separado:
   `piedra` (el barrido del teclado), `separador` (la lectura de verdad),
   `navegar` (de las flechas en adelante) y `glosas` (del dedo sostenido en
   adelante). La suite marca con `tramo(2)` de `comun.js` un bloque que no
