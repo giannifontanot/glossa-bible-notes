@@ -1316,9 +1316,13 @@ async function andamio(p){
   vale('LA CAJITA DE LAS PERLAS MIDE LO MISMO QUE LA LISTA DE CINTAS',
        !cintas.sinLista && Math.abs(cajaP.ancho - cintas.ancho) <= 1,
        cajaP.ancho + ' contra ' + cintas.ancho);
-  vale('  y en el mismo sitio: el mismo margen al filo izquierdo',
-       !cintas.sinLista && Math.abs(cajaP.izq - cintas.izq) <= 1,
-       cajaP.izq + ' contra ' + cintas.izq);
+  /* YA NO EN EL MISMO SITIO. Cada una sale de su botón: la de perlas del de
+     arriba a la izquierda y la de cintas del de arriba a la derecha, pegada a
+     ese filo (lo pidió Gianni). Lo que se pide es que cada una esté en su filo,
+     con el mismo margen de 8. */
+  vale('  y cada una en su filo: perlas a la izquierda, cintas a la derecha',
+       !cintas.sinLista && Math.abs(cajaP.izq - 8) <= 1 && Math.abs(cintas.der - 8) <= 1,
+       { perlasIzq: cajaP.izq, cintasDer: cintas.der });
   vale('  y viste igual: relleno, radio y sombra',
        cajaP.relleno === cintas.relleno && cajaP.radio === cintas.radio && cajaP.sombra === cintas.sombra,
        { perlas: [cajaP.relleno, cajaP.radio], cintas: [cintas.relleno, cintas.radio] });
