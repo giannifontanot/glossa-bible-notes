@@ -94,14 +94,16 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
   const sesion = await abrir();
   const p = sesion.pagina;
 
-  /* La nota de Gianni, sembrada como la tendría su teléfono: sin carta. Una
+  /* La nota de Gianni, sembrada como la tendría su teléfono: sin carta, y con
+     su título de verdad, «Las celebraciones judías» —la primera versión solo
+     buscaba «festividades» y en su teléfono nunca la encontró—. Una
      sola vez, antes de que arranque la página; las recargas de después ya
      traen lo que la aplicación guardó. */
   await p.addInitScript(([k, prueba]) => {
     if (sessionStorage.getItem('buzon-sembrado')) return;
     sessionStorage.setItem('buzon-sembrado', '1');
     localStorage.setItem(k, JSON.stringify([
-      { id:'nota-fiestas', titulo:'Las festividades judías', filtros:[],
+      { id:'nota-fiestas', titulo:'Las celebraciones judías', filtros:[],
         texto:'Pascua\nPanes sin levadura\nPrimicias\nPentecostés\nTrompetas\nExpiación\nTabernáculos' },
       { id:'nota-otra', titulo:'Otra nota', texto:'Sin carta.', filtros:[] }]));
     localStorage.removeItem(prueba);
@@ -113,7 +115,7 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
   titulo('LA NOTA DE PRUEBA LLEGA COMO CARTA CERRADA');
   const fiestas = await nota(p, 'nota-fiestas');
   di('la carta guardada', fiestas && fiestas.recibida);
-  vale('«Las festividades judías» queda con la carta cerrada, en azul metálico',
+  vale('«Las celebraciones judías» queda con la carta cerrada, en azul metálico',
        fiestas && fiestas.recibida && fiestas.recibida.estado === 'cerrada' && fiestas.recibida.color === '#3f6e9e');
   vale('la otra nota no trae carta', !(await nota(p, 'nota-otra')).recibida);
   vale('queda apuntado que la de prueba sigue sin abrir', await p.evaluate(k => localStorage.getItem(k), PRUEBA) === 'cerrada');
@@ -285,7 +287,7 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
   }));
   di('las filas', filas);
   const deFila = nombre => filas.find(f => f.nombre === nombre) || {};
-  vale('la de las festividades, ya leída, lleva la carta abierta', deFila('Las festividades judías').carta === 'abierta');
+  vale('la de las celebraciones, ya leída, lleva la carta abierta', deFila('Las celebraciones judías').carta === 'abierta');
   vale('la roja, sin leer, lleva la carta cerrada', deFila('Roja').carta === 'cerrada');
   vale('la que no se recibió conserva su flecha', deFila('Otra nota').carta === null && deFila('Otra nota').flecha === '→');
   await p.locator('#notas .indice-item').filter({ hasText:'Roja' }).click();
@@ -323,7 +325,7 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
   vale('(la prueba es válida) la nota volvió a llegar cerrada',
        ((await nota(p, 'nota-fiestas')).recibida || {}).estado === 'cerrada');
   vale('(la prueba es válida) se abre NOTAS', await p.evaluate(`(${IR_A})('notas')`) === true);
-  await p.locator('#notas .indice-item').filter({ hasText:'Las festividades judías' }).click();
+  await p.locator('#notas .indice-item').filter({ hasText:'Las celebraciones judías' }).click();
   await p.waitForTimeout(400);
   const hojaFiestas = await p.evaluate(() => {
     const h = document.querySelector('#notas .nota-hoja[data-nota="nota-fiestas"]');
@@ -332,7 +334,7 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
     return { visible:!h.hidden, recibida:h.classList.contains('recibida'), carta:sobre && sobre.dataset.carta,
              antesDelEditor:!!(sobre && sobre.nextElementSibling && sobre.nextElementSibling.classList.contains('nota-editor')) };
   });
-  di('la hoja de las festividades', hojaFiestas);
+  di('la hoja de las celebraciones', hojaFiestas);
   vale('su hoja lleva la carta cerrada, delante del texto',
        hojaFiestas && hojaFiestas.visible && hojaFiestas.recibida && hojaFiestas.carta === 'cerrada' && hojaFiestas.antesDelEditor);
 

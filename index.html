@@ -7906,7 +7906,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 08:26';
+window.GLOSS_BUILD = '24-NOV-26 09:14';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -30727,10 +30727,15 @@ function armarManijasIndice(pagina, reordenar){
      notas (arrancar, la nube, un respaldo): la que se quedó sin carta la
      recupera, y la que llega tarde de la nube también la recibe. El título se
      busca sin mayúsculas ni acentos y sin exigir el «Las»: «Festividades
-     judías», «Las fiestas judías»… */
+     judías», «Las fiestas judías»…
+
+     Y TAMBIÉN «CELEBRACIONES». La nota de Gianni se llama en su teléfono
+     «Las celebraciones judías», no «festividades»: la búsqueda no la
+     encontraba nunca y la bolita no salía, por más que todo lo demás
+     funcionara. Lo descubrió su captura de la lista de NOTAS. */
   let idPrueba = null;
   const llano = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const esLaDePrueba = n => { const t = llano(n.titulo); return /(festividad|fiesta)/.test(t) && /judi/.test(t); };
+  const esLaDePrueba = n => { const t = llano(n.titulo); return /(festividad|fiesta|celebracion)/.test(t) && /judi/.test(t); };
   function asegurarPrueba(){
     let abierta = false;
     try { abierta = localStorage.getItem(PRUEBA) === 'abierta'; } catch(_){}
