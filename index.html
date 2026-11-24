@@ -4261,6 +4261,10 @@
      sección (unidades de contenedor). Se le quita también el espaciado de
      letras, que en una cadena de 23 caracteres costaba casi una letra entera. */
   #respaldo .herr-version{ container-type:inline-size; }
+  /* La línea del sensor, chica y en gris bajo el sello: se lee cuando se viene
+     a buscarla, no compite con la versión. */
+  #respaldo .sello-sensor{ margin:-4px 8px 8px; text-align:center; color:#6b5a3a;
+    font-size:calc(var(--fs-libro, 15px) * 0.8); line-height:1.35; }
   #respaldo .herr-version .sello-version{ white-space:nowrap; overflow:hidden; letter-spacing:.02em;
     padding-left:8px; padding-right:8px;
     font-size:min(calc(var(--fs-libro, 15px) * 1.32), calc((100cqi - 18px) / 13.2)); }
@@ -4957,6 +4961,23 @@
     background:radial-gradient(circle at 34% 30%, rgba(255,255,255,.75), rgba(255,255,255,0) 42%),
                radial-gradient(circle at 60% 70%, var(--bola), color-mix(in srgb, var(--bola) 62%, #000) 100%); }
   .envio-color[aria-checked="true"]{ border-color:#1d1a14; box-shadow:0 0 0 3px #fffdf7, 0 0 0 5px #b8892b; }
+  /* DE QUÉ ES: tres botones con la bolita dibujada como va a caer, en el
+     color elegido, y su nombre debajo. */
+  .envio-materiales{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+  .envio-material{ display:flex; flex-direction:column; align-items:center; gap:4px;
+    min-width:72px; min-height:64px; padding:7px 8px 6px; cursor:pointer;
+    border:1px solid rgba(140,116,68,.3); border-radius:8px; background:rgba(255,253,247,.65);
+    color:#493817; font:600 calc(12px * var(--escala-ui,1))/1.2 var(--ui); }
+  .envio-material[aria-checked="true"]{ border-color:#b8892b; background:rgba(184,137,43,.16);
+    box-shadow:inset 0 0 0 1px #b8892b; }
+  .envio-material:focus-visible{ outline:2px solid #b8892b; outline-offset:2px; }
+  .bola-muestra{ position:relative; display:block; width:30px; height:30px; border-radius:50%;
+    background:radial-gradient(circle at 50% 22%, rgba(255,250,236,.95) 0,
+                               rgba(255,244,220,.42) 20%, rgba(255,244,220,0) 40%),
+               radial-gradient(circle at 50% 32%,
+                               color-mix(in srgb, var(--bola) 55%, #f4f8ff) 0, var(--bola) 46%,
+                               color-mix(in srgb, var(--bola) 45%, #070c14) 100%);
+    box-shadow:0 2px 3px rgba(0,0,0,.25); }
   .envio-destinos{ display:grid; gap:7px; margin:0 0 12px; }
   .envio-destino{ display:block; width:100%; min-height:48px; padding:9px 11px; text-align:left;
     border:1px solid rgba(140,116,68,.3); border-radius:6px; background:rgba(255,253,247,.65);
@@ -5071,6 +5092,37 @@
                     radial-gradient(circle at 50% 92%, rgba(255,255,255,.12) 0, rgba(255,255,255,0) 20%); }
   .bola:focus-visible{ outline:2px solid #f3d58a; outline-offset:3px; }
   .bola.se-va{ opacity:0; filter:blur(2px); pointer-events:none; }
+  /* LA DE GOMA no brilla: la luz se reparte ancha y suave, sin chispa, y el
+     cuerpo es casi de un solo tono, como una pelota de hule. Lleva una costura
+     que da vueltas con ella, que es lo que deja ver que rueda. La muestra del
+     panel de enviar se pinta con las mismas reglas. */
+  .bola[data-material="goma"], .bola-muestra[data-material="goma"]{
+         background:var(--bola, #3f6e9e);
+         background:radial-gradient(circle at 40% 30%,
+                                    color-mix(in srgb, var(--bola, #3f6e9e) 72%, #ffffff) 0,
+                                    var(--bola, #3f6e9e) 52%,
+                                    color-mix(in srgb, var(--bola, #3f6e9e) 72%, #000000) 100%);
+         box-shadow:0 3px 4px rgba(0,0,0,.25), inset 0 -3px 6px rgba(0,0,0,.2); }
+  .bola[data-material="goma"]::before, .bola-muestra[data-material="goma"]::before{
+         content:''; position:absolute; inset:0; border-radius:50%;
+         transform:rotate(var(--giro, 0deg));
+         background:linear-gradient(transparent 44%, color-mix(in srgb, var(--bola, #3f6e9e) 55%, #000000) 44%,
+                                    color-mix(in srgb, var(--bola, #3f6e9e) 55%, #000000) 56%, transparent 56%);
+         opacity:.55; }
+  /* LA PLUMA no es un círculo: el botón se queda del mismo tamaño —es lo que
+     se toca—, pero lo que se ve es la pluma, que se mece al caer (--giro). */
+  .bola[data-material="pluma"], .bola-muestra[data-material="pluma"]{
+         background:none; box-shadow:none; border-radius:30%; }
+  .bola[data-material="pluma"]::before{ content:none; }
+  .pluma{ position:absolute; inset:0; width:100%; height:100%; overflow:visible;
+         transform:rotate(var(--giro, 0deg));
+         filter:drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
+  .pluma-vano{ fill:var(--bola, #3f6e9e);
+         fill:color-mix(in srgb, var(--bola, #3f6e9e) 88%, #ffffff); }
+  .pluma-barbas{ fill:none; stroke:color-mix(in srgb, var(--bola, #3f6e9e) 45%, #ffffff);
+         stroke-width:1.3; stroke-linecap:round; opacity:.8; }
+  .pluma-canon{ fill:none; stroke:color-mix(in srgb, var(--bola, #3f6e9e) 55%, #000000);
+         stroke-width:2; stroke-linecap:round; }
   /* LA BURBUJA, como la de los cómics: papel blanco, filo de tinta, y una
      colita que apunta a la bolita. Mide lo que mide el mensaje y no pasa de la
      pantalla; si el mensaje es más largo, se lee rodando por dentro. */
@@ -7906,7 +7958,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 09:14';
+window.GLOSS_BUILD = '24-NOV-26 11:46';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -26465,6 +26517,21 @@ let reflejarNotas = () => {};
    al arrancar, la nube y un respaldo—, porque lo que entra por una sin pasar
    por las otras dos es justo lo que luego no se sabe de dónde salió. */
 const AZUL_CARTA = '#3f6e9e';
+/* DE QUÉ ESTÁ HECHA LA BOLITA, que también la elige quien la envía: de metal
+   —la de siempre, la que traen las cartas viejas—, de goma o una pluma de
+   pájaro. Cada una cae, rebota y se arrastra a su manera (ver LA FÍSICA en el
+   buzón). */
+const MATERIALES_CARTA = ['metal', 'goma', 'pluma'];
+/* LA PLUMA DIBUJADA: acostada, con el cañón abajo a la izquierda y la punta
+   arriba a la derecha, que es como cae una pluma de verdad. El color lo pone
+   la carta (--bola): las barbas van un poco más claras y el cañón más hondo,
+   y dos muescas en el filo, que es lo que hace que se lea pluma y no hoja. */
+const PLUMA_SVG = '<svg class="pluma" viewBox="0 0 64 64" aria-hidden="true">' +
+  '<path class="pluma-vano" d="M12 47 C 14 36, 26 22, 42 15 C 48 12, 55 10, 60 9 C 59 15, 56 22, 50 29 L 46 28 L 47 32 ' +
+  'C 40 39, 30 45, 19 48 L 21 44 L 14 48 Z"/>' +
+  '<path class="pluma-barbas" d="M22 41 L 17 36 M28 36 L 24 29 M34 31 L 31 23 M40 27 L 38 19 M46 22 L 45 15 ' +
+  'M27 42 L 30 46 M33 38 L 37 42 M39 33 L 44 36 M45 28 L 50 29 M51 22 L 55 22"/>' +
+  '<path class="pluma-canon" d="M5 54 C 18 44, 36 28, 59 10"/></svg>';
 function normalizarRecibida(r){
   if (!r || typeof r !== 'object') return null;
   const estado = r.estado === 'cerrada' || r.estado === 'abierta' ? r.estado : null;
@@ -26474,6 +26541,9 @@ function normalizarRecibida(r){
   if (typeof r.de === 'string' && r.de.trim()) carta.de = r.de.trim().slice(0, 60);
   if (typeof r.deUid === 'string' && /^[\w-]{1,128}$/.test(r.deUid)) carta.deUid = r.deUid;
   if (typeof r.grupo === 'string' && r.grupo.trim()) carta.grupo = r.grupo.trim().slice(0, 60);
+  /* La de metal no se escribe: es lo que se entiende cuando no dice nada, y
+     así una nota vieja y una nueva de metal se guardan igual. */
+  if (MATERIALES_CARTA.includes(r.material) && r.material !== 'metal') carta.material = r.material;
   return carta;
 }
 /* La que llegó de otro lector no se edita: se lee como llegó. */
@@ -26484,6 +26554,9 @@ const remiteDe = r => !r || !r.de ? '' : r.de + (r.grupo ? ' · ' + r.grupo : ''
    Lo llama reflejarNotas, que es por donde pasa todo lo que cambia las notas
    desde fuera: la nube y un respaldo. */
 let buzonAlDia = () => {};
+/* Lo que el buzón sabe del sensor de inclinación, para enseñarlo en el panel
+   de la versión: «la bolita no rueda» se investiga con esto en la mano. */
+const sensorInclinacion = { escuchando:false, fuente:'', permiso:'', aviso:null };
 /* Lo pone EL CORREO ENTRE LECTORES cuando arma su parte; hasta entonces el
    avioncito de las notas no tiene qué abrir. */
 let correoNotas = null;
@@ -30368,7 +30441,27 @@ function armarManijasIndice(pagina, reordenar){
   document.body.appendChild(capa);
   const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const G = 2400;            /* px/s² por cada g: cae la pantalla entera en menos de un segundo */
-  const REBOTE = 0.38, REBOTE_BOLAS = 0.55;
+  /* LA FÍSICA DE CADA MATERIAL, como la pidió Gianni:
+     · METAL: «cae, rebota poquito y nada más se rueda después. Si se quiere
+       mover es porque se mueve el teléfono». Pesa, rebota poco y, rodando, se
+       frena muy poco: con el teléfono inclinado llega de orilla a orilla.
+     · GOMA: «cae y rebota 2-3 veces y ya». Rebota la mitad de lo que trae, y
+       por debajo de `parar` ya no rebota: desde lo alto de la pantalla salen
+       tres botes, cada uno de un cuarto de alto que el de antes. Rodando se
+       frena más que la de metal.
+     · PLUMA: cae despacito, meciéndose de lado a lado, casi no rebota y en el
+       suelo «se desliza despacito». Casi no pesa (`peso`: la gravedad que
+       siente), y el aire la frena mucho (`aire`): llega pronto a su velocidad
+       de caída y, cuando el teléfono se endereza, se para enseguida.
+     `masa` es para los choques: la de metal empuja a la pluma y la pluma
+     apenas mueve a la de metal. `rodar` es el freno en el suelo, `quieto` la
+     inclinación por debajo de la cual no arranca (un roce que se pega). */
+  const MATERIA = {
+    metal: { rebote:0.24, parar:110, aire:0.2, rodar:0.45, masa:3, peso:1, quieto:0 },
+    goma:  { rebote:0.5, parar:150, aire:0.35, rodar:1.7, masa:1.2, peso:1, quieto:0.02 },
+    pluma: { rebote:0.04, parar:400, aire:6, rodar:2.5, masa:0.12, peso:0.28, quieto:0.07 },
+  };
+  const materiaDe = nota => { const m = nota.recibida && nota.recibida.material; return MATERIA[m] ? m : 'metal'; };
   const bolas = [];
   const conocidas = new Set();
   let bocadillo = null, marco = 0, antes = 0, cuadros = 0;
@@ -30412,13 +30505,20 @@ function armarManijasIndice(pagina, reordenar){
     const el = document.createElement('button');
     el.type = 'button'; el.className = 'bola';
     el.style.setProperty('--bola', nota.recibida.color);
+    const material = materiaDe(nota);
+    el.dataset.material = material;
+    if (material === 'pluma') el.innerHTML = PLUMA_SVG;
     dosIdiomas(el, { aria: ['Nota recibida sin abrir: ' + nota.titulo + '. Tócala para leerla',
                             'Unopened received note: ' + nota.titulo + '. Tap it to read it'] });
     capa.appendChild(el);
     const r = (el.offsetWidth || 53) / 2, w = W(), h = H();
-    const b = { id:nota.id, el, r, x:w / 2, y:h - r, vx:0, vy:0, giro:0, quieta:false, agarrada:false, dentro:true };
+    const b = { id:nota.id, el, r, x:w / 2, y:h - r, vx:0, vy:0, giro:0, quieta:false, agarrada:false, dentro:true,
+                material, m:MATERIA[material], fase:Math.random() * 6.28, posada:false };
     if (desde === 'arriba'){
-      b.x = w * (0.25 + 0.5 * Math.random()); b.y = -r - 8; b.dentro = false;
+      /* Las que llegan juntas no caen encimadas: cada una un poco más arriba
+         que la anterior, y entran una tras otra. */
+      const cayendo = bolas.filter(o => !o.dentro).length;
+      b.x = w * (0.2 + 0.6 * Math.random()); b.y = -r - 8 - cayendo * 3 * r; b.dentro = false;
     } else {
       /* Abajo, repartidas a lo ancho: el empujón de los choques acaba de
          acomodarlas sin que se encimen. */
@@ -30488,6 +30588,7 @@ function armarManijasIndice(pagina, reordenar){
   const abrirCarta = (b, nota) => {
     nota.recibida.estado = 'abierta';
     if (nota.id === idPrueba) try { localStorage.setItem(PRUEBA, 'abierta'); } catch(_){}
+    if (PRUEBAS_MATERIAL.some(p => p.id === nota.id)) marcarPruebaMaterial(nota.id);
     guardarNotas();
     quitarBola(b);
     refrescarCartasNotas();
@@ -30559,40 +30660,86 @@ function armarManijasIndice(pagina, reordenar){
   }
 
   /* ---------- EL SENSOR ---------- */
-  let escuchando = false, signo = 1, beta = null, deCabeza = 0, ultimoSensor = 0;
-  const alMoverse = ev => {
-    const a = ev.accelerationIncludingGravity;
-    if (!a || a.x == null || a.y == null) return;
+  let escuchando = false, signo = 1, beta = null, deCabeza = 0, ultimoSensor = 0, ultimoMovimiento = -1e9;
+  /* (ax, ay): lo que mide el acelerómetro con la gravedad, en m/s², en los
+     ejes del teléfono. `calibrar` es para el que viene del acelerómetro, cuyo
+     signo cambia de un navegador a otro; el que se calcula de la orientación
+     ya sale con el signo bien. */
+  const sentir = (ax, ay, calibrar) => {
     const ahora = performance.now(), dt = Math.min(0.2, (ahora - (ultimoSensor || ahora)) / 1000);
     ultimoSensor = ahora;
+    const sg = calibrar ? signo : 1;
     /* En el teléfono: x a la derecha, y hacia arriba. La canica siente lo
        contrario de lo que mide el sensor. Luego se gira con la pantalla y se
        pasa a la pantalla, donde y crece hacia abajo. */
-    const fx = -a.x / 9.81 * signo, fy = -a.y / 9.81 * signo;
+    const fx = -ax / 9.81 * sg, fy = -ay / 9.81 * sg;
     const ang = (((screen.orientation && screen.orientation.angle) || window.orientation || 0) * Math.PI) / 180;
     const c = Math.cos(ang), s = Math.sin(ang);
     const nx = fx * c - fy * s, ny = -(fx * s + fy * c);
     /* ¿El signo está al revés? Con beta se sabe enseguida (de pie, la fuerza
        va hacia abajo); sin beta, si apunta hacia arriba más de un segundo. */
-    const sabe = beta !== null && Math.abs(beta) > 35 && !ang;
-    const mal = sabe ? ny * Math.sign(beta) < -0.4 : ny < -0.6;
-    deCabeza = mal ? deCabeza + dt : Math.max(0, deCabeza - dt);
-    if (deCabeza > (sabe ? 0.25 : 1.2)){ signo = -signo; deCabeza = 0; return; }
+    if (calibrar){
+      const sabe = beta !== null && Math.abs(beta) > 35 && !ang;
+      const mal = sabe ? ny * Math.sign(beta) < -0.4 : ny < -0.6;
+      deCabeza = mal ? deCabeza + dt : Math.max(0, deCabeza - dt);
+      if (deCabeza > (sabe ? 0.25 : 1.2)){ signo = -signo; deCabeza = 0; return; }
+    }
     fuerza = { x:fuerza.x * 0.45 + nx * 0.55, y:fuerza.y * 0.45 + ny * 0.55 };
     andar();
   };
-  const alOrientarse = ev => { if (ev.beta != null) beta = ev.beta; };
+  const contar = fuente => {
+    if (sensorInclinacion.fuente === fuente) return;
+    sensorInclinacion.fuente = fuente;
+    if (sensorInclinacion.aviso) sensorInclinacion.aviso();
+  };
+  const alMoverse = ev => {
+    const a = ev.accelerationIncludingGravity;
+    if (!a || a.x == null || a.y == null) return;
+    ultimoMovimiento = performance.now();
+    contar('movimiento');
+    sentir(a.x, a.y, true);
+  };
+  /* LA ORIENTACIÓN, DE RESPALDO. La bolita cayó en el teléfono de Gianni y se
+     quedó quieta, por más que se inclinara: lo que la mueve de lado es el
+     acelerómetro (devicemotion), y si ese no da datos la bolita no siente
+     nada. Hay teléfonos que dan la orientación (beta, gamma) y no la
+     aceleración, así que cuando la aceleración calla se saca la gravedad de
+     los dos ángulos: arriba, en los ejes del teléfono, es
+     (−sen γ · cos β, sen β, cos γ · cos β). */
+  const alOrientarse = ev => {
+    if (ev.beta != null) beta = ev.beta;
+    if (ev.beta == null || ev.gamma == null || performance.now() - ultimoMovimiento < 600) return;
+    const b = ev.beta * Math.PI / 180, g = ev.gamma * Math.PI / 180;
+    contar('orientacion');
+    sentir(-9.81 * Math.sin(g) * Math.cos(b), 9.81 * Math.sin(b), false);
+  };
   const escuchar = () => {
     if (escuchando) return;
     escuchando = true;
+    sensorInclinacion.escuchando = true;
     addEventListener('devicemotion', alMoverse);
     addEventListener('deviceorientation', alOrientarse);
+    /* Chrome deja saber si el sitio tiene bloqueados los sensores de
+       movimiento; con eso el panel de la versión puede decir dónde se arregla. */
+    try {
+      navigator.permissions.query({ name:'accelerometer' }).then(p => {
+        const poner = () => { sensorInclinacion.permiso = p.state; if (sensorInclinacion.aviso) sensorInclinacion.aviso(); };
+        poner(); p.onchange = poner;
+      }).catch(() => {});
+    } catch(_){}
+    if (sensorInclinacion.aviso) sensorInclinacion.aviso();
   };
   /* EN IPHONE HAY QUE PEDIR PERMISO, y solo se puede con un toque: el primero
-     que llegue mientras haya una bolita. Android no pregunta. */
+     que llegue mientras haya una bolita. Android no pregunta.
+
+     Y SE ESCUCHA AUNQUE SE HAYA PEDIDO MENOS MOVIMIENTO. Antes, con esa opción
+     del sistema puesta, el sensor ni se encendía y la bolita no rodaba nunca.
+     Pero rodar es lo que hace la bolita porque el lector mueve el teléfono: no
+     es una animación que salga sola. Lo que sí se respeta es la llegada: con
+     menos movimiento la bolita no cae desde arriba, aparece ya abajo. */
   let pedido = false;
   function pedirSensor(){
-    if (quieto || escuchando || pedido || typeof DeviceMotionEvent === 'undefined') return;
+    if (escuchando || pedido || typeof DeviceMotionEvent === 'undefined') return;
     const pide = DeviceMotionEvent.requestPermission;
     if (typeof pide !== 'function'){ escuchar(); return; }
     pedido = true;
@@ -30604,32 +30751,39 @@ function armarManijasIndice(pagina, reordenar){
   }
 
   /* ---------- LA FÍSICA ---------- */
+  let reloj = 0;
   const paso = dt => {
     const w = W(), h = H();
+    reloj += dt;
     /* CON EL TELÉFONO ACOSTADO el sensor no marca nada de lado ni de largo, y
        la bolita se quedaba donde estaba: la que llegaba desde arriba, flotando
        fuera de la pantalla para siempre, que es lo que vio Gianni. Así que
        cuando la inclinación es poca se suma un tirón suave hacia el pie de la
        pantalla, que se apaga en cuanto el teléfono se inclina de verdad. */
     const mag = Math.hypot(fuerza.x, fuerza.y), DESCANSO = 0.35;
-    const gx = quieto ? 0 : fuerza.x * G;
-    const gy = quieto ? G : (fuerza.y + Math.max(0, DESCANSO - mag)) * G;
+    const gx = fuerza.x * G;
+    const gy = (fuerza.y + Math.max(0, DESCANSO - mag)) * G;
+    const fondo = Math.min(h, piso);
     for (const b of bolas){
       if (b.quieta || b.agarrada) continue;
+      const m = b.m;
       /* LA QUE LLEGA CAE, sin preguntarle al sensor: es su llegada. Con el
          teléfono boca abajo o acostado no entraría nunca. */
-      if (b.dentro){ b.vx += gx * dt; b.vy += gy * dt; } else b.vy += G * dt;
-      const roce = 1 - 0.35 * dt;
+      if (b.dentro){ b.vx += gx * m.peso * dt; b.vy += gy * m.peso * dt; } else b.vy += G * m.peso * dt;
+      /* LA PLUMA SE MECE mientras va por el aire: un empujón de lado que va y
+         viene cada segundo y medio, más fuerte cuanto más cae. Posada, ya no. */
+      if (b.material === 'pluma' && !b.posada) b.vx += Math.sin(reloj * 3.9 + b.fase) * 900 * dt;
+      const roce = Math.max(0, 1 - m.aire * dt);
       b.vx *= roce; b.vy *= roce;
       b.x += b.vx * dt; b.y += b.vy * dt;
       let suelo = false;
-      if (b.x < b.r){ b.x = b.r; if (b.vx < 0) b.vx = -b.vx * REBOTE; }
-      if (b.x > w - b.r){ b.x = w - b.r; if (b.vx > 0) b.vx = -b.vx * REBOTE; }
-      const fondo = Math.min(h, piso);
-      if (b.y > fondo - b.r){ b.y = fondo - b.r; if (b.vy > 0) b.vy = Math.abs(b.vy) < 40 ? 0 : -b.vy * REBOTE; suelo = true; }
+      const botar = v => Math.abs(v) < m.parar ? 0 : -v * m.rebote;
+      if (b.x < b.r){ b.x = b.r; if (b.vx < 0) b.vx = -b.vx * m.rebote; }
+      if (b.x > w - b.r){ b.x = w - b.r; if (b.vx > 0) b.vx = -b.vx * m.rebote; }
+      if (b.y > fondo - b.r){ b.y = fondo - b.r; if (b.vy > 0) b.vy = botar(b.vy); suelo = true; }
       /* El techo solo cuenta para la que ya entró: la que llega cae desde
          fuera de la pantalla y tiene que poder pasar. */
-      if (b.dentro){ if (b.y < b.r){ b.y = b.r; if (b.vy < 0) b.vy = Math.abs(b.vy) < 40 ? 0 : -b.vy * REBOTE; } }
+      if (b.dentro){ if (b.y < b.r){ b.y = b.r; if (b.vy < 0) b.vy = botar(b.vy); } }
       else if (b.y >= b.r) b.dentro = true;
       for (const e of estorbos){
         const cx = Math.min(Math.max(b.x, e.l), e.r), cy = Math.min(Math.max(b.y, e.t), e.b);
@@ -30638,32 +30792,45 @@ function armarManijasIndice(pagina, reordenar){
         if (d < 0.01){ dx = 0; dy = -1; d = 0; b.y = e.t - b.r; }
         else { dx /= d; dy /= d; b.x += dx * (b.r - d); b.y += dy * (b.r - d); }
         const vn = b.vx * dx + b.vy * dy;
-        if (vn < 0){ const k = (1 + REBOTE) * vn; b.vx -= k * dx; b.vy -= k * dy; }
+        if (vn < 0){ const k = (Math.abs(vn) < m.parar ? 1 : 1 + m.rebote) * vn; b.vx -= k * dx; b.vy -= k * dy; }
         if (dy < -0.5) suelo = true;
       }
-      /* Rueda, no resbala: lo que avanza de lado es lo que gira. Y rodando
-         sobre algo se va frenando poco a poco. */
-      if (suelo){ b.vx *= 1 - 1.1 * dt; if (Math.abs(b.vx) < 8 && Math.abs(gx) < 1) b.vx = 0; }
-      b.giro += (b.vx * dt) / b.r;
+      /* En el suelo cada una se frena a su manera, y por debajo de su
+         `quieto` de inclinación no arranca. La de metal no tiene: con
+         cualquier inclinación rueda. */
+      if (suelo){
+        b.vx *= Math.max(0, 1 - m.rodar * dt);
+        if (Math.abs(fuerza.x) <= m.quieto && Math.abs(b.vx) < 30) b.vx = 0;
+        else if (Math.abs(b.vx) < 6 && Math.abs(gx) < 1) b.vx = 0;
+      }
+      b.posada = suelo;
+      /* Rueda, no resbala: lo que avanza de lado es lo que gira. La pluma no
+         rueda: se ladea hacia donde va, y posada se acuesta. */
+      if (b.material === 'pluma'){
+        const ladeo = suelo ? 0 : Math.max(-0.7, Math.min(0.7, b.vx / 160));
+        b.giro += (ladeo - b.giro) * Math.min(1, dt * 5);
+      } else b.giro += (b.vx * dt) / b.r;
     }
-    /* Los choques entre ellas, de canica contra canica: pesan lo mismo, y la
-       que está quieta —con su burbuja o bajo el dedo— no se deja mover. */
+    /* Los choques entre ellas, según lo que pesa cada una: la de metal aparta
+       a la pluma, y la pluma apenas mueve a la de metal. La que está quieta
+       —con su burbuja o bajo el dedo— no se deja mover. */
     for (let i = 0; i < bolas.length; i++) for (let j = i + 1; j < bolas.length; j++){
       const a = bolas[i], b = bolas[j];
       let dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
       const min = a.r + b.r;
       if (d >= min) continue;
       if (d < 0.01){ dx = 1; dy = 0; d = 0.01; } else { dx /= d; dy /= d; }
-      const fijaA = a.quieta || a.agarrada, fijaB = b.quieta || b.agarrada;
-      if (fijaA && fijaB) continue;
-      const sobra = min - d, pa = fijaA ? 0 : fijaB ? 1 : 0.5, pb = 1 - pa;
+      const ia = a.quieta || a.agarrada ? 0 : 1 / a.m.masa, ib = b.quieta || b.agarrada ? 0 : 1 / b.m.masa;
+      if (!ia && !ib) continue;
+      const sobra = min - d, pa = ia / (ia + ib), pb = ib / (ia + ib);
       a.x -= dx * sobra * pa; a.y -= dy * sobra * pa;
       b.x += dx * sobra * pb; b.y += dy * sobra * pb;
       const vrel = (b.vx - a.vx) * dx + (b.vy - a.vy) * dy;
       if (vrel >= 0) continue;
-      const k = -(1 + REBOTE_BOLAS) * vrel;
-      if (!fijaA){ const ka = fijaB ? k : k / 2; a.vx -= ka * dx; a.vy -= ka * dy; }
-      if (!fijaB){ const kb = fijaA ? k : k / 2; b.vx += kb * dx; b.vy += kb * dy; }
+      const e = Math.min(0.6, (a.m.rebote + b.m.rebote) / 2 + 0.15);
+      const k = -(1 + e) * vrel / (ia + ib);
+      a.vx -= k * ia * dx; a.vy -= k * ia * dy;
+      b.vx += k * ib * dx; b.vy += k * ib * dy;
     }
   };
   const tapadoAhora = () => {
@@ -30702,6 +30869,7 @@ function armarManijasIndice(pagina, reordenar){
   buzonAlDia = () => {
     if (!listo) return;
     asegurarPrueba();
+    asegurarPruebasMaterial();
     for (const nota of cerradas()){
       if (!bolas.some(b => b.id === nota.id))
         crearBola(nota, conocidas.has(nota.id) || cartasDeAntes.has(nota.id) || quieto ? 'abajo' : 'arriba');
@@ -30752,6 +30920,53 @@ function armarManijasIndice(pagina, reordenar){
     if (abierta || !laPrueba || laPrueba.recibida) return;
     laPrueba.recibida = { estado:'cerrada', color:AZUL_CARTA, llegada:Date.now() };
     if (guardarNotas()) try { localStorage.setItem(PRUEBA, 'cerrada'); } catch(_){}
+    refrescarCartasNotas();
+  }
+  /* LAS DE PRUEBA DE GOMA Y DE PLUMA. Para ver cómo cae cada material sin
+     tener que enviarse nada, Gianni pidió tres bolitas de goma y dos plumas,
+     de colores distintos. Son notas suyas (no llegaron de nadie), con su
+     carta cerrada, y caen desde arriba la primera vez que se abre esta
+     versión, como la de metal. Leída una, no vuelve.
+
+     LA MARCA GUARDA CUÁNDO SE HICIERON Y CUÁLES SE ABRIERON. Si la nube, que
+     llega un poco después, trae la lista de notas de antes y se come las
+     recién hechas, se vuelven a poner —pero solo durante diez minutos: pasado
+     eso, la que falta es porque el lector la borró, y se respeta—.
+
+     Y SOLO EN EL APARATO DE GIANNI: donde está su nota de las celebraciones
+     judías, la misma seña que trae la de metal. A cualquier otro lector le
+     llegarían cinco notas de prueba que nadie le mandó. */
+  const PRUEBA_MATERIALES = 'glossa:buzon:prueba-materiales:v1';
+  const PRUEBAS_MATERIAL = [
+    { id:'nota-prueba-goma-1', material:'goma', color:'#a53d3d', es:'Bolita de goma roja', en:'Red rubber ball' },
+    { id:'nota-prueba-goma-2', material:'goma', color:'#3e7d5a', es:'Bolita de goma verde', en:'Green rubber ball' },
+    { id:'nota-prueba-goma-3', material:'goma', color:'#9c6b3a', es:'Bolita de goma bronce', en:'Bronze rubber ball' },
+    { id:'nota-prueba-pluma-1', material:'pluma', color:'#6e4c94', es:'Pluma morada', en:'Purple feather' },
+    { id:'nota-prueba-pluma-2', material:'pluma', color:'#8c949c', es:'Pluma plateada', en:'Silver feather' },
+  ];
+  const leerPruebaMaterial = () => {
+    try { const m = JSON.parse(localStorage.getItem(PRUEBA_MATERIALES) || 'null');
+          return m && typeof m === 'object' ? { t:Number(m.t) || 0, abiertas:Array.isArray(m.abiertas) ? m.abiertas : [] } : null; }
+    catch(_){ return null; }
+  };
+  function marcarPruebaMaterial(id){
+    const m = leerPruebaMaterial() || { t:Date.now(), abiertas:[] };
+    if (!m.abiertas.includes(id)) m.abiertas.push(id);
+    try { localStorage.setItem(PRUEBA_MATERIALES, JSON.stringify(m)); } catch(_){}
+  }
+  function asegurarPruebasMaterial(){
+    let m = leerPruebaMaterial();
+    if (m && Date.now() - m.t > 10 * 60 * 1000) return;
+    if (!notas.some(esLaDePrueba)) return;
+    const faltan = PRUEBAS_MATERIAL.filter(p => !(m && m.abiertas.includes(p.id)) && !notas.some(n => n.id === p.id));
+    if (!faltan.length) return;
+    for (const p of faltan)
+      notas.push({ id:p.id, titulo:T(p.es, p.en), filtros:[],
+        texto:T('Nota de prueba: así cae una bolita de ' + (p.material === 'goma' ? 'goma' : 'pluma') + '. Puedes borrarla cuando quieras.',
+                'Test note: this is how a ' + (p.material === 'goma' ? 'rubber ball' : 'feather') + ' falls. You can delete it whenever you like.'),
+        recibida:{ estado:'cerrada', color:p.color, material:p.material, llegada:Date.now() } });
+    if (!m) m = { t:Date.now(), abiertas:[] };
+    if (guardarNotas()) try { localStorage.setItem(PRUEBA_MATERIALES, JSON.stringify(m)); } catch(_){}
     refrescarCartasNotas();
   }
   setTimeout(() => {
@@ -32060,6 +32275,10 @@ const CORREO_DICE = {
   'no-existe': ['No hay nadie con ese código. Revísalo con quien te lo pasó.',
                 'Nobody has that code. Check it with whoever gave it to you.'],
   nombre: ['Escribe un nombre.', 'Type a name.'],
+  /* Las reglas de la nube se ponen a mano en la consola de Firebase: hasta
+     que se pongan las que conocen la goma y la pluma, solo pasa la de metal. */
+  'reglas-material': ['El servidor todavía no acepta bolitas de goma ni plumas. Envíala de metal, o prueba más tarde.',
+                      'The server doesn’t accept rubber balls or feathers yet. Send it as metal, or try later.'],
 };
 const cRef = (...s) => nubeFb.fs.doc(nubeFb.db, ...s);
 async function cLista(...s){
@@ -32214,7 +32433,7 @@ async function correoSalirDeGrupo(g){
    Una sola carta, la misma para todos: se escribe en el buzón de cada uno.
    A un grupo, por tandas, que una escritura de Firestore no pasa de 500
    documentos ni de unos 10 MB. */
-async function correoEnviar(nota, destino, color){
+async function correoEnviar(nota, destino, color, material = 'metal'){
   const uid = correo.uid, fs = nubeFb.fs;
   const fotos = {};
   for (const id of fotosDeHtml(nota.html)) if (fotosNotas[id]) fotos[id] = fotosNotas[id];
@@ -32222,6 +32441,9 @@ async function correoEnviar(nota, destino, color){
     titulo:String(nota.titulo || '').slice(0, 60) || T('Nota', 'Note'), texto:String(nota.texto || ''),
     html: typeof nota.html === 'string' ? limpiarHtmlNota(nota.html) : '', fotos, t:Date.now() };
   if (destino.tipo === 'grupo') carta.grupo = String(destino.nombre || '').slice(0, 60);
+  /* De metal no se escribe, como en la nota: así una carta de metal la siguen
+     aceptando las reglas viejas de la nube y la sigue leyendo una Glossa vieja. */
+  if (MATERIALES_CARTA.includes(material) && material !== 'metal') carta.material = material;
   const peso = new Blob([JSON.stringify(carta)]).size;
   if (peso > CORREO_TOPE) throw correoError('grande');
   const para = destino.tipo === 'persona' ? [destino.uid] :
@@ -32264,7 +32486,8 @@ function correoComoNota(id, c){
   const nota = { id, titulo: titulo.slice(0, 60), texto: c.texto, filtros: [] };
   if (typeof c.html === 'string' && c.html) nota.html = limpiarHtmlNota(c.html);
   nota.recibida = normalizarRecibida({ estado:'cerrada', color:c.color, llegada:Date.now(), deUid:c.de,
-    de: typeof c.deNombre === 'string' ? c.deNombre : '', grupo: typeof c.grupo === 'string' ? c.grupo : '' });
+    de: typeof c.deNombre === 'string' ? c.deNombre : '', grupo: typeof c.grupo === 'string' ? c.grupo : '',
+    material: c.material });
   /* LAS FOTOS DE LA CARTA, CON NOMBRE PROPIO. Antes se guardaban con el id
      que traían, y como quien manda elige ese id, una carta podía traer el de
      una foto que ya estaba en este aparato y pisarla: la nota del lector
@@ -32768,6 +32991,7 @@ function correoPintarEnvio(panel, nota, cerrar){
   let ultimo = {};
   try { ultimo = JSON.parse(localStorage.getItem(CORREO_ULTIMO) || '{}') || {}; } catch(_){}
   const elegido = { color: CORREO_COLORES.some(c => c.hex === ultimo.color) ? ultimo.color : CORREO_COLORES[0].hex,
+                    material: MATERIALES_CARTA.includes(ultimo.material) ? ultimo.material : 'metal',
                     destino: typeof ultimo.destino === 'string' ? ultimo.destino : '' };
   let enviando = false, dicho = null, firma = '';
   const frase = (par, cls) => { const p = el('p', 'envio-dice' + (cls ? ' ' + cls : '')); dosIdiomas(p, { t: par }); return p; };
@@ -32785,6 +33009,7 @@ function correoPintarEnvio(panel, nota, cerrar){
     firma = firmaAhora();
     const f = cuerpo.contains(document.activeElement) ? document.activeElement : null;
     const cual = !f ? null : f.dataset.color ? '[data-color="' + f.dataset.color + '"]'
+               : f.dataset.material ? '[data-material="' + f.dataset.material + '"]'
                : f.dataset.destino ? '[data-destino="' + CSS.escape(f.dataset.destino) + '"]' : f.id ? '#' + f.id : null;
     pintarDentro();
     const otro = cual && cuerpo.querySelector(cual);
@@ -32845,6 +33070,24 @@ function correoPintarEnvio(panel, nota, cerrar){
       b.addEventListener('click', () => { elegido.color = c.hex; dicho = null; pintar(); });
       colores.appendChild(b);
     });
+    /* DE QUÉ ES LA BOLITA. Tres botones con la bolita dibujada tal como va a
+       caer —en el color elegido—, y su nombre debajo, que «goma» no se
+       adivina mirando un círculo. */
+    const etqMat = el('p', 'envio-etq'); dosIdiomas(etqMat, { t: ['De qué es', 'What it’s made of'] });
+    const mats = el('div', 'envio-materiales'); mats.setAttribute('role', 'radiogroup');
+    dosIdiomas(mats, { aria: ['De qué es la bolita', 'What the ball is made of'] });
+    [['metal', 'Metal', 'Metal'], ['goma', 'Goma', 'Rubber'], ['pluma', 'Pluma', 'Feather']].forEach(([id, es, en]) => {
+      const b = el('button', 'envio-material'); b.type = 'button'; b.dataset.material = id;
+      b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(id === elegido.material));
+      const muestra = el('span', 'bola-muestra'); muestra.dataset.material = id;
+      muestra.style.setProperty('--bola', elegido.color);
+      muestra.setAttribute('aria-hidden', 'true');
+      if (id === 'pluma') muestra.innerHTML = PLUMA_SVG;
+      const nombre = el('span'); dosIdiomas(nombre, { t: [es, en] });
+      b.append(muestra, nombre);
+      b.addEventListener('click', () => { elegido.material = id; dicho = null; pintar(); });
+      mats.appendChild(b);
+    });
     const etqA = el('p', 'envio-etq'); dosIdiomas(etqA, { t: ['¿A quién?', 'To whom?'] });
     const lista = el('div', 'envio-destinos'); lista.setAttribute('role', 'radiogroup');
     dosIdiomas(lista, { aria: ['A quién enviar', 'Who to send to'] });
@@ -32877,17 +33120,19 @@ function correoPintarEnvio(panel, nota, cerrar){
            notas mientras el panel estaba abierto, el objeto que se recibió al
            abrirlo ya no es el que se ve en el editor, y se mandaría viejo. */
         const actual = notas.find(x => x.id === nota.id) || nota;
-        const n = await correoEnviar(actual, d, elegido.color);
+        const n = await correoEnviar(actual, d, elegido.color, elegido.material);
         dicho = { par: d.tipo === 'grupo'
           ? ['Enviada a «' + d.nombre + '»: ' + n + (n === 1 ? ' persona.' : ' personas.'),
              'Sent to “' + d.nombre + '”: ' + n + (n === 1 ? ' person.' : ' people.')]
           : ['Enviada a ' + d.nombre + '.', 'Sent to ' + d.nombre + '.'] };
       } catch(e){
         console.warn('Glossa · enviar:', e);
-        dicho = { par: CORREO_DICE[correoFalla(e)] || CORREO_DICE.otra, mal: true };
+        const falla = correoFalla(e);
+        dicho = { par: (falla === 'reglas' && elegido.material !== 'metal' ? CORREO_DICE['reglas-material'] : CORREO_DICE[falla])
+                       || CORREO_DICE.otra, mal: true };
       } finally { enviando = false; pintar(); }
     });
-    cuerpo.append(etqColor, colores, etqA, lista, mandar, estado);
+    cuerpo.append(etqColor, colores, etqMat, mats, etqA, lista, mandar, estado);
   };
   const alAviso = () => pintar(true);
   panel._correo = alAviso;
@@ -33587,6 +33832,26 @@ function armarAtribuciones(sitio){
   sello.className = 'sello-version';
   dosIdiomas(sello, { t: ['VERSIÓN ' + window.GLOSS_BUILD, 'VERSION ' + window.GLOSS_BUILD] });
   secVersion.appendChild(sello);
+  /* EL SENSOR DE INCLINACIÓN, en una línea debajo del sello. «La bolita no
+     rueda» puede ser la física o puede ser que el teléfono no le está dando
+     datos a Glossa, y desde fuera no se distingue: esta línea lo dice, y si
+     Chrome tiene bloqueados los sensores de movimiento del sitio, dice dónde
+     se desbloquean. */
+  const sensor = document.createElement('p');
+  sensor.className = 'sello-sensor';
+  const pintarSensor = () => {
+    const si = sensorInclinacion;
+    dosIdiomas(sensor, { t:
+      si.permiso === 'denied' ? ['Sensor de inclinación: bloqueado. En Chrome: ⋮ › Configuración › Configuración de sitios › Sensores de movimiento.',
+                                 'Tilt sensor: blocked. In Chrome: ⋮ › Settings › Site settings › Motion sensors.']
+      : si.fuente === 'movimiento' ? ['Sensor de inclinación: funciona.', 'Tilt sensor: working.']
+      : si.fuente === 'orientacion' ? ['Sensor de inclinación: funciona (por la orientación).', 'Tilt sensor: working (from orientation).']
+      : si.escuchando ? ['Sensor de inclinación: encendido, pero el teléfono no ha mandado datos.', 'Tilt sensor: on, but the phone hasn’t sent any data.']
+      : ['Sensor de inclinación: se enciende cuando hay una bolita.', 'Tilt sensor: it turns on when there’s a ball.'] });
+  };
+  sensorInclinacion.aviso = pintarSensor;
+  pintarSensor();
+  secVersion.appendChild(sensor);
   secVersion.classList.add('herr-version');
   caja.insertBefore(secVersion, caja.firstChild);
   /* Y SE MIDE DE VERDAD SI CABE. La regla de CSS calcula el tamaño
