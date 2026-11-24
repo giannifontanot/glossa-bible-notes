@@ -58,7 +58,7 @@ service cloud.firestore {
       match /buzon/{carta} {
         allow create: if entro()
           && request.resource.data.de == request.auth.uid
-          && request.resource.data.keys().hasOnly(['de', 'deNombre', 'color', 'material', 'titulo', 'texto', 'html', 'fotos', 't', 'grupo'])
+          && request.resource.data.keys().hasOnly(['de', 'deNombre', 'color', 'material', 'rebote', 'titulo', 'texto', 'html', 'fotos', 't', 'grupo'])
           && request.resource.data.color in ['#9c6b3a', '#3f6e9e', '#3e7d5a', '#a53d3d', '#6e4c94', '#8c949c']
           && nombreBueno(request.resource.data.titulo)
           && nombreBueno(request.resource.data.deNombre)
@@ -67,7 +67,9 @@ service cloud.firestore {
           && request.resource.data.fotos is map
           && request.resource.data.t is int
           && (!('grupo' in request.resource.data) || request.resource.data.grupo is string)
-          && (!('material' in request.resource.data) || request.resource.data.material in ['goma', 'pluma']);
+          && (!('material' in request.resource.data) || request.resource.data.material in ['goma', 'pluma'])
+          && (!('rebote' in request.resource.data) || (request.resource.data.get('material', '') == 'goma'
+              && request.resource.data.rebote in ['poco', 'medio', 'mucho']));
       }
 
       match /grupos/{gid}/miembros/{m} {
