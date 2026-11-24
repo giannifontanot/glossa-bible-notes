@@ -20,7 +20,7 @@ const { abrir, cerrar, di, vale, titulo } = require('./comun');
 
 const CLAVE = 'glossa:notas:v1';
 const PRUEBA = 'glossa:buzon:prueba:v1';
-const MATERIALES = 'glossa:buzon:prueba-materiales:v1';
+const MATERIALES = 'glossa:buzon:prueba-materiales:v2';
 
 /* Lo que mira cada bolita desde que entra: dónde está en cada cuadro, durante
    once segundos. Solo mira. */
@@ -115,34 +115,60 @@ async function limpiar(p){
   const sesion = await abrir();
   const p = sesion.pagina;
 
-  /* La nota de Gianni ya leída, y nada más: es la seña de su aparato. */
-  await p.addInitScript(([k, prueba, mat]) => {
-    /* La seña de «ya se sembró» va en el localStorage y no en el de la
-       sesión: en una corrida la siembra se repitió en una recarga, y las
-       notas de prueba se hicieron otra vez y volvieron a caer. */
-    if (localStorage.getItem('prueba-mat-sembrado')) return;
-    localStorage.setItem('prueba-mat-sembrado', '1');
+  /* La nota de Gianni ya leída, y nada más: es la seña de su aparato.
+
+     SE SIEMBRA UNA VEZ DESDE LA PÁGINA, y no con un guion de arranque. Con
+     el guion, aunque llevara su seña de «ya se sembró», a veces volvía a
+     correr en una recarga posterior: se llevaba las notas de prueba ya
+     hechas, la aplicación las hacía otra vez y caían de nuevo, y la prueba
+     de «al volver a abrir ya no caen» salía roja sin que la aplicación
+     tuviera la culpa. Es lo mismo que hace limpiar() más abajo.
+
+     Y SE SIEMBRA DOS VECES, con un segundo y medio entre medias: la primera
+     carga de la página puede estar todavía poniendo su seña de «ya hice las
+     de prueba» cuando se siembra, y entonces, al recargar, la aplicación
+     creía que ya estaban y no hacía ninguna. La segunda siembra gana. */
+  const sembrar = () => p.evaluate(([k, prueba, mat]) => {
+    /* Con una de la primera tanda todavía sin abrir, como en el teléfono de
+       Gianni: la tanda nueva se la tiene que llevar. */
     localStorage.setItem(k, JSON.stringify([
       { id:'nota-fiestas', titulo:'Las celebraciones judías', texto:'Pascua', filtros:[],
-        recibida:{ estado:'abierta', color:'#3f6e9e', llegada:1 } }]));
+        recibida:{ estado:'abierta', color:'#3f6e9e', llegada:1 } },
+      { id:'nota-prueba-goma-1', titulo:'Bolita de goma roja', texto:'De prueba.', filtros:[],
+        recibida:{ estado:'cerrada', color:'#a53d3d', material:'goma', llegada:1 } }]));
     localStorage.setItem(prueba, 'abierta');
+    localStorage.setItem('glossa:buzon:prueba-materiales:v1', JSON.stringify({ t:1, abiertas:[] }));
     localStorage.removeItem(mat);
   }, [CLAVE, PRUEBA, MATERIALES]);
+  await sembrar();
+  await p.waitForTimeout(1500);
+  await sembrar();
   await p.addInitScript(VIGIA);
   await p.reload();
 
-  titulo('LAS DE PRUEBA: TRES DE GOMA Y DOS PLUMAS, DE COLORES DISTINTOS');
+  titulo('LAS DE PRUEBA: TRES DE METAL, TRES DE GOMA Y DOS PLUMAS');
   await p.waitForTimeout(1200);
-  const hechas = (await notas(p)).filter(n => /^nota-prueba-/.test(n.id));
+  const hechas = (await notas(p)).filter(n => /^nota-prueba2-/.test(n.id));
+  /* Si faltan, qué había en el almacén: sin esto, una corrida roja no
+     dejaba ver si la aplicación no las hizo o si el almacén llegó vacío. */
+  if (hechas.length !== 8) di('lo que había en el almacén', await p.evaluate(([k, mat]) => ({ ids:JSON.parse(localStorage.getItem(k) || '[]').map(n => n.id),
+    mat:localStorage.getItem(mat), url:location.href, buzon:!!document.getElementById('buzon'),
+    llaves:Object.keys(localStorage) }), [CLAVE, MATERIALES]));
   di('las notas de prueba', hechas.map(n => [n.id, n.recibida && n.recibida.material, n.recibida && n.recibida.color]));
-  vale('son cinco', hechas.length === 5);
-  vale('tres de goma y dos plumas',
-       hechas.filter(n => n.recibida.material === 'goma').length === 3 && hechas.filter(n => n.recibida.material === 'pluma').length === 2);
-  vale('todas cerradas y cada una de su color',
-       hechas.every(n => n.recibida.estado === 'cerrada') && new Set(hechas.map(n => n.recibida.color)).size === 5);
+  vale('son ocho', hechas.length === 8);
+  const deMaterial = mat => hechas.filter(n => (n.recibida.material || 'metal') === mat);
+  vale('tres de metal, tres de goma y dos plumas',
+       deMaterial('metal').length === 3 && deMaterial('goma').length === 3 && deMaterial('pluma').length === 2);
+  vale('las de metal no escriben material (una carta sin material es de metal)',
+       deMaterial('metal').every(n => !('material' in n.recibida)));
+  vale('todas cerradas y, dentro de cada material, cada una de su color',
+       hechas.every(n => n.recibida.estado === 'cerrada') &&
+       ['metal', 'goma', 'pluma'].every(m => new Set(deMaterial(m).map(n => n.recibida.color)).size === deMaterial(m).length));
+  vale('y la de la primera tanda que seguía sin abrir se fue',
+       !(await notas(p)).some(n => n.id === 'nota-prueba-goma-1'));
   const alPrincipio = await bolas(p);
   di('a 1.2 s', alPrincipio.map(b => [b.material, Math.round(b.x), Math.round(b.y)]));
-  vale('cinco bolitas en pantalla', alPrincipio.length === 5);
+  vale('ocho bolitas en pantalla', alPrincipio.length === 8);
   vale('las plumas se dibujan como pluma', alPrincipio.filter(b => b.pluma).length === 2 &&
        alPrincipio.filter(b => b.pluma).every(b => b.material === 'pluma'));
   vale('las plumas todavía van por arriba', alPrincipio.filter(b => b.material === 'pluma').every(b => b.y < b.alto * 0.4),
@@ -150,16 +176,17 @@ async function limpiar(p){
   await p.waitForTimeout(4000);
   const aLos5 = await bolas(p);
   di('a 5 s', aLos5.map(b => [b.material, Math.round(b.x), Math.round(b.y)]));
-  vale('las de goma ya están abajo', aLos5.filter(b => b.material === 'goma').every(b => b.y > b.alto * 0.7), aLos5);
+  vale('las de goma y las de metal ya están abajo',
+       aLos5.filter(b => b.material !== 'pluma').every(b => b.y > b.alto * 0.7), aLos5);
   await p.waitForTimeout(6500);
   const alFinal = await bolas(p);
   di('a 11.5 s', alFinal.map(b => [b.material, Math.round(b.x), Math.round(b.y)]));
   vale('y las plumas también llegaron abajo', alFinal.filter(b => b.material === 'pluma').every(b => b.y > b.alto * 0.7), alFinal);
   await p.reload();
   await p.waitForTimeout(1200);
-  vale('al volver a abrir no se hacen otra vez', (await notas(p)).filter(n => /^nota-prueba-/.test(n.id)).length === 5);
+  vale('al volver a abrir no se hacen otra vez', (await notas(p)).filter(n => /^nota-prueba2-/.test(n.id)).length === 8);
   const trazasOtraVez = await p.evaluate(() => window.__trazas.map(t => t.puntos[0] && t.puntos[0].y));
-  vale('y ya no caen: están abajo', trazasOtraVez.length === 5 && trazasOtraVez.every(y => y > 915 * 0.6), trazasOtraVez);
+  vale('y ya no caen: están abajo', trazasOtraVez.length === 8 && trazasOtraVez.every(y => y > 915 * 0.6), trazasOtraVez);
 
   /* Cada material a solas, para que ningún choque cuente como bote. */
   const caidas = {};
@@ -251,7 +278,8 @@ async function limpiar(p){
      respeta es la llegada: aparece abajo, sin caer. */
   const quieto = await abrir({ reducedMotion:'reduce' });
   const q = quieto.pagina;
-  await q.evaluate(([k, prueba, mat]) => {
+  /* Dos veces, por lo mismo que la siembra de arriba. */
+  const sembrarQ = () => q.evaluate(([k, prueba, mat]) => {
     localStorage.setItem(k, JSON.stringify([
       { id:'nota-fiestas', titulo:'Las celebraciones judías', texto:'Pascua', filtros:[],
         recibida:{ estado:'abierta', color:'#3f6e9e', llegada:1 } },
@@ -260,8 +288,15 @@ async function limpiar(p){
     localStorage.setItem(prueba, 'abierta');
     localStorage.setItem(mat, JSON.stringify({ t:1, abiertas:[] }));
   }, [CLAVE, PRUEBA, MATERIALES]);
+  await sembrarQ();
+  await q.waitForTimeout(1500);
+  await sembrarQ();
   await q.reload();
-  await q.waitForTimeout(1200);
+  /* Se espera a que salga la bolita, hasta seis segundos, y no un tiempo
+     fijo: en una corrida, a los 1.2 s todavía no había ninguna y la prueba
+     salió roja sin que la aplicación tuviera la culpa. */
+  await q.waitForFunction(() => document.querySelector('#buzon .bola:not(.se-va)'), null, { timeout:6000 }).catch(() => {});
+  await q.waitForTimeout(400);
   const [abajo] = await bolas(q);
   vale('(la prueba es válida) hay una bolita, abajo', abajo && abajo.y > abajo.alto * 0.7, abajo);
   await inclinar(q, -4, 9, 1500);

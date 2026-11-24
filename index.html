@@ -7960,7 +7960,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 11:50';
+window.GLOSS_BUILD = '24-NOV-26 13:10';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -30518,9 +30518,21 @@ function armarManijasIndice(pagina, reordenar){
                 material, m:MATERIA[material], fase:Math.random() * 6.28, posada:false };
     if (desde === 'arriba'){
       /* Las que llegan juntas no caen encimadas: cada una un poco más arriba
-         que la anterior, y entran una tras otra. */
-      const cayendo = bolas.filter(o => !o.dentro).length;
-      b.x = w * (0.2 + 0.6 * Math.random()); b.y = -r - 8 - cayendo * 3 * r; b.dentro = false;
+         que la anterior, y entran una tras otra.
+
+         LAS PLUMAS BAJAN POR LAS ORILLAS y las que pesan por el centro. Con
+         la tanda de ocho, caían todas por el mismo hueco, y una de metal que
+         venía detrás alcanzaba a la pluma y la empujaba hasta abajo de un
+         golpe: la pluma ya no caía despacito. Así cada una baja por su carril
+         y solo se encuentran en el suelo. Una pluma que llega sola baja por
+         donde caiga, como antes. */
+      const cayendo = bolas.filter(o => !o.dentro && (o.material === 'pluma') === (material === 'pluma')).length;
+      const acompanada = bolas.some(o => !o.dentro);
+      if (material === 'pluma' && acompanada){
+        b.x = w * (cayendo % 2 ? 0.85 : 0.15); b.y = -r - 8 - Math.floor(cayendo / 2) * 3 * r;
+      } else if (material === 'pluma'){ b.x = w * (0.2 + 0.6 * Math.random()); b.y = -r - 8; }
+      else { b.x = w * (0.35 + 0.3 * Math.random()); b.y = -r - 8 - cayendo * 3 * r; }
+      b.dentro = false;
     } else {
       /* Abajo, repartidas a lo ancho: el empujón de los choques acaba de
          acomodarlas sin que se encimen. */
@@ -30757,24 +30769,47 @@ function armarManijasIndice(pagina, reordenar){
   const paso = dt => {
     const w = W(), h = H();
     reloj += dt;
-    /* CON EL TELÉFONO ACOSTADO el sensor no marca nada de lado ni de largo, y
-       la bolita se quedaba donde estaba: la que llegaba desde arriba, flotando
-       fuera de la pantalla para siempre, que es lo que vio Gianni. Así que
-       cuando la inclinación es poca se suma un tirón suave hacia el pie de la
-       pantalla, que se apaga en cuanto el teléfono se inclina de verdad. */
-    const mag = Math.hypot(fuerza.x, fuerza.y), DESCANSO = 0.35;
-    const gx = fuerza.x * G;
-    const gy = (fuerza.y + Math.max(0, DESCANSO - mag)) * G;
+    /* LA GRAVEDAD ES LA DEL TELÉFONO DE VERDAD, pedido por Gianni: «quiero
+       que sigan al teléfono, no pueden caer si el teléfono está horizontal».
+       Lo que tira de la bolita en la pantalla es la sombra de la gravedad
+       sobre el vidrio: de pie, entera hacia el pie; acostado en la mesa,
+       nada, y las bolitas se quedan «quietas donde están» (su respuesta) hasta
+       que se levanta el teléfono, y entonces caen hacia donde quede abajo.
+
+       ANTES SE HACÍA LO CONTRARIO: con el teléfono acostado se sumaba un
+       tirón falso hacia el pie de la pantalla, porque la que llegaba se
+       quedaba flotando fuera de la pantalla para siempre. Eso lo arregla
+       ahora la llegada misma (abajo): entra a la vista y ahí espera.
+
+       UNA ZONA MUERTA PEQUEÑA, de unos 3°: el teléfono sobre la mesa nunca
+       marca cero exacto, y sin ella las bolitas se irían resbalando solas. Se
+       abre de 3° a 7° sin escalón, para que no arranquen de golpe. */
+    const mag = Math.hypot(fuerza.x, fuerza.y), ZONA = 0.06;
+    const vale = mag < ZONA ? 0 : mag < 2 * ZONA ? (mag - ZONA) / ZONA : 1;
+    const gx = fuerza.x * vale * G, gy = fuerza.y * vale * G;
+    /* Y CASI ACOSTADO, EL VIDRIO FRENA: la bolita va apoyada en él, y lo que
+       traía se le acaba en un momento. Así, al dejar el teléfono en la mesa,
+       ninguna sigue corriendo ni se mece; de pie no frena nada. */
+    const plano = Math.max(0, 1 - mag / 0.25);
+    const vidrio = Math.max(0, 1 - 6 * plano * (dt || 0));
     const fondo = Math.min(h, piso);
     for (const b of bolas){
       if (b.quieta || b.agarrada) continue;
       const m = b.m;
-      /* LA QUE LLEGA CAE, sin preguntarle al sensor: es su llegada. Con el
-         teléfono boca abajo o acostado no entraría nunca. */
-      if (b.dentro){ b.vx += gx * m.peso * dt; b.vy += gy * m.peso * dt; } else b.vy += G * m.peso * dt;
+      b.vx += gx * m.peso * dt; b.vy += gy * m.peso * dt;
+      /* LA QUE LLEGA ENTRA A LA VISTA, aunque el teléfono esté acostado o
+         boca abajo: baja por lo menos a ENTRA hasta asomarse entera, y de ahí
+         la mueve el teléfono como a las demás. Acostado, espera arriba. La
+         pluma entra a su paso, que es más lento. */
+      if (!b.dentro) b.vy = Math.max(b.vy, b.material === 'pluma' ? 80 : 300);
       /* LA PLUMA SE MECE mientras va por el aire: un empujón de lado que va y
-         viene cada segundo y medio, más fuerte cuanto más cae. Posada, ya no. */
-      if (b.material === 'pluma' && !b.posada) b.vx += Math.sin(reloj * 3.9 + b.fase) * 900 * dt;
+         viene cada segundo y medio, de través a la gravedad y tanto más fuerte
+         cuanto más cae. Posada, o con el teléfono acostado, ya no. */
+      if (b.material === 'pluma' && !b.posada && vale){
+        const empuje = Math.sin(reloj * 3.9 + b.fase) * 900 * dt * Math.min(1, mag);
+        b.vx -= empuje * fuerza.y / mag; b.vy += empuje * fuerza.x / mag;
+      }
+      if (b.dentro){ b.vx *= vidrio; b.vy *= vidrio; }
       const roce = Math.max(0, 1 - m.aire * dt);
       b.vx *= roce; b.vy *= roce;
       b.x += b.vx * dt; b.y += b.vy * dt;
@@ -30938,14 +30973,26 @@ function armarManijasIndice(pagina, reordenar){
      Y SOLO EN EL APARATO DE GIANNI: donde está su nota de las celebraciones
      judías, la misma seña que trae la de metal. A cualquier otro lector le
      llegarían cinco notas de prueba que nadie le mandó. */
-  const PRUEBA_MATERIALES = 'glossa:buzon:prueba-materiales:v1';
+  /* LA SEGUNDA TANDA, pedida por Gianni: «quiero que caigan 3 metal, 3
+     goma y 2 plumas». Lleva marca e ids nuevos para que vuelva a caer en su
+     teléfono, donde la primera ya cayó, y al hacerse se lleva las de la
+     primera tanda que sigan ahí, para que no caigan trece. Las plumas van
+     al final: al nacer ven a las que pesan ya cayendo y se van a su carril
+     de las orillas (ver crearBola). */
+  const PRUEBA_MATERIALES = 'glossa:buzon:prueba-materiales:v2';
+  const PRUEBAS_VIEJAS = ['nota-prueba-goma-1', 'nota-prueba-goma-2', 'nota-prueba-goma-3',
+                          'nota-prueba-pluma-1', 'nota-prueba-pluma-2'];
   const PRUEBAS_MATERIAL = [
-    { id:'nota-prueba-goma-1', material:'goma', color:'#a53d3d', es:'Bolita de goma roja', en:'Red rubber ball' },
-    { id:'nota-prueba-goma-2', material:'goma', color:'#3e7d5a', es:'Bolita de goma verde', en:'Green rubber ball' },
-    { id:'nota-prueba-goma-3', material:'goma', color:'#9c6b3a', es:'Bolita de goma bronce', en:'Bronze rubber ball' },
-    { id:'nota-prueba-pluma-1', material:'pluma', color:'#6e4c94', es:'Pluma morada', en:'Purple feather' },
-    { id:'nota-prueba-pluma-2', material:'pluma', color:'#8c949c', es:'Pluma plateada', en:'Silver feather' },
+    { id:'nota-prueba2-goma-1', material:'goma', color:'#a53d3d', es:'Bolita de goma roja', en:'Red rubber ball' },
+    { id:'nota-prueba2-goma-2', material:'goma', color:'#3e7d5a', es:'Bolita de goma verde', en:'Green rubber ball' },
+    { id:'nota-prueba2-goma-3', material:'goma', color:'#9c6b3a', es:'Bolita de goma bronce', en:'Bronze rubber ball' },
+    { id:'nota-prueba2-metal-1', material:'metal', color:'#3f6e9e', es:'Bolita de metal azul', en:'Blue metal ball' },
+    { id:'nota-prueba2-metal-2', material:'metal', color:'#8c949c', es:'Bolita de metal plateada', en:'Silver metal ball' },
+    { id:'nota-prueba2-metal-3', material:'metal', color:'#9c6b3a', es:'Bolita de metal bronce', en:'Bronze metal ball' },
+    { id:'nota-prueba2-pluma-1', material:'pluma', color:'#6e4c94', es:'Pluma morada', en:'Purple feather' },
+    { id:'nota-prueba2-pluma-2', material:'pluma', color:'#8c949c', es:'Pluma plateada', en:'Silver feather' },
   ];
+  const NOMBRE_MATERIAL = { metal:['metal', 'metal ball'], goma:['goma', 'rubber ball'], pluma:['pluma', 'feather'] };
   const leerPruebaMaterial = () => {
     try { const m = JSON.parse(localStorage.getItem(PRUEBA_MATERIALES) || 'null');
           return m && typeof m === 'object' ? { t:Number(m.t) || 0, abiertas:Array.isArray(m.abiertas) ? m.abiertas : [] } : null; }
@@ -30962,11 +31009,17 @@ function armarManijasIndice(pagina, reordenar){
     if (!notas.some(esLaDePrueba)) return;
     const faltan = PRUEBAS_MATERIAL.filter(p => !(m && m.abiertas.includes(p.id)) && !notas.some(n => n.id === p.id));
     if (!faltan.length) return;
-    for (const p of faltan)
+    if (!m) for (let i = notas.length - 1; i >= 0; i--) if (PRUEBAS_VIEJAS.includes(notas[i].id)) notas.splice(i, 1);
+    for (const p of faltan){
+      const [es, en] = NOMBRE_MATERIAL[p.material];
+      const recibida = { estado:'cerrada', color:p.color, llegada:Date.now() };
+      /* El metal no se escribe: una carta sin material es de metal. */
+      if (p.material !== 'metal') recibida.material = p.material;
       notas.push({ id:p.id, titulo:T(p.es, p.en), filtros:[],
-        texto:T('Nota de prueba: así cae una bolita de ' + (p.material === 'goma' ? 'goma' : 'pluma') + '. Puedes borrarla cuando quieras.',
-                'Test note: this is how a ' + (p.material === 'goma' ? 'rubber ball' : 'feather') + ' falls. You can delete it whenever you like.'),
-        recibida:{ estado:'cerrada', color:p.color, material:p.material, llegada:Date.now() } });
+        texto:T('Nota de prueba: así cae una bolita de ' + es + '. Puedes borrarla cuando quieras.',
+                'Test note: this is how a ' + en + ' falls. You can delete it whenever you like.'),
+        recibida });
+    }
     if (!m) m = { t:Date.now(), abiertas:[] };
     if (guardarNotas()) try { localStorage.setItem(PRUEBA_MATERIALES, JSON.stringify(m)); } catch(_){}
     refrescarCartasNotas();
