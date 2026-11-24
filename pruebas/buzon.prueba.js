@@ -259,5 +259,33 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
   vale('dentro de la nota abierta también se ve la carta cerrada',
        await p.locator('#notas .nota-hoja:not([hidden]) .nota-carta[data-carta="cerrada"]').count() === 1);
 
+  titulo('LA HOJA DE LA NOTA DE PRUEBA TAMBIÉN TRAE SU SOBRE, YA EN LA PRIMERA SESIÓN');
+  /* La de prueba se marca cuando las hojas ya están pintadas. Lo que se
+     vigila es que su hoja reciba el sobre en ese momento, sin esperar a
+     recargar. Se deja como la tendría el teléfono antes de esta versión. */
+  await p.evaluate(([k, prueba]) => {
+    const lista = JSON.parse(localStorage.getItem(k));
+    delete lista.find(n => n.id === 'nota-fiestas').recibida;
+    localStorage.setItem(k, JSON.stringify(lista));
+    localStorage.removeItem(prueba);
+  }, [CLAVE, PRUEBA]);
+  await p.reload();
+  await p.waitForTimeout(1500);
+  vale('(la prueba es válida) la nota volvió a llegar cerrada',
+       ((await nota(p, 'nota-fiestas')).recibida || {}).estado === 'cerrada');
+  vale('(la prueba es válida) se abre NOTAS', await p.evaluate(`(${IR_A})('notas')`) === true);
+  await p.locator('#notas .indice-item').filter({ hasText:'Las festividades judías' }).click();
+  await p.waitForTimeout(400);
+  const hojaFiestas = await p.evaluate(() => {
+    const h = document.querySelector('#notas .nota-hoja[data-nota="nota-fiestas"]');
+    if (!h) return null;
+    const sobre = h.querySelector(':scope > .nota-carta');
+    return { visible:!h.hidden, recibida:h.classList.contains('recibida'), carta:sobre && sobre.dataset.carta,
+             antesDelEditor:!!(sobre && sobre.nextElementSibling && sobre.nextElementSibling.classList.contains('nota-editor')) };
+  });
+  di('la hoja de las festividades', hojaFiestas);
+  vale('su hoja lleva la carta cerrada, delante del texto',
+       hojaFiestas && hojaFiestas.visible && hojaFiestas.recibida && hojaFiestas.carta === 'cerrada' && hojaFiestas.antesDelEditor);
+
   await cerrar(sesion);
 })().catch(e => { console.error(e); process.exit(1); });
