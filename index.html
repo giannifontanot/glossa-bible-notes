@@ -7906,7 +7906,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 07:45';
+window.GLOSS_BUILD = '24-NOV-26 07:49';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -32215,11 +32215,34 @@ function correoComoNota(id, c){
   if (typeof c.html === 'string' && c.html) nota.html = limpiarHtmlNota(c.html);
   nota.recibida = normalizarRecibida({ estado:'cerrada', color:c.color, llegada:Date.now(), deUid:c.de,
     de: typeof c.deNombre === 'string' ? c.deNombre : '', grupo: typeof c.grupo === 'string' ? c.grupo : '' });
-  const fotos = {};
+  /* LAS FOTOS DE LA CARTA, CON NOMBRE PROPIO. Antes se guardaban con el id
+     que traían, y como quien manda elige ese id, una carta podía traer el de
+     una foto que ya estaba en este aparato y pisarla: la nota del lector
+     que la usaba se quedaba con la foto ajena. Ahora cada foto que llega se
+     rebautiza a partir de la carta y de su id —siempre el mismo, para que dos
+     aparatos de la misma cuenta lleguen al mismo nombre— y el html de la
+     nota se reescribe con el nombre nuevo. Las fotos propias empiezan por la
+     hora (foto-mx…), nunca por foto-rec-, así que no hay choque posible. */
+  const fotos = {}, nuevoId = {};
   if (c.fotos && typeof c.fotos === 'object' && !Array.isArray(c.fotos))
     for (const [k, v] of Object.entries(c.fotos))
-      if (ID_FOTO.test(k) && typeof v === 'string' && DATOS_FOTO.test(v)) fotos[k] = v;
+      if (ID_FOTO.test(k) && typeof v === 'string' && DATOS_FOTO.test(v)){
+        const n = correoIdFoto(id, k);
+        nuevoId[k] = n; fotos[n] = v;
+      }
+  if (nota.html) nota.html = nota.html.replace(/data-foto="(foto-[a-z0-9-]+)"/g,
+    (_, k) => 'data-foto="' + (nuevoId[k] || correoIdFoto(id, k)) + '"');
   return { nota, fotos };
+}
+/* Dos picadillos FNV-1a con semillas distintas: 64 bits, sin choques en la
+   práctica, y el mismo resultado en cualquier aparato. */
+function correoIdFoto(notaId, fotoId){
+  const pica = (txt, h) => {
+    for (let i = 0; i < txt.length; i++){ h ^= txt.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h.toString(36);
+  };
+  const txt = notaId + '\n' + fotoId;
+  return 'foto-rec-' + pica(txt, 2166136261) + '-' + pica(txt, 84696351);
 }
 /* NUNCA CON EL LECTOR ESCRIBIENDO: repintar las notas le quitaría el cursor.
    Se espera a que suelte el foco, como la nube. */
@@ -32800,7 +32823,11 @@ function correoPintarEnvio(panel, nota, cerrar){
       enviando = true; dicho = null; pintar();
       try { localStorage.setItem(CORREO_ULTIMO, JSON.stringify(elegido)); } catch(_){}
       try {
-        const n = await correoEnviar(nota, d, elegido.color);
+        /* La nota se busca otra vez por su id al pulsar: si la nube trajo las
+           notas mientras el panel estaba abierto, el objeto que se recibió al
+           abrirlo ya no es el que se ve en el editor, y se mandaría viejo. */
+        const actual = notas.find(x => x.id === nota.id) || nota;
+        const n = await correoEnviar(actual, d, elegido.color);
         dicho = { par: d.tipo === 'grupo'
           ? ['Enviada a «' + d.nombre + '»: ' + n + (n === 1 ? ' persona.' : ' personas.'),
              'Sent to “' + d.nombre + '”: ' + n + (n === 1 ? ' person.' : ' people.')]

@@ -165,6 +165,7 @@ const MODULOS = {
 };
 
 const PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+const PIXEL_ANA = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
 
 /* Lo que mira cómo llega cada bolita, como en buzon.prueba.js: en cuanto
    entra en el documento, dónde está en cada cuadro. Solo mira. */
@@ -292,7 +293,12 @@ const buzonDe = uid => [...nube.keys()].filter(k => k.startsWith('users/' + uid 
 
   titulo('CADA UNO TIENE SU CÓDIGO Y SU QR');
   const A = await aparato(navegador, base, ANA, {
-    'glossa:notas:v1': [{ id:'nota-de-ana', titulo:'Para el grupo', texto:'Leer Juan 15 el jueves' }],
+    'glossa:notas:v1': [{ id:'nota-de-ana', titulo:'Para el grupo', texto:'Leer Juan 15 el jueves' },
+                        /* Una foto propia con el MISMO id que la de Beto: la carta
+                           no la puede pisar (lo encontró la revisión de la PR). */
+                        { id:'nota-foto-ana', titulo:'Mi foto', texto:'',
+                          html:'<p>Mía</p><img data-foto="foto-beto-1" alt="">' }],
+    'glossa:notas:fotos:v1': { 'foto-beto-1': PIXEL_ANA },
   });
   const codigoAna = await entrar(A);
   const codigoBeto = await entrar(B);
@@ -337,8 +343,12 @@ const buzonDe = uid => [...nube.keys()].filter(k => k.startsWith('users/' + uid 
        !!deBeto && deBeto.recibida.estado === 'cerrada' && deBeto.recibida.color === '#3e7d5a', deBeto && deBeto.recibida);
   vale('  y dice de quién es', !!deBeto && deBeto.recibida.de === 'Beto' && deBeto.recibida.deUid === BETO.uid, deBeto && deBeto.recibida);
   const fotosAna = await A.pagina.evaluate(() => JSON.parse(localStorage.getItem('glossa:notas:fotos:v1') || '{}'));
-  vale('  con su foto dentro', fotosAna['foto-beto-1'] === PIXEL && /data-foto="foto-beto-1"/.test(deBeto && deBeto.html || ''),
-       Object.keys(fotosAna));
+  const idFotoLlegada = ((deBeto && deBeto.html || '').match(/data-foto="(foto-[a-z0-9-]+)"/) || [])[1];
+  vale('  con su foto dentro, con un nombre propio de la carta',
+       !!idFotoLlegada && /^foto-rec-/.test(idFotoLlegada) && fotosAna[idFotoLlegada] === PIXEL,
+       { idFotoLlegada, ids: Object.keys(fotosAna) });
+  vale('  y la foto de Ana que se llamaba igual sigue siendo la suya', fotosAna['foto-beto-1'] === PIXEL_ANA,
+       (fotosAna['foto-beto-1'] || '').slice(0, 40));
   vale('  y el buzón de Ana se vacía al recogerla', buzonDe(ANA.uid).length === 0, buzonDe(ANA.uid));
   const cayo = await A.pagina.evaluate(() => window.__alturas);
   const bolaBeto = cayo.find(f => f.color === '#3e7d5a');
