@@ -53,7 +53,10 @@ const enlaces = [];
 const LECTORA = { uid:'lectora-ana', email:'ana@ejemplo.org', displayName:'Ana' };
 const copia = x => JSON.parse(JSON.stringify(x));
 function permitido(uid, ruta){
-  const ok = !!uid && (ruta === 'users/' + uid || ruta.startsWith('users/' + uid + '/'));
+  /* codigos/ es la guía del correo entre lectores: al entrar, cada uno deja
+     ahí su código (ver firestore.rules). Lo prueba mensajes.prueba.js. */
+  const ok = !!uid && (ruta === 'users/' + uid || ruta.startsWith('users/' + uid + '/') ||
+                       /^codigos\/[A-HJ-NP-Z2-9]{8}$/.test(ruta));
   if (!ok) fueraDeSuSitio.push((uid || 'sin cuenta') + ' → ' + ruta);
   return ok;
 }
@@ -119,6 +122,26 @@ const MODULOS = {
                                         return { size: rs.length, forEach: f => rs.forEach(r => f(foto(r))) }; }
     export async function setDoc(ref, data){ await B('confirmar', { leidas:{}, ops:[{ ruta: ref.ruta, data }] }); }
     export async function deleteDoc(ref){ await B('confirmar', { leidas:{}, ops:[{ ruta: ref.ruta, borrar:true }] }); }
+    /* El buzón del correo se escucha en vivo; aquí basta con mirar de vez en
+       cuando. */
+    export function onSnapshot(col, f){
+      let vivo = true;
+      const mirar = async () => {
+        if (!vivo) return;
+        try { const rs = await B('lista', { ruta: col.ruta }); if (vivo) f({ size: rs.length, forEach: g => rs.forEach(r => g(foto(r))) }); }
+        catch(_){}
+        if (vivo) setTimeout(mirar, 400);
+      };
+      setTimeout(mirar, 0);
+      return () => { vivo = false; };
+    }
+    export function writeBatch(){
+      const ops = [];
+      const b = { set: (ref, data) => { ops.push({ ruta: ref.ruta, data }); return b; },
+                  delete: ref => { ops.push({ ruta: ref.ruta, borrar:true }); return b; },
+                  commit: () => B('confirmar', { leidas:{}, ops }) };
+      return b;
+    }
     export async function runTransaction(db, fn){
       for (let i = 0; i < 5; i++){
         const leidas = {}, ops = [];
