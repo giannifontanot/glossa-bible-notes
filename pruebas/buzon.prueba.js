@@ -220,14 +220,21 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
   di('las dos', dos);
   vale('cada una con su color', dos.length === 2 && dos.map(b => b.color).sort().join() === '#2f7a4a,#a03028');
   vale('no se enciman', dos.length === 2 && Math.hypot(dos[0].x - dos[1].x, dos[0].y - dos[1].y) > dos[0].d - 1.5, dos);
-  await inclinar(p, 9.81, 0, 1800);
+  /* Hacia la derecha y algo hacia abajo, para que choquen de verdad: la roja
+     descansa encima del rótulo de la versión, en medio del pie, y la verde
+     en el suelo a su derecha. Hacia la izquierda no chocarían: el rótulo
+     detiene a la verde, que es justo lo que tiene que hacer un estorbo. */
+  await inclinar(p, -6.9, 6.9, 2000);
   const juntas = await p.evaluate(() => [...document.querySelectorAll('#buzon .bola')].map(b => {
-    const r = b.getBoundingClientRect(); return { x:r.left + r.width / 2, y:r.top + r.height / 2, d:r.width };
+    const r = b.getBoundingClientRect(); return { x:r.left + r.width / 2, y:r.top + r.height / 2, d:r.width,
+      color:b.style.getPropertyValue('--bola') };
   }));
-  di('inclinadas a la izquierda', juntas);
-  vale('inclinadas, las dos se van a la izquierda sin atravesarse',
-       juntas.length === 2 && juntas.every(b => b.x < 412 * 0.5) &&
-       Math.hypot(juntas[0].x - juntas[1].x, juntas[0].y - juntas[1].y) > juntas[0].d - 1.5, juntas);
+  di('inclinadas a la derecha', juntas);
+  const roja = juntas.find(b => b.color === '#a03028'), rojaAntes = dos.find(b => b.color === '#a03028');
+  vale('la roja baja del rótulo y rueda a la derecha', roja && rojaAntes && roja.x > rojaAntes.x + 30, [rojaAntes, roja]);
+  vale('las dos quedan en la mitad derecha', juntas.length === 2 && juntas.every(b => b.x > 412 * 0.5), juntas);
+  vale('y chocan sin atravesarse',
+       juntas.length === 2 && Math.hypot(juntas[0].x - juntas[1].x, juntas[0].y - juntas[1].y) > juntas[0].d - 1.5, juntas);
   await inclinar(p, 0, 9.81, 1200);
 
   titulo('EN LA LISTA DE NOTAS, LA CARTA VA EN EL SITIO DE LA FLECHA');
