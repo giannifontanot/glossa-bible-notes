@@ -94,12 +94,25 @@ const FUERA = `async () => {
      enciende primero, igual que el lector. Antes salía puesta y esto no hacía
      falta; ahora hace falta en todos los bloques que hablan de los chips, y
      por eso se envuelve en vez de repetir el toque en cada uno. */
+  /* Y LAS PASTILLAS DE LAS ETIQUETAS NACEN ESCONDIDAS: la sección empieza en
+     «Todas las etiquetas», que no filtra nada. Quien venga a tocar una la
+     apaga primero, como el lector. Apagada y sin ninguna elegida sigue sin
+     filtrar, así que los bloques que solo cuentan glosas no notan nada. */
   const encenderEtiquetas = () => p.evaluate(async () => {
     const caja = document.getElementById('ctrlEtiquetas');
-    if (!caja.classList.contains('sin-chips')) return false;
-    document.getElementById('btnVerEtiquetas').click();
-    await new Promise(z => setTimeout(z, 420));
-    return true;
+    let toco = false;
+    if (caja.classList.contains('sin-chips')){
+      document.getElementById('btnVerEtiquetas').click();
+      await new Promise(z => setTimeout(z, 420));
+      toco = true;
+    }
+    const todas = document.querySelector('#filtros [data-todos="etiq"]');
+    if (todas && todas.getAttribute('aria-pressed') === 'true'){
+      todas.click();
+      await new Promise(z => setTimeout(z, 420));
+      toco = true;
+    }
+    return toco;
   });
 
   titulo('las etiquetas duermen mientras no haya nota');
@@ -605,6 +618,13 @@ const FUERA = `async () => {
                       encendido: bot.classList.contains('active') };
     bot.click();
     await z(450);
+    /* Cómo nacen los tres botones de «todos», ANTES de tocar ninguno. */
+    const nacen = [...document.querySelectorAll('#filtros .fsec-todos')]
+                    .map(b => [b.dataset.todos, b.getAttribute('aria-pressed'), b.textContent.trim()]);
+    const escondidas = ['pillsDias', 'pillsLibros', 'pillsEtiq']
+                    .map(id => getComputedStyle(document.getElementById(id)).display);
+    document.querySelector('#filtros [data-todos="etiq"]').click();
+    await z(450);
     const f = document.getElementById('filtros');
     const cf = getComputedStyle(f);
     const panel = document.getElementById('etiquetas');
@@ -614,7 +634,7 @@ const FUERA = `async () => {
        los tienen todos los controles y pedir que la pastilla los pise sería
        pedir que se salga del panel. */
     const filo = rp.left + parseFloat(cp.paddingLeft);
-    const cajas = [...f.querySelectorAll('.chip')].map(c => c.getBoundingClientRect());
+    const cajas = [...f.querySelectorAll('#pillsEtiq .chip')].map(c => c.getBoundingClientRect());
     const chips = cajas.map(r => ({ alto: Math.round(r.height) }));
     /* EL PRIMERO DE LA TIRA, sea lo que sea: hasta hace poco era una pastilla
        y hoy es el combo de los días, que se mudó aquí porque filtra igual que
@@ -628,12 +648,11 @@ const FUERA = `async () => {
     const arriba = todos.length ? Math.min(...todos.map(r => r.top)) : 0;
     const primera = todos.filter(r => Math.abs(r.top - arriba) < 3)
                          .sort((a, b) => a.left - b.left)[0];
-    /* EL COMBO DE LOS DÍAS, dentro de la tira y el primero de todo. Vivía en
-       la fila de los botones, entre un rótulo y ellos, como si fuera un ajuste
-       del panel; filtra exactamente igual que un chip —esconde glosas de la
-       hoja y de la lista— y ahora vive donde viven los filtros. */
-    const dia = document.getElementById('selDia');
-    const rd = dia ? dia.getBoundingClientRect() : null;
+    /* LAS TRES SECCIONES, arriba de todo y en su orden: días, libros y
+       etiquetas. El combo de los días que vivía aquí se fue: ahora los días
+       son pastillas, como lo pidió Gianni, y se eligen varios. */
+    const bDias = document.querySelector('#secDias .fsec-todos');
+    const rd = bDias ? bDias.getBoundingClientRect() : null;
     const rst = document.querySelector('.stage').getBoundingClientRect();
     return { apagada,
              /* Y DE PASO EL ALTO: este panel es el único con alto fijo —su
@@ -665,12 +684,14 @@ const FUERA = `async () => {
                 siguen llamándose como siempre a propósito. */
              rotulos: [bot.textContent.trim(),
                        document.getElementById('btnElegirGlosas').textContent.trim()],
-             dia: dia ? { enLaTira: dia.parentElement === f,
-                          elPrimero: f.firstElementChild === dia,
-                          alto: Math.round(rd.height),
-                          desdeElFilo: Math.round(rd.left - filo),
-                          enLaFilaVieja: !!document.querySelector('.fila-etiq #selDia') }
-                       : null };
+             nacen, escondidas,
+             secciones: [...f.children].map(c => c.id).filter(Boolean),
+             sinEtiqueta: !!document.querySelector('#pillsEtiq .chip-sin'),
+             comboViejo: !!document.getElementById('selDia'),
+             dia: bDias ? { alto: Math.round(rd.height),
+                            desdeElFilo: Math.round(rd.left - filo),
+                            enLaFilaVieja: !!document.querySelector('.fila-etiq .fsec') }
+                        : null };
   });
   di('la tira', JSON.stringify(tira));
   vale('(la prueba es válida) hay etiquetas que enseñar', tira.cuantas > 0,
@@ -690,22 +711,28 @@ const FUERA = `async () => {
   vale('LOS BOTONES DICEN FILTRAR Y EDITAR',
        tira.rotulos[0] === 'filtrar' && tira.rotulos[1] === 'editar',
        tira.rotulos.join(' · '));
-  /* EL DÍA ES UN FILTRO MÁS Y VIVE CON LOS DEMÁS. Se comprueban las dos
-     mitades: que esté en la tira Y que ya no esté en la fila de antes. Sólo
-     la primera pasaría en verde con el combo duplicado, que es un estado que
-     no se ve mirando una pantalla. */
-  vale('EL DÍA SE FUE CON LAS ETIQUETAS, Y EL PRIMERO',
-       !!tira.dia && tira.dia.enLaTira === true && tira.dia.elPrimero === true &&
-       tira.dia.enLaFilaVieja === false, tira.dia);
-  vale('  arrancando en el filo, como la tira',
+  /* LAS TRES SECCIONES QUE PIDIÓ GIANNI, arriba de la lista de etiquetas:
+     todos los días, todos los libros, todas las etiquetas. Se comprueban las
+     dos mitades: que estén en la tira Y que no se hayan quedado en la fila de
+     los botones. Y el combo de antes, que ya no esté: dos filtros de días a la
+     vez es un estado que no se ve mirando una pantalla. */
+  vale('ARRIBA DE LAS ETIQUETAS, LAS TRES SECCIONES: DÍAS, LIBROS, ETIQUETAS',
+       tira.secciones.join() === 'secDias,secLibros,secEtiq' &&
+       !!tira.dia && tira.dia.enLaFilaVieja === false && tira.comboViejo === false,
+       tira.secciones.join() + ' · combo ' + tira.comboViejo);
+  vale('  cada una nace en «todos», con su botón puesto',
+       tira.nacen.map(x => x.join(':')).join(' | ') ===
+       'dias:true:Todos los días | libros:true:Todos los libros | etiq:true:Todas las etiquetas',
+       tira.nacen.map(x => x.join(':')).join(' | '));
+  vale('  y con «todos» puesto sus pastillas no se ven',
+       tira.escondidas.every(d => d === 'none'), tira.escondidas.join(','));
+  vale('  la primera arrancando en el filo, como la tira',
        !!tira.dia && Math.abs(tira.dia.desdeElFilo) <= 1,
        tira.dia && tira.dia.desdeElFilo + ' px');
-  /* Y VESTIDO DE PASTILLA: si midiera lo que mide un campo de formulario en
-     medio de una fila de pastillas, se leería como un ajuste y no como un
-     filtro, que es la confusión que lo tenía en la otra fila. */
-  vale('  y del alto de una pastilla',
-       !!tira.dia && Math.abs(tira.dia.alto - tira.altoMax) <= 2,
-       tira.dia && (tira.dia.alto + ' px contra ' + tira.altoMax));
+  /* Y EL BOTÓN SE ACIERTA CON EL DEDO: ocupa el ancho entero y mide 40 px. */
+  vale('  y su botón es un blanco de dedo',
+       !!tira.dia && tira.dia.alto >= 38, tira.dia && tira.dia.alto + ' px');
+  vale('LAS ETIQUETAS TRAEN UNA MÁS: «(sin etiqueta)»', tira.sinEtiqueta === true);
   vale('LAS PASTILLAS NO SE COMEN UN RENGLÓN ENTERO',
        tira.altoMax > 0 && tira.altoMax <= 32, tira.altoMax + ' px de alto');
   /* Y sigue siendo un blanco que se acierta: bajarlas era el encargo,
@@ -751,7 +778,7 @@ const FUERA = `async () => {
   const letras = await (async () => {
     const mide = () => p.evaluate(() => {
       const enLaHoja = document.querySelector('#pgMargin .gl .gl-tag, #pgBody .gl .gl-tag');
-      const chip = document.querySelector('#filtros .chip');
+      const chip = document.querySelector('#pillsEtiq .chip');
       return { glosa: enLaHoja ? +parseFloat(getComputedStyle(enLaHoja).fontSize).toFixed(2) : null,
                pastilla: chip ? +parseFloat(getComputedStyle(chip).fontSize).toFixed(2) : null,
                alto: chip ? Math.round(chip.getBoundingClientRect().height) : null };
@@ -899,10 +926,16 @@ const FUERA = `async () => {
       }
     };
     await ponerVer(true);
+    /* Las pastillas de las etiquetas se ven al apagar «Todas las etiquetas». */
+    const todosDe = cual => document.querySelector('#filtros [data-todos="' + cual + '"]');
+    const ponerTodos = async (cual, on) => {
+      if ((todosDe(cual).getAttribute('aria-pressed') === 'true') !== on){
+        todosDe(cual).click(); await z(1300);
+      }
+    };
+    await ponerTodos('etiq', false);
     /* Un filtro de etiqueta, puesto como lo pone un dedo. */
-    const chip = [...document.querySelectorAll('#filtros .chip')]
-      .find(c => !c.classList.contains('chip-libro') &&
-                 !c.classList.contains('chip-mas'));
+    const chip = document.querySelector('#pillsEtiq .chip:not(.chip-sin)');
     if (!chip) return { sinChip:true };
     chip.click(); await z(1200);
     const alaVista = foto();
@@ -916,30 +949,37 @@ const FUERA = `async () => {
     cam.click(); await z(620);
     /* Se quita el filtro y se esconde la tira: sin filtro, sin punto. */
     await ponerVer(true);
-    const puesto = [...document.querySelectorAll('#filtros .chip.sel')]
-      .find(c => !c.classList.contains('chip-libro'));
+    const puesto = document.querySelector('#pillsEtiq .chip.sel');
     if (puesto){ puesto.click(); await z(1200); }
     await ponerVer(false);
     const limpio = foto();
     /* Y el día, que es el que estrenó el agujero al mudarse aquí dentro. */
-    const dia = document.getElementById('selDia');
-    const cual = [...dia.options].map(o => o.value).find(Boolean);
+    await ponerVer(true);
+    await ponerTodos('dias', false);
+    /* Apagado y sin ninguno elegido no filtra: tampoco hay punto. */
+    await ponerVer(false);
+    const diasSinElegir = foto();
+    await ponerVer(true);
+    const unDia = document.querySelector('#pillsDias .chip');
     let porDia = null;
-    if (cual){
-      await ponerVer(true);
-      dia.value = cual;
-      dia.dispatchEvent(new Event('change', { bubbles:true }));
-      await z(1300);
+    if (unDia){
+      unDia.click(); await z(1300);
       await ponerVer(false);
       porDia = foto();
-      /* Se deja como estaba: el día puesto escondería glosas a los bloques
-         de abajo, que cuentan cuántas se ven. */
       await ponerVer(true);
-      dia.value = '';
-      dia.dispatchEvent(new Event('change', { bubbles:true }));
-      await z(1300);
     }
-    return { alaVista, escondido, devuelto, porCambiar, limpio, porDia };
+    /* Se deja como estaba: el día puesto escondería glosas a los bloques de
+       abajo, que cuentan cuántas se ven. Encender «Todos los días» suelta los
+       elegidos. */
+    await ponerTodos('dias', true);
+    /* Y LOS LIBROS: apagar «Todos los libros» deja puesto el abierto, y eso ya
+       es un filtro —la lista se queda en un libro—. */
+    await ponerTodos('libros', false);
+    await ponerVer(false);
+    const porLibro = foto();
+    await ponerVer(true);
+    await ponerTodos('libros', true);
+    return { alaVista, escondido, devuelto, porCambiar, limpio, diasSinElegir, porDia, porLibro };
   });
   di('el aviso', JSON.stringify(aviso));
   const conPunto = f => /•/.test(f.punto);
@@ -959,9 +999,13 @@ const FUERA = `async () => {
   /* La que impide que el punto se vuelva un adorno permanente. */
   vale('SIN FILTRO NO HAY PUNTO, aunque la tira esté escondida',
        aviso.limpio.tira === 'none' && !conPunto(aviso.limpio), aviso.limpio);
+  vale('apagar «Todos los días» sin elegir ninguno no es un filtro: sin punto',
+       aviso.diasSinElegir.tira === 'none' && !conPunto(aviso.diasSinElegir), aviso.diasSinElegir);
   vale('y el DÍA cuenta como filtro, que para eso se mudó a la tira',
        !!aviso.porDia && aviso.porDia.tira === 'none' && conPunto(aviso.porDia),
        aviso.porDia);
+  vale('  y los LIBROS también, con el abierto elegido',
+       aviso.porLibro.tira === 'none' && conPunto(aviso.porLibro), aviso.porLibro);
 
   titulo('los chips de la tira filtran');
   await alPanel();
@@ -973,10 +1017,8 @@ const FUERA = `async () => {
     /* El primero que sea de etiqueta: cuál sobreviva depende de qué marcas
        se pisaron por el camino, y clavar un nombre aquí es escribir una
        prueba que falla por lo que hicieron las de arriba. */
-    const chip = [...document.querySelectorAll('#filtros .chip')]
-      .find(c => !c.classList.contains('chip-libro') && !c.classList.contains('chip-mas') &&
-                 !/sin etiqueta/.test(c.textContent));
-    if (!chip) return { sinChip:true, chips:[...document.querySelectorAll('#filtros .chip')]
+    const chip = document.querySelector('#pillsEtiq .chip:not(.chip-sin)');
+    if (!chip) return { sinChip:true, chips:[...document.querySelectorAll('#pillsEtiq .chip')]
                                               .map(c => c.textContent.trim()) };
     chip.click(); await new Promise(z => setTimeout(z, 1200));
     const apagado = cuantas();
@@ -1279,7 +1321,7 @@ const FUERA = `async () => {
      fichero para el filtro guardado—. Con todas las glosas del mismo día no
      hay nada que esconder y la comprobación pasaría en verde sin filtrar.
      ================================================================ */
-  titulo('el día filtra desde la tira, como una etiqueta más');
+  titulo('los días filtran desde su sección, como las etiquetas');
   const sembradas = await p.evaluate(() => {
     const ms = JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]');
     const con = ms.filter(m => m.nota);
@@ -1296,20 +1338,33 @@ const FUERA = `async () => {
   await encenderEtiquetas();
   const porDia = await p.evaluate(async () => {
     const z = ms => new Promise(x => setTimeout(x, ms));
-    const dia = document.getElementById('selDia');
     const cuantas = () => document.querySelectorAll('#indice .ix-item').length;
-    const opcion = [...dia.options].find(o => o.value === '2020-01-02');
-    if (!opcion) return { sinDia: [...dia.options].map(o => o.value) };
+    const todos = document.querySelector('#filtros [data-todos="dias"]');
     const antes = cuantas();
-    dia.value = '2020-01-02';
-    dia.dispatchEvent(new Event('change', { bubbles:true }));
-    await z(1400);
-    const filtrado = { n: cuantas(), marcado: dia.classList.contains('sel') };
-    dia.value = '';
-    dia.dispatchEvent(new Event('change', { bubbles:true }));
-    await z(1400);
-    return { antes, filtrado, vuelven: cuantas(),
-             marcadoAlQuitar: dia.classList.contains('sel') };
+    /* Se apaga «Todos los días» y se abren las pastillas; apagado y sin
+       ninguna elegida todavía no esconde nada. */
+    if (todos.getAttribute('aria-pressed') === 'true'){ todos.click(); await z(1400); }
+    const sinElegir = cuantas();
+    const pastillas = [...document.querySelectorAll('#pillsDias .chip')];
+    const dia = pastillas.find(c => c.dataset.clave === 'dia:2020-01-02');
+    if (!dia) return { sinDia: pastillas.map(c => c.dataset.clave) };
+    dia.click(); await z(1400);
+    /* Se busca otra vez: elegir repinta las pastillas. */
+    const otra = () => document.querySelector('#pillsDias .chip[data-clave="dia:2020-01-02"]');
+    const filtrado = { n: cuantas(), marcado: otra().classList.contains('sel') };
+    /* Y SE ELIGEN VARIOS, que es lo que pidió Gianni. El segundo es el que
+       más glosas tiene, para que sumarlo se note. */
+    const cuenta = c => +(c.querySelector('.n') || {}).textContent || 0;
+    const segundo = [...document.querySelectorAll('#pillsDias .chip')]
+                      .filter(c => c.dataset.clave !== 'dia:2020-01-02')
+                      .sort((x, y) => cuenta(y) - cuenta(x))[0];
+    let dosDias = null;
+    if (segundo){ segundo.click(); await z(1400);
+      dosDias = { n: cuantas(), puestos: document.querySelectorAll('#pillsDias .chip.sel').length }; }
+    todos.click(); await z(1400);
+    return { antes, sinElegir, filtrado, dosDias, vuelven: cuantas(),
+             marcadoAlQuitar: !!document.querySelector('#pillsDias .chip.sel'),
+             escondidas: getComputedStyle(document.getElementById('pillsDias')).display };
   });
   di('por día', JSON.stringify(porDia));
   vale('(la prueba es válida) hay glosas de dos días',
@@ -1318,13 +1373,21 @@ const FUERA = `async () => {
   vale('ELEGIR UN DÍA ESCONDE LAS DEMÁS',
        !porDia.sinDia && porDia.filtrado.n < porDia.antes && porDia.filtrado.n > 0,
        porDia.antes + ' → ' + (porDia.filtrado || {}).n);
-  vale('  y el combo se enciende como un chip marcado',
-       !porDia.sinDia && porDia.filtrado.marcado === true &&
-       porDia.marcadoAlQuitar === false,
+  vale('  apagar «Todos los días» sin elegir ninguno no esconde nada',
+       !porDia.sinDia && porDia.sinElegir === porDia.antes,
+       porDia.antes + ' → ' + porDia.sinElegir);
+  vale('  y la pastilla del día se enciende como un chip marcado',
+       !porDia.sinDia && porDia.filtrado.marcado === true,
        JSON.stringify(porDia.filtrado));
-  vale('  y al quitarlo vuelven todas',
-       !porDia.sinDia && porDia.vuelven === porDia.antes,
-       '→ ' + porDia.vuelven);
+  /* Dentro de una sección se suman (una U otra): con un segundo día puesto
+     se ven MÁS, nunca menos. */
+  vale('  SE ELIGEN VARIOS DÍAS, y se suman',
+       !porDia.sinDia && !!porDia.dosDias && porDia.dosDias.puestos === 2 &&
+       porDia.dosDias.n > porDia.filtrado.n, JSON.stringify(porDia.dosDias));
+  vale('  y al encender «Todos los días» se sueltan y se esconden',
+       !porDia.sinDia && porDia.vuelven === porDia.antes &&
+       porDia.marcadoAlQuitar === false && porDia.escondidas === 'none',
+       '→ ' + porDia.vuelven + ' · ' + porDia.escondidas);
 
   /* ================================================================
      UN FILTRO GUARDADO NO PUEDE QUEDARSE ESCONDIDO.
@@ -1357,7 +1420,7 @@ const FUERA = `async () => {
   await alPanel();
   const conFiltro = await p.evaluate(t => {
     const b = document.getElementById('btnVerEtiquetas');
-    const marcadas = [...document.querySelectorAll('#filtros .chip.sel')]
+    const marcadas = [...document.querySelectorAll('#pillsEtiq .chip.sel')]
                        .map(c => c.textContent.trim());
     return { apagada: document.getElementById('ctrlEtiquetas').classList.contains('sin-chips'),
              fila: getComputedStyle(document.getElementById('filaFiltros')).display,
@@ -1448,11 +1511,11 @@ const FUERA = `async () => {
     enMemoria:(() => {
       /* Lo que el programa tiene cargado se mira por donde se ve: los chips de
          la tira salen de las marcas en memoria, no del almacén. */
-      const chips = [...document.querySelectorAll('#filtros .chip')]
+      const chips = [...document.querySelectorAll('#pillsEtiq .chip')]
         .map(c => c.firstChild.textContent.trim());
       return chips;
     })(),
-    filtroPuesto:[...document.querySelectorAll('#filtros .chip.sel')]
+    filtroPuesto:[...document.querySelectorAll('#pillsEtiq .chip.sel')]
                    .map(c => c.firstChild.textContent.trim()),
     enDisco:JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
               .slice(0, 3).map(m => m.etiquetas || []) }));
@@ -1711,6 +1774,83 @@ const FUERA = `async () => {
      entera. */
   vale('  y el panel sigue abierto', trasEscape.panel !== 'none', trasEscape.panel);
 
+  /* ================================================================
+     LOS BOTONES DE EDITAR VAN DEBAJO DE LA CAJA, Y CREAR TAMBIÉN TIENE
+     SU «CANCELAR».
+
+     Lo pidió Gianni: «nueva» debajo del campo, lo mismo «actualizar» y
+     «cancelar», y un cancelar junto a «nueva» que borra lo escrito y cierra el
+     teclado. Se mide la geometría —los dos botones por DEBAJO del campo, en el
+     mismo renglón, el que deshace a la izquierda— porque «debajo» es una
+     promesa de lo que se ve, no de cómo está escrito el marcado. Y el teclado
+     cerrado se comprueba por el foco: con la caja soltada el teclado baja.
+     ================================================================ */
+  titulo('EDITAR: los botones van debajo de la caja');
+  const geometria = () => p.evaluate(() => {
+    const caja = document.getElementById('tagNuevaGrupo');
+    const [izq, der] = [...document.querySelectorAll('#tagboxGrupo .tagbtns .btn')];
+    const r = x => x ? x.getBoundingClientRect() : null;
+    const rc = r(caja), ri = r(izq), rd = r(der);
+    return { acciones: [izq, der].map(b => b ? b.dataset.acc : null),
+             debajo: !!(rc && ri && rd) && ri.top >= rc.bottom - 1 && rd.top >= rc.bottom - 1,
+             mismoRenglon: !!(ri && rd) && Math.abs(ri.top - rd.top) <= 1,
+             izquierda: !!(ri && rd) && ri.right <= rd.left + 1,
+             mismoAncho: !!(ri && rd) && Math.abs(ri.width - rd.width) <= 2,
+             anchoCaja: rc ? Math.round(rc.width) : 0,
+             anchoBotones: (ri && rd) ? Math.round(rd.right - ri.left) : 0 };
+  });
+  await p.locator('#tagNuevaGrupo').fill('Borrador');
+  const alCrear = await geometria();
+  const nuevaEncendida = await p.locator('#tagboxGrupo [data-acc="creartag-grupo"]').getAttribute('aria-disabled');
+  di('al crear', JSON.stringify(alCrear));
+  vale('AL CREAR: «cancelar» y «+ nueva», debajo de la caja',
+       alCrear.acciones.join() === 'vaciartag,creartag-grupo' && alCrear.debajo,
+       JSON.stringify(alCrear));
+  vale('  en un mismo renglón, el que deshace a la izquierda y del mismo ancho',
+       alCrear.mismoRenglon && alCrear.izquierda && alCrear.mismoAncho, JSON.stringify(alCrear));
+  vale('  y la caja ocupa el renglón entero, lo mismo que los dos botones',
+       Math.abs(alCrear.anchoCaja - alCrear.anchoBotones) <= 2,
+       alCrear.anchoCaja + ' contra ' + alCrear.anchoBotones);
+  vale('  (con texto, «+ nueva» se enciende)', nuevaEncendida === 'false', nuevaEncendida);
+  await p.locator('#tagboxGrupo [data-acc="vaciartag"]').click();
+  await p.waitForTimeout(300);
+  const vaciada = await p.evaluate(() => ({
+    valor: document.getElementById('tagNuevaGrupo').value,
+    foco: (document.activeElement || {}).dataset ? document.activeElement.dataset.acc || document.activeElement.id : null,
+    nueva: document.querySelector('#tagboxGrupo [data-acc="creartag-grupo"]').getAttribute('aria-disabled'),
+    enMarcas: JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
+                .slice(0, 3).map(m => m.etiquetas || []) }));
+  di('tras cancelar', JSON.stringify(vaciada));
+  vale('«CANCELAR» BORRA LO ESCRITO Y SUELTA LA CAJA (el teclado baja)',
+       vaciada.valor === '' && vaciada.foco === 'vaciartag', JSON.stringify(vaciada));
+  vale('  «+ nueva» vuelve a apagarse y no se creó nada',
+       vaciada.nueva === 'true' &&
+       JSON.stringify(vaciada.enMarcas) === JSON.stringify(fundida.enMarcas), vaciada.nueva);
+  /* Y vacía también funciona: borra nada y suelta la caja igual. */
+  await p.locator('#tagNuevaGrupo').focus();
+  await p.locator('#tagboxGrupo [data-acc="vaciartag"]').click();
+  await p.waitForTimeout(300);
+  vale('  con la caja vacía también suelta el teclado',
+       await p.evaluate(() => document.activeElement !== document.getElementById('tagNuevaGrupo')));
+
+  await p.locator('#filtros [data-tag-grupo="Domingo"]').click();
+  await p.waitForTimeout(400);
+  const alRenombrar = await geometria();
+  di('al renombrar', JSON.stringify(alRenombrar));
+  vale('AL RENOMBRAR: «cancelar» y «actualizar», debajo de la caja',
+       alRenombrar.acciones.join() === 'dejartag,renombrartag' && alRenombrar.debajo &&
+       alRenombrar.mismoRenglon && alRenombrar.izquierda, JSON.stringify(alRenombrar));
+  await p.locator('#tagboxGrupo [data-acc="dejartag"]').click();
+  await p.waitForTimeout(400);
+  const dejada = await p.evaluate(() => ({
+    editando: document.querySelectorAll('#filtros .chip.editando').length,
+    foco: document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.acc : null,
+    enMarcas: JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]')
+                .slice(0, 3).map(m => m.etiquetas || []) }));
+  vale('  y su «cancelar» suelta la etiqueta sin cambiarle nada, con el foco en «+ nueva»',
+       dejada.editando === 0 && dejada.foco === 'creartag-grupo' &&
+       JSON.stringify(dejada.enMarcas) === JSON.stringify(fundida.enMarcas), JSON.stringify(dejada));
+
   /* ELEGIR UNA GLOSA CANCELA LA EDICIÓN, que es lo que mantiene separados los
      dos modos: con algo elegido el botón vuelve a ser el de poner etiquetas. */
   /* La validez de lo que viene: sin glosas en el índice no hay ninguna que
@@ -1754,14 +1894,14 @@ const FUERA = `async () => {
     /* se sale de ACTUALIZAR y se pone el filtro por una etiqueta viva */
     document.getElementById('btnElegirGlosas').click(); await z(500);
     document.getElementById('btnVerEtiquetas').click(); await z(600);
-    const c = [...document.querySelectorAll('#filtros .chip')]
+    const c = [...document.querySelectorAll('#pillsEtiq .chip')]
       .find(x => x.firstChild && x.firstChild.textContent.trim() === 'OraciónDiaria');
     if (c) c.click();
     await z(700);
     document.getElementById('btnElegirGlosas').click(); await z(700);
   });
   const conFiltroPuesto = await p.evaluate(() => ({
-    sel:[...document.querySelectorAll('#filtros .chip.sel')]
+    sel:[...document.querySelectorAll('#pillsEtiq .chip.sel')]
           .map(c => c.firstChild.textContent.trim()),
     guardado:(JSON.parse(localStorage.getItem('glossa:ajustes:v1') || '{}')
                 .etiquetasVer) || [] }));
@@ -1834,6 +1974,7 @@ const FUERA = `async () => {
     return { rotulos: [...document.querySelectorAll('#ctrlEtiquetas .fila-etiq .btn')]
                         .map(b => b.textContent.trim()),
              deFabrica, rondas,
+             conGuardar: !!document.getElementById('btnGuardarGlosas') || !!document.getElementById('panelGuardar'),
              sinLetra: !document.getElementById('btnLetraGlosas') && !document.getElementById('ctrlLetra') };
   });
   di('los rótulos', tres.rotulos.join(' · '));
@@ -1844,10 +1985,12 @@ const FUERA = `async () => {
   vale('(la prueba es válida) y cada botón ABRE lo suyo',
        tres.rondas.every(r => r.abierto === true),
        tres.rondas.map(r => r.abre + ':' + r.abierto).join(' · '));
-  /* Dos puertas que se excluyen y, a su lado, GUARDAR, que no abre nada en
-     ese hueco (su oficio está por decidir). El AA se fue a la ventanita. */
-  vale('DOS PUERTAS Y GUARDAR: el AA se fue a la ventanita de la glosa',
-       tres.rotulos.join('|') === 'filtrar|editar|guardar' && tres.sinLetra, tres.rotulos.join(' · '));
+  /* Dos puertas que se excluyen, y nada más. GUARDAR se fue: el lector ya
+     guarda al firmarse con su cuenta de Google, lo pidió Gianni. El AA se fue
+     a la ventanita de la glosa. */
+  vale('DOS PUERTAS Y NADA MÁS: sin GUARDAR, y el AA en la ventanita de la glosa',
+       tres.rotulos.join('|') === 'filtrar|editar' && tres.sinLetra &&
+       !tres.conGuardar, tres.rotulos.join(' · '));
   vale('y abrir una cierra la otra',
        tres.rondas.every(r => r.soloUno === 1),
        tres.rondas.map(r => r.abre + '→' + r.soloUno).join(' · '));
@@ -2123,7 +2266,7 @@ const FUERA = `async () => {
     /* El nombre del chip es todo menos su cuenta (.n). Se leía el primer
        nodo, y desde que los emoji van en su propio span (.emo, con su
        contorno) el primer nodo de «🔥Fuego» es solo el 🔥. */
-    out.chips = [...document.querySelectorAll('#filtros .chip')]
+    out.chips = [...document.querySelectorAll('#pillsEtiq .chip')]
       .map(c => { const k = c.cloneNode(true); k.querySelectorAll('.n').forEach(n => n.remove());
                   return k.textContent.trim(); });
     /* 2. LA CAJA DE GLOSAS/ACTUALIZAR. */

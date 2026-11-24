@@ -2111,6 +2111,16 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        glosa no caía en esta hoja». */
     const hay = t => [...document.querySelectorAll('.gl')].some(g => t.test(g.textContent));
     const antes = hay(/El título real/);
+    /* «TODAS LAS ETIQUETAS» NACE PUESTO, y con él puesto una pastilla marcada
+       no filtra nada: es lo que el lector ve, la fila escondida. Se apaga por
+       su botón, como con el dedo, y se espera a que la fila acabe de abrirse.
+       Sin esto el control de abajo se cae: el chip quedaba marcado pero el
+       filtro no mordía. */
+    const todas = document.querySelector('#filtros [data-todos="etiq"]');
+    if (todas && todas.getAttribute('aria-pressed') === 'true'){
+      todas.click();
+      await new Promise(z => setTimeout(z, 420));
+    }
     const busca = () => [...document.querySelectorAll('#etiquetas .chip')]
                           .find(b => /estudio/.test(b.textContent));
     const c = busca();
