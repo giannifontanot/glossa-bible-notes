@@ -145,17 +145,31 @@ async function subirFoto(p, base64){
   vale('en el índice no hay nota a la que darle formato', await formato.isDisabled());
   await p.locator('#notas .indice-item').first().click();
   vale('dentro de una nota se puede usar', await formato.isEnabled());
+  /* Los tres van en su propio renglón, debajo de las pestañas, en el orden
+     Glosas · Formato · Enviar, cada uno con su dibujo y su palabra al lado. */
   const vecinos = await p.evaluate(() => {
     const b = document.querySelector('#notas .nota-ver-formato');
-    return { siguiente:b.nextElementSibling && b.nextElementSibling.className,
-             mismaFila:b.parentElement.className,
-             alto:Math.round(b.getBoundingClientRect().height),
-             altoLibro:Math.round(document.querySelector('#notas .nota-ver-glosas').getBoundingClientRect().height) };
+    const fila = b.parentElement, tira = document.querySelector('#notas .indice-barra');
+    const caja = r => r.getBoundingClientRect();
+    const svg = b.querySelector('svg'), txt = b.querySelector('.nota-accion-texto');
+    return { anterior:b.previousElementSibling && b.previousElementSibling.className,
+             siguiente:b.nextElementSibling && b.nextElementSibling.className,
+             fila:fila.className, trasLaTira:fila.previousElementSibling === tira,
+             debajo:Math.round(caja(fila).top) >= Math.round(caja(tira).bottom),
+             enLaTira:tira.querySelectorAll('.nota-ver-glosas, .nota-ver-formato, .nota-ver-enviar').length,
+             texto:txt && txt.textContent, textoALaDerecha:!!(svg && txt) && caja(txt).left >= caja(svg).right,
+             alto:Math.round(caja(b).height),
+             altoLibro:Math.round(caja(document.querySelector('#notas .nota-ver-glosas')).height) };
   });
   di('el botón', vecinos);
-  vale('va justo antes del libro, en la misma tira de las pestañas',
-       vecinos.siguiente === 'nota-ver-glosas' && vecinos.mismaFila === 'indice-barra', JSON.stringify(vecinos));
-  vale('y tiene el mismo tamaño que el libro', vecinos.alto === vecinos.altoLibro, vecinos.alto + ' / ' + vecinos.altoLibro);
+  vale('va entre el libro y el avioncito, en su renglón propio',
+       vecinos.anterior === 'nota-ver-glosas' && vecinos.siguiente === 'nota-ver-enviar' &&
+       vecinos.fila === 'nota-acciones', JSON.stringify(vecinos));
+  vale('el renglón va justo debajo de las pestañas, y en la tira ya no queda ninguno',
+       vecinos.trasLaTira && vecinos.debajo && vecinos.enLaTira === 0, JSON.stringify(vecinos));
+  vale('lleva su palabra al lado del dibujo', vecinos.texto === 'Formato' && vecinos.textoALaDerecha,
+       JSON.stringify(vecinos));
+  vale('y tiene el mismo alto que el libro', vecinos.alto === vecinos.altoLibro, vecinos.alto + ' / ' + vecinos.altoLibro);
 
   titulo('la barra abre suavecito y cierra suavecito');
   let m = muestrear(p, '#notaFormato');
