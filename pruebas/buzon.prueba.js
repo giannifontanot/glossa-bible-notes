@@ -110,7 +110,7 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
     /* Las de goma y pluma de prueba tienen su propia suite
        (buzon-materiales): aquí se dan por vistas hace rato, para que no caigan
        encima de las que esta suite cuenta. */
-    localStorage.setItem('glossa:buzon:prueba-materiales:v1', JSON.stringify({ t:1, abiertas:[] }));
+    localStorage.setItem('glossa:buzon:prueba-materiales:v2', JSON.stringify({ t:1, abiertas:[] }));
   }, [CLAVE, PRUEBA]);
   await p.addInitScript(VIGIA);
   await p.reload();
@@ -311,20 +311,36 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
   }, [CLAVE, PRUEBA]);
   /* Y CON EL TELÉFONO ACOSTADO: el sensor no marca nada de lado ni de largo.
      Así lo tenía Gianni, y la bolita que llegaba se quedaba flotando encima
-     de la pantalla, sin entrar nunca. Se manda desde antes de que arranque. */
+     de la pantalla, sin entrar nunca. Y después pidió que las bolitas «sigan
+     al teléfono, no pueden caer si el teléfono está horizontal»: acostado,
+     «quietas donde están». Así que la que llega entra a la vista y ahí
+     espera, arriba, hasta que se levanta el teléfono. Se manda desde antes
+     de que arranque, con un poco de temblor, que una mesa nunca da cero. */
   await p.addInitScript(() => {
     if (sessionStorage.getItem('buzon-acostado') !== '1') return;
-    const manda = () => window.dispatchEvent(new DeviceMotionEvent('devicemotion',
-      { accelerationIncludingGravity:{ x:0, y:0, z:9.81 }, acceleration:{ x:0, y:0, z:0 }, interval:16 }));
-    setInterval(manda, 16);
+    let i = 0;
+    const manda = () => { i++;
+      window.dispatchEvent(new DeviceMotionEvent('devicemotion',
+        { accelerationIncludingGravity:{ x:0.12 * Math.sin(i / 3), y:0.15 * Math.cos(i / 5), z:9.81 },
+          acceleration:{ x:0, y:0, z:0 }, interval:16 })); };
+    window.__acostado = setInterval(manda, 16);
   });
   await p.evaluate(() => sessionStorage.setItem('buzon-acostado', '1'));
   await p.reload();
   await p.waitForTimeout(2200);
   const acostada = await bola(p);
   di('con el teléfono acostado', acostada);
-  vale('acostado, la bolita entra de todos modos', acostada && acostada.top >= 0, acostada);
-  vale('y se va despacio al pie de la pantalla', acostada && acostada.bottom > acostada.alto * 0.6, acostada);
+  vale('acostado, la bolita entra a la vista', acostada && acostada.top >= 0, acostada);
+  vale('y se queda arriba: no cae', acostada && acostada.bottom < acostada.alto * 0.3, acostada);
+  await p.waitForTimeout(1200);
+  const acostada2 = await bola(p);
+  vale('y quieta donde está, aunque la mesa tiemble un poco',
+       acostada && acostada2 && Math.hypot(acostada2.x - acostada.x, acostada2.y - acostada.y) < 3, [acostada, acostada2]);
+  await p.evaluate(() => clearInterval(window.__acostado));
+  await inclinar(p, 0, 9.81, 1800);
+  const levantada = await bola(p);
+  di('al levantar el teléfono', levantada);
+  vale('al levantar el teléfono, cae al pie de la pantalla', levantada && levantada.bottom > levantada.alto * 0.75, levantada);
   await p.evaluate(() => sessionStorage.removeItem('buzon-acostado'));
   vale('(la prueba es válida) la nota volvió a llegar cerrada',
        ((await nota(p, 'nota-fiestas')).recibida || {}).estado === 'cerrada');
