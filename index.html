@@ -4261,9 +4261,11 @@
      sección (unidades de contenedor). Se le quita también el espaciado de
      letras, que en una cadena de 23 caracteres costaba casi una letra entera. */
   #respaldo .herr-version{ container-type:inline-size; }
-  /* La línea del sensor, chica y en gris bajo el sello: se lee cuando se viene
-     a buscarla, no compite con la versión. */
-  #respaldo .sello-sensor{ margin:-4px 8px 8px; text-align:center; color:#6b5a3a;
+  /* La línea del sensor, chica y en gris justo encima del sello: se lee cuando
+     se viene a buscarla, no compite con la versión. Va encima y no debajo
+     porque el sello tiene que ser lo último del panel (lo pidió Gianni, y lo
+     vigila version.prueba.js); debajo lo empujaba a penúltimo. */
+  #respaldo .sello-sensor{ margin:0 8px 4px; text-align:center; color:#6b5a3a;
     font-size:calc(var(--fs-libro, 15px) * 0.8); line-height:1.35; }
   #respaldo .herr-version .sello-version{ white-space:nowrap; overflow:hidden; letter-spacing:.02em;
     padding-left:8px; padding-right:8px;
@@ -7958,7 +7960,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 11:46';
+window.GLOSS_BUILD = '24-NOV-26 11:50';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -33831,8 +33833,8 @@ function armarAtribuciones(sitio){
   const sello = document.createElement('p');
   sello.className = 'sello-version';
   dosIdiomas(sello, { t: ['VERSIÓN ' + window.GLOSS_BUILD, 'VERSION ' + window.GLOSS_BUILD] });
-  secVersion.appendChild(sello);
-  /* EL SENSOR DE INCLINACIÓN, en una línea debajo del sello. «La bolita no
+  /* EL SENSOR DE INCLINACIÓN, en una línea justo encima del sello (no debajo:
+     el sello es lo último del panel, como pidió Gianni). «La bolita no
      rueda» puede ser la física o puede ser que el teléfono no le está dando
      datos a Glossa, y desde fuera no se distingue: esta línea lo dice, y si
      Chrome tiene bloqueados los sensores de movimiento del sitio, dice dónde
@@ -33852,6 +33854,7 @@ function armarAtribuciones(sitio){
   sensorInclinacion.aviso = pintarSensor;
   pintarSensor();
   secVersion.appendChild(sensor);
+  secVersion.appendChild(sello);
   secVersion.classList.add('herr-version');
   caja.insertBefore(secVersion, caja.firstChild);
   /* Y SE MIDE DE VERDAD SI CABE. La regla de CSS calcula el tamaño
