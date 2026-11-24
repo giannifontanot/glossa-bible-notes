@@ -1,0 +1,26 @@
+rules_version = '2';
+
+// LAS REGLAS DE FIRESTORE DE GLOSSA (proyecto glossa-bible-notes).
+//
+// Cada lector lee y escribe solo lo suyo: todo cuelga de users/{uid}, y
+// solo entra quien ha entrado con esa misma cuenta. Nadie más, ni para leer.
+//
+// Lo que hay debajo (ver LA CUENTA Y LA NUBE en index.html):
+//   users/{uid}                      la cabecera: { rev, app, v, cambiado }
+//   users/{uid}/datos/{almacen~n}    glosas, notas, perlas, cintas… en trozos
+//   users/{uid}/fotos/{idFoto}       una foto de nota por documento
+//
+// MAÑANA, MANDARSE COSAS ENTRE LECTORES (lo quiere Gianni): un buzón
+// users/{uid}/buzon/{envio} donde cualquiera que haya entrado puede DEJAR
+// un envío a su nombre, y solo el dueño lo lee y lo borra. Irá aquí, con su
+// propia regla y antes de la general, sin tocar nada de lo de abajo.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      match /{rest=**} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+  }
+}

@@ -7730,7 +7730,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 04:32';
+window.GLOSS_BUILD = '24-NOV-26 05:10';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -8848,6 +8848,7 @@ try {
 } catch(e){ ordenIndice = []; }
 function guardarOrdenIndice(){
   try { localStorage.setItem(ORDEN_INDICE, JSON.stringify(ordenIndice)); } catch(e){}
+  nubeTocada();
 }
 let marcas = [];                 // ver el modelo en crearMarca()
 /* La versión que arranca abierta es la primera del archivo de datos, no una
@@ -9502,6 +9503,8 @@ const save = () => {
   try {
     localStorage.setItem(KEY, JSON.stringify(marcas));
     avisoGuardado = false;
+    /* Y la nube se entera, si hay cuenta. Ver LA CUENTA Y LA NUBE. */
+    nubeTocada();
   } catch(e){
     if (!avisoGuardado){
       avisoGuardado = true;
@@ -21528,6 +21531,7 @@ function apuntarVisto(libro, cap, vers){
   atrasEn = 0;
   if (historial.length > TOPE_HISTORIAL) historial.length = TOPE_HISTORIAL;
   try { localStorage.setItem(HISTORIAL, JSON.stringify(historial)); } catch(e){}
+  nubeTocada();
   if (histAbierto) pintarHistorial();
 }
 
@@ -21598,6 +21602,7 @@ function apuntarLectura(antes, aqui){
      principio. */
   atrasEn = 0;
   try { localStorage.setItem(HISTORIAL, JSON.stringify(historial)); } catch(e){}
+  nubeTocada();
   if (histAbierto) pintarHistorial();
 }
 
@@ -22000,6 +22005,7 @@ function piedrasGuardar(){
   piedras.sort((a, b) => b.tocado - a.tocado);
   if (piedras.length > TOPE_PIEDRAS) piedras.length = TOPE_PIEDRAS;
   try { localStorage.setItem(PIEDRAS, JSON.stringify(piedras)); } catch(e){}
+  nubeTocada();
   /* Y LA FOTO DEL PLIEGUE CADUCA AQUÍ, que es el único sitio por donde pasan
      todos los cambios de una piedra —ponerla, moverla, cambiarle forma,
      tamaño, color o nombre, y quitarla—.
@@ -22671,6 +22677,7 @@ function sepGuardar(reciente){
   separadores.sort((a, b) => b.tocado - a.tocado);
   if (separadores.length > TOPE_SEPARADORES) separadores.length = TOPE_SEPARADORES;
   try { localStorage.setItem(SEPARADORES, JSON.stringify(separadores)); } catch(e){}
+  nubeTocada();
 }
 /* El identificador no puede salir del sitio que ocupa en la lista: la lista
    se reordena al tocar una cinta y se acorta al borrar otra. */
@@ -26347,6 +26354,7 @@ function restaurarFiltroNota(f){
 function guardarNotas(){
   try {
     localStorage.setItem(CLAVE_NOTAS, JSON.stringify(notas));
+    nubeTocada();
     return true;
   } catch(e){
     readout.textContent = T('NO SE PUDO GUARDAR LAS NOTAS (', 'COULD NOT SAVE THE NOTES (') + (e.name || 'error') +
@@ -26487,6 +26495,7 @@ function fotosUsadas(){
 function guardarFotos(){
   try {
     localStorage.setItem(CLAVE_FOTOS, JSON.stringify(fotosNotas));
+    nubeTocada();
     return true;
   } catch(e){
     readout.textContent = T('NO SE PUDO GUARDAR LAS FOTOS (', 'COULD NOT SAVE THE PHOTOS (') + (e.name || 'error') +
@@ -26509,6 +26518,7 @@ function guardarFotoNueva(id, datos){
     try {
       localStorage.setItem('glossa:hueco', 'x'.repeat(HUECO_LIBRE));
     } finally { try { localStorage.removeItem('glossa:hueco'); } catch(_){} }
+    nubeTocada();
     return true;
   } catch(e){
     fotosNotas = antes;
@@ -28062,6 +28072,8 @@ function guardarAjustes(){
       etiquetasVer: [...etiquetasVer], librosFiltro: [...librosFiltro], diaFiltro
     }));
   } catch(e){ /* si no se puede, se arranca con lo de fábrica */ }
+  /* De todo lo de arriba, a la nube solo va la Biblia y por dónde vas. */
+  nubeApuntarLugar(version, LIBRO, aqui.cap, aqui.vers);
 }
 
 /* Cada campo se valida antes de aceptarlo: un archivo de ajustes viejo o
@@ -30122,7 +30134,7 @@ function armarManijasIndice(pagina, reordenar){
     if (!barra.querySelector('.aqui')) barra.scrollLeft = 0;
     centrarPestanita(false);
     if (!guardar) return true;
-    try { localStorage.setItem(claveOrden, JSON.stringify(visibles.map(e => e.id))); return true; }
+    try { localStorage.setItem(claveOrden, JSON.stringify(visibles.map(e => e.id))); nubeTocada(); return true; }
     catch(e){
       readout.textContent = T('NO SE PUDO GUARDAR EL ORDEN DE ENCUENTROS (', 'COULD NOT SAVE THE ORDER OF ENCOUNTERS (') +
                             (e.name || 'error') + ')';
@@ -30242,9 +30254,27 @@ function verSubRespaldo(cual){
    sin red: nada de esto se pide hasta que la pestaña de Compartir se enseña
    en pantalla (IntersectionObserver), y si no hay red el mapa lo dice en su
    renglón y el resto del programa ni se entera. */
-/* La configuración del proyecto de Firebase DE GLOSSA —apiKey, authDomain,
-   databaseURL, projectId, appId—. Vacía hasta que el proyecto exista. */
-const MAPA_FB = null;
+/* La configuración del proyecto de Firebase DE GLOSSA, glossa-bible-notes
+   —la pegó Gianni—. No es un secreto: es la dirección del proyecto, y viaja en
+   cualquier página que lo use; lo que protege los datos son las reglas
+   (firestore.rules). Es la misma para las cuentas (ver LA CUENTA Y LA NUBE) y
+   para el mapa: un solo proyecto para Glossa. El mapa además necesita
+   databaseURL, porque va sobre Realtime Database, que este proyecto todavía no
+   tiene; sin ella se queda quieto y las cuentas funcionan igual. */
+/* SOLO SOBRE http(s). Firebase no deja entrar desde un archivo abierto a pelo
+   (file://): ni la ventanita de Google ni el enlace del correo tienen a dónde
+   volver. Y es justo como corre el banco de pruebas, así que con esto ninguna
+   suite toca la red por la cuenta; la que prueba la cuenta, nube.prueba.js,
+   sirve la carpeta por http. */
+const NUBE_FB = /^https?:$/.test(location.protocol) ? {
+  apiKey: 'AIzaSyD8tGoDzrZexrsixOoUiLUu4AfpeR_iVC8',
+  authDomain: 'glossa-bible-notes.firebaseapp.com',
+  projectId: 'glossa-bible-notes',
+  storageBucket: 'glossa-bible-notes.firebasestorage.app',
+  messagingSenderId: '750199593104',
+  appId: '1:750199593104:web:043a8e20a7db3a056da015'
+} : null;
+const MAPA_FB = NUBE_FB && NUBE_FB.databaseURL ? NUBE_FB : null;
 const MAPA_SDK = 'https://www.gstatic.com/firebasejs/12.17.0/';
 const MAPA_RAMA = 'lectores';
 const MAPA_LEAFLET = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min';
@@ -30322,6 +30352,837 @@ async function mapaMarcarEnLinea(){
     });
   } catch(_){}
 }
+/* ============================================================
+   LA CUENTA Y LA NUBE.
+
+   Hasta aquí todo lo del lector vivía en este aparato y en ningún otro sitio:
+   un teléfono perdido era un cuaderno perdido, y llevar las glosas a la
+   computadora pedía exportar un archivo e importarlo del otro lado. Gianni
+   pidió cuentas: que cada lector pueda entrar y guardar lo suyo en la nube.
+
+   LO QUE SE DECIDIÓ, y por qué es así:
+   - SIN CUENTA TODO SIGUE IGUAL. Entrar no es la puerta del programa; es un
+     servicio que se pide cuando se quiere: copia en la nube, otro aparato o,
+     más adelante, mandarle algo a otro lector. Quien nunca entra no nota nada,
+     ni siquiera el peso: el SDK de Firebase no se pide hasta que hace falta.
+   - EL APARATO SIGUE SIENDO LA FUENTE. Todo se sigue escribiendo en el
+     almacén del navegador como siempre, y la nube es una copia que se junta
+     con él. Así el programa abre y escribe sin red exactamente como antes; la
+     nube se pone al día cuando puede.
+   - ENTRAR NUNCA PIERDE NADA. La primera vez que un aparato entra, lo que ya
+     tiene se junta con lo de la cuenta —todo lo de los dos lados—; después,
+     cada vuelta junta a tres bandas (ver nubeFundir), y si los dos lados
+     cambiaron la misma cosa, se queda una y no se tira ninguna sin motivo.
+   - GOOGLE Y UN ENLACE POR CORREO, para quien no tiene cuenta de Google. Sin
+     contraseñas: una contraseña es lo primero que olvida quien usa poco el
+     teléfono, y aquí no hay quien se la restablezca.
+   - LAS FOTOS VAN DENTRO DE FIRESTORE, una por documento, y no en Cloud
+     Storage: Storage pide el plan de pago y una foto de nota ya se achica a
+     unos 140 KB al subirla (FOTO_PESO), muy por debajo del mega que aguanta
+     un documento.
+   - EN SU PROPIO PROYECTO DE FIREBASE, el de Glossa. Nunca el de Reveal: ver
+     el mapa de lectores, arriba, que ya se paró una vez por eso.
+
+   CÓMO QUEDA EN FIRESTORE (las reglas, en firestore.rules):
+     users/{uid}                     la cabecera: { rev, app, v, cambiado }
+     users/{uid}/datos/{almacén}~{n} lo de cada almacén, en trozos de < 1 MB:
+                                     { almacen, n, de, items:{ id: JSON } }
+     users/{uid}/fotos/{idFoto}      una foto de nota: { d: dataURL, t }
+   Todo cuelga de users/{uid}, y eso es lo que deja abrir mañana lo que
+   Gianni ya tiene en mente —que un lector le mande un documento a otro—: un
+   buzón users/{uid}/buzon/{envío} con sus propias reglas (puede escribir en
+   él cualquiera que haya entrado, y sólo leerlo su dueño) se añade al lado
+   sin tocar nada de esto.
+
+   «rev» es un número que sube con cada escritura. Con él, una vuelta en la
+   que la nube no se movió cuesta UNA lectura y no veinte: si rev es el que
+   este aparato dejó, la nube es justo lo que este aparato recuerda haberle
+   dejado, y solo hay que subir lo nuevo. La escritura va dentro de una
+   transacción que comprueba ese número: si otro aparato escribió en medio,
+   no se pisa nada; se vuelve a leer y a juntar.
+
+   Y SE ESPERA A LA CONFIGURACIÓN. NUBE_FB está vacía hasta que el proyecto
+   de Firebase de Glossa exista; mientras lo esté, la sección de la cuenta ni
+   aparece y nada de esto corre.
+   ============================================================ */
+const NUBE_SDK = MAPA_SDK;
+/* Lo que este aparato recuerda de la nube, en su propia clave y aparte de
+   todo lo demás: { uid, correo, nombre, rev, base:{ almacén:{ id:huella } },
+   trozos:{ almacén:n }, fotos:[ids], cuando }. Es un recuerdo, no datos: si
+   se pierde, la siguiente vuelta junta todo como la primera vez y no se
+   pierde nada. */
+const NUBE_CLAVE = 'glossa:nube:v1';
+/* El correo al que se mandó el enlace, para no pedirlo dos veces: Firebase
+   pide el mismo correo al volver del enlace, y quien abre el enlace en el
+   mismo teléfono ya lo escribió una vez. */
+const NUBE_CORREO = 'glossa:nube:correo:v1';
+/* Lo que el estreno sembró en este aparato —las glosas de ejemplo, las
+   perlas, la cinta, el rastro, la nota vacía— con su huella. Ver
+   nubeApuntarEstreno: sirve para que entrar desde un teléfono nuevo no le
+   meta a la cuenta otra tanda de ejemplos cada vez. */
+const NUBE_ESTRENO = 'glossa:nube:estreno:v1';
+/* Que se salió a Google a entrar y se vuelve de allí. Ver nubeEntrarGoogle. */
+const NUBE_VUELTA = 'glossa:nube:vuelta:v1';
+/* UN TROZO NO LLEGA AL MEGA. Firestore aguanta 1 MiB por documento contando
+   nombres de campo; 700 000 bytes deja aire de sobra. */
+const NUBE_TROZO = 700000;
+/* El silencio que se espera tras un cambio antes de subirlo. Una nota se
+   guarda a cada letra: subir a cada letra serían cientos de escrituras por
+   párrafo. Cinco segundos sin escribir y sube todo junto. */
+const NUBE_ESPERA = 5000;
+
+/* VAR Y NO LET, A PROPÓSITO. nubeTocada la llaman save(), guardarNotas y
+   compañía, y algunas de ellas corren al arrancar MIL LÍNEAS ANTES de que
+   este bloque se ejecute —la limpieza de fotos huérfanas de las notas, por
+   ejemplo—. Con let, leer estas variables ahí sería un «Cannot access before
+   initialization» que tiraría el arranque entero; con var valen undefined y
+   nubeTocada simplemente no hace nada todavía. */
+var nubeFb = null, nubeCargando = null, nubeVuelta = null, nubeOtraVez = false,
+    nubeReloj = null, nubeAplicando = false, nubePintar = null, nubeAviso = '';
+
+const nubeLeerJSON = (k, sino) => {
+  try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? sino : v; }
+  catch(_){ return sino; }
+};
+const nubeEscribirJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(_){ return false; } };
+function nubeEstado(){
+  const e = nubeLeerJSON(NUBE_CLAVE, null);
+  return e && typeof e === 'object' && !Array.isArray(e) ? e : {};
+}
+function nubeGuardarEstado(e){ nubeEscribirJSON(NUBE_CLAVE, e); }
+
+/* LA HUELLA de un registro: FNV-1a de 32 bits sobre su JSON. No es para
+   esconder nada —no hay secreto que guardar—; es para recordar CÓMO ERA cada
+   cosa la última vez que se juntó sin guardar una segunda copia de todo en un
+   almacén que solo da 5 MB. */
+function nubeHuella(s){
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(36) + '.' + s.length.toString(36);
+}
+const nubeBytes = s => new TextEncoder().encode(s).length;
+
+/* ---------- LOS ALMACENES QUE VIAJAN ----------
+
+   Cada uno se lee como un mapa id → JSON y se devuelve igual. Los que son
+   una LISTA de cosas con id —glosas, notas, perlas, cintas— viajan cosa por
+   cosa, así que dos aparatos que añaden cosas distintas se juntan sin pisarse.
+   Los que son UNA SOLA COSA —el rastro, la portada, los dos órdenes— viajan
+   enteros, con la id 'todo'.
+
+   ORDEN: en las notas el orden de las pestañas es del lector, y un mapa no
+   tiene orden. Así que va como una cosa más, '#orden', que se junta igual
+   que las demás: mover una pestaña es un cambio y viaja.
+
+   ganador: qué hacer si los dos lados cambiaron la misma cosa. Sin él, gana
+   este aparato —es lo que el lector tiene delante—; las perlas y las cintas
+   llevan su `tocado` y gana la tocada más tarde, que es la regla que ya
+   usaban entre pestañas; el rastro se junta entero, por fecha.
+
+   Los ajustes de lectura NO están, todavía: falta decidir cuáles viajan. Las
+   vistas de este aparato —qué sección estaba abierta, el alto de la lista de
+   etiquetas, la visita de la portada, el mapa— no viajarán nunca: son de esta
+   pantalla. */
+const nubeDeLista = lista => { const m = new Map(); for (const x of lista) if (x && x.id) m.set(String(x.id), JSON.stringify(x)); return m; };
+const nubeEntero = raw => { const m = new Map(); if (raw != null) m.set('todo', raw); return m; };
+const nubeCrudo = k => { try { return localStorage.getItem(k); } catch(_){ return null; } };
+const nubeLista = m => [...m.entries()].filter(([id]) => id !== '#orden').map(([, v]) => JSON.parse(v));
+const nubeMasTocado = (a, b) => ((JSON.parse(b).tocado || 0) > (JSON.parse(a).tocado || 0) ? b : a);
+const NUBE_ALMACENES = [
+  { id:'marcas',
+    leer: () => nubeDeLista(marcas),
+    poner: m => { marcas = nubeLista(m).map(alDia); paginasSucias = true; save(); } },
+  { id:'notas', ordenado: true,
+    leer: () => { const m = nubeDeLista(notas); m.set('#orden', JSON.stringify(notas.map(n => String(n.id)))); return m; },
+    poner: m => {
+      let orden = []; try { orden = JSON.parse(m.get('#orden') || '[]'); } catch(_){}
+      const porId = new Map(nubeLista(m).map(n => [String(n.id), n]));
+      const lista = orden.filter(id => porId.has(id)).map(id => porId.get(id));
+      for (const [id, n] of porId) if (!orden.includes(id)) lista.push(n);
+      /* Con la misma desconfianza que al arrancar: lo de la nube lo escribió
+         este mismo programa, pero el HTML no se cree nunca, venga de donde
+         venga. */
+      notas = lista.filter(n => n && typeof n.texto === 'string').map((n, i) => {
+        const limpia = { id:String(n.id), titulo:String(n.titulo || ('Nota ' + (i + 1))).slice(0, 60),
+                         texto:n.texto, filtros:normalizarHistorialNota(n.filtros) };
+        if (typeof n.html === 'string') limpia.html = limpiarHtmlNota(n.html);
+        return limpia;
+      });
+      if (!notas.length) notas = [{ id:nuevoIdNota(), titulo:T('Nota 1', 'Note 1'), texto:'' }];
+      guardarNotas(); reflejarNotas();
+    },
+    /* LA NOTA VACÍA DEL ESTRENO. Un aparato nuevo nace con una «Nota 1» en
+       blanco; al entrar en una cuenta que ya tiene notas, subirla sería una
+       pestaña vacía más en todos los aparatos. Se deja fuera solo esa: una
+       nota en blanco que la cuenta no conoce. */
+    sobraAlEntrar: (id, v) => { if (id === '#orden') return true;
+      try { const n = JSON.parse(v); return !String(n.texto || '').trim() && !n.html; } catch(_){ return false; } } },
+  { id:'piedras', ganador: nubeMasTocado,
+    leer: () => nubeDeLista(piedras),
+    poner: m => { try { localStorage.setItem(PIEDRAS, JSON.stringify(nubeLista(m))); } catch(_){}
+                  cargarPiedras(); } },
+  { id:'separadores', ganador: nubeMasTocado,
+    leer: () => nubeDeLista(separadores),
+    poner: m => { try { localStorage.setItem(SEPARADORES, JSON.stringify(nubeLista(m))); } catch(_){}
+                  cargarSeparadores(); } },
+  /* EL RASTRO ENTERO, Y SI LOS DOS CAMBIARON SE JUNTAN LOS DOS: es un camino
+     con fechas, y dos caminos se cosen por la fecha. Las entradas repetidas
+     —la misma hora y el mismo sitio— se quedan una vez, y el tope es el de
+     siempre. */
+  { id:'historial',
+    leer: () => nubeEntero(nubeCrudo(HISTORIAL)),
+    ganador: (a, b) => {
+      let x = [], y = [];
+      try { x = JSON.parse(a); } catch(_){}
+      try { y = JSON.parse(b); } catch(_){}
+      const visto = new Set(), todo = [];
+      for (const h of [...(Array.isArray(x) ? x : []), ...(Array.isArray(y) ? y : [])]){
+        const k = JSON.stringify(h);
+        if (!visto.has(k)){ visto.add(k); todo.push(h); }
+      }
+      todo.sort((p, q) => (q.t || 0) - (p.t || 0));
+      return JSON.stringify(todo.slice(0, TOPE_HISTORIAL));
+    },
+    poner: m => { try { localStorage.setItem(HISTORIAL, m.get('todo') || '[]'); } catch(_){}
+                  cargarHistorial(); if (histAbierto) pintarHistorial(); } },
+  /* LA PORTADA con su foto: cabe en un trozo —se achica a 1200 px al
+     elegirla—. La clave va escrita y no por PORTADA_LLAVE, que se declara mil
+     líneas más abajo: leída desde aquí al armar esta tabla, sería un «Cannot
+     access before initialization». */
+  { id:'portada', primeroNube: true,
+    leer: () => nubeEntero(nubeCrudo('glossa:portada:v1')),
+    poner: m => { try { localStorage.setItem('glossa:portada:v1', m.get('todo')); } catch(_){}
+                  portadaCargar(); portadaPintarFoto(); portadaPintarPiedras(); } },
+  { id:'ordenIndice', primeroNube: true,
+    leer: () => nubeEntero(JSON.stringify(ordenIndice)),
+    poner: m => { try { const o = JSON.parse(m.get('todo')); if (Array.isArray(o)) ordenIndice = o.filter(id => typeof id === 'string'); } catch(_){}
+                  guardarOrdenIndice(); } },
+  /* El de Encuentros se lee solo al armar sus pestañas, así que lo que llegue
+     de la nube se ve la próxima vez que se abra el programa. */
+  { id:'ordenEncuentros', primeroNube: true,
+    leer: () => nubeEntero(nubeCrudo('glossa:encuentros:orden:v1')),
+    poner: m => { try { localStorage.setItem('glossa:encuentros:orden:v1', m.get('todo')); } catch(_){} } },
+];
+
+/* ---------- JUNTAR A TRES BANDAS ----------
+
+   Para cada cosa se miran tres versiones: la de este aparato, la de la nube
+   y la huella de cómo era la última vez que se juntaron (la base).
+   - Iguales: nada que hacer.
+   - Solo cambió un lado —el otro sigue como la base—: gana el que cambió.
+   - Cambiaron los dos: decide el ganador del almacén.
+   - Está en un lado y no en el otro: si la base no la conocía, es nueva y
+     se queda; si la conocía, el otro lado la quitó y se va... salvo que este
+     lado la haya cambiado desde entonces, y entonces se queda. Entre
+     «quitado» y «cambiado» gana cambiado: vale más una glosa de sobra que
+     una perdida.
+   La primera vez de un aparato la base está vacía y todo es «nuevo»: se
+   juntan los dos lados enteros. */
+function nubeFundir(alm, local, nube, base, estreno){
+  base = base || {};
+  if (!Object.keys(base).length && nube.size){
+    /* PRIMERA VEZ EN UNA CUENTA CON COSAS: lo que el estreno sembró aquí y
+       el lector no ha tocado no sube. Ver NUBE_ESTRENO. */
+    const e = estreno || {};
+    for (const [id, v] of [...local]){
+      /* Lo que es UNA SOLA COSA —por dónde vas, la portada, los órdenes— lo
+         trae la cuenta: un teléfono recién estrenado está en Génesis 1 y con
+         la portada de fábrica, y eso no es una decisión del lector que valga
+         más que lo que ya tenía guardado. */
+      if (nube.has(id)){ if (alm.primeroNube) local.delete(id); continue; }
+      if (e[id] === nubeHuella(v) || (alm.sobraAlEntrar && alm.sobraAlEntrar(id, v))) local.delete(id);
+    }
+  }
+  const res = new Map();
+  for (const id of new Set([...local.keys(), ...nube.keys()])){
+    const l = local.get(id), n = nube.get(id), b = base[id];
+    let v;
+    if (l !== undefined && n !== undefined){
+      if (l === n) v = l;
+      else if (b === nubeHuella(l)) v = n;
+      else if (b === nubeHuella(n)) v = l;
+      else v = alm.ganador ? alm.ganador(l, n) : l;
+    } else if (l !== undefined) v = (b && b === nubeHuella(l)) ? undefined : l;
+    else v = (b && b === nubeHuella(n)) ? undefined : n;
+    if (v !== undefined) res.set(id, v);
+  }
+  return res;
+}
+const nubeHuellas = m => { const o = {}; for (const [id, v] of m) o[id] = nubeHuella(v); return o; };
+const nubeMismas = (a, b) => {
+  const ka = Object.keys(a || {}), kb = Object.keys(b || {});
+  return ka.length === kb.length && ka.every(k => a[k] === b[k]);
+};
+/* LO QUE EL ESTRENO SEMBRÓ, con su huella, para que nubeFundir lo
+   reconozca. Se llama al arrancar por primera vez, justo después de sembrar. */
+/* Solo los almacenes que el estreno siembra: las notas no, porque una nota
+   que ya estaba —escrita antes de tener glosas— es del lector y no un
+   ejemplo; la nota vacía de estreno la quita sobraAlEntrar. */
+const NUBE_SEMBRADOS = ['marcas', 'piedras', 'separadores', 'historial'];
+function nubeApuntarEstreno(){
+  const e = {};
+  for (const alm of NUBE_ALMACENES) if (NUBE_SEMBRADOS.includes(alm.id)) e[alm.id] = nubeHuellas(alm.leer());
+  nubeEscribirJSON(NUBE_ESTRENO, e);
+}
+
+/* ---------- FIREBASE, CUANDO HACE FALTA ----------
+
+   Se pide la primera vez que algo lo necesita —entrar, o arrancar con una
+   cuenta abierta— y nunca al abrir: son cientos de KB y este programa abre
+   sin red. Si no hay red, falla aquí, se dice en la sección de la cuenta y el
+   resto del programa ni se entera. */
+function nubeBase(){
+  if (!NUBE_FB) return Promise.reject(new Error('sin-config'));
+  if (nubeFb) return Promise.resolve(nubeFb);
+  nubeCargando = nubeCargando || (async () => {
+    const [app, am, fs] = await Promise.all([import(NUBE_SDK + 'firebase-app.js'),
+                                             import(NUBE_SDK + 'firebase-auth.js'),
+                                             import(NUBE_SDK + 'firebase-firestore.js')]);
+    const a = app.initializeApp(NUBE_FB, 'glossa');
+    const auth = am.getAuth(a);
+    await auth.authStateReady();
+    nubeFb = { app: a, am, auth, fs, db: fs.getFirestore(a) };
+    return nubeFb;
+  })().catch(e => { nubeCargando = null; throw e; });
+  return nubeCargando;
+}
+const nubeUsuario = () => nubeFb && nubeFb.auth.currentUser;
+
+/* ---------- LA VUELTA ----------
+
+   Una a la vez: si se pide otra mientras corre una, se apunta y se da al
+   acabar. Y nunca con el lector escribiendo: juntar puede repintar la nota
+   que tiene abierta y comérsele el cursor; se espera a que suelte el foco. */
+function nubeEscribiendo(){
+  const a = document.activeElement;
+  return !!(a && (a.isContentEditable || /^(INPUT|TEXTAREA)$/.test(a.tagName) && a.type !== 'checkbox' && a.type !== 'range'));
+}
+function nubeSincronizar(){
+  if (!NUBE_FB || !nubeUsuario()) return Promise.resolve();
+  if (nubeVuelta){ nubeOtraVez = true; return nubeVuelta; }
+  nubeVuelta = (async () => {
+    try {
+      do { nubeOtraVez = false; await nubeUnaVuelta(); } while (nubeOtraVez);
+      nubeAviso = '';
+    } catch(e){
+      nubeAviso = e && e.code === 'unavailable' || !navigator.onLine ? 'sin-red' : 'fallo';
+      console.warn('Glossa · nube:', e);
+    } finally {
+      nubeVuelta = null;
+      if (nubePintar) nubePintar();
+    }
+  })();
+  if (nubePintar) nubePintar();
+  return nubeVuelta;
+}
+/* Lo llaman todos los que guardan algo que viaja. */
+function nubeTocada(){
+  if (!nubeFb || nubeAplicando || !nubeUsuario()) return;
+  clearTimeout(nubeReloj);
+  nubeReloj = setTimeout(nubeSincronizar, NUBE_ESPERA);
+}
+
+async function nubeUnaVuelta(){
+  if (nubeEscribiendo()){ nubeEsperaFoco = true; return; }
+  const { fs, db } = nubeFb, u = nubeUsuario();
+  if (!u) return;
+  let est = nubeEstado();
+  /* OTRA CUENTA EN ESTE APARATO: lo que se recuerda era de la otra, y juntar
+     contra su base borraría cosas. Se empieza como la primera vez. */
+  if (est.uid !== u.uid) est = { uid: u.uid, rev: -1, base: {}, trozos: {}, fotos: [] };
+  delete est.fuera;
+  est.correo = u.email || est.correo || ''; est.nombre = u.displayName || est.nombre || '';
+  const cabRef = fs.doc(db, 'users', u.uid);
+  const cab = await fs.getDoc(cabRef);
+  const rev = cab.exists() ? (+cab.data().rev || 0) : 0;
+  /* LA NUBE SE LEE ENTERA SOLO SI SE MOVIÓ. Si rev es el que se dejó, la nube
+     es la base y basta con subir lo que cambió aquí. */
+  let nube = null, trozosNube = est.trozos || {}, fotosNube = est.fotos || [];
+  if (rev !== est.rev){
+    nube = {}; trozosNube = {}; fotosNube = [];
+    const snap = await fs.getDocs(fs.collection(db, 'users', u.uid, 'datos'));
+    const partes = {};
+    snap.forEach(d => {
+      const x = d.data();
+      if (!x || typeof x.almacen !== 'string' || !x.items) return;
+      (partes[x.almacen] = partes[x.almacen] || []).push(x);
+    });
+    for (const [alm, ps] of Object.entries(partes)){
+      ps.sort((a, b) => a.n - b.n);
+      const m = new Map();
+      for (const p of ps) for (const [id, v] of Object.entries(p.items)) if (typeof v === 'string') m.set(id, v);
+      trozosNube[alm] = ps.length;
+      if (alm === 'fotos') fotosNube = [...m.keys()];
+      else nube[alm] = m;
+    }
+  }
+  const estreno = nubeLeerJSON(NUBE_ESTRENO, {});
+  const base = est.base || {};
+  const nuevaBase = {}, subir = [];
+  const resultado = {}, antes = {};
+  for (const alm of NUBE_ALMACENES){
+    const local = alm.leer();
+    antes[alm.id] = nubeHuellas(local);
+    const res = nube ? nubeFundir(alm, new Map(local), nube[alm.id] || new Map(), base[alm.id], estreno[alm.id])
+                     : local;
+    resultado[alm.id] = res;
+    nuevaBase[alm.id] = nubeHuellas(res);
+    const enNube = nube ? nubeHuellas(nube[alm.id] || new Map()) : (base[alm.id] || {});
+    if (!nubeMismas(nuevaBase[alm.id], enNube)) subir.push(alm);
+  }
+
+  /* LAS FOTOS NO SE JUNTAN COMO LO DEMÁS: van donde van las notas. Se
+     quedan las que alguna nota usa, y nada más. Así una foto que no cupo en
+     el almacén de este teléfono —se queda en memoria y mañana no está— no
+     cuenta como «la quité»: la nota la sigue usando y se vuelve a bajar. */
+  const usadas = new Set();
+  for (const v of resultado.notas.values()){
+    try { const n = JSON.parse(v); if (n && n.html) fotosDeHtml(n.html).forEach(id => usadas.add(id)); } catch(_){}
+  }
+  const enNube = new Set(fotosNube);
+  const bajar = [...usadas].filter(id => enNube.has(id) && !fotosNotas[id]);
+  const fotosBajadas = {};
+  for (const id of bajar){
+    try {
+      const d = await fs.getDoc(fs.doc(db, 'users', u.uid, 'fotos', id));
+      const x = d.exists() && d.data();
+      if (x && typeof x.d === 'string' && DATOS_FOTO.test(x.d)) fotosBajadas[id] = x.d;
+    } catch(_){}
+  }
+  /* Y SE SUBEN ANTES QUE LAS NOTAS, para que ninguna nota de la nube apunte
+     nunca a una foto que la nube no tiene. Son inmutables: una foto nueva es
+     un id nuevo, así que no hay nada que juntar. */
+  const subirFotos = [...usadas].filter(id => !enNube.has(id) && fotosNotas[id]);
+  for (const id of subirFotos){
+    await fs.setDoc(fs.doc(db, 'users', u.uid, 'fotos', id), { d: fotosNotas[id], t: Date.now() });
+    enNube.add(id);
+  }
+  const sobranFotos = [...enNube].filter(id => !usadas.has(id));
+  const fotosFinal = [...enNube].filter(id => usadas.has(id)).sort();
+  const fotosCambian = fotosFinal.join('|') !== [...fotosNube].sort().join('|');
+
+  /* Y LO DE ESTE APARATO SUBE, todo en una transacción que mira rev. */
+  if (subir.length || fotosCambian || !cab.exists()){
+    const docs = [];
+    const trozar = (almId, m) => {
+      const ts = [];
+      let actual = {}, peso = 0;
+      for (const [id, v] of m){
+        const p = nubeBytes(v) + nubeBytes(id) + 8;
+        if (peso + p > NUBE_TROZO && peso){ ts.push(actual); actual = {}; peso = 0; }
+        actual[id] = v; peso += p;
+      }
+      ts.push(actual);
+      ts.forEach((items, n) => docs.push({ id: almId + '~' + n, data: { almacen: almId, n, de: ts.length, items } }));
+      return ts.length;
+    };
+    const trozos = { ...trozosNube };
+    for (const alm of subir) trozos[alm.id] = trozar(alm.id, resultado[alm.id]);
+    if (fotosCambian || !trozosNube.fotos) trozos.fotos = trozar('fotos', new Map(fotosFinal.map(id => [id, '1'])));
+    const borrar = [];
+    for (const [almId, nViejo] of Object.entries(trozosNube))
+      for (let n = trozos[almId] || 0; n < nViejo; n++) borrar.push(almId + '~' + n);
+    const nuevoRev = rev + 1;
+    let otra = false;
+    try {
+      await fs.runTransaction(db, async tx => {
+        const c = await tx.get(cabRef);
+        const r = c.exists() ? (+c.data().rev || 0) : 0;
+        if (r !== rev){ const e = new Error('la nube cambió'); e.otraVez = true; throw e; }
+        for (const d of docs) tx.set(fs.doc(db, 'users', u.uid, 'datos', d.id), d.data);
+        for (const id of borrar) tx.delete(fs.doc(db, 'users', u.uid, 'datos', id));
+        tx.set(cabRef, { rev: nuevoRev, app: 'glossa', v: 1, cambiado: Date.now() });
+      });
+    } catch(e){ if (e && e.otraVez) otra = true; else throw e; }
+    /* OTRO APARATO ESCRIBIÓ EN MEDIO. Lo de aquí ya está juntado con lo que
+       se leyó, y lo nuevo de allá falta: se da otra vuelta, que lee y junta
+       otra vez. La base no se toca, porque esta vuelta no dejó nada arriba. */
+    if (otra){ nubeOtraVez = true; return; }
+    /* Las fotos que ya no usa ninguna nota se quitan de la nube DESPUÉS de
+       que las notas sin ellas ya están arriba. Si esto falla no pasa nada:
+       se vuelven a ver sobrantes la próxima vez. */
+    for (const id of sobranFotos){
+      try { await fs.deleteDoc(fs.doc(db, 'users', u.uid, 'fotos', id)); } catch(_){}
+    }
+    est.rev = nuevoRev; est.trozos = trozos;
+  } else { est.rev = rev; est.trozos = trozosNube; }
+
+  /* LO DE LA NUBE ENTRA EN ESTE APARATO, y solo ahora, con la subida ya
+     hecha. Antes entraba antes de subir, y si otro aparato escribía en medio
+     la vuelta siguiente juntaba con la base vieja: lo bajado parecía un cambio
+     de este aparato y pisaba lo más nuevo de allá. Así, si la subida choca,
+     aquí no se ha tocado nada y la vuelta siguiente junta como si esta no
+     hubiera pasado.
+
+     Si el lector se puso a escribir mientras se esperaba a la red, no se le
+     repinta nada: la nube ya tiene lo juntado, pero este aparato no apunta
+     la vuelta como hecha (ni rev ni base), y al soltar el foco se junta otra
+     vez contra la base de antes, que es la que de verdad comparten. */
+  if (nube && nubeEscribiendo()){ nubeEsperaFoco = true; return; }
+  let siguioCambiando = false;
+  nubeAplicando = true;
+  try {
+    /* Primero las fotos y luego lo demás: cuando una nota se pinte, su foto
+       ya tiene que estar. */
+    if (Object.keys(fotosBajadas).length){ Object.assign(fotosNotas, fotosBajadas); guardarFotos(); }
+    let tocoHoja = false;
+    for (const alm of NUBE_ALMACENES){
+      if (!nube) continue;
+      const ahora = alm.leer();
+      const final = nubeAlDia(antes[alm.id], ahora, resultado[alm.id]);
+      if (final !== resultado[alm.id]) siguioCambiando = true;
+      if (nubeMismas(nubeHuellas(ahora), nubeHuellas(final))) continue;
+      alm.poner(final);
+      tocoHoja = true;
+    }
+    if (tocoHoja) renderPage();
+  } finally { nubeAplicando = false; }
+  est.base = nuevaBase; est.fotos = fotosFinal; est.cuando = Date.now();
+  nubeGuardarEstado(est);
+  /* Lo que el lector cambió durante la espera quedó aquí y no en la base:
+     otra vuelta lo sube. */
+  if (siguioCambiando) nubeOtraVez = true;
+  if (nube && resultado.lugar) nubeSeguirLugar(resultado.lugar.get('todo'));
+}
+/* LO QUE SE CAMBIÓ AQUÍ MIENTRAS SE ESPERABA A LA RED. Las esperas de la
+   vuelta (bajar y subir fotos, la transacción) dejan escribir al lector, y lo
+   juntado se calculó con lo que había antes. Cosa por cosa: si sigue como
+   estaba al juntar, entra lo juntado; si el lector la cambió, la quitó o la
+   puso nueva, se respeta lo suyo. Devuelve el mismo mapa juntado cuando nada
+   cambió, para que quien llama lo sepa sin compararlo entero. */
+function nubeAlDia(huellasAntes, ahora, juntado){
+  const ha = huellasAntes || {};
+  let cambio = false;
+  for (const [id, v] of ahora) if (ha[id] !== nubeHuella(v)){ cambio = true; break; }
+  if (!cambio) for (const id of Object.keys(ha)) if (!ahora.has(id)){ cambio = true; break; }
+  if (!cambio) return juntado;
+  const final = new Map();
+  for (const id of new Set([...juntado.keys(), ...ahora.keys(), ...Object.keys(ha)])){
+    const v = ahora.get(id);
+    const tocada = v === undefined ? (id in ha) : ha[id] !== nubeHuella(v);
+    const x = tocada ? v : juntado.get(id);
+    if (x !== undefined) final.set(id, x);
+  }
+  return final;
+}
+
+/* ---------- POR DÓNDE VAS ----------
+
+   De los ajustes de lectura viajan la Biblia elegida y el sitio, y nada más:
+   lo decidió Gianni («Biblia y lugar»). La letra, los márgenes, el sepia se
+   quedan en cada aparato, porque la letra que va bien en el teléfono queda
+   chica en una tableta.
+
+   Viajan en su propia clave y no dentro de los ajustes, porque los ajustes se
+   reescriben enteros en cada pintada y ahí no hay manera de saber CUÁNDO se
+   movió el lector: guardarAjustes llama a nubeApuntarLugar, y esta apunta el
+   sitio con su hora solo cuando el sitio cambió. Si los dos aparatos se
+   movieron, gana el que se movió más tarde. */
+const NUBE_LUGAR = 'glossa:lugar:v1';
+var nubeLugarPropio = null, nubeLugarMovido = false, nubeLugarSeguido = false;
+const nubeSitio = x => JSON.stringify({ version: x.version, libro: x.libro, cap: x.cap, vers: x.vers });
+function nubeApuntarLugar(version, libro, cap, vers){
+  const s = nubeSitio({ version, libro, cap, vers });
+  if (s === nubeLugarPropio) return;
+  /* El primero de la sesión es el sitio al que se volvió al abrir, no un paso
+     del lector. */
+  if (nubeLugarPropio !== null) nubeLugarMovido = true;
+  nubeLugarPropio = s;
+  const ya = nubeLeerJSON(NUBE_LUGAR, null);
+  if (ya && nubeSitio(ya) === s) return;
+  nubeEscribirJSON(NUBE_LUGAR, { version, libro, cap, vers, t: Date.now() });
+  nubeTocada();
+}
+/* AL ABRIR, el sitio que llegó de otro aparato pasa a los ajustes antes de que
+   se lean, y el programa abre ahí sin más.
+
+   Solo el sitio que LLEGÓ de la nube, marcado con «llego» al ponerlo. Sin esa
+   marca se aplicaba cualquier diferencia entre el sitio y los ajustes, y
+   quien cambiaba los ajustes por su cuenta —una restauración, una prueba que
+   abre en otra Biblia— volvía a la Biblia de antes. La marca se quita en
+   cuanto se aplica, para que pese una sola vez. */
+/* La marca es cosa de este aparato: ni sube a la nube ni cuenta como cambio. */
+function nubeLugarSinMarca(){
+  const raw = nubeCrudo(NUBE_LUGAR);
+  if (raw == null || raw.indexOf('"llego"') < 0) return raw;
+  try { const { llego, ...sitio } = JSON.parse(raw); return JSON.stringify(sitio); } catch(_){ return raw; }
+}
+function nubeLugarAlArrancar(){
+  const l = nubeLeerJSON(NUBE_LUGAR, null), a = nubeLeerJSON(AJUSTES, null);
+  if (!l || !l.llego) return;
+  const { llego, ...sitio } = l;
+  nubeEscribirJSON(NUBE_LUGAR, sitio);
+  if (!a || a.v !== 1 || typeof l.libro !== 'string' || !Number.isFinite(l.cap) || !Number.isFinite(l.vers)) return;
+  if (!D.versiones[l.version]) return;
+  if (nubeSitio(l) === nubeSitio(a)) return;
+  nubeEscribirJSON(AJUSTES, { ...a, version: l.version, libro: l.libro, cap: l.cap, vers: l.vers });
+}
+/* Y SI LLEGA CON EL PROGRAMA YA ABIERTO, en la primera vuelta, antes de que
+   el lector se haya movido —quien abre el teléfono después de leer en la
+   tableta—, se va ahí y se dice. Solo con la misma Biblia: cambiar de versión
+   en marcha es una repaginación entera, y eso espera a la próxima vez que se
+   abra, que es lo que hace nubeLugarAlArrancar. Una vez que el lector se
+   movió, no se le mueve nunca más por debajo. */
+function nubeSeguirLugar(v){
+  if (nubeLugarSeguido || nubeLugarMovido || !v) return;
+  nubeLugarSeguido = true;
+  let l = null; try { l = JSON.parse(v); } catch(_){}
+  if (!l || nubeSitio(l) === nubeLugarPropio || l.version !== version) return;
+  if (!D.versiones[version].texto[l.libro] || !versoTexto(version, l.cap, l.vers, l.libro)) return;
+  nubeLugarPropio = nubeSitio(l);
+  irA(l.libro, l.cap, l.vers, null, { sinApuntar: true });
+  readout.textContent = T('Sigues donde ibas en tu otro aparato: ', 'Picking up where you were on your other device: ') +
+                        nombreDe(l.libro) + ' ' + l.cap + ':' + l.vers;
+}
+NUBE_ALMACENES.push({ id:'lugar', primeroNube: true,
+  leer: () => nubeEntero(nubeLugarSinMarca()),
+  ganador: (a, b) => ((JSON.parse(b).t || 0) > (JSON.parse(a).t || 0) ? b : a),
+  poner: m => {
+    const v = m.get('todo'); if (!v) return;
+    /* Solo si cambia: lo que ya estaba es del propio aparato y no lleva marca. */
+    if (v === nubeLugarSinMarca()) return;
+    let l = null; try { l = JSON.parse(v); } catch(_){ return; }
+    nubeEscribirJSON(NUBE_LUGAR, { ...l, llego: 1 });
+  } });
+
+/* ---------- CUÁNDO SE JUNTA ----------
+
+   Al abrir, si ya se había entrado —un segundo y medio después, para no
+   pelear con el primer pintado—; cinco segundos después de cada cambio; al
+   volver al programa, si pasó un rato; al volver la red; y al soltar el foco,
+   si una vuelta se saltó porque el lector estaba escribiendo. Y al irse: un
+   teléfono que se guarda en el bolsillo no espera los cinco segundos. */
+var nubeUltima = 0, nubeEsperaFoco = false;
+function nubeAhora(){ clearTimeout(nubeReloj); nubeReloj = null; nubeUltima = Date.now(); return nubeSincronizar(); }
+function nubeArrancar(){
+  if (!NUBE_FB) return;
+  const enlace = /[?&]oobCode=/.test(location.search) && /[?&]mode=signIn/.test(location.search);
+  const est = nubeEstado();
+  if ((!est.uid || est.fuera) && !enlace && !nubeCrudo(NUBE_VUELTA)) return;
+  try { localStorage.removeItem(NUBE_VUELTA); } catch(_){}
+  setTimeout(async () => {
+    try { await nubeBase(); } catch(_){ nubeAviso = 'sin-red'; if (nubePintar) nubePintar(); return; }
+    if (enlace) await nubeVolverDelEnlace();
+    nubeEscuchar();
+  }, 1500);
+}
+let nubeEscuchando = false;
+function nubeEscuchar(){
+  if (nubeEscuchando) return;
+  nubeEscuchando = true;
+  nubeFb.am.onAuthStateChanged(nubeFb.auth, u => {
+    if (nubePintar) nubePintar();
+    if (u) nubeAhora();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (!nubeUsuario()) return;
+    if (document.hidden){ if (nubeReloj) nubeAhora(); }
+    else if (Date.now() - nubeUltima > 20000) nubeAhora();
+  });
+  addEventListener('online', () => { if (nubeUsuario()) nubeAhora(); });
+  document.addEventListener('focusout', () => {
+    if (!nubeEsperaFoco) return;
+    nubeEsperaFoco = false;
+    setTimeout(nubeTocada, 0);
+  });
+}
+
+/* ---------- ENTRAR Y SALIR ----------
+
+   LA VENTANITA DE GOOGLE TIENE QUE ABRIRSE DEL TOQUE, y por eso el SDK se
+   pide en cuanto la sección de la cuenta asoma en pantalla y no al tocar: si
+   entre el toque y la ventana hay una espera de red, el navegador ya no la ve
+   como pedida por el lector y la bloquea. Si aun así la bloquea, se entra
+   dando la vuelta por la página de Google, que no necesita ventana. */
+async function nubeEntrarGoogle(){
+  const fb = nubeFb || await nubeBase();
+  nubeEscuchar();
+  const p = new fb.am.GoogleAuthProvider();
+  p.setCustomParameters({ prompt: 'select_account' });
+  try { await fb.am.signInWithPopup(fb.auth, p); }
+  catch(e){
+    if (e && /popup-blocked|operation-not-supported/.test(e.code || '')){
+      /* La página se va a Google y vuelve: al volver, nubeArrancar tiene que
+         saber que hay que cargar el SDK aunque todavía no haya cuenta. */
+      try { localStorage.setItem(NUBE_VUELTA, '1'); } catch(_){}
+      await fb.am.signInWithRedirect(fb.auth, p);
+      return;
+    }
+    throw e;
+  }
+}
+/* EL ENLACE POR CORREO, para quien no tiene cuenta de Google o no se acuerda
+   de ella: se escribe el correo, llega un mensaje, se toca el enlace y se
+   está dentro. Vuelve a esta misma página. */
+async function nubeMandarEnlace(correo){
+  const fb = nubeFb || await nubeBase();
+  nubeEscuchar();
+  await fb.am.sendSignInLinkToEmail(fb.auth, correo,
+    { url: location.origin + location.pathname, handleCodeInApp: true });
+  try { localStorage.setItem(NUBE_CORREO, correo); } catch(_){}
+}
+/* Al volver del enlace. Si se abrió en el mismo aparato, el correo ya está
+   guardado y se entra sin preguntar nada; si se abrió en otro, la sección de
+   la cuenta lo pide una vez (nubeEnlacePendiente). */
+var nubeEnlacePendiente = null;
+async function nubeVolverDelEnlace(correoEscrito){
+  const fb = nubeFb, href = nubeEnlacePendiente || location.href;
+  if (!fb.am.isSignInWithEmailLink(fb.auth, href)) return;
+  const correo = correoEscrito || nubeCrudo(NUBE_CORREO);
+  /* La dirección se limpia ya, entre o no: un enlace de estos sirve una sola
+     vez, y dejarlo en la barra haría que cada recarga lo volviera a intentar. */
+  try { history.replaceState(null, '', location.pathname + location.hash); } catch(_){}
+  if (!correo){
+    nubeEnlacePendiente = href;
+    readout.textContent = T('Para terminar de entrar, escribe tu correo en Respaldo › Herramientas.',
+                            'To finish signing in, type your email in Backup › Tools.');
+    if (nubePintar) nubePintar();
+    return;
+  }
+  try {
+    await fb.am.signInWithEmailLink(fb.auth, correo, href);
+    nubeEnlacePendiente = null;
+    try { localStorage.removeItem(NUBE_CORREO); } catch(_){}
+    readout.textContent = T('Ya entraste. Tus cosas se guardan en la nube.', 'You’re in. Your things are saved in the cloud.');
+  } catch(e){
+    nubeEnlacePendiente = null;
+    nubeAviso = 'enlace';
+    console.warn('Glossa · enlace:', e);
+  }
+  if (nubePintar) nubePintar();
+}
+/* SALIR NO BORRA NADA DE ESTE APARATO: lo de aquí sigue aquí, como antes de
+   entrar. Solo deja de subirse. */
+async function nubeSalir(){
+  if (!nubeFb) return;
+  clearTimeout(nubeReloj); nubeReloj = null;
+  if (nubeVuelta) { try { await nubeVuelta; } catch(_){} }
+  await nubeFb.am.signOut(nubeFb.auth);
+  const est = nubeEstado();
+  est.fuera = true;
+  nubeGuardarEstado(est);
+}
+
+/* ---------- LA SECCIÓN DE LA CUENTA ----------
+
+   En Herramientas, arriba de las glosas. Pensada para quien usa poco el
+   teléfono: dos botones grandes que dicen lo que hacen, y una vez dentro, una
+   frase que dice si lo suyo está guardado. Nada de «sincronizar», «nube
+   remota» ni pasos: la nube se ocupa sola. */
+function armarCuenta(sec){
+  const el = (tag, cls) => { const x = document.createElement(tag); if (cls) x.className = cls; return x; };
+  const boton = (es, en) => { const b = el('button', 'btn'); b.type = 'button'; dosIdiomas(b, { t: [es, en] }); return b; };
+  const fuera = el('div', 'cuenta-fuera');
+  const botones = el('div', 'herr-botones cuenta-botones');
+  const bGoogle = boton('Entrar con Google', 'Sign in with Google');
+  const bCorreo = boton('Entrar con mi correo', 'Sign in with my email');
+  bGoogle.id = 'nubeGoogle'; bCorreo.id = 'nubeCorreo';
+  botones.append(bGoogle, bCorreo);
+  const form = el('form', 'cuenta-form');
+  form.hidden = true;
+  const etiqueta = el('label', 'cuenta-etq');
+  dosIdiomas(etiqueta, { t: ['Tu correo', 'Your email'] });
+  const caja = el('input', 'cuenta-caja');
+  caja.type = 'email'; caja.id = 'nubeCaja'; caja.autocomplete = 'email'; caja.inputMode = 'email';
+  caja.required = true; caja.maxLength = 200;
+  etiqueta.htmlFor = caja.id;
+  const bMandar = boton('Mandarme el enlace', 'Send me the link');
+  bMandar.type = 'submit'; bMandar.id = 'nubeMandar';
+  form.append(etiqueta, caja, bMandar);
+  fuera.append(botones, form);
+  const enviado = el('p', 'cuenta-dice cuenta-enviado');
+  enviado.hidden = true;
+  const dentro = el('div', 'cuenta-dentro');
+  dentro.hidden = true;
+  const quien = el('p', 'cuenta-quien');
+  const estado = el('p', 'cuenta-dice cuenta-estado');
+  estado.setAttribute('role', 'status');
+  const bSalir = boton('Salir de la cuenta', 'Sign out');
+  bSalir.id = 'nubeSalir';
+  dentro.append(quien, estado, bSalir);
+  const error = el('p', 'fallo-respaldo cuenta-error');
+  error.hidden = true;
+  sec.append(fuera, enviado, dentro, error);
+
+  let mandadoA = '', ocupado = false, fallo = null;
+  const decir = (p, es, en) => dosIdiomas(p, { t: [es, en] });
+  nubePintar = () => {
+    const u = nubeUsuario();
+    dentro.hidden = !u;
+    fuera.hidden = !!u;
+    enviado.hidden = !!u || !mandadoA;
+    bGoogle.disabled = bCorreo.disabled = bMandar.disabled = ocupado;
+    if (nubeEnlacePendiente && !u){
+      form.hidden = false;
+      decir(etiqueta, 'Para terminar de entrar, escribe otra vez tu correo', 'To finish signing in, type your email again');
+      decir(bMandar, 'Entrar', 'Sign in');
+    }
+    if (mandadoA) decir(enviado,
+      'Te mandamos un enlace a ' + mandadoA + '. Ábrelo en este aparato y entrarás solo. Si no llega, mira en «correo no deseado».',
+      'We sent a link to ' + mandadoA + '. Open it on this device and you’ll be signed in. If it doesn’t arrive, check your spam folder.');
+    if (u){
+      const nombre = u.displayName || '';
+      decir(quien, (nombre ? nombre + ' · ' : '') + (u.email || ''), (nombre ? nombre + ' · ' : '') + (u.email || ''));
+      const est = nubeEstado();
+      const hora = est.cuando ? new Date(est.cuando).toLocaleTimeString(T('es', 'en'), { hour:'2-digit', minute:'2-digit' }) : '';
+      if (nubeVuelta) decir(estado, 'Guardando en la nube…', 'Saving to the cloud…');
+      else if (nubeAviso === 'sin-red') decir(estado, 'Sin conexión. Se guardará cuando vuelva la red; aquí no se pierde nada.',
+                                               'No connection. It will be saved when you’re back online; nothing is lost here.');
+      else if (nubeAviso === 'fallo') decir(estado, 'No se pudo guardar en la nube. Se volverá a intentar solo.',
+                                             'Couldn’t save to the cloud. It will try again by itself.');
+      else if (hora) decir(estado, 'Todo guardado en la nube (' + hora + '). Entra con esta misma cuenta en otro aparato y lo verás ahí.',
+                                   'All saved in the cloud (' + hora + '). Sign in with this same account on another device and you’ll see it there.');
+      else decir(estado, 'Guardando en la nube…', 'Saving to the cloud…');
+    }
+    if (fallo){ decir(error, fallo[0], fallo[1]); error.hidden = false; }
+    else if (!u && nubeAviso === 'enlace'){
+      decir(error, 'Ese enlace ya no sirve: ya se usó o es viejo. Pide otro.', 'That link no longer works: it was used or is old. Ask for a new one.');
+      error.hidden = false;
+    } else error.hidden = true;
+  };
+  const intentar = async (fn, sinRed) => {
+    if (ocupado) return;
+    ocupado = true; fallo = null; nubeAviso = ''; nubePintar();
+    try { await fn(); }
+    catch(e){
+      const c = (e && e.code) || '';
+      console.warn('Glossa · cuenta:', e);
+      if (/popup-closed|cancelled-popup/.test(c)) fallo = null;
+      else if (/invalid-email/.test(c)) fallo = ['Ese correo no parece bien escrito.', 'That email doesn’t look right.'];
+      else if (!navigator.onLine || /network/.test(c) || !nubeFb) fallo = sinRed;
+      else fallo = ['No se pudo. Prueba otra vez en un momento.', 'That didn’t work. Try again in a moment.'];
+    } finally { ocupado = false; nubePintar(); }
+  };
+  const sinRed = ['Hace falta internet para entrar. Lo tuyo sigue a salvo en este aparato.',
+                  'You need internet to sign in. Your things are still safe on this device.'];
+  bGoogle.addEventListener('click', () => intentar(nubeEntrarGoogle, sinRed));
+  bCorreo.addEventListener('click', () => {
+    form.hidden = false;
+    setTimeout(() => caja.focus(), 0);
+  });
+  form.addEventListener('submit', ev => {
+    ev.preventDefault();
+    const correo = caja.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)){
+      fallo = ['Ese correo no parece bien escrito.', 'That email doesn’t look right.']; nubePintar(); return;
+    }
+    if (nubeEnlacePendiente) return intentar(() => nubeVolverDelEnlace(correo), sinRed);
+    intentar(async () => { await nubeMandarEnlace(correo); mandadoA = correo; form.hidden = true; }, sinRed);
+  });
+  bSalir.addEventListener('click', () => intentar(async () => { await nubeSalir(); mandadoA = ''; }, sinRed));
+  /* EL SDK SE PIDE EN CUANTO LA SECCIÓN ASOMA, para que el toque en Google
+     abra la ventana al momento. Ver nubeEntrarGoogle. */
+  if ('IntersectionObserver' in window){
+    const ojo = new IntersectionObserver(ents => {
+      if (!ents.some(e => e.isIntersecting)) return;
+      ojo.disconnect();
+      nubeBase().then(() => { nubeEscuchar(); nubePintar(); }, () => {});
+    });
+    ojo.observe(sec);
+  }
+  nubePintar();
+}
+
 /* COMPARTIR LA BIBLIA GLOSSA: la dirección, los tres iconos y el dibujo del
    QR. Los iconos son trazos, no letras ni emojis: así salen iguales en
    Android y en iPhone, del mismo grueso y del color que les toque. */
@@ -30909,6 +31770,18 @@ function armarAtribuciones(sitio){
   fallo.hidden = true;
   secGlosas.appendChild(fallo);
   if (ultimoFallo){ fallo.textContent = ultimoFallo; fallo.hidden = false; }
+  /* TU CUENTA, encima de las glosas: es lo primero que busca quien quiere su
+     copia en la nube. Solo existe cuando el proyecto de Firebase está puesto;
+     antes no hay nada que ofrecer, y un botón que no lleva a nada es peor que
+     ningún botón. */
+  if (NUBE_FB){
+    const secCuenta = seccion('Tu cuenta', 'Your account',
+      'Entra para guardar tus glosas, notas, perlas y cintas en la nube: si pierdes el teléfono no se pierden, y en otro aparato con la misma cuenta las encuentras. Sin entrar, todo sigue funcionando como siempre, solo en este aparato.',
+      'Sign in to keep your glosses, notes, pearls and ribbons in the cloud: if you lose your phone they aren’t lost, and on another device with the same account you’ll find them. Without signing in, everything keeps working as always, only on this device.');
+    secCuenta.classList.add('herr-cuenta');
+    caja.insertBefore(secCuenta, secGlosas);
+    armarCuenta(secCuenta);
+  }
   /* LA CASILLA DE LOS TIEMPOS, pedida: «un checkbox en RESPALDO para que
      aparezca y desaparezca la caja de PERFORMANCE».
 
@@ -31563,6 +32436,7 @@ function portadaCargar(){
 function portadaGuardar(){
   try {
     localStorage.setItem(PORTADA_LLAVE, JSON.stringify(portadaAdorno));
+    nubeTocada();
     return true;
   } catch(e){
     /* Y SE DICE. Es de los que sí salen: el lector acaba de elegir una foto y
@@ -31993,6 +32867,9 @@ function portadaTomarArchivo(file){
    NUEVE SEGUNDOS Y NO SIETE: la espera normal subió a cinco, y un techo tiene
    que quedar claramente por encima de la cuenta o deja de ser un techo y se
    convierte en un segundo reloj compitiendo con el primero. */
+/* Por dónde ibas en tu otro aparato, si llegó de la nube: entra en los ajustes
+   antes de leerlos. Ver POR DÓNDE VAS. */
+nubeLugarAlArrancar();
 const guardado = cargarAjustes();
 cargarHistorial();
 cargarSeparadores();
@@ -32008,6 +32885,7 @@ cargarPiedras();
 aplicarIdioma();
 if (primeraVez) sembrarGlosasDeEstreno();
 if (primeraVez) sembrarAdornosDeEstreno();
+if (primeraVez) nubeApuntarEstreno();
 stage.style.transition = 'none';
 stage.style.width = ANCHO_HOJA + 'px';
 void stage.offsetWidth;
@@ -32101,6 +32979,8 @@ if (guardado && guardado.cap){
    mañana se vuelve a intentar. Ver la bandera junto a guardarAjustes. */
 restaurando = false;
 renderPage();
+/* Y si ya se había entrado en una cuenta, se junta con la nube. */
+nubeArrancar();
 window.addEventListener('resize', () => {
   sizeCanvas(); ajustarAnchoPanel(); cambiarPresetsSiCambioLaPantalla();
   paginasSucias = true; renderPage();
