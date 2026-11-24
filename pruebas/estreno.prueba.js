@@ -466,11 +466,11 @@ const ETIQUETAS_EN = ['🌅Hope', '📜Promise', '⚓FirmFaith', '🌱NewLife', 
       testa: [...document.querySelectorAll('#canto .canto-tab')].map(b => b.textContent.trim()),
       cerrar: q('#canto .cerrar-pie'),
       /* Los tres botones de GLOSAS nacen en el marcado y los traduce la tabla
-         UI_EN; el primer renglón del combo de los días lo pinta pintarDias.
-         Los dos caminos, cada uno con su testigo. */
+         UI_EN; el botón «Todos los días» del filtro lleva su data-es/data-en
+         y lo traduce aplicarIdioma. Los dos caminos, cada uno con su testigo. */
       glosas: ['btnVerEtiquetas', 'btnElegirGlosas']
         .map(id => (document.getElementById(id) || {}).textContent || null),
-      dias: ((document.querySelector('#selDia option') || {}).textContent) || null,
+      dias: ((document.querySelector('#secDias .fsec-todos') || {}).textContent || '').trim() || null,
       /* Y los puntos de la hoja, que son la puerta de perlas, cintas y rastro. */
       puntos: ['btnPiedras', 'btnCintas', 'btnHistorial']
         .map(id => (document.getElementById(id) || {}).title || null),
@@ -497,7 +497,7 @@ const ETIQUETAS_EN = ['🌅Hope', '📜Promise', '⚓FirmFaith', '🌱NewLife', 
   vale('  y el pie dice CLOSE', ui.cerrar === 'CLOSE', ui.cerrar);
   /* «letra» (AA) se fue a la ventanita de la glosa; quedan filtrar y editar. */
   vale('  GLOSAS: filter · edit', ui.glosas.join('|') === 'filter|edit', ui.glosas.join('|'));
-  vale('  y el filtro de días: all days', ui.dias === 'all days', ui.dias);
+  vale('  y el filtro de días: All days', ui.dias === 'All days', ui.dias);
   vale('  los puntos de la hoja: pearls · bookmarks · seen',
        ui.puntos.join('|') === 'See your pearls|See your bookmarks|What you have seen', ui.puntos.join('|'));
   vale('  FORMATO, NOTAS y RESPALDO: left · + New note · Note 1 · Export',
@@ -520,7 +520,7 @@ const ETIQUETAS_EN = ['🌅Hope', '📜Promise', '⚓FirmFaith', '🌱NewLife', 
   vale('  AT y NT', uiEs.testa.join('|') === 'AT|NT', uiEs.testa.join('|'));
   vale('  y el pie dice CERRAR', uiEs.cerrar === 'CERRAR', uiEs.cerrar);
   vale('  GLOSAS: filtrar · editar', uiEs.glosas.join('|') === 'filtrar|editar', uiEs.glosas.join('|'));
-  vale('  y el filtro de días: todos los días', uiEs.dias === 'todos los días', uiEs.dias);
+  vale('  y el filtro de días: Todos los días', uiEs.dias === 'Todos los días', uiEs.dias);
   vale('  los puntos de la hoja: perlas · separadores · visto',
        uiEs.puntos.join('|') === 'Ver tus perlas|Ver tus separadores|Lo que has visto', uiEs.puntos.join('|'));
   /* La primera nota NO se comprueba aquí: se estrenó en la Berean, así que se

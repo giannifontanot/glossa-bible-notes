@@ -329,14 +329,9 @@
   .rollo .chip.sel{ border-color:#8a6416; border-width:2px;
                     background:#fff8e4; box-shadow:0 0 0 1px rgba(184,137,43,.45); }
   .chip .n{ opacity:.55; padding-left:5px; }
-  /* El chip de libro se distingue del de etiqueta porque se comporta al revés:
-     los de etiqueta se apagan, éstos se quitan. Por eso lleva una × y no la
-     raya de tachado. */
-  .rollo .chip-libro{ background:#f3e7c8; border-color:rgba(140,116,68,.6); }
-  .chip-libro .x{ padding-left:6px; opacity:.5; font-weight:700; }
-  .chip-libro:hover .x{ opacity:1; }
-  .rollo .chip-mas{ background:transparent; border-style:dashed; opacity:.8; }
-  .rollo .chip-mas:hover{ background:rgba(255,253,247,.75); opacity:1; }
+  /* EL CHIP DE LIBRO YA SE PORTA COMO LOS DEMÁS: se enciende y se apaga en su
+     sección del filtro. Antes se quitaba con una × y se sumaba con un chip
+     punteado de «+ libro»; los dos se fueron con la sección. */
 
   /* EL ALTO DE LA ESCENA, ESCRITO TAMBIÉN COMO VARIABLE. Lo que mide la
      escena es lo que mide un panel abierto, y hay quien necesita repartirse
@@ -5655,30 +5650,33 @@
   /* CON AIRE ARRIBA Y ABAJO, pedido por Gianni: «están demasiado echados
      arriba». Pegados a la barra de pestañas se leían como parte de ella;
      con su hueco propio, encima y debajo, son la entrada del panel. */
-  #ctrlEtiquetas .fila-etiq{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr));
+  /* Y QUEDAN DOS. GUARDAR se fue, pedido por Gianni: lo que se lee ya se
+     guarda solo en la cuenta de Google al firmarse, así que un botón que
+     prometía guardar —y que solo abría un panel vacío— no tenía oficio. Los
+     dos que quedan se reparten el ancho a medias. */
+  #ctrlEtiquetas .fila-etiq{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr));
                              gap:8px; grid-column:1 / -1; margin:12px 0 10px; }
-  #btnVerEtiquetas, #btnElegirGlosas, #btnGuardarGlosas{ width:100%; min-height:44px;
+  #btnVerEtiquetas, #btnElegirGlosas{ width:100%; min-height:44px;
           padding:0 8px; justify-content:center; letter-spacing:.04em;
           font-size:calc(15px * var(--escala-ui, 1)); }
   #ctrlEtiquetas .fila-etiq .btn-signo .signo{ width:19px; height:19px; }
   #ctrlEtiquetas.sin-chips #filaFiltros{ display:none; }
   /* EN EDITAR, LA MISMA LISTA. Se enseña aunque FILTRAR esté apagado, y sin
-     lo que es solo de filtrar: el día, los libros, «+ libro» y «(sin
-     etiqueta)». Las pastillas dicen el estado de las glosas elegidas: llena,
+     lo que es solo de filtrar: las secciones de días y de libros, el botón
+     de «Todas las etiquetas» y «(sin etiqueta)». Las etiquetas se ven
+     siempre, aunque su «todos» esté puesto en FILTRAR: aquí no filtran. Las pastillas dicen el estado de las glosas elegidas: llena,
      la llevan todas; punteada, algunas; dorada, la que se renombra. Y lo que
      encendió el filtro no se pinta aquí, que en EDITAR no quiere decir nada. */
   #etiquetas.eligiendo #ctrlEtiquetas.sin-chips #filaFiltros{ display:flex; }
-  #etiquetas.eligiendo #filtros #selDia, #etiquetas.eligiendo #filtros .chip-libro,
-  #etiquetas.eligiendo #filtros .chip-mas, #etiquetas.eligiendo #filtros .chip-sin{ display:none; }
+  #etiquetas.eligiendo #filtros #secDias, #etiquetas.eligiendo #filtros #secLibros,
+  #etiquetas.eligiendo #filtros .fsec-todos, #etiquetas.eligiendo #filtros .chip-sin{ display:none; }
+  #etiquetas.eligiendo #filtros #secEtiq{ border-top:0; padding-top:0; }
+  #etiquetas.eligiendo #filtros #secEtiq .fsec-pills{ display:flex; }
   #etiquetas.eligiendo #filtros .chip.sel{ border-color:rgba(140,116,68,.45); border-width:1px;
             background:rgba(255,255,255,.05); box-shadow:none; }
   #etiquetas.eligiendo #filtros .chip.on{ background:#e9d9ad; border-color:#8a6416; }
   #etiquetas.eligiendo #filtros .chip.mix{ border-style:dashed; border-color:#8a6416; }
   #etiquetas.eligiendo #filtros .chip.editando{ background:#b8892b; border-color:#8a6416; color:#fff8e4; }
-  #panelGuardar{ display:none; }
-  #ctrlEtiquetas.guardando #panelGuardar{ display:block; }
-  #panelGuardar .guardar-pronto{ margin:10px 4px 12px; text-align:center;
-            font:500 calc(13px * var(--escala-ui, 1))/1.4 var(--ui); color:#7a6638; font-style:italic; }
   /* LA MANIJA DEL ALTO DE LA LISTA DE ETIQUETAS. Pedida por Gianni: el filo
      de abajo de la lista se toma y se arrastra para hacerla más chica o más
      grande, y se queda así la próxima vez que abra FILTRAR o EDITAR —las dos
@@ -5743,8 +5741,16 @@
      repartir: 220 px en un teléfono de 915 y 113 en pantalla ancha.
      Lo levantó la revisión de Codex.
      Y contain para que llegar al final de la tira no empiece a correr el panel
-     de atrás. */
-  #filtros{ max-height:calc(var(--alto-escena, 100vh) * .24);
+     de atrás.
+     Y DE .24 A .29, al llegar las tres secciones. Sus tres botones de «todos»
+     miden 40 px cada uno y se llevaban 130 de los 220: con apagar una sola
+     sección y sus cuatro etiquetas de estreno la tira ya no cabía y había que
+     correrla por dentro para ver la última. Con .29 son 265 px en un teléfono
+     de 915 —la sección abierta cabe entera— y el índice sigue teniendo más de
+     dos terceras partes del panel. No .30 redondo: la prueba de pantalla
+     ancha pide el techo por debajo del 30 % de la escena, y en el filo un
+     redondeo de medio píxel la tumbaría. */
+  #filtros{ max-height:calc(var(--alto-escena, 100vh) * .29);
             overflow-y:auto; overscroll-behavior:contain;
             align-content:flex-start; gap:5px 6px; padding-right:11px; }
   /* EL RIEL DE LA TIRA, DIBUJADO A MANO Y SIEMPRE A LA VISTA.
@@ -5792,20 +5798,44 @@
                        background:linear-gradient(to top,
                          rgba(74,58,28,.34) 0%, rgba(74,58,28,0) 100%); }
   #filaFiltros.hay-mas::after{ opacity:1; }
-  /* EL DÍA, VESTIDO DE PASTILLA. Es el primer filtro de la tira y tiene que
-     leerse como los demás: si el día se viera como un campo de formulario en
-     medio de una fila de pastillas, se leería como un ajuste y no como un
-     filtro, que es justo la confusión que lo tenía en la otra fila. Lleva dos
-     ids en el selector para ganarle al `.rollo .ajuste select` del bloque del
-     teléfono, que le pone 40 px de alto. */
-  #filtros #selDia{ flex:0 0 auto; max-width:60%; border-radius:999px;
-                    border:1px solid rgba(140,116,68,.42);
-                    background:rgba(255,253,247,.75); color:#4a3a1c; }
-  /* Con un día elegido se enciende como un chip marcado: el filtro puesto se
-     ve sin tener que leer qué dice el combo. */
-  #filtros #selDia.sel{ border-color:#8a6416; border-width:2px;
-                        background:#fff8e4;
-                        box-shadow:0 0 0 1px rgba(184,137,43,.45); }
+  /* LAS TRES SECCIONES DEL FILTRO: días, libros y etiquetas, una debajo de
+     otra, cada una con su botón de «todos» arriba y su fila de pastillas
+     debajo. La tira deja de ser una sola fila que se envuelve y pasa a ser una
+     columna; cada fila de pastillas se envuelve por su cuenta.
+     El botón no es una pastilla, a propósito: las pastillas eligen cosas y el
+     botón dice si la sección filtra o no. Por eso lleva un interruptor —el
+     dibujo que en todos los teléfonos quiere decir «encendido o apagado»—
+     dorado cuando está puesto, y la palabra al lado, sin caja. Ocupa el ancho
+     entero y mide 40 px de alto: es el blanco grande de la sección. Encima de
+     la primera no hay raya; entre una y otra, una fina, para que las tres se
+     lean como tres. */
+  #filtros{ flex-direction:column; flex-wrap:nowrap; align-items:stretch; }
+  #filtros .fsec{ display:flex; flex-direction:column; align-items:stretch; gap:4px; }
+  #filtros .fsec + .fsec{ border-top:1px solid rgba(140,116,68,.22); padding-top:4px; }
+  #filtros .fsec-todos{ display:flex; align-items:center; gap:10px; width:100%;
+          min-height:40px; padding:2px 2px; margin:0; border:0; background:transparent;
+          color:#4a3a1c; cursor:pointer; text-align:left;
+          font:600 calc(var(--fs-glosa-ui, 14px) * .9)/1.2 var(--ui); }
+  #filtros .fsec-todos:focus-visible{ outline:2px solid #8a6416; outline-offset:1px; border-radius:6px; }
+  #filtros .fsec-sw{ flex:none; position:relative; width:36px; height:21px; border-radius:999px;
+          background:rgba(140,116,68,.30); box-shadow:inset 0 0 0 1px rgba(140,116,68,.35);
+          transition:background .2s ease; }
+  #filtros .fsec-sw::after{ content:''; position:absolute; top:2px; left:2px; width:17px; height:17px;
+          border-radius:50%; background:#fffdf7; box-shadow:0 1px 2px rgba(74,58,28,.45);
+          transition:transform .2s cubic-bezier(.22,.72,.24,1); }
+  #filtros .fsec-todos[aria-pressed="true"] .fsec-sw{ background:#b8892b;
+          box-shadow:inset 0 0 0 1px #8a6416; }
+  #filtros .fsec-todos[aria-pressed="true"] .fsec-sw::after{ transform:translateX(15px); }
+  @media (prefers-reduced-motion: reduce){
+    #filtros .fsec-sw, #filtros .fsec-sw::after{ transition:none; }
+  }
+  #filtros .fsec-pills{ display:flex; flex-wrap:wrap; align-items:center; gap:5px 6px;
+                        padding:0 0 4px 2px; }
+  #filtros .fsec.todos .fsec-pills{ display:none; }
+  /* El libro abierto lleva un punto delante: es por donde se está leyendo, y
+     al apagar «Todos los libros» es el que sale elegido. */
+  #filtros .chip-libro.abierto::before{ content:''; display:inline-block; width:6px; height:6px;
+          margin-right:6px; border-radius:50%; background:#8a6416; vertical-align:middle; }
   /* Y LAS PASTILLAS ADELGAZAN. En teléfono heredaban el suelo de toque de la
      casa —40 px de alto, letra de 15— que es el que se le puso a los botones
      de los paneles porque fallar uno de ellos repagina el libro o cambia la
@@ -5827,7 +5857,7 @@
      El relleno pasa a em por lo mismo: en píxeles, una letra grande dentro de
      un relleno fijo se pega a los bordes. Y el suelo de 28 px se queda como
      suelo, para que con la letra chica la pastilla siga siendo tocable. */
-  #filtros .chip, #filtros #selDia{
+  #filtros .chip{
                   font-size:calc(var(--fs-glosa-ui, 14px) * var(--tag-fs, .78));
                   min-height:28px; padding:.22em .66em; }
   #indice .ix-item.elegida{
@@ -5882,6 +5912,20 @@
      hermana: la queja fue que no se lee, y eso pasa con ratón igual. */
   #barraGrupo .tagctl input{ flex:1 1 90px; min-width:0;
                              font-size:calc(16px * var(--escala-ui, 1)); }
+  /* LA CAJA ARRIBA Y LOS BOTONES DEBAJO, pedido por Gianni (ver
+     pintarBarraGrupo). La caja ocupa su renglón entero y los dos botones se
+     reparten el de abajo a partes iguales. */
+  #barraGrupo .tagctl{ flex-direction:column; flex-wrap:nowrap; align-items:stretch; gap:8px; }
+  #barraGrupo .tagctl input{ flex:none; width:100%; box-sizing:border-box; }
+  #barraGrupo .tagbtns{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  #barraGrupo .tagbtns .btn{ width:100%; min-height:36px; margin:0;
+                             display:inline-flex; align-items:center; justify-content:center; }
+  #barraGrupo .tagbtns .crear{ font-weight:600; border:1.5px solid #96701f; }
+  /* En pantalla de dedo, los 48 px de su hermana, la caja de la glosa. */
+  @media (pointer:coarse){
+    #barraGrupo .tagbtns .btn{ min-height:48px; }
+    #barraGrupo .tagctl input{ min-height:44px; }
+  }
   .ajuste{ display:flex; align-items:center; gap:6px; padding:0; min-width:0; }
   /* Y EL [hidden] TIENE QUE GANARLE. El display:none del navegador para
      [hidden] es de la hoja del propio navegador, así que cualquier regla de
@@ -7622,13 +7666,6 @@
           aria-hidden="true" focusable="false"><!-- inclinado, con la punta abajo a la izquierda: pedido así por Gianni --><g
           transform="rotate(-45 12 12)"><path d="M8 8.6h10.5a2 2 0 0 1 2 2v2.8a2 2 0 0 1-2 2H8L2.5 12z"/><path
           d="M8 8.6v6.8M16.5 8.6v6.8"/><path d="M2.5 12l2.6-1.6v3.2z" fill="currentColor"/></g></svg><span data-es="editar" data-en="edit">editar</span></button>
-  <!-- GUARDAR: pedido por Gianni junto a los otros dos, con su oficio por
-       decidir («ese al rato lo revisamos»). Por ahora está y no hace nada; no
-       se le inventa uno. -->
-  <button type="button" class="btn btn-signo" id="btnGuardarGlosas"
-          title="Guardar (por definir)"><svg class="signo" viewBox="0 0 24 24"
-          aria-hidden="true" focusable="false"><path d="M5 3.5h11.5L20.5 7.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V5A1.5 1.5 0 0 1 5 3.5z"/><path
-          d="M8 3.5v5h7.5v-5M7.5 20.5v-6.5h9v6.5"/></svg><span data-es="guardar" data-en="save">guardar</span></button>
 </div>
 
 <!-- LOS MANDOS DE LA LETRA DE LA GLOSA YA NO VIVEN AQUÍ. Iban debajo de un
@@ -7643,12 +7680,37 @@
      Decía dos veces lo mismo y cobraba por ello el sitio de dos pastillas por
      renglón. El rótulo hablado se queda en el grupo, que es donde sirve. -->
 <div class="ajuste ancho" id="filaFiltros"><span class="ctrl" id="filtros"
-     role="group" aria-label="Filtros de las glosas: el día y las etiquetas">
-  <!-- El primero de la tira, y va escrito aquí y no lo pinta pintarFiltros:
-       ése borra los .chip y añade los suyos detrás, así que un nodo que no sea
-       chip se queda donde está con sus oyentes puestos. El mismo truco con el
-       que los controles se mudaron a sus paneles sin volver a conectarlos. -->
-  <select id="selDia" aria-label="Filtrar las glosas por día"></select>
+     role="group" aria-label="Filtros de las glosas: los días, los libros y las etiquetas">
+  <!-- LAS TRES SECCIONES DEL FILTRO, pedidas por Gianni: «hasta arriba de la
+       lista de etiquetas pon 3 secciones, cada una con su botón». Cada botón
+       dice «todos»; encendido, esa sección no filtra y sus pastillas no se
+       ven; apagado, se abre debajo la fila de pastillas para elegir algunas.
+       Entre secciones se suman (día Y libro Y etiqueta); dentro de una, basta
+       con cualquiera. Antes el día era un combo de una sola fecha y los
+       libros se agregaban con «+ libro» desde un menú: dos mandos distintos
+       para la misma idea que las etiquetas ya resolvían con pastillas, que
+       es lo que a Gianni le gustaba. Ver pintarFiltros. -->
+  <div class="fsec todos" id="secDias">
+    <button type="button" class="fsec-todos" data-todos="dias" aria-pressed="true"
+            aria-controls="pillsDias"><span class="fsec-sw" aria-hidden="true"></span><span
+            data-es="Todos los días" data-en="All days">Todos los días</span></button>
+    <div class="fsec-pills" id="pillsDias" role="group" aria-label="Elegir días"
+         data-es-aria="Elegir días" data-en-aria="Choose days"></div>
+  </div>
+  <div class="fsec todos" id="secLibros">
+    <button type="button" class="fsec-todos" data-todos="libros" aria-pressed="true"
+            aria-controls="pillsLibros"><span class="fsec-sw" aria-hidden="true"></span><span
+            data-es="Todos los libros" data-en="All books">Todos los libros</span></button>
+    <div class="fsec-pills" id="pillsLibros" role="group" aria-label="Elegir libros"
+         data-es-aria="Elegir libros" data-en-aria="Choose books"></div>
+  </div>
+  <div class="fsec todos" id="secEtiq">
+    <button type="button" class="fsec-todos" data-todos="etiq" aria-pressed="true"
+            aria-controls="pillsEtiq"><span class="fsec-sw" aria-hidden="true"></span><span
+            data-es="Todas las etiquetas" data-en="All tags">Todas las etiquetas</span></button>
+    <div class="fsec-pills" id="pillsEtiq" role="group" aria-label="Elegir etiquetas"
+         data-es-aria="Elegir etiquetas" data-en-aria="Choose tags"></div>
+  </div>
 </span><!-- El riel, fuera de la tira y no dentro: metido en ella se iría con
      el desplazamiento, que es justo lo que tiene que quedarse quieto. Va
      aria-hidden porque no dice nada que no diga ya el propio desplazamiento a
@@ -7658,12 +7720,6 @@
   <div class="manija-alto" role="separator" aria-orientation="horizontal" tabindex="0"
        aria-label="Cambiar el alto de la lista de etiquetas"
        data-en-aria="Change the height of the tag list"></div></div>
-<!-- EL PANEL DE GUARDAR, todavía vacío. Pedido por Gianni: «cuando clique
-     guardar, abre un panel y ya después vemos qué ponemos». Abre y cierra
-     suave como los de filtrar y editar, y se excluye con ellos. -->
-<div class="ajuste ancho" id="panelGuardar">
-  <p class="guardar-pronto" data-es="Aquí vivirá lo que decidamos guardar." data-en="What we decide to save will live here.">Aquí vivirá lo que decidamos guardar.</p>
-</div>
 </div>
 
 <div class="stage" id="stage">
@@ -7982,7 +8038,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 15:44';
+window.GLOSS_BUILD = '24-NOV-26 16:06';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -9119,12 +9175,22 @@ let version = D.versiones.bsb ? 'bsb' : Object.keys(D.versiones)[0];
    declara el panel, aquí solo se deja dicho que sobrevive al cierre. */
 let etiquetasOcultas = new Set(); /* ya no filtra: se queda por si algo viejo lo nombra */
 let etiquetasVer = new Set();     /* chips marcadas en VER; vacío = ver todas */
-/* Libros que se están mirando en la lista de glosas. Vacío significa "solo el
-   libro abierto", que es el comportamiento de siempre; en cuanto agregas uno,
-   la lista deja de ser del libro actual y pasa a ser de los que elegiste.
-   Es un filtro de la LISTA, no de la hoja: la hoja siempre muestra su libro. */
-let librosFiltro = new Set();
-let diaFiltro = '';              // '' = todos los días
+/* LAS TRES SECCIONES DEL FILTRO: días, libros y etiquetas, cada una con su
+   botón de «todos» y su conjunto de pastillas elegidas. Con el botón puesto el
+   conjunto está vacío y la sección no filtra; apagado, filtra por lo elegido
+   —y apagado sin nada elegido tampoco filtra, igual que las etiquetas de
+   siempre: una lista vacía no puede querer decir «no enseñes nada»—.
+
+   Antes había un día suelto (diaFiltro, un combo) y los libros AÑADIDOS al
+   abierto (librosFiltro, con el abierto siempre dentro). Ahora el día son
+   varios y los libros son exactamente los elegidos: con «Todos los libros»
+   puesto la lista es de la Biblia entera, que es lo que pidió Gianni. Los
+   ajustes viejos se traducen en cargarAjustes.
+   Los libros siguen siendo un filtro de la LISTA, no de la hoja: la hoja
+   siempre muestra su libro. */
+let todosDias = true, todosLibros = true, todasEtiq = true;
+let diasVer = new Set();
+let librosVer = new Set();
 let showMarks = true, fontSize = 15, fontSizeGlosa = 14;
 /* LAS FLECHAS DE PASAR HOJA NACEN APAGADAS, y no por tacañería: la hoja ya se
    pasa de tres maneras —el filo, el arrastre del papel, las flechas del
@@ -10109,22 +10175,24 @@ const diaDe = m => m.creada || '(sin fecha)';
    cuando un filtro esconde una glosa recién escrita hay que quitar el que la
    esconde y no los dos: apagar de paso un filtro que no estorbaba sería
    deshacer algo que el lector sí quería. */
-const pasaDia = m => !diaFiltro || diaDe(m) === diaFiltro;
+const pasaDia = m => todosDias || !diasVer.size || diasVer.has(diaDe(m));
 const pasaEtiquetas = m =>
-  etiquetasVer.size === 0 ||
+  todasEtiq || etiquetasVer.size === 0 ||
     ((m.etiquetas || []).length === 0
       ? etiquetasVer.has('(sin etiqueta)')
       : (m.etiquetas || []).some(t => etiquetasVer.has(t)));
 const pasaFiltros = m => pasaDia(m) && pasaEtiquetas(m);
 const visible = m => showMarks && m.libro === LIBRO && pasaFiltros(m);
-/* El libro abierto SIEMPRE está en la lista, y los chips van sumando. Lo tenía
-   al revés: en cuanto agregabas un libro, el actual desaparecía y la lista
-   pasaba a ser solo de los elegidos. Eso contradice al propio chip, que dice
-   "ver TAMBIÉN las glosas de otro libro". Además dejaba llegar a un estado
-   sin salida obvia: la lista vacía de un libro sin notas, con las tuyas
-   escondidas detrás de un chip que no recuerdas haber puesto. */
-const enLista = m => pasaFiltros(m) &&
-  (m.libro === LIBRO || librosFiltro.has(m.libro));
+/* LOS LIBROS SON LOS ELEGIDOS, Y NADA MÁS. Antes el abierto iba siempre y los
+   chips sumaban, porque el chip decía «ver TAMBIÉN otro libro». Con la sección
+   de libros la pregunta cambió de forma: «Todos los libros» es la Biblia
+   entera, y apagado se eligen los que se quieren, el abierto incluido o no.
+   Lo que aquel comentario temía —la lista vacía con las tuyas escondidas
+   detrás de un chip olvidado— lo cubren el punto dorado del botón FILTRAR y
+   destaparLaNueva, que quita el filtro de libros si esconde la glosa que
+   acabas de escribir. */
+const pasaLibro = m => todosLibros || !librosVer.size || librosVer.has(m.libro);
+const enLista = m => pasaFiltros(m) && pasaLibro(m);
 
 /* LA MARCA SE ESTIRA A LA PALABRA ENTERA.
 
@@ -13239,8 +13307,11 @@ function destaparLaNueva(m){
   const quitados = [];
   /* Cada cosa quitada va en sus dos idiomas, [es, en]: el aviso habla el
      idioma de la Biblia abierta, como todos. */
-  if (!pasaDia(m)){ diaFiltro = ''; quitados.push(['el filtro de día', 'the day filter']); }
-  if (!pasaEtiquetas(m)){ etiquetasVer.clear(); quitados.push(['el filtro de etiquetas', 'the tag filter']); }
+  /* Quitar un filtro es volver a encender su «todos»: la sección queda como
+     el lector la ve de fábrica, con el botón puesto y sus pastillas cerradas. */
+  if (!pasaDia(m)){ todosDias = true; diasVer.clear(); quitados.push(['el filtro de día', 'the day filter']); }
+  if (!pasaLibro(m)){ todosLibros = true; librosVer.clear(); quitados.push(['el filtro de libros', 'the book filter']); }
+  if (!pasaEtiquetas(m)){ todasEtiq = true; etiquetasVer.clear(); quitados.push(['el filtro de etiquetas', 'the tag filter']); }
   if (!showMarks){
     showMarks = true;
     const b = $('marksBtn'); if (b) b.textContent = 'Marcas: ON';
@@ -14895,58 +14966,60 @@ function todasEtiquetas(){
   }
   return { mapa: s, sin };
 }
-/* El menú de libros del chip: solo los que de verdad tienen glosas, porque
-   ofrecer los 66 obligaría a buscar entre libros vacíos. Y solo los que aún
-   no están en el filtro. */
-function menuDeLibros(rect){
-  const conGlosas = new Map();
-  for (const m of marcas)
-    if (m.nota && m.libro !== LIBRO && !librosFiltro.has(m.libro))
-      conGlosas.set(m.libro, (conGlosas.get(m.libro) || 0) + 1);
-  if (!conGlosas.size){
-    readout.textContent = T('no hay glosas en otros libros','no glosses in other books');
-    return;
-  }
-  const orden = [...conGlosas.keys()].sort((a,b) =>
-    CANON.findIndex(x=>x.id===a) - CANON.findIndex(x=>x.id===b));
-  mostrarMenu(orden.map(id =>
-    '<button class="mi" data-libfil="' + id + '">' + esc(nombreDe(id)) +
-    '<span class="n">' + conGlosas.get(id) + '</span></button>').join(''), rect);
+/* EL MENÚ DE «+ LIBRO» SE FUE con el chip que lo abría: los libros son ahora
+   una sección del filtro con sus propias pastillas, y elegir uno es tocarlo
+   ahí, como una etiqueta. Dos maneras de lo mismo —un menú para sumar y una
+   × para quitar— eran justo lo que la sección vino a juntar en un gesto. */
+
+/* UNA PASTILLA DEL FILTRO. Las tres secciones las hacen igual, y por eso aquí:
+   rol de botón, foco, Enter o Espacio, y la llave para devolverle el foco
+   después de repintar (ver pintarFiltros).
+   Y SE ALCANZA CON EL TECLADO: la lista que tenía EDITAR era de botones, y
+   estas pastillas eran spans fuera del recorrido del tabulador —quien no usa
+   dedo ni ratón se quedaba sin poder renombrar ni poner etiquetas
+   existentes—. Lo levantó Codex. */
+function pastillaFiltro(clave, html, puesta, alTocar){
+  const b = document.createElement('span');
+  b.className = 'chip' + (puesta ? ' sel' : '');
+  b.innerHTML = html;
+  b.dataset.clave = clave;
+  b.tabIndex = 0;
+  b.setAttribute('role', 'button');
+  b.setAttribute('aria-pressed', puesta ? 'true' : 'false');
+  b.addEventListener('keydown', ev => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    ev.preventDefault();
+    b.click();
+  });
+  b.onclick = alTocar;
+  return b;
 }
+const ordenCanon = (a, b) => CANON.findIndex(x => x.id === a) - CANON.findIndex(x => x.id === b);
 
 function pintarFiltros(){
-  const cont = $('filtros');
-  cont.querySelectorAll('.chip').forEach(c => c.remove());
+  /* EL FOCO SE QUEDA EN SU PASTILLA. Repintar es borrar y volver a hacer, y
+     con el teclado eso tiraba el foco al cuerpo de la página a cada toque:
+     se elige un día con Enter y ya no se sabe dónde se estaba. La pastilla
+     nueva se encuentra por su llave. */
+  const conFoco = document.activeElement && document.activeElement.closest &&
+                  document.activeElement.closest('#filtros [data-clave]');
+  const llaveFoco = conFoco ? conFoco.dataset.clave : null;
+  marcarSecciones();
+
+  /* ---- LAS ETIQUETAS ---- */
+  const cont = $('pillsEtiq');
+  cont.textContent = '';
   const { mapa, sin } = todasEtiquetas();
   /* Un filtro recordado puede pedir una etiqueta que ya no existe. Se muestra
      con cero para poder quitarla: borrarla sola ampliaría la lectura guardada. */
   for (const t of etiquetasVer) if (t !== '(sin etiqueta)' && !mapa.has(t)) mapa.set(t, 0);
   const add = (nombre, n) => {
-    const b = document.createElement('span');
-    b.className = 'chip' + (etiquetasVer.has(nombre) ? ' sel' : '');
     /* «(sin etiqueta)» es la LLAVE guardada en los ajustes, no solo un rótulo:
        se queda en español por dentro para que un filtro recordado siga
        valiendo al cambiar de Biblia, y solo lo que se lee cambia. */
     const dice = nombre === '(sin etiqueta)' ? T('(sin etiqueta)','(untagged)') : nombre;
-    b.innerHTML = escEmoji(dice) + '<span class="n">' + n + '</span>';
-    /* LA MISMA PASTILLA SIRVE A LOS DOS MODOS (ver tocarEtiquetaEditar): en
-       FILTRAR enciende y apaga el filtro; en EDITAR edita la que tocas. Por eso
-       lleva también la llave de EDITAR, data-tag-grupo. «(sin etiqueta)» no
-       se puede editar: en EDITAR se esconde. */
-    if (nombre === '(sin etiqueta)') b.classList.add('chip-sin');
-    else b.dataset.tagGrupo = nombre;
-    /* Y SE ALCANZA CON EL TECLADO: la lista que tenía EDITAR era de botones,
-       y estas pastillas eran spans fuera del recorrido del tabulador —quien
-       no usa dedo ni ratón se quedaba sin poder renombrar ni poner etiquetas
-       existentes—. Rol de botón, foco y Enter o Espacio. Lo levantó Codex. */
-    b.tabIndex = 0;
-    b.setAttribute('role', 'button');
-    b.addEventListener('keydown', ev => {
-      if (ev.key !== 'Enter' && ev.key !== ' ') return;
-      ev.preventDefault();
-      b.click();
-    });
-    b.onclick = () => {
+    const b = pastillaFiltro('etiq:' + nombre, escEmoji(dice) + '<span class="n">' + n + '</span>',
+                             etiquetasVer.has(nombre), () => {
       if (eligiendoGlosas){
         if (nombre !== '(sin etiqueta)') tocarEtiquetaEditar(nombre);
         return;
@@ -14954,7 +15027,13 @@ function pintarFiltros(){
       etiquetasVer.has(nombre) ? etiquetasVer.delete(nombre) : etiquetasVer.add(nombre);
       guardarAjustes();
       renderPage();
-    };
+    });
+    /* LA MISMA PASTILLA SIRVE A LOS DOS MODOS (ver tocarEtiquetaEditar): en
+       FILTRAR enciende y apaga el filtro; en EDITAR edita la que tocas. Por eso
+       lleva también la llave de EDITAR, data-tag-grupo. «(sin etiqueta)» no
+       se puede editar: en EDITAR se esconde. */
+    if (nombre === '(sin etiqueta)') b.classList.add('chip-sin');
+    else b.dataset.tagGrupo = nombre;
     cont.appendChild(b);
   };
   /* Las tres listas de etiquetas del programa —la de dentro de una glosa, la
@@ -14963,71 +15042,134 @@ function pintarFiltros(){
      contradiciéndose a sí mismo delante del lector. */
   [...mapa.entries()].sort((x, y) => comparaEtiquetas(x[0], y[0]))
                      .forEach(([k,v]) => add(k,v));
-  if (sin || etiquetasVer.has('(sin etiqueta)')) add('(sin etiqueta)', sin);
+  /* «(sin etiqueta)» VA SIEMPRE, aunque cuente cero. Lo pidió Gianni —«etiquetas
+     contiene una más, sin etiqueta»— y tiene sentido: es una de las opciones
+     de la sección, no un aviso de que sobran glosas sueltas. */
+  add('(sin etiqueta)', sin);
 
-  /* LOS CHIPS DE LIBRO. El abierto va siempre, con borde, para que se vea
-     que la lista ya lo incluye. Los demás se AGREGAN con + libro. */
-  {
-    const n = marcas.filter(m => m.nota && m.libro === LIBRO).length;
-    const b = document.createElement('span');
-    b.className = 'chip chip-libro sel';
-    b.innerHTML = esc(nombreDe(LIBRO)) + '<span class="n">' + n + '</span>';
-    b.title = T('Libro abierto: sus glosas ya están en la lista',
-                'Open book: its glosses are already in the list');
-    cont.appendChild(b);
-  }
-  for (const id of [...librosFiltro].filter(id => id !== LIBRO)
-    .sort((a,b) => CANON.findIndex(x=>x.id===a) - CANON.findIndex(x=>x.id===b))){
-    const n = marcas.filter(m => m.nota && m.libro === id).length;
-    const b = document.createElement('span');
-    b.className = 'chip chip-libro';
-    b.innerHTML = esc(nombreDe(id)) + '<span class="n">' + n + '</span><span class="x">×</span>';
-    b.title = T('Quitar ' + nombreDe(id) + ' de la lista', 'Remove ' + nombreDe(id) + ' from the list');
-    b.onclick = () => { librosFiltro.delete(id); guardarAjustes(); pintarFiltros(); pintarIndice(); };
-    cont.appendChild(b);
-  }
-  const mas = document.createElement('span');
-  mas.className = 'chip chip-mas';
-  mas.textContent = T('+ libro','+ book');
-  mas.title = T('Sumar a la lista las glosas de otro libro','Add the glosses of another book to the list');
-  mas.onclick = ev => { ev.stopPropagation(); menuDeLibros(mas.getBoundingClientRect()); };
-  cont.appendChild(mas);
-  pintarDias();
-  marcarChipsEditar();
-  /* La tira acaba de cambiar de alto: hay que volver a preguntar si sigue
-     habiendo lista por debajo. */
-  avisarMasEtiquetas();
-}
-/* ============================================================
-   POR DÍA. La fecha se queda como campo, no como etiqueta: si cada
-   día fuera un chip, a los seis meses habría ciento ochenta chips
-   revueltos con "estudio". Aquí tiene su propio control, y filtra y
-   nada más: el botón de etiquetar en tanda todo un día se fue con la
-   etiqueta activa, porque era la misma idea —poner algo a un montón de
-   notas de una vez, sin mirarlas— y esa idea es la que se quitó.
-   ============================================================ */
-function pintarDias(){
+  /* ---- LOS DÍAS ----
+     POR DÍA. La fecha se queda como campo, no como etiqueta: si cada día
+     fuera una etiqueta, a los seis meses habría ciento ochenta revueltas con
+     "estudio". Aquí tiene su propia sección, la más nueva primero, y filtra y
+     nada más: el botón de etiquetar en tanda todo un día se fue con la
+     etiqueta activa, porque era la misma idea —poner algo a un montón de
+     notas de una vez, sin mirarlas— y esa idea es la que se quitó.
+     Antes era un combo de un solo día; ahora son pastillas y se eligen
+     varios, como pidió Gianni. */
+  const dias = $('pillsDias');
+  dias.textContent = '';
   const cuenta = new Map();
   for (const m of marcas) cuenta.set(diaDe(m), (cuenta.get(diaDe(m))||0) + 1);
   /* Igual que una etiqueta desaparecida: cero coincidencias sigue siendo el
      filtro elegido, no una invitación a enseñar todos los días. */
-  if (diaFiltro && !cuenta.has(diaFiltro)) cuenta.set(diaFiltro, 0);
-  const sel = $('selDia');
-  sel.innerHTML = '<option value="">' + T('todos los días','all days') + '</option>' +
-    [...cuenta.keys()].sort().reverse()
-      .map(d => '<option value="'+esc(d)+'">'+esc(d)+' ('+cuenta.get(d)+')</option>').join('');
-  sel.value = diaFiltro;
-  /* Encendido como un chip marcado cuando filtra: ahora vive entre chips y
-     tiene que decir lo mismo que ellos de la misma manera. */
-  sel.classList.toggle('sel', !!diaFiltro);
-  /* El día es un filtro más, así que también puede quedarse escondido. */
+  for (const d of diasVer) if (!cuenta.has(d)) cuenta.set(d, 0);
+  for (const d of [...cuenta.keys()].sort().reverse()){
+    const dice = d === '(sin fecha)' ? T('(sin fecha)', '(no date)') : d;
+    const b = pastillaFiltro('dia:' + d, esc(dice) + '<span class="n">' + cuenta.get(d) + '</span>',
+                             diasVer.has(d), () => {
+      diasVer.has(d) ? diasVer.delete(d) : diasVer.add(d);
+      guardarAjustes();
+      renderPage();
+    });
+    b.classList.add('chip-dia');
+    dias.appendChild(b);
+  }
+
+  /* ---- LOS LIBROS ----
+     Los que tienen glosas, más el abierto y los elegidos aunque no tengan
+     ninguna: ofrecer los 66 obligaría a buscar entre libros vacíos, y quitar
+     uno elegido escondería el filtro que lo pide. Cuentan glosas escritas,
+     porque esta sección decide qué entra en la LISTA de glosas. */
+  const libs = $('pillsLibros');
+  libs.textContent = '';
+  const conGlosas = new Map();
+  for (const m of marcas) if (m.nota) conGlosas.set(m.libro, (conGlosas.get(m.libro) || 0) + 1);
+  const ofrecidos = new Set([...conGlosas.keys(), LIBRO, ...librosVer]);
+  for (const id of [...ofrecidos].filter(id => CANON.some(x => x.id === id)).sort(ordenCanon)){
+    const b = pastillaFiltro('libro:' + id,
+                             esc(nombreDe(id)) + '<span class="n">' + (conGlosas.get(id) || 0) + '</span>',
+                             librosVer.has(id), () => {
+      librosVer.has(id) ? librosVer.delete(id) : librosVer.add(id);
+      guardarAjustes();
+      /* La hoja no cambia: los libros filtran la lista y nada más. */
+      pintarFiltros(); pintarIndice();
+    });
+    b.classList.add('chip-libro');
+    if (id === LIBRO) b.classList.add('abierto');
+    libs.appendChild(b);
+  }
+
+  if (llaveFoco){
+    const otra = [...$('filtros').querySelectorAll('[data-clave]')]
+                   .find(x => x.dataset.clave === llaveFoco);
+    if (otra) otra.focus({ preventScroll:true });
+  }
+  marcarChipsEditar();
+  /* El filtro puede haber cambiado: el punto dorado de FILTRAR se pregunta
+     otra vez, que también lo pide un día elegido. */
   marcarFiltroEscondido();
+  /* La tira acaba de cambiar de alto: hay que volver a preguntar si sigue
+     habiendo lista por debajo. */
+  avisarMasEtiquetas();
 }
-$('selDia').onchange = e => {
-  diaFiltro = e.target.value;
-  marcarFiltroEscondido();
-  renderPage();
-};
+/* EL BOTÓN DE CADA SECCIÓN DICE LO MISMO QUE SU ESTADO: puesto, con aria-pressed
+   y el interruptor dorado, y la sección con la clase que esconde sus
+   pastillas. Aparte de pintarFiltros porque ponerTodos lo necesita ANTES de
+   abrir la fila suave: abrirSuave mide lo que hay que abrir, y la fila tiene
+   que estar ya visible para medirse. */
+const SECCIONES_FILTRO = [
+  ['dias',   'secDias',   () => todosDias],
+  ['libros', 'secLibros', () => todosLibros],
+  ['etiq',   'secEtiq',   () => todasEtiq],
+];
+function marcarSecciones(){
+  for (const [cual, id, puesto] of SECCIONES_FILTRO){
+    const sec = $(id); if (!sec) continue;
+    const on = puesto();
+    sec.classList.toggle('todos', on);
+    const b = sec.querySelector('.fsec-todos');
+    if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+}
+/* ENCENDER O APAGAR EL «TODOS» DE UNA SECCIÓN.
+
+   Encender borra lo elegido —«todos» y unos cuantos a la vez no se pueden
+   decir— y cierra la fila suave. Apagar la abre para elegir. Los libros, al
+   apagarse, nacen con el abierto elegido: es lo que se estaba leyendo, y una
+   sección apagada sin nada puesto no filtraría nada y parecería rota.
+
+   El cierre va ANTES de poner la clase que esconde, porque cerrarSuave mide
+   la fila tal como se ve; la apertura va DESPUÉS de quitarla, por lo mismo al
+   revés. Es la regla de abrirSuave y cerrarSuave en todo el archivo. */
+function ponerTodos(cual, on){
+  const sec = SECCIONES_FILTRO.find(x => x[0] === cual);
+  if (!sec) return;
+  const pills = $(sec[1]).querySelector('.fsec-pills');
+  if (on) cerrarSuave(pills);
+  if (cual === 'dias'){ todosDias = on; if (on) diasVer.clear(); }
+  else if (cual === 'libros'){
+    todosLibros = on;
+    if (on) librosVer.clear(); else if (!librosVer.size) librosVer.add(LIBRO);
+  } else { todasEtiq = on; if (on) etiquetasVer.clear(); }
+  marcarSecciones();
+  if (!on) abrirSuave(pills);
+  guardarAjustes();
+  if (cual === 'libros'){ pintarFiltros(); pintarIndice(); }
+  else renderPage();
+  /* EL RIEL SE PREGUNTA OTRA VEZ AL ACABAR EL VIAJE. pintarFiltros ya lo
+     pregunta, pero en el primer cuadro de la apertura suave, con la fila en
+     cero: «no sobra nada», y al terminar de abrirse sí sobraba y nadie lo
+     volvía a mirar. Al cerrar pasa lo contrario: el riel se quedaba puesto
+     sobre una tira que ya cabía. */
+  clearTimeout(ponerTodos._riel);
+  ponerTodos._riel = setTimeout(avisarMasEtiquetas, SUAVE_MS + 40);
+}
+$('filtros').addEventListener('click', ev => {
+  const b = ev.target.closest('.fsec-todos');
+  if (!b) return;
+  const sec = SECCIONES_FILTRO.find(x => x[0] === b.dataset.todos);
+  if (sec) ponerTodos(sec[0], !sec[2]());
+});
 /* ENSEÑA U OCULTA LA TIRA DE CHIPS, para dejar el índice de glosas a la vista.
 
    Las tres cosas que tienen que decir lo mismo —la clase del panel, el botón
@@ -15180,7 +15322,6 @@ function verEtiquetas(on){
      Manda el gesto de ahora, como en destaparLaNueva: el que acabas de tocar
      se enciende y el otro se va. */
   if (on && eligiendoGlosas) elegirGlosas(false);
-  if (on && guardandoGlosas) verGuardar(false);
   /* Y el aviso de «hay más» sólo se puede medir con la tira a la vista:
      escondida, su alto es cero y la cuenta diría siempre que no hay más. */
   if (on) avisarMasEtiquetas();
@@ -15245,7 +15386,9 @@ $('filtros').addEventListener('scroll', avisarMasEtiquetas, { passive:true });
    puesta aunque su sitio de fábrica sea apagada. Lo levantó la revisión de
    Codex. */
 function hayFiltroPuesto(){
-  return etiquetasVer.size > 0 || librosFiltro.size > 0 || !!diaFiltro;
+  /* Una sección con su «todos» apagado y nada elegido no filtra: no cuenta. */
+  return (!todasEtiq && etiquetasVer.size > 0) || (!todosLibros && librosVer.size > 0) ||
+         (!todosDias && diasVer.size > 0);
 }
 /* Y SI HAY FILTRO CON LA TIRA ESCONDIDA, EL BOTÓN LO DICE.
 
@@ -15286,9 +15429,6 @@ $('btnVerEtiquetas').onclick = () => {
   verEtiquetas($('ctrlEtiquetas').classList.contains('sin-chips'));
 };
 let eligiendoGlosas = false;
-/* GUARDAR, el tercer modo del panel GLOSAS (ver verGuardar). Se declara aquí,
-   junto a EDITAR, porque verEtiquetas lo consulta y se llama al arrancar. */
-let guardandoGlosas = false;
 const glosasElegidas = new Set();
 /* QUÉ ETIQUETA SE ESTÁ RENOMBRANDO, o null si no hay ninguna.
 
@@ -15336,14 +15476,32 @@ function pintarBarraGrupo(){
         'aria-label="' + (renombrando ? T('Nuevo nombre de #','New name for #') + esc(etiquetaEnEdicion)
                                       : T('Etiqueta nueva','New tag')) + '" ' +
         'value="' + (renombrando ? esc(etiquetaEnEdicion) : '') + '" />' +
+      /* LOS BOTONES DEBAJO DE LA CAJA, pedido por Gianni, y con su pareja de
+         «cancelar» también al crear. Lo diseñó un panel de expertos y quedó
+         así: la caja sola en su renglón, a lo ancho, y debajo los dos botones
+         del mismo ancho, repartiéndose el renglón. Iban al lado de la caja, y
+         en un teléfono eso dejaba la caja en 90 px y el botón pegado a ella.
+         El orden es el del resto del programa —el de .macciones, Cancelar ·
+         OK—: el que deshace a la izquierda y el que hace a la derecha, que es
+         donde cae el pulgar. El que hace lleva el borde dorado de «+ crear».
+         EL «CANCELAR» DE CREAR NO SE APAGA NUNCA, aunque la caja esté vacía:
+         además de vaciarla cierra el teclado, que es lo que Gianni pidió
+         («borra y cierra teclado»), y eso sirve también con la caja vacía. Un
+         botón gris que sí funciona enseñaría a no tocarlo. */
+      '<div class="tagbtns">' +
       (renombrando
-        ? '<button type="button" class="btn crear" data-acc="renombrartag">' + T('actualizar','update') + '</button>' +
-          /* La salida, que si no la única manera de volver a crear sería
+        ? /* La salida, que si no la única manera de volver a crear sería
              acertarle otra vez a la misma etiqueta. */
           '<button type="button" class="btn" data-acc="dejartag" ' +
-            'title="' + T('Dejar de cambiarle el nombre','Stop renaming it') + '">' + T('cancelar','cancel') + '</button>'
-        : '<button type="button" class="btn crear" data-acc="creartag-grupo" aria-disabled="true">' +
+            'title="' + T('Dejar de cambiarle el nombre','Stop renaming it') + '">' + T('cancelar','cancel') + '</button>' +
+          '<button type="button" class="btn crear" data-acc="renombrartag">' + T('actualizar','update') + '</button>'
+        : '<button type="button" class="btn" data-acc="vaciartag" ' +
+            'title="' + T('Cancelar: vaciar la caja','Cancel: clear the box') + '" ' +
+            'aria-label="' + T('Cancelar: vaciar la caja','Cancel: clear the box') + '">' +
+            T('cancelar','cancel') + '</button>' +
+          '<button type="button" class="btn crear" data-acc="creartag-grupo" aria-disabled="true">' +
             T('+ nueva','+ new') + '</button>') +
+      '</div>' +
     '</div>' +
     /* SIN LISTA PROPIA: EDITAR usa las pastillas de FILTRAR, que se quedan
        abiertas al pasar de un modo al otro (ver marcarChipsEditar). Aquí solo
@@ -15468,7 +15626,7 @@ function elegirGlosas(on){
       .forEach(el => el.classList.remove('elegida'));
   }
   /* Las otras partes de la exclusión; está contada en verEtiquetas. */
-  if (on){ verEtiquetas(false); if (guardandoGlosas) verGuardar(false); }
+  if (on) verEtiquetas(false);
   marcarFiltroEscondido();
   pintarBarraGrupo();
   /* Detrás de pintarBarraGrupo, que es quien le mete dentro la cuenta y las
@@ -15476,22 +15634,6 @@ function elegirGlosas(on){
   if (on && !estaba) abrirSuave($('barraGrupo'));
   if (on && !seVeia){ avisarMasEtiquetas(); abrirSuave($('filaFiltros')); }
 }
-/* GUARDAR: el tercer modo, por ahora un panel vacío que abre y cierra suave
-   y se excluye con FILTRAR y EDITAR, igual que ellos entre sí. Lo que vaya
-   dentro está por decidir con Gianni. */
-function verGuardar(on){
-  const estaba = guardandoGlosas;
-  if (!on && estaba) cerrarSuave($('panelGuardar'));
-  guardandoGlosas = on;
-  $('ctrlEtiquetas').classList.toggle('guardando', on);
-  const b = $('btnGuardarGlosas');
-  b.classList.toggle('active', on);
-  b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  if (on){ verEtiquetas(false); if (eligiendoGlosas) elegirGlosas(false); }
-  if (on && !estaba) abrirSuave($('panelGuardar'));
-}
-$('btnGuardarGlosas').setAttribute('aria-pressed', 'false');
-$('btnGuardarGlosas').onclick = () => verGuardar(!guardandoGlosas);
 
 /* LA MANIJA DEL ALTO DE LA LISTA DE ETIQUETAS (ver .manija-alto). Un solo
    alto para la tira de FILTRAR y para la lista de EDITAR, guardado en su
@@ -15637,7 +15779,27 @@ $('tagboxGrupo').addEventListener('click', ev => {
     renombrarEtiqueta(etiquetaEnEdicion, caja && caja.value);
     return;
   }
-  if (ev.target.closest('[data-acc="dejartag"]')){ editarEtiqueta(null); return; }
+  /* LOS DOS «CANCELAR» CIERRAN EL TECLADO. Se suelta la caja con blur() ANTES
+     de repintar: en iOS quitar del árbol el campo que tiene el foco no siempre
+     baja el teclado. Y el foco va a un botón, nunca a la caja —volver a la
+     caja volvería a subir el teclado—, para que quien va con el tabulador no
+     se quede en el cuerpo de la página. */
+  if (ev.target.closest('[data-acc="dejartag"]')){
+    const caja = $('tagNuevaGrupo');
+    if (caja) caja.blur();
+    editarEtiqueta(null);
+    const nueva = $('tagboxGrupo').querySelector('[data-acc="creartag-grupo"]');
+    if (nueva) nueva.focus({ preventScroll:true });
+    return;
+  }
+  /* El «cancelar» de crear: borra lo escrito y cierra el teclado. */
+  const vaciar = ev.target.closest('[data-acc="vaciartag"]');
+  if (vaciar){
+    const caja = $('tagNuevaGrupo');
+    if (caja){ caja.value = ''; encenderNueva(caja); caja.blur(); }
+    vaciar.focus({ preventScroll:true });
+    return;
+  }
 });
 /* TOCAR UNA ETIQUETA EN EDITAR. Era el oyente de la lista propia de EDITAR;
    esa lista se fue —EDITAR usa ahora las mismas pastillas que FILTRAR, pedido
@@ -26602,21 +26764,44 @@ const nuevoIdNota = () => 'nota-' + Date.now() + '-' + Math.random().toString(36
 /* Sólo condiciones de lectura, nunca ids ni copias de las glosas. Validar el
    registro entero impide que un respaldo roto convierta un filtro en «todo».
    Los libros se comprueban contra el canon, no contra la traducción de hoy. */
+/* EL REGISTRO CAMBIÓ DE FORMA CON LAS TRES SECCIONES DEL FILTRO, y los viejos
+   siguen valiendo. Antes: `libros` eran los AÑADIDOS al abierto y `dia` un día
+   suelto. Ahora: `libros` son exactamente los elegidos, `todosLibros` dice si
+   la lista era de la Biblia entera, y `dias` son varios. Un registro sin
+   `todosLibros` es de los de antes, y se traduce a lo que quería decir: el
+   abierto más los añadidos, sin la Biblia entera.
+   `dia` se sigue escribiendo —el primero de los días, o nada— para que una
+   versión vieja de la aplicación, en otro aparato de la misma cuenta, no tire
+   el registro entero por no encontrarlo. */
 function normalizarFiltroNota(f){
   const libroValido = id => typeof id === 'string' && CANON.some(b => b.id === id);
+  const diaValido = d => typeof d === 'string' && d.length > 0 && d.length <= 40;
   if (!f || !libroValido(f.libro) || !Array.isArray(f.libros) || !f.libros.every(libroValido) ||
       !Array.isArray(f.etiquetas) || !f.etiquetas.every(t => typeof t === 'string' && t.length > 0 && t.length <= 120) ||
-      typeof f.dia !== 'string' || f.dia.length > 40 ||
       typeof f.fecha !== 'string' || !Number.isFinite(Date.parse(f.fecha))) return null;
-  return { libro:f.libro, libros:[...new Set(f.libros)].filter(id => id !== f.libro).sort(),
-    etiquetas:[...new Set(f.etiquetas)].sort(), dia:f.dia, fecha:new Date(f.fecha).toISOString() };
+  let dias;
+  if (Array.isArray(f.dias)){ if (!f.dias.every(diaValido)) return null; dias = f.dias; }
+  else if (typeof f.dia === 'string' && f.dia.length <= 40) dias = f.dia ? [f.dia] : [];
+  else return null;
+  let libros, todos;
+  if (typeof f.todosLibros === 'boolean'){ todos = f.todosLibros; libros = todos ? [] : f.libros; }
+  else { todos = false; libros = [f.libro, ...f.libros]; }
+  libros = [...new Set(libros)].sort();
+  if (!libros.length) todos = true;          /* apagado sin nada no filtra */
+  dias = [...new Set(dias)].sort().reverse();
+  return { libro:f.libro, libros, todosLibros:todos, etiquetas:[...new Set(f.etiquetas)].sort(),
+           dias, dia:dias[0] || '', fecha:new Date(f.fecha).toISOString() };
 }
+/* Lo que hace iguales a dos registros: todo menos la fecha. */
+const llaveFiltroNota = f => JSON.stringify([f.libro, f.libros, f.todosLibros, f.etiquetas, f.dias]);
 function normalizarHistorialNota(historial){
   return Array.isArray(historial) ? historial.map(normalizarFiltroNota).filter(Boolean) : [];
 }
 function capturarFiltroGlosas(){
-  return normalizarFiltroNota({ libro:LIBRO, libros:[...librosFiltro],
-    etiquetas:[...etiquetasVer], dia:diaFiltro, fecha:new Date().toISOString() });
+  const libros = todosLibros ? [] : [...librosVer];
+  return normalizarFiltroNota({ libro:LIBRO, libros, todosLibros: todosLibros || !libros.length,
+    etiquetas: todasEtiq ? [] : [...etiquetasVer], dias: todosDias ? [] : [...diasVer],
+    fecha:new Date().toISOString() });
 }
 function restaurarFiltroNota(f){
   if (!hayLibro(f.libro)){
@@ -26629,7 +26814,9 @@ function restaurarFiltroNota(f){
      el panel abierto; saltarA lo cerraba y dejaba al lector fuera de GLOSAS. */
   trasPintar(() => {
     try {
-      etiquetasVer = new Set(f.etiquetas); librosFiltro = new Set(f.libros); diaFiltro = f.dia;
+      etiquetasVer = new Set(f.etiquetas); todasEtiq = !etiquetasVer.size;
+      diasVer = new Set(f.dias); todosDias = !diasVer.size;
+      librosVer = new Set(f.todosLibros ? [] : f.libros); todosLibros = !librosVer.size;
       if (LIBRO !== f.libro){
         /* AL RASTRO TAMBIÉN, que es lo que se le olvidó a este camino.
 
@@ -27098,9 +27285,7 @@ const UI_EN = {
      un <span data-es data-en>, que es lo que se traduce. */
   '#btnVerEtiquetas':  { title:'Filter the glosses by tag or by day' },
   '#btnElegirGlosas':  { title:'Pick several glosses to edit their tags' },
-  '#btnGuardarGlosas': { title:'Save (to be decided)' },
-  '#filtros':          { aria:'Gloss filters: the day and the tags' },
-  '#selDia':           { aria:'Filter the glosses by day' },
+  '#filtros':          { aria:'Gloss filters: days, books and tags' },
   '#btnGlosas':        { title:'glosses', aria:'glosses' },
   '#cuentaGrupo':      { t:'0 picked' },
   /* Los cuatro puntos de la hoja y los tres cuadros que abren. */
@@ -28156,18 +28341,6 @@ function pintarIndice(){
 /* Los botones "Libros" e "Índice" salieron de la barra de abajo: la burbuja
    de la esquina ya lleva a los dos, y dos puertas al mismo cuarto solo
    obligan a decidir cuál usar. */
-menu.addEventListener('click', ev => {
-  const b = ev.target.closest('[data-libfil]'); if (!b) return;
-  ev.stopPropagation();
-  librosFiltro.add(b.dataset.libfil);
-  guardarAjustes();
-  /* Y SE ENSEÑA LA TIRA, porque este filtro se pone desde el menú de una glosa
-     y no desde ella: sin esto, tocar «ver en otro libro» escondería media
-     lista y dejaría la única manera de deshacerlo detrás de un botón apagado
-     que el lector no tiene motivo para tocar. */
-  verEtiquetas(true);
-  ocultarMenu(); pintarFiltros(); pintarIndice();
-}, true);
 
 $('indice').addEventListener('click', ev => {
   if (ev.target.closest('.ix-asa')){ ev.preventDefault(); ev.stopPropagation(); return; }
@@ -28395,7 +28568,11 @@ function guardarAjustes(){
          antes de que la manija existiera no traen el campo y se quedan en
          cero, que es el sitio de fábrica; por eso el objeto sigue en v:1. */
       menuDesvioX: menuDesvio.x, menuDesvioY: menuDesvio.y,
-      etiquetasVer: [...etiquetasVer], librosFiltro: [...librosFiltro], diaFiltro
+      /* Las tres secciones del filtro: su «todos» y lo elegido en cada una.
+         librosFiltro y diaFiltro, los de antes, ya no se escriben; los lee
+         cargarAjustes una vez para traducirlos. */
+      etiquetasVer: [...etiquetasVer], librosVer: [...librosVer], diasVer: [...diasVer],
+      todosDias, todosLibros, todasEtiquetas: todasEtiq
     }));
   } catch(e){ /* si no se puede, se arranca con lo de fábrica */ }
   /* De todo lo de arriba, a la nube solo va la Biblia y por dónde vas. */
@@ -28483,11 +28660,26 @@ function cargarAjustes(){
     etiquetasVer = new Set(a.etiquetasVer
       .filter(t => typeof t === 'string' && t.length <= 120)
       .map(t => t === '(sin etiqueta)' ? t : etiquetaLimpia(t)).filter(Boolean));
-  if (Array.isArray(a.librosFiltro))
-    librosFiltro = new Set(a.librosFiltro.filter(id => typeof id === 'string' && CANON.some(b => b.id === id)));
-  if (typeof a.diaFiltro === 'string' && a.diaFiltro.length <= 40) diaFiltro = a.diaFiltro;
   if (D.versiones[a.version]) version = a.version;      // antes que el libro:
   if (a.libro && hayLibro(a.libro)) LIBRO = a.libro;    // hayLibro depende de version
+  /* LAS TRES SECCIONES DEL FILTRO, y lo de antes traducido. Va después del
+     libro porque los libros viejos lo necesitan: librosFiltro eran los
+     AÑADIDOS al abierto, así que pasan a ser ésos más el abierto, con «Todos
+     los libros» apagado —lo que el lector veía—. Sin libros añadidos, la
+     sección arranca puesta: la Biblia entera, como pidió Gianni. El día suelto
+     de antes, diaFiltro, pasa a ser el único elegido. */
+  const libroOk = id => typeof id === 'string' && CANON.some(b => b.id === id);
+  const diaOk = d => typeof d === 'string' && d.length > 0 && d.length <= 40;
+  if (Array.isArray(a.librosVer)) librosVer = new Set(a.librosVer.filter(libroOk));
+  else if (Array.isArray(a.librosFiltro) && a.librosFiltro.some(libroOk))
+    librosVer = new Set([LIBRO, ...a.librosFiltro.filter(libroOk)]);
+  if (Array.isArray(a.diasVer)) diasVer = new Set(a.diasVer.filter(diaOk));
+  else if (diaOk(a.diaFiltro)) diasVer = new Set([a.diaFiltro]);
+  /* Puesto salvo que el lector lo dejara apagado; y con algo elegido, apagado
+     siempre, que «todos» y unos cuantos no se pueden decir a la vez. */
+  todosLibros = !librosVer.size && a.todosLibros !== false;
+  todosDias = !diasVer.size && a.todosDias !== false;
+  todasEtiq = !etiquetasVer.size && a.todasEtiquetas !== false;
   return a;
 }
 
@@ -29284,9 +29476,7 @@ function armarManijasIndice(pagina, reordenar){
     if (!pendiente || !nota) return;
     const filtro = pendiente; pendiente = null;
     const anterior = nota.filtros.at(-1);
-    const igual = anterior && anterior.libro === filtro.libro && anterior.dia === filtro.dia &&
-      JSON.stringify(anterior.libros) === JSON.stringify(filtro.libros) &&
-      JSON.stringify(anterior.etiquetas) === JSON.stringify(filtro.etiquetas);
+    const igual = anterior && llaveFiltroNota(anterior) === llaveFiltroNota(filtro);
     if (igual) anterior.fecha = filtro.fecha; else nota.filtros.push(filtro);
     guardarNotas();
   };
@@ -29314,11 +29504,14 @@ function armarManijasIndice(pagina, reordenar){
         const fila = document.createElement('li'), boton = document.createElement('button');
         boton.type = 'button'; boton.className = 'nota-filtro';
         const nombre = document.createElement('span');
-        nombre.textContent = [f.libro, ...f.libros].map(nombreDe).join(' + ') + ' · ' +
+        nombre.textContent = (f.todosLibros ? T('Toda la Biblia', 'The whole Bible')
+                                            : f.libros.map(nombreDe).join(' + ')) + ' · ' +
           (f.etiquetas.length ? f.etiquetas.map(t => t === '(sin etiqueta)' ? T(t, '(untagged)') : '#' + t).join(' · ')
                               : T('Todas las etiquetas', 'All tags'));
         const detalle = document.createElement('small');
-        detalle.textContent = (f.dia || T('Todos los días', 'All days')) + ' · ' +
+        detalle.textContent = (f.dias.length
+            ? f.dias.map(d => d === '(sin fecha)' ? T(d, '(no date)') : d).join(', ')
+            : T('Todos los días', 'All days')) + ' · ' +
           new Date(f.fecha).toLocaleString(idiomaUI(), { dateStyle:'medium', timeStyle:'short' });
         if (!hayLibro(f.libro)){
           boton.disabled = true;
