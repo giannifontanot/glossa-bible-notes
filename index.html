@@ -7730,7 +7730,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 05:08';
+window.GLOSS_BUILD = '24-NOV-26 05:10';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -30719,9 +30719,10 @@ async function nubeUnaVuelta(){
   const estreno = nubeLeerJSON(NUBE_ESTRENO, {});
   const base = est.base || {};
   const nuevaBase = {}, subir = [];
-  const resultado = {};
+  const resultado = {}, antes = {};
   for (const alm of NUBE_ALMACENES){
     const local = alm.leer();
+    antes[alm.id] = nubeHuellas(local);
     const res = nube ? nubeFundir(alm, new Map(local), nube[alm.id] || new Map(), base[alm.id], estreno[alm.id])
                      : local;
     resultado[alm.id] = res;
@@ -30760,22 +30761,6 @@ async function nubeUnaVuelta(){
   const fotosFinal = [...enNube].filter(id => usadas.has(id)).sort();
   const fotosCambian = fotosFinal.join('|') !== [...fotosNube].sort().join('|');
 
-  /* LO DE LA NUBE ENTRA EN ESTE APARATO, primero las fotos y luego lo demás:
-     cuando una nota se pinte, su foto ya tiene que estar. */
-  nubeAplicando = true;
-  try {
-    if (Object.keys(fotosBajadas).length){ Object.assign(fotosNotas, fotosBajadas); guardarFotos(); }
-    let tocoHoja = false;
-    for (const alm of NUBE_ALMACENES){
-      if (!nube) continue;
-      const antes = alm.leer(), res = resultado[alm.id];
-      if (nubeMismas(nubeHuellas(antes), nuevaBase[alm.id])) continue;
-      alm.poner(res);
-      tocoHoja = true;
-    }
-    if (tocoHoja) renderPage();
-  } finally { nubeAplicando = false; }
-
   /* Y LO DE ESTE APARATO SUBE, todo en una transacción que mira rev. */
   if (subir.length || fotosCambian || !cab.exists()){
     const docs = [];
@@ -30813,17 +30798,72 @@ async function nubeUnaVuelta(){
        se leyó, y lo nuevo de allá falta: se da otra vuelta, que lee y junta
        otra vez. La base no se toca, porque esta vuelta no dejó nada arriba. */
     if (otra){ nubeOtraVez = true; return; }
-    est.rev = nuevoRev; est.trozos = trozos;
     /* Las fotos que ya no usa ninguna nota se quitan de la nube DESPUÉS de
        que las notas sin ellas ya están arriba. Si esto falla no pasa nada:
        se vuelven a ver sobrantes la próxima vez. */
     for (const id of sobranFotos){
       try { await fs.deleteDoc(fs.doc(db, 'users', u.uid, 'fotos', id)); } catch(_){}
     }
+    est.rev = nuevoRev; est.trozos = trozos;
   } else { est.rev = rev; est.trozos = trozosNube; }
+
+  /* LO DE LA NUBE ENTRA EN ESTE APARATO, y solo ahora, con la subida ya
+     hecha. Antes entraba antes de subir, y si otro aparato escribía en medio
+     la vuelta siguiente juntaba con la base vieja: lo bajado parecía un cambio
+     de este aparato y pisaba lo más nuevo de allá. Así, si la subida choca,
+     aquí no se ha tocado nada y la vuelta siguiente junta como si esta no
+     hubiera pasado.
+
+     Si el lector se puso a escribir mientras se esperaba a la red, no se le
+     repinta nada: la nube ya tiene lo juntado, pero este aparato no apunta
+     la vuelta como hecha (ni rev ni base), y al soltar el foco se junta otra
+     vez contra la base de antes, que es la que de verdad comparten. */
+  if (nube && nubeEscribiendo()){ nubeEsperaFoco = true; return; }
+  let siguioCambiando = false;
+  nubeAplicando = true;
+  try {
+    /* Primero las fotos y luego lo demás: cuando una nota se pinte, su foto
+       ya tiene que estar. */
+    if (Object.keys(fotosBajadas).length){ Object.assign(fotosNotas, fotosBajadas); guardarFotos(); }
+    let tocoHoja = false;
+    for (const alm of NUBE_ALMACENES){
+      if (!nube) continue;
+      const ahora = alm.leer();
+      const final = nubeAlDia(antes[alm.id], ahora, resultado[alm.id]);
+      if (final !== resultado[alm.id]) siguioCambiando = true;
+      if (nubeMismas(nubeHuellas(ahora), nubeHuellas(final))) continue;
+      alm.poner(final);
+      tocoHoja = true;
+    }
+    if (tocoHoja) renderPage();
+  } finally { nubeAplicando = false; }
   est.base = nuevaBase; est.fotos = fotosFinal; est.cuando = Date.now();
   nubeGuardarEstado(est);
+  /* Lo que el lector cambió durante la espera quedó aquí y no en la base:
+     otra vuelta lo sube. */
+  if (siguioCambiando) nubeOtraVez = true;
   if (nube && resultado.lugar) nubeSeguirLugar(resultado.lugar.get('todo'));
+}
+/* LO QUE SE CAMBIÓ AQUÍ MIENTRAS SE ESPERABA A LA RED. Las esperas de la
+   vuelta (bajar y subir fotos, la transacción) dejan escribir al lector, y lo
+   juntado se calculó con lo que había antes. Cosa por cosa: si sigue como
+   estaba al juntar, entra lo juntado; si el lector la cambió, la quitó o la
+   puso nueva, se respeta lo suyo. Devuelve el mismo mapa juntado cuando nada
+   cambió, para que quien llama lo sepa sin compararlo entero. */
+function nubeAlDia(huellasAntes, ahora, juntado){
+  const ha = huellasAntes || {};
+  let cambio = false;
+  for (const [id, v] of ahora) if (ha[id] !== nubeHuella(v)){ cambio = true; break; }
+  if (!cambio) for (const id of Object.keys(ha)) if (!ahora.has(id)){ cambio = true; break; }
+  if (!cambio) return juntado;
+  const final = new Map();
+  for (const id of new Set([...juntado.keys(), ...ahora.keys(), ...Object.keys(ha)])){
+    const v = ahora.get(id);
+    const tocada = v === undefined ? (id in ha) : ha[id] !== nubeHuella(v);
+    const x = tocada ? v : juntado.get(id);
+    if (x !== undefined) final.set(id, x);
+  }
+  return final;
 }
 
 /* ---------- POR DÓNDE VAS ----------
