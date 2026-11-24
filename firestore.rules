@@ -24,12 +24,26 @@ rules_version = '2';
 //   users/{dueño}/grupos/{gid}/miembros/{uid} quien tiene el código de un
 //                                             grupo se apunta él mismo, y él
 //                                             mismo se sale.
+//   users/{remitente}/acuses/{carta~uid}      LAS PALOMITAS: quien recibió una
+//                                             carta le deja al que la mandó un
+//                                             acuse —«llegó» o «leída»— con
+//                                             su propio uid, y solo el suyo;
+//                                             solo el remitente los lee. Un
+//                                             «leída» no vuelve a «llegó».
 // Todo lo demás del correo (perfil, contactos, grupos) es del dueño, como
 // siempre.
 service cloud.firestore {
   match /databases/{database}/documents {
     function entro() { return request.auth != null; }
     function nombreBueno(n) { return n is string && n.size() >= 1 && n.size() <= 60; }
+    function acuseBueno(acuse) {
+      return entro() && request.resource.data.de == request.auth.uid
+          && request.resource.data.keys().hasOnly(['carta', 'de', 'estado', 't'])
+          && request.resource.data.carta is string && request.resource.data.carta.size() <= 80
+          && acuse == request.resource.data.carta + '~' + request.auth.uid
+          && request.resource.data.estado in ['llego', 'leida']
+          && request.resource.data.t is int;
+    }
     function codigoBueno(d) {
       return d.keys().hasOnly(['tipo', 'uid', 'nombre', 'gid', 'dueno', 't'])
           && d.tipo in ['persona', 'grupo'] && d.uid is string && nombreBueno(d.nombre)
@@ -67,9 +81,15 @@ service cloud.firestore {
           && request.resource.data.fotos is map
           && request.resource.data.t is int
           && (!('grupo' in request.resource.data) || request.resource.data.grupo is string)
-          && (!('material' in request.resource.data) || request.resource.data.material in ['goma', 'pluma'])
+          && (!('material' in request.resource.data) || request.resource.data.material in ['goma', 'pluma', 'corazon'])
           && (!('rebote' in request.resource.data) || (request.resource.data.get('material', '') == 'goma'
               && request.resource.data.rebote in ['poco', 'medio', 'mucho']));
+      }
+
+      match /acuses/{acuse} {
+        allow create: if acuseBueno(acuse);
+        allow update: if acuseBueno(acuse) && resource.data.de == request.auth.uid
+          && !(resource.data.estado == 'leida' && request.resource.data.estado == 'llego');
       }
 
       match /grupos/{gid}/miembros/{m} {

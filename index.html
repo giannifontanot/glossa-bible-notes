@@ -4776,6 +4776,15 @@
   .nota-acciones{ display:flex; gap:6px; flex:0 0 auto; min-width:0; margin:0 0 9px;
     overflow-x:auto; scrollbar-width:none; }
   .nota-acciones::-webkit-scrollbar{ display:none; }
+  /* Las palomitas, verdes como las de WhatsApp —pedido así por Gianni— y
+     empujadas al final del renglón. La segunda se monta un poco sobre la
+     primera, que es como se leen dos y no una larga. */
+  .nota-palomitas{ flex:0 0 auto; display:inline-flex; align-items:center; margin-left:auto;
+    padding:0 6px 0 4px; color:#25a35a; }
+  .nota-palomitas[hidden]{ display:none; }
+  .nota-palomitas svg{ width:17px; height:13px; fill:none; stroke:currentColor; stroke-width:2.2;
+    stroke-linecap:round; stroke-linejoin:round; }
+  .nota-palomitas svg + svg{ margin-left:-9px; }
   .nota-ver-glosas, .nota-ver-formato, .nota-ver-enviar{ flex:0 0 auto; display:inline-flex; align-items:center;
     gap:7px; min-height:40px; padding:5px 12px 5px 9px; white-space:nowrap;
     border:0; border-radius:5px; cursor:pointer; color:#73561f; letter-spacing:.02em;
@@ -4971,7 +4980,7 @@
     background:radial-gradient(circle at 34% 30%, rgba(255,255,255,.75), rgba(255,255,255,0) 42%),
                radial-gradient(circle at 60% 70%, var(--bola), color-mix(in srgb, var(--bola) 62%, #000) 100%); }
   .envio-color[aria-checked="true"]{ border-color:#1d1a14; box-shadow:0 0 0 3px #fffdf7, 0 0 0 5px #b8892b; }
-  /* DE QUÉ ES: tres botones con la bolita dibujada como va a caer, en el
+  /* DE QUÉ ES: cuatro botones con la bolita dibujada como va a caer, en el
      color elegido, y su nombre debajo. */
   .envio-materiales{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
   .envio-material{ display:flex; flex-direction:column; align-items:center; gap:4px;
@@ -5121,9 +5130,20 @@
          opacity:.55; }
   /* LA PLUMA no es un círculo: el botón se queda del mismo tamaño —es lo que
      se toca—, pero lo que se ve es la pluma, que se mece al caer (--giro). */
-  .bola[data-material="pluma"], .bola-muestra[data-material="pluma"]{
+  .bola[data-material="pluma"], .bola-muestra[data-material="pluma"],
+  .bola[data-material="corazon"], .bola-muestra[data-material="corazon"]{
          background:none; box-shadow:none; border-radius:30%; }
-  .bola[data-material="pluma"]::before{ content:none; }
+  .bola[data-material="pluma"]::before, .bola[data-material="corazon"]::before{ content:none; }
+  /* EL CORAZÓN, igual que la pluma: el botón del mismo tamaño y lo que se ve
+     es el dibujo, que se ladea con --giro como ella. */
+  .corazon{ position:absolute; inset:0; width:100%; height:100%; overflow:visible;
+         transform:rotate(var(--giro, 0deg));
+         filter:drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
+  .corazon-cuerpo{ fill:var(--bola, #a53d3d);
+         stroke:color-mix(in srgb, var(--bola, #a53d3d) 62%, #000000); stroke-width:2;
+         stroke-linejoin:round; }
+  .corazon-brillo{ fill:none; stroke:color-mix(in srgb, var(--bola, #a53d3d) 35%, #ffffff);
+         stroke-width:3; stroke-linecap:round; opacity:.85; }
   .pluma{ position:absolute; inset:0; width:100%; height:100%; overflow:visible;
          transform:rotate(var(--giro, 0deg));
          filter:drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
@@ -5662,16 +5682,17 @@
   #ctrlEtiquetas .fila-etiq .btn-signo .signo{ width:19px; height:19px; }
   #ctrlEtiquetas.sin-chips #filaFiltros{ display:none; }
   /* EN EDITAR, LA MISMA LISTA. Se enseña aunque FILTRAR esté apagado, y sin
-     lo que es solo de filtrar: las secciones de días y de libros, el botón
-     de «Todas las etiquetas» y «(sin etiqueta)». Las etiquetas se ven
+     lo que es solo de filtrar: las pestañas, las secciones de días y de
+     libros, el candado de las etiquetas y «(sin etiqueta)». Las etiquetas se ven
      siempre, aunque su «todos» esté puesto en FILTRAR: aquí no filtran. Las pastillas dicen el estado de las glosas elegidas: llena,
      la llevan todas; punteada, algunas; dorada, la que se renombra. Y lo que
      encendió el filtro no se pinta aquí, que en EDITAR no quiere decir nada. */
   #etiquetas.eligiendo #ctrlEtiquetas.sin-chips #filaFiltros{ display:flex; }
   #etiquetas.eligiendo #filtros #secDias, #etiquetas.eligiendo #filtros #secLibros,
+  #etiquetas.eligiendo #filtros .ftabs,
   #etiquetas.eligiendo #filtros .fsec-todos, #etiquetas.eligiendo #filtros .chip-sin{ display:none; }
-  #etiquetas.eligiendo #filtros #secEtiq{ border-top:0; padding-top:0; }
-  #etiquetas.eligiendo #filtros #secEtiq .fsec-pills{ display:flex; }
+  #etiquetas.eligiendo #filtros #secEtiq{ display:flex; padding-top:0; }
+  #etiquetas.eligiendo #filtros #secEtiq .fsec-pills{ display:flex; opacity:1; filter:none; pointer-events:auto; }
   #etiquetas.eligiendo #filtros .chip.sel{ border-color:rgba(140,116,68,.45); border-width:1px;
             background:rgba(255,255,255,.05); box-shadow:none; }
   #etiquetas.eligiendo #filtros .chip.on{ background:#e9d9ad; border-color:#8a6416; }
@@ -5798,42 +5819,62 @@
                        background:linear-gradient(to top,
                          rgba(74,58,28,.34) 0%, rgba(74,58,28,0) 100%); }
   #filaFiltros.hay-mas::after{ opacity:1; }
-  /* LAS TRES SECCIONES DEL FILTRO: días, libros y etiquetas, una debajo de
-     otra, cada una con su botón de «todos» arriba y su fila de pastillas
-     debajo. La tira deja de ser una sola fila que se envuelve y pasa a ser una
-     columna; cada fila de pastillas se envuelve por su cuenta.
-     El botón no es una pastilla, a propósito: las pastillas eligen cosas y el
-     botón dice si la sección filtra o no. Por eso lleva un interruptor —el
-     dibujo que en todos los teléfonos quiere decir «encendido o apagado»—
-     dorado cuando está puesto, y la palabra al lado, sin caja. Ocupa el ancho
-     entero y mide 40 px de alto: es el blanco grande de la sección. Encima de
-     la primera no hay raya; entre una y otra, una fina, para que las tres se
-     lean como tres. */
+  /* LAS TRES PESTAÑAS DEL FILTRO, con su candado. Antes fueron tres
+     secciones una debajo de otra, cada una con un interruptor de «todos»
+     (PR #271); a Gianni no le gustaron los tres interruptores y pidió
+     pestañas con candado. Ahora arriba va una fila de tres pestañas —Días,
+     Libros, Etiquetas— y debajo solo la sección de la pestaña elegida.
+     Cada pestaña lleva un candadito: cerrado, esa sección no filtra; abierto,
+     filtra, y entonces la pestaña dice cuántas tiene elegidas («Libros · 3»).
+     Así se sabe qué filtra sin abrir las tres.
+     Dentro de la sección, el candado grande es el botón (.fsec-todos, el
+     mismo de antes): ancho entero y 40 px de alto. Cerrado, las pastillas se
+     quedan a la vista pero apagadas y sin poder tocarse, con lo último
+     elegido todavía marcado, para que se vea qué volverá al abrirlo. */
   #filtros{ flex-direction:column; flex-wrap:nowrap; align-items:stretch; }
-  #filtros .fsec{ display:flex; flex-direction:column; align-items:stretch; gap:4px; }
-  #filtros .fsec + .fsec{ border-top:1px solid rgba(140,116,68,.22); padding-top:4px; }
+  #filtros .ftabs{ display:flex; gap:4px; border-bottom:1px solid rgba(140,116,68,.35); }
+  #filtros .ftab{ flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center;
+          gap:5px; min-height:40px; padding:0 4px; margin:0 0 -1px; cursor:pointer;
+          border:1px solid transparent; border-bottom:0; border-radius:8px 8px 0 0;
+          background:transparent; color:rgba(74,58,28,.72);
+          font:600 calc(var(--fs-glosa-ui, 14px) * .86)/1.1 var(--ui); white-space:nowrap; }
+  #filtros .ftab[aria-selected="true"]{ color:#4a3a1c; background:rgba(255,253,247,.55);
+          border-color:rgba(140,116,68,.35); box-shadow:inset 0 2px 0 #b8892b; }
+  #filtros .ftab:focus-visible{ outline:2px solid #8a6416; outline-offset:-2px; }
+  #filtros .ftab-txt{ overflow:hidden; text-overflow:ellipsis; }
+  #filtros .ftab-n:empty{ display:none; }
+  #filtros .ftab-n{ flex:none; color:#8a6416; }
+  /* El candado, dibujado: el cuerpo y el arco. Cerrado, el arco baja entero
+     a su sitio; abierto, se levanta y se corre a un lado, que es como lo
+     dibujan todos los teléfonos. Dorado cuando filtra, para que se vea. */
+  #filtros .candado{ flex:none; width:15px; height:15px; fill:none; stroke:currentColor;
+          stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; overflow:visible; }
+  #filtros .candado rect{ fill:currentColor; fill-opacity:.18; }
+  #filtros .candado .cd-arco{ transition:transform .2s cubic-bezier(.22,.72,.24,1); transform-origin:16px 11px; }
+  #filtros .ftab.abierta .candado, #filtros .fsec-todos[aria-pressed="false"] .candado{ color:#b8892b; }
+  #filtros .ftab.abierta .cd-arco, #filtros .fsec-todos[aria-pressed="false"] .cd-arco{
+          transform:translate(-3px, -3px) rotate(-28deg); }
+  #filtros .candado.grande{ width:20px; height:20px; }
+  #filtros .fsec{ display:none; flex-direction:column; align-items:stretch; gap:4px; padding-top:2px; }
+  #filtros .fsec.activa{ display:flex; }
   #filtros .fsec-todos{ display:flex; align-items:center; gap:10px; width:100%;
           min-height:40px; padding:2px 2px; margin:0; border:0; background:transparent;
           color:#4a3a1c; cursor:pointer; text-align:left;
           font:600 calc(var(--fs-glosa-ui, 14px) * .9)/1.2 var(--ui); }
   #filtros .fsec-todos:focus-visible{ outline:2px solid #8a6416; outline-offset:1px; border-radius:6px; }
-  #filtros .fsec-sw{ flex:none; position:relative; width:36px; height:21px; border-radius:999px;
-          background:rgba(140,116,68,.30); box-shadow:inset 0 0 0 1px rgba(140,116,68,.35);
-          transition:background .2s ease; }
-  #filtros .fsec-sw::after{ content:''; position:absolute; top:2px; left:2px; width:17px; height:17px;
-          border-radius:50%; background:#fffdf7; box-shadow:0 1px 2px rgba(74,58,28,.45);
-          transition:transform .2s cubic-bezier(.22,.72,.24,1); }
-  #filtros .fsec-todos[aria-pressed="true"] .fsec-sw{ background:#b8892b;
-          box-shadow:inset 0 0 0 1px #8a6416; }
-  #filtros .fsec-todos[aria-pressed="true"] .fsec-sw::after{ transform:translateX(15px); }
+  #filtros .fsec-todos[aria-pressed="true"] .fsec-abierto,
+  #filtros .fsec-todos[aria-pressed="false"] .fsec-cerrado{ display:none; }
   @media (prefers-reduced-motion: reduce){
-    #filtros .fsec-sw, #filtros .fsec-sw::after{ transition:none; }
+    #filtros .candado .cd-arco{ transition:none; }
   }
   #filtros .fsec-pills{ display:flex; flex-wrap:wrap; align-items:center; gap:5px 6px;
-                        padding:0 0 4px 2px; }
-  #filtros .fsec.todos .fsec-pills{ display:none; }
+                        padding:0 0 4px 2px; transition:opacity .2s ease; }
+  /* Con el candado cerrado las pastillas no se esconden: se apagan y no se
+     dejan tocar (además van inert, ver marcarSecciones). Esconderlas era lo
+     de antes, y con eso no se veía qué volvería al abrir. */
+  #filtros .fsec.todos .fsec-pills{ opacity:.42; filter:saturate(.4); pointer-events:none; }
   /* El libro abierto lleva un punto delante: es por donde se está leyendo, y
-     al apagar «Todos los libros» es el que sale elegido. */
+     al abrir el candado de Libros es el que sale elegido. */
   #filtros .chip-libro.abierto::before{ content:''; display:inline-block; width:6px; height:6px;
           margin-right:6px; border-radius:50%; background:#8a6416; vertical-align:middle; }
   /* Y LAS PASTILLAS ADELGAZAN. En teléfono heredaban el suelo de toque de la
@@ -7681,33 +7722,54 @@
      renglón. El rótulo hablado se queda en el grupo, que es donde sirve. -->
 <div class="ajuste ancho" id="filaFiltros"><span class="ctrl" id="filtros"
      role="group" aria-label="Filtros de las glosas: los días, los libros y las etiquetas">
-  <!-- LAS TRES SECCIONES DEL FILTRO, pedidas por Gianni: «hasta arriba de la
-       lista de etiquetas pon 3 secciones, cada una con su botón». Cada botón
-       dice «todos»; encendido, esa sección no filtra y sus pastillas no se
-       ven; apagado, se abre debajo la fila de pastillas para elegir algunas.
-       Entre secciones se suman (día Y libro Y etiqueta); dentro de una, basta
-       con cualquiera. Antes el día era un combo de una sola fecha y los
-       libros se agregaban con «+ libro» desde un menú: dos mandos distintos
-       para la misma idea que las etiquetas ya resolvían con pastillas, que
-       es lo que a Gianni le gustaba. Ver pintarFiltros. -->
-  <div class="fsec todos" id="secDias">
+  <!-- TRES PESTAÑAS CON SU CANDADO, pedidas por Gianni al ver los tres
+       interruptores de antes («no me gustó»). Una pestaña por sección —Días,
+       Libros, Etiquetas— y una sola a la vista. Dentro, arriba de las
+       pastillas, el candado:
+       · CERRADO: la sección no filtra, se ve todo. Las pastillas se quedan a
+         la vista pero apagadas y sin poder tocarse, con lo que se eligió la
+         última vez todavía marcado: cerrar no borra, solo deja de filtrar.
+       · ABIERTO: las pastillas se encienden y se eligen varias; la pestaña
+         dice cuántas («Libros · 3»).
+       Cada pestaña lleva un candadito, abierto o cerrado, para saber de un
+       vistazo cuáles están filtrando sin entrar en ellas.
+       El botón del candado sigue siendo .fsec-todos con data-todos y
+       aria-pressed (puesto = cerrado = todos): es el mismo estado de antes con
+       otra cara, y así lo guardado y lo que lo lee siguen valiendo.
+       Ver pintarFiltros y ponerTodos. -->
+  <div class="ftabs" role="tablist" aria-label="Secciones del filtro"
+       data-es-aria="Secciones del filtro" data-en-aria="Filter sections">
+    <button type="button" class="ftab" role="tab" id="tab-dias" data-tab="dias" aria-selected="false"
+            aria-controls="secDias" tabindex="0"><svg class="candado" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="cd-arco" d="M8 11V7.5a4 4 0 0 1 8 0V11"/><rect x="5" y="11" width="14" height="10" rx="2.2"/></svg><span class="ftab-txt"
+            data-es="Días" data-en="Days">Días</span><span class="ftab-n"></span></button>
+    <button type="button" class="ftab" role="tab" id="tab-libros" data-tab="libros" aria-selected="false"
+            aria-controls="secLibros" tabindex="0"><svg class="candado" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="cd-arco" d="M8 11V7.5a4 4 0 0 1 8 0V11"/><rect x="5" y="11" width="14" height="10" rx="2.2"/></svg><span class="ftab-txt"
+            data-es="Libros" data-en="Books">Libros</span><span class="ftab-n"></span></button>
+    <button type="button" class="ftab" role="tab" id="tab-etiq" data-tab="etiq" aria-selected="true"
+            aria-controls="secEtiq" tabindex="0"><svg class="candado" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="cd-arco" d="M8 11V7.5a4 4 0 0 1 8 0V11"/><rect x="5" y="11" width="14" height="10" rx="2.2"/></svg><span class="ftab-txt"
+            data-es="Etiquetas" data-en="Tags">Etiquetas</span><span class="ftab-n"></span></button>
+  </div>
+  <div class="fsec todos" id="secDias" role="tabpanel" aria-labelledby="tab-dias">
     <button type="button" class="fsec-todos" data-todos="dias" aria-pressed="true"
-            aria-controls="pillsDias"><span class="fsec-sw" aria-hidden="true"></span><span
-            data-es="Todos los días" data-en="All days">Todos los días</span></button>
+            aria-controls="pillsDias"><svg class="candado grande" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="cd-arco" d="M8 11V7.5a4 4 0 0 1 8 0V11"/><rect x="5" y="11" width="14" height="10" rx="2.2"/></svg><span class="fsec-dice fsec-cerrado"
+            data-es="Todos los días" data-en="All days">Todos los días</span><span class="fsec-dice fsec-abierto"
+            data-es="Solo los días elegidos" data-en="Only the chosen days">Solo los días elegidos</span></button>
     <div class="fsec-pills" id="pillsDias" role="group" aria-label="Elegir días"
          data-es-aria="Elegir días" data-en-aria="Choose days"></div>
   </div>
-  <div class="fsec todos" id="secLibros">
+  <div class="fsec todos" id="secLibros" role="tabpanel" aria-labelledby="tab-libros">
     <button type="button" class="fsec-todos" data-todos="libros" aria-pressed="true"
-            aria-controls="pillsLibros"><span class="fsec-sw" aria-hidden="true"></span><span
-            data-es="Todos los libros" data-en="All books">Todos los libros</span></button>
+            aria-controls="pillsLibros"><svg class="candado grande" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="cd-arco" d="M8 11V7.5a4 4 0 0 1 8 0V11"/><rect x="5" y="11" width="14" height="10" rx="2.2"/></svg><span class="fsec-dice fsec-cerrado"
+            data-es="Todos los libros" data-en="All books">Todos los libros</span><span class="fsec-dice fsec-abierto"
+            data-es="Solo los libros elegidos" data-en="Only the chosen books">Solo los libros elegidos</span></button>
     <div class="fsec-pills" id="pillsLibros" role="group" aria-label="Elegir libros"
          data-es-aria="Elegir libros" data-en-aria="Choose books"></div>
   </div>
-  <div class="fsec todos" id="secEtiq">
+  <div class="fsec todos activa" id="secEtiq" role="tabpanel" aria-labelledby="tab-etiq">
     <button type="button" class="fsec-todos" data-todos="etiq" aria-pressed="true"
-            aria-controls="pillsEtiq"><span class="fsec-sw" aria-hidden="true"></span><span
-            data-es="Todas las etiquetas" data-en="All tags">Todas las etiquetas</span></button>
+            aria-controls="pillsEtiq"><svg class="candado grande" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="cd-arco" d="M8 11V7.5a4 4 0 0 1 8 0V11"/><rect x="5" y="11" width="14" height="10" rx="2.2"/></svg><span class="fsec-dice fsec-cerrado"
+            data-es="Todas las etiquetas" data-en="All tags">Todas las etiquetas</span><span class="fsec-dice fsec-abierto"
+            data-es="Solo las etiquetas elegidas" data-en="Only the chosen tags">Solo las etiquetas elegidas</span></button>
     <div class="fsec-pills" id="pillsEtiq" role="group" aria-label="Elegir etiquetas"
          data-es-aria="Elegir etiquetas" data-en-aria="Choose tags"></div>
   </div>
@@ -8038,7 +8100,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 16:18';
+window.GLOSS_BUILD = '24-NOV-26 17:55';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -13307,11 +13369,12 @@ function destaparLaNueva(m){
   const quitados = [];
   /* Cada cosa quitada va en sus dos idiomas, [es, en]: el aviso habla el
      idioma de la Biblia abierta, como todos. */
-  /* Quitar un filtro es volver a encender su «todos»: la sección queda como
-     el lector la ve de fábrica, con el botón puesto y sus pastillas cerradas. */
-  if (!pasaDia(m)){ todosDias = true; diasVer.clear(); quitados.push(['el filtro de día', 'the day filter']); }
-  if (!pasaLibro(m)){ todosLibros = true; librosVer.clear(); quitados.push(['el filtro de libros', 'the book filter']); }
-  if (!pasaEtiquetas(m)){ todasEtiq = true; etiquetasVer.clear(); quitados.push(['el filtro de etiquetas', 'the tag filter']); }
+  /* Quitar un filtro es volver a cerrar su candado: la sección deja de
+     filtrar y lo elegido se queda guardado detrás, como cuando lo cierra el
+     lector, por si lo quiere otra vez. */
+  if (!pasaDia(m)){ todosDias = true; quitados.push(['el filtro de día', 'the day filter']); }
+  if (!pasaLibro(m)){ todosLibros = true; quitados.push(['el filtro de libros', 'the book filter']); }
+  if (!pasaEtiquetas(m)){ todasEtiq = true; quitados.push(['el filtro de etiquetas', 'the tag filter']); }
   if (!showMarks){
     showMarks = true;
     const b = $('marksBtn'); if (b) b.textContent = 'Marcas: ON';
@@ -14991,7 +15054,14 @@ function pastillaFiltro(clave, html, puesta, alTocar){
     ev.preventDefault();
     b.click();
   });
-  b.onclick = alTocar;
+  /* Con el candado cerrado la pastilla no se toca: va inert y sin puntero,
+     y esto es la tercera cerradura, por si un toque llega igual (un clic
+     despachado a mano, un lector de pantalla). En EDITAR sí, que ahí no
+     filtra. */
+  b.onclick = ev => {
+    if (!eligiendoGlosas && b.closest('.fsec.todos')) return;
+    alTocar(ev);
+  };
   return b;
 }
 const ordenCanon = (a, b) => CANON.findIndex(x => x.id === a) - CANON.findIndex(x => x.id === b);
@@ -15112,63 +15182,94 @@ function pintarFiltros(){
      habiendo lista por debajo. */
   avisarMasEtiquetas();
 }
-/* EL BOTÓN DE CADA SECCIÓN DICE LO MISMO QUE SU ESTADO: puesto, con aria-pressed
-   y el interruptor dorado, y la sección con la clase que esconde sus
-   pastillas. Aparte de pintarFiltros porque ponerTodos lo necesita ANTES de
-   abrir la fila suave: abrirSuave mide lo que hay que abrir, y la fila tiene
-   que estar ya visible para medirse. */
+/* LAS PESTAÑAS Y SUS CANDADOS DICEN LO MISMO QUE EL ESTADO.
+
+   Por cada sección: su pestaña (elegida o no, y con el candadito abierto y
+   la cuenta cuando filtra), su candado grande (aria-pressed: puesto = cerrado
+   = todos) y sus pastillas (apagadas e inert con el candado cerrado: se ven,
+   para saber qué volverá, pero no se tocan). En EDITAR las etiquetas se tocan
+   siempre, porque ahí no filtran: editan. */
 const SECCIONES_FILTRO = [
-  ['dias',   'secDias',   () => todosDias],
-  ['libros', 'secLibros', () => todosLibros],
-  ['etiq',   'secEtiq',   () => todasEtiq],
+  ['dias',   'secDias',   () => todosDias,   () => diasVer],
+  ['libros', 'secLibros', () => todosLibros, () => librosVer],
+  ['etiq',   'secEtiq',   () => todasEtiq,   () => etiquetasVer],
 ];
+/* La pestaña que se ve. Se guarda en los ajustes: quien filtra por libros
+   vuelve a encontrarse en Libros. Nace en Etiquetas, que es la sección que
+   más se usa y la única que también sirve en EDITAR. */
+let pestanaFiltro = 'etiq';
 function marcarSecciones(){
-  for (const [cual, id, puesto] of SECCIONES_FILTRO){
+  if (!SECCIONES_FILTRO.some(x => x[0] === pestanaFiltro)) pestanaFiltro = 'etiq';
+  for (const [cual, id, puesto, elegidos] of SECCIONES_FILTRO){
     const sec = $(id); if (!sec) continue;
     const on = puesto();
+    const vista = cual === pestanaFiltro;
     sec.classList.toggle('todos', on);
+    sec.classList.toggle('activa', vista);
     const b = sec.querySelector('.fsec-todos');
     if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    const pills = sec.querySelector('.fsec-pills');
+    if (pills) pills.inert = on && !(cual === 'etiq' && eligiendoGlosas);
+    const tab = $('tab-' + cual);
+    if (tab){
+      tab.setAttribute('aria-selected', vista ? 'true' : 'false');
+      tab.classList.toggle('abierta', !on);
+      const n = on ? 0 : elegidos().size;
+      const pon = tab.querySelector('.ftab-n');
+      if (pon) pon.textContent = n ? '· ' + n : '';
+    }
   }
 }
-/* ENCENDER O APAGAR EL «TODOS» DE UNA SECCIÓN.
+/* ABRIR O CERRAR EL CANDADO DE UNA SECCIÓN.
 
-   Encender borra lo elegido —«todos» y unos cuantos a la vez no se pueden
-   decir— y cierra la fila suave. Apagar la abre para elegir. Los libros, al
-   apagarse, nacen con el abierto elegido: es lo que se estaba leyendo, y una
-   sección apagada sin nada puesto no filtraría nada y parecería rota.
-
-   El cierre va ANTES de poner la clase que esconde, porque cerrarSuave mide
-   la fila tal como se ve; la apertura va DESPUÉS de quitarla, por lo mismo al
-   revés. Es la regla de abrirSuave y cerrarSuave en todo el archivo. */
+   Cerrar NO borra lo elegido: deja de filtrar y nada más, y al volver a
+   abrir vuelven las mismas pastillas. Lo pidió Gianni así —«cuando le vuelvo
+   a poner el candado, regresa a todos, pero se acuerda»—. Antes, encender
+   «todos» vaciaba la sección, porque «todos» y unos cuantos no se podían
+   decir a la vez con un interruptor; con el candado sí se puede: lo elegido
+   se ve apagado detrás.
+   Los libros, al abrirse sin nada elegido, nacen con el abierto: es lo que se
+   estaba leyendo, y un candado abierto sin nada puesto no filtraría nada y
+   parecería roto. Días y etiquetas no, porque no hay uno «de ahora». */
 function ponerTodos(cual, on){
   const sec = SECCIONES_FILTRO.find(x => x[0] === cual);
   if (!sec) return;
-  const pills = $(sec[1]).querySelector('.fsec-pills');
-  if (on) cerrarSuave(pills);
-  if (cual === 'dias'){ todosDias = on; if (on) diasVer.clear(); }
+  if (cual === 'dias') todosDias = on;
   else if (cual === 'libros'){
     todosLibros = on;
-    if (on) librosVer.clear(); else if (!librosVer.size) librosVer.add(LIBRO);
-  } else { todasEtiq = on; if (on) etiquetasVer.clear(); }
+    if (!on && !librosVer.size) librosVer.add(LIBRO);
+  } else todasEtiq = on;
   marcarSecciones();
-  if (!on) abrirSuave(pills);
   guardarAjustes();
   if (cual === 'libros'){ pintarFiltros(); pintarIndice(); }
   else renderPage();
-  /* EL RIEL SE PREGUNTA OTRA VEZ AL ACABAR EL VIAJE. pintarFiltros ya lo
-     pregunta, pero en el primer cuadro de la apertura suave, con la fila en
-     cero: «no sobra nada», y al terminar de abrirse sí sobraba y nadie lo
-     volvía a mirar. Al cerrar pasa lo contrario: el riel se quedaba puesto
-     sobre una tira que ya cabía. */
-  clearTimeout(ponerTodos._riel);
-  ponerTodos._riel = setTimeout(avisarMasEtiquetas, SUAVE_MS + 40);
+  avisarMasEtiquetas();
+}
+function elegirPestana(cual, foco){
+  if (!SECCIONES_FILTRO.some(x => x[0] === cual)) return;
+  pestanaFiltro = cual;
+  marcarSecciones();
+  guardarAjustes();
+  if (foco){ const t = $('tab-' + cual); if (t) t.focus({ preventScroll:true }); }
+  /* La sección cambió de alto: el riel y la sombra se preguntan otra vez. */
+  avisarMasEtiquetas();
 }
 $('filtros').addEventListener('click', ev => {
+  const tab = ev.target.closest('.ftab');
+  if (tab){ elegirPestana(tab.dataset.tab); return; }
   const b = ev.target.closest('.fsec-todos');
   if (!b) return;
   const sec = SECCIONES_FILTRO.find(x => x[0] === b.dataset.todos);
   if (sec) ponerTodos(sec[0], !sec[2]());
+});
+/* Las flechas pasan de pestaña, como en cualquier fila de pestañas. */
+$('filtros').addEventListener('keydown', ev => {
+  const tab = ev.target.closest && ev.target.closest('.ftab');
+  if (!tab || (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight')) return;
+  ev.preventDefault();
+  const orden = SECCIONES_FILTRO.map(x => x[0]);
+  const i = orden.indexOf(tab.dataset.tab);
+  elegirPestana(orden[(i + (ev.key === 'ArrowRight' ? 1 : orden.length - 1)) % orden.length], true);
 });
 /* ENSEÑA U OCULTA LA TIRA DE CHIPS, para dejar el índice de glosas a la vista.
 
@@ -15617,6 +15718,9 @@ function elegirGlosas(on){
   b.classList.toggle('active', on);
   b.setAttribute('aria-pressed', on ? 'true' : 'false');
   $('etiquetas').classList.toggle('eligiendo', on);
+  /* Las etiquetas se tocan en EDITAR aunque su candado esté cerrado: el
+     inert de las pastillas cambia con el modo. */
+  marcarSecciones();
   if (!on){
     glosasElegidas.clear();
     /* Y la etiqueta que se estuviera renombrando: salir del modo es salir de
@@ -26715,8 +26819,14 @@ const AZUL_CARTA = '#3f6e9e';
 /* DE QUÉ ESTÁ HECHA LA BOLITA, que también la elige quien la envía: de metal
    —la de siempre, la que traen las cartas viejas—, de goma o una pluma de
    pájaro. Cada una cae, rebota y se arrastra a su manera (ver LA FÍSICA en el
-   buzón). */
-const MATERIALES_CARTA = ['metal', 'goma', 'pluma'];
+   buzón).
+   Y EL CORAZÓN, que pidió Gianni: «se comporta como una pluma, pero es un
+   corazón». Cae, se mece y se posa exactamente como la pluma —la misma
+   física, el mismo carril por la orilla, el mismo ladeo—; lo único suyo es el
+   dibujo. Por eso todo lo que pregunta «¿es pluma?» para moverla pregunta
+   comoPluma, que dice sí a los dos. El color lo elige quien envía, igual. */
+const MATERIALES_CARTA = ['metal', 'goma', 'pluma', 'corazon'];
+const comoPluma = m => m === 'pluma' || m === 'corazon';
 /* CUÁNTO REBOTA LA DE GOMA, que también lo elige quien la envía. Gianni:
    «que las pelotas de goma tengan 3 tamaños de rebote, que se distingan por
    el color». Así que en la de goma el color ya no se elige aparte: sale del
@@ -26747,6 +26857,15 @@ const PLUMA_SVG = '<svg class="pluma" viewBox="0 0 64 64" aria-hidden="true">' +
   '<path class="pluma-barbas" d="M22 41 L 17 36 M28 36 L 24 29 M34 31 L 31 23 M40 27 L 38 19 M46 22 L 45 15 ' +
   'M27 42 L 30 46 M33 38 L 37 42 M39 33 L 44 36 M45 28 L 50 29 M51 22 L 55 22"/>' +
   '<path class="pluma-canon" d="M5 54 C 18 44, 36 28, 59 10"/></svg>';
+/* EL CORAZÓN DIBUJADO: lleno del color de la carta (--bola), con el filo un
+   poco más hondo y un brillo arriba a la izquierda, como el de la bolita de
+   metal, para que tenga volumen y no sea una calcomanía. */
+const CORAZON_SVG = '<svg class="corazon" viewBox="0 0 64 64" aria-hidden="true">' +
+  '<path class="corazon-cuerpo" d="M32 55 C 26 49, 8 38, 7 24 C 6 15, 12 9, 20 9 C 25 9, 29 12, 32 17 ' +
+  'C 35 12, 39 9, 44 9 C 52 9, 58 15, 57 24 C 56 38, 38 49, 32 55 Z"/>' +
+  '<path class="corazon-brillo" d="M15 19 C 16 15, 19 13, 23 13"/></svg>';
+/* El dibujo de cada material que no es una bolita redonda. */
+const DIBUJO_MATERIAL = { pluma: PLUMA_SVG, corazon: CORAZON_SVG };
 function normalizarRecibida(r){
   if (!r || typeof r !== 'object') return null;
   const estado = r.estado === 'cerrada' || r.estado === 'abierta' ? r.estado : null;
@@ -26768,6 +26887,19 @@ function normalizarRecibida(r){
   }
   return carta;
 }
+/* LO ÚLTIMO QUE SE MANDÓ DE UNA NOTA PROPIA, para las dos palomitas verdes
+   (ver LAS PALOMITAS). Solo el último envío: es lo que el lector quiere saber
+   —«¿le llegó?, ¿la leyó?»—, como en WhatsApp. `carta` es el id de la carta
+   en el buzón de cada uno y `para` a quiénes se mandó (en un grupo, los
+   miembros de ese momento). Se valida igual que todo lo de una nota: las
+   reglas con letras sueltas y no con CORREO_UID, que vive más abajo y aquí
+   todavía no existe al arrancar. */
+function normalizarEnvio(e){
+  if (!e || typeof e !== 'object' || typeof e.carta !== 'string' || !/^carta-[a-z0-9-]{1,60}$/.test(e.carta)) return null;
+  const para = Array.isArray(e.para) ? [...new Set(e.para.filter(u => typeof u === 'string' && /^[\w-]{1,128}$/.test(u)))].slice(0, 500) : [];
+  if (!para.length) return null;
+  return { carta: e.carta, para, t: Number.isFinite(e.t) ? e.t : 0 };
+}
 /* La que llegó de otro lector no se edita: se lee como llegó. */
 const notaAjena = n => !!(n && n.recibida && n.recibida.deUid);
 /* «de Ana», «de Ana · Estudio del jueves», o nada. */
@@ -26787,6 +26919,9 @@ let correoNotas = null;
    ENTRE LECTORES. */
 const cartasDeAntes = new Set();
 let refrescarCartasNotas = () => {};
+/* Lo pone el cuaderno de notas: repinta las palomitas de la nota abierta.
+   Lo llaman el envío y los acuses que llegan de la nube. */
+let pintarPalomitasNota = () => {};
 const nuevoIdNota = () => 'nota-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
 /* Sólo condiciones de lectura, nunca ids ni copias de las glosas. Validar el
    registro entero impide que un respaldo roto convierta un filtro en «todo».
@@ -26914,6 +27049,7 @@ function fusionarNotas(entrantes){
       filtros:normalizarHistorialNota(n.filtros) };
     if (typeof n.html === 'string') nueva.html = limpiarHtmlNota(n.html);
     const carta = normalizarRecibida(n.recibida); if (carta) nueva.recibida = carta;
+    const envio = !carta && normalizarEnvio(n.envio); if (envio) nueva.envio = envio;
     notas.push(nueva);
     nuevas++;
   }
@@ -27172,6 +27308,11 @@ function bajarRespaldo(){
     fotos: {}
   };
   paquete.fotos = fotosUsadas(); paquete.totalFotos = Object.keys(paquete.fotos).length;
+  /* Y TODO LO DEMÁS: «que guarde todo», pidió Gianni. Ver LO QUE EL RESPALDO
+     LLEVA ADEMÁS. Va después de las fotos y con su propio nombre, así que un
+     programa viejo que importe este archivo lo lee como siempre y lo que no
+     conoce se lo salta. */
+  Object.assign(paquete, respaldoResto());
   const blob = new Blob([JSON.stringify(paquete, null, 1)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -27183,6 +27324,109 @@ function bajarRespaldo(){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
   return true;
+}
+
+/* ---------- LO QUE EL RESPALDO LLEVA ADEMÁS ----------
+
+   Hasta aquí el archivo llevaba solo marcas, notas y fotos, y quien lo
+   importaba en un teléfono nuevo se encontraba sin sus separadores, sin sus
+   perlas, sin su rastro y sin su portada. Ahora lleva todo lo que Glossa
+   guarda, en tres partes:
+
+   · almacenes — los mismos que viajan a la nube (NUBE_ALMACENES), con su
+     misma forma: id → JSON. Así se juntan al importar con la misma regla que
+     ya usa la nube para juntar dos aparatos, nubeFundir, y no con otra
+     escrita aquí para lo mismo. Las marcas y las notas no van aquí: ya van
+     arriba, como siempre, y las importa su propio código.
+   · ajustes — los de lectura, tal cual se guardan.
+   · claves — las demás claves glossa:* de este aparato, crudas: la altura de
+     la lista de etiquetas, la sección abierta, el último destino del correo…
+
+   NO VAN las que no son del lector sino del aparato o de la cuenta: lo que
+   la nube recuerda de sí misma (glossa:nube:*), la prueba de que el almacén
+   funciona (glossa:hueco), la visita de la portada y la lista de cartas ya
+   recogidas, que vale para este buzón y para nada más. */
+const RESPALDO_NO_VA = /^glossa:(marcas|notas|nube|hueco|visita|correo:traido)(:|$)/;
+const RESPALDO_DE_ALMACEN = new Set(['glossa:piedras:v1', 'glossa:separadores:v1', 'glossa:historial:v1',
+  'glossa:portada:v1', 'glossa:indice-orden:v1', 'glossa:encuentros:orden:v1', 'glossa:lugar:v1', 'glossa:ajustes:v1']);
+function respaldoResto(){
+  const almacenes = {};
+  for (const alm of NUBE_ALMACENES){
+    if (alm.id === 'marcas' || alm.id === 'notas') continue;
+    try { almacenes[alm.id] = Object.fromEntries(alm.leer()); } catch(_){}
+  }
+  let ajustes = null;
+  try { ajustes = JSON.parse(localStorage.getItem(AJUSTES) || 'null'); } catch(_){}
+  const claves = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith('glossa:') || RESPALDO_NO_VA.test(k) || RESPALDO_DE_ALMACEN.has(k)) continue;
+      const v = localStorage.getItem(k);
+      if (typeof v === 'string') claves[k] = v;
+    }
+  } catch(_){}
+  return { almacenes, ajustes, claves };
+}
+/* REPONER LO DEMÁS, al importar. Solo si el archivo lo trae: uno de antes no
+   lo trae y se importa como siempre se importó.
+
+   SE JUNTA, NO SE PISA, igual que las marcas y las notas: importar nunca debe
+   borrar lo que ya tenías. Para eso nubeFundir con la base vacía, que es la
+   «primera vez» de la nube: lo que está en un lado solo se queda, y lo que
+   está en los dos y no coincide lo decide el ganador de cada almacén —la
+   perla o el separador tocado más tarde, el rastro cosido por fecha—. Lo que
+   es una sola cosa y marca primeroNube —la portada, los órdenes— lo trae el
+   archivo: es lo que el lector quería recuperar al importarlo.
+
+   DOS COSAS SE QUEDAN COMO ESTÁN, a propósito: por dónde vas —el almacén
+   «lugar» y el libro y versículo de los ajustes— y la Biblia que tienes
+   abierta. Importar un respaldo no es una orden de saltar a otro sitio ni de
+   cambiar de versión; lo demás de los ajustes —letra, columnas, filtro,
+   colores de la hoja— sí vuelve.
+
+   Y LAS DEMÁS CLAVES SOLO SI ESTE APARATO NO TIENE LA SUYA: son vistas de
+   pantalla, y la de esta pantalla vale más que la de otra. */
+function reponerResto(datos){
+  if (!datos || typeof datos !== 'object' || Array.isArray(datos)) return;
+  let tocado = false;
+  const alms = datos.almacenes;
+  if (alms && typeof alms === 'object' && !Array.isArray(alms)){
+    for (const alm of NUBE_ALMACENES){
+      if (alm.id === 'marcas' || alm.id === 'notas' || alm.id === 'lugar') continue;
+      const o = alms[alm.id];
+      if (!o || typeof o !== 'object' || Array.isArray(o)) continue;
+      const entra = new Map(Object.entries(o).filter(([id, v]) => typeof id === 'string' && typeof v === 'string'));
+      if (!entra.size) continue;
+      try {
+        const junto = nubeFundir(alm, alm.leer(), entra, {}, {});
+        nubeAplicando = true;
+        try { alm.poner(junto); } finally { nubeAplicando = false; }
+        tocado = true;
+      } catch(e){ console.warn('Glossa · reponer ' + alm.id + ':', e); }
+    }
+  }
+  const a = datos.ajustes;
+  if (a && typeof a === 'object' && !Array.isArray(a) && a.v === 1){
+    try {
+      const aqui = plano[startIdx] || { cap:1, vers:1 };
+      localStorage.setItem(AJUSTES, JSON.stringify({ ...a, version, libro: LIBRO, cap: aqui.cap, vers: aqui.vers }));
+      cargarAjustes();
+      setColumns(columns); setPlacement(placement);
+      reflejarControles(); escalarInterfaz(); pintarFlechas(); pintarCrono();
+      marcarSecciones(); paginasSucias = true; sizeCanvas();
+      guardarAjustes(); pintarFiltros(); pintarIndice();
+      tocado = true;
+    } catch(e){ console.warn('Glossa · reponer los ajustes:', e); }
+  }
+  const claves = datos.claves;
+  if (claves && typeof claves === 'object' && !Array.isArray(claves)){
+    for (const [k, v] of Object.entries(claves)){
+      if (typeof v !== 'string' || !k.startsWith('glossa:') || RESPALDO_NO_VA.test(k) || RESPALDO_DE_ALMACEN.has(k)) continue;
+      try { if (localStorage.getItem(k) === null) localStorage.setItem(k, v); } catch(_){}
+    }
+  }
+  if (tocado){ renderPage(); nubeTocada(); }
 }
 
 $('btnExportar').onclick = () => {
@@ -27252,6 +27496,8 @@ $('archivoImp').onchange = ev => {
       reflejarNotas();
       if (!guardarNotas()) return;       /* el resumen no debe tapar el fallo */
     }
+    /* Lo demás que trae un respaldo de ahora: ver REPONER LO DEMÁS. */
+    if (!Array.isArray(datos)) reponerResto(datos);
     /* Tampoco el de las fotos. Las notas, que pesan poco, pueden guardarse
        bien aunque las fotos no quepan, y entonces el resumen de abajo pisaba
        el aviso: el lector veía sus fotos en pantalla sin saber que al cerrar
@@ -28599,7 +28845,9 @@ function guardarAjustes(){
          librosFiltro y diaFiltro, los de antes, ya no se escriben; los lee
          cargarAjustes una vez para traducirlos. */
       etiquetasVer: [...etiquetasVer], librosVer: [...librosVer], diasVer: [...diasVer],
-      todosDias, todosLibros, todasEtiquetas: todasEtiq
+      todosDias, todosLibros, todasEtiquetas: todasEtiq,
+      /* Y la pestaña que estaba a la vista: ver pestanaFiltro. */
+      pestanaFiltro
     }));
   } catch(e){ /* si no se puede, se arranca con lo de fábrica */ }
   /* De todo lo de arriba, a la nube solo va la Biblia y por dónde vas. */
@@ -28702,11 +28950,17 @@ function cargarAjustes(){
     librosVer = new Set([LIBRO, ...a.librosFiltro.filter(libroOk)]);
   if (Array.isArray(a.diasVer)) diasVer = new Set(a.diasVer.filter(diaOk));
   else if (diaOk(a.diaFiltro)) diasVer = new Set([a.diaFiltro]);
-  /* Puesto salvo que el lector lo dejara apagado; y con algo elegido, apagado
-     siempre, que «todos» y unos cuantos no se pueden decir a la vez. */
-  todosLibros = !librosVer.size && a.todosLibros !== false;
-  todosDias = !diasVer.size && a.todosDias !== false;
-  todasEtiq = !etiquetasVer.size && a.todasEtiquetas !== false;
+  /* EL CANDADO, TAL COMO SE DEJÓ. Desde las pestañas, candado cerrado y
+     pastillas elegidas sí se dicen a la vez —cerrar no borra—, así que lo
+     guardado se cree tal cual. Unos ajustes de antes de los candados que no
+     traen la clave se leen como entonces: con algo elegido, filtrando; sin
+     nada, todo. (Los de los interruptores nunca guardaron «todos» con algo
+     elegido, porque encender vaciaba la sección.) */
+  const candado = (k, elegidos) => typeof a[k] === 'boolean' ? a[k] : !elegidos.size;
+  todosLibros = candado('todosLibros', librosVer);
+  todosDias = candado('todosDias', diasVer);
+  todasEtiq = candado('todasEtiquetas', etiquetasVer);
+  if (SECCIONES_FILTRO.some(x => x[0] === a.pestanaFiltro)) pestanaFiltro = a.pestanaFiltro;
   return a;
 }
 
@@ -29345,6 +29599,7 @@ function armarManijasIndice(pagina, reordenar){
       filtros:normalizarHistorialNota(n.filtros) };
     if (typeof n.html === 'string') limpia.html = limpiarHtmlNota(n.html);
     const carta = normalizarRecibida(n.recibida); if (carta) limpia.recibida = carta;
+    const envio = !carta && normalizarEnvio(n.envio); if (envio) limpia.envio = envio;
     return limpia;
   });
   /* LAS FOTOS, de su propia clave y con la misma desconfianza que un
@@ -29606,10 +29861,9 @@ function armarManijasIndice(pagina, reordenar){
     el.dataset.carta = cerrada ? 'cerrada' : 'abierta';
     el.innerHTML = (cerrada ? CARTA_CERRADA : CARTA_ABIERTA) + '<span></span>';
     const n = notas.find(x => x.id === el.dataset.cartaDe), de = n && remiteDe(n.recibida);
-    dosIdiomas(el.lastChild, { t: de ? (cerrada ? ['Nota de ' + de + ' · sin abrir', 'Note from ' + de + ' · unopened']
-                                                : ['Nota de ' + de + ' · leída', 'Note from ' + de + ' · read'])
-                                     : (cerrada ? ['Nota recibida · sin abrir', 'Received note · unopened']
-                                                : ['Nota recibida · leída', 'Received note · read']) });
+    /* Ya no dice «· sin abrir» ni «· leída»: Gianni pidió quitar esas
+       palabras, y lo dice el sobre, cerrado o abierto, que va al lado. */
+    dosIdiomas(el.lastChild, { t: de ? ['Nota de ' + de, 'Note from ' + de] : ['Nota recibida', 'Received note'] });
   };
 
   /* LOS BOTONES. Los más sencillos que hay, que es lo que se pidió: «las
@@ -30371,7 +30625,22 @@ function armarManijasIndice(pagina, reordenar){
      pegados a la izquierda, donde empieza la lectura. Ya no viven en la tira
      de las pestañas: así las pestañas tienen todo el ancho. */
   const acciones = document.createElement('div'); acciones.className = 'nota-acciones';
-  acciones.append(verGlosas, verFormato, verEnviar);
+  /* LAS PALOMITAS, al final del renglón y solo en la nota que mandaste: ver
+     LAS PALOMITAS en el correo. Sin envío, o en una nota que llegó de otro, no
+     hay nada que enseñar y el hueco se va. */
+  const palomitas = document.createElement('span'); palomitas.className = 'nota-palomitas';
+  palomitas.setAttribute('role', 'img'); palomitas.hidden = true;
+  acciones.append(verGlosas, verFormato, verEnviar, palomitas);
+  const PALOMITA = '<svg viewBox="0 0 16 12" aria-hidden="true" focusable="false"><path d="M1.5 6.5 5.2 10 14.5 1.5"/></svg>';
+  pintarPalomitasNota = () => {
+    const nota = notas.find(n => n.id === activa);
+    const n = palomitasDe(nota);
+    palomitas.hidden = !n;
+    palomitas.dataset.n = String(n);
+    palomitas.innerHTML = n ? PALOMITA.repeat(n) : '';
+    if (n) dosIdiomas(palomitas, { aria: n === 2 ? ['Leída', 'Read'] : ['Entregada', 'Delivered'],
+                                   title: n === 2 ? ['Leída', 'Read'] : ['Entregada', 'Delivered'] });
+  };
   tira.append(tabIndice, cajaBarra); caja.append(tira, acciones, historial, formato, envio, hojas);
 
   const avisarMas = () => {
@@ -30407,6 +30676,7 @@ function armarManijasIndice(pagina, reordenar){
        cierra. Repintar la misma —llega una carta mientras se elige a quién
        mandar— no lo toca. */
     if (otra || verEnviar.disabled) cerrarEnvio();
+    pintarPalomitasNota();
     if (activa === null || ajena) cerrarFormato(); else soltarMarcado();
     tabIndice.classList.toggle('aqui', activa === null);
     tabIndice.setAttribute('aria-pressed', String(activa === null));
@@ -30732,6 +31002,8 @@ function armarManijasIndice(pagina, reordenar){
     goma:  { rebote:0.5, parar:150, aire:0.35, rodar:1.7, masa:1.2, peso:1, quieto:0.02 },
     pluma: { rebote:0.04, parar:400, aire:6, rodar:2.5, masa:0.12, peso:0.28, quieto:0.07 },
   };
+  /* El corazón pesa y cae como la pluma: es la pluma con otro dibujo. */
+  MATERIA.corazon = MATERIA.pluma;
   const materiaDe = nota => { const m = nota.recibida && nota.recibida.material; return MATERIA[m] ? m : 'metal'; };
   /* La física de una bolita: la de su material y, si es de goma, con su
      rebote encima (ver CUÁNTO REBOTA LA DE GOMA). */
@@ -30785,7 +31057,7 @@ function armarManijasIndice(pagina, reordenar){
     const material = materiaDe(nota);
     el.dataset.material = material;
     if (material === 'goma') el.dataset.rebote = REBOTES_GOMA[nota.recibida.rebote] ? nota.recibida.rebote : 'medio';
-    if (material === 'pluma') el.innerHTML = PLUMA_SVG;
+    if (DIBUJO_MATERIAL[material]) el.innerHTML = DIBUJO_MATERIAL[material];
     dosIdiomas(el, { aria: ['Nota recibida sin abrir: ' + nota.titulo + '. Tócala para leerla',
                             'Unopened received note: ' + nota.titulo + '. Tap it to read it'] });
     capa.appendChild(el);
@@ -30802,11 +31074,11 @@ function armarManijasIndice(pagina, reordenar){
          golpe: la pluma ya no caía despacito. Así cada una baja por su carril
          y solo se encuentran en el suelo. Una pluma que llega sola baja por
          donde caiga, como antes. */
-      const cayendo = bolas.filter(o => !o.dentro && (o.material === 'pluma') === (material === 'pluma')).length;
+      const cayendo = bolas.filter(o => !o.dentro && comoPluma(o.material) === comoPluma(material)).length;
       const acompanada = bolas.some(o => !o.dentro);
-      if (material === 'pluma' && acompanada){
+      if (comoPluma(material) && acompanada){
         b.x = w * (cayendo % 2 ? 0.85 : 0.15); b.y = -r - 8 - Math.floor(cayendo / 2) * 3 * r;
-      } else if (material === 'pluma'){ b.x = w * (0.2 + 0.6 * Math.random()); b.y = -r - 8; }
+      } else if (comoPluma(material)){ b.x = w * (0.2 + 0.6 * Math.random()); b.y = -r - 8; }
       else { b.x = w * (0.35 + 0.3 * Math.random()); b.y = -r - 8 - cayendo * 3 * r; }
       b.dentro = false;
     } else {
@@ -30877,6 +31149,8 @@ function armarManijasIndice(pagina, reordenar){
   };
   const abrirCarta = (b, nota) => {
     nota.recibida.estado = 'abierta';
+    /* Y a quien la mandó, su segunda palomita: ya la leíste. */
+    correoAcusar(nota, 'leida');
     if (nota.id === idPrueba) try { localStorage.setItem(PRUEBA, 'abierta'); } catch(_){}
     if (PRUEBAS_MATERIAL.some(p => p.id === nota.id)) marcarPruebaMaterial(nota.id);
     guardarNotas();
@@ -31077,11 +31351,11 @@ function armarManijasIndice(pagina, reordenar){
          boca abajo: baja por lo menos a ENTRA hasta asomarse entera, y de ahí
          la mueve el teléfono como a las demás. Acostado, espera arriba. La
          pluma entra a su paso, que es más lento. */
-      if (!b.dentro) b.vy = Math.max(b.vy, b.material === 'pluma' ? 80 : 300);
+      if (!b.dentro) b.vy = Math.max(b.vy, comoPluma(b.material) ? 80 : 300);
       /* LA PLUMA SE MECE mientras va por el aire: un empujón de lado que va y
          viene cada segundo y medio, de través a la gravedad y tanto más fuerte
          cuanto más cae. Posada, o con el teléfono acostado, ya no. */
-      if (b.material === 'pluma' && !b.posada && vale){
+      if (comoPluma(b.material) && !b.posada && vale){
         const empuje = Math.sin(reloj * 3.9 + b.fase) * 900 * dt * Math.min(1, mag);
         b.vx -= empuje * fuerza.y / mag; b.vy += empuje * fuerza.x / mag;
       }
@@ -31119,7 +31393,7 @@ function armarManijasIndice(pagina, reordenar){
       b.posada = suelo;
       /* Rueda, no resbala: lo que avanza de lado es lo que gira. La pluma no
          rueda: se ladea hacia donde va, y posada se acuesta. */
-      if (b.material === 'pluma'){
+      if (comoPluma(b.material)){
         const ladeo = suelo ? 0 : Math.max(-0.7, Math.min(0.7, b.vx / 160));
         b.giro += (ladeo - b.giro) * Math.min(1, dt * 5);
       } else b.giro += (b.vx * dt) / b.r;
@@ -31277,7 +31551,8 @@ function armarManijasIndice(pagina, reordenar){
     { id:'nota-prueba3-pluma-1', material:'pluma', color:'#6e4c94', es:'Pluma morada', en:'Purple feather' },
     { id:'nota-prueba3-pluma-2', material:'pluma', color:'#8c949c', es:'Pluma plateada', en:'Silver feather' },
   ];
-  const NOMBRE_MATERIAL = { metal:['metal', 'metal ball'], goma:['goma', 'rubber ball'], pluma:['pluma', 'feather'] };
+  const NOMBRE_MATERIAL = { metal:['metal', 'metal ball'], goma:['goma', 'rubber ball'], pluma:['pluma', 'feather'],
+                            corazon:['corazón', 'heart'] };
   const leerPruebaMaterial = () => {
     try { const m = JSON.parse(localStorage.getItem(PRUEBA_MATERIALES) || 'null');
           return m && typeof m === 'object' ? { t:Number(m.t) || 0, abiertas:Array.isArray(m.abiertas) ? m.abiertas : [] } : null; }
@@ -31833,6 +32108,7 @@ const NUBE_ALMACENES = [
                          texto:n.texto, filtros:normalizarHistorialNota(n.filtros) };
         if (typeof n.html === 'string') limpia.html = limpiarHtmlNota(n.html);
         const carta = normalizarRecibida(n.recibida); if (carta) limpia.recibida = carta;
+        const envio = !carta && normalizarEnvio(n.envio); if (envio) limpia.envio = envio;
         return limpia;
       });
       if (!notas.length) notas = [{ id:nuevoIdNota(), titulo:T('Nota 1', 'Note 1'), texto:'' }];
@@ -32638,6 +32914,10 @@ async function correoCuenta(u){
   if (correo.escucha){ try { correo.escucha(); } catch(_){} correo.escucha = null; }
   Object.assign(correo, { uid, perfil:null, contactos:[], grupos:[], miembros:{}, falla:'', cargando:false });
   correo.pendientes.clear();
+  /* Los acuses son de la cuenta: al cambiar de cuenta se sueltan, y las
+     palomitas se apagan hasta que lleguen los de la nueva. */
+  correoEscucharAcuses();
+  pintarPalomitasNota();
   correoAviso();
   if (!uid) return;
   /* Recibir va primero y aparte: aunque fallara lo demás, lo que te mandan
@@ -32806,7 +33086,73 @@ async function correoEnviar(nota, destino, color, material = 'metal', rebote = '
     para.slice(i, i + porTanda).forEach(u => tanda.set(cRef('users', u, 'buzon', id), carta));
     await tanda.commit();
   }
+  /* La nota se acuerda de este envío, para las palomitas: a quién y con qué
+     carta. Se busca otra vez por su id, por si la nube cambió las notas
+     mientras se mandaba. */
+  const propia = notas.find(x => x.id === nota.id);
+  if (propia && !propia.recibida){
+    propia.envio = { carta:id, para:para.slice(0, 500), t:Date.now() };
+    guardarNotas();
+  }
+  pintarPalomitasNota();
   return para.length;
+}
+
+/* ---------- LAS PALOMITAS ----------
+
+   Pedidas por Gianni: «2 checks, igualito a WhatsApp, igualitos verdes, y así
+   sabemos si llegó y si lo leyeron». En la nota que mandaste, al final del
+   renglón de Glosas, Formato y Enviar:
+   · ninguna, todavía no ha llegado;
+   · una verde, ya llegó (a un grupo: a todos);
+   · dos verdes, ya la leyeron (a un grupo: todos).
+   Sustituyen a lo que antes decía el panel —«Enviada a…»— y a «leída».
+
+   CÓMO SE ENTERA QUIEN LA MANDÓ. El que recibe no puede escribir en las notas
+   de nadie, pero sí dejar un ACUSE en users/{quien mandó}/acuses, uno por
+   carta y por lector (`carta~uid`): «llego» cuando su Glossa la recoge del
+   buzón y «leida» cuando abre la carta. Las reglas no dejan que un acuse
+   diga más de eso, ni que lo escriba otro que el propio lector, ni que un
+   «leida» vuelva a «llego». Quien mandó los escucha en vivo, como el buzón. */
+function correoAcusar(nota, estado){
+  const r = nota && nota.recibida;
+  if (!r || !r.deUid || !correo.uid || !nubeFb || r.deUid === correo.uid) return;
+  const carta = String(nota.id).replace(/^nota-rec-/, '');
+  if (!/^carta-[a-z0-9-]{1,60}$/.test(carta)) return;
+  nubeFb.fs.setDoc(cRef('users', r.deUid, 'acuses', carta + '~' + correo.uid),
+                   { carta, de: correo.uid, estado, t: Date.now() })
+    .catch(e => console.warn('Glossa · acuse:', e));
+}
+/* Lo que se sabe de cada carta: carta → (lector → 'llego' | 'leida'). */
+const correoAcuses = new Map();
+let correoEscuchaAcuses = null;
+function correoEscucharAcuses(){
+  const uid = correo.uid;
+  if (correoEscuchaAcuses){ try { correoEscuchaAcuses(); } catch(_){} correoEscuchaAcuses = null; }
+  correoAcuses.clear();
+  if (!uid) return;
+  correoEscuchaAcuses = nubeFb.fs.onSnapshot(nubeFb.fs.collection(nubeFb.db, 'users', uid, 'acuses'), snap => {
+    if (correo.uid !== uid) return;
+    correoAcuses.clear();
+    snap.forEach(d => {
+      const a = d.data() || {};
+      if (typeof a.carta !== 'string' || typeof a.de !== 'string' || !['llego', 'leida'].includes(a.estado)) return;
+      if (!correoAcuses.has(a.carta)) correoAcuses.set(a.carta, new Map());
+      correoAcuses.get(a.carta).set(a.de, a.estado);
+    });
+    pintarPalomitasNota();
+  }, e => console.warn('Glossa · acuses:', e));
+}
+/* Cuántas palomitas lleva una nota: 0, 1 o 2. Para un grupo cuentan todos
+   los que había al mandarla: una sola cuando ya llegó a todos, dos cuando
+   todos la leyeron. */
+function palomitasDe(nota){
+  const e = nota && !nota.recibida && nota.envio;
+  if (!e || !e.para || !e.para.length) return 0;
+  const vistos = correoAcuses.get(e.carta);
+  if (!vistos) return 0;
+  if (e.para.every(u => vistos.get(u) === 'leida')) return 2;
+  return e.para.every(u => vistos.has(u)) ? 1 : 0;
 }
 
 /* ---------- RECIBIR ----------
@@ -32894,6 +33240,8 @@ function correoRecoger(){
       return;
     }
     reflejarNotas();
+    /* Y a quien la mandó, su primera palomita: ya llegó. */
+    nuevas.forEach(({ nota }) => correoAcusar(nota, 'llego'));
   }
   hechas.forEach(id => {
     correo.pendientes.delete(id);
@@ -33421,20 +33769,21 @@ function correoPintarEnvio(panel, nota, cerrar){
       b.addEventListener('click', () => { elegido.color = c.hex; dicho = null; pintar(); });
       colores.appendChild(b);
     });
-    /* DE QUÉ ES LA BOLITA. Tres botones con la bolita dibujada tal como va a
+    /* DE QUÉ ES LA BOLITA. Cuatro botones con la bolita dibujada tal como va a
        caer —en el color elegido, y la de goma en el de su rebote—, y su
        nombre debajo, que «goma» no se adivina mirando un círculo. Va primero:
        de lo que se elija aquí depende lo que sigue. */
     const etqMat = el('p', 'envio-etq'); dosIdiomas(etqMat, { t: ['De qué es', 'What it’s made of'] });
     const mats = el('div', 'envio-materiales'); mats.setAttribute('role', 'radiogroup');
     dosIdiomas(mats, { aria: ['De qué es la bolita', 'What the ball is made of'] });
-    [['metal', 'Metal', 'Metal'], ['goma', 'Goma', 'Rubber'], ['pluma', 'Pluma', 'Feather']].forEach(([id, es, en]) => {
+    [['metal', 'Metal', 'Metal'], ['goma', 'Goma', 'Rubber'], ['pluma', 'Pluma', 'Feather'],
+     ['corazon', 'Corazón', 'Heart']].forEach(([id, es, en]) => {
       const b = el('button', 'envio-material'); b.type = 'button'; b.dataset.material = id;
       b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(id === elegido.material));
       const muestra = el('span', 'bola-muestra'); muestra.dataset.material = id;
       muestra.style.setProperty('--bola', id === 'goma' ? REBOTES_GOMA[elegido.rebote].color : elegido.color);
       muestra.setAttribute('aria-hidden', 'true');
-      if (id === 'pluma') muestra.innerHTML = PLUMA_SVG;
+      if (DIBUJO_MATERIAL[id]) muestra.innerHTML = DIBUJO_MATERIAL[id];
       const nombre = el('span'); dosIdiomas(nombre, { t: [es, en] });
       b.append(muestra, nombre);
       b.addEventListener('click', () => { elegido.material = id; dicho = null; pintar(); });
@@ -33491,11 +33840,15 @@ function correoPintarEnvio(panel, nota, cerrar){
            notas mientras el panel estaba abierto, el objeto que se recibió al
            abrirlo ya no es el que se ve en el editor, y se mandaría viejo. */
         const actual = notas.find(x => x.id === nota.id) || nota;
-        const n = await correoEnviar(actual, d, elegido.color, elegido.material, elegido.rebote);
-        dicho = { par: d.tipo === 'grupo'
-          ? ['Enviada a «' + d.nombre + '»: ' + n + (n === 1 ? ' persona.' : ' personas.'),
-             'Sent to “' + d.nombre + '”: ' + n + (n === 1 ? ' person.' : ' people.')]
-          : ['Enviada a ' + d.nombre + '.', 'Sent to ' + d.nombre + '.'] };
+        /* Al salir bien ya no se dice nada aquí: lo dicen las palomitas al
+           final del renglón de la nota (ver LAS PALOMITAS). Gianni pidió
+           quitar el «Enviada…» de abajo. El panel se cierra solo, que la
+           nota ya se fue. */
+        await correoEnviar(actual, d, elegido.color, elegido.material, elegido.rebote);
+        dicho = null;
+        enviando = false;
+        cerrar();
+        return;
       } catch(e){
         console.warn('Glossa · enviar:', e);
         const falla = correoFalla(e);
