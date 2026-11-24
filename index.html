@@ -4770,12 +4770,25 @@
   .indice-tab{ display:flex; align-items:center; gap:6px; }
   .indice-tab svg{ width:1.1em; height:1.1em; fill:none; stroke:currentColor;
                     stroke-width:1.7; stroke-linecap:round; }
-  /* El libro queda fuera de la tira: sigue a mano aunque las notas desborden. */
-  .nota-ver-glosas, .nota-ver-formato, .nota-ver-enviar{ flex:0 0 36px; display:grid; place-items:center; min-height:36px;
-    padding:5px; border:0; border-radius:5px; cursor:pointer; color:#73561f;
+  /* LAS TRES ACCIONES DE LA NOTA, EN SU PROPIO RENGLÓN debajo de las
+     pestañas, cada una con su dibujo y su nombre al lado. Antes eran tres
+     cuadritos de 36 px pegados a la derecha de la tira, solo con el dibujo; el
+     lector pidió verlas en línea y con su palabra. Se quedan con la ropa de
+     las pestañas —papel y raya de abajo— para que se lean como parte del
+     cuaderno, y con 40 px de alto para el dedo. Si un día no caben, el
+     renglón se corre de lado en vez de partirse en dos, como la barra del
+     formato. */
+  .nota-acciones{ display:flex; gap:6px; flex:0 0 auto; min-width:0; margin:0 0 9px;
+    overflow-x:auto; scrollbar-width:none; }
+  .nota-acciones::-webkit-scrollbar{ display:none; }
+  .nota-ver-glosas, .nota-ver-formato, .nota-ver-enviar{ flex:0 0 auto; display:inline-flex; align-items:center;
+    gap:7px; min-height:40px; padding:5px 12px 5px 9px; white-space:nowrap;
+    border:0; border-radius:5px; cursor:pointer; color:#73561f; letter-spacing:.02em;
+    font:500 calc(13px * var(--escala-ui, 1))/1.2 var(--ui);
     background:rgba(255,253,247,.55); box-shadow:inset 0 -1px 0 rgba(140,116,68,.34); }
-  .nota-ver-glosas svg, .nota-ver-formato svg, .nota-ver-enviar svg{ width:22px; height:22px; fill:none; stroke:currentColor;
+  .nota-ver-glosas svg, .nota-ver-formato svg, .nota-ver-enviar svg{ width:20px; height:20px; flex:0 0 auto; fill:none; stroke:currentColor;
     stroke-width:1.7; stroke-linejoin:round; stroke-linecap:round; pointer-events:none; }
+  .nota-accion-texto{ pointer-events:none; }
   .nota-ver-glosas:hover, .nota-ver-glosas[aria-expanded="true"],
   .nota-ver-formato:hover, .nota-ver-formato[aria-expanded="true"],
   .nota-ver-enviar:hover, .nota-ver-enviar[aria-expanded="true"]{ background:rgba(184,137,43,.14); }
@@ -7969,7 +7982,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 14:03';
+window.GLOSS_BUILD = '24-NOV-26 15:44';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -29150,10 +29163,20 @@ function armarManijasIndice(pagina, reordenar){
   verGlosas.setAttribute('aria-expanded', 'false'); verGlosas.setAttribute('aria-controls', 'notaFiltros');
   verGlosas.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
     '<path d="M12 5c-3-2-6-2-10-1v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-4-1-7-1-10 1Zm0 0v15"/></svg>';
+  /* CON SU NOMBRE AL LADO DEL DIBUJO. Así lo pidió: los tres en un renglón
+     debajo de las pestañas, «con su icono y texto», el texto a un lado. Antes
+     eran tres cuadritos pegados a la tira, a la derecha, y solo el dibujo
+     decía qué hacía cada uno. La palabra va en su propio span para que
+     dosIdiomas la cambie de idioma sin borrar el dibujo. */
+  const rotular = (b, es, en) => {
+    const r = document.createElement('span'); r.className = 'nota-accion-texto';
+    dosIdiomas(r, { t:[es, en] }); b.appendChild(r);
+  };
+  rotular(verGlosas, 'Glosas', 'Glosses');
   /* EL BOTÓN DEL FORMATO, AL LADO DEL LIBRO Y CON LA MISMA ROPA. Abre la
-     barra de botones —no un editor: la nota ya se escribe en su sitio— y va a
-     la izquierda del libro para que el libro siga en el extremo derecho, que
-     es donde el lector ya lo busca. */
+     barra de botones —no un editor: la nota ya se escribe en su sitio—. Antes
+     iba a la izquierda del libro, en la tira de las pestañas; ahora los tres
+     van en su propio renglón (ver EL RENGLÓN DE LAS TRES ACCIONES). */
   const verFormato = document.createElement('button');
   verFormato.type = 'button'; verFormato.className = 'nota-ver-formato'; verFormato.disabled = true;
   dosIdiomas(verFormato, { title: ['Dar formato a la nota', 'Format the note'],
@@ -29161,9 +29184,9 @@ function armarManijasIndice(pagina, reordenar){
   verFormato.setAttribute('aria-expanded', 'false'); verFormato.setAttribute('aria-controls', 'notaFormato');
   verFormato.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
     '<path d="M4 20h4L19 9l-4-4L4 16v4Zm9-13 4 4"/></svg>';
-  /* EL AVIONCITO: MANDAR LA NOTA A OTRO LECTOR. Va a la izquierda del lápiz,
-     con la misma ropa, porque el libro tiene que seguir en el extremo derecho
-     y el lápiz justo antes que él. Abre su panelito como los otros dos; lo que
+  rotular(verFormato, 'Formato', 'Format');
+  /* EL AVIONCITO: MANDAR LA NOTA A OTRO LECTOR. Con la misma ropa que los
+     otros dos, y el último de su renglón. Abre su panelito como los otros dos; lo que
      lleva dentro lo pinta EL CORREO ENTRE LECTORES, más abajo, que es quien
      sabe de cuentas y de contactos. */
   const verEnviar = document.createElement('button');
@@ -29173,6 +29196,7 @@ function armarManijasIndice(pagina, reordenar){
   verEnviar.setAttribute('aria-expanded', 'false'); verEnviar.setAttribute('aria-controls', 'notaEnviar');
   verEnviar.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
     '<path d="M21 3 3 10.5l7 2.5 2.5 7L21 3Zm-11 10 5-5"/></svg>';
+  rotular(verEnviar, 'Enviar', 'Send');
   const envio = document.createElement('section');
   envio.id = 'notaEnviar'; envio.className = 'nota-enviar nota-panelito'; envio.hidden = true;
   dosIdiomas(envio, { aria: ['Enviar la nota', 'Send the note'] });
@@ -30121,7 +30145,14 @@ function armarManijasIndice(pagina, reordenar){
     deslizar(envio, true); verEnviar.setAttribute('aria-expanded', 'true');
     envio.querySelector('button:not(:disabled)')?.focus({ preventScroll:true });
   });
-  tira.append(tabIndice, cajaBarra, verEnviar, verFormato, verGlosas); caja.append(tira, historial, formato, envio, hojas);
+  /* EL RENGLÓN DE LAS TRES ACCIONES, debajo de las pestañas y encima de los
+     panelitos que abren: cada panelito nace justo debajo de su botón. Van en
+     el orden en que se usan —leer las glosas, darle forma, mandarla— y
+     pegados a la izquierda, donde empieza la lectura. Ya no viven en la tira
+     de las pestañas: así las pestañas tienen todo el ancho. */
+  const acciones = document.createElement('div'); acciones.className = 'nota-acciones';
+  acciones.append(verGlosas, verFormato, verEnviar);
+  tira.append(tabIndice, cajaBarra); caja.append(tira, acciones, historial, formato, envio, hojas);
 
   const avisarMas = () => {
     avisarTiraPestanitas(barra, cajaBarra);

@@ -45,7 +45,7 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
   await importar(p, { formato:'glossa/marcas', marcas });
   await ir(p, 'notas');
   const libro = p.locator('#notas .nota-ver-glosas');
-  titulo('el libro queda fijo a la derecha y cada nota empieza sin historial');
+  titulo('el libro vive en el renglón de la nota y cada nota empieza sin historial');
   vale('el Índice no ofrece filtros de una nota inexistente', await libro.isDisabled());
   await p.locator('#notas .indice-item').first().click();
   await p.locator('#notas .nota-editor:visible').fill('Reflexión que conserva su lectura.');
@@ -214,7 +214,7 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
   await p.locator('#notas .indice-item').last().click(); await p.waitForTimeout(650);
   const final = await libro.boundingBox();
   const corrida = await p.locator('#notas .pestanitas').evaluate(b => b.scrollLeft);
-  vale('el libro sigue al extremo derecho cuando la tira se desplaza',
+  vale('el libro no se mueve cuando la tira de pestañas se desplaza',
     Math.abs(posicion.x - final.x) <= 1 && final.x + final.width <= 412 && corrida > 0,
     'antes x=' + Math.round(posicion.x) + ' · después x=' + Math.round(final.x) +
     ' ancho=' + Math.round(final.width) + ' · tira corrida ' + Math.round(corrida));
