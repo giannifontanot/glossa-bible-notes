@@ -355,6 +355,30 @@ const buzonDe = uid => [...nube.keys()].filter(k => k.startsWith('users/' + uid 
   di('la bolita al llegar (top)', bolaBeto && bolaBeto.cuadros.filter((_, i) => i % 10 === 0).map(c => Math.round(c.top)));
   vale('SU BOLITA CAE DESDE ARRIBA', !!bolaBeto && bolaBeto.cuadros.length > 0 && bolaBeto.cuadros[0].bottom <= 1, bolaBeto && bolaBeto.cuadros[0]);
 
+  titulo('DE GOMA, EN LUGAR DEL COLOR SE ELIGE CUÁNTO REBOTA');
+  /* Gianni: «que las pelotas de goma tengan 3 tamaños de rebote, que se
+     distingan por el color». En la de goma el color sale del rebote. */
+  const panelEnvio = () => B.pagina.evaluate(() => ({
+    colores: document.querySelectorAll('#notaEnviar .envio-color').length,
+    rebotes: [...document.querySelectorAll('#notaEnviar [data-rebote]')].map(b => [b.dataset.rebote,
+      b.querySelector('.bola-muestra').style.getPropertyValue('--bola'), b.getAttribute('aria-checked')]),
+    goma: (document.querySelector('#notaEnviar [data-material="goma"] .bola-muestra') || { style:{ getPropertyValue:() => '' } })
+      .style.getPropertyValue('--bola') }));
+  vale('de metal se elige el color, y no el rebote', (p => p.colores === 6 && !p.rebotes.length)(await panelEnvio()));
+  await B.pagina.locator('#notaEnviar button[data-material="goma"]').tap();
+  const conGoma = await panelEnvio();
+  di('el panel con la de goma', conGoma);
+  vale('de goma se va la fila de colores', conGoma.colores === 0, conGoma);
+  vale('  y salen poco, medio y mucho: verde, azul y rojo, con el medio puesto',
+       JSON.stringify(conGoma.rebotes) === JSON.stringify([['poco', '#3e7d5a', 'false'], ['medio', '#3f6e9e', 'true'], ['mucho', '#a53d3d', 'false']]),
+       conGoma.rebotes);
+  await B.pagina.locator('#notaEnviar [data-rebote="mucho"]').tap();
+  const mucho = await panelEnvio();
+  vale('  al elegir mucho, la goma de muestra se pone roja', mucho.goma === '#a53d3d' &&
+       mucho.rebotes.find(r => r[0] === 'mucho')[2] === 'true', mucho);
+  await B.pagina.locator('#notaEnviar button[data-material="metal"]').tap();
+  vale('  y de vuelta a metal, vuelven los colores', (await panelEnvio()).colores === 6);
+
   titulo('LA NOTA RECIBIDA SE LEE Y NO SE ESCRIBE');
   await abrirNota(A.pagina, deBeto.id);
   const ajena = await A.pagina.evaluate(id => {

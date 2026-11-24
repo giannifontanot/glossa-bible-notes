@@ -110,7 +110,7 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
     /* Las de goma y pluma de prueba tienen su propia suite
        (buzon-materiales): aquí se dan por vistas hace rato, para que no caigan
        encima de las que esta suite cuenta. */
-    localStorage.setItem('glossa:buzon:prueba-materiales:v2', JSON.stringify({ t:1, abiertas:[] }));
+    localStorage.setItem('glossa:buzon:prueba-materiales:v3', JSON.stringify({ t:1, abiertas:[] }));
   }, [CLAVE, PRUEBA]);
   await p.addInitScript(VIGIA);
   await p.reload();

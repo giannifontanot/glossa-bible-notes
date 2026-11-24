@@ -8038,7 +8038,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 16:06';
+window.GLOSS_BUILD = '24-NOV-26 16:18';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -26717,6 +26717,26 @@ const AZUL_CARTA = '#3f6e9e';
    pájaro. Cada una cae, rebota y se arrastra a su manera (ver LA FÍSICA en el
    buzón). */
 const MATERIALES_CARTA = ['metal', 'goma', 'pluma'];
+/* CUÁNTO REBOTA LA DE GOMA, que también lo elige quien la envía. Gianni:
+   «que las pelotas de goma tengan 3 tamaños de rebote, que se distingan por
+   el color». Así que en la de goma el color ya no se elige aparte: sale del
+   rebote, y viéndola se sabe cuál es.
+   · POCO, verde: sale dos veces del suelo, la segunda casi nada.
+   · MEDIO, azul: la goma de antes, «cae y rebota 2-3 veces y ya».
+   · MUCHO, rojo: más viva, cuatro botes, pero igual se calma pronto; nunca
+     anda rebotando por toda la pantalla, que también lo pidió él.
+   Los tres colores son de los seis de siempre, para que el servidor —que ya
+   revisa el color— los acepte, y para que una versión vieja de la aplicación
+   pinte la bolita del mismo color aunque no sepa del rebote.
+   `rebote` y `parar` se ponen encima de los de la goma (ver LA FÍSICA en el
+   buzón): lo que sale del suelo de lo que trae, y por debajo de qué velocidad
+   ya no rebota. */
+const REBOTES_GOMA = {
+  poco:  { color:'#3e7d5a', rebote:0.35, parar:180 },
+  medio: { color:'#3f6e9e', rebote:0.5, parar:150 },
+  mucho: { color:'#a53d3d', rebote:0.66, parar:300 },
+};
+const NIVELES_REBOTE = Object.keys(REBOTES_GOMA);
 /* LA PLUMA DIBUJADA: acostada, con el cañón abajo a la izquierda y la punta
    arriba a la derecha, que es como cae una pluma de verdad. El color lo pone
    la carta (--bola): las barbas van un poco más claras y el cañón más hondo,
@@ -26739,6 +26759,13 @@ function normalizarRecibida(r){
   /* La de metal no se escribe: es lo que se entiende cuando no dice nada, y
      así una nota vieja y una nueva de metal se guardan igual. */
   if (MATERIALES_CARTA.includes(r.material) && r.material !== 'metal') carta.material = r.material;
+  /* La de goma guarda su rebote, y su color es el de ese rebote, venga como
+     venga. Una de goma de antes, sin rebote, se queda con su color y rebota
+     lo de siempre, que es el medio. */
+  if (carta.material === 'goma' && NIVELES_REBOTE.includes(r.rebote)){
+    carta.rebote = r.rebote;
+    carta.color = REBOTES_GOMA[r.rebote].color;
+  }
   return carta;
 }
 /* La que llegó de otro lector no se edita: se lee como llegó. */
@@ -30706,6 +30733,12 @@ function armarManijasIndice(pagina, reordenar){
     pluma: { rebote:0.04, parar:400, aire:6, rodar:2.5, masa:0.12, peso:0.28, quieto:0.07 },
   };
   const materiaDe = nota => { const m = nota.recibida && nota.recibida.material; return MATERIA[m] ? m : 'metal'; };
+  /* La física de una bolita: la de su material y, si es de goma, con su
+     rebote encima (ver CUÁNTO REBOTA LA DE GOMA). */
+  const fisicaDe = (nota, material) => {
+    const nivel = material === 'goma' && REBOTES_GOMA[nota.recibida.rebote];
+    return nivel ? { ...MATERIA.goma, rebote:nivel.rebote, parar:nivel.parar } : MATERIA[material];
+  };
   const bolas = [];
   const conocidas = new Set();
   let bocadillo = null, marco = 0, antes = 0, cuadros = 0;
@@ -30751,13 +30784,14 @@ function armarManijasIndice(pagina, reordenar){
     el.style.setProperty('--bola', nota.recibida.color);
     const material = materiaDe(nota);
     el.dataset.material = material;
+    if (material === 'goma') el.dataset.rebote = REBOTES_GOMA[nota.recibida.rebote] ? nota.recibida.rebote : 'medio';
     if (material === 'pluma') el.innerHTML = PLUMA_SVG;
     dosIdiomas(el, { aria: ['Nota recibida sin abrir: ' + nota.titulo + '. Tócala para leerla',
                             'Unopened received note: ' + nota.titulo + '. Tap it to read it'] });
     capa.appendChild(el);
     const r = (el.offsetWidth || 53) / 2, w = W(), h = H();
     const b = { id:nota.id, el, r, x:w / 2, y:h - r, vx:0, vy:0, giro:0, quieta:false, agarrada:false, dentro:true,
-                material, m:MATERIA[material], fase:Math.random() * 6.28, posada:false };
+                material, m:fisicaDe(nota, material), fase:Math.random() * 6.28, posada:false };
     if (desde === 'arriba'){
       /* Las que llegan juntas no caen encimadas: cada una un poco más arriba
          que la anterior, y entran una tras otra.
@@ -31221,18 +31255,27 @@ function armarManijasIndice(pagina, reordenar){
      primera tanda que sigan ahí, para que no caigan trece. Las plumas van
      al final: al nacer ven a las que pesan ya cayendo y se van a su carril
      de las orillas (ver crearBola). */
-  const PRUEBA_MATERIALES = 'glossa:buzon:prueba-materiales:v2';
+  /* LA TERCERA TANDA, con los tres rebotes de la goma: una de cada uno,
+     cada una de su color. Marca e ids nuevos otra vez, para que caiga en su
+     teléfono, y se lleva las de las dos tandas de antes que sigan ahí. */
+  const PRUEBA_MATERIALES = 'glossa:buzon:prueba-materiales:v3';
   const PRUEBAS_VIEJAS = ['nota-prueba-goma-1', 'nota-prueba-goma-2', 'nota-prueba-goma-3',
-                          'nota-prueba-pluma-1', 'nota-prueba-pluma-2'];
+                          'nota-prueba-pluma-1', 'nota-prueba-pluma-2',
+                          'nota-prueba2-goma-1', 'nota-prueba2-goma-2', 'nota-prueba2-goma-3',
+                          'nota-prueba2-metal-1', 'nota-prueba2-metal-2', 'nota-prueba2-metal-3',
+                          'nota-prueba2-pluma-1', 'nota-prueba2-pluma-2'];
   const PRUEBAS_MATERIAL = [
-    { id:'nota-prueba2-goma-1', material:'goma', color:'#a53d3d', es:'Bolita de goma roja', en:'Red rubber ball' },
-    { id:'nota-prueba2-goma-2', material:'goma', color:'#3e7d5a', es:'Bolita de goma verde', en:'Green rubber ball' },
-    { id:'nota-prueba2-goma-3', material:'goma', color:'#9c6b3a', es:'Bolita de goma bronce', en:'Bronze rubber ball' },
-    { id:'nota-prueba2-metal-1', material:'metal', color:'#3f6e9e', es:'Bolita de metal azul', en:'Blue metal ball' },
-    { id:'nota-prueba2-metal-2', material:'metal', color:'#8c949c', es:'Bolita de metal plateada', en:'Silver metal ball' },
-    { id:'nota-prueba2-metal-3', material:'metal', color:'#9c6b3a', es:'Bolita de metal bronce', en:'Bronze metal ball' },
-    { id:'nota-prueba2-pluma-1', material:'pluma', color:'#6e4c94', es:'Pluma morada', en:'Purple feather' },
-    { id:'nota-prueba2-pluma-2', material:'pluma', color:'#8c949c', es:'Pluma plateada', en:'Silver feather' },
+    { id:'nota-prueba3-goma-poco', material:'goma', rebote:'poco',
+      es:'Goma verde: rebota poco', en:'Green rubber: bounces a little' },
+    { id:'nota-prueba3-goma-medio', material:'goma', rebote:'medio',
+      es:'Goma azul: rebota medio', en:'Blue rubber: bounces some' },
+    { id:'nota-prueba3-goma-mucho', material:'goma', rebote:'mucho',
+      es:'Goma roja: rebota mucho', en:'Red rubber: bounces a lot' },
+    { id:'nota-prueba3-metal-1', material:'metal', color:'#3f6e9e', es:'Bolita de metal azul', en:'Blue metal ball' },
+    { id:'nota-prueba3-metal-2', material:'metal', color:'#8c949c', es:'Bolita de metal plateada', en:'Silver metal ball' },
+    { id:'nota-prueba3-metal-3', material:'metal', color:'#9c6b3a', es:'Bolita de metal bronce', en:'Bronze metal ball' },
+    { id:'nota-prueba3-pluma-1', material:'pluma', color:'#6e4c94', es:'Pluma morada', en:'Purple feather' },
+    { id:'nota-prueba3-pluma-2', material:'pluma', color:'#8c949c', es:'Pluma plateada', en:'Silver feather' },
   ];
   const NOMBRE_MATERIAL = { metal:['metal', 'metal ball'], goma:['goma', 'rubber ball'], pluma:['pluma', 'feather'] };
   const leerPruebaMaterial = () => {
@@ -31254,9 +31297,11 @@ function armarManijasIndice(pagina, reordenar){
     if (!m) for (let i = notas.length - 1; i >= 0; i--) if (PRUEBAS_VIEJAS.includes(notas[i].id)) notas.splice(i, 1);
     for (const p of faltan){
       const [es, en] = NOMBRE_MATERIAL[p.material];
-      const recibida = { estado:'cerrada', color:p.color, llegada:Date.now() };
-      /* El metal no se escribe: una carta sin material es de metal. */
-      if (p.material !== 'metal') recibida.material = p.material;
+      /* Pasa por la misma puerta que una carta de verdad: la de goma sale
+         del color de su rebote. El metal no se escribe: una carta sin
+         material es de metal. */
+      const recibida = normalizarRecibida({ estado:'cerrada', color:p.color, llegada:Date.now(),
+                                            material:p.material, rebote:p.rebote });
       notas.push({ id:p.id, titulo:T(p.es, p.en), filtros:[],
         texto:T('Nota de prueba: así cae una bolita de ' + es + '. Puedes borrarla cuando quieras.',
                 'Test note: this is how a ' + en + ' falls. You can delete it whenever you like.'),
@@ -32573,9 +32618,10 @@ const CORREO_DICE = {
                 'Nobody has that code. Check it with whoever gave it to you.'],
   nombre: ['Escribe un nombre.', 'Type a name.'],
   /* Las reglas de la nube se ponen a mano en la consola de Firebase: hasta
-     que se pongan las que conocen la goma y la pluma, solo pasa la de metal. */
-  'reglas-material': ['El servidor todavía no acepta bolitas de goma ni plumas. Envíala de metal, o prueba más tarde.',
-                      'The server doesn’t accept rubber balls or feathers yet. Send it as metal, or try later.'],
+     que se pongan las que conocen cada bolita —la pluma, y luego el rebote de
+     la goma—, la que el servidor no conoce no pasa, y la de metal siempre. */
+  'reglas-material': ['El servidor todavía no acepta esta bolita. Envíala de metal, o prueba más tarde.',
+                      'The server doesn’t accept this ball yet. Send it as metal, or try later.'],
 };
 const cRef = (...s) => nubeFb.fs.doc(nubeFb.db, ...s);
 async function cLista(...s){
@@ -32730,7 +32776,7 @@ async function correoSalirDeGrupo(g){
    Una sola carta, la misma para todos: se escribe en el buzón de cada uno.
    A un grupo, por tandas, que una escritura de Firestore no pasa de 500
    documentos ni de unos 10 MB. */
-async function correoEnviar(nota, destino, color, material = 'metal'){
+async function correoEnviar(nota, destino, color, material = 'metal', rebote = 'medio'){
   const uid = correo.uid, fs = nubeFb.fs;
   const fotos = {};
   for (const id of fotosDeHtml(nota.html)) if (fotosNotas[id]) fotos[id] = fotosNotas[id];
@@ -32741,6 +32787,12 @@ async function correoEnviar(nota, destino, color, material = 'metal'){
   /* De metal no se escribe, como en la nota: así una carta de metal la siguen
      aceptando las reglas viejas de la nube y la sigue leyendo una Glossa vieja. */
   if (MATERIALES_CARTA.includes(material) && material !== 'metal') carta.material = material;
+  /* La de goma lleva su rebote, y el color es el de ese rebote: el que se
+     eligió en la fila de colores no cuenta. */
+  if (carta.material === 'goma'){
+    carta.rebote = NIVELES_REBOTE.includes(rebote) ? rebote : 'medio';
+    carta.color = REBOTES_GOMA[carta.rebote].color;
+  }
   const peso = new Blob([JSON.stringify(carta)]).size;
   if (peso > CORREO_TOPE) throw correoError('grande');
   const para = destino.tipo === 'persona' ? [destino.uid] :
@@ -32784,7 +32836,7 @@ function correoComoNota(id, c){
   if (typeof c.html === 'string' && c.html) nota.html = limpiarHtmlNota(c.html);
   nota.recibida = normalizarRecibida({ estado:'cerrada', color:c.color, llegada:Date.now(), deUid:c.de,
     de: typeof c.deNombre === 'string' ? c.deNombre : '', grupo: typeof c.grupo === 'string' ? c.grupo : '',
-    material: c.material });
+    material: c.material, rebote: c.rebote });
   /* LAS FOTOS DE LA CARTA, CON NOMBRE PROPIO. Antes se guardaban con el id
      que traían, y como quien manda elige ese id, una carta podía traer el de
      una foto que ya estaba en este aparato y pisarla: la nota del lector
@@ -33289,6 +33341,7 @@ function correoPintarEnvio(panel, nota, cerrar){
   try { ultimo = JSON.parse(localStorage.getItem(CORREO_ULTIMO) || '{}') || {}; } catch(_){}
   const elegido = { color: CORREO_COLORES.some(c => c.hex === ultimo.color) ? ultimo.color : CORREO_COLORES[0].hex,
                     material: MATERIALES_CARTA.includes(ultimo.material) ? ultimo.material : 'metal',
+                    rebote: NIVELES_REBOTE.includes(ultimo.rebote) ? ultimo.rebote : 'medio',
                     destino: typeof ultimo.destino === 'string' ? ultimo.destino : '' };
   let enviando = false, dicho = null, firma = '';
   const frase = (par, cls) => { const p = el('p', 'envio-dice' + (cls ? ' ' + cls : '')); dosIdiomas(p, { t: par }); return p; };
@@ -33306,6 +33359,7 @@ function correoPintarEnvio(panel, nota, cerrar){
     firma = firmaAhora();
     const f = cuerpo.contains(document.activeElement) ? document.activeElement : null;
     const cual = !f ? null : f.dataset.color ? '[data-color="' + f.dataset.color + '"]'
+               : f.dataset.rebote ? '[data-rebote="' + f.dataset.rebote + '"]'
                : f.dataset.material ? '[data-material="' + f.dataset.material + '"]'
                : f.dataset.destino ? '[data-destino="' + CSS.escape(f.dataset.destino) + '"]' : f.id ? '#' + f.id : null;
     pintarDentro();
@@ -33368,8 +33422,9 @@ function correoPintarEnvio(panel, nota, cerrar){
       colores.appendChild(b);
     });
     /* DE QUÉ ES LA BOLITA. Tres botones con la bolita dibujada tal como va a
-       caer —en el color elegido—, y su nombre debajo, que «goma» no se
-       adivina mirando un círculo. */
+       caer —en el color elegido, y la de goma en el de su rebote—, y su
+       nombre debajo, que «goma» no se adivina mirando un círculo. Va primero:
+       de lo que se elija aquí depende lo que sigue. */
     const etqMat = el('p', 'envio-etq'); dosIdiomas(etqMat, { t: ['De qué es', 'What it’s made of'] });
     const mats = el('div', 'envio-materiales'); mats.setAttribute('role', 'radiogroup');
     dosIdiomas(mats, { aria: ['De qué es la bolita', 'What the ball is made of'] });
@@ -33377,13 +33432,32 @@ function correoPintarEnvio(panel, nota, cerrar){
       const b = el('button', 'envio-material'); b.type = 'button'; b.dataset.material = id;
       b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(id === elegido.material));
       const muestra = el('span', 'bola-muestra'); muestra.dataset.material = id;
-      muestra.style.setProperty('--bola', elegido.color);
+      muestra.style.setProperty('--bola', id === 'goma' ? REBOTES_GOMA[elegido.rebote].color : elegido.color);
       muestra.setAttribute('aria-hidden', 'true');
       if (id === 'pluma') muestra.innerHTML = PLUMA_SVG;
       const nombre = el('span'); dosIdiomas(nombre, { t: [es, en] });
       b.append(muestra, nombre);
       b.addEventListener('click', () => { elegido.material = id; dicho = null; pintar(); });
       mats.appendChild(b);
+    });
+    /* CUÁNTO REBOTA, en lugar del color, cuando es de goma: el color sale del
+       rebote (ver CUÁNTO REBOTA LA DE GOMA), así que elegirlo aparte sería
+       elegir algo que no se va a ver. */
+    const etqRebote = el('p', 'envio-etq'); dosIdiomas(etqRebote, { t: ['Cuánto rebota', 'How much it bounces'] });
+    const rebotes = el('div', 'envio-materiales'); rebotes.setAttribute('role', 'radiogroup');
+    dosIdiomas(rebotes, { aria: ['Cuánto rebota la bolita de goma', 'How much the rubber ball bounces'] });
+    [['poco', 'Poco', 'A little', 'verde', 'green'], ['medio', 'Medio', 'Some', 'azul', 'blue'],
+     ['mucho', 'Mucho', 'A lot', 'rojo', 'red']].forEach(([id, es, en, ces, cen]) => {
+      const b = el('button', 'envio-material envio-rebote'); b.type = 'button'; b.dataset.rebote = id;
+      b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(id === elegido.rebote));
+      dosIdiomas(b, { aria: ['Rebota ' + es.toLowerCase() + ', bolita ' + ces, 'Bounces ' + en.toLowerCase() + ', ' + cen + ' ball'] });
+      const muestra = el('span', 'bola-muestra'); muestra.dataset.material = 'goma';
+      muestra.style.setProperty('--bola', REBOTES_GOMA[id].color);
+      muestra.setAttribute('aria-hidden', 'true');
+      const nombre = el('span'); dosIdiomas(nombre, { t: [es, en] });
+      b.append(muestra, nombre);
+      b.addEventListener('click', () => { elegido.rebote = id; dicho = null; pintar(); });
+      rebotes.appendChild(b);
     });
     const etqA = el('p', 'envio-etq'); dosIdiomas(etqA, { t: ['¿A quién?', 'To whom?'] });
     const lista = el('div', 'envio-destinos'); lista.setAttribute('role', 'radiogroup');
@@ -33417,7 +33491,7 @@ function correoPintarEnvio(panel, nota, cerrar){
            notas mientras el panel estaba abierto, el objeto que se recibió al
            abrirlo ya no es el que se ve en el editor, y se mandaría viejo. */
         const actual = notas.find(x => x.id === nota.id) || nota;
-        const n = await correoEnviar(actual, d, elegido.color, elegido.material);
+        const n = await correoEnviar(actual, d, elegido.color, elegido.material, elegido.rebote);
         dicho = { par: d.tipo === 'grupo'
           ? ['Enviada a «' + d.nombre + '»: ' + n + (n === 1 ? ' persona.' : ' personas.'),
              'Sent to “' + d.nombre + '”: ' + n + (n === 1 ? ' person.' : ' people.')]
@@ -33429,7 +33503,8 @@ function correoPintarEnvio(panel, nota, cerrar){
                        || CORREO_DICE.otra, mal: true };
       } finally { enviando = false; pintar(); }
     });
-    cuerpo.append(etqColor, colores, etqMat, mats, etqA, lista, mandar, estado);
+    cuerpo.append(etqMat, mats, ...(elegido.material === 'goma' ? [etqRebote, rebotes] : [etqColor, colores]),
+                  etqA, lista, mandar, estado);
   };
   const alAviso = () => pintar(true);
   panel._correo = alAviso;
