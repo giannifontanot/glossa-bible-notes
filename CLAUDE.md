@@ -83,6 +83,23 @@ npm test                    # todas
 npm test -- glosas filo     # solo las que contengan eso en el nombre
 ```
 
+## Dónde se publica
+
+- **glossabible.com**, en Firebase Hosting (proyecto `glossa-bible-notes`).
+  `firebase.json` sirve el repo tal cual, sin compilar, y deja fuera pruebas,
+  scripts y respaldos. Todo va con `Cache-Control: no-cache`, como lo pide el
+  service worker: se pregunta antes de usar lo guardado.
+- `.github/workflows/publicar.yml` publica **solo después de «pruebas» en verde
+  en `main`**, y publica ese commit. Sin el secreto
+  `FIREBASE_SERVICE_ACCOUNT_GLOSSA_BIBLE_NOTES` se salta sin ponerse rojo.
+- Los otros dominios (glosabible.app/.com/.org, glossabible.app/.org y
+  www.glossabible.com) redirigen a glossabible.com desde la consola de Hosting,
+  no desde `firebase.json`.
+- GitHub Pages sigue publicando el repo, **sin redirigir ni avisar** (lo decidió
+  Gianni: esa dirección solo la conocen dos personas). Ojo: el `localStorage`
+  es de cada dirección; lo de un lector pasa de una a otra solo por su cuenta
+  en la nube o por un archivo de respaldo.
+
 ## Git
 
 - Se desarrolla en una rama, nunca directo sobre `main`.

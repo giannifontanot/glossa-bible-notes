@@ -1,0 +1,33 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "**/node_modules/**",
+      "pruebas/**",
+      "test-results/**",
+      "CLAUDE.md",
+      "readme.md",
+      "firestore.rules",
+      "package.json",
+      "package-lock.json",
+      "*.py",
+      "*.bat",
+      "*.txt",
+      "glosas-ejemplo-mateo-apocalipsis.json",
+      "gloss-bible-respaldo-*.json",
+      "iconos/glossa-original.jpg"
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}
