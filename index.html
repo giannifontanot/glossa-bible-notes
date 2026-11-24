@@ -7906,7 +7906,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 07:44';
+window.GLOSS_BUILD = '24-NOV-26 07:45';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -30296,11 +30296,23 @@ function armarManijasIndice(pagina, reordenar){
   /* Abrir una carta desde el buzón solo cambia dos dibujos: el de la lista y
      el de la hoja. Repintar todo el cuaderno se llevaría los editores, y con
      ellos lo que el lector tuviera a medias. */
+  /* Y una nota que se vuelve carta con su hoja ya pintada —la de prueba, al
+     abrir por primera vez, se marca cuando las hojas ya existen— recibe aquí
+     su sobre: antes solo se repintaban los que había, y esa hoja se quedaba
+     sin el suyo toda la sesión. Se pone delante del editor sin tocarlo. */
   refrescarCartasNotas = () => {
     if (activa === null) pintarIndice();
-    hojas.querySelectorAll('.nota-carta[data-carta-de]').forEach(el => {
-      const n = notas.find(x => x.id === el.dataset.cartaDe);
-      if (n && n.recibida) pintarSobreHoja(el, n.recibida.estado);
+    hojas.querySelectorAll('.nota-hoja[data-nota]').forEach(hoja => {
+      const n = notas.find(x => x.id === hoja.dataset.nota);
+      if (!n || !n.recibida) return;
+      let sobre = hoja.querySelector('.nota-carta[data-carta-de]');
+      if (!sobre){
+        hoja.classList.add('recibida');
+        sobre = document.createElement('p'); sobre.className = 'nota-carta';
+        sobre.dataset.cartaDe = n.id;
+        hoja.insertBefore(sobre, hoja.querySelector(':scope > .nota-editor'));
+      }
+      pintarSobreHoja(sobre, n.recibida.estado);
     });
   };
   encenderNotaViva = () => { registrarPendiente(); traerActiva(); };

@@ -164,19 +164,28 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
   vale('va encima de la bolita y dentro de la pantalla', burbuja && burbuja.arriba && burbuja.dentro);
   vale('su colita apunta a la bolita', burbuja && Math.abs(burbuja.cola - burbuja.bola) < 8, burbuja);
   const quieta0 = await bola(p);
-  await inclinar(p, 9.81, 0, 900);
+  /* Hacia arriba, y no de lado: la bolita descansa abajo donde le tocó, y
+     puede haber quedado en el hueco entre dos botones, con uno más alto al
+     lado; de lado no saldría, y la prueba confundiría «quieta» con «atorada».
+     Hacia arriba sale siempre. Menos de un segundo, que más rato boca abajo
+     el programa entiende que el sensor viene al revés y lo voltea. */
+  await inclinar(p, 0, -9.81, 700);
   const quieta1 = await bola(p);
   vale('con la burbuja abierta la bolita no se mueve aunque se incline',
-       quieta0 && quieta1 && Math.abs(quieta1.x - quieta0.x) < 1, [quieta0, quieta1]);
+       quieta0 && quieta1 && Math.hypot(quieta1.x - quieta0.x, quieta1.y - quieta0.y) < 1, [quieta0, quieta1]);
+  /* De pie otra vez, con la burbuja todavía abierta: el programa se queda con
+     la última lectura del sensor, y también se olvida así del rato boca
+     abajo. */
+  await inclinar(p, 0, 9.81, 1300);
 
   titulo('TOCAR LA BURBUJA LA CIERRA, Y LA BOLITA VUELVE A RODAR');
   await tocar(p, '#buzon .bocadillo');
   vale('la burbuja se va', await p.locator('#buzon .bocadillo').count() === 0);
   vale('la bolita se queda', await p.locator('#buzon .bola:not(.se-va)').count() === 1);
   vale('la carta sigue cerrada', (await nota(p, 'nota-fiestas')).recibida.estado === 'cerrada');
-  await inclinar(p, 9.81, 0, 1400);
+  await inclinar(p, 0, -9.81, 700);
   const suelta = await bola(p);
-  vale('suelta, vuelve a rodar con la inclinación', suelta && quieta1 && suelta.x < quieta1.x - 20, [quieta1, suelta]);
+  vale('suelta, vuelve a moverse con la inclinación', suelta && quieta1 && suelta.y < quieta1.y - 50, [quieta1, suelta]);
   await inclinar(p, 0, 9.81, 1200);
 
   titulo('CON LA BURBUJA ABIERTA, TOCAR LA BOLITA ABRE LA CARTA');
@@ -258,6 +267,34 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
   await p.waitForTimeout(400);
   vale('dentro de la nota abierta también se ve la carta cerrada',
        await p.locator('#notas .nota-hoja:not([hidden]) .nota-carta[data-carta="cerrada"]').count() === 1);
+
+  titulo('LA HOJA DE LA NOTA DE PRUEBA TAMBIÉN TRAE SU SOBRE, YA EN LA PRIMERA SESIÓN');
+  /* La de prueba se marca cuando las hojas ya están pintadas. Lo que se
+     vigila es que su hoja reciba el sobre en ese momento, sin esperar a
+     recargar. Se deja como la tendría el teléfono antes de esta versión. */
+  await p.evaluate(([k, prueba]) => {
+    const lista = JSON.parse(localStorage.getItem(k));
+    delete lista.find(n => n.id === 'nota-fiestas').recibida;
+    localStorage.setItem(k, JSON.stringify(lista));
+    localStorage.removeItem(prueba);
+  }, [CLAVE, PRUEBA]);
+  await p.reload();
+  await p.waitForTimeout(1500);
+  vale('(la prueba es válida) la nota volvió a llegar cerrada',
+       ((await nota(p, 'nota-fiestas')).recibida || {}).estado === 'cerrada');
+  vale('(la prueba es válida) se abre NOTAS', await p.evaluate(`(${IR_A})('notas')`) === true);
+  await p.locator('#notas .indice-item').filter({ hasText:'Las festividades judías' }).click();
+  await p.waitForTimeout(400);
+  const hojaFiestas = await p.evaluate(() => {
+    const h = document.querySelector('#notas .nota-hoja[data-nota="nota-fiestas"]');
+    if (!h) return null;
+    const sobre = h.querySelector(':scope > .nota-carta');
+    return { visible:!h.hidden, recibida:h.classList.contains('recibida'), carta:sobre && sobre.dataset.carta,
+             antesDelEditor:!!(sobre && sobre.nextElementSibling && sobre.nextElementSibling.classList.contains('nota-editor')) };
+  });
+  di('la hoja de las festividades', hojaFiestas);
+  vale('su hoja lleva la carta cerrada, delante del texto',
+       hojaFiestas && hojaFiestas.visible && hojaFiestas.recibida && hojaFiestas.carta === 'cerrada' && hojaFiestas.antesDelEditor);
 
   await cerrar(sesion);
 })().catch(e => { console.error(e); process.exit(1); });
