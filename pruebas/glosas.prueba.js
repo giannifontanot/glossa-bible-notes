@@ -14,7 +14,7 @@
    repintar el panel, porque el panel lleva dentro la caja de escribir y
    repintarlo se llevaría por delante el foco, el cursor y lo escrito. */
 const { abrir, abrirEnPortada, otraPagina, listo, cerrar, cerrarParcial, conGlosas,
-        di, vale, titulo, APP, RAIZ, TELEFONO } = require('./comun');
+        di, vale, titulo, APP, RAIZ, TELEFONO, TRAMO, tramo } = require('./comun');
 
 /* Abrir el panel sobre las primeras letras de un versículo, como lo abre un
    dedo: se PINTA y se toca encima. Se seleccionaba, y ya no se puede —el
@@ -85,6 +85,13 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
 };
 
 (async () => {
+  if (TRAMO === 2){
+    const sesion = await abrir();
+    const p = sesion.pagina;
+    await listo(p);
+    await delDedoSostenidoEnAdelante(sesion, p);
+    return cerrar(sesion);
+  }
   const sesion = await abrir();
   const p = sesion.pagina;
 
@@ -2373,6 +2380,18 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        tras.puesta + ' px puestos contra ' + tras.natural + ' de verdad');
   await cerrarParcial(etiq, 'la lista de etiquetas');
 
+  /* Lo que sigue va en su propio tramo: ver delDedoSostenidoEnAdelante, más abajo. */
+  if (tramo(2)) await delDedoSostenidoEnAdelante(sesion, p);
+
+  await cerrar(sesion);
+})();
+
+/* DEL DEDO SOSTENIDO EN ADELANTE, SU PROPIO TRAMO. Cada bloque de aquí
+   empieza con la hoja limpia —borra las marcas y recarga— o con su propio
+   navegador, así que no depende de lo de arriba; en GitHub corre en otra
+   máquina, a la vez que el principio (ver tramo en comun.js). En local, sin
+   GLOSS_TRAMO, se corre todo, en su orden de siempre. */
+async function delDedoSostenidoEnAdelante(sesion, p){
   /* ================================================================
      SOSTENER EL DEDO, Y LOS TIRADORES QUE QUEDAN.
 
@@ -3602,6 +3621,4 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     vale('  sin errores de JavaScript', fallosL.length === 0, fallosL.join(' | '));
     await pl.close();
   }
-
-  await cerrar(sesion);
-})();
+}

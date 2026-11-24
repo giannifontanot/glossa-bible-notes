@@ -52,19 +52,43 @@ jobs:
           FILTRO: ${{ github.event.inputs.filtro }}
         # La misma regla que correr.js: el archivo entra si contiene alguna de
         # las palabras del filtro, o todas si no hay filtro.
+        #
+        # LAS MÁS LARGAS, PRIMERO. GitHub no deja correr más de veinte
+        # máquinas a la vez, y las que sobran esperan turno en el orden de la
+        # lista. Por orden alfabético, piedra y separador —las dos más largas—
+        # se quedaban esperando y salían las últimas: la tanda entera las
+        # esperaba casi nueve minutos. Ahora la lista se ordena por lo que tardó
+        # cada una la última vez que se midió (pruebas/tiempos.json; una suite
+        # que no está ahí cuenta como de minuto y medio).
+        #
+        # Y LAS PARTIDAS EN TRAMOS, UNA MÁQUINA POR TRAMO: una suite que usa
+        # tramo(n) de comun.js sale aquí una vez por tramo, y cada una corre
+        # con su GLOSS_TRAMO.
         run: |
           node -e '
             const fs = require("fs");
             const filtro = (process.env.FILTRO || "").split(/\s+/).filter(Boolean);
+            const tiempos = JSON.parse(fs.readFileSync("pruebas/tiempos.json", "utf8"));
             const s = fs.readdirSync("pruebas").filter(f => f.endsWith(".prueba.js"))
               .filter(f => !filtro.length || filtro.some(x => f.includes(x))).sort();
             if (!s.length){ console.error("Ninguna suite con ese filtro"); process.exit(1); }
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, "suites=" + JSON.stringify(s) + "\n");
-            console.log(s.length + " suites: " + s.join(", "));
+            const lista = [];
+            for (const suite of s){
+              const tramos = [...fs.readFileSync("pruebas/" + suite, "utf8").matchAll(/\btramo\((\d+)\)/g)]
+                .reduce((m, x) => Math.max(m, +x[1]), 0);
+              if (!tramos) lista.push({ suite, tramo:"", nombre:suite, t:tiempos[suite] || 90 });
+              else for (let i = 1; i <= tramos; i++)
+                lista.push({ suite, tramo:String(i), nombre:suite + " · tramo " + i + " de " + tramos,
+                             t:tiempos[suite + "#" + i] || 90 });
+            }
+            lista.sort((a, b) => b.t - a.t || a.nombre.localeCompare(b.nombre));
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, "suites=" +
+              JSON.stringify(lista.map(({ suite, tramo, nombre }) => ({ suite, tramo, nombre }))) + "\n");
+            console.log(lista.length + " trabajos: " + lista.map(x => x.nombre + " (" + x.t + " s)").join(", "));
           '
 
   suite:
-    name: ${{ matrix.suite }}
+    name: ${{ matrix.suite.nombre }}
     needs: lista
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -97,7 +121,7 @@ jobs:
       # corridas a mano (CHROMIUM apuntando al Chromium completo). En la
       # primera corrida aquí, con el recortado, cuatro suites que pasan en local
       # se quedaron sin ver lo que escribían antes de recargar.
-      - name: node pruebas/${{ matrix.suite }}
+      - name: node pruebas/${{ matrix.suite.suite }}
         # SERVIDA POR HTTP, NO ABIERTA COMO file://. Medido aquí mismo, con
         # un diagnóstico de ida y vuelta: escribir en el almacén y recargar,
         # doce veces seguidas. Con file:// la página nueva veía de vez en
@@ -114,7 +138,8 @@ jobs:
           python3 -m http.server 8787 --bind 127.0.0.1 >/dev/null 2>&1 &
           until curl -sf http://127.0.0.1:8787/index.html >/dev/null; do sleep 0.2; done
           export GLOSS_APP_URL=http://127.0.0.1:8787/index.html
-          node pruebas/${{ matrix.suite }}
+          export GLOSS_TRAMO="${{ matrix.suite.tramo }}"
+          node pruebas/${{ matrix.suite.suite }}
 
   pruebas:
     name: pruebas

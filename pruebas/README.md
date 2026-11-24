@@ -30,6 +30,22 @@ paralelo —una máquina por suite— y deja en la PR una casilla, «pruebas», 
 o roja. Ver `.github/workflows/pruebas.yml`. A mano, desde la pestaña Actions,
 con el mismo filtro de palabras que abajo.
 
+**La tanda tarda lo que tarda la suite más lenta**, así que dos cosas la
+acortan:
+
+- **Las más largas salen primero.** GitHub da veinte máquinas a la vez y las
+  demás esperan turno en el orden de la lista; la lista se ordena por
+  `tiempos.json`, lo que tardó cada suite la última vez que se midió. Una
+  suite nueva que no esté ahí cuenta como de minuto y medio; si es larga, se
+  apunta.
+- **Las cuatro más largas van en dos tramos**, cada uno en su máquina:
+  `piedra` (el barrido del teclado), `separador` (la lectura de verdad),
+  `navegar` (de las flechas en adelante) y `glosas` (del dedo sostenido en
+  adelante). La suite marca con `tramo(2)` de `comun.js` un bloque que no
+  depende de lo de antes, y GitHub la lanza dos veces, con `GLOSS_TRAMO=1` y
+  `GLOSS_TRAMO=2`. **En local, sin `GLOSS_TRAMO`, se corre todo junto** y en
+  su orden de siempre: partirla no quita ninguna comprobación.
+
 En local:
 
 ```sh

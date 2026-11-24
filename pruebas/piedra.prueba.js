@@ -23,7 +23,7 @@
    Y la regla de la casa que aquí importa: NADA DE .click() PARA GESTOS. El
    toque y el arrastre van con PointerEvent y su pointerId, porque es
    justamente el camino del puntero lo que se está probando. */
-const { abrir, cerrar, cerrarParcial, fin, di, vale, titulo } = require('./comun');
+const { abrir, cerrar, cerrarParcial, fin, di, vale, titulo, TRAMO, tramo } = require('./comun');
 
 const LLAVE = 'glossa:piedras:v1';
 
@@ -217,7 +217,137 @@ async function andamio(p){
   });
 }
 
+/* EL BARRIDO DEL TECLADO VA EN SU PROPIO TRAMO. Son ochenta combinaciones y
+   tres minutos y medio, la mitad de esta suite; en GitHub corre en su propia
+   máquina, a la vez que el resto (ver tramo en comun.js). En local, sin
+   GLOSS_TRAMO, se corre todo, y en el mismo sitio de siempre. */
+async function barridoDelTeclado(){
+  /* ----------------------------------------------------------------
+     Y CON TECLADO: EL PANEL NUNCA SE SALE POR ARRIBA.
+
+     Ésta es la prueba de un fallo que tardó cuatro arreglos porque no se podía
+     ver aquí. El dueño del repo lo veía en su teléfono —«se sigue yendo hasta
+     arriba»: la cabecera del panel fuera de la pantalla, sin saber en qué
+     panel estás— y aquí pasaba siempre, con cualquier medida.
+
+     La causa, encontrada midiendo y no razonando: visualViewport.offsetTop. Al
+     subir el teclado, un navegador de teléfono no solo ENCOGE la ventana
+     visual, también LA DESPLAZA dentro de la de maquetación para enseñar el
+     campo con foco. El panel es position:absolute dentro de la escena, o sea
+     que se queda en coordenadas de maquetación y no se entera de ese
+     desplazamiento: el techo de lo visible le baja encima y su sitio queda por
+     ENCIMA de lo que se ve. La cuenta del vigilante leía entonces un tope
+     negativo, lo tomaba por «no te muevas» —Math.max(0, ...)— y el panel se
+     quedaba fuera.
+
+     En un navegador sin pantalla offsetTop es SIEMPRE 0, y por eso ninguna
+     medida de aquí lo veía. Así que se finge, que es lo único que se finge:
+     una pieza del navegador, no código de la aplicación. Es la misma licencia
+     que ya se toma la altura, y por la misma razón.
+
+     Se barre: cinco alturas de teclado × cuatro desplazamientos × cuatro filas
+     —la primera, la de en medio, la 15 y la última—, y de cada combinación se
+     piden las dos cosas que el lector necesita a la vez, que es lo que hace
+     que no se pueda arreglar una rompiendo la otra:
+     · que la cabecera del panel no quede por encima de lo que se ve;
+     · y que el campo donde se escribe no quede debajo del teclado.
+     Sin la segunda, «no se sale por arriba» se arregla dejando el panel
+     quieto y el campo tapado, que era el estado anterior. */
+  titulo('con teclado, el panel no se sale por arriba ni tapa el campo');
+  const sesVV = await abrir();
+  const pvv = sesVV.pagina;
+  await pvv.evaluate(() => {
+    const hoy = Date.now(); const ps = [];
+    for (let i = 0; i < 20; i++)
+      ps.push({ id:'vv'+i, libro:'MAT', cap:1, vers:1+i, x:.5, y:.3, forma:'piedra',
+                color:'carmin-vivo', tam:2, nombre:'piedra '+i, creado:hoy+i, tocado:hoy+i });
+    localStorage.setItem('glossa:piedras:v1', JSON.stringify(ps));
+  });
+  await pvv.reload();
+  await pvv.waitForTimeout(400);
+  const barrido = await pvv.evaluate(async () => {
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    let pid = 800;
+    const toque = async sel => {
+      const e = typeof sel === 'string' ? document.querySelector(sel) : sel;
+      if (!e) return false;
+      const r = e.getBoundingClientRect();
+      const o = { bubbles:true, cancelable:true, pointerId: ++pid, pointerType:'touch',
+                  isPrimary:true, clientX: r.left + r.width/2, clientY: r.top + r.height/2 };
+      e.dispatchEvent(new PointerEvent('pointerdown', o)); await pausa(40);
+      e.dispatchEvent(new PointerEvent('pointerup', o));
+      e.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, o)));
+      return true;
+    };
+    const vv = window.visualViewport;
+    if (!vv) return { sinVV:true };
+    let ALTO = window.innerHeight, DESP = 0;
+    Object.defineProperty(vv, 'height',    { configurable:true, get: () => ALTO });
+    Object.defineProperty(vv, 'offsetTop', { configurable:true, get: () => DESP });
+    await toque('[data-piedra-lista]'); await pausa(800);
+    const el = document.getElementById('piedraMenu');
+    const filas = () => [...document.querySelectorAll('#piedraMenu [data-piedra-ir]')];
+    if (filas().length < 20) return { pocas: filas().length };
+    const malas = [];
+    let cuantas = 0;
+    /* EL BARRIDO SE ANCHÓ, y no por gusto. Con [560,460,380] × [0,60,140,260]
+       × [0,9,19] este bloque pasaba aquí y fallaba en el navegador del dueño
+       del repo por diez píxeles: lo que mide una fila no es igual en dos
+       navegadores, así que la misma combinación cae a un lado o al otro de la
+       raya. Un umbral no arregla eso. Se añaden la fila 15 y las alturas 340 y
+       420, que es donde se reproduce aquí —con 380 y la fila 15, el campo
+       quedaba 19 px por debajo del suelo teniendo el panel 222 px de rodadura
+       sin usar—; y el arreglo está en vigilarTecladoPanel, que ahora mira los
+       DOS bordes al asentarse y no solo la cabecera.
+       Son 60 combinaciones y tarda: es la parte lenta de esta suite, y vale lo
+       que cuesta, porque es lo único que ha cazado este fallo. */
+    for (const alto of [560, 460, 420, 380, 340])
+    for (const desp of [0, 60, 140, 260])
+    for (const fi of [0, 9, 15, 19]){
+      /* Se suelta el teclado entre una y otra: cada combinación empieza como
+         empieza de verdad, sin el desplazamiento de la anterior puesto. */
+      ALTO = window.innerHeight; DESP = 0;
+      vv.dispatchEvent(new Event('resize')); await pausa(500);
+      if (document.activeElement) document.activeElement.blur();
+      await pausa(300);
+      const f = filas()[fi]; if (!f) continue;
+      f.scrollIntoView({ block:'nearest' }); await pausa(120);
+      const rr = f.getBoundingClientRect();
+      f.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
+        clientX: rr.left + rr.width/2, clientY: rr.top + rr.height/2 }));
+      await pausa(220);
+      /* Y AHORA EL TECLADO, con varios avisos seguidos y encima de la
+         transición del panel: es lo que manda un teléfono mientras sube, y ese
+         martilleo ya destapó una vez que la cuenta se hacía contra el destino
+         de la transición y no contra dónde está el panel. */
+      ALTO = alto; DESP = desp;
+      for (const t of [0, 30, 50, 70]){ vv.dispatchEvent(new Event('resize')); await pausa(t); }
+      await pausa(1100);
+      cuantas++;
+      const rp = el.getBoundingClientRect();
+      const campo = el.querySelector('[data-piedra-nombre]');
+      const rc = campo ? campo.getBoundingClientRect() : null;
+      const techo = desp + 8, suelo = desp + alto;
+      if (!rc || rp.top < techo - 1 || rc.bottom > suelo + 1)
+        malas.push({ alto, desp, fila: fi, techo, suelo,
+                     top: Math.round(rp.top),
+                     campo: rc ? Math.round(rc.bottom) : null,
+                     sube: el.style.getPropertyValue('--sube') });
+    }
+    return { malas, cuantas };
+  });
+  di('el barrido del teclado', JSON.stringify(barrido));
+  vale('(la prueba es válida) se barrieron las 80 combinaciones',
+       barrido.cuantas === 80, barrido.cuantas + ' de 80');
+  vale('CON TECLADO, LA CABECERA NO SE VA POR ENCIMA NI EL CAMPO SE TAPA',
+       !!barrido.malas && barrido.malas.length === 0,
+       barrido.malas ? barrido.malas.length + ' fallan: ' +
+                       JSON.stringify(barrido.malas.slice(0, 3)) : JSON.stringify(barrido));
+  await cerrarParcial(sesVV, 'el teclado desplazado');
+}
+
 (async () => {
+  if (TRAMO === 2){ await barridoDelTeclado(); return fin(); }
   const sesion = await abrir();
   const p = sesion.pagina;
   await andamio(p);
@@ -1342,128 +1472,8 @@ async function andamio(p){
        lapiz.teclado.techoAntes === lapiz.teclado.techoTras &&
        lapiz.teclado.rodado === 0, lapiz.teclado);
 
-  /* ----------------------------------------------------------------
-     Y CON TECLADO: EL PANEL NUNCA SE SALE POR ARRIBA.
-
-     Ésta es la prueba de un fallo que tardó cuatro arreglos porque no se podía
-     ver aquí. El dueño del repo lo veía en su teléfono —«se sigue yendo hasta
-     arriba»: la cabecera del panel fuera de la pantalla, sin saber en qué
-     panel estás— y aquí pasaba siempre, con cualquier medida.
-
-     La causa, encontrada midiendo y no razonando: visualViewport.offsetTop. Al
-     subir el teclado, un navegador de teléfono no solo ENCOGE la ventana
-     visual, también LA DESPLAZA dentro de la de maquetación para enseñar el
-     campo con foco. El panel es position:absolute dentro de la escena, o sea
-     que se queda en coordenadas de maquetación y no se entera de ese
-     desplazamiento: el techo de lo visible le baja encima y su sitio queda por
-     ENCIMA de lo que se ve. La cuenta del vigilante leía entonces un tope
-     negativo, lo tomaba por «no te muevas» —Math.max(0, ...)— y el panel se
-     quedaba fuera.
-
-     En un navegador sin pantalla offsetTop es SIEMPRE 0, y por eso ninguna
-     medida de aquí lo veía. Así que se finge, que es lo único que se finge:
-     una pieza del navegador, no código de la aplicación. Es la misma licencia
-     que ya se toma la altura, y por la misma razón.
-
-     Se barre: cinco alturas de teclado × cuatro desplazamientos × cuatro filas
-     —la primera, la de en medio, la 15 y la última—, y de cada combinación se
-     piden las dos cosas que el lector necesita a la vez, que es lo que hace
-     que no se pueda arreglar una rompiendo la otra:
-     · que la cabecera del panel no quede por encima de lo que se ve;
-     · y que el campo donde se escribe no quede debajo del teclado.
-     Sin la segunda, «no se sale por arriba» se arregla dejando el panel
-     quieto y el campo tapado, que era el estado anterior. */
-  titulo('con teclado, el panel no se sale por arriba ni tapa el campo');
-  const sesVV = await abrir();
-  const pvv = sesVV.pagina;
-  await pvv.evaluate(() => {
-    const hoy = Date.now(); const ps = [];
-    for (let i = 0; i < 20; i++)
-      ps.push({ id:'vv'+i, libro:'MAT', cap:1, vers:1+i, x:.5, y:.3, forma:'piedra',
-                color:'carmin-vivo', tam:2, nombre:'piedra '+i, creado:hoy+i, tocado:hoy+i });
-    localStorage.setItem('glossa:piedras:v1', JSON.stringify(ps));
-  });
-  await pvv.reload();
-  await pvv.waitForTimeout(400);
-  const barrido = await pvv.evaluate(async () => {
-    const pausa = ms => new Promise(z => setTimeout(z, ms));
-    let pid = 800;
-    const toque = async sel => {
-      const e = typeof sel === 'string' ? document.querySelector(sel) : sel;
-      if (!e) return false;
-      const r = e.getBoundingClientRect();
-      const o = { bubbles:true, cancelable:true, pointerId: ++pid, pointerType:'touch',
-                  isPrimary:true, clientX: r.left + r.width/2, clientY: r.top + r.height/2 };
-      e.dispatchEvent(new PointerEvent('pointerdown', o)); await pausa(40);
-      e.dispatchEvent(new PointerEvent('pointerup', o));
-      e.dispatchEvent(new MouseEvent('click', Object.assign({ detail:1 }, o)));
-      return true;
-    };
-    const vv = window.visualViewport;
-    if (!vv) return { sinVV:true };
-    let ALTO = window.innerHeight, DESP = 0;
-    Object.defineProperty(vv, 'height',    { configurable:true, get: () => ALTO });
-    Object.defineProperty(vv, 'offsetTop', { configurable:true, get: () => DESP });
-    await toque('[data-piedra-lista]'); await pausa(800);
-    const el = document.getElementById('piedraMenu');
-    const filas = () => [...document.querySelectorAll('#piedraMenu [data-piedra-ir]')];
-    if (filas().length < 20) return { pocas: filas().length };
-    const malas = [];
-    let cuantas = 0;
-    /* EL BARRIDO SE ANCHÓ, y no por gusto. Con [560,460,380] × [0,60,140,260]
-       × [0,9,19] este bloque pasaba aquí y fallaba en el navegador del dueño
-       del repo por diez píxeles: lo que mide una fila no es igual en dos
-       navegadores, así que la misma combinación cae a un lado o al otro de la
-       raya. Un umbral no arregla eso. Se añaden la fila 15 y las alturas 340 y
-       420, que es donde se reproduce aquí —con 380 y la fila 15, el campo
-       quedaba 19 px por debajo del suelo teniendo el panel 222 px de rodadura
-       sin usar—; y el arreglo está en vigilarTecladoPanel, que ahora mira los
-       DOS bordes al asentarse y no solo la cabecera.
-       Son 60 combinaciones y tarda: es la parte lenta de esta suite, y vale lo
-       que cuesta, porque es lo único que ha cazado este fallo. */
-    for (const alto of [560, 460, 420, 380, 340])
-    for (const desp of [0, 60, 140, 260])
-    for (const fi of [0, 9, 15, 19]){
-      /* Se suelta el teclado entre una y otra: cada combinación empieza como
-         empieza de verdad, sin el desplazamiento de la anterior puesto. */
-      ALTO = window.innerHeight; DESP = 0;
-      vv.dispatchEvent(new Event('resize')); await pausa(500);
-      if (document.activeElement) document.activeElement.blur();
-      await pausa(300);
-      const f = filas()[fi]; if (!f) continue;
-      f.scrollIntoView({ block:'nearest' }); await pausa(120);
-      const rr = f.getBoundingClientRect();
-      f.dispatchEvent(new MouseEvent('dblclick', { bubbles:true, cancelable:true, detail:2,
-        clientX: rr.left + rr.width/2, clientY: rr.top + rr.height/2 }));
-      await pausa(220);
-      /* Y AHORA EL TECLADO, con varios avisos seguidos y encima de la
-         transición del panel: es lo que manda un teléfono mientras sube, y ese
-         martilleo ya destapó una vez que la cuenta se hacía contra el destino
-         de la transición y no contra dónde está el panel. */
-      ALTO = alto; DESP = desp;
-      for (const t of [0, 30, 50, 70]){ vv.dispatchEvent(new Event('resize')); await pausa(t); }
-      await pausa(1100);
-      cuantas++;
-      const rp = el.getBoundingClientRect();
-      const campo = el.querySelector('[data-piedra-nombre]');
-      const rc = campo ? campo.getBoundingClientRect() : null;
-      const techo = desp + 8, suelo = desp + alto;
-      if (!rc || rp.top < techo - 1 || rc.bottom > suelo + 1)
-        malas.push({ alto, desp, fila: fi, techo, suelo,
-                     top: Math.round(rp.top),
-                     campo: rc ? Math.round(rc.bottom) : null,
-                     sube: el.style.getPropertyValue('--sube') });
-    }
-    return { malas, cuantas };
-  });
-  di('el barrido del teclado', JSON.stringify(barrido));
-  vale('(la prueba es válida) se barrieron las 80 combinaciones',
-       barrido.cuantas === 80, barrido.cuantas + ' de 80');
-  vale('CON TECLADO, LA CABECERA NO SE VA POR ENCIMA NI EL CAMPO SE TAPA',
-       !!barrido.malas && barrido.malas.length === 0,
-       barrido.malas ? barrido.malas.length + ' fallan: ' +
-                       JSON.stringify(barrido.malas.slice(0, 3)) : JSON.stringify(barrido));
-  await cerrarParcial(sesVV, 'el teclado desplazado');
+  /* El barrido del teclado: ver barridoDelTeclado, más arriba. */
+  if (tramo(2)) await barridoDelTeclado();
 
   /* ----------------------------------------------------------------
      LA PIEDRA NO SE HUNDE BAJO EL TEXTO AL VOLTEAR LA HOJA.
