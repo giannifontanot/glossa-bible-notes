@@ -4279,6 +4279,26 @@
   .herr-botones{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
   #respaldo .herr-botones .btn{ width:100%; min-height:46px; justify-content:center; }
   #respaldo .herr-crono .casilla{ color:#3d2f12; min-height:44px; }
+  /* «TU CUENTA», CON SU PROPIA TINTA. Sus renglones son párrafos sueltos y no
+     .herr-dice, y el panel no les daba color: heredaban el blanco del cajón y
+     sobre el papel no se leían. Lo vio Gianni al entrar con Google la primera
+     vez. Ahora cada renglón lleva el marrón de lo demás del panel, y quién eres
+     va más oscuro y en negrita, que es lo que se viene a mirar. */
+  #respaldo #respTools .cuenta-quien, #respaldo #respTools .cuenta-dice,
+  #respaldo #respTools .cuenta-etq, #respaldo #respTools .cuenta-caja{
+    font-size:calc(var(--fs-libro, 15px) * .85); }
+  .herr-cuenta .cuenta-quien{ margin:0 0 6px; font-weight:700; color:#3d2f12; overflow-wrap:anywhere; }
+  .herr-cuenta .cuenta-dice{ margin:0 0 12px; line-height:1.45; color:#5c4a24; }
+  .herr-cuenta .cuenta-etq{ display:block; margin:14px 0 6px; color:#3d2f12; }
+  /* La caja del correo: 16 px como mínimo, que con menos el iPhone se acerca
+     solo al tocarla. */
+  #respaldo #respTools .herr-cuenta .cuenta-caja{ display:block; width:100%; box-sizing:border-box;
+    min-height:46px; margin:0 0 10px; padding:8px 11px; font-size:max(16px, calc(var(--fs-libro, 15px) * .85));
+    font-family:var(--ui); color:#2a2010; background:#fffaf0;
+    border:1px solid rgba(140,116,68,.55); border-radius:7px; }
+  .herr-cuenta .cuenta-caja:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
+  #respaldo .herr-cuenta .cuenta-form .btn, #respaldo .herr-cuenta .cuenta-dentro .btn{
+    width:100%; min-height:46px; justify-content:center; }
   .atrib-lista{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; }
   .atrib-lista li{ padding-left:14px; position:relative; color:#3d2f12; line-height:1.4; }
   .atrib-lista li::before{ content:''; position:absolute; left:2px; top:.62em; width:5px; height:5px;
@@ -7730,7 +7750,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 05:10';
+window.GLOSS_BUILD = '24-NOV-26 06:02';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
