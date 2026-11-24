@@ -7833,7 +7833,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 07:18';
+window.GLOSS_BUILD = '24-NOV-26 07:53';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -30247,7 +30247,7 @@ function armarManijasIndice(pagina, reordenar){
      rueda a un lado, como una canica contra un libro. Se miden cada tanto, no
      en cada cuadro. */
   const ESTORBOS = '#portadaPie .pt-btn, #btnZoom, #btnHistorial, #pgVersion';
-  let estorbos = [], medido = -1e9;
+  let estorbos = [], medido = -1e9, piso = Infinity;
   const medirEstorbos = ahora => {
     if (ahora - medido < 300) return;
     medido = ahora;
@@ -30257,6 +30257,17 @@ function armarManijasIndice(pagina, reordenar){
       .map(el => el.getBoundingClientRect())
       .filter(r => r.width > 0 && r.height > 0)
       .map(r => ({ l:r.left - c.left, t:r.top - c.top, r:r.right - c.left, b:r.bottom - c.top }));
+    /* EL SUELO SE PONE ENCIMA DE LO QUE VIVE ABAJO. Primero eran cajas sueltas
+       con las que se chocaba, y entre una y otra —o entre la última y la
+       orilla— quedaban hoyos del tamaño justo de una bolita: la que caía en
+       uno ya no salía rodando de lado, y en las pruebas quedó atorada junto a
+       un botón de la portada, donde un dedo la ve quieta y cree que no
+       funciona. Ahora todo lo que está en la mitad de abajo levanta el suelo
+       hasta su borde de arriba: la bolita descansa en una repisa lisa, justo
+       encima de los botones, y rueda de orilla a orilla sin tropezar. */
+    const h = H();
+    piso = estorbos.reduce((m, e) => e.t > h * 0.5 ? Math.min(m, e.t) : m, h);
+    estorbos = estorbos.filter(e => e.t <= h * 0.5);
   };
 
   /* ---------- LAS BOLITAS ---------- */
@@ -30339,6 +30350,7 @@ function armarManijasIndice(pagina, reordenar){
   };
   const abrirCarta = (b, nota) => {
     nota.recibida.estado = 'abierta';
+    if (nota.id === idPrueba) try { localStorage.setItem(PRUEBA, 'abierta'); } catch(_){}
     guardarNotas();
     quitarBola(b);
     refrescarCartasNotas();
@@ -30449,17 +30461,27 @@ function armarManijasIndice(pagina, reordenar){
   /* ---------- LA FÍSICA ---------- */
   const paso = dt => {
     const w = W(), h = H();
-    const gx = quieto ? 0 : fuerza.x * G, gy = quieto ? G : fuerza.y * G;
+    /* CON EL TELÉFONO ACOSTADO el sensor no marca nada de lado ni de largo, y
+       la bolita se quedaba donde estaba: la que llegaba desde arriba, flotando
+       fuera de la pantalla para siempre, que es lo que vio Gianni. Así que
+       cuando la inclinación es poca se suma un tirón suave hacia el pie de la
+       pantalla, que se apaga en cuanto el teléfono se inclina de verdad. */
+    const mag = Math.hypot(fuerza.x, fuerza.y), DESCANSO = 0.35;
+    const gx = quieto ? 0 : fuerza.x * G;
+    const gy = quieto ? G : (fuerza.y + Math.max(0, DESCANSO - mag)) * G;
     for (const b of bolas){
       if (b.quieta || b.agarrada) continue;
-      b.vx += gx * dt; b.vy += gy * dt;
+      /* LA QUE LLEGA CAE, sin preguntarle al sensor: es su llegada. Con el
+         teléfono boca abajo o acostado no entraría nunca. */
+      if (b.dentro){ b.vx += gx * dt; b.vy += gy * dt; } else b.vy += G * dt;
       const roce = 1 - 0.35 * dt;
       b.vx *= roce; b.vy *= roce;
       b.x += b.vx * dt; b.y += b.vy * dt;
       let suelo = false;
       if (b.x < b.r){ b.x = b.r; if (b.vx < 0) b.vx = -b.vx * REBOTE; }
       if (b.x > w - b.r){ b.x = w - b.r; if (b.vx > 0) b.vx = -b.vx * REBOTE; }
-      if (b.y > h - b.r){ b.y = h - b.r; if (b.vy > 0) b.vy = Math.abs(b.vy) < 40 ? 0 : -b.vy * REBOTE; suelo = true; }
+      const fondo = Math.min(h, piso);
+      if (b.y > fondo - b.r){ b.y = fondo - b.r; if (b.vy > 0) b.vy = Math.abs(b.vy) < 40 ? 0 : -b.vy * REBOTE; suelo = true; }
       /* El techo solo cuenta para la que ya entró: la que llega cae desde
          fuera de la pantalla y tiene que poder pasar. */
       if (b.dentro){ if (b.y < b.r){ b.y = b.r; if (b.vy < 0) b.vy = Math.abs(b.vy) < 40 ? 0 : -b.vy * REBOTE; } }
@@ -30476,7 +30498,7 @@ function armarManijasIndice(pagina, reordenar){
       }
       /* Rueda, no resbala: lo que avanza de lado es lo que gira. Y rodando
          sobre algo se va frenando poco a poco. */
-      if (suelo) b.vx *= 1 - 1.1 * dt;
+      if (suelo){ b.vx *= 1 - 1.1 * dt; if (Math.abs(b.vx) < 8 && Math.abs(gx) < 1) b.vx = 0; }
       b.giro += (b.vx * dt) / b.r;
     }
     /* Los choques entre ellas, de canica contra canica: pesan lo mismo, y la
@@ -30531,7 +30553,10 @@ function armarManijasIndice(pagina, reordenar){
   }, { passive:true });
 
   /* ---------- LLEGAN CARTAS ---------- */
+  let listo = false;
   buzonAlDia = () => {
+    if (!listo) return;
+    asegurarPrueba();
     for (const nota of cerradas()){
       if (!bolas.some(b => b.id === nota.id))
         crearBola(nota, conocidas.has(nota.id) || quieto ? 'abajo' : 'arriba');
@@ -30548,22 +30573,34 @@ function armarManijasIndice(pagina, reordenar){
      LA CARTA DE PRUEBA. Enviar notas todavía no existe, así que para ver todo
      esto Gianni pidió que su nota «Las festividades judías» llegara como carta
      cerrada, en azul metálico, y que su bolita cayera desde arriba la primera
-     vez que se abriera esta versión. Una sola vez: queda apuntado, y una vez
-     leída no se vuelve a cerrar. */
+     vez que se abriera esta versión. Una vez leída no se vuelve a cerrar.
+
+     LA MARCA DICE «YA SE ABRIÓ», NO «YA LLEGÓ». La primera versión apuntaba
+     la llegada al marcarla; si luego la nube traía la nota como era antes
+     —sin carta— la de prueba se perdía para siempre sin leerse. Ahora solo
+     cuenta haberla abierto, y se vuelve a mirar cada vez que cambian las
+     notas (arrancar, la nube, un respaldo): la que se quedó sin carta la
+     recupera, y la que llega tarde de la nube también la recibe. El título se
+     busca sin mayúsculas ni acentos y sin exigir el «Las»: «Festividades
+     judías», «Las fiestas judías»… */
+  let idPrueba = null;
+  const llano = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const esLaDePrueba = n => { const t = llano(n.titulo); return /(festividad|fiesta)/.test(t) && /judi/.test(t); };
+  function asegurarPrueba(){
+    let abierta = false;
+    try { abierta = localStorage.getItem(PRUEBA) === 'abierta'; } catch(_){}
+    const laPrueba = notas.find(esLaDePrueba) || null;
+    idPrueba = laPrueba && laPrueba.id;
+    if (abierta || !laPrueba || laPrueba.recibida) return;
+    laPrueba.recibida = { estado:'cerrada', color:AZUL_CARTA, llegada:Date.now() };
+    if (guardarNotas()) try { localStorage.setItem(PRUEBA, 'cerrada'); } catch(_){}
+    refrescarCartasNotas();
+  }
   setTimeout(() => {
-    let probada = false;
-    try { probada = localStorage.getItem(PRUEBA) === '1'; } catch(_){}
-    let llega = null;
-    if (!probada){
-      const llano = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-      llega = notas.find(n => !n.recibida && /festividades\s+judias/.test(llano(n.titulo))) || null;
-      if (llega){
-        llega.recibida = { estado:'cerrada', color:AZUL_CARTA, llegada:Date.now() };
-        if (guardarNotas()) try { localStorage.setItem(PRUEBA, '1'); } catch(_){}
-        refrescarCartasNotas();
-      }
-    }
-    for (const n of cerradas()) if (n !== llega) conocidas.add(n.id);
+    /* Las cerradas que ya estaban nacen abajo; la de prueba, recién marcada,
+       cae desde arriba. */
+    for (const n of cerradas()) conocidas.add(n.id);
+    listo = true;
     buzonAlDia();
   }, 0);
 })();

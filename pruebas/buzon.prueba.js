@@ -116,7 +116,7 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
   vale('«Las festividades judías» queda con la carta cerrada, en azul metálico',
        fiestas && fiestas.recibida && fiestas.recibida.estado === 'cerrada' && fiestas.recibida.color === '#3f6e9e');
   vale('la otra nota no trae carta', !(await nota(p, 'nota-otra')).recibida);
-  vale('queda apuntado que la prueba ya llegó', await p.evaluate(k => localStorage.getItem(k), PRUEBA) === '1');
+  vale('queda apuntado que la de prueba sigue sin abrir', await p.evaluate(k => localStorage.getItem(k), PRUEBA) === 'cerrada');
 
   titulo('SU BOLITA CAE DESDE ARRIBA Y SE QUEDA ABAJO');
   const alturas = await p.evaluate(() => window.__alturas);
@@ -278,8 +278,23 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
     localStorage.setItem(k, JSON.stringify(lista));
     localStorage.removeItem(prueba);
   }, [CLAVE, PRUEBA]);
+  /* Y CON EL TELÉFONO ACOSTADO: el sensor no marca nada de lado ni de largo.
+     Así lo tenía Gianni, y la bolita que llegaba se quedaba flotando encima
+     de la pantalla, sin entrar nunca. Se manda desde antes de que arranque. */
+  await p.addInitScript(() => {
+    if (sessionStorage.getItem('buzon-acostado') !== '1') return;
+    const manda = () => window.dispatchEvent(new DeviceMotionEvent('devicemotion',
+      { accelerationIncludingGravity:{ x:0, y:0, z:9.81 }, acceleration:{ x:0, y:0, z:0 }, interval:16 }));
+    setInterval(manda, 16);
+  });
+  await p.evaluate(() => sessionStorage.setItem('buzon-acostado', '1'));
   await p.reload();
-  await p.waitForTimeout(1500);
+  await p.waitForTimeout(2200);
+  const acostada = await bola(p);
+  di('con el teléfono acostado', acostada);
+  vale('acostado, la bolita entra de todos modos', acostada && acostada.top >= 0, acostada);
+  vale('y se va despacio al pie de la pantalla', acostada && acostada.bottom > acostada.alto * 0.6, acostada);
+  await p.evaluate(() => sessionStorage.removeItem('buzon-acostado'));
   vale('(la prueba es válida) la nota volvió a llegar cerrada',
        ((await nota(p, 'nota-fiestas')).recibida || {}).estado === 'cerrada');
   vale('(la prueba es válida) se abre NOTAS', await p.evaluate(`(${IR_A})('notas')`) === true);
