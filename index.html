@@ -7960,7 +7960,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 12:13';
+window.GLOSS_BUILD = '24-NOV-26 13:10';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -30518,9 +30518,21 @@ function armarManijasIndice(pagina, reordenar){
                 material, m:MATERIA[material], fase:Math.random() * 6.28, posada:false };
     if (desde === 'arriba'){
       /* Las que llegan juntas no caen encimadas: cada una un poco más arriba
-         que la anterior, y entran una tras otra. */
-      const cayendo = bolas.filter(o => !o.dentro).length;
-      b.x = w * (0.2 + 0.6 * Math.random()); b.y = -r - 8 - cayendo * 3 * r; b.dentro = false;
+         que la anterior, y entran una tras otra.
+
+         LAS PLUMAS BAJAN POR LAS ORILLAS y las que pesan por el centro. Con
+         la tanda de ocho, caían todas por el mismo hueco, y una de metal que
+         venía detrás alcanzaba a la pluma y la empujaba hasta abajo de un
+         golpe: la pluma ya no caía despacito. Así cada una baja por su carril
+         y solo se encuentran en el suelo. Una pluma que llega sola baja por
+         donde caiga, como antes. */
+      const cayendo = bolas.filter(o => !o.dentro && (o.material === 'pluma') === (material === 'pluma')).length;
+      const acompanada = bolas.some(o => !o.dentro);
+      if (material === 'pluma' && acompanada){
+        b.x = w * (cayendo % 2 ? 0.85 : 0.15); b.y = -r - 8 - Math.floor(cayendo / 2) * 3 * r;
+      } else if (material === 'pluma'){ b.x = w * (0.2 + 0.6 * Math.random()); b.y = -r - 8; }
+      else { b.x = w * (0.35 + 0.3 * Math.random()); b.y = -r - 8 - cayendo * 3 * r; }
+      b.dentro = false;
     } else {
       /* Abajo, repartidas a lo ancho: el empujón de los choques acaba de
          acomodarlas sin que se encimen. */
@@ -30965,19 +30977,20 @@ function armarManijasIndice(pagina, reordenar){
      goma y 2 plumas». Lleva marca e ids nuevos para que vuelva a caer en su
      teléfono, donde la primera ya cayó, y al hacerse se lleva las de la
      primera tanda que sigan ahí, para que no caigan trece. Las plumas van
-     primero porque son las que bajan despacio: así entran antes. */
+     al final: al nacer ven a las que pesan ya cayendo y se van a su carril
+     de las orillas (ver crearBola). */
   const PRUEBA_MATERIALES = 'glossa:buzon:prueba-materiales:v2';
   const PRUEBAS_VIEJAS = ['nota-prueba-goma-1', 'nota-prueba-goma-2', 'nota-prueba-goma-3',
                           'nota-prueba-pluma-1', 'nota-prueba-pluma-2'];
   const PRUEBAS_MATERIAL = [
-    { id:'nota-prueba2-pluma-1', material:'pluma', color:'#6e4c94', es:'Pluma morada', en:'Purple feather' },
-    { id:'nota-prueba2-pluma-2', material:'pluma', color:'#8c949c', es:'Pluma plateada', en:'Silver feather' },
     { id:'nota-prueba2-goma-1', material:'goma', color:'#a53d3d', es:'Bolita de goma roja', en:'Red rubber ball' },
     { id:'nota-prueba2-goma-2', material:'goma', color:'#3e7d5a', es:'Bolita de goma verde', en:'Green rubber ball' },
     { id:'nota-prueba2-goma-3', material:'goma', color:'#9c6b3a', es:'Bolita de goma bronce', en:'Bronze rubber ball' },
     { id:'nota-prueba2-metal-1', material:'metal', color:'#3f6e9e', es:'Bolita de metal azul', en:'Blue metal ball' },
     { id:'nota-prueba2-metal-2', material:'metal', color:'#8c949c', es:'Bolita de metal plateada', en:'Silver metal ball' },
     { id:'nota-prueba2-metal-3', material:'metal', color:'#9c6b3a', es:'Bolita de metal bronce', en:'Bronze metal ball' },
+    { id:'nota-prueba2-pluma-1', material:'pluma', color:'#6e4c94', es:'Pluma morada', en:'Purple feather' },
+    { id:'nota-prueba2-pluma-2', material:'pluma', color:'#8c949c', es:'Pluma plateada', en:'Silver feather' },
   ];
   const NOMBRE_MATERIAL = { metal:['metal', 'metal ball'], goma:['goma', 'rubber ball'], pluma:['pluma', 'feather'] };
   const leerPruebaMaterial = () => {
