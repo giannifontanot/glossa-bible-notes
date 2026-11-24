@@ -25,7 +25,7 @@ dentro**:
 
 ## Correr
 
-**En GitHub corren solas**: cada push a una PR lanza las 33 suites en
+**En GitHub corren solas**: cada push a una PR lanza las 34 suites en
 paralelo —una máquina por suite— y deja en la PR una casilla, «pruebas», verde
 o roja. Ver `.github/workflows/pruebas.yml`. A mano, desde la pestaña Actions,
 con el mismo filtro de palabras que abajo.
@@ -82,6 +82,7 @@ diagnóstico. Salen con código distinto de cero si algo falla.
 | `cache` | **la única que no abre el navegador**: que el número de caché del árbol de ORACIÓN haya subido en el mismo commit en que cambió cualquiera de sus ficheros, y que si hay cambios sin confirmar el número esté entre ellos. Vive fuera del navegador porque el olvido es invisible desde dentro: una hoja de estilos cargada en limpio siempre es la nueva. Dura un parpadeo |
 | `acuse` | el borde que late al tocar —«te oí, estoy en ello»—: que llegue a lo que se toca (un libro, un capítulo de la cascada, una glosa del índice, una pestaña de Encuentros, un botón, un desplegable) y que NO llegue a lo que no lo necesita (los rieles, la casilla, el asa de arrastrar), que es la mitad sin la cual «acusa todo» pasaría; las dos formas —macizo para un botón, aro para lo que ya dice algo con su color— medidas sobre el fondo, que es donde se diferencian; que la lupa de Libros lo retire del libro de partida y un gesto cancelado no lo deje encendido; y que un cambio CARO en un desplegable lo enseñe, que es donde se caía |
 | `nube` | la cuenta y la nube, con un Firebase de mentira del lado del navegador y el programa entero de verdad: que abierta como archivo no haya cuenta, que sin entrar nada salga, que al entrar suba todo lo del teléfono —glosas, notas, la foto en su propio documento, por dónde vas—, que un segundo teléfono con lo suyo reciba lo del primero sin perder lo propio ni traer la nota vacía de estreno, que borrar en uno borre en el otro, que salir deje todo en el aparato, que el enlace por correo entre y limpie la dirección, y que nadie lea ni escriba fuera de `users/{su uid}` |
+| `buzon` | las notas recibidas: que «Las festividades judías» llegue una sola vez como carta cerrada en azul, que su bolita de 40 puntos caiga desde arriba y las que ya estaban nazcan abajo, que ruede hacia donde se inclina el teléfono —el sensor se manda a mano, es lo único que se sustituye— sin atravesar a las otras, que tocarla la deje quieta con su burbuja y la colita hacia ella, que tocar la burbuja la suelte, que el toque sin pointerdown también llegue, que con la burbuja abierta la bolita se desvanezca y la carta quede abierta para siempre, y que en la lista de NOTAS el sobre ocupe el sitio de la flecha |
 
 ## Cuatro reglas que costaron caro
 
