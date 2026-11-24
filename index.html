@@ -7730,7 +7730,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 05:05';
+window.GLOSS_BUILD = '24-NOV-26 05:08';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -30854,10 +30854,26 @@ function nubeApuntarLugar(version, libro, cap, vers){
   nubeTocada();
 }
 /* AL ABRIR, el sitio que llegó de otro aparato pasa a los ajustes antes de que
-   se lean, y el programa abre ahí sin más. */
+   se lean, y el programa abre ahí sin más.
+
+   Solo el sitio que LLEGÓ de la nube, marcado con «llego» al ponerlo. Sin esa
+   marca se aplicaba cualquier diferencia entre el sitio y los ajustes, y
+   quien cambiaba los ajustes por su cuenta —una restauración, una prueba que
+   abre en otra Biblia— volvía a la Biblia de antes. La marca se quita en
+   cuanto se aplica, para que pese una sola vez. */
+/* La marca es cosa de este aparato: ni sube a la nube ni cuenta como cambio. */
+function nubeLugarSinMarca(){
+  const raw = nubeCrudo(NUBE_LUGAR);
+  if (raw == null || raw.indexOf('"llego"') < 0) return raw;
+  try { const { llego, ...sitio } = JSON.parse(raw); return JSON.stringify(sitio); } catch(_){ return raw; }
+}
 function nubeLugarAlArrancar(){
   const l = nubeLeerJSON(NUBE_LUGAR, null), a = nubeLeerJSON(AJUSTES, null);
-  if (!l || !a || a.v !== 1 || typeof l.libro !== 'string' || !Number.isFinite(l.cap) || !Number.isFinite(l.vers)) return;
+  if (!l || !l.llego) return;
+  const { llego, ...sitio } = l;
+  nubeEscribirJSON(NUBE_LUGAR, sitio);
+  if (!a || a.v !== 1 || typeof l.libro !== 'string' || !Number.isFinite(l.cap) || !Number.isFinite(l.vers)) return;
+  if (!D.versiones[l.version]) return;
   if (nubeSitio(l) === nubeSitio(a)) return;
   nubeEscribirJSON(AJUSTES, { ...a, version: l.version, libro: l.libro, cap: l.cap, vers: l.vers });
 }
@@ -30879,9 +30895,15 @@ function nubeSeguirLugar(v){
                         nombreDe(l.libro) + ' ' + l.cap + ':' + l.vers;
 }
 NUBE_ALMACENES.push({ id:'lugar', primeroNube: true,
-  leer: () => nubeEntero(nubeCrudo(NUBE_LUGAR)),
+  leer: () => nubeEntero(nubeLugarSinMarca()),
   ganador: (a, b) => ((JSON.parse(b).t || 0) > (JSON.parse(a).t || 0) ? b : a),
-  poner: m => { try { localStorage.setItem(NUBE_LUGAR, m.get('todo')); } catch(_){} } });
+  poner: m => {
+    const v = m.get('todo'); if (!v) return;
+    /* Solo si cambia: lo que ya estaba es del propio aparato y no lleva marca. */
+    if (v === nubeLugarSinMarca()) return;
+    let l = null; try { l = JSON.parse(v); } catch(_){ return; }
+    nubeEscribirJSON(NUBE_LUGAR, { ...l, llego: 1 });
+  } });
 
 /* ---------- CUÁNDO SE JUNTA ----------
 

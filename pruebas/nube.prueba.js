@@ -197,7 +197,9 @@ async function irYVolver(a, base, cambiar){
 (async () => {
   titulo('ABIERTA COMO ARCHIVO, NO HAY CUENTA');
   {
-    const s = await abrir();
+    /* Como archivo de verdad, aunque el banco corra servido por http (en
+       GitHub corre así): si no, la sección sí aparece y se prueba otra cosa. */
+    const s = await abrir({ url: 'file://' + path.join(RAIZ, 'index.html') });
     await abrirHerramientas(s.pagina);
     const r = await s.pagina.evaluate(() => ({
       google: !!document.getElementById('nubeGoogle'),
