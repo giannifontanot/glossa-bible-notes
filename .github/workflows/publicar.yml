@@ -1,0 +1,65 @@
+# PUBLICAR EN FIREBASE HOSTING (glossabible.com).
+#
+# Glossa se publica en Firebase Hosting, en el proyecto glossa-bible-notes, y
+# desde ahí sale glossabible.com. GitHub Pages sigue publicando el repo como
+# siempre, sin redirigir ni avisar: Gianni lo quiso así, porque esa dirección
+# solo la conocen dos personas y una redirección traería confusiones.
+#
+# SOLO DESPUÉS DE «pruebas» EN VERDE EN main. Al principio se pensó publicar en
+# cada push a main, pero entonces la publicación correría a la vez que las
+# pruebas, y un main rojo llegaría a los lectores antes de que nadie lo viera.
+# Por eso espera a que termine la corrida de «pruebas» del push a main y
+# publica exactamente ese commit, no el que haya en main en ese momento.
+#
+# LA LLAVE LA PONE GIANNI. La cuenta de servicio vive en el secreto
+# FIREBASE_SERVICE_ACCOUNT_GLOSSA_BIBLE_NOTES, el nombre que le da
+# `firebase init hosting:github`. Mientras no exista, el trabajo dice que se
+# saltó y queda en verde: una casilla roja en cada merge solo por una llave
+# que falta enseñaría a no mirar las casillas.
+#
+# A mano: pestaña Actions → «publicar» → Run workflow (publica lo que haya en
+# main).
+
+name: publicar
+
+on:
+  workflow_run:
+    workflows: [pruebas]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# Dos publicaciones a la vez se pisarían; la que llega después espera.
+concurrency:
+  group: publicar-firebase
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publicar:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    env:
+      LLAVE: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GLOSSA_BIBLE_NOTES }}
+    steps:
+      - name: Sin llave todavía
+        if: env.LLAVE == ''
+        run: echo "::notice::Falta el secreto FIREBASE_SERVICE_ACCOUNT_GLOSSA_BIBLE_NOTES; no se publicó nada."
+
+      - uses: actions/checkout@v4
+        if: env.LLAVE != ''
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        if: env.LLAVE != ''
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GLOSSA_BIBLE_NOTES }}
+          projectId: glossa-bible-notes
+          channelId: live
