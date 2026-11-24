@@ -7833,7 +7833,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 07:47';
+window.GLOSS_BUILD = '24-NOV-26 07:53';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -30247,7 +30247,7 @@ function armarManijasIndice(pagina, reordenar){
      rueda a un lado, como una canica contra un libro. Se miden cada tanto, no
      en cada cuadro. */
   const ESTORBOS = '#portadaPie .pt-btn, #btnZoom, #btnHistorial, #pgVersion';
-  let estorbos = [], medido = -1e9;
+  let estorbos = [], medido = -1e9, piso = Infinity;
   const medirEstorbos = ahora => {
     if (ahora - medido < 300) return;
     medido = ahora;
@@ -30257,6 +30257,17 @@ function armarManijasIndice(pagina, reordenar){
       .map(el => el.getBoundingClientRect())
       .filter(r => r.width > 0 && r.height > 0)
       .map(r => ({ l:r.left - c.left, t:r.top - c.top, r:r.right - c.left, b:r.bottom - c.top }));
+    /* EL SUELO SE PONE ENCIMA DE LO QUE VIVE ABAJO. Primero eran cajas sueltas
+       con las que se chocaba, y entre una y otra —o entre la última y la
+       orilla— quedaban hoyos del tamaño justo de una bolita: la que caía en
+       uno ya no salía rodando de lado, y en las pruebas quedó atorada junto a
+       un botón de la portada, donde un dedo la ve quieta y cree que no
+       funciona. Ahora todo lo que está en la mitad de abajo levanta el suelo
+       hasta su borde de arriba: la bolita descansa en una repisa lisa, justo
+       encima de los botones, y rueda de orilla a orilla sin tropezar. */
+    const h = H();
+    piso = estorbos.reduce((m, e) => e.t > h * 0.5 ? Math.min(m, e.t) : m, h);
+    estorbos = estorbos.filter(e => e.t <= h * 0.5);
   };
 
   /* ---------- LAS BOLITAS ---------- */
@@ -30469,7 +30480,8 @@ function armarManijasIndice(pagina, reordenar){
       let suelo = false;
       if (b.x < b.r){ b.x = b.r; if (b.vx < 0) b.vx = -b.vx * REBOTE; }
       if (b.x > w - b.r){ b.x = w - b.r; if (b.vx > 0) b.vx = -b.vx * REBOTE; }
-      if (b.y > h - b.r){ b.y = h - b.r; if (b.vy > 0) b.vy = Math.abs(b.vy) < 40 ? 0 : -b.vy * REBOTE; suelo = true; }
+      const fondo = Math.min(h, piso);
+      if (b.y > fondo - b.r){ b.y = fondo - b.r; if (b.vy > 0) b.vy = Math.abs(b.vy) < 40 ? 0 : -b.vy * REBOTE; suelo = true; }
       /* El techo solo cuenta para la que ya entró: la que llega cae desde
          fuera de la pantalla y tiene que poder pasar. */
       if (b.dentro){ if (b.y < b.r){ b.y = b.r; if (b.vy < 0) b.vy = Math.abs(b.vy) < 40 ? 0 : -b.vy * REBOTE; } }
@@ -30486,7 +30498,7 @@ function armarManijasIndice(pagina, reordenar){
       }
       /* Rueda, no resbala: lo que avanza de lado es lo que gira. Y rodando
          sobre algo se va frenando poco a poco. */
-      if (suelo) b.vx *= 1 - 1.1 * dt;
+      if (suelo){ b.vx *= 1 - 1.1 * dt; if (Math.abs(b.vx) < 8 && Math.abs(gx) < 1) b.vx = 0; }
       b.giro += (b.vx * dt) / b.r;
     }
     /* Los choques entre ellas, de canica contra canica: pesan lo mismo, y la
