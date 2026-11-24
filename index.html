@@ -7729,7 +7729,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '23-NOV-26 12:06';
+window.GLOSS_BUILD = '23-NOV-26 21:32';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -18269,6 +18269,13 @@ function abrirHistorial(){
   pintarHistorial();
   const el = $('historial');
   el.style.display = 'flex';
+  /* SIEMPRE SE ABRE ARRIBA. Lo pidió Gianni para las tres listas —Historial,
+     Perlas y Marcadores—. El navegador guarda por su cuenta dónde se quedó
+     el scroll de un panel aunque pase por display:none, así que la lista
+     volvía a abrir a medias, donde la dejaste la vez anterior, y lo de
+     arriba —lo último que viste— quedaba escondido. Se pone a cero después
+     del display, que es cuando el panel vuelve a tener caja. */
+  el.scrollTop = 0;
   void el.offsetWidth;
   el.classList.add('visible');
   $('btnHistorial').classList.add('abierto');
@@ -24437,6 +24444,8 @@ function abrirPiedraMenu(ancla){
   pintarPiedraMenu();
   const el = $('piedraMenu');
   el.style.display = 'flex';
+  /* Arriba siempre: ver «SIEMPRE SE ABRE ARRIBA» en abrirHistorial. */
+  el.scrollTop = 0;
   colocarPiedraMenu();
   void el.offsetWidth;
   el.classList.add('visible');
@@ -25528,6 +25537,10 @@ function abrirSepMenu(id, ancla){
   cerrarOferta();
   /* Los hermanos, fuera: ver «LOS TRES PANELES DE LA ESCENA» en abrirHistorial. */
   cerrarHistorial(); cerrarPiedraMenu();
+  /* Repintar el mismo menú que ya está abierto —«Nueva» lo hace— no es
+     abrirlo: ahí el scroll se queda donde está, o la lista saltaría arriba
+     bajo el dedo. Ver «SIEMPRE SE ABRE ARRIBA» en abrirHistorial. */
+  const repinta = sepMenuAbierto === (id || 'lista');
   sepMenuAbierto = id || 'lista';
   pintarPuntosLista();
   /* Se guarda el RECTÁNGULO, no el elemento: quien lo abrió puede irse —una
@@ -25540,6 +25553,7 @@ function abrirSepMenu(id, ancla){
   pintarSepMenu();
   const el = $('sepMenu');
   el.style.display = 'flex';
+  if (!repinta) el.scrollTop = 0;
   colocarSepMenu();
   void el.offsetWidth;
   el.classList.add('visible');
