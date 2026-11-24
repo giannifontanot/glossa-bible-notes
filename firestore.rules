@@ -3,23 +3,78 @@ rules_version = '2';
 // LAS REGLAS DE FIRESTORE DE GLOSSA (proyecto glossa-bible-notes).
 //
 // Cada lector lee y escribe solo lo suyo: todo cuelga de users/{uid}, y
-// solo entra quien ha entrado con esa misma cuenta. Nadie más, ni para leer.
+// solo entra quien ha entrado con esa misma cuenta.
 //
 // Lo que hay debajo (ver LA CUENTA Y LA NUBE en index.html):
 //   users/{uid}                      la cabecera: { rev, app, v, cambiado }
 //   users/{uid}/datos/{almacen~n}    glosas, notas, perlas, cintas… en trozos
 //   users/{uid}/fotos/{idFoto}       una foto de nota por documento
 //
-// MAÑANA, MANDARSE COSAS ENTRE LECTORES (lo quiere Gianni): un buzón
-// users/{uid}/buzon/{envio} donde cualquiera que haya entrado puede DEJAR
-// un envío a su nombre, y solo el dueño lo lee y lo borra. Irá aquí, con su
-// propia regla y antes de la general, sin tocar nada de lo de abajo.
+// EL CORREO ENTRE LECTORES (ver EL CORREO ENTRE LECTORES en index.html) abre
+// tres puertas, y ninguna deja leer lo de otro:
+//   codigos/{CÓDIGO}                          quién es un código: cualquiera
+//                                             que haya entrado lo puede
+//                                             consultar uno por uno, nunca
+//                                             listarlos; solo su dueño lo
+//                                             crea, lo cambia o lo borra.
+//   users/{uid}/buzon/{carta}                 cualquiera que haya entrado
+//                                             puede DEJAR una carta a su
+//                                             nombre; solo el dueño la lee
+//                                             y la borra.
+//   users/{dueño}/grupos/{gid}/miembros/{uid} quien tiene el código de un
+//                                             grupo se apunta él mismo, y él
+//                                             mismo se sale.
+// Todo lo demás del correo (perfil, contactos, grupos) es del dueño, como
+// siempre.
 service cloud.firestore {
   match /databases/{database}/documents {
+    function entro() { return request.auth != null; }
+    function nombreBueno(n) { return n is string && n.size() >= 1 && n.size() <= 60; }
+    function codigoBueno(d) {
+      return d.keys().hasOnly(['tipo', 'uid', 'nombre', 'gid', 'dueno', 't'])
+          && d.tipo in ['persona', 'grupo'] && d.uid is string && nombreBueno(d.nombre)
+          && (d.tipo == 'persona' || (d.gid is string && d.dueno is string && d.dueno.size() <= 60));
+    }
+
+    match /codigos/{codigo} {
+      allow get: if entro();
+      allow list: if false;
+      allow create: if entro() && codigo.matches('^[A-HJ-NP-Z2-9]{8}$')
+                    && request.resource.data.uid == request.auth.uid && codigoBueno(request.resource.data);
+      allow update: if entro() && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == resource.data.uid
+                    && request.resource.data.tipo == resource.data.tipo
+                    && request.resource.data.get('gid', null) == resource.data.get('gid', null)
+                    && codigoBueno(request.resource.data);
+      allow delete: if entro() && resource.data.uid == request.auth.uid;
+    }
+
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if entro() && request.auth.uid == uid;
       match /{rest=**} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read, write: if entro() && request.auth.uid == uid;
+      }
+
+      match /buzon/{carta} {
+        allow create: if entro()
+          && request.resource.data.de == request.auth.uid
+          && request.resource.data.keys().hasOnly(['de', 'deNombre', 'color', 'titulo', 'texto', 'html', 'fotos', 't', 'grupo'])
+          && request.resource.data.color in ['#9c6b3a', '#3f6e9e', '#3e7d5a', '#a53d3d', '#6e4c94', '#8c949c']
+          && nombreBueno(request.resource.data.titulo)
+          && nombreBueno(request.resource.data.deNombre)
+          && request.resource.data.texto is string
+          && request.resource.data.html is string
+          && request.resource.data.fotos is map
+          && request.resource.data.t is int
+          && (!('grupo' in request.resource.data) || request.resource.data.grupo is string);
+      }
+
+      match /grupos/{gid}/miembros/{m} {
+        allow get, delete: if entro() && request.auth.uid == m;
+        allow create, update: if entro() && request.auth.uid == m
+          && get(/databases/$(database)/documents/users/$(uid)/grupos/$(gid)).data.dueno == uid
+          && request.resource.data.keys().hasOnly(['nombre', 't'])
+          && nombreBueno(request.resource.data.nombre);
       }
     }
   }

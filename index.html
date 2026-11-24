@@ -4299,6 +4299,39 @@
   .herr-cuenta .cuenta-caja:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
   #respaldo .herr-cuenta .cuenta-form .btn, #respaldo .herr-cuenta .cuenta-dentro .btn{
     width:100%; min-height:46px; justify-content:center; }
+  /* TUS CONTACTOS Y GRUPOS, debajo de la cuenta. Tu código grande y su QR
+     en blanco, que es lo que una cámara lee mejor. */
+  .correo-bloque{ margin-top:22px; padding-top:16px; border-top:1px solid rgba(140,116,68,.35); }
+  .correo-bloque[hidden], .correo-cuerpo[hidden], .correo-bloque [hidden]{ display:none; }
+  .correo-tit{ margin:0 0 8px; color:#3d2f12; font:700 calc(var(--fs-libro, 15px) * 1)/1.3 var(--fam-libro, Georgia, serif); }
+  .correo-sub{ margin:20px 0 8px; color:#3d2f12; font:700 calc(var(--fs-libro, 15px) * .85)/1.3 var(--ui); }
+  .correo-mio{ margin:6px 0 14px; padding:14px; text-align:center; border:1px solid rgba(140,116,68,.4);
+    border-radius:9px; background:rgba(255,250,240,.75); }
+  .correo-etq{ margin:0; color:#5c4a24; font:600 calc(var(--fs-libro, 15px) * .75)/1.3 var(--ui);
+    text-transform:uppercase; letter-spacing:.08em; }
+  .correo-codigo{ margin:4px 0 10px; color:#2a2010; font:700 calc(var(--fs-libro, 15px) * 1.7)/1.2 ui-monospace, Menlo, Consolas, monospace;
+    letter-spacing:.08em; -webkit-user-select:all; user-select:all; }
+  .correo-qr-caja{ display:flex; justify-content:center; margin:0 0 12px; }
+  .correo-qr{ width:min(220px, 70vw); height:auto; border-radius:6px; background:#fff; }
+  .correo-form{ margin:0 0 6px; }
+  #respaldo .herr-cuenta .correo-form > .btn{ width:100%; min-height:46px; justify-content:center; }
+  #respaldo #respTools .correo-bloque .correo-aviso{ margin:10px 0 4px; padding:9px 11px; border-radius:7px;
+    background:rgba(184,137,43,.14); color:#3d2f12; }
+  .correo-lista{ list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+  .correo-fila{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 10px;
+    border:1px solid rgba(140,116,68,.3); border-radius:7px; background:rgba(255,253,247,.6); }
+  .correo-nombre{ flex:1 1 140px; min-width:0; color:#3d2f12; font-weight:700; overflow-wrap:anywhere; }
+  .correo-nombre small{ display:block; margin-top:2px; color:#6b5a3a; font-weight:400; }
+  #respaldo #respTools .btn.correo-chico{ min-height:40px; padding:6px 11px; }
+  #respaldo #respTools .btn.correo-peligro{ color:#8e2a1e; border-color:rgba(142,42,30,.45); }
+  .correo-vacia{ color:#6b5a3a; font-style:italic; }
+  /* LA CÁMARA PARA ESCANEAR, a pantalla completa y por encima de todo. */
+  .correo-camara{ position:fixed; inset:0; z-index:2147483000; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:14px; padding:20px; background:rgba(8,7,5,.92); color:#f4ead4; }
+  .correo-camara video{ width:min(92vw, 460px); max-height:62vh; object-fit:cover; border-radius:12px;
+    border:2px solid rgba(233,207,138,.7); background:#000; }
+  .correo-camara p{ margin:0; font:600 16px/1.4 var(--ui); }
+  .correo-camara .btn{ min-height:46px; min-width:160px; font-size:16px; }
   .atrib-lista{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; }
   .atrib-lista li{ padding-left:14px; position:relative; color:#3d2f12; line-height:1.4; }
   .atrib-lista li::before{ content:''; position:absolute; left:2px; top:.62em; width:5px; height:5px;
@@ -4732,15 +4765,16 @@
   .indice-tab svg{ width:1.1em; height:1.1em; fill:none; stroke:currentColor;
                     stroke-width:1.7; stroke-linecap:round; }
   /* El libro queda fuera de la tira: sigue a mano aunque las notas desborden. */
-  .nota-ver-glosas, .nota-ver-formato{ flex:0 0 36px; display:grid; place-items:center; min-height:36px;
+  .nota-ver-glosas, .nota-ver-formato, .nota-ver-enviar{ flex:0 0 36px; display:grid; place-items:center; min-height:36px;
     padding:5px; border:0; border-radius:5px; cursor:pointer; color:#73561f;
     background:rgba(255,253,247,.55); box-shadow:inset 0 -1px 0 rgba(140,116,68,.34); }
-  .nota-ver-glosas svg, .nota-ver-formato svg{ width:22px; height:22px; fill:none; stroke:currentColor;
+  .nota-ver-glosas svg, .nota-ver-formato svg, .nota-ver-enviar svg{ width:22px; height:22px; fill:none; stroke:currentColor;
     stroke-width:1.7; stroke-linejoin:round; stroke-linecap:round; pointer-events:none; }
   .nota-ver-glosas:hover, .nota-ver-glosas[aria-expanded="true"],
-  .nota-ver-formato:hover, .nota-ver-formato[aria-expanded="true"]{ background:rgba(184,137,43,.14); }
-  .nota-ver-glosas:disabled, .nota-ver-formato:disabled{ opacity:.4; cursor:default; }
-  .nota-ver-glosas:focus-visible, .nota-ver-formato:focus-visible, .nota-filtro:focus-visible, .nota-filtros-cerrar:focus-visible{
+  .nota-ver-formato:hover, .nota-ver-formato[aria-expanded="true"],
+  .nota-ver-enviar:hover, .nota-ver-enviar[aria-expanded="true"]{ background:rgba(184,137,43,.14); }
+  .nota-ver-glosas:disabled, .nota-ver-formato:disabled, .nota-ver-enviar:disabled{ opacity:.4; cursor:default; }
+  .nota-ver-glosas:focus-visible, .nota-ver-formato:focus-visible, .nota-ver-enviar:focus-visible, .nota-filtro:focus-visible, .nota-filtros-cerrar:focus-visible{
     outline:2px solid #b8892b; outline-offset:-2px; }
   /* LOS DOS PANELITOS —el de las glosas y el del formato— abren y cierran
      suave desde el programa (ver deslizar en armarNotas), y por eso aquí ya no
@@ -4903,6 +4937,45 @@
   .nota-filtro:disabled{ opacity:.55; cursor:default; }
   .nota-filtro small{ display:block; margin-top:4px; color:#756342; font-weight:400; }
   .nota-filtros-vacio{ margin:0; color:#756342; font:400 calc(12px * var(--escala-ui,1))/1.5 var(--ui); }
+  /* EL PANELITO DEL AVIONCITO: el mismo papel que el de las glosas, y dentro
+     el color de la bolita, a quién, y Enviar. Los botones llevan su propia
+     tinta porque el .btn de siempre es claro, para fondos oscuros, y sobre el
+     papel no se leía. */
+  .nota-enviar{ flex:0 1 auto; min-height:0; max-height:55%; overflow-y:auto;
+    margin:0 0 9px; padding:12px; border:1px solid rgba(140,116,68,.32); border-radius:8px;
+    background:rgba(255,253,247,.82); }
+  .nota-enviar h3{ flex:1; min-width:0; margin:0; overflow-wrap:anywhere;
+    color:#493817; font:600 calc(15px * var(--escala-ui,1))/1.35 var(--fam-libro,Georgia,serif); }
+  .envio-dice{ margin:0 0 10px; color:#5c4a24; font:400 calc(13px * var(--escala-ui,1))/1.5 var(--ui); }
+  .envio-dice.envio-fallo{ color:#9b2c1f; }
+  .envio-estado:empty{ display:none; }
+  .envio-etq{ margin:4px 0 7px; color:#493817; font:600 calc(12px * var(--escala-ui,1))/1.3 var(--ui); }
+  .envio-colores{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+  /* Cada muestra es una bolita de metal, como la que va a caer. */
+  .envio-color{ width:44px; height:44px; padding:0; border-radius:50%; cursor:pointer;
+    border:2px solid rgba(29,26,20,.25);
+    background:radial-gradient(circle at 34% 30%, rgba(255,255,255,.75), rgba(255,255,255,0) 42%),
+               radial-gradient(circle at 60% 70%, var(--bola), color-mix(in srgb, var(--bola) 62%, #000) 100%); }
+  .envio-color[aria-checked="true"]{ border-color:#1d1a14; box-shadow:0 0 0 3px #fffdf7, 0 0 0 5px #b8892b; }
+  .envio-destinos{ display:grid; gap:7px; margin:0 0 12px; }
+  .envio-destino{ display:block; width:100%; min-height:48px; padding:9px 11px; text-align:left;
+    border:1px solid rgba(140,116,68,.3); border-radius:6px; background:rgba(255,253,247,.65);
+    color:#493817; cursor:pointer; overflow-wrap:anywhere; font:600 calc(13px * var(--escala-ui,1))/1.35 var(--ui); }
+  .envio-destino small{ display:block; margin-top:3px; color:#756342; font-weight:400; }
+  .envio-destino[aria-checked="true"]{ border-color:#b8892b; background:rgba(184,137,43,.16);
+    box-shadow:inset 0 0 0 1px #b8892b; }
+  .nota-enviar .btn.envio-mandar, .nota-enviar .btn.envio-entrar{ display:flex; width:100%; min-height:46px;
+    align-items:center; justify-content:center; margin:0 0 8px; color:#2a2010; background:#e9cf8a;
+    border:1px solid #b8892b; font:700 calc(14px * var(--escala-ui,1))/1.2 var(--ui); }
+  .nota-enviar .btn.envio-mandar:disabled{ opacity:.45; }
+  .envio-color:focus-visible, .envio-destino:focus-visible, .nota-enviar .btn:focus-visible{
+    outline:2px solid #b8892b; outline-offset:2px; }
+  /* LA NOTA QUE TE MANDARON se lee y no se escribe: ni cursor de texto ni
+     filo de foco que invite a teclear. */
+  .nota-editor.ajena{ cursor:default; background:rgba(255,253,247,.5); border-style:dotted; }
+  .nota-editor.ajena:focus{ outline:none; }
+  .bocadillo-de{ display:block; margin-top:6px; color:#6b5a3a;
+    font:400 calc(12px * var(--escala-ui, 1))/1.3 var(--ui); }
   .indice-tab:focus-visible, .indice-item:focus-visible, .indice-asa:focus-visible{
     outline:2px solid #b8892b; outline-offset:-2px; }
   .indice-pagina{ flex:1 1 auto; min-width:0; min-height:0; overflow-y:auto;
@@ -7833,7 +7906,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 08:14';
+window.GLOSS_BUILD = '24-NOV-26 08:26';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -26384,6 +26457,10 @@ let reflejarNotas = () => {};
    - color: el de su bolita, que lo elige QUIEN LA ENVÍA. Solo un color de
      seis cifras: lo que no lo sea se queda en el azul metálico de la prueba.
    - llegada: cuándo llegó, en milisegundos. Hoy solo se guarda.
+   - de, deUid y grupo: quién la mandó —su nombre, como él se puso, y su
+     cuenta— y, si llegó a un grupo, el nombre del grupo. Solo las traen las
+     que llegaron de verdad por EL CORREO ENTRE LECTORES; la carta de prueba no.
+     Una nota con deUid es de otro: llega tal cual y no se escribe encima.
    Se valida igual en las tres puertas por las que entra una nota —el almacén
    al arrancar, la nube y un respaldo—, porque lo que entra por una sin pasar
    por las otras dos es justo lo que luego no se sabe de dónde salió. */
@@ -26392,13 +26469,28 @@ function normalizarRecibida(r){
   if (!r || typeof r !== 'object') return null;
   const estado = r.estado === 'cerrada' || r.estado === 'abierta' ? r.estado : null;
   if (!estado) return null;
-  return { estado, color: typeof r.color === 'string' && /^#[0-9a-f]{6}$/i.test(r.color) ? r.color.toLowerCase() : AZUL_CARTA,
+  const carta = { estado, color: typeof r.color === 'string' && /^#[0-9a-f]{6}$/i.test(r.color) ? r.color.toLowerCase() : AZUL_CARTA,
            llegada: Number.isFinite(r.llegada) ? r.llegada : 0 };
+  if (typeof r.de === 'string' && r.de.trim()) carta.de = r.de.trim().slice(0, 60);
+  if (typeof r.deUid === 'string' && /^[\w-]{1,128}$/.test(r.deUid)) carta.deUid = r.deUid;
+  if (typeof r.grupo === 'string' && r.grupo.trim()) carta.grupo = r.grupo.trim().slice(0, 60);
+  return carta;
 }
+/* La que llegó de otro lector no se edita: se lee como llegó. */
+const notaAjena = n => !!(n && n.recibida && n.recibida.deUid);
+/* «de Ana», «de Ana · Estudio del jueves», o nada. */
+const remiteDe = r => !r || !r.de ? '' : r.de + (r.grupo ? ' · ' + r.grupo : '');
 /* Quien quiere enterarse de que las cartas cambiaron —el buzón— se apunta aquí.
    Lo llama reflejarNotas, que es por donde pasa todo lo que cambia las notas
    desde fuera: la nube y un respaldo. */
 let buzonAlDia = () => {};
+/* Lo pone EL CORREO ENTRE LECTORES cuando arma su parte; hasta entonces el
+   avioncito de las notas no tiene qué abrir. */
+let correoNotas = null;
+/* Las cartas que ya estaban en el buzón de la nube al abrir: llegaron con el
+   programa cerrado, así que su bolita aparece abajo y no cae. Ver EL CORREO
+   ENTRE LECTORES. */
+const cartasDeAntes = new Set();
 let refrescarCartasNotas = () => {};
 const nuevoIdNota = () => 'nota-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
 /* Sólo condiciones de lectura, nunca ids ni copias de las glosas. Validar el
@@ -28976,6 +29068,21 @@ function armarManijasIndice(pagina, reordenar){
   verFormato.setAttribute('aria-expanded', 'false'); verFormato.setAttribute('aria-controls', 'notaFormato');
   verFormato.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
     '<path d="M4 20h4L19 9l-4-4L4 16v4Zm9-13 4 4"/></svg>';
+  /* EL AVIONCITO: MANDAR LA NOTA A OTRO LECTOR. Va a la izquierda del lápiz,
+     con la misma ropa, porque el libro tiene que seguir en el extremo derecho
+     y el lápiz justo antes que él. Abre su panelito como los otros dos; lo que
+     lleva dentro lo pinta EL CORREO ENTRE LECTORES, más abajo, que es quien
+     sabe de cuentas y de contactos. */
+  const verEnviar = document.createElement('button');
+  verEnviar.type = 'button'; verEnviar.className = 'nota-ver-enviar'; verEnviar.disabled = true;
+  dosIdiomas(verEnviar, { title: ['Enviar esta nota', 'Send this note'],
+                         aria:  ['Enviar esta nota', 'Send this note'] });
+  verEnviar.setAttribute('aria-expanded', 'false'); verEnviar.setAttribute('aria-controls', 'notaEnviar');
+  verEnviar.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path d="M21 3 3 10.5l7 2.5 2.5 7L21 3Zm-11 10 5-5"/></svg>';
+  const envio = document.createElement('section');
+  envio.id = 'notaEnviar'; envio.className = 'nota-enviar nota-panelito'; envio.hidden = true;
+  dosIdiomas(envio, { aria: ['Enviar la nota', 'Send the note'] });
   const historial = document.createElement('section');
   historial.id = 'notaFiltros'; historial.className = 'nota-filtros nota-panelito'; historial.hidden = true;
   historial.setAttribute('aria-labelledby', 'notaFiltrosTitulo');
@@ -29050,6 +29157,11 @@ function armarManijasIndice(pagina, reordenar){
     soltarMarcado(); cerrarPaleta(); ponerModo(false);
     if (enfocar) verFormato.focus({ preventScroll:true });
   };
+  const cerrarEnvio = (enfocar = false, alInstante = false) => {
+    if (abierto(envio) || alInstante) deslizar(envio, false, alInstante);
+    verEnviar.setAttribute('aria-expanded', 'false');
+    if (enfocar) verEnviar.focus({ preventScroll:true });
+  };
   const registrarPendiente = () => {
     const nota = notas.find(n => n.id === activa);
     if (!pendiente || !nota) return;
@@ -29065,7 +29177,7 @@ function armarManijasIndice(pagina, reordenar){
     if (abierto(historial)){ cerrarHistorial(); return; }
     const nota = notas.find(n => n.id === activa); if (!nota) return;
     /* Uno solo a la vez, como se pidió: abrir este cierra el del formato. */
-    cerrarFormato();
+    cerrarFormato(); cerrarEnvio();
     historial.textContent = '';
     const cabecera = document.createElement('div'); cabecera.className = 'nota-filtros-cabecera';
     const titulo = document.createElement('h3'); titulo.id = 'notaFiltrosTitulo';
@@ -29107,6 +29219,7 @@ function armarManijasIndice(pagina, reordenar){
   caja.addEventListener('keydown', ev => {
     if (ev.key !== 'Escape') return;
     if (abierto(historial)){ ev.preventDefault(); ev.stopPropagation(); cerrarHistorial(true); return; }
+    if (abierto(envio)){ ev.preventDefault(); ev.stopPropagation(); cerrarEnvio(true); return; }
     /* Escape cierra la barra solo si el foco está en ella: escribiendo en la
        nota, la barra es justo lo que se está usando. */
     if (abierto(formato) && formato.contains(ev.target)){
@@ -29155,8 +29268,11 @@ function armarManijasIndice(pagina, reordenar){
     const cerrada = estado === 'cerrada';
     el.dataset.carta = cerrada ? 'cerrada' : 'abierta';
     el.innerHTML = (cerrada ? CARTA_CERRADA : CARTA_ABIERTA) + '<span></span>';
-    dosIdiomas(el.lastChild, { t: cerrada ? ['Nota recibida · sin abrir', 'Received note · unopened']
-                                          : ['Nota recibida · leída', 'Received note · read'] });
+    const n = notas.find(x => x.id === el.dataset.cartaDe), de = n && remiteDe(n.recibida);
+    dosIdiomas(el.lastChild, { t: de ? (cerrada ? ['Nota de ' + de + ' · sin abrir', 'Note from ' + de + ' · unopened']
+                                                : ['Nota de ' + de + ' · leída', 'Note from ' + de + ' · read'])
+                                     : (cerrada ? ['Nota recibida · sin abrir', 'Received note · unopened']
+                                                : ['Nota recibida · leída', 'Received note · read']) });
   };
 
   /* LOS BOTONES. Los más sencillos que hay, que es lo que se pidió: «las
@@ -29503,7 +29619,7 @@ function armarManijasIndice(pagina, reordenar){
      darle el foco a la nota, el teclado del teléfono no sube. */
   const ponerModo = si => {
     hojas.querySelectorAll('.nota-editor').forEach(ed => {
-      ed.contentEditable = si ? 'false' : 'true';
+      ed.contentEditable = si || ed.dataset.ajena ? 'false' : 'true';
       ed.classList.toggle('en-formato', si);
       ed.classList.toggle('sin-hl', si && !HL_API);
       if (si) ed.setAttribute('inputmode', 'none'); else ed.removeAttribute('inputmode');
@@ -29885,8 +30001,8 @@ function armarManijasIndice(pagina, reordenar){
   });
   verFormato.addEventListener('click', () => {
     if (abierto(formato)){ cerrarFormato(); return; }
-    if (activa === null) return;
-    cerrarHistorial();
+    if (activa === null || notaAjena(notas.find(n => n.id === activa))) return;
+    cerrarHistorial(); cerrarEnvio();
     deslizar(formato, true); verFormato.setAttribute('aria-expanded', 'true');
     /* Abrir la barra es entrar en el estilo: el lápiz es el interruptor. */
     entrarEnEstilo();
@@ -29903,7 +30019,16 @@ function armarManijasIndice(pagina, reordenar){
   dosIdiomas(crear, { t: ['+ Nueva nota', '+ New note'] });
   crear.addEventListener('click', () => agregarNota());
   indice.querySelector('.indice-cabecera').appendChild(crear);
-  tira.append(tabIndice, cajaBarra, verFormato, verGlosas); caja.append(tira, historial, formato, hojas);
+  verEnviar.addEventListener('click', () => {
+    if (abierto(envio)){ cerrarEnvio(); return; }
+    const nota = notas.find(n => n.id === activa);
+    if (!nota || notaAjena(nota) || !correoNotas) return;
+    cerrarHistorial(); cerrarFormato();
+    correoNotas.pintarEnvio(envio, nota, () => cerrarEnvio(true));
+    deslizar(envio, true); verEnviar.setAttribute('aria-expanded', 'true');
+    envio.querySelector('button:not(:disabled)')?.focus({ preventScroll:true });
+  });
+  tira.append(tabIndice, cajaBarra, verEnviar, verFormato, verGlosas); caja.append(tira, historial, formato, envio, hojas);
 
   const avisarMas = () => {
     avisarTiraPestanitas(barra, cajaBarra);
@@ -29923,13 +30048,22 @@ function armarManijasIndice(pagina, reordenar){
     [notas.length + (notas.length === 1 ? ' nota' : ' notas'),
      notas.length + (notas.length === 1 ? ' note' : ' notes')], id => seleccionar(id, true));
   const seleccionar = (id, enfocar = false, demora = 0) => {
+    const otra = id !== activa;
     activa = id;
     cerrarHistorial(); verGlosas.disabled = activa === null; registrarPendiente();
     /* La barra se queda abierta al cambiar de nota —se sigue dando formato,
        ahora a la otra—, pero en el índice no hay nota a la que darle formato.
        Lo marcado era de la nota de antes y se suelta. */
-    verFormato.disabled = activa === null;
-    if (activa === null) cerrarFormato(); else soltarMarcado();
+    /* La nota que llegó de otro lector se lee tal como llegó: ni formato ni
+       reenvío. */
+    const ajena = notaAjena(notas.find(n => n.id === activa));
+    verFormato.disabled = activa === null || ajena;
+    verEnviar.disabled = activa === null || ajena;
+    /* El panelito de enviar es de la nota que estaba: al cambiar de nota se
+       cierra. Repintar la misma —llega una carta mientras se elige a quién
+       mandar— no lo toca. */
+    if (otra || verEnviar.disabled) cerrarEnvio();
+    if (activa === null || ajena) cerrarFormato(); else soltarMarcado();
     tabIndice.classList.toggle('aqui', activa === null);
     tabIndice.setAttribute('aria-pressed', String(activa === null));
     indice.hidden = activa !== null;
@@ -29966,6 +30100,7 @@ function armarManijasIndice(pagina, reordenar){
       tab.setAttribute('aria-pressed', String(nota.id === activa));
       tab.addEventListener('dblclick', ev => {
         ev.preventDefault(); ev.stopPropagation();
+        if (notaAjena(nota)) return;
         const titulo = window.prompt(T('Título de la nota', 'Title of the note'), nota.titulo);
         if (titulo === null) return;
         nota.titulo = titulo.trim().slice(0, 60) || (T('Nota ', 'Note ') + (i + 1));
@@ -29977,7 +30112,9 @@ function armarManijasIndice(pagina, reordenar){
       hoja.hidden = nota.id !== activa;
       const editor = document.createElement('div');
       editor.className = 'nota-editor';
-      editor.contentEditable = 'true';
+      /* La de otro lector no se escribe: llega tal cual y así se queda. */
+      if (notaAjena(nota)){ editor.dataset.ajena = '1'; editor.classList.add('ajena'); }
+      editor.contentEditable = notaAjena(nota) ? 'false' : 'true';
       editor.setAttribute('role', 'textbox'); editor.setAttribute('aria-multiline', 'true');
       editor.spellcheck = true;
       pintarEditor(editor, nota);
@@ -30367,7 +30504,15 @@ function armarManijasIndice(pagina, reordenar){
                             'Message of ' + nota.titulo + '. Tap it to close it'] });
     const texto = document.createElement('div'); texto.className = 'bocadillo-texto';
     const nombre = document.createElement('strong'); nombre.textContent = nota.titulo;
-    texto.append(nombre, document.createTextNode(String(nota.texto || '').trim() ||
+    texto.append(nombre);
+    /* Quién la manda, debajo del título y en chico: es lo segundo que se
+       pregunta quien recibe algo. */
+    if (nota.recibida.de){
+      const de = document.createElement('small'); de.className = 'bocadillo-de';
+      de.textContent = T('De ', 'From ') + remiteDe(nota.recibida);
+      texto.append(de);
+    }
+    texto.append(document.createTextNode(String(nota.texto || '').trim() ||
       T('(Esta nota no trae texto.)', '(This note has no text.)')));
     const cola = document.createElement('span'); cola.className = 'bocadillo-cola';
     cola.setAttribute('aria-hidden', 'true');
@@ -30559,7 +30704,7 @@ function armarManijasIndice(pagina, reordenar){
     asegurarPrueba();
     for (const nota of cerradas()){
       if (!bolas.some(b => b.id === nota.id))
-        crearBola(nota, conocidas.has(nota.id) || quieto ? 'abajo' : 'arriba');
+        crearBola(nota, conocidas.has(nota.id) || cartasDeAntes.has(nota.id) || quieto ? 'abajo' : 'arriba');
       conocidas.add(nota.id);
     }
     for (const b of bolas){ const n = notaDe(b.id); if (n && n.recibida) b.el.style.setProperty('--bola', n.recibida.color); }
@@ -30570,7 +30715,7 @@ function armarManijasIndice(pagina, reordenar){
      Se arranca cuando el programa terminó de montarse: guardar una nota avisa
      a la nube, y la nube todavía no existe a estas alturas del guion.
 
-     LA CARTA DE PRUEBA. Enviar notas todavía no existe, así que para ver todo
+     LA CARTA DE PRUEBA. Cuando enviar notas todavía no existía, para ver todo
      esto Gianni pidió que su nota «Las festividades judías» llegara como carta
      cerrada, en azul metálico, y que su bolita cayera desde arriba la primera
      vez que se abriera esta versión. Una vez leída no se vuelve a cerrar.
@@ -31593,6 +31738,9 @@ function nubeEscuchar(){
   nubeFb.am.onAuthStateChanged(nubeFb.auth, u => {
     if (nubePintar) nubePintar();
     if (u) nubeAhora();
+    /* El correo entre lectores sigue a la cuenta: entra, escucha su buzón;
+       sale, deja de escucharlo. */
+    correoCuenta(u).catch(e => console.warn('Glossa · correo:', e));
   });
   document.addEventListener('visibilitychange', () => {
     if (!nubeUsuario()) return;
@@ -31800,8 +31948,951 @@ function armarCuenta(sec){
     });
     ojo.observe(sec);
   }
+  correoArmarBloque(sec);
   nubePintar();
 }
+
+/* ============================================================
+   EL CORREO ENTRE LECTORES: mandarle una nota a alguien, o a un grupo.
+
+   LO QUE SE PIDIÓ, Y POR QUÉ ESTÁ ASÍ:
+   - Hace falta cuenta para mandar y para recibir: así quien recibe sabe de
+     quién es, y nadie escribe en nombre de otro (las reglas lo comprueban).
+     Sin cuenta todo sigue como antes; el avioncito pide entrar.
+   - Cada lector tiene un CÓDIGO de ocho letras —y su QR—. Agregar a alguien
+     es escribir o escanear el suyo. No hay buscador de personas: nadie puede
+     mandarte nada si tú no le diste tu código.
+   - Un GRUPO es otro código. Quien lo usa entra sin pedir permiso; solo quien
+     lo creó manda al grupo, y al entrar el creador queda en tus contactos, que
+     es como se le contesta.
+   - Se manda la nota tal como está, con sus fotos dentro, y quien la manda
+     elige el color de la bolita: bronce, azul, verde, rojo, morado o plata.
+   - Llega a un BUZÓN en la nube (users/{uid}/buzon), que se escucha en vivo
+     mientras Glossa está abierta. Al llegar se vuelve una nota de solo
+     lectura —ver notaAjena— y la carta del buzón se borra. Si llegó con
+     Glossa cerrada, su bolita aparece abajo en vez de caer (cartasDeAntes).
+
+   TODO EN EL PLAN GRATIS DE FIREBASE: sin Cloud Functions y sin Storage. Por
+   eso el envío a un grupo lo hace el teléfono del creador, que escribe una
+   carta en el buzón de cada miembro, y por eso las fotos viajan dentro de la
+   carta (un documento de Firestore aguanta 1 MB; se corta antes, en
+   CORREO_TOPE).
+
+   LO QUE GUARDA LA NUBE:
+     codigos/{CÓDIGO}                    quién es: { tipo:'persona', uid, nombre }
+                                         o un grupo: { tipo:'grupo', uid, gid, nombre, dueno }
+     users/{uid}/perfil/yo               { codigo, nombre }
+     users/{uid}/contactos/{otroUid}     { nombre, codigo }
+     users/{uid}/grupos/{gid}            { nombre, codigo, dueno, duenoNombre }
+     users/{dueño}/grupos/{gid}/miembros/{uid}   { nombre }
+     users/{uid}/buzon/{carta}           la nota que llega, hasta que se recoge
+   Las reglas de firestore.rules dicen quién puede qué. */
+const CORREO_COLORES = [
+  ['bronce', 'Bronce', 'Bronze', '#9c6b3a'],
+  ['azul', 'Azul', 'Blue', '#3f6e9e'],
+  ['verde', 'Verde', 'Green', '#3e7d5a'],
+  ['rojo', 'Rojo', 'Red', '#a53d3d'],
+  ['morado', 'Morado', 'Purple', '#6e4c94'],
+  ['plata', 'Plata', 'Silver', '#8c949c'],
+].map(([id, es, en, hex]) => ({ id, es, en, hex }));
+/* Sin I, O, 0 ni 1: son las que se confunden al dictar un código. */
+const CORREO_LETRAS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const CORREO_CODIGO = /^[A-HJ-NP-Z2-9]{8}$/;
+const CORREO_UID = /^[\w-]{1,128}$/;
+const CORREO_GID = /^grupo-[a-z0-9]{6,20}$/;
+/* El código que llegó en la dirección (?glossa=…), esperando a que se agregue. */
+const CORREO_TRAIDO = 'glossa:correo:traido:v1';
+/* El último color y el último a quién: la segunda nota casi siempre va igual. */
+const CORREO_ULTIMO = 'glossa:correo:ultimo:v1';
+const CORREO_TOPE = 950000;
+const correo = { uid:null, perfil:null, contactos:[], grupos:[], miembros:{}, cargando:false, falla:'',
+                 escucha:null, pendientes:new Map(), avisos:new Set() };
+const correoAviso = () => correo.avisos.forEach(f => { try { f(); } catch(e){ console.warn('Glossa · correo:', e); } });
+/* 256 es múltiplo de 32: cada letra sale con la misma probabilidad. */
+const correoAzar = n => {
+  const b = new Uint8Array(n); crypto.getRandomValues(b);
+  return [...b].map(x => CORREO_LETRAS[x % 32]).join('');
+};
+const correoBonito = c => (c ? c.slice(0, 4) + '-' + c.slice(4) : '');
+/* Lo que se escribe o se escanea: el código suelto, con o sin guion, o la
+   dirección entera del QR. */
+function correoLeerCodigo(texto){
+  let t = String(texto || '').trim();
+  const m = /[?&#]glossa=([A-Za-z0-9-]+)/.exec(t);
+  if (m) t = m[1];
+  t = t.toUpperCase().replace(/[\s-]/g, '');
+  return CORREO_CODIGO.test(t) ? t : null;
+}
+const correoLiga = c => location.origin + location.pathname + '?glossa=' + c;
+function correoNombreDe(u){
+  const n = u ? (u.displayName || String(u.email || '').split('@')[0]) : '';
+  return String(n).trim().slice(0, 60) || T('Lector', 'Reader');
+}
+const correoMiNombre = () => (correo.perfil && correo.perfil.nombre) || correoNombreDe(nubeUsuario());
+const correoPorNombre = (a, b) => String(a.nombre || '').localeCompare(String(b.nombre || ''), idiomaUI());
+const correoError = codigo => Object.assign(new Error(codigo), { code: codigo });
+/* «reglas» casi siempre quiere decir que firestore.rules no se ha publicado
+   todavía con la parte del correo: el servidor dice que no a todo. */
+function correoFalla(e){
+  const c = String(e && (e.code || e.message) || '');
+  if (/permission/.test(c)) return 'reglas';
+  if (!navigator.onLine || /unavailable|network/.test(c)) return 'red';
+  return /^(grande|vacio|codigo|propio|no-existe|grupo-propio|nombre)$/.test(c) ? c : 'otra';
+}
+const CORREO_DICE = {
+  reglas: ['El correo entre lectores todavía no está abierto en el servidor.',
+           'Reader-to-reader mail isn’t open on the server yet.'],
+  red: ['Sin conexión. Prueba otra vez cuando haya internet.', 'No connection. Try again when you’re online.'],
+  otra: ['No se pudo. Prueba otra vez en un momento.', 'That didn’t work. Try again in a moment.'],
+  grande: ['La nota pesa demasiado para enviarla (son las fotos). Quita alguna y prueba otra vez.',
+           'The note is too heavy to send (it’s the photos). Remove one and try again.'],
+  vacio: ['Ese grupo todavía no tiene a nadie. Pasa su código para que se unan.',
+          'That group has nobody yet. Share its code so people can join.'],
+  codigo: ['Ese código no está bien: son ocho letras y números, como ABCD-EFGH.',
+           'That code isn’t right: it’s eight letters and numbers, like ABCD-EFGH.'],
+  propio: ['Ese es tu propio código.', 'That’s your own code.'],
+  'grupo-propio': ['Ese grupo es tuyo: ya estás en él.', 'That group is yours: you’re already in it.'],
+  'no-existe': ['No hay nadie con ese código. Revísalo con quien te lo pasó.',
+                'Nobody has that code. Check it with whoever gave it to you.'],
+  nombre: ['Escribe un nombre.', 'Type a name.'],
+};
+const cRef = (...s) => nubeFb.fs.doc(nubeFb.db, ...s);
+async function cLista(...s){
+  const r = await nubeFb.fs.getDocs(nubeFb.fs.collection(nubeFb.db, ...s));
+  const out = [];
+  r.forEach(d => out.push({ ...(d.data() || {}), id: d.id }));
+  return out;
+}
+
+/* ---------- AL ENTRAR Y AL SALIR ---------- */
+async function correoCuenta(u){
+  const uid = u ? u.uid : null;
+  if (uid === correo.uid) return;
+  if (correo.escucha){ try { correo.escucha(); } catch(_){} correo.escucha = null; }
+  Object.assign(correo, { uid, perfil:null, contactos:[], grupos:[], miembros:{}, falla:'', cargando:false });
+  correo.pendientes.clear();
+  correoAviso();
+  if (!uid) return;
+  /* Recibir va primero y aparte: aunque fallara lo demás, lo que te mandan
+     tiene que llegar. */
+  correoEscuchar();
+  await correoCargar();
+}
+async function correoCargar(){
+  const uid = correo.uid;
+  if (!uid) return;
+  correo.cargando = true; correoAviso();
+  try {
+    const p = await nubeFb.fs.getDoc(cRef('users', uid, 'perfil', 'yo'));
+    let perfil = p.exists() ? p.data() : null;
+    if (!perfil || !CORREO_CODIGO.test(perfil.codigo || '')) perfil = await correoCrearPerfil(uid);
+    const [contactos, grupos] = await Promise.all([cLista('users', uid, 'contactos'), cLista('users', uid, 'grupos')]);
+    const mios = grupos.filter(g => g.dueno === uid && CORREO_GID.test(g.id));
+    const miembros = await Promise.all(mios.map(g => cLista('users', uid, 'grupos', g.id, 'miembros').catch(() => [])));
+    if (correo.uid !== uid) return;
+    correo.perfil = { codigo: perfil.codigo,
+                      nombre: String(perfil.nombre || correoNombreDe(nubeUsuario())).trim().slice(0, 60) };
+    correo.contactos = contactos.filter(c => CORREO_UID.test(c.id) && c.id !== uid)
+                                .map(c => ({ ...c, nombre: String(c.nombre || '').slice(0, 60) || '—' }))
+                                .sort(correoPorNombre);
+    correo.grupos = grupos.filter(g => CORREO_GID.test(g.id) && typeof g.dueno === 'string').sort(correoPorNombre);
+    correo.miembros = {};
+    mios.forEach((g, i) => { correo.miembros[g.id] = miembros[i]; });
+    correo.falla = '';
+  } catch(e){
+    if (correo.uid !== uid) return;
+    console.warn('Glossa · correo:', e);
+    correo.falla = correoFalla(e);
+  } finally {
+    if (correo.uid === uid){ correo.cargando = false; correoAviso(); }
+  }
+}
+/* EL CÓDIGO PROPIO, la primera vez. Si sale uno que ya es de otro, el
+   servidor dice que no —solo el dueño de un código lo cambia— y se prueba
+   otro. Cuatro veces que no es que las reglas todavía no están puestas. */
+async function correoCrearPerfil(uid){
+  const nombre = correoNombreDe(nubeUsuario());
+  let ultimo = null;
+  for (let i = 0; i < 4; i++){
+    const codigo = correoAzar(8);
+    try { await nubeFb.fs.setDoc(cRef('codigos', codigo), { tipo:'persona', uid, nombre, t:Date.now() }); }
+    catch(e){ ultimo = e; continue; }
+    const perfil = { codigo, nombre };
+    await nubeFb.fs.setDoc(cRef('users', uid, 'perfil', 'yo'), perfil);
+    return perfil;
+  }
+  throw ultimo || correoError('otra');
+}
+async function correoCambiarNombre(texto){
+  const nombre = String(texto || '').trim().slice(0, 60);
+  if (!nombre) throw correoError('nombre');
+  const uid = correo.uid, codigo = correo.perfil.codigo, fs = nubeFb.fs;
+  await fs.setDoc(cRef('codigos', codigo), { tipo:'persona', uid, nombre, t:Date.now() });
+  await fs.setDoc(cRef('users', uid, 'perfil', 'yo'), { codigo, nombre });
+  /* Los códigos de mis grupos dicen de quién son: que digan el nombre nuevo. */
+  for (const g of correo.grupos.filter(x => x.dueno === uid && CORREO_CODIGO.test(x.codigo || ''))){
+    await fs.setDoc(cRef('codigos', g.codigo), { tipo:'grupo', uid, gid:g.id, nombre:g.nombre, dueno:nombre, t:Date.now() });
+    await fs.setDoc(cRef('users', uid, 'grupos', g.id),
+                    { nombre:g.nombre, codigo:g.codigo, dueno:uid, duenoNombre:nombre, t:g.t || Date.now() });
+  }
+  correo.perfil.nombre = nombre;
+}
+/* AGREGAR CON UN CÓDIGO: el de una persona la pone en tus contactos; el de
+   un grupo te mete en él, sin esperar a nadie, y pone a su creador en tus
+   contactos para que le puedas contestar. */
+async function correoAgregar(texto){
+  const c = correoLeerCodigo(texto);
+  if (!c) throw correoError('codigo');
+  if (correo.perfil && c === correo.perfil.codigo) throw correoError('propio');
+  const uid = correo.uid, fs = nubeFb.fs;
+  const d = await fs.getDoc(cRef('codigos', c));
+  if (!d.exists()) throw correoError('no-existe');
+  const x = d.data() || {};
+  if (!CORREO_UID.test(x.uid || '')) throw correoError('no-existe');
+  if (x.tipo === 'grupo'){
+    if (x.uid === uid) throw correoError('grupo-propio');
+    if (!CORREO_GID.test(x.gid || '')) throw correoError('no-existe');
+    const nombre = String(x.nombre || '').slice(0, 60) || T('Grupo', 'Group');
+    const dueno = String(x.dueno || '').slice(0, 60) || '—';
+    await fs.setDoc(cRef('users', x.uid, 'grupos', x.gid, 'miembros', uid), { nombre: correoMiNombre(), t:Date.now() });
+    await fs.setDoc(cRef('users', uid, 'grupos', x.gid), { nombre, codigo:c, dueno:x.uid, duenoNombre:dueno, t:Date.now() });
+    if (!correo.contactos.some(k => k.id === x.uid))
+      await fs.setDoc(cRef('users', uid, 'contactos', x.uid), { nombre:dueno, codigo:'', t:Date.now() });
+    await correoCargar();
+    return { tipo:'grupo', nombre, dueno };
+  }
+  if (x.uid === uid) throw correoError('propio');
+  const nombre = String(x.nombre || '').slice(0, 60) || '—';
+  await fs.setDoc(cRef('users', uid, 'contactos', x.uid), { nombre, codigo:c, t:Date.now() });
+  await correoCargar();
+  return { tipo:'persona', nombre };
+}
+async function correoQuitarContacto(id){
+  await nubeFb.fs.deleteDoc(cRef('users', correo.uid, 'contactos', id));
+  await correoCargar();
+}
+async function correoCrearGrupo(texto){
+  const nombre = String(texto || '').trim().slice(0, 60);
+  if (!nombre) throw correoError('nombre');
+  const uid = correo.uid, fs = nubeFb.fs, dueno = correoMiNombre();
+  const gid = 'grupo-' + correoAzar(10).toLowerCase();
+  let ultimo = null;
+  for (let i = 0; i < 4; i++){
+    const codigo = correoAzar(8);
+    try { await fs.setDoc(cRef('codigos', codigo), { tipo:'grupo', uid, gid, nombre, dueno, t:Date.now() }); }
+    catch(e){ ultimo = e; continue; }
+    await fs.setDoc(cRef('users', uid, 'grupos', gid), { nombre, codigo, dueno:uid, duenoNombre:dueno, t:Date.now() });
+    await correoCargar();
+    return codigo;
+  }
+  throw ultimo || correoError('otra');
+}
+/* Borrar un grupo mío: se van sus miembros, su código y él. Los que estaban
+   dentro conservan su apunte, pero ya nadie les manda por ahí. */
+async function correoBorrarGrupo(g){
+  const uid = correo.uid, fs = nubeFb.fs;
+  for (const m of await cLista('users', uid, 'grupos', g.id, 'miembros'))
+    await fs.deleteDoc(cRef('users', uid, 'grupos', g.id, 'miembros', m.id));
+  if (CORREO_CODIGO.test(g.codigo || '')) await fs.deleteDoc(cRef('codigos', g.codigo)).catch(() => {});
+  await fs.deleteDoc(cRef('users', uid, 'grupos', g.id));
+  await correoCargar();
+}
+async function correoSalirDeGrupo(g){
+  const uid = correo.uid, fs = nubeFb.fs;
+  await fs.deleteDoc(cRef('users', g.dueno, 'grupos', g.id, 'miembros', uid)).catch(() => {});
+  await fs.deleteDoc(cRef('users', uid, 'grupos', g.id));
+  await correoCargar();
+}
+
+/* ---------- MANDAR ----------
+
+   Una sola carta, la misma para todos: se escribe en el buzón de cada uno.
+   A un grupo, por tandas, que una escritura de Firestore no pasa de 500
+   documentos ni de unos 10 MB. */
+async function correoEnviar(nota, destino, color){
+  const uid = correo.uid, fs = nubeFb.fs;
+  const fotos = {};
+  for (const id of fotosDeHtml(nota.html)) if (fotosNotas[id]) fotos[id] = fotosNotas[id];
+  const carta = { de:uid, deNombre:correoMiNombre(), color,
+    titulo:String(nota.titulo || '').slice(0, 60) || T('Nota', 'Note'), texto:String(nota.texto || ''),
+    html: typeof nota.html === 'string' ? limpiarHtmlNota(nota.html) : '', fotos, t:Date.now() };
+  if (destino.tipo === 'grupo') carta.grupo = String(destino.nombre || '').slice(0, 60);
+  const peso = new Blob([JSON.stringify(carta)]).size;
+  if (peso > CORREO_TOPE) throw correoError('grande');
+  const para = destino.tipo === 'persona' ? [destino.uid] :
+    (await cLista('users', uid, 'grupos', destino.gid, 'miembros')).map(m => m.id)
+      .filter(x => x !== uid && CORREO_UID.test(x));
+  if (!para.length) throw correoError('vacio');
+  const id = 'carta-' + Date.now().toString(36) + '-' + correoAzar(6).toLowerCase();
+  const porTanda = Math.max(1, Math.min(400, Math.floor(9e6 / peso)));
+  for (let i = 0; i < para.length; i += porTanda){
+    const tanda = fs.writeBatch(nubeFb.db);
+    para.slice(i, i + porTanda).forEach(u => tanda.set(cRef('users', u, 'buzon', id), carta));
+    await tanda.commit();
+  }
+  return para.length;
+}
+
+/* ---------- RECIBIR ----------
+
+   El buzón se escucha en vivo. Lo que había en él al empezar a escuchar
+   llegó con Glossa cerrada: su bolita sale abajo, quieta. Lo que llega
+   después cae desde arriba. Cada carta se vuelve una nota con id fijo
+   —nota-rec-{carta}—, así que si dos aparatos de la misma cuenta la recogen
+   a la vez, la nube las junta en una sola. */
+function correoEscuchar(){
+  const uid = correo.uid;
+  let primera = true;
+  correo.escucha = nubeFb.fs.onSnapshot(nubeFb.fs.collection(nubeFb.db, 'users', uid, 'buzon'), snap => {
+    if (correo.uid !== uid) return;
+    snap.forEach(d => {
+      if (primera) cartasDeAntes.add('nota-rec-' + d.id);
+      correo.pendientes.set(d.id, d.data());
+    });
+    primera = false;
+    correoRecoger();
+  }, e => console.warn('Glossa · buzón:', e));
+}
+function correoComoNota(id, c){
+  if (!c || typeof c !== 'object' || !CORREO_UID.test(c.de || '') || typeof c.texto !== 'string') return null;
+  const titulo = typeof c.titulo === 'string' && c.titulo.trim() ? c.titulo.trim() : T('Nota', 'Note');
+  const nota = { id, titulo: titulo.slice(0, 60), texto: c.texto, filtros: [] };
+  if (typeof c.html === 'string' && c.html) nota.html = limpiarHtmlNota(c.html);
+  nota.recibida = normalizarRecibida({ estado:'cerrada', color:c.color, llegada:Date.now(), deUid:c.de,
+    de: typeof c.deNombre === 'string' ? c.deNombre : '', grupo: typeof c.grupo === 'string' ? c.grupo : '' });
+  /* LAS FOTOS DE LA CARTA, CON NOMBRE PROPIO. Antes se guardaban con el id
+     que traían, y como quien manda elige ese id, una carta podía traer el de
+     una foto que ya estaba en este aparato y pisarla: la nota del lector
+     que la usaba se quedaba con la foto ajena. Ahora cada foto que llega se
+     rebautiza a partir de la carta y de su id —siempre el mismo, para que dos
+     aparatos de la misma cuenta lleguen al mismo nombre— y el html de la
+     nota se reescribe con el nombre nuevo. Las fotos propias empiezan por la
+     hora (foto-mx…), nunca por foto-rec-, así que no hay choque posible. */
+  const fotos = {}, nuevoId = {};
+  if (c.fotos && typeof c.fotos === 'object' && !Array.isArray(c.fotos))
+    for (const [k, v] of Object.entries(c.fotos))
+      if (ID_FOTO.test(k) && typeof v === 'string' && DATOS_FOTO.test(v)){
+        const n = correoIdFoto(id, k);
+        nuevoId[k] = n; fotos[n] = v;
+      }
+  if (nota.html) nota.html = nota.html.replace(/data-foto="(foto-[a-z0-9-]+)"/g,
+    (_, k) => 'data-foto="' + (nuevoId[k] || correoIdFoto(id, k)) + '"');
+  return { nota, fotos };
+}
+/* Dos picadillos FNV-1a con semillas distintas: 64 bits, sin choques en la
+   práctica, y el mismo resultado en cualquier aparato. */
+function correoIdFoto(notaId, fotoId){
+  const pica = (txt, h) => {
+    for (let i = 0; i < txt.length; i++){ h ^= txt.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h.toString(36);
+  };
+  const txt = notaId + '\n' + fotoId;
+  return 'foto-rec-' + pica(txt, 2166136261) + '-' + pica(txt, 84696351);
+}
+/* NUNCA CON EL LECTOR ESCRIBIENDO: repintar las notas le quitaría el cursor.
+   Se espera a que suelte el foco, como la nube. */
+let correoEsperaFoco = false;
+function correoRecoger(){
+  if (!correo.pendientes.size || !correo.uid) return;
+  if (nubeEscribiendo()){
+    if (!correoEsperaFoco){
+      correoEsperaFoco = true;
+      document.addEventListener('focusout', () => { correoEsperaFoco = false; setTimeout(correoRecoger, 0); }, { once:true });
+    }
+    return;
+  }
+  const uid = correo.uid, conocidas = new Set(notas.map(n => n.id)), hechas = [], nuevas = [];
+  for (const [id, c] of correo.pendientes){
+    const nid = 'nota-rec-' + id;
+    if (!conocidas.has(nid)){ const r = correoComoNota(nid, c); if (r){ nuevas.push(r); conocidas.add(nid); } }
+    hechas.push(id);
+  }
+  if (nuevas.length){
+    const antes = notas.slice(), fotosAntes = { ...fotosNotas };
+    nuevas.forEach(({ nota, fotos }) => { Object.assign(fotosNotas, fotos); notas.push(nota); });
+    const conFotos = nuevas.some(r => Object.keys(r.fotos).length);
+    /* Si no cabe en el aparato, la carta se queda en el buzón: no se pierde. */
+    if ((conFotos && !guardarFotos()) || !guardarNotas()){
+      notas = antes; fotosNotas = fotosAntes;
+      return;
+    }
+    reflejarNotas();
+  }
+  hechas.forEach(id => {
+    correo.pendientes.delete(id);
+    nubeFb.fs.deleteDoc(cRef('users', uid, 'buzon', id)).catch(e => console.warn('Glossa · buzón:', e));
+  });
+}
+
+/* ---------- IR A LOS CONTACTOS ----------
+   Respaldo › Herramientas, y la sección a la vista. Es por donde se entra a
+   la cuenta, así que el avioncito sin cuenta también lleva aquí. */
+function correoIrAContactos(){
+  abrirSeccion('respaldo', burbujaAbierta());
+  verSubRespaldo('tools');
+  setTimeout(() => {
+    const b = document.querySelector('.correo-bloque:not([hidden])') || document.querySelector('.herr-cuenta');
+    if (b) b.scrollIntoView({ block:'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }, 700);
+}
+/* EL QR QUE ABRE GLOSSA CON TU CÓDIGO: la cámara del otro teléfono lo lee,
+   Glossa se abre y el código ya está escrito para agregarte. */
+(function correoTraido(){
+  const m = /[?&]glossa=([^&#]*)/.exec(location.search);
+  if (!m) return;
+  let c = null;
+  try { c = correoLeerCodigo(decodeURIComponent(m[1])); } catch(_){}
+  try {
+    const q = new URLSearchParams(location.search); q.delete('glossa');
+    const s = q.toString();
+    history.replaceState(null, '', location.pathname + (s ? '?' + s : '') + location.hash);
+  } catch(_){}
+  if (!c) return;
+  try { localStorage.setItem(CORREO_TRAIDO, c); } catch(_){}
+  setTimeout(correoIrAContactos, 1600);
+})();
+
+/* ---------- EL QR ----------
+   Hecho aquí, sin bibliotecas: nivel M, modo de bytes, versiones 1 a 6 —la
+   dirección con el código cabe de sobra—. Comprobado contra un lector de QR
+   de verdad antes de entrar aquí. */
+function qrMatriz(texto){
+  const datos = [...new TextEncoder().encode(texto)];
+  /* Nivel M, versiones 1 a 6: [bloques, datos por bloque, corrección por bloque]. */
+  const TABLA = [null, [1, 16, 10], [1, 28, 16], [1, 44, 26], [2, 32, 18], [2, 43, 24], [4, 27, 16]];
+  const ALINEA = [null, [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34]];
+  let v = 1;
+  while (v <= 6 && TABLA[v][0] * TABLA[v][1] < datos.length + 2) v++;
+  if (v > 6) return null;
+  const [nb, nd, ne] = TABLA[v], cap = nb * nd;
+  /* Los bits: modo byte (0100), la cuenta en 8 bits, los datos, el final y el relleno. */
+  const bits = [];
+  const poner = (x, n) => { for (let i = n - 1; i >= 0; i--) bits.push((x >> i) & 1); };
+  poner(4, 4); poner(datos.length, 8); datos.forEach(b => poner(b, 8));
+  poner(0, Math.min(4, cap * 8 - bits.length));
+  while (bits.length % 8) bits.push(0);
+  const cw = [];
+  for (let i = 0; i < bits.length; i += 8) cw.push(parseInt(bits.slice(i, i + 8).join(''), 2));
+  for (let k = 0; cw.length < cap; k++) cw.push(k % 2 ? 0x11 : 0xec);
+  /* Reed-Solomon en GF(256), polinomio 0x11d. */
+  const EXP = new Array(512), LOG = new Array(256);
+  for (let i = 0, x = 1; i < 255; i++){ EXP[i] = x; LOG[x] = i; x <<= 1; if (x & 256) x ^= 0x11d; }
+  for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+  const mul = (a, b) => (a && b ? EXP[LOG[a] + LOG[b]] : 0);
+  let gen = [1];
+  for (let i = 0; i < ne; i++){
+    const g = new Array(gen.length + 1).fill(0);
+    gen.forEach((c, j) => { g[j] ^= c; g[j + 1] ^= mul(c, EXP[i]); });
+    gen = g;
+  }
+  const correccion = blq => {
+    const r = [...blq, ...new Array(ne).fill(0)];
+    for (let i = 0; i < blq.length; i++){
+      const f = r[i]; if (!f) continue;
+      for (let j = 0; j < gen.length; j++) r[i + j] ^= mul(gen[j], f);
+    }
+    return r.slice(blq.length);
+  };
+  const bloques = [], ecs = [];
+  for (let b = 0; b < nb; b++){ const blq = cw.slice(b * nd, (b + 1) * nd); bloques.push(blq); ecs.push(correccion(blq)); }
+  const final = [];
+  for (let i = 0; i < nd; i++) bloques.forEach(b => final.push(b[i]));
+  for (let i = 0; i < ne; i++) ecs.forEach(e => final.push(e[i]));
+  /* La matriz: null es libre; los fijos se apuntan aparte para que la máscara no los toque. */
+  const n = 17 + 4 * v;
+  const m = Array.from({ length:n }, () => new Array(n).fill(null));
+  const fijo = Array.from({ length:n }, () => new Array(n).fill(false));
+  const pon = (f, c, x) => { m[f][c] = x; fijo[f][c] = true; };
+  const ojo = (f0, c0) => {
+    for (let f = -1; f <= 7; f++) for (let c = -1; c <= 7; c++){
+      const F = f0 + f, C = c0 + c;
+      if (F < 0 || C < 0 || F >= n || C >= n) continue;
+      const dentro = f >= 0 && f <= 6 && c >= 0 && c <= 6;
+      const negro = dentro && (f === 0 || f === 6 || c === 0 || c === 6 || (f >= 2 && f <= 4 && c >= 2 && c <= 4));
+      pon(F, C, negro ? 1 : 0);
+    }
+  };
+  ojo(0, 0); ojo(0, n - 7); ojo(n - 7, 0);
+  for (let i = 8; i < n - 8; i++){ pon(6, i, i % 2 ? 0 : 1); pon(i, 6, i % 2 ? 0 : 1); }
+  const al = ALINEA[v];
+  for (const f of al) for (const c of al){
+    if (fijo[f][c]) continue;
+    for (let y = -2; y <= 2; y++) for (let x = -2; x <= 2; x++)
+      pon(f + y, c + x, Math.max(Math.abs(y), Math.abs(x)) !== 1 ? 1 : 0);
+  }
+  /* Lo que se reserva para el formato, y el módulo oscuro. */
+  for (let i = 0; i < 9; i++){ if (!fijo[8][i]) pon(8, i, 0); if (!fijo[i][8]) pon(i, 8, 0); }
+  for (let i = 0; i < 8; i++){ pon(8, n - 1 - i, 0); pon(n - 1 - i, 8, 0); }
+  pon(n - 8, 8, 1);
+  /* Los datos, en zigzag de dos columnas, de abajo arriba y vuelta. */
+  const dbits = [];
+  final.forEach(b => { for (let i = 7; i >= 0; i--) dbits.push((b >> i) & 1); });
+  let k = 0, sube = true;
+  for (let c = n - 1; c > 0; c -= 2){
+    if (c === 6) c--;
+    for (let i = 0; i < n; i++){
+      const f = sube ? n - 1 - i : i;
+      for (const cc of [c, c - 1]) if (!fijo[f][cc]) m[f][cc] = k < dbits.length ? dbits[k++] : 0;
+    }
+    sube = !sube;
+  }
+  const MASCARAS = [(f, c) => (f + c) % 2 === 0, f => f % 2 === 0, (f, c) => c % 3 === 0, (f, c) => (f + c) % 3 === 0,
+    (f, c) => (Math.floor(f / 2) + Math.floor(c / 3)) % 2 === 0, (f, c) => (f * c) % 2 + (f * c) % 3 === 0,
+    (f, c) => ((f * c) % 2 + (f * c) % 3) % 2 === 0, (f, c) => ((f + c) % 2 + (f * c) % 3) % 2 === 0];
+  const formato = mk => {
+    let d = (0 << 3) | mk, r = d << 10;   /* M = 00 */
+    for (let i = 14; i >= 10; i--) if (r >> i & 1) r ^= 0x537 << (i - 10);
+    return ((d << 10) | r) ^ 0x5412;
+  };
+  const conMascara = mk => {
+    const q = m.map((fila, f) => fila.map((x, c) => (fijo[f][c] ? x : x ^ (MASCARAS[mk](f, c) ? 1 : 0))));
+    const fm = formato(mk);
+    const b = i => (fm >> i) & 1;
+    for (let i = 0; i <= 5; i++) q[i][8] = b(i);
+    q[7][8] = b(6); q[8][8] = b(7); q[8][7] = b(8);
+    for (let i = 9; i < 15; i++) q[8][14 - i] = b(i);
+    for (let i = 0; i < 8; i++) q[8][n - 1 - i] = b(i);
+    for (let i = 8; i < 15; i++) q[n - 15 + i][8] = b(i);
+    q[n - 8][8] = 1;
+    return q;
+  };
+  /* Las cuatro penas de la norma, para quedarse con la máscara que mejor se lee. */
+  const castigo = q => {
+    let p = 0;
+    for (let a = 0; a < 2; a++) for (let i = 0; i < n; i++){
+      let run = 1;
+      for (let j = 1; j < n; j++){
+        const x = a ? q[j][i] : q[i][j], y = a ? q[j - 1][i] : q[i][j - 1];
+        if (x === y){ run++; if (run === 5) p += 3; else if (run > 5) p++; } else run = 1;
+      }
+    }
+    for (let f = 0; f < n - 1; f++) for (let c = 0; c < n - 1; c++){
+      const s = q[f][c] + q[f + 1][c] + q[f][c + 1] + q[f + 1][c + 1];
+      if (s === 0 || s === 4) p += 3;
+    }
+    const pat = [1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0], tap = [0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1];
+    for (let a = 0; a < 2; a++) for (let i = 0; i < n; i++) for (let j = 0; j + 11 <= n; j++){
+      let s1 = true, s2 = true;
+      for (let t = 0; t < 11; t++){
+        const x = a ? q[j + t][i] : q[i][j + t];
+        if (x !== pat[t]) s1 = false; if (x !== tap[t]) s2 = false;
+      }
+      if (s1) p += 40; if (s2) p += 40;
+    }
+    let negros = 0; q.forEach(fila => fila.forEach(x => { negros += x; }));
+    p += Math.floor(Math.abs(negros * 100 / (n * n) - 50) / 5) * 10;
+    return p;
+  };
+  let mejor = null, pmejor = Infinity;
+  for (let mk = 0; mk < 8; mk++){ const q = conMascara(mk), p = castigo(q); if (p < pmejor){ pmejor = p; mejor = q; } }
+  return mejor;
+}
+function qrSvg(texto, etiqueta){
+  const m = qrMatriz(texto);
+  if (!m) return '';
+  const n = m.length, z = 4, lado = n + 2 * z;
+  let d = '';
+  m.forEach((fila, f) => fila.forEach((x, c) => { if (x) d += 'M' + (c + z) + ' ' + (f + z) + 'h1v1h-1z'; }));
+  const e = String(etiqueta).replace(/[&<>"]/g, s => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[s]);
+  return '<svg class="correo-qr" viewBox="0 0 ' + lado + ' ' + lado + '" role="img" aria-label="' + e +
+         '" shape-rendering="crispEdges"><rect width="' + lado + '" height="' + lado + '" fill="#fff"/>' +
+         '<path fill="#1d1a16" d="' + d + '"/></svg>';
+}
+
+/* ---------- ESCANEAR ----------
+   Con el lector de códigos del propio navegador (Chrome en Android lo trae).
+   Donde no hay, se dice que se use la cámara del teléfono: el QR lleva la
+   dirección de Glossa y la abre ya con el código. */
+async function correoEscanear(alLeer, decir){
+  const sinLector = () => decir(['Este teléfono no lee códigos desde aquí. Abre la cámara del teléfono y apunta al código: Glossa se abrirá con él.',
+                                 'This phone can’t read codes from here. Open the phone’s camera and point it at the code: Glossa will open with it.']);
+  if (!('BarcodeDetector' in window) || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ sinLector(); return; }
+  let lector;
+  try { lector = new window.BarcodeDetector({ formats:['qr_code'] }); } catch(_){ sinLector(); return; }
+  const capa = document.createElement('div'); capa.className = 'correo-camara';
+  capa.setAttribute('role', 'dialog'); capa.setAttribute('aria-modal', 'true');
+  dosIdiomas(capa, { aria: ['Escanear un código', 'Scan a code'] });
+  const video = document.createElement('video'); video.muted = true; video.playsInline = true;
+  video.setAttribute('playsinline', '');
+  const dice = document.createElement('p');
+  dosIdiomas(dice, { t: ['Apunta al código QR', 'Point at the QR code'] });
+  const cancelar = document.createElement('button'); cancelar.type = 'button'; cancelar.className = 'btn';
+  dosIdiomas(cancelar, { t: ['Cancelar', 'Cancel'] });
+  capa.append(video, dice, cancelar);
+  document.body.appendChild(capa);
+  let flujo = null, reloj = null, vivo = true;
+  const acabar = () => {
+    if (!vivo) return;
+    vivo = false; clearTimeout(reloj);
+    if (flujo) flujo.getTracks().forEach(t => t.stop());
+    capa.remove(); document.removeEventListener('keydown', tecla, true);
+  };
+  const tecla = ev => { if (ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); acabar(); } };
+  document.addEventListener('keydown', tecla, true);
+  cancelar.addEventListener('click', acabar);
+  cancelar.focus({ preventScroll:true });
+  try {
+    flujo = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' }, audio:false });
+    if (!vivo){ flujo.getTracks().forEach(t => t.stop()); return; }
+    video.srcObject = flujo;
+    await video.play();
+  } catch(e){
+    acabar();
+    decir(['No se pudo abrir la cámara. Escribe el código a mano.', 'Couldn’t open the camera. Type the code by hand.']);
+    return;
+  }
+  const mirar = async () => {
+    if (!vivo) return;
+    try {
+      for (const r of await lector.detect(video)){
+        const c = correoLeerCodigo(r.rawValue);
+        if (c){ acabar(); alLeer(c); return; }
+      }
+    } catch(_){}
+    reloj = setTimeout(mirar, 300);
+  };
+  mirar();
+}
+
+/* ---------- EN HERRAMIENTAS: TUS CONTACTOS Y GRUPOS ----------
+   Debajo de la cuenta y solo con la cuenta abierta. Se arma una vez; al
+   cambiar algo se repintan las listas y los avisos, nunca las cajas de
+   escribir, para no comerse lo que el lector tiene a medias. */
+function correoArmarBloque(sec){
+  const el = (tag, cls) => { const x = document.createElement(tag); if (cls) x.className = cls; return x; };
+  const boton = (es, en, cls) => { const b = el('button', 'btn' + (cls ? ' ' + cls : '')); b.type = 'button'; dosIdiomas(b, { t:[es, en] }); return b; };
+  const decirEn = (p, par) => { if (par){ dosIdiomas(p, { t: par }); p.hidden = false; } else { p.textContent = ''; p.hidden = true; } };
+  const bloque = el('div', 'correo-bloque'); bloque.hidden = true;
+  const tit = el('h4', 'correo-tit');
+  dosIdiomas(tit, { t: ['Tus contactos y grupos', 'Your contacts and groups'] });
+  const intro = el('p', 'cuenta-dice');
+  dosIdiomas(intro, { t: ['Para que alguien te mande notas, dale tu código. Para mandarle tú, agrega el suyo.',
+                          'For someone to send you notes, give them your code. To send them notes, add theirs.'] });
+  const espera = el('p', 'cuenta-dice correo-espera');
+  const falla = el('p', 'fallo-respaldo correo-falla'); falla.hidden = true;
+  /* Tu código, grande y con su QR. */
+  const mio = el('div', 'correo-mio');
+  const etqCodigo = el('p', 'correo-etq'); dosIdiomas(etqCodigo, { t: ['Tu código', 'Your code'] });
+  const codigo = el('p', 'correo-codigo');
+  const qr = el('div', 'correo-qr-caja');
+  const botonesMio = el('div', 'herr-botones');
+  const bCopiar = boton('Copiar código', 'Copy code'), bCompartir = boton('Compartir', 'Share');
+  botonesMio.append(bCopiar, bCompartir);
+  mio.append(etqCodigo, codigo, qr, botonesMio);
+  /* Tu nombre, como te ven los demás. */
+  const formNombre = el('form', 'correo-form');
+  const etqNombre = el('label', 'cuenta-etq'); dosIdiomas(etqNombre, { t: ['Tu nombre para los demás', 'Your name for others'] });
+  const cajaNombre = el('input', 'cuenta-caja'); cajaNombre.type = 'text'; cajaNombre.id = 'correoNombre';
+  cajaNombre.maxLength = 60; cajaNombre.autocomplete = 'name'; etqNombre.htmlFor = cajaNombre.id;
+  const bNombre = boton('Guardar nombre', 'Save name'); bNombre.type = 'submit';
+  formNombre.append(etqNombre, cajaNombre, bNombre);
+  /* Agregar con un código, escrito o escaneado. */
+  const formAgregar = el('form', 'correo-form');
+  const etqAgregar = el('label', 'cuenta-etq'); dosIdiomas(etqAgregar, { t: ['Agregar con un código', 'Add with a code'] });
+  const cajaAgregar = el('input', 'cuenta-caja'); cajaAgregar.type = 'text'; cajaAgregar.id = 'correoAgregar';
+  cajaAgregar.autocomplete = 'off'; cajaAgregar.autocapitalize = 'characters'; cajaAgregar.spellcheck = false;
+  cajaAgregar.maxLength = 300; etqAgregar.htmlFor = cajaAgregar.id;
+  dosIdiomas(cajaAgregar, { ph: ['ABCD-EFGH', 'ABCD-EFGH'] });
+  const botonesAgregar = el('div', 'herr-botones');
+  const bAgregar = boton('Agregar', 'Add'); bAgregar.type = 'submit'; bAgregar.id = 'correoAgregarBtn';
+  const bEscanear = boton('Escanear QR', 'Scan QR');
+  botonesAgregar.append(bAgregar, bEscanear);
+  formAgregar.append(etqAgregar, cajaAgregar, botonesAgregar);
+  const aviso = el('p', 'cuenta-dice correo-aviso'); aviso.setAttribute('role', 'status'); aviso.hidden = true;
+  /* Las listas. */
+  const titContactos = el('h5', 'correo-sub'); dosIdiomas(titContactos, { t: ['Tus contactos', 'Your contacts'] });
+  const listaContactos = el('ul', 'correo-lista');
+  const titGrupos = el('h5', 'correo-sub'); dosIdiomas(titGrupos, { t: ['Tus grupos', 'Your groups'] });
+  const formGrupo = el('form', 'correo-form');
+  const etqGrupo = el('label', 'cuenta-etq');
+  dosIdiomas(etqGrupo, { t: ['Crear un grupo: quien tenga su código entra, y solo tú le mandas notas',
+                             'Create a group: anyone with its code joins, and only you send it notes'] });
+  const cajaGrupo = el('input', 'cuenta-caja'); cajaGrupo.type = 'text'; cajaGrupo.id = 'correoGrupo';
+  cajaGrupo.maxLength = 60; cajaGrupo.autocomplete = 'off'; etqGrupo.htmlFor = cajaGrupo.id;
+  dosIdiomas(cajaGrupo, { ph: ['Estudio del jueves', 'Thursday study'] });
+  const bGrupo = boton('Crear grupo', 'Create group'); bGrupo.type = 'submit'; bGrupo.id = 'correoGrupoBtn';
+  formGrupo.append(etqGrupo, cajaGrupo, bGrupo);
+  const listaGrupos = el('ul', 'correo-lista correo-grupos');
+  const titDentro = el('h5', 'correo-sub'); dosIdiomas(titDentro, { t: ['Grupos en los que estás', 'Groups you’re in'] });
+  const listaDentro = el('ul', 'correo-lista correo-dentro');
+  const cuerpo = el('div', 'correo-cuerpo');
+  cuerpo.append(mio, formNombre, formAgregar, aviso, titContactos, listaContactos, titGrupos, formGrupo, listaGrupos,
+                titDentro, listaDentro);
+  bloque.append(tit, intro, espera, falla, cuerpo);
+  sec.appendChild(bloque);
+
+  let ocupado = false, codigoPintado = '';
+  const hacer = async (fn, bien) => {
+    if (ocupado) return;
+    ocupado = true; pintar();
+    try { const r = await fn(); decirEn(aviso, bien ? bien(r) : null); }
+    catch(e){ console.warn('Glossa · correo:', e); decirEn(aviso, CORREO_DICE[correoFalla(e)]); }
+    finally { ocupado = false; pintar(); }
+  };
+  const fila = (texto, detalle, acciones) => {
+    const li = el('li', 'correo-fila');
+    const nombre = el('span', 'correo-nombre'); nombre.textContent = texto;
+    if (detalle){ const d = el('small'); d.textContent = detalle; nombre.appendChild(d); }
+    li.appendChild(nombre);
+    acciones.forEach(([es, en, fn, cls]) => {
+      const b = boton(es, en, 'correo-chico' + (cls ? ' ' + cls : '')); b.disabled = ocupado;
+      b.addEventListener('click', fn); li.appendChild(b);
+    });
+    return li;
+  };
+  const vacia = (ul, es, en) => { const li = el('li', 'correo-vacia'); dosIdiomas(li, { t:[es, en] }); ul.appendChild(li); };
+  const pintar = () => {
+    const u = nubeUsuario();
+    bloque.hidden = !u;
+    if (!u) return;
+    const p = correo.perfil;
+    cuerpo.hidden = !p;
+    if (!p){
+      if (correo.falla) decirEn(espera, null), decirEn(falla, CORREO_DICE[correo.falla] || CORREO_DICE.otra);
+      else { decirEn(falla, null); decirEn(espera, ['Preparando tu código…', 'Getting your code ready…']); }
+      return;
+    }
+    decirEn(espera, null);
+    decirEn(falla, correo.falla ? (CORREO_DICE[correo.falla] || CORREO_DICE.otra) : null);
+    if (codigoPintado !== p.codigo){
+      codigoPintado = p.codigo;
+      codigo.textContent = correoBonito(p.codigo);
+      qr.innerHTML = qrSvg(correoLiga(p.codigo), T('Código QR de tu código de Glossa', 'QR code of your Glossa code'));
+    }
+    if (document.activeElement !== cajaNombre && !cajaNombre.dataset.tocado) cajaNombre.value = p.nombre;
+    [bNombre, bAgregar, bEscanear, bGrupo].forEach(b => { b.disabled = ocupado; });
+    /* Un código que llegó por el QR espera aquí, ya escrito. */
+    let traido = null; try { traido = localStorage.getItem(CORREO_TRAIDO); } catch(_){}
+    if (traido && CORREO_CODIGO.test(traido) && !cajaAgregar.value){
+      cajaAgregar.value = correoBonito(traido);
+      decirEn(aviso, ['Te pasaron un código. Toca «Agregar» para guardarlo.', 'Someone gave you a code. Tap “Add” to keep it.']);
+    }
+    listaContactos.textContent = '';
+    if (!correo.contactos.length) vacia(listaContactos, 'Todavía nadie. Agrega a alguien con su código.', 'Nobody yet. Add someone with their code.');
+    correo.contactos.forEach(c => listaContactos.appendChild(fila(c.nombre, c.codigo ? correoBonito(c.codigo) : '', [
+      ['Quitar', 'Remove', () => {
+        if (!confirm(T('¿Quitar a ' + c.nombre + ' de tus contactos?', 'Remove ' + c.nombre + ' from your contacts?'))) return;
+        hacer(() => correoQuitarContacto(c.id));
+      }]])));
+    const mios = correo.grupos.filter(g => g.dueno === correo.uid);
+    const dentro = correo.grupos.filter(g => g.dueno !== correo.uid);
+    listaGrupos.textContent = '';
+    mios.forEach(g => {
+      const n = (correo.miembros[g.id] || []).length;
+      listaGrupos.appendChild(fila(g.nombre, T('Código ', 'Code ') + correoBonito(g.codigo) + ' · ' +
+        n + (n === 1 ? T(' persona', ' person') : T(' personas', ' people')), [
+        ['Copiar código', 'Copy code', async () => {
+          const ok = await copiarTexto(correoBonito(g.codigo));
+          decirEn(aviso, ok ? ['Código del grupo copiado.', 'Group code copied.'] : CORREO_DICE.otra);
+        }],
+        ['Borrar', 'Delete', () => {
+          if (!confirm(T('¿Borrar el grupo «' + g.nombre + '»? Sus miembros dejarán de recibir lo que mandes ahí.',
+                         'Delete the group “' + g.nombre + '”? Its members will stop getting what you send there.'))) return;
+          hacer(() => correoBorrarGrupo(g));
+        }, 'correo-peligro']]));
+    });
+    titDentro.hidden = listaDentro.hidden = !dentro.length;
+    listaDentro.textContent = '';
+    dentro.forEach(g => listaDentro.appendChild(fila(g.nombre, T('de ', 'by ') + (g.duenoNombre || '—'), [
+      ['Salir', 'Leave', () => {
+        if (!confirm(T('¿Salir del grupo «' + g.nombre + '»?', 'Leave the group “' + g.nombre + '”?'))) return;
+        hacer(() => correoSalirDeGrupo(g));
+      }]])));
+  };
+  correo.avisos.add(pintar);
+  bCopiar.addEventListener('click', async () => {
+    if (!correo.perfil) return;
+    const ok = await copiarTexto(correoBonito(correo.perfil.codigo));
+    decirEn(aviso, ok ? ['Código copiado.', 'Code copied.'] : CORREO_DICE.otra);
+  });
+  bCompartir.addEventListener('click', async () => {
+    if (!correo.perfil) return;
+    const c = correo.perfil.codigo, url = correoLiga(c);
+    const texto = T('Mi código de Glossa es ' + correoBonito(c) + '. Agrégame para mandarnos notas:',
+                    'My Glossa code is ' + correoBonito(c) + '. Add me so we can send each other notes:');
+    if (navigator.share){
+      try { await navigator.share({ title:'Glossa', text:texto, url }); return; }
+      catch(e){ if (e && e.name === 'AbortError') return; }
+    }
+    const ok = await copiarTexto(texto + ' ' + url);
+    decirEn(aviso, ok ? ['Copiado: pégalo en un mensaje.', 'Copied: paste it in a message.'] : CORREO_DICE.otra);
+  });
+  cajaNombre.addEventListener('input', () => { cajaNombre.dataset.tocado = '1'; });
+  formNombre.addEventListener('submit', ev => {
+    ev.preventDefault();
+    hacer(async () => { await correoCambiarNombre(cajaNombre.value); delete cajaNombre.dataset.tocado; },
+          () => ['Listo: así te verán.', 'Done: that’s how others will see you.']);
+  });
+  const agregar = texto => hacer(async () => {
+    const r = await correoAgregar(texto);
+    cajaAgregar.value = '';
+    try { localStorage.removeItem(CORREO_TRAIDO); } catch(_){}
+    return r;
+  }, r => r.tipo === 'grupo'
+    ? ['Ya estás en «' + r.nombre + '». Te llegará lo que mande ' + r.dueno + ', y le puedes contestar.',
+       'You’re in “' + r.nombre + '”. You’ll get what ' + r.dueno + ' sends, and you can reply.']
+    : ['Agregaste a ' + r.nombre + '. Ya le puedes mandar notas.', 'You added ' + r.nombre + '. You can send them notes now.']);
+  formAgregar.addEventListener('submit', ev => { ev.preventDefault(); agregar(cajaAgregar.value); });
+  bEscanear.addEventListener('click', () => correoEscanear(c => { cajaAgregar.value = correoBonito(c); agregar(c); },
+                                                           par => decirEn(aviso, par)));
+  formGrupo.addEventListener('submit', ev => {
+    ev.preventDefault();
+    hacer(async () => { const c = await correoCrearGrupo(cajaGrupo.value); cajaGrupo.value = ''; return c; },
+          c => ['Grupo creado. Su código es ' + correoBonito(c) + ': pásalo a quien quieras que entre.',
+                'Group created. Its code is ' + correoBonito(c) + ': give it to whoever you want to join.']);
+  });
+  pintar();
+}
+
+/* ---------- EL PANELITO DEL AVIONCITO, EN LA NOTA ----------
+   Color, a quién, y Enviar. Sin cuenta, una frase y un botón para entrar. */
+function correoPintarEnvio(panel, nota, cerrar){
+  const el = (tag, cls) => { const x = document.createElement(tag); if (cls) x.className = cls; return x; };
+  if (panel._correo) correo.avisos.delete(panel._correo);
+  panel.textContent = '';
+  panel.setAttribute('aria-labelledby', 'notaEnviarTitulo');
+  const cab = el('div', 'nota-filtros-cabecera');
+  const titulo = el('h3'); titulo.id = 'notaEnviarTitulo';
+  titulo.textContent = T('Enviar ', 'Send ') + nota.titulo;
+  const x = el('button', 'nota-filtros-cerrar'); x.type = 'button'; x.textContent = '×';
+  x.setAttribute('aria-label', T('Cerrar enviar', 'Close send'));
+  x.addEventListener('click', cerrar);
+  cab.append(titulo, x);
+  const cuerpo = el('div', 'envio-cuerpo');
+  panel.append(cab, cuerpo);
+  let ultimo = {};
+  try { ultimo = JSON.parse(localStorage.getItem(CORREO_ULTIMO) || '{}') || {}; } catch(_){}
+  const elegido = { color: CORREO_COLORES.some(c => c.hex === ultimo.color) ? ultimo.color : CORREO_COLORES[0].hex,
+                    destino: typeof ultimo.destino === 'string' ? ultimo.destino : '' };
+  let enviando = false, dicho = null, firma = '';
+  const frase = (par, cls) => { const p = el('p', 'envio-dice' + (cls ? ' ' + cls : '')); dosIdiomas(p, { t: par }); return p; };
+  /* Lo que el panel enseña, en una cadena: si un aviso del correo no lo
+     cambia, no se repinta. Repintar a destiempo se come el toque que el
+     lector tiene a medias —el botón que bajó ya no es el que sube—. */
+  const firmaAhora = () => JSON.stringify([!!NUBE_FB, !!nubeFb, nubeUsuario() ? nubeUsuario().uid : '', !!correo.perfil,
+    correo.falla, correo.contactos.map(c => c.id + c.nombre),
+    correo.grupos.filter(g => g.dueno === correo.uid).map(g => g.id + g.nombre + (correo.miembros[g.id] || []).length)]);
+  /* Repintar rehace los botones: el foco vuelve al que hace lo mismo, para
+     quien va con el teclado. */
+  const pintar = (aviso) => {
+    if (!panel.isConnected) return;
+    if (aviso === true){ const f = firmaAhora(); if (f === firma) return; }
+    firma = firmaAhora();
+    const f = cuerpo.contains(document.activeElement) ? document.activeElement : null;
+    const cual = !f ? null : f.dataset.color ? '[data-color="' + f.dataset.color + '"]'
+               : f.dataset.destino ? '[data-destino="' + CSS.escape(f.dataset.destino) + '"]' : f.id ? '#' + f.id : null;
+    pintarDentro();
+    const otro = cual && cuerpo.querySelector(cual);
+    if (otro && !otro.disabled) otro.focus({ preventScroll:true });
+    else if (f) (cuerpo.querySelector('button:not(:disabled)') || x).focus({ preventScroll:true });
+  };
+  const pintarDentro = () => {
+    cuerpo.textContent = '';
+    if (!NUBE_FB){
+      cuerpo.appendChild(frase(['Para enviar notas, abre Glossa desde su página en internet.',
+                                'To send notes, open Glossa from its web page.']));
+      return;
+    }
+    if (!nubeUsuario()){
+      const est = nubeEstado();
+      if (est.uid && !est.fuera && !nubeFb){
+        cuerpo.appendChild(frase(['Preparando tu cuenta…', 'Getting your account ready…']));
+        return;
+      }
+      cuerpo.appendChild(frase(['Para enviar una nota, entra con tu cuenta. Así quien la recibe sabe que es tuya.',
+                                'To send a note, sign in to your account. That way whoever gets it knows it’s yours.']));
+      const b = el('button', 'btn envio-entrar'); b.type = 'button'; b.id = 'envioEntrar';
+      dosIdiomas(b, { t: ['Entrar con mi cuenta', 'Sign in'] });
+      b.addEventListener('click', () => { cerrar(); correoIrAContactos(); });
+      cuerpo.appendChild(b);
+      return;
+    }
+    if (!correo.perfil){
+      cuerpo.appendChild(correo.falla ? frase(CORREO_DICE[correo.falla] || CORREO_DICE.otra, 'envio-fallo')
+                                      : frase(['Preparando…', 'Getting ready…']));
+      return;
+    }
+    const destinos = [
+      ...correo.contactos.map(c => ({ clave:'p:' + c.id, tipo:'persona', uid:c.id, nombre:c.nombre })),
+      ...correo.grupos.filter(g => g.dueno === correo.uid)
+        .map(g => ({ clave:'g:' + g.id, tipo:'grupo', gid:g.id, nombre:g.nombre, n:(correo.miembros[g.id] || []).length })),
+    ];
+    if (!destinos.length){
+      cuerpo.appendChild(frase(['Todavía no tienes a quién enviar. Agrega a alguien con su código.',
+                                'You have nobody to send to yet. Add someone with their code.']));
+      const b = el('button', 'btn envio-entrar'); b.type = 'button';
+      dosIdiomas(b, { t: ['Agregar contactos', 'Add contacts'] });
+      b.addEventListener('click', () => { cerrar(); correoIrAContactos(); });
+      cuerpo.appendChild(b);
+      return;
+    }
+    if (!destinos.some(d => d.clave === elegido.destino)) elegido.destino = '';
+    /* EL COLOR DE LA BOLITA. Seis botones redondos del mismo metal que la
+       bolita que va a ver quien la reciba. */
+    const etqColor = el('p', 'envio-etq'); dosIdiomas(etqColor, { t: ['Color de la bolita', 'Color of the ball'] });
+    const colores = el('div', 'envio-colores'); colores.setAttribute('role', 'radiogroup');
+    dosIdiomas(colores, { aria: ['Color de la bolita', 'Color of the ball'] });
+    CORREO_COLORES.forEach(c => {
+      const b = el('button', 'envio-color'); b.type = 'button'; b.dataset.color = c.id;
+      b.style.setProperty('--bola', c.hex);
+      b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(c.hex === elegido.color));
+      dosIdiomas(b, { aria: [c.es, c.en], title: [c.es, c.en] });
+      b.addEventListener('click', () => { elegido.color = c.hex; dicho = null; pintar(); });
+      colores.appendChild(b);
+    });
+    const etqA = el('p', 'envio-etq'); dosIdiomas(etqA, { t: ['¿A quién?', 'To whom?'] });
+    const lista = el('div', 'envio-destinos'); lista.setAttribute('role', 'radiogroup');
+    dosIdiomas(lista, { aria: ['A quién enviar', 'Who to send to'] });
+    destinos.forEach(d => {
+      const b = el('button', 'envio-destino'); b.type = 'button'; b.dataset.destino = d.clave;
+      b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(d.clave === elegido.destino));
+      const nombre = el('span'); nombre.textContent = d.nombre;
+      b.appendChild(nombre);
+      if (d.tipo === 'grupo'){
+        const s = el('small');
+        dosIdiomas(s, { t: ['Grupo · ' + d.n + (d.n === 1 ? ' persona' : ' personas'),
+                            'Group · ' + d.n + (d.n === 1 ? ' person' : ' people')] });
+        b.appendChild(s);
+      }
+      b.addEventListener('click', () => { elegido.destino = d.clave; dicho = null; pintar(); });
+      lista.appendChild(b);
+    });
+    const mandar = el('button', 'btn envio-mandar'); mandar.type = 'button'; mandar.id = 'envioMandar';
+    dosIdiomas(mandar, { t: enviando ? ['Enviando…', 'Sending…'] : ['Enviar', 'Send'] });
+    mandar.disabled = enviando || !elegido.destino;
+    const estado = el('p', 'envio-dice envio-estado'); estado.setAttribute('role', 'status');
+    if (dicho){ dosIdiomas(estado, { t: dicho.par }); estado.classList.toggle('envio-fallo', !!dicho.mal); }
+    mandar.addEventListener('click', async () => {
+      const d = destinos.find(x => x.clave === elegido.destino);
+      if (!d || enviando) return;
+      enviando = true; dicho = null; pintar();
+      try { localStorage.setItem(CORREO_ULTIMO, JSON.stringify(elegido)); } catch(_){}
+      try {
+        /* La nota se busca otra vez por su id al pulsar: si la nube trajo las
+           notas mientras el panel estaba abierto, el objeto que se recibió al
+           abrirlo ya no es el que se ve en el editor, y se mandaría viejo. */
+        const actual = notas.find(x => x.id === nota.id) || nota;
+        const n = await correoEnviar(actual, d, elegido.color);
+        dicho = { par: d.tipo === 'grupo'
+          ? ['Enviada a «' + d.nombre + '»: ' + n + (n === 1 ? ' persona.' : ' personas.'),
+             'Sent to “' + d.nombre + '”: ' + n + (n === 1 ? ' person.' : ' people.')]
+          : ['Enviada a ' + d.nombre + '.', 'Sent to ' + d.nombre + '.'] };
+      } catch(e){
+        console.warn('Glossa · enviar:', e);
+        dicho = { par: CORREO_DICE[correoFalla(e)] || CORREO_DICE.otra, mal: true };
+      } finally { enviando = false; pintar(); }
+    });
+    cuerpo.append(etqColor, colores, etqA, lista, mandar, estado);
+  };
+  const alAviso = () => pintar(true);
+  panel._correo = alAviso;
+  correo.avisos.add(alAviso);
+  pintar();
+  /* Al abrirlo se vuelve a mirar la nube: quien se unió a tu grupo desde
+     su teléfono tiene que contar ya. */
+  if (correo.perfil && !correo.cargando) correoCargar();
+}
+correoNotas = { pintarEnvio: correoPintarEnvio };
 
 /* COMPARTIR LA BIBLIA GLOSSA: la dirección, los tres iconos y el dibujo del
    QR. Los iconos son trazos, no letras ni emojis: así salen iguales en
