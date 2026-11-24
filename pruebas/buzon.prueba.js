@@ -205,6 +205,31 @@ const nota = (p, id) => p.evaluate(([k, id]) =>
   vale('no hay bolita', await p.locator('#buzon .bola').count() === 0);
   vale('la carta sigue abierta', (await nota(p, 'nota-fiestas')).recibida.estado === 'abierta');
 
+  titulo('QUIEN LA ABRIÓ CON LA MARCA VIEJA NO LA VE CERRARSE CUANDO LLEGA LA NUBE');
+  /* Antes la marca guardaba '1' y no decía si la carta se había abierto.
+     Con esa marca, si la nube traía la nota sin el campo recibida, la carta
+     ya leída se volvía a cerrar. Primero se deja la marca vieja. */
+  await p.evaluate(k => localStorage.setItem(k, '1'), PRUEBA);
+  await p.reload();
+  await p.waitForTimeout(1200);
+  vale('la marca vieja se pone al día: abierta', await p.evaluate(k => localStorage.getItem(k), PRUEBA) === 'abierta');
+  /* Y ahora la nube: la misma nota, sin el campo recibida. */
+  await p.evaluate(k => {
+    const lista = JSON.parse(localStorage.getItem(k));
+    delete lista.find(n => n.id === 'nota-fiestas').recibida;
+    localStorage.setItem(k, JSON.stringify(lista));
+  }, CLAVE);
+  await p.reload();
+  await p.waitForTimeout(1500);
+  vale('no sale otra bolita', await p.locator('#buzon .bola').count() === 0);
+  vale('y la nota no se vuelve a cerrar', !(await nota(p, 'nota-fiestas')).recibida);
+  /* Se deja como estaba, abierta, para lo que sigue. */
+  await p.evaluate(k => {
+    const lista = JSON.parse(localStorage.getItem(k));
+    lista.find(n => n.id === 'nota-fiestas').recibida = { estado:'abierta', color:'#3f6e9e', llegada:1 };
+    localStorage.setItem(k, JSON.stringify(lista));
+  }, CLAVE);
+
   titulo('LAS QUE YA ESTABAN APARECEN ABAJO, Y CHOCAN ENTRE ELLAS');
   /* Dos cartas que llegaron antes de abrir, una roja y una verde. */
   await p.evaluate(k => {

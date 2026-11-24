@@ -7906,7 +7906,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 08:05';
+window.GLOSS_BUILD = '24-NOV-26 08:26';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -30736,6 +30736,14 @@ function armarManijasIndice(pagina, reordenar){
     try { abierta = localStorage.getItem(PRUEBA) === 'abierta'; } catch(_){}
     const laPrueba = notas.find(esLaDePrueba) || null;
     idPrueba = laPrueba && laPrueba.id;
+    /* Quien abrió la carta antes de que la marca dijera «abierta» la tiene
+       guardada como '1'. Si se le deja así y la nube trae la nota sin el
+       campo recibida, la carta ya leída se volvía a cerrar y le salía otra
+       bolita. Por eso la marca se pone al día aquí en cuanto se ve abierta. */
+    if (!abierta && laPrueba && laPrueba.recibida && laPrueba.recibida.estado === 'abierta'){
+      try { localStorage.setItem(PRUEBA, 'abierta'); } catch(_){}
+      return;
+    }
     if (abierta || !laPrueba || laPrueba.recibida) return;
     laPrueba.recibida = { estado:'cerrada', color:AZUL_CARTA, llegada:Date.now() };
     if (guardarNotas()) try { localStorage.setItem(PRUEBA, 'cerrada'); } catch(_){}
