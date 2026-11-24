@@ -4942,6 +4942,89 @@
   .indice-detalle{ display:block; margin-top:4px; overflow-wrap:anywhere; color:#756342;
                     font:400 calc(11px * var(--escala-ui, 1))/1.45 var(--ui); }
   .indice-flecha{ flex:0 0 auto; color:#a17b2d; font-size:20px; }
+  /* LA CARTA DE UNA NOTA RECIBIDA, en el sitio de la flecha. Cerrada va en el
+     bronce hondo de las esferitas, que es «aquí hay algo»; abierta, en el café
+     apagado del detalle, que es «esto ya lo viste». */
+  .indice-carta{ display:grid; place-items:center; width:30px; height:30px; }
+  .indice-carta svg, .nota-carta svg{ width:26px; height:26px; fill:none; stroke:currentColor;
+            stroke-width:1.7; stroke-linejoin:round; stroke-linecap:round; }
+  .indice-carta[data-carta="cerrada"]{ color:#7a4a16; }
+  .indice-carta[data-carta="cerrada"] svg rect{ fill:rgba(154,100,36,.14); }
+  .indice-carta[data-carta="abierta"]{ color:#9a8459; }
+  .nota-hoja.recibida{ flex-direction:column; gap:6px; }
+  .nota-carta{ flex:0 0 auto; align-self:flex-end; display:flex; align-items:center; gap:7px;
+            margin:0; padding:0 4px; color:#7a4a16;
+            font:600 calc(11px * var(--escala-ui, 1))/1.2 var(--ui); letter-spacing:.04em; }
+  .nota-carta svg{ width:22px; height:22px; }
+  .nota-carta[data-carta="abierta"]{ color:#9a8459; font-weight:400; }
+
+  /* EL BUZÓN: LAS BOLITAS DE LAS CARTAS SIN ABRIR, Y SU BURBUJA.
+
+     LA CAPA CUBRE LA PANTALLA Y NO SE COME NINGÚN TOQUE: solo las bolitas y la
+     burbuja los reciben. Va por encima de la portada (200), porque la bolita
+     sale en la pantalla principal, y por debajo de las ventanas de 100000.
+     Termina en la orilla segura de abajo: en un teléfono sin botones lo último
+     es la barrita del sistema, y una bolita descansando ahí no se puede tocar. */
+  #buzon{ position:fixed; left:0; right:0; top:0; bottom:env(safe-area-inset-bottom, 0px);
+          z-index:250; pointer-events:none; overflow:hidden;
+          transition:opacity .3s ease, visibility .3s ease; }
+  #buzon.tapado{ opacity:0; visibility:hidden; }
+  #buzon.tapado *{ pointer-events:none !important; }
+  /* LA BOLITA: un círculo relleno de 40 puntos de diámetro —el tamaño de una
+     letra de 40 puntos, como lo midió Gianni—, con la receta de las cuatro
+     esferitas de bronce de las esquinas (ver «UNA ESFERITA DE BRONCE»): la
+     chispa cae en lo alto y el cuerpo va de claro arriba a hondo abajo. Pero en
+     el color que trae la carta, que lo elige quien la envía. La primera línea
+     es la red para quien no entienda color-mix. */
+  .bola{ position:absolute; left:0; top:0; width:40pt; height:40pt; margin:0; padding:0;
+         border:0; border-radius:50%; cursor:pointer; pointer-events:auto; touch-action:none;
+         -webkit-tap-highlight-color:transparent; will-change:transform;
+         background:var(--bola, #3f6e9e);
+         background:radial-gradient(circle at 50% 22%, rgba(255,250,236,.95) 0,
+                                    rgba(255,244,220,.42) 20%, rgba(255,244,220,0) 40%),
+                    radial-gradient(circle at 50% 32%,
+                                    color-mix(in srgb, var(--bola, #3f6e9e) 55%, #f4f8ff) 0,
+                                    var(--bola, #3f6e9e) 46%,
+                                    color-mix(in srgb, var(--bola, #3f6e9e) 45%, #070c14) 100%);
+         /* Una sombra que se pega al suelo, no un halo: es lo que la hace pesar. */
+         box-shadow:0 3px 5px rgba(0,0,0,.28), inset 0 -2px 4px rgba(0,0,0,.18);
+         transition:opacity .65s ease, filter .65s ease; }
+  /* LO QUE GIRA. La esfera metálica no enseña que rueda —la luz está fija
+     arriba, como debe—, así que lleva por dentro dos reflejos muy tenues que sí
+     dan vueltas con ella. Es lo que deja ver que va rodando y no resbalando. */
+  .bola::before{ content:''; position:absolute; inset:14%; border-radius:50%;
+         transform:rotate(var(--giro, 0deg));
+         background:radial-gradient(circle at 50% 8%, rgba(255,255,255,.2) 0, rgba(255,255,255,0) 22%),
+                    radial-gradient(circle at 50% 92%, rgba(255,255,255,.12) 0, rgba(255,255,255,0) 20%); }
+  .bola:focus-visible{ outline:2px solid #f3d58a; outline-offset:3px; }
+  .bola.se-va{ opacity:0; filter:blur(2px); pointer-events:none; }
+  /* LA BURBUJA, como la de los cómics: papel blanco, filo de tinta, y una
+     colita que apunta a la bolita. Mide lo que mide el mensaje y no pasa de la
+     pantalla; si el mensaje es más largo, se lee rodando por dentro. */
+  .bocadillo{ position:absolute; left:0; top:0; box-sizing:border-box; pointer-events:auto;
+         max-width:min(340px, calc(100vw - 24px)); padding:14px 16px; cursor:pointer;
+         border:2.5px solid #1d1a14; border-radius:22px; background:#fffdf7; color:#1d1a14;
+         box-shadow:3px 4px 0 rgba(29,26,20,.18);
+         font:400 calc(15px * var(--escala-ui, 1))/1.45 var(--fam-libro, Georgia, serif);
+         opacity:0; transform:scale(.6); transform-origin:var(--ox, 50%) var(--oy, 100%);
+         transition:opacity .22s ease, transform .26s cubic-bezier(.3,1.4,.5,1); }
+  .bocadillo.abierto{ opacity:1; transform:scale(1); }
+  .bocadillo-texto{ overflow:auto; overscroll-behavior:contain; touch-action:pan-y;
+         white-space:pre-wrap; overflow-wrap:anywhere; }
+  .bocadillo-texto strong{ display:block; margin-bottom:4px;
+         font:700 calc(15px * var(--escala-ui, 1))/1.3 var(--fam-libro, Georgia, serif); }
+  /* La colita: un cuadrito girado con filo en dos lados, que es la manera de
+     tener una punta con el mismo filo que la burbuja. */
+  .bocadillo-cola{ position:absolute; width:18px; height:18px; left:var(--cola, 50%);
+         margin-left:-9px; background:#fffdf7; border:2.5px solid #1d1a14; box-sizing:border-box; }
+  .bocadillo:not(.abajo) .bocadillo-cola{ bottom:-10.5px; transform:rotate(45deg);
+         border-top:0; border-left:0; }
+  .bocadillo.abajo .bocadillo-cola{ top:-10.5px; transform:rotate(45deg);
+         border-bottom:0; border-right:0; }
+  @media (prefers-reduced-motion: reduce){
+    .bocadillo, .bola{ transition:opacity .2s linear; }
+    .bocadillo{ transform:none; }
+  }
   /* El asa es hermana del enlace, nunca un botón dentro de otro. Sólo ella
      desactiva el gesto nativo: sobre el texto se puede seguir desplazando la
      lista con el dedo sin empezar un arrastre. */
@@ -7750,7 +7833,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 06:02';
+window.GLOSS_BUILD = '24-NOV-26 06:58';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -26293,6 +26376,30 @@ const FORMATO = 'glossa/marcas';
 const CLAVE_NOTAS = 'glossa:notas:v1';
 let notas = [];
 let reflejarNotas = () => {};
+/* LA CARTA DE UNA NOTA RECIBIDA. Enviar notas entre lectores todavía no
+   existe; esto es la mitad de RECIBIR, hecha antes para que el día que llegue
+   el envío la nota ya sepa ser una carta. Una nota recibida lleva:
+   - estado: 'cerrada' mientras no se ha leído, 'abierta' después. Con carta
+     cerrada hay una bolita en la mesa (ver EL BUZÓN).
+   - color: el de su bolita, que lo elige QUIEN LA ENVÍA. Solo un color de
+     seis cifras: lo que no lo sea se queda en el azul metálico de la prueba.
+   - llegada: cuándo llegó, en milisegundos. Hoy solo se guarda.
+   Se valida igual en las tres puertas por las que entra una nota —el almacén
+   al arrancar, la nube y un respaldo—, porque lo que entra por una sin pasar
+   por las otras dos es justo lo que luego no se sabe de dónde salió. */
+const AZUL_CARTA = '#3f6e9e';
+function normalizarRecibida(r){
+  if (!r || typeof r !== 'object') return null;
+  const estado = r.estado === 'cerrada' || r.estado === 'abierta' ? r.estado : null;
+  if (!estado) return null;
+  return { estado, color: typeof r.color === 'string' && /^#[0-9a-f]{6}$/i.test(r.color) ? r.color.toLowerCase() : AZUL_CARTA,
+           llegada: Number.isFinite(r.llegada) ? r.llegada : 0 };
+}
+/* Quien quiere enterarse de que las cartas cambiaron —el buzón— se apunta aquí.
+   Lo llama reflejarNotas, que es por donde pasa todo lo que cambia las notas
+   desde fuera: la nube y un respaldo. */
+let buzonAlDia = () => {};
+let refrescarCartasNotas = () => {};
 const nuevoIdNota = () => 'nota-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
 /* Sólo condiciones de lectura, nunca ids ni copias de las glosas. Validar el
    registro entero impide que un respaldo roto convierta un filtro en «todo».
@@ -26394,6 +26501,7 @@ function fusionarNotas(entrantes){
     const nueva = { id, titulo:n.titulo.trim().slice(0, 60) || 'Nota', texto:n.texto,
       filtros:normalizarHistorialNota(n.filtros) };
     if (typeof n.html === 'string') nueva.html = limpiarHtmlNota(n.html);
+    const carta = normalizarRecibida(n.recibida); if (carta) nueva.recibida = carta;
     notas.push(nueva);
     nuevas++;
   }
@@ -28555,6 +28663,23 @@ function crearPestanaIndice(nombre){
     '<span data-es="Índice" data-en="Index">' + T('Índice', 'Index') + '</span>';
   return tab;
 }
+/* EL DIBUJO DE LA CARTA, cerrada o abierta. Lo usan la lista de notas y la
+   hoja de la nota, y por eso vive aquí y no dentro de armarNotas. */
+const CARTA_CERRADA = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+  '<rect x="3" y="6" width="18" height="13" rx="1.6"/><path d="m3.6 7.2 8.4 6.4 8.4-6.4"/></svg>';
+const CARTA_ABIERTA = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+  '<path d="M3 10.4 12 4l9 6.4v8.1c0 .8-.7 1.5-1.5 1.5h-15C3.7 20 3 19.3 3 18.5Z"/><path d="m3.6 11 8.4 5.8 8.4-5.8"/></svg>';
+function pintarCarta(el, estado){
+  const cerrada = estado === 'cerrada';
+  el.classList.add('indice-carta');
+  el.dataset.carta = cerrada ? 'cerrada' : 'abierta';
+  el.innerHTML = cerrada ? CARTA_CERRADA : CARTA_ABIERTA;
+  el.removeAttribute('aria-hidden'); el.setAttribute('role', 'img');
+  dosIdiomas(el, cerrada ? { aria: ['Nota recibida, sin abrir', 'Received note, unopened'],
+                             title: ['Nota recibida, sin abrir', 'Received note, unopened'] }
+                         : { aria: ['Nota recibida, ya leída', 'Received note, already read'],
+                             title: ['Nota recibida, ya leída', 'Received note, already read'] });
+}
 function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
   dosIdiomas(pagina.querySelector('.indice-cuenta'), { t: parDe(cuenta) });
   const lista = pagina.querySelector('.indice-lista'); lista.textContent = '';
@@ -28581,6 +28706,11 @@ function pintarIndiceSeccion(pagina, elementos, cuenta, elegir){
     const flecha = document.createElement('span');
     flecha.className = 'indice-flecha'; flecha.textContent = '→';
     flecha.setAttribute('aria-hidden', 'true');
+    /* UNA NOTA RECIBIDA LLEVA SU CARTA EN EL SITIO DE LA FLECHA, a la extrema
+       derecha, que es donde Gianni la pidió: cerrada mientras no se lee,
+       abierta después. Y ésta sí se lee en voz alta —la flecha no dice nada,
+       la carta dice algo que el lector no ve de otra manera—. */
+    if (elemento.carta) pintarCarta(flecha, elemento.carta);
     enlace.append(numero, textos, flecha);
     enlace.addEventListener('click', ev => {
       ev.preventDefault(); ev.stopPropagation(); elegir(elemento.id);
@@ -28797,6 +28927,7 @@ function armarManijasIndice(pagina, reordenar){
       titulo: String(n.titulo || ('Nota ' + (i + 1))).slice(0, 60), texto:n.texto,
       filtros:normalizarHistorialNota(n.filtros) };
     if (typeof n.html === 'string') limpia.html = limpiarHtmlNota(n.html);
+    const carta = normalizarRecibida(n.recibida); if (carta) limpia.recibida = carta;
     return limpia;
   });
   /* LAS FOTOS, de su propia clave y con la misma desconfianza que un
@@ -29020,6 +29151,13 @@ function armarManijasIndice(pagina, reordenar){
   const marcarVacio = editor => editor.classList.toggle('vacia',
     !editor.textContent.trim() && !editor.querySelector('img, li'));
   const editorVivo = () => hojas.querySelector('.nota-hoja:not([hidden]) .nota-editor');
+  const pintarSobreHoja = (el, estado) => {
+    const cerrada = estado === 'cerrada';
+    el.dataset.carta = cerrada ? 'cerrada' : 'abierta';
+    el.innerHTML = (cerrada ? CARTA_CERRADA : CARTA_ABIERTA) + '<span></span>';
+    dosIdiomas(el.lastChild, { t: cerrada ? ['Nota recibida · sin abrir', 'Received note · unopened']
+                                          : ['Nota recibida · leída', 'Received note · read'] });
+  };
 
   /* LOS BOTONES. Los más sencillos que hay, que es lo que se pidió: «las
      páginas de notas son notas, no van a ser carteles con gran diseño». Si
@@ -29777,7 +29915,7 @@ function armarManijasIndice(pagina, reordenar){
     movimiento.ir(tab, animar, demora);
   };
   const pintarIndice = () => pintarIndiceSeccion(indice,
-    notas.map(n => ({ id:n.id, nombre:n.titulo,
+    notas.map(n => ({ id:n.id, nombre:n.titulo, carta:n.recibida && n.recibida.estado,
       detalle:n.texto.trim().replace(/\s+/g, ' ').slice(0, 100) ||
         /* Una nota que solo tiene una foto no está en blanco. */
         (fotosDeHtml(n.html).length ? ['Una nota con fotos.', 'A note with photos.']
@@ -29857,6 +29995,15 @@ function armarManijasIndice(pagina, reordenar){
         if (dato) document.execCommand('insertText', false, dato);
       });
       editor.addEventListener('drop', ev => ev.preventDefault());
+      /* DENTRO DE LA NOTA ABIERTA TAMBIÉN SE VE LA CARTA, arriba a la derecha,
+         con lo que dice en palabras: en la hoja no hay lista que la explique. */
+      if (nota.recibida){
+        hoja.classList.add('recibida');
+        const sobre = document.createElement('p'); sobre.className = 'nota-carta';
+        sobre.dataset.cartaDe = nota.id;
+        pintarSobreHoja(sobre, nota.recibida.estado);
+        hoja.appendChild(sobre);
+      }
       hoja.appendChild(editor); hojas.appendChild(hoja);
     });
     /* Las hojas nuevas nacen como estén las demás: quietas si la barra está
@@ -30008,10 +30155,405 @@ function armarManijasIndice(pagina, reordenar){
   hojas.addEventListener('scroll', () => ponerManijas(), { capture:true, passive:true });
   window.addEventListener('resize', () => ponerManijas(), { passive:true });
   pintar(false);
-  reflejarNotas = () => pintar(false);
+  reflejarNotas = () => { pintar(false); buzonAlDia(); };
+  /* Abrir una carta desde el buzón solo cambia dos dibujos: el de la lista y
+     el de la hoja. Repintar todo el cuaderno se llevaría los editores, y con
+     ellos lo que el lector tuviera a medias. */
+  refrescarCartasNotas = () => {
+    if (activa === null) pintarIndice();
+    hojas.querySelectorAll('.nota-carta[data-carta-de]').forEach(el => {
+      const n = notas.find(x => x.id === el.dataset.cartaDe);
+      if (n && n.recibida) pintarSobreHoja(el, n.recibida.estado);
+    });
+  };
   encenderNotaViva = () => { registrarPendiente(); traerActiva(); };
   recibirFiltroNota = filtro => { pendiente = filtro; };
   cerrarFiltrosNota = () => { cerrarHistorial(false, true); pendiente = null; };
+})();
+/* ============================================================
+   EL BUZÓN: UNA BOLITA POR CADA CARTA SIN ABRIR.
+
+   Lo pidió Gianni así. Cuando hay una nota recibida con la carta cerrada, en
+   la pantalla aparece una bolita —un círculo relleno de 40 puntos, metálico,
+   en el color que eligió quien la envió— que se porta como una canica de
+   verdad: la gravedad la tira hacia abajo, rueda hacia donde se inclina el
+   teléfono, se va hacia un lado si el teléfono se mueve de golpe hacia el
+   otro, y choca con las orillas y con las otras bolitas. Sale en la portada y
+   sigue en la hoja de lectura mientras la carta no se lea; con un panel
+   abierto se aparta, que encima de un panel no tiene nada que hacer.
+
+   LOS TRES TOQUES, tal como se pidieron:
+   - tocar la bolita: se queda quieta y abre una burbuja de cómic con el
+     mensaje, con su colita apuntando a la bolita;
+   - tocar la burbuja: se cierra, la bolita se queda y vuelve a rodar;
+   - tocar la bolita con la burbuja abierta: la burbuja se cierra, la bolita
+     se desvanece suave y la carta de la nota pasa a abierta.
+
+   LA LLEGADA. Una carta que llega en este momento —por la nube o por un
+   respaldo, con la aplicación abierta— cae desde arriba. Las que ya estaban al
+   abrir aparecen abajo, descansando, como si hubieran caído mientras tanto.
+
+   LA FÍSICA SALE DEL MISMO SITIO QUE LA DE GO EPIC —los botones con peso, que
+   leen deviceorientation—, pero aquí no basta con la inclinación de lado:
+   con el teléfono de pie, que es como se lee, el giro de izquierda a derecha
+   cae justo donde los ángulos de orientación se traban (beta en 90°), y la
+   bolita no sabría para dónde ir. Por eso se lee devicemotion: la aceleración
+   CON gravedad es, en un solo vector, la gravedad y el meneo, que es
+   exactamente la fuerza que siente una canica dentro del teléfono (con el
+   signo cambiado). No hace falta sumar nada más.
+
+   EL SIGNO DE ESE VECTOR NO ES IGUAL EN TODOS LOS TELÉFONOS: Android y el
+   estándar dan +9.8 en y con el teléfono de pie, y hubo iPhones que daban
+   -9.8. En vez de adivinar por la marca se mira: si la fuerza apunta hacia
+   arriba de la pantalla un buen rato seguido —nadie lee de cabeza—, el signo
+   estaba al revés y se le da la vuelta. Con la orientación a mano (beta), la
+   comprobación es casi inmediata.
+
+   Sin sensor —una computadora— la gravedad apunta abajo y ya. Y a quien pidió
+   menos movimiento: las bolitas no ruedan ni caen; aparecen abajo, quietas.
+   ============================================================ */
+(function armarBuzon(){
+  const PRUEBA = 'glossa:buzon:prueba:v1';
+  const capa = document.createElement('div');
+  capa.id = 'buzon';
+  document.body.appendChild(capa);
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const G = 2400;            /* px/s² por cada g: cae la pantalla entera en menos de un segundo */
+  const REBOTE = 0.38, REBOTE_BOLAS = 0.55;
+  const bolas = [];
+  const conocidas = new Set();
+  let bocadillo = null, marco = 0, antes = 0, cuadros = 0;
+  let fuerza = { x:0, y:1 };
+  const W = () => capa.clientWidth, H = () => capa.clientHeight;
+  const cerradas = () => notas.filter(n => n.recibida && n.recibida.estado === 'cerrada');
+  const notaDe = id => notas.find(n => n.id === id);
+
+  /* ---------- LO QUE ESTORBA ----------
+     Una bolita descansando abajo taparía lo que vive abajo: los tres botones
+     de la portada —el de seguir es la única salida— y los puntos de las
+     esquinas. Así que esos son cosas sólidas: la bolita se posa encima o
+     rueda a un lado, como una canica contra un libro. Se miden cada tanto, no
+     en cada cuadro. */
+  const ESTORBOS = '#portadaPie .pt-btn, #btnZoom, #btnHistorial, #pgVersion';
+  let estorbos = [], medido = -1e9;
+  const medirEstorbos = ahora => {
+    if (ahora - medido < 300) return;
+    medido = ahora;
+    const c = capa.getBoundingClientRect();
+    estorbos = [...document.querySelectorAll(ESTORBOS)].filter(el =>
+      !el.checkVisibility || el.checkVisibility({ visibilityProperty:true, opacityProperty:true }))
+      .map(el => el.getBoundingClientRect())
+      .filter(r => r.width > 0 && r.height > 0)
+      .map(r => ({ l:r.left - c.left, t:r.top - c.top, r:r.right - c.left, b:r.bottom - c.top }));
+  };
+
+  /* ---------- LAS BOLITAS ---------- */
+  const crearBola = (nota, desde) => {
+    const el = document.createElement('button');
+    el.type = 'button'; el.className = 'bola';
+    el.style.setProperty('--bola', nota.recibida.color);
+    dosIdiomas(el, { aria: ['Nota recibida sin abrir: ' + nota.titulo + '. Tócala para leerla',
+                            'Unopened received note: ' + nota.titulo + '. Tap it to read it'] });
+    capa.appendChild(el);
+    const r = (el.offsetWidth || 53) / 2, w = W(), h = H();
+    const b = { id:nota.id, el, r, x:w / 2, y:h - r, vx:0, vy:0, giro:0, quieta:false, agarrada:false, dentro:true };
+    if (desde === 'arriba'){
+      b.x = w * (0.25 + 0.5 * Math.random()); b.y = -r - 8; b.dentro = false;
+    } else {
+      /* Abajo, repartidas a lo ancho: el empujón de los choques acaba de
+         acomodarlas sin que se encimen. */
+      const n = bolas.filter(o => o.dentro).length;
+      b.x = Math.min(w - r, Math.max(r, w / 2 + (n % 2 ? 1 : -1) * Math.ceil(n / 2) * 2.2 * r));
+    }
+    bolas.push(b);
+    alTocar(el, () => tocarBola(b), {
+      bajar: () => { b.agarrada = true; b.vx = b.vy = 0; },
+      soltar: () => { b.agarrada = false; } });
+    pintarBola(b);
+    pedirSensor();
+    return b;
+  };
+  const pintarBola = b => {
+    b.el.style.transform = 'translate3d(' + (b.x - b.r).toFixed(1) + 'px,' + (b.y - b.r).toFixed(1) + 'px,0)';
+    b.el.style.setProperty('--giro', (b.giro * 57.2958 % 360).toFixed(1) + 'deg');
+  };
+  const quitarBola = b => {
+    const i = bolas.indexOf(b); if (i >= 0) bolas.splice(i, 1);
+    if (bocadillo && bocadillo.bola === b) cerrarBocadillo(false);
+    b.el.classList.add('se-va');
+    b.el.blur();
+    setTimeout(() => b.el.remove(), 700);
+  };
+
+  /* ---------- UN TOQUE ES UN TOQUE, LLEGUE COMO LLEGUE ----------
+     La regla de la casa: un evento despachado a mano siempre llega, y el de un
+     teléfono no. Así que el toque se reconoce al SOLTAR, haya llegado o no el
+     pointerdown de antes, y el click queda de respaldo para el teclado y para
+     el navegador que no mande punteros, sin contar dos veces el mismo toque.
+     Un dedo que se arrastró —leer rodando la burbuja— no es un toque. */
+  function alTocar(el, hacer, { bajar = () => {}, soltar = () => {} } = {}){
+    let abajo = null, hecho = -1e9;
+    el.addEventListener('pointerdown', ev => {
+      ev.stopPropagation();
+      abajo = { id:ev.pointerId, x:ev.clientX, y:ev.clientY, movido:false };
+      bajar();
+    });
+    el.addEventListener('pointermove', ev => {
+      if (abajo && ev.pointerId === abajo.id && Math.hypot(ev.clientX - abajo.x, ev.clientY - abajo.y) > 12)
+        abajo.movido = true;
+    });
+    el.addEventListener('pointercancel', () => { abajo = null; soltar(); });
+    el.addEventListener('pointerup', ev => {
+      ev.stopPropagation();
+      const a = abajo; abajo = null;
+      soltar();
+      if (a && (a.movido || a.id !== ev.pointerId)) return;
+      hecho = performance.now();
+      hacer();
+    });
+    el.addEventListener('click', ev => {
+      ev.stopPropagation();
+      if (performance.now() - hecho < 700) return;
+      hecho = performance.now();
+      hacer();
+    });
+  }
+  const tocarBola = b => {
+    if (!bolas.includes(b)) return;
+    const nota = notaDe(b.id);
+    if (!nota || !nota.recibida || nota.recibida.estado !== 'cerrada'){ quitarBola(b); return; }
+    if (bocadillo && bocadillo.bola === b){ abrirCarta(b, nota); return; }
+    abrirBocadillo(b, nota);
+  };
+  const abrirCarta = (b, nota) => {
+    nota.recibida.estado = 'abierta';
+    guardarNotas();
+    quitarBola(b);
+    refrescarCartasNotas();
+  };
+
+  /* ---------- LA BURBUJA ---------- */
+  const abrirBocadillo = (b, nota) => {
+    if (bocadillo) cerrarBocadillo(true);
+    b.quieta = true; b.vx = b.vy = 0;
+    const el = document.createElement('div');
+    el.className = 'bocadillo'; el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    dosIdiomas(el, { aria: ['Mensaje de ' + nota.titulo + '. Tócalo para cerrarlo',
+                            'Message of ' + nota.titulo + '. Tap it to close it'] });
+    const texto = document.createElement('div'); texto.className = 'bocadillo-texto';
+    const nombre = document.createElement('strong'); nombre.textContent = nota.titulo;
+    texto.append(nombre, document.createTextNode(String(nota.texto || '').trim() ||
+      T('(Esta nota no trae texto.)', '(This note has no text.)')));
+    const cola = document.createElement('span'); cola.className = 'bocadillo-cola';
+    cola.setAttribute('aria-hidden', 'true');
+    el.append(texto, cola);
+    capa.appendChild(el);
+    bocadillo = { bola:b, el, texto };
+    colocarBocadillo();
+    alTocar(el, () => { if (bocadillo && bocadillo.el === el) cerrarBocadillo(true); });
+    el.addEventListener('keydown', ev => {
+      if (ev.key === 'Escape'){ ev.preventDefault(); cerrarBocadillo(true); b.el.focus({ preventScroll:true }); }
+    });
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('abierto')));
+  };
+  /* La burbuja mide lo que mide el mensaje, sin pasar de la pantalla: va del
+     lado de la bolita donde haya más sitio —casi siempre arriba, que la bolita
+     vive abajo—, centrada sobre ella hasta donde dejen las orillas, y la colita
+     se corre para seguir apuntándole. Se mide con offsetWidth y no con el
+     rectángulo: mientras entra, la burbuja va encogida por su transform. */
+  function colocarBocadillo(){
+    if (!bocadillo) return;
+    const { bola:b, el, texto } = bocadillo;
+    const w = W(), h = H(), M = 12, COLA = 15;
+    const arriba = b.y - b.r - COLA - M, abajo = h - (b.y + b.r) - COLA - M;
+    const haciaAbajo = abajo > arriba;
+    texto.style.maxHeight = Math.max(48, (haciaAbajo ? abajo : arriba) - 34) + 'px';
+    const bw = el.offsetWidth, bh = el.offsetHeight;
+    const left = Math.min(Math.max(M, b.x - bw / 2), Math.max(M, w - M - bw));
+    const top = haciaAbajo ? b.y + b.r + COLA : b.y - b.r - COLA - bh;
+    const punta = Math.min(Math.max(24, b.x - left), bw - 24);
+    el.classList.toggle('abajo', haciaAbajo);
+    el.style.left = left + 'px'; el.style.top = top + 'px';
+    el.style.setProperty('--cola', punta + 'px');
+    el.style.setProperty('--ox', punta + 'px');
+    el.style.setProperty('--oy', haciaAbajo ? '0%' : '100%');
+  }
+  function cerrarBocadillo(soltar){
+    if (!bocadillo) return;
+    const { bola:b, el } = bocadillo;
+    bocadillo = null;
+    el.classList.remove('abierto');
+    el.style.pointerEvents = 'none';
+    setTimeout(() => el.remove(), 300);
+    if (soltar){ b.quieta = false; b.agarrada = false; }
+  }
+
+  /* ---------- EL SENSOR ---------- */
+  let escuchando = false, signo = 1, beta = null, deCabeza = 0, ultimoSensor = 0;
+  const alMoverse = ev => {
+    const a = ev.accelerationIncludingGravity;
+    if (!a || a.x == null || a.y == null) return;
+    const ahora = performance.now(), dt = Math.min(0.2, (ahora - (ultimoSensor || ahora)) / 1000);
+    ultimoSensor = ahora;
+    /* En el teléfono: x a la derecha, y hacia arriba. La canica siente lo
+       contrario de lo que mide el sensor. Luego se gira con la pantalla y se
+       pasa a la pantalla, donde y crece hacia abajo. */
+    const fx = -a.x / 9.81 * signo, fy = -a.y / 9.81 * signo;
+    const ang = (((screen.orientation && screen.orientation.angle) || window.orientation || 0) * Math.PI) / 180;
+    const c = Math.cos(ang), s = Math.sin(ang);
+    const nx = fx * c - fy * s, ny = -(fx * s + fy * c);
+    /* ¿El signo está al revés? Con beta se sabe enseguida (de pie, la fuerza
+       va hacia abajo); sin beta, si apunta hacia arriba más de un segundo. */
+    const sabe = beta !== null && Math.abs(beta) > 35 && !ang;
+    const mal = sabe ? ny * Math.sign(beta) < -0.4 : ny < -0.6;
+    deCabeza = mal ? deCabeza + dt : Math.max(0, deCabeza - dt);
+    if (deCabeza > (sabe ? 0.25 : 1.2)){ signo = -signo; deCabeza = 0; return; }
+    fuerza = { x:fuerza.x * 0.45 + nx * 0.55, y:fuerza.y * 0.45 + ny * 0.55 };
+    andar();
+  };
+  const alOrientarse = ev => { if (ev.beta != null) beta = ev.beta; };
+  const escuchar = () => {
+    if (escuchando) return;
+    escuchando = true;
+    addEventListener('devicemotion', alMoverse);
+    addEventListener('deviceorientation', alOrientarse);
+  };
+  /* EN IPHONE HAY QUE PEDIR PERMISO, y solo se puede con un toque: el primero
+     que llegue mientras haya una bolita. Android no pregunta. */
+  let pedido = false;
+  function pedirSensor(){
+    if (quieto || escuchando || pedido || typeof DeviceMotionEvent === 'undefined') return;
+    const pide = DeviceMotionEvent.requestPermission;
+    if (typeof pide !== 'function'){ escuchar(); return; }
+    pedido = true;
+    addEventListener('pointerup', () => {
+      const ori = typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission;
+      Promise.resolve(pide.call(DeviceMotionEvent)).then(r => { if (r === 'granted') escuchar(); }).catch(() => {});
+      if (typeof ori === 'function') Promise.resolve(ori.call(DeviceOrientationEvent)).catch(() => {});
+    }, { once:true, capture:true });
+  }
+
+  /* ---------- LA FÍSICA ---------- */
+  const paso = dt => {
+    const w = W(), h = H();
+    const gx = quieto ? 0 : fuerza.x * G, gy = quieto ? G : fuerza.y * G;
+    for (const b of bolas){
+      if (b.quieta || b.agarrada) continue;
+      b.vx += gx * dt; b.vy += gy * dt;
+      const roce = 1 - 0.35 * dt;
+      b.vx *= roce; b.vy *= roce;
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      let suelo = false;
+      if (b.x < b.r){ b.x = b.r; if (b.vx < 0) b.vx = -b.vx * REBOTE; }
+      if (b.x > w - b.r){ b.x = w - b.r; if (b.vx > 0) b.vx = -b.vx * REBOTE; }
+      if (b.y > h - b.r){ b.y = h - b.r; if (b.vy > 0) b.vy = Math.abs(b.vy) < 40 ? 0 : -b.vy * REBOTE; suelo = true; }
+      /* El techo solo cuenta para la que ya entró: la que llega cae desde
+         fuera de la pantalla y tiene que poder pasar. */
+      if (b.dentro){ if (b.y < b.r){ b.y = b.r; if (b.vy < 0) b.vy = Math.abs(b.vy) < 40 ? 0 : -b.vy * REBOTE; } }
+      else if (b.y >= b.r) b.dentro = true;
+      for (const e of estorbos){
+        const cx = Math.min(Math.max(b.x, e.l), e.r), cy = Math.min(Math.max(b.y, e.t), e.b);
+        let dx = b.x - cx, dy = b.y - cy, d = Math.hypot(dx, dy);
+        if (d >= b.r) continue;
+        if (d < 0.01){ dx = 0; dy = -1; d = 0; b.y = e.t - b.r; }
+        else { dx /= d; dy /= d; b.x += dx * (b.r - d); b.y += dy * (b.r - d); }
+        const vn = b.vx * dx + b.vy * dy;
+        if (vn < 0){ const k = (1 + REBOTE) * vn; b.vx -= k * dx; b.vy -= k * dy; }
+        if (dy < -0.5) suelo = true;
+      }
+      /* Rueda, no resbala: lo que avanza de lado es lo que gira. Y rodando
+         sobre algo se va frenando poco a poco. */
+      if (suelo) b.vx *= 1 - 1.1 * dt;
+      b.giro += (b.vx * dt) / b.r;
+    }
+    /* Los choques entre ellas, de canica contra canica: pesan lo mismo, y la
+       que está quieta —con su burbuja o bajo el dedo— no se deja mover. */
+    for (let i = 0; i < bolas.length; i++) for (let j = i + 1; j < bolas.length; j++){
+      const a = bolas[i], b = bolas[j];
+      let dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+      const min = a.r + b.r;
+      if (d >= min) continue;
+      if (d < 0.01){ dx = 1; dy = 0; d = 0.01; } else { dx /= d; dy /= d; }
+      const fijaA = a.quieta || a.agarrada, fijaB = b.quieta || b.agarrada;
+      if (fijaA && fijaB) continue;
+      const sobra = min - d, pa = fijaA ? 0 : fijaB ? 1 : 0.5, pb = 1 - pa;
+      a.x -= dx * sobra * pa; a.y -= dy * sobra * pa;
+      b.x += dx * sobra * pb; b.y += dy * sobra * pb;
+      const vrel = (b.vx - a.vx) * dx + (b.vy - a.vy) * dy;
+      if (vrel >= 0) continue;
+      const k = -(1 + REBOTE_BOLAS) * vrel;
+      if (!fijaA){ const ka = fijaB ? k : k / 2; a.vx -= ka * dx; a.vy -= ka * dy; }
+      if (!fijaB){ const kb = fijaA ? k : k / 2; b.vx += kb * dx; b.vy += kb * dy; }
+    }
+  };
+  const tapadoAhora = () => {
+    try { return typeof burbujaAbierta === 'function' && burbujaAbierta(); } catch(_){ return false; }
+  };
+  const cuadro = ahora => {
+    marco = 0;
+    const dt = Math.min(1 / 30, Math.max(0, (ahora - (antes || ahora)) / 1000));
+    antes = ahora;
+    /* Con un panel abierto la bolita se aparta, y su burbuja se cierra. */
+    const tapado = tapadoAhora();
+    capa.classList.toggle('tapado', tapado);
+    if (tapado && bocadillo) cerrarBocadillo(true);
+    /* Una carta que se abrió en otro aparato, o una nota que se borró, se
+       lleva su bolita. Se mira de vez en cuando. */
+    if (++cuadros % 30 === 0)
+      for (const b of [...bolas]){
+        const n = notaDe(b.id);
+        if (!n || !n.recibida || n.recibida.estado !== 'cerrada') quitarBola(b);
+      }
+    medirEstorbos(ahora);
+    const n = Math.max(1, Math.ceil(dt / (1 / 120)));
+    for (let k = 0; k < n; k++) paso(dt / n);
+    bolas.forEach(pintarBola);
+    if (bolas.length) andar(); else antes = 0;
+  };
+  function andar(){ if (!marco && bolas.length) marco = requestAnimationFrame(cuadro); }
+  addEventListener('resize', () => {
+    const w = W(), h = H();
+    for (const b of bolas){ b.x = Math.min(Math.max(b.r, b.x), w - b.r); if (b.dentro) b.y = Math.min(b.y, h - b.r); }
+    medido = -1e9; colocarBocadillo(); andar();
+  }, { passive:true });
+
+  /* ---------- LLEGAN CARTAS ---------- */
+  buzonAlDia = () => {
+    for (const nota of cerradas()){
+      if (!bolas.some(b => b.id === nota.id))
+        crearBola(nota, conocidas.has(nota.id) || quieto ? 'abajo' : 'arriba');
+      conocidas.add(nota.id);
+    }
+    for (const b of bolas){ const n = notaDe(b.id); if (n && n.recibida) b.el.style.setProperty('--bola', n.recibida.color); }
+    andar();
+  };
+
+  /* ---------- AL ABRIR ----------
+     Se arranca cuando el programa terminó de montarse: guardar una nota avisa
+     a la nube, y la nube todavía no existe a estas alturas del guion.
+
+     LA CARTA DE PRUEBA. Enviar notas todavía no existe, así que para ver todo
+     esto Gianni pidió que su nota «Las festividades judías» llegara como carta
+     cerrada, en azul metálico, y que su bolita cayera desde arriba la primera
+     vez que se abriera esta versión. Una sola vez: queda apuntado, y una vez
+     leída no se vuelve a cerrar. */
+  setTimeout(() => {
+    let probada = false;
+    try { probada = localStorage.getItem(PRUEBA) === '1'; } catch(_){}
+    let llega = null;
+    if (!probada){
+      const llano = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+      llega = notas.find(n => !n.recibida && /festividades\s+judias/.test(llano(n.titulo))) || null;
+      if (llega){
+        llega.recibida = { estado:'cerrada', color:AZUL_CARTA, llegada:Date.now() };
+        if (guardarNotas()) try { localStorage.setItem(PRUEBA, '1'); } catch(_){}
+        refrescarCartasNotas();
+      }
+    }
+    for (const n of cerradas()) if (n !== llega) conocidas.add(n.id);
+    buzonAlDia();
+  }, 0);
 })();
 (function armarEncuentros(){
   const caja = document.getElementById('encuentros');
@@ -30526,6 +31068,7 @@ const NUBE_ALMACENES = [
         const limpia = { id:String(n.id), titulo:String(n.titulo || ('Nota ' + (i + 1))).slice(0, 60),
                          texto:n.texto, filtros:normalizarHistorialNota(n.filtros) };
         if (typeof n.html === 'string') limpia.html = limpiarHtmlNota(n.html);
+        const carta = normalizarRecibida(n.recibida); if (carta) limpia.recibida = carta;
         return limpia;
       });
       if (!notas.length) notas = [{ id:nuevoIdNota(), titulo:T('Nota 1', 'Note 1'), texto:'' }];
