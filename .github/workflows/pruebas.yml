@@ -6,11 +6,11 @@
 # cada push. El repo es público y los minutos de Actions son gratis, así que
 # el «tiempo de máquina es de quien lo paga» de CLAUDE.md ya no frena nada.
 #
-# CADA SUITE EN SU PROPIA MÁQUINA, A LA VEZ. La tanda entera, una detrás de
-# otra, pasa de los 45 minutos; repartida en 30 trabajos paralelos tarda lo que
-# tarde la más lenta. Es lo mismo que hace correr.js —un proceso por prueba,
-# para que el localStorage de una no se filtre en la siguiente—, llevado un
-# paso más allá: una máquina por prueba.
+# LAS SUITES REPARTIDAS EN MÁQUINAS, A LA VEZ. La tanda entera, una detrás de
+# otra, pasa de los 45 minutos; repartida en máquinas paralelas tarda lo que
+# tarde la más cargada. Cada suite sigue corriendo en su propio proceso, como
+# en correr.js, para que el localStorage de una no se filtre en la siguiente.
+# Ver más abajo, en «lista», cómo se reparten.
 #
 # Y UN SOLO VEREDICTO AL FINAL («pruebas»), para que la PR muestre una
 # casilla verde o roja y no veintiocho.
@@ -44,7 +44,7 @@ jobs:
     name: qué suites
     runs-on: ubuntu-latest
     outputs:
-      suites: ${{ steps.lista.outputs.suites }}
+      grupos: ${{ steps.lista.outputs.grupos }}
     steps:
       - uses: actions/checkout@v4
       - id: lista
@@ -52,19 +52,61 @@ jobs:
           FILTRO: ${{ github.event.inputs.filtro }}
         # La misma regla que correr.js: el archivo entra si contiene alguna de
         # las palabras del filtro, o todas si no hay filtro.
+        #
+        # LAS PARTIDAS EN TRAMOS, UN PEDAZO POR TRAMO: una suite que usa
+        # tramo(n) de comun.js cuenta aquí una vez por tramo, y cada pedazo
+        # corre con su GLOSS_TRAMO.
+        #
+        # Y LOS PEDAZOS REPARTIDOS EN DIECIOCHO MÁQUINAS COMO MUCHO, no una
+        # máquina por pedazo. Se probó una por pedazo, cuarenta y una máquinas,
+        # con la lista ordenada de la más larga a la más corta para que las
+        # largas salieran primero. No sirvió: GitHub no deja correr más de
+        # veinte a la vez, y las que sobran NO entran en el orden de la lista
+        # —piedra, la cuarta más larga, arrancó la última, seis minutos tarde—.
+        # La tanda tardó diez minutos y medio, más que antes. Con dieciocho
+        # máquinas no espera ninguna: todas arrancan a la vez, y como la
+        # preparación de cada una cuesta menos de medio minuto, juntar varias
+        # suites cortas en la misma no se nota.
+        #
+        # Cómo se reparten: cada pedazo pesa lo que tardó la última vez que se
+        # midió (pruebas/tiempos.json; uno que no esté ahí cuenta como minuto
+        # y medio). Se toman del más pesado al más ligero y cada uno va a la
+        # máquina menos cargada hasta ese momento. Así la más cargada queda
+        # cerca de lo que tarda el pedazo más largo, que es lo mínimo posible.
         run: |
           node -e '
             const fs = require("fs");
+            const MAQUINAS = 18;
             const filtro = (process.env.FILTRO || "").split(/\s+/).filter(Boolean);
+            const tiempos = JSON.parse(fs.readFileSync("pruebas/tiempos.json", "utf8"));
             const s = fs.readdirSync("pruebas").filter(f => f.endsWith(".prueba.js"))
               .filter(f => !filtro.length || filtro.some(x => f.includes(x))).sort();
             if (!s.length){ console.error("Ninguna suite con ese filtro"); process.exit(1); }
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, "suites=" + JSON.stringify(s) + "\n");
-            console.log(s.length + " suites: " + s.join(", "));
+            const piezas = [];
+            for (const suite of s){
+              const tramos = [...fs.readFileSync("pruebas/" + suite, "utf8").matchAll(/\btramo\((\d+)\)/g)]
+                .reduce((m, x) => Math.max(m, +x[1]), 0);
+              if (!tramos) piezas.push({ suite, tramo:"", nombre:suite, t:tiempos[suite] || 90 });
+              else for (let i = 1; i <= tramos; i++)
+                piezas.push({ suite, tramo:String(i), nombre:suite + " · tramo " + i + " de " + tramos,
+                              t:tiempos[suite + "#" + i] || 90 });
+            }
+            piezas.sort((a, b) => b.t - a.t || a.nombre.localeCompare(b.nombre));
+            const maquinas = Array.from({ length: Math.min(MAQUINAS, piezas.length) }, () => ({ t:0, piezas:[] }));
+            for (const x of piezas){
+              const m = maquinas.reduce((a, b) => b.t < a.t ? b : a);
+              m.t += x.t; m.piezas.push(x);
+            }
+            const grupos = maquinas.map(m => ({
+              nombre: m.piezas.map(x => x.nombre).join(" + "),
+              piezas: m.piezas.map(x => x.suite + ":" + x.tramo).join(" ") }));
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, "grupos=" + JSON.stringify(grupos) + "\n");
+            for (const m of maquinas)
+              console.log(m.t + " s: " + m.piezas.map(x => x.nombre + " (" + x.t + ")").join(", "));
           '
 
   suite:
-    name: ${{ matrix.suite }}
+    name: ${{ matrix.grupo.nombre }}
     needs: lista
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -72,7 +114,7 @@ jobs:
       # Que una roja no cancele las demás: se quiere saber cuáles fallan, todas.
       fail-fast: false
       matrix:
-        suite: ${{ fromJSON(needs.lista.outputs.suites) }}
+        grupo: ${{ fromJSON(needs.lista.outputs.grupos) }}
     steps:
       # LA HISTORIA ENTERA, no un commit solo. `cache` busca el último commit que
       # tocó oracion/ y su padre para comparar el número de caché; con el
@@ -97,7 +139,7 @@ jobs:
       # corridas a mano (CHROMIUM apuntando al Chromium completo). En la
       # primera corrida aquí, con el recortado, cuatro suites que pasan en local
       # se quedaron sin ver lo que escribían antes de recargar.
-      - name: node pruebas/${{ matrix.suite }}
+      - name: las suites de esta máquina
         # SERVIDA POR HTTP, NO ABIERTA COMO file://. Medido aquí mismo, con
         # un diagnóstico de ida y vuelta: escribir en el almacén y recargar,
         # doce veces seguidas. Con file:// la página nueva veía de vez en
@@ -114,7 +156,16 @@ jobs:
           python3 -m http.server 8787 --bind 127.0.0.1 >/dev/null 2>&1 &
           until curl -sf http://127.0.0.1:8787/index.html >/dev/null; do sleep 0.2; done
           export GLOSS_APP_URL=http://127.0.0.1:8787/index.html
-          node pruebas/${{ matrix.suite }}
+          # Una detrás de otra, cada una en su proceso, y TODAS aunque una
+          # falle: se quiere saber cuáles fallan, no solo la primera.
+          rojas=""
+          for pieza in ${{ matrix.grupo.piezas }}; do
+            suite="${pieza%%:*}"; export GLOSS_TRAMO="${pieza#*:}"
+            echo "::group::node pruebas/$suite${GLOSS_TRAMO:+ (tramo $GLOSS_TRAMO)}"
+            node "pruebas/$suite" || rojas="$rojas $suite${GLOSS_TRAMO:+#$GLOSS_TRAMO}"
+            echo "::endgroup::"
+          done
+          if [ -n "$rojas" ]; then echo "Fallaron:$rojas"; exit 1; fi
 
   pruebas:
     name: pruebas

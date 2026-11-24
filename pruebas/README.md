@@ -25,10 +25,29 @@ dentro**:
 
 ## Correr
 
-**En GitHub corren solas**: cada push a una PR lanza las 36 suites en
-paralelo —una máquina por suite— y deja en la PR una casilla, «pruebas», verde
-o roja. Ver `.github/workflows/pruebas.yml`. A mano, desde la pestaña Actions,
-con el mismo filtro de palabras que abajo.
+**En GitHub corren solas**: cada push a una PR lanza las 36 suites
+repartidas en dieciocho máquinas a la vez y deja en la PR una casilla,
+«pruebas», verde o roja. Ver `.github/workflows/pruebas.yml`. A mano, desde la
+pestaña Actions, con el mismo filtro de palabras que abajo.
+
+**La tanda tarda lo que tarda la máquina más cargada**, así que dos cosas la
+acortan:
+
+- **Dieciocho máquinas, ni una más.** GitHub da veinte a la vez, y las que
+  sobran esperan turno sin respetar el orden de la lista: con una máquina por
+  suite, una de las largas llegó a arrancar seis minutos tarde. Las suites se
+  reparten por `tiempos.json`, lo que tardó cada una la última vez que se
+  midió: de la más larga a la más corta, cada una a la máquina menos cargada.
+  Las cortas comparten máquina, cada una en su propio proceso. Una suite nueva
+  que no esté en `tiempos.json` cuenta como de minuto y medio; si es larga, se
+  apunta.
+- **Las cuatro más largas van en dos tramos**, que se reparten por separado:
+  `piedra` (el barrido del teclado), `separador` (la lectura de verdad),
+  `navegar` (de las flechas en adelante) y `glosas` (del dedo sostenido en
+  adelante). La suite marca con `tramo(2)` de `comun.js` un bloque que no
+  depende de lo de antes, y GitHub la lanza dos veces, con `GLOSS_TRAMO=1` y
+  `GLOSS_TRAMO=2`. **En local, sin `GLOSS_TRAMO`, se corre todo junto** y en
+  su orden de siempre: partirla no quita ninguna comprobación.
 
 En local:
 

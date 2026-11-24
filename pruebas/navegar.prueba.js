@@ -14,7 +14,7 @@
       unía; y el paso atrás no se apunta, porque apuntarlo lo convertiría en un
       columpio entre dos escrituras. */
 const { abrir, cerrar, cerrarParcial, conGlosas, di, vale, titulo,
-        ESCRITORIO } = require('./comun');
+        ESCRITORIO, TRAMO, tramo } = require('./comun');
 
 /* EL TELÉFONO MÁS ESTRECHO QUE SE USA, y no está en comun porque sólo hace
    falta aquí: es el peor caso de los letreros de las guías. Los dos puntos de
@@ -35,6 +35,12 @@ const RASTRO = () => JSON.parse(localStorage.getItem('glossa:historial:v1') || '
 const ATERRIZA = 7000;
 
 (async () => {
+  if (TRAMO === 2){
+    const sesion = await abrir();
+    const p = sesion.pagina;
+    await deLasFlechasEnAdelante(sesion, p);
+    return cerrar(sesion);
+  }
   const sesion = await abrir();
   const p = sesion.pagina;
   await conGlosas(p);
@@ -728,6 +734,17 @@ const ATERRIZA = 7000;
     return r;
   }));
 
+  /* Lo que sigue va en su propio tramo: ver deLasFlechasEnAdelante, más abajo. */
+  if (tramo(2)) await deLasFlechasEnAdelante(sesion, p);
+
+  await cerrar(sesion);
+})();
+
+/* DE LAS FLECHAS EN ADELANTE, SU PROPIO TRAMO. Cada bloque de aquí abre su
+   propio navegador y no toca la sesión de arriba; en GitHub corren en otra
+   máquina, a la vez que el principio (ver tramo en comun.js). En local, sin
+   GLOSS_TRAMO, se corre todo, en su orden de siempre. */
+async function deLasFlechasEnAdelante(sesion, p){
   /* ================================================================
      LAS DOS FLECHAS: UN LETRERO QUE APUNTA AL FILO.
 
@@ -1903,6 +1920,4 @@ const ATERRIZA = 7000;
   vale('SE PINTA CON SU LIBRITO Y EL TRAMO',
        pintaL && pintaL.librito && /\d+:\d+–(\d+:)?\d+/.test(pintaL.ref), JSON.stringify(pintaL));
   await cerrarParcial(sesLec, 'la lectura en el rastro');
-
-  await cerrar(sesion);
-})();
+}

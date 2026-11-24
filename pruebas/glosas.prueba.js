@@ -14,7 +14,7 @@
    repintar el panel, porque el panel lleva dentro la caja de escribir y
    repintarlo se llevaría por delante el foco, el cursor y lo escrito. */
 const { abrir, abrirEnPortada, otraPagina, listo, cerrar, cerrarParcial, conGlosas,
-        di, vale, titulo, APP, RAIZ, TELEFONO } = require('./comun');
+        di, vale, titulo, APP, RAIZ, TELEFONO, TRAMO, tramo } = require('./comun');
 
 /* Abrir el panel sobre las primeras letras de un versículo, como lo abre un
    dedo: se PINTA y se toca encima. Se seleccionaba, y ya no se puede —el
@@ -85,6 +85,13 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
 };
 
 (async () => {
+  if (TRAMO === 2){
+    const sesion = await abrir();
+    const p = sesion.pagina;
+    await listo(p);
+    await delDedoSostenidoEnAdelante(sesion, p);
+    return cerrar(sesion);
+  }
   const sesion = await abrir();
   const p = sesion.pagina;
 
@@ -2373,6 +2380,18 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        tras.puesta + ' px puestos contra ' + tras.natural + ' de verdad');
   await cerrarParcial(etiq, 'la lista de etiquetas');
 
+  /* Lo que sigue va en su propio tramo: ver delDedoSostenidoEnAdelante, más abajo. */
+  if (tramo(2)) await delDedoSostenidoEnAdelante(sesion, p);
+
+  await cerrar(sesion);
+})();
+
+/* DEL DEDO SOSTENIDO EN ADELANTE, SU PROPIO TRAMO. Cada bloque de aquí
+   empieza con la hoja limpia —borra las marcas y recarga— o con su propio
+   navegador, así que no depende de lo de arriba; en GitHub corre en otra
+   máquina, a la vez que el principio (ver tramo en comun.js). En local, sin
+   GLOSS_TRAMO, se corre todo, en su orden de siempre. */
+async function delDedoSostenidoEnAdelante(sesion, p){
   /* ================================================================
      SOSTENER EL DEDO, Y LOS TIRADORES QUE QUEDAN.
 
@@ -3119,11 +3138,37 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
        por gesto por mucho que el dedo siga yendo y viniendo. */
     const vs = [...document.querySelectorAll('#pgBody .v')];
     if (vs.length < 2) return { versiculos: vs.length };
-    const a = texto(vs[0]), b = texto(vs[1]);
-    if (!a || !b) return { sinTexto:true, porque: window.__pincelPorque };
     const caja = (nodo, i, j) => { const r = document.createRange();
       r.setStart(nodo, i); r.setEnd(nodo, j); return r.getBoundingClientRect(); };
-    const A = caja(a, 3, 4), B = caja(b, 9, 10);
+    /* DOS VERSÍCULOS QUE ESTÉN UNO DEBAJO DEL OTRO, no los dos primeros.
+
+       Antes se tomaban siempre el primero y el segundo de la hoja, y eso
+       dependía de en qué hoja dejaran el lector los bloques de arriba. En la
+       corrida entera caían bien; corrido el bloque en su propio tramo, la hoja
+       abría en Mateo 5:9, a dos columnas, y el aviso no salía nunca. Así que
+       se busca el primer par seguido que sirva para el gesto de verdad: que
+       el dedo baje más de lo que se ladea —de lado sobre el texto se pasa la
+       hoja, es el reparto con correrPapel, y eso no pinta—.
+
+       Y QUE LOS DOS PUNTOS SEAN TEXTO A LA VISTA. En esa misma hoja la letra
+       9 del versículo de abajo caía a 19 px del borde, bajo la flecha de pasar hoja:
+       el dedo que llega ahí no está sobre el versículo, puntoA no encuentra
+       letra y el trazo se queda sin final. Se mira lo que hay de verdad bajo
+       cada punto, que es lo que ve el dedo. */
+    let A = null, B = null;
+    const centro = r => [r.left + r.width/2, r.top + r.height/2];
+    const sobre = (r, v) => { const e = document.elementFromPoint(...centro(r));
+      return !!e && e.closest('.v') === v; };
+    for (let i = 0; i + 1 < vs.length && !B; i++){
+      const a = texto(vs[i]), b = texto(vs[i+1]);
+      if (!a || !b || a.textContent.length < 5 || b.textContent.length < 11) continue;
+      const ca = caja(a, 3, 4), cb = caja(b, 9, 10);
+      const dx = cb.left - ca.left, dy = cb.top - ca.top;
+      if (dy > 0 && dy > 1.5 * Math.abs(dx) && sobre(ca, vs[i]) && sobre(cb, vs[i+1])){
+        A = ca; B = cb;
+      }
+    }
+    if (!B) return { sinPar:true, versiculos: vs.length };
     const pgBody = document.getElementById('pgBody');
     const op = (x, y) => ({ bubbles:true, cancelable:true, pointerId:71,
                             pointerType:'touch', isPrimary:true, clientX:x, clientY:y });
@@ -3602,6 +3647,4 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
     vale('  sin errores de JavaScript', fallosL.length === 0, fallosL.join(' | '));
     await pl.close();
   }
-
-  await cerrar(sesion);
-})();
+}

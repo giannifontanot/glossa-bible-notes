@@ -990,5 +990,16 @@ async function arrastrarManija(pagina, punta, palabra, { cual = 0, sinApoyo = fa
   await pagina.waitForTimeout(80);
 }
 
+/* LOS TRAMOS: UNA SUITE LARGA, PARTIDA EN DOS MÁQUINAS. En GitHub cada suite
+   corre en su máquina y la tanda tarda lo que tarda la más lenta; con
+   piedra y separador por encima de los seis minutos, todo esperaba por ellas.
+   Una suite marca con `tramo(n)` el bloque que se puede correr aparte —uno
+   que abre su propio navegador y no depende de lo de antes—, y el flujo de
+   GitHub lanza cada tramo en su máquina con GLOSS_TRAMO=n. El tramo 1 es todo
+   lo demás. Sin GLOSS_TRAMO, que es como se corre en local, se corre todo y
+   en su orden de siempre: nada se pierde por partirlo. */
+const TRAMO = Number(process.env.GLOSS_TRAMO) || 0;
+const tramo = n => !TRAMO || TRAMO === n;
+
 module.exports = { abrir, abrirEnPortada, otraPagina, listo, cerrar, cerrarParcial, fin, conGlosas, di, vale, titulo,
-                   arrastrarManija, APP, RAIZ, TELEFONO, ESCRITORIO, ESTRECHO_RATON, EJECUTABLE };
+                   arrastrarManija, APP, RAIZ, TELEFONO, ESCRITORIO, ESTRECHO_RATON, EJECUTABLE, TRAMO, tramo };

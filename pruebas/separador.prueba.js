@@ -21,8 +21,8 @@
    rápido; pero el número que se está probando es justo cuánto hay que
    quedarse, y una prueba que cambia el reloj no prueba ese número: prueba que
    el temporizador se llama. */
-const { abrir, cerrar, cerrarParcial, di, vale, titulo,
-        ESCRITORIO } = require('./comun');
+const { abrir, cerrar, cerrarParcial, fin, di, vale, titulo,
+        ESCRITORIO, TRAMO, tramo } = require('./comun');
 
 const LLAVE = 'glossa:separadores:v1';
 
@@ -231,7 +231,262 @@ async function ponerAMano(p){
   });
 }
 
+/* LA LECTURA DE VERDAD VA EN SU PROPIO TRAMO. Espera de veras los veinte
+   segundos de cada hoja leída, seis veces, y se lleva más de tres minutos;
+   en GitHub corre en su propia máquina, a la vez que el resto (ver tramo en
+   comun.js). En local, sin GLOSS_TRAMO, se corre todo, en su sitio. */
+async function laLecturaDeVerdad(){
+  /* ================================================================
+     LA LECTURA DE VERDAD. En su propia sesión y desde cero: hacen falta dos
+     hojas leídas SEGUIDAS, y cualquier resto de la tanda de arriba las
+     contaminaría. Los tiempos salen de LECTURA_MINIMA —20 s— y no se pueden
+     acortar sin dejar de probar lo que se viene a probar. */
+  const dos = await abrir();
+  const q = dos.pagina;
+  await abrirEn(q, 'MAT', 1, 1);
+  const ESPERA = 21500;
+
+  titulo('dos hojas leídas de verdad, y a la tercera pregunta');
+  const leyendo = await q.evaluate(async (espera) => {
+    const antesDeLeer = window.__oferta();
+    await window.__pausa(espera);        // hoja 1 leída
+    await window.__pasar('right');
+    const traslaPrimera = window.__oferta();
+    await window.__pausa(espera);        // hoja 2 leída
+    await window.__pasar('right');       // llega a la tercera
+    await window.__pausa(600);
+    const hay = window.__oferta();
+    const caja = document.getElementById('sepOferta');
+    const st = document.getElementById('stage').getBoundingClientRect();
+    const r = caja.getBoundingClientRect();
+    return { antesDeLeer, traslaPrimera, hay,
+             dice: (caja.textContent || '').trim(),
+             botones: caja.querySelectorAll('button').length,
+             dentro: r.left >= st.left - 1 && r.right <= st.right + 1 && r.bottom <= st.bottom + 1,
+             tapaLaHoja: r.top < document.getElementById('pg').getBoundingClientRect().bottom - 120 };
+  }, ESPERA);
+  di('la oferta', leyendo.dice);
+  vale('no pregunta antes de leer nada', !leyendo.antesDeLeer);
+  vale('ni con una sola hoja leída', !leyendo.traslaPrimera);
+  vale('con dos leídas, pregunta', leyendo.hay);
+  vale('con sus dos respuestas', leyendo.botones === 2);
+  vale('entera dentro de la escena', leyendo.dentro);
+  vale('y sin taparle la lectura', !leyendo.tapaLaHoja);
+
+  titulo('decir que NO no pone nada, y no vuelve a preguntar');
+  const queNo = await q.evaluate(async (espera) => {
+    await window.__toque('[data-sep-no]');
+    await window.__pausa(500);
+    const trasNo = { oferta: window.__oferta(), guardadas: window.__guardadas().length };
+    /* Y se siguen leyendo dos hojas más: en esta misma lectura ya no pregunta. */
+    await window.__pausa(espera);
+    await window.__pasar('right');
+    await window.__pausa(espera);
+    await window.__pasar('right');
+    await window.__pausa(700);
+    return { trasNo, oferta: window.__oferta(), guardadas: window.__guardadas().length };
+  }, ESPERA);
+  vale('no pone separador', queNo.trasNo.guardadas === 0);
+  vale('y la caja se va', !queNo.trasNo.oferta);
+  vale('no vuelve a preguntar en esta lectura', !queNo.oferta, queNo.oferta);
+
+  await cerrarParcial(dos, 'la lectura que dice que no');
+
+  /* ================================================================ */
+  const tres = await abrir();
+  const p2 = tres.pagina;
+  await abrirEn(p2, 'MAT', 1, 1);
+
+  titulo('decir que SÍ pone la cinta, y la cinta sigue al lector');
+  const queSi = await p2.evaluate(async (espera) => {
+    await window.__pausa(espera);
+    await window.__pasar('right');
+    await window.__pausa(espera);
+    await window.__pasar('right');
+    await window.__pausa(600);
+    const preguntó = window.__oferta();
+    const hojaDeLaCinta = window.__hoja();
+    await window.__toque('[data-sep-si]');
+    await window.__pausa(700);
+    await window.__abrirCajon();
+    const puesta = window.__guardadas()[0];
+    const cinta = window.__cinta();
+    /* Y ahora se sigue leyendo: la cinta activa tiene que venirse. */
+    await window.__pasar('right');
+    await window.__pausa(600);
+    await window.__abrirCajon();
+    const seVino = !!window.__cinta();
+    const movida = window.__guardadas()[0];
+    return { preguntó, hojaDeLaCinta, puesta, cinta, seVino, movida,
+             hojaAhora: window.__hoja(), cuantas: window.__guardadas().length };
+  }, ESPERA);
+  di('la cinta', queSi.puesta);
+  vale('preguntó', queSi.preguntó);
+  vale('el sí la pone', queSi.cuantas === 1 && !!queSi.cinta);
+  vale('en la hoja donde estaba', queSi.puesta &&
+       queSi.hojaDeLaCinta.indexOf(String(queSi.puesta.cap) + ':') > 0,
+       queSi.hojaDeLaCinta + '  vs  ' + (queSi.puesta && queSi.puesta.cap + ':' + queSi.puesta.vers));
+  vale('con fecha de creación y de cambio', queSi.puesta &&
+       queSi.puesta.creado > 0 && queSi.puesta.tocado > 0);
+  vale('y al seguir leyendo se viene con el lector', queSi.seVino);
+  vale('sin duplicarse', queSi.cuantas === 1);
+  vale('la referencia cambió', queSi.movida &&
+       (queSi.movida.cap !== queSi.puesta.cap || queSi.movida.vers !== queSi.puesta.vers),
+       (queSi.puesta && queSi.puesta.cap + ':' + queSi.puesta.vers) + '  →  ' +
+       (queSi.movida && queSi.movida.cap + ':' + queSi.movida.vers));
+
+  titulo('LA CINTA NO ANDA HACIA ATRÁS');
+  /* ESTO AFIRMABA LO CONTRARIO hasta hoy: «al pasar hacia atrás la activa se
+     mueve». La cinta seguía al lector en los dos sentidos, y eso la convierte
+     en otra cosa. Una cinta marca hasta dónde llegaste; volver una hoja a
+     releer un versículo no deshace lo leído, y sin embargo arrastraba la marca
+     contigo. Retrocedías tres hojas para comprobar un nombre, volvías
+     adelante, y tu cinta se había quedado tres hojas atrás sin que hubieras
+     tocado nada.
+
+     Y NO BASTA CON MIRAR EL SENTIDO DEL GESTO, por eso se prueban los tres
+     pasos seguidos. Retroceder y volver adelante es un gesto «hacia adelante»
+     que cae sobre hoja ya leída: si lo único que se comprobara fuera la
+     dirección, la cinta se iría ahí y habría andado hacia atrás por la puerta
+     de al lado. Lo que el programa compara es el SITIO, y esta prueba lo
+     comprueba llegando por los dos caminos. */
+  const haciaAtras = await p2.evaluate(async () => {
+    const id = window.__guardadas()[0] && window.__guardadas()[0].id;
+    const donde = () => { const c = window.__guardadas().find(x => x.id === id);
+                          return c ? c.cap + ':' + c.vers : '(no está)'; };
+    const salida = donde();
+    await window.__pasar('left');  await window.__pausa(400);
+    const unaAtras = donde();
+    await window.__pasar('left');  await window.__pausa(400);
+    const dosAtras = donde();
+    /* y ahora adelante, pero todavía por detrás de donde está la cinta */
+    await window.__pasar('right'); await window.__pausa(400);
+    const volviendo = donde();
+    return { id, salida, unaAtras, dosAtras, volviendo };
+  });
+  di('la cinta al ir y venir', [haciaAtras.salida, haciaAtras.unaAtras,
+      haciaAtras.dosAtras, haciaAtras.volviendo].join('  →  '));
+  vale('AL PASAR HACIA ATRÁS LA CINTA SE QUEDA DONDE ESTABA',
+       haciaAtras.unaAtras === haciaAtras.salida &&
+       haciaAtras.dosAtras === haciaAtras.salida,
+       haciaAtras.salida + '  →  ' + haciaAtras.unaAtras + '  →  ' + haciaAtras.dosAtras);
+  vale('  y volver adelante sobre lo ya leído tampoco la retrasa',
+       haciaAtras.volviendo === haciaAtras.salida,
+       haciaAtras.salida + '  →  ' + haciaAtras.volviendo);
+
+  titulo('la cinta vieja se queda donde la dejaron');
+  /* Se salta por el rastro en vez de retroceder con el filo, y ahora es por
+     una razón distinta a la de antes. Antes hacía falta porque la activa se
+     venía en los dos sentidos y hacia atrás seguía pegada al lector. Ahora ya
+     no se viene hacia atrás —ver el bloque de arriba—, pero retroceder deja
+     al lector CON la cinta delante, y el botón abriría su menú en vez de
+     poner otra: para tener dos, hay que irse lejos de la primera. */
+  /* Dos referencias DISTINTAS: el rastro se pinta sin ecos, así que dos
+     iguales seguidas dejarían el panel sin paso atrás que tocar. */
+  await p2.evaluate(() => localStorage.setItem('glossa:historial:v1', JSON.stringify([
+    { libro:'MAT', cap:5, vers:1, t:Date.now() },
+    { libro:'MAT', cap:1, vers:1, t:Date.now() - 1 }])));
+  const vieja = await p2.evaluate(async () => {
+    const quieta = window.__guardadas()[0];
+    const quietaRef = quieta.id + '@' + quieta.cap + ':' + quieta.vers;
+    /* El paso atrás del rastro: un salto de verdad. */
+    await window.__toque('#btnHistorial');
+    await window.__pausa(450);
+    const atras = document.querySelector('[data-atras]');
+    if (atras){ await window.__toque(atras); await window.__pausa(2600); }
+    /* Y aquí, lejos de la quieta, se pone otra a mano. */
+    await window.__toque('#btnHistorial');
+    await window.__pausa(450);
+    await window.__nuevaCinta();
+    await window.__pausa(800);
+    const dos = window.__guardadas().length;
+    const antes = window.__guardadas().map(x => x.id + '@' + x.cap + ':' + x.vers);
+    for (let i = 0; i < 3; i++) await window.__pasar('right');
+    await window.__pausa(400);
+    const despues = window.__guardadas().map(x => x.id + '@' + x.cap + ':' + x.vers);
+    const quietaSigue = despues.includes(quietaRef);
+    return { antes, dos, despues, cuantas: window.__guardadas().length, quietaRef, quietaSigue };
+  });
+  di('antes', vieja.antes);
+  di('después', vieja.despues);
+  vale('hay dos', vieja.dos === 2 && vieja.cuantas === 2, vieja.cuantas);
+  vale('la vieja no se movió', vieja.quietaSigue, vieja.quietaRef);
+  vale('y la nueva sí', vieja.despues.length === 2 &&
+       vieja.despues.some(x => !vieja.antes.includes(x)));
+
+  /* ================================================================
+     Y DE LEJOS TAMPOCO ANDA, AUNQUE SE VAYA HACIA ADELANTE.
+
+     Es la misma idea que el bloque de arriba, por el otro lado. La vista de
+     lejos tiene su propio acelerador: se sostiene el tirador y las hojas pasan
+     solas, cada vez más deprisa. Eso es hojear —buscar por la forma de la
+     mancha, ver cuánto falta— y la cinta marca hasta dónde LEÍSTE; arrastrarla
+     con veinte hojas que pasaron en tres segundos la deja donde el lector no
+     ha estado.
+
+     EL CONTROL ES LA MITAD DE ESTA PRUEBA, y sin él no prueba nada: «la cinta
+     no se movió» lo cumple igual de bien una cinta que ya no se mueve NUNCA,
+     que es el fallo más fácil de introducir aquí. Así que se pasa hoja de
+     cerca al terminar y se exige que SÍ se mueva.
+     Y se comprueba que la hoja cambió de verdad de lejos: si los pasos no
+     pasaran hojas, la cinta se quedaría quieta por no haber ido a ninguna
+     parte y esto saldría verde sin haber mirado lo que viene a mirar.
+     ================================================================ */
+  titulo('DE LEJOS LA CINTA TAMPOCO ANDA');
+  const deLejos = await p2.evaluate(async () => {
+    /* LA ACTIVA, que a estas alturas del fichero es la segunda: la primera
+       se quedó atrás a propósito en el bloque de arriba y una cinta quieta no
+       prueba nada aquí —no se movería ni leyendo—. */
+    const id = (window.__cinta() || {}).id;
+    const donde = () => { const c = window.__guardadas().find(x => x.id === id);
+                          return c ? c.cap + ':' + c.vers : '(no está)'; };
+    const salida = { cinta: donde(), hoja: window.__hoja() };
+    document.getElementById('btnZoom').click();
+    await window.__pausa(1600);
+    const paso = document.querySelector('#zoomPasos [data-paso="1"]');
+    if (!paso) return { sinPaso:true, salida };
+    /* Tres hojas hacia adelante, que es el sentido en el que sí se movería
+       leyendo de cerca. */
+    for (let i = 0; i < 3; i++){ paso.click(); await window.__pausa(2200); }
+    const lejos = { cinta: donde(), hoja: window.__hoja(),
+                    enZoom: document.getElementById('pg').classList.contains('zoom') };
+    /* Se sale por el hueco de debajo del libro, que es la salida de verdad. */
+    const r = document.querySelector('#pg .pg-inner').getBoundingClientRect();
+    document.getElementById('pg').dispatchEvent(new MouseEvent('click',
+      { bubbles:true, clientX:Math.round(r.left+r.width/2), clientY:Math.round(r.bottom+60) }));
+    await window.__pausa(2200);
+    const alVolver = { cinta: donde(), hoja: window.__hoja(),
+                       cerca: !document.getElementById('pg').classList.contains('zoom') };
+    /* EL CONTROL: de cerca sí anda. */
+    await window.__pasar('right');
+    await window.__pausa(900);
+    return { salida, lejos, alVolver, control: { cinta: donde(), hoja: window.__hoja() } };
+  });
+  di('la cinta de lejos', JSON.stringify(deLejos));
+  vale('(la prueba es válida) hay una cinta activa que vigilar',
+       !deLejos.sinPaso && deLejos.salida.cinta !== '(no está)', deLejos.salida);
+  vale('(la prueba es válida) se abrió la vista de lejos y pasó hojas',
+       !deLejos.sinPaso && deLejos.lejos.enZoom === true &&
+       deLejos.lejos.hoja !== deLejos.salida.hoja,
+       deLejos.salida.hoja + '  →  ' + (deLejos.lejos || {}).hoja);
+  vale('PASAR HOJA DE LEJOS NO MUEVE LA CINTA',
+       deLejos.lejos.cinta === deLejos.salida.cinta,
+       deLejos.salida.cinta + '  →  ' + deLejos.lejos.cinta);
+  vale('  y al volver de cerca sigue donde estaba',
+       deLejos.alVolver.cerca === true &&
+       deLejos.alVolver.cinta === deLejos.salida.cinta,
+       deLejos.alVolver.cinta);
+  /* La otra mitad: que siga moviéndose cuando toca. */
+  vale('CONTROL: leyendo de cerca sí anda',
+       deLejos.control.cinta !== deLejos.salida.cinta,
+       deLejos.salida.cinta + '  →  ' + deLejos.control.cinta);
+
+
+  await cerrarParcial(tres, 'la lectura que dice que sí');
+}
+
 (async () => {
+  if (TRAMO === 2){ await laLecturaDeVerdad(); return fin(); }
   const sesion = await abrir();
   const p = sesion.pagina;
   await abrirEn(p, 'MAT', 1, 1);
@@ -1767,253 +2022,9 @@ async function ponerAMano(p){
 
   await cerrarParcial(sesion, 'teléfono');
 
-  /* ================================================================
-     LA LECTURA DE VERDAD. En su propia sesión y desde cero: hacen falta dos
-     hojas leídas SEGUIDAS, y cualquier resto de la tanda de arriba las
-     contaminaría. Los tiempos salen de LECTURA_MINIMA —20 s— y no se pueden
-     acortar sin dejar de probar lo que se viene a probar. */
-  const dos = await abrir();
-  const q = dos.pagina;
-  await abrirEn(q, 'MAT', 1, 1);
-  const ESPERA = 21500;
-
-  titulo('dos hojas leídas de verdad, y a la tercera pregunta');
-  const leyendo = await q.evaluate(async (espera) => {
-    const antesDeLeer = window.__oferta();
-    await window.__pausa(espera);        // hoja 1 leída
-    await window.__pasar('right');
-    const traslaPrimera = window.__oferta();
-    await window.__pausa(espera);        // hoja 2 leída
-    await window.__pasar('right');       // llega a la tercera
-    await window.__pausa(600);
-    const hay = window.__oferta();
-    const caja = document.getElementById('sepOferta');
-    const st = document.getElementById('stage').getBoundingClientRect();
-    const r = caja.getBoundingClientRect();
-    return { antesDeLeer, traslaPrimera, hay,
-             dice: (caja.textContent || '').trim(),
-             botones: caja.querySelectorAll('button').length,
-             dentro: r.left >= st.left - 1 && r.right <= st.right + 1 && r.bottom <= st.bottom + 1,
-             tapaLaHoja: r.top < document.getElementById('pg').getBoundingClientRect().bottom - 120 };
-  }, ESPERA);
-  di('la oferta', leyendo.dice);
-  vale('no pregunta antes de leer nada', !leyendo.antesDeLeer);
-  vale('ni con una sola hoja leída', !leyendo.traslaPrimera);
-  vale('con dos leídas, pregunta', leyendo.hay);
-  vale('con sus dos respuestas', leyendo.botones === 2);
-  vale('entera dentro de la escena', leyendo.dentro);
-  vale('y sin taparle la lectura', !leyendo.tapaLaHoja);
-
-  titulo('decir que NO no pone nada, y no vuelve a preguntar');
-  const queNo = await q.evaluate(async (espera) => {
-    await window.__toque('[data-sep-no]');
-    await window.__pausa(500);
-    const trasNo = { oferta: window.__oferta(), guardadas: window.__guardadas().length };
-    /* Y se siguen leyendo dos hojas más: en esta misma lectura ya no pregunta. */
-    await window.__pausa(espera);
-    await window.__pasar('right');
-    await window.__pausa(espera);
-    await window.__pasar('right');
-    await window.__pausa(700);
-    return { trasNo, oferta: window.__oferta(), guardadas: window.__guardadas().length };
-  }, ESPERA);
-  vale('no pone separador', queNo.trasNo.guardadas === 0);
-  vale('y la caja se va', !queNo.trasNo.oferta);
-  vale('no vuelve a preguntar en esta lectura', !queNo.oferta, queNo.oferta);
-
-  await cerrarParcial(dos, 'la lectura que dice que no');
-
-  /* ================================================================ */
-  const tres = await abrir();
-  const p2 = tres.pagina;
-  await abrirEn(p2, 'MAT', 1, 1);
-
-  titulo('decir que SÍ pone la cinta, y la cinta sigue al lector');
-  const queSi = await p2.evaluate(async (espera) => {
-    await window.__pausa(espera);
-    await window.__pasar('right');
-    await window.__pausa(espera);
-    await window.__pasar('right');
-    await window.__pausa(600);
-    const preguntó = window.__oferta();
-    const hojaDeLaCinta = window.__hoja();
-    await window.__toque('[data-sep-si]');
-    await window.__pausa(700);
-    await window.__abrirCajon();
-    const puesta = window.__guardadas()[0];
-    const cinta = window.__cinta();
-    /* Y ahora se sigue leyendo: la cinta activa tiene que venirse. */
-    await window.__pasar('right');
-    await window.__pausa(600);
-    await window.__abrirCajon();
-    const seVino = !!window.__cinta();
-    const movida = window.__guardadas()[0];
-    return { preguntó, hojaDeLaCinta, puesta, cinta, seVino, movida,
-             hojaAhora: window.__hoja(), cuantas: window.__guardadas().length };
-  }, ESPERA);
-  di('la cinta', queSi.puesta);
-  vale('preguntó', queSi.preguntó);
-  vale('el sí la pone', queSi.cuantas === 1 && !!queSi.cinta);
-  vale('en la hoja donde estaba', queSi.puesta &&
-       queSi.hojaDeLaCinta.indexOf(String(queSi.puesta.cap) + ':') > 0,
-       queSi.hojaDeLaCinta + '  vs  ' + (queSi.puesta && queSi.puesta.cap + ':' + queSi.puesta.vers));
-  vale('con fecha de creación y de cambio', queSi.puesta &&
-       queSi.puesta.creado > 0 && queSi.puesta.tocado > 0);
-  vale('y al seguir leyendo se viene con el lector', queSi.seVino);
-  vale('sin duplicarse', queSi.cuantas === 1);
-  vale('la referencia cambió', queSi.movida &&
-       (queSi.movida.cap !== queSi.puesta.cap || queSi.movida.vers !== queSi.puesta.vers),
-       (queSi.puesta && queSi.puesta.cap + ':' + queSi.puesta.vers) + '  →  ' +
-       (queSi.movida && queSi.movida.cap + ':' + queSi.movida.vers));
-
-  titulo('LA CINTA NO ANDA HACIA ATRÁS');
-  /* ESTO AFIRMABA LO CONTRARIO hasta hoy: «al pasar hacia atrás la activa se
-     mueve». La cinta seguía al lector en los dos sentidos, y eso la convierte
-     en otra cosa. Una cinta marca hasta dónde llegaste; volver una hoja a
-     releer un versículo no deshace lo leído, y sin embargo arrastraba la marca
-     contigo. Retrocedías tres hojas para comprobar un nombre, volvías
-     adelante, y tu cinta se había quedado tres hojas atrás sin que hubieras
-     tocado nada.
-
-     Y NO BASTA CON MIRAR EL SENTIDO DEL GESTO, por eso se prueban los tres
-     pasos seguidos. Retroceder y volver adelante es un gesto «hacia adelante»
-     que cae sobre hoja ya leída: si lo único que se comprobara fuera la
-     dirección, la cinta se iría ahí y habría andado hacia atrás por la puerta
-     de al lado. Lo que el programa compara es el SITIO, y esta prueba lo
-     comprueba llegando por los dos caminos. */
-  const haciaAtras = await p2.evaluate(async () => {
-    const id = window.__guardadas()[0] && window.__guardadas()[0].id;
-    const donde = () => { const c = window.__guardadas().find(x => x.id === id);
-                          return c ? c.cap + ':' + c.vers : '(no está)'; };
-    const salida = donde();
-    await window.__pasar('left');  await window.__pausa(400);
-    const unaAtras = donde();
-    await window.__pasar('left');  await window.__pausa(400);
-    const dosAtras = donde();
-    /* y ahora adelante, pero todavía por detrás de donde está la cinta */
-    await window.__pasar('right'); await window.__pausa(400);
-    const volviendo = donde();
-    return { id, salida, unaAtras, dosAtras, volviendo };
-  });
-  di('la cinta al ir y venir', [haciaAtras.salida, haciaAtras.unaAtras,
-      haciaAtras.dosAtras, haciaAtras.volviendo].join('  →  '));
-  vale('AL PASAR HACIA ATRÁS LA CINTA SE QUEDA DONDE ESTABA',
-       haciaAtras.unaAtras === haciaAtras.salida &&
-       haciaAtras.dosAtras === haciaAtras.salida,
-       haciaAtras.salida + '  →  ' + haciaAtras.unaAtras + '  →  ' + haciaAtras.dosAtras);
-  vale('  y volver adelante sobre lo ya leído tampoco la retrasa',
-       haciaAtras.volviendo === haciaAtras.salida,
-       haciaAtras.salida + '  →  ' + haciaAtras.volviendo);
-
-  titulo('la cinta vieja se queda donde la dejaron');
-  /* Se salta por el rastro en vez de retroceder con el filo, y ahora es por
-     una razón distinta a la de antes. Antes hacía falta porque la activa se
-     venía en los dos sentidos y hacia atrás seguía pegada al lector. Ahora ya
-     no se viene hacia atrás —ver el bloque de arriba—, pero retroceder deja
-     al lector CON la cinta delante, y el botón abriría su menú en vez de
-     poner otra: para tener dos, hay que irse lejos de la primera. */
-  /* Dos referencias DISTINTAS: el rastro se pinta sin ecos, así que dos
-     iguales seguidas dejarían el panel sin paso atrás que tocar. */
-  await p2.evaluate(() => localStorage.setItem('glossa:historial:v1', JSON.stringify([
-    { libro:'MAT', cap:5, vers:1, t:Date.now() },
-    { libro:'MAT', cap:1, vers:1, t:Date.now() - 1 }])));
-  const vieja = await p2.evaluate(async () => {
-    const quieta = window.__guardadas()[0];
-    const quietaRef = quieta.id + '@' + quieta.cap + ':' + quieta.vers;
-    /* El paso atrás del rastro: un salto de verdad. */
-    await window.__toque('#btnHistorial');
-    await window.__pausa(450);
-    const atras = document.querySelector('[data-atras]');
-    if (atras){ await window.__toque(atras); await window.__pausa(2600); }
-    /* Y aquí, lejos de la quieta, se pone otra a mano. */
-    await window.__toque('#btnHistorial');
-    await window.__pausa(450);
-    await window.__nuevaCinta();
-    await window.__pausa(800);
-    const dos = window.__guardadas().length;
-    const antes = window.__guardadas().map(x => x.id + '@' + x.cap + ':' + x.vers);
-    for (let i = 0; i < 3; i++) await window.__pasar('right');
-    await window.__pausa(400);
-    const despues = window.__guardadas().map(x => x.id + '@' + x.cap + ':' + x.vers);
-    const quietaSigue = despues.includes(quietaRef);
-    return { antes, dos, despues, cuantas: window.__guardadas().length, quietaRef, quietaSigue };
-  });
-  di('antes', vieja.antes);
-  di('después', vieja.despues);
-  vale('hay dos', vieja.dos === 2 && vieja.cuantas === 2, vieja.cuantas);
-  vale('la vieja no se movió', vieja.quietaSigue, vieja.quietaRef);
-  vale('y la nueva sí', vieja.despues.length === 2 &&
-       vieja.despues.some(x => !vieja.antes.includes(x)));
-
-  /* ================================================================
-     Y DE LEJOS TAMPOCO ANDA, AUNQUE SE VAYA HACIA ADELANTE.
-
-     Es la misma idea que el bloque de arriba, por el otro lado. La vista de
-     lejos tiene su propio acelerador: se sostiene el tirador y las hojas pasan
-     solas, cada vez más deprisa. Eso es hojear —buscar por la forma de la
-     mancha, ver cuánto falta— y la cinta marca hasta dónde LEÍSTE; arrastrarla
-     con veinte hojas que pasaron en tres segundos la deja donde el lector no
-     ha estado.
-
-     EL CONTROL ES LA MITAD DE ESTA PRUEBA, y sin él no prueba nada: «la cinta
-     no se movió» lo cumple igual de bien una cinta que ya no se mueve NUNCA,
-     que es el fallo más fácil de introducir aquí. Así que se pasa hoja de
-     cerca al terminar y se exige que SÍ se mueva.
-     Y se comprueba que la hoja cambió de verdad de lejos: si los pasos no
-     pasaran hojas, la cinta se quedaría quieta por no haber ido a ninguna
-     parte y esto saldría verde sin haber mirado lo que viene a mirar.
-     ================================================================ */
-  titulo('DE LEJOS LA CINTA TAMPOCO ANDA');
-  const deLejos = await p2.evaluate(async () => {
-    /* LA ACTIVA, que a estas alturas del fichero es la segunda: la primera
-       se quedó atrás a propósito en el bloque de arriba y una cinta quieta no
-       prueba nada aquí —no se movería ni leyendo—. */
-    const id = (window.__cinta() || {}).id;
-    const donde = () => { const c = window.__guardadas().find(x => x.id === id);
-                          return c ? c.cap + ':' + c.vers : '(no está)'; };
-    const salida = { cinta: donde(), hoja: window.__hoja() };
-    document.getElementById('btnZoom').click();
-    await window.__pausa(1600);
-    const paso = document.querySelector('#zoomPasos [data-paso="1"]');
-    if (!paso) return { sinPaso:true, salida };
-    /* Tres hojas hacia adelante, que es el sentido en el que sí se movería
-       leyendo de cerca. */
-    for (let i = 0; i < 3; i++){ paso.click(); await window.__pausa(2200); }
-    const lejos = { cinta: donde(), hoja: window.__hoja(),
-                    enZoom: document.getElementById('pg').classList.contains('zoom') };
-    /* Se sale por el hueco de debajo del libro, que es la salida de verdad. */
-    const r = document.querySelector('#pg .pg-inner').getBoundingClientRect();
-    document.getElementById('pg').dispatchEvent(new MouseEvent('click',
-      { bubbles:true, clientX:Math.round(r.left+r.width/2), clientY:Math.round(r.bottom+60) }));
-    await window.__pausa(2200);
-    const alVolver = { cinta: donde(), hoja: window.__hoja(),
-                       cerca: !document.getElementById('pg').classList.contains('zoom') };
-    /* EL CONTROL: de cerca sí anda. */
-    await window.__pasar('right');
-    await window.__pausa(900);
-    return { salida, lejos, alVolver, control: { cinta: donde(), hoja: window.__hoja() } };
-  });
-  di('la cinta de lejos', JSON.stringify(deLejos));
-  vale('(la prueba es válida) hay una cinta activa que vigilar',
-       !deLejos.sinPaso && deLejos.salida.cinta !== '(no está)', deLejos.salida);
-  vale('(la prueba es válida) se abrió la vista de lejos y pasó hojas',
-       !deLejos.sinPaso && deLejos.lejos.enZoom === true &&
-       deLejos.lejos.hoja !== deLejos.salida.hoja,
-       deLejos.salida.hoja + '  →  ' + (deLejos.lejos || {}).hoja);
-  vale('PASAR HOJA DE LEJOS NO MUEVE LA CINTA',
-       deLejos.lejos.cinta === deLejos.salida.cinta,
-       deLejos.salida.cinta + '  →  ' + deLejos.lejos.cinta);
-  vale('  y al volver de cerca sigue donde estaba',
-       deLejos.alVolver.cerca === true &&
-       deLejos.alVolver.cinta === deLejos.salida.cinta,
-       deLejos.alVolver.cinta);
-  /* La otra mitad: que siga moviéndose cuando toca. */
-  vale('CONTROL: leyendo de cerca sí anda',
-       deLejos.control.cinta !== deLejos.salida.cinta,
-       deLejos.salida.cinta + '  →  ' + deLejos.control.cinta);
-
-
-  await cerrarParcial(tres, 'la lectura que dice que sí');
+  /* La lectura de verdad, la del sí y la del no: ver laLecturaDeVerdad,
+     más arriba. */
+  if (tramo(2)) await laLecturaDeVerdad();
 
   /* ================================================================
      ESCRITORIO. La columna de glosas mide 152px en vez de 240 y la cinta es

@@ -6419,6 +6419,15 @@
   #tiradores .tirador[data-tirador="ini"]::before{ top:auto; bottom:0; }
   #tiradores .tirador[data-tirador="ini"]::after{ bottom:auto; top:100%; }
   #tiradores .tirador:active{ cursor:grabbing; }
+  /* MIENTRAS EL DEDO PINTA, LOS TIRADORES NO ESTÁN PARA EL DEDO. El de
+     terminar sigue al trazo y se cuelga justo debajo de donde va el dedo, con
+     su hueco de 30 px hacia abajo: al bajar pintando, cada punto siguiente
+     caía sobre ese hueco, caretPositionFromPoint devolvía el botón en vez del
+     texto y el trazo dejaba de seguir al dedo. Medido en la prueba del aviso
+     de cruzar: los cinco últimos puntos del trazo, todos sobre el tirador, y
+     el aviso sin salir. Durante el gesto no hay tirador que agarrar —el dedo
+     ya está abajo, pintando—, así que se apagan hasta que se levante. */
+  html.pintando-con-el-dedo #tiradores .tirador{ pointer-events:none; }
   #tiradores .tirador:focus-visible{ outline:2px solid #e8d5a3; outline-offset:3px; }
   /* Quien pide menos movimiento no quiere que una bolita se deslice sola al
      cambiar de sitio: se pone donde toca y ya. */
@@ -7960,7 +7969,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 13:10';
+window.GLOSS_BUILD = '24-NOV-26 14:03';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -13912,9 +13921,17 @@ function colocarTiradores(){
   const sePuedeGlosar = t => t && t.closest &&
     !t.closest('.gl, .peri, .vn, .cap, a, button, textarea, input, select');
 
+  /* Ver .pintando-con-el-dedo en la hoja de estilos. Se apaga al soltar, al
+     cancelar y al empezar otro toque; y además en cualquier pointerup del
+     documento, por si el dedo se levanta fuera de la hoja: una clase que se
+     quedara puesta dejaría los tiradores sin poderse agarrar. */
+  const dedoFuera = () => document.documentElement.classList.remove('pintando-con-el-dedo');
+  document.addEventListener('pointerup', dedoFuera, true);
+  document.addEventListener('pointercancel', dedoFuera, true);
   pgBody.addEventListener('pointerdown', ev => {
     if (gesto) clearTimeout(gesto.reloj);
     gesto = null;
+    dedoFuera();
     /* DE LEJOS NO SE PINTA, y esta línea ha ido y vuelto, así que conviene
        dejar las dos razones escritas.
 
@@ -13943,6 +13960,7 @@ function colocarTiradores(){
     if (marcaEn(p.k, p.off)) return;
     gesto = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, t0: performance.now(),
               k: p.k, off: p.off, pinto: false, lejos: false };
+    document.documentElement.classList.add('pintando-con-el-dedo');
     /* EL DEDO SOSTENIDO PINTA LA PALABRA, SIN ESPERAR A QUE SE MUEVA.
 
        Hasta aquí el trazo nacía del arrastre: quien apoyaba el dedo y lo
