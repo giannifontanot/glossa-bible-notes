@@ -239,8 +239,18 @@ async function irYVolver(a, base, cambiar){
   const dentroA = await A.pagina.evaluate(() => ({
     quien: document.querySelector('.cuenta-quien')?.textContent || '',
     estado: document.querySelector('.cuenta-estado')?.textContent || '',
-    fueraVisible: !document.querySelector('.cuenta-fuera')?.hidden }));
+    fueraVisible: !document.querySelector('.cuenta-fuera')?.hidden,
+    /* La tinta de cada renglón, contra el papel del panel. Salió blanca la
+       primera vez que Gianni entró, y no se leía. */
+    tintas: ['.cuenta-quien', '.cuenta-estado'].map(q => {
+      const e = document.querySelector(q);
+      const m = e && getComputedStyle(e).color.match(/[\d.]+/g);
+      if (!m) return 1;
+      const lin = c => { c /= 255; return c <= .03928 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4; };
+      return +(.2126 * lin(+m[0]) + .7152 * lin(+m[1]) + .0722 * lin(+m[2])).toFixed(3);
+    }) }));
   di('dentro', dentroA);
+  vale('  con letra oscura que se lee sobre el papel', dentroA.tintas.every(l => l < .12), dentroA.tintas);
   vale('ENTRA Y DICE QUIÉN ES', /ana@ejemplo\.org/.test(dentroA.quien) && !dentroA.fueraVisible, dentroA.quien);
   vale('  y que está guardado', /guardado|saved/i.test(dentroA.estado), dentroA.estado);
   const marcasA = await A.pagina.evaluate(() => JSON.parse(localStorage.getItem('glossa:marcas:v1') || '[]').length);
