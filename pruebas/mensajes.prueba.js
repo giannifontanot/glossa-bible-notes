@@ -442,7 +442,9 @@ const buzonDe = uid => [...nube.keys()].filter(k => k.startsWith('users/' + uid 
 
   titulo('DE GOMA, EN LUGAR DEL COLOR SE ELIGE CUÁNTO REBOTA');
   /* Gianni: «que las pelotas de goma tengan 3 tamaños de rebote, que se
-     distingan por el color». En la de goma el color sale del rebote. */
+     distingan por el color». En la de goma el color sale del rebote.
+     Como el panel ya se cierra solo al enviar, Beto lo vuelve a abrir. */
+  await abrirEnvio(B.pagina, 'nota-de-beto');
   const panelEnvio = () => B.pagina.evaluate(() => ({
     colores: document.querySelectorAll('#notaEnviar .envio-color').length,
     rebotes: [...document.querySelectorAll('#notaEnviar [data-rebote]')].map(b => [b.dataset.rebote,
@@ -582,4 +584,7 @@ const buzonDe = uid => [...nube.keys()].filter(k => k.startsWith('users/' + uid 
   await navegador.close();
   servidor.close();
   fin();
-})().catch(e => { console.error(e); process.exitCode = 1; });
+/* Si algo revienta a medio camino, el navegador y el servidor quedan
+   abiertos y la máquina de GitHub se quedaba esperando media hora hasta
+   cancelarla. Mejor salir ya, con el error a la vista. */
+})().catch(e => { console.error(e); process.exit(1); });
