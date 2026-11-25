@@ -8122,7 +8122,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 22:15';
+window.GLOSS_BUILD = '24-NOV-26 22:18';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -33858,7 +33858,16 @@ function correoArmarBloque(panel){
     if (traido && CORREO_CODIGO.test(traido) && !intentados.has(traido) && !ocupado && !correo.cargando){
       intentados.add(traido);
       cajaAgregar.value = correoBonito(traido);
-      setTimeout(() => agregar(traido), 0);
+      /* Y SE ENSEÑA CONTACTOS al agregarlo. El salto de correoTraido va a
+         ciegas, 1,6 s después de abrir, y para entonces la cuenta puede no
+         haber vuelto todavía, o algo del arranque puede haber cambiado de
+         pestaña; aquí ya se sabe que hay cuenta y código. Si ya se está
+         viendo Contactos no se toca nada. */
+      setTimeout(() => {
+        agregar(traido);
+        const k = document.getElementById('respContactos');
+        if (!k || k.hidden || !rRespaldo.abierto) correoIrAContactos();
+      }, 0);
     }
     listaContactos.textContent = '';
     if (!correo.contactos.length) vacia(listaContactos, 'Todavía nadie. Agrega a alguien con su código.', 'Nobody yet. Add someone with their code.');
