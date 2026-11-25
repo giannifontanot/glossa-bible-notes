@@ -8100,7 +8100,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 18:01';
+window.GLOSS_BUILD = '24-NOV-26 18:07';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -27398,6 +27398,10 @@ function respaldoResto(){
 function reponerResto(datos){
   if (!datos || typeof datos !== 'object' || Array.isArray(datos)) return;
   let tocado = false;
+  /* El versículo en que estás, por referencia: los ajustes que entran pueden
+     cambiar los cortes de las hojas. */
+  const h = plano[startIdx];
+  const donde = h ? { cap: h.cap, vers: h.vers } : null;
   const alms = datos.almacenes;
   if (alms && typeof alms === 'object' && !Array.isArray(alms)){
     for (const alm of NUBE_ALMACENES){
@@ -27417,7 +27421,7 @@ function reponerResto(datos){
   const a = datos.ajustes;
   if (a && typeof a === 'object' && !Array.isArray(a) && a.v === 1){
     try {
-      const aqui = plano[startIdx] || { cap:1, vers:1 };
+      const aqui = donde || { cap:1, vers:1 };
       localStorage.setItem(AJUSTES, JSON.stringify({ ...a, version, libro: LIBRO, cap: aqui.cap, vers: aqui.vers }));
       cargarAjustes();
       setColumns(columns); setPlacement(placement);
@@ -27434,7 +27438,18 @@ function reponerResto(datos){
       try { if (localStorage.getItem(k) === null) localStorage.setItem(k, v); } catch(_){}
     }
   }
-  if (tocado){ renderPage(); nubeTocada(); }
+  if (tocado){
+    renderPage();
+    /* Y SE VUELVE AL VERSÍCULO, no al número de hoja. Con otra letra, otras
+       columnas u otro interlineado los cortes cambian, y la hoja de antes ya
+       es otro pasaje (lo vio Codex). Como setVersion: se aterriza en la hoja
+       que contiene el versículo en que estabas. */
+    if (donde){
+      const k = plano.findIndex(x => x.cap === donde.cap && x.vers === donde.vers);
+      if (k >= 0 && paginaDe(k) !== paginaActual){ paginaActual = paginaDe(k); renderPage(); }
+    }
+    nubeTocada();
+  }
 }
 
 $('btnExportar').onclick = () => {
