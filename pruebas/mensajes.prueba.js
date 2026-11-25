@@ -225,7 +225,9 @@ async function aparato(navegador, base, quien, siembra){
 
 /* Ir a una sección como va un dedo: el titulillo, si hace falta, y la pestaña. */
 const PANELES = { notas:'notas', respaldo:'respaldo' };
-async function ir(p, seccion){
+/* En Respaldo, la sub-pestaña: Herramientas tiene la cuenta; Contactos, desde
+   la tanda 2, los contactos y los grupos; Compartir, tu QR. */
+async function ir(p, seccion, sub = 'tools'){
   if (!await p.locator('#' + PANELES[seccion]).isVisible()){
     if (!await p.locator('.rollo:visible .pestanas').count()){
       await p.locator('#pgCabeza').tap(); await p.waitForTimeout(900);
@@ -235,7 +237,7 @@ async function ir(p, seccion){
     await p.waitForTimeout(650);
   }
   if (seccion === 'respaldo'){
-    await p.locator('#respaldo [data-sub="tools"]').tap();
+    await p.locator('#respaldo [data-sub="' + sub + '"]').tap();
     await p.waitForTimeout(400);
   }
 }
@@ -361,14 +363,36 @@ const buzonDe = uid => [...nube.keys()].filter(k => k.startsWith('users/' + uid 
   vale('  distinto del de Beto', codigoAna !== codigoBeto, [codigoAna, codigoBeto]);
   const enGuia = nube.get('codigos/' + codigoAna.replace('-', ''));
   vale('  y la guía dice que es suyo, con su nombre', enGuia && enGuia.data.uid === ANA.uid && enGuia.data.nombre === 'Ana', enGuia && enGuia.data);
+  /* TU QR VIVE EN COMPARTIR › CÓDIGO QR desde la tanda 2: es el tuyo, el de
+     tu código, y no el de la Biblia sola. */
+  await ir(A.pagina, 'respaldo', 'compartir');
+  await A.pagina.locator('[data-compartir="qr"]').tap();
+  await A.pagina.waitForTimeout(900);
   const qr = await A.pagina.evaluate(() => {
-    const s = document.querySelector('.correo-qr'), p = s && s.querySelector('path');
+    const s = document.querySelector('.vqr-qr .correo-qr'), p = s && s.querySelector('path');
     const r = s && s.getBoundingClientRect();
-    return { hay: !!s, modulos: p ? (p.getAttribute('d').match(/M/g) || []).length : 0, ancho: r ? Math.round(r.width) : 0 };
+    const v = document.querySelector('.vqr-tarjeta');
+    return { hay: !!s, modulos: p ? (p.getAttribute('d').match(/M/g) || []).length : 0, ancho: r ? Math.round(r.width) : 0,
+             texto: v ? v.textContent : '' };
   });
-  vale('  con su QR dibujado, de buen tamaño', qr.hay && qr.modulos > 200 && qr.ancho >= 150, qr);
+  di('el QR de Ana', { ...qr, texto: qr.texto.slice(0, 160) });
+  vale('  con su QR en Compartir, de buen tamaño', qr.hay && qr.modulos > 200 && qr.ancho >= 150, qr);
+  vale('  que dice su código', qr.texto.includes(codigoAna), qr.texto);
+  await A.pagina.locator('.vqr-cerrar').tap();
+  await A.pagina.waitForTimeout(700);
+  const enHerramientas = await B.pagina.evaluate(() => ({
+    qr: !!document.querySelector('#respTools .correo-qr'),
+    contactos: !!document.querySelector('#respTools .correo-bloque'),
+    nombre: !!document.querySelector('#respTools .herr-cuenta #correoNombre'),
+    pestanas: [...document.querySelectorAll('#respaldo .sub-pestanas [data-sub]')].map(b => b.dataset.sub).join(',') }));
+  di('lo que quedó en Herramientas', enHerramientas);
+  vale('LOS CONTACTOS SE FUERON DE HERRAMIENTAS, y el QR también', !enHerramientas.qr && !enHerramientas.contactos, enHerramientas);
+  vale('  el nombre se quedó en Tu cuenta', enHerramientas.nombre, enHerramientas);
+  vale('  y las pestañas van Compartir, Contactos, Herramientas, Atribuciones',
+       enHerramientas.pestanas === 'compartir,contactos,tools,creditos', enHerramientas.pestanas);
 
   titulo('AGREGAR A ALGUIEN ES ESCRIBIR SU CÓDIGO');
+  await ir(B.pagina, 'respaldo', 'contactos');
   /* En minúsculas y sin guion, como se dicta por teléfono. */
   await B.pagina.locator('#correoAgregar').fill(codigoAna.replace('-', '').toLowerCase());
   await B.pagina.locator('#correoAgregarBtn').tap();
@@ -481,7 +505,7 @@ const buzonDe = uid => [...nube.keys()].filter(k => k.startsWith('users/' + uid 
   vale('  y la hoja dice que es de Beto', /Beto/.test(ajena.sobre), ajena.sobre);
 
   titulo('ANA ARMA UN GRUPO; CARLA ENTRA CON EL QR, BETO CON EL CÓDIGO');
-  await ir(A.pagina, 'respaldo');
+  await ir(A.pagina, 'respaldo', 'contactos');
   await A.pagina.locator('#correoGrupo').fill('Estudio del jueves');
   await A.pagina.locator('#correoGrupoBtn').tap();
   await A.pagina.waitForFunction(() => /Estudio del jueves/.test((document.querySelector('.correo-grupos') || {}).textContent || ''),
@@ -494,23 +518,37 @@ const buzonDe = uid => [...nube.keys()].filter(k => k.startsWith('users/' + uid 
     'glossa:notas:v1': [{ id:'nota-de-carla', titulo:'Pregunta', texto:'¿Quién lleva el pan?' }],
   });
   await entrar(C);
-  /* La cámara del teléfono lee el QR y abre Glossa con el código en la dirección. */
+  /* La cámara del teléfono lee el QR y abre Glossa con el código en la
+     dirección. Desde la tanda 2 se agrega solo: nadie toca «Agregar». */
   await C.pagina.goto(base + '?glossa=' + codigoGrupo);
   await listo(C.pagina);
-  await C.pagina.waitForFunction(() => !!(document.getElementById('correoAgregar') || {}).value, null, { timeout:15000 }).catch(() => {});
-  const porQr = await C.pagina.evaluate(() => ({ url: location.href, caja: (document.getElementById('correoAgregar') || {}).value }));
-  di('Carla abre el QR', porQr);
-  vale('el QR abre Glossa con el código ya escrito', porQr.caja === codigoGrupo, porQr);
-  vale('  y la dirección queda limpia', !/glossa=/.test(porQr.url), porQr.url);
-  await C.pagina.locator('#correoAgregarBtn').tap();
+  /* Chromium de escritorio no avisa que se pueda instalar; el aviso se manda
+     a mano, que es una pieza del navegador y no del programa. */
+  await C.pagina.evaluate(() => {
+    const ev = new Event('beforeinstallprompt', { cancelable:true });
+    ev.prompt = () => { window.__pidioInstalar = true; return Promise.resolve(); };
+    dispatchEvent(ev);
+  });
   await C.pagina.waitForFunction(() => /Estudio del jueves/.test((document.querySelector('.correo-dentro') || {}).textContent || ''),
-                                 null, { timeout:10000 }).catch(() => {});
+                                 null, { timeout:15000 }).catch(() => {});
+  const porQr = await C.pagina.evaluate(() => {
+    const k = document.getElementById('respContactos');
+    return { url: location.href, enContactos: !!k && !k.hidden,
+             instalar: !!document.querySelector('.aviso-instalar .aviso-instalar-si') };
+  });
+  di('Carla abre el QR', porQr);
+  vale('el QR abre Glossa en Contactos', porQr.enContactos, porQr);
+  vale('  y la dirección queda limpia', !/glossa=/.test(porQr.url), porQr.url);
+  vale('  y le ofrece instalarla', porQr.instalar, porQr);
+  await C.pagina.locator('.aviso-instalar .aviso-instalar-si').tap().catch(() => {});
+  vale('  y «Instalar» abre la ventana del navegador',
+       await C.pagina.evaluate(() => !!window.__pidioInstalar && !document.querySelector('.aviso-instalar')));
   const dentroCarla = await C.pagina.evaluate(() => ({
     dentro: document.querySelector('.correo-dentro').textContent, contactos: document.querySelector('.correo-lista').textContent }));
   vale('CARLA QUEDA DENTRO SIN ESPERAR A NADIE', /Estudio del jueves/.test(dentroCarla.dentro), dentroCarla);
   vale('  y con Ana en sus contactos, para contestarle', /Ana/.test(dentroCarla.contactos) &&
        !!nube.get('users/' + CARLA.uid + '/contactos/' + ANA.uid), dentroCarla.contactos);
-  await ir(B.pagina, 'respaldo');
+  await ir(B.pagina, 'respaldo', 'contactos');
   await B.pagina.locator('#correoAgregar').fill(codigoGrupo);
   await B.pagina.locator('#correoAgregarBtn').tap();
   await B.pagina.waitForFunction(() => /Estudio del jueves/.test((document.querySelector('.correo-dentro') || {}).textContent || ''),

@@ -4146,8 +4146,11 @@
   .compartir-boton.copiado{ background:linear-gradient(to bottom, #348a58, #26693f); border-color:#1d5232; color:#fbf3df; }
   .compartir-boton.copiado .cb-icono{ color:#fff; background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.45); }
   .compartir-boton.copiado .cb-para{ color:#e2f1e6; }
-  .compartir-aviso{ position:absolute !important; width:1px; height:1px; margin:-1px; padding:0;
-            overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+  /* LO QUE PASÓ AL ESCANEAR O ENVIAR, a la vista y debajo de los botones. */
+  .compartir-dice{ width:min(44vh, 82%); margin:12px auto 0; padding:9px 11px; box-sizing:border-box;
+            border-radius:8px; background:rgba(184,137,43,.14); color:#3d2f12; text-align:center;
+            font:600 calc(13px * var(--escala-ui, 1))/1.4 var(--ui); }
+  .compartir-dice[hidden]{ display:none; }
   @media (prefers-reduced-motion: reduce){
     .compartir-boton{ transition:none; }
     .compartir-boton:active{ transform:none; } }
@@ -4198,6 +4201,9 @@
   .qr-dice{ margin:4px 0 0; max-width:min(78vw, 360px); text-align:center;
             font:600 calc(14px * var(--escala-ui, 1))/1.35 var(--ui); color:#3d2f12; }
   .qr-liga{ margin:0; font:500 calc(12px * var(--escala-ui, 1))/1.3 var(--ui); color:#7a6638; }
+  .vqr-qr{ display:flex; justify-content:center; }
+  .vqr-tarjeta .qr-pista{ font-weight:500; font-size:calc(12.5px * var(--escala-ui, 1)); color:#5c4a24; }
+  .vqr-tarjeta .qr-pista[hidden]{ display:none; }
   /* EL CERRAR ES EL DE TODA LA APP, pedido por Gianni: lo estrenó en azul,
      como los tres botones, y no era eso —una salida es una salida y se ve
      igual en todas partes—. Lleva las mismas clases que el pie de los
@@ -4272,8 +4278,8 @@
   /* #respaldo delante: la regla que le pone la letra del libro a los botones
      del panel es #respaldo .btn:not(.cerrar-pie), y sin esto le ganaba a los
      de aquí —Exportar e Importar se quedaban grandes—. Lo levantó Codex. */
-  #respaldo #respTools .herr-dice, #respaldo #respTools .btn, #respaldo #respTools .casilla,
-  #respaldo #respTools .fallo-respaldo,
+  #respaldo :is(#respTools, #respContactos) .herr-dice, #respaldo :is(#respTools, #respContactos) .btn,
+  #respaldo #respTools .casilla, #respaldo :is(#respTools, #respContactos) .fallo-respaldo,
   #respCreditos .cred, #respCreditos .atrib-lista li{
     font-size:calc(var(--fs-libro, 15px) * .85); }
   .herr-dice{ margin:0 0 12px; line-height:1.45; color:#5c4a24; font-size:.93em; }
@@ -4285,26 +4291,29 @@
      sobre el papel no se leían. Lo vio Gianni al entrar con Google la primera
      vez. Ahora cada renglón lleva el marrón de lo demás del panel, y quién eres
      va más oscuro y en negrita, que es lo que se viene a mirar. */
-  #respaldo #respTools .cuenta-quien, #respaldo #respTools .cuenta-dice,
-  #respaldo #respTools .cuenta-etq, #respaldo #respTools .cuenta-caja{
+  #respaldo :is(#respTools, #respContactos) :is(.cuenta-quien, .cuenta-dice, .cuenta-etq, .cuenta-caja){
     font-size:calc(var(--fs-libro, 15px) * .85); }
   .herr-cuenta .cuenta-quien{ margin:0 0 6px; font-weight:700; color:#3d2f12; overflow-wrap:anywhere; }
   .herr-cuenta .cuenta-dice{ margin:0 0 12px; line-height:1.45; color:#5c4a24; }
   .herr-cuenta .cuenta-etq{ display:block; margin:14px 0 6px; color:#3d2f12; }
   /* La caja del correo: 16 px como mínimo, que con menos el iPhone se acerca
      solo al tocarla. */
-  #respaldo #respTools .herr-cuenta .cuenta-caja{ display:block; width:100%; box-sizing:border-box;
+  #respaldo :is(#respTools, #respContactos) .herr-cuenta .cuenta-caja{ display:block; width:100%; box-sizing:border-box;
     min-height:46px; margin:0 0 10px; padding:8px 11px; font-size:max(16px, calc(var(--fs-libro, 15px) * .85));
     font-family:var(--ui); color:#2a2010; background:#fffaf0;
     border:1px solid rgba(140,116,68,.55); border-radius:7px; }
   .herr-cuenta .cuenta-caja:focus-visible{ outline:2px solid #b8892b; outline-offset:1px; }
   #respaldo .herr-cuenta .cuenta-form .btn, #respaldo .herr-cuenta .cuenta-dentro .btn{
     width:100%; min-height:46px; justify-content:center; }
-  /* TUS CONTACTOS Y GRUPOS, debajo de la cuenta. Tu código grande y su QR
-     en blanco, que es lo que una cámara lee mejor. */
-  .correo-bloque{ margin-top:22px; padding-top:16px; border-top:1px solid rgba(140,116,68,.35); }
-  .correo-bloque[hidden], .correo-cuerpo[hidden], .correo-bloque [hidden]{ display:none; }
-  .correo-tit{ margin:0 0 8px; color:#3d2f12; font:700 calc(var(--fs-libro, 15px) * 1)/1.3 var(--fam-libro, Georgia, serif); }
+  /* TUS CONTACTOS Y GRUPOS, en su pestaña (tanda 2). Tu código grande; su
+     QR, en blanco, que es lo que una cámara lee mejor, sale en Compartir. */
+  .correo-bloque[hidden], .correo-cuerpo[hidden], .correo-bloque [hidden],
+  .correo-fuera[hidden], .correo-fuera [hidden], .correo-nombre-form[hidden],
+  .correo-nombre-form [hidden]{ display:none; }
+  #respaldo #respContactos .correo-fuera .btn, #respaldo #respContactos .correo-mio .btn{
+    width:100%; min-height:46px; justify-content:center; }
+  /* Tu nombre, dentro de Tu cuenta: aire con quién eres y con Salir. */
+  .correo-nombre-form{ margin:4px 0 14px; }
   .correo-sub{ margin:20px 0 8px; color:#3d2f12; font:700 calc(var(--fs-libro, 15px) * .85)/1.3 var(--ui); }
   .correo-mio{ margin:6px 0 14px; padding:14px; text-align:center; border:1px solid rgba(140,116,68,.4);
     border-radius:9px; background:rgba(255,250,240,.75); }
@@ -4312,20 +4321,28 @@
     text-transform:uppercase; letter-spacing:.08em; }
   .correo-codigo{ margin:4px 0 10px; color:#2a2010; font:700 calc(var(--fs-libro, 15px) * 1.7)/1.2 ui-monospace, Menlo, Consolas, monospace;
     letter-spacing:.08em; -webkit-user-select:all; user-select:all; }
-  .correo-qr-caja{ display:flex; justify-content:center; margin:0 0 12px; }
   .correo-qr{ width:min(220px, 70vw); height:auto; border-radius:6px; background:#fff; }
   .correo-form{ margin:0 0 6px; }
   #respaldo .herr-cuenta .correo-form > .btn{ width:100%; min-height:46px; justify-content:center; }
-  #respaldo #respTools .correo-bloque .correo-aviso{ margin:10px 0 4px; padding:9px 11px; border-radius:7px;
+  #respaldo :is(#respTools, #respContactos) .correo-aviso{ margin:10px 0 4px; padding:9px 11px; border-radius:7px;
     background:rgba(184,137,43,.14); color:#3d2f12; }
   .correo-lista{ list-style:none; margin:0; padding:0; display:grid; gap:8px; }
   .correo-fila{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 10px;
     border:1px solid rgba(140,116,68,.3); border-radius:7px; background:rgba(255,253,247,.6); }
   .correo-nombre{ flex:1 1 140px; min-width:0; color:#3d2f12; font-weight:700; overflow-wrap:anywhere; }
   .correo-nombre small{ display:block; margin-top:2px; color:#6b5a3a; font-weight:400; }
-  #respaldo #respTools .btn.correo-chico{ min-height:40px; padding:6px 11px; }
-  #respaldo #respTools .btn.correo-peligro{ color:#8e2a1e; border-color:rgba(142,42,30,.45); }
+  #respaldo #respContactos .btn.correo-chico{ min-height:40px; padding:6px 11px; }
+  #respaldo #respContactos .btn.correo-peligro{ color:#8e2a1e; border-color:rgba(142,42,30,.45); }
   .correo-vacia{ color:#6b5a3a; font-style:italic; }
+  /* OFRECER INSTALARLA, abajo y por encima de todo, al llegar por un QR. */
+  .aviso-instalar{ position:fixed; left:12px; right:12px; bottom:calc(14px + env(safe-area-inset-bottom, 0px));
+    z-index:2147482000; max-width:460px; margin:0 auto; padding:14px 14px 12px; box-sizing:border-box;
+    border:1px solid rgba(140,116,68,.55); border-radius:12px; background:#f6eedb; color:#3d2f12;
+    box-shadow:0 10px 30px rgba(40,28,10,.35); font:500 16px/1.45 var(--ui); }
+  .aviso-instalar p{ margin:0 0 12px; }
+  .aviso-instalar-botones{ display:flex; gap:10px; justify-content:flex-end; }
+  .aviso-instalar .btn{ min-height:44px; padding:8px 16px; font-size:15px; }
+  .aviso-instalar .btn.aviso-instalar-si{ background:#8a6416; color:#fffdf7; border-color:#8a6416; }
   /* LA CÁMARA PARA ESCANEAR, a pantalla completa y por encima de todo. */
   .correo-camara{ position:fixed; inset:0; z-index:2147483000; display:flex; flex-direction:column;
     align-items:center; justify-content:center; gap:14px; padding:20px; background:rgba(8,7,5,.92); color:#f4ead4; }
@@ -5844,28 +5861,33 @@
   #filtros .ftab-txt{ overflow:hidden; text-overflow:ellipsis; }
   #filtros .ftab-n:empty{ display:none; }
   #filtros .ftab-n{ flex:none; color:#8a6416; }
-  /* El candado, dibujado: el cuerpo y el arco. Cerrado, el arco baja entero
-     a su sitio; abierto, se levanta y se corre a un lado, que es como lo
-     dibujan todos los teléfonos. Dorado cuando filtra, para que se vea. */
-  #filtros .candado{ flex:none; width:15px; height:15px; fill:none; stroke:currentColor;
+  /* LA CASILLA, EN LUGAR DEL CANDADO. Gianni pidió cambiar el candado por
+     una casilla de marcar (tanda 2): se entiende sin explicación. Marcada =
+     «todos», que es lo mismo que el candado cerrado: la sección no filtra.
+     Sin marcar = solo lo elegido. El estado sigue siendo el mismo
+     aria-pressed del botón .fsec-todos de antes, así que lo guardado y lo que
+     lo lee no cambian. En la pestaña va una casilla chiquita con el mismo
+     sentido, para ver de un vistazo cuál filtra; sin marcar va dorada. */
+  #filtros .casilla{ flex:none; width:15px; height:15px; fill:none; stroke:currentColor;
           stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; overflow:visible; }
-  #filtros .candado rect{ fill:currentColor; fill-opacity:.18; }
-  #filtros .candado .cd-arco{ transition:transform .2s cubic-bezier(.22,.72,.24,1); transform-origin:16px 11px; }
-  #filtros .ftab.abierta .candado, #filtros .fsec-todos[aria-pressed="false"] .candado{ color:#b8892b; }
-  #filtros .ftab.abierta .cd-arco, #filtros .fsec-todos[aria-pressed="false"] .cd-arco{
-          transform:translate(-3px, -3px) rotate(-28deg); }
-  #filtros .candado.grande{ width:20px; height:20px; }
+  #filtros .casilla rect{ fill:#fffdf7; }
+  #filtros .casilla .cs-palomita{ stroke-width:2.8; transition:opacity .15s ease; }
+  #filtros .ftab.abierta .casilla .cs-palomita,
+  #filtros .fsec-todos[aria-pressed="false"] .cs-palomita{ opacity:0; }
+  #filtros .ftab.abierta .casilla, #filtros .fsec-todos[aria-pressed="false"] .casilla{ color:#b8892b; }
+  #filtros .fsec-todos[aria-pressed="true"] .casilla rect{ fill:#8a6416; stroke:#8a6416; }
+  #filtros .fsec-todos[aria-pressed="true"] .cs-palomita{ stroke:#fffdf7; }
+  #filtros .ftab:not(.abierta) .casilla rect{ fill:currentColor; fill-opacity:.18; }
+  #filtros .casilla.grande{ width:24px; height:24px; }
   #filtros .fsec{ display:none; flex-direction:column; align-items:stretch; gap:4px; padding-top:2px; }
   #filtros .fsec.activa{ display:flex; }
-  #filtros .fsec-todos{ display:flex; align-items:center; gap:10px; width:100%;
+  #filtros .fsec-todos{ display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
           min-height:40px; padding:2px 2px; margin:0; border:0; background:transparent;
-          color:#4a3a1c; cursor:pointer; text-align:left;
+          color:#4a3a1c; cursor:pointer; text-align:center;
           font:600 calc(var(--fs-glosa-ui, 14px) * .9)/1.2 var(--ui); }
   #filtros .fsec-todos:focus-visible{ outline:2px solid #8a6416; outline-offset:1px; border-radius:6px; }
-  #filtros .fsec-todos[aria-pressed="true"] .fsec-abierto,
-  #filtros .fsec-todos[aria-pressed="false"] .fsec-cerrado{ display:none; }
   @media (prefers-reduced-motion: reduce){
-    #filtros .candado .cd-arco{ transition:none; }
+    #filtros .casilla .cs-palomita{ transition:none; }
   }
   #filtros .fsec-pills{ display:flex; flex-wrap:wrap; align-items:center; gap:5px 6px;
                         padding:0 0 4px 2px; transition:opacity .2s ease; }
@@ -7736,40 +7758,40 @@
        El botón del candado sigue siendo .fsec-todos con data-todos y
        aria-pressed (puesto = cerrado = todos): es el mismo estado de antes con
        otra cara, y así lo guardado y lo que lo lee siguen valiendo.
-       Ver pintarFiltros y ponerTodos. -->
+       Ver pintarFiltros y ponerTodos.
+       TANDA 2: el candado se cambió por una CASILLA DE MARCAR, centrada con
+       su letrero («Todos los días»). Marcada = candado cerrado = todos; sin
+       marcar = solo lo elegido. Mismo botón, mismo aria-pressed. -->
   <div class="ftabs" role="tablist" aria-label="Secciones del filtro"
        data-es-aria="Secciones del filtro" data-en-aria="Filter sections">
     <button type="button" class="ftab" role="tab" id="tab-dias" data-tab="dias" aria-selected="false"
-            aria-controls="secDias" tabindex="0"><svg class="candado" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="cd-arco" d="M8 11V7.5a4 4 0 0 1 8 0V11"/><rect x="5" y="11" width="14" height="10" rx="2.2"/></svg><span class="ftab-txt"
+            aria-controls="secDias" tabindex="0"><svg class="casilla" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="4"/><path class="cs-palomita" d="M7.5 12.5l3 3 6-7"/></svg><span class="ftab-txt"
             data-es="Días" data-en="Days">Días</span><span class="ftab-n"></span></button>
     <button type="button" class="ftab" role="tab" id="tab-libros" data-tab="libros" aria-selected="false"
-            aria-controls="secLibros" tabindex="0"><svg class="candado" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="cd-arco" d="M8 11V7.5a4 4 0 0 1 8 0V11"/><rect x="5" y="11" width="14" height="10" rx="2.2"/></svg><span class="ftab-txt"
+            aria-controls="secLibros" tabindex="0"><svg class="casilla" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="4"/><path class="cs-palomita" d="M7.5 12.5l3 3 6-7"/></svg><span class="ftab-txt"
             data-es="Libros" data-en="Books">Libros</span><span class="ftab-n"></span></button>
     <button type="button" class="ftab" role="tab" id="tab-etiq" data-tab="etiq" aria-selected="true"
-            aria-controls="secEtiq" tabindex="0"><svg class="candado" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="cd-arco" d="M8 11V7.5a4 4 0 0 1 8 0V11"/><rect x="5" y="11" width="14" height="10" rx="2.2"/></svg><span class="ftab-txt"
+            aria-controls="secEtiq" tabindex="0"><svg class="casilla" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="4"/><path class="cs-palomita" d="M7.5 12.5l3 3 6-7"/></svg><span class="ftab-txt"
             data-es="Etiquetas" data-en="Tags">Etiquetas</span><span class="ftab-n"></span></button>
   </div>
   <div class="fsec todos" id="secDias" role="tabpanel" aria-labelledby="tab-dias">
     <button type="button" class="fsec-todos" data-todos="dias" aria-pressed="true"
-            aria-controls="pillsDias"><svg class="candado grande" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="cd-arco" d="M8 11V7.5a4 4 0 0 1 8 0V11"/><rect x="5" y="11" width="14" height="10" rx="2.2"/></svg><span class="fsec-dice fsec-cerrado"
-            data-es="Todos los días" data-en="All days">Todos los días</span><span class="fsec-dice fsec-abierto"
-            data-es="Solo los días elegidos" data-en="Only the chosen days">Solo los días elegidos</span></button>
+            aria-controls="pillsDias"><svg class="casilla grande" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="4"/><path class="cs-palomita" d="M7.5 12.5l3 3 6-7"/></svg><span class="fsec-dice fsec-cerrado"
+            data-es="Todos los días" data-en="All days">Todos los días</span></button>
     <div class="fsec-pills" id="pillsDias" role="group" aria-label="Elegir días"
          data-es-aria="Elegir días" data-en-aria="Choose days"></div>
   </div>
   <div class="fsec todos" id="secLibros" role="tabpanel" aria-labelledby="tab-libros">
     <button type="button" class="fsec-todos" data-todos="libros" aria-pressed="true"
-            aria-controls="pillsLibros"><svg class="candado grande" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="cd-arco" d="M8 11V7.5a4 4 0 0 1 8 0V11"/><rect x="5" y="11" width="14" height="10" rx="2.2"/></svg><span class="fsec-dice fsec-cerrado"
-            data-es="Todos los libros" data-en="All books">Todos los libros</span><span class="fsec-dice fsec-abierto"
-            data-es="Solo los libros elegidos" data-en="Only the chosen books">Solo los libros elegidos</span></button>
+            aria-controls="pillsLibros"><svg class="casilla grande" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="4"/><path class="cs-palomita" d="M7.5 12.5l3 3 6-7"/></svg><span class="fsec-dice fsec-cerrado"
+            data-es="Todos los libros" data-en="All books">Todos los libros</span></button>
     <div class="fsec-pills" id="pillsLibros" role="group" aria-label="Elegir libros"
          data-es-aria="Elegir libros" data-en-aria="Choose books"></div>
   </div>
   <div class="fsec todos activa" id="secEtiq" role="tabpanel" aria-labelledby="tab-etiq">
     <button type="button" class="fsec-todos" data-todos="etiq" aria-pressed="true"
-            aria-controls="pillsEtiq"><svg class="candado grande" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="cd-arco" d="M8 11V7.5a4 4 0 0 1 8 0V11"/><rect x="5" y="11" width="14" height="10" rx="2.2"/></svg><span class="fsec-dice fsec-cerrado"
-            data-es="Todas las etiquetas" data-en="All tags">Todas las etiquetas</span><span class="fsec-dice fsec-abierto"
-            data-es="Solo las etiquetas elegidas" data-en="Only the chosen tags">Solo las etiquetas elegidas</span></button>
+            aria-controls="pillsEtiq"><svg class="casilla grande" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="4"/><path class="cs-palomita" d="M7.5 12.5l3 3 6-7"/></svg><span class="fsec-dice fsec-cerrado"
+            data-es="Todas las etiquetas" data-en="All tags">Todas las etiquetas</span></button>
     <div class="fsec-pills" id="pillsEtiq" role="group" aria-label="Elegir etiquetas"
          data-es-aria="Elegir etiquetas" data-en-aria="Choose tags"></div>
   </div>
@@ -8100,7 +8122,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 18:07';
+window.GLOSS_BUILD = '24-NOV-26 22:18';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -31850,8 +31872,9 @@ function verSubRespaldo(cual){
     b.setAttribute('aria-selected', String(si));
   });
   const c = document.getElementById('respCompartir'), t = document.getElementById('respTools'),
-        a = document.getElementById('respCreditos');
+        a = document.getElementById('respCreditos'), k = document.getElementById('respContactos');
   if (c) c.hidden = cual !== 'compartir';
+  if (k) k.hidden = cual !== 'contactos';
   if (t) t.hidden = cual !== 'tools';
   if (a) a.hidden = cual !== 'creditos';
 }
@@ -32587,7 +32610,7 @@ function nubeArrancar(){
   if ((!est.uid || est.fuera) && !enlace && !nubeCrudo(NUBE_VUELTA)) return;
   try { localStorage.removeItem(NUBE_VUELTA); } catch(_){}
   setTimeout(async () => {
-    try { await nubeBase(); } catch(_){ nubeAviso = 'sin-red'; if (nubePintar) nubePintar(); return; }
+    try { await nubeBase(); } catch(_){ nubeAviso = 'sin-red'; if (nubePintar) nubePintar(); correoAviso(); return; }
     if (enlace) await nubeVolverDelEnlace();
     nubeEscuchar();
   }, 1500);
@@ -32809,8 +32832,49 @@ function armarCuenta(sec){
     });
     ojo.observe(sec);
   }
-  correoArmarBloque(sec);
+  correoArmarNombre(dentro, bSalir);
   nubePintar();
+}
+
+/* TU NOMBRE PARA LOS DEMÁS, dentro de Tu cuenta (tanda 2, pedido por
+   Gianni). Vivía con los contactos; pero es un dato de tu cuenta y ahí es
+   donde se busca. Solo se ve con la cuenta abierta y el código ya hecho, que
+   es cuando hay un perfil donde escribirlo. Va antes de «Salir de la cuenta»,
+   que es lo último que uno quiere tocar sin querer. */
+function correoArmarNombre(dentro, antes){
+  const el = (tag, cls) => { const x = document.createElement(tag); if (cls) x.className = cls; return x; };
+  const formNombre = el('form', 'correo-form correo-nombre-form'); formNombre.hidden = true;
+  const etqNombre = el('label', 'cuenta-etq'); dosIdiomas(etqNombre, { t: ['Tu nombre para los demás', 'Your name for others'] });
+  const cajaNombre = el('input', 'cuenta-caja'); cajaNombre.type = 'text'; cajaNombre.id = 'correoNombre';
+  cajaNombre.maxLength = 60; cajaNombre.autocomplete = 'name'; etqNombre.htmlFor = cajaNombre.id;
+  const bNombre = el('button', 'btn'); bNombre.type = 'submit'; bNombre.id = 'correoNombreBtn';
+  dosIdiomas(bNombre, { t: ['Guardar nombre', 'Save name'] });
+  const aviso = el('p', 'cuenta-dice correo-aviso'); aviso.setAttribute('role', 'status'); aviso.hidden = true;
+  formNombre.append(etqNombre, cajaNombre, bNombre, aviso);
+  dentro.insertBefore(formNombre, antes);
+  const decir = par => { if (par){ dosIdiomas(aviso, { t: par }); aviso.hidden = false; } else { aviso.textContent = ''; aviso.hidden = true; } };
+  let ocupado = false;
+  const pintar = () => {
+    const p = nubeUsuario() && correo.perfil;
+    formNombre.hidden = !p;
+    if (!p) return;
+    if (document.activeElement !== cajaNombre && !cajaNombre.dataset.tocado) cajaNombre.value = p.nombre;
+    bNombre.disabled = ocupado;
+  };
+  correo.avisos.add(pintar);
+  cajaNombre.addEventListener('input', () => { cajaNombre.dataset.tocado = '1'; });
+  formNombre.addEventListener('submit', async ev => {
+    ev.preventDefault();
+    if (ocupado) return;
+    ocupado = true; pintar();
+    try {
+      await correoCambiarNombre(cajaNombre.value);
+      delete cajaNombre.dataset.tocado;
+      decir(['Listo: así te verán.', 'Done: that’s how others will see you.']);
+    } catch(e){ console.warn('Glossa · correo:', e); decir(CORREO_DICE[correoFalla(e)] || CORREO_DICE.otra); }
+    finally { ocupado = false; pintar(); }
+  });
+  pintar();
 }
 
 /* ============================================================
@@ -32884,7 +32948,17 @@ function correoLeerCodigo(texto){
   t = t.toUpperCase().replace(/[\s-]/g, '');
   return CORREO_CODIGO.test(t) ? t : null;
 }
-const correoLiga = c => location.origin + location.pathname + '?glossa=' + c;
+/* LA DIRECCIÓN DE GLOSSA, EN UN SOLO SITIO. La usan el QR, Enviar y la liga
+   de tu código. Hoy es la de GitHub Pages; cuando glossabible.com esté lista
+   (le faltan a Gianni unos pasos en la consola de Firebase), se cambia esta
+   línea y nada más. Va con la diagonal final: el QR y la liga le pegan
+   ?glossa=CÓDIGO detrás.
+   Antes la liga de tu código salía de location, de la dirección donde
+   estuviera abierto Glossa. Con dos direcciones vivas eso partía a la gente:
+   cada dirección tiene su propio localStorage, y quien escaneaba el QR de
+   alguien abierto en la otra caía en una Glossa vacía. */
+const GLOSSA_BASE = 'https://giannifontanot.github.io/glossa-bible-notes/';
+const correoLiga = c => GLOSSA_BASE + '?glossa=' + c;
 function correoNombreDe(u){
   const n = u ? (u.displayName || String(u.email || '').split('@')[0]) : '';
   return String(n).trim().slice(0, 60) || T('Lector', 'Reader');
@@ -32933,7 +33007,11 @@ async function cLista(...s){
 /* ---------- AL ENTRAR Y AL SALIR ---------- */
 async function correoCuenta(u){
   const uid = u ? u.uid : null;
-  if (uid === correo.uid) return;
+  /* Aunque la cuenta no cambie se avisa: al abrir con una sesión guardada que
+     el servidor ya no reconoce llega «nadie», que ya era el uid de antes, y
+     sin este aviso Contactos se quedaba en «Preparando tu cuenta…» para
+     siempre (lo vio Codex en la PR #274). */
+  if (uid === correo.uid){ correoAviso(); return; }
   if (correo.escucha){ try { correo.escucha(); } catch(_){} correo.escucha = null; }
   Object.assign(correo, { uid, perfil:null, contactos:[], grupos:[], miembros:{}, falla:'', cargando:false });
   correo.pendientes.clear();
@@ -33302,21 +33380,48 @@ function correoRecoger(){
 }
 
 /* ---------- IR A LOS CONTACTOS ----------
-   Respaldo › Herramientas, y la sección a la vista. Es por donde se entra a
-   la cuenta, así que el avioncito sin cuenta también lleva aquí. */
+   Respaldo › Contactos (tanda 2). Sin cuenta, a Tu cuenta en Herramientas,
+   que es por donde se entra: el avioncito sin cuenta también lleva ahí. Con
+   una sesión que todavía se está recuperando al abrir se va a Contactos, que
+   dice «Preparando tu cuenta…» hasta que llegue. */
+const correoMovimiento = () => matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
 function correoIrAContactos(){
+  const est = nubeEstado();
+  if (!NUBE_FB || !(nubeUsuario() || (est.uid && !est.fuera))){ correoIrALaCuenta(); return; }
+  abrirSeccion('respaldo', burbujaAbierta());
+  verSubRespaldo('contactos');
+  setTimeout(() => {
+    const b = document.querySelector('#respContactos .correo-sec');
+    if (b) b.scrollIntoView({ block:'start', behavior: correoMovimiento() });
+  }, 700);
+}
+function correoIrALaCuenta(){
   abrirSeccion('respaldo', burbujaAbierta());
   verSubRespaldo('tools');
   setTimeout(() => {
-    const b = document.querySelector('.correo-bloque:not([hidden])') || document.querySelector('.herr-cuenta');
-    if (b) b.scrollIntoView({ block:'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    const b = document.querySelector('.herr-cuenta:not(.correo-sec)');
+    if (b) b.scrollIntoView({ block:'start', behavior: correoMovimiento() });
   }, 700);
 }
 /* EL QR QUE ABRE GLOSSA CON TU CÓDIGO: la cámara del otro teléfono lo lee,
    Glossa se abre y el código ya está escrito para agregarte. */
+let correoLlegoPorQr = false;
 (function correoTraido(){
+  /* EL QR SIN CUENTA lleva «?desde=qr»: no trae código que agregar, pero
+     quien lo escanea también llegó por un QR y también se le ofrece
+     instalarla (lo vio Codex en la PR #274). La marca se quita de la
+     dirección para que no se quede en los favoritos. */
+  if (/[?&]desde=qr(?:[&#]|$)/.test(location.search)){
+    correoLlegoPorQr = true;
+    try {
+      const q = new URLSearchParams(location.search); q.delete('desde');
+      const s = q.toString();
+      history.replaceState(null, '', location.pathname + (s ? '?' + s : '') + location.hash);
+    } catch(_){}
+  }
   const m = /[?&]glossa=([^&#]*)/.exec(location.search);
   if (!m) return;
+  correoLlegoPorQr = true;
   let c = null;
   try { c = correoLeerCodigo(decodeURIComponent(m[1])); } catch(_){}
   try {
@@ -33328,6 +33433,75 @@ function correoIrAContactos(){
   try { localStorage.setItem(CORREO_TRAIDO, c); } catch(_){}
   setTimeout(correoIrAContactos, 1600);
 })();
+
+/* ---------- OFRECER INSTALARLA A QUIEN LLEGA POR UN QR ----------
+   Tanda 2, pedido por Gianni: el QR abre Glossa directo —sin página de
+   entrada— y a quien no la tiene le ofrece instalarla en ese momento.
+   · Chrome y Edge en Android avisan con «beforeinstallprompt» cuando la
+     página se puede instalar; se guarda ese aviso y el botón Instalar abre
+     la ventana del propio navegador.
+   · El iPhone no tiene esa ventana: se dice en una frase cómo se hace
+     (Compartir › Agregar a inicio).
+   · Ya instalada —abierta como app— no se ofrece nada. Tampoco se ofrece a
+     quien entra sin QR: es una invitación del que compartió, no un letrero
+     para todos los días.
+   Se ofrece una vez por visita; «Ahora no» lo quita. */
+let instalarAviso = null;
+addEventListener('beforeinstallprompt', ev => {
+  ev.preventDefault();
+  instalarAviso = ev;
+  if (correoLlegoPorQr) ofrecerInstalar();
+});
+addEventListener('appinstalled', () => {
+  instalarAviso = null;
+  const b = document.querySelector('.aviso-instalar');
+  if (b) b.remove();
+});
+const glossaInstalada = () => {
+  try { if (matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches) return true; } catch(_){}
+  return navigator.standalone === true;
+};
+const esIphone = () => /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let instalarOfrecido = false;
+function ofrecerInstalar(){
+  if (instalarOfrecido || glossaInstalada()) return;
+  const ios = !instalarAviso && esIphone();
+  if (!instalarAviso && !ios) return;
+  instalarOfrecido = true;
+  const caja = document.createElement('div');
+  caja.className = 'aviso-instalar';
+  caja.setAttribute('role', 'dialog');
+  dosIdiomas(caja, { aria: ['Instalar Glossa', 'Install Glossa'] });
+  const dice = document.createElement('p');
+  dosIdiomas(dice, { t: ios
+    ? ['Para tener Glossa como app: toca Compartir y luego «Agregar a inicio».',
+       'To have Glossa as an app: tap Share and then “Add to Home Screen”.']
+    : ['¿Instalar Glossa en tu teléfono? Así la abres como cualquier app, también sin internet.',
+       'Install Glossa on your phone? Then you open it like any app, even offline.'] });
+  const botones = document.createElement('div');
+  botones.className = 'aviso-instalar-botones';
+  const no = document.createElement('button'); no.type = 'button'; no.className = 'btn';
+  dosIdiomas(no, { t: ios ? ['Entendido', 'Got it'] : ['Ahora no', 'Not now'] });
+  no.addEventListener('click', () => caja.remove());
+  botones.appendChild(no);
+  if (!ios){
+    const si = document.createElement('button'); si.type = 'button'; si.className = 'btn aviso-instalar-si';
+    dosIdiomas(si, { t: ['Instalar', 'Install'] });
+    si.addEventListener('click', async () => {
+      const ev = instalarAviso;
+      caja.remove();
+      if (!ev) return;
+      instalarAviso = null;
+      try { await ev.prompt(); } catch(e){ console.warn('Glossa · instalar:', e); }
+    });
+    botones.appendChild(si);
+  }
+  caja.append(dice, botones);
+  document.body.appendChild(caja);
+}
+/* En el iPhone no llega ningún aviso: se ofrece en cuanto se abre por el QR. */
+if (correoLlegoPorQr) setTimeout(ofrecerInstalar, 1200);
 
 /* ---------- EL QR ----------
    Hecho aquí, sin bibliotecas: nivel M, modo de bytes, versiones 1 a 6 —la
@@ -33531,50 +33705,76 @@ async function correoEscanear(alLeer, decir){
   mirar();
 }
 
-/* ---------- EN HERRAMIENTAS: TUS CONTACTOS Y GRUPOS ----------
-   Debajo de la cuenta y solo con la cuenta abierta. Se arma una vez; al
-   cambiar algo se repintan las listas y los avisos, nunca las cajas de
-   escribir, para no comerse lo que el lector tiene a medias. */
-function correoArmarBloque(sec){
+/* LO QUE SE DICE AL AGREGAR, igual desde Contactos que desde Escanear QR. */
+const correoDichoAgregado = r => r.tipo === 'grupo'
+  ? ['Ya estás en «' + r.nombre + '». Te llegará lo que mande ' + r.dueno + ', y le puedes contestar.',
+     'You’re in “' + r.nombre + '”. You’ll get what ' + r.dueno + ' sends, and you can reply.']
+  : ['Agregaste a ' + r.nombre + '. Ya le puedes mandar notas.', 'You added ' + r.nombre + '. You can send them notes now.'];
+/* ESCANEAR QR DESDE COMPARTIR (tanda 2). Con la cuenta abierta agrega en el
+   acto y devuelve lo que hay que decir; sin ella guarda el código, como si
+   hubiera llegado por la cámara del teléfono, y se agrega solo al entrar. */
+async function correoAgregarEscaneado(c){
+  if (!NUBE_FB) return ['Esta copia de Glossa no tiene la nube puesta, así que no puede guardar contactos.',
+                        'This copy of Glossa doesn’t have the cloud set up, so it can’t keep contacts.'];
+  if (!nubeUsuario() || !correo.perfil){
+    try { localStorage.setItem(CORREO_TRAIDO, c); } catch(_){}
+    correoAviso();
+    return ['Leí el código ' + correoBonito(c) + '. Entra a tu cuenta en Herramientas y se agregará solo a tus contactos.',
+            'I read the code ' + correoBonito(c) + '. Sign in to your account in Tools and it will be added to your contacts by itself.'];
+  }
+  try {
+    const r = await correoAgregar(c);
+    try { localStorage.removeItem(CORREO_TRAIDO); } catch(_){}
+    return correoDichoAgregado(r);
+  } catch(e){
+    console.warn('Glossa · correo:', e);
+    return CORREO_DICE[correoFalla(e)] || CORREO_DICE.otra;
+  }
+}
+
+/* ---------- LA PESTAÑA CONTACTOS: TUS CONTACTOS Y GRUPOS ----------
+   TANDA 2, pedido por Gianni: vivían en Herramientas, debajo de la cuenta,
+   y ahora tienen su propia pestaña, entre Compartir y Herramientas. Aquí
+   quedan tu código con «Copiar código», agregar con un código escrito, tus
+   contactos y tus grupos. Lo demás se repartió: tu QR, Enviar y Escanear
+   están en Compartir, y tu nombre en Tu cuenta, que es donde se busca.
+   Sin la cuenta abierta la pestaña lo dice y lleva a la cuenta.
+   Se arma una vez; al cambiar algo se repintan las listas y los avisos,
+   nunca las cajas de escribir, para no comerse lo que el lector tiene a
+   medias. */
+function correoArmarBloque(panel){
   const el = (tag, cls) => { const x = document.createElement(tag); if (cls) x.className = cls; return x; };
   const boton = (es, en, cls) => { const b = el('button', 'btn' + (cls ? ' ' + cls : '')); b.type = 'button'; dosIdiomas(b, { t:[es, en] }); return b; };
   const decirEn = (p, par) => { if (par){ dosIdiomas(p, { t: par }); p.hidden = false; } else { p.textContent = ''; p.hidden = true; } };
-  const bloque = el('div', 'correo-bloque'); bloque.hidden = true;
-  const tit = el('h4', 'correo-tit');
+  const sec = el('section', 'herr-sec herr-cuenta correo-sec');
+  const tit = el('h3', 'herr-tit');
   dosIdiomas(tit, { t: ['Tus contactos y grupos', 'Your contacts and groups'] });
+  /* SIN CUENTA: qué falta y un botón que lleva a ella. */
+  const fuera = el('div', 'correo-fuera');
+  const fueraDice = el('p', 'cuenta-dice');
+  const bIrCuenta = boton('Entrar a mi cuenta', 'Sign in to my account'); bIrCuenta.id = 'correoIrCuenta';
+  fuera.append(fueraDice, bIrCuenta);
+  const bloque = el('div', 'correo-bloque'); bloque.hidden = true;
   const intro = el('p', 'cuenta-dice');
-  dosIdiomas(intro, { t: ['Para que alguien te mande notas, dale tu código. Para mandarle tú, agrega el suyo.',
-                          'For someone to send you notes, give them your code. To send them notes, add theirs.'] });
+  dosIdiomas(intro, { t: ['Para que alguien te mande notas, dale tu código, o enséñale tu QR desde Compartir. Para mandarle tú, agrega el suyo.',
+                          'For someone to send you notes, give them your code, or show them your QR from Share. To send them notes, add theirs.'] });
   const espera = el('p', 'cuenta-dice correo-espera');
   const falla = el('p', 'fallo-respaldo correo-falla'); falla.hidden = true;
-  /* Tu código, grande y con su QR. */
+  /* Tu código, grande. Su QR está en Compartir › Código QR. */
   const mio = el('div', 'correo-mio');
   const etqCodigo = el('p', 'correo-etq'); dosIdiomas(etqCodigo, { t: ['Tu código', 'Your code'] });
   const codigo = el('p', 'correo-codigo');
-  const qr = el('div', 'correo-qr-caja');
-  const botonesMio = el('div', 'herr-botones');
-  const bCopiar = boton('Copiar código', 'Copy code'), bCompartir = boton('Compartir', 'Share');
-  botonesMio.append(bCopiar, bCompartir);
-  mio.append(etqCodigo, codigo, qr, botonesMio);
-  /* Tu nombre, como te ven los demás. */
-  const formNombre = el('form', 'correo-form');
-  const etqNombre = el('label', 'cuenta-etq'); dosIdiomas(etqNombre, { t: ['Tu nombre para los demás', 'Your name for others'] });
-  const cajaNombre = el('input', 'cuenta-caja'); cajaNombre.type = 'text'; cajaNombre.id = 'correoNombre';
-  cajaNombre.maxLength = 60; cajaNombre.autocomplete = 'name'; etqNombre.htmlFor = cajaNombre.id;
-  const bNombre = boton('Guardar nombre', 'Save name'); bNombre.type = 'submit';
-  formNombre.append(etqNombre, cajaNombre, bNombre);
-  /* Agregar con un código, escrito o escaneado. */
+  const bCopiar = boton('Copiar código', 'Copy code'); bCopiar.id = 'correoCopiar';
+  mio.append(etqCodigo, codigo, bCopiar);
+  /* Agregar con un código escrito. Escanear se fue a Compartir. */
   const formAgregar = el('form', 'correo-form');
   const etqAgregar = el('label', 'cuenta-etq'); dosIdiomas(etqAgregar, { t: ['Agregar con un código', 'Add with a code'] });
   const cajaAgregar = el('input', 'cuenta-caja'); cajaAgregar.type = 'text'; cajaAgregar.id = 'correoAgregar';
   cajaAgregar.autocomplete = 'off'; cajaAgregar.autocapitalize = 'characters'; cajaAgregar.spellcheck = false;
   cajaAgregar.maxLength = 300; etqAgregar.htmlFor = cajaAgregar.id;
   dosIdiomas(cajaAgregar, { ph: ['ABCD-EFGH', 'ABCD-EFGH'] });
-  const botonesAgregar = el('div', 'herr-botones');
   const bAgregar = boton('Agregar', 'Add'); bAgregar.type = 'submit'; bAgregar.id = 'correoAgregarBtn';
-  const bEscanear = boton('Escanear QR', 'Scan QR');
-  botonesAgregar.append(bAgregar, bEscanear);
-  formAgregar.append(etqAgregar, cajaAgregar, botonesAgregar);
+  formAgregar.append(etqAgregar, cajaAgregar, bAgregar);
   const aviso = el('p', 'cuenta-dice correo-aviso'); aviso.setAttribute('role', 'status'); aviso.hidden = true;
   /* Las listas. */
   const titContactos = el('h5', 'correo-sub'); dosIdiomas(titContactos, { t: ['Tus contactos', 'Your contacts'] });
@@ -33593,12 +33793,20 @@ function correoArmarBloque(sec){
   const titDentro = el('h5', 'correo-sub'); dosIdiomas(titDentro, { t: ['Grupos en los que estás', 'Groups you’re in'] });
   const listaDentro = el('ul', 'correo-lista correo-dentro');
   const cuerpo = el('div', 'correo-cuerpo');
-  cuerpo.append(mio, formNombre, formAgregar, aviso, titContactos, listaContactos, titGrupos, formGrupo, listaGrupos,
+  cuerpo.append(mio, formAgregar, aviso, titContactos, listaContactos, titGrupos, formGrupo, listaGrupos,
                 titDentro, listaDentro);
-  bloque.append(tit, intro, espera, falla, cuerpo);
-  sec.appendChild(bloque);
+  bloque.append(intro, espera, falla, cuerpo);
+  sec.append(tit, fuera, bloque);
+  panel.appendChild(sec);
 
-  let ocupado = false, codigoPintado = '';
+  /* EL CÓDIGO QUE LLEGÓ POR UN QR SE AGREGA SOLO, una vez por código (tanda
+     2: «se guarda el código de quien lo compartió para que quede como
+     contacto»). Antes quedaba escrito en la caja esperando «Agregar»; quien
+     escanea un QR para agregar a alguien no tiene por qué tocar nada más. Si
+     falla —sin red, o es tu propio código—, el código se queda en la caja y
+     el aviso dice qué pasó, como antes. */
+  const intentados = new Set();
+  let ocupado = false;
   const hacer = async (fn, bien) => {
     if (ocupado) return;
     ocupado = true; pintar();
@@ -33621,7 +33829,19 @@ function correoArmarBloque(sec){
   const pintar = () => {
     const u = nubeUsuario();
     bloque.hidden = !u;
-    if (!u) return;
+    fuera.hidden = !!u;
+    if (!u){
+      let traido = null; try { traido = localStorage.getItem(CORREO_TRAIDO); } catch(_){}
+      const est = nubeEstado();
+      if (est.uid && !est.fuera && !nubeFb && nubeAviso !== 'sin-red'){ decirEn(fueraDice, ['Preparando tu cuenta…', 'Getting your account ready…']); bIrCuenta.hidden = true; return; }
+      bIrCuenta.hidden = false;
+      decirEn(fueraDice, traido && CORREO_CODIGO.test(traido)
+        ? ['Te pasaron el código ' + correoBonito(traido) + '. Entra a tu cuenta y se agregará solo a tus contactos.',
+           'Someone gave you the code ' + correoBonito(traido) + '. Sign in to your account and it will be added to your contacts by itself.']
+        : ['Para tener contactos y grupos, y mandarles notas, entra a tu cuenta. Es gratis y tus glosas siguen funcionando igual.',
+           'To have contacts and groups, and send them notes, sign in to your account. It’s free and your glosses keep working the same.']);
+      return;
+    }
     const p = correo.perfil;
     cuerpo.hidden = !p;
     if (!p){
@@ -33631,18 +33851,23 @@ function correoArmarBloque(sec){
     }
     decirEn(espera, null);
     decirEn(falla, correo.falla ? (CORREO_DICE[correo.falla] || CORREO_DICE.otra) : null);
-    if (codigoPintado !== p.codigo){
-      codigoPintado = p.codigo;
-      codigo.textContent = correoBonito(p.codigo);
-      qr.innerHTML = qrSvg(correoLiga(p.codigo), T('Código QR de tu código de Glossa', 'QR code of your Glossa code'));
-    }
-    if (document.activeElement !== cajaNombre && !cajaNombre.dataset.tocado) cajaNombre.value = p.nombre;
-    [bNombre, bAgregar, bEscanear, bGrupo].forEach(b => { b.disabled = ocupado; });
-    /* Un código que llegó por el QR espera aquí, ya escrito. */
+    codigo.textContent = correoBonito(p.codigo);
+    [bAgregar, bCopiar, bGrupo].forEach(b => { b.disabled = ocupado; });
+    /* Un código que llegó por el QR: se agrega solo (ver «intentados»). */
     let traido = null; try { traido = localStorage.getItem(CORREO_TRAIDO); } catch(_){}
-    if (traido && CORREO_CODIGO.test(traido) && !cajaAgregar.value){
+    if (traido && CORREO_CODIGO.test(traido) && !intentados.has(traido) && !ocupado && !correo.cargando){
+      intentados.add(traido);
       cajaAgregar.value = correoBonito(traido);
-      decirEn(aviso, ['Te pasaron un código. Toca «Agregar» para guardarlo.', 'Someone gave you a code. Tap “Add” to keep it.']);
+      /* Y SE ENSEÑA CONTACTOS al agregarlo. El salto de correoTraido va a
+         ciegas, 1,6 s después de abrir, y para entonces la cuenta puede no
+         haber vuelto todavía, o algo del arranque puede haber cambiado de
+         pestaña; aquí ya se sabe que hay cuenta y código. Si ya se está
+         viendo Contactos no se toca nada. */
+      setTimeout(() => {
+        agregar(traido);
+        const k = document.getElementById('respContactos');
+        if (!k || k.hidden || !rRespaldo.abierto) correoIrAContactos();
+      }, 0);
     }
     listaContactos.textContent = '';
     if (!correo.contactos.length) vacia(listaContactos, 'Todavía nadie. Agrega a alguien con su código.', 'Nobody yet. Add someone with their code.');
@@ -33682,36 +33907,19 @@ function correoArmarBloque(sec){
     const ok = await copiarTexto(correoBonito(correo.perfil.codigo));
     decirEn(aviso, ok ? ['Código copiado.', 'Code copied.'] : CORREO_DICE.otra);
   });
-  bCompartir.addEventListener('click', async () => {
-    if (!correo.perfil) return;
-    const c = correo.perfil.codigo, url = correoLiga(c);
-    const texto = T('Mi código de Glossa es ' + correoBonito(c) + '. Agrégame para mandarnos notas:',
-                    'My Glossa code is ' + correoBonito(c) + '. Add me so we can send each other notes:');
-    if (navigator.share){
-      try { await navigator.share({ title:'Glossa', text:texto, url }); return; }
-      catch(e){ if (e && e.name === 'AbortError') return; }
-    }
-    const ok = await copiarTexto(texto + ' ' + url);
-    decirEn(aviso, ok ? ['Copiado: pégalo en un mensaje.', 'Copied: paste it in a message.'] : CORREO_DICE.otra);
-  });
-  cajaNombre.addEventListener('input', () => { cajaNombre.dataset.tocado = '1'; });
-  formNombre.addEventListener('submit', ev => {
-    ev.preventDefault();
-    hacer(async () => { await correoCambiarNombre(cajaNombre.value); delete cajaNombre.dataset.tocado; },
-          () => ['Listo: así te verán.', 'Done: that’s how others will see you.']);
-  });
+  bIrCuenta.addEventListener('click', () => correoIrALaCuenta());
   const agregar = texto => hacer(async () => {
-    const r = await correoAgregar(texto);
-    cajaAgregar.value = '';
-    try { localStorage.removeItem(CORREO_TRAIDO); } catch(_){}
-    return r;
-  }, r => r.tipo === 'grupo'
-    ? ['Ya estás en «' + r.nombre + '». Te llegará lo que mande ' + r.dueno + ', y le puedes contestar.',
-       'You’re in “' + r.nombre + '”. You’ll get what ' + r.dueno + ' sends, and you can reply.']
-    : ['Agregaste a ' + r.nombre + '. Ya le puedes mandar notas.', 'You added ' + r.nombre + '. You can send them notes now.']);
+    try {
+      const r = await correoAgregar(texto);
+      try { localStorage.removeItem(CORREO_TRAIDO); } catch(_){}
+      return r;
+    } catch(e){
+      /* Tu propio código no se agrega nunca: no tiene caso dejarlo esperando. */
+      if (e && e.code === 'propio') try { localStorage.removeItem(CORREO_TRAIDO); } catch(_){}
+      throw e;
+    }
+  }, r => { cajaAgregar.value = ''; return correoDichoAgregado(r); });
   formAgregar.addEventListener('submit', ev => { ev.preventDefault(); agregar(cajaAgregar.value); });
-  bEscanear.addEventListener('click', () => correoEscanear(c => { cajaAgregar.value = correoBonito(c); agregar(c); },
-                                                           par => decirEn(aviso, par)));
   formGrupo.addEventListener('submit', ev => {
     ev.preventDefault();
     hacer(async () => { const c = await correoCrearGrupo(cajaGrupo.value); cajaGrupo.value = ''; return c; },
@@ -33924,7 +34132,7 @@ correoNotas = { pintarEnvio: correoPintarEnvio };
 /* COMPARTIR LA BIBLIA GLOSSA: la dirección, los tres iconos y el dibujo del
    QR. Los iconos son trazos, no letras ni emojis: así salen iguales en
    Android y en iPhone, del mismo grueso y del color que les toque. */
-const LIGA_GLOSSA = 'https://giannifontanot.github.io/glossa-bible-notes/';
+const LIGA_GLOSSA = GLOSSA_BASE;
 const ICONO_QR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">' +
   '<rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/>' +
   '<rect x="3" y="14" width="7" height="7" rx="1.2"/>' +
@@ -33932,14 +34140,18 @@ const ICONO_QR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
   '<path d="M14 14h3v3h-3zM18.5 18.5H21V21h-2.5zM14 19.5V21M20.5 14v2" stroke-linecap="round"/></svg>';
 const ICONO_ENVIAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">' +
   '<path d="M21.5 2.5 10.6 13.4"/><path d="M21.5 2.5 14.6 21.5l-4-8.1-8.1-4z"/></svg>';
-const ICONO_LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">' +
-  '<path d="M10 13.5a4.5 4.5 0 0 0 6.4.4l2.9-2.9a4.5 4.5 0 0 0-6.4-6.4l-1.6 1.6"/>' +
-  '<path d="M14 10.5a4.5 4.5 0 0 0-6.4-.4l-2.9 2.9a4.5 4.5 0 0 0 6.4 6.4l1.6-1.6"/></svg>';
-const ICONO_LISTO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">' +
-  '<path d="M4.5 12.5l5 5 10-11"/></svg>';
-const QR_GLOSSA = '<svg class="qr-dibujo" viewBox="0 0 37 37" role="img" aria-label="' +
-        T('Código QR para abrir la Biblia Glossa', 'QR code to open the Gloss Bible') + '" shape-rendering="crispEdges">' +
-        '<rect width="37" height="37" fill="#fff"/><path fill="#1d1a16" d="M2 2h7v1h-7zM11 2h3v1h-3zM15 2h1v1h-1zM19 2h1v1h-1zM21 2h3v1h-3zM25 2h1v1h-1zM28 2h7v1h-7zM2 3h1v1h-1zM8 3h1v1h-1zM11 3h2v1h-2zM14 3h4v1h-4zM19 3h1v1h-1zM22 3h3v1h-3zM26 3h1v1h-1zM28 3h1v1h-1zM34 3h1v1h-1zM2 4h1v1h-1zM4 4h3v1h-3zM8 4h1v1h-1zM10 4h1v1h-1zM12 4h4v1h-4zM19 4h7v1h-7zM28 4h1v1h-1zM30 4h3v1h-3zM34 4h1v1h-1zM2 5h1v1h-1zM4 5h3v1h-3zM8 5h1v1h-1zM10 5h2v1h-2zM16 5h3v1h-3zM21 5h1v1h-1zM25 5h2v1h-2zM28 5h1v1h-1zM30 5h3v1h-3zM34 5h1v1h-1zM2 6h1v1h-1zM4 6h3v1h-3zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h2v1h-2zM15 6h1v1h-1zM17 6h1v1h-1zM20 6h1v1h-1zM25 6h1v1h-1zM28 6h1v1h-1zM30 6h3v1h-3zM34 6h1v1h-1zM2 7h1v1h-1zM8 7h1v1h-1zM10 7h4v1h-4zM15 7h4v1h-4zM22 7h2v1h-2zM26 7h1v1h-1zM28 7h1v1h-1zM34 7h1v1h-1zM2 8h7v1h-7zM10 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM24 8h1v1h-1zM26 8h1v1h-1zM28 8h7v1h-7zM10 9h1v1h-1zM14 9h1v1h-1zM17 9h1v1h-1zM20 9h5v1h-5zM2 10h1v1h-1zM4 10h5v1h-5zM11 10h1v1h-1zM15 10h3v1h-3zM19 10h3v1h-3zM24 10h3v1h-3zM28 10h5v1h-5zM2 11h1v1h-1zM5 11h2v1h-2zM10 11h2v1h-2zM13 11h1v1h-1zM18 11h1v1h-1zM20 11h3v1h-3zM25 11h1v1h-1zM28 11h2v1h-2zM31 11h2v1h-2zM34 11h1v1h-1zM5 12h2v1h-2zM8 12h2v1h-2zM12 12h2v1h-2zM17 12h2v1h-2zM20 12h1v1h-1zM23 12h2v1h-2zM26 12h1v1h-1zM30 12h1v1h-1zM32 12h2v1h-2zM3 13h3v1h-3zM9 13h1v1h-1zM12 13h1v1h-1zM16 13h3v1h-3zM21 13h5v1h-5zM27 13h1v1h-1zM30 13h5v1h-5zM2 14h1v1h-1zM4 14h1v1h-1zM8 14h2v1h-2zM13 14h1v1h-1zM17 14h1v1h-1zM20 14h2v1h-2zM24 14h3v1h-3zM29 14h3v1h-3zM33 14h2v1h-2zM2 15h2v1h-2zM6 15h2v1h-2zM9 15h2v1h-2zM12 15h8v1h-8zM21 15h1v1h-1zM23 15h1v1h-1zM25 15h1v1h-1zM28 15h1v1h-1zM31 15h4v1h-4zM2 16h4v1h-4zM7 16h2v1h-2zM10 16h1v1h-1zM12 16h1v1h-1zM15 16h2v1h-2zM19 16h1v1h-1zM22 16h1v1h-1zM24 16h1v1h-1zM26 16h3v1h-3zM30 16h2v1h-2zM33 16h1v1h-1zM4 17h2v1h-2zM9 17h5v1h-5zM16 17h1v1h-1zM18 17h1v1h-1zM20 17h2v1h-2zM23 17h1v1h-1zM25 17h5v1h-5zM31 17h2v1h-2zM2 18h3v1h-3zM6 18h4v1h-4zM12 18h5v1h-5zM18 18h2v1h-2zM24 18h1v1h-1zM26 18h2v1h-2zM29 18h2v1h-2zM34 18h1v1h-1zM2 19h2v1h-2zM7 19h1v1h-1zM9 19h1v1h-1zM13 19h1v1h-1zM16 19h1v1h-1zM18 19h5v1h-5zM25 19h1v1h-1zM28 19h2v1h-2zM31 19h2v1h-2zM34 19h1v1h-1zM3 20h1v1h-1zM5 20h2v1h-2zM8 20h1v1h-1zM10 20h1v1h-1zM12 20h1v1h-1zM14 20h2v1h-2zM17 20h1v1h-1zM19 20h1v1h-1zM22 20h1v1h-1zM24 20h1v1h-1zM27 20h4v1h-4zM32 20h1v1h-1zM2 21h2v1h-2zM9 21h5v1h-5zM15 21h3v1h-3zM19 21h2v1h-2zM23 21h1v1h-1zM26 21h2v1h-2zM29 21h6v1h-6zM4 22h2v1h-2zM8 22h3v1h-3zM13 22h3v1h-3zM18 22h1v1h-1zM22 22h1v1h-1zM24 22h1v1h-1zM26 22h2v1h-2zM30 22h2v1h-2zM33 22h2v1h-2zM2 23h3v1h-3zM6 23h1v1h-1zM9 23h2v1h-2zM12 23h3v1h-3zM16 23h2v1h-2zM20 23h3v1h-3zM25 23h1v1h-1zM28 23h1v1h-1zM31 23h1v1h-1zM34 23h1v1h-1zM2 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM13 24h2v1h-2zM17 24h3v1h-3zM22 24h1v1h-1zM24 24h1v1h-1zM27 24h1v1h-1zM30 24h1v1h-1zM32 24h2v1h-2zM2 25h1v1h-1zM6 25h1v1h-1zM9 25h2v1h-2zM12 25h1v1h-1zM16 25h2v1h-2zM22 25h3v1h-3zM26 25h4v1h-4zM31 25h2v1h-2zM2 26h1v1h-1zM4 26h1v1h-1zM7 26h2v1h-2zM10 26h3v1h-3zM15 26h1v1h-1zM17 26h1v1h-1zM19 26h1v1h-1zM24 26h7v1h-7zM33 26h1v1h-1zM10 27h2v1h-2zM14 27h2v1h-2zM18 27h1v1h-1zM20 27h3v1h-3zM26 27h1v1h-1zM30 27h1v1h-1zM32 27h1v1h-1zM34 27h1v1h-1zM2 28h7v1h-7zM11 28h1v1h-1zM13 28h2v1h-2zM17 28h1v1h-1zM20 28h1v1h-1zM24 28h3v1h-3zM28 28h1v1h-1zM30 28h1v1h-1zM32 28h2v1h-2zM2 29h1v1h-1zM8 29h1v1h-1zM10 29h3v1h-3zM14 29h1v1h-1zM16 29h3v1h-3zM22 29h5v1h-5zM30 29h4v1h-4zM2 30h1v1h-1zM4 30h3v1h-3zM8 30h1v1h-1zM10 30h1v1h-1zM12 30h1v1h-1zM15 30h1v1h-1zM17 30h1v1h-1zM20 30h1v1h-1zM24 30h1v1h-1zM26 30h6v1h-6zM34 30h1v1h-1zM2 31h1v1h-1zM4 31h3v1h-3zM8 31h1v1h-1zM10 31h5v1h-5zM17 31h3v1h-3zM21 31h2v1h-2zM24 31h4v1h-4zM30 31h2v1h-2zM33 31h2v1h-2zM2 32h1v1h-1zM4 32h3v1h-3zM8 32h1v1h-1zM10 32h1v1h-1zM20 32h1v1h-1zM24 32h1v1h-1zM28 32h2v1h-2zM31 32h1v1h-1zM2 33h1v1h-1zM8 33h1v1h-1zM14 33h1v1h-1zM16 33h1v1h-1zM18 33h1v1h-1zM22 33h2v1h-2zM30 33h3v1h-3zM2 34h7v1h-7zM10 34h1v1h-1zM12 34h1v1h-1zM15 34h1v1h-1zM18 34h2v1h-2zM22 34h1v1h-1zM24 34h3v1h-3zM28 34h2v1h-2zM31 34h1v1h-1zM33 34h1v1h-1z"/></svg>';
+/* ESCANEAR: las cuatro esquinas del visor de la cámara y la raya que lee. */
+const ICONO_ESCANEAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">' +
+  '<path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/>' +
+  '<path d="M6.5 12h11"/></svg>';
+/* EL QR DE LA BIBLIA, AHORA CALCULADO. Era una ruta de SVG ya hecha, para que
+   se viera sin red; qrMatriz también funciona sin red —es cuenta, no
+   descarga— y así sigue a GLOSSA_BASE el día que cambie la dirección, sin
+   volver a calcular nada a mano. Se hace la primera vez que hace falta. */
+let qrGlossaHecho = '';
+const qrGlossa = () => qrGlossaHecho || (qrGlossaHecho =
+  qrSvg(GLOSSA_BASE + '?desde=qr', T('Código QR para abrir la Biblia Glossa', 'QR code to open the Gloss Bible'))
+    .replace('class="correo-qr"', 'class="qr-dibujo"'));
 /* LA VENTANA DEL QR. Pedida por Gianni: el QR que vivía debajo del mapa se
    abre ahora aquí, a buen tamaño, con un CERRAR abajo. Va en el <body> y no
    en el panel por lo mismo que el mapa a pantalla completa: el panel abierto
@@ -33975,6 +34187,38 @@ function cerrarVentanaQr(){
   if (qrDevuelve && qrDevuelve.isConnected) qrDevuelve.focus({ preventScroll: true });
   qrDevuelve = null;
 }
+/* LO QUE ENSEÑA LA VENTANA, mirado cada vez que se abre (tanda 2, pedido por
+   Gianni). Con la cuenta abierta es TU QR: el de tu código, el que antes
+   vivía en Herramientas. Escaneado con la cámara de otro teléfono abre Glossa
+   directo, le ofrece instalarla y te agrega a sus contactos (ver
+   correoTraido y avisoInstalar). Sin cuenta no hay código que dar, así que
+   enseña el de siempre, el que solo abre la Biblia, y dice cómo tener el tuyo. */
+function pintarVentanaQr(){
+  const mio = correo.perfil && correo.perfil.codigo;
+  const tit = ventanaQr.querySelector('.vqr-titulo'), caja = ventanaQr.querySelector('.vqr-qr');
+  const dice = ventanaQr.querySelector('.qr-dice:not(.qr-pista)'), liga = ventanaQr.querySelector('.qr-liga');
+  const pista = ventanaQr.querySelector('.qr-pista');
+  if (mio){
+    dosIdiomas(tit, { t: ['Tu código QR', 'Your QR code'] });
+    caja.innerHTML = qrSvg(correoLiga(mio), T('Código QR de tu código de Glossa', 'QR code of your Glossa code'))
+                       .replace('class="correo-qr"', 'class="qr-dibujo correo-qr"');
+    dosIdiomas(dice, { t: ['Escanéalo con otro teléfono: abre la Biblia Glossa y te agrega a sus contactos',
+                           'Scan it with another phone: it opens the Gloss Bible and adds you to their contacts'] });
+    dosIdiomas(liga, { t: ['Tu código: ' + correoBonito(mio), 'Your code: ' + correoBonito(mio)] });
+    pista.hidden = true;
+  } else {
+    dosIdiomas(tit, { t: ['Código QR', 'QR code'] });
+    caja.innerHTML = qrGlossa();
+    dosIdiomas(dice, { t: ['Escanéalo con otro teléfono para abrir la Biblia Glossa',
+                           'Scan it with another phone to open the Gloss Bible'] });
+    const dir = GLOSSA_BASE.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    dosIdiomas(liga, { t: [dir, dir] });
+    dosIdiomas(pista, { t: ['Entra a tu cuenta en Herramientas y este QR también te agregará a los contactos de quien lo escanee.',
+                            'Sign in to your account in Tools and this QR will also add you to the contacts of whoever scans it.'] });
+    pista.hidden = false;
+  }
+  ventanaQr.setAttribute('aria-label', tit.textContent);
+}
 function abrirVentanaQr(desde){
   if (!ventanaQr){
     ventanaQr = document.createElement('div');
@@ -33983,19 +34227,17 @@ function abrirVentanaQr(desde){
     ventanaQr.setAttribute('aria-modal', 'true');
     ventanaQr.innerHTML =
       '<div class="vqr-tarjeta">' +
-        '<h2 class="vqr-titulo" data-es="Código QR" data-en="QR code">' + T('Código QR', 'QR code') + '</h2>' +
-        QR_GLOSSA +
-        '<p class="qr-dice" data-es="Escanéalo con otro teléfono para abrir la Biblia Glossa" ' +
-          'data-en="Scan it with another phone to open the Gloss Bible">' +
-          T('Escanéalo con otro teléfono para abrir la Biblia Glossa', 'Scan it with another phone to open the Gloss Bible') + '</p>' +
-        '<p class="qr-liga">giannifontanot.github.io/glossa-bible-notes</p>' +
+        '<h2 class="vqr-titulo"></h2>' +
+        '<div class="vqr-qr"></div>' +
+        '<p class="qr-dice"></p>' +
+        '<p class="qr-liga"></p>' +
+        '<p class="qr-dice qr-pista"></p>' +
         '<div class="vqr-pie">' +
           '<button type="button" class="btn cerrar-pie vqr-cerrar" data-es="CERRAR" data-en="CLOSE">' + T('CERRAR', 'CLOSE') + '</button>' +
           '<button type="button" class="btn cerrar-pie vqr-leer" data-es="VOLVER A LA LECTURA" data-en="BACK TO READING">' +
             T('VOLVER A LA LECTURA', 'BACK TO READING') + '</button>' +
         '</div>' +
       '</div>';
-    ventanaQr.setAttribute('aria-label', T('Código QR', 'QR code'));
     ventanaQr.addEventListener('click', ev => {
       ev.stopPropagation();
       if (ev.target === ventanaQr || ev.target.closest('.vqr-cerrar')) cerrarVentanaQr();
@@ -34030,7 +34272,7 @@ function abrirVentanaQr(desde){
     void ventanaQr.offsetWidth;
   }
   qrDevuelve = desde || null;
-  ventanaQr.setAttribute('aria-label', T('Código QR', 'QR code'));
+  pintarVentanaQr();
   /* Se lleva la tarjeta encogida al botón SIN VIAJE (sin transición), se fija
      ese estado, y solo entonces se pone: si no, la tarjeta escondida iría
      primero desde el punto de la vez anterior, y a ratos nacía de otro lado. */
@@ -34064,12 +34306,20 @@ async function copiarTexto(t){
    liga ya escrita, que es lo que se pidió de respaldo. Si la persona cierra el
    menú sin elegir, no pasa nada. */
 async function enviarGlossa(){
-  const texto = T('Te comparto la Biblia Glossa', 'Here is the Gloss Bible');
+  /* Con la cuenta abierta va TU CÓDIGO: la liga abre Glossa y te agrega a
+     los contactos de quien la toque. Es el Compartir que vivía debajo de tu
+     QR en Herramientas, fundido aquí (tanda 2). Sin cuenta, la Biblia sola. */
+  const c = correo.perfil && correo.perfil.codigo;
+  const url = c ? correoLiga(c) : LIGA_GLOSSA;
+  const texto = c ? T('Te comparto la Biblia Glossa. Mi código es ' + correoBonito(c) + ': con esta liga me agregas para mandarnos notas.',
+                      'Here is the Gloss Bible. My code is ' + correoBonito(c) + ': this link adds me so we can send each other notes.')
+                  : T('Te comparto la Biblia Glossa', 'Here is the Gloss Bible');
   if (navigator.share){
-    try { await navigator.share({ title: T('Biblia Glossa', 'Gloss Bible'), text: texto, url: LIGA_GLOSSA }); return; }
-    catch(e){ if (e && e.name === 'AbortError') return; }
+    try { await navigator.share({ title: T('Biblia Glossa', 'Gloss Bible'), text: texto, url }); return null; }
+    catch(e){ if (e && e.name === 'AbortError') return null; }
   }
-  window.open('https://wa.me/?text=' + encodeURIComponent(texto + ' ' + LIGA_GLOSSA), '_blank', 'noopener');
+  window.open('https://wa.me/?text=' + encodeURIComponent(texto + ' ' + url), '_blank', 'noopener');
+  return null;
 }
 function armarMapaLectores(caja){
   /* UN BOTÓN DE COMPARTIR: el icono en su columna y, a su derecha, lo que
@@ -34129,38 +34379,33 @@ function armarMapaLectores(caja){
               'Para escanear con otro teléfono', 'To scan with another phone') +
         boton('enviar', ICONO_ENVIAR, 'Enviar', 'Send',
               'WhatsApp, Mensajes y más', 'WhatsApp, Messages and more') +
-        boton('copiar', ICONO_LINK, 'Copiar link', 'Copy link',
-              'Para pegarlo donde quieras', 'To paste it anywhere') +
+        boton('escanear', ICONO_ESCANEAR, 'Escanear QR', 'Scan QR',
+              'Para agregar a alguien a tus contactos', 'To add someone to your contacts') +
       '</div>' +
-      '<p class="compartir-aviso" aria-live="polite"></p>' +
+      '<p class="compartir-dice" role="status" hidden></p>' +
     '</div>';
   const lienzo = caja.querySelector('#mapaLectores'), estado = caja.querySelector('#mapaEstado');
-  /* LOS TRES BOTONES. Copiar avisa en el mismo botón —la palomita y «¡Link
-     copiado!» durante dos segundos— y lo repite para el lector de pantalla
-     en la línea viva de debajo. */
-  const aviso = caja.querySelector('.compartir-aviso');
-  let copiadoHasta = 0;
-  caja.querySelector('.compartir-botones').addEventListener('click', async ev => {
+  /* LOS TRES BOTONES, TANDA 2 (pedido por Gianni):
+     · CÓDIGO QR: tu QR, el de tu código, que antes vivía en Herramientas.
+       Sin cuenta, el de la Biblia (ver pintarVentanaQr).
+     · ENVIAR: el Compartir que había debajo de tu QR en Herramientas y este
+       Enviar eran casi lo mismo y se fundieron en uno. Con la cuenta abierta
+       manda tu código y su liga, que abre Glossa y te agrega; sin cuenta, la
+       Biblia, como antes.
+     · ESCANEAR QR: en el sitio de Copiar link, que se fue. Es el Escanear de
+       Herramientas: la cámara lee el QR de alguien y lo agrega.
+     Lo que pasa se dice en el renglón de debajo, a la vista: «Agregaste a
+     Ana», o qué falta. */
+  const dice = caja.querySelector('.compartir-dice');
+  const decirAqui = par => { if (par){ dosIdiomas(dice, { t: par }); dice.hidden = false; } else { dice.textContent = ''; dice.hidden = true; } };
+  caja.querySelector('.compartir-botones').addEventListener('click', ev => {
     const b = ev.target.closest('[data-compartir]');
     if (!b) return;
     const que = b.dataset.compartir;
+    decirAqui(null);
     if (que === 'qr'){ abrirVentanaQr(b); return; }
-    if (que === 'enviar'){ enviarGlossa(); return; }
-    const ok = await copiarTexto(LIGA_GLOSSA);
-    const tit = b.querySelector('.cb-que'), ico = b.querySelector('.cb-icono');
-    const dice = ok ? T('¡Link copiado!', 'Link copied!') : T('No se pudo copiar', 'Could not copy');
-    tit.textContent = dice;
-    if (ok) ico.innerHTML = ICONO_LISTO;
-    b.classList.toggle('copiado', ok);
-    aviso.textContent = dice;
-    const hasta = copiadoHasta = Date.now() + 2200;
-    setTimeout(() => {
-      if (hasta !== copiadoHasta) return;
-      tit.textContent = T(tit.dataset.es, tit.dataset.en);
-      ico.innerHTML = ICONO_LINK;
-      b.classList.remove('copiado');
-      aviso.textContent = '';
-    }, 2200);
+    if (que === 'enviar'){ enviarGlossa().then(decirAqui); return; }
+    correoEscanear(c => correoAgregarEscaneado(c).then(decirAqui), decirAqui);
   });
   let mapa = null, capa = null, completo = false, tactil = false;
   const decir = t => { estado.textContent = t; };
@@ -34405,6 +34650,9 @@ function armarAtribuciones(sitio){
   nav.innerHTML =
     '<button type="button" role="tab" data-sub="compartir" class="aqui" aria-selected="true">' +
       '<span data-es="Compartir" data-en="Share">' + T('Compartir', 'Share') + '</span></button>' +
+    /* CONTACTOS, tanda 2: tus contactos y grupos dejan Herramientas. */
+    '<button type="button" role="tab" data-sub="contactos" aria-selected="false">' +
+      '<span data-es="Contactos" data-en="Contacts">' + T('Contactos', 'Contacts') + '</span></button>' +
     '<button type="button" role="tab" data-sub="tools" aria-selected="false">' +
       '<span data-es="Herramientas" data-en="Tools">' + T('Herramientas', 'Tools') + '</span></button>' +
     /* ATRIBUCIONES, pedida por Gianni: los créditos y licencias tienen su
@@ -34426,6 +34674,11 @@ function armarAtribuciones(sitio){
   compartir.className = 'sub-panel';
   compartir.id = 'respCompartir';
   hoja.appendChild(compartir);
+  const contactos = document.createElement('div');
+  contactos.className = 'sub-panel';
+  contactos.id = 'respContactos';
+  contactos.hidden = true;
+  hoja.appendChild(contactos);
   const caja = document.createElement('div');
   caja.className = 'sub-panel';
   caja.id = 'respTools';
@@ -34441,6 +34694,16 @@ function armarAtribuciones(sitio){
     if (b) verSubRespaldo(b.dataset.sub);
   });
   armarMapaLectores(compartir);
+  /* Sin el proyecto de Firebase no hay contactos que guardar: la pestaña
+     lo dice, en vez de enseñar cajas que no llevan a ningún sitio. */
+  if (NUBE_FB) correoArmarBloque(contactos);
+  else {
+    const p = document.createElement('p');
+    p.className = 'herr-dice';
+    dosIdiomas(p, { t: ['Los contactos necesitan la nube, y esta copia de Glossa no la tiene puesta.',
+                        'Contacts need the cloud, and this copy of Glossa doesn’t have it set up.'] });
+    contactos.appendChild(p);
+  }
   /* HERRAMIENTAS, REARREGLADA CON PANEL DE EXPERTOS. Pedido por Gianni: «se
      ve todo muy amontonado». Eran filas sueltas con un rótulo de 54 px a la
      izquierda, botones de su palabra, una casilla cuyo texto casi no se leía
