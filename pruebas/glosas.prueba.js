@@ -2085,6 +2085,9 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
       enLaLista: !!ind && ind.textContent.includes(nota),
       panelPuesto: document.getElementById('etiquetas').classList.contains('abierto'),
       chips: [...document.querySelectorAll('#etiquetas .chip.sel')].map(c => c.textContent.trim()),
+      /* Con las pestañas, quitar el filtro es cerrar su candado: la sección
+         enseña todo y lo elegido se queda recordado detrás. */
+      etiqCerrada: !!document.querySelector('#secEtiq.todos'),
       aviso: document.getElementById('readout').textContent || '',
       /* Escrito y ENSEÑADO son ya dos cosas distintas: ver el bloque del
          final, «los dos avisos que salen». */
@@ -2163,8 +2166,12 @@ const cubreYCierraEnPalabra = (m, pedido, verso) => {
   di('los chips que quedan', r.chips);
   vale('se guarda', r.enElAlmacen === true);
   vale('SE VE EN LA HOJA, que es lo que fallaba', r.enLaHoja === true);
-  vale('el filtro que la escondía se quitó',
-       !r.chips.some(c => /estudio/.test(c)), r.chips);
+  /* QUITARLO YA NO ES BORRAR EL CHIP. Desde las pestañas con candado, quitar
+     un filtro es volver a cerrar su candado: la sección deja de filtrar y el
+     chip se queda elegido detrás, como cuando lo cierra el lector. */
+  vale('el filtro que la escondía se quitó: el candado de etiquetas se cerró',
+       r.etiqCerrada === true, { cerrada: r.etiqCerrada, chips: r.chips });
+  vale('  y lo elegido se recuerda detrás', r.chips.some(c => /estudio/.test(c)), r.chips);
   /* LA RAZÓN SE ESCRIBE PERO YA NO SE ENSEÑA. Esto decía «y se dice por qué»
      y comprobaba solo el texto; el texto sigue ahí —el aviso se escribe igual
      y se va a la consola— pero el cartel no sale. De los veintitrés avisos

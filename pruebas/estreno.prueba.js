@@ -470,7 +470,7 @@ const ETIQUETAS_EN = ['🌅Hope', '📜Promise', '⚓FirmFaith', '🌱NewLife', 
          y lo traduce aplicarIdioma. Los dos caminos, cada uno con su testigo. */
       glosas: ['btnVerEtiquetas', 'btnElegirGlosas']
         .map(id => (document.getElementById(id) || {}).textContent || null),
-      dias: ((document.querySelector('#secDias .fsec-todos') || {}).textContent || '').trim() || null,
+      dias: ((document.querySelector('#secDias .fsec-cerrado') || {}).textContent || '').trim() || null,
       /* Y los puntos de la hoja, que son la puerta de perlas, cintas y rastro. */
       puntos: ['btnPiedras', 'btnCintas', 'btnHistorial']
         .map(id => (document.getElementById(id) || {}).title || null),

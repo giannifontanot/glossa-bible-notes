@@ -46,6 +46,10 @@ function servir(){
 const nube = new Map();          // ruta → { data, ver }
 let reloj = 0;
 const negadas = [];
+/* Para simular que el acuse de «leída» no llega a la nube —la red se cortó,
+   o se leyó sin cuenta—: mientras esté puesto, escribir un acuse falla como
+   falla la red, no como una regla. */
+let sinRedAcuses = false;
 const copia = x => JSON.parse(JSON.stringify(x));
 const COLORES = ['#9c6b3a', '#3f6e9e', '#3e7d5a', '#a53d3d', '#6e4c94', '#8c949c'];
 const ANA = { uid:'lectora-ana', email:'ana@ejemplo.org', displayName:'Ana' };
@@ -68,6 +72,14 @@ function regla(uid, ruta, accion, data){
   if (p[0] === 'users' && p[2] === 'buzon' && p.length === 4)
     return accion === 'escribir' && !nube.get(ruta) && !!data && data.de === uid && COLORES.includes(data.color)
            && typeof data.titulo === 'string' && typeof data.texto === 'string' && typeof data.html === 'string';
+  /* LAS PALOMITAS: quien recibió deja en lo del remitente su acuse, con su
+     propio uid en el nombre y dentro; un «leída» no vuelve a «llegó». */
+  if (p[0] === 'users' && p[2] === 'acuses' && p.length === 4){
+    if (accion !== 'escribir' || !data || data.de !== uid || p[3] !== data.carta + '~' + uid) return false;
+    if (!['llego', 'leida'].includes(data.estado) || !Number.isInteger(data.t)) return false;
+    const hay = nube.get(ruta);
+    return !hay || (hay.data.de === uid && !(hay.data.estado === 'leida' && data.estado === 'llego'));
+  }
   if (p[0] === 'users' && p[2] === 'grupos' && p[4] === 'miembros' && p.length === 6 && p[5] === uid){
     if (accion === 'leer' || accion === 'borrar') return true;
     const g = nube.get(p.slice(0, 4).join('/'));
@@ -86,6 +98,8 @@ function atender(op, a, quien){
                               .map(([k, r]) => ({ ...copia(r), id: k.slice(pre.length) }));
   }
   if (op === 'confirmar'){
+    if (sinRedAcuses && a.ops.some(o => /\/acuses\//.test(o.ruta)))
+      throw Object.assign(new Error('unavailable'), { code:'unavailable' });
     for (const [ruta, ver] of Object.entries(a.leidas)){
       const r = nube.get(ruta);
       if ((r ? r.ver : 0) !== ver) return false;
@@ -244,13 +258,53 @@ async function abrirEnvio(p, id){
   await p.locator('#notaEnviar').waitFor({ state:'visible' });
   await p.waitForTimeout(500);
 }
+/* Al salir bien ya no se dice «Enviada a…»: el panel se cierra solo y lo
+   dicen las palomitas. Devuelve 'cerrado' si se cerró, o lo que dijo el
+   panel si no. */
 async function enviar(p, color, destino){
   await p.locator('#notaEnviar [data-color="' + color + '"]').tap();
   await p.locator('#notaEnviar [data-destino="' + destino + '"]').tap();
   await p.locator('#envioMandar').tap();
-  await p.waitForFunction(() => /Enviada|Sent|No se|didn|pesa|nadie|nobody|servidor|server/i.test(
-    (document.querySelector('#notaEnviar .envio-estado') || {}).textContent || ''), null, { timeout:15000 }).catch(() => {});
-  return p.evaluate(() => (document.querySelector('#notaEnviar .envio-estado') || {}).textContent || '');
+  await p.waitForFunction(() => {
+    const panel = document.querySelector('#notaEnviar');
+    return !panel || panel.hidden || /No se|didn|pesa|nadie|nobody|servidor|server/i.test(
+      (panel.querySelector('.envio-estado') || {}).textContent || '');
+  }, null, { timeout:15000 }).catch(() => {});
+  return p.evaluate(() => {
+    const panel = document.querySelector('#notaEnviar');
+    return !panel || panel.hidden ? 'cerrado' : (panel.querySelector('.envio-estado') || {}).textContent || '';
+  });
+}
+/* Cuántas palomitas enseña la nota abierta, esperando a que sean `n`. */
+async function palomitas(p, n){
+  await p.waitForFunction(n => {
+    const el = document.querySelector('#notas .nota-palomitas');
+    return !!el && (n === 0 ? el.hidden : !el.hidden && el.dataset.n === String(n) && el.querySelectorAll('svg').length === n);
+  }, n, { timeout:15000 }).catch(() => {});
+  return p.evaluate(() => {
+    const el = document.querySelector('#notas .nota-palomitas');
+    return el ? { n: el.hidden ? 0 : +el.dataset.n, svgs: el.querySelectorAll('svg').length,
+                  aria: el.getAttribute('aria-label') || '', color: getComputedStyle(el).color } : null;
+  });
+}
+/* Tocar la bolita de un color como la toca un dedo: PointerEvent con su
+   pointerId y su pointerType, y un poco torcido. */
+async function tocarBola(p, color, pid){
+  const hecho = await p.evaluate(async ([color, pid]) => {
+    const el = [...document.querySelectorAll('#buzon .bola:not(.se-va)')]
+      .find(b => b.style.getPropertyValue('--bola') === color);
+    if (!el) return 'no hay bolita ' + color;
+    const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+    const o = (cx, cy, b = 1) => ({ bubbles:true, cancelable:true, composed:true, pointerId:pid,
+      pointerType:'touch', isPrimary:true, buttons:b, clientX:cx, clientY:cy });
+    const pausa = ms => new Promise(z => setTimeout(z, ms));
+    el.dispatchEvent(new PointerEvent('pointerdown', o(x, y))); await pausa(30);
+    el.dispatchEvent(new PointerEvent('pointermove', o(x + 2, y - 1))); await pausa(25);
+    el.dispatchEvent(new PointerEvent('pointerup', o(x + 1, y + 1, 0)));
+    return '';
+  }, [color, pid]);
+  await p.waitForTimeout(400);
+  return hecho;
 }
 const notasDe = p => p.evaluate(() => JSON.parse(localStorage.getItem('glossa:notas:v1') || '[]'));
 const recibidas = async p => (await notasDe(p)).filter(n => /^nota-rec-/.test(n.id));
@@ -335,7 +389,7 @@ const buzonDe = uid => [...nube.keys()].filter(k => k.startsWith('users/' + uid 
   await abrirEnvio(B.pagina, 'nota-de-beto');
   const dice = await enviar(B.pagina, 'verde', 'p:' + ANA.uid);
   di('Beto ve', dice);
-  vale('a Beto se le dice que se envió', /Enviada a Ana|Sent to Ana/.test(dice), dice);
+  vale('a Beto el panel se le cierra solo, sin «Enviada a…»', dice === 'cerrado', dice);
   const deBeto = (await esperarRecibidas(A.pagina, 1))[0];
   di('lo que llegó a Ana', deBeto && { id: deBeto.id, recibida: deBeto.recibida, titulo: deBeto.titulo });
   vale('A ANA LE LLEGA LA NOTA', !!deBeto && deBeto.titulo === 'Salmo 23' && /pastor/.test(deBeto.texto), deBeto && deBeto.titulo);
@@ -355,9 +409,42 @@ const buzonDe = uid => [...nube.keys()].filter(k => k.startsWith('users/' + uid 
   di('la bolita al llegar (top)', bolaBeto && bolaBeto.cuadros.filter((_, i) => i % 10 === 0).map(c => Math.round(c.top)));
   vale('SU BOLITA CAE DESDE ARRIBA', !!bolaBeto && bolaBeto.cuadros.length > 0 && bolaBeto.cuadros[0].bottom <= 1, bolaBeto && bolaBeto.cuadros[0]);
 
+  titulo('LAS PALOMITAS: UNA AL LLEGAR, DOS AL LEERLA');
+  const cartaBeto = deBeto && deBeto.id.replace(/^nota-rec-/, '');
+  const acuseAna = () => nube.get('users/' + BETO.uid + '/acuses/' + cartaBeto + '~' + ANA.uid);
+  vale('Ana le deja a Beto el acuse de que llegó', !!acuseAna() && acuseAna().data.estado === 'llego', acuseAna());
+  const una = await palomitas(B.pagina, 1);
+  di('las palomitas de Beto', una);
+  vale('EN LA NOTA DE BETO SALE UNA PALOMITA VERDE', !!una && una.n === 1 && una.svgs === 1 &&
+       /^rgb\(37, 163, 90\)$/.test(una.color), una);
+  vale('  y dice que se entregó', !!una && /Entregada|Delivered/.test(una.aria), una);
+  const enBeto = await B.pagina.evaluate(() => (document.querySelector('#notas .nota-acciones') || {}).textContent || '');
+  vale('  y ya no dice «enviada» ni «leída»', !/enviada|leída|sent|read/i.test(enBeto), enBeto);
+  await A.pagina.waitForTimeout(1500);
+  /* Ana la abre justo cuando el acuse no puede salir. Codex lo vio: la carta
+     queda abierta, su bolita se va, y nada volvía a mandar el «leída». */
+  sinRedAcuses = true;
+  const t1 = await tocarBola(A.pagina, '#3e7d5a', 41);
+  const t2 = t1 || await tocarBola(A.pagina, '#3e7d5a', 42);
+  vale('Ana toca la bolita dos veces y abre la carta', !t1 && !t2, t1 || t2);
+  await A.pagina.waitForTimeout(600);
+  vale('  sin red, el acuse se queda en «llegó»', !!acuseAna() && acuseAna().data.estado === 'llego', acuseAna());
+  sinRedAcuses = false;
+  /* Ana vuelve a abrir Glossa: al entrar en su cuenta se repasan las cartas,
+     y el «leída» que faltaba sale solo, sin tocar nada. */
+  await A.pagina.goto(base + 'vacio');
+  await A.pagina.goto(base);
+  await listo(A.pagina);
+  for (let i = 0; i < 40 && !(acuseAna() && acuseAna().data.estado === 'leida'); i++) await A.pagina.waitForTimeout(250);
+  vale('  al volver a abrir Glossa, a Beto le llega el acuse de que la leyó', !!acuseAna() && acuseAna().data.estado === 'leida', acuseAna());
+  const dos = await palomitas(B.pagina, 2);
+  vale('EN LA NOTA DE BETO SALEN DOS PALOMITAS', !!dos && dos.n === 2 && dos.svgs === 2 && /Leída|Read/.test(dos.aria), dos);
+
   titulo('DE GOMA, EN LUGAR DEL COLOR SE ELIGE CUÁNTO REBOTA');
   /* Gianni: «que las pelotas de goma tengan 3 tamaños de rebote, que se
-     distingan por el color». En la de goma el color sale del rebote. */
+     distingan por el color». En la de goma el color sale del rebote.
+     Como el panel ya se cierra solo al enviar, Beto lo vuelve a abrir. */
+  await abrirEnvio(B.pagina, 'nota-de-beto');
   const panelEnvio = () => B.pagina.evaluate(() => ({
     colores: document.querySelectorAll('#notaEnviar .envio-color').length,
     rebotes: [...document.querySelectorAll('#notaEnviar [data-rebote]')].map(b => [b.dataset.rebote,
@@ -455,7 +542,7 @@ const buzonDe = uid => [...nube.keys()].filter(k => k.startsWith('users/' + uid 
   await C.pagina.evaluate(() => { window.__alturas = []; });
   const diceGrupo = await enviar(A.pagina, 'morado', destinoGrupo.clave);
   di('Ana ve', diceGrupo);
-  vale('a Ana se le dice a cuántos llegó', /2 personas|2 people/.test(diceGrupo), diceGrupo);
+  vale('a Ana el panel se le cierra solo', diceGrupo === 'cerrado', diceGrupo);
   const aCarla = (await esperarRecibidas(C.pagina, 1)).find(n => n.titulo === 'Para el grupo');
   const aBeto = (await esperarRecibidas(B.pagina, 1)).find(n => n.titulo === 'Para el grupo');
   di('lo que llegó', { carla: aCarla && aCarla.recibida, beto: aBeto && aBeto.recibida });
@@ -465,9 +552,15 @@ const buzonDe = uid => [...nube.keys()].filter(k => k.startsWith('users/' + uid 
          n && n.recibida);
   const bolaCarla = (await C.pagina.evaluate(() => window.__alturas)).find(f => f.color === '#6e4c94');
   vale('  y en el teléfono de Carla la bolita cae', !!bolaCarla && bolaCarla.cuadros[0].bottom <= 1, bolaCarla && bolaCarla.cuadros[0]);
+  const delGrupo = await palomitas(A.pagina, 1);
+  vale('UNA PALOMITA EN LA NOTA DE ANA: LLEGÓ A LOS DOS', !!delGrupo && delGrupo.n === 1, delGrupo);
 
   titulo('LO QUE LLEGA CON GLOSSA CERRADA APARECE ABAJO');
   await C.pagina.goto(base + 'vacio');
+  /* El panel se cerró al enviar: se vuelve a abrir, y recuerda el destino. */
+  await A.pagina.locator('#notas .nota-ver-enviar').tap();
+  await A.pagina.locator('#notaEnviar').waitFor({ state:'visible' });
+  await A.pagina.waitForTimeout(500);
   await A.pagina.locator('#envioMandar').tap();
   await A.pagina.waitForTimeout(1500);
   const esperando = buzonDe(CARLA.uid);
@@ -491,4 +584,7 @@ const buzonDe = uid => [...nube.keys()].filter(k => k.startsWith('users/' + uid 
   await navegador.close();
   servidor.close();
   fin();
-})().catch(e => { console.error(e); process.exitCode = 1; });
+/* Si algo revienta a medio camino, el navegador y el servidor quedan
+   abiertos y la máquina de GitHub se quedaba esperando media hora hasta
+   cancelarla. Mejor salir ya, con el error a la vista. */
+})().catch(e => { console.error(e); process.exit(1); });

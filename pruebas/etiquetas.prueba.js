@@ -619,10 +619,18 @@ const FUERA = `async () => {
     bot.click();
     await z(450);
     /* Cómo nacen los tres botones de «todos», ANTES de tocar ninguno. */
+    /* Las pestañas dicen los dos letreros del candado, cerrado y abierto, y
+       solo se ve el que toca: se lee el del candado cerrado. */
     const nacen = [...document.querySelectorAll('#filtros .fsec-todos')]
-                    .map(b => [b.dataset.todos, b.getAttribute('aria-pressed'), b.textContent.trim()]);
-    const escondidas = ['pillsDias', 'pillsLibros', 'pillsEtiq']
-                    .map(id => getComputedStyle(document.getElementById(id)).display);
+                    .map(b => [b.dataset.todos, b.getAttribute('aria-pressed'),
+                               b.querySelector('.fsec-cerrado').textContent.trim()]);
+    /* CON EL CANDADO CERRADO las pastillas se ven, apagadas y sin tocarse. */
+    const escondidas = ['pillsDias', 'pillsLibros', 'pillsEtiq'].map(id => {
+      const el = document.getElementById(id), c = getComputedStyle(el);
+      return el.inert && c.pointerEvents === 'none' && +c.opacity < .6 ? 'apagadas' : c.display + '/' + c.opacity;
+    });
+    const pestanas = [...document.querySelectorAll('#filtros .ftab')]
+                    .map(t => t.dataset.tab + ':' + t.getAttribute('aria-selected'));
     document.querySelector('#filtros [data-todos="etiq"]').click();
     await z(450);
     const f = document.getElementById('filtros');
@@ -651,7 +659,9 @@ const FUERA = `async () => {
     /* LAS TRES SECCIONES, arriba de todo y en su orden: días, libros y
        etiquetas. El combo de los días que vivía aquí se fue: ahora los días
        son pastillas, como lo pidió Gianni, y se eligen varios. */
-    const bDias = document.querySelector('#secDias .fsec-todos');
+    /* El botón del candado de la pestaña que se ve: es la de Etiquetas al
+       nacer, y las otras dos están detrás. */
+    const bDias = document.querySelector('#filtros .fsec.activa .fsec-todos');
     const rd = bDias ? bDias.getBoundingClientRect() : null;
     const rst = document.querySelector('.stage').getBoundingClientRect();
     return { apagada,
@@ -684,7 +694,7 @@ const FUERA = `async () => {
                 siguen llamándose como siempre a propósito. */
              rotulos: [bot.textContent.trim(),
                        document.getElementById('btnElegirGlosas').textContent.trim()],
-             nacen, escondidas,
+             nacen, escondidas, pestanas,
              secciones: [...f.children].map(c => c.id).filter(Boolean),
              sinEtiqueta: !!document.querySelector('#pillsEtiq .chip-sin'),
              comboViejo: !!document.getElementById('selDia'),
@@ -724,8 +734,10 @@ const FUERA = `async () => {
        tira.nacen.map(x => x.join(':')).join(' | ') ===
        'dias:true:Todos los días | libros:true:Todos los libros | etiq:true:Todas las etiquetas',
        tira.nacen.map(x => x.join(':')).join(' | '));
-  vale('  y con «todos» puesto sus pastillas no se ven',
-       tira.escondidas.every(d => d === 'none'), tira.escondidas.join(','));
+  vale('  y con el candado cerrado sus pastillas se ven apagadas, sin tocarse',
+       tira.escondidas.every(d => d === 'apagadas'), tira.escondidas.join(','));
+  vale('  en tres pestañas, que nacen en Etiquetas',
+       tira.pestanas.join() === 'dias:false,libros:false,etiq:true', tira.pestanas.join());
   vale('  la primera arrancando en el filo, como la tira',
        !!tira.dia && Math.abs(tira.dia.desdeElFilo) <= 1,
        tira.dia && tira.dia.desdeElFilo + ' px');
@@ -969,8 +981,10 @@ const FUERA = `async () => {
       await ponerVer(true);
     }
     /* Se deja como estaba: el día puesto escondería glosas a los bloques de
-       abajo, que cuentan cuántas se ven. Encender «Todos los días» suelta los
-       elegidos. */
+       abajo, que cuentan cuántas se ven. El candado ya no suelta lo elegido
+       —se acuerda, lo pidió Gianni—, así que se suelta a mano antes de
+       cerrarlo, como lo haría un dedo. */
+    for (const c of [...document.querySelectorAll('#pillsDias .chip.sel')]){ c.click(); await z(900); }
     await ponerTodos('dias', true);
     /* Y LOS LIBROS: apagar «Todos los libros» deja puesto el abierto, y eso ya
        es un filtro —la lista se queda en un libro—. */
@@ -1362,9 +1376,11 @@ const FUERA = `async () => {
     if (segundo){ segundo.click(); await z(1400);
       dosDias = { n: cuantas(), puestos: document.querySelectorAll('#pillsDias .chip.sel').length }; }
     todos.click(); await z(1400);
+    const pd = document.getElementById('pillsDias');
     return { antes, sinElegir, filtrado, dosDias, vuelven: cuantas(),
-             marcadoAlQuitar: !!document.querySelector('#pillsDias .chip.sel'),
-             escondidas: getComputedStyle(document.getElementById('pillsDias')).display };
+             marcadoAlQuitar: document.querySelectorAll('#pillsDias .chip.sel').length,
+             escondidas: pd.inert && getComputedStyle(pd).pointerEvents === 'none' ? 'apagadas' : 'vivas',
+             pestana: (document.querySelector('#tab-dias .ftab-n') || {}).textContent || '' };
   });
   di('por día', JSON.stringify(porDia));
   vale('(la prueba es válida) hay glosas de dos días',
@@ -1384,10 +1400,10 @@ const FUERA = `async () => {
   vale('  SE ELIGEN VARIOS DÍAS, y se suman',
        !porDia.sinDia && !!porDia.dosDias && porDia.dosDias.puestos === 2 &&
        porDia.dosDias.n > porDia.filtrado.n, JSON.stringify(porDia.dosDias));
-  vale('  y al encender «Todos los días» se sueltan y se esconden',
+  vale('  y al cerrar el candado vuelven todas, pero se acuerda de los dos días, apagados',
        !porDia.sinDia && porDia.vuelven === porDia.antes &&
-       porDia.marcadoAlQuitar === false && porDia.escondidas === 'none',
-       '→ ' + porDia.vuelven + ' · ' + porDia.escondidas);
+       porDia.marcadoAlQuitar === 2 && porDia.escondidas === 'apagadas' && porDia.pestana === '',
+       '→ ' + porDia.vuelven + ' · ' + porDia.marcadoAlQuitar + ' · ' + porDia.escondidas + ' · «' + porDia.pestana + '»');
 
   /* ================================================================
      UN FILTRO GUARDADO NO PUEDE QUEDARSE ESCONDIDO.

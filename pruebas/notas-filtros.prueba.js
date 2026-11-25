@@ -40,11 +40,22 @@ const librosPuestos = p => p.locator('#pillsLibros .chip.sel').count();
 /* CADA SECCIÓN NACE EN «TODOS» y sus pastillas escondidas: para elegir hay que
    apagar su botón, como lo haría el dedo. Se espera a que la fila acabe de
    abrirse suave —260 ms— antes de tocar dentro. */
+/* LAS SECCIONES SON PESTAÑAS: solo se ve la elegida, así que antes de tocar
+   dentro de una se toca su pestaña, como el dedo. */
+const FILA_PESTANA = { pillsDias:'dias', pillsLibros:'libros', pillsEtiq:'etiq' };
+async function pestana(p, cual){
+  const t = p.locator('#tab-' + cual);
+  if (await t.getAttribute('aria-selected') !== 'true'){ await t.click(); await p.waitForTimeout(250); }
+}
 async function apagarTodos(p, cual){
+  await pestana(p, cual);
   const b = p.locator('#filtros [data-todos="' + cual + '"]');
   if (await b.getAttribute('aria-pressed') === 'true'){ await b.click(); await p.waitForTimeout(420); }
 }
-const pastilla = (p, fila, texto) => p.locator('#' + fila + ' .chip').filter({ hasText:texto });
+const pastilla = (p, fila, texto) => {
+  const l = p.locator('#' + fila + ' .chip').filter({ hasText:texto });
+  return { click: async () => { await pestana(p, FILA_PESTANA[fila]); await l.click(); } };
+};
 const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, dia, fecha:'2026-10-02T20:00:00.000Z' });
 
 (async () => {
@@ -286,6 +297,7 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
      venía con días, se enciende «Todos los días»; si no, se elige uno. */
   {
     const tDias = q.locator('#filtros [data-todos="dias"]');
+    await pestana(q, 'dias');
     await tDias.click(); await q.waitForTimeout(420);
     if (await tDias.getAttribute('aria-pressed') === 'false')
       await q.locator('#pillsDias .chip').first().click();
@@ -319,14 +331,22 @@ const filtro = (libro, libros, tags, dia) => ({ libro, libros, etiquetas:tags, d
   vale('añadir un libro queda guardado sin necesitar otro cambio de filtro',
     await librosPuestos(q) === 2);
 
-  titulo('«Todos los libros» enciende la Biblia entera y se guarda así');
+  titulo('el candado de los libros enciende la Biblia entera, se acuerda y se guarda así');
+  await pestana(q, 'libros');
   await q.locator('#filtros [data-todos="libros"]').click(); await q.waitForTimeout(420);
-  vale('encender «Todos los libros» suelta los elegidos y esconde sus pastillas',
-    await librosPuestos(q) === 0 && await q.locator('#pillsLibros').isHidden());
+  const apagadas = () => q.locator('#pillsLibros').evaluate(el => el.inert &&
+    getComputedStyle(el).pointerEvents === 'none' && +getComputedStyle(el).opacity < .6);
+  vale('cerrar el candado de los libros deja las pastillas a la vista, apagadas, y se acuerda de las dos',
+    await librosPuestos(q) === 2 && await q.locator('#pillsLibros').isVisible() && await apagadas());
+  vale('  y la pestaña ya no cuenta libros', ((await q.locator('#tab-libros .ftab-n').textContent()) || '') === '');
   await q.reload(); await ir(q, 'glosas');
-  vale('y al recargar sigue siendo la Biblia entera',
+  vale('y al recargar sigue siendo la Biblia entera, con lo elegido guardado detrás',
     await q.locator('#filtros [data-todos="libros"]').getAttribute('aria-pressed') === 'true' &&
-    await librosPuestos(q) === 0);
+    await librosPuestos(q) === 2);
+  await pestana(q, 'libros');
+  await q.locator('#filtros [data-todos="libros"]').click(); await q.waitForTimeout(420);
+  vale('al volver a abrirlo, vuelven las mismas dos y la pestaña dice «· 2»',
+    await librosPuestos(q) === 2 && ((await q.locator('#tab-libros .ftab-n').textContent()) || '').includes('2'));
 
   titulo('los ajustes de antes se traducen a las tres secciones');
   /* Una instalación de antes guardaba los libros AÑADIDOS al abierto
