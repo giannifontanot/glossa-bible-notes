@@ -8122,7 +8122,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 22:11';
+window.GLOSS_BUILD = '24-NOV-26 22:15';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -32610,7 +32610,7 @@ function nubeArrancar(){
   if ((!est.uid || est.fuera) && !enlace && !nubeCrudo(NUBE_VUELTA)) return;
   try { localStorage.removeItem(NUBE_VUELTA); } catch(_){}
   setTimeout(async () => {
-    try { await nubeBase(); } catch(_){ nubeAviso = 'sin-red'; if (nubePintar) nubePintar(); return; }
+    try { await nubeBase(); } catch(_){ nubeAviso = 'sin-red'; if (nubePintar) nubePintar(); correoAviso(); return; }
     if (enlace) await nubeVolverDelEnlace();
     nubeEscuchar();
   }, 1500);
@@ -33007,7 +33007,11 @@ async function cLista(...s){
 /* ---------- AL ENTRAR Y AL SALIR ---------- */
 async function correoCuenta(u){
   const uid = u ? u.uid : null;
-  if (uid === correo.uid) return;
+  /* Aunque la cuenta no cambie se avisa: al abrir con una sesión guardada que
+     el servidor ya no reconoce llega «nadie», que ya era el uid de antes, y
+     sin este aviso Contactos se quedaba en «Preparando tu cuenta…» para
+     siempre (lo vio Codex en la PR #274). */
+  if (uid === correo.uid){ correoAviso(); return; }
   if (correo.escucha){ try { correo.escucha(); } catch(_){} correo.escucha = null; }
   Object.assign(correo, { uid, perfil:null, contactos:[], grupos:[], miembros:{}, falla:'', cargando:false });
   correo.pendientes.clear();
@@ -33403,6 +33407,18 @@ function correoIrALaCuenta(){
    Glossa se abre y el código ya está escrito para agregarte. */
 let correoLlegoPorQr = false;
 (function correoTraido(){
+  /* EL QR SIN CUENTA lleva «?desde=qr»: no trae código que agregar, pero
+     quien lo escanea también llegó por un QR y también se le ofrece
+     instalarla (lo vio Codex en la PR #274). La marca se quita de la
+     dirección para que no se quede en los favoritos. */
+  if (/[?&]desde=qr(?:[&#]|$)/.test(location.search)){
+    correoLlegoPorQr = true;
+    try {
+      const q = new URLSearchParams(location.search); q.delete('desde');
+      const s = q.toString();
+      history.replaceState(null, '', location.pathname + (s ? '?' + s : '') + location.hash);
+    } catch(_){}
+  }
   const m = /[?&]glossa=([^&#]*)/.exec(location.search);
   if (!m) return;
   correoLlegoPorQr = true;
@@ -33817,7 +33833,7 @@ function correoArmarBloque(panel){
     if (!u){
       let traido = null; try { traido = localStorage.getItem(CORREO_TRAIDO); } catch(_){}
       const est = nubeEstado();
-      if (est.uid && !est.fuera && !nubeFb){ decirEn(fueraDice, ['Preparando tu cuenta…', 'Getting your account ready…']); bIrCuenta.hidden = true; return; }
+      if (est.uid && !est.fuera && !nubeFb && nubeAviso !== 'sin-red'){ decirEn(fueraDice, ['Preparando tu cuenta…', 'Getting your account ready…']); bIrCuenta.hidden = true; return; }
       bIrCuenta.hidden = false;
       decirEn(fueraDice, traido && CORREO_CODIGO.test(traido)
         ? ['Te pasaron el código ' + correoBonito(traido) + '. Entra a tu cuenta y se agregará solo a tus contactos.',
@@ -34125,7 +34141,7 @@ const ICONO_ESCANEAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColo
    volver a calcular nada a mano. Se hace la primera vez que hace falta. */
 let qrGlossaHecho = '';
 const qrGlossa = () => qrGlossaHecho || (qrGlossaHecho =
-  qrSvg(GLOSSA_BASE, T('Código QR para abrir la Biblia Glossa', 'QR code to open the Gloss Bible'))
+  qrSvg(GLOSSA_BASE + '?desde=qr', T('Código QR para abrir la Biblia Glossa', 'QR code to open the Gloss Bible'))
     .replace('class="correo-qr"', 'class="qr-dibujo"'));
 /* LA VENTANA DEL QR. Pedida por Gianni: el QR que vivía debajo del mapa se
    abre ahora aquí, a buen tamaño, con un CERRAR abajo. Va en el <body> y no
