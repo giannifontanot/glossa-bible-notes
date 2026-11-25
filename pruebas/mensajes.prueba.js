@@ -46,6 +46,10 @@ function servir(){
 const nube = new Map();          // ruta → { data, ver }
 let reloj = 0;
 const negadas = [];
+/* Para simular que el acuse de «leída» no llega a la nube —la red se cortó,
+   o se leyó sin cuenta—: mientras esté puesto, escribir un acuse falla como
+   falla la red, no como una regla. */
+let sinRedAcuses = false;
 const copia = x => JSON.parse(JSON.stringify(x));
 const COLORES = ['#9c6b3a', '#3f6e9e', '#3e7d5a', '#a53d3d', '#6e4c94', '#8c949c'];
 const ANA = { uid:'lectora-ana', email:'ana@ejemplo.org', displayName:'Ana' };
@@ -94,6 +98,8 @@ function atender(op, a, quien){
                               .map(([k, r]) => ({ ...copia(r), id: k.slice(pre.length) }));
   }
   if (op === 'confirmar'){
+    if (sinRedAcuses && a.ops.some(o => /\/acuses\//.test(o.ruta)))
+      throw Object.assign(new Error('unavailable'), { code:'unavailable' });
     for (const [ruta, ver] of Object.entries(a.leidas)){
       const r = nube.get(ruta);
       if ((r ? r.ver : 0) !== ver) return false;
@@ -415,11 +421,22 @@ const buzonDe = uid => [...nube.keys()].filter(k => k.startsWith('users/' + uid 
   const enBeto = await B.pagina.evaluate(() => (document.querySelector('#notas .nota-acciones') || {}).textContent || '');
   vale('  y ya no dice «enviada» ni «leída»', !/enviada|leída|sent|read/i.test(enBeto), enBeto);
   await A.pagina.waitForTimeout(1500);
+  /* Ana la abre justo cuando el acuse no puede salir. Codex lo vio: la carta
+     queda abierta, su bolita se va, y nada volvía a mandar el «leída». */
+  sinRedAcuses = true;
   const t1 = await tocarBola(A.pagina, '#3e7d5a', 41);
   const t2 = t1 || await tocarBola(A.pagina, '#3e7d5a', 42);
   vale('Ana toca la bolita dos veces y abre la carta', !t1 && !t2, t1 || t2);
   await A.pagina.waitForTimeout(600);
-  vale('  y a Beto le llega el acuse de que la leyó', !!acuseAna() && acuseAna().data.estado === 'leida', acuseAna());
+  vale('  sin red, el acuse se queda en «llegó»', !!acuseAna() && acuseAna().data.estado === 'llego', acuseAna());
+  sinRedAcuses = false;
+  /* Ana vuelve a abrir Glossa: al entrar en su cuenta se repasan las cartas,
+     y el «leída» que faltaba sale solo, sin tocar nada. */
+  await A.pagina.goto(base + 'vacio');
+  await A.pagina.goto(base);
+  await listo(A.pagina);
+  for (let i = 0; i < 40 && !(acuseAna() && acuseAna().data.estado === 'leida'); i++) await A.pagina.waitForTimeout(250);
+  vale('  al volver a abrir Glossa, a Beto le llega el acuse de que la leyó', !!acuseAna() && acuseAna().data.estado === 'leida', acuseAna());
   const dos = await palomitas(B.pagina, 2);
   vale('EN LA NOTA DE BETO SALEN DOS PALOMITAS', !!dos && dos.n === 2 && dos.svgs === 2 && /Leída|Read/.test(dos.aria), dos);
 

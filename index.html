@@ -8100,7 +8100,7 @@
    justamente el que sabe cuándo está haciendo el cambio.
 
    Formato: DD-MMM-YY HH:MM, hora de Dallas. */
-window.GLOSS_BUILD = '24-NOV-26 17:55';
+window.GLOSS_BUILD = '24-NOV-26 18:01';
 console.log('%cGloss Bible · compilación ' + window.GLOSS_BUILD,
             'color:#b8892b; font-weight:bold');
 'use strict';
@@ -26875,6 +26875,10 @@ function normalizarRecibida(r){
   if (typeof r.de === 'string' && r.de.trim()) carta.de = r.de.trim().slice(0, 60);
   if (typeof r.deUid === 'string' && /^[\w-]{1,128}$/.test(r.deUid)) carta.deUid = r.deUid;
   if (typeof r.grupo === 'string' && r.grupo.trim()) carta.grupo = r.grupo.trim().slice(0, 60);
+  /* Para las palomitas de quien la mandó (ver LAS PALOMITAS): a qué cuenta
+     llegó y qué acuse quedó ya escrito en la nube. */
+  if (typeof r.para === 'string' && /^[\w-]{1,128}$/.test(r.para)) carta.para = r.para;
+  if (r.acuse === 'llego' || r.acuse === 'leida') carta.acuse = r.acuse;
   /* La de metal no se escribe: es lo que se entiende cuando no dice nada, y
      así una nota vieja y una nueva de metal se guardan igual. */
   if (MATERIALES_CARTA.includes(r.material) && r.material !== 'metal') carta.material = r.material;
@@ -26894,10 +26898,14 @@ function normalizarRecibida(r){
    miembros de ese momento). Se valida igual que todo lo de una nota: las
    reglas con letras sueltas y no con CORREO_UID, que vive más abajo y aquí
    todavía no existe al arrancar. */
+const ENVIO_MAX = 2000;
 function normalizarEnvio(e){
   if (!e || typeof e !== 'object' || typeof e.carta !== 'string' || !/^carta-[a-z0-9-]{1,60}$/.test(e.carta)) return null;
-  const para = Array.isArray(e.para) ? [...new Set(e.para.filter(u => typeof u === 'string' && /^[\w-]{1,128}$/.test(u)))].slice(0, 500) : [];
-  if (!para.length) return null;
+  /* Sin recortar: si la lista se quedara con los primeros, las palomitas
+     dirían «todos» sin contar a los demás (lo vio Codex). Un grupo de más
+     de ENVIO_MAX no lleva palomitas: mejor ninguna que una que miente. */
+  const para = Array.isArray(e.para) ? [...new Set(e.para.filter(u => typeof u === 'string' && /^[\w-]{1,128}$/.test(u)))] : [];
+  if (!para.length || para.length > ENVIO_MAX) return null;
   return { carta: e.carta, para, t: Number.isFinite(e.t) ? e.t : 0 };
 }
 /* La que llegó de otro lector no se edita: se lee como llegó. */
@@ -32923,6 +32931,7 @@ async function correoCuenta(u){
   /* Recibir va primero y aparte: aunque fallara lo demás, lo que te mandan
      tiene que llegar. */
   correoEscuchar();
+  correoAcusarPendientes();
   await correoCargar();
 }
 async function correoCargar(){
@@ -33091,7 +33100,8 @@ async function correoEnviar(nota, destino, color, material = 'metal', rebote = '
      mientras se mandaba. */
   const propia = notas.find(x => x.id === nota.id);
   if (propia && !propia.recibida){
-    propia.envio = { carta:id, para:para.slice(0, 500), t:Date.now() };
+    propia.envio = normalizarEnvio({ carta:id, para, t:Date.now() });
+    if (!propia.envio) delete propia.envio;
     guardarNotas();
   }
   pintarPalomitasNota();
@@ -33117,11 +33127,38 @@ async function correoEnviar(nota, destino, color, material = 'metal', rebote = '
 function correoAcusar(nota, estado){
   const r = nota && nota.recibida;
   if (!r || !r.deUid || !correo.uid || !nubeFb || r.deUid === correo.uid) return;
+  /* Solo la cuenta a la que llegó: con otra, el acuse no le sirve de nada a
+     quien la mandó, y se espera a que vuelva la buena. */
+  if (r.para && r.para !== correo.uid) return;
+  if (r.acuse === 'leida' || r.acuse === estado) return;
   const carta = String(nota.id).replace(/^nota-rec-/, '');
   if (!/^carta-[a-z0-9-]{1,60}$/.test(carta)) return;
-  nubeFb.fs.setDoc(cRef('users', r.deUid, 'acuses', carta + '~' + correo.uid),
-                   { carta, de: correo.uid, estado, t: Date.now() })
+  const uid = correo.uid;
+  nubeFb.fs.setDoc(cRef('users', r.deUid, 'acuses', carta + '~' + uid),
+                   { carta, de: uid, estado, t: Date.now() })
+    .then(() => {
+      /* Se apunta en la nota ya escrito, para no repetirlo; se busca otra vez
+         por su id, por si la nube cambió las notas mientras tanto. */
+      const n = notas.find(x => x.id === nota.id);
+      if (!n || !n.recibida || n.recibida.acuse === 'leida') return;
+      n.recibida.acuse = estado;
+      if (!n.recibida.para) n.recibida.para = uid;
+      guardarNotas();
+    })
     .catch(e => console.warn('Glossa · acuse:', e));
+}
+/* LOS ACUSES QUE SE QUEDARON SIN DEJAR. Si la carta se leyó sin cuenta —se
+   salió de ella después de recogerla— o se cortó la red, el acuse no llegó a
+   la nube, y nada volvería a mandarlo: la carta ya está abierta (lo vio
+   Codex). Al entrar en la cuenta se repasan las cartas recibidas y se deja
+   el que falte: «leida» si ya se abrió, «llego» si no. */
+function correoAcusarPendientes(){
+  if (!correo.uid) return;
+  for (const n of notas){
+    const r = n.recibida;
+    if (!r || !r.deUid) continue;
+    correoAcusar(n, r.estado === 'abierta' ? 'leida' : 'llego');
+  }
 }
 /* Lo que se sabe de cada carta: carta → (lector → 'llego' | 'leida'). */
 const correoAcuses = new Map();
@@ -33180,7 +33217,7 @@ function correoComoNota(id, c){
   const titulo = typeof c.titulo === 'string' && c.titulo.trim() ? c.titulo.trim() : T('Nota', 'Note');
   const nota = { id, titulo: titulo.slice(0, 60), texto: c.texto, filtros: [] };
   if (typeof c.html === 'string' && c.html) nota.html = limpiarHtmlNota(c.html);
-  nota.recibida = normalizarRecibida({ estado:'cerrada', color:c.color, llegada:Date.now(), deUid:c.de,
+  nota.recibida = normalizarRecibida({ estado:'cerrada', color:c.color, llegada:Date.now(), deUid:c.de, para:correo.uid,
     de: typeof c.deNombre === 'string' ? c.deNombre : '', grupo: typeof c.grupo === 'string' ? c.grupo : '',
     material: c.material, rebote: c.rebote });
   /* LAS FOTOS DE LA CARTA, CON NOMBRE PROPIO. Antes se guardaban con el id
